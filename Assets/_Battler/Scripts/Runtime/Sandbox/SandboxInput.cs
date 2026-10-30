@@ -14,7 +14,23 @@ namespace PhysicsBattler.Sandbox
 #if ENABLE_INPUT_SYSTEM
         public static Vector2 MousePosition => Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
         public static Vector2 MouseDelta => Mouse.current != null ? Mouse.current.delta.ReadValue() : Vector2.zero;
-        public static float Scroll => Mouse.current != null ? Mouse.current.scroll.ReadValue().y / 120f : 0f;
+        /// <summary>
+        /// About ±1 per wheel notch. The Input System reports scroll normalized (±1 a notch) by default
+        /// since 1.9, or in platform units (±120 on Windows) if the project keeps the old behaviour.
+        /// </summary>
+        public static float Scroll
+        {
+            get
+            {
+                float y = Mouse.current != null ? Mouse.current.scroll.ReadValue().y : 0f;
+                if (Mathf.Abs(y) > 3f)
+                {
+                    y /= 120f;
+                }
+
+                return Mathf.Clamp(y, -3f, 3f);
+            }
+        }
         public static bool LeftPressed => Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
         public static bool RightHeld => Mouse.current != null && Mouse.current.rightButton.isPressed;
         public static bool MiddleHeld => Mouse.current != null && Mouse.current.middleButton.isPressed;

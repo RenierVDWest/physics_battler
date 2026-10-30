@@ -3,7 +3,9 @@ using PhysicsBattler.Combat;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace PhysicsBattler.Editor.Setup
 {
@@ -14,7 +16,26 @@ namespace PhysicsBattler.Editor.Setup
     /// </summary>
     internal static class PrefabSetup
     {
-        public static void Apply(MaterialSet materials)
+        /// <summary>
+        /// Builds the prefabs in a fresh, throwaway scene, so the temporary objects never touch (or
+        /// dirty) the scene that was open. Offers to save that scene first, if it has changes; returns
+        /// false, building nothing, if the user cancels. <paramref name="previousScene"/> is the path
+        /// of the scene that was open ("" if it was never saved).
+        /// </summary>
+        public static bool ApplyInScratchScene(MaterialSet materials, out string previousScene)
+        {
+            previousScene = SceneManager.GetActiveScene().path;
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return false;
+            }
+
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            Apply(materials);
+            return true;
+        }
+
+        private static void Apply(MaterialSet materials)
         {
             var rig = RigFileLoader.LoadOrc();
             var orcProfile = AssetDatabase.LoadAssetAtPath<UnitProfile>(BattlerPaths.OrcProfile);

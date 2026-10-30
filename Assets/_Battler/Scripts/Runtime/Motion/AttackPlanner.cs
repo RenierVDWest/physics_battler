@@ -135,8 +135,9 @@ namespace PhysicsBattler.Motion
                 return false;
             }
 
-            var hand = self.Rig.Part(PartId.HandR).transform;
-            entryTheta = Mathf.Clamp(SwingSolver.AngleOf(Plan, hand.forward), -60f, 60f);
+            // The physical hand's rotation (its rigidbody's, not the interpolated transform's).
+            var hand = self.Rig.Part(PartId.HandR).body;
+            entryTheta = SwingSolver.AngleOf(Plan, hand.rotation * Vector3.forward);
             SetPhase(Phase.WindUp);
             return true;
         }
@@ -277,12 +278,26 @@ namespace PhysicsBattler.Motion
             float u = phaseTime / Duration(Current, d);
             switch (Current)
             {
-                case Phase.WindUp: return Mathf.Lerp(entryTheta, d.windUpAngle, Ease.InOutCubic(u));
+                case Phase.WindUp:
+                {
+                    // From the carry (club up on the shoulder, a positive angle) the wind-up goes on over
+                    // the top and drops behind, never down through the front where the target stands.
+                    float windUp = entryTheta > 0f ? d.windUpAngle + 360f : d.windUpAngle;
+                    return WrapAngle(Mathf.Lerp(entryTheta, windUp, Ease.InOutCubic(u)));
+                }
+
                 case Phase.Load: return Mathf.Lerp(d.windUpAngle, d.loadAngle, Ease.OutCubic(u));
                 case Phase.Strike: return Mathf.Lerp(d.loadAngle, d.followAngle, Ease.InPower(u, d.strikePower));
                 case Phase.Follow: return d.followAngle + 10f * Ease.OutCubic(u);
                 default: return d.followAngle + 10f;
             }
+        }
+
+        /// <summary>An angle in degrees, wrapped into (-180, 180].</summary>
+        private static float WrapAngle(float degrees)
+        {
+            float wrapped = Mathf.Repeat(degrees + 180f, 360f) - 180f;
+            return wrapped <= -180f ? wrapped + 360f : wrapped;
         }
 
         private float ArmWeight()
@@ -304,10 +319,20 @@ namespace PhysicsBattler.Motion
             float weight = ArmWeight();
             var plan = Plan;
 
-            // Coil: 1 fully wound back, 0 at contact, -0.7 unwound past it.
-            float coil = Theta < 0f
-                ? Mathf.Clamp01(-Theta / Mathf.Max(1f, -d.loadAngle))
-                : -0.7f * Mathf.Clamp01(Theta / Mathf.Max(1f, d.followAngle));
+            // Coil: 1 fully wound back, 0 at contact, -0.7 unwound past it. In the wind-up it follows the
+            // phase's progress instead of the angle, which may start anywhere (the carry is over the shoulder).
+            float coil;
+            if (Current == Phase.WindUp)
+            {
+                float u = Mathf.Clamp01(phaseTime / Duration(Phase.WindUp, d));
+                coil = Ease.InOutCubic(u) * Mathf.Clamp01(-d.windUpAngle / Mathf.Max(1f, -d.loadAngle));
+            }
+            else
+            {
+                coil = Theta < 0f
+                    ? Mathf.Clamp01(-Theta / Mathf.Max(1f, -d.loadAngle))
+                    : -0.7f * Mathf.Clamp01(Theta / Mathf.Max(1f, d.followAngle));
+            }
             float twist = coil * d.twistDegrees * d.side * weight;
             float strikeLean = Current == Phase.Strike || Current == Phase.Follow ? plan.extraLean : 0f;
             float lean = coil > 0f ? -d.leanBack * coil * scale : d.leanForward * (-coil / 0.7f) * scale;
@@ -339,16 +364,26 @@ namespace PhysicsBattler.Motion
             arm = Mathf.Max(reach.minArm, Mathf.Min(arm, groundLimit));
             Vector3 grip = shoulder + direction * arm;
 
-            // The hand's forward is the weapon's direction; its up points back along the forearm.
-            Vector3 up = Vector3.ProjectOnPlane(shoulder - grip, direction);
-            if (up.sqrMagnitude < 1e-6f)
+            Vector3 pole = (-0.6f * self.Root.up + 0.5f * d.side * self.Root.right - 0.4f * self.Root.forward).normalized;
+
+            // The hand's forward is the weapon's direction. Its up (toward the elbow) stays in the swing
+            // plane, square to the weapon, so the hand rolls with the arc instead of with the world and
+            // the wrist never twists through the swing. The side is the one the elbow is on at contact.
+            Vector3 tangent = Vector3.Cross(direction, plan.axis);
+            Vector3 contactTangent = Vector3.Cross(plan.contactDirection, plan.axis);
+            if (Vector3.Dot(contactTangent, pole) < 0f)
             {
-                up = self.Root.up;
+                tangent = -tangent;
+            }
+
+            if (tangent.sqrMagnitude < 1e-6f)
+            {
+                tangent = self.Root.up;
             }
 
             pose.gripTarget = grip;
-            pose.handRotation = Quaternion.LookRotation(direction, up.normalized);
-            pose.elbowPole = (-0.6f * self.Root.up + 0.5f * d.side * self.Root.right - 0.4f * self.Root.forward).normalized;
+            pose.handRotation = Quaternion.LookRotation(direction, tangent.normalized);
+            pose.elbowPole = pole;
             return pose;
         }
     }

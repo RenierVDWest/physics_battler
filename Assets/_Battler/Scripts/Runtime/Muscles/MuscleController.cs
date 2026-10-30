@@ -105,7 +105,7 @@ namespace PhysicsBattler.Muscles
                     continue;
                 }
 
-                Vector3 pivot = rig.Part(id).transform.position;
+                Vector3 pivot = rig.Part(id).body.position;
                 float own = InertiaAbout(rig.Part(id).body, pivot);
                 float total = 0f;
                 foreach (var other in PartInfo.All)

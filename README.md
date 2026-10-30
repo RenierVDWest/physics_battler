@@ -45,7 +45,8 @@ Each layer depends on the one before it, so check them in this order.
    `Data/Units/UP_Orc`; if they wobble, raise `dampingRatio` or lower the muscle Hz.
 3. **Pushing.** Click a chest with a small push: the orc should wobble and recover. A big push should make it stagger,
    take catch steps, and then fall and get back up, but never go limp.
-4. **The swing.** Space: a slow wind-up low along the right side, a short coil, then an accelerating strike into the chest.
+4. **The swing.** Orc A carries the club upright over his shoulder. Space: the club drops back over the top and low behind
+   him on the right, a short coil, then an accelerating strike up into the chest.
    If the club lags far behind the ghost, raise `armHz` or the attack's `strikeArmBoost`.
 5. **The hit.** Orc B should take damage, stagger and step back. The hit log shows the speed. If swings never register,
    lower `minHitSpeed` on `Data/Weapons/WD_ClubBig`.

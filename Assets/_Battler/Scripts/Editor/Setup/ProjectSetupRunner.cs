@@ -59,7 +59,14 @@ namespace PhysicsBattler.Editor.Setup
                 var materials = MaterialSetup.Apply();
                 ModelImportSetup.Apply(materials);
                 DataSetup.Apply();
-                PrefabSetup.Apply(materials);
+                if (!PrefabSetup.ApplyInScratchScene(materials, out _))
+                {
+                    AssetDatabase.SaveAssets();
+                    Debug.LogWarning($"{LogPrefix} Setup paused before the prefabs and the Sandbox scene, because saving "
+                                     + "the open scene was cancelled. Run Physics Battler > Setup > Run Project Setup to finish.");
+                    return;
+                }
+
                 SceneSetup.Apply();
                 AssetDatabase.SaveAssets();
                 SetupVersion.MarkCurrent();
@@ -82,8 +89,20 @@ namespace PhysicsBattler.Editor.Setup
                 var materials = MaterialSetup.Apply();
                 ModelImportSetup.Apply(materials);
                 DataSetup.Apply();
-                PrefabSetup.Apply(materials);
+                if (!PrefabSetup.ApplyInScratchScene(materials, out string previousScene))
+                {
+                    Debug.LogWarning($"{LogPrefix} Prefabs not rebuilt: saving the open scene was cancelled.");
+                    return;
+                }
+
                 AssetDatabase.SaveAssets();
+                string reopen = !string.IsNullOrEmpty(previousScene) ? previousScene
+                    : File.Exists(BattlerPaths.SandboxScene) ? BattlerPaths.SandboxScene : null;
+                if (reopen != null)
+                {
+                    UnityEditor.SceneManagement.EditorSceneManager.OpenScene(reopen);
+                }
+
                 Debug.Log($"{LogPrefix} Prefabs rebuilt.");
             }
             catch (Exception exception)

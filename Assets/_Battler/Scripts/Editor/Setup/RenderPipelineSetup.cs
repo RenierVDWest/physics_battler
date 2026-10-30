@@ -50,7 +50,8 @@ namespace PhysicsBattler.Editor.Setup
             var rendererData = ScriptableObject.CreateInstance<UniversalRendererData>();
             rendererData.postProcessData = AssetDatabase.LoadAssetAtPath<PostProcessData>(DefaultPostProcessDataPath);
             AssetDatabase.CreateAsset(rendererData, BattlerPaths.UrpRenderer);
-            ResourceReloader.ReloadAllNullIn(rendererData, UniversalRenderPipelineAsset.packagePath);
+            // No ResourceReloader call: in Unity 6, URP's shaders and resources live in the graphics
+            // settings and are filled in by the pipeline itself.
 
             var asset = UniversalRenderPipelineAsset.Create(rendererData);
             asset.supportsHDR = true;

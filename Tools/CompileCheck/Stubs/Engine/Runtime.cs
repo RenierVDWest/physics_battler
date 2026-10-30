@@ -251,6 +251,7 @@ namespace UnityEngine.SceneManagement
     public struct Scene
     {
         public string name => "";
+        public string path => "";
         public bool IsValid() => true;
     }
 

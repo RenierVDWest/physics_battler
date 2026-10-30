@@ -19,14 +19,12 @@ namespace PhysicsBattler.Editor.Setup
     /// </summary>
     internal static class SceneSetup
     {
+        /// <summary>
+        /// Opens (creating it if needed) the Sandbox scene. Runs right after the prefabs are built in a
+        /// throwaway scene, which it replaces without asking.
+        /// </summary>
         public static void Apply()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-            {
-                Debug.LogWarning("[Battler Setup] Scene step skipped because the open scene was not saved.");
-                return;
-            }
-
             if (!File.Exists(BattlerPaths.SandboxScene))
             {
                 CreateScene();

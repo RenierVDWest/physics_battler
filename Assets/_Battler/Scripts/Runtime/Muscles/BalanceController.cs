@@ -19,6 +19,13 @@ namespace PhysicsBattler.Muscles
         private readonly UnitProfile profile;
         private readonly Stance stance;
 
+        /// <summary>How long the body has stayed off its feet with no catch steps left.</summary>
+        private float stuckTime;
+        private bool bonusStepUsed;
+
+        /// <summary>Out of steps and still off balance for this long: take one more step, then give up and fall.</summary>
+        private const float StuckGiveUp = 0.4f;
+
         public Vector3 CenterOfMass { get; private set; }
         public Vector3 CapturePoint { get; private set; }
         public Vector3 SupportCenter { get; private set; }
@@ -80,26 +87,68 @@ namespace PhysicsBattler.Muscles
         /// </summary>
         public bool UpdateCatchSteps(float groundY, float scale)
         {
+            if (stance.StepsTaken == 0)
+            {
+                bonusStepUsed = false;
+            }
+
             if (stance.Stepping)
             {
+                stuckTime = 0f;
                 return true;
             }
 
             float threshold = profile.stepThreshold * scale;
             if (BalanceError <= threshold)
             {
+                stuckTime = 0f;
                 return true;
             }
 
             if (stance.StepsTaken >= profile.maxSteps)
             {
-                return BalanceError < threshold * 3f;
+                if (BalanceError >= threshold * 3f)
+                {
+                    return false;
+                }
+
+                // Held off its feet by the assist but never caught: without this it could hang in
+                // Stagger forever. One more step, and if that doesn't do it, fall.
+                stuckTime += Time.fixedDeltaTime;
+                if (stuckTime < StuckGiveUp)
+                {
+                    return true;
+                }
+
+                if (bonusStepUsed)
+                {
+                    return false;
+                }
+
+                bonusStepUsed = true;
+                stance.StepsTaken = profile.maxSteps - 1;
             }
 
+            stuckTime = 0f;
             Vector3 left = stance.Planted(PartId.FootL);
             Vector3 right = stance.Planted(PartId.FootR);
             Vector3 capture = CapturePoint;
-            bool moveLeft = Flat(left - capture).sqrMagnitude > Flat(right - capture).sqrMagnitude;
+
+            // Falling mostly sideways: step with the foot on the falling side, so the legs never cross.
+            // Otherwise (forward or back): step with the foot farther from where the weight is going.
+            Vector3 across = Flat(right - left);
+            Vector3 fall = Flat(capture - SupportCenter);
+            bool moveLeft;
+            if (across.sqrMagnitude > 1e-6f && fall.sqrMagnitude > 1e-6f
+                && Mathf.Abs(Vector3.Dot(fall.normalized, across.normalized)) > 0.7f)
+            {
+                moveLeft = Vector3.Dot(fall, across) < 0f;
+            }
+            else
+            {
+                moveLeft = Flat(left - capture).sqrMagnitude > Flat(right - capture).sqrMagnitude;
+            }
+
             Vector3 staying = moveLeft ? right : left;
             Vector3 moving = moveLeft ? left : right;
 

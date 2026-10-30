@@ -28,6 +28,17 @@ namespace PhysicsBattler.Rig
         public Vector3 CachedAngularVelocity { get; private set; }
         public Vector3 CachedCenterOfMass { get; private set; }
 
+        /// <summary>
+        /// Where a point attached to this part (given where the transform shows it) is in the physics
+        /// pose. Transforms of interpolated bodies lag the simulation inside FixedUpdate; the rigidbody
+        /// doesn't.
+        /// </summary>
+        public Vector3 PhysicalPoint(Vector3 pointOnTransform)
+        {
+            Vector3 local = Quaternion.Inverse(transform.rotation) * (pointOnTransform - transform.position);
+            return body.position + body.rotation * local;
+        }
+
         public void CacheState()
         {
             CachedVelocity = body.linearVelocity;

@@ -28,10 +28,15 @@ namespace PhysicsBattler.Motion
     public sealed class PoseComposer
     {
         /// <summary>
-        /// How the right hand carries a weapon at rest, relative to the unit root: tipped 15° down and
-        /// turned 15° out to the right, so a long weapon points away from whoever stands in front.
+        /// How a weapon is carried at rest: forearm raised level, so the weapon (square to the forearm in
+        /// the fist) stands up, then tipped back and out at the wrist to rest over the shoulder. A long
+        /// weapon then never points at whoever stands in front, and its weight sits over the hand
+        /// instead of hanging off the wrist. Local rotations, relative to each part's rest pose.
         /// </summary>
-        public static readonly Quaternion WeaponCarry = Quaternion.Euler(15f, 15f, 0f);
+        public static readonly Quaternion CarryForearm = Quaternion.Euler(-90f, 0f, 0f);
+
+        /// <inheritdoc cref="CarryForearm"/>
+        public static readonly Quaternion CarryHand = Quaternion.Euler(-12f, 12f, 0f);
 
         private readonly GhostRig ghost;
         private readonly UnitRig rig;
@@ -78,15 +83,15 @@ namespace PhysicsBattler.Motion
             // Arms: relaxed, held out a little more when staggered.
             float sway = Mathf.Sin(request.time * 2f * Mathf.PI * 0.35f + 1.3f) * 2f;
             float spread = staggered ? 28f : 6f;
-            ghost.Part(PartId.UpperArmR).localRotation = Quaternion.Euler(-6f + sway, 0f, spread);
-            ghost.Part(PartId.ForearmR).localRotation = Quaternion.Euler(-14f, 0f, 0f);
+            ghost.Part(PartId.UpperArmR).localRotation = Quaternion.Euler(-6f + sway * (request.holdingWeapon ? 0.4f : 1f), 0f, spread);
+            ghost.Part(PartId.ForearmR).localRotation = request.holdingWeapon ? CarryForearm : Quaternion.Euler(-14f, 0f, 0f);
             float freePitch = action.active ? action.freeArmPitch : 0f;
             float freeOut = action.active ? action.freeArmOut : 0f;
             ghost.Part(PartId.UpperArmL).localRotation = Quaternion.Euler(-6f - sway + freePitch, 0f, -(spread + freeOut));
             ghost.Part(PartId.ForearmL).localRotation = Quaternion.Euler(-14f - Mathf.Max(0f, -freePitch) * 0.5f, 0f, 0f);
             if (request.holdingWeapon)
             {
-                ghost.Part(PartId.HandR).rotation = root.rotation * WeaponCarry;
+                ghost.Part(PartId.HandR).localRotation = CarryHand;
             }
 
             if (action.active && action.weaponArmWeight > 0f)
@@ -137,9 +142,21 @@ namespace PhysicsBattler.Motion
             }
         }
 
+        /// <summary>
+        /// Copies a physical part's rotation relative to its parent into the ghost. Reads the rigidbodies,
+        /// not the transforms, which are interpolated between physics steps.
+        /// </summary>
         private void CopyPhysical(PartId id)
         {
-            ghost.Part(id).localRotation = rig.Part(id).transform.localRotation;
+            var part = rig.Part(id);
+            if (!PartInfo.HasParent(id))
+            {
+                ghost.Part(id).localRotation = part.transform.localRotation;
+                return;
+            }
+
+            var parent = rig.Part(PartInfo.Parent(id));
+            ghost.Part(id).localRotation = Quaternion.Inverse(parent.body.rotation) * part.body.rotation;
         }
 
         /// <summary>Turns the head toward a point, within a comfortable range of the chest.</summary>

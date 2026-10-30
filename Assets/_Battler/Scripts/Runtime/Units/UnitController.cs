@@ -83,7 +83,9 @@ namespace PhysicsBattler.Units
         public bool IsInitialized => initialized;
 
         /// <summary>Where attackers aim: the physical chest's aim marker.</summary>
-        public Vector3 AimPoint => Rig.AimChest != null ? Rig.AimChest.position : Rig.Part(PartId.Chest).transform.position;
+        public Vector3 AimPoint => Rig.AimChest != null
+            ? Rig.Part(PartId.Chest).PhysicalPoint(Rig.AimChest.position)
+            : Rig.Part(PartId.Chest).body.position;
 
         public Vector3 AimVelocity => Rig.Part(PartId.Chest).body.linearVelocity;
 
@@ -222,12 +224,20 @@ namespace PhysicsBattler.Units
             }
 
             var hand = Rig.Part(PartId.HandR);
+            var forearm = Rig.Part(PartId.ForearmR);
 
-            // Turn the hand (about the wrist, its pivot) into the carry pose before the weapon is in it,
-            // so a long weapon never appears inside whoever stands in front.
-            var carry = transform.rotation * PoseComposer.WeaponCarry;
-            hand.transform.rotation = carry;
-            hand.body.rotation = carry;
+            // Put the arm in the carry pose (weapon up over the shoulder) before the weapon is in it, so a
+            // long weapon never appears inside whoever stands in front. The body is a transform tree, so
+            // turning the forearm carries the hand; then the rigidbodies are moved to match.
+            forearm.transform.localRotation = forearm.restLocalRotation * PoseComposer.CarryForearm;
+            hand.transform.localRotation = hand.restLocalRotation * PoseComposer.CarryHand;
+            foreach (var moved in new[] { forearm, hand })
+            {
+                moved.body.position = moved.transform.position;
+                moved.body.rotation = moved.transform.rotation;
+                moved.body.linearVelocity = Vector3.zero;
+                moved.body.angularVelocity = Vector3.zero;
+            }
             weapon.AttachTo(this, hand, Rig.SlotWeaponR, Layers.Index(Layers.Weapon));
             foreach (var weaponCollider in weapon.colliders)
             {
@@ -289,7 +299,7 @@ namespace PhysicsBattler.Units
             var pelvis = Rig.Part(PartId.Pelvis).body;
             var sense = new BodySense
             {
-                tiltDegrees = Vector3.Angle(Rig.Part(PartId.Chest).transform.up, Vector3.up),
+                tiltDegrees = Vector3.Angle(Rig.Part(PartId.Chest).body.rotation * Vector3.up, Vector3.up),
                 pelvisHeight = pelvis.position.y - GroundY,
                 restPelvisHeight = restPelvisHeight,
                 pelvisSpeed = pelvis.linearVelocity.magnitude,
@@ -437,7 +447,7 @@ namespace PhysicsBattler.Units
         {
             Vector3 pelvis = Rig.Part(PartId.Pelvis).body.position;
             Vector3 head = Rig.Part(PartId.Head).body.position;
-            Vector3 facing = Vector3.ProjectOnPlane(Rig.Part(PartId.Chest).transform.forward, Vector3.up);
+            Vector3 facing = Vector3.ProjectOnPlane(Rig.Part(PartId.Chest).body.rotation * Vector3.forward, Vector3.up);
             Vector3 along = Vector3.ProjectOnPlane(head - pelvis, Vector3.up);
             if (along.sqrMagnitude > facing.sqrMagnitude)
             {
@@ -472,7 +482,10 @@ namespace PhysicsBattler.Units
                 lastGroundedTime = Time.time;
             }
 
-            var otherPart = other.GetComponentInParent<BodyPart>();
+            // Weapon on weapon is a clash, not a hit on the hand holding the other one: the physics
+            // deflects both and nobody takes damage.
+            var otherWeapon = other.GetComponentInParent<Weapon>();
+            var otherPart = otherWeapon == null ? other.GetComponentInParent<BodyPart>() : null;
             if (Weapon != null && part == Weapon.Hand && otherPart != null && otherPart.Owner != null && otherPart.Owner != this)
             {
                 for (int i = 0; i < collision.contactCount; i++)
@@ -487,7 +500,7 @@ namespace PhysicsBattler.Units
             }
 
             // Shoves: other units' bodies and props. A weapon striking us is the impact system's job.
-            if (entered && collision.rigidbody != null && other.GetComponentInParent<Weapon>() == null)
+            if (entered && collision.rigidbody != null && otherWeapon == null)
             {
                 ImpactSystem.ResolveShove(this, part, collision);
             }
