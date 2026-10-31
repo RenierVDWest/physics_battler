@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using PhysicsBattler.Combat;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEngine;
@@ -17,7 +18,7 @@ namespace PhysicsBattler.Diagnostics
     ///   events.log          one line per thing that happened, with the reasons the code gave
     ///   meta.json           machine-readable index: units, files, parts, marks
     ///   config/*.json       the unit profiles and combat styles as they were (and if changed in play)
-    ///   units/NN_Name.frames.csv.gz   one row per physics step: stance, balance, authority, pose errors
+    ///   units/NN_Name.frames.csv.gz   one row per physics step: stance, balance, authority, pose errors, the blow under way
     ///   units/NN_Name.pose.csv.gz     every part's physical position/rotation and its animated position
     ///   world.csv.gz        props (crates, barrels) positions
     ///   frames/NNNNNN.jpg   small square pictures of the game view, 8 per second (frames/frames.csv says when)
@@ -160,6 +161,10 @@ namespace PhysicsBattler.Diagnostics
 
             PlaytestTrace.Noted += OnTrace;
             UnitController.Initialized += OnUnitInitialized;
+            UnitController.MoveStarted += OnMoveStarted;
+            UnitController.MoveContact += OnMoveContact;
+            UnitController.MoveEnded += OnMoveEnded;
+            UnitController.WeaponTouched += OnWeaponTouched;
             Application.logMessageReceived += OnConsole;
 
             foreach (var unit in FindObjectsByType<UnitController>())
@@ -199,6 +204,10 @@ namespace PhysicsBattler.Diagnostics
 
             PlaytestTrace.Noted -= OnTrace;
             UnitController.Initialized -= OnUnitInitialized;
+            UnitController.MoveStarted -= OnMoveStarted;
+            UnitController.MoveContact -= OnMoveContact;
+            UnitController.MoveEnded -= OnMoveEnded;
+            UnitController.WeaponTouched -= OnWeaponTouched;
             Application.logMessageReceived -= OnConsole;
 
             foreach (var track in tracks.ToArray())
@@ -269,6 +278,61 @@ namespace PhysicsBattler.Diagnostics
         // Units announce themselves from Awake, inside Instantiate, before the spawner has named them
         // and given them a weapon: start following them at the next physics step.
         private void OnUnitInitialized(UnitController unit) => pending.Add(unit);
+
+        private UnitTrack TrackOf(UnitController unit)
+        {
+            foreach (var track in tracks)
+            {
+                if (track.unit == unit)
+                {
+                    return track;
+                }
+            }
+
+            return null;
+        }
+
+        private static string NameOf(object unit) => unit is UnitController u && u != null ? u.name : "a point";
+
+        private static string Cm(float metres) => (metres * 100f).ToString("0.0", CultureInfo.InvariantCulture);
+
+        private void OnMoveStarted(UnitController unit, MoveState move)
+        {
+            NoteConfig(move.Move);
+            NoteConfig(move.Weapon);
+            Event(TrackOf(unit), "attack", $"{move.Move.name.Replace("MD_", "")} at {NameOf(move.Target)}'s {move.Part}: aim locked at "
+                                           + $"({move.Aim.x:0.00}, {move.Aim.y:0.00}, {move.Aim.z:0.00}), lunge {move.Lunge.magnitude:0.00} m, "
+                                           + $"{move.Duration:0.00} s, contact at {move.ContactTime * move.Duration:0.00} s");
+        }
+
+        private void OnMoveContact(UnitController unit, MoveState move, ContactReport report)
+        {
+            string struck = report.StruckUnit != null
+                ? $"nearest part {report.StruckUnit.name}'s {report.StruckPart} ({Cm(report.StruckDistance)} cm)"
+                : "nothing near";
+            string line = $"{move.Move.name.Replace("MD_", "")} at {NameOf(move.Target)}'s {move.Part}: passed {Cm(report.AnimError)} cm from the aim point; "
+                          + $"{struck}; the {move.Part} had moved {Cm(report.TargetMoved)} cm since the aim was locked";
+            var track = TrackOf(unit);
+            Event(track, "contact", line);
+            track?.NoteContact(move, report, $"{Now:0.00} s: {line}");
+        }
+
+        private void OnMoveEnded(UnitController unit, MoveState move)
+        {
+            var track = TrackOf(unit);
+            string physical = move.PhysicalClosest >= 0f ? $"the physical weapon passed {Cm(move.PhysicalClosest)} cm from the aim point at its closest" : "no physical weapon";
+            Event(track, "attack", $"{move.Move.name.Replace("MD_", "")} done: {physical}");
+            track?.NotePhysical(move.PhysicalClosest);
+        }
+
+        private void OnWeaponTouched(UnitController unit, Weapon weapon, BodyPart part, float speed)
+        {
+            var move = unit.CurrentMove;
+            bool intended = move != null && ReferenceEquals(part.Owner, move.Target) && part.id == AimPartInfo.BodyPartOf(move.Part);
+            string what = intended ? "the part aimed at" : ReferenceEquals(part.Owner, move?.Target) ? "the target, another part" : part.Owner != null && part.Owner.Team == unit.Team ? "an ally (stray)" : "stray";
+            Event(TrackOf(unit), "touch", $"{(weapon.definition != null ? weapon.definition.name : "weapon")} touched {(part.Owner != null ? part.Owner.name : "?")}'s {part.id} "
+                                          + $"at {speed:0.0} m/s: {what}");
+        }
 
         private void Follow(UnitController unit)
         {

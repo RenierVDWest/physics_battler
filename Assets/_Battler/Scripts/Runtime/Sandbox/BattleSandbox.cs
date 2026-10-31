@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using PhysicsBattler.Board;
+using PhysicsBattler.Combat;
 using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
@@ -10,11 +11,17 @@ using UnityEngine;
 namespace PhysicsBattler.Sandbox
 {
     /// <summary>
-    /// The battle sandbox: the 8 by 8 board with three units a side (small, medium, large), each
-    /// facing the nearest enemy. Milestone 1: they stand in their stances and move as their combat
-    /// styles say. Keys: R reset, P pause, . step one physics frame, T turn everyone around, M mark
-    /// the playtest log. Right-drag orbits, middle-drag pans, scroll zooms. Every Play session is
-    /// recorded by a <see cref="PlaytestRecorder"/> into PlaytestLogs/.
+    /// The battle sandbox: the 8 by 8 board and the units laid out on it as <see cref="UnitSpawn"/>
+    /// markers in the scene (each shows its unit while you edit). In play, the markers' previews go
+    /// and the real units are spawned on them.
+    ///
+    /// Milestone 2: units close in on the nearest enemy, face it, and strike at a body part their
+    /// moves can reach (<see cref="MovePlanner"/>): the blow is aimed at where that part was when
+    /// it started. Weapons don't hurt yet (milestone 3); what they touch is logged.
+    ///
+    /// Keys: R reset, P pause, . step one physics frame, T turn everyone around, F fighting on/off,
+    /// M mark the playtest log. Right-drag orbits, middle-drag pans, scroll zooms. Every Play session
+    /// is recorded by a <see cref="PlaytestRecorder"/> into PlaytestLogs/.
     /// </summary>
     public class BattleSandbox : MonoBehaviour
     {
@@ -27,22 +34,48 @@ namespace PhysicsBattler.Sandbox
         public Material teamA;
         public Material teamB;
 
-        [Header("Line-up (columns A to H, rows 1 to 8)")]
-        public Tile[] teamASmallMediumLarge = { new Tile(2, 2), new Tile(4, 2), new Tile(6, 2) };
-        public Tile[] teamBSmallMediumLarge = { new Tile(5, 5), new Tile(3, 5), new Tile(1, 5) };
+        [Header("Fighting")]
+        [Tooltip("Units close in and strike. Off: they only stand and face each other (F).")]
+        public bool fight = true;
+        [Tooltip("Seed for the choice of blows and timings (0: different every time).")]
+        public int seed;
 
         private readonly List<UnitController> units = new List<UnitController>();
+        private Brawl brawl = new Brawl(0);
         private PlaytestRecorder recorder;
         private bool turnedAway;
         private float timeScale = 1f;
         private bool paused;
         private string message = "";
-        private Rect panelRect = new Rect(12, 12, 290, 10);
+        private Rect panelRect = new Rect(12, 12, 300, 10);
 
         public IReadOnlyList<UnitController> Units => units;
 
+        public UnitController PrefabFor(BodySize body)
+        {
+            switch (body)
+            {
+                case BodySize.Small: return smallPrefab;
+                case BodySize.Large: return largePrefab;
+                default: return mediumPrefab;
+            }
+        }
+
+        public UnitProfile ProfileFor(BodySize body)
+        {
+            var prefab = PrefabFor(body);
+            return prefab != null ? prefab.Profile : null;
+        }
+
+        public Material TeamMaterial(int team) => team == 0 ? teamA : teamB;
+
         private void Start()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             recorder = FindAnyObjectByType<PlaytestRecorder>();
             if (recorder == null)
             {
@@ -56,7 +89,10 @@ namespace PhysicsBattler.Sandbox
 
         private void OnDisable()
         {
-            Time.timeScale = 1f;
+            if (Application.isPlaying)
+            {
+                Time.timeScale = 1f;
+            }
         }
 
         private static void Note(string text)
@@ -69,38 +105,54 @@ namespace PhysicsBattler.Sandbox
 
         private BoardGrid Grid => board != null ? board.grid : new BoardGrid();
 
+        /// <summary>Spawns a unit on every <see cref="UnitSpawn"/> marker in the scene (the markers' previews are hidden in play).</summary>
         public void Spawn()
         {
             Clear();
             turnedAway = false;
-            var prefabs = new[] { smallPrefab, mediumPrefab, largePrefab };
-            var sizes = new[] { "Small", "Medium", "Large" };
-            for (int team = 0; team < 2; team++)
+            brawl = new Brawl(seed);
+            var spawns = FindObjectsByType<UnitSpawn>();
+            System.Array.Sort(spawns, (a, b) => a.team != b.team ? a.team.CompareTo(b.team) : a.body.CompareTo(b.body));
+            var count = new Dictionary<string, int>();
+            foreach (var spawn in spawns)
             {
-                var tiles = team == 0 ? teamASmallMediumLarge : teamBSmallMediumLarge;
-                for (int k = 0; k < 3; k++)
+                spawn.ClearPreview();
+                var prefab = PrefabFor(spawn.body);
+                if (prefab == null)
                 {
-                    if (prefabs[k] == null)
-                    {
-                        message = "Missing unit prefabs. Run Physics Battler > Setup > Run Project Setup.";
-                        continue;
-                    }
-
-                    var tile = tiles[k];
-                    var position = Grid.Center(tile);
-                    var unit = Instantiate(prefabs[k], position, Quaternion.Euler(0f, BoardGrid.TeamYaw(team), 0f));
-                    unit.name = $"{(team == 0 ? "A" : "B")} {sizes[k]}";
-                    unit.Team = team;
-                    Tint(unit, team == 0 ? teamA : teamB);
-                    units.Add(unit);
+                    message = "Missing unit prefabs. Run Physics Battler > Setup > Run Project Setup.";
+                    continue;
                 }
+
+                var unit = Instantiate(prefab, spawn.transform.position, Quaternion.Euler(0f, BoardGrid.TeamYaw(spawn.team), 0f));
+                string label = $"{(spawn.team == 0 ? "A" : "B")} {spawn.BodyName}";
+                count[label] = count.TryGetValue(label, out int n) ? n + 1 : 1;
+                unit.name = count[label] > 1 ? $"{label} {count[label]}" : label;
+                unit.Team = spawn.team;
+                if (spawn.profileOverride != null)
+                {
+                    unit.Profile = spawn.profileOverride;
+                }
+
+                Tint(unit, TeamMaterial(spawn.team));
+                units.Add(unit);
+                pendingEquip.Add((unit, spawn.mainHand, spawn.offHand));
+            }
+
+            if (spawns.Length == 0)
+            {
+                message = "No unit markers in the scene. Add a UnitSpawn (or run Physics Battler > Setup > Run Project Setup).";
             }
 
             Note($"spawn: {units.Count} units on the {Grid.columns}x{Grid.rows} board");
         }
 
+        // Weapons go in the hands once the unit has built its rig (its Awake runs on Instantiate).
+        private readonly List<(UnitController unit, WeaponDefinition main, WeaponDefinition off)> pendingEquip =
+            new List<(UnitController, WeaponDefinition, WeaponDefinition)>();
+
         /// <summary>The body material takes the team colour; the joints keep theirs.</summary>
-        private static void Tint(UnitController unit, Material material)
+        public static void Tint(UnitController unit, Material material)
         {
             if (material == null)
             {
@@ -133,61 +185,53 @@ namespace PhysicsBattler.Sandbox
             }
 
             units.Clear();
+            pendingEquip.Clear();
         }
 
         private void FixedUpdate()
         {
-            // Everyone faces the nearest enemy (or away from it, to test turning and stepping).
-            foreach (var unit in units)
+            if (!Application.isPlaying)
             {
-                if (unit == null || !unit.IsInitialized)
-                {
-                    continue;
-                }
+                return;
+            }
 
-                var enemy = Nearest(unit);
-                if (enemy != null)
+            foreach (var (unit, main, off) in pendingEquip)
+            {
+                if (unit != null && unit.IsInitialized)
                 {
-                    Vector3 point = enemy.Root.position;
-                    if (turnedAway)
+                    unit.Equip(main, off);
+                    if (PlaytestTrace.Enabled)
                     {
-                        point = unit.Root.position * 2f - point;
+                        PlaytestTrace.Note(unit, "equip", $"{(main != null ? main.name : "bare hands")}{(off != null ? " and " + off.name : "")}, scaled {unit.Loadout.Scale:0.00}");
                     }
-
-                    unit.FacePoint(point);
-                }
-            }
-        }
-
-        private UnitController Nearest(UnitController unit)
-        {
-            UnitController best = null;
-            float bestDistance = float.MaxValue;
-            foreach (var other in units)
-            {
-                if (other == null || other == unit || other.Team == unit.Team)
-                {
-                    continue;
-                }
-
-                float d = (other.Root.position - unit.Root.position).sqrMagnitude;
-                if (d < bestDistance)
-                {
-                    bestDistance = d;
-                    best = other;
                 }
             }
 
-            return best;
+            pendingEquip.Clear();
+            brawl.Fight = fight;
+            brawl.TurnedAway = turnedAway;
+            brawl.Step(units, Time.fixedDeltaTime, Time.time);
         }
 
         private void Update()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             if (SandboxInput.KeyPressed(KeyCode.R)) Spawn();
             if (SandboxInput.KeyPressed(KeyCode.P)) TogglePause();
             if (SandboxInput.KeyPressed(KeyCode.Period)) StepOnce();
             if (SandboxInput.KeyPressed(KeyCode.T)) TurnAround();
             if (SandboxInput.KeyPressed(KeyCode.M)) Mark();
+            if (SandboxInput.KeyPressed(KeyCode.F)) ToggleFight();
+        }
+
+        public void ToggleFight()
+        {
+            fight = !fight;
+            Note(fight ? "fighting on" : "fighting off");
         }
 
         public void TurnAround()
@@ -231,6 +275,11 @@ namespace PhysicsBattler.Sandbox
 
         private void OnGUI()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             panelRect = GUILayout.Window(4711, panelRect, DrawPanel, "Physics Battler", GUILayout.Width(290));
             foreach (var unit in units)
             {
@@ -240,11 +289,12 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label("R reset · P pause · . step · T turn around · M mark");
+            GUILayout.Label("R reset · F fight · P pause · . step · T turn · M mark");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Reset")) Spawn();
             if (GUILayout.Button(turnedAway ? "Face the enemy" : "Turn around")) TurnAround();
+            if (GUILayout.Button(fight ? "Stop fighting" : "Fight")) ToggleFight();
             GUILayout.EndHorizontal();
 
             GUILayout.Label($"Time scale: {timeScale:0.00}{(paused ? " (paused)" : "")}");
@@ -310,7 +360,13 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
-            GUI.Label(new Rect(screen.x - 50f, Screen.height - screen.y - 20f, 100f, 18f), unit.name);
+            string label = unit.name;
+            if (unit.CurrentMove != null)
+            {
+                label += $"\n{unit.CurrentMove.Move.name.Replace("MD_", "")} → {unit.CurrentMove.Part}";
+            }
+
+            GUI.Label(new Rect(screen.x - 70f, Screen.height - screen.y - 34f, 140f, 36f), label);
         }
     }
 }

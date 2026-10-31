@@ -25,6 +25,16 @@ internal static class Program
             return Smoke.Run(args[1]);
         }
 
+        if (args.Length >= 6 && args[0] == "aimdebug")
+        {
+            return AimDebug.Run(args[1], args[2], args[3], args[4], float.Parse(args[5], System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        if (args.Length >= 1 && args[0] == "aim")
+        {
+            return AimMatrix.Run(args.Length >= 2 ? float.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 1f);
+        }
+
         int passed = 0, failed = 0;
         var fixtures = typeof(PhysicsBattler.Tests.SupportPolygonTests).Assembly.GetTypes()
             .Where(t => t.GetCustomAttribute<TestFixtureAttribute>() != null).OrderBy(t => t.Name);

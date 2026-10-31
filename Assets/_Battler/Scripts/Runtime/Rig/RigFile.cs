@@ -5,8 +5,8 @@ namespace PhysicsBattler.Rig
 {
     /// <summary>
     /// The rig description written by SourceArt/Bodies/Scripts/build_bodies.py (<body>_rig.json): every null
-    /// with its parent and local position, each body part's mass and collider, and the weapon's
-    /// markers and colliders. Unity axes, metres. Every null has identity rotation in the rest pose.
+    /// with its parent and local position, and each body part's mass and collider. Unity axes,
+    /// metres. Every null has identity rotation in the rest pose.
     /// </summary>
     [Serializable]
     public class RigFile
@@ -17,7 +17,6 @@ namespace PhysicsBattler.Rig
         public NullEntry[] nulls;
         public PartEntry[] parts;
         public MaterialEntry[] materials;
-        public WeaponEntry weapon;
 
         public static RigFile Parse(string json)
         {
@@ -98,26 +97,61 @@ namespace PhysicsBattler.Rig
         public Color Color => color != null && color.Length >= 3 ? new Color(color[0], color[1], color[2]) : Color.gray;
     }
 
+    /// <summary>
+    /// The weapons file written by SourceArt/Weapons/Scripts/build_weapons.py (weapons.json): each
+    /// weapon's length, mass, strike points and colliders, built for the medium body. Unity axes: the
+    /// grip at the origin, blades along +Z, a sword's edges on +-Y, a shield's face along +Z.
+    /// </summary>
     [Serializable]
-    public class WeaponEntry
+    public class WeaponFile
+    {
+        public MaterialEntry[] materials;
+        public WeaponFileEntry[] weapons;
+
+        public static WeaponFile Parse(string json)
+        {
+            var file = JsonUtility.FromJson<WeaponFile>(json);
+            if (file == null || file.weapons == null)
+            {
+                throw new FormatException("The weapons file has no weapons.");
+            }
+
+            return file;
+        }
+
+        public WeaponFileEntry Find(string name)
+        {
+            foreach (var entry in weapons)
+            {
+                if (entry.name == name)
+                {
+                    return entry;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    [Serializable]
+    public class WeaponFileEntry
     {
         public string name;
-        public string mesh;
-        public string slot;
-        public string attachTo;
+        public string kind;
         public float lengthM;
-        public float physicsMassKg;
-        public float gameplayMassKg;
-        public WeaponMarkers markers;
+        public float massKg;
+        public float radius;
+        public float[] faceCenter;
+        public WeaponPoints points;
         public ColliderEntry[] colliders;
     }
 
     [Serializable]
-    public class WeaponMarkers
+    public class WeaponPoints
     {
-        public float[] pommel_end;
-        public float[] sweet_spot;
         public float[] tip;
+        public float[] edge;
+        public float[] head;
     }
 
     public static class RigMath

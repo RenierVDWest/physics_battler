@@ -27,8 +27,10 @@ namespace PhysicsBattler.Editor.Setup
         ///     the game view in the playtest log.
         /// 9 = The animation-first rebuild: three body sizes on an 8 by 8 board, the Battle scene; the
         ///     orc, goblin, club and Sandbox scene removed.
+        /// 10 = Milestone 2: the sword, club and shield (models, weapon and move assets, prefabs), aimed
+        ///     blows; the lineup laid out in the Battle scene as unit markers.
         /// </summary>
-        public const int Current = 9;
+        public const int Current = 10;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

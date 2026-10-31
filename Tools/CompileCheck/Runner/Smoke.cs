@@ -1,7 +1,9 @@
 // A dry run of the battle sandbox outside Unity: three units a side built from the body rig files,
-// stepped by hand on the board, with a tiny integrator standing in for PhysX (kinematic parts arrive
-// where they were moved; dynamic parts move by the velocity the authority layer gave them, plus
-// gravity). It exercises the pose pipeline, the authority layer and the recorder end to end, so
+// armed as the default lineup (small and large with clubs, medium with sword and shield), facing
+// each other across adjacent rows and fighting through the sandbox's own Brawl, stepped by hand
+// with a tiny integrator standing in for PhysX (kinematic parts arrive where they were moved;
+// dynamic parts move by the velocity the authority layer gave them, plus gravity). It exercises the
+// pose pipeline, the moves, the authority layer and the recorder end to end, so
 // Tools/Playtest/analyze.py can be tested on real output.
 //
 //   dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll smoke <output folder>
@@ -10,6 +12,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using PhysicsBattler.Board;
+using PhysicsBattler.Combat;
+using PhysicsBattler.Sandbox;
 using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
@@ -37,7 +41,12 @@ internal static class Smoke
 
         var grid = new BoardGrid();
         var units = new List<UnitController>();
-        var tiles = new[] { new[] { new Tile(2, 2), new Tile(4, 2), new Tile(6, 2) }, new[] { new Tile(5, 5), new Tile(3, 5), new Tile(1, 5) } };
+        var tiles = new[] { new[] { new Tile(2, 3), new Tile(3, 3), new Tile(4, 3) }, new[] { new Tile(4, 4), new Tile(3, 4), new Tile(2, 4) } };
+        var sword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
+        sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordThrust) };
+        var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
+        club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash) };
+        var shield = WeaponDefinition.CreateDefault(WeaponKind.Shield);
         var styles = new Dictionary<string, CombatStyle>();
         for (int team = 0; team < 2; team++)
         {
@@ -58,24 +67,31 @@ internal static class Smoke
 
                 profile.style = style;
                 var unit = Spawn(rigs[body], profile, $"{(team == 0 ? "A" : "B")} {body}", grid.Center(tiles[team][k]), BoardGrid.TeamYaw(team), team);
+                if (body == "Medium")
+                {
+                    unit.Equip(sword, shield);
+                }
+                else
+                {
+                    unit.Equip(club, null);
+                }
+
                 units.Add(unit);
                 k++;
             }
         }
 
         float dt = Time.fixedDeltaTime;
-        bool away = false;
-        for (int step = 0; step < 60 * 12; step++)
+        var brawl = new Brawl(7);
+        for (int step = 0; step < 60 * 14; step++)
         {
             Time.time += dt;
             Call(recorder, "FixedUpdate");
-            if (step == 60 * 4) away = true;
-            if (step == 60 * 7) away = false;
+            brawl.Fight = step < 60 * 10;
+            brawl.TurnedAway = step >= 60 * 11 && step < 60 * 12;
+            brawl.Step(units, dt, Time.time);
             foreach (var unit in units)
             {
-                var enemy = Nearest(units, unit);
-                Vector3 point = enemy.Root.position;
-                unit.FacePoint(away ? unit.Root.position * 2f - point : point);
                 Call(unit, "FixedUpdate");
                 Integrate(unit, dt);
             }

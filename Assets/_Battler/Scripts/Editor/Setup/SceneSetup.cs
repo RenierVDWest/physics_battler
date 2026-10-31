@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using PhysicsBattler.Board;
+using PhysicsBattler.Combat;
 using PhysicsBattler.Sandbox;
 using PhysicsBattler.Units;
 using UnityEditor;
@@ -26,10 +27,18 @@ namespace PhysicsBattler.Editor.Setup
 
             var scene = EditorSceneManager.OpenScene(BattlerPaths.BattleScene, OpenSceneMode.Single);
             var sandbox = Object.FindAnyObjectByType<BattleSandbox>();
-            if (sandbox != null && Wire(sandbox))
+            bool changed = sandbox != null && Wire(sandbox);
+            changed |= EnsureLineup();
+            if (changed)
             {
                 EditorSceneManager.MarkSceneDirty(scene);
                 EditorSceneManager.SaveScene(scene);
+            }
+
+            // The previews were built before the prefabs and weapons were wired: build them again.
+            foreach (var spawn in Object.FindObjectsByType<UnitSpawn>())
+            {
+                spawn.BuildPreview();
             }
 
             SetBuildScenes(BattlerPaths.BattleScene);
@@ -85,6 +94,7 @@ namespace PhysicsBattler.Editor.Setup
             sandbox.orbitCamera = orbit;
             sandbox.board = board;
             Wire(sandbox);
+            EnsureLineup();
 
             EditorFolders.Ensure(BattlerPaths.ScenesFolder);
             EditorSceneManager.SaveScene(scene, BattlerPaths.BattleScene);
@@ -129,6 +139,48 @@ namespace PhysicsBattler.Editor.Setup
             }
 
             return changed;
+        }
+
+        /// <summary>
+        /// A lineup for a scene that has none: three units a side three rows apart, small and large
+        /// with clubs, medium with sword and shield. Move, add or change them in the scene; setup
+        /// leaves an existing lineup alone.
+        /// </summary>
+        private static bool EnsureLineup()
+        {
+            if (Object.FindObjectsByType<UnitSpawn>().Length > 0)
+            {
+                return false;
+            }
+
+            var board = Object.FindAnyObjectByType<BoardView>();
+            var grid = board != null ? board.grid : new BoardGrid();
+            var club = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Club"));
+            var sword = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Sword"));
+            var shield = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Shield"));
+            var lineup = new GameObject("Lineup").transform;
+            var bodies = new[] { BodySize.Small, BodySize.Medium, BodySize.Large };
+            for (int team = 0; team < 2; team++)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    // Team A on row 3, small to large left to right; team B on row 6, large to small, so
+                    // each faces a different size.
+                    var body = bodies[team == 0 ? k : 2 - k];
+                    var tile = new Tile(2 + k, team == 0 ? 2 : 5);
+                    var go = new GameObject($"{(team == 0 ? "A" : "B")} {body}");
+                    go.transform.SetParent(lineup, false);
+                    go.transform.position = grid.Center(tile);
+                    var spawn = go.AddComponent<UnitSpawn>();
+                    spawn.team = team;
+                    spawn.body = body;
+                    spawn.mainHand = body == BodySize.Medium ? sword : club;
+                    spawn.offHand = body == BodySize.Medium ? shield : null;
+                    spawn.Snap();
+                }
+            }
+
+            return true;
         }
 
         private static T LoadComponent<T>(string prefabPath) where T : Component

@@ -18,6 +18,7 @@ namespace UnityEngine
     }
 
     public enum LogType { Error = 0, Assert = 1, Warning = 2, Log = 3, Exception = 4 }
+    public enum EventType { MouseDown = 0, MouseUp = 1, Repaint = 7, Layout = 8 }
 
     public static class Time
     {
@@ -233,7 +234,7 @@ namespace UnityEngine
         public static int hotControl { get; set; }
     }
 
-    public enum KeyCode { None = 0, Space = 32, Period = 46, G = 103, H = 104, M = 109, P = 112, R = 114, T = 116 }
+    public enum KeyCode { None = 0, Space = 32, Period = 46, F = 102, G = 103, H = 104, M = 109, P = 112, R = 114, T = 116 }
 
     public static class Input
     {
@@ -257,6 +258,8 @@ namespace UnityEngine
     [AttributeUsage(AttributeTargets.Field)] public sealed class RangeAttribute : Attribute { public RangeAttribute(float min, float max) { } }
     [AttributeUsage(AttributeTargets.Field)] public sealed class HideInInspector : Attribute { }
     [AttributeUsage(AttributeTargets.Field)] public sealed class SpaceAttribute : Attribute { public SpaceAttribute(float height = 8f) { } }
+    [AttributeUsage(AttributeTargets.Field)] public sealed class MinAttribute : Attribute { public MinAttribute(float min) { } }
+    [AttributeUsage(AttributeTargets.Field)] public sealed class TextAreaAttribute : Attribute { public TextAreaAttribute() { } public TextAreaAttribute(int a, int b) { } }
     [AttributeUsage(AttributeTargets.Class)] public sealed class DisallowMultipleComponent : Attribute { }
     [AttributeUsage(AttributeTargets.Class)] public sealed class DefaultExecutionOrder : Attribute { public DefaultExecutionOrder(int order) { } }
 

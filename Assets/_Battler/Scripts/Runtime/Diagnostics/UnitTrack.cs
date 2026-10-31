@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Text;
 using PhysicsBattler.Authority;
+using PhysicsBattler.Combat;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
@@ -16,8 +18,14 @@ namespace PhysicsBattler.Diagnostics
     /// of mass from the support point, physCom: the physical one, both horizontal metres); feet
     /// (stepL/R 0 or 1, liftL/R, slideL/R: how far each physical foot is from its planted spot,
     /// steps, shuffles); idle (swayX, swayZ, bob); authority per region (lvl_*: 0 kinematic,
-    /// 1 pinned, 2 loose, 3 ragdoll; pin_*); and every part's distance (err_*, metres) and angle
-    /// (aerr_*, degrees) from its pose.
+    /// 1 pinned, 2 loose, 3 ragdoll; pin_*); every part's distance (err_*, metres) and angle
+    /// (aerr_*, degrees) from its pose; and the blow under way (move: its name or empty, moveT 0 to 1,
+    /// blend, part aimed at, the locked aim point aimX/Y/Z, the striking part on the pose strikeX/Y/Z
+    /// and on the physical weapon pstrikeX/Y/Z, aimErr: posed striking part to aim point).
+    ///
+    /// Pose columns: per part x/y/z/qx/qy/qz/qw (physical) and gx/gy/gz (animated); the planted
+    /// foot spots plantL/R.x/z; the main weapon's grip and tip, physical (grip.*, tip.*) and posed
+    /// (ghostGrip.*, ghostTip.*); and the locked aim point (target.*) during a blow.
     /// </summary>
     internal sealed class UnitTrack
     {
@@ -41,6 +49,11 @@ namespace PhysicsBattler.Diagnostics
         public float maxPelvisDrop;
         public int steps;
         public int shuffles;
+
+        // Blows, for the summary.
+        public readonly List<string> blowLines = new List<string>();
+        public int blows, blowsReached, blowsStruckAimed;
+        public float aimErrSum, aimErrMax, physErrSum, physErrMax;
 
         public UnitTrack(PlaytestRecorder recorder, UnitController unit, int id, string label, string stem,
             string framesPath, string posePath)
@@ -173,6 +186,26 @@ namespace PhysicsBattler.Diagnostics
                 angMax[(int)part] = Mathf.Max(angMax[(int)part], angle);
             }
 
+            var move = unit.CurrentMove;
+            var weapon = unit.MainWeapon;
+            frames.Add("move", move != null ? move.Move.name.Replace("MD_", "") : "");
+            frames.Add("moveT", move != null ? move.T : 0f, 3);
+            frames.Add("blend", move != null ? move.Blend : 0f, 2);
+            frames.Add("aimPart", move != null ? move.Part.ToString() : "");
+            Vector3 aim = move != null ? move.Aim : Vector3.zero;
+            Vector3 strike = move != null ? p.StrikePoint : Vector3.zero;
+            Vector3 physical = move != null && weapon != null && move.Weapon != null ? weapon.WorldPoint(move.Weapon.StrikePoint(move.Move.strikeWith)) : Vector3.zero;
+            frames.Add("aimX", aim.x, 3);
+            frames.Add("aimY", aim.y, 3);
+            frames.Add("aimZ", aim.z, 3);
+            frames.Add("strikeX", strike.x, 3);
+            frames.Add("strikeY", strike.y, 3);
+            frames.Add("strikeZ", strike.z, 3);
+            frames.Add("pstrikeX", physical.x, 3);
+            frames.Add("pstrikeY", physical.y, 3);
+            frames.Add("pstrikeZ", physical.z, 3);
+            frames.Add("aimErr", move != null ? p.AimError : 0f, 3);
+
             frames.End();
             samples++;
 
@@ -213,7 +246,67 @@ namespace PhysicsBattler.Diagnostics
                 pose.Add("plant" + side + ".z", planted.z, 3);
             }
 
+            // The main weapon: physical grip and tip, and where the pose has them.
+            var weapon = unit.MainWeapon;
+            var slot = unit.Anim.SlotWeaponR;
+            bool armed = weapon != null && weapon.definition != null && slot != null;
+            Vector3 grip = armed ? weapon.transform.position : Vector3.zero;
+            Vector3 tip = armed ? weapon.WorldPoint(weapon.definition.tip) : Vector3.zero;
+            Vector3 ghostGrip = armed ? slot.position : Vector3.zero;
+            Vector3 ghostTip = armed ? slot.position + slot.rotation * (weapon.definition.tip * weapon.Scale) : Vector3.zero;
+            AddPoint("grip", grip, armed);
+            AddPoint("tip", tip, armed);
+            AddPoint("ghostGrip", ghostGrip, armed);
+            AddPoint("ghostTip", ghostTip, armed);
+            var move = unit.CurrentMove;
+            AddPoint("target", move != null ? move.Aim : Vector3.zero, move != null);
             pose.End();
+        }
+
+        private void AddPoint(string name, Vector3 p, bool present)
+        {
+            pose.Add(name + ".x", present ? p.x.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) : "");
+            pose.Add(name + ".y", present ? p.y.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) : "");
+            pose.Add(name + ".z", present ? p.z.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) : "");
+        }
+
+        /// <summary>A blow reached its contact moment: what it did, for the summary.</summary>
+        public void NoteContact(MoveState move, ContactReport report, string line)
+        {
+            blows++;
+            aimErrSum += report.AnimError;
+            aimErrMax = Mathf.Max(aimErrMax, report.AnimError);
+
+            if (report.AnimError <= MovePlanner.Tolerance)
+            {
+                blowsReached++;
+            }
+
+            if (report.StruckUnit != null && ReferenceEquals(report.StruckUnit, move.Target)
+                && report.StruckPart == AimPartInfo.BodyPartOf(move.Part) && report.StruckDistance < 0.05f)
+            {
+                blowsStruckAimed++;
+            }
+
+            if (blowLines.Count < 60)
+            {
+                blowLines.Add(line);
+            }
+        }
+
+        public int physicalBlows;
+
+        /// <summary>A blow ended: how close the physical weapon came.</summary>
+        public void NotePhysical(float closest)
+        {
+            if (closest < 0f)
+            {
+                return;
+            }
+
+            physicalBlows++;
+            physErrSum += closest;
+            physErrMax = Mathf.Max(physErrMax, closest);
         }
 
         /// <summary>One line for a mark: what this unit is doing right now.</summary>
@@ -255,6 +348,20 @@ namespace PhysicsBattler.Diagnostics
             }
 
             md.AppendLine();
+            if (blows > 0)
+            {
+                md.AppendLine($"Blows: {blows}. The posed striking part passed within 3 cm of the aim point in {blowsReached}; "
+                              + $"aim error mean {aimErrSum / blows * 100f:0.0} cm, max {aimErrMax * 100f:0.0} cm (posed); "
+                              + $"physical weapon's closest pass mean {physErrSum / Mathf.Max(1, physicalBlows) * 100f:0.0} cm, max {physErrMax * 100f:0.0} cm. "
+                              + $"{blowsStruckAimed} reached the part they were aimed at (nearest part within 5 cm at contact).");
+                md.AppendLine();
+                foreach (var line in blowLines)
+                {
+                    md.AppendLine("- " + line);
+                }
+
+                md.AppendLine();
+            }
         }
     }
 }

@@ -50,6 +50,14 @@ namespace PhysicsBattler.Motion
         public float weaveDegrees = 4f;
         public float weaveFrequency = 0.35f;
 
+        [Header("Fighting (sandbox gameplay until milestone 6)")]
+        [Tooltip("Seconds between blows, at random in this range.")]
+        public Vector2 attackInterval = new Vector2(1.6f, 3f);
+        [Tooltip("How close the unit closes in on its target: chest to chest, metres at medium size.")]
+        public float engageDistance = 1.25f;
+        [Tooltip("Walking speed while closing in, metres per second at medium size.")]
+        public float walkSpeed = 0.7f;
+
         [Header("Steps")]
         [Tooltip("A foot steps when it is this far from its spot in the stance (fraction of leg length)…")]
         public float stepThreshold = 0.16f;

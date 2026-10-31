@@ -5,8 +5,10 @@ namespace PhysicsBattler.Board
 {
     /// <summary>
     /// Draws the board: a checkerboard of tiles just above the ground, with a border. Only for show;
-    /// units stand on the ground collider underneath.
+    /// units stand on the ground collider underneath. The tiles are built in edit mode too, so the
+    /// board is there while you lay out the scene; they are never saved into the scene.
     /// </summary>
+    [ExecuteAlways]
     [DisallowMultipleComponent]
     public class BoardView : MonoBehaviour
     {
@@ -17,19 +19,61 @@ namespace PhysicsBattler.Board
 
         private GameObject built;
 
-        private void Awake()
+        private const string TilesName = "[Board tiles - not saved]";
+
+        private void OnEnable()
         {
             Build();
         }
 
-        public void Build()
+        private void OnDisable()
         {
-            if (built != null)
+            Clear();
+        }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            // Objects can't be made inside OnValidate: rebuild right after.
+            UnityEditor.EditorApplication.delayCall -= Rebuild;
+            UnityEditor.EditorApplication.delayCall += Rebuild;
+        }
+
+        private void Rebuild()
+        {
+            if (this != null && isActiveAndEnabled)
             {
-                Destroy(built);
+                Build();
+            }
+        }
+#endif
+
+        private void Clear()
+        {
+            // Also any left over from before a script reload.
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                var child = transform.GetChild(i).gameObject;
+                if (child.name == TilesName)
+                {
+                    if (Application.isPlaying)
+                    {
+                        Destroy(child);
+                    }
+                    else
+                    {
+                        DestroyImmediate(child);
+                    }
+                }
             }
 
-            built = new GameObject("Board Tiles");
+            built = null;
+        }
+
+        public void Build()
+        {
+            Clear();
+            built = new GameObject(TilesName) { hideFlags = HideFlags.DontSave };
             built.transform.SetParent(transform, false);
             AddMesh("Light", Tiles(0), lightTiles);
             AddMesh("Dark", Tiles(1), darkTiles);
@@ -38,7 +82,7 @@ namespace PhysicsBattler.Board
 
         private void AddMesh(string name, Mesh mesh, Material material)
         {
-            var go = new GameObject(name);
+            var go = new GameObject(name) { hideFlags = HideFlags.DontSave };
             go.transform.SetParent(built.transform, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = go.AddComponent<MeshRenderer>();
@@ -100,7 +144,7 @@ namespace PhysicsBattler.Board
 
         private static Mesh Make(List<Vector3> verts, List<int> tris)
         {
-            var mesh = new Mesh();
+            var mesh = new Mesh { hideFlags = HideFlags.DontSave };
             mesh.SetVertices(verts);
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateNormals();

@@ -72,7 +72,45 @@ namespace UnityEngine
         public PhysicsMaterial material { get; set; }
         public Rigidbody attachedRigidbody => GetComponentInParent<Rigidbody>();
         public Bounds bounds => default;
-        public Vector3 ClosestPoint(Vector3 position) => position;
+        // Real geometry for the shapes the project uses (Unity's own is exact; this is close enough for the dry run).
+        public Vector3 ClosestPoint(Vector3 position)
+        {
+            var t = transform;
+            Vector3 local = Quaternion.Inverse(t.rotation) * (position - t.position);
+            Vector3 s = t.lossyScale;
+            local = new Vector3(local.x / s.x, local.y / s.y, local.z / s.z);
+            Vector3 c = local;
+            switch (this)
+            {
+                case BoxCollider box:
+                {
+                    Vector3 h = box.size * 0.5f;
+                    Vector3 d = local - box.center;
+                    c = box.center + new Vector3(Mathf.Clamp(d.x, -h.x, h.x), Mathf.Clamp(d.y, -h.y, h.y), Mathf.Clamp(d.z, -h.z, h.z));
+                    break;
+                }
+                case SphereCollider sphere:
+                {
+                    Vector3 d = local - sphere.center;
+                    c = d.magnitude <= sphere.radius ? local : sphere.center + d.normalized * sphere.radius;
+                    break;
+                }
+                case CapsuleCollider capsule:
+                {
+                    Vector3 axis = capsule.direction == 0 ? Vector3.right : capsule.direction == 2 ? Vector3.forward : Vector3.up;
+                    float half = Mathf.Max(0f, capsule.height * 0.5f - capsule.radius);
+                    Vector3 a = capsule.center - axis * half, b = capsule.center + axis * half;
+                    Vector3 ab = b - a;
+                    float k = ab.sqrMagnitude > 0f ? Mathf.Clamp01(Vector3.Dot(local - a, ab) / ab.sqrMagnitude) : 0f;
+                    Vector3 onAxis = a + ab * k;
+                    Vector3 d = local - onAxis;
+                    c = d.magnitude <= capsule.radius ? local : onAxis + d.normalized * capsule.radius;
+                    break;
+                }
+            }
+
+            return t.position + t.rotation * new Vector3(c.x * s.x, c.y * s.y, c.z * s.z);
+        }
     }
 
     public struct Bounds

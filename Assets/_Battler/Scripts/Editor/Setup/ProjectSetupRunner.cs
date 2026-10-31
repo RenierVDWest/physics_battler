@@ -60,6 +60,7 @@ namespace PhysicsBattler.Editor.Setup
                 ModelImportSetup.Apply(materials);
                 DataSetup.Apply();
                 DataSetup.Migrate(SetupVersion.Installed);
+                WeaponSetup.Apply();
                 if (!PrefabSetup.ApplyInScratchScene(materials, out _))
                 {
                     AssetDatabase.SaveAssets();
@@ -90,6 +91,7 @@ namespace PhysicsBattler.Editor.Setup
                 var materials = MaterialSetup.Apply();
                 ModelImportSetup.Apply(materials);
                 DataSetup.Apply();
+                WeaponSetup.Apply();
                 if (!PrefabSetup.ApplyInScratchScene(materials, out string previousScene))
                 {
                     Debug.LogWarning($"{LogPrefix} Prefabs not rebuilt: saving the open scene was cancelled.");

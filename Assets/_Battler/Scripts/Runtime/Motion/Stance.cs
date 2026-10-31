@@ -17,7 +17,7 @@ namespace PhysicsBattler.Motion
         public const int Left = 0;
         public const int Right = 1;
 
-        private struct Foot
+        internal struct Foot
         {
             public Vector3 position;
             public float yaw;
@@ -26,6 +26,16 @@ namespace PhysicsBattler.Motion
             public float fromYaw, toYaw;
             public float t;
             public float lift;
+            public float duration;   // this step's length in seconds (0: the stance's own)
+        }
+
+        /// <summary>A copy of the feet and timers, to try a pose and put everything back (the move planner).</summary>
+        public struct Snapshot
+        {
+            internal Foot left, right;
+            internal float shuffleTimer, restAfterStep;
+            internal int nextShuffleFoot, steps, shuffles;
+            internal bool hold;
         }
 
         private readonly Foot[] feet = new Foot[2];
@@ -38,6 +48,9 @@ namespace PhysicsBattler.Motion
         private int nextShuffleFoot;
 
         public event Action<int, Vector3> Landed;
+
+        /// <summary>While held, the feet only take the steps they are told to (<see cref="StepTo"/>): a move is placing them.</summary>
+        public bool Hold { get; set; }
 
         public int StepsTaken { get; private set; }
         public int ShufflesTaken { get; private set; }
@@ -129,7 +142,7 @@ namespace PhysicsBattler.Motion
                 }
             }
 
-            if (AnyStepping)
+            if (AnyStepping || Hold)
             {
                 return;
             }
@@ -179,8 +192,52 @@ namespace PhysicsBattler.Motion
             }
         }
 
+        /// <summary>
+        /// Step a foot to a ground point now, taking the given time (a lunge's planned step). A foot
+        /// already stepping is redirected from where it is.
+        /// </summary>
+        public void StepTo(int foot, Vector3 to, float toYaw, float seconds)
+        {
+            to.y = GroundY;
+            Begin(foot, to, toYaw);
+            feet[foot].duration = Mathf.Max(0.05f, seconds);
+            StepsTaken++;
+        }
+
+        /// <summary>Put a foot down at a point at once (planning: where a planned step will land).</summary>
+        public void SetFoot(int foot, Vector3 position, float yaw)
+        {
+            position.y = GroundY;
+            feet[foot].position = position;
+            feet[foot].yaw = yaw;
+            feet[foot].stepping = false;
+            feet[foot].lift = 0f;
+        }
+
+        public Snapshot Save() => new Snapshot
+        {
+            left = feet[Left], right = feet[Right], shuffleTimer = shuffleTimer, restAfterStep = restAfterStep,
+            nextShuffleFoot = nextShuffleFoot, steps = StepsTaken, shuffles = ShufflesTaken, hold = Hold,
+        };
+
+        public void Restore(Snapshot snapshot)
+        {
+            feet[Left] = snapshot.left;
+            feet[Right] = snapshot.right;
+            shuffleTimer = snapshot.shuffleTimer;
+            restAfterStep = snapshot.restAfterStep;
+            nextShuffleFoot = snapshot.nextShuffleFoot;
+            StepsTaken = snapshot.steps;
+            ShufflesTaken = snapshot.shuffles;
+            Hold = snapshot.hold;
+        }
+
+        /// <summary>The lead foot (the one forward in the stance).</summary>
+        public int Lead => leadLeft ? Left : Right;
+
         private void Begin(int f, Vector3 to, float toYaw)
         {
+            feet[f].duration = 0f;
             feet[f].stepping = true;
             feet[f].from = feet[f].position;
             feet[f].to = to;
@@ -192,7 +249,7 @@ namespace PhysicsBattler.Motion
         private void Advance(int f, float dt)
         {
             ref var foot = ref feet[f];
-            foot.t = Mathf.Min(1f, foot.t + dt / Mathf.Max(0.05f, duration));
+            foot.t = Mathf.Min(1f, foot.t + dt / Mathf.Max(0.05f, foot.duration > 0f ? foot.duration : duration));
             float s = foot.t * foot.t * (3f - 2f * foot.t);
             foot.position = Vector3.Lerp(foot.from, foot.to, s);
             foot.position.y = GroundY;

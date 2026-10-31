@@ -53,6 +53,7 @@ namespace PhysicsBattler.Sandbox
                 case KeyCode.Period: return keyboard.periodKey.wasPressedThisFrame;
                 case KeyCode.M: return keyboard.mKey.wasPressedThisFrame;
                 case KeyCode.T: return keyboard.tKey.wasPressedThisFrame;
+                case KeyCode.F: return keyboard.fKey.wasPressedThisFrame;
                 default: return false;
             }
         }

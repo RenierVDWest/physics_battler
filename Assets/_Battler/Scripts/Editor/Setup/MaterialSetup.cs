@@ -21,7 +21,7 @@ namespace PhysicsBattler.Editor.Setup
 
     /// <summary>
     /// Creates the materials once (after that they are yours to tune): the body and joint materials
-    /// the body meshes use, a colour per team (it replaces the body material on spawn), the board
+    /// the body meshes use, the weapons' steel, wood and grips, a colour per team (it replaces the body material on spawn), the board
     /// tiles and the ground.
     /// </summary>
     internal static class MaterialSetup
@@ -36,6 +36,16 @@ namespace PhysicsBattler.Editor.Setup
             foreach (var entry in rig.materials ?? Array.Empty<MaterialEntry>())
             {
                 set.Add(Ensure($"{BattlerPaths.MaterialsFolder}/{entry.name}.mat", entry.Color, 0.35f, 0f));
+            }
+
+            var weaponsText = AssetDatabase.LoadAssetAtPath<TextAsset>(BattlerPaths.WeaponsFile);
+            if (weaponsText != null)
+            {
+                foreach (var entry in WeaponFile.Parse(weaponsText.text).materials ?? Array.Empty<MaterialEntry>())
+                {
+                    bool steel = entry.name.EndsWith("Steel");
+                    set.Add(Ensure($"{BattlerPaths.MaterialsFolder}/{entry.name}.mat", entry.Color, steel ? 0.6f : 0.3f, steel ? 0.7f : 0f));
+                }
             }
 
             set.Add(Ensure(BattlerPaths.TeamAMaterial, new Color(0.83f, 0.66f, 0.46f), 0.35f, 0f));

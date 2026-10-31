@@ -5,7 +5,7 @@ using UnityEngine;
 namespace PhysicsBattler.Editor.Setup
 {
     /// <summary>
-    /// Import settings for the body part FBX files (from SourceArt/Bodies/Scripts/build_bodies.py):
+    /// Import settings for the body part and weapon FBX files (from SourceArt/Bodies and SourceArt/Weapons):
     /// static meshes only, scale 1, and their materials replaced by the project's, matched by name.
     /// </summary>
     internal static class ModelImportSetup
@@ -17,7 +17,10 @@ namespace PhysicsBattler.Editor.Setup
                 throw new System.InvalidOperationException($"Art folder missing: {BattlerPaths.BodiesArtFolder}");
             }
 
-            foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { BattlerPaths.BodiesArtFolder }))
+            var folders = AssetDatabase.IsValidFolder(BattlerPaths.WeaponsArtFolder)
+                ? new[] { BattlerPaths.BodiesArtFolder, BattlerPaths.WeaponsArtFolder }
+                : new[] { BattlerPaths.BodiesArtFolder };
+            foreach (var guid in AssetDatabase.FindAssets("t:Model", folders))
             {
                 Configure(AssetDatabase.GUIDToAssetPath(guid), materials);
             }

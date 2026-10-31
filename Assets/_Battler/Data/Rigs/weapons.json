@@ -1,0 +1,179 @@
+{
+  "about": "Weapons for the medium body (units scale them with their size). Unity axes: the grip is at the origin; swords and clubs point along +Z, a sword's edges face +-Y; a shield's face looks along +Z. Points: tip (thrusts), edge (where a cut strikes), head (where a club strikes).",
+  "materials": [
+    {
+      "name": "M_Weapon_Steel",
+      "color": [
+        0.74,
+        0.76,
+        0.8
+      ]
+    },
+    {
+      "name": "M_Weapon_Wood",
+      "color": [
+        0.55,
+        0.4,
+        0.27
+      ]
+    },
+    {
+      "name": "M_Weapon_Dark",
+      "color": [
+        0.3,
+        0.28,
+        0.27
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "name": "Sword",
+      "kind": "Sword",
+      "lengthM": 0.971,
+      "massKg": 1.3,
+      "points": {
+        "tip": [
+          0,
+          0,
+          0.86
+        ],
+        "edge": [
+          0,
+          0,
+          0.566
+        ],
+        "head": [
+          0,
+          0,
+          0.566
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0,
+            0.472
+          ],
+          "size": [
+            0.02,
+            0.06,
+            0.775
+          ]
+        },
+        {
+          "type": "box",
+          "center": [
+            0,
+            0,
+            0.075
+          ],
+          "size": [
+            0.03,
+            0.19,
+            0.03
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Club",
+      "kind": "Club",
+      "lengthM": 0.83,
+      "massKg": 2.0,
+      "points": {
+        "tip": [
+          0,
+          0,
+          0.72
+        ],
+        "edge": [
+          0,
+          0,
+          0.587
+        ],
+        "head": [
+          0,
+          0,
+          0.587
+        ]
+      },
+      "colliders": [
+        {
+          "type": "capsule",
+          "start": [
+            0,
+            0,
+            0.35
+          ],
+          "end": [
+            0,
+            0,
+            0.662
+          ],
+          "radius": 0.058
+        },
+        {
+          "type": "capsule",
+          "start": [
+            0,
+            0,
+            -0.09
+          ],
+          "end": [
+            0,
+            0,
+            0.35
+          ],
+          "radius": 0.025
+        }
+      ]
+    },
+    {
+      "name": "Shield",
+      "kind": "Shield",
+      "lengthM": 0.58,
+      "massKg": 4.0,
+      "points": {
+        "tip": [
+          0,
+          0.29,
+          0.06
+        ],
+        "edge": [
+          0,
+          0.29,
+          0.06
+        ],
+        "head": [
+          0,
+          0,
+          0.11
+        ]
+      },
+      "radius": 0.29,
+      "faceCenter": [
+        0,
+        0,
+        0.1
+      ],
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0,
+            0.075
+          ],
+          "size": [
+            0.522,
+            0.522,
+            0.05
+          ]
+        }
+      ]
+    }
+  ]
+}

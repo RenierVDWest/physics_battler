@@ -70,6 +70,8 @@ namespace UnityEditor
     public static class PrefabUtility
     {
         public static GameObject SaveAsPrefabAsset(GameObject instanceRoot, string assetPath) => instanceRoot;
+        public static UnityEngine.Object InstantiatePrefab(UnityEngine.Object assetComponentOrGameObject) => assetComponentOrGameObject;
+        public static void UnpackPrefabInstance(GameObject instanceRoot, PrefabUnpackMode unpackMode, InteractionMode action) { }
     }
 
     public class AssetImporter : UnityEngine.Object
@@ -133,4 +135,66 @@ namespace UnityEditor.SceneManagement
         public static bool MarkSceneDirty(Scene scene) => true;
         public static bool SaveScene(Scene scene, string dstScenePath = "", bool saveAsCopy = false) => true;
     }
+}
+
+namespace UnityEditor
+{
+    // Editor windows and Scene view drawing, as far as the project uses them.
+    public class EditorWindow : UnityEngine.ScriptableObject
+    {
+        public static T GetWindow<T>(string title) where T : EditorWindow => UnityEngine.ScriptableObject.CreateInstance<T>();
+        public void Show() { }
+        public void Repaint() { }
+    }
+
+    public enum MessageType { None, Info, Warning, Error }
+
+    public static class EditorStyles
+    {
+        public static UnityEngine.GUIStyle boldLabel => new UnityEngine.GUIStyle();
+    }
+
+    public static class EditorGUI
+    {
+        public static void BeginChangeCheck() { }
+        public static bool EndChangeCheck() => false;
+    }
+
+    public static class EditorGUILayout
+    {
+        public static void LabelField(string label, UnityEngine.GUIStyle style, params UnityEngine.GUILayoutOption[] options) { }
+        public static void LabelField(string label, params UnityEngine.GUILayoutOption[] options) { }
+        public static System.Enum EnumPopup(string label, System.Enum selected, params UnityEngine.GUILayoutOption[] options) => selected;
+        public static UnityEngine.Object ObjectField(string label, UnityEngine.Object obj, System.Type objType, bool allowSceneObjects, params UnityEngine.GUILayoutOption[] options) => obj;
+        public static int Popup(string label, int selectedIndex, string[] displayedOptions, params UnityEngine.GUILayoutOption[] options) => selectedIndex;
+        public static float Slider(string label, float value, float leftValue, float rightValue, params UnityEngine.GUILayoutOption[] options) => value;
+        public static bool Toggle(string label, bool value, params UnityEngine.GUILayoutOption[] options) => value;
+        public static void HelpBox(string message, MessageType type) { }
+        public static void Space() { }
+
+        public sealed class HorizontalScope : System.IDisposable
+        {
+            public HorizontalScope(params UnityEngine.GUILayoutOption[] options) { }
+            public void Dispose() { }
+        }
+    }
+
+    public class SceneView : EditorWindow
+    {
+        public static event System.Action<SceneView> duringSceneGui;
+        public static SceneView lastActiveSceneView => null;
+        public static void RepaintAll() { duringSceneGui?.Invoke(null); }
+        public void LookAt(UnityEngine.Vector3 point, UnityEngine.Quaternion direction, float newSize) { }
+    }
+
+    public static class Handles
+    {
+        public static UnityEngine.Color color { get; set; }
+        public static void DrawLine(UnityEngine.Vector3 p1, UnityEngine.Vector3 p2, float thickness) { }
+        public static void SphereHandleCap(int controlID, UnityEngine.Vector3 position, UnityEngine.Quaternion rotation, float size, UnityEngine.EventType eventType) { }
+        public static void Label(UnityEngine.Vector3 position, string text) { }
+    }
+
+    public enum PrefabUnpackMode { OutermostRoot, Completely }
+    public enum InteractionMode { AutomatedAction, UserAction }
 }

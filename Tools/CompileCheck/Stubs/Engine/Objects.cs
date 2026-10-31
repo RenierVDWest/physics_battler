@@ -13,6 +13,7 @@ namespace UnityEngine
         public static T Instantiate<T>(T original) where T : Object => throw new NotSupportedException("Instantiate");
         public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation) where T : Object => throw new NotSupportedException("Instantiate");
         public static T Instantiate<T>(T original, Transform parent) where T : Object => throw new NotSupportedException("Instantiate");
+        public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation, Transform parent) where T : Object => throw new NotSupportedException("Instantiate");
         public static void Destroy(Object obj) { }
         public static void Destroy(Object obj, float t) { }
         public static void DestroyImmediate(Object obj) { }
@@ -33,7 +34,7 @@ namespace UnityEngine
     }
 
     [Flags]
-    public enum HideFlags { None = 0, HideInHierarchy = 1, HideInInspector = 2, DontSave = 52, HideAndDontSave = 61 }
+    public enum HideFlags { None = 0, HideInHierarchy = 1, HideInInspector = 2, DontSaveInEditor = 4, NotEditable = 8, DontSaveInBuild = 16, DontUnloadUnusedAsset = 32, DontSave = 52, HideAndDontSave = 61 }
 
     public enum FindObjectsInactive { Exclude, Include }
 
@@ -283,6 +284,7 @@ namespace UnityEngine
 
         public Vector3 TransformDirection(Vector3 direction) => rotation * direction;
         public Vector3 InverseTransformDirection(Vector3 direction) => Quaternion.Inverse(rotation) * direction;
+        public bool hasChanged { get; set; }
         public Transform Find(string childName) => children.Find(c => c.name == childName);
     }
 }

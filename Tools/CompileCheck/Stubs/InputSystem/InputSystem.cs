@@ -42,5 +42,6 @@ namespace UnityEngine.InputSystem
         public KeyControl periodKey { get; } = new KeyControl();
         public KeyControl mKey { get; } = new KeyControl();
         public KeyControl tKey { get; } = new KeyControl();
+        public KeyControl fKey { get; } = new KeyControl();
     }
 }

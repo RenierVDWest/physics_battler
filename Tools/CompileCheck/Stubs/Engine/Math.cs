@@ -23,6 +23,8 @@ namespace UnityEngine
         public static float Abs(float f) => Math.Abs(f);
         public static int Abs(int f) => Math.Abs(f);
         public static float Min(float a, float b) => a < b ? a : b;
+        public static int CeilToInt(float f) => (int)Math.Ceiling(f);
+        public static float Min(params float[] values) { float m = values[0]; foreach (var v in values) if (v < m) m = v; return m; }
         public static float Max(float a, float b) => a > b ? a : b;
         public static float Max(params float[] values) { float m = values[0]; foreach (var v in values) if (v > m) m = v; return m; }
         public static int Min(int a, int b) => a < b ? a : b;
@@ -449,6 +451,7 @@ namespace UnityEngine
         }
 
         public static Color white => new Color(1f, 1f, 1f);
+        public static Color Lerp(Color a, Color b, float t) { t = t < 0f ? 0f : t > 1f ? 1f : t; return new Color(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t); }
         public static Color black => new Color(0f, 0f, 0f);
         public static Color gray => new Color(0.5f, 0.5f, 0.5f);
         public static Color red => new Color(1f, 0f, 0f);

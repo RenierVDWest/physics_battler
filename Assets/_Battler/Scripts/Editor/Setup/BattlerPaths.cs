@@ -5,7 +5,9 @@ namespace PhysicsBattler.Editor.Setup
         public const string Root = "Assets/_Battler";
 
         public const string BodiesArtFolder = Root + "/Art/Bodies";
+        public const string WeaponsArtFolder = Root + "/Art/Weapons";
         public const string RigsFolder = Root + "/Data/Rigs";
+        public const string WeaponsFile = RigsFolder + "/weapons.json";
 
         public const string MaterialsFolder = Root + "/Materials";
         public const string DataFolder = Root + "/Data";
@@ -22,6 +24,13 @@ namespace PhysicsBattler.Editor.Setup
         public static string Profile(string body) => $"{DataFolder}/Units/UP_{body}.asset";
         public static string Style(string body) => $"{DataFolder}/Styles/CS_{body}.asset";
         public static string UnitPrefab(string body) => $"{PrefabsFolder}/Units/P_Unit_{body}.prefab";
+
+        public static readonly string[] Weapons = { "Sword", "Club", "Shield" };
+
+        public static string WeaponModel(string weapon) => $"{WeaponsArtFolder}/SM_{weapon}.fbx";
+        public static string Weapon(string weapon) => $"{DataFolder}/Weapons/WD_{weapon}.asset";
+        public static string WeaponPrefab(string weapon) => $"{PrefabsFolder}/Weapons/P_Weapon_{weapon}.prefab";
+        public static string Move(string style) => $"{DataFolder}/Moves/MD_{style}.asset";
 
         public const string BattleScene = ScenesFolder + "/Battle.unity";
         public const string OldSandboxScene = ScenesFolder + "/Sandbox.unity";
