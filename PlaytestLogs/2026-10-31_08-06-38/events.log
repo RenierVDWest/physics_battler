@@ -1,0 +1,458 @@
+# Physics Battler playtest 2026-10-31_08-06-38
+# time (s since Play) | physics step | who | what | details
+    0.000 |      0 | -              | session  | recording started: Unity 6000.0.60f1, physics 60 Hz, solver 12/4 iterations, time scale 1,00
+    0.000 |      0 | -              | console  | [Joint probe] drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0)
+    0.000 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0)
+    0.000 |      0 | -              | input    | spawn: two orcs 2,00 m apart
+    0.000 |      1 | Orc A (club)   | spawn    | at (-1,00, 0,00) facing 90°, team 0, mass 126,0 kg, scale 1,00, rest pelvis height 0,92 m, profile UP_Orc, holding P_Weapon_ClubBig
+    0.000 |      1 | Orc B          | spawn    | at (1,00, 0,00) facing 270°, team 1, mass 120,0 kg, scale 1,00, rest pelvis height 0,92 m, profile UP_Orc
+    0.000 |      1 | Orc A (club)   | equip    | holding P_Weapon_ClubBig (WD_ClubBig): physics mass 6,0 kg, tip 1,86 m from the grip
+    1.167 |     71 | Orc A (club)   | club     | club touched the ground at 3,5 m/s (idle)
+    2.711 |    163 | -              | input    | attack ordered
+    2.711 |    163 | Orc A (club)   | attack   | swing at Orc B: target 1,64 m from the shoulder, contact reach 0,30 m, plane roll 50°, extra lean 0,00 m, crowded ×0,90, club starts at θ -134° (wind-up down and back to -150°)
+    2.750 |    166 | Orc A (club)   | club     | club touched the ground at 0,3 m/s (WindUp θ -134°)
+    3.083 |    186 | Orc A (club)   | club     | club touched the ground at 2,6 m/s (WindUp θ -141°)
+    3.517 |    212 | Orc A (club)   | attack   | swing #1 → Load  [ghost θ -150°, club θ -85° (lag -65°), tip 3,3 m/s, club 2,04 m from the target point]
+    3.667 |    221 | Orc A (club)   | attack   | committed: arc frozen, aiming at (0,65, 1,40, 0,00) (target's chest now (0,65, 1,39, 0,00), 0,01 m apart), contact reach 0,30 m
+    3.667 |    221 | Orc A (club)   | attack   | swing #1 → Strike  [ghost θ -160°, club θ -31° (lag -129°), tip 2,3 m/s, club 2,04 m from the target point]
+    3.950 |    238 | Orc A (club)   | club     | club touched the ground at 1,8 m/s (Strike θ -93°)
+    4.217 |    254 | Orc A (club)   | attack   | swing #1 → Follow  [ghost θ 40°, club θ 41° (lag -1°), tip 3,2 m/s, club 1,18 m from the target point]
+    4.517 |    272 | Orc A (club)   | attack   | swing #1 → Recover  [ghost θ 50°, club θ 64° (lag -14°), tip 2,3 m/s, club 0,76 m from the target point]
+    4.950 |    298 | Orc A (club)   | club     | club touched the ground at 3,2 m/s (Recover θ 50°)
+    5.033 |    303 | Orc A (club)   | attack   | swing abandoned in Recover at θ 50°: unit went into Knockdown
+    5.033 |    303 | Orc A (club)   | attack   | swing #1 result: abandoned: in Recover at θ 50°: unit went into Knockdown; fastest tip 4,7 m/s, worst strike lag 130°, worst arm tracking error 179°; club touched: the ground 0,3 m/s in WindUp θ -134°, the ground 2,6 m/s in WindUp θ -141°, the ground 1,8 m/s in Strike θ -93°, the ground 3,2 m/s in Recover θ 50°
+    5.033 |    303 | Orc A (club)   | state    | Steady → Knockdown: tipped: chest tilt 60° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 60°, pelvis 0,89/0,92 m, balance error 0,55 m]
+    5.167 |    311 | Orc A (club)   | contact  | HandL hit the ground at 3,5 m/s (Knockdown)
+    5.317 |    320 | Orc A (club)   | club     | club touched the ground at 1,4 m/s (idle)
+    5.317 |    320 | Orc A (club)   | contact  | HandR hit the ground at 1,4 m/s (Knockdown)
+    5.350 |    322 | Orc A (club)   | contact  | ForearmL hit the ground at 1,9 m/s (Knockdown)
+    5.367 |    323 | Orc A (club)   | contact  | ThighL hit the ground at 2,8 m/s (Knockdown)
+    5.367 |    323 | Orc A (club)   | contact  | ShinL hit the ground at 2,3 m/s (Knockdown)
+    5.417 |    326 | Orc A (club)   | contact  | Head hit the ground at 3,8 m/s (Knockdown)
+    5.417 |    326 | Orc A (club)   | contact  | ThighR hit the ground at 3,1 m/s (Knockdown)
+    5.417 |    326 | Orc A (club)   | contact  | ShinR hit the ground at 2,8 m/s (Knockdown)
+    5.433 |    327 | Orc A (club)   | club     | club touched the ground at 0,2 m/s (idle)
+    5.483 |    330 | Orc A (club)   | contact  | FootR hit the ground at 0,9 m/s (Knockdown)
+    5.500 |    331 | Orc A (club)   | contact  | FootL hit the ground at 1,4 m/s (Knockdown)
+    5.507 |    331 | -              | MARK     | ===== mark 1 =====
+    5.507 |    331 | Orc A (club)   | mark     | Knockdown 0,5 s, pelvis 0,28 m, chest tilt 91°, balance error 0,76 m, stability 25; worst tracking ForearmL 95°, HandL 78°, UpperArmR 71°
+    5.507 |    331 | Orc B          | mark     | Steady 5,5 s, pelvis 0,92 m, chest tilt 21°, balance error 0,13 m, stability 100; worst tracking Head 33°, Pelvis 18°, ShinL 15°
+    5.750 |    346 | Orc A (club)   | club     | club touched the ground at 0,4 m/s (idle)
+    6.050 |    364 | Orc A (club)   | getup    | getting up: lying face down, pelvis 0,29 m up (rest 0,92 m), head 0,34 m, chest tilt 90°; root moved under the pelvis, facing where the head points
+    6.050 |    364 | Orc A (club)   | state    | Knockdown → GettingUp: down 1,0 s, at rest 0,6 s  [stability 70, health 100, chest tilt 90°, pelvis 0,29/0,92 m, balance error 0,80 m]
+    6.067 |    365 | Orc A (club)   | club     | club touched the ground at 0,2 m/s (idle)
+    6.217 |    374 | Orc A (club)   | club     | club touched the ground at 0,1 m/s (idle)
+    6.283 |    378 | Orc A (club)   | contact  | Head hit the ground at 0,6 m/s (GettingUp)
+    6.400 |    385 | Orc A (club)   | getup    | 25%: pelvis 0,36 m (ghost wants 0,51), chest tilt 98°, assist 0,16, tone 0,48, lift 498 N (body weight 1236 N), touching the ground: Head HandL HandR ThighL ShinL ShinR FootR
+    6.483 |    390 | Orc A (club)   | contact  | ForearmL hit the ground at 1,3 m/s (GettingUp)
+    6.550 |    394 | Orc A (club)   | contact  | FootL hit the ground at 1,1 m/s (GettingUp)
+    6.717 |    404 | Orc A (club)   | getup    | 50%: pelvis 0,52 m (ghost wants 0,70), chest tilt 104°, assist 0,50, tone 0,65, lift 1207 N (body weight 1236 N), touching the ground: HandL HandR FootL FootR
+    7.050 |    424 | Orc A (club)   | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 98°, assist 0,85, tone 0,83, lift 1171 N (body weight 1236 N), touching the ground: HandL HandR
+    7.367 |    443 | Orc A (club)   | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 77°, pelvis 0,90/0,92 m, balance error 0,92 m, feet off the ground]
+    7.383 |    444 | Orc A (club)   | state    | Steady → Knockdown: tipped: chest tilt 75° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 75°, pelvis 0,89/0,92 m, balance error 0,92 m, feet off the ground]
+    7.383 |    444 | Orc A (club)   | getup    | fall #1 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 75° > maxTiltDegrees 60°)
+    7.617 |    458 | Orc A (club)   | club     | club touched the ground at 0,3 m/s (idle)
+    7.617 |    458 | Orc A (club)   | contact  | HandR hit the ground at 0,3 m/s (Knockdown)
+    7.617 |    458 | Orc A (club)   | contact  | FootL hit the ground at 3,2 m/s (Knockdown)
+    7.667 |    461 | Orc A (club)   | contact  | FootR hit the ground at 3,3 m/s (Knockdown)
+    7.683 |    462 | Orc A (club)   | contact  | ShinR hit the ground at 2,4 m/s (Knockdown)
+    7.717 |    464 | Orc A (club)   | contact  | ShinL hit the ground at 1,9 m/s (Knockdown)
+    7.733 |    465 | Orc A (club)   | contact  | HandL hit the ground at 4,2 m/s (Knockdown)
+    7.833 |    471 | Orc A (club)   | contact  | Head hit the ground at 3,5 m/s (Knockdown)
+    7.967 |    479 | Orc A (club)   | contact  | ForearmL hit the ground at 1,0 m/s (Knockdown)
+    8.317 |    500 | Orc A (club)   | contact  | ThighL hit the ground at 0,1 m/s (Knockdown)
+    8.650 |    520 | Orc A (club)   | getup    | getting up: lying face down, pelvis 0,37 m up (rest 0,92 m), head 0,31 m, chest tilt 101°; root moved under the pelvis, facing where the head points
+    8.650 |    520 | Orc A (club)   | state    | Knockdown → GettingUp: down 1,3 s, at rest 0,5 s  [stability 70, health 100, chest tilt 101°, pelvis 0,37/0,92 m, balance error 0,65 m]
+    8.700 |    523 | Orc A (club)   | club     | club touched the ground at 0,3 m/s (idle)
+    8.833 |    531 | Orc A (club)   | contact  | ThighR hit the ground at 0,1 m/s (GettingUp)
+    9.000 |    541 | Orc A (club)   | getup    | 25%: pelvis 0,38 m (ghost wants 0,51), chest tilt 98°, assist 0,16, tone 0,48, lift 456 N (body weight 1236 N), touching the ground: Head HandL HandR ThighL ShinL ShinR
+    9.033 |    543 | Orc A (club)   | contact  | FootR hit the ground at 0,5 m/s (GettingUp)
+    9.100 |    547 | Orc A (club)   | contact  | FootL hit the ground at 1,0 m/s (GettingUp)
+    9.317 |    560 | Orc A (club)   | getup    | 50%: pelvis 0,52 m (ghost wants 0,70), chest tilt 107°, assist 0,50, tone 0,65, lift 1290 N (body weight 1236 N), touching the ground: Head HandL HandR FootL FootR
+    9.400 |    565 | Orc A (club)   | club     | club touched the ground at 0,3 m/s (idle)
+    9.650 |    580 | Orc A (club)   | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 100°, assist 0,85, tone 0,83, lift 1192 N (body weight 1236 N), touching the ground: HandR
+    9.825 |    590 | -              | input    | attack ordered
+    9.825 |    590 | Orc A (club)   | attack   | attack refused: can't attack while GettingUp
+    9.967 |    599 | Orc A (club)   | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 74°, pelvis 0,90/0,92 m, balance error 0,93 m, feet off the ground]
+    9.983 |    600 | Orc A (club)   | state    | Steady → Knockdown: tipped: chest tilt 73° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 73°, pelvis 0,90/0,92 m, balance error 0,93 m, feet off the ground]
+    9.983 |    600 | Orc A (club)   | getup    | fall #2 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 73° > maxTiltDegrees 60°)
+   10.167 |    611 | Orc A (club)   | contact  | HandL hit the ground at 2,2 m/s (Knockdown)
+   10.200 |    613 | Orc A (club)   | contact  | FootL hit the ground at 3,2 m/s (Knockdown)
+   10.267 |    617 | Orc A (club)   | contact  | FootR hit the ground at 3,2 m/s (Knockdown)
+   10.300 |    619 | Orc A (club)   | contact  | ShinL hit the ground at 2,0 m/s (Knockdown)
+   10.317 |    620 | Orc A (club)   | contact  | ShinR hit the ground at 2,6 m/s (Knockdown)
+   10.333 |    621 | Orc A (club)   | contact  | HandR hit the ground at 0,8 m/s (Knockdown)
+   10.367 |    623 | Orc A (club)   | contact  | ThighR hit the ground at 0,7 m/s (Knockdown)
+   10.400 |    625 | Orc A (club)   | club     | club touched the ground at 0,4 m/s (idle)
+   10.483 |    630 | Orc A (club)   | contact  | Head hit the ground at 3,2 m/s (Knockdown)
+   10.517 |    632 | Orc A (club)   | contact  | ForearmR hit the ground at 1,0 m/s (Knockdown)
+   10.667 |    641 | Orc A (club)   | club     | club touched the ground at 0,1 m/s (idle)
+   10.817 |    650 | Orc A (club)   | club     | club touched the ground at 0,1 m/s (idle)
+   10.850 |    652 | Orc A (club)   | contact  | ThighL hit the ground at 0,4 m/s (Knockdown)
+   10.917 |    656 | Orc A (club)   | club     | club touched the ground at 0,1 m/s (idle)
+   11.033 |    663 | Orc A (club)   | contact  | FootL hit the ground at 0,8 m/s (Knockdown)
+   11.450 |    688 | Orc A (club)   | getup    | getting up: lying face down, pelvis 0,30 m up (rest 0,92 m), head 0,30 m, chest tilt 96°; root moved under the pelvis, facing where the head points
+   11.450 |    688 | Orc A (club)   | state    | Knockdown → GettingUp: down 1,5 s, at rest 0,5 s  [stability 70, health 100, chest tilt 96°, pelvis 0,30/0,92 m, balance error 0,69 m]
+   11.483 |    690 | Orc A (club)   | club     | club touched the ground at 0,7 m/s (idle)
+   11.683 |    702 | Orc A (club)   | contact  | Chest hit the ground at 0,3 m/s (GettingUp)
+   11.800 |    709 | Orc A (club)   | getup    | 25%: pelvis 0,36 m (ghost wants 0,50), chest tilt 101°, assist 0,16, tone 0,48, lift 537 N (body weight 1236 N), touching the ground: Chest Head HandL HandR ThighL ShinL ShinR FootR
+   11.883 |    714 | Orc A (club)   | contact  | FootL hit the ground at 0,9 m/s (GettingUp)
+   11.917 |    716 | Orc A (club)   | contact  | HandR hit the ground at 0,4 m/s (GettingUp)
+   11.983 |    720 | Orc A (club)   | club     | club touched the ground at 0,5 m/s (idle)
+   12.117 |    728 | Orc A (club)   | getup    | 50%: pelvis 0,52 m (ghost wants 0,70), chest tilt 113°, assist 0,50, tone 0,65, lift 1260 N (body weight 1236 N), touching the ground: Head HandL HandR FootL FootR
+   12.450 |    748 | Orc A (club)   | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 109°, assist 0,85, tone 0,83, lift 1214 N (body weight 1236 N), touching the ground: HandL HandR
+   12.767 |    767 | Orc A (club)   | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 84°, pelvis 0,90/0,92 m, balance error 0,97 m, feet off the ground]
+   12.783 |    768 | Orc A (club)   | state    | Steady → Knockdown: tipped: chest tilt 83° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 83°, pelvis 0,90/0,92 m, balance error 0,97 m, feet off the ground]
+   12.783 |    768 | Orc A (club)   | getup    | fall #3 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 83° > maxTiltDegrees 60°)
+   13.000 |    781 | Orc A (club)   | contact  | HandR hit the ground at 0,3 m/s (Knockdown)
+   13.033 |    783 | Orc A (club)   | club     | club touched the ground at 0,1 m/s (idle)
+   13.067 |    785 | Orc A (club)   | contact  | FootL hit the ground at 4,0 m/s (Knockdown)
+   13.067 |    785 | Orc A (club)   | club     | club touched the ground at 0,2 m/s (idle)
+   13.083 |    786 | Orc A (club)   | contact  | FootR hit the ground at 4,0 m/s (Knockdown)
+   13.117 |    788 | Orc A (club)   | contact  | ShinL hit the ground at 2,4 m/s (Knockdown)
+   13.117 |    788 | Orc A (club)   | contact  | HandL hit the ground at 3,0 m/s (Knockdown)
+   13.117 |    788 | Orc A (club)   | contact  | ShinR hit the ground at 2,5 m/s (Knockdown)
+   13.200 |    793 | Orc A (club)   | contact  | ForearmL hit the ground at 0,9 m/s (Knockdown)
+   13.217 |    794 | Orc A (club)   | contact  | Head hit the ground at 3,6 m/s (Knockdown)
+   13.233 |    795 | Orc A (club)   | club     | club touched the ground at 0,2 m/s (idle)
+   13.517 |    812 | Orc A (club)   | contact  | ThighL hit the ground at 0,3 m/s (Knockdown)
+   13.567 |    815 | Orc A (club)   | club     | club touched the ground at 0,1 m/s (idle)
+   13.750 |    826 | Orc A (club)   | contact  | ShinR hit the ground at 0,6 m/s (Knockdown)
+   13.833 |    831 | Orc A (club)   | contact  | ForearmL hit the ground at 0,2 m/s (Knockdown)
+   14.133 |    849 | Orc A (club)   | contact  | FootL hit the ground at 0,2 m/s (Knockdown)
+   14.233 |    855 | Orc A (club)   | getup    | getting up: lying face down, pelvis 0,33 m up (rest 0,92 m), head 0,28 m, chest tilt 100°; root moved under the pelvis, facing where the head points
+   14.233 |    855 | Orc A (club)   | state    | Knockdown → GettingUp: down 1,4 s, at rest 0,5 s  [stability 70, health 100, chest tilt 100°, pelvis 0,33/0,92 m, balance error 0,70 m]
+   14.567 |    875 | Orc A (club)   | contact  | HandR hit the ground at 0,0 m/s (GettingUp)
+   14.583 |    876 | Orc A (club)   | getup    | 25%: pelvis 0,37 m (ghost wants 0,50), chest tilt 104°, assist 0,16, tone 0,48, lift 505 N (body weight 1236 N), touching the ground: Head HandL HandR ThighL ShinL ShinR FootR
+   14.767 |    887 | Orc A (club)   | contact  | FootL hit the ground at 1,6 m/s (GettingUp)
+   14.900 |    895 | Orc A (club)   | getup    | 50%: pelvis 0,51 m (ghost wants 0,70), chest tilt 112°, assist 0,50, tone 0,65, lift 1297 N (body weight 1236 N), touching the ground: Head HandL HandR FootL FootR
+   14.917 |    896 | Orc A (club)   | club     | club touched the ground at 0,2 m/s (idle)
+   15.233 |    915 | Orc A (club)   | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 110°, assist 0,85, tone 0,83, lift 1167 N (body weight 1236 N), touching the ground: HandR
+   15.550 |    934 | Orc A (club)   | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 83°, pelvis 0,90/0,92 m, balance error 0,96 m, feet off the ground]
+   15.567 |    935 | Orc A (club)   | state    | Steady → Knockdown: tipped: chest tilt 82° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 82°, pelvis 0,90/0,92 m, balance error 0,96 m, feet off the ground]
+   15.567 |    935 | Orc A (club)   | getup    | fall #4 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 82° > maxTiltDegrees 60°)
+   15.767 |    947 | Orc A (club)   | contact  | HandR hit the ground at 0,5 m/s (Knockdown)
+   15.783 |    948 | Orc A (club)   | contact  | HandL hit the ground at 2,4 m/s (Knockdown)
+   15.850 |    952 | Orc A (club)   | contact  | FootR hit the ground at 3,9 m/s (Knockdown)
+   15.850 |    952 | Orc A (club)   | club     | club touched the ground at 0,3 m/s (idle)
+   15.850 |    952 | Orc A (club)   | contact  | FootL hit the ground at 3,9 m/s (Knockdown)
+   15.900 |    955 | Orc A (club)   | contact  | ShinR hit the ground at 2,2 m/s (Knockdown)
+   15.900 |    955 | Orc A (club)   | contact  | ShinL hit the ground at 2,3 m/s (Knockdown)
+   16.033 |    963 | Orc A (club)   | contact  | Head hit the ground at 2,9 m/s (Knockdown)
+   16.383 |    984 | Orc A (club)   | contact  | ThighL hit the ground at 0,4 m/s (Knockdown)
+   16.517 |    992 | Orc A (club)   | club     | club touched the ground at 0,3 m/s (idle)
+   16.533 |    993 | Orc A (club)   | contact  | FootL hit the ground at 0,9 m/s (Knockdown)
+   16.550 |    994 | Orc A (club)   | contact  | Chest hit the ground at 0,7 m/s (Knockdown)
+   16.667 |   1001 | Orc A (club)   | contact  | ShinR hit the ground at 0,3 m/s (Knockdown)
+   16.717 |   1004 | Orc A (club)   | contact  | ShinL hit the ground at 0,4 m/s (Knockdown)
+   17.150 |   1030 | Orc A (club)   | getup    | getting up: lying face down, pelvis 0,28 m up (rest 0,92 m), head 0,25 m, chest tilt 97°; root moved under the pelvis, facing where the head points
+   17.150 |   1030 | Orc A (club)   | state    | Knockdown → GettingUp: down 1,6 s, at rest 0,5 s  [stability 70, health 100, chest tilt 97°, pelvis 0,28/0,92 m, balance error 0,67 m]
+   17.200 |   1033 | Orc A (club)   | contact  | Spine hit the ground at 0,5 m/s (GettingUp)
+   17.467 |   1049 | Orc A (club)   | contact  | HandR hit the ground at 0,2 m/s (GettingUp)
+   17.500 |   1051 | Orc A (club)   | getup    | 25%: pelvis 0,36 m (ghost wants 0,50), chest tilt 102°, assist 0,16, tone 0,48, lift 534 N (body weight 1236 N), touching the ground: Chest Head HandL HandR ThighL ShinL ShinR FootR
+   17.667 |   1061 | Orc A (club)   | contact  | FootL hit the ground at 1,2 m/s (GettingUp)
+   17.817 |   1070 | Orc A (club)   | getup    | 50%: pelvis 0,51 m (ghost wants 0,70), chest tilt 114°, assist 0,50, tone 0,65, lift 1327 N (body weight 1236 N), touching the ground: Chest Head HandL HandR FootL FootR
+   17.850 |   1072 | Orc A (club)   | club     | club touched the ground at 0,2 m/s (idle)
+   18.150 |   1090 | Orc A (club)   | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 110°, assist 0,85, tone 0,83, lift 1184 N (body weight 1236 N), touching the ground: HandL HandR
+   18.467 |   1109 | Orc A (club)   | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 84°, pelvis 0,90/0,92 m, balance error 0,95 m, feet off the ground]
+   18.483 |   1110 | Orc A (club)   | state    | Steady → Knockdown: tipped: chest tilt 82° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 82°, pelvis 0,90/0,92 m, balance error 0,95 m, feet off the ground]
+   18.483 |   1110 | Orc A (club)   | getup    | fall #5 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 82° > maxTiltDegrees 60°)
+   18.700 |   1123 | Orc A (club)   | contact  | HandL hit the ground at 2,1 m/s (Knockdown)
+   18.750 |   1126 | Orc A (club)   | contact  | FootL hit the ground at 4,0 m/s (Knockdown)
+   18.750 |   1126 | Orc A (club)   | contact  | HandR hit the ground at 0,2 m/s (Knockdown)
+   18.767 |   1127 | Orc A (club)   | club     | club touched the ground at 0,2 m/s (idle)
+   18.783 |   1128 | Orc A (club)   | contact  | FootR hit the ground at 3,8 m/s (Knockdown)
+   18.800 |   1129 | Orc A (club)   | contact  | ShinL hit the ground at 2,1 m/s (Knockdown)
+   18.817 |   1130 | Orc A (club)   | contact  | ShinR hit the ground at 2,5 m/s (Knockdown)
+   18.867 |   1133 | Orc A (club)   | contact  | ThighR hit the ground at 0,9 m/s (Knockdown)
+   18.933 |   1137 | Orc A (club)   | contact  | Head hit the ground at 3,4 m/s (Knockdown)
+   19.167 |   1151 | Orc A (club)   | contact  | ThighL hit the ground at 0,4 m/s (Knockdown)
+   19.633 |   1179 | Orc A (club)   | contact  | Spine hit the ground at 0,2 m/s (Knockdown)
+   19.633 |   1179 | Orc A (club)   | contact  | Pelvis hit the ground at 0,2 m/s (Knockdown)
+   19.717 |   1184 | Orc A (club)   | contact  | Chest hit the ground at 0,2 m/s (Knockdown)
+   19.924 |   1196 | -              | input    | spawn: two orcs 2,00 m apart
+   19.933 |   1197 | Orc A (club) #2 | spawn    | at (-1,00, 0,00) facing 90°, team 0, mass 126,0 kg, scale 1,00, rest pelvis height 0,92 m, profile UP_Orc, holding P_Weapon_ClubBig
+   19.933 |   1197 | Orc B #2       | spawn    | at (1,00, 0,00) facing 270°, team 1, mass 120,0 kg, scale 1,00, rest pelvis height 0,92 m, profile UP_Orc
+   19.933 |   1197 | Orc A (club) #2 | equip    | holding P_Weapon_ClubBig (WD_ClubBig): physics mass 6,0 kg, tip 1,86 m from the grip
+   19.933 |   1197 | Orc B          | despawn  | removed from the scene
+   19.933 |   1197 | Orc A (club)   | despawn  | removed from the scene
+   21.100 |   1267 | Orc A (club) #2 | club     | club touched the ground at 3,5 m/s (idle)
+   21.268 |   1277 | -              | input    | attack ordered
+   21.268 |   1277 | Orc A (club) #2 | attack   | swing at Orc B: target 1,67 m from the shoulder, contact reach 0,30 m, plane roll 50°, extra lean 0,00 m, crowded ×0,91, club starts at θ -125° (wind-up down and back to -150°)
+   22.083 |   1326 | Orc A (club) #2 | attack   | swing #1 → Load  [ghost θ -150°, club θ -120° (lag -30°), tip 0,7 m/s, club 1,77 m from the target point]
+   22.233 |   1335 | Orc A (club) #2 | attack   | committed: arc frozen, aiming at (0,56, 1,37, 0,00) (target's chest now (0,60, 1,36, 0,00), 0,04 m apart), contact reach 0,30 m
+   22.233 |   1335 | Orc A (club) #2 | attack   | swing #1 → Strike  [ghost θ -160°, club θ -120° (lag -40°), tip 1,1 m/s, club 1,89 m from the target point]
+   22.783 |   1368 | Orc A (club) #2 | attack   | swing #1 → Follow  [ghost θ 40°, club θ -133° (lag 173°), tip 2,8 m/s, club 1,90 m from the target point]
+   23.083 |   1386 | Orc A (club) #2 | attack   | swing #1 → Recover  [ghost θ 50°, club θ -86° (lag 136°), tip 4,7 m/s, club 1,70 m from the target point]
+   23.250 |   1396 | Orc A (club) #2 | club     | club touched the ground at 3,6 m/s (Recover θ 50°)
+   23.667 |   1421 | Orc A (club) #2 | attack   | swing #1 result: missed: club passed 0,95 m from the target point (in Recover); fastest tip 5,9 m/s, worst strike lag 173°, worst arm tracking error 154°; club touched: the ground 3,6 m/s in Recover θ 50°
+   24.957 |   1498 | -              | input    | attack ordered
+   24.957 |   1498 | Orc A (club) #2 | attack   | swing at Orc B: target 1,66 m from the shoulder, contact reach 0,30 m, plane roll 50°, extra lean 0,00 m, crowded ×0,90, club starts at θ 171° (wind-up over the top to -150°)
+   25.367 |   1523 | Orc A (club) #2 | club     | club touched the ground at 2,2 m/s (WindUp θ -167°)
+   25.767 |   1547 | Orc A (club) #2 | attack   | swing #2 → Load  [ghost θ -150°, club θ -117° (lag -33°), tip 0,0 m/s, club 2,17 m from the target point]
+   25.917 |   1556 | Orc A (club) #2 | attack   | committed: arc frozen, aiming at (0,69, 1,41, 0,00) (target's chest now (0,61, 1,38, 0,00), 0,08 m apart), contact reach 0,30 m
+   25.917 |   1556 | Orc A (club) #2 | attack   | swing #2 → Strike  [ghost θ -160°, club θ -111° (lag -49°), tip 0,4 m/s, club 2,23 m from the target point]
+   26.467 |   1589 | Orc A (club) #2 | attack   | swing #2 → Follow  [ghost θ 40°, club θ -177° (lag -143°), tip 4,3 m/s, club 1,60 m from the target point]
+   26.767 |   1607 | Orc A (club) #2 | attack   | swing #2 → Recover  [ghost θ 50°, club θ -174° (lag -136°), tip 1,8 m/s, club 1,22 m from the target point]
+   27.283 |   1638 | Orc A (club) #2 | club     | club touched the ground at 2,6 m/s (Recover θ 50°)
+   27.350 |   1642 | Orc A (club) #2 | attack   | swing #2 result: missed: club passed 1,07 m from the target point (in Recover); fastest tip 5,5 m/s, worst strike lag 178°, worst arm tracking error 179°; club touched: the ground 2,2 m/s in WindUp θ -167°, the ground 2,6 m/s in Recover θ 50°
+   28.367 |   1703 | Orc A (club) #2 | club     | club touched the ground at 1,0 m/s (idle)
+   28.960 |   1738 | -              | input    | attack ordered
+   28.960 |   1738 | Orc A (club) #2 | attack   | swing at Orc B: target 1,69 m from the shoulder, contact reach 0,30 m, plane roll 50°, extra lean 0,00 m, crowded ×0,93, club starts at θ -147° (wind-up down and back to -150°)
+   29.767 |   1787 | Orc A (club) #2 | attack   | swing #3 → Load  [ghost θ -150°, club θ -118° (lag -32°), tip 0,9 m/s, club 2,05 m from the target point]
+   29.917 |   1796 | Orc A (club) #2 | attack   | committed: arc frozen, aiming at (0,63, 1,40, 0,00) (target's chest now (0,64, 1,39, 0,00), 0,02 m apart), contact reach 0,30 m
+   29.917 |   1796 | Orc A (club) #2 | attack   | swing #3 → Strike  [ghost θ -160°, club θ -109° (lag -51°), tip 0,9 m/s, club 2,15 m from the target point]
+   30.467 |   1829 | Orc A (club) #2 | attack   | swing #3 → Follow  [ghost θ 40°, club θ 146° (lag -106°), tip 5,5 m/s, club 1,37 m from the target point]
+   30.767 |   1847 | Orc A (club) #2 | attack   | swing #3 → Recover  [ghost θ 50°, club θ 125° (lag -75°), tip 2,2 m/s, club 1,13 m from the target point]
+   31.350 |   1882 | Orc A (club) #2 | attack   | swing #3 result: missed: club passed 0,96 m from the target point (in Recover); fastest tip 8,2 m/s, worst strike lag 175°, worst arm tracking error 180°; club touched nothing
+   31.417 |   1886 | Orc A (club) #2 | club     | club touched the ground at 5,7 m/s (idle)
+   32.962 |   1978 | -              | input    | attack ordered
+   32.962 |   1978 | Orc A (club) #2 | attack   | swing at Orc B: target 1,69 m from the shoulder, contact reach 0,30 m, plane roll 50°, extra lean 0,00 m, crowded ×0,93, club starts at θ 20° (wind-up over the top to -150°)
+   33.433 |   2007 | Orc A (club) #2 | club     | club touched the ground at 4,1 m/s (WindUp θ 163°)
+   33.767 |   2027 | Orc A (club) #2 | attack   | swing #4 → Load  [ghost θ -150°, club θ 120° (lag 90°), tip 3,2 m/s, club 1,59 m from the target point]
+   33.917 |   2036 | Orc A (club) #2 | attack   | committed: arc frozen, aiming at (0,56, 1,36, 0,00) (target's chest now (0,58, 1,34, 0,00), 0,03 m apart), contact reach 0,30 m
+   33.917 |   2036 | Orc A (club) #2 | attack   | swing #4 → Strike  [ghost θ -160°, club θ 142° (lag 58°), tip 1,8 m/s, club 1,73 m from the target point]
+   34.067 |   2045 | Orc A (club) #2 | club     | club touched the ground at 1,0 m/s (Strike θ -137°)
+   34.467 |   2069 | Orc A (club) #2 | attack   | swing #4 → Follow  [ghost θ 40°, club θ -117° (lag 157°), tip 1,4 m/s, club 1,21 m from the target point]
+   34.767 |   2087 | Orc A (club) #2 | attack   | swing #4 → Recover  [ghost θ 50°, club θ -133° (lag -177°), tip 0,5 m/s, club 0,91 m from the target point]
+   35.350 |   2122 | Orc A (club) #2 | attack   | swing #4 result: missed: club passed 0,56 m from the target point (in Recover); fastest tip 10,9 m/s, worst strike lag 157°, worst arm tracking error 180°; club touched: the ground 4,1 m/s in WindUp θ 163°, the ground 1,0 m/s in Strike θ -137°
+   36.000 |   2161 | Orc A (club) #2 | state    | Steady → Knockdown: tipped: chest tilt 60° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 60°, pelvis 0,91/0,92 m, balance error 0,69 m]
+   36.035 |   2163 | -              | MARK     | ===== mark 2 =====
+   36.035 |   2163 | Orc A (club) #2 | mark     | Knockdown 0,0 s, pelvis 0,90 m, chest tilt 66°, balance error 0,69 m, stability 25; worst tracking HandR 79°, Pelvis 55°, ShinL 54°
+   36.035 |   2163 | Orc B #2       | mark     | Steady 16,1 s, pelvis 0,92 m, chest tilt 15°, balance error 0,11 m, stability 100; worst tracking Head 25°, ShinL 16°, ShinR 16°
+   36.200 |   2173 | Orc A (club) #2 | contact  | FootR hit the ground at 2,3 m/s (Knockdown)
+   36.300 |   2179 | Orc A (club) #2 | contact  | HandL hit the ground at 2,7 m/s (Knockdown)
+   36.333 |   2181 | Orc A (club) #2 | contact  | ThighL hit the ground at 2,3 m/s (Knockdown)
+   36.333 |   2181 | Orc A (club) #2 | contact  | ShinL hit the ground at 2,3 m/s (Knockdown)
+   36.350 |   2182 | Orc A (club) #2 | contact  | HandR hit the ground at 3,0 m/s (Knockdown)
+   36.350 |   2182 | Orc A (club) #2 | contact  | ShinR hit the ground at 1,7 m/s (Knockdown)
+   36.350 |   2182 | Orc A (club) #2 | contact  | ThighR hit the ground at 3,0 m/s (Knockdown)
+   36.367 |   2183 | Orc A (club) #2 | club     | club touched the ground at 2,7 m/s (idle)
+   36.400 |   2185 | Orc A (club) #2 | contact  | Head hit the ground at 4,4 m/s (Knockdown)
+   36.400 |   2185 | Orc A (club) #2 | contact  | ForearmR hit the ground at 1,9 m/s (Knockdown)
+   36.433 |   2187 | Orc A (club) #2 | contact  | ForearmL hit the ground at 1,6 m/s (Knockdown)
+   36.517 |   2192 | Orc A (club) #2 | club     | club touched the ground at 3,3 m/s (idle)
+   36.550 |   2194 | Orc A (club) #2 | contact  | FootL hit the ground at 1,5 m/s (Knockdown)
+   36.617 |   2198 | Orc A (club) #2 | contact  | Chest hit the ground at 0,8 m/s (Knockdown)
+   36.667 |   2201 | Orc A (club) #2 | contact  | UpperArmL hit the ground at 0,2 m/s (Knockdown)
+   36.933 |   2217 | Orc A (club) #2 | contact  | ShinR hit the ground at 0,1 m/s (Knockdown)
+   36.964 |   2218 | -              | input    | attack ordered
+   36.964 |   2218 | Orc A (club) #2 | attack   | attack refused: can't attack while Knockdown
+   37.017 |   2222 | Orc A (club) #2 | club     | club touched the ground at 0,3 m/s (idle)
+   37.183 |   2232 | Orc A (club) #2 | getup    | getting up: lying face down, pelvis 0,28 m up (rest 0,92 m), head 0,27 m, chest tilt 97°; root moved under the pelvis, facing where the head points
+   37.183 |   2232 | Orc A (club) #2 | state    | Knockdown → GettingUp: down 1,2 s, at rest 0,5 s  [stability 70, health 100, chest tilt 97°, pelvis 0,28/0,92 m, balance error 0,63 m]
+   37.233 |   2235 | Orc A (club) #2 | contact  | Spine hit the ground at 0,4 m/s (GettingUp)
+   37.483 |   2250 | Orc A (club) #2 | contact  | HandR hit the ground at 0,2 m/s (GettingUp)
+   37.533 |   2253 | Orc A (club) #2 | getup    | 25%: pelvis 0,33 m (ghost wants 0,50), chest tilt 97°, assist 0,16, tone 0,48, lift 561 N (body weight 1236 N), touching the ground: Chest Head ForearmL HandL HandR ThighL ShinL FootL ShinR FootR
+   37.617 |   2258 | Orc A (club) #2 | club     | club touched the ground at 0,4 m/s (idle)
+   37.850 |   2272 | Orc A (club) #2 | getup    | 50%: pelvis 0,52 m (ghost wants 0,70), chest tilt 112°, assist 0,50, tone 0,65, lift 1178 N (body weight 1236 N), touching the ground: Head HandL HandR FootL FootR
+   38.183 |   2292 | Orc A (club) #2 | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 110°, assist 0,85, tone 0,83, lift 1224 N (body weight 1236 N), touching the ground: HandL HandR
+   38.500 |   2311 | Orc A (club) #2 | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 85°, pelvis 0,90/0,92 m, balance error 0,98 m, feet off the ground]
+   38.517 |   2312 | Orc A (club) #2 | state    | Steady → Knockdown: tipped: chest tilt 83° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 83°, pelvis 0,90/0,92 m, balance error 0,98 m, feet off the ground]
+   38.517 |   2312 | Orc A (club) #2 | getup    | fall #1 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 83° > maxTiltDegrees 60°)
+   38.717 |   2324 | Orc A (club) #2 | contact  | HandL hit the ground at 2,0 m/s (Knockdown)
+   38.783 |   2328 | Orc A (club) #2 | contact  | FootL hit the ground at 4,0 m/s (Knockdown)
+   38.783 |   2328 | Orc A (club) #2 | contact  | HandR hit the ground at 0,2 m/s (Knockdown)
+   38.800 |   2329 | Orc A (club) #2 | club     | club touched the ground at 0,2 m/s (idle)
+   38.817 |   2330 | Orc A (club) #2 | contact  | FootR hit the ground at 3,9 m/s (Knockdown)
+   38.833 |   2331 | Orc A (club) #2 | club     | club touched the ground at 0,0 m/s (idle)
+   38.833 |   2331 | Orc A (club) #2 | contact  | ShinL hit the ground at 2,2 m/s (Knockdown)
+   38.850 |   2332 | Orc A (club) #2 | contact  | ShinR hit the ground at 2,6 m/s (Knockdown)
+   38.900 |   2335 | Orc A (club) #2 | contact  | ThighR hit the ground at 0,6 m/s (Knockdown)
+   38.967 |   2339 | Orc A (club) #2 | contact  | Head hit the ground at 3,4 m/s (Knockdown)
+   38.983 |   2340 | Orc A (club) #2 | contact  | ThighL hit the ground at 0,5 m/s (Knockdown)
+   39.133 |   2349 | Orc A (club) #2 | contact  | ForearmR hit the ground at 0,4 m/s (Knockdown)
+   39.150 |   2350 | Orc A (club) #2 | contact  | ForearmL hit the ground at 0,9 m/s (Knockdown)
+   39.300 |   2359 | Orc A (club) #2 | contact  | FootL hit the ground at 0,9 m/s (Knockdown)
+   39.317 |   2360 | Orc A (club) #2 | club     | club touched the ground at 0,4 m/s (idle)
+   39.350 |   2362 | Orc A (club) #2 | contact  | HandL hit the ground at 0,5 m/s (Knockdown)
+   39.467 |   2369 | Orc A (club) #2 | club     | club touched the ground at 0,1 m/s (idle)
+   39.817 |   2390 | Orc A (club) #2 | club     | club touched the ground at 0,1 m/s (idle)
+   39.867 |   2393 | Orc A (club) #2 | getup    | getting up: lying face down, pelvis 0,30 m up (rest 0,92 m), head 0,32 m, chest tilt 93°; root moved under the pelvis, facing where the head points
+   39.867 |   2393 | Orc A (club) #2 | state    | Knockdown → GettingUp: down 1,3 s, at rest 0,5 s  [stability 70, health 100, chest tilt 93°, pelvis 0,30/0,92 m, balance error 0,68 m]
+   39.917 |   2396 | Orc A (club) #2 | contact  | ShinR hit the ground at 0,5 m/s (GettingUp)
+   40.217 |   2414 | Orc A (club) #2 | getup    | 25%: pelvis 0,37 m (ghost wants 0,50), chest tilt 99°, assist 0,16, tone 0,48, lift 451 N (body weight 1236 N), touching the ground: Head HandL HandR ThighL ShinL ShinR FootR
+   40.400 |   2425 | Orc A (club) #2 | contact  | FootL hit the ground at 1,6 m/s (GettingUp)
+   40.533 |   2433 | Orc A (club) #2 | getup    | 50%: pelvis 0,52 m (ghost wants 0,70), chest tilt 111°, assist 0,50, tone 0,65, lift 1267 N (body weight 1236 N), touching the ground: Head HandL HandR FootL FootR
+   40.867 |   2453 | Orc A (club) #2 | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 110°, assist 0,85, tone 0,83, lift 1227 N (body weight 1236 N), touching the ground: HandL HandR
+   40.965 |   2458 | -              | input    | attack ordered
+   40.965 |   2458 | Orc A (club) #2 | attack   | attack refused: can't attack while GettingUp
+   41.183 |   2472 | Orc A (club) #2 | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 83°, pelvis 0,90/0,92 m, balance error 0,95 m, feet off the ground]
+   41.200 |   2473 | Orc A (club) #2 | state    | Steady → Knockdown: tipped: chest tilt 82° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 82°, pelvis 0,90/0,92 m, balance error 0,95 m, feet off the ground]
+   41.200 |   2473 | Orc A (club) #2 | getup    | fall #2 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 82° > maxTiltDegrees 60°)
+   41.350 |   2482 | Orc A (club) #2 | contact  | HandL hit the ground at 2,0 m/s (Knockdown)
+   41.450 |   2488 | Orc A (club) #2 | contact  | FootL hit the ground at 3,8 m/s (Knockdown)
+   41.483 |   2490 | Orc A (club) #2 | contact  | HandR hit the ground at 0,3 m/s (Knockdown)
+   41.500 |   2491 | Orc A (club) #2 | club     | club touched the ground at 0,4 m/s (idle)
+   41.517 |   2492 | Orc A (club) #2 | contact  | ShinL hit the ground at 2,1 m/s (Knockdown)
+   41.517 |   2492 | Orc A (club) #2 | contact  | FootR hit the ground at 3,9 m/s (Knockdown)
+   41.533 |   2493 | Orc A (club) #2 | contact  | ShinR hit the ground at 2,6 m/s (Knockdown)
+   41.533 |   2493 | Orc A (club) #2 | club     | club touched the ground at 0,1 m/s (idle)
+   41.600 |   2497 | Orc A (club) #2 | contact  | ThighR hit the ground at 0,5 m/s (Knockdown)
+   41.650 |   2500 | Orc A (club) #2 | contact  | Head hit the ground at 3,5 m/s (Knockdown)
+   41.767 |   2507 | Orc A (club) #2 | contact  | ThighL hit the ground at 0,4 m/s (Knockdown)
+   41.783 |   2508 | Orc A (club) #2 | contact  | ForearmR hit the ground at 0,8 m/s (Knockdown)
+   42.067 |   2525 | Orc A (club) #2 | contact  | FootL hit the ground at 0,6 m/s (Knockdown)
+   42.400 |   2545 | Orc A (club) #2 | contact  | Chest hit the ground at 0,5 m/s (Knockdown)
+   42.417 |   2546 | Orc A (club) #2 | contact  | Spine hit the ground at 0,4 m/s (Knockdown)
+   42.433 |   2547 | Orc A (club) #2 | contact  | ForearmL hit the ground at 0,2 m/s (Knockdown)
+   42.450 |   2548 | Orc A (club) #2 | contact  | Pelvis hit the ground at 0,2 m/s (Knockdown)
+   42.515 |   2551 | -              | MARK     | ===== mark 3 =====
+   42.515 |   2551 | Orc A (club) #2 | mark     | Knockdown 1,3 s, pelvis 0,26 m, chest tilt 94°, balance error 0,68 m, stability 25; worst tracking HandR 76°, Pelvis 76°, ForearmL 70°
+   42.515 |   2551 | Orc B #2       | mark     | Steady 22,6 s, pelvis 0,92 m, chest tilt 21°, balance error 0,13 m, stability 100; worst tracking Head 33°, Pelvis 19°, ShinL 17°
+   42.567 |   2555 | Orc A (club) #2 | contact  | ShinL hit the ground at 0,4 m/s (Knockdown)
+   42.583 |   2556 | Orc A (club) #2 | contact  | HandR hit the ground at 0,1 m/s (Knockdown)
+   42.867 |   2573 | Orc A (club) #2 | getup    | getting up: lying face down, pelvis 0,27 m up (rest 0,92 m), head 0,26 m, chest tilt 95°; root moved under the pelvis, facing where the head points
+   42.867 |   2573 | Orc A (club) #2 | state    | Knockdown → GettingUp: down 1,7 s, at rest 0,5 s  [stability 70, health 100, chest tilt 95°, pelvis 0,27/0,92 m, balance error 0,65 m]
+   42.917 |   2576 | Orc A (club) #2 | contact  | ShinR hit the ground at 0,7 m/s (GettingUp)
+   43.217 |   2594 | Orc A (club) #2 | getup    | 25%: pelvis 0,35 m (ghost wants 0,50), chest tilt 100°, assist 0,16, tone 0,48, lift 531 N (body weight 1236 N), touching the ground: Chest Head HandL HandR ThighL ShinL ShinR FootR
+   43.250 |   2596 | Orc A (club) #2 | contact  | HandR hit the ground at 0,4 m/s (GettingUp)
+   43.383 |   2604 | Orc A (club) #2 | contact  | FootL hit the ground at 1,1 m/s (GettingUp)
+   43.450 |   2608 | Orc A (club) #2 | club     | club touched the ground at 0,3 m/s (idle)
+   43.533 |   2613 | Orc A (club) #2 | getup    | 50%: pelvis 0,51 m (ghost wants 0,70), chest tilt 113°, assist 0,50, tone 0,65, lift 1333 N (body weight 1236 N), touching the ground: Chest Head HandL HandR FootL FootR
+   43.867 |   2633 | Orc A (club) #2 | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 110°, assist 0,85, tone 0,83, lift 1185 N (body weight 1236 N), touching the ground: HandL HandR
+   44.183 |   2652 | Orc A (club) #2 | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 85°, pelvis 0,90/0,92 m, balance error 0,93 m, feet off the ground]
+   44.200 |   2653 | Orc A (club) #2 | state    | Steady → Knockdown: tipped: chest tilt 84° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 84°, pelvis 0,90/0,92 m, balance error 0,93 m, feet off the ground]
+   44.200 |   2653 | Orc A (club) #2 | getup    | fall #3 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 84° > maxTiltDegrees 60°)
+   44.367 |   2663 | Orc A (club) #2 | contact  | HandL hit the ground at 1,9 m/s (Knockdown)
+   44.467 |   2669 | Orc A (club) #2 | contact  | FootL hit the ground at 4,0 m/s (Knockdown)
+   44.483 |   2670 | Orc A (club) #2 | club     | club touched the ground at 0,6 m/s (idle)
+   44.483 |   2670 | Orc A (club) #2 | contact  | HandR hit the ground at 0,6 m/s (Knockdown)
+   44.500 |   2671 | Orc A (club) #2 | contact  | FootR hit the ground at 3,8 m/s (Knockdown)
+   44.517 |   2672 | Orc A (club) #2 | contact  | ShinL hit the ground at 2,0 m/s (Knockdown)
+   44.550 |   2674 | Orc A (club) #2 | contact  | ShinR hit the ground at 2,2 m/s (Knockdown)
+   44.583 |   2676 | Orc A (club) #2 | contact  | ThighR hit the ground at 1,3 m/s (Knockdown)
+   44.633 |   2679 | Orc A (club) #2 | contact  | Head hit the ground at 3,8 m/s (Knockdown)
+   44.717 |   2684 | Orc A (club) #2 | contact  | ThighL hit the ground at 0,4 m/s (Knockdown)
+   44.965 |   2698 | -              | input    | attack ordered
+   44.965 |   2698 | Orc A (club) #2 | attack   | attack refused: can't attack while Knockdown
+   44.983 |   2700 | Orc A (club) #2 | contact  | Chest hit the ground at 0,6 m/s (Knockdown)
+   45.217 |   2714 | Orc A (club) #2 | club     | club touched the ground at 0,2 m/s (idle)
+   45.567 |   2735 | Orc A (club) #2 | getup    | getting up: lying face down, pelvis 0,28 m up (rest 0,92 m), head 0,24 m, chest tilt 98°; root moved under the pelvis, facing where the head points
+   45.567 |   2735 | Orc A (club) #2 | state    | Knockdown → GettingUp: down 1,4 s, at rest 0,5 s  [stability 70, health 100, chest tilt 98°, pelvis 0,28/0,92 m, balance error 0,67 m]
+   45.617 |   2738 | Orc A (club) #2 | contact  | Spine hit the ground at 0,2 m/s (GettingUp)
+   45.650 |   2740 | Orc A (club) #2 | contact  | ShinR hit the ground at 1,0 m/s (GettingUp)
+   45.917 |   2756 | Orc A (club) #2 | getup    | 25%: pelvis 0,35 m (ghost wants 0,50), chest tilt 100°, assist 0,16, tone 0,48, lift 522 N (body weight 1236 N), touching the ground: Chest Head HandL HandR ThighL ShinL FootL ShinR FootR
+   46.017 |   2762 | Orc A (club) #2 | contact  | HandR hit the ground at 0,3 m/s (GettingUp)
+   46.083 |   2766 | Orc A (club) #2 | contact  | FootL hit the ground at 1,1 m/s (GettingUp)
+   46.233 |   2775 | Orc A (club) #2 | getup    | 50%: pelvis 0,51 m (ghost wants 0,70), chest tilt 112°, assist 0,50, tone 0,65, lift 1309 N (body weight 1236 N), touching the ground: Head HandL HandR FootL FootR
+   46.267 |   2777 | Orc A (club) #2 | club     | club touched the ground at 0,2 m/s (idle)
+   46.567 |   2795 | Orc A (club) #2 | getup    | 75%: pelvis 0,79 m (ghost wants 0,90), chest tilt 109°, assist 0,85, tone 0,83, lift 1167 N (body weight 1236 N), touching the ground: HandL HandR
+   46.883 |   2814 | Orc A (club) #2 | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 85°, pelvis 0,90/0,92 m, balance error 0,91 m, feet off the ground]
+   46.900 |   2815 | Orc A (club) #2 | state    | Steady → Knockdown: tipped: chest tilt 83° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 83°, pelvis 0,90/0,92 m, balance error 0,91 m, feet off the ground]
+   46.900 |   2815 | Orc A (club) #2 | getup    | fall #4 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 83° > maxTiltDegrees 60°)
+   47.050 |   2824 | Orc A (club) #2 | contact  | HandL hit the ground at 1,9 m/s (Knockdown)
+   47.167 |   2831 | Orc A (club) #2 | contact  | HandR hit the ground at 0,6 m/s (Knockdown)
+   47.167 |   2831 | Orc A (club) #2 | club     | club touched the ground at 0,6 m/s (idle)
+   47.167 |   2831 | Orc A (club) #2 | contact  | FootL hit the ground at 4,0 m/s (Knockdown)
+   47.217 |   2834 | Orc A (club) #2 | contact  | ShinL hit the ground at 1,9 m/s (Knockdown)
+   47.217 |   2834 | Orc A (club) #2 | contact  | FootR hit the ground at 3,9 m/s (Knockdown)
+   47.250 |   2836 | Orc A (club) #2 | contact  | ShinR hit the ground at 2,2 m/s (Knockdown)
+   47.300 |   2839 | Orc A (club) #2 | contact  | ThighR hit the ground at 0,7 m/s (Knockdown)
+   47.333 |   2841 | Orc A (club) #2 | contact  | Head hit the ground at 3,5 m/s (Knockdown)
+   47.350 |   2842 | Orc A (club) #2 | contact  | ThighL hit the ground at 0,2 m/s (Knockdown)
+   47.800 |   2869 | Orc A (club) #2 | contact  | Chest hit the ground at 0,6 m/s (Knockdown)
+   47.833 |   2871 | Orc A (club) #2 | contact  | Spine hit the ground at 0,5 m/s (Knockdown)
+   47.867 |   2873 | Orc A (club) #2 | contact  | Pelvis hit the ground at 0,5 m/s (Knockdown)
+   47.883 |   2874 | Orc A (club) #2 | contact  | UpperArmL hit the ground at 0,3 m/s (Knockdown)
+   47.933 |   2877 | Orc A (club) #2 | contact  | ForearmL hit the ground at 0,0 m/s (Knockdown)
+   48.300 |   2899 | Orc A (club) #2 | contact  | HandR hit the ground at 0,1 m/s (Knockdown)
+   48.383 |   2904 | Orc A (club) #2 | getup    | getting up: lying face down, pelvis 0,27 m up (rest 0,92 m), head 0,27 m, chest tilt 94°; root moved under the pelvis, facing where the head points
+   48.383 |   2904 | Orc A (club) #2 | state    | Knockdown → GettingUp: down 1,5 s, at rest 0,5 s  [stability 70, health 100, chest tilt 94°, pelvis 0,27/0,92 m, balance error 0,68 m]
+   48.483 |   2910 | Orc A (club) #2 | contact  | ShinR hit the ground at 1,1 m/s (GettingUp)
+   48.733 |   2925 | Orc A (club) #2 | getup    | 25%: pelvis 0,35 m (ghost wants 0,50), chest tilt 99°, assist 0,16, tone 0,48, lift 511 N (body weight 1236 N), touching the ground: Chest Head HandL HandR ThighL ShinL FootL ShinR FootR
+   48.812 |   2929 | -              | input    | spawn: two orcs 2,00 m apart
+   48.817 |   2930 | Orc A (club) #3 | spawn    | at (-1,00, 0,00) facing 90°, team 0, mass 126,0 kg, scale 1,00, rest pelvis height 0,92 m, profile UP_Orc, holding P_Weapon_ClubBig
+   48.817 |   2930 | Orc B #3       | spawn    | at (1,00, 0,00) facing 270°, team 1, mass 120,0 kg, scale 1,00, rest pelvis height 0,92 m, profile UP_Orc
+   48.817 |   2930 | Orc A (club) #3 | equip    | holding P_Weapon_ClubBig (WD_ClubBig): physics mass 6,0 kg, tip 1,86 m from the grip
+   48.817 |   2930 | Orc B #2       | despawn  | removed from the scene
+   48.817 |   2930 | Orc A (club) #2 | despawn  | removed from the scene
+   48.967 |   2939 | -              | input    | attack ordered
+   48.967 |   2939 | Orc A (club) #3 | attack   | swing at Orc B: target 1,81 m from the shoulder, contact reach 0,31 m, plane roll 50°, extra lean 0,00 m, crowded ×1,00, club starts at θ 124° (wind-up over the top to -150°)
+   49.240 |   2955 | -              | input    | attack ordered
+   49.240 |   2955 | Orc A (club) #3 | attack   | attack refused: already attacking
+   49.783 |   2988 | Orc A (club) #3 | attack   | swing #1 → Load  [ghost θ -150°, club θ -90° (lag -60°), tip 4,1 m/s, club 1,56 m from the target point]
+   49.867 |   2993 | Orc A (club) #3 | club     | club touched the ground at 2,7 m/s (Load θ -160°)
+   49.933 |   2997 | Orc A (club) #3 | attack   | committed: arc frozen, aiming at (0,59, 1,38, 0,00) (target's chest now (0,60, 1,36, 0,00), 0,02 m apart), contact reach 0,30 m
+   49.933 |   2997 | Orc A (club) #3 | attack   | swing #1 → Strike  [ghost θ -160°, club θ -85° (lag -75°), tip 0,5 m/s, club 1,71 m from the target point]
+   50.483 |   3030 | Orc A (club) #3 | attack   | swing #1 → Follow  [ghost θ 40°, club θ -103° (lag 143°), tip 1,5 m/s, club 1,55 m from the target point]
+   50.783 |   3048 | Orc A (club) #3 | attack   | swing #1 → Recover  [ghost θ 50°, club θ -100° (lag 150°), tip 4,2 m/s, club 0,97 m from the target point]
+   50.883 |   3054 | Orc A (club) #3 | club     | club touched the ground at 3,5 m/s (Recover θ 50°)
+   51.367 |   3083 | Orc A (club) #3 | attack   | swing #1 result: missed: club passed 0,66 m from the target point (in Recover); fastest tip 7,3 m/s, worst strike lag 143°, worst arm tracking error 176°; club touched: the ground 2,7 m/s in Load θ -160°, the ground 3,5 m/s in Recover θ 50°
+   51.883 |   3114 | Orc A (club) #3 | state    | Steady → Knockdown: tipped: chest tilt 61° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 61°, pelvis 0,91/0,92 m, balance error 0,75 m]
+   52.100 |   3127 | Orc A (club) #3 | contact  | HandL hit the ground at 3,2 m/s (Knockdown)
+   52.150 |   3130 | Orc A (club) #3 | club     | club touched the ground at 0,5 m/s (idle)
+   52.150 |   3130 | Orc A (club) #3 | contact  | HandR hit the ground at 0,5 m/s (Knockdown)
+   52.217 |   3134 | Orc A (club) #3 | contact  | FootR hit the ground at 2,2 m/s (Knockdown)
+   52.233 |   3135 | Orc A (club) #3 | contact  | ShinL hit the ground at 2,5 m/s (Knockdown)
+   52.250 |   3136 | Orc A (club) #3 | contact  | Head hit the ground at 3,8 m/s (Knockdown)
+   52.250 |   3136 | Orc A (club) #3 | contact  | ShinR hit the ground at 1,7 m/s (Knockdown)
+   52.250 |   3136 | Orc A (club) #3 | contact  | FootL hit the ground at 1,7 m/s (Knockdown)
+   52.267 |   3137 | Orc A (club) #3 | club     | club touched the ground at 0,3 m/s (idle)
+   52.283 |   3138 | Orc A (club) #3 | contact  | ThighL hit the ground at 1,0 m/s (Knockdown)
+   52.283 |   3138 | Orc A (club) #3 | contact  | ThighR hit the ground at 0,7 m/s (Knockdown)
+   52.317 |   3140 | Orc A (club) #3 | contact  | ForearmL hit the ground at 1,7 m/s (Knockdown)
+   52.383 |   3144 | Orc A (club) #3 | club     | club touched the ground at 0,2 m/s (idle)
+   52.600 |   3157 | Orc A (club) #3 | contact  | Spine hit the ground at 0,6 m/s (Knockdown)
+   52.617 |   3158 | Orc A (club) #3 | contact  | Pelvis hit the ground at 0,5 m/s (Knockdown)
+   52.633 |   3159 | Orc A (club) #3 | contact  | UpperArmL hit the ground at 0,4 m/s (Knockdown)
+   52.700 |   3163 | Orc A (club) #3 | contact  | Chest hit the ground at 0,4 m/s (Knockdown)
+   52.750 |   3166 | Orc A (club) #3 | club     | club touched the ground at 0,2 m/s (idle)
+   52.969 |   3179 | -              | input    | attack ordered
+   52.969 |   3179 | Orc A (club) #3 | attack   | attack refused: can't attack while Knockdown
+   53.150 |   3190 | Orc A (club) #3 | getup    | getting up: lying face down, pelvis 0,27 m up (rest 0,92 m), head 0,31 m, chest tilt 89°; root moved under the pelvis, facing where the head points
+   53.150 |   3190 | Orc A (club) #3 | state    | Knockdown → GettingUp: down 1,3 s, at rest 0,5 s  [stability 70, health 100, chest tilt 89°, pelvis 0,27/0,92 m, balance error 0,85 m]
+   53.200 |   3193 | Orc A (club) #3 | club     | club touched the ground at 0,2 m/s (idle)
+   53.233 |   3195 | Orc A (club) #3 | contact  | ShinR hit the ground at 0,6 m/s (GettingUp)
+   53.450 |   3208 | Orc A (club) #3 | contact  | Chest hit the ground at 0,4 m/s (GettingUp)
+   53.467 |   3209 | Orc A (club) #3 | club     | club touched the ground at 0,2 m/s (idle)
+   53.500 |   3211 | Orc A (club) #3 | getup    | 25%: pelvis 0,35 m (ghost wants 0,49), chest tilt 98°, assist 0,16, tone 0,48, lift 461 N (body weight 1236 N), touching the ground: Chest Head ForearmL HandL HandR ThighL ShinL ShinR FootR
+   53.650 |   3220 | Orc A (club) #3 | club     | club touched the ground at 0,1 m/s (idle)
+   53.683 |   3222 | Orc A (club) #3 | contact  | FootL hit the ground at 1,1 m/s (GettingUp)
+   53.700 |   3223 | Orc A (club) #3 | contact  | ForearmL hit the ground at 0,2 m/s (GettingUp)
+   53.817 |   3230 | Orc A (club) #3 | getup    | 50%: pelvis 0,50 m (ghost wants 0,69), chest tilt 109°, assist 0,50, tone 0,65, lift 1314 N (body weight 1236 N), touching the ground: Chest Head HandL HandR FootL FootR
+   54.150 |   3250 | Orc A (club) #3 | getup    | 75%: pelvis 0,78 m (ghost wants 0,89), chest tilt 104°, assist 0,85, tone 0,83, lift 1252 N (body weight 1236 N), touching the ground: HandL HandR
+   54.467 |   3269 | Orc A (club) #3 | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 76°, pelvis 0,90/0,92 m, balance error 0,97 m, feet off the ground]
+   54.483 |   3270 | Orc A (club) #3 | state    | Steady → Knockdown: tipped: chest tilt 75° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 75°, pelvis 0,90/0,92 m, balance error 0,97 m, feet off the ground]
+   54.483 |   3270 | Orc A (club) #3 | getup    | fall #1 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 75° > maxTiltDegrees 60°)
+   54.633 |   3279 | Orc A (club) #3 | contact  | HandL hit the ground at 1,9 m/s (Knockdown)
+   54.700 |   3283 | Orc A (club) #3 | contact  | FootL hit the ground at 3,4 m/s (Knockdown)
+   54.733 |   3285 | Orc A (club) #3 | contact  | FootR hit the ground at 3,5 m/s (Knockdown)
+   54.800 |   3289 | Orc A (club) #3 | contact  | ShinL hit the ground at 2,0 m/s (Knockdown)
+   54.833 |   3291 | Orc A (club) #3 | contact  | ShinR hit the ground at 2,2 m/s (Knockdown)
+   54.850 |   3292 | Orc A (club) #3 | contact  | HandR hit the ground at 0,4 m/s (Knockdown)
+   54.850 |   3292 | Orc A (club) #3 | club     | club touched the ground at 0,4 m/s (idle)
+   54.867 |   3293 | Orc A (club) #3 | contact  | ThighR hit the ground at 1,2 m/s (Knockdown)
+   55.000 |   3301 | Orc A (club) #3 | contact  | Head hit the ground at 3,0 m/s (Knockdown)
+   55.083 |   3306 | Orc A (club) #3 | contact  | ThighL hit the ground at 0,5 m/s (Knockdown)
+   55.167 |   3311 | Orc A (club) #3 | club     | club touched the ground at 0,2 m/s (idle)
+   55.450 |   3328 | Orc A (club) #3 | club     | club touched the ground at 0,2 m/s (idle)
+   55.533 |   3333 | Orc A (club) #3 | contact  | Chest hit the ground at 0,5 m/s (Knockdown)
+   55.600 |   3337 | Orc A (club) #3 | contact  | UpperArmL hit the ground at 0,4 m/s (Knockdown)
+   55.683 |   3342 | Orc A (club) #3 | contact  | Spine hit the ground at 0,1 m/s (Knockdown)
+   55.733 |   3345 | Orc A (club) #3 | contact  | Pelvis hit the ground at 0,1 m/s (Knockdown)
+   55.933 |   3357 | Orc A (club) #3 | getup    | getting up: lying face down, pelvis 0,27 m up (rest 0,92 m), head 0,29 m, chest tilt 93°; root moved under the pelvis, facing where the head points
+   55.933 |   3357 | Orc A (club) #3 | state    | Knockdown → GettingUp: down 1,4 s, at rest 0,5 s  [stability 70, health 100, chest tilt 93°, pelvis 0,27/0,92 m, balance error 0,69 m]
+   56.183 |   3372 | Orc A (club) #3 | contact  | ShinR hit the ground at 0,5 m/s (GettingUp)
+   56.283 |   3378 | Orc A (club) #3 | getup    | 25%: pelvis 0,34 m (ghost wants 0,49), chest tilt 96°, assist 0,16, tone 0,48, lift 494 N (body weight 1236 N), touching the ground: Chest Head HandL HandR ThighL ShinL FootL ShinR FootR
+   56.600 |   3397 | Orc A (club) #3 | getup    | 50%: pelvis 0,51 m (ghost wants 0,69), chest tilt 110°, assist 0,50, tone 0,65, lift 1264 N (body weight 1236 N), touching the ground: Chest Head HandL HandR FootL FootR
+   56.933 |   3417 | Orc A (club) #3 | getup    | 75%: pelvis 0,78 m (ghost wants 0,89), chest tilt 103°, assist 0,85, tone 0,83, lift 1254 N (body weight 1236 N), touching the ground: HandL HandR
+   56.982 |   3419 | -              | input    | attack ordered
+   56.982 |   3419 | Orc A (club) #3 | attack   | attack refused: can't attack while GettingUp
+   57.250 |   3436 | Orc A (club) #3 | state    | GettingUp → Steady: get-up time over (1,3 s)  [stability 99, health 100, chest tilt 78°, pelvis 0,90/0,92 m, balance error 1,01 m, feet off the ground]
+   57.267 |   3437 | Orc A (club) #3 | state    | Steady → Knockdown: tipped: chest tilt 77° > maxTiltDegrees 60°  [stability 25, health 100, chest tilt 77°, pelvis 0,90/0,92 m, balance error 1,01 m, feet off the ground]
+   57.267 |   3437 | Orc A (club) #3 | getup    | fall #2 result: FAILED: fell again 0,0 s after standing (tipped: chest tilt 77° > maxTiltDegrees 60°)
+   57.483 |   3450 | Orc A (club) #3 | contact  | HandL hit the ground at 1,9 m/s (Knockdown)
+   57.517 |   3452 | Orc A (club) #3 | contact  | FootR hit the ground at 3,5 m/s (Knockdown)
+   57.517 |   3452 | Orc A (club) #3 | contact  | FootL hit the ground at 3,7 m/s (Knockdown)
+   57.533 |   3453 | Orc A (club) #3 | contact  | HandR hit the ground at 0,2 m/s (Knockdown)
+   57.550 |   3454 | Orc A (club) #3 | club     | club touched the ground at 0,1 m/s (idle)
+   57.600 |   3457 | Orc A (club) #3 | contact  | ShinR hit the ground at 2,5 m/s (Knockdown)
+   57.600 |   3457 | Orc A (club) #3 | contact  | ShinL hit the ground at 2,2 m/s (Knockdown)
+   57.633 |   3459 | Orc A (club) #3 | club     | club touched the ground at 0,3 m/s (idle)
+   57.750 |   3466 | Orc A (club) #3 | contact  | Head hit the ground at 3,1 m/s (Knockdown)
+   57.900 |   3475 | Orc A (club) #3 | club     | club touched the ground at 0,2 m/s (idle)
+   57.950 |   3478 | Orc A (club) #3 | contact  | ThighL hit the ground at 0,4 m/s (Knockdown)
+    0.000 |   3485 | Orc A (club) #3 | despawn  | recording stopped
+    0.000 |   3485 | Orc B #3       | despawn  | recording stopped
+    0.000 |   3485 | -              | session  | recording stopped after 0,0 s (3485 physics steps)
