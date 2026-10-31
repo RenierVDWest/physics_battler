@@ -196,7 +196,7 @@ namespace PhysicsBattler.Units
                 float mass = 0f;
                 foreach (var id in PartInfo.All)
                 {
-                    if (id == at || PartInfo.IsBelow(id, at))
+                    if (Rig.CutAt(id) == at)
                     {
                         mass += Rig.Part(id).body.mass;
                     }
@@ -205,7 +205,7 @@ namespace PhysicsBattler.Units
                 Vector3 v = Vector3.ClampMagnitude(impulse * 0.5f / Mathf.Max(0.5f, mass), 6f * SizeSpeed()) + Vector3.up * 1.5f * SizeSpeed();
                 foreach (var id in PartInfo.All)
                 {
-                    if (id == at || PartInfo.IsBelow(id, at))
+                    if (Rig.CutAt(id) == at)
                     {
                         Rig.Part(id).body.AddForce(v, ForceMode.VelocityChange);
                     }
@@ -281,7 +281,7 @@ namespace PhysicsBattler.Units
                 severedAt.RemoveAt(i);
                 foreach (var cut in PartInfo.All)
                 {
-                    if (cut != at && !PartInfo.IsBelow(cut, at))
+                    if (Rig.CutAt(cut) != at)
                     {
                         continue;
                     }

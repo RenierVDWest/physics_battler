@@ -33,6 +33,10 @@ namespace PhysicsBattler.Rig
         // Milestone 5: parts cut off (and everything hanging from them). They have left the unit:
         // loose physics objects of their own, not posed, not counted, not struck as the unit.
         private readonly bool[] severed = new bool[PartInfo.Count];
+        private readonly int[] cutAt = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+        /// <summary>The joint (the part below it) a cut-off part came off at, or null.</summary>
+        public PartId? CutAt(PartId id) => cutAt[(int)id] >= 0 ? (PartId)cutAt[(int)id] : (PartId?)null;
 
         /// <summary>The part has been cut off the unit (at its own joint or one above it).</summary>
         public bool IsSevered(PartId id) => severed[(int)id];
@@ -72,12 +76,14 @@ namespace PhysicsBattler.Rig
             limb.transform.SetPositionAndRotation(root.transform.position, root.transform.rotation);
             foreach (var id in PartInfo.All)
             {
-                if (id != at && !PartInfo.IsBelow(id, at))
+                // (A part already cut off lower down stays where it lies.)
+                if ((id != at && !PartInfo.IsBelow(id, at)) || severed[(int)id])
                 {
                     continue;
                 }
 
                 severed[(int)id] = true;
+                cutAt[(int)id] = (int)at;
                 var part = parts[(int)id];
                 part.Owner = null;
                 if (part.body != null)
@@ -98,11 +104,11 @@ namespace PhysicsBattler.Rig
 
             foreach (var id in PartInfo.All)
             {
-                if (id == at || PartInfo.IsBelow(id, at))
+                if (cutAt[(int)id] == (int)at)
                 {
                     var t = parts[(int)id].transform;
                     var above = t.parent != null ? t.parent.GetComponent<BodyPart>() : null;
-                    if (above == null || !severed[(int)above.id])
+                    if (above == null || cutAt[(int)above.id] != (int)at)
                     {
                         t.SetParent(limb.transform, true);   // (one hanging from another cut part goes with it)
                     }

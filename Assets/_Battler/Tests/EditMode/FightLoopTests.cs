@@ -152,15 +152,16 @@ namespace PhysicsBattler.Tests
                 // Until one strikes: they should have closed in to neighbouring tiles.
                 Run(loop, units, 40f, () => units[0].IsAttacking || units[1].IsAttacking);
                 Assert.IsTrue(units[0].IsAttacking || units[1].IsAttacking, "they met and one struck");
-                Assert.IsTrue(loop.TileOf(units[0], out var a) && loop.TileOf(units[1], out var b));
-                loop.TileOf(units[1], out b);
-                Assert.LessOrEqual(Mathf.Max(Mathf.Abs(a.column - b.column), Mathf.Abs(a.row - b.row)), 1, $"next to each other ({a} and {b})");
-                foreach (var u in units)
-                {
-                    Vector3 off = u.Root.position - grid.Center(loop.TileOf(u, out var t) ? t : default);
-                    off.y = 0f;
-                    Assert.LessOrEqual(off.magnitude, 0.4f * grid.tileSize, $"{u.name} on its tile");
-                }
+                // (The one striking stands on its tile; the other may still be stepping onto its own.)
+                var striker = units[0].IsAttacking ? units[0] : units[1];
+                var other = striker == units[0] ? units[1] : units[0];
+                Vector3 apart = other.Root.position - striker.Root.position;
+                apart.y = 0f;
+                Assert.LessOrEqual(apart.magnitude, 2f * grid.tileSize, "they met: within a tile and a lunge");
+                Assert.IsTrue(loop.TileOf(striker, out var t));
+                Vector3 off = striker.Root.position - grid.Center(t);
+                off.y = 0f;
+                Assert.LessOrEqual(off.magnitude, 0.4f * grid.tileSize, $"{striker.name} on its tile");
             }
             finally
             {

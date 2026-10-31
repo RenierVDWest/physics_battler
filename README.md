@@ -14,7 +14,7 @@ The first prototype (active ragdolls with muscles and a balance assist) is kept 
 ### Milestone 6: the fight loop
 
 Press Play and the two teams fight it out with no help (`Battle/FightLoop.cs`):
-- **Targets.** Each unit picks the nearest enemy that can still fight, measured by the walk there. It keeps
+- **Targets.** Each unit picks the nearest enemy that can still fight. It keeps
   the target it has, and favours one that is already hurt or already fighting it. Someone on the ground is a
   target only when no one is standing.
 - **Tile to tile.** It walks across the board from tile centre to tile centre (8 ways, round others, never

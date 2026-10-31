@@ -107,7 +107,7 @@ namespace PhysicsBattler.Sandbox
             if (distance > engage + 0.05f)
             {
                 // Walk in: the root moves, the feet step after it.
-                float step = Mathf.Min(distance - engage, style.walkSpeed * size * dt);
+                float step = Mathf.Min(distance - engage, unit.WalkSpeed * dt);
                 unit.Root.position += to / Mathf.Max(1e-4f, distance) * step;
                 return;
             }
@@ -115,7 +115,7 @@ namespace PhysicsBattler.Sandbox
             if (adjust < 0f && distance < engage - 0.05f)
             {
                 // Too close to strike without hitting itself: back off a little.
-                float step = Mathf.Min(engage - distance, 0.6f * style.walkSpeed * size * dt);
+                float step = Mathf.Min(engage - distance, 0.6f * unit.WalkSpeed * dt);
                 unit.Root.position -= to / Mathf.Max(1e-4f, distance) * step;
                 return;
             }
@@ -265,7 +265,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             unit.FacePoint(Grid.Center(tile));
-            float step = Mathf.Min(distance, unit.Style.walkSpeed * unit.Body.SizeFactor * dt);
+            float step = Mathf.Min(distance, unit.WalkSpeed * dt);
             unit.Root.position += to / distance * step;
             return true;
         }
