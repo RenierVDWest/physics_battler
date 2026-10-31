@@ -1,0 +1,539 @@
+# Physics Battler playtest 2026-10-31_10-42-50
+# time (s since Play) | physics step | who | what | details
+    0.000 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    0.000 |      0 | -              | console  | [Joint probe] drive standard (asked +35, got 35.0), X limit sign -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    0.000 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35.0), X limit sign -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    0.000 |      0 | -              | input    | spawn: two orcs 2.00 m apart
+    0.000 |      0 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+    0.000 |      0 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+    0.000 |      0 | Orc A (club)   | equip    | the weapon collides with its wielder except the right hand and forearm, the left hand and forearm, from 1.0 s after taking it up
+    0.000 |      0 | Orc A (club)   | weapon   | left hand takes the second grip (-0.11 m along the weapon), held at 10 Hz
+    0.000 |      0 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 152, Chest 88, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 188, ForearmR 215, HandR 193, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+    0.000 |      1 | Orc A (club)   | spawn    | at (-1.00, 0.00) facing 90°, team 0, mass 126.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc, holding P_Weapon_ClubBig
+    0.000 |      1 | Orc B          | spawn    | at (1.00, 0.00) facing 270°, team 1, mass 120.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc
+    0.000 |      1 | Orc A (club)   | equip    | holding P_Weapon_ClubBig (WD_ClubBig): physics mass 6.0 kg, tip 1.86 m from the grip
+    0.000 |      1 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 152, Chest 88, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 188, ForearmR 215, HandR 193, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+    0.000 |      1 | Orc A (club)   | muscles  | self-collision on; left out (touching in the rest pose): none
+    0.000 |      1 | Orc B          | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+    0.000 |      1 | Orc B          | muscles  | self-collision on; left out (touching in the rest pose): none
+    0.017 |      2 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 157, Chest 87, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 145, ForearmR 247, HandR 193, ThighL 74, ShinL 25, FootL 3, ThighR 74, ShinR 25, FootR 3
+    0.017 |      2 | Orc A (club)   | equip    | 6.0 kg weapon, its weight (with the hand) 1.25 m out from the grip: 23.2 kg·m² about the shoulder, 143 N·m to hold out; strength 324 N·m (2.3×): heavy: swung with effort
+    0.017 |      2 | Orc A (club)   | self     | ForearmR hit its own Chest at 6.2 m/s (idle)
+    0.017 |      2 | Orc A (club)   | self     | Chest hit its own ForearmR at 6.2 m/s (idle)
+    0.033 |      3 | Orc A (club)   | self     | HandR hit its own Chest at 7.0 m/s (idle)
+    0.033 |      3 | Orc A (club)   | self     | Chest hit its own HandR at 7.0 m/s (idle)
+    0.083 |      6 | Orc A (club)   | self     | HandR hit its own Spine at 6.1 m/s (idle)
+    0.083 |      6 | Orc A (club)   | self     | Spine hit its own HandR at 6.1 m/s (idle)
+    0.217 |     14 | Orc A (club)   | step     | catch step FootL #1/3: falling forward-left (sideways: falling-side foot), balance error 0.08 m > 0.08 m, step 0.17 m
+    0.450 |     28 | Orc A (club)   | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.05 m
+    0.567 |     35 | Orc B          | step     | settle step FootL: 0.22 m from its stance spot around the weight (limit 0.22 m)
+    0.900 |     55 | Orc B          | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.17 m
+    0.917 |     56 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.27 m
+    1.000 |     61 | Orc A (club)   | self     | the weapon collides with the body again
+    1.150 |     70 | Orc B          | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.13 m
+    1.200 |     73 | Orc A (club)   | step     | settle step FootL: 0.22 m from its stance spot around the weight (limit 0.22 m)
+    1.533 |     93 | Orc A (club)   | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.04 m
+    1.750 |    106 | Orc B          | step     | settle step FootL: 0.29 m from its stance spot around the weight (limit 0.22 m)
+    2.083 |    126 | Orc B          | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.19 m
+    2.100 |    127 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.19 m > 0.08 m, step 0.27 m
+    2.203 |    133 | -              | input    | attack ordered
+    2.203 |    133 | Orc A (club)   | attack   | swing at Orc B: target 1.66 m from the shoulder, contact reach 0.30 m, plane roll 50°, crowded ×0.91. Load: 21.9 kg·m² about the shoulder, 138 N·m to hold out, strength 324 N·m (2.4×). Expect: wind-up 1.20 s over 103°, strike 0.75 s, contact at 5.9 rad/s (12.8 m/s at the tip), stopping at θ 59°
+    2.233 |    135 | Orc A (club)   | self     | club hit its own Chest at 2.1 m/s (WindUp θ -200°)
+    2.233 |    135 | Orc A (club)   | self     | club hit its own club (with its Chest) at 2.1 m/s (WindUp θ -200°)
+    2.233 |    135 | Orc A (club)   | self     | club hit its own UpperArmR at 4.3 m/s (WindUp θ -200°)
+    2.233 |    135 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 4.3 m/s (WindUp θ -200°)
+    2.333 |    141 | Orc B          | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.15 m
+    2.350 |    142 | Orc A (club)   | self     | club hit its own Chest at 1.7 m/s (WindUp θ -200°)
+    2.350 |    142 | Orc A (club)   | self     | club hit its own club (with its Chest) at 1.7 m/s (WindUp θ -200°)
+    2.633 |    159 | Orc A (club)   | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+    2.667 |    161 | Orc A (club)   | self     | HandR hit its own Chest at 2.8 m/s (WindUp θ -200°)
+    2.667 |    161 | Orc A (club)   | self     | Chest hit its own HandR at 2.8 m/s (WindUp θ -200°)
+    2.667 |    161 | Orc A (club)   | self     | HandR hit its own Spine at 2.8 m/s (WindUp θ -200°)
+    2.667 |    161 | Orc A (club)   | self     | Spine hit its own HandR at 2.8 m/s (WindUp θ -200°)
+    2.767 |    167 | Orc A (club)   | step     | catch step FootL #1/3: falling left (farther foot), balance error 0.08 m > 0.08 m, step 0.29 m
+    2.933 |    177 | Orc B          | step     | settle step FootL: 0.29 m from its stance spot around the weight (limit 0.22 m)
+    3.000 |    181 | Orc A (club)   | step     | FootL landed, 0.33 m from where it was placed; balance error now 0.00 m
+    3.267 |    197 | Orc B          | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.22 m
+    3.283 |    198 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.22 m > 0.08 m, step 0.26 m (clamped to maxStepLength)
+    3.400 |    205 | Orc A (club)   | attack   | swing #1 → Load  [ghost θ -200°, club θ -143° (lag -57°), tip 1.8 m/s, club 1.54 m from the target point]
+    3.450 |    208 | Orc A (club)   | self     | the weapon collides with the body again
+    3.450 |    208 | Orc A (club)   | self     | club hit its own UpperArmR at 0.6 m/s (Load θ -200°)
+    3.450 |    208 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 0.6 m/s (Load θ -200°)
+    3.450 |    208 | Orc A (club)   | self     | club hit its own Chest at 0.8 m/s (Load θ -200°)
+    3.450 |    208 | Orc A (club)   | self     | club hit its own club (with its Chest) at 0.8 m/s (Load θ -200°)
+    3.483 |    210 | Orc A (club)   | self     | club hit its own UpperArmR at 0.4 m/s (Load θ -200°)
+    3.483 |    210 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 0.4 m/s (Load θ -200°)
+    3.517 |    212 | Orc B          | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.17 m
+    3.800 |    229 | Orc A (club)   | attack   | turning point not reached in 0.4 s (club 70° off, moving 13°/s, tip 0.5 m/s); striking anyway
+    3.800 |    229 | Orc A (club)   | attack   | committed: arc frozen, aiming at (0.52, 1.40, -0.29) (target's chest now (0.63, 1.41, -0.17), 0.16 m apart), contact reach 0.30 m
+    3.800 |    229 | Orc A (club)   | attack   | swing #1 → Strike  [ghost θ -200°, club θ -133° (lag -67°), tip 0.5 m/s, club 1.30 m from the target point]
+    3.817 |    230 | Orc A (club)   | self     | HandR hit its own Chest at 2.7 m/s (Strike θ -200°)
+    3.817 |    230 | Orc A (club)   | self     | Chest hit its own HandR at 2.7 m/s (Strike θ -200°)
+    3.817 |    230 | Orc A (club)   | self     | club hit its own Chest at 2.7 m/s (Strike θ -200°)
+    3.817 |    230 | Orc A (club)   | self     | club hit its own club (with its Chest) at 2.7 m/s (Strike θ -200°)
+    3.817 |    230 | Orc A (club)   | self     | club hit its own UpperArmR at 4.5 m/s (Strike θ -200°)
+    3.817 |    230 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 4.5 m/s (Strike θ -200°)
+    3.817 |    230 | Orc A (club)   | self     | club hit its own Spine at 2.1 m/s (Strike θ -200°)
+    3.817 |    230 | Orc A (club)   | self     | club hit its own club (with its Spine) at 2.1 m/s (Strike θ -200°)
+    3.850 |    232 | Orc A (club)   | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+    4.117 |    248 | Orc B          | step     | settle step FootL: 0.28 m from its stance spot around the weight (limit 0.22 m)
+    4.233 |    255 | Orc A (club)   | self     | HandR hit its own UpperArmR at 3.8 m/s (Strike θ -104°)
+    4.233 |    255 | Orc A (club)   | self     | UpperArmR hit its own HandR at 3.8 m/s (Strike θ -104°)
+    4.450 |    268 | Orc B          | step     | FootL landed, 0.21 m from where it was placed; balance error now 0.22 m
+    4.467 |    269 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.22 m > 0.08 m, step 0.28 m (clamped to maxStepLength)
+    4.550 |    274 | Orc A (club)   | attack   | swing #1 → Follow  [ghost θ 3°, club θ -103° (lag 106°), tip 2.6 m/s, club 1.08 m from the target point]
+    4.667 |    281 | Orc A (club)   | self     | the weapon collides with the body again
+    4.700 |    283 | Orc B          | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.17 m
+    4.733 |    285 | Orc A (club)   | self     | HandR hit its own Chest at 4.8 m/s (Follow θ 47°)
+    4.733 |    285 | Orc A (club)   | self     | Chest hit its own HandR at 4.8 m/s (Follow θ 47°)
+    4.817 |    290 | Orc A (club)   | self     | Head hit its own HandR at 6.1 m/s (Follow θ 56°)
+    4.817 |    290 | Orc A (club)   | self     | HandR hit its own Head at 6.1 m/s (Follow θ 56°)
+    5.150 |    310 | Orc A (club)   | attack   | swing #1 → Recover  [ghost θ 59°, club θ 78° (lag -19°), tip 2.9 m/s, club 1.05 m from the target point]
+    5.167 |    311 | Orc A (club)   | step     | catch step FootL #2/3: falling forward-left (sideways: falling-side foot), balance error 0.08 m > 0.08 m, step 0.17 m (clamped to maxStepLength)
+    5.167 |    311 | Orc A (club)   | self     | ForearmR hit its own Chest at 4.6 m/s (Recover θ 59°)
+    5.167 |    311 | Orc A (club)   | self     | Chest hit its own ForearmR at 4.6 m/s (Recover θ 59°)
+    5.300 |    319 | Orc B          | step     | settle step FootL: 0.29 m from its stance spot around the weight (limit 0.22 m)
+    5.400 |    325 | Orc A (club)   | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.34 m
+    5.633 |    339 | Orc B          | step     | FootL landed, 0.21 m from where it was placed; balance error now 0.24 m
+    5.650 |    340 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.24 m > 0.08 m, step 0.29 m (clamped to maxStepLength)
+    5.883 |    354 | Orc B          | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.19 m
+    5.933 |    357 | Orc A (club)   | self     | club hit its own club (with its Head) at 2.4 m/s (Recover θ 59°)
+    5.933 |    357 | Orc A (club)   | self     | club hit its own Head at 2.4 m/s (Recover θ 59°)
+    6.067 |    365 | Orc A (club)   | self     | club hit its own Chest at 2.8 m/s (Recover θ 59°)
+    6.067 |    365 | Orc A (club)   | self     | club hit its own club (with its Chest) at 2.8 m/s (Recover θ 59°)
+    6.300 |    379 | Orc A (club)   | self     | club hit its own UpperArmL at 2.7 m/s (Recover θ 59°)
+    6.300 |    379 | Orc A (club)   | self     | club hit its own club (with its UpperArmL) at 2.7 m/s (Recover θ 59°)
+    6.333 |    381 | Orc A (club)   | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+    6.500 |    391 | Orc B          | step     | settle step FootL: 0.30 m from its stance spot around the weight (limit 0.22 m)
+    6.683 |    402 | Orc A (club)   | self     | HandR hit its own Spine at 5.3 m/s (Recover θ 59°)
+    6.683 |    402 | Orc A (club)   | self     | Spine hit its own HandR at 5.3 m/s (Recover θ 59°)
+    6.750 |    406 | Orc A (club)   | attack   | swing #1 result: missed: club passed 0.67 m from the target point (in Recover); fastest tip 10.8 m/s, worst strike lag 101°, worst arm tracking error 157°; club touched: own body 2.1 m/s in WindUp θ -200°, own body 2.1 m/s in WindUp θ -200°, own body 4.3 m/s in WindUp θ -200°, own body 4.3 m/s in WindUp θ -200°, own body 1.7 m/s in WindUp θ -200°, own body 1.7 m/s in WindUp θ -200°, own body 0.6 m/s in Load θ -200°, own body 0.6 m/s in Load θ -200°
+    6.767 |    407 | Orc A (club)   | self     | ForearmR hit its own Spine at 2.8 m/s (idle)
+    6.767 |    407 | Orc A (club)   | self     | Spine hit its own ForearmR at 2.8 m/s (idle)
+    6.767 |    407 | Orc A (club)   | self     | UpperArmL hit its own Spine at 4.0 m/s (idle)
+    6.767 |    407 | Orc A (club)   | self     | Spine hit its own UpperArmL at 4.0 m/s (idle)
+    6.783 |    408 | Orc A (club)   | step     | settle step FootR: 0.63 m from its stance spot around the weight (limit 0.22 m)
+    6.833 |    411 | Orc B          | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.25 m
+    6.850 |    412 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.25 m > 0.08 m, step 0.30 m (clamped to maxStepLength)
+    7.050 |    424 | Orc A (club)   | self     | FootR hit its own FootL at 2.4 m/s (idle)
+    7.050 |    424 | Orc A (club)   | self     | FootL hit its own FootR at 2.4 m/s (idle)
+    7.083 |    426 | Orc B          | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.20 m
+    7.117 |    428 | Orc A (club)   | step     | FootR landed, 0.09 m from where it was placed; balance error now 0.00 m
+    7.150 |    430 | Orc A (club)   | self     | club hit its own club (with its Head) at 5.1 m/s (idle)
+    7.150 |    430 | Orc A (club)   | self     | club hit its own Head at 5.1 m/s (idle)
+    7.150 |    430 | Orc A (club)   | self     | club hit its own Spine at 4.8 m/s (idle)
+    7.150 |    430 | Orc A (club)   | self     | club hit its own club (with its Spine) at 4.8 m/s (idle)
+    7.233 |    435 | Orc A (club)   | self     | club hit its own UpperArmR at 5.2 m/s (idle)
+    7.233 |    435 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 5.2 m/s (idle)
+    7.267 |    437 | Orc A (club)   | self     | the weapon collides with the body again
+    7.267 |    437 | Orc A (club)   | self     | HandR hit its own Spine at 5.3 m/s (idle)
+    7.267 |    437 | Orc A (club)   | self     | Spine hit its own HandR at 5.3 m/s (idle)
+    7.267 |    437 | Orc A (club)   | self     | club hit its own Chest at 5.2 m/s (idle)
+    7.267 |    437 | Orc A (club)   | self     | club hit its own club (with its Chest) at 5.2 m/s (idle)
+    7.700 |    463 | Orc B          | step     | settle step FootL: 0.31 m from its stance spot around the weight (limit 0.22 m)
+    7.733 |    465 | Orc A (club)   | step     | settle step FootL: 0.54 m from its stance spot around the weight (limit 0.22 m)
+    8.033 |    483 | Orc B          | step     | FootL landed, 0.21 m from where it was placed; balance error now 0.26 m
+    8.050 |    484 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.27 m > 0.08 m, step 0.31 m (clamped to maxStepLength)
+    8.067 |    485 | Orc A (club)   | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.10 m
+    8.283 |    498 | Orc B          | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.21 m
+    8.900 |    535 | Orc B          | step     | settle step FootL: 0.31 m from its stance spot around the weight (limit 0.22 m)
+    9.233 |    555 | Orc B          | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.26 m
+    9.250 |    556 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.26 m > 0.08 m, step 0.31 m (clamped to maxStepLength)
+    9.483 |    570 | Orc B          | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.22 m
+   10.100 |    607 | Orc B          | step     | settle step FootL: 0.31 m from its stance spot around the weight (limit 0.22 m)
+   10.433 |    627 | Orc B          | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.26 m
+   10.450 |    628 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.27 m > 0.08 m, step 0.31 m (clamped to maxStepLength)
+   10.683 |    642 | Orc B          | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.21 m
+   10.705 |    643 | -              | input    | attack ordered
+   10.705 |    643 | Orc A (club)   | attack   | swing at Orc B: target 1.23 m from the shoulder, contact reach 0.30 m, plane roll 50°, crowded ×0.62. Load: 21.9 kg·m² about the shoulder, 138 N·m to hold out, strength 324 N·m (2.4×). Expect: wind-up 1.20 s over 103°, strike 0.75 s, contact at 5.9 rad/s (12.8 m/s at the tip), stopping at θ 59°
+   10.733 |    645 | Orc A (club)   | self     | club hit its own UpperArmR at 4.7 m/s (WindUp θ -200°)
+   10.733 |    645 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 4.7 m/s (WindUp θ -200°)
+   10.733 |    645 | Orc A (club)   | self     | club hit its own Chest at 2.2 m/s (WindUp θ -200°)
+   10.733 |    645 | Orc A (club)   | self     | club hit its own club (with its Chest) at 2.2 m/s (WindUp θ -200°)
+   10.850 |    652 | Orc A (club)   | self     | club hit its own Chest at 1.7 m/s (WindUp θ -200°)
+   10.850 |    652 | Orc A (club)   | self     | club hit its own club (with its Chest) at 1.7 m/s (WindUp θ -200°)
+   11.017 |    662 | Orc A (club)   | self     | club hit its own Chest at 1.0 m/s (WindUp θ -200°)
+   11.017 |    662 | Orc A (club)   | self     | club hit its own club (with its Chest) at 1.0 m/s (WindUp θ -200°)
+   11.133 |    669 | Orc A (club)   | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+   11.167 |    671 | Orc A (club)   | self     | HandR hit its own Chest at 3.2 m/s (WindUp θ -200°)
+   11.167 |    671 | Orc A (club)   | self     | Chest hit its own HandR at 3.2 m/s (WindUp θ -200°)
+   11.183 |    672 | Orc A (club)   | self     | HandR hit its own Spine at 3.7 m/s (WindUp θ -200°)
+   11.183 |    672 | Orc A (club)   | self     | Spine hit its own HandR at 3.7 m/s (WindUp θ -200°)
+   11.283 |    678 | Orc B          | step     | settle step FootL: 0.32 m from its stance spot around the weight (limit 0.22 m)
+   11.333 |    681 | Orc A (club)   | self     | ForearmR hit its own Chest at 4.1 m/s (WindUp θ -200°)
+   11.333 |    681 | Orc A (club)   | self     | Chest hit its own ForearmR at 4.1 m/s (WindUp θ -200°)
+   11.367 |    683 | Orc A (club)   | self     | HandR hit its own Spine at 3.9 m/s (WindUp θ -200°)
+   11.367 |    683 | Orc A (club)   | self     | Spine hit its own HandR at 3.9 m/s (WindUp θ -200°)
+   11.400 |    685 | Orc A (club)   | self     | Head hit its own HandR at 8.9 m/s (WindUp θ -200°)
+   11.400 |    685 | Orc A (club)   | self     | HandR hit its own Head at 8.9 m/s (WindUp θ -200°)
+   11.400 |    685 | Orc A (club)   | self     | HandR hit its own UpperArmR at 11.6 m/s (WindUp θ -200°)
+   11.400 |    685 | Orc A (club)   | self     | UpperArmR hit its own HandR at 11.6 m/s (WindUp θ -200°)
+   11.617 |    698 | Orc B          | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.27 m
+   11.633 |    699 | Orc B          | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.27 m > 0.08 m, step 0.32 m (clamped to maxStepLength)
+   11.700 |    703 | Orc A (club)   | self     | HandR hit its own Chest at 2.4 m/s (WindUp θ -200°)
+   11.700 |    703 | Orc A (club)   | self     | Chest hit its own HandR at 2.4 m/s (WindUp θ -200°)
+   11.867 |    713 | Orc B          | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.26 m
+   11.900 |    715 | Orc A (club)   | attack   | swing #2 → Load  [ghost θ -200°, club θ -134° (lag -66°), tip 1.1 m/s, club 1.10 m from the target point]
+   11.950 |    718 | Orc A (club)   | self     | the weapon collides with the body again
+   12.300 |    739 | Orc A (club)   | attack   | turning point not reached in 0.4 s (club 77° off, moving 5°/s, tip 0.3 m/s); striking anyway
+   12.300 |    739 | Orc A (club)   | attack   | committed: arc frozen, aiming at (0.51, 1.41, -0.27) (target's chest now (0.58, 1.41, -0.19), 0.10 m apart), contact reach 0.30 m
+   12.300 |    739 | Orc A (club)   | attack   | swing #2 → Strike  [ghost θ -200°, club θ -125° (lag -75°), tip 0.3 m/s, club 0.96 m from the target point]
+   12.317 |    740 | Orc A (club)   | self     | club hit its own Chest at 2.0 m/s (Strike θ -200°)
+   12.317 |    740 | Orc A (club)   | self     | club hit its own club (with its Chest) at 2.0 m/s (Strike θ -200°)
+   12.317 |    740 | Orc A (club)   | self     | club hit its own UpperArmR at 3.5 m/s (Strike θ -200°)
+   12.317 |    740 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 3.5 m/s (Strike θ -200°)
+   12.317 |    740 | Orc A (club)   | self     | club hit its own Spine at 1.6 m/s (Strike θ -200°)
+   12.317 |    740 | Orc A (club)   | self     | club hit its own club (with its Spine) at 1.6 m/s (Strike θ -200°)
+   12.350 |    742 | Orc A (club)   | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+   12.483 |    750 | Orc B          | step     | settle step FootR: 0.30 m from its stance spot around the weight (limit 0.22 m)
+   12.817 |    770 | Orc B          | step     | FootR landed, 0.15 m from where it was placed; balance error now 0.18 m
+   12.883 |    774 | Orc A (club)   | self     | HandR hit its own UpperArmR at 3.2 m/s (Strike θ -54°)
+   12.883 |    774 | Orc A (club)   | self     | UpperArmR hit its own HandR at 3.2 m/s (Strike θ -54°)
+   13.050 |    784 | Orc A (club)   | attack   | swing #2 → Follow  [ghost θ 3°, club θ -83° (lag 85°), tip 1.6 m/s, club 0.66 m from the target point]
+   13.167 |    791 | Orc A (club)   | self     | the weapon collides with the body again
+   13.167 |    791 | Orc A (club)   | self     | HandR hit its own Chest at 2.4 m/s (Follow θ 34°)
+   13.167 |    791 | Orc A (club)   | self     | Chest hit its own HandR at 2.4 m/s (Follow θ 34°)
+   13.417 |    806 | Orc B          | step     | settle step FootL: 0.25 m from its stance spot around the weight (limit 0.22 m)
+   13.633 |    819 | Orc A (club)   | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.08 m > 0.08 m, step 0.14 m (clamped to maxStepLength)
+   13.717 |    824 | Orc A (club)   | attack   | swing #2 → Recover  [ghost θ 59°, club θ 94° (lag -36°), tip 2.9 m/s, club 0.86 m from the target point]
+   13.733 |    825 | Orc A (club)   | self     | ForearmR hit its own Chest at 5.0 m/s (Recover θ 59°)
+   13.733 |    825 | Orc A (club)   | self     | Chest hit its own ForearmR at 5.0 m/s (Recover θ 59°)
+   13.733 |    825 | Orc A (club)   | self     | UpperArmR hit its own Spine at 4.4 m/s (Recover θ 59°)
+   13.733 |    825 | Orc A (club)   | self     | Spine hit its own UpperArmR at 4.4 m/s (Recover θ 59°)
+   13.750 |    826 | Orc B          | step     | FootL landed, 0.11 m from where it was placed; balance error now 0.21 m
+   13.867 |    833 | Orc A (club)   | step     | FootL landed, 0.14 m from where it was placed; balance error now 0.43 m
+   14.633 |    879 | Orc A (club)   | self     | club hit its own Chest at 2.9 m/s (Recover θ 59°)
+   14.633 |    879 | Orc A (club)   | self     | club hit its own club (with its Chest) at 2.9 m/s (Recover θ 59°)
+   14.717 |    884 | Orc A (club)   | self     | club hit its own UpperArmL at 3.2 m/s (Recover θ 59°)
+   14.717 |    884 | Orc A (club)   | self     | club hit its own club (with its UpperArmL) at 3.2 m/s (Recover θ 59°)
+   14.867 |    893 | Orc A (club)   | self     | club hit its own Spine at 2.5 m/s (Recover θ 59°)
+   14.867 |    893 | Orc A (club)   | self     | club hit its own club (with its Spine) at 2.5 m/s (Recover θ 59°)
+   15.033 |    903 | Orc A (club)   | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+   15.283 |    918 | Orc A (club)   | self     | HandR hit its own Spine at 5.6 m/s (Recover θ 59°)
+   15.283 |    918 | Orc A (club)   | self     | Spine hit its own HandR at 5.6 m/s (Recover θ 59°)
+   15.383 |    924 | Orc A (club)   | attack   | swing #2 result: missed: club passed 0.55 m from the target point (in Recover); fastest tip 14.4 m/s, worst strike lag 80°, worst arm tracking error 180°; club touched: own body 4.7 m/s in WindUp θ -200°, own body 4.7 m/s in WindUp θ -200°, own body 2.2 m/s in WindUp θ -200°, own body 2.2 m/s in WindUp θ -200°, own body 1.7 m/s in WindUp θ -200°, own body 1.7 m/s in WindUp θ -200°, own body 1.0 m/s in WindUp θ -200°, own body 1.0 m/s in WindUp θ -200°
+   15.400 |    925 | Orc A (club)   | self     | UpperArmL hit its own Spine at 4.0 m/s (idle)
+   15.400 |    925 | Orc A (club)   | self     | Spine hit its own UpperArmL at 4.0 m/s (idle)
+   15.833 |    951 | Orc A (club)   | self     | HandR hit its own Spine at 5.6 m/s (idle)
+   15.833 |    951 | Orc A (club)   | self     | Spine hit its own HandR at 5.6 m/s (idle)
+   15.850 |    952 | Orc A (club)   | self     | the weapon collides with the body again
+   15.850 |    952 | Orc A (club)   | self     | club hit its own Chest at 5.6 m/s (idle)
+   15.850 |    952 | Orc A (club)   | self     | club hit its own club (with its Chest) at 5.6 m/s (idle)
+   15.850 |    952 | Orc A (club)   | self     | club hit its own Spine at 5.6 m/s (idle)
+   15.850 |    952 | Orc A (club)   | self     | club hit its own club (with its Spine) at 5.6 m/s (idle)
+   15.850 |    952 | Orc A (club)   | self     | club hit its own UpperArmR at 5.5 m/s (idle)
+   15.850 |    952 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 5.5 m/s (idle)
+   15.983 |    960 | Orc A (club)   | step     | settle step FootR: 0.22 m from its stance spot around the weight (limit 0.22 m)
+   16.317 |    980 | Orc A (club)   | step     | FootR landed, 0.21 m from where it was placed; balance error now 0.29 m
+   16.317 |    980 | Orc A (club)   | self     | club hit its own UpperArmR at 1.0 m/s (idle)
+   16.317 |    980 | Orc A (club)   | self     | club hit its own club (with its UpperArmR) at 1.0 m/s (idle)
+   20.447 |   1227 | -              | input    | spawn: two orcs 2.00 m apart
+   20.447 |   1227 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   20.447 |   1227 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   20.447 |   1227 | Orc A (club)   | equip    | the weapon collides with its wielder except the right hand and forearm, the left hand and forearm, from 1.0 s after taking it up
+   20.447 |   1227 | Orc A (club)   | weapon   | left hand takes the second grip (-0.11 m along the weapon), held at 10 Hz
+   20.447 |   1227 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 152, Chest 88, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 188, ForearmR 215, HandR 193, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   20.447 |   1227 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 152, Chest 88, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 188, ForearmR 215, HandR 193, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   20.447 |   1227 | Orc A (club)   | muscles  | self-collision on; left out (touching in the rest pose): none
+   20.447 |   1227 | Orc B          | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   20.447 |   1227 | Orc B          | muscles  | self-collision on; left out (touching in the rest pose): none
+   20.450 |   1228 | Orc A (club) #2 | spawn    | at (-1.00, 0.00) facing 90°, team 0, mass 126.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc, holding P_Weapon_ClubBig
+   20.450 |   1228 | Orc B #2       | spawn    | at (1.00, 0.00) facing 270°, team 1, mass 120.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc
+   20.450 |   1228 | Orc A (club) #2 | equip    | holding P_Weapon_ClubBig (WD_ClubBig): physics mass 6.0 kg, tip 1.86 m from the grip
+   20.450 |   1228 | Orc B          | despawn  | removed from the scene
+   20.450 |   1228 | Orc A (club)   | despawn  | removed from the scene
+   20.467 |   1229 | Orc A (club) #2 | muscles  | load boosts (needed→used): Spine 157, Chest 87, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 145, ForearmR 247, HandR 193, ThighL 74, ShinL 25, FootL 3, ThighR 74, ShinR 25, FootR 3
+   20.467 |   1229 | Orc A (club) #2 | equip    | 6.0 kg weapon, its weight (with the hand) 1.25 m out from the grip: 23.2 kg·m² about the shoulder, 143 N·m to hold out; strength 324 N·m (2.3×): heavy: swung with effort
+   20.467 |   1229 | Orc A (club) #2 | self     | ForearmR hit its own Chest at 6.2 m/s (idle)
+   20.467 |   1229 | Orc A (club) #2 | self     | Chest hit its own ForearmR at 6.2 m/s (idle)
+   20.483 |   1230 | Orc A (club) #2 | self     | HandR hit its own Chest at 7.0 m/s (idle)
+   20.483 |   1230 | Orc A (club) #2 | self     | Chest hit its own HandR at 7.0 m/s (idle)
+   20.483 |   1230 | Orc A (club) #2 | self     | ForearmL hit its own Chest at 3.3 m/s (idle)
+   20.483 |   1230 | Orc A (club) #2 | self     | Chest hit its own ForearmL at 3.3 m/s (idle)
+   20.533 |   1233 | Orc A (club) #2 | self     | HandR hit its own Spine at 6.1 m/s (idle)
+   20.533 |   1233 | Orc A (club) #2 | self     | Spine hit its own HandR at 6.1 m/s (idle)
+   20.667 |   1241 | Orc A (club) #2 | step     | catch step FootL #1/3: falling forward-left (sideways: falling-side foot), balance error 0.08 m > 0.08 m, step 0.17 m
+   20.900 |   1255 | Orc A (club) #2 | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.06 m
+   21.017 |   1262 | Orc B #2       | step     | settle step FootL: 0.22 m from its stance spot around the weight (limit 0.22 m)
+   21.350 |   1282 | Orc B #2       | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.17 m
+   21.367 |   1283 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.17 m > 0.08 m, step 0.28 m
+   21.450 |   1288 | Orc A (club) #2 | self     | the weapon collides with the body again
+   21.600 |   1297 | Orc B #2       | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.12 m
+   21.717 |   1304 | Orc A (club) #2 | step     | settle step FootL: 0.22 m from its stance spot around the weight (limit 0.22 m)
+   22.050 |   1324 | Orc A (club) #2 | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.04 m
+   22.200 |   1333 | Orc B #2       | step     | settle step FootL: 0.29 m from its stance spot around the weight (limit 0.22 m)
+   22.297 |   1338 | -              | input    | attack ordered
+   22.297 |   1338 | Orc A (club) #2 | attack   | swing at Orc B: target 1.60 m from the shoulder, contact reach 0.30 m, plane roll 50°, crowded ×0.87. Load: 21.9 kg·m² about the shoulder, 138 N·m to hold out, strength 324 N·m (2.4×). Expect: wind-up 1.20 s over 103°, strike 0.75 s, contact at 5.9 rad/s (12.8 m/s at the tip), stopping at θ 59°
+   22.317 |   1340 | Orc A (club) #2 | self     | club hit its own UpperArmR at 4.5 m/s (WindUp θ -200°)
+   22.317 |   1340 | Orc A (club) #2 | self     | club hit its own club (with its UpperArmR) at 4.5 m/s (WindUp θ -200°)
+   22.317 |   1340 | Orc A (club) #2 | self     | club hit its own Chest at 2.0 m/s (WindUp θ -200°)
+   22.317 |   1340 | Orc A (club) #2 | self     | club hit its own club (with its Chest) at 2.0 m/s (WindUp θ -200°)
+   22.483 |   1350 | Orc A (club) #2 | self     | club hit its own Chest at 1.3 m/s (WindUp θ -200°)
+   22.483 |   1350 | Orc A (club) #2 | self     | club hit its own club (with its Chest) at 1.3 m/s (WindUp θ -200°)
+   22.533 |   1353 | Orc B #2       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.19 m
+   22.550 |   1354 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.20 m > 0.08 m, step 0.27 m
+   22.633 |   1359 | Orc A (club) #2 | self     | club hit its own Chest at 0.6 m/s (WindUp θ -200°)
+   22.633 |   1359 | Orc A (club) #2 | self     | club hit its own club (with its Chest) at 0.6 m/s (WindUp θ -200°)
+   22.717 |   1364 | Orc A (club) #2 | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+   22.783 |   1368 | Orc B #2       | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.15 m
+   23.383 |   1404 | Orc B #2       | step     | settle step FootL: 0.29 m from its stance spot around the weight (limit 0.22 m)
+   23.500 |   1411 | Orc A (club) #2 | attack   | swing #1 → Load  [ghost θ -200°, club θ -138° (lag -62°), tip 0.4 m/s, club 1.42 m from the target point]
+   23.533 |   1413 | Orc A (club) #2 | self     | the weapon collides with the body again
+   23.533 |   1413 | Orc A (club) #2 | self     | club hit its own Chest at 0.2 m/s (Load θ -200°)
+   23.533 |   1413 | Orc A (club) #2 | self     | club hit its own club (with its Chest) at 0.2 m/s (Load θ -200°)
+   23.717 |   1424 | Orc B #2       | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.21 m
+   23.733 |   1425 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.22 m > 0.08 m, step 0.27 m
+   23.900 |   1435 | Orc A (club) #2 | attack   | turning point not reached in 0.4 s (club 61° off, moving -15°/s, tip 0.1 m/s); striking anyway
+   23.900 |   1435 | Orc A (club) #2 | attack   | committed: arc frozen, aiming at (0.72, 1.51, -0.06) (target's chest now (0.66, 1.42, -0.14), 0.13 m apart), contact reach 0.30 m
+   23.900 |   1435 | Orc A (club) #2 | attack   | swing #1 → Strike  [ghost θ -200°, club θ -142° (lag -58°), tip 0.1 m/s, club 1.48 m from the target point]
+   23.917 |   1436 | Orc A (club) #2 | self     | club hit its own UpperArmR at 3.2 m/s (Strike θ -200°)
+   23.917 |   1436 | Orc A (club) #2 | self     | club hit its own club (with its UpperArmR) at 3.2 m/s (Strike θ -200°)
+   23.917 |   1436 | Orc A (club) #2 | self     | club hit its own Spine at 1.4 m/s (Strike θ -200°)
+   23.917 |   1436 | Orc A (club) #2 | self     | club hit its own club (with its Spine) at 1.4 m/s (Strike θ -200°)
+   23.933 |   1437 | Orc A (club) #2 | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+   23.967 |   1439 | Orc B #2       | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.16 m
+   24.333 |   1461 | Orc A (club) #2 | self     | HandR hit its own UpperArmR at 6.4 m/s (Strike θ -104°)
+   24.333 |   1461 | Orc A (club) #2 | self     | UpperArmR hit its own HandR at 6.4 m/s (Strike θ -104°)
+   24.483 |   1470 | Orc A (club) #2 | step     | catch step FootL #1/3: falling forward-left (sideways: falling-side foot), balance error 0.20 m > 0.08 m, step 0.12 m (clamped to maxStepLength)
+   24.567 |   1475 | Orc B #2       | step     | settle step FootL: 0.28 m from its stance spot around the weight (limit 0.22 m)
+   24.567 |   1475 | Orc A (club) #2 | self     | ForearmR hit its own Chest at 2.2 m/s (Strike θ -25°)
+   24.567 |   1475 | Orc A (club) #2 | self     | Chest hit its own ForearmR at 2.2 m/s (Strike θ -25°)
+   24.650 |   1480 | Orc A (club) #2 | attack   | swing #1 → Follow  [ghost θ 3°, club θ -107° (lag 110°), tip 4.8 m/s, club 1.21 m from the target point]
+   24.717 |   1484 | Orc A (club) #2 | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.25 m
+   24.750 |   1486 | Orc A (club) #2 | self     | the weapon collides with the body again
+   24.833 |   1491 | Orc A (club) #2 | self     | HandR hit its own Chest at 5.5 m/s (Follow θ 47°)
+   24.833 |   1491 | Orc A (club) #2 | self     | Chest hit its own HandR at 5.5 m/s (Follow θ 47°)
+   24.900 |   1495 | Orc B #2       | step     | FootL landed, 0.22 m from where it was placed; balance error now 0.22 m
+   24.917 |   1496 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.22 m > 0.08 m, step 0.28 m (clamped to maxStepLength)
+   25.150 |   1510 | Orc B #2       | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.18 m
+   25.183 |   1512 | Orc A (club) #2 | attack   | swing #1 → Recover  [ghost θ 60°, club θ 65° (lag -6°), tip 2.9 m/s, club 1.02 m from the target point]
+   25.200 |   1513 | Orc A (club) #2 | self     | ForearmR hit its own Chest at 4.0 m/s (Recover θ 60°)
+   25.200 |   1513 | Orc A (club) #2 | self     | Chest hit its own ForearmR at 4.0 m/s (Recover θ 60°)
+   25.750 |   1546 | Orc B #2       | step     | settle step FootL: 0.29 m from its stance spot around the weight (limit 0.22 m)
+   25.950 |   1558 | Orc A (club) #2 | self     | club hit its own club (with its Head) at 2.8 m/s (Recover θ 60°)
+   25.950 |   1558 | Orc A (club) #2 | self     | club hit its own Head at 2.8 m/s (Recover θ 60°)
+   26.083 |   1566 | Orc B #2       | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.25 m
+   26.083 |   1566 | Orc A (club) #2 | self     | club hit its own Chest at 3.3 m/s (Recover θ 60°)
+   26.083 |   1566 | Orc A (club) #2 | self     | club hit its own club (with its Chest) at 3.3 m/s (Recover θ 60°)
+   26.100 |   1567 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.25 m > 0.08 m, step 0.29 m (clamped to maxStepLength)
+   26.300 |   1579 | Orc A (club) #2 | step     | catch step FootL #2/3: falling left (sideways: falling-side foot), balance error 0.08 m > 0.08 m, step 0.16 m (clamped to maxStepLength)
+   26.333 |   1581 | Orc B #2       | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.19 m
+   26.350 |   1582 | Orc A (club) #2 | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+   26.533 |   1593 | Orc A (club) #2 | step     | FootL landed, 0.21 m from where it was placed; balance error now 0.37 m
+   26.683 |   1602 | Orc A (club) #2 | self     | HandR hit its own Spine at 5.0 m/s (Recover θ 60°)
+   26.683 |   1602 | Orc A (club) #2 | self     | Spine hit its own HandR at 5.0 m/s (Recover θ 60°)
+   26.750 |   1606 | Orc A (club) #2 | attack   | swing #1 result: missed: club passed 0.77 m from the target point (in Recover); fastest tip 10.5 m/s, worst strike lag 104°, worst arm tracking error 143°; club touched: own body 4.5 m/s in WindUp θ -200°, own body 4.5 m/s in WindUp θ -200°, own body 2.0 m/s in WindUp θ -200°, own body 2.0 m/s in WindUp θ -200°, own body 1.3 m/s in WindUp θ -200°, own body 1.3 m/s in WindUp θ -200°, own body 0.6 m/s in WindUp θ -200°, own body 0.6 m/s in WindUp θ -200°
+   26.767 |   1607 | Orc A (club) #2 | self     | UpperArmL hit its own Spine at 4.2 m/s (idle)
+   26.767 |   1607 | Orc A (club) #2 | self     | Spine hit its own UpperArmL at 4.2 m/s (idle)
+   26.950 |   1618 | Orc B #2       | step     | settle step FootL: 0.30 m from its stance spot around the weight (limit 0.22 m)
+   27.133 |   1629 | Orc A (club) #2 | step     | settle step FootL: 0.57 m from its stance spot around the weight (limit 0.22 m)
+   27.167 |   1631 | Orc A (club) #2 | self     | club hit its own Spine at 5.0 m/s (idle)
+   27.167 |   1631 | Orc A (club) #2 | self     | club hit its own club (with its Spine) at 5.0 m/s (idle)
+   27.167 |   1631 | Orc A (club) #2 | self     | club hit its own club (with its Head) at 5.1 m/s (idle)
+   27.167 |   1631 | Orc A (club) #2 | self     | club hit its own Head at 5.1 m/s (idle)
+   27.250 |   1636 | Orc A (club) #2 | self     | club hit its own UpperArmR at 5.5 m/s (idle)
+   27.250 |   1636 | Orc A (club) #2 | self     | club hit its own club (with its UpperArmR) at 5.5 m/s (idle)
+   27.267 |   1637 | Orc A (club) #2 | self     | HandR hit its own Spine at 5.4 m/s (idle)
+   27.267 |   1637 | Orc A (club) #2 | self     | Spine hit its own HandR at 5.4 m/s (idle)
+   27.283 |   1638 | Orc A (club) #2 | self     | the weapon collides with the body again
+   27.283 |   1638 | Orc B #2       | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.26 m
+   27.283 |   1638 | Orc A (club) #2 | self     | club hit its own Chest at 5.4 m/s (idle)
+   27.283 |   1638 | Orc A (club) #2 | self     | club hit its own club (with its Chest) at 5.4 m/s (idle)
+   27.300 |   1639 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.26 m > 0.08 m, step 0.30 m (clamped to maxStepLength)
+   27.467 |   1649 | Orc A (club) #2 | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.08 m
+   27.483 |   1650 | Orc A (club) #2 | step     | catch step FootR #1/3: falling right (sideways: falling-side foot), balance error 0.46 m > 0.08 m, step 0.61 m (clamped to maxStepLength)
+   27.533 |   1653 | Orc B #2       | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.20 m
+   27.717 |   1664 | Orc A (club) #2 | step     | FootR landed, 0.25 m from where it was placed; balance error now 0.34 m
+   27.733 |   1665 | Orc A (club) #2 | self     | club hit its own UpperArmR at 1.4 m/s (idle)
+   27.733 |   1665 | Orc A (club) #2 | self     | club hit its own club (with its UpperArmR) at 1.4 m/s (idle)
+   28.133 |   1689 | Orc B #2       | step     | settle step FootL: 0.31 m from its stance spot around the weight (limit 0.22 m)
+   28.317 |   1700 | Orc A (club) #2 | step     | settle step FootR: 0.39 m from its stance spot around the weight (limit 0.22 m)
+   28.467 |   1709 | Orc B #2       | step     | FootL landed, 0.20 m from where it was placed; balance error now 0.26 m
+   28.483 |   1710 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.26 m > 0.08 m, step 0.31 m (clamped to maxStepLength)
+   28.650 |   1720 | Orc A (club) #2 | step     | FootR landed, 0.15 m from where it was placed; balance error now 0.35 m
+   28.717 |   1724 | Orc B #2       | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.25 m
+   29.250 |   1756 | Orc A (club) #2 | step     | settle step FootL: 0.38 m from its stance spot around the weight (limit 0.22 m)
+   29.317 |   1760 | Orc B #2       | step     | settle step FootL: 0.30 m from its stance spot around the weight (limit 0.22 m)
+   29.583 |   1776 | Orc A (club) #2 | step     | FootL landed; balance error now 0.26 m
+   29.650 |   1780 | Orc B #2       | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.26 m
+   29.667 |   1781 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.26 m > 0.08 m, step 0.30 m (clamped to maxStepLength)
+   29.900 |   1795 | Orc B #2       | step     | FootL landed, 0.17 m from where it was placed; balance error now 0.21 m
+   30.500 |   1831 | Orc B #2       | step     | settle step FootL: 0.32 m from its stance spot around the weight (limit 0.22 m)
+   30.833 |   1851 | Orc B #2       | step     | FootL landed, 0.21 m from where it was placed; balance error now 0.27 m
+   30.850 |   1852 | Orc B #2       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.27 m > 0.08 m, step 0.32 m (clamped to maxStepLength)
+   31.083 |   1866 | Orc B #2       | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.24 m
+   31.595 |   1896 | -              | input    | spawn: two orcs 2.00 m apart
+   31.595 |   1896 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   31.595 |   1896 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   31.595 |   1896 | Orc A (club)   | equip    | the weapon collides with its wielder except the right hand and forearm, the left hand and forearm, from 1.0 s after taking it up
+   31.595 |   1896 | Orc A (club)   | weapon   | left hand takes the second grip (-0.11 m along the weapon), held at 10 Hz
+   31.595 |   1896 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 152, Chest 88, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 188, ForearmR 215, HandR 193, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   31.595 |   1896 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 152, Chest 88, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 188, ForearmR 215, HandR 193, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   31.595 |   1896 | Orc A (club)   | muscles  | self-collision on; left out (touching in the rest pose): none
+   31.595 |   1896 | Orc B          | muscles  | load boosts (needed→used): Spine 97, Chest 51, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 50, ForearmR 21, HandR 3, ThighL 75, ShinL 25, FootL 3, ThighR 75, ShinR 25, FootR 3
+   31.595 |   1896 | Orc B          | muscles  | self-collision on; left out (touching in the rest pose): none
+   31.600 |   1897 | Orc A (club) #3 | spawn    | at (-1.00, 0.00) facing 90°, team 0, mass 126.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc, holding P_Weapon_ClubBig
+   31.600 |   1897 | Orc B #3       | spawn    | at (1.00, 0.00) facing 270°, team 1, mass 120.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc
+   31.600 |   1897 | Orc A (club) #3 | equip    | holding P_Weapon_ClubBig (WD_ClubBig): physics mass 6.0 kg, tip 1.86 m from the grip
+   31.600 |   1897 | Orc B #2       | despawn  | removed from the scene
+   31.600 |   1897 | Orc A (club) #2 | despawn  | removed from the scene
+   31.617 |   1898 | Orc A (club) #3 | muscles  | load boosts (needed→used): Spine 155, Chest 89, Head 5, UpperArmL 50, ForearmL 21, HandL 3, UpperArmR 154, ForearmR 220, HandR 193, ThighL 74, ShinL 25, FootL 3, ThighR 74, ShinR 25, FootR 3
+   31.617 |   1898 | Orc A (club) #3 | equip    | 6.0 kg weapon, its weight (with the hand) 1.25 m out from the grip: 23.2 kg·m² about the shoulder, 143 N·m to hold out; strength 324 N·m (2.3×): heavy: swung with effort
+   31.667 |   1901 | Orc A (club) #3 | self     | Spine hit its own HandR at 6.1 m/s (idle)
+   31.667 |   1901 | Orc A (club) #3 | self     | HandR hit its own Spine at 6.1 m/s (idle)
+   31.817 |   1910 | Orc A (club) #3 | step     | catch step FootL #1/3: falling forward-left (sideways: falling-side foot), balance error 0.10 m > 0.08 m, step 0.16 m
+   32.050 |   1924 | Orc A (club) #3 | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.05 m
+   32.123 |   1928 | -              | input    | attack ordered
+   32.123 |   1928 | Orc A (club) #3 | attack   | swing at Orc B: target 1.67 m from the shoulder, contact reach 0.30 m, plane roll 50°, crowded ×0.92. Load: 21.9 kg·m² about the shoulder, 138 N·m to hold out, strength 324 N·m (2.4×). Expect: wind-up 1.20 s over 103°, strike 0.75 s, contact at 5.9 rad/s (12.8 m/s at the tip), stopping at θ 59°
+   32.150 |   1930 | Orc B #3       | step     | settle step FootL: 0.22 m from its stance spot around the weight (limit 0.22 m)
+   32.150 |   1930 | Orc A (club) #3 | self     | Spine hit its own HandR at 3.2 m/s (WindUp θ -200°)
+   32.150 |   1930 | Orc A (club) #3 | self     | HandR hit its own Spine at 3.2 m/s (WindUp θ -200°)
+   32.483 |   1950 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.18 m
+   32.500 |   1951 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.28 m
+   32.600 |   1957 | Orc A (club) #3 | self     | club hit its own club (with its Spine) at 3.1 m/s (WindUp θ -200°)
+   32.600 |   1957 | Orc A (club) #3 | self     | club hit its own Spine at 3.1 m/s (WindUp θ -200°)
+   32.733 |   1965 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.15 m
+   33.317 |   2000 | Orc A (club) #3 | attack   | swing #1 → Load  [ghost θ -200°, club θ -151° (lag -49°), tip 0.3 m/s, club 1.55 m from the target point]
+   33.350 |   2002 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   33.583 |   2016 | Orc A (club) #3 | attack   | turning point: the pull-back stopped 0.27 s after the wind-up ended (club 42° from the wound-up position, moving -25°/s, tip 0.7 m/s)
+   33.583 |   2016 | Orc A (club) #3 | attack   | committed: arc frozen, aiming at (0.81, 1.46, 0.02) (target's chest now (0.69, 1.40, -0.11), 0.19 m apart), contact reach 0.32 m
+   33.583 |   2016 | Orc A (club) #3 | attack   | swing #1 → Strike  [ghost θ -200°, club θ -159° (lag -41°), tip 0.7 m/s, club 1.76 m from the target point]
+   33.617 |   2018 | Orc A (club) #3 | self     | club hit its own club (with its Spine) at 1.7 m/s (Strike θ -199°)
+   33.617 |   2018 | Orc A (club) #3 | self     | club hit its own Spine at 1.7 m/s (Strike θ -199°)
+   33.683 |   2022 | Orc B #3       | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.18 m
+   33.700 |   2023 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.28 m
+   33.933 |   2037 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.17 m
+   33.983 |   2040 | Orc A (club) #3 | self     | club hit its own club (with its Spine) at 4.3 m/s (Strike θ -115°)
+   33.983 |   2040 | Orc A (club) #3 | self     | club hit its own Spine at 4.3 m/s (Strike θ -115°)
+   34.000 |   2041 | Orc A (club) #3 | self     | club hit its own club (with its Chest) at 6.2 m/s (Strike θ -110°)
+   34.000 |   2041 | Orc A (club) #3 | self     | club hit its own Chest at 6.2 m/s (Strike θ -110°)
+   34.017 |   2042 | Orc A (club) #3 | self     | HandR hit its own UpperArmR at 9.3 m/s (Strike θ -104°)
+   34.017 |   2042 | Orc A (club) #3 | self     | UpperArmR hit its own HandR at 9.3 m/s (Strike θ -104°)
+   34.117 |   2048 | Orc A (club) #3 | self     | the weapon collides with the body again
+   34.117 |   2048 | Orc A (club) #3 | self     | club hit its own UpperArmR at 3.9 m/s (Strike θ -70°)
+   34.117 |   2048 | Orc A (club) #3 | self     | club hit its own club (with its UpperArmR) at 3.9 m/s (Strike θ -70°)
+   34.233 |   2055 | Orc A (club) #3 | self     | club hit its own club (with its Chest) at 5.2 m/s (Strike θ -31°)
+   34.233 |   2055 | Orc A (club) #3 | self     | club hit its own Chest at 5.2 m/s (Strike θ -31°)
+   34.317 |   2060 | Orc A (club) #3 | self     | Chest hit its own ForearmR at 2.3 m/s (Strike θ -3°)
+   34.317 |   2060 | Orc A (club) #3 | self     | ForearmR hit its own Chest at 2.3 m/s (Strike θ -3°)
+   34.333 |   2061 | Orc A (club) #3 | attack   | swing #1 → Follow  [ghost θ 3°, club θ -93° (lag 96°), tip 6.3 m/s, club 1.46 m from the target point]
+   34.383 |   2064 | Orc A (club) #3 | step     | catch step FootR #2/3: falling forward-right (farther foot), balance error 0.08 m > 0.08 m, step 0.48 m
+   34.550 |   2074 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   34.583 |   2076 | Orc A (club) #3 | self     | HandR hit its own Head at 5.8 m/s (Follow θ 55°)
+   34.583 |   2076 | Orc A (club) #3 | self     | Head hit its own HandR at 5.8 m/s (Follow θ 55°)
+   34.617 |   2078 | Orc A (club) #3 | step     | FootR landed, 0.13 m from where it was placed; balance error now 0.20 m
+   34.800 |   2089 | Orc A (club) #3 | attack   | swing #1 → Recover  [ghost θ 60°, club θ 56° (lag 4°), tip 2.7 m/s, club 1.16 m from the target point]
+   34.883 |   2094 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.19 m
+   34.900 |   2095 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.19 m > 0.08 m, step 0.26 m
+   35.133 |   2109 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.14 m
+   35.550 |   2134 | Orc A (club) #3 | self     | club hit its own Head at 3.2 m/s (Recover θ 60°)
+   35.550 |   2134 | Orc A (club) #3 | self     | club hit its own club (with its Head) at 3.2 m/s (Recover θ 60°)
+   35.650 |   2140 | Orc A (club) #3 | self     | club hit its own club (with its Chest) at 3.1 m/s (Recover θ 60°)
+   35.650 |   2140 | Orc A (club) #3 | self     | club hit its own Chest at 3.1 m/s (Recover θ 60°)
+   35.750 |   2146 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   35.850 |   2152 | Orc A (club) #3 | self     | club hit its own club (with its UpperArmL) at 4.0 m/s (Recover θ 60°)
+   35.850 |   2152 | Orc A (club) #3 | self     | club hit its own UpperArmL at 4.0 m/s (Recover θ 60°)
+   35.950 |   2158 | Orc A (club) #3 | self     | the weapon was stuck against the body for 0.4 s: letting it pass through for 0.8 s
+   36.083 |   2166 | Orc B #3       | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.18 m
+   36.100 |   2167 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.28 m
+   36.283 |   2178 | Orc A (club) #3 | self     | Spine hit its own HandR at 4.2 m/s (Recover θ 60°)
+   36.283 |   2178 | Orc A (club) #3 | self     | HandR hit its own Spine at 4.2 m/s (Recover θ 60°)
+   36.333 |   2181 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.17 m
+   36.367 |   2183 | Orc A (club) #3 | attack   | swing #1 result: missed: club passed 1.04 m from the target point (in Recover); fastest tip 13.7 m/s, worst strike lag 90°, worst arm tracking error 132°; club touched: own body 3.1 m/s in WindUp θ -200°, own body 3.1 m/s in WindUp θ -200°, own body 1.7 m/s in Strike θ -199°, own body 1.7 m/s in Strike θ -199°, own body 4.3 m/s in Strike θ -115°, own body 4.3 m/s in Strike θ -115°, own body 6.2 m/s in Strike θ -110°, own body 6.2 m/s in Strike θ -110°
+   36.383 |   2184 | Orc A (club) #3 | self     | Spine hit its own UpperArmL at 4.2 m/s (idle)
+   36.383 |   2184 | Orc A (club) #3 | self     | UpperArmL hit its own Spine at 4.2 m/s (idle)
+   36.683 |   2202 | Orc A (club) #3 | self     | Spine hit its own HandR at 5.5 m/s (idle)
+   36.683 |   2202 | Orc A (club) #3 | self     | HandR hit its own Spine at 5.5 m/s (idle)
+   36.767 |   2207 | Orc A (club) #3 | step     | settle step FootL: 0.49 m from its stance spot around the weight (limit 0.22 m)
+   36.767 |   2207 | Orc A (club) #3 | self     | the weapon collides with the body again
+   36.767 |   2207 | Orc A (club) #3 | self     | club hit its own club (with its Spine) at 5.7 m/s (idle)
+   36.767 |   2207 | Orc A (club) #3 | self     | club hit its own Spine at 5.7 m/s (idle)
+   36.767 |   2207 | Orc A (club) #3 | self     | club hit its own club (with its Chest) at 5.6 m/s (idle)
+   36.767 |   2207 | Orc A (club) #3 | self     | club hit its own Chest at 5.6 m/s (idle)
+   36.817 |   2210 | Orc A (club) #3 | self     | club hit its own UpperArmR at 5.2 m/s (idle)
+   36.817 |   2210 | Orc A (club) #3 | self     | club hit its own club (with its UpperArmR) at 5.2 m/s (idle)
+   36.933 |   2217 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   37.100 |   2227 | Orc A (club) #3 | step     | FootL landed, 0.28 m from where it was placed; balance error now 0.24 m
+   37.100 |   2227 | Orc A (club) #3 | self     | club hit its own UpperArmR at 1.7 m/s (idle)
+   37.100 |   2227 | Orc A (club) #3 | self     | club hit its own club (with its UpperArmR) at 1.7 m/s (idle)
+   37.117 |   2228 | Orc A (club) #3 | step     | catch step FootL #1/3: falling back-left (farther foot), balance error 0.24 m > 0.08 m, step 0.32 m
+   37.267 |   2237 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.19 m
+   37.283 |   2238 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.19 m > 0.08 m, step 0.26 m
+   37.350 |   2242 | Orc A (club) #3 | step     | FootL landed, 0.22 m from where it was placed; balance error now 0.25 m
+   37.517 |   2252 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.17 m
+   37.950 |   2278 | Orc A (club) #3 | step     | settle step FootL: 0.30 m from its stance spot around the weight (limit 0.22 m)
+   38.133 |   2289 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   38.283 |   2298 | Orc A (club) #3 | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.23 m
+   38.300 |   2299 | Orc A (club) #3 | step     | catch step FootR #1/3: falling back (farther foot), balance error 0.09 m > 0.08 m, step 0.32 m
+   38.467 |   2309 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.18 m
+   38.483 |   2310 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.27 m
+   38.533 |   2313 | Orc A (club) #3 | step     | FootR landed, 0.25 m from where it was placed; balance error now 0.31 m
+   38.550 |   2314 | Orc A (club) #3 | step     | catch step FootL #2/3: falling back (farther foot), balance error 0.09 m > 0.08 m, step 0.16 m
+   38.717 |   2324 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.18 m
+   38.783 |   2328 | Orc A (club) #3 | step     | FootL landed, 0.16 m from where it was placed; balance error now 0.19 m
+   38.800 |   2329 | Orc A (club) #3 | step     | catch step FootL #3/3: falling back (farther foot), balance error 0.10 m > 0.08 m, step 0.05 m
+   39.033 |   2343 | Orc A (club) #3 | step     | FootL landed, 0.15 m from where it was placed; balance error now 0.18 m
+   39.333 |   2361 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   39.433 |   2367 | Orc A (club) #3 | step     | stuck off balance 0.4 s with no steps left (error 0.08 m): granting one bonus step
+   39.433 |   2367 | Orc A (club) #3 | step     | catch step FootL #3/3: falling back (farther foot), balance error 0.08 m > 0.08 m, step 0.03 m
+   39.667 |   2381 | Orc A (club) #3 | step     | FootL landed, 0.13 m from where it was placed; balance error now 0.18 m
+   39.667 |   2381 | Orc B #3       | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.18 m
+   39.683 |   2382 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.27 m
+   39.917 |   2396 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.17 m
+   40.533 |   2433 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   40.867 |   2453 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.19 m
+   40.883 |   2454 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.19 m > 0.08 m, step 0.26 m
+   41.117 |   2468 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.14 m
+   41.717 |   2504 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   42.050 |   2524 | Orc B #3       | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.18 m
+   42.067 |   2525 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.28 m
+   42.300 |   2539 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.17 m
+   42.900 |   2575 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   43.233 |   2595 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.19 m
+   43.250 |   2596 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.19 m > 0.08 m, step 0.26 m
+   43.483 |   2610 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.15 m
+   44.100 |   2647 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   44.433 |   2667 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.18 m
+   44.450 |   2668 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.28 m
+   44.683 |   2682 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.18 m
+   45.300 |   2719 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   45.633 |   2739 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.18 m
+   45.650 |   2740 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.27 m
+   45.883 |   2754 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.20 m
+   46.500 |   2791 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   46.833 |   2811 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.18 m
+   46.850 |   2812 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.27 m
+   47.083 |   2826 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.15 m
+   47.683 |   2862 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   48.017 |   2882 | Orc B #3       | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.18 m
+   48.033 |   2883 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.27 m
+   48.267 |   2897 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.17 m
+   48.883 |   2934 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   49.217 |   2954 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.19 m
+   49.233 |   2955 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.19 m > 0.08 m, step 0.26 m
+   49.467 |   2969 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.14 m
+   50.083 |   3006 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   50.417 |   3026 | Orc B #3       | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.18 m
+   50.433 |   3027 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.28 m
+   50.667 |   3041 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.17 m
+   51.283 |   3078 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   51.617 |   3098 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.19 m
+   51.633 |   3099 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.19 m > 0.08 m, step 0.26 m
+   51.867 |   3113 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.15 m
+   52.467 |   3149 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   52.800 |   3169 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.18 m
+   52.817 |   3170 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.27 m
+   53.050 |   3184 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.19 m
+   53.650 |   3220 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   53.983 |   3240 | Orc B #3       | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.18 m
+   54.000 |   3241 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.27 m
+   54.233 |   3255 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.17 m
+   54.850 |   3292 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   55.183 |   3312 | Orc B #3       | step     | FootL landed, 0.24 m from where it was placed; balance error now 0.19 m
+   55.200 |   3313 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.19 m > 0.08 m, step 0.26 m
+   55.433 |   3327 | Orc B #3       | step     | FootL landed, 0.23 m from where it was placed; balance error now 0.14 m
+   56.050 |   3364 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
+   56.383 |   3384 | Orc B #3       | step     | FootL landed, 0.26 m from where it was placed; balance error now 0.18 m
+   56.400 |   3385 | Orc B #3       | step     | catch step FootL #1/3: falling left (sideways: falling-side foot), balance error 0.18 m > 0.08 m, step 0.28 m
+   56.633 |   3399 | Orc B #3       | step     | FootL landed, 0.25 m from where it was placed; balance error now 0.17 m
+   57.250 |   3436 | Orc B #3       | step     | settle step FootL: 0.27 m from its stance spot around the weight (limit 0.22 m)
