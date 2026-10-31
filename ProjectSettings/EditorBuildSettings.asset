@@ -6,7 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/_Battler/Scenes/Sandbox.unity
-    guid: cda134b486533ea4c9b5d4e2442e8023
+    path: Assets/_Battler/Scenes/Battle.unity
+    guid: 2127a6adbca6dc64db129cd1b05ffaec
   m_configObjects: {}
-  m_UseUCBPForAssetBundles: 0

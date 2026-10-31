@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 559de9d78f271ce40903ac71977ea21c, type: 3}
+  m_Name: CS_Large
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Motion.CombatStyle
+  stanceWidth: 0.4
+  stanceLength: 0.36
+  crouch: 0.05
+  leadWithLeftFoot: 1
+  leadToeOut: 10
+  rearToeOut: 35
+  hipTurn: 14
+  chestCounterTurn: -10
+  lean: 4
+  leadWeight: 0.45
+  guardRaise: -22
+  guardIn: 8
+  guardElbow: -80
+  leadArmReach: -6
+  swayAmplitude: 0.018
+  swayFrequency: 0.28
+  bobAmplitude: 0.004
+  bobFrequency: 0.9
+  weaveDegrees: 2.5
+  weaveFrequency: 0.22
+  stepThreshold: 0.16
+  stepTurnThreshold: 25
+  stepDuration: 0.26
+  stepHeight: 0.07
+  shuffleInterval: 5
+  shuffleDistance: 0.07

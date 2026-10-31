@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d06df8bc6d36376408d2598d9e582aa1, type: 3}
+  m_Name: UP_Small
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Units.UnitProfile
+  body: Small
+  scale: 1
+  totalMassKg: 0
+  style: {fileID: 11400000, guid: 587cdd22f2d310c459e57fc59baf0a9d, type: 2}
+  turnSpeed: 300
+  torsoPin: 0.85
+  armPin: 0.75
+  linearDamping: 0.05
+  angularDamping: 0.1
+  solverIterations: 12
+  solverVelocityIterations: 4
+  maxAngularVelocity: 30
+  maxDepenetrationVelocity: 3
+  bodyFriction: 0.6
+  footFriction: 1
