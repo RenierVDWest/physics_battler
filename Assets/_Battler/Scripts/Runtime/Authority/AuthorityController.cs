@@ -94,6 +94,11 @@ namespace PhysicsBattler.Authority
 
             foreach (var id in PartInfo.All)
             {
+                if (rig.IsSevered(id))
+                {
+                    continue;   // (cut off: physics alone has it now)
+                }
+
                 var part = rig.Part(id);
                 var body = part.body;
                 var target = anim.Part(id);
@@ -167,6 +172,12 @@ namespace PhysicsBattler.Authority
         /// <summary>Distance and angle between a part and its pose (for the log).</summary>
         public void Error(PartId id, out float distance, out float angle)
         {
+            if (rig.IsSevered(id))
+            {
+                distance = angle = 0f;
+                return;
+            }
+
             var body = rig.Part(id).body;
             var target = anim.Part(id);
             distance = Vector3.Distance(body.position, target.position);

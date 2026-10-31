@@ -189,7 +189,8 @@ namespace PhysicsBattler.Combat
 
                 foreach (var part in AimPartInfo.All)
                 {
-                    if (move.targets.Contains(part))
+                    // (Not at a limb that is gone.)
+                    if (move.targets.Contains(part) && !target.Rig.IsSevered(AimPartInfo.BodyPartOf(part)))
                     {
                         bool body = part <= AimPart.Belly;
                         options.Add((move, part, body ? BodyWeight : 1f));

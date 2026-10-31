@@ -9,12 +9,44 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: Fight Rhythms (after milestone 4)
+## Current state: milestone 5, severing
 
 An 8×8 board with three units a side: Small, Medium and Large. Small and large carry clubs, the
 medium ones a sword and shield. They close in on the nearest enemy and strike at its body parts:
 head, neck, chest, belly, elbows or knees. What the weapon meets takes the hit, and a hard hit
 throws the body: off balance, off its feet, or through the air into whoever is standing there.
+
+### Milestone 5: severing
+
+A sword's edge can cut a limb off at a joint: the neck, a shoulder, an elbow, a wrist, a hip, a knee or an ankle.
+It cuts through when all of these hold:
+- the edge passes through the limb within about 5 cm of the joint (scaled by size), where the blade actually met
+  the body (a cut into the top of the chest doesn't take the head off; the neck goes only to a blade that met the
+  head or neck);
+- it moves across the bone, not along it;
+- it is faster than the weapon's `severSpeed` (7 m/s for the sword);
+- the blow does enough damage for that joint (`DamageRules.SeverDamage`, times the struck unit's size: a wrist is
+  easiest, a hip hardest).
+
+A slower or lighter cut only wounds. Clubs and thrusts never sever (for now). The blade carries on through a cut
+limb.
+
+The limb leaves the unit as a loose physics object, with its mesh, colliders and anything its hand held. It isn't
+posed, counted or struck as the unit any more, and it goes when the unit is removed. The unit loses what the limb
+did:
+- **the weapon arm:** its weapon goes with the hand and it can't strike;
+- **the shield arm:** its shield goes and it can't block;
+- **a leg:** it goes down and stays down;
+- **the head:** it dies.
+
+Every cut also costs a share of health (`DamageRules.SeverLoss`) and bleeds (`BleedRate`): a lost leg kills in
+about 20 s, a hand in about a minute. Moves never aim at a limb that is gone. Cuts at an elbow, knee or neck are
+deliberate sever attempts: the aim point is the joint itself. Unit labels show what was cut and the bleeding. The
+log records each sever, and on near misses, why the cut didn't sever (too slow, not hard enough, along the bone,
+too far from the joint). **K** is the sever test: a sword unit cuts at an enemy's elbow.
+
+How a maimed unit fights on (switching hands, hopping, crawling) is still open in the spec, to design through play.
+For now an unarmed unit stands and guards while it bleeds, and a legless one lies where it fell.
 
 ### Fight Rhythms: how each style moves between blows
 
@@ -218,6 +250,7 @@ and the real units spawn on the markers.
 | G | Move gallery: every move in turn against a dummy, at a third of the speed and then at full speed (G again stops) |
 | L | Launch test: the heaviest armed unit swings at the lightest enemy, with a third unit standing where it will be thrown |
 | H | Rhythm gallery: each Fight Rhythm's base, then every posture slowed to 40% and at full speed (H again stops) |
+| K | Sever test: a sword unit cuts at an enemy's elbow; the arm should come off there |
 | T | Turn everyone around (and back): makes them step and turn on the spot |
 | P / . | Pause / step one physics frame |
 | M | Mark the playtest log |
@@ -283,6 +316,10 @@ Milestone 4:
 18. **Captured walks.** Watch units walk in to fight and back onto a tile after getting up: the big one lumbers
     with its arms swinging round the guard, the medium one walks upright, the small one sneaks low. The feet
     shouldn't slide or cross, and when they stop they settle back into their stance.
+19. **Severing.** Press **K**: the medium swordsman cuts at an enemy's elbow, and the forearm (with whatever its
+    hand held) should fall away from the elbow, the label showing the cut and the bleeding. In a fight, watch for
+    arms and lower legs coming off. A unit that loses its weapon arm stops attacking, one that loses a leg stays
+    down, and both bleed out.
 
 If something looks off, press **M** at the moment and mention the mark number.
 
@@ -389,6 +426,9 @@ Tune in the data assets, not on the prefabs (setup rebuilds prefabs). Changes ma
   key poses (hips, crouch, lean, roll, turn, head, both hands and how the weapon turns, travel), planned
   steps, a weapon feint (a move's name and how far into its wind-up), openings, and its usual follow-up.
   Edit while the game runs; H shows them. A combat style's `rhythm` picks which one a body uses.
+- Severing (milestone 5): each weapon's `severSpeed`. In code at the bottom of `Combat/DamageRules.cs`: the
+  damage each joint takes to cut (`SeverDamage`), the wound (`SeverLoss`) and the bleeding (`BleedRate`). In
+  `Units/UnitSever.cs`: how close to the joint (`SeverReach`) and how square to the bone (`SeverAlong`).
 - Balance (milestone 4) is tuned in code for now, at the top of `Units/UnitBalance.cs`: the pushes that make a unit
   stumble, fall or fly (`StumbleAt`, `KnockdownAt`, `LaunchAt`), how much each catch step takes (`CatchStep`), the
   stumble's lean, the launch's speed and lift, how long a body stays down, and body impacts (`ImpactSpeed`,

@@ -199,6 +199,67 @@ namespace PhysicsBattler.Combat
             return hit.Impulse.magnitude * (1f - hit.PartShare) / Mathf.Max(1f, unitMass);
         }
 
+        // ---- Milestone 5: severing ----------------------------------------------------------------
+
+        /// <summary>
+        /// The damage a blow must do (at medium size; times the struck unit's size: bigger bones are
+        /// thicker) to cut through the joint above a part. A wrist goes easiest, a hip hardest.
+        /// </summary>
+        public static float SeverDamage(PartId below)
+        {
+            switch (below)
+            {
+                case PartId.HandL:
+                case PartId.HandR:
+                case PartId.FootL:
+                case PartId.FootR: return 3.5f;
+                case PartId.ForearmL:
+                case PartId.ForearmR: return 4.5f;
+                case PartId.ShinL:
+                case PartId.ShinR: return 6f;
+                case PartId.UpperArmL:
+                case PartId.UpperArmR: return 6.5f;
+                case PartId.Head: return 9f;
+                case PartId.ThighL:
+                case PartId.ThighR: return 8f;
+                default: return float.MaxValue;
+            }
+        }
+
+        /// <summary>The wound of losing the limb below a joint, as a share of the unit's health.</summary>
+        public static float SeverLoss(PartId below)
+        {
+            switch (below)
+            {
+                case PartId.HandL:
+                case PartId.HandR:
+                case PartId.FootL:
+                case PartId.FootR: return 0.06f;
+                case PartId.ForearmL:
+                case PartId.ForearmR:
+                case PartId.ShinL:
+                case PartId.ShinR: return 0.1f;
+                default: return 0.15f;   // a whole arm or leg
+            }
+        }
+
+        /// <summary>How fast the wound bleeds, as a share of the unit's health a second: a lost leg kills in about 20 seconds, a hand in about a minute.</summary>
+        public static float BleedRate(PartId below)
+        {
+            switch (below)
+            {
+                case PartId.HandL:
+                case PartId.HandR:
+                case PartId.FootL:
+                case PartId.FootR: return 0.015f;
+                case PartId.ForearmL:
+                case PartId.ForearmR:
+                case PartId.ShinL:
+                case PartId.ShinR: return 0.03f;
+                default: return 0.045f;
+            }
+        }
+
         public static bool IsTorso(PartId part) => part == PartId.Chest || part == PartId.Spine || part == PartId.Pelvis;
     }
 }

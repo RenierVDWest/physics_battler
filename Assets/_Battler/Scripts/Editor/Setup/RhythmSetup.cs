@@ -74,7 +74,7 @@ namespace PhysicsBattler.Editor.Setup
             }
 
             // (The club rides the captured rear hand: no pump of its own.)
-            if (!boxing.clip.IsEmpty && boxing.weaponLoop == WeaponLoop.Pump)
+            if (!boxing.clip.IsEmpty && boxing.weaponLoop == WeaponLoop.Pump && Vector3.Distance(boxing.mainGuard, RhythmDefinition.BoxingMainGuard) < 1e-4f)
             {
                 boxing.weaponLoop = WeaponLoop.None;
             }

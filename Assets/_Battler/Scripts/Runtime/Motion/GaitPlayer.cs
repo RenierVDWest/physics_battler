@@ -25,6 +25,9 @@ namespace PhysicsBattler.Motion
         /// <summary>The walking velocity (smoothed, world, metres a second).</summary>
         public Vector3 Velocity { get; private set; }
 
+        /// <summary>Still walking (not slowing to a stop): it may take new steps.</summary>
+        public bool Walking { get; private set; }
+
         /// <summary>Feet to lift this update.</summary>
         public readonly List<int> DueSteps = new List<int>();
 
@@ -45,10 +48,15 @@ namespace PhysicsBattler.Motion
         public void Update(float dt, Vector3 velocity, bool free, float nominal, float leg)
         {
             DueSteps.Clear();
-            if (IsEmpty || dt <= 0f)
+            if (IsEmpty)
             {
                 Weight = 0f;
                 return;
+            }
+
+            if (dt <= 0f)
+            {
+                return;   // (a hit stop: the walk holds where it is)
             }
 
             velocity.y = 0f;
@@ -56,6 +64,7 @@ namespace PhysicsBattler.Motion
             float speed = Velocity.magnitude;
             nominal = Mathf.Max(0.05f, nominal);
             float wanted = free ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.55f, speed / nominal)) : 0f;
+            Walking = wanted > 0.5f;
             Weight = Mathf.MoveTowards(Weight, wanted, dt / (wanted > Weight ? 0.15f : 0.25f));
             if (Weight <= 0f)
             {
@@ -74,7 +83,8 @@ namespace PhysicsBattler.Motion
             CycleTime = Mathf.Min(CycleTime, 0.7f * leg / Mathf.Max(1e-3f, speed * stanceShare));
             float before = Phase;
             Phase = Mathf.Repeat(Phase + dt / CycleTime, 1f);
-            if (Weight < 0.3f)
+            // (Coming to a stop, no new steps: the stance takes the feet home from where they are.)
+            if (Weight < 0.3f || !Walking)
             {
                 return;
             }
@@ -92,6 +102,7 @@ namespace PhysicsBattler.Motion
         public void Stop()
         {
             Weight = 0f;
+            Walking = false;
             Velocity = Vector3.zero;
             DueSteps.Clear();
         }

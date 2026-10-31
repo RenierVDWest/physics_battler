@@ -58,6 +58,8 @@ namespace PhysicsBattler.Combat
         public float damage = 20f;
         [Tooltip("Slower than this (m/s at the striking part), a touch is not a hit.")]
         public float minHitSpeed = 2f;
+        [Tooltip("A sword's edge this fast (m/s) or faster, crossing a limb near a joint and square to the bone, can cut it off there (if the blow is hard enough for that joint). Clubs and shields never sever.")]
+        public float severSpeed = 7f;
 
         [Header("Guard (medium size; the unit's frame: x right, y up, z forward, from the chest)")]
         [Tooltip("Where the grip is held in guard, from the chest null.")]

@@ -809,9 +809,15 @@ def calm_mask(unit):
 
 def balance(unit):
     """Milestone 4: stumbles, knock-downs, launches and get-ups, and how long each time down lasted."""
-    out = dict(stumbles=0, down=0, launched=0, up=0, impacts=0, spells=[], stillDown=None, events=[])
+    out = dict(stumbles=0, down=0, launched=0, up=0, impacts=0, spells=[], stillDown=None, events=[], severed=[], legLost=False)
     fell = None
     for e in unit.events:
+        if e.cat == "sever":
+            # milestone 5: a limb cut off (a lost leg keeps it down for good: not a flag)
+            out["severed"].append(e)
+            out["events"].append(e)
+            out["legLost"] |= "can't stand" in e.text
+            continue
         if e.cat == "impact":
             out["impacts"] += 1
             out["events"].append(e)
@@ -930,7 +936,7 @@ def flags_for(unit, n):
     if shaking:
         out.append("shaking at the physics rate: " + ", ".join(shaking))
     bal = n["balance"]
-    if bal["stillDown"] is not None and n["end"] - bal["stillDown"] > 5.0:
+    if bal["stillDown"] is not None and n["end"] - bal["stillDown"] > 5.0 and not bal["legLost"]:
         out.append(f"never got up (down from {bal['stillDown']:.1f} s)")
     long = [d for _, d in bal["spells"] if d > 5.0]
     if long:
@@ -1026,6 +1032,9 @@ def balance_summary(n):
         text += f", {b['impacts']} thrown into others"
     if b["stillDown"] is not None:
         text += ", still down"
+    if b["severed"]:
+        joints = [re.search(r"severed at the ([a-z ]+?)(?: by|;)", e.text) for e in b["severed"]]
+        text += ", lost " + " and ".join(m.group(1) for m in joints if m)
     return text
 
 

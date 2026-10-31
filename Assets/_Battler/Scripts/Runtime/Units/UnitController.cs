@@ -227,6 +227,7 @@ namespace PhysicsBattler.Units
         private void OnDestroy()
         {
             all.Remove(this);
+            DestroySeveredLimbs();
             if (detachedBody != null)
             {
                 if (Application.isPlaying)
@@ -279,6 +280,11 @@ namespace PhysicsBattler.Units
         {
             foreach (var id in PartInfo.All)
             {
+                if (Rig.IsSevered(id))
+                {
+                    continue;
+                }
+
                 var part = Rig.Part(id);
                 part.transform.SetPositionAndRotation(Anim.Part(id).position, Anim.Part(id).rotation);
                 if (physical)
@@ -307,6 +313,17 @@ namespace PhysicsBattler.Units
             if (OffWeapon != null)
             {
                 DestroyWeapon(OffWeapon);
+            }
+
+            // (Not into a hand that has been cut off.)
+            if (Rig.IsSevered(PartId.HandR))
+            {
+                main = null;
+            }
+
+            if (Rig.IsSevered(PartId.HandL))
+            {
+                off = null;
             }
 
             Loadout.Main = main;
@@ -373,7 +390,7 @@ namespace PhysicsBattler.Units
             SnapBodyToPose();
             foreach (var part in Rig.Parts)
             {
-                if (part.body != null && !part.body.isKinematic)
+                if (part.body != null && !part.body.isKinematic && !Rig.IsSevered(part.id))
                 {
                     part.body.linearVelocity = Vector3.zero;
                     part.body.angularVelocity = Vector3.zero;
@@ -618,6 +635,12 @@ namespace PhysicsBattler.Units
                 }
 
                 return;
+            }
+
+            UpdateBleeding(dt);
+            if (!IsAlive)
+            {
+                return;   // (bled out this step)
             }
 
             // Milestone 4: on the ground (a ragdoll), or getting up (the get-up's own pose).

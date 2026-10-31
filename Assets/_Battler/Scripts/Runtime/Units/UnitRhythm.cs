@@ -77,7 +77,7 @@ namespace PhysicsBattler.Units
         /// </summary>
         public float LeadIn()
         {
-            if (Rhythm == null || !RhythmOn || !CanAct || !FreeToPosture())
+            if (Rhythm == null || !RhythmOn || !CanAct || !FreeToPosture() || (Gait != null && Gait.Weight >= 0.3f))
             {
                 return 0f;
             }

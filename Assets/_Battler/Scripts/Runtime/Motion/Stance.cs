@@ -28,6 +28,7 @@ namespace PhysicsBattler.Motion
             public float lift;
             public float duration;   // this step's length in seconds (0: the stance's own)
             public float height;     // how high this step lifts, metres (0: the stance's own)
+            public float carry;      // the lift it had when a step under way was redirected (fades out)
         }
 
         /// <summary>A copy of the feet and timers, to try a pose and put everything back (the move planner).</summary>
@@ -260,6 +261,8 @@ namespace PhysicsBattler.Motion
 
         private void Begin(int f, Vector3 to, float toYaw)
         {
+            // (Redirected in the air: it doesn't drop to the ground to start again.)
+            feet[f].carry = feet[f].stepping ? feet[f].lift : 0f;
             feet[f].duration = 0f;
             feet[f].height = 0f;
             feet[f].stepping = true;
@@ -282,6 +285,7 @@ namespace PhysicsBattler.Motion
             foot.lift = foot.height > 0f
                 ? foot.height * Mathf.Sin(Mathf.PI * foot.t)
                 : height * Mathf.Clamp(distance / Mathf.Max(1e-3f, threshold), 0.4f, 1f) * Mathf.Sin(Mathf.PI * foot.t);
+            foot.lift = Mathf.Max(foot.lift, foot.carry * (1f - s));
             if (foot.t >= 1f)
             {
                 foot.stepping = false;

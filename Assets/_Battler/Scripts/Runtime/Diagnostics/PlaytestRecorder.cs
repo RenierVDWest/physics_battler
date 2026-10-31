@@ -167,6 +167,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.MoveEnded += OnMoveEnded;
             UnitController.Hit += OnHit;
             UnitController.Died += OnDied;
+            UnitController.Severed += OnSevered;
             UnitController.BalanceChanged += OnBalance;
             UnitController.PostureStarted += OnPosture;
             UnitController.PostureLedIn += OnPostureLedIn;
@@ -214,6 +215,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.MoveEnded -= OnMoveEnded;
             UnitController.Hit -= OnHit;
             UnitController.Died -= OnDied;
+            UnitController.Severed -= OnSevered;
             UnitController.BalanceChanged -= OnBalance;
             UnitController.PostureStarted -= OnPosture;
             UnitController.PostureLedIn -= OnPostureLedIn;
@@ -368,7 +370,8 @@ namespace PhysicsBattler.Diagnostics
             }
 
             string line = $"{hit.What} struck {hit.Struck.name}'s {hit.Part} at {hit.Speed:0.0} m/s: {what}; "
-                          + $"impulse {r.Impulse.magnitude:0.0} N·s ({r.PartShare * 100f:0}% into the part); {swing}; {hit.Kind}";
+                          + $"impulse {r.Impulse.magnitude:0.0} N·s ({r.PartShare * 100f:0}% into the part); {swing}; {hit.Kind}"
+                          + (hit.Severed.HasValue ? $"; cut through the {PartInfo.JointName(hit.Severed.Value)}" : hit.SeverMiss != null ? $"; no sever: {hit.SeverMiss}" : "");
             var track = TrackOf(hit.Attacker);
             Event(track, "hit", line);
             track?.NoteHitDealt(hit);
@@ -427,7 +430,19 @@ namespace PhysicsBattler.Diagnostics
 
         private void OnDied(UnitController unit, HitReport hit)
         {
-            Event(TrackOf(unit), "death", $"killed by {hit.Attacker.name}'s {hit.What} to the {hit.Part}");
+            string by = hit.Attacker != null ? hit.Attacker.name : "nobody";
+            Event(TrackOf(unit), "death", hit.Kind == "bled out" || hit.Kind == "beheaded"
+                ? $"{hit.Kind} (wounded by {by})"
+                : $"killed by {by}'s {hit.What} to the {hit.Part}");
+        }
+
+        private void OnSevered(UnitController unit, PartId at, HitReport hit)
+        {
+            var track = TrackOf(unit);
+            string how = hit != null && hit.Attacker != null ? $" by {hit.Attacker.name}'s {hit.What} at {hit.Speed:0.0} m/s ({hit.Result.Damage:0.0} damage)" : "";
+            Event(track, "sever", $"severed at the {PartInfo.JointName(at)}{how}; health {unit.Health:0}/{unit.Profile.maxHealth:0}, bleeding {unit.Bleeding:0.0}/s"
+                                  + (unit.Loadout?.Main == null ? ", unarmed" : "") + (unit.LegLost ? ", can't stand" : ""));
+            track?.NoteSevered();
         }
 
         private void Follow(UnitController unit)

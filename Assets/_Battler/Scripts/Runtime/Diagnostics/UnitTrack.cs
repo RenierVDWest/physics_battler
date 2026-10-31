@@ -360,6 +360,14 @@ namespace PhysicsBattler.Diagnostics
             postureCounts[posture.Label] = n + 1;
         }
 
+        public int severs;
+
+        /// <summary>Milestone 5: a limb came off it.</summary>
+        public void NoteSevered()
+        {
+            severs++;
+        }
+
         /// <summary>A posture already under way became the lead-in to a blow.</summary>
         public void NoteLedIn()
         {

@@ -30,6 +30,75 @@ namespace PhysicsBattler.Rig
 
         public BodyPart Part(PartId id) => parts[(int)id];
 
+        // Milestone 5: parts cut off (and everything hanging from them). They have left the unit:
+        // loose physics objects of their own, not posed, not counted, not struck as the unit.
+        private readonly bool[] severed = new bool[PartInfo.Count];
+
+        /// <summary>The part has been cut off the unit (at its own joint or one above it).</summary>
+        public bool IsSevered(PartId id) => severed[(int)id];
+
+        public bool AnySevered
+        {
+            get
+            {
+                foreach (bool s in severed)
+                {
+                    if (s)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Cuts a part off at its joint, with every part hanging from it: the joint goes, the limb
+        /// leaves the unit's hierarchy as a loose physics object (its meshes, colliders and anything
+        /// held in its hand go with it). Returns the limb's root object, or null if it was already off.
+        /// </summary>
+        public GameObject Sever(PartId at)
+        {
+            if (!PartInfo.HasParent(at) || severed[(int)at])
+            {
+                return null;
+            }
+
+            var root = parts[(int)at];
+            foreach (var id in PartInfo.All)
+            {
+                if (id == at || PartInfo.IsBelow(id, at))
+                {
+                    severed[(int)id] = true;
+                    var part = parts[(int)id];
+                    part.Owner = null;
+                    if (part.body != null)
+                    {
+                        part.body.isKinematic = false;
+                    }
+                }
+            }
+
+            if (root.joint != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(root.joint);
+                }
+                else
+                {
+                    DestroyImmediate(root.joint);
+                }
+
+                root.joint = null;
+            }
+
+            root.transform.SetParent(null, true);
+            root.gameObject.name = name + " " + PartInfo.NullName(at);
+            return root.gameObject;
+        }
+
         public BodyPart[] Parts => parts;
 
         public void Initialize(BodyPart[] builtParts, Transform slotR, Transform slotL, Transform chestAim,
@@ -69,7 +138,10 @@ namespace PhysicsBattler.Rig
             float mass = 0f;
             foreach (var part in parts)
             {
-                mass += part.body.mass;
+                if (!severed[(int)part.id])
+                {
+                    mass += part.body.mass;
+                }
             }
 
             return mass;
@@ -82,6 +154,11 @@ namespace PhysicsBattler.Rig
             float mass = 0f;
             foreach (var part in parts)
             {
+                if (severed[(int)part.id])
+                {
+                    continue;
+                }
+
                 sum += part.body.worldCenterOfMass * part.body.mass;
                 mass += part.body.mass;
             }
@@ -96,6 +173,11 @@ namespace PhysicsBattler.Rig
             float mass = 0f;
             foreach (var part in parts)
             {
+                if (severed[(int)part.id])
+                {
+                    continue;
+                }
+
                 sum += part.body.linearVelocity * part.body.mass;
                 mass += part.body.mass;
             }

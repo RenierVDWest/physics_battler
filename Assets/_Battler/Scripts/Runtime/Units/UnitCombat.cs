@@ -22,6 +22,10 @@ namespace PhysicsBattler.Units
         /// <summary>The part the blow was aimed at; the target but another part; an ally of the attacker; or someone else in the way.</summary>
         public string Kind;
 
+        /// <summary>Milestone 5: the joint the blow cut through (the part below it), or null; and why a near cut didn't (for the log).</summary>
+        public PartId? Severed;
+        public string SeverMiss;
+
         /// <summary>Not a weapon: a body thrown into another (<see cref="Move"/> is null); the thrower's part that struck.</summary>
         public bool Impact;
         public PartId ImpactPart;
@@ -515,7 +519,7 @@ namespace PhysicsBattler.Units
                     }
 
                     struckThisBlow.Add(f.unit);
-                    var report = Strike(move, f.unit, f.part, f.shield, f.collider.ClosestPoint(mid), speed, direction);
+                    var report = Strike(move, f.unit, f.part, f.shield, f.collider.ClosestPoint(mid), speed, direction, a, b);
                     if (report.Result.StopsSwing)
                     {
                         momentumLeft = 0f;
@@ -579,7 +583,8 @@ namespace PhysicsBattler.Units
             Knock(direction * speed, true, false, "cleaved through", by);
         }
 
-        private HitReport Strike(MoveState move, UnitController struck, BodyPart part, Weapon shield, Vector3 point, float speed, Vector3 direction)
+        private HitReport Strike(MoveState move, UnitController struck, BodyPart part, Weapon shield, Vector3 point, float speed, Vector3 direction,
+            Vector3 bladeFrom, Vector3 bladeTo)
         {
             var partId = shield != null ? PartId.HandL : part.id;
             var result = DamageRules.Resolve(move.Weapon, move.Move.strikeWith, Loadout.Scale, speed, direction,
@@ -593,7 +598,21 @@ namespace PhysicsBattler.Units
                 Attacker = this, Struck = struck, Part = partId, Shield = shield != null, Move = move, Point = point, Speed = speed,
                 Result = result, Kind = kind,
             };
+            // Milestone 5: a sword's edge crossing a joint, fast and hard enough, cuts the limb off
+            // there (judged before the blow moves anything); the blade goes on through.
+            PartId? cut = shield == null
+                ? struck.SeverCut(part, move.Weapon, move.Move.strikeWith, Loadout.Scale, speed, direction, bladeFrom, bladeTo, point, result.Damage, out report.SeverMiss)
+                : null;
             struck.TakeHit(report);
+            if (cut.HasValue && struck.Sever(cut.Value, report.Result.Impulse, report))
+            {
+                report.Severed = cut;
+                var r = report.Result;
+                r.StopsSwing = false;
+                r.MomentumLeft = Mathf.Max(r.MomentumLeft, 0.7f * Mathf.Clamp01(momentumLeft));
+                report.Result = r;
+            }
+
             if (!report.Shield)
             {
                 Rhythm?.NoteLanded();
@@ -791,7 +810,7 @@ namespace PhysicsBattler.Units
             Vector3 velocity = Vector3.ClampMagnitude(rest / mass, 1.5f * MaxKnockback * SizeSpeed());
             foreach (var part in Rig.Parts)
             {
-                if (part.body != null)
+                if (part.body != null && !Rig.IsSevered(part.id))
                 {
                     part.body.AddForce(velocity, ForceMode.VelocityChange);
                 }

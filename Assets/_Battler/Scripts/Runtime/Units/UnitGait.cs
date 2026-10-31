@@ -40,7 +40,7 @@ namespace PhysicsBattler.Units
                         && Knockback.magnitude < 0.05f * SizeSpeed();
             Gait.Update(dt, velocity, free, Style.walkSpeed * Body.SizeFactor, Body.LegLength);
 
-            if (free && Gait.Weight >= 0.3f)
+            if (free && Gait.Weight >= 0.3f && Gait.Walking)
             {
                 gaitHolds = true;
                 Stance.Hold = true;   // only the walk's steps
@@ -130,6 +130,17 @@ namespace PhysicsBattler.Units
             to = transform.TransformPoint(local);
             float yaw = facingYaw + side * 8f;
             Stance.StepTo(foot, to, yaw, swing, clip.stepHeight * Body.LegLength);
+        }
+
+        /// <summary>Lets go of the feet (a stumble's catch steps have them); the walk's body fades out by itself.</summary>
+        private void ReleaseGait()
+        {
+            if (gaitHolds && CurrentMove == null && !postureHolds)
+            {
+                Stance.Hold = false;
+            }
+
+            gaitHolds = false;
         }
 
         /// <summary>Stops the walk at once (knocked down, moved by the sandbox).</summary>

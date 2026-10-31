@@ -40,7 +40,7 @@ namespace PhysicsBattler.Motion
         public float Lift(int foot) => foot == Stance.Left ? liftL : liftR;
         public float Land(int foot) => foot == Stance.Left ? landL : landR;
 
-        /// <summary>The share of the cycle a foot is in the air (as a walk: 35 to 50%).</summary>
-        public float Swing(int foot) => Mathf.Clamp(Mathf.Repeat(Land(foot) - Lift(foot), 1f), 0.35f, 0.5f);
+        /// <summary>The share of the cycle a foot is in the air (as a walk: 35 to 42%, so one foot is always down).</summary>
+        public float Swing(int foot) => Mathf.Clamp(Mathf.Repeat(Land(foot) - Lift(foot), 1f), 0.35f, 0.42f);
     }
 }

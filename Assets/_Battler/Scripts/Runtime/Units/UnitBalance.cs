@@ -204,7 +204,7 @@ namespace PhysicsBattler.Units
 
             bool fresh = State != UnitState.Stumbling;
             StopRhythm();
-            StopGait();
+            ReleaseGait();   // (the walk fades: the catch steps have the feet)
             StumbleVelocity = velocity;
             Knockback = Vector3.zero;
             if (CurrentMove != null)
@@ -326,7 +326,7 @@ namespace PhysicsBattler.Units
             SetAuthority(null);
             foreach (var part in Rig.Parts)
             {
-                if (part.body != null && part.body.isKinematic)
+                if (part.body != null && part.body.isKinematic && !Rig.IsSevered(part.id))
                 {
                     part.body.isKinematic = false;
                     part.body.linearVelocity = carried;
@@ -355,7 +355,7 @@ namespace PhysicsBattler.Units
         {
             foreach (var part in Rig.Parts)
             {
-                if (part.body == null || part.body.isKinematic)
+                if (part.body == null || part.body.isKinematic || Rig.IsSevered(part.id))
                 {
                     continue;
                 }
@@ -385,7 +385,8 @@ namespace PhysicsBattler.Units
             float k = SizeSpeed();
             downCalm = pelvis.linearVelocity.magnitude < SettleSpeed * k ? downCalm + dt : 0f;
             float least = MinDown * Mathf.Sqrt(Mathf.Max(0.3f, Body.SizeFactor));
-            if ((StateTime >= least && downCalm >= SettleTime) || StateTime >= MaxDown)
+            // (A unit that lost a leg doesn't get up again.)
+            if (!LegLost && ((StateTime >= least && downCalm >= SettleTime) || StateTime >= MaxDown))
             {
                 BeginGetUp();
                 StepGetUp(0f, drive);
@@ -420,7 +421,7 @@ namespace PhysicsBattler.Units
             float dt = Time.fixedDeltaTime;
             foreach (var mine in Rig.Parts)
             {
-                if (mine.body == null || mine.partCollider == null)
+                if (mine.body == null || mine.partCollider == null || Rig.IsSevered(mine.id))
                 {
                     continue;
                 }
@@ -449,7 +450,7 @@ namespace PhysicsBattler.Units
 
                     foreach (var theirs in other.Rig.Parts)
                     {
-                        if (theirs.partCollider == null || theirs.body == null)
+                        if (theirs.partCollider == null || theirs.body == null || other.Rig.IsSevered(theirs.id))
                         {
                             continue;
                         }

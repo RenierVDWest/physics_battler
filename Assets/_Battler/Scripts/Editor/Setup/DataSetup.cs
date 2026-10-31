@@ -83,7 +83,7 @@ namespace PhysicsBattler.Editor.Setup
 
                     if (style.walk == null || style.walk.IsEmpty)
                     {
-                        style.walk = CombatStyle.CreateFor(body).walk;
+                        style.walk = body == "Small" ? RhythmClips.SmallWalk() : body == "Medium" ? RhythmClips.MediumWalk() : RhythmClips.LargeWalk();
                         Debug.Log($"[Battler Setup] {BattlerPaths.Style(body)}: walks with {style.walk.source}.");
                     }
 

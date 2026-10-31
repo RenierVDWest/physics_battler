@@ -111,6 +111,62 @@ namespace PhysicsBattler.Rig
         /// <summary>The parent part. Only valid when <see cref="HasParent"/> is true.</summary>
         public static PartId Parent(PartId part) => (PartId)Parents[(int)part];
 
+        /// <summary>The part hangs from <paramref name="above"/> (its child, grandchild, ...).</summary>
+        public static bool IsBelow(PartId part, PartId above)
+        {
+            int p = Parents[(int)part];
+            while (p >= 0)
+            {
+                if (p == (int)above)
+                {
+                    return true;
+                }
+
+                p = Parents[p];
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Milestone 5: the joints a blade can cut through, named by the part below them (the neck
+        /// takes the head off, the elbow the forearm and hand, and so on). The spine joints don't.
+        /// </summary>
+        public static bool IsSeverable(PartId part)
+        {
+            switch (part)
+            {
+                case PartId.Pelvis:
+                case PartId.Spine:
+                case PartId.Chest:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
+        /// <summary>The joint above a part, by name (neck, shoulder, elbow, wrist, hip, knee, ankle).</summary>
+        public static string JointName(PartId part)
+        {
+            switch (part)
+            {
+                case PartId.Head: return "neck";
+                case PartId.UpperArmL: return "left shoulder";
+                case PartId.UpperArmR: return "right shoulder";
+                case PartId.ForearmL: return "left elbow";
+                case PartId.ForearmR: return "right elbow";
+                case PartId.HandL: return "left wrist";
+                case PartId.HandR: return "right wrist";
+                case PartId.ThighL: return "left hip";
+                case PartId.ThighR: return "right hip";
+                case PartId.ShinL: return "left knee";
+                case PartId.ShinR: return "right knee";
+                case PartId.FootL: return "left ankle";
+                case PartId.FootR: return "right ankle";
+                default: return part.ToString();
+            }
+        }
+
         public static MuscleGroup Group(PartId part) => Groups[(int)part];
 
         public static float DamageMultiplier(PartId part) => DamageMultipliers[(int)part];

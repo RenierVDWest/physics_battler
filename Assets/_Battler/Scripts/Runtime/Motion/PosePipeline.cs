@@ -158,7 +158,7 @@ namespace PhysicsBattler.Motion
 
             // A side-on stance (a fencer's, more than about 22 degrees) squares up into a blow: the
             // hips turn into it, so the swing doesn't go through the body.
-            float squared = move != null && move != Feint ? moveBlend : 0f;
+            float squared = move != null ? moveBlend : 0f;
             float hipTurn = Mathf.Lerp(style.hipTurn, Mathf.Min(style.hipTurn, SquaredHipTurn), squared);
             float counterTurn = Mathf.Lerp(style.chestCounterTurn, Mathf.Min(style.chestCounterTurn, SquaredCounterTurn), squared * Mathf.Clamp01((style.hipTurn - SquaredHipTurn) / 10f));
             var pelvis = anim.Part(PartId.Pelvis);

@@ -188,21 +188,27 @@ namespace PhysicsBattler.Motion
         public static bool HasOldMediumStance(CombatStyle s)
         {
             return Mathf.Approximately(s.stanceWidth, 0.34f) && Mathf.Approximately(s.stanceLength, 0.42f)
-                && Mathf.Approximately(s.crouch, 0.07f) && Mathf.Approximately(s.hipTurn, 22f) && Mathf.Approximately(s.lean, 6f);
+                && Mathf.Approximately(s.crouch, 0.07f) && Mathf.Approximately(s.hipTurn, 22f) && Mathf.Approximately(s.lean, 6f)
+                && Mathf.Approximately(s.chestCounterTurn, -10f) && Mathf.Approximately(s.leadWeight, 0.45f)
+                && Mathf.Approximately(s.swayAmplitude, 0.03f) && Mathf.Approximately(s.bobAmplitude, 0.012f) && Mathf.Approximately(s.weaveDegrees, 4f);
         }
 
         /// <summary>The small unit's stance before its captured idle (setup 16 and earlier).</summary>
         public static bool HasOldSmallStance(CombatStyle s)
         {
             return Mathf.Approximately(s.stanceWidth, 0.36f) && Mathf.Approximately(s.stanceLength, 0.46f)
-                && Mathf.Approximately(s.crouch, 0.1f) && Mathf.Approximately(s.lean, 10f);
+                && Mathf.Approximately(s.crouch, 0.1f) && Mathf.Approximately(s.lean, 10f)
+                && Mathf.Approximately(s.hipTurn, 22f) && Mathf.Approximately(s.chestCounterTurn, -10f) && Mathf.Approximately(s.leadWeight, 0.45f)
+                && Mathf.Approximately(s.swayAmplitude, 0.05f) && Mathf.Approximately(s.bobAmplitude, 0.025f) && Mathf.Approximately(s.weaveDegrees, 7f);
         }
 
         /// <summary>The large unit's stance before it took the captured boxing idle's (setup 15 and earlier).</summary>
         public static bool HasOldLargeStance(CombatStyle s)
         {
             return Mathf.Approximately(s.stanceWidth, 0.4f) && Mathf.Approximately(s.stanceLength, 0.36f)
-                && Mathf.Approximately(s.crouch, 0.05f) && Mathf.Approximately(s.hipTurn, 14f) && Mathf.Approximately(s.lean, 4f);
+                && Mathf.Approximately(s.crouch, 0.05f) && Mathf.Approximately(s.hipTurn, 14f) && Mathf.Approximately(s.lean, 4f)
+                && Mathf.Approximately(s.chestCounterTurn, -10f) && Mathf.Approximately(s.leadWeight, 0.45f)
+                && Mathf.Approximately(s.swayAmplitude, 0.018f) && Mathf.Approximately(s.bobAmplitude, 0.004f) && Mathf.Approximately(s.weaveDegrees, 2.5f);
         }
     }
 }
