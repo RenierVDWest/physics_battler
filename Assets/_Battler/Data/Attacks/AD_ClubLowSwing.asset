@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14397d281d3206741bd87b3226291426, type: 3}
   m_Name: AD_ClubLowSwing
   m_EditorClassIdentifier: 
-  windUpAngle: -200
+  windUpAngle: -150
   followAngle: 75
   planeRoll: 45
   side: 1

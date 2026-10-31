@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2ce3df6da26de04c8c0f79c1191387b, type: 3}
   m_Name: WD_ClubBig
   m_EditorClassIdentifier: 
-  physicsMassKg: 6
-  gameplayMassKg: 40
-  twoHanded: 1
+  size: 0.5
+  physicsMassKg: 2
+  gameplayMassKg: 15
+  twoHanded: 0
   secondGrip: -0.11
   carryGrip: {x: 0.26, y: 1.02, z: 0.34}
   carryDirection: {x: 0.5, y: -0.15, z: -0.85}
