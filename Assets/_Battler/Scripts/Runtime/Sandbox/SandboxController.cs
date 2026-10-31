@@ -29,7 +29,7 @@ namespace PhysicsBattler.Sandbox
         public OrbitCamera orbitCamera;
 
         [Header("Scenario")]
-        [Range(1.2f, 2.8f)] public float distance = 2.0f;
+        [Range(1.0f, 2.8f)] public float distance = 1.5f;
         public float sideHitImpulse = 420f;
         public float pushImpulse = 120f;
         public bool autoAttack;
@@ -389,7 +389,7 @@ namespace PhysicsBattler.Sandbox
             autoAttack = GUILayout.Toggle(autoAttack, $" Attack every {autoAttackInterval:0} s");
 
             GUILayout.Label($"Distance (applies on Reset): {distance:0.00} m");
-            distance = GUILayout.HorizontalSlider(distance, 1.2f, 2.8f);
+            distance = GUILayout.HorizontalSlider(distance, 1.0f, 2.8f);
 
             GUILayout.Space(6);
             GUILayout.Label("Interference tests");

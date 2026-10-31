@@ -10,11 +10,16 @@ namespace PhysicsBattler.Combat
     [CreateAssetMenu(menuName = "Physics Battler/Weapon Definition", fileName = "WeaponDefinition")]
     public class WeaponDefinition : ScriptableObject
     {
+        [Header("Size")]
+        [Tooltip("The weapon's size against the model in the rig file (1 = as modelled). The prefab's mesh, colliders "
+                 + "and markers are built at this size by Project Setup.")]
+        public float size = 0.5f;
+
         [Header("Mass")]
         [Tooltip("What PhysX simulates, added to the hand's rigidbody.")]
-        public float physicsMassKg = 6f;
+        public float physicsMassKg = 2f;
         [Tooltip("What hits feel like: drives knockback and stability loss.")]
-        public float gameplayMassKg = 40f;
+        public float gameplayMassKg = 15f;
 
         [Header("Grip and carry")]
         [Tooltip("Held in both hands: the left hand holds it too, at the second grip.")]

@@ -11,8 +11,11 @@ Writes into DIR (default: <session>/analysis/, which git ignores):
     fall_<unit>_<n>.png               one fall and get-up: pelvis height vs ghost, tilt, lift force, ground contacts
     fall_<unit>_<n>_film.png          stick figures through the fall and get-up
     mark_<n>_film.png                 stick figures around each mark
+    pictures_<nn>.jpg                 the recorded pictures of the game view, 24 per sheet (3 s at 8 per second),
+                                      each captioned with its time and what every unit was doing
+    swing_<unit>_<n>_pictures.jpg     the pictures through one swing (and fall_…, mark_… likewise)
 
-Needs numpy, pandas and matplotlib. The recorder's format is described in
+Needs numpy, pandas, matplotlib and Pillow (for the pictures). The recorder's format is described in
 Assets/_Battler/Scripts/Runtime/Diagnostics/PlaytestRecorder.cs.
 """
 
@@ -613,6 +616,85 @@ def events_between(unit, t0, t1, cats=None):
     return [e for e in unit.events if t0 - 1e-6 <= e.t <= t1 + 1e-6 and (cats is None or e.cat in cats)]
 
 
+# ---- Pictures of the game view -------------------------------------------------------------------
+
+
+def read_pictures(session):
+    path = os.path.join(session.path, "frames", "frames.csv")
+    if not os.path.exists(path):
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(path)
+    except Exception:
+        return pd.DataFrame()
+    df = df[[os.path.exists(os.path.join(session.path, "frames", f)) for f in df["file"]]]
+    return df.sort_values("t").reset_index(drop=True)
+
+
+def picture_caption(session, t):
+    parts = [f"{t:.2f}s"]
+    for unit in session.units:
+        f = unit.frames
+        if f.empty or t < f["t"].iloc[0] - 0.05 or t > f["t"].iloc[-1] + 0.05:
+            continue
+        r = nearest_row(f, t)
+        short = unit.label.split(" (")[0].replace("Orc ", "")
+        what = r["state"] if r["phase"] == "Idle" else f"{r['phase']}"
+        parts.append(f"{short}:{what}")
+    return " ".join(parts)
+
+
+def picture_sheet(session, pics, path, title, cols=6, flip=False, max_count=24):
+    from PIL import Image, ImageDraw, ImageFont
+    if pics.empty:
+        return False
+    if len(pics) > max_count:
+        idx = np.linspace(0, len(pics) - 1, max_count).round().astype(int)
+        pics = pics.iloc[sorted(set(idx))]
+    first = Image.open(os.path.join(session.path, "frames", pics["file"].iloc[0]))
+    w, h = first.size
+    cap = 16
+    rows = int(math.ceil(len(pics) / cols))
+    head = 22
+    sheet = Image.new("RGB", (cols * w, head + rows * (h + cap)), (24, 24, 24))
+    draw = ImageDraw.Draw(sheet)
+    try:
+        font = ImageFont.load_default(size=12)
+        big = ImageFont.load_default(size=15)
+    except TypeError:
+        font = big = ImageFont.load_default()
+    draw.text((6, 3), title, fill=(240, 240, 240), font=big)
+    for k, (_, row) in enumerate(pics.iterrows()):
+        img = Image.open(os.path.join(session.path, "frames", row["file"])).convert("RGB")
+        if flip:
+            img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        x, y = (k % cols) * w, head + (k // cols) * (h + cap)
+        sheet.paste(img, (x, y))
+        draw.text((x + 3, y + h + 1), picture_caption(session, row["t"]), fill=(230, 230, 120), font=font)
+    sheet.save(path, quality=85)
+    return True
+
+
+def picture_sheets(session, out, args):
+    pics = read_pictures(session)
+    made = []
+    if pics.empty:
+        return pics, made
+    per = 24
+    for n, start in enumerate(range(0, len(pics), per), 1):
+        chunk = pics.iloc[start:start + per]
+        name = f"pictures_{n:02d}.jpg"
+        if picture_sheet(session, chunk, os.path.join(out, name), f"pictures {chunk['t'].iloc[0]:.2f}-{chunk['t'].iloc[-1]:.2f} s", flip=args.flip_pictures):
+            made.append((name, chunk["t"].iloc[0], chunk["t"].iloc[-1]))
+    return pics, made
+
+
+def pictures_between(pics, t0, t1):
+    if pics.empty:
+        return pics
+    return pics[(pics["t"] >= t0) & (pics["t"] <= t1)]
+
+
 def write_report(session, out, args):
     lines = []
     w = lines.append
@@ -724,10 +806,17 @@ def write_report(session, out, args):
                     w(f"    - {e.who}: {e.text}")
         w("")
 
+    pics = read_pictures(session)
+    if not pics.empty:
+        w("## Pictures of the game view")
+        w("")
+        w(f"{len(pics)} pictures, {pics['t'].iloc[0]:.2f}–{pics['t'].iloc[-1]:.2f} s. Sheets of 24 (`pictures_NN.jpg`), and for each swing, fall and mark "
+          "(`*_pictures.jpg`). Captions: time, then each unit's phase (or state when idle).")
+        w("")
     w("## Images")
     w("")
     for name in sorted(os.listdir(out)):
-        if name.endswith(".png"):
+        if name.endswith(".png") or name.endswith(".jpg"):
             w(f"- `{name}`")
     with open(os.path.join(out, "report.md"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines) + "\n")
@@ -741,6 +830,7 @@ def main():
     ap.add_argument("session", help="a folder under PlaytestLogs/ (or PlaytestLogs/ itself for the newest)")
     ap.add_argument("--out", help="output folder (default <session>/analysis)")
     ap.add_argument("--frames", type=int, default=8, help="stick figures per film strip")
+    ap.add_argument("--flip-pictures", action="store_true", help="turn the recorded pictures upside down (if they were read back flipped)")
     args = ap.parse_args()
 
     path = args.session.rstrip("/\\")
@@ -752,6 +842,7 @@ def main():
     session = Session(path)
     out = args.out or os.path.join(path, "analysis")
     os.makedirs(out, exist_ok=True)
+    pics, _ = picture_sheets(session, out, args)
 
     for unit in session.units:
         if unit.frames.empty:
@@ -783,6 +874,8 @@ def main():
                 return f"{r['phase']} θ {fmt(r['theta'], 0)}°/{fmt(r['clubTheta'], 0)}°"
             filmstrip(session, times, forward, f"{unit.label} swing #{n}", os.path.join(out, f"swing_{unit.stem}_{n}_film.png"),
                       focus_units=[unit.label], subtitle_fn=sub)
+            picture_sheet(session, pictures_between(pics, t0 - 0.15, t1 + 0.3), os.path.join(out, f"swing_{unit.stem}_{n}_pictures.jpg"),
+                          f"{unit.label} swing #{n}, {t0:.2f}-{t1:.2f} s", flip=args.flip_pictures)
         for n, (i0, i1, s) in enumerate(falls(unit), 1):
             plot_fall(session, unit, i0, i1, n, os.path.join(out, f"fall_{unit.stem}_{n}.png"))
             f = unit.frames
@@ -795,11 +888,15 @@ def main():
                 return f"{r['state']} p{r['pelvisH']:.2f} t{r['chestTilt']:.0f}°"
             filmstrip(session, times, forward, f"{unit.label} fall #{n}", os.path.join(out, f"fall_{unit.stem}_{n}_film.png"),
                       focus_units=[unit.label], subtitle_fn=sub)
+            picture_sheet(session, pictures_between(pics, f["t"].iloc[s] - 0.5, f["t"].iloc[i1]), os.path.join(out, f"fall_{unit.stem}_{n}_pictures.jpg"),
+                          f"{unit.label} fall #{n}", flip=args.flip_pictures)
 
     for mk in session.meta.get("marks", []):
         times = list(np.linspace(mk["time"] - 1.0, mk["time"] + 0.5, args.frames))
         forward = np.array([1.0, 0, 0])
         filmstrip(session, times, forward, f"mark {mk['n']} (1 s before to 0.5 s after)", os.path.join(out, f"mark_{mk['n']}_film.png"))
+        picture_sheet(session, pictures_between(pics, mk["time"] - 2.0, mk["time"] + 0.5), os.path.join(out, f"mark_{mk['n']}_pictures.jpg"),
+                      f"mark {mk['n']} at {mk['time']:.2f} s (2 s before to 0.5 s after)", flip=args.flip_pictures)
 
     write_report(session, out, args)
     print(os.path.join(out, "report.md"))

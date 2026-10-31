@@ -62,10 +62,15 @@ what happened and why (`events.log`), a summary (`session.md`), and per-step dat
 each joint's error against the ghost, and the full pose of the physical body and the ghost). The panel shows the session
 being recorded; **M** (or *Mark*) drops a numbered marker with a snapshot of every unit — press it when you see
 something odd and mention the mark number. *New log* starts a fresh folder; logs close when Play stops.
+It also saves small square pictures of the game view (300×300, 8 per second of game time, from the main camera, without
+the UI) into `frames/`, with `frames/frames.csv` saying when each was taken; the recorder's inspector sets the size,
+rate and limit.
 
-To share one: stop Play, then commit and push the session folder (a minute of play is about 1–2 MB).
-`python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report plus timelines, swing plots, and
-stick-figure film strips of every swing, fall and mark (needs numpy, pandas and matplotlib).
+To share one: stop Play, then commit and push the session folder (a minute of play is about 1–2 MB of data plus about
+7 MB of pictures).
+`python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report plus timelines, swing plots,
+stick-figure film strips of every swing, fall and mark, and the pictures laid out in captioned sheets, overall and per
+swing, fall and mark (needs numpy, pandas, matplotlib and Pillow).
 
 ## How it works (one paragraph per layer)
 
@@ -99,8 +104,9 @@ Tune in the data assets, not on the prefabs (the setup rebuilds prefabs). Change
   lower is heavier and less puppet-like), `steadyStepFactor`, and the get-up's `getUpDuration`, `getUpGrace`,
   `standMaxTilt`. Any of `gravityCompensation`, `legSupport`, `velocityFeedForward` can be set to 0 in Play mode to
   switch that part off and see what it does.
-- `Data/Weapons/WD_ClubBig`: physics mass vs gameplay mass, damage, knockback, stability loss; two-handed, where the
-  second hand holds it (`secondGrip`) and the low carry (`carryGrip`, `carryDirection`). The physics mass (and
+- `Data/Weapons/WD_ClubBig`: `size` (the club is built at half its modelled size, 0.95 m, one-handed, 2 kg), physics
+  mass vs gameplay mass, damage, knockback, stability loss; optionally two-handed (`twoHanded`, `secondGrip`, and the
+  low carry `carryGrip`, `carryDirection`). The physics mass (and
   where the club's colliders put its weight) is what the wielder has to move: with `strength` on the unit profile it
   sets how fast a swing can go. The log's `equip` line says how the two measure up.
 - `Data/Attacks/AD_ClubLowSwing`: no timings any more: the swing's pace comes from the unit's `strength` against the

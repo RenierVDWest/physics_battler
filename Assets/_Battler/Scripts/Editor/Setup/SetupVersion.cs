@@ -23,8 +23,10 @@ namespace PhysicsBattler.Editor.Setup
         /// 6 = The big club becomes two-handed (carried low at the side), the wind-up goes back and up
         ///     (-150° → -200°), and the strike starts at the turning point instead of waiting to settle.
         /// 7 = The two-handed carry moves out to the side, clear of the hips and back leg.
+        /// 8 = One-handed again, with the club at half size (2 kg); wind-up back to -150°. Pictures of
+        ///     the game view in the playtest log.
         /// </summary>
-        public const int Current = 7;
+        public const int Current = 8;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

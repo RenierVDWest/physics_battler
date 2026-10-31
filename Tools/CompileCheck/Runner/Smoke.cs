@@ -96,17 +96,17 @@ internal static class Smoke
         var weapon = root.AddComponent<Weapon>();
         weapon.definition = WeaponDefinition.CreateDefault();
         weapon.definition.name = "WD_ClubBig";
-        weapon.definition.twoHanded = true;
+        weapon.definition.twoHanded = false;
         var collider = new GameObject("Collider_0");
         collider.transform.SetParent(root.transform, false);
         weapon.colliders = new Collider[] { collider.AddComponent<CapsuleCollider>() };
         var tip = new GameObject("Tip").transform;
         tip.SetParent(root.transform, false);
-        tip.localPosition = new Vector3(0f, 0f, 1.9f);
+        tip.localPosition = new Vector3(0f, 0f, 0.95f);
         weapon.tip = tip;
         var sweet = new GameObject("SweetSpot").transform;
         sweet.SetParent(root.transform, false);
-        sweet.localPosition = new Vector3(0f, 0f, 1.5f);
+        sweet.localPosition = new Vector3(0f, 0f, 0.75f);
         weapon.sweetSpot = sweet;
         return weapon;
     }

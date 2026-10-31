@@ -128,6 +128,35 @@ namespace UnityEngine
         public float farClipPlane { get; set; } = 1000f;
         public Vector3 WorldToScreenPoint(Vector3 position) => position;
         public Ray ScreenPointToRay(Vector3 position) => new Ray(position, Vector3.forward);
+        public static Camera[] allCameras => new Camera[0];
+        public float aspect { get; set; } = 16f / 9f;
+        public float depth { get; set; }
+        public RenderTexture targetTexture { get; set; }
+        public void CopyFrom(Camera other) { }
+        public static float VerticalToHorizontalFieldOfView(float verticalFieldOfView, float aspectRatio) => verticalFieldOfView * aspectRatio;
+    }
+
+    public enum RenderTextureFormat { ARGB32, Default }
+    public enum RenderTextureReadWrite { Default, Linear, sRGB }
+    public enum TextureFormat { RGBA32, RGB24, ARGB32 }
+
+    public class RenderTexture : Texture
+    {
+        public RenderTexture(int width, int height, int depth, RenderTextureFormat format, RenderTextureReadWrite readWrite) { }
+        public bool Create() => true;
+        public void Release() { }
+    }
+
+    public static class SystemInfo
+    {
+        public static bool supportsAsyncGPUReadback => false;
+    }
+
+    public static class ImageConversion
+    {
+        public static Unity.Collections.NativeArray<byte> EncodeNativeArrayToJPG<T>(Unity.Collections.NativeArray<T> input,
+            Experimental.Rendering.GraphicsFormat format, uint width, uint height, uint rowBytes = 0, int quality = 75) where T : struct
+            => new Unity.Collections.NativeArray<byte>();
     }
 
     public enum LightType { Spot, Directional, Point }
@@ -282,5 +311,36 @@ namespace UnityEngine.SceneManagement
         public static void MoveGameObjectToScene(GameObject go, Scene scene) { }
         public static AsyncOperation UnloadSceneAsync(Scene scene) => new AsyncOperation();
         public static Scene GetActiveScene() => default;
+    }
+}
+
+namespace UnityEngine.Rendering
+{
+    public struct AsyncGPUReadbackRequest
+    {
+        public bool hasError => true;
+        public bool done => true;
+        public Unity.Collections.NativeArray<T> GetData<T>(int layer = 0) where T : struct => new Unity.Collections.NativeArray<T>();
+    }
+
+    public static class AsyncGPUReadback
+    {
+        public static AsyncGPUReadbackRequest Request(Texture src, int mipIndex, TextureFormat dstFormat, System.Action<AsyncGPUReadbackRequest> callback = null)
+            => new AsyncGPUReadbackRequest();
+    }
+}
+
+namespace UnityEngine.Experimental.Rendering
+{
+    public enum GraphicsFormat { None, R8G8B8A8_SRGB, R8G8B8A8_UNorm }
+}
+
+namespace Unity.Collections
+{
+    public struct NativeArray<T> : System.IDisposable where T : struct
+    {
+        public void Dispose() { }
+        public T[] ToArray() => new T[0];
+        public int Length => 0;
     }
 }

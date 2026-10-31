@@ -92,15 +92,16 @@ namespace PhysicsBattler.Editor.Setup
             var root = new GameObject("P_Weapon_ClubBig");
             var weapon = root.AddComponent<Weapon>();
             weapon.definition = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.ClubDefinition);
+            float size = weapon.definition != null && weapon.definition.size > 0f ? weapon.definition.size : 1f;
 
             var visual = LoadVisual(entry.mesh);
             if (visual.HasValue)
             {
                 var meshObject = new GameObject("Mesh");
                 meshObject.transform.SetParent(root.transform, false);
-                meshObject.transform.localPosition = visual.Value.offset;
+                meshObject.transform.localPosition = visual.Value.offset * size;
                 meshObject.transform.localRotation = visual.Value.rotation;
-                meshObject.transform.localScale = visual.Value.scale;
+                meshObject.transform.localScale = visual.Value.scale * size;
                 meshObject.AddComponent<MeshFilter>().sharedMesh = visual.Value.mesh;
                 meshObject.AddComponent<MeshRenderer>().sharedMaterials = visual.Value.materials;
             }
@@ -111,7 +112,7 @@ namespace PhysicsBattler.Editor.Setup
             {
                 for (int i = 0; i < entry.colliders.Length; i++)
                 {
-                    var collider = UnitBuilder.AddCollider(root.transform, entry.colliders[i], 1f, weaponLayer, $"Collider_{i}");
+                    var collider = UnitBuilder.AddCollider(root.transform, entry.colliders[i], size, weaponLayer, $"Collider_{i}");
                     if (collider != null)
                     {
                         colliders.Add(collider);
@@ -120,20 +121,20 @@ namespace PhysicsBattler.Editor.Setup
             }
 
             weapon.colliders = colliders.ToArray();
-            weapon.sweetSpot = Marker(root.transform, "SweetSpot", entry.markers?.sweet_spot);
-            weapon.tip = Marker(root.transform, "Tip", entry.markers?.tip);
-            Marker(root.transform, "PommelEnd", entry.markers?.pommel_end);
+            weapon.sweetSpot = Marker(root.transform, "SweetSpot", entry.markers?.sweet_spot, size);
+            weapon.tip = Marker(root.transform, "Tip", entry.markers?.tip, size);
+            Marker(root.transform, "PommelEnd", entry.markers?.pommel_end, size);
 
             EditorFolders.EnsureParent(BattlerPaths.ClubPrefab);
             PrefabUtility.SaveAsPrefabAsset(root, BattlerPaths.ClubPrefab);
             Object.DestroyImmediate(root);
         }
 
-        private static Transform Marker(Transform parent, string name, float[] position)
+        private static Transform Marker(Transform parent, string name, float[] position, float size)
         {
             var marker = new GameObject(name).transform;
             marker.SetParent(parent, false);
-            marker.localPosition = RigMath.ToVector(position);
+            marker.localPosition = RigMath.ToVector(position) * size;
             return marker;
         }
 

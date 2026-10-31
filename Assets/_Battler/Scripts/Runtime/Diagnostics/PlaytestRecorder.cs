@@ -21,6 +21,7 @@ namespace PhysicsBattler.Diagnostics
     ///   units/NN_Name.frames.csv.gz   one row per physics step: state, balance, swing, joint errors
     ///   units/NN_Name.pose.csv.gz     every part's physical position/rotation and its ghost position
     ///   world.csv.gz        props (crates, barrels) positions
+    ///   frames/NNNNNN.jpg   small square pictures of the game view, 8 per second (frames/frames.csv says when)
     ///
     /// Samples are taken at the start of each physics step, before the units run: the body as PhysX
     /// left it, against the ghost pose it was chasing. Nothing here changes how the game plays.
@@ -34,6 +35,19 @@ namespace PhysicsBattler.Diagnostics
 
         [Tooltip("Write the full pose every N physics steps (1 = every step, 60 per second).")]
         [Range(1, 6)] public int poseEvery = 1;
+
+        [Header("Pictures of the game view")]
+        [Tooltip("Save small pictures of what the main camera sees while recording.")]
+        public bool captureFrames = true;
+        [Tooltip("Picture size in pixels (square).")]
+        public int frameSize = 300;
+        [Tooltip("Pictures per second of game time.")]
+        public float framesPerSecond = 8f;
+        [Range(10, 100)] public int frameQuality = 70;
+        [Tooltip("Stop taking pictures after this many (about 15 KB each).")]
+        public int maxFrames = 2400;
+
+        private FrameCapture frames;
 
         public static PlaytestRecorder Active { get; private set; }
 
@@ -158,6 +172,22 @@ namespace PhysicsBattler.Diagnostics
                 }
             }
 
+            if (captureFrames)
+            {
+                frames = GetComponent<FrameCapture>();
+                if (frames == null)
+                {
+                    frames = gameObject.AddComponent<FrameCapture>();
+                }
+
+                frames.CurrentStep = () => step;
+                frames.Begin(sessionPath, startTime, frameSize, framesPerSecond, frameQuality, maxFrames);
+                if (frames.Capturing)
+                {
+                    Event((string)null, "session", $"saving {frames.Size}x{frames.Size} pictures of the game view, {frames.Rate:0.#} per second, to frames/");
+                }
+            }
+
             WriteMeta(false);
             WriteSummary(false);
         }
@@ -180,6 +210,12 @@ namespace PhysicsBattler.Diagnostics
             }
 
             CheckConfigChanges();
+            if (frames != null && (frames.Capturing || frames.Saved > 0))
+            {
+                Event((string)null, "session", $"{frames.Saved} pictures saved" + (frames.Failed > 0 ? $", {frames.Failed} failed" : ""));
+                frames.End();
+            }
+
             Event((string)null, "session", $"recording stopped after {Now - startTime:0.0} s ({step} physics steps)");
             WriteMeta(true);
             WriteSummary(true);
@@ -643,7 +679,13 @@ namespace PhysicsBattler.Diagnostics
                 json.Append(i < all.Count - 1 ? "},\n" : "}\n");
             }
 
-            json.Append("  ],\n  \"marks\": [");
+            json.Append("  ],\n");
+            if (frames != null)
+            {
+                json.Append($"  \"frames\": {{\"index\": \"frames/frames.csv\", \"size\": {frames.Size}, \"perSecond\": {Num(frames.Rate)}, \"saved\": {frames.Saved}}},\n");
+            }
+
+            json.Append("  \"marks\": [");
             for (int i = 0; i < marks.Count; i++)
             {
                 var parts = marks[i].Split('|');

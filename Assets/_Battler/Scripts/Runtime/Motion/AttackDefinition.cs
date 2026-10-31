@@ -18,7 +18,7 @@ namespace PhysicsBattler.Motion
     {
         [Header("Swing angles (degrees on the swing plane; 0 = contact)")]
         [Tooltip("Where the weapon is pulled back to and stopped before the strike (below -180 is back and up).")]
-        public float windUpAngle = -200f;
+        public float windUpAngle = -150f;
         [Tooltip("How far past contact the follow-through may take to brake the weapon to a stop. The strike is held to the "
                  + "speed that can be stopped within it: a longer follow-through allows a faster blow.")]
         public float followAngle = 75f;

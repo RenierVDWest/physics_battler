@@ -30,16 +30,10 @@ namespace PhysicsBattler.Editor.Setup
                 goblin.maxHealth = 45f;
             });
 
-            var rig = RigFileLoader.LoadOrc();
             Ensure<WeaponDefinition>(BattlerPaths.ClubDefinition, club =>
             {
-                if (rig.weapon != null)
-                {
-                    club.physicsMassKg = rig.weapon.physicsMassKg > 0f ? rig.weapon.physicsMassKg : club.physicsMassKg;
-                    club.gameplayMassKg = rig.weapon.gameplayMassKg > 0f ? rig.weapon.gameplayMassKg : club.gameplayMassKg;
-                }
-
-                club.twoHanded = true;
+                // The club is built at half the modelled size, one-handed (the defaults).
+                club.twoHanded = false;
             });
             Ensure<AttackDefinition>(BattlerPaths.ClubSwing, _ => { });
         }
@@ -70,6 +64,11 @@ namespace PhysicsBattler.Editor.Setup
             if (from >= 1 && from < 7)
             {
                 MigrateTo7();
+            }
+
+            if (from >= 1 && from < 8)
+            {
+                MigrateTo8();
             }
 
             if (from >= 1 && from < 2)
@@ -194,6 +193,31 @@ namespace PhysicsBattler.Editor.Setup
                 {
                     EditorUtility.SetDirty(swing);
                 }
+            }
+        }
+
+        private static void MigrateTo8()
+        {
+            // Back to one hand, with a club half the size (and a third of the mass). The swing goes back
+            // to the side, as it did before the two-handed carry.
+            var club = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.ClubDefinition);
+            if (club != null)
+            {
+                if (club.twoHanded)
+                {
+                    club.twoHanded = false;
+                    Debug.Log($"[Battler Setup] {club.name}.twoHanded: true → false.");
+                }
+
+                Replace(ref club.physicsMassKg, 6f, 2f, club.name, "physicsMassKg");
+                Replace(ref club.gameplayMassKg, 40f, 15f, club.name, "gameplayMassKg");
+                EditorUtility.SetDirty(club);   // size is new: 0.5 by default
+            }
+
+            var swing = AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing);
+            if (swing != null && Replace(ref swing.windUpAngle, -200f, -150f, swing.name, "windUpAngle"))
+            {
+                EditorUtility.SetDirty(swing);
             }
         }
 
