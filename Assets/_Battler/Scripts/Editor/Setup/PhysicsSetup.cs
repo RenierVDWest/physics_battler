@@ -31,7 +31,6 @@ namespace PhysicsBattler.Editor.Setup
 
             Physics.defaultMaxDepenetrationVelocity = Mathf.Min(Physics.defaultMaxDepenetrationVelocity, 4f);
             Physics.defaultMaxAngularSpeed = Mathf.Max(Physics.defaultMaxAngularSpeed, 50f);
-            Physics.autoSyncTransforms = false;
 
             var dynamics = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/DynamicsManager.asset")[0]);
             bool changed = false;
