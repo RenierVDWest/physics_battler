@@ -13,8 +13,36 @@ MonoBehaviour:
   m_Name: MD_ClubSmash
   m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Combat.MoveDefinition
   strikeWith: 2
-  targets: 55
-  duration: 0.9
+  targets: 7
+  shape: 1
+  planeTilt: 85
+  backhand: 0
+  windUpAngle: 210
+  followAngle: 110
+  guardAngle: 60
+  through: 0.45
+  pivotSide: 0.3
+  pivotUp: 0.2
+  pivotForward: 0
+  windUpRadius: 0.6
+  stretchAfter: 35
+  wristLag: 40
+  drawBack: 0.3
+  windUpTime: 0.57
+  holdTime: 0.15
+  strikeTime: 0.34
+  accelShare: 0.4
+  recoveryTime: 0.51
+  turnBack: 25
+  turnThrough: 15
+  leanBack: -20
+  leanThrough: 40
+  crouchLoad: -0.03
+  crouchStrike: 0.15
+  rockBack: 0.6
+  passingStep: 0
+  drive: 0
+  duration: 1.8496262
   speed:
     serializedVersion: 2
     m_Curve:
@@ -108,8 +136,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  activeWindow: {x: 0.65, y: 0.9}
-  hitStop: 0.06
+  activeWindow: {x: 0.41171548, y: 1}
+  hitStop: 0.07
   path:
   - {x: 0.25, y: -0.3, z: -0.45}
   - {x: 0.3, y: 0.6, z: -0.6}
@@ -121,7 +149,7 @@ MonoBehaviour:
   pointForward: 0
   pivotRaise: 0.35
   reach: 0.95
-  maxLunge: 1
+  maxLunge: 1.2
   bodyCurve:
     serializedVersion: 2
     m_Curve:
@@ -176,4 +204,4 @@ MonoBehaviour:
   lean: 20
   twistStart: 10
   twistEnd: 0
-  weaponArmPin: 0.95
+  weaponArmPin: 1

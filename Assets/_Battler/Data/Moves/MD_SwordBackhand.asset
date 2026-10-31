@@ -13,8 +13,36 @@ MonoBehaviour:
   m_Name: MD_SwordBackhand
   m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Combat.MoveDefinition
   strikeWith: 0
-  targets: 255
-  duration: 0.7
+  targets: 254
+  shape: 1
+  planeTilt: 25
+  backhand: 1
+  windUpAngle: 160
+  followAngle: 120
+  guardAngle: 40
+  through: 0.6
+  pivotSide: -0.05
+  pivotUp: 0.1
+  pivotForward: 0.18
+  windUpRadius: 0.6
+  stretchAfter: 35
+  wristLag: 35
+  drawBack: 0.3
+  windUpTime: 0.45
+  holdTime: 0.09
+  strikeTime: 0.28
+  accelShare: 0.4
+  recoveryTime: 0.45
+  turnBack: 90
+  turnThrough: 65
+  leanBack: -8
+  leanThrough: 25
+  crouchLoad: 0.08
+  crouchStrike: 0
+  rockBack: 0.6
+  passingStep: 0
+  drive: 0
+  duration: 1.5978048
   speed:
     serializedVersion: 2
     m_Curve:
@@ -108,8 +136,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  activeWindow: {x: 0.45, y: 0.78}
-  hitStop: 0.06
+  activeWindow: {x: 0.38431373, y: 1}
+  hitStop: 0.07
   path:
   - {x: 0.25, y: -0.3, z: -0.45}
   - {x: -0.42, y: 0.38, z: -0.58}
@@ -121,7 +149,7 @@ MonoBehaviour:
   pointForward: 0
   pivotRaise: 0
   reach: 0.95
-  maxLunge: 1.1
+  maxLunge: 1.2
   bodyCurve:
     serializedVersion: 2
     m_Curve:

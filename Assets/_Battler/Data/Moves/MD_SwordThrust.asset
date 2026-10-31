@@ -14,7 +14,35 @@ MonoBehaviour:
   m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Combat.MoveDefinition
   strikeWith: 1
   targets: 15
-  duration: 0.6
+  shape: 2
+  planeTilt: 40
+  backhand: 0
+  windUpAngle: 190
+  followAngle: 130
+  guardAngle: 40
+  through: 0.6
+  pivotSide: 0.2
+  pivotUp: 0.12
+  pivotForward: 0
+  windUpRadius: 0.6
+  stretchAfter: 35
+  wristLag: 35
+  drawBack: 0.3
+  windUpTime: 0.48
+  holdTime: 0.12
+  strikeTime: 0.1
+  accelShare: 0.5
+  recoveryTime: 0.45
+  turnBack: 45
+  turnThrough: -15
+  leanBack: -6
+  leanThrough: 30
+  crouchLoad: 0.1
+  crouchStrike: 0.08
+  rockBack: 0.6
+  passingStep: 1
+  drive: 0.35
+  duration: 1.225
   speed:
     serializedVersion: 2
     m_Curve:
@@ -108,8 +136,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  activeWindow: {x: 0.5, y: 0.72}
-  hitStop: 0.06
+  activeWindow: {x: 0.47154468, y: 1}
+  hitStop: 0.07
   path:
   - {x: 0.25, y: -0.3, z: -0.5}
   - {x: 0.28, y: -0.12, z: -0.6}
@@ -121,7 +149,7 @@ MonoBehaviour:
   pointForward: 1
   pivotRaise: 0
   reach: 1.22
-  maxLunge: 1.2
+  maxLunge: 1.4
   bodyCurve:
     serializedVersion: 2
     m_Curve:
