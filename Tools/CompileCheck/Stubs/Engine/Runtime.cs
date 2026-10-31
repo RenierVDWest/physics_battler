@@ -74,7 +74,14 @@ namespace UnityEngine
         public string text { get; } = "";
     }
 
-    public class Mesh : Object { }
+    public class Mesh : Object
+    {
+        public System.Collections.Generic.List<Vector3> vertices = new System.Collections.Generic.List<Vector3>();
+        public void SetVertices(System.Collections.Generic.List<Vector3> v) { vertices = v; }
+        public void SetTriangles(System.Collections.Generic.List<int> t, int submesh) { }
+        public void RecalculateNormals() { }
+        public void RecalculateBounds() { }
+    }
 
     public class Shader : Object
     {
@@ -226,7 +233,7 @@ namespace UnityEngine
         public static int hotControl { get; set; }
     }
 
-    public enum KeyCode { None = 0, Space = 32, Period = 46, G = 103, H = 104, M = 109, P = 112, R = 114 }
+    public enum KeyCode { None = 0, Space = 32, Period = 46, G = 103, H = 104, M = 109, P = 112, R = 114, T = 116 }
 
     public static class Input
     {

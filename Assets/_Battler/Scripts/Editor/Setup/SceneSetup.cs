@@ -1,7 +1,6 @@
 using System.IO;
 using System.Linq;
-using PhysicsBattler.Combat;
-using PhysicsBattler.Motion;
+using PhysicsBattler.Board;
 using PhysicsBattler.Sandbox;
 using PhysicsBattler.Units;
 using UnityEditor;
@@ -13,32 +12,27 @@ using UnityEngine.Rendering.Universal;
 namespace PhysicsBattler.Editor.Setup
 {
     /// <summary>
-    /// Creates the Sandbox scene (orbit camera, sun, ground, and the SandboxController wired to the
-    /// prefabs and data), adds it to the build settings and opens it. An existing scene is kept;
-    /// only its controller's empty references are filled in.
+    /// The Battle scene: camera, sun, ground, the board and the battle sandbox. Created once; after
+    /// that only missing references are filled in, so your changes to the scene are kept.
     /// </summary>
     internal static class SceneSetup
     {
-        /// <summary>
-        /// Opens (creating it if needed) the Sandbox scene. Runs right after the prefabs are built in a
-        /// throwaway scene, which it replaces without asking.
-        /// </summary>
         public static void Apply()
         {
-            if (!File.Exists(BattlerPaths.SandboxScene))
+            if (!File.Exists(BattlerPaths.BattleScene))
             {
                 CreateScene();
             }
 
-            var scene = EditorSceneManager.OpenScene(BattlerPaths.SandboxScene, OpenSceneMode.Single);
-            var controller = Object.FindAnyObjectByType<SandboxController>();
-            if (controller != null && Wire(controller))
+            var scene = EditorSceneManager.OpenScene(BattlerPaths.BattleScene, OpenSceneMode.Single);
+            var sandbox = Object.FindAnyObjectByType<BattleSandbox>();
+            if (sandbox != null && Wire(sandbox))
             {
                 EditorSceneManager.MarkSceneDirty(scene);
                 EditorSceneManager.SaveScene(scene);
             }
 
-            AddToBuildSettings(BattlerPaths.SandboxScene);
+            SetBuildScenes(BattlerPaths.BattleScene);
         }
 
         private static void CreateScene()
@@ -48,26 +42,31 @@ namespace PhysicsBattler.Editor.Setup
             var cameraObject = new GameObject("Main Camera") { tag = "MainCamera" };
             var camera = cameraObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.36f, 0.4f, 0.45f);
-            camera.fieldOfView = 40f;
+            camera.backgroundColor = new Color(0.25f, 0.27f, 0.3f);
+            camera.fieldOfView = 35f;
             camera.nearClipPlane = 0.1f;
             camera.farClipPlane = 200f;
             cameraObject.AddComponent<UniversalAdditionalCameraData>();
             var orbit = cameraObject.AddComponent<OrbitCamera>();
+            orbit.target = new Vector3(0f, 0.8f, 0f);
+            orbit.distance = 20f;
+            orbit.yaw = 20f;
+            orbit.pitch = 38f;
+            orbit.maxDistance = 45f;
             orbit.Apply();
 
             var sunObject = new GameObject("Sun");
-            sunObject.transform.rotation = Quaternion.Euler(50f, -40f, 0f);
+            sunObject.transform.rotation = Quaternion.Euler(52f, -35f, 0f);
             var sun = sunObject.AddComponent<Light>();
             sun.type = LightType.Directional;
             sun.color = new Color(1f, 0.96f, 0.9f);
-            sun.intensity = 1.3f;
+            sun.intensity = 1.25f;
             sun.shadows = LightShadows.Soft;
             sunObject.AddComponent<UniversalAdditionalLightData>();
 
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.55f, 0.57f, 0.6f);
+            RenderSettings.ambientLight = new Color(0.52f, 0.54f, 0.58f);
 
             // A thick box rather than a plane: no tunnelling through a zero-thickness floor.
             var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -81,28 +80,47 @@ namespace PhysicsBattler.Editor.Setup
                 ground.GetComponent<MeshRenderer>().sharedMaterial = groundMaterial;
             }
 
-            var sandbox = new GameObject("Sandbox").AddComponent<SandboxController>();
+            var board = new GameObject("Board").AddComponent<BoardView>();
+            var sandbox = new GameObject("Battle").AddComponent<BattleSandbox>();
             sandbox.orbitCamera = orbit;
+            sandbox.board = board;
             Wire(sandbox);
 
             EditorFolders.Ensure(BattlerPaths.ScenesFolder);
-            EditorSceneManager.SaveScene(scene, BattlerPaths.SandboxScene);
+            EditorSceneManager.SaveScene(scene, BattlerPaths.BattleScene);
         }
 
-        /// <summary>Fills any empty reference on the controller. Returns true if something changed.</summary>
-        private static bool Wire(SandboxController sandbox)
+        private static bool Wire(BattleSandbox sandbox)
         {
             bool changed = false;
-            changed |= Fill(ref sandbox.orcPrefab, LoadComponent<UnitController>(BattlerPaths.OrcPrefab));
-            changed |= Fill(ref sandbox.goblinPrefab, LoadComponent<UnitController>(BattlerPaths.GoblinPrefab));
-            changed |= Fill(ref sandbox.clubPrefab, LoadComponent<Weapon>(BattlerPaths.ClubPrefab));
-            changed |= Fill(ref sandbox.attack, AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing));
-            changed |= Fill(ref sandbox.cratePrefab, AssetDatabase.LoadAssetAtPath<GameObject>(BattlerPaths.CratePrefab));
-            changed |= Fill(ref sandbox.barrelPrefab, AssetDatabase.LoadAssetAtPath<GameObject>(BattlerPaths.BarrelPrefab));
+            changed |= Fill(ref sandbox.smallPrefab, LoadComponent<UnitController>(BattlerPaths.UnitPrefab("Small")));
+            changed |= Fill(ref sandbox.mediumPrefab, LoadComponent<UnitController>(BattlerPaths.UnitPrefab("Medium")));
+            changed |= Fill(ref sandbox.largePrefab, LoadComponent<UnitController>(BattlerPaths.UnitPrefab("Large")));
+            changed |= Fill(ref sandbox.teamA, AssetDatabase.LoadAssetAtPath<Material>(BattlerPaths.TeamAMaterial));
+            changed |= Fill(ref sandbox.teamB, AssetDatabase.LoadAssetAtPath<Material>(BattlerPaths.TeamBMaterial));
             if (sandbox.orbitCamera == null)
             {
                 sandbox.orbitCamera = Object.FindAnyObjectByType<OrbitCamera>();
                 changed |= sandbox.orbitCamera != null;
+            }
+
+            if (sandbox.board == null)
+            {
+                sandbox.board = Object.FindAnyObjectByType<BoardView>();
+                changed |= sandbox.board != null;
+            }
+
+            if (sandbox.board != null)
+            {
+                bool boardChanged = false;
+                boardChanged |= Fill(ref sandbox.board.lightTiles, AssetDatabase.LoadAssetAtPath<Material>(BattlerPaths.BoardLightMaterial));
+                boardChanged |= Fill(ref sandbox.board.darkTiles, AssetDatabase.LoadAssetAtPath<Material>(BattlerPaths.BoardDarkMaterial));
+                boardChanged |= Fill(ref sandbox.board.border, AssetDatabase.LoadAssetAtPath<Material>(BattlerPaths.BoardBorderMaterial));
+                if (boardChanged)
+                {
+                    EditorUtility.SetDirty(sandbox.board);
+                    changed = true;
+                }
             }
 
             if (changed)
@@ -130,15 +148,15 @@ namespace PhysicsBattler.Editor.Setup
             return true;
         }
 
-        private static void AddToBuildSettings(string scenePath)
+        /// <summary>The Battle scene first in the build; the old Sandbox scene out.</summary>
+        private static void SetBuildScenes(string scenePath)
         {
-            var scenes = EditorBuildSettings.scenes.ToList();
-            if (scenes.Any(scene => scene.path == scenePath))
+            var scenes = EditorBuildSettings.scenes.Where(s => s.path != BattlerPaths.OldSandboxScene).ToList();
+            if (!scenes.Any(scene => scene.path == scenePath))
             {
-                return;
+                scenes.Insert(0, new EditorBuildSettingsScene(scenePath, true));
             }
 
-            scenes.Insert(0, new EditorBuildSettingsScene(scenePath, true));
             EditorBuildSettings.scenes = scenes.ToArray();
         }
     }

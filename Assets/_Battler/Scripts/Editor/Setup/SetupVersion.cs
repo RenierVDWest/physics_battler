@@ -25,8 +25,10 @@ namespace PhysicsBattler.Editor.Setup
         /// 7 = The two-handed carry moves out to the side, clear of the hips and back leg.
         /// 8 = One-handed again, with the club at half size (2 kg); wind-up back to -150°. Pictures of
         ///     the game view in the playtest log.
+        /// 9 = The animation-first rebuild: three body sizes on an 8 by 8 board, the Battle scene; the
+        ///     orc, goblin, club and Sandbox scene removed.
         /// </summary>
-        public const int Current = 8;
+        public const int Current = 9;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

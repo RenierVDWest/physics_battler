@@ -1,4 +1,4 @@
-using PhysicsBattler.Combat;
+using System.IO;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Units;
 using UnityEditor;
@@ -7,263 +7,104 @@ using UnityEngine;
 namespace PhysicsBattler.Editor.Setup
 {
     /// <summary>
-    /// Creates the tuning assets once: the orc and goblin profiles, the big club and its low swing.
-    /// After that they are yours to tune. The only changes the setup makes to existing assets are
-    /// the migrations in <see cref="Migrate"/>, each run once, and only to values still at the old default.
+    /// Creates the tuning assets once: a unit profile and a combat style per body size. After that
+    /// they are yours to tune; setup never changes an existing asset.
+    ///
+    /// The three styles differ on purpose, to see how idle movement plays: the small unit weaves
+    /// and bounces and shuffles a lot, the medium one moves like a boxer, the large one barely sways
+    /// and stands wide.
     /// </summary>
     internal static class DataSetup
     {
-        public const float GoblinScale = 0.62f;
-
-        /// <summary>Strength goes with muscle mass: the orc's, times the goblin's scale cubed.</summary>
-        public static readonly float GoblinStrength = 240f * GoblinScale * GoblinScale * GoblinScale;
-
         public static void Apply()
         {
-            Ensure<UnitProfile>(BattlerPaths.OrcProfile, _ => { });
-            Ensure<UnitProfile>(BattlerPaths.GoblinProfile, goblin =>
+            var small = Ensure<CombatStyle>(BattlerPaths.Style("Small"), s =>
             {
-                goblin.scale = GoblinScale;
-                goblin.totalMassKg = 120f * GoblinScale * GoblinScale * GoblinScale;
-                goblin.poiseResistance = 0.45f;
-                goblin.strength = GoblinStrength;
-                goblin.maxHealth = 45f;
+                s.stanceWidth = 0.36f;
+                s.stanceLength = 0.46f;
+                s.crouch = 0.1f;
+                s.lean = 10f;
+                s.swayAmplitude = 0.05f;
+                s.swayFrequency = 0.7f;
+                s.bobAmplitude = 0.025f;
+                s.bobFrequency = 2.2f;
+                s.weaveDegrees = 7f;
+                s.weaveFrequency = 0.6f;
+                s.shuffleInterval = 1.4f;
+                s.shuffleDistance = 0.12f;
+                s.guardRaise = -40f;
+                s.guardElbow = -110f;
+            });
+            var medium = Ensure<CombatStyle>(BattlerPaths.Style("Medium"), _ => { });
+            var large = Ensure<CombatStyle>(BattlerPaths.Style("Large"), s =>
+            {
+                s.stanceWidth = 0.4f;
+                s.stanceLength = 0.36f;
+                s.crouch = 0.05f;
+                s.lean = 4f;
+                s.hipTurn = 14f;
+                s.swayAmplitude = 0.018f;
+                s.swayFrequency = 0.28f;
+                s.bobAmplitude = 0.004f;
+                s.bobFrequency = 0.9f;
+                s.weaveDegrees = 2.5f;
+                s.weaveFrequency = 0.22f;
+                s.shuffleInterval = 5f;
+                s.shuffleDistance = 0.07f;
+                s.guardRaise = -22f;
+                s.guardIn = 8f;
+                s.guardElbow = -80f;
+                s.leadArmReach = -6f;
             });
 
-            Ensure<WeaponDefinition>(BattlerPaths.ClubDefinition, club =>
+            Ensure<UnitProfile>(BattlerPaths.Profile("Small"), p =>
             {
-                // The club is built at half the modelled size, one-handed (the defaults).
-                club.twoHanded = false;
+                p.body = "Small";
+                p.style = small;
+                p.turnSpeed = 300f;
+                p.armPin = 0.75f;
             });
-            Ensure<AttackDefinition>(BattlerPaths.ClubSwing, _ => { });
+            Ensure<UnitProfile>(BattlerPaths.Profile("Medium"), p =>
+            {
+                p.body = "Medium";
+                p.style = medium;
+            });
+            Ensure<UnitProfile>(BattlerPaths.Profile("Large"), p =>
+            {
+                p.body = "Large";
+                p.style = large;
+                p.turnSpeed = 140f;
+                p.armPin = 0.6f;
+                p.torsoPin = 0.8f;
+            });
         }
 
-        /// <summary>Updates existing tuning assets from setup version <paramref name="from"/> to the current one.</summary>
+        /// <summary>
+        /// Setup version 9 is the animation-first rebuild: the old orc, goblin, club, attack and
+        /// sandbox assets are gone from the project (they live on the backup/active-ragdoll-v1
+        /// branch). Anything left of them locally is removed.
+        /// </summary>
         public static void Migrate(int from)
         {
-            if (from >= 1 && from < 3)
+            if (from >= 1 && from < 9)
             {
-                MigrateTo3();
-            }
-
-            if (from >= 1 && from < 4)
-            {
-                MigrateTo4();
-            }
-
-            if (from >= 1 && from < 5)
-            {
-                MigrateTo5();
-            }
-
-            if (from >= 1 && from < 6)
-            {
-                MigrateTo6();
-            }
-
-            if (from >= 1 && from < 7)
-            {
-                MigrateTo7();
-            }
-
-            if (from >= 1 && from < 8)
-            {
-                MigrateTo8();
-            }
-
-            if (from >= 1 && from < 2)
-            {
-                // After the first playtest (the club too heavy for the arm, get-ups declared done while
-                // the orc hung face down). New fields arrive with their defaults by themselves.
-                foreach (var path in new[] { BattlerPaths.OrcProfile, BattlerPaths.GoblinProfile })
+                foreach (var path in new[]
+                         {
+                             BattlerPaths.OldSandboxScene,
+                             BattlerPaths.DataFolder + "/Units/UP_Orc.asset", BattlerPaths.DataFolder + "/Units/UP_Goblin.asset",
+                             BattlerPaths.DataFolder + "/Attacks", BattlerPaths.DataFolder + "/Weapons",
+                             BattlerPaths.PrefabsFolder + "/Units/P_Orc.prefab", BattlerPaths.PrefabsFolder + "/Units/P_Goblin.prefab",
+                             BattlerPaths.PrefabsFolder + "/Weapons", BattlerPaths.PrefabsFolder + "/Props",
+                             BattlerPaths.Root + "/Art/Orc", BattlerPaths.RigsFolder + "/orc_rig.json",
+                         })
                 {
-                    var profile = AssetDatabase.LoadAssetAtPath<UnitProfile>(path);
-                    if (profile == null)
+                    if (File.Exists(path) || Directory.Exists(path))
                     {
-                        continue;
-                    }
-
-                    bool changed = false;
-                    changed |= Replace(ref profile.maxSubtreeBoost, 25f, 300f, profile.name, "maxSubtreeBoost");
-                    changed |= Replace(ref profile.getUpDuration, 1.3f, 1.8f, profile.name, "getUpDuration");
-                    if (changed)
-                    {
-                        EditorUtility.SetDirty(profile);
+                        AssetDatabase.DeleteAsset(path);
+                        Debug.Log($"[Battler Setup] Removed {path} (the first build; it's on the backup/active-ragdoll-v1 branch).");
                     }
                 }
             }
-        }
-
-        private static void MigrateTo3()
-        {
-            // After the second playtest: the units hung from the balance assist like puppets. The legs
-            // now carry the weight (UnitProfile.legSupport), so the assist can let go a lot.
-            foreach (var path in new[] { BattlerPaths.OrcProfile, BattlerPaths.GoblinProfile })
-            {
-                var profile = AssetDatabase.LoadAssetAtPath<UnitProfile>(path);
-                if (profile == null)
-                {
-                    continue;
-                }
-
-                bool changed = false;
-                changed |= Replace(ref profile.supportFeedForward, 0.55f, 0.2f, profile.name, "supportFeedForward");
-                changed |= Replace(ref profile.kpVertical, 160f, 90f, profile.name, "kpVertical");
-                changed |= Replace(ref profile.kdVertical, 24f, 16f, profile.name, "kdVertical");
-                changed |= Replace(ref profile.angularDamping, 0.6f, 0.1f, profile.name, "angularDamping");
-                changed |= Replace(ref profile.uprightBodyShare, 0.3f, 0.2f, profile.name, "uprightBodyShare");
-                if (changed)
-                {
-                    EditorUtility.SetDirty(profile);
-                }
-            }
-        }
-
-        private static void MigrateTo4()
-        {
-            // The balance error is now how far the capture point is outside the area the feet support
-            // (it was the distance to the midpoint between the feet), so the step threshold shrinks.
-            foreach (var path in new[] { BattlerPaths.OrcProfile, BattlerPaths.GoblinProfile })
-            {
-                var profile = AssetDatabase.LoadAssetAtPath<UnitProfile>(path);
-                if (profile == null)
-                {
-                    continue;
-                }
-
-                bool changed = false;
-                changed |= Replace(ref profile.stepThreshold, 0.16f, 0.05f, profile.name, "stepThreshold");
-                changed |= Replace(ref profile.maxSubtreeBoost, 300f, 500f, profile.name, "maxSubtreeBoost");
-                if (changed)
-                {
-                    EditorUtility.SetDirty(profile);
-                }
-            }
-
-            var swing = AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing);
-            if (swing != null)
-            {
-                bool changed = false;
-                changed |= Replace(ref swing.leanBack, 0.07f, 0.1f, swing.name, "leanBack");
-                changed |= Replace(ref swing.leanForward, 0.1f, 0.15f, swing.name, "leanForward");
-                if (changed)
-                {
-                    EditorUtility.SetDirty(swing);
-                }
-            }
-        }
-
-        private static void MigrateTo5()
-        {
-            // Strength is new: the orc keeps the default, the goblin gets its share.
-            var goblin = AssetDatabase.LoadAssetAtPath<UnitProfile>(BattlerPaths.GoblinProfile);
-            if (goblin != null && Replace(ref goblin.strength, 240f, GoblinStrength, goblin.name, "strength"))
-            {
-                EditorUtility.SetDirty(goblin);
-            }
-
-            // Phase durations are gone (the weight and strength set the pace); the follow-through is the
-            // braking room the strike's speed is held to.
-            var swing = AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing);
-            if (swing != null && Replace(ref swing.followAngle, 40f, 75f, swing.name, "followAngle"))
-            {
-                EditorUtility.SetDirty(swing);
-            }
-        }
-
-        private static void MigrateTo6()
-        {
-            var club = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.ClubDefinition);
-            if (club != null && !club.twoHanded)
-            {
-                club.twoHanded = true;
-                EditorUtility.SetDirty(club);
-                Debug.Log($"[Battler Setup] {club.name}.twoHanded: false → true.");
-            }
-
-            var swing = AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing);
-            if (swing != null)
-            {
-                bool changed = false;
-                changed |= Replace(ref swing.windUpAngle, -150f, -200f, swing.name, "windUpAngle");
-                changed |= Replace(ref swing.settleAngle, 20f, 45f, swing.name, "settleAngle");
-                changed |= Replace(ref swing.settleTime, 0.12f, 0.03f, swing.name, "settleTime");
-                changed |= Replace(ref swing.maxSettleTime, 1.5f, 0.4f, swing.name, "maxSettleTime");
-                if (changed)
-                {
-                    EditorUtility.SetDirty(swing);
-                }
-            }
-        }
-
-        private static void MigrateTo8()
-        {
-            // Back to one hand, with a club half the size (and a third of the mass). The swing goes back
-            // to the side, as it did before the two-handed carry.
-            var club = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.ClubDefinition);
-            if (club != null)
-            {
-                if (club.twoHanded)
-                {
-                    club.twoHanded = false;
-                    Debug.Log($"[Battler Setup] {club.name}.twoHanded: true → false.");
-                }
-
-                Replace(ref club.physicsMassKg, 6f, 2f, club.name, "physicsMassKg");
-                Replace(ref club.gameplayMassKg, 40f, 15f, club.name, "gameplayMassKg");
-                EditorUtility.SetDirty(club);   // size is new: 0.5 by default
-            }
-
-            var swing = AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing);
-            if (swing != null && Replace(ref swing.windUpAngle, -200f, -150f, swing.name, "windUpAngle"))
-            {
-                EditorUtility.SetDirty(swing);
-            }
-        }
-
-        private static void MigrateTo7()
-        {
-            // The first two-handed carry passed through the hip, and the club exploded out of the body
-            // at spawn and got trapped behind the orc's back.
-            var club = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.ClubDefinition);
-            if (club == null)
-            {
-                return;
-            }
-
-            bool changed = false;
-            changed |= Replace(ref club.carryGrip, new Vector3(0.2f, 1.0f, 0.28f), new Vector3(0.26f, 1.02f, 0.34f), club.name, "carryGrip");
-            changed |= Replace(ref club.carryDirection, new Vector3(0.3f, -0.12f, -1f), new Vector3(0.5f, -0.15f, -0.85f), club.name, "carryDirection");
-            if (changed)
-            {
-                EditorUtility.SetDirty(club);
-            }
-        }
-
-        private static bool Replace(ref Vector3 field, Vector3 oldDefault, Vector3 newValue, string asset, string name)
-        {
-            if ((field - oldDefault).sqrMagnitude > 1e-8f)
-            {
-                Debug.Log($"[Battler Setup] {asset}.{name} is {field} (tuned by you), left as it is; the new default is {newValue}.");
-                return false;
-            }
-
-            field = newValue;
-            Debug.Log($"[Battler Setup] {asset}.{name}: {oldDefault} → {newValue}.");
-            return true;
-        }
-
-        private static bool Replace(ref float field, float oldDefault, float newValue, string asset, string name)
-        {
-            if (!Mathf.Approximately(field, oldDefault))
-            {
-                Debug.Log($"[Battler Setup] {asset}.{name} is {field} (tuned by you), left as it is; the new default is {newValue}.");
-                return false;
-            }
-
-            field = newValue;
-            Debug.Log($"[Battler Setup] {asset}.{name}: {oldDefault} → {newValue}.");
-            return true;
         }
 
         private static T Ensure<T>(string path, System.Action<T> initialize) where T : ScriptableObject

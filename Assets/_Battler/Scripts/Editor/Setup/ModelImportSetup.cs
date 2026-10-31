@@ -5,19 +5,19 @@ using UnityEngine;
 namespace PhysicsBattler.Editor.Setup
 {
     /// <summary>
-    /// Import settings for the orc and club FBX files (from SourceArt/Orc/Scripts/build_orc.py):
+    /// Import settings for the body part FBX files (from SourceArt/Bodies/Scripts/build_bodies.py):
     /// static meshes only, scale 1, and their materials replaced by the project's, matched by name.
     /// </summary>
     internal static class ModelImportSetup
     {
         public static void Apply(MaterialSet materials)
         {
-            if (!AssetDatabase.IsValidFolder(BattlerPaths.OrcArtFolder))
+            if (!AssetDatabase.IsValidFolder(BattlerPaths.BodiesArtFolder))
             {
-                throw new System.InvalidOperationException($"Art folder missing: {BattlerPaths.OrcArtFolder}");
+                throw new System.InvalidOperationException($"Art folder missing: {BattlerPaths.BodiesArtFolder}");
             }
 
-            foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { BattlerPaths.OrcArtFolder }))
+            foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { BattlerPaths.BodiesArtFolder }))
             {
                 Configure(AssetDatabase.GUIDToAssetPath(guid), materials);
             }
@@ -84,7 +84,13 @@ namespace PhysicsBattler.Editor.Setup
             return true;
         }
 
-        public static string ModelPath(string meshName) => $"{BattlerPaths.OrcArtFolder}/{meshName}.fbx";
+        /// <summary>SM_Medium_Chest lives in Art/Bodies/Medium/.</summary>
+        public static string ModelPath(string meshName)
+        {
+            var parts = meshName.Split('_');
+            string body = parts.Length > 1 ? parts[1] : "";
+            return $"{BattlerPaths.BodiesArtFolder}/{body}/{meshName}.fbx";
+        }
 
         public static bool Exists(string meshName) => File.Exists(ModelPath(meshName));
     }

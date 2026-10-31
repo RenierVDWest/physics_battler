@@ -50,7 +50,7 @@ namespace PhysicsBattler.Rig
             }
 
             float scale = Mathf.Max(0.05f, profile.scale);
-            float massFactor = rig.totalMassKg > 0f ? profile.totalMassKg / rig.totalMassKg : 1f;
+            float massFactor = rig.totalMassKg > 0f && profile.totalMassKg > 0f ? profile.totalMassKg / rig.totalMassKg : 1f;
 
             var root = new GameObject(unitName);
             var nulls = new Dictionary<string, Transform>();
@@ -115,7 +115,7 @@ namespace PhysicsBattler.Rig
 
             var rigComponent = root.AddComponent<UnitRig>();
             rigComponent.Initialize(parts, Find(nulls, "Slot_Weapon_R"), Find(nulls, "Slot_Weapon_L"),
-                Find(nulls, "Aim_Chest"), Find(nulls, "Aim_Head"), scale);
+                Find(nulls, "Aim_Chest"), Find(nulls, "Aim_Head"), Find(nulls, "Aim_Neck"), Find(nulls, "Aim_Belly"), scale);
 
             var controller = root.AddComponent<UnitController>();
             controller.Profile = profile;

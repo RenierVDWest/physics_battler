@@ -238,7 +238,7 @@ namespace UnityEngine
             set => localPosition = parentTransform == null ? value : parentTransform.InverseTransformPoint(value);
         }
 
-        public Vector3 eulerAngles => Vector3.zero;
+        public Vector3 eulerAngles => rotation.eulerAngles;
         public Quaternion rotation
         {
             get => parentTransform == null ? localRotation : parentTransform.rotation * localRotation;

@@ -14,12 +14,16 @@ namespace PhysicsBattler.Rig
         [SerializeField] private Transform slotWeaponL;
         [SerializeField] private Transform aimChest;
         [SerializeField] private Transform aimHead;
+        [SerializeField] private Transform aimNeck;
+        [SerializeField] private Transform aimBelly;
         [SerializeField] private float scale = 1f;
 
         public Transform SlotWeaponR => slotWeaponR;
         public Transform SlotWeaponL => slotWeaponL;
         public Transform AimChest => aimChest;
         public Transform AimHead => aimHead;
+        public Transform AimNeck => aimNeck;
+        public Transform AimBelly => aimBelly;
 
         /// <summary>Size relative to the rig file (the goblin is a 0.62 orc).</summary>
         public float Scale => scale;
@@ -29,8 +33,10 @@ namespace PhysicsBattler.Rig
         public BodyPart[] Parts => parts;
 
         public void Initialize(BodyPart[] builtParts, Transform slotR, Transform slotL, Transform chestAim,
-            Transform headAim, float rigScale)
+            Transform headAim, Transform neckAim, Transform bellyAim, float rigScale)
         {
+            aimNeck = neckAim;
+            aimBelly = bellyAim;
             parts = builtParts;
             slotWeaponR = slotR;
             slotWeaponL = slotL;

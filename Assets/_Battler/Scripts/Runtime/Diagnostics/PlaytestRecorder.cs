@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using PhysicsBattler.Combat;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEngine;
@@ -14,17 +13,17 @@ namespace PhysicsBattler.Diagnostics
     /// Records a playtest so it can be read afterwards (by Claude, through Tools/Playtest/analyze.py,
     /// or by hand). Every Play session writes a folder under PlaytestLogs/ in the project:
     ///
-    ///   session.md          what was recorded, the settings, and the summary (swings, falls, tracking)
+    ///   session.md          what was recorded, the settings, and the summary per unit
     ///   events.log          one line per thing that happened, with the reasons the code gave
     ///   meta.json           machine-readable index: units, files, parts, marks
-    ///   config/*.json       the unit profiles, attacks and weapons as they were (and if changed in play)
-    ///   units/NN_Name.frames.csv.gz   one row per physics step: state, balance, swing, joint errors
-    ///   units/NN_Name.pose.csv.gz     every part's physical position/rotation and its ghost position
+    ///   config/*.json       the unit profiles and combat styles as they were (and if changed in play)
+    ///   units/NN_Name.frames.csv.gz   one row per physics step: stance, balance, authority, pose errors
+    ///   units/NN_Name.pose.csv.gz     every part's physical position/rotation and its animated position
     ///   world.csv.gz        props (crates, barrels) positions
     ///   frames/NNNNNN.jpg   small square pictures of the game view, 8 per second (frames/frames.csv says when)
     ///
     /// Samples are taken at the start of each physics step, before the units run: the body as PhysX
-    /// left it, against the ghost pose it was chasing. Nothing here changes how the game plays.
+    /// left it, against the pose it was following. Nothing here changes how the game plays.
     /// </summary>
     [DefaultExecutionOrder(-200)]
     [DisallowMultipleComponent]
@@ -160,7 +159,6 @@ namespace PhysicsBattler.Diagnostics
                                            + $"solver {Physics.defaultSolverIterations}/{Physics.defaultSolverVelocityIterations} iterations, time scale {Time.timeScale:0.00}");
 
             PlaytestTrace.Noted += OnTrace;
-            CombatEvents.HitLanded += OnHit;
             UnitController.Initialized += OnUnitInitialized;
             Application.logMessageReceived += OnConsole;
 
@@ -200,7 +198,6 @@ namespace PhysicsBattler.Diagnostics
             }
 
             PlaytestTrace.Noted -= OnTrace;
-            CombatEvents.HitLanded -= OnHit;
             UnitController.Initialized -= OnUnitInitialized;
             Application.logMessageReceived -= OnConsole;
 
@@ -294,14 +291,11 @@ namespace PhysicsBattler.Diagnostics
 
             var rig = unit.Rig;
             Event(track, "spawn", $"at ({unit.Root.position.x:0.00}, {unit.Root.position.z:0.00}) facing {Heading(unit.Root.forward)}, team {unit.Team}, "
-                                  + $"mass {rig.TotalMass():0.0} kg, scale {unit.Scale:0.00}, rest pelvis height {unit.RestPelvisHeight:0.00} m, "
-                                  + $"profile {(unit.Profile != null ? unit.Profile.name : "default")}"
-                                  + (unit.Weapon != null ? $", holding {unit.Weapon.name.Replace("(Clone)", "")}" : ""));
+                                  + $"{(unit.Profile != null ? unit.Profile.body : "?")} body, mass {rig.TotalMass():0.0} kg, "
+                                  + $"leg length {unit.Body.LegLength:0.00} m, rest pelvis height {unit.RestPelvisHeight:0.00} m, "
+                                  + $"profile {(unit.Profile != null ? unit.Profile.name : "default")}, style {(unit.Style != null ? unit.Style.name : "default")}");
             NoteConfig(unit.Profile);
-            if (unit.Weapon != null)
-            {
-                NoteConfig(unit.Weapon.Definition);
-            }
+            NoteConfig(unit.Style);
 
             WriteMeta(false);
         }
@@ -334,12 +328,6 @@ namespace PhysicsBattler.Diagnostics
             if (collider == null)
             {
                 return "?";
-            }
-
-            var weapon = collider.GetComponentInParent<Weapon>();
-            if (weapon != null)
-            {
-                return weapon.Owner != null ? LabelOf(weapon.Owner) + "'s club" : "a dropped club";
             }
 
             var part = collider.GetComponentInParent<BodyPart>();
@@ -429,7 +417,7 @@ namespace PhysicsBattler.Diagnostics
             foreach (var body in FindObjectsByType<Rigidbody>())
             {
                 if (props.ContainsKey(body) || body.gameObject.layer != propLayer
-                    || body.GetComponentInParent<BodyPart>() != null || body.GetComponentInParent<Weapon>() != null)
+                    || body.GetComponentInParent<BodyPart>() != null)
                 {
                     continue;
                 }
@@ -505,18 +493,6 @@ namespace PhysicsBattler.Diagnostics
             {
                 Event(unit != null ? unit.name : null, category, text);
             }
-        }
-
-        private void OnHit(HitEvent hit)
-        {
-            foreach (var track in tracks)
-            {
-                track.OnHitLanded(hit);
-            }
-
-            Event(hit.attacker != null && byUnit.TryGetValue(hit.attacker, out var track2) ? track2 : null, "HIT",
-                $"→ {LabelOf(hit.victim)} {hit.part}: {hit.speed:0.0} m/s, {hit.damage:0.0} damage, -{hit.stabilityLoss:0.0} stability, "
-                + $"intent {hit.intent:0.00}, impulse {hit.impulse:0} N·s{(hit.friendly ? " (ally)" : "")}");
         }
 
         private void OnConsole(string condition, string stackTrace, LogType type)
@@ -672,7 +648,7 @@ namespace PhysicsBattler.Diagnostics
                 if (unit != null && unit.IsInitialized)
                 {
                     json.Append($", \"team\": {unit.Team}, \"mass\": {Num(unit.Rig.TotalMass())}, \"scale\": {Num(unit.Scale)}, ");
-                    json.Append($"\"restPelvisHeight\": {Num(unit.RestPelvisHeight)}, \"weapon\": {(unit.Weapon != null ? "true" : "false")}, ");
+                    json.Append($"\"restPelvisHeight\": {Num(unit.RestPelvisHeight)}, \"legLength\": {Num(unit.Body.LegLength)}, ");
                     json.Append($"\"profile\": \"{Escape(unit.Profile != null ? unit.Profile.name : "")}\"");
                 }
 
@@ -715,7 +691,7 @@ namespace PhysicsBattler.Diagnostics
                 : "Recording… (this file is completed when Play stops).");
             md.AppendLine();
             md.AppendLine("Files: `events.log` (what happened and why), `units/*.frames.csv.gz` (per-step state), "
-                          + "`units/*.pose.csv.gz` (per-step pose, physical and ghost), `world.csv.gz` (props), `config/` (tuning assets), `meta.json`.");
+                          + "`units/*.pose.csv.gz` (per-step pose, physical and animated), `world.csv.gz` (props, if any), `config/` (tuning assets), `meta.json`.");
             md.AppendLine("Analyse with `python3 Tools/Playtest/analyze.py PlaytestLogs/" + SessionName + "`.");
 
             if (ended)
@@ -769,73 +745,7 @@ namespace PhysicsBattler.Diagnostics
             }
         }
 
-        private static void AppendUnitSummary(StringBuilder md, UnitTrack track)
-        {
-            md.AppendLine();
-            md.AppendLine($"## {track.label}");
-            md.AppendLine();
-            md.AppendLine($"Present {track.spawnTime:0.0}–{(track.endTime >= 0f ? track.endTime : Now):0.0} s. Time in states: {track.StateTimes()}.");
-            md.AppendLine($"Hits taken {track.hitsTaken} ({track.damageTaken:0} damage). Catch steps {track.catchSteps}, settle steps {track.settleSteps}.");
-            md.AppendLine();
-
-            if (track.attacks.Count > 0)
-            {
-                md.AppendLine("| Swing | At (s) | Target | Reached | Fastest tip | Worst strike lag | Closest to target | Outcome |");
-                md.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- |");
-                foreach (var a in track.attacks)
-                {
-                    md.AppendLine($"| {a.number} | {a.start:0.0} | {a.victim}, {a.planDistance:0.00} m | {a.furthestPhase} | {a.maxTipSpeed:0.0} m/s | "
-                                  + $"{a.maxStrikeLag:0}° | {(a.minClubToTarget < float.MaxValue ? $"{a.minClubToTarget:0.00} m ({a.phaseAtClosest})" : "-")} | {a.Outcome} |");
-                }
-
-                md.AppendLine();
-            }
-
-            if (track.falls.Count > 0)
-            {
-                md.AppendLine("| Fall | At (s) | Why | Landed on | Lying | Get-up: best / end pelvis | Result |");
-                md.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
-                foreach (var f in track.falls)
-                {
-                    md.AppendLine($"| {f.number} | {f.start:0.0} | {f.reason} | {(f.landedAt >= 0f ? $"{f.firstGroundParts} after {f.landedAt - f.start:0.0} s" : "-")} | "
-                                  + $"{(f.lying.Length > 0 ? f.lying : "-")} | {(f.getUpStart >= 0f ? $"{f.getUpMaxPelvis:0.00} / {(f.getUpEndPelvis >= 0f ? f.getUpEndPelvis.ToString("0.00") : "-")} m" : "never started")} | "
-                                  + $"{f.result ?? "-"} |");
-                }
-
-                md.AppendLine();
-            }
-
-            md.AppendLine("Joint tracking error, physical vs ghost (mean / max degrees):");
-            md.AppendLine();
-            var header = new StringBuilder("| Part |");
-            var rule = new StringBuilder("| --- |");
-            var used = new List<int>();
-            for (int c = 0; c < UnitTrack.Contexts; c++)
-            {
-                if (track.ContextSeconds(c) >= 0.2f)
-                {
-                    used.Add(c);
-                    header.Append($" {UnitTrack.ContextNames[c]} ({track.ContextSeconds(c):0} s) |");
-                    rule.Append(" --- |");
-                }
-            }
-
-            md.AppendLine(header.ToString());
-            md.AppendLine(rule.ToString());
-            foreach (var id in PartInfo.All)
-            {
-                var row = new StringBuilder($"| {id} |");
-                foreach (int c in used)
-                {
-                    track.Tracking(c, id, out float mean, out float max);
-                    row.Append($" {mean:0} / {max:0} |");
-                }
-
-                md.AppendLine(row.ToString());
-            }
-
-            md.AppendLine();
-        }
+        private static void AppendUnitSummary(StringBuilder md, UnitTrack track) => track.AppendSummary(md);
 
         // ---- Helpers ---------------------------------------------------------------------------
 

@@ -46,8 +46,9 @@ namespace UnityEngine
         public Vector3 GetPointVelocity(Vector3 worldPoint) => linearVelocity;
         public void ResetCenterOfMass() { }
         public void ResetInertiaTensor() { }
-        public void MovePosition(Vector3 position) { }
-        public void MoveRotation(Quaternion rotation) { }
+        // The stub has no solver: a move arrives at once (the smoke runner integrates the rest).
+        public void MovePosition(Vector3 position) { this.position = position; }
+        public void MoveRotation(Quaternion rotation) { this.rotation = rotation; }
         public void Sleep() { }
         public void WakeUp() { }
     }

@@ -3,20 +3,27 @@
 
     python3 Tools/Playtest/analyze.py PlaytestLogs/2026-10-31_07-30-12 [--out DIR] [--frames 8]
 
+Milestone 1 (animation-first rebuild): units stand in their combat stance on the board, idle,
+step and turn. Nothing attacks yet. The questions this answers:
+    - do the feet stay planted (no sliding) and step when they should?
+    - is the weight over the feet, are the hips at the right height?
+    - do the pinned parts (torso, head, arms) follow the animation pose, without shaking?
+    - does each body size move in its own style (sway, bob, shuffles)?
+
 Writes into DIR (default: <session>/analysis/, which git ignores):
-    report.md                         the story of the session: states, swings, falls, tracking, flags
-    timeline_<unit>.png               state, stability, pelvis height, tilt, balance error, assist over time
-    swing_<unit>_<n>.png              one swing: ghost vs club angle, tip speed, distance to target, arm joints
-    swing_<unit>_<n>_film.png         stick figures through the swing (side and top views)
-    fall_<unit>_<n>.png               one fall and get-up: pelvis height vs ghost, tilt, lift force, ground contacts
-    fall_<unit>_<n>_film.png          stick figures through the fall and get-up
-    mark_<n>_film.png                 stick figures around each mark
+    report.md                         numbers per unit, flags, events, marks
+    overview.png                      every unit: tracking error, weight offset, steps over time
+    timeline_<unit>.png               one unit: pelvis height, feet (lift, slide, steps), balance, idle motion,
+                                      tracking error per region, facing
+    idle_<unit>_film.png              stick figures over the first seconds (side and top views)
+    turn_<unit>_<n>_film.png          stick figures through each big turn
+    mark_<n>_film.png                 stick figures around each mark (every unit)
     pictures_<nn>.jpg                 the recorded pictures of the game view, 24 per sheet (3 s at 8 per second),
-                                      each captioned with its time and what every unit was doing
-    swing_<unit>_<n>_pictures.jpg     the pictures through one swing (and fall_…, mark_… likewise)
+                                      each captioned with its time and what every unit's feet were doing
+    turn_…_pictures.jpg, mark_…_pictures.jpg   the pictures around those moments
 
 Needs numpy, pandas, matplotlib and Pillow (for the pictures). The recorder's format is described in
-Assets/_Battler/Scripts/Runtime/Diagnostics/PlaytestRecorder.cs.
+Assets/_Battler/Scripts/Runtime/Diagnostics/PlaytestRecorder.cs and UnitTrack.cs.
 """
 
 import argparse
@@ -38,23 +45,24 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-STATE_COLORS = {
-    "Steady": "#9bd19b",
-    "Flinch": "#f2e394",
-    "Stagger": "#f2b36b",
-    "Knockdown": "#e36b6b",
-    "GettingUp": "#8fb6e8",
-    "Dead": "#555555",
+REGIONS = ["Legs", "Torso", "Head", "ArmL", "ArmR"]
+LEVELS = {0: "Kinematic", 1: "Pinned", 2: "Loose", 3: "Ragdoll"}
+REGION_PARTS = {
+    "Legs": ["Pelvis", "ThighL", "ShinL", "FootL", "ThighR", "ShinR", "FootR"],
+    "Torso": ["Spine", "Chest"],
+    "Head": ["Head"],
+    "ArmL": ["UpperArmL", "ForearmL", "HandL"],
+    "ArmR": ["UpperArmR", "ForearmR", "HandR"],
 }
-PHASE_COLORS = {
-    "WindUp": "#c9b6e8",
-    "Load": "#a58bd9",
-    "Strike": "#e36b6b",
-    "Follow": "#f2b36b",
-    "Recover": "#d8d8d8",
-}
-ARM_PARTS = ["UpperArmR", "ForearmR", "HandR"]
-LEG_PARTS = ["ThighL", "ShinL", "FootL", "ThighR", "ShinR", "FootR"]
+REGION_COLORS = {"Legs": "#555555", "Torso": "#d1495b", "Head": "#edae49", "ArmL": "#00798c", "ArmR": "#30638e"}
+TEAM_COLORS = ["#b3743a", "#3a6fb3"]
+
+# Flags: what counts as a problem in milestone 1.
+SLIDE_LIMIT = 0.01          # m a planted foot may slide
+PINNED_ERROR_LIMIT = 0.05   # m a pinned part may lag its pose (95th percentile)
+COM_LIMIT = 0.08            # share of leg length the weight may be off the support point
+SHAKE_ALTERNATION = 0.75    # share of steps reversing the angular acceleration
+SHAKE_RMS = 1.5             # rad/s
 
 
 # ---- Reading --------------------------------------------------------------------------------------
@@ -140,9 +148,6 @@ class Session:
         return None
 
 
-# ---- Episodes ---------------------------------------------------------------------------------------
-
-
 def segments(series, times):
     """Runs of equal values: [(value, t0, t1, i0, i1)]."""
     out = []
@@ -154,49 +159,6 @@ def segments(series, times):
         if i == len(values) or values[i] != values[start]:
             out.append((values[start], float(times[start]), float(times[i - 1]), start, i - 1))
             start = i
-    return out
-
-
-def swings(unit):
-    """Contiguous runs where the planner is not Idle."""
-    f = unit.frames
-    if f.empty or "phase" not in f:
-        return []
-    active = (f["phase"] != "Idle").to_numpy()
-    out = []
-    i = 0
-    n = len(f)
-    while i < n:
-        if active[i]:
-            j = i
-            while j + 1 < n and active[j + 1]:
-                j += 1
-            out.append((i, j))
-            i = j + 1
-        else:
-            i += 1
-    return out
-
-
-def falls(unit):
-    """From each Knockdown entry to 2.5 s after the following get-up (or the next knockdown / the end)."""
-    f = unit.frames
-    if f.empty:
-        return []
-    state = f["state"].to_numpy()
-    t = f["t"].to_numpy()
-    starts = [i for i in range(len(state)) if state[i] == "Knockdown" and (i == 0 or state[i - 1] != "Knockdown")]
-    out = []
-    for k, s in enumerate(starts):
-        limit = starts[k + 1] - 1 if k + 1 < len(starts) else len(state) - 1
-        end = limit
-        # The get-up ends when a standing state follows GettingUp; keep 2.5 s after that.
-        for i in range(s, limit + 1):
-            if state[i] == "GettingUp" and i + 1 <= limit and state[i + 1] != "GettingUp":
-                stop_t = t[i] + 2.5
-                end = min(limit, int(np.searchsorted(t, stop_t)))
-                break
-        out.append((max(0, s - 30), end, s))
     return out
 
 
@@ -261,21 +223,11 @@ def draw_figure(ax, session, unit, row, axes_fn, color, ghost_color="#18b6d8", s
             seg(pts[foot], extremities(row, foot, (0, -0.06, 0.2)), color, lw)
     except KeyError:
         pass
-    # Club.
-    if "grip.x" in row and not pd.isna(row["grip.x"]):
-        grip = np.array([row["grip.x"], row["grip.y"], row["grip.z"]])
-        tip = np.array([row["tip.x"], row["tip.y"], row["tip.z"]])
-        seg(grip, tip, "#8a5a2b", lw * 1.8, z=3)
-        if show_ghost and not pd.isna(row.get("ghostGrip.x", np.nan)):
-            g0 = np.array([row["ghostGrip.x"], row["ghostGrip.y"], row["ghostGrip.z"]])
-            g1 = np.array([row["ghostTip.x"], row["ghostTip.y"], row["ghostTip.z"]])
-            seg(g0, g1, "#c58bff", 1.4, "--", 0.9, 1)
-    if "target.x" in row and not pd.isna(row["target.x"]):
-        p = axes_fn(np.array([row["target.x"], row["target.y"], row["target.z"]]))
-        ax.plot(p[0], p[1], "x", color="red", ms=8, mew=2, zorder=4)
-    if "capture.x" in row and not pd.isna(row["capture.x"]):
-        p = axes_fn(np.array([row["capture.x"], 0.0, row["capture.z"]]))
-        ax.plot(p[0], p[1], "o", color="#e0b000", ms=4, zorder=4)
+    # Where the stance has planted each foot (the anim pose's ground spots).
+    for side in ("L", "R"):
+        if f"plant{side}.x" in row and not pd.isna(row[f"plant{side}.x"]):
+            p = axes_fn(np.array([row[f"plant{side}.x"], 0.0, row[f"plant{side}.z"]]))
+            ax.plot(p[0], p[1], "s", color="#e0b000", ms=3.5, zorder=4)
 
 
 def view_axes(forward):
@@ -294,11 +246,11 @@ def view_axes(forward):
     return side, top
 
 
-def filmstrip(session, times, forward, title, path, focus_units=None, subtitle_fn=None):
+def filmstrip(session, times, forward, title, path, focus_units=None, subtitle_fn=None, only=False):
     side, top = view_axes(forward)
     units = [u for u in session.units if not u.pose.empty]
     if focus_units:
-        units = [u for u in units if u.label in focus_units] + [u for u in units if u.label not in focus_units]
+        units = [u for u in units if u.label in focus_units] + ([] if only else [u for u in units if u.label not in focus_units])
     n = len(times)
     fig, axs = plt.subplots(2, n, figsize=(2.3 * n, 6.2), squeeze=False)
     palette = ["#202020", "#7a3b9a", "#1f6f3f", "#9a5b00"]
@@ -312,14 +264,11 @@ def filmstrip(session, times, forward, title, path, focus_units=None, subtitle_f
             for pt in pose_points(session, u, r).values():
                 s, tp = side(pt), top(pt)
                 xs.append(s[0]); ys.append(s[1]); zs.append(tp[1])
-            if "tip.x" in r and not pd.isna(r["tip.x"]):
-                tip = np.array([r["tip.x"], r["tip.y"], r["tip.z"]])
-                xs.append(side(tip)[0]); ys.append(side(tip)[1]); zs.append(top(tip)[1])
     if not xs:
         plt.close(fig)
         return False
     x0, x1 = min(xs) - 0.4, max(xs) + 0.4
-    y1 = max(max(ys) + 0.3, 2.2)
+    y1 = max(ys) + 0.3
     z0, z1 = min(zs) - 0.4, max(zs) + 0.4
     for k, t in enumerate(times):
         for row_i, fn in enumerate((side, top)):
@@ -336,7 +285,7 @@ def filmstrip(session, times, forward, title, path, focus_units=None, subtitle_f
                 r = nearest_row(u.pose, t)
                 if r is None or abs(r["t"] - t) > 0.1:
                     continue
-                draw_figure(ax, session, u, r, fn, palette[ui % len(palette)])
+                draw_figure(ax, session, u, r, fn, TEAM_COLORS[int(u.meta.get("team", ui)) % 2] if not only else palette[ui % len(palette)])
             if row_i == 0:
                 label = f"{t:.2f} s"
                 if subtitle_fn:
@@ -344,17 +293,11 @@ def filmstrip(session, times, forward, title, path, focus_units=None, subtitle_f
                 ax.set_title(label, fontsize=7.5)
     axs[0][0].set_ylabel("side", fontsize=9)
     axs[1][0].set_ylabel("top", fontsize=9)
-    fig.suptitle(title + "   (solid: physical body, dashed cyan: ghost, brown: club, dashed purple: ghost club, x: target)", fontsize=9)
+    fig.suptitle(title + "   (solid: physical body, dashed cyan: animation pose, yellow squares: planted foot spots)", fontsize=9)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(path, dpi=110)
     plt.close(fig)
     return True
-
-
-def state_band(ax, f, column="state", colors=STATE_COLORS):
-    t = f["t"].to_numpy()
-    for value, t0, t1, _, _ in segments(f[column], t):
-        ax.axvspan(t0, t1 + 1 / 60, color=colors.get(value, "#eeeeee"), alpha=0.35, lw=0)
 
 
 def mark_lines(ax, session, t0, t1):
@@ -362,214 +305,6 @@ def mark_lines(ax, session, t0, t1):
         if t0 <= m["time"] <= t1:
             ax.axvline(m["time"], color="black", lw=1, ls=":")
             ax.text(m["time"], ax.get_ylim()[1], f" M{m['n']}", fontsize=7, va="top")
-
-
-def legend_states(ax, colors):
-    from matplotlib.patches import Patch
-    ax.legend(handles=[Patch(color=c, alpha=0.5, label=k) for k, c in colors.items()], fontsize=6, ncol=len(colors), loc="upper left")
-
-
-def plot_timeline(session, unit, path):
-    f = unit.frames
-    if f.empty:
-        return False
-    t = f["t"].to_numpy()
-    rest = unit.meta.get("restPelvisHeight", 1.0)
-    fig, axs = plt.subplots(5, 1, figsize=(13, 10), sharex=True)
-    for ax in axs:
-        state_band(ax, f)
-    axs[0].plot(t, f["stability"], color="black", lw=1.2, label="stability")
-    axs[0].plot(t, f["health"], color="#c00000", lw=1.2, label="health")
-    axs[0].set_ylabel("stability / health")
-    axs[0].legend(fontsize=7, loc="lower left")
-    axs[1].plot(t, f["pelvisH"], color="black", lw=1.2, label="pelvis (physical)")
-    axs[1].plot(t, f["ghostPelvisH"], color="#18b6d8", lw=1, ls="--", label="pelvis (ghost)")
-    axs[1].axhline(rest * 0.55, color="#c00000", lw=0.8, ls=":", label="tipped below 55% rest")
-    axs[1].set_ylabel("height (m)")
-    axs[1].legend(fontsize=7, loc="lower left")
-    axs[2].plot(t, f["chestTilt"], color="black", lw=1.2, label="chest tilt")
-    axs[2].plot(t, f["pelvisTilt"], color="#777", lw=1, label="pelvis tilt")
-    axs[2].set_ylabel("tilt (°)")
-    axs[2].legend(fontsize=7, loc="upper left")
-    axs[3].plot(t, f["balanceError"], color="black", lw=1.2, label="balance error (capture point to feet)")
-    steps = f["stepping"].to_numpy().astype(bool)
-    axs[3].fill_between(t, 0, steps * f["balanceError"].max() * 0.15, color="#2a7", alpha=0.6, step="mid", label="stepping")
-    axs[3].set_ylabel("m")
-    axs[3].legend(fontsize=7, loc="upper left")
-    axs[4].plot(t, f["assist"], color="black", lw=1.2, label="balance assist")
-    axs[4].plot(t, f["tone"], color="#a05", lw=1, label="muscle tone")
-    if "str_HandR" in f:
-        axs[4].plot(t, f["str_UpperArmR"], color="#e80", lw=0.8, label="right arm strength")
-    axs[4].set_ylabel("0..1+")
-    axs[4].set_xlabel("time (s)")
-    axs[4].legend(fontsize=7, loc="upper left")
-    # Swing phases on the top axis.
-    for a0, a1 in swings(unit):
-        sub = f.iloc[a0:a1 + 1]
-        for value, s0, s1, _, _ in segments(sub["phase"], sub["t"].to_numpy()):
-            axs[0].axvspan(s0, s1 + 1 / 60, ymin=0.92, ymax=1.0, color=PHASE_COLORS.get(value, "#ccc"), lw=0)
-    for e in unit.events:
-        if e.cat == "HIT":
-            axs[0].axvline(e.t, color="#c00000", lw=0.8)
-    for e in session.events:
-        if e.cat == "HIT" and f"→ {unit.label} " in e.text:
-            axs[0].axvline(e.t, color="#c00000", lw=1.6, ls="--")
-    for ax in axs:
-        mark_lines(ax, session, t[0], t[-1])
-    legend_states(axs[4], STATE_COLORS)
-    fig.suptitle(f"{unit.label}: timeline (colour bands: state; top strip: swing phases; red lines: hits dealt, dashed: hits taken)", fontsize=10)
-    fig.tight_layout(rect=(0, 0, 1, 0.97))
-    fig.savefig(path, dpi=100)
-    plt.close(fig)
-    return True
-
-
-def unwrapped_angles(f):
-    """Ghost and club swing angles without the ±180° jumps: the ghost unwrapped (ending where the
-    recorder says, so the strike reads negative-to-positive), the club as ghost minus lag."""
-    theta = f["theta"].to_numpy(dtype=float)
-    lag = f["lag"].to_numpy(dtype=float)
-    ghost = np.full_like(theta, np.nan)
-    ok = ~np.isnan(theta)
-    if ok.any():
-        unwrapped = np.degrees(np.unwrap(np.radians(theta[ok])))
-        unwrapped += theta[ok][-1] - unwrapped[-1]
-        ghost[ok] = unwrapped
-    return ghost, ghost - lag
-
-
-def plot_swing(session, unit, i0, i1, n, path):
-    f = unit.frames.iloc[max(0, i0 - 10):i1 + 15]
-    t = f["t"].to_numpy()
-    fig, axs = plt.subplots(4, 1, figsize=(10, 9.5), sharex=True)
-    for ax in axs:
-        state_band(ax, f, "phase", PHASE_COLORS)
-    ghost, club = unwrapped_angles(f)
-    axs[0].plot(t, ghost, color="#18b6d8", lw=1.6, ls="--", label="ghost θ (where the swing wants the club)")
-    axs[0].plot(t, club, color="#8a5a2b", lw=1.8, label="club θ (where the club is)")
-    axs[0].axhline(0, color="red", lw=0.8, ls=":", label="θ 0 = contact direction")
-    axs[0].set_ylabel("swing angle (°)")
-    axs[0].legend(fontsize=7, loc="best")
-    axs[1].plot(t, f["tipSpeed"], color="black", lw=1.4, label="club tip speed")
-    axs[1].set_ylabel("m/s")
-    ax2 = axs[1].twinx()
-    ax2.plot(t, f["tipH"], color="#777", lw=1, label="tip height")
-    ax2.axhline(0, color="#777", lw=0.6)
-    ax2.set_ylabel("tip height (m)", color="#777")
-    axs[1].legend(fontsize=7, loc="upper left")
-    axs[2].plot(t, f["clubToTarget"], color="red", lw=1.4, label="club to the swing's target point")
-    axs[2].plot(t, f["clubToVictim"], color="#a05", lw=1, ls="--", label="club to the victim's chest now")
-    axs[2].plot(t, f["gripError"], color="#18b6d8", lw=1, label="grip: physical vs ghost")
-    axs[2].set_ylabel("m")
-    axs[2].legend(fontsize=7, loc="best")
-    for p, c in zip(ARM_PARTS + ["Chest", "Spine"], ["#d62728", "#ff7f0e", "#bcbd22", "#1f77b4", "#17becf"]):
-        axs[3].plot(t, f[f"err_{p}"], color=c, lw=1.2, label=f"{p} error")
-    axs[3].set_ylabel("joint error vs ghost (°)")
-    ax3 = axs[3].twinx()
-    ax3.plot(t, f["str_UpperArmR"], color="#555", lw=0.9, ls=":", label="arm strength")
-    ax3.set_ylabel("arm strength", color="#555")
-    axs[3].legend(fontsize=7, loc="upper left", ncol=3)
-    axs[3].set_xlabel("time (s)")
-    for e in unit.events:
-        if e.cat in ("club", "HIT", "hit") and t[0] <= e.t <= t[-1]:
-            for ax in axs:
-                ax.axvline(e.t, color="#c00000" if e.cat == "HIT" else "#8a5a2b", lw=0.9, ls="-" if e.cat == "HIT" else "--")
-    fig.suptitle(f"{unit.label}: swing #{n} (bands: phases — wind-up, load, strike, follow, recover; lines: club contacts / hits)", fontsize=10)
-    fig.tight_layout(rect=(0, 0, 1, 0.97))
-    fig.savefig(path, dpi=100)
-    plt.close(fig)
-
-
-def plot_fall(session, unit, i0, i1, n, path):
-    f = unit.frames.iloc[i0:i1 + 1]
-    t = f["t"].to_numpy()
-    rest = unit.meta.get("restPelvisHeight", 1.0)
-    weight = unit.meta.get("mass", 100) * 9.81
-    fig, axs = plt.subplots(4, 1, figsize=(10, 9.5), sharex=True)
-    for ax in axs:
-        state_band(ax, f)
-    axs[0].plot(t, f["pelvisH"], color="black", lw=1.4, label="pelvis (physical)")
-    axs[0].plot(t, f["ghostPelvisH"], color="#18b6d8", lw=1.2, ls="--", label="pelvis (ghost wants)")
-    axs[0].plot(t, f["comY"], color="#777", lw=1, label="centre of mass")
-    axs[0].axhline(rest * 0.55, color="#c00000", lw=0.8, ls=":", label="tipped below this")
-    axs[0].set_ylabel("height (m)")
-    axs[0].legend(fontsize=7, loc="best")
-    axs[1].plot(t, f["chestTilt"], color="black", lw=1.4, label="chest tilt")
-    axs[1].plot(t, f["pelvisTilt"], color="#777", lw=1, label="pelvis tilt")
-    axs[1].plot(t, (f["chestFrontUp"] * 90), color="#a05", lw=0.8, ls=":", label="chest front ·up ×90 (+ on back, − face down)")
-    axs[1].set_ylabel("°")
-    axs[1].legend(fontsize=7, loc="best")
-    axs[2].plot(t, f["forceVertical"], color="black", lw=1.2, label="assist lift force (N)")
-    axs[2].axhline(weight, color="#777", lw=0.8, ls=":", label="body weight")
-    axs[2].set_ylabel("N")
-    ax2 = axs[2].twinx()
-    ax2.plot(t, f["assist"], color="#1f77b4", lw=1, label="assist")
-    ax2.plot(t, f["tone"], color="#a05", lw=1, label="tone")
-    ax2.set_ylim(0, 1.1)
-    ax2.set_ylabel("assist / tone")
-    axs[2].legend(fontsize=7, loc="upper left")
-    ax2.legend(fontsize=7, loc="upper right")
-    # Ground contact raster.
-    masks = f["groundMask"].to_numpy().astype(int)
-    for k, p in enumerate(session.parts):
-        bit = 1 << k
-        on = (masks & bit) != 0
-        axs[3].fill_between(t, k - 0.4, k + 0.4, where=on, color="#444", step="mid", lw=0)
-    axs[3].set_yticks(range(len(session.parts)))
-    axs[3].set_yticklabels(session.parts, fontsize=6)
-    axs[3].set_ylabel("touching the ground")
-    axs[3].set_xlabel("time (s)")
-    for ax in axs:
-        mark_lines(ax, session, t[0], t[-1])
-    fig.suptitle(f"{unit.label}: fall #{n} and get-up (bands: states)", fontsize=10)
-    fig.tight_layout(rect=(0, 0, 1, 0.97))
-    fig.savefig(path, dpi=100)
-    plt.close(fig)
-
-
-# ---- Report ---------------------------------------------------------------------------------------
-
-
-def fmt(x, digits=2):
-    if x is None or (isinstance(x, float) and (math.isnan(x) or math.isinf(x))):
-        return "-"
-    return f"{x:.{digits}f}"
-
-
-def swing_metrics(unit, i0, i1):
-    f = unit.frames.iloc[i0:i1 + 1]
-    out = {"start": float(f["t"].iloc[0]), "end": float(f["t"].iloc[-1])}
-    phases = {}
-    for value, t0, t1, a, b in segments(f["phase"], f["t"].to_numpy()):
-        phases.setdefault(value, []).append((t0, t1, a, b))
-    out["phases"] = phases
-    out["reached"] = [p for p in ("WindUp", "Load", "Strike", "Follow", "Recover") if p in phases]
-    def at_end(phase):
-        if phase not in phases:
-            return None
-        a, b = phases[phase][-1][2], phases[phase][-1][3]
-        r = f.iloc[b]
-        return {"theta": r["theta"], "club": r["clubTheta"], "lag": r["lag"], "tip": r["tipSpeed"], "toTarget": r["clubToTarget"]}
-    out["ends"] = {p: at_end(p) for p in ("WindUp", "Load", "Strike", "Follow")}
-    strike = f[f["phase"] == "Strike"]
-    out["strikeMaxLag"] = float(strike["lag"].abs().max()) if len(strike) else float("nan")
-    out["maxTip"] = float(f["tipSpeed"].max())
-    late = f[f["phase"].isin(["Strike", "Follow"])]
-    if len(late) and late["clubToTarget"].notna().any():
-        k = late["clubToTarget"].idxmin()
-        out["closest"] = float(late.loc[k, "clubToTarget"])
-        out["closestAt"] = float(late.loc[k, "t"])
-        out["closestTheta"] = float(late.loc[k, "theta"])
-        out["closestClub"] = float(late.loc[k, "clubTheta"])
-    out["minTipH"] = float(f["tipH"].min()) if f["tipH"].notna().any() else float("nan")
-    out["armErr"] = {p: float(f[f"err_{p}"].max()) for p in ARM_PARTS}
-    out["armErrStrikeMean"] = {p: float(strike[f"err_{p}"].mean()) if len(strike) else float("nan") for p in ARM_PARTS}
-    out["minClubTheta"] = float(f["clubTheta"].min()) if f["clubTheta"].notna().any() else float("nan")
-    out["minGhostTheta"] = float(f["theta"].min()) if f["theta"].notna().any() else float("nan")
-    out["pelvisDrop"] = float(f["pelvisH"].iloc[0] - f["pelvisH"].min())
-    out["maxTilt"] = float(f["chestTilt"].max())
-    out["groundTouch"] = int(((f["groundMask"].astype(int) & ~((1 << 12) | (1 << 15))) != 0).sum())
-    return out
 
 
 def _qmul(a, b):
@@ -616,9 +351,6 @@ def events_between(unit, t0, t1, cats=None):
     return [e for e in unit.events if t0 - 1e-6 <= e.t <= t1 + 1e-6 and (cats is None or e.cat in cats)]
 
 
-# ---- Pictures of the game view -------------------------------------------------------------------
-
-
 def read_pictures(session):
     path = os.path.join(session.path, "frames", "frames.csv")
     if not os.path.exists(path):
@@ -629,19 +361,6 @@ def read_pictures(session):
         return pd.DataFrame()
     df = df[[os.path.exists(os.path.join(session.path, "frames", f)) for f in df["file"]]]
     return df.sort_values("t").reset_index(drop=True)
-
-
-def picture_caption(session, t):
-    parts = [f"{t:.2f}s"]
-    for unit in session.units:
-        f = unit.frames
-        if f.empty or t < f["t"].iloc[0] - 0.05 or t > f["t"].iloc[-1] + 0.05:
-            continue
-        r = nearest_row(f, t)
-        short = unit.label.split(" (")[0].replace("Orc ", "")
-        what = r["state"] if r["phase"] == "Idle" else f"{r['phase']}"
-        parts.append(f"{short}:{what}")
-    return " ".join(parts)
 
 
 def picture_sheet(session, pics, path, title, cols=6, flip=False, max_count=24):
@@ -695,7 +414,264 @@ def pictures_between(pics, t0, t1):
     return pics[(pics["t"] >= t0) & (pics["t"] <= t1)]
 
 
-def write_report(session, out, args):
+# ---- Helpers --------------------------------------------------------------------------------------
+
+
+def fmt(x, digits=2):
+    if x is None or (isinstance(x, float) and (math.isnan(x) or math.isinf(x))):
+        return "-"
+    return f"{x:.{digits}f}"
+
+
+def col(f, name, default=np.nan):
+    return f[name].astype(float) if name in f else pd.Series(default, index=f.index, dtype=float)
+
+
+def leg_length(unit):
+    return float(unit.meta.get("legLength") or 0.845)
+
+
+def region_error(f, region):
+    """Per frame, the largest distance (m) of the region's parts from their pose."""
+    cols = [f"err_{p}" for p in REGION_PARTS[region] if f"err_{p}" in f]
+    if not cols:
+        return pd.Series(np.nan, index=f.index)
+    return f[cols].astype(float).max(axis=1)
+
+
+def region_angle(f, region):
+    cols = [f"aerr_{p}" for p in REGION_PARTS[region] if f"aerr_{p}" in f]
+    if not cols:
+        return pd.Series(np.nan, index=f.index)
+    return f[cols].astype(float).max(axis=1)
+
+
+def stepping_mask(f):
+    return (col(f, "stepL", 0) > 0.5) | (col(f, "stepR", 0) > 0.5)
+
+
+def turns(unit, min_degrees=45.0, gap=0.4):
+    """Spans where the unit turned a lot: [(i0, i1, degrees)]."""
+    f = unit.frames
+    if f.empty or "rootYaw" not in f:
+        return []
+    yaw = np.unwrap(np.radians(f["rootYaw"].astype(float).to_numpy()))
+    rate = np.abs(np.gradient(yaw)) / max(1e-6, float(np.median(np.diff(f["t"].to_numpy())) or 1 / 60))
+    moving = rate > math.radians(20)
+    out = []
+    i = 0
+    n = len(moving)
+    while i < n:
+        if not moving[i]:
+            i += 1
+            continue
+        j = i
+        last = i
+        while j < n and (moving[j] or f["t"].iloc[j] - f["t"].iloc[last] < gap):
+            if moving[j]:
+                last = j
+            j += 1
+        degrees = math.degrees(abs(yaw[last] - yaw[i]))
+        if degrees >= min_degrees:
+            out.append((i, last, degrees))
+        i = j
+    return out
+
+
+def short_label(unit):
+    return unit.label.replace(" ", "")
+
+
+def picture_caption(session, t):
+    parts = [f"{t:.2f}s"]
+    for unit in session.units:
+        f = unit.frames
+        if f.empty or t < f["t"].iloc[0] - 0.05 or t > f["t"].iloc[-1] + 0.05:
+            continue
+        r = nearest_row(f, t)
+        stepping = (float(r.get("stepL", 0)) > 0.5) or (float(r.get("stepR", 0)) > 0.5)
+        parts.append(f"{short_label(unit)}:{'step' if stepping else '-'}")
+    return " ".join(parts)
+
+
+def step_spans(ax, f):
+    t = f["t"].to_numpy()
+    for side, color in (("L", "#8fb6e8"), ("R", "#f2b36b")):
+        if f"step{side}" not in f:
+            continue
+        for value, t0, t1, _, _ in segments(f[f"step{side}"].astype(float) > 0.5, t):
+            if value:
+                ax.axvspan(t0, t1 + 1 / 60, color=color, alpha=0.25, lw=0)
+
+
+def plot_timeline(session, unit, path):
+    f = unit.frames
+    t = f["t"].to_numpy()
+    leg = leg_length(unit)
+    fig, axs = plt.subplots(6, 1, figsize=(12, 15), sharex=True)
+
+    ax = axs[0]
+    ax.plot(t, col(f, "pelvisH"), color="black", lw=1.4, label="pelvis height (physical)")
+    ax.plot(t, col(f, "animPelvisH"), color="#18b6d8", lw=1, ls="--", label="pelvis height (pose)")
+    ax.plot(t, unit.meta.get("restPelvisHeight", np.nan) - col(f, "pelvisDrop"), color="#999", lw=0.8, ls=":", label="rest height (crouch and bob lower it)")
+    ax.set_ylabel("m")
+    ax.legend(fontsize=7, loc="lower left")
+    ax.set_title(f"{unit.label}: pelvis", fontsize=9)
+
+    ax = axs[1]
+    step_spans(ax, f)
+    ax.plot(t, col(f, "liftL") * 100, color="#30638e", lw=1, label="left foot lift")
+    ax.plot(t, col(f, "liftR") * 100, color="#b3743a", lw=1, label="right foot lift")
+    ax.plot(t, col(f, "slideL") * 100, color="#30638e", lw=1, ls=":", label="left slide while planted")
+    ax.plot(t, col(f, "slideR") * 100, color="#b3743a", lw=1, ls=":", label="right slide while planted")
+    ax.axhline(SLIDE_LIMIT * 100, color="red", lw=0.6, ls="--")
+    ax.set_ylabel("cm")
+    ax.legend(fontsize=7, loc="upper left", ncol=2)
+    ax.set_title("feet (shaded: stepping, blue left / orange right)", fontsize=9)
+
+    ax = axs[2]
+    ax.plot(t, col(f, "comOffset") * 100, color="black", lw=1.2, label="pose weight off the support point")
+    ax.plot(t, col(f, "physCom") * 100, color="#d1495b", lw=1, label="physical weight off the support point")
+    ax.plot(t, col(f, "weightShift") * 100, color="#999", lw=0.8, ls="--", label="weight shift applied")
+    ax.axhline(COM_LIMIT * leg * 100, color="red", lw=0.6, ls="--")
+    ax.set_ylabel("cm")
+    ax.legend(fontsize=7, loc="upper left")
+    ax.set_title("balance", fontsize=9)
+
+    ax = axs[3]
+    ax.plot(t, col(f, "swayX") * 100, lw=1, label="sway side")
+    ax.plot(t, col(f, "swayZ") * 100, lw=1, label="sway front/back")
+    ax.plot(t, col(f, "bob") * 100, lw=1, label="bob")
+    ax.set_ylabel("cm")
+    ax.legend(fontsize=7, loc="upper left", ncol=3)
+    ax.set_title("combat idle", fontsize=9)
+
+    ax = axs[4]
+    for region in REGIONS:
+        ax.plot(t, region_error(f, region) * 100, color=REGION_COLORS[region], lw=1, label=region)
+    ax.axhline(PINNED_ERROR_LIMIT * 100, color="red", lw=0.6, ls="--")
+    ax.set_ylabel("cm")
+    ax.legend(fontsize=7, loc="upper left", ncol=5)
+    ax.set_title("physical parts against the pose (largest per region)", fontsize=9)
+
+    ax = axs[5]
+    ax.plot(t, np.degrees(np.unwrap(np.radians(col(f, "rootYaw").to_numpy()))), color="black", lw=1)
+    ax.set_ylabel("facing °")
+    ax.set_xlabel("time (s)")
+    ax2 = ax.twinx()
+    ax2.plot(t, col(f, "steps"), color="#30638e", lw=1, label="steps")
+    ax2.plot(t, col(f, "shuffles"), color="#b3743a", lw=1, label="idle shuffles")
+    ax2.legend(fontsize=7, loc="lower right")
+    ax.set_title("facing, steps", fontsize=9)
+    for a in axs:
+        mark_lines(a, session, t[0], t[-1])
+        a.grid(alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(path, dpi=100)
+    plt.close(fig)
+
+
+def plot_overview(session, path):
+    units = [u for u in session.units if not u.frames.empty]
+    if not units:
+        return
+    fig, axs = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
+    for k, u in enumerate(units):
+        f = u.frames
+        t = f["t"].to_numpy()
+        color = TEAM_COLORS[int(u.meta.get("team", 0)) % 2]
+        ls = ["-", "--", ":"][k % 3]
+        pinned = pd.concat([region_error(f, r) for r in ("Torso", "Head", "ArmL", "ArmR")], axis=1).max(axis=1)
+        axs[0].plot(t, pinned * 100, color=color, ls=ls, lw=1, label=u.label)
+        axs[1].plot(t, col(f, "comOffset") / leg_length(u) * 100, color=color, ls=ls, lw=1, label=u.label)
+        axs[2].plot(t, col(f, "steps") + col(f, "shuffles"), color=color, ls=ls, lw=1, label=u.label)
+    axs[0].set_ylabel("cm"); axs[0].set_title("largest pinned-part error", fontsize=9)
+    axs[1].set_ylabel("% of leg"); axs[1].set_title("pose weight off the support point", fontsize=9)
+    axs[2].set_ylabel("count"); axs[2].set_title("steps + idle shuffles", fontsize=9)
+    axs[2].set_xlabel("time (s)")
+    axs[0].legend(fontsize=7, ncol=3)
+    for a in axs:
+        mark_lines(a, session, 0, 1e9)
+        a.grid(alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(path, dpi=100)
+    plt.close(fig)
+
+
+def facing(unit, t):
+    r = nearest_row(unit.frames, t)
+    yaw = math.radians(float(r["rootYaw"])) if r is not None else 0.0
+    return np.array([math.sin(yaw), 0, math.cos(yaw)])
+
+
+def side_view(unit, t):
+    """A view from the unit's side: forward is the unit's right, so the stagger shows."""
+    fw = facing(unit, t)
+    return np.array([fw[2], 0, -fw[0]])
+
+
+# ---- Report ---------------------------------------------------------------------------------------
+
+
+def unit_numbers(session, unit):
+    f = unit.frames
+    leg = leg_length(unit)
+    n = {}
+    n["steps"] = int(col(f, "steps").max()) if "steps" in f else 0
+    n["shuffles"] = int(col(f, "shuffles").max()) if "shuffles" in f else 0
+    n["slide"] = float(max(col(f, "slideL").max(), col(f, "slideR").max()))
+    n["com"] = float(col(f, "comOffset").max())
+    n["com95"] = float(col(f, "comOffset").quantile(0.95))
+    n["physCom95"] = float(col(f, "physCom").quantile(0.95))
+    n["drop"] = float(col(f, "pelvisDrop").max())
+    n["pelvisGap"] = float((col(f, "pelvisH") - col(f, "animPelvisH")).abs().max())
+    n["sway"] = float(np.hypot(col(f, "swayX"), col(f, "swayZ")).max())
+    n["bob"] = float(-col(f, "bob").min())
+    n["leg"] = leg
+    stepping = stepping_mask(f)
+    n["stepShare"] = float(stepping.mean())
+    regions = {}
+    for r in REGIONS:
+        e = region_error(f, r)
+        a = region_angle(f, r)
+        lvl = col(f, f"lvl_{r}")
+        regions[r] = dict(level=LEVELS.get(int(lvl.mode().iloc[0]) if lvl.notna().any() else -1, "?"),
+                          pin=float(col(f, f"pin_{r}").median()),
+                          mean=float(e.mean()), p95=float(e.quantile(0.95)), max=float(e.max()),
+                          amean=float(a.mean()), ap95=float(a.quantile(0.95)),
+                          step95=float(e[stepping].quantile(0.95)) if stepping.any() else np.nan)
+    n["regions"] = regions
+    still = ~stepping
+    n["jitter"] = jitter(session, unit, still) if still.sum() >= 12 else {}
+    return n
+
+
+def flags_for(unit, n):
+    out = []
+    leg = n["leg"]
+    if n["slide"] > SLIDE_LIMIT:
+        out.append(f"a planted foot slid {n['slide'] * 100:.1f} cm")
+    if n["com95"] > COM_LIMIT * leg:
+        out.append(f"the pose's weight was {n['com95'] * 100:.0f} cm off the support point (95th pct; limit {COM_LIMIT * leg * 100:.0f})")
+    if n["physCom95"] > 1.5 * COM_LIMIT * leg:
+        out.append(f"the physical body's weight was {n['physCom95'] * 100:.0f} cm off the support point (95th pct)")
+    if n["drop"] > 0.05 * leg:
+        out.append(f"hips dropped {n['drop'] * 100:.0f} cm to reach the feet (stance too wide or long for the legs?)")
+    for r, d in n["regions"].items():
+        if d["level"] == "Kinematic":
+            if d["max"] > 0.005:
+                out.append(f"kinematic {r} missed its pose by up to {d['max'] * 100:.1f} cm")
+        elif d["level"] == "Pinned" and d["p95"] > PINNED_ERROR_LIMIT:
+            out.append(f"pinned {r} lagged its pose: {d['p95'] * 100:.1f} cm (95th pct), {d['ap95']:.0f}°")
+    shaking = [p for p, (rms, alt) in n["jitter"].items() if alt > SHAKE_ALTERNATION and rms > SHAKE_RMS]
+    if shaking:
+        out.append("shaking at the physics rate: " + ", ".join(shaking))
+    if n["steps"] + n["shuffles"] == 0 and len(unit.frames) > 600:
+        out.append("never stepped or shuffled (units should never stand still)")
+    return out
+
+
+def write_report(session, out, args, films):
     lines = []
     w = lines.append
     m = session.meta
@@ -705,10 +681,27 @@ def write_report(session, out, args):
     w(f"Unity {m.get('unity')}, physics {1 / session.dt:.0f} Hz, {duration:.1f} s recorded, {len(session.events)} events, "
       f"{len(m.get('marks', []))} marks{'' if m.get('endTime') else ' (the session did not end cleanly; data may be cut short)'}.")
     w("")
-    problems = [e for e in session.events if e.cat == "console" and (e.text.startswith("ERROR") or e.text.startswith("EXCEPTION") or e.text.startswith("warning"))]
+    problems = [e for e in session.events if e.cat == "console" and (e.text.startswith("ERROR") or e.text.startswith("EXCEPTION") or e.text.lower().startswith("warning"))]
     if problems:
         w(f"**Console:** {len(problems)} warnings/errors. First: `{problems[0].text[:200]}`")
         w("")
+
+    numbers = {}
+    w("## Summary")
+    w("")
+    w("| unit | leg | steps | shuffles | stepping | worst slide | weight off support (pose 95% / physical 95%) | hip drop | sway / bob | pinned error 95% (torso, head, arms) | flags |")
+    w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    for unit in session.units:
+        if unit.frames.empty:
+            continue
+        n = numbers[unit.label] = unit_numbers(session, unit)
+        fl = flags_for(unit, n)
+        rg = n["regions"]
+        pinned = ", ".join(f"{rg[r]['p95'] * 100:.1f}" for r in ("Torso", "Head", "ArmL", "ArmR"))
+        w(f"| {unit.label} | {n['leg']:.2f} m | {n['steps']} | {n['shuffles']} | {n['stepShare'] * 100:.0f}% | {n['slide'] * 100:.1f} cm | "
+          f"{n['com95'] * 100:.1f} / {n['physCom95'] * 100:.1f} cm | {n['drop'] * 100:.1f} cm | {n['sway'] * 100:.1f} / {n['bob'] * 100:.1f} cm | "
+          f"{pinned} cm | {len(fl) or 'none'} |")
+    w("")
 
     for unit in session.units:
         f = unit.frames
@@ -716,84 +709,44 @@ def write_report(session, out, args):
         w("")
         if f.empty:
             w("No frames recorded.")
+            w("")
             continue
+        n = numbers[unit.label]
         t = f["t"].to_numpy()
-        w(f"{len(f)} frames, {t[0]:.2f}–{t[-1]:.2f} s. Mass {unit.meta.get('mass', '?')} kg, rest pelvis height {unit.meta.get('restPelvisHeight', '?')} m.")
+        w(f"{len(f)} frames, {t[0]:.2f}–{t[-1]:.2f} s. Mass {fmt(unit.meta.get('mass'), 0)} kg, leg {n['leg']:.2f} m, "
+          f"rest pelvis height {fmt(unit.meta.get('restPelvisHeight'))} m, profile {unit.meta.get('profile', '?')}.")
         w("")
-        w("**States**")
+        fl = flags_for(unit, n)
+        w("**Flags:** " + ("; ".join(fl) if fl else "none."))
         w("")
-        state_events = [e for e in unit.events if e.cat == "state"]
-        for e in state_events:
-            w(f"- {e.t:7.2f} s  {e.text}")
+        w("| region | authority | distance from pose mean / 95% / max (cm) | while stepping 95% | angle mean / 95% (°) |")
+        w("| --- | --- | --- | --- | --- |")
+        for r, d in n["regions"].items():
+            level = d["level"] + (f" {d['pin']:.2f}" if d["level"] == "Pinned" else "")
+            w(f"| {r} | {level} | {d['mean'] * 100:.1f} / {d['p95'] * 100:.1f} / {d['max'] * 100:.1f} | {fmt(d['step95'] * 100, 1)} | {d['amean']:.0f} / {d['ap95']:.0f} |")
         w("")
-
-        sw = swings(unit)
-        if sw:
-            w("**Swings**")
+        if n["jitter"]:
+            w("**Shaking while planted** (rms angular speed rad/s / share of steps reversing; above "
+              f"{SHAKE_ALTERNATION} with rms above {SHAKE_RMS} is shaking): "
+              + ", ".join(f"{p} {rms:.1f}/{alt:.2f}" for p, (rms, alt) in n["jitter"].items()))
             w("")
-            w("| # | start | phases reached | ghost θ min / club θ min | lag at end of load / strike | worst strike lag | fastest tip | closest to target | tip lowest | outcome |")
-            w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
-            results = [e for e in unit.events if e.cat == "attack" and "result:" in e.text]
-            for n, (i0, i1) in enumerate(sw, 1):
-                mtr = swing_metrics(unit, i0, i1)
-                ends = mtr["ends"]
-                outcome = next((e.text.split("result: ", 1)[1].split(";")[0] for e in results if mtr["start"] - 0.05 <= e.t <= mtr["end"] + 0.5), "?")
-                closest = f"{fmt(mtr.get('closest'))} m (ghost θ {fmt(mtr.get('closestTheta'), 0)}°, club θ {fmt(mtr.get('closestClub'), 0)}°)" if "closest" in mtr else "-"
-                w(f"| {n} | {mtr['start']:.2f} | {'→'.join(mtr['reached'])} | {fmt(mtr['minGhostTheta'], 0)}° / {fmt(mtr['minClubTheta'], 0)}° | "
-                  f"{fmt(ends['Load']['lag'] if ends['Load'] else None, 0)}° / {fmt(ends['Strike']['lag'] if ends['Strike'] else None, 0)}° | "
-                  f"{fmt(mtr['strikeMaxLag'], 0)}° | {fmt(mtr['maxTip'], 1)} m/s | {closest} | {fmt(mtr['minTipH'])} m | {outcome} |")
+        tr = turns(unit)
+        if tr:
+            w("**Turns:** " + "; ".join(f"{f['t'].iloc[i0]:.2f}–{f['t'].iloc[i1]:.2f} s, {deg:.0f}°, "
+                                        f"{len(events_between(unit, f['t'].iloc[i0], f['t'].iloc[i1] + 0.5, {'step'}))} steps" for i0, i1, deg in tr))
             w("")
-            w("Arm tracking during strikes (mean error °, physical vs ghost): " + "; ".join(
-                f"#{n}: " + ", ".join(f"{p} {fmt(swing_metrics(unit, i0, i1)['armErrStrikeMean'][p], 0)}" for p in ARM_PARTS)
-                for n, (i0, i1) in enumerate(sw, 1)))
+        steps = [e for e in unit.events if e.cat == "step"]
+        if steps:
+            far = [e for e in steps if re.search(r"(\d+) cm from its spot", e.text) and int(re.search(r"(\d+) cm from its spot", e.text).group(1)) > 10]
+            w(f"**Steps:** {len(steps)} logged; {len(far)} landed more than 10 cm from where the stance wants the foot now "
+              "(normal while turning: the spot moves during the step).")
             w("")
-
-        fl = falls(unit)
-        if fl:
-            w("**Falls and get-ups**")
+        other = [e for e in unit.events if e.cat not in ("step", "spawn")]
+        if other:
+            w("**Other events**")
             w("")
-            for n, (i0, i1, s) in enumerate(fl, 1):
-                sub = f.iloc[s:i1 + 1]
-                getting = sub[sub["state"] == "GettingUp"]
-                text = [f"fall #{n} at {f['t'].iloc[s]:.2f} s"]
-                ev = events_between(unit, f["t"].iloc[s] - 0.05, f["t"].iloc[i1], {"state", "getup", "contact"})
-                if len(getting):
-                    text.append(f"get-up {getting['t'].iloc[0]:.2f}–{getting['t'].iloc[-1]:.2f} s: pelvis {getting['pelvisH'].iloc[0]:.2f} → max {getting['pelvisH'].max():.2f} → "
-                                f"{getting['pelvisH'].iloc[-1]:.2f} m (ghost ends at {getting['ghostPelvisH'].iloc[-1]:.2f}), chest tilt {getting['chestTilt'].iloc[0]:.0f}° → {getting['chestTilt'].iloc[-1]:.0f}°, "
-                                f"lift force mean {getting['forceVertical'].mean():.0f} N vs weight {unit.meta.get('mass', 100) * 9.81:.0f} N")
-                else:
-                    text.append("never started getting up in this window")
-                w("- " + "; ".join(text))
-                for e in ev:
-                    w(f"    - {e.t:7.2f} s  [{e.cat}] {e.text}")
-            w("")
-
-        # Shaking: angular velocity flipping back and forth every physics step.
-        idle_mask = (f["state"] == "Steady") & (f["phase"] == "Idle")
-        jit = jitter(session, unit, idle_mask)
-        if jit:
-            shaking = [p for p, (rms, alt) in jit.items() if alt > 0.75 and rms > 1.5]
-            w("**Shaking while standing idle** (rms angular speed rad/s, share of steps reversing): "
-              + ", ".join(f"{p} {rms:.1f}/{alt:.2f}" for p, (rms, alt) in jit.items()))
-            w("")
-            w(f"→ {'SHAKING at the physics rate: ' + ', '.join(shaking) if shaking else 'no 30 Hz shaking'}")
-            w("")
-
-        # Tracking error table.
-        ctx_rows = []
-        for ctx, mask in (("idle", (f["state"] == "Steady") & (f["phase"] == "Idle")),
-                          ("swinging", f["phase"] != "Idle"),
-                          ("stagger", f["state"] == "Stagger"),
-                          ("getting up", f["state"] == "GettingUp")):
-            if mask.sum() >= 12:
-                ctx_rows.append((ctx, f[mask]))
-        if ctx_rows:
-            w("**Joint tracking, physical vs ghost** (mean / 95th percentile, degrees)")
-            w("")
-            w("| part | " + " | ".join(f"{c} ({len(d) * session.dt:.0f} s)" for c, d in ctx_rows) + " |")
-            w("| --- |" + " --- |" * len(ctx_rows))
-            for p in session.parts:
-                w(f"| {p} | " + " | ".join(f"{d[f'err_{p}'].mean():.0f} / {d[f'err_{p}'].quantile(0.95):.0f}" for _, d in ctx_rows) + " |")
+            for e in other[:40]:
+                w(f"- {e.t:7.2f} s  [{e.cat}] {e.text}")
             w("")
 
     if session.meta.get("marks"):
@@ -810,8 +763,8 @@ def write_report(session, out, args):
     if not pics.empty:
         w("## Pictures of the game view")
         w("")
-        w(f"{len(pics)} pictures, {pics['t'].iloc[0]:.2f}–{pics['t'].iloc[-1]:.2f} s. Sheets of 24 (`pictures_NN.jpg`), and for each swing, fall and mark "
-          "(`*_pictures.jpg`). Captions: time, then each unit's phase (or state when idle).")
+        w(f"{len(pics)} pictures, {pics['t'].iloc[0]:.2f}–{pics['t'].iloc[-1]:.2f} s. Sheets of 24 (`pictures_NN.jpg`), and around each turn "
+          "and mark (`*_pictures.jpg`). Captions: time, then for each unit `step` when a foot is in the air.")
         w("")
     w("## Images")
     w("")
@@ -830,6 +783,7 @@ def main():
     ap.add_argument("session", help="a folder under PlaytestLogs/ (or PlaytestLogs/ itself for the newest)")
     ap.add_argument("--out", help="output folder (default <session>/analysis)")
     ap.add_argument("--frames", type=int, default=8, help="stick figures per film strip")
+    ap.add_argument("--max-turns", type=int, default=3, help="film strips of at most this many turns per unit")
     ap.add_argument("--flip-pictures", action="store_true", help="turn the recorded pictures upside down (if they were read back flipped)")
     args = ap.parse_args()
 
@@ -843,62 +797,41 @@ def main():
     out = args.out or os.path.join(path, "analysis")
     os.makedirs(out, exist_ok=True)
     pics, _ = picture_sheets(session, out, args)
+    plot_overview(session, os.path.join(out, "overview.png"))
+    films = []
 
     for unit in session.units:
-        if unit.frames.empty:
+        f = unit.frames
+        if f.empty:
             continue
         plot_timeline(session, unit, os.path.join(out, f"timeline_{unit.stem}.png"))
-        for n, (i0, i1) in enumerate(swings(unit), 1):
-            plot_swing(session, unit, i0, i1, n, os.path.join(out, f"swing_{unit.stem}_{n}.png"))
-            f = unit.frames
-            t0, t1 = f["t"].iloc[i0], f["t"].iloc[i1]
-            # Film: evenly through wind-up/load, denser through the strike.
-            strike = f.iloc[i0:i1 + 1]
-            strike = strike[strike["phase"].isin(["Strike", "Follow"])]
-            k = args.frames
-            if len(strike):
-                s0, s1 = strike["t"].iloc[0], strike["t"].iloc[-1]
-                times = list(np.linspace(t0, s0, max(2, k // 3), endpoint=False)) + list(np.linspace(s0, s1, k - max(2, k // 3)))
-            else:
-                times = list(np.linspace(t0, t1, k))
-            row = f.iloc[i0]
-            target = None
-            pose_row = nearest_row(unit.pose, t0 + 0.05)
-            if pose_row is not None and not pd.isna(pose_row.get("target.x", np.nan)):
-                target = np.array([pose_row["target.x"], 0, pose_row["target.z"]]) - np.array([pose_row["Pelvis.x"], 0, pose_row["Pelvis.z"]])
-            yaw = math.radians(row["rootYaw"])
-            forward = target if target is not None else np.array([math.sin(yaw), 0, math.cos(yaw)])
 
-            def sub(tt, f=f):
-                r = nearest_row(f, tt)
-                return f"{r['phase']} θ {fmt(r['theta'], 0)}°/{fmt(r['clubTheta'], 0)}°"
-            filmstrip(session, times, forward, f"{unit.label} swing #{n}", os.path.join(out, f"swing_{unit.stem}_{n}_film.png"),
-                      focus_units=[unit.label], subtitle_fn=sub)
-            picture_sheet(session, pictures_between(pics, t0 - 0.15, t1 + 0.3), os.path.join(out, f"swing_{unit.stem}_{n}_pictures.jpg"),
-                          f"{unit.label} swing #{n}, {t0:.2f}-{t1:.2f} s", flip=args.flip_pictures)
-        for n, (i0, i1, s) in enumerate(falls(unit), 1):
-            plot_fall(session, unit, i0, i1, n, os.path.join(out, f"fall_{unit.stem}_{n}.png"))
-            f = unit.frames
-            times = list(np.linspace(f["t"].iloc[s], f["t"].iloc[i1], args.frames + 2))
-            yaw = math.radians(f["rootYaw"].iloc[s])
-            forward = np.array([math.sin(yaw), 0, math.cos(yaw)])
+        def sub(tt, f=f):
+            r = nearest_row(f, tt)
+            feet = "".join(s for s in ("L", "R") if float(r.get(f"step{s}", 0)) > 0.5) or "-"
+            return f"step {feet} yaw {float(r['rootYaw']):.0f}°"
 
-            def sub(tt, f=f):
-                r = nearest_row(f, tt)
-                return f"{r['state']} p{r['pelvisH']:.2f} t{r['chestTilt']:.0f}°"
-            filmstrip(session, times, forward, f"{unit.label} fall #{n}", os.path.join(out, f"fall_{unit.stem}_{n}_film.png"),
-                      focus_units=[unit.label], subtitle_fn=sub)
-            picture_sheet(session, pictures_between(pics, f["t"].iloc[s] - 0.5, f["t"].iloc[i1]), os.path.join(out, f"fall_{unit.stem}_{n}_pictures.jpg"),
-                          f"{unit.label} fall #{n}", flip=args.flip_pictures)
+        t0 = float(f["t"].iloc[0])
+        times = list(np.linspace(t0 + 0.1, min(t0 + 3.0, float(f["t"].iloc[-1])), args.frames))
+        if filmstrip(session, times, side_view(unit, t0 + 0.1), f"{unit.label}: idle, first 3 s (seen from its right)",
+                     os.path.join(out, f"idle_{unit.stem}_film.png"), focus_units=[unit.label], only=True, subtitle_fn=sub):
+            films.append(f"idle_{unit.stem}_film.png")
+        for n, (i0, i1, deg) in enumerate(turns(unit)[: args.max_turns], 1):
+            a, b = float(f["t"].iloc[i0]), float(f["t"].iloc[i1]) + 0.4
+            times = list(np.linspace(a - 0.1, b, args.frames))
+            name = f"turn_{unit.stem}_{n}"
+            filmstrip(session, times, side_view(unit, a), f"{unit.label}: turn #{n}, {deg:.0f}° (seen from its starting right)",
+                      os.path.join(out, name + "_film.png"), focus_units=[unit.label], only=True, subtitle_fn=sub)
+            picture_sheet(session, pictures_between(pics, a - 0.3, b + 0.2), os.path.join(out, name + "_pictures.jpg"),
+                          f"{unit.label} turn #{n}, {a:.2f}-{b:.2f} s", flip=args.flip_pictures)
 
     for mk in session.meta.get("marks", []):
         times = list(np.linspace(mk["time"] - 1.0, mk["time"] + 0.5, args.frames))
-        forward = np.array([1.0, 0, 0])
-        filmstrip(session, times, forward, f"mark {mk['n']} (1 s before to 0.5 s after)", os.path.join(out, f"mark_{mk['n']}_film.png"))
+        filmstrip(session, times, np.array([1.0, 0, 0]), f"mark {mk['n']} (1 s before to 0.5 s after)", os.path.join(out, f"mark_{mk['n']}_film.png"))
         picture_sheet(session, pictures_between(pics, mk["time"] - 2.0, mk["time"] + 0.5), os.path.join(out, f"mark_{mk['n']}_pictures.jpg"),
                       f"mark {mk['n']} at {mk['time']:.2f} s (2 s before to 0.5 s after)", flip=args.flip_pictures)
 
-    write_report(session, out, args)
+    write_report(session, out, args, films)
     print(os.path.join(out, "report.md"))
 
 

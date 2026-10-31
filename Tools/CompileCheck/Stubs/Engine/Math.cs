@@ -24,6 +24,7 @@ namespace UnityEngine
         public static int Abs(int f) => Math.Abs(f);
         public static float Min(float a, float b) => a < b ? a : b;
         public static float Max(float a, float b) => a > b ? a : b;
+        public static float Max(params float[] values) { float m = values[0]; foreach (var v in values) if (v > m) m = v; return m; }
         public static int Min(int a, int b) => a < b ? a : b;
         public static int Max(int a, int b) => a > b ? a : b;
         public static float Pow(float f, float p) => (float)Math.Pow(f, p);
@@ -62,6 +63,18 @@ namespace UnityEngine
         }
 
         public static float Repeat(float t, float length) => Clamp(t - Floor(t / length) * length, 0f, length);
+        public static float MoveTowardsAngle(float current, float target, float maxDelta)
+        {
+            float delta = DeltaAngle(current, target);
+            if (-maxDelta < delta && delta < maxDelta)
+            {
+                return target;
+            }
+
+            target = current + delta;
+            return MoveTowards(current, target, maxDelta);
+        }
+
         public static float DeltaAngle(float current, float target)
         {
             float delta = Repeat(target - current, 360f);
@@ -400,7 +413,20 @@ namespace UnityEngine
             axis = s < 1e-6f ? Vector3.right : new Vector3(q.x / s, q.y / s, q.z / s);
         }
 
-        public Vector3 eulerAngles => throw new NotSupportedException("eulerAngles is not implemented in the stubs.");
+        /// <summary>Unity's order (Z, then X, then Y), degrees in [0, 360).</summary>
+        public Vector3 eulerAngles
+        {
+            get
+            {
+                var q = normalized;
+                float sinX = Mathf.Clamp(2f * (q.w * q.x - q.y * q.z), -1f, 1f);
+                float ex = Mathf.Asin(sinX);
+                float ey = Mathf.Atan2(2f * (q.w * q.y + q.x * q.z), 1f - 2f * (q.x * q.x + q.y * q.y));
+                float ez = Mathf.Atan2(2f * (q.w * q.z + q.x * q.y), 1f - 2f * (q.x * q.x + q.z * q.z));
+                float W(float r) { float d = r * Mathf.Rad2Deg % 360f; return d < 0f ? d + 360f : d; }
+                return new Vector3(W(ex), W(ey), W(ez));
+            }
+        }
 
         public static bool operator ==(Quaternion a, Quaternion b) => Dot(a, b) > 0.999999f;
         public static bool operator !=(Quaternion a, Quaternion b) => !(a == b);

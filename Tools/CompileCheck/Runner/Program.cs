@@ -26,7 +26,7 @@ internal static class Program
         }
 
         int passed = 0, failed = 0;
-        var fixtures = typeof(PhysicsBattler.Tests.SwingSolverTests).Assembly.GetTypes()
+        var fixtures = typeof(PhysicsBattler.Tests.SupportPolygonTests).Assembly.GetTypes()
             .Where(t => t.GetCustomAttribute<TestFixtureAttribute>() != null).OrderBy(t => t.Name);
         foreach (var fixture in fixtures)
         {

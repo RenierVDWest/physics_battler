@@ -1,12 +1,15 @@
-// A dry run of the playtest recorder outside Unity: two orcs built from orc_rig.json, the controllers
-// stepped by hand, and the bodies faked as a lagging puppet of their ghosts (there is no PhysX here).
-// It exercises the recorder end to end so Tools/Playtest/analyze.py can be tested on real output.
+// A dry run of the battle sandbox outside Unity: three units a side built from the body rig files,
+// stepped by hand on the board, with a tiny integrator standing in for PhysX (kinematic parts arrive
+// where they were moved; dynamic parts move by the velocity the authority layer gave them, plus
+// gravity). It exercises the pose pipeline, the authority layer and the recorder end to end, so
+// Tools/Playtest/analyze.py can be tested on real output.
 //
 //   dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll smoke <output folder>
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using PhysicsBattler.Combat;
+using PhysicsBattler.Board;
 using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
@@ -19,53 +22,71 @@ internal static class Smoke
 
     public static int Run(string output)
     {
-        string assets = UnityEngine.Application.dataPath;
-        var rig = RigFile.Parse(File.ReadAllText(Path.Combine(assets, "_Battler/Data/Rigs/orc_rig.json")));
+        string assets = Application.dataPath;
         Directory.CreateDirectory(output);
-        UnityEngine.Application.dataPath = Path.Combine(Path.GetFullPath(output), "Assets");
+        var rigs = new Dictionary<string, RigFile>();
+        foreach (var body in new[] { "Small", "Medium", "Large" })
+        {
+            rigs[body] = RigFile.Parse(File.ReadAllText(Path.Combine(assets, $"_Battler/Data/Rigs/{body.ToLowerInvariant()}_rig.json")));
+        }
 
+        Application.dataPath = Path.Combine(Path.GetFullPath(output), "Assets");
         var recorderObject = new GameObject("Recorder");
         var recorder = recorderObject.AddComponent<PlaytestRecorder>();
         Call(recorder, "OnEnable");
 
-        var profile = UnitProfile.CreateDefault();
-        profile.name = "UP_Orc";
-        var a = Spawn(rig, profile, "Orc A (club)", new Vector3(-1f, 0f, 0f), Vector3.right, 0);
-        var b = Spawn(rig, profile, "Orc B", new Vector3(1f, 0f, 0f), Vector3.left, 1);
-        a.Equip(MakeClub(rig));
+        var grid = new BoardGrid();
+        var units = new List<UnitController>();
+        var tiles = new[] { new[] { new Tile(2, 2), new Tile(4, 2), new Tile(6, 2) }, new[] { new Tile(5, 5), new Tile(3, 5), new Tile(1, 5) } };
+        var styles = new Dictionary<string, CombatStyle>();
+        for (int team = 0; team < 2; team++)
+        {
+            int k = 0;
+            foreach (var body in new[] { "Small", "Medium", "Large" })
+            {
+                var profile = UnitProfile.CreateDefault();
+                profile.name = "UP_" + body;
+                profile.body = body;
+                if (!styles.TryGetValue(body, out var style))
+                {
+                    style = CombatStyle.CreateDefault();
+                    style.name = "CS_" + body;
+                    if (body == "Small") { style.swayAmplitude = 0.05f; style.bobAmplitude = 0.025f; style.shuffleInterval = 1.4f; }
+                    if (body == "Large") { style.swayAmplitude = 0.018f; style.stanceWidth = 0.4f; style.shuffleInterval = 5f; }
+                    styles[body] = style;
+                }
 
-        var attack = AttackDefinition.CreateDefault();
-        attack.name = "AD_ClubLowSwing";
+                profile.style = style;
+                var unit = Spawn(rigs[body], profile, $"{(team == 0 ? "A" : "B")} {body}", grid.Center(tiles[team][k]), BoardGrid.TeamYaw(team), team);
+                units.Add(unit);
+                k++;
+            }
+        }
+
         float dt = Time.fixedDeltaTime;
+        bool away = false;
         for (int step = 0; step < 60 * 12; step++)
         {
             Time.time += dt;
             Call(recorder, "FixedUpdate");
-            foreach (var unit in new[] { a, b })
+            if (step == 60 * 4) away = true;
+            if (step == 60 * 7) away = false;
+            foreach (var unit in units)
             {
+                var enemy = Nearest(units, unit);
+                Vector3 point = enemy.Root.position;
+                unit.FacePoint(away ? unit.Root.position * 2f - point : point);
                 Call(unit, "FixedUpdate");
-                Puppet(unit, dt);
+                Integrate(unit, dt);
             }
 
-            if (step == 20)
+            if (step == 60 * 6)
             {
-                a.TryAttack(b, attack, out _);
-            }
-
-            if (step == 100)
-            {
-                var chest = b.Rig.Part(PartId.Chest);
-                ImpactSystem.ResolveWeaponContact(a, a.Weapon, chest, new ContactPoint { point = chest.body.position, normal = Vector3.left });
                 recorder.Mark("smoke test mark");
-            }
-
-            if (step == 140)
-            {
-                b.State.LoseStability(500f);   // straight to the floor
                 Application.RaiseLog("A warning from the smoke test", LogType.Warning);
             }
 
-            if (step == 300)
+            if (step == 60 * 9)
             {
                 Time.timeScale = 0.5f;
                 Call(recorder, "Update");
@@ -77,12 +98,26 @@ internal static class Smoke
         return 0;
     }
 
-    private static UnitController Spawn(RigFile rig, UnitProfile profile, string name, Vector3 position, Vector3 facing, int team)
+    private static UnitController Nearest(List<UnitController> units, UnitController unit)
+    {
+        UnitController best = null;
+        float d = float.MaxValue;
+        foreach (var other in units)
+        {
+            if (other.Team == unit.Team) continue;
+            float dd = (other.Root.position - unit.Root.position).sqrMagnitude;
+            if (dd < d) { d = dd; best = other; }
+        }
+
+        return best;
+    }
+
+    private static UnitController Spawn(RigFile rig, UnitProfile profile, string name, Vector3 position, float yaw, int team)
     {
         var root = UnitBuilder.Build(rig, profile, name, _ => null, 8);
         root.name = name;
         root.transform.position = position;
-        root.transform.rotation = Quaternion.LookRotation(facing, Vector3.up);
+        root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
         var unit = root.GetComponent<UnitController>();
         unit.Team = team;
         unit.Profile = profile;
@@ -90,53 +125,25 @@ internal static class Smoke
         return unit;
     }
 
-    private static Weapon MakeClub(RigFile rig)
+    /// <summary>Stands in for PhysX's step: dynamic parts move by their velocity (gravity added first).</summary>
+    private static void Integrate(UnitController unit, float dt)
     {
-        var root = new GameObject("P_Weapon_ClubBig(Clone)");
-        var weapon = root.AddComponent<Weapon>();
-        weapon.definition = WeaponDefinition.CreateDefault();
-        weapon.definition.name = "WD_ClubBig";
-        weapon.definition.twoHanded = false;
-        var collider = new GameObject("Collider_0");
-        collider.transform.SetParent(root.transform, false);
-        weapon.colliders = new Collider[] { collider.AddComponent<CapsuleCollider>() };
-        var tip = new GameObject("Tip").transform;
-        tip.SetParent(root.transform, false);
-        tip.localPosition = new Vector3(0f, 0f, 0.95f);
-        weapon.tip = tip;
-        var sweet = new GameObject("SweetSpot").transform;
-        sweet.SetParent(root.transform, false);
-        sweet.localPosition = new Vector3(0f, 0f, 0.75f);
-        weapon.sweetSpot = sweet;
-        return weapon;
-    }
-
-    /// <summary>Stands in for PhysX: each part turns a share of the way to its ghost every step.</summary>
-    private static void Puppet(UnitController unit, float dt)
-    {
-        var before = new Vector3[PartInfo.Count];
         foreach (var id in PartInfo.All)
         {
-            before[(int)id] = unit.Rig.Part(id).transform.position;
-        }
-
-        foreach (var id in PartInfo.All)
-        {
-            var part = unit.Rig.Part(id);
-            var ghost = unit.Ghost.Part(id);
-            if (id == PartId.Pelvis)
+            var body = unit.Rig.Part(id).body;
+            if (body.isKinematic)
             {
-                part.transform.position = Vector3.Lerp(part.transform.position, ghost.position, 0.2f);
+                continue;
             }
 
-            float follow = PartInfo.Group(id) == MuscleGroup.ArmR ? 0.12f : 0.3f;
-            part.transform.rotation = Quaternion.Slerp(part.transform.rotation, ghost.rotation, follow);
-        }
-
-        foreach (var id in PartInfo.All)
-        {
-            var part = unit.Rig.Part(id);
-            part.body.linearVelocity = (part.transform.position - before[(int)id]) / dt;
+            body.linearVelocity += Physics.gravity * dt;
+            body.position += body.linearVelocity * dt;
+            Vector3 w = body.angularVelocity;
+            float angle = w.magnitude * dt * Mathf.Rad2Deg;
+            if (angle > 1e-5f)
+            {
+                body.rotation = Quaternion.AngleAxis(angle, w.normalized) * body.rotation;
+            }
         }
     }
 

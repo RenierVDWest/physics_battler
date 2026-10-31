@@ -8,7 +8,7 @@ namespace PhysicsBattler.Editor.Setup
 {
     /// <summary>
     /// One-time project setup. It runs by itself the first time the project is opened (no render
-    /// pipeline, no Sandbox scene, or an older setup version) and can be run again from
+    /// pipeline, no Battle scene, or an older setup version) and can be run again from
     /// Physics Battler > Setup > Run Project Setup. Generated prefabs are rebuilt every run, so tune
     /// units in their profiles (Data/Units) rather than on the prefabs.
     /// </summary>
@@ -29,7 +29,7 @@ namespace PhysicsBattler.Editor.Setup
 
         private static bool IsSetupNeeded =>
             GraphicsSettings.defaultRenderPipeline == null
-            || !File.Exists(BattlerPaths.SandboxScene)
+            || !File.Exists(BattlerPaths.BattleScene)
             || !SetupVersion.IsCurrent;
 
         private static void RunIfNeeded()
@@ -63,7 +63,7 @@ namespace PhysicsBattler.Editor.Setup
                 if (!PrefabSetup.ApplyInScratchScene(materials, out _))
                 {
                     AssetDatabase.SaveAssets();
-                    Debug.LogWarning($"{LogPrefix} Setup paused before the prefabs and the Sandbox scene, because saving "
+                    Debug.LogWarning($"{LogPrefix} Setup paused before the prefabs and the Battle scene, because saving "
                                      + "the open scene was cancelled. Run Physics Battler > Setup > Run Project Setup to finish.");
                     return;
                 }
@@ -79,7 +79,7 @@ namespace PhysicsBattler.Editor.Setup
             }
 
             InputCheck.Report();
-            Debug.Log($"{LogPrefix} Done. The Sandbox scene is open: press Play, then Space to swing.");
+            Debug.Log($"{LogPrefix} Done. The Battle scene is open: press Play.");
         }
 
         [MenuItem("Physics Battler/Setup/Rebuild Prefabs", priority = 1)]
@@ -98,7 +98,7 @@ namespace PhysicsBattler.Editor.Setup
 
                 AssetDatabase.SaveAssets();
                 string reopen = !string.IsNullOrEmpty(previousScene) ? previousScene
-                    : File.Exists(BattlerPaths.SandboxScene) ? BattlerPaths.SandboxScene : null;
+                    : File.Exists(BattlerPaths.BattleScene) ? BattlerPaths.BattleScene : null;
                 if (reopen != null)
                 {
                     UnityEditor.SceneManagement.EditorSceneManager.OpenScene(reopen);

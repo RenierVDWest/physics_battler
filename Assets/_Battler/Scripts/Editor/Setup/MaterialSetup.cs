@@ -6,7 +6,6 @@ using UnityEngine;
 
 namespace PhysicsBattler.Editor.Setup
 {
-    /// <summary>The project's materials by name (M_Orc_Skin, M_Club_Wood, M_Ground...).</summary>
     internal sealed class MaterialSet
     {
         private readonly Dictionary<string, Material> byName = new Dictionary<string, Material>();
@@ -21,8 +20,9 @@ namespace PhysicsBattler.Editor.Setup
     }
 
     /// <summary>
-    /// Creates a URP Lit material for every colour in the rig file (the orc and club palette) plus the
-    /// sandbox's ground and props. Existing materials keep whatever you changed on them.
+    /// Creates the materials once (after that they are yours to tune): the body and joint materials
+    /// the body meshes use, a colour per team (it replaces the body material on spawn), the board
+    /// tiles and the ground.
     /// </summary>
     internal static class MaterialSetup
     {
@@ -32,16 +32,18 @@ namespace PhysicsBattler.Editor.Setup
         {
             EditorFolders.Ensure(BattlerPaths.MaterialsFolder);
             var set = new MaterialSet();
-            var rig = RigFileLoader.LoadOrc();
+            var rig = RigFileLoader.Load("Medium");
             foreach (var entry in rig.materials ?? Array.Empty<MaterialEntry>())
             {
-                bool metal = entry.name.Contains("Iron");
-                set.Add(Ensure($"{BattlerPaths.MaterialsFolder}/{entry.name}.mat", entry.Color, metal ? 0.55f : 0.2f, metal ? 0.8f : 0f));
+                set.Add(Ensure($"{BattlerPaths.MaterialsFolder}/{entry.name}.mat", entry.Color, 0.35f, 0f));
             }
 
-            set.Add(Ensure(BattlerPaths.GroundMaterial, new Color(0.46f, 0.47f, 0.43f), 0.1f, 0f));
-            set.Add(Ensure(BattlerPaths.CrateMaterial, new Color(0.55f, 0.38f, 0.2f), 0.15f, 0f));
-            set.Add(Ensure(BattlerPaths.BarrelMaterial, new Color(0.42f, 0.27f, 0.15f), 0.2f, 0f));
+            set.Add(Ensure(BattlerPaths.TeamAMaterial, new Color(0.83f, 0.66f, 0.46f), 0.35f, 0f));
+            set.Add(Ensure(BattlerPaths.TeamBMaterial, new Color(0.55f, 0.66f, 0.8f), 0.35f, 0f));
+            set.Add(Ensure(BattlerPaths.BoardLightMaterial, new Color(0.58f, 0.57f, 0.52f), 0.1f, 0f));
+            set.Add(Ensure(BattlerPaths.BoardDarkMaterial, new Color(0.43f, 0.43f, 0.4f), 0.1f, 0f));
+            set.Add(Ensure(BattlerPaths.BoardBorderMaterial, new Color(0.26f, 0.25f, 0.24f), 0.1f, 0f));
+            set.Add(Ensure(BattlerPaths.GroundMaterial, new Color(0.34f, 0.35f, 0.33f), 0.1f, 0f));
             return set;
         }
 
@@ -70,13 +72,14 @@ namespace PhysicsBattler.Editor.Setup
 
     internal static class RigFileLoader
     {
-        public static RigFile LoadOrc()
+        public static RigFile Load(string body)
         {
-            var text = AssetDatabase.LoadAssetAtPath<TextAsset>(BattlerPaths.OrcRigFile);
+            string path = BattlerPaths.RigFile(body);
+            var text = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
             if (text == null)
             {
-                throw new InvalidOperationException($"Rig file missing at {BattlerPaths.OrcRigFile}. " +
-                                                    "Rebuild it with SourceArt/Orc/Scripts/build_orc.py.");
+                throw new InvalidOperationException($"Rig file missing at {path}. "
+                                                    + "Rebuild it with SourceArt/Bodies/Scripts/build_bodies.py.");
             }
 
             return RigFile.Parse(text.text);

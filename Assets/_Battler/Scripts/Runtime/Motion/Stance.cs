@@ -1,111 +1,210 @@
-using PhysicsBattler.Rig;
+using System;
 using UnityEngine;
 
 namespace PhysicsBattler.Motion
 {
     /// <summary>
-    /// Where the ghost's feet are planted (world ankle positions) and any step in progress. Planted
-    /// feet stay put in the world while the unit's root drifts; a step carries one foot to a new
-    /// spot along a small arc.
+    /// Where the feet are. Each foot is planted on the ground and stays put until it is too far from
+    /// its spot in the stance (the unit moved or turned), then it steps: lifts, swings along an arc
+    /// and plants again. One foot at a time. Idle shuffles move a foot a little inside its spot.
+    ///
+    /// Spots are in the unit's space: the lead foot forward and to its side, the rear foot back,
+    /// toes turned out. Positions are ground points (y = ground height); the ankle sits above them.
+    /// Pure maths, no Unity objects, so it is tested on its own.
     /// </summary>
     public sealed class Stance
     {
-        private Vector3 footL;
-        private Vector3 footR;
-        private Vector3 stepFrom;
-        private Vector3 stepTo;
-        private float stepTime;
-        private float stepDuration;
-        private float stepHeight;
+        public const int Left = 0;
+        public const int Right = 1;
 
-        public bool Stepping { get; private set; }
-        public PartId SteppingFoot { get; private set; }
-        public int StepsTaken { get; set; }
-
-        /// <summary>Where the step in progress will land.</summary>
-        public Vector3 StepTarget => stepTo;
-
-        /// <summary>A step finished: the foot and where it was planted.</summary>
-        public event System.Action<PartId, Vector3> Landed;
-
-        /// <summary>Ankle positions relative to the unit root in the rest pose.</summary>
-        public Vector3 RestLocalL { get; set; }
-        public Vector3 RestLocalR { get; set; }
-
-        /// <summary>How much each foot is turned out from the root's facing (degrees about up; + turns right).</summary>
-        public float FootYawL { get; set; }
-        public float FootYawR { get; set; }
-
-        /// <summary>The planted rotation of a foot under a root facing <paramref name="rootRotation"/>.</summary>
-        public Quaternion FootRotation(PartId foot, Quaternion rootRotation)
+        private struct Foot
         {
-            return rootRotation * Quaternion.Euler(0f, foot == PartId.FootL ? FootYawL : FootYawR, 0f);
+            public Vector3 position;
+            public float yaw;
+            public bool stepping;
+            public Vector3 from, to;
+            public float fromYaw, toYaw;
+            public float t;
+            public float lift;
         }
 
-        /// <summary>Plants both feet in their rest spots under <paramref name="root"/>.</summary>
-        public void Plant(Transform root, float groundY)
+        private readonly Foot[] feet = new Foot[2];
+        private readonly System.Random random;
+        private float width, length, threshold, turnThreshold, duration, height, shuffleDistance, shuffleInterval;
+        private float leadToeOut, rearToeOut;
+        private bool leadLeft = true;
+        private float shuffleTimer;
+        private float restAfterStep;
+        private int nextShuffleFoot;
+
+        public event Action<int, Vector3> Landed;
+
+        public int StepsTaken { get; private set; }
+        public int ShufflesTaken { get; private set; }
+        public float GroundY { get; set; }
+
+        public Stance(int seed = 1)
         {
-            footL = OnGround(root.TransformPoint(RestLocalL), RestLocalL.y, groundY);
-            footR = OnGround(root.TransformPoint(RestLocalR), RestLocalR.y, groundY);
-            Stepping = false;
-            StepsTaken = 0;
+            random = new System.Random(seed);
         }
 
-        private static Vector3 OnGround(Vector3 point, float ankleHeight, float groundY)
+        public bool LeadLeft => leadLeft;
+
+        public void Configure(CombatStyle style, BodyMeasure body)
         {
-            point.y = groundY + ankleHeight;
-            return point;
+            float leg = body.LegLength;
+            width = style.stanceWidth * leg;
+            length = style.stanceLength * leg;
+            threshold = style.stepThreshold * leg;
+            turnThreshold = style.stepTurnThreshold;
+            duration = style.stepDuration * Mathf.Sqrt(Mathf.Max(0.2f, body.SizeFactor));
+            height = style.stepHeight * leg;
+            shuffleDistance = style.shuffleDistance * leg;
+            shuffleInterval = style.shuffleInterval;
+            leadLeft = style.leadWithLeftFoot;
+            leadToeOut = style.leadToeOut;
+            rearToeOut = style.rearToeOut;
+            shuffleTimer = shuffleInterval * (0.5f + (float)random.NextDouble());
         }
 
-        public Vector3 Planted(PartId foot) => foot == PartId.FootL ? footL : footR;
+        public bool IsLead(int foot) => (foot == Left) == leadLeft;
 
-        /// <summary>The foot's current target, including the arc of a step in progress.</summary>
-        public Vector3 Current(PartId foot)
+        /// <summary>The foot's spot in the stance, in the unit's space (ground level).</summary>
+        public Vector3 HomeLocal(int foot)
         {
-            if (!Stepping || foot != SteppingFoot)
+            float x = foot == Left ? -width * 0.5f : width * 0.5f;
+            float z = IsLead(foot) ? length * 0.5f : -length * 0.5f;
+            return new Vector3(x, 0f, z);
+        }
+
+        /// <summary>The foot's turn in the stance, degrees about up (toes out).</summary>
+        public float HomeYawLocal(int foot)
+        {
+            float toeOut = IsLead(foot) ? leadToeOut : rearToeOut;
+            return foot == Left ? -toeOut : toeOut;
+        }
+
+        public Vector3 HomeWorld(int foot, Vector3 rootPosition, float rootYaw)
+        {
+            var p = rootPosition + Quaternion.Euler(0f, rootYaw, 0f) * HomeLocal(foot);
+            p.y = GroundY;
+            return p;
+        }
+
+        public void Plant(Vector3 rootPosition, float rootYaw)
+        {
+            for (int f = 0; f < 2; f++)
             {
-                return Planted(foot);
+                feet[f].position = HomeWorld(f, rootPosition, rootYaw);
+                feet[f].yaw = rootYaw + HomeYawLocal(f);
+                feet[f].stepping = false;
+                feet[f].lift = 0f;
+            }
+        }
+
+        public Vector3 Position(int foot) => feet[foot].position;
+        public float Yaw(int foot) => feet[foot].yaw;
+        public float Lift(int foot) => feet[foot].lift;
+        public bool Stepping(int foot) => feet[foot].stepping;
+        public bool AnyStepping => feet[0].stepping || feet[1].stepping;
+
+        /// <summary>Progress through the current step (0 to 1), or 0 when planted.</summary>
+        public float StepProgress(int foot) => feet[foot].stepping ? feet[foot].t : 0f;
+
+        /// <summary>How far a planted foot is from its spot (horizontal metres).</summary>
+        public float Error(int foot, Vector3 rootPosition, float rootYaw)
+        {
+            var d = feet[foot].position - HomeWorld(foot, rootPosition, rootYaw);
+            d.y = 0f;
+            return d.magnitude;
+        }
+
+        public void Update(Vector3 rootPosition, float rootYaw, float dt)
+        {
+            for (int f = 0; f < 2; f++)
+            {
+                if (feet[f].stepping)
+                {
+                    Advance(f, dt);
+                }
             }
 
-            float t = Ease.Smooth(stepTime / stepDuration);
-            Vector3 position = Vector3.Lerp(stepFrom, stepTo, t);
-            position.y += Mathf.Sin(t * Mathf.PI) * stepHeight;
-            return position;
-        }
-
-        public void BeginStep(PartId foot, Vector3 target, float duration, float height)
-        {
-            SteppingFoot = foot;
-            stepFrom = Planted(foot);
-            stepTo = target;
-            stepTime = 0f;
-            stepDuration = Mathf.Max(0.05f, duration);
-            stepHeight = height;
-            Stepping = true;
-            StepsTaken++;
-        }
-
-        public void Update(float dt)
-        {
-            if (!Stepping)
+            if (AnyStepping)
             {
                 return;
             }
 
-            stepTime += dt;
-            if (stepTime >= stepDuration)
+            if (restAfterStep > 0f)
             {
-                if (SteppingFoot == PartId.FootL)
-                {
-                    footL = stepTo;
-                }
-                else
-                {
-                    footR = stepTo;
-                }
+                restAfterStep -= dt;
+                return;
+            }
 
-                Stepping = false;
-                Landed?.Invoke(SteppingFoot, stepTo);
+            // The foot furthest from its spot steps first, when one is too far or turned too much.
+            int worst = -1;
+            float worstScore = 1f;
+            for (int f = 0; f < 2; f++)
+            {
+                float distance = Error(f, rootPosition, rootYaw);
+                float turn = Mathf.Abs(Mathf.DeltaAngle(feet[f].yaw, rootYaw + HomeYawLocal(f)));
+                float score = Mathf.Max(threshold > 0f ? distance / threshold : 0f, turnThreshold > 0f ? turn / turnThreshold : 0f);
+                if (score > worstScore)
+                {
+                    worstScore = score;
+                    worst = f;
+                }
+            }
+
+            if (worst >= 0)
+            {
+                Begin(worst, HomeWorld(worst, rootPosition, rootYaw), rootYaw + HomeYawLocal(worst));
+                StepsTaken++;
+                return;
+            }
+
+            if (shuffleInterval > 0f)
+            {
+                shuffleTimer -= dt;
+                if (shuffleTimer <= 0f)
+                {
+                    shuffleTimer = shuffleInterval * (0.6f + 0.8f * (float)random.NextDouble());
+                    int f = nextShuffleFoot;
+                    nextShuffleFoot = 1 - nextShuffleFoot;
+                    float angle = (float)(random.NextDouble() * Math.PI * 2.0);
+                    float reach = shuffleDistance * (0.5f + 0.5f * (float)random.NextDouble());
+                    var offset = Quaternion.Euler(0f, rootYaw, 0f) * new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * reach;
+                    Begin(f, HomeWorld(f, rootPosition, rootYaw) + offset, rootYaw + HomeYawLocal(f));
+                    ShufflesTaken++;
+                }
+            }
+        }
+
+        private void Begin(int f, Vector3 to, float toYaw)
+        {
+            feet[f].stepping = true;
+            feet[f].from = feet[f].position;
+            feet[f].to = to;
+            feet[f].fromYaw = feet[f].yaw;
+            feet[f].toYaw = toYaw;
+            feet[f].t = 0f;
+        }
+
+        private void Advance(int f, float dt)
+        {
+            ref var foot = ref feet[f];
+            foot.t = Mathf.Min(1f, foot.t + dt / Mathf.Max(0.05f, duration));
+            float s = foot.t * foot.t * (3f - 2f * foot.t);
+            foot.position = Vector3.Lerp(foot.from, foot.to, s);
+            foot.position.y = GroundY;
+            foot.yaw = foot.fromYaw + Mathf.DeltaAngle(foot.fromYaw, foot.toYaw) * s;
+            float distance = Vector3.Distance(foot.from, foot.to);
+            foot.lift = height * Mathf.Clamp(distance / Mathf.Max(1e-3f, threshold), 0.4f, 1f) * Mathf.Sin(Mathf.PI * foot.t);
+            if (foot.t >= 1f)
+            {
+                foot.stepping = false;
+                foot.lift = 0f;
+                restAfterStep = duration * 0.25f;
+                Landed?.Invoke(f, foot.position);
             }
         }
     }

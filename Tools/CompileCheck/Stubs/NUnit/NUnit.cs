@@ -42,6 +42,21 @@ namespace NUnit.Framework
             if (!(a > b)) throw new AssertionException($"{message} expected {a} > {b}");
         }
 
+        public static void LessOrEqual(float a, float b, string message = null)
+        {
+            if (!(a <= b)) throw new AssertionException($"{message} expected {a} <= {b}");
+        }
+
+        public static void GreaterOrEqual(float a, float b, string message = null)
+        {
+            if (!(a >= b)) throw new AssertionException($"{message} expected {a} >= {b}");
+        }
+
+        public static void AreNotEqual(object a, object b, string message = null)
+        {
+            if (Equals(a, b)) throw new AssertionException($"{message} expected not {a}");
+        }
+
         public static void IsNotNull(object value, string message = null)
         {
             if (value == null) throw new AssertionException(message ?? "expected not null");

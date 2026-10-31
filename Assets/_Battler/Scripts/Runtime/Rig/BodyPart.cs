@@ -93,13 +93,7 @@ namespace PhysicsBattler.Rig
         private bool IsOwn(Collider other)
         {
             var part = other.GetComponentInParent<BodyPart>();
-            if (part != null && part.Owner == Owner)
-            {
-                return true;
-            }
-
-            var weapon = other.GetComponentInParent<Combat.Weapon>();
-            return weapon != null && weapon.Owner == Owner;
+            return part != null && part.Owner == Owner;
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -114,9 +108,8 @@ namespace PhysicsBattler.Rig
         private void OnCollisionStay(Collision collision)
         {
             RecordContact(collision);
-            // Only the feet need contact every step (to know the unit is standing on something),
-            // and the hand (a weapon pressing into a body keeps hitting after the first contact).
-            if (Owner != null && (PartInfo.IsFoot(id) || PartInfo.IsHand(id)))
+            // Only the hands report contact every step (a weapon pressing into a body keeps hitting).
+            if (Owner != null && PartInfo.IsHand(id))
             {
                 Owner.OnPartCollision(this, collision, false);
             }

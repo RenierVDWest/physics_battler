@@ -4,13 +4,14 @@ using UnityEngine;
 namespace PhysicsBattler.Rig
 {
     /// <summary>
-    /// The rig description written by SourceArt/Orc/Scripts/build_orc.py (orc_rig.json): every null
+    /// The rig description written by SourceArt/Bodies/Scripts/build_bodies.py (<body>_rig.json): every null
     /// with its parent and local position, each body part's mass and collider, and the weapon's
     /// markers and colliders. Unity axes, metres. Every null has identity rotation in the rest pose.
     /// </summary>
     [Serializable]
     public class RigFile
     {
+        public string body;
         public float heightM;
         public float totalMassKg;
         public NullEntry[] nulls;
