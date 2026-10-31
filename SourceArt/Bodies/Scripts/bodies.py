@@ -54,7 +54,7 @@ SPECS = [
     # Heroic human: broad shoulders, narrow waist.
     Spec("Medium", 1.0, 80.0),
     # Taller and much broader: huge traps, shoulders and arms, thick legs, a small head for its size.
-    Spec("Large", 1.38, 280.0, head=0.85, neck=1.55, neck_len=0.45, chest=1.38, waist=1.3, hips=1.28,
+    Spec("Large", 1.38, 280.0, head=0.85, neck=1.55, neck_len=0.45, chest=1.38, waist=1.3, hips=1.12,
          upper_arm=1.5, forearm=1.5, hand=1.3, thigh=1.45, shin=1.4, foot=1.2,
          shoulder_w=1.3, hip_w=1.2, arm_len=1.02, leg_len=0.9, torso_len=1.05, arm_tilt=24,
          traps=1.6, lats=1.25, pecs=1.3, glutes=1.15, belly=1.08, calf=0.95, deltoid=1.15, biceps=1.2),

@@ -121,39 +121,49 @@ def smooth_profile(prof, offs, steps=4):
 
 
 def build(body):
+    """Every girth is the medium body's, times the height scale and the spec's factor for that
+    region (bodies.SPECS), so small and large keep the style with their own proportions."""
     sp, h = body.spec, body.spec.hs
     parts = {}
     hz, pz, wz, cz, nz = body.hip_z, body.pelvis_z, body.waist_z, body.chest_z, body.neck_z
-    sz = body.shoulder[1]
+    sx = body.shoulder[0]
+    hi = h * sp.hips * sp.hip_w ** 0.5
+    wa = h * sp.waist
+    ch = h * sp.chest
+    nk = h * sp.neck
+    hd = h * sp.head
+    ua, fa, hu = h * sp.upper_arm, h * sp.forearm, h * sp.hand
+    th, sn, fu = h * sp.thigh, h * sp.shin, h * sp.foot
 
     # pelvis: a smooth rounded block, hips widest
     s = Shells()
     s.capsule((0, 0.006 * h, hz - 0.055 * h), (0, 0.006 * h, wz + 0.01 * h),
-              [(0, 0.075 * h), (0.25, 0.14 * h), (0.55, 0.15 * h), (0.85, 0.13 * h), (1, 0.115 * h)],
+              [(0, 0.075 * hi), (0.25, 0.14 * hi), (0.55, 0.15 * hi), (0.85, 0.13 * wa), (1, 0.115 * wa)],
               squash=(1.0, 0.68))
     parts["Pelvis"] = s
     # spine: a narrow waist
     s = Shells()
     s.capsule((0, 0.004 * h, wz - 0.01 * h), (0, 0.004 * h, cz + 0.02 * h),
-              [(0, 0.11 * h), (0.5, 0.112 * h), (1, 0.122 * h)], squash=(1.0, 0.7))
+              [(0, 0.11 * wa), (0.5, 0.112 * wa), (1, 0.122 * ch)], squash=(1.0, 0.7))
     parts["Spine"] = s
     # chest: an inverted egg, broad at the shoulders, tapering to the waist
     s = Shells()
     s.capsule((0, 0.0, cz - 0.01 * h), (0, 0.006 * h, nz - 0.005 * h),
-              [(0, 0.12 * h), (0.3, 0.16 * h), (0.62, 0.184 * h), (0.8, 0.182 * h), (0.92, 0.15 * h), (1, 0.065 * h)],
-              squash=(1.0, 0.62))
+              [(0, 0.12 * ch), (0.3, 0.16 * ch), (0.62, 0.9 * sx), (0.8, 0.89 * sx), (0.92, 0.73 * sx),
+               (1, 0.065 * nk / sp.neck ** 0.3)],
+              squash=(1.0, 0.62 * sp.chest ** 0.15))
     parts["Chest"] = s
     # head: a neck and an egg, the narrow end at the chin
     s = Shells()
-    s.capsule((0, 0.004 * h, nz - 0.02 * h), (0, 0.0, body.neck_top + 0.03 * h),
-              [(0, 0.044 * h), (1, 0.04 * h)], mat=JOINT, n=20)
+    s.capsule((0, 0.004 * h, nz - 0.02 * h), (0, 0.0, body.neck_top + 0.03 * hd),
+              [(0, 0.044 * nk), (1, 0.04 * nk)], mat=JOINT, n=20)
     hc = vec(body.head_c)
-    chin = hc[2] - 0.112 * h
-    crown = hc[2] + 0.118 * h
+    chin = hc[2] - 0.112 * hd
+    crown = hc[2] + 0.118 * hd
     L = crown - chin
-    prof = [(0, 0.0), (0.02 * L, 0.03 * h), (0.08 * L, 0.052 * h), (0.2 * L, 0.07 * h), (0.38 * L, 0.082 * h),
-            (0.55 * L, 0.088 * h), (0.72 * L, 0.084 * h), (0.86 * L, 0.068 * h), (0.95 * L, 0.042 * h), (L, 0.0)]
-    offs = [np.array([0, -0.012 * h * (1 - f / L) ** 2, 0]) for f, _ in prof]   # chin a little forward
+    prof = [(0, 0.0), (0.02 * L, 0.03 * hd), (0.08 * L, 0.052 * hd), (0.2 * L, 0.07 * hd), (0.38 * L, 0.082 * hd),
+            (0.55 * L, 0.088 * hd), (0.72 * L, 0.084 * hd), (0.86 * L, 0.068 * hd), (0.95 * L, 0.042 * hd), (L, 0.0)]
+    offs = [np.array([0, -0.012 * hd * (1 - f / L) ** 2, 0]) for f, _ in prof]   # chin a little forward
     prof, offs = smooth_profile(prof, offs)
     s.lathe(np.array([0, hc[1], chin]), Z, prof, BODY, n=36, squash=(1.0, 1.14), offsets=offs)
     parts["Head"] = s
@@ -164,36 +174,37 @@ def build(body):
         d = unit(W - E)
         out = side * X
         s = Shells()
-        s.sphere(S, 0.058 * h)
-        s.capsule(S + unit(E - S) * 0.03 * h, E, [(0, 0.05 * h), (0.3, 0.049 * h), (1, 0.038 * h)])
+        s.sphere(S, 0.058 * ua * sp.deltoid ** 0.5)
+        s.capsule(S + unit(E - S) * 0.03 * h, E, [(0, 0.05 * ua), (0.3, 0.049 * ua), (1, 0.038 * ua)])
         parts[f"UpperArm_{n}"] = s
         s = Shells()
-        s.sphere(E, 0.043 * h)
-        s.capsule(E + d * 0.02 * h, W, [(0, 0.04 * h), (0.25, 0.042 * h), (1, 0.028 * h)])
+        s.sphere(E, 0.043 * max(ua, fa))
+        s.capsule(E + d * 0.02 * h, W, [(0, 0.04 * fa), (0.25, 0.042 * fa), (1, 0.028 * fa)])
         parts[f"Forearm_{n}"] = s
         s = Shells()
-        s.sphere(W, 0.03 * h)
+        s.sphere(W, 0.03 * max(fa, hu * 0.8))
         # a mitten: flat across the palm, thumb at the front
-        s.capsule(W + d * 0.025 * h, W + d * 0.13 * h, [(0, 0.04 * h), (0.5, 0.046 * h), (1, 0.034 * h)],
+        s.capsule(W + d * 0.025 * hu, W + d * 0.13 * hu, [(0, 0.04 * hu), (0.5, 0.046 * hu), (1, 0.034 * hu)],
                   squash=(0.5, 1.0), ref=F)
-        s.capsule(W + d * 0.035 * h + F * 0.035 * h, W + d * 0.085 * h + F * 0.05 * h - out * 0.01 * h,
-                  [(0, 0.016 * h), (1, 0.012 * h)], n=16)
+        s.capsule(W + d * 0.035 * hu + F * 0.035 * hu, W + d * 0.085 * hu + F * 0.05 * hu - out * 0.01 * hu,
+                  [(0, 0.016 * hu), (1, 0.012 * hu)], n=16)
         parts[f"Hand_{n}"] = s
 
         H, K, A = vec(body.P(f"Thigh_{n}")), vec(body.P(f"Shin_{n}")), vec(body.P(f"Foot_{n}"))
         s = Shells()
-        s.sphere(H, 0.075 * h)
-        s.capsule(H + unit(K - H) * 0.04 * h, K - unit(K - H) * 0.012 * h, [(0, 0.078 * h), (0.25, 0.076 * h), (1, 0.049 * h)])
+        s.sphere(H, 0.075 * th)
+        s.capsule(H + unit(K - H) * 0.04 * h, K - unit(K - H) * 0.012 * h,
+                  [(0, 0.078 * th), (0.25, 0.076 * th), (1, 0.049 * max(th * 0.95, sn))])
         parts[f"Thigh_{n}"] = s
         s = Shells()
-        s.sphere(K, 0.053 * h)
-        s.capsule(K + unit(A - K) * 0.03 * h, A, [(0, 0.047 * h), (0.25, 0.05 * h), (0.8, 0.033 * h), (1, 0.029 * h)])
+        s.sphere(K, 0.053 * max(th * 0.95, sn))
+        s.capsule(K + unit(A - K) * 0.03 * h, A, [(0, 0.047 * sn), (0.25, 0.05 * sn), (0.8, 0.033 * sn), (1, 0.029 * sn)])
         parts[f"Shin_{n}"] = s
         s = Shells()
-        s.sphere(A, 0.034 * h)
-        heel = np.array([A[0], A[1] + 0.045 * h, 0.04 * h])
-        toe = np.array([A[0] + side * 0.01 * h, A[1] - 0.17 * h, 0.03 * h])
-        s.capsule(heel, toe, [(0, 0.038 * h), (0.35, 0.045 * h), (0.75, 0.046 * h), (1, 0.034 * h)],
+        s.sphere(A, 0.034 * max(sn, fu * 0.8))
+        heel = np.array([A[0], A[1] + 0.045 * fu, 0.04 * fu])
+        toe = np.array([A[0] + side * 0.01 * fu, A[1] - 0.17 * fu, 0.03 * fu])
+        s.capsule(heel, toe, [(0, 0.038 * fu), (0.35, 0.045 * fu), (0.75, 0.046 * fu), (1, 0.034 * fu)],
                   squash=(1.0, 0.75), ref=Z)
         v, f, m = s.result()
         v[:, 2] = np.maximum(v[:, 2], 0.0)      # flat sole on the ground

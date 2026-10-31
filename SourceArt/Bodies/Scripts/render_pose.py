@@ -27,6 +27,9 @@ cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam"))
 scene.collection.objects.link(cam)
 scene.camera = cam
 root = bpy.data.objects[f"{BODY}:Root"].matrix_world.translation
+for o in bpy.data.objects:
+    if o.type == "MESH" and o.name.startswith("SM_"):
+        o.hide_render = not o.name.startswith(f"SM_{BODY}_")
 H = 1.85 * (0.5 if BODY == "Small" else 1.0 if BODY == "Medium" else 1.38)
 
 
