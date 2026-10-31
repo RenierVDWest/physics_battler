@@ -46,9 +46,10 @@ class Spec:
 
 
 SPECS = [
-    # Half human height: a big head, big hands and feet, wiry limbs, narrow shoulders, a little belly.
-    Spec("Small", 0.5, 15.0, head=1.9, neck=0.95, neck_len=0.7, chest=1.0, waist=1.05, hips=1.0,
-         upper_arm=0.95, forearm=1.0, hand=1.55, thigh=1.0, shin=0.95, foot=1.5,
+    # About 0.7 of human height (1.4 times the first small body): a big head, big hands and feet for
+    # its size (but not past the medium body's), wiry limbs, narrow shoulders, a little belly.
+    Spec("Small", 0.7, 38.0, head=1.45, neck=0.95, neck_len=0.75, chest=1.0, waist=1.05, hips=1.0,
+         upper_arm=0.95, forearm=1.0, hand=1.25, thigh=1.0, shin=0.95, foot=1.2,
          shoulder_w=0.95, hip_w=1.0, arm_len=1.1, leg_len=0.78, torso_len=0.95, arm_tilt=18,
          traps=0.75, lats=0.8, pecs=0.7, glutes=0.9, belly=1.3, calf=0.85, deltoid=0.9, biceps=0.8),
     # Heroic human: broad shoulders, narrow waist.

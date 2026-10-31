@@ -28,6 +28,9 @@ namespace PhysicsBattler.Units
         [Range(0f, 1f)] public float torsoPin = 0.85f;
         [Tooltip("How firmly the arms are held to the pose. Lower reads as heavier, with more lag and follow-through.")]
         [Range(0f, 1f)] public float armPin = 0.7f;
+        [Tooltip("During a blow the weapon arm follows the pose exactly (kinematic), so the swing you see is the aimed one. "
+                 + "Milestone 2 runs this way; milestone 3 hands the arm back to physics (pinned) for recoil.")]
+        public bool weaponArmKinematicInBlows = true;
 
         [Header("Rigidbodies")]
         public float linearDamping = 0.05f;

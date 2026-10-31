@@ -6,7 +6,7 @@ They share one style; each body's proportions come from its line in `Scripts/bod
 
 | Body | Height | Mass | Proportions |
 | --- | --- | --- | --- |
-| Small | 0.90 m | 15 kg | Half human size: a big head, big hands and feet, short slender limbs |
+| Small | 1.19 m | 38 kg | About two thirds of human size: a big head, big hands and feet for its size, short slender limbs |
 | Medium | 1.83 m | 80 kg | Human: broad shoulders, narrow waist |
 | Large | 2.37 m | 280 kg | Taller and much broader: wide shoulders, thick arms and legs, a small head for its size |
 

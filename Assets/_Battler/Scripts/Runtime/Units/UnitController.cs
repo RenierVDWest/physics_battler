@@ -595,7 +595,8 @@ namespace PhysicsBattler.Units
             {
                 float blend = move != null ? move.Blend : 0f;
                 float armPin = Mathf.Lerp(profile.armPin, move != null ? move.Move.weaponArmPin : profile.armPin, blend);
-                Authority.Set(BodyRegion.ArmR, AuthorityLevel.Pinned, armPin);
+                bool kinematicArm = move != null && profile.weaponArmKinematicInBlows && blend > 0.01f;
+                Authority.Set(BodyRegion.ArmR, kinematicArm ? AuthorityLevel.Kinematic : AuthorityLevel.Pinned, armPin);
                 Authority.Apply(dt);
             }
 

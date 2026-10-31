@@ -116,7 +116,7 @@ namespace PhysicsBattler.Tests
             try
             {
                 Assert.Less(small.Body.LegLength, 0.6f * large.Body.LegLength);
-                Assert.Greater(large.Body.Mass, 10f * small.Body.Mass);
+                Assert.Greater(large.Body.Mass, 5f * small.Body.Mass);
             }
             finally
             {

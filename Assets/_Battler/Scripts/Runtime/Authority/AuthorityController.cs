@@ -42,6 +42,7 @@ namespace PhysicsBattler.Authority
         private readonly AnimRig anim;
         private readonly AuthorityLevel[] levels = new AuthorityLevel[5];
         private readonly float[] pins = new float[5];
+        private readonly bool?[] limited = new bool?[PartInfo.Count];
         public AuthorityController(UnitRig rig, AnimRig anim)
         {
             this.rig = rig;
@@ -96,6 +97,7 @@ namespace PhysicsBattler.Authority
                 var region = RegionOf(id);
                 var level = levels[(int)region];
                 bool kinematic = level == AuthorityLevel.Kinematic;
+                SetJointLimits(part, level == AuthorityLevel.Loose || level == AuthorityLevel.Ragdoll);
                 if (body.isKinematic != kinematic)
                 {
                     body.isKinematic = kinematic;
@@ -136,6 +138,27 @@ namespace PhysicsBattler.Authority
         {
             Vector3 needed = JointMath.RotationError(rotation, target) / dt;
             return Vector3.Lerp(angularVelocity, needed, Mathf.Clamp01(pin));
+        }
+
+        /// <summary>
+        /// A joint's anatomical limits only hold while physics owns the part (loose, ragdoll). While
+        /// the pose owns it (kinematic, pinned), the joint swings free: a limit would only fight the
+        /// pose (a weapon hand turned past the wrist's limit, a forearm twisted by the arm's IK) and
+        /// leave the visible limb behind it.
+        /// </summary>
+        private void SetJointLimits(BodyPart part, bool on)
+        {
+            var joint = part.joint;
+            if (joint == null || limited[(int)part.id] == on)
+            {
+                return;
+            }
+
+            limited[(int)part.id] = on;
+            var motion = on ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Free;
+            joint.angularXMotion = motion;
+            joint.angularYMotion = motion;
+            joint.angularZMotion = motion;
         }
 
         /// <summary>Distance and angle between a part and its pose (for the log).</summary>
