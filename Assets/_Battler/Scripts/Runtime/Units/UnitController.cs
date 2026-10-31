@@ -28,6 +28,7 @@ namespace PhysicsBattler.Units
         [SerializeField] private int team;
 
         private static Transform bodiesContainer;
+        private static int spawnCount;   // seeds each unit's idle and shuffles differently
         private GameObject detachedBody;
         private float facingYaw;
         private Vector3? facePoint;
@@ -122,7 +123,7 @@ namespace PhysicsBattler.Units
             Physics.SyncTransforms();
             IgnoreSelfCollisions();
 
-            int seed = Mathf.Abs(GetInstanceID()) + 7919 * team;
+            int seed = 7919 * team + 104729 * ++spawnCount;
             Stance = new Stance(seed);
             Stance.Configure(Style, Body);
             Idle = new CombatIdle(seed + 1);
