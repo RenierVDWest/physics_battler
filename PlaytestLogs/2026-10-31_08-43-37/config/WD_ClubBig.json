@@ -1,0 +1,12 @@
+{
+    "physicsMassKg": 6.0,
+    "gameplayMassKg": 40.0,
+    "damage": 30.0,
+    "referenceSpeed": 9.0,
+    "minHitSpeed": 2.5,
+    "knockback": 0.44999998807907107,
+    "stabilityScale": 0.15000000596046449,
+    "upLift": 0.18000000715255738,
+    "pelvisShare": 0.4000000059604645,
+    "hitCooldown": 0.30000001192092898
+}

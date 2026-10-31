@@ -1,0 +1,262 @@
+# Physics Battler playtest 2026-10-31_08-43-37
+# time (s since Play) | physics step | who | what | details
+    0.000 |      0 | -              | session  | recording started: Unity 6000.0.60f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    0.000 |      0 | -              | console  | [Joint probe] drive standard (asked +35, got 35.0), X limit sign -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    0.000 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35.0), X limit sign -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    0.000 |      0 | -              | input    | spawn: two orcs 2.00 m apart
+    0.000 |      0 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 95, Chest 49, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 128, ForearmR 58, HandR 5, ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+    0.000 |      0 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 95, Chest 49, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 128, ForearmR 58, HandR 5, ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+    0.000 |      0 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 221, Chest 116, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 388→300 (capped), ForearmR 1268→300 (capped), HandR 687→300 (capped), ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+    0.000 |      1 | Orc A (club)   | spawn    | at (-1.00, 0.00) facing 90°, team 0, mass 126.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc, holding P_Weapon_ClubBig
+    0.000 |      1 | Orc B          | spawn    | at (1.00, 0.00) facing 270°, team 1, mass 120.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc
+    0.000 |      1 | Orc A (club)   | equip    | holding P_Weapon_ClubBig (WD_ClubBig): physics mass 6.0 kg, tip 1.86 m from the grip
+    0.000 |      1 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 221, Chest 116, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 388→300 (capped), ForearmR 1268→300 (capped), HandR 687→300 (capped), ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+    0.000 |      1 | Orc B          | muscles  | load boosts (needed→used): Spine 95, Chest 49, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 128, ForearmR 58, HandR 5, ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+    0.017 |      2 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 221, Chest 116, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 388→300 (capped), ForearmR 1263→300 (capped), HandR 687→300 (capped), ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+    2.774 |    167 | -              | input    | attack ordered
+    2.774 |    167 | Orc A (club)   | attack   | swing at Orc B: target 1.82 m from the shoulder, contact reach 0.32 m, plane roll 50°, extra lean 0.00 m, crowded ×1.00, club starts at θ 126° (wind-up over the top to -150°)
+    3.333 |    201 | Orc A (club)   | step     | catch step FootR #1/3: falling right (sideways: falling-side foot), balance error 0.24 m > 0.24 m, step 0.20 m (clamped to maxStepLength)
+    3.567 |    215 | Orc A (club)   | step     | FootR landed, 0.10 m from where it was placed; balance error now 0.22 m
+    3.583 |    216 | Orc A (club)   | attack   | swing #1 → Load  [ghost θ -150°, club θ 137° (lag 73°), tip 14.3 m/s, club 1.97 m from the target point]
+    3.600 |    217 | Orc A (club)   | step     | catch step FootR #2/3: falling back-left (farther foot), balance error 0.25 m > 0.24 m, step 0.25 m
+    3.733 |    225 | Orc A (club)   | attack   | committed: arc frozen, aiming at (0.79, 1.44, 0.00) (target's chest now (0.78, 1.46, 0.08), 0.08 m apart), contact reach 0.34 m
+    3.733 |    225 | Orc A (club)   | attack   | swing #1 → Strike  [ghost θ -160°, club θ 166° (lag 34°), tip 20.0 m/s, club 2.22 m from the target point]
+    3.800 |    229 | Orc A (club)   | club     | club touched the ground at 14.4 m/s (Strike θ -153°)
+    3.833 |    231 | Orc A (club)   | step     | FootR landed, 0.17 m from where it was placed; balance error now 0.33 m
+    4.083 |    246 | Orc A (club)   | step     | catch step FootR #3/3: falling back-left (farther foot), balance error 0.24 m > 0.24 m, step 0.10 m
+    4.283 |    258 | Orc A (club)   | attack   | swing #1 → Follow  [ghost θ 40°, club θ -171° (lag -149°), tip 17.8 m/s, club 1.59 m from the target point]
+    4.317 |    260 | Orc A (club)   | step     | FootR landed; balance error now 0.30 m
+    4.583 |    276 | Orc A (club)   | attack   | swing #1 → Recover  [ghost θ 50°, club θ 78° (lag -28°), tip 12.2 m/s, club 1.06 m from the target point]
+    4.717 |    284 | Orc A (club)   | step     | stuck off balance 0.4 s with no steps left (error 0.34 m): granting one bonus step
+    4.717 |    284 | Orc A (club)   | step     | catch step FootL #3/3: falling left (sideways: falling-side foot), balance error 0.34 m > 0.24 m, step 0.33 m
+    4.950 |    298 | Orc A (club)   | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.13 m
+    4.967 |    299 | Orc A (club)   | step     | settle step FootL: 0.33 m from its rest spot (limit 0.22 m)
+    5.167 |    311 | Orc A (club)   | attack   | swing #1 result: missed: club passed 0.78 m from the target point (in Recover); fastest tip 20.9 m/s, worst strike lag 171°, worst arm tracking error 179°; club touched: the ground 14.4 m/s in Strike θ -153°
+    5.300 |    319 | Orc A (club)   | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.08 m
+    5.617 |    338 | Orc A (club)   | step     | catch step FootL #1/3: falling back-right (farther foot), balance error 0.25 m > 0.24 m, step 0.20 m
+    5.850 |    352 | Orc A (club)   | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.28 m
+    7.971 |    479 | -              | MARK     | ===== mark 1 =====
+    7.971 |    479 | Orc A (club)   | mark     | Steady 8.0 s, pelvis 0.91 m, chest tilt 3°, balance error 0.10 m, stability 100; worst tracking ShinL 37°, FootR 28°, FootL 25°
+    7.971 |    479 | Orc B          | mark     | Steady 8.0 s, pelvis 0.91 m, chest tilt 3°, balance error 0.19 m, stability 100; worst tracking FootR 30°, FootL 23°, ShinL 17°
+    8.797 |    528 | -              | input    | attack ordered
+    8.797 |    528 | Orc A (club)   | attack   | swing at Orc B: target 1.86 m from the shoulder, contact reach 0.36 m, plane roll 50°, extra lean 0.00 m, crowded ×1.00, club starts at θ 126° (wind-up over the top to -150°)
+    9.600 |    577 | Orc A (club)   | attack   | swing #2 → Load  [ghost θ -150°, club θ 146° (lag 64°), tip 12.3 m/s, club 2.32 m from the target point]
+    9.717 |    584 | Orc A (club)   | club     | club touched the ground at 10.4 m/s (Load θ -160°)
+    9.750 |    586 | Orc A (club)   | attack   | committed: arc frozen, aiming at (0.86, 1.49, 0.14) (target's chest now (0.79, 1.46, 0.07), 0.11 m apart), contact reach 0.44 m
+    9.750 |    586 | Orc A (club)   | attack   | swing #2 → Strike  [ghost θ -160°, club θ -105° (lag -55°), tip 9.5 m/s, club 2.65 m from the target point]
+   10.283 |    618 | Orc A (club)   | step     | catch step FootL #2/3: falling right (farther foot), balance error 0.30 m > 0.24 m, step 0.25 m
+   10.300 |    619 | Orc A (club)   | attack   | swing #2 → Follow  [ghost θ 40°, club θ -165° (lag -155°), tip 18.0 m/s, club 1.82 m from the target point]
+   10.517 |    632 | Orc A (club)   | step     | FootL landed, 0.10 m from where it was placed; balance error now 0.37 m
+   10.533 |    633 | Orc A (club)   | step     | catch step FootL #3/3: falling forward-left (farther foot), balance error 0.38 m > 0.24 m, step 0.40 m
+   10.600 |    637 | Orc A (club)   | attack   | swing #2 → Recover  [ghost θ 50°, club θ 73° (lag -23°), tip 12.6 m/s, club 1.18 m from the target point]
+   10.690 |    642 | -              | MARK     | ===== mark 2 =====
+   10.690 |    642 | Orc A (club)   | mark     | Steady 10.7 s, swing Recover θ 50°, pelvis 0.86 m, chest tilt 5°, balance error 0.43 m, stability 100; worst tracking HandR 101°, ForearmR 43°, UpperArmL 16°
+   10.690 |    642 | Orc B          | mark     | Steady 10.7 s, pelvis 0.91 m, chest tilt 2°, balance error 0.14 m, stability 100; worst tracking ShinL 21°, Pelvis 18°, HandR 15°
+   10.767 |    647 | Orc A (club)   | step     | FootL landed; balance error now 0.40 m
+   10.783 |    648 | Orc A (club)   | step     | settle step FootL: 0.48 m from its rest spot (limit 0.22 m)
+   11.117 |    668 | Orc A (club)   | step     | FootL landed, 0.29 m from where it was placed; balance error now 0.23 m
+   11.183 |    672 | Orc A (club)   | attack   | swing #2 result: missed: club passed 0.53 m from the target point (in Recover); fastest tip 21.9 m/s, worst strike lag 166°, worst arm tracking error 178°; club touched: the ground 10.4 m/s in Load θ -160°
+   11.233 |    675 | Orc B          | contact  | Spine touched Orc A (club)'s club at 4.8 m/s
+   11.233 |    675 | Orc A (club)   | club     | club touched Orc B Spine at 4.8 m/s (idle)
+   11.233 |    675 | Orc B          | state    | Steady → Flinch: lost 17.0 stability (flinch threshold 4.0)  [stability 83, health 96, chest tilt 3°, pelvis 0.91/0.92 m, balance error 0.18 m]
+   11.233 |    675 | Orc A (club)   | HIT      | → Orc B Spine: 4.4 m/s, 4.4 damage, -17.0 stability, intent 0.30, impulse 175 N·s
+   11.233 |    675 | Orc B          | contact  | Chest touched Orc A (club)'s club at 4.7 m/s
+   11.233 |    675 | Orc A (club)   | club     | club touched Orc B Chest at 4.7 m/s (idle)
+   11.233 |    675 | Orc A (club)   | hit      | club touched Orc B Chest: no hit, still cooling down from the last one
+   11.250 |    676 | Orc B          | step     | catch step FootL #1/3: falling back-left (farther foot), balance error 0.18 m > 0.16 m, step 0.16 m
+   11.267 |    677 | Orc B          | contact  | Head touched Orc A (club)'s club at 4.7 m/s
+   11.267 |    677 | Orc A (club)   | club     | club touched Orc B Head at 4.7 m/s (idle)
+   11.267 |    677 | Orc A (club)   | hit      | club touched Orc B Head: no hit, still cooling down from the last one
+   11.483 |    690 | Orc B          | step     | FootL landed, 0.21 m from where it was placed; balance error now 0.24 m
+   11.500 |    691 | Orc B          | step     | catch step FootR #2/3: falling back-left (farther foot), balance error 0.22 m > 0.16 m, step 0.10 m
+   11.517 |    692 | Orc A (club)   | step     | catch step FootR #1/3: falling back-right (sideways: falling-side foot), balance error 0.25 m > 0.24 m, step 0.22 m
+   11.533 |    693 | Orc B          | state    | Flinch → Steady: flinch over  [stability 83, health 96, chest tilt 1°, pelvis 0.90/0.92 m, balance error 0.16 m]
+   11.733 |    705 | Orc B          | step     | FootR landed, 0.20 m from where it was placed; balance error now 0.16 m
+   11.750 |    706 | Orc A (club)   | step     | FootR landed, 0.20 m from where it was placed; balance error now 0.36 m
+   11.767 |    707 | Orc A (club)   | step     | catch step FootL #2/3: falling back (farther foot), balance error 0.34 m > 0.24 m, step 0.21 m
+   12.000 |    721 | Orc A (club)   | step     | FootL landed, 0.19 m from where it was placed; balance error now 0.20 m
+   13.483 |    810 | Orc A (club)   | step     | catch step FootR #3/3: falling back (farther foot), balance error 0.25 m > 0.24 m, step 0.13 m
+   13.717 |    824 | Orc A (club)   | step     | FootR landed, 0.19 m from where it was placed; balance error now 0.24 m
+   15.596 |    936 | -              | input    | attack ordered
+   15.596 |    936 | Orc A (club)   | attack   | swing at Orc B: target 1.90 m from the shoulder, contact reach 0.40 m, plane roll 50°, extra lean 0.00 m, crowded ×1.00, club starts at θ 121° (wind-up over the top to -150°)
+   15.850 |    952 | Orc B          | contact  | Chest touched Orc A (club)'s club at 11.7 m/s
+   15.850 |    952 | Orc A (club)   | club     | club touched Orc B Chest at 11.7 m/s (WindUp θ 135°)
+   15.850 |    952 | Orc B          | state    | Steady → Stagger: stability 54 < staggerBelow 60 (lost 45.8)  [stability 54, health 84, chest tilt 1°, pelvis 0.92/0.92 m, balance error 0.01 m]
+   15.850 |    952 | Orc A (club)   | HIT      | → Orc B Chest: 11.8 m/s, 11.8 damage, -45.8 stability, intent 0.30, impulse 470 N·s
+   15.850 |    952 | Orc B          | contact  | Head touched Orc A (club)'s club at 11.9 m/s
+   15.850 |    952 | Orc A (club)   | club     | club touched Orc B Head at 11.9 m/s (WindUp θ 135°)
+   15.850 |    952 | Orc A (club)   | hit      | club touched Orc B Head: no hit, still cooling down from the last one
+   15.867 |    953 | Orc B          | contact  | Spine touched Orc A (club)'s club at 11.4 m/s
+   15.867 |    953 | Orc A (club)   | club     | club touched Orc B Spine at 11.4 m/s (WindUp θ 137°)
+   15.867 |    953 | Orc A (club)   | hit      | club touched Orc B Spine: no hit, still cooling down from the last one
+   15.883 |    954 | Orc B          | step     | catch step FootR #1/3: falling back-right (sideways: falling-side foot), balance error 0.42 m > 0.16 m, step 0.42 m (clamped to maxStepLength)
+   15.917 |    956 | Orc B          | contact  | Pelvis touched Orc A (club)'s club at 8.7 m/s
+   15.917 |    956 | Orc A (club)   | club     | club touched Orc B Pelvis at 8.7 m/s (WindUp θ 147°)
+   15.917 |    956 | Orc A (club)   | hit      | club touched Orc B Pelvis: no hit, still cooling down from the last one
+   15.983 |    960 | Orc A (club)   | club     | club touched the ground at 10.1 m/s (WindUp θ 166°)
+   16.017 |    962 | Orc B          | contact  | FootR hit the ground at 3.3 m/s (Stagger)
+   16.117 |    968 | Orc B          | step     | FootR landed, 0.36 m from where it was placed; balance error now 0.12 m
+   16.300 |    979 | Orc B          | step     | catch step FootR #2/3: falling back-left (farther foot), balance error 0.17 m > 0.16 m, step 0.36 m
+   16.300 |    979 | Orc B          | contact  | FootL hit the ground at 0.4 m/s (Stagger)
+   16.400 |    985 | Orc A (club)   | attack   | swing #3 → Load  [ghost θ -150°, club θ 60° (lag 150°), tip 4.2 m/s, club 1.93 m from the target point]
+   16.533 |    993 | Orc B          | step     | FootR landed, 0.14 m from where it was placed; balance error now 0.11 m
+   16.550 |    994 | Orc A (club)   | attack   | committed: arc frozen, aiming at (0.78, 1.43, 0.03) (target's chest now (0.88, 1.41, -0.01), 0.11 m apart), contact reach 0.37 m
+   16.550 |    994 | Orc A (club)   | attack   | swing #3 → Strike  [ghost θ -160°, club θ 13° (lag -173°), tip 5.7 m/s, club 1.76 m from the target point]
+   16.650 |   1000 | Orc A (club)   | club     | club touched the ground at 4.9 m/s (Strike θ -148°)
+   16.733 |   1005 | Orc B          | contact  | Chest touched Orc A (club)'s club at 13.4 m/s
+   16.733 |   1005 | Orc A (club)   | club     | club touched Orc B Chest at 13.4 m/s (Strike θ -128°)
+   16.733 |   1005 | Orc B          | state    | Stagger → Knockdown: stability 0 < knockdownBelow 25 (lost 70.3)  [stability 0, health 45, chest tilt 2°, pelvis 0.87/0.92 m, balance error 0.11 m]
+   16.733 |   1005 | Orc A (club)   | attack   | swing #3 → Follow (hit landed)  [ghost θ -128°, club θ -6° (lag -121°), tip 21.4 m/s, club 0.62 m from the target point]
+   16.733 |   1005 | Orc A (club)   | HIT      | → Orc B Chest: 11.7 m/s, 39.1 damage, -70.3 stability, intent 1.00, impulse 469 N·s
+   16.733 |   1005 | Orc B          | contact  | Spine touched Orc A (club)'s club at 13.3 m/s
+   16.733 |   1005 | Orc A (club)   | club     | club touched Orc B Spine at 13.3 m/s (Follow θ -128°)
+   16.733 |   1005 | Orc A (club)   | hit      | club touched Orc B Spine: no hit, still cooling down from the last one
+   16.750 |   1006 | Orc B          | contact  | ForearmL touched Orc A (club)'s club at 14.5 m/s
+   16.750 |   1006 | Orc A (club)   | club     | club touched Orc B ForearmL at 14.5 m/s (Follow θ 42°)
+   16.750 |   1006 | Orc A (club)   | hit      | club touched Orc B ForearmL: no hit, still cooling down from the last one
+   16.750 |   1006 | Orc B          | contact  | UpperArmL touched Orc A (club)'s club at 14.8 m/s
+   16.750 |   1006 | Orc A (club)   | club     | club touched Orc B UpperArmL at 14.8 m/s (Follow θ 42°)
+   16.750 |   1006 | Orc A (club)   | hit      | club touched Orc B UpperArmL: no hit, still cooling down from the last one
+   17.033 |   1023 | Orc A (club)   | attack   | swing #3 → Recover  [ghost θ 50°, club θ 138° (lag -88°), tip 13.5 m/s, club 1.33 m from the target point]
+   17.100 |   1027 | Orc B          | contact  | FootL hit the ground at 2.6 m/s (Knockdown)
+   17.217 |   1034 | Orc B          | contact  | FootR hit the ground at 3.2 m/s (Knockdown)
+   17.267 |   1037 | Orc B          | contact  | Pelvis hit the ground at 2.3 m/s (Knockdown)
+   17.383 |   1044 | Orc B          | contact  | HandL hit the ground at 5.0 m/s (Knockdown)
+   17.400 |   1045 | Orc B          | contact  | ForearmL hit the ground at 1.9 m/s (Knockdown)
+   17.450 |   1048 | Orc B          | contact  | UpperArmL hit the ground at 1.0 m/s (Knockdown)
+   17.483 |   1050 | Orc B          | contact  | Spine hit the ground at 0.9 m/s (Knockdown)
+   17.517 |   1052 | Orc B          | contact  | Chest hit the ground at 1.2 m/s (Knockdown)
+   17.633 |   1059 | Orc A (club)   | attack   | swing #3 result: HIT Orc B Chest at 11.8 m/s (WindUp); fastest tip 25.2 m/s, worst strike lag 169°, worst arm tracking error 178°; club touched: Orc B Chest 11.7 m/s in WindUp θ 135°, Orc B Head 11.9 m/s in WindUp θ 135°, Orc B Spine 11.4 m/s in WindUp θ 137°, Orc B Pelvis 8.7 m/s in WindUp θ 147°, the ground 10.1 m/s in WindUp θ 166°, the ground 4.9 m/s in Strike θ -148°, Orc B Chest 13.4 m/s in Strike θ -128°, Orc B Spine 13.3 m/s in Follow θ -128°
+   17.667 |   1061 | Orc B          | contact  | ShinL hit the ground at 0.1 m/s (Knockdown)
+   17.667 |   1061 | Orc B          | contact  | ThighL hit the ground at 0.2 m/s (Knockdown)
+   18.050 |   1084 | Orc B          | contact  | ForearmL hit the ground at 0.1 m/s (Knockdown)
+   18.117 |   1088 | Orc B          | getup    | getting up: lying on its side, pelvis 0.27 m up (rest 0.92 m), head 0.48 m, chest tilt 71°; root moved under the pelvis, facing the chest's way
+   18.117 |   1088 | Orc B          | state    | Knockdown → GettingUp: down 1.4 s, at rest 0.5 s  [stability 70, health 45, chest tilt 71°, pelvis 0.27/0.92 m, balance error 0.73 m]
+   18.233 |   1095 | Orc B          | contact  | FootR hit the ground at 3.5 m/s (GettingUp)
+   18.583 |   1116 | Orc B          | getup    | 25%: pelvis 0.52 m (ghost wants 0.50), chest tilt 35°, assist 0.66, tone 0.70, lift 138 N (body weight 1177 N), touching the ground: FootL FootR
+   19.050 |   1144 | Orc B          | getup    | 50%: pelvis 0.54 m (ghost wants 0.54), chest tilt 32°, assist 0.81, tone 0.80, lift -189 N (body weight 1177 N), touching the ground: FootL FootR
+   19.500 |   1171 | Orc B          | getup    | 75%: pelvis 0.79 m (ghost wants 0.85), chest tilt 10°, assist 0.94, tone 0.90, lift 103 N (body weight 1177 N), touching the ground: FootL FootR
+   19.933 |   1197 | Orc B          | state    | GettingUp → Steady: stood up in 1.8 s (pelvis 0.91 m, chest tilt 1°)  [stability 100, health 45, chest tilt 1°, pelvis 0.91/0.92 m, balance error 0.27 m]
+   19.933 |   1197 | Orc B          | step     | catch step FootL #1/3: falling back-left (farther foot), balance error 0.27 m > 0.24 m, step 0.17 m
+   20.167 |   1211 | Orc B          | step     | FootL landed, 0.18 m from where it was placed; balance error now 0.24 m
+   21.747 |   1305 | -              | input    | attack ordered
+   21.747 |   1305 | Orc A (club)   | attack   | attack refused: out of range (2.66 m from the shoulder)
+   21.950 |   1318 | Orc B          | getup    | fall #1 result: stood up (pelvis 0.91 m, tilt 1° when the get-up ended)
+   23.012 |   1381 | -              | input    | attack ordered
+   23.012 |   1381 | Orc A (club)   | attack   | attack refused: out of range (2.69 m from the shoulder)
+   24.526 |   1472 | -              | input    | attack ordered
+   24.526 |   1472 | Orc A (club)   | attack   | attack refused: out of range (2.73 m from the shoulder)
+   25.236 |   1515 | -              | input    | spawn: two orcs 2.00 m apart
+   25.236 |   1515 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 95, Chest 49, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 128, ForearmR 58, HandR 5, ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+   25.236 |   1515 | P_Orc(Clone)   | muscles  | load boosts (needed→used): Spine 95, Chest 49, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 128, ForearmR 58, HandR 5, ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+   25.236 |   1515 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 221, Chest 116, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 388→300 (capped), ForearmR 1268→300 (capped), HandR 687→300 (capped), ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+   25.236 |   1515 | Orc A (club)   | muscles  | load boosts (needed→used): Spine 221, Chest 116, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 388→300 (capped), ForearmR 1268→300 (capped), HandR 687→300 (capped), ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+   25.236 |   1515 | Orc B          | muscles  | load boosts (needed→used): Spine 95, Chest 49, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 128, ForearmR 58, HandR 5, ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+   25.250 |   1516 | Orc A (club) #2 | spawn    | at (-1.00, 0.00) facing 90°, team 0, mass 126.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc, holding P_Weapon_ClubBig
+   25.250 |   1516 | Orc B #2       | spawn    | at (1.00, 0.00) facing 270°, team 1, mass 120.0 kg, scale 1.00, rest pelvis height 0.92 m, profile UP_Orc
+   25.250 |   1516 | Orc A (club) #2 | equip    | holding P_Weapon_ClubBig (WD_ClubBig): physics mass 6.0 kg, tip 1.86 m from the grip
+   25.250 |   1516 | Orc B          | despawn  | removed from the scene
+   25.250 |   1516 | Orc A (club)   | despawn  | removed from the scene
+   25.267 |   1517 | Orc A (club) #2 | muscles  | load boosts (needed→used): Spine 221, Chest 116, Head 6, UpperArmL 128, ForearmL 58, HandL 5, UpperArmR 389→300 (capped), ForearmR 1263→300 (capped), HandR 687→300 (capped), ThighL 79, ShinL 37, FootL 4, ThighR 79, ShinR 37, FootR 4
+   26.257 |   1576 | -              | input    | attack ordered
+   26.257 |   1576 | Orc A (club) #2 | attack   | swing at Orc B: target 1.81 m from the shoulder, contact reach 0.31 m, plane roll 50°, extra lean 0.00 m, crowded ×1.00, club starts at θ 122° (wind-up over the top to -150°)
+   26.767 |   1607 | Orc A (club) #2 | step     | catch step FootR #1/3: falling right (sideways: falling-side foot), balance error 0.25 m > 0.24 m, step 0.21 m (clamped to maxStepLength)
+   27.000 |   1621 | Orc A (club) #2 | step     | FootR landed, 0.08 m from where it was placed; balance error now 0.16 m
+   27.067 |   1625 | Orc A (club) #2 | attack   | swing #1 → Load  [ghost θ -150°, club θ 95° (lag 115°), tip 9.8 m/s, club 1.93 m from the target point]
+   27.167 |   1631 | Orc A (club) #2 | step     | catch step FootR #2/3: falling back-left (farther foot), balance error 0.25 m > 0.24 m, step 0.31 m
+   27.217 |   1634 | Orc A (club) #2 | attack   | committed: arc frozen, aiming at (0.81, 1.45, 0.09) (target's chest now (0.77, 1.46, 0.00), 0.11 m apart), contact reach 0.38 m
+   27.217 |   1634 | Orc A (club) #2 | attack   | swing #1 → Strike  [ghost θ -160°, club θ 116° (lag 84°), tip 23.2 m/s, club 2.23 m from the target point]
+   27.333 |   1641 | Orc A (club) #2 | club     | club touched the ground at 16.4 m/s (Strike θ -144°)
+   27.400 |   1645 | Orc A (club) #2 | step     | FootR landed, 0.19 m from where it was placed; balance error now 0.31 m
+   27.417 |   1646 | Orc A (club) #2 | step     | catch step FootL #3/3: falling back (farther foot), balance error 0.31 m > 0.24 m, step 0.19 m
+   27.650 |   1660 | Orc A (club) #2 | step     | FootL landed, 0.13 m from where it was placed; balance error now 0.08 m
+   27.767 |   1667 | Orc A (club) #2 | attack   | swing #1 → Follow  [ghost θ 40°, club θ 171° (lag -131°), tip 14.5 m/s, club 1.61 m from the target point]
+   28.067 |   1685 | Orc A (club) #2 | attack   | swing #1 → Recover  [ghost θ 50°, club θ 100° (lag -50°), tip 6.1 m/s, club 1.18 m from the target point]
+   28.650 |   1720 | Orc A (club) #2 | attack   | swing #1 result: missed: club passed 0.94 m from the target point (in Recover); fastest tip 26.8 m/s, worst strike lag 175°, worst arm tracking error 178°; club touched: the ground 16.4 m/s in Strike θ -144°
+   31.006 |   1861 | -              | input    | attack ordered
+   31.006 |   1861 | Orc A (club) #2 | attack   | swing at Orc B: target 1.87 m from the shoulder, contact reach 0.37 m, plane roll 50°, extra lean 0.00 m, crowded ×1.00, club starts at θ 116° (wind-up over the top to -150°)
+   31.300 |   1879 | Orc B #2       | contact  | Head touched Orc A (club) #2's club at 13.0 m/s
+   31.300 |   1879 | Orc A (club) #2 | club     | club touched Orc B #2 Head at 13.0 m/s (WindUp θ 135°)
+   31.300 |   1879 | Orc B #2       | state    | Steady → Flinch: lost 36.2 stability (flinch threshold 4.0)  [stability 64, health 86, chest tilt 2°, pelvis 0.91/0.92 m, balance error 0.20 m]
+   31.300 |   1879 | Orc A (club) #2 | HIT      | → Orc B #2 Head: 9.3 m/s, 13.9 damage, -36.2 stability, intent 0.30, impulse 371 N·s
+   31.300 |   1879 | Orc B #2       | contact  | Chest touched Orc A (club) #2's club at 13.0 m/s
+   31.300 |   1879 | Orc A (club) #2 | club     | club touched Orc B #2 Chest at 13.0 m/s (WindUp θ 135°)
+   31.300 |   1879 | Orc A (club) #2 | hit      | club touched Orc B Chest: no hit, still cooling down from the last one
+   31.317 |   1880 | Orc B #2       | step     | catch step FootL #1/3: falling back-left (farther foot), balance error 0.20 m > 0.16 m, step 0.16 m
+   31.317 |   1880 | Orc B #2       | contact  | Spine touched Orc A (club) #2's club at 11.8 m/s
+   31.317 |   1880 | Orc A (club) #2 | club     | club touched Orc B #2 Spine at 11.8 m/s (WindUp θ 139°)
+   31.317 |   1880 | Orc A (club) #2 | hit      | club touched Orc B Spine: no hit, still cooling down from the last one
+   31.333 |   1881 | Orc B #2       | contact  | UpperArmL touched Orc A (club) #2's club at 9.5 m/s
+   31.333 |   1881 | Orc A (club) #2 | club     | club touched Orc B #2 UpperArmL at 9.5 m/s (WindUp θ 143°)
+   31.333 |   1881 | Orc A (club) #2 | hit      | club touched Orc B UpperArmL: no hit, still cooling down from the last one
+   31.367 |   1883 | Orc B #2       | contact  | Pelvis touched Orc A (club) #2's club at 6.0 m/s
+   31.367 |   1883 | Orc A (club) #2 | club     | club touched Orc B #2 Pelvis at 6.0 m/s (WindUp θ 152°)
+   31.367 |   1883 | Orc A (club) #2 | hit      | club touched Orc B Pelvis: no hit, still cooling down from the last one
+   31.400 |   1885 | Orc B #2       | contact  | ThighL touched Orc A (club) #2's club at 6.2 m/s
+   31.400 |   1885 | Orc A (club) #2 | club     | club touched Orc B #2 ThighL at 6.2 m/s (WindUp θ 163°)
+   31.400 |   1885 | Orc A (club) #2 | hit      | club touched Orc B ThighL: no hit, still cooling down from the last one
+   31.517 |   1892 | Orc A (club) #2 | club     | club touched the ground at 7.0 m/s (WindUp θ -167°)
+   31.550 |   1894 | Orc B #2       | step     | FootL landed, 0.11 m from where it was placed; balance error now 0.28 m
+   31.567 |   1895 | Orc B #2       | step     | catch step FootR #2/3: falling back-left (farther foot), balance error 0.22 m > 0.16 m, step 0.08 m
+   31.600 |   1897 | Orc B #2       | state    | Flinch → Steady: flinch over  [stability 64, health 86, chest tilt 3°, pelvis 0.90/0.92 m, balance error 0.19 m]
+   31.800 |   1909 | Orc B #2       | step     | FootR landed, 0.17 m from where it was placed; balance error now 0.12 m
+   31.817 |   1910 | Orc A (club) #2 | attack   | swing #2 → Load  [ghost θ -150°, club θ 30° (lag 180°), tip 2.3 m/s, club 1.70 m from the target point]
+   31.967 |   1919 | Orc A (club) #2 | attack   | committed: arc frozen, aiming at (0.64, 1.45, -0.10) (target's chest now (0.79, 1.45, 0.01), 0.19 m apart), contact reach 0.30 m
+   31.967 |   1919 | Orc A (club) #2 | attack   | swing #2 → Strike  [ghost θ -160°, club θ 18° (lag -178°), tip 3.2 m/s, club 1.68 m from the target point]
+   32.150 |   1930 | Orc A (club) #2 | club     | club touched the ground at 5.0 m/s (Strike θ -128°)
+   32.233 |   1935 | Orc B #2       | contact  | Spine touched Orc A (club) #2's club at 12.0 m/s
+   32.233 |   1935 | Orc A (club) #2 | club     | club touched Orc B #2 Spine at 12.0 m/s (Strike θ -99°)
+   32.233 |   1935 | Orc B #2       | state    | Steady → Knockdown: stability 0 < knockdownBelow 25 (lost 66.8)  [stability 0, health 52, chest tilt 1°, pelvis 0.92/0.92 m, balance error 0.07 m]
+   32.233 |   1935 | Orc A (club) #2 | attack   | swing #2 → Follow (hit landed)  [ghost θ -99°, club θ -10° (lag -90°), tip 18.2 m/s, club 0.61 m from the target point]
+   32.233 |   1935 | Orc A (club) #2 | HIT      | → Orc B #2 Spine: 11.1 m/s, 34.5 damage, -66.8 stability, intent 1.00, impulse 445 N·s
+   32.233 |   1935 | Orc B #2       | contact  | ForearmL touched Orc A (club) #2's club at 12.1 m/s
+   32.233 |   1935 | Orc A (club) #2 | club     | club touched Orc B #2 ForearmL at 12.1 m/s (Follow θ -99°)
+   32.233 |   1935 | Orc A (club) #2 | hit      | club touched Orc B ForearmL: no hit, still cooling down from the last one
+   32.233 |   1935 | Orc B #2       | contact  | HandL touched Orc A (club) #2's club at 12.1 m/s
+   32.233 |   1935 | Orc A (club) #2 | club     | club touched Orc B #2 HandL at 12.1 m/s (Follow θ -99°)
+   32.233 |   1935 | Orc A (club) #2 | hit      | club touched Orc B HandL: no hit, still cooling down from the last one
+   32.233 |   1935 | Orc B #2       | contact  | Pelvis touched Orc A (club) #2's club at 11.7 m/s
+   32.233 |   1935 | Orc A (club) #2 | club     | club touched Orc B #2 Pelvis at 11.7 m/s (Follow θ -99°)
+   32.233 |   1935 | Orc A (club) #2 | hit      | club touched Orc B Pelvis: no hit, still cooling down from the last one
+   32.267 |   1937 | Orc B #2       | contact  | UpperArmL touched Orc A (club) #2's club at 13.5 m/s
+   32.267 |   1937 | Orc A (club) #2 | club     | club touched Orc B #2 UpperArmL at 13.5 m/s (Follow θ 43°)
+   32.267 |   1937 | Orc A (club) #2 | hit      | club touched Orc B UpperArmL: no hit, still cooling down from the last one
+   32.267 |   1937 | Orc B #2       | contact  | Chest touched Orc A (club) #2's club at 13.9 m/s
+   32.267 |   1937 | Orc A (club) #2 | club     | club touched Orc B #2 Chest at 13.9 m/s (Follow θ 43°)
+   32.267 |   1937 | Orc A (club) #2 | hit      | club touched Orc B Chest: no hit, still cooling down from the last one
+   32.283 |   1938 | Orc B #2       | contact  | FootR hit the ground at 1.3 m/s (Knockdown)
+   32.533 |   1953 | Orc A (club) #2 | attack   | swing #2 → Recover  [ghost θ 50°, club θ 77° (lag -27°), tip 16.6 m/s, club 1.04 m from the target point]
+   32.533 |   1953 | Orc B #2       | contact  | FootL hit the ground at 3.1 m/s (Knockdown)
+   32.583 |   1956 | Orc A (club) #2 | step     | stuck off balance 0.4 s with no steps left (error 0.28 m): granting one bonus step
+   32.583 |   1956 | Orc A (club) #2 | step     | catch step FootL #3/3: falling forward-left (farther foot), balance error 0.28 m > 0.24 m, step 0.28 m
+   32.817 |   1970 | Orc A (club) #2 | step     | FootL landed, 0.14 m from where it was placed; balance error now 0.16 m
+   32.933 |   1977 | Orc B #2       | contact  | HandL hit the ground at 3.4 m/s (Knockdown)
+   33.017 |   1982 | Orc B #2       | contact  | ForearmL hit the ground at 1.2 m/s (Knockdown)
+   33.050 |   1984 | Orc B #2       | contact  | Pelvis hit the ground at 1.5 m/s (Knockdown)
+   33.100 |   1987 | Orc B #2       | contact  | UpperArmL hit the ground at 1.4 m/s (Knockdown)
+   33.133 |   1989 | Orc A (club) #2 | attack   | swing #2 result: HIT Orc B #2 Head at 9.3 m/s (WindUp); fastest tip 22.1 m/s, worst strike lag 177°, worst arm tracking error 179°; club touched: Orc B #2 Head 13.0 m/s in WindUp θ 135°, Orc B #2 Chest 13.0 m/s in WindUp θ 135°, Orc B #2 Spine 11.8 m/s in WindUp θ 139°, Orc B #2 UpperArmL 9.5 m/s in WindUp θ 143°, Orc B #2 Pelvis 6.0 m/s in WindUp θ 152°, Orc B #2 ThighL 6.2 m/s in WindUp θ 163°, the ground 7.0 m/s in WindUp θ -167°, the ground 5.0 m/s in Strike θ -128°
+   33.150 |   1990 | Orc B #2       | contact  | ThighL hit the ground at 0.6 m/s (Knockdown)
+   33.167 |   1991 | Orc B #2       | contact  | Spine hit the ground at 1.1 m/s (Knockdown)
+   33.183 |   1992 | Orc B #2       | contact  | ShinL hit the ground at 0.5 m/s (Knockdown)
+   33.183 |   1992 | Orc B #2       | contact  | Chest hit the ground at 1.4 m/s (Knockdown)
+   33.700 |   2023 | Orc B #2       | contact  | HandL hit the ground at 0.9 m/s (Knockdown)
+   33.767 |   2027 | Orc B #2       | contact  | ForearmL hit the ground at 0.3 m/s (Knockdown)
+   33.800 |   2029 | Orc B #2       | getup    | getting up: lying on its side, pelvis 0.28 m up (rest 0.92 m), head 0.46 m, chest tilt 73°; root moved under the pelvis, facing the chest's way
+   33.800 |   2029 | Orc B #2       | state    | Knockdown → GettingUp: down 1.6 s, at rest 0.5 s  [stability 70, health 52, chest tilt 73°, pelvis 0.28/0.92 m, balance error 0.72 m]
+   33.933 |   2037 | Orc B #2       | contact  | FootR hit the ground at 3.5 m/s (GettingUp)
+   33.967 |   2039 | Orc A (club) #2 | state    | Steady → Knockdown: out of catch steps and stuck off balance for 0.4 s after a bonus step (error 0.27 m > 0.24 m)  [stability 25, health 100, chest tilt 1°, pelvis 0.92/0.92 m, balance error 0.27 m]
+   34.000 |   2041 | Orc A (club) #2 | contact  | FootR hit the ground at 2.5 m/s (Knockdown)
+   34.150 |   2050 | Orc A (club) #2 | contact  | FootL hit the ground at 2.6 m/s (Knockdown)
+   34.267 |   2057 | Orc B #2       | getup    | 25%: pelvis 0.51 m (ghost wants 0.50), chest tilt 35°, assist 0.66, tone 0.70, lift 345 N (body weight 1177 N), touching the ground: FootL FootR
+   34.367 |   2063 | Orc A (club) #2 | contact  | HandR hit the ground at 3.8 m/s (Knockdown)
+   34.733 |   2085 | Orc B #2       | getup    | 50%: pelvis 0.55 m (ghost wants 0.55), chest tilt 36°, assist 0.81, tone 0.80, lift 454 N (body weight 1177 N), touching the ground: FootL FootR
+   34.733 |   2085 | Orc A (club) #2 | club     | club touched the ground at 2.2 m/s (idle)
+   34.800 |   2089 | Orc A (club) #2 | club     | club touched the ground at 2.6 m/s (idle)
+   34.833 |   2091 | Orc A (club) #2 | contact  | ShinR hit the ground at 0.4 m/s (Knockdown)
+   34.900 |   2095 | Orc A (club) #2 | contact  | ThighR hit the ground at 0.5 m/s (Knockdown)
+   34.967 |   2099 | Orc A (club) #2 | contact  | ForearmR hit the ground at 0.6 m/s (Knockdown)
+   35.017 |   2102 | Orc A (club) #2 | contact  | UpperArmR hit the ground at 1.2 m/s (Knockdown)
+   35.067 |   2105 | Orc A (club) #2 | contact  | Pelvis hit the ground at 1.1 m/s (Knockdown)
+   35.133 |   2109 | Orc A (club) #2 | contact  | Spine hit the ground at 0.9 m/s (Knockdown)
+   35.133 |   2109 | Orc A (club) #2 | contact  | Chest hit the ground at 1.2 m/s (Knockdown)
+   35.183 |   2112 | Orc B #2       | getup    | 75%: pelvis 0.81 m (ghost wants 0.86), chest tilt 13°, assist 0.94, tone 0.90, lift -229 N (body weight 1177 N), touching the ground: FootL FootR
