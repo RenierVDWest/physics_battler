@@ -17,8 +17,12 @@ MonoBehaviour:
   totalMassKg: 0
   style: {fileID: 11400000, guid: 587cdd22f2d310c459e57fc59baf0a9d, type: 2}
   turnSpeed: 300
+  maxHealth: 60
+  maxPoise: 25
+  poiseRegen: 15
   torsoPin: 0.85
   armPin: 0.75
+  weaponArmKinematicInBlows: 1
   linearDamping: 0.05
   angularDamping: 0.1
   solverIterations: 12

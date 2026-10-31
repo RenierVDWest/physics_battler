@@ -21,6 +21,9 @@ MonoBehaviour:
   head: {x: 0, y: 0, z: 0.11}
   faceCenter: {x: 0, y: 0, z: 0.1}
   radius: 0.29
+  sweepRadius: 0
+  damage: 0
+  minHitSpeed: 2
   guardGrip: {x: -0.12, y: -0.1, z: 0.36}
   guardAngles: {x: 8, y: 18}
   moves: []
