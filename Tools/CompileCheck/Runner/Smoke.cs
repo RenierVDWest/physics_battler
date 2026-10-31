@@ -37,7 +37,7 @@ internal static class Smoke
         var attack = AttackDefinition.CreateDefault();
         attack.name = "AD_ClubLowSwing";
         float dt = Time.fixedDeltaTime;
-        for (int step = 0; step < 60 * 9; step++)
+        for (int step = 0; step < 60 * 12; step++)
         {
             Time.time += dt;
             Call(recorder, "FixedUpdate");
@@ -96,6 +96,7 @@ internal static class Smoke
         var weapon = root.AddComponent<Weapon>();
         weapon.definition = WeaponDefinition.CreateDefault();
         weapon.definition.name = "WD_ClubBig";
+        weapon.definition.twoHanded = true;
         var collider = new GameObject("Collider_0");
         collider.transform.SetParent(root.transform, false);
         weapon.colliders = new Collider[] { collider.AddComponent<CapsuleCollider>() };

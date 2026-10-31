@@ -20,8 +20,10 @@ namespace PhysicsBattler.Editor.Setup
         ///     load-boost cap 300 → 500.
         /// 5 = Strength and weight: units get a strength stat (the goblin's scaled down), swings are paced
         ///     by it and the weapon's weight, and the follow-through budget goes from 40° to 75°.
+        /// 6 = The big club becomes two-handed (carried low at the side), the wind-up goes back and up
+        ///     (-150° → -200°), and the strike starts at the turning point instead of waiting to settle.
         /// </summary>
-        public const int Current = 5;
+        public const int Current = 6;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

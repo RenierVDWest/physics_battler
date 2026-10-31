@@ -47,6 +47,8 @@ namespace PhysicsBattler.Motion
         private float pathDuration;
         private float omega;
         private float settledFor;
+        private float lastClubTheta;
+        private bool hasClubTheta;
         private Vector3 followEndGripLocal;
         private Quaternion followEndHandLocal = Quaternion.identity;
         private Quaternion lastHandRotation = Quaternion.identity;
@@ -78,8 +80,31 @@ namespace PhysicsBattler.Motion
             this.self = self;
         }
 
-        /// <summary>The wielder's swing strength (N·m at the shoulder, body behind it), from its profile.</summary>
-        public float Strength => self.Profile != null ? self.Profile.strength : 200f;
+        private bool TwoHanded => self.Weapon != null && self.Weapon.Definition.twoHanded;
+
+        /// <summary>The wielder's swing strength (N·m at the shoulder, body behind it), from its profile; more with both hands.</summary>
+        public float Strength
+        {
+            get
+            {
+                float strength = self.Profile != null ? self.Profile.strength : 200f;
+                return TwoHanded && self.Profile != null ? strength * self.Profile.twoHandStrength : strength;
+            }
+        }
+
+        /// <summary>
+        /// The centre the swing turns about: the weapon-side shoulder for one hand; between the shoulders,
+        /// toward the weapon side, for two (both hands must reach the grip all the way round).
+        /// </summary>
+        private Vector3 SwingCentre(Vector3 weaponShoulder, Vector3 otherShoulder)
+        {
+            return TwoHanded ? Vector3.Lerp(otherShoulder, weaponShoulder, TwoHandCentre) : weaponShoulder;
+        }
+
+        private const float TwoHandCentre = 0.7f;
+
+        /// <summary>Hands moving this far (m) count as a radian of turn when pacing a move.</summary>
+        private const float HandTravelRadius = 0.5f;
 
         /// <summary>How much an impact now counts as a deliberate blow (scales damage).</summary>
         public float Intent
@@ -230,11 +255,19 @@ namespace PhysicsBattler.Motion
             hasCarry = true;
             entryTheta = SwingSolver.AngleOf(Plan, ghostHand.rotation * Vector3.forward);
 
-            // The wind-up: rest to rest from the carry to the wound-up direction.
-            float pathAngle = Vector3.Angle(ghostHand.rotation * Vector3.forward, SwingSolver.Direction(Plan, definition.windUpAngle)) * Mathf.Deg2Rad;
+            // The wind-up: rest to rest from the carry to the wound-up pose. How far that is counts both
+            // the turn of the weapon and how far the hands travel (lifting it from the hip to the
+            // shoulder is a move in its own right).
+            Vector3 windUpDirection = SwingSolver.Direction(Plan, definition.windUpAngle);
+            Vector3 windUpGrip = SwingCentre(self.RestShoulderWorld(definition.side), self.RestShoulderWorld(-definition.side))
+                                 + windUpDirection * Reach.minArm;
+            float turn = Vector3.Angle(ghostHand.rotation * Vector3.forward, windUpDirection) * Mathf.Deg2Rad;
+            float travel = Vector3.Distance(root.TransformPoint(carryGripLocal), windUpGrip) / HandTravelRadius;
+            float pathAngle = Mathf.Max(turn, travel);
             pathDuration = SwingDynamics.RestToRestTime(pathAngle, SwingDynamics.MoveAcceleration(Strength, definition.windUpEffort, Load));
             Theta = definition.windUpAngle;
             omega = 0f;
+            hasClubTheta = false;
 
             if (PlaytestTrace.Enabled)
             {
@@ -319,6 +352,7 @@ namespace PhysicsBattler.Motion
             switch (Current)
             {
                 case Phase.WindUp:
+                    TrackClub(dt, out _);
                     if (phaseTime >= pathDuration)
                     {
                         settledFor = 0f;
@@ -329,17 +363,21 @@ namespace PhysicsBattler.Motion
 
                 case Phase.Load:
                 {
-                    // Wait for the real weapon: near the wound-up position and no longer swinging.
-                    bool settled = WeaponSettled(out float error, out float tipSpeed);
-                    settledFor = settled ? settledFor + dt : 0f;
+                    // The turning point: as soon as the real weapon's pull-back has been stopped (it is no
+                    // longer moving back, and it is near the wound-up position) the strike starts. No
+                    // waiting for every wobble to die down.
+                    float rate = TrackClub(dt, out float error);
+                    bool stopped = error <= d.settleAngle && rate >= -d.stopRate;
+                    settledFor = stopped ? settledFor + dt : 0f;
                     bool ready = settledFor >= d.settleTime;
                     if (ready || phaseTime >= d.maxSettleTime)
                     {
                         if (PlaytestTrace.Enabled)
                         {
+                            float tipSpeed = self.Weapon != null ? self.Weapon.TipSpeed() : 0f;
                             PlaytestTrace.Note(self, "attack", ready
-                                ? $"wound up: the club arrived and stopped after {phaseTime:0.00} s of holding (off by {error:0}°, tip {tipSpeed:0.0} m/s)"
-                                : $"wound up: the club never settled in {d.maxSettleTime:0.0} s (off by {error:0}°, tip {tipSpeed:0.0} m/s); striking anyway");
+                                ? $"turning point: the pull-back stopped {phaseTime:0.00} s after the wind-up ended (club {error:0}° from the wound-up position, moving {rate:0}°/s, tip {tipSpeed:0.0} m/s)"
+                                : $"turning point not reached in {d.maxSettleTime:0.0} s (club {error:0}° off, moving {rate:0}°/s, tip {tipSpeed:0.0} m/s); striking anyway");
                         }
 
                         Committed = true;
@@ -408,25 +446,32 @@ namespace PhysicsBattler.Motion
             var root = self.Root;
             followEndGripLocal = root.InverseTransformPoint(lastGrip);
             followEndHandLocal = Quaternion.Inverse(root.rotation) * lastHandRotation;
-            float pathAngle = Quaternion.Angle(lastHandRotation, root.rotation * carryHandLocal) * Mathf.Deg2Rad;
+            float pathAngle = Mathf.Max(Quaternion.Angle(lastHandRotation, root.rotation * carryHandLocal) * Mathf.Deg2Rad,
+                Vector3.Distance(lastGrip, root.TransformPoint(carryGripLocal)) / HandTravelRadius);
             pathDuration = SwingDynamics.RestToRestTime(pathAngle, SwingDynamics.MoveAcceleration(Strength, definition.recoverEffort, Load));
             SetPhase(Phase.Recover);
         }
 
-        /// <summary>The real weapon is near the ghost's wound-up direction and its tip has slowed down.</summary>
-        private bool WeaponSettled(out float error, out float tipSpeed)
+        /// <summary>
+        /// The real weapon's angle on the swing plane: returns how fast it is moving along the swing
+        /// (degrees/s, negative = further back), and how far it is from the wound-up direction.
+        /// </summary>
+        private float TrackClub(float dt, out float error)
         {
             error = 180f;
-            tipSpeed = 99f;
             var weapon = self.Weapon;
             if (weapon == null || !weapon.PhysicalPose(out _, out Vector3 direction, out _))
             {
-                return true;
+                error = 0f;
+                return 0f;
             }
 
             error = Vector3.Angle(direction, SwingSolver.Direction(Plan, definition.windUpAngle));
-            tipSpeed = weapon.TipSpeed();
-            return error <= definition.settleAngle && tipSpeed <= definition.settleSpeed;
+            float theta = SwingSolver.AngleOf(Plan, direction);
+            float rate = hasClubTheta && dt > 0f ? Mathf.DeltaAngle(lastClubTheta, theta) / dt : 0f;
+            lastClubTheta = theta;
+            hasClubTheta = true;
+            return rate;
         }
 
         private void SetPhase(Phase phase)
@@ -459,7 +504,7 @@ namespace PhysicsBattler.Motion
         private void Replan(Vector3 target)
         {
             var d = definition;
-            Vector3 shoulder = self.RestShoulderWorld(d.side);
+            Vector3 shoulder = SwingCentre(self.RestShoulderWorld(d.side), self.RestShoulderWorld(-d.side));
             var reach = Reach;
             float roll = SwingSolver.RollForClearance(shoulder, target, reach, d.planeRoll, d.side,
                 d.windUpAngle, self.GroundY, d.groundClearance * self.Scale);
@@ -533,8 +578,9 @@ namespace PhysicsBattler.Motion
                 lookTarget = plan.target,
             };
 
-            // The arc: the grip on a circle about the current shoulder, the weapon pointing along it.
-            Vector3 shoulder = self.Ghost.Part(PartId.UpperArmR).position;
+            // The arc: the grip on a circle about the swing's centre (the shoulder, or between the
+            // shoulders for two hands), the weapon pointing along it.
+            Vector3 shoulder = SwingCentre(self.Ghost.Part(PartId.UpperArmR).position, self.Ghost.Part(PartId.UpperArmL).position);
             Vector3 direction = SwingSolver.Direction(plan, Theta);
             var reach = Reach;
             float arm = Current == Phase.WindUp || Current == Phase.Load
@@ -586,6 +632,20 @@ namespace PhysicsBattler.Motion
             pose.gripTarget = grip;
             pose.handRotation = handRotation;
             pose.elbowPole = pole;
+
+            if (TwoHanded)
+            {
+                // The left hand holds on further along: its own wrist turned toward its own shoulder.
+                Vector3 clubDirection = handRotation * Vector3.forward;
+                Vector3 second = WeaponGrip.SecondGrip(grip, handRotation, self.Weapon.Definition.secondGrip);
+                pose.twoHanded = true;
+                pose.secondGripTarget = second;
+                pose.secondHandRotation = WeaponGrip.HandRotation(clubDirection, second, self.Ghost.Part(PartId.UpperArmL).position);
+                pose.secondElbowPole = WeaponGrip.ElbowPole(root, -d.side);
+                pose.freeArmPitch = 0f;
+                pose.freeArmOut = 0f;
+            }
+
             return pose;
         }
 

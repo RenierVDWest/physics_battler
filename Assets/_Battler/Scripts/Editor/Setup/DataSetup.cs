@@ -38,6 +38,8 @@ namespace PhysicsBattler.Editor.Setup
                     club.physicsMassKg = rig.weapon.physicsMassKg > 0f ? rig.weapon.physicsMassKg : club.physicsMassKg;
                     club.gameplayMassKg = rig.weapon.gameplayMassKg > 0f ? rig.weapon.gameplayMassKg : club.gameplayMassKg;
                 }
+
+                club.twoHanded = true;
             });
             Ensure<AttackDefinition>(BattlerPaths.ClubSwing, _ => { });
         }
@@ -58,6 +60,11 @@ namespace PhysicsBattler.Editor.Setup
             if (from >= 1 && from < 5)
             {
                 MigrateTo5();
+            }
+
+            if (from >= 1 && from < 6)
+            {
+                MigrateTo6();
             }
 
             if (from >= 1 && from < 2)
@@ -157,6 +164,31 @@ namespace PhysicsBattler.Editor.Setup
             if (swing != null && Replace(ref swing.followAngle, 40f, 75f, swing.name, "followAngle"))
             {
                 EditorUtility.SetDirty(swing);
+            }
+        }
+
+        private static void MigrateTo6()
+        {
+            var club = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.ClubDefinition);
+            if (club != null && !club.twoHanded)
+            {
+                club.twoHanded = true;
+                EditorUtility.SetDirty(club);
+                Debug.Log($"[Battler Setup] {club.name}.twoHanded: false → true.");
+            }
+
+            var swing = AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing);
+            if (swing != null)
+            {
+                bool changed = false;
+                changed |= Replace(ref swing.windUpAngle, -150f, -200f, swing.name, "windUpAngle");
+                changed |= Replace(ref swing.settleAngle, 20f, 45f, swing.name, "settleAngle");
+                changed |= Replace(ref swing.settleTime, 0.12f, 0.03f, swing.name, "settleTime");
+                changed |= Replace(ref swing.maxSettleTime, 1.5f, 0.4f, swing.name, "maxSettleTime");
+                if (changed)
+                {
+                    EditorUtility.SetDirty(swing);
+                }
             }
         }
 

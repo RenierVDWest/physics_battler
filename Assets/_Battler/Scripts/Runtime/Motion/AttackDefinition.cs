@@ -17,8 +17,8 @@ namespace PhysicsBattler.Motion
     public class AttackDefinition : ScriptableObject
     {
         [Header("Swing angles (degrees on the swing plane; 0 = contact)")]
-        [Tooltip("Where the weapon is pulled back to and stopped before the strike.")]
-        public float windUpAngle = -150f;
+        [Tooltip("Where the weapon is pulled back to and stopped before the strike (below -180 is back and up).")]
+        public float windUpAngle = -200f;
         [Tooltip("How far past contact the follow-through may take to brake the weapon to a stop. The strike is held to the "
                  + "speed that can be stopped within it: a longer follow-through allows a faster blow.")]
         public float followAngle = 75f;
@@ -35,15 +35,17 @@ namespace PhysicsBattler.Motion
         [Range(0.1f, 1f)] public float brakeEffort = 0.9f;
         [Range(0.1f, 1f)] public float recoverEffort = 0.5f;
 
-        [Header("Settling (the wind-up must arrive and stop before the strike)")]
+        [Header("Turning point (the strike starts the moment the pull-back has been stopped)")]
         [Tooltip("The real weapon within this many degrees of the wound-up position…")]
-        public float settleAngle = 20f;
-        [Tooltip("…and its tip slower than this (m/s)…")]
+        public float settleAngle = 45f;
+        [Tooltip("…and no longer moving back faster than this (degrees/s along the swing)…")]
+        public float stopRate = 40f;
+        [Tooltip("…for this long (s), and the strike starts.")]
+        public float settleTime = 0.03f;
+        [Tooltip("Strike anyway after holding this long (s).")]
+        public float maxSettleTime = 0.4f;
+        [Tooltip("After the follow-through, the recover waits until the tip is slower than this (m/s).")]
         public float settleSpeed = 1.5f;
-        [Tooltip("…for this long (s), and the strike can start.")]
-        public float settleTime = 0.12f;
-        [Tooltip("Strike anyway after holding this long (s), settled or not.")]
-        public float maxSettleTime = 1.5f;
         [Tooltip("Share of the weapon's speed a solid hit takes out of it.")]
         [Range(0f, 1f)] public float hitAbsorb = 0.5f;
 

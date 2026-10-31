@@ -20,6 +20,11 @@ namespace PhysicsBattler.Motion
         public bool holdingWeapon;
         /// <summary>How far the stance lowers the hips (m at scale 1).</summary>
         public float stanceCrouch;
+        /// <summary>The weapon is held in both hands, carried low at the side (grip and direction in the root's space).</summary>
+        public bool twoHanded;
+        public Vector3 carryGrip;
+        public Vector3 carryDirection;
+        public float secondGrip;
     }
 
     /// <summary>
@@ -77,10 +82,15 @@ namespace PhysicsBattler.Motion
             pelvis.localPosition = ghost.RestLocalPosition(PartId.Pelvis) + offset
                                    + Vector3.up * (breathe * 0.006f * request.scale - drop - request.stanceCrouch * request.scale);
             pelvis.localRotation = Quaternion.Euler(0f, action.active ? action.pelvisYaw : 0f, 0f);
+
+            // Carrying a two-handed weapon low at the right side turns the torso a little that way, so
+            // the left hand can reach across to it.
+            bool twoHandCarry = request.holdingWeapon && request.twoHanded && !action.active;
+            float carryTwist = twoHandCarry ? CarryTwist * rise : 0f;
             ghost.Part(PartId.Spine).localRotation =
-                Quaternion.Euler(action.spinePitch + (1f - rise) * 35f + breathe * 0.8f, action.spineYaw, 0f);
+                Quaternion.Euler(action.spinePitch + (1f - rise) * 35f + breathe * 0.8f, action.spineYaw + carryTwist * 0.4f, 0f);
             ghost.Part(PartId.Chest).localRotation =
-                Quaternion.Euler(action.chestPitch + breathe * 1.2f, action.chestYaw, 0f);
+                Quaternion.Euler(action.chestPitch + breathe * 1.2f, action.chestYaw + carryTwist * 0.6f, 0f);
 
             // Legs reach the planted feet; feet stay flat and face the root's way.
             SolveLeg(PartId.ThighL, PartId.ShinL, PartId.FootL, root);
@@ -95,14 +105,23 @@ namespace PhysicsBattler.Motion
             float freeOut = action.active ? action.freeArmOut : 0f;
             ghost.Part(PartId.UpperArmL).localRotation = Quaternion.Euler(-6f - sway + freePitch, 0f, -(spread + freeOut));
             ghost.Part(PartId.ForearmL).localRotation = Quaternion.Euler(-14f - Mathf.Max(0f, -freePitch) * 0.5f, 0f, 0f);
-            if (request.holdingWeapon)
+            if (request.holdingWeapon && !request.twoHanded)
             {
                 ghost.Part(PartId.HandR).localRotation = CarryHand;
+            }
+
+            if (request.holdingWeapon && request.twoHanded && rise > 0.5f)
+            {
+                SolveTwoHandCarry(request);
             }
 
             if (action.active && action.weaponArmWeight > 0f)
             {
                 SolveWeaponArm(action);
+                if (action.twoHanded)
+                {
+                    SolveSecondArm(action);
+                }
             }
 
             if (request.releaseWeaponArm)
@@ -110,6 +129,12 @@ namespace PhysicsBattler.Motion
                 CopyPhysical(PartId.UpperArmR);
                 CopyPhysical(PartId.ForearmR);
                 CopyPhysical(PartId.HandR);
+                if (request.twoHanded)
+                {
+                    CopyPhysical(PartId.UpperArmL);
+                    CopyPhysical(PartId.ForearmL);
+                    CopyPhysical(PartId.HandL);
+                }
             }
 
             if (action.active && action.hasLookTarget)
@@ -140,6 +165,46 @@ namespace PhysicsBattler.Motion
             Vector3 wrist = action.gripTarget - action.handRotation * slotOffset;
             TwoBoneIK.Solve(upper, lower, hand, wrist, action.elbowPole);
             hand.rotation = action.handRotation;
+
+            float w = Mathf.Clamp01(action.weaponArmWeight);
+            if (w < 1f)
+            {
+                upper.localRotation = Quaternion.Slerp(idleUpper, upper.localRotation, w);
+                lower.localRotation = Quaternion.Slerp(idleLower, lower.localRotation, w);
+                hand.localRotation = Quaternion.Slerp(idleHand, hand.localRotation, w);
+            }
+        }
+
+        private const float CarryTwist = 15f;
+
+        /// <summary>A two-handed weapon carried low at the right side, pointing back: both arms reach it by IK.</summary>
+        private void SolveTwoHandCarry(in PoseRequest request)
+        {
+            var root = request.root;
+            Vector3 grip = root.TransformPoint(request.carryGrip * request.scale);
+            Vector3 direction = root.rotation * (request.carryDirection.sqrMagnitude > 1e-6f ? request.carryDirection.normalized : Vector3.back);
+            Quaternion right = WeaponGrip.HandRotation(direction, grip, ghost.Part(PartId.UpperArmR).position);
+            WeaponGrip.SolveArm(ghost.Part(PartId.UpperArmR), ghost.Part(PartId.ForearmR), ghost.Part(PartId.HandR),
+                SlotOffset(ghost.SlotWeaponR), grip, right, WeaponGrip.ElbowPole(root, 1));
+            Vector3 second = WeaponGrip.SecondGrip(grip, right, request.secondGrip);
+            Quaternion left = WeaponGrip.HandRotation(direction, second, ghost.Part(PartId.UpperArmL).position);
+            WeaponGrip.SolveArm(ghost.Part(PartId.UpperArmL), ghost.Part(PartId.ForearmL), ghost.Part(PartId.HandL),
+                SlotOffset(ghost.SlotWeaponL), second, left, WeaponGrip.ElbowPole(root, -1));
+        }
+
+        private static Vector3 SlotOffset(Transform slot) => slot != null ? slot.localPosition : Vector3.zero;
+
+        /// <summary>The second hand on a two-handed weapon, blended in like the weapon arm.</summary>
+        private void SolveSecondArm(in ActionPose action)
+        {
+            var upper = ghost.Part(PartId.UpperArmL);
+            var lower = ghost.Part(PartId.ForearmL);
+            var hand = ghost.Part(PartId.HandL);
+            Quaternion idleUpper = upper.localRotation;
+            Quaternion idleLower = lower.localRotation;
+            Quaternion idleHand = hand.localRotation;
+            WeaponGrip.SolveArm(upper, lower, hand, SlotOffset(ghost.SlotWeaponL), action.secondGripTarget,
+                action.secondHandRotation, action.secondElbowPole);
 
             float w = Mathf.Clamp01(action.weaponArmWeight);
             if (w < 1f)

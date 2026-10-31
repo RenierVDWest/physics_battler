@@ -163,6 +163,10 @@ namespace UnityEngine
         public Quaternion targetRotation { get; set; } = Quaternion.identity;
         public Vector3 targetAngularVelocity { get; set; }
         public RotationDriveMode rotationDriveMode { get; set; }
+        public JointDrive xDrive { get; set; }
+        public JointDrive yDrive { get; set; }
+        public JointDrive zDrive { get; set; }
+        public Vector3 targetPosition { get; set; }
         public JointDrive angularXDrive { get; set; }
         public JointDrive angularYZDrive { get; set; }
         public JointDrive slerpDrive { get; set; }

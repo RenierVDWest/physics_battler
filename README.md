@@ -46,9 +46,10 @@ Each layer depends on the one before it, so check them in this order.
    `Data/Units/UP_Orc`; if they wobble, raise `dampingRatio` or lower the muscle Hz.
 3. **Pushing.** Click a chest with a small push: the orc should wobble and recover. A big push should make it stagger,
    take catch steps, and then fall and get back up, but never go limp.
-4. **The swing.** Orc A carries the club upright over his shoulder. Space: he pulls it back out to his right side and
-   brings it to a stop there (weight on the back foot), holds until it has settled, then drives it at the chest
-   (weight onto the front foot), brakes it in the follow-through, and brings it back to the carry.
+4. **The swing.** Orc A holds the club in both hands, low at his right side and pointing back. Space: he pulls it back
+   and up behind him and brings it to a stop (weight on the back foot); the moment the pull-back has stopped he swings
+   it down round his side and forward and up into the chest (weight onto the front foot), brakes it in the
+   follow-through, and brings it back to the carry.
    If the club lags far behind the ghost, raise `armHz` or the attack's `strikeArmBoost`.
 5. **The hit.** Orc B should take damage, stagger and step back. The hit log shows the speed. If swings never register,
    lower `minHitSpeed` on `Data/Weapons/WD_ClubBig`.
@@ -98,7 +99,8 @@ Tune in the data assets, not on the prefabs (the setup rebuilds prefabs). Change
   lower is heavier and less puppet-like), `steadyStepFactor`, and the get-up's `getUpDuration`, `getUpGrace`,
   `standMaxTilt`. Any of `gravityCompensation`, `legSupport`, `velocityFeedForward` can be set to 0 in Play mode to
   switch that part off and see what it does.
-- `Data/Weapons/WD_ClubBig`: physics mass vs gameplay mass, damage, knockback, stability loss. The physics mass (and
+- `Data/Weapons/WD_ClubBig`: physics mass vs gameplay mass, damage, knockback, stability loss; two-handed, where the
+  second hand holds it (`secondGrip`) and the low carry (`carryGrip`, `carryDirection`). The physics mass (and
   where the club's colliders put its weight) is what the wielder has to move: with `strength` on the unit profile it
   sets how fast a swing can go. The log's `equip` line says how the two measure up.
 - `Data/Attacks/AD_ClubLowSwing`: no timings any more: the swing's pace comes from the unit's `strength` against the

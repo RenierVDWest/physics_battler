@@ -30,6 +30,8 @@ namespace PhysicsBattler.Units
         public float strength = 240f;
         [Tooltip("A weapon can be swung if strength is at least this many times the torque it takes to hold it out at arm's length.")]
         public float minimumLiftRatio = 1.2f;
+        [Tooltip("Strength multiplier with both hands on the weapon.")]
+        public float twoHandStrength = 1.35f;
 
         [Header("Muscles (joint drives, natural frequency in Hz)")]
         [Tooltip("Higher is stiffer. Drives are acceleration-based, so these hold for any unit size.")]

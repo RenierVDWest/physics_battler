@@ -24,6 +24,12 @@ namespace PhysicsBattler.Motion
         public Quaternion handRotation;
         public Vector3 elbowPole;
 
+        // Two-handed: where the second (left) hand holds the weapon, and how it turns (world).
+        public bool twoHanded;
+        public Vector3 secondGripTarget;
+        public Quaternion secondHandRotation;
+        public Vector3 secondElbowPole;
+
         // The free arm swings for balance (shoulder pitch in degrees, negative = forward).
         public float freeArmPitch;
         public float freeArmOut;
@@ -31,6 +37,6 @@ namespace PhysicsBattler.Motion
         public bool hasLookTarget;
         public Vector3 lookTarget;
 
-        public static ActionPose None => new ActionPose { handRotation = Quaternion.identity };
+        public static ActionPose None => new ActionPose { handRotation = Quaternion.identity, secondHandRotation = Quaternion.identity };
     }
 }

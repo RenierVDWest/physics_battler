@@ -323,19 +323,42 @@ namespace PhysicsBattler.Units
 
             var hand = Rig.Part(PartId.HandR);
             var forearm = Rig.Part(PartId.ForearmR);
+            var definition = weapon.Definition;
+            bool twoHanded = definition.twoHanded && Rig.SlotWeaponL != null;
 
-            // Put the arm in the carry pose (weapon up over the shoulder) before the weapon is in it, so a
-            // long weapon never appears inside whoever stands in front. The body is a transform tree, so
-            // turning the forearm carries the hand; then the rigidbodies are moved to match.
-            forearm.transform.localRotation = forearm.restLocalRotation * PoseComposer.CarryForearm;
-            hand.transform.localRotation = hand.restLocalRotation * PoseComposer.CarryHand;
-            foreach (var moved in new[] { forearm, hand })
+            // Put the arms in the carry pose before the weapon is in the hand, so a long weapon never
+            // appears inside whoever stands in front. The body is a transform tree: pose the transforms,
+            // then move the rigidbodies to match.
+            if (twoHanded)
             {
+                // Both hands on it, low at the right side, pointing back.
+                Vector3 grip = transform.TransformPoint(definition.carryGrip * Scale);
+                Vector3 direction = transform.rotation * (definition.carryDirection.sqrMagnitude > 1e-6f ? definition.carryDirection.normalized : Vector3.back);
+                var upperR = Rig.Part(PartId.UpperArmR);
+                var upperL = Rig.Part(PartId.UpperArmL);
+                Quaternion right = WeaponGrip.HandRotation(direction, grip, upperR.transform.position);
+                WeaponGrip.SolveArm(upperR.transform, forearm.transform, hand.transform, Rig.SlotWeaponR.localPosition, grip, right, WeaponGrip.ElbowPole(transform, 1));
+                Vector3 second = WeaponGrip.SecondGrip(grip, right, definition.secondGrip);
+                Quaternion left = WeaponGrip.HandRotation(direction, second, upperL.transform.position);
+                WeaponGrip.SolveArm(upperL.transform, Rig.Part(PartId.ForearmL).transform, Rig.Part(PartId.HandL).transform,
+                    Rig.SlotWeaponL.localPosition, second, left, WeaponGrip.ElbowPole(transform, -1));
+            }
+            else
+            {
+                // Upright over the shoulder.
+                forearm.transform.localRotation = forearm.restLocalRotation * PoseComposer.CarryForearm;
+                hand.transform.localRotation = hand.restLocalRotation * PoseComposer.CarryHand;
+            }
+
+            foreach (var id in new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR, PartId.UpperArmL, PartId.ForearmL, PartId.HandL })
+            {
+                var moved = Rig.Part(id);
                 moved.body.position = moved.transform.position;
                 moved.body.rotation = moved.transform.rotation;
                 moved.body.linearVelocity = Vector3.zero;
                 moved.body.angularVelocity = Vector3.zero;
             }
+
             weapon.AttachTo(this, hand, Rig.SlotWeaponR, Layers.Index(Layers.Weapon));
 
             // The weapon hits its own wielder too (second playtest: the club passed through the orc's
@@ -351,7 +374,8 @@ namespace PhysicsBattler.Units
                         continue;
                     }
 
-                    bool holding = part.id == PartId.HandR || part.id == PartId.ForearmR;
+                    bool holding = part.id == PartId.HandR || part.id == PartId.ForearmR
+                                   || (twoHanded && (part.id == PartId.HandL || part.id == PartId.ForearmL));
                     if (holding || Touching(weaponCollider, part.partCollider, SelfCollisionMargin * Scale))
                     {
                         Physics.IgnoreCollision(weaponCollider, part.partCollider, true);
@@ -369,6 +393,16 @@ namespace PhysicsBattler.Units
                                                   + (ignoredParts.Count > 0 ? $" and (touching in the carry pose) {string.Join(", ", ignoredParts)}" : ""));
             }
 
+            if (twoHanded)
+            {
+                // The hands and forearms around the grip touch each other.
+                IgnorePair(PartId.HandL, PartId.HandR);
+                IgnorePair(PartId.HandL, PartId.ForearmR);
+                IgnorePair(PartId.ForearmL, PartId.HandR);
+                IgnorePair(PartId.ForearmL, PartId.ForearmR);
+                secondGrip = CreateSecondGrip(definition);
+            }
+
             hand.body.mass += weapon.Definition.physicsMassKg;
             hand.body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
             hand.body.ResetCenterOfMass();
@@ -376,6 +410,87 @@ namespace PhysicsBattler.Units
             Weapon = weapon;
             Muscles?.RecomputeSubtreeBoost();
             boostRecomputeIn = 2;   // the new colliders' inertia is only in after a physics step
+        }
+
+        private ConfigurableJoint secondGrip;
+        private float secondGripStrength;
+
+        private void IgnorePair(PartId a, PartId b)
+        {
+            var ca = Rig.Part(a).partCollider;
+            var cb = Rig.Part(b).partCollider;
+            if (ca != null && cb != null)
+            {
+                Physics.IgnoreCollision(ca, cb, true);
+            }
+        }
+
+        /// <summary>
+        /// The left hand's hold on a two-handed weapon: a joint from the left hand's slot to the second
+        /// grip point on the weapon (on the right hand's rigidbody). Its pull is a spring, so the hold
+        /// can be let go (knocked down) and taken again (getting up) without snapping.
+        /// </summary>
+        private ConfigurableJoint CreateSecondGrip(WeaponDefinition definition)
+        {
+            var handL = Rig.Part(PartId.HandL);
+            var handR = Rig.Part(PartId.HandR);
+            var joint = handL.gameObject.AddComponent<ConfigurableJoint>();
+            joint.autoConfigureConnectedAnchor = false;
+            joint.connectedBody = handR.body;
+            joint.anchor = Rig.SlotWeaponL.localPosition;
+            Vector3 gripInHand = Rig.SlotWeaponR.localPosition + Rig.SlotWeaponR.localRotation * (Vector3.forward * definition.secondGrip);
+            joint.connectedAnchor = gripInHand;
+            joint.axis = Vector3.right;
+            joint.secondaryAxis = Vector3.up;
+            joint.xMotion = ConfigurableJointMotion.Free;
+            joint.yMotion = ConfigurableJointMotion.Free;
+            joint.zMotion = ConfigurableJointMotion.Free;
+            joint.angularXMotion = ConfigurableJointMotion.Free;
+            joint.angularYMotion = ConfigurableJointMotion.Free;
+            joint.angularZMotion = ConfigurableJointMotion.Free;
+            joint.enablePreprocessing = false;
+            joint.enableCollision = false;
+            secondGripStrength = 1f;
+            SetSecondGrip(1f);
+            return joint;
+        }
+
+        private void SetSecondGrip(float strength)
+        {
+            if (secondGrip == null)
+            {
+                return;
+            }
+
+            float omega = 2f * Mathf.PI * SecondGripHz;
+            var drive = new JointDrive
+            {
+                positionSpring = omega * omega * strength,
+                positionDamper = 2f * omega * Mathf.Sqrt(Mathf.Max(0f, strength)),
+                maximumForce = float.MaxValue,
+                useAcceleration = true,
+            };
+            secondGrip.xDrive = drive;
+            secondGrip.yDrive = drive;
+            secondGrip.zDrive = drive;
+        }
+
+        private const float SecondGripHz = 6f;
+
+        /// <summary>The left hand lets go when the unit goes down and takes hold again as it gets up.</summary>
+        private void UpdateSecondGrip(float dt)
+        {
+            if (secondGrip == null)
+            {
+                return;
+            }
+
+            var kind = State.Kind;
+            bool hold = State.IsStanding || kind == UnitStateKind.Stagger
+                        || (kind == UnitStateKind.GettingUp && State.GetUpProgress > 0.6f);
+            float wanted = hold ? 1f : 0f;
+            secondGripStrength = wanted < secondGripStrength ? wanted : Mathf.MoveTowards(secondGripStrength, wanted, dt / 0.4f);
+            SetSecondGrip(secondGripStrength);
         }
 
         /// <summary>How the unit's strength measures up to its weapon (for the log).</summary>
@@ -493,6 +608,10 @@ namespace PhysicsBattler.Units
                 scale = Scale,
                 releaseWeaponArm = releaseArmTimer > 0f,
                 holdingWeapon = Weapon != null,
+                twoHanded = Weapon != null && Weapon.Definition.twoHanded && secondGrip != null,
+                carryGrip = Weapon != null ? Weapon.Definition.carryGrip : Vector3.zero,
+                carryDirection = Weapon != null ? Weapon.Definition.carryDirection : Vector3.back,
+                secondGrip = Weapon != null ? Weapon.Definition.secondGrip : 0f,
             });
 
             Muscles.SetTone(State.MuscleTone);
@@ -500,20 +619,26 @@ namespace PhysicsBattler.Units
             if (Planner.Active)
             {
                 var attack = Planner.Definition;
+                bool bothArms = secondGrip != null;
                 if (Planner.Current == AttackPlanner.Phase.Strike || Planner.Current == AttackPlanner.Phase.Follow)
                 {
                     Muscles.SetBoost(MuscleGroup.ArmR, attack.strikeArmBoost);
+                    if (bothArms) Muscles.SetBoost(MuscleGroup.ArmL, attack.strikeArmBoost);
                 }
                 else if (Planner.Current == AttackPlanner.Phase.Recover)
                 {
                     Muscles.SetBoost(MuscleGroup.ArmR, attack.recoverArmStrength);
+                    if (bothArms) Muscles.SetBoost(MuscleGroup.ArmL, attack.recoverArmStrength);
                 }
             }
 
             if (releaseArmTimer > 0f)
             {
                 Muscles.SetBoost(MuscleGroup.ArmR, 0.15f);
+                if (secondGrip != null) Muscles.SetBoost(MuscleGroup.ArmL, 0.15f);
             }
+
+            UpdateSecondGrip(dt);
 
             if (boostRecomputeIn > 0 && --boostRecomputeIn == 0)
             {
