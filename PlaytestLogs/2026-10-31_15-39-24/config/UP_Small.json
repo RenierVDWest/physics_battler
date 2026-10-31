@@ -1,0 +1,20 @@
+{
+    "body": "Small",
+    "scale": 1.0,
+    "totalMassKg": 0.0,
+    "style": {
+        "instanceID": 47279000022504
+    },
+    "turnSpeed": 300.0,
+    "torsoPin": 0.8500000238418579,
+    "armPin": 0.75,
+    "weaponArmKinematicInBlows": true,
+    "linearDamping": 0.05000000074505806,
+    "angularDamping": 0.10000000149011612,
+    "solverIterations": 12,
+    "solverVelocityIterations": 4,
+    "maxAngularVelocity": 30.0,
+    "maxDepenetrationVelocity": 3.0,
+    "bodyFriction": 0.6000000238418579,
+    "footFriction": 1.0
+}
