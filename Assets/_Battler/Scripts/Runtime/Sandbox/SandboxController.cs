@@ -66,7 +66,7 @@ namespace PhysicsBattler.Sandbox
 
         private void Start()
         {
-            recorder = FindFirstObjectByType<PlaytestRecorder>();
+            recorder = FindAnyObjectByType<PlaytestRecorder>();
             if (recorder == null)
             {
                 recorder = gameObject.AddComponent<PlaytestRecorder>();
@@ -287,7 +287,7 @@ namespace PhysicsBattler.Sandbox
         private void SetGhost(bool on)
         {
             showGhost = on;
-            foreach (var unit in FindObjectsByType<UnitController>(FindObjectsSortMode.None))
+            foreach (var unit in FindObjectsByType<UnitController>())
             {
                 unit.ShowGhost = on;
             }

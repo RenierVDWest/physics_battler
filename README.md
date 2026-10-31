@@ -1,7 +1,7 @@
 # Physics Battler
 
 An auto battler where units fight with physics-driven, procedural animation: active ragdolls instead of keyframes.
-Unity 6 (6000.0.60f1), URP, PC.
+Unity 6.6 (6000.6.7f1), URP, PC.
 
 Design spec: https://claude.ai/code/artifact/b1e9f331-bdae-4fc5-ad71-c1ea73402024
 
@@ -13,7 +13,7 @@ first sessions are about checking each layer works and tuning it (see **First ru
 
 ## Opening the project
 
-1. Open the folder in Unity Hub with **6000.0.60f1** (any 6000.0.x should do).
+1. Open the folder in Unity Hub with **6000.6.7f1** (any 6000.6.x should do).
 2. On first open the project sets itself up (Console: `[Battler Setup]`): URP, materials, the orc and club models' import
    settings, the tuning assets, the prefabs and the Sandbox scene. It opens `Assets/_Battler/Scenes/Sandbox` when done.
    Run it again any time from **Physics Battler > Setup > Run Project Setup**; **Rebuild Prefabs** rebuilds just the prefabs.

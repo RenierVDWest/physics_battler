@@ -150,7 +150,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Initialized += OnUnitInitialized;
             Application.logMessageReceived += OnConsole;
 
-            foreach (var unit in FindObjectsByType<UnitController>(FindObjectsSortMode.None))
+            foreach (var unit in FindObjectsByType<UnitController>())
             {
                 if (unit.IsInitialized)
                 {
@@ -390,7 +390,7 @@ namespace PhysicsBattler.Diagnostics
         private void FindProps()
         {
             int propLayer = LayerMask.NameToLayer(Layers.Prop);
-            foreach (var body in FindObjectsByType<Rigidbody>(FindObjectsSortMode.None))
+            foreach (var body in FindObjectsByType<Rigidbody>())
             {
                 if (props.ContainsKey(body) || body.gameObject.layer != propLayer
                     || body.GetComponentInParent<BodyPart>() != null || body.GetComponentInParent<Weapon>() != null)

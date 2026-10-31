@@ -31,7 +31,7 @@ namespace PhysicsBattler.Editor.Setup
             }
 
             var scene = EditorSceneManager.OpenScene(BattlerPaths.SandboxScene, OpenSceneMode.Single);
-            var controller = Object.FindFirstObjectByType<SandboxController>();
+            var controller = Object.FindAnyObjectByType<SandboxController>();
             if (controller != null && Wire(controller))
             {
                 EditorSceneManager.MarkSceneDirty(scene);
@@ -101,7 +101,7 @@ namespace PhysicsBattler.Editor.Setup
             changed |= Fill(ref sandbox.barrelPrefab, AssetDatabase.LoadAssetAtPath<GameObject>(BattlerPaths.BarrelPrefab));
             if (sandbox.orbitCamera == null)
             {
-                sandbox.orbitCamera = Object.FindFirstObjectByType<OrbitCamera>();
+                sandbox.orbitCamera = Object.FindAnyObjectByType<OrbitCamera>();
                 changed |= sandbox.orbitCamera != null;
             }
 

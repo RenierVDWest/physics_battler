@@ -17,8 +17,11 @@ namespace UnityEngine
         public static void Destroy(Object obj, float t) { }
         public static void DestroyImmediate(Object obj) { }
         public static void DontDestroyOnLoad(Object target) { }
-        public static T[] FindObjectsByType<T>(FindObjectsSortMode sortMode) where T : Object => new T[0];
-        public static T FindFirstObjectByType<T>() where T : Object => null;
+        // Unity 6.5+: the FindObjectsSortMode overloads and FindFirstObjectByType are obsolete (compile errors),
+        // so they are left out here to catch any use.
+        public static T[] FindObjectsByType<T>() where T : Object => new T[0];
+        public static T[] FindObjectsByType<T>(FindObjectsInactive findObjectsInactive) where T : Object => new T[0];
+        public static T FindAnyObjectByType<T>() where T : Object => null;
         public int GetInstanceID() => GetHashCode();
 
         public static implicit operator bool(Object exists) => !ReferenceEquals(exists, null);
@@ -31,7 +34,7 @@ namespace UnityEngine
     [Flags]
     public enum HideFlags { None = 0, HideInHierarchy = 1, HideInInspector = 2, DontSave = 52, HideAndDontSave = 61 }
 
-    public enum FindObjectsSortMode { None, InstanceID }
+    public enum FindObjectsInactive { Exclude, Include }
 
     public enum PrimitiveType { Sphere, Capsule, Cylinder, Cube, Plane, Quad }
 

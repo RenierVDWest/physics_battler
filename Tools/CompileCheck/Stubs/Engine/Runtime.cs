@@ -10,7 +10,7 @@ namespace UnityEngine
         public static bool isBatchMode { get; set; } = true;
         public static bool isEditor => true;
         public static string dataPath { get; set; } = "Assets";
-        public static string unityVersion => "6000.0.60f1";
+        public static string unityVersion => "6000.6.7f1";
         public delegate void LogCallback(string condition, string stackTrace, LogType type);
         public static event LogCallback logMessageReceived;
         public static void OpenURL(string url) { }

@@ -1,5 +1,5 @@
 // Compile-check stubs: the physics API surface this project uses (signatures checked against
-// Unity 6000.0's C# reference source). No simulation.
+// Unity 6000.0 reference source; Find APIs updated for 6000.6). No simulation.
 using System;
 
 namespace UnityEngine
