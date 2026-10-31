@@ -29,8 +29,10 @@ namespace PhysicsBattler.Editor.Setup
         ///     orc, goblin, club and Sandbox scene removed.
         /// 10 = Milestone 2: the sword, club and shield (models, weapon and move assets, prefabs), aimed
         ///     blows; the lineup laid out in the Battle scene as unit markers.
+        /// 11 = Blows keep clear of their wielder's body; the default lineup's team B is rearranged so
+        ///     each unit faces a different size.
         /// </summary>
-        public const int Current = 10;
+        public const int Current = 11;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

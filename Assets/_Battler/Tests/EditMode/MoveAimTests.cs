@@ -70,10 +70,21 @@ namespace PhysicsBattler.Tests
             }
         }
 
-        /// <summary>Plays a blow to the end; returns how close the striking part passed the aim point at contact (-1: no contact).</summary>
-        private static float Play(UnitController attacker, UnitController target, MoveState state)
+        /// <summary>
+        /// Plays a blow to the end; returns how close the striking part passed the aim point at
+        /// contact (-1: no contact), and the least clearance of the weapon and weapon arm from the
+        /// attacker's own body on any step.
+        /// </summary>
+        private static float Play(UnitController attacker, UnitController target, MoveState state) => Play(attacker, target, state, out _);
+
+        private static float Play(UnitController attacker, UnitController target, MoveState state, out float clearance) =>
+            Play(attacker, target, state, out clearance, out _);
+
+        private static float Play(UnitController attacker, UnitController target, MoveState state, out float clearance, out float hipDrop)
         {
             float error = -1f;
+            clearance = float.MaxValue;
+            hipDrop = 0f;
             void OnContact(UnitController unit, MoveState move, ContactReport report)
             {
                 if (unit == attacker)
@@ -86,10 +97,13 @@ namespace PhysicsBattler.Tests
             try
             {
                 Assert.IsTrue(attacker.StartMove(state));
+                float length = state.Weapon != null ? state.Weapon.length * 0.98f : 0.8f;
                 for (int i = 0; i < 400 && attacker.IsAttacking; i++)
                 {
                     attacker.PreviewPose(1f / 60f);
                     target.PreviewPose(1f / 60f);
+                    clearance = Mathf.Min(clearance, BodyClearance.Measure(attacker.Rig, attacker.Anim, length, attacker.Loadout.Scale, out _, out _));
+                    hipDrop = Mathf.Max(hipDrop, attacker.Pose.PelvisDrop);
                 }
             }
             finally
@@ -133,7 +147,8 @@ namespace PhysicsBattler.Tests
 
         /// <summary>
         /// Against each target size, at the distance the sandbox closes in to: every move at every
-        /// part the planner accepts lands within 3 cm, and every size pair has something to hit.
+        /// part the planner accepts lands within 3 cm and keeps the weapon and weapon arm out of the
+        /// attacker's own body, and every size pair has something to hit.
         /// </summary>
         private static void EveryPlannedBlowLands(string attackerBody)
         {
@@ -160,16 +175,21 @@ namespace PhysicsBattler.Tests
                                 }
 
                                 var state = MovePlanner.Prepare(attacker, target, move, part);
-                                if (state == null || attacker.TryOut(state) > MovePlanner.Tolerance)
+                                if (state == null || !MovePlanner.Acceptable(attacker, state))
                                 {
                                     continue;
                                 }
 
                                 planned++;
-                                float error = Play(attacker, target, state);
+                                float error = Play(attacker, target, state, out float clearance, out float hipDrop);
                                 string what = $"{attackerBody} {move.name} at {targetBody}'s {part} from {distance:0.00} m";
                                 Assert.GreaterOrEqual(error, 0f, what + ": reached contact");
                                 Assert.Less(error, MovePlanner.Tolerance, what + ": lands on the aim point");
+                                // The planner checks a handful of poses; played step by step, allow a little more.
+                                Assert.Greater(clearance, -(MovePlanner.OwnBodyClearance + 0.02f) * attacker.Body.SizeFactor,
+                                    what + ": the weapon and arm stay out of the attacker's own body");
+                                // The lunge's steps keep the legs under the hips: no deep drop to reach the feet.
+                                Assert.Less(hipDrop, 0.12f * attacker.Body.LegLength, what + ": the hips stay up through the lunge");
                             }
                         }
 

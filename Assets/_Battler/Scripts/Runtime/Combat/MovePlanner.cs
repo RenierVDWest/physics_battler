@@ -9,12 +9,22 @@ namespace PhysicsBattler.Combat
     /// point where the part is now and working out the aim frame and the lunge (<see cref="Prepare"/>).
     /// A move is only chosen if it can land: the planner poses the attacker at the moment of contact
     /// (<see cref="UnitController.TryOut"/>, everything put back after) and keeps the move only if
-    /// the striking part reaches the aim point within <see cref="Tolerance"/>.
+    /// the striking part reaches the aim point within <see cref="Tolerance"/>, and only if the weapon and
+    /// weapon arm keep clear of the attacker's own body throughout (<see cref="BodyClearance"/>).
     /// </summary>
     public static class MovePlanner
     {
         /// <summary>How close the striking part must come to the aim point at contact (metres).</summary>
         public const float Tolerance = 0.03f;
+
+        /// <summary>How far the aim frame tilts down toward a low target, or up toward a high one (degrees).</summary>
+        public const float MaxTiltDown = 60f, MaxTiltUp = 40f;
+
+        /// <summary>How clear of its own body (head, chest, spine, pelvis) a blow's weapon and weapon arm must stay (metres at medium size).</summary>
+        public const float OwnBodyClearance = 0.01f;
+
+        /// <summary>How many poses through a blow the planner checks for clearance of the attacker's own body.</summary>
+        public const int ClearanceSamples = 16;
 
         /// <summary>How much more often the body is aimed at than the elbows and knees.</summary>
         private const float BodyWeight = 3f;
@@ -57,6 +67,15 @@ namespace PhysicsBattler.Combat
                 return null;
             }
 
+            // The aim frame looks from the chest (where it will be at contact) to the aim point, so a
+            // blow at something low winds up above and behind the shoulder and comes down onto it,
+            // and the path keeps its distance from the attacker's own body at any height.
+            Vector3 chestAtContact = new Vector3(root.x, chestHeight, root.z) + forward * lunge;
+            Vector3 line = aim - chestAtContact;
+            float pitch = Mathf.Atan2(line.y, Mathf.Max(1e-3f, across)) * Mathf.Rad2Deg;
+            pitch = Mathf.Clamp(pitch, -MaxTiltDown, MaxTiltUp);
+            Quaternion frame = Quaternion.LookRotation(forward, Vector3.up) * Quaternion.Euler(-pitch, 0f, 0f);
+
             float t = move.ContactTime();
             return new MoveState
             {
@@ -65,13 +84,57 @@ namespace PhysicsBattler.Combat
                 Target = target,
                 Part = part,
                 Aim = aim,
-                Frame = Quaternion.LookRotation(forward, Vector3.up),
+                Frame = frame,
                 Lunge = forward * lunge,
                 Scale = size,
+                WidthScale = attacker.Body.WidthFactor,
                 Duration = move.duration * Mathf.Sqrt(size),
                 ContactTime = t,
                 BodyPeak = move.BodyAt(t),
+                DriveStart = DriveStart(move, t),
             };
+        }
+
+        /// <summary>
+        /// When the body stops rocking back and drives forward (normalized time): the first moment after
+        /// the body curve's lowest point before contact where it is back above zero.
+        /// </summary>
+        public static float DriveStart(MoveDefinition move, float contact)
+        {
+            float lowest = float.MaxValue, lowestAt = 0f;
+            const int samples = 60;
+            for (int i = 0; i <= samples; i++)
+            {
+                float t = contact * i / samples;
+                float b = move.BodyAt(t);
+                if (b < lowest)
+                {
+                    lowest = b;
+                    lowestAt = t;
+                }
+            }
+
+            for (int i = 0; i <= samples; i++)
+            {
+                float t = Mathf.Lerp(lowestAt, contact, i / (float)samples);
+                if (move.BodyAt(t) >= 0f)
+                {
+                    return Mathf.Min(t, 0.75f * contact);
+                }
+            }
+
+            return 0.5f * contact;
+        }
+
+        /// <summary>
+        /// A blow is chosen only if it lands (the striking part within <see cref="Tolerance"/> of the
+        /// aim point at contact) and the weapon and weapon arm stay clear of the attacker's own head
+        /// and torso the whole way.
+        /// </summary>
+        public static bool Acceptable(UnitController attacker, MoveState state)
+        {
+            return attacker.TryOut(state) <= Tolerance
+                   && attacker.Clearance(state, ClearanceSamples, out _, out _, out _) >= -OwnBodyClearance * attacker.Body.SizeFactor;
         }
 
         /// <summary>
@@ -126,7 +189,7 @@ namespace PhysicsBattler.Combat
                 var option = options[i];
                 options.RemoveAt(i);
                 var state = Prepare(attacker, target, option.move, option.part);
-                if (state != null && attacker.TryOut(state) <= Tolerance)
+                if (state != null && Acceptable(attacker, state))
                 {
                     return state;
                 }

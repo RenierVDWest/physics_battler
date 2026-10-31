@@ -29,6 +29,7 @@ namespace PhysicsBattler.Editor.Setup
             var sandbox = Object.FindAnyObjectByType<BattleSandbox>();
             bool changed = sandbox != null && Wire(sandbox);
             changed |= EnsureLineup();
+            changed |= MigrateLineup(SetupVersion.Installed);
             if (changed)
             {
                 EditorSceneManager.MarkSceneDirty(scene);
@@ -142,10 +143,14 @@ namespace PhysicsBattler.Editor.Setup
             return changed;
         }
 
+        /// <summary>Team B's bodies in the default lineup, columns 3 to 5 (C to E): each faces a different size.</summary>
+        private static readonly BodySize[] TeamBOrder = { BodySize.Medium, BodySize.Large, BodySize.Small };
+
         /// <summary>
-        /// A lineup for a scene that has none: three units a side three rows apart, small and large
-        /// with clubs, medium with sword and shield. Move, add or change them in the scene; setup
-        /// leaves an existing lineup alone.
+        /// A lineup for a scene that has none: three units a side three rows apart (team A small,
+        /// medium, large; team B medium, large, small, so each faces a different size), small and
+        /// large with clubs, medium with sword and shield. Move, add or change them in the scene;
+        /// setup leaves an existing lineup alone.
         /// </summary>
         private static bool EnsureLineup()
         {
@@ -167,20 +172,80 @@ namespace PhysicsBattler.Editor.Setup
                 {
                     // Team A on row 3, small to large left to right; team B on row 6, large to small, so
                     // each faces a different size.
-                    var body = bodies[team == 0 ? k : 2 - k];
+                    var body = team == 0 ? bodies[k] : TeamBOrder[k];
                     var tile = new Tile(2 + k, team == 0 ? 2 : 5);
                     var go = new GameObject($"{(team == 0 ? "A" : "B")} {body}");
                     go.transform.SetParent(lineup, false);
                     go.transform.position = grid.Center(tile);
                     var spawn = go.AddComponent<UnitSpawn>();
                     spawn.team = team;
-                    spawn.body = body;
-                    spawn.mainHand = body == BodySize.Medium ? sword : club;
-                    spawn.offHand = body == BodySize.Medium ? shield : null;
+                    Arm(spawn, body, club, sword, shield);
                     spawn.Snap();
                 }
             }
 
+            return true;
+        }
+
+        private static void Arm(UnitSpawn spawn, BodySize body, WeaponDefinition club, WeaponDefinition sword, WeaponDefinition shield)
+        {
+            spawn.body = body;
+            spawn.mainHand = body == BodySize.Medium ? sword : club;
+            spawn.offHand = body == BodySize.Medium ? shield : null;
+            spawn.gameObject.name = $"{(spawn.team == 0 ? "A" : "B")} {body}";
+        }
+
+        /// <summary>
+        /// Setup 10's default lineup put each unit straight across from the same pairing every time
+        /// (small against large, medium against medium). If the scene still has that lineup
+        /// unchanged, team B is rearranged into the new default order.
+        /// </summary>
+        private static bool MigrateLineup(int from)
+        {
+            if (from < 1 || from >= 11)
+            {
+                return false;
+            }
+
+            var spawns = Object.FindObjectsByType<UnitSpawn>();
+            var board = Object.FindAnyObjectByType<BoardView>();
+            var grid = board != null ? board.grid : new BoardGrid();
+            var old = new[] { BodySize.Large, BodySize.Medium, BodySize.Small };
+            var teamB = new UnitSpawn[3];
+            int count = 0;
+            foreach (var spawn in spawns)
+            {
+                if (spawn.team != 1)
+                {
+                    continue;
+                }
+
+                var tile = grid.TileAt(spawn.transform.position);
+                int k = tile.column - 2;
+                if (tile.row != 5 || k < 0 || k > 2 || spawn.body != old[k] || teamB[k] != null)
+                {
+                    return false;   // not the old default: leave it as you made it
+                }
+
+                teamB[k] = spawn;
+                count++;
+            }
+
+            if (count != 3)
+            {
+                return false;
+            }
+
+            var club = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Club"));
+            var sword = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Sword"));
+            var shield = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Shield"));
+            for (int k = 0; k < 3; k++)
+            {
+                Arm(teamB[k], TeamBOrder[k], club, sword, shield);
+                EditorUtility.SetDirty(teamB[k]);
+            }
+
+            Debug.Log("[Battler Setup] Team B of the default lineup rearranged (medium, large, small), so each unit faces a different size.");
             return true;
         }
 

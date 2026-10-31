@@ -28,9 +28,13 @@ namespace PhysicsBattler.Editor.Setup
 
             var file = WeaponFile.Parse(text.text);
             var moves = new MoveDefinition[Enum.GetValues(typeof(MoveStyle)).Length];
+            // Setup 11 reworked the ready-made moves (clear of the wielder's own body, follow-throughs
+            // out to the side, the thrust in line with the shoulder): moves made by setup 10, not yet
+            // tuned, are refreshed once.
+            bool refresh = SetupVersion.Installed == 10;
             foreach (MoveStyle style in Enum.GetValues(typeof(MoveStyle)))
             {
-                moves[(int)style] = EnsureMove(style);
+                moves[(int)style] = EnsureMove(style, refresh);
             }
 
             int bodyLayer = Layers.Index(Layers.Body);
@@ -57,12 +61,19 @@ namespace PhysicsBattler.Editor.Setup
             AssetDatabase.SaveAssets();
         }
 
-        private static MoveDefinition EnsureMove(MoveStyle style)
+        private static MoveDefinition EnsureMove(MoveStyle style, bool refresh)
         {
             string path = BattlerPaths.Move(style.ToString());
             var move = AssetDatabase.LoadAssetAtPath<MoveDefinition>(path);
             if (move != null)
             {
+                if (refresh)
+                {
+                    move.ApplyDefaults(style);
+                    EditorUtility.SetDirty(move);
+                    Debug.Log($"[Battler Setup] {path} refreshed to the reworked default.");
+                }
+
                 return move;
             }
 

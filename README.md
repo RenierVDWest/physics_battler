@@ -19,14 +19,23 @@ head, neck, chest, belly, elbows or knees.
   moment. The move then lunges and steers the weapon so its edge, point or club head arrives
   there. A target that sways, steps or lunges meanwhile can be struck somewhere else, or missed.
   This is what the combat idle is for.
-- **Planned to land.** A blow is only chosen if it can land: the planner poses the attacker at the
-  moment of contact and checks that the striking part reaches the aim point within 3 cm. In the
-  tests every planned blow lands, for every size against every other.
+- **Planned to land, clear of the wielder.** A blow is only chosen if it can land and stays clear of
+  the attacker's own body. The planner poses the attacker at the moment of contact and checks that
+  the striking part reaches the aim point within 3 cm. It also poses the whole blow and checks that
+  the weapon and weapon arm never pass through the attacker's own head or torso. In the tests every
+  planned blow lands and stays clear, for every size against every other.
+- **Aimed along the line of the blow.** The move's path is laid out along the line from the
+  attacker's chest to the aim point, so a large unit striking a small one winds up above and beside
+  its shoulder and comes down onto it. Sideways distances scale with the attacker's breadth.
 - **Bodies adapt to the target.** Units sink and bend toward low targets and reach up to high ones.
-  Long lunges are advance-lunges: the rear foot follows, so the hips stay up.
+  The lunge's steps go with the drive forward after the wind-up. Long lunges are advance-lunges:
+  the lead foot steps out and the rear foot follows, so the hips stay up.
 - **Stance and idle (milestone 1).** Each size has its own stance and combat idle. Feet stay
   planted and step one at a time. Legs are animation-driven (kinematic), so they always carry the
   body; torso, head and arms are physical parts pinned to the pose.
+- **Fighting anyone in reach.** Units close in on the nearest enemy but strike at any enemy in reach
+  in front of them. If nothing lands cleanly they close in, or give ground when they are too close
+  to swing.
 - **Weapons don't hurt yet.** That's milestone 3. Their colliders are triggers, and what they
   touch is written to the playtest log.
 
@@ -41,7 +50,8 @@ and the real units spawn on the markers.
 2. On first open the project sets itself up (Console: `[Battler Setup]`): URP, materials, the body meshes' import
    settings, the tuning assets, the three unit prefabs, the weapons and their moves, and the Battle scene. It opens
    `Assets/_Battler/Scenes/Battle` when done. Setup version 10 adds the weapons and a lineup of unit markers to your
-   Battle scene (only if it has none). Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
+   Battle scene (only if it has none). Version 11 refreshes the ready-made moves and, if your lineup is still the
+   default one, rearranges team B so each unit faces a different size. Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
 3. Press Play. Commit the `.meta` files Unity creates for the new scripts and assets.
 
 ## Battle scene controls

@@ -52,6 +52,9 @@ namespace PhysicsBattler.Motion
         public float WeightShift { get; private set; }
         public IdleSample LastIdle { get; private set; }
 
+        /// <summary>How far the hips rock back when a move's body curve dips below 0 (fraction of leg length, at -1).</summary>
+        public const float RockBack = 0.25f;
+
         /// <summary>How far the hips may move to put the weight over the support point (fraction of leg length).</summary>
         public const float MaxWeightShift = 0.14f;
 
@@ -150,13 +153,51 @@ namespace PhysicsBattler.Motion
                 Vector3 home = Vector3.Lerp(stance.HomeWorld(rear, root.position, yaw), stance.HomeWorld(lead, root.position, yaw), style.leadWeight);
                 Vector3 carried = support - home;
                 carried.y = 0f;
-                pelvis.position += move.Lunge * (moveBody * moveBlend) - carried * moveBlend;
+                // Forward, the hips go the lunge's length; the rock-back before it is a fixed share
+                // of the leg, whatever the lunge.
+                Vector3 toward = move.Frame * Vector3.forward;
+                toward.y = 0f;
+                toward = toward.sqrMagnitude > 1e-6f ? toward.normalized : facing * Vector3.forward;
+                Vector3 offset = moveBody >= 0f ? move.Lunge * moveBody : toward * (moveBody * RockBack * leg);
+                pelvis.position += (offset - carried) * moveBlend;
             }
 
-            // 5. Legs: lower the hips if a foot is out of reach, then solve each leg.
+            // 5. Legs: during a blow, a planted foot that the hips have got ahead of holds them back
+            //    (the hips stay over the feet rather than sinking); a foot in the air doesn't pull
+            //    them down. Then lower the hips if a foot is still out of reach, and solve each leg.
+            if (move != null && moveBlend > 0f)
+            {
+                for (int f = 0; f < 2; f++)
+                {
+                    if (stance.Stepping(f))
+                    {
+                        continue;
+                    }
+
+                    var thigh = anim.Part(f == Stance.Left ? PartId.ThighL : PartId.ThighR);
+                    Vector3 ankle = AnkleTarget(f);
+                    Vector3 hip = thigh.position;
+                    float reach = 0.985f * leg;
+                    float height = hip.y - ankle.y - 0.03f * leg;    // a little sink is fine
+                    float across = Mathf.Sqrt(Mathf.Max(0f, reach * reach - height * height));
+                    Vector3 flat = hip - ankle;
+                    flat.y = 0f;
+                    float over = flat.magnitude - across;
+                    if (over > 0f)
+                    {
+                        pelvis.position -= flat.normalized * over;
+                    }
+                }
+            }
+
             PelvisDrop = 0f;
             for (int f = 0; f < 2; f++)
             {
+                if (move != null && moveBlend > 0f && stance.Stepping(f))
+                {
+                    continue;   // in the air: the leg reaches as far as it can
+                }
+
                 var thigh = anim.Part(f == Stance.Left ? PartId.ThighL : PartId.ThighR);
                 Vector3 ankle = AnkleTarget(f);
                 Vector3 hip = thigh.position;
@@ -215,7 +256,8 @@ namespace PhysicsBattler.Motion
             // Held on the hand's own side: guardGrip.x is for the hand it is set up for, mirrored for the other.
             Vector3 g = weapon.guardGrip;
             g.x = rightHand ? Mathf.Abs(g.x) : -Mathf.Abs(g.x);
-            Vector3 point = chest + facing * (g * body.SizeFactor);
+            g = new Vector3(g.x * body.WidthFactor, g.y * body.SizeFactor, g.z * body.SizeFactor);
+            Vector3 point = chest + facing * g;
             // Points (or faces) forward, raised, and turned in across the body.
             float yawIn = rightHand ? -weapon.guardAngles.y : weapon.guardAngles.y;
             Vector3 dir = facing * (Quaternion.Euler(-weapon.guardAngles.x, yawIn, 0f) * Vector3.forward);
@@ -230,7 +272,9 @@ namespace PhysicsBattler.Motion
             float p = state.Progress;
             strike = state.PathPoint(p);
             Vector3 pivot = anim.Part(PartId.Chest).position + Vector3.up * (move.pivotRaise * state.Scale);
-            Vector3 dir = move.pointForward ? state.Aim - pivot : strike - pivot;
+            // A thrust lines the blade up with the shoulder (as a fencer's arm and blade), a cut fans
+            // out from the chest.
+            Vector3 dir = move.pointForward ? state.Aim - anim.Part(PartId.UpperArmR).position : strike - pivot;
             if (dir.sqrMagnitude < 1e-6f)
             {
                 dir = state.Frame * Vector3.forward;

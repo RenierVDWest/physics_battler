@@ -373,7 +373,7 @@ namespace PhysicsBattler.Units
             }
 
             state.Time = 0f;
-            state.ContactPassed = state.SteppedOut = state.LeadOut = state.SteppedBack = state.RearMoved = state.RearBack = false;
+            state.ContactPassed = state.SteppedOut = state.LeadOut = state.SteppedBack = state.RearMoved = state.RearOut = state.RearBack = false;
             state.HasLastStrike = state.HasLastPhysical = false;
             state.PhysicalClosest = -1f;
             CurrentMove = state;
@@ -395,16 +395,66 @@ namespace PhysicsBattler.Units
         /// <param name="keep">Leave the unit in the contact pose (debugging, the move preview).</param>
         public float TryOut(MoveState state, bool keep)
         {
+            return PoseDry(state, state.ContactTime, keep) ? Pose.AimError : float.MaxValue;
+        }
+
+        /// <summary>
+        /// Tries a blow from start to finish (in <paramref name="samples"/> poses, everything put back
+        /// after) and returns how clear of its own body the weapon and weapon arm stay (metres;
+        /// negative: they pass through it), and where it comes closest.
+        /// </summary>
+        public float Clearance(MoveState state, int samples, out PartId closest, out float when, out bool weapon)
+        {
+            float best = float.MaxValue;
+            closest = PartId.Chest;
+            when = 0f;
+            weapon = false;
+            float length = state.Weapon != null ? state.Weapon.length * 0.98f : 0.8f;
+            for (int i = 0; i < samples; i++)
+            {
+                float t = Mathf.Lerp(0.04f, 0.96f, i / (float)Mathf.Max(1, samples - 1));
+                var saved = Stance.Save();
+                var anim = SaveAnim();
+                var rotation = transform.rotation;
+                try
+                {
+                    PoseDry(state, t, true);
+                    float c = BodyClearance.Measure(Rig, Anim, length, Loadout.Scale, out var part, out bool blade);
+                    if (c < best)
+                    {
+                        best = c;
+                        closest = part;
+                        when = t;
+                        weapon = blade;
+                    }
+                }
+                finally
+                {
+                    transform.rotation = rotation;
+                    Stance.Restore(saved);
+                    RestoreAnim(anim);
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Poses the unit (dry: the feet don't step) at a moment of a blow, as if it had started now:
+        /// facing along the aim frame, the lunge's feet planted once the lunge is under way.
+        /// </summary>
+        private bool PoseDry(MoveState state, float normalizedTime, bool keep)
+        {
             var saved = Stance.Save();
             var anim = SaveAnim();
             var previousMove = Pose.Move;
             var rotation = transform.rotation;
             try
             {
-                // At contact the unit faces along the aim frame, with its lead foot planted at the end of the lunge.
                 float yaw = Quaternion.LookRotation(state.Frame * Vector3.forward).eulerAngles.y;
                 transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-                if (NeedsLungeStep(state))
+                var at = state.CopyAt(normalizedTime);
+                if (NeedsLungeStep(state) && at.Body > 0.5f)
                 {
                     LungeFeet(state, yaw, out var leadTo, out var rearTo, out bool rearMoves);
                     Stance.SetFoot(Stance.Lead, leadTo, yaw + Stance.HomeYawLocal(Stance.Lead));
@@ -414,10 +464,9 @@ namespace PhysicsBattler.Units
                     }
                 }
 
-                var atContact = state.CopyAt(state.ContactTime);
-                Pose.Move = atContact;
+                Pose.Move = at;
                 Pose.Compose(LocalTime, 0f, true);
-                return Pose.AimError;
+                return true;
             }
             finally
             {
@@ -579,8 +628,8 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>
-        /// The lunge's planned steps: for a long lunge the rear foot moves up first, then the lead
-        /// foot goes out to land just before contact; both come back in the recovery, lead first.
+        /// The lunge's planned steps: the lead foot goes out, and for a long lunge the rear foot
+        /// follows, both landing just before contact; they come back in the recovery, lead first.
         /// </summary>
         private void AdvanceMove(MoveState move, float dt)
         {
@@ -595,23 +644,25 @@ namespace PhysicsBattler.Units
             int rear = 1 - lead;
             float yaw = Quaternion.LookRotation(move.Frame * Vector3.forward).eulerAngles.y;
             LungeFeet(move, yaw, out var leadTo, out var rearTo, out bool rearMoves);
-            float windUp = tc * move.Duration;
-            if (!move.SteppedOut && move.T >= 0.05f * tc)
+            // The lunge's steps go with the drive forward, after the wind-up's rock-back: the lead foot
+            // out first and, on a long lunge, the rear foot after it (an advance-lunge), both down
+            // just before contact. A short lunge moves only the lead foot.
+            float drive = Mathf.Clamp(move.DriveStart - 0.04f, 0.02f, 0.8f * tc);
+            float land = 0.97f * tc;
+            if (!move.SteppedOut && move.T >= drive)
             {
                 move.SteppedOut = true;
-                if (rearMoves)
-                {
-                    Stance.StepTo(rear, rearTo, yaw + Stance.HomeYawLocal(rear), 0.4f * windUp);
-                }
-
-                move.LeadOutAt = rearMoves ? 0.42f * tc : 0.2f * tc;
                 move.RearMoved = rearMoves;
+                move.LeadOut = true;
+                move.LeadOutAt = drive;
+                Stance.StepTo(lead, leadTo, yaw + Stance.HomeYawLocal(lead), (land - drive) * move.Duration);
             }
 
-            if (!move.LeadOut && move.SteppedOut && move.T >= move.LeadOutAt)
+            float rearFrom = drive + 0.45f * (land - drive);
+            if (move.RearMoved && !move.RearOut && move.T >= rearFrom)
             {
-                move.LeadOut = true;
-                Stance.StepTo(lead, leadTo, yaw + Stance.HomeYawLocal(lead), (0.97f * tc - move.LeadOutAt) * move.Duration);
+                move.RearOut = true;
+                Stance.StepTo(rear, rearTo, yaw + Stance.HomeYawLocal(rear), (land - rearFrom) * move.Duration);
             }
 
             float back = tc + 0.3f * (1f - tc);

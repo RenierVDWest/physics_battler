@@ -41,7 +41,8 @@ internal static class Smoke
 
         var grid = new BoardGrid();
         var units = new List<UnitController>();
-        var tiles = new[] { new[] { new Tile(2, 3), new Tile(3, 3), new Tile(4, 3) }, new[] { new Tile(4, 4), new Tile(3, 4), new Tile(2, 4) } };
+        // As the default lineup: team A small, medium, large; team B medium, large, small (two rows apart).
+        var tiles = new[] { new[] { new Tile(2, 2), new Tile(3, 2), new Tile(4, 2) }, new[] { new Tile(4, 4), new Tile(2, 4), new Tile(3, 4) } };
         var sword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
         sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordThrust) };
         var club = WeaponDefinition.CreateDefault(WeaponKind.Club);

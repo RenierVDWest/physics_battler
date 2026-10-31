@@ -15,6 +15,8 @@ using UnityEngine;
 
 internal static class AimMatrix
 {
+    private static readonly List<string> Self = new List<string>();
+
     public static int Run(float tiles)
     {
         var sword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
@@ -57,6 +59,11 @@ internal static class AimMatrix
         }
 
         Console.WriteLine($"\nblows planned but missing by more than 3 cm: {worst}");
+        Console.WriteLine($"blows turned down for passing through their own body (S: cm deep): {Self.Count}");
+        foreach (var line in Self)
+        {
+            Console.WriteLine("  " + line);
+        }
         return 0;
     }
 
@@ -102,6 +109,13 @@ internal static class AimMatrix
             if (planned > MovePlanner.Tolerance)
             {
                 return $"~{planned * 100,4:0.0}";
+            }
+
+            float clear = attacker.Clearance(state, MovePlanner.ClearanceSamples, out var near, out float when, out bool blade);
+            if (clear < -MovePlanner.OwnBodyClearance * attacker.Body.SizeFactor)
+            {
+                Self.Add($"{a}->{b} {move.name} {part}: {(blade ? "weapon" : "arm")} {clear * 100:0} cm into own {near} at t={when:0.00}");
+                return $"S{-clear * 100,4:0}";
             }
 
             float played = -1f;

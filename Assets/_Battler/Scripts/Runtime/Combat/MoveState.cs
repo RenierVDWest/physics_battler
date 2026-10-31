@@ -38,13 +38,17 @@ namespace PhysicsBattler.Combat
         /// <summary>Path and weapon scale: the attacker's size.</summary>
         public float Scale = 1f;
 
+        /// <summary>Sideways path scale: the attacker's breadth (shoulder width against the medium body).</summary>
+        public float WidthScale = 1f;
+
         public float Duration = 1f;
         public float Time;
         public float ContactTime;          // normalized
         public float BodyPeak = 1f;        // the body curve at contact, so the lunge is whole there
+        public float DriveStart;           // normalized: when the body curve turns forward after the wind-up (the lunge's steps start)
 
         public bool ContactPassed;
-        public bool SteppedOut, LeadOut, SteppedBack, RearMoved, RearBack;
+        public bool SteppedOut, LeadOut, SteppedBack, RearMoved, RearOut, RearBack;
         public float LeadOutAt;
 
         /// <summary>The striking part's position the step before (animated and physical), to judge contact on the sweep.</summary>
@@ -66,7 +70,11 @@ namespace PhysicsBattler.Combat
         public bool Active => Progress >= Move.activeWindow.x && Progress <= Move.activeWindow.y;
 
         /// <summary>A point on the path (world), at a progress along it.</summary>
-        public Vector3 PathPoint(float progress) => Aim + Frame * (Move.PointAt(progress) * Scale);
+        public Vector3 PathPoint(float progress)
+        {
+            Vector3 p = Move.PointAt(progress);
+            return Aim + Frame * new Vector3(p.x * WidthScale, p.y * Scale, p.z * Scale);
+        }
 
         public MoveState CopyAt(float normalizedTime)
         {

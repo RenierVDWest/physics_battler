@@ -21,6 +21,12 @@ namespace PhysicsBattler.Motion
         /// <summary>Hip to ankle when the leg is straight.</summary>
         public float LegLength => Thigh + Shin;
 
+        /// <summary>Shoulder to shoulder (upper-arm pivots), metres. 0.41 at medium size; the large body is much broader than it is tall.</summary>
+        public float ShoulderWidth = 0.41f;
+
+        /// <summary>Breadth against the medium body: sideways distances (a swing's path, the guard) scale by this.</summary>
+        public float WidthFactor => ShoulderWidth / 0.41f;
+
         /// <summary>How big the body is against the medium body (its leg length / 0.845 m).</summary>
         public float SizeFactor => LegLength / 0.845f;
 
@@ -37,6 +43,7 @@ namespace PhysicsBattler.Motion
             m.AnkleL = Local(PartId.FootL);
             m.AnkleR = Local(PartId.FootR);
             m.AnkleHeight = (m.AnkleL.y + m.AnkleR.y) * 0.5f;
+            m.ShoulderWidth = Vector3.Distance(Local(PartId.UpperArmL), Local(PartId.UpperArmR));
             foreach (var id in PartInfo.All)
             {
                 var part = rig.Part(id);
@@ -59,6 +66,7 @@ namespace PhysicsBattler.Motion
                 Thigh = 0.43f * size,
                 Shin = 0.415f * size,
                 AnkleHeight = 0.085f * size,
+                ShoulderWidth = 0.41f * size,
             };
             m.AnkleL = new Vector3(-0.095f, 0.085f, 0f) * size;
             m.AnkleR = new Vector3(0.095f, 0.085f, 0f) * size;

@@ -50,11 +50,11 @@ namespace PhysicsBattler.Combat
         public Vector3[] path =
         {
             new Vector3(0.3f, -0.3f, -0.45f), new Vector3(0.55f, 0.4f, -0.75f), new Vector3(0.42f, 0.22f, -0.3f),
-            Vector3.zero, new Vector3(-0.32f, -0.22f, -0.02f), new Vector3(-0.4f, -0.45f, -0.4f),
+            Vector3.zero, new Vector3(-0.36f, -0.12f, 0.04f), new Vector3(-0.6f, -0.2f, -0.06f),
         };
         [Tooltip("The path point that is the contact.")]
         public int contactIndex = 3;
-        [Tooltip("The blade points at the aim point the whole time (thrusts), instead of out from the chest through the striking part.")]
+        [Tooltip("The blade points at the aim point the whole time, in line with the weapon arm's shoulder (thrusts), instead of out from the chest through the striking part.")]
         public bool pointForward;
         [Tooltip("Metres above the chest the blade points out from: raise it for blows that come down from above.")]
         public float pivotRaise;
@@ -165,8 +165,8 @@ namespace PhysicsBattler.Combat
                         new Vector3(0.55f, 0.4f, -0.75f),    // wound up high on the right
                         new Vector3(0.42f, 0.22f, -0.3f),    // coming in
                         Vector3.zero,                        // through the aim point
-                        new Vector3(-0.32f, -0.22f, -0.02f), // out the other side
-                        new Vector3(-0.4f, -0.45f, -0.4f),   // follow-through, low on the left
+                        new Vector3(-0.36f, -0.12f, 0.04f),  // out the other side
+                        new Vector3(-0.6f, -0.2f, -0.06f),   // follow-through, out low on the left (clear of the hips)
                     };
                     reach = 1f;
                     maxLunge = 1.1f;
@@ -186,11 +186,11 @@ namespace PhysicsBattler.Combat
                     path = new[]
                     {
                         new Vector3(0.25f, -0.3f, -0.45f),
-                        new Vector3(-0.3f, 0.3f, -0.72f),
-                        new Vector3(-0.32f, 0.16f, -0.28f),
+                        new Vector3(-0.42f, 0.38f, -0.58f),  // wound up high on the left, out from the chest
+                        new Vector3(-0.38f, 0.18f, -0.24f),
                         Vector3.zero,
-                        new Vector3(0.34f, -0.18f, -0.02f),
-                        new Vector3(0.45f, -0.35f, -0.4f),
+                        new Vector3(0.38f, -0.1f, 0.04f),
+                        new Vector3(0.6f, -0.18f, -0.06f),   // out low on the right (clear of the hips)
                     };
                     reach = 0.95f;
                     maxLunge = 1.1f;
@@ -210,8 +210,8 @@ namespace PhysicsBattler.Combat
                     path = new[]
                     {
                         new Vector3(0.25f, -0.3f, -0.5f),
-                        new Vector3(0.3f, -0.12f, -0.85f),   // drawn back
-                        new Vector3(0.1f, -0.03f, -0.3f),
+                        new Vector3(0.28f, -0.12f, -0.6f),   // drawn back
+                        new Vector3(0.08f, -0.03f, -0.22f),
                         Vector3.zero,                        // home
                         new Vector3(0f, 0f, 0.06f),
                         new Vector3(0.22f, -0.25f, -0.55f),  // pulled back out
@@ -260,8 +260,8 @@ namespace PhysicsBattler.Combat
                     path = new[]
                     {
                         new Vector3(0.25f, -0.3f, -0.45f),
-                        new Vector3(0.18f, 0.55f, -0.75f),   // raised up behind the head
-                        new Vector3(0.06f, 0.75f, -0.42f),   // over the top
+                        new Vector3(0.3f, 0.6f, -0.6f),      // raised up beside and behind the head
+                        new Vector3(0.12f, 0.78f, -0.34f),   // over the top
                         new Vector3(0.03f, 0.4f, -0.12f),    // coming down
                         Vector3.zero,                        // onto the aim point
                         new Vector3(0.03f, -0.12f, -0.05f),  // jarred
