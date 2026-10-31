@@ -14,6 +14,7 @@ namespace PhysicsBattler.Motion
         public Vector3 hips;      // metres
         public float drop;        // metres the hips go down (bounce + crouch)
         public float lean, roll, turn;
+        public float hipTurn;     // degrees the pelvis turns on its own (the chest keeps its turn)
         public Vector2 head;
         public Vector3 main, mainTurn, off, offTurn;
     }
@@ -81,6 +82,9 @@ namespace PhysicsBattler.Motion
 
         private float pace = 1f;
 
+        // How far round the captured loop it is (0 to 1).
+        private float clipPhase;
+
         public RhythmPlayer(RhythmDefinition definition, int seed)
         {
             Definition = definition;
@@ -142,6 +146,12 @@ namespace PhysicsBattler.Motion
             }
 
             time += dt;
+            if (Definition.clip != null && !Definition.clip.IsEmpty)
+            {
+                // Round the loop at the capture's pace (slower on a bigger body), a little slower when tired.
+                clipPhase = Mathf.Repeat(clipPhase + dt * Mathf.Lerp(0.8f, 1f, EnergyNow) / (Definition.clip.length * pace), 1f);
+            }
+
             if (EnergyOverride < 0f)
             {
                 Energy = Mathf.Min(1f, Energy + Definition.energyRegen * dt);
@@ -387,42 +397,65 @@ namespace PhysicsBattler.Motion
 
             float e = EnergyNow;
             float t = time;
-            // The bounce: down from the stance height and back, livelier when fresh.
-            if (d.bounceRate > 0f)
+            var clip = d.clip;
+            bool captured = clip != null && !clip.IsEmpty;
+            if (captured)
             {
-                r.drop = d.bounceHeight * leg * Mathf.Lerp(0.3f, 1f, e) * Mathf.Abs(Mathf.Sin(Mathf.PI * d.bounceRate * t + phase[0]));
+                // The captured loop: its rock, bounce, turns, head and hands (smaller when tired).
+                var k = clip.Sample(clipPhase);
+                float a = clip.strength * Mathf.Lerp(0.4f, 1f, e);
+                r.hips = k.hips * (leg * a);
+                r.drop = k.drop * leg * a;
+                r.turn = k.turn * a;
+                r.hipTurn = k.hipTurn * a;
+                r.lean = k.lean * a;
+                r.roll = k.roll * a;
+                r.head = k.head * a;
+                float capturedSag = d.tiredGuardDrop * (1f - e) * size;
+                r.main = (d.mainGuard + k.main * a) * size + Vector3.down * capturedSag;
+                r.mainTurn = d.mainGuardTurn;
+                r.off = (d.offGuard + k.off * a) * size + Vector3.down * (1.3f * capturedSag);
+                r.offTurn = d.offGuardTurn;
             }
-
-            float sway = Mathf.Sin(2f * Mathf.PI * d.swayRate * t + phase[1]);
-            r.hips = new Vector3(d.hipSway * leg * sway, 0f, 0f);
-            r.head = new Vector2(0f, d.headSway * Mathf.Sin(2f * Mathf.PI * d.swayRate * t + phase[2]));
-            r.roll = 0.5f * d.headSway * sway;
-
-            // The weapon's own motion.
-            float w = 2f * Mathf.PI * d.loopRate * t + phase[3];
-            Vector3 loop = Vector3.zero, loopTurn = Vector3.zero;
-            switch (d.weaponLoop)
+            else
             {
-                case WeaponLoop.Pump:
-                    loop = new Vector3(0f, Mathf.Sin(w), 0.3f * Mathf.Sin(w + 1f)) * d.loopSize;
-                    loopTurn = new Vector3(d.loopTurn * Mathf.Sin(w), 0f, 0f);
-                    break;
-                case WeaponLoop.FigureEight:
-                    // (An upright stick: it fans side to side by rolling, nods by pitching.)
-                    loop = new Vector3(Mathf.Sin(w), 0.5f * Mathf.Sin(2f * w), 0f) * d.loopSize;
-                    loopTurn = new Vector3(0.5f * d.loopTurn * Mathf.Sin(2f * w), 0f, -d.loopTurn * Mathf.Sin(w));
-                    break;
-                case WeaponLoop.TipCircle:
-                    loop = new Vector3(Mathf.Sin(w), Mathf.Cos(w), 0f) * d.loopSize;
-                    loopTurn = new Vector3(d.loopTurn * Mathf.Cos(w), d.loopTurn * Mathf.Sin(w), 0f);
-                    break;
-            }
+                // The bounce: down from the stance height and back, livelier when fresh.
+                if (d.bounceRate > 0f)
+                {
+                    r.drop = d.bounceHeight * leg * Mathf.Lerp(0.3f, 1f, e) * Mathf.Abs(Mathf.Sin(Mathf.PI * d.bounceRate * t + phase[0]));
+                }
 
-            float sag = d.tiredGuardDrop * (1f - e) * size;
-            r.main = (d.mainGuard + loop) * size + Vector3.down * sag;
-            r.mainTurn = d.mainGuardTurn + loopTurn;
-            r.off = d.offGuard * size + Vector3.down * (1.3f * sag);
-            r.offTurn = d.offGuardTurn;
+                float sway = Mathf.Sin(2f * Mathf.PI * d.swayRate * t + phase[1]);
+                r.hips = new Vector3(d.hipSway * leg * sway, 0f, 0f);
+                r.head = new Vector2(0f, d.headSway * Mathf.Sin(2f * Mathf.PI * d.swayRate * t + phase[2]));
+                r.roll = 0.5f * d.headSway * sway;
+
+                // The weapon's own motion.
+                float w = 2f * Mathf.PI * d.loopRate * t + phase[3];
+                Vector3 loop = Vector3.zero, loopTurn = Vector3.zero;
+                switch (d.weaponLoop)
+                {
+                    case WeaponLoop.Pump:
+                        loop = new Vector3(0f, Mathf.Sin(w), 0.3f * Mathf.Sin(w + 1f)) * d.loopSize;
+                        loopTurn = new Vector3(d.loopTurn * Mathf.Sin(w), 0f, 0f);
+                        break;
+                    case WeaponLoop.FigureEight:
+                        // (An upright stick: it fans side to side by rolling, nods by pitching.)
+                        loop = new Vector3(Mathf.Sin(w), 0.5f * Mathf.Sin(2f * w), 0f) * d.loopSize;
+                        loopTurn = new Vector3(0.5f * d.loopTurn * Mathf.Sin(2f * w), 0f, -d.loopTurn * Mathf.Sin(w));
+                        break;
+                    case WeaponLoop.TipCircle:
+                        loop = new Vector3(Mathf.Sin(w), Mathf.Cos(w), 0f) * d.loopSize;
+                        loopTurn = new Vector3(d.loopTurn * Mathf.Cos(w), d.loopTurn * Mathf.Sin(w), 0f);
+                        break;
+                }
+
+                float sag = d.tiredGuardDrop * (1f - e) * size;
+                r.main = (d.mainGuard + loop) * size + Vector3.down * sag;
+                r.mainTurn = d.mainGuardTurn + loopTurn;
+                r.off = d.offGuard * size + Vector3.down * (1.3f * sag);
+                r.offTurn = d.offGuardTurn;
+            }
 
             if (Current != null)
             {

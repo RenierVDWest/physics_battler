@@ -85,6 +85,8 @@ namespace PhysicsBattler.Motion
         // What the last step produced, for the log.
         public Vector3 CenterOfMass { get; private set; }
         public Vector3 SupportPoint { get; private set; }
+        /// <summary>Where the weight is meant to be: the support point moved by the Fight Rhythm's deliberate shifts (a boxer's rock onto the lead leg).</summary>
+        public Vector3 WeightTarget { get; private set; }
         public float PelvisDrop { get; private set; }
         public float WeightShift { get; private set; }
         public IdleSample LastIdle { get; private set; }
@@ -252,12 +254,15 @@ namespace PhysicsBattler.Motion
             {
                 var r = rhythm;
                 pelvis.position += facing * r.hips + Vector3.down * r.drop;
+                WeightTarget = SupportPoint + Vector3.ProjectOnPlane(facing * r.hips, Vector3.up);
                 var spine = anim.Part(PartId.Spine);
                 var chest = anim.Part(PartId.Chest);
-                if (Mathf.Abs(r.turn) > 1e-3f)
+                if (Mathf.Abs(r.turn) > 1e-3f || Mathf.Abs(r.hipTurn) > 1e-3f)
                 {
-                    pelvis.rotation = Quaternion.AngleAxis(0.45f * r.turn, Vector3.up) * pelvis.rotation;
-                    chest.rotation = Quaternion.AngleAxis(0.55f * r.turn, Vector3.up) * chest.rotation;
+                    // (The chest hangs off the pelvis: it ends turned by `turn` whatever the pelvis does.)
+                    float hipsTurn = 0.45f * r.turn + r.hipTurn;
+                    pelvis.rotation = Quaternion.AngleAxis(hipsTurn, Vector3.up) * pelvis.rotation;
+                    chest.rotation = Quaternion.AngleAxis(r.turn - hipsTurn, Vector3.up) * chest.rotation;
                 }
 
                 if (Mathf.Abs(r.lean) > 1e-3f || Mathf.Abs(r.roll) > 1e-3f)
@@ -561,6 +566,7 @@ namespace PhysicsBattler.Motion
             s.lean *= w;
             s.roll *= w;
             s.turn *= w;
+            s.hipTurn *= w;
             s.head *= w;
             s.main *= w;
             s.mainTurn *= w;
@@ -601,9 +607,10 @@ namespace PhysicsBattler.Motion
             float w = Mathf.Clamp01(rhythm.off.magnitude / Mathf.Max(1e-4f, Rhythm.off.magnitude));
             Vector3 target = Vector3.Lerp(hand.position, placed, Rhythm.off.sqrMagnitude > 1e-8f ? w : 0f) + FlailOffset(facing, -1f);
             target = Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target);
-            var rotation = hand.rotation;
-            TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), hand, target, chestTurn * new Vector3(-0.8f, -1f, -0.3f));
-            hand.rotation = rotation;
+            // (The elbow down under the fist, a little out: tucked in front of the ribs.)
+            TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), hand, target, chestTurn * new Vector3(-0.35f, -1f, 0f));
+            // A fist on a straight wrist, in line with the forearm (as the plain guard holds it).
+            hand.localRotation = Quaternion.Euler(-10f, 0f, 0f);
         }
 
         /// <summary>Stumbling, a hand goes out to its side, up, and forward against the fall.</summary>

@@ -56,6 +56,10 @@ namespace PhysicsBattler.Motion
     [CreateAssetMenu(menuName = "Physics Battler/Fight Rhythm", fileName = "RD_Rhythm")]
     public class RhythmDefinition : ScriptableObject
     {
+        [Header("Base: a captured loop")]
+        [Tooltip("A loop from motion capture (Tools/Mocap): when it has keys, it plays instead of the bounce, sway and weapon loop below.")]
+        public RhythmClip clip = new RhythmClip();
+
         [Header("Base: the bounce")]
         [Tooltip("Bounces a second (0: none).")]
         public float bounceRate;
@@ -182,12 +186,27 @@ namespace PhysicsBattler.Motion
         private static OpeningWindow Open(float from, float to, AimParts parts) => new OpeningWindow { from = from, to = to, parts = parts };
 
         /// <summary>
-        /// The large unit: a pressure boxer in Tyson's mould. A low bounce on the balls of the feet,
-        /// the off hand high at the cheek, the club cocked at the shoulder and pumping with the
-        /// bounce, the head swaying. Feints just before it really swings.
+        /// The large unit: a pressure boxer in Tyson's mould. The base loop is a captured boxing
+        /// idle (Boxing.fbx): bladed, rocking forward and down onto the lead leg and back up, the
+        /// body turning with it, the lead hand up in front of the shoulder, the club at the shoulder
+        /// bobbing with the rear hand. Feints just before it really swings. (Without the clip: a low
+        /// bounce, a sway and the club pumping.)
         /// </summary>
+        // The boxer's guards, where the capture holds its hands (measured against the shoulder in
+        // arm lengths): the lead hand up in front of its shoulder, the rear hand (the club's) in front
+        // of the chin, the club laid back over the right shoulder like a cocked fist.
+        public static readonly Vector3 BoxingOffGuard = new Vector3(-0.14f, 0.19f, 0.36f);
+        public static readonly Vector3 BoxingMainGuard = new Vector3(-0.08f, 0.48f, -0.04f);
+        public static readonly Vector3 BoxingMainGuardTurn = new Vector3(-67f, 0f, -9f);
+
+        // Before the capture (setup 15).
+        public static readonly Vector3 OldBoxingOffGuard = new Vector3(-0.1f, 0.3f, 0.24f);
+        public static readonly Vector3 OldBoxingMainGuard = new Vector3(0.04f, 0.1f, -0.06f);
+        public static readonly Vector3 OldBoxingMainGuardTurn = new Vector3(-25f, 0f, 0f);
+
         private void Boxing()
         {
+            clip = RhythmClips.Boxing();
             bounceRate = 1.8f;
             bounceHeight = 0.03f;
             hipSway = 0.03f;
@@ -197,9 +216,9 @@ namespace PhysicsBattler.Motion
             loopSize = 0.035f;
             loopRate = 0.9f;
             loopTurn = 4f;
-            mainGuard = new Vector3(0.04f, 0.1f, -0.06f);
-            mainGuardTurn = new Vector3(-25f, 0f, 0f);
-            offGuard = new Vector3(-0.1f, 0.3f, 0.24f);
+            mainGuard = BoxingMainGuard;
+            mainGuardTurn = BoxingMainGuardTurn;
+            offGuard = BoxingOffGuard;
             circling = 0f;
             gap = new Vector2(1f, 2f);
             leadInChance = 0.85f;

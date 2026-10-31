@@ -44,6 +44,10 @@ namespace PhysicsBattler.Tests
             var rig = RigFile.Parse(File.ReadAllText(path));
             var profile = UnitProfile.CreateDefault();
             profile.body = body;
+            if (body == "Large")
+            {
+                profile.style = CombatStyle.CreateFor(body);   // (the boxer stands as its captured loop expects)
+            }
             var root = UnitBuilder.Build(rig, profile, $"Rhythm {body} {team} #{++built}", _ => null, 0);
             root.transform.SetPositionAndRotation(at, Quaternion.Euler(0f, yaw, 0f));
             var unit = root.GetComponent<UnitController>();
@@ -275,6 +279,82 @@ namespace PhysicsBattler.Tests
 
             Assert.GreaterOrEqual(blows, 6, "it fights");
             Assert.GreaterOrEqual(ledIn, 0.55f * blows, $"most blows come right after a lead-in ({ledIn} of {blows})");
+        }
+
+        [Test]
+        public void TheBoxerRocksAsTheCaptureDoes()
+        {
+            // The large unit's base is the captured boxing idle: the hips rock forward and down onto
+            // the lead leg and back up, round the loop at the capture's pace (a little slower on the
+            // bigger body), the bare lead hand up in front of the shoulder.
+            var (unit, opponent) = Pair("Large");
+            var both = new[] { unit, opponent };
+            try
+            {
+                Assert.IsFalse(unit.Rhythm.Definition.clip.IsEmpty, "the boxer has a captured loop");
+                unit.Rhythm.Auto = false;
+                unit.Rhythm.EnergyOverride = 1f;
+                Step(both, 60);
+                float leg = unit.Body.LegLength;
+                var fore = new List<float>();
+                var drop = new List<float>();
+                float handHigh = float.MaxValue;
+                for (int i = 0; i < 300; i++)
+                {
+                    Step(both);
+                    Vector3 feet = 0.5f * (unit.Anim.Part(PartId.FootL).position + unit.Anim.Part(PartId.FootR).position);
+                    Vector3 hips = unit.Anim.Part(PartId.Pelvis).position;
+                    fore.Add(Vector3.Dot(hips - feet, unit.Root.forward) / leg);
+                    drop.Add(hips.y / leg);
+                    handHigh = Mathf.Min(handHigh, unit.Anim.Part(PartId.HandL).position.y - unit.Anim.Part(PartId.Chest).position.y);
+                }
+
+                float rock = Max(fore) - Min(fore), bob = Max(drop) - Min(drop);
+                System.Console.WriteLine($"rock {rock:0.000} legs, bob {bob:0.000} legs, lead hand at least {handHigh:0.00} m above the chest");
+                Assert.Greater(rock, 0.12f, "the hips rock fore and aft as the capture's (0.18 legs)");
+                Assert.Greater(bob, 0.04f, "and bob (0.07 legs)");
+                Assert.Greater(handHigh, 0.1f, "the lead hand stays up");
+
+                // The loop's length: the rock's period, against the capture's on this body.
+                float expected = unit.Rhythm.Definition.clip.length * Mathf.Sqrt(unit.Body.SizeFactor);
+                int bestLag = 0;
+                float best = float.MinValue;
+                for (int lag = 60; lag < 200; lag++)
+                {
+                    float c = 0f;
+                    for (int i = 0; i + lag < fore.Count; i++)
+                    {
+                        c += (fore[i] - 0.5f * (Max(fore) + Min(fore))) * (fore[i + lag] - 0.5f * (Max(fore) + Min(fore)));
+                    }
+
+                    c /= fore.Count - lag;
+                    if (c > best)
+                    {
+                        best = c;
+                        bestLag = lag;
+                    }
+                }
+
+                Assert.AreEqual(expected, bestLag / 60f, 0.2f, "round the loop at the capture's pace");
+            }
+            finally
+            {
+                Destroy(both);
+            }
+        }
+
+        private static float Max(List<float> values)
+        {
+            float m = float.MinValue;
+            foreach (float v in values) m = Mathf.Max(m, v);
+            return m;
+        }
+
+        private static float Min(List<float> values)
+        {
+            float m = float.MaxValue;
+            foreach (float v in values) m = Mathf.Min(m, v);
+            return m;
         }
 
         [Test]

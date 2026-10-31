@@ -10,52 +10,17 @@ namespace PhysicsBattler.Editor.Setup
     /// Creates the tuning assets once: a unit profile and a combat style per body size. After that
     /// they are yours to tune; setup never changes an existing asset.
     ///
-    /// The three styles differ on purpose, to see how idle movement plays: the small unit weaves
-    /// and bounces and shuffles a lot, the medium one moves like a boxer, the large one barely sways
-    /// and stands wide.
+    /// The three styles differ on purpose (<see cref="CombatStyle.CreateFor"/>): the small unit
+    /// weaves and bounces and shuffles a lot, the medium one has the plain defaults, the large one
+    /// stands as the captured boxing idle its Fight Rhythm plays.
     /// </summary>
     internal static class DataSetup
     {
         public static void Apply()
         {
-            var small = Ensure<CombatStyle>(BattlerPaths.Style("Small"), s =>
-            {
-                s.stanceWidth = 0.36f;
-                s.stanceLength = 0.46f;
-                s.crouch = 0.1f;
-                s.lean = 10f;
-                s.swayAmplitude = 0.05f;
-                s.swayFrequency = 0.7f;
-                s.bobAmplitude = 0.025f;
-                s.bobFrequency = 2.2f;
-                s.weaveDegrees = 7f;
-                s.weaveFrequency = 0.6f;
-                s.shuffleInterval = 1.4f;
-                s.shuffleDistance = 0.12f;
-                s.guardRaise = -40f;
-                s.guardElbow = -110f;
-            });
-            var medium = Ensure<CombatStyle>(BattlerPaths.Style("Medium"), _ => { });
-            var large = Ensure<CombatStyle>(BattlerPaths.Style("Large"), s =>
-            {
-                s.stanceWidth = 0.4f;
-                s.stanceLength = 0.36f;
-                s.crouch = 0.05f;
-                s.lean = 4f;
-                s.hipTurn = 14f;
-                s.swayAmplitude = 0.018f;
-                s.swayFrequency = 0.28f;
-                s.bobAmplitude = 0.004f;
-                s.bobFrequency = 0.9f;
-                s.weaveDegrees = 2.5f;
-                s.weaveFrequency = 0.22f;
-                s.shuffleInterval = 5f;
-                s.shuffleDistance = 0.07f;
-                s.guardRaise = -22f;
-                s.guardIn = 8f;
-                s.guardElbow = -80f;
-                s.leadArmReach = -6f;
-            });
+            var small = EnsureStyle("Small");
+            var medium = EnsureStyle("Medium");
+            var large = EnsureStyle("Large");
 
             Ensure<UnitProfile>(BattlerPaths.Profile("Small"), p =>
             {
@@ -93,6 +58,19 @@ namespace PhysicsBattler.Editor.Setup
         /// </summary>
         public static void Migrate(int from)
         {
+            // Setup 16: the large unit stands as the captured boxing idle it now plays does (unless
+            // its stance was already changed).
+            if (from >= 9 && from < 16)
+            {
+                var large = AssetDatabase.LoadAssetAtPath<CombatStyle>(BattlerPaths.Style("Large"));
+                if (large != null && CombatStyle.HasOldLargeStance(large))
+                {
+                    CombatStyle.ApplyLargeStance(large);
+                    EditorUtility.SetDirty(large);
+                    Debug.Log($"[Battler Setup] {BattlerPaths.Style("Large")}: the boxing stance from the captured idle.");
+                }
+            }
+
             // Setup 13 (milestone 3) gives units health and poise: profiles made earlier have the
             // medium figures, so the small and large ones get theirs (unless already changed).
             if (from >= 9 && from < 13)
@@ -135,6 +113,22 @@ namespace PhysicsBattler.Editor.Setup
             }
 
             Object.DestroyImmediate(defaults);
+        }
+
+        /// <summary>A body's combat style asset, made from the ready-made one if missing.</summary>
+        private static CombatStyle EnsureStyle(string body)
+        {
+            string path = BattlerPaths.Style(body);
+            var asset = AssetDatabase.LoadAssetAtPath<CombatStyle>(path);
+            if (asset != null)
+            {
+                return asset;
+            }
+
+            EditorFolders.EnsureParent(path);
+            asset = CombatStyle.CreateFor(body);
+            AssetDatabase.CreateAsset(asset, path);
+            return asset;
         }
 
         private static T Ensure<T>(string path, System.Action<T> initialize) where T : ScriptableObject

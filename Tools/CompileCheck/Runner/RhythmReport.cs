@@ -38,6 +38,7 @@ internal static class RhythmReport
                 csv.Append(",grip.x,grip.y,grip.z,tip.x,tip.y,tip.z,sh.x,sh.y,sh.z,shn.x,shn.y,shn.z");
                 csv.AppendLine();
                 if (posture != null) unit.Rhythm.Force(posture);
+                unit.Rhythm.Auto = posture != null;   // (the base on its own: no postures mixed in)
                 float t = 0f, minClear = float.MaxValue, pop = 0f;
                 string where = "", popWhere = "";
                 var lastP = new Vector3[PartInfo.Count];
@@ -74,6 +75,7 @@ internal static class RhythmReport
                 }
                 Console.WriteLine($"{body} {name}: {t:0.00} s, closest to own body {minClear * 100f:0.0} cm ({where}), pop {pop * 100f:0.0} cm {popWhere}");
                 if (dir != null) File.WriteAllText(Path.Combine(dir, $"{body.ToLowerInvariant()}_{name}.csv"), csv.ToString());
+                unit.Rhythm.Auto = true;
                 RhythmTests.Step(both, 20);
             }
             RhythmTests.Destroy(both);

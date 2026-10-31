@@ -15,7 +15,8 @@ namespace PhysicsBattler.Diagnostics
     ///
     /// Frames columns: t, step; root (rootX, rootZ, rootYaw); hips (pelvisH physical, animPelvisH,
     /// pelvisDrop when a foot was out of reach, weightShift); balance (comOffset: the animated centre
-    /// of mass from the support point, physCom: the physical one, both horizontal metres); feet
+    /// of mass from where the weight is meant to be (the support point, moved by the Fight Rhythm's
+    /// deliberate shifts), physCom: the physical one, both horizontal metres); feet
     /// (stepL/R 0 or 1, liftL/R, slideL/R: how far each physical foot is from its planted spot,
     /// steps, shuffles); idle (swayX, swayZ, bob); authority per region (lvl_*: 0 kinematic,
     /// 1 pinned, 2 loose, 3 ragdoll; pin_*); every part's distance (err_*, metres) and angle
@@ -138,7 +139,7 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("pelvisDrop", p.PelvisDrop, 3);
             frames.Add("weightShift", p.WeightShift, 3);
 
-            Vector3 support = p.SupportPoint;
+            Vector3 support = p.WeightTarget;   // (the rhythm's deliberate shifts are meant)
             Vector3 com = p.CenterOfMass - support;
             com.y = 0f;
             Vector3 phys = unit.Rig.CenterOfMass() - support;

@@ -24,7 +24,7 @@ over it. A **mood** changes the mix over the fight.
 
 | Unit | Style | Base | Postures |
 | --- | --- | --- | --- |
-| Large | Boxing (the club for a right hand) | Low bounce on the balls of the feet, the lead hand high at the cheek, the club cocked and pumping, the head swaying | Club feint (the real swing's wind-up, a third of the way, and back), jab feint (lead hand half out with a small step in), bob and weave, shift (the rear foot steps through to lead and back) |
+| Large | Boxing (the club for a right hand) | A captured boxing idle (Boxing.fbx): bladed and long, rocking forward and down onto the lead leg and back up, the body turning with it, the lead fist up in front of the shoulder, the club laid back over the right shoulder | Club feint (the real swing's wind-up, a third of the way, and back), jab feint (lead hand half out with a small step in), bob and weave, shift (the rear foot steps through to lead and back) |
 | Medium | Round-shield and sword | Shield out at arm's length, sword drawn back by the hip, point forward and circling a little, circling to the side | High feint (the cut's wind-up over the shield), shield press (with a half step), guard change (sword overhead, then on the shoulder; shield down, then up), peek (the shield dips) |
 | Small | Eskrima (the club as a single stick) | Quick light bounce, the stick in a figure-eight from the wrist, the alive hand out in front, restless | Abanico flurry (fan flicks), triangle step (off the line to a new angle), redonda twirl (a circle of the stick overhead), bait retreat |
 
@@ -42,6 +42,13 @@ over it. A **mood** changes the mix over the fight.
   blocks and stumbles, and a blow takes over from the rhythm as it blends in.
 - **H** is the rhythm gallery: each style's base, then every posture slowed and at full speed.
   The panel can make everyone tired, to see the difference.
+- **Captured loops.** A rhythm's base can be a loop from motion capture instead of the made-up
+  bounce and sway (its `clip`): the boxer's is a Mixamo boxing idle. `Tools/Mocap/mixamo_rhythm.py`
+  reads a looping Mixamo FBX (binary, skeleton animation) and writes it as a clip: the hips' rock and
+  bounce, the pelvis and chest turns, the lean, the head, and both hands, as offsets from the loop's
+  mean pose. It also prints the stance (feet apart, how low, how turned) and where the hands sit, which
+  belong in the combat style and the rhythm's guards. `Tools/Mocap/compare.py` renders the capture and
+  the unit side by side (a video) to check the result.
 
 ### Milestone 4: stumbles, ragdolls, get-ups
 
@@ -186,7 +193,8 @@ and the real units spawn on the markers.
    profiles their health and poise and each weapon its damage and hit radius (unless you changed them). Version 14
    rebuilds the ready-made moves as big swings (moves still on the old hand-drawn path) and adds the sword cleave and
    the club's rising blow to the weapons. Version 15 adds the Fight Rhythms (Data/Rhythms) and points each body's
-   combat style at its own. Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
+   combat style at its own. Version 16 gives the boxer the captured boxing idle: the large style's stance and
+   `RD_Boxing`'s clip and guards (unless you changed them). Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
 3. Press Play. Commit the `.meta` files Unity creates for the new scripts and assets.
 
 ## Battle scene controls
@@ -255,7 +263,8 @@ Milestone 4:
 16. **Get-ups.** Every unit down gets up after a second or two: face down by pushing up onto hands
     and knees and one knee, face up by sitting up and pushing into a crouch. It should start from
     how it lay without a pop, and end in its stance. Then it walks to the middle of a free tile.
-17. **Fight Rhythms.** Press **H**: the large unit bounces and feints like a boxer, the medium one
+17. **Fight Rhythms.** Press **H**: the large unit rocks in a bladed boxing stance (the captured idle), fists up,
+    the bare hand's wrist straight, and feints like a boxer, the medium one
     circles behind its shield, the small one fans its stick and steps to angles. In a fight, the
     boxer feints just before most of its swings. Tick "Everyone tired" in the panel: the postures
     thin out and the guards drop.
@@ -357,7 +366,8 @@ Tune in the data assets, not on the prefabs (setup rebuilds prefabs). Changes ma
   Its shape (length, mass, strike points) comes from `weapons.json` and is refreshed by setup.
 - `Data/Units/UP_Small`, `UP_Medium`, `UP_Large` (unit profiles): which body, which style, turn speed, how strongly
   the torso and arms are pinned to the pose (`torsoPin`, `armPin`), and the rigidbody settings.
-- `Data/Rhythms/RD_Boxing`, `RD_ShieldAndSword`, `RD_Eskrima` (Fight Rhythms): the base (bounce rate and
+- `Data/Rhythms/RD_Boxing`, `RD_ShieldAndSword`, `RD_Eskrima` (Fight Rhythms): the base (a captured `clip`, with
+  `strength` for how much of its motion plays; or the bounce rate and
   height, sway, the weapon's loop, both hands' guards, circling), the postures and how often they come
   (`gap`), the lead-in chance, and the mood (starting aggression, what each posture, blow and hit costs in
   energy, regeneration, how far the guard sags). `Data/Rhythms/Postures/PD_*`: each posture's length, weight,

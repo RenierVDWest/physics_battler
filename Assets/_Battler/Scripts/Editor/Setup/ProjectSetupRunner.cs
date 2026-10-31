@@ -61,6 +61,7 @@ namespace PhysicsBattler.Editor.Setup
                 DataSetup.Apply();
                 RhythmSetup.Apply();
                 DataSetup.Migrate(SetupVersion.Installed);
+                RhythmSetup.Migrate(SetupVersion.Installed);
                 if (!PrefabSetup.ApplyInScratchScene(materials, out _))
                 {
                     AssetDatabase.SaveAssets();

@@ -86,5 +86,68 @@ namespace PhysicsBattler.Motion
             style.name = "CombatStyle (default)";
             return style;
         }
+
+        /// <summary>The ready-made style for a body size ("Small", "Medium", "Large"), as the setup makes it.</summary>
+        public static CombatStyle CreateFor(string body)
+        {
+            var s = CreateDefault();
+            s.name = "CS_" + body;
+            switch ((body ?? "").ToLowerInvariant())
+            {
+                case "small":
+                    s.stanceWidth = 0.36f;
+                    s.stanceLength = 0.46f;
+                    s.crouch = 0.1f;
+                    s.lean = 10f;
+                    s.swayAmplitude = 0.05f;
+                    s.swayFrequency = 0.7f;
+                    s.bobAmplitude = 0.025f;
+                    s.bobFrequency = 2.2f;
+                    s.weaveDegrees = 7f;
+                    s.weaveFrequency = 0.6f;
+                    s.shuffleInterval = 1.4f;
+                    s.shuffleDistance = 0.12f;
+                    s.guardRaise = -40f;
+                    s.guardElbow = -110f;
+                    break;
+                case "large":
+                    ApplyLargeStance(s);
+                    s.shuffleInterval = 5f;
+                    s.shuffleDistance = 0.07f;
+                    s.guardRaise = -22f;
+                    s.guardIn = 8f;
+                    s.guardElbow = -80f;
+                    s.leadArmReach = -6f;
+                    break;
+            }
+
+            return s;
+        }
+
+        /// <summary>
+        /// The large unit's boxing stance, from the captured boxing idle its Fight Rhythm plays
+        /// (Boxing.fbx): bladed and long, the hips turned well round, sitting a little low, the
+        /// weight about even. Its own idle sway, bob and weave are off: the captured loop moves it.
+        /// </summary>
+        public static void ApplyLargeStance(CombatStyle s)
+        {
+            s.stanceWidth = 0.32f;
+            s.stanceLength = 0.58f;
+            s.crouch = 0.09f;
+            s.lean = 3f;
+            s.hipTurn = 36f;
+            s.chestCounterTurn = -8f;
+            s.leadWeight = 0.52f;
+            s.swayAmplitude = 0f;
+            s.bobAmplitude = 0f;
+            s.weaveDegrees = 0f;
+        }
+
+        /// <summary>The large unit's stance before it took the captured boxing idle's (setup 15 and earlier).</summary>
+        public static bool HasOldLargeStance(CombatStyle s)
+        {
+            return Mathf.Approximately(s.stanceWidth, 0.4f) && Mathf.Approximately(s.stanceLength, 0.36f)
+                && Mathf.Approximately(s.crouch, 0.05f) && Mathf.Approximately(s.hipTurn, 14f) && Mathf.Approximately(s.lean, 4f);
+        }
     }
 }
