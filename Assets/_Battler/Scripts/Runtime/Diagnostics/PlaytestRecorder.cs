@@ -117,7 +117,6 @@ namespace PhysicsBattler.Diagnostics
                 Directory.CreateDirectory(Path.Combine(sessionPath, "units"));
                 Directory.CreateDirectory(Path.Combine(sessionPath, "config"));
                 events = new StreamWriter(Path.Combine(sessionPath, "events.log"), false, new UTF8Encoding(false));
-                world = new TableWriter(Path.Combine(sessionPath, "world.csv.gz"));
             }
             catch (Exception exception)
             {
@@ -188,12 +187,13 @@ namespace PhysicsBattler.Diagnostics
             try
             {
                 events.Dispose();
-                world.Dispose();
             }
             catch (Exception)
             {
-                // The editor is shutting down; the files are as complete as they will get.
+                // The editor is shutting down; the file is as complete as it will get.
             }
+
+            world?.Dispose();
 
             events = null;
             world = null;
@@ -416,6 +416,11 @@ namespace PhysicsBattler.Diagnostics
                     continue;
                 }
 
+                if (world == null)
+                {
+                    world = new TableWriter(Path.Combine(sessionPath, "world.csv.gz"));   // only once there are props
+                }
+
                 world.Begin();
                 world.Add("t", Now, 4);
                 world.Add("prop", pair.Value);
@@ -436,18 +441,12 @@ namespace PhysicsBattler.Diagnostics
 
         private void Flush()
         {
-            try
+            // Each file on its own: one failing must not stop the others being flushed.
+            try { events.Flush(); } catch (Exception) { /* next time */ }
+            try { world?.Flush(); } catch (Exception) { /* next time */ }
+            foreach (var track in tracks)
             {
-                events.Flush();
-                world.Flush();
-                foreach (var track in tracks)
-                {
-                    track.Flush();
-                }
-            }
-            catch (Exception)
-            {
-                // Best effort; the next flush or the stop will try again.
+                try { track.Flush(); } catch (Exception) { /* next time */ }
             }
         }
 

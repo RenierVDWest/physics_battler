@@ -22,6 +22,7 @@ namespace PhysicsBattler.Diagnostics
         private readonly List<string> header = new List<string>();
         private readonly char[] digits = new char[24];
         private bool headerWritten;
+        private bool disposed;
         private int column;
 
         public int Rows { get; private set; }
@@ -99,14 +100,41 @@ namespace PhysicsBattler.Diagnostics
 
         public void Flush()
         {
+            if (disposed || Rows == 0)
+            {
+                return;   // nothing written yet: some runtimes' gzip streams fail flushing an empty stream
+            }
+
             writer.Flush();
             gzip.Flush();
             file.Flush();
         }
 
+        /// <summary>
+        /// Closes the table. The file itself is always closed, even if finishing the compressed stream
+        /// fails: a file left open stays locked by Unity, and Git can't commit it (first playtest).
+        /// </summary>
         public void Dispose()
         {
-            writer.Dispose();   // closes the gzip stream and the file
+            if (disposed)
+            {
+                return;
+            }
+
+            disposed = true;
+            try
+            {
+                writer.Dispose();   // finishes the gzip stream and closes the file
+            }
+            catch (Exception)
+            {
+                // Fall through: close what is left below.
+            }
+            finally
+            {
+                try { gzip.Dispose(); } catch (Exception) { /* already closed or failed */ }
+                try { file.Dispose(); } catch (Exception) { /* already closed */ }
+            }
         }
 
         private void AppendFixed(float value, int decimals)
