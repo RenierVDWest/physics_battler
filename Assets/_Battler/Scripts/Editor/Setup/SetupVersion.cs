@@ -11,8 +11,13 @@ namespace PhysicsBattler.Editor.Setup
         /// <summary>
         /// 1 = The first prototype: URP, physics settings check, orc materials and models, unit, weapon
         ///     and prop prefabs, data assets and the Sandbox scene.
+        /// 2 = Tuning after the first playtest: unit profiles get the raised load-boost cap and the
+        ///     longer crouch-then-rise get-up (see <see cref="DataSetup.Migrate"/>).
         /// </summary>
-        public const int Current = 1;
+        public const int Current = 2;
+
+        /// <summary>The version that last ran here (0 if never).</summary>
+        public static int Installed => Read();
 
         private const string FilePath = "ProjectSettings/BattlerSetupVersion.txt";
 

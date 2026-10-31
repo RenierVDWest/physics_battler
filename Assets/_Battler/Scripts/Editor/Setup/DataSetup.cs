@@ -8,7 +8,8 @@ namespace PhysicsBattler.Editor.Setup
 {
     /// <summary>
     /// Creates the tuning assets once: the orc and goblin profiles, the big club and its low swing.
-    /// After that they are yours to tune; the setup never overwrites them.
+    /// After that they are yours to tune. The only changes the setup makes to existing assets are
+    /// the migrations in <see cref="Migrate"/>, each run once, and only to values still at the old default.
     /// </summary>
     internal static class DataSetup
     {
@@ -35,6 +36,45 @@ namespace PhysicsBattler.Editor.Setup
                 }
             });
             Ensure<AttackDefinition>(BattlerPaths.ClubSwing, _ => { });
+        }
+
+        /// <summary>Updates existing tuning assets from setup version <paramref name="from"/> to the current one.</summary>
+        public static void Migrate(int from)
+        {
+            if (from >= 1 && from < 2)
+            {
+                // After the first playtest (the club too heavy for the arm, get-ups declared done while
+                // the orc hung face down). New fields arrive with their defaults by themselves.
+                foreach (var path in new[] { BattlerPaths.OrcProfile, BattlerPaths.GoblinProfile })
+                {
+                    var profile = AssetDatabase.LoadAssetAtPath<UnitProfile>(path);
+                    if (profile == null)
+                    {
+                        continue;
+                    }
+
+                    bool changed = false;
+                    changed |= Replace(ref profile.maxSubtreeBoost, 25f, 300f, profile.name, "maxSubtreeBoost");
+                    changed |= Replace(ref profile.getUpDuration, 1.3f, 1.8f, profile.name, "getUpDuration");
+                    if (changed)
+                    {
+                        EditorUtility.SetDirty(profile);
+                    }
+                }
+            }
+        }
+
+        private static bool Replace(ref float field, float oldDefault, float newValue, string asset, string name)
+        {
+            if (!Mathf.Approximately(field, oldDefault))
+            {
+                Debug.Log($"[Battler Setup] {asset}.{name} is {field} (tuned by you), left as it is; the new default is {newValue}.");
+                return false;
+            }
+
+            field = newValue;
+            Debug.Log($"[Battler Setup] {asset}.{name}: {oldDefault} → {newValue}.");
+            return true;
         }
 
         private static T Ensure<T>(string path, System.Action<T> initialize) where T : ScriptableObject

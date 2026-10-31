@@ -88,7 +88,10 @@ Editor setup lives in `Scripts/Editor/Setup`. Tests (EditMode, NUnit) live in `A
 
 Tune in the data assets, not on the prefabs (the setup rebuilds prefabs). Changes made in Play mode persist.
 
-- `Data/Units/UP_Orc`, `UP_Goblin`: muscles, balance assist, stability, catch steps, getting up.
+- `Data/Units/UP_Orc`, `UP_Goblin`: muscles, balance assist, stability, catch steps, getting up. The knobs that
+  matter most right now: `maxSubtreeBoost` (how much the arm may stiffen to carry the club; the log's `muscles` line
+  shows what each joint needs), `gravityCompensation`, `velocityFeedForward`, `uprightBodyShare` (how hard the assist
+  holds the torso up), `steadyStepFactor`, and the get-up's `getUpDuration`, `getUpGrace`, `standMaxTilt`.
 - `Data/Weapons/WD_ClubBig`: physics mass vs gameplay mass, damage, knockback, stability loss.
 - `Data/Attacks/AD_ClubLowSwing`: phase timings, swing angles, plane roll, body twist and lean, arm strength.
 

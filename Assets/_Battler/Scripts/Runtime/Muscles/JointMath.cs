@@ -107,6 +107,42 @@ namespace PhysicsBattler.Muscles
         }
 
         /// <summary>
+        /// The angular velocity (rad/s, in <paramref name="from"/>'s own frame) that turns
+        /// <paramref name="from"/> into <paramref name="to"/> in <paramref name="dt"/> seconds, the shortest way.
+        /// </summary>
+        public static Vector3 BodyAngularVelocity(Quaternion from, Quaternion to, float dt)
+        {
+            var delta = Quaternion.Inverse(from) * to;
+            if (delta.w < 0f)
+            {
+                delta = new Quaternion(-delta.x, -delta.y, -delta.z, -delta.w);
+            }
+
+            var vector = new Vector3(delta.x, delta.y, delta.z);
+            float sine = vector.magnitude;
+            if (sine < 1e-7f || dt <= 0f)
+            {
+                return Vector3.zero;
+            }
+
+            float angle = 2f * Mathf.Atan2(sine, delta.w);
+            return vector / sine * (angle / dt);
+        }
+
+        /// <summary>
+        /// Spring and damper for an acceleration-based drive that should move a load
+        /// <paramref name="boost"/> times the inertia PhysX scales the drive by, at <paramref name="hz"/>
+        /// with damping ratio <paramref name="dampingRatio"/> (both hold for the load, not for the bare part).
+        /// </summary>
+        public static void DriveGains(float hz, float dampingRatio, float strength, float boost, out float spring, out float damper)
+        {
+            strength = Mathf.Max(0f, strength);
+            float omega = 2f * Mathf.PI * hz;
+            spring = strength * omega * omega * boost;
+            damper = 2f * dampingRatio * omega * Mathf.Sqrt(strength) * boost;
+        }
+
+        /// <summary>
         /// The rotation needed to turn <paramref name="from"/> into <paramref name="to"/>, as an axis
         /// times angle in radians (shortest way round). Used for PD torques.
         /// </summary>

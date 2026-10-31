@@ -98,7 +98,7 @@ namespace PhysicsBattler.Muscles
         /// Starts a catch step when the capture point leaves the feet. Returns false when the unit is out
         /// of steps and still falling (it should go down).
         /// </summary>
-        public bool UpdateCatchSteps(float groundY, float scale)
+        public bool UpdateCatchSteps(float groundY, float scale, float thresholdFactor = 1f)
         {
             if (stance.StepsTaken == 0)
             {
@@ -111,7 +111,7 @@ namespace PhysicsBattler.Muscles
                 return true;
             }
 
-            float threshold = profile.stepThreshold * scale;
+            float threshold = profile.stepThreshold * scale * thresholdFactor;
             if (BalanceError <= threshold)
             {
                 stuckTime = 0f;
@@ -236,8 +236,13 @@ namespace PhysicsBattler.Muscles
             LastVerticalForce = vertical;
             LastHorizontalForce = horizontal.magnitude;
 
-            LastUprightPelvis = Upright(pelvis, ghost.Part(PartId.Pelvis).rotation, balance);
-            LastUprightChest = Upright(rig.Part(PartId.Chest).body, ghost.Part(PartId.Chest).rotation, balance);
+            // The upright torque acts as if turning a share of the whole body about its feet, so it can
+            // hold up a leaning torso (first playtest: 15–20° slump standing, a face-down lift while
+            // getting up). Half on the pelvis, half on the chest.
+            float comHeight = Mathf.Max(0.2f, ghost.RestLocalPosition(PartId.Pelvis).y * 1.1f);   // standing, about the feet
+            float inertia = Mathf.Max(0f, profile.uprightBodyShare) * mass * comHeight * comHeight * 0.5f;
+            LastUprightPelvis = Upright(pelvis, ghost.Part(PartId.Pelvis).rotation, balance, inertia);
+            LastUprightChest = Upright(rig.Part(PartId.Chest).body, ghost.Part(PartId.Chest).rotation, balance, inertia);
 
             if (profile.headLift > 0f)
             {
@@ -245,12 +250,19 @@ namespace PhysicsBattler.Muscles
             }
         }
 
-        /// <returns>The angular acceleration applied (rad/s²).</returns>
-        private float Upright(Rigidbody body, Quaternion wanted, float balance)
+        /// <summary>
+        /// Turns a body toward its ghost rotation: a PD with the profile's gains acting on
+        /// <paramref name="inertia"/> (kg·m², a share of the whole body), plus the body's own inertia.
+        /// </summary>
+        /// <returns>The torque applied (N·m).</returns>
+        private float Upright(Rigidbody body, Quaternion wanted, float balance, float inertia)
         {
             Vector3 error = JointMath.RotationError(body.rotation, wanted);
-            Vector3 torque = balance * (profile.kpUpright * error - profile.kdUpright * body.angularVelocity);
-            body.AddTorque(torque, ForceMode.Acceleration);
+            Vector3 acceleration = balance * (profile.kpUpright * error - profile.kdUpright * body.angularVelocity);
+            Vector3 own = body.inertiaTensor;
+            float total = inertia + (own.x + own.y + own.z) / 3f;
+            Vector3 torque = acceleration * total;
+            body.AddTorque(torque, ForceMode.Force);
             return torque.magnitude;
         }
 

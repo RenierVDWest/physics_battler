@@ -71,7 +71,7 @@ namespace PhysicsBattler.Units
                     case UnitStateKind.Flinch: return 0.85f;
                     case UnitStateKind.Stagger:
                         return Mathf.Lerp(0.3f, 1f, Mathf.InverseLerp(profile.knockdownBelow, profile.staggerBelow, Stability));
-                    case UnitStateKind.GettingUp: return Mathf.SmoothStep(0f, 1f, GetUpProgress);
+                    case UnitStateKind.GettingUp: return Mathf.Lerp(profile.getUpStartAssist, 1f, Mathf.SmoothStep(0f, 1f, GetUpProgress));
                     default: return 0f;
                 }
             }
@@ -88,7 +88,7 @@ namespace PhysicsBattler.Units
                     case UnitStateKind.Flinch: return 1f;
                     case UnitStateKind.Stagger: return 0.75f;
                     case UnitStateKind.Knockdown: return profile.knockdownMuscle;
-                    case UnitStateKind.GettingUp: return Mathf.Lerp(profile.knockdownMuscle, 1f, GetUpProgress);
+                    case UnitStateKind.GettingUp: return Mathf.Lerp(Mathf.Max(profile.knockdownMuscle, 0.6f), 1f, GetUpProgress);
                     default: return Mathf.Lerp(0.05f, 0f, Mathf.Clamp01(timeInState / 0.3f));
                 }
             }
@@ -212,12 +212,24 @@ namespace PhysicsBattler.Units
                     break;
 
                 case UnitStateKind.GettingUp:
-                    if (timeInState >= profile.getUpDuration)
+                {
+                    // Only steady once really up: the old timed get-up declared the unit standing while it
+                    // hung face down from the assist, and it fell again the very next step.
+                    bool up = sense.pelvisHeight >= sense.restPelvisHeight * profile.standPelvisShare
+                              && sense.tiltDegrees <= profile.standMaxTilt;
+                    if (timeInState >= profile.getUpDuration && up)
                     {
-                        Enter(UnitStateKind.Steady, $"get-up time over ({profile.getUpDuration:0.0} s)");
+                        Enter(UnitStateKind.Steady, $"stood up in {timeInState:0.0} s (pelvis {sense.pelvisHeight:0.00} m, chest tilt {sense.tiltDegrees:0}°)");
+                    }
+                    else if (timeInState >= profile.getUpDuration + profile.getUpGrace)
+                    {
+                        Stability = Mathf.Min(Stability, profile.knockdownBelow);
+                        Enter(UnitStateKind.Knockdown, $"get-up failed after {timeInState:0.0} s: pelvis {sense.pelvisHeight:0.00} m "
+                                                       + $"(needs {sense.restPelvisHeight * profile.standPelvisShare:0.00}), chest tilt {sense.tiltDegrees:0}° (needs ≤ {profile.standMaxTilt:0})");
                     }
 
                     break;
+                }
             }
         }
 

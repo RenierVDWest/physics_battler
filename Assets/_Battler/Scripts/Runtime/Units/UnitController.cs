@@ -339,16 +339,17 @@ namespace PhysicsBattler.Units
             {
                 float radius = (kind == UnitStateKind.Stagger ? 0.04f : profile.reanchorRadius) * Scale;
                 Balance.Reanchor(transform, GroundY, radius);
-                if (kind == UnitStateKind.Steady)
-                {
-                    if (!Stance.Stepping)
-                    {
-                        SettleFeet();
-                    }
-                }
-                else if (!Balance.UpdateCatchSteps(GroundY, Scale))
+
+                // Catch steps in every standing state. In the first playtest a steady orc never stepped:
+                // its own swing threw its weight 0.5–0.7 m past its feet and it toppled where it stood.
+                float factor = kind == UnitStateKind.Steady ? profile.steadyStepFactor : 1f;
+                if (!Balance.UpdateCatchSteps(GroundY, Scale, factor))
                 {
                     State.ForceKnockdown(Balance.LastVerdict);
+                }
+                else if (kind == UnitStateKind.Steady && !Stance.Stepping)
+                {
+                    SettleFeet();
                 }
             }
 
@@ -395,9 +396,24 @@ namespace PhysicsBattler.Units
                 Muscles.RecomputeSubtreeBoost();
             }
 
+            Muscles.StanceLeft = IsPlanted(PartId.FootL);
+            Muscles.StanceRight = IsPlanted(PartId.FootR);
             Muscles.Step(dt);
             // Getting up, the body may lie on anything but its feet: the support still lifts it.
             Balance.ApplyForces(State.Balance, Grounded || kind == UnitStateKind.GettingUp);
+        }
+
+        /// <summary>A foot touching the ground (or anything) and not mid-step: its leg is carrying weight.</summary>
+        private bool IsPlanted(PartId foot)
+        {
+            if (Stance.Stepping && Stance.SteppingFoot == foot)
+            {
+                return false;
+            }
+
+            var part = Rig.Part(foot);
+            float last = Mathf.Max(part.LastGroundContactTime, part.LastOtherContactTime);
+            return Time.time - last < 0.1f;
         }
 
         /// <summary>

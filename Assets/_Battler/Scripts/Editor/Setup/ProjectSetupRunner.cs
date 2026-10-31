@@ -59,6 +59,7 @@ namespace PhysicsBattler.Editor.Setup
                 var materials = MaterialSetup.Apply();
                 ModelImportSetup.Apply(materials);
                 DataSetup.Apply();
+                DataSetup.Migrate(SetupVersion.Installed);
                 if (!PrefabSetup.ApplyInScratchScene(materials, out _))
                 {
                     AssetDatabase.SaveAssets();

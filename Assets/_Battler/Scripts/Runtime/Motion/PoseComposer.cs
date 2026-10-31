@@ -61,18 +61,22 @@ namespace PhysicsBattler.Motion
             var action = request.action;
             var root = request.root;
             bool staggered = request.state == UnitStateKind.Stagger;
-            float rise = request.state == UnitStateKind.GettingUp ? Ease.InOutCubic(request.getUpProgress) : 1f;
+            // Getting up: a crouch first (feet under the hips, torso forward, hands down), held for the
+            // first third, then the rise to standing.
+            float rise = request.state == UnitStateKind.GettingUp
+                ? Ease.InOutCubic(Mathf.Clamp01((request.getUpProgress - 0.3f) / 0.7f))
+                : 1f;
 
             // Torso.
             float breathe = Mathf.Sin(request.time * 2f * Mathf.PI * 0.35f);
             var pelvis = ghost.Part(PartId.Pelvis);
-            float drop = (1f - rise) * 0.45f * request.scale + (staggered ? 0.04f * request.scale : 0f);
+            float drop = (1f - rise) * 0.42f * request.scale + (staggered ? 0.04f * request.scale : 0f);
             Vector3 offset = action.active ? action.pelvisOffset : Vector3.zero;
             pelvis.localPosition = ghost.RestLocalPosition(PartId.Pelvis) + offset
                                    + Vector3.up * (breathe * 0.006f * request.scale - drop);
             pelvis.localRotation = Quaternion.Euler(0f, action.active ? action.pelvisYaw : 0f, 0f);
             ghost.Part(PartId.Spine).localRotation =
-                Quaternion.Euler(action.spinePitch + (1f - rise) * 30f + breathe * 0.8f, action.spineYaw, 0f);
+                Quaternion.Euler(action.spinePitch + (1f - rise) * 35f + breathe * 0.8f, action.spineYaw, 0f);
             ghost.Part(PartId.Chest).localRotation =
                 Quaternion.Euler(action.chestPitch + breathe * 1.2f, action.chestYaw, 0f);
 
@@ -85,7 +89,7 @@ namespace PhysicsBattler.Motion
             float spread = staggered ? 28f : 6f;
             ghost.Part(PartId.UpperArmR).localRotation = Quaternion.Euler(-6f + sway * (request.holdingWeapon ? 0.4f : 1f), 0f, spread);
             ghost.Part(PartId.ForearmR).localRotation = request.holdingWeapon ? CarryForearm : Quaternion.Euler(-14f, 0f, 0f);
-            float freePitch = action.active ? action.freeArmPitch : 0f;
+            float freePitch = (action.active ? action.freeArmPitch : 0f) - (1f - rise) * 45f;
             float freeOut = action.active ? action.freeArmOut : 0f;
             ghost.Part(PartId.UpperArmL).localRotation = Quaternion.Euler(-6f - sway + freePitch, 0f, -(spread + freeOut));
             ghost.Part(PartId.ForearmL).localRotation = Quaternion.Euler(-14f - Mathf.Max(0f, -freePitch) * 0.5f, 0f, 0f);

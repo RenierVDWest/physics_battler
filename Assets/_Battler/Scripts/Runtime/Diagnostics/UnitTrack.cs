@@ -530,6 +530,11 @@ namespace PhysicsBattler.Diagnostics
                 frames.Add("str_" + id, muscles.Strength(id), 2);
             }
 
+            foreach (var id in PartInfo.All)
+            {
+                frames.Add("gc_" + id, muscles.GravityTorque(id), 1);
+            }
+
             frames.End();
             frameCount++;
 
