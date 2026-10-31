@@ -495,6 +495,7 @@ python3 ../Playtest/rhythms.py /tmp/rhythms                            # them dr
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll walks /tmp/walks       # each body walking (forward, back, aside, round), CSVs for walkview.py
 AIM_STYLES=1 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim       # the aim matrix with each body's own stance
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll fight /tmp/fight 7     # a whole 3 v 3 fight (seed 7) with a playtest log; FIGHT_MIRROR=1 swaps the sides
+python3 ../Playtest/fightview.py /tmp/fight/PlaytestLogs/<session> fight.mp4   # that fight as a video, seen from above
 TEST_ONLY=Balance dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll      # only the tests whose name contains this
 ```
 
