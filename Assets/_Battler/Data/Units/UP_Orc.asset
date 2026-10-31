@@ -17,7 +17,7 @@ MonoBehaviour:
   solverIterations: 16
   solverVelocityIterations: 6
   linearDamping: 0.05
-  angularDamping: 0.6
+  angularDamping: 0.1
   maxAngularVelocity: 50
   maxDepenetrationVelocity: 4
   footFriction: 0.9
@@ -30,17 +30,19 @@ MonoBehaviour:
   maxSubtreeBoost: 300
   gravityCompensation: 1
   velocityFeedForward: 1
+  minPartInertia: 0.08
+  legSupport: 1
   dipStrength: 0.2
   dipHold: 0.15
   dipRecover: 0.4
-  kpVertical: 160
-  kdVertical: 24
+  kpVertical: 90
+  kdVertical: 16
   kpHorizontal: 30
   kdHorizontal: 9
   kpUpright: 180
   kdUpright: 24
-  uprightBodyShare: 0.3
-  supportFeedForward: 0.55
+  uprightBodyShare: 0.2
+  supportFeedForward: 0.2
   headLift: 0
   reanchorRadius: 0.15
   maxStability: 100
