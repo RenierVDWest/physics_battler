@@ -9,11 +9,45 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 2, aimed blows
+## Current state: milestone 3, physical hits
 
 An 8×8 board with three units a side: Small, Medium and Large. Small and large carry clubs, the
 medium ones a sword and shield. They close in on the nearest enemy and strike at its body parts:
-head, neck, chest, belly, elbows or knees.
+head, neck, chest, belly, elbows or knees. What the weapon meets takes the hit.
+
+### Milestone 3: hits
+
+- **Every weapon contact is a hit.** During a blow's active window the weapon is swept from where
+  it was last physics step to where it is now. Every body part or shield it passes through is
+  struck, whoever it belongs to: the part aimed at, another part of the target, an ally (friendly
+  fire does full damage) or someone else standing in the way. Each unit is struck once per blow.
+  A touch slower than the weapon's *min hit speed* (2 m/s at the striking part) is not a hit.
+- **Weight matters.** Damage goes with the weapon's speed and the part struck (the head hurts most,
+  hands least). The impulse is the weapon's mass at the wielder's size, plus some arm, times its
+  speed. A club's weight lands; an edge or point cuts in and passes on less. A body at least 0.6
+  times the attacker's weight, or a thrust into the torso, stops the swing: the blow ends and the
+  weapon arm recoils. A lighter body is bowled through, and the swing carries on with less force.
+- **Reactions are physics, not animations.** The struck part goes loose and takes its share of the
+  impulse. The parts next to it go looser, then the pins ramp back over 0.35–0.9 s. What the part
+  doesn't take pushes the whole unit back; its feet step after it. A hard blow is a **flinch**:
+  the unit's own blow is cancelled. Losing all poise is a **stagger**: loose for longer, knocked
+  back further, blow cancelled, then poise comes back. At zero health the unit goes limp (getting
+  up, being knocked down or launched come in milestone 4).
+- **Hit stop.** At each hit the attacker and the struck freeze for 40–100 ms, longer for heavier
+  blows.
+- **Shield blocks.** A unit with a shield that sees a blow coming may raise it across the blow
+  after its reaction time (`blockChance`, `reactionTime` in its combat style). A blow that meets
+  the shield does no damage, costs some poise and stops the swing.
+- **Cut-short blows let go smoothly.** A stopped, flinched or staggered blow fades out of the pose
+  over 0.3 s from where it was, and feet out in the lunge step back.
+- **Health and poise per size:** small 60/25, medium 100/45, large 220/120. Poise comes back at 15
+  a second. The labels show them.
+- **The gate test:** *a bystander in the way takes the blow* (`HitTests`). A third unit stands
+  across a cut aimed at another; it is struck first, and the target is untouched. Press **B** in
+  the Battle scene to see it: fighting stops, a sword unit strikes at an enemy, and a third unit
+  is stood in the way.
+
+### Milestone 2: aimed blows
 
 - **Aimed blows.** When a blow starts, it locks the aim point where the chosen body part is at that
   moment. The move then lunges and steers the weapon so its edge, point or club head arrives
@@ -36,8 +70,6 @@ head, neck, chest, belly, elbows or knees.
 - **Fighting anyone in reach.** Units close in on the nearest enemy but strike at any enemy in reach
   in front of them. If nothing lands cleanly they close in, or give ground when they are too close
   to swing.
-- **Weapons don't hurt yet.** That's milestone 3. Their colliders are triggers, and what they
-  touch is written to the playtest log.
 
 The lineup is laid out in the Battle scene as **unit markers** (Lineup > A Small, ...). Each one
 shows its unit standing on its tile, armed and in its team colour, while you edit. Move a marker
@@ -51,7 +83,8 @@ and the real units spawn on the markers.
    settings, the tuning assets, the three unit prefabs, the weapons and their moves, and the Battle scene. It opens
    `Assets/_Battler/Scenes/Battle` when done. Setup version 10 adds the weapons and a lineup of unit markers to your
    Battle scene (only if it has none). Version 11 refreshes the ready-made moves and, if your lineup is still the
-   default one, rearranges team B so each unit faces a different size. Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
+   default one, rearranges team B so each unit faces a different size. Version 13 gives the small and large
+   profiles their health and poise and each weapon its damage and hit radius (unless you changed them). Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
 3. Press Play. Commit the `.meta` files Unity creates for the new scripts and assets.
 
 ## Battle scene controls
@@ -60,13 +93,15 @@ and the real units spawn on the markers.
 | --- | --- |
 | R | Reset the board (respawn from the markers) |
 | F | Fighting on or off (off: they only stand and face each other) |
+| B | Bystander test: fighting stops, a sword unit strikes at an enemy with a third unit stood in the way |
 | T | Turn everyone around (and back): makes them step and turn on the spot |
 | P / . | Pause / step one physics frame |
 | M | Mark the playtest log |
 | Right-drag, middle-drag, scroll | Orbit, pan, zoom |
 
 The panel has the same buttons plus a time scale slider and the recorder controls. Each unit's label
-shows the blow it is making and the body part it is aimed at.
+shows its health and poise, the blow it is making and the body part it is aimed at, or that it is
+blocking.
 
 **Physics Battler > Move Preview** plays any move against a dummy target. You pick the sizes, the
 distance and the body part, then scrub through the move. The Scene view draws the striking part's
@@ -87,13 +122,27 @@ close it passes. Edit a move asset and press Rebuild to see the change.
 5. **The guard.** The sword points forward and up, and the shield is held in front on the left.
    Both move with the idle without jitter.
 
+Milestone 3:
+
+6. **Hits.** A blow that reaches someone jolts the struck part (and less, the body around it),
+   pushes the unit back a little, and both units freeze for a few frames. Health drops in the label.
+7. **What gets hit.** Arms held in guard often take blows meant for the head or chest: that's the
+   guard working. A unit standing beside or in front of the target can take the blow instead.
+8. **Heavy against light.** A large unit's club staggers a small one (knocked back, its own blow
+   cancelled); a small unit's club stops dead on a large one and its arm bounces back.
+9. **Blocks.** The medium units raise their shields at blows coming at them about half the time;
+   a blocked blow stops on the shield.
+10. **Deaths.** At zero health a unit goes limp and lies there; the others stop fighting it.
+11. **Press B** for the bystander test.
+
 If something looks off, press **M** at the moment and mention the mark number.
 
 ## Playtest logs
 
 Every Play session is recorded into `PlaytestLogs/<date_time>/` (next to `Assets/`, so Unity doesn't import it):
 what happened and why (`events.log`: spawns, steps, blows (where each was aimed, how close it passed and what was
-there), what the weapons touched, marks, console warnings), a summary (`session.md`), per-step data for every unit
+there), hits (who struck whom where, how hard, the reaction, whether the swing stopped), blows cut short, deaths,
+marks, console warnings), a summary (`session.md`), per-step data for every unit
 (pelvis height, feet, balance, idle motion, authority per body region, every part's distance and angle from its pose,
 the blow under way with its aim point and striking part) and the full pose of the physical body, the animation pose
 and the weapon. It also saves small square pictures of
@@ -102,8 +151,8 @@ the game view (300×300, 8 per second of game time) into `frames/`. The panel sh
 
 To share one: stop Play, then commit and push the session folder.
 `python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report with flags (sliding feet,
-weight off the feet, pinned parts lagging, shaking, blows that miss), a table of every blow, an overview and a
-timeline per unit, stick-figure film strips of each unit's idle, its turns, its blows (attacker and target, seen from
+weight off the feet, pinned parts lagging, shaking, blows that miss, friendly fire), a table of every blow and every
+hit, an overview and a timeline per unit (with health and poise), film strips of hits, stick-figure film strips of each unit's idle, its turns, its blows (attacker and target, seen from
 the side) and every mark, and the pictures in captioned sheets (needs numpy, pandas, matplotlib
 and Pillow).
 
@@ -124,13 +173,21 @@ A **move** (`MoveDefinition`, ported from Hexamus's attack motions) is a path fo
 aim frame whose origin is the body part aimed at, plus speed, blend and body curves. One move works at any distance,
 height and size. The **planner** (`MovePlanner`) locks the aim, works out the lunge and keeps only blows that land.
 
+**Hits** (`UnitCombat`, `DamageRules`): each physics step of a blow's active window, the striking length of the
+physical weapon (most of a blade, a club's head end) is swept from last step's position as a capsule. Body parts and
+shields it overlaps are struck in the order the blade meets them (nearest the hand first, since the blade turns about
+the hand). `DamageRules.Resolve` turns a contact into damage, poise damage, an impulse and a reaction, and says
+whether the swing stops. The struck unit's region goes from pinned to nearly loose and ramps back; the impulse goes
+into the part (capped at 5 m/s for the part on its own) and the rest becomes knock-back that slides the unit's root
+while its feet step after it.
+
 | Folder (`Assets/_Battler/Scripts/Runtime`) | What lives there |
 | --- | --- |
 | `Rig/` | `PartId` (the 16 parts and their tree), `RigFile` (the body rig JSON), `UnitBuilder`, `UnitRig`, `AnimRig`, `BodyPart` |
 | `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline`, `TwoBoneIK` |
 | `Authority/` | `AuthorityController` (levels per region, pinning) |
-| `Combat/` | `WeaponDefinition`, `MoveDefinition`, `MoveState`, `MovePlanner`, `Weapon` (the weapon in the hand), `AimPart` |
-| `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitProfile` |
+| `Combat/` | `WeaponDefinition`, `MoveDefinition`, `MoveState`, `MovePlanner`, `Weapon` (the weapon in the hand), `AimPart`, `DamageRules`, `BodyClearance` |
+| `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitProfile` |
 | `Board/` | `BoardGrid` (tiles), `BoardView` (the board mesh) |
 | `Sandbox/` | `BattleSandbox` (spawning, panel, keys), `UnitSpawn` (the scene's markers), `Brawl` (close in and strike), `OrbitCamera`, `SandboxInput` |
 | `Diagnostics/` | `PlaytestRecorder`, `UnitTrack`, `FrameCapture` |
@@ -147,7 +204,10 @@ Tune in the data assets, not on the prefabs (setup rebuilds prefabs). Changes ma
   threshold, turn threshold, step duration and height, idle shuffle interval and distance. Lengths are fractions of
   the unit's leg length, so one style fits any size.
 - The combat styles also set the sandbox fighting: `attackInterval`, `engageDistance` (chest to chest at medium
-  size) and `walkSpeed`.
+  size) and `walkSpeed`; and blocking: `blockChance` and `reactionTime`.
+- `Data/Units/UP_*` (unit profiles): `maxHealth`, `maxPoise`, `poiseRegen`.
+- `Data/Weapons/WD_*` (weapons): `damage` (at 6 m/s to the chest), `minHitSpeed`, `sweepRadius` (the striking part's
+  thickness for hit detection). A move's `hitStop` sets the base hit stop.
 - `Data/Moves/MD_*` (moves): the striking part's path (aim frame, medium size), speed, blend and body curves,
   `reach` (chest to aim point at contact), `maxLunge`, twist, lean, which body parts it may aim at, how firmly the
   weapon arm is pinned. Edit while the game runs; the next blow uses the changes.

@@ -36,7 +36,7 @@ namespace PhysicsBattler.Sandbox
         {
             foreach (var unit in units)
             {
-                if (unit == null || !unit.IsInitialized)
+                if (unit == null || !unit.IsInitialized || !unit.IsAlive)
                 {
                     continue;
                 }
@@ -54,7 +54,7 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 unit.FacePoint(enemy.Root.position);
-                if (Fight && !unit.IsAttacking)
+                if (Fight && !unit.IsAttacking && unit.Knockback.magnitude < 0.05f && unit.HitStop <= 0f)
                 {
                     Engage(units, unit, enemy, dt, now);
                 }
@@ -103,7 +103,7 @@ namespace PhysicsBattler.Sandbox
             var candidates = new List<UnitController>();
             foreach (var other in units)
             {
-                if (other == null || other == unit || other.Team == unit.Team || !other.IsInitialized)
+                if (other == null || other == unit || other.Team == unit.Team || !other.IsInitialized || !other.IsAlive)
                 {
                     continue;
                 }
@@ -163,7 +163,7 @@ namespace PhysicsBattler.Sandbox
             float bestDistance = float.MaxValue;
             foreach (var other in units)
             {
-                if (other == null || other == unit || other.Team == unit.Team || !other.IsInitialized)
+                if (other == null || other == unit || other.Team == unit.Team || !other.IsInitialized || !other.IsAlive)
                 {
                     continue;
                 }

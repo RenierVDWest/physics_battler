@@ -233,6 +233,88 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.T)) TurnAround();
             if (SandboxInput.KeyPressed(KeyCode.M)) Mark();
             if (SandboxInput.KeyPressed(KeyCode.F)) ToggleFight();
+            if (SandboxInput.KeyPressed(KeyCode.B)) BystanderTest();
+        }
+
+        /// <summary>
+        /// Milestone 3's gate, on demand: a sword unit strikes at an enemy with a third unit standing
+        /// in the way of the blow. The one in the way should take it. Fighting stops for the test (F
+        /// to resume); the rest of the units wait at the side.
+        /// </summary>
+        private Coroutine bystanderRun;
+
+        public void BystanderTest()
+        {
+            var alive = units.FindAll(u => u != null && u.IsInitialized && u.IsAlive);
+            var attacker = alive.Find(u => u.Loadout?.Main != null && u.Loadout.Main.kind == WeaponKind.Sword)
+                           ?? alive.Find(u => u.Loadout?.Main != null);
+            var target = attacker != null ? alive.Find(u => u.Team != attacker.Team) : null;
+            var bystander = target != null ? alive.Find(u => u != attacker && u != target) : null;
+            if (bystander == null)
+            {
+                message = "The bystander test needs three living units, one armed. Press R to reset.";
+                return;
+            }
+
+            fight = false;
+            if (bystanderRun != null)
+            {
+                StopCoroutine(bystanderRun);
+            }
+
+            bystanderRun = StartCoroutine(Bystander(attacker, target, bystander, alive));
+        }
+
+        private System.Collections.IEnumerator Bystander(UnitController attacker, UnitController target, UnitController bystander, List<UnitController> alive)
+        {
+            // Along the board's middle: the attacker facing +X, the target where it would engage, the
+            // bystander off to the side until the blow is planned, then stood in its way.
+            float distance = attacker.Style.engageDistance * attacker.Body.SizeFactor + 0.25f * target.Body.SizeFactor;
+            Vector3 start = new Vector3(-distance * 0.5f, 0f, 0f);
+            attacker.Teleport(start, 90f);
+            target.Teleport(start + Vector3.right * distance, 270f);
+            bystander.Teleport(new Vector3(0f, 0f, -3f), 0f);
+            int k = 0;
+            foreach (var other in alive)
+            {
+                if (other != attacker && other != target && other != bystander)
+                {
+                    other.Teleport(new Vector3(-4f + 1.6f * k++, 0f, 5.2f), 180f);
+                }
+            }
+
+            Note($"bystander test: {attacker.name} strikes at {target.name} with {bystander.name} in the way");
+            message = $"Bystander test: {attacker.name} → {target.name}, {bystander.name} in the way. F to fight again.";
+            yield return new WaitForSeconds(0.8f);
+            // A cut (the weapon's first move) at the belly, else whatever the weapon can land.
+            MoveState state = null;
+            foreach (var move in attacker.Loadout.Main.moves)
+            {
+                foreach (var part in new[] { AimPart.Belly, AimPart.Chest, AimPart.Head })
+                {
+                    if (state == null && move != null && move.targets.Contains(part))
+                    {
+                        var s = MovePlanner.Prepare(attacker, target, move, part);
+                        state = s != null && MovePlanner.Acceptable(attacker, s) ? s : null;
+                    }
+                }
+            }
+
+            if (state == null)
+            {
+                message = "Bystander test: no blow reaches the target from there.";
+                yield break;
+            }
+
+            Vector3 at = MovePlanner.InTheWay(attacker, state, 0.3f);
+            var chest = bystander.Rig.Part(PartId.Chest);
+            Vector3 torso = (chest.body != null ? chest.body.position : chest.transform.position) - bystander.Root.position;
+            bystander.Teleport(new Vector3(at.x - torso.x, 0f, at.z - torso.z), 270f);
+            yield return new WaitForSeconds(0.25f);
+            if (!attacker.StartMove(state))
+            {
+                message = "Bystander test: the blow didn't start (press B again).";
+            }
         }
 
         public void ToggleFight()
@@ -296,13 +378,14 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label("R reset · F fight · P pause · . step · T turn · M mark");
+            GUILayout.Label("R reset · F fight · B bystander · P pause · . step · T turn · M mark");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Reset")) Spawn();
             if (GUILayout.Button(turnedAway ? "Face the enemy" : "Turn around")) TurnAround();
             if (GUILayout.Button(fight ? "Stop fighting" : "Fight")) ToggleFight();
             GUILayout.EndHorizontal();
+            if (GUILayout.Button("Bystander test (B)")) BystanderTest();
 
             GUILayout.Label($"Time scale: {timeScale:0.00}{(paused ? " (paused)" : "")}");
             float newScale = GUILayout.HorizontalSlider(timeScale, 0.05f, 1f);
@@ -368,12 +451,24 @@ namespace PhysicsBattler.Sandbox
             }
 
             string label = unit.name;
-            if (unit.CurrentMove != null)
+            if (!unit.IsAlive)
             {
-                label += $"\n{unit.CurrentMove.Move.name.Replace("MD_", "")} → {unit.CurrentMove.Part}";
+                label += " (dead)";
+            }
+            else
+            {
+                label += $"\n{unit.Health:0} hp · poise {Mathf.Max(0f, unit.Poise):0}";
+                if (unit.CurrentMove != null)
+                {
+                    label += $"\n{unit.CurrentMove.Move.name.Replace("MD_", "")} → {unit.CurrentMove.Part}";
+                }
+                else if (unit.BlockBlend > 0.5f)
+                {
+                    label += "\nblocking";
+                }
             }
 
-            GUI.Label(new Rect(screen.x - 70f, Screen.height - screen.y - 34f, 140f, 36f), label);
+            GUI.Label(new Rect(screen.x - 70f, Screen.height - screen.y - 48f, 140f, 52f), label);
         }
     }
 }

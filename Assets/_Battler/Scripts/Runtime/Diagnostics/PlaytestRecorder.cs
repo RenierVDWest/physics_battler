@@ -164,7 +164,8 @@ namespace PhysicsBattler.Diagnostics
             UnitController.MoveStarted += OnMoveStarted;
             UnitController.MoveContact += OnMoveContact;
             UnitController.MoveEnded += OnMoveEnded;
-            UnitController.WeaponTouched += OnWeaponTouched;
+            UnitController.Hit += OnHit;
+            UnitController.Died += OnDied;
             Application.logMessageReceived += OnConsole;
 
             foreach (var unit in FindObjectsByType<UnitController>())
@@ -207,7 +208,8 @@ namespace PhysicsBattler.Diagnostics
             UnitController.MoveStarted -= OnMoveStarted;
             UnitController.MoveContact -= OnMoveContact;
             UnitController.MoveEnded -= OnMoveEnded;
-            UnitController.WeaponTouched -= OnWeaponTouched;
+            UnitController.Hit -= OnHit;
+            UnitController.Died -= OnDied;
             Application.logMessageReceived -= OnConsole;
 
             foreach (var track in tracks.ToArray())
@@ -320,18 +322,39 @@ namespace PhysicsBattler.Diagnostics
         private void OnMoveEnded(UnitController unit, MoveState move)
         {
             var track = TrackOf(unit);
+            if (move.Cancelled != null)
+            {
+                Event(track, "attack", $"{move.Move.name.Replace("MD_", "")} cut short: {move.Cancelled}");
+                return;
+            }
+
             string physical = move.PhysicalClosest >= 0f ? $"the physical weapon passed {Cm(move.PhysicalClosest)} cm from the aim point at its closest" : "no physical weapon";
             Event(track, "attack", $"{move.Move.name.Replace("MD_", "")} done: {physical}");
             track?.NotePhysical(move.PhysicalClosest);
         }
 
-        private void OnWeaponTouched(UnitController unit, Weapon weapon, BodyPart part, float speed)
+        private void OnHit(HitReport hit)
         {
-            var move = unit.CurrentMove;
-            bool intended = move != null && ReferenceEquals(part.Owner, move.Target) && part.id == AimPartInfo.BodyPartOf(move.Part);
-            string what = intended ? "the part aimed at" : ReferenceEquals(part.Owner, move?.Target) ? "the target, another part" : part.Owner != null && part.Owner.Team == unit.Team ? "an ally (stray)" : "stray";
-            Event(TrackOf(unit), "touch", $"{(weapon.definition != null ? weapon.definition.name : "weapon")} touched {(part.Owner != null ? part.Owner.name : "?")}'s {part.id} "
-                                          + $"at {speed:0.0} m/s: {what}");
+            var r = hit.Result;
+            string what = hit.Shield
+                ? $"blocked by {hit.Struck.name}'s shield ({r.PoiseDamage:0} poise)"
+                : $"{r.Damage:0.0} damage, {r.PoiseDamage:0} poise, {r.Reaction.ToString().ToLowerInvariant()}";
+            string swing = r.StopsSwing ? "the swing stopped" : $"bowled through ({r.MomentumLeft * 100f:0}% of the swing left)";
+            string line = $"{hit.Move.Move.name.Replace("MD_", "")} struck {hit.Struck.name}'s {hit.Part} at {hit.Speed:0.0} m/s: {what}; "
+                          + $"impulse {r.Impulse.magnitude:0.0} N·s ({r.PartShare * 100f:0}% into the part); {swing}; {hit.Kind}";
+            var track = TrackOf(hit.Attacker);
+            Event(track, "hit", line);
+            track?.NoteHitDealt(hit);
+            var struck = TrackOf(hit.Struck);
+            Event(struck, "struck", $"by {hit.Attacker.name} on the {hit.Part}: health {hit.Struck.Health:0}/{hit.Struck.Profile.maxHealth:0}, "
+                                    + $"poise {Mathf.Max(0f, hit.Struck.Poise):0}/{hit.Struck.Profile.maxPoise:0}, {r.Reaction.ToString().ToLowerInvariant()}"
+                                    + $"{(hit.Struck.Knockback.magnitude > 0.05f ? $", knocked back at {hit.Struck.Knockback.magnitude:0.00} m/s" : "")}");
+            struck?.NoteHitTaken(hit);
+        }
+
+        private void OnDied(UnitController unit, HitReport hit)
+        {
+            Event(TrackOf(unit), "death", $"killed by {hit.Attacker.name}'s {hit.Move.Move.name.Replace("MD_", "")} to the {hit.Part}");
         }
 
         private void Follow(UnitController unit)

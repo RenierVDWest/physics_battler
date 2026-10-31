@@ -48,6 +48,9 @@ namespace PhysicsBattler.Combat
         public float DriveStart;           // normalized: when the body curve turns forward after the wind-up (the lunge's steps start)
 
         public bool ContactPassed;
+
+        /// <summary>Why the blow ended early (stopped, flinched, staggered, killed), or null.</summary>
+        public string Cancelled;
         public bool SteppedOut, LeadOut, SteppedBack, RearMoved, RearOut, RearBack;
         public float LeadOutAt;
 
@@ -65,7 +68,10 @@ namespace PhysicsBattler.Combat
         public float T => Duration > 0f ? Mathf.Clamp01(Time / Duration) : 1f;
         public bool Done => Time >= Duration;
         public float Progress => Move.ProgressAt(T);
-        public float Blend => Move.BlendAt(T);
+        public float Blend => Move.BlendAt(T) * Fade;
+
+        /// <summary>1 while the blow plays; a cut-short blow fades to 0 from where it stopped (milestone 3).</summary>
+        public float Fade = 1f;
         public float Body => Move.BodyAt(T) / (Mathf.Abs(BodyPeak) > 1e-4f ? BodyPeak : 1f);
         public bool Active => Progress >= Move.activeWindow.x && Progress <= Move.activeWindow.y;
 

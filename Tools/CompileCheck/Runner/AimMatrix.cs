@@ -82,6 +82,7 @@ internal static class AimMatrix
         unit.Profile = profile;
         unit.Team = team;
         typeof(UnitController).GetMethod("Awake", Any).Invoke(unit, null);
+        unit.DealsHits = false;   // the whole blow is measured; a hit would stop it at the body
         return unit;
     }
 

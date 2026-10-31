@@ -63,6 +63,8 @@ namespace PhysicsBattler.Editor.Setup
                 p.style = small;
                 p.turnSpeed = 300f;
                 p.armPin = 0.75f;
+                p.maxHealth = SmallHealth;
+                p.maxPoise = SmallPoise;
             });
             Ensure<UnitProfile>(BattlerPaths.Profile("Medium"), p =>
             {
@@ -76,8 +78,13 @@ namespace PhysicsBattler.Editor.Setup
                 p.turnSpeed = 140f;
                 p.armPin = 0.6f;
                 p.torsoPin = 0.8f;
+                p.maxHealth = LargeHealth;
+                p.maxPoise = LargePoise;
             });
         }
+
+        // Health and poise by size (the medium unit has the UnitProfile defaults, 100 and 45).
+        private const float SmallHealth = 60f, SmallPoise = 25f, LargeHealth = 220f, LargePoise = 120f;
 
         /// <summary>
         /// Setup version 9 is the animation-first rebuild: the old orc, goblin, club, attack and
@@ -86,6 +93,14 @@ namespace PhysicsBattler.Editor.Setup
         /// </summary>
         public static void Migrate(int from)
         {
+            // Setup 13 (milestone 3) gives units health and poise: profiles made earlier have the
+            // medium figures, so the small and large ones get theirs (unless already changed).
+            if (from >= 9 && from < 13)
+            {
+                SetHealth("Small", SmallHealth, SmallPoise);
+                SetHealth("Large", LargeHealth, LargePoise);
+            }
+
             if (from >= 1 && from < 9)
             {
                 foreach (var path in new[]
@@ -105,6 +120,21 @@ namespace PhysicsBattler.Editor.Setup
                     }
                 }
             }
+        }
+
+        private static void SetHealth(string body, float health, float poise)
+        {
+            var profile = AssetDatabase.LoadAssetAtPath<UnitProfile>(BattlerPaths.Profile(body));
+            var defaults = ScriptableObject.CreateInstance<UnitProfile>();
+            if (profile != null && Mathf.Approximately(profile.maxHealth, defaults.maxHealth) && Mathf.Approximately(profile.maxPoise, defaults.maxPoise))
+            {
+                profile.maxHealth = health;
+                profile.maxPoise = poise;
+                EditorUtility.SetDirty(profile);
+                Debug.Log($"[Battler Setup] {BattlerPaths.Profile(body)}: health {health}, poise {poise}.");
+            }
+
+            Object.DestroyImmediate(defaults);
         }
 
         private static T Ensure<T>(string path, System.Action<T> initialize) where T : ScriptableObject

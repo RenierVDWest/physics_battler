@@ -32,6 +32,9 @@ namespace PhysicsBattler.Editor.Setup
             // out to the side, the thrust in line with the shoulder): moves made by setup 10, not yet
             // tuned, are refreshed once.
             bool refresh = SetupVersion.Installed == 10;   // (not again from 11 on)
+            // Setup 13 (milestone 3) gives weapons damage and a hit-detection radius: weapons made
+            // earlier have the sword's figures, so each gets its kind's defaults once.
+            bool hits = SetupVersion.Installed >= 10 && SetupVersion.Installed < 13;
             foreach (MoveStyle style in Enum.GetValues(typeof(MoveStyle)))
             {
                 moves[(int)style] = EnsureMove(style, refresh);
@@ -48,6 +51,16 @@ namespace PhysicsBattler.Editor.Setup
 
                 var kind = (WeaponKind)Enum.Parse(typeof(WeaponKind), entry.kind);
                 var definition = EnsureWeapon(name, kind, moves);
+                if (hits)
+                {
+                    var defaults = WeaponDefinition.CreateDefault(kind);
+                    definition.damage = defaults.damage;
+                    definition.sweepRadius = defaults.sweepRadius;
+                    definition.minHitSpeed = defaults.minHitSpeed;
+                    UnityEngine.Object.DestroyImmediate(defaults);
+                    Debug.Log($"[Battler Setup] {BattlerPaths.Weapon(name)}: damage {definition.damage}, hit radius {definition.sweepRadius} m.");
+                }
+
                 ApplyShape(definition, entry);
                 var prefab = BuildPrefab(name, definition, entry, bodyLayer);
                 if (definition.prefab != prefab)
@@ -155,7 +168,7 @@ namespace PhysicsBattler.Editor.Setup
                     Debug.LogWarning($"[Battler Setup] Weapon model {BattlerPaths.WeaponModel(name)} not found; P_Weapon_{name} has no mesh.");
                 }
 
-                // Colliders on the root, so the Weapon component hears their trigger contacts.
+                // Colliders on the root (triggers: hits are found by sweeping the striking part, see UnitCombat).
                 foreach (var c in entry.colliders ?? Array.Empty<ColliderEntry>())
                 {
                     AddCollider(root, c);

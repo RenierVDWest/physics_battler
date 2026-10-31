@@ -3,24 +3,29 @@
 
     python3 Tools/Playtest/analyze.py PlaytestLogs/2026-10-31_07-30-12 [--out DIR] [--frames 8]
 
-Milestones 1 and 2 (animation-first rebuild): units stand in their combat stance on the board,
-idle, step, turn, close in and strike at body parts. The questions this answers:
+Milestones 1 to 3 (animation-first rebuild): units stand in their combat stance on the board,
+idle, step, turn, close in, strike at body parts and hit whatever the weapon meets. The questions
+this answers:
     - do the feet stay planted (no sliding) and step when they should?
     - is the weight over the feet, are the hips at the right height?
     - do the pinned parts (torso, head, arms) follow the animation pose, without shaking?
     - does each body size move in its own style (sway, bob, shuffles)?
     - does every blow reach the point it was aimed at, on the pose and with the physical weapon?
       What was actually there when it arrived (the target sways and steps)?
+    - what did each blow hit (the part aimed at, another part, a shield, an ally, someone in the
+      way), how hard, and how did the struck body react? Who died?
 
 Writes into DIR (default: <session>/analysis/, which git ignores):
     report.md                         numbers per unit, flags, events, marks
     overview.png                      every unit: tracking error, weight offset, steps over time
     timeline_<unit>.png               one unit: pelvis height, feet (lift, slide, steps), balance, idle motion,
-                                      tracking error per region, facing
+                                      tracking error per region, health and poise, facing
     idle_<unit>_film.png              stick figures over the first seconds (side and top views)
     turn_<unit>_<n>_film.png          stick figures through each big turn
     blow_<unit>_<n>_film.png          stick figures of attacker and target through a blow, seen from its side
     blow_<unit>_<n>_pictures.jpg      the pictures through that blow
+    hit_<n>_film.png                  stick figures of attacker and struck around a hit (the first few, every
+                                      hit on an ally or someone in the way, every block and every death)
     mark_<n>_film.png                 stick figures around each mark (every unit)
     pictures_<nn>.jpg                 the recorded pictures of the game view, 24 per sheet (3 s at 8 per second),
                                       each captioned with its time and what every unit's feet were doing
@@ -513,8 +518,12 @@ def blows(unit):
                 current = dict(t=e.t, move=m.group(1), target=m.group(2), part=m.group(3),
                                aim=np.array([float(m.group(4)), float(m.group(5)), float(m.group(6))]),
                                lunge=float(m.group(7)), duration=float(m.group(8)), tc=float(m.group(9)),
-                               err=None, struck=None, struckPart=None, struckCm=None, moved=None, physical=None, touches=[])
+                               err=None, struck=None, struckPart=None, struckCm=None, moved=None, physical=None, touches=[], cut=None)
                 out.append(current)
+                continue
+            if current is not None and e.text.startswith(current["move"] + " cut short: "):
+                current["cut"] = e.text.split(" cut short: ", 1)[1]
+                current = None
                 continue
             m = BLOW_DONE.match(e.text)
             if m and current is not None and current["move"] == m.group(1):
@@ -530,6 +539,28 @@ def blows(unit):
                 current["moved"] = float(m.group(8))
         elif e.cat == "touch" and current is not None:
             current["touches"].append(e.text)
+    return out
+
+
+HIT = re.compile(r"^(\w+) struck (.+)'s (\w+) at ([\d.]+) m/s: (?:blocked by .+'s shield \(([\d.]+) poise\)|([\d.]+) damage, ([\d.]+) poise, (\w+)); "
+                 r"impulse ([\d.]+) N·s \((\d+)% into the part\); (the swing stopped|bowled through \((\d+)% of the swing left\)); (.+)$")
+STRUCK_HEALTH = re.compile(r"health ([\d.]+)/([\d.]+)")
+
+
+def hits(unit):
+    """The hits the unit dealt, from its "hit" events: dicts with t, move, struck, part, speed, damage, poise, reaction, impulse, stopped, kind."""
+    out = []
+    for e in unit.events:
+        if e.cat != "hit":
+            continue
+        m = HIT.match(e.text)
+        if not m:
+            continue
+        blocked = m.group(5) is not None
+        out.append(dict(t=e.t, move=m.group(1), struck=m.group(2), part=m.group(3), speed=float(m.group(4)),
+                        damage=0.0 if blocked else float(m.group(6)), poise=float(m.group(5) if blocked else m.group(7)),
+                        reaction="blocked" if blocked else m.group(8), impulse=float(m.group(9)), share=int(m.group(10)),
+                        stopped=m.group(11) == "the swing stopped", left=int(m.group(12)) if m.group(12) else 0, kind=m.group(13)))
     return out
 
 
@@ -569,7 +600,7 @@ def plot_timeline(session, unit, path):
     f = unit.frames
     t = f["t"].to_numpy()
     leg = leg_length(unit)
-    fig, axs = plt.subplots(7, 1, figsize=(12, 17), sharex=True)
+    fig, axs = plt.subplots(8, 1, figsize=(12, 19.5), sharex=True)
 
     ax = axs[0]
     ax.plot(t, col(f, "pelvisH"), color="black", lw=1.4, label="pelvis height (physical)")
@@ -630,6 +661,21 @@ def plot_timeline(session, unit, path):
     ax.set_title("blows (shaded): the posed striking part's distance from the locked aim point", fontsize=9)
 
     ax = axs[6]
+    ax.plot(t, col(f, "health"), color="#d1495b", lw=1.2, label="health")
+    ax.plot(t, col(f, "poise"), color="#30638e", lw=1, label="poise")
+    ax.plot(t, col(f, "block") * 100, color="#999", lw=0.8, ls="--", label="shield raised (%)")
+    for e in unit.events:
+        if e.cat == "struck":
+            ax.axvline(e.t, color="#d1495b", lw=0.6, alpha=0.6)
+        elif e.cat == "hit":
+            ax.axvline(e.t, color="#2a9d8f", lw=0.6, alpha=0.6)
+        elif e.cat == "death":
+            ax.axvline(e.t, color="black", lw=1.4)
+    ax.set_ylim(bottom=0)
+    ax.legend(fontsize=7, loc="upper right")
+    ax.set_title("health and poise (lines: green dealt a hit, red was struck, black died)", fontsize=9)
+
+    ax = axs[7]
     ax.plot(t, np.degrees(np.unwrap(np.radians(col(f, "rootYaw").to_numpy()))), color="black", lw=1)
     ax.set_ylabel("facing °")
     ax.set_xlabel("time (s)")
@@ -687,14 +733,36 @@ def side_view(unit, t):
 # ---- Report ---------------------------------------------------------------------------------------
 
 
+REACT_SECONDS = 1.0   # after being struck the body recoils: loose parts, knock-back (not counted against the stance)
+FADE_SECONDS = 0.4    # a cut-short blow fades out of the pose
+
+
+def calm_mask(unit):
+    """Frames away from being struck and from a cut-short blow fading: where the stance checks apply."""
+    f = unit.frames
+    t = f["t"]
+    calm = pd.Series(True, index=f.index)
+    for e in unit.events:
+        if e.cat == "struck":
+            calm &= ~((t >= e.t) & (t <= e.t + REACT_SECONDS))
+        elif e.cat == "attack" and " cut short: " in e.text:
+            calm &= ~((t >= e.t) & (t <= e.t + FADE_SECONDS))
+        elif e.cat == "death":
+            calm &= ~(t >= e.t)
+    return calm
+
+
 def unit_numbers(session, unit):
     f = unit.frames
     leg = leg_length(unit)
     n = {}
+    calm = calm_mask(unit)
+    n["calmShare"] = float(calm.mean())
     n["steps"] = int(col(f, "steps").max()) if "steps" in f else 0
     n["shuffles"] = int(col(f, "shuffles").max()) if "shuffles" in f else 0
     n["slide"] = float(max(col(f, "slideL").max(), col(f, "slideR").max()))
     idle = f["move"].fillna("").astype(str) == "" if "move" in f else pd.Series(True, index=f.index)
+    idle &= calm
     n["com"] = float(col(f, "comOffset")[idle].max())
     n["com95"] = float(col(f, "comOffset")[idle].quantile(0.95))
     n["physCom95"] = float(col(f, "physCom")[idle].quantile(0.95))
@@ -708,20 +776,23 @@ def unit_numbers(session, unit):
     n["stepShare"] = float(stepping.mean())
     regions = {}
     for r in REGIONS:
-        e = region_error(f, r)
-        a = region_angle(f, r)
+        e = region_error(f, r)[calm]
+        a = region_angle(f, r)[calm]
         lvl = col(f, f"lvl_{r}")
         regions[r] = dict(level=LEVELS.get(int(lvl.mode().iloc[0]) if lvl.notna().any() else -1, "?"),
                           pin=float(col(f, f"pin_{r}").median()),
                           mean=float(e.mean()), p95=float(e.quantile(0.95)), max=float(e.max()),
                           amean=float(a.mean()), ap95=float(a.quantile(0.95)),
-                          step95=float(e[stepping].quantile(0.95)) if stepping.any() else np.nan)
+                          step95=float(e[stepping[calm]].quantile(0.95)) if (stepping & calm).any() else np.nan)
     n["regions"] = regions
-    still = ~stepping & (f["t"] > f["t"].iloc[0] + 0.5)   # not the spawn and equip
+    still = ~stepping & calm & (f["t"] > f["t"].iloc[0] + 0.5)   # not the spawn and equip, nor recoiling from a hit
     if "move" in f:
         still &= f["move"].fillna("").astype(str) == ""
     n["jitter"] = jitter(session, unit, still) if still.sum() >= 12 else {}
     n["blows"] = blows(unit)
+    n["hits"] = hits(unit)
+    n["taken"] = [e for e in unit.events if e.cat == "struck"]
+    n["died"] = next((e for e in unit.events if e.cat == "death"), None)
     return n
 
 
@@ -746,12 +817,18 @@ def flags_for(unit, n):
     missed = [b for b in bl if b["err"] is not None and b["err"] > 3.0]
     if missed:
         out.append(f"{len(missed)} blows passed more than 3 cm from their aim point on the pose")
-    unreached = [b for b in bl if b["err"] is None]
+    unreached = [b for b in bl if b["err"] is None and b["cut"] is None]
     if unreached:
-        out.append(f"{len(unreached)} blows never reached their contact moment")
+        out.append(f"{len(unreached)} blows never reached their contact moment (and weren't cut short)")
     pulled = [b for b in bl if b["physical"] is not None and b["physical"] > 8.0]
     if pulled:
         out.append(f"{len(pulled)} blows where the physical weapon passed more than 8 cm from the aim point (physics pulled it off)")
+    allies = [h for h in n.get("hits", []) if h["kind"].startswith("an ally")]
+    if allies:
+        out.append(f"{len(allies)} hits on allies (friendly fire)")
+    weak = [h for h in n.get("hits", []) if h["reaction"] != "blocked" and h["damage"] < 1.0]
+    if weak:
+        out.append(f"{len(weak)} hits did under 1 damage")
     shaking = [p for p, (rms, alt) in n["jitter"].items() if alt > SHAKE_ALTERNATION and rms > SHAKE_RMS]
     if shaking:
         out.append("shaking at the physics rate: " + ", ".join(shaking))
@@ -772,6 +849,17 @@ def blow_summary(bl):
     return f"{len(bl)} ({landed} / {aimed})"
 
 
+def hit_summary(n):
+    h = n.get("hits", [])
+    if not h and not n.get("taken"):
+        return "-"
+    aimed = sum(1 for x in h if x["kind"] == "the part aimed at")
+    text = f"{len(h)} ({aimed} aimed) / {len(n.get('taken', []))}"
+    if n.get("died") is not None:
+        text += f", died {n['died'].t:.1f} s"
+    return text
+
+
 def write_report(session, out, args, films):
     lines = []
     w = lines.append
@@ -790,8 +878,8 @@ def write_report(session, out, args, films):
     numbers = {}
     w("## Summary")
     w("")
-    w("| unit | leg | steps | shuffles | stepping | worst slide | weight off support out of blows (pose 95% / physical 95%) | hip drop | sway / bob | pinned error 95% (torso, head, arms) | blows (landed on the pose / struck the part aimed at) | flags |")
-    w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    w("| unit | leg | steps | shuffles | stepping | worst slide | weight off support out of blows (pose 95% / physical 95%) | hip drop | sway / bob | pinned error 95% (torso, head, arms) | blows (landed on the pose / struck the part aimed at) | hits dealt (on the part aimed at) / taken | flags |")
+    w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for unit in session.units:
         if unit.frames.empty:
             continue
@@ -801,7 +889,10 @@ def write_report(session, out, args, films):
         pinned = ", ".join(f"{rg[r]['p95'] * 100:.1f}" for r in ("Torso", "Head", "ArmL", "ArmR"))
         w(f"| {unit.label} | {n['leg']:.2f} m | {n['steps']} | {n['shuffles']} | {n['stepShare'] * 100:.0f}% | {n['slide'] * 100:.1f} cm | "
           f"{n['com95'] * 100:.1f} / {n['physCom95'] * 100:.1f} cm | {n['drop'] * 100:.1f} cm | {n['sway'] * 100:.1f} / {n['bob'] * 100:.1f} cm | "
-          f"{pinned} cm | {blow_summary(n['blows'])} | {len(fl) or 'none'} |")
+          f"{pinned} cm | {blow_summary(n['blows'])} | {hit_summary(n)} | {len(fl) or 'none'} |")
+    w("")
+    w(f"The stance checks (weight, hip drop, pinned error, shaking) leave out the {REACT_SECONDS:.0f} s after each hit taken, when the "
+      f"struck body recoils on purpose, and the {FADE_SECONDS:.1f} s a cut-short blow takes to fade out.")
     w("")
 
     for unit in session.units:
@@ -847,8 +938,29 @@ def write_report(session, out, args, films):
                 struck = f"{b['struck']}'s {b['struckPart']} ({fmt(b['struckCm'], 1)} cm)" if b["struck"] else "-"
                 mark = " ✓" if struck_aimed(b) else ""
                 touched = "; ".join(t.split(" touched ", 1)[-1] for t in b["touches"][:3]) or "-"
+                if b["cut"] is not None and b["err"] is None:
+                    w(f"| {b['t']:.2f} | {b['move']} | {b['target']}'s {b['part']} | {b['lunge']:.2f} m | cut short: {b['cut']} | | | | |")
+                    continue
                 w(f"| {b['t']:.2f} | {b['move']} | {b['target']}'s {b['part']} | {b['lunge']:.2f} m | {fmt(b['err'], 1)} cm | "
                   f"{fmt(b['physical'], 1)} cm | {fmt(b['moved'], 1)} cm | {struck}{mark} | {touched} |")
+            w("")
+
+        if n["hits"]:
+            w("**Hits dealt** (every weapon contact: speed at the striking part; reaction of the struck; the swing stops on a "
+              "heavy body or a shield, a light one is bowled through)")
+            w("")
+            w("| t | move | struck | speed | damage | poise | reaction | impulse (into the part) | swing | what it was |")
+            w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+            for h in n["hits"]:
+                swing = "stopped" if h["stopped"] else f"bowled through ({h['left']}% left)"
+                w(f"| {h['t']:.2f} | {h['move']} | {h['struck']}'s {h['part']} | {h['speed']:.1f} m/s | {h['damage']:.1f} | {h['poise']:.0f} | "
+                  f"{h['reaction']} | {h['impulse']:.1f} N·s ({h['share']}%) | {swing} | {h['kind']} |")
+            w("")
+        if n["taken"]:
+            w("**Struck:** " + "; ".join(f"{e.t:.2f} s {e.text}" for e in n["taken"][:20]))
+            w("")
+        if n["died"] is not None:
+            w(f"**Died** at {n['died'].t:.2f} s: {n['died'].text}.")
             w("")
 
         steps = [e for e in unit.events if e.cat == "step"]
@@ -857,7 +969,7 @@ def write_report(session, out, args, films):
             w(f"**Steps:** {len(steps)} logged; {len(far)} landed more than 10 cm from where the stance wants the foot now "
               "(normal while turning: the spot moves during the step).")
             w("")
-        other = [e for e in unit.events if e.cat not in ("step", "spawn", "attack", "contact", "touch")]
+        other = [e for e in unit.events if e.cat not in ("step", "spawn", "attack", "contact", "touch", "hit", "struck", "death")]
         if other:
             w("**Other events**")
             w("")
@@ -901,6 +1013,7 @@ def main():
     ap.add_argument("--frames", type=int, default=8, help="stick figures per film strip")
     ap.add_argument("--max-turns", type=int, default=3, help="film strips of at most this many turns per unit")
     ap.add_argument("--max-blows", type=int, default=4, help="film strips of at most this many blows per unit")
+    ap.add_argument("--max-hits", type=int, default=4, help="film strips of the first this many hits (plus the notable ones)")
     ap.add_argument("--flip-pictures", action="store_true", help="turn the recorded pictures upside down (if they were read back flipped)")
     args = ap.parse_args()
 
@@ -961,6 +1074,33 @@ def main():
                       os.path.join(out, name + "_film.png"), focus_units=[unit.label, b["target"]], only=True, subtitle_fn=sub)
             picture_sheet(session, pictures_between(pics, a - 0.1, end + 0.1), os.path.join(out, name + "_pictures.jpg"),
                           f"{unit.label} {b['move']} at {b['target']}'s {b['part']}, {a:.2f}-{end:.2f} s", flip=args.flip_pictures)
+
+    # Hits: the first few, and every one on an ally or someone in the way, every block and every death.
+    all_hits = sorted(((u, h) for u in session.units for h in hits(u)), key=lambda x: x[1]["t"])
+    deaths = {e.t: e for e in session.events if e.cat == "death"}
+    chosen = [x for i, x in enumerate(all_hits)
+              if i < args.max_hits or x[1]["kind"] in ("someone in the way", "an ally (friendly fire)", "blocked by the shield")
+              or any(abs(t - x[1]["t"]) < 0.02 for t in deaths)]
+    for n, (unit, h) in enumerate(chosen[: 3 * args.max_hits], 1):
+        struck = session.unit(h["struck"])
+        if struck is None:
+            continue
+        a = h["t"]
+        times = list(np.linspace(a - 0.35, a, args.frames // 2, endpoint=False)) + list(np.linspace(a, a + 0.8, args.frames - args.frames // 2))
+        ra, rs = nearest_row(unit.frames, a), nearest_row(struck.frames, a)
+        between = np.array([float(rs["rootX"]) - float(ra["rootX"]), 0.0, float(rs["rootZ"]) - float(ra["rootZ"])])
+        view = between if np.linalg.norm(between) > 1e-3 else facing(unit, a)
+        target = next((b["target"] for b in blows(unit) if b["t"] <= a), None)
+        focus = [unit.label, struck.label] + ([target] if target and target not in (unit.label, struck.label) else [])
+
+        def sub(tt, struck=struck, a=a):
+            r = nearest_row(struck.frames, tt)
+            return f"{tt - a:+.2f} s\nhp {float(r.get('health', 0)):.0f}"
+        filmstrip(session, times, view, f"{unit.label}'s {h['move']} struck {struck.label}'s {h['part']} ({h['kind']}; {h['reaction']}, "
+                                          f"{h['damage']:.0f} damage)", os.path.join(out, f"hit_{n}_film.png"),
+                  focus_units=focus, only=True, subtitle_fn=sub)
+        picture_sheet(session, pictures_between(pics, a - 0.4, a + 0.8), os.path.join(out, f"hit_{n}_pictures.jpg"),
+                      f"{unit.label} struck {struck.label}'s {h['part']} at {a:.2f} s", flip=args.flip_pictures)
 
     for mk in session.meta.get("marks", []):
         times = list(np.linspace(mk["time"] - 1.0, mk["time"] + 0.5, args.frames))

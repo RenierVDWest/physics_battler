@@ -234,7 +234,7 @@ namespace UnityEngine
         public static int hotControl { get; set; }
     }
 
-    public enum KeyCode { None = 0, Space = 32, Period = 46, F = 102, G = 103, H = 104, M = 109, P = 112, R = 114, T = 116 }
+    public enum KeyCode { None = 0, Space = 32, Period = 46, B = 98, F = 102, G = 103, H = 104, M = 109, P = 112, R = 114, T = 116 }
 
     public static class Input
     {

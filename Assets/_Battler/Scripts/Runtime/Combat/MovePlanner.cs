@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEngine;
 
@@ -43,6 +44,29 @@ namespace PhysicsBattler.Combat
 
             Vector3 aim = AimPartInfo.PhysicalPoint(target.Rig, part);
             return Prepare(attacker, move, weapon, aim, part, target);
+        }
+
+        /// <summary>
+        /// A point in the way of a planned blow (the bystander test and its scene): on the blade,
+        /// half way from the wielder's shoulder, where it will be at contact, to where the striking
+        /// part passes <paramref name="before"/> metres short of the aim on its way in. A body
+        /// centred there is struck before the target.
+        /// </summary>
+        public static Vector3 InTheWay(UnitController attacker, MoveState state, float before)
+        {
+            Vector3 strike = state.PathPoint(0f);
+            for (float p = state.Move.ContactProgress; p > 0f; p -= 0.002f)
+            {
+                strike = state.PathPoint(p);
+                if (Vector3.Distance(strike, state.Aim) >= before)
+                {
+                    break;
+                }
+            }
+
+            var shoulder = attacker.Rig.Part(PartId.UpperArmR);
+            Vector3 at = shoulder.body != null ? shoulder.body.position : shoulder.transform.position;
+            return Vector3.Lerp(at + state.Lunge, strike, 0.5f);
         }
 
         /// <summary>Locks a blow on a point (tests and the move preview aim at plain points too).</summary>

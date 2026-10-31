@@ -23,6 +23,13 @@ namespace PhysicsBattler.Units
         [Tooltip("How fast the unit turns to face its target (degrees per second).")]
         public float turnSpeed = 220f;
 
+        [Header("Health and poise")]
+        public float maxHealth = 100f;
+        [Tooltip("How much hitting it takes before it staggers (a blow's impulse, N·s, counts against it).")]
+        public float maxPoise = 45f;
+        [Tooltip("Poise back per second.")]
+        public float poiseRegen = 15f;
+
         [Header("Physics authority")]
         [Tooltip("How firmly the torso and head are held to the pose each physics step (0 = loose, 1 = exactly).")]
         [Range(0f, 1f)] public float torsoPin = 0.85f;

@@ -1,3 +1,4 @@
+using System.Linq;
 // Compile-check stubs: objects, components and a working Transform hierarchy (no scale shear).
 using System;
 using System.Collections;
@@ -14,9 +15,14 @@ namespace UnityEngine
         public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation) where T : Object => throw new NotSupportedException("Instantiate");
         public static T Instantiate<T>(T original, Transform parent) where T : Object => throw new NotSupportedException("Instantiate");
         public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation, Transform parent) where T : Object => throw new NotSupportedException("Instantiate");
-        public static void Destroy(Object obj) { }
-        public static void Destroy(Object obj, float t) { }
-        public static void DestroyImmediate(Object obj) { }
+        // Destroying only takes a game object's colliders out of the physics queries (enough for the
+        // dry run and the tests).
+        public static void Destroy(Object obj) => DestroyImmediate(obj);
+        public static void Destroy(Object obj, float t) => DestroyImmediate(obj);
+        public static void DestroyImmediate(Object obj)
+        {
+            if (obj is GameObject go) go.MarkDestroyed();
+        }
         public static void DontDestroyOnLoad(Object target) { }
         // Unity 6.5+: the FindObjectsSortMode overloads and FindFirstObjectByType are obsolete (compile errors),
         // so they are left out here to catch any use.
@@ -67,7 +73,30 @@ namespace UnityEngine
             var component = (T)Activator.CreateInstance(typeof(T), true);
             component.AttachTo(this);
             components.Add(component);
+            if (component is Collider collider) Physics.Register(collider);
             return component;
+        }
+
+        internal bool Destroyed { get; private set; }
+
+        internal void MarkDestroyed()
+        {
+            if (Destroyed) return;
+            Destroyed = true;
+            foreach (var c in components.ToArray())
+            {
+                if (c is Collider collider) Physics.Unregister(collider);
+                // As in Unity: a destroyed behaviour hears OnDestroy.
+                if (c is MonoBehaviour)
+                {
+                    c.GetType().GetMethod("OnDestroy", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)?.Invoke(c, null);
+                }
+            }
+
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                transform.GetChild(i).gameObject.MarkDestroyed();
+            }
         }
 
         public T GetComponent<T>() where T : class

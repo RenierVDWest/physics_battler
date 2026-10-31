@@ -1,6 +1,7 @@
 // Compile-check stubs: the physics API surface this project uses (signatures checked against
 // Unity 6000.0 reference source; Find APIs updated for 6000.6). No simulation.
 using System;
+using System.Collections.Generic;
 
 namespace UnityEngine
 {
@@ -39,8 +40,20 @@ namespace UnityEngine
         public LayerMask excludeLayers { get; set; }
         public LayerMask includeLayers { get; set; }
 
-        public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force) { }
-        public void AddForceAtPosition(Vector3 force, Vector3 position, ForceMode mode = ForceMode.Force) { }
+        // Impulses change the velocity (roughly: the dry run has no inertia tensors); forces are ignored.
+        public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force)
+        {
+            if (isKinematic) return;
+            if (mode == ForceMode.Impulse) linearVelocity += force / Mathf.Max(1e-3f, mass);
+            else if (mode == ForceMode.VelocityChange) linearVelocity += force;
+        }
+
+        public void AddForceAtPosition(Vector3 force, Vector3 position, ForceMode mode = ForceMode.Force)
+        {
+            if (isKinematic || mode != ForceMode.Impulse) return;
+            linearVelocity += force / Mathf.Max(1e-3f, mass);
+            angularVelocity += Vector3.Cross(position - this.position, force) / Mathf.Max(1e-3f, mass * 0.02f);
+        }
         public void AddTorque(Vector3 torque, ForceMode mode = ForceMode.Force) { }
         public void AddRelativeForce(Vector3 force, ForceMode mode = ForceMode.Force) { }
         public Vector3 GetPointVelocity(Vector3 worldPoint) => linearVelocity;
@@ -261,6 +274,37 @@ namespace UnityEngine
         public static bool reuseCollisionCallbacks { get; set; } = true;
 
         public static void IgnoreCollision(Collider a, Collider b, bool ignore = true) { }
+
+        // Overlap queries over every live collider, with real shapes (Collider.ClosestPoint).
+        private static readonly List<Collider> colliders = new List<Collider>();
+        internal static void Register(Collider c) => colliders.Add(c);
+        internal static void Unregister(Collider c) => colliders.Remove(c);
+
+        public static Collider[] OverlapCapsule(Vector3 point0, Vector3 point1, float radius, int layerMask = -1,
+            QueryTriggerInteraction queryTriggerInteraction = QueryTriggerInteraction.UseGlobal)
+        {
+            var found = new List<Collider>();
+            foreach (var c in colliders)
+            {
+                if (!c.enabled || ((1 << c.gameObject.layer) & layerMask) == 0) continue;
+                if (c.isTrigger && queryTriggerInteraction == QueryTriggerInteraction.Ignore) continue;
+                for (int i = 0; i <= 8; i++)
+                {
+                    Vector3 p = Vector3.Lerp(point0, point1, i / 8f);
+                    if (Vector3.Distance(c.ClosestPoint(p), p) <= radius)
+                    {
+                        found.Add(c);
+                        break;
+                    }
+                }
+            }
+
+            return found.ToArray();
+        }
+
+        public static Collider[] OverlapSphere(Vector3 position, float radius, int layerMask = -1,
+            QueryTriggerInteraction queryTriggerInteraction = QueryTriggerInteraction.UseGlobal) =>
+            OverlapCapsule(position, position, radius, layerMask, queryTriggerInteraction);
         public static void IgnoreLayerCollision(int layer1, int layer2, bool ignore = true) { }
 
         public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hitInfo, float maxDistance,

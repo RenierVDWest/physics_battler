@@ -57,6 +57,10 @@ namespace PhysicsBattler.Motion
         public float engageDistance = 1.25f;
         [Tooltip("Walking speed while closing in, metres per second at medium size.")]
         public float walkSpeed = 0.7f;
+        [Tooltip("With a shield: the chance it raises the shield across a blow coming at it.")]
+        [Range(0f, 1f)] public float blockChance = 0.55f;
+        [Tooltip("Seconds from a blow starting to the shield moving.")]
+        public float reactionTime = 0.22f;
 
         [Header("Steps")]
         [Tooltip("A foot steps when it is this far from its spot in the stance (fraction of leg length)…")]

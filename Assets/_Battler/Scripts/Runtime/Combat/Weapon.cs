@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEngine;
@@ -21,7 +20,6 @@ namespace PhysicsBattler.Combat
         public float Scale { get; private set; } = 1f;
 
         private BodyPart hand;
-        private readonly HashSet<BodyPart> touched = new HashSet<BodyPart>();
 
         /// <summary>
         /// Puts a weapon in a hand: the prefab (or, without one, a bare object with no mesh), at the
@@ -81,35 +79,6 @@ namespace PhysicsBattler.Combat
         {
             Vector3 world = WorldPoint(local);
             return hand != null && hand.body != null ? hand.PhysicalPoint(world) : world;
-        }
-
-        /// <summary>A new blow: every part may be reported once again.</summary>
-        public void ResetTouches() => touched.Clear();
-
-        // Enter and Stay: a part already inside the blade when the active window opens still counts.
-        // (Triggers have no continuous detection: a very fast blade can pass a thin part between two
-        // steps. Milestone 3's hits sweep the blade's path instead.)
-        private void OnTriggerEnter(Collider other) => Touch(other);
-
-        private void OnTriggerStay(Collider other) => Touch(other);
-
-        private void Touch(Collider other)
-        {
-            if (Owner == null)
-            {
-                return;
-            }
-
-            var part = other.GetComponentInParent<BodyPart>();
-            if (part == null || part.Owner == Owner || touched.Contains(part))
-            {
-                return;
-            }
-
-            if (Owner.OnWeaponTouched(this, part, other))
-            {
-                touched.Add(part);
-            }
         }
     }
 }

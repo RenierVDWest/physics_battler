@@ -205,6 +205,12 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("pstrikeY", physical.y, 3);
             frames.Add("pstrikeZ", physical.z, 3);
             frames.Add("aimErr", move != null ? p.AimError : 0f, 3);
+            frames.Add("health", unit.Health, 1);
+            frames.Add("poise", unit.Poise, 1);
+            frames.Add("alive", unit.IsAlive);
+            frames.Add("knock", unit.Knockback.magnitude, 3);
+            frames.Add("hitStop", unit.HitStop > 0f);
+            frames.Add("block", unit.BlockBlend, 2);
 
             frames.End();
             samples++;
@@ -295,6 +301,24 @@ namespace PhysicsBattler.Diagnostics
         }
 
         public int physicalBlows;
+        public int hitsDealt, hitsTaken, blocked, strayHits, allyHits, aimedHits;
+        public float damageDealt, damageTaken;
+
+        public void NoteHitDealt(HitReport hit)
+        {
+            hitsDealt++;
+            damageDealt += hit.Result.Damage;
+            if (hit.Shield) blocked++;
+            else if (hit.Kind == "the part aimed at") aimedHits++;
+            else if (hit.Kind.StartsWith("an ally")) allyHits++;
+            else if (hit.Kind.StartsWith("someone")) strayHits++;
+        }
+
+        public void NoteHitTaken(HitReport hit)
+        {
+            hitsTaken++;
+            damageTaken += hit.Result.Damage;
+        }
 
         /// <summary>A blow ended: how close the physical weapon came.</summary>
         public void NotePhysical(float closest)
@@ -348,6 +372,14 @@ namespace PhysicsBattler.Diagnostics
             }
 
             md.AppendLine();
+            if (hitsDealt > 0 || hitsTaken > 0)
+            {
+                md.AppendLine($"Hits dealt: {hitsDealt} ({aimedHits} on the part aimed at, {blocked} blocked, {strayHits} on someone in the way, "
+                              + $"{allyHits} on allies), {damageDealt:0} damage. Hits taken: {hitsTaken}, {damageTaken:0} damage. "
+                              + $"{(unit != null && !unit.IsAlive ? "Killed." : $"Health at the end {(unit != null ? unit.Health : 0f):0}.")}");
+                md.AppendLine();
+            }
+
             if (blows > 0)
             {
                 md.AppendLine($"Blows: {blows}. The posed striking part passed within 3 cm of the aim point in {blowsReached}; "

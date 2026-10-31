@@ -44,7 +44,7 @@ namespace PhysicsBattler.Units
     /// </summary>
     [DefaultExecutionOrder(-100)]
     [DisallowMultipleComponent]
-    public class UnitController : MonoBehaviour
+    public partial class UnitController : MonoBehaviour
     {
         [SerializeField] private UnitProfile profile;
         [SerializeField] private int team;
@@ -62,7 +62,6 @@ namespace PhysicsBattler.Units
         public static event Action<UnitController, MoveState> MoveStarted;
         public static event Action<UnitController, MoveState, ContactReport> MoveContact;
         public static event Action<UnitController, MoveState> MoveEnded;
-        public static event Action<UnitController, Weapon, BodyPart, float> WeaponTouched;
 
         /// <summary>Every unit in play.</summary>
         public static IReadOnlyList<UnitController> All => all;
@@ -192,6 +191,7 @@ namespace PhysicsBattler.Units
             }
 
             int seed = 7919 * team + 104729 * ++spawnCount;
+            InitializeCombat(seed);
             Stance = new Stance(seed);
             Stance.Configure(Style, Body);
             Idle = new CombatIdle(seed + 1);
@@ -351,6 +351,29 @@ namespace PhysicsBattler.Units
             Stance.Plant(position, yaw);
         }
 
+        /// <summary>Moves the unit somewhere else at once, body and all (the sandbox's scenarios).</summary>
+        public void Teleport(Vector3 position, float yaw)
+        {
+            if (CurrentMove != null)
+            {
+                CancelMove(CurrentMove, "moved by the sandbox");
+            }
+
+            DropCutShort();
+            Place(position, yaw);
+            Knockback = Vector3.zero;
+            Pose.Compose(LocalTime, 0f, true);
+            SnapBodyToPose();
+            foreach (var part in Rig.Parts)
+            {
+                if (part.body != null && !part.body.isKinematic)
+                {
+                    part.body.linearVelocity = Vector3.zero;
+                    part.body.angularVelocity = Vector3.zero;
+                }
+            }
+        }
+
         /// <summary>How far the unit still has to turn to face a point (degrees).</summary>
         public float AngleTo(Vector3 point)
         {
@@ -378,10 +401,14 @@ namespace PhysicsBattler.Units
             state.PhysicalClosest = -1f;
             CurrentMove = state;
             Pose.Move = state;
-            MainWeapon?.ResetTouches();
-            OffWeapon?.ResetTouches();
+            BeginSweep();
             Stance.Hold = true;
             MoveStarted?.Invoke(this, state);
+            if (state.Target is UnitController target && target != this)
+            {
+                target.OnIncoming(this, state);
+            }
+
             return true;
         }
 
@@ -550,7 +577,21 @@ namespace PhysicsBattler.Units
 
         private void Step(float dt, bool drive)
         {
-            LocalTime += dt;
+            if (!IsAlive)
+            {
+                // Dead: a ragdoll, physics has every part.
+                if (drive)
+                {
+                    SetAuthority(null);
+                    Authority.Apply(dt);
+                }
+
+                return;
+            }
+
+            // Hit stop: the pose and the blow stand still for a moment.
+            float poseDt = CombatTime(dt);
+            LocalTime += poseDt;
             var move = CurrentMove;
             if (move != null)
             {
@@ -564,18 +605,34 @@ namespace PhysicsBattler.Units
                 if (to.sqrMagnitude > 1e-4f)
                 {
                     float wanted = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
-                    facingYaw = Mathf.MoveTowardsAngle(facingYaw, wanted, profile.turnSpeed * dt);
+                    facingYaw = Mathf.MoveTowardsAngle(facingYaw, wanted, profile.turnSpeed * poseDt);
                     transform.rotation = Quaternion.Euler(0f, facingYaw, 0f);
                 }
             }
 
+            CombatBeforePose(dt);
+
             if (move != null)
             {
-                TrackPhysicalWeapon(move);
-                AdvanceMove(move, dt);
+                // What the weapon struck since last step (as PhysX moved it); a stopped swing ends the blow.
+                if (physical)
+                {
+                    Sweep(move, dt);
+                }
+
+                if (CurrentMove == move)
+                {
+                    TrackPhysicalWeapon(move);
+                    AdvanceMove(move, poseDt);
+                }
+                else
+                {
+                    move = null;
+                }
             }
 
-            Pose.Compose(LocalTime, dt);
+            FadeCutShort(poseDt);
+            Pose.Compose(LocalTime, poseDt);
 
             if (move != null)
             {
@@ -593,14 +650,12 @@ namespace PhysicsBattler.Units
 
             if (drive)
             {
-                float blend = move != null ? move.Blend : 0f;
-                float armPin = Mathf.Lerp(profile.armPin, move != null ? move.Move.weaponArmPin : profile.armPin, blend);
-                bool kinematicArm = move != null && profile.weaponArmKinematicInBlows && blend > 0.01f;
-                Authority.Set(BodyRegion.ArmR, kinematicArm ? AuthorityLevel.Kinematic : AuthorityLevel.Pinned, armPin);
+                SetAuthority(move);
                 Authority.Apply(dt);
+                CombatAfterAuthority();
             }
 
-            if (move != null && move.Done)
+            if (move != null && move.Done && CurrentMove == move)
             {
                 CurrentMove = null;
                 Pose.Move = null;
@@ -739,24 +794,6 @@ namespace PhysicsBattler.Units
             {
                 PlaytestTrace.Note(this, "contact", $"{part.id} touched {collision.collider.name} at {collision.relativeVelocity.magnitude:0.0} m/s");
             }
-        }
-
-        /// <summary>
-        /// One of this unit's weapons touched another unit's body part (milestone 2: logged, not a hit
-        /// yet). True if it counted (during a blow's active window).
-        /// </summary>
-        public bool OnWeaponTouched(Weapon weapon, BodyPart part, Collider collider)
-        {
-            var move = CurrentMove;
-            if (move == null || !move.Active)
-            {
-                return false;
-            }
-
-            var hand = Rig.Part(weapon.InMainHand ? PartId.HandR : PartId.HandL).body;
-            float speed = hand != null ? hand.GetPointVelocity(collider.transform.position).magnitude : 0f;
-            WeaponTouched?.Invoke(this, weapon, part, speed);
-            return true;
         }
     }
 }

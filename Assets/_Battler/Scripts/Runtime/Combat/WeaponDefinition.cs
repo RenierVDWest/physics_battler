@@ -50,6 +50,14 @@ namespace PhysicsBattler.Combat
         [Tooltip("Shields: the middle of the face.")]
         public Vector3 faceCenter = new Vector3(0f, 0f, 0.1f);
         public float radius;
+        [Tooltip("How thick the striking part is for hit detection (metres, medium size): the blade's half-width, the club head's radius.")]
+        public float sweepRadius = 0.035f;
+
+        [Header("Hits")]
+        [Tooltip("Damage at 6 m/s to the chest; scales with the weapon's speed and the part struck.")]
+        public float damage = 20f;
+        [Tooltip("Slower than this (m/s at the striking part), a touch is not a hit.")]
+        public float minHitSpeed = 2f;
 
         [Header("Guard (medium size; the unit's frame: x right, y up, z forward, from the chest)")]
         [Tooltip("Where the grip is held in guard, from the chest null.")]
@@ -81,6 +89,8 @@ namespace PhysicsBattler.Combat
             switch (kind)
             {
                 case WeaponKind.Club:
+                    weapon.damage = 16f;
+                    weapon.sweepRadius = 0.06f;
                     weapon.length = 0.83f;
                     weapon.massKg = 2f;
                     weapon.tip = new Vector3(0f, 0f, 0.72f);
@@ -89,6 +99,8 @@ namespace PhysicsBattler.Combat
                     weapon.guardAngles = new Vector2(55f, 8f);
                     break;
                 case WeaponKind.Shield:
+                    weapon.damage = 0f;
+                    weapon.sweepRadius = 0f;
                     weapon.length = 0.58f;
                     weapon.massKg = 4f;
                     weapon.radius = 0.29f;

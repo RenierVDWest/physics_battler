@@ -43,6 +43,11 @@ namespace PhysicsBattler.Motion
         public Vector3 StrikePoint { get; private set; }
         public float AimError { get; private set; }
         public float SpineBend { get; private set; }
+
+        /// <summary>A shield raised across an incoming blow: how far (0 to 1), where its face goes and which way it looks.</summary>
+        public float BlockBlend { get; set; }
+        public Vector3 BlockCenter { get; set; }
+        public Vector3 BlockNormal { get; set; } = Vector3.forward;
         public float MoveCrouch { get; private set; }
 
         // What the last step produced, for the log.
@@ -359,6 +364,16 @@ namespace PhysicsBattler.Motion
         {
             var slot = anim.SlotWeaponL;
             GuardPose(loadout.Off, false, facing, loadout.Scale, out var grip, out var rotation);
+            if (BlockBlend > 0f && BlockNormal.sqrMagnitude > 1e-6f)
+            {
+                // Raised across the blow: the face's middle on the strike line, looking back along it.
+                Quaternion block = Quaternion.LookRotation(BlockNormal.normalized, Vector3.up);
+                Vector3 blockGrip = BlockCenter - block * (loadout.Off.faceCenter * loadout.Scale);
+                float b = BlockBlend * BlockBlend * (3f - 2f * BlockBlend);
+                grip = Vector3.Lerp(grip, blockGrip, b);
+                rotation = Quaternion.Slerp(rotation, block, b);
+            }
+
             Vector3 pole = facing * new Vector3(-0.8f, -1f, -0.2f);
             TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL), HandFor(grip, rotation, slot), pole);
             anim.Part(PartId.HandL).rotation = rotation * Quaternion.Inverse(slot.localRotation);

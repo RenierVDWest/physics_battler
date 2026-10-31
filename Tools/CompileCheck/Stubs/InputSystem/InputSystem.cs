@@ -43,5 +43,6 @@ namespace UnityEngine.InputSystem
         public KeyControl mKey { get; } = new KeyControl();
         public KeyControl tKey { get; } = new KeyControl();
         public KeyControl fKey { get; } = new KeyControl();
+        public KeyControl bKey { get; } = new KeyControl();
     }
 }
