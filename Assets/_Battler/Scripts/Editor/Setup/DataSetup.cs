@@ -67,6 +67,11 @@ namespace PhysicsBattler.Editor.Setup
                 MigrateTo6();
             }
 
+            if (from >= 1 && from < 7)
+            {
+                MigrateTo7();
+            }
+
             if (from >= 1 && from < 2)
             {
                 // After the first playtest (the club too heavy for the arm, get-ups declared done while
@@ -190,6 +195,38 @@ namespace PhysicsBattler.Editor.Setup
                     EditorUtility.SetDirty(swing);
                 }
             }
+        }
+
+        private static void MigrateTo7()
+        {
+            // The first two-handed carry passed through the hip, and the club exploded out of the body
+            // at spawn and got trapped behind the orc's back.
+            var club = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.ClubDefinition);
+            if (club == null)
+            {
+                return;
+            }
+
+            bool changed = false;
+            changed |= Replace(ref club.carryGrip, new Vector3(0.2f, 1.0f, 0.28f), new Vector3(0.26f, 1.02f, 0.34f), club.name, "carryGrip");
+            changed |= Replace(ref club.carryDirection, new Vector3(0.3f, -0.12f, -1f), new Vector3(0.5f, -0.15f, -0.85f), club.name, "carryDirection");
+            if (changed)
+            {
+                EditorUtility.SetDirty(club);
+            }
+        }
+
+        private static bool Replace(ref Vector3 field, Vector3 oldDefault, Vector3 newValue, string asset, string name)
+        {
+            if ((field - oldDefault).sqrMagnitude > 1e-8f)
+            {
+                Debug.Log($"[Battler Setup] {asset}.{name} is {field} (tuned by you), left as it is; the new default is {newValue}.");
+                return false;
+            }
+
+            field = newValue;
+            Debug.Log($"[Battler Setup] {asset}.{name}: {oldDefault} → {newValue}.");
+            return true;
         }
 
         private static bool Replace(ref float field, float oldDefault, float newValue, string asset, string name)

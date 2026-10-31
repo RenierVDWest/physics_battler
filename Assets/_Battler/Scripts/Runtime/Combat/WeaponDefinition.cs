@@ -22,9 +22,10 @@ namespace PhysicsBattler.Combat
         [Tooltip("Where the second hand holds it, along the weapon from the main grip (m; negative is toward the pommel).")]
         public float secondGrip = -0.11f;
         [Tooltip("Two-handed carry: where the main grip rests, in the unit's space (m at scale 1; x right, y up from the ground, z forward).")]
-        public Vector3 carryGrip = new Vector3(0.2f, 1.0f, 0.28f);
-        [Tooltip("Two-handed carry: the way the weapon points, in the unit's space (it is normalised).")]
-        public Vector3 carryDirection = new Vector3(0.3f, -0.12f, -1f);
+        public Vector3 carryGrip = new Vector3(0.26f, 1.02f, 0.34f);
+        [Tooltip("Two-handed carry: the way the weapon points, in the unit's space (it is normalised). Out to the side "
+                 + "enough to clear the hips and the thigh of the back leg.")]
+        public Vector3 carryDirection = new Vector3(0.5f, -0.15f, -0.85f);
 
         [Header("Hits")]
         public float damage = 30f;

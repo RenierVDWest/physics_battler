@@ -362,8 +362,9 @@ namespace PhysicsBattler.Units
             weapon.AttachTo(this, hand, Rig.SlotWeaponR, Layers.Index(Layers.Weapon));
 
             // The weapon hits its own wielder too (second playtest: the club passed through the orc's
-            // body). Only the arm holding it is left out, and anything it already touches in the carry.
+            // body). Only the arm(s) holding it are left out.
             Physics.SyncTransforms();
+            weaponBodyPairs.Clear();
             var ignoredParts = new List<string>();
             foreach (var weaponCollider in weapon.colliders)
             {
@@ -376,21 +377,32 @@ namespace PhysicsBattler.Units
 
                     bool holding = part.id == PartId.HandR || part.id == PartId.ForearmR
                                    || (twoHanded && (part.id == PartId.HandL || part.id == PartId.ForearmL));
-                    if (holding || Touching(weaponCollider, part.partCollider, SelfCollisionMargin * Scale))
+                    if (holding)
                     {
                         Physics.IgnoreCollision(weaponCollider, part.partCollider, true);
-                        if (!holding && !ignoredParts.Contains(part.id.ToString()))
-                        {
-                            ignoredParts.Add(part.id.ToString());
-                        }
+                        continue;
+                    }
+
+                    // Every other part collides with the weapon, but not straight away: the body is still
+                    // forming its stance around the carry, and a club that starts inside a thigh is flung
+                    // out of it. (Sixth playtest: it was, and ended up trapped behind the orc's back.)
+                    weaponBodyPairs.Add(new KeyValuePair<Collider, Collider>(weaponCollider, part.partCollider));
+                    if (Touching(weaponCollider, part.partCollider, SelfCollisionMargin * Scale) && !ignoredParts.Contains(part.id.ToString()))
+                    {
+                        ignoredParts.Add(part.id.ToString());
                     }
                 }
             }
 
+            SetWeaponBodyCollision(false);
+            weaponPassThrough = WeaponSettleTime;
+            weaponJammedFor = 0f;
+
             if (PlaytestTrace.Enabled)
             {
-                PlaytestTrace.Note(this, "equip", "the weapon collides with its wielder except the right hand and forearm"
-                                                  + (ignoredParts.Count > 0 ? $" and (touching in the carry pose) {string.Join(", ", ignoredParts)}" : ""));
+                PlaytestTrace.Note(this, "equip", "the weapon collides with its wielder except the right hand and forearm" + (twoHanded ? ", the left hand and forearm" : "")
+                                                  + $", from {WeaponSettleTime:0.0} s after taking it up"
+                                                  + (ignoredParts.Count > 0 ? $" (touching it now: {string.Join(", ", ignoredParts)})" : ""));
             }
 
             if (twoHanded)
@@ -414,6 +426,94 @@ namespace PhysicsBattler.Units
 
         private ConfigurableJoint secondGrip;
         private float secondGripStrength;
+        private readonly List<KeyValuePair<Collider, Collider>> weaponBodyPairs = new List<KeyValuePair<Collider, Collider>>();
+        private float weaponJammedFor;
+        private float weaponPassThrough;
+
+        /// <summary>
+        /// A weapon pressed against its own wielder for a while (trapped behind the back, say) is let
+        /// pass through the body for a moment, so it can get back to where the muscles are taking it.
+        /// (Sixth playtest: the club got trapped behind the orc's back and stayed there.)
+        /// </summary>
+        private void UpdateWeaponJam(float dt)
+        {
+            if (Weapon == null || weaponBodyPairs.Count == 0)
+            {
+                return;
+            }
+
+            if (weaponPassThrough > 0f)
+            {
+                weaponPassThrough -= dt;
+                if (weaponPassThrough <= 0f && !RestoreWeaponBodyCollision())
+                {
+                    weaponPassThrough = 0.1f;   // still inside the body somewhere: look again shortly
+                }
+
+                return;
+            }
+
+            bool pressing = Time.time - Weapon.Hand.LastSelfContactTime < dt * 1.5f;
+            weaponJammedFor = pressing ? weaponJammedFor + dt : 0f;
+            if (weaponJammedFor > WeaponJamTime)
+            {
+                weaponJammedFor = 0f;
+                weaponPassThrough = WeaponPassThroughTime;
+                SetWeaponBodyCollision(false);
+                // (restored by RestoreWeaponBodyCollision, part by part, once clear)
+                if (PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(this, "self", $"the weapon was stuck against the body for {WeaponJamTime:0.0} s: letting it pass through for {WeaponPassThroughTime:0.0} s");
+                }
+            }
+        }
+
+        private const float WeaponJamTime = 0.4f;
+        private const float WeaponPassThroughTime = 0.8f;
+        private const float WeaponSettleTime = 1.0f;
+        private readonly List<string> stillInside = new List<string>();
+
+        /// <summary>
+        /// Turns the weapon's collisions with its wielder back on, except for parts it is still inside
+        /// (switching those on would fling it out). True once every pair collides again.
+        /// </summary>
+        private bool RestoreWeaponBodyCollision()
+        {
+            stillInside.Clear();
+            foreach (var pair in weaponBodyPairs)
+            {
+                if (pair.Key == null || pair.Value == null)
+                {
+                    continue;
+                }
+
+                if (Touching(pair.Key, pair.Value, 0f))
+                {
+                    stillInside.Add(pair.Value.name);
+                    continue;
+                }
+
+                Physics.IgnoreCollision(pair.Key, pair.Value, false);
+            }
+
+            if (stillInside.Count == 0 && PlaytestTrace.Enabled)
+            {
+                PlaytestTrace.Note(this, "self", "the weapon collides with the body again");
+            }
+
+            return stillInside.Count == 0;
+        }
+
+        private void SetWeaponBodyCollision(bool collide)
+        {
+            foreach (var pair in weaponBodyPairs)
+            {
+                if (pair.Key != null && pair.Value != null)
+                {
+                    Physics.IgnoreCollision(pair.Key, pair.Value, !collide);
+                }
+            }
+        }
 
         private void IgnorePair(PartId a, PartId b)
         {
@@ -450,8 +550,14 @@ namespace PhysicsBattler.Units
             joint.angularZMotion = ConfigurableJointMotion.Free;
             joint.enablePreprocessing = false;
             joint.enableCollision = false;
+            secondGrip = joint;
             secondGripStrength = 1f;
             SetSecondGrip(1f);
+            if (PlaytestTrace.Enabled)
+            {
+                PlaytestTrace.Note(this, "weapon", $"left hand takes the second grip ({definition.secondGrip:0.00} m along the weapon), held at {SecondGripHz:0} Hz");
+            }
+
             return joint;
         }
 
@@ -475,7 +581,7 @@ namespace PhysicsBattler.Units
             secondGrip.zDrive = drive;
         }
 
-        private const float SecondGripHz = 6f;
+        private const float SecondGripHz = 10f;
 
         /// <summary>The left hand lets go when the unit goes down and takes hold again as it gets up.</summary>
         private void UpdateSecondGrip(float dt)
@@ -639,6 +745,7 @@ namespace PhysicsBattler.Units
             }
 
             UpdateSecondGrip(dt);
+            UpdateWeaponJam(dt);
 
             if (boostRecomputeIn > 0 && --boostRecomputeIn == 0)
             {

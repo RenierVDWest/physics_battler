@@ -22,8 +22,9 @@ namespace PhysicsBattler.Editor.Setup
         ///     by it and the weapon's weight, and the follow-through budget goes from 40° to 75°.
         /// 6 = The big club becomes two-handed (carried low at the side), the wind-up goes back and up
         ///     (-150° → -200°), and the strike starts at the turning point instead of waiting to settle.
+        /// 7 = The two-handed carry moves out to the side, clear of the hips and back leg.
         /// </summary>
-        public const int Current = 6;
+        public const int Current = 7;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

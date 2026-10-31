@@ -175,7 +175,7 @@ namespace PhysicsBattler.Motion
             }
         }
 
-        private const float CarryTwist = 15f;
+        private const float CarryTwist = 25f;
 
         /// <summary>A two-handed weapon carried low at the right side, pointing back: both arms reach it by IK.</summary>
         private void SolveTwoHandCarry(in PoseRequest request)
