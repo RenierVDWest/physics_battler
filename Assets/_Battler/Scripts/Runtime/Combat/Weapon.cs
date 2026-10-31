@@ -106,7 +106,6 @@ namespace PhysicsBattler.Combat
             return weapon;
         }
 
-        /// <summary>A point on the weapon (weapon axes, medium size) in the world.</summary>
         /// <summary>Lets go of it (its hand was cut off): it is no one's any more, and goes where the hand goes.</summary>
         public void Release()
         {
@@ -114,6 +113,7 @@ namespace PhysicsBattler.Combat
             ShowTrail(false);
         }
 
+        /// <summary>A point on the weapon (weapon axes, medium size) in the world.</summary>
         public Vector3 WorldPoint(Vector3 local) => transform.position + transform.rotation * (local * Scale);
 
         /// <summary>

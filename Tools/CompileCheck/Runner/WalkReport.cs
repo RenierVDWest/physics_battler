@@ -30,7 +30,7 @@ internal static class WalkReport
             var csv = new StringBuilder("t,phase,weight,leg");
             foreach (var id in PartInfo.All) csv.Append($",{id}.x,{id}.y,{id}.z");
             csv.Append(",grip.x,grip.y,grip.z,tip.x,tip.y,tip.z,root.x,root.y,root.z").AppendLine();
-            float speed = unit.Style.walkSpeed * unit.Body.SizeFactor, leg = unit.Body.LegLength;
+            float speed = unit.WalkSpeed, leg = unit.Body.LegLength;
             float t = 0f, overReach = 0f, slide = 0f;
             int steps0 = unit.Stance.StepsTaken;
             var planted = new Vector3[2];

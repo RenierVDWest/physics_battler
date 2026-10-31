@@ -195,7 +195,7 @@ namespace PhysicsBattler.Units
             Stance = new Stance(seed);
             Stance.Configure(Style, Body);
             Idle = new CombatIdle(seed + 1);
-            Pose = new PosePipeline(transform, Anim, Body, Stance, Idle, Style) { Loadout = Loadout };
+            Pose = new PosePipeline(transform, Anim, Body, Stance, Idle, Style) { Loadout = Loadout, IsSevered = Rig.IsSevered };
             Authority = new AuthorityController(Rig, Anim);
             Authority.Set(BodyRegion.Legs, AuthorityLevel.Kinematic, 1f);
             Authority.Set(BodyRegion.Torso, AuthorityLevel.Pinned, profile.torsoPin);
@@ -625,6 +625,7 @@ namespace PhysicsBattler.Units
 
         private void Step(float dt, bool drive)
         {
+            UpdateSeveredCollisions(dt);
             if (!IsAlive)
             {
                 // Dead: a ragdoll, physics has every part.

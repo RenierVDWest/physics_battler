@@ -32,7 +32,7 @@ namespace PhysicsBattler.Tests
                     Assert.IsFalse(unit.Style.walk.IsEmpty, $"{body} has a captured walk");
                     unit.FacePoint(unit.Root.position + Vector3.forward * 100f);   // (the way it walks)
                     RhythmTests.Step(both, 40);
-                    float leg = unit.Body.LegLength, speed = unit.Style.walkSpeed * unit.Body.SizeFactor;
+                    float leg = unit.Body.LegLength, speed = unit.WalkSpeed;
                     int steps0 = unit.Stance.StepsTaken;
                     float slide = 0f, ahead = 0f, cycle = 0f;
                     var planted = new Vector3[2];
@@ -103,7 +103,7 @@ namespace PhysicsBattler.Tests
             try
             {
                 RhythmTests.Step(both, 30);
-                float speed = unit.Style.walkSpeed * unit.Body.SizeFactor;
+                float speed = unit.WalkSpeed;
                 for (int i = 0; i < 40; i++)
                 {
                     unit.Root.position += unit.Root.forward * (speed / 60f);

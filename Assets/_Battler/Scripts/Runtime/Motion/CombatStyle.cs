@@ -80,6 +80,12 @@ namespace PhysicsBattler.Motion
         [Tooltip("How far an idle shuffle moves a foot (fraction of leg length).")]
         public float shuffleDistance = 0.1f;
 
+        [Header("Reading the opponent (milestone 6)")]
+        [Tooltip("How often it reads an opening in its opponent (a posture's window, a tired guard) and strikes into it: aims at the open part, and goes early if its next blow is close.")]
+        [Range(0f, 1f)] public float readsOpenings = 0.5f;
+        [Tooltip("How early (seconds) it will strike to catch an opening.")]
+        public float openingLead = 0.8f;
+
         [Header("Walking")]
         [Tooltip("A walk cycle from motion capture (Tools/Mocap): its steps and body motion play while the unit walks (empty: the feet just keep up).")]
         public GaitClip walk = new GaitClip();
@@ -108,14 +114,17 @@ namespace PhysicsBattler.Motion
                     s.guardElbow = -110f;
                     ApplySmallStance(s);
                     s.walk = RhythmClips.SmallWalk();
+                    s.readsOpenings = 0.75f;   // (a stick fighter lives on timing)
                     break;
                 case "medium":
                     ApplyMediumStance(s);
                     s.walk = RhythmClips.MediumWalk();
+                    s.readsOpenings = 0.55f;
                     break;
                 case "large":
                     ApplyLargeStance(s);
                     s.walk = RhythmClips.LargeWalk();
+                    s.readsOpenings = 0.35f;   // (a pressure fighter: it makes its own openings)
                     s.shuffleInterval = 5f;
                     s.shuffleDistance = 0.07f;
                     s.guardRaise = -22f;

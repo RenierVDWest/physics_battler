@@ -203,7 +203,7 @@ namespace PhysicsBattler.Combat
 
         /// <summary>
         /// The damage a blow must do (at medium size; times the struck unit's size: bigger bones are
-        /// thicker) to cut through the joint above a part. A wrist goes easiest, a hip hardest.
+        /// thicker) to cut through the joint above a part. A wrist goes easiest, the neck hardest.
         /// </summary>
         public static float SeverDamage(PartId below)
         {

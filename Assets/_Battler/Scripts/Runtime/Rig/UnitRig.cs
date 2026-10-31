@@ -60,43 +60,75 @@ namespace PhysicsBattler.Rig
         /// </summary>
         public GameObject Sever(PartId at)
         {
-            if (!PartInfo.HasParent(at) || severed[(int)at])
+            if (!PartInfo.IsSeverable(at) || severed[(int)at])
             {
                 return null;
             }
 
+            // The limb's own object: every part of it under one (in play the parts lie side by side
+            // under the unit's body holder, not in a tree), so it goes as one thing.
+            var limb = new GameObject(name + " " + PartInfo.NullName(at) + " (cut off)");
             var root = parts[(int)at];
+            limb.transform.SetPositionAndRotation(root.transform.position, root.transform.rotation);
+            foreach (var id in PartInfo.All)
+            {
+                if (id != at && !PartInfo.IsBelow(id, at))
+                {
+                    continue;
+                }
+
+                severed[(int)id] = true;
+                var part = parts[(int)id];
+                part.Owner = null;
+                if (part.body != null)
+                {
+                    part.body.isKinematic = false;
+                }
+
+                // Its joints within the limb hold their anatomical limits again (the pose had freed
+                // them): an elbow of a cut-off arm still bends like an elbow.
+                if (id != at && part.joint != null)
+                {
+                    PhysicsBattler.Muscles.JointMath.ApplyLimits(part.joint, part.limits);
+                    part.joint.angularXMotion = ConfigurableJointMotion.Limited;
+                    part.joint.angularYMotion = ConfigurableJointMotion.Limited;
+                    part.joint.angularZMotion = ConfigurableJointMotion.Limited;
+                }
+            }
+
             foreach (var id in PartInfo.All)
             {
                 if (id == at || PartInfo.IsBelow(id, at))
                 {
-                    severed[(int)id] = true;
-                    var part = parts[(int)id];
-                    part.Owner = null;
-                    if (part.body != null)
+                    var t = parts[(int)id].transform;
+                    var above = t.parent != null ? t.parent.GetComponent<BodyPart>() : null;
+                    if (above == null || !severed[(int)above.id])
                     {
-                        part.body.isKinematic = false;
+                        t.SetParent(limb.transform, true);   // (one hanging from another cut part goes with it)
                     }
                 }
             }
 
             if (root.joint != null)
             {
+                // (Freed at once: a destroyed joint only goes at the end of the frame, and would hold
+                // the limb on for this physics step.)
+                var joint = root.joint;
+                joint.xMotion = joint.yMotion = joint.zMotion = ConfigurableJointMotion.Free;
+                joint.angularXMotion = joint.angularYMotion = joint.angularZMotion = ConfigurableJointMotion.Free;
                 if (Application.isPlaying)
                 {
-                    Destroy(root.joint);
+                    Destroy(joint);
                 }
                 else
                 {
-                    DestroyImmediate(root.joint);
+                    DestroyImmediate(joint);
                 }
 
                 root.joint = null;
             }
 
-            root.transform.SetParent(null, true);
-            root.gameObject.name = name + " " + PartInfo.NullName(at);
-            return root.gameObject;
+            return limb;
         }
 
         public BodyPart[] Parts => parts;

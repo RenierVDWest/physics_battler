@@ -85,6 +85,9 @@ namespace PhysicsBattler.Motion
         /// <summary>How much the unit is walking (0 to 1): the hips go with the root, not the feet.</summary>
         public float GaitWeight { get; set; }
 
+        /// <summary>Milestone 5: a part cut off the unit (it no longer counts in the weight).</summary>
+        public System.Func<PartId, bool> IsSevered { get; set; }
+
         // What the last step produced, for the log.
         public Vector3 CenterOfMass { get; private set; }
         public Vector3 SupportPoint { get; private set; }
@@ -691,6 +694,11 @@ namespace PhysicsBattler.Motion
             float mass = 0f;
             foreach (var id in PartInfo.All)
             {
+                if (IsSevered != null && IsSevered(id))
+                {
+                    continue;
+                }
+
                 Vector3 p = anim.Part(id).position;
                 var child = BoneEnd(id);
                 if (child.HasValue)

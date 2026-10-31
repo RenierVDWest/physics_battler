@@ -13,6 +13,12 @@ namespace PhysicsBattler.Units
     {
         public GaitPlayer Gait { get; private set; }
 
+        /// <summary>
+        /// How fast it walks across the board, m/s: the style's walking speed, by the square root of
+        /// its size (as animals of different sizes walk: a small one isn't left behind in proportion).
+        /// </summary>
+        public float WalkSpeed => Style.walkSpeed * Mathf.Sqrt(Mathf.Max(0.1f, Body.SizeFactor));
+
         private bool gaitHolds;
         private float strayWait;
 
@@ -38,7 +44,7 @@ namespace PhysicsBattler.Units
             rhythmMoved = Vector3.zero;
             bool free = IsAlive && State == UnitState.Standing && CurrentMove == null && cutShort == null && HitStop <= 0f
                         && Knockback.magnitude < 0.05f * SizeSpeed();
-            Gait.Update(dt, velocity, free, Style.walkSpeed * Body.SizeFactor, Body.LegLength);
+            Gait.Update(dt, velocity, free, WalkSpeed, Body.LegLength);
 
             if (free && Gait.Weight >= 0.3f && Gait.Walking)
             {

@@ -172,6 +172,11 @@ namespace PhysicsBattler.Combat
         /// stands, at random (the body more often than the limbs). Null if nothing reaches.
         /// </summary>
         public static MoveState Plan(UnitController attacker, UnitController target, System.Random random)
+            => Plan(attacker, target, random, AimParts.None, 1f);
+
+        /// <param name="prefer">Body parts to favour (milestone 6: parts the target has open right now, as the attacker reads them).</param>
+        /// <param name="preferWeight">How many times likelier a favoured part is.</param>
+        public static MoveState Plan(UnitController attacker, UnitController target, System.Random random, AimParts prefer, float preferWeight)
         {
             var weapon = attacker.Loadout?.Main;
             if (weapon == null || weapon.moves == null)
@@ -193,7 +198,7 @@ namespace PhysicsBattler.Combat
                     if (move.targets.Contains(part) && !target.Rig.IsSevered(AimPartInfo.BodyPartOf(part)))
                     {
                         bool body = part <= AimPart.Belly;
-                        options.Add((move, part, body ? BodyWeight : 1f));
+                        options.Add((move, part, (body ? BodyWeight : 1f) * (prefer.Contains(part) ? preferWeight : 1f)));
                     }
                 }
             }

@@ -29,6 +29,7 @@ namespace PhysicsBattler.Units
         public IReadOnlyList<GameObject> SeveredLimbs => severedLimbs;
 
         private readonly List<GameObject> severedLimbs = new List<GameObject>();
+        private readonly List<(PartId at, float age)> severedAt = new List<(PartId, float)>();
         private UnitController lastWounder;
 
         /// <summary>How close to a joint (metres at medium size) the edge must cross the limb to cut through it there.</summary>
@@ -83,7 +84,7 @@ namespace PhysicsBattler.Units
                 // Through the limb within a few centimetres of the joint, along the bone: the edge
                 // passes the bone's stretch either side of the joint closer than the limb is thick.
                 var below = Rig.Part(id);
-                Vector3 joint = below.body != null ? below.PhysicalPoint(below.transform.position) : below.transform.position;
+                Vector3 joint = Pos(id);
                 Vector3 bone = BoneAxis(id);
                 float along = SeverReach * Body.SizeFactor;
                 float distance = SegmentDistance(a, b, joint - bone * along, joint + bone * along);
@@ -149,6 +150,11 @@ namespace PhysicsBattler.Units
         /// </summary>
         public bool Sever(PartId at, Vector3 impulse, HitReport hit = null)
         {
+            if (!PartInfo.IsSeverable(at) || Rig.IsSevered(at))
+            {
+                return false;
+            }
+
             bool weaponArm = at == PartId.HandR || PartInfo.IsBelow(PartId.HandR, at);
             bool offArm = at == PartId.HandL || PartInfo.IsBelow(PartId.HandL, at);
             bool leg = AuthorityController.RegionOf(at) == BodyRegion.Legs && at != PartId.Pelvis;
@@ -165,8 +171,7 @@ namespace PhysicsBattler.Units
                 OffWeapon.Release();
                 OffWeapon = null;
                 Loadout.Off = null;
-                BlockBlend = 0f;
-                Pose.BlockBlend = 0f;
+                DropBlock();
             }
 
             var limb = Rig.Sever(at);
@@ -176,6 +181,7 @@ namespace PhysicsBattler.Units
             }
 
             severedLimbs.Add(limb);
+            severedAt.Add((at, 0f));
             if (!physical)
             {
                 foreach (var t in limb.GetComponentsInChildren<Transform>(true))
@@ -185,8 +191,7 @@ namespace PhysicsBattler.Units
             }
 
             // The limb flies off with some of the blow and a turn.
-            var body = Rig.Part(at).body;
-            if (body != null && physical)
+            if (physical)
             {
                 float mass = 0f;
                 foreach (var id in PartInfo.All)
@@ -206,20 +211,30 @@ namespace PhysicsBattler.Units
                     }
                 }
 
-                body.AddTorque(Vector3.Cross(Vector3.up, impulse.normalized) * 8f, ForceMode.VelocityChange);
+                if (impulse.sqrMagnitude > 1e-8f)
+                {
+                    Rig.Part(at).body.AddTorque(Vector3.Cross(Vector3.up, impulse.normalized) * 8f, ForceMode.VelocityChange);
+                }
             }
 
-            Severed?.Invoke(this, at, hit);
             lastWounder = hit != null ? hit.Attacker : lastWounder;
+            Wounded(at, impulse, weaponArm, leg);
+            Severed?.Invoke(this, at, hit);   // (after the wound: the log shows the unit as it is now)
+            return true;
+        }
+
+        /// <summary>What losing the limb does to the unit (nothing, if it was dead already).</summary>
+        private void Wounded(PartId at, Vector3 impulse, bool weaponArm, bool leg)
+        {
             if (!IsAlive)
             {
-                return true;
+                return;
             }
 
             if (at == PartId.Head)
             {
-                Die(hit ?? Wound("beheaded"));
-                return true;
+                Die(Wound("beheaded", at));
+                return;
             }
 
             if (CurrentMove != null && (weaponArm || leg))
@@ -232,8 +247,8 @@ namespace PhysicsBattler.Units
             Bleeding += DamageRules.BleedRate(at) * profile.maxHealth;
             if (Health <= 0f)
             {
-                Die(hit ?? Wound("bled out"));
-                return true;
+                Die(Wound("bled out", at));
+                return;
             }
 
             if (leg)
@@ -245,8 +260,43 @@ namespace PhysicsBattler.Units
                     KnockDown(impulse * 0.3f / Mathf.Max(1f, Body.Mass), false, "lost a leg");
                 }
             }
+        }
 
-            return true;
+        /// <summary>
+        /// A cut-off limb ignored its old body's parts (a unit's parts never collide); half a second
+        /// after the cut (clear of the stump) it collides with them again, so it can't fall through.
+        /// </summary>
+        private void UpdateSeveredCollisions(float dt)
+        {
+            for (int i = severedAt.Count - 1; i >= 0; i--)
+            {
+                var (at, age) = severedAt[i];
+                age += dt;
+                if (age < 0.5f)
+                {
+                    severedAt[i] = (at, age);
+                    continue;
+                }
+
+                severedAt.RemoveAt(i);
+                foreach (var cut in PartInfo.All)
+                {
+                    if (cut != at && !PartInfo.IsBelow(cut, at))
+                    {
+                        continue;
+                    }
+
+                    foreach (var id in PartInfo.All)
+                    {
+                        var a = Rig.Part(cut).partCollider;
+                        var b = Rig.Part(id).partCollider;
+                        if (a != null && b != null && !Rig.IsSevered(id))
+                        {
+                            Physics.IgnoreCollision(a, b, false);
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>The wounds bleed (every step, standing or down).</summary>
@@ -264,9 +314,9 @@ namespace PhysicsBattler.Units
             }
         }
 
-        private HitReport Wound(string kind)
+        private HitReport Wound(string kind, PartId part = PartId.Chest)
         {
-            return new HitReport { Attacker = lastWounder, Struck = this, Part = PartId.Chest, Kind = kind, Result = new HitResult { Reaction = Reaction.Killed } };
+            return new HitReport { Attacker = lastWounder, Struck = this, Part = part, Kind = kind, Result = new HitResult { Reaction = Reaction.Killed } };
         }
 
         /// <summary>Removes the limbs cut off this unit (with the unit).</summary>
@@ -292,20 +342,29 @@ namespace PhysicsBattler.Units
             severedLimbs.Clear();
         }
 
-        /// <summary>The bone below a joint: toward the next joint down (or the part's collider for a hand, foot or head).</summary>
+        /// <summary>
+        /// The bone below a joint: toward the next joint down; for a hand, foot or head (no joint
+        /// below), the bone above carried on (a wrist cut crosses the forearm's line, an ankle the shin's).
+        /// </summary>
         private Vector3 BoneAxis(PartId below)
         {
-            Vector3 from = Rig.Part(below).transform.position;
+            Vector3 from = Pos(below);
             foreach (var id in PartInfo.All)
             {
                 if (PartInfo.HasParent(id) && PartInfo.Parent(id) == below)
                 {
-                    return (Rig.Part(id).transform.position - from).normalized;
+                    return (Pos(id) - from).normalized;
                 }
             }
 
-            var collider = Rig.Part(below).partCollider;
-            return collider != null ? (collider.bounds.center - from).normalized : Vector3.zero;
+            return PartInfo.HasParent(below) ? (from - Pos(PartInfo.Parent(below))).normalized : Vector3.zero;
+        }
+
+        /// <summary>Where a part's joint is in the physics (the transform lags it inside the physics step).</summary>
+        private Vector3 Pos(PartId id)
+        {
+            var part = Rig.Part(id);
+            return part.body != null ? part.body.position : part.transform.position;
         }
 
         /// <summary>How thick the limb is at its joint: the neck, a wrist and an ankle by their own size, the rest by the limb's capsule.</summary>

@@ -9,7 +9,32 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 5, severing
+## Current state: milestone 6, the fight loop
+
+### Milestone 6: the fight loop
+
+Press Play and the two teams fight it out with no help (`Battle/FightLoop.cs`):
+- **Targets.** Each unit picks the nearest enemy that can still fight, measured by the walk there. It keeps
+  the target it has, and favours one that is already hurt or already fighting it. Someone on the ground is a
+  target only when no one is standing.
+- **Tile to tile.** It walks across the board from tile centre to tile centre (8 ways, round others, never
+  cutting their corners) to a free tile next to its target, playing its captured walk at a speed that goes
+  with the square root of its size. The tiles a unit stands on and is heading for are held, so no two share
+  one, and a body on the ground holds the tile it lies on. A unit knocked off its tile, or onto someone
+  else's, walks to the nearest free one. After getting up it goes back onto the board.
+- **On its tile** it closes in or gives ground a little (never off the tile). When its timer comes round,
+  it strikes its target or any other enemy in reach in front of it, at a body part one of its moves can
+  land on.
+- **Openings** (the question pinned in the Fight Rhythm plan). An opening is a body part the target leaves
+  open right now: a posture's window (the bob and weave at its lowest, a peek over the shield, an abanico's
+  wide flicks), or the head once its guard has sagged with tiredness. Each style reads them some of the time
+  (`readsOpenings`: the small stick fighter 75%, the swordsman 55%, the boxer 35%). When it reads one, it
+  aims at the open part (four times likelier), and strikes up to `openingLead` (0.8 s) early to catch the
+  window. It skips its lead-in, so the opening isn't wasted. The log notes each one it read.
+- **The end.** The fight is over when one team has no one left who can fight: dead, unarmed or legless. A
+  time limit (240 s) ends it on who is left. The result is shown on screen and logged; R starts another.
+
+### Milestone 5: severing
 
 An 8×8 board with three units a side: Small, Medium and Large. Small and large carry clubs, the
 medium ones a sword and shield. They close in on the nearest enemy and strike at its body parts:
@@ -320,6 +345,9 @@ Milestone 4:
     hand held) should fall away from the elbow, the label showing the cut and the bleeding. In a fight, watch for
     arms and lower legs coming off. A unit that loses its weapon arm stops attacking, one that loses a leg stays
     down, and both bleed out.
+20. **The fight loop.** Press Play and watch: each unit picks a target, walks tile to tile to stand next to it
+    (never two on a tile), fights, and the fight ends on its own with a result on screen. Units lying on the
+    board block their tile; units knocked off their tile walk back onto a free one.
 
 If something looks off, press **M** at the moment and mention the mark number.
 
@@ -426,6 +454,8 @@ Tune in the data assets, not on the prefabs (setup rebuilds prefabs). Changes ma
   key poses (hips, crouch, lean, roll, turn, head, both hands and how the weapon turns, travel), planned
   steps, a weapon feint (a move's name and how far into its wind-up), openings, and its usual follow-up.
   Edit while the game runs; H shows them. A combat style's `rhythm` picks which one a body uses.
+- The fight loop (milestone 6): each combat style's `readsOpenings` and `openingLead` (and its `walkSpeed`,
+  `attackInterval`, `engageDistance`); the time limit is `FightLoop.TimeLimit`.
 - Severing (milestone 5): each weapon's `severSpeed`. In code at the bottom of `Combat/DamageRules.cs`: the
   damage each joint takes to cut (`SeverDamage`), the wound (`SeverLoss`) and the bleeding (`BleedRate`). In
   `Units/UnitSever.cs`: how close to the joint (`SeverReach`) and how square to the bone (`SeverAlong`).
@@ -464,6 +494,7 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll rhythms /tmp/rhythms   # every s
 python3 ../Playtest/rhythms.py /tmp/rhythms                            # them drawn through time, side and front
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll walks /tmp/walks       # each body walking (forward, back, aside, round), CSVs for walkview.py
 AIM_STYLES=1 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim       # the aim matrix with each body's own stance
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll fight /tmp/fight 7     # a whole 3 v 3 fight (seed 7) with a playtest log; FIGHT_MIRROR=1 swaps the sides
 TEST_ONLY=Balance dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll      # only the tests whose name contains this
 ```
 

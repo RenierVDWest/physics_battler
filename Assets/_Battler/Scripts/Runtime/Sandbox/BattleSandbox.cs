@@ -43,6 +43,9 @@ namespace PhysicsBattler.Sandbox
 
         private readonly List<UnitController> units = new List<UnitController>();
         private Brawl brawl = new Brawl(0);
+        // Milestone 6: the fight itself (the Brawl is kept only to turn everyone away, T).
+        private Battle.FightLoop fightLoop = new Battle.FightLoop(0);
+        private bool announced;
         private PlaytestRecorder recorder;
         private bool turnedAway;
         private float timeScale = 1f;
@@ -128,6 +131,8 @@ namespace PhysicsBattler.Sandbox
             Clear();
             turnedAway = false;
             brawl = new Brawl(seed);
+            fightLoop = new Battle.FightLoop(seed) { Grid = Grid };
+            announced = false;
             var spawns = FindObjectsByType<UnitSpawn>();
             System.Array.Sort(spawns, (a, b) => a.team != b.team ? a.team.CompareTo(b.team) : a.body.CompareTo(b.body));
             var count = new Dictionary<string, int>();
@@ -231,10 +236,25 @@ namespace PhysicsBattler.Sandbox
             }
 
             pendingEquip.Clear();
-            brawl.Fight = fight;
-            brawl.TurnedAway = turnedAway;
-            brawl.Grid = Grid;
-            brawl.Step(units, Time.fixedDeltaTime, Time.time);
+            if (turnedAway)
+            {
+                brawl.Fight = false;
+                brawl.TurnedAway = true;
+                brawl.Grid = Grid;
+                brawl.Step(units, Time.fixedDeltaTime, Time.time);
+            }
+            else
+            {
+                fightLoop.Fight = fight;
+                fightLoop.Grid = Grid;
+                fightLoop.Step(units, Time.fixedDeltaTime, Time.time);
+                if (fightLoop.Over && !announced)
+                {
+                    announced = true;
+                    message = $"Fight over: {fightLoop.Result}. R for another.";
+                    Note("fight over: " + fightLoop.Result);
+                }
+            }
         }
 
         private void Update()

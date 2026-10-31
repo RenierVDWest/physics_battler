@@ -35,6 +35,11 @@ internal static class Program
             return SwingReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 2 && args[0] == "fight")
+        {
+            return FightReport.Run(args[1], args.Length >= 3 ? int.Parse(args[2]) : 7);
+        }
+
         if (args.Length >= 1 && args[0] == "walks")
         {
             return WalkReport.Run(args.Length >= 2 ? args[1] : null, args.Length >= 3 ? args[2] : null);
