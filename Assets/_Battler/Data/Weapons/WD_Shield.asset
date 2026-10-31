@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2ce3df6da26de04c8c0f79c1191387b, type: 3}
+  m_Name: WD_Shield
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Combat.WeaponDefinition
+  kind: 2
+  prefab: {fileID: 6861358095828091195, guid: 7c5c818f5cbe9654f8aed147afd72ac7, type: 3}
+  length: 0.58
+  massKg: 4
+  tip: {x: 0, y: 0.29, z: 0.06}
+  edge: {x: 0, y: 0.29, z: 0.06}
+  head: {x: 0, y: 0, z: 0.11}
+  faceCenter: {x: 0, y: 0, z: 0.1}
+  radius: 0.29
+  guardGrip: {x: -0.12, y: -0.1, z: 0.36}
+  guardAngles: {x: 8, y: 18}
+  moves: []

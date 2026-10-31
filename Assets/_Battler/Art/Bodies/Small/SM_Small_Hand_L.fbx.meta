@@ -44,6 +44,21 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: M_Team_B
     second: {fileID: 2100000, guid: 8314fdff4360f3b429a87f0e1131ec41, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_Weapon_Dark
+    second: {fileID: 2100000, guid: ba69b438973aab64784cdfd484d506c3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_Weapon_Steel
+    second: {fileID: 2100000, guid: 99c740fbcdf2d874f834004c1e7f0007, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_Weapon_Wood
+    second: {fileID: 2100000, guid: 189b8cb09b09a71499b502931de6fd4b, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

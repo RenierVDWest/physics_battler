@@ -1,0 +1,622 @@
+# Physics Battler playtest 2026-10-31_14-47-15
+# time (s since Play) | physics step | who | what | details
+    0.000 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    0.000 |      0 | -              | session  | saving 300x300 pictures of the game view, 8 per second, to frames/
+    0.000 |      0 | -              | console  | [Joint probe] drive standard (asked +35, got 35.0), X limit sign -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    0.000 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35.0), X limit sign -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    0.000 |      0 | -              | input    | spawn: 6 units on the 8x8 board
+    0.000 |      1 | A Small        | spawn    | at (-2.40, -2.40) facing 0°, team 0, Small body, mass 15.0 kg, leg length 0.33 m, rest pelvis height 0.41 m, profile UP_Small, style CS_Small
+    0.000 |      1 | A Medium       | spawn    | at (-0.80, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    0.000 |      1 | A Large        | spawn    | at (0.80, -2.40) facing 0°, team 0, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    0.000 |      1 | B Small        | spawn    | at (0.80, 2.40) facing 180°, team 1, Small body, mass 15.0 kg, leg length 0.33 m, rest pelvis height 0.41 m, profile UP_Small, style CS_Small
+    0.000 |      1 | B Medium       | spawn    | at (-0.80, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    0.000 |      1 | B Large        | spawn    | at (-2.40, 2.40) facing 180°, team 1, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    0.000 |      1 | A Small        | equip    | WD_Club, scaled 0.39
+    0.000 |      1 | A Medium       | equip    | WD_Sword and WD_Shield, scaled 1.00
+    0.000 |      1 | A Large        | equip    | WD_Club, scaled 1.24
+    0.000 |      1 | B Small        | equip    | WD_Club, scaled 0.39
+    0.000 |      1 | B Medium       | equip    | WD_Sword and WD_Shield, scaled 1.00
+    0.000 |      1 | B Large        | equip    | WD_Club, scaled 1.24
+    0.350 |     22 | A Small        | step     | left foot planted at (-2.46, -2.27), 5 cm from its spot
+    0.350 |     22 | B Small        | step     | left foot planted at (0.86, 2.27), 5 cm from its spot
+    0.450 |     28 | A Medium       | step     | left foot planted at (-0.94, -2.08), 19 cm from its spot
+    0.450 |     28 | B Medium       | step     | left foot planted at (-0.66, 2.08), 19 cm from its spot
+    0.483 |     30 | A Large        | step     | left foot planted at (0.59, -2.04), 26 cm from its spot
+    0.483 |     30 | B Large        | step     | left foot planted at (-2.19, 2.04), 26 cm from its spot
+    0.567 |     35 | A Small        | step     | right foot planted at (-2.34, -2.36), 5 cm from its spot
+    0.567 |     35 | B Small        | step     | right foot planted at (0.74, 2.36), 5 cm from its spot
+    0.783 |     48 | A Small        | step     | left foot planted at (-2.46, -2.15), 5 cm from its spot
+    0.783 |     48 | A Medium       | step     | right foot planted at (-0.66, -2.20), 19 cm from its spot
+    0.783 |     48 | B Small        | step     | left foot planted at (0.86, 2.15), 5 cm from its spot
+    0.783 |     48 | B Medium       | step     | right foot planted at (-0.94, 2.20), 19 cm from its spot
+    0.867 |     53 | A Large        | step     | right foot planted at (1.01, -2.08), 29 cm from its spot
+    0.867 |     53 | B Large        | step     | right foot planted at (-2.61, 2.08), 30 cm from its spot
+    1.000 |     61 | A Small        | step     | right foot planted at (-2.34, -2.24), 4 cm from its spot
+    1.000 |     61 | B Small        | step     | right foot planted at (0.74, 2.24), 4 cm from its spot
+    1.117 |     68 | A Medium       | step     | left foot planted at (-0.94, -1.62), 19 cm from its spot
+    1.117 |     68 | B Medium       | step     | left foot planted at (-0.66, 1.62), 19 cm from its spot
+    1.217 |     74 | A Small        | step     | left foot planted at (-2.46, -2.03), 5 cm from its spot
+    1.217 |     74 | B Small        | step     | left foot planted at (0.86, 2.03), 5 cm from its spot
+    1.250 |     76 | A Large        | step     | left foot planted at (0.48, -1.47), 24 cm from its spot
+    1.250 |     76 | B Large        | step     | left foot planted at (-2.07, 1.48), 25 cm from its spot
+    1.433 |     87 | A Small        | step     | right foot planted at (-2.34, -2.13), 4 cm from its spot
+    1.433 |     87 | B Small        | step     | right foot planted at (0.74, 2.13), 4 cm from its spot
+    1.450 |     88 | A Medium       | step     | right foot planted at (-0.66, -1.74), 19 cm from its spot
+    1.450 |     88 | B Medium       | step     | right foot planted at (-0.94, 1.74), 19 cm from its spot
+    1.633 |     99 | A Large        | step     | right foot planted at (0.87, -1.34), 27 cm from its spot
+    1.633 |     99 | B Large        | step     | right foot planted at (-2.47, 1.35), 27 cm from its spot
+    1.650 |    100 | A Small        | step     | left foot planted at (-2.45, -1.91), 5 cm from its spot
+    1.650 |    100 | B Small        | step     | left foot planted at (0.85, 1.91), 5 cm from its spot
+    1.783 |    108 | A Medium       | step     | left foot planted at (-0.94, -1.15), 19 cm from its spot
+    1.783 |    108 | B Medium       | step     | left foot planted at (-0.66, 1.15), 19 cm from its spot
+    1.867 |    113 | A Small        | step     | right foot planted at (-2.34, -2.01), 4 cm from its spot
+    1.867 |    113 | B Small        | step     | right foot planted at (0.74, 2.01), 4 cm from its spot
+    2.017 |    122 | A Large        | step     | left foot planted at (0.16, -0.92), 25 cm from its spot
+    2.017 |    122 | B Large        | step     | left foot planted at (-1.76, 0.92), 25 cm from its spot
+    2.083 |    126 | A Small        | step     | left foot planted at (-2.43, -1.79), 5 cm from its spot
+    2.083 |    126 | B Small        | step     | left foot planted at (0.83, 1.79), 5 cm from its spot
+    2.117 |    128 | A Medium       | step     | right foot planted at (-0.66, -1.27), 19 cm from its spot
+    2.117 |    128 | B Medium       | step     | right foot planted at (-0.94, 1.27), 19 cm from its spot
+    2.300 |    139 | A Small        | step     | right foot planted at (-2.33, -1.90), 5 cm from its spot
+    2.300 |    139 | B Small        | step     | right foot planted at (0.73, 1.90), 5 cm from its spot
+    2.400 |    145 | A Large        | step     | right foot planted at (0.55, -0.74), 7 cm from its spot
+    2.400 |    145 | B Large        | step     | right foot planted at (-2.14, 0.74), 5 cm from its spot
+    2.450 |    148 | A Medium       | step     | left foot planted at (-0.94, -0.68), 9 cm from its spot
+    2.450 |    148 | B Medium       | step     | left foot planted at (-0.66, 0.68), 8 cm from its spot
+    2.517 |    152 | A Small        | step     | left foot planted at (-2.40, -1.67), 5 cm from its spot
+    2.517 |    152 | B Small        | step     | left foot planted at (0.80, 1.67), 5 cm from its spot
+    2.733 |    165 | A Small        | step     | right foot planted at (-2.30, -1.79), 5 cm from its spot
+    2.733 |    165 | B Small        | step     | right foot planted at (0.70, 1.79), 5 cm from its spot
+    2.783 |    168 | A Medium       | step     | right foot planted at (-0.66, -0.94), 0 cm from its spot
+    2.783 |    168 | A Large        | step     | left foot planted at (-0.05, -0.62), 0 cm from its spot
+    2.783 |    168 | B Medium       | step     | right foot planted at (-0.94, 0.96), 0 cm from its spot
+    2.783 |    168 | B Large        | step     | left foot planted at (-1.56, 0.63), 0 cm from its spot
+    2.950 |    178 | A Small        | step     | left foot planted at (-2.37, -1.55), 5 cm from its spot
+    2.950 |    178 | B Small        | step     | left foot planted at (0.77, 1.55), 5 cm from its spot
+    3.017 |    182 | A Large        | attack   | ClubSmash at B Medium's ElbowR: aim locked at (-1.10, 1.12, 0.79), lunge 0.91 m, 1.00 s, contact at 0.62 s
+    3.083 |    186 | A Large        | contact  | HandL touched Collider at 3.8 m/s
+    3.083 |    186 | A Medium       | contact  | Chest touched Collider at 3.8 m/s
+    3.117 |    188 | B Large        | attack   | ClubSwing at A Medium's Chest: aim locked at (-0.78, 1.36, -0.71), lunge 0.53 m, 0.89 s, contact at 0.53 s
+    3.167 |    191 | A Small        | step     | right foot planted at (-2.28, -1.67), 5 cm from its spot
+    3.167 |    191 | B Small        | step     | right foot planted at (0.68, 1.67), 5 cm from its spot
+    3.267 |    197 | A Large        | step     | right foot planted at (0.11, -0.21), 59 cm from its spot
+    3.300 |    199 | A Large        | contact  | HandL touched Collider at 13.7 m/s
+    3.300 |    199 | A Medium       | contact  | ForearmR touched Collider at 13.7 m/s
+    3.312 |    199 | -              | input    | turn away from the enemy
+    3.333 |    201 | B Large        | step     | right foot planted at (-1.99, 0.51), 21 cm from its spot
+    3.383 |    204 | A Small        | step     | left foot planted at (-2.35, -1.44), 6 cm from its spot
+    3.383 |    204 | B Small        | step     | left foot planted at (0.75, 1.44), 3 cm from its spot
+    3.433 |    207 | A Large        | contact  | HandL touched Ground at 2.9 m/s
+    3.550 |    214 | A Large        | contact  | HandL touched Collider at 30.5 m/s
+    3.550 |    214 | A Medium       | contact  | ThighR touched Collider at 30.5 m/s
+    3.550 |    214 | B Large        | contact  | HandL touched Collider at 7.3 m/s
+    3.550 |    214 | A Large        | contact  | HandR touched Collider at 7.3 m/s
+    3.567 |    215 | A Large        | contact  | ForearmL touched Collider at 15.8 m/s
+    3.567 |    215 | A Medium       | contact  | ForearmR touched Collider at 15.8 m/s
+    3.567 |    215 | A Large        | contact  | ForearmL touched Collider at 16.3 m/s
+    3.567 |    215 | A Medium       | contact  | HandR touched Collider at 16.3 m/s
+    3.583 |    216 | A Large        | contact  | HandL touched Collider at 36.8 m/s
+    3.583 |    216 | A Medium       | contact  | Pelvis touched Collider at 36.8 m/s
+    3.583 |    216 | A Large        | contact  | UpperArmL touched Collider at 14.6 m/s
+    3.583 |    216 | A Medium       | contact  | Chest touched Collider at 14.6 m/s
+    3.583 |    216 | A Large        | contact  | ForearmL touched Collider at 17.0 m/s
+    3.583 |    216 | A Medium       | contact  | Spine touched Collider at 17.0 m/s
+    3.583 |    216 | A Large        | contact  | ForearmL touched Collider at 17.1 m/s
+    3.583 |    216 | A Medium       | contact  | Pelvis touched Collider at 17.1 m/s
+    3.600 |    217 | A Small        | step     | right foot planted at (-2.32, -1.60), 8 cm from its spot
+    3.600 |    217 | A Large        | step     | left foot planted at (-0.67, 0.02), 91 cm from its spot
+    3.600 |    217 | B Small        | step     | right foot planted at (0.61, 1.54), 8 cm from its spot
+    3.600 |    217 | A Large        | contact  | ForearmL touched Collider at 15.9 m/s
+    3.600 |    217 | A Medium       | contact  | ForearmL touched Collider at 15.9 m/s
+    3.600 |    217 | A Large        | contact  | ForearmL touched Collider at 16.3 m/s
+    3.600 |    217 | A Medium       | contact  | HandL touched Collider at 16.3 m/s
+    3.617 |    218 | B Large        | step     | left foot planted at (-1.23, 0.22), 53 cm from its spot
+    3.617 |    218 | A Large        | touch    | WD_Club touched B Large's HandR at 18.7 m/s: stray
+    3.617 |    218 | A Large        | contact  | HandL touched Collider at 39.1 m/s
+    3.617 |    218 | A Medium       | contact  | Pelvis touched Collider at 39.1 m/s
+    3.617 |    218 | A Large        | contact  | HandL touched Collider at 39.0 m/s
+    3.617 |    218 | A Medium       | contact  | Spine touched Collider at 39.0 m/s
+    3.633 |    219 | A Large        | contact  | ClubSmash at B Medium's ElbowR: passed 0.0 cm from the aim point; nearest part B Medium's ForearmR (7.5 cm); the ElbowR had moved 26.2 cm since the aim was locked
+    3.633 |    219 | A Large        | contact  | ForearmL touched Collider at 14.9 m/s
+    3.633 |    219 | A Medium       | contact  | UpperArmL touched Collider at 14.9 m/s
+    3.633 |    219 | A Large        | contact  | HandL touched Collider at 23.1 m/s
+    3.633 |    219 | A Medium       | contact  | ForearmL touched Collider at 23.1 m/s
+    3.633 |    219 | A Large        | contact  | HandL touched Collider at 39.1 m/s
+    3.633 |    219 | A Medium       | contact  | HandL touched Collider at 39.1 m/s
+    3.650 |    220 | A Medium       | step     | left foot planted at (-0.88, -0.55), 22 cm from its spot
+    3.650 |    220 | B Large        | contact  | ClubSwing at A Medium's Chest: passed 0.0 cm from the aim point; nearest part A Medium's Chest (0.0 cm); the Chest had moved 12.2 cm since the aim was locked
+    3.650 |    220 | B Large        | touch    | WD_Club touched A Medium's HandL at 4.2 m/s: the target, another part
+    3.650 |    220 | A Large        | touch    | WD_Club touched B Large's Chest at 13.3 m/s: stray
+    3.650 |    220 | A Large        | touch    | WD_Club touched B Large's UpperArmL at 6.2 m/s: stray
+    3.650 |    220 | A Large        | touch    | WD_Club touched B Large's Head at 9.4 m/s: stray
+    3.650 |    220 | B Large        | contact  | HandL touched Collider at 2.2 m/s
+    3.650 |    220 | A Large        | contact  | Chest touched Collider at 2.2 m/s
+    3.650 |    220 | B Large        | contact  | HandL touched Collider at 4.1 m/s
+    3.650 |    220 | A Large        | contact  | ForearmR touched Collider at 4.1 m/s
+    3.650 |    220 | B Large        | contact  | UpperArmL touched Collider at 2.9 m/s
+    3.650 |    220 | A Large        | contact  | HandR touched Collider at 2.9 m/s
+    3.667 |    221 | B Medium       | step     | left foot planted at (-0.73, 0.56), 22 cm from its spot
+    3.683 |    222 | A Large        | contact  | HandL touched Collider at 9.2 m/s
+    3.683 |    222 | B Large        | contact  | Pelvis touched Collider at 9.2 m/s
+    3.683 |    222 | B Large        | contact  | Spine touched Collider at 8.7 m/s
+    3.683 |    222 | A Large        | contact  | HandL touched Collider at 8.7 m/s
+    3.700 |    223 | B Large        | contact  | UpperArmL touched Collider at 2.5 m/s
+    3.700 |    223 | A Large        | contact  | HandR touched Collider at 2.5 m/s
+    3.700 |    223 | B Large        | contact  | ForearmL touched Collider at 1.6 m/s
+    3.700 |    223 | B Medium       | contact  | UpperArmL touched Collider at 1.6 m/s
+    3.717 |    224 | B Large        | contact  | HandR touched Collider at 2.7 m/s
+    3.717 |    224 | A Large        | contact  | UpperArmL touched Collider at 2.7 m/s
+    3.733 |    225 | B Large        | contact  | ForearmL touched Collider at 3.9 m/s
+    3.733 |    225 | A Large        | contact  | HandR touched Collider at 3.9 m/s
+    3.767 |    227 | B Large        | contact  | ForearmL touched Collider at 4.6 m/s
+    3.767 |    227 | B Medium       | contact  | Chest touched Collider at 4.6 m/s
+    3.783 |    228 | B Large        | contact  | HandL touched Collider at 7.7 m/s
+    3.783 |    228 | B Medium       | contact  | Chest touched Collider at 7.7 m/s
+    3.817 |    230 | A Small        | step     | left foot planted at (-2.21, -1.49), 8 cm from its spot
+    3.817 |    230 | B Small        | step     | left foot planted at (0.77, 1.57), 8 cm from its spot
+    3.817 |    230 | B Large        | contact  | HandR touched Collider at 13.3 m/s
+    3.817 |    230 | A Large        | contact  | ForearmL touched Collider at 13.3 m/s
+    3.817 |    230 | B Large        | contact  | HandL touched Collider at 10.8 m/s
+    3.817 |    230 | B Medium       | contact  | Head touched Collider at 10.8 m/s
+    3.833 |    231 | B Large        | contact  | HandL touched Collider at 10.5 m/s
+    3.833 |    231 | A Large        | contact  | HandR touched Collider at 10.5 m/s
+    3.850 |    232 | B Large        | step     | left foot planted at (-1.55, 0.64), 0 cm from its spot
+    3.850 |    232 | B Medium       | contact  | Chest touched Collider at 4.6 m/s
+    3.850 |    232 | A Large        | contact  | HandR touched Collider at 4.6 m/s
+    3.867 |    233 | A Large        | step     | left foot planted at (-0.05, -0.65), 0 cm from its spot
+    3.883 |    234 | A Large        | contact  | ForearmL touched Collider at 10.2 m/s
+    3.883 |    234 | A Medium       | contact  | UpperArmL touched Collider at 10.2 m/s
+    3.883 |    234 | A Large        | contact  | ForearmL touched Collider at 11.1 m/s
+    3.883 |    234 | A Medium       | contact  | Chest touched Collider at 11.1 m/s
+    3.900 |    235 | A Large        | contact  | HandL touched Collider at 12.2 m/s
+    3.900 |    235 | A Medium       | contact  | Pelvis touched Collider at 12.2 m/s
+    3.900 |    235 | A Large        | contact  | HandL touched Collider at 12.2 m/s
+    3.900 |    235 | A Medium       | contact  | Spine touched Collider at 12.2 m/s
+    3.917 |    236 | A Large        | contact  | HandL touched Collider at 9.2 m/s
+    3.917 |    236 | A Medium       | contact  | Chest touched Collider at 9.2 m/s
+    3.917 |    236 | A Large        | contact  | HandL touched Collider at 10.3 m/s
+    3.917 |    236 | A Medium       | contact  | UpperArmL touched Collider at 10.3 m/s
+    3.950 |    238 | B Large        | contact  | HandL touched Collider at 8.7 m/s
+    3.950 |    238 | B Medium       | contact  | Chest touched Collider at 8.7 m/s
+    3.967 |    239 | A Large        | step     | right foot planted at (0.52, -0.64), 0 cm from its spot
+    3.967 |    239 | B Large        | step     | right foot planted at (-2.12, 0.68), 0 cm from its spot
+    3.967 |    239 | B Large        | contact  | HandL touched Collider at 11.7 m/s
+    3.967 |    239 | B Medium       | contact  | UpperArmL touched Collider at 11.7 m/s
+    3.983 |    240 | A Medium       | step     | right foot planted at (-0.98, -0.90), 22 cm from its spot
+    4.000 |    241 | B Medium       | step     | right foot planted at (-0.61, 0.90), 22 cm from its spot
+    4.000 |    241 | B Large        | attack   | ClubSwing done: the physical weapon passed 56.3 cm from the aim point at its closest
+    4.017 |    242 | A Large        | attack   | ClubSmash done: the physical weapon passed 105.6 cm from the aim point at its closest
+    4.033 |    243 | A Small        | step     | right foot planted at (-2.36, -1.43), 2 cm from its spot
+    4.033 |    243 | B Small        | step     | right foot planted at (0.73, 1.41), 2 cm from its spot
+    4.250 |    256 | A Small        | step     | left foot planted at (-2.26, -1.59), 0 cm from its spot
+    4.250 |    256 | B Small        | step     | left foot planted at (0.66, 1.59), 0 cm from its spot
+    4.317 |    260 | A Medium       | step     | left foot planted at (-0.62, -0.90), 6 cm from its spot
+    4.333 |    261 | B Medium       | step     | left foot planted at (-0.98, 0.92), 5 cm from its spot
+    4.483 |    270 | B Large        | step     | right foot planted at (-2.10, 0.56), 20 cm from its spot
+    4.500 |    271 | A Large        | step     | left foot planted at (-0.02, -0.77), 20 cm from its spot
+    4.650 |    280 | A Medium       | step     | right foot planted at (-0.94, -0.59), 0 cm from its spot
+    4.667 |    281 | B Medium       | step     | right foot planted at (-0.66, 0.60), 0 cm from its spot
+    4.867 |    293 | B Large        | step     | left foot planted at (-1.76, 0.93), 20 cm from its spot
+    4.883 |    294 | A Large        | step     | right foot planted at (0.28, -0.37), 20 cm from its spot
+    5.167 |    311 | B Small        | step     | left foot planted at (0.65, 1.62), 3 cm from its spot
+    5.250 |    316 | B Large        | step     | right foot planted at (-1.66, 0.44), 20 cm from its spot
+    5.267 |    317 | A Large        | step     | left foot planted at (0.43, -0.85), 19 cm from its spot
+    5.633 |    339 | B Large        | step     | left foot planted at (-2.12, 0.69), 0 cm from its spot
+    5.650 |    340 | A Large        | step     | right foot planted at (-0.05, -0.62), 0 cm from its spot
+    6.017 |    362 | B Large        | step     | right foot planted at (-1.56, 0.63), 0 cm from its spot
+    6.033 |    363 | A Large        | step     | left foot planted at (0.52, -0.68), 0 cm from its spot
+    6.050 |    364 | B Medium       | step     | left foot planted at (-0.98, 0.92), 5 cm from its spot
+    6.100 |    367 | A Small        | step     | left foot planted at (-2.28, -1.60), 2 cm from its spot
+    6.383 |    384 | B Small        | step     | right foot planted at (0.73, 1.39), 2 cm from its spot
+    6.800 |    409 | -              | input    | turn back to the enemy
+    7.033 |    423 | A Small        | step     | right foot planted at (-2.31, -1.39), 9 cm from its spot
+    7.050 |    424 | B Small        | step     | left foot planted at (0.69, 1.58), 10 cm from its spot
+    7.117 |    428 | A Medium       | step     | left foot planted at (-0.69, -0.97), 22 cm from its spot
+    7.183 |    432 | B Medium       | step     | left foot planted at (-0.85, 1.00), 22 cm from its spot
+    7.250 |    436 | A Small        | step     | left foot planted at (-2.37, -1.48), 13 cm from its spot
+    7.267 |    437 | B Small        | step     | right foot planted at (0.60, 1.38), 4 cm from its spot
+    7.283 |    438 | A Large        | step     | left foot planted at (0.47, -0.79), 20 cm from its spot
+    7.283 |    438 | B Large        | step     | right foot planted at (-1.57, 0.75), 20 cm from its spot
+    7.450 |    448 | A Medium       | step     | right foot planted at (-0.64, -0.61), 22 cm from its spot
+    7.467 |    449 | A Small        | step     | right foot planted at (-2.19, -1.42), 3 cm from its spot
+    7.483 |    450 | B Small        | step     | left foot planted at (0.75, 1.30), 8 cm from its spot
+    7.517 |    452 | B Medium       | step     | right foot planted at (-1.00, 0.66), 22 cm from its spot
+    7.550 |    454 | B Medium       | attack   | SwordCut at A Medium's Head: aim locked at (-0.67, 1.64, -0.70), lunge 0.58 m, 0.70 s, contact at 0.41 s
+    7.667 |    461 | A Large        | step     | right foot planted at (0.21, -0.36), 20 cm from its spot
+    7.667 |    461 | B Large        | step     | left foot planted at (-1.92, 0.39), 20 cm from its spot
+    7.683 |    462 | A Small        | step     | left foot planted at (-2.30, -1.23), 5 cm from its spot
+    7.700 |    463 | B Small        | step     | right foot planted at (0.62, 1.39), 5 cm from its spot
+    7.717 |    464 | B Medium       | step     | right foot planted at (-0.93, 0.62), 32 cm from its spot
+    7.783 |    468 | A Medium       | step     | left foot planted at (-1.00, -0.66), 9 cm from its spot
+    7.800 |    469 | A Medium       | attack   | SwordBackhand at B Medium's Chest: aim locked at (-0.82, 1.32, 0.62), lunge 0.44 m, 0.70 s, contact at 0.41 s
+    7.850 |    472 | B Large        | contact  | HandL touched Collider at 5.8 m/s
+    7.850 |    472 | B Medium       | contact  | HandR touched Collider at 5.8 m/s
+    7.900 |    475 | A Small        | step     | right foot planted at (-2.21, -1.34), 5 cm from its spot
+    7.900 |    475 | A Large        | contact  | HandL touched Collider at 3.4 m/s
+    7.900 |    475 | A Medium       | contact  | Head touched Collider at 3.4 m/s
+    7.917 |    476 | B Small        | step     | left foot planted at (0.69, 1.16), 5 cm from its spot
+    7.933 |    477 | B Medium       | step     | left foot planted at (-0.59, 0.04), 58 cm from its spot
+    7.950 |    478 | B Medium       | contact  | SwordCut at A Medium's Head: passed 0.1 cm from the aim point; nearest part A Large's HandL (9.1 cm); the Head had moved 21.3 cm since the aim was locked
+    7.967 |    479 | A Medium       | step     | right foot planted at (-0.66, -0.75), 19 cm from its spot
+    7.967 |    479 | B Medium       | touch    | WD_Sword touched A Large's HandR at 12.3 m/s: stray
+    8.050 |    484 | A Large        | step     | left foot planted at (0.02, -0.83), 20 cm from its spot
+    8.050 |    484 | B Large        | step     | right foot planted at (-2.01, 0.88), 20 cm from its spot
+    8.067 |    485 | A Large        | attack   | ClubSmash at B Medium's ElbowL: aim locked at (-0.47, 1.13, 0.24), lunge 0.07 m, 1.00 s, contact at 0.62 s
+    8.067 |    485 | B Large        | attack   | ClubSwing at A Medium's Neck: aim locked at (-0.82, 1.51, -0.71), lunge 0.47 m, 0.89 s, contact at 0.53 s
+    8.117 |    488 | A Small        | step     | left foot planted at (-2.28, -1.11), 5 cm from its spot
+    8.117 |    488 | B Medium       | step     | left foot planted at (-0.64, 0.61), 0 cm from its spot
+    8.117 |    488 | B Large        | contact  | HandL touched Collider at 9.9 m/s
+    8.117 |    488 | B Medium       | contact  | Chest touched Collider at 9.9 m/s
+    8.133 |    489 | B Small        | step     | right foot planted at (0.59, 1.28), 5 cm from its spot
+    8.133 |    489 | A Medium       | touch    | WD_Shield touched B Medium's HandL at 5.9 m/s: the target, another part
+    8.133 |    489 | A Medium       | touch    | WD_Sword touched B Large's HandR at 9.8 m/s: stray
+    8.133 |    489 | B Large        | contact  | HandL touched Collider at 12.1 m/s
+    8.133 |    489 | B Medium       | contact  | UpperArmR touched Collider at 12.1 m/s
+    8.150 |    490 | A Medium       | touch    | WD_Sword touched B Large's HandL at 5.8 m/s: stray
+    8.167 |    491 | A Medium       | touch    | WD_Shield touched B Large's HandR at 13.2 m/s: stray
+    8.183 |    492 | A Medium       | step     | left foot planted at (-0.95, -0.15), 44 cm from its spot
+    8.200 |    493 | A Medium       | contact  | SwordBackhand at B Medium's Chest: passed 0.1 cm from the aim point; nearest part B Medium's Chest (0.0 cm); the Chest had moved 8.9 cm since the aim was locked
+    8.217 |    494 | B Medium       | step     | right foot planted at (-0.96, 0.94), 0 cm from its spot
+    8.233 |    495 | A Medium       | touch    | WD_Sword touched B Medium's Head at 7.9 m/s: the target, another part
+    8.250 |    496 | B Medium       | attack   | SwordCut done: the physical weapon passed 48.5 cm from the aim point at its closest
+    8.250 |    496 | A Medium       | touch    | WD_Shield touched B Medium's HandR at 2.3 m/s: the target, another part
+    8.283 |    498 | B Large        | step     | right foot planted at (-2.03, 0.56), 15 cm from its spot
+    8.333 |    501 | A Small        | step     | right foot planted at (-2.18, -1.22), 5 cm from its spot
+    8.350 |    502 | B Small        | step     | left foot planted at (0.66, 1.05), 5 cm from its spot
+    8.350 |    502 | A Large        | contact  | HandL touched Collider at 2.4 m/s
+    8.350 |    502 | A Medium       | contact  | Head touched Collider at 2.4 m/s
+    8.367 |    503 | A Medium       | step     | left foot planted at (-0.95, -0.59), 0 cm from its spot
+    8.467 |    509 | A Medium       | step     | right foot planted at (-0.65, -0.94), 0 cm from its spot
+    8.500 |    511 | A Medium       | attack   | SwordBackhand done: the physical weapon passed 8.4 cm from the aim point at its closest
+    8.550 |    514 | A Small        | step     | left foot planted at (-2.25, -0.99), 5 cm from its spot
+    8.567 |    515 | B Small        | step     | right foot planted at (0.57, 1.16), 5 cm from its spot
+    8.567 |    515 | B Large        | step     | left foot planted at (-1.28, 0.25), 47 cm from its spot
+    8.600 |    517 | B Large        | contact  | ClubSwing at A Medium's Neck: passed 0.0 cm from the aim point; nearest part A Large's HandL (7.4 cm); the Neck had moved 3.6 cm since the aim was locked
+    8.683 |    522 | A Large        | contact  | ClubSmash at B Medium's ElbowL: passed 0.0 cm from the aim point; nearest part B Medium's HandL (32.2 cm); the ElbowL had moved 49.4 cm since the aim was locked
+    8.700 |    523 | B Large        | contact  | HandL touched Collider at 3.8 m/s
+    8.700 |    523 | B Medium       | contact  | Chest touched Collider at 3.8 m/s
+    8.733 |    525 | B Large        | contact  | HandL touched Collider at 3.9 m/s
+    8.733 |    525 | B Medium       | contact  | Head touched Collider at 3.9 m/s
+    8.767 |    527 | A Small        | step     | right foot planted at (-2.16, -1.11), 5 cm from its spot
+    8.783 |    528 | B Small        | step     | left foot planted at (0.64, 0.93), 5 cm from its spot
+    8.800 |    529 | B Large        | step     | left foot planted at (-1.56, 0.63), 0 cm from its spot
+    8.800 |    529 | A Large        | touch    | WD_Club touched B Large's HandR at 5.8 m/s: stray
+    8.917 |    536 | B Large        | step     | right foot planted at (-2.12, 0.69), 0 cm from its spot
+    8.950 |    538 | B Large        | attack   | ClubSwing done: the physical weapon passed 84.6 cm from the aim point at its closest
+    8.983 |    540 | A Small        | step     | left foot planted at (-2.23, -0.88), 5 cm from its spot
+    9.000 |    541 | B Small        | step     | right foot planted at (0.54, 1.05), 5 cm from its spot
+    9.067 |    545 | A Large        | attack   | ClubSmash done: the physical weapon passed 95.5 cm from the aim point at its closest
+    9.200 |    553 | A Small        | step     | right foot planted at (-2.13, -0.99), 5 cm from its spot
+    9.217 |    554 | B Small        | step     | left foot planted at (0.61, 0.82), 5 cm from its spot
+    9.417 |    566 | A Small        | step     | left foot planted at (-2.20, -0.76), 5 cm from its spot
+    9.433 |    567 | B Small        | step     | right foot planted at (0.52, 0.93), 5 cm from its spot
+    9.433 |    567 | B Large        | step     | left foot planted at (-1.60, 0.51), 11 cm from its spot
+    9.450 |    568 | A Large        | step     | right foot planted at (0.51, -0.72), 19 cm from its spot
+    9.467 |    569 | A Medium       | step     | left foot planted at (-1.01, -0.54), 8 cm from its spot
+    9.633 |    579 | A Small        | step     | right foot planted at (-2.11, -0.88), 5 cm from its spot
+    9.650 |    580 | B Small        | step     | left foot planted at (0.59, 0.70), 5 cm from its spot
+    9.817 |    590 | B Large        | step     | right foot planted at (-2.00, 0.89), 0 cm from its spot
+    9.833 |    591 | A Large        | step     | left foot planted at (0.07, -0.42), 0 cm from its spot
+    9.850 |    592 | A Small        | step     | left foot planted at (-2.18, -0.65), 5 cm from its spot
+    9.867 |    593 | B Small        | step     | right foot planted at (0.49, 0.82), 5 cm from its spot
+   10.067 |    605 | A Small        | step     | right foot planted at (-2.08, -0.76), 5 cm from its spot
+   10.083 |    606 | B Small        | step     | left foot planted at (0.56, 0.58), 5 cm from its spot
+   10.217 |    614 | A Large        | step     | right foot planted at (0.40, -0.88), 0 cm from its spot
+   10.283 |    618 | A Small        | step     | left foot planted at (-2.15, -0.53), 5 cm from its spot
+   10.300 |    619 | B Small        | step     | right foot planted at (0.47, 0.70), 5 cm from its spot
+   10.467 |    629 | B Medium       | step     | right foot planted at (-0.98, 0.89), 7 cm from its spot
+   10.500 |    631 | A Small        | step     | right foot planted at (-2.06, -0.65), 5 cm from its spot
+   10.517 |    632 | B Small        | step     | left foot planted at (0.54, 0.47), 5 cm from its spot
+   10.717 |    644 | A Small        | step     | left foot planted at (-2.13, -0.42), 5 cm from its spot
+   10.733 |    645 | B Small        | step     | right foot planted at (0.44, 0.58), 5 cm from its spot
+   10.817 |    650 | A Large        | attack   | ClubSwing at B Small's Chest: aim locked at (0.46, 0.58, 0.49), lunge 0.53 m, 0.89 s, contact at 0.53 s
+   10.933 |    657 | A Small        | step     | right foot planted at (-2.03, -0.53), 5 cm from its spot
+   10.950 |    658 | B Small        | step     | left foot planted at (0.51, 0.35), 5 cm from its spot
+   11.033 |    663 | A Large        | step     | right foot planted at (0.45, -0.66), 22 cm from its spot
+   11.100 |    667 | B Large        | attack   | ClubSwing at A Small's Chest: aim locked at (-2.04, 0.58, -0.39), lunge 0.44 m, 0.89 s, contact at 0.53 s
+   11.150 |    670 | A Small        | step     | left foot planted at (-2.10, -0.30), 5 cm from its spot
+   11.167 |    671 | B Small        | step     | right foot planted at (0.42, 0.47), 5 cm from its spot
+   11.183 |    672 | B Medium       | attack   | SwordCut at A Medium's ElbowR: aim locked at (-0.54, 1.12, -0.74), lunge 0.54 m, 0.70 s, contact at 0.41 s
+   11.317 |    680 | A Large        | step     | left foot planted at (0.17, 0.10), 53 cm from its spot
+   11.317 |    680 | B Large        | step     | right foot planted at (-2.03, 0.76), 12 cm from its spot
+   11.350 |    682 | A Large        | contact  | ClubSwing at B Small's Chest: passed 0.0 cm from the aim point; nearest part B Small's Chest (8.0 cm); the Chest had moved 17.2 cm since the aim was locked
+   11.350 |    682 | B Medium       | step     | right foot planted at (-0.92, 0.64), 29 cm from its spot
+   11.367 |    683 | A Small        | step     | right foot planted at (-2.01, -0.42), 5 cm from its spot
+   11.383 |    684 | B Small        | step     | left foot planted at (0.49, 0.24), 5 cm from its spot
+   11.500 |    691 | A Medium       | attack   | SwordCut at B Medium's Belly: aim locked at (-0.80, 1.14, 0.45), lunge 0.22 m, 0.70 s, contact at 0.41 s
+   11.517 |    692 | B Medium       | touch    | WD_Sword touched A Medium's Head at 6.7 m/s: the target, another part
+   11.517 |    692 | B Medium       | touch    | WD_Sword touched A Medium's HandR at 9.1 m/s: the target, another part
+   11.550 |    694 | A Large        | step     | left foot planted at (0.06, -0.42), 0 cm from its spot
+   11.550 |    694 | B Medium       | touch    | WD_Sword touched A Large's HandL at 3.4 m/s: stray
+   11.550 |    694 | B Medium       | contact  | HandR touched Collider at 6.1 m/s
+   11.550 |    694 | A Large        | contact  | HandL touched Collider at 6.1 m/s
+   11.567 |    695 | B Medium       | step     | left foot planted at (-0.53, 0.09), 54 cm from its spot
+   11.583 |    696 | A Small        | step     | left foot planted at (-2.08, -0.18), 5 cm from its spot
+   11.583 |    696 | B Medium       | contact  | SwordCut at A Medium's ElbowR: passed 0.1 cm from the aim point; nearest part A Medium's ForearmR (13.9 cm); the ElbowR had moved 10.8 cm since the aim was locked
+   11.600 |    697 | B Small        | step     | right foot planted at (0.39, 0.35), 5 cm from its spot
+   11.600 |    697 | B Large        | step     | left foot planted at (-1.75, 0.00), 44 cm from its spot
+   11.633 |    699 | B Large        | contact  | ClubSwing at A Small's Chest: passed 0.0 cm from the aim point; nearest part A Small's UpperArmR (4.4 cm); the Chest had moved 12.5 cm since the aim was locked
+   11.667 |    701 | A Large        | step     | right foot planted at (0.40, -0.87), 0 cm from its spot
+   11.700 |    703 | A Large        | attack   | ClubSwing done: the physical weapon passed 65.8 cm from the aim point at its closest
+   11.750 |    706 | B Medium       | step     | left foot planted at (-0.63, 0.63), 0 cm from its spot
+   11.800 |    709 | A Small        | step     | right foot planted at (-1.98, -0.30), 5 cm from its spot
+   11.817 |    710 | B Small        | step     | left foot planted at (0.46, 0.12), 3 cm from its spot
+   11.833 |    711 | B Large        | step     | left foot planted at (-1.67, 0.43), 0 cm from its spot
+   11.850 |    712 | B Medium       | step     | right foot planted at (-0.97, 0.93), 0 cm from its spot
+   11.867 |    713 | A Medium       | step     | left foot planted at (-0.95, -0.37), 22 cm from its spot
+   11.883 |    714 | B Medium       | attack   | SwordCut done: the physical weapon passed 35.5 cm from the aim point at its closest
+   11.883 |    714 | B Large        | contact  | HandL touched Collider at 5.6 m/s
+   11.883 |    714 | B Medium       | contact  | Chest touched Collider at 5.6 m/s
+   11.900 |    715 | A Medium       | contact  | SwordCut at B Medium's Belly: passed 0.1 cm from the aim point; nearest part B Large's HandL (11.0 cm); the Belly had moved 25.0 cm since the aim was locked
+   11.950 |    718 | B Large        | step     | right foot planted at (-2.01, 0.88), 0 cm from its spot
+   11.983 |    720 | B Large        | attack   | ClubSwing done: the physical weapon passed 61.1 cm from the aim point at its closest
+   12.017 |    722 | A Small        | step     | left foot planted at (-2.06, -0.08), 0 cm from its spot
+   12.033 |    723 | B Small        | step     | right foot planted at (0.37, 0.27), 0 cm from its spot
+   12.067 |    725 | A Medium       | step     | left foot planted at (-0.94, -0.59), 0 cm from its spot
+   12.200 |    733 | A Medium       | attack   | SwordCut done: the physical weapon passed 31.2 cm from the aim point at its closest
+   12.250 |    736 | B Medium       | step     | left foot planted at (-0.75, 0.53), 23 cm from its spot
+   12.583 |    756 | B Medium       | step     | right foot planted at (-0.87, 0.91), 0 cm from its spot
+   12.633 |    759 | A Small        | step     | right foot planted at (-1.94, -0.26), 3 cm from its spot
+   12.767 |    767 | B Small        | step     | left foot planted at (0.48, 0.10), 2 cm from its spot
+   12.917 |    776 | B Medium       | step     | left foot planted at (-0.97, 0.46), 0 cm from its spot
+   13.067 |    785 | A Small        | attack   | ClubSwing at B Large's KneeL: aim locked at (-1.66, 0.64, 0.41), lunge 0.31 m, 0.50 s, contact at 0.30 s
+   13.167 |    791 | B Small        | attack   | ClubSwing at A Large's KneeL: aim locked at (0.08, 0.64, -0.39), lunge 0.30 m, 0.50 s, contact at 0.30 s
+   13.183 |    792 | A Small        | step     | right foot planted at (-1.89, -0.08), 21 cm from its spot
+   13.283 |    798 | B Small        | step     | right foot planted at (0.30, 0.11), 20 cm from its spot
+   13.333 |    801 | A Small        | step     | left foot planted at (-1.87, 0.19), 31 cm from its spot
+   13.350 |    802 | A Small        | contact  | ClubSwing at B Large's KneeL: passed 0.0 cm from the aim point; nearest part B Large's ThighL (2.4 cm); the KneeL had moved 0.8 cm since the aim was locked
+   13.383 |    804 | A Small        | contact  | HandR touched Collider at 1.5 m/s
+   13.383 |    804 | B Large        | contact  | ShinL touched Collider at 1.5 m/s
+   13.433 |    807 | B Small        | step     | left foot planted at (0.28, -0.17), 30 cm from its spot
+   13.450 |    808 | B Small        | contact  | ClubSwing at A Large's KneeL: passed 0.0 cm from the aim point; nearest part A Large's ShinL (2.8 cm); the KneeL had moved 0.7 cm since the aim was locked
+   13.467 |    809 | A Small        | step     | left foot planted at (-2.03, -0.07), 0 cm from its spot
+   13.467 |    809 | A Medium       | step     | right foot planted at (-0.72, -0.91), 8 cm from its spot
+   13.483 |    810 | B Small        | touch    | WD_Club touched A Large's ThighL at 2.4 m/s: the target, another part
+   13.533 |    813 | A Small        | step     | right foot planted at (-2.00, -0.26), 0 cm from its spot
+   13.550 |    814 | A Small        | attack   | ClubSwing done: the physical weapon passed 16.3 cm from the aim point at its closest
+   13.567 |    815 | B Small        | step     | left foot planted at (0.43, 0.09), 0 cm from its spot
+   13.633 |    819 | B Small        | step     | right foot planted at (0.40, 0.28), 0 cm from its spot
+   13.650 |    820 | B Small        | attack   | ClubSwing done: the physical weapon passed 13.7 cm from the aim point at its closest
+   13.683 |    822 | B Large        | step     | left foot planted at (-1.72, 0.47), 7 cm from its spot
+   13.967 |    839 | A Large        | attack   | ClubSmash at B Small's Neck: aim locked at (0.41, 0.65, 0.18), lunge 0.22 m, 1.00 s, contact at 0.62 s
+   14.317 |    860 | B Medium       | attack   | SwordBackhand at A Small's Neck: aim locked at (-1.99, 0.65, -0.16), lunge 0.61 m, 0.70 s, contact at 0.41 s
+   14.483 |    870 | B Medium       | step     | right foot planted at (-1.15, 0.69), 35 cm from its spot
+   14.550 |    874 | A Large        | step     | left foot planted at (0.11, -0.20), 22 cm from its spot
+   14.583 |    876 | A Large        | contact  | ClubSmash at B Small's Neck: passed 0.0 cm from the aim point; nearest part B Small's Chest (1.6 cm); the Neck had moved 1.0 cm since the aim was locked
+   14.600 |    877 | B Large        | attack   | ClubSmash at A Small's Neck: aim locked at (-2.00, 0.65, -0.17), lunge 0.22 m, 1.00 s, contact at 0.62 s
+   14.650 |    880 | B Large        | contact  | ForearmL touched Collider at 6.6 m/s
+   14.650 |    880 | B Medium       | contact  | Head touched Collider at 6.6 m/s
+   14.700 |    883 | B Medium       | step     | left foot planted at (-1.45, 0.09), 61 cm from its spot
+   14.717 |    884 | B Medium       | contact  | SwordBackhand at A Small's Neck: passed 0.1 cm from the aim point; nearest part A Small's Chest (1.7 cm); the Neck had moved 2.2 cm since the aim was locked
+   14.717 |    884 | B Medium       | touch    | WD_Shield touched B Large's HandR at 10.8 m/s: an ally (stray)
+   14.733 |    885 | B Medium       | touch    | WD_Sword touched B Large's HandR at 0.8 m/s: an ally (stray)
+   14.750 |    886 | A Medium       | attack   | SwordBackhand at B Medium's Head: aim locked at (-1.47, 1.50, 0.19), lunge 0.26 m, 0.70 s, contact at 0.41 s
+   14.775 |    887 | -              | input    | fighting off
+   14.817 |    890 | A Large        | step     | left foot planted at (0.07, -0.42), 0 cm from its spot
+   14.867 |    893 | B Medium       | contact  | ForearmR touched Collider at 3.6 m/s
+   14.867 |    893 | B Large        | contact  | ThighL touched Collider at 3.6 m/s
+   14.867 |    893 | B Medium       | contact  | UpperArmR touched Collider at 1.7 m/s
+   14.867 |    893 | B Large        | contact  | ThighL touched Collider at 1.7 m/s
+   14.883 |    894 | B Medium       | step     | left foot planted at (-0.97, 0.46), 0 cm from its spot
+   14.900 |    895 | B Medium       | contact  | UpperArmR touched Collider at 3.5 m/s
+   14.900 |    895 | B Large        | contact  | ThighL touched Collider at 3.5 m/s
+   14.917 |    896 | B Medium       | contact  | HandR touched Collider at 7.5 m/s
+   14.917 |    896 | B Large        | contact  | ThighL touched Collider at 7.5 m/s
+   14.967 |    899 | A Large        | attack   | ClubSmash done: the physical weapon passed 111.4 cm from the aim point at its closest
+   14.983 |    900 | B Medium       | step     | right foot planted at (-0.87, 0.91), 0 cm from its spot
+   15.017 |    902 | B Medium       | attack   | SwordBackhand done: the physical weapon passed 58.0 cm from the aim point at its closest
+   15.117 |    908 | A Medium       | step     | left foot planted at (-1.17, -0.49), 26 cm from its spot
+   15.133 |    909 | A Medium       | touch    | WD_Sword touched B Large's HandL at 4.1 m/s: stray
+   15.150 |    910 | A Medium       | contact  | SwordBackhand at B Medium's Head: passed 0.1 cm from the aim point; nearest part B Large's ForearmL (0.0 cm); the Head had moved 68.8 cm since the aim was locked
+   15.183 |    912 | A Small        | step     | left foot planted at (-2.07, -0.10), 2 cm from its spot
+   15.183 |    912 | B Large        | step     | left foot planted at (-1.71, 0.21), 22 cm from its spot
+   15.183 |    912 | A Medium       | touch    | WD_Shield touched B Large's HandL at 0.5 m/s: stray
+   15.217 |    914 | B Large        | contact  | ClubSmash at A Small's Neck: passed 0.0 cm from the aim point; nearest part A Small's Chest (1.4 cm); the Neck had moved 3.3 cm since the aim was locked
+   15.300 |    919 | B Large        | touch    | WD_Club touched A Medium's HandL at 2.4 m/s: stray
+   15.317 |    920 | A Medium       | step     | left foot planted at (-1.02, -0.70), 0 cm from its spot
+   15.383 |    924 | B Small        | step     | right foot planted at (0.39, 0.30), 4 cm from its spot
+   15.450 |    928 | A Medium       | attack   | SwordBackhand done: the physical weapon passed 25.8 cm from the aim point at its closest
+   15.450 |    928 | B Large        | step     | left foot planted at (-1.67, 0.43), 0 cm from its spot
+   15.600 |    937 | B Large        | attack   | ClubSmash done: the physical weapon passed 93.6 cm from the aim point at its closest
+   15.833 |    951 | A Medium       | step     | left foot planted at (-0.97, -0.61), 2 cm from its spot
+   16.400 |    985 | B Medium       | step     | left foot planted at (-0.99, 0.42), 5 cm from its spot
+   16.617 |    998 | A Small        | step     | right foot planted at (-1.95, -0.28), 3 cm from its spot
+   17.183 |   1032 | B Small        | step     | left foot planted at (0.48, 0.09), 3 cm from its spot
+   17.417 |   1046 | A Medium       | step     | left foot planted at (-1.00, -0.58), 5 cm from its spot
+   18.050 |   1084 | A Small        | step     | left foot planted at (-2.07, -0.05), 3 cm from its spot
+   18.283 |   1098 | B Large        | step     | right foot planted at (-1.96, 0.91), 5 cm from its spot
+   18.733 |   1125 | A Large        | step     | left foot planted at (0.04, -0.47), 6 cm from its spot
+   18.933 |   1137 | B Small        | step     | right foot planted at (0.39, 0.25), 3 cm from its spot
+   19.417 |   1166 | A Small        | step     | right foot planted at (-1.95, -0.28), 3 cm from its spot
+   19.518 |   1172 | -              | input    | fighting on
+   19.533 |   1173 | A Small        | attack   | ClubSwing at B Large's KneeL: aim locked at (-1.66, 0.64, 0.43), lunge 0.33 m, 0.50 s, contact at 0.30 s
+   19.533 |   1173 | A Large        | attack   | ClubSmash at B Small's Neck: aim locked at (0.42, 0.65, 0.16), lunge 0.19 m, 1.00 s, contact at 0.62 s
+   19.533 |   1173 | B Small        | attack   | ClubSwing at A Large's KneeL: aim locked at (0.05, 0.64, -0.43), lunge 0.34 m, 0.50 s, contact at 0.30 s
+   19.533 |   1173 | B Medium       | attack   | SwordBackhand at A Small's Head: aim locked at (-1.98, 0.75, -0.12), lunge 0.51 m, 0.70 s, contact at 0.41 s
+   19.533 |   1173 | B Large        | attack   | ClubSwing at A Small's ElbowR: aim locked at (-1.83, 0.46, -0.26), lunge 0.55 m, 0.89 s, contact at 0.53 s
+   19.650 |   1180 | A Small        | step     | right foot planted at (-1.89, -0.07), 23 cm from its spot
+   19.650 |   1180 | B Small        | step     | right foot planted at (0.28, 0.07), 24 cm from its spot
+   19.667 |   1181 | B Small        | contact  | HandL touched Ground at 2.6 m/s
+   19.667 |   1181 | B Small        | contact  | ForearmL touched Ground at 1.9 m/s
+   19.700 |   1183 | B Medium       | step     | right foot planted at (-1.07, 0.75), 26 cm from its spot
+   19.750 |   1186 | A Medium       | step     | right foot planted at (-0.69, -0.88), 7 cm from its spot
+   19.750 |   1186 | B Large        | step     | right foot planted at (-2.05, 0.61), 24 cm from its spot
+   19.767 |   1187 | A Medium       | attack   | SwordThrust at B Medium's Chest: aim locked at (-0.97, 1.37, 0.66), lunge 0.23 m, 0.60 s, contact at 0.36 s
+   19.800 |   1189 | A Small        | step     | left foot planted at (-1.86, 0.21), 33 cm from its spot
+   19.800 |   1189 | B Small        | step     | left foot planted at (0.26, -0.20), 34 cm from its spot
+   19.817 |   1190 | A Small        | contact  | ClubSwing at B Large's KneeL: passed 0.0 cm from the aim point; nearest part B Large's ShinL (1.8 cm); the KneeL had moved 8.7 cm since the aim was locked
+   19.817 |   1190 | B Small        | contact  | ClubSwing at A Large's KneeL: passed 0.0 cm from the aim point; nearest part A Large's ShinL (0.8 cm); the KneeL had moved 10.1 cm since the aim was locked
+   19.833 |   1191 | B Small        | contact  | HandR touched Collider at 1.0 m/s
+   19.833 |   1191 | A Large        | contact  | ShinL touched Collider at 1.0 m/s
+   19.867 |   1193 | B Medium       | touch    | WD_Sword touched B Large's Pelvis at 5.0 m/s: an ally (stray)
+   19.883 |   1194 | A Small        | contact  | ForearmR touched Collider at 3.0 m/s
+   19.883 |   1194 | B Large        | contact  | ShinL touched Collider at 3.0 m/s
+   19.883 |   1194 | B Large        | contact  | UpperArmL touched Collider at 4.3 m/s
+   19.883 |   1194 | B Medium       | contact  | Head touched Collider at 4.3 m/s
+   19.883 |   1194 | B Large        | contact  | ForearmL touched Collider at 3.3 m/s
+   19.883 |   1194 | B Medium       | contact  | Head touched Collider at 3.3 m/s
+   19.883 |   1194 | A Small        | contact  | UpperArmR touched Collider at 2.1 m/s
+   19.883 |   1194 | B Large        | contact  | ShinL touched Collider at 2.1 m/s
+   19.900 |   1195 | B Medium       | touch    | WD_Sword touched B Large's ThighR at 9.1 m/s: an ally (stray)
+   19.917 |   1196 | B Medium       | step     | left foot planted at (-1.38, 0.15), 51 cm from its spot
+   19.917 |   1196 | B Medium       | touch    | WD_Shield touched B Large's ThighL at 2.3 m/s: an ally (stray)
+   19.933 |   1197 | A Small        | step     | left foot planted at (-2.03, -0.07), 0 cm from its spot
+   19.933 |   1197 | B Small        | step     | left foot planted at (0.43, 0.09), 0 cm from its spot
+   19.933 |   1197 | B Medium       | contact  | SwordBackhand at A Small's Head: passed 0.1 cm from the aim point; nearest part A Small's Head (16.1 cm); the Head had moved 28.7 cm since the aim was locked
+   19.933 |   1197 | B Medium       | touch    | WD_Shield touched B Large's HandR at 17.1 m/s: an ally (stray)
+   19.950 |   1198 | B Large        | contact  | ForearmL touched Collider at 12.9 m/s
+   19.950 |   1198 | B Medium       | contact  | Head touched Collider at 12.9 m/s
+   19.967 |   1199 | B Medium       | touch    | WD_Sword touched B Large's ThighL at 3.0 m/s: an ally (stray)
+   19.967 |   1199 | B Medium       | touch    | WD_Shield touched B Large's Pelvis at 2.9 m/s: an ally (stray)
+   19.967 |   1199 | B Medium       | touch    | WD_Shield touched B Large's Spine at 3.4 m/s: an ally (stray)
+   19.967 |   1199 | B Medium       | contact  | HandR touched Collider at 5.3 m/s
+   19.967 |   1199 | B Large        | contact  | ThighL touched Collider at 5.3 m/s
+   19.983 |   1200 | B Medium       | contact  | ForearmR touched Collider at 4.6 m/s
+   19.983 |   1200 | B Large        | contact  | ThighL touched Collider at 4.6 m/s
+   20.000 |   1201 | A Small        | step     | right foot planted at (-2.00, -0.26), 0 cm from its spot
+   20.000 |   1201 | B Small        | step     | right foot planted at (0.40, 0.28), 0 cm from its spot
+   20.000 |   1201 | B Medium       | contact  | UpperArmR touched Collider at 7.9 m/s
+   20.000 |   1201 | B Large        | contact  | Pelvis touched Collider at 7.9 m/s
+   20.000 |   1201 | B Medium       | contact  | HandR touched Collider at 6.9 m/s
+   20.000 |   1201 | B Large        | contact  | Pelvis touched Collider at 6.9 m/s
+   20.000 |   1201 | B Medium       | contact  | ForearmR touched Collider at 4.7 m/s
+   20.000 |   1201 | B Large        | contact  | Pelvis touched Collider at 4.7 m/s
+   20.017 |   1202 | A Small        | attack   | ClubSwing done: the physical weapon passed 16.7 cm from the aim point at its closest
+   20.017 |   1202 | B Small        | attack   | ClubSwing done: the physical weapon passed 22.5 cm from the aim point at its closest
+   20.017 |   1202 | B Medium       | contact  | ForearmR touched Collider at 6.6 m/s
+   20.017 |   1202 | B Large        | contact  | ThighL touched Collider at 6.6 m/s
+   20.033 |   1203 | B Large        | step     | left foot planted at (-1.63, -0.08), 55 cm from its spot
+   20.050 |   1204 | A Small        | contact  | HandL touched Collider at 3.1 m/s
+   20.050 |   1204 | B Large        | contact  | ThighR touched Collider at 3.1 m/s
+   20.067 |   1205 | B Large        | contact  | ClubSwing at A Small's ElbowR: passed 0.0 cm from the aim point; nearest part A Small's ForearmR (10.3 cm); the ElbowR had moved 4.7 cm since the aim was locked
+   20.067 |   1205 | B Medium       | contact  | HandR touched Collider at 5.7 m/s
+   20.067 |   1205 | B Large        | contact  | Pelvis touched Collider at 5.7 m/s
+   20.083 |   1206 | B Large        | touch    | WD_Club touched B Medium's HandR at 2.8 m/s: an ally (stray)
+   20.083 |   1206 | A Medium       | touch    | WD_Shield touched B Large's HandL at 2.9 m/s: stray
+   20.100 |   1207 | A Medium       | step     | left foot planted at (-0.99, -0.38), 23 cm from its spot
+   20.100 |   1207 | B Medium       | step     | left foot planted at (-0.97, 0.46), 0 cm from its spot
+   20.100 |   1207 | A Medium       | touch    | WD_Shield touched B Large's ForearmL at 2.6 m/s: stray
+   20.100 |   1207 | B Large        | contact  | HandL touched Collider at 3.3 m/s
+   20.100 |   1207 | A Medium       | contact  | ForearmL touched Collider at 3.3 m/s
+   20.117 |   1208 | A Medium       | contact  | SwordThrust at B Medium's Chest: passed 0.0 cm from the aim point; nearest part B Medium's Chest (26.4 cm); the Chest had moved 51.7 cm since the aim was locked
+   20.117 |   1208 | A Large        | step     | left foot planted at (0.12, -0.23), 19 cm from its spot
+   20.117 |   1208 | B Large        | contact  | HandL touched Collider at 1.1 m/s
+   20.117 |   1208 | A Medium       | contact  | UpperArmL touched Collider at 1.1 m/s
+   20.150 |   1210 | A Large        | contact  | ClubSmash at B Small's Neck: passed 0.0 cm from the aim point; nearest part B Small's Chest (2.8 cm); the Neck had moved 2.6 cm since the aim was locked
+   20.150 |   1210 | A Medium       | touch    | WD_Sword touched A Large's UpperArmL at 17.2 m/s: an ally (stray)
+   20.183 |   1212 | B Large        | contact  | HandL touched Collider at 15.4 m/s
+   20.183 |   1212 | A Medium       | contact  | HandR touched Collider at 15.4 m/s
+   20.200 |   1213 | B Medium       | step     | right foot planted at (-0.87, 0.91), 0 cm from its spot
+   20.233 |   1215 | B Medium       | attack   | SwordBackhand done: the physical weapon passed 22.3 cm from the aim point at its closest
+   20.250 |   1216 | A Medium       | step     | left foot planted at (-0.96, -0.61), 0 cm from its spot
+   20.267 |   1217 | B Large        | step     | left foot planted at (-1.63, 0.47), 0 cm from its spot
+   20.267 |   1217 | B Large        | contact  | HandL touched Collider at 5.9 m/s
+   20.267 |   1217 | B Medium       | contact  | ForearmL touched Collider at 5.9 m/s
+   20.267 |   1217 | B Large        | contact  | HandL touched Collider at 6.0 m/s
+   20.267 |   1217 | B Medium       | contact  | HandL touched Collider at 6.0 m/s
+   20.267 |   1217 | B Large        | contact  | HandL touched Collider at 5.5 m/s
+   20.267 |   1217 | B Medium       | contact  | Chest touched Collider at 5.5 m/s
+   20.367 |   1223 | A Medium       | attack   | SwordThrust done: the physical weapon passed 109.7 cm from the aim point at its closest
+   20.383 |   1224 | A Large        | step     | left foot planted at (0.07, -0.41), 0 cm from its spot
+   20.383 |   1224 | B Large        | step     | right foot planted at (-2.05, 0.85), 0 cm from its spot
+   20.417 |   1226 | B Large        | attack   | ClubSwing done: the physical weapon passed 57.0 cm from the aim point at its closest
+   20.533 |   1233 | A Large        | attack   | ClubSmash done: the physical weapon passed 105.9 cm from the aim point at its closest
+   20.633 |   1239 | B Medium       | step     | right foot planted at (-0.95, 0.90), 8 cm from its spot
+   20.863 |   1252 | -              | input    | fighting off
+   21.450 |   1288 | B Small        | step     | left foot planted at (0.48, 0.11), 2 cm from its spot
+   21.548 |   1293 | -              | input    | fighting on
+   21.733 |   1305 | A Small        | step     | left foot planted at (-2.04, -0.05), 3 cm from its spot
+   22.050 |   1324 | B Large        | attack   | ClubSwing at A Small's Neck: aim locked at (-2.01, 0.65, -0.14), lunge 0.09 m, 0.89 s, contact at 0.53 s
+   22.117 |   1328 | A Small        | attack   | ClubSwing at B Large's KneeL: aim locked at (-1.63, 0.64, 0.40), lunge 0.32 m, 0.50 s, contact at 0.30 s
+   22.200 |   1333 | B Medium       | attack   | SwordBackhand at A Small's Head: aim locked at (-1.94, 0.68, -0.07), lunge 0.50 m, 0.70 s, contact at 0.41 s
+   22.217 |   1334 | A Large        | attack   | ClubSwing at B Small's Chest: aim locked at (0.41, 0.58, 0.15), lunge 0.18 m, 0.89 s, contact at 0.53 s
+   22.233 |   1335 | A Small        | step     | right foot planted at (-1.89, -0.09), 22 cm from its spot
+   22.367 |   1343 | B Medium       | step     | right foot planted at (-1.06, 0.76), 24 cm from its spot
+   22.383 |   1344 | A Small        | step     | left foot planted at (-1.84, 0.19), 32 cm from its spot
+   22.400 |   1345 | A Small        | contact  | ClubSwing at B Large's KneeL: passed 0.0 cm from the aim point; nearest part B Large's ShinL (3.4 cm); the KneeL had moved 12.2 cm since the aim was locked
+   22.400 |   1345 | A Small        | touch    | WD_Club touched B Large's ShinL at 6.0 m/s: the part aimed at
+   22.417 |   1346 | A Small        | touch    | WD_Club touched B Large's ThighL at 9.6 m/s: the target, another part
+   22.433 |   1347 | A Small        | contact  | ForearmR touched Collider at 2.2 m/s
+   22.433 |   1347 | B Large        | contact  | ShinL touched Collider at 2.2 m/s
+   22.450 |   1348 | A Small        | contact  | Head touched Collider at 1.8 m/s
+   22.450 |   1348 | B Large        | contact  | ThighL touched Collider at 1.8 m/s
+   22.450 |   1348 | A Small        | contact  | UpperArmR touched Collider at 1.3 m/s
+   22.450 |   1348 | B Large        | contact  | ShinL touched Collider at 1.3 m/s
+   22.483 |   1350 | A Small        | contact  | HandR touched Collider at 9.3 m/s
+   22.483 |   1350 | B Large        | contact  | ThighL touched Collider at 9.3 m/s
+   22.500 |   1351 | A Small        | contact  | UpperArmR touched Collider at 1.4 m/s
+   22.500 |   1351 | B Large        | contact  | ShinL touched Collider at 1.4 m/s
+   22.517 |   1352 | A Small        | step     | left foot planted at (-2.02, -0.07), 0 cm from its spot
+   22.533 |   1353 | B Medium       | touch    | WD_Sword touched B Large's Pelvis at 4.7 m/s: an ally (stray)
+   22.550 |   1354 | B Large        | step     | left foot planted at (-1.69, 0.34), 9 cm from its spot
+   22.550 |   1354 | B Medium       | touch    | WD_Shield touched B Large's ForearmL at 4.0 m/s: an ally (stray)
+   22.550 |   1354 | B Medium       | touch    | WD_Shield touched B Large's HandL at 5.7 m/s: an ally (stray)
+   22.550 |   1354 | B Large        | contact  | UpperArmL touched Collider at 4.4 m/s
+   22.550 |   1354 | B Medium       | contact  | Head touched Collider at 4.4 m/s
+   22.583 |   1356 | A Small        | step     | right foot planted at (-2.01, -0.26), 0 cm from its spot
+   22.583 |   1356 | B Medium       | step     | left foot planted at (-1.37, 0.17), 50 cm from its spot
+   22.583 |   1356 | B Large        | contact  | ClubSwing at A Small's Neck: passed 0.0 cm from the aim point; nearest part A Small's Chest (1.9 cm); the Neck had moved 3.0 cm since the aim was locked
+   22.583 |   1356 | B Large        | contact  | UpperArmL touched Collider at 3.0 m/s
+   22.583 |   1356 | B Medium       | contact  | Chest touched Collider at 3.0 m/s
+   22.583 |   1356 | B Large        | contact  | ForearmL touched Collider at 5.2 m/s
+   22.583 |   1356 | B Medium       | contact  | Chest touched Collider at 5.2 m/s
+   22.600 |   1357 | A Small        | attack   | ClubSwing done: the physical weapon passed 8.1 cm from the aim point at its closest
+   22.600 |   1357 | B Medium       | contact  | SwordBackhand at A Small's Head: passed 0.1 cm from the aim point; nearest part A Small's Head (4.2 cm); the Head had moved 6.6 cm since the aim was locked
+   22.617 |   1358 | B Large        | contact  | ForearmL touched Collider at 10.7 m/s
+   22.617 |   1358 | B Medium       | contact  | UpperArmL touched Collider at 10.7 m/s
+   22.633 |   1359 | B Small        | attack   | ClubSwing at A Large's KneeL: aim locked at (0.08, 0.68, -0.15), lunge 0.12 m, 0.50 s, contact at 0.30 s
+   22.633 |   1359 | B Medium       | touch    | WD_Sword touched B Large's HandR at 2.1 m/s: an ally (stray)
+   22.633 |   1359 | B Large        | touch    | WD_Club touched B Medium's HandR at 3.4 m/s: an ally (stray)
+   22.633 |   1359 | B Medium       | touch    | WD_Shield touched B Large's HandR at 22.9 m/s: an ally (stray)
+   22.633 |   1359 | B Large        | contact  | HandL touched Collider at 14.4 m/s
+   22.633 |   1359 | B Medium       | contact  | UpperArmL touched Collider at 14.4 m/s
+   22.650 |   1360 | B Medium       | touch    | WD_Sword touched B Large's Spine at 3.7 m/s: an ally (stray)
+   22.650 |   1360 | B Large        | touch    | WD_Club touched B Medium's HandL at 4.0 m/s: an ally (stray)
+   22.700 |   1363 | B Medium       | contact  | ForearmR touched Collider at 3.3 m/s
+   22.700 |   1363 | B Large        | contact  | ThighL touched Collider at 3.3 m/s
+   22.700 |   1363 | B Large        | contact  | HandR touched Collider at 6.9 m/s
+   22.700 |   1363 | B Medium       | contact  | HandL touched Collider at 6.9 m/s
+   22.717 |   1364 | A Large        | step     | left foot planted at (0.11, -0.24), 18 cm from its spot
+   22.733 |   1365 | B Large        | contact  | HandR touched Collider at 4.4 m/s
+   22.733 |   1365 | B Medium       | contact  | ForearmL touched Collider at 4.4 m/s
+   22.750 |   1366 | A Large        | contact  | ClubSwing at B Small's Chest: passed 0.0 cm from the aim point; nearest part B Small's HandR (2.7 cm); the Chest had moved 9.0 cm since the aim was locked
+   22.750 |   1366 | B Small        | step     | right foot planted at (0.41, 0.27), 2 cm from its spot
+   22.750 |   1366 | B Medium       | contact  | HandR touched Collider at 3.6 m/s
+   22.750 |   1366 | B Large        | contact  | ThighL touched Collider at 3.6 m/s
+   22.767 |   1367 | B Medium       | step     | left foot planted at (-0.98, 0.46), 0 cm from its spot
+   22.783 |   1368 | B Large        | step     | left foot planted at (-1.67, 0.43), 0 cm from its spot
+   22.783 |   1368 | B Large        | contact  | ForearmL touched Collider at 12.9 m/s
+   22.783 |   1368 | B Medium       | contact  | Head touched Collider at 12.9 m/s
+   22.833 |   1371 | B Large        | contact  | HandL touched Collider at 10.2 m/s
+   22.833 |   1371 | B Medium       | contact  | Chest touched Collider at 10.2 m/s
+   22.850 |   1372 | B Small        | contact  | HandL touched Collider at 1.8 m/s
+   22.850 |   1372 | A Large        | contact  | ThighL touched Collider at 1.8 m/s
+   22.867 |   1373 | B Medium       | step     | right foot planted at (-0.86, 0.91), 0 cm from its spot
+   22.867 |   1373 | B Large        | contact  | HandL touched Collider at 22.3 m/s
+   22.867 |   1373 | B Medium       | contact  | UpperArmL touched Collider at 22.3 m/s
+   22.900 |   1375 | B Small        | step     | left foot planted at (0.32, 0.00), 12 cm from its spot
+   22.900 |   1375 | B Medium       | attack   | SwordBackhand done: the physical weapon passed 59.2 cm from the aim point at its closest
+   22.917 |   1376 | B Small        | contact  | ClubSwing at A Large's KneeL: passed 0.0 cm from the aim point; nearest part A Large's ThighL (0.0 cm); the KneeL had moved 8.7 cm since the aim was locked
+   22.933 |   1377 | B Large        | attack   | ClubSwing done: the physical weapon passed 65.5 cm from the aim point at its closest
+   22.950 |   1378 | A Large        | step     | left foot planted at (0.07, -0.42), 0 cm from its spot
+   23.000 |   1381 | A Medium       | step     | left foot planted at (-0.98, -0.68), 8 cm from its spot
+   23.033 |   1383 | B Small        | step     | left foot planted at (0.40, 0.09), 0 cm from its spot
+   23.100 |   1387 | A Large        | attack   | ClubSwing done: the physical weapon passed 75.8 cm from the aim point at its closest
+   23.100 |   1387 | B Small        | step     | right foot planted at (0.43, 0.28), 0 cm from its spot
+   23.117 |   1388 | B Small        | attack   | ClubSwing done: the physical weapon passed 29.8 cm from the aim point at its closest
+   23.367 |   1403 | A Medium       | attack   | SwordBackhand at B Medium's Head: aim locked at (-0.99, 1.65, 0.66), lunge 0.59 m, 0.70 s, contact at 0.41 s
+   23.383 |   1404 | B Small        | step     | left foot planted at (0.45, 0.09), 1 cm from its spot
+   23.460 |   1408 | -              | input    | fighting off
+   23.533 |   1413 | A Medium       | step     | right foot planted at (-0.68, -0.59), 33 cm from its spot
+   23.600 |   1417 | B Small        | step     | right foot planted at (0.37, 0.27), 0 cm from its spot
+   23.733 |   1425 | A Medium       | touch    | WD_Shield touched B Medium's HandL at 3.7 m/s: the target, another part
+   23.750 |   1426 | A Medium       | step     | left foot planted at (-1.05, -0.03), 59 cm from its spot
+   23.767 |   1427 | A Medium       | contact  | SwordBackhand at B Medium's Head: passed 0.1 cm from the aim point; nearest part B Medium's Head (0.0 cm); the Head had moved 2.3 cm since the aim was locked
+   23.933 |   1437 | A Medium       | step     | left foot planted at (-0.97, -0.61), 0 cm from its spot
+   24.033 |   1443 | A Medium       | step     | right foot planted at (-0.63, -0.92), 0 cm from its spot
+   24.067 |   1445 | A Medium       | attack   | SwordBackhand done: the physical weapon passed 31.7 cm from the aim point at its closest
+   24.333 |   1461 | A Small        | step     | right foot planted at (-1.99, -0.28), 3 cm from its spot
+   24.500 |   1471 | B Small        | step     | right foot planted at (0.33, 0.26), 4 cm from its spot
+   24.683 |   1482 | B Medium       | step     | left foot planted at (-0.94, 0.53), 8 cm from its spot
+   24.717 |   1484 | A Large        | step     | right foot planted at (0.43, -0.92), 5 cm from its spot
+   25.317 |   1520 | B Large        | step     | left foot planted at (-1.71, 0.43), 4 cm from its spot

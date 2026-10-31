@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2ce3df6da26de04c8c0f79c1191387b, type: 3}
+  m_Name: WD_Club
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Combat.WeaponDefinition
+  kind: 1
+  prefab: {fileID: 3291325461898456480, guid: 908763215c1c7754385fa3f3e9df9b01, type: 3}
+  length: 0.83
+  massKg: 2
+  tip: {x: 0, y: 0, z: 0.72}
+  edge: {x: 0, y: 0, z: 0.587}
+  head: {x: 0, y: 0, z: 0.587}
+  faceCenter: {x: 0, y: 0, z: 0.1}
+  radius: 0
+  guardGrip: {x: 0.2, y: -0.32, z: 0.26}
+  guardAngles: {x: 55, y: 8}
+  moves:
+  - {fileID: 11400000, guid: a18f71aa36309ad478061c6f6163e331, type: 2}
+  - {fileID: 11400000, guid: 29e080f364cf0a545b71ba9ecec71113, type: 2}

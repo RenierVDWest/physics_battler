@@ -119,6 +119,57 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &326323504
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 326323505}
+  - component: {fileID: 326323506}
+  m_Layer: 0
+  m_Name: B Large
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &326323505
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 326323504}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
+  m_LocalPosition: {x: -2.4, y: 0, z: 2.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1614115024}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &326323506
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 326323504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e838e1599b2574384bcfade96e2823, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Sandbox.UnitSpawn
+  body: 2
+  team: 1
+  mainHand: {fileID: 11400000, guid: 040614ad3e7102c4eab8d4afc3f52809, type: 2}
+  offHand: {fileID: 0}
+  profileOverride: {fileID: 0}
+  snapToTile: 1
+  showPreview: 1
 --- !u!1 &440875559
 GameObject:
   m_ObjectHideFlags: 0
@@ -155,20 +206,8 @@ MonoBehaviour:
   orbitCamera: {fileID: 1961701024}
   teamA: {fileID: 2100000, guid: 5e2cd248e698a1d4e9e4e6e5345261fb, type: 2}
   teamB: {fileID: 2100000, guid: 8314fdff4360f3b429a87f0e1131ec41, type: 2}
-  teamASmallMediumLarge:
-  - column: 2
-    row: 2
-  - column: 4
-    row: 2
-  - column: 6
-    row: 2
-  teamBSmallMediumLarge:
-  - column: 5
-    row: 5
-  - column: 3
-    row: 5
-  - column: 1
-    row: 5
+  fight: 1
+  seed: 0
 --- !u!4 &440875561
 Transform:
   m_ObjectHideFlags: 0
@@ -184,6 +223,159 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &790804489
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 790804490}
+  - component: {fileID: 790804491}
+  m_Layer: 0
+  m_Name: A Medium
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &790804490
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790804489}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.8, y: 0, z: -2.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1614115024}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &790804491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790804489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e838e1599b2574384bcfade96e2823, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Sandbox.UnitSpawn
+  body: 1
+  team: 0
+  mainHand: {fileID: 11400000, guid: c5be91990350a4745a7c3ae401a6e20d, type: 2}
+  offHand: {fileID: 11400000, guid: 30a1ca61a8d38fd45ad45efbf39cba94, type: 2}
+  profileOverride: {fileID: 0}
+  snapToTile: 1
+  showPreview: 1
+--- !u!1 &916748146
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 916748147}
+  - component: {fileID: 916748148}
+  m_Layer: 0
+  m_Name: B Medium
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &916748147
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 916748146}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
+  m_LocalPosition: {x: -0.8, y: 0, z: 2.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1614115024}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &916748148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 916748146}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e838e1599b2574384bcfade96e2823, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Sandbox.UnitSpawn
+  body: 1
+  team: 1
+  mainHand: {fileID: 11400000, guid: c5be91990350a4745a7c3ae401a6e20d, type: 2}
+  offHand: {fileID: 11400000, guid: 30a1ca61a8d38fd45ad45efbf39cba94, type: 2}
+  profileOverride: {fileID: 0}
+  snapToTile: 1
+  showPreview: 1
+--- !u!1 &975721848
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 975721849}
+  - component: {fileID: 975721850}
+  m_Layer: 0
+  m_Name: A Small
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &975721849
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 975721848}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -2.4, y: 0, z: -2.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1614115024}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &975721850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 975721848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e838e1599b2574384bcfade96e2823, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Sandbox.UnitSpawn
+  body: 0
+  team: 0
+  mainHand: {fileID: 11400000, guid: 040614ad3e7102c4eab8d4afc3f52809, type: 2}
+  offHand: {fileID: 0}
+  profileOverride: {fileID: 0}
+  snapToTile: 1
+  showPreview: 1
 --- !u!1 &1391781802
 GameObject:
   m_ObjectHideFlags: 0
@@ -423,6 +615,145 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1477178521
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1477178522}
+  - component: {fileID: 1477178523}
+  m_Layer: 0
+  m_Name: A Large
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1477178522
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1477178521}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.8, y: 0, z: -2.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1614115024}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1477178523
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1477178521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e838e1599b2574384bcfade96e2823, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Sandbox.UnitSpawn
+  body: 2
+  team: 0
+  mainHand: {fileID: 11400000, guid: 040614ad3e7102c4eab8d4afc3f52809, type: 2}
+  offHand: {fileID: 0}
+  profileOverride: {fileID: 0}
+  snapToTile: 1
+  showPreview: 1
+--- !u!1 &1614115023
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1614115024}
+  m_Layer: 0
+  m_Name: Lineup
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1614115024
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1614115023}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 975721849}
+  - {fileID: 790804490}
+  - {fileID: 1477178522}
+  - {fileID: 326323505}
+  - {fileID: 916748147}
+  - {fileID: 1628621209}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1628621208
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1628621209}
+  - component: {fileID: 1628621210}
+  m_Layer: 0
+  m_Name: B Small
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1628621209
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1628621208}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
+  m_LocalPosition: {x: 0.8, y: 0, z: 2.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1614115024}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1628621210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1628621208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e838e1599b2574384bcfade96e2823, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Sandbox.UnitSpawn
+  body: 0
+  team: 1
+  mainHand: {fileID: 11400000, guid: 040614ad3e7102c4eab8d4afc3f52809, type: 2}
+  offHand: {fileID: 0}
+  profileOverride: {fileID: 0}
+  snapToTile: 1
+  showPreview: 1
 --- !u!1 &1961701023
 GameObject:
   m_ObjectHideFlags: 0
@@ -633,3 +964,4 @@ SceneRoots:
   - {fileID: 1391781806}
   - {fileID: 2028289482}
   - {fileID: 440875561}
+  - {fileID: 1614115024}

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2ce3df6da26de04c8c0f79c1191387b, type: 3}
+  m_Name: WD_Sword
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Combat.WeaponDefinition
+  kind: 0
+  prefab: {fileID: 3126652602161516757, guid: ab65c07b4506bc24fb220fdaab767866, type: 3}
+  length: 0.971
+  massKg: 1.3
+  tip: {x: 0, y: 0, z: 0.86}
+  edge: {x: 0, y: 0, z: 0.566}
+  head: {x: 0, y: 0, z: 0.566}
+  faceCenter: {x: 0, y: 0, z: 0.1}
+  radius: 0
+  guardGrip: {x: 0.18, y: -0.28, z: 0.32}
+  guardAngles: {x: 35, y: 12}
+  moves:
+  - {fileID: 11400000, guid: 9318b13b6fdeb87448794ae7e257ef6d, type: 2}
+  - {fileID: 11400000, guid: 8cedd2636f759da4988f6bcaec81e37a, type: 2}
+  - {fileID: 11400000, guid: 682260c0e3f98fb488262cd7a844b658, type: 2}
