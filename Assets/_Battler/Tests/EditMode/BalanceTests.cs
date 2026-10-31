@@ -299,6 +299,38 @@ namespace PhysicsBattler.Tests
             }
         }
 
+        /// <summary>Two thrown bodies meeting count as one impact, not one each way.</summary>
+        [Test]
+        public void TwoThrownBodiesMeetOnce()
+        {
+            var a = Build("Small", Vector3.zero, 90f, 0);
+            var b = Build("Small", new Vector3(1.4f, 0f, 0f), 270f, 1);
+            var everyone = new[] { a, b };
+            var impacts = new List<HitReport>();
+            void OnHit(HitReport h)
+            {
+                if (h.Impact && h.Result.Impulse.sqrMagnitude > 0f)
+                {
+                    impacts.Add(h);
+                }
+            }
+
+            UnitController.Hit += OnHit;
+            try
+            {
+                Simulate(everyone, 10);
+                a.Knock(Vector3.right * 8f);
+                b.Knock(Vector3.left * 8f);
+                Simulate(everyone, 25);
+                Assert.AreEqual(1, impacts.Count, $"one impact ({impacts.Count})");
+            }
+            finally
+            {
+                UnitController.Hit -= OnHit;
+                Destroy(everyone);
+            }
+        }
+
         /// <summary>
         /// The gate as the sandbox's launch test (L) plays it: a large unit's club swing launches a
         /// small one into the unit standing where the blow throws it, which is hurt; both get up.

@@ -81,6 +81,10 @@ namespace PhysicsBattler.Units
         /// <summary>Move time advanced at the last step (a stopped blow is wound back to where it met the body).</summary>
         private float lastAdvance;
 
+        /// <summary>Where the root was after the last step (a walk is measured from it); cleared when the unit is moved at once.</summary>
+        private Vector3 lastRoot;
+        private bool hasLastRoot;
+
         // The recoil springs: hips pushed, upper body and head thrown back by a hit (Pose.React*).
         private Vector3 reactShift, reactShiftV, reactLean, reactLeanV, reactHead, reactHeadV;
 
@@ -134,6 +138,16 @@ namespace PhysicsBattler.Units
         /// <summary>Knock-back slides the unit (the feet step after it); poise comes back; the shield goes up or down.</summary>
         private void CombatBeforePose(float dt)
         {
+            // How fast the game walked the root since the last step (the sandbox moves it between
+            // steps): the feet keep up with a walk as with a knock-back.
+            Vector3 walked = Vector3.zero;
+            if (hasLastRoot && dt > 0f && State == UnitState.Standing)
+            {
+                walked = transform.position - lastRoot;
+                walked.y = 0f;
+                walked = Vector3.ClampMagnitude(walked / dt, 3f * SizeSpeed());
+            }
+
             if (State == UnitState.Stumbling)
             {
                 UpdateStumble(dt);
@@ -150,7 +164,9 @@ namespace PhysicsBattler.Units
 
             Vector3 pushed = Separate(dt);
             // The feet hurry after a knock-back or a stumble (catch steps), or after being pushed aside.
-            Stance.Drift = (State == UnitState.Stumbling ? StumbleVelocity : Knockback) + (dt > 0f ? pushed / dt : Vector3.zero);
+            Stance.Drift = (State == UnitState.Stumbling ? StumbleVelocity : Knockback) + walked + (dt > 0f ? pushed / dt : Vector3.zero);
+            lastRoot = transform.position;
+            hasLastRoot = true;
             UpdateTopple(dt);
             UpdateRecoil(dt);
             Poise = Mathf.Min(profile.maxPoise, Poise + profile.poiseRegen * dt);
@@ -598,6 +614,11 @@ namespace PhysicsBattler.Units
 
         private void TakeHit(HitReport hit)
         {
+            if (!IsAlive)
+            {
+                return;
+            }
+
             var r = hit.Result;
             Health = Mathf.Max(0f, Health - r.Damage);
             Poise -= r.PoiseDamage;

@@ -346,10 +346,11 @@ namespace PhysicsBattler.Tests
                     foreach (var collider in Physics.OverlapCapsule(grip, tip, 0.005f, ~0, QueryTriggerInteraction.Collide))
                     {
                         var part = collider.GetComponentInParent<BodyPart>();
-                        // (A step or two to bounce out of the few centimetres it went in.)
-                        if (part != null && part.Owner == target && part.partCollider == collider && i >= 3)
+                        // (A few steps to bounce out of the few centimetres it went in: it rewinds at half speed, and
+                        // against a hand held in guard right where it stopped that takes a little longer.)
+                        if (part != null && part.Owner == target && part.partCollider == collider && i >= 8)
                         {
-                            Assert.Fail($"{i} steps after the hit the blade is still in {target.name}'s {part.id}");
+                            Assert.Fail($"{i} steps after the hit the blade is still in {target.name}'s {part.id} (target {target.State}, knock {target.Knockback.magnitude:0.00}, attacker {(attacker.IsAttacking ? "attacking" : "done")})");
                         }
                     }
                 }

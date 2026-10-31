@@ -33,6 +33,7 @@ namespace PhysicsBattler.Sandbox
 
         // The tile each unit getting back onto the board is heading for (so two don't pick the same one).
         private readonly Dictionary<UnitController, Tile> spots = new Dictionary<UnitController, Tile>();
+        private readonly Dictionary<UnitController, float> spotSince = new Dictionary<UnitController, float>();
 
         public Brawl(int seed)
         {
@@ -55,7 +56,12 @@ namespace PhysicsBattler.Sandbox
                     continue;
                 }
 
-                if (unit.NeedsSpot && BackOntoTile(units, unit, dt))
+                if (!unit.NeedsSpot)
+                {
+                    spots.Remove(unit);   // (moved by the sandbox, or there already)
+                    spotSince.Remove(unit);
+                }
+                else if (BackOntoTile(units, unit, dt, now))
                 {
                     continue;
                 }
@@ -180,7 +186,7 @@ namespace PhysicsBattler.Sandbox
         /// Walks a unit that just got up to the middle of the nearest free tile (no other unit on it
         /// or heading for it). True while it is on its way.
         /// </summary>
-        private bool BackOntoTile(IReadOnlyList<UnitController> units, UnitController unit, float dt)
+        private bool BackOntoTile(IReadOnlyList<UnitController> units, UnitController unit, float dt, float now)
         {
             if (Grid == null)
             {
@@ -188,15 +194,33 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
+            // Someone else stood on the tile meanwhile: pick another. Never more than a few seconds.
+            if (spots.TryGetValue(unit, out var held) && (Occupied(units, unit, held) || now - spotSince[unit] > 6f))
+            {
+                spots.Remove(unit);
+                if (now - spotSince[unit] > 6f)
+                {
+                    unit.NeedsSpot = false;
+                    spotSince.Remove(unit);
+                    return false;
+                }
+            }
+
             if (!spots.TryGetValue(unit, out var tile))
             {
                 if (!NearestFreeTile(units, unit, out tile))
                 {
                     unit.NeedsSpot = false;
+                    spotSince.Remove(unit);
                     return false;
                 }
 
                 spots[unit] = tile;
+                if (!spotSince.ContainsKey(unit))
+                {
+                    spotSince[unit] = now;
+                }
+
                 if (PlaytestTrace.Enabled)
                 {
                     PlaytestTrace.Note(unit, "move", $"back onto the board: heading for tile {tile}");
@@ -210,6 +234,7 @@ namespace PhysicsBattler.Sandbox
             {
                 unit.NeedsSpot = false;
                 spots.Remove(unit);
+                spotSince.Remove(unit);
                 return false;
             }
 
@@ -217,6 +242,28 @@ namespace PhysicsBattler.Sandbox
             float step = Mathf.Min(distance, unit.Style.walkSpeed * unit.Body.SizeFactor * dt);
             unit.Root.position += to / distance * step;
             return true;
+        }
+
+        /// <summary>Another living unit stands on the tile (within half a tile of its middle).</summary>
+        private bool Occupied(IReadOnlyList<UnitController> units, UnitController unit, Tile tile)
+        {
+            Vector3 center = Grid.Center(tile);
+            foreach (var other in units)
+            {
+                if (other == null || other == unit || !other.IsInitialized || !other.IsAlive)
+                {
+                    continue;
+                }
+
+                Vector3 d = other.Root.position - center;
+                d.y = 0f;
+                if (d.magnitude < 0.5f * Grid.tileSize)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private bool NearestFreeTile(IReadOnlyList<UnitController> units, UnitController unit, out Tile best)

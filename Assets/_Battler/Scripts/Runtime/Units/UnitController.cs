@@ -350,6 +350,7 @@ namespace PhysicsBattler.Units
             facingYaw = yaw;
             Stance.GroundY = position.y;
             Stance.Plant(position, yaw);
+            hasLastRoot = false;
         }
 
         /// <summary>Moves the unit somewhere else at once, body and all (the sandbox's scenarios).</summary>
@@ -392,9 +393,9 @@ namespace PhysicsBattler.Units
         /// <summary>Starts a blow prepared by <see cref="MovePlanner"/>. False if one is already under way.</summary>
         public bool StartMove(MoveState state)
         {
-            if (CurrentMove != null || state == null)
+            if (CurrentMove != null || state == null || !CanAct)
             {
-                return false;
+                return false;   // (off its feet, it can't strike)
             }
 
             state.Time = 0f;
@@ -918,6 +919,11 @@ namespace PhysicsBattler.Units
         /// <summary>A part touched something (hands report every step). Hits come in milestone 3.</summary>
         public void OnPartCollision(BodyPart part, Collision collision, bool entered)
         {
+            if (entered)
+            {
+                ImpactFromCollision(part, collision);
+            }
+
             if (entered && PlaytestTrace.Enabled && collision.collider != null && collision.relativeVelocity.magnitude > 1f)
             {
                 PlaytestTrace.Note(this, "contact", $"{part.id} touched {collision.collider.name} at {collision.relativeVelocity.magnitude:0.0} m/s");

@@ -42,6 +42,7 @@ namespace PhysicsBattler.Authority
         private readonly AnimRig anim;
         private readonly AuthorityLevel[] levels = new AuthorityLevel[5];
         private readonly float[] pins = new float[5];
+        private readonly bool[] keepLimits = new bool[5];
         private readonly bool?[] limited = new bool?[PartInfo.Count];
         public AuthorityController(UnitRig rig, AnimRig anim)
         {
@@ -71,10 +72,12 @@ namespace PhysicsBattler.Authority
             }
         }
 
-        public void Set(BodyRegion region, AuthorityLevel level, float pin)
+        /// <param name="limits">Keep the joints' anatomical limits on even while pinned (a weakly held body getting up).</param>
+        public void Set(BodyRegion region, AuthorityLevel level, float pin, bool limits = false)
         {
             levels[(int)region] = level;
             pins[(int)region] = Mathf.Clamp01(pin);
+            keepLimits[(int)region] = limits;
         }
 
         public AuthorityLevel Level(BodyRegion region) => levels[(int)region];
@@ -97,7 +100,7 @@ namespace PhysicsBattler.Authority
                 var region = RegionOf(id);
                 var level = levels[(int)region];
                 bool kinematic = level == AuthorityLevel.Kinematic;
-                SetJointLimits(part, level == AuthorityLevel.Loose || level == AuthorityLevel.Ragdoll);
+                SetJointLimits(part, level == AuthorityLevel.Loose || level == AuthorityLevel.Ragdoll || (level == AuthorityLevel.Pinned && keepLimits[(int)region]));
                 if (body.isKinematic != kinematic)
                 {
                     body.isKinematic = kinematic;

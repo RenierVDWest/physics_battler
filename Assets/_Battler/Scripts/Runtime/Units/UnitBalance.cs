@@ -102,6 +102,7 @@ namespace PhysicsBattler.Units
         private readonly Dictionary<UnitController, float> impactsUntil = new Dictionary<UnitController, float>();
         private float downCalm;
         private UnitController knockedBy;
+        private readonly Vector3[] preStep = new Vector3[PartInfo.Count];
         private bool launched;
         private int stumbleSteps;
         private Vector3 stumbleFrom;
@@ -132,6 +133,7 @@ namespace PhysicsBattler.Units
             Stance.Hold = false;
             Stance.Drift = Vector3.zero;
             Stance.Urgency = 0f;
+            NeedsSpot = false;
         }
 
         /// <summary>
@@ -296,10 +298,18 @@ namespace PhysicsBattler.Units
             Knockback = Vector3.zero;
             StumbleVelocity = Vector3.zero;
             Stance.Drift = Vector3.zero;
+            Stance.Urgency = 0f;
             Stance.Hold = false;
             ClearRecoil();
+            ClearTimers();
             topple = toppleShift = Vector3.zero;
             flail = 0f;
+            Pose.Topple = Pose.ToppleShift = Vector3.zero;
+            Pose.Flail = 0f;
+            if (MainWeapon != null)
+            {
+                MainWeapon.ShowTrail(false);
+            }
             launched = launch;
             downCalm = 0f;
             impactsUntil.Clear();
@@ -320,14 +330,16 @@ namespace PhysicsBattler.Units
                 }
             }
 
+            // (The parts already move with what it was doing: only the rest is added.)
             float lift = launch ? LaunchLift * velocity.magnitude : 0f;
+            Vector3 added = velocity - carried;
             if (launch)
             {
-                PushBody(velocity, 0.9f, 0.85f, lift);
+                PushBody(added, 0.9f, 0.85f, lift);
             }
             else
             {
-                PushBody(velocity, 0.6f, 0.3f, 0f);
+                PushBody(added, 0.6f, 0.3f, 0f);
             }
 
             BalanceChanged?.Invoke(this, $"{(launch ? "launched" : "knocked down")} at {velocity.magnitude:0.00} m/s toward {Heading(velocity)}"
@@ -380,6 +392,10 @@ namespace PhysicsBattler.Units
             {
                 SetAuthority(null);
                 Authority.Apply(dt);
+                foreach (var part in Rig.Parts)
+                {
+                    preStep[(int)part.id] = part.body.linearVelocity;
+                }
             }
         }
 
@@ -391,12 +407,13 @@ namespace PhysicsBattler.Units
         /// </summary>
         private void FindImpacts()
         {
-            if (StateTime > 2.5f)
+            if (StateTime > 2.5f || !IsAlive)
             {
                 return;
             }
 
             float reach = 2.5f * Mathf.Max(1f, Body.SizeFactor);
+            float dt = Time.fixedDeltaTime;
             foreach (var mine in Rig.Parts)
             {
                 if (mine.body == null || mine.partCollider == null)
@@ -411,10 +428,10 @@ namespace PhysicsBattler.Units
                 }
 
                 Vector3 c = mine.body.worldCenterOfMass;
-                for (int u = 0; u < all.Count; u++)
+                for (int u = 0; u < all.Count && IsAlive; u++)
                 {
                     var other = all[u];
-                    if (other == this || other == knockedBy || !other.initialized || !other.IsAlive || (impactsUntil.TryGetValue(other, out float until) && LocalTime < until))
+                    if (!CanStrike(other))
                     {
                         continue;
                     }
@@ -433,32 +450,72 @@ namespace PhysicsBattler.Units
                             continue;
                         }
 
+                        // Touching, or about to within this step (a fast part moves several centimetres a step).
                         Vector3 q = theirs.partCollider.ClosestPoint(c);
                         Vector3 r = mine.partCollider.ClosestPoint(q);
-                        if ((q - r).sqrMagnitude > 0.04f * 0.04f)
+                        float gap = 0.04f + (v - PartVelocity(other, theirs)).magnitude * dt;
+                        if ((q - r).sqrMagnitude > gap * gap)
                         {
                             continue;
                         }
 
-                        Vector3 relative = v - (theirs.body.isKinematic ? other.Knockback + other.StumbleVelocity : theirs.body.linearVelocity);
-                        Vector3 n = q - c;
-                        n = n.sqrMagnitude > 1e-6f ? n.normalized : relative.normalized;
-                        float closing = Vector3.Dot(relative, n);
-                        if (closing < ImpactSpeed)
+                        if (TryImpact(mine, v, other, theirs, q))
                         {
-                            continue;
+                            break;
                         }
-
-                        BodyImpact(other, theirs.id, mine.id, q, closing, relative.normalized);
-                        break;
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// PhysX reported a part of this body touching something: another unit's part met at speed is
+        /// a body impact (the speed it had before the step, since the contact has already slowed it).
+        /// </summary>
+        private void ImpactFromCollision(BodyPart mine, Collision collision)
+        {
+            if (State != UnitState.Down || !IsAlive || StateTime > 2.5f || collision.collider == null)
+            {
+                return;
+            }
+
+            var theirs = collision.collider.GetComponentInParent<BodyPart>();
+            if (theirs == null || theirs.Owner == null || theirs.Owner == this || theirs.partCollider != collision.collider || !CanStrike(theirs.Owner))
+            {
+                return;
+            }
+
+            Vector3 v = preStep != null ? preStep[(int)mine.id] : mine.body.linearVelocity;
+            TryImpact(mine, v, theirs.Owner, theirs, theirs.partCollider.ClosestPoint(mine.body.worldCenterOfMass));
+        }
+
+        private bool CanStrike(UnitController other) =>
+            other != this && other != knockedBy && other.initialized && other.IsAlive
+            && !(impactsUntil.TryGetValue(other, out float until) && LocalTime < until);
+
+        private static Vector3 PartVelocity(UnitController unit, BodyPart part) =>
+            part.body.isKinematic ? unit.Knockback + unit.StumbleVelocity : part.body.linearVelocity;
+
+        private bool TryImpact(BodyPart mine, Vector3 v, UnitController other, BodyPart theirs, Vector3 point)
+        {
+            Vector3 relative = v - PartVelocity(other, theirs);
+            Vector3 n = point - mine.body.worldCenterOfMass;
+            n = n.sqrMagnitude > 1e-6f ? n.normalized : relative.normalized;
+            float closing = Vector3.Dot(relative, n);
+            if (closing < ImpactSpeed)
+            {
+                return false;
+            }
+
+            BodyImpact(other, theirs.id, mine.id, point, closing, relative.normalized);
+            return true;
+        }
+
         private void BodyImpact(UnitController other, PartId part, PartId mine, Vector3 point, float closing, Vector3 direction)
         {
+            // Once per pair, whichever of two thrown bodies finds it first.
             impactsUntil[other] = LocalTime + ImpactCooldown;
+            other.impactsUntil[this] = other.LocalTime + ImpactCooldown;
             float m1 = Body.Mass, m2 = other.Body.Mass;
             float j = closing * 0.5f * (m1 * m2 / Mathf.Max(1f, m1 + m2));
             float damage = ImpactDamage * j * DamageRules.PartMultiplier(part);
@@ -515,8 +572,10 @@ namespace PhysicsBattler.Units
             transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
             facingYaw = yaw;
             Stance.Plant(position, yaw);
+            hasLastRoot = false;
             Stance.Hold = true;
             Stance.Drift = Vector3.zero;
+            ClearTimers();
             lying.Capture(Rig);
             getUp.HoldsMain = MainWeapon != null;
             getUp.HoldsOff = OffWeapon != null;
@@ -575,10 +634,24 @@ namespace PhysicsBattler.Units
                 Authority.Set(BodyRegion.Legs, AuthorityLevel.Kinematic, 1f);
             }
 
-            Authority.Set(BodyRegion.Torso, AuthorityLevel.Pinned, Mathf.Lerp(0.15f, profile.torsoPin, ramp));
-            Authority.Set(BodyRegion.Head, AuthorityLevel.Pinned, Mathf.Lerp(0.15f, profile.torsoPin, ramp));
-            Authority.Set(BodyRegion.ArmL, AuthorityLevel.Pinned, Mathf.Lerp(0.15f, profile.armPin, ramp));
-            Authority.Set(BodyRegion.ArmR, AuthorityLevel.Pinned, Mathf.Lerp(0.15f, profile.armPin, ramp));
+            // While the pins are still weak the joints keep their anatomical limits (a head or arm
+            // held this loosely could otherwise flop through impossible angles).
+            bool weak = ramp < 0.6f;
+            Authority.Set(BodyRegion.Torso, AuthorityLevel.Pinned, Mathf.Lerp(0.15f, profile.torsoPin, ramp), weak);
+            Authority.Set(BodyRegion.Head, AuthorityLevel.Pinned, Mathf.Lerp(0.15f, profile.torsoPin, ramp), weak);
+            Authority.Set(BodyRegion.ArmL, AuthorityLevel.Pinned, Mathf.Lerp(0.15f, profile.armPin, ramp), weak);
+            Authority.Set(BodyRegion.ArmR, AuthorityLevel.Pinned, Mathf.Lerp(0.15f, profile.armPin, ramp), weak);
+        }
+
+        /// <summary>Hit recovery and hit stop don't run while down: cleared, so the unit isn't limp or frozen once up.</summary>
+        private void ClearTimers()
+        {
+            for (int r = 0; r < recoverLeft.Length; r++)
+            {
+                recoverLeft[r] = 0f;
+            }
+
+            HitStop = 0f;
         }
 
         private void DropBlock()
