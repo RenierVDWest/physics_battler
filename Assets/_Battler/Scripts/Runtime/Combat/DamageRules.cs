@@ -33,7 +33,10 @@ namespace PhysicsBattler.Combat
 
         public Reaction Reaction;
 
-        /// <summary>The blow ends here. Every body and shield stops it (the weapon never passes through a body); <see cref="MomentumLeft"/> is 0.</summary>
+        /// <summary>
+        /// The blow ends here (a body too heavy to cleave through, or a shield); otherwise it carries
+        /// on with <see cref="MomentumLeft"/> of its speed, and the struck body is shoved out of its way.
+        /// </summary>
         public bool StopsSwing;
         public float MomentumLeft;
 
@@ -48,8 +51,18 @@ namespace PhysicsBattler.Combat
     /// </summary>
     public static class DamageRules
     {
-        /// <summary>Weapon speed (m/s) at which damage is the weapon's own figure.</summary>
-        public const float ReferenceSpeed = 6f;
+        /// <summary>Weapon speed (m/s) at which damage is the weapon's own figure (a full swing through contact).</summary>
+        public const float ReferenceSpeed = 15f;
+
+        /// <summary>
+        /// A swing carries on through a body if it keeps at least this share of its speed: what is
+        /// left is 1 - struck mass / (struck mass + attacker mass). So a large unit cleaves through
+        /// small and medium ones, a medium through a small one; equal weights stop each other.
+        /// </summary>
+        public const float CleaveShare = 0.55f;
+
+        /// <summary>Poise lost per N·s of impulse: a full club swing from a large unit breaks a medium one's poise, a sword cut makes it flinch at most.</summary>
+        public const float PoiseScale = 0.5f;
 
         /// <summary>Share of the attacker's mass in the weapon arm (upper arm, forearm, hand).</summary>
         public const float ArmMassShare = 0.058f;
@@ -142,7 +155,7 @@ namespace PhysicsBattler.Combat
             {
                 r.Blocked = true;
                 r.Damage = 0f;
-                r.PoiseDamage = 0.5f * momentum;   // a block still costs poise
+                r.PoiseDamage = 0.6f * PoiseScale * momentum;   // a block still costs poise
                 r.Impulse = dir * (0.8f * momentum);
                 r.PartShare = 0.7f;               // the shield arm takes most of it
                 r.StopsSwing = true;
@@ -151,14 +164,14 @@ namespace PhysicsBattler.Combat
             {
                 r.Damage = baseDamage * speedFactor * Mathf.Clamp01(momentumFactor) * PartMultiplier(part);
                 r.Impulse = dir * (momentum * Transfer(with));
-                r.PoiseDamage = r.Impulse.magnitude;
+                r.PoiseDamage = PoiseScale * r.Impulse.magnitude;
                 r.PartShare = PartShare(part);
-                // A weapon never passes through a body: the blow stops where it meets one. How
-                // much lighter the struck body is shows in how far it is thrown (knock-back).
-                r.StopsSwing = true;
+                // A swing heavy enough for the body it meets carries on through it (the body is shoved
+                // out of the arc, never passed through); otherwise it stops where it met it.
+                float keep = 1f - struckMass / Mathf.Max(1f, struckMass + attackerMass);
+                r.StopsSwing = keep < CleaveShare;
+                r.MomentumLeft = r.StopsSwing ? 0f : keep * Mathf.Clamp01(momentumFactor);
             }
-
-            r.MomentumLeft = 0f;
 
             if (health - r.Damage <= 0f)
             {

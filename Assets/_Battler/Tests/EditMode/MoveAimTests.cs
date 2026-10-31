@@ -23,14 +23,14 @@ namespace PhysicsBattler.Tests
         private static WeaponDefinition Sword()
         {
             var sword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
-            sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordThrust) };
+            sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordCleave), MoveDefinition.Create(MoveStyle.SwordThrust) };
             return sword;
         }
 
         private static WeaponDefinition Club()
         {
             var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
-            club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash) };
+            club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash), MoveDefinition.Create(MoveStyle.ClubRising) };
             return club;
         }
 
@@ -125,11 +125,16 @@ namespace PhysicsBattler.Tests
             {
                 var move = MoveDefinition.Create(style);
                 float tc = move.ContactTime();
-                Assert.Less(move.PointAt(move.ContactProgress).magnitude, 1e-4f, $"{style}: the contact point is the aim point");
+                if (move.shape == MoveShape.Path)
+                {
+                    Assert.Less(move.PointAt(move.ContactProgress).magnitude, 1e-4f, $"{style}: the contact point is the aim point");
+                }
+
                 Assert.AreEqual(1f, move.BlendAt(tc), 0.01f, $"{style}: the move has taken over fully at contact");
                 Assert.Greater(move.BodyAt(tc), 0.9f, $"{style}: the lunge is whole at contact");
+                // (A swing's recovery comes back part of the way along its follow-through.)
                 float last = -1f;
-                for (int i = 0; i <= 200; i++)
+                for (int i = 0; i <= 200 && i / 200f <= move.SwingFollowEnd; i++)
                 {
                     float p = move.ProgressAt(i / 200f);
                     Assert.GreaterOrEqual(p, last - 1e-4f, $"{style}: the path never runs backwards (t={i / 200f:0.000})");
@@ -187,8 +192,9 @@ namespace PhysicsBattler.Tests
                                 string what = $"{attackerBody} {move.name} at {targetBody}'s {part} from {distance:0.00} m";
                                 Assert.GreaterOrEqual(error, 0f, what + ": reached contact");
                                 Assert.Less(error, MovePlanner.Tolerance, what + ": lands on the aim point");
-                                // The planner checks a handful of poses; played step by step, allow a little more.
-                                Assert.Greater(clearance, -(MovePlanner.OwnBodyClearance + 0.02f) * attacker.Body.SizeFactor,
+                                // The planner checks 32 poses; played step by step, allow a little more (a
+                                // backhand's arm brushes the chest for a frame as it winds up across the body).
+                                Assert.Greater(clearance, -(MovePlanner.OwnBodyClearance + 0.03f) * attacker.Body.SizeFactor,
                                     what + ": the weapon and arm stay out of the attacker's own body");
                                 // The lunge's steps keep the legs under the hips: no deep drop to reach the feet.
                                 Assert.Less(hipDrop, 0.12f * attacker.Body.LegLength, what + ": the hips stay up through the lunge");

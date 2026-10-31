@@ -81,9 +81,52 @@ namespace PhysicsBattler.Combat
         /// <summary>A point on the path (world), at a progress along it.</summary>
         public Vector3 PathPoint(float progress)
         {
+            if (Path != null && Path.Length > 1)
+            {
+                return MoveDefinition.CatmullRom(Path, progress);
+            }
+
             Vector3 p = Move.PointAt(progress);
             return Aim + Frame * new Vector3(p.x * WidthScale, p.y * Scale, p.z * Scale);
         }
+
+        // ---- Swing and Thrust shapes: the path laid out for this blow (SwingPath) ---------------
+
+        /// <summary>The striking part's path (world), evenly in the move's travel; null for the Path shape.</summary>
+        public Vector3[] Path;
+
+        /// <summary>Where the swing turns about at each path point (world): the body's pivot as the body moves.</summary>
+        public Vector3[] Pivots;
+
+        /// <summary>The swing plane's normal (world): the weapon turns about it. Thrusts: unused.</summary>
+        public Vector3 PlaneNormal = Vector3.up;
+
+        /// <summary>The line a thrust is driven along (world, unit).</summary>
+        public Vector3 ThrustLine = Vector3.forward;
+
+        /// <summary>The weapon's reach from the pivot at full stretch (metres).</summary>
+        public float FullReach;
+
+        /// <summary>How fast the blow plays (1; a cleave through a body slows it, and it picks up again).</summary>
+        public float TimeScale = 1f;
+
+        public bool Generated => Path != null && Path.Length > 1;
+
+        /// <summary>What the posed swing did (for the log): its speed through contact and at its fastest (m/s), how far past the aim point it carried (metres) and the arc it swept from the release to the end of the follow-through (degrees).</summary>
+        public float ContactSpeed, PeakSpeed, Depth, Arc;
+        public Vector3 LastRadial;
+        public float LastProgress, LastDeviation;
+        public bool HasLastRadial;
+
+        public Vector3 PivotAt(float progress) => Pivots != null && Pivots.Length > 1 ? MoveDefinition.CatmullRom(Pivots, progress) : Aim;
+
+        /// <summary>The hips' and the chest's turn now (degrees, + right), the lean (degrees forward), the crouch (share of the leg), the drive past contact (metres) and the wrist's lag (degrees).</summary>
+        public float HipTurn => Move.HipTurnAt(T);
+        public float ChestTurn => Move.ChestTurnAt(T);
+        public float Lean => Move.LeanAt(T);
+        public float Crouch => Move.CrouchAt(T);
+        public float Drive => Move.DriveAt(T) * Scale;
+        public float Lag => Move.LagAt(T);
 
         public MoveState CopyAt(float normalizedTime)
         {

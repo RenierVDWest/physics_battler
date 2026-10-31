@@ -9,11 +9,40 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 3, physical hits
+## Current state: milestone 3, physical hits, with big swings
 
 An 8×8 board with three units a side: Small, Medium and Large. Small and large carry clubs, the
 medium ones a sword and shield. They close in on the nearest enemy and strike at its body parts:
 head, neck, chest, belly, elbows or knees. What the weapon meets takes the hit.
+
+### Big swings (before milestone 4)
+
+The attacks were pokes: short point paths that stopped at the target's skin, the arm bent at
+contact, 3–10 m/s. They are now swings, built from a handful of numbers per move
+(`MoveShape.Swing` and `Thrust`; the plan is in the "Big Swings" doc):
+
+- **An arc about a pivot in the body**, in a tilted swing plane through the aim point: 160–220° of
+  wind-up behind the shoulder or head, 110–160° of follow-through past the target, 280–380° in
+  all. The weapon points out from the pivot at full reach, trailing the hand as it accelerates and
+  whipping through at contact.
+- **Through the target, not to it.** The unit steps in until the aim point is closer than its full
+  reach, so the striking part arrives still reaching out and carries on past the aim point.
+- **The whole body behind it.** The hips turn ahead of the weapon and the chest between them
+  (200° or more of chest turn in the big swings). The body crouches and rocks back in the wind-up,
+  then rises and leans 20–40° into the blow. Every blow steps into it, with a passing step (the rear
+  foot through to the front) for the cleave, the haymaker and the thrust.
+- **Timed like a real cut.** A slow wind-up, a tense hold, a strike that accelerates and then runs
+  flat out through contact at 12–19 m/s, a braking follow-through, and a calm recovery that comes
+  back round the front. The strike is much the fastest part.
+- **Seven moves.** Sword: forehand cut, backhand cut, a flat cleave (new), and a run-through thrust
+  that drives the point 60 cm past the aim point. Club: the haymaker, an overhead smash from
+  behind the back, and a rising blow from low behind (new).
+- **Cleaving.** A swing keeps 1 − struck mass ÷ (struck mass + attacker mass) of its speed through
+  a body. If that is at least 55% it carries on, slowed, and the body is shoved out of the arc. So
+  a large unit cleaves through small and medium units, and a medium through a small one; equal
+  weights and shields stop the swing.
+- **G** plays every move in turn against a dummy, at a third of the speed and then at full speed.
+  Heavy hits shake the camera a little (panel toggle). Swings leave a short trail.
 
 ### Milestone 3: hits
 
@@ -22,9 +51,10 @@ head, neck, chest, belly, elbows or knees. What the weapon meets takes the hit.
   first body part or shield it meets is struck, whoever it belongs to: the part aimed at, another
   part of the target, an ally (friendly fire does full damage) or someone else standing in the
   way. A touch slower than the weapon's *min hit speed* (2 m/s at the striking part) is not a hit.
-- **The weapon stops at the body.** It never passes through: the blow is wound back to the moment
-  it met the body, held there for the hit stop, then bounces back along its own path as it fades
-  out. The weapon arm stays posed throughout (nothing goes loose, so the weapon can't spin).
+- **The weapon never passes through a body.** A body too heavy to cleave through stops the blow: it
+  is wound back to the moment it met the body, held there for the hit stop, then bounces back
+  along its own path as it fades out. A lighter body is shoved out of the arc and the swing goes
+  on. The weapon arm stays posed throughout (nothing goes loose, so the weapon can't spin).
 - **Weight matters.** Damage goes with the weapon's speed and the part struck (the head hurts most,
   hands least). The impulse is the weapon's mass at the wielder's size, plus some arm, times its
   speed. A club's weight lands; an edge or point cuts in and passes on less. The same blow throws
@@ -92,7 +122,9 @@ and the real units spawn on the markers.
    `Assets/_Battler/Scenes/Battle` when done. Setup version 10 adds the weapons and a lineup of unit markers to your
    Battle scene (only if it has none). Version 11 refreshes the ready-made moves and, if your lineup is still the
    default one, rearranges team B so each unit faces a different size. Version 13 gives the small and large
-   profiles their health and poise and each weapon its damage and hit radius (unless you changed them). Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
+   profiles their health and poise and each weapon its damage and hit radius (unless you changed them). Version 14
+   rebuilds the ready-made moves as big swings (moves still on the old hand-drawn path) and adds the sword cleave and
+   the club's rising blow to the weapons. Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
 3. Press Play. Commit the `.meta` files Unity creates for the new scripts and assets.
 
 ## Battle scene controls
@@ -102,6 +134,7 @@ and the real units spawn on the markers.
 | R | Reset the board (respawn from the markers) |
 | F | Fighting on or off (off: they only stand and face each other) |
 | B | Bystander test: fighting stops, a sword unit strikes at an enemy with a third unit stood in the way |
+| G | Move gallery: every move in turn against a dummy, at a third of the speed and then at full speed (G again stops) |
 | T | Turn everyone around (and back): makes them step and turn on the spot |
 | P / . | Pause / step one physics frame |
 | M | Mark the playtest log |
@@ -180,14 +213,19 @@ support point, or the blow's lunge → pelvis lowered only if a foot can't be re
 arms: the weapon in guard, or on the blow's path (two-bone arm IK, the spine bending if the arm can't reach), the
 shield in guard → the head looks at the aim point.
 
-A **move** (`MoveDefinition`, ported from Hexamus's attack motions) is a path for the weapon's striking part in an
-aim frame whose origin is the body part aimed at, plus speed, blend and body curves. One move works at any distance,
-height and size. The **planner** (`MovePlanner`) locks the aim, works out the lunge and keeps only blows that land.
+A **move** (`MoveDefinition`) is a swing or a thrust described by a few numbers: the swing plane's tilt, the arc's
+wind-up and follow-through angles, how far it carries past the aim point, the pivot, the phase timings, and the
+body's turn, lean, crouch and footwork (`MoveTimeline` works out the phases). For each blow, `SwingPath` poses the
+attacker at contact to find the pivot, then lays the striking part's path out in the world (the arc, or the thrust's
+line) through the aim point, the pivot moving with the body. The old hand-drawn path in an aim frame is kept as the
+Path shape for custom moves. The **planner** (`MovePlanner`) locks the aim, works out the lunge and keeps only blows
+that land and stay clear of the attacker's own body.
 
 **Hits** (`UnitCombat`, `DamageRules`): each physics step of a blow's active window, the striking length of the
 physical weapon (most of a blade, a club's head end) is swept from last step's position as a capsule. Body parts and
 shields it overlaps are struck in the order the blade meets them (nearest the hand first, since the blade turns about
-the hand); the first one stops the blow, which is wound back to the start of that stretch. `DamageRules.Resolve`
+the hand); between steps a swing's weapon is swept round its arc, not along the chord. A body too heavy to cleave
+stops the blow, which is wound back to the start of that stretch; a lighter one is shoved aside and the swing slows. `DamageRules.Resolve`
 turns a contact into damage, poise damage, an impulse and a reaction. The struck unit's recoil springs (hips, upper
 body, head) are kicked by the blow and feed the pose (`PosePipeline.React*`). The struck part and the part it hangs
 from take some impulse physically (at most 5 m/s on their own) while held loosely, and the rest becomes knock-back
@@ -219,11 +257,13 @@ Tune in the data assets, not on the prefabs (setup rebuilds prefabs). Changes ma
 - The combat styles also set the sandbox fighting: `attackInterval`, `engageDistance` (chest to chest at medium
   size) and `walkSpeed`; and blocking: `blockChance` and `reactionTime`.
 - `Data/Units/UP_*` (unit profiles): `maxHealth`, `maxPoise`, `poiseRegen`.
-- `Data/Weapons/WD_*` (weapons): `damage` (at 6 m/s to the chest), `minHitSpeed`, `sweepRadius` (the striking part's
+- `Data/Weapons/WD_*` (weapons): `damage` (at 15 m/s to the chest), `minHitSpeed`, `sweepRadius` (the striking part's
   thickness for hit detection). A move's `hitStop` sets the base hit stop.
-- `Data/Moves/MD_*` (moves): the striking part's path (aim frame, medium size), speed, blend and body curves,
-  `reach` (chest to aim point at contact), `maxLunge`, twist, lean, which body parts it may aim at, how firmly the
-  weapon arm is pinned. Edit while the game runs; the next blow uses the changes.
+- `Data/Moves/MD_*` (moves, Swing and Thrust shapes): the swing plane's tilt, forehand or backhand, the wind-up and
+  follow-through angles, `through` (how far past the aim point it carries), the pivot, the wind-up radius and the
+  wrist's lag; the timing (wind-up, hold, strike, recovery; the follow-through follows from the speed); the body's
+  turn back and through, lean, crouch, rock-back, passing step and drive; `maxLunge`, which body parts it may aim at.
+  Edit while the game runs; the next blow uses the changes. Press G to see them all.
 - `Data/Weapons/WD_*` (weapons): the guard (where the grip is held and which way it points) and the weapon's moves.
   Its shape (length, mass, strike points) comes from `weapons.json` and is refreshed by setup.
 - `Data/Units/UP_Small`, `UP_Medium`, `UP_Large` (unit profiles): which body, which style, turn speed, how strongly
@@ -250,6 +290,8 @@ dotnet build Runtime.csproj -p:LegacyInput=true
 dotnet build Tests.csproj && dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll smoke /tmp/smoke   # dry run, writes a playtest log
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim [tiles]         # every move at every part, every size pair
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll swings [/tmp/gallery] # every move's arc, speed, depth, turn, steps
+python3 ../Playtest/swings.py /tmp/gallery/PlaytestLogs               # review sheets of the gallery's swings
 ```
 
 The stubs only cover the API this project uses, and the dry run has no collisions or joints; Unity is the final word.

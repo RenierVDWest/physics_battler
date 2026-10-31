@@ -329,7 +329,8 @@ namespace PhysicsBattler.Diagnostics
             }
 
             string physical = move.PhysicalClosest >= 0f ? $"the physical weapon passed {Cm(move.PhysicalClosest)} cm from the aim point at its closest" : "no physical weapon";
-            Event(track, "attack", $"{move.Move.name.Replace("MD_", "")} done: {physical}");
+            string swing = move.Generated ? $"; swing: {move.ContactSpeed:0.0} m/s at contact, {move.PeakSpeed:0.0} at its fastest, {Cm(move.Depth)} cm past the aim point, a {move.Arc:0}° arc" : "";
+            Event(track, "attack", $"{move.Move.name.Replace("MD_", "")} done: {physical}{swing}");
             track?.NotePhysical(move.PhysicalClosest);
         }
 
@@ -339,7 +340,7 @@ namespace PhysicsBattler.Diagnostics
             string what = hit.Shield
                 ? $"blocked by {hit.Struck.name}'s shield ({r.PoiseDamage:0} poise)"
                 : $"{r.Damage:0.0} damage, {r.PoiseDamage:0} poise, {r.Reaction.ToString().ToLowerInvariant()}";
-            string swing = r.StopsSwing ? "the swing stopped" : $"bowled through ({r.MomentumLeft * 100f:0}% of the swing left)";   // (every hit stops it now)
+            string swing = r.StopsSwing ? "the swing stopped" : $"cleaved through ({r.MomentumLeft * 100f:0}% of the swing left)";
             string line = $"{hit.Move.Move.name.Replace("MD_", "")} struck {hit.Struck.name}'s {hit.Part} at {hit.Speed:0.0} m/s: {what}; "
                           + $"impulse {r.Impulse.magnitude:0.0} N·s ({r.PartShare * 100f:0}% into the part); {swing}; {hit.Kind}";
             var track = TrackOf(hit.Attacker);

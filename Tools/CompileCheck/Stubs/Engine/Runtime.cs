@@ -27,6 +27,7 @@ namespace UnityEngine
         public static float fixedDeltaTime { get; set; } = 1f / 60f;
         public static float timeScale { get; set; } = 1f;
         public static float unscaledDeltaTime { get; set; } = 1f / 60f;
+        public static float unscaledTime { get; set; }
         public static int frameCount { get; set; }
     }
 
@@ -123,6 +124,19 @@ namespace UnityEngine
     }
 
     public class MeshRenderer : Renderer { }
+
+    public class TrailRenderer : Renderer
+    {
+        public float time { get; set; } = 5f;
+        public float startWidth { get; set; } = 1f;
+        public float endWidth { get; set; } = 1f;
+        public Color startColor { get; set; }
+        public Color endColor { get; set; }
+        public bool emitting { get; set; } = true;
+        public float minVertexDistance { get; set; } = 0.1f;
+        public UnityEngine.Rendering.ShadowCastingMode shadowCastingMode { get; set; }
+        public void Clear() { }
+    }
 
     public enum CameraClearFlags { Skybox = 1, Color = 2, SolidColor = 2, Depth = 3, Nothing = 4 }
 
@@ -353,4 +367,10 @@ namespace Unity.Collections
         public T[] ToArray() => new T[0];
         public int Length => 0;
     }
+}
+
+
+namespace UnityEngine.Rendering
+{
+    public enum ShadowCastingMode { Off = 0, On = 1, TwoSided = 2, ShadowsOnly = 3 }
 }

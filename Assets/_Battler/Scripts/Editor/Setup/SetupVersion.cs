@@ -34,8 +34,10 @@ namespace PhysicsBattler.Editor.Setup
         /// 12 = The small body rebuilt 1.4 times larger: the unit prefabs are rebuilt from the new rig.
         /// 13 = Milestone 3, physical hits: unit profiles get health and poise by size, weapons their
         ///     damage and hit radius.
+        /// 14 = Big swings: the ready-made moves rebuilt as swings and a thrust (Swing and Thrust
+        ///     shapes), the sword cleave and the club's rising blow added to the weapons.
         /// </summary>
-        public const int Current = 13;
+        public const int Current = 14;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

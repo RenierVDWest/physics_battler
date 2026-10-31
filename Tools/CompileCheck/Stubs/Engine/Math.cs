@@ -13,6 +13,7 @@ namespace UnityEngine
         public const float Infinity = float.PositiveInfinity;
 
         public static float Sin(float f) => (float)Math.Sin(f);
+        public static float PerlinNoise(float x, float y) => 0.5f + 0.5f * (float)Math.Sin(x * 1.7 + y * 3.1) * (float)Math.Cos(x * 0.9 - y * 1.3);
         public static float Cos(float f) => (float)Math.Cos(f);
         public static float Tan(float f) => (float)Math.Tan(f);
         public static float Asin(float f) => (float)Math.Asin(f);
@@ -176,6 +177,20 @@ namespace UnityEngine
         public static Vector3 Scale(Vector3 a, Vector3 b) => new Vector3(a.x * b.x, a.y * b.y, a.z * b.z);
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t) => a + (b - a) * Mathf.Clamp01(t);
         public static Vector3 LerpUnclamped(Vector3 a, Vector3 b, float t) => a + (b - a) * t;
+        /// <summary>As Unity's: directions turned along the arc between them, lengths blended.</summary>
+        public static Vector3 Slerp(Vector3 a, Vector3 b, float t)
+        {
+            t = Mathf.Clamp01(t);
+            float la = a.magnitude, lb = b.magnitude;
+            if (la < 1e-6f || lb < 1e-6f) return Lerp(a, b, t);
+            Vector3 ua = a / la, ub = b / lb;
+            float dot = Mathf.Clamp(Dot(ua, ub), -1f, 1f);
+            float angle = (float)System.Math.Acos(dot);
+            if (angle < 1e-5f) return Lerp(a, b, t);
+            float s = (float)System.Math.Sin(angle);
+            Vector3 dir = ua * ((float)System.Math.Sin((1f - t) * angle) / s) + ub * ((float)System.Math.Sin(t * angle) / s);
+            return dir * (la + (lb - la) * t);
+        }
         public static Vector3 Normalize(Vector3 v) => v.normalized;
         public static Vector3 Min(Vector3 a, Vector3 b) => new Vector3(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Min(a.z, b.z));
         public static Vector3 Max(Vector3 a, Vector3 b) => new Vector3(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y), Mathf.Max(a.z, b.z));

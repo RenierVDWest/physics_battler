@@ -44,9 +44,9 @@ internal static class Smoke
         // As the default lineup: team A small, medium, large; team B medium, large, small (two rows apart).
         var tiles = new[] { new[] { new Tile(2, 2), new Tile(3, 2), new Tile(4, 2) }, new[] { new Tile(4, 4), new Tile(2, 4), new Tile(3, 4) } };
         var sword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
-        sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordThrust) };
+        sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordCleave), MoveDefinition.Create(MoveStyle.SwordThrust) };
         var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
-        club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash) };
+        club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash), MoveDefinition.Create(MoveStyle.ClubRising) };
         var shield = WeaponDefinition.CreateDefault(WeaponKind.Shield);
         var styles = new Dictionary<string, CombatStyle>();
         for (int team = 0; team < 2; team++)

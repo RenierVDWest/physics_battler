@@ -132,6 +132,13 @@ namespace PhysicsBattler.Motion
             return d.magnitude;
         }
 
+        /// <summary>
+        /// How the unit is being moved by something else (a knock-back, m/s): the feet hurry after
+        /// it (quicker steps, no pause between them) and step to where the body will be, not where
+        /// it is.
+        /// </summary>
+        public Vector3 Drift { get; set; }
+
         public void Update(Vector3 rootPosition, float rootYaw, float dt)
         {
             for (int f = 0; f < 2; f++)
@@ -147,7 +154,8 @@ namespace PhysicsBattler.Motion
                 return;
             }
 
-            if (restAfterStep > 0f)
+            float hurry = Mathf.Clamp01(Drift.magnitude / 1.5f);
+            if (restAfterStep > 0f && hurry < 0.2f)
             {
                 restAfterStep -= dt;
                 return;
@@ -170,7 +178,9 @@ namespace PhysicsBattler.Motion
 
             if (worst >= 0)
             {
-                Begin(worst, HomeWorld(worst, rootPosition, rootYaw), rootYaw + HomeYawLocal(worst));
+                float seconds = duration * (1f - 0.45f * hurry);
+                Begin(worst, HomeWorld(worst, rootPosition + Drift * seconds, rootYaw), rootYaw + HomeYawLocal(worst));
+                feet[worst].duration = seconds;
                 StepsTaken++;
                 return;
             }

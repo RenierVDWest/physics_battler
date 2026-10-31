@@ -34,14 +34,20 @@ namespace PhysicsBattler.Tests
         }
 
         [Test]
-        public void EveryBodyStopsTheSwing()
+        public void ASwingCleavesThroughALighterBodyAndStopsOnAnEqualOne()
         {
-            foreach (float mass in new[] { 38f, 80f, 280f })
+            var light = Blow(80f, 38f, PartId.Chest);
+            Assert.IsFalse(light.StopsSwing, "a medium swing cleaves through a small body");
+            Assert.Greater(light.MomentumLeft, DamageRules.CleaveShare - 1e-4f);
+            Assert.Less(light.MomentumLeft, 1f, "and carries on slowed");
+            foreach (float mass in new[] { 80f, 280f })
             {
                 var hit = Blow(80f, mass, PartId.Chest);
-                Assert.IsTrue(hit.StopsSwing, $"a {mass} kg body stops it: the weapon never passes through");
+                Assert.IsTrue(hit.StopsSwing, $"a {mass} kg body stops it");
                 Assert.AreEqual(0f, hit.MomentumLeft);
             }
+
+            Assert.IsFalse(Blow(280f, 80f, PartId.Chest).StopsSwing, "a large unit cleaves through a medium one");
         }
 
         [Test]
@@ -70,7 +76,7 @@ namespace PhysicsBattler.Tests
                 DamageRules.Resolve(sword, StrikeWith.Edge, 1f, speed, Vector3.forward, 80f, 80f, PartId.Chest, false, 1f, health, poise, 45f).Reaction;
 
             Assert.AreEqual(Reaction.Recoil, At(3f, 100f, 45f));
-            Assert.AreEqual(Reaction.Flinch, At(12f, 100f, 45f));
+            Assert.AreEqual(Reaction.Flinch, At(20f, 100f, 45f));
             Assert.AreEqual(Reaction.Stagger, At(6f, 100f, 5f));
             Assert.AreEqual(Reaction.Killed, At(6f, 5f, 45f));
         }
@@ -223,33 +229,49 @@ namespace PhysicsBattler.Tests
             }
         }
 
-        /// <summary>A light body in the way stops the blow too, and is thrown further than a heavy one would be.</summary>
+        /// <summary>
+        /// A light body in the way is cleaved through: the swing carries on, slowed, and the body is
+        /// thrown aside out of the arc, much harder than a body heavy enough to stop the swing.
+        /// </summary>
         [Test]
-        public void ALightBystanderStopsTheBlowAndIsThrownFurther()
+        public void ALightBystanderIsCleavedThroughAndThrownAside()
         {
-            float Knock(string body)
+            (List<HitReport> hits, float knock, bool targetHurt) Run(string body)
             {
                 var (attacker, target, _) = Duel("Small");
                 var bystander = Build(body, new Vector3(3f, 0f, 3f), 180f, 1);
                 var everyone = new[] { attacker, target, bystander };
                 try
                 {
-                    float knock = -1f;
-                    float targetHealth = target.Health;
+                    float knock = 0f, targetHealth = target.Health;
                     var state = BlowThroughState(attacker, target, bystander, AimPart.Belly, 0.3f, out var at);
-                    var hits = Play(attacker, state, everyone, h =>
+                    var hits = new List<HitReport>();
+                    void OnHit(HitReport h)
                     {
-                        if (h.Struck == bystander && knock < 0f)
+                        if (h.Attacker == attacker)
                         {
-                            knock = bystander.Knockback.magnitude;
+                            hits.Add(h);
                         }
-                    });
+                    }
+
+                    UnitController.Hit += OnHit;
+                    try
+                    {
+                        Assert.IsTrue(attacker.StartMove(state));
+                        for (int i = 0; i < 400 && attacker.IsAttacking; i++)
+                        {
+                            Step(everyone);
+                            knock = Mathf.Max(knock, bystander.Knockback.magnitude);
+                        }
+                    }
+                    finally
+                    {
+                        UnitController.Hit -= OnHit;
+                    }
+
                     Assert.Greater(hits.Count, 0, "the blow strikes something");
-                    Assert.IsTrue(hits[0].Struck == bystander, $"the {body} unit in the way is struck (stood at {at}; struck {hits[0].Struck.name}'s {hits[0].Part})");
-                    Assert.IsTrue(hits[0].Result.StopsSwing, "and stops the blow");
-                    Assert.AreEqual(1, hits.Count, "nothing else is struck");
-                    Assert.AreEqual(targetHealth, target.Health, "the target is untouched");
-                    return knock;
+                    Assert.IsTrue(hits[0].Struck == bystander, $"the {body} unit in the way is struck first (stood at {at}; struck {hits[0].Struck.name}'s {hits[0].Part})");
+                    return (hits, knock, target.Health < targetHealth);
                 }
                 finally
                 {
@@ -257,8 +279,15 @@ namespace PhysicsBattler.Tests
                 }
             }
 
-            float small = Knock("Small"), medium = Knock("Medium");
-            Assert.Greater(small, 1.3f * medium, $"the small body is thrown faster ({small:0.00} against {medium:0.00} m/s)");
+            var small = Run("Small");
+            Assert.IsFalse(small.hits[0].Result.StopsSwing, "a medium swing cleaves through a small body");
+            Assert.Greater(small.knock, 1.5f, $"and throws it aside ({small.knock:0.00} m/s)");
+
+            var medium = Run("Medium");
+            Assert.IsTrue(medium.hits[0].Result.StopsSwing, "a medium body stops a medium swing");
+            Assert.AreEqual(1, medium.hits.Count, "nothing behind it is struck");
+            Assert.IsFalse(medium.targetHurt, "the target is untouched");
+            Assert.Greater(small.knock, 1.5f * medium.knock, $"the cleaved body is thrown much harder ({small.knock:0.00} against {medium.knock:0.00} m/s)");
         }
 
         /// <summary>The weapon stops where it meets the body and bounces back: it doesn't carry on through.</summary>
@@ -336,29 +365,43 @@ namespace PhysicsBattler.Tests
                 Assert.IsNotNull(state);
                 HitReport first = null;
                 Vector3 chestBefore = Vector3.zero;
-                Play(attacker, state, everyone, h =>
+                void OnHit(HitReport h)
                 {
-                    if (first == null)
+                    if (first == null && h.Attacker == attacker)
                     {
                         first = h;
                         chestBefore = target.Anim.Part(PartId.Chest).position;
                     }
-                });
-                Assert.IsNotNull(first, "the blow lands");
-                Assert.IsTrue(first.Struck == target);
-
-                // Over the next 0.3 s the chest is carried with the blow and the upper body bends.
-                Vector3 dir = first.Result.Impulse;
-                dir.y = 0f;
-                dir.Normalize();
-                float moved = 0f, bend = 0f;
-                for (int i = 0; i < 18; i++)
-                {
-                    Step(everyone);
-                    moved = Mathf.Max(moved, Vector3.Dot(target.Anim.Part(PartId.Chest).position - chestBefore, dir));
-                    bend = Mathf.Max(bend, target.Pose.ReactLean.magnitude * Mathf.Rad2Deg);
                 }
 
+                // Over the 0.3 s after the hit the chest is carried with the blow and the upper body bends.
+                float moved = 0f, bend = 0f;
+                int after = 0;
+                UnitController.Hit += OnHit;
+                try
+                {
+                    Assert.IsTrue(attacker.StartMove(state));
+                    for (int i = 0; i < 400 && after < 18; i++)
+                    {
+                        Step(everyone);
+                        if (first != null)
+                        {
+                            after++;
+                            Vector3 dir = first.Result.Impulse;
+                            dir.y = 0f;
+                            dir.Normalize();
+                            moved = Mathf.Max(moved, Vector3.Dot(target.Anim.Part(PartId.Chest).position - chestBefore, dir));
+                            bend = Mathf.Max(bend, target.Pose.ReactLean.magnitude * Mathf.Rad2Deg);
+                        }
+                    }
+                }
+                finally
+                {
+                    UnitController.Hit -= OnHit;
+                }
+
+                Assert.IsNotNull(first, "the blow lands");
+                Assert.IsTrue(first.Struck == target);
                 Assert.Greater(moved, 0.12f, $"the chest is thrown with the blow ({moved * 100f:0} cm)");
                 Assert.Greater(bend, 12f, $"the upper body bends away ({bend:0}°)");
                 Assert.Greater(target.Knockback.magnitude + moved, 0f);

@@ -88,11 +88,27 @@ namespace PhysicsBattler.Sandbox
             Spawn();
         }
 
+        private void OnEnable()
+        {
+            UnitController.Hit += OnHit;
+        }
+
         private void OnDisable()
         {
+            UnitController.Hit -= OnHit;
             if (Application.isPlaying)
             {
                 Time.timeScale = 1f;
+            }
+        }
+
+        /// <summary>Heavy hits jolt the camera a little (the panel turns it off).</summary>
+        private void OnHit(HitReport hit)
+        {
+            float impulse = hit.Result.Impulse.magnitude;
+            if (orbitCamera != null && impulse > 70f)
+            {
+                orbitCamera.Shake((impulse - 50f) / 150f);
             }
         }
 
@@ -234,6 +250,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.M)) Mark();
             if (SandboxInput.KeyPressed(KeyCode.F)) ToggleFight();
             if (SandboxInput.KeyPressed(KeyCode.B)) BystanderTest();
+            if (SandboxInput.KeyPressed(KeyCode.G)) Gallery();
         }
 
         /// <summary>
@@ -241,7 +258,118 @@ namespace PhysicsBattler.Sandbox
         /// in the way of the blow. The one in the way should take it. Fighting stops for the test (F
         /// to resume); the rest of the units wait at the side.
         /// </summary>
-        private Coroutine bystanderRun;
+        private Coroutine bystanderRun, galleryRun;
+
+        /// <summary>
+        /// Every move in turn, against a dummy: one unit of each weapon strikes at an enemy in the
+        /// middle of the board, first slowly (a third of the speed), then at full speed. Its blows
+        /// don't hurt during the gallery. Fighting stops for it; G again (or F) ends it.
+        /// </summary>
+        public void Gallery()
+        {
+            if (galleryRun != null)
+            {
+                StopCoroutine(galleryRun);
+                galleryRun = null;
+                Time.timeScale = paused ? 0f : timeScale;
+                message = "Gallery stopped.";
+                return;
+            }
+
+            var alive = units.FindAll(u => u != null && u.IsInitialized && u.IsAlive);
+            var attackers = new List<UnitController>();
+            foreach (WeaponKind kind in new[] { WeaponKind.Sword, WeaponKind.Club })
+            {
+                var unit = alive.Find(u => u.Loadout?.Main != null && u.Loadout.Main.kind == kind && !attackers.Contains(u));
+                if (unit != null)
+                {
+                    attackers.Add(unit);
+                }
+            }
+
+            if (attackers.Count == 0 || alive.Count < 2)
+            {
+                message = "The gallery needs an armed unit and one other. Press R to reset.";
+                return;
+            }
+
+            fight = false;
+            galleryRun = StartCoroutine(GalleryRun(attackers, alive));
+        }
+
+        private System.Collections.IEnumerator GalleryRun(List<UnitController> attackers, List<UnitController> alive)
+        {
+            foreach (var attacker in attackers)
+            {
+                var target = alive.Find(u => u.Team != attacker.Team) ?? alive.Find(u => u != attacker);
+                bool hurts = attacker.DealsHits;
+                attacker.DealsHits = false;
+                try
+                {
+                    foreach (var move in attacker.Loadout.Main.moves)
+                    {
+                        if (move == null)
+                        {
+                            continue;
+                        }
+
+                        foreach (float speed in new[] { 0.33f, 1f })
+                        {
+                            // The pair in the middle, the rest off to the side.
+                            float distance = attacker.Style.engageDistance * attacker.Body.SizeFactor + 0.25f * target.Body.SizeFactor;
+                            attacker.Teleport(new Vector3(-0.5f * distance, 0f, 0f), 90f);
+                            target.Teleport(new Vector3(0.5f * distance, 0f, 0f), 270f);
+                            int k = 0;
+                            foreach (var other in alive)
+                            {
+                                if (other != attacker && other != target && other.IsAlive)
+                                {
+                                    other.Teleport(new Vector3(-4f + 1.6f * k++, 0f, 5.2f), 180f);
+                                }
+                            }
+
+                            Time.timeScale = paused ? 0f : timeScale;
+                            yield return new WaitForSeconds(0.7f);
+                            MoveState state = null;
+                            foreach (var part in new[] { AimPart.Chest, AimPart.Belly, AimPart.Head, AimPart.Neck, AimPart.KneeL, AimPart.ElbowL })
+                            {
+                                if (state == null && move.targets.Contains(part))
+                                {
+                                    var s = MovePlanner.Prepare(attacker, target, move, part);
+                                    state = s != null && MovePlanner.Acceptable(attacker, s) ? s : null;
+                                }
+                            }
+
+                            string name = move.name.Replace("MD_", "");
+                            if (state == null || !attacker.StartMove(state))
+                            {
+                                message = $"Gallery: {attacker.name}'s {name} can't reach {target.name} from there.";
+                                yield return new WaitForSeconds(1f);
+                                continue;
+                            }
+
+                            message = $"Gallery: {attacker.name}'s {name} at {target.name}'s {state.Part}{(speed < 1f ? ", slowed to a third" : "")}. G stops.";
+                            Note($"gallery: {attacker.name} {name} at {state.Part}, speed {speed:0.00}");
+                            Time.timeScale = paused ? 0f : timeScale * speed;
+                            while (attacker.IsAttacking)
+                            {
+                                yield return null;
+                            }
+
+                            Time.timeScale = paused ? 0f : timeScale;
+                        }
+                    }
+                }
+                finally
+                {
+                    attacker.DealsHits = hurts;
+                    Time.timeScale = paused ? 0f : timeScale;
+                }
+            }
+
+            message = "Gallery done. F to fight again.";
+            galleryRun = null;
+        }
 
         public void BystanderTest()
         {
@@ -378,14 +506,18 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label("R reset · F fight · B bystander · P pause · . step · T turn · M mark");
+            GUILayout.Label("R reset · F fight · B bystander · G gallery · P pause · . step · T turn · M mark");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Reset")) Spawn();
             if (GUILayout.Button(turnedAway ? "Face the enemy" : "Turn around")) TurnAround();
             if (GUILayout.Button(fight ? "Stop fighting" : "Fight")) ToggleFight();
             GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
             if (GUILayout.Button("Bystander test (B)")) BystanderTest();
+            if (GUILayout.Button(galleryRun != null ? "Stop gallery (G)" : "Move gallery (G)")) Gallery();
+            GUILayout.EndHorizontal();
+            OrbitCamera.ShakeOnHits = GUILayout.Toggle(OrbitCamera.ShakeOnHits, "Camera shake on heavy hits");
 
             GUILayout.Label($"Time scale: {timeScale:0.00}{(paused ? " (paused)" : "")}");
             float newScale = GUILayout.HorizontalSlider(timeScale, 0.05f, 1f);

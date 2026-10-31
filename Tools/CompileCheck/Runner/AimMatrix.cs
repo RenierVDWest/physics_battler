@@ -20,9 +20,9 @@ internal static class AimMatrix
     public static int Run(float tiles)
     {
         var sword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
-        sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordThrust) };
+        sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordCleave), MoveDefinition.Create(MoveStyle.SwordThrust) };
         var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
-        club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash) };
+        club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash), MoveDefinition.Create(MoveStyle.ClubRising) };
         var shield = WeaponDefinition.CreateDefault(WeaponKind.Shield);
         int worst = 0;
         float distance = 1.6f * tiles;

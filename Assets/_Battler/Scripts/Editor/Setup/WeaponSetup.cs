@@ -32,12 +32,22 @@ namespace PhysicsBattler.Editor.Setup
             // out to the side, the thrust in line with the shoulder): moves made by setup 10, not yet
             // tuned, are refreshed once.
             bool refresh = SetupVersion.Installed == 10;   // (not again from 11 on)
+            // Setup 14 rebuilt the ready-made moves as big swings (the Swing and Thrust shapes) and
+            // added the sword cleave and the club's rising blow: moves still on the old hand-drawn
+            // path are refreshed once, and the new moves go on the weapons.
+            bool swings = SetupVersion.Installed >= 10 && SetupVersion.Installed < 14;
             // Setup 13 (milestone 3) gives weapons damage and a hit-detection radius: weapons made
             // earlier have the sword's figures, so each gets its kind's defaults once.
             bool hits = SetupVersion.Installed >= 10 && SetupVersion.Installed < 13;
             foreach (MoveStyle style in Enum.GetValues(typeof(MoveStyle)))
             {
                 moves[(int)style] = EnsureMove(style, refresh);
+                if (swings && moves[(int)style].shape == MoveShape.Path)
+                {
+                    moves[(int)style].ApplyDefaults(style);
+                    EditorUtility.SetDirty(moves[(int)style]);
+                    Debug.Log($"[Battler Setup] {BattlerPaths.Move(style.ToString())} rebuilt as a big swing.");
+                }
             }
 
             int bodyLayer = Layers.Index(Layers.Body);
@@ -51,6 +61,11 @@ namespace PhysicsBattler.Editor.Setup
 
                 var kind = (WeaponKind)Enum.Parse(typeof(WeaponKind), entry.kind);
                 var definition = EnsureWeapon(name, kind, moves);
+                if (swings)
+                {
+                    AddMoves(definition, moves);
+                }
+
                 if (hits)
                 {
                     var defaults = WeaponDefinition.CreateDefault(kind);
@@ -111,15 +126,41 @@ namespace PhysicsBattler.Editor.Setup
             switch (kind)
             {
                 case WeaponKind.Sword:
-                    weapon.moves = new[] { moves[(int)MoveStyle.SwordCut], moves[(int)MoveStyle.SwordBackhand], moves[(int)MoveStyle.SwordThrust] };
-                    break;
                 case WeaponKind.Club:
-                    weapon.moves = new[] { moves[(int)MoveStyle.ClubSwing], moves[(int)MoveStyle.ClubSmash] };
+                    weapon.moves = DefaultMoves(kind, moves);
                     break;
             }
 
             AssetDatabase.CreateAsset(weapon, path);
             return weapon;
+        }
+
+        private static MoveDefinition[] DefaultMoves(WeaponKind kind, MoveDefinition[] moves)
+        {
+            return kind == WeaponKind.Sword
+                ? new[] { moves[(int)MoveStyle.SwordCut], moves[(int)MoveStyle.SwordBackhand], moves[(int)MoveStyle.SwordCleave], moves[(int)MoveStyle.SwordThrust] }
+                : new[] { moves[(int)MoveStyle.ClubSwing], moves[(int)MoveStyle.ClubSmash], moves[(int)MoveStyle.ClubRising] };
+        }
+
+        /// <summary>The ready-made moves a weapon of its kind should have, added if missing (yours stay).</summary>
+        private static void AddMoves(WeaponDefinition weapon, MoveDefinition[] moves)
+        {
+            if (weapon.kind == WeaponKind.Shield)
+            {
+                return;
+            }
+
+            var list = new System.Collections.Generic.List<MoveDefinition>(weapon.moves ?? Array.Empty<MoveDefinition>());
+            foreach (var move in DefaultMoves(weapon.kind, moves))
+            {
+                if (move != null && !list.Contains(move))
+                {
+                    list.Add(move);
+                    Debug.Log($"[Battler Setup] {weapon.name} gets {move.name}.");
+                }
+            }
+
+            weapon.moves = list.ToArray();
         }
 
         /// <summary>The weapon's shape comes from the art: refreshed every run.</summary>

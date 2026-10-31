@@ -25,7 +25,7 @@ namespace PhysicsBattler.Combat
         public const float OwnBodyClearance = 0.01f;
 
         /// <summary>How many poses through a blow the planner checks for clearance of the attacker's own body.</summary>
-        public const int ClearanceSamples = 16;
+        public const int ClearanceSamples = 32;
 
         /// <summary>How much more often the body is aimed at than the elbows and knees.</summary>
         private const float BodyWeight = 3f;
@@ -72,6 +72,11 @@ namespace PhysicsBattler.Combat
         /// <summary>Locks a blow on a point (tests and the move preview aim at plain points too).</summary>
         public static MoveState Prepare(UnitController attacker, MoveDefinition move, WeaponDefinition weapon, Vector3 aim, AimPart part, object target)
         {
+            if (move != null && move.shape != MoveShape.Path)
+            {
+                return SwingPath.Prepare(attacker, move, weapon, aim, part, target);
+            }
+
             Vector3 root = attacker.Root.position;
             Vector3 flat = aim - root;
             flat.y = 0f;
@@ -112,7 +117,7 @@ namespace PhysicsBattler.Combat
                 Lunge = forward * lunge,
                 Scale = size,
                 WidthScale = attacker.Body.WidthFactor,
-                Duration = move.duration * Mathf.Sqrt(size),
+                Duration = move.Duration * Mathf.Sqrt(size),
                 ContactTime = t,
                 BodyPeak = move.BodyAt(t),
                 DriveStart = DriveStart(move, t),
@@ -157,7 +162,8 @@ namespace PhysicsBattler.Combat
         /// </summary>
         public static bool Acceptable(UnitController attacker, MoveState state)
         {
-            return attacker.TryOut(state) <= Tolerance
+            // (A swing's dry run leaves a margin: played step by step, its steps land a little differently.)
+            return attacker.TryOut(state) <= (state.Generated ? 0.66f : 1f) * Tolerance
                    && attacker.Clearance(state, ClearanceSamples, out _, out _, out _) >= -OwnBodyClearance * attacker.Body.SizeFactor;
         }
 

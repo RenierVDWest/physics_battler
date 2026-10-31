@@ -513,7 +513,8 @@ def turns(unit, min_degrees=45.0, gap=0.4):
 
 BLOW_START = re.compile(r"^(\w+) at (.+)'s (\w+): aim locked at \(([-\d.]+), ([-\d.]+), ([-\d.]+)\), lunge ([-\d.]+) m, ([\d.]+) s, contact at ([\d.]+) s")
 BLOW_CONTACT = re.compile(r"^(\w+) at (.+)'s (\w+): passed ([\d.]+) cm from the aim point; (?:nearest part (.+)'s (\w+) \(([\d.]+) cm\)|nothing near); the \w+ had moved ([\d.]+) cm")
-BLOW_DONE = re.compile(r"^(\w+) done: (?:the physical weapon passed ([\d.]+) cm|no physical weapon)")
+BLOW_DONE = re.compile(r"^(\w+) done: (?:the physical weapon passed ([\d.]+) cm|no physical weapon)"
+                       r"(?:.*?; swing: ([\d.]+) m/s at contact, ([\d.]+) at its fastest, (-?[\d.]+) cm past the aim point, a (\d+)° arc)?")
 
 
 def blows(unit):
@@ -527,7 +528,7 @@ def blows(unit):
                 current = dict(t=e.t, move=m.group(1), target=m.group(2), part=m.group(3),
                                aim=np.array([float(m.group(4)), float(m.group(5)), float(m.group(6))]),
                                lunge=float(m.group(7)), duration=float(m.group(8)), tc=float(m.group(9)),
-                               err=None, struck=None, struckPart=None, struckCm=None, moved=None, physical=None, touches=[], cut=None)
+                               err=None, struck=None, struckPart=None, struckCm=None, moved=None, physical=None, touches=[], cut=None, swing=None)
                 out.append(current)
                 continue
             if current is not None and e.text.startswith(current["move"] + " cut short: "):
@@ -537,6 +538,8 @@ def blows(unit):
             m = BLOW_DONE.match(e.text)
             if m and current is not None and current["move"] == m.group(1):
                 current["physical"] = float(m.group(2)) if m.group(2) else None
+                if m.group(3):
+                    current["swing"] = dict(contact=float(m.group(3)), peak=float(m.group(4)), depth=float(m.group(5)), arc=float(m.group(6)))
                 current = None
         elif e.cat == "contact" and current is not None:
             m = BLOW_CONTACT.match(e.text)
@@ -552,7 +555,7 @@ def blows(unit):
 
 
 HIT = re.compile(r"^(\w+) struck (.+)'s (\w+) at ([\d.]+) m/s: (?:blocked by .+'s shield \(([\d.]+) poise\)|([\d.]+) damage, ([\d.]+) poise, (\w+)); "
-                 r"impulse ([\d.]+) N·s \((\d+)% into the part\); (the swing stopped|bowled through \((\d+)% of the swing left\)); (.+)$")
+                 r"impulse ([\d.]+) N·s \((\d+)% into the part\); (the swing stopped|(?:bowled|cleaved) through \((\d+)% of the swing left\)); (.+)$")
 STRUCK_HEALTH = re.compile(r"health ([\d.]+)/([\d.]+)")
 
 
@@ -973,27 +976,29 @@ def write_report(session, out, args, films):
               "closest pass in the active window; moved: how far the aimed part had moved since the aim was locked; struck: the "
               "body part nearest the striking part at contact)")
             w("")
-            w("| t | move | at | lunge | aim error | physical | moved | struck | touched |")
-            w("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+            w("| t | move | at | lunge | aim error | physical | moved | struck | touched | swing: contact / fastest (m/s), past the aim, arc |")
+            w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
             for b in n["blows"]:
                 struck = f"{b['struck']}'s {b['struckPart']} ({fmt(b['struckCm'], 1)} cm)" if b["struck"] else "-"
                 mark = " ✓" if struck_aimed(b) else ""
                 touched = "; ".join(t.split(" touched ", 1)[-1] for t in b["touches"][:3]) or "-"
                 if b["cut"] is not None and b["err"] is None:
-                    w(f"| {b['t']:.2f} | {b['move']} | {b['target']}'s {b['part']} | {b['lunge']:.2f} m | cut short: {b['cut']} | | | | |")
+                    w(f"| {b['t']:.2f} | {b['move']} | {b['target']}'s {b['part']} | {b['lunge']:.2f} m | cut short: {b['cut']} | | | | | |")
                     continue
+                sw = b.get("swing")
+                swing = f"{sw['contact']:.1f} / {sw['peak']:.1f}, {sw['depth']:.0f} cm, {sw['arc']:.0f}°" if sw else "-"
                 w(f"| {b['t']:.2f} | {b['move']} | {b['target']}'s {b['part']} | {b['lunge']:.2f} m | {fmt(b['err'], 1)} cm | "
-                  f"{fmt(b['physical'], 1)} cm | {fmt(b['moved'], 1)} cm | {struck}{mark} | {touched} |")
+                  f"{fmt(b['physical'], 1)} cm | {fmt(b['moved'], 1)} cm | {struck}{mark} | {touched} | {swing} |")
             w("")
 
         if n["hits"]:
             w("**Hits dealt** (every weapon contact: speed at the striking part; reaction of the struck; the swing stops on a "
-              "heavy body or a shield, a light one is bowled through)")
+              "heavy body or a shield, a light one is cleaved through and shoved aside)")
             w("")
             w("| t | move | struck | speed | damage | poise | reaction | impulse (into the part) | swing | what it was |")
             w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
             for h in n["hits"]:
-                swing = "stopped" if h["stopped"] else f"bowled through ({h['left']}% left)"
+                swing = "stopped" if h["stopped"] else f"cleaved through ({h['left']}% left)"
                 w(f"| {h['t']:.2f} | {h['move']} | {h['struck']}'s {h['part']} | {h['speed']:.1f} m/s | {h['damage']:.1f} | {h['poise']:.0f} | "
                   f"{h['reaction']} | {h['impulse']:.1f} N·s ({h['share']}%) | {swing} | {h['kind']} |")
             w("")

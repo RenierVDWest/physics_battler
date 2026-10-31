@@ -90,7 +90,10 @@ namespace PhysicsBattler.Units
         private const float MaxPartSpeed = 5f;
 
         /// <summary>The fastest a knock-back slides the unit (m/s, medium size).</summary>
-        private const float MaxKnockback = 2.5f;
+        private const float MaxKnockback = 3.5f;
+
+        /// <summary>The fastest a cleave throws a body aside (m/s, medium size).</summary>
+        private const float MaxCleaveSpeed = 3f;
 
         /// <summary>Speeds go with the square root of size (a bigger body's parts swing slower for the same look).</summary>
         private float SizeSpeed() => Mathf.Sqrt(Mathf.Max(0.3f, Body.SizeFactor));
@@ -134,7 +137,9 @@ namespace PhysicsBattler.Units
                 Knockback = Vector3.zero;
             }
 
-            Separate();
+            Vector3 pushed = Separate(dt);
+            // The feet hurry after a knock-back, or after being pushed aside.
+            Stance.Drift = Knockback + (dt > 0f ? pushed / dt : Vector3.zero);
             UpdateRecoil(dt);
             Poise = Mathf.Min(profile.maxPoise, Poise + profile.poiseRegen * dt);
             for (int r = 0; r < 5; r++)
@@ -210,12 +215,15 @@ namespace PhysicsBattler.Units
         /// living unit's than their two body radii, it is pushed out by its share (the lighter one
         /// moves more; the other unit does its share on its own step). The feet step after.
         /// </summary>
-        private void Separate()
+        private Vector3 Separate(float dt)
         {
+            Vector3 total = Vector3.zero;
             if (!initialized || !IsAlive)
             {
-                return;
+                return total;
             }
+
+            float most = MaxSeparationSpeed * Mathf.Max(dt, 1e-3f);
 
             Vector3 me = Anim.Part(PartId.Pelvis).position;
             float myRadius = BodyRadius;
@@ -226,8 +234,26 @@ namespace PhysicsBattler.Units
                     continue;
                 }
 
+                // A unit lunging at its target isn't pushed back by it (the lunge is the push: its
+                // planted feet hold its hips, so moving its root would only pile up); the target gives way.
+                bool myTarget = CurrentMove != null && ReferenceEquals(CurrentMove.Target, other);
+                bool theirTarget = other.CurrentMove != null && ReferenceEquals(other.CurrentMove.Target, this);
+                if (myTarget)
+                {
+                    continue;
+                }
+
+                // The hips, and the roots (a knock-back slides the root while the planted feet hold
+                // the hips): whichever overlaps more.
                 Vector3 away = me - other.Anim.Part(PartId.Pelvis).position;
                 away.y = 0f;
+                Vector3 awayRoots = transform.position - other.transform.position;
+                awayRoots.y = 0f;
+                if (awayRoots.sqrMagnitude < away.sqrMagnitude)
+                {
+                    away = awayRoots;
+                }
+
                 float apart = myRadius + other.BodyRadius;
                 float d = away.magnitude;
                 if (d >= apart)
@@ -236,10 +262,11 @@ namespace PhysicsBattler.Units
                 }
 
                 Vector3 n = d > 1e-4f ? away / d : transform.rotation * Vector3.back;
-                float share = other.Body.Mass / Mathf.Max(1f, other.Body.Mass + Body.Mass);
-                Vector3 push = n * ((apart - d) * share);
+                float share = theirTarget ? 1f : other.Body.Mass / Mathf.Max(1f, other.Body.Mass + Body.Mass);
+                Vector3 push = n * Mathf.Min((apart - d) * share, most);
                 transform.position += push;
                 me += push;
+                total += push;
                 // Walking or being knocked into someone stops there.
                 float into = Vector3.Dot(Knockback, -n);
                 if (into > 0f)
@@ -247,7 +274,12 @@ namespace PhysicsBattler.Units
                     Knockback += n * into;
                 }
             }
+
+            return total;
         }
+
+        /// <summary>The fastest bodies are pushed apart (m/s): quick enough to stay out of each other, never a pop.</summary>
+        private const float MaxSeparationSpeed = 2.5f;
 
         /// <summary>How far the body takes up space around its hips (metres, horizontally).</summary>
         public float BodyRadius => 0.58f * Body.ShoulderWidth;
@@ -384,11 +416,15 @@ namespace PhysicsBattler.Units
             float travel = Mathf.Max(Vector3.Distance(grip, lastG), Vector3.Distance(tip, lastT));
             int samples = Mathf.Clamp(Mathf.CeilToInt(travel / (1.5f * radius)), 1, 10);
             var found = new List<(UnitController unit, BodyPart part, Weapon shield, Collider collider, float order)>();
+            // A swing's weapon turns about its pivot: between steps it is swept round the arc, not
+            // along the straight chord (at 20 m/s that would cut the corner by several centimetres).
+            bool arc = move.Generated && move.Move.shape == MoveShape.Swing;
+            Vector3 pivot = arc ? move.PivotAt(move.Progress) : Vector3.zero;
             for (int i = 1; i <= samples; i++)
             {
                 float s = i / (float)samples;
-                Vector3 a = Vector3.Lerp(lastG, grip, s);
-                Vector3 b = Vector3.Lerp(lastT, tip, s);
+                Vector3 a = arc ? pivot + Vector3.Slerp(lastG - pivot, grip - pivot, s) : Vector3.Lerp(lastG, grip, s);
+                Vector3 b = arc ? pivot + Vector3.Slerp(lastT - pivot, tip - pivot, s) : Vector3.Lerp(lastT, tip, s);
                 Vector3 mid = 0.5f * (a + b);
                 found.Clear();
                 foreach (var collider in Physics.OverlapCapsule(a, b, radius, ~0, QueryTriggerInteraction.Collide))
@@ -435,7 +471,16 @@ namespace PhysicsBattler.Units
                         return;
                     }
 
-                    momentumLeft = report.Result.MomentumLeft;   // (0: every hit stops the blow)
+                    // Cleaved through: the swing goes on, slowed by what it gave up, and the body it
+                    // went through is shoved out of its way.
+                    momentumLeft = report.Result.MomentumLeft;
+                    move.TimeScale = Mathf.Min(move.TimeScale, Mathf.Max(0.3f, report.Result.MomentumLeft));
+                    if (report.Struck.IsAlive)
+                    {
+                        Vector3 along = direction;
+                        along.y = 0f;
+                        report.Struck.Shove(along.sqrMagnitude > 1e-8f ? along.normalized : transform.forward, CleaveShove * speed * report.Result.MomentumLeft);
+                    }
                 }
             }
         }
@@ -449,6 +494,32 @@ namespace PhysicsBattler.Units
             Vector3 near = collider.ClosestPoint(0.5f * (a + b));
             near = collider.ClosestPoint(a + ab * T(near));
             return T(near);
+        }
+
+        /// <summary>Share of the weapon's speed a cleaved body is shoved along at.</summary>
+        private const float CleaveShove = 0.6f;
+
+        /// <summary>
+        /// A swing went through this unit: it is thrown along with the weapon, out of the arc (hard
+        /// enough to knock anyone over; falling comes in milestone 4, so for now it stumbles).
+        /// </summary>
+        public void Shove(Vector3 direction, float speed)
+        {
+            if (!IsAlive)
+            {
+                return;
+            }
+
+            float most = MaxCleaveSpeed * SizeSpeed();
+            Knockback = Vector3.ClampMagnitude(Knockback + direction * speed, most);
+            LastReaction = Reaction.Stagger;
+            Recoil(direction * (speed * Body.Mass * 0.25f), Anim.Part(PartId.Chest).position, PartId.Chest, 1.6f);
+            StartRecovery(BodyRegion.Torso, 0.2f, 0.9f);
+            StartRecovery(BodyRegion.Head, 0.3f, 0.9f);
+            if (CurrentMove != null)
+            {
+                CancelMove(CurrentMove, "knocked aside");
+            }
         }
 
         private HitReport Strike(MoveState move, UnitController struck, BodyPart part, Weapon shield, Vector3 point, float speed, Vector3 direction)
@@ -675,7 +746,7 @@ namespace PhysicsBattler.Units
                 Stance.StepTo(lead, Stance.HomeWorld(lead, transform.position, facingYaw), facingYaw + Stance.HomeYawLocal(lead), 0.28f);
             }
 
-            if (move.RearOut && !move.RearBack)
+            if ((move.RearOut || move.Move.passingStep && move.SteppedOut) && !move.RearBack)
             {
                 move.RearBack = true;
                 int rear = 1 - Stance.Lead;

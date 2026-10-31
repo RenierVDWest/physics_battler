@@ -50,6 +50,9 @@ namespace PhysicsBattler.Motion
         public Vector3 BlockNormal { get; set; } = Vector3.forward;
         public float MoveCrouch { get; private set; }
 
+        /// <summary>Where the chest was posed before the arms (a weapon arm that can't reach bends the spine after): the swing planner's pivot.</summary>
+        public Vector3 ChestBeforeArms { get; private set; }
+
         /// <summary>
         /// A hit's reaction on the pose (milestone 3), from the unit's recoil springs: the hips pushed
         /// (world metres; a negative y is the knees giving), the upper body turned about the hips and
@@ -137,11 +140,25 @@ namespace PhysicsBattler.Motion
             MoveCrouch = 0f;
             if (move != null)
             {
-                float twist = move.Move.TwistAt(move.Progress) * moveBlend;
-                pelvis.rotation = Quaternion.AngleAxis(0.4f * twist, Vector3.up) * pelvis.rotation;
                 var chest = anim.Part(PartId.Chest);
-                chest.rotation = Quaternion.AngleAxis(0.6f * twist, Vector3.up) * chest.rotation;
-                float lean = move.Move.lean * moveBody * moveBlend;
+                float lean;
+                if (move.Move.shape == MoveShape.Path)
+                {
+                    float twist = move.Move.TwistAt(move.Progress) * moveBlend;
+                    pelvis.rotation = Quaternion.AngleAxis(0.4f * twist, Vector3.up) * pelvis.rotation;
+                    chest.rotation = Quaternion.AngleAxis(0.6f * twist, Vector3.up) * chest.rotation;
+                    lean = move.Move.lean * moveBody * moveBlend;
+                }
+                else
+                {
+                    // A swing: the hips turn ahead of the weapon and the chest between (the chest's
+                    // share on top of the hips'); the lean and the crouch follow the phases.
+                    pelvis.rotation = Quaternion.AngleAxis(move.HipTurn * moveBlend, Vector3.up) * pelvis.rotation;
+                    chest.rotation = Quaternion.AngleAxis(move.ChestTurn * moveBlend, Vector3.up) * chest.rotation;
+                    lean = move.Lean * moveBlend;
+                    pelvis.position += Vector3.down * (move.Crouch * leg * moveBlend);
+                }
+
                 var spine = anim.Part(PartId.Spine);
                 spine.localRotation = Quaternion.Euler(0.5f * lean, 0f, 0f) * spine.localRotation;
                 chest.localRotation = Quaternion.Euler(0.5f * lean, 0f, 0f) * chest.localRotation;
@@ -173,6 +190,7 @@ namespace PhysicsBattler.Motion
                 toward.y = 0f;
                 toward = toward.sqrMagnitude > 1e-6f ? toward.normalized : facing * Vector3.forward;
                 Vector3 offset = moveBody >= 0f ? move.Lunge * moveBody : toward * (moveBody * RockBack * leg);
+                offset += toward * move.Drive;   // a thrust's body driving on past contact
                 pelvis.position += (offset - carried) * moveBlend;
             }
 
@@ -250,6 +268,8 @@ namespace PhysicsBattler.Motion
                 SolveLeg(f);
             }
 
+            ChestBeforeArms = anim.Part(PartId.Chest).position;
+
             // 6. Arms and head.
             SpineBend = 0f;
             StrikePoint = Vector3.zero;
@@ -308,10 +328,22 @@ namespace PhysicsBattler.Motion
             var move = state.Move;
             float p = state.Progress;
             strike = state.PathPoint(p);
-            Vector3 pivot = anim.Part(PartId.Chest).position + Vector3.up * (move.pivotRaise * state.Scale);
-            // A thrust lines the blade up with the shoulder (as a fencer's arm and blade), a cut fans
-            // out from the chest.
-            Vector3 dir = move.pointForward ? state.Aim - anim.Part(PartId.UpperArmR).position : strike - pivot;
+            Vector3 dir;
+            if (state.Generated)
+            {
+                // A thrust points along its line; a swing's weapon points out from the pivot through
+                // the striking part, trailing the hand as it accelerates and whipping through at contact.
+                dir = move.shape == MoveShape.Thrust ? state.ThrustLine
+                    : Quaternion.AngleAxis(-state.Lag, state.PlaneNormal) * (strike - state.PivotAt(p));
+            }
+            else
+            {
+                Vector3 pivot = anim.Part(PartId.Chest).position + Vector3.up * (move.pivotRaise * state.Scale);
+                // A thrust lines the blade up with the shoulder (as a fencer's arm and blade), a cut fans
+                // out from the chest.
+                dir = move.pointForward ? state.Aim - anim.Part(PartId.UpperArmR).position : strike - pivot;
+            }
+
             if (dir.sqrMagnitude < 1e-6f)
             {
                 dir = state.Frame * Vector3.forward;

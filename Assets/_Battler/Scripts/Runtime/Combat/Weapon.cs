@@ -20,6 +20,44 @@ namespace PhysicsBattler.Combat
         public float Scale { get; private set; } = 1f;
 
         private BodyPart hand;
+        private TrailRenderer trail;
+        private static Material trailMaterial;
+
+        /// <summary>
+        /// A smear behind the striking part while a blow is in its strike and follow-through, so the
+        /// arc reads at a distance (in play only).
+        /// </summary>
+        public void ShowTrail(bool on)
+        {
+            if (trail == null)
+            {
+                if (!on || !Application.isPlaying || definition == null || definition.IsShield)
+                {
+                    return;
+                }
+
+                var holder = new GameObject("Trail");
+                holder.transform.SetParent(transform, false);
+                holder.transform.localPosition = definition.tip;
+                trail = holder.AddComponent<TrailRenderer>();
+                trail.time = 0.16f;
+                trail.startWidth = 0.09f * Scale;
+                trail.endWidth = 0f;
+                trail.minVertexDistance = 0.02f;
+                trail.startColor = new Color(1f, 0.95f, 0.8f, 0.55f);
+                trail.endColor = new Color(1f, 0.85f, 0.6f, 0f);
+                trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                if (trailMaterial == null)
+                {
+                    var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Sprites/Default");
+                    trailMaterial = shader != null ? new Material(shader) : null;
+                }
+
+                trail.sharedMaterial = trailMaterial;
+            }
+
+            trail.emitting = on;
+        }
 
         /// <summary>
         /// Puts a weapon in a hand: the prefab (or, without one, a bare object with no mesh), at the

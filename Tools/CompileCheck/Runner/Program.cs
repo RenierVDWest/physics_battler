@@ -30,6 +30,11 @@ internal static class Program
             return AimDebug.Run(args[1], args[2], args[3], args[4], float.Parse(args[5], System.Globalization.CultureInfo.InvariantCulture));
         }
 
+        if (args.Length >= 1 && args[0] == "swings")
+        {
+            return SwingReport.Run(args.Length >= 2 ? args[1] : null);
+        }
+
         if (args.Length >= 1 && args[0] == "aim")
         {
             return AimMatrix.Run(args.Length >= 2 ? float.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 1f);

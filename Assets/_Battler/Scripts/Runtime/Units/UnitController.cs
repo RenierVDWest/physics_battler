@@ -397,7 +397,8 @@ namespace PhysicsBattler.Units
 
             state.Time = 0f;
             state.ContactPassed = state.SteppedOut = state.LeadOut = state.SteppedBack = state.RearMoved = state.RearOut = state.RearBack = false;
-            state.HasLastStrike = state.HasLastPhysical = false;
+            state.HasLastStrike = state.HasLastPhysical = state.HasLastRadial = false;
+            state.ContactSpeed = state.PeakSpeed = state.Depth = state.Arc = state.LastProgress = 0f;
             state.PhysicalClosest = -1f;
             CurrentMove = state;
             Pose.Move = state;
@@ -483,11 +484,11 @@ namespace PhysicsBattler.Units
                 var at = state.CopyAt(normalizedTime);
                 if (NeedsLungeStep(state) && at.Body > 0.5f)
                 {
-                    LungeFeet(state, yaw, out var leadTo, out var rearTo, out bool rearMoves);
-                    Stance.SetFoot(Stance.Lead, leadTo, yaw + Stance.HomeYawLocal(Stance.Lead));
-                    if (rearMoves)
+                    LungeFeet(state, yaw, out int first, out var firstTo, out int second, out var secondTo, out bool secondMoves);
+                    Stance.SetFoot(first, firstTo, yaw + Stance.HomeYawLocal(first));
+                    if (secondMoves)
                     {
-                        Stance.SetFoot(1 - Stance.Lead, rearTo, yaw + Stance.HomeYawLocal(1 - Stance.Lead));
+                        Stance.SetFoot(second, secondTo, yaw + Stance.HomeYawLocal(second));
                     }
                 }
 
@@ -507,7 +508,7 @@ namespace PhysicsBattler.Units
             }
         }
 
-        private bool NeedsLungeStep(MoveState state) => state.Lunge.magnitude > 0.06f * Body.SizeFactor;
+        private bool NeedsLungeStep(MoveState state) => state.Lunge.magnitude > 0.06f * Body.SizeFactor || state.Move.passingStep;
 
         /// <summary>How much longer than its stance a lunge may stretch the feet (fraction of leg length).</summary>
         private const float LungeStretch = 0.3f;
@@ -518,15 +519,37 @@ namespace PhysicsBattler.Units
         /// <see cref="LungeStretch"/> of the leg (an advance-lunge). The hips then stay high enough
         /// for the arm to reach up.
         /// </summary>
-        private void LungeFeet(MoveState state, float yaw, out Vector3 leadTo, out Vector3 rearTo, out bool rearMoves)
+        /// <remarks>
+        /// A passing step (big swings, thrusts) goes the other way round: the rear foot steps through
+        /// to where a lead foot on its side would stand, out by the lunge, and the old lead foot
+        /// follows to the rear only if the lunge leaves it too far behind. The feet step back home
+        /// in the recovery either way.
+        /// </remarks>
+        private void LungeFeet(MoveState state, float yaw, out int first, out Vector3 firstTo, out int second, out Vector3 secondTo, out bool secondMoves)
         {
             int lead = Stance.Lead;
             Vector3 root = transform.position;
-            leadTo = Stance.HomeWorld(lead, root + state.Lunge, yaw);
+            var facing = Quaternion.Euler(0f, yaw, 0f);
+            if (state.Move.passingStep)
+            {
+                first = 1 - lead;
+                second = lead;
+                Vector3 leadHome = Stance.HomeLocal(lead), rearHome = Stance.HomeLocal(1 - lead);
+                firstTo = root + state.Lunge + facing * new Vector3(-leadHome.x, 0f, leadHome.z);
+                firstTo.y = Stance.GroundY;
+                secondTo = root + state.Lunge + facing * new Vector3(-rearHome.x, 0f, rearHome.z);
+                secondTo.y = Stance.GroundY;
+                secondMoves = Vector3.Distance(Stance.Position(lead), secondTo) > 0.25f * Body.LegLength;
+                return;
+            }
+
+            first = lead;
+            second = 1 - lead;
+            firstTo = Stance.HomeWorld(lead, root + state.Lunge, yaw);
             float follow = state.Lunge.magnitude - LungeStretch * Body.LegLength;
-            rearMoves = follow > 0.05f * Body.LegLength;
-            Vector3 rearRoot = root + (rearMoves ? state.Lunge.normalized * follow : Vector3.zero);
-            rearTo = Stance.HomeWorld(1 - lead, rearRoot, yaw);
+            secondMoves = follow > 0.05f * Body.LegLength;
+            Vector3 rearRoot = root + (secondMoves ? state.Lunge.normalized * follow : Vector3.zero);
+            secondTo = Stance.HomeWorld(1 - lead, rearRoot, yaw);
         }
 
         private (Vector3, Quaternion)[] SaveAnim()
@@ -623,7 +646,12 @@ namespace PhysicsBattler.Units
                 if (CurrentMove == move)
                 {
                     TrackPhysicalWeapon(move);
-                    AdvanceMove(move, poseDt);
+                    AdvanceMove(move, poseDt * move.TimeScale);
+                    if (drive && MainWeapon != null)
+                    {
+                        MainWeapon.ShowTrail(move.Active && move.T <= move.Move.SwingFollowEnd + 0.02f);
+                    }
+                    move.TimeScale = Mathf.MoveTowards(move.TimeScale, 1f, 2f * poseDt);   // the swing picks up again after a cleave
                 }
                 else
                 {
@@ -638,6 +666,7 @@ namespace PhysicsBattler.Units
             {
                 // The striking part moves several centimetres a step, so contact is judged on the
                 // stretch it swept since the last step, as a hit would be.
+                MeasureSwing(move, poseDt);
                 if (!move.ContactPassed && move.T >= move.ContactTime)
                 {
                     move.ContactPassed = true;
@@ -645,6 +674,8 @@ namespace PhysicsBattler.Units
                 }
 
                 move.LastStrike = Pose.StrikePoint;
+                move.LastProgress = move.Progress;
+                move.LastDeviation = move.Generated ? Vector3.Distance(Pose.StrikePoint, move.PathPoint(move.Progress)) : 0f;
                 move.HasLastStrike = true;
             }
 
@@ -655,6 +686,11 @@ namespace PhysicsBattler.Units
                 Authority.Apply(dt);
             }
 
+            if (drive && MainWeapon != null && CurrentMove == null)
+            {
+                MainWeapon.ShowTrail(false);
+            }
+
             if (move != null && move.Done && CurrentMove == move)
             {
                 CurrentMove = null;
@@ -662,6 +698,47 @@ namespace PhysicsBattler.Units
                 Stance.Hold = false;
                 MoveEnded?.Invoke(this, move);
             }
+        }
+
+        /// <summary>The posed swing's speed, depth past the aim point and arc, for the log.</summary>
+        private void MeasureSwing(MoveState move, float dt)
+        {
+            if (!move.HasLastStrike || dt <= 0f)
+            {
+                return;
+            }
+
+            float speed = Vector3.Distance(Pose.StrikePoint, move.LastStrike) / dt;
+            if (!move.ContactPassed && move.T >= move.ContactTime)
+            {
+                move.ContactSpeed = speed;
+            }
+
+            if (move.T <= move.Move.SwingFollowEnd)
+            {
+                move.PeakSpeed = Mathf.Max(move.PeakSpeed, speed);
+            }
+
+            if (!move.Generated)
+            {
+                return;
+            }
+
+            float released = (move.Move.SwingTravel(0) + move.Move.SwingTravel(1)) / move.Move.SwingTotal;
+            Vector3 pivot = move.PivotAt(move.Move.ContactProgress);
+            if (move.T >= move.ContactTime && move.T <= move.Move.SwingFollowEnd)
+            {
+                move.Depth = Mathf.Max(move.Depth, Vector3.Dot(Pose.StrikePoint - move.Aim, (move.Aim - pivot).normalized));
+            }
+
+            Vector3 radial = Pose.StrikePoint - move.PivotAt(move.Progress);
+            if (move.HasLastRadial && move.Progress >= released && move.T <= move.Move.SwingFollowEnd)
+            {
+                move.Arc += Vector3.Angle(move.LastRadial, radial);
+            }
+
+            move.LastRadial = radial;
+            move.HasLastRadial = true;
         }
 
         /// <summary>The physical weapon as PhysX left it: its sweep since the last step, against the aim point.</summary>
@@ -700,7 +777,7 @@ namespace PhysicsBattler.Units
             int lead = Stance.Lead;
             int rear = 1 - lead;
             float yaw = Quaternion.LookRotation(move.Frame * Vector3.forward).eulerAngles.y;
-            LungeFeet(move, yaw, out var leadTo, out var rearTo, out bool rearMoves);
+            LungeFeet(move, yaw, out int first, out var leadTo, out int second, out var rearTo, out bool rearMoves);
             // The lunge's steps go with the drive forward, after the wind-up's rock-back: the lead foot
             // out first and, on a long lunge, the rear foot after it (an advance-lunge), both down
             // just before contact. A short lunge moves only the lead foot.
@@ -712,25 +789,27 @@ namespace PhysicsBattler.Units
                 move.RearMoved = rearMoves;
                 move.LeadOut = true;
                 move.LeadOutAt = drive;
-                Stance.StepTo(lead, leadTo, yaw + Stance.HomeYawLocal(lead), (land - drive) * move.Duration);
+                Stance.StepTo(first, leadTo, yaw + Stance.HomeYawLocal(first), (land - drive) * move.Duration);
             }
 
             float rearFrom = drive + 0.45f * (land - drive);
             if (move.RearMoved && !move.RearOut && move.T >= rearFrom)
             {
                 move.RearOut = true;
-                Stance.StepTo(rear, rearTo, yaw + Stance.HomeYawLocal(rear), (land - rearFrom) * move.Duration);
+                Stance.StepTo(second, rearTo, yaw + Stance.HomeYawLocal(second), (land - rearFrom) * move.Duration);
             }
 
-            float back = tc + 0.3f * (1f - tc);
-            float recovery = (1f - tc) * move.Duration;
+            // Back home once the blow is spent: swings at the end of their follow-through.
+            float back = move.Move.shape == MoveShape.Path ? tc + 0.3f * (1f - tc) : move.Move.SwingFollowEnd - 0.05f;
+            float recovery = (1f - (move.Move.shape == MoveShape.Path ? tc : back)) * move.Duration;
+            bool passing = move.Move.passingStep;
             if (!move.SteppedBack && move.T >= back)
             {
                 move.SteppedBack = true;
                 Stance.StepTo(lead, Stance.HomeWorld(lead, transform.position, facingYaw), facingYaw + Stance.HomeYawLocal(lead), 0.32f * recovery);
             }
 
-            if (move.RearMoved && !move.RearBack && move.T >= back + 0.33f * (1f - tc))
+            if ((move.RearMoved || passing) && !move.RearBack && move.T >= back + (passing ? 0.12f : 0.33f) * (1f - back))
             {
                 move.RearBack = true;
                 Stance.StepTo(rear, Stance.HomeWorld(rear, transform.position, facingYaw), facingYaw + Stance.HomeYawLocal(rear), 0.3f * recovery);
@@ -742,7 +821,7 @@ namespace PhysicsBattler.Units
             Vector3 from = move.HasLastStrike ? move.LastStrike : Pose.StrikePoint;
             var report = new ContactReport
             {
-                AnimError = SegmentDistance(move.Aim, from, Pose.StrikePoint), PhysicalError = -1f, StruckDistance = float.MaxValue,
+                AnimError = SweptDistance(move, from, Pose.StrikePoint), PhysicalError = -1f, StruckDistance = float.MaxValue,
             };
             // What is there: the body part nearest the posed striking part (the physical weapon is a
             // physics step behind; its closest pass is reported when the blow ends).
@@ -778,6 +857,38 @@ namespace PhysicsBattler.Units
             }
 
             return report;
+        }
+
+        /// <summary>
+        /// How close the striking part passed the aim point between two steps: along the arc about
+        /// the swing's pivot for a swing (as hits are swept), along the straight line otherwise.
+        /// </summary>
+        private static float SweptDistance(MoveState move, Vector3 from, Vector3 to)
+        {
+            if (!move.Generated || move.Move.shape != MoveShape.Swing)
+            {
+                return SegmentDistance(move.Aim, from, to);
+            }
+
+            // The planned path between the two steps' progress (it curves), plus however far the posed
+            // weapon is off the path (an arm that can't reach).
+            float best = float.MaxValue, at = 0f;
+            Vector3 last = move.PathPoint(move.LastProgress);
+            for (int i = 1; i <= 12; i++)
+            {
+                Vector3 p = move.PathPoint(Mathf.Lerp(move.LastProgress, move.Progress, i / 12f));
+                float d = SegmentDistance(move.Aim, last, p);
+                if (d < best)
+                {
+                    best = d;
+                    at = (i - 0.5f) / 12f;
+                }
+
+                last = p;
+            }
+
+            // (The posed weapon's distance off the path, at the moment of the closest pass: between the two steps'.)
+            return best + Mathf.Lerp(move.LastDeviation, Vector3.Distance(to, move.PathPoint(move.Progress)), at);
         }
 
         /// <summary>The distance from a point to the segment a to b.</summary>
