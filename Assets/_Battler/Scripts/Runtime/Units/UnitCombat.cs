@@ -762,6 +762,8 @@ namespace PhysicsBattler.Units
                 CancelMove(CurrentMove, "killed");
             }
 
+            StopRhythm();
+
             incoming = null;
             BlockBlend = 0f;
             Pose.BlockBlend = 0f;

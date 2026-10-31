@@ -127,6 +127,10 @@ namespace PhysicsBattler.Motion
             var move = Move;
             float moveBlend = move != null ? move.Blend : 0f;
             float moveBody = move != null ? move.Body : 0f;
+            if (move != null && move == Feint)
+            {
+                moveBody = Mathf.Min(0f, moveBody);   // a feint rocks back but never lunges (no lunge step is taken)
+            }
 
             // 2. Idle
             var s = idle.Sample(time, style, leg);

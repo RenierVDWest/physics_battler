@@ -169,6 +169,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Died += OnDied;
             UnitController.BalanceChanged += OnBalance;
             UnitController.PostureStarted += OnPosture;
+            UnitController.PostureLedIn += OnPostureLedIn;
             Application.logMessageReceived += OnConsole;
 
             foreach (var unit in FindObjectsByType<UnitController>())
@@ -215,6 +216,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Died -= OnDied;
             UnitController.BalanceChanged -= OnBalance;
             UnitController.PostureStarted -= OnPosture;
+            UnitController.PostureLedIn -= OnPostureLedIn;
             Application.logMessageReceived -= OnConsole;
 
             foreach (var track in tracks.ToArray())
@@ -407,6 +409,13 @@ namespace PhysicsBattler.Diagnostics
             string mood = unit.Rhythm != null ? $"energy {unit.Rhythm.Energy:0.00}, aggression {unit.Rhythm.Aggression:0.00}" : "";
             Event(track, "rhythm", $"posture {posture.Label}{(leadIn ? " (lead-in to a blow)" : "")}, {length:0.00} s; open: {(open.Length > 0 ? open.ToString() : "nothing")}; {mood}");
             track?.NotePosture(posture, leadIn);
+        }
+
+        private void OnPostureLedIn(UnitController unit, PostureDefinition posture)
+        {
+            var track = TrackOf(unit);
+            Event(track, "rhythm", $"lead-in: posture {posture.Label} under way leads into a blow");
+            track?.NoteLedIn();
         }
 
         private void OnBalance(UnitController unit, string text)

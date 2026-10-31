@@ -69,6 +69,9 @@ namespace PhysicsBattler.Motion
         public event Action<PostureDefinition, bool> Started;
         public event Action<PostureDefinition, bool> Ended;
 
+        /// <summary>A posture already under way became the lead-in to a blow.</summary>
+        public event Action<PostureDefinition> LedIn;
+
         /// <summary>Planned steps that came due this update, for the unit to take.</summary>
         public readonly List<PostureStep> DueSteps = new List<PostureStep>();
 
@@ -159,7 +162,9 @@ namespace PhysicsBattler.Motion
 
             if (Current != null)
             {
-                if (!free)
+                // Once it starts fading (busy for a moment), it fades all the way out: a half-faded
+                // posture would play on at reduced size with its steps and openings skipped.
+                if (!free || fade < 1f)
                 {
                     fade = Mathf.Max(0f, fade - dt / 0.15f);
                 }
@@ -228,7 +233,12 @@ namespace PhysicsBattler.Motion
             // Already in a feint or another lead-in: that is the lead-in; the blow comes as it ends.
             if (Current != null && !Fading && Current.leadIn)
             {
-                CurrentIsLeadIn = true;
+                if (!CurrentIsLeadIn)
+                {
+                    CurrentIsLeadIn = true;
+                    LedIn?.Invoke(Current);
+                }
+
                 return (1f - Progress) * Length(Current);
             }
 

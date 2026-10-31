@@ -35,8 +35,9 @@ namespace PhysicsBattler.Sandbox
         private readonly Dictionary<UnitController, Tile> spots = new Dictionary<UnitController, Tile>();
         private readonly Dictionary<UnitController, float> spotSince = new Dictionary<UnitController, float>();
 
-        // Units whose lead-in (a feint before the blow) has played: their next attack goes ahead.
-        private readonly HashSet<UnitController> ledIn = new HashSet<UnitController>();
+        // Units whose lead-in (a feint before the blow) has played, and when it ended: their next
+        // attack goes ahead without another (for a moment: a blow that never comes leads in afresh).
+        private readonly Dictionary<UnitController, float> ledIn = new Dictionary<UnitController, float>();
 
         public Brawl(int seed)
         {
@@ -56,6 +57,7 @@ namespace PhysicsBattler.Sandbox
                 // Off its feet (stumbling, down, getting up): nothing to decide until it stands.
                 if (!unit.CanAct)
                 {
+                    ledIn.Remove(unit);   // (the next blow after it gets up leads in afresh)
                     continue;
                 }
 
@@ -71,6 +73,7 @@ namespace PhysicsBattler.Sandbox
 
                 var enemy = Nearest(units, unit);
                 unit.Opponent = TurnedAway ? null : enemy;
+                unit.CircleOpponent = Fight;   // (just facing each other, they stay where they are)
                 if (enemy == null)
                 {
                     continue;
@@ -130,18 +133,18 @@ namespace PhysicsBattler.Sandbox
 
             // Its Fight Rhythm may lead into the blow first (a boxer's feint before the real swing):
             // the blow comes as the lead-in finishes.
-            if (!ledIn.Contains(unit))
+            // (It waits for the whole lead-in: a feint's wind-up is back at the guard by then, so the
+            // real blow winds up from there rather than snapping back first.)
+            if (!ledIn.TryGetValue(unit, out float ledAt) || now - ledAt > 1.5f)
             {
                 float lead = unit.LeadIn();
                 if (lead > 0f)
                 {
-                    ledIn.Add(unit);
-                    nextAttack[unit] = now + 0.85f * lead;
+                    ledIn[unit] = now + lead;
+                    nextAttack[unit] = now + lead;
                     return;
                 }
             }
-
-            ledIn.Remove(unit);
 
             // Strike any enemy in reach in front of it, not only the nearest one.
             var candidates = new List<UnitController>();
@@ -171,7 +174,11 @@ namespace PhysicsBattler.Sandbox
                 var state = MovePlanner.Plan(unit, target, random);
                 if (state != null)
                 {
-                    unit.StartMove(state);
+                    if (unit.StartMove(state))
+                    {
+                        ledIn.Remove(unit);
+                    }
+
                     closeIn.Remove(unit);
                     nextAttack[unit] = now + state.Duration + Next(style);
                     return;

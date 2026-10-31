@@ -354,6 +354,12 @@ namespace PhysicsBattler.Diagnostics
             postureCounts[posture.Label] = n + 1;
         }
 
+        /// <summary>A posture already under way became the lead-in to a blow.</summary>
+        public void NoteLedIn()
+        {
+            leadIns++;
+        }
+
         /// <summary>Something happened to the unit's balance (the log line's start says what).</summary>
         public void NoteBalance(string text)
         {

@@ -20,6 +20,9 @@ namespace PhysicsBattler.Units
         /// <summary>A unit's posture ended (true: cut short).</summary>
         public static event Action<UnitController, PostureDefinition, bool> PostureEnded;
 
+        /// <summary>A posture already under way became the lead-in to a blow.</summary>
+        public static event Action<UnitController, PostureDefinition> PostureLedIn;
+
         public RhythmPlayer Rhythm { get; private set; }
 
         /// <summary>Who it is squaring up to (set by the fight logic): feints aim at it, circling goes round it.</summary>
@@ -28,8 +31,23 @@ namespace PhysicsBattler.Units
         /// <summary>The body parts open to a blow right now (a posture's window, a tired guard).</summary>
         public AimParts Openings => Rhythm != null && IsAlive && State == UnitState.Standing ? Rhythm.Open : AimParts.None;
 
+        /// <summary>It may circle its opponent (set by the fight logic: not while just facing each other).</summary>
+        public bool CircleOpponent { get; set; } = true;
+
+        /// <summary>How fast it is circling right now, m/s to its right (0: not circling).</summary>
+        public float Circling { get; private set; }
+
         private MoveState feint;
         private bool postureHolds;
+
+        // The order units were made in (who leads when two circle each other).
+        private static int rhythmCount;
+        private int rhythmOrder;
+
+        // Where the root stood after the last rhythm step, and how far something else (walking in,
+        // a push) has moved it since the posture holding the feet began.
+        private Vector3 rhythmRoot;
+        private float heldDrift;
 
         /// <summary>Off, the unit stands in its plain guard (tests that measure blows and hits exactly).</summary>
         public bool RhythmOn { get; set; } = true;
@@ -48,6 +66,9 @@ namespace PhysicsBattler.Units
             Rhythm.SetSize(Body.SizeFactor);
             Rhythm.Started += OnPostureStarted;
             Rhythm.Ended += OnPostureEnded;
+            Rhythm.LedIn += p => PostureLedIn?.Invoke(this, p);
+            rhythmRoot = transform.position;
+            rhythmOrder = ++rhythmCount;
         }
 
         /// <summary>
@@ -56,7 +77,7 @@ namespace PhysicsBattler.Units
         /// </summary>
         public float LeadIn()
         {
-            if (Rhythm == null || !CanAct || CurrentMove != null)
+            if (Rhythm == null || !RhythmOn || !CanAct || !FreeToPosture())
             {
                 return 0f;
             }
@@ -73,12 +94,27 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            // Free to posture: on its feet, no blow (nor one fading out), not blocking, not frozen.
-            bool free = State == UnitState.Standing && CurrentMove == null && cutShort == null && BlockBlend < 0.05f && HitStop <= 0f;
+            // A posture holding the feet (its own planned steps) while something else moves the root
+            // (walking in, a push): the feet would be left behind, so it gives way and they follow.
+            Vector3 moved = transform.position - rhythmRoot;
+            moved.y = 0f;
+            if (postureHolds)
+            {
+                heldDrift += moved.magnitude;
+            }
+
+            bool free = FreeToPosture() && !(postureHolds && (heldDrift > 0.05f * Body.LegLength || Knockback.magnitude > 0.05f));
             Rhythm.HasOpponent = Opponent != null && Opponent.IsAlive && !Opponent.IsDown;
             Rhythm.Update(dt, free && RhythmOn);
 
-            if (free)
+            // Fading out (or no longer free): the feet are the stance's again.
+            if (postureHolds && (!free || Rhythm.Fading))
+            {
+                ReleasePostureHold();
+            }
+
+            Circling = 0f;
+            if (free && RhythmOn)
             {
                 foreach (var step in Rhythm.DueSteps)
                 {
@@ -90,13 +126,24 @@ namespace PhysicsBattler.Units
                     transform.position += transform.rotation * (Rhythm.TravelDelta * Body.LegLength);
                 }
 
-                if (Mathf.Abs(Rhythm.Circle) > 1e-4f && Opponent != null)
+                if (Mathf.Abs(Rhythm.Circle) > 1e-4f && Opponent != null && CircleOpponent && !postureHolds)
                 {
-                    transform.position += transform.right * (Rhythm.Circle * Body.SizeFactor * dt);
+                    // Two squaring up to each other go round the same way (each moving to its own
+                    // right with the same sign orbits; opposite signs would slide off together): the
+                    // one made first leads, the other follows its sign.
+                    float circle = Rhythm.Circle;
+                    if (Opponent.Opponent == this && Opponent.rhythmOrder < rhythmOrder && Mathf.Abs(Opponent.Circling) > 1e-4f)
+                    {
+                        circle = Mathf.Abs(circle) * Mathf.Sign(Opponent.Circling);
+                    }
+
+                    Circling = circle;
+                    transform.position += transform.right * (circle * Body.SizeFactor * dt);
                 }
             }
 
             UpdateFeint();
+            rhythmRoot = transform.position;
 
             // (A real blow takes over from the rhythm as it blends in: the pose pipeline weighs it.)
             Pose.Rhythm = RhythmOn ? Rhythm.Sample(Body.LegLength, Body.SizeFactor) : default;
@@ -108,7 +155,8 @@ namespace PhysicsBattler.Units
             int foot = step.foot == PostureFoot.Lead ? Stance.Lead : 1 - Stance.Lead;
             Vector3 home = Stance.HomeWorld(foot, transform.position, facingYaw);
             Vector3 to = step.to == PostureStepTo.Home ? home : home + transform.rotation * (step.offset * Body.LegLength);
-            float seconds = Rhythm.Current != null ? Mathf.Max(0.08f, step.length * Rhythm.Length(Rhythm.Current)) : 0.2f;
+            float share = step.length > 0f ? step.length : 0.25f;   // (a step added in the inspector has no length yet)
+            float seconds = Rhythm.Current != null ? Mathf.Max(0.08f, share * Rhythm.Length(Rhythm.Current)) : 0.2f;
             Stance.StepTo(foot, to, facingYaw + Stance.HomeYawLocal(foot), seconds);
         }
 
@@ -120,8 +168,13 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            if (Pose.Move != feint || CurrentMove != null || State != UnitState.Standing)
+            if (Pose.Move != feint || CurrentMove != null || State != UnitState.Standing || !IsAlive)
             {
+                if (Pose.Move == feint && CurrentMove == null)
+                {
+                    Pose.Move = null;
+                }
+
                 feint = null;
                 return;
             }
@@ -138,6 +191,8 @@ namespace PhysicsBattler.Units
         private void OnPostureStarted(PostureDefinition posture, bool leadIn)
         {
             postureHolds = posture.steps.Length > 0 && CurrentMove == null;
+            heldDrift = 0f;
+            rhythmRoot = transform.position;
             if (postureHolds)
             {
                 Stance.Hold = true;   // only the posture's own steps
@@ -172,12 +227,7 @@ namespace PhysicsBattler.Units
 
         private void OnPostureEnded(PostureDefinition posture, bool interrupted)
         {
-            if (postureHolds && CurrentMove == null)
-            {
-                Stance.Hold = false;
-            }
-
-            postureHolds = false;
+            ReleasePostureHold();
             if (feint != null && Pose.Move == feint)
             {
                 Pose.Move = null;
@@ -187,7 +237,24 @@ namespace PhysicsBattler.Units
             PostureEnded?.Invoke(this, posture, interrupted);
         }
 
-        /// <summary>Stops the rhythm's posture at once (knocked down, moved by the sandbox).</summary>
+        /// <summary>On its feet, no blow (nor one fading out), not blocking, not frozen.</summary>
+        private bool FreeToPosture()
+        {
+            return IsAlive && State == UnitState.Standing && CurrentMove == null && cutShort == null && BlockBlend < 0.05f && HitStop <= 0f;
+        }
+
+        /// <summary>The posture lets go of the feet (a blow under way keeps its own hold).</summary>
+        private void ReleasePostureHold()
+        {
+            if (postureHolds && CurrentMove == null)
+            {
+                Stance.Hold = false;
+            }
+
+            postureHolds = false;
+        }
+
+        /// <summary>Stops the rhythm's posture at once (knocked down, moved by the sandbox, killed).</summary>
         private void StopRhythm()
         {
             Rhythm?.Stop();
@@ -199,6 +266,8 @@ namespace PhysicsBattler.Units
             feint = null;
             Pose.Rhythm = default;
             Pose.Feint = null;
+            Circling = 0f;
+            rhythmRoot = transform.position;
         }
     }
 }

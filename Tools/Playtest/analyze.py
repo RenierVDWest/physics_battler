@@ -988,6 +988,11 @@ def rhythm(unit, bl):
     for e in unit.events:
         if e.cat != "rhythm":
             continue
+        if e.text.startswith("lead-in: "):
+            # a posture already under way that became the lead-in to a blow
+            out["leadIns"] += 1
+            lead_times.append(e.t)
+            continue
         m = POSTURE.match(e.text)
         if not m:
             continue
