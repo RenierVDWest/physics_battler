@@ -1,0 +1,527 @@
+{
+  "about": "Large base body. Unity axes: Y up, +Z forward, +X is the character's right. Metres. Every null has identity rotation in the rest pose; positions are local to the parent null. Aim_* nulls are points other units aim blows at. Capsules are given as the two centres of their rounded ends plus radius. Colliders stop short of every joint.",
+  "body": "Large",
+  "heightM": 2.367,
+  "totalMassKg": 280.0,
+  "nulls": [
+    {
+      "name": "Root",
+      "parent": null,
+      "localPosition": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Pelvis",
+      "parent": "Root",
+      "localPosition": [
+        0.0,
+        1.2577,
+        0.0
+      ]
+    },
+    {
+      "name": "Spine",
+      "parent": "Pelvis",
+      "localPosition": [
+        0.0,
+        0.2029,
+        0.0
+      ]
+    },
+    {
+      "name": "Chest",
+      "parent": "Spine",
+      "localPosition": [
+        0.0,
+        0.2463,
+        0.0
+      ]
+    },
+    {
+      "name": "Head",
+      "parent": "Chest",
+      "localPosition": [
+        0.0,
+        0.3695,
+        0.0
+      ]
+    },
+    {
+      "name": "Aim_Chest",
+      "parent": "Chest",
+      "localPosition": [
+        0.0,
+        0.2174,
+        0.2095
+      ]
+    },
+    {
+      "name": "Aim_Belly",
+      "parent": "Spine",
+      "localPosition": [
+        0.0,
+        0.1159,
+        0.1788
+      ]
+    },
+    {
+      "name": "Aim_Neck",
+      "parent": "Head",
+      "localPosition": [
+        0.0,
+        0.0248,
+        0.0138
+      ]
+    },
+    {
+      "name": "Aim_Head",
+      "parent": "Head",
+      "localPosition": [
+        0.0,
+        0.1558,
+        0.0821
+      ]
+    },
+    {
+      "name": "UpperArm_R",
+      "parent": "Chest",
+      "localPosition": [
+        0.3678,
+        0.2277,
+        0.0
+      ]
+    },
+    {
+      "name": "Forearm_R",
+      "parent": "UpperArm_R",
+      "localPosition": [
+        0.1717,
+        -0.3856,
+        -0.0127
+      ]
+    },
+    {
+      "name": "Hand_R",
+      "parent": "Forearm_R",
+      "localPosition": [
+        0.1545,
+        -0.347,
+        -0.0114
+      ]
+    },
+    {
+      "name": "Slot_Weapon_R",
+      "parent": "Hand_R",
+      "localPosition": [
+        0.062,
+        -0.1392,
+        -0.0046
+      ]
+    },
+    {
+      "name": "Thigh_R",
+      "parent": "Pelvis",
+      "localPosition": [
+        0.1573,
+        -0.0797,
+        0.0
+      ]
+    },
+    {
+      "name": "Shin_R",
+      "parent": "Thigh_R",
+      "localPosition": [
+        0.0,
+        -0.5341,
+        0.0055
+      ]
+    },
+    {
+      "name": "Foot_R",
+      "parent": "Shin_R",
+      "localPosition": [
+        0.0,
+        -0.5154,
+        -0.0138
+      ]
+    },
+    {
+      "name": "UpperArm_L",
+      "parent": "Chest",
+      "localPosition": [
+        -0.3678,
+        0.2277,
+        0.0
+      ]
+    },
+    {
+      "name": "Forearm_L",
+      "parent": "UpperArm_L",
+      "localPosition": [
+        -0.1717,
+        -0.3856,
+        -0.0127
+      ]
+    },
+    {
+      "name": "Hand_L",
+      "parent": "Forearm_L",
+      "localPosition": [
+        -0.1545,
+        -0.347,
+        -0.0114
+      ]
+    },
+    {
+      "name": "Slot_Weapon_L",
+      "parent": "Hand_L",
+      "localPosition": [
+        -0.062,
+        -0.1392,
+        -0.0046
+      ]
+    },
+    {
+      "name": "Thigh_L",
+      "parent": "Pelvis",
+      "localPosition": [
+        -0.1573,
+        -0.0797,
+        0.0
+      ]
+    },
+    {
+      "name": "Shin_L",
+      "parent": "Thigh_L",
+      "localPosition": [
+        0.0,
+        -0.5341,
+        0.0055
+      ]
+    },
+    {
+      "name": "Foot_L",
+      "parent": "Shin_L",
+      "localPosition": [
+        0.0,
+        -0.5154,
+        -0.0138
+      ]
+    }
+  ],
+  "parts": [
+    {
+      "name": "Pelvis",
+      "mesh": "SM_Large_Pelvis",
+      "massKg": 40.0,
+      "collider": {
+        "type": "box",
+        "center": [
+          0.0,
+          0.0719,
+          -0.0249
+        ],
+        "size": [
+          0.4902,
+          0.2343,
+          0.3256
+        ]
+      }
+    },
+    {
+      "name": "Spine",
+      "mesh": "SM_Large_Spine",
+      "massKg": 34.286,
+      "collider": {
+        "type": "box",
+        "center": [
+          0.0,
+          0.1232,
+          -0.0014
+        ],
+        "size": [
+          0.4744,
+          0.2187,
+          0.3704
+        ]
+      }
+    },
+    {
+      "name": "Chest",
+      "mesh": "SM_Large_Chest",
+      "massKg": 57.143,
+      "collider": {
+        "type": "box",
+        "center": [
+          0.0,
+          0.1345,
+          -0.0059
+        ],
+        "size": [
+          0.5957,
+          0.2415,
+          0.3786
+        ]
+      }
+    },
+    {
+      "name": "Head",
+      "mesh": "SM_Large_Head",
+      "massKg": 22.857,
+      "collider": {
+        "type": "sphere",
+        "center": [
+          0.0001,
+          0.184,
+          0.0142
+        ],
+        "radius": 0.0994
+      }
+    },
+    {
+      "name": "UpperArm_R",
+      "mesh": "SM_Large_UpperArm_R",
+      "massKg": 8.571,
+      "collider": {
+        "type": "capsule",
+        "start": [
+          0.0616,
+          -0.1383,
+          -0.0045
+        ],
+        "end": [
+          0.1182,
+          -0.2655,
+          -0.0087
+        ],
+        "radius": 0.1039,
+        "height": 0.3471
+      }
+    },
+    {
+      "name": "Forearm_R",
+      "mesh": "SM_Large_Forearm_R",
+      "massKg": 5.143,
+      "collider": {
+        "type": "capsule",
+        "start": [
+          0.035,
+          -0.0787,
+          -0.0026
+        ],
+        "end": [
+          0.124,
+          -0.2785,
+          -0.0091
+        ],
+        "radius": 0.0585,
+        "height": 0.3359
+      }
+    },
+    {
+      "name": "Hand_R",
+      "mesh": "SM_Large_Hand_R",
+      "massKg": 2.857,
+      "collider": {
+        "type": "box",
+        "center": [
+          0.0309,
+          -0.1034,
+          0.007
+        ],
+        "size": [
+          0.1172,
+          0.1652,
+          0.1415
+        ]
+      }
+    },
+    {
+      "name": "UpperArm_L",
+      "mesh": "SM_Large_UpperArm_L",
+      "massKg": 8.571,
+      "collider": {
+        "type": "capsule",
+        "start": [
+          -0.0616,
+          -0.1384,
+          -0.0045
+        ],
+        "end": [
+          -0.1182,
+          -0.2655,
+          -0.0087
+        ],
+        "radius": 0.1039,
+        "height": 0.3471
+      }
+    },
+    {
+      "name": "Forearm_L",
+      "mesh": "SM_Large_Forearm_L",
+      "massKg": 5.143,
+      "collider": {
+        "type": "capsule",
+        "start": [
+          -0.035,
+          -0.0787,
+          -0.0026
+        ],
+        "end": [
+          -0.124,
+          -0.2785,
+          -0.0091
+        ],
+        "radius": 0.0585,
+        "height": 0.3359
+      }
+    },
+    {
+      "name": "Hand_L",
+      "mesh": "SM_Large_Hand_L",
+      "massKg": 2.857,
+      "collider": {
+        "type": "box",
+        "center": [
+          -0.033,
+          -0.1028,
+          0.007
+        ],
+        "size": [
+          0.1139,
+          0.1663,
+          0.1413
+        ]
+      }
+    },
+    {
+      "name": "Thigh_R",
+      "mesh": "SM_Large_Thigh_R",
+      "massKg": 28.571,
+      "collider": {
+        "type": "capsule",
+        "start": [
+          0.0,
+          -0.2018,
+          0.0021
+        ],
+        "end": [
+          0.0,
+          -0.3736,
+          0.0039
+        ],
+        "radius": 0.1328,
+        "height": 0.4375
+      }
+    },
+    {
+      "name": "Shin_R",
+      "mesh": "SM_Large_Shin_R",
+      "massKg": 13.143,
+      "collider": {
+        "type": "capsule",
+        "start": [
+          0.0,
+          -0.0851,
+          -0.0023
+        ],
+        "end": [
+          0.0,
+          -0.4126,
+          -0.011
+        ],
+        "radius": 0.0575,
+        "height": 0.4427
+      }
+    },
+    {
+      "name": "Foot_R",
+      "mesh": "SM_Large_Foot_R",
+      "massKg": 4.571,
+      "collider": {
+        "type": "box",
+        "center": [
+          0.0124,
+          -0.0876,
+          0.1137
+        ],
+        "size": [
+          0.1256,
+          0.0818,
+          0.3974
+        ]
+      }
+    },
+    {
+      "name": "Thigh_L",
+      "mesh": "SM_Large_Thigh_L",
+      "massKg": 28.571,
+      "collider": {
+        "type": "capsule",
+        "start": [
+          0.0,
+          -0.2022,
+          0.0021
+        ],
+        "end": [
+          0.0,
+          -0.3733,
+          0.0039
+        ],
+        "radius": 0.1332,
+        "height": 0.4375
+      }
+    },
+    {
+      "name": "Shin_L",
+      "mesh": "SM_Large_Shin_L",
+      "massKg": 13.143,
+      "collider": {
+        "type": "capsule",
+        "start": [
+          0.0,
+          -0.0852,
+          -0.0023
+        ],
+        "end": [
+          0.0,
+          -0.4125,
+          -0.011
+        ],
+        "radius": 0.0576,
+        "height": 0.4427
+      }
+    },
+    {
+      "name": "Foot_L",
+      "mesh": "SM_Large_Foot_L",
+      "massKg": 4.571,
+      "collider": {
+        "type": "box",
+        "center": [
+          -0.0124,
+          -0.0876,
+          0.1138
+        ],
+        "size": [
+          0.1256,
+          0.0818,
+          0.3973
+        ]
+      }
+    }
+  ],
+  "materials": [
+    {
+      "name": "M_Body_Clay",
+      "color": [
+        0.62,
+        0.62,
+        0.64
+      ]
+    }
+  ]
+}
