@@ -847,3 +847,13 @@
    32.367 |   1943 | A Medium       | contact  | SwordThrust at B Medium's Neck: passed 0.0 cm from the aim point; nearest part B Medium's Head (5.9 cm); the Neck had moved 1.9 cm since the aim was locked
    32.383 |   1944 | A Large        | attack   | ClubSmash at B Small's Chest: aim locked at (0.35, 0.53, 0.20), lunge 0.43 m, 1.00 s, contact at 0.62 s
    32.433 |   1947 | B Small        | step     | right foot planted at (0.30, 0.15), 21 cm from its spot
+   32.500 |   1951 | A Medium       | step     | left foot planted at (-0.95, -0.59), 0 cm from its spot
+   32.583 |   1956 | A Medium       | step     | right foot planted at (-0.65, -0.94), 0 cm from its spot
+   32.583 |   1956 | B Small        | step     | left foot planted at (0.28, -0.13), 31 cm from its spot
+   32.600 |   1957 | B Small        | contact  | ClubSwing at A Large's KneeL: passed 0.0 cm from the aim point; nearest part A Large's ShinL (5.7 cm); the KneeL had moved 8.9 cm since the aim was locked
+   32.617 |   1958 | A Medium       | attack   | SwordThrust done: the physical weapon passed 70.7 cm from the aim point at its closest
+   32.633 |   1959 | A Large        | step     | right foot planted at (0.44, -0.69), 11 cm from its spot
+   32.633 |   1959 | A Small        | despawn  | recording stopped
+   32.633 |   1959 | A Medium       | despawn  | recording stopped
+   32.633 |   1959 | A Large        | despawn  | recording stopped
+   32.633 |   1959 | B Small        | despawn  | rec

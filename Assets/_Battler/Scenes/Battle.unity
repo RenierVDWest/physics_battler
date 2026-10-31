@@ -130,7 +130,7 @@ GameObject:
   - component: {fileID: 326323505}
   - component: {fileID: 326323506}
   m_Layer: 0
-  m_Name: B Large
+  m_Name: B Medium
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -163,10 +163,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66e838e1599b2574384bcfade96e2823, type: 3}
   m_Name: 
   m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Sandbox.UnitSpawn
-  body: 2
+  body: 1
   team: 1
-  mainHand: {fileID: 11400000, guid: 040614ad3e7102c4eab8d4afc3f52809, type: 2}
-  offHand: {fileID: 0}
+  mainHand: {fileID: 11400000, guid: c5be91990350a4745a7c3ae401a6e20d, type: 2}
+  offHand: {fileID: 11400000, guid: 30a1ca61a8d38fd45ad45efbf39cba94, type: 2}
   profileOverride: {fileID: 0}
   snapToTile: 1
   showPreview: 1
@@ -285,7 +285,7 @@ GameObject:
   - component: {fileID: 916748147}
   - component: {fileID: 916748148}
   m_Layer: 0
-  m_Name: B Medium
+  m_Name: B Large
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -318,10 +318,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66e838e1599b2574384bcfade96e2823, type: 3}
   m_Name: 
   m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Sandbox.UnitSpawn
-  body: 1
+  body: 2
   team: 1
-  mainHand: {fileID: 11400000, guid: c5be91990350a4745a7c3ae401a6e20d, type: 2}
-  offHand: {fileID: 11400000, guid: 30a1ca61a8d38fd45ad45efbf39cba94, type: 2}
+  mainHand: {fileID: 11400000, guid: 040614ad3e7102c4eab8d4afc3f52809, type: 2}
+  offHand: {fileID: 0}
   profileOverride: {fileID: 0}
   snapToTile: 1
   showPreview: 1
