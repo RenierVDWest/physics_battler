@@ -194,7 +194,7 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("aimPart", move != null ? move.Part.ToString() : "");
             Vector3 aim = move != null ? move.Aim : Vector3.zero;
             Vector3 strike = move != null ? p.StrikePoint : Vector3.zero;
-            Vector3 physical = move != null && weapon != null && move.Weapon != null ? weapon.WorldPoint(move.Weapon.StrikePoint(move.Move.strikeWith)) : Vector3.zero;
+            Vector3 physical = move != null && weapon != null && move.Weapon != null ? weapon.PhysicalPoint(move.Weapon.StrikePoint(move.Move.strikeWith)) : Vector3.zero;
             frames.Add("aimX", aim.x, 3);
             frames.Add("aimY", aim.y, 3);
             frames.Add("aimZ", aim.z, 3);
@@ -250,8 +250,8 @@ namespace PhysicsBattler.Diagnostics
             var weapon = unit.MainWeapon;
             var slot = unit.Anim.SlotWeaponR;
             bool armed = weapon != null && weapon.definition != null && slot != null;
-            Vector3 grip = armed ? weapon.transform.position : Vector3.zero;
-            Vector3 tip = armed ? weapon.WorldPoint(weapon.definition.tip) : Vector3.zero;
+            Vector3 grip = armed ? weapon.PhysicalPoint(Vector3.zero) : Vector3.zero;
+            Vector3 tip = armed ? weapon.PhysicalPoint(weapon.definition.tip) : Vector3.zero;
             Vector3 ghostGrip = armed ? slot.position : Vector3.zero;
             Vector3 ghostTip = armed ? slot.position + slot.rotation * (weapon.definition.tip * weapon.Scale) : Vector3.zero;
             AddPoint("grip", grip, armed);

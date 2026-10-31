@@ -378,6 +378,8 @@ namespace PhysicsBattler.Units
             state.PhysicalClosest = -1f;
             CurrentMove = state;
             Pose.Move = state;
+            MainWeapon?.ResetTouches();
+            OffWeapon?.ResetTouches();
             Stance.Hold = true;
             MoveStarted?.Invoke(this, state);
             return true;
@@ -565,7 +567,7 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            Vector3 now = MainWeapon.WorldPoint(move.Weapon.StrikePoint(move.Move.strikeWith));
+            Vector3 now = MainWeapon.PhysicalPoint(move.Weapon.StrikePoint(move.Move.strikeWith));
             if (move.HasLastPhysical && move.Active)
             {
                 float d = SegmentDistance(move.Aim, move.LastPhysical, now);
@@ -664,7 +666,7 @@ namespace PhysicsBattler.Units
 
             if (move.Target is UnitController target && target.initialized)
             {
-                report.TargetMoved = Vector3.Distance(AimPartInfo.Physical(target.Rig, move.Part).position, move.Aim);
+                report.TargetMoved = Vector3.Distance(AimPartInfo.PhysicalPoint(target.Rig, move.Part), move.Aim);
             }
 
             return report;
@@ -687,18 +689,22 @@ namespace PhysicsBattler.Units
             }
         }
 
-        /// <summary>One of this unit's weapons touched another unit's body part (milestone 2: logged, not a hit yet).</summary>
-        public void OnWeaponTouched(Weapon weapon, BodyPart part, Collider collider)
+        /// <summary>
+        /// One of this unit's weapons touched another unit's body part (milestone 2: logged, not a hit
+        /// yet). True if it counted (during a blow's active window).
+        /// </summary>
+        public bool OnWeaponTouched(Weapon weapon, BodyPart part, Collider collider)
         {
             var move = CurrentMove;
             if (move == null || !move.Active)
             {
-                return;
+                return false;
             }
 
             var hand = Rig.Part(weapon.InMainHand ? PartId.HandR : PartId.HandL).body;
             float speed = hand != null ? hand.GetPointVelocity(collider.transform.position).magnitude : 0f;
             WeaponTouched?.Invoke(this, weapon, part, speed);
+            return true;
         }
     }
 }

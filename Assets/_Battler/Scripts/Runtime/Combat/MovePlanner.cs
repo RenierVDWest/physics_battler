@@ -31,7 +31,7 @@ namespace PhysicsBattler.Combat
                 return null;
             }
 
-            Vector3 aim = AimPartInfo.Physical(target.Rig, part).position;
+            Vector3 aim = AimPartInfo.PhysicalPoint(target.Rig, part);
             return Prepare(attacker, move, weapon, aim, part, target);
         }
 

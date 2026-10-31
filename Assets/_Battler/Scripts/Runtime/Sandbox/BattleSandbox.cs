@@ -23,6 +23,7 @@ namespace PhysicsBattler.Sandbox
     /// M mark the playtest log. Right-drag orbits, middle-drag pans, scroll zooms. Every Play session
     /// is recorded by a <see cref="PlaytestRecorder"/> into PlaytestLogs/.
     /// </summary>
+    [DefaultExecutionOrder(-150)]   // gameplay first, then the units' own step (-100)
     public class BattleSandbox : MonoBehaviour
     {
         [Header("Wired by the project setup")]
@@ -124,7 +125,10 @@ namespace PhysicsBattler.Sandbox
                     continue;
                 }
 
-                var unit = Instantiate(prefab, spawn.transform.position, Quaternion.Euler(0f, BoardGrid.TeamYaw(spawn.team), 0f));
+                // Made under an inactive holder, so its profile and team are set before it wakes and builds itself.
+                var holder = new GameObject("Spawning");
+                holder.SetActive(false);
+                var unit = Instantiate(prefab, spawn.transform.position, Quaternion.Euler(0f, BoardGrid.TeamYaw(spawn.team), 0f), holder.transform);
                 string label = $"{(spawn.team == 0 ? "A" : "B")} {spawn.BodyName}";
                 count[label] = count.TryGetValue(label, out int n) ? n + 1 : 1;
                 unit.name = count[label] > 1 ? $"{label} {count[label]}" : label;
@@ -133,6 +137,9 @@ namespace PhysicsBattler.Sandbox
                 {
                     unit.Profile = spawn.profileOverride;
                 }
+
+                unit.transform.SetParent(null, true);
+                Destroy(holder);
 
                 Tint(unit, TeamMaterial(spawn.team));
                 units.Add(unit);

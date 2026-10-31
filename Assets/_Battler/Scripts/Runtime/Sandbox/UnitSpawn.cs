@@ -48,16 +48,41 @@ namespace PhysicsBattler.Sandbox
 
         private void OnEnable()
         {
-            if (!Application.isPlaying)
+            if (!Application.isPlaying && !WillPlay)
             {
                 Snap();
                 BuildPreview();
             }
         }
 
+        // Nothing is destroyed here (Unity refuses while objects are being deactivated, and a destroyed
+        // marker takes its preview with it). If only this component was switched off, the preview
+        // goes right after.
         private void OnDisable()
         {
-            ClearPreview();
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.delayCall += ClearIfDisabled;
+#endif
+        }
+
+        private void ClearIfDisabled()
+        {
+            if (this != null && !isActiveAndEnabled)
+            {
+                ClearPreview();
+            }
+        }
+
+        private static bool WillPlay
+        {
+            get
+            {
+#if UNITY_EDITOR
+                return UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode;
+#else
+                return false;
+#endif
+            }
         }
 
 #if UNITY_EDITOR
@@ -69,7 +94,7 @@ namespace PhysicsBattler.Sandbox
 
         private void Refresh()
         {
-            if (this == null || !isActiveAndEnabled || Application.isPlaying)
+            if (this == null || !isActiveAndEnabled || Application.isPlaying || WillPlay)
             {
                 return;
             }
@@ -150,7 +175,7 @@ namespace PhysicsBattler.Sandbox
             preview.name = PreviewName;
             foreach (var t in preview.GetComponentsInChildren<Transform>(true))
             {
-                t.gameObject.hideFlags = HideFlags.DontSave | HideFlags.NotEditable;
+                t.gameObject.hideFlags |= HideFlags.DontSave | HideFlags.NotEditable;
             }
 
             unit.Team = team;
@@ -170,7 +195,7 @@ namespace PhysicsBattler.Sandbox
             BattleSandbox.Tint(unit, sandbox.TeamMaterial(team));
             foreach (var t in preview.GetComponentsInChildren<Transform>(true))
             {
-                t.gameObject.hideFlags = HideFlags.DontSave | HideFlags.NotEditable;
+                t.gameObject.hideFlags |= HideFlags.DontSave | HideFlags.NotEditable;
             }
         }
 

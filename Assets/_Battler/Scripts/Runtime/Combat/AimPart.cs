@@ -70,6 +70,15 @@ namespace PhysicsBattler.Combat
             }
         }
 
+        /// <summary>
+        /// Where the null is in the physics simulation now: from its part's rigidbody, since the
+        /// transforms of interpolated bodies trail the simulation inside FixedUpdate.
+        /// </summary>
+        public static Vector3 PhysicalPoint(UnitRig rig, AimPart part)
+        {
+            return rig.Part(BodyPartOf(part)).PhysicalPoint(Physical(rig, part).position);
+        }
+
         /// <summary>The same null on the animation rig.</summary>
         public static Transform Animated(AnimRig anim, AimPart part)
         {

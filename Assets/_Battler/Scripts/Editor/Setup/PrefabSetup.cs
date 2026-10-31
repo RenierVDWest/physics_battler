@@ -23,6 +23,7 @@ namespace PhysicsBattler.Editor.Setup
             }
 
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            WeaponSetup.Apply();   // the weapon prefabs first: built in this scratch scene too
             Apply();
             return true;
         }

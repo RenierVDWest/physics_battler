@@ -228,7 +228,7 @@ namespace PhysicsBattler.Editor
             target = Make(targetBody, origin + Vector3.forward * distance, 180f, 1);
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
-                t.gameObject.hideFlags = HideFlags.DontSave;
+                t.gameObject.hideFlags |= HideFlags.DontSave;
             }
 
             if (attacker == null || target == null)

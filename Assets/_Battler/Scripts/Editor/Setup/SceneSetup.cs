@@ -129,6 +129,7 @@ namespace PhysicsBattler.Editor.Setup
                 if (boardChanged)
                 {
                     EditorUtility.SetDirty(sandbox.board);
+                    sandbox.board.Build();   // the tiles were built before they had materials
                     changed = true;
                 }
             }

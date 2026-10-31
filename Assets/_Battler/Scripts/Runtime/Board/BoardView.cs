@@ -26,9 +26,24 @@ namespace PhysicsBattler.Board
             Build();
         }
 
+        // Nothing is destroyed here (Unity refuses while objects are being deactivated); if only this
+        // component was switched off, the tiles go right after.
         private void OnDisable()
         {
-            Clear();
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                UnityEditor.EditorApplication.delayCall += ClearIfDisabled;
+            }
+#endif
+        }
+
+        private void ClearIfDisabled()
+        {
+            if (this != null && !isActiveAndEnabled)
+            {
+                Clear();
+            }
         }
 
 #if UNITY_EDITOR
@@ -56,6 +71,22 @@ namespace PhysicsBattler.Board
                 var child = transform.GetChild(i).gameObject;
                 if (child.name == TilesName)
                 {
+                    // The meshes are made here and never saved: free them with the tiles.
+                    foreach (var filter in child.GetComponentsInChildren<MeshFilter>(true))
+                    {
+                        if (filter.sharedMesh != null)
+                        {
+                            if (Application.isPlaying)
+                            {
+                                Destroy(filter.sharedMesh);
+                            }
+                            else
+                            {
+                                DestroyImmediate(filter.sharedMesh);
+                            }
+                        }
+                    }
+
                     if (Application.isPlaying)
                     {
                         Destroy(child);
