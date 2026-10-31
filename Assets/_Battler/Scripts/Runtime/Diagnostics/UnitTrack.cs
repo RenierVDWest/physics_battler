@@ -122,7 +122,7 @@ namespace PhysicsBattler.Diagnostics
             this.stem = stem;
             frames = new TableWriter(framesPath);
             pose = new TableWriter(posePath);
-            spawnTime = Time.time;
+            spawnTime = PlaytestRecorder.Now;
             for (int i = 0; i < lastGroundTouch.Length; i++)
             {
                 lastGroundTouch[i] = -10f;
@@ -159,7 +159,7 @@ namespace PhysicsBattler.Diagnostics
             }
 
             subscribed = false;
-            endTime = Time.time;
+            endTime = PlaytestRecorder.Now;
             if (attack != null)
             {
                 FinishAttack(why);
@@ -192,22 +192,22 @@ namespace PhysicsBattler.Diagnostics
                 {
                     fall.result = previous == UnitStateKind.GettingUp
                         ? "FAILED: knocked down again while getting up"
-                        : $"FAILED: fell again {Time.time - Mathf.Max(fall.standStart, fall.start):0.0} s after standing ({unit.State.LastReason})";
+                        : $"FAILED: fell again {PlaytestRecorder.Now - Mathf.Max(fall.standStart, fall.start):0.0} s after standing ({unit.State.LastReason})";
                     Log("getup", $"fall #{fall.number} result: {fall.result}");
                 }
 
-                fall = new FallEpisode { number = falls.Count + 1, start = Time.time, reason = unit.State.LastReason };
+                fall = new FallEpisode { number = falls.Count + 1, start = PlaytestRecorder.Now, reason = unit.State.LastReason };
                 falls.Add(fall);
             }
             else if (next == UnitStateKind.GettingUp && fall != null)
             {
-                fall.getUpStart = Time.time;
+                fall.getUpStart = PlaytestRecorder.Now;
                 fall.getUpMaxPelvis = 0f;
                 getUpCheckpoint = 0;
             }
             else if (next == UnitStateKind.Steady && previous == UnitStateKind.GettingUp && fall != null)
             {
-                fall.standStart = Time.time;
+                fall.standStart = PlaytestRecorder.Now;
                 fall.getUpEndPelvis = sense.pelvisHeight;
                 fall.getUpEndTilt = sense.tiltDegrees;
             }
@@ -231,7 +231,7 @@ namespace PhysicsBattler.Diagnostics
                 attack = new AttackEpisode
                 {
                     number = attacks.Count + 1,
-                    start = Time.time,
+                    start = PlaytestRecorder.Now,
                     victim = planner.Target != null ? recorder.LabelOf(planner.Target) : "?",
                     planDistance = plan.distance,
                     contactReach = plan.contactReach,
@@ -278,7 +278,7 @@ namespace PhysicsBattler.Diagnostics
                 return;
             }
 
-            attack.end = Time.time;
+            attack.end = PlaytestRecorder.Now;
             if (why != null && attack.hit == null)
             {
                 attack.abandoned = why;
@@ -341,14 +341,14 @@ namespace PhysicsBattler.Diagnostics
                     return;   // steps are logged on their own
                 }
 
-                bool fresh = Time.time - lastGroundTouch[index] > 0.5f;
-                lastGroundTouch[index] = Time.time;
+                bool fresh = PlaytestRecorder.Now - lastGroundTouch[index] > 0.5f;
+                lastGroundTouch[index] = PlaytestRecorder.Now;
                 if (fresh)
                 {
                     Log("contact", $"{part.id} hit the ground at {speed:0.0} m/s ({unit.State.Kind})");
                     if (fall != null && fall.landedAt < 0f && !PartInfo.IsFoot(part.id))
                     {
-                        fall.landedAt = Time.time;
+                        fall.landedAt = PlaytestRecorder.Now;
                         fall.firstGroundParts = part.id.ToString();
                     }
                 }
@@ -427,7 +427,7 @@ namespace PhysicsBattler.Diagnostics
             var root = unit.Root;
             var pelvis = rig.Part(PartId.Pelvis).body;
             var chest = rig.Part(PartId.Chest).body;
-            float t = Time.time;
+            float t = PlaytestRecorder.Now;
             float dt = Time.fixedDeltaTime;
             float ground = unit.GroundY;
             stateTime[(int)state.Kind] += dt;
@@ -589,7 +589,7 @@ namespace PhysicsBattler.Diagnostics
                                  + $"touching the ground: {MaskNames(groundMask)}");
                 }
             }
-            else if (fall.standStart >= 0f && fall.result == null && state.IsStanding && Time.time - fall.standStart > 2f)
+            else if (fall.standStart >= 0f && fall.result == null && state.IsStanding && PlaytestRecorder.Now - fall.standStart > 2f)
             {
                 fall.result = $"stood up (pelvis {fall.getUpEndPelvis:0.00} m, tilt {fall.getUpEndTilt:0}° when the get-up ended)";
                 Log("getup", $"fall #{fall.number} result: {fall.result}");

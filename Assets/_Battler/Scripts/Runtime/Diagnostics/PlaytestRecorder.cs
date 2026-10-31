@@ -37,6 +37,16 @@ namespace PhysicsBattler.Diagnostics
 
         public static PlaytestRecorder Active { get; private set; }
 
+        private static float lastSeenTime;
+
+        /// <summary>
+        /// Time.time, except when Play is stopping: Unity has already reset Time.time to 0 by the time
+        /// OnDisable runs, so the last time seen is used instead.
+        /// </summary>
+        public static float Now => Mathf.Max(Time.time, lastSeenTime);
+
+        private CultureInfo previousCulture;
+
         private readonly List<UnitTrack> tracks = new List<UnitTrack>();
         private readonly List<UnitTrack> closedTracks = new List<UnitTrack>();
         private readonly Dictionary<UnitController, UnitTrack> byUnit = new Dictionary<UnitController, UnitTrack>();
@@ -95,6 +105,10 @@ namespace PhysicsBattler.Diagnostics
                 return;
             }
 
+            // Numbers in the log always use a decimal point, whatever the machine's region settings.
+            previousCulture = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+            lastSeenTime = Time.time;
             try
             {
                 startedAt = DateTime.Now;
@@ -112,7 +126,7 @@ namespace PhysicsBattler.Diagnostics
                 return;
             }
 
-            startTime = Time.time;
+            startTime = Now;
             step = 0;
             eventCount = 0;
             unitCount = 0;
@@ -167,7 +181,7 @@ namespace PhysicsBattler.Diagnostics
             }
 
             CheckConfigChanges();
-            Event((string)null, "session", $"recording stopped after {Time.time - startTime:0.0} s ({step} physics steps)");
+            Event((string)null, "session", $"recording stopped after {Now - startTime:0.0} s ({step} physics steps)");
             WriteMeta(true);
             WriteSummary(true);
 
@@ -183,6 +197,11 @@ namespace PhysicsBattler.Diagnostics
 
             events = null;
             world = null;
+            if (previousCulture != null)
+            {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
+
             Debug.Log($"[Playtest] Saved {SessionPath}");
         }
 
@@ -202,7 +221,7 @@ namespace PhysicsBattler.Diagnostics
             }
 
             int number = marks.Count + 1;
-            marks.Add($"{number}|{Time.time:0.000}|{note}");
+            marks.Add($"{number}|{Now:0.000}|{note}");
             Event((string)null, "MARK", $"===== mark {number} ====={(string.IsNullOrEmpty(note) ? "" : " " + note)}");
             foreach (var track in tracks)
             {
@@ -311,6 +330,7 @@ namespace PhysicsBattler.Diagnostics
             }
 
             step++;
+            lastSeenTime = Time.time;
             if (pending.Count > 0)
             {
                 foreach (var unit in pending)
@@ -397,7 +417,7 @@ namespace PhysicsBattler.Diagnostics
                 }
 
                 world.Begin();
-                world.Add("t", Time.time, 4);
+                world.Add("t", Now, 4);
                 world.Add("prop", pair.Value);
                 world.Add("name", Sanitize(body.name.Replace("(Clone)", "")));
                 Vector3 p = body.position;
@@ -484,14 +504,14 @@ namespace PhysicsBattler.Diagnostics
                         where = " @ " + (end > 0 ? stackTrace.Substring(0, end) : stackTrace).Trim();
                     }
 
-                    consoleProblems.Add($"{Time.time:0.00} s {type}: {text}");
+                    consoleProblems.Add($"{Now:0.00} s {type}: {text}");
                     Event((string)null, "console", $"{type.ToString().ToUpperInvariant()}: {text}{where}");
                 }
                 else
                 {
                     if (type == LogType.Warning)
                     {
-                        consoleProblems.Add($"{Time.time:0.00} s warning: {text}");
+                        consoleProblems.Add($"{Now:0.00} s warning: {text}");
                     }
 
                     Event((string)null, "console", $"{(type == LogType.Warning ? "warning: " : "")}{text}");
@@ -514,7 +534,7 @@ namespace PhysicsBattler.Diagnostics
             }
 
             line.Clear();
-            line.Append(Time.time.ToString("0.000", CultureInfo.InvariantCulture).PadLeft(9));
+            line.Append(Now.ToString("0.000", CultureInfo.InvariantCulture).PadLeft(9));
             line.Append(" | ");
             line.Append(step.ToString(CultureInfo.InvariantCulture).PadLeft(6));
             line.Append(" | ");
@@ -595,7 +615,7 @@ namespace PhysicsBattler.Diagnostics
             json.Append("{\n");
             json.Append($"  \"format\": 1,\n  \"session\": \"{SessionName}\",\n  \"unity\": \"{Escape(Application.unityVersion)}\",\n");
             json.Append($"  \"fixedDeltaTime\": {Num(Time.fixedDeltaTime)},\n  \"startTime\": {Num(startTime)},\n");
-            json.Append($"  \"endTime\": {(ended ? Num(Time.time) : "null")},\n  \"physicsSteps\": {step},\n");
+            json.Append($"  \"endTime\": {(ended ? Num(Now) : "null")},\n  \"physicsSteps\": {step},\n");
             json.Append("  \"parts\": [");
             for (int i = 0; i < PartInfo.Count; i++)
             {
@@ -650,7 +670,7 @@ namespace PhysicsBattler.Diagnostics
             md.AppendLine($"Unity {Application.unityVersion}, scene {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}, "
                           + $"physics {1f / Time.fixedDeltaTime:0} Hz, solver {Physics.defaultSolverIterations}/{Physics.defaultSolverVelocityIterations}.");
             md.AppendLine(ended
-                ? $"Recorded {Time.time - startTime:0.0} s of play ({step} physics steps), {eventCount} events, {marks.Count} marks."
+                ? $"Recorded {Now - startTime:0.0} s of play ({step} physics steps), {eventCount} events, {marks.Count} marks."
                 : "Recording… (this file is completed when Play stops).");
             md.AppendLine();
             md.AppendLine("Files: `events.log` (what happened and why), `units/*.frames.csv.gz` (per-step state), "
@@ -713,7 +733,7 @@ namespace PhysicsBattler.Diagnostics
             md.AppendLine();
             md.AppendLine($"## {track.label}");
             md.AppendLine();
-            md.AppendLine($"Present {track.spawnTime:0.0}–{(track.endTime >= 0f ? track.endTime : Time.time):0.0} s. Time in states: {track.StateTimes()}.");
+            md.AppendLine($"Present {track.spawnTime:0.0}–{(track.endTime >= 0f ? track.endTime : Now):0.0} s. Time in states: {track.StateTimes()}.");
             md.AppendLine($"Hits taken {track.hitsTaken} ({track.damageTaken:0} damage). Catch steps {track.catchSteps}, settle steps {track.settleSteps}.");
             md.AppendLine();
 

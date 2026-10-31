@@ -113,7 +113,10 @@ class Session:
     def __init__(self, path):
         self.path = path
         with open(os.path.join(path, "meta.json"), encoding="utf-8") as f:
-            self.meta = json.load(f)
+            text = f.read()
+        # Logs from before the recorder forced invariant number formatting could write "5,507" in marks.
+        text = re.sub(r'"time": (\d+),(\d+)', r'"time": \1.\2', text)
+        self.meta = json.loads(text)
         self.events = read_events(os.path.join(path, "events.log"))
         self.parts = [p["name"] for p in self.meta["parts"]]
         self.parent = {p["name"]: p["parent"] for p in self.meta["parts"]}
