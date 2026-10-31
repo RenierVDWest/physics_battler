@@ -66,7 +66,9 @@ class Shells:
         return base
 
     def _face(self, f, mat):
-        self.faces.append(f)
+        # The ring/pole orders above run clockwise seen from outside; reversed, every face points outward
+        # (Unity culls back faces, so inward faces show the inside of each shell).
+        self.faces.append(tuple(reversed(f)))
         self.mats.append(mat)
 
     def sphere(self, c, r, mat=JOINT, n=24, squash=(1.0, 1.0, 1.0), axis=Z):
