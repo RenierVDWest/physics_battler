@@ -26,6 +26,10 @@ namespace PhysicsBattler.Muscles
         private readonly float[] subtreeBoost = new float[PartInfo.Count];
         private readonly float[] dipTimer = new float[PartInfo.Count];
         private readonly float[] dipDepth = new float[PartInfo.Count];
+        private readonly float[] lastStrength = new float[PartInfo.Count];
+
+        /// <summary>The drive strength last applied to a part's joint (tone × boost × dip; 1 = the profile's).</summary>
+        public float Strength(PartId id) => lastStrength[(int)id];
 
         public MuscleController(UnitRig rig, GhostRig ghost, UnitProfile profile)
         {
@@ -177,6 +181,7 @@ namespace PhysicsBattler.Muscles
 
                 var group = PartInfo.Group(id);
                 float strength = groupStrength[(int)group] * groupBoost[(int)group] * DipFactor(id);
+                lastStrength[i] = strength;
                 float omega = 2f * Mathf.PI * Frequency(group);
                 float spring = Mathf.Max(0f, strength) * omega * omega * subtreeBoost[i];
                 float damper = 2f * profile.dampingRatio * Mathf.Sqrt(spring);

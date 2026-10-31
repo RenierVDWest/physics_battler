@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using PhysicsBattler.Combat;
+using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
@@ -91,6 +92,20 @@ namespace PhysicsBattler.Units
 
         public event Action<HitEvent> Hit;
 
+        /// <summary>A part (or the held weapon, through the hand) started touching something outside the unit.</summary>
+        public event Action<BodyPart, Collision> ContactEntered;
+
+        /// <summary>Any unit finished setting itself up (the playtest recorder starts following it).</summary>
+        public static event Action<UnitController> Initialized;
+
+        public float RestPelvisHeight => restPelvisHeight;
+
+        /// <summary>What the body was doing at the start of the last step.</summary>
+        public BodySense LastSense { get; private set; }
+
+        /// <summary>The weight was over the feet at the start of the last step (stagger can end).</summary>
+        public bool CaughtBalance { get; private set; }
+
         private void Awake()
         {
             if (!Application.isPlaying)
@@ -162,6 +177,7 @@ namespace PhysicsBattler.Units
             }
 
             initialized = true;
+            Initialized?.Invoke(this);
         }
 
         private void Start()
@@ -306,11 +322,13 @@ namespace PhysicsBattler.Units
                 grounded = Grounded,
             };
             bool caught = !Stance.Stepping && Balance.BalanceError < profile.stepThreshold * Scale * 1.5f;
+            LastSense = sense;
+            CaughtBalance = caught;
             State.Step(dt, sense, caught);
 
             if (Planner.Active && !State.IsStanding)
             {
-                Planner.Abandon();
+                Planner.Abandon($"unit is in {State.Kind}");
                 releaseArmTimer = 0.6f;
             }
 
@@ -330,7 +348,7 @@ namespace PhysicsBattler.Units
                 }
                 else if (!Balance.UpdateCatchSteps(GroundY, Scale))
                 {
-                    State.ForceKnockdown();
+                    State.ForceKnockdown(Balance.LastVerdict);
                 }
             }
 
@@ -397,6 +415,11 @@ namespace PhysicsBattler.Units
                 offset.y = 0f;
                 if (offset.magnitude > limit)
                 {
+                    if (PlaytestTrace.Enabled)
+                    {
+                        PlaytestTrace.Note(this, "step", $"settle step {foot}: {offset.magnitude:0.00} m from its rest spot (limit {limit:0.00} m)");
+                    }
+
                     rest.y = planted.y;
                     Stance.BeginStep(foot, rest, profile.stepDuration * 1.4f, profile.stepHeight * Scale);
                     Stance.StepsTaken = 0;
@@ -426,7 +449,7 @@ namespace PhysicsBattler.Units
                 case UnitStateKind.Dead:
                     if (Planner.Active)
                     {
-                        Planner.Abandon();
+                        Planner.Abandon($"unit went into {next}");
                         releaseArmTimer = 0.6f;
                     }
 
@@ -449,7 +472,8 @@ namespace PhysicsBattler.Units
             Vector3 head = Rig.Part(PartId.Head).body.position;
             Vector3 facing = Vector3.ProjectOnPlane(Rig.Part(PartId.Chest).body.rotation * Vector3.forward, Vector3.up);
             Vector3 along = Vector3.ProjectOnPlane(head - pelvis, Vector3.up);
-            if (along.sqrMagnitude > facing.sqrMagnitude)
+            bool headWay = along.sqrMagnitude > facing.sqrMagnitude;
+            if (headWay)
             {
                 facing = along;   // lying down: rise facing the way the head points
             }
@@ -461,6 +485,33 @@ namespace PhysicsBattler.Units
 
             transform.position = new Vector3(pelvis.x, GroundY, pelvis.z);
             Stance.Plant(transform, GroundY);
+
+            if (PlaytestTrace.Enabled)
+            {
+                var chest = Rig.Part(PartId.Chest).body;
+                PlaytestTrace.Note(this, "getup",
+                    $"getting up: {DescribeLying(chest.rotation)}, pelvis {pelvis.y - GroundY:0.00} m up (rest {restPelvisHeight:0.00} m), "
+                    + $"head {head.y - GroundY:0.00} m, chest tilt {Vector3.Angle(chest.rotation * Vector3.up, Vector3.up):0}°; "
+                    + $"root moved under the pelvis, facing {(headWay ? "where the head points" : "the chest's way")}");
+            }
+        }
+
+        /// <summary>How a body lies, from its chest: "lying on its back", "lying face down", "on its side", "upright".</summary>
+        public static string DescribeLying(Quaternion chestRotation)
+        {
+            float tilt = Vector3.Angle(chestRotation * Vector3.up, Vector3.up);
+            if (tilt < 40f)
+            {
+                return "upright";
+            }
+
+            if (tilt < 65f)
+            {
+                return "bent over or sitting (chest tilted " + Mathf.RoundToInt(tilt) + "°)";
+            }
+
+            float frontUp = Vector3.Dot(chestRotation * Vector3.forward, Vector3.up);
+            return frontUp > 0.5f ? "lying on its back" : frontUp < -0.5f ? "lying face down" : "lying on its side";
         }
 
         /// <summary>Called by a body part when it collides with something.</summary>
@@ -482,6 +533,11 @@ namespace PhysicsBattler.Units
                 lastGroundedTime = Time.time;
             }
 
+            if (entered)
+            {
+                ContactEntered?.Invoke(part, collision);
+            }
+
             // Weapon on weapon is a clash, not a hit on the hand holding the other one: the physics
             // deflects both and nobody takes damage.
             var otherWeapon = other.GetComponentInParent<Weapon>();
@@ -493,7 +549,7 @@ namespace PhysicsBattler.Units
                     var contact = collision.GetContact(i);
                     if (Weapon.Owns(contact.thisCollider))
                     {
-                        ImpactSystem.ResolveWeaponContact(this, Weapon, otherPart, contact);
+                        ImpactSystem.ResolveWeaponContact(this, Weapon, otherPart, contact, entered);
                         return;
                     }
                 }

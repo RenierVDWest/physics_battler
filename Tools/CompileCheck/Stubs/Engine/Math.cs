@@ -62,6 +62,11 @@ namespace UnityEngine
         }
 
         public static float Repeat(float t, float length) => Clamp(t - Floor(t / length) * length, 0f, length);
+        public static float DeltaAngle(float current, float target)
+        {
+            float delta = Repeat(target - current, 360f);
+            return delta > 180f ? delta - 360f : delta;
+        }
     }
 
     public struct Vector2

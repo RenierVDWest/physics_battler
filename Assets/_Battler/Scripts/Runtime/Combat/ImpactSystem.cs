@@ -1,4 +1,5 @@
 using System;
+using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEngine;
@@ -52,7 +53,7 @@ namespace PhysicsBattler.Combat
         /// Returns the hit, or null for a touch that was too slow (or still cooling down).
         /// </summary>
         public static HitEvent? ResolveWeaponContact(UnitController attacker, Weapon weapon, BodyPart victimPart,
-            ContactPoint contact)
+            ContactPoint contact, bool firstContact = true)
         {
             var victim = victimPart.Owner;
             if (victim == null || victim == attacker || weapon.Hand == null)
@@ -63,6 +64,11 @@ namespace PhysicsBattler.Combat
             var definition = weapon.Definition;
             if (!attacker.CanHit(victim, definition.hitCooldown))
             {
+                if (firstContact && PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(attacker, "hit", $"club touched {victim.name} {victimPart.id}: no hit, still cooling down from the last one");
+                }
+
                 return null;
             }
 
@@ -78,6 +84,13 @@ namespace PhysicsBattler.Combat
             speed = Mathf.Max(speed, relative.magnitude * 0.5f);
             if (speed < definition.minHitSpeed)
             {
+                if (firstContact && PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(attacker, "hit",
+                        $"club touched {victim.name} {victimPart.id}: no hit, too slow ({speed:0.0} m/s < minHitSpeed {definition.minHitSpeed:0.0}) "
+                        + $"in {attacker.Planner.Current} at θ {attacker.Planner.Theta:0}°");
+                }
+
                 return null;
             }
 
@@ -134,7 +147,13 @@ namespace PhysicsBattler.Combat
                 return;
             }
 
-            unit.State.LoseStability((impulse - profile.shoveThreshold) * profile.shoveStabilityPerImpulse);
+            float loss = (impulse - profile.shoveThreshold) * profile.shoveStabilityPerImpulse;
+            if (PlaytestTrace.Enabled)
+            {
+                PlaytestTrace.Note(unit, "shove", $"{part.id} shoved by {collision.collider.name}: impulse {impulse:0} N·s → -{loss:0.0} stability");
+            }
+
+            unit.State.LoseStability(loss);
             if (impulse > profile.shoveThreshold * 3f)
             {
                 unit.Muscles.Dip(part.id, 0.5f);

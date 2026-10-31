@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using PhysicsBattler.Combat;
+using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
@@ -12,7 +13,9 @@ namespace PhysicsBattler.Sandbox
     /// <summary>
     /// The prototype scene: two orcs, one with the big club, and a panel of scenario buttons to
     /// test the combat physics. Keys: Space attack, R reset, P pause, . step one physics frame,
-    /// G ghost on/off, H hit the attacker from the side. Left-click a body to push it.
+    /// G ghost on/off, H hit the attacker from the side, M mark the playtest log. Left-click a body
+    /// to push it. Every Play session is recorded by a <see cref="PlaytestRecorder"/> (added if the
+    /// scene has none) into PlaytestLogs/.
     /// </summary>
     public class SandboxController : MonoBehaviour
     {
@@ -59,14 +62,32 @@ namespace PhysicsBattler.Sandbox
             Time.timeScale = 1f;
         }
 
+        private PlaytestRecorder recorder;
+
         private void Start()
         {
+            recorder = FindFirstObjectByType<PlaytestRecorder>();
+            if (recorder == null)
+            {
+                recorder = gameObject.AddComponent<PlaytestRecorder>();
+            }
+
             JointConventions.EnsureProbed();
+            Note("joint probe: " + JointConventions.Report);
             Spawn();
+        }
+
+        private static void Note(string text)
+        {
+            if (PlaytestTrace.Enabled)
+            {
+                PlaytestTrace.Note(null, "input", text);
+            }
         }
 
         public void Spawn()
         {
+            Note($"spawn: two orcs {distance:0.00} m apart");
             Clear();
             if (orcPrefab == null)
             {
@@ -135,6 +156,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.Period)) StepOnce();
             if (SandboxInput.KeyPressed(KeyCode.G)) SetGhost(!showGhost);
             if (SandboxInput.KeyPressed(KeyCode.H)) HitAttackerFromSide();
+            if (SandboxInput.KeyPressed(KeyCode.M)) Mark();
 
             if (SandboxInput.LeftPressed && !OverPanel())
             {
@@ -159,7 +181,22 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
-            message = attacker.TryAttack(victim, attack, out string reason) ? "" : "Attack: " + reason;
+            Note("attack ordered");
+            bool started = attacker.TryAttack(victim, attack, out string reason);
+            message = started ? "" : "Attack: " + reason;
+            if (!started && PlaytestTrace.Enabled)
+            {
+                PlaytestTrace.Note(attacker, "attack", "attack refused: " + reason);
+            }
+        }
+
+        public void Mark()
+        {
+            if (recorder != null && recorder.Recording)
+            {
+                recorder.Mark();
+                message = $"Mark {recorder.MarkCount} written to the log.";
+            }
         }
 
         public void HitAttackerFromSide()
@@ -170,6 +207,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             var chest = attacker.Rig.Part(PartId.Chest);
+            Note($"side hit on {attacker.name}: {sideHitImpulse:0} N·s from its left");
             Vector3 impulse = attacker.Root.right * sideHitImpulse + Vector3.up * (sideHitImpulse * 0.1f);
             attacker.Push(chest, impulse, chest.body.worldCenterOfMass - attacker.Root.right * 0.2f);
         }
@@ -209,6 +247,7 @@ namespace PhysicsBattler.Sandbox
             Vector3 ground = new Vector3(point.x, 0f, point.z);
             Vector3 facing = attacker.Root.position - ground;
             facing.y = 0f;
+            Note($"goblin placed into the arc at ({ground.x:0.00}, {ground.z:0.00})");
             var goblin = SpawnUnit(goblinPrefab, "Goblin", ground, facing.sqrMagnitude > 0.01f ? facing : Vector3.left, 1);
             extras.Add(goblin.gameObject);
         }
@@ -220,6 +259,7 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            Note($"barrel placed into the arc at ({point.x:0.00}, {point.z:0.00})");
             extras.Add(Instantiate(barrelPrefab, new Vector3(point.x, 0.5f, point.z), Quaternion.identity));
         }
 
@@ -231,6 +271,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             Vector3 middle = (attacker.Root.position + victim.Root.position) * 0.5f + Vector3.up * 2.6f;
+            Note("crate dropped between them");
             extras.Add(Instantiate(cratePrefab, middle, Quaternion.Euler(0f, 20f, 0f)));
         }
 
@@ -238,6 +279,7 @@ namespace PhysicsBattler.Sandbox
         {
             if (victim != null)
             {
+                Note($"kill {victim.name}");
                 victim.Kill();
             }
         }
@@ -255,6 +297,7 @@ namespace PhysicsBattler.Sandbox
         {
             paused = !paused;
             Time.timeScale = paused ? 0f : timeScale;
+            Note(paused ? "pause" : "resume");
         }
 
         private void StepOnce()
@@ -293,6 +336,7 @@ namespace PhysicsBattler.Sandbox
             var part = hit.collider.GetComponentInParent<BodyPart>();
             if (part != null && part.Owner != null)
             {
+                Note($"push {part.Owner.name} {part.id}: {pushImpulse:0} N·s");
                 part.Owner.Push(part, impulse, hit.point);
             }
             else if (hit.rigidbody != null)
@@ -335,7 +379,7 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label("Space attack · R reset · P pause · . step · G ghost · H side hit");
+            GUILayout.Label("Space attack · R reset · P pause · . step · G ghost · H side hit · M mark");
             GUILayout.Label("Left-click a body to push it, right-drag to orbit, scroll to zoom.");
 
             GUILayout.BeginHorizontal();
@@ -395,6 +439,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             GUILayout.Label("Joint probe: " + JointConventions.Report);
+            DrawRecorder();
             GUILayout.Space(6);
             GUILayout.Label("Hits");
             foreach (var line in log)
@@ -403,6 +448,29 @@ namespace PhysicsBattler.Sandbox
             }
 
             GUI.DragWindow();
+        }
+
+        private void DrawRecorder()
+        {
+            GUILayout.Space(6);
+            if (recorder == null)
+            {
+                return;
+            }
+
+            if (recorder.Recording)
+            {
+                GUILayout.Label($"Recording PlaytestLogs/{recorder.SessionName} ({recorder.EventCount} events, {recorder.MarkCount} marks)");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Mark (M)")) Mark();
+                if (GUILayout.Button("New log")) recorder.NewSession();
+                if (GUILayout.Button("Stop")) recorder.StopSession();
+                GUILayout.EndHorizontal();
+            }
+            else if (GUILayout.Button("Start recording"))
+            {
+                recorder.StartSession();
+            }
         }
 
         private static void DrawUnitLabel(UnitController unit)

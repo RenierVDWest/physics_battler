@@ -1,4 +1,5 @@
 using System;
+using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEngine;
@@ -37,6 +38,9 @@ namespace PhysicsBattler.Motion
         public SwingPlan Plan { get; private set; }
         public UnitController Target { get; private set; }
         public AttackDefinition Definition => definition;
+        public float PhaseTime => phaseTime;
+        public float EntryTheta => entryTheta;
+        public bool LandedHit => landedHit;
 
         /// <summary>True for a short while after an attack is abandoned (its weapon still flying).</summary>
         public float AbandonedTimer { get; private set; }
@@ -138,16 +142,30 @@ namespace PhysicsBattler.Motion
             // The physical hand's rotation (its rigidbody's, not the interpolated transform's).
             var hand = self.Rig.Part(PartId.HandR).body;
             entryTheta = SwingSolver.AngleOf(Plan, hand.rotation * Vector3.forward);
+            if (PlaytestTrace.Enabled)
+            {
+                var plan = Plan;
+                PlaytestTrace.Note(self, "attack",
+                    $"swing at {target.name}: target {plan.distance:0.00} m from the shoulder, contact reach {plan.contactReach:0.00} m, "
+                    + $"plane roll {plan.rollDegrees:0}°, extra lean {plan.extraLean:0.00} m, crowded ×{plan.crowdedFactor:0.00}, "
+                    + $"club starts at θ {entryTheta:0}° (wind-up {(entryTheta > 0f ? "over the top" : "down and back")} to {definition.windUpAngle:0}°)");
+            }
+
             SetPhase(Phase.WindUp);
             return true;
         }
 
         /// <summary>Stops steering the weapon. Its momentum carries on; it still hits, at reduced damage.</summary>
-        public void Abandon()
+        public void Abandon(string reason)
         {
             if (!Active)
             {
                 return;
+            }
+
+            if (PlaytestTrace.Enabled)
+            {
+                PlaytestTrace.Note(self, "attack", $"swing abandoned in {Current} at θ {Theta:0}°: {reason}");
             }
 
             AbandonedTimer = 0.8f;
@@ -201,6 +219,12 @@ namespace PhysicsBattler.Motion
                 if (Current == Phase.Load)
                 {
                     Committed = true;
+                    if (PlaytestTrace.Enabled && Target != null)
+                    {
+                        PlaytestTrace.Note(self, "attack",
+                            $"committed: arc frozen, aiming at {Fmt(Plan.target)} (target's chest now {Fmt(Target.AimPoint)}, "
+                            + $"{Vector3.Distance(Plan.target, Target.AimPoint):0.00} m apart), contact reach {Plan.contactReach:0.00} m");
+                    }
                 }
 
                 SetPhase(Current == Phase.Recover ? Phase.Idle : Current + 1, keepTime: true);
@@ -236,6 +260,8 @@ namespace PhysicsBattler.Motion
 
             PhaseChanged?.Invoke(phase);
         }
+
+        private static string Fmt(Vector3 v) => $"({v.x:0.00}, {v.y:0.00}, {v.z:0.00})";
 
         /// <summary>Where the target's aim point will be when the swing arrives.</summary>
         private Vector3 PredictTarget()

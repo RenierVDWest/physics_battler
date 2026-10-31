@@ -28,6 +28,13 @@ namespace PhysicsBattler.Rig
         public Vector3 CachedAngularVelocity { get; private set; }
         public Vector3 CachedCenterOfMass { get; private set; }
 
+        /// <summary>Time.time of the last physics step this part touched the ground (or anything else).</summary>
+        public float LastGroundContactTime { get; private set; } = -1f;
+        public float LastOtherContactTime { get; private set; } = -1f;
+        public Collider LastOtherContact { get; private set; }
+
+        private static int groundLayer = -2;
+
         /// <summary>
         /// Where a point attached to this part (given where the transform shows it) is in the physics
         /// pose. Transforms of interpolated bodies lag the simulation inside FixedUpdate; the rigidbody
@@ -52,8 +59,33 @@ namespace PhysicsBattler.Rig
             return CachedVelocity + Vector3.Cross(CachedAngularVelocity, worldPoint - CachedCenterOfMass);
         }
 
+        private void RecordContact(Collision collision)
+        {
+            var other = collision.collider;
+            if (other == null)
+            {
+                return;
+            }
+
+            if (groundLayer == -2)
+            {
+                groundLayer = LayerMask.NameToLayer(Layers.Ground);
+            }
+
+            if (other.gameObject.layer == groundLayer)
+            {
+                LastGroundContactTime = Time.time;
+            }
+            else
+            {
+                LastOtherContactTime = Time.time;
+                LastOtherContact = other;
+            }
+        }
+
         private void OnCollisionEnter(Collision collision)
         {
+            RecordContact(collision);
             if (Owner != null)
             {
                 Owner.OnPartCollision(this, collision, true);
@@ -62,6 +94,7 @@ namespace PhysicsBattler.Rig
 
         private void OnCollisionStay(Collision collision)
         {
+            RecordContact(collision);
             // Only the feet need contact every step (to know the unit is standing on something),
             // and the hand (a weapon pressing into a body keeps hitting after the first contact).
             if (Owner != null && (PartInfo.IsFoot(id) || PartInfo.IsHand(id)))

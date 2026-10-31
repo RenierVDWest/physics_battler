@@ -13,6 +13,17 @@ internal static class Program
         var options = new JsonSerializerOptions { IncludeFields = true };
         UnityEngine.JsonUtility.Deserializer = (json, type) => JsonSerializer.Deserialize(json, type, options);
         UnityEngine.Application.dataPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../Assets"));
+        var writeOptions = new JsonSerializerOptions { IncludeFields = true, WriteIndented = true };
+        UnityEngine.JsonUtility.Serializer = (obj, pretty) =>
+        {
+            try { return JsonSerializer.Serialize(obj, obj.GetType(), writeOptions); }
+            catch (Exception e) { return "{\"error\": \"" + e.GetType().Name + "\"}"; }
+        };
+
+        if (args.Length >= 2 && args[0] == "smoke")
+        {
+            return Smoke.Run(args[1]);
+        }
 
         int passed = 0, failed = 0;
         var fixtures = typeof(PhysicsBattler.Tests.SwingSolverTests).Assembly.GetTypes()

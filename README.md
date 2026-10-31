@@ -29,6 +29,7 @@ first sessions are about checking each layer works and tuning it (see **First ru
 | H | Hit the attacker from the side |
 | P / . | Pause / step one physics frame |
 | G | Ghost gizmos on or off |
+| M | Mark the playtest log |
 | Left-click | Push the body part under the mouse |
 | Right-drag, middle-drag, scroll | Orbit, pan, zoom |
 
@@ -51,6 +52,18 @@ Each layer depends on the one before it, so check them in this order.
 5. **The hit.** Orc B should take damage, stagger and step back. The hit log shows the speed. If swings never register,
    lower `minHitSpeed` on `Data/Weapons/WD_ClubBig`.
 6. **Interference.** Goblin into the arc, barrel into the arc, crate between them, side hit mid-swing.
+
+## Playtest logs
+
+Every Play session is recorded into `PlaytestLogs/<date_time>/` (next to `Assets/`, so Unity doesn't import it):
+what happened and why (`events.log`), a summary (`session.md`), and per-step data for every unit (state, balance, swing,
+each joint's error against the ghost, and the full pose of the physical body and the ghost). The panel shows the session
+being recorded; **M** (or *Mark*) drops a numbered marker with a snapshot of every unit — press it when you see
+something odd and mention the mark number. *New log* starts a fresh folder; logs close when Play stops.
+
+To share one: stop Play, then commit and push the session folder (a minute of play is about 1–2 MB).
+`python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report plus timelines, swing plots, and
+stick-figure film strips of every swing, fall and mark (needs numpy, pandas and matplotlib).
 
 ## How it works (one paragraph per layer)
 

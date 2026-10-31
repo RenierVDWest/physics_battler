@@ -1,3 +1,4 @@
+using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
@@ -32,6 +33,18 @@ namespace PhysicsBattler.Muscles
 
         /// <summary>Horizontal distance from the support centre to the capture point.</summary>
         public float BalanceError { get; private set; }
+
+        /// <summary>Why <see cref="UpdateCatchSteps"/> last gave up (the knockdown reason).</summary>
+        public string LastVerdict { get; private set; } = "";
+
+        // What the assist applied last step (for the playtest log).
+        public float LastVerticalForce { get; private set; }
+        public float LastHorizontalForce { get; private set; }
+        public float LastUprightPelvis { get; private set; }
+        public float LastUprightChest { get; private set; }
+
+        private UnitController owner;
+        private UnitController Owner => owner != null ? owner : (owner = rig.GetComponent<UnitController>());
 
         public BalanceController(UnitRig rig, GhostRig ghost, UnitProfile profile, Stance stance)
         {
@@ -109,6 +122,7 @@ namespace PhysicsBattler.Muscles
             {
                 if (BalanceError >= threshold * 3f)
                 {
+                    LastVerdict = $"out of catch steps ({stance.StepsTaken}/{profile.maxSteps}) and falling: balance error {BalanceError:0.00} m ≥ 3× step threshold {threshold:0.00} m";
                     return false;
                 }
 
@@ -122,11 +136,16 @@ namespace PhysicsBattler.Muscles
 
                 if (bonusStepUsed)
                 {
+                    LastVerdict = $"out of catch steps and stuck off balance for {StuckGiveUp:0.0} s after a bonus step (error {BalanceError:0.00} m > {threshold:0.00} m)";
                     return false;
                 }
 
                 bonusStepUsed = true;
                 stance.StepsTaken = profile.maxSteps - 1;
+                if (PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(Owner, "step", $"stuck off balance {StuckGiveUp:0.0} s with no steps left (error {BalanceError:0.00} m): granting one bonus step");
+                }
             }
 
             stuckTime = 0f;
@@ -139,8 +158,9 @@ namespace PhysicsBattler.Muscles
             Vector3 across = Flat(right - left);
             Vector3 fall = Flat(capture - SupportCenter);
             bool moveLeft;
-            if (across.sqrMagnitude > 1e-6f && fall.sqrMagnitude > 1e-6f
-                && Mathf.Abs(Vector3.Dot(fall.normalized, across.normalized)) > 0.7f)
+            bool fallingSideways = across.sqrMagnitude > 1e-6f && fall.sqrMagnitude > 1e-6f
+                            && Mathf.Abs(Vector3.Dot(fall.normalized, across.normalized)) > 0.7f;
+            if (fallingSideways)
             {
                 moveLeft = Vector3.Dot(fall, across) < 0f;
             }
@@ -164,6 +184,16 @@ namespace PhysicsBattler.Muscles
 
             target.y = moving.y;
             stance.BeginStep(moveLeft ? PartId.FootL : PartId.FootR, target, profile.stepDuration, profile.stepHeight * scale);
+            if (PlaytestTrace.Enabled)
+            {
+                var root = Owner != null ? Owner.Root : null;
+                string direction = root != null ? DescribeDirection(fall, root) : "";
+                PlaytestTrace.Note(Owner, "step",
+                    $"catch step {(moveLeft ? "FootL" : "FootR")} #{stance.StepsTaken}/{profile.maxSteps}: falling {direction}"
+                    + $"{(fallingSideways ? " (sideways: falling-side foot)" : " (farther foot)")}, balance error {BalanceError:0.00} m > {threshold:0.00} m, "
+                    + $"step {Flat(target - moving).magnitude:0.00} m{(fromStaying.magnitude > maxLength ? " (clamped to maxStepLength)" : "")}");
+            }
+
             return true;
         }
 
@@ -172,6 +202,10 @@ namespace PhysicsBattler.Muscles
         /// <summary>Applies the support force and the upright torques, scaled by <paramref name="balance"/>.</summary>
         public void ApplyForces(float balance, bool grounded)
         {
+            LastVerticalForce = 0f;
+            LastHorizontalForce = 0f;
+            LastUprightPelvis = 0f;
+            LastUprightChest = 0f;
             if (balance <= 0.001f)
             {
                 return;
@@ -199,9 +233,11 @@ namespace PhysicsBattler.Muscles
             Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
             Vector3 horizontal = balance * mass * (profile.kpHorizontal * horizontalError - profile.kdHorizontal * horizontalVelocity);
             pelvis.AddForce(Vector3.up * vertical + horizontal, ForceMode.Force);
+            LastVerticalForce = vertical;
+            LastHorizontalForce = horizontal.magnitude;
 
-            Upright(pelvis, ghost.Part(PartId.Pelvis).rotation, balance);
-            Upright(rig.Part(PartId.Chest).body, ghost.Part(PartId.Chest).rotation, balance);
+            LastUprightPelvis = Upright(pelvis, ghost.Part(PartId.Pelvis).rotation, balance);
+            LastUprightChest = Upright(rig.Part(PartId.Chest).body, ghost.Part(PartId.Chest).rotation, balance);
 
             if (profile.headLift > 0f)
             {
@@ -209,11 +245,28 @@ namespace PhysicsBattler.Muscles
             }
         }
 
-        private void Upright(Rigidbody body, Quaternion wanted, float balance)
+        /// <returns>The angular acceleration applied (rad/s²).</returns>
+        private float Upright(Rigidbody body, Quaternion wanted, float balance)
         {
             Vector3 error = JointMath.RotationError(body.rotation, wanted);
             Vector3 torque = balance * (profile.kpUpright * error - profile.kdUpright * body.angularVelocity);
             body.AddTorque(torque, ForceMode.Acceleration);
+            return torque.magnitude;
+        }
+
+        /// <summary>"forward-left" etc., relative to the unit's facing.</summary>
+        public static string DescribeDirection(Vector3 flat, Transform root)
+        {
+            if (flat.sqrMagnitude < 1e-6f)
+            {
+                return "nowhere";
+            }
+
+            float forward = Vector3.Dot(flat.normalized, root.forward);
+            float right = Vector3.Dot(flat.normalized, root.right);
+            string fb = forward > 0.38f ? "forward" : forward < -0.38f ? "back" : "";
+            string lr = right > 0.38f ? "right" : right < -0.38f ? "left" : "";
+            return fb.Length > 0 && lr.Length > 0 ? fb + "-" + lr : fb + lr;
         }
     }
 }

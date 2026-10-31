@@ -43,6 +43,9 @@ namespace PhysicsBattler.Units
         public bool IsStanding => Kind == UnitStateKind.Steady || Kind == UnitStateKind.Flinch;
         public float TimeInState => timeInState;
 
+        /// <summary>Why the unit entered its current state (for the playtest log).</summary>
+        public string LastReason { get; private set; } = "spawned";
+
         /// <summary>0..1 through getting up.</summary>
         public float GetUpProgress => Kind == UnitStateKind.GettingUp
             ? Mathf.Clamp01(timeInState / Mathf.Max(0.1f, profile.getUpDuration))
@@ -109,18 +112,18 @@ namespace PhysicsBattler.Units
 
             if (Stability < profile.knockdownBelow)
             {
-                Enter(UnitStateKind.Knockdown);
+                Enter(UnitStateKind.Knockdown, $"stability {Stability:0} < knockdownBelow {profile.knockdownBelow:0} (lost {loss:0.0})");
             }
             else if (Stability < profile.staggerBelow)
             {
                 if (Kind != UnitStateKind.Stagger)
                 {
-                    Enter(UnitStateKind.Stagger);
+                    Enter(UnitStateKind.Stagger, $"stability {Stability:0} < staggerBelow {profile.staggerBelow:0} (lost {loss:0.0})");
                 }
             }
             else if (loss >= profile.flinchThreshold && Kind == UnitStateKind.Steady)
             {
-                Enter(UnitStateKind.Flinch);
+                Enter(UnitStateKind.Flinch, $"lost {loss:0.0} stability (flinch threshold {profile.flinchThreshold:0.0})");
             }
         }
 
@@ -134,7 +137,7 @@ namespace PhysicsBattler.Units
             Health = Mathf.Max(0f, Health - amount);
             if (Health <= 0f)
             {
-                Enter(UnitStateKind.Dead);
+                Enter(UnitStateKind.Dead, $"health 0 (took {amount:0.0})");
             }
         }
 
@@ -143,17 +146,17 @@ namespace PhysicsBattler.Units
             Health = 0f;
             if (IsAlive)
             {
-                Enter(UnitStateKind.Dead);
+                Enter(UnitStateKind.Dead, "killed");
             }
         }
 
-        /// <summary>The body failed to catch itself (out of catch steps).</summary>
-        public void ForceKnockdown()
+        /// <summary>The body fell whatever its stability says (tipped over, or out of catch steps).</summary>
+        public void ForceKnockdown(string reason)
         {
             if (IsAlive && Kind != UnitStateKind.Knockdown)
             {
                 Stability = Mathf.Min(Stability, profile.knockdownBelow);
-                Enter(UnitStateKind.Knockdown);
+                Enter(UnitStateKind.Knockdown, reason);
             }
         }
 
@@ -171,8 +174,9 @@ namespace PhysicsBattler.Units
                 Stability = Mathf.Min(profile.maxStability, Stability + profile.regenRate * dt);
             }
 
-            bool tipped = sense.tiltDegrees > profile.maxTiltDegrees
-                          || sense.pelvisHeight < sense.restPelvisHeight * 0.55f;
+            bool tiltedOver = sense.tiltDegrees > profile.maxTiltDegrees;
+            bool sunk = sense.pelvisHeight < sense.restPelvisHeight * 0.55f;
+            bool tipped = tiltedOver || sunk;
 
             switch (Kind)
             {
@@ -181,16 +185,18 @@ namespace PhysicsBattler.Units
                 case UnitStateKind.Stagger:
                     if (tipped)
                     {
-                        ForceKnockdown();
+                        ForceKnockdown(tiltedOver
+                            ? $"tipped: chest tilt {sense.tiltDegrees:0}° > maxTiltDegrees {profile.maxTiltDegrees:0}°"
+                            : $"tipped: pelvis {sense.pelvisHeight:0.00} m < 55% of rest {sense.restPelvisHeight:0.00} m");
                     }
                     else if (Kind == UnitStateKind.Flinch && timeInState > 0.3f)
                     {
-                        Enter(UnitStateKind.Steady);
+                        Enter(UnitStateKind.Steady, "flinch over");
                     }
                     else if (Kind == UnitStateKind.Stagger && timeInState > 0.6f
                              && Stability >= profile.staggerBelow && caughtBalance)
                     {
-                        Enter(UnitStateKind.Steady);
+                        Enter(UnitStateKind.Steady, $"caught its balance (stability {Stability:0})");
                     }
 
                     break;
@@ -200,7 +206,7 @@ namespace PhysicsBattler.Units
                     if (timeInState > profile.knockdownMinTime && restTimer > profile.restTime)
                     {
                         Stability = Mathf.Max(Stability, profile.maxStability * 0.7f);
-                        Enter(UnitStateKind.GettingUp);
+                        Enter(UnitStateKind.GettingUp, $"down {timeInState:0.0} s, at rest {restTimer:0.0} s");
                     }
 
                     break;
@@ -208,16 +214,17 @@ namespace PhysicsBattler.Units
                 case UnitStateKind.GettingUp:
                     if (timeInState >= profile.getUpDuration)
                     {
-                        Enter(UnitStateKind.Steady);
+                        Enter(UnitStateKind.Steady, $"get-up time over ({profile.getUpDuration:0.0} s)");
                     }
 
                     break;
             }
         }
 
-        private void Enter(UnitStateKind next)
+        private void Enter(UnitStateKind next, string reason)
         {
             var previous = Kind;
+            LastReason = reason;
             Kind = next;
             timeInState = 0f;
             restTimer = 0f;

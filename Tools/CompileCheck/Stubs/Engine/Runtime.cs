@@ -10,7 +10,14 @@ namespace UnityEngine
         public static bool isBatchMode { get; set; } = true;
         public static bool isEditor => true;
         public static string dataPath { get; set; } = "Assets";
+        public static string unityVersion => "6000.0.60f1";
+        public delegate void LogCallback(string condition, string stackTrace, LogType type);
+        public static event LogCallback logMessageReceived;
+        public static void OpenURL(string url) { }
+        public static void RaiseLog(string condition, LogType type) => logMessageReceived?.Invoke(condition, "", type);
     }
+
+    public enum LogType { Error = 0, Assert = 1, Warning = 2, Log = 3, Exception = 4 }
 
     public static class Time
     {
@@ -47,6 +54,11 @@ namespace UnityEngine
     {
         /// <summary>Set by the test runner (System.Text.Json isn't part of .NET Standard 2.1).</summary>
         public static Func<string, Type, object> Deserializer;
+
+        /// <summary>Set by the test runner.</summary>
+        public static Func<object, bool, string> Serializer;
+
+        public static string ToJson(object obj, bool prettyPrint = false) => Serializer != null ? Serializer(obj, prettyPrint) : "{}";
 
         public static T FromJson<T>(string json)
         {
@@ -185,7 +197,7 @@ namespace UnityEngine
         public static int hotControl { get; set; }
     }
 
-    public enum KeyCode { None = 0, Space = 32, Period = 46, G = 103, H = 104, P = 112, R = 114 }
+    public enum KeyCode { None = 0, Space = 32, Period = 46, G = 103, H = 104, M = 109, P = 112, R = 114 }
 
     public static class Input
     {

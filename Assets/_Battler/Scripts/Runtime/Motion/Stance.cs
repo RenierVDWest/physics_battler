@@ -22,6 +22,12 @@ namespace PhysicsBattler.Motion
         public PartId SteppingFoot { get; private set; }
         public int StepsTaken { get; set; }
 
+        /// <summary>Where the step in progress will land.</summary>
+        public Vector3 StepTarget => stepTo;
+
+        /// <summary>A step finished: the foot and where it was planted.</summary>
+        public event System.Action<PartId, Vector3> Landed;
+
         /// <summary>Ankle positions relative to the unit root in the rest pose.</summary>
         public Vector3 RestLocalL { get; set; }
         public Vector3 RestLocalR { get; set; }
@@ -89,6 +95,7 @@ namespace PhysicsBattler.Motion
                 }
 
                 Stepping = false;
+                Landed?.Invoke(SteppingFoot, stepTo);
             }
         }
     }
