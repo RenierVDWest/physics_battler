@@ -159,12 +159,15 @@ namespace PhysicsBattler.Units
             pelvis.SetParent(BodiesContainer, true);
             detachedBody = pelvis.gameObject;
             detachedBody.name = name + " (body)";
+            Physics.SyncTransforms();
             IgnoreSelfCollisions();
+            ApplyInertiaFloor();
 
             State = new UnitState(profile);
             State.Changed += OnStateChanged;
             Muscles = new MuscleController(Rig, Ghost, profile);
             Balance = new BalanceController(Rig, Ghost, profile, Stance);
+            Balance.CreateUprightAnchors(BodiesContainer, name);
             Planner = new AttackPlanner(this);
             Pose = new PoseComposer(Ghost, Rig, Stance);
 
@@ -186,6 +189,10 @@ namespace PhysicsBattler.Units
             {
                 // Inertia tensors are certain to be computed by now.
                 Muscles.RecomputeSubtreeBoost();
+                if (PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(this, "muscles", "self-collision on; left out (touching in the rest pose): " + ignoredAtRest);
+                }
             }
         }
 
@@ -195,6 +202,8 @@ namespace PhysicsBattler.Units
             {
                 Destroy(detachedBody);
             }
+
+            Balance?.DestroyUprightAnchors();
         }
 
         private static Transform BodiesContainer
@@ -211,22 +220,84 @@ namespace PhysicsBattler.Units
             }
         }
 
+        /// <summary>
+        /// The body collides with itself, so an arm or a club can't pass through it (second playtest).
+        /// Only pairs that can't help touching are left out: parts joined to each other, and parts that
+        /// already overlap (or nearly) in the rest pose, like the hips and the spine.
+        /// </summary>
         private void IgnoreSelfCollisions()
         {
-            var colliders = new List<Collider>();
-            foreach (var part in Rig.Parts)
+            var parts = Rig.Parts;
+            var ignored = new List<string>();
+            for (int i = 0; i < parts.Length; i++)
             {
-                if (part.partCollider != null)
+                for (int j = i + 1; j < parts.Length; j++)
                 {
-                    colliders.Add(part.partCollider);
+                    var a = parts[i];
+                    var b = parts[j];
+                    if (a.partCollider == null || b.partCollider == null)
+                    {
+                        continue;
+                    }
+
+                    bool joined = (PartInfo.HasParent(a.id) && PartInfo.Parent(a.id) == b.id)
+                                  || (PartInfo.HasParent(b.id) && PartInfo.Parent(b.id) == a.id);
+                    if (joined || Touching(a.partCollider, b.partCollider, SelfCollisionMargin * Scale))
+                    {
+                        Physics.IgnoreCollision(a.partCollider, b.partCollider, true);
+                        if (!joined)
+                        {
+                            ignored.Add($"{a.id}-{b.id}");
+                        }
+                    }
                 }
             }
 
-            for (int i = 0; i < colliders.Count; i++)
+            ignoredAtRest = ignored.Count > 0 ? string.Join(", ", ignored) : "none";
+        }
+
+        private const float SelfCollisionMargin = 0.02f;
+        private string ignoredAtRest = "";
+
+        /// <summary>Colliders closer than <paramref name="margin"/> (or overlapping) where they are now.</summary>
+        private static bool Touching(Collider a, Collider b, float margin)
+        {
+            var ta = a.transform;
+            var tb = b.transform;
+            if (Physics.ComputePenetration(a, ta.position, ta.rotation, b, tb.position, tb.rotation, out _, out _))
             {
-                for (int j = i + 1; j < colliders.Count; j++)
+                return true;
+            }
+
+            // Not overlapping: how far apart? Closest points both ways.
+            Vector3 onA = a.ClosestPoint(b.bounds.center);
+            Vector3 onB = b.ClosestPoint(onA);
+            onA = a.ClosestPoint(onB);
+            return Vector3.Distance(onA, onB) < margin;
+        }
+
+        /// <summary>
+        /// Light parts (forearms, hands, feet) get a floor on their rotational inertia, like a motor's
+        /// armature. A joint drive is scaled by the inertia of the two bodies it joins, and a forearm
+        /// between a heavy club and the upper arm left the elbow needing a 1268× boost (second playtest).
+        /// </summary>
+        private void ApplyInertiaFloor()
+        {
+            float floor = profile.minPartInertia * Mathf.Pow(Mathf.Max(0.1f, Scale), 5f);
+            if (floor <= 0f)
+            {
+                return;
+            }
+
+            foreach (var part in Rig.Parts)
+            {
+                Vector3 tensor = part.body.inertiaTensor;
+                Vector3 raised = Vector3.Max(tensor, Vector3.one * floor);
+                if (raised != tensor)
                 {
-                    Physics.IgnoreCollision(colliders[i], colliders[j], true);
+                    var rotation = part.body.inertiaTensorRotation;
+                    part.body.inertiaTensor = raised;
+                    part.body.inertiaTensorRotation = rotation;
                 }
             }
         }
@@ -255,15 +326,36 @@ namespace PhysicsBattler.Units
                 moved.body.angularVelocity = Vector3.zero;
             }
             weapon.AttachTo(this, hand, Rig.SlotWeaponR, Layers.Index(Layers.Weapon));
+
+            // The weapon hits its own wielder too (second playtest: the club passed through the orc's
+            // body). Only the arm holding it is left out, and anything it already touches in the carry.
+            Physics.SyncTransforms();
+            var ignoredParts = new List<string>();
             foreach (var weaponCollider in weapon.colliders)
             {
                 foreach (var part in Rig.Parts)
                 {
-                    if (weaponCollider != null && part.partCollider != null)
+                    if (weaponCollider == null || part.partCollider == null)
+                    {
+                        continue;
+                    }
+
+                    bool holding = part.id == PartId.HandR || part.id == PartId.ForearmR;
+                    if (holding || Touching(weaponCollider, part.partCollider, SelfCollisionMargin * Scale))
                     {
                         Physics.IgnoreCollision(weaponCollider, part.partCollider, true);
+                        if (!holding && !ignoredParts.Contains(part.id.ToString()))
+                        {
+                            ignoredParts.Add(part.id.ToString());
+                        }
                     }
                 }
+            }
+
+            if (PlaytestTrace.Enabled)
+            {
+                PlaytestTrace.Note(this, "equip", "the weapon collides with its wielder except the right hand and forearm"
+                                                  + (ignoredParts.Count > 0 ? $" and (touching in the carry pose) {string.Join(", ", ignoredParts)}" : ""));
             }
 
             hand.body.mass += weapon.Definition.physicsMassKg;
@@ -393,9 +485,12 @@ namespace PhysicsBattler.Units
 
             if (boostRecomputeIn > 0 && --boostRecomputeIn == 0)
             {
+                ApplyInertiaFloor();   // the hand's inertia was recomputed with the weapon in it
                 Muscles.RecomputeSubtreeBoost();
             }
 
+            Muscles.LegSupportScale = State.IsStanding || kind == UnitStateKind.Stagger ? 1f
+                : kind == UnitStateKind.GettingUp ? Mathf.Clamp01((State.GetUpProgress - 0.2f) / 0.5f) : 0f;
             Muscles.StanceLeft = IsPlanted(PartId.FootL);
             Muscles.StanceRight = IsPlanted(PartId.FootR);
             Muscles.Step(dt);
@@ -539,8 +634,18 @@ namespace PhysicsBattler.Units
             }
 
             var other = collision.collider;
-            if (other == null || Rig.Owns(other) || (Weapon != null && Weapon.Owns(other)))
+            if (other == null)
             {
+                return;
+            }
+
+            if (Rig.Owns(other) || (Weapon != null && Weapon.Owns(other)))
+            {
+                if (entered)
+                {
+                    ContactEntered?.Invoke(part, collision);   // the body touching itself (for the log)
+                }
+
                 return;
             }
 

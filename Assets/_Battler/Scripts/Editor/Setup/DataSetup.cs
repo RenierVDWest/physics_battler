@@ -41,6 +41,11 @@ namespace PhysicsBattler.Editor.Setup
         /// <summary>Updates existing tuning assets from setup version <paramref name="from"/> to the current one.</summary>
         public static void Migrate(int from)
         {
+            if (from >= 1 && from < 3)
+            {
+                MigrateTo3();
+            }
+
             if (from >= 1 && from < 2)
             {
                 // After the first playtest (the club too heavy for the arm, get-ups declared done while
@@ -60,6 +65,31 @@ namespace PhysicsBattler.Editor.Setup
                     {
                         EditorUtility.SetDirty(profile);
                     }
+                }
+            }
+        }
+
+        private static void MigrateTo3()
+        {
+            // After the second playtest: the units hung from the balance assist like puppets. The legs
+            // now carry the weight (UnitProfile.legSupport), so the assist can let go a lot.
+            foreach (var path in new[] { BattlerPaths.OrcProfile, BattlerPaths.GoblinProfile })
+            {
+                var profile = AssetDatabase.LoadAssetAtPath<UnitProfile>(path);
+                if (profile == null)
+                {
+                    continue;
+                }
+
+                bool changed = false;
+                changed |= Replace(ref profile.supportFeedForward, 0.55f, 0.2f, profile.name, "supportFeedForward");
+                changed |= Replace(ref profile.kpVertical, 160f, 90f, profile.name, "kpVertical");
+                changed |= Replace(ref profile.kdVertical, 24f, 16f, profile.name, "kdVertical");
+                changed |= Replace(ref profile.angularDamping, 0.6f, 0.1f, profile.name, "angularDamping");
+                changed |= Replace(ref profile.uprightBodyShare, 0.3f, 0.2f, profile.name, "uprightBodyShare");
+                if (changed)
+                {
+                    EditorUtility.SetDirty(profile);
                 }
             }
         }

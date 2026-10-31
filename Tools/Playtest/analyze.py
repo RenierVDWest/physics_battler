@@ -569,6 +569,46 @@ def swing_metrics(unit, i0, i1):
     return out
 
 
+def _qmul(a, b):
+    x1, y1, z1, w1 = a.T
+    x2, y2, z2, w2 = b.T
+    return np.stack([w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2, w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
+                     w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2, w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2], 1)
+
+
+def jitter(session, unit, mask):
+    """Per part, over the masked pose rows: rms angular speed (rad/s), and the share of steps whose change in
+    angular velocity reverses the previous one. Near 1.0 means shaking at the physics rate (30 Hz)."""
+    p = unit.pose
+    if p.empty or unit.frames.empty:
+        return {}
+    m = p.merge(unit.frames[["t"]].assign(_keep=mask.to_numpy()), on="t")
+    m = m[m["_keep"]]
+    out = {}
+    if len(m) < 12:
+        return out
+    t = m["t"].to_numpy()
+    contiguous = np.diff(t) < session.dt * 1.5
+    for part in session.parts:
+        q = m[[f"{part}.qx", f"{part}.qy", f"{part}.qz", f"{part}.qw"]].to_numpy(dtype=float)
+        inv = q[:-1].copy()
+        inv[:, :3] *= -1
+        d = _qmul(inv, q[1:])
+        d[d[:, 3] < 0] *= -1
+        v = d[:, :3]
+        s = np.linalg.norm(v, axis=1)
+        ang = 2 * np.arctan2(s, d[:, 3])
+        with np.errstate(invalid="ignore", divide="ignore"):
+            w = np.where(s[:, None] > 1e-9, v / s[:, None], 0) * (ang / session.dt)[:, None]
+        w = w[contiguous]
+        if len(w) < 4:
+            continue
+        dw = np.diff(w, axis=0)
+        alt = float((np.einsum("ij,ij->i", dw[:-1], dw[1:]) < 0).mean())
+        out[part] = (float(np.sqrt((w ** 2).sum(1).mean())), alt)
+    return out
+
+
 def events_between(unit, t0, t1, cats=None):
     return [e for e in unit.events if t0 - 1e-6 <= e.t <= t1 + 1e-6 and (cats is None or e.cat in cats)]
 
@@ -644,6 +684,17 @@ def write_report(session, out, args):
                 w("- " + "; ".join(text))
                 for e in ev:
                     w(f"    - {e.t:7.2f} s  [{e.cat}] {e.text}")
+            w("")
+
+        # Shaking: angular velocity flipping back and forth every physics step.
+        idle_mask = (f["state"] == "Steady") & (f["phase"] == "Idle")
+        jit = jitter(session, unit, idle_mask)
+        if jit:
+            shaking = [p for p, (rms, alt) in jit.items() if alt > 0.75 and rms > 1.5]
+            w("**Shaking while standing idle** (rms angular speed rad/s, share of steps reversing): "
+              + ", ".join(f"{p} {rms:.1f}/{alt:.2f}" for p, (rms, alt) in jit.items()))
+            w("")
+            w(f"→ {'SHAKING at the physics rate: ' + ', '.join(shaking) if shaking else 'no 30 Hz shaking'}")
             w("")
 
         # Tracking error table.

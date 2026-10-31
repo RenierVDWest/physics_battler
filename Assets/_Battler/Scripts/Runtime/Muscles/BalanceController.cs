@@ -134,6 +134,13 @@ namespace PhysicsBattler.Muscles
                     return true;
                 }
 
+                // Only a little off its feet: keep shuffling rather than fall over (second playtest: an orc
+                // went down for a balance error of 0.25 m against a 0.24 m threshold).
+                if (BalanceError < threshold * 2f)
+                {
+                    bonusStepUsed = false;
+                }
+
                 if (bonusStepUsed)
                 {
                     LastVerdict = $"out of catch steps and stuck off balance for {StuckGiveUp:0.0} s after a bonus step (error {BalanceError:0.00} m > {threshold:0.00} m)";
@@ -208,6 +215,8 @@ namespace PhysicsBattler.Muscles
             LastUprightChest = 0f;
             if (balance <= 0.001f)
             {
+                DriveUpright(pelvisAnchor, rig.Part(PartId.Pelvis).body, ghost.Part(PartId.Pelvis).rotation, 0f, 0f);
+                DriveUpright(chestAnchor, rig.Part(PartId.Chest).body, ghost.Part(PartId.Chest).rotation, 0f, 0f);
                 return;
             }
 
@@ -236,13 +245,15 @@ namespace PhysicsBattler.Muscles
             LastVerticalForce = vertical;
             LastHorizontalForce = horizontal.magnitude;
 
-            // The upright torque acts as if turning a share of the whole body about its feet, so it can
-            // hold up a leaning torso (first playtest: 15–20° slump standing, a face-down lift while
-            // getting up). Half on the pelvis, half on the chest.
+            // Upright: a share of the whole body's inertia about its feet, split between pelvis and chest,
+            // applied through joints to kinematic anchors that carry the ghost's rotation. The joints'
+            // drives are solved implicitly by PhysX. (The second playtest applied this as an explicit
+            // torque on the pelvis and chest alone, far stiffer than those light bodies can take in one
+            // step: everything shook at 30 Hz.)
             float comHeight = Mathf.Max(0.2f, ghost.RestLocalPosition(PartId.Pelvis).y * 1.1f);   // standing, about the feet
             float inertia = Mathf.Max(0f, profile.uprightBodyShare) * mass * comHeight * comHeight * 0.5f;
-            LastUprightPelvis = Upright(pelvis, ghost.Part(PartId.Pelvis).rotation, balance, inertia);
-            LastUprightChest = Upright(rig.Part(PartId.Chest).body, ghost.Part(PartId.Chest).rotation, balance, inertia);
+            LastUprightPelvis = DriveUpright(pelvisAnchor, rig.Part(PartId.Pelvis).body, ghost.Part(PartId.Pelvis).rotation, balance, inertia);
+            LastUprightChest = DriveUpright(chestAnchor, rig.Part(PartId.Chest).body, ghost.Part(PartId.Chest).rotation, balance, inertia);
 
             if (profile.headLift > 0f)
             {
@@ -250,20 +261,88 @@ namespace PhysicsBattler.Muscles
             }
         }
 
-        /// <summary>
-        /// Turns a body toward its ghost rotation: a PD with the profile's gains acting on
-        /// <paramref name="inertia"/> (kg·m², a share of the whole body), plus the body's own inertia.
-        /// </summary>
-        /// <returns>The torque applied (N·m).</returns>
-        private float Upright(Rigidbody body, Quaternion wanted, float balance, float inertia)
+        private sealed class Anchor
         {
-            Vector3 error = JointMath.RotationError(body.rotation, wanted);
-            Vector3 acceleration = balance * (profile.kpUpright * error - profile.kdUpright * body.angularVelocity);
-            Vector3 own = body.inertiaTensor;
+            public Rigidbody body;
+            public ConfigurableJoint joint;
+        }
+
+        private Anchor pelvisAnchor;
+        private Anchor chestAnchor;
+
+        /// <summary>
+        /// Creates the kinematic anchors the upright drives pull toward. Call once, with the body still
+        /// in its rest pose (the joints take the current relative rotation as their zero).
+        /// </summary>
+        public void CreateUprightAnchors(Transform container, string unitName)
+        {
+            pelvisAnchor = CreateAnchor(container, unitName + " upright (pelvis)", rig.Part(PartId.Pelvis).body);
+            chestAnchor = CreateAnchor(container, unitName + " upright (chest)", rig.Part(PartId.Chest).body);
+        }
+
+        public void DestroyUprightAnchors()
+        {
+            foreach (var anchor in new[] { pelvisAnchor, chestAnchor })
+            {
+                if (anchor != null && anchor.body != null)
+                {
+                    Object.Destroy(anchor.body.gameObject);
+                }
+            }
+        }
+
+        private static Anchor CreateAnchor(Transform container, string name, Rigidbody part)
+        {
+            var anchorObject = new GameObject(name);
+            anchorObject.transform.SetParent(container, false);
+            anchorObject.transform.SetPositionAndRotation(part.position, part.rotation);
+            var body = anchorObject.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.useGravity = false;
+
+            var joint = anchorObject.AddComponent<ConfigurableJoint>();
+            joint.autoConfigureConnectedAnchor = false;
+            joint.anchor = Vector3.zero;
+            joint.connectedAnchor = Vector3.zero;
+            joint.axis = Vector3.right;
+            joint.secondaryAxis = Vector3.up;
+            joint.xMotion = ConfigurableJointMotion.Free;
+            joint.yMotion = ConfigurableJointMotion.Free;
+            joint.zMotion = ConfigurableJointMotion.Free;
+            joint.angularXMotion = ConfigurableJointMotion.Free;
+            joint.angularYMotion = ConfigurableJointMotion.Free;
+            joint.angularZMotion = ConfigurableJointMotion.Free;
+            joint.rotationDriveMode = RotationDriveMode.Slerp;
+            joint.targetRotation = Quaternion.identity;   // keep the rotation the two had when joined
+            joint.enablePreprocessing = false;
+            joint.connectedBody = part;
+            return new Anchor { body = body, joint = joint };
+        }
+
+        /// <summary>
+        /// Moves an anchor to the ghost's rotation and sets its drive: kp and kd per kg·m² of
+        /// <paramref name="inertia"/> plus the part's own. Returns roughly the torque it pulls with (N·m).
+        /// </summary>
+        private float DriveUpright(Anchor anchor, Rigidbody part, Quaternion wanted, float balance, float inertia)
+        {
+            if (anchor == null || anchor.body == null)
+            {
+                return 0f;
+            }
+
+            anchor.body.MovePosition(part.position);
+            anchor.body.MoveRotation(wanted);
+            Vector3 own = part.inertiaTensor;
             float total = inertia + (own.x + own.y + own.z) / 3f;
-            Vector3 torque = acceleration * total;
-            body.AddTorque(torque, ForceMode.Force);
-            return torque.magnitude;
+            float strength = Mathf.Max(0f, balance) * total;
+            anchor.joint.slerpDrive = new JointDrive
+            {
+                positionSpring = profile.kpUpright * strength,
+                positionDamper = profile.kdUpright * strength,
+                maximumForce = float.MaxValue,
+                useAcceleration = false,
+            };
+            return profile.kpUpright * strength * JointMath.RotationError(part.rotation, wanted).magnitude;
         }
 
         /// <summary>"forward-left" etc., relative to the unit's facing.</summary>

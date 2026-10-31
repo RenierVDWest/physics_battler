@@ -319,6 +319,27 @@ namespace PhysicsBattler.Diagnostics
             }
 
             string what = recorder.Describe(other);
+            bool self = unit.Rig.Owns(other) || (weapon != null && weapon.Owns(other));
+            if (self)
+            {
+                // The body touching itself: always worth knowing when the club is involved.
+                bool clubOnBody = weaponContact || (weapon != null && weapon.Owns(other));
+                if (clubOnBody || speed > 2f)
+                {
+                    var planner = unit.Planner;
+                    string phase = planner.Active ? $"{planner.Current} θ {planner.Theta:0}°" : "idle";
+                    string own = weaponContact ? $"its own {what.Substring(what.LastIndexOf(' ') + 1)}"
+                        : clubOnBody ? $"its own club (with its {part.id})" : $"{part.id} hit its own {what.Substring(what.LastIndexOf(' ') + 1)}";
+                    Log("self", clubOnBody ? $"club hit {own} at {speed:0.0} m/s ({phase})" : $"{own} at {speed:0.0} m/s ({phase})");
+                    if (attack != null && clubOnBody && attack.contacts.Count < 8)
+                    {
+                        attack.contacts.Add($"own body {speed:0.0} m/s in {phase}");
+                    }
+                }
+
+                return;
+            }
+
             if (weaponContact)
             {
                 var planner = unit.Planner;
@@ -455,8 +476,15 @@ namespace PhysicsBattler.Diagnostics
                 if (t - part.LastOtherContactTime <= dt * 1.5f) otherMask |= 1 << (int)id;
             }
 
+            int selfMask = 0;
+            foreach (var id in PartInfo.All)
+            {
+                if (t - rig.Part(id).LastSelfContactTime <= dt * 1.5f) selfMask |= 1 << (int)id;
+            }
+
             frames.Add("groundMask", groundMask);
             frames.Add("otherMask", otherMask);
+            frames.Add("selfMask", selfMask);
             frames.Add("rootX", root.position.x, 3);
             frames.Add("rootZ", root.position.z, 3);
             frames.Add("rootYaw", Yaw(root.forward), 1);

@@ -90,8 +90,11 @@ Tune in the data assets, not on the prefabs (the setup rebuilds prefabs). Change
 
 - `Data/Units/UP_Orc`, `UP_Goblin`: muscles, balance assist, stability, catch steps, getting up. The knobs that
   matter most right now: `maxSubtreeBoost` (how much the arm may stiffen to carry the club; the log's `muscles` line
-  shows what each joint needs), `gravityCompensation`, `velocityFeedForward`, `uprightBodyShare` (how hard the assist
-  holds the torso up), `steadyStepFactor`, and the get-up's `getUpDuration`, `getUpGrace`, `standMaxTilt`.
+  shows what each joint needs), `minPartInertia`, `gravityCompensation`, `legSupport` (planted legs carry the body),
+  `velocityFeedForward`, `uprightBodyShare` and `supportFeedForward` (how hard the balance assist holds the unit up:
+  lower is heavier and less puppet-like), `steadyStepFactor`, and the get-up's `getUpDuration`, `getUpGrace`,
+  `standMaxTilt`. Any of `gravityCompensation`, `legSupport`, `velocityFeedForward` can be set to 0 in Play mode to
+  switch that part off and see what it does.
 - `Data/Weapons/WD_ClubBig`: physics mass vs gameplay mass, damage, knockback, stability loss.
 - `Data/Attacks/AD_ClubLowSwing`: phase timings, swing angles, plane roll, body twist and lean, arm strength.
 

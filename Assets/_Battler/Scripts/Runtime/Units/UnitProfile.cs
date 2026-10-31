@@ -18,7 +18,7 @@ namespace PhysicsBattler.Units
         public int solverIterations = 16;
         public int solverVelocityIterations = 6;
         public float linearDamping = 0.05f;
-        public float angularDamping = 0.6f;
+        public float angularDamping = 0.1f;
         public float maxAngularVelocity = 50f;
         public float maxDepenetrationVelocity = 4f;
         public float footFriction = 0.9f;
@@ -39,6 +39,12 @@ namespace PhysicsBattler.Units
         [Range(0f, 1.2f)] public float gravityCompensation = 1f;
         [Tooltip("How much the muscles also follow the ghost's speed, not only its pose (fast swings lag far less). 0 = off.")]
         [Range(0f, 1f)] public float velocityFeedForward = 1f;
+        [Tooltip("Smallest rotational inertia (kg·m², at scale 1) any part gets, like a motor's armature: keeps light "
+                 + "forearms and hands from needing huge drive boosts to move a heavy weapon.")]
+        public float minPartInertia = 0.08f;
+        [Tooltip("Planted legs hold up the body above them (their share of its weight), so the legs carry the unit "
+                 + "rather than the balance assist. 0 = off.")]
+        [Range(0f, 1.2f)] public float legSupport = 1f;
 
         [Header("Hit dips (local muscle softening where a hit lands)")]
         public float dipStrength = 0.2f;
@@ -46,17 +52,17 @@ namespace PhysicsBattler.Units
         public float dipRecover = 0.4f;
 
         [Header("Balance assist (\"hand of god\")")]
-        public float kpVertical = 160f;
-        public float kdVertical = 24f;
+        public float kpVertical = 90f;
+        public float kdVertical = 16f;
         public float kpHorizontal = 30f;
         public float kdHorizontal = 9f;
         public float kpUpright = 180f;
         public float kdUpright = 24f;
         [Tooltip("The upright torque acts as if turning this share of the whole body about its feet "
                  + "(mass × centre-of-mass height²), split between pelvis and chest. 0 turns only the parts themselves.")]
-        public float uprightBodyShare = 0.3f;
+        public float uprightBodyShare = 0.2f;
         [Tooltip("Share of body weight the assist carries on its own; the legs carry the rest.")]
-        public float supportFeedForward = 0.55f;
+        public float supportFeedForward = 0.2f;
         [Tooltip("Small upward pull on the head while balanced (the TABS trick). 0 = off.")]
         public float headLift = 0f;
         [Tooltip("How far the body may drift from where the unit thinks it is before the unit follows it.")]

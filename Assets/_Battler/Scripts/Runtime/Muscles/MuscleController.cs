@@ -37,6 +37,8 @@ namespace PhysicsBattler.Muscles
         private readonly float[] groupBoost = new float[GroupCount];
         private readonly float[] subtreeBoost = new float[PartInfo.Count];
         private readonly float[] rawBoost = new float[PartInfo.Count];
+        private readonly float[] effectiveInertia = new float[PartInfo.Count];
+        private readonly float[] inertias = new float[PartInfo.Count];
         private readonly float[] dipTimer = new float[PartInfo.Count];
         private readonly float[] dipDepth = new float[PartInfo.Count];
         private readonly float[] lastStrength = new float[PartInfo.Count];
@@ -56,6 +58,9 @@ namespace PhysicsBattler.Muscles
         /// <summary>Feet standing on the ground: their legs carry the body and get no gravity compensation.</summary>
         public bool StanceLeft { get; set; } = true;
         public bool StanceRight { get; set; } = true;
+
+        /// <summary>0..1: how much planted legs hold up the body (off while lying down).</summary>
+        public float LegSupportScale { get; set; } = 1f;
 
         public MuscleController(UnitRig rig, GhostRig ghost, UnitProfile profile)
         {
@@ -162,6 +167,7 @@ namespace PhysicsBattler.Muscles
                 float child = MeanInertia(body);
                 float parentInertia = MeanInertia(parent);
                 float effective = child > 1e-6f && parentInertia > 1e-6f ? 1f / (1f / child + 1f / parentInertia) : child;
+                effectiveInertia[i] = effective;
                 rawBoost[i] = effective > 1e-6f ? load / effective : 1f;
                 subtreeBoost[i] = Mathf.Clamp(rawBoost[i], 1f, profile.maxSubtreeBoost);
             }
@@ -226,6 +232,21 @@ namespace PhysicsBattler.Muscles
             }
         }
 
+        private static bool IsLeftLeg(PartId id) => id == PartId.ThighL || id == PartId.ShinL || id == PartId.FootL;
+
+        private bool InSubtree(int root, PartId part)
+        {
+            foreach (var member in subtrees[root])
+            {
+                if (member == part)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private bool IsStanceLeg(PartId id)
         {
             switch (id)
@@ -243,6 +264,34 @@ namespace PhysicsBattler.Muscles
             }
         }
 
+        /// <summary>Share of the body's weight on each planted foot (by how close the centre of mass is to it).</summary>
+        private void WeightShares(out float left, out float right)
+        {
+            left = StanceLeft ? 1f : 0f;
+            right = StanceRight ? 1f : 0f;
+            if (!(StanceLeft && StanceRight))
+            {
+                return;
+            }
+
+            Vector3 com = Vector3.zero;
+            float total = 0f;
+            foreach (var id in PartInfo.All)
+            {
+                com += centres[(int)id] * masses[(int)id];
+                total += masses[(int)id];
+            }
+
+            com /= Mathf.Max(1e-4f, total);
+            float toLeft = Flat(rig.Part(PartId.FootL).body.position - com).magnitude;
+            float toRight = Flat(rig.Part(PartId.FootR).body.position - com).magnitude;
+            float sum = toLeft + toRight;
+            left = sum > 1e-4f ? Mathf.Clamp(toRight / sum, 0.1f, 0.9f) : 0.5f;
+            right = 1f - left;
+        }
+
+        private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
+
         public void Step(float dt)
         {
             foreach (var id in PartInfo.All)
@@ -251,8 +300,10 @@ namespace PhysicsBattler.Muscles
                 var body = rig.Part(id).body;
                 masses[i] = body.mass;
                 centres[i] = body.worldCenterOfMass;
+                inertias[i] = MeanInertia(body);
             }
 
+            WeightShares(out float shareLeft, out float shareRight);
             Vector3 gravity = Physics.gravity;
             foreach (var id in PartInfo.All)
             {
@@ -272,7 +323,29 @@ namespace PhysicsBattler.Muscles
                 var group = PartInfo.Group(id);
                 float strength = groupStrength[(int)group] * groupBoost[(int)group] * DipFactor(id);
                 lastStrength[i] = strength;
-                JointMath.DriveGains(Frequency(group), profile.dampingRatio, strength, subtreeBoost[i], out float spring, out float damper);
+                bool stance = IsStanceLeg(id);
+                float share = stance ? (IsLeftLeg(id) ? shareLeft : shareRight) : 0f;
+                Vector3 pivot = part.body.position;
+
+                // A planted leg moves the body above it, not the leg below: boost it for that load.
+                float boost = subtreeBoost[i];
+                float legSupport = profile.legSupport * LegSupportScale;
+                if (stance && legSupport > 0f && effectiveInertia[i] > 1e-6f)
+                {
+                    float above = 0f;
+                    foreach (var other in PartInfo.All)
+                    {
+                        if (!InSubtree(i, other))
+                        {
+                            int o = (int)other;
+                            above += inertias[o] + masses[o] * (centres[o] - pivot).sqrMagnitude;
+                        }
+                    }
+
+                    boost = Mathf.Max(boost, Mathf.Min(profile.maxSubtreeBoost, share * legSupport * above / effectiveInertia[i]));
+                }
+
+                JointMath.DriveGains(Frequency(group), profile.dampingRatio, strength, boost, out float spring, out float damper);
 
                 part.joint.slerpDrive = new JointDrive
                 {
@@ -286,12 +359,12 @@ namespace PhysicsBattler.Muscles
                 part.joint.targetRotation = JointMath.TargetRotation(ghostLocal, part.restLocalRotation);
                 part.joint.targetAngularVelocity = FeedForward(i, ghostLocal, part.restLocalRotation, dt);
 
-                // Hold up everything below this joint against gravity: the torque on the child, and the
-                // same torque the other way on the parent.
-                float compensation = profile.gravityCompensation * Mathf.Clamp01(strength);
-                if (compensation > 0f && !IsStanceLeg(id))
+                // Gravity. A free joint holds up everything below it: the torque on the child, and the same
+                // the other way on the parent. A planted leg's joint instead holds up its share of
+                // everything above it, pushing down into the foot: the legs carry the unit.
+                float compensation = Mathf.Clamp01(strength);
+                if (!stance && profile.gravityCompensation > 0f)
                 {
-                    Vector3 pivot = part.body.position;
                     Vector3 torque = Vector3.zero;
                     foreach (var member in subtrees[i])
                     {
@@ -299,9 +372,26 @@ namespace PhysicsBattler.Muscles
                         torque += Vector3.Cross(centres[m] - pivot, gravity * masses[m]);
                     }
 
-                    torque *= -compensation;   // cancel gravity's torque about the joint
+                    torque *= -compensation * profile.gravityCompensation;   // cancel gravity's torque about the joint
                     part.body.AddTorque(torque, ForceMode.Force);
                     rig.Part(PartInfo.Parent(id)).body.AddTorque(-torque, ForceMode.Force);
+                    lastGravityTorque[i] = torque.magnitude;
+                }
+                else if (stance && legSupport > 0f)
+                {
+                    Vector3 torque = Vector3.zero;
+                    foreach (var other in PartInfo.All)
+                    {
+                        if (!InSubtree(i, other))
+                        {
+                            int o = (int)other;
+                            torque += Vector3.Cross(centres[o] - pivot, gravity * masses[o]);
+                        }
+                    }
+
+                    torque *= -compensation * legSupport * share;   // hold the parent side up
+                    rig.Part(PartInfo.Parent(id)).body.AddTorque(torque, ForceMode.Force);
+                    part.body.AddTorque(-torque, ForceMode.Force);
                     lastGravityTorque[i] = torque.magnitude;
                 }
             }

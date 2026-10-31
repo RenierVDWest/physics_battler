@@ -30,6 +30,9 @@ namespace PhysicsBattler.Motion
         private float phaseTime;
         private float entryTheta;
         private bool landedHit;
+        private Vector3 carryGripLocal;
+        private Quaternion carryHandLocal = Quaternion.identity;
+        private bool hasCarry;
 
         public Phase Current { get; private set; } = Phase.Idle;
         public bool Active => Current != Phase.Idle;
@@ -139,9 +142,15 @@ namespace PhysicsBattler.Motion
                 return false;
             }
 
-            // The physical hand's rotation (its rigidbody's, not the interpolated transform's).
-            var hand = self.Rig.Part(PartId.HandR).body;
-            entryTheta = SwingSolver.AngleOf(Plan, hand.rotation * Vector3.forward);
+            // Start from the ghost's carry pose (where the weapon is meant to be), not from wherever the
+            // physical club happens to be: every swing then starts the same way.
+            var ghostHand = self.Ghost.Part(PartId.HandR);
+            var slot = self.Ghost.SlotWeaponR;
+            var root = self.Root;
+            carryGripLocal = root.InverseTransformPoint(slot != null ? slot.position : ghostHand.position);
+            carryHandLocal = Quaternion.Inverse(root.rotation) * ghostHand.rotation;
+            hasCarry = true;
+            entryTheta = SwingSolver.AngleOf(Plan, ghostHand.rotation * Vector3.forward);
             if (PlaytestTrace.Enabled)
             {
                 var plan = Plan;
@@ -315,6 +324,13 @@ namespace PhysicsBattler.Motion
                 case Phase.Load: return Mathf.Lerp(d.windUpAngle, d.loadAngle, Ease.OutCubic(u));
                 case Phase.Strike: return Mathf.Lerp(d.loadAngle, d.followAngle, Ease.InPower(u, d.strikePower));
                 case Phase.Follow: return d.followAngle + 10f * Ease.OutCubic(u);
+                case Phase.Recover:
+                {
+                    // Carry on up the plane (out to the side, clear of the head) toward the carry's angle.
+                    float end = entryTheta > d.followAngle + 10f ? entryTheta : d.followAngle + 10f;
+                    return Mathf.Lerp(d.followAngle + 10f, end, Ease.InOutCubic(u));
+                }
+
                 default: return d.followAngle + 10f;
             }
         }
@@ -326,7 +342,8 @@ namespace PhysicsBattler.Motion
             return wrapped <= -180f ? wrapped + 360f : wrapped;
         }
 
-        private float ArmWeight()
+        /// <summary>How much the body (twist, lean, crouch) takes part: eases in and out.</summary>
+        private float BodyWeight()
         {
             float u = phaseTime / Duration(Current, definition);
             switch (Current)
@@ -337,12 +354,43 @@ namespace PhysicsBattler.Motion
             }
         }
 
+        /// <summary>
+        /// How far the weapon's target is along the arc rather than at the carry (0 = carry, 1 = arc).
+        /// The blend is in the weapon's own space (grip position and hand rotation), so the club moves
+        /// on a predictable path. (Blending joint angles instead, as before, swung the club through
+        /// unpredictable places: in the second playtest a wind-up clubbed the target on the head.)
+        /// </summary>
+        private float ArcBlend()
+        {
+            float u = phaseTime / Duration(Current, definition);
+            switch (Current)
+            {
+                case Phase.WindUp: return Ease.InOutCubic(Mathf.Clamp01(u / 0.45f));
+                case Phase.Recover: return 1f - Ease.InOutCubic(Mathf.Clamp01((u - 0.35f) / 0.65f));
+                default: return 1f;
+            }
+        }
+
+        /// <summary>The arm follows its IK target all through, handing over to the plain carry pose only at the very end.</summary>
+        private float ArmWeight()
+        {
+            if (Current != Phase.Recover)
+            {
+                return 1f;
+            }
+
+            float u = phaseTime / Duration(Current, definition);
+            return 1f - Ease.InOutCubic(Mathf.Clamp01((u - 0.85f) / 0.15f));
+        }
+
         private ActionPose BuildPose()
         {
             var d = definition;
             float scale = self.Scale;
             Theta = CurrentTheta();
-            float weight = ArmWeight();
+            float weight = BodyWeight();
+            float armWeight = ArmWeight();
+            float arc = hasCarry ? ArcBlend() : 1f;
             var plan = Plan;
 
             // Coil: 1 fully wound back, 0 at contact, -0.7 unwound past it. In the wind-up it follows the
@@ -371,7 +419,7 @@ namespace PhysicsBattler.Motion
                 spineYaw = twist * 0.35f,
                 chestYaw = twist * 0.4f,
                 spinePitch = 6f * weight * Mathf.Max(0f, -coil),
-                weaponArmWeight = weight,
+                weaponArmWeight = armWeight,
                 freeArmPitch = -25f * coil * weight,
                 freeArmOut = 15f * weight,
                 hasLookTarget = true,
@@ -407,8 +455,16 @@ namespace PhysicsBattler.Motion
                 tangent = self.Root.up;
             }
 
+            Quaternion handRotation = Quaternion.LookRotation(direction, tangent.normalized);
+            if (arc < 1f)
+            {
+                var root = self.Root;
+                grip = Vector3.Lerp(root.TransformPoint(carryGripLocal), grip, arc);
+                handRotation = Quaternion.Slerp(root.rotation * carryHandLocal, handRotation, arc);
+            }
+
             pose.gripTarget = grip;
-            pose.handRotation = Quaternion.LookRotation(direction, tangent.normalized);
+            pose.handRotation = handRotation;
             pose.elbowPole = pole;
             return pose;
         }

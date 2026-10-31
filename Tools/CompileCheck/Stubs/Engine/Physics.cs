@@ -33,6 +33,7 @@ namespace UnityEngine
         public Vector3 centerOfMass { get; set; }
         public Vector3 worldCenterOfMass => position;
         public Vector3 inertiaTensor { get; set; } = Vector3.one * 0.1f;
+        public Quaternion inertiaTensorRotation { get; set; } = Quaternion.identity;
         public Vector3 position { get => transform.position; set => transform.position = value; }
         public Quaternion rotation { get => transform.rotation; set => transform.rotation = value; }
         public LayerMask excludeLayers { get; set; }
@@ -246,6 +247,14 @@ namespace UnityEngine
         }
 
         public static void SyncTransforms() { }
+
+        public static bool ComputePenetration(Collider colliderA, Vector3 positionA, Quaternion rotationA,
+            Collider colliderB, Vector3 positionB, Quaternion rotationB, out Vector3 direction, out float distance)
+        {
+            direction = Vector3.zero;
+            distance = 0f;
+            return false;
+        }
         public static void Simulate(float step) { }
     }
 

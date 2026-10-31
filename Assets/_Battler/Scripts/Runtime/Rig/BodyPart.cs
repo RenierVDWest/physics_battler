@@ -33,6 +33,9 @@ namespace PhysicsBattler.Rig
         public float LastOtherContactTime { get; private set; } = -1f;
         public Collider LastOtherContact { get; private set; }
 
+        /// <summary>Time.time this part last touched its own unit (another of its parts, or its own weapon).</summary>
+        public float LastSelfContactTime { get; private set; } = -1f;
+
         private static int groundLayer = -2;
 
         /// <summary>
@@ -76,11 +79,27 @@ namespace PhysicsBattler.Rig
             {
                 LastGroundContactTime = Time.time;
             }
+            else if (Owner != null && IsOwn(other))
+            {
+                LastSelfContactTime = Time.time;
+            }
             else
             {
                 LastOtherContactTime = Time.time;
                 LastOtherContact = other;
             }
+        }
+
+        private bool IsOwn(Collider other)
+        {
+            var part = other.GetComponentInParent<BodyPart>();
+            if (part != null && part.Owner == Owner)
+            {
+                return true;
+            }
+
+            var weapon = other.GetComponentInParent<Combat.Weapon>();
+            return weapon != null && weapon.Owner == Owner;
         }
 
         private void OnCollisionEnter(Collision collision)
