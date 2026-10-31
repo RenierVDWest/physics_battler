@@ -9,12 +9,39 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 4, off balance, knocked down, getting up
+## Current state: Fight Rhythms (after milestone 4)
 
 An 8×8 board with three units a side: Small, Medium and Large. Small and large carry clubs, the
 medium ones a sword and shield. They close in on the nearest enemy and strike at its body parts:
 head, neck, chest, belly, elbows or knees. What the weapon meets takes the hit, and a hard hit
 throws the body: off balance, off its feet, or through the air into whoever is standing there.
+
+### Fight Rhythms: how each style moves between blows
+
+The plan is in the "Fight Rhythm" doc. Every unit now has a **Fight Rhythm**: a base loop it
+always plays, and four **postures** (short bursts of its style's characteristic movement) mixed in
+over it. A **mood** changes the mix over the fight.
+
+| Unit | Style | Base | Postures |
+| --- | --- | --- | --- |
+| Large | Boxing (the club for a right hand) | Low bounce on the balls of the feet, the lead hand high at the cheek, the club cocked and pumping, the head swaying | Club feint (the real swing's wind-up, a third of the way, and back), jab feint (lead hand half out with a small step in), bob and weave, shift (the rear foot steps through to lead and back) |
+| Medium | Round-shield and sword | Shield out at arm's length, sword drawn back by the hip, point forward and circling a little, circling to the side | High feint (the cut's wind-up over the shield), shield press (with a half step), guard change (sword overhead, then on the shoulder; shield down, then up), peek (the shield dips) |
+| Small | Eskrima (the club as a single stick) | Quick light bounce, the stick in a figure-eight from the wrist, the alive hand out in front, restless | Abanico flurry (fan flicks), triangle step (off the line to a new angle), redonda twirl (a circle of the stick overhead), bait retreat |
+
+- **Patterns, not dice.** Each posture has a usual follow-up, which is made likelier after it. The
+  same posture never plays twice in a row. Before a blow, the style may play a **lead-in** first;
+  the boxer does this most often, and the blow comes as the feint ends.
+- **Mood.** Energy falls a little with every posture, blow and hit taken, and comes back slowly.
+  As it falls, postures thin out (half as many at half energy), the bounce flattens and the guard
+  sags. Below 35% the head is open. Aggression rises with hits landed and falls with hits taken.
+  It favours feints over defensive postures.
+- **Openings.** Every posture marks windows where body parts are open, such as the bob and weave at
+  its lowest. The unit's label shows them as they happen, and the log records them. Nothing acts on
+  them yet; that waits for the fight loop.
+- Weapon feints play the unit's own blow's wind-up and never strike. Postures pause for blows,
+  blocks and stumbles, and a blow takes over from the rhythm as it blends in.
+- **H** is the rhythm gallery: each style's base, then every posture slowed and at full speed.
+  The panel can make everyone tired, to see the difference.
 
 ### Milestone 4: stumbles, ragdolls, get-ups
 
@@ -158,7 +185,8 @@ and the real units spawn on the markers.
    default one, rearranges team B so each unit faces a different size. Version 13 gives the small and large
    profiles their health and poise and each weapon its damage and hit radius (unless you changed them). Version 14
    rebuilds the ready-made moves as big swings (moves still on the old hand-drawn path) and adds the sword cleave and
-   the club's rising blow to the weapons. Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
+   the club's rising blow to the weapons. Version 15 adds the Fight Rhythms (Data/Rhythms) and points each body's
+   combat style at its own. Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
 3. Press Play. Commit the `.meta` files Unity creates for the new scripts and assets.
 
 ## Battle scene controls
@@ -170,6 +198,7 @@ and the real units spawn on the markers.
 | B | Bystander test: fighting stops, a sword unit strikes at an enemy with a third unit stood in the way |
 | G | Move gallery: every move in turn against a dummy, at a third of the speed and then at full speed (G again stops) |
 | L | Launch test: the heaviest armed unit swings at the lightest enemy, with a third unit standing where it will be thrown |
+| H | Rhythm gallery: each Fight Rhythm's base, then every posture slowed to 40% and at full speed (H again stops) |
 | T | Turn everyone around (and back): makes them step and turn on the spot |
 | P / . | Pause / step one physics frame |
 | M | Mark the playtest log |
@@ -177,7 +206,7 @@ and the real units spawn on the markers.
 
 The panel has the same buttons plus a time scale slider and the recorder controls. Each unit's label
 shows its health and poise, the blow it is making and the body part it is aimed at, or that it is
-blocking, stumbling, down or getting up.
+blocking, stumbling, down or getting up, or the posture it is playing and what that leaves open.
 
 **Physics Battler > Move Preview** plays any move against a dummy target. You pick the sizes, the
 distance and the body part, then scrub through the move. The Scene view draws the striking part's
@@ -226,6 +255,10 @@ Milestone 4:
 16. **Get-ups.** Every unit down gets up after a second or two: face down by pushing up onto hands
     and knees and one knee, face up by sitting up and pushing into a crouch. It should start from
     how it lay without a pop, and end in its stance. Then it walks to the middle of a free tile.
+17. **Fight Rhythms.** Press **H**: the large unit bounces and feints like a boxer, the medium one
+    circles behind its shield, the small one fans its stick and steps to angles. In a fight, the
+    boxer feints just before most of its swings. Tick "Everyone tired" in the panel: the postures
+    thin out and the guards drop.
 
 If something looks off, press **M** at the moment and mention the mark number.
 
@@ -291,10 +324,10 @@ their joints are and solved again so an elbow never swings round the wrong way) 
 | Folder (`Assets/_Battler/Scripts/Runtime`) | What lives there |
 | --- | --- |
 | `Rig/` | `PartId` (the 16 parts and their tree), `RigFile` (the body rig JSON), `UnitBuilder`, `UnitRig`, `AnimRig`, `BodyPart` |
-| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline`, `TwoBoneIK`, `GetUp` (get-up key poses, `PoseBuffer`) |
+| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline`, `TwoBoneIK`, `GetUp` (get-up key poses, `PoseBuffer`), `RhythmDefinition`, `PostureDefinition`, `RhythmPlayer` (Fight Rhythms) |
 | `Authority/` | `AuthorityController` (levels per region, pinning) |
 | `Combat/` | `WeaponDefinition`, `MoveDefinition`, `MoveState`, `MovePlanner`, `Weapon` (the weapon in the hand), `AimPart`, `DamageRules`, `BodyClearance` |
-| `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitBalance` (stumbles, knock-downs, launches, body impacts, get-ups), `UnitProfile` |
+| `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitBalance` (stumbles, knock-downs, launches, body impacts, get-ups), `UnitRhythm` (the Fight Rhythm on the unit: steps, travel, feints, lead-ins), `UnitProfile` |
 | `Board/` | `BoardGrid` (tiles), `BoardView` (the board mesh) |
 | `Sandbox/` | `BattleSandbox` (spawning, panel, keys), `UnitSpawn` (the scene's markers), `Brawl` (close in and strike), `OrbitCamera`, `SandboxInput` |
 | `Diagnostics/` | `PlaytestRecorder`, `UnitTrack`, `FrameCapture` |
@@ -324,6 +357,13 @@ Tune in the data assets, not on the prefabs (setup rebuilds prefabs). Changes ma
   Its shape (length, mass, strike points) comes from `weapons.json` and is refreshed by setup.
 - `Data/Units/UP_Small`, `UP_Medium`, `UP_Large` (unit profiles): which body, which style, turn speed, how strongly
   the torso and arms are pinned to the pose (`torsoPin`, `armPin`), and the rigidbody settings.
+- `Data/Rhythms/RD_Boxing`, `RD_ShieldAndSword`, `RD_Eskrima` (Fight Rhythms): the base (bounce rate and
+  height, sway, the weapon's loop, both hands' guards, circling), the postures and how often they come
+  (`gap`), the lead-in chance, and the mood (starting aggression, what each posture, blow and hit costs in
+  energy, regeneration, how far the guard sags). `Data/Rhythms/Postures/PD_*`: each posture's length, weight,
+  key poses (hips, crouch, lean, roll, turn, head, both hands and how the weapon turns, travel), planned
+  steps, a weapon feint (a move's name and how far into its wind-up), openings, and its usual follow-up.
+  Edit while the game runs; H shows them. A combat style's `rhythm` picks which one a body uses.
 - Balance (milestone 4) is tuned in code for now, at the top of `Units/UnitBalance.cs`: the pushes that make a unit
   stumble, fall or fly (`StumbleAt`, `KnockdownAt`, `LaunchAt`), how much each catch step takes (`CatchStep`), the
   stumble's lean, the launch's speed and lift, how long a body stays down, and body impacts (`ImpactSpeed`,
@@ -355,6 +395,8 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll swings [/tmp/gallery] # every mo
 python3 ../Playtest/swings.py /tmp/gallery/PlaytestLogs               # review sheets of the gallery's swings
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll balance [/tmp/getups]  # every body knocked down and got up, and a stumble
 python3 ../Playtest/getups.py /tmp/getups                              # the get-ups drawn from the side and front
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll rhythms /tmp/rhythms   # every style's base and posture: clearance, pops
+python3 ../Playtest/rhythms.py /tmp/rhythms                            # them drawn through time, side and front
 TEST_ONLY=Balance dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll      # only the tests whose name contains this
 ```
 

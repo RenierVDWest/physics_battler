@@ -203,6 +203,7 @@ namespace PhysicsBattler.Units
             Authority.Set(BodyRegion.ArmL, AuthorityLevel.Pinned, profile.armPin);
             Authority.Set(BodyRegion.ArmR, AuthorityLevel.Pinned, profile.armPin);
             InitializeBalance();
+            InitializeRhythm(seed);
 
             facingYaw = transform.eulerAngles.y;
             Stance.GroundY = transform.position.y;
@@ -362,6 +363,7 @@ namespace PhysicsBattler.Units
             }
 
             DropCutShort();
+            StopRhythm();
             ResetBalance();
             Place(position, yaw);
             Knockback = Vector3.zero;
@@ -405,6 +407,7 @@ namespace PhysicsBattler.Units
             state.PhysicalClosest = -1f;
             CurrentMove = state;
             Pose.Move = state;
+            Rhythm?.NoteBlow();
             BeginSweep();
             Stance.Hold = true;
             MoveStarted?.Invoke(this, state);
@@ -651,6 +654,7 @@ namespace PhysicsBattler.Units
             }
 
             CombatBeforePose(dt);
+            UpdateRhythm(poseDt);
 
             if (move != null)
             {

@@ -35,6 +35,9 @@ namespace PhysicsBattler.Sandbox
         private readonly Dictionary<UnitController, Tile> spots = new Dictionary<UnitController, Tile>();
         private readonly Dictionary<UnitController, float> spotSince = new Dictionary<UnitController, float>();
 
+        // Units whose lead-in (a feint before the blow) has played: their next attack goes ahead.
+        private readonly HashSet<UnitController> ledIn = new HashSet<UnitController>();
+
         public Brawl(int seed)
         {
             random = seed != 0 ? new System.Random(seed) : new System.Random();
@@ -67,6 +70,7 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 var enemy = Nearest(units, unit);
+                unit.Opponent = TurnedAway ? null : enemy;
                 if (enemy == null)
                 {
                     continue;
@@ -123,6 +127,21 @@ namespace PhysicsBattler.Sandbox
             {
                 return;
             }
+
+            // Its Fight Rhythm may lead into the blow first (a boxer's feint before the real swing):
+            // the blow comes as the lead-in finishes.
+            if (!ledIn.Contains(unit))
+            {
+                float lead = unit.LeadIn();
+                if (lead > 0f)
+                {
+                    ledIn.Add(unit);
+                    nextAttack[unit] = now + 0.85f * lead;
+                    return;
+                }
+            }
+
+            ledIn.Remove(unit);
 
             // Strike any enemy in reach in front of it, not only the nearest one.
             var candidates = new List<UnitController>();

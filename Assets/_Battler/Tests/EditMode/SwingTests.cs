@@ -29,6 +29,7 @@ namespace PhysicsBattler.Tests
             unit.Team = team;
             typeof(UnitController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(unit, null);
             unit.DealsHits = false;
+            unit.RhythmOn = false;   // (the swing's own shape and speed, measured from the plain guard)
             return unit;
         }
 

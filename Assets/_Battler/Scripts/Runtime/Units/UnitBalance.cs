@@ -203,6 +203,7 @@ namespace PhysicsBattler.Units
             }
 
             bool fresh = State != UnitState.Stumbling;
+            StopRhythm();
             StumbleVelocity = velocity;
             Knockback = Vector3.zero;
             if (CurrentMove != null)
@@ -293,6 +294,7 @@ namespace PhysicsBattler.Units
             }
 
             DropCutShort();
+            StopRhythm();
             Pose.Move = null;
             DropBlock();
             Knockback = Vector3.zero;
@@ -594,7 +596,9 @@ namespace PhysicsBattler.Units
             PoseBuffer stand = null;
             if (t > getUp.StandFrom)
             {
-                // The standing pose, as it will be once up (the feet already on their spots).
+                // The standing pose, as it will be once up (the feet already on their spots, the
+                // rhythm's base loop playing).
+                PoseRhythmBase();
                 Pose.Compose(LocalTime, 0f, true);
                 standing.Capture(Anim);
                 stand = standing;

@@ -590,6 +590,10 @@ namespace PhysicsBattler.Units
                 Result = result, Kind = kind,
             };
             struck.TakeHit(report);
+            if (!report.Shield)
+            {
+                Rhythm?.NoteLanded();
+            }
 
             // Hit stop: the attacker and the struck stand still a moment, longer for a heavier blow.
             float stop = Mathf.Clamp(move.Move.hitStop * (0.6f + result.Impulse.magnitude / 40f), 0.04f, 0.1f);
@@ -621,6 +625,7 @@ namespace PhysicsBattler.Units
 
             var r = hit.Result;
             Health = Mathf.Max(0f, Health - r.Damage);
+            Rhythm?.NoteHit(r.Damage / Mathf.Max(1f, profile.maxHealth));
             Poise -= r.PoiseDamage;
             LastReaction = r.Reaction;
 
@@ -862,6 +867,7 @@ namespace PhysicsBattler.Units
         /// <summary>A blow is coming at this unit: with a shield, it may raise it across the blow after its reaction time.</summary>
         private void OnIncoming(UnitController attacker, MoveState move)
         {
+            Rhythm?.NoteThreat();
             if (!CanAct || Loadout == null || !Loadout.HasShield || IsAttacking)
             {
                 return;   // (off its feet, it can't block)

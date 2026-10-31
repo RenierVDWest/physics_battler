@@ -72,6 +72,16 @@ namespace PhysicsBattler.Motion
         public float Flail { get; set; }
         public Vector3 FlailDirection { get; set; } = Vector3.back;
 
+        /// <summary>
+        /// The Fight Rhythm's base loop and posture (unit space, metres; the unit scales it down
+        /// while a blow plays): hips, bounce and crouch, lean, roll, turn, head, and both hands moved
+        /// and turned from their guards.
+        /// </summary>
+        public RhythmSample Rhythm { get; set; }
+
+        /// <summary>The rhythm's weapon feint, when it is the move posed: the rhythm plays on with it (a real blow takes over from the rhythm as it blends in).</summary>
+        public MoveState Feint { get; set; }
+
         // What the last step produced, for the log.
         public Vector3 CenterOfMass { get; private set; }
         public Vector3 SupportPoint { get; private set; }
@@ -221,6 +231,44 @@ namespace PhysicsBattler.Motion
                 }
             }
 
+            // 4b'. The Fight Rhythm: the base's bounce and sway, the posture's hips, lean and turn
+            //      (after the weight shift: a posture may put the weight over one foot on purpose).
+            //      A real blow takes over from it as it blends in.
+            rhythm = Weighted(Rhythm, move != null && move != Feint ? 1f - moveBlend : 1f);
+            if (move != null && move != Feint)
+            {
+                // The weapon hand lets go of the rhythm's guard twice as fast: its loop and turns gone
+                // before the blow's path takes the weapon round the body.
+                float hand = Mathf.Clamp01(1f - 2f * moveBlend);
+                hand *= hand;
+                var r = Rhythm;
+                rhythm.main = r.main * hand;
+                rhythm.mainTurn = r.mainTurn * hand;
+            }
+            {
+                var r = rhythm;
+                pelvis.position += facing * r.hips + Vector3.down * r.drop;
+                var spine = anim.Part(PartId.Spine);
+                var chest = anim.Part(PartId.Chest);
+                if (Mathf.Abs(r.turn) > 1e-3f)
+                {
+                    pelvis.rotation = Quaternion.AngleAxis(0.45f * r.turn, Vector3.up) * pelvis.rotation;
+                    chest.rotation = Quaternion.AngleAxis(0.55f * r.turn, Vector3.up) * chest.rotation;
+                }
+
+                if (Mathf.Abs(r.lean) > 1e-3f || Mathf.Abs(r.roll) > 1e-3f)
+                {
+                    spine.localRotation = Quaternion.Euler(0.5f * r.lean, 0f, -0.5f * r.roll) * spine.localRotation;
+                    chest.localRotation = Quaternion.Euler(0.5f * r.lean, 0f, -0.5f * r.roll) * chest.localRotation;
+                }
+
+                if (r.head.sqrMagnitude > 1e-6f)
+                {
+                    var head = anim.Part(PartId.Head);
+                    head.localRotation = Quaternion.Euler(r.head.x, r.head.y, 0f) * head.localRotation;
+                }
+            }
+
             // 4c. A stumble: the hips ahead of the feet, the upper body leaning with the fall.
             if (ToppleShift.sqrMagnitude > 1e-8f || Topple.sqrMagnitude > 1e-8f)
             {
@@ -309,6 +357,10 @@ namespace PhysicsBattler.Motion
             if (loadout != null && loadout.HasShield)
             {
                 PoseShieldArm(loadout, facing);
+            }
+            else if (loadout == null || loadout.Off == null)
+            {
+                PoseBareOffHand(facing);
             }
 
             if (move != null && moveBlend > 0f)
@@ -402,6 +454,7 @@ namespace PhysicsBattler.Motion
 
             GuardPose(loadout.Main, true, facing, scale, out var guardGrip, out var guardRotation);
             guardGrip += FlailOffset(facing, 1f);
+            RhythmGuard(facing, rhythm.main, rhythm.mainTurn, ref guardGrip, ref guardRotation);
             Vector3 grip = guardGrip;
             Quaternion rotation = guardRotation;
             if (move != null && moveBlend > 0f)
@@ -438,6 +491,7 @@ namespace PhysicsBattler.Motion
                 // The guard is posed again after the bend (it hangs off the chest).
                 GuardPose(loadout.Main, true, facing, scale, out guardGrip, out guardRotation);
                 guardGrip += FlailOffset(facing, 1f);
+                RhythmGuard(facing, rhythm.main, rhythm.mainTurn, ref guardGrip, ref guardRotation);
                 grip = Vector3.Lerp(guardGrip, moveGrip, moveBlend);
                 rotation = Quaternion.Slerp(guardRotation, moveRotation, moveBlend);
             }
@@ -457,6 +511,7 @@ namespace PhysicsBattler.Motion
             var slot = anim.SlotWeaponL;
             GuardPose(loadout.Off, false, facing, loadout.Scale, out var grip, out var rotation);
             grip += FlailOffset(facing, -1f);
+            RhythmGuard(facing, rhythm.off, rhythm.offTurn, ref grip, ref rotation);
             if (BlockBlend > 0f && BlockNormal.sqrMagnitude > 1e-6f)
             {
                 // Raised across the blow: the face's middle on the strike line, looking back along it.
@@ -468,8 +523,83 @@ namespace PhysicsBattler.Motion
             }
 
             Vector3 pole = facing * new Vector3(-0.8f, -1f, -0.2f);
-            TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL), HandFor(grip, rotation, slot), pole);
+            TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL),
+                Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, HandFor(grip, rotation, slot)), pole);
             anim.Part(PartId.HandL).rotation = rotation * Quaternion.Inverse(slot.localRotation);
+        }
+
+        /// <summary>
+        /// A hand target brought within 96% of the arm's reach: an arm snapping straight swings its
+        /// elbow across in a step, so the hand falls a little short instead.
+        /// </summary>
+        private Vector3 Reachable(PartId upper, PartId fore, PartId hand, Vector3 target)
+        {
+            float length = anim.RestLocalPosition(fore).magnitude + anim.RestLocalPosition(hand).magnitude;
+            Vector3 from = anim.Part(upper).position;
+            Vector3 to = target - from;
+            float most = 0.96f * length;
+            return to.magnitude > most ? from + to.normalized * most : target;
+        }
+
+        /// <summary>The rhythm as posed this step (weighted down while a real blow plays).</summary>
+        private RhythmSample rhythm;
+
+        private static RhythmSample Weighted(RhythmSample s, float w)
+        {
+            if (w >= 1f)
+            {
+                return s;
+            }
+
+            w = Mathf.Max(0f, w);
+            s.hips *= w;
+            s.drop *= w;
+            s.lean *= w;
+            s.roll *= w;
+            s.turn *= w;
+            s.head *= w;
+            s.main *= w;
+            s.mainTurn *= w;
+            s.off *= w;
+            s.offTurn *= w;
+            return s;
+        }
+
+        /// <summary>A Fight Rhythm's offset on a hand's guard: the grip moved and the weapon turned (unit space).</summary>
+        private static void RhythmGuard(Quaternion facing, Vector3 offset, Vector3 turn, ref Vector3 grip, ref Quaternion rotation)
+        {
+            grip += facing * offset;
+            if (turn.sqrMagnitude > 1e-6f)
+            {
+                rotation = facing * Quaternion.Euler(turn) * Quaternion.Inverse(facing) * rotation;
+            }
+        }
+
+        /// <summary>
+        /// The empty off hand (a boxer's lead hand at the cheek, a stick fighter's alive hand out in
+        /// front): the Fight Rhythm places it against the chest (unit space, metres), blending in
+        /// from the plain guard by the rhythm's weight.
+        /// </summary>
+        private void PoseBareOffHand(Quaternion facing)
+        {
+            if (rhythm.off.sqrMagnitude < 1e-8f && Flail <= 0f)
+            {
+                return;
+            }
+
+            // (In the chest's frame: the hand goes round with the body as it turns, and the elbow's
+            // pole with it, so a wind-up's turn never swings the pole along the arm.)
+            var hand = anim.Part(PartId.HandL);
+            var chestPart = anim.Part(PartId.Chest);
+            var chestTurn = Quaternion.LookRotation(Vector3.ProjectOnPlane(chestPart.rotation * Vector3.forward, Vector3.up).sqrMagnitude > 1e-6f
+                ? Vector3.ProjectOnPlane(chestPart.rotation * Vector3.forward, Vector3.up) : facing * Vector3.forward, Vector3.up);
+            Vector3 placed = chestPart.position + chestTurn * rhythm.off;
+            float w = Mathf.Clamp01(rhythm.off.magnitude / Mathf.Max(1e-4f, Rhythm.off.magnitude));
+            Vector3 target = Vector3.Lerp(hand.position, placed, Rhythm.off.sqrMagnitude > 1e-8f ? w : 0f) + FlailOffset(facing, -1f);
+            target = Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target);
+            var rotation = hand.rotation;
+            TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), hand, target, chestTurn * new Vector3(-0.8f, -1f, -0.3f));
+            hand.rotation = rotation;
         }
 
         /// <summary>Stumbling, a hand goes out to its side, up, and forward against the fall.</summary>

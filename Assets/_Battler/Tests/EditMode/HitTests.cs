@@ -255,7 +255,18 @@ namespace PhysicsBattler.Tests
                         }
                     }
 
+                    // How hard it was thrown, as the blow threw it (bumping into someone after can slow it at once).
+                    void OnBalance(UnitController u, string text)
+                    {
+                        var m = System.Text.RegularExpressions.Regex.Match(text, @" at ([0-9.]+) m/s");
+                        if (u == bystander && m.Success)
+                        {
+                            knock = Mathf.Max(knock, float.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture));
+                        }
+                    }
+
                     UnitController.Hit += OnHit;
+                    UnitController.BalanceChanged += OnBalance;
                     try
                     {
                         Assert.IsTrue(attacker.StartMove(state));
@@ -269,6 +280,7 @@ namespace PhysicsBattler.Tests
                     finally
                     {
                         UnitController.Hit -= OnHit;
+                        UnitController.BalanceChanged -= OnBalance;
                     }
 
                     Assert.Greater(hits.Count, 0, "the blow strikes something");
@@ -298,7 +310,7 @@ namespace PhysicsBattler.Tests
         {
             if (unit.State == UnitState.Down)
             {
-                Vector3 v = unit.Rig.Part(PartId.Pelvis).body.linearVelocity;
+                Vector3 v = unit.Rig.Part(PartId.Chest).body.linearVelocity;   // (knocked down: the upper body is thrown hardest)
                 v.y = 0f;
                 return v.magnitude;
             }

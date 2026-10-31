@@ -349,7 +349,8 @@ def _qmul(a, b):
 
 def jitter(session, unit, mask):
     """Per part, over the masked pose rows: rms angular speed (rad/s), and the share of steps whose change in
-    angular velocity reverses the previous one. Near 1.0 means shaking at the physics rate (30 Hz)."""
+    angular velocity reverses the previous one. Near 1.0 means shaking at the physics rate (30 Hz). Only runs of
+    at least 8 contiguous steps count (a reversal across a gap between runs means nothing)."""
     p = unit.pose
     if p.empty or unit.frames.empty:
         return {}
@@ -359,24 +360,38 @@ def jitter(session, unit, mask):
     if len(m) < 12:
         return out
     t = m["t"].to_numpy()
-    contiguous = np.diff(t) < session.dt * 1.5
+    breaks = np.where(np.diff(t) >= session.dt * 1.5)[0] + 1
+    runs = [r for r in np.split(np.arange(len(t)), breaks) if len(r) >= 8]
+    if not runs:
+        return out
     for part in session.parts:
-        q = m[[f"{part}.qx", f"{part}.qy", f"{part}.qz", f"{part}.qw"]].to_numpy(dtype=float)
-        inv = q[:-1].copy()
-        inv[:, :3] *= -1
-        d = _qmul(inv, q[1:])
-        d[d[:, 3] < 0] *= -1
-        v = d[:, :3]
-        s = np.linalg.norm(v, axis=1)
-        ang = 2 * np.arctan2(s, d[:, 3])
-        with np.errstate(invalid="ignore", divide="ignore"):
-            w = np.where(s[:, None] > 1e-9, v / s[:, None], 0) * (ang / session.dt)[:, None]
-        w = w[contiguous]
-        if len(w) < 4:
+        q_all = m[[f"{part}.qx", f"{part}.qy", f"{part}.qz", f"{part}.qw"]].to_numpy(dtype=float)
+        speeds, flips, count = [], 0, 0
+        worst = None   # the run that shakes most: fast AND reversing at the physics rate (not two runs mixed)
+        for r in runs:
+            q = q_all[r]
+            inv = q[:-1].copy()
+            inv[:, :3] *= -1
+            d = _qmul(inv, q[1:])
+            d[d[:, 3] < 0] *= -1
+            v = d[:, :3]
+            s_ = np.linalg.norm(v, axis=1)
+            ang = 2 * np.arctan2(s_, d[:, 3])
+            with np.errstate(invalid="ignore", divide="ignore"):
+                w = np.where(s_[:, None] > 1e-9, v / s_[:, None], 0) * (ang / session.dt)[:, None]
+            speeds.append(w)
+            dw = np.diff(w, axis=0)
+            if len(dw) >= 2:
+                run_flips = int((np.einsum("ij,ij->i", dw[:-1], dw[1:]) < 0).sum())
+                flips += run_flips
+                count += len(dw) - 1
+                run = (float(np.sqrt((w ** 2).sum(1).mean())), run_flips / (len(dw) - 1))
+                if run[0] > SHAKE_RMS and (worst is None or run[1] > worst[1]):
+                    worst = run
+        w = np.concatenate(speeds)
+        if count < 4:
             continue
-        dw = np.diff(w, axis=0)
-        alt = float((np.einsum("ij,ij->i", dw[:-1], dw[1:]) < 0).mean())
-        out[part] = (float(np.sqrt((w ** 2).sum(1).mean())), alt)
+        out[part] = worst if worst is not None else (float(np.sqrt((w ** 2).sum(1).mean())), flips / count)
     return out
 
 
@@ -694,7 +709,17 @@ def plot_timeline(session, unit, path):
             ax.axvline(e.t, color="black", lw=1.4)
     ax.set_ylim(bottom=0)
     ax.legend(fontsize=7, loc="upper right")
-    ax.set_title("health and poise (lines: green dealt a hit, red was struck, black died)", fontsize=9)
+    ax.set_title("health and poise (lines: green dealt a hit, red was struck, black died); Fight Rhythm mood", fontsize=9)
+    if "energy" in f:
+        ax3 = ax.twinx()
+        ax3.plot(t, col(f, "energy"), color="#2a9d8f", lw=1.1, label="energy")
+        ax3.plot(t, col(f, "aggression"), color="#edae49", lw=1.1, label="aggression")
+        if "posture" in f:
+            for value, t0, t1, _, _ in segments(f["posture"].fillna("").astype(str), t):
+                if value:
+                    ax3.axvspan(t0, t1 + 1 / 60, ymin=0.92, ymax=1.0, color="#7a5195", alpha=0.6, lw=0)
+        ax3.set_ylim(0, 1.05)
+        ax3.legend(fontsize=7, loc="lower right")
 
     ax = axs[7]
     ax.plot(t, np.degrees(np.unwrap(np.radians(col(f, "rootYaw").to_numpy()))), color="black", lw=1)
@@ -820,6 +845,8 @@ def unit_numbers(session, unit):
     n["slide"] = float(max(col(f, "slideL")[calm].max(), col(f, "slideR")[calm].max())) if calm.any() else 0.0
     idle = f["move"].fillna("").astype(str) == "" if "move" in f else pd.Series(True, index=f.index)
     idle &= calm
+    if "posture" in f:
+        idle &= f["posture"].fillna("").astype(str) == ""   # (a Fight Rhythm posture shifts the weight on purpose)
     n["com"] = float(col(f, "comOffset")[idle].max())
     n["com95"] = float(col(f, "comOffset")[idle].quantile(0.95))
     n["physCom95"] = float(col(f, "physCom")[idle].quantile(0.95))
@@ -851,12 +878,15 @@ def unit_numbers(session, unit):
         still &= (speed.fillna(0) < 0.05) & (turn.fillna(0) < 20)
     if "move" in f:
         still &= f["move"].fillna("").astype(str) == ""
+    if "posture" in f:
+        still &= f["posture"].fillna("").astype(str) == ""
     n["jitter"] = jitter(session, unit, still) if still.sum() >= 12 else {}
     n["blows"] = blows(unit)
     n["hits"] = hits(unit)
     n["taken"] = [e for e in unit.events if e.cat == "struck"]
     n["died"] = next((e for e in unit.events if e.cat == "death"), None)
     n["balance"] = balance(unit)
+    n["rhythm"] = rhythm(unit, n["blows"])
     n["end"] = float(f["t"].iloc[-1])
     return n
 
@@ -948,6 +978,38 @@ def closest_pair(session):
     return best
 
 
+POSTURE = re.compile(r"posture (\w+)( \(lead-in to a blow\))?")
+
+
+def rhythm(unit, bl):
+    """The unit's Fight Rhythm: postures played (by name), lead-ins, and how many blows came right after one."""
+    out = dict(postures={}, count=0, leadIns=0, ledBlows=0, blows=len(bl), times=[])
+    lead_times = []
+    for e in unit.events:
+        if e.cat != "rhythm":
+            continue
+        m = POSTURE.match(e.text)
+        if not m:
+            continue
+        out["count"] += 1
+        out["postures"][m.group(1)] = out["postures"].get(m.group(1), 0) + 1
+        out["times"].append(e.t)
+        if m.group(2):
+            out["leadIns"] += 1
+            lead_times.append(e.t)
+    for b in bl:
+        if any(0.0 <= b["t"] - t <= 1.5 for t in lead_times):
+            out["ledBlows"] += 1
+    return out
+
+
+def rhythm_summary(n):
+    r = n["rhythm"]
+    if r["count"] == 0:
+        return "-"
+    return f"{r['count']} ({r['leadIns']}; {r['ledBlows']} of {r['blows']})"
+
+
 def balance_summary(n):
     b = n["balance"]
     if not b["events"]:
@@ -989,8 +1051,8 @@ def write_report(session, out, args, films):
     numbers = {}
     w("## Summary")
     w("")
-    w("| unit | leg | steps | shuffles | stepping | worst slide | weight off support out of blows (pose 95% / physical 95%) | hip drop | sway / bob | pinned error 95% (torso, head, arms) | blows (landed on the pose / struck the part aimed at) | hits dealt (on the part aimed at) / taken | stumbled / knocked down / launched / got up | flags |")
-    w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    w("| unit | leg | steps | shuffles | stepping | worst slide | weight off support out of blows (pose 95% / physical 95%) | hip drop | sway / bob | pinned error 95% (torso, head, arms) | blows (landed on the pose / struck the part aimed at) | hits dealt (on the part aimed at) / taken | stumbled / knocked down / launched / got up | postures (lead-ins; blows led into) | flags |")
+    w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for unit in session.units:
         if unit.frames.empty:
             continue
@@ -1000,7 +1062,7 @@ def write_report(session, out, args, films):
         pinned = ", ".join(f"{rg[r]['p95'] * 100:.1f}" for r in ("Torso", "Head", "ArmL", "ArmR"))
         w(f"| {unit.label} | {n['leg']:.2f} m | {n['steps']} | {n['shuffles']} | {n['stepShare'] * 100:.0f}% | {n['slide'] * 100:.1f} cm | "
           f"{n['com95'] * 100:.1f} / {n['physCom95'] * 100:.1f} cm | {n['drop'] * 100:.1f} cm | {n['sway'] * 100:.1f} / {n['bob'] * 100:.1f} cm | "
-          f"{pinned} cm | {blow_summary(n['blows'])} | {hit_summary(n)} | {balance_summary(n)} | {len(fl) or 'none'} |")
+          f"{pinned} cm | {blow_summary(n['blows'])} | {hit_summary(n)} | {balance_summary(n)} | {rhythm_summary(n)} | {len(fl) or 'none'} |")
     w("")
     pair = closest_pair(session)
     if pair is not None:
@@ -1082,6 +1144,15 @@ def write_report(session, out, args, films):
         if n["died"] is not None:
             w(f"**Died** at {n['died'].t:.2f} s: {n['died'].text}.")
             w("")
+        rh = n["rhythm"]
+        if rh["count"]:
+            per_min = rh["count"] / max(1e-3, (t[-1] - t[0]) / 60.0)
+            names = ", ".join(f"{k} {v}" for k, v in sorted(rh["postures"].items(), key=lambda kv: -kv[1]))
+            energy = col(f, "energy")
+            w(f"**Fight Rhythm:** {rh['count']} postures ({per_min:.0f} a minute): {names}. {rh['leadIns']} were lead-ins; "
+              f"{rh['ledBlows']} of its {rh['blows']} blows came right after one. Energy {energy.iloc[0]:.2f} at the start, "
+              f"{energy.min():.2f} at its lowest, {energy.iloc[-1]:.2f} at the end.")
+            w("")
         bal = n["balance"]
         if bal["events"]:
             spells = ", ".join(f"{d:.1f} s from {t0:.1f} s" for t0, d in bal["spells"]) or "-"
@@ -1097,7 +1168,7 @@ def write_report(session, out, args, films):
             w(f"**Steps:** {len(steps)} logged; {len(far)} landed more than 10 cm from where the stance wants the foot now "
               "(normal while turning: the spot moves during the step).")
             w("")
-        other = [e for e in unit.events if e.cat not in ("step", "spawn", "attack", "contact", "touch", "hit", "struck", "death", "balance", "impact")]
+        other = [e for e in unit.events if e.cat not in ("step", "spawn", "attack", "contact", "touch", "hit", "struck", "death", "balance", "impact", "rhythm")]
         if other:
             w("**Other events**")
             w("")

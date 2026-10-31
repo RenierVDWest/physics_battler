@@ -226,6 +226,11 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("knock", unit.Knockback.magnitude, 3);
             frames.Add("state", unit.IsAlive ? unit.State.ToString() : "Dead");
             frames.Add("stumble", unit.StumbleVelocity.magnitude, 3);
+            var rhythm = unit.Rhythm;
+            frames.Add("posture", rhythm?.Current != null ? rhythm.Current.Label : "");
+            frames.Add("energy", rhythm != null ? rhythm.Energy : 1f, 3);
+            frames.Add("aggression", rhythm != null ? rhythm.Aggression : 0f, 3);
+            frames.Add("open", unit.Openings == Combat.AimParts.None ? "" : unit.Openings.ToString().Replace(", ", " "));
             frames.Add("hitStop", unit.HitStop > 0f);
             frames.Add("block", unit.BlockBlend, 2);
 
@@ -338,6 +343,16 @@ namespace PhysicsBattler.Diagnostics
         }
 
         public int stumbles, knockdowns, launches, getUps, impactsDealt;
+        public int postures, leadIns;
+        private readonly System.Collections.Generic.Dictionary<string, int> postureCounts = new System.Collections.Generic.Dictionary<string, int>();
+
+        public void NotePosture(Motion.PostureDefinition posture, bool leadIn)
+        {
+            postures++;
+            leadIns += leadIn ? 1 : 0;
+            postureCounts.TryGetValue(posture.Label, out int n);
+            postureCounts[posture.Label] = n + 1;
+        }
 
         /// <summary>Something happened to the unit's balance (the log line's start says what).</summary>
         public void NoteBalance(string text)
@@ -411,6 +426,19 @@ namespace PhysicsBattler.Diagnostics
                 md.AppendLine($"Hits dealt: {hitsDealt} ({aimedHits} on the part aimed at, {blocked} blocked, {strayHits} on someone in the way, "
                               + $"{allyHits} on allies), {damageDealt:0} damage. Hits taken: {hitsTaken}, {damageTaken:0} damage. "
                               + $"{(unit != null && !unit.IsAlive ? "Killed." : $"Health at the end {(unit != null ? unit.Health : 0f):0}.")}");
+                md.AppendLine();
+            }
+
+            if (postures > 0)
+            {
+                var counts = new System.Collections.Generic.List<string>();
+                foreach (var pair in postureCounts)
+                {
+                    counts.Add($"{pair.Key} {pair.Value}");
+                }
+
+                md.AppendLine($"Fight Rhythm ({(unit != null && unit.Rhythm != null ? unit.Rhythm.Definition.Label : "?")}): {postures} postures ({string.Join(", ", counts)}), "
+                              + $"{leadIns} of them lead-ins to blows; energy at the end {(unit != null && unit.Rhythm != null ? unit.Rhythm.Energy : 0f):0.00}.");
                 md.AppendLine();
             }
 

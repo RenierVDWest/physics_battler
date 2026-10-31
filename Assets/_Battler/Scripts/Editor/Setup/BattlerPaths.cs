@@ -31,6 +31,8 @@ namespace PhysicsBattler.Editor.Setup
         public static string Weapon(string weapon) => $"{DataFolder}/Weapons/WD_{weapon}.asset";
         public static string WeaponPrefab(string weapon) => $"{PrefabsFolder}/Weapons/P_Weapon_{weapon}.prefab";
         public static string Move(string style) => $"{DataFolder}/Moves/MD_{style}.asset";
+        public static string Rhythm(string style) => $"{DataFolder}/Rhythms/RD_{style}.asset";
+        public static string Posture(string name) => $"{DataFolder}/Rhythms/Postures/PD_{name}.asset";
 
         public const string BattleScene = ScenesFolder + "/Battle.unity";
         public const string OldSandboxScene = ScenesFolder + "/Sandbox.unity";

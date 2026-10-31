@@ -47,6 +47,7 @@ namespace PhysicsBattler.Tests
             unit.Team = team;
             // Edit mode: nothing calls Awake by itself.
             typeof(UnitController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(unit, null);
+            unit.RhythmOn = false;   // (the moves' own geometry: the Fight Rhythm's moving guard is tested in RhythmTests)
             // These tests measure where the whole blow goes; a hit would stop it at the body (HitTests).
             unit.DealsHits = false;
             return unit;

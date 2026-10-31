@@ -253,6 +253,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.B)) BystanderTest();
             if (SandboxInput.KeyPressed(KeyCode.G)) Gallery();
             if (SandboxInput.KeyPressed(KeyCode.L)) LaunchTest();
+            if (SandboxInput.KeyPressed(KeyCode.H)) RhythmGallery();
         }
 
         /// <summary>
@@ -542,6 +543,108 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        private Coroutine rhythmRun;
+        private bool tiredAll;
+
+        /// <summary>
+        /// The Fight Rhythms on show: each style in turn (one unit of each) squared up to an opponent
+        /// in the middle of the board: its base for a few seconds, then every posture slowed to 40%
+        /// and at full speed. Fighting stops for it; H again ends it.
+        /// </summary>
+        public void RhythmGallery()
+        {
+            if (rhythmRun != null)
+            {
+                StopCoroutine(rhythmRun);
+                rhythmRun = null;
+                Time.timeScale = paused ? 0f : timeScale;
+                foreach (var u in units)
+                {
+                    if (u != null && u.Rhythm != null)
+                    {
+                        u.Rhythm.Auto = true;
+                    }
+                }
+
+                message = "Rhythm gallery stopped.";
+                return;
+            }
+
+            var alive = units.FindAll(u => u != null && u.IsInitialized && u.IsAlive && u.Rhythm != null);
+            var shown = new List<UnitController>();
+            foreach (var u in alive)
+            {
+                if (shown.Find(s => s.Rhythm.Definition == u.Rhythm.Definition) == null)
+                {
+                    shown.Add(u);
+                }
+            }
+
+            if (shown.Count == 0 || alive.Count < 2)
+            {
+                message = "The rhythm gallery needs two living units. Press R to reset.";
+                return;
+            }
+
+            fight = false;
+            rhythmRun = StartCoroutine(RhythmRun(shown, alive));
+        }
+
+        private System.Collections.IEnumerator RhythmRun(List<UnitController> shown, List<UnitController> alive)
+        {
+            foreach (var unit in shown)
+            {
+                var opponent = alive.Find(u => u != unit && u.Team != unit.Team) ?? alive.Find(u => u != unit);
+                float distance = unit.Style.engageDistance * unit.Body.SizeFactor + 0.25f * opponent.Body.SizeFactor;
+                unit.Teleport(new Vector3(-0.5f * distance, 0f, 0f), 90f);
+                opponent.Teleport(new Vector3(0.5f * distance, 0f, 0f), 270f);
+                int k = 0;
+                foreach (var other in alive)
+                {
+                    if (other != unit && other != opponent)
+                    {
+                        other.Teleport(new Vector3(-4f + 1.6f * k++, 0f, 5.2f), 180f);
+                    }
+                }
+
+                unit.Rhythm.Auto = false;
+                unit.Opponent = opponent;
+                string style = unit.Rhythm.Definition.Label;
+                message = $"Rhythm gallery: {unit.name}, {style}: the base. H stops.";
+                Note($"rhythm gallery: {unit.name} {style} base");
+                Time.timeScale = paused ? 0f : timeScale;
+                yield return new WaitForSeconds(3f);
+                foreach (var posture in unit.Rhythm.Definition.postures)
+                {
+                    if (posture == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (float speed in new[] { 0.4f, 1f })
+                    {
+                        message = $"Rhythm gallery: {unit.name}, {style}: {posture.Label}{(speed < 1f ? ", slowed to 40%" : "")}. H stops.";
+                        Note($"rhythm gallery: {unit.name} {posture.Label} at speed {speed:0.0}");
+                        Time.timeScale = paused ? 0f : timeScale * speed;
+                        unit.Rhythm.Force(posture);
+                        while (unit.Rhythm.Current == posture)
+                        {
+                            yield return null;
+                        }
+
+                        Time.timeScale = paused ? 0f : timeScale;
+                        yield return new WaitForSeconds(0.8f);
+                    }
+                }
+
+                unit.Rhythm.Auto = true;
+            }
+
+            Time.timeScale = paused ? 0f : timeScale;
+            message = "Rhythm gallery done. F to fight again.";
+            rhythmRun = null;
+        }
+
         public void ToggleFight()
         {
             fight = !fight;
@@ -603,7 +706,7 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label("R reset · F fight · B bystander · L launch · G gallery · P pause · . step · T turn · M mark");
+            GUILayout.Label("R reset · F fight · B bystander · L launch · G gallery · H rhythms · P pause · . step · T turn · M mark");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Reset")) Spawn();
@@ -614,7 +717,22 @@ namespace PhysicsBattler.Sandbox
             if (GUILayout.Button("Bystander test (B)")) BystanderTest();
             if (GUILayout.Button(galleryRun != null ? "Stop gallery (G)" : "Move gallery (G)")) Gallery();
             GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
             if (GUILayout.Button("Launch test (L)")) LaunchTest();
+            if (GUILayout.Button(rhythmRun != null ? "Stop rhythms (H)" : "Rhythm gallery (H)")) RhythmGallery();
+            GUILayout.EndHorizontal();
+            bool tired = GUILayout.Toggle(tiredAll, "Everyone tired (Fight Rhythm energy 25%)");
+            if (tired != tiredAll)
+            {
+                tiredAll = tired;
+                foreach (var u in units)
+                {
+                    if (u != null && u.Rhythm != null)
+                    {
+                        u.Rhythm.EnergyOverride = tiredAll ? 0.25f : -1f;
+                    }
+                }
+            }
             OrbitCamera.ShakeOnHits = GUILayout.Toggle(OrbitCamera.ShakeOnHits, "Camera shake on heavy hits");
 
             GUILayout.Label($"Time scale: {timeScale:0.00}{(paused ? " (paused)" : "")}");
@@ -699,6 +817,15 @@ namespace PhysicsBattler.Sandbox
                 else if (unit.State == UnitState.Stumbling)
                 {
                     label += "\nstumbling";
+                }
+                else if (unit.Rhythm?.Current != null)
+                {
+                    label += "\n" + unit.Rhythm.Current.Label + (unit.Rhythm.CurrentIsLeadIn ? " (lead-in)" : "");
+                }
+
+                if (unit.Openings != AimParts.None && unit.State == UnitState.Standing)
+                {
+                    label += "\nopen: " + unit.Openings.ToString().Replace(", ", " ");
                 }
                 else if (unit.State == UnitState.Down)
                 {

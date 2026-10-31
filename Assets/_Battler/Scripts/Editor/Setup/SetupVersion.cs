@@ -36,8 +36,10 @@ namespace PhysicsBattler.Editor.Setup
         ///     damage and hit radius.
         /// 14 = Big swings: the ready-made moves rebuilt as swings and a thrust (Swing and Thrust
         ///     shapes), the sword cleave and the club's rising blow added to the weapons.
+        /// 15 = Fight Rhythms: a rhythm asset per style and a posture asset per posture (Data/Rhythms),
+        ///     each body's combat style pointed at its style.
         /// </summary>
-        public const int Current = 14;
+        public const int Current = 15;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

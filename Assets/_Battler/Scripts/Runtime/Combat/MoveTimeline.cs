@@ -62,6 +62,9 @@ namespace PhysicsBattler.Combat
 
         public float SwingContactTime => T3 / SwingDuration;
 
+        /// <summary>When the wind-up ends (normalized time): a feint plays the move up to a share of this and back.</summary>
+        public float WindUpEnd => shape == MoveShape.Path ? 0.3f : T1 / SwingDuration;
+
         /// <summary>When the follow-through ends and the recovery starts (normalized time).</summary>
         public float SwingFollowEnd => shape == MoveShape.Path ? 1f : T4 / SwingDuration;
 

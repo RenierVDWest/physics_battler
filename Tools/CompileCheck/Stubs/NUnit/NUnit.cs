@@ -62,6 +62,11 @@ namespace NUnit.Framework
             if (value == null) throw new AssertionException(message ?? "expected not null");
         }
 
+        public static void IsNull(object value, string message = null)
+        {
+            if (value != null) throw new AssertionException(message ?? "expected null");
+        }
+
         public static void Fail(string message) => throw new AssertionException(message);
     }
 }

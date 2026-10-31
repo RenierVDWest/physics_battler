@@ -62,6 +62,10 @@ namespace PhysicsBattler.Motion
         [Tooltip("Seconds from a blow starting to the shield moving.")]
         public float reactionTime = 0.22f;
 
+        [Header("Fight Rhythm (how it moves between blows)")]
+        [Tooltip("The fighting style's base loop, postures and mood. Empty: the ready-made one for the unit's body (large: boxing, medium: shield and sword, small: Eskrima).")]
+        public RhythmDefinition rhythm;
+
         [Header("Steps")]
         [Tooltip("A foot steps when it is this far from its spot in the stance (fraction of leg length)…")]
         public float stepThreshold = 0.16f;

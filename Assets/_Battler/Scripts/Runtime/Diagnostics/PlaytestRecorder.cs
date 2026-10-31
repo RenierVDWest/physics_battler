@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using PhysicsBattler.Combat;
 using PhysicsBattler.Rig;
+using PhysicsBattler.Motion;
 using PhysicsBattler.Units;
 using UnityEngine;
 
@@ -167,6 +168,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Hit += OnHit;
             UnitController.Died += OnDied;
             UnitController.BalanceChanged += OnBalance;
+            UnitController.PostureStarted += OnPosture;
             Application.logMessageReceived += OnConsole;
 
             foreach (var unit in FindObjectsByType<UnitController>())
@@ -212,6 +214,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Hit -= OnHit;
             UnitController.Died -= OnDied;
             UnitController.BalanceChanged -= OnBalance;
+            UnitController.PostureStarted -= OnPosture;
             Application.logMessageReceived -= OnConsole;
 
             foreach (var track in tracks.ToArray())
@@ -389,6 +392,21 @@ namespace PhysicsBattler.Diagnostics
                 case UnitState.GettingUp: return "getting up";
                 default: return "standing";
             }
+        }
+
+        private void OnPosture(UnitController unit, PostureDefinition posture, bool leadIn)
+        {
+            var track = TrackOf(unit);
+            float length = unit.Rhythm != null ? unit.Rhythm.Length(posture) : posture.duration;
+            var open = new System.Text.StringBuilder();
+            foreach (var w in posture.openings)
+            {
+                open.Append(open.Length > 0 ? "; " : "").Append($"{w.parts.ToString().Replace(", ", " ")} {w.from * length:0.00}–{w.to * length:0.00} s");
+            }
+
+            string mood = unit.Rhythm != null ? $"energy {unit.Rhythm.Energy:0.00}, aggression {unit.Rhythm.Aggression:0.00}" : "";
+            Event(track, "rhythm", $"posture {posture.Label}{(leadIn ? " (lead-in to a blow)" : "")}, {length:0.00} s; open: {(open.Length > 0 ? open.ToString() : "nothing")}; {mood}");
+            track?.NotePosture(posture, leadIn);
         }
 
         private void OnBalance(UnitController unit, string text)

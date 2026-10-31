@@ -35,6 +35,11 @@ internal static class Program
             return SwingReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "rhythms")
+        {
+            return RhythmReport.Run(args.Length >= 2 ? args[1] : null, args.Length >= 3 ? args[2] : null, args.Length >= 4 ? args[3] : null);
+        }
+
         if (args.Length >= 1 && args[0] == "balance")
         {
             return BalanceReport.Run(args.Length >= 2 ? args[1] : null);
