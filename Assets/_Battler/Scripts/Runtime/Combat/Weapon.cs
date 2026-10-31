@@ -42,6 +42,32 @@ namespace PhysicsBattler.Combat
             return false;
         }
 
+        /// <summary>
+        /// Where the held weapon is in the physics pose (the hand's rigidbody, not its interpolated
+        /// transform): the grip, the direction it points (grip to tip), and the tip.
+        /// </summary>
+        public bool PhysicalPose(out Vector3 grip, out Vector3 direction, out Vector3 tipPoint)
+        {
+            grip = direction = tipPoint = Vector3.zero;
+            if (Hand == null)
+            {
+                return false;
+            }
+
+            Quaternion rotation = Hand.body.rotation * (Quaternion.Inverse(Hand.transform.rotation) * transform.rotation);
+            grip = Hand.PhysicalPoint(transform.position);
+            direction = rotation * Vector3.forward;
+            Vector3 tipLocal = tip != null ? transform.InverseTransformPoint(tip.position) : Vector3.forward * TipDistance;
+            tipPoint = grip + rotation * tipLocal;
+            return true;
+        }
+
+        /// <summary>The tip's speed (m/s) in the physics pose.</summary>
+        public float TipSpeed()
+        {
+            return PhysicalPose(out _, out _, out Vector3 tipPoint) ? Hand.body.GetPointVelocity(tipPoint).magnitude : 0f;
+        }
+
         public void AttachTo(UnitController owner, BodyPart hand, Transform slot, int weaponLayer)
         {
             Owner = owner;

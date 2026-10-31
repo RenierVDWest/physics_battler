@@ -523,12 +523,14 @@ namespace PhysicsBattler.Diagnostics
                 frames.Add("theta", planner.Theta, 1);
                 frames.Add("clubTheta", clubTheta, 1);
                 frames.Add("lag", Mathf.DeltaAngle(clubTheta, planner.Theta), 1);
+                frames.Add("swingOmega", planner.Omega, 2);
             }
             else
             {
                 frames.Blank("theta");
                 frames.Blank("clubTheta");
                 frames.Blank("lag");
+                frames.Blank("swingOmega");
             }
 
             frames.Add("tipSpeed", hasClub ? tipSpeed : float.NaN, 2);

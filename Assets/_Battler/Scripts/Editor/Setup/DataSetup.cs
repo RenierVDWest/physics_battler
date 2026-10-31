@@ -15,6 +15,9 @@ namespace PhysicsBattler.Editor.Setup
     {
         public const float GoblinScale = 0.62f;
 
+        /// <summary>Strength goes with muscle mass: the orc's, times the goblin's scale cubed.</summary>
+        public static readonly float GoblinStrength = 240f * GoblinScale * GoblinScale * GoblinScale;
+
         public static void Apply()
         {
             Ensure<UnitProfile>(BattlerPaths.OrcProfile, _ => { });
@@ -23,6 +26,7 @@ namespace PhysicsBattler.Editor.Setup
                 goblin.scale = GoblinScale;
                 goblin.totalMassKg = 120f * GoblinScale * GoblinScale * GoblinScale;
                 goblin.poiseResistance = 0.45f;
+                goblin.strength = GoblinStrength;
                 goblin.maxHealth = 45f;
             });
 
@@ -49,6 +53,11 @@ namespace PhysicsBattler.Editor.Setup
             if (from >= 1 && from < 4)
             {
                 MigrateTo4();
+            }
+
+            if (from >= 1 && from < 5)
+            {
+                MigrateTo5();
             }
 
             if (from >= 1 && from < 2)
@@ -130,6 +139,24 @@ namespace PhysicsBattler.Editor.Setup
                 {
                     EditorUtility.SetDirty(swing);
                 }
+            }
+        }
+
+        private static void MigrateTo5()
+        {
+            // Strength is new: the orc keeps the default, the goblin gets its share.
+            var goblin = AssetDatabase.LoadAssetAtPath<UnitProfile>(BattlerPaths.GoblinProfile);
+            if (goblin != null && Replace(ref goblin.strength, 240f, GoblinStrength, goblin.name, "strength"))
+            {
+                EditorUtility.SetDirty(goblin);
+            }
+
+            // Phase durations are gone (the weight and strength set the pace); the follow-through is the
+            // braking room the strike's speed is held to.
+            var swing = AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing);
+            if (swing != null && Replace(ref swing.followAngle, 40f, 75f, swing.name, "followAngle"))
+            {
+                EditorUtility.SetDirty(swing);
             }
         }
 

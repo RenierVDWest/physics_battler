@@ -148,6 +148,7 @@ namespace PhysicsBattler.Units
 
             // The ghost is cloned while the body is still in its rest pose under this object.
             Stance = new Stance();
+            Stance.Landed += (foot, where) => lastStepLanded = Time.time;
             Ghost = new GhostRig(transform, Rig);
             // A fighting stance, not feet together: apart, one forward, toes out, knees bent. Support in
             // every direction, and the weight can move between the feet as the unit swings.
@@ -377,6 +378,26 @@ namespace PhysicsBattler.Units
             boostRecomputeIn = 2;   // the new colliders' inertia is only in after a physics step
         }
 
+        /// <summary>How the unit's strength measures up to its weapon (for the log).</summary>
+        private void ReportWeapon()
+        {
+            if (Weapon == null || !PlaytestTrace.Enabled)
+            {
+                return;
+            }
+
+            var load = Planner.MeasureLoad(0.35f * Scale);
+            float ratio = Planner.LiftRatio(load);
+            string verdict = ratio < profile.minimumLiftRatio ? "too heavy to swing"
+                : ratio < 1.8f ? "only just swingable"
+                : ratio < 3f ? "heavy: swung with effort"
+                : "light in its hands";
+            PlaytestTrace.Note(this, "equip",
+                $"{Weapon.Definition.physicsMassKg:0.0} kg weapon, its weight (with the hand) {load.weaponCentre:0.00} m out from the grip: "
+                + $"{load.inertia:0.0} kg·m² about the shoulder, {load.HoldTorque:0} N·m to hold out; strength {Planner.Strength:0} N·m "
+                + $"({ratio:0.0}×): {verdict}");
+        }
+
         public Vector3 RestShoulderWorld(int side)
         {
             return transform.TransformPoint(side >= 0 ? restShoulderLocalR : restShoulderLocalL);
@@ -498,6 +519,7 @@ namespace PhysicsBattler.Units
             {
                 ApplyInertiaFloor();   // the hand's inertia was recomputed with the weapon in it
                 Muscles.RecomputeSubtreeBoost();
+                ReportWeapon();
             }
 
             Muscles.LegSupportScale = State.IsStanding || kind == UnitStateKind.Stagger ? 1f
@@ -528,27 +550,53 @@ namespace PhysicsBattler.Units
         /// </summary>
         private void SettleFeet()
         {
+            // Only once the feet have been still a moment, the weight is over them, and no swing is on:
+            // a settle step then can't start a stumble.
+            if (Time.time - lastStepLanded < SettleDelay || Balance.BalanceError > 0f || Planner.Active)
+            {
+                return;
+            }
+
+            // Re-form the stance around where the weight is now (the centre of mass on the ground), not
+            // around the root. Settling to the root's spots could pull the support out from under the
+            // weight, and the next catch step put the foot straight back: in the fourth playtest an
+            // orc's foot went back and forth between two spots for over a minute.
+            Vector3 centre = (Stance.RestLocalL + Stance.RestLocalR) * 0.5f;
+            Vector3 weight = Balance.CenterOfMass;
             float limit = 0.22f * Scale;
+            PartId worst = PartId.FootL;
+            Vector3 worstSpot = Vector3.zero;
+            float worstOffset = 0f;
             foreach (var foot in new[] { PartId.FootL, PartId.FootR })
             {
-                Vector3 rest = transform.TransformPoint(foot == PartId.FootL ? Stance.RestLocalL : Stance.RestLocalR);
+                Vector3 local = (foot == PartId.FootL ? Stance.RestLocalL : Stance.RestLocalR) - centre;
+                local.y = 0f;
                 Vector3 planted = Stance.Planted(foot);
-                Vector3 offset = rest - planted;
+                Vector3 spot = new Vector3(weight.x, planted.y, weight.z) + transform.rotation * local;
+                Vector3 offset = spot - planted;
                 offset.y = 0f;
-                if (offset.magnitude > limit)
+                if (offset.magnitude > worstOffset)
                 {
-                    if (PlaytestTrace.Enabled)
-                    {
-                        PlaytestTrace.Note(this, "step", $"settle step {foot}: {offset.magnitude:0.00} m from its rest spot (limit {limit:0.00} m)");
-                    }
-
-                    rest.y = planted.y;
-                    Stance.BeginStep(foot, rest, profile.stepDuration * 1.4f, profile.stepHeight * Scale);
-                    Stance.StepsTaken = 0;
-                    return;
+                    worst = foot;
+                    worstSpot = spot;
+                    worstOffset = offset.magnitude;
                 }
             }
+
+            if (worstOffset > limit)
+            {
+                if (PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(this, "step", $"settle step {worst}: {worstOffset:0.00} m from its stance spot around the weight (limit {limit:0.00} m)");
+                }
+
+                Stance.BeginStep(worst, worstSpot, profile.stepDuration * 1.4f, profile.stepHeight * Scale);
+                Stance.StepsTaken = 0;
+            }
         }
+
+        private const float SettleDelay = 0.6f;
+        private float lastStepLanded = -10f;
 
         private float ProbeGround(float fallback)
         {
@@ -764,10 +812,10 @@ namespace PhysicsBattler.Units
                 var reach = Planner.Reach;
                 Gizmos.color = Planner.Committed ? new Color(1f, 0.3f, 0.3f) : new Color(1f, 0.4f, 1f);
                 Vector3 previous = Vector3.zero;
-                for (float theta = Planner.Definition.loadAngle; theta <= Planner.Definition.followAngle; theta += 10f)
+                for (float theta = Planner.Definition.windUpAngle; theta <= Planner.Definition.followAngle; theta += 10f)
                 {
                     Vector3 point = plan.shoulder + SwingSolver.Direction(plan, theta) * (plan.contactReach + reach.sweetSpot);
-                    if (theta > Planner.Definition.loadAngle)
+                    if (theta > Planner.Definition.windUpAngle)
                     {
                         Gizmos.DrawLine(previous, point);
                     }

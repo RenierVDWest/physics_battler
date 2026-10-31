@@ -7,11 +7,20 @@ using UnityEngine;
 namespace PhysicsBattler.Motion
 {
     /// <summary>
-    /// Runs one swing through its phases (wind-up, load, strike, follow-through, recover) and
-    /// produces the <see cref="ActionPose"/> for each step. The swing is planned fresh for the
-    /// target's distance and height, tracks the target until the end of the load (the commit point),
-    /// then is frozen in world space: a target that steps away is missed, and anything that steps
-    /// into the arc is hit.
+    /// Runs one swing and produces the <see cref="ActionPose"/> for each step. The swing is planned for
+    /// the target's distance and height, and moves at the speed the wielder's strength can move the
+    /// weapon's real weight (<see cref="SwingDynamics"/>):
+    ///
+    /// 1. Wind-up: the weapon goes from the carry to the wound-up position out at the side, accelerating
+    ///    and then braking so it arrives at rest.
+    /// 2. Load: hold there until the real weapon has arrived and stopped swinging (or a time limit),
+    ///    then commit: the arc is frozen in world space.
+    /// 3. Strike: drive it at the target, never faster than the follow-through can stop.
+    /// 4. Follow: brake it to a stop (a solid hit takes some of its speed), and wait for the real
+    ///    weapon to slow down.
+    /// 5. Recover: bring it back to the carry.
+    ///
+    /// A target that steps away after the commit is missed, and anything that steps into the arc is hit.
     /// </summary>
     public sealed class AttackPlanner
     {
@@ -34,11 +43,25 @@ namespace PhysicsBattler.Motion
         private Quaternion carryHandLocal = Quaternion.identity;
         private bool hasCarry;
 
+        // The swing's state: path progress for the wind-up and recover, angle and speed for the strike.
+        private float pathDuration;
+        private float omega;
+        private float settledFor;
+        private Vector3 followEndGripLocal;
+        private Quaternion followEndHandLocal = Quaternion.identity;
+        private Quaternion lastHandRotation = Quaternion.identity;
+        private Vector3 lastGrip;
+
         public Phase Current { get; private set; } = Phase.Idle;
         public bool Active => Current != Phase.Idle;
         public bool Committed { get; private set; }
         public float Theta { get; private set; }
+
+        /// <summary>The ghost swing's angular speed (rad/s) in the strike and follow-through.</summary>
+        public float Omega => omega;
+
         public SwingPlan Plan { get; private set; }
+        public SwingLoad Load { get; private set; }
         public UnitController Target { get; private set; }
         public AttackDefinition Definition => definition;
         public float PhaseTime => phaseTime;
@@ -54,6 +77,9 @@ namespace PhysicsBattler.Motion
         {
             this.self = self;
         }
+
+        /// <summary>The wielder's swing strength (N·m at the shoulder, body behind it), from its profile.</summary>
+        public float Strength => self.Profile != null ? self.Profile.strength : 200f;
 
         /// <summary>How much an impact now counts as a deliberate blow (scales damage).</summary>
         public float Intent
@@ -102,6 +128,48 @@ namespace PhysicsBattler.Motion
             }
         }
 
+        /// <summary>
+        /// The arm and weapon as a load on the shoulder, swung out at <paramref name="reach"/> (shoulder
+        /// to grip), measured from the rigidbodies.
+        /// </summary>
+        public SwingLoad MeasureLoad(float reach)
+        {
+            var rig = self.Rig;
+            var weapon = self.Weapon;
+            var hand = rig.Part(PartId.HandR).body;
+            var forearm = rig.Part(PartId.ForearmR).body;
+            var upper = rig.Part(PartId.UpperArmR).body;
+            float centre = 0f;
+            if (weapon != null && weapon.PhysicalPose(out Vector3 grip, out Vector3 direction, out _))
+            {
+                centre = Mathf.Max(0f, Vector3.Dot(hand.worldCenterOfMass - grip, direction));
+            }
+
+            float handDistance = reach + centre;
+            float load = Mean(hand) + hand.mass * handDistance * handDistance
+                         + Mean(forearm) + forearm.mass * Square(0.6f * reach)
+                         + Mean(upper) + upper.mass * Square(0.25f * reach);
+            float moment = hand.mass * handDistance + forearm.mass * 0.6f * reach + upper.mass * 0.25f * reach;
+            return new SwingLoad
+            {
+                inertia = load,
+                massMoment = moment,
+                weaponMass = weapon != null ? weapon.Definition.physicsMassKg : 0f,
+                weaponCentre = centre,
+            };
+        }
+
+        private static float Square(float x) => x * x;
+
+        private static float Mean(Rigidbody body)
+        {
+            Vector3 tensor = body.inertiaTensor;
+            return (tensor.x + tensor.y + tensor.z) / 3f;
+        }
+
+        /// <summary>Strength over the torque it takes to hold the weapon out: below 1 it can't be swung at all.</summary>
+        public float LiftRatio(in SwingLoad load) => Strength / Mathf.Max(1f, load.HoldTorque);
+
         public bool TryBegin(UnitController target, AttackDefinition attack, out string reason)
         {
             reason = null;
@@ -142,6 +210,16 @@ namespace PhysicsBattler.Motion
                 return false;
             }
 
+            Load = MeasureLoad(Plan.contactReach);
+            float lift = LiftRatio(Load);
+            float minimum = self.Profile != null ? self.Profile.minimumLiftRatio : 1.2f;
+            if (lift < minimum)
+            {
+                reason = $"too heavy: holding the weapon out takes {Load.HoldTorque:0} N·m, strength is {Strength:0} N·m";
+                Target = null;
+                return false;
+            }
+
             // Start from the ghost's carry pose (where the weapon is meant to be), not from wherever the
             // physical club happens to be: every swing then starts the same way.
             var ghostHand = self.Ghost.Part(PartId.HandR);
@@ -151,13 +229,24 @@ namespace PhysicsBattler.Motion
             carryHandLocal = Quaternion.Inverse(root.rotation) * ghostHand.rotation;
             hasCarry = true;
             entryTheta = SwingSolver.AngleOf(Plan, ghostHand.rotation * Vector3.forward);
+
+            // The wind-up: rest to rest from the carry to the wound-up direction.
+            float pathAngle = Vector3.Angle(ghostHand.rotation * Vector3.forward, SwingSolver.Direction(Plan, definition.windUpAngle)) * Mathf.Deg2Rad;
+            pathDuration = SwingDynamics.RestToRestTime(pathAngle, SwingDynamics.MoveAcceleration(Strength, definition.windUpEffort, Load));
+            Theta = definition.windUpAngle;
+            omega = 0f;
+
             if (PlaytestTrace.Enabled)
             {
                 var plan = Plan;
+                SwingDynamics.Predict(plan, Load, Strength, definition, out float strikeTime, out float contactOmega, out float stopAngle);
+                float tipRadius = plan.contactReach + Reach.tip;
                 PlaytestTrace.Note(self, "attack",
                     $"swing at {target.name}: target {plan.distance:0.00} m from the shoulder, contact reach {plan.contactReach:0.00} m, "
-                    + $"plane roll {plan.rollDegrees:0}°, extra lean {plan.extraLean:0.00} m, crowded ×{plan.crowdedFactor:0.00}, "
-                    + $"carried club at θ {entryTheta:0}°, wound up straight to {definition.windUpAngle:0}° at the side");
+                    + $"plane roll {plan.rollDegrees:0}°, crowded ×{plan.crowdedFactor:0.00}. "
+                    + $"Load: {Load.inertia:0.0} kg·m² about the shoulder, {Load.HoldTorque:0} N·m to hold out, strength {Strength:0} N·m ({lift:0.0}×). "
+                    + $"Expect: wind-up {pathDuration:0.00} s over {pathAngle * Mathf.Rad2Deg:0}°, strike {strikeTime:0.00} s, "
+                    + $"contact at {contactOmega:0.0} rad/s ({contactOmega * tipRadius:0.0} m/s at the tip), stopping at θ {stopAngle:0}°");
             }
 
             SetPhase(Phase.WindUp);
@@ -182,13 +271,17 @@ namespace PhysicsBattler.Motion
             SetPhase(Phase.Idle);
         }
 
-        /// <summary>The weapon landed a solid hit: stop driving through and move on to the follow-through.</summary>
+        /// <summary>The weapon landed a solid hit: the target takes some of its speed; brake from there.</summary>
         public void OnSolidHit()
         {
-            if (Current == Phase.Strike && !landedHit)
+            if ((Current == Phase.Strike || Current == Phase.Follow) && !landedHit)
             {
                 landedHit = true;
-                SetPhase(Phase.Follow);
+                omega *= 1f - Mathf.Clamp01(definition.hitAbsorb);
+                if (Current == Phase.Strike)
+                {
+                    BeginFollow();
+                }
             }
         }
 
@@ -205,61 +298,140 @@ namespace PhysicsBattler.Motion
             }
 
             phaseTime += dt;
-            AdvancePhases();
-            if (!Active)
-            {
-                return ActionPose.None;
-            }
-
             if (!Committed && Target != null)
             {
                 Replan(PredictTarget());
             }
 
+            Advance(dt);
+            if (!Active)
+            {
+                return ActionPose.None;
+            }
+
             return BuildPose();
         }
 
-        private void AdvancePhases()
+        private void Advance(float dt)
         {
             var d = definition;
-            while (Active && phaseTime >= Duration(Current, d))
+            var load = Load;
+            switch (Current)
             {
-                phaseTime -= Duration(Current, d);
-                if (Current == Phase.Load)
-                {
-                    Committed = true;
-                    if (PlaytestTrace.Enabled && Target != null)
+                case Phase.WindUp:
+                    if (phaseTime >= pathDuration)
                     {
-                        PlaytestTrace.Note(self, "attack",
-                            $"committed: arc frozen, aiming at {Fmt(Plan.target)} (target's chest now {Fmt(Target.AimPoint)}, "
-                            + $"{Vector3.Distance(Plan.target, Target.AimPoint):0.00} m apart), contact reach {Plan.contactReach:0.00} m");
+                        settledFor = 0f;
+                        SetPhase(Phase.Load);
                     }
+
+                    break;
+
+                case Phase.Load:
+                {
+                    // Wait for the real weapon: near the wound-up position and no longer swinging.
+                    bool settled = WeaponSettled(out float error, out float tipSpeed);
+                    settledFor = settled ? settledFor + dt : 0f;
+                    bool ready = settledFor >= d.settleTime;
+                    if (ready || phaseTime >= d.maxSettleTime)
+                    {
+                        if (PlaytestTrace.Enabled)
+                        {
+                            PlaytestTrace.Note(self, "attack", ready
+                                ? $"wound up: the club arrived and stopped after {phaseTime:0.00} s of holding (off by {error:0}°, tip {tipSpeed:0.0} m/s)"
+                                : $"wound up: the club never settled in {d.maxSettleTime:0.0} s (off by {error:0}°, tip {tipSpeed:0.0} m/s); striking anyway");
+                        }
+
+                        Committed = true;
+                        if (PlaytestTrace.Enabled && Target != null)
+                        {
+                            PlaytestTrace.Note(self, "attack",
+                                $"committed: arc frozen, aiming at {Fmt(Plan.target)} (target's chest now {Fmt(Target.AimPoint)}, "
+                                + $"{Vector3.Distance(Plan.target, Target.AimPoint):0.00} m apart), contact reach {Plan.contactReach:0.00} m");
+                        }
+
+                        Theta = d.windUpAngle;
+                        omega = 0f;
+                        SetPhase(Phase.Strike);
+                    }
+
+                    break;
                 }
 
-                SetPhase(Current == Phase.Recover ? Phase.Idle : Current + 1, keepTime: true);
+                case Phase.Strike:
+                {
+                    float brakeAcceleration = Strength * d.brakeEffort / Mathf.Max(0.05f, load.inertia);
+                    float maxOmega = SwingDynamics.StoppableSpeed(brakeAcceleration, d.followAngle * Mathf.Deg2Rad);
+                    float theta = Theta;
+                    SwingDynamics.StepStrike(ref theta, ref omega, Strength * d.strikeEffort, maxOmega, Plan, load, dt);
+                    Theta = theta;
+                    if (Theta >= 0f || phaseTime > 3f)
+                    {
+                        BeginFollow();
+                    }
+
+                    break;
+                }
+
+                case Phase.Follow:
+                {
+                    float theta = Theta;
+                    bool stopped = SwingDynamics.StepBrake(ref theta, ref omega, Strength * d.brakeEffort, Plan, load, dt);
+                    Theta = theta;
+                    float tipSpeed = self.Weapon != null ? self.Weapon.TipSpeed() : 0f;
+                    if ((stopped && tipSpeed < d.settleSpeed * 2f) || phaseTime > 2.5f)
+                    {
+                        BeginRecover();
+                    }
+
+                    break;
+                }
+
+                case Phase.Recover:
+                    if (phaseTime >= pathDuration)
+                    {
+                        SetPhase(Phase.Idle);
+                    }
+
+                    break;
             }
         }
 
-        private static float Duration(Phase phase, AttackDefinition d)
+        private void BeginFollow()
         {
-            switch (phase)
-            {
-                case Phase.WindUp: return Mathf.Max(0.01f, d.windUpTime);
-                case Phase.Load: return Mathf.Max(0.01f, d.loadTime);
-                case Phase.Strike: return Mathf.Max(0.01f, d.strikeTime);
-                case Phase.Follow: return Mathf.Max(0.01f, d.followTime);
-                case Phase.Recover: return Mathf.Max(0.01f, d.recoverTime);
-                default: return float.MaxValue;
-            }
+            SetPhase(Phase.Follow);
         }
 
-        private void SetPhase(Phase phase, bool keepTime = false)
+        private void BeginRecover()
         {
-            if (!keepTime)
+            // Back to the carry from wherever the follow-through stopped, rest to rest.
+            var root = self.Root;
+            followEndGripLocal = root.InverseTransformPoint(lastGrip);
+            followEndHandLocal = Quaternion.Inverse(root.rotation) * lastHandRotation;
+            float pathAngle = Quaternion.Angle(lastHandRotation, root.rotation * carryHandLocal) * Mathf.Deg2Rad;
+            pathDuration = SwingDynamics.RestToRestTime(pathAngle, SwingDynamics.MoveAcceleration(Strength, definition.recoverEffort, Load));
+            SetPhase(Phase.Recover);
+        }
+
+        /// <summary>The real weapon is near the ghost's wound-up direction and its tip has slowed down.</summary>
+        private bool WeaponSettled(out float error, out float tipSpeed)
+        {
+            error = 180f;
+            tipSpeed = 99f;
+            var weapon = self.Weapon;
+            if (weapon == null || !weapon.PhysicalPose(out _, out Vector3 direction, out _))
             {
-                phaseTime = 0f;
+                return true;
             }
 
+            error = Vector3.Angle(direction, SwingSolver.Direction(Plan, definition.windUpAngle));
+            tipSpeed = weapon.TipSpeed();
+            return error <= definition.settleAngle && tipSpeed <= definition.settleSpeed;
+        }
+
+        private void SetPhase(Phase phase)
+        {
+            phaseTime = 0f;
             Current = phase;
             if (phase == Phase.Idle)
             {
@@ -275,26 +447,13 @@ namespace PhysicsBattler.Motion
         /// <summary>Where the target's aim point will be when the swing arrives.</summary>
         private Vector3 PredictTarget()
         {
-            var d = definition;
-            float toContact = Duration(Phase.Strike, d) * ContactFraction(d);
+            float toContact = 0.6f;
             if (Current == Phase.WindUp)
             {
-                toContact += Duration(Phase.WindUp, d) - phaseTime + Duration(Phase.Load, d);
-            }
-            else if (Current == Phase.Load)
-            {
-                toContact += Duration(Phase.Load, d) - phaseTime;
+                toContact += Mathf.Max(0f, pathDuration - phaseTime) + definition.settleTime;
             }
 
             return Target.AimPoint + Target.AimVelocity * Mathf.Min(toContact, 1f);
-        }
-
-        /// <summary>Share of the strike's time at which θ passes 0.</summary>
-        private static float ContactFraction(AttackDefinition d)
-        {
-            float span = d.followAngle - d.loadAngle;
-            float share = span > 0f ? -d.loadAngle / span : 1f;
-            return Mathf.Pow(Mathf.Clamp01(share), 1f / Mathf.Max(1f, d.strikePower));
         }
 
         private void Replan(Vector3 target)
@@ -303,26 +462,131 @@ namespace PhysicsBattler.Motion
             Vector3 shoulder = self.RestShoulderWorld(d.side);
             var reach = Reach;
             float roll = SwingSolver.RollForClearance(shoulder, target, reach, d.planeRoll, d.side,
-                Mathf.Min(d.windUpAngle, d.loadAngle), self.GroundY, d.groundClearance * self.Scale);
+                d.windUpAngle, self.GroundY, d.groundClearance * self.Scale);
             Plan = SwingSolver.Plan(shoulder, target, reach, roll, d.side);
         }
 
-        private float CurrentTheta()
+        /// <summary>Progress of the wind-up or recover path (0..1), accelerating then braking.</summary>
+        private float PathProgress() => SwingDynamics.RestToRest(phaseTime, pathDuration);
+
+        /// <summary>How much the body (twist, lean, crouch) takes part: eases in and out.</summary>
+        private float BodyWeight()
         {
-            var d = definition;
-            float u = phaseTime / Duration(Current, d);
             switch (Current)
             {
-                // The wind-up doesn't travel along the arc: the weapon goes straight from the carry to the
-                // wound-up position, out at the side (see ArcBlend). Following the arc "over the top"
-                // took the club over the head and into the orc's own chest and arm (third playtest).
-                case Phase.WindUp: return d.windUpAngle;
-
-                case Phase.Load: return Mathf.Lerp(d.windUpAngle, d.loadAngle, Ease.OutCubic(u));
-                case Phase.Strike: return Mathf.Lerp(d.loadAngle, d.followAngle, Ease.InPower(u, d.strikePower));
-                case Phase.Follow: return d.followAngle + 10f * Ease.OutCubic(u);
-                default: return d.followAngle + 10f;   // recover: from the end of the follow-through back to the carry
+                case Phase.WindUp: return Ease.OutCubic(Mathf.Clamp01(PathProgress() / 0.35f));
+                case Phase.Recover: return 1f - PathProgress();
+                default: return 1f;
             }
+        }
+
+        /// <summary>The arm follows its IK target all through, handing over to the plain carry pose only at the very end.</summary>
+        private float ArmWeight()
+        {
+            if (Current != Phase.Recover)
+            {
+                return 1f;
+            }
+
+            return 1f - Ease.InOutCubic(Mathf.Clamp01((PathProgress() - 0.85f) / 0.15f));
+        }
+
+        private ActionPose BuildPose()
+        {
+            var d = definition;
+            float scale = self.Scale;
+            float weight = BodyWeight();
+            float armWeight = ArmWeight();
+            var plan = Plan;
+            var root = self.Root;
+
+            // Coil: 1 fully wound back, 0 at contact, -0.7 unwound past it.
+            float coil;
+            switch (Current)
+            {
+                case Phase.WindUp: coil = PathProgress(); break;
+                case Phase.Load: coil = 1f; break;
+                case Phase.Recover: coil = -0.7f * (1f - PathProgress()); break;
+                default:
+                    coil = Theta < 0f
+                        ? Mathf.Clamp01(-Theta / Mathf.Max(1f, -d.windUpAngle))
+                        : -0.7f * Mathf.Clamp01(Theta / Mathf.Max(1f, d.followAngle));
+                    break;
+            }
+
+            float twist = coil * d.twistDegrees * d.side * weight;
+            float strikeLean = Current == Phase.Strike || Current == Phase.Follow ? plan.extraLean : 0f;
+            float lean = coil > 0f ? -d.leanBack * coil * scale : d.leanForward * (-coil / 0.7f) * scale;
+
+            var pose = new ActionPose
+            {
+                active = true,
+                pelvisOffset = new Vector3(0f, -d.crouch * scale * weight, (lean + strikeLean) * weight),
+                pelvisYaw = twist * 0.25f,
+                spineYaw = twist * 0.35f,
+                chestYaw = twist * 0.4f,
+                spinePitch = 6f * weight * Mathf.Max(0f, -coil),
+                weaponArmWeight = armWeight,
+                freeArmPitch = -25f * coil * weight,
+                freeArmOut = 15f * weight,
+                hasLookTarget = true,
+                lookTarget = plan.target,
+            };
+
+            // The arc: the grip on a circle about the current shoulder, the weapon pointing along it.
+            Vector3 shoulder = self.Ghost.Part(PartId.UpperArmR).position;
+            Vector3 direction = SwingSolver.Direction(plan, Theta);
+            var reach = Reach;
+            float arm = Current == Phase.WindUp || Current == Phase.Load
+                ? Mathf.Lerp(plan.contactReach, (reach.minArm + reach.maxArm) * 0.5f, Mathf.Clamp01(coil))
+                : plan.contactReach;
+            float groundLimit = SwingSolver.GroundLimitedReach(shoulder, direction, reach.tip, self.GroundY,
+                d.groundClearance * scale);
+            arm = Mathf.Max(reach.minArm, Mathf.Min(arm, groundLimit));
+            Vector3 grip = shoulder + direction * arm;
+
+            Vector3 pole = (-0.6f * root.up + 0.5f * d.side * root.right - 0.4f * root.forward).normalized;
+
+            // The hand's up (toward the elbow) stays in the swing plane, square to the weapon, so the hand
+            // rolls with the arc and the wrist never twists through the swing.
+            Vector3 tangent = Vector3.Cross(direction, plan.axis);
+            Vector3 contactTangent = Vector3.Cross(plan.contactDirection, plan.axis);
+            if (Vector3.Dot(contactTangent, pole) < 0f)
+            {
+                tangent = -tangent;
+            }
+
+            if (tangent.sqrMagnitude < 1e-6f)
+            {
+                tangent = root.up;
+            }
+
+            Quaternion handRotation = Quaternion.LookRotation(direction, tangent.normalized);
+
+            // The wind-up and recover go straight between poses (in the weapon's own space), not along the
+            // arc: from the carry to the wound-up position out at the side, and from wherever the
+            // follow-through stopped back to the carry.
+            if (hasCarry && Current == Phase.WindUp)
+            {
+                float s = PathProgress();
+                grip = Vector3.Lerp(root.TransformPoint(carryGripLocal), grip, s);
+                handRotation = Quaternion.Slerp(root.rotation * carryHandLocal, handRotation, s);
+            }
+            else if (hasCarry && Current == Phase.Recover)
+            {
+                float s = PathProgress();
+                grip = Vector3.Lerp(root.TransformPoint(followEndGripLocal), root.TransformPoint(carryGripLocal), s);
+                handRotation = Quaternion.Slerp(root.rotation * followEndHandLocal, root.rotation * carryHandLocal, s);
+            }
+
+            grip = KeepClearOfTorso(grip, scale);
+            lastGrip = grip;
+            lastHandRotation = handRotation;
+
+            pose.gripTarget = grip;
+            pose.handRotation = handRotation;
+            pose.elbowPole = pole;
+            return pose;
         }
 
         /// <summary>
@@ -345,135 +609,5 @@ namespace PhysicsBattler.Motion
         }
 
         private const float TorsoClearance = 0.34f;
-
-
-        /// <summary>How much the body (twist, lean, crouch) takes part: eases in and out.</summary>
-        private float BodyWeight()
-        {
-            float u = phaseTime / Duration(Current, definition);
-            switch (Current)
-            {
-                case Phase.WindUp: return Ease.OutCubic(Mathf.Clamp01(u / 0.35f));
-                case Phase.Recover: return 1f - Ease.InOutCubic(u);
-                default: return 1f;
-            }
-        }
-
-        /// <summary>
-        /// How far the weapon's target is along the arc rather than at the carry (0 = carry, 1 = arc).
-        /// The blend is in the weapon's own space (grip position and hand rotation), so the club moves
-        /// on a predictable path. (Blending joint angles instead, as before, swung the club through
-        /// unpredictable places: in the second playtest a wind-up clubbed the target on the head.)
-        /// </summary>
-        private float ArcBlend()
-        {
-            float u = phaseTime / Duration(Current, definition);
-            switch (Current)
-            {
-                case Phase.WindUp: return Ease.InOutCubic(Mathf.Clamp01(u / 0.85f));
-                case Phase.Recover: return 1f - Ease.InOutCubic(Mathf.Clamp01(u / 0.85f));
-                default: return 1f;
-            }
-        }
-
-        /// <summary>The arm follows its IK target all through, handing over to the plain carry pose only at the very end.</summary>
-        private float ArmWeight()
-        {
-            if (Current != Phase.Recover)
-            {
-                return 1f;
-            }
-
-            float u = phaseTime / Duration(Current, definition);
-            return 1f - Ease.InOutCubic(Mathf.Clamp01((u - 0.85f) / 0.15f));
-        }
-
-        private ActionPose BuildPose()
-        {
-            var d = definition;
-            float scale = self.Scale;
-            Theta = CurrentTheta();
-            float weight = BodyWeight();
-            float armWeight = ArmWeight();
-            float arc = hasCarry ? ArcBlend() : 1f;
-            var plan = Plan;
-
-            // Coil: 1 fully wound back, 0 at contact, -0.7 unwound past it. In the wind-up it follows the
-            // phase's progress instead of the angle, which may start anywhere (the carry is over the shoulder).
-            float coil;
-            if (Current == Phase.WindUp)
-            {
-                float u = Mathf.Clamp01(phaseTime / Duration(Phase.WindUp, d));
-                coil = Ease.InOutCubic(u) * Mathf.Clamp01(-d.windUpAngle / Mathf.Max(1f, -d.loadAngle));
-            }
-            else
-            {
-                coil = Theta < 0f
-                    ? Mathf.Clamp01(-Theta / Mathf.Max(1f, -d.loadAngle))
-                    : -0.7f * Mathf.Clamp01(Theta / Mathf.Max(1f, d.followAngle));
-            }
-            float twist = coil * d.twistDegrees * d.side * weight;
-            float strikeLean = Current == Phase.Strike || Current == Phase.Follow ? plan.extraLean : 0f;
-            float lean = coil > 0f ? -d.leanBack * coil * scale : d.leanForward * (-coil / 0.7f) * scale;
-
-            var pose = new ActionPose
-            {
-                active = true,
-                pelvisOffset = new Vector3(0f, -d.crouch * scale * weight, (lean + strikeLean) * weight),
-                pelvisYaw = twist * 0.25f,
-                spineYaw = twist * 0.35f,
-                chestYaw = twist * 0.4f,
-                spinePitch = 6f * weight * Mathf.Max(0f, -coil),
-                weaponArmWeight = armWeight,
-                freeArmPitch = -25f * coil * weight,
-                freeArmOut = 15f * weight,
-                hasLookTarget = true,
-                lookTarget = plan.target,
-            };
-
-            // The grip follows the arc about the current shoulder.
-            Vector3 shoulder = self.Ghost.Part(PartId.UpperArmR).position;
-            Vector3 direction = SwingSolver.Direction(plan, Theta);
-            var reach = Reach;
-            float arm = Current == Phase.WindUp || Current == Phase.Load
-                ? Mathf.Lerp(plan.contactReach, (reach.minArm + reach.maxArm) * 0.5f, Mathf.Clamp01(coil))
-                : plan.contactReach;
-            float groundLimit = SwingSolver.GroundLimitedReach(shoulder, direction, reach.tip, self.GroundY,
-                d.groundClearance * scale);
-            arm = Mathf.Max(reach.minArm, Mathf.Min(arm, groundLimit));
-            Vector3 grip = shoulder + direction * arm;
-
-            Vector3 pole = (-0.6f * self.Root.up + 0.5f * d.side * self.Root.right - 0.4f * self.Root.forward).normalized;
-
-            // The hand's forward is the weapon's direction. Its up (toward the elbow) stays in the swing
-            // plane, square to the weapon, so the hand rolls with the arc instead of with the world and
-            // the wrist never twists through the swing. The side is the one the elbow is on at contact.
-            Vector3 tangent = Vector3.Cross(direction, plan.axis);
-            Vector3 contactTangent = Vector3.Cross(plan.contactDirection, plan.axis);
-            if (Vector3.Dot(contactTangent, pole) < 0f)
-            {
-                tangent = -tangent;
-            }
-
-            if (tangent.sqrMagnitude < 1e-6f)
-            {
-                tangent = self.Root.up;
-            }
-
-            Quaternion handRotation = Quaternion.LookRotation(direction, tangent.normalized);
-            if (arc < 1f)
-            {
-                var root = self.Root;
-                grip = Vector3.Lerp(root.TransformPoint(carryGripLocal), grip, arc);
-                handRotation = Quaternion.Slerp(root.rotation * carryHandLocal, handRotation, arc);
-            }
-
-            grip = KeepClearOfTorso(grip, scale);
-
-            pose.gripTarget = grip;
-            pose.handRotation = handRotation;
-            pose.elbowPole = pole;
-            return pose;
-        }
     }
 }

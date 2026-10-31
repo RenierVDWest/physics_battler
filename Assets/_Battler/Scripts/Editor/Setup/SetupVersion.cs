@@ -18,8 +18,10 @@ namespace PhysicsBattler.Editor.Setup
         /// 4 = After the fourth playtest: a fighting stance, balance measured against the area the feet
         ///     support (catch-step threshold 0.16 → 0.05 m outside it), more weight shift in the swing,
         ///     load-boost cap 300 → 500.
+        /// 5 = Strength and weight: units get a strength stat (the goblin's scaled down), swings are paced
+        ///     by it and the weapon's weight, and the follow-through budget goes from 40° to 75°.
         /// </summary>
-        public const int Current = 4;
+        public const int Current = 5;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

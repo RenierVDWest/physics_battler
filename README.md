@@ -46,8 +46,9 @@ Each layer depends on the one before it, so check them in this order.
    `Data/Units/UP_Orc`; if they wobble, raise `dampingRatio` or lower the muscle Hz.
 3. **Pushing.** Click a chest with a small push: the orc should wobble and recover. A big push should make it stagger,
    take catch steps, and then fall and get back up, but never go limp.
-4. **The swing.** Orc A carries the club upright over his shoulder. Space: the club drops back over the top and low behind
-   him on the right, a short coil, then an accelerating strike up into the chest.
+4. **The swing.** Orc A carries the club upright over his shoulder. Space: he pulls it back out to his right side and
+   brings it to a stop there (weight on the back foot), holds until it has settled, then drives it at the chest
+   (weight onto the front foot), brakes it in the follow-through, and brings it back to the carry.
    If the club lags far behind the ghost, raise `armHz` or the attack's `strikeArmBoost`.
 5. **The hit.** Orc B should take damage, stagger and step back. The hit log shows the speed. If swings never register,
    lower `minHitSpeed` on `Data/Weapons/WD_ClubBig`.
@@ -97,8 +98,13 @@ Tune in the data assets, not on the prefabs (the setup rebuilds prefabs). Change
   lower is heavier and less puppet-like), `steadyStepFactor`, and the get-up's `getUpDuration`, `getUpGrace`,
   `standMaxTilt`. Any of `gravityCompensation`, `legSupport`, `velocityFeedForward` can be set to 0 in Play mode to
   switch that part off and see what it does.
-- `Data/Weapons/WD_ClubBig`: physics mass vs gameplay mass, damage, knockback, stability loss.
-- `Data/Attacks/AD_ClubLowSwing`: phase timings, swing angles, plane roll, body twist and lean, arm strength.
+- `Data/Weapons/WD_ClubBig`: physics mass vs gameplay mass, damage, knockback, stability loss. The physics mass (and
+  where the club's colliders put its weight) is what the wielder has to move: with `strength` on the unit profile it
+  sets how fast a swing can go. The log's `equip` line says how the two measure up.
+- `Data/Attacks/AD_ClubLowSwing`: no timings any more: the swing's pace comes from the unit's `strength` against the
+  weapon's real weight. Here: the wound-up angle and the follow-through room (`followAngle`, which caps the strike's
+  speed to what can be braked), each phase's effort (share of strength), how settled the club must be before the
+  strike, plane roll, body twist and weight shift.
 
 ## Art
 

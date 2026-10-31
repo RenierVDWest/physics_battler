@@ -24,6 +24,13 @@ namespace PhysicsBattler.Units
         public float footFriction = 0.9f;
         public float bodyFriction = 0.4f;
 
+        [Header("Strength")]
+        [Tooltip("Torque (N·m) the unit can put into swinging a weapon at the shoulder, with its body behind it. Sets how fast "
+                 + "it can pull a weapon back, stop it, and swing it, and which weapons it can swing at all.")]
+        public float strength = 240f;
+        [Tooltip("A weapon can be swung if strength is at least this many times the torque it takes to hold it out at arm's length.")]
+        public float minimumLiftRatio = 1.2f;
+
         [Header("Muscles (joint drives, natural frequency in Hz)")]
         [Tooltip("Higher is stiffer. Drives are acceleration-based, so these hold for any unit size.")]
         public float legsHz = 3.8f;

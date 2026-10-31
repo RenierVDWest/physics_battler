@@ -3,32 +3,49 @@ using UnityEngine;
 namespace PhysicsBattler.Motion
 {
     /// <summary>
-    /// A parametric swing: phase timings, the swing angles on the plane, how much the body joins
-    /// in, and how hard the arm pushes. One asset per kind of swing; every swing it produces is
-    /// solved fresh for the distance and height of its target (see <see cref="SwingSolver"/>).
+    /// A swing: where it goes on its plane, how hard each phase works, how the body joins in. There
+    /// are no phase durations: how long a swing takes comes from the weapon's real weight and reach
+    /// and the wielder's strength (<see cref="SwingDynamics"/>). A heavy club pulled back by an orc
+    /// that can only just swing it is slow to wind up, has to be brought to a stop behind him before
+    /// the strike, and takes a while to stop again after it.
+    ///
+    /// Phases: wind-up (pull back to the wound-up position and stop there), load (hold until the real
+    /// weapon has arrived and settled: the commit point), strike (drive it at the target), follow
+    /// (brake it to a stop), recover (bring it back to the carry).
     /// </summary>
     [CreateAssetMenu(menuName = "Physics Battler/Attack Definition", fileName = "AttackDefinition")]
     public class AttackDefinition : ScriptableObject
     {
-        [Header("Timing (seconds; an attack-speed stat would scale these)")]
-        public float windUpTime = 0.8f;
-        public float loadTime = 0.15f;
-        public float strikeTime = 0.55f;
-        public float followTime = 0.3f;
-        public float recoverTime = 0.6f;
-
         [Header("Swing angles (degrees on the swing plane; 0 = contact)")]
+        [Tooltip("Where the weapon is pulled back to and stopped before the strike.")]
         public float windUpAngle = -150f;
-        public float loadAngle = -160f;
-        public float followAngle = 40f;
+        [Tooltip("How far past contact the follow-through may take to brake the weapon to a stop. The strike is held to the "
+                 + "speed that can be stopped within it: a longer follow-through allows a faster blow.")]
+        public float followAngle = 75f;
         [Tooltip("Tilt of the swing plane: 0 vertical, 90 flat. Raised automatically if the weapon would hit the ground.")]
         public float planeRoll = 45f;
         [Tooltip("+1 swings on the right side, -1 on the left.")]
         public int side = 1;
-        [Tooltip("Strike easing power: higher starts slower and arrives faster.")]
-        public float strikePower = 1.8f;
         [Tooltip("Keep the whole weapon this high above the ground during the swing.")]
         public float groundClearance = 0.15f;
+
+        [Header("Effort (share of the wielder's strength each phase uses)")]
+        [Range(0.1f, 1f)] public float windUpEffort = 0.55f;
+        [Range(0.1f, 1f)] public float strikeEffort = 1f;
+        [Range(0.1f, 1f)] public float brakeEffort = 0.9f;
+        [Range(0.1f, 1f)] public float recoverEffort = 0.5f;
+
+        [Header("Settling (the wind-up must arrive and stop before the strike)")]
+        [Tooltip("The real weapon within this many degrees of the wound-up position…")]
+        public float settleAngle = 20f;
+        [Tooltip("…and its tip slower than this (m/s)…")]
+        public float settleSpeed = 1.5f;
+        [Tooltip("…for this long (s), and the strike can start.")]
+        public float settleTime = 0.12f;
+        [Tooltip("Strike anyway after holding this long (s), settled or not.")]
+        public float maxSettleTime = 1.5f;
+        [Tooltip("Share of the weapon's speed a solid hit takes out of it.")]
+        [Range(0f, 1f)] public float hitAbsorb = 0.5f;
 
         [Header("Reach (scaled with the unit)")]
         public float minArm = 0.3f;
@@ -44,9 +61,9 @@ namespace PhysicsBattler.Motion
         public float crouch = 0.06f;
 
         [Header("Muscles")]
-        [Tooltip("Weapon arm strength during the strike.")]
+        [Tooltip("Weapon arm stiffness during the strike (on top of following the swing's speed).")]
         public float strikeArmBoost = 1.6f;
-        [Tooltip("Weapon arm strength while recovering: the weapon drags back.")]
+        [Tooltip("Weapon arm stiffness while recovering.")]
         public float recoverArmStrength = 0.6f;
 
         [Header("Damage intent per phase")]
@@ -54,8 +71,6 @@ namespace PhysicsBattler.Motion
         public float strikeIntent = 1f;
         public float recoverIntent = 0.3f;
         public float abandonedIntent = 0.5f;
-
-        public float TotalTime => windUpTime + loadTime + strikeTime + followTime + recoverTime;
 
         public static AttackDefinition CreateDefault()
         {
