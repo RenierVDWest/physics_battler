@@ -31,8 +31,9 @@ namespace PhysicsBattler.Editor.Setup
         ///     blows; the lineup laid out in the Battle scene as unit markers.
         /// 11 = Blows keep clear of their wielder's body; the default lineup's team B is rearranged so
         ///     each unit faces a different size.
+        /// 12 = The small body rebuilt 1.4 times larger: the unit prefabs are rebuilt from the new rig.
         /// </summary>
-        public const int Current = 11;
+        public const int Current = 12;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

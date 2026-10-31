@@ -31,7 +31,7 @@ namespace PhysicsBattler.Editor.Setup
             // Setup 11 reworked the ready-made moves (clear of the wielder's own body, follow-throughs
             // out to the side, the thrust in line with the shoulder): moves made by setup 10, not yet
             // tuned, are refreshed once.
-            bool refresh = SetupVersion.Installed == 10;
+            bool refresh = SetupVersion.Installed == 10;   // (not again from 11 on)
             foreach (MoveStyle style in Enum.GetValues(typeof(MoveStyle)))
             {
                 moves[(int)style] = EnsureMove(style, refresh);
