@@ -134,7 +134,7 @@ namespace PhysicsBattler.Rig
             part.id = id;
             part.restLocalPosition = node.localPosition;
             part.restLocalRotation = node.localRotation;
-            part.limits = JointLimits.For(id);
+            part.limits = JointLimitTable.For(id);
 
             var visual = string.IsNullOrEmpty(entry.mesh) ? null : visuals?.Invoke(entry.mesh);
             if (visual.HasValue && visual.Value.mesh != null)

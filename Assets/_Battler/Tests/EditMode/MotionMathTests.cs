@@ -215,9 +215,9 @@ namespace PhysicsBattler.Tests
         [Test]
         public void HingeLimitsMatchTheirAnatomy()
         {
-            Assert.Less(JointLimits.For(PartId.ForearmR).pitchMin, -100f, "elbows bend forward (negative pitch)");
-            Assert.Greater(JointLimits.For(PartId.ShinL).pitchMax, 100f, "knees bend backward (positive pitch)");
-            Assert.Less(JointLimits.For(PartId.ThighR).pitchMin, -90f, "hips raise the leg forward");
+            Assert.Less(JointLimitTable.For(PartId.ForearmR).pitchMin, -100f, "elbows bend forward (negative pitch)");
+            Assert.Greater(JointLimitTable.For(PartId.ShinL).pitchMax, 100f, "knees bend backward (positive pitch)");
+            Assert.Less(JointLimitTable.For(PartId.ThighR).pitchMin, -90f, "hips raise the leg forward");
         }
 
         [Test]

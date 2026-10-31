@@ -107,6 +107,13 @@ namespace UnityEngine
         public bool useAcceleration { get; set; }
     }
 
+    // Not used by the project; declared so a project type with the same name shows up as ambiguous here, as in Unity.
+    public struct JointLimits
+    {
+        public float min { get; set; }
+        public float max { get; set; }
+    }
+
     public struct SoftJointLimit
     {
         public float limit { get; set; }

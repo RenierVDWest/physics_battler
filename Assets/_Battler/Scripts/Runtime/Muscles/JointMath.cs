@@ -26,7 +26,7 @@ namespace PhysicsBattler.Muscles
         }
     }
 
-    public static class JointLimits
+    public static class JointLimitTable
     {
         /// <summary>Starting limits for a humanoid in a relaxed stand (the design spec's table, signed).</summary>
         public static JointLimitSpec For(PartId part)
