@@ -176,4 +176,5 @@ def main():
     sheet([i.resize((800, 800)) for i in imgs], 2, os.path.join(SHOTS, "bodies_poses.png"))
 
 
-main()
+if __name__ == "__main__":
+    main()

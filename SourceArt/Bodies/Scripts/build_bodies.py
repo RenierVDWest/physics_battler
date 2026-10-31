@@ -20,6 +20,7 @@ from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bodies as B  # noqa: E402
 import sculpt  # noqa: E402
+import simple  # noqa: E402
 
 SKIN = (0.62, 0.62, 0.64)
 SPACING = {"Small": -1.0, "Medium": 0.0, "Large": 1.6}   # x offsets in the .blend (Blender -X = right)
@@ -93,6 +94,38 @@ def make_part(name, verts, faces, mat, quads):
     return obj
 
 
+JOINT_COLOUR = (0.36, 0.34, 0.33)
+BODY_COLOUR = (0.78, 0.74, 0.68)
+
+
+def simple_materials():
+    mats = []
+    for name, rgb in (("M_Body_Main", BODY_COLOUR), ("M_Body_Joint", JOINT_COLOUR)):
+        m = bpy.data.materials.new(name)
+        m.diffuse_color = (*rgb, 1.0)
+        m.use_nodes = True
+        bsdf = m.node_tree.nodes.get("Principled BSDF")
+        if bsdf:
+            bsdf.inputs["Base Color"].default_value = (*rgb, 1.0)
+            bsdf.inputs["Roughness"].default_value = 0.45
+        mats.append(m)
+    return mats
+
+
+def make_simple_part(name, verts, faces, face_mats, mats):
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata([tuple(v) for v in verts.tolist()], [], [tuple(f) for f in faces])
+    mesh.validate()
+    for m in mats:
+        mesh.materials.append(m)
+    for poly, mi in zip(mesh.polygons, face_mats):
+        poly.material_index = mi
+        poly.use_smooth = True
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    return obj
+
+
 def to_unity(v):
     return [round(-v.x, 4) + 0.0, round(v.z, 4) + 0.0, round(-v.y, 4) + 0.0]
 
@@ -108,7 +141,7 @@ def collider_json(col, pivot):
             "radius": round(col["radius"], 4), "height": round(length + 2 * col["radius"], 4)}
 
 
-def write_json(path, body, cols):
+def write_json(path, body, cols, materials=None):
     nulls = []
     for name, (parent, pos) in body.nulls.items():
         local = pos - (body.nulls[parent][1] if parent else Vector())
@@ -126,7 +159,7 @@ def write_json(path, body, cols):
         "totalMassKg": body.spec.mass,
         "nulls": nulls,
         "parts": parts,
-        "materials": [{"name": "M_Body_Clay", "color": list(SKIN)}],
+        "materials": materials or [{"name": "M_Body_Clay", "color": list(SKIN)}],
     }
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
@@ -168,26 +201,35 @@ def collider_mesh(name, col, mat):
     return bpy.data.objects.new(name, mesh)
 
 
-def main(out):
+def main(out, style="sculpt", only=None):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.unit_settings.system = "METRIC"
     mat = make_material()
+    smats = simple_materials()
     cmat = bpy.data.materials.new("M_Collider")
     cmat.diffuse_color = (1.0, 0.2, 0.6, 0.6)
     report = {}
 
     for spec in B.SPECS:
+        if only and spec.name not in only:
+            continue
         body = B.Body(spec)
         name = spec.name
         os.makedirs(os.path.join(out, "FBX", name), exist_ok=True)
-        field = sculpt.sculpt(body)
-        surfaces = sculpt.cut(body, field, B.BODY_PARTS)
         objects = {}
-        for part in B.BODY_PARTS:
-            verts, faces = surfaces[part]
-            objects[part] = make_part(f"SM_{name}_{part}", verts - vec3(body.P(part)), faces, mat,
-                                      QUADS[part.split("_")[0]])
+        if style == "simple":
+            surfaces = simple.build(body)
+            for part in B.BODY_PARTS:
+                verts, faces, fm = surfaces[part]
+                objects[part] = make_simple_part(f"SM_{name}_{part}", verts - vec3(body.P(part)), faces, fm, smats)
+        else:
+            field = sculpt.sculpt(body)
+            surfaces = sculpt.cut(body, field, B.BODY_PARTS)
+            for part in B.BODY_PARTS:
+                verts, faces = surfaces[part]
+                objects[part] = make_part(f"SM_{name}_{part}", verts - vec3(body.P(part)), faces, mat,
+                                          QUADS[part.split("_")[0]])
         for part, obj in objects.items():
             export_fbx(os.path.join(out, "FBX", name, f"SM_{name}_{part}.fbx"), [obj])
         for part, obj in objects.items():
@@ -230,7 +272,11 @@ def main(out):
             o.location = o.location     # (no rotation in the rest pose)
         col_coll.hide_render = True
 
-        write_json(os.path.join(out, f"{name.lower()}_rig.json"), body, cols)
+        materials = None
+        if style == "simple":
+            materials = [{"name": "M_Body_Main", "color": list(BODY_COLOUR)},
+                         {"name": "M_Body_Joint", "color": list(JOINT_COLOUR)}]
+        write_json(os.path.join(out, f"{name.lower()}_rig.json"), body, cols, materials)
         dg = bpy.context.evaluated_depsgraph_get()
         tris = 0
         for obj in objects.values():
@@ -245,4 +291,8 @@ def main(out):
 
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
-    main(os.path.abspath(argv[0] if argv else "out"))
+    flags = [a for a in argv if a.startswith("--")]
+    args = [a for a in argv if not a.startswith("--")]
+    style = "sculpt" if "--sculpt" in flags else "simple"
+    only = [f[len("--only="):] for f in flags if f.startswith("--only=")]
+    main(os.path.abspath(args[0] if args else "out"), style, only or None)
