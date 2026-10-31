@@ -28,8 +28,8 @@ MonoBehaviour:
   maxArm: 0.72
   maxLean: 0.2
   twistDegrees: 35
-  leanBack: 0.07
-  leanForward: 0.1
+  leanBack: 0.1
+  leanForward: 0.15
   crouch: 0.06
   strikeArmBoost: 1.6
   recoverArmStrength: 0.6

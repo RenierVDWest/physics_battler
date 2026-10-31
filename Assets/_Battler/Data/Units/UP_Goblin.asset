@@ -27,7 +27,7 @@ MonoBehaviour:
   neckHz: 3.2
   armHz: 3.4
   dampingRatio: 0.75
-  maxSubtreeBoost: 300
+  maxSubtreeBoost: 500
   gravityCompensation: 1
   velocityFeedForward: 1
   minPartInertia: 0.08
@@ -45,6 +45,7 @@ MonoBehaviour:
   supportFeedForward: 0.2
   headLift: 0
   reanchorRadius: 0.15
+  horizontalAssistInside: 0.25
   maxStability: 100
   poiseResistance: 0.45
   regenDelay: 0.8
@@ -55,7 +56,12 @@ MonoBehaviour:
   maxTiltDegrees: 60
   shoveThreshold: 18
   shoveStabilityPerImpulse: 0.08
-  stepThreshold: 0.16
+  stanceWidth: 0.22
+  stanceLength: 0.17
+  leadWithLeftFoot: 1
+  stanceToeOut: 12
+  stanceCrouch: 0.06
+  stepThreshold: 0.05
   steadyStepFactor: 1.5
   stepDuration: 0.24
   stepHeight: 0.12

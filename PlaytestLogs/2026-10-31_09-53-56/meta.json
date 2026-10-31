@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "session": "2026-10-31_09-53-56",
+  "unity": "6000.6.7f1",
+  "fixedDeltaTime": 0.01667,
+  "startTime": 0,
+  "endTime": 152.9167,
+  "physicsSteps": 9176,
+  "parts": [{"name": "Pelvis", "parent": "", "bit": 0}, {"name": "Spine", "parent": "Pelvis", "bit": 1}, {"name": "Chest", "parent": "Spine", "bit": 2}, {"name": "Head", "parent": "Chest", "bit": 3}, {"name": "UpperArmL", "parent": "Chest", "bit": 4}, {"name": "ForearmL", "parent": "UpperArmL", "bit": 5}, {"name": "HandL", "parent": "ForearmL", "bit": 6}, {"name": "UpperArmR", "parent": "Chest", "bit": 7}, {"name": "ForearmR", "parent": "UpperArmR", "bit": 8}, {"name": "HandR", "parent": "ForearmR", "bit": 9}, {"name": "ThighL", "parent": "Pelvis", "bit": 10}, {"name": "ShinL", "parent": "ThighL", "bit": 11}, {"name": "FootL", "parent": "ShinL", "bit": 12}, {"name": "ThighR", "parent": "Pelvis", "bit": 13}, {"name": "ShinR", "parent": "ThighR", "bit": 14}, {"name": "FootR", "parent": "ShinR", "bit": 15}],
+  "units": [
+    {"id": 1, "label": "Orc A (club)", "stem": "01_Orc_A_club", "frames": "units/01_Orc_A_club.frames.csv.gz", "pose": "units/01_Orc_A_club.pose.csv.gz", "spawnTime": 0, "endTime": 44.15},
+    {"id": 2, "label": "Orc B", "stem": "02_Orc_B", "frames": "units/02_Orc_B.frames.csv.gz", "pose": "units/02_Orc_B.pose.csv.gz", "spawnTime": 0, "endTime": 44.15},
+    {"id": 3, "label": "Orc A (club) #2", "stem": "03_Orc_A_club__2", "frames": "units/03_Orc_A_club__2.frames.csv.gz", "pose": "units/03_Orc_A_club__2.pose.csv.gz", "spawnTime": 44.15, "endTime": 49.7},
+    {"id": 4, "label": "Orc B #2", "stem": "04_Orc_B_2", "frames": "units/04_Orc_B_2.frames.csv.gz", "pose": "units/04_Orc_B_2.pose.csv.gz", "spawnTime": 44.15, "endTime": 49.7},
+    {"id": 5, "label": "Orc A (club) #3", "stem": "05_Orc_A_club__3", "frames": "units/05_Orc_A_club__3.frames.csv.gz", "pose": "units/05_Orc_A_club__3.pose.csv.gz", "spawnTime": 49.7, "endTime": 54.88334},
+    {"id": 6, "label": "Orc B #3", "stem": "06_Orc_B_3", "frames": "units/06_Orc_B_3.frames.csv.gz", "pose": "units/06_Orc_B_3.pose.csv.gz", "spawnTime": 49.7, "endTime": 54.88334},
+    {"id": 7, "label": "Goblin", "stem": "07_Goblin", "frames": "units/07_Goblin.frames.csv.gz", "pose": "units/07_Goblin.pose.csv.gz", "spawnTime": 51.8, "endTime": 54.88334},
+    {"id": 8, "label": "Orc A (club) #4", "stem": "08_Orc_A_club__4", "frames": "units/08_Orc_A_club__4.frames.csv.gz", "pose": "units/08_Orc_A_club__4.pose.csv.gz", "spawnTime": 54.88334, "endTime": 83.76667},
+    {"id": 9, "label": "Orc B #4", "stem": "09_Orc_B_4", "frames": "units/09_Orc_B_4.frames.csv.gz", "pose": "units/09_Orc_B_4.pose.csv.gz", "spawnTime": 54.88334, "endTime": 83.76667},
+    {"id": 10, "label": "Goblin #2", "stem": "10_Goblin_2", "frames": "units/10_Goblin_2.frames.csv.gz", "pose": "units/10_Goblin_2.pose.csv.gz", "spawnTime": 73.41666, "endTime": 83.76667},
+    {"id": 11, "label": "Orc A (club) #5", "stem": "11_Orc_A_club__5", "frames": "units/11_Orc_A_club__5.frames.csv.gz", "pose": "units/11_Orc_A_club__5.pose.csv.gz", "spawnTime": 83.76667, "endTime": 98.2},
+    {"id": 12, "label": "Orc B #5", "stem": "12_Orc_B_5", "frames": "units/12_Orc_B_5.frames.csv.gz", "pose": "units/12_Orc_B_5.pose.csv.gz", "spawnTime": 83.76667, "endTime": 98.2},
+    {"id": 13, "label": "Orc A (club) #6", "stem": "13_Orc_A_club__6", "frames": "units/13_Orc_A_club__6.frames.csv.gz", "pose": "units/13_Orc_A_club__6.pose.csv.gz", "spawnTime": 98.2, "endTime": 107.5},
+    {"id": 14, "label": "Orc B #6", "stem": "14_Orc_B_6", "frames": "units/14_Orc_B_6.frames.csv.gz", "pose": "units/14_Orc_B_6.pose.csv.gz", "spawnTime": 98.2, "endTime": 107.5},
+    {"id": 15, "label": "Orc A (club) #7", "stem": "15_Orc_A_club__7", "frames": "units/15_Orc_A_club__7.frames.csv.gz", "pose": "units/15_Orc_A_club__7.pose.csv.gz", "spawnTime": 107.5, "endTime": 139.3},
+    {"id": 16, "label": "Orc B #7", "stem": "16_Orc_B_7", "frames": "units/16_Orc_B_7.frames.csv.gz", "pose": "units/16_Orc_B_7.pose.csv.gz", "spawnTime": 107.5, "endTime": 139.3},
+    {"id": 17, "label": "Orc A (club) #8", "stem": "17_Orc_A_club__8", "frames": "units/17_Orc_A_club__8.frames.csv.gz", "pose": "units/17_Orc_A_club__8.pose.csv.gz", "spawnTime": 139.3, "endTime": 152.9167, "team": 0, "mass": 126, "scale": 1, "restPelvisHeight": 0.92, "weapon": true, "profile": "UP_Orc"},
+    {"id": 18, "label": "Orc B #8", "stem": "18_Orc_B_8", "frames": "units/18_Orc_B_8.frames.csv.gz", "pose": "units/18_Orc_B_8.pose.csv.gz", "spawnTime": 139.3, "endTime": 152.9167, "team": 1, "mass": 120, "scale": 1, "restPelvisHeight": 0.92, "weapon": false, "profile": "UP_Orc"}
+  ],
+  "marks": [{"n": 1, "time": 122.592, "note": ""}]
+}
