@@ -22,6 +22,8 @@ MonoBehaviour:
   maxDepenetrationVelocity: 4
   footFriction: 0.9
   bodyFriction: 0.4
+  strength: 57.198723
+  minimumLiftRatio: 1.2
   legsHz: 3.8
   coreHz: 4.4
   neckHz: 3.2

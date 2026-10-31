@@ -12,18 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14397d281d3206741bd87b3226291426, type: 3}
   m_Name: AD_ClubLowSwing
   m_EditorClassIdentifier: 
-  windUpTime: 0.8
-  loadTime: 0.15
-  strikeTime: 0.55
-  followTime: 0.3
-  recoverTime: 0.6
-  windUpAngle: -150
-  loadAngle: -160
-  followAngle: 40
+  windUpAngle: -200
+  followAngle: 75
   planeRoll: 45
   side: 1
-  strikePower: 1.8
   groundClearance: 0.15
+  windUpEffort: 0.55
+  strikeEffort: 1
+  brakeEffort: 0.9
+  recoverEffort: 0.5
+  settleAngle: 45
+  stopRate: 40
+  settleTime: 0.03
+  maxSettleTime: 0.4
+  settleSpeed: 1.5
+  hitAbsorb: 0.5
   minArm: 0.3
   maxArm: 0.72
   maxLean: 0.2
