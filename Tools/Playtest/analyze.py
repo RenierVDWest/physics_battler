@@ -614,6 +614,15 @@ def plot_timeline(session, unit, path):
     leg = leg_length(unit)
     fig, axs = plt.subplots(8, 1, figsize=(12, 19.5), sharex=True)
 
+    # Off its feet (milestone 4), shaded on every panel: stumbling yellow, down red, getting up green.
+    if "state" in f:
+        states = f["state"].fillna("Standing").astype(str)
+        for name, color in (("Stumbling", "#edae49"), ("Down", "#d1495b"), ("GettingUp", "#2a9d8f")):
+            for value, t0, t1, _, _ in segments(states == name, t):
+                if value:
+                    for a in axs:
+                        a.axvspan(t0, t1 + 1 / 60, color=color, alpha=0.12, lw=0)
+
     ax = axs[0]
     ax.plot(t, col(f, "pelvisH"), color="black", lw=1.4, label="pelvis height (physical)")
     ax.plot(t, col(f, "animPelvisH"), color="#18b6d8", lw=1, ls="--", label="pelvis height (pose)")
@@ -749,11 +758,18 @@ REACT_SECONDS = 1.0   # after being struck the body recoils: loose parts, knock-
 FADE_SECONDS = 0.4    # a cut-short blow fades out of the pose
 
 
+def standing_mask(f):
+    """Frames where the unit is on its feet (milestone 4: not stumbling, down or getting up)."""
+    if "state" not in f:
+        return pd.Series(True, index=f.index)
+    return f["state"].fillna("Standing").astype(str) == "Standing"
+
+
 def calm_mask(unit):
-    """Frames away from being struck and from a cut-short blow fading: where the stance checks apply."""
+    """Frames on its feet, away from being struck, from a cut-short blow fading and from just getting up: where the stance checks apply."""
     f = unit.frames
     t = f["t"]
-    calm = pd.Series(True, index=f.index)
+    calm = standing_mask(f).copy()
     for e in unit.events:
         if e.cat == "struck":
             calm &= ~((t >= e.t) & (t <= e.t + REACT_SECONDS))
@@ -761,7 +777,36 @@ def calm_mask(unit):
             calm &= ~((t >= e.t) & (t <= e.t + FADE_SECONDS))
         elif e.cat == "death":
             calm &= ~(t >= e.t)
+        elif e.cat == "balance" and (e.text.startswith("got up") or e.text.startswith("regained")):
+            calm &= ~((t >= e.t) & (t <= e.t + FADE_SECONDS))
     return calm
+
+
+def balance(unit):
+    """Milestone 4: stumbles, knock-downs, launches and get-ups, and how long each time down lasted."""
+    out = dict(stumbles=0, down=0, launched=0, up=0, impacts=0, spells=[], stillDown=None, events=[])
+    fell = None
+    for e in unit.events:
+        if e.cat == "impact":
+            out["impacts"] += 1
+            out["events"].append(e)
+        if e.cat != "balance":
+            continue
+        out["events"].append(e)
+        if e.text.startswith("stumble"):
+            out["stumbles"] += 1
+        elif e.text.startswith("knocked down") or e.text.startswith("launched"):
+            out["launched" if e.text.startswith("launched") else "down"] += 1
+            fell = e.t if fell is None else fell
+        elif e.text.startswith("got up"):
+            out["up"] += 1
+            if fell is not None:
+                out["spells"].append((fell, e.t - fell))
+            fell = None
+    died = next((e for e in unit.events if e.cat == "death"), None)
+    if fell is not None and died is None:
+        out["stillDown"] = fell
+    return out
 
 
 def unit_numbers(session, unit):
@@ -778,7 +823,7 @@ def unit_numbers(session, unit):
     n["com"] = float(col(f, "comOffset")[idle].max())
     n["com95"] = float(col(f, "comOffset")[idle].quantile(0.95))
     n["physCom95"] = float(col(f, "physCom")[idle].quantile(0.95))
-    n["drop"] = float(col(f, "pelvisDrop").max())
+    n["drop"] = float(col(f, "pelvisDrop")[standing_mask(f)].max()) if standing_mask(f).any() else 0.0
     n["dropIdle"] = float(col(f, "pelvisDrop")[idle].max())
     n["pelvisGap"] = float((col(f, "pelvisH") - col(f, "animPelvisH")).abs().max())
     n["sway"] = float(np.hypot(col(f, "swayX"), col(f, "swayZ")).max())
@@ -798,6 +843,12 @@ def unit_numbers(session, unit):
                           step95=float(e[stepping[calm]].quantile(0.95)) if (stepping & calm).any() else np.nan)
     n["regions"] = regions
     still = ~stepping & calm & (f["t"] > f["t"].iloc[0] + 0.5)   # not the spawn and equip, nor recoiling from a hit
+    if "rootYaw" in f:
+        # Nor walking or turning (the body turns with the root: not shaking).
+        dt = f["t"].diff().replace(0, np.nan)
+        speed = np.hypot(f["rootX"].diff(), f["rootZ"].diff()) / dt
+        turn = ((f["rootYaw"].diff() + 180) % 360 - 180).abs() / dt
+        still &= (speed.fillna(0) < 0.05) & (turn.fillna(0) < 20)
     if "move" in f:
         still &= f["move"].fillna("").astype(str) == ""
     n["jitter"] = jitter(session, unit, still) if still.sum() >= 12 else {}
@@ -805,6 +856,8 @@ def unit_numbers(session, unit):
     n["hits"] = hits(unit)
     n["taken"] = [e for e in unit.events if e.cat == "struck"]
     n["died"] = next((e for e in unit.events if e.cat == "death"), None)
+    n["balance"] = balance(unit)
+    n["end"] = float(f["t"].iloc[-1])
     return n
 
 
@@ -844,6 +897,12 @@ def flags_for(unit, n):
     shaking = [p for p, (rms, alt) in n["jitter"].items() if alt > SHAKE_ALTERNATION and rms > SHAKE_RMS]
     if shaking:
         out.append("shaking at the physics rate: " + ", ".join(shaking))
+    bal = n["balance"]
+    if bal["stillDown"] is not None and n["end"] - bal["stillDown"] > 5.0:
+        out.append(f"never got up (down from {bal['stillDown']:.1f} s)")
+    long = [d for _, d in bal["spells"] if d > 5.0]
+    if long:
+        out.append(f"{len(long)} times down for more than 5 s (longest {max(long):.1f} s)")
     if n["steps"] + n["shuffles"] == 0 and len(unit.frames) > 600:
         out.append("never stepped or shuffled (units should never stand still)")
     return out
@@ -862,13 +921,15 @@ def blow_summary(bl):
 
 
 def closest_pair(session):
-    """The closest any two living units' roots came to each other: (distance, label, label, t), or None."""
+    """The closest any two living units on their feet came to each other (roots): (distance, label, label, t), or None."""
     live = []
     for u in session.units:
         f = u.frames
         if f.empty or "rootX" not in f:
             continue
         alive = f["alive"] > 0.5 if "alive" in f else pd.Series(True, index=f.index)
+        if "state" in f:
+            alive &= ~f["state"].fillna("Standing").astype(str).isin(["Down", "GettingUp"])   # (a body on the ground lies where it fell)
         g = f[alive][["t", "rootX", "rootZ"]].copy()
         g["t"] = (g["t"] / session.dt).round().astype(int)
         g = g.drop_duplicates("t", keep="last")
@@ -885,6 +946,18 @@ def closest_pair(session):
             if best is None or d[k] < best[0]:
                 best = (float(d[k]), live[i][0].label, live[j][0].label, k * session.dt)
     return best
+
+
+def balance_summary(n):
+    b = n["balance"]
+    if not b["events"]:
+        return "-"
+    text = f"{b['stumbles']} / {b['down']} / {b['launched']} / {b['up']}"
+    if b["impacts"]:
+        text += f", {b['impacts']} thrown into others"
+    if b["stillDown"] is not None:
+        text += ", still down"
+    return text
 
 
 def hit_summary(n):
@@ -916,8 +989,8 @@ def write_report(session, out, args, films):
     numbers = {}
     w("## Summary")
     w("")
-    w("| unit | leg | steps | shuffles | stepping | worst slide | weight off support out of blows (pose 95% / physical 95%) | hip drop | sway / bob | pinned error 95% (torso, head, arms) | blows (landed on the pose / struck the part aimed at) | hits dealt (on the part aimed at) / taken | flags |")
-    w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    w("| unit | leg | steps | shuffles | stepping | worst slide | weight off support out of blows (pose 95% / physical 95%) | hip drop | sway / bob | pinned error 95% (torso, head, arms) | blows (landed on the pose / struck the part aimed at) | hits dealt (on the part aimed at) / taken | stumbled / knocked down / launched / got up | flags |")
+    w("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for unit in session.units:
         if unit.frames.empty:
             continue
@@ -927,7 +1000,7 @@ def write_report(session, out, args, films):
         pinned = ", ".join(f"{rg[r]['p95'] * 100:.1f}" for r in ("Torso", "Head", "ArmL", "ArmR"))
         w(f"| {unit.label} | {n['leg']:.2f} m | {n['steps']} | {n['shuffles']} | {n['stepShare'] * 100:.0f}% | {n['slide'] * 100:.1f} cm | "
           f"{n['com95'] * 100:.1f} / {n['physCom95'] * 100:.1f} cm | {n['drop'] * 100:.1f} cm | {n['sway'] * 100:.1f} / {n['bob'] * 100:.1f} cm | "
-          f"{pinned} cm | {blow_summary(n['blows'])} | {hit_summary(n)} | {len(fl) or 'none'} |")
+          f"{pinned} cm | {blow_summary(n['blows'])} | {hit_summary(n)} | {balance_summary(n)} | {len(fl) or 'none'} |")
     w("")
     pair = closest_pair(session)
     if pair is not None:
@@ -935,8 +1008,9 @@ def write_report(session, out, args, films):
         too = " **(overlapping: bodies need about 45 cm between medium units)**" if d < 0.3 else ""
         w(f"Closest two living units came: {d * 100:.0f} cm between {a} and {b} at {t:.2f} s{too}.")
         w("")
-    w(f"The stance checks (weight, hip drop, pinned error, shaking) leave out the {REACT_SECONDS:.0f} s after each hit taken, when the "
-      f"struck body recoils on purpose, and the {FADE_SECONDS:.1f} s a cut-short blow takes to fade out.")
+    w(f"The stance checks (slide, weight, hip drop, pinned error, shaking) leave out the {REACT_SECONDS:.0f} s after each hit taken, when the "
+      f"struck body recoils on purpose, the {FADE_SECONDS:.1f} s a cut-short blow takes to fade out, and any time the unit is off its "
+      "feet (stumbling, down, getting up) and just after.")
     w("")
 
     for unit in session.units:
@@ -1008,6 +1082,14 @@ def write_report(session, out, args, films):
         if n["died"] is not None:
             w(f"**Died** at {n['died'].t:.2f} s: {n['died'].text}.")
             w("")
+        bal = n["balance"]
+        if bal["events"]:
+            spells = ", ".join(f"{d:.1f} s from {t0:.1f} s" for t0, d in bal["spells"]) or "-"
+            w(f"**Balance** (stumbles, knock-downs, launches, get-ups, bodies thrown into others; time down: {spells})")
+            w("")
+            for e in bal["events"][:30]:
+                w(f"- {e.t:7.2f} s  [{e.cat}] {e.text}")
+            w("")
 
         steps = [e for e in unit.events if e.cat == "step"]
         if steps:
@@ -1015,7 +1097,7 @@ def write_report(session, out, args, films):
             w(f"**Steps:** {len(steps)} logged; {len(far)} landed more than 10 cm from where the stance wants the foot now "
               "(normal while turning: the spot moves during the step).")
             w("")
-        other = [e for e in unit.events if e.cat not in ("step", "spawn", "attack", "contact", "touch", "hit", "struck", "death")]
+        other = [e for e in unit.events if e.cat not in ("step", "spawn", "attack", "contact", "touch", "hit", "struck", "death", "balance", "impact")]
         if other:
             w("**Other events**")
             w("")

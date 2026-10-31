@@ -202,6 +202,7 @@ namespace PhysicsBattler.Units
             Authority.Set(BodyRegion.Head, AuthorityLevel.Pinned, profile.torsoPin);
             Authority.Set(BodyRegion.ArmL, AuthorityLevel.Pinned, profile.armPin);
             Authority.Set(BodyRegion.ArmR, AuthorityLevel.Pinned, profile.armPin);
+            InitializeBalance();
 
             facingYaw = transform.eulerAngles.y;
             Stance.GroundY = transform.position.y;
@@ -360,6 +361,7 @@ namespace PhysicsBattler.Units
             }
 
             DropCutShort();
+            ResetBalance();
             Place(position, yaw);
             Knockback = Vector3.zero;
             Pose.Compose(LocalTime, 0f, true);
@@ -612,6 +614,19 @@ namespace PhysicsBattler.Units
                 return;
             }
 
+            // Milestone 4: on the ground (a ragdoll), or getting up (the get-up's own pose).
+            if (State == UnitState.Down)
+            {
+                StepDown(dt, drive);
+                return;
+            }
+
+            if (State == UnitState.GettingUp)
+            {
+                StepGetUp(dt, drive);
+                return;
+            }
+
             // Hit stop: the pose and the blow stand still for a moment.
             float poseDt = CombatTime(dt);
             LocalTime += poseDt;
@@ -621,7 +636,8 @@ namespace PhysicsBattler.Units
                 facePoint = move.Aim;
             }
 
-            if (facePoint.HasValue)
+            StateTime += poseDt;
+            if (facePoint.HasValue && State == UnitState.Standing)
             {
                 Vector3 to = facePoint.Value - transform.position;
                 to.y = 0f;

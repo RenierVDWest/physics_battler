@@ -233,6 +233,7 @@ namespace PhysicsBattler.Sandbox
             pendingEquip.Clear();
             brawl.Fight = fight;
             brawl.TurnedAway = turnedAway;
+            brawl.Grid = Grid;
             brawl.Step(units, Time.fixedDeltaTime, Time.time);
         }
 
@@ -251,6 +252,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.F)) ToggleFight();
             if (SandboxInput.KeyPressed(KeyCode.B)) BystanderTest();
             if (SandboxInput.KeyPressed(KeyCode.G)) Gallery();
+            if (SandboxInput.KeyPressed(KeyCode.L)) LaunchTest();
         }
 
         /// <summary>
@@ -445,6 +447,101 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        /// <summary>
+        /// Milestone 4's gate, on demand: the heaviest armed unit strikes the lightest enemy, with a
+        /// third unit standing where the blow will throw it. The struck body should be launched (or
+        /// at least knocked down) into the third, hurting it, and both should get up again.
+        /// </summary>
+        public void LaunchTest()
+        {
+            var alive = units.FindAll(u => u != null && u.IsInitialized && u.IsAlive);
+            UnitController attacker = null, target = null, bystander = null;
+            foreach (var u in alive)
+            {
+                if (u.Loadout?.Main != null && (attacker == null || u.Body.Mass > attacker.Body.Mass))
+                {
+                    attacker = u;
+                }
+            }
+
+            foreach (var u in alive)
+            {
+                if (attacker != null && u.Team != attacker.Team && (target == null || u.Body.Mass < target.Body.Mass))
+                {
+                    target = u;
+                }
+            }
+
+            bystander = target != null ? alive.Find(u => u != attacker && u != target && u.Team == target.Team)
+                                         ?? alive.Find(u => u != attacker && u != target) : null;
+            if (bystander == null)
+            {
+                message = "The launch test needs three living units, one armed. Press R to reset.";
+                return;
+            }
+
+            fight = false;
+            if (bystanderRun != null)
+            {
+                StopCoroutine(bystanderRun);
+            }
+
+            bystanderRun = StartCoroutine(Launch(attacker, target, bystander, alive));
+        }
+
+        private System.Collections.IEnumerator Launch(UnitController attacker, UnitController target, UnitController bystander, List<UnitController> alive)
+        {
+            float distance = attacker.Style.engageDistance * attacker.Body.SizeFactor + 0.25f * target.Body.SizeFactor;
+            Vector3 start = new Vector3(-distance * 0.5f, 0f, 0f);
+            attacker.Teleport(start, 90f);
+            target.Teleport(start + Vector3.right * distance, 270f);
+            bystander.Teleport(new Vector3(0f, 0f, -4f), 0f);
+            int k = 0;
+            foreach (var other in alive)
+            {
+                if (other != attacker && other != target && other != bystander)
+                {
+                    other.Teleport(new Vector3(-4f + 1.6f * k++, 0f, 5.2f), 180f);
+                }
+            }
+
+            yield return new WaitForSeconds(0.8f);
+            // The weapon's heaviest swing at the chest, else whatever lands.
+            MoveState state = null;
+            foreach (var move in attacker.Loadout.Main.moves)
+            {
+                foreach (var part in new[] { AimPart.Chest, AimPart.Belly, AimPart.Head })
+                {
+                    if (state == null && move != null && move.shape == MoveShape.Swing && move.targets.Contains(part))
+                    {
+                        var s = MovePlanner.Prepare(attacker, target, move, part);
+                        state = s != null && MovePlanner.Acceptable(attacker, s) ? s : null;
+                    }
+                }
+            }
+
+            if (state == null)
+            {
+                message = "Launch test: no swing reaches the target from there.";
+                yield break;
+            }
+
+            // Where the blow will send it: along the weapon's path at contact.
+            float c = state.Move.ContactProgress;
+            Vector3 along = state.PathPoint(Mathf.Min(1f, c + 0.01f)) - state.PathPoint(Mathf.Max(0f, c - 0.01f));
+            along.y = 0f;
+            along = along.sqrMagnitude > 1e-8f ? along.normalized : Vector3.right;
+            Vector3 lands = target.Root.position + along * (0.9f * target.Body.SizeFactor + 0.7f * bystander.Body.SizeFactor);
+            bystander.Teleport(lands, Mathf.Atan2(-along.x, -along.z) * Mathf.Rad2Deg);
+            Note($"launch test: {attacker.name} strikes {target.name} toward {bystander.name}");
+            message = $"Launch test: {attacker.name} → {target.name}, thrown toward {bystander.name}. F to fight again.";
+            yield return new WaitForSeconds(0.3f);
+            if (!attacker.StartMove(state))
+            {
+                message = "Launch test: the blow didn't start (press L again).";
+            }
+        }
+
         public void ToggleFight()
         {
             fight = !fight;
@@ -506,7 +603,7 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label("R reset · F fight · B bystander · G gallery · P pause · . step · T turn · M mark");
+            GUILayout.Label("R reset · F fight · B bystander · L launch · G gallery · P pause · . step · T turn · M mark");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Reset")) Spawn();
@@ -517,6 +614,7 @@ namespace PhysicsBattler.Sandbox
             if (GUILayout.Button("Bystander test (B)")) BystanderTest();
             if (GUILayout.Button(galleryRun != null ? "Stop gallery (G)" : "Move gallery (G)")) Gallery();
             GUILayout.EndHorizontal();
+            if (GUILayout.Button("Launch test (L)")) LaunchTest();
             OrbitCamera.ShakeOnHits = GUILayout.Toggle(OrbitCamera.ShakeOnHits, "Camera shake on heavy hits");
 
             GUILayout.Label($"Time scale: {timeScale:0.00}{(paused ? " (paused)" : "")}");
@@ -597,6 +695,18 @@ namespace PhysicsBattler.Sandbox
                 else if (unit.BlockBlend > 0.5f)
                 {
                     label += "\nblocking";
+                }
+                else if (unit.State == UnitState.Stumbling)
+                {
+                    label += "\nstumbling";
+                }
+                else if (unit.State == UnitState.Down)
+                {
+                    label += "\ndown";
+                }
+                else if (unit.State == UnitState.GettingUp)
+                {
+                    label += "\ngetting up";
                 }
             }
 

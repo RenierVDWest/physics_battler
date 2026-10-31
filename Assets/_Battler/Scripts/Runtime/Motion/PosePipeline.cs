@@ -62,6 +62,16 @@ namespace PhysicsBattler.Motion
         public Vector3 ReactLean { get; set; }
         public Vector3 ReactHead { get; set; }
 
+        /// <summary>
+        /// A stumble (milestone 4): the upper body leaning with the fall (world rotation vector,
+        /// radians), the hips carried ahead of the feet (world metres), and the arms thrown out for
+        /// balance (0 to 1), against the way it is falling (<see cref="FlailDirection"/>).
+        /// </summary>
+        public Vector3 Topple { get; set; }
+        public Vector3 ToppleShift { get; set; }
+        public float Flail { get; set; }
+        public Vector3 FlailDirection { get; set; } = Vector3.back;
+
         // What the last step produced, for the log.
         public Vector3 CenterOfMass { get; private set; }
         public Vector3 SupportPoint { get; private set; }
@@ -207,6 +217,22 @@ namespace PhysicsBattler.Motion
                     var chest = anim.Part(PartId.Chest);
                     pelvis.rotation = Quaternion.AngleAxis(0.15f * angle, axis) * pelvis.rotation;
                     spine.rotation = Quaternion.AngleAxis(0.4f * angle, axis) * spine.rotation;
+                    chest.rotation = Quaternion.AngleAxis(0.45f * angle, axis) * chest.rotation;
+                }
+            }
+
+            // 4c. A stumble: the hips ahead of the feet, the upper body leaning with the fall.
+            if (ToppleShift.sqrMagnitude > 1e-8f || Topple.sqrMagnitude > 1e-8f)
+            {
+                pelvis.position += ToppleShift;
+                float angle = Topple.magnitude * Mathf.Rad2Deg;
+                if (angle > 0.01f)
+                {
+                    Vector3 axis = Topple.normalized;
+                    var spine = anim.Part(PartId.Spine);
+                    var chest = anim.Part(PartId.Chest);
+                    pelvis.rotation = Quaternion.AngleAxis(0.2f * angle, axis) * pelvis.rotation;
+                    spine.rotation = Quaternion.AngleAxis(0.35f * angle, axis) * spine.rotation;
                     chest.rotation = Quaternion.AngleAxis(0.45f * angle, axis) * chest.rotation;
                 }
             }
@@ -375,6 +401,7 @@ namespace PhysicsBattler.Motion
             float armLength = anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude;
 
             GuardPose(loadout.Main, true, facing, scale, out var guardGrip, out var guardRotation);
+            guardGrip += FlailOffset(facing, 1f);
             Vector3 grip = guardGrip;
             Quaternion rotation = guardRotation;
             if (move != null && moveBlend > 0f)
@@ -410,6 +437,7 @@ namespace PhysicsBattler.Motion
 
                 // The guard is posed again after the bend (it hangs off the chest).
                 GuardPose(loadout.Main, true, facing, scale, out guardGrip, out guardRotation);
+                guardGrip += FlailOffset(facing, 1f);
                 grip = Vector3.Lerp(guardGrip, moveGrip, moveBlend);
                 rotation = Quaternion.Slerp(guardRotation, moveRotation, moveBlend);
             }
@@ -428,6 +456,7 @@ namespace PhysicsBattler.Motion
         {
             var slot = anim.SlotWeaponL;
             GuardPose(loadout.Off, false, facing, loadout.Scale, out var grip, out var rotation);
+            grip += FlailOffset(facing, -1f);
             if (BlockBlend > 0f && BlockNormal.sqrMagnitude > 1e-6f)
             {
                 // Raised across the blow: the face's middle on the strike line, looking back along it.
@@ -441,6 +470,20 @@ namespace PhysicsBattler.Motion
             Vector3 pole = facing * new Vector3(-0.8f, -1f, -0.2f);
             TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL), HandFor(grip, rotation, slot), pole);
             anim.Part(PartId.HandL).rotation = rotation * Quaternion.Inverse(slot.localRotation);
+        }
+
+        /// <summary>Stumbling, a hand goes out to its side, up, and forward against the fall.</summary>
+        private Vector3 FlailOffset(Quaternion facing, float side)
+        {
+            if (Flail <= 0f)
+            {
+                return Vector3.zero;
+            }
+
+            float s = body.SizeFactor;
+            Vector3 against = -FlailDirection;
+            against.y = 0f;
+            return Flail * (facing * new Vector3(side * 0.24f * body.WidthFactor, 0.14f * s, 0f) + against * (0.18f * s));
         }
 
         /// <summary>Where the hand goes so its weapon slot lands on the grip, turned as the weapon is.</summary>

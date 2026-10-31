@@ -21,6 +21,13 @@ namespace PhysicsBattler.Units
 
         /// <summary>The part the blow was aimed at; the target but another part; an ally of the attacker; or someone else in the way.</summary>
         public string Kind;
+
+        /// <summary>Not a weapon: a body thrown into another (<see cref="Move"/> is null); the thrower's part that struck.</summary>
+        public bool Impact;
+        public PartId ImpactPart;
+
+        /// <summary>What the blow is called in the log: the move's name, or a body impact.</summary>
+        public string What => Move != null ? Move.Move.name.Replace("MD_", "") : Impact ? "body impact" : "blow";
     }
 
     /// <summary>
@@ -127,7 +134,11 @@ namespace PhysicsBattler.Units
         /// <summary>Knock-back slides the unit (the feet step after it); poise comes back; the shield goes up or down.</summary>
         private void CombatBeforePose(float dt)
         {
-            if (Knockback.sqrMagnitude > 1e-6f)
+            if (State == UnitState.Stumbling)
+            {
+                UpdateStumble(dt);
+            }
+            else if (Knockback.sqrMagnitude > 1e-6f)
             {
                 transform.position += Knockback * dt;
                 Knockback *= Mathf.Exp(-dt / KnockbackDecay);
@@ -138,8 +149,9 @@ namespace PhysicsBattler.Units
             }
 
             Vector3 pushed = Separate(dt);
-            // The feet hurry after a knock-back, or after being pushed aside.
-            Stance.Drift = Knockback + (dt > 0f ? pushed / dt : Vector3.zero);
+            // The feet hurry after a knock-back or a stumble (catch steps), or after being pushed aside.
+            Stance.Drift = (State == UnitState.Stumbling ? StumbleVelocity : Knockback) + (dt > 0f ? pushed / dt : Vector3.zero);
+            UpdateTopple(dt);
             UpdateRecoil(dt);
             Poise = Mathf.Min(profile.maxPoise, Poise + profile.poiseRegen * dt);
             for (int r = 0; r < 5; r++)
@@ -172,7 +184,7 @@ namespace PhysicsBattler.Units
         /// <summary>How firmly each region is held this step: the profile's pins, a hit's ramp, the blow's weapon arm.</summary>
         private void SetAuthority(MoveState move)
         {
-            if (!IsAlive)
+            if (!IsAlive || State == UnitState.Down)
             {
                 for (int r = 0; r < 5; r++)
                 {
@@ -182,12 +194,21 @@ namespace PhysicsBattler.Units
                 return;
             }
 
+            if (State == UnitState.GettingUp)
+            {
+                SetGetUpAuthority();
+                return;
+            }
+
             Authority.Set(BodyRegion.Legs, AuthorityLevel.Kinematic, 1f);
             float blend = move != null ? move.Blend : 0f;
-            float armR = Mathf.Lerp(profile.armPin, move != null ? move.Move.weaponArmPin : profile.armPin, blend);
-            float armL = BlockBlend > 0f ? Mathf.Lerp(profile.armPin, 0.95f, BlockBlend) : profile.armPin;
-            SetRegion(BodyRegion.Torso, profile.torsoPin, false);
-            SetRegion(BodyRegion.Head, profile.torsoPin, false);
+            // Stumbling, the arms are held loosely (they fly out with the body) and the torso a little less.
+            float loose = Mathf.Lerp(1f, 0.4f, flail);
+            float armR = Mathf.Lerp(profile.armPin, move != null ? move.Move.weaponArmPin : profile.armPin, blend) * loose;
+            float armL = (BlockBlend > 0f ? Mathf.Lerp(profile.armPin, 0.95f, BlockBlend) : profile.armPin) * loose;
+            float torso = profile.torsoPin * Mathf.Lerp(1f, 0.8f, flail);
+            SetRegion(BodyRegion.Torso, torso, false);
+            SetRegion(BodyRegion.Head, torso, false);
             SetRegion(BodyRegion.ArmL, armL, false);
             bool kinematicArm = move != null && profile.weaponArmKinematicInBlows && blend > 0.01f;
             SetRegion(BodyRegion.ArmR, armR, kinematicArm);
@@ -218,7 +239,7 @@ namespace PhysicsBattler.Units
         private Vector3 Separate(float dt)
         {
             Vector3 total = Vector3.zero;
-            if (!initialized || !IsAlive)
+            if (!initialized || !IsAlive || IsDown)
             {
                 return total;
             }
@@ -229,7 +250,8 @@ namespace PhysicsBattler.Units
             float myRadius = BodyRadius;
             foreach (var other in all)
             {
-                if (other == this || !other.initialized || !other.IsAlive)
+                // (A body on the ground is only pushed about by PhysX; one getting up holds its place.)
+                if (other == this || !other.initialized || !other.IsAlive || other.State == UnitState.Down)
                 {
                     continue;
                 }
@@ -262,16 +284,28 @@ namespace PhysicsBattler.Units
                 }
 
                 Vector3 n = d > 1e-4f ? away / d : transform.rotation * Vector3.back;
-                float share = theirTarget ? 1f : other.Body.Mass / Mathf.Max(1f, other.Body.Mass + Body.Mass);
+                float share = theirTarget || other.State == UnitState.GettingUp ? 1f : other.Body.Mass / Mathf.Max(1f, other.Body.Mass + Body.Mass);
                 Vector3 push = n * Mathf.Min((apart - d) * share, most);
                 transform.position += push;
                 me += push;
                 total += push;
-                // Walking or being knocked into someone stops there.
+                // Walking or being knocked into someone stops there; stumbling into someone knocks
+                // them by what they take of it (by weight).
                 float into = Vector3.Dot(Knockback, -n);
                 if (into > 0f)
                 {
                     Knockback += n * into;
+                }
+
+                into = Vector3.Dot(StumbleVelocity, -n);
+                if (into > 0f && State == UnitState.Stumbling)
+                {
+                    StumbleVelocity += n * into;
+                    float given = into * Body.Mass / Mathf.Max(1f, Body.Mass + other.Body.Mass);
+                    if (other.State == UnitState.Standing || other.State == UnitState.Stumbling)
+                    {
+                        other.Knock(-n * given, false, false, "stumbled into by " + name);
+                    }
                 }
             }
 
@@ -479,7 +513,8 @@ namespace PhysicsBattler.Units
                     {
                         Vector3 along = direction;
                         along.y = 0f;
-                        report.Struck.Shove(along.sqrMagnitude > 1e-8f ? along.normalized : transform.forward, CleaveShove * speed * report.Result.MomentumLeft);
+                        report.Struck.Shove(along.sqrMagnitude > 1e-8f ? along.normalized : transform.forward,
+                            CleaveShove * speed * report.Result.MomentumLeft * DamageRules.Transfer(move.Move.strikeWith), this);
                     }
                 }
             }
@@ -496,30 +531,32 @@ namespace PhysicsBattler.Units
             return T(near);
         }
 
-        /// <summary>Share of the weapon's speed a cleaved body is shoved along at.</summary>
-        private const float CleaveShove = 0.6f;
+        /// <summary>Share of the weapon's speed (times what it keeps, times how much of its weight lands) a cleaved body is shoved along at.</summary>
+        private const float CleaveShove = 0.15f;
 
         /// <summary>
-        /// A swing went through this unit: it is thrown along with the weapon, out of the arc (hard
-        /// enough to knock anyone over; falling comes in milestone 4, so for now it stumbles).
+        /// A swing went through this unit: it is thrown along with the weapon, out of the arc (off
+        /// balance at least; a heavy swing knocks it down or launches it).
         /// </summary>
-        public void Shove(Vector3 direction, float speed)
+        public void Shove(Vector3 direction, float speed, UnitController by = null)
         {
             if (!IsAlive)
             {
                 return;
             }
 
-            float most = MaxCleaveSpeed * SizeSpeed();
-            Knockback = Vector3.ClampMagnitude(Knockback + direction * speed, most);
-            LastReaction = Reaction.Stagger;
-            Recoil(direction * (speed * Body.Mass * 0.25f), Anim.Part(PartId.Chest).position, PartId.Chest, 1.6f);
-            StartRecovery(BodyRegion.Torso, 0.2f, 0.9f);
-            StartRecovery(BodyRegion.Head, 0.3f, 0.9f);
-            if (CurrentMove != null)
+            if (State == UnitState.Standing || State == UnitState.Stumbling)
             {
-                CancelMove(CurrentMove, "knocked aside");
+                Recoil(direction * (speed * Body.Mass * 0.25f), Anim.Part(PartId.Chest).position, PartId.Chest, 1.6f);
+                StartRecovery(BodyRegion.Torso, 0.2f, 0.9f);
+                StartRecovery(BodyRegion.Head, 0.3f, 0.9f);
+                if (CurrentMove != null)
+                {
+                    CancelMove(CurrentMove, "knocked aside");
+                }
             }
+
+            Knock(direction * speed, true, false, "cleaved through", by);
         }
 
         private HitReport Strike(MoveState move, UnitController struck, BodyPart part, Weapon shield, Vector3 point, float speed, Vector3 direction)
@@ -583,7 +620,7 @@ namespace PhysicsBattler.Units
             // whole unit: that is what reads as weight.
             Vector3 left = r.Impulse * r.PartShare;
             float taken = 0f;
-            if (region != BodyRegion.Legs && r.Impulse.sqrMagnitude > 1e-8f)
+            if ((region != BodyRegion.Legs || State == UnitState.Down) && r.Impulse.sqrMagnitude > 1e-8f)
             {
                 var id = hit.Part;
                 float cap = MaxPartSpeed * SizeSpeed();
@@ -619,7 +656,10 @@ namespace PhysicsBattler.Units
 
             // The pose throws the body back from the blow; harder reactions more.
             float react = r.Reaction == Reaction.Stagger ? 1.6f : r.Reaction == Reaction.Flinch ? 1.25f : 1f;
-            Recoil(r.Impulse, hit.Point, hit.Part, react);
+            if (State == UnitState.Standing || State == UnitState.Stumbling)
+            {
+                Recoil(r.Impulse, hit.Point, hit.Part, react);
+            }
 
             Vector3 push = (r.Impulse - r.Impulse.normalized * taken) / Mathf.Max(1f, Body.Mass);
             push.y = 0f;
@@ -627,9 +667,6 @@ namespace PhysicsBattler.Units
             {
                 push *= 1.5f;
             }
-
-            // Being knocked over or launched comes in milestone 4: until then the feet keep up.
-            Knockback = Vector3.ClampMagnitude(Knockback + push, MaxKnockback * SizeSpeed());
 
             if (r.Reaction == Reaction.Killed)
             {
@@ -639,13 +676,17 @@ namespace PhysicsBattler.Units
 
             if (r.Reaction == Reaction.Stagger)
             {
-                Poise = profile.maxPoise;   // back on its feet, poise restored
+                Poise = profile.maxPoise;   // poise restored once broken
             }
 
             if ((r.Reaction == Reaction.Stagger || r.Reaction == Reaction.Flinch) && CurrentMove != null)
             {
                 CancelMove(CurrentMove, r.Reaction == Reaction.Stagger ? "staggered" : "flinched");
             }
+
+            // Milestone 4: the push slides it, knocks it off balance, down, or off its feet. A broken
+            // poise always sends it stumbling.
+            Knock(push, r.Reaction == Reaction.Stagger, r.Blocked, hit.Impact ? "a body thrown into it" : null, hit.Attacker);
         }
 
         private void StartRecovery(BodyRegion region, float fromShare, float seconds)
@@ -699,6 +740,7 @@ namespace PhysicsBattler.Units
             BlockBlend = 0f;
             Pose.BlockBlend = 0f;
             Knockback = Vector3.zero;
+            StumbleVelocity = Vector3.zero;
             // Every part to physics, with the blow's whole impulse in the part struck.
             SetAuthority(null);
             foreach (var part in Rig.Parts)
@@ -799,9 +841,9 @@ namespace PhysicsBattler.Units
         /// <summary>A blow is coming at this unit: with a shield, it may raise it across the blow after its reaction time.</summary>
         private void OnIncoming(UnitController attacker, MoveState move)
         {
-            if (!IsAlive || Loadout == null || !Loadout.HasShield || IsAttacking)
+            if (!CanAct || Loadout == null || !Loadout.HasShield || IsAttacking)
             {
-                return;
+                return;   // (off its feet, it can't block)
             }
 
             if (combatRandom.NextDouble() >= Style.blockChance)

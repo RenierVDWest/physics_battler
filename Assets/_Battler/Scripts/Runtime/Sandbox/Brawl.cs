@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using PhysicsBattler.Board;
 using PhysicsBattler.Combat;
 using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Motion;
@@ -27,6 +28,12 @@ namespace PhysicsBattler.Sandbox
         /// <summary>Everyone faces away from the enemy (to test turning and stepping).</summary>
         public bool TurnedAway;
 
+        /// <summary>The board: a unit that got up goes back onto the nearest free tile before it fights on (null: it fights on where it stands).</summary>
+        public BoardGrid Grid;
+
+        // The tile each unit getting back onto the board is heading for (so two don't pick the same one).
+        private readonly Dictionary<UnitController, Tile> spots = new Dictionary<UnitController, Tile>();
+
         public Brawl(int seed)
         {
             random = seed != 0 ? new System.Random(seed) : new System.Random();
@@ -37,6 +44,18 @@ namespace PhysicsBattler.Sandbox
             foreach (var unit in units)
             {
                 if (unit == null || !unit.IsInitialized || !unit.IsAlive)
+                {
+                    spots.Remove(unit);
+                    continue;
+                }
+
+                // Off its feet (stumbling, down, getting up): nothing to decide until it stands.
+                if (!unit.CanAct)
+                {
+                    continue;
+                }
+
+                if (unit.NeedsSpot && BackOntoTile(units, unit, dt))
                 {
                     continue;
                 }
@@ -54,7 +73,7 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 unit.FacePoint(enemy.Root.position);
-                if (Fight && !unit.IsAttacking && unit.Knockback.magnitude < 0.05f && unit.HitStop <= 0f)
+                if (Fight && !unit.IsAttacking && unit.Knockback.magnitude < 0.05f && unit.HitStop <= 0f && !enemy.IsDown)
                 {
                     Engage(units, unit, enemy, dt, now);
                 }
@@ -103,7 +122,7 @@ namespace PhysicsBattler.Sandbox
             var candidates = new List<UnitController>();
             foreach (var other in units)
             {
-                if (other == null || other == unit || other.Team == unit.Team || !other.IsInitialized || !other.IsAlive)
+                if (other == null || other == unit || other.Team == unit.Team || !other.IsInitialized || !other.IsAlive || other.IsDown)
                 {
                     continue;
                 }
@@ -157,6 +176,101 @@ namespace PhysicsBattler.Sandbox
             return Mathf.Lerp(style.attackInterval.x, style.attackInterval.y, (float)random.NextDouble());
         }
 
+        /// <summary>
+        /// Walks a unit that just got up to the middle of the nearest free tile (no other unit on it
+        /// or heading for it). True while it is on its way.
+        /// </summary>
+        private bool BackOntoTile(IReadOnlyList<UnitController> units, UnitController unit, float dt)
+        {
+            if (Grid == null)
+            {
+                unit.NeedsSpot = false;
+                return false;
+            }
+
+            if (!spots.TryGetValue(unit, out var tile))
+            {
+                if (!NearestFreeTile(units, unit, out tile))
+                {
+                    unit.NeedsSpot = false;
+                    return false;
+                }
+
+                spots[unit] = tile;
+                if (PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(unit, "move", $"back onto the board: heading for tile {tile}");
+                }
+            }
+
+            Vector3 to = Grid.Center(tile) - unit.Root.position;
+            to.y = 0f;
+            float distance = to.magnitude;
+            if (distance < 0.05f * unit.Body.SizeFactor)
+            {
+                unit.NeedsSpot = false;
+                spots.Remove(unit);
+                return false;
+            }
+
+            unit.FacePoint(Grid.Center(tile));
+            float step = Mathf.Min(distance, unit.Style.walkSpeed * unit.Body.SizeFactor * dt);
+            unit.Root.position += to / distance * step;
+            return true;
+        }
+
+        private bool NearestFreeTile(IReadOnlyList<UnitController> units, UnitController unit, out Tile best)
+        {
+            best = default;
+            float bestDistance = float.MaxValue;
+            float clear = 0.5f * Grid.tileSize;
+            for (int c = 0; c < Grid.columns; c++)
+            {
+                for (int r = 0; r < Grid.rows; r++)
+                {
+                    var tile = new Tile(c, r);
+                    Vector3 center = Grid.Center(tile);
+                    bool taken = false;
+                    foreach (var pair in spots)
+                    {
+                        taken |= pair.Key != unit && pair.Value.column == c && pair.Value.row == r;
+                    }
+
+                    foreach (var other in units)
+                    {
+                        if (taken)
+                        {
+                            break;
+                        }
+
+                        if (other == null || other == unit || !other.IsInitialized || !other.IsAlive)
+                        {
+                            continue;
+                        }
+
+                        Vector3 d = other.Root.position - center;
+                        d.y = 0f;
+                        taken = d.magnitude < clear;
+                    }
+
+                    if (taken)
+                    {
+                        continue;
+                    }
+
+                    Vector3 to = center - unit.Root.position;
+                    to.y = 0f;
+                    if (to.sqrMagnitude < bestDistance)
+                    {
+                        bestDistance = to.sqrMagnitude;
+                        best = tile;
+                    }
+                }
+            }
+
+            return bestDistance < float.MaxValue;
+        }
+
         private static UnitController Nearest(IReadOnlyList<UnitController> units, UnitController unit)
         {
             UnitController best = null;
@@ -168,7 +282,8 @@ namespace PhysicsBattler.Sandbox
                     continue;
                 }
 
-                float d = (other.Root.position - unit.Root.position).sqrMagnitude;
+                // Someone on the ground is no one to fight while there is anyone standing.
+                float d = (other.Root.position - unit.Root.position).sqrMagnitude * (other.IsDown ? 100f : 1f);
                 if (d < bestDistance)
                 {
                     bestDistance = d;

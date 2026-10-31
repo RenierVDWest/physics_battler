@@ -166,6 +166,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.MoveEnded += OnMoveEnded;
             UnitController.Hit += OnHit;
             UnitController.Died += OnDied;
+            UnitController.BalanceChanged += OnBalance;
             Application.logMessageReceived += OnConsole;
 
             foreach (var unit in FindObjectsByType<UnitController>())
@@ -210,6 +211,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.MoveEnded -= OnMoveEnded;
             UnitController.Hit -= OnHit;
             UnitController.Died -= OnDied;
+            UnitController.BalanceChanged -= OnBalance;
             Application.logMessageReceived -= OnConsole;
 
             foreach (var track in tracks.ToArray())
@@ -341,7 +343,26 @@ namespace PhysicsBattler.Diagnostics
                 ? $"blocked by {hit.Struck.name}'s shield ({r.PoiseDamage:0} poise)"
                 : $"{r.Damage:0.0} damage, {r.PoiseDamage:0} poise, {r.Reaction.ToString().ToLowerInvariant()}";
             string swing = r.StopsSwing ? "the swing stopped" : $"cleaved through ({r.MomentumLeft * 100f:0}% of the swing left)";
-            string line = $"{hit.Move.Move.name.Replace("MD_", "")} struck {hit.Struck.name}'s {hit.Part} at {hit.Speed:0.0} m/s: {what}; "
+            if (hit.Impact)
+            {
+                string impact = $"thrown into {hit.Struck.name}: its {hit.ImpactPart} hit the {hit.Part} at {hit.Speed:0.0} m/s, "
+                                + $"{r.Damage:0.0} damage, {r.PoiseDamage:0} poise, {r.Reaction.ToString().ToLowerInvariant()}; impulse {r.Impulse.magnitude:0.0} N·s ({hit.Kind})";
+                var thrower = TrackOf(hit.Attacker);
+                if (r.Impulse.sqrMagnitude > 0f)
+                {
+                    Event(thrower, "impact", impact);
+                    thrower?.NoteHitDealt(hit);
+                }
+
+                var hurt = TrackOf(hit.Struck);
+                string by = r.Impulse.sqrMagnitude > 0f ? $"by {hit.Attacker.name}'s body" : $"thrown into {hit.Attacker.name}";
+                Event(hurt, "struck", $"{by} on the {hit.Part}: health {hit.Struck.Health:0}/{hit.Struck.Profile.maxHealth:0}, "
+                                      + $"poise {Mathf.Max(0f, hit.Struck.Poise):0}/{hit.Struck.Profile.maxPoise:0}, {StateOf(hit.Struck)}");
+                hurt?.NoteHitTaken(hit);
+                return;
+            }
+
+            string line = $"{hit.What} struck {hit.Struck.name}'s {hit.Part} at {hit.Speed:0.0} m/s: {what}; "
                           + $"impulse {r.Impulse.magnitude:0.0} N·s ({r.PartShare * 100f:0}% into the part); {swing}; {hit.Kind}";
             var track = TrackOf(hit.Attacker);
             Event(track, "hit", line);
@@ -349,13 +370,37 @@ namespace PhysicsBattler.Diagnostics
             var struck = TrackOf(hit.Struck);
             Event(struck, "struck", $"by {hit.Attacker.name} on the {hit.Part}: health {hit.Struck.Health:0}/{hit.Struck.Profile.maxHealth:0}, "
                                     + $"poise {Mathf.Max(0f, hit.Struck.Poise):0}/{hit.Struck.Profile.maxPoise:0}, {r.Reaction.ToString().ToLowerInvariant()}"
-                                    + $"{(hit.Struck.Knockback.magnitude > 0.05f ? $", knocked back at {hit.Struck.Knockback.magnitude:0.00} m/s" : "")}");
+                                    + $"{(hit.Struck.Knockback.magnitude > 0.05f ? $", knocked back at {hit.Struck.Knockback.magnitude:0.00} m/s" : "")}"
+                                    + $", {StateOf(hit.Struck)}");
             struck?.NoteHitTaken(hit);
+        }
+
+        private static string StateOf(UnitController unit)
+        {
+            if (!unit.IsAlive)
+            {
+                return "dead";
+            }
+
+            switch (unit.State)
+            {
+                case UnitState.Stumbling: return $"stumbling at {unit.StumbleVelocity.magnitude:0.00} m/s";
+                case UnitState.Down: return "down";
+                case UnitState.GettingUp: return "getting up";
+                default: return "standing";
+            }
+        }
+
+        private void OnBalance(UnitController unit, string text)
+        {
+            var track = TrackOf(unit);
+            Event(track, "balance", text);
+            track?.NoteBalance(text);
         }
 
         private void OnDied(UnitController unit, HitReport hit)
         {
-            Event(TrackOf(unit), "death", $"killed by {hit.Attacker.name}'s {hit.Move.Move.name.Replace("MD_", "")} to the {hit.Part}");
+            Event(TrackOf(unit), "death", $"killed by {hit.Attacker.name}'s {hit.What} to the {hit.Part}");
         }
 
         private void Follow(UnitController unit)

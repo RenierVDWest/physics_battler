@@ -35,6 +35,11 @@ internal static class Program
             return SwingReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "balance")
+        {
+            return BalanceReport.Run(args.Length >= 2 ? args[1] : null);
+        }
+
         if (args.Length >= 1 && args[0] == "aim")
         {
             return AimMatrix.Run(args.Length >= 2 ? float.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 1f);
@@ -45,8 +50,14 @@ internal static class Program
             .Where(t => t.GetCustomAttribute<TestFixtureAttribute>() != null).OrderBy(t => t.Name);
         foreach (var fixture in fixtures)
         {
+            string only = Environment.GetEnvironmentVariable("TEST_ONLY");
             foreach (var method in fixture.GetMethods().Where(m => m.GetCustomAttribute<TestAttribute>() != null))
             {
+                if (!string.IsNullOrEmpty(only) && !$"{fixture.Name}.{method.Name}".Contains(only))
+                {
+                    continue;
+                }
+
                 var instance = Activator.CreateInstance(fixture);
                 try
                 {

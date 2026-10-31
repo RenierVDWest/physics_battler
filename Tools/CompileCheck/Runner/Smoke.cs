@@ -83,7 +83,7 @@ internal static class Smoke
         }
 
         float dt = Time.fixedDeltaTime;
-        var brawl = new Brawl(7);
+        var brawl = new Brawl(7) { Grid = grid };
         for (int step = 0; step < 60 * 14; step++)
         {
             Time.time += dt;
@@ -143,26 +143,8 @@ internal static class Smoke
     }
 
     /// <summary>Stands in for PhysX's step: dynamic parts move by their velocity (gravity added first).</summary>
-    private static void Integrate(UnitController unit, float dt)
-    {
-        foreach (var id in PartInfo.All)
-        {
-            var body = unit.Rig.Part(id).body;
-            if (body.isKinematic)
-            {
-                continue;
-            }
-
-            body.linearVelocity += Physics.gravity * dt;
-            body.position += body.linearVelocity * dt;
-            Vector3 w = body.angularVelocity;
-            float angle = w.magnitude * dt * Mathf.Rad2Deg;
-            if (angle > 1e-5f)
-            {
-                body.rotation = Quaternion.AngleAxis(angle, w.normalized) * body.rotation;
-            }
-        }
-    }
+    // Gravity, the ground and friction (a knocked-down body comes to rest on it), as the tests do.
+    private static void Integrate(UnitController unit, float dt) => PhysicsBattler.Tests.BalanceTests.Integrate(unit, dt);
 
     private static void Call(object target, string method)
     {

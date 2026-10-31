@@ -46,7 +46,7 @@ namespace PhysicsBattler.Diagnostics
         public readonly int id;
         public float spawnTime;
         public float endTime = -1f;
-        public int samples;
+        public int samples, uprightSamples;
         public float maxSlide;
         public float maxComOffset;
         public float maxPelvisDrop;
@@ -145,8 +145,14 @@ namespace PhysicsBattler.Diagnostics
             phys.y = 0f;
             frames.Add("comOffset", com.magnitude, 3);
             frames.Add("physCom", phys.magnitude, 3);
-            maxComOffset = Mathf.Max(maxComOffset, com.magnitude);
-            maxPelvisDrop = Mathf.Max(maxPelvisDrop, p.PelvisDrop);
+            // The stance figures only count while it stands (stumbling, down and getting up are meant to break them).
+            bool upright = unit.IsAlive && unit.State == UnitState.Standing;
+            if (upright)
+            {
+                maxComOffset = Mathf.Max(maxComOffset, com.magnitude);
+                maxPelvisDrop = Mathf.Max(maxPelvisDrop, p.PelvisDrop);
+                uprightSamples++;
+            }
 
             for (int f = 0; f < 2; f++)
             {
@@ -159,7 +165,10 @@ namespace PhysicsBattler.Diagnostics
                 d.y = 0f;
                 float slide = stance.Stepping(f) ? 0f : d.magnitude;
                 frames.Add("slide" + side, slide, 3);
-                maxSlide = Mathf.Max(maxSlide, slide);
+                if (upright)
+                {
+                    maxSlide = Mathf.Max(maxSlide, slide);
+                }
             }
 
             steps = stance.StepsTaken;
@@ -183,10 +192,13 @@ namespace PhysicsBattler.Diagnostics
                 unit.Authority.Error(part, out float distance, out float angle);
                 frames.Add("err_" + part, distance, 3);
                 frames.Add("aerr_" + part, angle, 1);
-                errSum[(int)part] += distance;
-                errMax[(int)part] = Mathf.Max(errMax[(int)part], distance);
-                angSum[(int)part] += angle;
-                angMax[(int)part] = Mathf.Max(angMax[(int)part], angle);
+                if (upright)
+                {
+                    errSum[(int)part] += distance;
+                    errMax[(int)part] = Mathf.Max(errMax[(int)part], distance);
+                    angSum[(int)part] += angle;
+                    angMax[(int)part] = Mathf.Max(angMax[(int)part], angle);
+                }
             }
 
             var move = unit.CurrentMove;
@@ -212,6 +224,8 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("poise", unit.Poise, 1);
             frames.Add("alive", unit.IsAlive);
             frames.Add("knock", unit.Knockback.magnitude, 3);
+            frames.Add("state", unit.IsAlive ? unit.State.ToString() : "Dead");
+            frames.Add("stumble", unit.StumbleVelocity.magnitude, 3);
             frames.Add("hitStop", unit.HitStop > 0f);
             frames.Add("block", unit.BlockBlend, 2);
 
@@ -309,12 +323,29 @@ namespace PhysicsBattler.Diagnostics
 
         public void NoteHitDealt(HitReport hit)
         {
+            if (hit.Impact)
+            {
+                impactsDealt++;
+                return;
+            }
+
             hitsDealt++;
             damageDealt += hit.Result.Damage;
             if (hit.Shield) blocked++;
             else if (hit.Kind == "the part aimed at") aimedHits++;
             else if (hit.Kind.StartsWith("an ally")) allyHits++;
             else if (hit.Kind.StartsWith("someone")) strayHits++;
+        }
+
+        public int stumbles, knockdowns, launches, getUps, impactsDealt;
+
+        /// <summary>Something happened to the unit's balance (the log line's start says what).</summary>
+        public void NoteBalance(string text)
+        {
+            if (text.StartsWith("stumble")) stumbles++;
+            else if (text.StartsWith("knocked down")) knockdowns++;
+            else if (text.StartsWith("launched")) launches++;
+            else if (text.StartsWith("got up")) getUps++;
         }
 
         public void NoteHitTaken(HitReport hit)
@@ -362,11 +393,11 @@ namespace PhysicsBattler.Diagnostics
                           + $"Feet slid at most {maxSlide * 100f:0.0} cm while planted; the weight was at most "
                           + $"{maxComOffset * 100f:0} cm from the support point; hips dropped for reach by up to {maxPelvisDrop * 100f:0} cm.");
             md.AppendLine();
-            md.AppendLine("Physical parts against the pose (mean / max): distance in cm, angle in degrees.");
+            md.AppendLine("Physical parts against the pose while standing (mean / max): distance in cm, angle in degrees.");
             md.AppendLine();
             md.AppendLine("| Part | Authority | Distance | Angle |");
             md.AppendLine("| --- | --- | --- | --- |");
-            int n = Mathf.Max(1, samples);
+            int n = Mathf.Max(1, uprightSamples);
             foreach (var part in PartInfo.All)
             {
                 string level = unit != null && unit.Authority != null ? unit.Authority.Level(AuthorityController.RegionOf(part)).ToString() : "?";
@@ -380,6 +411,15 @@ namespace PhysicsBattler.Diagnostics
                 md.AppendLine($"Hits dealt: {hitsDealt} ({aimedHits} on the part aimed at, {blocked} blocked, {strayHits} on someone in the way, "
                               + $"{allyHits} on allies), {damageDealt:0} damage. Hits taken: {hitsTaken}, {damageTaken:0} damage. "
                               + $"{(unit != null && !unit.IsAlive ? "Killed." : $"Health at the end {(unit != null ? unit.Health : 0f):0}.")}");
+                md.AppendLine();
+            }
+
+            if (stumbles + knockdowns + launches + getUps + impactsDealt > 0)
+            {
+                bool stillDown = unit != null && unit.IsAlive && unit.IsDown;
+                md.AppendLine($"Balance: stumbled {stumbles} time{(stumbles == 1 ? "" : "s")}, knocked down {knockdowns}, launched {launches}, "
+                              + $"got up {getUps}; thrown into others {impactsDealt} time{(impactsDealt == 1 ? "" : "s")}."
+                              + (stillDown ? " Still down at the end." : ""));
                 md.AppendLine();
             }
 

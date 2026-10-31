@@ -139,6 +139,9 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public Vector3 Drift { get; set; }
 
+        /// <summary>How urgently the feet must keep up (0 to 1): off balance, a foot steps when it is only a little behind.</summary>
+        public float Urgency { get; set; }
+
         public void Update(Vector3 rootPosition, float rootYaw, float dt)
         {
             for (int f = 0; f < 2; f++)
@@ -162,13 +165,15 @@ namespace PhysicsBattler.Motion
             }
 
             // The foot furthest from its spot steps first, when one is too far or turned too much.
+            // Off balance (a stumble), a foot steps as soon as it is a little behind: catch steps.
+            float near = threshold * (1f - 0.6f * Mathf.Clamp01(Urgency));
             int worst = -1;
             float worstScore = 1f;
             for (int f = 0; f < 2; f++)
             {
                 float distance = Error(f, rootPosition, rootYaw);
                 float turn = Mathf.Abs(Mathf.DeltaAngle(feet[f].yaw, rootYaw + HomeYawLocal(f)));
-                float score = Mathf.Max(threshold > 0f ? distance / threshold : 0f, turnThreshold > 0f ? turn / turnThreshold : 0f);
+                float score = Mathf.Max(near > 0f ? distance / near : 0f, turnThreshold > 0f ? turn / turnThreshold : 0f);
                 if (score > worstScore)
                 {
                     worstScore = score;

@@ -9,11 +9,45 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 3, physical hits, with big swings
+## Current state: milestone 4, off balance, knocked down, getting up
 
 An 8×8 board with three units a side: Small, Medium and Large. Small and large carry clubs, the
 medium ones a sword and shield. They close in on the nearest enemy and strike at its body parts:
-head, neck, chest, belly, elbows or knees. What the weapon meets takes the hit.
+head, neck, chest, belly, elbows or knees. What the weapon meets takes the hit, and a hard hit
+throws the body: off balance, off its feet, or through the air into whoever is standing there.
+
+### Milestone 4: stumbles, ragdolls, get-ups
+
+Every blow's push (the impulse its struck part didn't take, over the unit's mass, half as much
+again when its poise breaks; plus the shove of a swing cleaving through it) decides what happens,
+against the unit's size:
+
+| Push (medium unit; × √size) | What happens |
+| --- | --- |
+| under 0.8 m/s | Recoil as in milestone 3: the body is thrown back, the root slides, the feet keep up. |
+| 0.8–2.2 m/s, or its poise breaks | **Stumble** (the stagger you asked for): knocked off balance in the blow's direction. The upper body leans with the fall (14° per m/s, up to 30°), the hips go ahead of the feet, the arms go out loosely, and the feet take quick catch steps after the body. Each catch step takes 45% of the speed. It ends up 0.3–0.9 m from where it was struck and stands again. It can't attack or block meanwhile. Stumbling into someone knocks them by their share. |
+| 2.2–4 m/s | **Knocked down**: a full ragdoll, the upper body thrown hardest so it topples over its feet. |
+| 4 m/s and over | **Launched**: the whole body thrown, up as well as along (at most 6.5 m/s). |
+
+- **Bodies hurt.** A body down that is moving fast (over 1.5 m/s) into another unit's body strikes
+  it. The impulse is half the closing speed times the two units' reduced mass. It does 0.15 damage
+  per N·s (by body part) and knocks the unit struck the same way, so it can stumble, fall or be
+  launched in turn. The thrown body takes half the damage. It never hits the one who knocked it
+  down: their swing is carrying it.
+- **Getting up**, as the spec has it. Once the pelvis has been still for 0.3 s (after at least
+  1.1 s down, at most 4 s), the unit gets up face down or face up, by which way its pelvis faces.
+  The root goes under the body facing along it. Every part blends from how the ragdoll lies to
+  the first key pose in 0.3 s (legs first, then the legs are kinematic again). The key poses then
+  play: face down, push up, hands and knees, one knee, rise; face up, sit up on the hands, push
+  into a crouch, rise. Then it blends into the standing pose. About 2 s, longer for bigger bodies.
+  The key poses are made in code from a few numbers in proportion to the body, so one set fits
+  every size. Poise is restored.
+- **Back onto the board.** Once up, it walks to the middle of the nearest free tile, then fights on.
+- What sends whom where with today's weapons: a large club knocks a medium unit down and launches a
+  small one; a medium sword cleaving through a small unit, and any blow that breaks poise, makes it
+  stumble; equal sizes mostly recoil.
+- **L** is the launch test: the heaviest armed unit swings at the lightest enemy, with a third unit
+  standing where the blow will throw it.
 
 ### Big swings (before milestone 4)
 
@@ -135,6 +169,7 @@ and the real units spawn on the markers.
 | F | Fighting on or off (off: they only stand and face each other) |
 | B | Bystander test: fighting stops, a sword unit strikes at an enemy with a third unit stood in the way |
 | G | Move gallery: every move in turn against a dummy, at a third of the speed and then at full speed (G again stops) |
+| L | Launch test: the heaviest armed unit swings at the lightest enemy, with a third unit standing where it will be thrown |
 | T | Turn everyone around (and back): makes them step and turn on the spot |
 | P / . | Pause / step one physics frame |
 | M | Mark the playtest log |
@@ -142,7 +177,7 @@ and the real units spawn on the markers.
 
 The panel has the same buttons plus a time scale slider and the recorder controls. Each unit's label
 shows its health and poise, the blow it is making and the body part it is aimed at, or that it is
-blocking.
+blocking, stumbling, down or getting up.
 
 **Physics Battler > Move Preview** plays any move against a dummy target. You pick the sizes, the
 distance and the body part, then scrub through the move. The Scene view draws the striking part's
@@ -179,6 +214,19 @@ Milestone 3:
 11. **No sharing space.** Units crowding one target stand around it, never inside each other.
 12. **Press B** for the bystander test.
 
+Milestone 4:
+
+13. **Stumbles.** A blow that breaks poise, or a heavy one, sends the unit stumbling back along the
+    blow, leaning with it and arms out, catching itself with two to four quick steps. It ends up
+    somewhere else and turns back to the fight.
+14. **Knock-downs.** A large unit's club knocks medium units down and launches small ones. The body
+    goes limp with the blow's speed and topples or flies, then lies still.
+15. **Bodies hurt.** Press **L**: the small unit should fly into the unit beside it, which loses
+    health and stumbles or falls in turn (the log's `impact` lines).
+16. **Get-ups.** Every unit down gets up after a second or two: face down by pushing up onto hands
+    and knees and one knee, face up by sitting up and pushing into a crouch. It should start from
+    how it lay without a pop, and end in its stance. Then it walks to the middle of a free tile.
+
 If something looks off, press **M** at the moment and mention the mark number.
 
 ## Playtest logs
@@ -196,7 +244,7 @@ the game view (300×300, 8 per second of game time) into `frames/`. The panel sh
 To share one: stop Play, then commit and push the session folder.
 `python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report with flags (sliding feet,
 weight off the feet, pinned parts lagging, shaking, blows that miss, friendly fire), a table of every blow and every
-hit, an overview and a timeline per unit (with health and poise), film strips of hits, stick-figure film strips of each unit's idle, its turns, its blows (attacker and target, seen from
+hit, each unit's stumbles, knock-downs and get-ups (flagging any that never got up), an overview and a timeline per unit (with health and poise; stumbling, down and getting up shaded), film strips of hits, stick-figure film strips of each unit's idle, its turns, its blows (attacker and target, seen from
 the side) and every mark, and the pictures in captioned sheets (needs numpy, pandas, matplotlib
 and Pillow).
 
@@ -205,7 +253,7 @@ and Pillow).
 Each unit has two rigs built from the same null tree. The **anim rig** is posed in code every physics step; it is the
 authority over where the body should be. The **physical body** (one rigidbody per part) follows it with an
 **authority level** per region: *Kinematic* (moved exactly; the legs), *Pinned* (dynamic, driven by velocity toward
-the pose with a strength 0–1; torso, head, arms), *Loose* and *Ragdoll* (for hits and knockdowns, later milestones).
+the pose with a strength 0–1; torso, head, arms), *Loose* and *Ragdoll* (knocked down, launched, dead).
 
 The pose is built in order: stance (planted feet, steps) → combat idle → upper body (hip turn, lean, chest
 counter-turn, level head, guard) → the blow's body (twist, lean, sink toward low targets) → weight shift over the
@@ -232,13 +280,21 @@ from take some impulse physically (at most 5 m/s on their own) while held loosel
 that slides the unit's root while its feet step after it. Units keep apart by pushing their roots out of each other's
 body radius, split by mass.
 
+**Balance** (`UnitBalance`, milestone 4): a unit is `Standing`, `Stumbling`, `Down` or `GettingUp`. `Knock` turns a
+push into a slide, a stumble, a knock-down or a launch. Stumbling, the root is carried at the stumble's speed and
+the stance's feet hurry after it with urgent short steps (`Stance.Drift`, `Stance.Urgency`), while the pose leans
+with it and throws the arms out (`PosePipeline.Topple`, `Flail`). Down, every region is ragdoll and the root follows
+the pelvis; fast parts are checked against other units' parts for body impacts. Getting up, `GetUp` poses the anim
+rig (key poses by IK, blended from the captured ragdoll pose and into the standing pose; limbs are blended by where
+their joints are and solved again so an elbow never swings round the wrong way) while the pins come back up.
+
 | Folder (`Assets/_Battler/Scripts/Runtime`) | What lives there |
 | --- | --- |
 | `Rig/` | `PartId` (the 16 parts and their tree), `RigFile` (the body rig JSON), `UnitBuilder`, `UnitRig`, `AnimRig`, `BodyPart` |
-| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline`, `TwoBoneIK` |
+| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline`, `TwoBoneIK`, `GetUp` (get-up key poses, `PoseBuffer`) |
 | `Authority/` | `AuthorityController` (levels per region, pinning) |
 | `Combat/` | `WeaponDefinition`, `MoveDefinition`, `MoveState`, `MovePlanner`, `Weapon` (the weapon in the hand), `AimPart`, `DamageRules`, `BodyClearance` |
-| `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitProfile` |
+| `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitBalance` (stumbles, knock-downs, launches, body impacts, get-ups), `UnitProfile` |
 | `Board/` | `BoardGrid` (tiles), `BoardView` (the board mesh) |
 | `Sandbox/` | `BattleSandbox` (spawning, panel, keys), `UnitSpawn` (the scene's markers), `Brawl` (close in and strike), `OrbitCamera`, `SandboxInput` |
 | `Diagnostics/` | `PlaytestRecorder`, `UnitTrack`, `FrameCapture` |
@@ -268,6 +324,11 @@ Tune in the data assets, not on the prefabs (setup rebuilds prefabs). Changes ma
   Its shape (length, mass, strike points) comes from `weapons.json` and is refreshed by setup.
 - `Data/Units/UP_Small`, `UP_Medium`, `UP_Large` (unit profiles): which body, which style, turn speed, how strongly
   the torso and arms are pinned to the pose (`torsoPin`, `armPin`), and the rigidbody settings.
+- Balance (milestone 4) is tuned in code for now, at the top of `Units/UnitBalance.cs`: the pushes that make a unit
+  stumble, fall or fly (`StumbleAt`, `KnockdownAt`, `LaunchAt`), how much each catch step takes (`CatchStep`), the
+  stumble's lean, the launch's speed and lift, how long a body stays down, and body impacts (`ImpactSpeed`,
+  `ImpactDamage`). `UnitCombat.CleaveShove` sets how hard a swing that cleaves through a body throws it. The get-up's
+  key poses are in `Motion/GetUp.cs`.
 
 ## Art
 
@@ -292,6 +353,10 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll smoke /tmp/smoke   # dry run, wr
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim [tiles]         # every move at every part, every size pair
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll swings [/tmp/gallery] # every move's arc, speed, depth, turn, steps
 python3 ../Playtest/swings.py /tmp/gallery/PlaytestLogs               # review sheets of the gallery's swings
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll balance [/tmp/getups]  # every body knocked down and got up, and a stumble
+python3 ../Playtest/getups.py /tmp/getups                              # the get-ups drawn from the side and front
+TEST_ONLY=Balance dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll      # only the tests whose name contains this
 ```
 
-The stubs only cover the API this project uses, and the dry run has no collisions or joints; Unity is the final word.
+The stubs only cover the API this project uses, and the dry run has no collisions or joints (a ragdoll's parts fall
+each on its own onto a flat ground); Unity is the final word.
