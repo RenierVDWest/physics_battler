@@ -32,6 +32,16 @@ namespace PhysicsBattler.Motion
         public Vector3 RestLocalL { get; set; }
         public Vector3 RestLocalR { get; set; }
 
+        /// <summary>How much each foot is turned out from the root's facing (degrees about up; + turns right).</summary>
+        public float FootYawL { get; set; }
+        public float FootYawR { get; set; }
+
+        /// <summary>The planted rotation of a foot under a root facing <paramref name="rootRotation"/>.</summary>
+        public Quaternion FootRotation(PartId foot, Quaternion rootRotation)
+        {
+            return rootRotation * Quaternion.Euler(0f, foot == PartId.FootL ? FootYawL : FootYawR, 0f);
+        }
+
         /// <summary>Plants both feet in their rest spots under <paramref name="root"/>.</summary>
         public void Plant(Transform root, float groundY)
         {

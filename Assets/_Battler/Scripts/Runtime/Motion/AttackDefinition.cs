@@ -37,8 +37,10 @@ namespace PhysicsBattler.Motion
 
         [Header("Body")]
         public float twistDegrees = 35f;
-        public float leanBack = 0.07f;
-        public float leanForward = 0.1f;
+        [Tooltip("Weight shifts onto the back foot while winding up (pelvis back, m at scale 1)…")]
+        public float leanBack = 0.1f;
+        [Tooltip("…and onto the front foot through the strike.")]
+        public float leanForward = 0.15f;
         public float crouch = 0.06f;
 
         [Header("Muscles")]

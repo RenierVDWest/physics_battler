@@ -88,7 +88,9 @@ Editor setup lives in `Scripts/Editor/Setup`. Tests (EditMode, NUnit) live in `A
 
 Tune in the data assets, not on the prefabs (the setup rebuilds prefabs). Changes made in Play mode persist.
 
-- `Data/Units/UP_Orc`, `UP_Goblin`: muscles, balance assist, stability, catch steps, getting up. The knobs that
+- `Data/Units/UP_Orc`, `UP_Goblin`: stance (`stanceWidth`, `stanceLength`, `leadWithLeftFoot`, `stanceToeOut`,
+  `stanceCrouch`), muscles, balance assist, stability, catch steps, getting up. Balance is measured against the area
+  the feet support: `stepThreshold` is how far outside it the weight may go before a catch step. The knobs that
   matter most right now: `maxSubtreeBoost` (how much the arm may stiffen to carry the club; the log's `muscles` line
   shows what each joint needs), `minPartInertia`, `gravityCompensation`, `legSupport` (planted legs carry the body),
   `velocityFeedForward`, `uprightBodyShare` and `supportFeedForward` (how hard the balance assist holds the unit up:

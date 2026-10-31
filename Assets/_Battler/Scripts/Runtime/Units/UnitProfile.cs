@@ -33,7 +33,7 @@ namespace PhysicsBattler.Units
         [Tooltip("1 = critically damped. Lower is bouncier, higher is heavier.")]
         public float dampingRatio = 0.75f;
         [Tooltip("Upper bound on how much a heavy subtree (an arm holding a club) multiplies its joint's spring.")]
-        public float maxSubtreeBoost = 300f;
+        public float maxSubtreeBoost = 500f;
         [Tooltip("Share of each joint's gravity load (everything hanging below it) the muscles hold up by themselves, "
                  + "so the springs only deal with motion, not sag. Scaled by muscle strength; stance legs are left out.")]
         [Range(0f, 1.2f)] public float gravityCompensation = 1f;
@@ -67,6 +67,9 @@ namespace PhysicsBattler.Units
         public float headLift = 0f;
         [Tooltip("How far the body may drift from where the unit thinks it is before the unit follows it.")]
         public float reanchorRadius = 0.15f;
+        [Tooltip("Share of the sideways pull while the weight is over the feet; it comes in fully only as the body "
+                 + "falls out of its support area. Lower: the legs hold the unit in place, not the assist.")]
+        [Range(0f, 1f)] public float horizontalAssistInside = 0.25f;
 
         [Header("Stability (poise)")]
         public float maxStability = 100f;
@@ -82,8 +85,21 @@ namespace PhysicsBattler.Units
         public float shoveThreshold = 18f;
         public float shoveStabilityPerImpulse = 0.08f;
 
+        [Header("Stance (feet planted apart, one forward: support in every direction)")]
+        [Tooltip("Each foot's distance out to the side of the centre (m at scale 1).")]
+        public float stanceWidth = 0.22f;
+        [Tooltip("How far the lead foot is in front of the centre, and the other behind it (m at scale 1).")]
+        public float stanceLength = 0.17f;
+        [Tooltip("Lead with the left foot (right-handed fighters); off leads with the right.")]
+        public bool leadWithLeftFoot = true;
+        [Tooltip("Toes turned out (degrees); the back foot turns out more.")]
+        public float stanceToeOut = 12f;
+        [Tooltip("Hips lowered by this much (m at scale 1): knees bent, ready.")]
+        public float stanceCrouch = 0.06f;
+
         [Header("Catch steps")]
-        public float stepThreshold = 0.16f;
+        [Tooltip("Step once the capture point is this far outside the area the feet support (m at scale 1).")]
+        public float stepThreshold = 0.05f;
         [Tooltip("While steady (not staggered), step only when the weight is this many times the threshold off the feet.")]
         public float steadyStepFactor = 1.5f;
         public float stepDuration = 0.24f;

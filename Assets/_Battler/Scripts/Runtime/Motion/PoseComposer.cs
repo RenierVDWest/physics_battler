@@ -18,6 +18,8 @@ namespace PhysicsBattler.Motion
         public bool releaseWeaponArm;
         /// <summary>A weapon is held in the right hand: idle, the hand carries it angled down and out.</summary>
         public bool holdingWeapon;
+        /// <summary>How far the stance lowers the hips (m at scale 1).</summary>
+        public float stanceCrouch;
     }
 
     /// <summary>
@@ -73,7 +75,7 @@ namespace PhysicsBattler.Motion
             float drop = (1f - rise) * 0.42f * request.scale + (staggered ? 0.04f * request.scale : 0f);
             Vector3 offset = action.active ? action.pelvisOffset : Vector3.zero;
             pelvis.localPosition = ghost.RestLocalPosition(PartId.Pelvis) + offset
-                                   + Vector3.up * (breathe * 0.006f * request.scale - drop);
+                                   + Vector3.up * (breathe * 0.006f * request.scale - drop - request.stanceCrouch * request.scale);
             pelvis.localRotation = Quaternion.Euler(0f, action.active ? action.pelvisYaw : 0f, 0f);
             ghost.Part(PartId.Spine).localRotation =
                 Quaternion.Euler(action.spinePitch + (1f - rise) * 35f + breathe * 0.8f, action.spineYaw, 0f);
@@ -118,8 +120,10 @@ namespace PhysicsBattler.Motion
 
         private void SolveLeg(PartId thigh, PartId shin, PartId foot, Transform root)
         {
-            TwoBoneIK.Solve(ghost.Part(thigh), ghost.Part(shin), ghost.Part(foot), stance.Current(foot), root.forward);
-            ghost.Part(foot).rotation = root.rotation;
+            // Knees point the way the foot does (toes out, knees out).
+            Quaternion footRotation = stance.FootRotation(foot, root.rotation);
+            TwoBoneIK.Solve(ghost.Part(thigh), ghost.Part(shin), ghost.Part(foot), stance.Current(foot), footRotation * Vector3.forward);
+            ghost.Part(foot).rotation = footRotation;
         }
 
         private void SolveWeaponArm(in ActionPose action)

@@ -85,6 +85,8 @@ namespace UnityEngine
         public float magnitude => Mathf.Sqrt(x * x + y * y);
         public float sqrMagnitude => x * x + y * y;
 
+        public static float Dot(Vector2 a, Vector2 b) => a.x * b.x + a.y * b.y;
+        public static float Distance(Vector2 a, Vector2 b) => (a - b).magnitude;
         public static Vector2 operator +(Vector2 a, Vector2 b) => new Vector2(a.x + b.x, a.y + b.y);
         public static Vector2 operator -(Vector2 a, Vector2 b) => new Vector2(a.x - b.x, a.y - b.y);
         public static Vector2 operator *(Vector2 a, float d) => new Vector2(a.x * d, a.y * d);

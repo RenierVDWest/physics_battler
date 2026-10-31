@@ -31,7 +31,7 @@ namespace PhysicsBattler.Muscles
         public Vector3 CapturePoint { get; private set; }
         public Vector3 SupportCenter { get; private set; }
 
-        /// <summary>Horizontal distance from the support centre to the capture point.</summary>
+        /// <summary>How far the capture point is outside the support area (0 = balanced over the feet).</summary>
         public float BalanceError { get; private set; }
 
         /// <summary>Why <see cref="UpdateCatchSteps"/> last gave up (the knockdown reason).</summary>
@@ -64,10 +64,47 @@ namespace PhysicsBattler.Muscles
             capture.y = groundY;
             CapturePoint = capture;
 
-            Vector3 support = (rig.Part(PartId.FootL).body.position + rig.Part(PartId.FootR).body.position) * 0.5f;
-            support.y = groundY;
-            SupportCenter = support;
-            BalanceError = Vector3.Distance(CapturePoint, SupportCenter);
+            // The support area: the soles of the feet that are down (both if neither is, e.g. airborne).
+            soles.Clear();
+            bool left = FootDown(PartId.FootL);
+            bool right = FootDown(PartId.FootR);
+            float scale = profile.scale;
+            foreach (var foot in new[] { PartId.FootL, PartId.FootR })
+            {
+                if ((foot == PartId.FootL ? left : right) || (!left && !right))
+                {
+                    var body = rig.Part(foot).body;
+                    SupportPolygon.AddSole(soles, body.position, body.rotation, SoleLength * scale, SoleWidth * scale, SoleForward * scale);
+                }
+            }
+
+            SupportPolygon.Hull(soles, supportHull);
+            Vector2 centre = SupportPolygon.Centroid(supportHull);
+            SupportCenter = new Vector3(centre.x, groundY, centre.y);
+            BalanceError = SupportPolygon.DistanceOutside(supportHull, new Vector2(capture.x, capture.z));
+        }
+
+        // A foot's sole, about the size of the placeholder orc's at scale 1.
+        private const float SoleLength = 0.30f;
+        private const float SoleWidth = 0.14f;
+        private const float SoleForward = 0.06f;
+
+        private readonly System.Collections.Generic.List<Vector2> soles = new System.Collections.Generic.List<Vector2>(8);
+        private readonly System.Collections.Generic.List<Vector2> supportHull = new System.Collections.Generic.List<Vector2>(8);
+
+        /// <summary>The support area's outline on the ground (counter-clockwise; x, z).</summary>
+        public System.Collections.Generic.IReadOnlyList<Vector2> SupportHull => supportHull;
+
+        /// <summary>Touching the ground this step (or just now), and not in the middle of a step.</summary>
+        private bool FootDown(PartId foot)
+        {
+            if (stance.Stepping && stance.SteppingFoot == foot)
+            {
+                return false;
+            }
+
+            var part = rig.Part(foot);
+            return Time.time - Mathf.Max(part.LastGroundContactTime, part.LastOtherContactTime) < 0.1f;
         }
 
         /// <summary>
@@ -240,7 +277,11 @@ namespace PhysicsBattler.Muscles
             vertical = Mathf.Clamp(vertical * balance, -mass * g, mass * g * 2f);
             Vector3 horizontalError = new Vector3(error.x, 0f, error.z);
             Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
-            Vector3 horizontal = balance * mass * (profile.kpHorizontal * horizontalError - profile.kdHorizontal * horizontalVelocity);
+            // While the weight is over the feet the legs keep the pelvis where it belongs; the sideways
+            // pull only comes in fully as the body falls out of its support area.
+            float threshold = Mathf.Max(0.01f, profile.stepThreshold * profile.scale);
+            float pull = Mathf.Lerp(profile.horizontalAssistInside, 1f, Mathf.Clamp01(BalanceError / threshold));
+            Vector3 horizontal = balance * pull * mass * (profile.kpHorizontal * horizontalError - profile.kdHorizontal * horizontalVelocity);
             pelvis.AddForce(Vector3.up * vertical + horizontal, ForceMode.Force);
             LastVerticalForce = vertical;
             LastHorizontalForce = horizontal.magnitude;

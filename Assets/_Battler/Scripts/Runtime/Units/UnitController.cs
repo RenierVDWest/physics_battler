@@ -149,8 +149,18 @@ namespace PhysicsBattler.Units
             // The ghost is cloned while the body is still in its rest pose under this object.
             Stance = new Stance();
             Ghost = new GhostRig(transform, Rig);
-            Stance.RestLocalL = transform.InverseTransformPoint(Ghost.Part(PartId.FootL).position);
-            Stance.RestLocalR = transform.InverseTransformPoint(Ghost.Part(PartId.FootR).position);
+            // A fighting stance, not feet together: apart, one forward, toes out, knees bent. Support in
+            // every direction, and the weight can move between the feet as the unit swings.
+            Vector3 ankleL = transform.InverseTransformPoint(Ghost.Part(PartId.FootL).position);
+            Vector3 ankleR = transform.InverseTransformPoint(Ghost.Part(PartId.FootR).position);
+            float scale = Rig.Scale;
+            float lead = profile.leadWithLeftFoot ? 1f : -1f;
+            Stance.RestLocalL = new Vector3(-profile.stanceWidth * scale, ankleL.y, lead * profile.stanceLength * scale);
+            Stance.RestLocalR = new Vector3(profile.stanceWidth * scale, ankleR.y, -lead * profile.stanceLength * scale);
+            float leadToe = profile.stanceToeOut;
+            float backToe = profile.stanceToeOut * 2f;
+            Stance.FootYawL = -(profile.leadWithLeftFoot ? leadToe : backToe);
+            Stance.FootYawR = profile.leadWithLeftFoot ? backToe : leadToe;
             restShoulderLocalR = transform.InverseTransformPoint(Ghost.Part(PartId.UpperArmR).position);
             restShoulderLocalL = transform.InverseTransformPoint(Ghost.Part(PartId.UpperArmL).position);
             restPelvisHeight = Ghost.Part(PartId.Pelvis).position.y - transform.position.y;
@@ -453,6 +463,7 @@ namespace PhysicsBattler.Units
 
             Pose.Compose(new PoseRequest
             {
+                stanceCrouch = profile.stanceCrouch,
                 root = transform,
                 state = State.Kind,
                 getUpProgress = State.GetUpProgress,

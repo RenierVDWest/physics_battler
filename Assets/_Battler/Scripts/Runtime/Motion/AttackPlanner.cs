@@ -157,7 +157,7 @@ namespace PhysicsBattler.Motion
                 PlaytestTrace.Note(self, "attack",
                     $"swing at {target.name}: target {plan.distance:0.00} m from the shoulder, contact reach {plan.contactReach:0.00} m, "
                     + $"plane roll {plan.rollDegrees:0}°, extra lean {plan.extraLean:0.00} m, crowded ×{plan.crowdedFactor:0.00}, "
-                    + $"club starts at θ {entryTheta:0}° (wind-up {(entryTheta > 0f ? "over the top" : "down and back")} to {definition.windUpAngle:0}°)");
+                    + $"carried club at θ {entryTheta:0}°, wound up straight to {definition.windUpAngle:0}° at the side");
             }
 
             SetPhase(Phase.WindUp);
@@ -313,34 +313,39 @@ namespace PhysicsBattler.Motion
             float u = phaseTime / Duration(Current, d);
             switch (Current)
             {
-                case Phase.WindUp:
-                {
-                    // From the carry (club up on the shoulder, a positive angle) the wind-up goes on over
-                    // the top and drops behind, never down through the front where the target stands.
-                    float windUp = entryTheta > 0f ? d.windUpAngle + 360f : d.windUpAngle;
-                    return WrapAngle(Mathf.Lerp(entryTheta, windUp, Ease.InOutCubic(u)));
-                }
+                // The wind-up doesn't travel along the arc: the weapon goes straight from the carry to the
+                // wound-up position, out at the side (see ArcBlend). Following the arc "over the top"
+                // took the club over the head and into the orc's own chest and arm (third playtest).
+                case Phase.WindUp: return d.windUpAngle;
 
                 case Phase.Load: return Mathf.Lerp(d.windUpAngle, d.loadAngle, Ease.OutCubic(u));
                 case Phase.Strike: return Mathf.Lerp(d.loadAngle, d.followAngle, Ease.InPower(u, d.strikePower));
                 case Phase.Follow: return d.followAngle + 10f * Ease.OutCubic(u);
-                case Phase.Recover:
-                {
-                    // Carry on up the plane (out to the side, clear of the head) toward the carry's angle.
-                    float end = entryTheta > d.followAngle + 10f ? entryTheta : d.followAngle + 10f;
-                    return Mathf.Lerp(d.followAngle + 10f, end, Ease.InOutCubic(u));
-                }
-
-                default: return d.followAngle + 10f;
+                default: return d.followAngle + 10f;   // recover: from the end of the follow-through back to the carry
             }
         }
 
-        /// <summary>An angle in degrees, wrapped into (-180, 180].</summary>
-        private static float WrapAngle(float degrees)
+        /// <summary>
+        /// Pushes the grip out of the torso (a vertical cylinder around the chest), so the hand is never
+        /// asked to be inside the body: with self-collision on, it would jam there instead.
+        /// </summary>
+        private Vector3 KeepClearOfTorso(Vector3 grip, float scale)
         {
-            float wrapped = Mathf.Repeat(degrees + 180f, 360f) - 180f;
-            return wrapped <= -180f ? wrapped + 360f : wrapped;
+            Vector3 chest = self.Ghost.Part(PartId.Chest).position;
+            float radius = TorsoClearance * scale;
+            Vector3 offset = grip - chest;
+            offset.y = 0f;
+            if (grip.y < self.Ghost.Part(PartId.Pelvis).position.y || offset.magnitude >= radius)
+            {
+                return grip;
+            }
+
+            Vector3 outward = offset.sqrMagnitude > 1e-6f ? offset.normalized : self.Root.right * definition.side;
+            return grip + outward * (radius - offset.magnitude);
         }
+
+        private const float TorsoClearance = 0.34f;
+
 
         /// <summary>How much the body (twist, lean, crouch) takes part: eases in and out.</summary>
         private float BodyWeight()
@@ -365,8 +370,8 @@ namespace PhysicsBattler.Motion
             float u = phaseTime / Duration(Current, definition);
             switch (Current)
             {
-                case Phase.WindUp: return Ease.InOutCubic(Mathf.Clamp01(u / 0.45f));
-                case Phase.Recover: return 1f - Ease.InOutCubic(Mathf.Clamp01((u - 0.35f) / 0.65f));
+                case Phase.WindUp: return Ease.InOutCubic(Mathf.Clamp01(u / 0.85f));
+                case Phase.Recover: return 1f - Ease.InOutCubic(Mathf.Clamp01(u / 0.85f));
                 default: return 1f;
             }
         }
@@ -462,6 +467,8 @@ namespace PhysicsBattler.Motion
                 grip = Vector3.Lerp(root.TransformPoint(carryGripLocal), grip, arc);
                 handRotation = Quaternion.Slerp(root.rotation * carryHandLocal, handRotation, arc);
             }
+
+            grip = KeepClearOfTorso(grip, scale);
 
             pose.gripTarget = grip;
             pose.handRotation = handRotation;

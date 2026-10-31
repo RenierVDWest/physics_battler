@@ -15,8 +15,11 @@ namespace PhysicsBattler.Editor.Setup
         ///     longer crouch-then-rise get-up (see <see cref="DataSetup.Migrate"/>).
         /// 3 = After the second playtest: less "puppet on strings" (lighter balance assist, the legs carry
         ///     the weight, less angular damping).
+        /// 4 = After the fourth playtest: a fighting stance, balance measured against the area the feet
+        ///     support (catch-step threshold 0.16 → 0.05 m outside it), more weight shift in the swing,
+        ///     load-boost cap 300 → 500.
         /// </summary>
-        public const int Current = 3;
+        public const int Current = 4;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

@@ -46,6 +46,11 @@ namespace PhysicsBattler.Editor.Setup
                 MigrateTo3();
             }
 
+            if (from >= 1 && from < 4)
+            {
+                MigrateTo4();
+            }
+
             if (from >= 1 && from < 2)
             {
                 // After the first playtest (the club too heavy for the arm, get-ups declared done while
@@ -90,6 +95,40 @@ namespace PhysicsBattler.Editor.Setup
                 if (changed)
                 {
                     EditorUtility.SetDirty(profile);
+                }
+            }
+        }
+
+        private static void MigrateTo4()
+        {
+            // The balance error is now how far the capture point is outside the area the feet support
+            // (it was the distance to the midpoint between the feet), so the step threshold shrinks.
+            foreach (var path in new[] { BattlerPaths.OrcProfile, BattlerPaths.GoblinProfile })
+            {
+                var profile = AssetDatabase.LoadAssetAtPath<UnitProfile>(path);
+                if (profile == null)
+                {
+                    continue;
+                }
+
+                bool changed = false;
+                changed |= Replace(ref profile.stepThreshold, 0.16f, 0.05f, profile.name, "stepThreshold");
+                changed |= Replace(ref profile.maxSubtreeBoost, 300f, 500f, profile.name, "maxSubtreeBoost");
+                if (changed)
+                {
+                    EditorUtility.SetDirty(profile);
+                }
+            }
+
+            var swing = AssetDatabase.LoadAssetAtPath<AttackDefinition>(BattlerPaths.ClubSwing);
+            if (swing != null)
+            {
+                bool changed = false;
+                changed |= Replace(ref swing.leanBack, 0.07f, 0.1f, swing.name, "leanBack");
+                changed |= Replace(ref swing.leanForward, 0.1f, 0.15f, swing.name, "leanForward");
+                if (changed)
+                {
+                    EditorUtility.SetDirty(swing);
                 }
             }
         }
