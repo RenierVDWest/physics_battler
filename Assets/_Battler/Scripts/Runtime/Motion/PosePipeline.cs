@@ -50,6 +50,15 @@ namespace PhysicsBattler.Motion
         public Vector3 BlockNormal { get; set; } = Vector3.forward;
         public float MoveCrouch { get; private set; }
 
+        /// <summary>
+        /// A hit's reaction on the pose (milestone 3), from the unit's recoil springs: the hips pushed
+        /// (world metres; a negative y is the knees giving), the upper body turned about the hips and
+        /// the head about the neck (world rotation vectors, radians). The physical body follows.
+        /// </summary>
+        public Vector3 ReactShift { get; set; }
+        public Vector3 ReactLean { get; set; }
+        public Vector3 ReactHead { get; set; }
+
         // What the last step produced, for the log.
         public Vector3 CenterOfMass { get; private set; }
         public Vector3 SupportPoint { get; private set; }
@@ -167,6 +176,23 @@ namespace PhysicsBattler.Motion
                 pelvis.position += (offset - carried) * moveBlend;
             }
 
+            // 4b. A hit's recoil: the hips pushed and the upper body thrown back from the blow (the
+            //     spine takes some of the turn, the chest the rest).
+            if (ReactShift.sqrMagnitude > 1e-8f || ReactLean.sqrMagnitude > 1e-8f)
+            {
+                pelvis.position += ReactShift;
+                float angle = ReactLean.magnitude * Mathf.Rad2Deg;
+                if (angle > 0.01f)
+                {
+                    Vector3 axis = ReactLean.normalized;
+                    var spine = anim.Part(PartId.Spine);
+                    var chest = anim.Part(PartId.Chest);
+                    pelvis.rotation = Quaternion.AngleAxis(0.15f * angle, axis) * pelvis.rotation;
+                    spine.rotation = Quaternion.AngleAxis(0.4f * angle, axis) * spine.rotation;
+                    chest.rotation = Quaternion.AngleAxis(0.45f * angle, axis) * chest.rotation;
+                }
+            }
+
             // 5. Legs: during a blow, a planted foot that the hips have got ahead of holds them back
             //    (the hips stay over the feet rather than sinking); a foot in the air doesn't pull
             //    them down. Then lower the hips if a foot is still out of reach, and solve each leg.
@@ -247,6 +273,12 @@ namespace PhysicsBattler.Motion
                 {
                     head.rotation = Quaternion.Slerp(head.rotation, Quaternion.LookRotation(look, Vector3.up), 0.8f * moveBlend);
                 }
+            }
+
+            if (ReactHead.sqrMagnitude > 1e-8f)
+            {
+                var head = anim.Part(PartId.Head);
+                head.rotation = Quaternion.AngleAxis(ReactHead.magnitude * Mathf.Rad2Deg, ReactHead.normalized) * head.rotation;
             }
 
             CenterOfMass = CenterOfMassNow();

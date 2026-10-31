@@ -17,33 +17,41 @@ head, neck, chest, belly, elbows or knees. What the weapon meets takes the hit.
 
 ### Milestone 3: hits
 
-- **Every weapon contact is a hit.** During a blow's active window the weapon is swept from where
-  it was last physics step to where it is now. Every body part or shield it passes through is
-  struck, whoever it belongs to: the part aimed at, another part of the target, an ally (friendly
-  fire does full damage) or someone else standing in the way. Each unit is struck once per blow.
-  A touch slower than the weapon's *min hit speed* (2 m/s at the striking part) is not a hit.
+- **Every weapon contact is a hit.** From the start of a blow's active window to the end of its
+  follow-through, the weapon is swept from where it was last physics step to where it is now. The
+  first body part or shield it meets is struck, whoever it belongs to: the part aimed at, another
+  part of the target, an ally (friendly fire does full damage) or someone else standing in the
+  way. A touch slower than the weapon's *min hit speed* (2 m/s at the striking part) is not a hit.
+- **The weapon stops at the body.** It never passes through: the blow is wound back to the moment
+  it met the body, held there for the hit stop, then bounces back along its own path as it fades
+  out. The weapon arm stays posed throughout (nothing goes loose, so the weapon can't spin).
 - **Weight matters.** Damage goes with the weapon's speed and the part struck (the head hurts most,
   hands least). The impulse is the weapon's mass at the wielder's size, plus some arm, times its
-  speed. A club's weight lands; an edge or point cuts in and passes on less. A body at least 0.6
-  times the attacker's weight, or a thrust into the torso, stops the swing: the blow ends and the
-  weapon arm recoils. A lighter body is bowled through, and the swing carries on with less force.
-- **Reactions are physics, not animations.** The struck part goes loose and takes its share of the
-  impulse. The parts next to it go looser, then the pins ramp back over 0.35–0.9 s. What the part
-  doesn't take pushes the whole unit back; its feet step after it. A hard blow is a **flinch**:
-  the unit's own blow is cancelled. Losing all poise is a **stagger**: loose for longer, knocked
-  back further, blow cancelled, then poise comes back. At zero health the unit goes limp (getting
-  up, being knocked down or launched come in milestone 4).
+  speed. A club's weight lands; an edge or point cuts in and passes on less. The same blow throws
+  a light body much further than a heavy one.
+- **Struck bodies look struck.** The pose recoils: the hips are pushed with the blow and the knees
+  give, the upper body is thrown back and twisted the way the blow levers it, and a blow to the
+  head snaps it round. It springs back with a little overshoot. The struck part and the part it
+  hangs from also take the impulse physically and are held loosely for a moment. The rest of the
+  blow knocks the whole unit back, and its feet stumble after it. The attacker jolts too.
+- **Flinch and stagger.** A hard blow is a **flinch**: a bigger recoil, and the unit's own blow is
+  cancelled. Losing all poise is a **stagger**: the biggest recoil, knocked back further, blow
+  cancelled, then poise comes back. At zero health the unit goes limp (getting up, being knocked
+  down or launched come in milestone 4).
+- **Bodies don't share space.** Each unit takes up a circle around its hips. Units that come closer
+  than that are pushed apart, the lighter one more, and their feet step after.
 - **Hit stop.** At each hit the attacker and the struck freeze for 40–100 ms, longer for heavier
   blows.
 - **Shield blocks.** A unit with a shield that sees a blow coming may raise it across the blow
   after its reaction time (`blockChance`, `reactionTime` in its combat style). A blow that meets
   the shield does no damage, costs some poise and stops the swing.
 - **Cut-short blows let go smoothly.** A stopped, flinched or staggered blow fades out of the pose
-  over 0.3 s from where it was, and feet out in the lunge step back.
+  over 0.35 s from where it was, and feet out in the lunge step back.
 - **Health and poise per size:** small 60/25, medium 100/45, large 220/120. Poise comes back at 15
   a second. The labels show them.
 - **The gate test:** *a bystander in the way takes the blow* (`HitTests`). A third unit stands
-  across a cut aimed at another; it is struck first, and the target is untouched. Press **B** in
+  across a cut aimed at another; it is struck first, the blow stops on it, and the target is
+  untouched. Press **B** in
   the Battle scene to see it: fighting stops, a sword unit strikes at an enemy, and a third unit
   is stood in the way.
 
@@ -124,16 +132,19 @@ close it passes. Edit a move asset and press Rebuild to see the change.
 
 Milestone 3:
 
-6. **Hits.** A blow that reaches someone jolts the struck part (and less, the body around it),
-   pushes the unit back a little, and both units freeze for a few frames. Health drops in the label.
+6. **Hits.** The weapon stops where it meets the body, both units freeze for a few frames, then the
+   weapon bounces back. The struck body is thrown back from the blow (hips pushed, upper body bent
+   and twisted, the head snapped if struck), springs back, and stumbles a step or two. Health drops
+   in the label.
 7. **What gets hit.** Arms held in guard often take blows meant for the head or chest: that's the
    guard working. A unit standing beside or in front of the target can take the blow instead.
-8. **Heavy against light.** A large unit's club staggers a small one (knocked back, its own blow
-   cancelled); a small unit's club stops dead on a large one and its arm bounces back.
+8. **Heavy against light.** A large unit's club staggers a small one (knocked well back, its own
+   blow cancelled); a small unit's club stops dead on a large one, which barely moves.
 9. **Blocks.** The medium units raise their shields at blows coming at them about half the time;
    a blocked blow stops on the shield.
 10. **Deaths.** At zero health a unit goes limp and lies there; the others stop fighting it.
-11. **Press B** for the bystander test.
+11. **No sharing space.** Units crowding one target stand around it, never inside each other.
+12. **Press B** for the bystander test.
 
 If something looks off, press **M** at the moment and mention the mark number.
 
@@ -176,10 +187,12 @@ height and size. The **planner** (`MovePlanner`) locks the aim, works out the lu
 **Hits** (`UnitCombat`, `DamageRules`): each physics step of a blow's active window, the striking length of the
 physical weapon (most of a blade, a club's head end) is swept from last step's position as a capsule. Body parts and
 shields it overlaps are struck in the order the blade meets them (nearest the hand first, since the blade turns about
-the hand). `DamageRules.Resolve` turns a contact into damage, poise damage, an impulse and a reaction, and says
-whether the swing stops. The struck unit's region goes from pinned to nearly loose and ramps back; the impulse goes
-into the part (capped at 5 m/s for the part on its own) and the rest becomes knock-back that slides the unit's root
-while its feet step after it.
+the hand); the first one stops the blow, which is wound back to the start of that stretch. `DamageRules.Resolve`
+turns a contact into damage, poise damage, an impulse and a reaction. The struck unit's recoil springs (hips, upper
+body, head) are kicked by the blow and feed the pose (`PosePipeline.React*`). The struck part and the part it hangs
+from take some impulse physically (at most 5 m/s on their own) while held loosely, and the rest becomes knock-back
+that slides the unit's root while its feet step after it. Units keep apart by pushing their roots out of each other's
+body radius, split by mass.
 
 | Folder (`Assets/_Battler/Scripts/Runtime`) | What lives there |
 | --- | --- |

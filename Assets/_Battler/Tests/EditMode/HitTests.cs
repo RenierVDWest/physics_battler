@@ -34,16 +34,14 @@ namespace PhysicsBattler.Tests
         }
 
         [Test]
-        public void AHeavyBodyStopsTheSwingAndALightOneIsBowledThrough()
+        public void EveryBodyStopsTheSwing()
         {
-            var heavy = Blow(80f, 150f, PartId.Chest);
-            Assert.IsTrue(heavy.StopsSwing);
-            Assert.AreEqual(0f, heavy.MomentumLeft);
-
-            var light = Blow(80f, 40f, PartId.Chest);
-            Assert.IsFalse(light.StopsSwing);
-            Assert.GreaterOrEqual(light.MomentumLeft, 0.2f, "carries on");
-            Assert.LessOrEqual(light.MomentumLeft, 0.8f, "with less force");
+            foreach (float mass in new[] { 38f, 80f, 280f })
+            {
+                var hit = Blow(80f, mass, PartId.Chest);
+                Assert.IsTrue(hit.StopsSwing, $"a {mass} kg body stops it: the weapon never passes through");
+                Assert.AreEqual(0f, hit.MomentumLeft);
+            }
         }
 
         [Test]
@@ -172,6 +170,12 @@ namespace PhysicsBattler.Tests
         /// </summary>
         private static List<HitReport> BlowThrough(UnitController attacker, UnitController target, UnitController bystander, AimPart part, float before, out Vector3 at)
         {
+            var state = BlowThroughState(attacker, target, bystander, part, before, out at);
+            return Play(attacker, state, new[] { attacker, target, bystander });
+        }
+
+        private static MoveState BlowThroughState(UnitController attacker, UnitController target, UnitController bystander, AimPart part, float before, out Vector3 at)
+        {
             var everyone = new[] { attacker, target, bystander };
             Step(everyone, 20);
             var state = MovePlanner.Prepare(attacker, target, attacker.Loadout.Main.moves[0], part);
@@ -181,7 +185,7 @@ namespace PhysicsBattler.Tests
             var torso = bystander.Rig.Part(PartId.Chest).body.position - bystander.Root.position;
             bystander.Teleport(new Vector3(at.x - torso.x, 0f, at.z - torso.z), root.eulerAngles.y + 180f);
             Step(new[] { bystander }, 2);
-            return Play(attacker, state, everyone);
+            return state;
         }
 
         [Test]
@@ -219,28 +223,168 @@ namespace PhysicsBattler.Tests
             }
         }
 
-        /// <summary>A light body in the way is bowled through: the blow carries on, with less force.</summary>
+        /// <summary>A light body in the way stops the blow too, and is thrown further than a heavy one would be.</summary>
         [Test]
-        public void ALightBystanderIsBowledThrough()
+        public void ALightBystanderStopsTheBlowAndIsThrownFurther()
         {
-            var (attacker, target, _) = Duel("Small");
-            var bystander = Build("Small", new Vector3(3f, 0f, 3f), 180f, 1);
-            var everyone = new[] { attacker, target, bystander };
+            float Knock(string body)
+            {
+                var (attacker, target, _) = Duel("Small");
+                var bystander = Build(body, new Vector3(3f, 0f, 3f), 180f, 1);
+                var everyone = new[] { attacker, target, bystander };
+                try
+                {
+                    float knock = -1f;
+                    float targetHealth = target.Health;
+                    var state = BlowThroughState(attacker, target, bystander, AimPart.Belly, 0.3f, out var at);
+                    var hits = Play(attacker, state, everyone, h =>
+                    {
+                        if (h.Struck == bystander && knock < 0f)
+                        {
+                            knock = bystander.Knockback.magnitude;
+                        }
+                    });
+                    Assert.Greater(hits.Count, 0, "the blow strikes something");
+                    Assert.IsTrue(hits[0].Struck == bystander, $"the {body} unit in the way is struck (stood at {at}; struck {hits[0].Struck.name}'s {hits[0].Part})");
+                    Assert.IsTrue(hits[0].Result.StopsSwing, "and stops the blow");
+                    Assert.AreEqual(1, hits.Count, "nothing else is struck");
+                    Assert.AreEqual(targetHealth, target.Health, "the target is untouched");
+                    return knock;
+                }
+                finally
+                {
+                    Destroy(everyone);
+                }
+            }
+
+            float small = Knock("Small"), medium = Knock("Medium");
+            Assert.Greater(small, 1.3f * medium, $"the small body is thrown faster ({small:0.00} against {medium:0.00} m/s)");
+        }
+
+        /// <summary>The weapon stops where it meets the body and bounces back: it doesn't carry on through.</summary>
+        [Test]
+        public void TheWeaponStopsAtTheBody()
+        {
+            var (attacker, target, _) = Duel();
+            var everyone = new[] { attacker, target };
             try
             {
-                var hits = BlowThrough(attacker, target, bystander, AimPart.Belly, 0.3f, out var at);
-                var onBystander = hits.Find(h => h.Struck == bystander);
-                Assert.IsNotNull(onBystander, $"the small unit in the way is struck (stood at {at}; hits: {string.Join(", ", hits.ConvertAll(h => h.Struck.name + "'s " + h.Part))})");
-                Assert.IsFalse(onBystander.Result.StopsSwing, "and bowled through");
-                Assert.Less(onBystander.Result.MomentumLeft, 1f);
-                foreach (var later in hits)
+                Step(everyone, 20);
+                var state = MovePlanner.Prepare(attacker, target, attacker.Loadout.Main.moves[0], AimPart.Chest);
+                Assert.IsNotNull(state);
+                bool hit = false;
+                void OnHit(HitReport report)
                 {
-                    if (later != onBystander)
+                    hit |= report.Attacker == attacker;
+                }
+
+                UnitController.Hit += OnHit;
+                try
+                {
+                    Assert.IsTrue(attacker.StartMove(state));
+                    for (int i = 0; i < 400 && !hit && attacker.IsAttacking; i++)
                     {
-                        Assert.Less(later.Result.Damage, DamageRules.PartMultiplier(later.Part) * attacker.Loadout.Main.damage * later.Speed / DamageRules.ReferenceSpeed,
-                            "whatever it strikes after takes less");
+                        Step(everyone);
                     }
                 }
+                finally
+                {
+                    UnitController.Hit -= OnHit;
+                }
+
+                Assert.IsTrue(hit, "the blow lands");
+                var weapon = attacker.MainWeapon;
+                for (int i = 0; i < 40; i++)
+                {
+                    Step(everyone);
+                    Vector3 grip = weapon.WorldPoint(Vector3.zero), tip = weapon.WorldPoint(weapon.definition.tip);
+                    foreach (var collider in Physics.OverlapCapsule(grip, tip, 0.005f, ~0, QueryTriggerInteraction.Collide))
+                    {
+                        var part = collider.GetComponentInParent<BodyPart>();
+                        // (A step or two to bounce out of the few centimetres it went in.)
+                        if (part != null && part.Owner == target && part.partCollider == collider && i >= 3)
+                        {
+                            Assert.Fail($"{i} steps after the hit the blade is still in {target.name}'s {part.id}");
+                        }
+                    }
+                }
+
+                Assert.IsFalse(attacker.IsAttacking, "the blow is over");
+            }
+            finally
+            {
+                Destroy(everyone);
+            }
+        }
+
+        /// <summary>A hard hit throws the struck body back: hips and chest go with the blow, the upper body bends away.</summary>
+        [Test]
+        public void AHardHitThrowsTheBodyBack()
+        {
+            var attacker = Build("Large", Vector3.zero, 0f, 0);
+            var target = Build("Medium", Vector3.forward * 5f, 180f, 1);
+            var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
+            club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing) };
+            attacker.Equip(club, null);
+            float distance = attacker.Style.engageDistance * attacker.Body.SizeFactor + 0.25f * target.Body.SizeFactor;
+            target.Place(Vector3.forward * distance, 180f);
+            var everyone = new[] { attacker, target };
+            try
+            {
+                Step(everyone, 20);
+                var state = MovePlanner.Prepare(attacker, target, club.moves[0], AimPart.Chest);
+                Assert.IsNotNull(state);
+                HitReport first = null;
+                Vector3 chestBefore = Vector3.zero;
+                Play(attacker, state, everyone, h =>
+                {
+                    if (first == null)
+                    {
+                        first = h;
+                        chestBefore = target.Anim.Part(PartId.Chest).position;
+                    }
+                });
+                Assert.IsNotNull(first, "the blow lands");
+                Assert.IsTrue(first.Struck == target);
+
+                // Over the next 0.3 s the chest is carried with the blow and the upper body bends.
+                Vector3 dir = first.Result.Impulse;
+                dir.y = 0f;
+                dir.Normalize();
+                float moved = 0f, bend = 0f;
+                for (int i = 0; i < 18; i++)
+                {
+                    Step(everyone);
+                    moved = Mathf.Max(moved, Vector3.Dot(target.Anim.Part(PartId.Chest).position - chestBefore, dir));
+                    bend = Mathf.Max(bend, target.Pose.ReactLean.magnitude * Mathf.Rad2Deg);
+                }
+
+                Assert.Greater(moved, 0.12f, $"the chest is thrown with the blow ({moved * 100f:0} cm)");
+                Assert.Greater(bend, 12f, $"the upper body bends away ({bend:0}°)");
+                Assert.Greater(target.Knockback.magnitude + moved, 0f);
+            }
+            finally
+            {
+                Destroy(everyone);
+            }
+        }
+
+        /// <summary>Two units can't stand in the same place: placed together, they push apart.</summary>
+        [Test]
+        public void BodiesDontShareSpace()
+        {
+            var a = Build("Medium", Vector3.zero, 0f, 0);
+            var b = Build("Large", new Vector3(0.05f, 0f, 0.1f), 180f, 1);
+            var everyone = new[] { a, b };
+            try
+            {
+                Step(everyone, 60);
+                Vector3 between = a.Anim.Part(PartId.Pelvis).position - b.Anim.Part(PartId.Pelvis).position;
+                between.y = 0f;
+                float apart = a.BodyRadius + b.BodyRadius;
+                Assert.Greater(between.magnitude, 0.95f * apart, $"the hips are {between.magnitude * 100f:0} cm apart (bodies need {apart * 100f:0} cm)");
+                Vector3 moved = a.Root.position - Vector3.zero, movedB = b.Root.position - new Vector3(0.05f, 0f, 0.1f);
+                Assert.Greater(moved.magnitude, movedB.magnitude, "the lighter one gives way more");
             }
             finally
             {

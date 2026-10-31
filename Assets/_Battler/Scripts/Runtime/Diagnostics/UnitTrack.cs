@@ -29,6 +29,9 @@ namespace PhysicsBattler.Diagnostics
     /// </summary>
     internal sealed class UnitTrack
     {
+        /// <summary>The unit's description in meta.json, kept from while it lived.</summary>
+        public string metaFields;
+
         private readonly PlaytestRecorder recorder;
         private readonly TableWriter frames;
         private readonly TableWriter pose;

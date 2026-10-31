@@ -146,6 +146,15 @@ class Session:
             pose = read_gz_csv(os.path.join(path, u["pose"]))
             unit = Unit(u, u["label"], u["stem"], frames, pose)
             unit.events = [e for e in self.events if e.who == u["label"]]
+            if "legLength" not in u:
+                # Logs from before the recorder kept them: the spawn event has the same numbers.
+                spawn = next((e for e in unit.events if e.cat == "spawn"), None)
+                if spawn is not None:
+                    for key, pattern in (("legLength", r"leg length ([\d.]+) m"), ("restPelvisHeight", r"rest pelvis height ([\d.]+) m"),
+                                         ("mass", r"mass ([\d.]+) kg"), ("profile", r"profile (\w+)"), ("team", r"team (\d+)")):
+                        m = re.search(pattern, spawn.text)
+                        if m:
+                            u[key] = m.group(1) if key == "profile" else float(m.group(1))
             self.units.append(unit)
         self.world = read_gz_csv(os.path.join(path, "world.csv.gz"))
         self.dt = self.meta.get("fixedDeltaTime", 1 / 60)
@@ -760,7 +769,7 @@ def unit_numbers(session, unit):
     n["calmShare"] = float(calm.mean())
     n["steps"] = int(col(f, "steps").max()) if "steps" in f else 0
     n["shuffles"] = int(col(f, "shuffles").max()) if "shuffles" in f else 0
-    n["slide"] = float(max(col(f, "slideL").max(), col(f, "slideR").max()))
+    n["slide"] = float(max(col(f, "slideL")[calm].max(), col(f, "slideR")[calm].max())) if calm.any() else 0.0
     idle = f["move"].fillna("").astype(str) == "" if "move" in f else pd.Series(True, index=f.index)
     idle &= calm
     n["com"] = float(col(f, "comOffset")[idle].max())
@@ -849,6 +858,32 @@ def blow_summary(bl):
     return f"{len(bl)} ({landed} / {aimed})"
 
 
+def closest_pair(session):
+    """The closest any two living units' roots came to each other: (distance, label, label, t), or None."""
+    live = []
+    for u in session.units:
+        f = u.frames
+        if f.empty or "rootX" not in f:
+            continue
+        alive = f["alive"] > 0.5 if "alive" in f else pd.Series(True, index=f.index)
+        g = f[alive][["t", "rootX", "rootZ"]].copy()
+        g["t"] = (g["t"] / session.dt).round().astype(int)
+        g = g.drop_duplicates("t", keep="last")
+        live.append((u, g.set_index("t")))
+    best = None
+    for i in range(len(live)):
+        for j in range(i + 1, len(live)):
+            a, b = live[i][1], live[j][1]
+            both = a.join(b, how="inner", lsuffix="a", rsuffix="b")
+            if both.empty:
+                continue
+            d = np.hypot(both["rootXa"] - both["rootXb"], both["rootZa"] - both["rootZb"])
+            k = d.idxmin()
+            if best is None or d[k] < best[0]:
+                best = (float(d[k]), live[i][0].label, live[j][0].label, k * session.dt)
+    return best
+
+
 def hit_summary(n):
     h = n.get("hits", [])
     if not h and not n.get("taken"):
@@ -891,6 +926,12 @@ def write_report(session, out, args, films):
           f"{n['com95'] * 100:.1f} / {n['physCom95'] * 100:.1f} cm | {n['drop'] * 100:.1f} cm | {n['sway'] * 100:.1f} / {n['bob'] * 100:.1f} cm | "
           f"{pinned} cm | {blow_summary(n['blows'])} | {hit_summary(n)} | {len(fl) or 'none'} |")
     w("")
+    pair = closest_pair(session)
+    if pair is not None:
+        d, a, b, t = pair
+        too = " **(overlapping: bodies need about 45 cm between medium units)**" if d < 0.3 else ""
+        w(f"Closest two living units came: {d * 100:.0f} cm between {a} and {b} at {t:.2f} s{too}.")
+        w("")
     w(f"The stance checks (weight, hip drop, pinned error, shaking) leave out the {REACT_SECONDS:.0f} s after each hit taken, when the "
       f"struck body recoils on purpose, and the {FADE_SECONDS:.1f} s a cut-short blow takes to fade out.")
     w("")

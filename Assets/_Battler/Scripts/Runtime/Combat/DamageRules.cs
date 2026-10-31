@@ -33,7 +33,7 @@ namespace PhysicsBattler.Combat
 
         public Reaction Reaction;
 
-        /// <summary>The blow ends here (a heavy blocker or a shield); otherwise it carries on with <see cref="MomentumLeft"/>.</summary>
+        /// <summary>The blow ends here. Every body and shield stops it (the weapon never passes through a body); <see cref="MomentumLeft"/> is 0.</summary>
         public bool StopsSwing;
         public float MomentumLeft;
 
@@ -44,7 +44,7 @@ namespace PhysicsBattler.Combat
     /// The damage rules: a contact's weapon, speed, striking part, body part struck and the two
     /// units' sizes become damage, poise damage, an impulse and a reaction. Pure maths, tested on its
     /// own. Weight and size matter on their own: the same blow moves a light unit much further
-    /// than a heavy one, and a heavy unit stops a swing that bowls a light one aside.
+    /// than a heavy one.
     /// </summary>
     public static class DamageRules
     {
@@ -53,9 +53,6 @@ namespace PhysicsBattler.Combat
 
         /// <summary>Share of the attacker's mass in the weapon arm (upper arm, forearm, hand).</summary>
         public const float ArmMassShare = 0.058f;
-
-        /// <summary>Heavier than this share of the attacker, a struck unit stops the swing.</summary>
-        public const float StopMassShare = 0.6f;
 
         /// <summary>A blow this share of a unit's poise or more makes it flinch (its own blow is cancelled).</summary>
         public const float FlinchShare = 0.35f;
@@ -156,10 +153,12 @@ namespace PhysicsBattler.Combat
                 r.Impulse = dir * (momentum * Transfer(with));
                 r.PoiseDamage = r.Impulse.magnitude;
                 r.PartShare = PartShare(part);
-                r.StopsSwing = struckMass >= StopMassShare * attackerMass || with == StrikeWith.Tip && IsTorso(part);
+                // A weapon never passes through a body: the blow stops where it meets one. How
+                // much lighter the struck body is shows in how far it is thrown (knock-back).
+                r.StopsSwing = true;
             }
 
-            r.MomentumLeft = r.StopsSwing ? 0f : Mathf.Clamp(1f - struckMass / Mathf.Max(1f, attackerMass), 0.2f, 0.8f) * momentumFactor;
+            r.MomentumLeft = 0f;
 
             if (health - r.Damage <= 0f)
             {

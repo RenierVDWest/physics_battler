@@ -25,9 +25,10 @@ namespace PhysicsBattler.Units
 
     /// <summary>
     /// The combat half of a unit (milestone 3): its health and poise, the weapon sweep that finds
-    /// what a blow strikes, and the physical reactions to being struck. There are no hit
-    /// animations: a struck part goes loose and takes the impulse, its neighbours less, and the
-    /// pins ramp back; what the part doesn't take moves the whole unit (the feet step after it).
+    /// what a blow strikes, the reactions to being struck, and keeping bodies apart. There are no
+    /// hit animations: recoil springs throw the pose back from the blow, the struck part takes
+    /// some of the impulse physically while held loosely, and the rest knocks the whole unit back
+    /// (the feet step after it).
     /// </summary>
     public partial class UnitController
     {
@@ -61,12 +62,29 @@ namespace PhysicsBattler.Units
         private float momentumLeft = 1f;
         private Vector3 lastGrip, lastTip, lastStrike;
         private bool hasLastSweep;
-        private Vector3 pendingRebound;
         private System.Random combatRandom;
         private MoveState cutShort;
 
         /// <summary>Seconds a cut-short blow takes to leave the pose.</summary>
-        private const float CutShortFade = 0.3f;
+        private const float CutShortFade = 0.35f;
+
+        /// <summary>How fast a stopped blow plays backwards as it bounces off (share of its own speed).</summary>
+        private const float ReboundSpeed = 0.5f;
+
+        /// <summary>Move time advanced at the last step (a stopped blow is wound back to where it met the body).</summary>
+        private float lastAdvance;
+
+        // The recoil springs: hips pushed, upper body and head thrown back by a hit (Pose.React*).
+        private Vector3 reactShift, reactShiftV, reactLean, reactLeanV, reactHead, reactHeadV;
+
+        /// <summary>The recoil's swing back (Hz) and damping (1 = no overshoot): a little overshoot reads as weight.</summary>
+        private const float ReactFrequency = 1.6f, ReactDamping = 0.55f, HeadFrequency = 2.4f;
+
+        /// <summary>The most a hit throws the upper body (radians), the head, and the hips (share of the leg).</summary>
+        private const float MaxLean = 0.6f, MaxHeadSnap = 0.7f, MaxShift = 0.22f;
+
+        /// <summary>The kick's speed against the spring's own (a damped spring kicked at Kick·ω·x peaks near x).</summary>
+        private const float Kick = 1.8f;
 
         /// <summary>The fastest a struck part is sent on its own (m/s, medium size).</summary>
         private const float MaxPartSpeed = 5f;
@@ -116,6 +134,8 @@ namespace PhysicsBattler.Units
                 Knockback = Vector3.zero;
             }
 
+            Separate();
+            UpdateRecoil(dt);
             Poise = Mathf.Min(profile.maxPoise, Poise + profile.poiseRegen * dt);
             for (int r = 0; r < 5; r++)
             {
@@ -142,7 +162,7 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>Seconds a knock-back takes to die away (it slows exponentially).</summary>
-        private const float KnockbackDecay = 0.18f;
+        private const float KnockbackDecay = 0.3f;
 
         /// <summary>How firmly each region is held this step: the profile's pins, a hit's ramp, the blow's weapon arm.</summary>
         private void SetAuthority(MoveState move)
@@ -183,19 +203,133 @@ namespace PhysicsBattler.Units
             Authority.Set(region, kinematic ? AuthorityLevel.Kinematic : AuthorityLevel.Pinned, pin);
         }
 
-        /// <summary>After the authority layer: a rebound held over from a stopped swing goes into the (now dynamic) weapon hand.</summary>
-        private void CombatAfterAuthority()
+        // ---- Bodies keep apart -------------------------------------------------------------------
+
+        /// <summary>
+        /// Two bodies can't stand in the same place: where this unit's hips come closer to another
+        /// living unit's than their two body radii, it is pushed out by its share (the lighter one
+        /// moves more; the other unit does its share on its own step). The feet step after.
+        /// </summary>
+        private void Separate()
         {
-            if (pendingRebound.sqrMagnitude > 0f)
+            if (!initialized || !IsAlive)
             {
-                var hand = Rig.Part(PartId.HandR).body;
-                if (!hand.isKinematic)
+                return;
+            }
+
+            Vector3 me = Anim.Part(PartId.Pelvis).position;
+            float myRadius = BodyRadius;
+            foreach (var other in all)
+            {
+                if (other == this || !other.initialized || !other.IsAlive)
                 {
-                    hand.AddForce(pendingRebound, ForceMode.Impulse);
+                    continue;
                 }
 
-                pendingRebound = Vector3.zero;
+                Vector3 away = me - other.Anim.Part(PartId.Pelvis).position;
+                away.y = 0f;
+                float apart = myRadius + other.BodyRadius;
+                float d = away.magnitude;
+                if (d >= apart)
+                {
+                    continue;
+                }
+
+                Vector3 n = d > 1e-4f ? away / d : transform.rotation * Vector3.back;
+                float share = other.Body.Mass / Mathf.Max(1f, other.Body.Mass + Body.Mass);
+                Vector3 push = n * ((apart - d) * share);
+                transform.position += push;
+                me += push;
+                // Walking or being knocked into someone stops there.
+                float into = Vector3.Dot(Knockback, -n);
+                if (into > 0f)
+                {
+                    Knockback += n * into;
+                }
             }
+        }
+
+        /// <summary>How far the body takes up space around its hips (metres, horizontally).</summary>
+        public float BodyRadius => 0.58f * Body.ShoulderWidth;
+
+        // ---- Recoil ------------------------------------------------------------------------------
+
+        private void UpdateRecoil(float dt)
+        {
+            if (dt <= 0f)
+            {
+                return;
+            }
+
+            float leg = Body.LegLength;
+            Spring(ref reactShift, ref reactShiftV, ReactFrequency, ReactDamping, dt);
+            Spring(ref reactLean, ref reactLeanV, ReactFrequency, ReactDamping, dt);
+            Spring(ref reactHead, ref reactHeadV, HeadFrequency, ReactDamping, dt);
+            reactShift = Vector3.ClampMagnitude(reactShift, MaxShift * leg);
+            reactLean = Vector3.ClampMagnitude(reactLean, MaxLean);
+            reactHead = Vector3.ClampMagnitude(reactHead, MaxHeadSnap);
+            Pose.ReactShift = reactShift;
+            Pose.ReactLean = reactLean;
+            Pose.ReactHead = reactHead;
+        }
+
+        private static void Spring(ref Vector3 x, ref Vector3 v, float hz, float damping, float dt)
+        {
+            float w = 2f * Mathf.PI * hz;
+            v += (-w * w * x - 2f * damping * w * v) * dt;
+            x += v * dt;
+        }
+
+        /// <summary>
+        /// A blow's push on the pose: the hips go with it, the upper body turns about the hips the
+        /// way the blow levers it (bent back, twisted if it lands off centre), the head snaps if it
+        /// was struck. Heavier hits saturate rather than throw the body about.
+        /// </summary>
+        private void Recoil(Vector3 impulse, Vector3 point, PartId part, float scale)
+        {
+            float j = impulse.magnitude * scale;
+            if (j < 1e-4f)
+            {
+                return;
+            }
+
+            float leg = Body.LegLength;
+            float mass = Mathf.Max(1f, Body.Mass);
+            Vector3 dir = impulse / impulse.magnitude;
+            Vector3 flat = new Vector3(dir.x, 0f, dir.z);
+            float w = 2f * Mathf.PI * ReactFrequency;
+
+            // The hips: pushed with the blow, the knees giving a little.
+            float push = MaxShift * leg * Tanh(1.2f * j / (mass * Mathf.Sqrt(leg)));
+            reactShiftV += (flat.normalized * push + Vector3.down * (0.35f * push)) * (Kick * w);
+
+            // The upper body: turned about the hips by the blow's lever (bent away, twisted).
+            Vector3 lever = point - Anim.Part(PartId.Pelvis).position;
+            Vector3 axis = Vector3.Cross(lever, dir);
+            if (axis.sqrMagnitude > 1e-8f)
+            {
+                float leverage = Mathf.Clamp(lever.magnitude / leg, 0.2f, 1.4f);
+                float lean = MaxLean * Tanh(1.5f * j * leverage / (mass * leg));
+                reactLeanV += axis.normalized * (lean * Kick * w);
+            }
+
+            // The head: a blow to it snaps it back and round.
+            if (part == PartId.Head)
+            {
+                Vector3 headLever = point - Anim.Part(PartId.Head).position + Vector3.up * (0.1f * leg);
+                Vector3 headAxis = Vector3.Cross(headLever, dir);
+                if (headAxis.sqrMagnitude > 1e-8f)
+                {
+                    float snap = MaxHeadSnap * Tanh(6f * j / (mass * leg));
+                    reactHeadV += headAxis.normalized * (snap * Kick * 2f * Mathf.PI * HeadFrequency);
+                }
+            }
+        }
+
+        private static float Tanh(float x)
+        {
+            float e = Mathf.Exp(-2f * Mathf.Abs(x));
+            return Mathf.Sign(x) * (1f - e) / (1f + e);
         }
 
         // ---- The sweep ---------------------------------------------------------------------------
@@ -208,10 +342,9 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>
-        /// The weapon as PhysX has it now, swept from where it was last step: everything it passes
-        /// through during the blow's active window is struck (any unit: friendly fire counts), in
-        /// the order the blade reaches them. Each unit once per blow. A heavy body or a shield stops
-        /// the swing; a light one is bowled through and the rest of the swing goes on with less.
+        /// The weapon as PhysX has it now, swept from where it was last step, from the start of the
+        /// active window to the end of the follow-through: the first body part or shield it meets
+        /// is struck (any unit: friendly fire counts) and stops the blow there.
         /// </summary>
         private void Sweep(MoveState move, float dt)
         {
@@ -231,12 +364,16 @@ namespace PhysicsBattler.Units
             lastTip = tip;
             lastStrike = strike;
             hasLastSweep = true;
-            if (!had || !DealsHits || !move.Active || momentumLeft <= 0f)
+            // From the start of the active window to the end of the follow-through: the weapon can't
+            // pass through a body on the way out either.
+            bool live = move.Progress >= move.Move.activeWindow.x && move.Blend > 0.3f;
+            if (!had || !DealsHits || !live || momentumLeft <= 0f)
             {
                 return;
             }
 
-            float speed = Vector3.Distance(strike, lastS) / dt;
+            // (Capped: a weapon arm switching from kinematic can jump in one step.)
+            float speed = Mathf.Min(Vector3.Distance(strike, lastS) / dt, 16f);
             if (speed < weapon.minHitSpeed)
             {
                 return;
@@ -292,11 +429,13 @@ namespace PhysicsBattler.Units
                     if (report.Result.StopsSwing)
                     {
                         momentumLeft = 0f;
+                        // Back to where the weapon met the body: the start of this stretch of the sweep.
+                        move.Time = Mathf.Max(0f, move.Time - lastAdvance * (1f - (i - 1) / (float)samples));
                         StopSwing(move, report);
                         return;
                     }
 
-                    momentumLeft = report.Result.MomentumLeft;
+                    momentumLeft = report.Result.MomentumLeft;   // (0: every hit stops the blow)
                 }
             }
         }
@@ -332,6 +471,8 @@ namespace PhysicsBattler.Units
             float stop = Mathf.Clamp(move.Move.hitStop * (0.6f + result.Impulse.magnitude / 40f), 0.04f, 0.1f);
             HitStop = Mathf.Max(HitStop, stop);
             struck.HitStop = Mathf.Max(struck.HitStop, stop);
+            // The attacker feels it too: the blow's push comes back up the weapon arm.
+            Recoil(-result.Impulse, MainWeapon != null ? MainWeapon.transform.position : point, PartId.HandR, shield != null ? 0.35f : 0.2f);
             Hit?.Invoke(report);
             return report;
         }
@@ -339,9 +480,10 @@ namespace PhysicsBattler.Units
         /// <summary>The swing met something it can't go through: the blow ends and the weapon arm recoils.</summary>
         private void StopSwing(MoveState move, HitReport report)
         {
+            // The weapon stays where it met the body for the hit stop, then bounces back along its
+            // path as the blow fades (the weapon arm is posed through it: nothing goes loose).
+            move.Rewind = true;
             CancelMove(move, "stopped by " + report.Struck.name + (report.Shield ? "'s shield" : ""));
-            StartRecovery(BodyRegion.ArmR, 0.05f, 0.45f);
-            pendingRebound = -report.Result.Impulse * 0.35f;
         }
 
         // ---- Being struck ------------------------------------------------------------------------
@@ -353,42 +495,62 @@ namespace PhysicsBattler.Units
             Poise -= r.PoiseDamage;
             LastReaction = r.Reaction;
 
-            // The struck part goes loose and takes its share; the regions joined to it follow, less.
+            // The struck part gives (held loosely for a moment, the pins ramp back), the regions
+            // joined to it less. The pose carries the visible reaction (Recoil below), so nothing
+            // goes fully limp: a loose arm would swing its weapon about.
             var region = AuthorityController.RegionOf(hit.Part);
-            float hold = r.Reaction == Reaction.Stagger ? 0.9f : r.Reaction == Reaction.Flinch ? 0.55f : 0.35f;
-            StartRecovery(region, 0.03f, hold);
+            bool hard = r.Reaction == Reaction.Stagger || r.Reaction == Reaction.Flinch;
+            float hold = r.Reaction == Reaction.Stagger ? 0.9f : r.Reaction == Reaction.Flinch ? 0.6f : 0.4f;
+            StartRecovery(region, hard ? 0.2f : 0.3f, hold);
             foreach (var neighbour in Neighbours(region))
             {
-                StartRecovery(neighbour, r.Reaction == Reaction.Stagger ? 0.15f : 0.4f, 0.7f * hold);
+                StartRecovery(neighbour, hard ? 0.45f : 0.65f, 0.7f * hold);
             }
 
-            var body = Rig.Part(hit.Part).body;
-            float partShare = r.PartShare;
-            bool partTakesIt = region != BodyRegion.Legs && body != null;
-            if (partTakesIt && r.Impulse.sqrMagnitude > 1e-8f)
+            // The impulse goes in at the part and the part it hangs from, each taking what it can
+            // without flying off on its own (the pins pull them back quickly); the rest moves the
+            // whole unit: that is what reads as weight.
+            Vector3 left = r.Impulse * r.PartShare;
+            float taken = 0f;
+            if (region != BodyRegion.Legs && r.Impulse.sqrMagnitude > 1e-8f)
             {
-                // A part is joined to the rest of the body: it can't fly off on its own. Past a
-                // few metres a second the rest of the blow moves the whole unit.
-                float most = body.mass * MaxPartSpeed * SizeSpeed();
-                partShare = Mathf.Min(partShare, most / r.Impulse.magnitude);
-                r.PartShare = partShare;
-                hit.Result = r;
-
-                // The region was just made dynamic for the next step; if it is kinematic this step
-                // (a weapon arm mid-blow), the impulse is applied as a velocity change instead.
-                if (body.isKinematic)
+                var id = hit.Part;
+                float cap = MaxPartSpeed * SizeSpeed();
+                for (int link = 0; link < 2 && left.sqrMagnitude > 1e-8f; link++)
                 {
-                    body.isKinematic = false;
+                    var body = Rig.Part(id).body;
+                    if (body != null)
+                    {
+                        Vector3 here = Vector3.ClampMagnitude(left, body.mass * cap);
+                        if (body.isKinematic)
+                        {
+                            body.isKinematic = false;   // (the authority layer sets it again next step)
+                        }
+
+                        body.AddForceAtPosition(here, link == 0 ? hit.Point : body.worldCenterOfMass, ForceMode.Impulse);
+                        taken += here.magnitude;
+                        left -= here;
+                    }
+
+                    if (id == PartId.Pelvis || !PartInfo.HasParent(id))
+                    {
+                        break;
+                    }
+
+                    id = PartInfo.Parent(id);
+                    cap *= 0.5f;   // the part it hangs from, less on its own
                 }
-
-                body.AddForceAtPosition(r.Impulse * partShare, hit.Point, ForceMode.Impulse);
-            }
-            else
-            {
-                partShare = 0f;   // the legs carry the body: the whole blow moves the unit
             }
 
-            Vector3 push = r.Impulse * (1f - partShare) / Mathf.Max(1f, Body.Mass);
+            float impulse = r.Impulse.magnitude;
+            r.PartShare = impulse > 1e-4f ? taken / impulse : 0f;
+            hit.Result = r;
+
+            // The pose throws the body back from the blow; harder reactions more.
+            float react = r.Reaction == Reaction.Stagger ? 1.6f : r.Reaction == Reaction.Flinch ? 1.25f : 1f;
+            Recoil(r.Impulse, hit.Point, hit.Part, react);
+
+            Vector3 push = (r.Impulse - r.Impulse.normalized * taken) / Mathf.Max(1f, Body.Mass);
             push.y = 0f;
             if (r.Reaction == Reaction.Stagger)
             {
@@ -546,6 +708,11 @@ namespace PhysicsBattler.Units
             {
                 cutShort = null;
                 return;
+            }
+
+            if (cutShort.Rewind)
+            {
+                cutShort.Time = Mathf.Max(0f, cutShort.Time - dt * ReboundSpeed);
             }
 
             cutShort.Fade -= dt / CutShortFade;

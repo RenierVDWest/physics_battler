@@ -650,9 +650,9 @@ namespace PhysicsBattler.Units
 
             if (drive)
             {
-                SetAuthority(move);
+                // A blow fading out after being cut short is still posed onto the weapon arm.
+                SetAuthority(move ?? cutShort);
                 Authority.Apply(dt);
-                CombatAfterAuthority();
             }
 
             if (move != null && move.Done && CurrentMove == move)
@@ -690,6 +690,7 @@ namespace PhysicsBattler.Units
         private void AdvanceMove(MoveState move, float dt)
         {
             move.Time += dt;
+            lastAdvance = dt;
             if (!NeedsLungeStep(move))
             {
                 return;

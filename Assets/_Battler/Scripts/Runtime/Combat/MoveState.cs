@@ -72,6 +72,9 @@ namespace PhysicsBattler.Combat
 
         /// <summary>1 while the blow plays; a cut-short blow fades to 0 from where it stopped (milestone 3).</summary>
         public float Fade = 1f;
+
+        /// <summary>A blow stopped by what it struck bounces back: it plays backwards as it fades.</summary>
+        public bool Rewind;
         public float Body => Move.BodyAt(T) / (Mathf.Abs(BodyPeak) > 1e-4f ? BodyPeak : 1f);
         public bool Active => Progress >= Move.activeWindow.x && Progress <= Move.activeWindow.y;
 

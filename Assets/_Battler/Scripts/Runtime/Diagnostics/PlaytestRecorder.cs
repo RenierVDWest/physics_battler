@@ -339,7 +339,7 @@ namespace PhysicsBattler.Diagnostics
             string what = hit.Shield
                 ? $"blocked by {hit.Struck.name}'s shield ({r.PoiseDamage:0} poise)"
                 : $"{r.Damage:0.0} damage, {r.PoiseDamage:0} poise, {r.Reaction.ToString().ToLowerInvariant()}";
-            string swing = r.StopsSwing ? "the swing stopped" : $"bowled through ({r.MomentumLeft * 100f:0}% of the swing left)";
+            string swing = r.StopsSwing ? "the swing stopped" : $"bowled through ({r.MomentumLeft * 100f:0}% of the swing left)";   // (every hit stops it now)
             string line = $"{hit.Move.Move.name.Replace("MD_", "")} struck {hit.Struck.name}'s {hit.Part} at {hit.Speed:0.0} m/s: {what}; "
                           + $"impulse {r.Impulse.magnitude:0.0} N·s ({r.PartShare * 100f:0}% into the part); {swing}; {hit.Kind}";
             var track = TrackOf(hit.Attacker);
@@ -552,6 +552,16 @@ namespace PhysicsBattler.Diagnostics
 
         private void Flush()
         {
+            // A unit described in meta.json only once it is set up (it announces itself before).
+            foreach (var track in tracks)
+            {
+                if (track.metaFields == null && track.unit != null && track.unit.IsInitialized)
+                {
+                    WriteMeta(false);
+                    break;
+                }
+            }
+
             // Each file on its own: one failing must not stop the others being flushed.
             try { events.Flush(); } catch (Exception) { /* next time */ }
             try { world?.Flush(); } catch (Exception) { /* next time */ }
@@ -734,10 +744,13 @@ namespace PhysicsBattler.Diagnostics
                 json.Append($"\"spawnTime\": {Num(t.spawnTime)}, \"endTime\": {(t.endTime >= 0f ? Num(t.endTime) : "null")}");
                 if (unit != null && unit.IsInitialized)
                 {
-                    json.Append($", \"team\": {unit.Team}, \"mass\": {Num(unit.Rig.TotalMass())}, \"scale\": {Num(unit.Scale)}, ");
-                    json.Append($"\"restPelvisHeight\": {Num(unit.RestPelvisHeight)}, \"legLength\": {Num(unit.Body.LegLength)}, ");
-                    json.Append($"\"profile\": \"{Escape(unit.Profile != null ? unit.Profile.name : "")}\"");
+                    // Kept: when Play stops the units are gone before the last write.
+                    t.metaFields = $", \"team\": {unit.Team}, \"mass\": {Num(unit.Rig.TotalMass())}, \"scale\": {Num(unit.Scale)}, "
+                                   + $"\"restPelvisHeight\": {Num(unit.RestPelvisHeight)}, \"legLength\": {Num(unit.Body.LegLength)}, "
+                                   + $"\"profile\": \"{Escape(unit.Profile != null ? unit.Profile.name : "")}\"";
                 }
+
+                json.Append(t.metaFields ?? "");
 
                 json.Append(i < all.Count - 1 ? "},\n" : "}\n");
             }
