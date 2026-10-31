@@ -204,6 +204,7 @@ namespace PhysicsBattler.Units
             Authority.Set(BodyRegion.ArmR, AuthorityLevel.Pinned, profile.armPin);
             InitializeBalance();
             InitializeRhythm(seed);
+            InitializeGait();
 
             facingYaw = transform.eulerAngles.y;
             Stance.GroundY = transform.position.y;
@@ -364,6 +365,7 @@ namespace PhysicsBattler.Units
 
             DropCutShort();
             StopRhythm();
+            StopGait();
             ResetBalance();
             Place(position, yaw);
             Knockback = Vector3.zero;
@@ -654,6 +656,7 @@ namespace PhysicsBattler.Units
             }
 
             CombatBeforePose(dt);
+            UpdateGait(poseDt);
             UpdateRhythm(poseDt);
 
             if (move != null)

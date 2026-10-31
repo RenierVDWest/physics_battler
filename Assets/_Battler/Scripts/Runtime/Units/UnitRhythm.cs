@@ -103,7 +103,9 @@ namespace PhysicsBattler.Units
                 heldDrift += moved.magnitude;
             }
 
-            bool free = FreeToPosture() && !(postureHolds && (heldDrift > 0.05f * Body.LegLength || Knockback.magnitude > 0.05f));
+            // (Walking: the walk has the feet, so no new postures, and one under way gives way.)
+            bool walking = Gait != null && Gait.Weight >= 0.3f;
+            bool free = FreeToPosture() && !walking && !(postureHolds && (heldDrift > 0.05f * Body.LegLength || Knockback.magnitude > 0.05f));
             Rhythm.HasOpponent = Opponent != null && Opponent.IsAlive && !Opponent.IsDown;
             Rhythm.Update(dt, free && RhythmOn);
 
@@ -123,7 +125,9 @@ namespace PhysicsBattler.Units
 
                 if (Rhythm.TravelDelta.sqrMagnitude > 0f)
                 {
-                    transform.position += transform.rotation * (Rhythm.TravelDelta * Body.LegLength);
+                    Vector3 travel = transform.rotation * (Rhythm.TravelDelta * Body.LegLength);
+                    transform.position += travel;
+                    rhythmMoved += travel;
                 }
 
                 if (Mathf.Abs(Rhythm.Circle) > 1e-4f && Opponent != null && CircleOpponent && !postureHolds)
@@ -138,7 +142,9 @@ namespace PhysicsBattler.Units
                     }
 
                     Circling = circle;
-                    transform.position += transform.right * (circle * Body.SizeFactor * dt);
+                    Vector3 sideways = transform.right * (circle * Body.SizeFactor * dt);
+                    transform.position += sideways;
+                    rhythmMoved += sideways;
                 }
             }
 
@@ -146,7 +152,17 @@ namespace PhysicsBattler.Units
             rhythmRoot = transform.position;
 
             // (A real blow takes over from the rhythm as it blends in: the pose pipeline weighs it.)
-            Pose.Rhythm = RhythmOn ? Rhythm.Sample(Body.LegLength, Body.SizeFactor) : default;
+            // Walking, the walk's body motion takes over from the base loop's (the guards stay).
+            float walk = Gait != null ? Gait.Weight : 0f;
+            var sample = RhythmOn ? Rhythm.Sample(Body.LegLength, Body.SizeFactor, 1f - walk) : default;
+            if (walk > 0f && RhythmOn)
+            {
+                Vector3 travel = transform.InverseTransformDirection(Gait.Velocity);
+                travel.y = 0f;
+                sample += Gait.Sample(Body.LegLength, Body.SizeFactor, Style, Stance.LeadLeft, travel.sqrMagnitude > 1e-6f ? travel.normalized : Vector3.forward);
+            }
+
+            Pose.Rhythm = sample;
             Pose.Feint = feint;
         }
 
@@ -248,7 +264,7 @@ namespace PhysicsBattler.Units
         {
             if (postureHolds && CurrentMove == null)
             {
-                Stance.Hold = false;
+                Stance.Hold = gaitHolds;   // (a walk keeps its own hold)
             }
 
             postureHolds = false;

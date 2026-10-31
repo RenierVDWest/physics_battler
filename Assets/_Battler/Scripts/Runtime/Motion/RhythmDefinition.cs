@@ -199,6 +199,22 @@ namespace PhysicsBattler.Motion
         public static readonly Vector3 BoxingMainGuard = new Vector3(-0.08f, 0.48f, -0.04f);
         public static readonly Vector3 BoxingMainGuardTurn = new Vector3(-67f, 0f, -9f);
 
+        // The medium and small units' guards, where their captured idles hold the hands (against
+        // the shoulder, in arm lengths): the shield out toward the opponent and the sword hand up in
+        // front of the chest; the stick fighter's hands low, the alive hand out in front.
+        public static readonly Vector3 MediumMainGuard = new Vector3(0.084f, 0.257f, -0.102f);
+        public static readonly Vector3 MediumOffGuard = new Vector3(0.011f, 0.039f, 0.425f);
+        public static readonly Vector3 SmallMainGuard = new Vector3(0.166f, -0.053f, -0.212f);
+        public static readonly Vector3 SmallOffGuard = new Vector3(-0.595f, -0.4f, 0.29f);
+        public static readonly Vector3 SmallMainGuardTurn = new Vector3(21f, 15f, 0f);   // (the stick held low, pointing forward and up)
+        public static readonly Vector3 OldSmallMainGuardTurn = new Vector3(-15f, 0f, 0f);
+
+        // Before the captures (setup 16).
+        public static readonly Vector3 OldMediumMainGuard = new Vector3(0.04f, -0.1f, -0.12f);
+        public static readonly Vector3 OldMediumOffGuard = new Vector3(0.02f, 0.02f, 0.14f);
+        public static readonly Vector3 OldSmallMainGuard = new Vector3(-0.02f, 0.05f, 0.04f);
+        public static readonly Vector3 OldSmallOffGuard = new Vector3(-0.06f, 0.02f, 0.3f);
+
         // Before the capture (setup 15).
         public static readonly Vector3 OldBoxingOffGuard = new Vector3(-0.1f, 0.3f, 0.24f);
         public static readonly Vector3 OldBoxingMainGuard = new Vector3(0.04f, 0.1f, -0.06f);
@@ -212,7 +228,7 @@ namespace PhysicsBattler.Motion
             hipSway = 0.03f;
             swayRate = 0.45f;
             headSway = 6f;
-            weaponLoop = WeaponLoop.Pump;
+            weaponLoop = WeaponLoop.None;   // (the club rides the captured rear hand)
             loopSize = 0.035f;
             loopRate = 0.9f;
             loopTurn = 4f;
@@ -282,6 +298,7 @@ namespace PhysicsBattler.Motion
         /// </summary>
         private void ShieldAndSword()
         {
+            clip = RhythmClips.ShieldAndSword();
             bounceRate = 0f;
             bounceHeight = 0f;
             hipSway = 0.02f;
@@ -291,9 +308,9 @@ namespace PhysicsBattler.Motion
             loopSize = 0.02f;
             loopRate = 0.45f;
             loopTurn = 6f;
-            mainGuard = new Vector3(0.04f, -0.1f, -0.12f);
+            mainGuard = MediumMainGuard;
             mainGuardTurn = new Vector3(22f, 18f, 0f);
-            offGuard = new Vector3(0.02f, 0.02f, 0.14f);
+            offGuard = MediumOffGuard;
             offGuardTurn = new Vector3(0f, -12f, 0f);
             circling = 0.16f;
             circleFlip = 4f;
@@ -354,6 +371,7 @@ namespace PhysicsBattler.Motion
         /// </summary>
         private void Eskrima()
         {
+            clip = RhythmClips.Eskrima();
             bounceRate = 2.4f;
             bounceHeight = 0.02f;
             hipSway = 0.03f;
@@ -363,9 +381,9 @@ namespace PhysicsBattler.Motion
             loopSize = 0.07f;
             loopRate = 0.9f;
             loopTurn = 22f;
-            mainGuard = new Vector3(-0.02f, 0.05f, 0.04f);
-            mainGuardTurn = new Vector3(-15f, 0f, 0f);
-            offGuard = new Vector3(-0.06f, 0.02f, 0.3f);
+            mainGuard = SmallMainGuard;
+            mainGuardTurn = SmallMainGuardTurn;
+            offGuard = SmallOffGuard;
             circling = 0.12f;
             circleFlip = 2.5f;
             gap = new Vector2(0.6f, 1.4f);
@@ -374,7 +392,7 @@ namespace PhysicsBattler.Motion
             tiredGuardDrop = 0.08f;
 
             // Fast fan flicks of the stick, side to side from the wrist, driven by the hips.
-            var abanico = Posture("AbanicoFlurry", PostureKind.Flourish, 0.65f, true, "TriangleStep", 1.2f);
+            var abanico = Posture("AbanicoFlurry", PostureKind.Flourish, 0.7f, true, "TriangleStep", 1.2f);
             abanico.keys = new[]
             {
                 new PostureKey { at = 0.15f, turn = 6f, main = new Vector3(0.12f, 0.08f, 0.06f), mainTurn = new Vector3(10f, 0f, -55f) },
@@ -394,7 +412,7 @@ namespace PhysicsBattler.Motion
             triangle.openings = new[] { Open(0.35f, 0.6f, AimParts.Knees) };
 
             // One big circle of the stick overhead and round: a flourish, and a wind-up in disguise.
-            var redonda = Posture("RedondaTwirl", PostureKind.Flourish, 0.85f, true, "TriangleStep", 0.9f);
+            var redonda = Posture("RedondaTwirl", PostureKind.Flourish, 1f, true, "TriangleStep", 0.9f);
             redonda.keys = new[]
             {
                 new PostureKey { at = 0.25f, turn = 6f, main = new Vector3(0.18f, 0.24f, 0.04f), mainTurn = new Vector3(-25f, 0f, -18f) },

@@ -58,6 +58,39 @@ namespace PhysicsBattler.Editor.Setup
         /// </summary>
         public static void Migrate(int from)
         {
+            // Setup 17: the medium and small units stand as their captured idles do (unless their
+            // stance was already changed), and every body walks with its captured walk.
+            if (from >= 9 && from < 17)
+            {
+                foreach (string body in new[] { "Small", "Medium", "Large" })
+                {
+                    var style = AssetDatabase.LoadAssetAtPath<CombatStyle>(BattlerPaths.Style(body));
+                    if (style == null)
+                    {
+                        continue;
+                    }
+
+                    if (body == "Medium" && CombatStyle.HasOldMediumStance(style))
+                    {
+                        CombatStyle.ApplyMediumStance(style);
+                        Debug.Log($"[Battler Setup] {BattlerPaths.Style(body)}: the stance from the captured idle.");
+                    }
+                    else if (body == "Small" && CombatStyle.HasOldSmallStance(style))
+                    {
+                        CombatStyle.ApplySmallStance(style);
+                        Debug.Log($"[Battler Setup] {BattlerPaths.Style(body)}: the stance from the captured idle.");
+                    }
+
+                    if (style.walk == null || style.walk.IsEmpty)
+                    {
+                        style.walk = CombatStyle.CreateFor(body).walk;
+                        Debug.Log($"[Battler Setup] {BattlerPaths.Style(body)}: walks with {style.walk.source}.");
+                    }
+
+                    EditorUtility.SetDirty(style);
+                }
+            }
+
             // Setup 16: the large unit stands as the captured boxing idle it now plays does (unless
             // its stance was already changed).
             if (from >= 9 && from < 16)

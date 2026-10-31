@@ -25,8 +25,8 @@ over it. A **mood** changes the mix over the fight.
 | Unit | Style | Base | Postures |
 | --- | --- | --- | --- |
 | Large | Boxing (the club for a right hand) | A captured boxing idle (Boxing.fbx): bladed and long, rocking forward and down onto the lead leg and back up, the body turning with it, the lead fist up in front of the shoulder, the club laid back over the right shoulder | Club feint (the real swing's wind-up, a third of the way, and back), jab feint (lead hand half out with a small step in), bob and weave, shift (the rear foot steps through to lead and back) |
-| Medium | Round-shield and sword | Shield out at arm's length, sword drawn back by the hip, point forward and circling a little, circling to the side | High feint (the cut's wind-up over the shield), shield press (with a half step), guard change (sword overhead, then on the shoulder; shield down, then up), peek (the shield dips) |
-| Small | Eskrima (the club as a single stick) | Quick light bounce, the stick in a figure-eight from the wrist, the alive hand out in front, restless | Abanico flurry (fan flicks), triangle step (off the line to a new angle), redonda twirl (a circle of the stick overhead), bait retreat |
+| Medium | Round-shield and sword | A captured idle (Medium_Idle.fbx): side-on, the feet nearly in line, sitting low and back, the shield arm out toward the opponent, the sword hand in front of the chest, the point circling a little, circling to the side | High feint (the cut's wind-up over the shield), shield press (with a half step), guard change (sword overhead, then on the shoulder; shield down, then up), peek (the shield dips) |
+| Small | Eskrima (the club as a single stick) | A captured idle (Small_Idle.fbx): side-on and low, the hands low, the alive hand out in front, the stick held low pointing forward and making a figure-eight from the wrist | Abanico flurry (fan flicks), triangle step (off the line to a new angle), redonda twirl (a circle of the stick overhead), bait retreat |
 
 - **Patterns, not dice.** Each posture has a usual follow-up, which is made likelier after it. The
   same posture never plays twice in a row. Before a blow, the style may play a **lead-in** first;
@@ -43,12 +43,22 @@ over it. A **mood** changes the mix over the fight.
 - **H** is the rhythm gallery: each style's base, then every posture slowed and at full speed.
   The panel can make everyone tired, to see the difference.
 - **Captured loops.** A rhythm's base can be a loop from motion capture instead of the made-up
-  bounce and sway (its `clip`): the boxer's is a Mixamo boxing idle. `Tools/Mocap/mixamo_rhythm.py`
+  bounce and sway (its `clip`): every body's is a Mixamo idle (Boxing, Medium_Idle, Small_Idle; the
+  FBX files are in Tools/Mocap). `Tools/Mocap/mixamo_rhythm.py`
   reads a looping Mixamo FBX (binary, skeleton animation) and writes it as a clip: the hips' rock and
   bounce, the pelvis and chest turns, the lean, the head, and both hands, as offsets from the loop's
   mean pose. It also prints the stance (feet apart, how low, how turned) and where the hands sit, which
-  belong in the combat style and the rhythm's guards. `Tools/Mocap/compare.py` renders the capture and
-  the unit side by side (a video) to check the result.
+  belong in the combat style and the rhythm's guards (with `--rig`, a `rhythms` CSV of the unit, it works out
+  how far to move each hand). `Tools/Mocap/compare.py` renders the capture and the unit side by side (a video).
+- **Captured walks.** Each body walks with a Mixamo walk (Big_Walking, Med_Walking, Small_Walking: the combat
+  style's `walk`). When the game walks a unit, the walk fades in with the speed: the feet step to the capture's
+  cadence, lift and width (each lands about half a stance ahead of where the hips will be, never across the other
+  foot; a foot left behind or going the wrong way after a sharp turn steps again at once), the hips go along with
+  the root, and the body takes the walk's lean, crouch, turns, head and arm swing round the guards. The cadence
+  slows with a slower walk (the steps shorten), but never so much the feet can't keep under the hips. Standing
+  still, the walk fades and the stance takes the feet home. A blow, a block or a knock-back stops it.
+  `mixamo_rhythm.py --gait` reads a walk (with its root motion), `Tools/Mocap/walkview.py` shows a unit walking
+  next to it. A side-on stance (the medium and small ones) squares up into a blow, so the swing clears the body.
 
 ### Milestone 4: stumbles, ragdolls, get-ups
 
@@ -194,7 +204,8 @@ and the real units spawn on the markers.
    rebuilds the ready-made moves as big swings (moves still on the old hand-drawn path) and adds the sword cleave and
    the club's rising blow to the weapons. Version 15 adds the Fight Rhythms (Data/Rhythms) and points each body's
    combat style at its own. Version 16 gives the boxer the captured boxing idle: the large style's stance and
-   `RD_Boxing`'s clip and guards (unless you changed them). Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
+   `RD_Boxing`'s clip and guards (unless you changed them). Version 17 does the same for the medium and small
+   units' captured idles, and gives every combat style its captured walk. Run setup again any time from **Physics Battler > Setup > Run Project Setup**.
 3. Press Play. Commit the `.meta` files Unity creates for the new scripts and assets.
 
 ## Battle scene controls
@@ -263,11 +274,15 @@ Milestone 4:
 16. **Get-ups.** Every unit down gets up after a second or two: face down by pushing up onto hands
     and knees and one knee, face up by sitting up and pushing into a crouch. It should start from
     how it lay without a pop, and end in its stance. Then it walks to the middle of a free tile.
-17. **Fight Rhythms.** Press **H**: the large unit rocks in a bladed boxing stance (the captured idle), fists up,
-    the bare hand's wrist straight, and feints like a boxer, the medium one
+17. **Fight Rhythms.** Press **H**: each unit plays its captured idle (the large one rocks in a bladed boxing
+    stance, fists up, the bare hand's wrist straight; the medium one stands side-on behind its shield; the small
+    one low, hands low) and its postures: the large one feints like a boxer, the medium one
     circles behind its shield, the small one fans its stick and steps to angles. In a fight, the
     boxer feints just before most of its swings. Tick "Everyone tired" in the panel: the postures
     thin out and the guards drop.
+18. **Captured walks.** Watch units walk in to fight and back onto a tile after getting up: the big one lumbers
+    with its arms swinging round the guard, the medium one walks upright, the small one sneaks low. The feet
+    shouldn't slide or cross, and when they stop they settle back into their stance.
 
 If something looks off, press **M** at the moment and mention the mark number.
 
@@ -407,6 +422,8 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll balance [/tmp/getups]  # every b
 python3 ../Playtest/getups.py /tmp/getups                              # the get-ups drawn from the side and front
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll rhythms /tmp/rhythms   # every style's base and posture: clearance, pops
 python3 ../Playtest/rhythms.py /tmp/rhythms                            # them drawn through time, side and front
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll walks /tmp/walks       # each body walking (forward, back, aside, round), CSVs for walkview.py
+AIM_STYLES=1 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim       # the aim matrix with each body's own stance
 TEST_ONLY=Balance dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll      # only the tests whose name contains this
 ```
 

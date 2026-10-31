@@ -38,6 +38,7 @@ def main():
     ap.add_argument('--still')
     ap.add_argument('--fps', type=float, default=20)
     ap.add_argument('--loops', type=float, default=2)
+    ap.add_argument('--label', default='the unit, Fight Rhythm base')
     args = ap.parse_args()
 
     sk = Skeleton(args.fbx)
@@ -119,7 +120,7 @@ def main():
             ax.scatter([hd[0]], [hd[2]], [hd[1]], s=180, color='#e0b080', edgecolor='k')
 
         frame(a1, fp, FBX_BONES, f'capture ({os.path.basename(args.fbx)})', fhead)
-        frame(a2, up, UNIT_BONES, 'the large unit, Fight Rhythm base', club)
+        frame(a2, up, UNIT_BONES, args.label, club)
         fig.savefig(os.path.join(tmp, f'f{i:04d}.png'), dpi=80)
         if args.still and i == 0:
             pass

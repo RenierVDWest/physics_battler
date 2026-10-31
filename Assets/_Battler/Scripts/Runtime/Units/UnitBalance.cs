@@ -204,6 +204,7 @@ namespace PhysicsBattler.Units
 
             bool fresh = State != UnitState.Stumbling;
             StopRhythm();
+            StopGait();
             StumbleVelocity = velocity;
             Knockback = Vector3.zero;
             if (CurrentMove != null)
@@ -295,6 +296,7 @@ namespace PhysicsBattler.Units
 
             DropCutShort();
             StopRhythm();
+            StopGait();
             Pose.Move = null;
             DropBlock();
             Knockback = Vector3.zero;

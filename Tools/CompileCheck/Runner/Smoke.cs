@@ -59,10 +59,7 @@ internal static class Smoke
                 profile.body = body;
                 if (!styles.TryGetValue(body, out var style))
                 {
-                    style = CombatStyle.CreateDefault();
-                    style.name = "CS_" + body;
-                    if (body == "Small") { style.swayAmplitude = 0.05f; style.bobAmplitude = 0.025f; style.shuffleInterval = 1.4f; }
-                    if (body == "Large") { style.swayAmplitude = 0.018f; style.stanceWidth = 0.4f; style.shuffleInterval = 5f; }
+                    style = CombatStyle.CreateFor(body);   // (as the setup makes them: the captured idles and walks)
                     styles[body] = style;
                 }
 

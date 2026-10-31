@@ -35,7 +35,15 @@ namespace PhysicsBattler.Editor.Setup
         /// </summary>
         public static void Migrate(int from)
         {
-            if (from < 15 || from >= 16)
+            if (from >= 15 && from < 17)
+            {
+                MigrateIdle(RhythmStyle.ShieldAndSword, RhythmDefinition.OldMediumMainGuard, RhythmDefinition.MediumMainGuard,
+                    RhythmDefinition.OldMediumOffGuard, RhythmDefinition.MediumOffGuard, null, null);
+                MigrateIdle(RhythmStyle.Eskrima, RhythmDefinition.OldSmallMainGuard, RhythmDefinition.SmallMainGuard,
+                    RhythmDefinition.OldSmallOffGuard, RhythmDefinition.SmallOffGuard, RhythmDefinition.OldSmallMainGuardTurn, RhythmDefinition.SmallMainGuardTurn);
+            }
+
+            if (from < 15 || from >= 17)
             {
                 return;
             }
@@ -65,7 +73,65 @@ namespace PhysicsBattler.Editor.Setup
                 boxing.mainGuardTurn = RhythmDefinition.BoxingMainGuardTurn;
             }
 
+            // (The club rides the captured rear hand: no pump of its own.)
+            if (!boxing.clip.IsEmpty && boxing.weaponLoop == WeaponLoop.Pump)
+            {
+                boxing.weaponLoop = WeaponLoop.None;
+            }
+
             EditorUtility.SetDirty(boxing);
+        }
+
+        /// <summary>Setup 17: the medium and small rhythms' base loops are their captured idles, and the hands go where they hold them (unless changed).</summary>
+        private static void MigrateIdle(RhythmStyle style, Vector3 oldMain, Vector3 main, Vector3 oldOff, Vector3 off, Vector3? oldTurn, Vector3? turn)
+        {
+            string path = BattlerPaths.Rhythm(style.ToString());
+            var rhythm = AssetDatabase.LoadAssetAtPath<RhythmDefinition>(path);
+            if (rhythm == null)
+            {
+                return;
+            }
+
+            var made = RhythmDefinition.Create(style);
+            if (rhythm.clip == null || rhythm.clip.IsEmpty)
+            {
+                rhythm.clip = made.clip;
+                Debug.Log($"[Battler Setup] {path}: the base loop is now the captured idle ({rhythm.clip.source}).");
+            }
+
+            if (Vector3.Distance(rhythm.mainGuard, oldMain) < 1e-4f)
+            {
+                rhythm.mainGuard = main;
+            }
+
+            if (Vector3.Distance(rhythm.offGuard, oldOff) < 1e-4f)
+            {
+                rhythm.offGuard = off;
+            }
+
+            if (oldTurn.HasValue && Vector3.Distance(rhythm.mainGuardTurn, oldTurn.Value) < 1e-4f)
+            {
+                rhythm.mainGuardTurn = turn.Value;
+            }
+
+            // (The flourishes a touch slower, from the stick held low.)
+            foreach (var p in rhythm.postures)
+            {
+                var fresh = p != null ? made.Find(p.Label) : null;
+                if (fresh != null && (p.Label == "AbanicoFlurry" && Mathf.Approximately(p.duration, 0.65f) || p.Label == "RedondaTwirl" && Mathf.Approximately(p.duration, 0.85f)))
+                {
+                    p.duration = fresh.duration;
+                    EditorUtility.SetDirty(p);
+                }
+            }
+
+            foreach (var p in made.postures)
+            {
+                UnityEngine.Object.DestroyImmediate(p);
+            }
+
+            UnityEngine.Object.DestroyImmediate(made);
+            EditorUtility.SetDirty(rhythm);
         }
 
         private static RhythmDefinition EnsureRhythm(RhythmStyle style)

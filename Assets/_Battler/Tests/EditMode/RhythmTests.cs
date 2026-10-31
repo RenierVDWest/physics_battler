@@ -44,10 +44,7 @@ namespace PhysicsBattler.Tests
             var rig = RigFile.Parse(File.ReadAllText(path));
             var profile = UnitProfile.CreateDefault();
             profile.body = body;
-            if (body == "Large")
-            {
-                profile.style = CombatStyle.CreateFor(body);   // (the boxer stands as its captured loop expects)
-            }
+            profile.style = CombatStyle.CreateFor(body);   // (each body stands as its captured idle expects)
             var root = UnitBuilder.Build(rig, profile, $"Rhythm {body} {team} #{++built}", _ => null, 0);
             root.transform.SetPositionAndRotation(at, Quaternion.Euler(0f, yaw, 0f));
             var unit = root.GetComponent<UnitController>();
@@ -181,9 +178,9 @@ namespace PhysicsBattler.Tests
                                 break;
                             }
 
-                            Vector3 off = unit.Pose.CenterOfMass - unit.Pose.SupportPoint;
-                            off.y = 0f;
-                            com = Mathf.Max(com, off.magnitude);
+                            // Over the feet: how far the weight is from the line between them (a long
+                            // stance may rock well forward and back along it on purpose).
+                            com = Mathf.Max(com, OffTheFeet(unit));
                             float c = BodyClearance.Measure(unit.Rig, unit.Anim, weaponLength, unit.Loadout.Scale, out var part, out bool blade);
                             if (c < clear)
                             {
@@ -341,6 +338,16 @@ namespace PhysicsBattler.Tests
             {
                 Destroy(both);
             }
+        }
+
+        /// <summary>How far the pose's weight is from the line between the feet (horizontal metres).</summary>
+        internal static float OffTheFeet(UnitController unit)
+        {
+            Vector3 a = unit.Stance.Position(Stance.Left), b = unit.Stance.Position(Stance.Right), c = unit.Pose.CenterOfMass;
+            a.y = b.y = c.y = 0f;
+            Vector3 ab = b - a;
+            float u = ab.sqrMagnitude > 1e-8f ? Mathf.Clamp01(Vector3.Dot(c - a, ab) / ab.sqrMagnitude) : 0f;
+            return Vector3.Distance(c, a + ab * u);
         }
 
         private static float Max(List<float> values)

@@ -16,7 +16,8 @@ namespace PhysicsBattler.Diagnostics
     /// Frames columns: t, step; root (rootX, rootZ, rootYaw); hips (pelvisH physical, animPelvisH,
     /// pelvisDrop when a foot was out of reach, weightShift); balance (comOffset: the animated centre
     /// of mass from where the weight is meant to be (the support point, moved by the Fight Rhythm's
-    /// deliberate shifts), physCom: the physical one, both horizontal metres); feet
+    /// deliberate shifts), physCom: the physical one, both horizontal metres); the walk (walk: how
+    /// much the captured walk plays, walkSpeed, walkPhase); feet
     /// (stepL/R 0 or 1, liftL/R, slideL/R: how far each physical foot is from its planted spot,
     /// steps, shuffles); idle (swayX, swayZ, bob); authority per region (lvl_*: 0 kinematic,
     /// 1 pinned, 2 loose, 3 ragdoll; pin_*); every part's distance (err_*, metres) and angle
@@ -230,6 +231,10 @@ namespace PhysicsBattler.Diagnostics
             var rhythm = unit.Rhythm;
             frames.Add("posture", rhythm?.Current != null ? rhythm.Current.Label : "");
             frames.Add("energy", rhythm != null ? rhythm.Energy : 1f, 3);
+            // The walk: how much it plays, how fast it is being walked, round the cycle.
+            frames.Add("walk", unit.Gait != null ? unit.Gait.Weight : 0f, 2);
+            frames.Add("walkSpeed", unit.Gait != null ? unit.Gait.Velocity.magnitude : 0f, 3);
+            frames.Add("walkPhase", unit.Gait != null ? unit.Gait.Phase : 0f, 3);
             frames.Add("aggression", rhythm != null ? rhythm.Aggression : 0f, 3);
             frames.Add("open", unit.Openings == Combat.AimParts.None ? "" : unit.Openings.ToString().Replace(", ", " "));
             frames.Add("hitStop", unit.HitStop > 0f);

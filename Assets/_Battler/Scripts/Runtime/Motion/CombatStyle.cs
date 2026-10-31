@@ -80,6 +80,10 @@ namespace PhysicsBattler.Motion
         [Tooltip("How far an idle shuffle moves a foot (fraction of leg length).")]
         public float shuffleDistance = 0.1f;
 
+        [Header("Walking")]
+        [Tooltip("A walk cycle from motion capture (Tools/Mocap): its steps and body motion play while the unit walks (empty: the feet just keep up).")]
+        public GaitClip walk = new GaitClip();
+
         public static CombatStyle CreateDefault()
         {
             var style = CreateInstance<CombatStyle>();
@@ -95,23 +99,23 @@ namespace PhysicsBattler.Motion
             switch ((body ?? "").ToLowerInvariant())
             {
                 case "small":
-                    s.stanceWidth = 0.36f;
-                    s.stanceLength = 0.46f;
-                    s.crouch = 0.1f;
-                    s.lean = 10f;
-                    s.swayAmplitude = 0.05f;
                     s.swayFrequency = 0.7f;
-                    s.bobAmplitude = 0.025f;
                     s.bobFrequency = 2.2f;
-                    s.weaveDegrees = 7f;
                     s.weaveFrequency = 0.6f;
                     s.shuffleInterval = 1.4f;
                     s.shuffleDistance = 0.12f;
                     s.guardRaise = -40f;
                     s.guardElbow = -110f;
+                    ApplySmallStance(s);
+                    s.walk = RhythmClips.SmallWalk();
+                    break;
+                case "medium":
+                    ApplyMediumStance(s);
+                    s.walk = RhythmClips.MediumWalk();
                     break;
                 case "large":
                     ApplyLargeStance(s);
+                    s.walk = RhythmClips.LargeWalk();
                     s.shuffleInterval = 5f;
                     s.shuffleDistance = 0.07f;
                     s.guardRaise = -22f;
@@ -141,6 +145,57 @@ namespace PhysicsBattler.Motion
             s.swayAmplitude = 0f;
             s.bobAmplitude = 0f;
             s.weaveDegrees = 0f;
+        }
+
+        /// <summary>
+        /// The medium unit's stance, from its captured idle (Medium_Idle.fbx): side-on, the feet
+        /// nearly in line and long (a little wider than the capture's, to stand on), sitting low,
+        /// the weight back on the rear foot, the shield arm out toward the opponent.
+        /// </summary>
+        public static void ApplyMediumStance(CombatStyle s)
+        {
+            s.stanceWidth = 0.16f;
+            s.stanceLength = 0.62f;
+            s.crouch = 0.15f;
+            s.lean = 1f;
+            s.hipTurn = 60f;
+            s.chestCounterTurn = 0f;
+            s.leadWeight = 0.42f;   // (the capture's 0.28, forward a little for the shield out in front)
+            s.swayAmplitude = 0f;
+            s.bobAmplitude = 0f;
+            s.weaveDegrees = 0f;
+        }
+
+        /// <summary>
+        /// The small unit's stance, from its captured idle (Small_Idle.fbx): side-on, low, the hands
+        /// low, the weight about even.
+        /// </summary>
+        public static void ApplySmallStance(CombatStyle s)
+        {
+            s.stanceWidth = 0.25f;
+            s.stanceLength = 0.57f;
+            s.crouch = 0.14f;
+            s.lean = 0f;
+            s.hipTurn = 60f;
+            s.chestCounterTurn = 0f;
+            s.leadWeight = 0.46f;
+            s.swayAmplitude = 0f;
+            s.bobAmplitude = 0f;
+            s.weaveDegrees = 0f;
+        }
+
+        /// <summary>The medium unit's stance before its captured idle (the defaults: setup 16 and earlier).</summary>
+        public static bool HasOldMediumStance(CombatStyle s)
+        {
+            return Mathf.Approximately(s.stanceWidth, 0.34f) && Mathf.Approximately(s.stanceLength, 0.42f)
+                && Mathf.Approximately(s.crouch, 0.07f) && Mathf.Approximately(s.hipTurn, 22f) && Mathf.Approximately(s.lean, 6f);
+        }
+
+        /// <summary>The small unit's stance before its captured idle (setup 16 and earlier).</summary>
+        public static bool HasOldSmallStance(CombatStyle s)
+        {
+            return Mathf.Approximately(s.stanceWidth, 0.36f) && Mathf.Approximately(s.stanceLength, 0.46f)
+                && Mathf.Approximately(s.crouch, 0.1f) && Mathf.Approximately(s.lean, 10f);
         }
 
         /// <summary>The large unit's stance before it took the captured boxing idle's (setup 15 and earlier).</summary>

@@ -847,6 +847,8 @@ def unit_numbers(session, unit):
     idle &= calm
     if "posture" in f:
         idle &= f["posture"].fillna("").astype(str) == ""   # (a Fight Rhythm posture shifts the weight on purpose)
+    if "walk" in f:
+        idle &= col(f, "walk") < 0.3   # (walking leans into the way it goes: the weight is ahead on purpose)
     n["com"] = float(col(f, "comOffset")[idle].max())
     n["com95"] = float(col(f, "comOffset")[idle].quantile(0.95))
     n["physCom95"] = float(col(f, "physCom")[idle].quantile(0.95))

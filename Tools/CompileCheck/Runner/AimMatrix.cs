@@ -1,3 +1,4 @@
+using PhysicsBattler.Motion;
 // Every blow, every body part, every size pair: does the striking part reach the aim point?
 //
 //   dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim [distance in tiles, default 1]
@@ -75,6 +76,11 @@ internal static class AimMatrix
         var rig = RigFile.Parse(File.ReadAllText(path));
         var profile = UnitProfile.CreateDefault();
         profile.body = body;
+        if (Environment.GetEnvironmentVariable("AIM_STYLES") != null)
+        {
+            profile.style = CombatStyle.CreateFor(body);   // (the bodies' own stances, as the setup makes them)
+        }
+
         var root = UnitBuilder.Build(rig, profile, body, _ => null, 0);
         root.transform.position = at;
         root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);

@@ -141,12 +141,35 @@ def measure(sk, rate):
     return times, rows
 
 
+def foot_phases(feet, length, travel, leg):
+    """Lift and land phases (0 to 1) of a foot over the loop, and its step height (legs)."""
+    pos = np.array(feet)
+    n = len(pos)
+    dt = length / n
+    nxt = np.vstack([pos[1:], pos[:1] + travel])
+    speed = np.linalg.norm((nxt - pos)[:, [0, 2]], axis=1) / dt
+    v = np.linalg.norm(travel) / length
+    # In the air: off the ground (above its lowest by a fifth of its lift) or sliding along fast.
+    lifted = pos[:, 1] - pos[:, 1].min() > 0.2 * (pos[:, 1].max() - pos[:, 1].min())
+    moving = lifted & (speed > 0.25 * v)
+    lift = land = None
+    for i in range(n):
+        if moving[i] and not moving[i - 1]:
+            lift = i / n
+        if not moving[i] and moving[i - 1]:
+            land = i / n
+    height = (pos[:, 1].max() - pos[:, 1].min()) / leg
+    return lift, land, height
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('fbx')
     ap.add_argument('--name', default='Clip')
     ap.add_argument('--rate', type=float, default=20.0)
-    ap.add_argument('--rig', help='a `rhythms` runner CSV of the unit (its first frame gives its shoulders)')
+    ap.add_argument('--gait', action='store_true', help='a walk (with root motion): writes a GaitClip')
+    ap.add_argument('--rig', help='a `rhythms` runner CSV of the unit: where to put its hands (needs --size)')
+    ap.add_argument('--size', type=float, default=1.0, help="the rig's size factor")
     ap.add_argument('--out-cs')
     args = ap.parse_args()
 
@@ -158,17 +181,37 @@ def main():
     arm = L('LeftArm', 'LeftForeArm') + L('LeftForeArm', 'LeftHand')
 
     hip = np.array([r['hip'] for r in rows])
-    lf = np.array([r['feet'][0] for r in rows]).mean(0)
-    rf = np.array([r['feet'][1] for r in rows]).mean(0)
+    # A walk travels: the hips are measured against a root moving evenly along the way.
+    travel = np.zeros(3)
+    if args.gait:
+        end = sk.pose(sk.length)
+        travel = 0.5 * (end['LeftUpLeg'][1] + end['RightUpLeg'][1]) - hip[0]
+        travel[1] = 0.0
+    v = np.linalg.norm(travel) / sk.length
+    root = np.array([travel * (t / sk.length) for t in times])
+    root += (hip - root).mean(0)
+    root[:, 1] = 0.0
+    lf_all = [r['feet'][0] for r in rows]
+    rf_all = [r['feet'][1] for r in rows]
+    lf = (np.array(lf_all) - root).mean(0)
+    rf = (np.array(rf_all) - root).mean(0)
     pel = np.array([r['pelvis_yaw'] for r in rows]); che = np.array([r['chest_yaw'] for r in rows])
     lean = np.array([r['lean'] for r in rows]); roll = np.array([r['roll'] for r in rows])
     head = np.array([r['head'] for r in rows])
     hand = {s: np.array([r['hands'][s] for r in rows]) for s in ('Left', 'Right', 'LeftSh', 'RightSh')}
 
     print(f'{args.fbx}: {sk.length:.2f} s loop, {len(rows)} keys; leg {leg:.3f} m, arm {arm:.3f} m')
+    if args.gait:
+        print(f'walk: {np.linalg.norm(travel):.2f} m a loop ({np.linalg.norm(travel) / leg:.2f} legs), {v:.2f} m/s ({v / leg:.2f} legs/s)')
     print(f'stance: feet {abs(lf[0] - rf[0]) / leg:.2f} legs apart side to side, {abs(lf[2] - rf[2]) / leg:.2f} front to back '
           f'({"left" if lf[2] > rf[2] else "right"} foot leads); hips {(leg - hip[:, 1].max()) / leg:.3f} (highest) to '
           f'{(leg - hip[:, 1].min()) / leg:.3f} legs below straight')
+    lead_weight = None
+    if not args.gait:
+        lead, rear = (lf, rf) if lf[2] > rf[2] else (rf, lf)
+        ax = lead - rear; ax[1] = 0
+        lead_weight = float(np.dot((hip - root).mean(0) - rear, ax) / np.dot(ax, ax))
+        print(f'weight {lead_weight:.2f} on the lead foot')
     print(f'turns: pelvis {pel.mean():.1f}°, chest {che.mean():.1f}° (+ = to the right); spine lean {lean.mean():.1f}°, '
           f'head {head[:, 0].mean():.1f}° down against the chest')
     for s in ('Left', 'Right'):
@@ -176,10 +219,10 @@ def main():
               f'{np.round(hand[s + "Sh"].mean(0) / arm, 3)} arms')
 
     # The loop: offsets from the mean (the hips' drop from the loop's highest point).
-    mid = 0.5 * (lf + rf)
+    hrel = hip - root
     keys = []
     for i, r in enumerate(rows):
-        d = (r['hip'] - hip.mean(0)) / leg
+        d = (hrel[i] - hrel.mean(0)) / leg
         k = dict(hips=(d[0], 0.0, d[2]), drop=(hip[:, 1].max() - r['hip'][1]) / leg,
                  turn=che[i] - che.mean(), hipTurn=(pel[i] - pel.mean()) - 0.45 * (che[i] - che.mean()),
                  lean=lean[i] - lean.mean(), roll=roll[i] - roll.mean(),
@@ -191,20 +234,34 @@ def main():
     print(f'loop: hips ±{rng(lambda k: k["hips"][0]):.3f} side, ±{rng(lambda k: k["hips"][2]):.3f} fore and aft, '
           f'drop up to {rng(lambda k: k["drop"]):.3f} legs; turn ±{rng(lambda k: k["turn"]):.1f}°, lean ±{rng(lambda k: k["lean"]):.1f}°')
 
-    off_guard = None
+    gait = None
+    if args.gait:
+        ll, ld, lh = foot_phases(lf_all, sk.length, travel, leg)
+        rl, rd, rh = foot_phases(rf_all, sk.length, travel, leg)
+        gait = dict(distance=np.linalg.norm(travel) / leg, width=abs(lf[0] - rf[0]) / leg, height=0.5 * (lh + rh),
+                    lean=lean.mean(), crouch=(leg - hip[:, 1].max()) / leg, pelvis=pel.mean(), chest=che.mean(),
+                    liftL=ll, landL=ld, liftR=rl, landR=rd)
+        print('feet: left lifts at {liftL:.2f} and lands at {landL:.2f}, right {liftR:.2f} / {landR:.2f}; steps {height:.3f} legs high, '
+              '{width:.2f} legs apart'.format(**gait))
+
     if args.rig:
-        import csv
-        row = next(csv.DictReader(open(args.rig)))
-        v = lambda p: np.array([float(row[p + '.' + a]) for a in 'xyz'])
-        across = v('UpperArmL') - v('UpperArmR')
+        # Where the capture's hands go on this body: against each shoulder, in arm lengths, in the
+        # chest's facing; and how far that is from where the unit's hands are now (its facing).
+        import pandas as pd
+        df = pd.read_csv(args.rig)
+        m = df.mean(numeric_only=True)
+        vv = lambda p: np.array([m[p + '.x'], m[p + '.y'], m[p + '.z']])
+        across = vv('UpperArmL') - vv('UpperArmR')
         cyaw = math.degrees(math.atan2(across[2], -across[0]))
-        sh = turn_y(-cyaw, v('UpperArmL') - v('Chest'))
-        rig_arm = np.linalg.norm(v('ForearmL') - v('UpperArmL')) + np.linalg.norm(v('HandL') - v('ForearmL'))
-        size = float(os.environ.get('RIG_SIZE', '1.235'))
-        target = sh + hand['LeftSh'].mean(0) / arm * rig_arm
-        off_guard = target / size
-        print(f'rig: shoulder {np.round(sh, 3)} against its chest, arm {rig_arm:.3f} m -> bare hand at {np.round(target, 3)} m '
-              f'(offGuard {np.round(off_guard, 3)} at medium size)')
+        print(f'rig: chest turned {cyaw:.1f}°')
+        for s, tag in (('Left', 'L'), ('Right', 'R')):
+            sh = turn_y(-cyaw, vv('UpperArm' + tag) - vv('Chest'))
+            rig_arm = np.linalg.norm(vv('Forearm' + tag) - vv('UpperArm' + tag)) + np.linalg.norm(vv('Hand' + tag) - vv('Forearm' + tag))
+            target = sh + hand[s + 'Sh'].mean(0) / arm * rig_arm
+            now = turn_y(-cyaw, vv('Hand' + tag) - vv('Chest'))
+            delta = turn_y(cyaw, target - now)
+            print(f'  {s} hand: target {np.round(target, 3)} m against the chest (now {np.round(now, 3)}); move it by '
+                  f'{np.round(delta, 3)} m in the unit\'s facing = {np.round(delta / args.size, 3)} at medium size')
 
     if args.out_cs:
         f = lambda x: f'{x:.4f}f'
@@ -214,7 +271,48 @@ def main():
             lines.append(f'                K({v3(k["hips"])}, {f(k["drop"])}, {f(k["turn"])}, {f(k["hipTurn"])}, {f(k["lean"])}, {f(k["roll"])}, '
                          f'new Vector2({f(k["head"][0])}, {f(k["head"][1])}), {v3(k["main"])}, {v3(k["off"])}),')
         length = sk.length * math.sqrt(MEDIUM_LEG / leg)
-        src = f'''// Generated by Tools/Mocap/mixamo_rhythm.py from {os.path.basename(args.fbx)}: do not edit by hand.
+        src = os.path.basename(args.fbx)
+        if gait:
+            body = f'''new RhythmClip
+            {{
+                source = "{src}",
+                length = {f(length)},
+                keys = new[]
+                {{
+{chr(10).join("    " + l for l in lines)}
+                }},
+            }}'''
+            g = gait
+            text = f'''// Generated by Tools/Mocap/mixamo_rhythm.py --gait from {src}: do not edit by hand.
+using UnityEngine;
+
+namespace PhysicsBattler.Motion
+{{
+    public static partial class RhythmClips
+    {{
+        /// <summary>{args.name}: a {sk.length:.2f} s walk cycle on a {leg:.2f} m leg ({length:.2f} s on the medium body), {g["distance"]:.2f} legs a cycle, {len(keys)} keys.</summary>
+        public static GaitClip {args.name}() => new GaitClip
+        {{
+            source = "{src}",
+            length = {f(length)},
+            distance = {f(g["distance"])},
+            width = {f(g["width"])},
+            stepHeight = {f(g["height"])},
+            lean = {f(g["lean"])},
+            crouch = {f(g["crouch"])},
+            pelvisTurn = {f(g["pelvis"])},
+            chestTurn = {f(g["chest"])},
+            liftL = {f(g["liftL"])},
+            landL = {f(g["landL"])},
+            liftR = {f(g["liftR"])},
+            landR = {f(g["landR"])},
+            body = {body},
+        }};
+    }}
+}}
+'''
+        else:
+            text = f'''// Generated by Tools/Mocap/mixamo_rhythm.py from {src}: do not edit by hand.
 using UnityEngine;
 
 namespace PhysicsBattler.Motion
@@ -224,7 +322,7 @@ namespace PhysicsBattler.Motion
         /// <summary>{args.name}: {sk.length:.2f} s loop on a {leg:.2f} m leg ({length:.2f} s on the medium body), {len(keys)} keys.</summary>
         public static RhythmClip {args.name}() => new RhythmClip
         {{
-            source = "{os.path.basename(args.fbx)}",
+            source = "{src}",
             length = {f(length)},
             keys = new[]
             {{
@@ -234,7 +332,7 @@ namespace PhysicsBattler.Motion
     }}
 }}
 '''
-        open(args.out_cs, 'w').write(src)
+        open(args.out_cs, 'w').write(text)
         print('wrote', args.out_cs)
 
 

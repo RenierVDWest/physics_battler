@@ -27,6 +27,7 @@ namespace PhysicsBattler.Motion
             public float t;
             public float lift;
             public float duration;   // this step's length in seconds (0: the stance's own)
+            public float height;     // how high this step lifts, metres (0: the stance's own)
         }
 
         /// <summary>A copy of the feet and timers, to try a pose and put everything back (the move planner).</summary>
@@ -116,6 +117,12 @@ namespace PhysicsBattler.Motion
         }
 
         public Vector3 Position(int foot) => feet[foot].position;
+
+        /// <summary>Seconds until a stepping foot lands (0 if it stands).</summary>
+        public float StepTimeLeft(int foot) => feet[foot].stepping ? (1f - feet[foot].t) * (feet[foot].duration > 0f ? feet[foot].duration : duration) : 0f;
+
+        /// <summary>Where a foot is going (where it stands, if it isn't stepping).</summary>
+        public Vector3 Target(int foot) => feet[foot].stepping ? feet[foot].to : feet[foot].position;
         public float Yaw(int foot) => feet[foot].yaw;
         public float Lift(int foot) => feet[foot].lift;
         public bool Stepping(int foot) => feet[foot].stepping;
@@ -211,11 +218,12 @@ namespace PhysicsBattler.Motion
         /// Step a foot to a ground point now, taking the given time (a lunge's planned step). A foot
         /// already stepping is redirected from where it is.
         /// </summary>
-        public void StepTo(int foot, Vector3 to, float toYaw, float seconds)
+        public void StepTo(int foot, Vector3 to, float toYaw, float seconds, float lift = 0f)
         {
             to.y = GroundY;
             Begin(foot, to, toYaw);
             feet[foot].duration = Mathf.Max(0.05f, seconds);
+            feet[foot].height = Mathf.Max(0f, lift);
             StepsTaken++;
         }
 
@@ -253,6 +261,7 @@ namespace PhysicsBattler.Motion
         private void Begin(int f, Vector3 to, float toYaw)
         {
             feet[f].duration = 0f;
+            feet[f].height = 0f;
             feet[f].stepping = true;
             feet[f].from = feet[f].position;
             feet[f].to = to;
@@ -270,7 +279,9 @@ namespace PhysicsBattler.Motion
             foot.position.y = GroundY;
             foot.yaw = foot.fromYaw + Mathf.DeltaAngle(foot.fromYaw, foot.toYaw) * s;
             float distance = Vector3.Distance(foot.from, foot.to);
-            foot.lift = height * Mathf.Clamp(distance / Mathf.Max(1e-3f, threshold), 0.4f, 1f) * Mathf.Sin(Mathf.PI * foot.t);
+            foot.lift = foot.height > 0f
+                ? foot.height * Mathf.Sin(Mathf.PI * foot.t)
+                : height * Mathf.Clamp(distance / Mathf.Max(1e-3f, threshold), 0.4f, 1f) * Mathf.Sin(Mathf.PI * foot.t);
             if (foot.t >= 1f)
             {
                 foot.stepping = false;

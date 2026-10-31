@@ -83,6 +83,9 @@ namespace PhysicsBattler.Units
 
         /// <summary>Where the root was after the last step (a walk is measured from it); cleared when the unit is moved at once.</summary>
         private Vector3 lastRoot;
+
+        /// <summary>How fast the game walked the root over the last step (world, m/s).</summary>
+        public Vector3 WalkVelocity { get; private set; }
         private bool hasLastRoot;
 
         // The recoil springs: hips pushed, upper body and head thrown back by a hit (Pose.React*).
@@ -165,6 +168,7 @@ namespace PhysicsBattler.Units
             Vector3 pushed = Separate(dt);
             // The feet hurry after a knock-back or a stumble (catch steps), or after being pushed aside.
             Stance.Drift = (State == UnitState.Stumbling ? StumbleVelocity : Knockback) + walked + (dt > 0f ? pushed / dt : Vector3.zero);
+            WalkVelocity = walked;
             lastRoot = transform.position;
             hasLastRoot = true;
             UpdateTopple(dt);
@@ -757,6 +761,7 @@ namespace PhysicsBattler.Units
         {
             IsAlive = false;
             Health = 0f;
+            StopGait();
             if (CurrentMove != null)
             {
                 CancelMove(CurrentMove, "killed");

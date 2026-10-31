@@ -82,6 +82,9 @@ namespace PhysicsBattler.Motion
         /// <summary>The rhythm's weapon feint, when it is the move posed: the rhythm plays on with it (a real blow takes over from the rhythm as it blends in).</summary>
         public MoveState Feint { get; set; }
 
+        /// <summary>How much the unit is walking (0 to 1): the hips go with the root, not the feet.</summary>
+        public float GaitWeight { get; set; }
+
         // What the last step produced, for the log.
         public Vector3 CenterOfMass { get; private set; }
         public Vector3 SupportPoint { get; private set; }
@@ -93,6 +96,9 @@ namespace PhysicsBattler.Motion
 
         /// <summary>How far the hips rock back when a move's body curve dips below 0 (fraction of leg length, at -1).</summary>
         public const float RockBack = 0.25f;
+
+        /// <summary>How far round a side-on stance's hips and chest are while a blow plays (the default stance's).</summary>
+        public const float SquaredHipTurn = 22f, SquaredCounterTurn = -10f;
 
         /// <summary>How far the hips may move to put the weight over the support point (fraction of leg length).</summary>
         public const float MaxWeightShift = 0.14f;
@@ -144,20 +150,28 @@ namespace PhysicsBattler.Motion
             int lead = stance.LeadLeft ? Stance.Left : Stance.Right;
             int rear = 1 - lead;
             Vector3 support = Vector3.Lerp(stance.Position(rear), stance.Position(lead), style.leadWeight);
+            // Walking, the weight goes along with the root (the feet step round it), not in jerks
+            // with each foot that lands.
+            support = Vector3.Lerp(support, root.position, GaitWeight);
             support.y = root.position.y;
             SupportPoint = support;
 
+            // A side-on stance (a fencer's, more than about 22 degrees) squares up into a blow: the
+            // hips turn into it, so the swing doesn't go through the body.
+            float squared = move != null && move != Feint ? moveBlend : 0f;
+            float hipTurn = Mathf.Lerp(style.hipTurn, Mathf.Min(style.hipTurn, SquaredHipTurn), squared);
+            float counterTurn = Mathf.Lerp(style.chestCounterTurn, Mathf.Min(style.chestCounterTurn, SquaredCounterTurn), squared * Mathf.Clamp01((style.hipTurn - SquaredHipTurn) / 10f));
             var pelvis = anim.Part(PartId.Pelvis);
-            pelvis.rotation = facing * Quaternion.Euler(s.hips.x, leadSign * style.hipTurn + s.hips.y, s.hips.z);
+            pelvis.rotation = facing * Quaternion.Euler(s.hips.x, leadSign * hipTurn + s.hips.y, s.hips.z);
             Vector3 hips = support + facing * s.hipShift;
             hips.y = root.position.y + body.PelvisHeight - style.crouch * leg + s.bob;
             pelvis.position = hips;
 
             anim.Part(PartId.Spine).localRotation = Quaternion.Euler(style.lean * 0.5f, 0f, 0f);
             anim.Part(PartId.Chest).localRotation = Quaternion.Euler(style.lean * 0.5f + s.chest.x,
-                leadSign * style.chestCounterTurn + s.chest.y, s.chest.z);
+                leadSign * counterTurn + s.chest.y, s.chest.z);
             // The head keeps looking ahead: it undoes most of the turn below it.
-            float turnBelow = leadSign * (style.hipTurn + style.chestCounterTurn) + s.hips.y + s.chest.y;
+            float turnBelow = leadSign * (hipTurn + counterTurn) + s.hips.y + s.chest.y;
             anim.Part(PartId.Head).localRotation = Quaternion.Euler(-style.lean + s.head.x, -0.9f * turnBelow + s.head.y, s.head.z);
             Guard(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, +1f, stance.LeadLeft, style);
             Guard(PartId.UpperArmR, PartId.ForearmR, PartId.HandR, -1f, !stance.LeadLeft, style);
@@ -341,6 +355,9 @@ namespace PhysicsBattler.Motion
                 PelvisDrop = Mathf.Max(PelvisDrop, excess);
             }
 
+            // (Never more than a quarter of the leg: a foot further out than that is left short of
+            // its spot for a moment rather than the body sinking to the ground after it.)
+            PelvisDrop = Mathf.Min(PelvisDrop, 0.25f * leg);
             if (PelvisDrop > 0f)
             {
                 pelvis.position += Vector3.down * PelvisDrop;

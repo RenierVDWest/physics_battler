@@ -39,7 +39,7 @@ namespace PhysicsBattler.Editor.Setup
         /// 15 = Fight Rhythms: a rhythm asset per style and a posture asset per posture (Data/Rhythms),
         ///     each body's combat style pointed at its style.
         /// </summary>
-        public const int Current = 16;
+        public const int Current = 17;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();
