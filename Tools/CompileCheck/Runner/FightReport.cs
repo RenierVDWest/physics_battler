@@ -18,6 +18,9 @@ internal static class FightReport
 {
     private const BindingFlags Any = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 
+    /// <summary>Called after every step of a fight (the `arms` runner measures the poses here).</summary>
+    public static Action<List<UnitController>, float> OnStep;
+
     public static int Run(string output, int seed)
     {
         Directory.CreateDirectory(output);
@@ -108,7 +111,10 @@ internal static class FightReport
             for (int step = 0; step < steps && !loop.Over; step++)
             {
                 Time.time += dt;
-                Call(recorder, "FixedUpdate");
+                if (recorder != null)
+                {
+                    Call(recorder, "FixedUpdate");
+                }
 
                 loop.TimeLimit = limit;
                 loop.Step(units, dt, Time.time);
@@ -126,6 +132,8 @@ internal static class FightReport
                     Call(unit, "FixedUpdate");
                     PhysicsBattler.Tests.BalanceTests.Integrate(unit, dt);
                 }
+
+                OnStep?.Invoke(units, dt);
 
                 // Two standing bodies overlapping (free roam: the steering should keep them apart).
                 int overlapping = FightLoop.Overlapping(units);

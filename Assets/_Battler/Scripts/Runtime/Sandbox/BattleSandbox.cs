@@ -277,6 +277,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.H)) RhythmGallery();
             if (SandboxInput.KeyPressed(KeyCode.K)) SeverTest();
             if (SandboxInput.KeyPressed(KeyCode.D)) GroundTest();
+            if (SandboxInput.KeyPressed(KeyCode.J)) ShieldTest();
         }
 
         /// <summary>
@@ -734,6 +735,119 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        /// <summary>
+        /// Milestone 9c: a shield-holder squared up in the middle of the board; a sword unit and a club
+        /// unit take turns striking at it from in front (two blows each), so the shield's block, the
+        /// knock and the return can be judged by eye. J again for another round.
+        /// </summary>
+        public void ShieldTest()
+        {
+            var alive = units.FindAll(u => u != null && u.IsInitialized && u.IsAlive && u.CanAct);
+            var defender = alive.Find(u => u.Loadout != null && u.Loadout.HasShield && !u.Rig.IsSevered(PartId.HandL));
+            var attackers = new List<UnitController>();
+            if (defender != null)
+            {
+                foreach (var kind in new[] { WeaponKind.Sword, WeaponKind.Club })
+                {
+                    var a = alive.Find(u => u != defender && u.Team != defender.Team && u.Loadout?.Main != null && u.Loadout.Main.kind == kind)
+                            ?? alive.Find(u => u != defender && u.Loadout?.Main != null && u.Loadout.Main.kind == kind);
+                    if (a != null)
+                    {
+                        attackers.Add(a);
+                    }
+                }
+            }
+
+            if (defender == null || attackers.Count == 0)
+            {
+                message = "The shield test needs a unit with a shield and an armed unit. Press R to reset.";
+                return;
+            }
+
+            fight = false;
+            if (bystanderRun != null)
+            {
+                StopCoroutine(bystanderRun);
+            }
+
+            bystanderRun = StartCoroutine(ShieldRun(defender, attackers, alive));
+        }
+
+        private System.Collections.IEnumerator ShieldRun(UnitController defender, List<UnitController> attackers, List<UnitController> alive)
+        {
+            float keep = defender.Style.blockChance;
+            defender.Style.blockChance = 1f;
+            try
+            {
+                int k = 0;
+                foreach (var other in alive)
+                {
+                    if (other != defender && !attackers.Contains(other))
+                    {
+                        other.Teleport(new Vector3(-4f + 1.6f * k++, 0f, 5.2f), 180f);
+                    }
+                }
+
+                for (int round = 0; round < 2 * attackers.Count; round++)
+                {
+                    var attacker = attackers[round % attackers.Count];
+                    if (attacker == null || !attacker.IsAlive || defender == null || !defender.IsAlive)
+                    {
+                        break;
+                    }
+
+                    // (The one not striking stands aside.)
+                    foreach (var a in attackers)
+                    {
+                        if (a != attacker)
+                        {
+                            a.Teleport(new Vector3(3.5f, 0f, -3f), 270f);
+                        }
+                    }
+
+                    float distance = attacker.Style.engageDistance * attacker.Body.SizeFactor + 0.25f * defender.Body.SizeFactor;
+                    defender.Teleport(Vector3.zero, 90f);
+                    attacker.Teleport(Vector3.right * distance, 270f);
+                    defender.Opponent = attacker;
+                    attacker.Opponent = defender;
+                    yield return new WaitForSeconds(1f);
+                    MoveState state = null;
+                    foreach (var part in new[] { AimPart.Chest, AimPart.Head, AimPart.Belly })
+                    {
+                        foreach (var move in attacker.Loadout.Main.moves)
+                        {
+                            if (state == null && move != null && move.targets.Contains(part))
+                            {
+                                var s = MovePlanner.Prepare(attacker, defender, move, part);
+                                state = s != null && MovePlanner.Acceptable(attacker, s) ? s : null;
+                            }
+                        }
+                    }
+
+                    if (state == null || !attacker.StartMove(state))
+                    {
+                        Note($"shield test: {attacker.name} found no blow from there");
+                        continue;
+                    }
+
+                    Note($"shield test: {attacker.name} strikes at {defender.name}'s {state.Part} with {state.Move.name.Replace("MD_", "")}");
+                    message = $"Shield test: {attacker.name} strikes at {defender.name} ({state.Move.name.Replace("MD_", "")}). Watch the shield's knock and return. J for another round.";
+                    yield return new WaitForSeconds(2.5f);
+                }
+            }
+            finally
+            {
+                if (defender != null)
+                {
+                    defender.Style.blockChance = keep;
+                }
+            }
+
+            bystanderRun = null;
+            Note("shield test: over");
+            message = "Shield test over. M marks the log; J for another round; F to fight again.";
+        }
+
         private Coroutine rhythmRun;
         private bool tiredAll;
 
@@ -915,6 +1029,9 @@ namespace PhysicsBattler.Sandbox
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Sever test (K)")) SeverTest();
             if (GUILayout.Button("Ground test (D)")) GroundTest();
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Shield test (J)")) ShieldTest();
             GUILayout.EndHorizontal();
             bool tired = GUILayout.Toggle(tiredAll, "Everyone tired (Fight Rhythm energy 25%)");
             if (tired != tiredAll)

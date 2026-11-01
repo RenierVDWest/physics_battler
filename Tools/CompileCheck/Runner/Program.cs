@@ -65,6 +65,11 @@ internal static class Program
             return LookReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "arms")
+        {
+            return ArmReport.Run(args.Length >= 2 ? int.Parse(args[1]) : 7);
+        }
+
         if (args.Length >= 1 && args[0] == "shield")
         {
             return ShieldReport.Run(args.Length >= 2 ? args[1] : null);

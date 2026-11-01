@@ -29,10 +29,11 @@ namespace PhysicsBattler.Authority
 
     /// <summary>
     /// Makes the physical body follow the animation rig as far as each region's authority allows.
-    /// Kinematic parts are moved to the pose. Pinned parts get the velocity that brings them onto
-    /// the pose this step, blended with what they had by the pin weight (PuppetMaster-style
-    /// pinning): 1 arrives exactly, lower lags and overshoots, which reads as mass. Loose parts are
-    /// barely held, ragdoll parts not at all.
+    /// Kinematic parts are moved to the pose. Pinned parts are held by a servo (milestone 9c): each
+    /// step the part moves with its pose and a spring and damper close what is left between them,
+    /// critically damped, so a part pushed off its pose comes back in one smooth return and never
+    /// rings. The pin weight sets the servo's stiffness (<see cref="HoldFrequency"/>): 1 arrives
+    /// exactly, lower is softer and slower. Loose parts are barely held, ragdoll parts not at all.
     /// </summary>
     public sealed class AuthorityController
     {
@@ -50,6 +51,11 @@ namespace PhysicsBattler.Authority
         private readonly JointLimitSpec[] easeFrom = new JointLimitSpec[PartInfo.Count];
         private readonly float[] easeSince = new float[PartInfo.Count];
         private readonly bool[] hingeLocked = new bool[PartInfo.Count];
+        // Milestone 9c: where each part's pose was last step (its pose's own motion is followed, so
+        // the servo only has to close what is left), and whether that is known.
+        private readonly Vector3[] lastTarget = new Vector3[PartInfo.Count];
+        private readonly Quaternion[] lastTargetRotation = new Quaternion[PartInfo.Count];
+        private readonly bool[] followed = new bool[PartInfo.Count];
         private float clock;
 
         /// <summary>How long a ragdoll's joints take to close from where they are to their limits (seconds).</summary>
@@ -130,41 +136,110 @@ namespace PhysicsBattler.Authority
                     body.isKinematic = kinematic;
                 }
 
-                if (kinematic)
-                {
-                    body.MovePosition(target.position);
-                    body.MoveRotation(target.rotation);
-                    continue;
-                }
-
+                int i = (int)id;
                 float pin = level == AuthorityLevel.Pinned ? pins[(int)region]
                     : level == AuthorityLevel.Loose ? LoosePin : 0f;
-                if (pin <= 0f)
+                if (kinematic || pin <= 0f)
                 {
+                    if (kinematic)
+                    {
+                        body.MovePosition(target.position);
+                        body.MoveRotation(target.rotation);
+                    }
+
+                    followed[i] = false;
                     continue;
                 }
 
+                // The pose's own motion over the last step (none known after a jump, or when the
+                // part wasn't held last step).
+                Vector3 poseVelocity = Vector3.zero, poseSpin = Vector3.zero;
+                if (followed[i])
+                {
+                    Vector3 moved = target.position - lastTarget[i];
+                    if (moved.sqrMagnitude < PoseJump * PoseJump)
+                    {
+                        poseVelocity = moved / dt;
+                        poseSpin = JointMath.RotationError(lastTargetRotation[i], target.rotation) / dt;
+                    }
+                }
+
+                lastTarget[i] = target.position;
+                lastTargetRotation[i] = target.rotation;
+                followed[i] = true;
                 Vector3 gravity = body.useGravity ? UnityEngine.Physics.gravity : Vector3.zero;
-                body.linearVelocity = PinVelocity(body.position, target.position, body.linearVelocity, pin, dt, gravity);
-                body.angularVelocity = PinAngularVelocity(body.rotation, target.rotation, body.angularVelocity, pin, dt);
+                body.linearVelocity = PinVelocity(body.position, target.position, body.linearVelocity, pin, dt, gravity, poseVelocity);
+                body.angularVelocity = PinAngularVelocity(body.rotation, target.rotation, body.angularVelocity, pin, dt, poseSpin);
             }
         }
 
+        /// <summary>A pose that moves further than this in one step has jumped (placed): its motion isn't followed (metres).</summary>
+        public const float PoseJump = 0.5f;
+
+        /// <summary>The servo's damping: critical (1) never overshoots.</summary>
+        public const float HoldDamping = 1f;
+
         /// <summary>
-        /// The velocity that lands on the target this step, blended with the current one by the pin.
-        /// Gravity is taken out in advance (the solver adds it during the step).
+        /// The servo's stiffness for a pin weight, as the frequency it would swing at undamped (Hz):
+        /// 0.7 (the arms) about 7 Hz, 0.3 about 2.3 Hz, a loose part's 0.04 about 0.2 Hz.
         /// </summary>
-        public static Vector3 PinVelocity(Vector3 position, Vector3 target, Vector3 velocity, float pin, float dt, Vector3 gravity = default)
+        public static float HoldFrequency(float pin) => Mathf.Min(12f, 11f * Mathf.Pow(Mathf.Clamp01(pin), 1.3f));
+
+        /// <summary>
+        /// The velocity for the coming step (milestone 9c). A pin of 1 lands on the target exactly; 0
+        /// leaves the velocity alone. In between, the part moves with its pose (the pose's velocity
+        /// over the last step) and a critically damped spring closes what is left, solved implicitly
+        /// so it is stable at any stiffness and never rings. Gravity is taken out in advance (the
+        /// solver adds it during the step).
+        /// </summary>
+        public static Vector3 PinVelocity(Vector3 position, Vector3 target, Vector3 velocity, float pin, float dt, Vector3 gravity = default, Vector3 poseVelocity = default)
         {
-            Vector3 needed = (target - position) / dt - gravity * dt;
-            return Vector3.Lerp(velocity, needed, Mathf.Clamp01(pin));
+            pin = Mathf.Clamp01(pin);
+            if (pin >= 0.999f)
+            {
+                return (target - position) / dt - gravity * dt;
+            }
+
+            if (pin <= 0f)
+            {
+                return velocity;
+            }
+
+            // (What is left once the pose's own motion this step is taken out.)
+            Vector3 error = target - poseVelocity * dt - position;
+            return poseVelocity + Servo(velocity - poseVelocity, error, HoldFrequency(pin), dt) - gravity * dt;
         }
 
-        /// <summary>The angular velocity that turns onto the target this step, blended by the pin.</summary>
-        public static Vector3 PinAngularVelocity(Quaternion rotation, Quaternion target, Vector3 angularVelocity, float pin, float dt)
+        /// <summary>The angular velocity for the coming step: as <see cref="PinVelocity"/>, for the part's turn.</summary>
+        public static Vector3 PinAngularVelocity(Quaternion rotation, Quaternion target, Vector3 angularVelocity, float pin, float dt, Vector3 poseSpin = default)
         {
-            Vector3 needed = JointMath.RotationError(rotation, target) / dt;
-            return Vector3.Lerp(angularVelocity, needed, Mathf.Clamp01(pin));
+            pin = Mathf.Clamp01(pin);
+            if (pin >= 0.999f)
+            {
+                return JointMath.RotationError(rotation, target) / dt;
+            }
+
+            if (pin <= 0f)
+            {
+                return angularVelocity;
+            }
+
+            float spun = poseSpin.magnitude * dt;
+            Quaternion before = spun > 1e-6f ? Quaternion.AngleAxis(-spun * Mathf.Rad2Deg, poseSpin / poseSpin.magnitude) * target : target;
+            Vector3 error = JointMath.RotationError(rotation, before);
+            return poseSpin + Servo(angularVelocity - poseSpin, error, HoldFrequency(pin), dt);
+        }
+
+        /// <summary>
+        /// One step of a critically damped spring (backward Euler): the relative velocity after the
+        /// step, for a relative velocity and what is left to close. It never overshoots and is
+        /// stable at any stiffness.
+        /// </summary>
+        public static Vector3 Servo(Vector3 relative, Vector3 error, float hz, float dt)
+        {
+            float w = 2f * Mathf.PI * Mathf.Max(0f, hz);
+            float hw = dt * w;
+            return (relative + error * (dt * w * w)) / (1f + 2f * HoldDamping * hw + hw * hw);
         }
 
         /// <summary>

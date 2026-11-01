@@ -88,6 +88,15 @@ namespace PhysicsBattler.Motion
         public Vector3 ReactLean { get; set; }
         public Vector3 ReactHead { get; set; }
 
+        /// <summary>Milestone 9c: a hit's knock on each arm's pose: the hand moved (world, metres) and turned (a rotation vector, radians).</summary>
+        public Vector3 KnockR { get; set; }
+        public Vector3 KnockTurnR { get; set; }
+        public Vector3 KnockL { get; set; }
+        public Vector3 KnockTurnL { get; set; }
+
+        private static Quaternion TurnOf(Vector3 turn) => turn.sqrMagnitude > 1e-10f
+            ? Quaternion.AngleAxis(turn.magnitude * Mathf.Rad2Deg, turn.normalized) : Quaternion.identity;
+
         /// <summary>
         /// A stumble (milestone 4): the upper body leaning with the fall (world rotation vector,
         /// radians), the hips carried ahead of the feet (world metres), and the arms thrown out for
@@ -579,6 +588,9 @@ namespace PhysicsBattler.Motion
                 rotation = Quaternion.Slerp(guardRotation, moveRotation, moveBlend);
             }
 
+            // (A hit's knock on the arm: the hand back along the blow and turned with it.)
+            grip += KnockR;
+            rotation = TurnOf(KnockTurnR) * rotation;
             TwoBoneIK.Solve(upper, fore, hand, HandFor(grip, rotation, slot), pole);
             hand.rotation = rotation * Quaternion.Inverse(slot.localRotation);
             // (In a blow the weapon goes where the blow needs it: the wrist's limits give way to it as it
@@ -615,6 +627,24 @@ namespace PhysicsBattler.Motion
                 grip += FlailOffset(facing, -1f);
                 RhythmGuard(facing, rhythm.off, rhythm.offTurn, ref grip, ref rotation);
             }
+
+            // Milestone 9c: the shield turns at most so fast (the torso turning under it in a swing
+            // included); it turns about its grip.
+            if (w > 0f && shieldTurnKnown && composeDt > 0f)
+            {
+                float most = (BlockBlend > 0f ? ShieldBlockTurnRate : ShieldTurnRate) * composeDt;
+                rotation = Quaternion.RotateTowards(lastShieldTurn, rotation, most);
+            }
+
+            if (!composingDry)
+            {
+                lastShieldTurn = rotation;
+                shieldTurnKnown = w > 0f;
+            }
+
+            // (A hit's knock on the shield: back along the blow and turned with it.)
+            grip += KnockL;
+            rotation = TurnOf(KnockTurnL) * rotation;
 
             // Held in the hand: as far out as the arm reaches, the elbow a little bent.
             Vector3 handAt = HandFor(grip, rotation, slot);
@@ -655,6 +685,13 @@ namespace PhysicsBattler.Motion
             }
         }
 
+        private float lastShieldYaw;
+        private bool shieldYawKnown;
+        private Quaternion lastShieldTurn;
+        private bool shieldTurnKnown;
+
+        /// <summary>The fastest the held shield turns in the world (degrees per second), and in a block; it never flips.</summary>
+        public const float ShieldTurnRate = 250f, ShieldBlockTurnRate = 720f;
         private static readonly PartId[] ShieldArm = { PartId.UpperArmL, PartId.ForearmL };
 
         /// <summary>How close the shield arm's own forearm may come to the back of the shield it holds (metres at medium size).</summary>
@@ -833,8 +870,18 @@ namespace PhysicsBattler.Motion
         /// <summary>How far out the shield arm reaches at most (share of the arm): the elbow stays a little bent.</summary>
         public const float ShieldReach = 0.92f;
 
-        /// <summary>How far out the shield is held at least (share of the arm, from the shoulder).</summary>
-        public const float HeldOut = 0.88f;
+        /// <summary>
+        /// Milestone 9c: the shield held close, built from the arm. The upper arm hangs from the
+        /// shoulder a little forward and out (the elbow by the ribs), in the chest's frame; the forearm
+        /// points at the threat, turned this far in across the body (degrees), and the shield faces
+        /// where the forearm points (its centre grip). Raised (high), the elbow comes up and forward; in
+        /// a block it opens toward the blow, by at most <see cref="ShieldBlockOpen"/> of the way.
+        /// </summary>
+        public static readonly Vector3 ShieldUpperArm = new Vector3(-0.1f, -1f, -0.15f), ShieldUpperArmHigh = new Vector3(-0.3f, -0.6f, 0.5f);
+        public const float ShieldForearmIn = 15f, ShieldBlockOpen = 0.45f;
+
+        /// <summary>How much of the Fight Rhythm's sway the shield arm takes (it holds its guard steadily).</summary>
+        public const float ShieldSway = 0.3f;
 
         /// <summary>The most a shield's face may turn from its way out from the chest (degrees): any more and it would face its wielder.</summary>
         public const float MaxShieldFaceOff = 60f;
@@ -853,18 +900,38 @@ namespace PhysicsBattler.Motion
             // Toward the threat, inside the cone a shield arm can cover.
             Vector3 direction = aim.direction.sqrMagnitude > 1e-6f ? aim.direction.normalized : frame * Vector3.forward;
             ShieldCone.Angles(direction, chestYaw, out float yaw, out float pitch);
+            // (A threat behind the chest, as the chest turns away in a swing: the shield stays on the
+            // side it was on rather than flipping across the back to the other edge of the cone.)
+            if (Mathf.Abs(yaw) > 135f && shieldYawKnown)
+            {
+                // (Nearer the outward edge last step: out it stays; else across.)
+                yaw = Mathf.Abs(lastShieldYaw + ShieldCone.Out) < Mathf.Abs(lastShieldYaw - ShieldCone.Across) ? -179f : 179f;
+            }
+
             ShieldCone.Clamp(ref yaw, ref pitch, true);
+            if (!composingDry)
+            {
+                lastShieldYaw = yaw;
+                shieldYawKnown = true;
+            }
+
             var turn = frame * Quaternion.Euler(-pitch, yaw, 0f);
 
-            // Milestone 9b: held by its centre grip in front of the shield shoulder, the arm 85% of the
-            // way straight, the forearm pointing at the boss; the Fight Rhythm, its postures and the
-            // tempo's stance move it from there (in the chest's frame, so they turn round with it).
+            // Milestone 9c: held close, built from the arm: the elbow by the ribs (raised for a high
+            // guard, opening toward a block), the forearm toward the threat a little in across the body,
+            // the fist and the shield's face in front of it; the Fight Rhythm sways it a little (in the
+            // chest's frame, so it turns round with it).
             Vector3 shoulder = anim.Part(PartId.UpperArmL).position;
-            float armLength = anim.RestLocalPosition(PartId.ForearmL).magnitude + anim.RestLocalPosition(PartId.HandL).magnitude;
-            float reach = aim.reach > 0f ? aim.reach : 1f;
-            // (The wrist at that reach; the fist and the shield's face in front of it.)
-            float held = (HeldOut * armLength + anim.SlotWeaponL.localPosition.magnitude + shield.faceCenter.z * scale) * reach;
-            Vector3 center = shoulder + turn * (Vector3.forward * held) + turn * rhythm.off;
+            float upperLength = anim.RestLocalPosition(PartId.ForearmL).magnitude;
+            float foreLength = anim.RestLocalPosition(PartId.HandL).magnitude + anim.SlotWeaponL.localPosition.magnitude;
+            // (The forearm points where the face does: the centre grip, the wrist straight.)
+            Vector3 forearm = turn * (Quaternion.Euler(-shield.guardAngles.x, ShieldForearmIn, 0f) * Vector3.forward);
+            float high = Mathf.Clamp01(pitch / 40f);
+            float open = Mathf.Clamp01(((aim.reach > 0f ? aim.reach : 1f) - 1f) / 0.1f) * ShieldBlockOpen;
+            Vector3 upper = frame * Vector3.Lerp(ShieldUpperArm.normalized, ShieldUpperArmHigh.normalized, high).normalized;
+            upper = Vector3.Slerp(upper, forearm, open);
+            Vector3 center = shoulder + upper * upperLength + forearm * foreLength + turn * (Vector3.forward * (shield.faceCenter.z * scale))
+                             + turn * ((rhythm.off - rhythm.offGuard) * ShieldSway);
 
             // (Never behind the chest: turned right out to the side.)
             Vector3 front = frame * Vector3.forward;
@@ -875,7 +942,7 @@ namespace PhysicsBattler.Motion
             }
 
             // Its face along the arm, angled a little up and in across the body (blows glance off it).
-            Vector3 face = turn * (Quaternion.Euler(rhythm.offTurn) * Quaternion.Euler(-shield.guardAngles.x, ShieldInward, 0f) * Vector3.forward);
+            Vector3 face = turn * (Quaternion.Euler((rhythm.offTurn - rhythm.offGuardTurn) * ShieldSway) * Quaternion.Euler(-shield.guardAngles.x, ShieldForearmIn, 0f) * Vector3.forward);
             if (aim.faceBlend > 0f && aim.face.sqrMagnitude > 1e-6f)
             {
                 face = Vector3.Slerp(face, aim.face.normalized, Mathf.Clamp01(aim.faceBlend));

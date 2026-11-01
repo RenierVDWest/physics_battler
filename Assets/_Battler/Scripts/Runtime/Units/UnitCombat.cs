@@ -111,6 +111,22 @@ namespace PhysicsBattler.Units
         /// <summary>The fastest a struck part is sent on its own (m/s, medium size).</summary>
         private const float MaxPartSpeed = 5f;
 
+        // Milestone 9c: a hit on an arm (or on the shield it holds) knocks that arm's pose aside and
+        // lets it come back, critically damped: once out of the way, one smooth return.
+        private readonly Vector3[] armKnock = new Vector3[2], armKnockV = new Vector3[2], armTurn = new Vector3[2], armTurnV = new Vector3[2];
+
+        /// <summary>The arm knock's return (Hz; critically damped, so it peaks about a sixth of a second after the hit and is back in about half a second).</summary>
+        public const float ArmKnockFrequency = 2.5f;
+
+        /// <summary>The most a hit knocks an arm's hand aside (metres at medium size) and turns it (radians, about 25 degrees).</summary>
+        public const float MaxArmKnock = 0.12f, MaxArmTurn = 0.44f;
+
+        /// <summary>A struck arm's hold drops to this share of its pin (about 2 Hz for the arms' 0.7) and comes back over this long (s).</summary>
+        public const float ArmRecoverShare = 0.4f, ArmRecoverTime = 0.4f;
+
+        /// <summary>The most a hit on an arm sends the arm's physical parts (m/s, medium size): the pose carries the visible knock.</summary>
+        public const float MaxArmPartSpeed = 2f;
+
         /// <summary>The fastest a knock-back slides the unit (m/s, medium size).</summary>
         private const float MaxKnockback = 3.5f;
 
@@ -349,7 +365,75 @@ namespace PhysicsBattler.Units
             Pose.ReactShift = reactShift;
             Pose.ReactLean = reactLean;
             Pose.ReactHead = reactHead;
+
+            float wk = 2f * Mathf.PI * ArmKnockFrequency;
+            for (int a = 0; a < 2; a++)
+            {
+                CriticalSpring(ref armKnock[a], ref armKnockV[a], wk, dt);
+                CriticalSpring(ref armTurn[a], ref armTurnV[a], wk, dt);
+            }
+
+            Pose.KnockR = armKnock[0];
+            Pose.KnockTurnR = armTurn[0];
+            Pose.KnockL = armKnock[1];
+            Pose.KnockTurnL = armTurn[1];
         }
+
+        /// <summary>One step of a critically damped spring toward zero, solved exactly (no overshoot, stable at any step).</summary>
+        public static void CriticalSpring(ref Vector3 x, ref Vector3 v, float w, float dt)
+        {
+            float decay = Mathf.Exp(-w * dt);
+            Vector3 c = v + w * x;
+            Vector3 nx = (x + c * dt) * decay;
+            v = (v - c * (w * dt)) * decay;
+            x = nx;
+        }
+
+        /// <summary>
+        /// A hit on an arm, or on the shield it holds: its pose is knocked back along the blow and
+        /// turned by the blow's lever about the hand, up to <see cref="MaxArmKnock"/> and
+        /// <see cref="MaxArmTurn"/>, saturating with the blow; the spring brings it back.
+        /// </summary>
+        private void KnockArm(BodyRegion region, Vector3 impulse, Vector3 point, float carried)
+        {
+            if (region != BodyRegion.ArmL && region != BodyRegion.ArmR)
+            {
+                return;
+            }
+
+            int a = region == BodyRegion.ArmR ? 0 : 1;
+            float j = impulse.magnitude;
+            if (j < 1e-4f)
+            {
+                return;
+            }
+
+            // (How hard, for what it moves: the arm, and what the hand carries.)
+            float mass = carried;
+            foreach (var id in ArmChain(region))
+            {
+                var body = Rig.Part(id).body;
+                mass += body != null ? body.mass : 0f;
+            }
+
+            float hard = Tanh(j / (Mathf.Max(1f, mass) * 3f * SizeSpeed()));
+            float w = 2f * Mathf.PI * ArmKnockFrequency;
+            // (A critically damped spring kicked at e·ω·x from rest peaks at x.)
+            float kick = (float)System.Math.E * w;
+            Vector3 dir = impulse / j;
+            armKnockV[a] += dir * (MaxArmKnock * Body.SizeFactor * hard * kick);
+            var hand = Anim.Part(region == BodyRegion.ArmR ? PartId.HandR : PartId.HandL);
+            Vector3 lever = point - hand.position;
+            Vector3 axis = Vector3.Cross(lever, dir);
+            if (axis.sqrMagnitude > 1e-8f)
+            {
+                armTurnV[a] += axis.normalized * (MaxArmTurn * hard * kick);
+            }
+        }
+
+        private static PartId[] ArmChain(BodyRegion region) => region == BodyRegion.ArmR
+            ? new[] { PartId.HandR, PartId.ForearmR, PartId.UpperArmR }
+            : new[] { PartId.HandL, PartId.ForearmL, PartId.UpperArmL };
 
         private static void Spring(ref Vector3 x, ref Vector3 v, float hz, float damping, float dt)
         {
@@ -654,7 +738,9 @@ namespace PhysicsBattler.Units
             var region = AuthorityController.RegionOf(hit.Part);
             bool hard = r.Reaction == Reaction.Stagger || r.Reaction == Reaction.Flinch;
             float hold = r.Reaction == Reaction.Stagger ? 0.9f : r.Reaction == Reaction.Flinch ? 0.6f : 0.4f;
-            StartRecovery(region, hard ? 0.2f : 0.3f, hold);
+            bool armStruck = (region == BodyRegion.ArmL || region == BodyRegion.ArmR) && (State == UnitState.Standing || State == UnitState.Stumbling);
+            // (A struck arm softens to about 2 Hz and firms up over 0.4 s: its pose carries the knock.)
+            StartRecovery(region, armStruck ? ArmRecoverShare : hard ? 0.2f : 0.3f, armStruck ? ArmRecoverTime : hold);
             foreach (var neighbour in Neighbours(region))
             {
                 StartRecovery(neighbour, hard ? 0.45f : 0.65f, 0.7f * hold);
@@ -665,7 +751,35 @@ namespace PhysicsBattler.Units
             // whole unit: that is what reads as weight.
             Vector3 left = r.Impulse * r.PartShare;
             float taken = 0f;
-            if ((region != BodyRegion.Legs || State == UnitState.Down) && r.Impulse.sqrMagnitude > 1e-8f)
+            bool armHeld = (region == BodyRegion.ArmL || region == BodyRegion.ArmR) && (State == UnitState.Standing || State == UnitState.Stumbling);
+            float carried = hit.Shield && region == BodyRegion.ArmL && Loadout.Off != null ? Loadout.Off.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale : 0f;
+            if (armHeld && r.Impulse.sqrMagnitude > 1e-8f)
+            {
+                // Milestone 9c: a standing unit's arm (and the shield it holds) takes the blow as one:
+                // the hand, forearm and upper arm all move by the same small amount (by their mass and
+                // what the hand carries), at most MaxArmPartSpeed; the pose shows the knock.
+                float chain = carried;
+                foreach (var id in ArmChain(region))
+                {
+                    var body = Rig.Part(id).body;
+                    chain += body != null ? body.mass : 0f;
+                }
+
+                Vector3 change = Vector3.ClampMagnitude(left / Mathf.Max(0.1f, chain), MaxArmPartSpeed * SizeSpeed());
+                foreach (var id in ArmChain(region))
+                {
+                    var body = Rig.Part(id).body;
+                    if (body != null && !body.isKinematic)
+                    {
+                        body.AddForce(change * body.mass, ForceMode.Impulse);
+                        taken += change.magnitude * body.mass;
+                    }
+                }
+
+                taken += change.magnitude * carried;
+                KnockArm(region, r.Impulse, hit.Point, carried);
+            }
+            else if ((region != BodyRegion.Legs || State == UnitState.Down) && r.Impulse.sqrMagnitude > 1e-8f)
             {
                 var id = hit.Part;
                 float cap = MaxPartSpeed * SizeSpeed();

@@ -9,11 +9,50 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 9b, hands, wrists and bodies on the ground
+## Current state: milestone 9c (first part), hits that land softly and a calm, close shield
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
 combos; the combat plan's milestones move back by one): https://claude.ai/artifact/HCsdNXmL5zVwV1ep1ta5Gj
+
+### Milestone 9c, first part: hits that land softly, a calm and close shield
+
+Plan (straight wrists, a close shield, hits that land softly): https://claude.ai/artifact/UJNwdKChsM7vidDhArKF9W.
+This is its first push; the second brings the arm solver (straight wrists), the joint limits kept
+while standing, a designed rebound for stopped blows and a solid, weighted shield.
+
+**A servo instead of velocity pinning** (`AuthorityController`). A held part used to get, each step,
+the velocity that would land it on its pose, blended with its own by the pin. That rings (about 9 Hz
+at the arms' 0.7, slower as the pin drops), which is the antenna buzz after a hit. Now each part moves
+with its pose (the pose's own velocity over the last step) and a critically damped spring closes what
+is left, solved implicitly: pushed off its pose it comes back once, smoothly, at any stiffness. The pin
+still sets how firmly (`HoldFrequency`: 0.7 is about 7 Hz, 0.3 about 2.3 Hz); 1 still lands exactly.
+
+**A hit knocks an arm aside once** (`UnitCombat.KnockArm`). A hit on an arm, or on the shield it
+holds, kicks a critically damped spring in that arm's pose (2.5 Hz): the hand goes back along the blow
+and turns with its lever, up to 12 cm and 25 degrees (saturating with the blow), and comes straight
+back. The physical arm takes the blow as one, hand, forearm and upper arm together, with the shield's
+weight counted, at most 2 m/s; it softens to about 2 Hz and firms up over 0.4 s.
+
+**The shield close and calm** (`PosePipeline.ControlledShield`, `UnitShield`). The guard is built
+from the arm: the elbow hangs by the ribs, the forearm points toward the threat 15 degrees in across
+the body, and the shield faces where the forearm points (the centre grip, wrist straight). Raised, the
+elbow comes up; in a block it opens toward the blow. Its aim holds still until the threat has moved
+12 degrees, then holds again for 0.3 s; its state holds 0.25 s; it eases in critically damped. A seen
+wind-up turns it once toward where the blow will come from (it no longer chases the weapon round), and
+only from a clearly seen attacker within reach. It turns at most 250 degrees a second (720 in a block),
+never flips across the back as the chest turns away, and takes a third of the Fight Rhythm's sway.
+
+**Sandbox.** **J**: the shield test. A shield-holder in the middle; a sword unit and a club unit take
+turns striking at it from in front (two blows each). Watch the knock and the return.
+
+**Measures.** `arms [seed]` (runner): a whole fight, measuring the pose: the weapon wrist's bend in the
+guard and in blows (as the reference attack FBXs are measured: median 23, 95th 45 degrees), the shield's
+turning by state with no hit in the last second, and the shield hand's distance from the chest.
+`python3 Tools/Playtest/arms.py <session>` (also a section in `analyze.py`): the same on the physical
+body of a playtest, plus the struck part's turns back, offset and spin in the second after a hit, the
+attacker's weapon hand after a stopped blow, and joints past their limits. `Tools/Playtest/reference_wrists.py`
+measures the reference FBXs (Blender as a module).
 
 ### Milestone 9b: hands, wrists and bodies on the ground
 
@@ -431,6 +470,7 @@ and the real units spawn on the markers.
 | H | Rhythm gallery: each Fight Rhythm's base, then every posture slowed to 40% and at full speed (H again stops) |
 | K | Sever test: a sword unit cuts at an enemy's elbow; the arm should come off there |
 | D | Ground test: the two lightest go down (one dead), the others walk back and forth across them for 20 s |
+| J | Shield test: a sword unit and a club unit take turns striking a shield-holder's shield |
 | T | Turn everyone around (and back): makes them step and turn on the spot |
 | P / . | Pause / step one physics frame |
 | M | Mark the playtest log |

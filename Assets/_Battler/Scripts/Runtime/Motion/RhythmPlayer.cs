@@ -17,12 +17,15 @@ namespace PhysicsBattler.Motion
         public float hipTurn;     // degrees the pelvis turns on its own (the chest keeps its turn)
         public Vector2 head;
         public Vector3 main, mainTurn, off, offTurn;
+        /// <summary>Milestone 9c: the style's off-hand guard within <see cref="off"/> (a shield held under control takes only what moves around it).</summary>
+        public Vector3 offGuard, offGuardTurn;
 
         public static RhythmSample operator +(RhythmSample a, RhythmSample b) => new RhythmSample
         {
             hips = a.hips + b.hips, drop = a.drop + b.drop, lean = a.lean + b.lean, roll = a.roll + b.roll, turn = a.turn + b.turn,
             hipTurn = a.hipTurn + b.hipTurn, head = a.head + b.head, main = a.main + b.main, mainTurn = a.mainTurn + b.mainTurn,
             off = a.off + b.off, offTurn = a.offTurn + b.offTurn,
+            offGuard = a.offGuard + b.offGuard, offGuardTurn = a.offGuardTurn + b.offGuardTurn,
         };
     }
 
@@ -486,6 +489,8 @@ namespace PhysicsBattler.Motion
             r.mainTurn = d.mainGuardTurn + loopTurn * baseWeight;
             r.off = (d.offGuard + offHand) * size + Vector3.down * (1.3f * sag);
             r.offTurn = d.offGuardTurn;
+            r.offGuard = d.offGuard * size;
+            r.offGuardTurn = d.offGuardTurn;
 
             if (Current != null)
             {

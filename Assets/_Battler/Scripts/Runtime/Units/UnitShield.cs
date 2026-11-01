@@ -52,8 +52,18 @@ namespace PhysicsBattler.Units
             }
         }
 
-        /// <summary>The fastest the shield turns toward a blow or a wind-up, and back to the guard (degrees per second), and how stiffly (rad/s).</summary>
-        public const float ShieldFast = 300f, ShieldSlow = 150f, ShieldStiffFast = 16f, ShieldStiffSlow = 9f;
+        /// <summary>The fastest the shield turns toward a blow, toward a wind-up, and back to the guard (degrees per second), and how stiffly (rad/s; critically damped).</summary>
+        public const float ShieldFast = 300f, ShieldTrack = 250f, ShieldSlow = 150f, ShieldStiffFast = 16f, ShieldStiffSlow = 9f;
+
+        /// <summary>
+        /// Milestone 9c: the shield's aim holds still until the threat has moved this far from it
+        /// (degrees), and then for at least <see cref="ShieldAimHold"/> (seconds) after each move; its
+        /// state (guard, track, raised) holds at least <see cref="ShieldModeHold"/>. A block goes at once.
+        /// </summary>
+        public const float ShieldDeadband = 12f, ShieldAimHold = 0.3f, ShieldModeHold = 0.25f;
+
+        private float heldYaw, heldPitch, heldSince = float.NegativeInfinity, modeSince = float.NegativeInfinity;
+        private Vector3 heldThreat;
 
         // The shield's way from the chest (world yaw and pitch), eased.
         private float shieldYaw, shieldPitch, shieldYawSpeed, shieldPitchSpeed;
@@ -140,8 +150,9 @@ namespace PhysicsBattler.Units
                 }
                 else
                 {
+                    // (Toward where the blow will come in from, once: it doesn't chase the weapon round.)
                     mode = ShieldState.Track;
-                    threat = WindUp(incomingAttacker);
+                    threat = ComesFrom(incoming, contact, chest, 0.9f * size);
                     if (!inReach)
                     {
                         turnToThreat = incomingAttacker.transform.position;
@@ -154,10 +165,11 @@ namespace PhysicsBattler.Units
                 if (foe != null)
                 {
                     var blow = foe.CurrentMove;
-                    if (blow != null && !blow.ContactPassed && ReferenceEquals(blow.Target, this) && blow.HasLastStrike && Sees(foe) >= Sight.Edge)
+                    if (blow != null && !blow.ContactPassed && ReferenceEquals(blow.Target, this) && blow.HasLastStrike && Sees(foe) >= Sight.Clear
+                        && (foe.transform.position - transform.position).magnitude <= TrackRange * Mathf.Max(size, foe.Body.SizeFactor))
                     {
                         mode = ShieldState.Track;
-                        threat = WindUp(foe);
+                        threat = ComesFrom(blow, blow.Move.ProgressAt(blow.ContactTime), chest, 0.9f * size);
                     }
                     else
                     {
@@ -172,25 +184,52 @@ namespace PhysicsBattler.Units
                 }
             }
 
+            // Milestone 9c: its state holds a moment (a block goes at once).
+            if (mode != ShieldMode && mode != ShieldState.Block && ShieldMode != ShieldState.None && shieldPlaced
+                && LocalTime - modeSince < ShieldModeHold)
+            {
+                mode = ShieldMode;
+                threat = heldThreat;
+            }
+            else if (mode != ShieldMode)
+            {
+                modeSince = LocalTime;
+            }
+
+            heldThreat = threat;
+
             // Toward it at a person's pace, from inside the cone (a threat behind it doesn't drag the
             // shield round the back).
             Vector3 to = threat - chest;
             ShieldCone.Angles(to, chestYaw, out float yaw, out float pitch);
             ShieldCone.Clamp(ref yaw, ref pitch, true);
             float targetYaw = chestYaw + yaw;
-            bool quick = mode == ShieldState.Block || mode == ShieldState.Track;
+
+            // Milestone 9c: the aim holds still until the threat has moved clearly (or a block comes),
+            // and then not again for a moment: the shield doesn't follow every sway and step.
+            bool moved = Mathf.Abs(Mathf.DeltaAngle(heldYaw, targetYaw)) > ShieldDeadband || Mathf.Abs(pitch - heldPitch) > ShieldDeadband;
+            bool modeChanged = mode != ShieldMode;
+            if (!shieldPlaced || mode == ShieldState.Block || modeChanged || (moved && LocalTime - heldSince >= ShieldAimHold))
+            {
+                heldYaw = targetYaw;
+                heldPitch = pitch;
+                heldSince = LocalTime;
+            }
+
             if (!shieldPlaced)
             {
-                shieldYaw = targetYaw;
-                shieldPitch = pitch;
+                shieldYaw = heldYaw;
+                shieldPitch = heldPitch;
                 shieldYawSpeed = shieldPitchSpeed = 0f;
                 shieldPlaced = true;
             }
             else if (dt > 0f)
             {
-                float stiff = quick ? ShieldStiffFast : ShieldStiffSlow, most = quick ? ShieldFast : ShieldSlow;
-                shieldYaw = Ease(shieldYaw, ref shieldYawSpeed, shieldYaw + Mathf.DeltaAngle(shieldYaw, targetYaw), stiff, most, dt);
-                shieldPitch = Ease(shieldPitch, ref shieldPitchSpeed, pitch, stiff, most, dt);
+                bool quick = mode == ShieldState.Block || mode == ShieldState.Track;
+                float stiff = quick ? ShieldStiffFast : ShieldStiffSlow;
+                float most = mode == ShieldState.Block ? ShieldFast : mode == ShieldState.Track ? ShieldTrack : ShieldSlow;
+                shieldYaw = Ease(shieldYaw, ref shieldYawSpeed, shieldYaw + Mathf.DeltaAngle(shieldYaw, heldYaw), stiff, most, dt);
+                shieldPitch = Ease(shieldPitch, ref shieldPitchSpeed, heldPitch, stiff, most, dt);
             }
 
             ShieldMode = mode;
@@ -249,12 +288,23 @@ namespace PhysicsBattler.Units
             Pose.BlockBlend = BlockBlend;
         }
 
-        /// <summary>A critically damped approach, at most <paramref name="most"/> per second.</summary>
-        private static float Ease(float x, ref float v, float target, float stiffness, float most, float dt)
+        /// <summary>
+        /// A critically damped approach (solved exactly: it arrives without overshooting, at any
+        /// step), at most <paramref name="most"/> per second.
+        /// </summary>
+        public static float Ease(float x, ref float v, float target, float stiffness, float most, float dt)
         {
-            v += (stiffness * stiffness * (target - x) - 2f * stiffness * v) * dt;
+            float e = x - target;
+            float decay = Mathf.Exp(-stiffness * dt);
+            float c = v + stiffness * e;
+            float next = target + (e + c * dt) * decay;
+            v = (v - c * stiffness * dt) * decay;
+            float step = Mathf.Clamp(next - x, -most * dt, most * dt);
             v = Mathf.Clamp(v, -most, most);
-            return x + v * dt;
+            return x + step;
         }
+
+        /// <summary>A seen wind-up is tracked only by a unit this close to the attacker (metres at medium size): further off the shield stays in its guard.</summary>
+        public const float TrackRange = 2.6f;
     }
 }

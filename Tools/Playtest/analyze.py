@@ -1210,6 +1210,15 @@ def write_report(session, out, args, films):
         w(f"(Bodies on the ground: not measured: {e})")
         w("")
 
+    # Milestone 9c: arms, wrists and the shield (Tools/Playtest/arms.py).
+    try:
+        import arms
+        for line in arms.section(session)[0]:
+            w(line)
+    except Exception as e:
+        w(f"(Arms, wrists and the shield: not measured: {e})")
+        w("")
+
     if session.meta.get("marks"):
         w("## Marks")
         w("")
