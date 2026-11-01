@@ -460,12 +460,61 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 594bb997d55c3fd499cf77221281cc68, type: 2}
   - {fileID: 11400000, guid: 65faa5dd69da03d48a543fd3ec780fa6, type: 2}
   - {fileID: 11400000, guid: f5154df95d87fe24b93a43d78ebc8b6d, type: 2}
+  - {fileID: 11400000, guid: 0ea0719110bbd4242b6d81c00bfb30de, type: 2}
+  - {fileID: 11400000, guid: d82b8ab5702d41a4594db65f80b2fbbb, type: 2}
   gap: {x: 1.2, y: 2.4}
   leadInChance: 0.5
   aggression: 0.5
   postureCost: 0.006
-  blowCost: 0.012
+  blowCost: 0
   hitCost: 0.35
   energyRegen: 0.0015
-  minEnergy: 0.15
+  minEnergy: 0.05
   tiredGuardDrop: 0.1
+  temperament:
+    gatherRegen: 0.25
+    probeRegen: 0.1
+    walkRegen: 0.05
+    shellRegen: 0.02
+    probeCost: 0.06
+    pressCost: 0.15
+    probeAt: 0.5
+    pressAt: 0.85
+    pressAggression: 0.45
+    pressEnd: 0.25
+    burstMax: 3
+    holdChance: 0.5
+    fullCharge: 0.95
+    probeInterval: {x: 1, y: 2}
+    pressGap: {x: 0.2, y: 0.45}
+    maxGather: 5
+    composure: 0.5
+    maxShell: 4
+    counterEnergy: 0.25
+    gather:
+      crouch: 0.06
+      lean: -3
+      forward: -0.06
+      chin: 5
+      main: {x: 0, y: -0.06, z: -0.08}
+      off: {x: 0, y: -0.04, z: -0.12}
+      loopSpeed: 0.75
+      loopSize: 1.2
+    press:
+      crouch: 0.02
+      lean: 8
+      forward: 0.07
+      chin: 3
+      main: {x: 0, y: 0.08, z: 0.04}
+      off: {x: 0, y: 0.04, z: 0.16}
+      loopSpeed: 1.3
+      loopSize: 1.2
+    shell:
+      crouch: 0.11
+      lean: 8
+      forward: 0
+      chin: 10
+      main: {x: 0, y: 0.04, z: -0.1}
+      off: {x: 0.04, y: 0.22, z: 0.04}
+      loopSpeed: 1.3
+      loopSize: 0.5

@@ -545,3 +545,16 @@
    15.383 |    924 | A Medium       | step     | right foot planted at (-0.33, -0.95), 1 cm from its spot
    15.417 |    926 | A Small        | contact  | ForearmR touched Ground at 2.7 m/s
    15.467 |    929 | A Small        | contact  | FootR touched Ground at 2.3 m/s
+   15.500 |    931 | B Medium       | step     | left foot planted at (-1.63, 0.19), 1 cm from its spot
+   15.517 |    932 | A Small        | contact  | FootL touched Ground at 3.8 m/s
+   15.517 |    932 | A Small        | contact  | ShinL touched Ground at 3.1 m/s
+   15.517 |    932 | A Small        | contact  | ThighL touched Ground at 1.2 m/s
+   15.633 |    939 | A Small        | contact  | HandR touched Ground at 2.9 m/s
+   15.650 |    940 | A Small        | contact  | Head touched Ground at 2.1 m/s
+   15.700 |    943 | A Small        | contact  | HandR touched Ground at 1.8 m/s
+   15.717 |    944 | B Small        | step     | right foot planted at (-1.42, 0.88), 27 cm from its spot
+   15.800 |    949 | A Small        | despawn  | recording stopped
+   15.800 |    949 | A Medium       | despawn  | recording stopped
+   15.800 |    949 | A Large        | despawn  | recording stopped
+   15.800 |    949 | B Small        | despawn  | recording stopped
+   15.800 |    949 | B Medium       | despawn  |

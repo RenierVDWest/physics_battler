@@ -16,19 +16,20 @@ MonoBehaviour:
   duration: 0.5
   weight: 1.2
   leadIn: 1
+  use: 6
   feintMove: ClubSwing
   feintDepth: 0.4
   keys:
   - at: 0.4
     hips: {x: 0, y: 0, z: 0}
-    crouch: 0.04
-    lean: 4
+    crouch: 0.06
+    lean: 8
     roll: 0
-    turn: 0
+    turn: 8
     head: {x: 0, y: 0}
     main: {x: 0, y: 0, z: 0}
     mainTurn: {x: 0, y: 0, z: 0}
-    off: {x: 0, y: -0.08, z: 0}
+    off: {x: 0, y: -0.1, z: 0.04}
     offTurn: {x: 0, y: 0, z: 0}
     travel: {x: 0, y: 0, z: 0}
   steps: []

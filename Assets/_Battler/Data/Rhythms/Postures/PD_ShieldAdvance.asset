@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7762058677c613a4698a1ef0a53eb90f, type: 3}
+  m_Name: PD_ShieldAdvance
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Motion.PostureDefinition
+  kind: 1
+  duration: 0.55
+  weight: 1.4
+  leadIn: 1
+  use: 4
+  feintMove: 
+  feintDepth: 0.5
+  keys:
+  - at: 0.45
+    hips: {x: 0, y: 0, z: 0.08}
+    crouch: 0.06
+    lean: 11
+    roll: 0
+    turn: 0
+    head: {x: 5, y: 0}
+    main: {x: 0, y: 0.06, z: 0.1}
+    mainTurn: {x: 0, y: 0, z: 0}
+    off: {x: 0, y: 0.06, z: 0.2}
+    offTurn: {x: 0, y: 0, z: 0}
+    travel: {x: 0, y: 0, z: 0.14}
+  - at: 1
+    hips: {x: 0, y: 0, z: 0}
+    crouch: 0
+    lean: 0
+    roll: 0
+    turn: 0
+    head: {x: 0, y: 0}
+    main: {x: 0, y: 0, z: 0}
+    mainTurn: {x: 0, y: 0, z: 0}
+    off: {x: 0, y: 0, z: 0}
+    offTurn: {x: 0, y: 0, z: 0}
+    travel: {x: 0, y: 0, z: 0.2}
+  steps: []
+  openings:
+  - from: 0.2
+    to: 0.5
+    parts: 8
+  followedBy: ShieldPress
+  followBias: 1.5

@@ -16,38 +16,39 @@ MonoBehaviour:
   duration: 0.6
   weight: 1
   leadIn: 1
+  use: 6
   feintMove: 
   feintDepth: 0.5
   keys:
   - at: 0.45
-    hips: {x: 0, y: 0, z: 0.06}
+    hips: {x: 0, y: 0, z: 0.1}
     crouch: 0
-    lean: 6
+    lean: 12
     roll: 0
-    turn: -10
+    turn: -16
     head: {x: 0, y: 0}
     main: {x: 0, y: 0, z: 0}
     mainTurn: {x: 0, y: 0, z: 0}
-    off: {x: 0, y: 0.02, z: 0.2}
+    off: {x: 0, y: 0.06, z: 0.42}
     offTurn: {x: 0, y: 0, z: 0}
     travel: {x: 0, y: 0, z: 0}
   - at: 0.75
-    hips: {x: 0, y: 0, z: 0.03}
+    hips: {x: 0, y: 0, z: 0.05}
     crouch: 0
-    lean: 3
+    lean: 5
     roll: 0
-    turn: -4
+    turn: -6
     head: {x: 0, y: 0}
     main: {x: 0, y: 0, z: 0}
     mainTurn: {x: 0, y: 0, z: 0}
-    off: {x: 0, y: 0, z: 0.08}
+    off: {x: 0, y: 0.02, z: 0.14}
     offTurn: {x: 0, y: 0, z: 0}
     travel: {x: 0, y: 0, z: 0}
   steps:
   - at: 0.1
     foot: 0
     to: 0
-    offset: {x: 0, y: 0, z: 0.12}
+    offset: {x: 0, y: 0, z: 0.18}
     length: 0.3
   - at: 0.65
     foot: 0
