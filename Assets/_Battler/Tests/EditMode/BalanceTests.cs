@@ -524,7 +524,9 @@ namespace PhysicsBattler.Tests
                     Assert.IsTrue(unit.Knows(enemy), $"{what}: it knows the enemy is there");
                     unit.Knock(unit.Root.forward * (faceDown ? 2.6f : -2.6f));
                     Lay(unit, faceDown);
-                    float pop = 0f, lowest = float.MaxValue, inside = 0f, insideWhen = 0f;
+                    float pop = 0f, lowest = float.MaxValue, inside = 0f, insideWhen = 0f, armIn = 0f, armInWhen = 0f, armPast = 0f;
+                    string armPastWhere = "";
+                    float lowestWhen = 0f;
                     string popWhere = "";
                     int late = 0, facing = 0;
                     var last = new Vector3[PartInfo.Count];
@@ -564,7 +566,29 @@ namespace PhysicsBattler.Tests
                             continue;
                         }
 
-                        lowest = Mathf.Min(lowest, unit.WeaponGroundGap);
+                        if (unit.WeaponGroundGap < lowest)
+                        {
+                            lowest = unit.WeaponGroundGap;
+                            lowestWhen = unit.StateTime;
+                        }
+
+                        float armNow = unit.GetUpShieldArmInBody;
+                        if (armNow > armIn)
+                        {
+                            armIn = armNow;
+                            armInWhen = unit.StateTime;
+                        }
+
+                        foreach (var id in new[] { PartId.UpperArmL, PartId.ForearmL, PartId.HandL })
+                        {
+                            float past = PastLimits(unit, id);
+                            if (past > armPast)
+                            {
+                                armPast = past;
+                                armPastWhere = $"{id} at {unit.StateTime:0.00} s";
+                            }
+                        }
+
                         float inNow = ShieldInside(unit);
                         if (inNow > inside)
                         {
@@ -586,8 +610,10 @@ namespace PhysicsBattler.Tests
 
                     Assert.AreEqual(UnitState.Standing, unit.State, $"{what}: it gets up ({t * Dt:0.0} s)");
                     Assert.Less(pop, 0.04f, $"{what}: no part of the pose pops ({pop * 100f:0.0} cm: {popWhere})");
-                    Assert.GreaterOrEqual(lowest, -0.01f, $"{what}: nothing it holds goes into the ground ({lowest * 100f:0.0} cm)");
+                    Assert.GreaterOrEqual(lowest, -0.01f, $"{what}: nothing it holds goes into the ground ({lowest * 100f:0.0} cm at {lowestWhen:0.00} s)");
                     Assert.LessOrEqual(inside, 0.03f, $"{what}: the shield stays out of its own body ({inside * 100f:0.0} cm in at {insideWhen:0.00} s)");
+                    Assert.LessOrEqual(armIn, 0.03f, $"{what}: the shield arm stays out of its own head and body ({armIn * 100f:0.0} cm in at {armInWhen:0.00} s)");
+                    Assert.LessOrEqual(armPast, 10f, $"{what}: the shield arm's joints stay inside their limits ({armPast:0} degrees past: {armPastWhere})");
                     Assert.Greater(late, 10, "the second half was seen");
                     Assert.GreaterOrEqual(facing / (float)late, 0.8f, $"{what}: the shield faces the enemy over the second half ({facing}/{late} steps)");
                 }
@@ -596,6 +622,15 @@ namespace PhysicsBattler.Tests
                     Destroy(everyone);
                 }
             }
+        }
+
+        /// <summary>How far a joint of the pose is past its limits (the joint table; degrees).</summary>
+        internal static float PastLimits(UnitController unit, PartId id)
+        {
+            var part = unit.Anim.Part(id);
+            var parent = unit.Anim.Part(PartInfo.Parent(id));
+            Quaternion local = Quaternion.Inverse(unit.Anim.RestLocalRotation(id)) * (Quaternion.Inverse(parent.rotation) * part.rotation);
+            return PhysicsBattler.Muscles.JointMath.PastLimits(local, PhysicsBattler.Muscles.JointLimitTable.For(id), out _, out _, out _);
         }
 
         /// <summary>How deep the shield's rim and middle go into its wielder's torso (metres; 0 clear).</summary>

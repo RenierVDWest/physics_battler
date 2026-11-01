@@ -130,7 +130,7 @@ namespace PhysicsBattler.Motion
             // 2. Still short: the whole arm turns up at the shoulder (the elbow keeps its bend and its
             // side), as far as lifts the low part to its place, at most MostRaise; twice over (it turns
             // with the arm).
-            for (int pass = 0; pass < (free ? 4 : 2); pass++)
+            for (int pass = 0; pass < (free ? 4 : 3); pass++)
             {
                 low = Lowest(slot, weapon, scale, out _, out at);
                 if (low >= want)

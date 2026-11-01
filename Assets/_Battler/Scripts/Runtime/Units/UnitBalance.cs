@@ -69,6 +69,9 @@ namespace PhysicsBattler.Units
         /// <summary>Which way the shield faces getting up (world; zero without one, or not getting up).</summary>
         public Vector3 GetUpShieldFace => State == UnitState.GettingUp ? getUp.ShieldFace : Vector3.zero;
 
+        /// <summary>How deep the shield arm goes into its own torso or head getting up (metres; 0 clear, or not getting up).</summary>
+        public float GetUpShieldArmInBody => State == UnitState.GettingUp && getUp.Shielded ? getUp.ArmInBody() : 0f;
+
         /// <summary>When the standing pose starts to take over a get-up, and how long it lasts (seconds).</summary>
         public float GetUpStandFrom => getUp.StandFrom;
         public float GetUpBlendIn => getUp.BlendIn;

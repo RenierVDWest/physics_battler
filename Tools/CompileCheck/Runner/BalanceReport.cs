@@ -26,7 +26,8 @@ internal static class BalanceReport
             {
                 if (only != null && !$"{body}_{faceDown}".Contains(only)) continue;
                 var unit = BalanceTests.Build(body, Vector3.zero, 30f, 0);
-                unit.Equip(WeaponDefinition.CreateDefault(WeaponKind.Sword), null);
+                // (The medium with its shield, as it fights: milestone 9c's shield get-ups.)
+                unit.Equip(WeaponDefinition.CreateDefault(WeaponKind.Sword), body == "Medium" ? WeaponDefinition.CreateDefault(WeaponKind.Shield) : null);
                 BalanceTests.Simulate(new[] { unit }, 10);
                 unit.Knock(unit.Root.forward * (faceDown ? 2.6f : -2.6f) * Mathf.Sqrt(unit.Body.SizeFactor));
                 BalanceTests.Lay(unit, faceDown);
