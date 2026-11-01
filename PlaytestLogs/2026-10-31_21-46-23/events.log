@@ -1,0 +1,873 @@
+# Physics Battler playtest 2026-10-31_21-46-23
+# time (s since Play) | physics step | who | what | details
+    0.000 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    0.000 |      0 | -              | session  | saving 300x300 pictures of the game view, 8 per second, to frames/
+    0.000 |      0 | -              | console  | [Joint probe] drive standard (asked +35, got 35.0), X limit sign -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    0.000 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35.0), X limit sign -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    0.000 |      0 | -              | input    | spawn: 6 units on the 8x8 board
+    0.000 |      1 | A Small        | spawn    | at (-2.40, -2.40) facing 0°, team 0, Small body, mass 38.0 kg, leg length 0.46 m, rest pelvis height 0.56 m, profile UP_Small, style CS_Small
+    0.000 |      1 | A Medium       | spawn    | at (-0.80, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    0.000 |      1 | A Large        | spawn    | at (0.80, -2.40) facing 0°, team 0, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    0.000 |      1 | B Small        | spawn    | at (0.80, 2.40) facing 180°, team 1, Small body, mass 38.0 kg, leg length 0.46 m, rest pelvis height 0.56 m, profile UP_Small, style CS_Small
+    0.000 |      1 | B Medium       | spawn    | at (-2.40, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    0.000 |      1 | B Large        | spawn    | at (-0.80, 2.40) facing 180°, team 1, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    0.000 |      1 | A Small        | equip    | WD_Club, scaled 0.55
+    0.000 |      1 | A Medium       | equip    | WD_Sword and WD_Shield, scaled 1.00
+    0.000 |      1 | A Large        | equip    | WD_Club, scaled 1.24
+    0.000 |      1 | B Small        | equip    | WD_Club, scaled 0.55
+    0.000 |      1 | B Medium       | equip    | WD_Sword and WD_Shield, scaled 1.00
+    0.000 |      1 | B Large        | equip    | WD_Club, scaled 1.24
+    0.317 |     20 | B Small        | rhythm   | posture TriangleStep, 0.41 s; open: Knees 0.14–0.24 s; energy 0.99, aggression 0.55
+    0.367 |     23 | A Small        | step     | right foot planted at (-2.29, -2.36), 1 cm from its spot
+    0.367 |     23 | B Small        | step     | right foot planted at (0.69, 2.36), 2 cm from its spot
+    0.400 |     25 | A Medium       | step     | right foot planted at (-0.59, -2.29), 1 cm from its spot
+    0.400 |     25 | A Large        | step     | right foot planted at (1.01, -2.23), 0 cm from its spot
+    0.400 |     25 | B Medium       | step     | right foot planted at (-2.61, 2.29), 1 cm from its spot
+    0.400 |     25 | B Large        | step     | right foot planted at (-1.01, 2.23), 0 cm from its spot
+    0.417 |     26 | A Small        | rhythm   | posture TriangleStep, 0.41 s; open: Knees 0.14–0.24 s; energy 0.99, aggression 0.55
+    0.533 |     33 | B Small        | step     | left foot planted at (0.89, 2.05), 5 cm from its spot
+    0.550 |     34 | A Small        | step     | left foot planted at (-2.45, -2.08), 9 cm from its spot
+    0.567 |     35 | B Large        | rhythm   | posture Shift, 0.78 s; open: Belly Knees 0.27–0.47 s; energy 0.99, aggression 0.65
+    0.617 |     38 | A Medium       | step     | left foot planted at (-0.85, -1.79), 1 cm from its spot
+    0.617 |     38 | A Large        | step     | left foot planted at (0.59, -1.66), 1 cm from its spot
+    0.617 |     38 | B Medium       | step     | left foot planted at (-2.35, 1.79), 1 cm from its spot
+    0.617 |     38 | B Large        | step     | left foot planted at (-0.58, 1.67), 0 cm from its spot
+    0.683 |     42 | A Small        | step     | right foot planted at (-2.44, -2.11), 10 cm from its spot
+    0.683 |     42 | A Large        | rhythm   | posture Shift, 0.78 s; open: Belly Knees 0.27–0.47 s; energy 0.99, aggression 0.65
+    0.717 |     44 | B Small        | step     | right foot planted at (0.76, 2.17), 3 cm from its spot
+    0.833 |     51 | A Medium       | step     | right foot planted at (-0.53, -1.99), 1 cm from its spot
+    0.833 |     51 | B Medium       | step     | right foot planted at (-2.67, 1.99), 1 cm from its spot
+    0.850 |     52 | A Small        | step     | left foot planted at (-2.55, -1.88), 0 cm from its spot
+    0.850 |     52 | B Large        | step     | right foot planted at (-1.00, 1.68), 14 cm from its spot
+    0.900 |     55 | B Small        | step     | left foot planted at (0.94, 1.86), 1 cm from its spot
+    0.950 |     58 | B Medium       | rhythm   | posture HighFeint, 0.55 s; open: ElbowR 0.19–0.36 s; energy 0.99, aggression 0.50
+    0.967 |     59 | A Large        | step     | right foot planted at (1.02, -1.59), 13 cm from its spot
+    1.050 |     64 | A Small        | step     | right foot planted at (-2.36, -2.02), 1 cm from its spot
+    1.050 |     64 | A Medium       | step     | left foot planted at (-0.79, -1.49), 1 cm from its spot
+    1.050 |     64 | B Medium       | step     | left foot planted at (-2.41, 1.48), 1 cm from its spot
+    1.067 |     65 | B Large        | step     | left foot planted at (-0.57, 1.28), 0 cm from its spot
+    1.083 |     66 | B Small        | step     | right foot planted at (0.75, 2.01), 0 cm from its spot
+    1.100 |     67 | A Medium       | rhythm   | posture HighFeint, 0.55 s; open: ElbowR 0.19–0.36 s; energy 0.99, aggression 0.50
+    1.183 |     72 | A Large        | step     | left foot planted at (0.49, -1.21), 12 cm from its spot
+    1.233 |     75 | A Small        | step     | left foot planted at (-2.53, -1.74), 0 cm from its spot
+    1.267 |     77 | A Medium       | step     | right foot planted at (-0.47, -1.68), 1 cm from its spot
+    1.267 |     77 | B Small        | step     | left foot planted at (0.90, 1.72), 2 cm from its spot
+    1.267 |     77 | B Medium       | step     | right foot planted at (-2.74, 1.68), 1 cm from its spot
+    1.400 |     85 | A Large        | step     | right foot planted at (0.89, -1.28), 1 cm from its spot
+    1.417 |     86 | A Small        | step     | right foot planted at (-2.34, -1.88), 1 cm from its spot
+    1.433 |     87 | B Large        | step     | right foot planted at (-0.98, 1.32), 0 cm from its spot
+    1.467 |     89 | B Small        | step     | right foot planted at (0.77, 1.86), 0 cm from its spot
+    1.483 |     90 | A Medium       | step     | left foot planted at (-0.75, -1.18), 1 cm from its spot
+    1.483 |     90 | B Medium       | step     | left foot planted at (-2.46, 1.18), 1 cm from its spot
+    1.600 |     97 | A Small        | step     | left foot planted at (-2.51, -1.60), 0 cm from its spot
+    1.617 |     98 | A Large        | step     | left foot planted at (0.24, -1.00), 1 cm from its spot
+    1.650 |    100 | B Small        | step     | left foot planted at (0.93, 1.57), 1 cm from its spot
+    1.650 |    100 | B Large        | step     | left foot planted at (-0.53, 0.78), 0 cm from its spot
+    1.700 |    103 | A Medium       | step     | right foot planted at (-0.41, -1.37), 1 cm from its spot
+    1.700 |    103 | B Medium       | step     | right foot planted at (-2.79, 1.37), 1 cm from its spot
+    1.783 |    108 | A Small        | step     | right foot planted at (-2.33, -1.73), 1 cm from its spot
+    1.817 |    110 | B Small        | rhythm   | posture AbanicoFlurry, 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.99, aggression 0.55
+    1.833 |    111 | A Large        | step     | right foot planted at (0.70, -0.95), 1 cm from its spot
+    1.850 |    112 | B Small        | step     | right foot planted at (0.79, 1.72), 0 cm from its spot
+    1.867 |    113 | B Large        | step     | right foot planted at (-0.96, 0.94), 1 cm from its spot
+    1.917 |    116 | A Medium       | step     | left foot planted at (-0.71, -0.88), 1 cm from its spot
+    1.917 |    116 | B Medium       | step     | left foot planted at (-2.50, 0.88), 1 cm from its spot
+    1.967 |    119 | A Small        | rhythm   | posture AbanicoFlurry, 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.99, aggression 0.55
+    1.983 |    120 | A Small        | step     | left foot planted at (-2.50, -1.46), 0 cm from its spot
+    2.033 |    123 | B Small        | step     | left foot planted at (0.92, 1.42), 1 cm from its spot
+    2.050 |    124 | A Large        | step     | left foot planted at (0.03, -0.70), 7 cm from its spot
+    2.083 |    126 | B Large        | step     | left foot planted at (-0.49, 0.41), 19 cm from its spot
+    2.133 |    129 | A Medium       | step     | right foot planted at (-0.37, -1.05), 1 cm from its spot
+    2.133 |    129 | B Medium       | step     | right foot planted at (-2.84, 1.05), 1 cm from its spot
+    2.167 |    131 | A Small        | step     | right foot planted at (-2.31, -1.58), 1 cm from its spot
+    2.233 |    135 | B Small        | step     | right foot planted at (0.79, 1.58), 0 cm from its spot
+    2.250 |    136 | B Large        | rhythm   | posture JabFeint, 0.42 s; open: Head ElbowL 0.11–0.30 s; energy 0.99, aggression 0.65
+    2.350 |    142 | A Medium       | step     | left foot planted at (-0.68, -0.58), 10 cm from its spot
+    2.350 |    142 | B Medium       | step     | left foot planted at (-2.53, 0.58), 4 cm from its spot
+    2.367 |    143 | A Small        | step     | left foot planted at (-2.50, -1.31), 2 cm from its spot
+    2.400 |    145 | B Large        | step     | left foot planted at (-0.49, 0.52), 9 cm from its spot
+    2.417 |    146 | A Large        | rhythm   | posture ClubFeint, 0.56 s; open: Head 0.17–0.33 s; energy 0.99, aggression 0.65
+    2.417 |    146 | B Small        | step     | left foot planted at (0.90, 1.26), 1 cm from its spot
+    2.550 |    154 | A Small        | step     | right foot planted at (-2.34, -1.44), 0 cm from its spot
+    2.567 |    155 | B Medium       | step     | right foot planted at (-2.77, 0.75), 1 cm from its spot
+    2.600 |    157 | B Small        | step     | right foot planted at (0.78, 1.44), 0 cm from its spot
+    2.650 |    160 | B Large        | step     | left foot planted at (-0.50, 0.61), 0 cm from its spot
+    2.733 |    165 | A Small        | step     | left foot planted at (-2.55, -1.17), 1 cm from its spot
+    2.783 |    168 | B Small        | step     | left foot planted at (0.89, 1.12), 1 cm from its spot
+    2.783 |    168 | B Medium       | step     | left foot planted at (-2.40, 0.28), 1 cm from its spot
+    2.800 |    169 | A Large        | rhythm   | lead-in: posture ClubFeint under way leads into a blow
+    2.933 |    177 | A Small        | step     | right foot planted at (-2.38, -1.30), 0 cm from its spot
+    2.967 |    179 | B Small        | step     | right foot planted at (0.77, 1.30), 0 cm from its spot
+    3.000 |    181 | A Large        | attack   | ClubSmash at B Large's Head: aim locked at (-0.75, 2.15, 0.70), lunge 0.82 m, 2.06 s, contact at 1.18 s
+    3.000 |    181 | B Medium       | step     | right foot planted at (-2.68, 0.46), 1 cm from its spot
+    3.017 |    182 | A Medium       | step     | right foot planted at (-0.22, -0.96), 1 cm from its spot
+    3.117 |    188 | A Small        | step     | left foot planted at (-2.57, -1.02), 1 cm from its spot
+    3.133 |    189 | A Large        | contact  | HandL touched Collider at 6.9 m/s
+    3.133 |    189 | A Medium       | contact  | Chest touched Collider at 6.9 m/s
+    3.150 |    190 | B Small        | step     | left foot planted at (0.88, 0.98), 1 cm from its spot
+    3.150 |    190 | A Large        | contact  | HandL touched Collider at 6.8 m/s
+    3.150 |    190 | A Medium       | contact  | Head touched Collider at 6.8 m/s
+    3.167 |    191 | B Medium       | rhythm   | posture ShieldPress, 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.99, aggression 0.50
+    3.217 |    194 | B Medium       | step     | left foot planted at (-2.33, -0.03), 13 cm from its spot
+    3.267 |    197 | A Large        | contact  | HandL touched Collider at 2.7 m/s
+    3.267 |    197 | A Medium       | contact  | Head touched Collider at 2.7 m/s
+    3.283 |    198 | A Large        | contact  | ForearmL touched Collider at 1.2 m/s
+    3.283 |    198 | A Medium       | contact  | Head touched Collider at 1.2 m/s
+    3.317 |    200 | A Small        | step     | right foot planted at (-2.42, -1.15), 0 cm from its spot
+    3.333 |    201 | A Medium       | step     | left foot planted at (-0.53, -0.66), 4 cm from its spot
+    3.333 |    201 | B Small        | step     | right foot planted at (0.76, 1.15), 0 cm from its spot
+    3.350 |    202 | A Medium       | rhythm   | posture ShieldPress (lead-in to a blow), 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.99, aggression 0.50
+    3.383 |    204 | B Large        | rhythm   | posture ClubFeint (lead-in to a blow), 0.56 s; open: Head 0.17–0.33 s; energy 0.99, aggression 0.65
+    3.400 |    205 | A Small        | rhythm   | posture TriangleStep, 0.41 s; open: Knees 0.14–0.24 s; energy 0.99, aggression 0.55
+    3.400 |    205 | B Medium       | step     | left foot planted at (-2.35, 0.00), 10 cm from its spot
+    3.500 |    211 | A Small        | step     | left foot planted at (-2.59, -0.87), 6 cm from its spot
+    3.517 |    212 | B Small        | rhythm   | posture TriangleStep, 0.41 s; open: Knees 0.14–0.24 s; energy 0.99, aggression 0.55
+    3.517 |    212 | B Small        | step     | left foot planted at (0.87, 0.84), 1 cm from its spot
+    3.567 |    215 | A Medium       | step     | left foot planted at (-0.59, -0.57), 10 cm from its spot
+    3.633 |    219 | A Small        | step     | right foot planted at (-2.58, -0.93), 7 cm from its spot
+    3.700 |    223 | B Small        | step     | right foot planted at (0.75, 1.01), 11 cm from its spot
+    3.733 |    225 | B Medium       | step     | left foot planted at (-2.37, 0.09), 1 cm from its spot
+    3.817 |    230 | A Small        | step     | left foot planted at (-2.68, -0.67), 3 cm from its spot
+    3.817 |    230 | A Medium       | contact  | HandR touched Collider at 2.6 m/s
+    3.817 |    230 | A Large        | contact  | ThighL touched Collider at 2.6 m/s
+    3.867 |    233 | B Small        | step     | left foot planted at (0.93, 0.58), 1 cm from its spot
+    3.900 |    235 | A Medium       | step     | left foot planted at (-0.57, -0.67), 6 cm from its spot
+    3.917 |    236 | A Medium       | contact  | HandR touched Collider at 4.9 m/s
+    3.917 |    236 | A Large        | contact  | ThighL touched Collider at 4.9 m/s
+    3.950 |    238 | B Large        | attack   | ClubSwing at A Medium's ElbowR: aim locked at (-0.09, 1.10, -0.80), lunge 0.61 m, 2.13 s, contact at 1.14 s
+    4.033 |    243 | B Small        | step     | right foot planted at (0.84, 0.75), 3 cm from its spot
+    4.083 |    246 | A Small        | step     | right foot planted at (-2.56, -0.78), 4 cm from its spot
+    4.100 |    247 | B Large        | contact  | HandL touched Collider at 9.2 m/s
+    4.100 |    247 | A Large        | contact  | Chest touched Collider at 9.2 m/s
+    4.117 |    248 | A Large        | step     | left foot planted at (-0.41, -0.11), 82 cm from its spot
+    4.117 |    248 | A Large        | step     | right foot planted at (0.34, -0.42), 50 cm from its spot
+    4.133 |    249 | A Medium       | step     | right foot planted at (-0.55, -1.02), 14 cm from its spot
+    4.150 |    250 | A Medium       | attack   | SwordBackhand at B Large's Chest: aim locked at (-0.89, 1.84, 0.65), lunge 0.58 m, 1.60 s, contact at 0.82 s
+    4.167 |    251 | A Large        | contact  | ClubSmash at B Large's Head: passed 0.0 cm from the aim point; nearest part B Large's Head (0.0 cm); the Head had moved 4.6 cm since the aim was locked
+    4.183 |    252 | B Large        | attack   | ClubSwing cut short: flinched
+    4.183 |    252 | A Large        | hit      | ClubSmash struck B Large's Head at 14.7 m/s: 25.2 damage, 79 poise, flinch; impulse 158.6 N·s (60% into the part); the swing stopped; the part aimed at
+    4.183 |    252 | B Large        | struck   | by A Large on the Head: health 195/220, poise 41/120, flinch, knocked back at 0.15 m/s, standing
+    4.183 |    252 | A Large        | attack   | ClubSmash cut short: stopped by B Large
+    4.250 |    256 | B Small        | step     | left foot planted at (0.90, 0.44), 1 cm from its spot
+    4.333 |    261 | A Small        | step     | left foot planted at (-2.71, -0.57), 1 cm from its spot
+    4.417 |    266 | B Medium       | step     | right foot planted at (-2.50, 0.46), 1 cm from its spot
+    4.433 |    267 | B Medium       | attack   | SwordCut at A Small's ElbowL: aim locked at (-2.76, 0.59, -0.54), lunge 0.36 m, 1.61 s, contact at 0.84 s
+    4.450 |    268 | B Small        | step     | right foot planted at (0.80, 0.62), 0 cm from its spot
+    4.533 |    273 | A Small        | rhythm   | posture BaitRetreat, 0.55 s; open: Head Chest Belly 0.08–0.53 s; energy 0.98, aggression 0.55
+    4.567 |    275 | A Large        | step     | left foot planted at (0.10, -0.76), 18 cm from its spot
+    4.617 |    278 | A Large        | step     | right foot planted at (0.66, -0.80), 21 cm from its spot
+    4.633 |    279 | B Small        | step     | left foot planted at (0.87, 0.29), 1 cm from its spot
+    4.817 |    290 | B Small        | step     | right foot planted at (0.77, 0.48), 0 cm from its spot
+    4.850 |    292 | A Small        | step     | right foot planted at (-2.65, -0.86), 6 cm from its spot
+    4.933 |    297 | A Medium       | step     | left foot planted at (-0.87, -0.12), 58 cm from its spot
+    4.933 |    297 | A Medium       | step     | right foot planted at (-0.46, -0.66), 32 cm from its spot
+    4.967 |    299 | A Medium       | hit      | SwordBackhand struck B Large's Chest at 12.8 m/s: 17.0 damage, 13 poise, recoil; impulse 25.5 N·s (45% into the part); the swing stopped; the part aimed at
+    4.967 |    299 | B Large        | struck   | by A Medium on the Chest: health 178/220, poise 40/120, recoil, standing
+    4.967 |    299 | A Medium       | attack   | SwordBackhand cut short: stopped by B Large
+    5.000 |    301 | A Large        | step     | right foot planted at (0.52, -1.03), 1 cm from its spot
+    5.000 |    301 | B Small        | step     | left foot planted at (0.84, 0.15), 1 cm from its spot
+    5.117 |    308 | A Large        | rhythm   | posture JabFeint, 0.42 s; open: Head ElbowL 0.11–0.30 s; energy 0.98, aggression 0.72
+    5.167 |    311 | B Small        | rhythm   | posture AbanicoFlurry, 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.98, aggression 0.55
+    5.183 |    312 | B Small        | step     | right foot planted at (0.75, 0.34), 0 cm from its spot
+    5.233 |    315 | B Medium       | step     | left foot planted at (-2.49, -0.29), 36 cm from its spot
+    5.233 |    315 | B Medium       | step     | right foot planted at (-2.50, 0.38), 11 cm from its spot
+    5.267 |    317 | A Large        | step     | left foot planted at (0.29, -0.45), 8 cm from its spot
+    5.267 |    317 | B Medium       | contact  | SwordCut at A Small's ElbowL: passed 0.0 cm from the aim point; nearest part A Small's Pelvis (9.9 cm); the ElbowL had moved 3.3 cm since the aim was locked
+    5.283 |    318 | B Medium       | hit      | SwordCut struck A Small's UpperArmL at 12.0 m/s: 9.6 damage, 12 poise, flinch; impulse 23.9 N·s (78% into the part); cleaved through (68% of the swing left); the target, another part
+    5.283 |    318 | A Small        | struck   | by B Medium on the UpperArmL: health 50/60, poise 13/25, flinch, knocked back at 0.13 m/s, standing
+    5.283 |    318 | A Small        | balance  | stumble: knocked off balance at 0.81 m/s toward +X (cleaved through)
+    5.333 |    321 | A Medium       | step     | left foot planted at (-0.74, -0.69), 4 cm from its spot
+    5.367 |    323 | B Small        | step     | left foot planted at (0.81, 0.01), 4 cm from its spot
+    5.383 |    324 | A Medium       | step     | right foot planted at (-0.39, -0.98), 2 cm from its spot
+    5.517 |    332 | A Large        | step     | left foot planted at (0.26, -0.52), 0 cm from its spot
+    5.533 |    333 | A Small        | step     | right foot planted at (-2.54, -0.83), 6 cm from its spot
+    5.700 |    343 | A Small        | step     | left foot planted at (-2.47, -0.62), 4 cm from its spot
+    5.800 |    349 | B Medium       | step     | left foot planted at (-2.34, 0.03), 0 cm from its spot
+    5.817 |    350 | A Medium       | rhythm   | posture HighFeint, 0.55 s; open: ElbowR 0.19–0.36 s; energy 0.98, aggression 0.57
+    5.883 |    354 | A Small        | step     | right foot planted at (-2.37, -0.87), 3 cm from its spot
+    5.900 |    355 | A Small        | balance  | regained balance after 3 catch steps, 0.28 m toward +X
+    5.967 |    359 | A Small        | rhythm   | posture AbanicoFlurry (lead-in to a blow), 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.92, aggression 0.50
+    5.967 |    359 | B Medium       | step     | right foot planted at (-2.45, 0.48), 0 cm from its spot
+    6.067 |    365 | B Large        | rhythm   | posture BobAndWeave, 0.84 s; open: Head Neck 0.33–0.52 s; energy 0.90, aggression 0.55
+    6.167 |    371 | B Medium       | attack   | SwordCut done: the physical weapon passed 1.7 cm from the aim point at its closest; swing: 12.0 m/s at contact, 14.3 at its fastest, 29.4 cm past the aim point, a 323° arc
+    6.217 |    374 | B Small        | step     | left foot planted at (0.85, -0.01), 4 cm from its spot
+    6.350 |    382 | A Medium       | step     | right foot planted at (-0.56, -0.99), 1 cm from its spot
+    6.450 |    388 | A Small        | attack   | ClubSmash at B Medium's Chest: aim locked at (-2.40, 1.37, 0.15), lunge 0.58 m, 1.37 s, contact at 0.78 s
+    6.467 |    389 | B Small        | step     | right foot planted at (0.82, 0.28), 0 cm from its spot
+    6.567 |    395 | B Medium       | rhythm   | posture Peek, 0.45 s; open: Head Neck 0.11–0.32 s; energy 0.98, aggression 0.57
+    6.617 |    398 | B Small        | attack   | ClubSwing at A Large's KneeL: aim locked at (0.29, 0.64, -0.50), lunge 0.23 m, 1.41 s, contact at 0.75 s
+    6.617 |    398 | A Large        | rhythm   | posture BobAndWeave, 0.84 s; open: Head Neck 0.33–0.52 s; energy 0.97, aggression 0.71
+    6.667 |    401 | A Medium       | step     | left foot planted at (-0.91, -0.65), 1 cm from its spot
+    7.167 |    431 | B Large        | step     | left foot planted at (-0.62, 0.62), 6 cm from its spot
+    7.167 |    431 | A Small        | contact  | HandL touched Collider at 2.0 m/s
+    7.167 |    431 | B Medium       | contact  | ThighR touched Collider at 2.0 m/s
+    7.183 |    432 | A Small        | step     | left foot planted at (-2.50, -0.03), 58 cm from its spot
+    7.183 |    432 | A Small        | step     | right foot planted at (-2.36, -0.39), 44 cm from its spot
+    7.200 |    433 | A Small        | hit      | ClubSmash struck B Medium's HandL at 12.8 m/s: blocked by B Medium's shield (5 poise); impulse 14.6 N·s (53% into the part); the swing stopped; blocked by the shield
+    7.200 |    433 | B Medium       | struck   | by A Small on the HandL: health 100/100, poise 40/45, recoil, knocked back at 0.08 m/s, standing
+    7.200 |    433 | A Small        | attack   | ClubSmash cut short: stopped by B Medium's shield
+    7.333 |    441 | B Small        | step     | right foot planted at (0.57, -0.05), 45 cm from its spot
+    7.333 |    441 | A Small        | contact  | HandL touched Collider at 3.0 m/s
+    7.333 |    441 | B Medium       | contact  | ThighL touched Collider at 3.0 m/s
+    7.350 |    442 | A Medium       | step     | right foot planted at (-0.74, -1.00), 1 cm from its spot
+    7.367 |    443 | B Small        | hit      | ClubSwing struck A Large's ThighL at 10.9 m/s: 8.1 damage, 7 poise, recoil; impulse 14.0 N·s (0% into the part); the swing stopped; the target, another part
+    7.367 |    443 | A Large        | struck   | by B Small on the ThighL: health 212/220, poise 113/120, recoil, standing
+    7.367 |    443 | B Small        | attack   | ClubSwing cut short: stopped by A Large
+    7.550 |    454 | A Small        | step     | left foot planted at (-2.54, -0.61), 1 cm from its spot
+    7.600 |    457 | A Small        | step     | right foot planted at (-2.40, -0.83), 1 cm from its spot
+    7.700 |    463 | B Small        | step     | left foot planted at (0.85, 0.01), 3 cm from its spot
+    7.750 |    466 | B Small        | step     | right foot planted at (0.87, 0.28), 4 cm from its spot
+    7.783 |    468 | A Large        | rhythm   | posture JabFeint (lead-in to a blow), 0.42 s; open: Head ElbowL 0.11–0.30 s; energy 0.96, aggression 0.64
+    7.883 |    474 | B Medium       | step     | left foot planted at (-2.23, 0.11), 4 cm from its spot
+    7.900 |    475 | B Medium       | attack   | SwordCleave at A Small's Chest: aim locked at (-2.44, 0.79, -0.66), lunge 0.30 m, 1.76 s, contact at 0.95 s
+    7.917 |    476 | A Large        | step     | left foot planted at (0.32, -0.45), 8 cm from its spot
+    8.033 |    483 | A Small        | rhythm   | posture RedondaTwirl, 0.63 s; open: Chest Belly ElbowR 0.25–0.47 s; energy 0.91, aggression 0.52
+    8.117 |    488 | A Small        | step     | left foot planted at (-2.50, -0.58), 3 cm from its spot
+    8.133 |    489 | A Medium       | rhythm   | posture ShieldPress (lead-in to a blow), 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.97, aggression 0.55
+    8.167 |    491 | A Large        | step     | left foot planted at (0.29, -0.53), 0 cm from its spot
+    8.183 |    492 | B Small        | rhythm   | posture BaitRetreat, 0.55 s; open: Head Chest Belly 0.08–0.53 s; energy 0.97, aggression 0.62
+    8.217 |    494 | A Large        | attack   | ClubSwing at B Small's Belly: aim locked at (0.79, 0.64, 0.10), lunge 0.45 m, 2.13 s, contact at 1.14 s
+    8.350 |    502 | A Medium       | step     | left foot planted at (-0.95, -0.54), 10 cm from its spot
+    8.500 |    511 | B Large        | rhythm   | posture ClubFeint, 0.56 s; open: Head 0.17–0.33 s; energy 0.90, aggression 0.57
+    8.550 |    514 | B Small        | step     | left foot planted at (0.96, 0.05), 8 cm from its spot
+    8.683 |    522 | A Medium       | step     | left foot planted at (-0.95, -0.64), 0 cm from its spot
+    8.750 |    526 | A Medium       | attack   | SwordCut at B Large's Neck: aim locked at (-0.81, 1.94, 0.85), lunge 1.05 m, 1.61 s, contact at 0.84 s
+    8.783 |    528 | B Small        | step     | left foot planted at (0.91, -0.06), 4 cm from its spot
+    8.800 |    529 | B Medium       | step     | right foot planted at (-2.57, -0.20), 66 cm from its spot
+    8.850 |    532 | B Medium       | hit      | SwordCleave struck A Small's UpperArmL at 11.5 m/s: 9.2 damage, 11 poise, flinch; impulse 22.9 N·s (80% into the part); cleaved through (68% of the swing left); the target, another part
+    8.850 |    532 | A Small        | struck   | by B Medium on the UpperArmL: health 41/60, poise 14/25, flinch, knocked back at 0.12 m/s, standing
+    8.850 |    532 | A Small        | balance  | stumble: knocked off balance at 0.81 m/s toward +X (cleaved through)
+    8.850 |    532 | B Medium       | contact  | SwordCleave at A Small's Chest: passed 0.0 cm from the aim point; nearest part A Small's Chest (0.0 cm); the Chest had moved 9.3 cm since the aim was locked
+    8.917 |    536 | B Large        | rhythm   | lead-in: posture ClubFeint under way leads into a blow
+    8.950 |    538 | A Small        | step     | right foot planted at (-2.31, -0.82), 8 cm from its spot
+    9.050 |    544 | B Medium       | hit      | SwordCleave struck A Medium's HandL at 12.1 m/s: blocked by A Medium's shield (9 poise); impulse 23.8 N·s (33% into the part); the swing stopped; blocked by the shield
+    9.050 |    544 | A Medium       | struck   | by B Medium on the HandL: health 100/100, poise 36/45, recoil, knocked back at 0.15 m/s, standing
+    9.050 |    544 | B Medium       | attack   | SwordCleave cut short: stopped by A Medium's shield
+    9.083 |    546 | B Large        | attack   | ClubSmash at A Medium's Head: aim locked at (-0.75, 1.59, -0.91), lunge 0.49 m, 2.06 s, contact at 1.18 s
+    9.100 |    547 | A Small        | step     | left foot planted at (-2.29, -0.62), 5 cm from its spot
+    9.283 |    558 | A Small        | step     | right foot planted at (-2.11, -0.84), 3 cm from its spot
+    9.300 |    559 | A Small        | balance  | regained balance after 3 catch steps, 0.18 m toward +X
+    9.300 |    559 | A Large        | step     | right foot planted at (0.84, -0.30), 82 cm from its spot
+    9.333 |    561 | B Small        | balance  | launched at 4.43 m/s toward -X+Z
+    9.333 |    561 | A Large        | hit      | ClubSwing struck B Small's UpperArmL at 12.3 m/s: 7.9 damage, 66 poise, stagger; impulse 132.1 N·s (14% into the part); cleaved through (88% of the swing left); the target, another part
+    9.333 |    561 | B Small        | struck   | by A Large on the UpperArmL: health 52/60, poise 25/25, stagger, down
+    9.417 |    566 | B Medium       | step     | left foot planted at (-2.27, 0.09), 5 cm from its spot
+    9.467 |    569 | A Large        | contact  | ClubSwing at B Small's Belly: passed 0.1 cm from the aim point; nearest part B Small's ThighL (18.9 cm); the Belly had moved 61.5 cm since the aim was locked
+    9.467 |    569 | B Medium       | step     | right foot planted at (-2.54, 0.46), 5 cm from its spot
+    9.550 |    574 | B Large        | attack   | ClubSmash cut short: flinched
+    9.550 |    574 | A Large        | hit      | ClubSwing struck B Large's ShinL at 16.0 m/s: 9.0 damage, 76 poise, flinch; impulse 151.6 N·s (0% into the part); the swing stopped; someone in the way
+    9.550 |    574 | B Large        | struck   | by A Large on the ShinL: health 169/220, poise 33/120, flinch, knocked back at 0.37 m/s, standing
+    9.550 |    574 | A Large        | attack   | ClubSwing cut short: stopped by B Large
+    9.550 |    574 | B Large        | balance  | stumble: knocked off balance at 1.23 m/s toward -X (a body thrown into it)
+    9.550 |    574 | B Small        | impact   | thrown into B Large: its HandL hit the ThighL at 6.3 m/s, 11.0 damage, 53 poise, stagger; impulse 105.0 N·s (a launched body thrown into it)
+    9.550 |    574 | B Large        | struck   | by B Small's body on the ThighL: health 158/220, poise 120/120, stumbling at 1.23 m/s
+    9.550 |    574 | B Small        | struck   | thrown into B Large on the HandL: health 47/60, poise 25/25, down
+    9.583 |    576 | B Small        | contact  | HandL touched Collider at 6.0 m/s
+    9.583 |    576 | B Large        | contact  | ShinL touched Collider at 6.0 m/s
+    9.600 |    577 | B Large        | contact  | HandL touched Collider at 5.7 m/s
+    9.600 |    577 | A Medium       | contact  | Head touched Collider at 5.7 m/s
+    9.600 |    577 | B Small        | contact  | FootR touched Ground at 3.6 m/s
+    9.633 |    579 | A Medium       | hit      | SwordCut struck B Large's ForearmL at 13.8 m/s: 9.2 damage, 14 poise, recoil; impulse 27.6 N·s (80% into the part); the swing stopped; the target, another part
+    9.633 |    579 | B Large        | struck   | by A Medium on the ForearmL: health 149/220, poise 106/120, recoil, stumbling at 1.17 m/s
+    9.633 |    579 | A Medium       | attack   | SwordCut cut short: stopped by B Large
+    9.667 |    581 | B Small        | contact  | HandL touched Collider at 3.1 m/s
+    9.667 |    581 | B Large        | contact  | ThighL touched Collider at 3.1 m/s
+    9.767 |    587 | B Small        | contact  | ForearmR touched Ground at 5.9 m/s
+    9.783 |    588 | B Small        | contact  | UpperArmR touched Ground at 1.2 m/s
+    9.800 |    589 | B Small        | contact  | ThighR touched Ground at 4.4 m/s
+    9.817 |    590 | B Small        | contact  | Spine touched Ground at 5.1 m/s
+    9.817 |    590 | B Small        | contact  | HandR touched Ground at 4.1 m/s
+    9.817 |    590 | B Small        | contact  | Pelvis touched Ground at 4.2 m/s
+    9.833 |    591 | B Small        | contact  | Chest touched Ground at 3.5 m/s
+    9.850 |    592 | B Small        | contact  | Head touched Ground at 5.0 m/s
+    9.867 |    593 | B Small        | contact  | ThighL touched Ground at 3.4 m/s
+    9.867 |    593 | B Small        | contact  | ShinL touched Ground at 5.6 m/s
+    9.917 |    596 | B Medium       | rhythm   | posture ShieldPress, 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.96, aggression 0.57
+    9.917 |    596 | B Large        | step     | right foot planted at (-1.23, 1.05), 15 cm from its spot
+    9.917 |    596 | B Small        | contact  | UpperArmR touched Ground at 2.3 m/s
+    9.933 |    597 | A Large        | step     | left foot planted at (0.28, -0.53), 29 cm from its spot
+    9.933 |    597 | B Small        | contact  | FootL touched Ground at 2.0 m/s
+    9.933 |    597 | B Small        | contact  | Spine touched Ground at 2.0 m/s
+    9.983 |    600 | A Large        | step     | right foot planted at (0.50, -1.05), 36 cm from its spot
+    9.983 |    600 | B Small        | contact  | ThighR touched Ground at 2.7 m/s
+   10.000 |    601 | A Medium       | step     | left foot planted at (-0.94, -0.61), 12 cm from its spot
+   10.000 |    601 | B Small        | contact  | HandL touched Ground at 15.0 m/s
+   10.017 |    602 | A Small        | step     | right foot planted at (-2.08, -0.76), 0 cm from its spot
+   10.033 |    603 | B Small        | contact  | HandL touched Ground at 8.6 m/s
+   10.033 |    603 | B Small        | contact  | HandR touched Ground at 6.5 m/s
+   10.050 |    604 | A Medium       | step     | right foot planted at (-0.64, -0.96), 19 cm from its spot
+   10.050 |    604 | B Small        | contact  | ForearmR touched Ground at 2.1 m/s
+   10.083 |    606 | B Small        | contact  | ShinL touched Ground at 1.5 m/s
+   10.117 |    608 | B Small        | contact  | Spine touched Ground at 1.4 m/s
+   10.133 |    609 | B Large        | step     | left foot planted at (-1.14, 0.78), 9 cm from its spot
+   10.133 |    609 | B Small        | contact  | Chest touched Ground at 1.9 m/s
+   10.133 |    609 | B Small        | contact  | FootR touched Ground at 4.0 m/s
+   10.150 |    610 | B Medium       | step     | left foot planted at (-2.25, 0.03), 10 cm from its spot
+   10.200 |    613 | A Large        | step     | right foot planted at (0.34, -0.55), 12 cm from its spot
+   10.217 |    614 | A Small        | rhythm   | posture BaitRetreat, 0.55 s; open: Head Chest Belly 0.08–0.53 s; energy 0.85, aggression 0.48
+   10.283 |    618 | A Medium       | step     | right foot planted at (-0.67, -0.62), 11 cm from its spot
+   10.350 |    622 | B Small        | contact  | HandL touched Ground at 7.0 m/s
+   10.383 |    624 | B Small        | contact  | HandR touched Ground at 2.1 m/s
+   10.400 |    625 | A Small        | step     | right foot planted at (-2.02, -0.74), 4 cm from its spot
+   10.400 |    625 | B Large        | step     | right foot planted at (-1.58, 1.16), 5 cm from its spot
+   10.417 |    626 | A Large        | step     | left foot planted at (-0.33, -0.33), 12 cm from its spot
+   10.417 |    626 | B Large        | balance  | regained balance after 3 catch steps, 0.58 m toward -X
+   10.417 |    626 | B Small        | contact  | ShinR touched Ground at 1.4 m/s
+   10.433 |    627 | A Large        | rhythm   | posture ClubFeint, 0.56 s; open: Head 0.17–0.33 s; energy 0.94, aggression 0.80
+   10.433 |    627 | B Small        | contact  | FootR touched Ground at 3.1 m/s
+   10.450 |    628 | B Small        | contact  | UpperArmL touched Ground at 1.8 m/s
+   10.450 |    628 | B Small        | contact  | ForearmL touched Ground at 2.2 m/s
+   10.483 |    630 | B Medium       | step     | left foot planted at (-2.27, 0.13), 0 cm from its spot
+   10.483 |    630 | B Small        | contact  | Head touched Ground at 1.5 m/s
+   10.500 |    631 | A Medium       | rhythm   | posture Peek, 0.45 s; open: Head Neck 0.11–0.32 s; energy 0.96, aggression 0.56
+   10.567 |    635 | A Small        | attack   | ClubSwing at B Medium's Belly: aim locked at (-2.43, 1.14, 0.22), lunge 0.46 m, 1.41 s, contact at 0.75 s
+   10.567 |    635 | A Medium       | step     | left foot planted at (-1.00, -0.30), 15 cm from its spot
+   10.600 |    637 | B Small        | balance  | getting up face up after 1.3 s down
+   10.767 |    647 | B Small        | contact  | FootR touched Ground at 1.9 m/s
+   10.800 |    649 | A Large        | step     | right foot planted at (0.31, -0.38), 0 cm from its spot
+   10.817 |    650 | B Large        | rhythm   | posture JabFeint, 0.42 s; open: Head ElbowL 0.11–0.30 s; energy 0.84, aggression 0.41
+   10.850 |    652 | B Medium       | step     | right foot planted at (-2.71, 0.36), 1 cm from its spot
+   10.850 |    652 | B Small        | contact  | Spine touched Ground at 1.2 m/s
+   10.850 |    652 | B Small        | contact  | HandR touched Ground at 7.0 m/s
+   10.867 |    653 | B Small        | contact  | HandL touched Ground at 3.5 m/s
+   10.883 |    654 | A Medium       | step     | left foot planted at (-0.91, -0.42), 0 cm from its spot
+   10.967 |    659 | B Large        | step     | left foot planted at (-1.03, 0.78), 9 cm from its spot
+   11.200 |    673 | A Medium       | step     | right foot planted at (-0.47, -0.62), 1 cm from its spot
+   11.217 |    674 | B Large        | step     | left foot planted at (-1.06, 0.87), 0 cm from its spot
+   11.217 |    674 | A Small        | contact  | HandL touched Collider at 5.6 m/s
+   11.217 |    674 | B Medium       | contact  | ThighL touched Collider at 5.6 m/s
+   11.250 |    676 | A Small        | hit      | ClubSwing struck B Medium's HandL at 11.3 m/s: blocked by B Medium's shield (5 poise); impulse 12.9 N·s (60% into the part); the swing stopped; blocked by the shield
+   11.250 |    676 | B Medium       | struck   | by A Small on the HandL: health 100/100, poise 40/45, recoil, standing
+   11.250 |    676 | A Small        | attack   | ClubSwing cut short: stopped by B Medium's shield
+   11.583 |    696 | A Small        | step     | left foot planted at (-2.26, -0.60), 2 cm from its spot
+   11.633 |    699 | A Small        | step     | right foot planted at (-2.04, -0.75), 3 cm from its spot
+   11.767 |    707 | B Large        | step     | right foot planted at (-1.59, 1.04), 0 cm from its spot
+   11.867 |    713 | B Medium       | step     | right foot planted at (-2.86, 0.28), 7 cm from its spot
+   12.017 |    722 | B Medium       | rhythm   | posture Peek, 0.45 s; open: Head Neck 0.11–0.32 s; energy 0.96, aggression 0.50
+   12.083 |    726 | A Small        | rhythm   | posture RedondaTwirl, 0.63 s; open: Chest Belly ElbowR 0.25–0.47 s; energy 0.84, aggression 0.49
+   12.083 |    726 | B Small        | balance  | got up (face up)
+   12.100 |    727 | B Small        | move     | back onto the board: heading for tile D6
+   12.117 |    728 | A Medium       | attack   | SwordCleave at B Large's Belly: aim locked at (-1.35, 1.51, 0.79), lunge 0.63 m, 1.76 s, contact at 0.95 s
+   12.150 |    730 | B Small        | rhythm   | posture AbanicoFlurry, 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.89, aggression 0.49
+   12.217 |    734 | A Large        | rhythm   | posture JabFeint, 0.42 s; open: Head ElbowL 0.11–0.30 s; energy 0.94, aggression 0.78
+   12.367 |    743 | A Large        | step     | left foot planted at (-0.30, -0.33), 9 cm from its spot
+   12.383 |    744 | B Small        | step     | right foot planted at (-1.13, 1.88), 0 cm from its spot
+   12.467 |    749 | B Medium       | step     | right foot planted at (-2.71, 0.37), 1 cm from its spot
+   12.567 |    755 | B Medium       | rhythm   | posture ShieldPress (lead-in to a blow), 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.96, aggression 0.50
+   12.567 |    755 | B Small        | step     | left foot planted at (-1.08, 2.21), 1 cm from its spot
+   12.617 |    758 | A Large        | step     | left foot planted at (-0.23, -0.39), 0 cm from its spot
+   12.767 |    767 | B Small        | step     | right foot planted at (-1.05, 2.01), 0 cm from its spot
+   12.783 |    768 | B Medium       | step     | left foot planted at (-2.28, 0.03), 10 cm from its spot
+   12.883 |    774 | A Medium       | hit      | SwordCleave struck A Large's Pelvis at 12.5 m/s: 14.2 damage, 12 poise, recoil; impulse 25.0 N·s (0% into the part); the swing stopped; an ally (friendly fire)
+   12.883 |    774 | A Large        | struck   | by A Medium on the Pelvis: health 198/220, poise 108/120, recoil, knocked back at 0.08 m/s, standing
+   12.883 |    774 | A Medium       | attack   | SwordCleave cut short: stopped by A Large
+   12.950 |    778 | B Small        | step     | left foot planted at (-0.99, 2.33), 1 cm from its spot
+   12.967 |    779 | B Large        | step     | right foot planted at (-1.57, 1.09), 5 cm from its spot
+   13.067 |    785 | A Small        | step     | right foot planted at (-2.13, -0.77), 0 cm from its spot
+   13.083 |    786 | B Large        | rhythm   | posture BobAndWeave, 0.84 s; open: Head Neck 0.33–0.52 s; energy 0.84, aggression 0.44
+   13.100 |    787 | B Large        | attack   | ClubSmash at A Large's Neck: aim locked at (0.03, 2.04, -0.38), lunge 0.78 m, 2.06 s, contact at 1.18 s
+   13.117 |    788 | B Medium       | step     | left foot planted at (-2.31, 0.13), 0 cm from its spot
+   13.150 |    790 | B Small        | step     | right foot planted at (-0.97, 2.13), 2 cm from its spot
+   13.183 |    792 | B Medium       | attack   | SwordCleave at A Small's Belly: aim locked at (-2.19, 0.64, -0.60), lunge 0.50 m, 1.76 s, contact at 0.95 s
+   13.200 |    793 | A Large        | rhythm   | posture ClubFeint (lead-in to a blow), 0.56 s; open: Head 0.17–0.33 s; energy 0.91, aggression 0.71
+   13.250 |    796 | A Medium       | step     | left foot planted at (-0.90, -0.39), 1 cm from its spot
+   13.300 |    799 | A Medium       | step     | right foot planted at (-0.48, -0.57), 1 cm from its spot
+   13.317 |    800 | A Small        | step     | left foot planted at (-2.36, -0.61), 0 cm from its spot
+   13.333 |    801 | B Small        | step     | left foot planted at (-0.87, 2.43), 1 cm from its spot
+   13.517 |    812 | B Small        | step     | right foot planted at (-0.84, 2.21), 2 cm from its spot
+   13.650 |    820 | B Small        | rhythm   | posture RedondaTwirl, 0.63 s; open: Chest Belly ElbowR 0.25–0.47 s; energy 0.88, aggression 0.51
+   13.750 |    826 | A Medium       | rhythm   | posture ShieldPress, 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.95, aggression 0.61
+   13.750 |    826 | B Small        | step     | left foot planted at (-0.80, 2.54), 13 cm from its spot
+   13.767 |    827 | A Large        | attack   | ClubSmash at B Large's Chest: aim locked at (-1.60, 1.89, 0.98), lunge 0.97 m, 2.06 s, contact at 1.18 s
+   13.817 |    830 | A Small        | rhythm   | posture BaitRetreat, 0.55 s; open: Head Chest Belly 0.08–0.53 s; energy 0.83, aggression 0.51
+   13.900 |    835 | A Large        | contact  | HandL touched Collider at 7.0 m/s
+   13.900 |    835 | A Medium       | contact  | Head touched Collider at 7.0 m/s
+   13.917 |    836 | B Small        | step     | left foot planted at (-0.70, 2.37), 11 cm from its spot
+   13.917 |    836 | A Large        | contact  | HandL touched Collider at 5.7 m/s
+   13.917 |    836 | A Medium       | contact  | Chest touched Collider at 5.7 m/s
+   13.983 |    840 | A Medium       | step     | left foot planted at (-0.98, -0.30), 10 cm from its spot
+   14.050 |    844 | A Small        | step     | left foot planted at (-2.39, -0.64), 0 cm from its spot
+   14.083 |    846 | B Medium       | step     | right foot planted at (-2.40, -0.43), 86 cm from its spot
+   14.100 |    847 | B Small        | step     | right foot planted at (-0.89, 2.15), 10 cm from its spot
+   14.117 |    848 | B Medium       | hit      | SwordCleave struck A Small's UpperArmL at 10.0 m/s: 8.0 damage, 10 poise, flinch; impulse 20.0 N·s (80% into the part); cleaved through (68% of the swing left); the target, another part
+   14.117 |    848 | A Small        | struck   | by B Medium on the UpperArmL: health 33/60, poise 15/25, flinch, knocked back at 0.10 m/s, standing
+   14.117 |    848 | A Small        | balance  | stumble: knocked off balance at 0.81 m/s toward +X (cleaved through)
+   14.217 |    854 | B Medium       | contact  | SwordCleave at A Small's Belly: passed 0.0 cm from the aim point; nearest part A Small's Spine (7.0 cm); the Belly had moved 14.8 cm since the aim was locked
+   14.217 |    854 | B Large        | step     | left foot planted at (-0.49, 0.43), 78 cm from its spot
+   14.217 |    854 | B Large        | step     | right foot planted at (-1.28, 0.62), 46 cm from its spot
+   14.250 |    856 | A Large        | attack   | ClubSmash cut short: flinched
+   14.250 |    856 | B Large        | hit      | ClubSmash struck A Large's HandL at 15.3 m/s: 6.5 damage, 83 poise, flinch; impulse 165.0 N·s (18% into the part); the swing stopped; the target, another part
+   14.250 |    856 | A Large        | struck   | by B Large on the HandL: health 191/220, poise 37/120, flinch, knocked back at 0.42 m/s, standing
+   14.250 |    856 | B Large        | attack   | ClubSmash cut short: stopped by A Large
+   14.283 |    858 | B Small        | step     | left foot planted at (-0.64, 2.04), 0 cm from its spot
+   14.317 |    860 | A Medium       | step     | left foot planted at (-0.94, -0.39), 0 cm from its spot
+   14.350 |    862 | A Small        | step     | right foot planted at (-2.06, -0.78), 5 cm from its spot
+   14.367 |    863 | B Medium       | hit      | SwordCleave struck B Large's Pelvis at 11.8 m/s: 9.0 damage, 8 poise, recoil; impulse 15.9 N·s (0% into the part); the swing stopped; an ally (friendly fire)
+   14.367 |    863 | B Large        | struck   | by B Medium on the Pelvis: health 139/220, poise 112/120, recoil, standing
+   14.367 |    863 | B Medium       | attack   | SwordCleave cut short: stopped by B Large
+   14.467 |    869 | B Small        | step     | right foot planted at (-0.85, 2.12), 1 cm from its spot
+   14.517 |    872 | A Small        | step     | left foot planted at (-2.12, -0.59), 5 cm from its spot
+   14.567 |    875 | A Small        | contact  | HandL touched Collider at 3.1 m/s
+   14.567 |    875 | B Medium       | contact  | ForearmR touched Collider at 3.1 m/s
+   14.600 |    877 | A Small        | contact  | HandL touched Collider at 6.9 m/s
+   14.600 |    877 | B Medium       | contact  | HandR touched Collider at 6.9 m/s
+   14.667 |    881 | B Small        | step     | left foot planted at (-0.61, 1.90), 7 cm from its spot
+   14.700 |    883 | A Small        | step     | right foot planted at (-1.90, -0.76), 3 cm from its spot
+   14.700 |    883 | B Large        | step     | left foot planted at (-1.04, 0.97), 12 cm from its spot
+   14.717 |    884 | A Small        | balance  | regained balance after 3 catch steps, 0.27 m toward +X
+   14.717 |    884 | B Medium       | step     | left foot planted at (-2.30, 0.14), 3 cm from its spot
+   14.750 |    886 | B Large        | step     | right foot planted at (-1.61, 0.94), 13 cm from its spot
+   14.767 |    887 | B Medium       | step     | right foot planted at (-2.69, 0.38), 3 cm from its spot
+   14.883 |    894 | B Small        | step     | left foot planted at (-0.67, 1.78), 1 cm from its spot
+   14.933 |    897 | A Medium       | step     | right foot planted at (-0.63, -0.66), 1 cm from its spot
+   15.033 |    903 | A Small        | step     | right foot planted at (-1.97, -0.64), 5 cm from its spot
+   15.050 |    904 | A Small        | attack   | ClubSmash at B Medium's Chest: aim locked at (-2.52, 1.36, 0.14), lunge 0.59 m, 1.37 s, contact at 0.78 s
+   15.067 |    905 | B Small        | step     | right foot planted at (-0.85, 1.92), 5 cm from its spot
+   15.133 |    909 | B Large        | step     | right foot planted at (-1.59, 1.07), 1 cm from its spot
+   15.200 |    913 | A Large        | rhythm   | posture BobAndWeave, 0.84 s; open: Head Neck 0.33–0.52 s; energy 0.88, aggression 0.65
+   15.200 |    913 | B Large        | rhythm   | posture ClubFeint, 0.56 s; open: Head 0.17–0.33 s; energy 0.81, aggression 0.47
+   15.217 |    914 | B Medium       | rhythm   | posture HighFeint, 0.55 s; open: ElbowR 0.19–0.36 s; energy 0.94, aggression 0.65
+   15.317 |    920 | B Small        | step     | left foot planted at (-0.61, 1.65), 0 cm from its spot
+   15.500 |    931 | B Small        | step     | right foot planted at (-0.82, 1.72), 1 cm from its spot
+   15.517 |    932 | B Small        | rhythm   | posture BaitRetreat, 0.55 s; open: Head Chest Belly 0.08–0.53 s; energy 0.88, aggression 0.53
+   15.517 |    932 | B Large        | step     | left foot planted at (-1.07, 0.84), 1 cm from its spot
+   15.583 |    936 | A Medium       | step     | left foot planted at (-1.11, -0.44), 1 cm from its spot
+   15.667 |    941 | B Medium       | contact  | HandR touched Collider at 4.4 m/s
+   15.667 |    941 | A Small        | contact  | HandL touched Collider at 4.4 m/s
+   15.683 |    942 | B Small        | step     | left foot planted at (-0.57, 1.52), 6 cm from its spot
+   15.783 |    948 | A Small        | step     | left foot planted at (-2.49, -0.06), 59 cm from its spot
+   15.783 |    948 | A Small        | step     | right foot planted at (-2.17, -0.29), 45 cm from its spot
+   15.800 |    949 | A Small        | hit      | ClubSmash struck B Medium's HandL at 12.9 m/s: blocked by B Medium's shield (6 poise); impulse 14.7 N·s (53% into the part); the swing stopped; blocked by the shield
+   15.800 |    949 | B Medium       | struck   | by A Small on the HandL: health 100/100, poise 39/45, recoil, knocked back at 0.08 m/s, standing
+   15.800 |    949 | A Small        | attack   | ClubSmash cut short: stopped by B Medium's shield
+   15.800 |    949 | A Medium       | rhythm   | posture HighFeint, 0.55 s; open: ElbowR 0.19–0.36 s; energy 0.94, aggression 0.59
+   15.950 |    958 | A Medium       | step     | right foot planted at (-0.80, -0.72), 1 cm from its spot
+   16.150 |    970 | A Small        | step     | left foot planted at (-2.20, -0.57), 1 cm from its spot
+   16.167 |    971 | B Small        | step     | right foot planted at (-0.82, 1.61), 3 cm from its spot
+   16.200 |    973 | A Small        | step     | right foot planted at (-1.95, -0.68), 1 cm from its spot
+   16.383 |    984 | B Small        | step     | left foot planted at (-0.56, 1.38), 0 cm from its spot
+   16.517 |    992 | B Medium       | step     | right foot planted at (-2.72, 0.29), 7 cm from its spot
+   16.567 |    995 | B Small        | step     | right foot planted at (-0.78, 1.43), 1 cm from its spot
+   16.600 |    997 | B Medium       | attack   | SwordCut at A Medium's Neck: aim locked at (-0.94, 1.52, -0.57), lunge 0.88 m, 1.61 s, contact at 0.84 s
+   16.617 |    998 | A Large        | step     | left foot planted at (-0.15, -0.38), 28 cm from its spot
+   16.650 |   1000 | A Small        | rhythm   | posture AbanicoFlurry, 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.77, aggression 0.48
+   16.750 |   1006 | B Small        | step     | left foot planted at (-0.52, 1.24), 0 cm from its spot
+   16.850 |   1012 | A Medium       | step     | left foot planted at (-1.29, -0.45), 1 cm from its spot
+   16.867 |   1013 | A Medium       | rhythm   | posture ShieldPress (lead-in to a blow), 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.94, aggression 0.57
+   16.883 |   1014 | B Small        | rhythm   | posture AbanicoFlurry, 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.88, aggression 0.54
+   16.933 |   1017 | B Small        | step     | right foot planted at (-0.74, 1.30), 1 cm from its spot
+   17.000 |   1021 | A Large        | step     | left foot planted at (-0.22, -0.11), 0 cm from its spot
+   17.083 |   1026 | A Medium       | step     | left foot planted at (-1.30, -0.35), 10 cm from its spot
+   17.117 |   1028 | B Small        | step     | left foot planted at (-0.48, 1.11), 0 cm from its spot
+   17.300 |   1039 | B Small        | step     | right foot planted at (-0.70, 1.16), 1 cm from its spot
+   17.400 |   1045 | B Medium       | step     | left foot planted at (-1.51, -0.10), 88 cm from its spot
+   17.400 |   1045 | B Medium       | step     | right foot planted at (-2.19, -0.07), 63 cm from its spot
+   17.400 |   1045 | B Large        | rhythm   | posture JabFeint, 0.42 s; open: Head ElbowL 0.11–0.30 s; energy 0.81, aggression 0.50
+   17.417 |   1046 | A Medium       | step     | left foot planted at (-1.28, -0.45), 0 cm from its spot
+   17.433 |   1047 | B Medium       | hit      | SwordCut struck A Medium's Head at 13.3 m/s: 28.3 damage, 13 poise, recoil; impulse 26.5 N·s (60% into the part); the swing stopped; the part aimed at
+   17.433 |   1047 | A Medium       | struck   | by B Medium on the Head: health 72/100, poise 32/45, recoil, knocked back at 0.12 m/s, standing
+   17.433 |   1047 | B Medium       | attack   | SwordCut cut short: stopped by A Medium
+   17.483 |   1050 | B Small        | step     | left foot planted at (-0.44, 0.97), 0 cm from its spot
+   17.517 |   1052 | A Small        | step     | right foot planted at (-1.86, -0.64), 4 cm from its spot
+   17.550 |   1054 | B Large        | step     | left foot planted at (-1.08, 0.72), 9 cm from its spot
+   17.667 |   1061 | B Small        | step     | right foot planted at (-0.66, 1.02), 1 cm from its spot
+   17.767 |   1067 | A Small        | step     | left foot planted at (-2.13, -0.52), 0 cm from its spot
+   17.800 |   1069 | B Medium       | step     | left foot planted at (-2.29, 0.31), 12 cm from its spot
+   17.800 |   1069 | B Large        | step     | left foot planted at (-1.09, 0.80), 0 cm from its spot
+   17.817 |   1070 | B Large        | rhythm   | lead-in: posture JabFeint under way leads into a blow
+   17.850 |   1072 | B Large        | attack   | ClubRising at A Small's KneeR: aim locked at (-1.85, 0.25, -0.51), lunge 1.27 m, 1.72 s, contact at 0.88 s
+   17.850 |   1072 | B Small        | step     | left foot planted at (-0.37, 0.85), 1 cm from its spot
+   17.850 |   1072 | B Medium       | step     | right foot planted at (-2.74, 0.22), 12 cm from its spot
+   17.883 |   1074 | A Medium       | step     | right foot planted at (-0.97, -0.75), 1 cm from its spot
+   17.900 |   1075 | A Medium       | attack   | SwordBackhand at B Large's ElbowL: aim locked at (-1.00, 1.55, 0.67), lunge 0.18 m, 1.60 s, contact at 0.82 s
+   17.933 |   1077 | A Large        | rhythm   | posture JabFeint, 0.42 s; open: Head ElbowL 0.11–0.30 s; energy 0.88, aggression 0.65
+   18.033 |   1083 | B Small        | step     | right foot planted at (-0.57, 0.91), 0 cm from its spot
+   18.083 |   1086 | A Large        | step     | left foot planted at (-0.26, -0.04), 8 cm from its spot
+   18.167 |   1091 | B Medium       | step     | left foot planted at (-2.34, 0.17), 1 cm from its spot
+   18.217 |   1094 | B Small        | step     | left foot planted at (-0.29, 0.73), 1 cm from its spot
+   18.233 |   1095 | B Small        | rhythm   | posture BaitRetreat, 0.55 s; open: Head Chest Belly 0.08–0.53 s; energy 0.87, aggression 0.55
+   18.267 |   1097 | A Small        | rhythm   | posture BaitRetreat, 0.55 s; open: Head Chest Belly 0.08–0.53 s; energy 0.77, aggression 0.49
+   18.300 |   1099 | B Medium       | rhythm   | posture ShieldPress, 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.93, aggression 0.64
+   18.333 |   1101 | A Large        | step     | left foot planted at (-0.22, -0.11), 0 cm from its spot
+   18.350 |   1102 | A Large        | rhythm   | lead-in: posture JabFeint under way leads into a blow
+   18.383 |   1104 | A Large        | attack   | ClubRising at B Small's Belly: aim locked at (-0.38, 0.65, 0.68), lunge 0.45 m, 1.72 s, contact at 0.88 s
+   18.400 |   1105 | B Small        | step     | right foot planted at (-0.49, 0.79), 7 cm from its spot
+   18.483 |   1110 | B Medium       | step     | right foot planted at (-2.81, 0.28), 3 cm from its spot
+   18.500 |   1111 | B Large        | contact  | HandL touched Collider at 10.9 m/s
+   18.500 |   1111 | B Medium       | contact  | UpperArmL touched Collider at 10.9 m/s
+   18.500 |   1111 | B Large        | contact  | HandL touched Collider at 10.7 m/s
+   18.500 |   1111 | B Medium       | contact  | ForearmL touched Collider at 10.7 m/s
+   18.533 |   1113 | B Medium       | step     | left foot planted at (-2.28, 0.10), 10 cm from its spot
+   18.533 |   1113 | B Large        | contact  | HandL touched Collider at 9.8 m/s
+   18.533 |   1113 | B Medium       | contact  | HandL touched Collider at 9.8 m/s
+   18.583 |   1116 | B Large        | contact  | UpperArmL touched Collider at 10.4 m/s
+   18.583 |   1116 | A Medium       | contact  | HandR touched Collider at 10.4 m/s
+   18.583 |   1116 | B Large        | contact  | UpperArmL touched Collider at 8.4 m/s
+   18.583 |   1116 | A Medium       | contact  | ForearmR touched Collider at 8.4 m/s
+   18.600 |   1117 | A Small        | rhythm   | posture TriangleStep (lead-in to a blow), 0.41 s; open: Knees 0.14–0.24 s; energy 0.76, aggression 0.50
+   18.600 |   1117 | B Large        | contact  | Chest touched Collider at 11.9 m/s
+   18.600 |   1117 | A Medium       | contact  | HandR touched Collider at 11.9 m/s
+   18.600 |   1117 | B Large        | contact  | ForearmL touched Collider at 11.2 m/s
+   18.600 |   1117 | A Medium       | contact  | UpperArmL touched Collider at 11.2 m/s
+   18.617 |   1118 | B Small        | attack   | ClubSwing at A Large's KneeR: aim locked at (0.28, 0.57, -0.12), lunge 0.49 m, 1.41 s, contact at 0.75 s
+   18.650 |   1120 | A Medium       | hit      | SwordBackhand struck B Large's Chest at 13.1 m/s: 17.4 damage, 13 poise, recoil; impulse 26.0 N·s (45% into the part); the swing stopped; the target, another part
+   18.650 |   1120 | B Large        | struck   | by A Medium on the Chest: health 122/220, poise 107/120, recoil, knocked back at 0.05 m/s, standing
+   18.650 |   1120 | A Medium       | attack   | SwordBackhand cut short: stopped by B Large
+   18.650 |   1120 | B Medium       | balance  | stumble: knocked off balance at 1.10 m/s toward -Z
+   18.650 |   1120 | B Large        | hit      | ClubRising struck B Medium's Spine at 16.0 m/s: 16.2 damage, 86 poise, stagger; impulse 172.1 N·s (45% into the part); cleaved through (78% of the swing left); an ally (friendly fire)
+   18.650 |   1120 | B Medium       | struck   | by B Large on the Spine: health 84/100, poise 45/45, stagger, stumbling at 1.10 m/s
+   18.650 |   1120 | B Medium       | balance  | knocked down at 2.78 m/s toward -Z (cleaved through)
+   18.650 |   1120 | B Large        | contact  | ForearmL touched Collider at 5.7 m/s
+   18.650 |   1120 | A Medium       | contact  | Chest touched Collider at 5.7 m/s
+   18.650 |   1120 | B Medium       | contact  | FootR touched Ground at 1.1 m/s
+   18.650 |   1120 | B Medium       | contact  | FootL touched Ground at 1.1 m/s
+   18.650 |   1120 | B Large        | contact  | ForearmL touched Collider at 8.5 m/s
+   18.650 |   1120 | A Medium       | contact  | ForearmR touched Collider at 8.5 m/s
+   18.667 |   1121 | B Large        | contact  | UpperArmL touched Collider at 16.0 m/s
+   18.667 |   1121 | A Medium       | contact  | ForearmR touched Collider at 16.0 m/s
+   18.683 |   1122 | B Large        | contact  | ForearmL touched Collider at 11.4 m/s
+   18.683 |   1122 | A Medium       | contact  | UpperArmL touched Collider at 11.4 m/s
+   18.717 |   1124 | A Small        | balance  | launched at 3.99 m/s toward +X-Z
+   18.717 |   1124 | B Large        | hit      | ClubRising struck A Small's HandR at 16.0 m/s: 5.3 damage, 67 poise, stagger; impulse 133.9 N·s (2% into the part); cleaved through (68% of the swing left); the target, another part
+   18.717 |   1124 | A Small        | struck   | by B Large on the HandR: health 28/60, poise 25/25, stagger, down
+   18.717 |   1124 | B Large        | contact  | UpperArmL touched Collider at 12.0 m/s
+   18.717 |   1124 | A Medium       | contact  | ForearmR touched Collider at 12.0 m/s
+   18.733 |   1125 | B Large        | contact  | Chest touched Collider at 3.2 m/s
+   18.733 |   1125 | A Medium       | contact  | HandR touched Collider at 3.2 m/s
+   18.783 |   1128 | A Small        | contact  | FootR touched Collider at 3.5 m/s
+   18.783 |   1128 | B Large        | contact  | FootL touched Collider at 3.5 m/s
+   18.800 |   1129 | B Large        | contact  | UpperArmL touched Collider at 1.9 m/s
+   18.800 |   1129 | A Medium       | contact  | Chest touched Collider at 1.9 m/s
+   18.817 |   1130 | B Large        | contact  | ForearmL touched Collider at 2.6 m/s
+   18.817 |   1130 | A Medium       | contact  | Chest touched Collider at 2.6 m/s
+   18.883 |   1134 | B Large        | step     | right foot planted at (-1.78, 0.31), 96 cm from its spot
+   18.900 |   1135 | B Large        | step     | left foot planted at (-1.62, -0.48), 128 cm from its spot
+   18.917 |   1136 | B Medium       | contact  | ShinR touched Ground at 3.6 m/s
+   18.917 |   1136 | B Medium       | contact  | ThighR touched Ground at 3.3 m/s
+   18.917 |   1136 | A Small        | contact  | FootR touched Ground at 2.2 m/s
+   18.917 |   1136 | B Large        | contact  | ForearmL touched Collider at 8.0 m/s
+   18.917 |   1136 | A Medium       | contact  | Chest touched Collider at 8.0 m/s
+   18.950 |   1138 | B Large        | contact  | ClubRising at A Small's KneeR: passed 0.0 cm from the aim point; nearest part A Small's FootR (34.0 cm); the KneeR had moved 77.0 cm since the aim was locked
+   18.950 |   1138 | B Medium       | contact  | ShinL touched Ground at 4.4 m/s
+   18.967 |   1139 | B Medium       | contact  | FootL touched Ground at 4.8 m/s
+   18.967 |   1139 | B Large        | contact  | ForearmL touched Collider at 14.7 m/s
+   18.967 |   1139 | A Medium       | contact  | Head touched Collider at 14.7 m/s
+   18.967 |   1139 | B Medium       | contact  | ThighL touched Ground at 3.0 m/s
+   18.983 |   1140 | B Large        | contact  | HandL touched Collider at 23.4 m/s
+   18.983 |   1140 | A Medium       | contact  | Chest touched Collider at 23.4 m/s
+   18.983 |   1140 | B Large        | contact  | HandL touched Collider at 22.0 m/s
+   18.983 |   1140 | A Medium       | contact  | Head touched Collider at 22.0 m/s
+   19.000 |   1141 | B Large        | contact  | UpperArmL touched Collider at 11.6 m/s
+   19.000 |   1141 | A Medium       | contact  | Chest touched Collider at 11.6 m/s
+   19.000 |   1141 | B Medium       | contact  | ThighL touched Ground at 2.7 m/s
+   19.017 |   1142 | A Medium       | step     | left foot planted at (-1.26, -0.40), 21 cm from its spot
+   19.017 |   1142 | A Small        | contact  | FootL touched Ground at 3.4 m/s
+   19.017 |   1142 | B Large        | contact  | ForearmL touched Collider at 22.6 m/s
+   19.017 |   1142 | A Medium       | contact  | Head touched Collider at 22.6 m/s
+   19.033 |   1143 | A Medium       | contact  | Spine touched Collider at 10.1 m/s
+   19.033 |   1143 | B Large        | contact  | HandR touched Collider at 10.1 m/s
+   19.033 |   1143 | B Large        | contact  | ForearmL touched Collider at 12.3 m/s
+   19.033 |   1143 | A Medium       | contact  | HandL touched Collider at 12.3 m/s
+   19.050 |   1144 | A Medium       | contact  | Chest touched Collider at 9.2 m/s
+   19.050 |   1144 | B Large        | contact  | HandR touched Collider at 9.2 m/s
+   19.050 |   1144 | B Large        | contact  | HandL touched Collider at 18.1 m/s
+   19.050 |   1144 | A Medium       | contact  | HandL touched Collider at 18.1 m/s
+   19.083 |   1146 | B Medium       | contact  | ShinR touched Ground at 1.7 m/s
+   19.100 |   1147 | A Medium       | contact  | Head touched Collider at 7.7 m/s
+   19.100 |   1147 | B Large        | contact  | ForearmR touched Collider at 7.7 m/s
+   19.117 |   1148 | B Large        | contact  | Spine touched Collider at 10.2 m/s
+   19.117 |   1148 | A Medium       | contact  | ForearmL touched Collider at 10.2 m/s
+   19.150 |   1150 | B Small        | contact  | HandL touched Collider at 6.7 m/s
+   19.150 |   1150 | A Large        | contact  | ThighL touched Collider at 6.7 m/s
+   19.150 |   1150 | B Small        | contact  | ForearmL touched Collider at 7.2 m/s
+   19.150 |   1150 | A Large        | contact  | ThighL touched Collider at 7.2 m/s
+   19.167 |   1151 | A Small        | contact  | ThighR touched Ground at 4.5 m/s
+   19.167 |   1151 | B Medium       | contact  | ShinR touched Ground at 1.4 m/s
+   19.167 |   1151 | A Small        | contact  | Pelvis touched Ground at 4.8 m/s
+   19.183 |   1152 | B Small        | contact  | HandL touched Collider at 13.0 m/s
+   19.183 |   1152 | A Large        | contact  | ThighL touched Collider at 13.0 m/s
+   19.200 |   1153 | A Small        | contact  | Chest touched Ground at 4.9 m/s
+   19.200 |   1153 | A Small        | contact  | Spine touched Ground at 3.8 m/s
+   19.217 |   1154 | A Large        | step     | right foot planted at (0.26, -0.15), 14 cm from its spot
+   19.217 |   1154 | A Small        | contact  | FootL touched Ground at 5.2 m/s
+   19.217 |   1154 | B Small        | contact  | HandL touched Collider at 13.9 m/s
+   19.217 |   1154 | A Large        | contact  | Pelvis touched Collider at 13.9 m/s
+   19.233 |   1155 | A Large        | step     | left foot planted at (-0.42, 0.29), 45 cm from its spot
+   19.233 |   1155 | A Small        | contact  | ForearmR touched Ground at 7.7 m/s
+   19.233 |   1155 | A Small        | contact  | UpperArmR touched Ground at 4.1 m/s
+   19.233 |   1155 | A Small        | contact  | ShinL touched Ground at 4.9 m/s
+   19.233 |   1155 | B Small        | contact  | Head touched Collider at 3.8 m/s
+   19.233 |   1155 | A Large        | contact  | Pelvis touched Collider at 3.8 m/s
+   19.250 |   1156 | B Small        | attack   | ClubSwing cut short: staggered
+   19.250 |   1156 | B Small        | balance  | launched at 4.80 m/s toward -X
+   19.250 |   1156 | A Large        | hit      | ClubRising struck B Small's Chest at 15.3 m/s: 16.3 damage, 82 poise, stagger; impulse 164.9 N·s (23% into the part); cleaved through (88% of the swing left); the target, another part
+   19.250 |   1156 | B Small        | struck   | by A Large on the Chest: health 30/60, poise 25/25, stagger, down
+   19.250 |   1156 | A Large        | contact  | ClubRising at B Small's Belly: passed 0.1 cm from the aim point; nearest part B Small's Pelvis (20.0 cm); the Belly had moved 37.5 cm since the aim was locked
+   19.250 |   1156 | A Small        | contact  | Head touched Ground at 5.5 m/s
+   19.250 |   1156 | B Medium       | contact  | FootR touched Ground at 4.6 m/s
+   19.250 |   1156 | A Small        | contact  | HandR touched Ground at 2.8 m/s
+   19.250 |   1156 | B Medium       | contact  | HandL touched Ground at 3.5 m/s
+   19.267 |   1157 | B Small        | contact  | Chest touched Collider at 7.1 m/s
+   19.267 |   1157 | A Large        | contact  | ThighL touched Collider at 7.1 m/s
+   19.267 |   1157 | A Small        | contact  | ForearmR touched Ground at 2.4 m/s
+   19.267 |   1157 | A Small        | contact  | ShinR touched Ground at 2.6 m/s
+   19.283 |   1158 | B Small        | contact  | Pelvis touched Collider at 5.3 m/s
+   19.283 |   1158 | A Large        | contact  | ThighL touched Collider at 5.3 m/s
+   19.283 |   1158 | B Small        | contact  | Spine touched Collider at 5.7 m/s
+   19.283 |   1158 | A Large        | contact  | ThighL touched Collider at 5.7 m/s
+   19.283 |   1158 | A Small        | contact  | HandL touched Ground at 6.1 m/s
+   19.283 |   1158 | A Small        | contact  | ForearmL touched Ground at 5.7 m/s
+   19.283 |   1158 | B Small        | contact  | FootR touched Collider at 4.3 m/s
+   19.283 |   1158 | A Large        | contact  | FootL touched Collider at 4.3 m/s
+   19.300 |   1159 | A Small        | contact  | ForearmR touched Ground at 3.8 m/s
+   19.300 |   1159 | A Small        | contact  | UpperArmL touched Ground at 2.7 m/s
+   19.300 |   1159 | A Small        | contact  | FootR touched Ground at 1.9 m/s
+   19.300 |   1159 | B Small        | contact  | ShinR touched Collider at 4.9 m/s
+   19.300 |   1159 | A Large        | contact  | ShinL touched Collider at 4.9 m/s
+   19.300 |   1159 | B Small        | contact  | ThighR touched Collider at 3.6 m/s
+   19.300 |   1159 | A Large        | contact  | ShinL touched Collider at 3.6 m/s
+   19.300 |   1159 | B Small        | contact  | FootR touched Collider at 4.3 m/s
+   19.300 |   1159 | A Large        | contact  | ShinL touched Collider at 4.3 m/s
+   19.317 |   1160 | B Small        | contact  | FootR touched Collider at 1.8 m/s
+   19.317 |   1160 | A Large        | contact  | FootL touched Collider at 1.8 m/s
+   19.333 |   1161 | A Small        | contact  | HandR touched Ground at 1.5 m/s
+   19.333 |   1161 | B Large        | contact  | HandL touched Collider at 2.6 m/s
+   19.333 |   1161 | A Medium       | contact  | HandR touched Collider at 2.6 m/s
+   19.350 |   1162 | A Medium       | step     | left foot planted at (-1.11, -0.26), 11 cm from its spot
+   19.350 |   1162 | B Small        | contact  | FootL touched Collider at 4.1 m/s
+   19.350 |   1162 | A Large        | contact  | FootL touched Collider at 4.1 m/s
+   19.367 |   1163 | A Small        | contact  | Chest touched Ground at 1.1 m/s
+   19.367 |   1163 | A Small        | contact  | Pelvis touched Ground at 1.8 m/s
+   19.367 |   1163 | B Medium       | contact  | FootR touched Ground at 1.2 m/s
+   19.383 |   1164 | B Large        | step     | left foot planted at (-1.18, 0.73), 0 cm from its spot
+   19.400 |   1165 | B Large        | contact  | Chest touched Collider at 17.3 m/s
+   19.400 |   1165 | A Large        | contact  | HandL touched Collider at 17.3 m/s
+   19.400 |   1165 | B Medium       | contact  | Pelvis touched Ground at 1.6 m/s
+   19.417 |   1166 | B Small        | contact  | ForearmL touched Collider at 21.7 m/s
+   19.417 |   1166 | A Large        | contact  | ForearmR touched Collider at 21.7 m/s
+   19.417 |   1166 | B Small        | contact  | UpperArmL touched Collider at 21.6 m/s
+   19.417 |   1166 | A Large        | contact  | ForearmR touched Collider at 21.6 m/s
+   19.417 |   1166 | B Medium       | contact  | HandL touched Ground at 2.5 m/s
+   19.417 |   1166 | B Small        | contact  | UpperArmL touched Collider at 19.5 m/s
+   19.417 |   1166 | A Large        | contact  | HandR touched Collider at 19.5 m/s
+   19.417 |   1166 | B Small        | contact  | Chest touched Collider at 20.1 m/s
+   19.417 |   1166 | A Large        | contact  | HandR touched Collider at 20.1 m/s
+   19.433 |   1167 | A Small        | contact  | ForearmL touched Ground at 1.3 m/s
+   19.433 |   1167 | A Small        | contact  | ThighL touched Ground at 1.8 m/s
+   19.450 |   1168 | B Small        | impact   | thrown into B Large: its HandL hit the UpperArmL at 4.0 m/s, 6.1 damage, 34 poise, recoil; impulse 67.4 N·s (a launched body thrown into it)
+   19.450 |   1168 | B Large        | struck   | by B Small's body on the UpperArmL: health 116/220, poise 85/120, standing
+   19.450 |   1168 | B Small        | struck   | thrown into B Large on the HandL: health 27/60, poise 25/25, down
+   19.450 |   1168 | A Large        | contact  | ForearmL touched Collider at 11.2 m/s
+   19.450 |   1168 | A Medium       | contact  | ForearmR touched Collider at 11.2 m/s
+   19.450 |   1168 | A Small        | contact  | ShinL touched Ground at 3.5 m/s
+   19.467 |   1169 | A Small        | contact  | HandL touched Ground at 1.5 m/s
+   19.467 |   1169 | A Medium       | contact  | Head touched Collider at 3.8 m/s
+   19.467 |   1169 | B Large        | contact  | HandR touched Collider at 3.8 m/s
+   19.467 |   1169 | A Large        | contact  | HandL touched Collider at 4.3 m/s
+   19.467 |   1169 | A Medium       | contact  | ForearmR touched Collider at 4.3 m/s
+   19.483 |   1170 | A Small        | contact  | UpperArmR touched Ground at 2.0 m/s
+   19.483 |   1170 | B Medium       | contact  | Chest touched Ground at 3.7 m/s
+   19.483 |   1170 | B Medium       | contact  | HandR touched Ground at 3.4 m/s
+   19.483 |   1170 | A Small        | contact  | ShinR touched Ground at 1.1 m/s
+   19.500 |   1171 | B Large        | attack   | ClubRising cut short: flinched
+   19.500 |   1171 | A Large        | hit      | ClubRising struck B Large's Chest at 16.0 m/s: 15.0 damage, 76 poise, flinch; impulse 151.6 N·s (45% into the part); the swing stopped; someone in the way
+   19.500 |   1171 | B Large        | struck   | by A Large on the Chest: health 101/220, poise 10/120, flinch, knocked back at 0.10 m/s, standing
+   19.500 |   1171 | A Large        | attack   | ClubRising cut short: stopped by B Large
+   19.500 |   1171 | A Medium       | contact  | Head touched Collider at 2.1 m/s
+   19.500 |   1171 | B Large        | contact  | HandR touched Collider at 2.1 m/s
+   19.500 |   1171 | B Medium       | contact  | UpperArmL touched Ground at 1.3 m/s
+   19.500 |   1171 | B Large        | contact  | ForearmR touched Collider at 1.9 m/s
+   19.500 |   1171 | A Medium       | contact  | Chest touched Collider at 1.9 m/s
+   19.500 |   1171 | B Large        | contact  | HandR touched Collider at 2.0 m/s
+   19.500 |   1171 | A Medium       | contact  | Chest touched Collider at 2.0 m/s
+   19.517 |   1172 | B Medium       | contact  | ForearmL touched Ground at 1.4 m/s
+   19.517 |   1172 | B Medium       | contact  | Head touched Ground at 5.0 m/s
+   19.517 |   1172 | B Medium       | contact  | FootR touched Ground at 1.1 m/s
+   19.533 |   1173 | A Large        | contact  | HandL touched Collider at 2.5 m/s
+   19.533 |   1173 | A Medium       | contact  | ForearmR touched Collider at 2.5 m/s
+   19.550 |   1174 | B Medium       | contact  | ForearmR touched Ground at 1.6 m/s
+   19.550 |   1174 | A Small        | contact  | FootR touched Ground at 1.2 m/s
+   19.550 |   1174 | B Medium       | contact  | UpperArmR touched Ground at 2.4 m/s
+   19.567 |   1175 | B Medium       | contact  | HandL touched Ground at 1.9 m/s
+   19.583 |   1176 | A Small        | contact  | HandR touched Ground at 5.4 m/s
+   19.600 |   1177 | B Large        | contact  | Head touched Collider at 3.1 m/s
+   19.600 |   1177 | A Medium       | contact  | Head touched Collider at 3.1 m/s
+   19.600 |   1177 | A Large        | contact  | HandL touched Collider at 2.9 m/s
+   19.600 |   1177 | A Medium       | contact  | HandR touched Collider at 2.9 m/s
+   19.617 |   1178 | B Large        | contact  | Chest touched Collider at 5.7 m/s
+   19.617 |   1178 | A Medium       | contact  | HandL touched Collider at 5.7 m/s
+   19.617 |   1178 | B Large        | contact  | ForearmR touched Collider at 3.5 m/s
+   19.617 |   1178 | A Medium       | contact  | Chest touched Collider at 3.5 m/s
+   19.617 |   1178 | A Large        | contact  | HandL touched Collider at 1.8 m/s
+   19.617 |   1178 | A Medium       | contact  | ForearmR touched Collider at 1.8 m/s
+   19.617 |   1178 | B Medium       | contact  | FootL touched Ground at 2.3 m/s
+   19.633 |   1179 | B Small        | contact  | HandL touched Ground at 6.3 m/s
+   19.650 |   1180 | A Small        | contact  | FootL touched Ground at 4.1 m/s
+   19.650 |   1180 | B Large        | contact  | HandR touched Collider at 2.7 m/s
+   19.650 |   1180 | A Medium       | contact  | Chest touched Collider at 2.7 m/s
+   19.650 |   1180 | B Small        | contact  | HandR touched Ground at 9.9 m/s
+   19.667 |   1181 | A Medium       | step     | left foot planted at (-1.31, -0.31), 1 cm from its spot
+   19.667 |   1181 | B Large        | contact  | UpperArmL touched Collider at 11.0 m/s
+   19.667 |   1181 | A Large        | contact  | HandR touched Collider at 11.0 m/s
+   19.683 |   1182 | B Large        | step     | right foot planted at (-1.45, 1.22), 7 cm from its spot
+   19.683 |   1182 | B Large        | contact  | HandR touched Collider at 12.4 m/s
+   19.683 |   1182 | A Medium       | contact  | Head touched Collider at 12.4 m/s
+   19.750 |   1186 | B Large        | contact  | ForearmR touched Collider at 13.3 m/s
+   19.750 |   1186 | A Medium       | contact  | UpperArmL touched Collider at 13.3 m/s
+   19.800 |   1189 | B Small        | contact  | FootL touched Ground at 8.3 m/s
+   19.800 |   1189 | B Large        | contact  | HandR touched Collider at 21.4 m/s
+   19.800 |   1189 | A Medium       | contact  | UpperArmL touched Collider at 21.4 m/s
+   19.850 |   1192 | B Small        | contact  | HandR touched Ground at 6.3 m/s
+   19.867 |   1193 | B Small        | contact  | FootR touched Ground at 12.3 m/s
+   19.867 |   1193 | B Small        | contact  | ShinR touched Ground at 9.3 m/s
+   19.883 |   1194 | A Large        | step     | left foot planted at (-0.22, -0.12), 12 cm from its spot
+   19.883 |   1194 | B Small        | contact  | ThighR touched Ground at 6.4 m/s
+   19.933 |   1197 | A Large        | step     | right foot planted at (0.32, -0.27), 12 cm from its spot
+   19.933 |   1197 | B Small        | contact  | Pelvis touched Ground at 3.9 m/s
+   19.967 |   1199 | A Medium       | rhythm   | posture GuardChange, 0.90 s; open: Chest Belly 0.27–0.45 s; Knees 0.54–0.72 s; energy 0.83, aggression 0.57
+   19.983 |   1200 | B Small        | contact  | FootR touched Ground at 4.6 m/s
+   20.017 |   1202 | B Small        | contact  | HandL touched Ground at 7.4 m/s
+   20.017 |   1202 | B Small        | contact  | FootL touched Ground at 6.2 m/s
+   20.017 |   1202 | B Small        | contact  | FootR touched Ground at 5.0 m/s
+   20.033 |   1203 | B Small        | contact  | Head touched Ground at 5.8 m/s
+   20.050 |   1204 | A Small        | balance  | getting up face down after 1.3 s down
+   20.083 |   1206 | B Large        | step     | right foot planted at (-1.55, 1.11), 1 cm from its spot
+   20.083 |   1206 | B Small        | contact  | HandR touched Ground at 8.7 m/s
+   20.117 |   1208 | B Medium       | contact  | FootL touched Ground at 5.2 m/s
+   20.133 |   1209 | B Small        | contact  | HandR touched Ground at 4.0 m/s
+   20.150 |   1210 | A Medium       | step     | right foot planted at (-0.90, -0.61), 1 cm from its spot
+   20.150 |   1210 | B Medium       | contact  | ThighL touched Ground at 2.0 m/s
+   20.150 |   1210 | B Medium       | contact  | ShinL touched Ground at 1.6 m/s
+   20.150 |   1210 | B Small        | contact  | Chest touched Ground at 2.5 m/s
+   20.150 |   1210 | B Small        | contact  | Head touched Ground at 3.1 m/s
+   20.183 |   1212 | A Small        | contact  | FootL touched Ground at 3.3 m/s
+   20.217 |   1214 | B Small        | contact  | UpperArmR touched Ground at 3.7 m/s
+   20.233 |   1215 | B Small        | contact  | ForearmR touched Ground at 4.5 m/s
+   20.267 |   1217 | B Small        | contact  | HandR touched Ground at 3.9 m/s
+   20.367 |   1223 | B Small        | contact  | UpperArmR touched Ground at 1.9 m/s
+   20.383 |   1224 | A Large        | rhythm   | posture BobAndWeave, 0.84 s; open: Head Neck 0.33–0.52 s; energy 0.87, aggression 0.80
+   20.383 |   1224 | B Large        | rhythm   | posture BobAndWeave, 0.84 s; open: Head Neck 0.33–0.52 s; energy 0.73, aggression 0.50
+   20.400 |   1225 | B Small        | contact  | Chest touched Ground at 2.1 m/s
+   20.417 |   1226 | A Small        | contact  | HandR touched Ground at 2.5 m/s
+   20.467 |   1229 | B Large        | step     | left foot planted at (-1.08, 0.79), 1 cm from its spot
+   20.483 |   1230 | B Medium       | balance  | getting up face down after 1.8 s down
+   20.500 |   1231 | B Small        | contact  | Chest touched Ground at 1.5 m/s
+   20.533 |   1233 | B Small        | contact  | FootR touched Ground at 2.3 m/s
+   20.567 |   1235 | B Small        | contact  | ShinR touched Ground at 2.3 m/s
+   20.567 |   1235 | B Small        | contact  | FootL touched Ground at 5.1 m/s
+   20.567 |   1235 | B Small        | contact  | HandR touched Ground at 4.5 m/s
+   20.567 |   1235 | B Small        | contact  | ThighR touched Ground at 2.4 m/s
+   20.583 |   1236 | B Small        | contact  | FootR touched Ground at 1.9 m/s
+   20.600 |   1237 | B Small        | contact  | HandL touched Ground at 2.8 m/s
+   20.750 |   1246 | B Small        | contact  | ForearmL touched Ground at 1.1 m/s
+   20.767 |   1247 | B Small        | contact  | FootR touched Ground at 1.5 m/s
+   20.783 |   1248 | B Medium       | contact  | HandR touched Ground at 3.5 m/s
+   20.817 |   1250 | B Small        | contact  | UpperArmL touched Ground at 1.9 m/s
+   20.833 |   1251 | B Medium       | contact  | ForearmR touched Ground at 1.6 m/s
+   20.833 |   1251 | B Medium       | contact  | HandL touched Ground at 5.5 m/s
+   20.850 |   1252 | B Small        | contact  | UpperArmR touched Ground at 1.2 m/s
+   20.867 |   1253 | B Small        | contact  | ForearmR touched Ground at 2.1 m/s
+   20.883 |   1254 | B Small        | contact  | HandR touched Ground at 3.7 m/s
+   20.900 |   1255 | B Medium       | contact  | HandR touched Ground at 2.4 m/s
+   20.933 |   1257 | A Medium       | step     | left foot planted at (-1.14, -0.30), 1 cm from its spot
+   21.250 |   1276 | A Medium       | step     | right foot planted at (-0.73, -0.56), 1 cm from its spot
+   21.350 |   1282 | A Medium       | rhythm   | posture ShieldPress (lead-in to a blow), 0.60 s; open: ElbowR Knees 0.24–0.45 s; energy 0.82, aggression 0.55
+   21.533 |   1293 | A Small        | balance  | got up (face down)
+   21.550 |   1294 | A Small        | move     | back onto the board: heading for tile D3
+   21.567 |   1295 | A Medium       | step     | left foot planted at (-1.13, -0.19), 10 cm from its spot
+   21.683 |   1302 | B Small        | balance  | getting up face up after 2.4 s down
+   21.717 |   1304 | B Large        | attack   | ClubSmash at A Medium's Chest: aim locked at (-0.96, 1.37, -0.25), lunge 0.08 m, 2.06 s, contact at 1.18 s
+   21.750 |   1306 | B Small        | contact  | ShinL touched Ground at 1.5 m/s
+   21.800 |   1309 | A Small        | step     | left foot planted at (-0.57, -2.51), 13 cm from its spot
+   21.850 |   1312 | B Small        | contact  | HandL touched Ground at 7.2 m/s
+   21.867 |   1313 | B Small        | contact  | ShinL touched Ground at 2.5 m/s
+   21.900 |   1315 | A Medium       | step     | left foot planted at (-1.10, -0.29), 0 cm from its spot
+   21.917 |   1316 | B Small        | contact  | HandR touched Ground at 3.6 m/s
+   21.967 |   1319 | A Medium       | attack   | SwordCleave at B Large's Chest: aim locked at (-1.37, 1.88, 0.83), lunge 0.75 m, 1.76 s, contact at 0.95 s
+   21.967 |   1319 | B Small        | contact  | HandL touched Ground at 4.1 m/s
+   21.983 |   1320 | A Small        | step     | right foot planted at (-0.62, -2.27), 2 cm from its spot
+   22.167 |   1331 | A Small        | step     | left foot planted at (-0.85, -2.48), 2 cm from its spot
+   22.367 |   1343 | A Small        | step     | right foot planted at (-0.77, -2.29), 11 cm from its spot
+   22.383 |   1344 | A Large        | rhythm   | posture ClubFeint (lead-in to a blow), 0.56 s; open: Head 0.17–0.33 s; energy 0.87, aggression 0.78
+   22.500 |   1351 | B Medium       | balance  | got up (face down)
+   22.517 |   1352 | B Medium       | move     | back onto the board: heading for tile C4
+   22.550 |   1354 | A Small        | step     | left foot planted at (-0.93, -2.27), 5 cm from its spot
+   22.733 |   1365 | A Small        | step     | right foot planted at (-0.72, -2.25), 5 cm from its spot
+   22.767 |   1367 | A Medium       | hit      | SwordCleave struck A Large's ThighL at 12.9 m/s: 12.0 damage, 13 poise, recoil; impulse 25.7 N·s (0% into the part); the swing stopped; an ally (friendly fire)
+   22.767 |   1367 | A Large        | struck   | by A Medium on the ThighL: health 179/220, poise 107/120, recoil, knocked back at 0.07 m/s, standing
+   22.767 |   1367 | A Medium       | attack   | SwordCleave cut short: stopped by A Large
+   22.817 |   1370 | B Medium       | step     | left foot planted at (-2.12, -1.15), 18 cm from its spot
+   22.833 |   1371 | B Large        | step     | left foot planted at (-1.04, 0.74), 8 cm from its spot
+   22.867 |   1373 | A Medium       | balance  | stumble: knocked off balance at 1.13 m/s toward +X-Z
+   22.867 |   1373 | B Large        | hit      | ClubSmash struck A Medium's HandL at 15.0 m/s: blocked by A Medium's shield (54 poise); impulse 143.5 N·s (5% into the part); the swing stopped; blocked by the shield
+   22.867 |   1373 | A Medium       | struck   | by B Large on the HandL: health 72/100, poise 45/45, stagger, stumbling at 1.13 m/s
+   22.867 |   1373 | B Large        | attack   | ClubSmash cut short: stopped by A Medium's shield
+   22.917 |   1376 | A Small        | step     | left foot planted at (-1.04, -2.17), 1 cm from its spot
+   23.050 |   1384 | A Small        | rhythm   | posture RedondaTwirl, 0.63 s; open: Chest Belly ElbowR 0.25–0.47 s; energy 0.73, aggression 0.45
+   23.050 |   1384 | B Medium       | step     | right foot planted at (-2.51, -1.19), 21 cm from its spot
+   23.083 |   1386 | A Large        | step     | right foot planted at (0.38, -0.14), 5 cm from its spot
+   23.100 |   1387 | A Large        | attack   | ClubSwing at B Large's KneeL: aim locked at (-0.97, 0.66, 0.64), lunge 0.79 m, 2.13 s, contact at 1.14 s
+   23.100 |   1387 | A Small        | step     | right foot planted at (-0.82, -2.11), 0 cm from its spot
+   23.167 |   1391 | B Small        | balance  | got up (face up)
+   23.183 |   1392 | B Small        | move     | back onto the board: heading for tile A6
+   23.250 |   1396 | A Medium       | step     | left foot planted at (-1.10, -0.30), 38 cm from its spot
+   23.250 |   1396 | B Large        | step     | left foot planted at (-1.07, 0.82), 3 cm from its spot
+   23.267 |   1397 | B Medium       | step     | left foot planted at (-2.39, -0.66), 18 cm from its spot
+   23.283 |   1398 | A Small        | step     | left foot planted at (-1.14, -2.06), 1 cm from its spot
+   23.300 |   1399 | A Medium       | step     | right foot planted at (-0.71, -0.54), 40 cm from its spot
+   23.433 |   1407 | B Small        | step     | left foot planted at (-5.86, 2.22), 2 cm from its spot
+   23.483 |   1410 | A Small        | step     | right foot planted at (-0.92, -2.01), 0 cm from its spot
+   23.483 |   1410 | B Medium       | step     | right foot planted at (-2.21, -0.86), 22 cm from its spot
+   23.533 |   1413 | A Medium       | step     | right foot planted at (-0.32, -0.86), 5 cm from its spot
+   23.550 |   1414 | A Medium       | balance  | regained balance after 3 catch steps, 0.46 m toward +X-Z
+   23.617 |   1418 | B Small        | step     | right foot planted at (-5.81, 2.01), 0 cm from its spot
+   23.650 |   1420 | B Small        | rhythm   | posture AbanicoFlurry, 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.74, aggression 0.43
+   23.667 |   1421 | A Small        | step     | left foot planted at (-1.23, -1.93), 0 cm from its spot
+   23.667 |   1421 | B Large        | step     | right foot planted at (-1.60, 0.99), 9 cm from its spot
+   23.683 |   1422 | B Medium       | step     | right foot planted at (-2.03, -1.18), 19 cm from its spot
+   23.700 |   1423 | B Medium       | rhythm   | posture HighFeint (lead-in to a blow), 0.55 s; open: ElbowR 0.19–0.36 s; energy 0.87, aggression 0.57
+   23.750 |   1426 | B Large        | rhythm   | posture JabFeint, 0.42 s; open: Head ElbowL 0.11–0.30 s; energy 0.72, aggression 0.54
+   23.783 |   1428 | A Medium       | step     | left foot planted at (-0.89, -0.62), 17 cm from its spot
+   23.800 |   1429 | B Small        | step     | left foot planted at (-5.77, 2.34), 1 cm from its spot
+   23.850 |   1432 | A Small        | step     | right foot planted at (-1.01, -1.90), 1 cm from its spot
+   23.900 |   1435 | B Large        | step     | left foot planted at (-0.98, 0.94), 8 cm from its spot
+   24.000 |   1441 | B Small        | step     | right foot planted at (-5.74, 2.14), 0 cm from its spot
+   24.000 |   1441 | B Medium       | step     | left foot planted at (-2.03, -0.82), 20 cm from its spot
+   24.033 |   1443 | A Small        | step     | left foot planted at (-1.32, -1.83), 0 cm from its spot
+   24.050 |   1444 | A Large        | contact  | HandL touched Collider at 5.9 m/s
+   24.050 |   1444 | B Large        | contact  | Pelvis touched Collider at 5.9 m/s
+   24.100 |   1447 | A Medium       | step     | right foot planted at (-0.45, -0.53), 9 cm from its spot
+   24.150 |   1450 | B Large        | step     | left foot planted at (-1.04, 0.91), 6 cm from its spot
+   24.183 |   1452 | A Large        | step     | left foot planted at (-0.54, 0.04), 41 cm from its spot
+   24.183 |   1452 | A Large        | step     | right foot planted at (-0.57, 0.60), 116 cm from its spot
+   24.183 |   1452 | B Small        | step     | left foot planted at (-5.67, 2.46), 1 cm from its spot
+   24.217 |   1454 | A Small        | step     | right foot planted at (-1.10, -1.79), 1 cm from its spot
+   24.233 |   1455 | A Large        | hit      | ClubSwing struck B Large's ShinL at 12.3 m/s: 7.9 damage, 66 poise, flinch; impulse 132.4 N·s (0% into the part); the swing stopped; the part aimed at
+   24.233 |   1455 | B Large        | struck   | by A Large on the ShinL: health 93/220, poise 15/120, flinch, knocked back at 0.47 m/s, standing
+   24.233 |   1455 | A Large        | attack   | ClubSwing cut short: stopped by B Large
+   24.317 |   1460 | B Medium       | step     | right foot planted at (-2.42, -1.06), 1 cm from its spot
+   24.333 |   1461 | B Medium       | attack   | SwordThrust at A Small's Neck: aim locked at (-1.24, 0.90, -1.75), lunge 0.10 m, 1.23 s, contact at 0.70 s
+   24.367 |   1463 | A Medium       | step     | left foot planted at (-0.96, -0.85), 14 cm from its spot
+   24.383 |   1464 | B Small        | step     | right foot planted at (-5.66, 2.25), 2 cm from its spot
+   24.417 |   1466 | A Small        | step     | left foot planted at (-1.43, -1.73), 0 cm from its spot
+   24.450 |   1468 | A Medium       | rhythm   | posture Peek, 0.45 s; open: Head Neck 0.11–0.32 s; energy 0.81, aggression 0.55
+   24.567 |   1475 | B Small        | step     | left foot planted at (-5.53, 2.55), 17 cm from its spot
+   24.600 |   1477 | A Small        | step     | right foot planted at (-1.21, -1.68), 1 cm from its spot
+   24.617 |   1478 | A Large        | step     | left foot planted at (-0.22, -0.22), 1 cm from its spot
+   24.667 |   1481 | A Large        | step     | right foot planted at (0.33, -0.13), 2 cm from its spot
+   24.683 |   1482 | A Medium       | step     | right foot planted at (-0.58, -0.41), 1 cm from its spot
+   24.750 |   1486 | B Small        | step     | right foot planted at (-5.64, 2.30), 2 cm from its spot
+   24.800 |   1489 | A Small        | step     | left foot planted at (-1.53, -1.63), 1 cm from its spot
+   24.817 |   1490 | A Small        | rhythm   | posture AbanicoFlurry (lead-in to a blow), 0.48 s; open: Belly Knees 0.14–0.38 s; energy 0.72, aggression 0.47
+   24.933 |   1497 | B Small        | step     | left foot planted at (-5.31, 2.33), 1 cm from its spot
+   25.000 |   1501 | A Medium       | step     | left foot planted at (-0.85, -0.74), 0 cm from its spot
+   25.000 |   1501 | B Medium       | step     | left foot planted at (-2.33, -0.78), 46 cm from its spot
+   25.000 |   1501 | B Medium       | step     | right foot planted at (-2.21, -1.22), 25 cm from its spot
+   25.017 |   1502 | A Small        | despawn  | recording stopped
+   25.017 |   1502 | A Medium       | despawn  | recording stopped
+   25.017 |   1502 | A Large        | despawn  | recording stopped
+   25.017 |   1502 | B Small        | despawn  | recording stopped
+   25.017 |   1502 | B Medium       | despawn  | recording stopped
+   25.017 |   1502 | B Large        | despawn  | recording stopped
+   25.017 |   1502 | -              | session  | 201 pictures saved
+   25.017 |   1502 | -              | session  | recording stopped after 25.0 s (1502 physics steps)

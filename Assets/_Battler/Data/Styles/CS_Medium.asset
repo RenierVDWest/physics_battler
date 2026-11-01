@@ -12,29 +12,255 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 559de9d78f271ce40903ac71977ea21c, type: 3}
   m_Name: CS_Medium
   m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Motion.CombatStyle
-  stanceWidth: 0.34
-  stanceLength: 0.42
-  crouch: 0.07
+  stanceWidth: 0.16
+  stanceLength: 0.62
+  crouch: 0.15
   leadWithLeftFoot: 1
   leadToeOut: 10
   rearToeOut: 35
-  hipTurn: 22
-  chestCounterTurn: -10
-  lean: 6
-  leadWeight: 0.45
+  hipTurn: 60
+  chestCounterTurn: 0
+  lean: 1
+  leadWeight: 0.42
   guardRaise: -32
   guardIn: 14
   guardElbow: -100
   leadArmReach: -12
-  swayAmplitude: 0.03
+  swayAmplitude: 0
   swayFrequency: 0.45
-  bobAmplitude: 0.012
+  bobAmplitude: 0
   bobFrequency: 1.6
-  weaveDegrees: 4
+  weaveDegrees: 0
   weaveFrequency: 0.35
+  attackInterval: {x: 1.6, y: 3}
+  engageDistance: 1.25
+  walkSpeed: 0.7
+  blockChance: 0.55
+  reactionTime: 0.22
+  rhythm: {fileID: 11400000, guid: 253fbfbd8fb9cb5438cda832fd6b3c1f, type: 2}
   stepThreshold: 0.16
   stepTurnThreshold: 25
   stepDuration: 0.26
   stepHeight: 0.07
   shuffleInterval: 2.5
   shuffleDistance: 0.1
+  readsOpenings: 0.5
+  openingLead: 0.8
+  walk:
+    source: MediumWalk.fbx
+    length: 0.9775
+    distance: 1.5345
+    width: 0.1651
+    stepHeight: 0.1549
+    lean: 8.1997
+    crouch: 0.1261
+    pelvisTurn: 2.5476
+    chestTurn: 18.4686
+    liftL: 0.7273
+    landL: 0.2273
+    liftR: 0.1818
+    landR: 0.6364
+    strength: 1
+    body:
+      source: MediumWalk.fbx
+      length: 0.9775
+      strength: 1
+      keys:
+      - hips: {x: 0.022, y: 0, z: -0.0093}
+        drop: 0.0088
+        turn: -5.0228
+        hipTurn: -0.37
+        lean: 0.1458
+        roll: -0.825
+        head: {x: 0.9625, y: 2.5793}
+        main: {x: -0.0169, y: -0.0126, z: 0.0198}
+        off: {x: 0.0286, y: 0.0009, z: 0.0141}
+      - hips: {x: 0.0229, y: 0, z: -0.0133}
+        drop: 0.0015
+        turn: -4.8063
+        hipTurn: 1.089
+        lean: -0.2234
+        roll: -0.3616
+        head: {x: 0.7214, y: 2.3932}
+        main: {x: -0.0195, y: -0.0096, z: 0.0261}
+        off: {x: 0.0119, y: -0.0154, z: 0.0064}
+      - hips: {x: 0.0234, y: 0, z: -0.0159}
+        drop: 0
+        turn: -4.4626
+        hipTurn: 2.577
+        lean: -0.7202
+        roll: 0.1069
+        head: {x: 0.582, y: 2.0603}
+        main: {x: -0.02, y: -0.0055, z: 0.0337}
+        off: {x: -0.0038, y: -0.0308, z: -0.0019}
+      - hips: {x: 0.023, y: 0, z: -0.016}
+        drop: 0.0093
+        turn: -3.2281
+        hipTurn: 4.4619
+        lean: -1.0778
+        roll: 0.3837
+        head: {x: 0.5614, y: 1.0631}
+        main: {x: -0.0183, y: -0.0006, z: 0.042}
+        off: {x: -0.0184, y: -0.042, z: -0.0071}
+      - hips: {x: 0.0199, y: 0, z: -0.0142}
+        drop: 0.0216
+        turn: -1.9058
+        hipTurn: 5.9697
+        lean: -1.1844
+        roll: 0.5537
+        head: {x: 0.5032, y: 0.158}
+        main: {x: -0.0153, y: 0.0032, z: 0.047}
+        off: {x: -0.0282, y: -0.0478, z: -0.0102}
+      - hips: {x: 0.0135, y: 0, z: -0.0082}
+        drop: 0.0338
+        turn: -0.7383
+        hipTurn: 6.8519
+        lean: -1.2322
+        roll: 0.5964
+        head: {x: 0.519, y: -0.4775}
+        main: {x: -0.0098, y: 0.0062, z: 0.0469}
+        off: {x: -0.0318, y: -0.0478, z: -0.0111}
+      - hips: {x: 0.0032, y: 0, z: 0.0038}
+        drop: 0.043
+        turn: 0.036
+        hipTurn: 6.8533
+        lean: -1.397
+        roll: 0.4731
+        head: {x: 0.7242, y: -0.6679}
+        main: {x: -0.001, y: 0.0092, z: 0.04}
+        off: {x: -0.0277, y: -0.0415, z: -0.0109}
+      - hips: {x: -0.0062, y: 0, z: 0.0149}
+        drop: 0.0486
+        turn: 0.8537
+        hipTurn: 6.6577
+        lean: -1.4914
+        roll: 0.1398
+        head: {x: 0.8734, y: -0.9106}
+        main: {x: 0.0073, y: 0.0125, z: 0.0306}
+        off: {x: -0.0245, y: -0.0351, z: -0.0117}
+      - hips: {x: -0.0131, y: 0, z: 0.0217}
+        drop: 0.0452
+        turn: 1.8229
+        hipTurn: 5.8961
+        lean: -1.3551
+        roll: -0.592
+        head: {x: 0.8238, y: -1.3678}
+        main: {x: 0.0123, y: 0.014, z: 0.0166}
+        off: {x: -0.0245, y: -0.0277, z: -0.0141}
+      - hips: {x: -0.018, y: 0, z: 0.0214}
+        drop: 0.0361
+        turn: 2.8041
+        hipTurn: 4.6153
+        lean: -0.893
+        roll: -0.8155
+        head: {x: 0.6602, y: -1.9545}
+        main: {x: 0.012, y: 0.0082, z: 0.0019}
+        off: {x: -0.0238, y: -0.0165, z: -0.0142}
+      - hips: {x: -0.0221, y: 0, z: 0.0176}
+        drop: 0.0236
+        turn: 3.7245
+        hipTurn: 2.9226
+        lean: -0.1858
+        roll: -0.5989
+        head: {x: 0.4648, y: -2.5351}
+        main: {x: 0.01, y: -0.0008, z: -0.014}
+        off: {x: -0.0203, y: -0.0037, z: -0.0123}
+      - hips: {x: -0.0246, y: 0, z: 0.0117}
+        drop: 0.0094
+        turn: 4.2963
+        hipTurn: 1.0633
+        lean: 0.5394
+        roll: -0.2128
+        head: {x: 0.0849, y: -2.8543}
+        main: {x: 0.0086, y: -0.0079, z: -0.0292}
+        off: {x: -0.0167, y: 0.0075, z: -0.0093}
+      - hips: {x: -0.0253, y: 0, z: 0.0048}
+        drop: 0.0017
+        turn: 4.2753
+        hipTurn: -0.7062
+        lean: 1.0779
+        roll: 0.1761
+        head: {x: -0.4935, y: -2.7022}
+        main: {x: 0.0088, y: -0.0108, z: -0.0392}
+        off: {x: -0.0144, y: 0.0152, z: -0.0067}
+      - hips: {x: -0.0243, y: 0, z: -0.0014}
+        drop: 0.0017
+        turn: 3.9624
+        hipTurn: -2.3546
+        lean: 1.4075
+        roll: 0.4104
+        head: {x: -1.0173, y: -2.2482}
+        main: {x: 0.0096, y: -0.0106, z: -0.0446}
+        off: {x: -0.0108, y: 0.0205, z: -0.0031}
+      - hips: {x: -0.0211, y: 0, z: -0.0067}
+        drop: 0.0112
+        turn: 3.3363
+        hipTurn: -3.8434
+        lean: 1.3933
+        roll: 0.4365
+        head: {x: -1.3972, y: -1.451}
+        main: {x: 0.0106, y: -0.0077, z: -0.0442}
+        off: {x: -0.0045, y: 0.0243, z: 0.003}
+      - hips: {x: -0.0169, y: 0, z: -0.0089}
+        drop: 0.0239
+        turn: 2.675
+        hipTurn: -5.2485
+        lean: 1.2747
+        roll: 0.5246
+        head: {x: -1.5487, y: -0.7144}
+        main: {x: 0.0108, y: -0.0042, z: -0.0413}
+        off: {x: 0.0032, y: 0.0294, z: 0.0081}
+      - hips: {x: -0.0106, y: 0, z: -0.0049}
+        drop: 0.0427
+        turn: 1.9535
+        hipTurn: -6.4933
+        lean: 0.9758
+        roll: 0.7378
+        head: {x: -1.2405, y: -0.0986}
+        main: {x: 0.0096, y: 0.0005, z: -0.0336}
+        off: {x: 0.0135, y: 0.0364, z: 0.011}
+      - hips: {x: -0.0033, y: 0, z: -0.0007}
+        drop: 0.0578
+        turn: 1.0898
+        hipTurn: -7.5242
+        lean: 0.7784
+        roll: 0.7197
+        head: {x: -0.9178, y: 0.5176}
+        main: {x: 0.0081, y: 0.0054, z: -0.0264}
+        off: {x: 0.0242, y: 0.0429, z: 0.0124}
+      - hips: {x: 0.0059, y: 0, z: 0.0032}
+        drop: 0.0635
+        turn: -0.3576
+        hipTurn: -7.9568
+        lean: 0.8689
+        roll: 0.1729
+        head: {x: -0.7391, y: 1.2889}
+        main: {x: 0.0057, y: 0.0092, z: -0.0207}
+        off: {x: 0.0358, y: 0.0453, z: 0.0119}
+      - hips: {x: 0.0128, y: 0, z: 0.0034}
+        drop: 0.0566
+        turn: -2.2001
+        hipTurn: -6.8993
+        lean: 0.6293
+        roll: -0.3695
+        head: {x: -0.5718, y: 2.2195}
+        main: {x: 0.0017, y: 0.0074, z: -0.0138}
+        off: {x: 0.044, y: 0.0399, z: 0.0137}
+      - hips: {x: 0.0184, y: 0, z: 0.0014}
+        drop: 0.0423
+        turn: -3.6149
+        hipTurn: -4.9266
+        lean: 0.3224
+        roll: -0.847
+        head: {x: -0.0499, y: 2.9118}
+        main: {x: -0.0035, y: 0.002, z: -0.0048}
+        off: {x: 0.048, y: 0.0299, z: 0.016}
+      - hips: {x: 0.0205, y: 0, z: -0.0045}
+        drop: 0.0242
+        turn: -4.4931
+        hipTurn: -2.6349
+        lean: 0.3468
+        roll: -0.8092
+        head: {x: 0.4948, y: 2.7906}
+        main: {x: -0.0108, y: -0.0074, z: 0.007}
+        off: {x: 0.0402, y: 0.016, z: 0.0162}

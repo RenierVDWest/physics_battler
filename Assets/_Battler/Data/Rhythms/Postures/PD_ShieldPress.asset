@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7762058677c613a4698a1ef0a53eb90f, type: 3}
+  m_Name: PD_ShieldPress
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Motion.PostureDefinition
+  kind: 0
+  duration: 0.6
+  weight: 1
+  leadIn: 1
+  feintMove: 
+  feintDepth: 0.5
+  keys:
+  - at: 0.45
+    hips: {x: 0, y: 0, z: 0.06}
+    crouch: 0
+    lean: 6
+    roll: 0
+    turn: -10
+    head: {x: 0, y: 0}
+    main: {x: 0, y: 0, z: 0}
+    mainTurn: {x: 0, y: 0, z: 0}
+    off: {x: 0, y: 0.02, z: 0.2}
+    offTurn: {x: 0, y: 0, z: 0}
+    travel: {x: 0, y: 0, z: 0}
+  - at: 0.75
+    hips: {x: 0, y: 0, z: 0.03}
+    crouch: 0
+    lean: 3
+    roll: 0
+    turn: -4
+    head: {x: 0, y: 0}
+    main: {x: 0, y: 0, z: 0}
+    mainTurn: {x: 0, y: 0, z: 0}
+    off: {x: 0, y: 0, z: 0.08}
+    offTurn: {x: 0, y: 0, z: 0}
+    travel: {x: 0, y: 0, z: 0}
+  steps:
+  - at: 0.1
+    foot: 0
+    to: 0
+    offset: {x: 0, y: 0, z: 0.12}
+    length: 0.3
+  - at: 0.65
+    foot: 0
+    to: 1
+    offset: {x: 0, y: 0, z: 0}
+    length: 0.3
+  openings:
+  - from: 0.4
+    to: 0.75
+    parts: 224
+  followedBy: HighFeint
+  followBias: 1.5

@@ -1,0 +1,39 @@
+{
+    "stanceWidth": 0.3199999928474426,
+    "stanceLength": 0.5799999833106995,
+    "crouch": 0.09000000357627869,
+    "leadWithLeftFoot": true,
+    "leadToeOut": 10.0,
+    "rearToeOut": 35.0,
+    "hipTurn": 36.0,
+    "chestCounterTurn": -8.0,
+    "lean": 3.0,
+    "leadWeight": 0.5199999809265137,
+    "guardRaise": -22.0,
+    "guardIn": 8.0,
+    "guardElbow": -80.0,
+    "leadArmReach": -6.0,
+    "swayAmplitude": 0.0,
+    "swayFrequency": 0.2800000011920929,
+    "bobAmplitude": 0.0,
+    "bobFrequency": 0.8999999761581421,
+    "weaveDegrees": 0.0,
+    "weaveFrequency": 0.2199999988079071,
+    "attackInterval": {
+        "x": 1.600000023841858,
+        "y": 3.0
+    },
+    "engageDistance": 1.25,
+    "walkSpeed": 0.699999988079071,
+    "blockChance": 0.550000011920929,
+    "reactionTime": 0.2199999988079071,
+    "rhythm": {
+        "instanceID": 40681930270115
+    },
+    "stepThreshold": 0.1599999964237213,
+    "stepTurnThreshold": 25.0,
+    "stepDuration": 0.25999999046325684,
+    "stepHeight": 0.07000000029802322,
+    "shuffleInterval": 5.0,
+    "shuffleDistance": 0.07000000029802322
+}
