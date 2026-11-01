@@ -229,7 +229,8 @@ namespace PhysicsBattler.Tests
                 // carries on (milestone 5's severing), and may then reach the target behind; otherwise
                 // the swing stops on the body in the way and the target is untouched.)
                 var region = Authority.AuthorityController.RegionOf(hits[0].Part);
-                bool armCut = (region == Authority.BodyRegion.ArmL || region == Authority.BodyRegion.ArmR) && !hits[0].Result.StopsSwing;
+                bool armCut = hits[0].Severed.HasValue
+                              || (region == Authority.BodyRegion.ArmL || region == Authority.BodyRegion.ArmR) && !hits[0].Result.StopsSwing;
                 if (!armCut)
                 {
                     Assert.IsTrue(hits[0].Result.StopsSwing, $"as heavy as the attacker: the swing stops (struck its {hits[0].Part})");
@@ -313,10 +314,27 @@ namespace PhysicsBattler.Tests
             Assert.Greater(small.knock, 0.75f, $"and throws it aside ({small.knock:0.00} m/s)");
 
             var medium = Run("Medium");
-            Assert.IsTrue(medium.hits[0].Result.StopsSwing, $"a medium body stops a medium swing (struck its {medium.hits[0].Part}, {medium.hits[0].Result.Damage:0} damage, {medium.hits[0].Result.MomentumLeft:0.00} of the swing left, severed {medium.hits[0].Severed})");
-            Assert.AreEqual(1, medium.hits.Count, "nothing behind it is struck");
-            Assert.IsFalse(medium.targetHurt, "the target is untouched");
-            Assert.Greater(small.knock, 1.5f * medium.knock, $"the cleaved body is thrown much harder ({small.knock:0.00} against {medium.knock:0.00} m/s)");
+            // (Milestone 9c: the blade may come in across the bystander's guard arm and cut it off first;
+            // a severing cut carries on. The body behind it is what must stop the swing.)
+            // (If the cut only takes the arm, the swing carries on past the body, as any severing cut
+            // does, and may reach the target behind: then the body's stopping it isn't tested here.)
+            int body = medium.hits.FindIndex(h => !h.Severed.HasValue);
+            if (body >= 0)
+            {
+                var bodyHit = medium.hits[body];
+                Assert.IsTrue(bodyHit.Struck == medium.hits[0].Struck, "the same unit in the way");
+                Assert.IsTrue(bodyHit.Result.StopsSwing, $"a medium body stops a medium swing (struck its {bodyHit.Part}, {bodyHit.Result.Damage:0} damage, {bodyHit.Result.MomentumLeft:0.00} of the swing left)");
+                Assert.AreEqual(body + 1, medium.hits.Count, "nothing behind it is struck");
+                Assert.IsFalse(medium.targetHurt, "the target is untouched");
+            }
+            else
+            {
+                Assert.Less(medium.hits[0].Result.MomentumLeft, 1f, "the cut through the arm slows the swing");
+            }
+            if (body >= 0)
+            {
+                Assert.Greater(small.knock, 1.5f * medium.knock, $"the cleaved body is thrown much harder ({small.knock:0.00} against {medium.knock:0.00} m/s)");
+            }
         }
 
         /// <summary>How fast a unit is being carried by a blow: sliding, stumbling, or its body on the ground.</summary>

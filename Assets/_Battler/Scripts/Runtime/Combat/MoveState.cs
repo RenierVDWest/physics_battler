@@ -117,6 +117,13 @@ namespace PhysicsBattler.Combat
 
         /// <summary>What the posed swing did (for the log): its speed through contact and at its fastest (m/s), how far past the aim point it carried (metres) and the arc it swept from the release to the end of the follow-through (degrees).</summary>
         public float ContactSpeed, PeakSpeed, Depth, Arc;
+
+        /// <summary>
+        /// Milestone 9c: the weapon arm's shape at the striking moment as the planner tried it (its
+        /// joints' angles; NaN until tried). Shared with the copies the planner tries, which fill it;
+        /// the playing arm is drawn toward it as the moment comes.
+        /// </summary>
+        public readonly float[] ContactArm = { float.NaN, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f };
         public Vector3 LastRadial;
         public float LastProgress, LastDeviation;
         public bool HasLastRadial;

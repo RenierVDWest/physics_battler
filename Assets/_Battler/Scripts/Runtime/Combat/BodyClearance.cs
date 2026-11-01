@@ -5,7 +5,8 @@ namespace PhysicsBattler.Combat
 {
     /// <summary>
     /// Does a blow keep clear of the attacker's own body? Measures, on the animation rig, how far
-    /// the weapon (grip to tip) and the weapon arm (forearm and hand) stay from the unit's own
+    /// the weapon (grip to tip) and the weapon arm (the far half of the upper arm, the forearm and
+    /// the hand) stay from the unit's own
     /// pelvis, spine, chest and head: their colliders, posed as the animation has them. Negative
     /// means passing through. The planner turns down blows that would pass through their wielder.
     /// </summary>
@@ -25,8 +26,10 @@ namespace PhysicsBattler.Combat
             var slot = anim.SlotWeaponR;
             Vector3 grip = slot.position;
             Vector3 tip = slot.position + slot.rotation * (Vector3.forward * weaponLength * scale);
+            Vector3 shoulder = anim.Part(PartId.UpperArmR).position;
             Vector3 elbow = anim.Part(PartId.ForearmR).position;
             Vector3 wrist = anim.Part(PartId.HandR).position;
+            Vector3 upperFar = Vector3.Lerp(shoulder, elbow, 0.5f);
             foreach (var id in Torso)
             {
                 float blade = Distance(rig, anim, id, grip, tip);
@@ -37,22 +40,18 @@ namespace PhysicsBattler.Combat
                     weaponHit = true;
                 }
 
-                // The forearm and hand: against the head everywhere, against the chest with some
-                // allowance (the colliders meet at the shoulder).
-                if (id == PartId.Head || id == PartId.Chest)
-                {
-                    float arm = Mathf.Min(Distance(rig, anim, id, elbow, wrist), Distance(rig, anim, id, wrist, grip));
-                    if (id == PartId.Chest)
-                    {
-                        arm += ArmChestAllowance * scale;
-                    }
+                // The arm (milestone 9c: the far half of the upper arm, the forearm and the hand) against
+                // the whole torso, the chest with some allowance (the colliders meet at the shoulder).
+                // (The upper arm hangs against the torso's side: it has the allowance everywhere.)
+                float arm = Mathf.Min(Distance(rig, anim, id, upperFar, elbow) + ArmChestAllowance * scale,
+                    Mathf.Min(Distance(rig, anim, id, elbow, wrist), Distance(rig, anim, id, wrist, grip))
+                    + (id == PartId.Chest ? ArmChestAllowance * scale : 0f));
 
-                    if (arm < best)
-                    {
-                        best = arm;
-                        closest = id;
-                        weaponHit = false;
-                    }
+                if (arm < best)
+                {
+                    best = arm;
+                    closest = id;
+                    weaponHit = false;
                 }
             }
 
@@ -131,19 +130,26 @@ namespace PhysicsBattler.Combat
                 }
             }
 
-            /// <summary>How close the forearm and hand (elbow to wrist to grip) come to the chest and head, as <see cref="Measure"/> counts it (the chest's allowance added).</summary>
-            public float Arm(Vector3 elbow, Vector3 wrist, Vector3 grip)
+            /// <summary>
+            /// How close the arm (the far half of the upper arm, the forearm and the hand: shoulder to
+            /// elbow to wrist to grip) comes to the torso, as <see cref="Measure"/> counts it (the
+            /// chest's allowance added).
+            /// </summary>
+            public float Arm(Vector3 shoulder, Vector3 elbow, Vector3 wrist, Vector3 grip)
             {
                 float best = float.MaxValue;
+                Vector3 upperFar = Vector3.Lerp(shoulder, elbow, 0.5f);
                 for (int i = 0; i < Torso.Length; i++)
                 {
-                    if (shapes[i] == null || (Torso[i] != PartId.Chest && Torso[i] != PartId.Head))
+                    if (shapes[i] == null)
                     {
                         continue;
                     }
 
-                    float d = Mathf.Min(Segment(i, elbow, wrist), Segment(i, wrist, grip));
-                    best = Mathf.Min(best, Torso[i] == PartId.Chest ? d + ArmChestAllowance * scale : d);
+                    float allowance = ArmChestAllowance * scale;
+                    float d = Mathf.Min(Segment(i, upperFar, elbow) + allowance,
+                        Mathf.Min(Segment(i, elbow, wrist), Segment(i, wrist, grip)) + (Torso[i] == PartId.Chest ? allowance : 0f));
+                    best = Mathf.Min(best, d);
                 }
 
                 return best;
