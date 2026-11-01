@@ -29,6 +29,7 @@ namespace UnityEngine
         public static T[] FindObjectsByType<T>() where T : Object => new T[0];
         public static T[] FindObjectsByType<T>(FindObjectsInactive findObjectsInactive) where T : Object => new T[0];
         public static T FindAnyObjectByType<T>() where T : Object => null;
+        public EntityId GetEntityId() => new EntityId(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this));
         [System.Obsolete("Use GetEntityId instead.", true)]   // an error in Unity 6.6
         public int GetInstanceID() => GetHashCode();
 

@@ -15,6 +15,12 @@ They share one style; each body's proportions come from its line in `Scripts/bod
 Close-ups and poses: `Renders/<body>.png` and `Renders/<body>_poses.png` (a guard, and a joint
 stress test: the balls keep every joint closed).
 
+The hands are closed fists round the weapon slot (`simple.fist`): the grip runs through the fist
+along the knuckles (the slot's forward), with a 2.2 cm channel at medium size, the back of the hand
+outside, four fingers curled round into the palm and the thumb over the first two.
+
+![Fists](Renders/fists.png)
+
 16 rigid parts each, on the same null rig as the orc. Colliders are fitted to the parts and are at
 least 2 cm apart at rest (scaled with the body).
 
@@ -40,6 +46,7 @@ python3 Scripts/build_bodies.py out                  # all three: meshes, rig fi
 python3 Scripts/render_bodies.py out                 # lineup and collider sheets
 python3 Scripts/render_one.py out Medium              # front, side, three-quarter, head
 python3 Scripts/render_pose.py out Medium             # guard and joint stress poses
+python3 Scripts/render_fists.py out                   # each body's fist round a grip, from four sides
 ```
 
 Conventions as the orc's: Unity Y up, facing +Z, the body's right is +X; 1 unit = 1 m; feet on y = 0;

@@ -622,6 +622,14 @@ namespace PhysicsBattler.Battle
                     continue;
                 }
 
+                if (other.Lying)
+                {
+                    // Milestone 9b: a body on the ground is walked round (its torso and legs), gently,
+                    // and stepped across only when there's no other way.
+                    push += AroundBody(here, mine, other, speed);
+                    continue;
+                }
+
                 Vector3 d = here - BodyAt(other);
                 float room = mine + BodyRadius(other) + Margin * unit.Body.SizeFactor;
                 if (other.Team == unit.Team && plans.TryGetValue(other, out var theirs) && theirs.target != null && theirs.target == plan.target)
@@ -661,6 +669,41 @@ namespace PhysicsBattler.Battle
             n.z = Mathf.Clamp(n.z, -0.5f * Grid.Depth + 0.5f * mine, 0.5f * Grid.Depth - 0.5f * mine);
             unit.Root.position = new Vector3(Grid.origin.x + n.x, next.y, Grid.origin.z + n.z);
         }
+
+        /// <summary>How far round a body on the ground a walking unit keeps (metres at medium size, beyond its own radius).</summary>
+        public const float BodyClearance = 0.12f;
+
+        /// <summary>The push away from a body lying on the ground: from its head to its hips and its hips to each foot.</summary>
+        public static Vector3 AroundBody(Vector3 here, float mine, UnitController lying, float speed)
+        {
+            Vector3 pelvis = Flat(lying.Rig.Part(PartId.Pelvis).transform.position);
+            float room = mine + BodyClearance * lying.Body.SizeFactor;
+            Vector3 push = Vector3.zero;
+            foreach (var end in new[] { PartId.Head, PartId.FootL, PartId.FootR })
+            {
+                if (lying.Rig.IsSevered(end))
+                {
+                    continue;
+                }
+
+                Vector3 b = Flat(lying.Rig.Part(end).transform.position);
+                Vector3 ab = b - pelvis;
+                float t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector3.Dot(here - pelvis, ab) / ab.sqrMagnitude) : 0f;
+                Vector3 d = here - (pelvis + ab * t);
+                float apart = d.magnitude;
+                if (apart >= room)
+                {
+                    continue;
+                }
+
+                Vector3 away = apart > 1e-4f ? d / apart : Vector3.Cross(Vector3.up, ab.sqrMagnitude > 1e-6f ? ab.normalized : Vector3.forward);
+                push += away * (speed * (room - apart) / room);
+            }
+
+            return push;
+        }
+
+        private static Vector3 Flat(Vector3 p) => new Vector3(p.x, 0f, p.z);
 
         // ---- Helpers ------------------------------------------------------------------------------
 

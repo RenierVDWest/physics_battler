@@ -43,7 +43,24 @@ namespace PhysicsBattler.Authority
         private readonly AuthorityLevel[] levels = new AuthorityLevel[5];
         private readonly float[] pins = new float[5];
         private readonly bool[] keepLimits = new bool[5];
-        private readonly bool?[] limited = new bool?[PartInfo.Count];
+        // Milestone 9b: each joint's limits: free while the pose holds it, the anatomical limits for a
+        // weakly held body, the ragdoll's on the ground (eased in from where the joint is).
+        private enum LimitMode { Free, Anatomical, Ragdoll }
+        private readonly LimitMode?[] limitMode = new LimitMode?[PartInfo.Count];
+        private readonly JointLimitSpec[] easeFrom = new JointLimitSpec[PartInfo.Count];
+        private readonly float[] easeSince = new float[PartInfo.Count];
+        private readonly bool[] hingeLocked = new bool[PartInfo.Count];
+        private float clock;
+
+        /// <summary>How long a ragdoll's joints take to close from where they are to their limits (seconds).</summary>
+        public const float LimitEase = 0.3f;
+
+        /// <summary>A hinge's side limit is locked once it has eased this close (degrees); until then it stays at least this wide (PhysX can't hold narrow side limits).</summary>
+        public const float LockWithin = 8f;
+
+        /// <summary>A body on the ground keeps a little muscle tone: each joint is damped (no spring), the damper per kilogram of the part.</summary>
+        public float GroundTone { get; set; } = 0f;
+
         public AuthorityController(UnitRig rig, AnimRig anim)
         {
             this.rig = rig;
@@ -92,6 +109,7 @@ namespace PhysicsBattler.Authority
                 return;
             }
 
+            clock += dt;
             foreach (var id in PartInfo.All)
             {
                 if (rig.IsSevered(id))
@@ -105,7 +123,8 @@ namespace PhysicsBattler.Authority
                 var region = RegionOf(id);
                 var level = levels[(int)region];
                 bool kinematic = level == AuthorityLevel.Kinematic;
-                SetJointLimits(part, level == AuthorityLevel.Loose || level == AuthorityLevel.Ragdoll || (level == AuthorityLevel.Pinned && keepLimits[(int)region]));
+                SetJointLimits(part, level == AuthorityLevel.Loose || level == AuthorityLevel.Ragdoll ? LimitMode.Ragdoll
+                    : level == AuthorityLevel.Pinned && keepLimits[(int)region] ? LimitMode.Anatomical : LimitMode.Free);
                 if (body.isKinematic != kinematic)
                 {
                     body.isKinematic = kinematic;
@@ -149,24 +168,135 @@ namespace PhysicsBattler.Authority
         }
 
         /// <summary>
-        /// A joint's anatomical limits only hold while physics owns the part (loose, ragdoll). While
-        /// the pose owns it (kinematic, pinned), the joint swings free: a limit would only fight the
-        /// pose (a weapon hand turned past the wrist's limit, a forearm twisted by the arm's IK) and
-        /// leave the visible limb behind it.
+        /// A joint's limits only hold while physics owns the part (loose, ragdoll) or a weakly held
+        /// body is getting up. While the pose owns it (kinematic, pinned), the joint swings free: a
+        /// limit would only fight the pose and leave the visible limb behind it.
+        ///
+        /// Milestone 9b: on the ground the limits don't snap on. Each starts where the joint is (if it
+        /// is outside) and closes to the ragdoll's limits over <see cref="LimitEase"/>, so PhysX brings
+        /// the limb back smoothly. The hinges (knees; elbows sideways) end locked: PhysX can't hold a
+        /// narrow side limit. And the joints are damped a little, a body's own muscle tone.
         /// </summary>
-        private void SetJointLimits(BodyPart part, bool on)
+        private void SetJointLimits(BodyPart part, LimitMode mode)
         {
             var joint = part.joint;
-            if (joint == null || limited[(int)part.id] == on)
+            int i = (int)part.id;
+            if (joint == null)
             {
                 return;
             }
 
-            limited[(int)part.id] = on;
-            var motion = on ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Free;
-            joint.angularXMotion = motion;
-            joint.angularYMotion = motion;
-            joint.angularZMotion = motion;
+            if (limitMode[i] != mode)
+            {
+                limitMode[i] = mode;
+                hingeLocked[i] = false;
+                switch (mode)
+                {
+                    case LimitMode.Free:
+                        SetMotion(joint, ConfigurableJointMotion.Free, ConfigurableJointMotion.Free, ConfigurableJointMotion.Free);
+                        SetTone(joint, part, 0f);
+                        break;
+                    case LimitMode.Anatomical:
+                        JointMath.ApplyLimits(joint, JointLimitTable.For(part.id));
+                        SetMotion(joint, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited);
+                        SetTone(joint, part, 0f);
+                        break;
+                    default:
+                        // Wide enough to take the joint where it is, then closing in.
+                        easeFrom[i] = Widened(JointLimitTable.ForRagdoll(part.id), CurrentAngles(part));
+                        easeSince[i] = clock;
+                        JointMath.ApplyLimits(joint, easeFrom[i]);
+                        SetMotion(joint, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited);
+                        SetTone(joint, part, GroundTone);
+                        break;
+                }
+            }
+
+            if (mode != LimitMode.Ragdoll || hingeLocked[i])
+            {
+                return;
+            }
+
+            var goal = JointLimitTable.ForRagdoll(part.id);
+            float t = Mathf.Clamp01((clock - easeSince[i]) / LimitEase);
+            t = t * t * (3f - 2f * t);
+            var now = new JointLimitSpec(
+                Mathf.Lerp(easeFrom[i].pitchMin, goal.pitchMin, t), Mathf.Lerp(easeFrom[i].pitchMax, goal.pitchMax, t),
+                Mathf.Max(Mathf.Lerp(easeFrom[i].twist, goal.twist, t), goal.twist > 0f ? goal.twist : LockWithin),
+                Mathf.Max(Mathf.Lerp(easeFrom[i].swing, goal.swing, t), goal.swing > 0f ? goal.swing : LockWithin));
+            if (t < 1f || goal.twist <= 0f || goal.swing <= 0f)
+            {
+                JointMath.ApplyLimits(joint, now);
+            }
+
+            // Eased in: a hinge's side axes lock once the joint is close to straight on them.
+            if (t >= 1f && (goal.twist <= 0f || goal.swing <= 0f))
+            {
+                var a = CurrentAngles(part);
+                bool yOk = goal.twist > 0f || Mathf.Abs(a.y) <= LockWithin;
+                bool zOk = goal.swing > 0f || Mathf.Abs(a.z) <= LockWithin;
+                if (yOk && zOk)
+                {
+                    SetMotion(joint, ConfigurableJointMotion.Limited,
+                        goal.twist > 0f ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Locked,
+                        goal.swing > 0f ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Locked);
+                    hingeLocked[i] = true;
+                }
+            }
+            else if (t >= 1f)
+            {
+                hingeLocked[i] = true;   // (nothing left to ease)
+            }
+        }
+
+        private static void SetMotion(ConfigurableJoint joint, ConfigurableJointMotion x, ConfigurableJointMotion y, ConfigurableJointMotion z)
+        {
+            joint.angularXMotion = x;
+            joint.angularYMotion = y;
+            joint.angularZMotion = z;
+        }
+
+        /// <summary>
+        /// A damper on each joint (no spring): limbs fold and settle rather than flop. Per axis, not
+        /// slerp (PhysX drops a slerp drive once an axis is locked). Off: the drives as built (slerp, empty).
+        /// </summary>
+        private static void SetTone(ConfigurableJoint joint, BodyPart part, float perKg)
+        {
+            if (perKg <= 0f)
+            {
+                joint.rotationDriveMode = RotationDriveMode.Slerp;
+                joint.angularXDrive = new JointDrive { maximumForce = float.MaxValue, useAcceleration = true };
+                joint.angularYZDrive = new JointDrive { maximumForce = float.MaxValue, useAcceleration = true };
+                return;
+            }
+
+            // (Acceleration drives: the damper is a rate, the same feel whatever the part weighs; heavier
+            // parts damped a little more, as the larger muscles round them.)
+            float damper = perKg * Mathf.Sqrt(Mathf.Max(0.1f, part.body.mass));
+            var drive = new JointDrive { positionSpring = 0f, positionDamper = damper, maximumForce = float.MaxValue, useAcceleration = true };
+            joint.rotationDriveMode = RotationDriveMode.XYAndZ;
+            joint.angularXDrive = drive;
+            joint.angularYZDrive = drive;
+            joint.targetAngularVelocity = Vector3.zero;
+        }
+
+        /// <summary>The joint's turn now (physical), as PhysX splits it: x the bend, y and z the swing.</summary>
+        private Vector3 CurrentAngles(BodyPart part)
+        {
+            var parent = rig.Part(PartInfo.Parent(part.id));
+            Quaternion local = Quaternion.Inverse(part.restLocalRotation) * (Quaternion.Inverse(parent.transform.rotation) * part.transform.rotation);
+            JointMath.PastLimits(local, part.limits, out float pitch, out float y, out float z);
+            return new Vector3(pitch, y, z);
+        }
+
+        /// <summary>Limits wide enough to hold a joint where it is now (a little room past it).</summary>
+        public static JointLimitSpec Widened(JointLimitSpec spec, Vector3 angles)
+        {
+            const float room = 2f;
+            return new JointLimitSpec(
+                Mathf.Min(spec.pitchMin, angles.x - room), Mathf.Max(spec.pitchMax, angles.x + room),
+                Mathf.Min(177f, Mathf.Max(Mathf.Max(spec.twist, LockWithin), Mathf.Abs(angles.y) + room)),
+                Mathf.Min(177f, Mathf.Max(Mathf.Max(spec.swing, LockWithin), Mathf.Abs(angles.z) + room)));
         }
 
         /// <summary>Distance and angle between a part and its pose (for the log).</summary>

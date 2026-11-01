@@ -1201,6 +1201,15 @@ def write_report(session, out, args, films):
         w(f"(Fight Rhythm and tempo: not measured: {e})")
         w("")
 
+    # Milestone 9b: bodies on the ground (Tools/Playtest/ragdoll.py).
+    try:
+        import ragdoll
+        for line in ragdoll.section(session)[0]:
+            w(line)
+    except Exception as e:
+        w(f"(Bodies on the ground: not measured: {e})")
+        w("")
+
     if session.meta.get("marks"):
         w("## Marks")
         w("")

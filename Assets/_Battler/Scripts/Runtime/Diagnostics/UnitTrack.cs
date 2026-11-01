@@ -257,6 +257,42 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("shield", hasShield ? unit.ShieldMode.ToString() : "");
             frames.Add("shieldOff", hasShield ? unit.ShieldOffThreat : 0f, 1);
             frames.Add("shieldClear", hasShield && p.ShieldClearance < 10f ? p.ShieldClearance : 0f, 3);
+            // Milestone 9b: the joints against their limits (the physical body, and the pose), and a body
+            // on the ground: its fastest part and how close the nearest standing unit's legs are.
+            float jointPast = unit.WorstJoint(true, out var joint);
+            float posePast = unit.WorstJoint(false, out var poseJoint);
+            bool lying = unit.Lying;
+            float fastest = lying ? unit.FastestPart() : 0f;
+            float nearLeg = lying ? unit.NearestStandingLeg() : 99f;
+            frames.Add("jointPast", jointPast, 1);
+            frames.Add("joint", jointPast > 0f ? joint.ToString() : "");
+            frames.Add("posePast", posePast, 1);
+            frames.Add("poseJoint", posePast > 0f ? poseJoint.ToString() : "");
+            frames.Add("lyingSpeed", fastest, 2);
+            frames.Add("nearLeg", lying ? Mathf.Min(nearLeg, 9f) : 0f, 2);
+            if (lying)
+            {
+                lyingSamples++;
+                lyingPast += jointPast > 10f ? 1 : 0;
+                if (jointPast > lyingWorst)
+                {
+                    lyingWorst = jointPast;
+                    lyingWorstJoint = joint.ToString();
+                }
+
+                (nearLeg < 0.5f ? speedsNear : speedsAlone).Add(fastest);
+            }
+
+            if (upright)
+            {
+                posePastSamples += posePast > 10f ? 1 : 0;
+                if (posePast > poseWorst)
+                {
+                    poseWorst = posePast;
+                    poseWorstJoint = poseJoint.ToString();
+                }
+            }
+
             if (upright)
             {
                 lookSamples++;
@@ -398,6 +434,12 @@ namespace PhysicsBattler.Diagnostics
         public int incoming, shieldsRaised, defenceless, seenClearly, seenAtEdge, neverSeen;
 
         // Milestone 9: the look and the shield while standing.
+        // Milestone 9b: joints against their limits, and bodies on the ground.
+        public int lyingSamples, lyingPast, posePastSamples;
+        public float lyingWorst, poseWorst;
+        public string lyingWorstJoint = "", poseWorstJoint = "";
+        public readonly List<float> speedsNear = new List<float>(), speedsAlone = new List<float>();
+
         public int lookSamples, lookOnPoint, lookReachable, lookReachableOn, headOutside, shieldSamples, shieldFaced;
         public float shieldWorstClear = float.MaxValue;
 
@@ -514,6 +556,25 @@ namespace PhysicsBattler.Diagnostics
                 md.AppendLine();
             }
 
+            if (uprightSamples > 0)
+            {
+                md.AppendLine($"Pose against the joint limits (standing): a joint more than 10° past its limit {100f * posePastSamples / uprightSamples:0}% of the time; "
+                              + $"the worst {poseWorst:0}° ({(poseWorstJoint == "" ? "none" : poseWorstJoint)}).");
+            }
+
+            if (lyingSamples > 0)
+            {
+                md.AppendLine($"Ragdoll (on the ground {lyingSamples / 60f:0.0} s): a joint more than 10° past its limit {100f * lyingPast / lyingSamples:0}% of the time; "
+                              + $"the worst {lyingWorst:0}° ({(lyingWorstJoint == "" ? "none" : lyingWorstJoint)}). Fastest part with a standing leg within 0.5 m: "
+                              + $"{Percentile(speedsNear, 0.5f)} median, {Percentile(speedsNear, 0.95f)} at the 95th percentile ({speedsNear.Count} steps); "
+                              + $"with none: {Percentile(speedsAlone, 0.5f)} median ({speedsAlone.Count} steps).");
+            }
+
+            if (uprightSamples > 0 || lyingSamples > 0)
+            {
+                md.AppendLine();
+            }
+
             if (lookSamples > 0)
             {
                 md.AppendLine($"Look: within 25° of what it attended to {100f * lookOnPoint / lookSamples:0}% of the time standing "
@@ -564,6 +625,18 @@ namespace PhysicsBattler.Diagnostics
 
                 md.AppendLine();
             }
+        }
+
+        private static string Percentile(List<float> values, float p)
+        {
+            if (values.Count == 0)
+            {
+                return "-";
+            }
+
+            var sorted = new List<float>(values);
+            sorted.Sort();
+            return $"{sorted[Mathf.Clamp(Mathf.RoundToInt(p * (sorted.Count - 1)), 0, sorted.Count - 1)]:0.0} m/s";
         }
     }
 }

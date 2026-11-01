@@ -248,7 +248,7 @@ namespace UnityEngine
         public static int hotControl { get; set; }
     }
 
-    public enum KeyCode { None = 0, Space = 32, Period = 46, B = 98, F = 102, G = 103, H = 104, K = 107, L = 108, M = 109, P = 112, R = 114, T = 116 }
+    public enum KeyCode { None = 0, Space = 32, Period = 46, B = 98, D = 100, F = 102, G = 103, H = 104, K = 107, L = 108, M = 109, P = 112, R = 114, T = 116 }
 
     public static class Input
     {
@@ -366,6 +366,7 @@ namespace Unity.Collections
         public void Dispose() { }
         public T[] ToArray() => new T[0];
         public int Length => 0;
+        public T this[int index] { get => default; set { } }
     }
 }
 
@@ -373,4 +374,19 @@ namespace Unity.Collections
 namespace UnityEngine.Rendering
 {
     public enum ShadowCastingMode { Off = 0, On = 1, TwoSided = 2, ShadowsOnly = 3 }
+}
+
+namespace UnityEngine
+{
+    /// <summary>Unity 6.3+: an object's identity (replaces the int instance id).</summary>
+    public readonly struct EntityId : System.IEquatable<EntityId>
+    {
+        private readonly int value;
+        public EntityId(int value) { this.value = value; }
+        public bool Equals(EntityId other) => value == other.value;
+        public override bool Equals(object obj) => obj is EntityId e && Equals(e);
+        public override int GetHashCode() => value;
+        public static bool operator ==(EntityId a, EntityId b) => a.value == b.value;
+        public static bool operator !=(EntityId a, EntityId b) => a.value != b.value;
+    }
 }

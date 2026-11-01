@@ -9,11 +9,59 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 9a, seeing, the head's look and the shield under control
+## Current state: milestone 9b, hands, wrists and bodies on the ground
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
 combos; the combat plan's milestones move back by one): https://claude.ai/artifact/HCsdNXmL5zVwV1ep1ta5Gj
+
+### Milestone 9b: hands, wrists and bodies on the ground
+
+Plan for the bodies on the ground: https://claude.ai/artifact/AsWxyew3t7oX8YFtrSVYFg
+
+**Joints that hold their limits** (`Muscles/JointMath.cs`, `Authority/AuthorityController.cs`). The
+limit table is reworked from measured poses: the forearm's roll now shows at the wrist (80 degrees
+each way), the elbow and knee are hinges (15 degrees of side play), the shoulder goes out to 130 for a
+high guard. When a unit goes down its joints don't snap to their limits: each starts wide enough to
+hold the joint where it is and closes to its ragdoll limits over 0.3 s; the elbow's and knee's side
+axes lock once they are within 8 degrees. While it lies, each joint has a little muscle tone (a
+damper, more for a downed unit than a dead one), its parts collide with each other (not with their
+neighbours) and the solver works harder on it (20 and 8 iterations). A light limb on a heavy body is
+weighted at most 3 to 1 in the joint solve (`connectedMassScale`), so a push on it doesn't tear the
+joint.
+
+**Heavy on the ground** (`Units/UnitRagdoll.cs`, `Units/GroundContacts.cs`). A standing unit's legs are
+kinematic and its body driven hard to its pose, so to PhysX they weigh nothing less than a wall: a
+contact between a standing unit's part and a lying body's part is capped so it can change that part's
+speed by at most 0.2 m/s a step. Bodies are nudged and rolled, never flung. Once a body has settled
+(hips under 0.5 m/s for 0.3 s) it grows heavy over 0.5 s: more damping, more friction, a slower push
+apart when parts overlap. A blow, or being thrown along faster than 1.5 m/s, makes it light again for
+a moment. Walking units keep round a body on the ground (`FightLoop.AroundBody`: its head, hips and
+legs, with 12 cm to spare) instead of walking through it.
+
+**Natural arms and fists** (`PosePipeline.NaturalArm`, `AlignHinge`). An arm holding a weapon or shield
+turns its elbow round the shoulder-to-hand line to where the wrist is straightest (eased at 300
+degrees a second, never jumping); the elbow and knee bend about their hinge; what the wrist still
+can't take is held at its limits (not during a blow: the blow's weapon turn wins). Knees point within
+40 degrees of where the hips face. The hands are now closed fists round the weapon slot
+(`SourceArt/Bodies/Renders/fists.png`): the grip runs through the fist along the knuckles, thumb on
+top. The shield is held by its centre grip, the bar upright through the fist and the forearm pointing
+at the boss (the wrist stays straight); it is held out from the shoulder and pushed out along its face
+where its rim would cut its own arm.
+
+**Sandbox.** **D**: the ground test. The two lightest units go down side by side across the middle
+(one knocked down, one killed); the others walk back and forth straight across them for 20 s. Watch
+the bodies: they should stay in one piece within their limits, get nudged and rolled, not shaken or
+thrown. The setup runs again on opening (version 19) to rebuild the unit prefabs with the fists.
+
+**Logs.** New columns: `jointPast` and `joint` (the physical body's joint furthest past its limits, in
+degrees), `posePast` and `poseJoint` (the same for the pose), `lyingSpeed` (its fastest part while it
+lies) and `nearLeg` (how close the nearest standing unit's legs are). The summary has "Pose against
+the joint limits" and "Ragdoll" lines; `analyze.py` has a "Bodies on the ground" section (also
+`python3 Tools/Playtest/ragdoll.py <session>`), which measures older logs too.
+
+**Runners.** `poselimits`: each body squared up with its rhythm and tempo running for 10 s, each joint
+of the pose against its limits.
 
 ### Milestone 9a: seeing, the head's look and the shield under control
 
@@ -382,6 +430,7 @@ and the real units spawn on the markers.
 | L | Launch test: the heaviest armed unit swings at the lightest enemy, with a third unit standing where it will be thrown |
 | H | Rhythm gallery: each Fight Rhythm's base, then every posture slowed to 40% and at full speed (H again stops) |
 | K | Sever test: a sword unit cuts at an enemy's elbow; the arm should come off there |
+| D | Ground test: the two lightest go down (one dead), the others walk back and forth across them for 20 s |
 | T | Turn everyone around (and back): makes them step and turn on the spot |
 | P / . | Pause / step one physics frame |
 | M | Mark the playtest log |

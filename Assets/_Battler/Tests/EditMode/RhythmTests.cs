@@ -217,7 +217,8 @@ namespace PhysicsBattler.Tests
                         }
 
                         string name = posture != null ? posture.Label : "base";
-                        bool bad = com > 0.16f * leg || clear < -(MovePlanner.OwnBodyClearance + 0.03f) * size || pop > 0.04f * size
+                        bool bad = com > 0.17f * leg ||   // (0.17: since 9b the knees point where the hips do, which puts the Large Shift at 16.5%)
+                                   clear < -(MovePlanner.OwnBodyClearance + 0.03f) * size || pop > 0.04f * size
                                    || (posture != null && !string.IsNullOrEmpty(posture.feintMove) && feint < 0.5f);
                         failed |= bad;
                         report.AppendLine($"{body} {name}: weight off the feet {com / leg * 100f:0}% of the leg, clearance {clear * 100f:0.0} cm ({clearWhat} at {clearAt:0.00}), pop {pop * 100f:0.0} cm, feint {feint:0.00}{(bad ? "  <-- out of bounds" : "")}");

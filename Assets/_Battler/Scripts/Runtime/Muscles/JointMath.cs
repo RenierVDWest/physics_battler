@@ -28,28 +28,56 @@ namespace PhysicsBattler.Muscles
 
     public static class JointLimitTable
     {
-        /// <summary>Starting limits for a humanoid in a relaxed stand (the design spec's table, signed).</summary>
+        /// <summary>
+        /// A person's joint ranges, a little inside them (the design spec's table, signed; milestone 9b
+        /// set them against the research: no side limit under 15 degrees, which PhysX can't hold, the
+        /// neck as the head's look has it, the forearm's roll at the wrist: PhysX can't keep a roll at a
+        /// bent elbow).
+        /// </summary>
         public static JointLimitSpec For(PartId part)
         {
             switch (part)
             {
                 case PartId.Spine: return new JointLimitSpec(-25f, 40f, 30f, 25f);
                 case PartId.Chest: return new JointLimitSpec(-20f, 30f, 30f, 20f);
-                case PartId.Head: return new JointLimitSpec(-40f, 45f, 70f, 30f);
+                case PartId.Head: return new JointLimitSpec(-50f, 60f, 80f, 30f);          // up 50, down 60, turn 80, tilt 30
                 case PartId.UpperArmL:
-                case PartId.UpperArmR: return new JointLimitSpec(-160f, 50f, 80f, 100f);   // forward raise is negative
+                case PartId.UpperArmR: return new JointLimitSpec(-160f, 50f, 90f, 130f);   // forward raise is negative; out to the side 130 (a guard high by the head)
                 case PartId.ForearmL:
-                case PartId.ForearmR: return new JointLimitSpec(-145f, 5f, 60f, 10f);      // the elbow bends forward
+                case PartId.ForearmR: return new JointLimitSpec(-145f, 5f, 60f, 15f);      // the elbow bends forward; the forearm rolls 60 each way
                 case PartId.HandL:
-                case PartId.HandR: return new JointLimitSpec(-70f, 70f, 40f, 45f);
+                case PartId.HandR: return new JointLimitSpec(-15f, 35f, 80f, 57f);       // toward the thumb 15, the little finger 35; the forearm's roll (shown at the wrist) 80; flexion and extension about 57
                 case PartId.ThighL:
-                case PartId.ThighR: return new JointLimitSpec(-110f, 35f, 40f, 45f);       // forward raise is negative
+                case PartId.ThighR: return new JointLimitSpec(-110f, 35f, 45f, 45f);       // forward raise is negative
                 case PartId.ShinL:
-                case PartId.ShinR: return new JointLimitSpec(-5f, 145f, 8f, 8f);            // the knee bends backward
+                case PartId.ShinR: return new JointLimitSpec(-5f, 145f, 15f, 15f);          // the knee bends backward
                 case PartId.FootL:
-                case PartId.FootR: return new JointLimitSpec(-40f, 45f, 15f, 25f);
+                case PartId.FootR: return new JointLimitSpec(-40f, 45f, 25f, 25f);
                 default: return new JointLimitSpec(0f, 0f, 0f, 0f);
             }
+        }
+
+        /// <summary>
+        /// The limits on the ground: the same, but the hinges are hinges: the knee bends only one
+        /// way and the elbow doesn't bend sideways (0: locked, once the joint has eased in).
+        /// </summary>
+        public static JointLimitSpec ForRagdoll(PartId part)
+        {
+            var spec = For(part);
+            switch (part)
+            {
+                case PartId.ShinL:
+                case PartId.ShinR:
+                    spec.twist = 0f;
+                    spec.swing = 0f;
+                    break;
+                case PartId.ForearmL:
+                case PartId.ForearmR:
+                    spec.swing = 0f;
+                    break;
+            }
+
+            return spec;
         }
     }
 
@@ -82,6 +110,35 @@ namespace PhysicsBattler.Muscles
             joint.highAngularXLimit = new SoftJointLimit { limit = Mathf.Clamp(high, -177f, 177f) };
             joint.angularYLimit = new SoftJointLimit { limit = Mathf.Clamp(spec.twist, 0f, 177f) };
             joint.angularZLimit = new SoftJointLimit { limit = Mathf.Clamp(spec.swing, 0f, 177f) };
+        }
+
+        /// <summary>
+        /// A joint's turn against its rest (<paramref name="local"/>: the child's rotation in its
+        /// parent's frame, the rest taken out), split as PhysX does: the bend about X (signed, as
+        /// <see cref="JointLimitSpec"/> has it) and the swing that follows, about Y and Z. How far
+        /// past its limits it is (degrees; 0 inside).
+        /// </summary>
+        public static float PastLimits(Quaternion local, JointLimitSpec spec, out float pitch, out float aboutY, out float aboutZ)
+        {
+            if (local.w < 0f)
+            {
+                local = new Quaternion(-local.x, -local.y, -local.z, -local.w);
+            }
+
+            pitch = 2f * Mathf.Atan2(local.x, local.w) * Mathf.Rad2Deg;
+            var twist = Quaternion.AngleAxis(pitch, Vector3.right);
+            var swing = local * Quaternion.Inverse(twist);
+            if (swing.w < 0f)
+            {
+                swing = new Quaternion(-swing.x, -swing.y, -swing.z, -swing.w);
+            }
+
+            aboutY = 2f * Mathf.Asin(Mathf.Clamp(swing.y, -1f, 1f)) * Mathf.Rad2Deg;
+            aboutZ = 2f * Mathf.Asin(Mathf.Clamp(swing.z, -1f, 1f)) * Mathf.Rad2Deg;
+            float past = Mathf.Max(spec.pitchMin - pitch, pitch - spec.pitchMax);
+            past = Mathf.Max(past, Mathf.Abs(aboutY) - spec.twist);
+            past = Mathf.Max(past, Mathf.Abs(aboutZ) - spec.swing);
+            return Mathf.Max(0f, past);
         }
 
         /// <summary>Signed rotation angle about X (degrees) of a rotation that is mostly about X.</summary>

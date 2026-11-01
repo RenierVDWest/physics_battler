@@ -640,6 +640,7 @@ namespace PhysicsBattler.Units
             }
 
             NoteStruck(hit);
+            NoteGroundStruck();
             var r = hit.Result;
             Health = Mathf.Max(0f, Health - r.Damage);
             Rhythm?.NoteHit(r.Damage / Mathf.Max(1f, profile.maxHealth));

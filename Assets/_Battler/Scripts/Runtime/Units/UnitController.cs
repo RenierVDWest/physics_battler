@@ -155,6 +155,7 @@ namespace PhysicsBattler.Units
                 foreach (var part in Rig.Parts)
                 {
                     UnitBuilder.ConfigureBody(part.body, profile);
+                    part.limits = JointLimitTable.For(part.id);   // (the table as it is now, not as the prefab was baked)
                     if (part.joint != null)
                     {
                         JointMath.ApplyLimits(part.joint, part.limits);
@@ -191,6 +192,7 @@ namespace PhysicsBattler.Units
 
                 Physics.SyncTransforms();
                 IgnoreSelfCollisions();
+                InitializeGround();
             }
 
             int seed = 7919 * team + 104729 * ++spawnCount;
@@ -233,6 +235,7 @@ namespace PhysicsBattler.Units
         private void OnDestroy()
         {
             all.Remove(this);
+            ForgetGround();
             DestroySeveredLimbs();
             if (detachedBody != null)
             {
@@ -334,6 +337,19 @@ namespace PhysicsBattler.Units
 
             Loadout.Main = main;
             Loadout.Off = off;
+
+            // Milestone 9b: a shield is held by its centre grip, the bar across the fist and the forearm
+            // pointing at the boss (its face follows the forearm); a weapon in a hammer grip, as before.
+            var grip = off != null && off.IsShield ? ShieldGrip : Quaternion.identity;
+            if (Rig.SlotWeaponL != null)
+            {
+                Rig.SlotWeaponL.localRotation = grip;
+            }
+
+            if (Anim.SlotWeaponL != null)
+            {
+                Anim.SlotWeaponL.localRotation = grip;
+            }
             MainWeapon = main != null ? Weapon.Equip(main, this, Rig.SlotWeaponR, true, Loadout.Scale) : null;
             OffWeapon = off != null ? Weapon.Equip(off, this, Rig.SlotWeaponL, false, Loadout.Scale) : null;
             if (!physical)
@@ -350,6 +366,13 @@ namespace PhysicsBattler.Units
                 }
             }
         }
+
+        /// <summary>
+        /// The shield's turn in the hand (centre grip): its face (forward) along the forearm, away from
+        /// the elbow; its bar (its up) through the fist along the knuckles, as a sword's grip is. With
+        /// the forearm raised the thumb is on top and the wrist straight (the bar stands upright).
+        /// </summary>
+        public static readonly Quaternion ShieldGrip = Quaternion.LookRotation(Vector3.down, Vector3.forward);
 
         private static void DestroyWeapon(Weapon weapon)
         {
@@ -639,6 +662,7 @@ namespace PhysicsBattler.Units
         private void Step(float dt, bool drive)
         {
             UpdateSeveredCollisions(dt);
+            UpdateGround(dt);
             if (!IsAlive)
             {
                 // Dead: a ragdoll, physics has every part.

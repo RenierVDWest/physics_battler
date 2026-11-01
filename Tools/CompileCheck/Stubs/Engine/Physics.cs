@@ -81,6 +81,7 @@ namespace UnityEngine
     {
         public bool enabled { get; set; } = true;
         public bool isTrigger { get; set; }
+        public bool hasModifiableContacts { get; set; }
         public PhysicsMaterial sharedMaterial { get; set; }
         public PhysicsMaterial material { get; set; }
         public Rigidbody attachedRigidbody => GetComponentInParent<Rigidbody>();
@@ -274,6 +275,7 @@ namespace UnityEngine
         public static bool reuseCollisionCallbacks { get; set; } = true;
 
         public static void IgnoreCollision(Collider a, Collider b, bool ignore = true) { }
+        public static event System.Action<PhysicsScene, Unity.Collections.NativeArray<ModifiableContactPair>> ContactModifyEvent { add { } remove { } }
 
         // Overlap queries over every live collider, with real shapes (Collider.ClosestPoint).
         private static readonly List<Collider> colliders = new List<Collider>();
@@ -343,6 +345,18 @@ namespace UnityEngine
             return false;
         }
         public static void Simulate(float step) { }
+    }
+
+    public struct ModifiableContactPair
+    {
+        public EntityId colliderEntityId => default;
+        public EntityId otherColliderEntityId => default;
+        public EntityId bodyEntityId => default;
+        public EntityId otherBodyEntityId => default;
+        public int contactCount => 0;
+        public float GetMaxImpulse(int i) => float.MaxValue;
+        public void SetMaxImpulse(int i, float value) { }
+        public void IgnoreContact(int i) { }
     }
 
     public struct PhysicsScene

@@ -42,8 +42,10 @@ namespace PhysicsBattler.Editor.Setup
         /// 17 = The medium and small units' stances and base loops from their captured idles; walks.
         /// 18 = Milestone 8, the tempo: the Fight Rhythms rebuilt from the code (each style's
         ///     temperament and stances, bigger postures, the gather and press postures).
+        /// 19 = Milestone 9b: closed fists round the weapon grip (new hand meshes and hand colliders);
+        ///     the unit prefabs are rebuilt from the new rigs.
         /// </summary>
-        public const int Current = 18;
+        public const int Current = 19;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

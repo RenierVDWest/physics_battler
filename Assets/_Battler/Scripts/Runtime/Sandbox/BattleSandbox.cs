@@ -276,6 +276,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.L)) LaunchTest();
             if (SandboxInput.KeyPressed(KeyCode.H)) RhythmGallery();
             if (SandboxInput.KeyPressed(KeyCode.K)) SeverTest();
+            if (SandboxInput.KeyPressed(KeyCode.D)) GroundTest();
         }
 
         /// <summary>
@@ -566,6 +567,99 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>
+        /// Milestone 9b's test, on demand: two units go down in the middle of the board, one knocked
+        /// down and one killed, and the others walk back and forth straight across them for 20 s (no
+        /// steering round them: the hard case). The bodies should be nudged and rolled, never flung,
+        /// and their joints should stay within their limits. D again stops it.
+        /// </summary>
+        public void GroundTest()
+        {
+            if (bystanderRun != null)
+            {
+                StopCoroutine(bystanderRun);
+                bystanderRun = null;
+                if (groundTesting)
+                {
+                    groundTesting = false;
+                    message = "Ground test stopped. F to fight again.";
+                    return;
+                }
+            }
+
+            var alive = units.FindAll(u => u != null && u.IsInitialized && u.IsAlive);
+            if (alive.Count < 3)
+            {
+                message = "The ground test needs three living units. Press R to reset.";
+                return;
+            }
+
+            fight = false;
+            bystanderRun = StartCoroutine(GroundRun(alive));
+        }
+
+        private bool groundTesting;
+
+        private System.Collections.IEnumerator GroundRun(List<UnitController> alive)
+        {
+            groundTesting = true;
+            // The two lightest go down, side by side across the middle; the rest stand off to either side.
+            alive.Sort((a, b) => a.Body.Mass.CompareTo(b.Body.Mass));
+            var downed = alive[0];
+            var dead = alive[1];
+            downed.Teleport(new Vector3(-0.5f, 0f, 0f), 0f);
+            dead.Teleport(new Vector3(0.5f, 0f, 0f), 0f);
+            var walkers = alive.GetRange(2, alive.Count - 2);
+            for (int i = 0; i < walkers.Count; i++)
+            {
+                walkers[i].Teleport(new Vector3(-1.2f + 1.2f * (i % 3), 0f, i % 2 == 0 ? -2.5f : 2.5f), i % 2 == 0 ? 0f : 180f);
+            }
+
+            yield return new WaitForSeconds(0.5f);
+            downed.DropForTest(false, new Vector3(0f, 0f, -1.2f));
+            dead.DropForTest(true, new Vector3(0f, 0f, 1.2f));
+            Note("ground test: " + downed.name + " knocked down, " + dead.name + " killed; the others walk across them for 20 s");
+            message = $"Ground test: {downed.name} knocked down, {dead.name} killed; the others walk across them. D to stop.";
+            yield return new WaitForSeconds(1.5f);
+
+            // Back and forth across the bodies, each on its own line, for 20 s.
+            float end = Time.time + 20f;
+            var goals = new Dictionary<UnitController, float>();
+            foreach (var w in walkers)
+            {
+                goals[w] = -Mathf.Sign(w.Root.position.z) * 2.5f;
+            }
+
+            while (Time.time < end)
+            {
+                yield return new WaitForFixedUpdate();
+                foreach (var w in walkers)
+                {
+                    if (w == null || !w.IsAlive || !w.CanAct)
+                    {
+                        continue;
+                    }
+
+                    Vector3 p = w.Root.position;
+                    Vector3 goal = new Vector3(p.x, p.y, goals[w]);
+                    if (Mathf.Abs(goal.z - p.z) < 0.15f)
+                    {
+                        goals[w] = -goals[w];
+                        continue;
+                    }
+
+                    Vector3 step = Vector3.ClampMagnitude(goal - p, 0.8f * w.WalkSpeed * Time.fixedDeltaTime);
+                    w.Root.position = p + step;
+                    w.FacePoint(goal);
+                }
+            }
+
+            groundTesting = false;
+            bystanderRun = null;
+            Note("ground test: over");
+            message = "Ground test over. M marks the log; F to fight again.";
+        }
+
+        /// <summary>
         /// Milestone 5's gate, on demand: a sword unit cuts at an enemy's elbow (whichever of its cuts
         /// reaches one), and the arm should come off there. K again for another go.
         /// </summary>
@@ -803,7 +897,7 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label("R reset · F fight · B bystander · L launch · G gallery · H rhythms · P pause · . step · T turn · M mark");
+            GUILayout.Label("R reset · F fight · B bystander · L launch · K sever · D ground · G gallery · H rhythms · P pause · . step · T turn · M mark");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Reset")) Spawn();
@@ -818,7 +912,10 @@ namespace PhysicsBattler.Sandbox
             if (GUILayout.Button("Launch test (L)")) LaunchTest();
             if (GUILayout.Button(rhythmRun != null ? "Stop rhythms (H)" : "Rhythm gallery (H)")) RhythmGallery();
             GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
             if (GUILayout.Button("Sever test (K)")) SeverTest();
+            if (GUILayout.Button("Ground test (D)")) GroundTest();
+            GUILayout.EndHorizontal();
             bool tired = GUILayout.Toggle(tiredAll, "Everyone tired (Fight Rhythm energy 25%)");
             if (tired != tiredAll)
             {

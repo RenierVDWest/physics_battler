@@ -313,6 +313,7 @@ namespace PhysicsBattler.Tests
             try
             {
                 unit.Equip(Sword(), WeaponDefinition.CreateDefault(WeaponKind.Shield));
+                unit.LookOn = false;   // (alone, it looks about, and the chest turns with the look)
                 for (int i = 0; i < 30; i++)
                 {
                     unit.PreviewPose(1f / 60f);

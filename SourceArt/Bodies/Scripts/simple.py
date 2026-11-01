@@ -99,6 +99,51 @@ class Shells:
         prof += [(L + r1 * math.sin(math.pi / 2 * k / 6), r1 * math.cos(math.pi / 2 * k / 6)) for k in range(1, 7)]
         self.lathe(a, b - a, prof, mat, n, squash=squash, ref=ref)
 
+    def tube(self, points, r, ref, mat=BODY, n=12):
+        """A round tube of radius r along a path (a curled finger), closed with round ends; ref is
+        a direction square to the whole path (the rings' orientation)."""
+        pts = [np.asarray(p, dtype=np.float64) for p in points]
+        tangents = []
+        for i in range(len(pts)):
+            a, b = pts[max(i - 1, 0)], pts[min(i + 1, len(pts) - 1)]
+            tangents.append(unit(b - a))
+        y = unit(ref)
+        rings = []
+        # the round ends: a few rings back from the first point and on from the last
+        caps = 3
+        for k in range(caps, 0, -1):
+            t = math.pi / 2 * k / caps
+            rings.append((pts[0] - tangents[0] * r * math.sin(t), r * math.cos(t), tangents[0]))
+        for p, t in zip(pts, tangents):
+            rings.append((p, r, t))
+        for k in range(1, caps + 1):
+            t = math.pi / 2 * k / caps
+            rings.append((pts[-1] + tangents[-1] * r * math.sin(t), r * math.cos(t), tangents[-1]))
+        ids = []
+        for c, rr, t in rings:
+            if rr < 1e-6:
+                self.verts.append(c)
+                ids.append([len(self.verts) - 1])
+                continue
+            yy = unit(y - t * np.dot(y, t))
+            xx = np.cross(yy, t)
+            ring = []
+            for i in range(n):
+                th = 2 * math.pi * i / n
+                self.verts.append(c + xx * math.sin(th) * rr + yy * math.cos(th) * rr)
+                ring.append(len(self.verts) - 1)
+            ids.append(ring)
+        for r0, r1 in zip(ids[:-1], ids[1:]):
+            if len(r0) == 1:
+                for i in range(n):
+                    self._face((r0[0], r1[(i + 1) % n], r1[i]), mat)
+            elif len(r1) == 1:
+                for i in range(n):
+                    self._face((r0[i], r0[(i + 1) % n], r1[0]), mat)
+            else:
+                for i in range(n):
+                    self._face((r0[i], r0[(i + 1) % n], r1[(i + 1) % n], r1[i]), mat)
+
     def result(self):
         return np.array(self.verts), self.faces, self.mats
 
@@ -120,6 +165,57 @@ def smooth_profile(prof, offs, steps=4):
     out_p.append(prof[-1])
     out_o.append(offs[-1])
     return out_p, out_o
+
+
+# The channel through a closed fist (metres at medium size; weapons scale with the body): a little
+# wider than the thickest grip (the club's binding, 2.1 cm), so a handle passes through it.
+GRIP_CHANNEL = 0.022
+
+
+def fist(s, W, G, out, h, hu):
+    """A closed fist round the weapon slot G (milestone 9b): the grip runs through it along the
+    knuckles (the slot's forward, the body's front at rest), the back of the hand on the outside,
+    the palm on the inside, four fingers curled round the far side of the grip into the palm, the
+    thumb over the first two. Built of plain turned forms, as the rest of the mannequin."""
+    d = unit(G - W)                       # along the hand, from the wrist
+    f = unit(F - d * np.dot(F, d))         # the grip's line (index at the front)
+    o = unit(np.cross(d, f))
+    if np.dot(o, out) < 0:
+        o = -o                             # the back of the hand, outward
+    L = np.linalg.norm(G - W)
+    rg = GRIP_CHANNEL * h
+    ft = 0.0105 * hu                       # a finger's radius
+    rc = rg + ft                           # the fingers' line round the grip
+
+    def arc(theta, r=rc):
+        t = math.radians(theta)
+        return G + r * (math.cos(t) * o + math.sin(t) * d)
+
+    # The palm and the back of the hand, one block from the wrist to the grip (stopping short of
+    # the channel), and the back on round the outside to the knuckles.
+    reach = L - rg - 0.003 * hu
+    s.sphere(W + d * 0.5 * reach + o * 0.006 * hu, 1.0, mat=BODY, n=20,
+             squash=(0.033 * hu, 0.046 * hu, 0.5 * reach + 0.004 * hu), axis=d)
+    K = arc(20.0, rc + 0.2 * ft)
+    back0 = W + d * 0.02 * hu + o * 0.012 * hu
+    s.sphere((back0 + K) / 2, 1.0, mat=BODY, n=20,
+             squash=(0.017 * hu, 0.045 * hu, 0.5 * np.linalg.norm(K - back0) + 0.006 * hu), axis=unit(K - back0))
+    # The ball of the thumb, on the inside at the front.
+    s.sphere(W + d * 0.045 * hu + f * 0.028 * hu - o * 0.018 * hu, 1.0, mat=BODY, n=16,
+             squash=(0.016 * hu, 0.019 * hu, 0.03 * hu), axis=d)
+    # Four fingers, index (front) to little finger, curled from the knuckles round the far side.
+    spacing = 0.0215 * hu
+    for k, (w, size, tuck) in enumerate([(1.5, 1.0, 215.0), (0.5, 1.05, 220.0), (-0.5, 1.0, 215.0), (-1.5, 0.85, 205.0)]):
+        r = ft * size
+        across = f * (w * spacing)
+        s.tube([arc(a) + across for a in np.linspace(-5.0, tuck, 12)], r, f)
+        s.sphere(arc(15.0, rc + 0.25 * ft) + across, r * 1.18, mat=BODY, n=10)   # (the knuckle)
+    # The thumb: from the heel of the palm at the front, over the first two fingers on the inside.
+    T0 = W + d * 0.04 * hu + f * 0.034 * hu - o * 0.02 * hu
+    T1 = arc(195.0, rc + 0.7 * ft) + f * 0.042 * hu
+    T2 = arc(172.0, rc + 1.7 * ft) + f * 0.004 * hu
+    s.capsule(T0, T1, [(0, 0.0135 * hu), (1, 0.0115 * hu)], n=12, ref=d)
+    s.capsule(T1, T2, [(0, 0.0115 * hu), (1, 0.0098 * hu)], n=12, ref=d)
 
 
 def build(body):
@@ -185,11 +281,7 @@ def build(body):
         parts[f"Forearm_{n}"] = s
         s = Shells()
         s.sphere(W, 0.03 * max(fa, hu * 0.8))
-        # a mitten: flat across the palm, thumb at the front
-        s.capsule(W + d * 0.025 * hu, W + d * 0.13 * hu, [(0, 0.04 * hu), (0.5, 0.046 * hu), (1, 0.034 * hu)],
-                  squash=(0.5, 1.0), ref=F)
-        s.capsule(W + d * 0.035 * hu + F * 0.035 * hu, W + d * 0.085 * hu + F * 0.05 * hu - out * 0.01 * hu,
-                  [(0, 0.016 * hu), (1, 0.012 * hu)], n=16)
+        fist(s, W, vec(body.P(f"Slot_Weapon_{n}")), out, h, hu)
         parts[f"Hand_{n}"] = s
 
         H, K, A = vec(body.P(f"Thigh_{n}")), vec(body.P(f"Shin_{n}")), vec(body.P(f"Foot_{n}"))

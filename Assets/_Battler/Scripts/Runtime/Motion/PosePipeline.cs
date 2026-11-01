@@ -1,4 +1,5 @@
 using PhysicsBattler.Combat;
+using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
 using UnityEngine;
 
@@ -155,6 +156,8 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public void Compose(float time, float dt, bool dry = false)
         {
+            composingDry = dry;
+            composeDt = dt;
             var style = Style;
             float leg = body.LegLength;
             float yaw = root.eulerAngles.y;
@@ -578,6 +581,9 @@ namespace PhysicsBattler.Motion
 
             TwoBoneIK.Solve(upper, fore, hand, HandFor(grip, rotation, slot), pole);
             hand.rotation = rotation * Quaternion.Inverse(slot.localRotation);
+            // (In a blow the weapon goes where the blow needs it: the wrist's limits give way to it as it
+            // blends in; the elbow and forearm still take what they can.)
+            NaturalArm(PartId.UpperArmR, PartId.ForearmR, PartId.HandR, hand.rotation, ref mainElbow, move != null ? 1f - moveBlend : 1f);
             if (move != null)
             {
                 Vector3 local = move.Weapon != null ? move.Weapon.StrikePoint(move.Move.strikeWith) : Vector3.forward * 0.6f;
@@ -617,14 +623,218 @@ namespace PhysicsBattler.Motion
             ShieldCenter = grip + rotation * (shield.faceCenter * scale);
             ShieldFace = rotation * Vector3.forward;
 
-            Vector3 pole = facing * new Vector3(-0.8f, -1f, -0.2f);
+            // (The elbow down by the ribs, a little out: the forearm then points at the boss.)
+            Vector3 pole = facing * new Vector3(-0.35f, -1f, -0.35f);
             TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL),
                 Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, HandFor(grip, rotation, slot)), pole);
             anim.Part(PartId.HandL).rotation = rotation * Quaternion.Inverse(slot.localRotation);
+            NaturalArm(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, anim.Part(PartId.HandL).rotation, ref offElbow, 1f);
+
+            // Its own arm: where the rim would cut the shield arm, the shield goes out along its face.
+            if (w > 0f && Rig != null)
+            {
+                float radius = shield.radius * scale;
+                for (int i = 0; i < 2; i++)
+                {
+                    Vector3 center = grip + rotation * (shield.faceCenter * scale);
+                    float gap = ShieldGap(center, rotation, radius, ShieldArm);
+                    if (gap >= 0.01f * body.SizeFactor)
+                    {
+                        break;
+                    }
+
+                    grip += (rotation * Vector3.forward) * (0.01f * body.SizeFactor - gap);
+                    TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL),
+                        Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, HandFor(grip, rotation, slot)), pole);
+                    anim.Part(PartId.HandL).rotation = rotation * Quaternion.Inverse(slot.localRotation);
+                    NaturalArm(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, anim.Part(PartId.HandL).rotation, ref offElbow, 1f);
+                }
+
+                ShieldCenter = grip + rotation * (shield.faceCenter * scale);
+                ShieldClearance = Mathf.Min(ShieldClearance, ShieldGap(ShieldCenter, rotation, radius, ShieldArm) + ArmShieldAllowance * body.SizeFactor);
+            }
         }
+
+        private static readonly PartId[] ShieldArm = { PartId.UpperArmL, PartId.ForearmL };
+
+        /// <summary>How close the shield arm's own forearm may come to the back of the shield it holds (metres at medium size).</summary>
+        public const float ArmShieldAllowance = 0f;
+
+        // ---- Natural arms (milestone 9b) --------------------------------------------------------
+
+        /// <summary>Each arm's elbow turn about the shoulder-to-hand line last step (degrees; kept so the elbow doesn't flip between steps).</summary>
+        private float mainElbow, offElbow;
+        private bool composingDry;
+        private float composeDt;
+
+        /// <summary>How fast the elbow swings round to a better place (degrees per second): it eases there, never jumps.</summary>
+        public const float ElbowRate = 300f;
+
+        /// <summary>How far the elbow may swing round from where the arm's pole puts it (degrees), and in what steps.</summary>
+        public const float ElbowSwing = 90f, ElbowStep = 15f;
+
+        /// <summary>
+        /// A natural arm for a hand that must hold its weapon just so (the hand's rotation is given):
+        /// the elbow swings round the shoulder-to-hand line to where the wrist is straightest (a
+        /// little against moving far from the pole, and from where it was), the forearm rolls to take
+        /// the hand's twist, and what the wrist still can't take is held at its limits (the weapon
+        /// turns a little less than asked: the planner's tries see the real pose).
+        /// </summary>
+        private void NaturalArm(PartId upperId, PartId foreId, PartId handId, Quaternion handRotation, ref float lastSwing, float clamp)
+        {
+            var upper = anim.Part(upperId);
+            var hand = anim.Part(handId);
+            Vector3 axis = hand.position - upper.position;
+            if (axis.sqrMagnitude < 1e-6f)
+            {
+                return;
+            }
+
+            axis.Normalize();
+            Quaternion start = upper.rotation;
+            var reach = JointLimitTable.For(handId);
+            float best = 0f, bestCost = float.MaxValue;
+            // (In a blow the weapon arm's elbow stays where the blow puts it.)
+            float room = clamp >= 1f ? ElbowSwing : 0f;
+            for (float a = -room; a <= room + 1e-3f; a += ElbowStep)
+            {
+                upper.rotation = Quaternion.AngleAxis(a, axis) * start;
+                hand.rotation = handRotation;
+                float cost = JointMath.PastLimits(LocalOf(handId), reach, out _, out _, out _)
+                             + 0.04f * Mathf.Abs(a) + 0.02f * Mathf.Abs(a - lastSwing);
+                if (cost < bestCost)
+                {
+                    bestCost = cost;
+                    best = a;
+                }
+            }
+
+            if (!composingDry)
+            {
+                best = composeDt > 0f ? Mathf.MoveTowards(lastSwing, best, ElbowRate * composeDt) : lastSwing;
+                lastSwing = best;
+            }
+
+            upper.rotation = Quaternion.AngleAxis(best, axis) * start;
+
+            AlignHinge(upperId, foreId);
+
+            // (The forearm's roll shows at the wrist: the hand turns about the forearm's line, as a fist
+            // does when the forearm turns over. PhysX can't keep a roll at a bent elbow.)
+            hand.rotation = handRotation;
+
+            if (clamp > 0f)
+            {
+                ClampJoint(handId, clamp);
+            }
+        }
+
+        /// <summary>
+        /// The two-bone solve bends the middle joint about whatever axis the chain happens to lie in;
+        /// an elbow or knee is a hinge. The upper bone rolls about its own length (the middle joint
+        /// stays where it is, and the lower bone and everything below keep their turn in the world)
+        /// so its hinge axis is square to the bend, bending the way the joint does.
+        /// </summary>
+        private void AlignHinge(PartId upperId, PartId lowerId)
+        {
+            var upper = anim.Part(upperId);
+            var lower = anim.Part(lowerId);
+            Vector3 along = lower.position - upper.position;
+            Vector3 below = lower.rotation * (anim.RestLocalPosition(LowerEnd(lowerId)).normalized);
+            Vector3 bend = Vector3.Cross(along, below);
+            if (along.sqrMagnitude < 1e-6f || bend.sqrMagnitude < 1e-6f)
+            {
+                return;   // (straight: no plane to square to)
+            }
+
+            along.Normalize();
+            bend.Normalize();
+            Vector3 hinge = Vector3.ProjectOnPlane(upper.rotation * Vector3.right, along);
+            if (hinge.sqrMagnitude < 1e-6f)
+            {
+                return;
+            }
+
+            // Either way along the bend's normal; the one that leaves the joint bending as it should.
+            var lowerTurn = lower.rotation;
+            var restPitch = JointLimitTable.For(lowerId);
+            float bendsNegative = restPitch.pitchMin + restPitch.pitchMax < 0f ? 1f : -1f;   // (an elbow bends to negative pitch, a knee to positive)
+            Quaternion start = upper.rotation;
+            float bestPast = float.MaxValue;
+            Quaternion best = start;
+            foreach (float sign in new[] { 1f, -1f })
+            {
+                float roll = Vector3.SignedAngle(hinge, sign * bend, along);
+                upper.rotation = Quaternion.AngleAxis(roll, along) * start;
+                lower.rotation = lowerTurn;
+                float past = JointMath.PastLimits(LocalOf(lowerId), restPitch, out float pitch, out _, out _);
+                past += pitch * bendsNegative > 0f ? 90f : 0f;   // (the wrong way round)
+                if (past < bestPast)
+                {
+                    bestPast = past;
+                    best = upper.rotation;
+                }
+            }
+
+            upper.rotation = best;
+            lower.rotation = lowerTurn;
+        }
+
+        private static PartId LowerEnd(PartId lower)
+        {
+            switch (lower)
+            {
+                case PartId.ForearmL: return PartId.HandL;
+                case PartId.ForearmR: return PartId.HandR;
+                case PartId.ShinL: return PartId.FootL;
+                default: return PartId.FootR;
+            }
+        }
+
+        /// <summary>A part's rotation against the one it hangs from, its rest taken out.</summary>
+        private Quaternion LocalOf(PartId id)
+        {
+            var part = anim.Part(id);
+            var parent = anim.Part(PartInfo.Parent(id));
+            return Quaternion.Inverse(anim.RestLocalRotation(id)) * (Quaternion.Inverse(parent.rotation) * part.rotation);
+        }
+
+        /// <summary>How far a rotation turns about an axis (degrees): its twist, the swing taken out.</summary>
+        private static float TwistAbout(Quaternion q, Vector3 axis)
+        {
+            float along = q.x * axis.x + q.y * axis.y + q.z * axis.z;
+            float angle = 2f * Mathf.Atan2(along, q.w) * Mathf.Rad2Deg;
+            return Mathf.DeltaAngle(0f, angle);
+        }
+
+        /// <summary>Holds a joint of the pose inside its limits (the nearest turn that is), as PhysX splits a joint's turn.</summary>
+        private void ClampJoint(PartId id, float weight = 1f)
+        {
+            var spec = JointLimitTable.For(id);
+            var local = LocalOf(id);
+            float past = JointMath.PastLimits(local, spec, out float pitch, out float y, out float z);
+            if (past <= 0f)
+            {
+                return;
+            }
+
+            pitch = Mathf.Clamp(pitch, spec.pitchMin, spec.pitchMax);
+            y = Mathf.Clamp(y, -spec.twist, spec.twist);
+            z = Mathf.Clamp(z, -spec.swing, spec.swing);
+            float sy = Mathf.Sin(0.5f * y * Mathf.Deg2Rad), sz = Mathf.Sin(0.5f * z * Mathf.Deg2Rad);
+            var swing = new Quaternion(0f, sy, sz, Mathf.Sqrt(Mathf.Max(0f, 1f - sy * sy - sz * sz)));
+            var held = swing * Quaternion.AngleAxis(pitch, Vector3.right);
+            var parent = anim.Part(PartInfo.Parent(id));
+            var part = anim.Part(id);
+            part.rotation = Quaternion.Slerp(part.rotation, parent.rotation * anim.RestLocalRotation(id) * held, Mathf.Clamp01(weight));
+        }
+
 
         /// <summary>How far out the shield arm reaches at most (share of the arm): the elbow stays a little bent.</summary>
         public const float ShieldReach = 0.92f;
+
+        /// <summary>How far out the shield is held at least (share of the arm, from the shoulder).</summary>
+        public const float HeldOut = 0.88f;
 
         /// <summary>The most a shield's face may turn from its way out from the chest (degrees): any more and it would face its wielder.</summary>
         public const float MaxShieldFaceOff = 60f;
@@ -639,19 +849,24 @@ namespace PhysicsBattler.Motion
             Vector3 chest = chestPart.position;
             float chestYaw = ShieldCone.FacingOf(chestPart.rotation, root.eulerAngles.y);
             var frame = Quaternion.Euler(0f, chestYaw, 0f);
-            GuardPose(shield, false, frame, scale, out var guardGrip, out var guardRotation);
-            // (The rhythm's guard, its postures and the tempo's stance move it in the chest's frame,
-            // so they turn round with it.)
-            Vector3 local = Quaternion.Inverse(frame) * (guardGrip + guardRotation * (shield.faceCenter * scale) - chest) + rhythm.off;
-            Vector3 guardFace = Quaternion.Euler(rhythm.offTurn) * (Quaternion.Inverse(frame) * (guardRotation * Vector3.forward));
 
+            // Toward the threat, inside the cone a shield arm can cover.
             Vector3 direction = aim.direction.sqrMagnitude > 1e-6f ? aim.direction.normalized : frame * Vector3.forward;
             ShieldCone.Angles(direction, chestYaw, out float yaw, out float pitch);
             ShieldCone.Clamp(ref yaw, ref pitch, true);
             var turn = frame * Quaternion.Euler(-pitch, yaw, 0f);
+
+            // Milestone 9b: held by its centre grip in front of the shield shoulder, the arm 85% of the
+            // way straight, the forearm pointing at the boss; the Fight Rhythm, its postures and the
+            // tempo's stance move it from there (in the chest's frame, so they turn round with it).
+            Vector3 shoulder = anim.Part(PartId.UpperArmL).position;
+            float armLength = anim.RestLocalPosition(PartId.ForearmL).magnitude + anim.RestLocalPosition(PartId.HandL).magnitude;
             float reach = aim.reach > 0f ? aim.reach : 1f;
-            Vector3 center = chest + turn * (local * reach);
-            // (Never behind the chest: turned right out to the side, the guard's offset would take it back.)
+            // (The wrist at that reach; the fist and the shield's face in front of it.)
+            float held = (HeldOut * armLength + anim.SlotWeaponL.localPosition.magnitude + shield.faceCenter.z * scale) * reach;
+            Vector3 center = shoulder + turn * (Vector3.forward * held) + turn * rhythm.off;
+
+            // (Never behind the chest: turned right out to the side.)
             Vector3 front = frame * Vector3.forward;
             float ahead = Vector3.Dot(center - chest, front);
             if (ahead < 0.02f * body.SizeFactor)
@@ -659,7 +874,8 @@ namespace PhysicsBattler.Motion
                 center += front * (0.02f * body.SizeFactor - ahead);
             }
 
-            Vector3 face = turn * guardFace;
+            // Its face along the arm, angled a little up and in across the body (blows glance off it).
+            Vector3 face = turn * (Quaternion.Euler(rhythm.offTurn) * Quaternion.Euler(-shield.guardAngles.x, ShieldInward, 0f) * Vector3.forward);
             if (aim.faceBlend > 0f && aim.face.sqrMagnitude > 1e-6f)
             {
                 face = Vector3.Slerp(face, aim.face.normalized, Mathf.Clamp01(aim.faceBlend));
@@ -674,6 +890,9 @@ namespace PhysicsBattler.Motion
             rotation = Quaternion.LookRotation(face, Vector3.up);
             grip = center - rotation * (shield.faceCenter * scale);
         }
+
+        /// <summary>How far a held shield's face turns in across the body (degrees).</summary>
+        public const float ShieldInward = 10f;
 
         private static readonly PartId[] ShieldKeepsClearOf = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head, PartId.ThighL, PartId.ThighR };
 
@@ -732,7 +951,9 @@ namespace PhysicsBattler.Motion
         }
 
         /// <summary>The smallest distance from the shield's disc (its rim, half way in, and its middle) to its own body (negative: inside).</summary>
-        private float ShieldGap(Vector3 center, Quaternion rotation, float radius)
+        private float ShieldGap(Vector3 center, Quaternion rotation, float radius) => ShieldGap(center, rotation, radius, ShieldKeepsClearOf);
+
+        private float ShieldGap(Vector3 center, Quaternion rotation, float radius, PartId[] against)
         {
             Vector3 u = rotation * Vector3.right, v = rotation * Vector3.up;
             float best = float.MaxValue;
@@ -754,7 +975,7 @@ namespace PhysicsBattler.Motion
                     p = center;
                 }
 
-                foreach (var id in ShieldKeepsClearOf)
+                foreach (var id in against)
                 {
                     best = Mathf.Min(best, BodyClearance.PointDistance(Rig, anim, id, p));
                 }
@@ -937,6 +1158,9 @@ namespace PhysicsBattler.Motion
             anim.Part(hand).localRotation = Quaternion.Euler(-10f, 0f, 0f);
         }
 
+        /// <summary>How far a knee may point from the hips' facing (degrees): a hip's own turn, a little inside a person's.</summary>
+        public const float HipTurnOut = 40f;
+
         public Vector3 AnkleTarget(int foot)
         {
             Vector3 ground = stance.Position(foot);
@@ -950,9 +1174,13 @@ namespace PhysicsBattler.Motion
             var shin = anim.Part(left ? PartId.ShinL : PartId.ShinR);
             var ankle = anim.Part(left ? PartId.FootL : PartId.FootR);
             var footYaw = Quaternion.Euler(0f, stance.Yaw(foot), 0f);
-            // Knees point over the toes, a little outward.
-            Vector3 pole = footYaw * new Vector3(left ? -0.15f : 0.15f, 0f, 1f);
+            // Knees point over the toes, a little outward; but a hip turns only so far (milestone 9b):
+            // a foot turned further from the hips than that has the knee point part way.
+            float hipsYaw = ShieldCone.FacingOf(anim.Part(PartId.Pelvis).rotation, stance.Yaw(foot));
+            float kneeYaw = hipsYaw + Mathf.Clamp(Mathf.DeltaAngle(hipsYaw, stance.Yaw(foot)), -HipTurnOut, HipTurnOut);
+            Vector3 pole = Quaternion.Euler(0f, kneeYaw, 0f) * new Vector3(left ? -0.15f : 0.15f, 0f, 1f);
             TwoBoneIK.Solve(thigh, shin, ankle, AnkleTarget(foot), pole);
+            AlignHinge(left ? PartId.ThighL : PartId.ThighR, left ? PartId.ShinL : PartId.ShinR);
             // Flat on the ground, toes down a little as it lifts.
             float t = stance.StepProgress(foot);
             float pitch = stance.Stepping(foot) ? 18f * Mathf.Sin(Mathf.PI * t) * (t < 0.5f ? 1f : -0.6f) : 0f;
