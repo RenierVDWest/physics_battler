@@ -120,6 +120,7 @@ namespace PhysicsBattler.Authority
             {
                 if (rig.IsSevered(id))
                 {
+                    PhysicsBattler.Units.GroundContacts.SetKinematic(rig.Part(id).partCollider, false);
                     continue;   // (cut off: physics alone has it now)
                 }
 
@@ -135,6 +136,9 @@ namespace PhysicsBattler.Authority
                 {
                     body.isKinematic = kinematic;
                 }
+
+                // (Kept in step every step: other code frees a body now and then.)
+                PhysicsBattler.Units.GroundContacts.SetKinematic(part.partCollider, kinematic);
 
                 int i = (int)id;
                 float pin = level == AuthorityLevel.Pinned ? pins[(int)region]

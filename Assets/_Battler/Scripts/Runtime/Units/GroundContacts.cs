@@ -26,6 +26,7 @@ namespace PhysicsBattler.Units
             public readonly Dictionary<EntityId, float> lying = new Dictionary<EntityId, float>();
             public readonly HashSet<EntityId> standing = new HashSet<EntityId>();
             public readonly HashSet<EntityId> shields = new HashSet<EntityId>();
+            public readonly HashSet<EntityId> kinematic = new HashSet<EntityId>();
         }
 
         /// <summary>Milestone 9c: the most a held shield pushes what it touches each step (N·s): it stops against a body rather than shoving it about.</summary>
@@ -54,6 +55,27 @@ namespace PhysicsBattler.Units
             dirty = true;
         }
 
+        private static readonly HashSet<Collider> Kinematic = new HashSet<Collider>();
+
+        /// <summary>
+        /// A part's collider whose body is kinematic now (posed exactly: a standing unit's legs, a weapon
+        /// arm in a blow), or not any more. A shield against one isn't capped: no push moves a
+        /// kinematic body, so the cap only kept the shield from getting out of it (the playtests had
+        /// shields up to 15 cm into kinematic hips and sword arms, for up to 0.7 s).
+        /// </summary>
+        public static void SetKinematic(Collider collider, bool on)
+        {
+            if (collider == null)
+            {
+                return;
+            }
+
+            if (on ? Kinematic.Add(collider) : Kinematic.Remove(collider))
+            {
+                dirty = true;
+            }
+        }
+
         private static readonly Dictionary<Collider, float> Lying = new Dictionary<Collider, float>();
         private static readonly HashSet<Collider> Standing = new HashSet<Collider>();
         private static volatile Snapshot current;
@@ -65,6 +87,7 @@ namespace PhysicsBattler.Units
             Lying.Clear();
             Standing.Clear();
             Shields.Clear();
+            Kinematic.Clear();
             current = null;
             dirty = false;
             if (hooked)
@@ -136,6 +159,14 @@ namespace PhysicsBattler.Units
                 }
             }
 
+            foreach (var c in Kinematic)
+            {
+                if (c != null)
+                {
+                    s.kinematic.Add(c.GetEntityId());
+                }
+            }
+
             current = s;
             if (!hooked && Application.isPlaying)
             {
@@ -167,7 +198,7 @@ namespace PhysicsBattler.Units
                 {
                     cap = Cap(mass, pair.contactCount);
                 }
-                else if (s.shields.Contains(a) || s.shields.Contains(b))
+                else if ((s.shields.Contains(a) && !s.kinematic.Contains(b)) || (s.shields.Contains(b) && !s.kinematic.Contains(a)))
                 {
                     cap = ShieldPush / Mathf.Max(1, pair.contactCount);
                 }
