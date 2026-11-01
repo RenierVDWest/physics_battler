@@ -485,14 +485,17 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>Starts a blow prepared by <see cref="MovePlanner"/>. False if one is already under way.</summary>
-        public bool StartMove(MoveState state)
+        public bool StartMove(MoveState state) => StartMove(state, 0f);
+
+        /// <summary>Starts a blow at <paramref name="startAt"/> of its way (normalized time; milestone 10: a combo's link starts part way into its wind-up).</summary>
+        public bool StartMove(MoveState state, float startAt)
         {
             if (CurrentMove != null || state == null || !CanAct)
             {
                 return false;   // (off its feet, it can't strike)
             }
 
-            state.Time = 0f;
+            state.Time = Mathf.Clamp01(startAt) * state.Duration;
             state.ContactPassed = state.SteppedOut = state.LeadOut = state.SteppedBack = state.RearMoved = state.RearOut = state.RearBack = false;
             state.HasLastStrike = state.HasLastPhysical = state.HasLastRadial = false;
             state.ContactSpeed = state.PeakSpeed = state.Depth = state.Arc = state.LastProgress = 0f;
@@ -599,6 +602,7 @@ namespace PhysicsBattler.Units
             var anim = SaveAnim();
             var previousMove = Pose.Move;
             var rotation = transform.rotation;
+            (Vector3, Vector3, Vector3, Vector3, Vector3, Vector3, Vector3)? knocks = null;
             try
             {
                 float yaw = Quaternion.LookRotation(state.Frame * Vector3.forward).eulerAngles.y;
@@ -614,12 +618,20 @@ namespace PhysicsBattler.Units
                     }
                 }
 
+                // (Tried as it will play: the knocks and recoils of the moment fade before contact.)
+                knocks = (Pose.ReactShift, Pose.ReactLean, Pose.ReactHead, Pose.KnockR, Pose.KnockTurnR, Pose.KnockL, Pose.KnockTurnL);
+                Pose.ReactShift = Pose.ReactLean = Pose.ReactHead = Pose.KnockR = Pose.KnockTurnR = Pose.KnockL = Pose.KnockTurnL = Vector3.zero;
                 Pose.Move = at;
                 Pose.Compose(LocalTime, 0f, true);
                 return true;
             }
             finally
             {
+                if (knocks.HasValue)
+                {
+                    (Pose.ReactShift, Pose.ReactLean, Pose.ReactHead, Pose.KnockR, Pose.KnockTurnR, Pose.KnockL, Pose.KnockTurnL) = knocks.Value;
+                }
+
                 Pose.Move = previousMove;
                 if (!keep)
                 {
@@ -724,6 +736,11 @@ namespace PhysicsBattler.Units
         {
             UpdateSeveredCollisions(dt);
             UpdateGround(dt);
+            if (Combo != null && !CanAct)
+            {
+                EndCombo(IsAlive ? "off its feet" : "killed");
+            }
+
             if (!IsAlive)
             {
                 // Dead: a ragdoll, physics has every part.
@@ -818,7 +835,9 @@ namespace PhysicsBattler.Units
             }
 
             FadeCutShort(poseDt);
+            BlendLink(poseDt);
             Pose.Compose(LocalTime, poseDt);
+            SmoothHandOver(poseDt);
 
             if (move != null)
             {
@@ -857,6 +876,9 @@ namespace PhysicsBattler.Units
                 Tempo?.NoteBlowEnded();
                 MoveEnded?.Invoke(this, move);
             }
+
+            // Milestone 10: a combo's link hands on to the next.
+            StepCombo();
         }
 
         /// <summary>The posed swing's speed, depth past the aim point and arc, for the log.</summary>

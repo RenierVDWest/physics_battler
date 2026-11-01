@@ -9,11 +9,96 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 9c done: weapons out of the ground, shield get-ups, dropped weapons
+## Current state: milestone 10, combos (chained links from today's moves)
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
 combos; the combat plan's milestones move back by one): https://claude.ai/artifact/HCsdNXmL5zVwV1ep1ta5Gj
+
+### Milestone 10: combos
+
+Plan 4 of the combat plan (https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp; there it is M9a, the
+milestones having moved back by one). A combo is a string of chained blows.
+
+**Chaining** (`Units/UnitCombo.cs`, `ComboRun`). One combo owns the move slot and hands it from link to
+link. A link is cut at its **link-out**, a little into its follow-through (`ComboDefinition.LinkOut`:
+15% of the way from contact to the recovery), skipping its recovery; the next starts at its **link-in**,
+three quarters of the way through its own wind-up (`LinkIn`), slowly at first (`LinkStartPace` 0.5,
+picking up to full in a quarter of a second). Only the last link plays its recovery, so a whole combo
+carries the commitment of one blow.
+- **The lunge is banked** at each hand-over: the root moves to where the hips have gone (the lunge's steps
+  have put the feet there) and the pose is kept where it stands, so nothing snaps back; the next link is
+  planned, and the last one steps home, from there.
+- **The next link grows out of the last.** The outgoing link plays on through its follow-through as
+  `Pose.LinkFrom`, and over the rest of the new link's wind-up its share of the pose eases from all to
+  nothing: the hips' and chest's turns, the lean, the sink, the lunge, the reach bend and the weapon's way
+  all carry over (a club swing into a backhand doesn't jump 150 degrees). The weapon arm's pull toward its
+  planned striking shape and its rush near the strike come in as the last link's share goes. Whatever
+  still differs between the last step of one link and the first of the next (the arm's solve, mostly) is
+  carried on as the last link was moving and decays over 0.2 s (`SmoothHandOver`), the feet kept planted.
+- **Planned during the combo**, from where the body is at the link-out: the link's preferred parts first.
+  If the string's move doesn't land from there, another of the weapon's blows that does takes its place
+  (a fighter improvises). If nothing reaches (the target gave ground), the combo ends with that link's
+  recovery.
+- **How combos break.** A link that lands and is stopped in the body carries on; a link stopped on a
+  shield ends the combo, or, for strings that keep hammering (`ComboBlocked.Continue`), the next link comes
+  as it rebounds. Knocked off its feet, flinching or staggered, or out of energy (each link costs the
+  tempo's blow cost), the combo ends.
+- The planner's dry poses no longer carry the moment's knocks and recoils (they fade before contact).
+
+**The strings** (`Combat/ComboDefinition.cs`), from the moves each weapon has today (the plan's M9b moves,
+the club backhand, fan strike, off-hand jab, butt strike and shield bash, come next):
+
+| body | string | links | if blocked |
+| --- | --- | --- | --- |
+| Large | body then head (Boxing 1-6-3) | rising club to the belly or knee, club swing at the head | stops |
+| Large | hammer (Boxing 1-2) | club swing at the head or chest, smash at the head | keeps hammering |
+| Large | body, head, smash (finisher) | rising club, swing at the head, smash | stops |
+| Medium | double thrust (Melee Combo Ver. 3) | thrust, backhand, thrust | stops |
+| Medium | forehand, backhand | cut at the head or neck, backhand at the body | keeps hammering |
+| Medium | cut, backhand, cleave (finisher) | cut, backhand, cleave | stops |
+| Small | rompida (FMA) | rising diagonal, falling diagonal | stops |
+| Small | flowing | swing, rising, swing at the elbows and head | keeps hammering |
+| Small | sero-sero (finisher) | swing, rising, swing, smash | stops |
+
+**When combos come out** (`FightLoop.ChooseCombo`). Pressing with the energy for two links (9% of the
+blows it decides on), countering (12%, two links), a target reeling (25%, a finisher string), and the first
+blow fresh out of a full gather (60%, its finisher). Length: the least of the string's links, the energy over a link's cost, and
+two plus the aggression's share of two more.
+
+**Logging.** `events.log` has a `combo` line as each starts (string, why, links, target), links (move and
+part) and ends (why, after how many links). The `fight` runner prints the combos, the share of blows inside
+them, the time from one striking moment to the next and from one link's start to the next, and how they
+ended. The `combos` runner throws every body's strings at a standing opponent.
+
+**Measures** (stub). Tests (`ComboTests`): each later link starts at its link-in, its start 0.3 to 1 s
+after the last link's; no part of the pose pops at a hand-over more than a single blow's start does
+(5 cm more in a step than the step before, by size; after a stopped link, from its rebound, 12); a link
+that no longer reaches ends the combo; every body has three strings and a finisher. Four fights (seeds 7,
+11, 3, 5): 25-32% of blows inside combos (target 25-40%), 5 to 8 combos a fight; from one striking moment to
+the next, median 0.72-0.83 s where three or more were measured (target 0.4-0.7: a little slow; the hit stop
+of a landed link and the slow start of the next count in it); no standing bodies overlapping (the banked
+root keeps a body's room from the target, `BankRoom`); combos mostly end stopped in a body, knocked off their
+feet or with the target down. The `combos` runner: every string throws all its links at a standing opponent
+(the Large's finisher stops after two: the smash doesn't reach from there), links 0.5-1 s apart start to
+start. Arms, aim and the get-ups as before (no misses, 27 blows turned down; the weapon arm inside its
+limits).
+
+**Before the combos, from the M9c playtest:**
+- *The shield get-up* (`GetUp.HoldShieldUp`, `Motion/ArmFit.cs`): the arm reached straight across the head
+  and chest to a threat on the sword side, its joints up to 120 degrees past their limits. It now reaches on
+  its own side (a little across the chest at most), the shield turning toward the threat from there, the arm
+  fitted inside its joints' limits (the shoulder and elbow solved in their angles, the wrist turned as far as
+  it goes, carrying on from the last step), pushed out of its own head and body, the shield's roll chosen to
+  suit the wrist. Tested: no more than 3 cm into its own body, no joint more than 10 degrees past its limits.
+- *Twisted arms after blows*: the playtests had physical sword wrists 100 to 150 degrees past their limits
+  for up to half a second after a blow (a held arm's joints swung free, so the servo could pull hand and
+  forearm round separately). Held arms keep their anatomical limits now (their poses are solved inside
+  them). The Large's bare off hand, up to 28 degrees past its elbow's limits in the pose, is fitted inside
+  them. `arms.py` shows the joints within a second after a blow apart.
+- *Shield contacts* (the playtest: 62-80% under 2 cm, up to 15 cm and 0.7 s): most of the deep ones were in a
+  kinematic weapon arm or a standing unit's kinematic hips and legs, which no push moves, so the shield's cap
+  only kept the shield in. Contacts with kinematic bodies aren't capped now (`GroundContacts.SetKinematic`).
 
 ### Milestone 9c, last part: weapons kept out of the ground, getting up behind the shield, dropped weapons
 
@@ -736,10 +821,10 @@ their joints are and solved again so an elbow never swings round the wrong way) 
 | Folder (`Assets/_Battler/Scripts/Runtime`) | What lives there |
 | --- | --- |
 | `Rig/` | `PartId` (the 16 parts and their tree), `RigFile` (the body rig JSON), `UnitBuilder`, `UnitRig`, `AnimRig`, `BodyPart` |
-| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline` (with `WeaponArmSolve`), `GroundClamp`, `TwoBoneIK`, `GetUp` (get-up key poses, `PoseBuffer`), `RhythmDefinition`, `PostureDefinition`, `RhythmPlayer` (Fight Rhythms) |
+| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline` (with `WeaponArmSolve`), `GroundClamp`, `ArmFit`, `TwoBoneIK`, `GetUp` (get-up key poses, `PoseBuffer`), `RhythmDefinition`, `PostureDefinition`, `RhythmPlayer` (Fight Rhythms) |
 | `Authority/` | `AuthorityController` (levels per region, pinning) |
-| `Combat/` | `WeaponDefinition`, `MoveDefinition`, `MoveState`, `MovePlanner`, `Weapon` (the weapon in the hand), `AimPart`, `DamageRules`, `BodyClearance` |
-| `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitBalance` (stumbles, knock-downs, launches, body impacts, get-ups), `UnitRhythm` (the Fight Rhythm on the unit: steps, travel, feints, lead-ins), `UnitProfile` |
+| `Combat/` | `WeaponDefinition`, `MoveDefinition`, `MoveState`, `MovePlanner`, `ComboDefinition` (the strings), `Weapon` (the weapon in the hand), `AimPart`, `DamageRules`, `BodyClearance` |
+| `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombo` (combos), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitBalance` (stumbles, knock-downs, launches, body impacts, get-ups), `UnitRhythm` (the Fight Rhythm on the unit: steps, travel, feints, lead-ins), `UnitProfile` |
 | `Board/` | `BoardGrid` (tiles), `BoardView` (the board mesh) |
 | `Sandbox/` | `BattleSandbox` (spawning, panel, keys), `UnitSpawn` (the scene's markers), `Brawl` (close in and strike), `OrbitCamera`, `SandboxInput` |
 | `Diagnostics/` | `PlaytestRecorder`, `UnitTrack`, `FrameCapture`, `ShieldContacts` |
@@ -813,6 +898,7 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll swings [/tmp/gallery] # every mo
 python3 ../Playtest/swings.py /tmp/gallery/PlaytestLogs               # review sheets of the gallery's swings
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll balance [/tmp/getups]  # every body knocked down and got up, and a stumble
 python3 ../Playtest/getups.py /tmp/getups                              # the get-ups drawn from the side and front
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll combos                         # every body's combo strings at a standing opponent (milestone 10)
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll rhythms /tmp/rhythms   # every style's base and posture: clearance, pops
 python3 ../Playtest/rhythms.py /tmp/rhythms                            # them drawn through time, side and front
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll walks /tmp/walks       # each body walking (forward, back, aside, round), CSVs for walkview.py

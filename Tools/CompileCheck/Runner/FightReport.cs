@@ -104,6 +104,40 @@ internal static class FightReport
             blowsAt.Add((Time.time, u, s.Target as UnitController, s.Duration));
         }
         UnitController.MoveStarted += OnMove;
+        // Milestone 10: blows inside combos, and the time from one link's start to the next.
+        int comboBlows = 0, combos = 0;
+        var linkGaps = new List<float>();
+        var contactGaps = new List<float>();
+        var comboEnds = new Dictionary<string, int>();
+        void OnCombo(UnitController u, ComboRun c, string what)
+        {
+            if (what == "started")
+            {
+                combos++;
+                comboBlows++;
+            }
+            else if (what.StartsWith("link"))
+            {
+                comboBlows++;
+                if (c.LinkStarts.Count >= 2)
+                {
+                    linkGaps.Add(c.LinkStarts[c.LinkStarts.Count - 1] - c.LinkStarts[c.LinkStarts.Count - 2]);
+                }
+            }
+            else
+            {
+                // (The strikes' rhythm: from one link's striking moment to the next's.)
+                for (int i = 1; i < c.Contacts.Count; i++)
+                {
+                    contactGaps.Add(c.Contacts[i] - c.Contacts[i - 1]);
+                }
+
+                string why = what.Replace("ended: ", "");
+                why = why.StartsWith("stopped by") ? (why.EndsWith("'s shield") ? "blocked" : "stopped in a body") : why;
+                comboEnds[why] = (comboEnds.TryGetValue(why, out int k) ? k : 0) + 1;
+            }
+        }
+        UnitController.ComboChanged += OnCombo;
         int steps = (int)(limit * 60f) + 600;
         float startTime = Time.time;
         try
@@ -146,6 +180,7 @@ internal static class FightReport
         finally
         {
             UnitController.MoveStarted -= OnMove;
+            UnitController.ComboChanged -= OnCombo;
         }
 
         var sb = new System.Text.StringBuilder();
@@ -199,6 +234,12 @@ internal static class FightReport
                           + $"within pairs the next blow was the other's {100f * alternate / Mathf.Max(1, alternate + same):0}% of the time");
         }
 
+        linkGaps.Sort();
+        var ends = new List<string>();
+        foreach (var pair in comboEnds) ends.Add($"{pair.Key} {pair.Value}");
+        contactGaps.Sort();
+        sb.AppendLine($"  combos: {combos}, {100f * comboBlows / Mathf.Max(1, attacks):0}% of blows inside them (target 25-40%); striking moment to the next: median {(contactGaps.Count > 0 ? contactGaps[contactGaps.Count / 2] : 0f):0.00} s "
+                      + $"(target 0.4-0.7, {contactGaps.Count}); link start to the next: median {(linkGaps.Count > 0 ? linkGaps[linkGaps.Count / 2] : 0f):0.00} s; ended: {string.Join(", ", ends)}");
         sb.Append($"  steps with standing bodies overlapping: {shared}; times a unit made no headway and went round: {loop.Stalls}");
         stats = sb.ToString();
         string result = loop.Over ? $"fight over: {loop.Result}" : $"not over after {Time.time - startTime:0} s";

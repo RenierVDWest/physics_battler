@@ -80,6 +80,11 @@ internal static class Program
             return WindowReport.Run();
         }
 
+        if (args.Length >= 1 && args[0] == "combos")
+        {
+            return ComboReport.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "aim")
         {
             return AimMatrix.Run(args.Length >= 2 ? float.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 1f);

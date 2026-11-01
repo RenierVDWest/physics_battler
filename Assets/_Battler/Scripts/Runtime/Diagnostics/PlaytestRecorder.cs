@@ -171,6 +171,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Hit += OnHit;
             UnitController.Died += OnDied;
             UnitController.Severed += OnSevered;
+            UnitController.ComboChanged += OnCombo;
             UnitController.BalanceChanged += OnBalance;
             UnitController.PostureStarted += OnPosture;
             UnitController.PostureLedIn += OnPostureLedIn;
@@ -223,6 +224,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Hit -= OnHit;
             UnitController.Died -= OnDied;
             UnitController.Severed -= OnSevered;
+            UnitController.ComboChanged -= OnCombo;
             UnitController.BalanceChanged -= OnBalance;
             UnitController.PostureStarted -= OnPosture;
             UnitController.PostureLedIn -= OnPostureLedIn;
@@ -474,6 +476,20 @@ namespace PhysicsBattler.Diagnostics
             Event(TrackOf(unit), "death", hit.Kind == "bled out" || hit.Kind == "beheaded"
                 ? $"{hit.Kind} (wounded by {by})"
                 : $"killed by {by}'s {hit.What} to the {hit.Part}");
+        }
+
+        /// <summary>Milestone 10: a combo started, linked or ended.</summary>
+        private void OnCombo(UnitController unit, ComboRun combo, string what)
+        {
+            string head = what == "started"
+                ? $"combo \"{combo.Definition.name}\" ({combo.Why}, {combo.Length} links) at {LabelOf(combo.Target)}"
+                : $"combo \"{combo.Definition.name}\" {what}";
+            if (what.StartsWith("ended"))
+            {
+                head += $" after {combo.Link + 1} of {combo.Length} links";
+            }
+
+            Event(LabelOf(unit), "combo", head);
         }
 
         private void OnSevered(UnitController unit, PartId at, HitReport hit)

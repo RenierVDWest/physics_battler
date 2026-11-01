@@ -67,6 +67,7 @@ namespace PhysicsBattler.Battle
             public float blocked;             // seconds it has been trying to walk in and barely moving
             public float blowEnd = -999f;     // when its last blow ends
             public bool hasTempo;             // the tempo state the blow timing was set for
+            public float delayAfter;          // the wait after the blow under way (milestone 10: a combo's end isn't known ahead)
             public TempoState tempo;
         }
 
@@ -450,6 +451,15 @@ namespace PhysicsBattler.Battle
             var style = unit.Style;
             float size = unit.Body.SizeFactor;
             var tempo = unit.TempoOn ? unit.Tempo : null;
+            // Milestone 10: while a blow or a combo plays, the next waits until it is over (a combo's
+            // links come from the combo itself).
+            if (unit.IsAttacking || unit.Combo != null)
+            {
+                plan.blowEnd = now;
+                plan.nextAttack = Mathf.Max(plan.nextAttack, now + plan.delayAfter);
+                return;
+            }
+
             if (tempo != null)
             {
                 // Milestone 8: the tempo times the blows. Each time its state changes, the next blow
@@ -513,6 +523,24 @@ namespace PhysicsBattler.Battle
             foreach (var target in candidates)
             {
                 var prefer = target == enemy && plan.readsThisTime ? open : AimParts.None;
+
+                // Milestone 10: a combo, when the tempo and the energy call for one.
+                var combo = ChooseCombo(unit, tempo, target, out int length, out string why);
+                if (combo != null)
+                {
+                    var first = unit.PlanLink(combo, 0, target, random);
+                    if (first != null && unit.StartCombo(combo, length, target, first, why))
+                    {
+                        plan.ledInAt = -999f;
+                        plan.closeIn = 0f;
+                        plan.blowEnd = now + first.Duration;
+                        plan.delayAfter = tempo != null ? tempo.BlowDelay((float)random.NextDouble()) : Next(style);
+                        plan.nextAttack = plan.blowEnd + plan.delayAfter;
+                        plan.readsThisTime = random.NextDouble() < style.readsOpenings;
+                        return;
+                    }
+                }
+
                 var state = MovePlanner.Plan(unit, target, random, prefer, 4f);
                 if (state == null)
                 {
@@ -531,7 +559,8 @@ namespace PhysicsBattler.Battle
                 }
 
                 plan.blowEnd = now + state.Duration;
-                plan.nextAttack = tempo != null ? plan.blowEnd + tempo.BlowDelay((float)random.NextDouble()) : now + state.Duration + Next(style);
+                plan.delayAfter = tempo != null ? tempo.BlowDelay((float)random.NextDouble()) : Next(style);
+                plan.nextAttack = plan.blowEnd + plan.delayAfter;
                 plan.readsThisTime = random.NextDouble() < style.readsOpenings;
                 return;
             }
@@ -544,6 +573,82 @@ namespace PhysicsBattler.Battle
             {
                 PlaytestTrace.Note(unit, "attack", $"nothing lands on {enemy.name} from {distance:0.00} m; {(tooClose ? "backing off" : "closing in")}");
             }
+        }
+
+        /// <summary>How likely a press with the energy for two links throws a combo rather than a single blow; a counter; a target reeling; the first blow out of a full gather (its finisher).</summary>
+        public const float ComboPressChance = 0.09f, ComboCounterChance = 0.12f, ComboPunishChance = 0.25f, ComboFullGatherChance = 0.6f;
+
+        /// <summary>
+        /// Milestone 10: when combos come out. Pressing with the energy for at least two links (the
+        /// main source); a counter (a short string); a target reeling (a long string with its
+        /// finisher); and fresh out of a full gather, the longest string the style has. Length: the
+        /// least of the string's, the energy over the cost of a link, and two plus the aggression's
+        /// share of two more.
+        /// </summary>
+        private ComboDefinition ChooseCombo(UnitController unit, TempoDirector tempo, UnitController target, out int length, out string why)
+        {
+            length = 0;
+            why = null;
+            if (tempo == null || unit.Rhythm == null || unit.Loadout?.Main == null || target == null)
+            {
+                return null;
+            }
+
+            var strings = ComboDefinition.For(unit.Loadout.Main, unit.Body.SizeFactor);
+            if (strings.Count == 0)
+            {
+                return null;
+            }
+
+            float energy = unit.Rhythm.Energy, cost = Mathf.Max(0.01f, tempo.BlowCost);
+            bool finisher = false;
+            float chance;
+            int most = 99;
+            if (unit.TargetVulnerable && tempo.Strikes)
+            {
+                why = "punish";
+                chance = ComboPunishChance;
+                finisher = true;
+            }
+            else if (tempo.State == TempoState.Counter)
+            {
+                why = "counter";
+                chance = ComboCounterChance;
+                most = 2;
+            }
+            else if (tempo.State == TempoState.Press)
+            {
+                bool fresh = tempo.BurstBlows == 0 && energy >= tempo.Temperament.fullCharge;
+                why = fresh ? "full gather" : "press";
+                chance = fresh ? ComboFullGatherChance : ComboPressChance;
+                finisher = fresh;
+            }
+            else
+            {
+                return null;
+            }
+
+            if (random.NextDouble() >= chance)
+            {
+                return null;
+            }
+
+            int afford = Mathf.FloorToInt(energy / cost + 1e-3f);
+            int temper = 2 + Mathf.RoundToInt(2f * Mathf.Clamp01(unit.Rhythm.Aggression));
+            var pool = strings.FindAll(c => c.finisher == finisher);
+            if (pool.Count == 0)
+            {
+                pool = strings;
+            }
+
+            var combo = pool[random.Next(pool.Count)];
+            length = Mathf.Min(combo.links.Length, Mathf.Min(afford, Mathf.Min(temper, most)));
+            if (finisher)
+            {
+                length = Mathf.Min(combo.links.Length, afford);
+            }
+
+            return length >= 2 ? combo : null;
         }
 
         // ---- Steering --------------------------------------------------------------------------------

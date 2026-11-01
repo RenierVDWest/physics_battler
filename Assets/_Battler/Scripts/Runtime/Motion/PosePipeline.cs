@@ -89,6 +89,17 @@ namespace PhysicsBattler.Motion
         public Vector3 ReactHead { get; set; }
 
         /// <summary>Milestone 9c: a hit's knock on each arm's pose: the hand moved (world, metres) and turned (a rotation vector, radians).</summary>
+        /// <summary>
+        /// Milestone 10: a combo's last link, still playing on through its follow-through, and how much
+        /// of the pose is still its (1 at the hand-over, easing to 0); the lunge the root took over
+        /// from it (world, horizontal).
+        /// </summary>
+        public MoveState LinkFrom { get; set; }
+
+        public float LinkWeight { get; set; }
+
+        public Vector3 LinkBank { get; set; }
+
         public Vector3 KnockR { get; set; }
         public Vector3 KnockTurnR { get; set; }
         public Vector3 KnockL { get; set; }
@@ -251,10 +262,24 @@ namespace PhysicsBattler.Motion
                 {
                     // A swing: the hips turn ahead of the weapon and the chest between (the chest's
                     // share on top of the hips'); the lean and the crouch follow the phases.
-                    pelvis.rotation = Quaternion.AngleAxis(move.HipTurn * moveBlend, Vector3.up) * pelvis.rotation;
-                    chest.rotation = Quaternion.AngleAxis(move.ChestTurn * moveBlend, Vector3.up) * chest.rotation;
+                    float hipTurnNow = move.HipTurn * moveBlend, chestTurnNow = move.ChestTurn * moveBlend;
                     lean = move.Lean * moveBlend;
-                    pelvis.position += Vector3.down * (move.Crouch * leg * moveBlend);
+                    float crouchNow = move.Crouch * moveBlend;
+                    // (Milestone 10: from a combo's last link into this one, its turns carry over.)
+                    var from = LinkFrom;
+                    float lw = LinkWeight;
+                    if (from != null && lw > 0f && from.Move.shape != MoveShape.Path)
+                    {
+                        float fb = from.Blend;
+                        hipTurnNow = Mathf.Lerp(hipTurnNow, from.HipTurn * fb, lw);
+                        chestTurnNow = Mathf.Lerp(chestTurnNow, from.ChestTurn * fb, lw);
+                        lean = Mathf.Lerp(lean, from.Lean * fb, lw);
+                        crouchNow = Mathf.Lerp(crouchNow, from.Crouch * fb, lw);
+                    }
+
+                    pelvis.rotation = Quaternion.AngleAxis(hipTurnNow, Vector3.up) * pelvis.rotation;
+                    chest.rotation = Quaternion.AngleAxis(chestTurnNow, Vector3.up) * chest.rotation;
+                    pelvis.position += Vector3.down * (crouchNow * leg);
                 }
 
                 var spine = anim.Part(PartId.Spine);
@@ -263,6 +288,14 @@ namespace PhysicsBattler.Motion
                 // Blows at something low are met by sinking: the further below the chest, the deeper.
                 float below = chest.position.y - move.Aim.y - 0.35f * body.SizeFactor;
                 MoveCrouch = Mathf.Clamp(0.5f * below, 0f, 0.22f * leg) * Mathf.Clamp01(moveBody) * moveBlend;
+                if (LinkFrom != null && LinkWeight > 0f)
+                {
+                    // (Milestone 10: the last link's sink eases out.)
+                    float belowFrom = chest.position.y - LinkFrom.Aim.y - 0.35f * body.SizeFactor;
+                    float crouchFrom = Mathf.Clamp(0.5f * belowFrom, 0f, 0.22f * leg) * Mathf.Clamp01(LinkFrom.Body) * LinkFrom.Blend;
+                    MoveCrouch = Mathf.Lerp(MoveCrouch, crouchFrom, LinkWeight);
+                }
+
                 pelvis.position += Vector3.down * MoveCrouch;
             }
 
@@ -289,7 +322,18 @@ namespace PhysicsBattler.Motion
                 toward = toward.sqrMagnitude > 1e-6f ? toward.normalized : facing * Vector3.forward;
                 Vector3 offset = moveBody >= 0f ? move.Lunge * moveBody : toward * (moveBody * RockBack * leg);
                 offset += toward * move.Drive;   // a thrust's body driving on past contact
-                pelvis.position += (offset - carried) * moveBlend;
+                float offsetBlend = moveBlend;
+                // (Milestone 10: the last link's lunge, banked into the root, eases into this one's.)
+                if (LinkFrom != null && LinkWeight > 0f)
+                {
+                    var from = LinkFrom;
+                    Vector3 fromOffset = from.Lunge * Mathf.Max(0f, from.Body) + (from.Frame * Vector3.forward) * from.Drive - LinkBank;
+                    fromOffset.y = 0f;
+                    offset = Vector3.Lerp(offset, fromOffset, LinkWeight);
+                    offsetBlend = Mathf.Lerp(moveBlend, from.Blend, LinkWeight);
+                }
+
+                pelvis.position += (offset - carried) * offsetBlend;
             }
 
             // 4b. A hit's recoil: the hips pushed and the upper body thrown back from the blow (the
@@ -609,7 +653,19 @@ namespace PhysicsBattler.Motion
                 for (int i = 0; i < 6; i++)
                 {
                     MovePose(move, scale, out moveGrip, out moveRotation, out _);
-                    Vector3 handAt = HandFor(moveGrip, moveRotation, slot);
+                    Vector3 reachGrip = moveGrip;
+                    Quaternion reachRotation = moveRotation;
+                    float bendShare = moveBlend;
+                    if (LinkFrom != null && LinkWeight > 0f)
+                    {
+                        // (Milestone 10: reaching for where the weapon is between the two links.)
+                        MovePose(LinkFrom, scale, out var fromGrip, out var fromRotation, out _);
+                        reachGrip = Vector3.Lerp(reachGrip, fromGrip, LinkWeight);
+                        reachRotation = Quaternion.Slerp(reachRotation, fromRotation, LinkWeight);
+                        bendShare = Mathf.Lerp(moveBlend, LinkFrom.Blend, LinkWeight);
+                    }
+
+                    Vector3 handAt = HandFor(reachGrip, reachRotation, slot);
                     Vector3 shoulder = upper.position;
                     float excess = Vector3.Distance(handAt, shoulder) - 0.97f * armLength;
                     if (excess <= 0f || SpineBend >= 50f)
@@ -627,8 +683,8 @@ namespace PhysicsBattler.Motion
                         break;
                     }
 
-                    spine.rotation = Quaternion.AngleAxis(angle * moveBlend, axis.normalized) * spine.rotation;
-                    SpineBend += angle * moveBlend;
+                    spine.rotation = Quaternion.AngleAxis(angle * bendShare, axis.normalized) * spine.rotation;
+                    SpineBend += angle * bendShare;
                 }
 
                 // The guard is posed again after the bend (it hangs off the chest).
@@ -637,6 +693,18 @@ namespace PhysicsBattler.Motion
                 RhythmGuard(facing, rhythm.main, rhythm.mainTurn, ref guardGrip, ref guardRotation);
                 grip = Vector3.Lerp(guardGrip, moveGrip, moveBlend);
                 rotation = Quaternion.Slerp(guardRotation, moveRotation, moveBlend);
+
+                // Milestone 10: from a combo's last link (still carrying on through its
+                // follow-through), the weapon eases into this link's way.
+                if (LinkFrom != null && LinkWeight > 0f)
+                {
+                    MovePose(LinkFrom, scale, out var fromGrip, out var fromRotation, out _);
+                    float fb = LinkFrom.Blend;
+                    fromGrip = Vector3.Lerp(guardGrip, fromGrip, fb);
+                    fromRotation = Quaternion.Slerp(guardRotation, fromRotation, fb);
+                    grip = Vector3.Lerp(grip, fromGrip, LinkWeight);
+                    rotation = Quaternion.Slerp(rotation, fromRotation, LinkWeight);
+                }
             }
 
             // (A hit's knock on the arm: the hand back along the blow and turned with it.)
@@ -720,8 +788,15 @@ namespace PhysicsBattler.Motion
                 planWeight = ArmPlanWeight * moveBlend * (move.Progress <= move.Move.ContactProgress ? before : 1f - fromStrike);
             }
 
+            // (Milestone 10: handed over from a combo's last link, the arm eases into this one: its
+            // pull toward the planned striking shape and its rush near the strike come in as the last
+            // link's share of the pose goes.)
+            float handedOver = LinkFrom != null ? 1f - LinkWeight : 1f;
+            planWeight *= handedOver;
+            aimWeight = Mathf.Lerp(ArmAimWeightAway, aimWeight, handedOver);
+
             KeepArmAngles();
-            SolveWeaponArm(slot, anchorLocal, anchor, rotation, pole, easy, torso, length, aimWeight, playing, follow, plan, planWeight, move != null && move != Feint ? (1f - fromStrike) * moveBlend : 0f);
+            SolveWeaponArm(slot, anchorLocal, anchor, rotation, pole, easy, torso, length, aimWeight, playing, follow, plan, planWeight, move != null && move != Feint ? (1f - fromStrike) * moveBlend * handedOver : 0f);
 
             // (Short of a point ahead near the striking moment, the body leans after it, up to 50 degrees.)
             for (int round = 0; round < 2 && move != null && move != Feint && moveBlend > 0f && fromStrike < 1f; round++)
@@ -742,7 +817,7 @@ namespace PhysicsBattler.Motion
                 SpineBend += lean;
                 torso = Rig != null ? new BodyClearance.Posed(Rig, anim, scale) : null;
                 RestoreArmAngles();
-                SolveWeaponArm(slot, anchorLocal, anchor, rotation, pole, easy, torso, length, aimWeight, playing, follow, plan, planWeight, move != null && move != Feint ? (1f - fromStrike) * moveBlend : 0f);
+                SolveWeaponArm(slot, anchorLocal, anchor, rotation, pole, easy, torso, length, aimWeight, playing, follow, plan, planWeight, move != null && move != Feint ? (1f - fromStrike) * moveBlend * handedOver : 0f);
             }
 
             // (A tried pose at the striking moment is the blow's planned striking shape.)
