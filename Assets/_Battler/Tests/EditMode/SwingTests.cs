@@ -109,19 +109,11 @@ namespace PhysicsBattler.Tests
         }
 
         /// <summary>
-        /// Milestone 9c: through every ready-made blow the weapon arm moves on smoothly. Its parts' turning
-        /// speed changes little from one step to the next, and none turns far in a step while the blade
-        /// itself moves little (the arm's shape carries on from the last step rather than jumping to
-        /// another way of holding the weapon). Push A: 835 and 178 degrees; the first try at the
-        /// straight wrists: 6521.
+        /// Plays every ready-made blow (a medium unit at a medium target, the first part each can
+        /// strike), calling <paramref name="each"/> after every step of it.
         /// </summary>
-        [Test]
-        public void TheWeaponArmNeverJumpsInABlow()
+        private static void PlayEveryBlow(System.Action<UnitController, MoveStyle, MoveState> each)
         {
-            var parts = new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
-            var changes = new System.Collections.Generic.List<float>();
-            float worstTurn = 0f;
-            string worstWhere = "";
             foreach (MoveStyle style in System.Enum.GetValues(typeof(MoveStyle)))
             {
                 var move = MoveDefinition.Create(style);
@@ -166,40 +158,11 @@ namespace PhysicsBattler.Tests
                         continue;
                     }
 
-                    var was = new Quaternion[3];
-                    var rate = new float[3];
-                    Vector3 lastStrike = Vector3.zero;
                     for (int step = 0; step < 600 && attacker.IsAttacking; step++)
                     {
                         attacker.PreviewPose(1f / 60f);
                         target.PreviewPose(1f / 60f);
-                        for (int k = 0; k < 3; k++)
-                        {
-                            var now = attacker.Anim.Part(parts[k]).rotation;
-                            if (step > 0)
-                            {
-                                float turn = Quaternion.Angle(was[k], now);
-                                float r = turn * 60f;
-                                if (step > 1)
-                                {
-                                    changes.Add(Mathf.Abs(r - rate[k]));
-                                }
-
-                                // (A fast blow turns the arm fast; a turn the blade's own travel doesn't explain is a jump.)
-                                bool still = (attacker.Pose.StrikePoint - lastStrike).magnitude < 0.15f;
-                                if (still && turn > worstTurn)
-                                {
-                                    worstTurn = turn;
-                                    worstWhere = $"{style} {parts[k]} at {state.T:0.00}";
-                                }
-
-                                rate[k] = r;
-                            }
-
-                            was[k] = now;
-                        }
-
-                        lastStrike = attacker.Pose.StrikePoint;
+                        each(attacker, style, state);
                     }
                 }
                 finally
@@ -208,12 +171,111 @@ namespace PhysicsBattler.Tests
                     Object.DestroyImmediate(target.gameObject);
                 }
             }
+        }
+
+        /// <summary>
+        /// Milestone 9c: through every ready-made blow the weapon arm moves on smoothly. Its parts' turning
+        /// speed changes little from one step to the next, and none turns far in a step while the blade
+        /// itself moves little (the arm's shape carries on from the last step rather than jumping to
+        /// another way of holding the weapon). Push A: 835 and 178 degrees; the first try at the
+        /// straight wrists: 6521.
+        /// </summary>
+        [Test]
+        public void TheWeaponArmNeverJumpsInABlow()
+        {
+            var parts = new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
+            var changes = new System.Collections.Generic.List<float>();
+            float worstTurn = 0f;
+            string worstWhere = "";
+            var was = new Quaternion[3];
+            var rate = new float[3];
+            Vector3 lastStrike = Vector3.zero;
+            MoveState playing = null;
+            int step = 0;
+            PlayEveryBlow((attacker, style, state) =>
+            {
+                if (state != playing)
+                {
+                    playing = state;
+                    step = 0;
+                }
+
+                for (int k = 0; k < 3; k++)
+                {
+                    var now = attacker.Anim.Part(parts[k]).rotation;
+                    if (step > 0)
+                    {
+                        float turn = Quaternion.Angle(was[k], now);
+                        float r = turn * 60f;
+                        if (step > 1)
+                        {
+                            changes.Add(Mathf.Abs(r - rate[k]));
+                        }
+
+                        // (A fast blow turns the arm fast; a turn the blade's own travel doesn't explain is a jump.)
+                        bool still = (attacker.Pose.StrikePoint - lastStrike).magnitude < 0.15f;
+                        if (still && turn > worstTurn)
+                        {
+                            worstTurn = turn;
+                            worstWhere = $"{style} {parts[k]} at {state.T:0.00}";
+                        }
+
+                        rate[k] = r;
+                    }
+
+                    was[k] = now;
+                }
+
+                lastStrike = attacker.Pose.StrikePoint;
+                step++;
+            });
 
             Assert.Greater(changes.Count, 300, "blows were played");
             changes.Sort();
             float p95 = changes[(int)(0.95f * (changes.Count - 1))];
             Assert.Less(p95, 1500f, $"the arm's turning speed changes smoothly (95th percentile {p95:0} degrees a second from one step to the next)");
             Assert.Less(worstTurn, 60f, $"no part of the arm turns far in a step the blade barely moves (worst {worstTurn:0} degrees: {worstWhere})");
+        }
+
+        /// <summary>
+        /// Milestone 9c: through every ready-made blow the weapon arm keeps a person's shape: its
+        /// shoulder, elbow and wrist inside their limits (the joint table) and the arm (the far half of
+        /// the upper arm, the forearm, the hand) out of its own torso. The first try at the straight
+        /// wrists: the shoulder more than 10 degrees past its limits in 27% of blow steps, up to 130.
+        /// </summary>
+        [Test]
+        public void TheWeaponArmKeepsAPersonsShapeInABlow()
+        {
+            float worstPast = 0f, deepest = 0f;
+            string pastWhere = "", deepWhere = "";
+            int steps = 0;
+            PlayEveryBlow((attacker, style, state) =>
+            {
+                steps++;
+                var anim = attacker.Anim;
+                foreach (var id in new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR })
+                {
+                    var part = anim.Part(id);
+                    Quaternion local = Quaternion.Inverse(anim.RestLocalRotation(id)) * part.localRotation;
+                    float past = PhysicsBattler.Muscles.JointMath.PastLimits(local, PhysicsBattler.Muscles.JointLimitTable.For(id), out _, out _, out _);
+                    if (past > worstPast)
+                    {
+                        worstPast = past;
+                        pastWhere = $"{style} {id} at {state.T:0.00}";
+                    }
+                }
+
+                float clear = BodyClearance.Measure(attacker.Rig, anim, state.Weapon.length * 0.98f, attacker.Loadout.Scale, out var closest, out bool blade);
+                if (!blade && -clear > deepest)
+                {
+                    deepest = -clear;
+                    deepWhere = $"{style} on the {closest} at {state.T:0.00}";
+                }
+            });
+
+            Assert.Greater(steps, 300, "blows were played");
+            Assert.LessOrEqual(worstPast, 1f, $"no joint of the weapon arm past its limits (worst {worstPast:0} degrees: {pastWhere})");
+            Assert.LessOrEqual(deepest, 0.03f, $"the arm stays out of its own body (deepest {deepest * 100:0.0} cm: {deepWhere})");
         }
 
         [Test] public void SwordCutIsABigSwing() => BigSwing(MoveStyle.SwordCut);

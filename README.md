@@ -9,7 +9,7 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 9c, straight wrists, hits that land softly and a solid, close shield
+## Current state: milestone 9c, straight wrists and natural arms, hits that land softly, a solid, close shield
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
@@ -17,37 +17,39 @@ combos; the combat plan's milestones move back by one): https://claude.ai/artifa
 
 ### Milestone 9c, second part: the arm points the weapon, stopped blows rebound, a solid shield
 
-**The arm points the weapon, the wrist stays straight** (`PosePipeline.PoseWeaponArm`). The weapon
-used to be put where the move wanted it and the wrist bent to suit, up to 60 degrees. Now:
+**The arm points the weapon, the wrist stays straight, and the arm keeps a person's shape**
+(`Motion/WeaponArmSolve.cs`, `PosePipeline.PoseWeaponArm`). The weapon used to be put where the move
+wanted it and the wrist bent to suit, up to 160 degrees past its limits. Now:
 - The grip leans the weapon 20 degrees forward of the fist (`GripLean`, on both the animated and the
   physical weapon slot), as a hand holds a sword; a thrust leans it 35 degrees more as it drives in
   (`ThrustLean`), so the blade runs along the forearm.
-- The wrist is clamped to an easy range off the forearm's line (`EasyWrist`: 22 degrees in the guard, 35
-  in a blow, roll 75), then to the body's own limits (the hand's table is now -15/30/80/40).
-- With the wrist that way, the forearm, hand and weapon are turned as one rigid piece about the
-  shoulder (`RigidAim`): the elbow bends until the striking point is at the right distance, the arm turns
-  it onto the aim, and swings round the shoulder-to-aim line to where the weapon points nearest the asked
-  way, the elbow toward its pole, clear of the body.
-- Out of reach that way, the weapon comes into line with the forearm (`Straighten`), as little as lands
-  it, and the body leans after a point ahead (up to 50 degrees). Too near, or into its own body, the wrist
-  gives (up to four times its easy range). Each is found by halving, so it changes smoothly.
-- Out of a blow, the arm's shape eases (12 Hz, critically damped). A guard that would put the blade into
-  its own body moves the grip out on a spring.
-- `MovePlanner.InTheWay` (the bystander tests and the sandbox) now uses the blade as the arm poses it.
+- The arm is solved in its joints' own angles: the shoulder, the elbow and forearm, the wrist, each
+  three angles as the joint table measures them (pitch, then the turns about Y and Z, their swing kept
+  inside a cone). **Every angle stays inside the table's range**, so no shape an arm can't make is
+  ever chosen: no elbow bent backwards, no shoulder twisted over, no hand behind the head.
+- Within those ranges a few damped least-squares steps a pose weigh up, together: the striking part on
+  its target (most at the striking moment, `ArmAimWeight`, much less in the wind-up and follow-through,
+  `ArmAimWeightAway`, where a natural arm comes first), the weapon pointing the asked way, the wrist
+  inside its easy range (22 degrees in the guard, 35 in a blow, roll 75), the elbow toward its pole
+  (down and out), and the arm and blade out of its own body (`ArmBodyWeight`; the upper arm, spine and
+  pelvis are now measured too, in `BodyClearance`, for the planner as well).
+- A playing arm starts from last step's shape, carried on as it was moving, and no joint turns more
+  than 25 degrees a step (90 at the striking moment, `ArmAngleStepCalm`, `ArmAngleStepStrike`): it never
+  jumps. Away from the striking moment it holds its shape more firmly (`ArmStillCalm`).
+- The planner's try at the striking moment keeps the arm's shape on the blow (`MoveState.ContactArm`);
+  the playing arm is drawn toward it from 60% of the way before (`ArmPlanWeight`), so it arrives in that
+  shape. Near the striking moment, an arm that has lost its way (2 cm off, or in its own body) also
+  solves afresh and heads there, as fast as it may move.
+- Short of a point ahead near the striking moment, the body leans after it (up to 50 degrees). Out of a
+  blow the arm's shape eases (12 Hz). A guard that would put the blade into its own body moves out.
+- `MovePlanner.InTheWay` (the bystander tests and the sandbox) uses the blade as the arm poses it.
 
-**The arm carries on from the last step** (the fix after the first playtest of this part). The first
-version chose the elbow's place, its turn clear of the body and the wrist's give afresh every step,
-taking the best at once in a blow. Where the best flipped (the elbow from 60 degrees one side to 60 the
-other, say) the arm turned over in one step while the blade barely moved: in the stub, how fast its parts'
-turning changed from step to step was 6× push A's (95th percentile 6,500 against 835 degrees a second).
-Now a playing arm starts each step from last step's shape and only looks nearby: the elbow swings round
-at most 240 degrees a second in the guard, 900 in a blow (`GuardSwivelRate`, `BlowSwivelRate`), between
-samples by a parabola; the wrist's roll is read nearest last step's (no flip from one end of its roll to
-the other); its give changes at most 10 times its easy range a second (`WristGiveRate`), unless landing the
-blow needs more; and the weapon turns about its own length at most 720 degrees a second
-(`WeaponRollRate`: where the edge-leads rule turns it end for end as a path turns back, the hand no longer
-snaps over). A tried pose (the planner's) and the first pose after a gap still search the whole way.
-Now 686 against push A's 835; the hand's own flips (up to 178 degrees in a step in push A) are gone.
+**How it got here** (two fixes after playtests of this part). The first version turned a rigid
+forearm-and-weapon piece round the shoulder, choosing the elbow's place afresh every step: where the
+best choice flipped the arm turned over in a step (the shaking swings). Carrying the shape on from the
+last step fixed that, but nothing in that solver knew the shoulder's limits: the shoulder was more than
+10 degrees past them in 27% of blow steps (up to 130), the arm inside its own body in 12%. Solving in
+the joints' angles makes the limits the edges of what can be chosen.
 
 **The weapon arm is posed exactly in blows again** (`UnitCombat.SetAuthority`). The first version held it
 by the servo in blows, with the joint limits on, to soften stopped blows. The playtest showed the
@@ -68,16 +70,21 @@ solid, not a trigger: it stops against bodies and weapons instead of passing int
 are capped at 2 N·s a step (`ShieldPush`), so it shoves rather than launches. Its mass is added to the
 hand's body and taken off again when it is unequipped.
 
-**Measures** (stub, the pose). `arms 7`: weapon wrist bend in the guard 22 median / 32 95th, in blows
-29 / 39 (the reference attack FBXs: 23 / 45). Three fights (seeds 7, 11, 3) against push A: the weapon
-tip's acceleration in blows 95th percentile 530 to 710 m/s² (push A 810 to 915), its jerk 95th percentile
-38k to 54k (push A 80k). `aim`: no misses; 19 blows turned down for passing through the attacker's own
-body (push A 5), most of them a large unit's sword cut, whose follow-through crosses the chest (large
-units carry clubs in the sandbox). New tests: `SwingTests.TheWeaponArmNeverJumpsInABlow`,
+**Measures** (stub, the pose; `arms 7` and `arms 11`, a whole fight each, against push A and the
+first playtested version). The weapon arm's joints more than 10 degrees past their limits in blows: the
+shoulder 0% (push A 6.5%, then 27%), the elbow 0% (push A 8.6%), the wrist 0% (push A 84%). The arm
+inside its own torso more than 2 cm: 0% in the guard and in blows (push A 3.6% and 1.7%, then 10% and
+13%). The wrist's bend in the guard 18-22 median / 23-30 95th, in blows 31-33 / 37 (the reference
+attack FBXs: 23 / 45). Smoothness, three fights: the arm's turning speed changes from step to step at
+most 420-590 degrees a second at the 95th percentile (push A 720-1,930), the blade's tip turns back on
+itself 19-23 times (push A 36-46). `aim`: no misses; 29 blows turned down for passing through the
+attacker's own body (push A 5: the body check now counts the upper arm, spine and pelvis), most of them
+a large unit's. Tests: `SwingTests.TheWeaponArmKeepsAPersonsShapeInABlow` (fails on the playtested
+version: the shoulder 129 degrees past its limits), `SwingTests.TheWeaponArmNeverJumpsInABlow`,
 `ArmTests.InTheGuardTheWeaponWristStaysNearlyStraight`, `ArmTests.TheShieldIsSolidAndWeighsOnTheHand`.
-Playtest measure of the shaking: in `python3 Tools/Playtest/arms.py`, and the tip acceleration and
-reversals in blows (the first playtest of this part: median 800 m/s² and 540 reversals against push A's
-80 and 28).
+The bystander tests allow a cut that severs the bystander's guard arm first (the blade comes in on a
+slightly different line now; a severing cut carries on). Playtest measure of the shaking: the swing
+section of `python3 Tools/Playtest/arms.py`; of the arm's shape: the `posePast` / `poseJoint` columns.
 
 ### Milestone 9c, first part: hits that land softly, a calm and close shield
 
