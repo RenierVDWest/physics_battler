@@ -408,6 +408,7 @@ namespace PhysicsBattler.Units
 
         private static void DestroyWeapon(Weapon weapon)
         {
+            weapon.SetLying(false);
             foreach (var collider in weapon.GetComponentsInChildren<Collider>(true))
             {
                 GroundContacts.SetShield(collider, false);

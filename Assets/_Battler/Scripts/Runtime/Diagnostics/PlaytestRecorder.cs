@@ -72,6 +72,8 @@ namespace PhysicsBattler.Diagnostics
         private readonly Dictionary<Rigidbody, int> props = new Dictionary<Rigidbody, int>();
         private readonly StringBuilder line = new StringBuilder(512);
         private readonly List<UnitController> pending = new List<UnitController>();
+        private ShieldContacts shieldContacts = new ShieldContacts();
+        private readonly List<ShieldContacts.Contact> shieldEnded = new List<ShieldContacts.Contact>();
 
         private StreamWriter events;
         private TableWriter world;
@@ -145,6 +147,7 @@ namespace PhysicsBattler.Diagnostics
             eventCount = 0;
             unitCount = 0;
             tracks.Clear();
+            shieldContacts = new ShieldContacts();
             closedTracks.Clear();
             byUnit.Clear();
             nameUses.Clear();
@@ -234,6 +237,9 @@ namespace PhysicsBattler.Diagnostics
                 CloseTrack(track, "recording stopped");
             }
 
+            shieldEnded.Clear();
+            shieldContacts.CloseAll(Time.fixedDeltaTime, shieldEnded);
+            LogShieldContacts();
             CheckConfigChanges();
             if (frames != null && (frames.Capturing || frames.Saved > 0))
             {
@@ -595,6 +601,7 @@ namespace PhysicsBattler.Diagnostics
                 }
             }
 
+            SampleShields();
             if (step % 30 == 1)
             {
                 FindProps();
@@ -618,6 +625,33 @@ namespace PhysicsBattler.Diagnostics
                 Event((string)null, "time", Time.timeScale == 0f ? "paused" : $"time scale {Time.timeScale:0.00}");
                 lastTimeScale = Time.timeScale;
             }
+        }
+
+        /// <summary>Milestone 9c: each shield's overlaps with other bodies; each one in the log as it ends.</summary>
+        private void SampleShields()
+        {
+            shieldContacts.BeginStep();
+            foreach (var track in tracks)
+            {
+                if (track.unit != null)
+                {
+                    shieldContacts.Measure(track.unit, LabelOf, Now);
+                }
+            }
+
+            shieldEnded.Clear();
+            shieldContacts.EndStep(Time.fixedDeltaTime, shieldEnded);
+            LogShieldContacts();
+        }
+
+        private void LogShieldContacts()
+        {
+            foreach (var c in shieldEnded)
+            {
+                Event((string)null, "shield", $"{c.shield} in {c.other} for {c.duration:0.000} s, {c.deepest * 100f:0.0} cm deep at most");
+            }
+
+            shieldEnded.Clear();
         }
 
         private void FindProps()
@@ -924,6 +958,17 @@ namespace PhysicsBattler.Diagnostics
                 foreach (var track in all)
                 {
                     AppendUnitSummary(md, track);
+                }
+
+                var (count, p95, deepest, longest, under) = ShieldContacts.Summary(shieldContacts.Done);
+                if (count > 0)
+                {
+                    md.AppendLine("## Shield contacts");
+                    md.AppendLine();
+                    md.AppendLine($"{count} times a shield overlapped another unit's body: 95% under {p95 * 100f:0.0} cm deep ({under * 100f:0}% under "
+                                  + $"{ShieldContacts.DepthTarget * 100f:0} cm; target 95%), the deepest {deepest * 100f:0.0} cm, the longest {longest:0.00} s "
+                                  + $"(target under {ShieldContacts.LongestTarget:0.0} s). Each one is in events.log (\"shield\").");
+                    md.AppendLine();
                 }
 
                 if (marks.Count > 0)

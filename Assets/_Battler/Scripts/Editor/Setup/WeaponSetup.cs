@@ -50,7 +50,7 @@ namespace PhysicsBattler.Editor.Setup
                 }
             }
 
-            int bodyLayer = Layers.Index(Layers.Body);
+            int weaponLayer = Layers.Index(Layers.Weapon);   // (milestone 9c: weapons on their own layer)
             foreach (var name in BattlerPaths.Weapons)
             {
                 var entry = file.Find(name);
@@ -77,7 +77,7 @@ namespace PhysicsBattler.Editor.Setup
                 }
 
                 ApplyShape(definition, entry);
-                var prefab = BuildPrefab(name, definition, entry, bodyLayer);
+                var prefab = BuildPrefab(name, definition, entry, weaponLayer);
                 if (definition.prefab != prefab)
                 {
                     definition.prefab = prefab;

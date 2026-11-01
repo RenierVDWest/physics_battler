@@ -9,11 +9,68 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 9c, straight wrists and natural arms, hits that land softly, a solid, close shield
+## Current state: milestone 9c done: weapons out of the ground, shield get-ups, dropped weapons
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
 combos; the combat plan's milestones move back by one): https://claude.ai/artifact/HCsdNXmL5zVwV1ep1ta5Gj
+
+### Milestone 9c, last part: weapons kept out of the ground, getting up behind the shield, dropped weapons
+
+**What the hands hold stays out of the ground** (`Motion/GroundClamp.cs`, `PosePipeline.KeepWeaponsOffGround`).
+After the arms are solved, every pose (standing, in a blow, getting up) measures the held weapon (points
+from pommel to tip, each with the weapon's cross-section: a blade is wide across its edges and thin
+through, the crossguard wider) and the shield (the lowest point of its rim, its back when it faces up)
+against the ground. Anything lower than 2 cm (by size) is lifted: first by turning the wrist (at most
+60 degrees, never further past the wrist's limits than the pose had it), then by turning the whole arm
+up at the shoulder, the elbow keeping its bend. The floor is soft: the lift starts a few centimetres
+above the margin and eases in (`Soft`), and it is measured where the low part of the weapon is (the low
+points weighed together), so the arm never jerks when the floor takes over or when a different point
+becomes the lowest. A shield lying nearly flat, or a low part hanging straight under the wrist, is lifted
+by the arm, not the wrist.
+
+**Getting up with a shield** (`GetUp`). Face up, the unit rolls 18 degrees onto its sword side and pushes
+on the sword fist, the blade flat along the ground pointing back and away; the shield is held up toward
+the threat (the enemy it knows of, or up and forward without one) at arm's length, swung round the
+shoulder, pushed out of its own body along its face and lifted where its rim would dig in. Face down, the
+push is as before, with the shield flat under the forearm, its rim on the ground and the hand a little
+wider, and it swings up toward the threat once the body is off its hands. As the standing pose takes over,
+its shield takes over too. The body as it lay is brought out of the floor once at the start (the clamp may
+go further there), and the clamp comes in over the blend from it.
+
+**The standing pose a get-up blends into keeps its arm** (`PosePipeline.Compose(..., armPlays)`). That pose
+is composed each step without moving the feet, which made the weapon arm solve afresh every step since the
+natural-arms push: at the end of a large unit's get-up the hand flicked 4 cm and back (`EveryUnitGetsUp`
+failed in some test orders, at the last push too). Its arm now carries on from step to step.
+
+**Dropped weapons** (`Weapon.Release`, `UnitSever`). A weapon or shield whose hand is cut off falls from it:
+out of the hand, solid, with a body of its own (its mass, the hand's speed and the limb's throw, continuous
+collision), to land and come to rest on the floor. A dropped shield's weight leaves the hand. Dropped
+weapons are cleared away with their unit. A held weapon is solid while its unit lies on the ground, alive or
+dead (`Weapon.SetLying`, from `UnitRagdoll`), and registered with `GroundContacts` as lying, so a standing
+unit stepping on it only nudges it; standing again, it only reports what it touches. All weapon colliders
+are on the **Weapon** layer (set when equipped; Setup builds new prefabs on it).
+
+**Shield contacts in the log** (`Diagnostics/ShieldContacts.cs`, `PlaytestRecorder`). Each physics step,
+each shield's overlaps with other units' parts are measured where the simulation has them (how deep, by
+`Physics.ComputePenetration`), followed from the step a contact starts to the step it ends. Each one is an
+event (`shield`: who, which part, how long, how deep); `session.md` has a summary, and `arms.py` (and
+`analyze.py`) a table per shield. Targets: under 2 cm deep in 95% of contacts, none longer than 0.2 s.
+
+**Measures** (stub). Tests: `BalanceTests.AShieldBearerGetsUpBehindItsShield` (face up and face down: it
+gets up, no part of the pose pops, nothing it holds more than 1 cm into the ground after the blend from the
+body as it lay, the shield at most 3 cm into its own body, facing within 45 degrees of the threat in at
+least 80% of the second half), `EveryUnitGetsUp` (now with the sword out of the ground and where a pop is),
+`SeverTests.LosingTheWeaponArmLosesTheWeapon` (it falls on its own, solid, thrown with the limb),
+`SeverTests.AHeldWeaponIsSolidOnlyWhileItsUnitLies`, `ArmTests.ShieldContactsAreFollowedFromStartToEnd`.
+`arms 7` and `arms 11` (whole fights): standing, nothing held ever lower than 2 cm over the ground (16,236 and
+7,537 steps); getting up after the blend, never more than 1 cm below (lowest 0.2 cm, 1,443 steps). During the
+blend from the body as it lay the stubs can be far into the floor (to 56 cm): the stubs' ragdolls have no
+floor and their weapons lie anywhere; in play the held weapon is solid on the floor while the unit lies.
+Arms, aim, shield and balance runners as before (the weapon wrist 19 / 23 in the guard, 32 / 37 in blows;
+no misses, 29 blows turned down; the shield faces its threat 87% of the time in blows). **Only Unity can
+show** the dropped and lying weapons resting on the floor, and the shield contacts (the stubs have no
+collisions): look at a playtest's `## Shield contacts` and `arms.py`.
 
 ### Milestone 9c, second part: the arm points the weapon, stopped blows rebound, a solid shield
 
@@ -679,13 +736,13 @@ their joints are and solved again so an elbow never swings round the wrong way) 
 | Folder (`Assets/_Battler/Scripts/Runtime`) | What lives there |
 | --- | --- |
 | `Rig/` | `PartId` (the 16 parts and their tree), `RigFile` (the body rig JSON), `UnitBuilder`, `UnitRig`, `AnimRig`, `BodyPart` |
-| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline`, `TwoBoneIK`, `GetUp` (get-up key poses, `PoseBuffer`), `RhythmDefinition`, `PostureDefinition`, `RhythmPlayer` (Fight Rhythms) |
+| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline` (with `WeaponArmSolve`), `GroundClamp`, `TwoBoneIK`, `GetUp` (get-up key poses, `PoseBuffer`), `RhythmDefinition`, `PostureDefinition`, `RhythmPlayer` (Fight Rhythms) |
 | `Authority/` | `AuthorityController` (levels per region, pinning) |
 | `Combat/` | `WeaponDefinition`, `MoveDefinition`, `MoveState`, `MovePlanner`, `Weapon` (the weapon in the hand), `AimPart`, `DamageRules`, `BodyClearance` |
 | `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitBalance` (stumbles, knock-downs, launches, body impacts, get-ups), `UnitRhythm` (the Fight Rhythm on the unit: steps, travel, feints, lead-ins), `UnitProfile` |
 | `Board/` | `BoardGrid` (tiles), `BoardView` (the board mesh) |
 | `Sandbox/` | `BattleSandbox` (spawning, panel, keys), `UnitSpawn` (the scene's markers), `Brawl` (close in and strike), `OrbitCamera`, `SandboxInput` |
-| `Diagnostics/` | `PlaytestRecorder`, `UnitTrack`, `FrameCapture` |
+| `Diagnostics/` | `PlaytestRecorder`, `UnitTrack`, `FrameCapture`, `ShieldContacts` |
 | `Muscles/` | `JointMath`, `JointConventions` (joint limit conventions), `SupportPolygon` |
 
 Editor setup lives in `Scripts/Editor/Setup`. Tests (EditMode, NUnit) live in `Assets/_Battler/Tests/EditMode`.

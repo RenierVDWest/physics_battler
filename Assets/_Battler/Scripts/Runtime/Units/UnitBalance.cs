@@ -63,6 +63,17 @@ namespace PhysicsBattler.Units
         /// <summary>How the last get-up started.</summary>
         public GetUp.Kind LastGetUp { get; private set; }
 
+        /// <summary>Milestone 9c: the lowest point of what the hands hold over the ground in this step's pose (metres; negative: in it).</summary>
+        public float WeaponGroundGap => State == UnitState.GettingUp ? getUp.WeaponGroundGap : Pose.WeaponGroundGap;
+
+        /// <summary>Which way the shield faces getting up (world; zero without one, or not getting up).</summary>
+        public Vector3 GetUpShieldFace => State == UnitState.GettingUp ? getUp.ShieldFace : Vector3.zero;
+
+        /// <summary>When the standing pose starts to take over a get-up, and how long it lasts (seconds).</summary>
+        public float GetUpStandFrom => getUp.StandFrom;
+        public float GetUpBlendIn => getUp.BlendIn;
+        public float GetUpDuration => getUp.Duration;
+
         /// <summary>Seconds in the current state.</summary>
         public float StateTime { get; private set; }
 
@@ -584,6 +595,9 @@ namespace PhysicsBattler.Units
             lying.Capture(Rig);
             getUp.HoldsMain = MainWeapon != null;
             getUp.HoldsOff = OffWeapon != null;
+            getUp.Loadout = Loadout;
+            getUp.Rig = Rig;
+            getUp.Threat = GetUpThreat();
             getUp.Begin(kind, lying);
             LastGetUp = kind;
             float down = StateTime;
@@ -602,11 +616,12 @@ namespace PhysicsBattler.Units
                 // The standing pose, as it will be once up (the feet already on their spots, the
                 // rhythm's base loop playing).
                 PoseRhythmBase();
-                Pose.Compose(LocalTime, 0f, true);
+                Pose.Compose(LocalTime, dt, true, armPlays: true);
                 standing.Capture(Anim);
                 stand = standing;
             }
 
+            getUp.Threat = GetUpThreat();
             getUp.Compose(t, stand);
             if (drive)
             {
@@ -623,6 +638,22 @@ namespace PhysicsBattler.Units
                 TimesUp++;
                 BalanceChanged?.Invoke(this, $"got up ({(LastGetUp == GetUp.Kind.FaceDown ? "face down" : "face up")})");
             }
+        }
+
+        /// <summary>
+        /// Milestone 9c: where the enemy it minds is, as it knows it (chest height), for the shield
+        /// getting up; none if it knows of none.
+        /// </summary>
+        private Vector3? GetUpThreat()
+        {
+            var foe = Foe();
+            if (foe == null || !Known.Knows(foe))
+            {
+                return null;
+            }
+
+            Vector3 at = Known.Estimate(foe, LocalTime);
+            return at + Vector3.up * (foe.Body.PelvisHeight + 0.35f * foe.Body.SizeFactor);
         }
 
         /// <summary>How firmly the body is held while getting up: the pins come back from weak, the legs kinematic once blended in.</summary>

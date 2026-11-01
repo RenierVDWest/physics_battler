@@ -34,11 +34,19 @@ internal static class ArmReport
         var lastPoise = new Dictionary<UnitController, float>();
         var struckAt = new Dictionary<UnitController, float>();
         float clock = 0f;
+        var ground = new Dictionary<string, List<float>>();
         FightReport.OnStep = (units, dt) =>
         {
             clock += dt;
             foreach (var u in units)
             {
+                // Milestone 9c: what the hands hold over the ground in the pose, standing and getting up.
+                if (u.IsAlive && (u.State == UnitState.Standing || u.State == UnitState.GettingUp) && u.Loadout != null
+                    && (u.Loadout.Main != null || u.Loadout.Off != null) && u.WeaponGroundGap < 100f)
+                {
+                    Add(ground, u.State != UnitState.GettingUp ? "standing" : u.StateTime < u.GetUpBlendIn ? "getting up, blending from the body as it lay" : "getting up, after the blend", u.WeaponGroundGap);
+                }
+
                 if (!u.IsAlive || u.State != UnitState.Standing)
                 {
                     lastFace.Remove(u);
@@ -123,12 +131,29 @@ internal static class ArmReport
             Console.WriteLine($"weapon arm pose past its limits, {pair.Key}: more than 10 degrees {Share(pair.Value, 10f) * 100:0.0}% of steps, 99th {Pct(pair.Value, 99):0}, worst {Max(pair.Value):0} degrees ({pair.Value.Count} steps)");
         }
 
+        foreach (var pair in ground)
+        {
+            int below = pair.Value.FindAll(g => g < -0.01f).Count;
+            Console.WriteLine($"held weapon or shield over the ground, {pair.Key}: {below} steps more than 1 cm below it, lowest {Min(pair.Value) * 100:0.0} cm, 1st percentile {Pct(pair.Value, 1) * 100:0.0} cm ({pair.Value.Count} steps)");
+        }
+
         foreach (var pair in inside)
         {
             Console.WriteLine($"weapon arm (elbow, forearm, hand) inside its own torso, {pair.Key}: {Share(pair.Value, 0.02f) * 100:0.0}% of steps more than 2 cm deep, worst {Max(pair.Value) * 100:0} cm ({pair.Value.Count} steps)");
         }
 
         return 0;
+    }
+
+    private static float Min(List<float> values)
+    {
+        float m = float.MaxValue;
+        foreach (float v in values)
+        {
+            m = Mathf.Min(m, v);
+        }
+
+        return values.Count > 0 ? m : 0f;
     }
 
     private static void Add(Dictionary<string, List<float>> into, string key, float value)

@@ -223,6 +223,8 @@ namespace PhysicsBattler.Units
                 groundHeavy = 0f;
                 ApplyGroundWeight();
                 GroundContacts.Set(PartColliders(), lying);
+                // Milestone 9c: what it holds is solid on the ground with it.
+                MainWeapon?.SetLying(lying);
             }
 
             Authority.GroundTone = lying ? (IsAlive ? DownTone : DeadTone) : 0f;
@@ -301,6 +303,7 @@ namespace PhysicsBattler.Units
             if (Rig != null)
             {
                 GroundContacts.Set(PartColliders(), null);
+                MainWeapon?.SetLying(false);
             }
         }
 

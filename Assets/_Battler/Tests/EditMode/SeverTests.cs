@@ -229,19 +229,84 @@ namespace PhysicsBattler.Tests
             }
         }
 
+        /// <summary>Gives the held sword a blade collider as a prefab's would be (the stubs can't instantiate one): a trigger, on the Weapon layer.</summary>
+        private static Weapon WithBlade(Weapon weapon)
+        {
+            var blade = new GameObject("Blade") { hideFlags = HideFlags.DontSave };
+            blade.transform.SetParent(weapon.transform, false);
+            blade.layer = Layers.Index(Layers.Weapon);
+            var box = blade.AddComponent<BoxCollider>();
+            box.size = new Vector3(0.02f, 0.05f, 0.9f);
+            box.isTrigger = true;
+            return weapon;
+        }
+
+        /// <summary>Milestone 9c: a held weapon is solid while its unit lies on the ground, and only reports what it touches standing.</summary>
+        [Test]
+        public void AHeldWeaponIsSolidOnlyWhileItsUnitLies()
+        {
+            var (attacker, target) = Duel(WeaponKind.Sword);
+            try
+            {
+                var weapon = WithBlade(attacker.MainWeapon);
+                Assert.Greater(weapon.Colliders.Length, 0, "the test sword has a collider");
+                var ground = typeof(UnitController).GetMethod("UpdateGround", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.IsNotNull(ground);
+                ground.Invoke(attacker, new object[] { 1f / 60f });
+                foreach (var collider in weapon.Colliders)
+                {
+                    Assert.IsTrue(collider.isTrigger, "standing: it reports what it touches");
+                }
+
+                attacker.DropForTest(false, Vector3.zero);
+                Assert.IsTrue(attacker.Lying);
+                ground.Invoke(attacker, new object[] { 1f / 60f });
+                Assert.IsTrue(weapon.Lying, "down: it lies with it");
+                foreach (var collider in weapon.Colliders)
+                {
+                    Assert.IsFalse(collider.isTrigger, "and is solid");
+                    Assert.IsTrue(collider.hasModifiableContacts, "a standing unit only nudges it");
+                }
+
+                weapon.SetLying(false);
+                foreach (var collider in weapon.Colliders)
+                {
+                    Assert.IsTrue(collider.isTrigger, "up again: it reports what it touches");
+                }
+            }
+            finally
+            {
+                Destroy(attacker, target);
+            }
+        }
+
         [Test]
         public void LosingTheWeaponArmLosesTheWeapon()
         {
             var (attacker, target) = Duel(WeaponKind.Sword);
             try
             {
-                var weapon = attacker.MainWeapon;
+                var weapon = WithBlade(attacker.MainWeapon);
+                Assert.Greater(weapon.Colliders.Length, 0);
                 Assert.IsTrue(attacker.Sever(PartId.ForearmR, Vector3.right * 10f));
                 Assert.IsNull(attacker.Loadout.Main);
                 Assert.IsNull(attacker.MainWeapon);
                 Assert.IsNull(weapon.Owner, "the sword is no one's");
-                Assert.IsTrue(Under(weapon.transform, attacker.Rig.Part(PartId.HandR).transform), "it went with the hand");
+                Assert.IsFalse(Under(weapon.transform, attacker.Rig.Part(PartId.HandR).transform), "it fell from the hand");
                 Assert.IsFalse(Under(weapon.transform, attacker.transform), "out of the unit");
+                // Milestone 9c: on its own, solid, on the Weapon layer, carried on by the cut.
+                var body = weapon.GetComponent<Rigidbody>();
+                Assert.IsNotNull(body, "with a body of its own");
+                Assert.IsFalse(body.isKinematic);
+                Assert.AreEqual(weapon.definition.massKg * Mathf.Pow(weapon.Scale, 3f), body.mass, 1e-3f, "as heavy as the weapon");
+                Assert.Greater(body.linearVelocity.y, 0.5f, "thrown up with the limb");
+                foreach (var collider in weapon.GetComponentsInChildren<Collider>(true))
+                {
+                    Assert.IsFalse(collider.isTrigger, "solid");
+                    Assert.AreEqual(Layers.Index(Layers.Weapon), collider.gameObject.layer, "on the Weapon layer");
+                }
+
+                Assert.IsTrue(System.Linq.Enumerable.Contains(attacker.DroppedWeapons, weapon.gameObject), "kept, to be cleared away with the unit");
                 Assert.IsNull(MovePlanner.Plan(attacker, target, new System.Random(1)), "no blows without it");
                 Assert.IsTrue(attacker.IsAlive);
                 Assert.IsFalse(attacker.Rig.IsSevered(PartId.UpperArmR), "the upper arm stays");

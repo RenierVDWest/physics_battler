@@ -13,6 +13,8 @@ What it measures (the plan: https://claude.ai/artifact/UJNwdKChsM7vidDhArKF9W):
       is from the chest;
     - after a hit: how many times the struck part turns back in the next second (a buzz), how far
       it is off its pose and how fast it spins;
+    - shield contacts: each time a shield overlapped another unit's body, how deep and how long
+      (target: under 2 cm in 95%, none longer than 0.2 s);
     - after a blow stopped by a body or a shield: how far the attacker's weapon hand is from its pose;
     - joints past their limits while standing, on the pose and on the physical body;
     - the swing's smoothness: the weapon tip's acceleration in blows and how often it turns back on
@@ -107,6 +109,22 @@ def _hits(session):
         if m:
             move, target, part, speed, rest = m.groups()
             yield e.t, e.who, move, target, part, float(speed), rest
+
+
+SHIELD = re.compile(r"^(.*)'s shield in (.*) (\w+) for ([\d.]+) s, ([\d.]+) cm deep at most$")
+
+
+def shield_contacts(session):
+    """Milestone 9c: each time a shield overlapped another unit's body (the recorder's "shield" events)."""
+    rows = []
+    for e in session.events:
+        if e.cat != 'shield':
+            continue
+        m = SHIELD.match(e.text)
+        if m:
+            unit, other, part, dur, depth = m.groups()
+            rows.append((e.t, unit, other, part, float(dur), float(depth) / 100.0))
+    return pd.DataFrame(rows, columns=['t', 'unit', 'other', 'part', 'duration', 'depth'])
 
 
 def measure(session):
@@ -247,6 +265,21 @@ def section(session):
         L.append("| --- | --- | --- | --- | --- |")
         for unit, med, p99, out, n in r['shield']:
             L.append(f"| {unit} | {med:.0f}°/s | {p99:.0f}°/s | {out:.2f} m | {n} |")
+        L.append("")
+    sc = shield_contacts(session)
+    if len(sc):
+        p95 = np.percentile(sc.depth, 95) * 100
+        under = (sc.depth < 0.02).mean() * 100
+        flag = "  **too deep**" if under < 95 else ""
+        flag2 = "  **too long**" if sc.duration.max() > 0.2 else ""
+        L.append(f"Shield contacts with other bodies: {len(sc)}; depth 95th {p95:.1f} cm, {under:.0f}% under 2 cm (target 95%){flag}, "
+                 f"deepest {sc.depth.max() * 100:.1f} cm; longest {sc.duration.max():.2f} s (target under 0.2 s){flag2}.")
+        L.append("")
+        L.append("| shield of | contacts | depth 95th | deepest | longest | most often against |")
+        L.append("| --- | --- | --- | --- | --- | --- |")
+        for unit, g in sc.groupby('unit'):
+            L.append(f"| {unit} | {len(g)} | {np.percentile(g.depth, 95) * 100:.1f} cm | {g.depth.max() * 100:.1f} cm | {g.duration.max():.2f} s "
+                     f"| {g.part.mode().iloc[0]} |")
         L.append("")
     if r['after_hit']:
         d = pd.DataFrame(r['after_hit'], columns=['on', 'part', 'reversals', 'off', 'spin'])

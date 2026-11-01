@@ -20,6 +20,7 @@ namespace PhysicsBattler.Combat
         public float Scale { get; private set; } = 1f;
 
         private BodyPart hand;
+        private bool physical;
         private TrailRenderer trail;
         private static Material trailMaterial;
 
@@ -92,10 +93,14 @@ namespace PhysicsBattler.Combat
             weapon.Scale = scale;
             weapon.hand = owner.Rig.Part(mainHand ? PartId.HandR : PartId.HandL);
             // Milestone 9c: a shield is solid (it stops against bodies, its contacts capped in
-            // GroundContacts); weapons still only report what they touch.
+            // GroundContacts); weapons only report what they touch (solid only while their unit lies
+            // on the ground: SetLying). All of it on the Weapon layer.
             bool solid = definition.IsShield && !mainHand && owner.IsPhysical;
-            foreach (var collider in go.GetComponentsInChildren<Collider>(true))
+            weapon.physical = owner.IsPhysical;
+            int layer = Layers.Index(Layers.Weapon);
+            foreach (var collider in weapon.Colliders)
             {
+                collider.gameObject.layer = layer;
                 collider.isTrigger = !solid;
                 if (solid)
                 {
@@ -113,12 +118,86 @@ namespace PhysicsBattler.Combat
             return weapon;
         }
 
-        /// <summary>Lets go of it (its hand was cut off): it is no one's any more, and goes where the hand goes.</summary>
-        public void Release()
+        /// <summary>
+        /// Lets go of it (its hand was cut off): it is no one's any more. A physical unit's falls on its
+        /// own: out of the hand, solid, with a body of its own carrying on as the hand moved, to land
+        /// and come to rest on the floor (returned, to be thrown with the limb and cleared away with
+        /// the unit). Otherwise it goes where the hand goes (null).
+        /// </summary>
+        public Rigidbody Release()
         {
+            var from = hand != null ? hand.body : null;
             Owner = null;
             ShowTrail(false);
+            SetLying(false);
+            if (!physical)
+            {
+                return null;
+            }
+
+            Vector3 velocity = from != null ? from.GetPointVelocity(transform.position) : Vector3.zero;
+            Vector3 spin = from != null ? from.angularVelocity : Vector3.zero;
+            transform.SetParent(null, true);
+            hand = null;
+            var body = GetComponent<Rigidbody>();
+            if (body == null)
+            {
+                body = gameObject.AddComponent<Rigidbody>();
+            }
+
+            body.mass = Mathf.Max(0.1f, definition.massKg * Scale * Scale * Scale);
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;   // (a thin blade, turning)
+            body.linearDamping = 0.05f;
+            body.angularDamping = 0.5f;
+            body.isKinematic = false;
+            body.linearVelocity = velocity;
+            body.angularVelocity = spin;
+            foreach (var collider in Colliders)
+            {
+                collider.isTrigger = false;
+                GroundContacts.SetShield(collider, false);
+            }
+
+            return body;
         }
+
+        /// <summary>
+        /// Milestone 9c: a held weapon is solid while its unit lies on the ground (alive or dead), so it
+        /// rests on the floor and is pushed about as the body is (registered with GroundContacts as
+        /// lying: a standing unit stepping on it nudges it, never flings it); standing again, it only
+        /// reports what it touches. A shield is solid either way.
+        /// </summary>
+        public void SetLying(bool lying)
+        {
+            if (!physical || definition == null || definition.IsShield)
+            {
+                return;
+            }
+
+            lying &= Owner != null;
+            if (lying == Lying)
+            {
+                return;
+            }
+
+            Lying = lying;
+            float mass = definition.massKg * Scale * Scale * Scale;
+            var list = new System.Collections.Generic.List<(Collider, float)>();
+            foreach (var collider in Colliders)
+            {
+                collider.isTrigger = !lying;
+                list.Add((collider, mass));
+            }
+
+            GroundContacts.Set(list, lying ? true : (bool?)null);
+        }
+
+        /// <summary>Solid on the ground with its unit (<see cref="SetLying"/>).</summary>
+        public bool Lying { get; private set; }
+
+        /// <summary>Its colliders.</summary>
+        public Collider[] Colliders => GetComponentsInChildren<Collider>(true);
 
         /// <summary>A point on the weapon (weapon axes, medium size) in the world.</summary>
         public Vector3 WorldPoint(Vector3 local) => transform.position + transform.rotation * (local * Scale);

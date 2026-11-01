@@ -1,3 +1,4 @@
+using PhysicsBattler.Combat;
 using PhysicsBattler.Rig;
 using UnityEngine;
 
@@ -166,6 +167,7 @@ namespace PhysicsBattler.Motion
             public float time;
             public Vector3 pelvis;          // unit space
             public float pitch, spine, chest, head;   // degrees, + bends forward
+            public float roll;              // degrees about the body's length, + onto the sword side
             public Vector3 ankleL, ankleR;  // unit space
             public Vector3 kneeL, kneeR;    // pole directions, unit space
             public float footL, footR;      // foot pitch, + toes down
@@ -196,6 +198,29 @@ namespace PhysicsBattler.Motion
         public bool HoldsMain { get; set; }
         public bool HoldsOff { get; set; }
 
+        /// <summary>
+        /// Milestone 9c: what the hands hold (their shapes, for the ground clamp and the shield), and
+        /// where the threat it minds is (world; none if it knows of none). Set before each pose.
+        /// </summary>
+        public Loadout Loadout { get; set; }
+        public Vector3? Threat { get; set; }
+
+        /// <summary>The unit's physical rig (its colliders' shapes, for keeping the shield off its own body).</summary>
+        public UnitRig Rig { get; set; }
+
+        /// <summary>The lowest point of what the hands hold over the ground in this pose (metres; negative: in it).</summary>
+        public float WeaponGroundGap { get; private set; } = float.MaxValue;
+
+        /// <summary>Which way the shield faces in this pose (world; zero without one).</summary>
+        public Vector3 ShieldFace { get; private set; }
+
+        /// <summary>Getting up behind a shield: its own get-ups (the shield up toward the threat, the sword hand pushing).</summary>
+        private bool Shielded => HoldsOff && Loadout != null && Loadout.HasShield;
+
+        /// <summary>How far a shield-bearer getting up face up rolls onto its sword side (degrees).</summary>
+        public const float ShieldRoll = 18f;
+        private float rollSign = 1f;
+
         public GetUp(Transform root, AnimRig anim, BodyMeasure body, Stance stance)
         {
             this.root = root;
@@ -224,8 +249,18 @@ namespace PhysicsBattler.Motion
         {
             Facing = kind;
             lying.CopyFrom(from);
+            // (What the hands held as it lay brought out of the floor once, so the get-up starts from
+            // a body holding it above the ground.)
+            if (Loadout != null)
+            {
+                lying.Apply(anim, false);
+                PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, 1f, free: true);
+                lying.Capture(anim);
+            }
+
             float s = body.SizeFactor;
             pace = Mathf.Sqrt(Mathf.Max(0.3f, s));
+            rollSign = RollSign();
             if (kind == Kind.FaceDown)
             {
                 MakeFaceDown();
@@ -253,6 +288,7 @@ namespace PhysicsBattler.Motion
             bool standing = stand != null && t > StandFrom;
             if (!blendingIn && !standing)
             {
+                Finish(t, stand);
                 return;
             }
 
@@ -274,6 +310,149 @@ namespace PhysicsBattler.Motion
             // Into the first key, every part turns from how it lay (the key holds still meanwhile);
             // into the standing pose, the limbs go by where their joints are (both poses move).
             keyed.Apply(anim, standing);
+            Finish(t, stand);
+        }
+
+        /// <summary>
+        /// Milestone 9c: after the keys, the shield is held up toward the threat (getting up face up all
+        /// along; face down once off the hands), giving way to the standing pose's shield as it takes
+        /// over; then what the hands hold is kept out of the ground.
+        /// </summary>
+        private void Finish(float t, PoseBuffer stand)
+        {
+            float standing = stand != null && t > StandFrom ? Smooth((t - StandFrom) / Mathf.Max(1e-3f, Duration - StandFrom)) : 0f;
+            ShieldFace = Vector3.zero;
+            if (Shielded)
+            {
+                float up;
+                if (Facing == Kind.FaceUp)
+                {
+                    up = Smooth(t / BlendIn);
+                }
+                else
+                {
+                    float k = t - BlendIn;
+                    up = Smooth((k - keys[1].time) / Mathf.Max(1e-3f, keys[2].time - keys[1].time));
+                }
+
+                float w = up * (1f - standing);
+                if (w > 1e-3f)
+                {
+                    HoldShieldUp(w);
+                }
+
+                var slot = anim.SlotWeaponL;
+                ShieldFace = slot != null ? slot.rotation * Vector3.forward : Vector3.zero;
+            }
+
+            // (The clamp's floor is soft, so the arm is eased up as what it holds comes down. It comes in
+            // over the blend from the body as it lay, which was brought out of the floor once, at the
+            // start: a ragdoll's pose is anyhow.)
+            WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, Smooth(t / BlendIn));
+            if (Shielded && anim.SlotWeaponL != null)
+            {
+                ShieldFace = anim.SlotWeaponL.rotation * Vector3.forward;
+            }
+        }
+
+        /// <summary>
+        /// The shield arm raised toward the threat (the plan's Fallen state), by <paramref name="w"/>
+        /// of the way from where the keys put it: the shield's middle most of an arm out from the
+        /// shoulder, facing the threat, never down into the ground.
+        /// </summary>
+        private void HoldShieldUp(float w)
+        {
+            var shield = Loadout.Off;
+            float scale = Loadout.Scale;
+            var upper = anim.Part(PartId.UpperArmL);
+            var fore = anim.Part(PartId.ForearmL);
+            var hand = anim.Part(PartId.HandL);
+            var slot = anim.SlotWeaponL;
+            Vector3 chest = anim.Part(PartId.Chest).position;
+            Vector3 way = Threat.HasValue ? Threat.Value - chest : Vector3.zero;
+            if (way.sqrMagnitude < 1e-4f)
+            {
+                way = root.rotation * new Vector3(0f, 0.7f, 0.7f);
+            }
+
+            way.Normalize();
+            way.y = Mathf.Max(way.y, -0.1f);
+            way.Normalize();
+            float reach = anim.RestLocalPosition(PartId.ForearmL).magnitude + anim.RestLocalPosition(PartId.HandL).magnitude;
+            Vector3 upWay = Vector3.ProjectOnPlane(Vector3.up, way);
+            Quaternion rotation = Quaternion.LookRotation(way, upWay.sqrMagnitude > 1e-4f ? upWay : root.rotation * Vector3.forward);
+            Quaternion handTurn = rotation * Quaternion.Inverse(slot.localRotation);
+            Quaternion turn = Quaternion.Slerp(hand.rotation, handTurn, w);
+            // (It swings round the shoulder at arm's length, from where it is to the threat, rather than
+            // straight across: the shield doesn't pass through its own body.)
+            Vector3 centreNow = slot.position + slot.rotation * (shield.faceCenter * scale) - upper.position;
+            Vector3 dirNow = centreNow.sqrMagnitude > 1e-6f ? centreNow.normalized : way;
+            float distance = Mathf.Max(0.55f * reach, Mathf.Lerp(centreNow.magnitude, 0.7f * reach, w));
+            Vector3 centre = upper.position + Vector3.Slerp(dirNow, way, w) * distance + Vector3.up * (0.05f * body.SizeFactor * w);
+            Quaternion shieldTurn = turn * slot.localRotation;
+            Vector3 grip = centre - shieldTurn * (shield.faceCenter * scale);
+            Vector3 target = grip - turn * slot.localPosition;
+            // (The elbow turns from where the keys had it to down by the ribs, as the shield comes up.)
+            Vector3 elbowWas = fore.position - 0.5f * (upper.position + hand.position);
+            Vector3 elbowTo = root.rotation * new Vector3(-0.6f, -1f, -0.3f);
+            Vector3 pole = elbowWas.sqrMagnitude > 1e-8f ? Vector3.Slerp(elbowWas.normalized, elbowTo.normalized, w) : elbowTo;
+            TwoBoneIK.Solve(upper, fore, hand, Within(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target, 0.96f), pole);
+            hand.rotation = turn;
+
+            // (Its rim into its own head or body: the shield goes further out along its face.)
+            if (Rig != null)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    float deep = ShieldInBody(slot, shield, scale);
+                    if (deep <= 0f)
+                    {
+                        break;
+                    }
+
+                    Vector3 face = slot.rotation * Vector3.forward;
+                    target += face * (deep + 0.02f * body.SizeFactor);
+                    TwoBoneIK.Solve(upper, fore, hand, Within(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target, 0.96f), pole);
+                    hand.rotation = turn;
+                }
+            }
+
+            // (Turning up off the floor, its rim would dig in: the hand lifts it as it turns.)
+            float gap = GroundClamp.Gap(slot, shield, scale, stance.GroundY) - GroundClamp.Margin * body.SizeFactor;
+            if (gap < 0f)
+            {
+                TwoBoneIK.Solve(upper, fore, hand, Within(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target + Vector3.up * -gap, 0.96f), pole);
+                hand.rotation = turn;
+            }
+        }
+
+        /// <summary>How deep the shield's rim (and middle) go into its wielder's pelvis, spine, chest or head (metres; 0 clear).</summary>
+        private float ShieldInBody(Transform slot, WeaponDefinition shield, float scale)
+        {
+            float deepest = 0f;
+            Vector3 centre = slot.position + slot.rotation * (shield.faceCenter * scale);
+            for (int i = 0; i <= 12; i++)
+            {
+                Vector3 p = i == 12 ? centre : centre + slot.rotation * (Quaternion.Euler(0f, 0f, 30f * i) * Vector3.up) * (shield.radius * scale);
+                foreach (var id in ShieldClearOf)
+                {
+                    deepest = Mathf.Max(deepest, -BodyClearance.PointDistance(Rig, anim, id, p));
+                }
+            }
+
+            return deepest;
+        }
+
+        private static readonly PartId[] ShieldClearOf = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head };
+
+        /// <summary>Which way a positive roll turns the body so its sword (right) side goes down, lying face up.</summary>
+        private float RollSign()
+        {
+            anim.ResetToRest();
+            var k = new Key { pelvis = new Vector3(0f, Lie, 0f), pitch = -88f, roll = 20f };
+            PoseTorso(k, 1f);
+            bool rightDown = anim.Part(PartId.UpperArmR).position.y < anim.Part(PartId.UpperArmL).position.y;
+            return rightDown ? 1f : -1f;
         }
 
         /// <summary>Share of the blend-in each part takes: the legs come first, the arms last.</summary>
@@ -325,7 +504,9 @@ namespace PhysicsBattler.Motion
             // 0. Lying on the belly, hands by the chest ready to push, toes tucked.
             var k = Torso(0f, new Vector3(0f, Lie, -0.25f * s), 88f, 0f, 0f, -40f, out var hips, out var shoulders);
             LegsAlongBody(ref k, hips, 88f, 80f, Vector3.down);
-            k.handL = new Vector3(shoulders[0].x * 1.3f, HandHeight, shoulders[0].z - 0.03f * s);
+            // (Behind a shield: the shield hand out wider, the shield lying flat beside the chest.)
+            float wide = Shielded && Loadout.Off != null ? -0.75f * Loadout.Off.radius * Loadout.Scale : 0f;
+            k.handL = new Vector3(shoulders[0].x * 1.3f + wide, HandHeight, shoulders[0].z - 0.03f * s);
             k.handR = new Vector3(shoulders[1].x * 1.3f, HandHeight, shoulders[1].z - 0.03f * s);
             k.elbowL = new Vector3(-1f, 0.6f, -0.4f);
             k.elbowR = new Vector3(1f, 0.6f, -0.4f);
@@ -337,7 +518,7 @@ namespace PhysicsBattler.Motion
             k.ankleR = new Vector3(hips[1].x, 0.08f * s, hips[1].z - 0.46f * leg);
             k.kneeL = k.kneeR = new Vector3(0f, -1f, 0.15f);
             k.footL = k.footR = 95f;
-            k.handL = new Vector3(shoulders[0].x * 1.05f, HandHeight, shoulders[0].z);
+            k.handL = new Vector3(shoulders[0].x * 1.05f + wide, HandHeight, shoulders[0].z);
             k.handR = new Vector3(shoulders[1].x * 1.05f, HandHeight, shoulders[1].z);
             k.elbowL = new Vector3(-0.5f, 0f, -1f);
             k.elbowR = new Vector3(0.5f, 0f, -1f);
@@ -362,8 +543,10 @@ namespace PhysicsBattler.Motion
             float s = body.SizeFactor, w = body.WidthFactor, ph = body.PelvisHeight;
             int lead = stance.Lead, rear = 1 - lead;
 
-            // 0. Lying on the back, chin tucked, hands on the ground by the hips.
-            var k = Torso(0f, new Vector3(0f, Lie, -0.45f * s), -88f, 0f, 0f, 30f, out var hips, out _);
+            // 0. Lying on the back, chin tucked, hands on the ground by the hips. (Behind a shield: rolled
+            // a little onto the sword side, the shield arm across the chest, the shield up.)
+            float roll = Shielded ? ShieldRoll : 0f;
+            var k = Torso(0f, new Vector3(0f, Lie, -0.45f * s), -88f, 0f, 0f, 30f, out var hips, out _, roll);
             LegsAlongBody(ref k, hips, -88f, -75f, Vector3.up);
             k.handL = new Vector3(-0.34f * w, HandHeight, -0.5f * s);
             k.handR = new Vector3(0.34f * w, HandHeight, -0.5f * s);
@@ -372,7 +555,7 @@ namespace PhysicsBattler.Motion
             keys[0] = k;
 
             // 1. Sitting up, knees up and feet drawn in, leaning on the hands behind.
-            k = Torso(0.55f, new Vector3(0f, Lie + 0.02f * s, -0.42f * s), 12f, 8f, 8f, 10f, out _, out _);
+            k = Torso(0.55f, new Vector3(0f, Lie + 0.02f * s, -0.42f * s), 12f, 8f, 8f, 10f, out _, out _, 0.8f * roll);
             k.ankleL = new Vector3(-0.12f * w, body.AnkleHeight, 0.05f * s);
             k.ankleR = new Vector3(0.12f * w, body.AnkleHeight, 0.05f * s);
             k.kneeL = new Vector3(-0.1f, 1f, 0.4f);
@@ -384,7 +567,7 @@ namespace PhysicsBattler.Motion
             keys[1] = k;
 
             // 2. Pushing up into a crouch over the feet: one hand on the ground behind, the other forward.
-            k = Torso(1.0f, new Vector3(0f, 0.42f * s, -0.16f * s), 38f, 8f, 6f, -15f, out _, out _);
+            k = Torso(1.0f, new Vector3(0f, 0.42f * s, -0.16f * s), 38f, 8f, 6f, -15f, out _, out _, 0.5f * roll);
             SetFoot(ref k, lead, Home(lead), new Vector3(0f, 0.5f, 1f), 0f);
             SetFoot(ref k, rear, Home(rear), new Vector3(0f, 0.5f, 1f), 0f);
             k.handR = new Vector3(0.34f * w, HandHeight, -0.4f * s);
@@ -459,9 +642,9 @@ namespace PhysicsBattler.Motion
         }
 
         /// <summary>A key's hips, spine and head; the hips and shoulders it puts where (unit space), for the limbs.</summary>
-        private Key Torso(float time, Vector3 pelvis, float pitch, float spine, float chest, float head, out Vector3[] hips, out Vector3[] shoulders)
+        private Key Torso(float time, Vector3 pelvis, float pitch, float spine, float chest, float head, out Vector3[] hips, out Vector3[] shoulders, float roll = 0f)
         {
-            var k = new Key { time = time, pelvis = pelvis, pitch = pitch, spine = spine, chest = chest, head = head };
+            var k = new Key { time = time, pelvis = pelvis, pitch = pitch, spine = spine, chest = chest, head = head, roll = roll };
             anim.ResetToRest();
             PoseTorso(k);
             hips = new[] { Local(anim.Part(PartId.ThighL).position), Local(anim.Part(PartId.ThighR).position) };
@@ -494,6 +677,7 @@ namespace PhysicsBattler.Motion
                 spine = Spline(a.spine, b.spine, c.spine, d.spine, u),
                 chest = Spline(a.chest, b.chest, c.chest, d.chest, u),
                 head = Spline(a.head, b.head, c.head, d.head, u),
+                roll = Spline(a.roll, b.roll, c.roll, d.roll, u),
                 ankleL = Spline(a.ankleL, b.ankleL, c.ankleL, d.ankleL, u) + Vector3.up * Lift(b.ankleL, c.ankleL, u),
                 ankleR = Spline(a.ankleR, b.ankleR, c.ankleR, d.ankleR, u) + Vector3.up * Lift(b.ankleR, c.ankleR, u),
                 kneeL = Vector3.Lerp(b.kneeL, c.kneeL, u),
@@ -534,10 +718,12 @@ namespace PhysicsBattler.Motion
         private static Vector3 Spline(Vector3 a, Vector3 b, Vector3 c, Vector3 d, float u) =>
             new Vector3(Spline(a.x, b.x, c.x, d.x, u), Spline(a.y, b.y, c.y, d.y, u), Spline(a.z, b.z, c.z, d.z, u));
 
-        private void PoseTorso(Key k)
+        private void PoseTorso(Key k) => PoseTorso(k, rollSign);
+
+        private void PoseTorso(Key k, float sign)
         {
             var pelvis = anim.Part(PartId.Pelvis);
-            pelvis.SetPositionAndRotation(World(k.pelvis), root.rotation * Quaternion.Euler(k.pitch, 0f, 0f));
+            pelvis.SetPositionAndRotation(World(k.pelvis), root.rotation * Quaternion.Euler(k.pitch, 0f, 0f) * Quaternion.Euler(0f, sign * k.roll, 0f));
             Bend(PartId.Spine, k.spine);
             Bend(PartId.Chest, k.chest);
             Bend(PartId.Head, k.head);
@@ -582,13 +768,45 @@ namespace PhysicsBattler.Motion
         private void Arm(PartId upper, PartId fore, PartId hand, Transform slot, Vector3 wrist, Vector3 elbow, bool right, Quaternion facing)
         {
             TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), anim.Part(hand), Within(upper, fore, hand, World(wrist), 0.96f), facing * elbow);
-            bool holds = right ? HoldsMain : HoldsOff;
-            if (holds && slot != null)
+            HoldIn(upper, fore, hand, slot, wrist, elbow, right, facing);
+
+            // Milestone 9c: what it holds rests on the ground rather than in it: the hand stands as
+            // high as that needs (the arm solved again the same way).
+            var held = Loadout != null ? (right ? Loadout.Main : Loadout.Off) : null;
+            if (held != null && slot != null && (right ? HoldsMain : HoldsOff))
             {
-                // What it holds is laid out to the side, a little raised, clear of the body and the ground.
+                float gap = GroundClamp.Gap(slot, held, Loadout.Scale, stance.GroundY) - GroundClamp.Margin * body.SizeFactor;
+                if (gap < 0f)
+                {
+                    Vector3 raised = wrist + Vector3.up * -gap;
+                    TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), anim.Part(hand), Within(upper, fore, hand, World(raised), 0.96f), facing * elbow);
+                    HoldIn(upper, fore, hand, slot, raised, elbow, right, facing);
+                }
+            }
+        }
+
+        /// <summary>How the hand holds what it holds in a key.</summary>
+        private void HoldIn(PartId upper, PartId fore, PartId hand, Transform slot, Vector3 wrist, Vector3 elbow, bool right, Quaternion facing)
+        {
+            bool holds = right ? HoldsMain : HoldsOff;
+            if (holds && slot != null && !right && Shielded)
+            {
+                // Milestone 9c: the shield flat on the floor under the forearm, face down, as the hands
+                // push (face down; face up it is held up after the keys, see HoldShieldUp).
+                anim.Part(hand).rotation = Quaternion.LookRotation(Vector3.down, facing * Vector3.forward) * Quaternion.Inverse(slot.localRotation);
+            }
+            else if (holds && slot != null)
+            {
+                // What it holds is laid out to the side, a little raised, clear of the body and the ground;
+                // with the hand on the ground (milestone 9c) the blade lies flat along it, out to the side
+                // and back, away from the head and body.
                 float side = right ? 1f : -1f;
-                Vector3 dir = facing * new Vector3(0.75f * side, 0.25f, 0.6f);
-                anim.Part(hand).rotation = Quaternion.LookRotation(dir, facing * Vector3.up) * Quaternion.Inverse(slot.localRotation);
+                Vector3 raised = facing * new Vector3(0.75f * side, 0.25f, 0.6f);
+                Vector3 flat = facing * new Vector3(0.85f * side, 0f, -0.5f);
+                float low = 1f - Mathf.Clamp01((wrist.y - HandHeight) / (0.25f * body.SizeFactor));
+                Vector3 dir = Vector3.Slerp(raised.normalized, flat.normalized, low);
+                Vector3 up = Vector3.Slerp(facing * Vector3.up, Vector3.Cross(Vector3.up, flat.normalized), low);
+                anim.Part(hand).rotation = Quaternion.LookRotation(dir, up) * Quaternion.Inverse(slot.localRotation);
             }
             else
             {

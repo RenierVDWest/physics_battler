@@ -163,11 +163,17 @@ namespace PhysicsBattler.Motion
         /// Builds this step's pose. With <paramref name="dry"/> the feet stay where they are (the move
         /// planner tries poses this way and puts everything back).
         /// </summary>
-        public void Compose(float time, float dt, bool dry = false)
+        /// <remarks>
+        /// <paramref name="armPlays"/>, with <paramref name="dry"/>: the weapon arm carries on from its
+        /// last step all the same (the standing pose a get-up blends into, composed each step: a fresh
+        /// solve every step would let the arm's shape flick about).
+        /// </remarks>
+        public void Compose(float time, float dt, bool dry = false, bool armPlays = false)
         {
             composingDry = dry;
+            composingArmPlays = dry && armPlays;
             composeDt = dt;
-            if (!dry)
+            if (!dry || armPlays)
             {
                 composeCount++;
             }
@@ -475,7 +481,34 @@ namespace PhysicsBattler.Motion
                 PoseBareOffHand(facing);
             }
 
+            // Milestone 9c: what the hands hold kept out of the ground.
+            WeaponGroundGap = KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY);
             CenterOfMass = CenterOfMassNow();
+        }
+
+        /// <summary>The lowest point of what the hands hold over the ground in this pose (metres; negative: in it).</summary>
+        public float WeaponGroundGap { get; private set; } = float.MaxValue;
+
+        /// <summary>Keeps what both hands hold out of the ground (<see cref="GroundClamp"/>); returns the lowest gap left.</summary>
+        public static float KeepWeaponsOffGround(AnimRig anim, Loadout loadout, float size, float groundY, float weight = 1f, bool free = false)
+        {
+            if (loadout == null)
+            {
+                return float.MaxValue;
+            }
+
+            float gap = float.MaxValue;
+            if (loadout.Main != null)
+            {
+                gap = Mathf.Min(gap, GroundClamp.Keep(anim, true, loadout.Main, loadout.Scale, size, groundY, weight, free));
+            }
+
+            if (loadout.Off != null)
+            {
+                gap = Mathf.Min(gap, GroundClamp.Keep(anim, false, loadout.Off, loadout.Scale, size, groundY, weight, free));
+            }
+
+            return gap;
         }
 
         // ---- Arms -------------------------------------------------------------------------------
@@ -652,7 +685,7 @@ namespace PhysicsBattler.Motion
             // Milestone 9c: the arm solved in its joints' own angles, each inside its range (WeaponArmSolve.cs).
             // A playing arm carries on from last step's shape; a tried pose, or one after a gap (getting
             // up, say), finds its shape afresh.
-            bool playing = !composingDry;
+            bool playing = !composingDry || composingArmPlays;
             if (playing)
             {
                 if (weaponArmComposed != composeCount - 1)
@@ -720,7 +753,7 @@ namespace PhysicsBattler.Motion
 
             // (In the guard a weapon that would lie against its own head or body is held further out in
             // front and lower, eased out and back in as needed.)
-            if (torso != null && !composingDry && composeDt > 0f)
+            if (torso != null && (!composingDry || composingArmPlays) && composeDt > 0f)
             {
                 float clear = torso.Blade(slot.position, slot.position + slot.rotation * (Vector3.forward * length));
                 float needed = Mathf.Clamp(guardOut + (ArmBodyMargin - clear), 0f, GuardOutMost * body.SizeFactor);
@@ -924,7 +957,7 @@ namespace PhysicsBattler.Motion
 
         /// <summary>Each arm's elbow turn about the shoulder-to-hand line last step (degrees; kept so the elbow doesn't flip between steps).</summary>
         private float mainElbow, offElbow;
-        private bool composingDry;
+        private bool composingDry, composingArmPlays;
         private float composeDt;
 
         /// <summary>How fast the elbow swings round to a better place (degrees per second): it eases there, never jumps.</summary>

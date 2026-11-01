@@ -158,17 +158,32 @@ namespace PhysicsBattler.Units
             bool weaponArm = at == PartId.HandR || PartInfo.IsBelow(PartId.HandR, at);
             bool offArm = at == PartId.HandL || PartInfo.IsBelow(PartId.HandL, at);
             bool leg = AuthorityController.RegionOf(at) == BodyRegion.Legs && at != PartId.Pelvis;
+            // Milestone 9c: what the hand held falls from it on its own, to land on the floor.
+            Rigidbody droppedMain = null, droppedOff = null;
             if (weaponArm && MainWeapon != null)
             {
-                // (The weapon goes with the hand: it is under the hand's slot.)
-                MainWeapon.Release();
+                droppedMain = MainWeapon.Release();
+                KeepDropped(MainWeapon, droppedMain);
                 MainWeapon = null;
                 Loadout.Main = null;
             }
 
             if (offArm && OffWeapon != null)
             {
-                OffWeapon.Release();
+                droppedOff = OffWeapon.Release();
+                KeepDropped(OffWeapon, droppedOff);
+                if (droppedOff != null)
+                {
+                    // (Its weight leaves the hand with it.)
+                    var shieldHand = Rig.Part(PartId.HandL).body;
+                    if (shieldHand != null)
+                    {
+                        shieldHand.mass = Mathf.Max(0.05f, shieldHand.mass - shieldMassOnHand);
+                    }
+
+                    shieldMassOnHand = 0f;
+                }
+
                 OffWeapon = null;
                 Loadout.Off = null;
                 DropBlock();
@@ -208,6 +223,15 @@ namespace PhysicsBattler.Units
                     if (Rig.CutAt(id) == at)
                     {
                         Rig.Part(id).body.AddForce(v, ForceMode.VelocityChange);
+                    }
+                }
+
+                // (What the hand held flies with it.)
+                foreach (var dropped in new[] { droppedMain, droppedOff })
+                {
+                    if (dropped != null)
+                    {
+                        dropped.AddForce(v, ForceMode.VelocityChange);
                     }
                 }
 
@@ -319,9 +343,46 @@ namespace PhysicsBattler.Units
             return new HitReport { Attacker = lastWounder, Struck = this, Part = part, Kind = kind, Result = new HitResult { Reaction = Reaction.Killed } };
         }
 
-        /// <summary>Removes the limbs cut off this unit (with the unit).</summary>
+        private readonly List<GameObject> droppedWeapons = new List<GameObject>();
+
+        /// <summary>Weapons fallen from a cut-off hand (lying where they fell, cleared away with the unit).</summary>
+        public IReadOnlyList<GameObject> DroppedWeapons => droppedWeapons;
+
+        private void KeepDropped(Weapon weapon, Rigidbody body)
+        {
+            if (body == null)
+            {
+                return;
+            }
+
+            droppedWeapons.Add(weapon.gameObject);
+            if (!physical)
+            {
+                weapon.gameObject.hideFlags = HideFlags.DontSave;
+            }
+        }
+
+        /// <summary>Removes the limbs cut off this unit (with the unit), and the weapons they dropped.</summary>
         private void DestroySeveredLimbs()
         {
+            foreach (var weapon in droppedWeapons)
+            {
+                if (weapon == null)
+                {
+                    continue;
+                }
+
+                if (Application.isPlaying)
+                {
+                    Destroy(weapon);
+                }
+                else
+                {
+                    DestroyImmediate(weapon);
+                }
+            }
+
+            droppedWeapons.Clear();
             foreach (var limb in severedLimbs)
             {
                 if (limb == null)

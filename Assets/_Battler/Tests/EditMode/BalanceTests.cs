@@ -425,6 +425,8 @@ namespace PhysicsBattler.Tests
                         float pop = 0f, fastest = 0f;
                         var last = new Vector3[PartInfo.Count];
                         var lastStep = new float[PartInfo.Count];
+                        float lowestWeapon = float.MaxValue;
+                        string popWhere = "", fastWhere = "";
                         int seen = 0;
                         int t = 0;
                         for (; t < 60 * 8 && unit.State != UnitState.Standing; t++)
@@ -432,16 +434,27 @@ namespace PhysicsBattler.Tests
                             Simulate(new[] { unit });
                             if (unit.State == UnitState.GettingUp)
                             {
+                                // (From the end of the blend from the body as it lay.)
+                                if (unit.StateTime >= unit.GetUpBlendIn)
+                                {
+                                    lowestWeapon = Mathf.Min(lowestWeapon, unit.WeaponGroundGap);
+                                }
                                 foreach (var id in PartInfo.All)
                                 {
                                     Vector3 p = unit.Anim.Part(id).position;
                                     if (seen > 0)
                                     {
                                         float step = Vector3.Distance(p, last[(int)id]);
-                                        fastest = Mathf.Max(fastest, step);
-                                        if (seen > 1)
+                                        if (step > fastest)
                                         {
-                                            pop = Mathf.Max(pop, step - 2f * lastStep[(int)id]);
+                                            fastest = step;
+                                            fastWhere = $"{id} at {unit.StateTime:0.00} s";
+                                        }
+
+                                        if (seen > 1 && step - 2f * lastStep[(int)id] > pop)
+                                        {
+                                            pop = step - 2f * lastStep[(int)id];
+                                            popWhere = $"{id} at {unit.StateTime:0.00} s";
                                         }
 
                                         lastStep[(int)id] = step;
@@ -456,8 +469,9 @@ namespace PhysicsBattler.Tests
 
                         Assert.AreEqual(UnitState.Standing, unit.State, $"{what}: it gets up ({t * Dt:0.0} s)");
                         Assert.AreEqual(faceDown ? GetUp.Kind.FaceDown : GetUp.Kind.FaceUp, unit.LastGetUp, what);
-                        Assert.Less(pop, 0.04f * Mathf.Max(1f, unit.Body.SizeFactor), $"{what}: no part of the pose pops ({pop * 100f:0} cm more in a step than in the one before)");
-                        Assert.Less(fastest, 0.15f * Mathf.Max(1f, unit.Body.SizeFactor), $"{what}: or flies ({fastest * 100f:0} cm in a step)");
+                        Assert.GreaterOrEqual(lowestWeapon, -0.01f, $"{what}: the sword stays out of the ground ({lowestWeapon * 100f:0.0} cm)");
+                        Assert.Less(pop, 0.04f * Mathf.Max(1f, unit.Body.SizeFactor), $"{what}: no part of the pose pops ({pop * 100f:0} cm more in a step than in the one before: {popWhere})");
+                        Assert.Less(fastest, 0.15f * Mathf.Max(1f, unit.Body.SizeFactor), $"{what}: or flies ({fastest * 100f:0} cm in a step: {fastWhere})");
                         Vector3 moved = unit.Root.position - lay;
                         moved.y = 0f;
                         Assert.Less(moved.magnitude, 0.8f * unit.Body.SizeFactor, $"{what}: it stands up where it lay ({moved.magnitude:0.00} m away)");
@@ -484,6 +498,128 @@ namespace PhysicsBattler.Tests
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Milestone 9c: a medium unit with a sword and shield gets up behind its shield, face down and
+        /// face up, an enemy it knows of standing off to one side: it gets up without a pop, nothing it
+        /// holds goes into the ground or its own body, and over the second half of the get-up the
+        /// shield faces the enemy (within 45 degrees) at least 80% of the time.
+        /// </summary>
+        [Test]
+        public void AShieldBearerGetsUpBehindItsShield()
+        {
+            foreach (bool faceDown in new[] { true, false })
+            {
+                var unit = Build("Medium", Vector3.zero, 30f, 0);
+                var enemy = Build("Medium", new Vector3(1.6f, 0f, 1.4f), 210f, 1);
+                unit.Equip(WeaponDefinition.CreateDefault(WeaponKind.Sword), WeaponDefinition.CreateDefault(WeaponKind.Shield));
+                enemy.Equip(WeaponDefinition.CreateDefault(WeaponKind.Club), null);
+                var everyone = new[] { unit, enemy };
+                string what = faceDown ? "face down" : "face up";
+                try
+                {
+                    unit.Opponent = enemy;
+                    Simulate(everyone, 30);
+                    Assert.IsTrue(unit.Knows(enemy), $"{what}: it knows the enemy is there");
+                    unit.Knock(unit.Root.forward * (faceDown ? 2.6f : -2.6f));
+                    Lay(unit, faceDown);
+                    float pop = 0f, lowest = float.MaxValue, inside = 0f, insideWhen = 0f;
+                    string popWhere = "";
+                    int late = 0, facing = 0;
+                    var last = new Vector3[PartInfo.Count];
+                    var lastStep = new float[PartInfo.Count];
+                    int seen = 0, t = 0;
+                    for (; t < 60 * 8 && unit.State != UnitState.Standing; t++)
+                    {
+                        Simulate(everyone);
+                        if (unit.State != UnitState.GettingUp)
+                        {
+                            continue;
+                        }
+
+                        foreach (var id in PartInfo.All)
+                        {
+                            Vector3 p = unit.Anim.Part(id).position;
+                            if (seen > 0)
+                            {
+                                float step = Vector3.Distance(p, last[(int)id]);
+                                if (seen > 1 && step - 2f * lastStep[(int)id] > pop)
+                                {
+                                    pop = step - 2f * lastStep[(int)id];
+                                    popWhere = $"{id} at {unit.StateTime:0.00} s";
+                                }
+
+                                lastStep[(int)id] = step;
+                            }
+
+                            last[(int)id] = p;
+                        }
+
+                        seen++;
+                        // (The floor and its own body from the end of the blend from the body as it lay:
+                        // a ragdoll's pose, its shield solid on the floor in play; the stubs lay it anyhow.)
+                        if (unit.StateTime < unit.GetUpBlendIn)
+                        {
+                            continue;
+                        }
+
+                        lowest = Mathf.Min(lowest, unit.WeaponGroundGap);
+                        float inNow = ShieldInside(unit);
+                        if (inNow > inside)
+                        {
+                            inside = inNow;
+                            insideWhen = unit.StateTime;
+                        }
+
+                        if (unit.StateTime > 0.5f * unit.GetUpDuration)
+                        {
+                            late++;
+                            Vector3 face = unit.GetUpShieldFace;
+                            Vector3 toEnemy = enemy.Anim.Part(PartId.Chest).position - unit.Anim.Part(PartId.Chest).position;
+                            if (face.sqrMagnitude > 1e-6f && Vector3.Angle(face, toEnemy) <= 45f)
+                            {
+                                facing++;
+                            }
+                        }
+                    }
+
+                    Assert.AreEqual(UnitState.Standing, unit.State, $"{what}: it gets up ({t * Dt:0.0} s)");
+                    Assert.Less(pop, 0.04f, $"{what}: no part of the pose pops ({pop * 100f:0.0} cm: {popWhere})");
+                    Assert.GreaterOrEqual(lowest, -0.01f, $"{what}: nothing it holds goes into the ground ({lowest * 100f:0.0} cm)");
+                    Assert.LessOrEqual(inside, 0.03f, $"{what}: the shield stays out of its own body ({inside * 100f:0.0} cm in at {insideWhen:0.00} s)");
+                    Assert.Greater(late, 10, "the second half was seen");
+                    Assert.GreaterOrEqual(facing / (float)late, 0.8f, $"{what}: the shield faces the enemy over the second half ({facing}/{late} steps)");
+                }
+                finally
+                {
+                    Destroy(everyone);
+                }
+            }
+        }
+
+        /// <summary>How deep the shield's rim and middle go into its wielder's torso (metres; 0 clear).</summary>
+        private static float ShieldInside(UnitController unit)
+        {
+            var shield = unit.Loadout?.Off;
+            var slot = unit.Anim.SlotWeaponL;
+            if (shield == null || !shield.IsShield || slot == null)
+            {
+                return 0f;
+            }
+
+            float scale = unit.Loadout.Scale, deepest = 0f;
+            Vector3 centre = slot.position + slot.rotation * (shield.faceCenter * scale);
+            for (int i = 0; i <= 12; i++)
+            {
+                Vector3 p = i == 12 ? centre : centre + slot.rotation * (Quaternion.Euler(0f, 0f, 30f * i) * Vector3.up) * (shield.radius * scale);
+                foreach (var id in new[] { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head })
+                {
+                    deepest = Mathf.Max(deepest, -BodyClearance.PointDistance(unit.Rig, unit.Anim, id, p));
+                }
+            }
+
+            return deepest;
         }
 
         /// <summary>Once up, the brawl walks it to the middle of the nearest free tile before it fights on.</summary>

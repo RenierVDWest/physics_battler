@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using PhysicsBattler.Authority;
+using PhysicsBattler.Diagnostics;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
@@ -210,6 +211,45 @@ namespace PhysicsBattler.Tests
             {
                 RhythmTests.Destroy(both);
             }
+        }
+
+        /// <summary>Milestone 9c: the log's shield contacts: one per shield and part, from the step they first overlap to the last, with the deepest overlap.</summary>
+        [Test]
+        public void ShieldContactsAreFollowedFromStartToEnd()
+        {
+            var contacts = new ShieldContacts();
+            object shield = new object(), chest = new object(), arm = new object();
+            var ended = new List<ShieldContacts.Contact>();
+            float[] chestDepth = { 0.005f, 0.012f, 0.008f, 0f, 0f, 0.03f };
+            for (int i = 0; i < chestDepth.Length; i++)
+            {
+                contacts.BeginStep();
+                if (chestDepth[i] > 0f)
+                {
+                    contacts.Seen(shield, chest, "A's shield", "B Chest", i * Dt, chestDepth[i]);
+                }
+
+                if (i < 2)
+                {
+                    contacts.Seen(shield, arm, "A's shield", "B UpperArmL", i * Dt, 0.004f);
+                }
+
+                contacts.EndStep(Dt, ended);
+            }
+
+            Assert.AreEqual(2, ended.Count, "the arm's ended at step 2, the chest's first at step 3");
+            Assert.AreEqual(2f * Dt, ended[0].duration, 1e-5f);
+            Assert.AreEqual(3f * Dt, ended[1].duration, 1e-5f, "three steps");
+            Assert.AreEqual(0.012f, ended[1].deepest, 1e-6f, "its deepest");
+            Assert.AreEqual(1, contacts.OpenCount, "a second one with the chest is going on");
+            contacts.CloseAll(Dt, ended);
+            Assert.AreEqual(3, contacts.Done.Count);
+            var (count, p95, deepest, longest, under) = ShieldContacts.Summary(contacts.Done);
+            Assert.AreEqual(3, count);
+            Assert.AreEqual(0.03f, deepest, 1e-6f);
+            Assert.AreEqual(0.03f, p95, 1e-6f, "of three, the 95th is the deepest");
+            Assert.AreEqual(3f * Dt, longest, 1e-5f);
+            Assert.AreEqual(2f / 3f, under, 1e-5f, "two of three under 2 cm");
         }
 
         /// <summary>A physical unit's shield is solid and its weight is on the hand; taking it off takes the weight away.</summary>
