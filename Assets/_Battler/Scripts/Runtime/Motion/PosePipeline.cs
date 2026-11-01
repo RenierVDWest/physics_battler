@@ -1450,7 +1450,19 @@ namespace PhysicsBattler.Motion
             TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), hand, target, chestTurn * new Vector3(-0.35f, -1f, 0f));
             // A fist on a straight wrist, in line with the forearm (as the plain guard holds it).
             hand.localRotation = Quaternion.Euler(-10f, 0f, 0f);
+
+            // Milestone 9c: the arm fitted inside its joints' limits (a boxer's guard beside the head
+            // took the elbow up to 28 degrees past them), carrying on from its last shape.
+            var fit = composingDry ? bareArmFitDry : bareArmFit;
+            if (composingDry)
+            {
+                fit.Reset();
+            }
+
+            fit.Fit(anim, PartId.UpperArmL, PartId.ForearmL, PartId.HandL, hand.position, hand.rotation, composeCount);
         }
+
+        private readonly ArmFit bareArmFit = new ArmFit(), bareArmFitDry = new ArmFit();
 
         /// <summary>Stumbling, a hand goes out to its side, up, and forward against the fall.</summary>
         private Vector3 FlailOffset(Quaternion facing, float side)

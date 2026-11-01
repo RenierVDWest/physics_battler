@@ -72,6 +72,16 @@ internal static class ArmReport
                     Add(inside, when, ArmShape.Inside(u));
                 }
 
+                // (The other arm too: the shield's, or the Large's free hand.)
+                if (!u.Rig.IsSevered(PartId.HandL))
+                {
+                    string whenL = u.Pose.Move != null ? "blows" : "guard";
+                    foreach (var id in new[] { PartId.UpperArmL, PartId.ForearmL, PartId.HandL })
+                    {
+                        Add(past, $"{id} {whenL} ({u.Body.SizeFactor:0.00})", ArmShape.Past(u, id));
+                    }
+                }
+
                 if (u.Loadout != null && u.Loadout.HasShield && !u.Rig.IsSevered(PartId.HandL))
                 {
                     Vector3 face = u.Pose.ShieldFace;
@@ -128,7 +138,7 @@ internal static class ArmReport
         }
         foreach (var pair in past)
         {
-            Console.WriteLine($"weapon arm pose past its limits, {pair.Key}: more than 10 degrees {Share(pair.Value, 10f) * 100:0.0}% of steps, 99th {Pct(pair.Value, 99):0}, worst {Max(pair.Value):0} degrees ({pair.Value.Count} steps)");
+            Console.WriteLine($"arm pose past its limits, {pair.Key}: more than 10 degrees {Share(pair.Value, 10f) * 100:0.0}% of steps, 99th {Pct(pair.Value, 99):0}, worst {Max(pair.Value):0} degrees ({pair.Value.Count} steps)");
         }
 
         foreach (var pair in ground)

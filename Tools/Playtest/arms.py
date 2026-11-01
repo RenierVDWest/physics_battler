@@ -188,10 +188,19 @@ def measure(session):
                 r['shield'].append((u.label, np.percentile(turn[quiet], 50), np.percentile(turn[quiet], 99),
                                     np.median(out[1:][quiet]), int(quiet.sum())))
 
+        # (Within a second of a blow ending, apart: the arm handed back from the blow.)
+        t_fr = fr['t'].to_numpy(dtype=float)
+        since = np.full(len(fr), 99.0)
+        last = -99.0
+        for i in range(len(fr)):
+            if blow[i]:
+                last = t_fr[i]
+            since[i] = t_fr[i] - last
+        after = stand & ~blow & (since < 1.0)
         for col, label in (('posePast', 'pose'), ('jointPast', 'physical')):
             if col not in fr:
                 continue
-            for name, m in (('guard', stand & ~blow), ('blows', stand & blow)):
+            for name, m in (('guard', stand & ~blow & ~after), ('after blows', after), ('blows', stand & blow)):
                 if m.sum() < 30:
                     continue
                 past = fr[col].to_numpy(dtype=float)[m]

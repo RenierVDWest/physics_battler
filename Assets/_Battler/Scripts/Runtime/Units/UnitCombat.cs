@@ -248,16 +248,22 @@ namespace PhysicsBattler.Units
         private void SetRegion(BodyRegion region, float pin, bool kinematic)
         {
             int r = (int)region;
+            // Milestone 9c: a held arm keeps its anatomical limits (the arms' poses are solved inside
+            // them now, so the limits don't fight the pose). Without them, an arm handed back from a
+            // blow, or knocked by a hit, could be pulled round part by part into a twist no arm makes:
+            // the playtests had sword wrists 100 to 150 degrees past their limits for up to half a
+            // second after a blow.
+            bool limits = region == BodyRegion.ArmL || region == BodyRegion.ArmR;
             if (recoverLeft[r] > 0f)
             {
                 // Recovering from a hit: physics has it, the pin eases back up.
                 float t = 1f - recoverLeft[r] / Mathf.Max(1e-3f, recoverTime[r]);
                 float ease = t * t * (3f - 2f * t);
-                Authority.Set(region, AuthorityLevel.Pinned, Mathf.Lerp(recoverFrom[r] * pin, pin, ease));
+                Authority.Set(region, AuthorityLevel.Pinned, Mathf.Lerp(recoverFrom[r] * pin, pin, ease), limits);
                 return;
             }
 
-            Authority.Set(region, kinematic ? AuthorityLevel.Kinematic : AuthorityLevel.Pinned, pin);
+            Authority.Set(region, kinematic ? AuthorityLevel.Kinematic : AuthorityLevel.Pinned, pin, limits);
         }
 
         // ---- Bodies keep apart -------------------------------------------------------------------
