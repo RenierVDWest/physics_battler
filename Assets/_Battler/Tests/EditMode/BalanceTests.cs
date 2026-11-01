@@ -40,6 +40,7 @@ namespace PhysicsBattler.Tests
             unit.Profile = profile;
             unit.Team = team;
             typeof(UnitController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(unit, null);
+            unit.TempoOn = false;   // (standing as the stance and rhythm have it: a gathering crouch would read as sinking)
             return unit;
         }
 
@@ -466,8 +467,14 @@ namespace PhysicsBattler.Tests
                         Vector3 pelvisBefore = unit.Anim.Part(PartId.Pelvis).position;
                         Simulate(new[] { unit });
                         Assert.Less(Vector3.Distance(unit.Anim.Part(PartId.Pelvis).position, pelvisBefore), 0.03f * unit.Body.SizeFactor, $"{what}: the standing pose takes over smoothly");
-                        Simulate(new[] { unit }, 60);
-                        float h = unit.Anim.Part(PartId.Pelvis).position.y - unit.Root.position.y;
+                        // (Its highest over a second: a Fight Rhythm posture may crouch it for a moment.)
+                        float h = 0f;
+                        for (int i = 0; i < 60; i++)
+                        {
+                            Simulate(new[] { unit });
+                            h = Mathf.Max(h, unit.Anim.Part(PartId.Pelvis).position.y - unit.Root.position.y);
+                        }
+
                         Assert.Greater(h, 0.8f * unit.Body.PelvisHeight, $"{what}: standing");
                         Assert.AreEqual(UnitState.Standing, unit.State);
                     }

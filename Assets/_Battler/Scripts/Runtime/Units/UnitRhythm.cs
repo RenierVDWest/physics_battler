@@ -56,6 +56,7 @@ namespace PhysicsBattler.Units
         private void PoseRhythmBase()
         {
             Pose.Rhythm = Rhythm != null && RhythmOn ? Rhythm.Sample(Body.LegLength, Body.SizeFactor) : default;
+            ResetMood();
             Pose.Feint = null;
         }
 
@@ -105,7 +106,17 @@ namespace PhysicsBattler.Units
 
             // (Walking: the walk has the feet, so no new postures, and one under way gives way.)
             bool walking = Gait != null && Gait.Weight >= 0.3f;
-            bool free = FreeToPosture() && !walking && !(postureHolds && (heldDrift > 0.05f * Body.LegLength || Knockback.magnitude > 0.05f));
+            // (Milestone 8: walking, upper-body postures still play; the rhythm keeps the ones that
+            // move the feet for when it stands.)
+            // (A flourish holds the feet only standing: walking, it lets go and plays on; a posture
+            // that steps or travels gives way to the walk.)
+            if (postureHolds && walking && Rhythm.Current != null && !Rhythm.Current.MovesFeet)
+            {
+                ReleasePostureHold();
+            }
+
+            bool free = FreeToPosture() && !(postureHolds && (walking || heldDrift > 0.05f * Body.LegLength || Knockback.magnitude > 0.05f));
+            Rhythm.Walking = walking;
             Rhythm.HasOpponent = Opponent != null && Opponent.IsAlive && !Opponent.IsDown;
             Rhythm.Update(dt, free && RhythmOn);
 
@@ -206,7 +217,8 @@ namespace PhysicsBattler.Units
 
         private void OnPostureStarted(PostureDefinition posture, bool leadIn)
         {
-            postureHolds = posture.steps.Length > 0 && CurrentMove == null;
+            // (A flourish holds the feet too: a shuffle step under a big twirl of the stick throws the arm.)
+            postureHolds = (posture.steps.Length > 0 || (posture.kind == PostureKind.Flourish && (Gait == null || Gait.Weight < 0.3f))) && CurrentMove == null;
             heldDrift = 0f;
             rhythmRoot = transform.position;
             if (postureHolds)
@@ -281,6 +293,7 @@ namespace PhysicsBattler.Units
 
             feint = null;
             Pose.Rhythm = default;
+            ResetMood();
             Pose.Feint = null;
             Circling = 0f;
             rhythmRoot = transform.position;

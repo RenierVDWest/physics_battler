@@ -92,12 +92,13 @@ internal static class FightReport
         float dt = Time.fixedDeltaTime;
         int shared = 0, attacks = 0;
         var started = new Dictionary<UnitController, int>();
-        var blowsAt = new List<(float t, UnitController by, UnitController at)>();
+        var blowsAt = new List<(float t, UnitController by, UnitController at, float duration)>();
+        var tempoTime = new Dictionary<string, float>();
         void OnMove(UnitController u, MoveState s)
         {
             started[u] = (started.TryGetValue(u, out int n) ? n : 0) + 1;
             attacks++;
-            blowsAt.Add((Time.time, u, s.Target as UnitController));
+            blowsAt.Add((Time.time, u, s.Target as UnitController, s.Duration));
         }
         UnitController.MoveStarted += OnMove;
         int steps = (int)(limit * 60f) + 600;
@@ -111,6 +112,15 @@ internal static class FightReport
 
                 loop.TimeLimit = limit;
                 loop.Step(units, dt, Time.time);
+                foreach (var u in units)
+                {
+                    if (u.IsAlive && u.State == UnitState.Standing && u.Tempo != null && u.TempoOn)
+                    {
+                        string k = u.Tempo.State.ToString();
+                        tempoTime[k] = (tempoTime.TryGetValue(k, out float sec) ? sec : 0f) + dt;
+                    }
+                }
+
                 foreach (var unit in units)
                 {
                     Call(unit, "FixedUpdate");
@@ -139,17 +149,21 @@ internal static class FightReport
 
         // The tempo's headline (milestone 7a; Tools/Playtest/tempo.py has the rest): bursts, gaps, taking turns.
         var gaps = new List<float>();
+        var afterEnd = new List<float>();
         var lastBy = new Dictionary<UnitController, float>();
+        var lastEnd = new Dictionary<UnitController, float>();
         var lastInPair = new Dictionary<(UnitController, UnitController), UnitController>();
         int alternate = 0, same = 0;
-        foreach (var (t, by, at) in blowsAt)
+        foreach (var (t, by, at, duration) in blowsAt)
         {
             if (lastBy.TryGetValue(by, out float before))
             {
                 gaps.Add(t - before);
+                afterEnd.Add(t - lastEnd[by]);
             }
 
             lastBy[by] = t;
+            lastEnd[by] = t + duration;
             if (at == null)
             {
                 continue;
@@ -167,8 +181,13 @@ internal static class FightReport
         gaps.Sort();
         if (gaps.Count > 0)
         {
-            int bursts = gaps.FindAll(g => g < 1f).Count;
-            sb.AppendLine($"  gaps between a unit's own blows: median {gaps[gaps.Count / 2]:0.0} s; in bursts (under 1 s): {100f * bursts / gaps.Count:0}%; "
+            int bursts = afterEnd.FindAll(g => g < 0.6f).Count;
+            float total = 0f;
+            foreach (var v in tempoTime.Values) total += v;
+            var shares = new List<string>();
+            foreach (var pair in tempoTime) shares.Add($"{pair.Key.ToLowerInvariant()} {100f * pair.Value / Mathf.Max(1e-3f, total):0}%");
+            if (shares.Count > 0) sb.AppendLine("  tempo (time on their feet): " + string.Join(", ", shares));
+            sb.AppendLine($"  gaps between a unit's own blows: median {gaps[gaps.Count / 2]:0.0} s; in bursts (next within 0.6 s of the last ending): {100f * bursts / afterEnd.Count:0}%; "
                           + $"within pairs the next blow was the other's {100f * alternate / Mathf.Max(1, alternate + same):0}% of the time");
         }
 

@@ -12,8 +12,8 @@ its report. What it measures, per unit (on its feet only):
       the hips (their animation pose, against the unit's root) beyond the idle loop's own reach, in
       cm. A posture under 10 cm is flagged: it can't be seen;
     - energy: its range and how many charge-and-spend cycles it ran (a rise of 0.2 then a fall of 0.2);
-    - blows a minute, the gaps between its own blows, and the share of blows in bursts (under 1 s
-      after its last one);
+    - blows a minute, the gaps between its own blows, and the share of blows in bursts (starting
+      within 0.6 s of its last one ending);
     - blocks: blows that came at it, shields raised.
 And per fight: within each pair, how often the next blow is the other unit's (alternation; 50% is
 even chances), and the share of blows thrown while the target was itself mid-blow.
@@ -31,8 +31,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import analyze  # noqa: E402
 
 PARTS = ["HandL", "HandR", "Head", "Pelvis"]
-VISIBLE_CM = 10.0
-BURST_GAP = 1.0
+VISIBLE_CM = 10.0     # at medium size (scaled by the unit's size: a small unit's postures are smaller)
+BURST_GAP = 0.6       # s from one blow's end to the next one's start: in a burst
 
 
 def _local_goals(unit):
@@ -104,25 +104,29 @@ def unit_tempo(session, unit):
 
     # Postures: each run of one posture, its extra motion beyond the idle loop's reach (the
     # 90th percentile of how far each part wanders from its middle on the idle loop alone).
-    reach, mid = {}, {}
-    idle = quiet & ~in_posture
-    for part, g in goals.items():
-        if idle.sum() < 30:
-            continue
-        mid[part] = np.median(g[idle], axis=0)
-        reach[part] = np.percentile(np.linalg.norm(g[idle] - mid[part], axis=1), 90)
-    runs = []
+    # Each posture against the moment before it: how far it takes the hands, head or hips from
+    # where they were in the half second before it began, beyond how much they wandered then.
+    reach, runs = [], []
+    window = int(round(0.5 / max(1e-3, float(np.median(np.diff(t))) if n > 1 else 1 / 60)))
     for value, t0, t1, i0, i1 in analyze.segments(pd.Series(posture), t):
         if value == "" or not live[i0:i1 + 1].any():
             continue
+        pre = np.zeros(n, bool)
+        pre[max(0, i0 - window):i0] = True
+        pre &= live & ~move
         sel = np.zeros(n, bool)
         sel[i0:i1 + 1] = True
-        sel &= quiet
-        if not mid or sel.sum() < 3:
+        sel &= live & ~move
+        if pre.sum() < 10 or sel.sum() < 3 or not goals:
             runs.append((value, float("nan")))
             continue
-        extra = max(float(np.percentile(np.linalg.norm(goals[p][sel] - mid[p], axis=1), 95) - reach[p]) for p in mid)
-        runs.append((value, max(0.0, extra) * 100.0))
+        extra = []
+        for p, g in goals.items():
+            mid = np.median(g[pre], axis=0)
+            wander = np.percentile(np.linalg.norm(g[pre] - mid, axis=1), 90)
+            reach.append(wander)
+            extra.append(np.percentile(np.linalg.norm(g[sel] - mid, axis=1), 95) - wander)
+        runs.append((value, max(0.0, float(max(extra))) * 100.0))
     out["postures"] = len(runs)
     out["postures_min"] = len(runs) / standing * 60.0
     by_name = {}
@@ -130,8 +134,9 @@ def unit_tempo(session, unit):
         by_name.setdefault(value, []).append(cm)
     out["posture_cm"] = {k: float(np.nanmedian(v)) if np.isfinite(v).any() else float("nan") for k, v in by_name.items()}
     out["posture_n"] = {k: len(v) for k, v in by_name.items()}
-    out["hidden"] = sorted(k for k, v in out["posture_cm"].items() if np.isfinite(v) and v < VISIBLE_CM)
-    out["base_reach_cm"] = float(np.mean(list(reach.values())) * 100.0) if reach else float("nan")
+    out["size"] = float(unit.meta.get("legLength", 0.85)) / 0.85
+    out["hidden"] = sorted(k for k, v in out["posture_cm"].items() if np.isfinite(v) and v < VISIBLE_CM * out["size"])
+    out["base_reach_cm"] = float(np.median(reach) * 100.0) if reach else float("nan")
 
     # Energy cycles.
     if "energy" in f:
@@ -157,7 +162,11 @@ def unit_tempo(session, unit):
     out["blows_min"] = len(bl) / standing * 60.0
     gaps = np.diff(starts) if len(starts) > 1 else np.array([])
     out["gaps"] = gaps
-    out["burst_share"] = float((gaps < BURST_GAP).mean()) if len(gaps) else 0.0
+    # A burst: the next blow starts within BURST_GAP of the last one ending (chained ones overlap it).
+    ends = np.array([b["t"] + b["duration"] for b in bl])
+    after = starts[1:] - ends[:-1] if len(starts) > 1 else np.array([])
+    out["after_end"] = after
+    out["burst_share"] = float((after < BURST_GAP).mean()) if len(after) else 0.0
 
     # Defence.
     d = [e for e in unit.events if e.cat == "defence"]
@@ -199,7 +208,7 @@ def section(session):
                  f"({fight['alternate']} of {fight['alternate'] + fight['same']}; 50% is even chances, over 55% reads as taking turns). "
                  f"{fight['into'] * 100:.0f}% of the {fight['blows']} blows were thrown while the target was itself mid-blow.")
     lines.append("")
-    lines.append("| unit | on its feet | walking | in a blow | posture | blocking | idle loop | postures a min | blows a min | gap between blows (median, 10–90%) | in bursts (< 1 s) | energy (range, cycles) | blows at it / shields raised |")
+    lines.append("| unit | on its feet | walking | in a blow | posture | blocking | idle loop | postures a min | blows a min | gap between blows (median, 10–90%) | in bursts (next within 0.6 s of the last ending) | energy (range, cycles) | blows at it / shields raised |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for r in rows:
         g = r["gaps"]
@@ -216,15 +225,15 @@ def section(session):
         for r in rows:
             lines.append(f"| {r['unit']} | " + " | ".join(f"{r.get(c, 0) * 100:.0f}%" for c in tempo_cols) + " |")
         lines.append("")
-    lines.append(f"**Posture extra motion** (median per posture: how far it takes the hands, head or hips beyond the idle loop's reach; "
-                 f"under {VISIBLE_CM:.0f} cm can't be seen):")
+    lines.append(f"**Posture extra motion** (median per posture: how far it takes the hands, head or hips from where they were just before it, beyond how much they wandered then; "
+                 f"under {VISIBLE_CM:.0f} cm at medium size, scaled by the body, can't be seen):")
     lines.append("")
     for r in rows:
         if not r["posture_n"]:
             continue
         names = ", ".join(f"{k} {r['posture_cm'][k]:.0f} cm ×{r['posture_n'][k]}" for k in sorted(r["posture_cm"], key=lambda k: -r["posture_n"][k]))
         hidden = f" **Can't be seen:** {', '.join(r['hidden'])}." if r["hidden"] else ""
-        lines.append(f"- {r['unit']} (idle loop reach {r['base_reach_cm']:.0f} cm): {names}.{hidden}")
+        lines.append(f"- {r['unit']} (wander before a posture {r['base_reach_cm']:.0f} cm): {names}.{hidden}")
     lines.append("")
     return lines, rows, fight
 
@@ -251,11 +260,12 @@ def main():
                               "postures/min": g.postures.sum() / g.standing.sum() * 60, "blows/min": g.blows.sum() / g.standing.sum() * 60})
         print(table.round(2).to_string())
         gaps = np.concatenate([r["gaps"] for r in pooled if len(r["gaps"])])
+        after = np.concatenate([r["after_end"] for r in pooled if len(r["after_end"])])
         alt = sum(f["alternate"] for f in fights)
         same = sum(f["same"] for f in fights)
         blows = sum(f["blows"] for f in fights)
         print(f"gaps between a unit's own blows: median {np.median(gaps):.2f} s (10% {np.percentile(gaps, 10):.2f}, 90% {np.percentile(gaps, 90):.2f}); "
-              f"in bursts (< 1 s): {(gaps < BURST_GAP).mean() * 100:.0f}%")
+              f"in bursts (the next within {BURST_GAP} s of the last ending): {(after < BURST_GAP).mean() * 100:.0f}%")
         print(f"alternation within pairs: {alt / max(1, alt + same) * 100:.0f}% ({alt} of {alt + same}); "
               f"blows into the target's own blow: {sum(f['into'] * f['blows'] for f in fights) / max(1, blows) * 100:.0f}%")
         cms = {}

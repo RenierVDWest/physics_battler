@@ -65,6 +65,9 @@ namespace PhysicsBattler.Battle
             public float closestOff = float.MaxValue;
             public float detour, detourUntil; // going round someone in the way: which side, until when
             public float blocked;             // seconds it has been trying to walk in and barely moving
+            public float blowEnd = -999f;     // when its last blow ends
+            public bool hasTempo;             // the tempo state the blow timing was set for
+            public TempoState tempo;
         }
 
         /// <summary>The most units of one team on one target at once: more go for another, or wait.</summary>
@@ -319,10 +322,32 @@ namespace PhysicsBattler.Battle
             Vector3 to = enemy.Root.position - unit.Root.position;
             to.y = 0f;
             float distance = to.magnitude;
-            float engage = Mathf.Max(0.45f * size + 0.2f * enemy.Body.SizeFactor, EngageDistance(unit, enemy) - plan.closeIn);
+            float closest = 0.45f * size + 0.2f * enemy.Body.SizeFactor;
+            float engage = Mathf.Max(closest, EngageDistance(unit, enemy) - plan.closeIn);
             Vector3 toward = to / Mathf.Max(1e-4f, distance);
             float speed = unit.WalkSpeed;
             bool busy = unit.IsAttacking || unit.HitStop > 0f || unit.Knockback.magnitude >= 0.05f;
+
+            // Milestone 8: its tempo sets the distance. Gathering, it holds just out of the target's
+            // reach; shelled up, it gives ground; pressing, it closes right in.
+            var tempo = unit.TempoOn ? unit.Tempo : null;
+            var state = tempo != null ? tempo.State : TempoState.Probe;
+            float enemyReach = EngageDistance(enemy, unit);
+            unit.TempoEngaged = distance <= Mathf.Max(engage, enemyReach) + 0.8f * size;
+            unit.TargetVulnerable = enemy.State != UnitState.Standing || enemy.Health < 0.25f * enemy.Profile.maxHealth;
+            bool holdingBack = state == TempoState.Gather || state == TempoState.Shell;
+            switch (state)
+            {
+                case TempoState.Gather:
+                    engage = Mathf.Max(engage, enemyReach) + 0.35f * size;
+                    break;
+                case TempoState.Shell:
+                    engage += 0.2f * size;
+                    break;
+                case TempoState.Press:
+                    engage = Mathf.Max(closest, engage - 0.1f * size);
+                    break;
+            }
 
             // Toward the ring, slowing over the last stretch; out again if it is too close.
             Vector3 desired = Vector3.zero;
@@ -336,11 +361,12 @@ namespace PhysicsBattler.Battle
                     desired += Vector3.Cross(Vector3.up, toward) * (plan.detour * 0.8f * speed);
                 }
             }
-            else if (off < -0.05f && (plan.closeIn < 0f || off < -0.4f * size))
+            else if (off < -0.05f && (plan.closeIn < 0f || off < -0.4f * size || holdingBack))
             {
-                // (Only when its blows can't land from this close, or it is really crowded: a longer
-                // reach doesn't keep backing off from a shorter one, or the shorter could never get in.)
-                desired = -toward * 0.6f * speed * Mathf.Clamp01(-off / (0.3f * size));
+                // (Only when its blows can't land from this close, it is really crowded, or it is
+                // holding back: a longer reach doesn't keep backing off from a shorter one, or the
+                // shorter could never get in. Shelled up, it gives ground slowly.)
+                desired = -toward * (state == TempoState.Shell ? 0.4f : 0.6f) * speed * Mathf.Clamp01(-off / (0.3f * size));
             }
 
             bool near = off <= 0.3f * size;
@@ -386,7 +412,7 @@ namespace PhysicsBattler.Battle
             // Too far to strike: it walks in. Nearly there, it tries anyway (a lunge may cover the rest;
             // if no blow lands, the planner sends it closer); held up for a moment, it tries from there.
             plan.blocked = off > 0.05f && plan.velocity.magnitude < 0.25f * speed ? plan.blocked + dt : 0f;
-            if (busy || (off > 0.35f * size && plan.blocked < 0.6f))
+            if (busy || (off > 0.35f * size && plan.blocked < 0.6f) || (tempo != null && !tempo.Strikes))
             {
                 return;
             }
@@ -399,7 +425,21 @@ namespace PhysicsBattler.Battle
         {
             var style = unit.Style;
             float size = unit.Body.SizeFactor;
-            if (plan.nextAttack < 0f)
+            var tempo = unit.TempoOn ? unit.Tempo : null;
+            if (tempo != null)
+            {
+                // Milestone 8: the tempo times the blows. Each time its state changes, the next blow
+                // comes the state's delay after the last one ends (a press quickly, a probe in a while,
+                // a counter at once).
+                if (!plan.hasTempo || plan.tempo != tempo.State)
+                {
+                    plan.hasTempo = true;
+                    plan.tempo = tempo.State;
+                    plan.nextAttack = Mathf.Max(now, plan.blowEnd) + tempo.BlowDelay((float)random.NextDouble());
+                    plan.readsThisTime = random.NextDouble() < style.readsOpenings;
+                }
+            }
+            else if (plan.nextAttack < 0f)
             {
                 plan.nextAttack = now + Next(style) * 0.5f;
                 plan.readsThisTime = random.NextDouble() < style.readsOpenings;
@@ -414,8 +454,10 @@ namespace PhysicsBattler.Battle
                 return;
             }
 
-            // Its Fight Rhythm may lead into the blow first (not into an opening: that would waste it).
-            if (!opening && now - plan.ledInAt > 1.5f)
+            // Its Fight Rhythm may lead into the blow first (not into an opening: that would waste it;
+            // in a press only before its first blow; never before a counter).
+            bool leads = tempo == null || tempo.State == TempoState.Probe || (tempo.State == TempoState.Press && tempo.BurstBlows == 0);
+            if (!opening && leads && now - plan.ledInAt > 1.5f)
             {
                 float lead = unit.LeadIn();
                 if (lead > 0f)
@@ -463,7 +505,8 @@ namespace PhysicsBattler.Battle
                     }
                 }
 
-                plan.nextAttack = now + state.Duration + Next(style);
+                plan.blowEnd = now + state.Duration;
+                plan.nextAttack = tempo != null ? plan.blowEnd + tempo.BlowDelay((float)random.NextDouble()) : now + state.Duration + Next(style);
                 plan.readsThisTime = random.NextDouble() < style.readsOpenings;
                 return;
             }

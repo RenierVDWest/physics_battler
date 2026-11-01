@@ -79,6 +79,14 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public RhythmSample Rhythm { get; set; }
 
+        /// <summary>
+        /// Milestone 8: the tempo's held stance (gathering, pressing, shelled up), already scaled to
+        /// the body: hips, crouch, lean, head and both hands. Unlike the rhythm, it stays at full
+        /// weight through a blow (a pressing unit leans into its blows), but the weapon hand's part
+        /// gives way to the blow as the rhythm's does.
+        /// </summary>
+        public RhythmSample Mood { get; set; }
+
         /// <summary>The rhythm's weapon feint, when it is the move posed: the rhythm plays on with it (a real blow takes over from the rhythm as it blends in).</summary>
         public MoveState Feint { get; set; }
 
@@ -267,6 +275,19 @@ namespace PhysicsBattler.Motion
                 var r = Rhythm;
                 rhythm.main = r.main * hand;
                 rhythm.mainTurn = r.mainTurn * hand;
+            }
+
+            {
+                // The tempo's stance on top, at full weight but for the weapon hand during a blow.
+                var m = Mood;
+                if (move != null && move != Feint)
+                {
+                    float hand = Mathf.Clamp01(1f - 2f * moveBlend);
+                    m.main *= hand * hand;
+                    m.mainTurn *= hand * hand;
+                }
+
+                rhythm += m;
             }
             {
                 var r = rhythm;

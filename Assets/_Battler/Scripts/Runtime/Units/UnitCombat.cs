@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using PhysicsBattler.Authority;
 using PhysicsBattler.Combat;
+using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
 using UnityEngine;
 
@@ -637,6 +638,11 @@ namespace PhysicsBattler.Units
             // The weapon stays where it met the body for the hit stop, then bounces back along its
             // path as the blow fades (the weapon arm is posed through it: nothing goes loose).
             move.Rewind = true;
+            if (report.Shield)
+            {
+                Tempo?.NoteBlocked();
+            }
+
             CancelMove(move, "stopped by " + report.Struck.name + (report.Shield ? "'s shield" : ""));
         }
 
@@ -652,6 +658,7 @@ namespace PhysicsBattler.Units
             var r = hit.Result;
             Health = Mathf.Max(0f, Health - r.Damage);
             Rhythm?.NoteHit(r.Damage / Mathf.Max(1f, profile.maxHealth));
+            Tempo?.NoteHit(r.PoiseDamage / Mathf.Max(1f, profile.maxPoise));
             Poise -= r.PoiseDamage;
             LastReaction = r.Reaction;
 
@@ -850,6 +857,7 @@ namespace PhysicsBattler.Units
                 Stance.StepTo(rear, Stance.HomeWorld(rear, transform.position, facingYaw), facingYaw + Stance.HomeYawLocal(rear), 0.32f);
             }
 
+            Tempo?.NoteBlowEnded();
             MoveEnded?.Invoke(this, move);
         }
 
@@ -897,6 +905,7 @@ namespace PhysicsBattler.Units
         private void OnIncoming(UnitController attacker, MoveState move)
         {
             Rhythm?.NoteThreat();
+            Tempo?.NoteIncoming(attacker != null && attacker.Tempo != null && attacker.TempoOn && attacker.Tempo.State == TempoState.Press);
             if (!CanAct || Loadout == null || !Loadout.HasShield || IsAttacking)
             {
                 // (off its feet, it can't block)
@@ -906,7 +915,9 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            if (combatRandom.NextDouble() >= Style.blockChance)
+            // Shelled up (milestone 8), it raises the shield more readily.
+            float chance = Tempo != null && TempoOn && Tempo.State == TempoState.Shell ? Mathf.Min(0.9f, 1.4f * Style.blockChance) : Style.blockChance;
+            if (combatRandom.NextDouble() >= chance)
             {
                 Defending?.Invoke(this, attacker, move, "doesn't block");
                 return;

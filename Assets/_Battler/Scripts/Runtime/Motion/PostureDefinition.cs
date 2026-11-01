@@ -100,6 +100,8 @@ namespace PhysicsBattler.Motion
         public float weight = 1f;
         [Tooltip("Played as the lead-in to a blow (a feint before the real thing).")]
         public bool leadIn;
+        [Tooltip("The tempo states it plays in (milestone 8): gathering, probing, pressing, shelled up, countering.")]
+        public TempoUse use = TempoUse.All;
 
         [Header("Weapon feint")]
         [Tooltip("A move of the unit's weapon (its name without MD_, e.g. ClubSwing) whose wind-up is played part of the way and back. Empty: none.")]
@@ -118,6 +120,42 @@ namespace PhysicsBattler.Motion
         public float followBias = 1.5f;
 
         public string Label => name.StartsWith("PD_") ? name.Substring(3) : name;
+
+        /// <summary>It moves the feet (planned steps or travel): it can't play while the unit walks.</summary>
+        public bool MovesFeet
+        {
+            get
+            {
+                if (steps.Length > 0)
+                {
+                    return true;
+                }
+
+                foreach (var k in keys)
+                {
+                    if (k.travel.sqrMagnitude > 1e-6f)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>The tempo states a posture of this kind suits by default.</summary>
+        public static TempoUse DefaultUse(PostureKind kind)
+        {
+            switch (kind)
+            {
+                case PostureKind.Feint: return TempoUse.Probe | TempoUse.Press;
+                case PostureKind.Flourish: return TempoUse.Probe | TempoUse.Press;
+                case PostureKind.Footwork: return TempoUse.Gather | TempoUse.Probe | TempoUse.Press;
+                case PostureKind.Guard: return TempoUse.Gather | TempoUse.Probe;
+                case PostureKind.Defence: return TempoUse.Gather | TempoUse.Probe | TempoUse.Shell;
+                default: return TempoUse.All;
+            }
+        }
 
         /// <summary>
         /// The pose at a share of the posture: the keys interpolated smoothly (Catmull-Rom) from the

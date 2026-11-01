@@ -38,8 +38,12 @@ namespace PhysicsBattler.Editor.Setup
         ///     shapes), the sword cleave and the club's rising blow added to the weapons.
         /// 15 = Fight Rhythms: a rhythm asset per style and a posture asset per posture (Data/Rhythms),
         ///     each body's combat style pointed at its style.
+        /// 16 = The large unit's stance and base loop from the captured boxing idle.
+        /// 17 = The medium and small units' stances and base loops from their captured idles; walks.
+        /// 18 = Milestone 8, the tempo: the Fight Rhythms rebuilt from the code (each style's
+        ///     temperament and stances, bigger postures, the gather and press postures).
         /// </summary>
-        public const int Current = 17;
+        public const int Current = 18;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

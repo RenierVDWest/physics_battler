@@ -35,6 +35,14 @@ namespace PhysicsBattler.Editor.Setup
         /// </summary>
         public static void Migrate(int from)
         {
+            if (from >= 15 && from < 18)
+            {
+                foreach (RhythmStyle style in Enum.GetValues(typeof(RhythmStyle)))
+                {
+                    Rebuild(style);
+                }
+            }
+
             if (from >= 15 && from < 17)
             {
                 MigrateIdle(RhythmStyle.ShieldAndSword, RhythmDefinition.OldMediumMainGuard, RhythmDefinition.MediumMainGuard,
@@ -132,6 +140,49 @@ namespace PhysicsBattler.Editor.Setup
 
             UnityEngine.Object.DestroyImmediate(made);
             EditorUtility.SetDirty(rhythm);
+        }
+
+        /// <summary>
+        /// Setup 18 (milestone 8, the tempo): a style's rhythm and its postures rebuilt from the code,
+        /// over the assets already there (their links kept): the temperament and its stances, the
+        /// postures made bigger, the gather and press postures added. Tuning done in the assets is lost.
+        /// </summary>
+        private static void Rebuild(RhythmStyle style)
+        {
+            string path = BattlerPaths.Rhythm(style.ToString());
+            var rhythm = AssetDatabase.LoadAssetAtPath<RhythmDefinition>(path);
+            if (rhythm == null)
+            {
+                return;
+            }
+
+            var made = RhythmDefinition.Create(style);
+            var postures = new PostureDefinition[made.postures.Length];
+            for (int i = 0; i < made.postures.Length; i++)
+            {
+                var fresh = made.postures[i];
+                string posturePath = BattlerPaths.Posture(fresh.Label);
+                var existing = AssetDatabase.LoadAssetAtPath<PostureDefinition>(posturePath);
+                if (existing != null)
+                {
+                    EditorUtility.CopySerialized(fresh, existing);
+                    EditorUtility.SetDirty(existing);
+                    postures[i] = existing;
+                    UnityEngine.Object.DestroyImmediate(fresh);
+                }
+                else
+                {
+                    EditorFolders.EnsureParent(posturePath);
+                    AssetDatabase.CreateAsset(fresh, posturePath);
+                    postures[i] = fresh;
+                }
+            }
+
+            made.postures = postures;
+            EditorUtility.CopySerialized(made, rhythm);
+            UnityEngine.Object.DestroyImmediate(made);
+            EditorUtility.SetDirty(rhythm);
+            Debug.Log($"[Battler Setup] {path}: rebuilt for the tempo (temperament, stances, {postures.Length} postures).");
         }
 
         private static RhythmDefinition EnsureRhythm(RhythmStyle style)

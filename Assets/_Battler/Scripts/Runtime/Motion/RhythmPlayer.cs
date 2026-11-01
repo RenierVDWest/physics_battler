@@ -59,6 +59,22 @@ namespace PhysicsBattler.Motion
         /// <summary>Energy pinned (gallery, tests; negative: free).</summary>
         public float EnergyOverride { get; set; } = -1f;
 
+        /// <summary>
+        /// Milestone 8: a tempo drives the mood. Energy comes back only as the tempo gives it
+        /// (<see cref="Recharge"/>), and aggression settles back to the style's faster.
+        /// </summary>
+        public bool TempoDriven { get; set; }
+
+        /// <summary>The tempo states the postures picked now must suit (all, without a tempo).</summary>
+        public TempoUse Use { get; set; } = TempoUse.All;
+
+        /// <summary>The unit is walking: only postures that leave the feet alone may play.</summary>
+        public bool Walking { get; set; }
+
+        /// <summary>How fast and how big the base loop plays (the tempo's stance: slow and deep gathering, quick pressing).</summary>
+        public float LoopSpeed { get; set; } = 1f;
+        public float LoopSize { get; set; } = 1f;
+
         /// <summary>Off, it plays only the base and the postures it is told to (the gallery).</summary>
         public bool Auto { get; set; } = true;
 
@@ -113,6 +129,12 @@ namespace PhysicsBattler.Motion
 
         private float EnergyNow => EnergyOverride >= 0f ? EnergyOverride : Energy;
 
+        /// <summary>Energy back (the tempo's regeneration).</summary>
+        public void Recharge(float amount) => Energy = Mathf.Min(1f, Energy + Mathf.Max(0f, amount));
+
+        /// <summary>Energy spent (a blow's cost, a dodge).</summary>
+        public void SpendEnergy(float amount) => Spend(amount);
+
         private void Spend(float amount)
         {
             if (Definition != null)
@@ -156,15 +178,15 @@ namespace PhysicsBattler.Motion
             if (Definition.clip != null && !Definition.clip.IsEmpty)
             {
                 // Round the loop at the capture's pace (slower on a bigger body), a little slower when tired.
-                clipPhase = Mathf.Repeat(clipPhase + dt * Mathf.Lerp(0.8f, 1f, EnergyNow) / (Definition.clip.length * pace), 1f);
+                clipPhase = Mathf.Repeat(clipPhase + dt * LoopSpeed * Mathf.Lerp(0.8f, 1f, EnergyNow) / (Definition.clip.length * pace), 1f);
             }
 
-            if (EnergyOverride < 0f)
+            if (EnergyOverride < 0f && !TempoDriven)
             {
                 Energy = Mathf.Min(1f, Energy + Definition.energyRegen * dt);
             }
 
-            Aggression = Mathf.MoveTowards(Aggression, Definition.aggression, 0.01f * dt);
+            Aggression = Mathf.MoveTowards(Aggression, Definition.aggression, (TempoDriven ? 0.03f : 0.01f) * dt);
             Circle = 0f;
             if (Definition.circling > 0f && HasOpponent && free)
             {
@@ -181,7 +203,9 @@ namespace PhysicsBattler.Motion
             {
                 // Once it starts fading (busy for a moment), it fades all the way out: a half-faded
                 // posture would play on at reduced size with its steps and openings skipped.
-                if (!free || fade < 1f)
+                // (Walking now, a posture that moves the feet gives way to the walk; one the tempo's new
+                // state doesn't allow gives way too, unless it is leading into a blow.)
+                if (!free || fade < 1f || (Walking && Current.MovesFeet) || ((Current.use & Use) == 0 && !CurrentIsLeadIn))
                 {
                     fade = Mathf.Max(0f, fade - dt / 0.15f);
                 }
@@ -346,7 +370,8 @@ namespace PhysicsBattler.Motion
             for (int i = 0; i < weights.Length; i++)
             {
                 var p = Definition.postures[i];
-                if (p == null || p == last || (leadIn && !p.leadIn) || (!HasOpponent && !string.IsNullOrEmpty(p.feintMove)))
+                if (p == null || p == last || (leadIn && !p.leadIn) || (!HasOpponent && !string.IsNullOrEmpty(p.feintMove))
+                    || (p.use & Use) == 0 || (Walking && p.MovesFeet))
                 {
                     continue;
                 }
@@ -412,7 +437,7 @@ namespace PhysicsBattler.Motion
             {
                 // The captured loop: its rock, bounce, turns, head and hands (smaller when tired).
                 var k = clip.Sample(clipPhase);
-                float a = clip.strength * Mathf.Lerp(0.4f, 1f, e) * baseWeight;
+                float a = clip.strength * Mathf.Lerp(0.4f, 1f, e) * baseWeight * LoopSize;
                 r.hips = k.hips * (leg * a);
                 r.drop = k.drop * leg * a;
                 r.turn = k.turn * a;

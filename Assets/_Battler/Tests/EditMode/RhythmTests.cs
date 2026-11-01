@@ -51,6 +51,7 @@ namespace PhysicsBattler.Tests
             unit.Profile = profile;
             unit.Team = team;
             typeof(UnitController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(unit, null);
+            unit.TempoOn = false;   // (the Fight Rhythm on its own: the tempo's stances have their own test, in TempoTests)
             if (body == "Medium")
             {
                 unit.Equip(Sword(), WeaponDefinition.CreateDefault(WeaponKind.Shield));
@@ -106,7 +107,7 @@ namespace PhysicsBattler.Tests
             foreach (RhythmStyle style in System.Enum.GetValues(typeof(RhythmStyle)))
             {
                 var r = RhythmDefinition.Create(style);
-                Assert.AreEqual(4, r.postures.Length, $"{style}: four postures");
+                Assert.AreEqual(6, r.postures.Length, $"{style}: four postures, and one to gather and one to press (milestone 8)");
                 Assert.IsTrue(r.bounceRate > 0f || r.weaponLoop != WeaponLoop.None || r.circling > 0f, $"{style}: a base that moves");
                 int leadIns = 0;
                 foreach (var p in r.postures)
@@ -198,6 +199,11 @@ namespace PhysicsBattler.Tests
                                     float d = Vector3.Distance(p, last[(int)id]);
                                     if (frames > 1)
                                     {
+                                        if (d - 2f * lastStep[(int)id] > pop && System.Environment.GetEnvironmentVariable("RHYTHM_DEBUG") != null)
+                                        {
+                                            System.Console.WriteLine($"  pop {body} {(posture != null ? posture.Label : "base")} frame {frames} {id}: {(d - 2f * lastStep[(int)id]) * 100f:0.0} cm (walk {unit.Gait?.Weight:0.00}, posture {unit.Rhythm.Current?.Label} {unit.Rhythm.Progress:0.00}, stepping {unit.Stance.AnyStepping}, move {unit.Pose.Move != null})");
+                                        }
+
                                         pop = Mathf.Max(pop, d - 2f * lastStep[(int)id]);
                                     }
 

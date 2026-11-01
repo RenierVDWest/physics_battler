@@ -239,6 +239,10 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("open", unit.Openings == Combat.AimParts.None ? "" : unit.Openings.ToString().Replace(", ", " "));
             frames.Add("hitStop", unit.HitStop > 0f);
             frames.Add("block", unit.BlockBlend, 2);
+            // Milestone 8: the tempo (gathering, probing, pressing, shelled up, countering) and the pressure on it.
+            var tempo = unit.TempoOn ? unit.Tempo : null;
+            frames.Add("tempo", tempo != null ? tempo.State.ToString() : "");
+            frames.Add("pressure", tempo != null ? tempo.Pressure : 0f, 2);
 
             frames.End();
             samples++;

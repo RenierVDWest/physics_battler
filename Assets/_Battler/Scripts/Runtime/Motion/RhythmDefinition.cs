@@ -106,12 +106,18 @@ namespace PhysicsBattler.Motion
         [Range(0f, 1f)] public float aggression = 0.5f;
         [Tooltip("Energy each posture, blow and share of health lost costs; energy back per second. A busy fighter is about half spent after a minute and a half.")]
         public float postureCost = 0.006f;
-        public float blowCost = 0.012f;
+        [Tooltip("(With a tempo, its blows cost what the temperament says; this is on top.)")]
+        public float blowCost;
         public float hitCost = 0.35f;
+        [Tooltip("(With a tempo, energy comes back as the temperament says, not at this rate.)")]
         public float energyRegen = 0.0015f;
-        [Range(0f, 1f)] public float minEnergy = 0.15f;
+        [Range(0f, 1f)] public float minEnergy = 0.05f;
         [Tooltip("How far both hands sag when spent (energy 0), metres. Below 35% energy the head is open.")]
         public float tiredGuardDrop = 0.1f;
+
+        [Header("Tempo (milestone 8)")]
+        [Tooltip("When it gathers, presses and shells up, what its energy costs and earns, and the stance it holds in each.")]
+        public Temperament temperament = new Temperament();
 
         public string Label => name.StartsWith("RD_") ? name.Substring(3) : name;
 
@@ -180,10 +186,45 @@ namespace PhysicsBattler.Motion
             p.leadIn = leadIn;
             p.followedBy = followedBy;
             p.weight = weight;
+            p.use = PostureDefinition.DefaultUse(kind);
             return p;
         }
 
         private static OpeningWindow Open(float from, float to, AimParts parts) => new OpeningWindow { from = from, to = to, parts = parts };
+
+        /// <summary>
+        /// Gathering (milestone 8): a long breath out. The shoulders drop and the hips sink, the guard
+        /// comes in and is set again, the chin goes down; then back up. Plays only while gathering.
+        /// </summary>
+        private static PostureDefinition Settle(string name, Vector3 hands, float chin, string followedBy)
+        {
+            var settle = Posture(name, PostureKind.Guard, 1.2f, false, followedBy, 1.2f);
+            settle.use = TempoUse.Gather;
+            settle.keys = new[]
+            {
+                new PostureKey { at = 0.35f, crouch = 0.1f, lean = -5f, roll = 5f, head = new Vector2(chin, 0f), main = hands, off = hands + new Vector3(0f, -0.06f, 0f) },
+                new PostureKey { at = 0.7f, crouch = 0.03f, lean = 2f, head = new Vector2(0.5f * chin, 0f), main = 0.4f * hands, off = 0.4f * hands },
+            };
+            settle.openings = new[] { Open(0.25f, 0.55f, AimParts.Head) };   // (the guard comes down for a breath)
+            return settle;
+        }
+
+        /// <summary>
+        /// Pressing (milestone 8): a stalking step in, weight onto the front foot, the guard pushed
+        /// forward. Plays only in a press, between its blows.
+        /// </summary>
+        private static PostureDefinition StalkIn(string name, float distance, string followedBy)
+        {
+            var stalk = Posture(name, PostureKind.Footwork, 0.55f, true, followedBy, 1.4f);
+            stalk.use = TempoUse.Press;
+            stalk.keys = new[]
+            {
+                new PostureKey { at = 0.45f, hips = new Vector3(0f, 0f, 0.08f), crouch = 0.06f, lean = 11f, head = new Vector2(5f, 0f), off = new Vector3(0f, 0.06f, 0.2f), main = new Vector3(0f, 0.06f, 0.1f), travel = new Vector3(0f, 0f, 0.7f * distance) },
+                new PostureKey { at = 1f, travel = new Vector3(0f, 0f, distance) },
+            };
+            stalk.openings = new[] { Open(0.2f, 0.5f, AimParts.Belly) };
+            return stalk;
+        }
 
         /// <summary>
         /// The large unit: a pressure boxer in Tyson's mould. The base loop is a captured boxing
@@ -241,13 +282,26 @@ namespace PhysicsBattler.Motion
             aggression = 0.65f;
             tiredGuardDrop = 0.14f;
 
+            // A pressure fighter: short breathers, long bursts walking forward, hard to rattle.
+            temperament = new Temperament
+            {
+                probeAt = 0.45f, pressAt = 0.7f, pressAggression = 0.4f, burstMax = 4, composure = 0.8f, holdChance = 0.35f, fullCharge = 0.85f,
+                probeInterval = new Vector2(0.8f, 1.6f), pressGap = new Vector2(0.15f, 0.35f),
+                // Gathering: sits down into the stance, chin tucked, the guard pulled in, breathing deep.
+                gather = new MoodStance { crouch = 0.05f, lean = -2f, forward = -0.05f, chin = 8f, main = new Vector3(0.02f, -0.03f, 0.03f), off = new Vector3(0.02f, 0f, -0.08f), loopSpeed = 0.75f, loopSize = 1.25f },
+                // Pressing: leaning in on the front foot, hands up and out, bouncing quicker.
+                press = new MoodStance { crouch = 0.03f, lean = 9f, forward = 0.07f, chin = 5f, main = new Vector3(0f, 0.05f, 0.08f), off = new Vector3(0f, 0.06f, 0.14f), loopSpeed = 1.35f, loopSize = 1.2f },
+                // The high shell: forearms up beside the head, elbows tight, chin down, crouched in behind them.
+                shell = new MoodStance { crouch = 0.06f, lean = 3f, forward = -0.02f, chin = 14f, main = new Vector3(-0.06f, 0.12f, 0.04f), off = new Vector3(0.12f, 0.22f, -0.1f), loopSpeed = 1.4f, loopSize = 0.5f },
+            };
+
             // The club cocked back as if to swing, and stopped: the real swing's own wind-up, a third of the way.
             var clubFeint = Posture("ClubFeint", PostureKind.Feint, 0.5f, true, "JabFeint", 1.2f);
             clubFeint.feintMove = "ClubSwing";
             clubFeint.feintDepth = 0.4f;
             clubFeint.keys = new[]
             {
-                new PostureKey { at = 0.4f, crouch = 0.04f, lean = 4f, off = new Vector3(0f, -0.08f, 0f) },
+                new PostureKey { at = 0.4f, crouch = 0.06f, lean = 8f, turn = 8f, off = new Vector3(0f, -0.1f, 0.04f) },
             };
             clubFeint.openings = new[] { Open(0.3f, 0.6f, AimParts.Head) };
 
@@ -255,8 +309,8 @@ namespace PhysicsBattler.Motion
             var jabFeint = Posture("JabFeint", PostureKind.Feint, 0.38f, true, "BobAndWeave");
             jabFeint.keys = new[]
             {
-                new PostureKey { at = 0.35f, hips = new Vector3(0f, 0f, 0.04f), lean = 4f, turn = -10f, off = new Vector3(0.06f, -0.04f, 0.3f) },
-                new PostureKey { at = 0.7f, hips = new Vector3(0f, 0f, 0.02f), lean = 2f, turn = -4f, off = new Vector3(0.02f, -0.01f, 0.08f) },
+                new PostureKey { at = 0.35f, hips = new Vector3(0f, 0f, 0.06f), lean = 7f, turn = -14f, off = new Vector3(0.08f, -0.04f, 0.42f) },
+                new PostureKey { at = 0.7f, hips = new Vector3(0f, 0f, 0.03f), lean = 3f, turn = -5f, off = new Vector3(0.03f, -0.01f, 0.1f) },
             };
             jabFeint.steps = new[]
             {
@@ -269,9 +323,9 @@ namespace PhysicsBattler.Motion
             var bob = Posture("BobAndWeave", PostureKind.Defence, 0.75f, false, "ClubFeint");
             bob.keys = new[]
             {
-                new PostureKey { at = 0.25f, hips = new Vector3(0.06f, 0f, 0f), crouch = 0.07f, lean = 8f, roll = 10f, turn = 8f, head = new Vector2(8f, 0f) },
-                new PostureKey { at = 0.5f, hips = new Vector3(0f, 0f, 0.03f), crouch = 0.17f, lean = 18f, head = new Vector2(10f, 0f) },
-                new PostureKey { at = 0.75f, hips = new Vector3(-0.06f, 0f, 0f), crouch = 0.07f, lean = 8f, roll = -10f, turn = -8f, head = new Vector2(8f, 0f) },
+                new PostureKey { at = 0.25f, hips = new Vector3(0.1f, 0f, 0f), crouch = 0.1f, lean = 10f, roll = 14f, turn = 12f, head = new Vector2(10f, 0f) },
+                new PostureKey { at = 0.5f, hips = new Vector3(0f, 0f, 0.03f), crouch = 0.21f, lean = 21f, head = new Vector2(12f, 0f) },
+                new PostureKey { at = 0.75f, hips = new Vector3(-0.1f, 0f, 0f), crouch = 0.1f, lean = 10f, roll = -14f, turn = -12f, head = new Vector2(10f, 0f) },
             };
             bob.openings = new[] { Open(0.4f, 0.62f, AimParts.Head | AimParts.Neck) };
 
@@ -279,7 +333,7 @@ namespace PhysicsBattler.Motion
             var shift = Posture("Shift", PostureKind.Footwork, 0.7f, false, "JabFeint", 0.8f);
             shift.keys = new[]
             {
-                new PostureKey { at = 0.45f, hips = new Vector3(0.03f, 0f, 0.06f), lean = 5f, turn = 25f },
+                new PostureKey { at = 0.45f, hips = new Vector3(0.04f, 0f, 0.08f), lean = 7f, turn = 30f, off = new Vector3(0f, 0.04f, 0.12f) },
             };
             shift.steps = new[]
             {
@@ -287,8 +341,9 @@ namespace PhysicsBattler.Motion
                 new PostureStep { at = 0.6f, foot = PostureFoot.Rear, to = PostureStepTo.Home, length = 0.35f },
             };
             shift.openings = new[] { Open(0.35f, 0.6f, AimParts.Belly | AimParts.Knees) };
+            shift.use = TempoUse.Gather | TempoUse.Probe;   // (not pressing: leaning in on a switched stance tips it over)
 
-            postures = new[] { clubFeint, jabFeint, bob, shift };
+            postures = new[] { clubFeint, jabFeint, bob, shift, Settle("BoxerSettle", new Vector3(0.02f, -0.1f, -0.06f), 10f, "Shift"), StalkIn("BoxerStalk", 0.24f, "JabFeint") };
         }
 
         /// <summary>
@@ -319,6 +374,19 @@ namespace PhysicsBattler.Motion
             aggression = 0.5f;
             tiredGuardDrop = 0.1f;
 
+            // Patient: long breathers behind the shield, short sharp bursts, shells up early.
+            temperament = new Temperament
+            {
+                probeAt = 0.5f, pressAt = 0.85f, pressAggression = 0.45f, burstMax = 3, composure = 0.5f, holdChance = 0.5f, fullCharge = 0.95f,
+                probeInterval = new Vector2(1.0f, 2.0f), pressGap = new Vector2(0.2f, 0.45f),
+                // Gathering: low behind the shield pulled in, the sword drawn back, weight back.
+                gather = new MoodStance { crouch = 0.06f, lean = -3f, forward = -0.06f, chin = 5f, main = new Vector3(0f, -0.06f, -0.08f), off = new Vector3(0f, -0.04f, -0.12f), loopSpeed = 0.75f, loopSize = 1.2f },
+                // Pressing: the shield driven forward, weight on the front foot, the sword up ready.
+                press = new MoodStance { crouch = 0.02f, lean = 8f, forward = 0.07f, chin = 3f, main = new Vector3(0f, 0.08f, 0.04f), off = new Vector3(0f, 0.04f, 0.16f), loopSpeed = 1.3f, loopSize = 1.2f },
+                // Shelled: crouched right down behind the shield raised to the eyes, the sword back.
+                shell = new MoodStance { crouch = 0.11f, lean = 8f, forward = 0f, chin = 10f, main = new Vector3(0f, 0.04f, -0.1f), off = new Vector3(0.04f, 0.22f, 0.04f), loopSpeed = 1.3f, loopSize = 0.5f },
+            };
+
             // The sword rises as if for a high cut over the shield, and the line breaks off.
             var high = Posture("HighFeint", PostureKind.Feint, 0.55f, true, "ShieldPress", 1.2f);
             high.feintMove = "SwordCut";
@@ -333,12 +401,12 @@ namespace PhysicsBattler.Motion
             var press = Posture("ShieldPress", PostureKind.Feint, 0.6f, true, "HighFeint");
             press.keys = new[]
             {
-                new PostureKey { at = 0.45f, hips = new Vector3(0f, 0f, 0.06f), lean = 6f, turn = -10f, off = new Vector3(0f, 0.02f, 0.2f) },
-                new PostureKey { at = 0.75f, hips = new Vector3(0f, 0f, 0.03f), lean = 3f, turn = -4f, off = new Vector3(0f, 0f, 0.08f) },
+                new PostureKey { at = 0.45f, hips = new Vector3(0f, 0f, 0.1f), lean = 12f, turn = -16f, off = new Vector3(0f, 0.06f, 0.42f) },
+                new PostureKey { at = 0.75f, hips = new Vector3(0f, 0f, 0.05f), lean = 5f, turn = -6f, off = new Vector3(0f, 0.02f, 0.14f) },
             };
             press.steps = new[]
             {
-                new PostureStep { at = 0.1f, foot = PostureFoot.Lead, to = PostureStepTo.OffsetFromHome, offset = new Vector3(0f, 0f, 0.12f), length = 0.3f },
+                new PostureStep { at = 0.1f, foot = PostureFoot.Lead, to = PostureStepTo.OffsetFromHome, offset = new Vector3(0f, 0f, 0.18f), length = 0.3f },
                 new PostureStep { at = 0.65f, foot = PostureFoot.Lead, to = PostureStepTo.Home, length = 0.3f },
             };
             press.openings = new[] { Open(0.4f, 0.75f, AimParts.Knees | AimParts.ElbowR) };
@@ -348,8 +416,8 @@ namespace PhysicsBattler.Motion
             var change = Posture("GuardChange", PostureKind.Guard, 0.9f, false, "Peek");
             change.keys = new[]
             {
-                new PostureKey { at = 0.35f, main = new Vector3(0.02f, 0.38f, 0.04f), mainTurn = new Vector3(-55f, 0f, 0f), off = new Vector3(0f, -0.14f, 0f), offTurn = new Vector3(15f, 0f, 0f) },
-                new PostureKey { at = 0.7f, main = new Vector3(0.06f, 0.24f, -0.06f), mainTurn = new Vector3(-40f, 8f, 0f), off = new Vector3(0f, 0.08f, -0.04f) },
+                new PostureKey { at = 0.35f, turn = 10f, lean = -3f, main = new Vector3(0.02f, 0.46f, 0.04f), mainTurn = new Vector3(-60f, 0f, 0f), off = new Vector3(0f, -0.3f, 0.02f), offTurn = new Vector3(20f, 0f, 0f) },
+                new PostureKey { at = 0.7f, turn = -8f, lean = 4f, main = new Vector3(0.08f, 0.3f, -0.1f), mainTurn = new Vector3(-45f, 8f, 0f), off = new Vector3(0f, 0.16f, -0.06f) },
             };
             change.openings = new[] { Open(0.3f, 0.5f, AimParts.Chest | AimParts.Belly), Open(0.6f, 0.8f, AimParts.Knees) };
 
@@ -357,11 +425,11 @@ namespace PhysicsBattler.Motion
             var peek = Posture("Peek", PostureKind.Defence, 0.45f, false, "HighFeint", 0.9f);
             peek.keys = new[]
             {
-                new PostureKey { at = 0.45f, crouch = -0.02f, head = new Vector2(-6f, 0f), off = new Vector3(0f, -0.15f, -0.03f), offTurn = new Vector3(12f, 0f, 0f) },
+                new PostureKey { at = 0.45f, crouch = -0.04f, lean = -4f, head = new Vector2(-12f, 0f), off = new Vector3(0f, -0.32f, -0.08f), offTurn = new Vector3(20f, 0f, 0f) },
             };
             peek.openings = new[] { Open(0.25f, 0.7f, AimParts.Head | AimParts.Neck) };
 
-            postures = new[] { high, press, change, peek };
+            postures = new[] { high, press, change, peek, Settle("ShieldSettle", new Vector3(0f, -0.08f, -0.14f), 6f, "GuardChange"), StalkIn("ShieldAdvance", 0.2f, "ShieldPress") };
         }
 
         /// <summary>
@@ -391,14 +459,27 @@ namespace PhysicsBattler.Motion
             aggression = 0.55f;
             tiredGuardDrop = 0.08f;
 
+            // Timing: short breathers circling out of reach, quick flurries in and out, would rather move than shell.
+            temperament = new Temperament
+            {
+                probeAt = 0.45f, pressAt = 0.7f, pressAggression = 0.45f, burstMax = 6, composure = 0.6f, pressCost = 0.1f, holdChance = 0.3f, fullCharge = 0.85f,
+                probeInterval = new Vector2(0.6f, 1.4f), pressGap = new Vector2(0.1f, 0.3f),
+                // Gathering: light and back on the rear foot, the stick low, the alive hand in.
+                gather = new MoodStance { crouch = 0.04f, lean = -3f, forward = -0.06f, chin = 4f, main = new Vector3(0f, -0.06f, -0.06f), off = new Vector3(0.04f, -0.06f, -0.1f), loopSpeed = 0.8f, loopSize = 1.15f },
+                // Pressing: low and forward, the stick up and out, the alive hand reaching.
+                press = new MoodStance { crouch = 0.06f, lean = 9f, forward = 0.07f, chin = 3f, main = new Vector3(0f, 0.1f, 0.1f), off = new Vector3(0f, 0.08f, 0.14f), loopSpeed = 1.4f, loopSize = 1.3f },
+                // Shelled: very low, the stick across the body, ready to slip out.
+                shell = new MoodStance { crouch = 0.13f, lean = 5f, forward = -0.06f, chin = 6f, main = new Vector3(-0.1f, 0.04f, 0.1f), off = new Vector3(0.06f, 0.12f, 0.08f), loopSpeed = 1.4f, loopSize = 0.6f },
+            };
+
             // Fast fan flicks of the stick, side to side from the wrist, driven by the hips.
-            var abanico = Posture("AbanicoFlurry", PostureKind.Flourish, 0.7f, true, "TriangleStep", 1.2f);
+            var abanico = Posture("AbanicoFlurry", PostureKind.Flourish, 0.95f, true, "TriangleStep", 1.2f);
             abanico.keys = new[]
             {
-                new PostureKey { at = 0.15f, turn = 6f, main = new Vector3(0.12f, 0.08f, 0.06f), mainTurn = new Vector3(10f, 0f, -55f) },
-                new PostureKey { at = 0.35f, turn = -6f, main = new Vector3(-0.06f, 0.1f, 0.08f), mainTurn = new Vector3(10f, 0f, 50f) },
-                new PostureKey { at = 0.55f, turn = 6f, main = new Vector3(0.12f, 0.1f, 0.06f), mainTurn = new Vector3(10f, 0f, -55f) },
-                new PostureKey { at = 0.75f, turn = -5f, main = new Vector3(-0.04f, 0.08f, 0.08f), mainTurn = new Vector3(10f, 0f, 45f) },
+                new PostureKey { at = 0.2f, hips = new Vector3(0.04f, 0f, 0f), turn = 12f, main = new Vector3(0.2f, 0.15f, 0.12f), mainTurn = new Vector3(10f, 0f, -60f) },
+                new PostureKey { at = 0.4f, hips = new Vector3(-0.04f, 0f, 0f), turn = -12f, main = new Vector3(-0.1f, 0.15f, 0.14f), mainTurn = new Vector3(10f, 0f, 55f) },
+                new PostureKey { at = 0.6f, hips = new Vector3(0.04f, 0f, 0f), turn = 12f, main = new Vector3(0.2f, 0.16f, 0.12f), mainTurn = new Vector3(10f, 0f, -60f) },
+                new PostureKey { at = 0.8f, hips = new Vector3(-0.03f, 0f, 0f), turn = -10f, main = new Vector3(-0.06f, 0.12f, 0.12f), mainTurn = new Vector3(10f, 0f, 50f) },
             };
             abanico.openings = new[] { Open(0.3f, 0.8f, AimParts.Knees | AimParts.Belly) };
 
@@ -406,8 +487,8 @@ namespace PhysicsBattler.Motion
             var triangle = Posture("TriangleStep", PostureKind.Footwork, 0.55f, true, "AbanicoFlurry");
             triangle.keys = new[]
             {
-                new PostureKey { at = 0.45f, hips = new Vector3(-0.03f, 0f, 0.02f), crouch = 0.03f, turn = 12f, travel = new Vector3(-0.18f, 0f, 0.14f) },
-                new PostureKey { at = 1f, travel = new Vector3(-0.24f, 0f, 0.18f) },
+                new PostureKey { at = 0.45f, hips = new Vector3(-0.06f, 0f, 0.04f), crouch = 0.07f, lean = 6f, turn = 22f, off = new Vector3(0f, 0.06f, 0.1f), travel = new Vector3(-0.22f, 0f, 0.17f) },
+                new PostureKey { at = 1f, travel = new Vector3(-0.28f, 0f, 0.22f) },
             };
             triangle.openings = new[] { Open(0.35f, 0.6f, AimParts.Knees) };
 
@@ -415,9 +496,9 @@ namespace PhysicsBattler.Motion
             var redonda = Posture("RedondaTwirl", PostureKind.Flourish, 1f, true, "TriangleStep", 0.9f);
             redonda.keys = new[]
             {
-                new PostureKey { at = 0.25f, turn = 6f, main = new Vector3(0.18f, 0.24f, 0.04f), mainTurn = new Vector3(-25f, 0f, -18f) },
-                new PostureKey { at = 0.5f, turn = 14f, lean = -4f, main = new Vector3(0.2f, 0.32f, -0.04f), mainTurn = new Vector3(-95f, -45f, 0f) },
-                new PostureKey { at = 0.75f, turn = 4f, main = new Vector3(0.14f, 0.12f, 0.14f), mainTurn = new Vector3(50f, 20f, 0f) },
+                new PostureKey { at = 0.25f, hips = new Vector3(0.04f, 0f, 0f), crouch = 0.04f, turn = 8f, main = new Vector3(0.18f, 0.24f, 0.04f), mainTurn = new Vector3(-25f, 0f, -18f) },
+                new PostureKey { at = 0.5f, hips = new Vector3(0.06f, 0f, -0.03f), turn = 18f, lean = -6f, main = new Vector3(0.2f, 0.32f, -0.04f), mainTurn = new Vector3(-80f, -35f, 0f) },
+                new PostureKey { at = 0.75f, hips = new Vector3(0.02f, 0f, 0.04f), crouch = 0.05f, lean = 6f, turn = 4f, main = new Vector3(0.14f, 0.12f, 0.14f), mainTurn = new Vector3(50f, 20f, 0f) },
             };
             redonda.openings = new[] { Open(0.4f, 0.75f, AimParts.Chest | AimParts.Belly | AimParts.ElbowR) };
 
@@ -425,12 +506,12 @@ namespace PhysicsBattler.Motion
             var bait = Posture("BaitRetreat", PostureKind.Defence, 0.75f, false, "AbanicoFlurry", 0.8f);
             bait.keys = new[]
             {
-                new PostureKey { at = 0.5f, lean = -5f, main = new Vector3(0.02f, -0.04f, -0.12f), mainTurn = new Vector3(15f, 0f, 0f), off = new Vector3(0.02f, 0.1f, 0.14f), travel = new Vector3(0f, 0f, -0.22f) },
-                new PostureKey { at = 1f, travel = new Vector3(0f, 0f, -0.28f) },
+                new PostureKey { at = 0.5f, lean = -10f, hips = new Vector3(0f, 0f, -0.05f), main = new Vector3(0.04f, -0.1f, -0.26f), mainTurn = new Vector3(15f, 0f, 0f), off = new Vector3(0.04f, 0.22f, 0.3f), travel = new Vector3(0f, 0f, -0.32f) },
+                new PostureKey { at = 1f, travel = new Vector3(0f, 0f, -0.4f) },
             };
             bait.openings = new[] { Open(0.15f, 0.95f, AimParts.Head | AimParts.Chest | AimParts.Belly) };
 
-            postures = new[] { abanico, triangle, redonda, bait };
+            postures = new[] { abanico, triangle, redonda, bait, Settle("StickSettle", new Vector3(0.04f, -0.1f, -0.12f), 6f, "TriangleStep"), StalkIn("StickStalk", 0.3f, "AbanicoFlurry") };
         }
     }
 }

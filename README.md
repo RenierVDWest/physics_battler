@@ -9,10 +9,43 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 7, measuring the rhythm and free roam
+## Current state: milestone 8, the tempo
 
-Plan for milestones 7 to 12 (tempo, combos, defence, dodging, signature attacks):
+Plan for milestones 7 to 12 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp
+
+### Milestone 8: the tempo
+
+The blows no longer come on a fixed clock. Each unit has a **tempo** (`Motion/Tempo.cs`,
+`Units/UnitTempo.cs`), and its mood decides when it attacks:
+- **Gather.** Holding back just out of the target's reach, circling, settling its guard. Energy comes
+  back fast (0.25 a second). Sometimes it only rests until it can probe; sometimes (`holdChance`) it
+  holds on to a full charge and goes straight into a press.
+- **Probe.** Single blows and feints now and then, energy coming back slowly.
+- **Press.** Charged and fired up (energy and aggression over the style's levels), it closes right in
+  and throws blow after blow, 0.1–0.45 s apart (combos come in milestone 9), until it is spent, its
+  burst is done, or the press is broken (two blocked blows, a heavy hit).
+- **Shell.** Under a barrage (pressure: each blow at it adds 0.15, 0.4 from a pressing unit; it fades
+  once 1.5 s pass without one), it shells up: crouched behind its guard, giving ground, raising the
+  shield more readily (milestone 10 makes it defend harder).
+- **Counter.** When the barrage stops, one quick answer at once.
+
+Each state holds a **stance** on top of the Fight Rhythm, eased in over 0.4 s, and it stays on through a
+blow: gathering sits lower with the weight back, the chin tucked and the guard in, the base loop slow and
+deep; pressing leans in on the front foot, hands up and out, the loop quick; the shell is each style's
+own (the boxer's high shell, the shield raised to the eyes, the stick fighter low with the stick across).
+Each style's **temperament** (on its Fight Rhythm asset) sets its levels, burst, composure and stances:
+the boxer presses early and long and is hard to rattle; the swordsman gathers long, presses short and
+shells early; the stick fighter flurries in and out.
+
+The postures were made two to three times bigger (each now moves the hands, head or hips at least 10 cm,
+scaled by the body, beyond what they did just before), each plays only in the tempo states it suits, the
+ones that don't move the feet play while walking, and two new ones per style: a settle while gathering
+and a stalking step in while pressing. Setup 18 rebuilds the Fight Rhythm assets from the code (tuning
+done in them is lost).
+
+The `fight` runner prints the share of time in each state; the playtest log has a `tempo` and a
+`pressure` column and a `tempo` event at each change, with the reason.
 
 ### Milestone 7: measuring the rhythm, and free roam
 

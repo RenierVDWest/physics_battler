@@ -31,6 +31,7 @@ namespace UnityEditor
     {
         public static void SetDirty(UnityEngine.Object target) { }
         public static bool DisplayDialog(string title, string message, string ok) => true;
+        public static void CopySerialized(UnityEngine.Object source, UnityEngine.Object dest) { }
     }
 
     public static class AssetDatabase

@@ -54,6 +54,9 @@ namespace PhysicsBattler.Sandbox
                     continue;
                 }
 
+                // (The brawl keeps its own clock: no tempo, the Fight Rhythm as it was before milestone 8.)
+                unit.TempoOn = false;
+
                 // Off its feet (stumbling, down, getting up): nothing to decide until it stands.
                 if (!unit.CanAct)
                 {
