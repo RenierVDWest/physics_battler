@@ -129,11 +129,8 @@ namespace PhysicsBattler.Authority
                 var region = RegionOf(id);
                 var level = levels[(int)region];
                 bool kinematic = level == AuthorityLevel.Kinematic;
-                // (Milestone 9c: a held arm keeps its anatomical limits too: the pose stays inside them,
-                // and a blow can't throw the physical arm into a shape no arm makes.)
-                bool arm = region == BodyRegion.ArmL || region == BodyRegion.ArmR;
                 SetJointLimits(part, level == AuthorityLevel.Loose || level == AuthorityLevel.Ragdoll ? LimitMode.Ragdoll
-                    : level == AuthorityLevel.Pinned && (keepLimits[(int)region] || arm) ? LimitMode.Anatomical : LimitMode.Free);
+                    : level == AuthorityLevel.Pinned && keepLimits[(int)region] ? LimitMode.Anatomical : LimitMode.Free);
                 if (body.isKinematic != kinematic)
                 {
                     body.isKinematic = kinematic;

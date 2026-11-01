@@ -26,35 +26,58 @@ used to be put where the move wanted it and the wrist bent to suit, up to 60 deg
   in a blow, roll 75), then to the body's own limits (the hand's table is now -15/30/80/40).
 - With the wrist that way, the forearm, hand and weapon are turned as one rigid piece about the
   shoulder (`RigidAim`): the elbow bends until the striking point is at the right distance, the arm turns
-  it onto the aim, and twists round to the elbow's side. The elbow's side (`WeaponElbow`) is chosen for
-  the least wrist bend that keeps the arm and blade out of the body. If the aim can't be reached with
-  the wrist that straight, the easy range widens in steps (up to four times) until it can.
-- Out of a blow, the arm's shape eases (12 Hz, critically damped), so a guard that changes doesn't jump.
-  A guard that would put the blade into its own body moves the grip out on a spring.
+  it onto the aim, and swings round the shoulder-to-aim line to where the weapon points nearest the asked
+  way, the elbow toward its pole, clear of the body.
+- Out of reach that way, the weapon comes into line with the forearm (`Straighten`), as little as lands
+  it, and the body leans after a point ahead (up to 50 degrees). Too near, or into its own body, the wrist
+  gives (up to four times its easy range). Each is found by halving, so it changes smoothly.
+- Out of a blow, the arm's shape eases (12 Hz, critically damped). A guard that would put the blade into
+  its own body moves the grip out on a spring.
 - `MovePlanner.InTheWay` (the bystander tests and the sandbox) now uses the blade as the arm poses it.
 
-**Joint limits kept while standing** (`AuthorityController`). A held arm used to lose its limits (they
-were only on for ragdolls), so a stopped blow could fold it past what an arm does. The anatomical
-limits now stay on, 5 degrees wider than the table so the pose never fights them. The servo also
-caps how far it pulls a part round in one go (120 degrees) and ignores a pose that jumps more than that
-in one step.
+**The arm carries on from the last step** (the fix after the first playtest of this part). The first
+version chose the elbow's place, its turn clear of the body and the wrist's give afresh every step,
+taking the best at once in a blow. Where the best flipped (the elbow from 60 degrees one side to 60 the
+other, say) the arm turned over in one step while the blade barely moved: in the stub, how fast its parts'
+turning changed from step to step was 6× push A's (95th percentile 6,500 against 835 degrees a second).
+Now a playing arm starts each step from last step's shape and only looks nearby: the elbow swings round
+at most 240 degrees a second in the guard, 900 in a blow (`GuardSwivelRate`, `BlowSwivelRate`), between
+samples by a parabola; the wrist's roll is read nearest last step's (no flip from one end of its roll to
+the other); its give changes at most 10 times its easy range a second (`WristGiveRate`), unless landing the
+blow needs more; and the weapon turns about its own length at most 720 degrees a second
+(`WeaponRollRate`: where the edge-leads rule turns it end for end as a path turns back, the hand no longer
+snaps over). A tried pose (the planner's) and the first pose after a gap still search the whole way.
+Now 686 against push A's 835; the hand's own flips (up to 178 degrees in a step in push A) are gone.
 
-**A stopped blow rebounds** (`UnitCombat.StopSwing`, `Rebound`). The weapon arm is no longer switched to
-kinematic in blows (the switch back at the moment of a stop was a kick of its own); the servo holds it
-throughout. A blow stopped by a shield, weapon or body now rewinds at most 12% of its length
-(`RewindMost`, `MoveState.RewindFloor`) and the weapon arm takes a rebound knock back along the blow (a
-light stop 0.15, a hard one 0.25 of the arm's knock), then comes back once.
+**The weapon arm is posed exactly in blows again** (`UnitCombat.SetAuthority`). The first version held it
+by the servo in blows, with the joint limits on, to soften stopped blows. The playtest showed the
+physical arm can't follow a fast swing's turns (rigid bodies turn at most 30 radians a second, and the
+limits stopped it where the pose went past them): the sword hand ended 120 to 170 degrees off its pose,
+the blade up to 1.9 m from it, and the tip's acceleration in blows was 10 times push A's. The weapon arm is
+kinematic in blows and while a stopped one fades, as before, and a held arm's limits are as in push A.
+The servo still caps how far it pulls a part round in one go (120 degrees) and ignores a pose that jumps
+more than that in one step.
+
+**A stopped blow rebounds** (`UnitCombat.StopSwing`, `Rebound`). A blow stopped by a shield, weapon or
+body now rewinds at most 12% of its length (`RewindMost`, `MoveState.RewindFloor`) and the weapon arm's
+pose takes a rebound knock back along the blow (a light stop 0.15, a hard one 0.25 of the arm's knock),
+then comes back once.
 
 **A solid, weighted shield** (`Weapon.Equip`, `GroundContacts`). A physical unit's shield collider is
 solid, not a trigger: it stops against bodies and weapons instead of passing into them. Its contacts
 are capped at 2 N·s a step (`ShieldPush`), so it shoves rather than launches. Its mass is added to the
 hand's body and taken off again when it is unequipped.
 
-**Measures** (stub, the pose). `arms 7`: weapon wrist bend in the guard 22 median / 22 95th, in blows
-35 / 43 (the reference attack FBXs: 23 / 45). `aim`: no misses, one blow turned down. Fights 7, 11 and 3 end
-normally with no standing bodies overlapping. New tests:
+**Measures** (stub, the pose). `arms 7`: weapon wrist bend in the guard 22 median / 32 95th, in blows
+29 / 39 (the reference attack FBXs: 23 / 45). Three fights (seeds 7, 11, 3) against push A: the weapon
+tip's acceleration in blows 95th percentile 530 to 710 m/s² (push A 810 to 915), its jerk 95th percentile
+38k to 54k (push A 80k). `aim`: no misses; 19 blows turned down for passing through the attacker's own
+body (push A 5), most of them a large unit's sword cut, whose follow-through crosses the chest (large
+units carry clubs in the sandbox). New tests: `SwingTests.TheWeaponArmNeverJumpsInABlow`,
 `ArmTests.InTheGuardTheWeaponWristStaysNearlyStraight`, `ArmTests.TheShieldIsSolidAndWeighsOnTheHand`.
-The physical side (limits, rebound, the solid shield) can only be judged in play.
+Playtest measure of the shaking: in `python3 Tools/Playtest/arms.py`, and the tip acceleration and
+reversals in blows (the first playtest of this part: median 800 m/s² and 540 reversals against push A's
+80 and 28).
 
 ### Milestone 9c, first part: hits that land softly, a calm and close shield
 

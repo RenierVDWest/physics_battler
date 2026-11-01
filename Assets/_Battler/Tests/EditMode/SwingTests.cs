@@ -108,6 +108,114 @@ namespace PhysicsBattler.Tests
             }
         }
 
+        /// <summary>
+        /// Milestone 9c: through every ready-made blow the weapon arm moves on smoothly. Its parts' turning
+        /// speed changes little from one step to the next, and none turns far in a step while the blade
+        /// itself moves little (the arm's shape carries on from the last step rather than jumping to
+        /// another way of holding the weapon). Push A: 835 and 178 degrees; the first try at the
+        /// straight wrists: 6521.
+        /// </summary>
+        [Test]
+        public void TheWeaponArmNeverJumpsInABlow()
+        {
+            var parts = new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
+            var changes = new System.Collections.Generic.List<float>();
+            float worstTurn = 0f;
+            string worstWhere = "";
+            foreach (MoveStyle style in System.Enum.GetValues(typeof(MoveStyle)))
+            {
+                var move = MoveDefinition.Create(style);
+                if (move == null)
+                {
+                    continue;
+                }
+
+                var weapon = WeaponDefinition.CreateDefault(style.ToString().StartsWith("Sword") ? WeaponKind.Sword : WeaponKind.Club);
+                weapon.moves = new[] { move };
+                var attacker = Build("Medium", Vector3.zero, 0f, 0);
+                var target = Build("Medium", Vector3.forward * 5f, 180f, 1);
+                try
+                {
+                    float distance = attacker.Style.engageDistance * attacker.Body.SizeFactor + 0.25f * target.Body.SizeFactor;
+                    target.Place(Vector3.forward * distance, 180f);
+                    attacker.Equip(weapon, null);
+                    for (int i = 0; i < 20; i++)
+                    {
+                        attacker.PreviewPose(1f / 60f);
+                        target.PreviewPose(1f / 60f);
+                    }
+
+                    MoveState state = null;
+                    foreach (var part in new[] { AimPart.Chest, AimPart.Belly, AimPart.Neck, AimPart.Head, AimPart.KneeL })
+                    {
+                        if (!move.targets.Contains(part))
+                        {
+                            continue;
+                        }
+
+                        var s = MovePlanner.Prepare(attacker, target, move, part);
+                        if (s != null && MovePlanner.Acceptable(attacker, s))
+                        {
+                            state = s;
+                            break;
+                        }
+                    }
+
+                    if (state == null || !attacker.StartMove(state))
+                    {
+                        continue;
+                    }
+
+                    var was = new Quaternion[3];
+                    var rate = new float[3];
+                    Vector3 lastStrike = Vector3.zero;
+                    for (int step = 0; step < 600 && attacker.IsAttacking; step++)
+                    {
+                        attacker.PreviewPose(1f / 60f);
+                        target.PreviewPose(1f / 60f);
+                        for (int k = 0; k < 3; k++)
+                        {
+                            var now = attacker.Anim.Part(parts[k]).rotation;
+                            if (step > 0)
+                            {
+                                float turn = Quaternion.Angle(was[k], now);
+                                float r = turn * 60f;
+                                if (step > 1)
+                                {
+                                    changes.Add(Mathf.Abs(r - rate[k]));
+                                }
+
+                                // (A fast blow turns the arm fast; a turn the blade's own travel doesn't explain is a jump.)
+                                bool still = (attacker.Pose.StrikePoint - lastStrike).magnitude < 0.15f;
+                                if (still && turn > worstTurn)
+                                {
+                                    worstTurn = turn;
+                                    worstWhere = $"{style} {parts[k]} at {state.T:0.00}";
+                                }
+
+                                rate[k] = r;
+                            }
+
+                            was[k] = now;
+                        }
+
+                        lastStrike = attacker.Pose.StrikePoint;
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(attacker.gameObject);
+                    Object.DestroyImmediate(target.gameObject);
+                }
+            }
+
+            Assert.Greater(changes.Count, 300, "blows were played");
+            changes.Sort();
+            float p95 = changes[(int)(0.95f * (changes.Count - 1))];
+            Assert.Less(p95, 1500f, $"the arm's turning speed changes smoothly (95th percentile {p95:0} degrees a second from one step to the next)");
+            Assert.Less(worstTurn, 60f, $"no part of the arm turns far in a step the blade barely moves (worst {worstTurn:0} degrees: {worstWhere})");
+        }
+
         [Test] public void SwordCutIsABigSwing() => BigSwing(MoveStyle.SwordCut);
         [Test] public void SwordBackhandIsABigSwing() => BigSwing(MoveStyle.SwordBackhand, 250f);
         [Test] public void SwordCleaveIsABigSwing() => BigSwing(MoveStyle.SwordCleave);

@@ -14,7 +14,9 @@ What it measures (the plan: https://claude.ai/artifact/UJNwdKChsM7vidDhArKF9W):
     - after a hit: how many times the struck part turns back in the next second (a buzz), how far
       it is off its pose and how fast it spins;
     - after a blow stopped by a body or a shield: how far the attacker's weapon hand is from its pose;
-    - joints past their limits while standing, on the pose and on the physical body.
+    - joints past their limits while standing, on the pose and on the physical body;
+    - the swing's smoothness: the weapon tip's acceleration in blows and how often it turns back on
+      itself, physical and posed, and the physical tip off the pose.
 """
 import re
 import sys
@@ -112,7 +114,7 @@ def measure(session):
     by_label = {u.label: (u, pose, fr) for u, pose, fr in units}
     hits = list(_hits(session))
     hit_times = np.array([h[0] for h in hits]) if hits else np.zeros(0)
-    r = {'wrists': [], 'shield': [], 'after_hit': [], 'stopped': [], 'limits': []}
+    r = {'wrists': [], 'shield': [], 'after_hit': [], 'stopped': [], 'limits': [], 'swing': []}
 
     for u, pose, fr in units:
         stand = _standing(fr)
@@ -126,6 +128,33 @@ def measure(session):
                     continue
                 r['wrists'].append((u.label, what, label, np.percentile(bend[m], 50), np.percentile(bend[m], 95),
                                     np.percentile(np.abs(roll[m]), 95), int(m.sum())))
+
+        # The swing's smoothness: the weapon tip in blows (steps inside one blow, standing), physical
+        # and posed. Acceleration and how often it turns back on itself; the physical tip off the pose.
+        if 'tip.x' in pose and 'ghostTip.x' in pose:
+            moves = fr['move'].astype(str).to_numpy() if 'move' in fr else np.array([''] * len(fr))
+            n = min(len(pose), len(fr))
+            same = np.zeros(n, bool)
+            same[1:-1] = (moves[1:n - 1] == moves[:n - 2]) & (moves[1:n - 1] == moves[2:n])
+            ok = same & blow[:n] & stand[:n]
+            row = [u.label]
+            for kind in ('tip', 'ghostTip'):
+                tip = pose[[kind + '.x', kind + '.y', kind + '.z']].to_numpy(dtype=float)[:n]
+                v = np.diff(tip, axis=0) * 60.0
+                acc = np.zeros(n)
+                acc[1:-1] = np.linalg.norm(np.diff(v, axis=0), axis=1) * 60.0
+                back = np.zeros(n, bool)
+                fast = np.linalg.norm(v, axis=1) > 1.0
+                back[1:-1] = fast[:-1] & fast[1:] & ((v[:-1] * v[1:]).sum(1) < 0)
+                good = ok & np.isfinite(acc)
+                row += [np.median(acc[good]) if good.any() else np.nan, np.percentile(acc[good], 95) if good.any() else np.nan,
+                        int(back[good].sum())]
+            off = np.linalg.norm(pose[['tip.x', 'tip.y', 'tip.z']].to_numpy(dtype=float)[:n]
+                                 - pose[['ghostTip.x', 'ghostTip.y', 'ghostTip.z']].to_numpy(dtype=float)[:n], axis=1)
+            good = ok & np.isfinite(off)
+            if good.sum() >= 30:
+                row += [np.percentile(off[good], 95), int(good.sum())]
+                r['swing'].append(tuple(row))
 
         # The shield: its face is the shield hand's down (the centre grip, before and after 9b).
         if 'shield' in fr and fr['shield'].astype(str).isin(['Guard', 'Track', 'Block', 'High']).any():
@@ -197,6 +226,18 @@ def section(session):
         for unit, what, when, med, p95, roll, n in r['wrists']:
             flag = "  **bent**" if med > 25 or p95 > 45 else ""
             L.append(f"| {unit} | {what} | {when} | {med:.0f}°{flag} | {p95:.0f}° | {roll:.0f}° | {n} |")
+        L.append("")
+    if r['swing']:
+        L.append("The swing's smoothness: the weapon tip in blows, physical and posed. Its acceleration (median / 95th; "
+                 "push A ~80 / ~850 m/s²), how many steps it turned back on itself, and the physical tip off the posed one "
+                 "(95th; in blows the weapon arm is posed exactly, so ~0). The first try at straight wrists: 800 / 7000 m/s², "
+                 "~450 turns back, 1.6 m off.")
+        L.append("")
+        L.append("| unit | physical accel | physical turns back | posed accel | posed turns back | physical off the pose | steps |")
+        L.append("| --- | --- | --- | --- | --- | --- | --- |")
+        for unit, pm, p95, pb, gm, g95, gb, off, n in r['swing']:
+            flag = "  **shaking**" if pm > 3 * max(gm, 1.0) or off > 0.1 else ""
+            L.append(f"| {unit} | {pm:.0f} / {p95:.0f} m/s²{flag} | {pb} | {gm:.0f} / {g95:.0f} m/s² | {gb} | {off:.2f} m | {n} |")
         L.append("")
     if r['shield']:
         L.append("The shield with no hit in the last second: how fast its face turns (median / 99th; target ≤ 20 / ≤ 250°/s), "

@@ -238,10 +238,11 @@ namespace PhysicsBattler.Units
             SetRegion(BodyRegion.Torso, torso, false);
             SetRegion(BodyRegion.Head, torso, false);
             SetRegion(BodyRegion.ArmL, armL, false);
-            // Milestone 9c: the weapon arm is held by the servo in blows too (no switch from kinematic to
-            // held at the moment a blow is stopped, when it is struck hardest); the profile's
-            // weaponArmKinematicInBlows is no longer used.
-            SetRegion(BodyRegion.ArmR, armR, false);
+            // (In a blow, and while a stopped one fades, the weapon arm is posed exactly: the physical
+            // arm can't follow a fast swing's turns, and chasing them shakes. Milestone 9c tried holding
+            // it by the servo instead; the playtest showed the blade trailing and flailing.)
+            bool kinematicArm = move != null && profile.weaponArmKinematicInBlows && blend > 0.01f;
+            SetRegion(BodyRegion.ArmR, armR, kinematicArm);
         }
 
         private void SetRegion(BodyRegion region, float pin, bool kinematic)
