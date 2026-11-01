@@ -1192,6 +1192,15 @@ def write_report(session, out, args, films):
                 w(f"- {e.t:7.2f} s  [{e.cat}] {e.text}")
             w("")
 
+    # Milestone 7a: the Fight Rhythm and tempo of the whole fight (Tools/Playtest/tempo.py).
+    try:
+        import tempo
+        for line in tempo.section(session)[0]:
+            w(line)
+    except Exception as e:  # (a log from before the tempo columns, say: the rest of the report still stands)
+        w(f"(Fight Rhythm and tempo: not measured: {e})")
+        w("")
+
     if session.meta.get("marks"):
         w("## Marks")
         w("")

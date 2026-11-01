@@ -55,6 +55,11 @@ internal static class Program
             return BalanceReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "windows")
+        {
+            return WindowReport.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "aim")
         {
             return AimMatrix.Run(args.Length >= 2 ? float.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 1f);

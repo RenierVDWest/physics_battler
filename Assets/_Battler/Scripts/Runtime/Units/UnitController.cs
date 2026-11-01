@@ -52,6 +52,9 @@ namespace PhysicsBattler.Units
         private static readonly List<UnitController> all = new List<UnitController>();
         private static Transform bodiesContainer;
         private static int spawnCount;   // seeds each unit's idle and shuffles differently
+
+        /// <summary>The next units made get the same seeds as the first ones ever made (tests that must not depend on what ran before them).</summary>
+        public static void ResetSeeds(int count = 0) => spawnCount = count;
         private GameObject detachedBody;
         private float facingYaw;
         private Vector3? facePoint;

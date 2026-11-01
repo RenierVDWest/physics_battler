@@ -46,6 +46,9 @@ namespace PhysicsBattler.Units
         public static event Action<HitReport> Hit;
         public static event Action<UnitController, HitReport> Died;
 
+        /// <summary>A blow is coming at a unit, and what it does about it: (defender, attacker, the blow, what it did).</summary>
+        public static event Action<UnitController, UnitController, MoveState, string> Defending;
+
         public float Health { get; private set; }
         public float Poise { get; private set; }
         public bool IsAlive { get; private set; } = true;
@@ -896,14 +899,20 @@ namespace PhysicsBattler.Units
             Rhythm?.NoteThreat();
             if (!CanAct || Loadout == null || !Loadout.HasShield || IsAttacking)
             {
-                return;   // (off its feet, it can't block)
+                // (off its feet, it can't block)
+                Defending?.Invoke(this, attacker, move, !CanAct ? "can't defend: off its feet"
+                    : IsAttacking ? "can't defend: in a blow of its own"
+                    : "nothing to defend with");
+                return;
             }
 
             if (combatRandom.NextDouble() >= Style.blockChance)
             {
+                Defending?.Invoke(this, attacker, move, "doesn't block");
                 return;
             }
 
+            Defending?.Invoke(this, attacker, move, $"raises the shield after {Style.reactionTime:0.00} s");
             incoming = move;
             blockFrom = LocalTime + Style.reactionTime;
             blockUntil = LocalTime + move.Duration * Mathf.Min(1f, move.Move.activeWindow.y + 0.1f);

@@ -360,6 +360,16 @@ namespace PhysicsBattler.Diagnostics
             postureCounts[posture.Label] = n + 1;
         }
 
+        public int incoming, shieldsRaised, defenceless;
+
+        /// <summary>Milestone 7: a blow came at it, and what it did about it.</summary>
+        public void NoteDefence(string what)
+        {
+            incoming++;
+            shieldsRaised += what.StartsWith("raises the shield") ? 1 : 0;
+            defenceless += what == "nothing to defend with" ? 1 : 0;
+        }
+
         public int severs;
 
         /// <summary>Milestone 5: a limb came off it.</summary>
@@ -446,6 +456,13 @@ namespace PhysicsBattler.Diagnostics
                 md.AppendLine($"Hits dealt: {hitsDealt} ({aimedHits} on the part aimed at, {blocked} blocked, {strayHits} on someone in the way, "
                               + $"{allyHits} on allies), {damageDealt:0} damage. Hits taken: {hitsTaken}, {damageTaken:0} damage. "
                               + $"{(unit != null && !unit.IsAlive ? "Killed." : $"Health at the end {(unit != null ? unit.Health : 0f):0}.")}");
+                md.AppendLine();
+            }
+
+            if (incoming > 0)
+            {
+                md.AppendLine($"Defence: {incoming} blows came at it; it raised the shield against {shieldsRaised}"
+                              + (defenceless > 0 ? $", and had nothing to defend with against {defenceless}." : "."));
                 md.AppendLine();
             }
 

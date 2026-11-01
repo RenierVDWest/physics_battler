@@ -9,7 +9,36 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 6, the fight loop
+## Current state: milestone 7, measuring the rhythm and free roam
+
+Plan for milestones 7 to 12 (tempo, combos, defence, dodging, signature attacks):
+https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp
+
+### Milestone 7: measuring the rhythm, and free roam
+
+**7a, the measurements.** Every playtest log now says how a fight *moves*, not just what hit what
+(`Tools/Playtest/tempo.py`, also written into `analyze.py`'s report):
+- each unit's time on its feet split into walking, in a blow, in a posture, blocking and the idle loop
+  alone (and into tempo states once they exist, milestone 8);
+- each posture's **extra motion**: how far it takes the hands, head or hips beyond the idle loop's own
+  reach, in cm. Under 10 cm it is flagged: it can't be seen;
+- energy's range and its charge-and-spend cycles; the gaps between a unit's own blows and the share in
+  bursts (under 1 s apart); within each pair, how often the next blow is the other unit's (over 55% reads
+  as taking turns); blows thrown into the target's own blow;
+- **defence** events: every blow coming at a unit and what it did (raised the shield, didn't, couldn't:
+  mid-blow, off its feet, nothing to defend with).
+
+`python3 Tools/Playtest/tempo.py <session> [<session> ...]` pools several fights by body. The `fight`
+runner prints the headline (gaps, bursts, alternation), and `windows` lists every move's timing as a
+defender sees it (the wind-up's end, the drive, contact) on each body, for the dodge design.
+
+**7b, free roam.** Once the fight starts, units leave the tiles behind (`Battle/FightLoop.cs`); the tiles
+are for placing units. Each unit walks straight to a ring round its target at its striking distance,
+steered by a smoothed velocity: what it wants, plus a push away from every body too close (standing or
+lying, either team; more room between two of a team on one target, to swing in) and back from the board's
+edge. Small wants are dropped, so the feet don't take nervous little steps. A target with three attackers
+already (`RingSize`) is passed over for another. No headway for 2 s and it goes round, to one side for a
+moment. On the ring it keeps its distance, its Fight Rhythm circles it, and it strikes as before.
 
 ### Milestone 6: the fight loop
 
@@ -17,12 +46,12 @@ Press Play and the two teams fight it out with no help (`Battle/FightLoop.cs`):
 - **Targets.** Each unit picks the nearest enemy that can still fight. It keeps
   the target it has, and favours one that is already hurt or already fighting it. Someone on the ground is a
   target only when no one is standing.
-- **Tile to tile.** It walks across the board from tile centre to tile centre (8 ways, round others, never
+- **Tile to tile** (replaced by free roam in milestone 7). It walked across the board from tile centre to tile centre (8 ways, round others, never
   cutting their corners) to a free tile next to its target, playing its captured walk at a speed that goes
   with the square root of its size. The tiles a unit stands on and is heading for are held, so no two share
   one, and a body on the ground holds the tile it lies on. A unit knocked off its tile, or onto someone
   else's, walks to the nearest free one. After getting up it goes back onto the board.
-- **On its tile** it closes in or gives ground a little (never off the tile). When its timer comes round,
+- **On its tile** (now: on its ring) it closes in or gives ground a little (never off the tile). When its timer comes round,
   it strikes its target or any other enemy in reach in front of it, at a body part one of its moves can
   land on.
 - **Openings** (the question pinned in the Fight Rhythm plan). An opening is a body part the target leaves
@@ -495,6 +524,8 @@ python3 ../Playtest/rhythms.py /tmp/rhythms                            # them dr
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll walks /tmp/walks       # each body walking (forward, back, aside, round), CSVs for walkview.py
 AIM_STYLES=1 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim       # the aim matrix with each body's own stance
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll fight /tmp/fight 7     # a whole 3 v 3 fight (seed 7) with a playtest log; FIGHT_MIRROR=1 swaps the sides
+python3 ../Playtest/tempo.py /tmp/fight/PlaytestLogs/<session> [...]   # its rhythm and tempo (several sessions: pooled by body)
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll windows                # every move's wind-up end, drive and contact on each body
 python3 ../Playtest/fightview.py /tmp/fight/PlaytestLogs/<session> fight.mp4   # that fight as a video, seen from above
 TEST_ONLY=Balance dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll      # only the tests whose name contains this
 ```

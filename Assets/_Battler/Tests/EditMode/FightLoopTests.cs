@@ -66,7 +66,7 @@ namespace PhysicsBattler.Tests
             }
         }
 
-        /// <summary>Steps a fight (the loop, each unit's own step, then the stand-in physics); how many steps two standing units shared a tile.</summary>
+        /// <summary>Steps a fight (the loop, each unit's own step, then the stand-in physics); in how many steps two standing bodies overlapped.</summary>
         internal static int Run(FightLoop loop, List<UnitController> units, float seconds, System.Func<bool> stop = null)
         {
             int shared = 0;
@@ -85,14 +85,7 @@ namespace PhysicsBattler.Tests
                     BalanceTests.Integrate(u, 1f / 60f);
                 }
 
-                var on = new HashSet<long>();
-                foreach (var u in units)
-                {
-                    if (u.IsAlive && u.State == UnitState.Standing && loop.TileOf(u, out var t) && !on.Add(((long)t.column << 16) | (uint)t.row))
-                    {
-                        shared++;
-                    }
-                }
+                shared += FightLoop.Overlapping(units) > 0 ? 1 : 0;
             }
 
             return shared;
@@ -115,12 +108,12 @@ namespace PhysicsBattler.Tests
             try
             {
                 int shared = Run(loop, units, 260f);
-                System.Console.WriteLine($"{loop.Result}; {blows} blows; {shared} steps with two standing units on one tile");
+                System.Console.WriteLine($"{loop.Result}; {blows} blows; {shared} steps with bodies overlapping; {loop.Stalls} stalls");
                 Assert.IsTrue(loop.Over, "the fight ended by itself");
                 Assert.AreNotEqual(-1, loop.Winner, "one team won: " + loop.Result);
                 Assert.IsFalse(loop.Result.Contains("time"), "before the time limit: " + loop.Result);
                 Assert.Greater(blows, 12, "they fought");
-                Assert.Less(shared, 0.02f * (loop.EndedAt - loop.StartedAt) * 60f, "never two on one tile (but in passing)");
+                Assert.Less(shared, 0.02f * (loop.EndedAt - loop.StartedAt) * 60f, "bodies never overlap (but for a moment in a scrum)");
                 int left = 0;
                 foreach (var u in units)
                 {
@@ -138,7 +131,7 @@ namespace PhysicsBattler.Tests
         }
 
         [Test]
-        public void UnitsWalkTileToTileAndStopNextToTheirTarget()
+        public void UnitsWalkFreelyAndStopInReachOfTheirTarget()
         {
             var grid = new BoardGrid();
             var units = Teams(grid, new[]
@@ -149,19 +142,71 @@ namespace PhysicsBattler.Tests
             var loop = new FightLoop(3) { Grid = grid };
             try
             {
-                // Until one strikes: they should have closed in to neighbouring tiles.
+                // Until one strikes: they should have closed in, straight across the board (no tile path).
                 Run(loop, units, 40f, () => units[0].IsAttacking || units[1].IsAttacking);
                 Assert.IsTrue(units[0].IsAttacking || units[1].IsAttacking, "they met and one struck");
-                // (The one striking stands on its tile; the other may still be stepping onto its own.)
                 var striker = units[0].IsAttacking ? units[0] : units[1];
                 var other = striker == units[0] ? units[1] : units[0];
                 Vector3 apart = other.Root.position - striker.Root.position;
                 apart.y = 0f;
-                Assert.LessOrEqual(apart.magnitude, 2f * grid.tileSize, "they met: within a tile and a lunge");
-                Assert.IsTrue(loop.TileOf(striker, out var t));
-                Vector3 off = striker.Root.position - grid.Center(t);
-                off.y = 0f;
-                Assert.LessOrEqual(off.magnitude, 0.4f * grid.tileSize, $"{striker.name} on its tile");
+                float engage = FightLoop.EngageDistance(striker, other);
+                Assert.LessOrEqual(apart.magnitude, engage + 0.9f * striker.Body.SizeFactor, "it struck from its striking distance (a lunge covers the rest)");
+                Assert.Greater(apart.magnitude, FightLoop.BodyRadius(striker) + FightLoop.BodyRadius(other), "and not from inside the other's body");
+                // Off the tile centres: they met on the diagonal, where no tile path would have put them.
+                Vector3 mid = 0.5f * (units[0].Root.position + units[1].Root.position);
+                Assert.Less(Mathf.Abs(mid.x - mid.z), 1.2f * grid.tileSize, "they met near the diagonal between their corners");
+            }
+            finally
+            {
+                Destroy(units);
+            }
+        }
+
+        [Test]
+        public void ThreeOnOneSpreadRoundTheTargetAndStayOnTheBoard()
+        {
+            // Three attackers on one target in a corner: they spread round it (no two bodies inside
+            // each other), and the board's edge holds everyone.
+            var grid = new BoardGrid();
+            var units = Teams(grid, new[]
+            {
+                new[] { ("Medium", new Tile(2, 2)), ("Small", new Tile(3, 2)), ("Large", new Tile(1, 2)) },
+                new[] { ("Large", new Tile(0, 7)) },
+            });
+            foreach (var u in units)
+            {
+                u.DealsHits = false;   // (no one gets hurt: just the movement)
+            }
+
+            var loop = new FightLoop(11) { Grid = grid, TimeLimit = 999f };
+            try
+            {
+                int overlapped = Run(loop, units, 12f);
+                Assert.Less(overlapped, 0.05f * 12f * 60f, $"bodies hardly ever overlap ({overlapped} steps)");
+                var target = units[3];
+                foreach (var u in units)
+                {
+                    Vector3 local = FightLoop.BodyAt(u) - grid.origin;
+                    Assert.LessOrEqual(Mathf.Abs(local.x), 0.5f * grid.Width + 1e-3f, $"{u.name} on the board");
+                    Assert.LessOrEqual(Mathf.Abs(local.z), 0.5f * grid.Depth + 1e-3f, $"{u.name} on the board");
+                    if (u != target)
+                    {
+                        float d = Vector3.Distance(FightLoop.BodyAt(u), FightLoop.BodyAt(target));
+                        Assert.Less(d, FightLoop.EngageDistance(u, target) + 1.2f, $"{u.name} got to its target ({d:0.00} m)");
+                    }
+                }
+
+                // Round it: the attackers' bearings from the target spread over more than a narrow wedge.
+                float min = float.MaxValue, max = float.MinValue;
+                for (int i = 0; i < 3; i++)
+                {
+                    Vector3 d = FightLoop.BodyAt(units[i]) - FightLoop.BodyAt(target);
+                    float a = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+                    min = Mathf.Min(min, a);
+                    max = Mathf.Max(max, a);
+                }
+
+                Assert.Greater(max - min, 40f, $"spread round the target ({max - min:0}° between the outermost)");
             }
             finally
             {

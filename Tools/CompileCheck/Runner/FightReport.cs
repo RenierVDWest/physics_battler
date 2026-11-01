@@ -92,7 +92,13 @@ internal static class FightReport
         float dt = Time.fixedDeltaTime;
         int shared = 0, attacks = 0;
         var started = new Dictionary<UnitController, int>();
-        void OnMove(UnitController u, MoveState s) { started[u] = (started.TryGetValue(u, out int n) ? n : 0) + 1; attacks++; }
+        var blowsAt = new List<(float t, UnitController by, UnitController at)>();
+        void OnMove(UnitController u, MoveState s)
+        {
+            started[u] = (started.TryGetValue(u, out int n) ? n : 0) + 1;
+            attacks++;
+            blowsAt.Add((Time.time, u, s.Target as UnitController));
+        }
         UnitController.MoveStarted += OnMove;
         int steps = (int)(limit * 60f) + 600;
         float startTime = Time.time;
@@ -111,25 +117,11 @@ internal static class FightReport
                     PhysicsBattler.Tests.BalanceTests.Integrate(unit, dt);
                 }
 
-                // Two units standing on one tile (not in passing).
-                var on = new Dictionary<long, UnitController>();
-                foreach (var u in units)
+                // Two standing bodies overlapping (free roam: the steering should keep them apart).
+                int overlapping = FightLoop.Overlapping(units);
+                if (overlapping > 0 && shared++ % 120 == 0 && Environment.GetEnvironmentVariable("FIGHT_DEBUG") != null)
                 {
-                    if (u.IsAlive && u.State == UnitState.Standing && loop.TileOf(u, out var t))
-                    {
-                        long key = ((long)t.column << 16) | (uint)t.row;
-                        if (on.TryGetValue(key, out var other))
-                        {
-                            if (shared++ % 120 == 0 && Environment.GetEnvironmentVariable("FIGHT_DEBUG") != null)
-                            {
-                                Console.WriteLine($"  t {Time.time - startTime:0.0}: {u.name} and {other.name} both on {t} (roots {u.Root.position} {other.Root.position}; {(u.NeedsSpot ? "needs spot" : "")} {(other.NeedsSpot ? "needs spot" : "")})");
-                            }
-                        }
-                        else
-                        {
-                            on[key] = u;
-                        }
-                    }
+                    Console.WriteLine($"  t {Time.time - startTime:0.0}: {overlapping} pairs of bodies overlapping");
                 }
             }
         }
@@ -145,7 +137,42 @@ internal static class FightReport
                           + $"{(started.TryGetValue(u, out int n) ? n : 0)} blows, {u.SeveredLimbs.Count} limbs lost");
         }
 
-        sb.Append($"  steps with two standing units on one tile: {shared}");
+        // The tempo's headline (milestone 7a; Tools/Playtest/tempo.py has the rest): bursts, gaps, taking turns.
+        var gaps = new List<float>();
+        var lastBy = new Dictionary<UnitController, float>();
+        var lastInPair = new Dictionary<(UnitController, UnitController), UnitController>();
+        int alternate = 0, same = 0;
+        foreach (var (t, by, at) in blowsAt)
+        {
+            if (lastBy.TryGetValue(by, out float before))
+            {
+                gaps.Add(t - before);
+            }
+
+            lastBy[by] = t;
+            if (at == null)
+            {
+                continue;
+            }
+
+            var key = units.IndexOf(by) < units.IndexOf(at) ? (by, at) : (at, by);
+            if (lastInPair.TryGetValue(key, out var previous))
+            {
+                if (previous == by) same++; else alternate++;
+            }
+
+            lastInPair[key] = by;
+        }
+
+        gaps.Sort();
+        if (gaps.Count > 0)
+        {
+            int bursts = gaps.FindAll(g => g < 1f).Count;
+            sb.AppendLine($"  gaps between a unit's own blows: median {gaps[gaps.Count / 2]:0.0} s; in bursts (under 1 s): {100f * bursts / gaps.Count:0}%; "
+                          + $"within pairs the next blow was the other's {100f * alternate / Mathf.Max(1, alternate + same):0}% of the time");
+        }
+
+        sb.Append($"  steps with standing bodies overlapping: {shared}; times a unit made no headway and went round: {loop.Stalls}");
         stats = sb.ToString();
         string result = loop.Over ? $"fight over: {loop.Result}" : $"not over after {Time.time - startTime:0} s";
         foreach (var u in units)

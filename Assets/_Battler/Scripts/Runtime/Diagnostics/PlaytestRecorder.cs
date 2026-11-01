@@ -171,6 +171,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.BalanceChanged += OnBalance;
             UnitController.PostureStarted += OnPosture;
             UnitController.PostureLedIn += OnPostureLedIn;
+            UnitController.Defending += OnDefending;
             Application.logMessageReceived += OnConsole;
 
             foreach (var unit in FindObjectsByType<UnitController>())
@@ -219,6 +220,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.BalanceChanged -= OnBalance;
             UnitController.PostureStarted -= OnPosture;
             UnitController.PostureLedIn -= OnPostureLedIn;
+            UnitController.Defending -= OnDefending;
             Application.logMessageReceived -= OnConsole;
 
             foreach (var track in tracks.ToArray())
@@ -412,6 +414,14 @@ namespace PhysicsBattler.Diagnostics
             string mood = unit.Rhythm != null ? $"energy {unit.Rhythm.Energy:0.00}, aggression {unit.Rhythm.Aggression:0.00}" : "";
             Event(track, "rhythm", $"posture {posture.Label}{(leadIn ? " (lead-in to a blow)" : "")}, {length:0.00} s; open: {(open.Length > 0 ? open.ToString() : "nothing")}; {mood}");
             track?.NotePosture(posture, leadIn);
+        }
+
+        private void OnDefending(UnitController unit, UnitController attacker, MoveState move, string what)
+        {
+            var track = TrackOf(unit);
+            float contact = move.ContactTime * move.Duration;
+            Event(track, "defence", $"{what} against {attacker.name}'s {move.Move.name.Replace("MD_", "")} at its {move.Part} (contact in {contact:0.00} s)");
+            track?.NoteDefence(what);
         }
 
         private void OnPostureLedIn(UnitController unit, PostureDefinition posture)

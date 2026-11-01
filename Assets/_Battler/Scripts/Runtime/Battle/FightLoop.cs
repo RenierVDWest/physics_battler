@@ -11,16 +11,18 @@ using UnityEngine;
 namespace PhysicsBattler.Battle
 {
     /// <summary>
-    /// Milestone 6: the fight loop. Two teams on the board fight it out with no help:
+    /// The fight loop (milestone 6; free roam since milestone 7). Two teams on the board fight it
+    /// out with no help:
     /// <list type="bullet">
-    /// <item>Each unit picks a target: the nearest enemy that can still fight,
-    /// keeping the one it has, and favouring one that is already hurt or already fighting it.</item>
-    /// <item>It walks tile to tile (the root follows the path between tile centres; its captured
-    /// walk plays) to a free tile next to the target, the tiles it stands on and is heading for held
-    /// so no two units share one. A body lying on the board holds the tile it lies on.</item>
-    /// <item>On its tile it closes in or gives ground a little (never off the tile), and when its
-    /// timer comes round it strikes any enemy in reach in front of it at a body part a move can land
-    /// on. If it reads an opening in the target (a posture's window, a tired guard: <see
+    /// <item>Each unit picks a target: the nearest enemy that can still fight, keeping the one it
+    /// has, favouring one that is already hurt or already fighting it, and passing over one that
+    /// already has <see cref="RingSize"/> attackers.</item>
+    /// <item>It walks freely (the tiles are only for placing units before the fight) to a ring round
+    /// the target at its striking distance, steered clear of every body near it and of the board's
+    /// edge; its captured walk plays. Stuck behind someone, it goes round.</item>
+    /// <item>On the ring it keeps its distance (its Fight Rhythm circles it), and when its timer
+    /// comes round it strikes any enemy in reach in front of it at a body part a move can land on.
+    /// If it reads an opening in the target (a posture's window, a tired guard: <see
     /// cref="UnitController.Openings"/>), it aims at the open part, and goes early to catch it.</item>
     /// <item>The fight is over when one team has no one left who can fight: dead, unarmed or
     /// legless (a time limit ends it as a draw on what is left).</item>
@@ -52,22 +54,36 @@ namespace PhysicsBattler.Battle
 
         private sealed class Plan
         {
-            public bool placed;
-            public Tile tile;
-            public readonly List<Tile> path = new List<Tile>();
-            public bool hasDest;
-            public Tile dest;
             public UnitController target;
             public float retargetAt;
             public float nextAttack = -1f;
             public bool readsThisTime;
             public float ledInAt = -999f;
             public float closeIn;
-            public float progressAt;
-            public Vector3 progressFrom;
-            public float routeAt = -999f;
-            public float blocked;   // seconds it has been trying to close in against its tile's edge
+            public Vector3 velocity;          // the steering's smoothed velocity (m/s)
+            public float progressAt;          // when it last got nearer its target's ring
+            public float closestOff = float.MaxValue;
+            public float detour, detourUntil; // going round someone in the way: which side, until when
+            public float blocked;             // seconds it has been trying to walk in and barely moving
         }
+
+        /// <summary>The most units of one team on one target at once: more go for another, or wait.</summary>
+        public const int RingSize = 3;
+
+        /// <summary>Room kept between two bodies, beyond their own (metres at medium size).</summary>
+        public const float Margin = 0.12f;
+
+        /// <summary>More room between two of one team on one target (metres at medium size): to swing in.</summary>
+        public const float ElbowRoom = 0.45f;
+
+        /// <summary>A want smaller than this share of the walking speed is dropped (no nervous little steps).</summary>
+        public const float DeadZone = 0.12f;
+
+        /// <summary>How fast the steering velocity changes: walking speeds a second.</summary>
+        public const float Acceleration = 3f;
+
+        /// <summary>Times a unit made no headway for 2 s and went round (the gate counts them).</summary>
+        public int Stalls { get; private set; }
 
         private readonly Dictionary<UnitController, Plan> plans = new Dictionary<UnitController, Plan>();
         private float fought;
@@ -84,19 +100,6 @@ namespace PhysicsBattler.Battle
             return unit != null && unit.IsInitialized && unit.IsAlive && !unit.LegLost && unit.Loadout?.Main != null;
         }
 
-        /// <summary>The tile a unit stands on (or is walking to), for others to keep off.</summary>
-        public bool TileOf(UnitController unit, out Tile tile)
-        {
-            if (plans.TryGetValue(unit, out var plan) && plan.placed)
-            {
-                tile = plan.tile;
-                return true;
-            }
-
-            tile = default;
-            return false;
-        }
-
         public void Step(IReadOnlyList<UnitController> units, float dt, float now)
         {
             if (StartedAt < 0f && Fight)
@@ -109,7 +112,6 @@ namespace PhysicsBattler.Battle
                 fought += dt;   // (the time limit counts fighting time only)
             }
 
-            var taken = Occupancy(units);
             if (Fight && !Over)
             {
                 CheckOver(units, now);
@@ -125,30 +127,18 @@ namespace PhysicsBattler.Battle
                 var plan = PlanOf(unit);
                 if (!unit.IsAlive || !unit.CanAct)
                 {
-                    // Off its feet or gone: no path, nothing to do; on the ground, where it lies is its tile.
-                    plan.path.Clear();
-                    plan.hasDest = false;
-                    if (!unit.IsAlive || unit.IsDown || !plan.placed)
-                    {
-                        plan.tile = Clamp(Grid.TileAt(unit.Rig.Part(PartId.Pelvis).transform.position));
-                        plan.placed = true;
-                    }
-
+                    // Off its feet or gone: it doesn't steer (a body on the board is in others' way).
+                    plan.velocity = Vector3.zero;
+                    plan.progressAt = now;
                     continue;
                 }
 
-                if (!plan.placed)
-                {
-                    plan.tile = Clamp(Grid.TileAt(unit.Root.position));
-                    plan.placed = true;
-                    plan.progressAt = now;
-                    plan.progressFrom = unit.Root.position;
-                }
+                // (Free roam: anywhere on the board is a spot; the steering keeps it clear of others.)
+                unit.NeedsSpot = false;
 
                 if (!Fight)
                 {
-                    // (Not fighting: it stays where it was put, facing the nearest enemy; it finds its
-                    // tile again when the fight resumes.)
+                    // (Not fighting: it stays where it was put, facing the nearest enemy.)
                     var near = Nearest(units, unit, false);
                     unit.Opponent = near;
                     unit.CircleOpponent = false;
@@ -157,106 +147,36 @@ namespace PhysicsBattler.Battle
                         unit.FacePoint(near.Root.position);
                     }
 
-                    plan.path.Clear();
-                    plan.hasDest = false;
-                    plan.placed = false;
+                    plan.velocity = Vector3.zero;
+                    plan.progressAt = now;
                     continue;
-                }
-
-                // Back onto the board after getting up, or knocked off its tile, or onto someone
-                // else's: to the nearest free tile (its own, if it is still free).
-                bool settled = OnTile(unit, plan.tile) && (!taken.TryGetValue(Key(plan.tile), out var holder) || holder == unit);
-                if (plan.path.Count == 0 && (unit.NeedsSpot || !settled))
-                {
-                    if (!settled)
-                    {
-                        // (Its own tile, if no one else holds it: just step back to its middle.)
-                        if (taken.TryGetValue(Key(plan.tile), out var on) && on != unit)
-                        {
-                            plan.tile = Clamp(Grid.TileAt(unit.Root.position));
-                        }
-
-                        if (taken.TryGetValue(Key(plan.tile), out on) && on != unit && NearestFree(taken, unit, out var free))
-                        {
-                            Route(plan, unit, free, taken, now, "onto a free tile");
-                        }
-                    }
-
-                    if (plan.path.Count > 0)
-                    {
-                        Walk(unit, plan, null, taken, dt, now);
-                        continue;
-                    }
-
-                    if (!OnTile(unit, plan.tile))
-                    {
-                        WalkInside(unit, Grid.Center(plan.tile), dt);
-                        continue;
-                    }
-
-                    unit.NeedsSpot = false;
                 }
 
                 if (Over || !CanFight(unit))
                 {
-                    // (Out of it, or it's over: it stands on its tile facing the nearest enemy, if any.)
+                    // (Out of it, or it's over: it stands, kept clear of others, facing the nearest enemy.)
                     var near = Nearest(units, unit, false);
                     unit.Opponent = null;
                     unit.CircleOpponent = false;
+                    Steer(units, unit, plan, Vector3.zero, dt);
                     if (near != null)
                     {
                         unit.FacePoint(near.Root.position);
                     }
 
-                    plan.path.Clear();
-                    plan.hasDest = false;
                     continue;
                 }
 
-                // (The Fight Rhythm's circling only near its tile's middle: it never carries it off.)
-                unit.CircleOpponent = Flat(unit.Root.position - Grid.Center(plan.tile)) < 0.22f * Grid.tileSize;
                 var target = ChooseTarget(units, unit, plan, now);
                 unit.Opponent = target;
-                if (plan.path.Count > 0)
-                {
-                    Walk(unit, plan, target, taken, dt, now);
-                    // Its target has gone somewhere else meanwhile: a new way from the next tile.
-                    if (target != null && plan.path.Count > 0 && plan.hasDest && !Adjacent(plan.dest, TargetTile(target)) && now - plan.routeAt > 0.8f)
-                    {
-                        plan.path.RemoveRange(1, plan.path.Count - 1);
-                        plan.dest = plan.path[0];
-                    }
-
-                    continue;
-                }
-
                 if (target == null)
                 {
+                    unit.CircleOpponent = false;
+                    Steer(units, unit, plan, Vector3.zero, dt);
                     continue;
                 }
 
-                // Not where it can reach the target from (or it tried to close in from here and
-                // couldn't): to a free tile next to it, one it can reach from. Unless the target is
-                // already on its way to a tile next to this one: then it waits for it.
-                bool reaches = Adjacent(plan.tile, TargetTile(target)) && Reaches(unit, target, plan.tile) && plan.blocked < 1.5f;
-                if (!reaches && !Coming(target, unit, plan.tile) && now - plan.routeAt > 0.4f && BestTile(unit, target, taken, out var dest))
-                {
-                    if (!SameTile(dest, plan.tile))
-                    {
-                        Route(plan, unit, dest, taken, now, $"toward {target.name}");
-                        if (plan.path.Count > 0)
-                        {
-                            plan.blocked = 0f;
-                            continue;
-                        }
-                    }
-                }
-
-                unit.FacePoint(target.Root.position);
-                if (unit.HitStop <= 0f && !unit.IsAttacking && unit.Knockback.magnitude < 0.05f)
-                {
-                    Engage(units, unit, target, plan, dt, now);
-                }
+                Approach(units, unit, target, plan, dt, now);
             }
         }
 
@@ -354,6 +274,12 @@ namespace PhysicsBattler.Battle
                     score += 50f;
                 }
 
+                // (Its attack ring full: others are on it already. It goes for another, or waits.)
+                if (Attackers(units, other, unit) >= RingSize)
+                {
+                    score += 3f;
+                }
+
                 if (score < bestScore)
                 {
                     bestScore = score;
@@ -380,43 +306,99 @@ namespace PhysicsBattler.Battle
             return best;
         }
 
-        // ---- Fighting on its tile -----------------------------------------------------------------
+        // ---- Fighting -----------------------------------------------------------------------------
 
-        private void Engage(IReadOnlyList<UnitController> units, UnitController unit, UnitController enemy, Plan plan, float dt, float now)
+        /// <summary>
+        /// Free roam toward the target: it walks to a point on a ring round it at its striking
+        /// distance (the side it comes from; others on the ring and every body nearby push it along),
+        /// keeps that distance once there, and strikes when its timer comes round.
+        /// </summary>
+        private void Approach(IReadOnlyList<UnitController> units, UnitController unit, UnitController enemy, Plan plan, float dt, float now)
         {
-            var style = unit.Style;
             float size = unit.Body.SizeFactor;
             Vector3 to = enemy.Root.position - unit.Root.position;
             to.y = 0f;
             float distance = to.magnitude;
             float engage = Mathf.Max(0.45f * size + 0.2f * enemy.Body.SizeFactor, EngageDistance(unit, enemy) - plan.closeIn);
             Vector3 toward = to / Mathf.Max(1e-4f, distance);
+            float speed = unit.WalkSpeed;
+            bool busy = unit.IsAttacking || unit.HitStop > 0f || unit.Knockback.magnitude >= 0.05f;
 
-            // Closing in or giving ground a little, never off its tile. At the tile's edge it stops
-            // trying after a moment and strikes from there (a lunge covers some way); if it still
-            // can't reach, it goes to another tile.
-            if (distance > engage + 0.05f)
+            // Toward the ring, slowing over the last stretch; out again if it is too close.
+            Vector3 desired = Vector3.zero;
+            float off = distance - engage;
+            if (off > 0.05f)
             {
-                Vector3 before = unit.Root.position;
-                WalkInside(unit, unit.Root.position + toward * Mathf.Min(distance - engage, unit.WalkSpeed * dt), dt, plan.tile);
-                bool moved = Flat(unit.Root.position - before) > 0.25f * unit.WalkSpeed * dt;
-                plan.blocked = moved ? 0f : plan.blocked + dt;
-                if (moved || plan.blocked < 0.6f)
+                desired = toward * speed * Mathf.Clamp01(off / (0.4f * size));
+                // No headway for a while (someone in the way): round them, one side for a moment.
+                if (now < plan.detourUntil)
                 {
-                    return;
+                    desired += Vector3.Cross(Vector3.up, toward) * (plan.detour * 0.8f * speed);
                 }
+            }
+            else if (off < -0.05f && (plan.closeIn < 0f || off < -0.4f * size))
+            {
+                // (Only when its blows can't land from this close, or it is really crowded: a longer
+                // reach doesn't keep backing off from a shorter one, or the shorter could never get in.)
+                desired = -toward * 0.6f * speed * Mathf.Clamp01(-off / (0.3f * size));
+            }
+
+            bool near = off <= 0.3f * size;
+            unit.CircleOpponent = near && !busy;
+            if (busy)
+            {
+                plan.velocity = Vector3.zero;
             }
             else
             {
-                plan.blocked = 0f;
+                Steer(units, unit, plan, desired, dt);
             }
 
-            if (plan.closeIn < 0f && distance < engage - 0.05f)
+            // Facing: the target once it is close, else the way it walks.
+            if (distance < 2.6f * Grid.tileSize || plan.velocity.sqrMagnitude < 0.01f)
             {
-                WalkInside(unit, unit.Root.position - toward * Mathf.Min(engage - distance, 0.6f * unit.WalkSpeed * dt), dt, plan.tile);
+                unit.FacePoint(enemy.Root.position);
+            }
+            else
+            {
+                unit.FacePoint(unit.Root.position + plan.velocity);
+            }
+
+            // Headway: far from the ring and not getting closer for 2 s.
+            if (off < 0.3f * size || plan.closestOff - off > 0.2f * size)
+            {
+                plan.closestOff = off;
+                plan.progressAt = now;
+            }
+            else if (now - plan.progressAt > 2f)
+            {
+                plan.detour = random.NextDouble() < 0.5 ? -1f : 1f;
+                plan.detourUntil = now + 1.5f;
+                plan.progressAt = now;
+                plan.closestOff = off;
+                Stalls++;
+                if (PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(unit, "move", $"no headway toward {enemy.name} ({distance:0.0} m): going round to the {(plan.detour > 0f ? "left" : "right")}");
+                }
+            }
+
+            // Too far to strike: it walks in. Nearly there, it tries anyway (a lunge may cover the rest;
+            // if no blow lands, the planner sends it closer); held up for a moment, it tries from there.
+            plan.blocked = off > 0.05f && plan.velocity.magnitude < 0.25f * speed ? plan.blocked + dt : 0f;
+            if (busy || (off > 0.35f * size && plan.blocked < 0.6f))
+            {
                 return;
             }
 
+            Attack(units, unit, enemy, plan, distance, now);
+        }
+
+        /// <summary>In reach: when its timer comes round (or an opening it reads), a blow at the target or another enemy in front of it.</summary>
+        private void Attack(IReadOnlyList<UnitController> units, UnitController unit, UnitController enemy, Plan plan, float distance, float now)
+        {
+            var style = unit.Style;
+            float size = unit.Body.SizeFactor;
             if (plan.nextAttack < 0f)
             {
                 plan.nextAttack = now + Next(style) * 0.5f;
@@ -496,325 +478,120 @@ namespace PhysicsBattler.Battle
             }
         }
 
-        // ---- Walking the board ---------------------------------------------------------------------
+        // ---- Steering --------------------------------------------------------------------------------
 
-        /// <summary>Along its path: the root walks to each tile centre in turn (facing the way, or its target once close).</summary>
-        private void Walk(UnitController unit, Plan plan, UnitController target, Dictionary<long, UnitController> taken, float dt, float now)
+        /// <summary>How many standing units of the other team have this one as their target (not counting one).</summary>
+        private int Attackers(IReadOnlyList<UnitController> units, UnitController target, UnitController except)
         {
-            var next = plan.path[0];
-            // Someone else stepped onto it meanwhile: find another way.
-            if (taken.TryGetValue(Key(next), out var other) && other != unit && other != null)
-            {
-                plan.path.Clear();
-                plan.hasDest = false;
-                plan.routeAt = now - 1f;
-                return;
-            }
-
-            Vector3 center = Grid.Center(next);
-            Vector3 to = center - unit.Root.position;
-            to.y = 0f;
-            float speed = unit.WalkSpeed;
-            float step = speed * dt;
-            if (target != null && Vector3.Distance(target.Root.position, unit.Root.position) < 2.6f * Grid.tileSize)
-            {
-                unit.FacePoint(target.Root.position);
-            }
-            else if (to.sqrMagnitude > 1e-4f)
-            {
-                unit.FacePoint(unit.Root.position + to);
-            }
-
-            // It holds the tile it stands on until it is closer to the next.
-            if (Vector3.Distance(unit.Root.position, center) < 0.5f * Grid.tileSize)
-            {
-                plan.tile = next;
-            }
-
-            if (to.magnitude <= step)
-            {
-                unit.Root.position = new Vector3(center.x, unit.Root.position.y, center.z);
-                plan.tile = next;
-                plan.path.RemoveAt(0);
-                if (plan.path.Count == 0)
-                {
-                    plan.hasDest = false;
-                }
-            }
-            else
-            {
-                unit.Root.position += to / to.magnitude * step;
-            }
-
-            // No headway for a while (bodies in the way push it about): find another way.
-            if (Vector3.Distance(unit.Root.position, plan.progressFrom) > 0.2f * Grid.tileSize)
-            {
-                plan.progressFrom = unit.Root.position;
-                plan.progressAt = now;
-            }
-            else if (now - plan.progressAt > 2f)
-            {
-                plan.path.Clear();
-                plan.hasDest = false;
-                plan.progressAt = now;
-                if (PlaytestTrace.Enabled)
-                {
-                    PlaytestTrace.Note(unit, "move", "no headway: finding another way");
-                }
-            }
-        }
-
-        /// <summary>Moves the root toward a point, never further than 35% of a tile from its tile's centre.</summary>
-        private void WalkInside(UnitController unit, Vector3 point, float dt, Tile? tile = null)
-        {
-            var t = tile ?? PlanOf(unit).tile;
-            Vector3 center = Grid.Center(t);
-            Vector3 to = point - unit.Root.position;
-            to.y = 0f;
-            float step = Mathf.Min(to.magnitude, unit.WalkSpeed * dt);
-            float edge = 0.35f * Grid.tileSize;
-            Vector3 here = unit.Root.position - center;
-            here.y = 0f;
-            if (here.magnitude > edge)
-            {
-                // (Outside the space it may move about in: straight back toward the middle first.)
-                Vector3 back = -here.normalized * Mathf.Min(here.magnitude - edge + 1e-3f, unit.WalkSpeed * dt);
-                unit.Root.position += back;
-                return;
-            }
-
-            Vector3 next = unit.Root.position + (to.sqrMagnitude > 1e-8f ? to.normalized * step : Vector3.zero);
-            Vector3 off = next - center;
-            off.y = 0f;
-            off = Vector3.ClampMagnitude(off, edge);
-            unit.Root.position = new Vector3(center.x + off.x, unit.Root.position.y, center.z + off.z);
-        }
-
-        /// <summary>A free tile next to the target (the side ones before the corners), the nearest to walk to.</summary>
-        private bool BestTile(UnitController unit, UnitController target, Dictionary<long, UnitController> taken, out Tile best)
-        {
-            var plan = PlanOf(unit);
-            var at = TargetTile(target);
-            var costs = Costs(plan.tile, taken, unit);
-            best = default;
-            float bestScore = float.MaxValue;
-            for (int ring = 1; ring <= 2 && bestScore == float.MaxValue; ring++)
-            {
-                for (int dc = -ring; dc <= ring; dc++)
-                {
-                    for (int dr = -ring; dr <= ring; dr++)
-                    {
-                        if (Mathf.Max(Mathf.Abs(dc), Mathf.Abs(dr)) != ring)
-                        {
-                            continue;
-                        }
-
-                        var tile = new Tile(at.column + dc, at.row + dr);
-                        if (!Grid.Contains(tile) || (taken.TryGetValue(Key(tile), out var who) && who != unit))
-                        {
-                            continue;
-                        }
-
-                        if (!costs.TryGetValue(Key(tile), out float cost))
-                        {
-                            continue;   // (no way there)
-                        }
-
-                        // (Close enough to strike from, when the target is on its tile; not the one it
-                        // stands on, if it couldn't close in from there.)
-                        if (ring == 1 && !Reaches(unit, target, tile, at) || (SameTile(tile, plan.tile) && plan.blocked >= 1.5f))
-                        {
-                            continue;
-                        }
-
-                        float score = cost + (dc != 0 && dr != 0 ? 0.35f : 0f) + 0.01f * (float)random.NextDouble();
-                        if (score < bestScore)
-                        {
-                            bestScore = score;
-                            best = tile;
-                        }
-                    }
-                }
-            }
-
-            return bestScore < float.MaxValue;
-        }
-
-        private void Route(Plan plan, UnitController unit, Tile dest, Dictionary<long, UnitController> taken, float now, string why)
-        {
-            plan.routeAt = now;
-            plan.path.Clear();
-            var costs = Costs(plan.tile, taken, unit, out var from);
-            if (!costs.ContainsKey(Key(dest)))
-            {
-                plan.hasDest = false;
-                return;
-            }
-
-            var tile = dest;
-            while (!SameTile(tile, plan.tile))
-            {
-                plan.path.Insert(0, tile);
-                tile = from[Key(tile)];
-            }
-
-            plan.hasDest = plan.path.Count > 0;
-            plan.dest = dest;
-            plan.progressAt = now;
-            plan.progressFrom = unit.Root.position;
-            if (plan.hasDest)
-            {
-                taken[Key(dest)] = unit;   // (held from now on: no one else heads for it)
-                if (PlaytestTrace.Enabled)
-                {
-                    PlaytestTrace.Note(unit, "move", $"{why}: {plan.tile} to {dest}, {plan.path.Count} tiles");
-                }
-            }
-        }
-
-        private Dictionary<long, float> Costs(Tile start, Dictionary<long, UnitController> taken, UnitController unit)
-        {
-            return Costs(start, taken, unit, out _);
-        }
-
-        /// <summary>Walking costs from a tile to every tile it can reach (8 ways; not through others, nor cutting their corners).</summary>
-        private Dictionary<long, float> Costs(Tile start, Dictionary<long, UnitController> taken, UnitController unit, out Dictionary<long, Tile> from)
-        {
-            var cost = new Dictionary<long, float> { [Key(start)] = 0f };
-            from = new Dictionary<long, Tile>();
-            var open = new List<Tile> { start };
-            bool Free(Tile t) => Grid.Contains(t) && (!taken.TryGetValue(Key(t), out var u) || u == unit || u == null);
-            while (open.Count > 0)
-            {
-                int bi = 0;
-                for (int i = 1; i < open.Count; i++)
-                {
-                    if (cost[Key(open[i])] < cost[Key(open[bi])])
-                    {
-                        bi = i;
-                    }
-                }
-
-                var t = open[bi];
-                open.RemoveAt(bi);
-                float c = cost[Key(t)];
-                for (int dc = -1; dc <= 1; dc++)
-                {
-                    for (int dr = -1; dr <= 1; dr++)
-                    {
-                        if (dc == 0 && dr == 0)
-                        {
-                            continue;
-                        }
-
-                        var n = new Tile(t.column + dc, t.row + dr);
-                        if (!Free(n))
-                        {
-                            continue;
-                        }
-
-                        bool diagonal = dc != 0 && dr != 0;
-                        if (diagonal && (!Free(new Tile(t.column + dc, t.row)) || !Free(new Tile(t.column, t.row + dr))))
-                        {
-                            continue;
-                        }
-
-                        float nc = c + (diagonal ? 1.414f : 1f);
-                        if (!cost.TryGetValue(Key(n), out float old) || nc < old - 1e-4f)
-                        {
-                            cost[Key(n)] = nc;
-                            from[Key(n)] = t;
-                            open.Add(n);
-                        }
-                    }
-                }
-            }
-
-            return cost;
-        }
-
-        /// <summary>Who holds which tile: where each unit stands or lies, and where it is heading.</summary>
-        private Dictionary<long, UnitController> Occupancy(IReadOnlyList<UnitController> units)
-        {
-            var taken = new Dictionary<long, UnitController>();
+            int n = 0;
             foreach (var u in units)
             {
-                if (u == null || !u.IsInitialized)
+                if (u != null && u != except && u.IsInitialized && u.IsAlive && u.Team != target.Team && plans.TryGetValue(u, out var p) && p.target == target)
                 {
-                    continue;
-                }
-
-                Vector3 lies = u.Rig.Part(PartId.Pelvis).transform.position;
-                if (!u.IsAlive || u.IsDown)
-                {
-                    // (A body on the board: its tile is in the way.)
-                    Claim(taken, Clamp(Grid.TileAt(lies)), u, lies);
-                    continue;
-                }
-
-                var plan = PlanOf(u);
-                Claim(taken, plan.placed ? plan.tile : Clamp(Grid.TileAt(u.Root.position)), u, u.Root.position);
-                // (Where it is heading, if no one is there already.)
-                if (plan.path.Count > 0 && !taken.ContainsKey(Key(plan.path[0])))
-                {
-                    taken[Key(plan.path[0])] = u;
-                }
-
-                if (plan.hasDest && !taken.ContainsKey(Key(plan.dest)))
-                {
-                    taken[Key(plan.dest)] = u;
+                    n++;
                 }
             }
 
-            return taken;
+            return n;
         }
 
-        /// <summary>A tile two claim goes to the one nearer its middle (the other moves off it).</summary>
-        private void Claim(Dictionary<long, UnitController> taken, Tile tile, UnitController unit, Vector3 at)
+        /// <summary>The space a standing unit takes on the board (metres): its shoulders' half-width, about.</summary>
+        public static float BodyRadius(UnitController unit) => 0.28f * unit.Body.SizeFactor;
+
+        /// <summary>Where a unit's body is on the board: the root standing, the hips lying.</summary>
+        public static Vector3 BodyAt(UnitController unit)
         {
-            long key = Key(tile);
-            if (taken.TryGetValue(key, out var other) && other != null && other != unit)
+            Vector3 p = unit.IsAlive && !unit.IsDown ? unit.Root.position : unit.Rig.Part(PartId.Pelvis).transform.position;
+            p.y = 0f;
+            return p;
+        }
+
+        /// <summary>Pairs of standing units whose bodies overlap (closer than <paramref name="share"/> of their two radii together).</summary>
+        public static int Overlapping(IReadOnlyList<UnitController> units, float share = 0.8f)
+        {
+            int n = 0;
+            for (int i = 0; i < units.Count; i++)
             {
-                Vector3 c = Grid.Center(tile);
-                Vector3 o = other.IsAlive && !other.IsDown ? other.Root.position : other.Rig.Part(PartId.Pelvis).transform.position;
-                if (Flat(o - c) <= Flat(at - c))
-                {
-                    return;
-                }
-            }
-
-            taken[key] = unit;
-        }
-
-        private static float Flat(Vector3 v)
-        {
-            v.y = 0f;
-            return v.magnitude;
-        }
-
-        private bool NearestFree(Dictionary<long, UnitController> taken, UnitController unit, out Tile best)
-        {
-            var plan = PlanOf(unit);
-            var costs = Costs(plan.tile, taken, unit);
-            best = default;
-            float bestCost = float.MaxValue;
-            foreach (var pair in costs)
-            {
-                var tile = new Tile((int)(pair.Key >> 16), (int)(pair.Key & 0xffff));
-                if (taken.TryGetValue(pair.Key, out var who) && who != unit)
+                var a = units[i];
+                if (a == null || !a.IsInitialized || !a.IsAlive || a.State != UnitState.Standing)
                 {
                     continue;
                 }
 
-                float c = pair.Value + 0.5f * Vector3.Distance(Grid.Center(tile), unit.Root.position) / Grid.tileSize;
-                if (c < bestCost)
+                for (int j = i + 1; j < units.Count; j++)
                 {
-                    bestCost = c;
-                    best = tile;
+                    var b = units[j];
+                    if (b == null || !b.IsInitialized || !b.IsAlive || b.State != UnitState.Standing)
+                    {
+                        continue;
+                    }
+
+                    if (Vector3.Distance(BodyAt(a), BodyAt(b)) < share * (BodyRadius(a) + BodyRadius(b)))
+                    {
+                        n++;
+                    }
                 }
             }
 
-            return bestCost < float.MaxValue;
+            return n;
+        }
+
+        /// <summary>
+        /// Moves the root by a smoothed velocity: what it wants (toward its target, say), plus a push
+        /// away from every body too close (standing or lying, either team) and back from the board's
+        /// edge. Small wants are dropped, so the feet don't take nervous little steps.
+        /// </summary>
+        private void Steer(IReadOnlyList<UnitController> units, UnitController unit, Plan plan, Vector3 desired, float dt)
+        {
+            float speed = unit.WalkSpeed;
+            Vector3 here = BodyAt(unit);
+            float mine = BodyRadius(unit);
+            Vector3 push = Vector3.zero;
+            foreach (var other in units)
+            {
+                if (other == null || other == unit || !other.IsInitialized)
+                {
+                    continue;
+                }
+
+                Vector3 d = here - BodyAt(other);
+                float room = mine + BodyRadius(other) + Margin * unit.Body.SizeFactor;
+                if (other.Team == unit.Team && plans.TryGetValue(other, out var theirs) && theirs.target != null && theirs.target == plan.target)
+                {
+                    room += ElbowRoom * unit.Body.SizeFactor;   // (two on one target: room to swing without hitting each other)
+                }
+
+                float apart = d.magnitude;
+                if (apart >= room)
+                {
+                    continue;
+                }
+
+                Vector3 away = apart > 1e-4f ? d / apart : Vector3.Cross(Vector3.up, unit.transform.forward);
+                push += away * (1.5f * speed * (room - apart) / room);
+            }
+
+            // The board's edge.
+            float halfW = 0.5f * Grid.Width - mine, halfD = 0.5f * Grid.Depth - mine;
+            Vector3 local = here - Grid.origin;
+            if (local.x > halfW) push.x -= speed * Mathf.Clamp01((local.x - halfW) / 0.2f);
+            if (local.x < -halfW) push.x += speed * Mathf.Clamp01((-halfW - local.x) / 0.2f);
+            if (local.z > halfD) push.z -= speed * Mathf.Clamp01((local.z - halfD) / 0.2f);
+            if (local.z < -halfD) push.z += speed * Mathf.Clamp01((-halfD - local.z) / 0.2f);
+
+            Vector3 want = Vector3.ClampMagnitude(desired + push, speed);
+            if (want.magnitude < DeadZone * speed)
+            {
+                want = Vector3.zero;
+            }
+
+            plan.velocity = Vector3.MoveTowards(plan.velocity, want, Acceleration * speed * dt);
+            Vector3 next = unit.Root.position + plan.velocity * dt;
+            // (Never off the board, whatever pushed it.)
+            Vector3 n = next - Grid.origin;
+            n.x = Mathf.Clamp(n.x, -0.5f * Grid.Width + 0.5f * mine, 0.5f * Grid.Width - 0.5f * mine);
+            n.z = Mathf.Clamp(n.z, -0.5f * Grid.Depth + 0.5f * mine, 0.5f * Grid.Depth - 0.5f * mine);
+            unit.Root.position = new Vector3(Grid.origin.x + n.x, next.y, Grid.origin.z + n.z);
         }
 
         // ---- Helpers ------------------------------------------------------------------------------
@@ -829,45 +606,6 @@ namespace PhysicsBattler.Battle
 
             return plan;
         }
-
-        /// <summary>Where the target is, or where it is walking to.</summary>
-        private Tile TargetTile(UnitController target)
-        {
-            if (plans.TryGetValue(target, out var p) && p.placed)
-            {
-                return p.hasDest && p.path.Count > 0 ? p.dest : p.tile;
-            }
-
-            return Clamp(Grid.TileAt(target.Root.position));
-        }
-
-        /// <summary>The target is walking to a tile next to this one, to fight it: let it come.</summary>
-        private bool Coming(UnitController target, UnitController unit, Tile tile)
-        {
-            return target.Opponent == unit && plans.TryGetValue(target, out var p) && p.hasDest && p.path.Count > 0 && Adjacent(p.dest, tile);
-        }
-
-        /// <summary>From that tile (moving about in it) it can get in reach of the target standing on its tile.</summary>
-        private bool Reaches(UnitController unit, UnitController target, Tile from, Tile? at = null)
-        {
-            float apart = Flat(Grid.Center(from) - Grid.Center(at ?? TargetTile(target)));
-            return apart - 0.35f * Grid.tileSize <= EngageDistance(unit, target) + 0.3f * unit.Body.SizeFactor;
-        }
-
-        private bool OnTile(UnitController unit, Tile tile)
-        {
-            Vector3 d = unit.Root.position - Grid.Center(tile);
-            d.y = 0f;
-            return d.magnitude <= 0.4f * Grid.tileSize;
-        }
-
-        private Tile Clamp(Tile t) => new Tile(Mathf.Clamp(t.column, 0, Grid.columns - 1), Mathf.Clamp(t.row, 0, Grid.rows - 1));
-
-        private static bool Adjacent(Tile a, Tile b) => Mathf.Max(Mathf.Abs(a.column - b.column), Mathf.Abs(a.row - b.row)) <= 1;
-
-        private static bool SameTile(Tile a, Tile b) => a.column == b.column && a.row == b.row;
-
-        private static long Key(Tile t) => ((long)t.column << 16) | (uint)(t.row & 0xffff);
 
         private static UnitController Nearest(IReadOnlyList<UnitController> units, UnitController unit, bool standingOnly)
         {

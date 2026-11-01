@@ -130,8 +130,12 @@ namespace PhysicsBattler.Tests
         }
 
         /// <summary>A medium swordsman (team 0) facing +Z, its target where it would engage.</summary>
+        /// <summary>Where the duels' seeds start (the count the tests were tuned at).</summary>
+        private const int SeedBase = 0;
+
         private static (UnitController attacker, UnitController target, float distance) Duel(string targetBody = "Medium")
         {
+            UnitController.ResetSeeds(SeedBase);   // (the same idle sway whatever ran before)
             var attacker = Build("Medium", Vector3.zero, 0f, 0);
             var target = Build(targetBody, Vector3.forward * 5f, 180f, 1);
             float distance = attacker.Style.engageDistance * attacker.Body.SizeFactor + 0.25f * target.Body.SizeFactor;
