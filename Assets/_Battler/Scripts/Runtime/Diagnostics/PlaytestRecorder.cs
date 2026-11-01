@@ -172,6 +172,8 @@ namespace PhysicsBattler.Diagnostics
             UnitController.PostureStarted += OnPosture;
             UnitController.PostureLedIn += OnPostureLedIn;
             UnitController.Defending += OnDefending;
+            UnitController.Noticed += OnNoticed;
+            UnitController.Forgot += OnForgot;
             UnitController.TempoChanged += OnTempo;
             Application.logMessageReceived += OnConsole;
 
@@ -222,6 +224,8 @@ namespace PhysicsBattler.Diagnostics
             UnitController.PostureStarted -= OnPosture;
             UnitController.PostureLedIn -= OnPostureLedIn;
             UnitController.Defending -= OnDefending;
+            UnitController.Noticed -= OnNoticed;
+            UnitController.Forgot -= OnForgot;
             UnitController.TempoChanged -= OnTempo;
             Application.logMessageReceived -= OnConsole;
 
@@ -431,6 +435,17 @@ namespace PhysicsBattler.Diagnostics
             float contact = move.ContactTime * move.Duration;
             Event(track, "defence", $"{what} against {attacker.name}'s {move.Move.name.Replace("MD_", "")} at its {move.Part} (contact in {contact:0.00} s)");
             track?.NoteDefence(what);
+        }
+
+        private void OnNoticed(UnitController unit, UnitController other, Combat.Sight sight)
+        {
+            string how = sight == Combat.Sight.Clear ? "in clear view" : sight == Combat.Sight.Edge ? "at the edge of its view" : "by touch";
+            Event(TrackOf(unit), "sight", $"noticed {other.name} {how} ({Vector3.Distance(unit.Root.position, other.Root.position):0.0} m)");
+        }
+
+        private void OnForgot(UnitController unit, UnitController other)
+        {
+            Event(TrackOf(unit), "sight", $"lost track of {other.name}");
         }
 
         private void OnPostureLedIn(UnitController unit, PostureDefinition posture)

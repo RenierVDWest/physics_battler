@@ -178,6 +178,17 @@ namespace UnityEngine
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t) => a + (b - a) * Mathf.Clamp01(t);
         public static Vector3 LerpUnclamped(Vector3 a, Vector3 b, float t) => a + (b - a) * t;
         /// <summary>As Unity's: directions turned along the arc between them, lengths blended.</summary>
+        public static Vector3 RotateTowards(Vector3 current, Vector3 target, float maxRadiansDelta, float maxMagnitudeDelta)
+        {
+            float lc = current.magnitude, lt = target.magnitude;
+            if (lc < 1e-6f || lt < 1e-6f) return MoveTowards(current, target, maxMagnitudeDelta);
+            float angle = (float)System.Math.Acos(Mathf.Clamp(Dot(current / lc, target / lt), -1f, 1f));
+            float t = angle > 1e-6f ? Mathf.Min(1f, maxRadiansDelta / angle) : 1f;
+            Vector3 dir = Slerp(current / lc, target / lt, t).normalized;
+            float length = lc + Mathf.Clamp(lt - lc, -maxMagnitudeDelta, maxMagnitudeDelta);
+            return dir * length;
+        }
+
         public static Vector3 Slerp(Vector3 a, Vector3 b, float t)
         {
             t = Mathf.Clamp01(t);

@@ -44,11 +44,36 @@ namespace PhysicsBattler.Motion
         public float AimError { get; private set; }
         public float SpineBend { get; private set; }
 
-        /// <summary>A shield raised across an incoming blow: how far (0 to 1), where its face goes and which way it looks.</summary>
+        /// <summary>A shield raised across an incoming blow: how far (0 to 1). Where it goes is in <see cref="Shield"/>.</summary>
         public float BlockBlend { get; set; }
-        public Vector3 BlockCenter { get; set; }
-        public Vector3 BlockNormal { get; set; } = Vector3.forward;
         public float MoveCrouch { get; private set; }
+
+        /// <summary>The unit's own body (its colliders keep the shield out of it). Null: no check.</summary>
+        public UnitRig Rig { get; set; }
+
+        /// <summary>
+        /// Milestone 9: where the head looks, from the unit's controller (<see cref="HeadLook"/>):
+        /// degrees right of the unit's facing and up, and how much of it applies (0 off its feet).
+        /// The chest takes some of the turn, the head the rest, within a head's limits.
+        /// </summary>
+        public float LookYaw { get; set; }
+        public float LookPitch { get; set; }
+        public float LookWeight { get; set; }
+
+        /// <summary>What the look came to on the pose: the head's turn against the chest (degrees, + right) and its pitch against the chest (+ up).</summary>
+        public float HeadTurn { get; private set; }
+        public float HeadPitch { get; private set; }
+
+        /// <summary>
+        /// Milestone 9: the shield under control (<see cref="ShieldAim"/>), from the unit's shield
+        /// controller. With no weight, the plain guard of before.
+        /// </summary>
+        public ShieldAim Shield { get; set; }
+
+        /// <summary>The shield as posed: its face's middle, which way it faces, and how far its rim stays from its own body (metres; negative: inside).</summary>
+        public Vector3 ShieldCenter { get; private set; }
+        public Vector3 ShieldFace { get; private set; } = Vector3.forward;
+        public float ShieldClearance { get; private set; } = float.MaxValue;
 
         /// <summary>Where the chest was posed before the arms (a weapon arm that can't reach bends the spine after): the swing planner's pivot.</summary>
         public Vector3 ChestBeforeArms { get; private set; }
@@ -392,6 +417,10 @@ namespace PhysicsBattler.Motion
                 SolveLeg(f);
             }
 
+            // 5b. The look (milestone 9): the chest takes some of the turn (a blow owns the chest), the
+            //     head the rest, within a head's limits.
+            ApplyLook(yaw, move != null && move != Feint ? moveBlend : 0f);
+
             ChestBeforeArms = anim.Part(PartId.Chest).position;
 
             // 6. Arms and head.
@@ -429,6 +458,7 @@ namespace PhysicsBattler.Motion
                 head.rotation = Quaternion.AngleAxis(ReactHead.magnitude * Mathf.Rad2Deg, ReactHead.normalized) * head.rotation;
             }
 
+            LimitHead(yaw);
             CenterOfMass = CenterOfMassNow();
         }
 
@@ -559,18 +589,33 @@ namespace PhysicsBattler.Motion
         private void PoseShieldArm(Loadout loadout, Quaternion facing)
         {
             var slot = anim.SlotWeaponL;
-            GuardPose(loadout.Off, false, facing, loadout.Scale, out var grip, out var rotation);
-            grip += FlailOffset(facing, -1f);
-            RhythmGuard(facing, rhythm.off, rhythm.offTurn, ref grip, ref rotation);
-            if (BlockBlend > 0f && BlockNormal.sqrMagnitude > 1e-6f)
+            var shield = loadout.Off;
+            float scale = loadout.Scale;
+            GuardPose(shield, false, facing, scale, out var grip, out var rotation);
+            var aim = Shield;
+            float w = Mathf.Clamp01(aim.weight);
+            if (w > 0f)
             {
-                // Raised across the blow: the face's middle on the strike line, looking back along it.
-                Quaternion block = Quaternion.LookRotation(BlockNormal.normalized, Vector3.up);
-                Vector3 blockGrip = BlockCenter - block * (loadout.Off.faceCenter * loadout.Scale);
-                float b = BlockBlend * BlockBlend * (3f - 2f * BlockBlend);
-                grip = Vector3.Lerp(grip, blockGrip, b);
-                rotation = Quaternion.Slerp(rotation, block, b);
+                // Milestone 9: under control. The guard (and the rhythm's on it) turned round the
+                // chest toward the threat, inside the cone a shield arm can cover, its face set
+                // against a blow it has seen.
+                ControlledShield(shield, scale, aim, out var held, out var heldRotation);
+                grip = Vector3.Lerp(grip, held, w);
+                rotation = Quaternion.Slerp(rotation, heldRotation, w);
+                grip += FlailOffset(facing, -1f);
             }
+            else
+            {
+                grip += FlailOffset(facing, -1f);
+                RhythmGuard(facing, rhythm.off, rhythm.offTurn, ref grip, ref rotation);
+            }
+
+            // Held in the hand: as far out as the arm reaches, the elbow a little bent.
+            Vector3 handAt = HandFor(grip, rotation, slot);
+            grip += Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, handAt, ShieldReach) - handAt;
+            KeepShieldClear(shield, scale, slot, w > 0f, ref grip, ref rotation);
+            ShieldCenter = grip + rotation * (shield.faceCenter * scale);
+            ShieldFace = rotation * Vector3.forward;
 
             Vector3 pole = facing * new Vector3(-0.8f, -1f, -0.2f);
             TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL),
@@ -578,16 +623,225 @@ namespace PhysicsBattler.Motion
             anim.Part(PartId.HandL).rotation = rotation * Quaternion.Inverse(slot.localRotation);
         }
 
+        /// <summary>How far out the shield arm reaches at most (share of the arm): the elbow stays a little bent.</summary>
+        public const float ShieldReach = 0.92f;
+
+        /// <summary>The most a shield's face may turn from its way out from the chest (degrees): any more and it would face its wielder.</summary>
+        public const float MaxShieldFaceOff = 60f;
+
+        /// <summary>
+        /// The shield under control: the guard as tuned (in the chest's frame), turned round the chest
+        /// toward the threat (clamped into the cone), its face turned with it, or set against a blow.
+        /// </summary>
+        private void ControlledShield(WeaponDefinition shield, float scale, ShieldAim aim, out Vector3 grip, out Quaternion rotation)
+        {
+            var chestPart = anim.Part(PartId.Chest);
+            Vector3 chest = chestPart.position;
+            float chestYaw = ShieldCone.FacingOf(chestPart.rotation, root.eulerAngles.y);
+            var frame = Quaternion.Euler(0f, chestYaw, 0f);
+            GuardPose(shield, false, frame, scale, out var guardGrip, out var guardRotation);
+            // (The rhythm's guard, its postures and the tempo's stance move it in the chest's frame,
+            // so they turn round with it.)
+            Vector3 local = Quaternion.Inverse(frame) * (guardGrip + guardRotation * (shield.faceCenter * scale) - chest) + rhythm.off;
+            Vector3 guardFace = Quaternion.Euler(rhythm.offTurn) * (Quaternion.Inverse(frame) * (guardRotation * Vector3.forward));
+
+            Vector3 direction = aim.direction.sqrMagnitude > 1e-6f ? aim.direction.normalized : frame * Vector3.forward;
+            ShieldCone.Angles(direction, chestYaw, out float yaw, out float pitch);
+            ShieldCone.Clamp(ref yaw, ref pitch, true);
+            var turn = frame * Quaternion.Euler(-pitch, yaw, 0f);
+            float reach = aim.reach > 0f ? aim.reach : 1f;
+            Vector3 center = chest + turn * (local * reach);
+            // (Never behind the chest: turned right out to the side, the guard's offset would take it back.)
+            Vector3 front = frame * Vector3.forward;
+            float ahead = Vector3.Dot(center - chest, front);
+            if (ahead < 0.02f * body.SizeFactor)
+            {
+                center += front * (0.02f * body.SizeFactor - ahead);
+            }
+
+            Vector3 face = turn * guardFace;
+            if (aim.faceBlend > 0f && aim.face.sqrMagnitude > 1e-6f)
+            {
+                face = Vector3.Slerp(face, aim.face.normalized, Mathf.Clamp01(aim.faceBlend));
+            }
+
+            Vector3 radial = center - chest;
+            if (radial.sqrMagnitude > 1e-6f && Vector3.Angle(face, radial) > MaxShieldFaceOff)
+            {
+                face = Vector3.RotateTowards(radial.normalized, face.normalized, MaxShieldFaceOff * Mathf.Deg2Rad, 0f);
+            }
+
+            rotation = Quaternion.LookRotation(face, Vector3.up);
+            grip = center - rotation * (shield.faceCenter * scale);
+        }
+
+        private static readonly PartId[] ShieldKeepsClearOf = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head, PartId.ThighL, PartId.ThighR };
+
+        /// <summary>
+        /// Keeps the shield's disc out of its wielder: where its rim (or face) would be inside the
+        /// torso, head or thighs, it goes further out from the chest; if the arm can't reach that far,
+        /// its face turns out instead (edge-on to the body gives the most room). Measures what is left.
+        /// </summary>
+        private void KeepShieldClear(WeaponDefinition shield, float scale, Transform slot, bool fix, ref Vector3 grip, ref Quaternion rotation)
+        {
+            if (Rig == null || shield.radius <= 0f)
+            {
+                ShieldClearance = float.MaxValue;
+                return;
+            }
+
+            float radius = shield.radius * scale;
+            float margin = 0.01f * body.SizeFactor;
+            Vector3 chest = anim.Part(PartId.Chest).position;
+            Vector3 offset = shield.faceCenter * scale;
+            for (int i = 0; i < 8; i++)
+            {
+                Vector3 center = grip + rotation * offset;
+                float gap = ShieldGap(center, rotation, radius);
+                ShieldClearance = gap;
+                if (!fix || gap >= margin)
+                {
+                    return;
+                }
+
+                // Out from the chest (the arm keeps hold of it: it slides round the shoulder)...
+                Vector3 outward = center - chest;
+                outward.y *= 0.5f;
+                outward = outward.sqrMagnitude > 1e-6f ? outward.normalized : rotation * Vector3.forward;
+                Vector3 movedGrip = center + outward * (margin - gap + 0.005f) - rotation * offset;
+                Vector3 hand = HandFor(movedGrip, rotation, slot);
+                movedGrip += Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, hand, ShieldReach) - hand;
+                float movedGap = ShieldGap(movedGrip + rotation * offset, rotation, radius);
+                if (movedGap > gap + 1e-3f)
+                {
+                    grip = movedGrip;
+                    if (movedGap >= margin)
+                    {
+                        continue;
+                    }
+                }
+
+                // ...and where that isn't enough, its face turned out (edge-on to the body leaves the most room).
+                center = grip + rotation * offset;
+                Vector3 face = Vector3.RotateTowards(rotation * Vector3.forward, outward, 12f * Mathf.Deg2Rad, 0f);
+                rotation = Quaternion.LookRotation(face, Vector3.up);
+                grip = center - rotation * offset;
+            }
+
+            ShieldClearance = ShieldGap(grip + rotation * offset, rotation, radius);
+        }
+
+        /// <summary>The smallest distance from the shield's disc (its rim, half way in, and its middle) to its own body (negative: inside).</summary>
+        private float ShieldGap(Vector3 center, Quaternion rotation, float radius)
+        {
+            Vector3 u = rotation * Vector3.right, v = rotation * Vector3.up;
+            float best = float.MaxValue;
+            for (int k = 0; k < 13; k++)
+            {
+                Vector3 p;
+                if (k < 8)
+                {
+                    float a = k * Mathf.PI / 4f;
+                    p = center + radius * (Mathf.Cos(a) * u + Mathf.Sin(a) * v);
+                }
+                else if (k < 12)
+                {
+                    float a = (k - 8) * Mathf.PI / 2f + Mathf.PI / 4f;
+                    p = center + 0.5f * radius * (Mathf.Cos(a) * u + Mathf.Sin(a) * v);
+                }
+                else
+                {
+                    p = center;
+                }
+
+                foreach (var id in ShieldKeepsClearOf)
+                {
+                    best = Mathf.Min(best, BodyClearance.PointDistance(Rig, anim, id, p));
+                }
+            }
+
+            return best;
+        }
+
+        // ---- The look -----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The look on the pose: the chest turns by its share (not while a blow owns it), then the head
+        /// by the rest, on top of its own weave and nods, less what the eyes take; then held inside a
+        /// head's limits against the chest.
+        /// </summary>
+        private void ApplyLook(float rootYaw, float blowBlend)
+        {
+            float w = Mathf.Clamp01(LookWeight);
+            if (w <= 0f)
+            {
+                return;
+            }
+
+            float yaw = LookYaw * w, pitch = LookPitch * w;
+            var chest = anim.Part(PartId.Chest);
+            var head = anim.Part(PartId.Head);
+            float chestTurn = HeadLook.ChestShare(yaw, Mathf.DeltaAngle(rootYaw, ShieldCone.FacingOf(chest.rotation, rootYaw)), blowBlend);
+            if (Mathf.Abs(chestTurn) > 1e-3f)
+            {
+                chest.rotation = Quaternion.AngleAxis(chestTurn, Vector3.up) * chest.rotation;
+            }
+
+            // (The head hangs off the chest: it has turned with it already.)
+            float turn = yaw - HeadLook.EyesAcross(yaw) - chestTurn;
+            if (Mathf.Abs(turn) > 1e-3f)
+            {
+                head.rotation = Quaternion.AngleAxis(turn, Vector3.up) * head.rotation;
+            }
+
+            float lift = pitch - HeadLook.EyesUpDown(pitch);
+            Vector3 across = Vector3.Cross(Vector3.up, head.rotation * Vector3.forward);
+            if (Mathf.Abs(lift) > 1e-3f && across.sqrMagnitude > 1e-6f)
+            {
+                head.rotation = Quaternion.AngleAxis(-lift, across.normalized) * head.rotation;
+            }
+
+            LimitHead(rootYaw);
+        }
+
+        /// <summary>Holds the head inside its limits against the chest (turn, down and up), and notes where it ended.</summary>
+        private void LimitHead(float rootYaw)
+        {
+            var chest = anim.Part(PartId.Chest);
+            var head = anim.Part(PartId.Head);
+            float chestYaw = ShieldCone.FacingOf(chest.rotation, rootYaw);
+            float rel = Mathf.DeltaAngle(chestYaw, ShieldCone.FacingOf(head.rotation, rootYaw));
+            float held = Mathf.Clamp(rel, -HeadLook.Turn, HeadLook.Turn);
+            if (Mathf.Abs(held - rel) > 1e-3f)
+            {
+                head.rotation = Quaternion.AngleAxis(held - rel, Vector3.up) * head.rotation;
+            }
+
+            float chestPitch = PitchOf(chest.rotation * Vector3.forward);
+            float relPitch = PitchOf(head.rotation * Vector3.forward) - chestPitch;
+            float heldPitch = Mathf.Clamp(relPitch, -HeadLook.Down, HeadLook.Up);
+            Vector3 across = Vector3.Cross(Vector3.up, head.rotation * Vector3.forward);
+            if (Mathf.Abs(heldPitch - relPitch) > 1e-3f && across.sqrMagnitude > 1e-6f)
+            {
+                head.rotation = Quaternion.AngleAxis(-(heldPitch - relPitch), across.normalized) * head.rotation;
+            }
+
+            HeadTurn = held;
+            HeadPitch = heldPitch;
+        }
+
+        private static float PitchOf(Vector3 forward) => Mathf.Asin(Mathf.Clamp(forward.normalized.y, -1f, 1f)) * Mathf.Rad2Deg;
+
         /// <summary>
         /// A hand target brought within 96% of the arm's reach: an arm snapping straight swings its
         /// elbow across in a step, so the hand falls a little short instead.
         /// </summary>
-        private Vector3 Reachable(PartId upper, PartId fore, PartId hand, Vector3 target)
+        private Vector3 Reachable(PartId upper, PartId fore, PartId hand, Vector3 target, float share = 0.96f)
         {
             float length = anim.RestLocalPosition(fore).magnitude + anim.RestLocalPosition(hand).magnitude;
             Vector3 from = anim.Part(upper).position;
             Vector3 to = target - from;
-            float most = 0.96f * length;
+            float most = share * length;
             return to.magnitude > most ? from + to.normalized * most : target;
         }
 

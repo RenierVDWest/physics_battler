@@ -244,6 +244,7 @@ namespace PhysicsBattler.Tests
             {
                 var (attacker, target, _) = Duel("Small");
                 var bystander = Build(body, new Vector3(3f, 0f, 3f), 180f, 1);
+                bystander.LookOn = false;   // (squarely in the way: a look turning its chest would put an arm across the blade)
                 var everyone = new[] { attacker, target, bystander };
                 try
                 {
@@ -303,7 +304,7 @@ namespace PhysicsBattler.Tests
             Assert.Greater(small.knock, 0.75f, $"and throws it aside ({small.knock:0.00} m/s)");
 
             var medium = Run("Medium");
-            Assert.IsTrue(medium.hits[0].Result.StopsSwing, "a medium body stops a medium swing");
+            Assert.IsTrue(medium.hits[0].Result.StopsSwing, $"a medium body stops a medium swing (struck its {medium.hits[0].Part}, {medium.hits[0].Result.Damage:0} damage, {medium.hits[0].Result.MomentumLeft:0.00} of the swing left, severed {medium.hits[0].Severed})");
             Assert.AreEqual(1, medium.hits.Count, "nothing behind it is struck");
             Assert.IsFalse(medium.targetHurt, "the target is untouched");
             Assert.Greater(small.knock, 1.5f * medium.knock, $"the cleaved body is thrown much harder ({small.knock:0.00} against {medium.knock:0.00} m/s)");

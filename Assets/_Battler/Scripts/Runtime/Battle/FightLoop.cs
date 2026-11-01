@@ -176,6 +176,7 @@ namespace PhysicsBattler.Battle
                 {
                     unit.CircleOpponent = false;
                     Steer(units, unit, plan, Vector3.zero, dt);
+                    Search(units, unit);
                     continue;
                 }
 
@@ -242,7 +243,7 @@ namespace PhysicsBattler.Battle
         private UnitController ChooseTarget(IReadOnlyList<UnitController> units, UnitController unit, Plan plan, float now)
         {
             var current = plan.target;
-            bool valid = current != null && current.IsInitialized && current.IsAlive && current.Team != unit.Team && !current.IsDown;
+            bool valid = current != null && current.IsInitialized && current.IsAlive && current.Team != unit.Team && !current.IsDown && unit.Knows(current);
             if (valid && now < plan.retargetAt)
             {
                 return current;
@@ -253,7 +254,8 @@ namespace PhysicsBattler.Battle
             float bestScore = float.MaxValue;
             foreach (var other in units)
             {
-                if (other == null || !other.IsInitialized || !other.IsAlive || other.Team == unit.Team)
+                // (Milestone 9: only an enemy it knows is there: seen, felt or remembered.)
+                if (other == null || !other.IsInitialized || !other.IsAlive || other.Team == unit.Team || !unit.Knows(other))
                 {
                     continue;
                 }
@@ -307,6 +309,28 @@ namespace PhysicsBattler.Battle
 
             plan.target = best;
             return best;
+        }
+
+        /// <summary>
+        /// Milestone 9: no enemy it knows of, though some are still fighting: it turns about to find
+        /// one (toward where it last knew of one, or toward the middle of the board).
+        /// </summary>
+        private void Search(IReadOnlyList<UnitController> units, UnitController unit)
+        {
+            bool any = false;
+            foreach (var other in units)
+            {
+                any |= other != null && other.IsInitialized && other.IsAlive && other.Team != unit.Team && !other.IsDown;
+            }
+
+            if (!any)
+            {
+                return;   // (only enemies on the ground: it waits for one to get up)
+            }
+
+            // Turned well round each step: it keeps turning that way until something comes into view.
+            Vector3 ahead = Quaternion.Euler(0f, unit.FacingYaw + 60f, 0f) * Vector3.forward;
+            unit.FacePoint(unit.Root.position + ahead);
         }
 
         // ---- Fighting -----------------------------------------------------------------------------
@@ -446,8 +470,9 @@ namespace PhysicsBattler.Battle
                 return;
             }
 
-            // An opening it reads: strike into it now if the blow was coming soon anyway.
-            var open = enemy.Openings;
+            // An opening it reads: strike into it now if the blow was coming soon anyway (milestone 9:
+            // only one it sees clearly).
+            var open = unit.Sees(enemy) == Sight.Clear ? enemy.Openings : AimParts.None;
             bool opening = plan.readsThisTime && open != AimParts.None && now >= plan.nextAttack - style.openingLead;
             if ((now < plan.nextAttack && !opening) || unit.Stance.AnyStepping)
             {
@@ -487,7 +512,7 @@ namespace PhysicsBattler.Battle
 
             foreach (var target in candidates)
             {
-                var prefer = target == enemy && plan.readsThisTime ? target.Openings : AimParts.None;
+                var prefer = target == enemy && plan.readsThisTime ? open : AimParts.None;
                 var state = MovePlanner.Plan(unit, target, random, prefer, 4f);
                 if (state == null)
                 {

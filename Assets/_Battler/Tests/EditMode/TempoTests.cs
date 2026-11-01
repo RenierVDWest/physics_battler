@@ -165,6 +165,7 @@ namespace PhysicsBattler.Tests
         {
             var report = new StringBuilder();
             bool failed = false;
+            UnitController.ResetSeeds(0);   // (the same idles and postures whatever ran before)
             foreach (string body in new[] { "Small", "Medium", "Large" })
             {
                 var (unit, opponent) = RhythmTests.Pair(body);

@@ -146,7 +146,7 @@ namespace PhysicsBattler.Units
             return dt;
         }
 
-        /// <summary>Knock-back slides the unit (the feet step after it); poise comes back; the shield goes up or down.</summary>
+        /// <summary>Knock-back slides the unit (the feet step after it); poise comes back.</summary>
         private void CombatBeforePose(float dt)
         {
             // How fast the game walked the root since the last step (the sandbox moves it between
@@ -187,23 +187,7 @@ namespace PhysicsBattler.Units
                 recoverLeft[r] = Mathf.Max(0f, recoverLeft[r] - dt);
             }
 
-            // The shield: up from the reaction time, down after the blow is past.
-            float target = incoming != null && LocalTime >= blockFrom && LocalTime <= blockUntil ? 1f : 0f;
-            BlockBlend = Mathf.MoveTowards(BlockBlend, target, dt / 0.15f);
-            if (incoming != null && LocalTime > blockUntil && BlockBlend <= 0f)
-            {
-                incoming = null;
-            }
-
-            if (incoming != null)
-            {
-                // In front of the point the blow is aimed at, facing back along it.
-                Vector3 toward = -(incoming.Frame * Vector3.forward);
-                Pose.BlockCenter = incoming.Aim + toward * (0.3f * Body.SizeFactor);
-                Pose.BlockNormal = toward;
-            }
-
-            Pose.BlockBlend = BlockBlend;
+            // (The shield goes up or down in UpdateShield, milestone 9.)
         }
 
         /// <summary>Seconds a knock-back takes to die away (it slows exponentially).</summary>
@@ -655,6 +639,7 @@ namespace PhysicsBattler.Units
                 return;
             }
 
+            NoteStruck(hit);
             var r = hit.Result;
             Health = Mathf.Max(0f, Health - r.Damage);
             Rhythm?.NoteHit(r.Damage / Mathf.Max(1f, profile.maxHealth));
@@ -799,6 +784,8 @@ namespace PhysicsBattler.Units
             StopRhythm();
 
             incoming = null;
+            incomingAttacker = null;
+            threats.Clear();
             BlockBlend = 0f;
             Pose.BlockBlend = 0f;
             Knockback = Vector3.zero;
@@ -897,36 +884,6 @@ namespace PhysicsBattler.Units
                 Pose.Move = null;
                 cutShort = null;
             }
-        }
-
-        // ---- Shield blocks -----------------------------------------------------------------------
-
-        /// <summary>A blow is coming at this unit: with a shield, it may raise it across the blow after its reaction time.</summary>
-        private void OnIncoming(UnitController attacker, MoveState move)
-        {
-            Rhythm?.NoteThreat();
-            Tempo?.NoteIncoming(attacker != null && attacker.Tempo != null && attacker.TempoOn && attacker.Tempo.State == TempoState.Press);
-            if (!CanAct || Loadout == null || !Loadout.HasShield || IsAttacking)
-            {
-                // (off its feet, it can't block)
-                Defending?.Invoke(this, attacker, move, !CanAct ? "can't defend: off its feet"
-                    : IsAttacking ? "can't defend: in a blow of its own"
-                    : "nothing to defend with");
-                return;
-            }
-
-            // Shelled up (milestone 8), it raises the shield more readily.
-            float chance = Tempo != null && TempoOn && Tempo.State == TempoState.Shell ? Mathf.Min(0.9f, 1.4f * Style.blockChance) : Style.blockChance;
-            if (combatRandom.NextDouble() >= chance)
-            {
-                Defending?.Invoke(this, attacker, move, "doesn't block");
-                return;
-            }
-
-            Defending?.Invoke(this, attacker, move, $"raises the shield after {Style.reactionTime:0.00} s");
-            incoming = move;
-            blockFrom = LocalTime + Style.reactionTime;
-            blockUntil = LocalTime + move.Duration * Mathf.Min(1f, move.Move.activeWindow.y + 0.1f);
         }
     }
 }

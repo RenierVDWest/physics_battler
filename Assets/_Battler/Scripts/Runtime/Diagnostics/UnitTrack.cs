@@ -243,6 +243,37 @@ namespace PhysicsBattler.Diagnostics
             var tempo = unit.TempoOn ? unit.Tempo : null;
             frames.Add("tempo", tempo != null ? tempo.State.ToString() : "");
             frames.Add("pressure", tempo != null ? tempo.Pressure : 0f, 2);
+            // Milestone 9: what the head attends to, how far it is turned against the chest (and up),
+            // how far from what it attends to it points; how many units it knows of; the shield's
+            // state, how far its face is from its threat, and how far its rim stays from its own body.
+            var look = unit.Look;
+            float lookOff = unit.LookOff;
+            frames.Add("look", look.Current >= 0 ? look.Kind : "");
+            frames.Add("headTurn", p.HeadTurn, 1);
+            frames.Add("headPitch", p.HeadPitch, 1);
+            frames.Add("lookOff", lookOff, 1);
+            frames.Add("known", unit.Known.Count);
+            bool hasShield = unit.Loadout != null && unit.Loadout.HasShield;
+            frames.Add("shield", hasShield ? unit.ShieldMode.ToString() : "");
+            frames.Add("shieldOff", hasShield ? unit.ShieldOffThreat : 0f, 1);
+            frames.Add("shieldClear", hasShield && p.ShieldClearance < 10f ? p.ShieldClearance : 0f, 3);
+            if (upright)
+            {
+                lookSamples++;
+                lookOnPoint += look.Current >= 0 && lookOff <= 25f ? 1 : 0;
+                if (look.Reachable)
+                {
+                    lookReachable++;
+                    lookReachableOn += look.Current >= 0 && lookOff <= 25f ? 1 : 0;
+                }
+                headOutside += Mathf.Abs(p.HeadTurn) > 80.5f || p.HeadPitch < -60.5f || p.HeadPitch > 50.5f ? 1 : 0;
+                if (hasShield)
+                {
+                    shieldSamples++;
+                    shieldFaced += unit.ShieldOffThreat <= 45f ? 1 : 0;
+                    shieldWorstClear = Mathf.Min(shieldWorstClear, p.ShieldClearance);
+                }
+            }
 
             frames.End();
             samples++;
@@ -364,14 +395,26 @@ namespace PhysicsBattler.Diagnostics
             postureCounts[posture.Label] = n + 1;
         }
 
-        public int incoming, shieldsRaised, defenceless;
+        public int incoming, shieldsRaised, defenceless, seenClearly, seenAtEdge, neverSeen;
 
-        /// <summary>Milestone 7: a blow came at it, and what it did about it.</summary>
+        // Milestone 9: the look and the shield while standing.
+        public int lookSamples, lookOnPoint, lookReachable, lookReachableOn, headOutside, shieldSamples, shieldFaced;
+        public float shieldWorstClear = float.MaxValue;
+
+        /// <summary>Milestone 7: a blow came at it, and what it did about it (milestone 9: whether and how it saw it).</summary>
         public void NoteDefence(string what)
         {
+            if (what == "never saw it: struck")
+            {
+                return;   // (counted when the blow ends: "never saw it")
+            }
+
             incoming++;
             shieldsRaised += what.StartsWith("raises the shield") ? 1 : 0;
-            defenceless += what == "nothing to defend with" ? 1 : 0;
+            defenceless += what.StartsWith("nothing to defend with") ? 1 : 0;
+            seenClearly += what.Contains("(seen clearly") ? 1 : 0;
+            seenAtEdge += what.Contains("(seen at the edge") ? 1 : 0;
+            neverSeen += what.StartsWith("never saw it") ? 1 : 0;
         }
 
         public int severs;
@@ -465,8 +508,23 @@ namespace PhysicsBattler.Diagnostics
 
             if (incoming > 0)
             {
-                md.AppendLine($"Defence: {incoming} blows came at it; it raised the shield against {shieldsRaised}"
+                md.AppendLine($"Defence: {incoming} blows came at it ({seenClearly} seen clearly, {seenAtEdge} at the edge of its view, {neverSeen} never seen); "
+                              + $"it raised the shield against {shieldsRaised}"
                               + (defenceless > 0 ? $", and had nothing to defend with against {defenceless}." : "."));
+                md.AppendLine();
+            }
+
+            if (lookSamples > 0)
+            {
+                md.AppendLine($"Look: within 25° of what it attended to {100f * lookOnPoint / lookSamples:0}% of the time standing "
+                              + $"({100f * lookReachableOn / Mathf.Max(1, lookReachable):0}% of the time it was within the head's reach, {100f * lookReachable / lookSamples:0}% of the time); "
+                              + $"head outside its limits {headOutside} steps.");
+                if (shieldSamples > 0)
+                {
+                    md.AppendLine($"Shield: faced within 45° of its threat {100f * shieldFaced / shieldSamples:0}% of the time standing; "
+                                  + $"its rim came within {shieldWorstClear * 100f:0.0} cm of its own body (negative: inside).");
+                }
+
                 md.AppendLine();
             }
 

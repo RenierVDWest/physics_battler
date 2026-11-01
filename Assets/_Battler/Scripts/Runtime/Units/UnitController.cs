@@ -194,11 +194,12 @@ namespace PhysicsBattler.Units
             }
 
             int seed = 7919 * team + 104729 * ++spawnCount;
+            unitNumber = spawnCount;
             InitializeCombat(seed);
             Stance = new Stance(seed);
             Stance.Configure(Style, Body);
             Idle = new CombatIdle(seed + 1);
-            Pose = new PosePipeline(transform, Anim, Body, Stance, Idle, Style) { Loadout = Loadout, IsSevered = Rig.IsSevered };
+            Pose = new PosePipeline(transform, Anim, Body, Stance, Idle, Style) { Loadout = Loadout, IsSevered = Rig.IsSevered, Rig = Rig };
             Authority = new AuthorityController(Rig, Anim);
             Authority.Set(BodyRegion.Legs, AuthorityLevel.Kinematic, 1f);
             Authority.Set(BodyRegion.Torso, AuthorityLevel.Pinned, profile.torsoPin);
@@ -208,6 +209,7 @@ namespace PhysicsBattler.Units
             InitializeBalance();
             InitializeRhythm(seed);
             InitializeTempo(seed);
+            InitializePerception(seed);
             InitializeGait();
 
             facingYaw = transform.eulerAngles.y;
@@ -390,6 +392,12 @@ namespace PhysicsBattler.Units
             ResetBalance();
             Place(position, yaw);
             Knockback = Vector3.zero;
+            threats.Clear();
+            incoming = null;
+            incomingAttacker = null;
+            shieldPlaced = false;
+            facePoint = null;
+            Look.Reset();
             Pose.Compose(LocalTime, 0f, true);
             SnapBodyToPose();
             foreach (var part in Rig.Parts)
@@ -649,15 +657,20 @@ namespace PhysicsBattler.Units
                 return;   // (bled out this step)
             }
 
+            // Milestone 9: what it perceives (from its head, as the last step left it).
+            UpdatePerception();
+
             // Milestone 4: on the ground (a ragdoll), or getting up (the get-up's own pose).
             if (State == UnitState.Down)
             {
+                DropLook();
                 StepDown(dt, drive);
                 return;
             }
 
             if (State == UnitState.GettingUp)
             {
+                DropLook();
                 StepGetUp(dt, drive);
                 return;
             }
@@ -669,6 +682,10 @@ namespace PhysicsBattler.Units
             if (move != null)
             {
                 facePoint = move.Aim;
+            }
+            else if (turnToThreat.HasValue)
+            {
+                facePoint = turnToThreat.Value;   // (a seen blow the shield can't reach yet: it turns to face it)
             }
 
             StateTime += poseDt;
@@ -688,6 +705,8 @@ namespace PhysicsBattler.Units
             UpdateGait(poseDt);
             UpdateTempo(poseDt);
             UpdateRhythm(poseDt);
+            UpdateShield(dt);
+            UpdateLook(poseDt);
 
             if (move != null)
             {

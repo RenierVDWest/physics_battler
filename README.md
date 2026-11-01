@@ -9,10 +9,54 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 8, the tempo
+## Current state: milestone 9a, seeing, the head's look and the shield under control
 
-Plan for milestones 7 to 12 (free roam, tempo, combos, defence, dodging, signature attacks):
-https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp
+Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
+https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
+combos; the combat plan's milestones move back by one): https://claude.ai/artifact/HCsdNXmL5zVwV1ep1ta5Gj
+
+### Milestone 9a: seeing, the head's look and the shield under control
+
+**Perception** (`Combat/Perception.cs`, `Units/UnitPerception.cs`). A unit sees from its head: clearly
+within 30 degrees of where it points, movement out to 100 degrees each way (70 up and down), and it
+feels what is within about a body length. It remembers each unit it has perceived (where, when, how it
+moved) for 3 s after losing sight of it. These are per unit, on the profile (`perception`). A blow is
+reacted to only once the unit sees it: at the edge of its view it reacts 1.5 times slower; one it
+never sees lands unopposed, and the attacker is known from then on. Pressure (the tempo) counts seen
+blows, and unseen ones only when they land. The fight loop picks targets only among enemies a unit
+knows of (with none, it turns about to find one) and reads openings only in clear view.
+
+**The head's look** (`Motion/HeadLook.cs`, `Units/UnitLook.cs`). An attention score picks what to look
+at: its own blow's aim, a blow it has seen coming, the weapon of the enemy it minds as it winds up,
+someone new at the edge of its view, a glance now and then at whoever is nearest, and otherwise that
+enemy's face. A new point must clearly beat the current one, which is held at least 0.4 s (a much
+stronger one, like a blow, cuts in), and a new stimulus is answered after 0.1–0.2 s. The look turns
+eased, a big one in about a third of a second, never over 350 degrees a second. The chest takes a
+fifth of it (and what the neck can't, up to 30 degrees; not while a blow owns the chest), the head the
+rest within its limits (80 degrees round from the chest, 60 down, 50 up); the eyes take the last few
+degrees, so the head doesn't point dead on.
+
+**The shield** (`Combat/ShieldCone.cs`, `Units/UnitShield.cs`, `PosePipeline.ControlledShield`). It
+always points at the threat the unit knows of: the enemy's chest (**Guard**), its weapon as it winds
+up (**Track**), a seen blow's path where it comes in (**Block**, the face set against the weapon's
+travel), raised to the eyes when shelled up (**High**). It moves there eased, at most 300 degrees a
+second toward a blow and 150 back. It stays inside the cone a shield arm covers from the chest (40
+degrees across the body, 90 out to its side, 35 down, 55 up), never behind the chest, held out as far
+as the arm reaches with the elbow a little bent, and out of its own body (its rim and face are checked
+against the torso, head and thighs; it slides out round the shoulder, or turns edge-on). A seen blow
+coming in from outside the cone turns the unit to face it, and it blocks once the blow is inside, if
+there is time. Tests and other measurements can switch the look off (`LookOn`).
+
+**Logs.** New columns: `look` (what it attends to), `headTurn`, `headPitch`, `lookOff` (how far its
+gaze is from it), `known`, `shield` (its state), `shieldOff`, `shieldClear`. New `sight` events (noticed,
+lost track of). The `defence` events say how each blow was seen (or "never saw it"). The summary has
+Defence, Look and Shield lines.
+
+**Runners.** `shield [dir]`: a sword-and-shield unit, busy with an enemy in front of it, is attacked
+from 12 directions with each swing; prints how it saw each blow, what it did, and what was struck;
+with a folder, `Tools/Playtest/shieldview.py <dir>/shield.csv out.png --trials 1,13,33` draws film
+strips. `look [dir]`: two enemies walk round a unit; `Tools/Playtest/lookview.py <dir>/look.csv out.png`
+draws its view zones, what it sees and where it looks.
 
 ### Milestone 8: the tempo
 

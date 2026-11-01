@@ -91,6 +91,26 @@ namespace PhysicsBattler.Combat
             return best;
         }
 
+        /// <summary>Distance from a point to a part's collider posed on the animation rig (negative: inside).</summary>
+        public static float PointDistance(UnitRig rig, AnimRig anim, PartId id, Vector3 p)
+        {
+            var part = rig.Part(id);
+            var collider = part != null ? part.partCollider : null;
+            if (collider == null || rig.IsSevered(id))
+            {
+                return float.MaxValue;
+            }
+
+            Transform holder = collider.transform, physical = part.transform;
+            Quaternion inverse = Quaternion.Inverse(physical.rotation);
+            Quaternion relativeRotation = inverse * holder.rotation;
+            Vector3 relativePosition = inverse * (holder.position - physical.position);
+            var posed = anim.Part(id);
+            Quaternion rotation = posed.rotation * relativeRotation;
+            Vector3 position = posed.position + posed.rotation * relativePosition;
+            return ShapeDistance(collider, Quaternion.Inverse(rotation) * (p - position));
+        }
+
         private static float ShapeDistance(Collider collider, Vector3 p)
         {
             switch (collider)

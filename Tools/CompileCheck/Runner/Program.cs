@@ -55,6 +55,16 @@ internal static class Program
             return BalanceReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "look")
+        {
+            return LookReport.Run(args.Length >= 2 ? args[1] : null);
+        }
+
+        if (args.Length >= 1 && args[0] == "shield")
+        {
+            return ShieldReport.Run(args.Length >= 2 ? args[1] : null);
+        }
+
         if (args.Length >= 1 && args[0] == "windows")
         {
             return WindowReport.Run();

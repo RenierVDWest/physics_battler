@@ -23,6 +23,10 @@ namespace PhysicsBattler.Units
         [Tooltip("How fast the unit turns to face its target (degrees per second).")]
         public float turnSpeed = 220f;
 
+        [Header("Perception")]
+        [Tooltip("How the unit sees (milestone 9): what it doesn't perceive it can't react to.")]
+        public PhysicsBattler.Combat.PerceptionSkill perception = PhysicsBattler.Combat.PerceptionSkill.Default;
+
         [Header("Health and poise")]
         public float maxHealth = 100f;
         [Tooltip("How much hitting it takes before it staggers (a blow's impulse, N·s, counts against it).")]
