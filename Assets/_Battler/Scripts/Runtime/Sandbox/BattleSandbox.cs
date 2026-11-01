@@ -159,10 +159,11 @@ namespace PhysicsBattler.Sandbox
                     unit.Profile = spawn.profileOverride;
                 }
 
+                // (Tinted before it wakes: waking moves its body parts out from under it.)
+                Tint(unit, TeamMaterial(spawn.team));
                 unit.transform.SetParent(null, true);
                 Destroy(holder);
 
-                Tint(unit, TeamMaterial(spawn.team));
                 units.Add(unit);
                 pendingEquip.Add((unit, spawn.mainHand, spawn.offHand));
             }
