@@ -9,17 +9,58 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 9c (first part), hits that land softly and a calm, close shield
+## Current state: milestone 9c, straight wrists, hits that land softly and a solid, close shield
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
 combos; the combat plan's milestones move back by one): https://claude.ai/artifact/HCsdNXmL5zVwV1ep1ta5Gj
 
+### Milestone 9c, second part: the arm points the weapon, stopped blows rebound, a solid shield
+
+**The arm points the weapon, the wrist stays straight** (`PosePipeline.PoseWeaponArm`). The weapon
+used to be put where the move wanted it and the wrist bent to suit, up to 60 degrees. Now:
+- The grip leans the weapon 20 degrees forward of the fist (`GripLean`, on both the animated and the
+  physical weapon slot), as a hand holds a sword; a thrust leans it 35 degrees more as it drives in
+  (`ThrustLean`), so the blade runs along the forearm.
+- The wrist is clamped to an easy range off the forearm's line (`EasyWrist`: 22 degrees in the guard, 35
+  in a blow, roll 75), then to the body's own limits (the hand's table is now -15/30/80/40).
+- With the wrist that way, the forearm, hand and weapon are turned as one rigid piece about the
+  shoulder (`RigidAim`): the elbow bends until the striking point is at the right distance, the arm turns
+  it onto the aim, and twists round to the elbow's side. The elbow's side (`WeaponElbow`) is chosen for
+  the least wrist bend that keeps the arm and blade out of the body. If the aim can't be reached with
+  the wrist that straight, the easy range widens in steps (up to four times) until it can.
+- Out of a blow, the arm's shape eases (12 Hz, critically damped), so a guard that changes doesn't jump.
+  A guard that would put the blade into its own body moves the grip out on a spring.
+- `MovePlanner.InTheWay` (the bystander tests and the sandbox) now uses the blade as the arm poses it.
+
+**Joint limits kept while standing** (`AuthorityController`). A held arm used to lose its limits (they
+were only on for ragdolls), so a stopped blow could fold it past what an arm does. The anatomical
+limits now stay on, 5 degrees wider than the table so the pose never fights them. The servo also
+caps how far it pulls a part round in one go (120 degrees) and ignores a pose that jumps more than that
+in one step.
+
+**A stopped blow rebounds** (`UnitCombat.StopSwing`, `Rebound`). The weapon arm is no longer switched to
+kinematic in blows (the switch back at the moment of a stop was a kick of its own); the servo holds it
+throughout. A blow stopped by a shield, weapon or body now rewinds at most 12% of its length
+(`RewindMost`, `MoveState.RewindFloor`) and the weapon arm takes a rebound knock back along the blow (a
+light stop 0.15, a hard one 0.25 of the arm's knock), then comes back once.
+
+**A solid, weighted shield** (`Weapon.Equip`, `GroundContacts`). A physical unit's shield collider is
+solid, not a trigger: it stops against bodies and weapons instead of passing into them. Its contacts
+are capped at 2 N·s a step (`ShieldPush`), so it shoves rather than launches. Its mass is added to the
+hand's body and taken off again when it is unequipped.
+
+**Measures** (stub, the pose). `arms 7`: weapon wrist bend in the guard 22 median / 22 95th, in blows
+35 / 43 (the reference attack FBXs: 23 / 45). `aim`: no misses, one blow turned down. Fights 7, 11 and 3 end
+normally with no standing bodies overlapping. New tests:
+`ArmTests.InTheGuardTheWeaponWristStaysNearlyStraight`, `ArmTests.TheShieldIsSolidAndWeighsOnTheHand`.
+The physical side (limits, rebound, the solid shield) can only be judged in play.
+
 ### Milestone 9c, first part: hits that land softly, a calm and close shield
 
 Plan (straight wrists, a close shield, hits that land softly): https://claude.ai/artifact/UJNwdKChsM7vidDhArKF9W.
-This is its first push; the second brings the arm solver (straight wrists), the joint limits kept
-while standing, a designed rebound for stopped blows and a solid, weighted shield.
+This was its first push; the second (above) brought the straight wrists, the joint limits kept while
+standing, a designed rebound for stopped blows and a solid, weighted shield.
 
 **A servo instead of velocity pinning** (`AuthorityController`). A held part used to get, each step,
 the velocity that would land it on its pose, blended with its own by the pin. That rings (about 9 Hz

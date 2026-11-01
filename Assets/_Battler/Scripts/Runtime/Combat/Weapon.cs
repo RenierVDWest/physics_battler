@@ -91,9 +91,16 @@ namespace PhysicsBattler.Combat
             weapon.InMainHand = mainHand;
             weapon.Scale = scale;
             weapon.hand = owner.Rig.Part(mainHand ? PartId.HandR : PartId.HandL);
+            // Milestone 9c: a shield is solid (it stops against bodies, its contacts capped in
+            // GroundContacts); weapons still only report what they touch.
+            bool solid = definition.IsShield && !mainHand && owner.IsPhysical;
             foreach (var collider in go.GetComponentsInChildren<Collider>(true))
             {
-                collider.isTrigger = true;
+                collider.isTrigger = !solid;
+                if (solid)
+                {
+                    GroundContacts.SetShield(collider, true);
+                }
                 foreach (var part in owner.Rig.Parts)
                 {
                     if (part.partCollider != null)

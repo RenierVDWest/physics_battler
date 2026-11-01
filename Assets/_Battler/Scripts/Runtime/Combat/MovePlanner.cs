@@ -47,26 +47,25 @@ namespace PhysicsBattler.Combat
         }
 
         /// <summary>
-        /// A point in the way of a planned blow (the bystander test and its scene): on the blade,
-        /// half way from the wielder's shoulder, where it will be at contact, to where the striking
-        /// part passes <paramref name="before"/> metres short of the aim on its way in. A body
-        /// centred there is struck before the target.
+        /// A point in the way of a planned blow (the bystander test and its scene): on the blade as
+        /// the arm actually poses it, half way from the grip to the striking point, at the moment
+        /// the striking point passes <paramref name="before"/> metres short of the aim on its way in.
+        /// A body centred there is struck before the target.
         /// </summary>
         public static Vector3 InTheWay(UnitController attacker, MoveState state, float before)
         {
-            Vector3 strike = state.PathPoint(0f);
-            for (float p = state.Move.ContactProgress; p > 0f; p -= 0.002f)
+            float contact = state.ContactTime > 0f ? state.ContactTime : 0.5f;
+            attacker.WeaponAt(state, contact, out var grip, out var strike);
+            for (float t = contact; t > 0f; t -= 0.01f)
             {
-                strike = state.PathPoint(p);
+                attacker.WeaponAt(state, t, out grip, out strike);
                 if (Vector3.Distance(strike, state.Aim) >= before)
                 {
                     break;
                 }
             }
 
-            var shoulder = attacker.Rig.Part(PartId.UpperArmR);
-            Vector3 at = shoulder.body != null ? shoulder.body.position : shoulder.transform.position;
-            return Vector3.Lerp(at + state.Lunge, strike, 0.5f);
+            return Vector3.Lerp(grip, strike, 0.5f);
         }
 
         /// <summary>Locks a blow on a point (tests and the move preview aim at plain points too).</summary>

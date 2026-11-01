@@ -238,8 +238,10 @@ namespace PhysicsBattler.Units
             SetRegion(BodyRegion.Torso, torso, false);
             SetRegion(BodyRegion.Head, torso, false);
             SetRegion(BodyRegion.ArmL, armL, false);
-            bool kinematicArm = move != null && profile.weaponArmKinematicInBlows && blend > 0.01f;
-            SetRegion(BodyRegion.ArmR, armR, kinematicArm);
+            // Milestone 9c: the weapon arm is held by the servo in blows too (no switch from kinematic to
+            // held at the moment a blow is stopped, when it is struck hardest); the profile's
+            // weaponArmKinematicInBlows is no longer used.
+            SetRegion(BodyRegion.ArmR, armR, false);
         }
 
         private void SetRegion(BodyRegion region, float pin, bool kinematic)
@@ -428,6 +430,41 @@ namespace PhysicsBattler.Units
             if (axis.sqrMagnitude > 1e-8f)
             {
                 armTurnV[a] += axis.normalized * (MaxArmTurn * hard * kick);
+            }
+        }
+
+        /// <summary>How far back along its path a stopped blow plays at most (share of the blow).</summary>
+        public const float RewindMost = 0.12f;
+
+        /// <summary>How far a stopped blow's weapon springs back (metres at medium size): a light stop, a hard one.</summary>
+        public const float ReboundLight = 0.15f, ReboundHard = 0.25f;
+
+        /// <summary>A blow stopped by a body or a shield: the weapon arm's pose springs back along the push it met and comes back, as the blow fades into the guard.</summary>
+        private void Rebound(Vector3 push, Vector3 point)
+        {
+            float j = push.magnitude;
+            float mass = 0f;
+            foreach (var id in ArmChain(BodyRegion.ArmR))
+            {
+                var body = Rig.Part(id).body;
+                mass += body != null ? body.mass : 0f;
+            }
+
+            if (Loadout?.Main != null)
+            {
+                mass += Loadout.Main.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale;
+            }
+
+            float hard = Tanh(j / (Mathf.Max(1f, mass) * 3f * SizeSpeed()));
+            float w = 2f * Mathf.PI * ArmKnockFrequency;
+            float kick = (float)System.Math.E * w;
+            Vector3 dir = push / j;
+            armKnockV[0] += dir * (Mathf.Lerp(ReboundLight, ReboundHard, hard) * Body.SizeFactor * kick);
+            Vector3 lever = point - Anim.Part(PartId.HandR).position;
+            Vector3 axis = Vector3.Cross(lever, dir);
+            if (axis.sqrMagnitude > 1e-8f)
+            {
+                armTurnV[0] += axis.normalized * (MaxArmTurn * hard * kick);
             }
         }
 
@@ -703,9 +740,16 @@ namespace PhysicsBattler.Units
         /// <summary>The swing met something it can't go through: the blow ends and the weapon arm recoils.</summary>
         private void StopSwing(MoveState move, HitReport report)
         {
-            // The weapon stays where it met the body for the hit stop, then bounces back along its
-            // path as the blow fades (the weapon arm is posed through it: nothing goes loose).
+            // Milestone 9c: the blow backs out of what it met along its path, but only a little (it
+            // could otherwise carry the arm back into its wind-up), and fades into the guard; the
+            // weapon springs back along the push it met, critically damped.
             move.Rewind = true;
+            move.RewindFloor = Mathf.Max(0f, move.Time - RewindMost * move.Duration);
+            if (report.Result.Impulse.sqrMagnitude > 1e-8f)
+            {
+                Rebound(-report.Result.Impulse, report.Point);
+            }
+
             if (report.Shield)
             {
                 Tempo?.NoteBlocked();
@@ -990,7 +1034,7 @@ namespace PhysicsBattler.Units
 
             if (cutShort.Rewind)
             {
-                cutShort.Time = Mathf.Max(0f, cutShort.Time - dt * ReboundSpeed);
+                cutShort.Time = Mathf.Max(cutShort.RewindFloor, cutShort.Time - dt * ReboundSpeed);
             }
 
             cutShort.Fade -= dt / CutShortFade;

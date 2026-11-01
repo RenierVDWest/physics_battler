@@ -75,6 +75,9 @@ namespace PhysicsBattler.Combat
 
         /// <summary>A blow stopped by what it struck bounces back: it plays backwards as it fades.</summary>
         public bool Rewind;
+
+        /// <summary>Milestone 9c: how far back a stopped blow may play (its time, seconds): just back out of what it met, never into its wind-up.</summary>
+        public float RewindFloor;
         public float Body => Move.BodyAt(T) / (Mathf.Abs(BodyPeak) > 1e-4f ? BodyPeak : 1f);
         public bool Active => Progress >= Move.activeWindow.x && Progress <= Move.activeWindow.y;
 

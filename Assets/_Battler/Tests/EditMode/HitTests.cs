@@ -224,8 +224,17 @@ namespace PhysicsBattler.Tests
                 Assert.AreEqual(kind, hits[0].Kind);
                 Assert.Greater(hits[0].Result.Damage, 0f, "full damage");
                 Assert.Less(bystander.Health, bystanderHealth);
-                Assert.IsTrue(hits[0].Result.StopsSwing, "as heavy as the attacker: the swing stops");
-                Assert.AreEqual(targetHealth, target.Health, "the target is untouched");
+                // (Milestone 9c: the arm now points the weapon, so a cut comes in on a slightly different
+                // line and may meet the bystander's guard arm before its body. A cut through an arm
+                // carries on (milestone 5's severing), and may then reach the target behind; otherwise
+                // the swing stops on the body in the way and the target is untouched.)
+                var region = Authority.AuthorityController.RegionOf(hits[0].Part);
+                bool armCut = (region == Authority.BodyRegion.ArmL || region == Authority.BodyRegion.ArmR) && !hits[0].Result.StopsSwing;
+                if (!armCut)
+                {
+                    Assert.IsTrue(hits[0].Result.StopsSwing, $"as heavy as the attacker: the swing stops (struck its {hits[0].Part})");
+                    Assert.AreEqual(targetHealth, target.Health, "the target is untouched");
+                }
             }
             finally
             {

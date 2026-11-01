@@ -129,8 +129,11 @@ namespace PhysicsBattler.Authority
                 var region = RegionOf(id);
                 var level = levels[(int)region];
                 bool kinematic = level == AuthorityLevel.Kinematic;
+                // (Milestone 9c: a held arm keeps its anatomical limits too: the pose stays inside them,
+                // and a blow can't throw the physical arm into a shape no arm makes.)
+                bool arm = region == BodyRegion.ArmL || region == BodyRegion.ArmR;
                 SetJointLimits(part, level == AuthorityLevel.Loose || level == AuthorityLevel.Ragdoll ? LimitMode.Ragdoll
-                    : level == AuthorityLevel.Pinned && keepLimits[(int)region] ? LimitMode.Anatomical : LimitMode.Free);
+                    : level == AuthorityLevel.Pinned && (keepLimits[(int)region] || arm) ? LimitMode.Anatomical : LimitMode.Free);
                 if (body.isKinematic != kinematic)
                 {
                     body.isKinematic = kinematic;
@@ -157,7 +160,7 @@ namespace PhysicsBattler.Authority
                 if (followed[i])
                 {
                     Vector3 moved = target.position - lastTarget[i];
-                    if (moved.sqrMagnitude < PoseJump * PoseJump)
+                    if (moved.sqrMagnitude < PoseJump * PoseJump && Quaternion.Angle(lastTargetRotation[i], target.rotation) < PoseTurnJump)
                     {
                         poseVelocity = moved / dt;
                         poseSpin = JointMath.RotationError(lastTargetRotation[i], target.rotation) / dt;
@@ -173,8 +176,11 @@ namespace PhysicsBattler.Authority
             }
         }
 
-        /// <summary>A pose that moves further than this in one step has jumped (placed): its motion isn't followed (metres).</summary>
-        public const float PoseJump = 0.5f;
+        /// <summary>A pose that moves further than this in one step has jumped (placed): its motion isn't followed (metres), nor a turn of more than <see cref="PoseTurnJump"/> degrees.</summary>
+        public const float PoseJump = 0.5f, PoseTurnJump = 120f;
+
+        /// <summary>The most turn the servo closes as if it were this far (radians, 120 degrees).</summary>
+        public const float MaxTurnError = 2.1f;
 
         /// <summary>The servo's damping: critical (1) never overshoots.</summary>
         public const float HoldDamping = 1f;
@@ -226,7 +232,8 @@ namespace PhysicsBattler.Authority
 
             float spun = poseSpin.magnitude * dt;
             Quaternion before = spun > 1e-6f ? Quaternion.AngleAxis(-spun * Mathf.Rad2Deg, poseSpin / poseSpin.magnitude) * target : target;
-            Vector3 error = JointMath.RotationError(rotation, before);
+            // (Far off, it turns back no faster than from 120 degrees: never a flip.)
+            Vector3 error = Vector3.ClampMagnitude(JointMath.RotationError(rotation, before), MaxTurnError);
             return poseSpin + Servo(angularVelocity - poseSpin, error, HoldFrequency(pin), dt);
         }
 
@@ -272,7 +279,7 @@ namespace PhysicsBattler.Authority
                         SetTone(joint, part, 0f);
                         break;
                     case LimitMode.Anatomical:
-                        JointMath.ApplyLimits(joint, JointLimitTable.For(part.id));
+                        JointMath.ApplyLimits(joint, Margined(JointLimitTable.For(part.id), AnatomicalMargin));
                         SetMotion(joint, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited);
                         SetTone(joint, part, 0f);
                         break;
@@ -363,6 +370,13 @@ namespace PhysicsBattler.Authority
             JointMath.PastLimits(local, part.limits, out float pitch, out float y, out float z);
             return new Vector3(pitch, y, z);
         }
+
+        /// <summary>A held joint's physical limits are this much wider than the pose's own (degrees), so they never fight the pose.</summary>
+        public const float AnatomicalMargin = 5f;
+
+        /// <summary>Limits widened by a margin on every side (at most 177 degrees about Y and Z).</summary>
+        public static JointLimitSpec Margined(JointLimitSpec spec, float margin) => new JointLimitSpec(
+            spec.pitchMin - margin, spec.pitchMax + margin, Mathf.Min(177f, spec.twist + margin), Mathf.Min(177f, spec.swing + margin));
 
         /// <summary>Limits wide enough to hold a joint where it is now (a little room past it).</summary>
         public static JointLimitSpec Widened(JointLimitSpec spec, Vector3 angles)

@@ -24,6 +24,8 @@ internal static class AimDebug
         float err = attacker.TryOut(state, true);
         var anim = attacker.Anim;
         float arm = anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude;
+        float clearance = attacker.Clearance(state, PhysicsBattler.Combat.MovePlanner.ClearanceSamples, out var clearWhat, out float clearAt, out bool clearBlade);
+        Console.WriteLine($"clearance {clearance * 100:0.0} cm ({(clearBlade ? "weapon" : "arm")} on the {clearWhat} at {clearAt:0.00}); acceptable {PhysicsBattler.Combat.MovePlanner.Acceptable(attacker, state)}");
         Console.WriteLine($"tryout err {err * 100:0.0} cm; spine bend {attacker.Pose.SpineBend:0} crouch {attacker.Pose.MoveCrouch:0.00} pelvis drop {attacker.Pose.PelvisDrop:0.00}");
         Console.WriteLine($"feet L {attacker.Stance.Position(0)} R {attacker.Stance.Position(1)}");
         Console.WriteLine($"shoulder {anim.Part(PartId.UpperArmR).position} hand {anim.Part(PartId.HandR).position} dist {Vector3.Distance(anim.Part(PartId.UpperArmR).position, anim.Part(PartId.HandR).position):0.000} arm {arm:0.000}");

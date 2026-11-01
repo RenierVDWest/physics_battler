@@ -9,7 +9,9 @@ namespace PhysicsBattler.Units
     /// are kinematic (to PhysX infinitely heavy) and its upper body is driven hard to its pose; where
     /// one of its parts touches a lying body's part, the push is capped at <see cref="MaxNudge"/> of
     /// that part's weight each step, so a body is nudged and rolled, as a heavy one would be, never
-    /// thrown. Everything else (the floor, weapons, other bodies on the ground) is left alone.
+    /// thrown. Milestone 9c: a held shield (solid) pushes what it touches by at most
+    /// <see cref="ShieldPush"/> a step. Everything else (the floor, weapons, other bodies on the
+    /// ground) is left alone.
     ///
     /// PhysX hands the contacts over on its own threads during the step, so what is lying and what is
     /// standing is copied into a snapshot on the main thread whenever it changes.
@@ -23,6 +25,33 @@ namespace PhysicsBattler.Units
         {
             public readonly Dictionary<EntityId, float> lying = new Dictionary<EntityId, float>();
             public readonly HashSet<EntityId> standing = new HashSet<EntityId>();
+            public readonly HashSet<EntityId> shields = new HashSet<EntityId>();
+        }
+
+        /// <summary>Milestone 9c: the most a held shield pushes what it touches each step (N·s): it stops against a body rather than shoving it about.</summary>
+        public const float ShieldPush = 2f;
+
+        private static readonly HashSet<Collider> Shields = new HashSet<Collider>();
+
+        /// <summary>A held shield's collider (solid; its contacts capped), or not any more.</summary>
+        public static void SetShield(Collider collider, bool on)
+        {
+            if (collider == null)
+            {
+                return;
+            }
+
+            if (on)
+            {
+                Shields.Add(collider);
+            }
+            else
+            {
+                Shields.Remove(collider);
+            }
+
+            collider.hasModifiableContacts = on;
+            dirty = true;
         }
 
         private static readonly Dictionary<Collider, float> Lying = new Dictionary<Collider, float>();
@@ -35,6 +64,7 @@ namespace PhysicsBattler.Units
         {
             Lying.Clear();
             Standing.Clear();
+            Shields.Clear();
             current = null;
             dirty = false;
             if (hooked)
@@ -98,6 +128,14 @@ namespace PhysicsBattler.Units
                 }
             }
 
+            foreach (var c in Shields)
+            {
+                if (c != null)
+                {
+                    s.shields.Add(c.GetEntityId());
+                }
+            }
+
             current = s;
             if (!hooked && Application.isPlaying)
             {
@@ -124,12 +162,20 @@ namespace PhysicsBattler.Units
                 float mass;
                 bool capped = (s.lying.TryGetValue(a, out mass) && s.standing.Contains(b))
                               || (s.lying.TryGetValue(b, out mass) && s.standing.Contains(a));
-                if (!capped)
+                float cap;
+                if (capped)
+                {
+                    cap = Cap(mass, pair.contactCount);
+                }
+                else if (s.shields.Contains(a) || s.shields.Contains(b))
+                {
+                    cap = ShieldPush / Mathf.Max(1, pair.contactCount);
+                }
+                else
                 {
                     continue;
                 }
 
-                float cap = Cap(mass, pair.contactCount);
                 for (int i = 0; i < pair.contactCount; i++)
                 {
                     pair.SetMaxImpulse(i, Mathf.Min(pair.GetMaxImpulse(i), cap));

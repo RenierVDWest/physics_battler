@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using PhysicsBattler.Authority;
+using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEngine;
@@ -165,6 +166,73 @@ namespace PhysicsBattler.Tests
                 Assert.LessOrEqual(median, 20f, $"the shield is mostly still (median {median:0} degrees a second)");
                 Assert.LessOrEqual(p99, 250f, $"and never whips round (99th {p99:0} degrees a second)");
                 Assert.LessOrEqual(held, 0.5f, $"held close: the shield hand {held:0.00} m from the chest (it was 0.67 before 9c)");
+            }
+            finally
+            {
+                RhythmTests.Destroy(both);
+            }
+        }
+
+        /// <summary>
+        /// The arm points the weapon, not the wrist: squared up in the guard, the weapon wrist stays
+        /// in its easy range (the reference attacks hold it within about 25 degrees of straight).
+        /// </summary>
+        [Test]
+        public void InTheGuardTheWeaponWristStaysNearlyStraight()
+        {
+            UnitController.ResetSeeds(3);
+            var (unit, enemy) = RhythmTests.Pair("Medium");
+            var both = new[] { unit, enemy };
+            try
+            {
+                RhythmTests.Step(both, 60);
+                var bends = new List<float>();
+                Vector3 home = enemy.transform.position;
+                for (int i = 0; i < 4 * 60; i++)
+                {
+                    float t = i * Dt;
+                    enemy.Place(home + new Vector3(0.2f * Mathf.Sin(1.3f * t), 0f, 0.1f * Mathf.Sin(0.7f * t)), enemy.FacingYaw);
+                    RhythmTests.Step(both);
+                    if (unit.Pose.Move == null)
+                    {
+                        bends.Add(unit.Pose.WristBend);
+                    }
+                }
+
+                Assert.Greater(bends.Count, 60, "it stood in the guard");
+                bends.Sort();
+                float worst = bends[bends.Count - 1];
+                Assert.LessOrEqual(worst, PosePipeline.EasyBend + 2f, $"the wrist is never bent past its easy range ({worst:0} degrees)");
+            }
+            finally
+            {
+                RhythmTests.Destroy(both);
+            }
+        }
+
+        /// <summary>A physical unit's shield is solid and its weight is on the hand; taking it off takes the weight away.</summary>
+        [Test]
+        public void TheShieldIsSolidAndWeighsOnTheHand()
+        {
+            UnitController.ResetSeeds(3);
+            var (unit, enemy) = RhythmTests.Pair("Medium");
+            var both = new[] { unit, enemy };
+            try
+            {
+                Assert.IsTrue(unit.IsPhysical && unit.OffWeapon != null && unit.OffWeapon.definition.IsShield, "a physical unit with a shield");
+                var hand = unit.Rig.Part(PartId.HandL).body;
+                float withShield = hand.mass;
+                foreach (var collider in unit.OffWeapon.GetComponentsInChildren<Collider>(true))
+                {
+                    Assert.IsFalse(collider.isTrigger, "the shield's collider is solid");
+                }
+
+                var shield = unit.OffWeapon.definition;
+                float scale = unit.Loadout.Scale;
+                unit.Equip(unit.MainWeapon.definition, null);
+                Assert.AreEqual(withShield - shield.massKg * scale * scale * scale, hand.mass, 1e-3f, "without it the hand is lighter by the shield's mass");
+                unit.Equip(unit.MainWeapon.definition, shield);
+                Assert.AreEqual(withShield, hand.mass, 1e-3f, "and it comes back once (not added twice)");
             }
             finally
             {

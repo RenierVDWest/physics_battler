@@ -46,7 +46,7 @@ namespace PhysicsBattler.Muscles
                 case PartId.ForearmL:
                 case PartId.ForearmR: return new JointLimitSpec(-145f, 5f, 60f, 15f);      // the elbow bends forward; the forearm rolls 60 each way
                 case PartId.HandL:
-                case PartId.HandR: return new JointLimitSpec(-15f, 35f, 80f, 57f);       // toward the thumb 15, the little finger 35; the forearm's roll (shown at the wrist) 80; flexion and extension about 57
+                case PartId.HandR: return new JointLimitSpec(-15f, 30f, 80f, 40f);       // a gripping wrist (9c): toward the thumb 15, the little finger 30; the forearm's roll (shown at the wrist) 80; bend and extend 40
                 case PartId.ThighL:
                 case PartId.ThighR: return new JointLimitSpec(-110f, 35f, 45f, 45f);       // forward raise is negative
                 case PartId.ShinL:

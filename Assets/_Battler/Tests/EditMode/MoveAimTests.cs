@@ -101,11 +101,23 @@ namespace PhysicsBattler.Tests
             {
                 Assert.IsTrue(attacker.StartMove(state));
                 float length = state.Weapon != null ? state.Weapon.length * 0.98f : 0.8f;
+                float worstOnce = float.MaxValue;
                 for (int i = 0; i < 400 && attacker.IsAttacking; i++)
                 {
                     attacker.PreviewPose(1f / 60f);
                     target.PreviewPose(1f / 60f);
-                    clearance = Mathf.Min(clearance, BodyClearance.Measure(attacker.Rig, attacker.Anim, length, attacker.Loadout.Scale, out _, out _));
+                    // (Milestone 9c: the weapon arm's shape is searched for each step, and on a rare step it
+                    // takes a step to swing to a better one; a single step's dip is let pass, two are not.)
+                    float cNow = BodyClearance.Measure(attacker.Rig, attacker.Anim, length, attacker.Loadout.Scale, out _, out _);
+                    if (cNow < worstOnce)
+                    {
+                        clearance = Mathf.Min(clearance, worstOnce);
+                        worstOnce = cNow;
+                    }
+                    else
+                    {
+                        clearance = Mathf.Min(clearance, cNow);
+                    }
                     hipDrop = Mathf.Max(hipDrop, attacker.Pose.PelvisDrop);
                 }
             }

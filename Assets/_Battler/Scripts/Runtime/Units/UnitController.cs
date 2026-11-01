@@ -61,6 +61,12 @@ namespace PhysicsBattler.Units
         private bool initialized;
         private bool physical;
 
+        /// <summary>Whether its body is simulated (a playing unit; not a preview).</summary>
+        public bool IsPhysical => physical;
+
+        /// <summary>The shield's mass put on the shield hand's body (kilograms; taken off again when it is unequipped).</summary>
+        private float shieldMassOnHand;
+
         public static event Action<UnitController> Initialized;
         public static event Action<UnitController, MoveState> MoveStarted;
         public static event Action<UnitController, MoveState, ContactReport> MoveContact;
@@ -350,8 +356,31 @@ namespace PhysicsBattler.Units
             {
                 Anim.SlotWeaponL.localRotation = grip;
             }
+
+            // Milestone 9c: a handle crosses the fist diagonally, so with the wrist straight the blade
+            // leans toward the forearm's line (toward the fingers).
+            var mainGrip = main != null && !main.IsShield ? MainGrip : Quaternion.identity;
+            if (Rig.SlotWeaponR != null)
+            {
+                Rig.SlotWeaponR.localRotation = mainGrip;
+            }
+
+            if (Anim.SlotWeaponR != null)
+            {
+                Anim.SlotWeaponR.localRotation = mainGrip;
+            }
+
             MainWeapon = main != null ? Weapon.Equip(main, this, Rig.SlotWeaponR, true, Loadout.Scale) : null;
             OffWeapon = off != null ? Weapon.Equip(off, this, Rig.SlotWeaponL, false, Loadout.Scale) : null;
+
+            // Milestone 9c: the hand carries the shield's weight (a blow on it moves a heavy thing).
+            var shieldHand = Rig.Part(PartId.HandL).body;
+            if (shieldHand != null)
+            {
+                shieldHand.mass = Mathf.Max(0.05f, shieldHand.mass - shieldMassOnHand);
+                shieldMassOnHand = physical && off != null && off.IsShield ? off.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale : 0f;
+                shieldHand.mass += shieldMassOnHand;
+            }
             if (!physical)
             {
                 foreach (var w in new[] { MainWeapon, OffWeapon })
@@ -374,8 +403,16 @@ namespace PhysicsBattler.Units
         /// </summary>
         public static readonly Quaternion ShieldGrip = Quaternion.LookRotation(Vector3.down, Vector3.forward);
 
+        /// <summary>A weapon's turn in the hand: the hammer grip, its blade leaning <see cref="PosePipeline.GripLean"/> toward the fingers.</summary>
+        public static readonly Quaternion MainGrip = Quaternion.Euler(PosePipeline.GripLean, 0f, 0f);
+
         private static void DestroyWeapon(Weapon weapon)
         {
+            foreach (var collider in weapon.GetComponentsInChildren<Collider>(true))
+            {
+                GroundContacts.SetShield(collider, false);
+            }
+
             if (Application.isPlaying)
             {
                 Destroy(weapon.gameObject);
@@ -526,6 +563,29 @@ namespace PhysicsBattler.Units
             }
 
             return best;
+        }
+
+        /// <summary>
+        /// Where the weapon is at a moment of a planned blow, posed dry and put back: its grip and
+        /// the striking point (world).
+        /// </summary>
+        public void WeaponAt(MoveState state, float normalizedTime, out Vector3 grip, out Vector3 strike)
+        {
+            var saved = Stance.Save();
+            var anim = SaveAnim();
+            var rotation = transform.rotation;
+            try
+            {
+                PoseDry(state, normalizedTime, true);
+                grip = Anim.SlotWeaponR.position;
+                strike = Pose.StrikePoint;
+            }
+            finally
+            {
+                transform.rotation = rotation;
+                Stance.Restore(saved);
+                RestoreAnim(anim);
+            }
         }
 
         /// <summary>
