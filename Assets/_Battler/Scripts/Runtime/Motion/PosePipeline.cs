@@ -632,48 +632,6 @@ namespace PhysicsBattler.Motion
             grip = weapon.IsShield ? point - rotation * (weapon.faceCenter * scale) : point;
         }
 
-        /// <summary>The weapon's pose (grip point and rotation, world) on a move's path at its progress now.</summary>
-        public void MovePose(MoveState state, float scale, out Vector3 grip, out Quaternion rotation, out Vector3 strike)
-        {
-            var move = state.Move;
-            float p = state.Progress;
-            strike = state.PathPoint(p);
-            Vector3 dir;
-            if (state.Generated)
-            {
-                // A thrust points along its line; a swing's weapon points out from the pivot through
-                // the striking part, trailing the hand as it accelerates and whipping through at contact.
-                dir = move.shape == MoveShape.Thrust ? state.ThrustLine
-                    : Quaternion.AngleAxis(-state.Lag, state.PlaneNormal) * (strike - state.PivotAt(p));
-            }
-            else
-            {
-                Vector3 pivot = anim.Part(PartId.Chest).position + Vector3.up * (move.pivotRaise * state.Scale);
-                // A thrust lines the blade up with the shoulder (as a fencer's arm and blade), a cut fans
-                // out from the chest.
-                dir = move.pointForward ? state.Aim - anim.Part(PartId.UpperArmR).position : strike - pivot;
-            }
-
-            if (dir.sqrMagnitude < 1e-6f)
-            {
-                dir = state.Frame * Vector3.forward;
-            }
-
-            dir.Normalize();
-            // The edge leads: the blade's -Y faces the way the striking part is moving.
-            Vector3 lead = state.PathPoint(Mathf.Min(1f, p + 0.01f)) - state.PathPoint(Mathf.Max(0f, p - 0.01f));
-            lead -= dir * Vector3.Dot(lead, dir);
-            Vector3 up = lead.sqrMagnitude > 1e-8f ? -lead.normalized : Vector3.up;
-            if (Mathf.Abs(Vector3.Dot(up, dir)) > 0.99f)
-            {
-                up = Vector3.Cross(dir, state.Frame * Vector3.right);
-            }
-
-            rotation = Quaternion.LookRotation(dir, up);
-            Vector3 local = state.Weapon != null ? state.Weapon.StrikePoint(move.strikeWith) : Vector3.forward * 0.6f;
-            grip = strike - rotation * (local * scale);
-        }
-
         private void PoseWeaponArm(Loadout loadout, MoveState move, float moveBlend, Quaternion facing)
         {
             var upper = anim.Part(PartId.UpperArmR);
@@ -1423,15 +1381,8 @@ namespace PhysicsBattler.Motion
         /// <summary>How far the guard's hand keeps from the torso (metres at medium size): room for the forearm.</summary>
         public const float GripRoom = 0.12f;
 
-
-        /// <summary>
-        /// The weapon wrist's easy range, measured about the forearm's own line (the rig's rest frame
-        /// is turned off it by the arm's tilt): how far the hand may bend off that line, and roll about
-        /// it (degrees); in the guard, and through a blow.
-        /// </summary>
-        public const float EasyBend = 22f, EasyBendBlow = 35f, EasyRoll = 75f;
-
-        private static Vector2 Easy(float blow) => new Vector2(Mathf.Lerp(EasyBend, EasyBendBlow, blow), EasyRoll);
+        /// <summary>The weapon wrist's easy bend in a guard (degrees off the forearm's line): held near straight, the weapon's angle giving instead.</summary>
+        public const float EasyBend = 22f;
 
         /// <summary>How far a weapon's blade leans from square across the fist toward the forearm's line (degrees; the diagonal grip).</summary>
         public const float GripLean = 20f;
@@ -1450,123 +1401,10 @@ namespace PhysicsBattler.Motion
         /// <summary>How much further a thrust's grip leans the blade toward the forearm's line (degrees).</summary>
         public const float ThrustLean = 35f;
 
-        /// <summary>Holds a joint inside the given limits (rather than the table's).</summary>
-        private void ClampJoint(PartId id, JointLimitSpec spec)
-        {
-            var local = LocalOf(id);
-            float past = JointMath.PastLimits(local, spec, out float pitch, out float y, out float z);
-            if (past <= 0f)
-            {
-                return;
-            }
+        // ---- Hinges --------------------------------------------------------------------------------
 
-            pitch = Mathf.Clamp(pitch, spec.pitchMin, spec.pitchMax);
-            y = Mathf.Clamp(y, -spec.twist, spec.twist);
-            z = Mathf.Clamp(z, -spec.swing, spec.swing);
-            float sy = Mathf.Sin(0.5f * y * Mathf.Deg2Rad), sz = Mathf.Sin(0.5f * z * Mathf.Deg2Rad);
-            var swing = new Quaternion(0f, sy, sz, Mathf.Sqrt(Mathf.Max(0f, 1f - sy * sy - sz * sz)));
-            var parent = anim.Part(PartInfo.Parent(id));
-            anim.Part(id).rotation = parent.rotation * anim.RestLocalRotation(id) * (swing * Quaternion.AngleAxis(pitch, Vector3.right));
-        }
-
-        private readonly Quaternion[] armWas = new Quaternion[3];
-        private bool armWasKnown;
-
-        /// <summary>How quickly the weapon arm eases to its new pose out of a blow (Hz).</summary>
-        public const float ArmEase = 12f;
-
-        private static readonly PartId[] WeaponArmParts = { PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
-
-        private void SmoothWeaponArm(float blow)
-        {
-            if (composingDry)
-            {
-                return;
-            }
-
-            float k = composeDt > 0f && armWasKnown ? Mathf.Lerp(1f - Mathf.Exp(-2f * Mathf.PI * ArmEase * composeDt), 1f, blow) : 1f;
-            for (int i = 0; i < 3; i++)
-            {
-                var part = anim.Part(WeaponArmParts[i]);
-                if (k < 1f)
-                {
-                    part.localRotation = Quaternion.Slerp(armWas[i], part.localRotation, k);
-                }
-
-                armWas[i] = part.localRotation;
-            }
-
-            armWasKnown = true;
-        }
-
-        // ---- Natural arms (milestone 9b) --------------------------------------------------------
-
-        /// <summary>Each arm's elbow turn about the shoulder-to-hand line last step (degrees; kept so the elbow doesn't flip between steps).</summary>
-        private float mainElbow, offElbow;
         private bool composingDry, composingArmPlays;
         private float composeDt;
-
-        /// <summary>How fast the elbow swings round to a better place (degrees per second): it eases there, never jumps.</summary>
-        public const float ElbowRate = 300f;
-
-        /// <summary>How far the elbow may swing round from where the arm's pole puts it (degrees), and in what steps.</summary>
-        public const float ElbowSwing = 90f, ElbowStep = 15f;
-
-        /// <summary>
-        /// A natural arm for a hand that must hold its weapon just so (the hand's rotation is given):
-        /// the elbow swings round the shoulder-to-hand line to where the wrist is straightest (a
-        /// little against moving far from the pole, and from where it was), the forearm rolls to take
-        /// the hand's twist, and what the wrist still can't take is held at its limits (the weapon
-        /// turns a little less than asked: the planner's tries see the real pose).
-        /// </summary>
-        private void NaturalArm(PartId upperId, PartId foreId, PartId handId, Quaternion handRotation, ref float lastSwing, float clamp)
-        {
-            var upper = anim.Part(upperId);
-            var hand = anim.Part(handId);
-            Vector3 axis = hand.position - upper.position;
-            if (axis.sqrMagnitude < 1e-6f)
-            {
-                return;
-            }
-
-            axis.Normalize();
-            Quaternion start = upper.rotation;
-            var reach = JointLimitTable.For(handId);
-            float best = 0f, bestCost = float.MaxValue;
-            // (In a blow the weapon arm's elbow stays where the blow puts it.)
-            float room = clamp >= 1f ? ElbowSwing : 0f;
-            for (float a = -room; a <= room + 1e-3f; a += ElbowStep)
-            {
-                upper.rotation = Quaternion.AngleAxis(a, axis) * start;
-                hand.rotation = handRotation;
-                float cost = JointMath.PastLimits(LocalOf(handId), reach, out _, out _, out _)
-                             + 0.04f * Mathf.Abs(a) + 0.02f * Mathf.Abs(a - lastSwing);
-                if (cost < bestCost)
-                {
-                    bestCost = cost;
-                    best = a;
-                }
-            }
-
-            if (!composingDry)
-            {
-                best = composeDt > 0f ? Mathf.MoveTowards(lastSwing, best, ElbowRate * composeDt) : lastSwing;
-                lastSwing = best;
-            }
-
-            upper.rotation = Quaternion.AngleAxis(best, axis) * start;
-
-            AlignHinge(upperId, foreId);
-
-            // (The forearm's roll shows at the wrist: the hand turns about the forearm's line, as a fist
-            // does when the forearm turns over. PhysX can't keep a roll at a bent elbow.)
-            hand.rotation = handRotation;
-
-            if (clamp > 0f)
-            {
-                ClampJoint(handId, clamp);
-            }
-        }
 
         /// <summary>
         /// The two-bone solve bends the middle joint about whatever axis the chain happens to lie in;
@@ -1645,29 +1483,6 @@ namespace PhysicsBattler.Motion
             float angle = 2f * Mathf.Atan2(along, q.w) * Mathf.Rad2Deg;
             return Mathf.DeltaAngle(0f, angle);
         }
-
-        /// <summary>Holds a joint of the pose inside its limits (the nearest turn that is), as PhysX splits a joint's turn.</summary>
-        private void ClampJoint(PartId id, float weight = 1f)
-        {
-            var spec = JointLimitTable.For(id);
-            var local = LocalOf(id);
-            float past = JointMath.PastLimits(local, spec, out float pitch, out float y, out float z);
-            if (past <= 0f)
-            {
-                return;
-            }
-
-            pitch = Mathf.Clamp(pitch, spec.pitchMin, spec.pitchMax);
-            y = Mathf.Clamp(y, -spec.twist, spec.twist);
-            z = Mathf.Clamp(z, -spec.swing, spec.swing);
-            float sy = Mathf.Sin(0.5f * y * Mathf.Deg2Rad), sz = Mathf.Sin(0.5f * z * Mathf.Deg2Rad);
-            var swing = new Quaternion(0f, sy, sz, Mathf.Sqrt(Mathf.Max(0f, 1f - sy * sy - sz * sz)));
-            var held = swing * Quaternion.AngleAxis(pitch, Vector3.right);
-            var parent = anim.Part(PartInfo.Parent(id));
-            var part = anim.Part(id);
-            part.rotation = Quaternion.Slerp(part.rotation, parent.rotation * anim.RestLocalRotation(id) * held, Mathf.Clamp01(weight));
-        }
-
 
         /// <summary>How far out the shield arm reaches at most (share of the arm): the elbow stays a little bent.</summary>
         public const float ShieldReach = 0.92f;

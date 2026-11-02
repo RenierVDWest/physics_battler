@@ -526,9 +526,10 @@ namespace PhysicsBattler.Motion
         /// <summary>How hard the shield wrist works as posed now: past its limits counts most, then its bend (degrees).</summary>
         private float WristCost()
         {
+            // (The arm rig's wrist: the one limit model.)
             Quaternion local = Quaternion.Inverse(anim.RestLocalRotation(PartId.HandL)) * anim.Part(PartId.HandL).localRotation;
-            float past = PhysicsBattler.Muscles.JointMath.PastLimits(local, PhysicsBattler.Muscles.JointLimitTable.For(PartId.HandL), out float pitch, out float y, out float z);
-            return 10f * past + Mathf.Abs(pitch) + Mathf.Abs(y) + Mathf.Abs(z);
+            float past = ArmRig.WristAngles(local, ArmRig.WristFrame(anim, false), out float twist, out float flexion, out float deviation);
+            return 10f * past + Mathf.Abs(twist) + Mathf.Abs(flexion) + Mathf.Abs(deviation);
         }
 
         /// <summary>How much the shield arm's elbow is kept to its way (down and out, never up over the shield) in the fit.</summary>

@@ -9,7 +9,43 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 10, combos (chained links; the club's backhand and fan strikes)
+## Current state: milestone 10, the arm rebuild (every arm on one rig, one limit model, joint motors)
+
+Plan: https://claude.ai/artifact/RGb9d1i935pRxtbLFXvS8o
+
+### The arm rebuild
+
+Every arm is posed by one rig (`Motion/ArmRig.cs`), an animator's controls solved exactly with no
+memory: a point of the hand goes somewhere (`ArmGoal.point`, `pointInHand`), the hand is turned a way
+(`handTurn`, or a keyed wrist: `wristGiven`), and the elbow sits on its circle round the shoulder-to-
+hand line at a null (`elbowSwivel`, an angle from a reference carried smoothly with the arm). The
+elbow is a hinge; the wrist twists about the forearm and bends inside an ellipse; what the wrist can't
+take moves the elbow round its circle (as far as `turnWeight` asks; `nearNull` keeps it to the nearest
+place), then rolls the hand about an allowed line (`rollAxisInHand`). `ArmRig.SwivelToward` turns an
+elbow pole into a null. The same goal gives the same arm.
+
+- **The weapon arm** (`PosePipeline.PoseWeaponArm`): blows are hand-first: the hand moves through its
+  keys (wind-up, the contact place solved when the blow was planned, follow-through) on arcs round the
+  shoulder, with the wrist and elbow keyed at the same moments (`MoveDefinition.DefaultHands`, `Wrists`,
+  `Elbows`; fitted by the `keyfit` runner), and the weapon follows the hand.
+- **The shield arm, the bare off hand and get-ups' off arm** (`PlaceShieldArm`, the bare guard,
+  `GetUp.KeyArm`, `GetUp.PlaceShieldArm`) on the same rig. The weapon arm's get-up keys still use the
+  two-bone solve: its weapon is laid out by the hand, past the wrist's range.
+- **One limit model** (`Muscles/JointMath.cs`: `JointFrames`, `JointLimitTable.Physical`): the elbow
+  and wrist joints get the rig's own frames at spawn (the elbow a hinge about the rig's elbow axis, the
+  wrist twisting about the forearm), so every arm the rig poses is one PhysX holds. On the ground the
+  elbow is a hinge (the forearm rolls at the wrist). `ArmRig.PastLimits` measures any arm, posed or
+  physical, the log's `jointPast` included.
+- **Joint motors** (`AuthorityLevel.Muscled`): out of blows, the weapon arm is held by each joint's
+  slerp drive aimed at the pose's turn in the joint's frame, its limits on, its weight carried, each
+  motor strengthened for what hangs from it, the pose's turning fed forward; no pull in the world.
+  Blows stay kinematic. The sandbox's "Weapon arm on joint motors" switch puts it back on the world
+  servo; the log has each arm joint's error in joint space (`jerr_*`). The off arm stays on the servo.
+- **Bodies on the ground** never fly off by themselves (`UnitRagdoll.HoldLyingSpeed`): no part rises
+  faster than it was sent up, and a second after it falls or is struck no part speeds up; the joints
+  aren't mass-weighted on the ground; cut-off limbs count as bodies on the ground.
+
+## Before the arm rebuild: milestone 10, combos (chained links; the club's backhand and fan strikes)
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
@@ -874,8 +910,8 @@ their joints are and solved again so an elbow never swings round the wrong way) 
 | Folder (`Assets/_Battler/Scripts/Runtime`) | What lives there |
 | --- | --- |
 | `Rig/` | `PartId` (the 16 parts and their tree), `RigFile` (the body rig JSON), `UnitBuilder`, `UnitRig`, `AnimRig`, `BodyPart` |
-| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline` (with `WeaponArmSolve`), `GroundClamp`, `ArmFit`, `TwoBoneIK`, `GetUp` (get-up key poses, `PoseBuffer`), `RhythmDefinition`, `PostureDefinition`, `RhythmPlayer` (Fight Rhythms) |
-| `Authority/` | `AuthorityController` (levels per region, pinning) |
+| `Motion/` | `CombatStyle` (tuning), `BodyMeasure`, `Stance`, `CombatIdle`, `PosePipeline`, `ArmRig` (every arm), `GroundClamp`, `TwoBoneIK` (legs), `GetUp` (get-up key poses, `PoseBuffer`), `RhythmDefinition`, `PostureDefinition`, `RhythmPlayer` (Fight Rhythms) |
+| `Authority/` | `AuthorityController` (levels per region, pinning, the weapon arm's joint motors) |
 | `Combat/` | `WeaponDefinition`, `MoveDefinition`, `MoveState`, `MovePlanner`, `ComboDefinition` (the strings), `Weapon` (the weapon in the hand), `AimPart`, `DamageRules`, `BodyClearance` |
 | `Units/` | `UnitController` (the per-step loop, blows, the lunge's steps), `UnitCombo` (combos), `UnitCombat` (health, poise, the weapon sweep, reactions, blocks), `UnitBalance` (stumbles, knock-downs, launches, body impacts, get-ups), `UnitRhythm` (the Fight Rhythm on the unit: steps, travel, feints, lead-ins), `UnitProfile` |
 | `Board/` | `BoardGrid` (tiles), `BoardView` (the board mesh) |
