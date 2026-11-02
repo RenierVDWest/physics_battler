@@ -399,8 +399,20 @@ namespace PhysicsBattler.Motion
                 float hand = Mathf.Clamp01(1f - 2f * moveBlend);
                 hand *= hand;
                 var r = Rhythm;
-                rhythm.main = r.main * hand;
-                rhythm.mainTurn = r.mainTurn * hand;
+                if (move.Move.hand == MoveHand.Off)
+                {
+                    // (Milestone 10: an off-hand blow: the weapon hand keeps the rhythm's guard; the off
+                    // hand lets go of it.)
+                    rhythm.main = r.main;
+                    rhythm.mainTurn = r.mainTurn;
+                    rhythm.off = r.off * hand;
+                    rhythm.offTurn = r.offTurn * hand;
+                }
+                else
+                {
+                    rhythm.main = r.main * hand;
+                    rhythm.mainTurn = r.mainTurn * hand;
+                }
             }
 
             {
@@ -409,8 +421,16 @@ namespace PhysicsBattler.Motion
                 if (move != null && move != Feint)
                 {
                     float hand = Mathf.Clamp01(1f - 2f * moveBlend);
-                    m.main *= hand * hand;
-                    m.mainTurn *= hand * hand;
+                    if (move.Move.hand == MoveHand.Off)
+                    {
+                        m.off *= hand * hand;
+                        m.offTurn *= hand * hand;
+                    }
+                    else
+                    {
+                        m.main *= hand * hand;
+                        m.mainTurn *= hand * hand;
+                    }
                 }
 
                 rhythm += m;
@@ -548,7 +568,9 @@ namespace PhysicsBattler.Motion
             var loadout = Loadout;
             if (loadout?.Main != null)
             {
-                PoseWeaponArm(loadout, move, moveBlend, facing);
+                // (Milestone 10: an off-hand blow leaves the weapon arm in its guard.)
+                bool offBlow = move != null && move.Move.hand == MoveHand.Off;
+                PoseWeaponArm(loadout, offBlow ? null : move, offBlow ? 0f : moveBlend, facing);
             }
 
             if (loadout != null && loadout.HasShield)
@@ -1791,6 +1813,79 @@ namespace PhysicsBattler.Motion
         /// from the plain guard by the rhythm's weight.
         /// </summary>
         private void PoseBareOffHand(Quaternion facing)
+        {
+            PoseBareGuard(facing);
+            PoseJab(facing);
+        }
+
+        /// <summary>
+        /// Milestone 10: the jab. The knuckles go from the guard (the fist where the guard holds it
+        /// now, turning with the body) a little back, then straight to the aim point and a little
+        /// through it, and straight back, through the move's keys at its pace; the fist turns over
+        /// palm down on the way out, knuckles leading. The arm on the rig, the elbow down behind the
+        /// fist.
+        /// </summary>
+        private void PoseJab(Quaternion facing)
+        {
+            var move = Move;
+            if (move == null || move.Move.hand != MoveHand.Off || move.Weapon == null || move.Weapon.kind != WeaponKind.Fist)
+            {
+                return;
+            }
+
+            float blend = move.Blend;
+            if (blend <= 0f)
+            {
+                return;
+            }
+
+            float size = body.SizeFactor;
+            var hand = anim.Part(PartId.HandL);
+            var wristFrame = ArmRig.WristFrame(anim, false);
+            Vector3 alongL = wristFrame * Vector3.right, thumbL = wristFrame * Vector3.up;
+            Vector3 knuckleLocal = OffHandPath.KnuckleLocal(anim, size);
+            Vector3 guardKnuckles = hand.position + hand.rotation * knuckleLocal;
+            Quaternion guardTurn = hand.rotation;
+            Vector3 punch = move.Aim - guardKnuckles;
+            punch = punch.sqrMagnitude > 1e-6f ? punch.normalized : facing * Vector3.forward;
+            var def = move.Move;
+            Vector3 Key(int k) => k == 0 ? guardKnuckles
+                : k == 1 ? guardKnuckles - punch * (def.drawBack * size)
+                : k == 2 ? move.Aim
+                : move.Aim + punch * (def.through * size);
+            def.HandPhase(move.T, out int from, out int to, out float share);
+            // (A stopped jab's fist springs back along the push it met: the off arm's knock.)
+            Vector3 at = Vector3.Lerp(guardKnuckles, def.Through(from, to, share, Key), blend) + KnockL;
+            float out_ = Mathf.Clamp01(def.Through(from, to, share, k => k == 0 ? Vector3.zero : Vector3.one).x) * blend;
+
+            // Palm down, knuckles leading: the forearm's line along the punch, the thumb in across the body.
+            Vector3 thumbWant = Vector3.Cross(Vector3.up, punch);
+            if (thumbWant.sqrMagnitude < 1e-6f)
+            {
+                thumbWant = facing * Vector3.right;
+            }
+
+            Quaternion jabTurn = Quaternion.LookRotation(punch, thumbWant) * Quaternion.Inverse(Quaternion.LookRotation(alongL, thumbL));
+            var chestPart = anim.Part(PartId.Chest);
+            Vector3 chestForward = Vector3.ProjectOnPlane(chestPart.rotation * Vector3.forward, Vector3.up);
+            var chestTurn = Quaternion.LookRotation(chestForward.sqrMagnitude > 1e-6f ? chestForward : facing * Vector3.forward, Vector3.up);
+            LastOffArm = ArmRig.Solve(anim, false, new ArmGoal
+            {
+                point = at,
+                pointInHand = knuckleLocal,
+                handTurn = Quaternion.Slerp(guardTurn, jabTurn, out_),
+                turnWeight = 1f,
+                elbowSwivel = ArmRig.SwivelToward(anim, false, at, chestTurn * JabElbowWay),
+                nearNull = true,
+            });
+            StrikePoint = hand.position + hand.rotation * knuckleLocal;
+            AimError = Vector3.Distance(StrikePoint, move.Aim);
+        }
+
+        /// <summary>Which way a jab's elbow points (the chest's frame): down behind the fist, a little out.</summary>
+        public static readonly Vector3 JabElbowWay = new Vector3(-0.3f, -1f, 0f);
+
+        private void PoseBareGuard(Quaternion facing)
         {
             if (rhythm.off.sqrMagnitude < 1e-8f && Flail <= 0f)
             {

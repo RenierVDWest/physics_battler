@@ -863,7 +863,7 @@ namespace PhysicsBattler.Units
                     AdvanceMove(move, poseDt * move.TimeScale);
                     if (drive && MainWeapon != null)
                     {
-                        MainWeapon.ShowTrail(move.Active && move.T <= move.Move.SwingFollowEnd + 0.02f);
+                        MainWeapon.ShowTrail(move.Move.hand == MoveHand.Main && move.Active && move.T <= move.Move.SwingFollowEnd + 0.02f);
                     }
                     move.TimeScale = Mathf.MoveTowards(move.TimeScale, 1f, 2f * poseDt);   // the swing picks up again after a cleave
                 }
@@ -968,12 +968,11 @@ namespace PhysicsBattler.Units
         /// <summary>The physical weapon as PhysX left it: its sweep since the last step, against the aim point.</summary>
         private void TrackPhysicalWeapon(MoveState move)
         {
-            if (MainWeapon == null || move.Weapon == null)
+            if (!StrikingPart(move, out _, out _, out Vector3 now))
             {
                 return;
             }
 
-            Vector3 now = MainWeapon.PhysicalPoint(move.Weapon.StrikePoint(move.Move.strikeWith));
             if (move.HasLastPhysical && move.Active)
             {
                 float d = SegmentDistance(move.Aim, move.LastPhysical, now);

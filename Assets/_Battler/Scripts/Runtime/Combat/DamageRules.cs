@@ -83,6 +83,7 @@ namespace PhysicsBattler.Combat
             switch (with)
             {
                 case StrikeWith.Head: return 0.9f;
+                case StrikeWith.Fist: return 0.8f;   // (a punch is all weight behind a small face)
                 case StrikeWith.Tip: return 0.45f;
                 default: return 0.55f;
             }

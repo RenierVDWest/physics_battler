@@ -7,6 +7,9 @@ namespace PhysicsBattler.Combat
         Sword,
         Club,
         Shield,
+
+        /// <summary>Milestone 10: the bare off hand's fist (no prefab: the hand itself strikes).</summary>
+        Fist,
     }
 
     /// <summary>Which part of the weapon a move strikes with.</summary>
@@ -20,6 +23,9 @@ namespace PhysicsBattler.Combat
 
         /// <summary>The heavy end of a club.</summary>
         Head,
+
+        /// <summary>Milestone 10: the knuckles of a bare fist (the hand's own frame, not a weapon's).</summary>
+        Fist,
     }
 
     /// <summary>
@@ -89,6 +95,29 @@ namespace PhysicsBattler.Combat
         /// <summary>The arm rebuild's grip roll by kind: a club 30, a sword 10, a shield none.</summary>
         public static float DefaultGripRoll(WeaponKind kind) => kind == WeaponKind.Club ? 30f : kind == WeaponKind.Shield ? 0f : 10f;
 
+        private static WeaponDefinition bareFist;
+
+        /// <summary>
+        /// Milestone 10: the bare off hand as a weapon: its fist, with the blows a bare hand throws
+        /// (the jab; each move says which bodies throw it). Made once, in code: it has no prefab.
+        /// </summary>
+        public static WeaponDefinition BareFist
+        {
+            get
+            {
+                if (bareFist == null)
+                {
+                    bareFist = CreateDefault(WeaponKind.Fist);
+                    bareFist.hideFlags = HideFlags.DontSave;
+                    var jab = MoveDefinition.Create(MoveStyle.OffJab);
+                    jab.hideFlags = HideFlags.DontSave;
+                    bareFist.moves = new[] { jab };
+                }
+
+                return bareFist;
+            }
+        }
+
         public static WeaponDefinition CreateDefault(WeaponKind kind)
         {
             var weapon = CreateInstance<WeaponDefinition>();
@@ -106,6 +135,15 @@ namespace PhysicsBattler.Combat
                     weapon.edge = weapon.head = new Vector3(0f, 0f, 0.587f);
                     weapon.guardGrip = new Vector3(0.2f, -0.32f, 0.26f);
                     weapon.guardAngles = new Vector2(55f, 8f);
+                    break;
+                case WeaponKind.Fist:
+                    // (A punch: light, but the arm and the body behind it; it lands where the knuckles are.)
+                    weapon.damage = 7f;
+                    weapon.sweepRadius = 0.045f;
+                    weapon.length = 0.1f;
+                    weapon.massKg = 0.6f;
+                    weapon.minHitSpeed = 1.5f;
+                    weapon.tip = weapon.edge = weapon.head = Vector3.zero;
                     break;
                 case WeaponKind.Shield:
                     weapon.damage = 0f;

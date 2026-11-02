@@ -12,6 +12,12 @@ namespace PhysicsBattler.Combat
         public float Scale = 1f;
 
         public bool HasShield => Off != null && Off.IsShield;
+
+        /// <summary>Milestone 10: what the off hand strikes with: what it holds, or its bare fist (<see cref="WeaponDefinition.BareFist"/>).</summary>
+        public WeaponDefinition OffHand => Off != null ? Off : WeaponDefinition.BareFist;
+
+        /// <summary>The weapon a move is thrown with: the main weapon, or the off hand's.</summary>
+        public WeaponDefinition For(MoveDefinition move) => move != null && move.hand == MoveHand.Off ? OffHand : Main;
     }
 
     /// <summary>

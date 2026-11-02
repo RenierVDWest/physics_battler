@@ -19,6 +19,19 @@ namespace PhysicsBattler.Combat
         /// <summary>Milestone 10: the fan strike (abanico), a short wrist-led arc, forehand and backhand.</summary>
         ClubFan,
         ClubFanBackhand,
+
+        /// <summary>Milestone 10: the lead hand's jab, a bare fist straight out and back.</summary>
+        OffJab,
+    }
+
+    /// <summary>Milestone 10: which hand throws a blow.</summary>
+    public enum MoveHand
+    {
+        /// <summary>The weapon hand (the right).</summary>
+        Main,
+
+        /// <summary>The other hand (the left): a bare fist's jab, a shield's bash.</summary>
+        Off,
     }
 
     /// <summary>How a move's path is made.</summary>
@@ -59,6 +72,8 @@ namespace PhysicsBattler.Combat
         public MoveShape shape = MoveShape.Path;
         [Tooltip("The bodies (fighting styles) that throw this blow: the fan strikes are the small body's eskrima, not the large one's.")]
         public ComboBodies bodies = ComboBodies.All;
+        [Tooltip("Milestone 10: the hand that throws it. Off: the left hand's own blow (the jab, the shield bash); the weapon arm keeps its guard.")]
+        public MoveHand hand = MoveHand.Main;
 
         [Header("Swing (medium size; Swing and Thrust shapes)")]
         [Tooltip("Degrees the swing plane tilts: 0 a flat swing, 90 straight down from overhead, negative rising from below.")]
@@ -248,7 +263,8 @@ namespace PhysicsBattler.Combat
 
         /// <summary>The bodies a ready-made move is for (milestone 10: the fan strikes are the small body's).</summary>
         public static ComboBodies DefaultBodies(MoveStyle style) =>
-            style == MoveStyle.ClubFan || style == MoveStyle.ClubFanBackhand ? ComboBodies.Small : ComboBodies.All;
+            style == MoveStyle.ClubFan || style == MoveStyle.ClubFanBackhand ? ComboBodies.Small
+            : style == MoveStyle.OffJab ? ComboBodies.Large : ComboBodies.All;
 
         /// <summary>
         /// The arm rebuild's starting elbow nulls for the ready-made moves (degrees round the arm, as
@@ -550,6 +566,7 @@ namespace PhysicsBattler.Combat
             strikeWith = StrikeWith.Edge;
             targets = AimParts.All;
             bodies = DefaultBodies(style);
+            hand = MoveHand.Main;
             DefaultElbows(style, out elbowWindUp, out elbowContact, out elbowFollow);
             DefaultWrists(style, out wristWindUp, out wristContact, out wristFollow);
             DefaultHands(style, out handWindUp, out handFollow);
@@ -775,6 +792,38 @@ namespace PhysicsBattler.Combat
                     rockBack = 0.25f;
                     maxLunge = 0.5f;
                     hitStop = 0.04f;
+                    break;
+
+                case MoveStyle.OffJab:
+                    // Milestone 10: the boxer's jab. The lead fist snaps straight out from its guard to
+                    // the target and straight back, the shoulder turned in behind it (the body turns
+                    // right, the lead shoulder forward), a half step in; quick, light, the club kept up.
+                    // (The fist's way is the off hand's own, OffHandPath; the swing's numbers below give
+                    // the timing and the body.)
+                    hand = MoveHand.Off;
+                    shape = MoveShape.Thrust;
+                    strikeWith = StrikeWith.Fist;
+                    targets = AimParts.Head | AimParts.Neck | AimParts.Chest;
+                    through = 0.08f;
+                    drawBack = 0.05f;
+                    pivotSide = -0.2f;
+                    pivotUp = 0.12f;
+                    windUpTime = 0.1f;
+                    holdTime = 0.02f;
+                    strikeTime = 0.12f;
+                    accelShare = 0.5f;
+                    recoveryTime = 0.22f;
+                    turnBack = -6f;
+                    turnThrough = -22f;
+                    leanBack = 0f;
+                    leanThrough = 8f;
+                    crouchLoad = 0.03f;
+                    crouchStrike = 0.02f;
+                    rockBack = 0.15f;
+                    drive = 0.15f;
+                    maxLunge = 0.35f;
+                    hitStop = 0.04f;
+                    elbowWindUp = elbowContact = elbowFollow = 0f;
                     break;
             }
 

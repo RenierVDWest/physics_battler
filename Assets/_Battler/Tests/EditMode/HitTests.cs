@@ -473,6 +473,87 @@ namespace PhysicsBattler.Tests
             }
         }
 
+        /// <summary>
+        /// Milestone 10: the large boxer jabs with its bare lead hand. Close in, the planner finds the
+        /// jab (the off hand's own blow), it lands where it was aimed in the dry run, and played it
+        /// strikes the target with the fist while the weapon arm keeps its guard.
+        /// </summary>
+        [Test]
+        public void ALargeJabsWithItsBareLeadHand()
+        {
+            var attacker = Build("Large", Vector3.zero, 0f, 0);
+            var target = Build("Medium", Vector3.forward * 5f, 180f, 1);
+            var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
+            club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing) };
+            attacker.Equip(club, null);
+            var jab = WeaponDefinition.BareFist.moves[0];
+            Assert.AreEqual(MoveHand.Off, jab.hand);
+            Assert.IsTrue(jab.UsableBy(attacker.Body.SizeFactor), "the large body jabs");
+            var everyone = new[] { attacker, target };
+            try
+            {
+                MoveState state = null;
+                float at = 0f;
+                for (float d = 0.8f; d <= 1.6f && state == null; d += 0.1f)
+                {
+                    target.Place(Vector3.forward * d * attacker.Body.SizeFactor, 180f);
+                    Step(everyone, 20);
+                    foreach (var part in new[] { AimPart.Head, AimPart.Chest })
+                    {
+                        var s = state == null ? MovePlanner.Prepare(attacker, target, jab, part) : null;
+                        if (s != null && MovePlanner.Acceptable(attacker, s))
+                        {
+                            state = s;
+                            at = d;
+                        }
+                    }
+                }
+
+                Assert.IsNotNull(state, "close in, the jab can be thrown and lands");
+                Assert.IsTrue(ReferenceEquals(WeaponDefinition.BareFist, state.Weapon), "with the bare fist");
+                Assert.Less(attacker.TryOut(state), MovePlanner.Tolerance, $"the knuckles reach the aim point at contact (from {at:0.0} body sizes)");
+
+                HitReport first = null;
+                void OnHit(HitReport h)
+                {
+                    if (first == null && h.Attacker == attacker)
+                    {
+                        first = h;
+                    }
+                }
+
+                // (In the chest's frame: the body turns into the jab, and the guard goes round with it.)
+                Vector3 GuardHand() => Quaternion.Inverse(attacker.Anim.Part(PartId.Chest).rotation) * (attacker.Anim.Part(PartId.HandR).position - attacker.Anim.Part(PartId.Chest).position);
+                Vector3 guardHand = GuardHand();
+                float weaponHandMoved = 0f;
+                UnitController.Hit += OnHit;
+                try
+                {
+                    Assert.IsTrue(attacker.StartMove(state));
+                    for (int i = 0; i < 120 && attacker.IsAttacking; i++)
+                    {
+                        Step(everyone);
+                        Vector3 now = GuardHand();
+                        weaponHandMoved = Mathf.Max(weaponHandMoved, Vector3.Distance(now, guardHand));
+                    }
+                }
+                finally
+                {
+                    UnitController.Hit -= OnHit;
+                }
+
+                Assert.IsNotNull(first, "the jab lands");
+                Assert.IsTrue(first.Struck == target, $"the target is struck ({first.Struck?.name})");
+                Assert.IsTrue(ReferenceEquals(WeaponDefinition.BareFist, first.Move.Weapon), "struck with the fist");
+                Assert.Greater(first.Result.Damage, 0f, "and it hurts");
+                Assert.Less(weaponHandMoved, 0.25f * attacker.Body.SizeFactor, $"the weapon hand keeps its guard ({weaponHandMoved * 100f:0} cm)");
+            }
+            finally
+            {
+                Destroy(everyone);
+            }
+        }
+
         /// <summary>Two units can't stand in the same place: placed together, they push apart.</summary>
         [Test]
         public void BodiesDontShareSpace()

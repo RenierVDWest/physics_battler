@@ -229,6 +229,13 @@ namespace PhysicsBattler.Units
             }
 
             Authority.Set(BodyRegion.Legs, AuthorityLevel.Kinematic, 1f);
+            // (Milestone 10: an off-hand blow is the off arm's; the weapon arm keeps its guard.)
+            var offMove = move != null && move.Move.hand == MoveHand.Off ? move : null;
+            if (offMove != null)
+            {
+                move = null;
+            }
+
             float blend = move != null ? move.Blend : 0f;
             // Stumbling, the arms are held loosely (they fly out with the body) and the torso a little less.
             float loose = Mathf.Lerp(1f, 0.4f, flail);
@@ -237,7 +244,18 @@ namespace PhysicsBattler.Units
             float torso = profile.torsoPin * Mathf.Lerp(1f, 0.8f, flail);
             SetRegion(BodyRegion.Torso, torso, false);
             SetRegion(BodyRegion.Head, torso, false);
-            SetRegion(BodyRegion.ArmL, armL, false);
+            // The off arm in its own blow is posed exactly, as the weapon arm is in one, and for a moment after.
+            bool kinematicOff = offMove != null && profile.weaponArmKinematicInBlows && offMove.Blend > 0.01f;
+            if (kinematicOff)
+            {
+                offArmHeldUntil = LocalTime + WeaponArmHeldAfter;
+            }
+            else if (profile.weaponArmKinematicInBlows && State == UnitState.Standing && LocalTime < offArmHeldUntil)
+            {
+                kinematicOff = true;
+            }
+
+            SetRegion(BodyRegion.ArmL, armL, kinematicOff);
             // (In a blow, and while a stopped one fades, the weapon arm is posed exactly: the physical
             // arm can't follow a fast swing's turns, and chasing them shakes. Milestone 9c tried holding
             // it by the servo instead; the playtest showed the blade trailing and flailing.)
@@ -259,7 +277,7 @@ namespace PhysicsBattler.Units
         /// <summary>Seconds the weapon arm stays posed exactly after a blow, while it comes back to its guard.</summary>
         public const float WeaponArmHeldAfter = 0.4f;
 
-        private float weaponArmHeldUntil = -1f;
+        private float weaponArmHeldUntil = -1f, offArmHeldUntil = -1f;
 
         private void SetRegion(BodyRegion region, float pin, bool kinematic)
         {
@@ -473,31 +491,34 @@ namespace PhysicsBattler.Units
         public const float ReboundLight = 0.15f, ReboundHard = 0.25f;
 
         /// <summary>A blow stopped by a body or a shield: the weapon arm's pose springs back along the push it met and comes back, as the blow fades into the guard.</summary>
-        private void Rebound(Vector3 push, Vector3 point)
+        private void Rebound(Vector3 push, Vector3 point, bool off = false)
         {
+            // (Milestone 10: an off-hand blow's arm springs back, not the weapon arm.)
+            int k = off ? 1 : 0;
             float j = push.magnitude;
             float mass = 0f;
-            foreach (var id in ArmChain(BodyRegion.ArmR))
+            foreach (var id in ArmChain(off ? BodyRegion.ArmL : BodyRegion.ArmR))
             {
                 var body = Rig.Part(id).body;
                 mass += body != null ? body.mass : 0f;
             }
 
-            if (Loadout?.Main != null)
+            var held = off ? Loadout?.Off : Loadout?.Main;
+            if (held != null)
             {
-                mass += Loadout.Main.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale;
+                mass += held.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale;
             }
 
             float hard = Tanh(j / (Mathf.Max(1f, mass) * 3f * SizeSpeed()));
             float w = 2f * Mathf.PI * ArmKnockFrequency;
             float kick = (float)System.Math.E * w;
             Vector3 dir = push / j;
-            armKnockV[0] += dir * (Mathf.Lerp(ReboundLight, ReboundHard, hard) * Body.SizeFactor * kick);
-            Vector3 lever = point - Anim.Part(PartId.HandR).position;
+            armKnockV[k] += dir * (Mathf.Lerp(ReboundLight, ReboundHard, hard) * Body.SizeFactor * kick);
+            Vector3 lever = point - Anim.Part(off ? PartId.HandL : PartId.HandR).position;
             Vector3 axis = Vector3.Cross(lever, dir);
             if (axis.sqrMagnitude > 1e-8f)
             {
-                armTurnV[0] += axis.normalized * (MaxArmTurn * hard * kick);
+                armTurnV[k] += axis.normalized * (MaxArmTurn * hard * kick);
             }
         }
 
@@ -574,6 +595,45 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>
+        /// What strikes in a blow, as PhysX has it now: the segment swept (from near the hand out to the
+        /// tip) and the striking point. The weapon in the hand; milestone 10: a jab's fist, from the
+        /// wrist to the knuckles. False if there is nothing to strike with.
+        /// </summary>
+        public bool StrikingPart(MoveState move, out Vector3 grip, out Vector3 tip, out Vector3 strike)
+        {
+            grip = tip = strike = Vector3.zero;
+            var weapon = move?.Weapon;
+            if (weapon == null)
+            {
+                return false;
+            }
+
+            if (move.Move.hand == MoveHand.Off && weapon.kind == WeaponKind.Fist)
+            {
+                if (Rig.IsSevered(PartId.HandL))
+                {
+                    return false;
+                }
+
+                var hand = Rig.Part(PartId.HandL);
+                grip = hand.PhysicalPoint(hand.transform.position);
+                tip = strike = hand.PhysicalPoint(hand.transform.TransformPoint(OffHandPath.KnuckleLocal(Anim, Body.SizeFactor)));
+                return true;
+            }
+
+            if (MainWeapon == null)
+            {
+                return false;
+            }
+
+            float from = weapon.kind == WeaponKind.Club ? 0.35f : 0.1f;
+            grip = MainWeapon.PhysicalPoint(weapon.tip * from);
+            tip = MainWeapon.PhysicalPoint(weapon.tip);
+            strike = MainWeapon.PhysicalPoint(weapon.StrikePoint(move.Move.strikeWith));
+            return true;
+        }
+
+        /// <summary>
         /// The weapon as PhysX has it now, swept from where it was last step, from the start of the
         /// active window to the end of the follow-through: the first body part or shield it meets
         /// is struck (any unit: friendly fire counts) and stops the blow there.
@@ -581,15 +641,11 @@ namespace PhysicsBattler.Units
         private void Sweep(MoveState move, float dt)
         {
             var weapon = move.Weapon;
-            if (MainWeapon == null || weapon == null || dt <= 0f)
+            if (weapon == null || dt <= 0f || !StrikingPart(move, out Vector3 grip, out Vector3 tip, out Vector3 strike))
             {
                 return;
             }
 
-            float from = weapon.kind == WeaponKind.Club ? 0.35f : 0.1f;
-            Vector3 grip = MainWeapon.PhysicalPoint(weapon.tip * from);
-            Vector3 tip = MainWeapon.PhysicalPoint(weapon.tip);
-            Vector3 strike = MainWeapon.PhysicalPoint(weapon.StrikePoint(move.Move.strikeWith));
             bool had = hasLastSweep;
             Vector3 lastG = lastGrip, lastT = lastTip, lastS = lastStrike;
             lastGrip = grip;
@@ -780,7 +836,7 @@ namespace PhysicsBattler.Units
             move.RewindFloor = Mathf.Max(0f, move.Time - RewindMost * move.Duration);
             if (report.Result.Impulse.sqrMagnitude > 1e-8f)
             {
-                Rebound(-report.Result.Impulse, report.Point);
+                Rebound(-report.Result.Impulse, report.Point, move.Move.hand == MoveHand.Off);
             }
 
             if (report.Shield)

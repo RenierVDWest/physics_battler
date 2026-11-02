@@ -45,6 +45,20 @@ elbow pole into a null. The same goal gives the same arm.
   faster than it was sent up, and a second after it falls or is struck no part speeds up; the joints
   aren't mass-weighted on the ground; cut-off limbs count as bodies on the ground.
 
+### Milestone 10's off-hand blows: the jab
+
+- **The jab** (`MoveStyle.OffJab`, the large boxer's): the bare lead fist snaps straight from its
+  guard to the aim point, a little through, and straight back, palm turning down, the lead shoulder
+  turned in behind it and a half step in. The weapon arm keeps its guard (and its rhythm) meanwhile.
+- **Off-hand blows** (`MoveDefinition.hand = Off`): thrown with what the off hand has
+  (`Loadout.OffHand`: its shield, or `WeaponDefinition.BareFist`, a fist made in code with the bare
+  hand's blows). `Combat/OffHandPath` locks the aim and works out the step in; `PosePipeline.PoseJab`
+  poses the off arm on the rig; the off arm is posed exactly through the blow (as the weapon arm is in
+  its own); the sweep follows the fist from the wrist to the knuckles (`UnitCombat.StrikingPart`); a
+  stopped jab springs the off arm back. The planner offers it beside the weapon's blows: it reaches
+  only from close in.
+- Still to come: the butt strike (punyo) and the shield bash.
+
 ## Before the arm rebuild: milestone 10, combos (chained links; the club's backhand and fan strikes)
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):

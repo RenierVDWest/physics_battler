@@ -39,7 +39,8 @@ namespace PhysicsBattler.Combat
         /// </summary>
         public static MoveState Prepare(UnitController attacker, UnitController target, MoveDefinition move, AimPart part)
         {
-            var weapon = attacker.Loadout?.Main;
+            // (Milestone 10: an off-hand blow is thrown with what the off hand has: its fist, its shield.)
+            var weapon = attacker.Loadout?.For(move);
             if (move == null || weapon == null || target == null || !target.IsInitialized)
             {
                 return null;
@@ -77,6 +78,11 @@ namespace PhysicsBattler.Combat
         /// <summary>Locks a blow on a point (tests and the move preview aim at plain points too).</summary>
         public static MoveState Prepare(UnitController attacker, MoveDefinition move, WeaponDefinition weapon, Vector3 aim, AimPart part, object target)
         {
+            if (move != null && move.hand == MoveHand.Off)
+            {
+                return OffHandPath.Prepare(attacker, move, weapon, aim, part, target);
+            }
+
             if (move != null && move.shape != MoveShape.Path)
             {
                 return SwingPath.Prepare(attacker, move, weapon, aim, part, target);
@@ -192,8 +198,22 @@ namespace PhysicsBattler.Combat
                 return null;
             }
 
+            // (Milestone 10: and the off hand's blows, the jab with a bare lead hand.)
+            var moves = new List<MoveDefinition>(weapon.moves);
+            var offHand = attacker.Loadout.OffHand;
+            if (offHand != null && offHand.moves != null && !attacker.Rig.IsSevered(PartId.HandL))
+            {
+                foreach (var m in offHand.moves)
+                {
+                    if (m != null && m.hand == MoveHand.Off)
+                    {
+                        moves.Add(m);
+                    }
+                }
+            }
+
             var options = new List<(MoveDefinition move, AimPart part, float weight)>();
-            foreach (var move in weapon.moves)
+            foreach (var move in moves)
             {
                 if (move == null || !move.UsableBy(attacker.Body.SizeFactor))
                 {
