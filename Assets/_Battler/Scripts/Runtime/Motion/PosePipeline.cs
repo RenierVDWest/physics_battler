@@ -526,15 +526,34 @@ namespace PhysicsBattler.Motion
             }
 
             // Milestone 9c: what the hands hold kept out of the ground.
-            WeaponGroundGap = KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY);
+            // (Playing, the lift carries on from last step's, changing a little a step; a tried pose
+            // lifts afresh.)
+            GroundClamp.Memory mainLift = null, offLift = null;
+            if (!composingDry || composingArmPlays)
+            {
+                if (liftComposed != composeCount - 1)
+                {
+                    mainClampMemory.known = offClampMemory.known = false;
+                }
+
+                liftComposed = composeCount;
+                mainLift = mainClampMemory;
+                offLift = offClampMemory;
+            }
+
+            WeaponGroundGap = KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, 1f, false, mainLift, offLift);
             CenterOfMass = CenterOfMassNow();
         }
 
         /// <summary>The lowest point of what the hands hold over the ground in this pose (metres; negative: in it).</summary>
         public float WeaponGroundGap { get; private set; } = float.MaxValue;
 
+        private readonly GroundClamp.Memory mainClampMemory = new GroundClamp.Memory(), offClampMemory = new GroundClamp.Memory();
+        private int liftComposed = -10;
+
         /// <summary>Keeps what both hands hold out of the ground (<see cref="GroundClamp"/>); returns the lowest gap left.</summary>
-        public static float KeepWeaponsOffGround(AnimRig anim, Loadout loadout, float size, float groundY, float weight = 1f, bool free = false)
+        public static float KeepWeaponsOffGround(AnimRig anim, Loadout loadout, float size, float groundY, float weight = 1f, bool free = false,
+            GroundClamp.Memory mainMemory = null, GroundClamp.Memory offMemory = null)
         {
             if (loadout == null)
             {
@@ -544,12 +563,12 @@ namespace PhysicsBattler.Motion
             float gap = float.MaxValue;
             if (loadout.Main != null)
             {
-                gap = Mathf.Min(gap, GroundClamp.Keep(anim, true, loadout.Main, loadout.Scale, size, groundY, weight, free));
+                gap = Mathf.Min(gap, GroundClamp.Keep(anim, true, loadout.Main, loadout.Scale, size, groundY, weight, free, mainMemory));
             }
 
             if (loadout.Off != null)
             {
-                gap = Mathf.Min(gap, GroundClamp.Keep(anim, false, loadout.Off, loadout.Scale, size, groundY, weight, free));
+                gap = Mathf.Min(gap, GroundClamp.Keep(anim, false, loadout.Off, loadout.Scale, size, groundY, weight, free, offMemory));
             }
 
             return gap;

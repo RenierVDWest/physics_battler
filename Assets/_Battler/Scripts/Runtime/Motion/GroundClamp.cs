@@ -53,7 +53,23 @@ namespace PhysicsBattler.Motion
         /// holds anywhere): the wrist may go as far as it is needed and the arm turn twice as far,
         /// a few times over, so it starts out of the floor.
         /// </remarks>
-        public static float Keep(AnimRig anim, bool right, WeaponDefinition weapon, float scale, float size, float groundY, float weight = 1f, bool free = false)
+        /// <summary>
+        /// What the clamp did to one arm last step: how far it turned the wrist and raised the arm
+        /// (degrees). With it, the lift changes by at most <see cref="MostChange"/> a step: a blow
+        /// driven deep into the floor is lifted out over a few steps, never in one jump (the playtest
+        /// had a smash's hand flung 1.3 m in a step, a kinematic hand that launched a body).
+        /// </summary>
+        public sealed class Memory
+        {
+            public float turn, raise;
+            public bool known;
+            public int frame = -10;
+        }
+
+        /// <summary>How much the lift may change in a step (degrees, wrist and shoulder each).</summary>
+        public const float MostChange = 6f;
+
+        public static float Keep(AnimRig anim, bool right, WeaponDefinition weapon, float scale, float size, float groundY, float weight = 1f, bool free = false, Memory memory = null)
         {
             if (weapon == null || weight <= 0f)
             {
@@ -83,15 +99,18 @@ namespace PhysicsBattler.Motion
             // is lowest), at most MostTurn and never further past the wrist's limits than the pose had
             // it (a clamp into them would snap the hand the moment the floor takes over).
             float low = Lowest(slot, weapon, scale, out _, out Vector3 at);
+            bool remembered = memory != null && memory.known;
+            float turnWas = remembered ? memory.turn : 0f, raiseWas = remembered ? memory.raise : 0f;
+            float turned = 0f, raised = 0f;
             Vector3 lever = at - hand.position;
             Vector3 axis = Vector3.Cross(lever, Vector3.up);
             float reach = lever.magnitude;
-            if (low < want && axis.sqrMagnitude > 1e-6f && reach > 1e-3f)
+            if ((low < want || turnWas > MostChange) && axis.sqrMagnitude > 1e-6f && reach > 1e-3f)
             {
                 axis.Normalize();
                 Quaternion from = hand.rotation;
                 float pastBefore = free ? float.MaxValue : Mathf.Max(0f, Past(anim, handId)) + 0.5f;
-                float turn = Mathf.Min(free ? 3f * MostTurn : MostTurn, Raise(lever, want - low));
+                float turn = low < want ? Mathf.Min(free ? 3f * MostTurn : MostTurn, Raise(lever, want - low)) : 0f;
                 // (A low part hanging straight under the wrist can't be raised by turning it, and which
                 // way to turn it is anyone's guess: the wrist gives way to the arm as it comes under.)
                 float level = new Vector2(lever.x, lever.z).magnitude / reach;
@@ -104,7 +123,13 @@ namespace PhysicsBattler.Motion
                     turn *= Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.6f, tilt));
                 }
 
+                if (remembered)
+                {
+                    turn = Mathf.Clamp(turn, Mathf.Max(0f, turnWas - MostChange), turnWas + MostChange);
+                }
+
                 hand.rotation = Quaternion.AngleAxis(turn, axis) * from;
+                turned = turn;
                 if (Past(anim, handId) > pastBefore)
                 {
                     // (As far as the wrist may go.)
@@ -124,16 +149,19 @@ namespace PhysicsBattler.Motion
                     }
 
                     hand.rotation = Quaternion.AngleAxis(lo, axis) * from;
+                    turned = lo;
                 }
             }
 
             // 2. Still short: the whole arm turns up at the shoulder (the elbow keeps its bend and its
             // side), as far as lifts the low part to its place, at most MostRaise; twice over (it turns
             // with the arm).
+            float raiseMost = remembered ? raiseWas + MostChange : float.MaxValue;
+            Vector3 lastAxis = Vector3.zero;
             for (int pass = 0; pass < (free ? 4 : 3); pass++)
             {
                 low = Lowest(slot, weapon, scale, out _, out at);
-                if (low >= want)
+                if (low >= want || raised >= raiseMost - 1e-3f)
                 {
                     break;
                 }
@@ -150,7 +178,29 @@ namespace PhysicsBattler.Motion
                     break;
                 }
 
-                upper.rotation = Quaternion.AngleAxis(Mathf.Min(free ? 2f * MostRaise : MostRaise, Raise(lever, want - low)), axis.normalized) * upper.rotation;
+                float angle = Mathf.Min(Mathf.Min(free ? 2f * MostRaise : MostRaise, Raise(lever, want - low)), raiseMost - raised);
+                lastAxis = axis.normalized;
+                upper.rotation = Quaternion.AngleAxis(angle, lastAxis) * upper.rotation;
+                raised += angle;
+            }
+
+            // (No longer needed, the arm comes down no faster than it went up.)
+            if (remembered && raised < raiseWas - MostChange)
+            {
+                Vector3 up = lastAxis.sqrMagnitude > 0.5f ? lastAxis : Vector3.Cross(hand.position - upper.position, Vector3.up);
+                if (up.sqrMagnitude > 1e-8f)
+                {
+                    float more = raiseWas - MostChange - raised;
+                    upper.rotation = Quaternion.AngleAxis(more, up.normalized) * upper.rotation;
+                    raised += more;
+                }
+            }
+
+            if (memory != null)
+            {
+                memory.turn = turned;
+                memory.raise = raised;
+                memory.known = true;
             }
 
             // (Part of the way: from the pose as it came.)

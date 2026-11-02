@@ -35,11 +35,36 @@ internal static class ArmReport
         var struckAt = new Dictionary<UnitController, float>();
         float clock = 0f;
         var ground = new Dictionary<string, List<float>>();
+        // (The posed weapon hand's travel in one step: a kinematic hand slams whatever it meets at
+        // that speed.)
+        var lastHand = new Dictionary<UnitController, UnityEngine.Vector3>();
+        var handSteps = new List<float>();
+        var jumps = new List<string>();
         FightReport.OnStep = (units, dt) =>
         {
             clock += dt;
             foreach (var u in units)
             {
+                if (u.IsAlive && u.State == UnitState.Standing && !u.Rig.IsSevered(PartId.HandR))
+                {
+                    var h = u.Anim.Part(PartId.HandR).position;
+                    if (lastHand.TryGetValue(u, out var before))
+                    {
+                        float stepLen = UnityEngine.Vector3.Distance(h, before);
+                        handSteps.Add(stepLen);
+                        if (stepLen > 0.3f * u.Body.SizeFactor)
+                        {
+                            jumps.Add($"  t {clock:0.00} {u.name}: {stepLen * 100f:0} cm, {u.CurrentMove?.Move.name ?? "no blow"} T {(u.CurrentMove != null ? u.CurrentMove.T : 0f):0.00}, combo link {(u.Combo != null ? (u.Combo.Link + 1).ToString() : "-")}, ground gap {u.WeaponGroundGap * 100f:0} cm, link weight {u.Pose.LinkWeight:0.00}");
+                        }
+                    }
+
+                    lastHand[u] = h;
+                }
+                else
+                {
+                    lastHand.Remove(u);
+                }
+
                 // Milestone 9c: what the hands hold over the ground in the pose, standing and getting up.
                 if (u.IsAlive && (u.State == UnitState.Standing || u.State == UnitState.GettingUp) && u.Loadout != null
                     && (u.Loadout.Main != null || u.Loadout.Off != null) && u.WeaponGroundGap < 100f)
@@ -139,6 +164,13 @@ internal static class ArmReport
         foreach (var pair in past)
         {
             Console.WriteLine($"arm pose past its limits, {pair.Key}: more than 10 degrees {Share(pair.Value, 10f) * 100:0.0}% of steps, 99th {Pct(pair.Value, 99):0}, worst {Max(pair.Value):0} degrees ({pair.Value.Count} steps)");
+        }
+
+        handSteps.Sort();
+        Console.WriteLine($"posed weapon hand travel in a step (standing): 99th {Pct(handSteps, 99) * 100:0} cm, 99.9th {Pct(handSteps, 99.9f) * 100:0} cm, most {Max(handSteps) * 100:0} cm; {jumps.Count} steps over 30 cm (by size)");
+        foreach (var j in jumps.GetRange(0, Math.Min(12, jumps.Count)))
+        {
+            Console.WriteLine(j);
         }
 
         foreach (var pair in ground)

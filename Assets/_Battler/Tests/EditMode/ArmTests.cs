@@ -252,6 +252,40 @@ namespace PhysicsBattler.Tests
             Assert.AreEqual(2f / 3f, under, 1e-5f, "two of three under 2 cm");
         }
 
+        /// <summary>
+        /// Milestone 10: a kinematic part never moves faster than a body part does, however its pose
+        /// jumps (to PhysX it is infinitely heavy: a hand flung 1.3 m in a step launched a body at
+        /// 100 m/s); a pose moved further than a teleport is placed at once.
+        /// </summary>
+        [Test]
+        public void AKinematicPartNeverSlamsAtThePosesJump()
+        {
+            UnitController.ResetSeeds(3);
+            var (unit, enemy) = RhythmTests.Pair("Large");
+            var both = new[] { unit, enemy };
+            try
+            {
+                RhythmTests.Step(both, 30);
+                unit.Authority.Set(BodyRegion.ArmR, AuthorityLevel.Kinematic, 1f);
+                unit.Authority.Apply(Dt);
+                var hand = unit.Rig.Part(PartId.HandR).body;
+                Vector3 before = hand.position;
+                unit.Anim.Part(PartId.HandR).position += Vector3.right * 1.3f;
+                unit.Authority.Apply(Dt);
+                float moved = Vector3.Distance(hand.position, before);
+                Assert.LessOrEqual(moved, AuthorityController.KinematicMostSpeed * Dt + 1e-3f, $"a 1.3 m jump of the pose moves the hand {moved * 100f:0} cm in a step");
+                Assert.Greater(moved, 0.1f, "but it does go toward it");
+                unit.Anim.Part(PartId.HandR).position += Vector3.right * 4f;
+                Vector3 far = unit.Anim.Part(PartId.HandR).position;
+                unit.Authority.Apply(Dt);
+                Assert.Less(Vector3.Distance(hand.position, far), 0.01f, "a teleport is placed at once");
+            }
+            finally
+            {
+                RhythmTests.Destroy(both);
+            }
+        }
+
         /// <summary>A physical unit's shield is solid and its weight is on the hand; taking it off takes the weight away.</summary>
         [Test]
         public void TheShieldIsSolidAndWeighsOnTheHand()

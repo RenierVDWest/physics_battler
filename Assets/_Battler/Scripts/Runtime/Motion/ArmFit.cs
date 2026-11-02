@@ -24,8 +24,14 @@ namespace PhysicsBattler.Motion
         private const float LostEnergy = (0.04f * PlaceWeight) * (0.04f * PlaceWeight);
 
         private readonly float[] theta = new float[6], trial = new float[6], step = new float[6], warm = new float[6];
-        private readonly float[] residual = new float[6], moved = new float[6];
-        private readonly float[,] jacobian = new float[6, 6], system = new float[6, 7];
+        private readonly float[] residual = new float[Rows], moved = new float[Rows];
+        private readonly float[,] jacobian = new float[Rows, 6], system = new float[6, 7];
+        private const int Rows = 9;
+
+        // The elbow's way (from the middle of the shoulder-to-hand line; world, unit) and how much it counts.
+        private Vector3 pole;
+        private float poleWeight;
+        private Transform shoulderPart, elbowPart;
         private readonly bool[] frozen = new bool[6];
         private readonly float[] baseShape = new float[6];
         private bool warmKnown, baseKnown;
@@ -42,8 +48,13 @@ namespace PhysicsBattler.Motion
         /// turned to <paramref name="handTurn"/> as near as the wrist allows. <paramref name="frame"/>
         /// counts the fits: from one to the next the arm carries on from its last shape (no jumps).
         /// </summary>
-        public void Fit(AnimRig anim, PartId upper, PartId fore, PartId hand, Vector3 target, Quaternion handTurn, int frame)
+        public void Fit(AnimRig anim, PartId upper, PartId fore, PartId hand, Vector3 target, Quaternion handTurn, int frame,
+            Vector3 elbowWay = default, float elbowWeight = 0f)
         {
+            pole = elbowWay.sqrMagnitude > 1e-8f ? elbowWay.normalized : Vector3.zero;
+            poleWeight = pole == Vector3.zero ? 0f : elbowWeight;
+            shoulderPart = anim.Part(upper);
+            elbowPart = anim.Part(fore);
             var ids = new[] { upper, fore, hand };
             var handPart = anim.Part(hand);
             // (Within one step a second fit carries on from the same last shape as the first.)
@@ -130,7 +141,7 @@ namespace PhysicsBattler.Motion
                     trial[j] += 0.5f;
                     Set(anim, ids, trial, handTurn);
                     Residuals(handPart, target, handTurn, moved);
-                    for (int r = 0; r < 6; r++)
+                    for (int r = 0; r < Rows; r++)
                     {
                         jacobian[r, j] = (moved[r] - residual[r]) / 0.5f;
                     }
@@ -172,7 +183,7 @@ namespace PhysicsBattler.Motion
                 if (e < energy)
                 {
                     System.Array.Copy(trial, theta, 6);
-                    System.Array.Copy(moved, residual, 6);
+                    System.Array.Copy(moved, residual, Rows);
                     energy = e;
                     lambda = Mathf.Max(0.2f, lambda * 0.5f);
                 }
@@ -195,7 +206,7 @@ namespace PhysicsBattler.Motion
                     float sum = 0f;
                     if (!frozen[a] && !frozen[b])
                     {
-                        for (int r = 0; r < 6; r++)
+                        for (int r = 0; r < Rows; r++)
                         {
                             sum += jacobian[r, a] * jacobian[r, b];
                         }
@@ -207,7 +218,7 @@ namespace PhysicsBattler.Motion
                 float rhs = 0f;
                 if (!frozen[a])
                 {
-                    for (int r = 0; r < 6; r++)
+                    for (int r = 0; r < Rows; r++)
                     {
                         rhs -= jacobian[r, a] * residual[r];
                     }
@@ -300,7 +311,7 @@ namespace PhysicsBattler.Motion
             }
         }
 
-        private static float Residuals(Transform hand, Vector3 target, Quaternion handTurn, float[] r)
+        private float Residuals(Transform hand, Vector3 target, Quaternion handTurn, float[] r)
         {
             Vector3 off = (hand.position - target) * PlaceWeight;
             Quaternion d = handTurn * Quaternion.Inverse(hand.rotation);
@@ -317,7 +328,18 @@ namespace PhysicsBattler.Motion
             r[3] = turn.x;
             r[4] = turn.y;
             r[5] = turn.z;
-            return off.sqrMagnitude + turn.sqrMagnitude;
+            // (The elbow toward its way: down and out for an arm holding something up.)
+            Vector3 elbowOff = Vector3.zero;
+            if (poleWeight > 0f)
+            {
+                Vector3 bend = elbowPart.position - 0.5f * (shoulderPart.position + hand.position);
+                elbowOff = bend.sqrMagnitude > 1e-8f ? (bend.normalized - pole) * poleWeight : Vector3.zero;
+            }
+
+            r[6] = elbowOff.x;
+            r[7] = elbowOff.y;
+            r[8] = elbowOff.z;
+            return off.sqrMagnitude + turn.sqrMagnitude + elbowOff.sqrMagnitude;
         }
 
         /// <summary>Gaussian elimination with partial pivoting on an n × (n + 1) system.</summary>

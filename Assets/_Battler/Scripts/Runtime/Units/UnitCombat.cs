@@ -242,8 +242,24 @@ namespace PhysicsBattler.Units
             // arm can't follow a fast swing's turns, and chasing them shakes. Milestone 9c tried holding
             // it by the servo instead; the playtest showed the blade trailing and flailing.)
             bool kinematicArm = move != null && profile.weaponArmKinematicInBlows && blend > 0.01f;
+            // Milestone 10: and for a moment after, while the arm comes back to its guard (held by the
+            // servo straight away, the arm trailed its fast return by 30 to 80 degrees and twisted).
+            if (kinematicArm)
+            {
+                weaponArmHeldUntil = LocalTime + WeaponArmHeldAfter;
+            }
+            else if (profile.weaponArmKinematicInBlows && State == UnitState.Standing && LocalTime < weaponArmHeldUntil)
+            {
+                kinematicArm = true;
+            }
+
             SetRegion(BodyRegion.ArmR, armR, kinematicArm);
         }
+
+        /// <summary>Seconds the weapon arm stays posed exactly after a blow, while it comes back to its guard.</summary>
+        public const float WeaponArmHeldAfter = 0.4f;
+
+        private float weaponArmHeldUntil = -1f;
 
         private void SetRegion(BodyRegion region, float pin, bool kinematic)
         {

@@ -56,6 +56,7 @@ namespace PhysicsBattler.Authority
         private readonly Vector3[] lastTarget = new Vector3[PartInfo.Count];
         private readonly Quaternion[] lastTargetRotation = new Quaternion[PartInfo.Count];
         private readonly bool[] followed = new bool[PartInfo.Count];
+        private readonly bool[] kinematicKnown = new bool[PartInfo.Count];
         private float clock;
 
         /// <summary>How long a ragdoll's joints take to close from where they are to their limits (seconds).</summary>
@@ -147,14 +148,35 @@ namespace PhysicsBattler.Authority
                 {
                     if (kinematic)
                     {
-                        body.MovePosition(target.position);
-                        body.MoveRotation(target.rotation);
+                        // Milestone 10: a kinematic part goes where its pose is, but no faster than a body
+                        // part moves (KinematicMostSpeed): to PhysX a kinematic part is infinitely heavy,
+                        // and a pose that jumps would slam whatever it meets at the jump's speed (the
+                        // playtest: a hand moved 1.3 m in a step and launched a body at 100 m/s). A pose
+                        // that moved further than a teleport is placed at once.
+                        Vector3 to = target.position;
+                        Quaternion turn = target.rotation;
+                        if (kinematicKnown[i])
+                        {
+                            Vector3 move = to - body.position;
+                            float most = KinematicMostSpeed * dt;
+                            if (move.sqrMagnitude > most * most && move.sqrMagnitude < KinematicTeleport * KinematicTeleport)
+                            {
+                                to = body.position + move.normalized * most;
+                            }
+
+                            turn = Quaternion.RotateTowards(body.rotation, turn, KinematicMostTurn * dt);
+                        }
+
+                        body.MovePosition(to);
+                        body.MoveRotation(turn);
                     }
 
+                    kinematicKnown[i] = kinematic;
                     followed[i] = false;
                     continue;
                 }
 
+                kinematicKnown[i] = false;
                 // The pose's own motion over the last step (none known after a jump, or when the
                 // part wasn't held last step).
                 Vector3 poseVelocity = Vector3.zero, poseSpin = Vector3.zero;
@@ -172,10 +194,18 @@ namespace PhysicsBattler.Authority
                 lastTargetRotation[i] = target.rotation;
                 followed[i] = true;
                 Vector3 gravity = body.useGravity ? UnityEngine.Physics.gravity : Vector3.zero;
-                body.linearVelocity = PinVelocity(body.position, target.position, body.linearVelocity, pin, dt, gravity, poseVelocity);
+                // (Milestone 10: never faster than a body part moves, whatever the pose did.)
+                body.linearVelocity = Vector3.ClampMagnitude(PinVelocity(body.position, target.position, body.linearVelocity, pin, dt, gravity, poseVelocity), KinematicMostSpeed);
                 body.angularVelocity = PinAngularVelocity(body.rotation, target.rotation, body.angularVelocity, pin, dt, poseSpin);
             }
         }
+
+        /// <summary>
+        /// Milestone 10: the fastest a kinematic part moves (m/s) and turns (degrees a second) toward its
+        /// pose; a pose further than <see cref="KinematicTeleport"/> metres off is a placing, not a move.
+        /// (A fast swing's hand moves about 8 m/s.)
+        /// </summary>
+        public const float KinematicMostSpeed = 15f, KinematicMostTurn = 1800f, KinematicTeleport = 2.5f;
 
         /// <summary>A pose that moves further than this in one step has jumped (placed): its motion isn't followed (metres), nor a turn of more than <see cref="PoseTurnJump"/> degrees.</summary>
         public const float PoseJump = 0.5f, PoseTurnJump = 120f;

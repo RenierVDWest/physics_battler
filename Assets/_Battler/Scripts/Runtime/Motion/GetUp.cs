@@ -390,25 +390,24 @@ namespace PhysicsBattler.Motion
             Vector3 faceWay = way;
             way = ShieldSide(way);
             faceWay = Vector3.RotateTowards(way, faceWay, ShieldFaceOffArm * Mathf.Deg2Rad, 0f);
-            float reach = anim.RestLocalPosition(PartId.ForearmL).magnitude + anim.RestLocalPosition(PartId.HandL).magnitude;
             Vector3 upWay = Vector3.ProjectOnPlane(Vector3.up, faceWay);
             Quaternion rotation = Quaternion.LookRotation(faceWay, upWay.sqrMagnitude > 1e-4f ? upWay : root.rotation * Vector3.forward);
             Quaternion handFrom = hand.rotation;
             Quaternion handTurn = rotation * Quaternion.Inverse(slot.localRotation);
             Quaternion turn = Quaternion.Slerp(handFrom, handTurn, w);
-            // (It swings round the shoulder at arm's length, from where it is to the threat, rather than
-            // straight across: the shield doesn't pass through its own body.)
-            Vector3 centreNow = slot.position + slot.rotation * (shield.faceCenter * scale) - upper.position;
-            Vector3 dirNow = centreNow.sqrMagnitude > 1e-6f ? centreNow.normalized : way;
-            float distance = Mathf.Max(0.55f * reach, Mathf.Lerp(centreNow.magnitude, 0.85f * reach, w));
-            Vector3 centre = upper.position + Vector3.Slerp(dirNow, way, w) * distance + Vector3.up * (0.05f * body.SizeFactor * w);
-            Quaternion shieldTurn = turn * slot.localRotation;
-            Vector3 grip = centre - shieldTurn * (shield.faceCenter * scale);
-            Vector3 target = grip - turn * slot.localPosition;
+            // (Held as a guard holds it: the elbow down and out by the ribs, the forearm pointing at the
+            // threat, so the shield faces it with the wrist straight. It comes from where the keys had
+            // it, by w.)
+            float upperLength = anim.RestLocalPosition(PartId.ForearmL).magnitude, foreLength = anim.RestLocalPosition(PartId.HandL).magnitude;
+            Vector3 right = ChestFrame(out Vector3 chestUp, out _);
+            Vector3 elbowWay = (0.45f * way + 0.8f * Vector3.down - 0.35f * right).normalized;
+            Vector3 forearmWay = (faceWay + 0.15f * chestUp).normalized;
+            Vector3 guardHand = upper.position + elbowWay * upperLength + forearmWay * (0.95f * foreLength);
+            Vector3 target = Vector3.Lerp(hand.position, guardHand, w) + Vector3.up * (0.03f * body.SizeFactor * w);
             // (The elbow turns from where the keys had it to down by the ribs, as the shield comes up.)
             Vector3 elbowWas = fore.position - 0.5f * (upper.position + hand.position);
-            Vector3 elbowTo = root.rotation * new Vector3(-0.6f, -1f, -0.3f);
-            Vector3 pole = elbowWas.sqrMagnitude > 1e-8f ? Vector3.Slerp(elbowWas.normalized, elbowTo.normalized, w) : elbowTo;
+            Vector3 elbowTo = (Vector3.down - 0.6f * right).normalized;
+            Vector3 pole = elbowWas.sqrMagnitude > 1e-8f ? Vector3.Slerp(elbowWas.normalized, elbowTo, w) : elbowTo;
             PlaceShieldArm(target, pole, turn);
 
             // (Which way up the shield is held, about its face, is the wrist's to choose: the turn the
@@ -446,9 +445,6 @@ namespace PhysicsBattler.Motion
             {
                 handTurn = bestRotation * Quaternion.Inverse(slot.localRotation);
                 turn = Quaternion.Slerp(handFrom, handTurn, w);
-                shieldTurn = turn * slot.localRotation;
-                grip = centre - shieldTurn * (shield.faceCenter * scale);
-                target = grip - turn * slot.localPosition;
             }
 
             PlaceShieldArm(target, pole, turn);
@@ -522,7 +518,7 @@ namespace PhysicsBattler.Motion
             var hand = anim.Part(PartId.HandL);
             TwoBoneIK.Solve(upper, fore, hand, Within(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target, 0.96f), pole);
             hand.rotation = turn;
-            fitShield.Fit(anim, PartId.UpperArmL, PartId.ForearmL, PartId.HandL, hand.position, turn, fitFrame);
+            fitShield.Fit(anim, PartId.UpperArmL, PartId.ForearmL, PartId.HandL, hand.position, turn, fitFrame, pole, ShieldElbowWeight);
         }
 
         /// <summary>How hard the shield wrist works as posed now: past its limits counts most, then its bend (degrees).</summary>
@@ -532,6 +528,9 @@ namespace PhysicsBattler.Motion
             float past = PhysicsBattler.Muscles.JointMath.PastLimits(local, PhysicsBattler.Muscles.JointLimitTable.For(PartId.HandL), out float pitch, out float y, out float z);
             return 10f * past + Mathf.Abs(pitch) + Mathf.Abs(y) + Mathf.Abs(z);
         }
+
+        /// <summary>How much the shield arm's elbow is kept to its way (down and out, never up over the shield) in the fit.</summary>
+        public const float ShieldElbowWeight = 1.5f;
 
         /// <summary>How far the shield's face may turn from the line of the forearm toward the threat (degrees): the centre grip and the wrist.</summary>
         public const float ShieldFaceOffArm = 60f;
