@@ -327,9 +327,11 @@ namespace PhysicsBattler.Combat
                     follow = new Vector3(30f, -20f, 0f);
                     break;
                 case MoveStyle.SwordThrust:
-                    windUp = new Vector3(-20f, 0f, 10f);
-                    contact = new Vector3(0f, 0f, 15f);
-                    follow = new Vector3(0f, 0f, 10f);
+                    // (Driven home in line: the wrist turned toward the little finger, the blade along
+                    // the forearm.)
+                    windUp = new Vector3(0f, 0f, -25f);
+                    contact = new Vector3(0f, 0f, -30f);
+                    follow = new Vector3(0f, 0f, -25f);
                     break;
                 case MoveStyle.ClubFan:
                     windUp = new Vector3(0f, -45f, 15f);
@@ -375,12 +377,15 @@ namespace PhysicsBattler.Combat
                     break;
                 case MoveStyle.SwordBackhand:
                 case MoveStyle.ClubBackhand:
-                    windUp = new Vector3(-0.3f, 0.05f, 0.05f);
+                    // (Wound across in front of the chest, not against it.)
+                    windUp = new Vector3(-0.25f, 0.05f, 0.25f);
                     follow = new Vector3(0.45f, 0f, 0.1f);
                     break;
                 case MoveStyle.SwordThrust:
-                    windUp = new Vector3(0.15f, -0.15f, -0.15f);
-                    follow = new Vector3(0.05f, -0.05f, 0.6f);
+                    // (Chambered by the hip, the forearm and the point toward the target, then driven
+                    // straight out.)
+                    windUp = new Vector3(0.05f, -0.28f, 0.12f);
+                    follow = new Vector3(0.0f, -0.05f, 0.6f);
                     break;
                 case MoveStyle.ClubFan:
                     windUp = new Vector3(0.25f, 0.1f, 0.15f);
@@ -442,7 +447,7 @@ namespace PhysicsBattler.Combat
         public float ElbowSwivel(float t, float guard)
         {
             float Key(int k) => k == 1 ? elbowWindUp : k == 2 ? elbowContact : k == 3 ? elbowFollow : guard;
-            Phase(t, out int from, out int to, out float share);
+            HandPhase(t, out int from, out int to, out float share);
             return Mathf.Lerp(Key(from), Key(to), share);
         }
 

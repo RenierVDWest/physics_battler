@@ -1,3 +1,4 @@
+using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
 using UnityEngine;
@@ -56,7 +57,18 @@ namespace PhysicsBattler.Combat
             float handToGrip = anim.SlotWeaponR != null ? anim.SlotWeaponR.localPosition.magnitude : 0f;
             float strikeLocal = (weapon.StrikePoint(move.strikeWith) * scale).magnitude;
             // (The hand's grip sits off the line of the arm, and the arm is never quite straight.)
-            float reach = (shoulderLocal - pivotLocal).magnitude + 0.9f * arm + strikeLocal;
+            // (The arm rebuild: no further than the arm can carry the striking part with the contact's
+            // wrist, a weapon held across the arm reaching less far than one in line with it.)
+            float armReach = 0.9f * arm + strikeLocal;
+            var hand = anim.Part(PartId.HandR);
+            if (anim.SlotWeaponR != null)
+            {
+                Vector3 inHand = Quaternion.Inverse(hand.rotation) * (anim.SlotWeaponR.position - hand.position)
+                                 + anim.SlotWeaponR.localRotation * (weapon.StrikePoint(move.strikeWith) * scale);
+                armReach = Mathf.Min(armReach, 0.96f * ArmRig.MaxReach(anim, true, ArmRig.Wrist(anim, true, move.wristContact), inHand));
+            }
+
+            float reach = (shoulderLocal - pivotLocal).magnitude + armReach;
 
             // How far from the pivot the aim point is at contact: full reach less what the blow
             // carries on into the target (a thrust's body drive carries some of it).

@@ -65,6 +65,16 @@ internal static class Program
             return LookReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "keysearch")
+        {
+            return KeySearchReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "planwhy")
+        {
+            return PlanWhyReport.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "armmoves")
         {
             return ArmMovesReport.Run();

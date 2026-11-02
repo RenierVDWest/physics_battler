@@ -256,8 +256,8 @@ namespace PhysicsBattler.Tests
                 foreach (var id in new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR })
                 {
                     var part = anim.Part(id);
-                    Quaternion local = Quaternion.Inverse(anim.RestLocalRotation(id)) * part.localRotation;
-                    float past = PhysicsBattler.Muscles.JointMath.PastLimits(local, PhysicsBattler.Muscles.JointLimitTable.For(id), out _, out _, out _);
+                    // (The arm rebuild: against the arm rig's limits, the model its poses are made in.)
+                    float past = PhysicsBattler.Motion.ArmRig.PastLimits(anim, id, anim.Part(PartInfo.Parent(id)).rotation, part.rotation);
                     if (past > worstPast)
                     {
                         worstPast = past;

@@ -46,6 +46,13 @@ namespace PhysicsBattler.Motion
         public float turnWeight;
 
         /// <summary>
+        /// How much of the wrist's bend (flexion and deviation; not the forearm's twist) the hand may
+        /// use, as a share of its limits (0 or 1: all of it). A relaxed guard holds the wrist near
+        /// straight and lets the weapon's angle give instead.
+        /// </summary>
+        public float wristEase;
+
+        /// <summary>
         /// A keyed wrist (a blow's): the hand's turn on the forearm (its local rotation, as
         /// <see cref="ArmRig.Wrist"/> makes it). The hand is then held so and the arm reaches the point
         /// with it, the elbow at its null; <see cref="handTurn"/> is not used.
@@ -195,7 +202,7 @@ namespace PhysicsBattler.Motion
                 best = Reach(chain, g, wrist.handLocal, swivelA, wrist.bend, wrist.roll, torso);
                 Quaternion wanted = wrist.roll != 0f ? g.handTurn * Quaternion.AngleAxis(wrist.roll, g.rollAxisInHand) : g.handTurn;
                 var q = Quaternion.Inverse(chain.wristFrame) * Quaternion.Inverse(best.upper * best.foreLocal * chain.handRest) * wanted * chain.wristFrame;
-                float excess = Clamp(q, out var clamped);
+                float excess = Clamp(q, out var clamped, g.wristEase);
                 best = Reach(chain, g, chain.wristFrame * clamped * Quaternion.Inverse(chain.wristFrame), swivelA, best.bend, wrist.roll, torso);
                 best.excess = excess;
             }
@@ -456,6 +463,52 @@ namespace PhysicsBattler.Motion
             return e;
         }
 
+        /// <summary>
+        /// How far an arm's joint is past the rig's limits (degrees; 0 inside), for any rig built as the
+        /// animation rig is (the pose or the physical body): the upper arm against the shoulder's
+        /// reach, the elbow against its hinge (any turn off its axis, a bend past 145 or back past
+        /// straight), the hand against the wrist's twist and swing. Other parts: 0.
+        /// </summary>
+        public static float PastLimits(AnimRig anim, PartId id, Quaternion parent, Quaternion child)
+        {
+            bool right = id == PartId.UpperArmR || id == PartId.ForearmR || id == PartId.HandR;
+            switch (id)
+            {
+                case PartId.UpperArmR:
+                case PartId.UpperArmL:
+                {
+                    Vector3 along = child * anim.RestLocalPosition(right ? PartId.ForearmR : PartId.ForearmL).normalized;
+                    Vector3 neutral = parent * Side(NeutralReach, right).normalized;
+                    return Mathf.Max(0f, Vector3.Angle(along, neutral) - ShoulderReach);
+                }
+                case PartId.ForearmR:
+                case PartId.ForearmL:
+                {
+                    var local = Quaternion.Inverse(anim.RestLocalRotation(id)) * (Quaternion.Inverse(parent) * child);
+                    if (local.w < 0f)
+                    {
+                        local = new Quaternion(-local.x, -local.y, -local.z, -local.w);
+                    }
+
+                    Vector3 h = ElbowAxis(anim, right);
+                    float bend = 2f * Mathf.Atan2(Vector3.Dot(new Vector3(local.x, local.y, local.z), h), local.w) * Mathf.Rad2Deg;
+                    float off = Quaternion.Angle(local, Quaternion.AngleAxis(bend, h));
+                    return Mathf.Max(0f, Mathf.Max(off - HingeSlack, Mathf.Max(bend - ElbowBendLimit, -bend - HingeSlack)));
+                }
+                case PartId.HandR:
+                case PartId.HandL:
+                {
+                    var local = Quaternion.Inverse(anim.RestLocalRotation(id)) * (Quaternion.Inverse(parent) * child);
+                    return WristAngles(local, WristFrame(anim, right), out _, out _, out _);
+                }
+                default:
+                    return 0f;
+            }
+        }
+
+        /// <summary>How far an elbow may turn off its hinge, or back past straight, before it counts as past its limits (degrees).</summary>
+        public const float HingeSlack = 2f;
+
         /// <summary>The elbow's swivel (degrees, as <see cref="ArmGoal.elbowSwivel"/>) for an elbow at a place, the hand's point at another.</summary>
         public static float SwivelOf(AnimRig anim, bool right, Vector3 elbow, Vector3 point) => SwivelOf(Chain.Of(anim, right), elbow, point);
 
@@ -638,7 +691,7 @@ namespace PhysicsBattler.Motion
                 Quaternion wanted = canRoll ? g.handTurn * Quaternion.AngleAxis(roll, g.rollAxisInHand) : g.handTurn;
                 Quaternion local = Quaternion.Inverse(fore * c.handRest) * wanted;
                 var q = Quaternion.Inverse(c.wristFrame) * local * c.wristFrame;
-                float excess = Clamp(q, out var clamped);
+                float excess = Clamp(q, out var clamped, g.wristEase);
                 float cost = WristCost * excess * excess + RollCost * roll * roll;   // (the roll chosen on the wrist alone)
                 if (cost < bestWrist)
                 {
@@ -708,11 +761,16 @@ namespace PhysicsBattler.Motion
         }
 
         /// <summary>The wrist's turn (in its frame) clamped to its limits; returns how far it was past them (degrees).</summary>
-        private static float Clamp(Quaternion q, out Quaternion clamped)
+        private static float Clamp(Quaternion q, out Quaternion clamped, float ease = 1f)
         {
+            if (ease <= 0f || ease > 1f)
+            {
+                ease = 1f;
+            }
+
             Split(q, out float twist, out float ty, out float tz);
             twist = Mathf.Clamp(twist, -TwistLimit, TwistLimit);
-            float ay = Mathf.Tan(0.25f * FlexLimit * Mathf.Deg2Rad), az = Mathf.Tan(0.25f * DeviationLimit * Mathf.Deg2Rad);
+            float ay = Mathf.Tan(0.25f * ease * FlexLimit * Mathf.Deg2Rad), az = Mathf.Tan(0.25f * ease * DeviationLimit * Mathf.Deg2Rad);
             float e = (ty / ay) * (ty / ay) + (tz / az) * (tz / az);
             if (e > 1f)
             {
@@ -721,7 +779,7 @@ namespace PhysicsBattler.Motion
                 tz *= k;
             }
 
-            tz = Mathf.Min(tz, Mathf.Tan(0.25f * RadialLimit * Mathf.Deg2Rad));
+            tz = Mathf.Min(tz, Mathf.Tan(0.25f * ease * RadialLimit * Mathf.Deg2Rad));
             float t2 = ty * ty + tz * tz;
             var swing = new Quaternion(0f, 2f * ty / (1f + t2), 2f * tz / (1f + t2), (1f - t2) / (1f + t2));
             clamped = swing * Quaternion.AngleAxis(twist, Vector3.right);

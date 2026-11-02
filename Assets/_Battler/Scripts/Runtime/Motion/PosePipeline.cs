@@ -718,23 +718,40 @@ namespace PhysicsBattler.Motion
                 clearance = ArmClearance * body.SizeFactor,
             };
             LastWeaponArm = ArmRig.Solve(anim, true, goal, torso);
-            if (move != null && move != Feint && move.Generated && moveBlend > 0f)
+            if (move != null && move != Feint && move.Generated && moveBlend > 0f && move.HasContactHand)
             {
-                // Near the striking moment the striking part is drawn onto the swing's path (which passes
-                // through the aim at contact): the hand planned for contact lands it there in a dry pose,
-                // and this takes up what the body playing the blow does a little differently. Weighted by
-                // how near contact it is, so it eases in and out with nothing kept.
-                float near = 1f - Smooth01(Mathf.Abs(move.T - move.ContactTime) / ContactPull);
-                float w = near * moveBlend * (LinkFrom != null ? 1f - LinkWeight : 1f);
+                // The hand planned for contact lands the striking part on the aim in a dry pose; played,
+                // the body is a little elsewhere. Near the striking moment the hand is moved by what the
+                // contact hand would miss by now (the hand at its contact key, the contact's wrist and
+                // elbow, found again onto the aim): the same correction all round the striking moment,
+                // weighted by how near it is, so it eases in and out with nothing kept and the keyed way
+                // keeps its shape.
+                float w = (1f - Smooth01(Mathf.Abs(move.T - move.ContactTime) / ContactPull)) * moveBlend * (LinkFrom != null ? 1f - LinkWeight : 1f);
                 if (w > 0f)
                 {
                     Vector3 strikeLocal = (move.Weapon != null ? move.Weapon.StrikePoint(move.Move.strikeWith) : Vector3.forward * 0.6f) * scale;
                     Vector3 inHand = Quaternion.Inverse(hand.rotation) * (slot.position - hand.position) + slot.localRotation * strikeLocal;
-                    Vector3 strikeNow = hand.position + hand.rotation * inHand;
-                    Vector3 want = Vector3.Lerp(strikeNow, move.PathPoint(move.Progress), w);
-                    goal.point = HandForStrike(goal, inHand, want, goal.point, 3, move.Scale, torso);
+                    Vector3 contactHand = move.Aim + move.Frame * move.ContactHand;
+                    var atContact = new ArmGoal
+                    {
+                        point = contactHand,
+                        wristGiven = true,
+                        wristLocal = ArmRig.Wrist(anim, true, move.Move.wristContact),
+                        elbowSwivel = move.Move.elbowContact,
+                    };
+                    Vector3 found = HandForStrike(atContact, inHand, move.Aim, contactHand, 3, move.Scale, null);
+                    goal.point += (found - contactHand) * w;
                     LastWeaponArm = ArmRig.Solve(anim, true, goal, torso);
                 }
+            }
+
+            if (torso != null)
+            {
+                // The keyed hand's way is the author's; where it (or the weapon it carries) would pass
+                // through the body, the hand is moved out until the arm and the weapon clear it. Last,
+                // so the arm never goes through its own body: a blow that would land only through it
+                // misses in its dry run, and the planner turns it down.
+                goal.point = ClearOfTorso(goal, torso, loadout.Main != null ? loadout.Main.length * 0.98f : 0.8f, scale, ArmClearance * body.SizeFactor);
             }
 
             float under = WeaponLowest(loadout.Main, scale, slot.position, slot.rotation) - (stance.GroundY + GroundClamp.Margin * body.SizeFactor);
@@ -860,7 +877,7 @@ namespace PhysicsBattler.Motion
         /// <summary>How long before the striking moment the lean for it starts, and how long after it eases out (normalized time).</summary>
         public const float LeanAhead = 0.25f, LeanAfter = 0.3f;
 
-        /// <summary>A blow's hand at its time now: its keys round the shoulder (the guard's hand at its start and end).</summary>
+        /// <summary>A blow's hand at its time now: between its keys (the guard's hand at its start and end).</summary>
         private Vector3 KeyedHand(MoveState state, Vector3 shoulder, Vector3 guardHand)
         {
             Vector3 Key(int k)
@@ -874,8 +891,40 @@ namespace PhysicsBattler.Motion
                 }
             }
 
+            // (A thrust drives its hand in a line; a swing carries it round the shoulder.)
             state.Move.HandPhase(state.T, out int from, out int to, out float share);
+            if (state.Move.shape == MoveShape.Thrust)
+            {
+                return Vector3.Lerp(Key(from), Key(to), share);
+            }
+
+            // Through the striking moment the hand goes on without a corner: the arc into the contact
+            // and the arc out of it (each round the shoulder, in its own plane) are bent near the
+            // contact to leave it the same way, half way between the two.
+            if (from == 1 && to == 2 || from == 2 && to == 3)
+            {
+                Vector3 wind = Key(1), contact = Key(2), follow = Key(3);
+                Vector3 inward = ArcTangent(shoulder, wind, contact, 1f), outward = ArcTangent(shoulder, contact, follow, 0f);
+                if (inward.sqrMagnitude > 1e-8f && outward.sqrMagnitude > 1e-8f)
+                {
+                    Vector3 way = (inward.normalized + outward.normalized).normalized;
+                    Vector3 a = from == 1 ? wind : contact, b = from == 1 ? contact : follow;
+                    Vector3 own = from == 1 ? inward : outward;
+                    // (Hermite's basis: the end's slope changed, the other end and both places kept.)
+                    float h = from == 1 ? share * share * share - share * share : share * share * share - 2f * share * share + share;
+                    return AroundShoulder(shoulder, a, b, share) + h * (way * own.magnitude - own);
+                }
+            }
+
             return AroundShoulder(shoulder, Key(from), Key(to), share);
+        }
+
+        /// <summary>The way a hand going round the shoulder from one place to another moves at a share of the way (per share).</summary>
+        private static Vector3 ArcTangent(Vector3 shoulder, Vector3 a, Vector3 b, float share)
+        {
+            const float e = 1e-3f;
+            float s0 = Mathf.Clamp01(share - e), s1 = Mathf.Clamp01(share + e);
+            return (AroundShoulder(shoulder, a, b, s1) - AroundShoulder(shoulder, a, b, s0)) / (s1 - s0);
         }
 
         /// <summary>Between two hand places on an arc round the shoulder (the way, then the reach), as a swinging hand goes.</summary>
@@ -905,7 +954,7 @@ namespace PhysicsBattler.Motion
             Vector3 inHand = Quaternion.Inverse(hand.rotation) * (slot.position - hand.position) + slot.localRotation * strikeLocal;
             var goal = new ArmGoal { wristGiven = true, wristLocal = ArmRig.Wrist(anim, true, state.Move.wristContact), elbowSwivel = state.Move.elbowContact };
             Vector3 shoulder = upper.position;
-            Vector3 handAt = HandForStrike(goal, inHand, state.Aim, shoulder + (state.Aim - shoulder) * 0.6f, 12, state.Scale, null);
+            Vector3 handAt = HandForStrike(goal, inHand, state.Aim, shoulder + (state.Aim - shoulder) * 0.6f, 20, state.Scale, null);
             // (Kept from the aim, not the shoulder: where the hand must be in the world for the blow to
             // land, however the body plays its way there.)
             state.ContactHand = Quaternion.Inverse(state.Frame) * (handAt - state.Aim);
@@ -915,6 +964,48 @@ namespace PhysicsBattler.Motion
             state.ContactHandMiss = Vector3.Distance(hand.position + hand.rotation * inHand, state.Aim);
             state.ContactShoulder = shoulder;
         }
+
+        /// <summary>
+        /// The hand's place moved, as little as it takes, so the arm and the weapon (grip to tip) clear
+        /// the torso by <paramref name="clear"/>, as <see cref="BodyClearance.Measure"/> counts it: a
+        /// few Newton steps on the clearance's slope (measured a centimetre each way). The hand's place
+        /// unchanged when already clear. Leaves the arm solved there.
+        /// </summary>
+        private Vector3 ClearOfTorso(ArmGoal goal, BodyClearance.Posed torso, float bladeLength, float scale, float clear)
+        {
+            float Clearance(Vector3 at)
+            {
+                goal.point = at;
+                LastWeaponArm = ArmRig.Solve(anim, true, goal, torso);
+                var slot = anim.SlotWeaponR;
+                Vector3 tip = slot.position + slot.rotation * (Vector3.forward * bladeLength * scale);
+                return Mathf.Min(torso.Arm(anim.Part(PartId.UpperArmR).position, anim.Part(PartId.ForearmR).position, anim.Part(PartId.HandR).position, slot.position),
+                    torso.Blade(slot.position, tip));
+            }
+
+            Vector3 p = goal.point;
+            float c = Clearance(p);
+            for (int i = 0; i < ClearSteps && c < clear; i++)
+            {
+                const float h = 0.01f;
+                var slope = new Vector3(Clearance(p + Vector3.right * h) - c, Clearance(p + Vector3.up * h) - c, Clearance(p + Vector3.forward * h) - c) / h;
+                if (slope.sqrMagnitude < 1e-4f)
+                {
+                    break;
+                }
+
+                // (A little past the clearance asked: the slope is only the nearest piece's.)
+                Vector3 step = slope * ((clear - c + 0.005f) / slope.sqrMagnitude);
+                p += Vector3.ClampMagnitude(step, ClearStepMost * body.SizeFactor);
+                c = Clearance(p);
+            }
+
+            return p;
+        }
+
+        /// <summary>How many steps <see cref="ClearOfTorso"/> takes at most, and how far one may move the hand (metres, a medium body's).</summary>
+        private const int ClearSteps = 4;
+        private const float ClearStepMost = 0.08f;
 
         /// <summary>
         /// Where the hand must be for a point of it (<paramref name="inHand"/>, the striking part) to land
@@ -931,10 +1022,17 @@ namespace PhysicsBattler.Motion
                 return hand.position + hand.rotation * inHand;
             }
 
-            Vector3 handAt = start;
+            // (The hand kept within the arm's reach: past it the arm stops straight and a hand moved
+            // further moves nothing, so the steps would run off.)
+            Vector3 shoulder = anim.Part(PartId.UpperArmR).position;
+            // (A place asked a little past the eased reach still moves the arm: two of the easing's
+            // lengths past it, the arm is at 99.6% of its length.)
+            float reach = (2f - ArmRig.SoftReach) * (anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude);
+            Vector3 handAt = shoulder + Vector3.ClampMagnitude(start - shoulder, reach);
             float most = 0.15f * size, delta = 0.005f * size;
             for (int i = 0; i < steps; i++)
             {
+                handAt = shoulder + Vector3.ClampMagnitude(handAt - shoulder, reach);
                 Vector3 now = Strike(handAt);
                 Vector3 miss = target - now;
                 if (miss.magnitude < 0.002f)
@@ -958,13 +1056,14 @@ namespace PhysicsBattler.Motion
                 handAt += Vector3.ClampMagnitude(step, most);
             }
 
-            return handAt;
+            return shoulder + Vector3.ClampMagnitude(handAt - shoulder, reach);
         }
 
         /// <summary>A blow's keyed wrist at its time now (the guard's wrist at its start and end).</summary>
         private Quaternion KeyedWrist(MoveState state, Quaternion guardWrist)
         {
-            state.Move.Phase(state.T, out int from, out int to, out float share);
+            // (Timed as the hand is: the wrist still turning through the striking moment.)
+            state.Move.HandPhase(state.T, out int from, out int to, out float share);
             Quaternion Key(int k) => k == 0 ? guardWrist : ArmRig.Wrist(anim, true, state.Move.WristKey(k));
             return Quaternion.Slerp(Key(from), Key(to), share);
         }
@@ -990,8 +1089,12 @@ namespace PhysicsBattler.Motion
                 rollAllowance = weapon != null ? weapon.gripRoll : 0f,
                 elbowSwivel = elbowSwivel,
                 clearance = ArmClearance * body.SizeFactor,
+                wristEase = GuardWristEase,
             };
         }
+
+        /// <summary>How much of the wrist's bend a guard uses (a share of its limits): held near straight, the weapon's angle giving instead.</summary>
+        public const float GuardWristEase = EasyBend / ArmRig.FlexLimit;
 
         /// <summary>How far the arm keeps from its own torso (metres, medium size).</summary>
         public const float ArmClearance = 0.02f;

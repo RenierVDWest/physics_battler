@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PhysicsBattler.Muscles;
+using PhysicsBattler.Authority;
 using PhysicsBattler.Rig;
 using UnityEngine;
 
@@ -32,6 +33,12 @@ namespace PhysicsBattler.Units
             var parentId = PartInfo.Parent(id);
             Quaternion child = physical ? part.transform.rotation : Anim.Part(id).rotation;
             Quaternion parent = physical ? Rig.Part(parentId).transform.rotation : Anim.Part(parentId).rotation;
+            // (The arms against the arm rig's limits, the model their poses are made in.)
+            if (AuthorityController.RegionOf(id) == BodyRegion.ArmL || AuthorityController.RegionOf(id) == BodyRegion.ArmR)
+            {
+                return PhysicsBattler.Motion.ArmRig.PastLimits(Anim, id, parent, child);
+            }
+
             Quaternion local = Quaternion.Inverse(part.restLocalRotation) * (Quaternion.Inverse(parent) * child);
             return JointMath.PastLimits(local, part.limits, out _, out _, out _);
         }

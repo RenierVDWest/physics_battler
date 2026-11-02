@@ -624,6 +624,9 @@ namespace PhysicsBattler.Units
             }
         }
 
+        /// <summary>Poses a planned blow dry at a moment and leaves the animation rig there (the reports' dumps).</summary>
+        public bool PoseDryAt(MoveState state, float normalizedTime) => PoseDry(state, normalizedTime, true);
+
         private bool PoseDry(MoveState state, float normalizedTime, bool keep)
         {
             var saved = Stance.Save();
@@ -1070,11 +1073,14 @@ namespace PhysicsBattler.Units
 
         /// <summary>
         /// How close the striking part passed the aim point between two steps: along the arc about
-        /// the swing's pivot for a swing (as hits are swept), along the straight line otherwise.
+        /// the swing's pivot for a swing laid out on a path (as hits are swept), along the straight
+        /// line otherwise (a hand-first blow's posed striking part).
         /// </summary>
         private static float SweptDistance(MoveState move, Vector3 from, Vector3 to)
         {
-            if (!move.Generated || move.Move.shape != MoveShape.Swing)
+            // (The arm rebuild: a hand-first blow's posed weapon is where the blow is, not the path
+            // laid out for it, so its pass is the posed striking part's, step to step.)
+            if (!move.Generated || move.Move.shape != MoveShape.Swing || move.HasContactHand)
             {
                 return SegmentDistance(move.Aim, from, to);
             }
