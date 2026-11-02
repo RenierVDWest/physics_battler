@@ -15,7 +15,29 @@ namespace Unity.Profiling
         public override string ToString() => Name;
     }
 
+    public struct ProfilerRecorder : System.IDisposable
+    {
+        public ProfilerRecorder(Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle statHandle, int capacity = 1, ProfilerRecorderOptions options = ProfilerRecorderOptions.Default) { }
+        public static ProfilerRecorder StartNew(ProfilerCategory category, string statName, int capacity = 1, ProfilerRecorderOptions options = ProfilerRecorderOptions.Default) => default;
+        public bool Valid => false;
+        public long LastValue => 0;
+        public long CurrentValue => 0;
+        public void Start() { }
+        public void Dispose() { }
+    }
+
+    [System.Flags]
+    public enum ProfilerRecorderOptions { None = 0, Default = 24, StartImmediately = 8, KeepAliveDuringDomainReload = 16, CollectOnlyOnCurrentThread = 64, WrapAroundWhenCapacityReached = 128, SumAllSamplesInFrame = 256, GpuRecorder = 512 }
+}
+
+namespace Unity.Profiling.LowLevel
+{
     public enum ProfilerMarkerDataUnit : byte { Undefined = 0, TimeNanoseconds = 1, Bytes = 2, Count = 3, Percent = 4, FrequencyHz = 5 }
+}
+
+namespace Unity.Profiling.LowLevel.Unsafe
+{
+    using Unity.Profiling.LowLevel;
 
     public readonly struct ProfilerRecorderHandle
     {
@@ -29,20 +51,5 @@ namespace Unity.Profiling
         public ProfilerCategory Category => default;
         public string Name => "";
         public ProfilerMarkerDataUnit UnitType => ProfilerMarkerDataUnit.Undefined;
-    }
-
-    [System.Flags]
-    public enum ProfilerRecorderOptions { None = 0, Default = 24, StartImmediately = 8, KeepAliveDuringDomainReload = 16, CollectOnlyOnCurrentThread = 64, WrapAroundWhenCapacityReached = 128, SumAllSamplesInFrame = 256, GpuRecorder = 512 }
-
-    public struct ProfilerRecorder : System.IDisposable
-    {
-        public ProfilerRecorder(ProfilerRecorderHandle statHandle, int capacity = 1, ProfilerRecorderOptions options = ProfilerRecorderOptions.Default) { }
-        public static ProfilerRecorder StartNew(ProfilerCategory category, string statName, int capacity = 1, ProfilerRecorderOptions options = ProfilerRecorderOptions.Default) => default;
-        public bool Valid => false;
-        public long LastValue => 0;
-        public long CurrentValue => 0;
-        public ProfilerMarkerDataUnit UnitType => ProfilerMarkerDataUnit.Undefined;
-        public void Start() { }
-        public void Dispose() { }
     }
 }

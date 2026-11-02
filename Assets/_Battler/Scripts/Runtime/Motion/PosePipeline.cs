@@ -1428,7 +1428,7 @@ namespace PhysicsBattler.Motion
 
         /// <summary>Which way a guard is moved to keep its weapon off its own head (the facing's frame): forward and down.</summary>
         public static readonly Vector3 GuardOutWay = new Vector3(0f, -0.6f, 0.8f);
-        private int composeCount, weaponArmComposed = -10;
+        private int composeCount;
 
         /// <summary>How much further a thrust's grip leans the blade toward the forearm's line (degrees).</summary>
         public const float ThrustLean = 35f;
