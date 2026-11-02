@@ -520,6 +520,40 @@ namespace PhysicsBattler.Motion
         /// <summary>How far an elbow may turn off its hinge, or back past straight, before it counts as past its limits (degrees).</summary>
         public const float HingeSlack = 2f;
 
+        /// <summary>
+        /// The elbow's swivel that points the elbow toward <paramref name="pole"/> (a way, world) with
+        /// the hand at <paramref name="point"/>: for arms whose elbow is still aimed by a pole (the
+        /// shield arm, the bare hand, the get-ups), the null a two-bone solve with that pole gives.
+        /// </summary>
+        public static float SwivelToward(AnimRig anim, bool right, Vector3 point, Vector3 pole)
+        {
+            var c = Chain.Of(anim, right);
+            Vector3 n = point - c.shoulderAt;
+            if (n.sqrMagnitude < 1e-10f)
+            {
+                return 0f;
+            }
+
+            n.Normalize();
+            Vector3 way = pole.sqrMagnitude > 1e-10f ? pole.normalized : Vector3.zero;
+            Vector3 off = way - n * Vector3.Dot(way, n);
+            float sure = Mathf.Clamp01(off.magnitude / PoleSure);
+            Vector3 elbowNow = anim.Part(right ? PartId.ForearmR : PartId.ForearmL).position;
+            float now = SwivelOf(c, elbowNow, point);
+            if (sure <= 0f)
+            {
+                return now;
+            }
+
+            // (A pole along the arm says nothing about the elbow: the nearer it is, the more the elbow
+            // stays where it is, so it never flips round as a pole passes along the arm.)
+            float fromPole = SwivelOf(c, c.shoulderAt + off.normalized, point);
+            return sure >= 1f ? fromPole : now + Mathf.DeltaAngle(now, fromPole) * sure;
+        }
+
+        /// <summary>How far a pole must be off the arm's line (the sine of the angle) before it alone sets the elbow.</summary>
+        public const float PoleSure = 0.5f;
+
         /// <summary>The elbow's swivel (degrees, as <see cref="ArmGoal.elbowSwivel"/>) for an elbow at a place, the hand's point at another.</summary>
         public static float SwivelOf(AnimRig anim, bool right, Vector3 elbow, Vector3 point) => SwivelOf(Chain.Of(anim, right), elbow, point);
 

@@ -1350,11 +1350,12 @@ namespace PhysicsBattler.Motion
             ShieldFace = rotation * Vector3.forward;
 
             // (The elbow down by the ribs, a little out: the forearm then points at the boss.)
+            // Milestone 10 (the arm rebuild's step 5): on the arm rig, as the weapon arm is: the elbow a
+            // hinge, the wrist inside the limits PhysX holds, the elbow moved round its circle (from
+            // that null, never jumping) where the wrist can't take the shield's turn, the shield rolled
+            // about its face last.
             Vector3 pole = facing * new Vector3(-0.35f, -1f, -0.35f);
-            TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL),
-                Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, HandFor(grip, rotation, slot)), pole);
-            anim.Part(PartId.HandL).rotation = rotation * Quaternion.Inverse(slot.localRotation);
-            NaturalArm(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, anim.Part(PartId.HandL).rotation, ref offElbow, 1f);
+            PlaceShieldArm(grip, rotation, slot, pole);
 
             // Its own arm: where the rim would cut the shield arm, the shield goes out along its face.
             if (w > 0f && Rig != null)
@@ -1370,16 +1371,37 @@ namespace PhysicsBattler.Motion
                     }
 
                     grip += (rotation * Vector3.forward) * (0.01f * body.SizeFactor - gap);
-                    TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), anim.Part(PartId.HandL),
-                        Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, HandFor(grip, rotation, slot)), pole);
-                    anim.Part(PartId.HandL).rotation = rotation * Quaternion.Inverse(slot.localRotation);
-                    NaturalArm(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, anim.Part(PartId.HandL).rotation, ref offElbow, 1f);
+                    PlaceShieldArm(grip, rotation, slot, pole);
                 }
 
                 ShieldCenter = grip + rotation * (shield.faceCenter * scale);
                 ShieldClearance = Mathf.Min(ShieldClearance, ShieldGap(ShieldCenter, rotation, radius, ShieldArm) + ArmShieldAllowance * body.SizeFactor);
             }
         }
+
+        /// <summary>The shield arm on the arm rig: the shield's grip to <paramref name="grip"/>, turned to <paramref name="rotation"/>, the elbow's null toward <paramref name="pole"/>.</summary>
+        private void PlaceShieldArm(Vector3 grip, Quaternion rotation, Transform slot, Vector3 pole)
+        {
+            var hand = anim.Part(PartId.HandL);
+            Vector3 wrist = Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, HandFor(grip, rotation, slot));
+            LastShieldArm = ArmRig.Solve(anim, false, new ArmGoal
+            {
+                point = grip + (wrist - HandFor(grip, rotation, slot)),
+                pointInHand = Quaternion.Inverse(hand.rotation) * (slot.position - hand.position),
+                handTurn = rotation * Quaternion.Inverse(slot.localRotation),
+                rollAxisInHand = slot.localRotation * Vector3.forward,
+                rollAllowance = ShieldRoll,
+                elbowSwivel = ArmRig.SwivelToward(anim, false, wrist, pole),
+                turnWeight = 1f,
+                nearNull = true,
+            });
+        }
+
+        /// <summary>What the arm rig made of the shield arm this step.</summary>
+        public ArmSolve LastShieldArm { get; private set; }
+
+        /// <summary>How far a shield may roll about its face to suit the wrist (degrees each way): a round shield looks the same.</summary>
+        public const float ShieldRoll = 30f;
 
         private float lastShieldYaw;
         private bool shieldYawKnown;
@@ -1970,23 +1992,22 @@ namespace PhysicsBattler.Motion
             float w = Mathf.Clamp01(rhythm.off.magnitude / Mathf.Max(1e-4f, Rhythm.off.magnitude));
             Vector3 target = Vector3.Lerp(hand.position, placed, Rhythm.off.sqrMagnitude > 1e-8f ? w : 0f) + FlailOffset(facing, -1f);
             target = Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target);
-            // (The elbow down under the fist, a little out: tucked in front of the ribs.)
-            TwoBoneIK.Solve(anim.Part(PartId.UpperArmL), anim.Part(PartId.ForearmL), hand, target, chestTurn * new Vector3(-0.35f, -1f, 0f));
-            // A fist on a straight wrist, in line with the forearm (as the plain guard holds it).
-            hand.localRotation = Quaternion.Euler(-10f, 0f, 0f);
-
-            // Milestone 9c: the arm fitted inside its joints' limits (a boxer's guard beside the head
-            // took the elbow up to 28 degrees past them), carrying on from its last shape.
-            var fit = composingDry ? bareArmFitDry : bareArmFit;
-            if (composingDry)
+            // (The elbow down under the fist, a little out: tucked in front of the ribs.) A fist on a
+            // straight wrist, in line with the forearm (as the plain guard holds it). Milestone 10 (the
+            // arm rebuild's step 5): on the arm rig, inside the joints' limits by construction (a
+            // boxer's guard beside the head took the elbow up to 28 degrees past them).
+            LastOffArm = ArmRig.Solve(anim, false, new ArmGoal
             {
-                fit.Reset();
-            }
-
-            fit.Fit(anim, PartId.UpperArmL, PartId.ForearmL, PartId.HandL, hand.position, hand.rotation, composeCount);
+                point = target,
+                wristGiven = true,
+                wristLocal = anim.RestLocalRotation(PartId.HandL) * Quaternion.Euler(-10f, 0f, 0f),
+                elbowSwivel = ArmRig.SwivelToward(anim, false, target, chestTurn * new Vector3(-0.35f, -1f, 0f)),
+                nearNull = true,
+            });
         }
 
-        private readonly ArmFit bareArmFit = new ArmFit(), bareArmFitDry = new ArmFit();
+        /// <summary>What the arm rig made of the bare off arm this step.</summary>
+        public ArmSolve LastOffArm { get; private set; }
 
         /// <summary>Stumbling, a hand goes out to its side, up, and forward against the fall.</summary>
         private Vector3 FlailOffset(Quaternion facing, float side)

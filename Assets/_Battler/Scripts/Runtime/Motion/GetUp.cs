@@ -249,8 +249,6 @@ namespace PhysicsBattler.Motion
         {
             Facing = kind;
             lying.CopyFrom(from);
-            fitL.Reset();
-            fitShield.Reset();
             shieldRoll = -1;
             shieldRollAngle = float.NaN;
             // (What the hands held as it lay brought out of the floor once, so the get-up starts from
@@ -503,7 +501,6 @@ namespace PhysicsBattler.Motion
 
         // Milestone 9c: the shield arm fitted inside its joints' limits, carrying on from its last shape
         // (in the keys, and held up toward the threat).
-        private readonly ArmFit fitL = new ArmFit(), fitShield = new ArmFit();
         private int fitFrame, shieldRoll = -1;
         private float shieldRollAngle = float.NaN;
 
@@ -513,12 +510,17 @@ namespace PhysicsBattler.Motion
         /// <summary>The shield arm's hand to <paramref name="target"/>, turned to <paramref name="turn"/>, the elbow toward <paramref name="pole"/>, fitted inside its joints' limits.</summary>
         private void PlaceShieldArm(Vector3 target, Vector3 pole, Quaternion turn)
         {
-            var upper = anim.Part(PartId.UpperArmL);
-            var fore = anim.Part(PartId.ForearmL);
-            var hand = anim.Part(PartId.HandL);
-            TwoBoneIK.Solve(upper, fore, hand, Within(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target, 0.96f), pole);
-            hand.rotation = turn;
-            fitShield.Fit(anim, PartId.UpperArmL, PartId.ForearmL, PartId.HandL, hand.position, turn, fitFrame, pole, ShieldElbowWeight);
+            // Milestone 10 (the arm rebuild's step 5): on the arm rig, inside the joints' limits by
+            // construction, the elbow moved off its null only where the wrist can't take the turn.
+            Vector3 at = Within(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target, 0.96f);
+            ArmRig.Solve(anim, false, new ArmGoal
+            {
+                point = at,
+                handTurn = turn,
+                elbowSwivel = ArmRig.SwivelToward(anim, false, at, pole),
+                turnWeight = 1f,
+                nearNull = true,
+            });
         }
 
         /// <summary>How hard the shield wrist works as posed now: past its limits counts most, then its bend (degrees).</summary>
@@ -926,9 +928,7 @@ namespace PhysicsBattler.Motion
 
         private void Arm(PartId upper, PartId fore, PartId hand, Transform slot, Vector3 wrist, Vector3 elbow, bool right, Quaternion facing)
         {
-            TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), anim.Part(hand), Within(upper, fore, hand, World(wrist), 0.96f), facing * elbow);
-            HoldIn(upper, fore, hand, slot, wrist, elbow, right, facing);
-            FitShieldKeyArm(right, upper, fore, hand);
+            var keyed = KeyArm(upper, fore, hand, slot, wrist, elbow, right, facing, null);
 
             // Milestone 9c: what it holds rests on the ground rather than in it: the hand stands as
             // high as that needs (the arm solved again the same way).
@@ -939,24 +939,72 @@ namespace PhysicsBattler.Motion
                 if (gap < 0f)
                 {
                     Vector3 raised = wrist + Vector3.up * -gap;
-                    TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), anim.Part(hand), Within(upper, fore, hand, World(raised), 0.96f), facing * elbow);
-                    HoldIn(upper, fore, hand, slot, raised, elbow, right, facing);
-                    FitShieldKeyArm(right, upper, fore, hand);
+                    // (The elbow kept where the key put it: raised, the hand's line may run along the key's elbow way.)
+                    KeyArm(upper, fore, hand, slot, raised, elbow, right, facing, keyed);
                 }
             }
         }
 
         /// <summary>
-        /// The shield arm in a key fitted inside its joints' limits (its hand turned to lay the shield
-        /// flat: the wrist gives what it can, never past its range).
+        /// Milestone 10 (the arm rebuild's step 5): an arm in a key on the arm rig: the wrist to its
+        /// place, the elbow's null toward the key's elbow way, the hand turned as it holds what it
+        /// holds (a shield's turn kept, the elbow moving for it; a weapon's as far as the wrist goes;
+        /// a bare hand straight on the wrist), inside the joints' limits by construction.
         /// </summary>
-        private void FitShieldKeyArm(bool right, PartId upper, PartId fore, PartId hand)
+        private ArmSolve KeyArm(PartId upper, PartId fore, PartId hand, Transform slot, Vector3 wrist, Vector3 elbow, bool right, Quaternion facing, ArmSolve? from)
         {
-            if (!right && Shielded && HoldsOff)
+            Vector3 at = Within(upper, fore, hand, World(wrist), 0.96f);
+            if (right)
             {
-                fitL.Fit(anim, upper, fore, hand, anim.Part(hand).position, anim.Part(hand).rotation, fitFrame);
+                // The weapon arm as before, for now: its weapon is laid out by the hand exactly, which
+                // asks more of the wrist than it has (up to 100 degrees past); on the rig, either the
+                // weapon points into the ground or the elbow flips to make room, and the hand pops.
+                // (Its keys want reworking for the rig: the weapon laid out by the arm, not the wrist.)
+                TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), anim.Part(hand), at, facing * elbow);
+                HoldIn(upper, fore, hand, slot, wrist, elbow, right, facing);
+                return default;
             }
+
+            var goal = new ArmGoal { point = at, elbowSwivel = ArmRig.SwivelToward(anim, right, at, facing * elbow), nearNull = true };
+            bool holds = right ? HoldsMain : HoldsOff;
+            if (from.HasValue)
+            {
+                // Raised off the ground: the same arm, moved up (the elbow and the wrist as the key's solve
+                // left them; the key's elbow way may run along the raised hand's line).
+                goal.elbowSwivel = from.Value.swivel;
+                goal.wristGiven = true;
+                goal.wristLocal = from.Value.wristLocal;
+            }
+            else if (holds && slot != null)
+            {
+                // (A shield's turn is kept, the elbow moving for it. A weapon laid out by the hand asks
+                // more of the wrist than it has: the elbow keeps to the key (moved for the turn it would
+                // flip between two places from one step to the next), and the hand rolls about the grip
+                // instead, which keeps the blade's line.)
+                HoldIn(upper, fore, hand, slot, wrist, elbow, right, facing);
+                goal.handTurn = anim.Part(hand).rotation;
+                var held = Loadout != null ? (right ? Loadout.Main : Loadout.Off) : null;
+                if (held != null && held.IsShield)
+                {
+                    goal.turnWeight = 1f;
+                }
+                else
+                {
+                    goal.rollAxisInHand = slot.localRotation * Vector3.forward;
+                    goal.rollAllowance = KeyGripRoll;
+                }
+            }
+            else
+            {
+                goal.wristGiven = true;
+                goal.wristLocal = anim.RestLocalRotation(hand);
+            }
+
+            return ArmRig.Solve(anim, right, goal);
         }
+
+        /// <summary>How far a weapon laid out in a get-up may roll about its grip to suit the wrist (degrees each way).</summary>
+        public const float KeyGripRoll = 90f;
 
         /// <summary>How the hand holds what it holds in a key.</summary>
         private void HoldIn(PartId upper, PartId fore, PartId hand, Transform slot, Vector3 wrist, Vector3 elbow, bool right, Quaternion facing)

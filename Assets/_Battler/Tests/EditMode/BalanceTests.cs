@@ -629,6 +629,12 @@ namespace PhysicsBattler.Tests
         {
             var part = unit.Anim.Part(id);
             var parent = unit.Anim.Part(PartInfo.Parent(id));
+            // (The arms against the arm rig's limits: the one model the pose and PhysX share, milestone 10.)
+            if (id == PartId.UpperArmL || id == PartId.ForearmL || id == PartId.HandL || id == PartId.UpperArmR || id == PartId.ForearmR || id == PartId.HandR)
+            {
+                return PhysicsBattler.Motion.ArmRig.PastLimits(unit.Anim, id, parent.rotation, part.rotation);
+            }
+
             Quaternion local = Quaternion.Inverse(unit.Anim.RestLocalRotation(id)) * (Quaternion.Inverse(parent.rotation) * part.rotation);
             return PhysicsBattler.Muscles.JointMath.PastLimits(local, PhysicsBattler.Muscles.JointLimitTable.For(id), out _, out _, out _);
         }
