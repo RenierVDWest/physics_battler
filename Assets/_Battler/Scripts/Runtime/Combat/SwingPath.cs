@@ -268,7 +268,7 @@ namespace PhysicsBattler.Combat
         }
 
         /// <summary>The move's time (normalized) at which it has got to a progress along its path.</summary>
-        private static float TimeAt(MoveDefinition move, float progress)
+        internal static float TimeAt(MoveDefinition move, float progress)
         {
             float lo = 0f, hi = move.SwingFollowEnd;   // (the recovery comes back along the path: not searched)
             for (int i = 0; i < 32; i++)
@@ -286,6 +286,62 @@ namespace PhysicsBattler.Combat
 
             return hi;
         }
+
+        /// <summary>
+        /// The arm rebuild: a hand-first blow's path made the way its striking part will really go, the
+        /// blow posed dry (as if it started now) at <see cref="PosedSamples"/> places along it and the
+        /// path's samples laid between them. What reads the path (the shield reading the blow coming, the
+        /// sweeps) then reads the blow as played, not the path it was planned on.
+        /// </summary>
+        public static void PathFromPose(UnitController attacker, MoveState state)
+        {
+            if (state?.Path == null || !state.HasContactHand || !state.Generated)
+            {
+                return;
+            }
+
+            // (Evenly along the blow, and closely round the striking moment, where the striking part
+            // turns fastest and the sweeps measure its pass.)
+            float cp = state.Move.ContactProgress;
+            var at = new System.Collections.Generic.List<float>();
+            for (int k = 0; k < PosedSamples; k++)
+            {
+                at.Add(k / (float)(PosedSamples - 1));
+            }
+
+            for (int k = 0; k < PosedNearContact; k++)
+            {
+                at.Add(Mathf.Clamp01(cp + NearContact * (2f * k / (PosedNearContact - 1) - 1f)));
+            }
+
+            at.Sort();
+            var posed = new Vector3[at.Count];
+            for (int k = 0; k < at.Count; k++)
+            {
+                attacker.WeaponAt(state, TimeAt(state.Move, at[k]), out _, out posed[k]);
+            }
+
+            var path = new Vector3[state.Path.Length];
+            int j = 0;
+            for (int i = 0; i < path.Length; i++)
+            {
+                float u = i / (float)(path.Length - 1);
+                while (j < at.Count - 2 && at[j + 1] < u)
+                {
+                    j++;
+                }
+
+                float span = at[j + 1] - at[j];
+                path[i] = span > 1e-6f ? Vector3.Lerp(posed[j], posed[j + 1], Mathf.Clamp01((u - at[j]) / span)) : posed[j];
+            }
+
+            state.Path = path;
+        }
+
+        /// <summary>How many dry poses <see cref="PathFromPose"/> takes along a blow, and how many more within <see cref="NearContact"/> of the striking moment's progress either side.</summary>
+        public const int PosedSamples = 25, PosedNearContact = 17;
+
+        public const float NearContact = 0.04f;
 
         private static float Smooth(float x)
         {

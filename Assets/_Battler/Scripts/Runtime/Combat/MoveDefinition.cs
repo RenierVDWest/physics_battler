@@ -262,20 +262,28 @@ namespace PhysicsBattler.Combat
         {
             switch (style)
             {
+                // (The arm rebuild: fitted by Tools/CompileCheck's keyfit from designed seeds, scored on
+                // the arc, landing, clearance, wrist limits and speed through contact; then looked at.)
                 case MoveStyle.SwordCut:
-                case MoveStyle.ClubSwing:
-                    windUp = 100f; contact = 40f; follow = 10f;
-                    break;
-                case MoveStyle.SwordCleave:
-                case MoveStyle.ClubSmash:
-                    windUp = 30f; contact = 20f; follow = 0f;
-                    break;
-                case MoveStyle.ClubRising:
-                    windUp = -10f; contact = 10f; follow = 40f;
+                    windUp = 108f; contact = 120f; follow = 89f;
                     break;
                 case MoveStyle.SwordBackhand:
+                    windUp = -116f; contact = 57f; follow = 105f;
+                    break;
+                case MoveStyle.ClubSwing:
+                    windUp = 71f; contact = 87f; follow = -119f;
+                    break;
+                case MoveStyle.ClubSmash:
+                    windUp = 69f; contact = 21f; follow = 14f;
+                    break;
+                case MoveStyle.SwordCleave:
+                    windUp = 161f; contact = 74f; follow = 157f;
+                    break;
+                case MoveStyle.ClubRising:
+                    windUp = 45f; contact = 56f; follow = 2f;
+                    break;
                 case MoveStyle.ClubBackhand:
-                    windUp = -60f; contact = 20f; follow = 70f;
+                    windUp = -116f; contact = 39f; follow = 80f;
                     break;
                 case MoveStyle.SwordThrust:
                     windUp = 0f; contact = 10f; follow = 10f;
@@ -303,28 +311,42 @@ namespace PhysicsBattler.Combat
         {
             switch (style)
             {
+                // (The arm rebuild: fitted by Tools/CompileCheck's keyfit from designed seeds, scored on
+                // the arc, landing, clearance, wrist limits and speed through contact; then looked at.)
                 case MoveStyle.SwordCut:
-                case MoveStyle.ClubSwing:
-                    windUp = new Vector3(0f, -35f, 15f);
-                    contact = new Vector3(20f, 0f, -10f);
-                    follow = new Vector3(45f, 20f, -25f);
-                    break;
-                case MoveStyle.SwordCleave:
-                case MoveStyle.ClubSmash:
-                    windUp = new Vector3(0f, -40f, 15f);
-                    contact = new Vector3(10f, 10f, -20f);
-                    follow = new Vector3(20f, 25f, -25f);
-                    break;
-                case MoveStyle.ClubRising:
-                    windUp = new Vector3(-20f, 20f, -20f);
-                    contact = new Vector3(0f, 0f, 0f);
-                    follow = new Vector3(-20f, -20f, 15f);
+                    windUp = new Vector3(41f, -4f, -5f);
+                    contact = new Vector3(58f, -17f, -12f);
+                    follow = new Vector3(-28f, -26f, 4f);
                     break;
                 case MoveStyle.SwordBackhand:
+                    windUp = new Vector3(-23f, 36f, -6f);
+                    contact = new Vector3(56f, 21f, -5f);
+                    follow = new Vector3(13f, -16f, -10f);
+                    break;
+                case MoveStyle.ClubSwing:
+                    windUp = new Vector3(18f, -13f, 8f);
+                    contact = new Vector3(-10f, 16f, -18f);
+                    follow = new Vector3(65f, -28f, 6f);
+                    break;
+                case MoveStyle.ClubSmash:
+                    windUp = new Vector3(62f, 54f, 5f);
+                    contact = new Vector3(14f, -26f, -23f);
+                    follow = new Vector3(43f, 29f, -22f);
+                    break;
+                case MoveStyle.SwordCleave:
+                    windUp = new Vector3(42f, -3f, -15f);
+                    contact = new Vector3(42f, 26f, -17f);
+                    follow = new Vector3(80f, 30f, -12f);
+                    break;
+                case MoveStyle.ClubRising:
+                    windUp = new Vector3(-7f, 9f, -9f);
+                    contact = new Vector3(-18f, -2f, -10f);
+                    follow = new Vector3(-49f, -31f, -11f);
+                    break;
                 case MoveStyle.ClubBackhand:
-                    windUp = new Vector3(60f, 35f, 0f);
-                    contact = new Vector3(40f, 0f, -10f);
-                    follow = new Vector3(30f, -20f, 0f);
+                    windUp = new Vector3(-14f, 28f, -18f);
+                    contact = new Vector3(75f, 21f, 3f);
+                    follow = new Vector3(38f, -17f, -4f);
                     break;
                 case MoveStyle.SwordThrust:
                     // (Driven home in line: the wrist turned toward the little finger, the blade along
@@ -361,25 +383,35 @@ namespace PhysicsBattler.Combat
         {
             switch (style)
             {
+                // (The arm rebuild: fitted by Tools/CompileCheck's keyfit from designed seeds, scored on
+                // the arc, landing, clearance, wrist limits and speed through contact; then looked at.)
                 case MoveStyle.SwordCut:
-                case MoveStyle.ClubSwing:
-                    windUp = new Vector3(0.35f, 0.1f, -0.15f);
-                    follow = new Vector3(-0.35f, -0.25f, 0.25f);
-                    break;
-                case MoveStyle.SwordCleave:
-                case MoveStyle.ClubSmash:
-                    windUp = new Vector3(0.05f, 0.45f, -0.1f);
-                    follow = new Vector3(-0.1f, -0.55f, 0.25f);
-                    break;
-                case MoveStyle.ClubRising:
-                    windUp = new Vector3(0.25f, -0.55f, -0.1f);
-                    follow = new Vector3(-0.15f, 0.3f, 0.35f);
+                    windUp = new Vector3(0.54f, 0.04f, 0.10f);
+                    follow = new Vector3(-0.35f, -0.15f, 0f);
                     break;
                 case MoveStyle.SwordBackhand:
+                    windUp = new Vector3(-0.25f, 0.29f, 0.33f);
+                    follow = new Vector3(0.35f, 0.34f, -0.26f);
+                    break;
+                case MoveStyle.ClubSwing:
+                    windUp = new Vector3(0.26f, -0.06f, -0.48f);
+                    follow = new Vector3(-0.52f, -0.13f, 0.12f);
+                    break;
+                case MoveStyle.ClubSmash:
+                    windUp = new Vector3(0.10f, 0.16f, -0.02f);
+                    follow = new Vector3(-0.28f, -0.45f, 0.01f);
+                    break;
+                case MoveStyle.SwordCleave:
+                    windUp = new Vector3(0.18f, 0.02f, -0.12f);
+                    follow = new Vector3(-0.41f, -0.31f, 0.16f);
+                    break;
+                case MoveStyle.ClubRising:
+                    windUp = new Vector3(0.46f, -0.23f, 0.01f);
+                    follow = new Vector3(0.07f, 0.22f, -0.05f);
+                    break;
                 case MoveStyle.ClubBackhand:
-                    // (Wound across in front of the chest, not against it.)
-                    windUp = new Vector3(-0.25f, 0.05f, 0.25f);
-                    follow = new Vector3(0.45f, 0f, 0.1f);
+                    windUp = new Vector3(-0.36f, 0.17f, 0.36f);
+                    follow = new Vector3(0.35f, 0.26f, -0.28f);
                     break;
                 case MoveStyle.SwordThrust:
                     // (Chambered by the hip, the forearm and the point toward the target, then driven
@@ -448,7 +480,47 @@ namespace PhysicsBattler.Combat
         {
             float Key(int k) => k == 1 ? elbowWindUp : k == 2 ? elbowContact : k == 3 ? elbowFollow : guard;
             HandPhase(t, out int from, out int to, out float share);
-            return Mathf.Lerp(Key(from), Key(to), share);
+            return Through(from, to, share, k => new Vector3(Key(k), 0f, 0f)).x;
+        }
+
+        /// <summary>
+        /// The progress along the blow at its strike's start (the wind-up's key, after the hold), its
+        /// striking moment (the contact's key) and its follow-through's end (that key): the knots of the
+        /// keys' spline through the strike.
+        /// </summary>
+        public void KeyProgress(out float windUp, out float contact, out float follow)
+        {
+            float t1 = WindUpEnd, t3 = ContactTime(), t4 = SwingFollowEnd;
+            float t2 = Mathf.Clamp(t1 + Mathf.Max(0f, holdTime) / Mathf.Max(1e-3f, SwingDuration), t1, t3);
+            windUp = ProgressAt(t2);
+            contact = Mathf.Max(windUp + 1e-4f, ProgressAt(t3));
+            follow = Mathf.Max(contact + 1e-4f, ProgressAt(t4));
+        }
+
+        /// <summary>
+        /// Between two keys at a share of the way: through the striking moment (wind-up to contact,
+        /// contact to follow-through) on a spline with its knots at the keys' progress, so what turns
+        /// into the contact carries on turning out of it at the same rate, with no corner and no change
+        /// of pace (the wind-up's key starts from its hold and the follow-through's ends at its stop, as
+        /// the blow's own pace does); between the others, straight.
+        /// </summary>
+        public Vector3 Through(int from, int to, float share, System.Func<int, Vector3> key)
+        {
+            if (from == 1 && to == 2 || from == 2 && to == 3)
+            {
+                KeyProgress(out float p1, out float p2, out float p3);
+                Vector3 k1 = key(1), k2 = key(2), k3 = key(3);
+                // (The rate through the contact: the keys either side over their span of progress.)
+                Vector3 m2 = (k3 - k1) / (p3 - p1);
+                Vector3 m1 = (k2 - k1) / (p2 - p1), m3 = (k3 - k2) / (p3 - p2);
+                Vector3 a = from == 1 ? k1 : k2, b = from == 1 ? k2 : k3;
+                Vector3 ma = from == 1 ? m1 : m2, mb = from == 1 ? m2 : m3;
+                float span = from == 1 ? p2 - p1 : p3 - p2;
+                float t = share, t2 = t * t, t3 = t2 * t;
+                return (2f * t3 - 3f * t2 + 1f) * a + (t3 - 2f * t2 + t) * span * ma + (-2f * t3 + 3f * t2) * b + (t3 - t2) * span * mb;
+            }
+
+            return Vector3.Lerp(key(from), key(to), share);
         }
 
         /// <summary>Whether a unit of this size throws this blow (none listed: every body does).</summary>

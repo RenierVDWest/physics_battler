@@ -137,6 +137,15 @@ namespace PhysicsBattler.Combat
         /// <summary>How far the striking part still lands from the aim with the planned contact hand (metres): out of reach, or past the wrist's keys.</summary>
         public float ContactHandMiss;
 
+        /// <summary>
+        /// The arm rebuild: how far the contact hand was moved, played, to land as the body really
+        /// stood at the striking moment; kept from then on, so the follow-through carries on from the
+        /// blow that landed rather than from one found again each step.
+        /// </summary>
+        public Vector3 ContactShift;
+
+        public bool HasContactShift;
+
         /// <summary>Where the shoulder was in the planned contact pose (world; for measuring how the played blow differs).</summary>
         public Vector3 ContactShoulder;
         public Vector3 LastRadial;

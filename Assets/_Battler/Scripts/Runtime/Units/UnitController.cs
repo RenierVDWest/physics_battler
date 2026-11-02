@@ -495,9 +495,11 @@ namespace PhysicsBattler.Units
                 return false;   // (off its feet, it can't strike)
             }
 
+            // (The arm rebuild: the path made the blow's real way before it starts, for the shield and the sweeps.)
+            SwingPath.PathFromPose(this, state);
             state.Time = Mathf.Clamp01(startAt) * state.Duration;
             state.ContactPassed = state.SteppedOut = state.LeadOut = state.SteppedBack = state.RearMoved = state.RearOut = state.RearBack = false;
-            state.HasLastStrike = state.HasLastPhysical = state.HasLastRadial = false;
+            state.HasLastStrike = state.HasLastPhysical = state.HasLastRadial = state.HasContactShift = false;
             state.ContactSpeed = state.PeakSpeed = state.Depth = state.Arc = state.LastProgress = 0f;
             state.PhysicalClosest = -1f;
             CurrentMove = state;
@@ -1072,17 +1074,34 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>
-        /// How close the striking part passed the aim point between two steps: along the arc about
-        /// the swing's pivot for a swing laid out on a path (as hits are swept), along the straight
-        /// line otherwise (a hand-first blow's posed striking part).
+        /// How close the striking part passed the aim point between two steps: along the swing's path
+        /// for a swing (a hand-first blow's: its posed way, fitted to the two steps), along the
+        /// straight line otherwise.
         /// </summary>
         private static float SweptDistance(MoveState move, Vector3 from, Vector3 to)
         {
-            // (The arm rebuild: a hand-first blow's posed weapon is where the blow is, not the path
-            // laid out for it, so its pass is the posed striking part's, step to step.)
-            if (!move.Generated || move.Move.shape != MoveShape.Swing || move.HasContactHand)
+            if (!move.Generated || move.Move.shape != MoveShape.Swing)
             {
                 return SegmentDistance(move.Aim, from, to);
+            }
+
+            if (move.HasContactHand)
+            {
+                // The arm rebuild: a hand-first blow's posed striking part between the two steps, along
+                // the curve of its path (its posed way, laid when it started) moved onto the two posed
+                // places: exact at both steps, and following the blow's real curve between them.
+                Vector3 off0 = from - move.PathPoint(move.LastProgress), off1 = to - move.PathPoint(move.Progress);
+                float nearest = float.MaxValue;
+                Vector3 prev = from;
+                for (int i = 1; i <= 12; i++)
+                {
+                    float s = i / 12f;
+                    Vector3 p = move.PathPoint(Mathf.Lerp(move.LastProgress, move.Progress, s)) + Vector3.Lerp(off0, off1, s);
+                    nearest = Mathf.Min(nearest, SegmentDistance(move.Aim, prev, p));
+                    prev = p;
+                }
+
+                return nearest;
             }
 
             // The planned path between the two steps' progress (it curves), plus however far the posed

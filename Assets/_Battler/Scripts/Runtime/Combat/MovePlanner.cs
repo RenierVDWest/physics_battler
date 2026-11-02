@@ -27,6 +27,9 @@ namespace PhysicsBattler.Combat
         /// <summary>How many poses through a blow the planner checks for clearance of the attacker's own body.</summary>
         public const int ClearanceSamples = 32;
 
+        /// <summary>How far the torso's clearance may move the hand at a blow's striking moment, in its dry run (metres, a medium body's).</summary>
+        public const float ContactPush = 0.005f;
+
         /// <summary>How much more often the body is aimed at than the elbows and knees.</summary>
         private const float BodyWeight = 3f;
 
@@ -162,7 +165,10 @@ namespace PhysicsBattler.Combat
         public static bool Acceptable(UnitController attacker, MoveState state)
         {
             // (A swing's dry run leaves a margin: played step by step, its steps land a little differently.)
+            // (The arm rebuild: and one that lands without the arm being pushed off its own body at the
+            // striking moment, which, played, moves it off the aim.)
             return attacker.TryOut(state) <= (state.Generated ? 0.66f : 1f) * Tolerance
+                   && attacker.Pose.HandCleared.magnitude <= ContactPush * attacker.Body.SizeFactor
                    && attacker.Clearance(state, ClearanceSamples, out _, out _, out _) >= -OwnBodyClearance * attacker.Body.SizeFactor;
         }
 

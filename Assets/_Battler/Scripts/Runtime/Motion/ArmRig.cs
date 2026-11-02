@@ -53,6 +53,13 @@ namespace PhysicsBattler.Motion
         public float wristEase;
 
         /// <summary>
+        /// The elbow moved off its null only as far as the nearest best place (not searched round the
+        /// whole circle): a held pose stays the same way of holding it as its goal moves, never
+        /// jumping to another (a guard).
+        /// </summary>
+        public bool nearNull;
+
+        /// <summary>
         /// A keyed wrist (a blow's): the hand's turn on the forearm (its local rotation, as
         /// <see cref="ArmRig.Wrist"/> makes it). The hand is then held so and the arm reaches the point
         /// with it, the elbow at its null; <see cref="handTurn"/> is not used.
@@ -158,10 +165,14 @@ namespace PhysicsBattler.Motion
         public const float ReachSwing = 60f;
         private const int Samples = 24;
 
-        // Where an arm reaches when relaxed (chest frame, x out): the swivel's own reference is carried
-        // from here (parallel transport), so it turns smoothly everywhere except straight back across
-        // the body, where no arm goes.
+        // Where an arm reaches when relaxed (chest frame, x out): the shoulder's reach is measured from here.
         private static readonly Vector3 NeutralReach = new Vector3(0.3f, -0.5f, 0.8f);
+
+        // Where the swivel's own reference is carried from (parallel transport; chest frame, x out): it
+        // turns smoothly everywhere but straight opposite, which this puts low behind the far hip,
+        // where no arm goes. (From the neutral reach, the opposite was up and back over the head: an
+        // overhead wind-up's way, where the elbow flipped.)
+        private static readonly Vector3 SwivelPole = new Vector3(0.3f, 0.5f, 0.8f);
 
         /// <param name="apply">False: only measured (the arm is left as it was).</param>
         public static ArmSolve Solve(AnimRig anim, bool right, in ArmGoal goal, BodyClearance.Posed torso = null, bool apply = true)
@@ -190,7 +201,7 @@ namespace PhysicsBattler.Motion
             // A: the wrist. The arm reaches for the wrist as the hand's turn would put it, the elbow at
             // its null (or moved off it as far as the goal's turn weight asks), and the wrist takes as
             // much of the turn as its limits allow.
-            Eval wrist = Search(chain, g, g.point - g.handTurn * g.pointInHand, torso, null);
+            Eval wrist = Search(chain, g, g.point - g.handTurn * g.pointInHand, torso, g.nearNull ? 0f : (float?)null);
             // B: the reach. With the hand held on the forearm as A left it, the arm is a two-bone chain
             // from the shoulder to the hand's point: solved exactly for the point, the elbow as near
             // A's as the shoulder and the torso allow. C: the wrist taken again from that forearm, and
@@ -674,34 +685,67 @@ namespace PhysicsBattler.Motion
             // null's to set.
             e.shoulderPast = Mathf.Max(0f, Vector3.Angle(upperWay, c.neutral) - ShoulderReach);
 
-            // The hand: rolled about its allowed line as little as the wrist needs.
-            float bestWrist = float.MaxValue;
+            // The hand: rolled about its allowed line as little as the wrist needs. (Sampled, then the
+            // best found exactly between its neighbours, so the roll moves smoothly as the goal does
+            // rather than stepping from sample to sample.)
             bool canRoll = g.rollAllowance > 0.01f && g.rollAxisInHand.sqrMagnitude > 1e-8f;
-            int rolls = canRoll ? 7 : 1;
-            for (int r = 0; r < rolls; r++)
+            var fg = g;
+            float WristAt(float roll, out float excess, out Quaternion clamped)
             {
-                // (Unrolled first: a wrist that takes the turn as asked needs no roll.)
-                int k = r == 0 ? 0 : (r + 1) / 2 * (r % 2 == 1 ? 1 : -1);
-                float roll = canRoll ? g.rollAllowance * k / 3f : 0f;
-                if (r > 0 && e.excess <= 1e-3f)
-                {
-                    break;
-                }
-
-                Quaternion wanted = canRoll ? g.handTurn * Quaternion.AngleAxis(roll, g.rollAxisInHand) : g.handTurn;
+                Quaternion wanted = roll != 0f ? fg.handTurn * Quaternion.AngleAxis(roll, fg.rollAxisInHand) : fg.handTurn;
                 Quaternion local = Quaternion.Inverse(fore * c.handRest) * wanted;
                 var q = Quaternion.Inverse(c.wristFrame) * local * c.wristFrame;
-                float excess = Clamp(q, out var clamped, g.wristEase);
-                float cost = WristCost * excess * excess + RollCost * roll * roll;   // (the roll chosen on the wrist alone)
-                if (cost < bestWrist)
+                excess = Clamp(q, out clamped, fg.wristEase);
+                return WristCost * excess * excess + RollCost * roll * roll;   // (the roll chosen on the wrist alone)
+            }
+
+            float bestWrist = WristAt(0f, out e.excess, out var bestClamped);
+            e.roll = 0f;
+            if (canRoll && e.excess > 1e-3f)
+            {
+                // (Unrolled first: a wrist that takes the turn as asked needs no roll.)
+                float step = g.rollAllowance / 3f;
+                var costs = new float[7];
+                int at = 3;
+                costs[3] = bestWrist;
+                for (int k = -3; k <= 3; k++)
                 {
-                    bestWrist = cost;
-                    e.roll = roll;
-                    e.excess = excess;
-                    e.handLocal = c.wristFrame * clamped * Quaternion.Inverse(c.wristFrame);
+                    if (k == 0)
+                    {
+                        continue;
+                    }
+
+                    costs[k + 3] = WristAt(step * k, out float ex, out var cl);
+                    if (costs[k + 3] < bestWrist)
+                    {
+                        bestWrist = costs[k + 3];
+                        at = k + 3;
+                        e.roll = step * k;
+                        e.excess = ex;
+                        bestClamped = cl;
+                    }
+                }
+
+                if (at > 0 && at < 6)
+                {
+                    float a = costs[at - 1], b = costs[at], d = costs[at + 1];
+                    float curve = a - 2f * b + d;
+                    if (curve > 1e-6f)
+                    {
+                        float roll = step * (at - 3 + 0.5f * (a - d) / curve);
+                        float cost = WristAt(roll, out float ex, out var cl);
+                        if (cost < bestWrist)
+                        {
+                            bestWrist = cost;
+                            e.roll = roll;
+                            e.excess = ex;
+                            bestClamped = cl;
+                        }
+                    }
                 }
             }
 
+            e.handLocal = c.wristFrame * bestClamped * Quaternion.Inverse(c.wristFrame);
             e.hand = fore * c.handRest * e.handLocal;
             if (torso != null && g.clearance > 0f)
             {
@@ -722,10 +766,10 @@ namespace PhysicsBattler.Motion
             return Quaternion.AngleAxis(swivel * OutSign(c), n) * Transported(c, n);
         }
 
-        /// <summary>The relaxed elbow's way for an arm pointing along n: carried from the neutral reach, where it hangs down.</summary>
+        /// <summary>The relaxed elbow's way for an arm pointing along n: carried from the swivel's pole, where it hangs down.</summary>
         private static Vector3 Transported(Chain c, Vector3 n)
         {
-            Vector3 n0 = c.neutral;
+            Vector3 n0 = c.pole;
             Vector3 down = c.chest * Vector3.down;
             Vector3 u0 = (down - n0 * Vector3.Dot(down, n0)).normalized;
             Vector3 u = Quaternion.FromToRotation(n0, n) * u0;
@@ -794,7 +838,7 @@ namespace PhysicsBattler.Motion
             public bool right;
             public Transform upper, fore, hand;
             public Quaternion chest, upperRest, handRest, wristFrame, restBasisInverse;
-            public Vector3 shoulderAt, upperAlong, foreAlong, elbowAxis, handRestPosition, neutral;
+            public Vector3 shoulderAt, upperAlong, foreAlong, elbowAxis, handRestPosition, neutral, pole;
             public float l1, l2;
 
             public static Chain Of(AnimRig anim, bool right)
@@ -819,6 +863,7 @@ namespace PhysicsBattler.Motion
                 c.restBasisInverse = Quaternion.Inverse(Basis(c.upperAlong, c.elbowAxis));
                 c.wristFrame = WristFrame(anim, right);
                 c.neutral = c.chest * Side(NeutralReach, right).normalized;
+                c.pole = c.chest * Side(SwivelPole, right).normalized;
                 return c;
             }
 

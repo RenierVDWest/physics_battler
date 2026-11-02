@@ -103,8 +103,13 @@ namespace PhysicsBattler.Combat
             private readonly float[] bounds = new float[Torso.Length];
             private readonly float scale;
 
-            /// <summary>Further than this from a shape's bounding sphere, a segment isn't measured (metres): it is clear.</summary>
-            private const float Far = 0.08f;
+            /// <summary>
+            /// Further than this from a shape's bounding sphere, a segment isn't measured (metres): it is
+            /// clear, its distance taken as the sphere's. (Past every room anyone asks for, the guard's
+            /// grip room included: nearer, the sphere's distance, well short of the shape's, would step
+            /// to the shape's as a segment crossed it, and what keeps its room would jump.)
+            /// </summary>
+            private const float Far = 0.25f;
 
             public Posed(UnitRig rig, AnimRig anim, float scale)
             {
@@ -153,6 +158,52 @@ namespace PhysicsBattler.Combat
                 }
 
                 return best;
+            }
+
+            /// <summary>
+            /// The arm's and the blade's clearance together (as <see cref="Arm"/> and <see cref="Blade"/>
+            /// count them), but a soft minimum over every piece against every part (a few millimetres'
+            /// blend, <paramref name="soft"/>): never more than the nearest's, and it turns smoothly as
+            /// the nearest piece changes, so what pushes along its slope doesn't step.
+            /// </summary>
+            public float Soft(Vector3 shoulder, Vector3 elbow, Vector3 wrist, Vector3 grip, Vector3 tip, float soft)
+            {
+                Vector3 upperFar = Vector3.Lerp(shoulder, elbow, 0.5f);
+                float allowance = ArmChestAllowance * scale;
+                float least = float.MaxValue;
+                var all = new float[shapes.Length * 4];
+                int n = 0;
+                for (int i = 0; i < shapes.Length; i++)
+                {
+                    if (shapes[i] == null)
+                    {
+                        continue;
+                    }
+
+                    float chest = Torso[i] == PartId.Chest ? allowance : 0f;
+                    all[n++] = Segment(i, upperFar, elbow) + allowance;
+                    all[n++] = Segment(i, elbow, wrist) + chest;
+                    all[n++] = Segment(i, wrist, grip) + chest;
+                    all[n++] = Segment(i, grip, tip);
+                }
+
+                for (int k = 0; k < n; k++)
+                {
+                    least = Mathf.Min(least, all[k]);
+                }
+
+                if (n == 0)
+                {
+                    return float.MaxValue;
+                }
+
+                float sum = 0f;
+                for (int k = 0; k < n; k++)
+                {
+                    sum += Mathf.Exp(-(all[k] - least) / soft);
+                }
+
+                return least - soft * Mathf.Log(sum);
             }
 
             /// <summary>How close the blade (grip to tip) comes to the pelvis, spine, chest and head.</summary>

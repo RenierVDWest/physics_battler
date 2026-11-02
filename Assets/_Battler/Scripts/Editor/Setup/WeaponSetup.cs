@@ -42,8 +42,9 @@ namespace PhysicsBattler.Editor.Setup
             // Setup 21 (milestone 10): moves say which bodies throw them; the fan strikes, made by
             // setup 20 for every body, are the small body's.
             bool bodies = SetupVersion.Installed >= 10 && SetupVersion.Installed < 21;
-            // Setup 22 (the arm rebuild): each move's elbow nulls and wrist keys, each weapon's grip roll.
-            bool elbows = SetupVersion.Installed >= 10 && SetupVersion.Installed < 22;
+            // Setup 22 (the arm rebuild): each move's elbow nulls and wrist keys, each weapon's grip roll;
+            // setup 23 authors the keys again.
+            bool elbows = SetupVersion.Installed >= 10 && SetupVersion.Installed < 23;
             foreach (MoveStyle style in Enum.GetValues(typeof(MoveStyle)))
             {
                 moves[(int)style] = EnsureMove(style, refresh);
