@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PhysicsBattler.Authority;
 using PhysicsBattler.Combat;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
@@ -324,7 +325,10 @@ namespace PhysicsBattler.Units
 
             handOverPending = true;
             Pose.LinkFrom = handing;
-            Pose.LinkWeight = handing != null ? 1f : 0f;
+            Pose.LinkWeight = 1f;
+            // (The arm rebuild: with no blow to hand over from (a link after a stopped one), the weapon
+            // arm eases out of where it was held instead.)
+            Pose.HoldLinkArm(handing == null);
             Pose.LinkBank = bank;
 
             combo.Link++;
@@ -414,6 +418,14 @@ namespace PhysicsBattler.Units
                     continue;   // (the feet stay where the stance has them)
                 }
 
+                // (The arm rebuild: the weapon arm's joints are its rig's, never turned after its solve;
+                // its hand, wrist and elbow null are blended from link to link instead, and it rides on
+                // the chest as it eases over. The off arm, not on the rig yet, eases over as before.)
+                if (AuthorityController.RegionOf(id) == BodyRegion.ArmR)
+                {
+                    continue;
+                }
+
                 var part = Anim.Part(id);
                 var turn = Quaternion.Slerp(Quaternion.identity, handOverTurn[(int)id], w);
                 if (id == PartId.Pelvis)
@@ -447,6 +459,19 @@ namespace PhysicsBattler.Units
         {
             if (linkOut == null)
             {
+                if (Pose.LinkArmHeld)
+                {
+                    // (A link after a stopped one: the held arm let go over the same span as a hand-over.)
+                    var playing = CurrentMove;
+                    float g = playing != null ? Mathf.Clamp01((playing.T - linkInAt) / Mathf.Max(0.05f, 0.9f * playing.ContactTime - linkInAt)) : 1f;
+                    Pose.LinkWeight = 1f - g * g * (3f - 2f * g);
+                    if (g >= 1f)
+                    {
+                        Pose.HoldLinkArm(false);
+                        Pose.LinkWeight = 0f;
+                    }
+                }
+
                 return;
             }
 
@@ -480,6 +505,7 @@ namespace PhysicsBattler.Units
             linkOut = null;
             Pose.LinkFrom = null;
             Pose.LinkWeight = 0f;
+            Pose.HoldLinkArm(false);
         }
     }
 }

@@ -39,6 +39,8 @@ namespace PhysicsBattler.Motion
         public float guardElbow = -100f;
         [Tooltip("Lead arm held further forward than the rear arm.")]
         public float leadArmReach = -12f;
+        [Tooltip("The arm rebuild: the weapon arm's elbow null in guard (degrees round the arm: 0 hanging relaxed, +90 out to the side, 180 up and over, -90 in across).")]
+        public float guardElbowSwivel = 20f;
 
         [Header("Sway (the hips drift in a slow loop)")]
         public float swayAmplitude = 0.03f;
@@ -94,7 +96,18 @@ namespace PhysicsBattler.Motion
         {
             var style = CreateInstance<CombatStyle>();
             style.name = "CombatStyle (default)";
+            style.guardElbowSwivel = DefaultGuardElbowSwivel(null);
             return style;
+        }
+
+        /// <summary>The arm rebuild's starting guard elbows: hanging, a little out.</summary>
+        public static float DefaultGuardElbowSwivel(string body)
+        {
+            switch ((body ?? "").ToLowerInvariant())
+            {
+                case "large": return 20f;
+                default: return 25f;
+            }
         }
 
         /// <summary>The ready-made style for a body size ("Small", "Medium", "Large"), as the setup makes it.</summary>
@@ -102,6 +115,7 @@ namespace PhysicsBattler.Motion
         {
             var s = CreateDefault();
             s.name = "CS_" + body;
+            s.guardElbowSwivel = DefaultGuardElbowSwivel(body);
             switch ((body ?? "").ToLowerInvariant())
             {
                 case "small":

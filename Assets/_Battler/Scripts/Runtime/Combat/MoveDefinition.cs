@@ -87,6 +87,28 @@ namespace PhysicsBattler.Combat
         [Tooltip("Thrusts: how close to the pivot the point is drawn back (metres).")]
         public float drawBack = 0.3f;
 
+        [Header("Elbow null (degrees round the arm: 0 hanging relaxed, +90 out to the side, 180 up and over, -90 in across)")]
+        [Tooltip("At the end of the wind-up (held through the hold). The guard's is at the start and the end of the blow.")]
+        public float elbowWindUp;
+        [Tooltip("At the striking moment.")]
+        public float elbowContact;
+        [Tooltip("At the end of the follow-through; the recovery eases back to the guard's.")]
+        public float elbowFollow;
+
+        [Header("Hand keys (where the hand is, from the shoulder, in the blow's aim frame: x right, y up, z toward the target; metres, medium size)")]
+        [Tooltip("At the end of the wind-up (held through the hold). The contact hand is solved when the blow is planned, so the striking part lands on the aim.")]
+        public Vector3 handWindUp;
+        [Tooltip("At the end of the follow-through.")]
+        public Vector3 handFollow;
+
+        [Header("Wrist keys (x: the forearm's turn, palm down +; y: flexion toward the palm +; z: toward the thumb +; degrees)")]
+        [Tooltip("At the end of the wind-up (held through the hold). The guard's wrist is at the start and the end of the blow.")]
+        public Vector3 wristWindUp;
+        [Tooltip("At the striking moment.")]
+        public Vector3 wristContact;
+        [Tooltip("At the end of the follow-through.")]
+        public Vector3 wristFollow;
+
         [Header("Swing timing (seconds at medium size; the follow-through follows from the speed)")]
         public float windUpTime = 0.3f;
         [Tooltip("The tense moment at the top of the wind-up.")]
@@ -228,6 +250,285 @@ namespace PhysicsBattler.Combat
         public static ComboBodies DefaultBodies(MoveStyle style) =>
             style == MoveStyle.ClubFan || style == MoveStyle.ClubFanBackhand ? ComboBodies.Small : ComboBodies.All;
 
+        /// <summary>
+        /// The arm rebuild's starting elbow nulls for the ready-made moves (degrees round the arm, as
+        /// <see cref="PhysicsBattler.Motion.ArmGoal.elbowSwivel"/>): a first pass from technique, to be
+        /// keyed by eye on the arm bench. Forehand swings wind up with the elbow out and high and come
+        /// through with it lower; overhead blows keep it forward under the weapon; backhands wind up
+        /// with it in across the chest and open it out; thrusts keep it low behind the blade; fans
+        /// keep it still, the wrist doing the work.
+        /// </summary>
+        public static void DefaultElbows(MoveStyle style, out float windUp, out float contact, out float follow)
+        {
+            switch (style)
+            {
+                // (The arm rebuild: posed as designed (keyfit's seeds: where the hand, the elbow and the
+                // blade are at the wind-up and follow-through), then fitted near that by
+                // Tools/CompileCheck's keyfit for the arc, landing, clearance, wrist limits and speed
+                // through contact, and looked at in armfilm's stick figures.)
+                case MoveStyle.SwordCut:
+                    windUp = 120f; contact = 84f; follow = 66f;
+                    break;
+                case MoveStyle.SwordBackhand:
+                    windUp = -22f; contact = 66f; follow = 123f;
+                    break;
+                case MoveStyle.ClubSwing:
+                    windUp = 120f; contact = 133f; follow = 38f;
+                    break;
+                case MoveStyle.ClubSmash:
+                    windUp = 128f; contact = -17f; follow = 126f;
+                    break;
+                case MoveStyle.SwordCleave:
+                    windUp = -25f; contact = 53f; follow = 130f;
+                    break;
+                case MoveStyle.ClubRising:
+                    windUp = -41f; contact = 36f; follow = -11f;
+                    break;
+                case MoveStyle.ClubBackhand:
+                    windUp = -28f; contact = 81f; follow = 130f;
+                    break;
+                case MoveStyle.SwordThrust:
+                    windUp = 0f; contact = 10f; follow = 10f;
+                    break;
+                case MoveStyle.ClubFan:
+                    windUp = 30f; contact = 20f; follow = 20f;
+                    break;
+                case MoveStyle.ClubFanBackhand:
+                    windUp = -20f; contact = 20f; follow = 40f;
+                    break;
+                default:
+                    windUp = contact = follow = 20f;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// The arm rebuild's starting wrist keys (forearm turn, flexion, deviation toward the thumb): a
+        /// first pass from technique, keyed by eye later. A swing is wound up with the wrist cocked
+        /// back and toward the thumb, comes through it straight and rolls over after; a backhand winds
+        /// up with the palm down and the wrist bent in; a thrust keeps the blade level and drives the
+        /// point up a little; a fan is nearly all wrist.
+        /// </summary>
+        public static void DefaultWrists(MoveStyle style, out Vector3 windUp, out Vector3 contact, out Vector3 follow)
+        {
+            switch (style)
+            {
+                // (The arm rebuild: posed as designed (keyfit's seeds: where the hand, the elbow and the
+                // blade are at the wind-up and follow-through), then fitted near that by
+                // Tools/CompileCheck's keyfit for the arc, landing, clearance, wrist limits and speed
+                // through contact, and looked at in armfilm's stick figures.)
+                case MoveStyle.SwordCut:
+                    windUp = new Vector3(45f, 12f, -29f);
+                    contact = new Vector3(77f, -10f, -17f);
+                    follow = new Vector3(36f, 41f, -12f);
+                    break;
+                case MoveStyle.SwordBackhand:
+                    windUp = new Vector3(40f, 21f, -12f);
+                    contact = new Vector3(59f, 1f, -2f);
+                    follow = new Vector3(73f, -22f, -17f);
+                    break;
+                case MoveStyle.ClubSwing:
+                    windUp = new Vector3(70f, 15f, -16f);
+                    contact = new Vector3(-64f, 30f, -7f);
+                    follow = new Vector3(72f, 27f, -7f);
+                    break;
+                case MoveStyle.ClubSmash:
+                    windUp = new Vector3(45f, 40f, -12f);
+                    contact = new Vector3(11f, -6f, -25f);
+                    follow = new Vector3(7f, 43f, -13f);
+                    break;
+                case MoveStyle.SwordCleave:
+                    windUp = new Vector3(-55f, -60f, 0f);
+                    contact = new Vector3(21f, 4f, -12f);
+                    follow = new Vector3(-9f, 23f, 1f);
+                    break;
+                case MoveStyle.ClubRising:
+                    windUp = new Vector3(-50f, 28f, -27f);
+                    contact = new Vector3(14f, 15f, -3f);
+                    follow = new Vector3(-22f, 13f, -15f);
+                    break;
+                case MoveStyle.ClubBackhand:
+                    windUp = new Vector3(50f, 33f, 1f);
+                    contact = new Vector3(64f, -27f, -2f);
+                    follow = new Vector3(70f, -18f, -26f);
+                    break;
+                case MoveStyle.SwordThrust:
+                    // (Driven home in line: the wrist turned toward the little finger, the blade along
+                    // the forearm.)
+                    windUp = new Vector3(0f, 0f, -25f);
+                    contact = new Vector3(0f, 0f, -30f);
+                    follow = new Vector3(0f, 0f, -25f);
+                    break;
+                case MoveStyle.ClubFan:
+                    windUp = new Vector3(0f, -45f, 15f);
+                    contact = new Vector3(0f, 0f, -5f);
+                    follow = new Vector3(0f, 25f, -20f);
+                    break;
+                case MoveStyle.ClubFanBackhand:
+                    windUp = new Vector3(40f, 40f, 0f);
+                    contact = new Vector3(30f, 0f, -5f);
+                    follow = new Vector3(20f, -30f, 10f);
+                    break;
+                default:
+                    windUp = contact = follow = Vector3.zero;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// The arm rebuild's starting hand keys (hand-first blows: the hand is the arm's effector, the
+        /// weapon follows it): a forehand winds up back and out to the side and follows through low
+        /// across the body; an overhead blow winds up above and behind the head and follows through
+        /// low in front; a rising blow from low behind the hip to high across; a backhand from the
+        /// other shoulder out to the side; a thrust drawn back by the chest; a fan close to the
+        /// shoulder, little arm and all wrist. In the aim frame, from the shoulder, medium size.
+        /// </summary>
+        public static void DefaultHands(MoveStyle style, out Vector3 windUp, out Vector3 follow)
+        {
+            switch (style)
+            {
+                // (The arm rebuild: posed as designed (keyfit's seeds: where the hand, the elbow and the
+                // blade are at the wind-up and follow-through), then fitted near that by
+                // Tools/CompileCheck's keyfit for the arc, landing, clearance, wrist limits and speed
+                // through contact, and looked at in armfilm's stick figures.)
+                case MoveStyle.SwordCut:
+                    windUp = new Vector3(0.3f, 0.32f, -0.31f);
+                    follow = new Vector3(-0.27f, -0.38f, 0.24f);
+                    break;
+                case MoveStyle.SwordBackhand:
+                    windUp = new Vector3(-0.23f, 0.08f, 0.22f);
+                    follow = new Vector3(0.55f, 0.03f, -0.02f);
+                    break;
+                case MoveStyle.ClubSwing:
+                    windUp = new Vector3(0.26f, 0.27f, -0.38f);
+                    follow = new Vector3(-0.41f, -0.27f, 0.23f);
+                    break;
+                case MoveStyle.ClubSmash:
+                    windUp = new Vector3(0.24f, 0.39f, -0.08f);
+                    follow = new Vector3(-0.22f, -0.45f, 0.23f);
+                    break;
+                case MoveStyle.SwordCleave:
+                    windUp = new Vector3(0.08f, 0.32f, -0.08f);
+                    follow = new Vector3(-0.18f, -0.48f, 0.18f);
+                    break;
+                case MoveStyle.ClubRising:
+                    windUp = new Vector3(0.26f, -0.46f, -0.18f);
+                    follow = new Vector3(-0.18f, 0.34f, 0.16f);
+                    break;
+                case MoveStyle.ClubBackhand:
+                    windUp = new Vector3(-0.28f, 0.07f, 0.21f);
+                    follow = new Vector3(0.54f, 0.1f, 0.07f);
+                    break;
+                case MoveStyle.SwordThrust:
+                    // (Chambered by the hip, the forearm and the point toward the target, then driven
+                    // straight out.)
+                    windUp = new Vector3(0.05f, -0.28f, 0.12f);
+                    follow = new Vector3(-0.05f, 0.05f, 0.6f);
+                    break;
+                case MoveStyle.ClubFan:
+                    windUp = new Vector3(0.25f, 0.1f, 0.15f);
+                    follow = new Vector3(-0.05f, -0.05f, 0.3f);
+                    break;
+                case MoveStyle.ClubFanBackhand:
+                    windUp = new Vector3(-0.05f, 0.1f, 0.2f);
+                    follow = new Vector3(0.3f, 0f, 0.25f);
+                    break;
+                default:
+                    windUp = new Vector3(0.3f, 0f, 0f);
+                    follow = new Vector3(-0.2f, -0.2f, 0.3f);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// As <see cref="Phase"/>, for the hand's travel: from the hold to the striking moment and on
+        /// through the follow-through it goes as the swing's own progress does (accelerating into the
+        /// blow, slowing after), elsewhere eased.
+        /// </summary>
+        public void HandPhase(float t, out int from, out int to, out float share)
+        {
+            Phase(t, out from, out to, out share);
+            if (shape == MoveShape.Path || (from != 1 || to != 2) && (from != 2 || to != 3))
+            {
+                return;
+            }
+
+            float t1 = WindUpEnd, t3 = ContactTime(), t4 = SwingFollowEnd;
+            float t2 = Mathf.Clamp(t1 + Mathf.Max(0f, holdTime) / Mathf.Max(1e-3f, SwingDuration), t1, t3);
+            float a = from == 1 ? ProgressAt(t2) : ProgressAt(t3), b = from == 1 ? ProgressAt(t3) : ProgressAt(t4);
+            share = b - a > 1e-5f ? Mathf.Clamp01((ProgressAt(t) - a) / (b - a)) : share;
+        }
+
+        /// <summary>
+        /// Where a normalized time of the blow falls among its keys (0 the guard, 1 the wind-up, 2 the
+        /// contact, 3 the follow-through): between key <paramref name="from"/> and <paramref name="to"/>,
+        /// eased (no corner at a key).
+        /// </summary>
+        public void Phase(float t, out int from, out int to, out float share)
+        {
+            float t1 = WindUpEnd, t3 = ContactTime(), t4 = SwingFollowEnd;
+            float t2 = Mathf.Clamp(shape == MoveShape.Path ? t1 : t1 + Mathf.Max(0f, holdTime) / Mathf.Max(1e-3f, SwingDuration), t1, t3);
+            float s;
+            if (t <= t1) { from = 0; to = 1; s = t / Mathf.Max(1e-4f, t1); }
+            else if (t <= t2) { from = 1; to = 1; s = 0f; }
+            else if (t <= t3) { from = 1; to = 2; s = (t - t2) / Mathf.Max(1e-4f, t3 - t2); }
+            else if (t <= t4) { from = 2; to = 3; s = (t - t3) / Mathf.Max(1e-4f, t4 - t3); }
+            else { from = 3; to = 0; s = (t - t4) / Mathf.Max(1e-4f, 1f - t4); }
+            s = Mathf.Clamp01(s);
+            share = s * s * (3f - 2f * s);
+        }
+
+        /// <summary>A wrist key by its number (1 the wind-up, 2 the contact, 3 the follow-through).</summary>
+        public Vector3 WristKey(int key) => key == 1 ? wristWindUp : key == 2 ? wristContact : wristFollow;
+
+        /// <summary>The elbow null (degrees round the arm) at a normalized time of the blow: the guard's at its start and end, the keys between, eased.</summary>
+        public float ElbowSwivel(float t, float guard)
+        {
+            float Key(int k) => k == 1 ? elbowWindUp : k == 2 ? elbowContact : k == 3 ? elbowFollow : guard;
+            HandPhase(t, out int from, out int to, out float share);
+            return Through(from, to, share, k => new Vector3(Key(k), 0f, 0f)).x;
+        }
+
+        /// <summary>
+        /// The progress along the blow at its strike's start (the wind-up's key, after the hold), its
+        /// striking moment (the contact's key) and its follow-through's end (that key): the knots of the
+        /// keys' spline through the strike.
+        /// </summary>
+        public void KeyProgress(out float windUp, out float contact, out float follow)
+        {
+            float t1 = WindUpEnd, t3 = ContactTime(), t4 = SwingFollowEnd;
+            float t2 = Mathf.Clamp(t1 + Mathf.Max(0f, holdTime) / Mathf.Max(1e-3f, SwingDuration), t1, t3);
+            windUp = ProgressAt(t2);
+            contact = Mathf.Max(windUp + 1e-4f, ProgressAt(t3));
+            follow = Mathf.Max(contact + 1e-4f, ProgressAt(t4));
+        }
+
+        /// <summary>
+        /// Between two keys at a share of the way: through the striking moment (wind-up to contact,
+        /// contact to follow-through) on a spline with its knots at the keys' progress, so what turns
+        /// into the contact carries on turning out of it at the same rate, with no corner and no change
+        /// of pace (the wind-up's key starts from its hold and the follow-through's ends at its stop, as
+        /// the blow's own pace does); between the others, straight.
+        /// </summary>
+        public Vector3 Through(int from, int to, float share, System.Func<int, Vector3> key)
+        {
+            if (from == 1 && to == 2 || from == 2 && to == 3)
+            {
+                KeyProgress(out float p1, out float p2, out float p3);
+                Vector3 k1 = key(1), k2 = key(2), k3 = key(3);
+                // (The rate through the contact: the keys either side over their span of progress.)
+                Vector3 m2 = (k3 - k1) / (p3 - p1);
+                Vector3 m1 = (k2 - k1) / (p2 - p1), m3 = (k3 - k2) / (p3 - p2);
+                Vector3 a = from == 1 ? k1 : k2, b = from == 1 ? k2 : k3;
+                Vector3 ma = from == 1 ? m1 : m2, mb = from == 1 ? m2 : m3;
+                float span = from == 1 ? p2 - p1 : p3 - p2;
+                float t = share, t2 = t * t, t3 = t2 * t;
+                return (2f * t3 - 3f * t2 + 1f) * a + (t3 - 2f * t2 + t) * span * ma + (-2f * t3 + 3f * t2) * b + (t3 - t2) * span * mb;
+            }
+
+            return Vector3.Lerp(key(from), key(to), share);
+        }
+
         /// <summary>Whether a unit of this size throws this blow (none listed: every body does).</summary>
         public bool UsableBy(float sizeFactor) => bodies == ComboBodies.None || (bodies & ComboDefinition.BodyOf(sizeFactor)) != 0;
 
@@ -249,6 +550,9 @@ namespace PhysicsBattler.Combat
             strikeWith = StrikeWith.Edge;
             targets = AimParts.All;
             bodies = DefaultBodies(style);
+            DefaultElbows(style, out elbowWindUp, out elbowContact, out elbowFollow);
+            DefaultWrists(style, out wristWindUp, out wristContact, out wristFollow);
+            DefaultHands(style, out handWindUp, out handFollow);
             backhand = false;
             planeTilt = 40f;
             windUpAngle = 190f;
@@ -262,9 +566,13 @@ namespace PhysicsBattler.Combat
             stretchAfter = 35f;
             wristLag = 35f;
             drawBack = 0.3f;
-            windUpTime = 0.45f;
+            windUpTime = 0.59f;
             holdTime = 0.09f;
-            strikeTime = 0.3f;
+            // (The arm rebuild: the strikes 30% quicker and the wind-ups 30% slower than the path-made
+            // ones. A hand keyed as a person swings carries the striking part a shorter way through the
+            // strike than those paths did and a longer one into the wind-up, and at their pace it came
+            // through contact no faster than it wound up.)
+            strikeTime = 0.21f;
             accelShare = 0.4f;
             recoveryTime = 0.45f;
             turnBack = 100f;
@@ -299,7 +607,7 @@ namespace PhysicsBattler.Combat
                     windUpAngle = 160f;
                     followAngle = 120f;
                     through = 0.6f;
-                    strikeTime = 0.28f;
+                    strikeTime = 0.2f;
                     turnBack = 90f;
                     turnThrough = 65f;
                     break;
@@ -310,9 +618,9 @@ namespace PhysicsBattler.Combat
                     windUpAngle = 210f;
                     followAngle = 150f;
                     through = 0.5f;
-                    windUpTime = 0.51f;
+                    windUpTime = 0.66f;
                     holdTime = 0.12f;
-                    strikeTime = 0.32f;
+                    strikeTime = 0.22f;
                     turnBack = 110f;
                     turnThrough = 80f;
                     leanThrough = 18f;
@@ -355,9 +663,9 @@ namespace PhysicsBattler.Combat
                     windUpAngle = 220f;
                     followAngle = 160f;
                     through = 0.5f;
-                    windUpTime = 0.54f;
+                    windUpTime = 0.7f;
                     holdTime = 0.12f;
-                    strikeTime = 0.36f;
+                    strikeTime = 0.25f;
                     recoveryTime = 0.48f;
                     turnBack = 115f;
                     turnThrough = 85f;
@@ -379,9 +687,9 @@ namespace PhysicsBattler.Combat
                     through = 0.45f;
                     pivotSide = 0.3f;   // the arc comes down past the head, not through it
                     pivotUp = 0.2f;
-                    windUpTime = 0.57f;
+                    windUpTime = 0.74f;
                     holdTime = 0.15f;
-                    strikeTime = 0.34f;
+                    strikeTime = 0.24f;
                     recoveryTime = 0.51f;
                     turnBack = 25f;
                     turnThrough = 15f;
@@ -401,9 +709,9 @@ namespace PhysicsBattler.Combat
                     followAngle = 140f;
                     guardAngle = 30f;
                     through = 0.4f;
-                    windUpTime = 0.48f;
+                    windUpTime = 0.62f;
                     holdTime = 0.09f;
-                    strikeTime = 0.22f;
+                    strikeTime = 0.17f;
                     recoveryTime = 0.45f;
                     turnBack = 85f;
                     turnThrough = 60f;
@@ -426,9 +734,9 @@ namespace PhysicsBattler.Combat
                     through = 0.5f;
                     pivotSide = -0.05f;
                     pivotForward = 0.18f;
-                    windUpTime = 0.45f;
+                    windUpTime = 0.59f;
                     holdTime = 0.08f;
-                    strikeTime = 0.3f;
+                    strikeTime = 0.21f;
                     recoveryTime = 0.45f;
                     turnBack = 90f;
                     turnThrough = 65f;

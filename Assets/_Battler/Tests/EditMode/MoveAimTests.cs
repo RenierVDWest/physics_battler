@@ -18,23 +18,23 @@ namespace PhysicsBattler.Tests
     [TestFixture]
     public class MoveAimTests
     {
-        private static readonly string[] Bodies = { "Small", "Medium", "Large" };
+        internal static readonly string[] Bodies = { "Small", "Medium", "Large" };
 
-        private static WeaponDefinition Sword()
+        internal static WeaponDefinition Sword()
         {
             var sword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
             sword.moves = new[] { MoveDefinition.Create(MoveStyle.SwordCut), MoveDefinition.Create(MoveStyle.SwordBackhand), MoveDefinition.Create(MoveStyle.SwordCleave), MoveDefinition.Create(MoveStyle.SwordThrust) };
             return sword;
         }
 
-        private static WeaponDefinition Club()
+        internal static WeaponDefinition Club()
         {
             var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
             club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash), MoveDefinition.Create(MoveStyle.ClubRising), MoveDefinition.Create(MoveStyle.ClubBackhand), MoveDefinition.Create(MoveStyle.ClubFan), MoveDefinition.Create(MoveStyle.ClubFanBackhand) };
             return club;
         }
 
-        private static UnitController Build(string body, Vector3 at, float yaw, int team)
+        internal static UnitController Build(string body, Vector3 at, float yaw, int team)
         {
             string path = Path.Combine(Application.dataPath, $"_Battler/Data/Rigs/{body.ToLowerInvariant()}_rig.json");
             var rig = RigFile.Parse(File.ReadAllText(path));
@@ -64,7 +64,7 @@ namespace PhysicsBattler.Tests
             }
         }
 
-        private static void Settle(UnitController a, UnitController b, int steps)
+        internal static void Settle(UnitController a, UnitController b, int steps)
         {
             for (int i = 0; i < steps; i++)
             {

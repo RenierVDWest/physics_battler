@@ -495,10 +495,13 @@ namespace PhysicsBattler.Units
                 return false;   // (off its feet, it can't strike)
             }
 
+            // (The arm rebuild: the path made the blow's real way before it starts, for the shield and the sweeps.)
+            SwingPath.PathFromPose(this, state);
             state.Time = Mathf.Clamp01(startAt) * state.Duration;
             state.ContactPassed = state.SteppedOut = state.LeadOut = state.SteppedBack = state.RearMoved = state.RearOut = state.RearBack = false;
-            state.HasLastStrike = state.HasLastPhysical = state.HasLastRadial = false;
+            state.HasLastStrike = state.HasLastPhysical = state.HasLastRadial = state.HasContactShift = false;
             state.ContactSpeed = state.PeakSpeed = state.Depth = state.Arc = state.LastProgress = 0f;
+            state.ContactWay = Vector3.zero;
             state.PhysicalClosest = -1f;
             CurrentMove = state;
             Pose.Move = state;
@@ -596,6 +599,37 @@ namespace PhysicsBattler.Units
         /// Poses the unit (dry: the feet don't step) at a moment of a blow, as if it had started now:
         /// facing along the aim frame, the lunge's feet planted once the lunge is under way.
         /// </summary>
+        /// <summary>
+        /// The arm rebuild: solves where the hand must be at a blow's striking moment (the body posed
+        /// there) so its striking part lands on the aim, with the contact's wrist and elbow keys.
+        /// </summary>
+        public void PlanContactHand(MoveState state)
+        {
+            if (state == null || !state.Generated || Loadout?.Main == null)
+            {
+                return;
+            }
+
+            var saved = Stance.Save();
+            var anim = SaveAnim();
+            var rotation = transform.rotation;
+            try
+            {
+                state.HasContactHand = false;
+                PoseDry(state, state.ContactTime, true);
+                Pose.PlanContactHand(state, Loadout.Scale);
+            }
+            finally
+            {
+                transform.rotation = rotation;
+                Stance.Restore(saved);
+                RestoreAnim(anim);
+            }
+        }
+
+        /// <summary>Poses a planned blow dry at a moment and leaves the animation rig there (the reports' dumps).</summary>
+        public bool PoseDryAt(MoveState state, float normalizedTime) => PoseDry(state, normalizedTime, true);
+
         private bool PoseDry(MoveState state, float normalizedTime, bool keep)
         {
             var saved = Stance.Save();
@@ -881,7 +915,7 @@ namespace PhysicsBattler.Units
             StepCombo();
         }
 
-        /// <summary>The posed swing's speed, depth past the aim point and arc, for the log.</summary>
+        /// <summary>The posed swing's speed, how far it carried on past the aim point and its arc, for the log.</summary>
         private void MeasureSwing(MoveState move, float dt)
         {
             if (!move.HasLastStrike || dt <= 0f)
@@ -893,6 +927,7 @@ namespace PhysicsBattler.Units
             if (!move.ContactPassed && move.T >= move.ContactTime)
             {
                 move.ContactSpeed = speed;
+                move.ContactWay = speed > 1e-3f ? (Pose.StrikePoint - move.LastStrike).normalized : Vector3.zero;
             }
 
             if (move.T <= move.Move.SwingFollowEnd)
@@ -909,7 +944,10 @@ namespace PhysicsBattler.Units
             Vector3 pivot = move.PivotAt(move.Move.ContactProgress);
             if (move.T >= move.ContactTime && move.T <= move.Move.SwingFollowEnd)
             {
-                move.Depth = Mathf.Max(move.Depth, Vector3.Dot(Pose.StrikePoint - move.Aim, (move.Aim - pivot).normalized));
+                // (The arm rebuild: a hand-keyed blow carries on the way it was going through the aim,
+                // across the target for a cut, into it for a thrust; a path-made one, away from its pivot.)
+                Vector3 way = move.HasContactHand && move.ContactWay != Vector3.zero ? move.ContactWay : (move.Aim - pivot).normalized;
+                move.Depth = Mathf.Max(move.Depth, Vector3.Dot(Pose.StrikePoint - move.Aim, way));
             }
 
             Vector3 radial = Pose.StrikePoint - move.PivotAt(move.Progress);
@@ -1041,14 +1079,34 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>
-        /// How close the striking part passed the aim point between two steps: along the arc about
-        /// the swing's pivot for a swing (as hits are swept), along the straight line otherwise.
+        /// How close the striking part passed the aim point between two steps: along the swing's path
+        /// for a swing (a hand-first blow's: its posed way, fitted to the two steps), along the
+        /// straight line otherwise.
         /// </summary>
         private static float SweptDistance(MoveState move, Vector3 from, Vector3 to)
         {
             if (!move.Generated || move.Move.shape != MoveShape.Swing)
             {
                 return SegmentDistance(move.Aim, from, to);
+            }
+
+            if (move.HasContactHand)
+            {
+                // The arm rebuild: a hand-first blow's posed striking part between the two steps, along
+                // the curve of its path (its posed way, laid when it started) moved onto the two posed
+                // places: exact at both steps, and following the blow's real curve between them.
+                Vector3 off0 = from - move.PathPoint(move.LastProgress), off1 = to - move.PathPoint(move.Progress);
+                float nearest = float.MaxValue;
+                Vector3 prev = from;
+                for (int i = 1; i <= 12; i++)
+                {
+                    float s = i / 12f;
+                    Vector3 p = move.PathPoint(Mathf.Lerp(move.LastProgress, move.Progress, s)) + Vector3.Lerp(off0, off1, s);
+                    nearest = Mathf.Min(nearest, SegmentDistance(move.Aim, prev, p));
+                    prev = p;
+                }
+
+                return nearest;
             }
 
             // The planned path between the two steps' progress (it curves), plus however far the posed

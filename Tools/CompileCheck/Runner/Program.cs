@@ -65,6 +65,51 @@ internal static class Program
             return LookReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "feint")
+        {
+            return FeintReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "combopop")
+        {
+            return ComboPopReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "aimseq")
+        {
+            return AimSequenceReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "guardpop")
+        {
+            return GuardPopReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "armfilm")
+        {
+            return ArmFilmReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "keyfit")
+        {
+            return KeyFitReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "keysearch")
+        {
+            return KeySearchReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "planwhy")
+        {
+            return PlanWhyReport.Run();
+        }
+
+        if (args.Length >= 1 && args[0] == "armmoves")
+        {
+            return ArmMovesReport.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "armtime")
         {
             return ArmRigTime.Run();

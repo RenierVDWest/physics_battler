@@ -24,12 +24,12 @@ internal static class ArmRigTime
                     anim.Part(PartId.UpperArmR).localRotation = Quaternion.Euler(-30f - 50f * (float)r.NextDouble(), 20f * (float)r.NextDouble() - 10f, 10f * (float)r.NextDouble());
                     anim.Part(PartId.ForearmR).localRotation = Quaternion.AngleAxis(40f + 60f * (float)r.NextDouble(), ArmRig.ElbowAxis(anim, true));
                     anim.Part(PartId.HandR).localRotation = Quaternion.Euler(10f * (float)r.NextDouble(), 30f * (float)r.NextDouble(), 10f * (float)r.NextDouble());
-                    g = ArmGoal.Hand(anim.Part(PartId.HandR).position, Vector3.zero, anim.Part(PartId.HandR).rotation, new Vector3(0.4f, -1f, 0f));
+                    g = ArmGoal.Hand(anim.Part(PartId.HandR).position, Vector3.zero, anim.Part(PartId.HandR).rotation, 20f);
                 }
                 else
                 {
                     Vector3 p = anim.Part(PartId.UpperArmR).position + new Vector3((float)r.NextDouble() - 0.3f, (float)r.NextDouble() - 0.6f, (float)r.NextDouble()) * 0.6f;
-                    g = ArmGoal.Hand(p, Vector3.zero, Quaternion.Euler(r.Next(360), r.Next(360), r.Next(360)), new Vector3(0.4f, -1f, 0f));
+                    g = ArmGoal.Hand(p, Vector3.zero, Quaternion.Euler(r.Next(360), r.Next(360), r.Next(360)), 20f);
                 }
 
                 g.rollAxisInHand = Vector3.forward; g.rollAllowance = 30f; g.clearance = 0.03f;

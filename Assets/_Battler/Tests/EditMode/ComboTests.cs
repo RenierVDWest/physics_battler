@@ -23,7 +23,7 @@ namespace PhysicsBattler.Tests
             public readonly List<(float time, float startedAt, MoveState state)> starts = new List<(float, float, MoveState)>();
             public readonly List<string> changes = new List<string>();
             public float pop, fastest, pelvisJump, popAfterStop;
-            public string popWhere = "", fastWhere = "";
+            public string popWhere = "", fastWhere = "", popAfterStopWhere = "";
         }
 
         /// <summary>Plays a combo at a standing opponent to its end (at most 6 s) and records its links and how the pose moved.</summary>
@@ -86,7 +86,11 @@ namespace PhysicsBattler.Tests
                             bool afterStop = played.changes.Count > 0 && played.changes[played.changes.Count - 1].EndsWith("after a stop");
                             if (atLink && afterStop && seen > 1)
                             {
-                                played.popAfterStop = Mathf.Max(played.popAfterStop, step - 2f * lastStep[(int)id]);
+                                if (step - 2f * lastStep[(int)id] > played.popAfterStop)
+                                {
+                                    played.popAfterStop = step - 2f * lastStep[(int)id];
+                                    played.popAfterStopWhere = $"{id} at {unit.LocalTime:0.00} s, {sinceLink:0.00} s into the link";
+                                }
                             }
 
                             atLink &= !afterStop;
@@ -143,7 +147,7 @@ namespace PhysicsBattler.Tests
                     // (A single blow's own start moves the weapon hand about 4 cm more in a step than the
                     // step before, and its stop about 16: a link hands over no harder than a blow starts.)
                     Assert.Less(played.pop, 0.05f * Mathf.Max(1f, unit.Body.SizeFactor), $"{what}: no part of the pose pops at a link ({played.pop * 100f:0.0} cm: {played.popWhere})");
-                    Assert.Less(played.popAfterStop, 0.12f * Mathf.Max(1f, unit.Body.SizeFactor), $"{what}: nor at a link after a stopped one ({played.popAfterStop * 100f:0.0} cm)");
+                    Assert.Less(played.popAfterStop, 0.12f * Mathf.Max(1f, unit.Body.SizeFactor), $"{what}: nor at a link after a stopped one ({played.popAfterStop * 100f:0.0} cm: {played.popAfterStopWhere})");
                     Assert.Less(played.fastest, 0.3f * Mathf.Max(1f, unit.Body.SizeFactor), $"{what}: or flies at a link ({played.fastest * 100f:0} cm in a step: {played.fastWhere})");
                     Assert.IsNull(unit.Combo, $"{what}: it ends");
                     Assert.IsTrue(played.changes[played.changes.Count - 1].StartsWith("ended"), what);

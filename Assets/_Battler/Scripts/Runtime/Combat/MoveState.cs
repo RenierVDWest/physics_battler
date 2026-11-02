@@ -118,12 +118,39 @@ namespace PhysicsBattler.Combat
         /// <summary>What the posed swing did (for the log): its speed through contact and at its fastest (m/s), how far past the aim point it carried (metres) and the arc it swept from the release to the end of the follow-through (degrees).</summary>
         public float ContactSpeed, PeakSpeed, Depth, Arc;
 
+        /// <summary>The way the striking part was going through the striking moment (posed).</summary>
+        public Vector3 ContactWay;
+
         /// <summary>
         /// Milestone 9c: the weapon arm's shape at the striking moment as the planner tried it (its
         /// joints' angles; NaN until tried). Shared with the copies the planner tries, which fill it;
         /// the playing arm is drawn toward it as the moment comes.
         /// </summary>
         public readonly float[] ContactArm = { float.NaN, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f };
+
+        /// <summary>
+        /// The arm rebuild: where the hand is at the striking moment, from the aim, in the aim frame
+        /// (metres): solved when the blow is planned, so the striking part lands on the aim with the
+        /// contact's wrist and elbow keys.
+        /// </summary>
+        public Vector3 ContactHand;
+
+        public bool HasContactHand;
+
+        /// <summary>How far the striking part still lands from the aim with the planned contact hand (metres): out of reach, or past the wrist's keys.</summary>
+        public float ContactHandMiss;
+
+        /// <summary>
+        /// The arm rebuild: how far the contact hand was moved, played, to land as the body really
+        /// stood at the striking moment; kept from then on, so the follow-through carries on from the
+        /// blow that landed rather than from one found again each step.
+        /// </summary>
+        public Vector3 ContactShift;
+
+        public bool HasContactShift;
+
+        /// <summary>Where the shoulder was in the planned contact pose (world; for measuring how the played blow differs).</summary>
+        public Vector3 ContactShoulder;
         public Vector3 LastRadial;
         public float LastProgress, LastDeviation;
         public bool HasLastRadial;

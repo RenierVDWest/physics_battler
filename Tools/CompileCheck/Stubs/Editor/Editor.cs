@@ -171,6 +171,7 @@ namespace UnityEditor
         public static float Slider(string label, float value, float leftValue, float rightValue, params UnityEngine.GUILayoutOption[] options) => value;
         public static bool Toggle(string label, bool value, params UnityEngine.GUILayoutOption[] options) => value;
         public static void HelpBox(string message, MessageType type) { }
+        public static UnityEngine.Vector3 Vector3Field(string label, UnityEngine.Vector3 value, params UnityEngine.GUILayoutOption[] options) => value;
         public static void Space() { }
 
         public sealed class HorizontalScope : System.IDisposable
@@ -194,6 +195,14 @@ namespace UnityEditor
         public static void DrawLine(UnityEngine.Vector3 p1, UnityEngine.Vector3 p2, float thickness) { }
         public static void SphereHandleCap(int controlID, UnityEngine.Vector3 position, UnityEngine.Quaternion rotation, float size, UnityEngine.EventType eventType) { }
         public static void Label(UnityEngine.Vector3 position, string text) { }
+        public static UnityEngine.Vector3 PositionHandle(UnityEngine.Vector3 position, UnityEngine.Quaternion rotation) => position;
+        public static void DrawWireDisc(UnityEngine.Vector3 center, UnityEngine.Vector3 normal, float radius) { }
+        public static void DrawDottedLine(UnityEngine.Vector3 p1, UnityEngine.Vector3 p2, float screenSpaceSize) { }
+    }
+
+    public static class Undo
+    {
+        public static void RecordObject(UnityEngine.Object objectToUndo, string name) { }
     }
 
     public enum PrefabUnpackMode { OutermostRoot, Completely }
