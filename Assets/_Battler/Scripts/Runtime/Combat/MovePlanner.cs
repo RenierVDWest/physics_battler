@@ -51,7 +51,7 @@ namespace PhysicsBattler.Combat
 
         /// <summary>
         /// A point in the way of a planned blow (the bystander test and its scene): on the blade as
-        /// the arm actually poses it, half way from the grip to the striking point, at the moment
+        /// the arm actually poses it, two thirds of the way from the grip to the striking point, at the moment
         /// the striking point passes <paramref name="before"/> metres short of the aim on its way in.
         /// A body centred there is struck before the target.
         /// </summary>
@@ -68,7 +68,10 @@ namespace PhysicsBattler.Combat
                 }
             }
 
-            return Vector3.Lerp(grip, strike, 0.5f);
+            // (The arm rebuild: two thirds of the way out to the striking part. A hand-keyed blade
+            // turns about the hand as it comes in, its inner half trailing behind the striking part's
+            // way; nearer the striking part is where it sweeps.)
+            return Vector3.Lerp(grip, strike, 0.67f);
         }
 
         /// <summary>Locks a blow on a point (tests and the move preview aim at plain points too).</summary>
