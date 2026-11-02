@@ -177,6 +177,14 @@ namespace PhysicsBattler.Motion
         /// <param name="apply">False: only measured (the arm is left as it was).</param>
         public static ArmSolve Solve(AnimRig anim, bool right, in ArmGoal goal, BodyClearance.Posed torso = null, bool apply = true)
         {
+            using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.ArmSolve))
+            {
+                return SolveCore(anim, right, goal, torso, apply);
+            }
+        }
+
+        private static ArmSolve SolveCore(AnimRig anim, bool right, in ArmGoal goal, BodyClearance.Posed torso, bool apply)
+        {
             var chain = Chain.Of(anim, right);
             var g = goal;
             if (g.wristGiven)

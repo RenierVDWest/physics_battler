@@ -2,6 +2,7 @@ using PhysicsBattler.Combat;
 using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
 using UnityEngine;
+using PhysicsBattler.Diagnostics;
 
 namespace PhysicsBattler.Motion
 {
@@ -215,6 +216,15 @@ namespace PhysicsBattler.Motion
         /// solve every step would let the arm's shape flick about).
         /// </remarks>
         public void Compose(float time, float dt, bool dry = false, bool armPlays = false)
+        {
+            // (Timed for the playtest log's performance table.)
+            using (Perf.Begin(dry ? PerfSection.ComposeDry : PerfSection.Compose))
+            {
+                ComposeCore(time, dt, dry, armPlays);
+            }
+        }
+
+        private void ComposeCore(float time, float dt, bool dry, bool armPlays)
         {
             composingDry = dry;
             composingArmPlays = dry && armPlays;

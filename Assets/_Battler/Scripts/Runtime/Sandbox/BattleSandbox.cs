@@ -237,6 +237,14 @@ namespace PhysicsBattler.Sandbox
             }
 
             pendingEquip.Clear();
+            using (Perf.Begin(PerfSection.Sandbox))
+            {
+                StepFight();
+            }
+        }
+
+        private void StepFight()
+        {
             if (turnedAway)
             {
                 brawl.Fight = false;

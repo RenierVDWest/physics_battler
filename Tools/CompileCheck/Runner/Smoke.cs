@@ -94,6 +94,9 @@ internal static class Smoke
                 Integrate(unit, dt);
             }
 
+            // (A rendered frame every physics step: the performance table's rows.)
+            Call(recorder, "LateUpdate");
+
             if (step == 60 * 6)
             {
                 recorder.Mark("smoke test mark");
