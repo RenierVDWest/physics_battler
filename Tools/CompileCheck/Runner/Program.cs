@@ -65,6 +65,11 @@ internal static class Program
             return LookReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "armtime")
+        {
+            return ArmRigTime.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "guard")
         {
             return GuardReport.Run(args.Length >= 2 ? int.Parse(args[1]) : 7);
