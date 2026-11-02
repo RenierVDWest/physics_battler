@@ -303,22 +303,48 @@ namespace PhysicsBattler.Combat
             // (Evenly along the blow, and closely round the striking moment, where the striking part
             // turns fastest and the sweeps measure its pass.)
             float cp = state.Move.ContactProgress;
-            var at = new System.Collections.Generic.List<float>();
-            for (int k = 0; k < PosedSamples; k++)
+            var samples = new System.Collections.Generic.List<(float at, Vector3 posed, bool known)>();
+            // (The performance pass: the planner's clearance poses, when it posed this blow from where
+            // the body stands now, are taken as they are: the whole blow's samples, posed already.)
+            bool reuse = state.PosedTimes != null && state.PosedCount == state.PosedTimes.Length && state.PosedCount >= 8
+                         && (attacker.Root.position - state.PosedRoot).sqrMagnitude < 1e-6f;
+            if (reuse)
             {
-                at.Add(k / (float)(PosedSamples - 1));
+                samples.Add((0f, Vector3.zero, false));
+                for (int k = 0; k < state.PosedCount; k++)
+                {
+                    samples.Add((state.Move.ProgressAt(state.PosedTimes[k]), state.PosedStrikes[k], true));
+                }
+
+                samples.Add((1f, Vector3.zero, false));
+            }
+            else
+            {
+                for (int k = 0; k < PosedSamples; k++)
+                {
+                    samples.Add((k / (float)(PosedSamples - 1), Vector3.zero, false));
+                }
             }
 
             for (int k = 0; k < PosedNearContact; k++)
             {
-                at.Add(Mathf.Clamp01(cp + NearContact * (2f * k / (PosedNearContact - 1) - 1f)));
+                samples.Add((Mathf.Clamp01(cp + NearContact * (2f * k / (PosedNearContact - 1) - 1f)), Vector3.zero, false));
             }
 
-            at.Sort();
-            var posed = new Vector3[at.Count];
-            for (int k = 0; k < at.Count; k++)
+            samples.Sort((a, b) => a.at.CompareTo(b.at));
+            var at = new System.Collections.Generic.List<float>(samples.Count);
+            var posed = new Vector3[samples.Count];
+            for (int k = 0; k < samples.Count; k++)
             {
-                attacker.WeaponAt(state, TimeAt(state.Move, at[k]), out _, out posed[k]);
+                at.Add(samples[k].at);
+                if (samples[k].known)
+                {
+                    posed[k] = samples[k].posed;
+                }
+                else
+                {
+                    attacker.WeaponAt(state, TimeAt(state.Move, samples[k].at), out _, out posed[k]);
+                }
             }
 
             var path = new Vector3[state.Path.Length];

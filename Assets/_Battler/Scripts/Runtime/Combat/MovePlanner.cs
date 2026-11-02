@@ -184,9 +184,15 @@ namespace PhysicsBattler.Combat
             // (A swing's dry run leaves a margin: played step by step, its steps land a little differently.)
             // (The arm rebuild: and one that lands without the arm being pushed off its own body at the
             // striking moment, which, played, moves it off the aim.)
-            return attacker.TryOut(state) <= (state.Generated ? 0.66f : 1f) * Tolerance
-                   && attacker.Pose.HandCleared.magnitude <= ContactPush * attacker.Body.SizeFactor
-                   && attacker.Clearance(state, ClearanceSamples, out _, out _, out _) >= -OwnBodyClearance * attacker.Body.SizeFactor;
+            if (attacker.TryOut(state) > (state.Generated ? 0.66f : 1f) * Tolerance
+                || attacker.Pose.HandCleared.magnitude > ContactPush * attacker.Body.SizeFactor)
+            {
+                return false;
+            }
+
+            // (The performance pass: the poses stop at the first that fails.)
+            float limit = -OwnBodyClearance * attacker.Body.SizeFactor;
+            return attacker.Clearance(state, ClearanceSamples, limit, out _, out _, out _) >= limit;
         }
 
         /// <summary>

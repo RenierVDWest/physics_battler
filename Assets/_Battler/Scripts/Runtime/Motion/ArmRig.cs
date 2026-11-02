@@ -423,7 +423,7 @@ namespace PhysicsBattler.Motion
             while (found.cost > 1e-6f && step > 0.2f)
             {
                 bool moved = false;
-                foreach (float k in new[] { 1f, -1f })
+                foreach (float k in BothWays)
                 {
                     float at = found.swivel + k * step;
                     if (Mathf.Abs(at) > ReachSwing)
@@ -524,6 +524,8 @@ namespace PhysicsBattler.Motion
                     return 0f;
             }
         }
+
+        private static readonly float[] BothWays = { 1f, -1f };
 
         /// <summary>How far an elbow may turn off its hinge, or back past straight, before it counts as past its limits (degrees).</summary>
         public const float HingeSlack = 2f;
@@ -638,9 +640,9 @@ namespace PhysicsBattler.Motion
             // (The null's own place first: if the arm fits there it is the best there is, every other
             // place costing its distance from the null. Most goals end here.)
             best = Evaluate(c, g, frame, around ?? 0f, torso);
-            if (best.cost <= 1e-6f && !around.HasValue)
+            if (best.cost <= 1e-6f)
             {
-                return best;
+                return best;   // (nothing costs less than nothing: the refinement below can't better it)
             }
 
             if (!around.HasValue)

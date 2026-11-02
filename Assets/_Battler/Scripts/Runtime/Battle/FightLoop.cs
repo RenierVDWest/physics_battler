@@ -104,8 +104,11 @@ namespace PhysicsBattler.Battle
             return unit != null && unit.IsInitialized && unit.IsAlive && !unit.LegLost && unit.Loadout?.Main != null;
         }
 
+        private int stepCount, plannedAtStep = -1;
+
         public void Step(IReadOnlyList<UnitController> units, float dt, float now)
         {
+            stepCount++;
             if (StartedAt < 0f && Fight)
             {
                 StartedAt = now;
@@ -502,6 +505,15 @@ namespace PhysicsBattler.Battle
                     return;
                 }
             }
+
+            // (Performance: one unit plans a blow a physics step, the others the next: planning poses
+            // the body dry dozens of times, and two plans in one step made a visible stutter.)
+            if (plannedAtStep == stepCount)
+            {
+                return;
+            }
+
+            plannedAtStep = stepCount;
 
             // Its target first, then any other enemy in reach in front of it.
             var candidates = new List<UnitController> { enemy };

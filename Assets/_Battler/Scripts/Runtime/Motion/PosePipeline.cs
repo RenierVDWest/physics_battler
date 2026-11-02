@@ -583,7 +583,13 @@ namespace PhysicsBattler.Motion
                 PoseWeaponArm(loadout, offBlow ? null : move, offBlow ? 0f : moveBlend, facing);
             }
 
-            if (loadout != null && loadout.HasShield)
+            // (The performance pass: a dry pose of a weapon blow, the planner's, poses no off arm:
+            // nothing it measures looks at it, and the shield arm's solves were a fifth of its work.)
+            bool offArmUnseen = composingDry && !composingArmPlays && move != null && move.Move.hand == MoveHand.Main && SkipOffArmWhenDry;
+            if (offArmUnseen)
+            {
+            }
+            else if (loadout != null && loadout.HasShield)
             {
                 PoseShieldArm(loadout, facing);
             }
@@ -1891,6 +1897,9 @@ namespace PhysicsBattler.Motion
             StrikePoint = hand.position + hand.rotation * knuckleLocal;
             AimError = Vector3.Distance(StrikePoint, move.Aim);
         }
+
+        /// <summary>Whether a dry pose of a weapon blow leaves the off arm unposed (the planner's tries; the reports' poses set it false to see the whole body).</summary>
+        public static bool SkipOffArmWhenDry = true;
 
         /// <summary>Which way a jab's elbow points (the chest's frame): down behind the fist, a little out.</summary>
         public static readonly Vector3 JabElbowWay = new Vector3(-0.3f, -1f, 0f);

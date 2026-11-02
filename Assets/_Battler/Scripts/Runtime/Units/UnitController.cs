@@ -545,15 +545,30 @@ namespace PhysicsBattler.Units
         /// negative: they pass through it), and where it comes closest.
         /// </summary>
         public float Clearance(MoveState state, int samples, out PartId closest, out float when, out bool weapon)
+            => Clearance(state, samples, float.MinValue, out closest, out when, out weapon);
+
+        /// <param name="enough">Stop at the first pose clearer than nothing below this (the planner only asks whether a blow passes): float.MinValue to measure them all.</param>
+        public float Clearance(MoveState state, int samples, float enough, out PartId closest, out float when, out bool weapon)
         {
             using (Perf.Begin(PerfSection.Clearance))
             {
-                return ClearanceCore(state, samples, out closest, out when, out weapon);
+                return ClearanceCore(state, samples, enough, out closest, out when, out weapon);
             }
         }
 
-        private float ClearanceCore(MoveState state, int samples, out PartId closest, out float when, out bool weapon)
+        private float ClearanceCore(MoveState state, int samples, float enough, out PartId closest, out float when, out bool weapon)
         {
+            // (The performance pass: a hand-keyed blow's striking part is kept at each pose, so the
+            // posed path the blow lays as it starts takes these instead of posing them again.)
+            bool keep = state.Generated && state.HasContactHand;
+            if (keep)
+            {
+                state.PosedTimes = new float[samples];
+                state.PosedStrikes = new Vector3[samples];
+                state.PosedRoot = transform.position;
+                state.PosedCount = 0;
+            }
+
             float best = float.MaxValue;
             closest = PartId.Chest;
             when = 0f;
@@ -568,6 +583,13 @@ namespace PhysicsBattler.Units
                 try
                 {
                     PoseDry(state, t, true);
+                    if (keep)
+                    {
+                        state.PosedTimes[i] = t;
+                        state.PosedStrikes[i] = Pose.StrikePoint;
+                        state.PosedCount = i + 1;
+                    }
+
                     float c = BodyClearance.Measure(Rig, Anim, length, Loadout.Scale, out var part, out bool blade);
                     if (c < best)
                     {
@@ -575,6 +597,11 @@ namespace PhysicsBattler.Units
                         closest = part;
                         when = t;
                         weapon = blade;
+                    }
+
+                    if (best < enough)
+                    {
+                        break;   // (it fails: no need to see the rest)
                     }
                 }
                 finally

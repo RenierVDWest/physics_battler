@@ -157,6 +157,12 @@ namespace PhysicsBattler.Combat
 
         /// <summary>Where the shoulder was in the planned contact pose (world; for measuring how the played blow differs).</summary>
         public Vector3 ContactShoulder;
+
+        /// <summary>The performance pass: the striking part at the planner's clearance poses (normalized times), and where the body stood, for the posed path to reuse.</summary>
+        public float[] PosedTimes;
+        public Vector3[] PosedStrikes;
+        public Vector3 PosedRoot;
+        public int PosedCount;
         public Vector3 LastRadial;
         public float LastProgress, LastDeviation;
         public bool HasLastRadial;

@@ -88,8 +88,17 @@ namespace PhysicsBattler.Sandbox
 
             JointConventions.EnsureProbed();
             Note("joint probe: " + JointConventions.Report);
+            // (Performance: after a long frame Unity runs as many physics steps as it fell behind, up to
+            // a third of a second's worth (20), and that frame is long in turn: the 20:16 playtest had
+            // hitches followed by frames of 6 and 7 steps. At most this much physics in a frame: past
+            // it, the game slows for a moment instead of freezing longer.)
+            Time.maximumDeltaTime = MaxPhysicsPerFrame;
+            Note($"at most {MaxPhysicsPerFrame * 1000f:0} ms of physics a frame");
             Spawn();
         }
+
+        /// <summary>The most physics time a rendered frame catches up on (seconds): three steps.</summary>
+        public const float MaxPhysicsPerFrame = 0.05f;
 
         private void OnEnable()
         {
