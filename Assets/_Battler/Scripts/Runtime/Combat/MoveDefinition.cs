@@ -12,6 +12,13 @@ namespace PhysicsBattler.Combat
         ClubSmash,
         SwordCleave,
         ClubRising,
+
+        /// <summary>Milestone 10: the club's backhand, the return of a hook.</summary>
+        ClubBackhand,
+
+        /// <summary>Milestone 10: the fan strike (abanico), a short wrist-led arc, forehand and backhand.</summary>
+        ClubFan,
+        ClubFanBackhand,
     }
 
     /// <summary>How a move's path is made.</summary>
@@ -395,6 +402,61 @@ namespace PhysicsBattler.Combat
                     crouchLoad = 0.14f;
                     crouchStrike = 0f;
                     wristLag = 40f;
+                    break;
+
+                case MoveStyle.ClubBackhand:
+                    // Milestone 10: the hook's return. Wound across the body to the left, swung out flat
+                    // through the target and round to the right.
+                    strikeWith = StrikeWith.Head;
+                    backhand = true;
+                    targets = AimParts.Neck | AimParts.Chest | AimParts.Belly | AimParts.Elbows | AimParts.Knees;
+                    planeTilt = 20f;
+                    windUpAngle = 170f;
+                    followAngle = 120f;
+                    through = 0.5f;
+                    pivotSide = -0.05f;
+                    pivotForward = 0.18f;
+                    windUpTime = 0.45f;
+                    holdTime = 0.08f;
+                    strikeTime = 0.3f;
+                    recoveryTime = 0.45f;
+                    turnBack = 90f;
+                    turnThrough = 65f;
+                    leanThrough = 15f;
+                    wristLag = 40f;
+                    break;
+
+                case MoveStyle.ClubFan:
+                case MoveStyle.ClubFanBackhand:
+                    // Milestone 10: the fan strike (abanico). A short arc led by the wrist, from close
+                    // by the shoulder: little wind-up, little body, quick; strung side to side in a
+                    // flurry, at the head and the hands.
+                    strikeWith = StrikeWith.Head;
+                    backhand = style == MoveStyle.ClubFanBackhand;
+                    targets = AimParts.Head | AimParts.Neck | AimParts.Elbows;
+                    planeTilt = backhand ? 20f : 35f;
+                    windUpAngle = 100f;
+                    followAngle = 60f;
+                    guardAngle = 30f;
+                    through = 0.25f;
+                    pivotSide = backhand ? -0.05f : 0.05f;
+                    pivotForward = backhand ? 0.1f : 0.05f;
+                    windUpRadius = 0.45f;
+                    stretchAfter = 20f;
+                    wristLag = 50f;
+                    drawBack = 0.15f;
+                    windUpTime = 0.22f;
+                    holdTime = 0.04f;
+                    strikeTime = 0.2f;   // (the arm keeps up with it: at 0.15 s the backhand's strike outran the arm)
+                    recoveryTime = 0.3f;
+                    turnBack = 30f;
+                    turnThrough = 25f;
+                    leanBack = -3f;
+                    leanThrough = 8f;
+                    crouchLoad = 0.04f;
+                    rockBack = 0.25f;
+                    maxLunge = 0.5f;
+                    hitStop = 0.04f;
                     break;
             }
 

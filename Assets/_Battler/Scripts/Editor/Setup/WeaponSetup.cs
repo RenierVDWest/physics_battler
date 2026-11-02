@@ -61,7 +61,8 @@ namespace PhysicsBattler.Editor.Setup
 
                 var kind = (WeaponKind)Enum.Parse(typeof(WeaponKind), entry.kind);
                 var definition = EnsureWeapon(name, kind, moves);
-                if (swings)
+                // (Setup 20, milestone 10: the club's backhand and fan strikes go on the club.)
+                if (swings || (SetupVersion.Installed >= 10 && SetupVersion.Installed < 20))
                 {
                     AddMoves(definition, moves);
                 }
@@ -139,7 +140,11 @@ namespace PhysicsBattler.Editor.Setup
         {
             return kind == WeaponKind.Sword
                 ? new[] { moves[(int)MoveStyle.SwordCut], moves[(int)MoveStyle.SwordBackhand], moves[(int)MoveStyle.SwordCleave], moves[(int)MoveStyle.SwordThrust] }
-                : new[] { moves[(int)MoveStyle.ClubSwing], moves[(int)MoveStyle.ClubSmash], moves[(int)MoveStyle.ClubRising] };
+                : new[]
+                {
+                    moves[(int)MoveStyle.ClubSwing], moves[(int)MoveStyle.ClubSmash], moves[(int)MoveStyle.ClubRising],
+                    moves[(int)MoveStyle.ClubBackhand], moves[(int)MoveStyle.ClubFan], moves[(int)MoveStyle.ClubFanBackhand],
+                };
         }
 
         /// <summary>The ready-made moves a weapon of its kind should have, added if missing (yours stay).</summary>

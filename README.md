@@ -9,11 +9,47 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 10, combos (chained links from today's moves)
+## Current state: milestone 10, combos (chained links; the club's backhand and fan strikes)
 
 Plan for milestones 7 to 13 (free roam, tempo, combos, defence, dodging, signature attacks):
 https://claude.ai/artifact/4BijSWun94DiWFcjcYCRJp. Milestone 9 (the shield, hands and head, before
 combos; the combat plan's milestones move back by one): https://claude.ai/artifact/HCsdNXmL5zVwV1ep1ta5Gj
+
+### Milestone 10, second part: the club's backhand and fan strikes; fixes from the combo playtest
+
+**New moves** (`MoveDefinition`, Setup 20 makes the assets and puts them on the club): the **club
+backhand** (`ClubBackhand`, the hook's return: wound across to the left, swung flat out through the
+target), and the **fan strike** (abanico, `ClubFan` and `ClubFanBackhand`): a short arc led by the
+wrist from close by the shoulder, little wind-up and little body, at the head, neck and hands, about
+0.45 s from one to the next in a string.
+
+**New strings:** the Large's "hook, backhand, smash" (finisher, Melee Combo Ver. 1) and "2-3-2"
+(keeps hammering); the Small's "banda y banda" (fan forehand and backhand, keeps hammering) and
+"abanico flurry" (four fans side to side and the smash; finisher). Still to come in milestone 10: the
+off-hand jab, the butt strike (punyo) and the shield bash, which need a sweep on the off hand.
+
+**Bodies launched by small movements** (the 06:22 playtest: a body thrown off the board at 100 m/s). A
+Large's smash in a combo drove the club into the floor; the ground clamp lifted it out at once and the
+posed hand jumped 1.3 m in one step; kinematic, the hand slammed the body lying beside it. Now:
+- A kinematic part moves at most 15 m/s and turns at most 1800 degrees a second toward its pose
+  (`AuthorityController.KinematicMostSpeed`; a pose 2.5 m away is a placing, done at once), and a held
+  part's velocity is capped the same. Test: `ArmTests.AKinematicPartNeverSlamsAtThePosesJump`.
+- The ground clamp's lift changes by at most 10 degrees a step (`GroundClamp.Memory`): a buried blow
+  is lifted out over a few steps. The `arms` runner prints the posed hand's travel in a step: the
+  139 cm jump is gone (at most 61-67 cm, a strike's own speed, which the cap above keeps off the body).
+
+**Twisted arms after blows** (the Large's club arm in the playtest): the physical weapon arm trailed its
+fast return to guard by 30 to 80 degrees, its wrist past its limits. It stays posed exactly for 0.4 s
+after a blow (`UnitCombat.WeaponArmHeldAfter`).
+
+**The shield getting up** is held as a guard holds it: the elbow down and out by the ribs, the forearm
+pointing at the threat, the wrist straight; not pointed out at arm's length. The arm fit keeps the elbow
+to its way (`ArmFit`'s elbow term: it had gone up over the shield).
+
+**Measures** (stub): 145 tests pass. `aim`: no misses (32 blows turned down for their own body). Four
+fights: 32-44% of blows in combos, from one striking moment to the next 0.57-0.82 s median, no standing
+bodies overlapping. `combos`: the fan strings throw every link, 0.42-0.45 s apart; the Large's three-link
+strings stop after two (the smash doesn't reach from the backhand's end).
 
 ### Milestone 10: combos
 

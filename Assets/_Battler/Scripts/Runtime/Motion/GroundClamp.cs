@@ -67,7 +67,7 @@ namespace PhysicsBattler.Motion
         }
 
         /// <summary>How much the lift may change in a step (degrees, wrist and shoulder each).</summary>
-        public const float MostChange = 6f;
+        public const float MostChange = 10f;
 
         public static float Keep(AnimRig anim, bool right, WeaponDefinition weapon, float scale, float size, float groundY, float weight = 1f, bool free = false, Memory memory = null)
         {

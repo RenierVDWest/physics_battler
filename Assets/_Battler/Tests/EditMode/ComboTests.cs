@@ -57,7 +57,7 @@ namespace PhysicsBattler.Tests
             UnitController.ComboChanged += OnChange;
             try
             {
-                var combo = System.Array.Find(ComboDefinition.All, c => c.name == comboName);
+                var combo = System.Linq.Enumerable.FirstOrDefault(ComboDefinition.Every, c => c.name == comboName);
                 Assert.IsNotNull(combo, comboName);
                 var first = unit.PlanLink(combo, 0, enemy, new System.Random(1));
                 Assert.IsNotNull(first, $"{comboName}: its first link reaches");
@@ -123,7 +123,7 @@ namespace PhysicsBattler.Tests
         [Test]
         public void EachLinkStartsAtTheLastOnesLinkOutSkippingItsWindUp()
         {
-            foreach (var (body, name) in new[] { ("Medium", "double thrust"), ("Large", "body then head"), ("Small", "rompida") })
+            foreach (var (body, name) in new[] { ("Medium", "double thrust"), ("Large", "body then head"), ("Small", "rompida"), ("Small", "banda y banda"), ("Large", "hook, backhand, smash") })
             {
                 var played = Play(body, name, out var unit, out var enemy);
                 try
@@ -136,7 +136,8 @@ namespace PhysicsBattler.Tests
                         Assert.AreEqual(ComboDefinition.LinkIn(state.Move), startedAt, 0.01f, $"{what}: link {i + 1} starts at its link-in, most of its wind-up skipped");
                         float gap = time - played.starts[i - 1].time;
                         Assert.GreaterOrEqual(gap, 0.3f, $"{what}: link {i + 1} comes {gap:0.00} s after the one before");
-                        Assert.LessOrEqual(gap, 1.0f, $"{what}: link {i + 1} comes {gap:0.00} s after the one before");
+                        // (The first link plays its whole wind-up: a large body's haymaker takes over a second.)
+                        Assert.LessOrEqual(gap, i == 1 ? 1.4f : 1.0f, $"{what}: link {i + 1} comes {gap:0.00} s after the one before");
                     }
 
                     // (A single blow's own start moves the weapon hand about 4 cm more in a step than the

@@ -44,8 +44,10 @@ namespace PhysicsBattler.Editor.Setup
         ///     temperament and stances, bigger postures, the gather and press postures).
         /// 19 = Milestone 9b: closed fists round the weapon grip (new hand meshes and hand colliders);
         ///     the unit prefabs are rebuilt from the new rigs.
+        /// 20 = Milestone 10: the club's backhand and fan strikes (MD_ClubBackhand, MD_ClubFan,
+        ///     MD_ClubFanBackhand) made and put on the club.
         /// </summary>
-        public const int Current = 19;
+        public const int Current = 20;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

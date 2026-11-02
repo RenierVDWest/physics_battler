@@ -120,6 +120,25 @@ namespace PhysicsBattler.Combat
                 },
             },
 
+            new ComboDefinition
+            {
+                name = "hook, backhand, smash", bodies = ComboBodies.Large, reference = "Melee Combo Ver. 1", finisher = true,
+                links = new[]
+                {
+                    new ComboLink(MoveStyle.ClubSwing, AimParts.Head | AimParts.Chest), new ComboLink(MoveStyle.ClubBackhand, AimParts.Chest | AimParts.Neck),
+                    new ComboLink(MoveStyle.ClubSmash, AimParts.Head | AimParts.Chest),
+                },
+            },
+            new ComboDefinition
+            {
+                name = "2-3-2", bodies = ComboBodies.Large, reference = "Boxing 2-3-2", ifBlocked = ComboBlocked.Continue,
+                links = new[]
+                {
+                    new ComboLink(MoveStyle.ClubSwing, AimParts.Head), new ComboLink(MoveStyle.ClubBackhand, AimParts.Belly | AimParts.Chest),
+                    new ComboLink(MoveStyle.ClubSwing, AimParts.Head | AimParts.Neck),
+                },
+            },
+
             // Medium (sword and shield).
             new ComboDefinition
             {
@@ -171,12 +190,49 @@ namespace PhysicsBattler.Combat
             },
         };
 
+        /// <summary>Milestone 10: the strings the club's new backhand and fan strikes make for the small body.</summary>
+        public static readonly ComboDefinition[] SmallFans =
+        {
+            new ComboDefinition
+            {
+                name = "banda y banda", bodies = ComboBodies.Small, reference = "FMA glossary", ifBlocked = ComboBlocked.Continue,
+                links = new[] { new ComboLink(MoveStyle.ClubFan, AimParts.Head | AimParts.ElbowR), new ComboLink(MoveStyle.ClubFanBackhand, AimParts.Head | AimParts.ElbowL) },
+            },
+            new ComboDefinition
+            {
+                name = "abanico flurry", bodies = ComboBodies.Small, reference = "Dual Weapon Combo", ifBlocked = ComboBlocked.Continue, finisher = true,
+                links = new[]
+                {
+                    new ComboLink(MoveStyle.ClubFan, AimParts.Head), new ComboLink(MoveStyle.ClubFanBackhand, AimParts.Elbows),
+                    new ComboLink(MoveStyle.ClubFan, AimParts.Head | AimParts.Neck), new ComboLink(MoveStyle.ClubFanBackhand, AimParts.Elbows | AimParts.Head),
+                    new ComboLink(MoveStyle.ClubSmash, AimParts.Head | AimParts.Chest),
+                },
+            },
+        };
+
+        /// <summary>Every string.</summary>
+        public static IEnumerable<ComboDefinition> Every
+        {
+            get
+            {
+                foreach (var c in All)
+                {
+                    yield return c;
+                }
+
+                foreach (var c in SmallFans)
+                {
+                    yield return c;
+                }
+            }
+        }
+
         /// <summary>The strings a unit of this size with this weapon can throw.</summary>
         public static List<ComboDefinition> For(WeaponDefinition weapon, float sizeFactor)
         {
             var list = new List<ComboDefinition>();
             var body = BodyOf(sizeFactor);
-            foreach (var combo in All)
+            foreach (var combo in Every)
             {
                 if ((combo.bodies & body) != 0 && combo.Fits(weapon))
                 {
@@ -187,7 +243,7 @@ namespace PhysicsBattler.Combat
             // (A weapon with none of its body's strings takes any that fit it.)
             if (list.Count == 0)
             {
-                foreach (var combo in All)
+                foreach (var combo in Every)
                 {
                     if (combo.Fits(weapon))
                     {
