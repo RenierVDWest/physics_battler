@@ -270,10 +270,10 @@ namespace PhysicsBattler.Combat
                     windUp = 120f; contact = 84f; follow = 66f;
                     break;
                 case MoveStyle.SwordBackhand:
-                    windUp = -26f; contact = 57f; follow = 119f;
+                    windUp = -22f; contact = 66f; follow = 123f;
                     break;
                 case MoveStyle.ClubSwing:
-                    windUp = 93f; contact = 138f; follow = 40f;
+                    windUp = 120f; contact = 133f; follow = 38f;
                     break;
                 case MoveStyle.ClubSmash:
                     windUp = 128f; contact = -17f; follow = 126f;
@@ -282,10 +282,10 @@ namespace PhysicsBattler.Combat
                     windUp = -25f; contact = 53f; follow = 130f;
                     break;
                 case MoveStyle.ClubRising:
-                    windUp = -35f; contact = 56f; follow = 0f;
+                    windUp = -41f; contact = 36f; follow = -11f;
                     break;
                 case MoveStyle.ClubBackhand:
-                    windUp = -8f; contact = 78f; follow = 121f;
+                    windUp = -28f; contact = 81f; follow = 130f;
                     break;
                 case MoveStyle.SwordThrust:
                     windUp = 0f; contact = 10f; follow = 10f;
@@ -323,14 +323,14 @@ namespace PhysicsBattler.Combat
                     follow = new Vector3(36f, 41f, -12f);
                     break;
                 case MoveStyle.SwordBackhand:
-                    windUp = new Vector3(49f, 36f, -1f);
-                    contact = new Vector3(52f, 3f, -6f);
-                    follow = new Vector3(80f, -25f, -22f);
+                    windUp = new Vector3(40f, 21f, -12f);
+                    contact = new Vector3(59f, 1f, -2f);
+                    follow = new Vector3(73f, -22f, -17f);
                     break;
                 case MoveStyle.ClubSwing:
-                    windUp = new Vector3(80f, 10f, -17f);
-                    contact = new Vector3(-57f, 22f, -24f);
-                    follow = new Vector3(75f, -4f, 4f);
+                    windUp = new Vector3(70f, 15f, -16f);
+                    contact = new Vector3(-64f, 30f, -7f);
+                    follow = new Vector3(72f, 27f, -7f);
                     break;
                 case MoveStyle.ClubSmash:
                     windUp = new Vector3(45f, 40f, -12f);
@@ -343,14 +343,14 @@ namespace PhysicsBattler.Combat
                     follow = new Vector3(-9f, 23f, 1f);
                     break;
                 case MoveStyle.ClubRising:
-                    windUp = new Vector3(-57f, 9f, -24f);
-                    contact = new Vector3(-2f, 8f, -20f);
-                    follow = new Vector3(-16f, 18f, -9f);
+                    windUp = new Vector3(-50f, 28f, -27f);
+                    contact = new Vector3(14f, 15f, -3f);
+                    follow = new Vector3(-22f, 13f, -15f);
                     break;
                 case MoveStyle.ClubBackhand:
-                    windUp = new Vector3(29f, 16f, -17f);
-                    contact = new Vector3(61f, -3f, -2f);
-                    follow = new Vector3(67f, -16f, -15f);
+                    windUp = new Vector3(50f, 33f, 1f);
+                    contact = new Vector3(64f, -27f, -2f);
+                    follow = new Vector3(70f, -18f, -26f);
                     break;
                 case MoveStyle.SwordThrust:
                     // (Driven home in line: the wrist turned toward the little finger, the blade along
@@ -396,12 +396,12 @@ namespace PhysicsBattler.Combat
                     follow = new Vector3(-0.27f, -0.38f, 0.24f);
                     break;
                 case MoveStyle.SwordBackhand:
-                    windUp = new Vector3(-0.23f, 0.07f, 0.19f);
-                    follow = new Vector3(0.55f, 0.09f, 0.03f);
+                    windUp = new Vector3(-0.23f, 0.08f, 0.22f);
+                    follow = new Vector3(0.55f, 0.03f, -0.02f);
                     break;
                 case MoveStyle.ClubSwing:
-                    windUp = new Vector3(0.27f, 0.38f, -0.3f);
-                    follow = new Vector3(-0.29f, -0.28f, 0.2f);
+                    windUp = new Vector3(0.26f, 0.27f, -0.38f);
+                    follow = new Vector3(-0.41f, -0.27f, 0.23f);
                     break;
                 case MoveStyle.ClubSmash:
                     windUp = new Vector3(0.24f, 0.39f, -0.08f);
@@ -412,12 +412,12 @@ namespace PhysicsBattler.Combat
                     follow = new Vector3(-0.18f, -0.48f, 0.18f);
                     break;
                 case MoveStyle.ClubRising:
-                    windUp = new Vector3(0.19f, -0.47f, -0.11f);
-                    follow = new Vector3(-0.26f, 0.29f, 0.16f);
+                    windUp = new Vector3(0.26f, -0.46f, -0.18f);
+                    follow = new Vector3(-0.18f, 0.34f, 0.16f);
                     break;
                 case MoveStyle.ClubBackhand:
-                    windUp = new Vector3(-0.23f, 0.12f, 0.16f);
-                    follow = new Vector3(0.55f, 0.06f, 0.03f);
+                    windUp = new Vector3(-0.28f, 0.07f, 0.21f);
+                    follow = new Vector3(0.54f, 0.1f, 0.07f);
                     break;
                 case MoveStyle.SwordThrust:
                     // (Chambered by the hip, the forearm and the point toward the target, then driven

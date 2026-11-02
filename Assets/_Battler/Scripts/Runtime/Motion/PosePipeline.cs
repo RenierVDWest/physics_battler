@@ -1047,7 +1047,12 @@ namespace PhysicsBattler.Motion
                 return Vector3.Lerp(a, b, share);
             }
 
-            return shoulder + Vector3.Slerp(da / la, db / lb, share) * Mathf.Lerp(la, lb, share);
+            // (Two ways nearly opposite have no one arc between them, and the arc would swing from one
+            // side of the shoulder to the other as they turn: the farther apart they are past 120°, the
+            // more the hand goes straight across instead, so it never jumps.)
+            Vector3 round = shoulder + Vector3.Slerp(da / la, db / lb, share) * Mathf.Lerp(la, lb, share);
+            float apart = Vector3.Angle(da, db);
+            return apart <= 120f ? round : Vector3.Lerp(round, Vector3.Lerp(a, b, share), Smooth01((apart - 120f) / 40f));
         }
 
         /// <summary>
