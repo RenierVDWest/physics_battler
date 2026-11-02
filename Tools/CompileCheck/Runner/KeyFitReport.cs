@@ -21,12 +21,12 @@ internal static class KeyFitReport
     internal sealed class Metrics
     {
         public bool ok;
-        public Vector3 bladeWindUp, bladeFollow, handWindUpAt, handFollowAt;   // (aim frame: the blade's way, the hand from the shoulder)
-        public float arc, error = 1f, clear = 1f, wrist, shoulder, fastest, contactSpeed, windUpSpeed, depth, comfort;
+        public Vector3 bladeWindUp, bladeFollow, handWindUpAt, handFollowAt, contactWay, bladeContact;   // (aim frame: the blade's way, the hand from the shoulder)
+        public float arc, error = 1f, clear = 1f, wrist, shoulder, fastest, contactSpeed, windUpSpeed, depth, comfort, push;
         public string where = "";
 
         public override string ToString() => ok
-            ? $"arc {arc:0}°, lands {error * 100f:0.0} cm, clear {clear * 100f:0.0} cm, wrist past {wrist:0}, shoulder past {shoulder:0}, fastest {fastest:0}°/step{where}, contact {contactSpeed:0.0} m/s (wind-up {windUpSpeed:0.0}), depth {depth * 100f:0} cm"
+            ? $"arc {arc:0}°, lands {error * 100f:0.0} cm, clear {clear * 100f:0.0} cm, wrist past {wrist:0}, shoulder past {shoulder:0}, fastest {fastest:0}°/step{where}, contact {contactSpeed:0.0} m/s (wind-up {windUpSpeed:0.0}), depth {depth * 100f:0} cm, pushed {push * 100f:0.0} cm"
             : "not planned";
     }
 
@@ -107,6 +107,7 @@ internal static class KeyFitReport
                     m.windUpSpeed = Mathf.Max(m.windUpSpeed, Vector3.Distance(strike, last) * 60f);
                 }
 
+                m.push = Mathf.Max(m.push, a.Pose.HandCleared.magnitude);
                 float c = BodyClearance.Measure(a.Rig, a.Anim, length, a.Loadout.Scale, out _, out _);
                 m.clear = Mathf.Min(m.clear, c);
                 var arm = a.Pose.LastWeaponArm;
@@ -128,6 +129,11 @@ internal static class KeyFitReport
                     was[k] = q;
                 }
 
+                if (state.T >= state.ContactTime && m.bladeContact == Vector3.zero)
+                {
+                    m.bladeContact = Quaternion.Inverse(state.Frame) * (a.Anim.SlotWeaponR.rotation * Vector3.forward);
+                }
+
                 // (The pose at the wind-up's end and the follow-through's end, as the seeds describe them.)
                 foreach (var (t, isWindUp) in new[] { (move.WindUpEnd, true), (move.SwingFollowEnd, false) })
                 {
@@ -145,6 +151,7 @@ internal static class KeyFitReport
             }
 
             m.arc = state.Arc;
+            m.contactWay = Quaternion.Inverse(state.Frame) * state.ContactWay;
             m.contactSpeed = state.ContactSpeed;
             m.depth = state.Depth;
             return m;
@@ -167,6 +174,7 @@ internal static class KeyFitReport
     /// <summary>The designed poses the fit keeps near (none: free).</summary>
     private static bool haveSeeds;
     private static Pose seedWindUp, seedFollow;
+    private static Vector3 seedWay, seedContactBlade;
 
     internal static float Score(List<Metrics> runs, MoveDefinition move, float arcWanted)
     {
@@ -179,7 +187,9 @@ internal static class KeyFitReport
             {
                 if (!r.ok) continue;
                 s -= (3f * Mathf.Max(0f, Vector3.Angle(r.bladeWindUp, seedWindUp.blade) - 25f) + 3f * Mathf.Max(0f, Vector3.Angle(r.bladeFollow, seedFollow.blade) - 25f)
-                      + 600f * Mathf.Max(0f, Vector3.Distance(r.handWindUpAt, seedWindUp.hand) - 0.08f) + 600f * Mathf.Max(0f, Vector3.Distance(r.handFollowAt, seedFollow.hand) - 0.08f)) / runs.Count;
+                      + 600f * Mathf.Max(0f, Vector3.Distance(r.handWindUpAt, seedWindUp.hand) - 0.08f) + 600f * Mathf.Max(0f, Vector3.Distance(r.handFollowAt, seedFollow.hand) - 0.08f)
+                      + (seedWay != Vector3.zero && r.contactWay != Vector3.zero ? 2f * Mathf.Max(0f, Vector3.Angle(r.contactWay, seedWay) - 35f) : 0f)
+                      + (seedContactBlade != Vector3.zero && r.bladeContact != Vector3.zero ? 2f * Mathf.Max(0f, Vector3.Angle(r.bladeContact, seedContactBlade) - 35f) : 0f)) / runs.Count;
             }
         }
 
@@ -199,7 +209,8 @@ internal static class KeyFitReport
                  - 2f * Mathf.Max(0f, r.arc - 330f)
                  - 20f * Mathf.Max(0f, 12f - r.contactSpeed)
                  - 20f * Mathf.Max(0f, 1.3f * r.windUpSpeed - r.contactSpeed)
-                 - 4f * Mathf.Max(0f, 15f - r.depth * 100f);
+                 - 4f * Mathf.Max(0f, 15f - r.depth * 100f)
+                 - 10f * Mathf.Max(0f, r.push * 100f - 1f);   // (keys that keep off the body, not pushed off it)
         }
 
         // (Elbows kept to where people hold them: hanging, out or up for a forehand, across for a
@@ -360,6 +371,22 @@ internal static class KeyFitReport
         public Pose(Vector3 hand, float elbow, Vector3 blade) { this.hand = hand; this.elbow = elbow; this.blade = blade; }
     }
 
+    /// <summary>The way the striking part goes through the striking moment, as designed (aim frame).</summary>
+    private static Vector3 SeedWay(MoveStyle style)
+    {
+        switch (style)
+        {
+            case MoveStyle.SwordCut:
+            case MoveStyle.ClubSwing: return new Vector3(-1f, -0.3f, 0f);
+            case MoveStyle.SwordCleave:
+            case MoveStyle.ClubSmash: return new Vector3(-0.1f, -1f, 0.1f);
+            case MoveStyle.ClubRising: return new Vector3(-0.3f, 1f, 0f);
+            case MoveStyle.SwordBackhand:
+            case MoveStyle.ClubBackhand: return new Vector3(1f, -0.2f, 0f);
+            default: return Vector3.zero;
+        }
+    }
+
     private static bool Seeds(MoveStyle style, out Pose windUp, out Pose follow)
     {
         switch (style)
@@ -424,6 +451,10 @@ internal static class KeyFitReport
 
             seedWindUp = windUp;
             seedFollow = follow;
+            var styleNow = (MoveStyle)Enum.Parse(typeof(MoveStyle), move.name.Replace("MD_", ""));
+            seedWay = SeedWay(styleNow).normalized;
+            // (An overhead blow lands with the weapon reaching on from the arm, forward and down.)
+            seedContactBlade = styleNow == MoveStyle.ClubSmash || styleNow == MoveStyle.SwordCleave ? new Vector3(0f, -0.3f, 1f).normalized : Vector3.zero;
             haveSeeds = true;
             foreach (var (pose, t, isWindUp) in new[] { (windUp, move.WindUpEnd, true), (follow, move.SwingFollowEnd, false) })
             {

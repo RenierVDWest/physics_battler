@@ -65,6 +65,11 @@ internal static class Program
             return LookReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "feint")
+        {
+            return FeintReport.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "combopop")
         {
             return ComboPopReport.Run();

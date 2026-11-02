@@ -1093,9 +1093,18 @@ namespace PhysicsBattler.Motion
                 return torso.Soft(anim.Part(PartId.UpperArmR).position, anim.Part(PartId.ForearmR).position, anim.Part(PartId.HandR).position, slot.position, tip, ClearSoftness * body.SizeFactor);
             }
 
+            // (Every step a smooth function of where the hand is: how far to go eases in from nothing
+            // as the clearance runs short (a soft plus over a centimetre), never stepping in at a
+            // threshold; and the same few steps every time, not as many as it takes.)
             Vector3 p = goal.point;
+            float soft = ClearEase * body.SizeFactor;
             float c = Clearance(p);
-            for (int i = 0; i < ClearSteps && c < clear; i++)
+            if (c > clear + 6f * soft)
+            {
+                return p;   // (well clear: nothing to ease, the push is nil to a hair)
+            }
+
+            for (int i = 0; i < ClearSteps; i++)
             {
                 const float h = 0.01f;
                 var slope = new Vector3(Clearance(p + Vector3.right * h) - c, Clearance(p + Vector3.up * h) - c, Clearance(p + Vector3.forward * h) - c) / h;
@@ -1104,8 +1113,9 @@ namespace PhysicsBattler.Motion
                     break;
                 }
 
-                // (A little past the clearance asked: the slope is only the nearest piece's.)
-                Vector3 step = slope * ((clear - c + 0.005f) / slope.sqrMagnitude);
+                float x = (clear - c) / soft;
+                float short_ = soft * (x > 20f ? x : Mathf.Log(1f + Mathf.Exp(x)));
+                Vector3 step = slope * (short_ / slope.sqrMagnitude);
                 p += Vector3.ClampMagnitude(step, ClearStepMost * body.SizeFactor);
                 c = Clearance(p);
             }
@@ -1116,8 +1126,11 @@ namespace PhysicsBattler.Motion
         /// <summary>How softly <see cref="ClearOfTorso"/> blends the nearest pieces of the arm and blade (metres, a medium body's).</summary>
         private const float ClearSoftness = 0.008f;
 
-        /// <summary>How many steps <see cref="ClearOfTorso"/> takes at most, and how far one may move the hand (metres, a medium body's).</summary>
-        private const int ClearSteps = 4;
+        /// <summary>Over how much shortfall <see cref="ClearOfTorso"/>'s push eases in (metres, a medium body's).</summary>
+        private const float ClearEase = 0.006f;
+
+        /// <summary>How many steps <see cref="ClearOfTorso"/> takes, and how far one may move the hand (metres, a medium body's).</summary>
+        private const int ClearSteps = 3;
         private const float ClearStepMost = 0.08f;
 
         /// <summary>

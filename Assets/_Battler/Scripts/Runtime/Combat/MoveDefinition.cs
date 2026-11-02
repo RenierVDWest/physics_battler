@@ -262,28 +262,30 @@ namespace PhysicsBattler.Combat
         {
             switch (style)
             {
-                // (The arm rebuild: fitted by Tools/CompileCheck's keyfit from designed seeds, scored on
-                // the arc, landing, clearance, wrist limits and speed through contact; then looked at.)
+                // (The arm rebuild: posed as designed (keyfit's seeds: where the hand, the elbow and the
+                // blade are at the wind-up and follow-through), then fitted near that by
+                // Tools/CompileCheck's keyfit for the arc, landing, clearance, wrist limits and speed
+                // through contact, and looked at in armfilm's stick figures.)
                 case MoveStyle.SwordCut:
-                    windUp = 108f; contact = 120f; follow = 89f;
+                    windUp = 120f; contact = 84f; follow = 66f;
                     break;
                 case MoveStyle.SwordBackhand:
-                    windUp = -116f; contact = 57f; follow = 105f;
+                    windUp = -26f; contact = 57f; follow = 119f;
                     break;
                 case MoveStyle.ClubSwing:
-                    windUp = 71f; contact = 87f; follow = -119f;
+                    windUp = 93f; contact = 138f; follow = 40f;
                     break;
                 case MoveStyle.ClubSmash:
-                    windUp = 69f; contact = 21f; follow = 14f;
+                    windUp = 128f; contact = -17f; follow = 126f;
                     break;
                 case MoveStyle.SwordCleave:
-                    windUp = 161f; contact = 74f; follow = 157f;
+                    windUp = -25f; contact = 53f; follow = 130f;
                     break;
                 case MoveStyle.ClubRising:
-                    windUp = 45f; contact = 56f; follow = 2f;
+                    windUp = -35f; contact = 56f; follow = 0f;
                     break;
                 case MoveStyle.ClubBackhand:
-                    windUp = -116f; contact = 39f; follow = 80f;
+                    windUp = -8f; contact = 78f; follow = 121f;
                     break;
                 case MoveStyle.SwordThrust:
                     windUp = 0f; contact = 10f; follow = 10f;
@@ -311,42 +313,44 @@ namespace PhysicsBattler.Combat
         {
             switch (style)
             {
-                // (The arm rebuild: fitted by Tools/CompileCheck's keyfit from designed seeds, scored on
-                // the arc, landing, clearance, wrist limits and speed through contact; then looked at.)
+                // (The arm rebuild: posed as designed (keyfit's seeds: where the hand, the elbow and the
+                // blade are at the wind-up and follow-through), then fitted near that by
+                // Tools/CompileCheck's keyfit for the arc, landing, clearance, wrist limits and speed
+                // through contact, and looked at in armfilm's stick figures.)
                 case MoveStyle.SwordCut:
-                    windUp = new Vector3(41f, -4f, -5f);
-                    contact = new Vector3(58f, -17f, -12f);
-                    follow = new Vector3(-28f, -26f, 4f);
+                    windUp = new Vector3(45f, 12f, -29f);
+                    contact = new Vector3(77f, -10f, -17f);
+                    follow = new Vector3(36f, 41f, -12f);
                     break;
                 case MoveStyle.SwordBackhand:
-                    windUp = new Vector3(-23f, 36f, -6f);
-                    contact = new Vector3(56f, 21f, -5f);
-                    follow = new Vector3(13f, -16f, -10f);
+                    windUp = new Vector3(49f, 36f, -1f);
+                    contact = new Vector3(52f, 3f, -6f);
+                    follow = new Vector3(80f, -25f, -22f);
                     break;
                 case MoveStyle.ClubSwing:
-                    windUp = new Vector3(18f, -13f, 8f);
-                    contact = new Vector3(-10f, 16f, -18f);
-                    follow = new Vector3(65f, -28f, 6f);
+                    windUp = new Vector3(80f, 10f, -17f);
+                    contact = new Vector3(-57f, 22f, -24f);
+                    follow = new Vector3(75f, -4f, 4f);
                     break;
                 case MoveStyle.ClubSmash:
-                    windUp = new Vector3(62f, 54f, 5f);
-                    contact = new Vector3(14f, -26f, -23f);
-                    follow = new Vector3(43f, 29f, -22f);
+                    windUp = new Vector3(45f, 40f, -12f);
+                    contact = new Vector3(11f, -6f, -25f);
+                    follow = new Vector3(7f, 43f, -13f);
                     break;
                 case MoveStyle.SwordCleave:
-                    windUp = new Vector3(42f, -3f, -15f);
-                    contact = new Vector3(42f, 26f, -17f);
-                    follow = new Vector3(80f, 30f, -12f);
+                    windUp = new Vector3(-55f, -60f, 0f);
+                    contact = new Vector3(21f, 4f, -12f);
+                    follow = new Vector3(-9f, 23f, 1f);
                     break;
                 case MoveStyle.ClubRising:
-                    windUp = new Vector3(-7f, 9f, -9f);
-                    contact = new Vector3(-18f, -2f, -10f);
-                    follow = new Vector3(-49f, -31f, -11f);
+                    windUp = new Vector3(-57f, 9f, -24f);
+                    contact = new Vector3(-2f, 8f, -20f);
+                    follow = new Vector3(-16f, 18f, -9f);
                     break;
                 case MoveStyle.ClubBackhand:
-                    windUp = new Vector3(-14f, 28f, -18f);
-                    contact = new Vector3(75f, 21f, 3f);
-                    follow = new Vector3(38f, -17f, -4f);
+                    windUp = new Vector3(29f, 16f, -17f);
+                    contact = new Vector3(61f, -3f, -2f);
+                    follow = new Vector3(67f, -16f, -15f);
                     break;
                 case MoveStyle.SwordThrust:
                     // (Driven home in line: the wrist turned toward the little finger, the blade along
@@ -383,35 +387,37 @@ namespace PhysicsBattler.Combat
         {
             switch (style)
             {
-                // (The arm rebuild: fitted by Tools/CompileCheck's keyfit from designed seeds, scored on
-                // the arc, landing, clearance, wrist limits and speed through contact; then looked at.)
+                // (The arm rebuild: posed as designed (keyfit's seeds: where the hand, the elbow and the
+                // blade are at the wind-up and follow-through), then fitted near that by
+                // Tools/CompileCheck's keyfit for the arc, landing, clearance, wrist limits and speed
+                // through contact, and looked at in armfilm's stick figures.)
                 case MoveStyle.SwordCut:
-                    windUp = new Vector3(0.54f, 0.04f, 0.10f);
-                    follow = new Vector3(-0.35f, -0.15f, 0f);
+                    windUp = new Vector3(0.3f, 0.32f, -0.31f);
+                    follow = new Vector3(-0.27f, -0.38f, 0.24f);
                     break;
                 case MoveStyle.SwordBackhand:
-                    windUp = new Vector3(-0.25f, 0.29f, 0.33f);
-                    follow = new Vector3(0.35f, 0.34f, -0.26f);
+                    windUp = new Vector3(-0.23f, 0.07f, 0.19f);
+                    follow = new Vector3(0.55f, 0.09f, 0.03f);
                     break;
                 case MoveStyle.ClubSwing:
-                    windUp = new Vector3(0.26f, -0.06f, -0.48f);
-                    follow = new Vector3(-0.52f, -0.13f, 0.12f);
+                    windUp = new Vector3(0.27f, 0.38f, -0.3f);
+                    follow = new Vector3(-0.29f, -0.28f, 0.2f);
                     break;
                 case MoveStyle.ClubSmash:
-                    windUp = new Vector3(0.10f, 0.16f, -0.02f);
-                    follow = new Vector3(-0.28f, -0.45f, 0.01f);
+                    windUp = new Vector3(0.24f, 0.39f, -0.08f);
+                    follow = new Vector3(-0.22f, -0.45f, 0.23f);
                     break;
                 case MoveStyle.SwordCleave:
-                    windUp = new Vector3(0.18f, 0.02f, -0.12f);
-                    follow = new Vector3(-0.41f, -0.31f, 0.16f);
+                    windUp = new Vector3(0.08f, 0.32f, -0.08f);
+                    follow = new Vector3(-0.18f, -0.48f, 0.18f);
                     break;
                 case MoveStyle.ClubRising:
-                    windUp = new Vector3(0.46f, -0.23f, 0.01f);
-                    follow = new Vector3(0.07f, 0.22f, -0.05f);
+                    windUp = new Vector3(0.19f, -0.47f, -0.11f);
+                    follow = new Vector3(-0.26f, 0.29f, 0.16f);
                     break;
                 case MoveStyle.ClubBackhand:
-                    windUp = new Vector3(-0.36f, 0.17f, 0.36f);
-                    follow = new Vector3(0.35f, 0.26f, -0.28f);
+                    windUp = new Vector3(-0.23f, 0.12f, 0.16f);
+                    follow = new Vector3(0.55f, 0.06f, 0.03f);
                     break;
                 case MoveStyle.SwordThrust:
                     // (Chambered by the hip, the forearm and the point toward the target, then driven
