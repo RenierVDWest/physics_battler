@@ -84,6 +84,7 @@ namespace PhysicsBattler.Combat
             {
                 case StrikeWith.Head: return 0.9f;
                 case StrikeWith.Fist: return 0.8f;   // (a punch is all weight behind a small face)
+                case StrikeWith.Face: return 1f;     // (a bash is a shove: all of it goes in)
                 case StrikeWith.Tip: return 0.45f;
                 default: return 0.55f;
             }
@@ -139,6 +140,9 @@ namespace PhysicsBattler.Combat
         /// Resolves one contact. <paramref name="momentumFactor"/> is what is left of the swing after
         /// bowling through earlier bodies (1 for the first).
         /// </summary>
+        /// <summary>Milestone 10: what a shield bash hurts (at the reference speed), a shield's own damage being none.</summary>
+        public const float ShieldBashDamage = 4f;
+
         public static HitResult Resolve(WeaponDefinition weapon, StrikeWith with, float weaponScale, float speed, Vector3 direction,
             float attackerMass, float struckMass, PartId part, bool shield, float momentumFactor,
             float health, float poise, float maxPoise)
@@ -152,6 +156,10 @@ namespace PhysicsBattler.Combat
 
             float speedFactor = speed / ReferenceSpeed;
             float baseDamage = weapon != null ? weapon.damage : 10f;
+            if (with == StrikeWith.Face && baseDamage <= 0f)
+            {
+                baseDamage = ShieldBashDamage;   // (milestone 10: a shield has no damage of its own; its bash hurts a little and shoves a lot)
+            }
             if (shield)
             {
                 r.Blocked = true;

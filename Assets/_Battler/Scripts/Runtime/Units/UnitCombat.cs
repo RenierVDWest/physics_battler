@@ -608,6 +608,19 @@ namespace PhysicsBattler.Units
                 return false;
             }
 
+            if (move.Move.hand == MoveHand.Off && weapon.IsShield)
+            {
+                // (Milestone 10: a bash: the shield from its grip out to the middle of its face.)
+                if (OffWeapon == null)
+                {
+                    return false;
+                }
+
+                grip = OffWeapon.PhysicalPoint(Vector3.zero);
+                tip = strike = OffWeapon.PhysicalPoint(weapon.faceCenter);
+                return true;
+            }
+
             if (move.Move.hand == MoveHand.Off && weapon.kind == WeaponKind.Fist)
             {
                 if (Rig.IsSevered(PartId.HandL))
@@ -668,7 +681,8 @@ namespace PhysicsBattler.Units
             }
 
             Vector3 direction = strike - lastS;
-            float radius = Mathf.Max(0.01f, weapon.sweepRadius * Loadout.Scale);
+            // (A shield's bash sweeps most of its face.)
+            float radius = Mathf.Max(0.01f, (move.Move.strikeWith == StrikeWith.Face ? 0.7f * weapon.radius : weapon.sweepRadius) * Loadout.Scale);
             float travel = Mathf.Max(Vector3.Distance(grip, lastG), Vector3.Distance(tip, lastT));
             int samples = Mathf.Clamp(Mathf.CeilToInt(travel / (1.5f * radius)), 1, 10);
             var found = new List<(UnitController unit, BodyPart part, Weapon shield, Collider collider, float order)>();

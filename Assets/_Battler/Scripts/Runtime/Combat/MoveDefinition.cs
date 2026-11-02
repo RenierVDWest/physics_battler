@@ -22,6 +22,9 @@ namespace PhysicsBattler.Combat
 
         /// <summary>Milestone 10: the lead hand's jab, a bare fist straight out and back.</summary>
         OffJab,
+
+        /// <summary>Milestone 10: the shield bash, the shield's face driven into the target and back.</summary>
+        ShieldBash,
     }
 
     /// <summary>Milestone 10: which hand throws a blow.</summary>
@@ -823,6 +826,38 @@ namespace PhysicsBattler.Combat
                     drive = 0.15f;
                     maxLunge = 0.35f;
                     hitStop = 0.04f;
+                    elbowWindUp = elbowContact = elbowFollow = 0f;
+                    break;
+
+                case MoveStyle.ShieldBash:
+                    // Milestone 10: the shield bash. The shield drawn in a little, then driven straight
+                    // out at the target's chest or head, face first, the body stepping in behind it and
+                    // the lead shoulder turning in; a shove more than a blow, to break a guard or a
+                    // stance. (The shield's way is the off hand's own, OffHandPath, as the jab's.)
+                    hand = MoveHand.Off;
+                    shape = MoveShape.Thrust;
+                    strikeWith = StrikeWith.Face;
+                    targets = AimParts.Head | AimParts.Chest | AimParts.Belly;
+                    through = 0.12f;
+                    drawBack = 0.08f;
+                    pivotSide = -0.2f;
+                    pivotUp = 0.1f;
+                    windUpTime = 0.18f;
+                    holdTime = 0.04f;
+                    strikeTime = 0.14f;
+                    accelShare = 0.5f;
+                    recoveryTime = 0.3f;
+                    turnBack = -8f;
+                    turnThrough = -25f;
+                    leanBack = -3f;
+                    leanThrough = 14f;
+                    crouchLoad = 0.06f;
+                    crouchStrike = 0.03f;
+                    rockBack = 0.3f;
+                    drive = 0.3f;
+                    passingStep = false;
+                    maxLunge = 0.45f;
+                    hitStop = 0.06f;
                     elbowWindUp = elbowContact = elbowFollow = 0f;
                     break;
             }

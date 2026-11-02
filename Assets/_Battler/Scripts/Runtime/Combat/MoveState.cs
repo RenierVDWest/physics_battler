@@ -14,6 +14,9 @@ namespace PhysicsBattler.Combat
 
         public bool HasShield => Off != null && Off.IsShield;
 
+        /// <summary>Milestone 10: the off hand's blows (<see cref="WeaponDefinition.MovesOf"/>).</summary>
+        public MoveDefinition[] OffHandMoves => WeaponDefinition.MovesOf(OffHand);
+
         /// <summary>Milestone 10: what the off hand strikes with: what it holds, or its bare fist (<see cref="WeaponDefinition.BareFist"/>).</summary>
         public WeaponDefinition OffHand => Off != null ? Off : WeaponDefinition.BareFist;
 

@@ -26,6 +26,9 @@ namespace PhysicsBattler.Combat
 
         /// <summary>Milestone 10: the knuckles of a bare fist (the hand's own frame, not a weapon's).</summary>
         Fist,
+
+        /// <summary>Milestone 10: the middle of a shield's face (a bash).</summary>
+        Face,
     }
 
     /// <summary>
@@ -96,6 +99,39 @@ namespace PhysicsBattler.Combat
         public static float DefaultGripRoll(WeaponKind kind) => kind == WeaponKind.Club ? 30f : kind == WeaponKind.Shield ? 0f : 10f;
 
         private static WeaponDefinition bareFist;
+        private static MoveDefinition[] shieldMoves;
+
+        /// <summary>
+        /// Milestone 10: the blows a weapon gives the hand that holds it: its own moves, or, for a bare
+        /// fist and a shield with none set (the shield assets have none), the ones made in code: the
+        /// jab, the shield bash.
+        /// </summary>
+        public static MoveDefinition[] MovesOf(WeaponDefinition weapon)
+        {
+            if (weapon == null)
+            {
+                return new MoveDefinition[0];
+            }
+
+            if (weapon.moves != null && weapon.moves.Length > 0)
+            {
+                return weapon.moves;
+            }
+
+            if (weapon.IsShield)
+            {
+                if (shieldMoves == null)
+                {
+                    var bash = MoveDefinition.Create(MoveStyle.ShieldBash);
+                    bash.hideFlags = HideFlags.DontSave;
+                    shieldMoves = new[] { bash };
+                }
+
+                return shieldMoves;
+            }
+
+            return weapon.moves ?? new MoveDefinition[0];
+        }
 
         /// <summary>
         /// Milestone 10: the bare off hand as a weapon: its fist, with the blows a bare hand throws

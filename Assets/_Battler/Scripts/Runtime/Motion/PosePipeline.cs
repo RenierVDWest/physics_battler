@@ -592,6 +592,7 @@ namespace PhysicsBattler.Motion
             else if (loadout != null && loadout.HasShield)
             {
                 PoseShieldArm(loadout, facing);
+                PoseBash(loadout, facing);
             }
             else if (loadout == null || loadout.Off == null)
             {
@@ -1849,17 +1850,55 @@ namespace PhysicsBattler.Motion
                 return;
             }
 
+            PoseOffHandBlow(move, facing, OffHandPath.KnuckleLocal(anim, body.SizeFactor), JabElbowWay);
+        }
+
+        /// <summary>
+        /// Milestone 10: the shield bash, as the jab: the shield's face from its guard a little back,
+        /// then straight to the aim point and through, and back; the face turned to meet the way it
+        /// goes. The shield's own place for the block and the eyes follows it.
+        /// </summary>
+        private void PoseBash(Loadout loadout, Quaternion facing)
+        {
+            var move = Move;
+            if (move == null || move.Move.hand != MoveHand.Off || move.Weapon == null || !move.Weapon.IsShield || loadout?.Off == null)
+            {
+                return;
+            }
+
+            var shield = loadout.Off;
+            if (PoseOffHandBlow(move, facing, OffHandPath.StrikeLocal(anim, shield, loadout.Scale, body.SizeFactor), BashElbowWay))
+            {
+                var slot = anim.SlotWeaponL;
+                ShieldCenter = slot.position + slot.rotation * (shield.faceCenter * loadout.Scale);
+                ShieldFace = slot.rotation * Vector3.forward;
+            }
+        }
+
+        /// <summary>Which way a shield bash's elbow points (the chest's frame): down and out, behind the shield.</summary>
+        public static readonly Vector3 BashElbowWay = new Vector3(-0.35f, -1f, -0.35f);
+
+        /// <summary>
+        /// An off-hand blow's arm (milestone 10): the striking part (<paramref name="strikeLocal"/>, in
+        /// the hand's frame) from where the guard holds it a little back, then straight to the aim
+        /// point and a little through it, and straight back, through the move's keys at its pace; the
+        /// hand turned to lead with it (a fist palm down, a shield face first). On the arm rig. False
+        /// if there is no blow to pose.
+        /// </summary>
+        private bool PoseOffHandBlow(MoveState move, Quaternion facing, Vector3 strikeLocal, Vector3 elbowWay)
+        {
+
             float blend = move.Blend;
             if (blend <= 0f)
             {
-                return;
+                return false;
             }
 
             float size = body.SizeFactor;
             var hand = anim.Part(PartId.HandL);
             var wristFrame = ArmRig.WristFrame(anim, false);
             Vector3 alongL = wristFrame * Vector3.right, thumbL = wristFrame * Vector3.up;
-            Vector3 knuckleLocal = OffHandPath.KnuckleLocal(anim, size);
+            Vector3 knuckleLocal = strikeLocal;
             Vector3 guardKnuckles = hand.position + hand.rotation * knuckleLocal;
             Quaternion guardTurn = hand.rotation;
             Vector3 punch = move.Aim - guardKnuckles;
@@ -1881,7 +1920,17 @@ namespace PhysicsBattler.Motion
                 thumbWant = facing * Vector3.right;
             }
 
-            Quaternion jabTurn = Quaternion.LookRotation(punch, thumbWant) * Quaternion.Inverse(Quaternion.LookRotation(alongL, thumbL));
+            Quaternion jabTurn;
+            if (move.Weapon.IsShield && anim.SlotWeaponL != null)
+            {
+                // (A shield: its face turned from the guard's to meet the way it goes.)
+                Vector3 faceNow = guardTurn * (anim.SlotWeaponL.localRotation * Vector3.forward);
+                jabTurn = Quaternion.FromToRotation(faceNow, punch) * guardTurn;
+            }
+            else
+            {
+                jabTurn = Quaternion.LookRotation(punch, thumbWant) * Quaternion.Inverse(Quaternion.LookRotation(alongL, thumbL));
+            }
             var chestPart = anim.Part(PartId.Chest);
             Vector3 chestForward = Vector3.ProjectOnPlane(chestPart.rotation * Vector3.forward, Vector3.up);
             var chestTurn = Quaternion.LookRotation(chestForward.sqrMagnitude > 1e-6f ? chestForward : facing * Vector3.forward, Vector3.up);
@@ -1891,11 +1940,12 @@ namespace PhysicsBattler.Motion
                 pointInHand = knuckleLocal,
                 handTurn = Quaternion.Slerp(guardTurn, jabTurn, out_),
                 turnWeight = 1f,
-                elbowSwivel = ArmRig.SwivelToward(anim, false, at, chestTurn * JabElbowWay),
+                elbowSwivel = ArmRig.SwivelToward(anim, false, at, chestTurn * elbowWay),
                 nearNull = true,
             });
             StrikePoint = hand.position + hand.rotation * knuckleLocal;
             AimError = Vector3.Distance(StrikePoint, move.Aim);
+            return true;
         }
 
         /// <summary>Whether a dry pose of a weapon blow leaves the off arm unposed (the planner's tries; the reports' poses set it false to see the whole body).</summary>

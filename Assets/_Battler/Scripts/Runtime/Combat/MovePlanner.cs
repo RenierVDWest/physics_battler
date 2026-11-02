@@ -240,10 +240,9 @@ namespace PhysicsBattler.Combat
 
             // (Milestone 10: and the off hand's blows, the jab with a bare lead hand.)
             var moves = new List<MoveDefinition>(weapon.moves);
-            var offHand = attacker.Loadout.OffHand;
-            if (offHand != null && offHand.moves != null && !attacker.Rig.IsSevered(PartId.HandL))
+            if (!attacker.Rig.IsSevered(PartId.HandL))
             {
-                foreach (var m in offHand.moves)
+                foreach (var m in attacker.Loadout.OffHandMoves)
                 {
                     if (m != null && m.hand == MoveHand.Off)
                     {

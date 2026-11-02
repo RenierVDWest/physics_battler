@@ -554,6 +554,81 @@ namespace PhysicsBattler.Tests
             }
         }
 
+        /// <summary>
+        /// Milestone 10: a shield bearer bashes with its shield. Close in, the planner finds the bash
+        /// (the shield's own blow), it lands where it was aimed in the dry run, and played it strikes
+        /// the target with the shield's face, shoving more than it hurts, the sword arm keeping its
+        /// guard.
+        /// </summary>
+        [Test]
+        public void AShieldBearerBashesWithItsShield()
+        {
+            var attacker = Build("Medium", Vector3.zero, 0f, 0);
+            var target = Build("Medium", Vector3.forward * 5f, 180f, 1);
+            var shield = WeaponDefinition.CreateDefault(WeaponKind.Shield);
+            attacker.Equip(Sword(), shield);
+            var bash = WeaponDefinition.MovesOf(shield)[0];
+            Assert.AreEqual(MoveHand.Off, bash.hand);
+            Assert.AreEqual(StrikeWith.Face, bash.strikeWith);
+            var everyone = new[] { attacker, target };
+            try
+            {
+                MoveState state = null;
+                float at = 0f;
+                for (float d = 0.6f; d <= 1.6f && state == null; d += 0.1f)
+                {
+                    target.Place(Vector3.forward * d * attacker.Body.SizeFactor, 180f);
+                    Step(everyone, 20);
+                    foreach (var part in new[] { AimPart.Chest, AimPart.Head, AimPart.Belly })
+                    {
+                        var s = state == null ? MovePlanner.Prepare(attacker, target, bash, part) : null;
+                        if (s != null && MovePlanner.Acceptable(attacker, s))
+                        {
+                            state = s;
+                            at = d;
+                        }
+                    }
+                }
+
+                Assert.IsNotNull(state, "close in, the bash can be thrown and lands");
+                Assert.IsTrue(ReferenceEquals(shield, state.Weapon), "with the shield");
+                Assert.Less(attacker.TryOut(state), MovePlanner.Tolerance, $"the shield's face reaches the aim point at contact (from {at:0.0} body sizes)");
+
+                HitReport first = null;
+                void OnHit(HitReport h)
+                {
+                    if (first == null && h.Attacker == attacker)
+                    {
+                        first = h;
+                    }
+                }
+
+                UnitController.Hit += OnHit;
+                try
+                {
+                    Assert.IsTrue(attacker.StartMove(state));
+                    for (int i = 0; i < 150 && attacker.IsAttacking; i++)
+                    {
+                        Step(everyone);
+                    }
+                }
+                finally
+                {
+                    UnitController.Hit -= OnHit;
+                }
+
+                Assert.IsNotNull(first, "the bash lands");
+                Assert.IsTrue(first.Struck == target, $"the target is struck ({first.Struck?.name})");
+                Assert.IsTrue(ReferenceEquals(shield, first.Move.Weapon), "struck with the shield");
+                Assert.Greater(first.Result.Damage, 0f, "it hurts a little");
+                Assert.Greater(first.Result.PoiseDamage, first.Result.Damage, "and shoves more than it hurts");
+            }
+            finally
+            {
+                Destroy(everyone);
+            }
+        }
+
         /// <summary>Two units can't stand in the same place: placed together, they push apart.</summary>
         [Test]
         public void BodiesDontShareSpace()

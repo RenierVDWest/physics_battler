@@ -40,7 +40,7 @@ namespace PhysicsBattler.Combat
             Vector3 shoulderLocal = Quaternion.Euler(0f, move.TurnAt(contact), 0f) * aboutSpine;
             Vector3 toAim = aim - (root + face * shoulderLocal);
 
-            float arm = ArmLength(anim) + KnuckleReach(anim, size);
+            float arm = ArmLength(anim) + StrikeLocal(anim, weapon, attacker.Loadout.Scale, size).magnitude;
             float reach = ReachShare * arm;
             float rise = toAim.y;
             float side = Vector3.Dot(toAim, face * Vector3.right);
@@ -79,6 +79,21 @@ namespace PhysicsBattler.Combat
 
         /// <summary>The off arm's length, shoulder to wrist.</summary>
         public static float ArmLength(AnimRig anim) => anim.RestLocalPosition(PartId.ForearmL).magnitude + anim.RestLocalPosition(PartId.HandL).magnitude;
+
+        /// <summary>
+        /// What strikes in an off-hand blow, in the off hand's own frame: a bare fist's knuckles, a
+        /// shield's face (the middle of it).
+        /// </summary>
+        public static Vector3 StrikeLocal(AnimRig anim, WeaponDefinition weapon, float scale, float size)
+        {
+            if (weapon != null && weapon.IsShield && anim.SlotWeaponL != null)
+            {
+                var slot = anim.SlotWeaponL;
+                return slot.localPosition + slot.localRotation * (weapon.faceCenter * scale);
+            }
+
+            return KnuckleLocal(anim, size);
+        }
 
         /// <summary>The knuckles in the off hand's own frame (along the forearm's line, past the grip).</summary>
         public static Vector3 KnuckleLocal(AnimRig anim, float size) =>
