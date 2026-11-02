@@ -257,14 +257,36 @@ namespace PhysicsBattler.Motion
         /// <summary>A blow is coming at it (one from a unit pressing counts for more).</summary>
         public void NoteIncoming(bool fromPress)
         {
-            Pressure += fromPress ? 0.4f : 0.15f;
+            Pressure = Mathf.Min(MostPressure, Pressure + (fromPress ? 0.4f : 0.15f));
             lastIncoming = time;
         }
+
+        /// <summary>
+        /// Milestone 11: an enemy is pressing it, close in: the pressure builds while the press lasts
+        /// (it sees the barrage coming), and doesn't fade until it is over.
+        /// </summary>
+        public void NotePressed(float dt)
+        {
+            // (Enough to shell it up, no more: the blows themselves take it further.)
+            float cap = PressedCap * Temperament.composure;
+            if (Pressure < cap)
+            {
+                Pressure = Mathf.Min(cap, Pressure + PressedRate * dt);
+            }
+
+            lastIncoming = Mathf.Max(lastIncoming, time - 0.5f * QuietTime);
+        }
+
+        /// <summary>Milestone 11: pressure a second while an enemy presses it.</summary>
+        public const float PressedRate = 0.35f;
+
+        /// <summary>Milestone 11: a press alone takes the pressure to this share of its composure at most; and nothing takes it past <see cref="MostPressure"/>.</summary>
+        public const float PressedCap = 1.1f, MostPressure = 3f;
 
         /// <summary>It was struck (the share of its poise the blow took).</summary>
         public void NoteHit(float poiseShare)
         {
-            Pressure += 0.5f * Mathf.Clamp01(poiseShare);
+            Pressure = Mathf.Min(MostPressure, Pressure + 0.5f * Mathf.Clamp01(poiseShare));
             lastIncoming = time;
             if (State == TempoState.Press && poiseShare > 0.35f)
             {
@@ -302,12 +324,13 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public void NoteDefended()
         {
-            if (State != TempoState.Shell || energyNow < Temperament.counterEnergy)
+            if (State != TempoState.Shell || energyNow < RiposteEnergy * Temperament.counterEnergy)
             {
                 return;
             }
 
-            float composed = Mathf.Clamp01(1.5f - Pressure / Mathf.Max(0.1f, Temperament.composure));
+            // (The steadier for a calm temperament, the less for the weight of the barrage.)
+            float composed = Mathf.Clamp01(1f - Pressure / MostPressure) * Mathf.Clamp(Temperament.composure / 0.6f, 0.6f, 1.4f);
             if (random.NextDouble() < RiposteChance * composed)
             {
                 Go(TempoState.Counter, $"a riposte between links (pressure {Pressure:0.00}, energy {energyNow:0.00})");
@@ -316,6 +339,9 @@ namespace PhysicsBattler.Motion
 
         /// <summary>Milestone 11: the chance a fully composed unit ripostes off a blow it took on its guard.</summary>
         public const float RiposteChance = 0.5f;
+
+        /// <summary>Milestone 11: the share of the energy a counter needs that a riposte needs (it is one quick blow).</summary>
+        public const float RiposteEnergy = 0.5f;
 
         private float energyNow;
 

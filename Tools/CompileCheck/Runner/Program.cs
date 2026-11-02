@@ -140,6 +140,11 @@ internal static class Program
             return ComboReport.Run();
         }
 
+        if (args.Length >= 1 && args[0] == "parries")
+        {
+            return ParryReport.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "shells")
         {
             return ShellReport.Run(args.Length >= 2 ? args[1] : ".");

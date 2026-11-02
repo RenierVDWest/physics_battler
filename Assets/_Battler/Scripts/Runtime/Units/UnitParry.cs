@@ -30,6 +30,9 @@ namespace PhysicsBattler.Units
         /// <summary>A parry is set this far out from the chest along the blow's path (per unit of body size).</summary>
         public const float ParryOut = 0.45f;
 
+        /// <summary>A parry meets the incoming blade this share of its length in from its striking part.</summary>
+        public const float ParryInside = 0.25f;
+
         /// <summary>A parry's crossing point is at least this far in front of the chest (per unit of body size), and this much more per unit of size it lies across to the off side.</summary>
         public const float ParryFront = 0.35f, ParryFrontAcross = 0.8f;
 
@@ -57,17 +60,36 @@ namespace PhysicsBattler.Units
             if (parryMove != null && parryAttacker != null && parryAttacker.CurrentMove == parryMove && !parryMove.ContactPassed
                 && IsAlive && CanAct && !IsAttacking && CanParry && LocalTime >= parryFrom && LocalTime <= parryUntil)
             {
-                var chestPart = Anim.Part(PartId.Chest);
-                Vector3 chest = chestPart.position;
+                Vector3 chest = Anim.Part(PartId.Chest).position;
                 float size = Body.SizeFactor;
-                float contact = parryMove.Move.ProgressAt(parryMove.ContactTime);
-                Vector3 at = ComesFrom(parryMove, contact, chest, ParryOut * size);
-                Vector3 travel = parryMove.PathPoint(Mathf.Min(1f, contact + 0.02f)) - parryMove.PathPoint(Mathf.Max(0f, contact - 0.02f));
-                Vector3 toAttacker = parryAttacker.Anim.Part(PartId.Chest).position - chest;
-                // (In front of the body, the more so the further across to the off side: the weapon arm
-                // reaches across in front of the chest, not through it.)
                 Vector3 facingForward = Quaternion.Euler(0f, facingYaw, 0f) * Vector3.forward;
                 Vector3 facingRight = Quaternion.Euler(0f, facingYaw, 0f) * Vector3.right;
+
+                // Where the incoming blade will be as its striking part comes within reach of the
+                // chest: the striking part there, and the blade back from it toward the attacker's
+                // hand (a swing's: from the pivot it turns about; a thrust's: along its line).
+                var m = parryMove;
+                float contact = m.Move.ProgressAt(m.ContactTime);
+                float p = contact;
+                for (int i = 1; i <= 12; i++)
+                {
+                    p = Mathf.Max(0f, contact - 0.04f * i);
+                    if ((m.PathPoint(p) - chest).magnitude >= ParryOut * size)
+                    {
+                        break;
+                    }
+                }
+
+                Vector3 strike = m.PathPoint(p);
+                Vector3 along = m.Move.shape == MoveShape.Thrust ? m.ThrustLine
+                    : m.Generated && m.Pivots != null ? strike - m.PivotAt(p)
+                    : strike - parryAttacker.Anim.Part(PartId.HandR).position;
+                along = along.sqrMagnitude > 1e-6f ? along.normalized : -facingForward;
+                float inLength = (m.Weapon != null ? m.Weapon.length : 0.8f) * (parryAttacker.Loadout != null ? parryAttacker.Loadout.Scale : 1f);
+                Vector3 at = strike - along * (ParryInside * inLength);
+
+                // (In front of the body, the more so the further across to the off side: the weapon arm
+                // reaches across in front of the chest, not through it.)
                 float across = Mathf.Max(0f, -Vector3.Dot(at - chest, facingRight)) / Mathf.Max(0.1f, size);
                 float front = (ParryFront + ParryFrontAcross * Mathf.Min(across, 0.5f)) * size;
                 float ahead = Vector3.Dot(at - chest, facingForward);
@@ -76,8 +98,9 @@ namespace PhysicsBattler.Units
                     at += facingForward * (front - ahead);
                 }
 
+                Vector3 toAttacker = parryAttacker.Anim.Part(PartId.Chest).position - chest;
                 aim.point = at;
-                aim.blade = ParryBlade(travel, toAttacker, Quaternion.Euler(0f, facingYaw, 0f) * Vector3.right);
+                aim.blade = ParryBlade(along, toAttacker, facingRight);
                 up = true;
             }
 
@@ -92,8 +115,8 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>
-        /// Which way a parrying blade lies (grip to tip): square to the blow's travel and to the way
-        /// to the attacker; tip up when it stands, across to the left (the grip on the weapon side)
+        /// Which way a parrying blade lies (grip to tip): square to the incoming blade and to the way
+        /// to the attacker (across it, in the plane that faces the attacker); tip up when it stands, across to the left (the grip on the weapon side)
         /// when it lies flat.
         /// </summary>
         public static Vector3 ParryBlade(Vector3 travel, Vector3 toAttacker, Vector3 right)

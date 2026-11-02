@@ -77,6 +77,10 @@ namespace PhysicsBattler.Diagnostics
 
         private StreamWriter events;
         private PerfTrack perf;
+
+        /// <summary>Milestone 11: the defensive posture's gate numbers (session.md's Defence section).</summary>
+        private DefenceStats defence = new DefenceStats();
+        private readonly List<UnitController> sampledUnits = new List<UnitController>();
         private Action<string> onHitch;
         private TableWriter world;
         private string sessionPath;
@@ -181,6 +185,8 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Noticed += OnNoticed;
             UnitController.Forgot += OnForgot;
             UnitController.TempoChanged += OnTempo;
+            UnitController.GuardBroken += OnGuardBroken;
+            defence = new DefenceStats();
             Application.logMessageReceived += OnConsole;
 
             foreach (var unit in FindObjectsByType<UnitController>())
@@ -248,6 +254,7 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Noticed -= OnNoticed;
             UnitController.Forgot -= OnForgot;
             UnitController.TempoChanged -= OnTempo;
+            UnitController.GuardBroken -= OnGuardBroken;
             Application.logMessageReceived -= OnConsole;
 
             foreach (var track in tracks.ToArray())
@@ -379,6 +386,7 @@ namespace PhysicsBattler.Diagnostics
 
         private void OnHit(HitReport hit)
         {
+            defence.OnHit(hit);
             var r = hit.Result;
             string what = hit.Shield
                 ? $"blocked by {hit.Struck.name}'s shield ({r.PoiseDamage:0} poise)"
@@ -455,6 +463,15 @@ namespace PhysicsBattler.Diagnostics
             var track = TrackOf(unit);
             float energy = unit.Rhythm != null ? unit.Rhythm.Energy : 0f, aggression = unit.Rhythm != null ? unit.Rhythm.Aggression : 0f;
             Event(track, "tempo", $"{from.ToString().ToLowerInvariant()} → {to.ToString().ToLowerInvariant()}: {why}; energy {energy:0.00}, aggression {aggression:0.00}");
+            defence.OnTempo(unit, from, to, why);
+        }
+
+        /// <summary>Milestone 11: a guard broken under a barrage.</summary>
+        private void OnGuardBroken(UnitController unit, HitReport hit)
+        {
+            Event(TrackOf(unit), "defence", $"guard broken by {(hit.Attacker != null ? hit.Attacker.name : "?")}'s {hit.What} (pressure {(unit.Tempo != null ? unit.Tempo.Pressure : 0f):0.00}, "
+                                            + $"poise {unit.Poise:0}/{unit.Profile.maxPoise:0}): open for {UnitController.GuardOpenTime:0.0} s");
+            defence.OnGuardBroken(unit, hit);
         }
 
         private void OnDefending(UnitController unit, UnitController attacker, MoveState move, string what)
@@ -501,6 +518,7 @@ namespace PhysicsBattler.Diagnostics
         /// <summary>Milestone 10: a combo started, linked or ended.</summary>
         private void OnCombo(UnitController unit, ComboRun combo, string what)
         {
+            defence.OnCombo(unit, combo, what);
             string head = what == "started"
                 ? $"combo \"{combo.Definition.name}\" ({combo.Why}, {combo.Length} links) at {LabelOf(combo.Target)}"
                 : $"combo \"{combo.Definition.name}\" {what}";
@@ -623,6 +641,20 @@ namespace PhysicsBattler.Diagnostics
                 }
 
                 pending.Clear();
+            }
+
+            sampledUnits.Clear();
+            foreach (var t in tracks)
+            {
+                if (t.Alive && t.unit != null)
+                {
+                    sampledUnits.Add(t.unit);
+                }
+            }
+
+            foreach (var u in sampledUnits)
+            {
+                defence.Sample(u, sampledUnits, Time.fixedDeltaTime, Now);
             }
 
             bool writePose = step % Mathf.Max(1, poseEvery) == 0;
@@ -1065,6 +1097,14 @@ namespace PhysicsBattler.Diagnostics
                 foreach (var track in all)
                 {
                     AppendUnitSummary(md, track);
+                }
+
+                if (defence.Sides.Count > 0)
+                {
+                    md.AppendLine("## Defence (milestone 11)");
+                    md.AppendLine();
+                    defence.Write(md);
+                    md.AppendLine();
                 }
 
                 var (count, p95, deepest, longest, under) = ShieldContacts.Summary(shieldContacts.Done);

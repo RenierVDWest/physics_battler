@@ -24,6 +24,37 @@ internal static class Smoke
 {
     private const BindingFlags Any = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 
+    /// <summary>
+    /// The weapons made in code have no prefab and so nothing to strike: a haft along the weapon (a
+    /// club's or a sword's) and a face on a shield, as the prefabs have, so blocks and parries can
+    /// happen headless (milestone 11).
+    /// </summary>
+    internal static void GiveColliders(UnitController unit)
+    {
+        int layer = PhysicsBattler.Layers.Index(PhysicsBattler.Layers.Weapon);
+        if (unit.MainWeapon != null && unit.MainWeapon.GetComponentInChildren<Collider>() == null)
+        {
+            var def = unit.MainWeapon.definition;
+            var haft = unit.MainWeapon.gameObject.AddComponent<CapsuleCollider>();
+            haft.direction = 2;
+            haft.center = new Vector3(0f, 0f, 0.5f * def.length);
+            haft.height = def.length;
+            haft.radius = def.kind == WeaponKind.Club ? 0.035f : 0.025f;
+            haft.isTrigger = true;
+            haft.gameObject.layer = layer;
+        }
+
+        if (unit.OffWeapon != null && unit.OffWeapon.definition.IsShield && unit.OffWeapon.GetComponentInChildren<Collider>() == null)
+        {
+            var def = unit.OffWeapon.definition;
+            var face = unit.OffWeapon.gameObject.AddComponent<BoxCollider>();
+            face.center = def.faceCenter;
+            face.size = new Vector3(2f * def.radius, 2f * def.radius, 0.04f);
+            face.isTrigger = true;
+            face.gameObject.layer = layer;
+        }
+    }
+
     public static int Run(string output)
     {
         string assets = Application.dataPath;
@@ -73,6 +104,8 @@ internal static class Smoke
                 {
                     unit.Equip(club, null);
                 }
+
+                GiveColliders(unit);
 
                 units.Add(unit);
                 k++;

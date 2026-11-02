@@ -9,7 +9,45 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
-## Current state: milestone 10, the arm rebuild (every arm on one rig, one limit model, joint motors)
+## Current state: milestone 11, the defensive posture
+
+The pressure meter, the shell and the counter came in milestone 8; milestone 11 makes the shell defend.
+
+- **Weapon parries** (`Units/UnitParry.cs`): a unit without a shield meets a blow it has seen with its
+  weapon. After its reaction time the club or stick is set across where the incoming blade will be as
+  its striking part comes within reach (a swing's blade back from its pivot, a thrust's along its
+  line), square to that blade and in front of the chest; the weapon arm is posed exactly meanwhile
+  (`PosePipeline.Parry`). A blow whose blade meets it is stopped there, a new weapon-on-weapon
+  contact in the sweep: no damage, 0.85 of a block's poise coming through. `CombatStyle.parryChance`
+  is 0.4 (a shield's block chance is 0.55).
+- **Defence skill on each unit** (`UnitProfile.defenceSkill`, 0.5 is each style's own figures): it
+  scales the chance to block or parry (×0.6 to ×1.4) and the reaction time (×1.3 to ×0.75).
+- **Shell guards** (`Temperament.shellGuard`): the boxer's high shell, fists by the temples, the club
+  upright, the arms folded tight (a blow there lands on a guarding arm, as a forearm's damage and a
+  block's poise, 0.3 of its momentum); the shield raised to the eyes; the eskrimador's stick across its
+  body. In the shell, a block or parry is 0.25 likelier, and a combo's later links are met 30% sooner.
+- **Pressure**: an enemy pressing it, close in, builds it (0.35 a second, up to just past its
+  composure); blows take it further, to 3 at most.
+- **Guard breaks** (`Units/UnitGuard.cs`): a blow from a barrage (a combo link, or one pressing it)
+  taken on its guard while shelled, with the pressure at 1.6 or more and its poise under a quarter,
+  breaks it: it staggers, its weapon and shield or hands flung open, and can't defend for 0.6 s. At
+  most one every 40 s.
+- **Soaking costs**: each block or parry costs 0.04 energy. Shelled up, it gives 0.2–0.4 of a leg of
+  ground under each blow (the Small half as much again), and the presser follows.
+- **Ripostes**: a composed unit may go straight to its counter off a blow it took on its guard,
+  between a barrage's links.
+- **Measured**: session.md has a Defence section (time in the shell while pressed, combo links
+  defended, blows met on the guard, guard breaks a minute, bursts answered with a counter); the frames
+  have `shellGuard`, `parry` and `guardOpen`; guard breaks are "defence" events. The `parries` runner
+  plays every blow at every defender (`PARRY_SKILL=presets`: shelled up, three skill levels); `shells`
+  draws the guards (`shellpose.py`). The headless fights now give their code-made weapons colliders,
+  so blocks and parries happen there too.
+- In four headless fights: the Medium spends 75–92% of a press at it in the shell and defends 17–100%
+  of the links (most fights 30–60%); the Large 13–80% and 0–44%; the Small, pressed little, 9–66%
+  and 0–17% (its defence is the dodge, milestone 12). Guard breaks: 0–0.5 a minute for the Large, up
+  to 2 for the Medium. 10–65% of ended bursts get a counter. Ripostes are rare (about one a fight).
+
+## Milestone 10, the arm rebuild (every arm on one rig, one limit model, joint motors)
 
 Plan: https://claude.ai/artifact/RGb9d1i935pRxtbLFXvS8o
 

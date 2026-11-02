@@ -40,10 +40,13 @@ namespace PhysicsBattler.Units
         public const float GuardOpenTime = 0.6f;
 
         /// <summary>A guard breaks under a blow on it while the pressure is at least this…</summary>
-        public const float GuardBreakPressure = 1f;
+        public const float GuardBreakPressure = 1.6f;
 
         /// <summary>…and what is left of its poise is under this share.</summary>
-        public const float GuardBreakPoise = 0.3f;
+        public const float GuardBreakPoise = 0.25f;
+
+        /// <summary>Seconds after a guard break before another can happen (it takes a long barrage to break a guard twice).</summary>
+        public const float GuardBreakRest = 40f;
 
         /// <summary>What a block or a parry costs in energy.</summary>
         public const float BlockEnergy = 0.04f;
@@ -78,6 +81,11 @@ namespace PhysicsBattler.Units
         {
             bool shelled = Tempo != null && TempoOn && Tempo.State == TempoState.Shell && CanAct && IsAlive && State == UnitState.Standing;
             ShellWeight = Mathf.MoveTowards(ShellWeight, shelled ? 1f : 0f, dt / ShellRise);
+            if (Tempo != null && TempoOn && IsAlive && TempoEngaged && PressedByAnEnemy())
+            {
+                Tempo.NotePressed(dt);
+            }
+
             if (!shelled)
             {
                 GiveGround = Mathf.MoveTowards(GiveGround, 0f, 0.5f * Body.LegLength * dt);
@@ -90,6 +98,21 @@ namespace PhysicsBattler.Units
             bool open = LocalTime < GuardOpenUntil && IsAlive;
             guardOpen = Mathf.MoveTowards(guardOpen, open ? 1f : 0f, dt / (open ? 0.08f : 0.35f));
             Pose.GuardOpen = Mathf.SmoothStep(0f, 1f, guardOpen);
+        }
+
+        /// <summary>Is an enemy that is fighting it pressing it now?</summary>
+        private bool PressedByAnEnemy()
+        {
+            foreach (var other in all)
+            {
+                if (other != this && other.initialized && other.IsAlive && other.Team != Team && other.TempoOn && other.Tempo != null
+                    && other.Tempo.State == TempoState.Press && other.Opponent == this && other.TempoEngaged)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>A blow it has seen coming: shelled up, it gives ground under it.</summary>
@@ -126,7 +149,11 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            if (Tempo.Pressure >= GuardBreakPressure && Poise < GuardBreakPoise * profile.maxPoise)
+            // (A long, well-fed barrage breaks it: the blow from one pressing it or a combo's link.)
+            bool barrage = hit.Attacker != null && (hit.Attacker.Combo != null
+                || (hit.Attacker.TempoOn && hit.Attacker.Tempo != null && hit.Attacker.Tempo.State == TempoState.Press));
+            if (barrage && Tempo.State == TempoState.Shell && Tempo.Pressure >= GuardBreakPressure && Poise < GuardBreakPoise * profile.maxPoise
+                && LocalTime >= GuardOpenUntil + GuardBreakRest)
             {
                 r.Reaction = Reaction.Stagger;
                 GuardOpenUntil = LocalTime + GuardOpenTime;

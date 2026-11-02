@@ -87,6 +87,7 @@ internal static class FightReport
                 unit.Profile = profile;
                 Call(unit, "Awake");
                 if (body == "Medium") unit.Equip(sword, shield); else unit.Equip(club, null);
+                if (Environment.GetEnvironmentVariable("FIGHT_NO_COLLIDERS") == null) Smoke.GiveColliders(unit);   // (milestone 11: blocks and parries headless)
                 units.Add(unit);
             }
         }

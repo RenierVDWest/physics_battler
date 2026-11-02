@@ -248,6 +248,10 @@ namespace PhysicsBattler.Diagnostics
             var tempo = unit.TempoOn ? unit.Tempo : null;
             frames.Add("tempo", tempo != null ? tempo.State.ToString() : "");
             frames.Add("pressure", tempo != null ? tempo.Pressure : 0f, 2);
+            // Milestone 11: the shell's guard, a parry, a broken guard.
+            frames.Add("shellGuard", unit.ShellWeight, 2);
+            frames.Add("parry", unit.ParryBlend, 2);
+            frames.Add("guardOpen", unit.LocalTime < unit.GuardOpenUntil);
             // Milestone 9: what the head attends to, how far it is turned against the chest (and up),
             // how far from what it attends to it points; how many units it knows of; the shield's
             // state, how far its face is from its threat, and how far its rim stays from its own body.
