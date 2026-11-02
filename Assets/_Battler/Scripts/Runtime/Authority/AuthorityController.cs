@@ -273,7 +273,7 @@ namespace PhysicsBattler.Authority
             var parent = anim.Part(PartInfo.Parent(part.id));
             var pose = anim.Part(part.id);
             Quaternion poseLocal = Quaternion.Inverse(parent.rotation) * pose.rotation;
-            JointMath.DriveGains(HoldFrequency(strength), HoldDamping, 1f, muscleLoad[i], out float spring, out float damper);
+            JointMath.DriveGains(Mathf.Min(MostMuscleFrequency, MuscleGain * HoldFrequency(strength)), HoldDamping, 1f, muscleLoad[i], out float spring, out float damper);
             joint.rotationDriveMode = RotationDriveMode.Slerp;
             joint.slerpDrive = new JointDrive { positionSpring = spring, positionDamper = damper, maximumForce = float.MaxValue, useAcceleration = true };
             joint.targetRotation = JointMath.TargetRotation(poseLocal, part.restLocalRotation, part.jointFrame);
@@ -326,6 +326,15 @@ namespace PhysicsBattler.Authority
 
         /// <summary>The most a joint's motor is strengthened for what hangs from it.</summary>
         public const float MaxMuscleLoad = 8f;
+
+        /// <summary>
+        /// How much quicker a motor is asked to be than the servo at the same pin. The first motor
+        /// playtest (17:26) had the arm settle at about 2 Hz where 7 was asked (a hand off its pose by
+        /// 67 degrees came back in a quarter of a second) and sit 5 to 9 degrees off its pose in guard,
+        /// against 1 to 3 on the servo: PhysX's joint drive turns the parts below and the one above
+        /// too, so it moves less than its gains say. The cap keeps it inside what a 60 Hz step holds.
+        /// </summary>
+        public const float MuscleGain = 3f, MostMuscleFrequency = 24f;
 
         /// <summary>The servo's damping: critical (1) never overshoots.</summary>
         public const float HoldDamping = 1f;

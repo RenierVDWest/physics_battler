@@ -128,18 +128,26 @@ namespace PhysicsBattler.Units
         public const float DownTone = 0.6f, DeadTone = 0.35f;
 
         /// <summary>
-        /// Milestone 10: a body on the ground never flies off by itself. For <see cref="LyingFree"/>
-        /// seconds after it falls or is struck it moves as it was sent; after that no part of it
+        /// Milestone 10: a body on the ground never flies off by itself. No part rises faster than it
+        /// was sent up (gravity slowing that) or than <see cref="LyingMostRise"/>. For
+        /// <see cref="LyingFree"/> seconds after it falls or is struck it otherwise moves as it was sent; after that no part of it
         /// goes faster than <see cref="LyingMostSpeed"/> (m/s at medium size) or rises faster than
         /// <see cref="LyingMostRise"/>, and a part already faster (still rolling, thrown) only slows
         /// (by <see cref="LyingSlowing"/> m/s², falling aside). The playtests had a downed large one
         /// thrown 7.8 m up and a medium one shaking for a second against a standing unit's legs: a
         /// limb trapped (under a foot, past a joint's limit) and the solver pushing the rest away.
         /// </summary>
-        public const float LyingFree = 1f, LyingMostSpeed = 4f, LyingMostRise = 2f, LyingSlowing = 8f;
+        public const float LyingFree = 1f, LyingMostSpeed = 4f, LyingMostRise = 2.5f, LyingSlowing = 8f;
 
-        private float lyingSince;
+        /// <summary>How long what a body is sent with (a fall, a blow) is taken in before it may only slow (s).</summary>
+        public const float LyingCapture = 0.15f;
+
+        /// <summary>How long a blow on a body on the ground leaves it light (s).</summary>
+        public const float GroundStruckFree = 0.5f;
+
+        private float lyingSince, lyingSent = -1f;
         private readonly float[] lyingCeiling = new float[PartInfo.Count];
+        private readonly float[] lyingRise = new float[PartInfo.Count];
 
         /// <summary>
         /// Called once at start (rest pose): finds the pairs of its own parts that may collide on the
@@ -294,7 +302,18 @@ namespace PhysicsBattler.Units
         /// <summary>Milestone 10: the speed limit on a body on the ground (<see cref="LyingFree"/>).</summary>
         private void HoldLyingSpeed(float dt)
         {
-            bool free = groundClock < lyingSince + LyingFree || groundClock < groundStruckUntil;
+            // Sent (fell, or struck on the ground): what it is sent with is taken in for a moment
+            // (LyingCapture: the blow's push lands a step or two later); after that it only slows.
+            float sent = Mathf.Max(lyingSince, groundStruckUntil - GroundStruckFree);
+            if (sent != lyingSent)
+            {
+                lyingSent = sent;
+                System.Array.Clear(lyingCeiling, 0, lyingCeiling.Length);
+                System.Array.Clear(lyingRise, 0, lyingRise.Length);
+            }
+
+            bool capture = groundClock < sent + LyingCapture;
+            bool free = groundClock < sent + LyingFree;
             float k = SizeSpeed();
             float most = LyingMostSpeed * k, rise = LyingMostRise * k;
             float fall = -UnityEngine.Physics.gravity.y * dt;
@@ -309,23 +328,32 @@ namespace PhysicsBattler.Units
                 int i = (int)part.id;
                 Vector3 v = body.linearVelocity;
                 float speed = v.magnitude;
-                if (free)
+                if (capture)
                 {
-                    lyingCeiling[i] = Mathf.Max(most, speed);
+                    lyingCeiling[i] = Mathf.Max(lyingCeiling[i], most, speed);
+                    lyingRise[i] = Mathf.Max(lyingRise[i], rise, v.y);
                     continue;
                 }
 
-                // Faster than the limit: it only slows (falling, gravity may add to it).
-                float ceiling = Mathf.Max(most, lyingCeiling[i] - LyingSlowing * dt + (v.y < 0f ? fall : 0f));
-                lyingCeiling[i] = ceiling;
-                if (speed > ceiling)
+                // Rising: no faster than it was sent up, gravity slowing that (a launch flies its arc;
+                // nothing after it adds lift: the playtests had a body thrown 2.7 m up by its own joints
+                // a fifth of a second after a blow launched it at 4.8 m/s).
+                lyingRise[i] = Mathf.Max(rise, lyingRise[i] - fall);
+                if (v.y > lyingRise[i])
                 {
-                    v *= ceiling / speed;
+                    v.y = lyingRise[i];
                 }
 
-                if (v.y > rise)
+                // Past the free moment, no faster than it was going: it only slows (falling, gravity may add to it).
+                if (!free)
                 {
-                    v.y = rise;
+                    float ceiling = Mathf.Max(most, lyingCeiling[i] - LyingSlowing * dt + (v.y < 0f ? fall : 0f));
+                    lyingCeiling[i] = ceiling;
+                    float now = v.magnitude;
+                    if (now > ceiling)
+                    {
+                        v *= ceiling / now;
+                    }
                 }
 
                 if (v != body.linearVelocity)
@@ -343,7 +371,7 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            groundStruckUntil = groundClock + 0.5f;
+            groundStruckUntil = groundClock + GroundStruckFree;
             groundCalm = 0f;
             if (groundHeavy > 0f)
             {
