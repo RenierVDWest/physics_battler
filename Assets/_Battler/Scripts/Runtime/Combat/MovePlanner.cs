@@ -86,7 +86,7 @@ namespace PhysicsBattler.Combat
         /// <summary>Locks a blow on a point (tests and the move preview aim at plain points too).</summary>
         public static MoveState Prepare(UnitController attacker, MoveDefinition move, WeaponDefinition weapon, Vector3 aim, AimPart part, object target)
         {
-            if (move != null && move.hand == MoveHand.Off)
+            if (move != null && move.Close)
             {
                 return OffHandPath.Prepare(attacker, move, weapon, aim, part, target);
             }
@@ -240,6 +240,7 @@ namespace PhysicsBattler.Combat
 
             // (Milestone 10: and the off hand's blows, the jab with a bare lead hand.)
             var moves = new List<MoveDefinition>(weapon.moves);
+            moves.AddRange(WeaponDefinition.ExtraMoves(weapon));
             if (!attacker.Rig.IsSevered(PartId.HandL))
             {
                 foreach (var m in attacker.Loadout.OffHandMoves)

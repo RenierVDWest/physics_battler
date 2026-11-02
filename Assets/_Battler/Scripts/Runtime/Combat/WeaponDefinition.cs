@@ -29,6 +29,9 @@ namespace PhysicsBattler.Combat
 
         /// <summary>Milestone 10: the middle of a shield's face (a bash).</summary>
         Face,
+
+        /// <summary>Milestone 10: the butt end below the fist (the punyo).</summary>
+        Butt,
     }
 
     /// <summary>
@@ -91,6 +94,7 @@ namespace PhysicsBattler.Combat
             {
                 case StrikeWith.Tip: return tip;
                 case StrikeWith.Head: return head;
+                case StrikeWith.Butt: return Butt;
                 default: return edge;
             }
         }
@@ -98,7 +102,41 @@ namespace PhysicsBattler.Combat
         /// <summary>The arm rebuild's grip roll by kind: a club 30, a sword 10, a shield none.</summary>
         public static float DefaultGripRoll(WeaponKind kind) => kind == WeaponKind.Club ? 30f : kind == WeaponKind.Shield ? 0f : 10f;
 
+        /// <summary>Milestone 10: the butt end, below the fist (the grip is the origin; the weapon runs along +Z).</summary>
+        public Vector3 Butt => new Vector3(0f, 0f, -ButtLength);
+
+        /// <summary>How far the butt end sticks out below the fist (metres, medium size).</summary>
+        public const float ButtLength = 0.07f;
+
         private static WeaponDefinition bareFist;
+        private static MoveDefinition[] clubExtras;
+
+        /// <summary>
+        /// Milestone 10: blows a weapon has besides the ones set on it (its asset's), made in code: a
+        /// club's butt strike (the punyo). Each move says which bodies throw it.
+        /// </summary>
+        public static MoveDefinition[] ExtraMoves(WeaponDefinition weapon)
+        {
+            if (weapon != null && weapon.kind == WeaponKind.Club)
+            {
+                if (clubExtras == null)
+                {
+                    var punyo = MoveDefinition.Create(MoveStyle.ClubPunyo);
+                    punyo.hideFlags = HideFlags.DontSave;
+                    clubExtras = new[] { punyo };
+                }
+
+                bool has = false;
+                foreach (var m in weapon.moves ?? new MoveDefinition[0])
+                {
+                    has |= m != null && m.name == clubExtras[0].name;
+                }
+
+                return has ? new MoveDefinition[0] : clubExtras;
+            }
+
+            return new MoveDefinition[0];
+        }
         private static MoveDefinition[] shieldMoves;
 
         /// <summary>

@@ -720,6 +720,12 @@ namespace PhysicsBattler.Motion
             Vector3 guardHand = guardSolve.wrist;
             Quaternion guardWrist = guardSolve.wristLocal;
             guardSwivel = guardSolve.swivel;
+            if (move != null && moveBlend > 0f && move.Move.Close && move.Weapon != null)
+            {
+                // (Milestone 10: the weapon hand's close blow, the butt strike: its own straight way.)
+                PoseButtStrike(loadout, move, moveBlend, facing, guardGrip, guardRotation, torso);
+                return;
+            }
 
             // Hand-first: the hand is the arm's effector. A blow moves it through its keys (the wind-up,
             // the contact place solved when it was planned, the follow-through) on arcs round the
@@ -863,6 +869,73 @@ namespace PhysicsBattler.Motion
                 AimError = Vector3.Distance(StrikePoint, move.Aim);
             }
         }
+
+        /// <summary>
+        /// Milestone 10: the butt strike (punyo). The butt end below the fist goes from where the guard
+        /// holds it up by the shoulder (the chamber), then hammers straight down and forward onto the
+        /// aim point and a little through it, and straight back, through the move's keys at its pace,
+        /// as the off hand's blows do; the weapon turns from its guard so the butt leads along the
+        /// blow, the stick standing up behind the fist. On the arm rig, clear of the torso.
+        /// </summary>
+        private void PoseButtStrike(Loadout loadout, MoveState move, float blend, Quaternion facing, Vector3 guardGrip, Quaternion guardRotation, BodyClearance.Posed torso)
+        {
+            var slot = anim.SlotWeaponR;
+            var hand = anim.Part(PartId.HandR);
+            var fore = anim.Part(PartId.ForearmR);
+            float size = body.SizeFactor;
+            float scale = loadout.Scale;
+            var def = move.Move;
+            Vector3 butt = move.Weapon.Butt * scale;
+            Vector3 guardButt = guardGrip + guardRotation * butt;
+            // (The chamber: the fist raised by the shoulder, the butt above the aim point whatever the
+            // guard's height, a little back toward the body, so the blow comes down onto it.)
+            Vector3 raised = guardButt;
+            raised.y = Mathf.Max(guardButt.y, move.Aim.y) + def.drawBack * size;
+            raised = Vector3.Lerp(raised, anim.Part(PartId.UpperArmR).position + Vector3.up * (def.drawBack * size), 0.3f);
+            Vector3 punch = move.Aim - raised;
+            punch = punch.sqrMagnitude > 1e-6f ? punch.normalized : facing * Vector3.forward;
+            Vector3 Key(int k) => k == 0 ? guardButt
+                : k == 1 ? raised
+                : k == 2 ? move.Aim
+                : move.Aim + punch * (def.through * size);
+            def.HandPhase(move.T, out int from, out int to, out float share);
+            Vector3 at = Vector3.Lerp(guardButt, def.Through(from, to, share, Key), blend) + KnockR;
+            float out_ = Mathf.Clamp01(def.Through(from, to, share, k => k == 0 ? Vector3.zero : Vector3.one).x) * blend;
+
+            // (The butt leads along the blow: the weapon turned from its guard by most of the way from
+            // the guard's butt line to the punch, the stick standing up behind the fist, not laid back
+            // over the head.)
+            Vector3 buttLine = guardRotation * Vector3.back;
+            Quaternion strikeTurn = Quaternion.FromToRotation(buttLine, punch) * guardRotation;
+            Quaternion weaponTurn = Quaternion.Slerp(guardRotation, strikeTurn, ButtLead * out_);
+            Vector3 inHand = slot.localPosition + slot.localRotation * butt;
+            var chestPart = anim.Part(PartId.Chest);
+            Vector3 chestForward = Vector3.ProjectOnPlane(chestPart.rotation * Vector3.forward, Vector3.up);
+            var chestTurn = Quaternion.LookRotation(chestForward.sqrMagnitude > 1e-6f ? chestForward : facing * Vector3.forward, Vector3.up);
+            var goal = new ArmGoal
+            {
+                point = at,
+                pointInHand = inHand,
+                handTurn = weaponTurn * Quaternion.Inverse(slot.localRotation),
+                turnWeight = 1f,
+                elbowSwivel = ArmRig.SwivelToward(anim, true, at, chestTurn * PunyoElbowWay),
+                nearNull = true,
+                clearance = ArmClearance * size,
+            };
+            LastWeaponArm = ArmRig.Solve(anim, true, goal, torso);
+            HandKeyed = at;
+            HandCleared = Vector3.zero;
+            WeaponArmSwivel = LastWeaponArm.swivel;
+            WristBend = Vector3.Angle(fore.rotation * anim.RestLocalPosition(PartId.HandR), hand.rotation * anim.RestLocalPosition(PartId.HandR));
+            StrikePoint = slot.position + slot.rotation * butt;
+            AimError = Vector3.Distance(StrikePoint, move.Aim);
+        }
+
+        /// <summary>How much of the turn from the guard's butt line onto the punch a butt strike takes.</summary>
+        public const float ButtLead = 0.75f;
+
+        /// <summary>Which way a butt strike's elbow points (the chest's frame): down and out to the weapon side.</summary>
+        public static readonly Vector3 PunyoElbowWay = new Vector3(0.45f, -1f, -0.1f);
 
         /// <summary>
         /// The weapon's guard target: the weapon's guard, the rhythm's, a hit's knock, the grip moved out

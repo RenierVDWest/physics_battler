@@ -85,6 +85,7 @@ namespace PhysicsBattler.Combat
                 case StrikeWith.Head: return 0.9f;
                 case StrikeWith.Fist: return 0.8f;   // (a punch is all weight behind a small face)
                 case StrikeWith.Face: return 1f;     // (a bash is a shove: all of it goes in)
+                case StrikeWith.Butt: return 0.85f;  // (a punyo: the fist's weight on a small hard end)
                 case StrikeWith.Tip: return 0.45f;
                 default: return 0.55f;
             }

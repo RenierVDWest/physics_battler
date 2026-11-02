@@ -629,6 +629,84 @@ namespace PhysicsBattler.Tests
             }
         }
 
+        /// <summary>
+        /// Milestone 10: a Small with a club, close in on another Small, throws the butt strike (the punyo): the butt
+        /// end below its fist hammers down onto the target and lands; it never cuts.
+        /// </summary>
+        [Test]
+        public void ASmallLandsTheButtOfItsClub()
+        {
+            var attacker = Build("Small", Vector3.zero, 0f, 0);
+            var target = Build("Small", Vector3.forward * 5f, 180f, 1);
+            var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
+            attacker.Equip(club, null);
+            MoveDefinition punyo = null;
+            foreach (var m in WeaponDefinition.ExtraMoves(club))
+            {
+                punyo = m.strikeWith == StrikeWith.Butt ? m : punyo;
+            }
+
+            Assert.IsNotNull(punyo, "a club has a butt strike");
+            Assert.IsTrue(punyo.UsableBy(attacker.Body.SizeFactor), "the Small throws it");
+            Assert.IsTrue(punyo.Close, "it is a close blow");
+            var everyone = new[] { attacker, target };
+            try
+            {
+                MoveState state = null;
+                float at = 0f;
+                for (float d = 0.5f; d <= 1.6f && state == null; d += 0.1f)
+                {
+                    target.Place(Vector3.forward * d * attacker.Body.SizeFactor, 180f);
+                    Step(everyone, 20);
+                    foreach (var part in new[] { AimPart.Chest, AimPart.Neck, AimPart.Head })
+                    {
+                        var s = state == null ? MovePlanner.Prepare(attacker, target, punyo, part) : null;
+                        if (s != null && MovePlanner.Acceptable(attacker, s))
+                        {
+                            state = s;
+                            at = d;
+                        }
+                    }
+                }
+
+                Assert.IsNotNull(state, "close in, the butt strike can be thrown and lands");
+                Assert.Less(attacker.TryOut(state), MovePlanner.Tolerance, $"the butt reaches the aim point at contact (from {at:0.0} body sizes)");
+
+                HitReport first = null;
+                void OnHit(HitReport h)
+                {
+                    if (first == null && h.Attacker == attacker)
+                    {
+                        first = h;
+                    }
+                }
+
+                UnitController.Hit += OnHit;
+                try
+                {
+                    Assert.IsTrue(attacker.StartMove(state));
+                    for (int i = 0; i < 150 && attacker.IsAttacking; i++)
+                    {
+                        Step(everyone);
+                    }
+                }
+                finally
+                {
+                    UnitController.Hit -= OnHit;
+                }
+
+                Assert.IsNotNull(first, "the butt strike lands");
+                Assert.IsTrue(first.Struck == target, $"the target is struck ({first.Struck?.name})");
+                Assert.AreEqual(StrikeWith.Butt, first.Move.Move.strikeWith, "with the butt");
+                Assert.Greater(first.Result.Damage, 0f, "it hurts");
+                Assert.IsFalse(target.Rig.IsSevered(PartId.Head) || target.Rig.IsSevered(PartId.ForearmL) || target.Rig.IsSevered(PartId.ForearmR), "and cuts nothing off");
+            }
+            finally
+            {
+                Destroy(everyone);
+            }
+        }
+
         /// <summary>Two units can't stand in the same place: placed together, they push apart.</summary>
         [Test]
         public void BodiesDontShareSpace()

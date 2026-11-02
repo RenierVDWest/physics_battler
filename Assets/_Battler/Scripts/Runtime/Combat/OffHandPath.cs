@@ -10,7 +10,8 @@ namespace PhysicsBattler.Combat
     /// a little through, and straight back, on the off arm (posed by <c>PosePipeline</c>); the weapon
     /// arm keeps its guard. This locks the aim and works out the lunge: the step in that brings the
     /// lead shoulder, turned in behind the blow at contact, within the arm's reach of the aim point.
-    /// Whether it lands is the planner's dry run, as for every blow.
+    /// Whether it lands is the planner's dry run, as for every blow. The weapon hand's close blow, the
+    /// club's butt strike, takes the same way on the weapon arm (<see cref="MoveDefinition.Close"/>).
     /// </summary>
     public static class OffHandPath
     {
@@ -32,7 +33,8 @@ namespace PhysicsBattler.Combat
 
             // (The lead shoulder where it will be at contact: turned in with the body's turn into the
             // blow, round the spine, then carried by the lunge.)
-            Vector3 shoulder = anim.Part(PartId.UpperArmL).position;
+            bool right = move.hand == MoveHand.Main;
+            Vector3 shoulder = anim.Part(right ? PartId.UpperArmR : PartId.UpperArmL).position;
             Vector3 aboutSpine = shoulder - root;
             aboutSpine = Quaternion.Inverse(Quaternion.LookRotation(Vector3.ProjectOnPlane(attacker.Root.forward, Vector3.up).sqrMagnitude > 1e-6f
                 ? Vector3.ProjectOnPlane(attacker.Root.forward, Vector3.up) : forward, Vector3.up)) * aboutSpine;
@@ -40,7 +42,8 @@ namespace PhysicsBattler.Combat
             Vector3 shoulderLocal = Quaternion.Euler(0f, move.TurnAt(contact), 0f) * aboutSpine;
             Vector3 toAim = aim - (root + face * shoulderLocal);
 
-            float arm = ArmLength(anim) + StrikeLocal(anim, weapon, attacker.Loadout.Scale, size).magnitude;
+            Vector3 strikeLocal = right ? ButtLocal(anim, weapon, attacker.Loadout.Scale) : StrikeLocal(anim, weapon, attacker.Loadout.Scale, size);
+            float arm = ArmLength(anim, right) + strikeLocal.magnitude;
             float reach = ReachShare * arm;
             float rise = toAim.y;
             float side = Vector3.Dot(toAim, face * Vector3.right);
@@ -77,8 +80,18 @@ namespace PhysicsBattler.Combat
             };
         }
 
-        /// <summary>The off arm's length, shoulder to wrist.</summary>
-        public static float ArmLength(AnimRig anim) => anim.RestLocalPosition(PartId.ForearmL).magnitude + anim.RestLocalPosition(PartId.HandL).magnitude;
+        /// <summary>The off arm's length (or the weapon arm's), shoulder to wrist.</summary>
+        public static float ArmLength(AnimRig anim, bool right = false) => right
+            ? anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude
+            : anim.RestLocalPosition(PartId.ForearmL).magnitude + anim.RestLocalPosition(PartId.HandL).magnitude;
+
+        /// <summary>The weapon's butt end in the weapon hand's own frame (the punyo's striking part).</summary>
+        public static Vector3 ButtLocal(AnimRig anim, WeaponDefinition weapon, float scale)
+        {
+            var slot = anim.SlotWeaponR;
+            Vector3 butt = (weapon != null ? weapon.Butt : new Vector3(0f, 0f, -WeaponDefinition.ButtLength)) * scale;
+            return slot != null ? slot.localPosition + slot.localRotation * butt : butt;
+        }
 
         /// <summary>
         /// What strikes in an off-hand blow, in the off hand's own frame: a bare fist's knuckles, a

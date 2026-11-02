@@ -25,6 +25,9 @@ namespace PhysicsBattler.Combat
 
         /// <summary>Milestone 10: the shield bash, the shield's face driven into the target and back.</summary>
         ShieldBash,
+
+        /// <summary>Milestone 10: the club's butt strike (punyo), hammered down into the face or the collarbone from close in.</summary>
+        ClubPunyo,
     }
 
     /// <summary>Milestone 10: which hand throws a blow.</summary>
@@ -77,6 +80,13 @@ namespace PhysicsBattler.Combat
         public ComboBodies bodies = ComboBodies.All;
         [Tooltip("Milestone 10: the hand that throws it. Off: the left hand's own blow (the jab, the shield bash); the weapon arm keeps its guard.")]
         public MoveHand hand = MoveHand.Main;
+
+        /// <summary>
+        /// Milestone 10: a close blow, its striking part going straight from the hand's guard to the
+        /// aim point and back (OffHandPath; posed on its own, not by keys): the off hand's blows, and
+        /// a butt strike.
+        /// </summary>
+        public bool Close => hand == MoveHand.Off || strikeWith == StrikeWith.Butt;
 
         [Header("Swing (medium size; Swing and Thrust shapes)")]
         [Tooltip("Degrees the swing plane tilts: 0 a flat swing, 90 straight down from overhead, negative rising from below.")]
@@ -267,7 +277,8 @@ namespace PhysicsBattler.Combat
         /// <summary>The bodies a ready-made move is for (milestone 10: the fan strikes are the small body's).</summary>
         public static ComboBodies DefaultBodies(MoveStyle style) =>
             style == MoveStyle.ClubFan || style == MoveStyle.ClubFanBackhand ? ComboBodies.Small
-            : style == MoveStyle.OffJab ? ComboBodies.Large : ComboBodies.All;
+            : style == MoveStyle.OffJab ? ComboBodies.Large
+            : style == MoveStyle.ClubPunyo ? ComboBodies.Small : ComboBodies.All;
 
         /// <summary>
         /// The arm rebuild's starting elbow nulls for the ready-made moves (degrees round the arm, as
@@ -826,6 +837,39 @@ namespace PhysicsBattler.Combat
                     drive = 0.15f;
                     maxLunge = 0.35f;
                     hitStop = 0.04f;
+                    elbowWindUp = elbowContact = elbowFollow = 0f;
+                    break;
+
+                case MoveStyle.ClubPunyo:
+                    // Milestone 10: the eskrima butt strike (punyo). From close in, the fist raised by
+                    // the shoulder, the stick standing up behind it, then hammered down and forward so
+                    // the butt below the fist lands on the face, the neck or the collarbone, and on
+                    // through a little; the body drops into it. (A close blow: its way is straight, from
+                    // the raised fist, OffHandPath's for the weapon hand.)
+                    hand = MoveHand.Main;
+                    shape = MoveShape.Thrust;
+                    strikeWith = StrikeWith.Butt;
+                    targets = AimParts.Head | AimParts.Neck | AimParts.Chest;
+                    through = 0.15f;
+                    drawBack = 0.22f;   // (here: how far the fist is raised over its guard, in the chamber)
+                    pivotSide = 0.2f;
+                    pivotUp = 0.12f;
+                    windUpTime = 0.16f;
+                    holdTime = 0.03f;
+                    strikeTime = 0.12f;
+                    accelShare = 0.5f;
+                    recoveryTime = 0.28f;
+                    turnBack = 15f;
+                    turnThrough = 10f;
+                    leanBack = -2f;
+                    leanThrough = 12f;
+                    crouchLoad = 0.03f;
+                    crouchStrike = 0.06f;
+                    rockBack = 0.2f;
+                    drive = 0.2f;
+                    passingStep = false;
+                    maxLunge = 0.35f;
+                    hitStop = 0.05f;
                     elbowWindUp = elbowContact = elbowFollow = 0f;
                     break;
 

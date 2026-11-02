@@ -639,6 +639,14 @@ namespace PhysicsBattler.Units
                 return false;
             }
 
+            if (move.Move.strikeWith == StrikeWith.Butt)
+            {
+                // (Milestone 10: a butt strike: from the grip down to the butt end below the fist.)
+                grip = MainWeapon.PhysicalPoint(Vector3.zero);
+                tip = strike = MainWeapon.PhysicalPoint(weapon.Butt);
+                return true;
+            }
+
             float from = weapon.kind == WeaponKind.Club ? 0.35f : 0.1f;
             grip = MainWeapon.PhysicalPoint(weapon.tip * from);
             tip = MainWeapon.PhysicalPoint(weapon.tip);
