@@ -27,6 +27,7 @@ MonoBehaviour:
   severSpeed: 7
   guardGrip: {x: 0.18, y: -0.28, z: 0.32}
   guardAngles: {x: 35, y: 12}
+  gripRoll: 10
   moves:
   - {fileID: 11400000, guid: 9318b13b6fdeb87448794ae7e257ef6d, type: 2}
   - {fileID: 11400000, guid: 8cedd2636f759da4988f6bcaec81e37a, type: 2}

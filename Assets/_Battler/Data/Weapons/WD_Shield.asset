@@ -27,4 +27,5 @@ MonoBehaviour:
   severSpeed: 7
   guardGrip: {x: -0.12, y: -0.1, z: 0.36}
   guardAngles: {x: 8, y: 18}
+  gripRoll: 0
   moves: []
