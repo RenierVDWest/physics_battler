@@ -14,6 +14,36 @@ using UnityEngine;
 
 internal static class ArmFilmReport
 {
+    /// <summary>Keys from a keyfit run's printout (the file's lines for this style), if there is one.</summary>
+    internal static void LoadKeys(MoveDefinition move, MoveStyle style, string keysFile)
+    {
+            if (keysFile != null && File.Exists(keysFile))
+        {
+            string text = File.ReadAllText(keysFile);
+            Vector3 V3(string v)
+            {
+                var n = System.Text.RegularExpressions.Regex.Matches(v, @"-?[\d.]+");
+                return new Vector3(float.Parse(n[0].Value, CultureInfo.InvariantCulture), float.Parse(n[1].Value, CultureInfo.InvariantCulture), float.Parse(n[2].Value, CultureInfo.InvariantCulture));
+            }
+
+            var h = System.Text.RegularExpressions.Regex.Match(text, $@"  {style}: hand windUp = new Vector3\(([^)]*)\); follow = new Vector3\(([^)]*)\)");
+            var w = System.Text.RegularExpressions.Regex.Match(text, $@"  {style}: wrist windUp = new Vector3\(([^)]*)\); contact = new Vector3\(([^)]*)\); follow = new Vector3\(([^)]*)\)");
+            var e = System.Text.RegularExpressions.Regex.Match(text, $@"  {style}: elbow windUp = ([-\d.]+)f; contact = ([-\d.]+)f; follow = ([-\d.]+)f");
+            if (h.Success && w.Success && e.Success)
+            {
+                move.handWindUp = V3(h.Groups[1].Value);
+                move.handFollow = V3(h.Groups[2].Value);
+                move.wristWindUp = V3(w.Groups[1].Value);
+                move.wristContact = V3(w.Groups[2].Value);
+                move.wristFollow = V3(w.Groups[3].Value);
+                move.elbowWindUp = float.Parse(e.Groups[1].Value, CultureInfo.InvariantCulture);
+                move.elbowContact = float.Parse(e.Groups[2].Value, CultureInfo.InvariantCulture);
+                move.elbowFollow = float.Parse(e.Groups[3].Value, CultureInfo.InvariantCulture);
+            }
+        }
+
+    }
+
     public static int Run()
     {
         string only = Environment.GetEnvironmentVariable("FILM_MOVE");
@@ -40,32 +70,7 @@ internal static class ArmFilmReport
                 KeyFitReport.Seed(move, weapon, body, wanted);
             }
 
-            // (Keys from a keyfit run's printout: FILM_KEYS=<file>.)
-            string keysFile = Environment.GetEnvironmentVariable("FILM_KEYS");
-            if (keysFile != null && File.Exists(keysFile))
-            {
-                string text = File.ReadAllText(keysFile);
-                Vector3 V3(string v)
-                {
-                    var n = System.Text.RegularExpressions.Regex.Matches(v, @"-?[\d.]+");
-                    return new Vector3(float.Parse(n[0].Value, CultureInfo.InvariantCulture), float.Parse(n[1].Value, CultureInfo.InvariantCulture), float.Parse(n[2].Value, CultureInfo.InvariantCulture));
-                }
-
-                var h = System.Text.RegularExpressions.Regex.Match(text, $@"  {style}: hand windUp = new Vector3\(([^)]*)\); follow = new Vector3\(([^)]*)\)");
-                var w = System.Text.RegularExpressions.Regex.Match(text, $@"  {style}: wrist windUp = new Vector3\(([^)]*)\); contact = new Vector3\(([^)]*)\); follow = new Vector3\(([^)]*)\)");
-                var e = System.Text.RegularExpressions.Regex.Match(text, $@"  {style}: elbow windUp = ([-\d.]+)f; contact = ([-\d.]+)f; follow = ([-\d.]+)f");
-                if (h.Success && w.Success && e.Success)
-                {
-                    move.handWindUp = V3(h.Groups[1].Value);
-                    move.handFollow = V3(h.Groups[2].Value);
-                    move.wristWindUp = V3(w.Groups[1].Value);
-                    move.wristContact = V3(w.Groups[2].Value);
-                    move.wristFollow = V3(w.Groups[3].Value);
-                    move.elbowWindUp = float.Parse(e.Groups[1].Value, CultureInfo.InvariantCulture);
-                    move.elbowContact = float.Parse(e.Groups[2].Value, CultureInfo.InvariantCulture);
-                    move.elbowFollow = float.Parse(e.Groups[3].Value, CultureInfo.InvariantCulture);
-                }
-            }
+            LoadKeys(move, style, Environment.GetEnvironmentVariable("FILM_KEYS"));
 
             weapon.moves = new[] { move };
             string who = body;

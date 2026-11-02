@@ -264,7 +264,17 @@ internal static class KeyFitReport
                 Seed(move, weapon, body, parts[0]);
             }
 
+            ArmFilmReport.LoadKeys(move, style, Environment.GetEnvironmentVariable("KEY_FROM"));
+
             var x = Get(move);
+            if (int.TryParse(Environment.GetEnvironmentVariable("KEY_REPEAT"), out int repeat))
+            {
+                for (int k = 0; k < repeat; k++)
+                {
+                    Console.WriteLine($"  again: {string.Join(" | ", Evaluate())}");
+                }
+            }
+
             var runs = Evaluate();
             float best = Score(runs, move, arcWanted);
             Console.WriteLine($"{style} ({body}, at {string.Join(", ", parts)}) from {best:0}: {runs[0]}");
@@ -356,8 +366,9 @@ internal static class KeyFitReport
         {
             case MoveStyle.SwordCut:
             case MoveStyle.ClubSwing:
-                // Cocked over the right shoulder, the elbow up and out; through to the left hip.
-                windUp = new Pose(new Vector3(0.12f, 0.28f, -0.05f), 110f, new Vector3(0.25f, 0.35f, -1f));
+                // Drawn back high behind the right shoulder, the elbow out, the blade pointing back;
+                // through to the left hip.
+                windUp = new Pose(new Vector3(0.28f, 0.3f, -0.25f), 100f, new Vector3(0.3f, 0f, -1f));
                 follow = new Pose(new Vector3(-0.35f, -0.4f, 0.2f), 10f, new Vector3(-0.6f, -0.3f, -0.8f));
                 return true;
             case MoveStyle.SwordCleave:

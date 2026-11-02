@@ -54,6 +54,18 @@ namespace PhysicsBattler.Editor.Setup
                     MoveDefinition.DefaultElbows(style, out m.elbowWindUp, out m.elbowContact, out m.elbowFollow);
                     MoveDefinition.DefaultWrists(style, out m.wristWindUp, out m.wristContact, out m.wristFollow);
                     MoveDefinition.DefaultHands(style, out m.handWindUp, out m.handFollow);
+                    if (SetupVersion.Installed < 23 && m.shape == MoveShape.Swing)
+                    {
+                        // (Setup 23: the swings' strikes quicker and wind-ups slower, for the hand-keyed blows.)
+                        var made = MoveDefinition.Create(style);
+                        if (made != null)
+                        {
+                            m.strikeTime = made.strikeTime;
+                            m.windUpTime = made.windUpTime;
+                            UnityEngine.Object.DestroyImmediate(made);
+                        }
+                    }
+
                     EditorUtility.SetDirty(m);
                     Debug.Log($"[Battler Setup] {BattlerPaths.Move(style.ToString())}: elbow nulls, wrist and hand keys.");
                 }

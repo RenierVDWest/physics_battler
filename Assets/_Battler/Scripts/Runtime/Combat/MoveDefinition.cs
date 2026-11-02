@@ -417,7 +417,7 @@ namespace PhysicsBattler.Combat
                     // (Chambered by the hip, the forearm and the point toward the target, then driven
                     // straight out.)
                     windUp = new Vector3(0.05f, -0.28f, 0.12f);
-                    follow = new Vector3(0.0f, -0.05f, 0.6f);
+                    follow = new Vector3(-0.05f, 0.05f, 0.6f);
                     break;
                 case MoveStyle.ClubFan:
                     windUp = new Vector3(0.25f, 0.1f, 0.15f);
@@ -560,9 +560,13 @@ namespace PhysicsBattler.Combat
             stretchAfter = 35f;
             wristLag = 35f;
             drawBack = 0.3f;
-            windUpTime = 0.45f;
+            windUpTime = 0.59f;
             holdTime = 0.09f;
-            strikeTime = 0.3f;
+            // (The arm rebuild: the strikes 30% quicker and the wind-ups 30% slower than the path-made
+            // ones. A hand keyed as a person swings carries the striking part a shorter way through the
+            // strike than those paths did and a longer one into the wind-up, and at their pace it came
+            // through contact no faster than it wound up.)
+            strikeTime = 0.21f;
             accelShare = 0.4f;
             recoveryTime = 0.45f;
             turnBack = 100f;
@@ -597,7 +601,7 @@ namespace PhysicsBattler.Combat
                     windUpAngle = 160f;
                     followAngle = 120f;
                     through = 0.6f;
-                    strikeTime = 0.28f;
+                    strikeTime = 0.2f;
                     turnBack = 90f;
                     turnThrough = 65f;
                     break;
@@ -608,9 +612,9 @@ namespace PhysicsBattler.Combat
                     windUpAngle = 210f;
                     followAngle = 150f;
                     through = 0.5f;
-                    windUpTime = 0.51f;
+                    windUpTime = 0.66f;
                     holdTime = 0.12f;
-                    strikeTime = 0.32f;
+                    strikeTime = 0.22f;
                     turnBack = 110f;
                     turnThrough = 80f;
                     leanThrough = 18f;
@@ -653,9 +657,9 @@ namespace PhysicsBattler.Combat
                     windUpAngle = 220f;
                     followAngle = 160f;
                     through = 0.5f;
-                    windUpTime = 0.54f;
+                    windUpTime = 0.7f;
                     holdTime = 0.12f;
-                    strikeTime = 0.36f;
+                    strikeTime = 0.25f;
                     recoveryTime = 0.48f;
                     turnBack = 115f;
                     turnThrough = 85f;
@@ -677,9 +681,9 @@ namespace PhysicsBattler.Combat
                     through = 0.45f;
                     pivotSide = 0.3f;   // the arc comes down past the head, not through it
                     pivotUp = 0.2f;
-                    windUpTime = 0.57f;
+                    windUpTime = 0.74f;
                     holdTime = 0.15f;
-                    strikeTime = 0.34f;
+                    strikeTime = 0.24f;
                     recoveryTime = 0.51f;
                     turnBack = 25f;
                     turnThrough = 15f;
@@ -699,9 +703,9 @@ namespace PhysicsBattler.Combat
                     followAngle = 140f;
                     guardAngle = 30f;
                     through = 0.4f;
-                    windUpTime = 0.48f;
+                    windUpTime = 0.62f;
                     holdTime = 0.09f;
-                    strikeTime = 0.22f;
+                    strikeTime = 0.17f;
                     recoveryTime = 0.45f;
                     turnBack = 85f;
                     turnThrough = 60f;
@@ -724,9 +728,9 @@ namespace PhysicsBattler.Combat
                     through = 0.5f;
                     pivotSide = -0.05f;
                     pivotForward = 0.18f;
-                    windUpTime = 0.45f;
+                    windUpTime = 0.59f;
                     holdTime = 0.08f;
-                    strikeTime = 0.3f;
+                    strikeTime = 0.21f;
                     recoveryTime = 0.45f;
                     turnBack = 90f;
                     turnThrough = 65f;

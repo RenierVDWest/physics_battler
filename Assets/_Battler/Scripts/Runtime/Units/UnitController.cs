@@ -501,6 +501,7 @@ namespace PhysicsBattler.Units
             state.ContactPassed = state.SteppedOut = state.LeadOut = state.SteppedBack = state.RearMoved = state.RearOut = state.RearBack = false;
             state.HasLastStrike = state.HasLastPhysical = state.HasLastRadial = state.HasContactShift = false;
             state.ContactSpeed = state.PeakSpeed = state.Depth = state.Arc = state.LastProgress = 0f;
+            state.ContactWay = Vector3.zero;
             state.PhysicalClosest = -1f;
             CurrentMove = state;
             Pose.Move = state;
@@ -914,7 +915,7 @@ namespace PhysicsBattler.Units
             StepCombo();
         }
 
-        /// <summary>The posed swing's speed, depth past the aim point and arc, for the log.</summary>
+        /// <summary>The posed swing's speed, how far it carried on past the aim point and its arc, for the log.</summary>
         private void MeasureSwing(MoveState move, float dt)
         {
             if (!move.HasLastStrike || dt <= 0f)
@@ -926,6 +927,7 @@ namespace PhysicsBattler.Units
             if (!move.ContactPassed && move.T >= move.ContactTime)
             {
                 move.ContactSpeed = speed;
+                move.ContactWay = speed > 1e-3f ? (Pose.StrikePoint - move.LastStrike).normalized : Vector3.zero;
             }
 
             if (move.T <= move.Move.SwingFollowEnd)
@@ -942,7 +944,10 @@ namespace PhysicsBattler.Units
             Vector3 pivot = move.PivotAt(move.Move.ContactProgress);
             if (move.T >= move.ContactTime && move.T <= move.Move.SwingFollowEnd)
             {
-                move.Depth = Mathf.Max(move.Depth, Vector3.Dot(Pose.StrikePoint - move.Aim, (move.Aim - pivot).normalized));
+                // (The arm rebuild: a hand-keyed blow carries on the way it was going through the aim,
+                // across the target for a cut, into it for a thrust; a path-made one, away from its pivot.)
+                Vector3 way = move.HasContactHand && move.ContactWay != Vector3.zero ? move.ContactWay : (move.Aim - pivot).normalized;
+                move.Depth = Mathf.Max(move.Depth, Vector3.Dot(Pose.StrikePoint - move.Aim, way));
             }
 
             Vector3 radial = Pose.StrikePoint - move.PivotAt(move.Progress);
