@@ -39,6 +39,14 @@ namespace PhysicsBattler.Combat
         /// </summary>
         public static MoveState Prepare(UnitController attacker, UnitController target, MoveDefinition move, AimPart part)
         {
+            using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Prepare))
+            {
+                return PrepareCore(attacker, target, move, part);
+            }
+        }
+
+        private static MoveState PrepareCore(UnitController attacker, UnitController target, MoveDefinition move, AimPart part)
+        {
             // (Milestone 10: an off-hand blow is thrown with what the off hand has: its fist, its shield.)
             var weapon = attacker.Loadout?.For(move);
             if (move == null || weapon == null || target == null || !target.IsInitialized)
@@ -191,6 +199,14 @@ namespace PhysicsBattler.Combat
         /// <param name="prefer">Body parts to favour (milestone 6: parts the target has open right now, as the attacker reads them).</param>
         /// <param name="preferWeight">How many times likelier a favoured part is.</param>
         public static MoveState Plan(UnitController attacker, UnitController target, System.Random random, AimParts prefer, float preferWeight)
+        {
+            using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Plan))
+            {
+                return PlanCore(attacker, target, random, prefer, preferWeight);
+            }
+        }
+
+        private static MoveState PlanCore(UnitController attacker, UnitController target, System.Random random, AimParts prefer, float preferWeight)
         {
             var weapon = attacker.Loadout?.Main;
             if (weapon == null || weapon.moves == null)

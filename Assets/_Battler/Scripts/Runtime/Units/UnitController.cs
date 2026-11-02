@@ -533,7 +533,10 @@ namespace PhysicsBattler.Units
         /// <param name="keep">Leave the unit in the contact pose (debugging, the move preview).</param>
         public float TryOut(MoveState state, bool keep)
         {
-            return PoseDry(state, state.ContactTime, keep) ? Pose.AimError : float.MaxValue;
+            using (Perf.Begin(PerfSection.TryOut))
+            {
+                return PoseDry(state, state.ContactTime, keep) ? Pose.AimError : float.MaxValue;
+            }
         }
 
         /// <summary>
@@ -542,6 +545,14 @@ namespace PhysicsBattler.Units
         /// negative: they pass through it), and where it comes closest.
         /// </summary>
         public float Clearance(MoveState state, int samples, out PartId closest, out float when, out bool weapon)
+        {
+            using (Perf.Begin(PerfSection.Clearance))
+            {
+                return ClearanceCore(state, samples, out closest, out when, out weapon);
+            }
+        }
+
+        private float ClearanceCore(MoveState state, int samples, out PartId closest, out float when, out bool weapon)
         {
             float best = float.MaxValue;
             closest = PartId.Chest;
@@ -756,7 +767,10 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            Step(Time.fixedDeltaTime, true);
+            using (Perf.Begin(PerfSection.UnitStep))
+            {
+                Step(Time.fixedDeltaTime, true);
+            }
         }
 
         /// <summary>Edit mode: advance the pose by a time step and put the body (meshes) on it.</summary>
@@ -854,7 +868,10 @@ namespace PhysicsBattler.Units
                 // What the weapon struck since last step (as PhysX moved it); a stopped swing ends the blow.
                 if (physical)
                 {
-                    Sweep(move, dt);
+                    using (Perf.Begin(PerfSection.Sweep))
+                    {
+                        Sweep(move, dt);
+                    }
                 }
 
                 if (CurrentMove == move)
@@ -899,7 +916,10 @@ namespace PhysicsBattler.Units
             {
                 // A blow fading out after being cut short is still posed onto the weapon arm.
                 SetAuthority(move ?? cutShort);
-                Authority.Apply(dt);
+                using (Perf.Begin(PerfSection.Authority))
+                {
+                    Authority.Apply(dt);
+                }
             }
 
             if (drive && MainWeapon != null && CurrentMove == null)

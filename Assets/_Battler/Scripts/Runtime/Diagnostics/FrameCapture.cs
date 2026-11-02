@@ -165,6 +165,8 @@ namespace PhysicsBattler.Diagnostics
             }
 
             nextCapture = Mathf.Max(nextCapture + interval, Time.time);
+            // (Its render happens in Unity's own loop this frame: Camera.Render in the counters.)
+            using var renderScope = Perf.Begin(PerfSection.CaptureRender);
             captureCamera.CopyFrom(main);
             captureCamera.targetTexture = target;
             captureCamera.aspect = 1f;
@@ -197,6 +199,14 @@ namespace PhysicsBattler.Diagnostics
         }
 
         private void Save(AsyncGPUReadbackRequest request, int frame, float t, int stepAtCapture, Vector3 position, Vector3 angles, float fov)
+        {
+            using (Perf.Begin(PerfSection.CaptureSave))
+            {
+                SaveCore(request, frame, t, stepAtCapture, position, angles, fov);
+            }
+        }
+
+        private void SaveCore(AsyncGPUReadbackRequest request, int frame, float t, int stepAtCapture, Vector3 position, Vector3 angles, float fov)
         {
             if (index == null)
             {

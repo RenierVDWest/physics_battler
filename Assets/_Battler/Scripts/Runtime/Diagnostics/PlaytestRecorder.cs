@@ -76,6 +76,7 @@ namespace PhysicsBattler.Diagnostics
         private readonly List<ShieldContacts.Contact> shieldEnded = new List<ShieldContacts.Contact>();
 
         private StreamWriter events;
+        private PerfTrack perf;
         private TableWriter world;
         private string sessionPath;
         private DateTime startedAt;
@@ -205,6 +206,20 @@ namespace PhysicsBattler.Diagnostics
                 }
             }
 
+            // Performance analytics (perf.csv.gz, perf_counters.txt; hitches in this log as "perf").
+            try
+            {
+                perf = new PerfTrack(sessionPath);
+                Event((string)null, "session", "performance: a row a frame in perf.csv.gz; Unity's counters recorded: "
+                                               + (perf.Counters.Length > 0 ? perf.Counters : "none") + $"; frames over {PerfTrack.HitchMs:0} ms noted as \"perf\""
+                                               + $"; fixed step {Time.fixedDeltaTime * 1000f:0.0} ms, at most {Time.maximumDeltaTime * 1000f:0} ms of physics a frame, vSync {QualitySettings.vSyncCount}, target fps {Application.targetFrameRate}");
+            }
+            catch (Exception exception)
+            {
+                Event((string)null, "session", "performance analytics could not start: " + exception.Message);
+                perf = null;
+            }
+
             WriteMeta(false);
             WriteSummary(false);
         }
@@ -252,6 +267,8 @@ namespace PhysicsBattler.Diagnostics
             Event((string)null, "session", $"recording stopped after {Now - startTime:0.0} s ({step} physics steps)");
             WriteMeta(true);
             WriteSummary(true);
+            perf?.Dispose();
+            perf = null;
 
             try
             {
@@ -586,6 +603,15 @@ namespace PhysicsBattler.Diagnostics
 
             step++;
             lastSeenTime = Time.time;
+            perf?.NoteFixedStep();
+            using (Perf.Begin(PerfSection.RecorderSample))
+            {
+                SampleStep();
+            }
+        }
+
+        private void SampleStep()
+        {
             if (pending.Count > 0)
             {
                 foreach (var unit in pending)
@@ -631,6 +657,14 @@ namespace PhysicsBattler.Diagnostics
             if (step % 30 == 0)
             {
                 Flush();
+            }
+        }
+
+        private void LateUpdate()
+        {
+            if (Recording && perf != null)
+            {
+                perf.EndFrame(Now - startTime, step, tracks.Count, text => Event((string)null, "perf", text));
             }
         }
 
@@ -724,6 +758,15 @@ namespace PhysicsBattler.Diagnostics
 
         private void Flush()
         {
+            using (Perf.Begin(PerfSection.RecorderFlush))
+            {
+                FlushFiles();
+            }
+        }
+
+        private void FlushFiles()
+        {
+            perf?.Flush();
             // A unit described in meta.json only once it is set up (it announces itself before).
             foreach (var track in tracks)
             {
@@ -963,7 +1006,8 @@ namespace PhysicsBattler.Diagnostics
                 : "Recording… (this file is completed when Play stops).");
             md.AppendLine();
             md.AppendLine("Files: `events.log` (what happened and why), `units/*.frames.csv.gz` (per-step state), "
-                          + "`units/*.pose.csv.gz` (per-step pose, physical and animated), `world.csv.gz` (props, if any), `config/` (tuning assets), `meta.json`.");
+                          + "`units/*.pose.csv.gz` (per-step pose, physical and animated), `world.csv.gz` (props, if any), `config/` (tuning assets), `meta.json`, "
+                          + "`perf.csv.gz` (a row a rendered frame: frame time, physics steps, our work by section, Unity's counters, garbage collection), `perf_counters.txt`.");
             md.AppendLine("Analyse with `python3 Tools/Playtest/analyze.py PlaytestLogs/" + SessionName + "`.");
 
             if (ended)
@@ -986,6 +1030,8 @@ namespace PhysicsBattler.Diagnostics
                                   + $"(target under {ShieldContacts.LongestTarget:0.0} s). Each one is in events.log (\"shield\").");
                     md.AppendLine();
                 }
+
+                perf?.AppendSummary(md);
 
                 if (marks.Count > 0)
                 {

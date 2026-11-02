@@ -7,6 +7,7 @@ namespace UnityEngine
     public static class Application
     {
         public static bool isPlaying { get; set; } = true;
+        public static int targetFrameRate { get; set; } = -1;
         public static bool isBatchMode { get; set; } = true;
         public static bool isEditor => true;
         public static string dataPath { get; set; } = "Assets";
@@ -29,6 +30,7 @@ namespace UnityEngine
         public static float unscaledDeltaTime { get; set; } = 1f / 60f;
         public static float unscaledTime { get; set; }
         public static int frameCount { get; set; }
+        public static float maximumDeltaTime { get; set; } = 1f / 3f;
     }
 
     public static class Debug
@@ -207,6 +209,7 @@ namespace UnityEngine
 
     public static class QualitySettings
     {
+        public static int vSyncCount { get; set; } = 1;
         public static string[] names { get; } = { "Low", "Medium", "High" };
         public static int GetQualityLevel() => 0;
         public static void SetQualityLevel(int index, bool applyExpensiveChanges = true) { }

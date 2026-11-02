@@ -180,6 +180,20 @@ namespace PhysicsBattler.Units
 
         private static void Modify(PhysicsScene scene, NativeArray<ModifiableContactPair> pairs)
         {
+            // (Timed for the playtest log's performance table: PhysX's threads.)
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
+            try
+            {
+                ModifyPairs(pairs);
+            }
+            finally
+            {
+                PhysicsBattler.Diagnostics.Perf.NoteContacts(System.Diagnostics.Stopwatch.GetTimestamp() - started, pairs.Length);
+            }
+        }
+
+        private static void ModifyPairs(NativeArray<ModifiableContactPair> pairs)
+        {
             var s = current;
             if (s == null)
             {
