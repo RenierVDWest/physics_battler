@@ -95,6 +95,12 @@ namespace PhysicsBattler.Combat
         [Tooltip("At the end of the follow-through; the recovery eases back to the guard's.")]
         public float elbowFollow;
 
+        [Header("Hand keys (where the hand is, from the shoulder, in the blow's aim frame: x right, y up, z toward the target; metres, medium size)")]
+        [Tooltip("At the end of the wind-up (held through the hold). The contact hand is solved when the blow is planned, so the striking part lands on the aim.")]
+        public Vector3 handWindUp;
+        [Tooltip("At the end of the follow-through.")]
+        public Vector3 handFollow;
+
         [Header("Wrist keys (x: the forearm's turn, palm down +; y: flexion toward the palm +; z: toward the thumb +; degrees)")]
         [Tooltip("At the end of the wind-up (held through the hold). The guard's wrist is at the start and the end of the blow.")]
         public Vector3 wristWindUp;
@@ -342,6 +348,75 @@ namespace PhysicsBattler.Combat
         }
 
         /// <summary>
+        /// The arm rebuild's starting hand keys (hand-first blows: the hand is the arm's effector, the
+        /// weapon follows it): a forehand winds up back and out to the side and follows through low
+        /// across the body; an overhead blow winds up above and behind the head and follows through
+        /// low in front; a rising blow from low behind the hip to high across; a backhand from the
+        /// other shoulder out to the side; a thrust drawn back by the chest; a fan close to the
+        /// shoulder, little arm and all wrist. In the aim frame, from the shoulder, medium size.
+        /// </summary>
+        public static void DefaultHands(MoveStyle style, out Vector3 windUp, out Vector3 follow)
+        {
+            switch (style)
+            {
+                case MoveStyle.SwordCut:
+                case MoveStyle.ClubSwing:
+                    windUp = new Vector3(0.35f, 0.1f, -0.15f);
+                    follow = new Vector3(-0.35f, -0.25f, 0.25f);
+                    break;
+                case MoveStyle.SwordCleave:
+                case MoveStyle.ClubSmash:
+                    windUp = new Vector3(0.05f, 0.45f, -0.1f);
+                    follow = new Vector3(-0.1f, -0.55f, 0.25f);
+                    break;
+                case MoveStyle.ClubRising:
+                    windUp = new Vector3(0.25f, -0.55f, -0.1f);
+                    follow = new Vector3(-0.15f, 0.3f, 0.35f);
+                    break;
+                case MoveStyle.SwordBackhand:
+                case MoveStyle.ClubBackhand:
+                    windUp = new Vector3(-0.3f, 0.05f, 0.05f);
+                    follow = new Vector3(0.45f, 0f, 0.1f);
+                    break;
+                case MoveStyle.SwordThrust:
+                    windUp = new Vector3(0.15f, -0.15f, -0.15f);
+                    follow = new Vector3(0.05f, -0.05f, 0.6f);
+                    break;
+                case MoveStyle.ClubFan:
+                    windUp = new Vector3(0.25f, 0.1f, 0.15f);
+                    follow = new Vector3(-0.05f, -0.05f, 0.3f);
+                    break;
+                case MoveStyle.ClubFanBackhand:
+                    windUp = new Vector3(-0.05f, 0.1f, 0.2f);
+                    follow = new Vector3(0.3f, 0f, 0.25f);
+                    break;
+                default:
+                    windUp = new Vector3(0.3f, 0f, 0f);
+                    follow = new Vector3(-0.2f, -0.2f, 0.3f);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// As <see cref="Phase"/>, for the hand's travel: from the hold to the striking moment and on
+        /// through the follow-through it goes as the swing's own progress does (accelerating into the
+        /// blow, slowing after), elsewhere eased.
+        /// </summary>
+        public void HandPhase(float t, out int from, out int to, out float share)
+        {
+            Phase(t, out from, out to, out share);
+            if (shape == MoveShape.Path || (from != 1 || to != 2) && (from != 2 || to != 3))
+            {
+                return;
+            }
+
+            float t1 = WindUpEnd, t3 = ContactTime(), t4 = SwingFollowEnd;
+            float t2 = Mathf.Clamp(t1 + Mathf.Max(0f, holdTime) / Mathf.Max(1e-3f, SwingDuration), t1, t3);
+            float a = from == 1 ? ProgressAt(t2) : ProgressAt(t3), b = from == 1 ? ProgressAt(t3) : ProgressAt(t4);
+            share = b - a > 1e-5f ? Mathf.Clamp01((ProgressAt(t) - a) / (b - a)) : share;
+        }
+
+        /// <summary>
         /// Where a normalized time of the blow falls among its keys (0 the guard, 1 the wind-up, 2 the
         /// contact, 3 the follow-through): between key <paramref name="from"/> and <paramref name="to"/>,
         /// eased (no corner at a key).
@@ -394,6 +469,7 @@ namespace PhysicsBattler.Combat
             bodies = DefaultBodies(style);
             DefaultElbows(style, out elbowWindUp, out elbowContact, out elbowFollow);
             DefaultWrists(style, out wristWindUp, out wristContact, out wristFollow);
+            DefaultHands(style, out handWindUp, out handFollow);
             backhand = false;
             planeTilt = 40f;
             windUpAngle = 190f;

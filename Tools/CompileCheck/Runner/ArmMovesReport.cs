@@ -42,7 +42,7 @@ internal static class ArmMovesReport
             swivel.Sort();
             string sw = swivel.Count > 0 ? $"{swivel[swivel.Count / 2]:0}/{swivel[(int)(0.95f * (swivel.Count - 1))]:0}" : "-";
             return $"wrist past {100f * wristOut / Math.Max(1, steps):0}% (worst {wristWorst:0}), shoulder past {shoulderWorst:0}, torso short {clearWorst * 100f:0.0} cm, elbow off null {sw}, roll {rollWorst:0}, "
-                   + $"fastest part {turnWorst:0} deg/step{turnWhere}" + (contactMiss >= 0f ? $", at contact {contactMiss * 100f:0.0} cm off" : "");
+                   + $"fastest part {turnWorst:0} deg/step{turnWhere}" + (contactMiss >= 0f ? $", sweep passes the aim within {contactMiss * 100f:0.0} cm (worst target)" : "");
         }
     }
 
@@ -104,7 +104,9 @@ internal static class ArmMovesReport
                     last[2] = a.Anim.Part(PartId.HandR).rotation;
                     if (state != null && a.StartMove(state))
                     {
-                        bool known = true;
+                        bool known = true, hasStrike = false;
+                        Vector3 strikeBefore = Vector3.zero;
+                        float closest = float.MaxValue;
                         for (int i = 0; i < 240 && a.IsAttacking; i++)
                         {
                             a.PreviewPose(dt);
@@ -116,10 +118,24 @@ internal static class ArmMovesReport
                                 var sv = a.Pose.LastWeaponArm;
                                 Console.WriteLine($"   T {state.T:0.000} turns {Quaternion.Angle(a.Anim.Part(PartId.UpperArmR).rotation, last[0]):0}/{Quaternion.Angle(a.Anim.Part(PartId.ForearmR).rotation, last[1]):0}/{Quaternion.Angle(a.Anim.Part(PartId.HandR).rotation, last[2]):0} prog {state.Progress:0.000} blend {state.Blend:0.00} miss {sv.pointMiss * 100f:0.0} cm bend {sv.elbowBend:0} swivelOff {sv.swivelOff:0} shoulder {sv.shoulderPast:0} wrist {sv.twist:0}/{sv.flexion:0}/{sv.deviation:0} aimErr {a.Pose.AimError * 100f:0.0} spine {a.Pose.SpineBend:0} reach {Vector3.Distance(sv.shoulder, sv.wrist):0.00}");
                             }
-                            if (state.ContactPassed && tally.contactMiss < 0f)
+                            if (System.Environment.GetEnvironmentVariable("ARM_NEAR") == $"{body} {move.name.Replace("MD_", "")} {part}" && Mathf.Abs(state.T - state.ContactTime) < 0.06f)
                             {
-                                tally.contactMiss = a.Pose.AimError;
+                                var sh = a.Anim.Part(PartId.UpperArmR).position;
+                                Console.WriteLine($"   T {state.T:0.000} (contact {state.ContactTime:0.000}) shoulder off plan {Vector3.Distance(sh, state.ContactShoulder) * 100f:0.0} cm, wrist to planned hand {Vector3.Distance(a.Pose.LastWeaponArm.wrist, state.Aim + state.Frame * state.ContactHand) * 100f:0.0} cm, strike to aim {Vector3.Distance(a.Pose.StrikePoint, state.Aim) * 100f:0.0} cm, spine {a.Pose.SpineBend:0}, timescale {state.TimeScale:0.00}");
                             }
+
+                            // (How close the striking part's sweep in this step passes the aim, as a hit is judged.)
+                            Vector3 strikeNow = a.Pose.StrikePoint;
+                            if (hasStrike)
+                            {
+                                Vector3 ab = strikeNow - strikeBefore;
+                                float u = ab.sqrMagnitude > 1e-10f ? Mathf.Clamp01(Vector3.Dot(state.Aim - strikeBefore, ab) / ab.sqrMagnitude) : 0f;
+                                float pass = Vector3.Distance(strikeBefore + ab * u, state.Aim);
+                                closest = Mathf.Min(closest, pass);
+                            }
+
+                            strikeBefore = strikeNow;
+                            hasStrike = true;
 
                             int k = 0;
                             foreach (var id in new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR })
@@ -139,6 +155,12 @@ internal static class ArmMovesReport
                             }
 
                             known = true;
+                        }
+
+                        tally.contactMiss = Mathf.Max(tally.contactMiss, closest);
+                        if (System.Environment.GetEnvironmentVariable("ARM_CONTACT") != null)
+                        {
+                            Console.WriteLine($"      {part}: planned miss {state.ContactHandMiss * 100f:0.0} cm, played {closest * 100f:0.0} cm");
                         }
                     }
 

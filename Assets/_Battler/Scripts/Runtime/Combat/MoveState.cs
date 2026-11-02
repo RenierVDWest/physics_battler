@@ -124,6 +124,21 @@ namespace PhysicsBattler.Combat
         /// the playing arm is drawn toward it as the moment comes.
         /// </summary>
         public readonly float[] ContactArm = { float.NaN, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f };
+
+        /// <summary>
+        /// The arm rebuild: where the hand is at the striking moment, from the aim, in the aim frame
+        /// (metres): solved when the blow is planned, so the striking part lands on the aim with the
+        /// contact's wrist and elbow keys.
+        /// </summary>
+        public Vector3 ContactHand;
+
+        public bool HasContactHand;
+
+        /// <summary>How far the striking part still lands from the aim with the planned contact hand (metres): out of reach, or past the wrist's keys.</summary>
+        public float ContactHandMiss;
+
+        /// <summary>Where the shoulder was in the planned contact pose (world; for measuring how the played blow differs).</summary>
+        public Vector3 ContactShoulder;
         public Vector3 LastRadial;
         public float LastProgress, LastDeviation;
         public bool HasLastRadial;

@@ -52,8 +52,9 @@ namespace PhysicsBattler.Editor.Setup
                 {
                     MoveDefinition.DefaultElbows(style, out m.elbowWindUp, out m.elbowContact, out m.elbowFollow);
                     MoveDefinition.DefaultWrists(style, out m.wristWindUp, out m.wristContact, out m.wristFollow);
+                    MoveDefinition.DefaultHands(style, out m.handWindUp, out m.handFollow);
                     EditorUtility.SetDirty(m);
-                    Debug.Log($"[Battler Setup] {BattlerPaths.Move(style.ToString())}: elbow nulls and wrist keys.");
+                    Debug.Log($"[Battler Setup] {BattlerPaths.Move(style.ToString())}: elbow nulls, wrist and hand keys.");
                 }
 
                 if (bodies && moves[(int)style].bodies != MoveDefinition.DefaultBodies(style))

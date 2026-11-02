@@ -596,6 +596,34 @@ namespace PhysicsBattler.Units
         /// Poses the unit (dry: the feet don't step) at a moment of a blow, as if it had started now:
         /// facing along the aim frame, the lunge's feet planted once the lunge is under way.
         /// </summary>
+        /// <summary>
+        /// The arm rebuild: solves where the hand must be at a blow's striking moment (the body posed
+        /// there) so its striking part lands on the aim, with the contact's wrist and elbow keys.
+        /// </summary>
+        public void PlanContactHand(MoveState state)
+        {
+            if (state == null || !state.Generated || Loadout?.Main == null)
+            {
+                return;
+            }
+
+            var saved = Stance.Save();
+            var anim = SaveAnim();
+            var rotation = transform.rotation;
+            try
+            {
+                state.HasContactHand = false;
+                PoseDry(state, state.ContactTime, true);
+                Pose.PlanContactHand(state, Loadout.Scale);
+            }
+            finally
+            {
+                transform.rotation = rotation;
+                Stance.Restore(saved);
+                RestoreAnim(anim);
+            }
+        }
+
         private bool PoseDry(MoveState state, float normalizedTime, bool keep)
         {
             var saved = Stance.Save();

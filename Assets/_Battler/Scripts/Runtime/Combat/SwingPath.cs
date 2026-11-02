@@ -188,6 +188,8 @@ namespace PhysicsBattler.Combat
 
             state.Path = path;
             state.Pivots = pivots;
+            // (The arm rebuild: where the hand must be at the striking moment for the blow to land.)
+            attacker.PlanContactHand(state);
             return state;
         }
 
