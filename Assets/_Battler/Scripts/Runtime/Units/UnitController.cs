@@ -161,9 +161,14 @@ namespace PhysicsBattler.Units
                 foreach (var part in Rig.Parts)
                 {
                     UnitBuilder.ConfigureBody(part.body, profile);
-                    part.limits = JointLimitTable.For(part.id);   // (the table as it is now, not as the prefab was baked)
+                    part.limits = JointLimitTable.Physical(part.id);   // (the table as it is now, not as the prefab was baked)
                     if (part.joint != null)
                     {
+                        // Milestone 10: each joint in its own frame (the arm rig's: the elbow a hinge
+                        // about its axis, the wrist twisting about the forearm), set up here in the
+                        // rest pose the body is still in.
+                        part.jointFrame = JointFrames.For(Rig, part.id);
+                        JointFrames.Apply(part.joint, part.jointFrame);
                         JointMath.ApplyLimits(part.joint, part.limits);
                     }
 
@@ -213,7 +218,7 @@ namespace PhysicsBattler.Units
             Authority.Set(BodyRegion.Torso, AuthorityLevel.Pinned, profile.torsoPin);
             Authority.Set(BodyRegion.Head, AuthorityLevel.Pinned, profile.torsoPin);
             Authority.Set(BodyRegion.ArmL, AuthorityLevel.Pinned, profile.armPin);
-            Authority.Set(BodyRegion.ArmR, AuthorityLevel.Pinned, profile.armPin);
+            Authority.Set(BodyRegion.ArmR, AuthorityController.ArmMuscles ? AuthorityLevel.Muscled : AuthorityLevel.Pinned, profile.armPin, AuthorityController.ArmMuscles);
             InitializeBalance();
             InitializeRhythm(seed);
             InitializeTempo(seed);

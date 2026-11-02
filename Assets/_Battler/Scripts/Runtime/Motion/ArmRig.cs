@@ -543,16 +543,14 @@ namespace PhysicsBattler.Motion
         /// <summary>The wrist's frame in the hand's (and forearm's) rest frame: x along the forearm, y toward the thumb (forward at rest), z = x × y.</summary>
         public static Quaternion WristFrame(AnimRig anim, bool right)
         {
-            Vector3 along = anim.RestLocalPosition(right ? PartId.HandR : PartId.HandL).normalized;
-            Vector3 thumb = Vector3.forward - along * Vector3.Dot(Vector3.forward, along);
-            return Quaternion.LookRotation(Vector3.Cross(along, thumb.normalized), Vector3.Cross(Vector3.Cross(along, thumb.normalized), along));
+            // (The physical wrist's joint frame: one definition for the pose and PhysX.)
+            return PhysicsBattler.Muscles.JointFrames.Wrist(anim.RestLocalPosition(right ? PartId.HandR : PartId.HandL));
         }
 
         /// <summary>The elbow's hinge axis in the upper arm's rest frame (bending about it by a positive angle brings the forearm forward).</summary>
         public static Vector3 ElbowAxis(AnimRig anim, bool right)
         {
-            Vector3 along = anim.RestLocalPosition(right ? PartId.ForearmR : PartId.ForearmL).normalized;
-            return Vector3.Cross(along, Vector3.forward).normalized;
+            return PhysicsBattler.Muscles.JointFrames.ElbowAxis(anim.RestLocalPosition(right ? PartId.ForearmR : PartId.ForearmL));
         }
 
         /// <summary>

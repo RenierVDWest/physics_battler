@@ -1046,6 +1046,14 @@ namespace PhysicsBattler.Sandbox
                 }
             }
             OrbitCamera.ShakeOnHits = GUILayout.Toggle(OrbitCamera.ShakeOnHits, "Camera shake on heavy hits");
+            // Milestone 10 (the arm rebuild's step 6): the weapon arm on joint motors, or on the world servo as before.
+            bool muscles = GUILayout.Toggle(PhysicsBattler.Authority.AuthorityController.ArmMuscles, "Weapon arm on joint motors (off: pulled to its pose)");
+            if (muscles != PhysicsBattler.Authority.AuthorityController.ArmMuscles)
+            {
+                PhysicsBattler.Authority.AuthorityController.ArmMuscles = muscles;
+                Note("weapon arm: " + (muscles ? "joint motors" : "pulled to its pose"));
+            }
+
 
             GUILayout.Label($"Time scale: {timeScale:0.00}{(paused ? " (paused)" : "")}");
             float newScale = GUILayout.HorizontalSlider(timeScale, 0.05f, 1f);

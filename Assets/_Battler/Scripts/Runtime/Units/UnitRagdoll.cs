@@ -39,8 +39,7 @@ namespace PhysicsBattler.Units
                 return PhysicsBattler.Motion.ArmRig.PastLimits(Anim, id, parent, child);
             }
 
-            Quaternion local = Quaternion.Inverse(part.restLocalRotation) * (Quaternion.Inverse(parent) * child);
-            return JointMath.PastLimits(local, part.limits, out _, out _, out _);
+            return JointMath.PastLimits(part.JointTurn(parent, child), part.limits, out _, out _, out _);
         }
 
         /// <summary>The joint furthest past its limits now, and by how much (degrees).</summary>

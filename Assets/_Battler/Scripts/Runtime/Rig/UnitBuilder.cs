@@ -109,6 +109,7 @@ namespace PhysicsBattler.Rig
                 if (PartInfo.HasParent(id))
                 {
                     var part = parts[(int)id];
+                    part.jointFrame = JointFrames.For(id, part.restLocalPosition, JointFrames.BoneOf(id, other => parts[(int)other].restLocalPosition), part.restLocalRotation);
                     part.joint = AddJoint(part, parts[(int)PartInfo.Parent(id)].body);
                 }
             }
@@ -134,7 +135,7 @@ namespace PhysicsBattler.Rig
             part.id = id;
             part.restLocalPosition = node.localPosition;
             part.restLocalRotation = node.localRotation;
-            part.limits = JointLimitTable.For(id);
+            part.limits = JointLimitTable.Physical(id);
 
             var visual = string.IsNullOrEmpty(entry.mesh) ? null : visuals?.Invoke(entry.mesh);
             if (visual.HasValue && visual.Value.mesh != null)
@@ -231,8 +232,7 @@ namespace PhysicsBattler.Rig
             joint.connectedBody = parentBody;
             joint.autoConfigureConnectedAnchor = true;
             joint.anchor = Vector3.zero;                     // the part's origin is the joint
-            joint.axis = Vector3.right;                      // joint space == the part's local space
-            joint.secondaryAxis = Vector3.up;
+            JointFrames.Apply(joint, part.jointFrame);      // (milestone 10: the joint's own frame; most parts: their local space)
             joint.xMotion = ConfigurableJointMotion.Locked;
             joint.yMotion = ConfigurableJointMotion.Locked;
             joint.zMotion = ConfigurableJointMotion.Locked;

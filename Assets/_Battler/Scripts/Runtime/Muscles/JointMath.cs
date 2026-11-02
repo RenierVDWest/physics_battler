@@ -58,26 +58,146 @@ namespace PhysicsBattler.Muscles
         }
 
         /// <summary>
-        /// The limits on the ground: the same, but the hinges are hinges: the knee bends only one
-        /// way and the elbow doesn't bend sideways (0: locked, once the joint has eased in).
+        /// Milestone 10 (the arm rebuild's step 1): the limits PhysX holds, in each joint's own frame
+        /// (<see cref="JointFrames"/>): X the joint's axis, Y its secondary, Z the third. The arm's are
+        /// the arm rig's own model: the elbow a hinge about the rig's elbow axis (bent forward up to
+        /// <c>ArmRig.ElbowBendLimit</c>, back past straight by its slack), the wrist twisting about the
+        /// forearm (the rig's twist) and bending in an ellipse about the thumb and the palm, round at
+        /// the rig's flexion (its deviation, narrower and lopsided, is inside it whichever way PhysX
+        /// turns the ellipse with the twist). So every arm the rig poses is one PhysX holds. The
+        /// shoulder, and every other joint, as the table has them (frame: the part's own).
+        /// </summary>
+        public static JointLimitSpec Physical(PartId part)
+        {
+            switch (part)
+            {
+                case PartId.ForearmL:
+                case PartId.ForearmR:
+                    // (Off the hinge: on the ground, locked. Held weakly (a get-up), room for the poses
+                    // still made in the old model (the off arm, the get-ups: their elbow bends about the
+                    // part's X, up to 30 degrees off this hinge, and rolls) until they move onto the rig.)
+                    return new JointLimitSpec(-PhysicsBattler.Motion.ArmRig.HingeSlack, PhysicsBattler.Motion.ArmRig.ElbowBendLimit, 60f, 45f);
+                case PartId.HandL:
+                case PartId.HandR:
+                    return new JointLimitSpec(-PhysicsBattler.Motion.ArmRig.TwistLimit, PhysicsBattler.Motion.ArmRig.TwistLimit,
+                        PhysicsBattler.Motion.ArmRig.FlexLimit, PhysicsBattler.Motion.ArmRig.FlexLimit);
+                default:
+                    return For(part);
+            }
+        }
+
+        /// <summary>
+        /// The limits on the ground (in the joint's frame, as <see cref="Physical"/>): the hinges are
+        /// hinges: the knee bends only one way and the elbow neither sideways nor rolled (the
+        /// forearm rolls at the wrist) (0: locked, once the joint has eased in).
         /// </summary>
         public static JointLimitSpec ForRagdoll(PartId part)
         {
-            var spec = For(part);
+            var spec = Physical(part);
             switch (part)
             {
                 case PartId.ShinL:
                 case PartId.ShinR:
-                    spec.twist = 0f;
-                    spec.swing = 0f;
-                    break;
                 case PartId.ForearmL:
                 case PartId.ForearmR:
+                    spec.twist = 0f;
                     spec.swing = 0f;
                     break;
             }
 
             return spec;
+        }
+    }
+
+    /// <summary>
+    /// Milestone 10 (the arm rebuild's step 1): each joint's frame, in its part's rest frame (the
+    /// rotation whose X, Y and Z are the joint's axis, secondary axis and third axis). The pose (the
+    /// arm rig) and PhysX share it, so a turn means the same to both. Most joints: the part's own
+    /// frame. The elbow: X along the rig's elbow axis (a positive turn bends the forearm forward), Y
+    /// along the forearm. The wrist: X along the forearm (its twist), Y toward the thumb.
+    /// </summary>
+    public static class JointFrames
+    {
+        /// <summary>
+        /// The frame for a part. <paramref name="restLocalPosition"/>: where the part sits in its
+        /// parent at rest (the parent's bone); <paramref name="childRestLocalPosition"/>: where its
+        /// child sits in it (its own bone; zero if none); <paramref name="restLocalRotation"/>: its
+        /// rest turn in its parent (the frame is given in the part's own rest frame).
+        /// </summary>
+        public static Quaternion For(PartId id, Vector3 restLocalPosition, Vector3 childRestLocalPosition, Quaternion restLocalRotation)
+        {
+            Quaternion inParent;
+            switch (id)
+            {
+                case PartId.ForearmL:
+                case PartId.ForearmR:
+                    inParent = Elbow(restLocalPosition, childRestLocalPosition);
+                    break;
+                case PartId.HandL:
+                case PartId.HandR:
+                    inParent = Wrist(restLocalPosition);
+                    break;
+                default:
+                    return Quaternion.identity;
+            }
+
+            return Quaternion.Inverse(restLocalRotation) * inParent;
+        }
+
+        /// <summary>The bone of a part (where its own child sits in it) that its frame needs (the forearm's, for the elbow); zero for the rest.</summary>
+        public static Vector3 BoneOf(PartId id, System.Func<PartId, Vector3> restLocalPosition)
+        {
+            switch (id)
+            {
+                case PartId.ForearmL: return restLocalPosition(PartId.HandL);
+                case PartId.ForearmR: return restLocalPosition(PartId.HandR);
+                default: return Vector3.zero;
+            }
+        }
+
+        /// <summary>The frame of a built body's joint (from its parts' rest places).</summary>
+        public static Quaternion For(UnitRig rig, PartId id)
+        {
+            var part = rig.Part(id);
+            return For(id, part.restLocalPosition, BoneOf(id, other => rig.Part(other).restLocalPosition), part.restLocalRotation);
+        }
+
+        /// <summary>The elbow's hinge axis (in the upper arm's frame) from the upper arm's bone: bending about it by a positive angle brings the forearm forward.</summary>
+        public static Vector3 ElbowAxis(Vector3 upperArmBone) => Vector3.Cross(upperArmBone.normalized, Vector3.forward).normalized;
+
+        /// <summary>The elbow's frame: X its hinge axis, Y along the forearm (squared to it).</summary>
+        public static Quaternion Elbow(Vector3 upperArmBone, Vector3 forearmBone)
+        {
+            Vector3 x = ElbowAxis(upperArmBone);
+            Vector3 y = forearmBone.sqrMagnitude > 1e-10f ? forearmBone.normalized : upperArmBone.normalized;
+            y = (y - x * Vector3.Dot(y, x)).normalized;
+            return Quaternion.LookRotation(Vector3.Cross(x, y), y);
+        }
+
+        /// <summary>The wrist's frame from the forearm's bone: X along the forearm, Y toward the thumb (forward at rest), Z = X × Y.</summary>
+        public static Quaternion Wrist(Vector3 forearmBone)
+        {
+            Vector3 along = forearmBone.normalized;
+            Vector3 thumb = Vector3.forward - along * Vector3.Dot(Vector3.forward, along);
+            return Quaternion.LookRotation(Vector3.Cross(along, thumb.normalized), Vector3.Cross(Vector3.Cross(along, thumb.normalized), along));
+        }
+
+        /// <summary>A joint's turn (as the part's local rotation against its rest) in the joint's frame.</summary>
+        public static Quaternion ToJoint(Quaternion local, Quaternion frame) => Quaternion.Inverse(frame) * local * frame;
+
+        /// <summary>Points a ConfigurableJoint's axes along the frame (the joint is set up again from the pose it is in: call it at rest).</summary>
+        public static void Apply(ConfigurableJoint joint, Quaternion frame)
+        {
+            Vector3 axis = frame * Vector3.right, secondary = frame * Vector3.up;
+            if ((joint.axis - axis).sqrMagnitude > 1e-10f)
+            {
+                joint.axis = axis;
+            }
+
+            if ((joint.secondaryAxis - secondary).sqrMagnitude > 1e-10f)
+            {
+                joint.secondaryAxis = secondary;
+            }
         }
     }
 
@@ -93,6 +213,16 @@ namespace PhysicsBattler.Muscles
         {
             var standard = Quaternion.Inverse(targetLocal) * restLocal;
             return JointConventions.DriveInverted ? Quaternion.Inverse(standard) : standard;
+        }
+
+        /// <summary>
+        /// The same for a joint whose axes are <paramref name="frame"/> (<see cref="JointFrames"/>):
+        /// the turn asked of the part (against its rest), taken into the joint's frame.
+        /// </summary>
+        public static Quaternion TargetRotation(Quaternion targetLocal, Quaternion restLocal, Quaternion frame)
+        {
+            var turn = Quaternion.Inverse(restLocal) * targetLocal;
+            return TargetRotation(JointFrames.ToJoint(turn, frame), Quaternion.identity);
         }
 
         /// <summary>Applies a limit spec, honouring the measured sign of the twist (X) limit.</summary>

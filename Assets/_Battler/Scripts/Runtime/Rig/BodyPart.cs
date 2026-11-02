@@ -16,7 +16,15 @@ namespace PhysicsBattler.Rig
         public Rigidbody body;
         public ConfigurableJoint joint;
         public Collider partCollider;
+        /// <summary>The limits PhysX holds, in the joint's frame (<see cref="jointFrame"/>).</summary>
         public JointLimitSpec limits;
+
+        /// <summary>Milestone 10: the joint's frame in the part's rest frame (<see cref="JointFrames"/>; set up at start).</summary>
+        [System.NonSerialized] public Quaternion jointFrame = Quaternion.identity;
+
+        /// <summary>The joint's turn now (physical; the rest taken out) in the joint's frame, as PhysX limits it.</summary>
+        public Quaternion JointTurn(Quaternion parentRotation, Quaternion rotation) =>
+            JointFrames.ToJoint(Quaternion.Inverse(restLocalRotation) * (Quaternion.Inverse(parentRotation) * rotation), jointFrame);
         public Vector3 restLocalPosition;
         public Quaternion restLocalRotation = Quaternion.identity;
 

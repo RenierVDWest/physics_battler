@@ -273,17 +273,23 @@ namespace PhysicsBattler.Units
             // night they went in, against 2 degrees before. Free bodies in the stub track it within
             // a degree. The twists after blows are kept off by holding the weapon arm on its pose
             // for a moment after each blow instead: WeaponArmHeldAfter.)
-            const bool limits = false;
+            //
+            // Milestone 10 (the arm rebuild's step 6): the weapon arm is held by its joints' motors
+            // instead, its limits on: the arm rig poses it inside the very limits PhysX holds (step 1),
+            // and a motor turns its own joint only, so it can't drag the arm into them.
+            bool muscled = region == BodyRegion.ArmR && AuthorityController.ArmMuscles;
+            bool limits = muscled;
+            var held = muscled ? AuthorityLevel.Muscled : AuthorityLevel.Pinned;
             if (recoverLeft[r] > 0f)
             {
                 // Recovering from a hit: physics has it, the pin eases back up.
                 float t = 1f - recoverLeft[r] / Mathf.Max(1e-3f, recoverTime[r]);
                 float ease = t * t * (3f - 2f * t);
-                Authority.Set(region, AuthorityLevel.Pinned, Mathf.Lerp(recoverFrom[r] * pin, pin, ease), limits);
+                Authority.Set(region, held, Mathf.Lerp(recoverFrom[r] * pin, pin, ease), limits);
                 return;
             }
 
-            Authority.Set(region, kinematic ? AuthorityLevel.Kinematic : AuthorityLevel.Pinned, pin, limits);
+            Authority.Set(region, kinematic ? AuthorityLevel.Kinematic : held, pin, limits);
         }
 
         // ---- Bodies keep apart -------------------------------------------------------------------

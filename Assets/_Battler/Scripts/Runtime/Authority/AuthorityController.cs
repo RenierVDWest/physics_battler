@@ -15,6 +15,11 @@ namespace PhysicsBattler.Authority
         Loose,
         /// <summary>Dynamic, not held at all.</summary>
         Ragdoll,
+        /// <summary>
+        /// Milestone 10 (the arm rebuild's step 6): dynamic, each joint turned toward its pose by its
+        /// own motor (the pin weight sets how stiff), its weight carried; no pull in the world.
+        /// </summary>
+        Muscled,
     }
 
     /// <summary>Parts that share an authority level and pin weight.</summary>
@@ -122,6 +127,7 @@ namespace PhysicsBattler.Authority
                 if (rig.IsSevered(id))
                 {
                     PhysicsBattler.Units.GroundContacts.SetKinematic(rig.Part(id).partCollider, false);
+                    SetMuscle(rig.Part(id), 0f, dt);
                     continue;   // (cut off: physics alone has it now)
                 }
 
@@ -131,8 +137,10 @@ namespace PhysicsBattler.Authority
                 var region = RegionOf(id);
                 var level = levels[(int)region];
                 bool kinematic = level == AuthorityLevel.Kinematic;
+                bool muscled = level == AuthorityLevel.Muscled;
                 SetJointLimits(part, level == AuthorityLevel.Loose || level == AuthorityLevel.Ragdoll ? LimitMode.Ragdoll
-                    : level == AuthorityLevel.Pinned && keepLimits[(int)region] ? LimitMode.Anatomical : LimitMode.Free);
+                    : (level == AuthorityLevel.Pinned || muscled) && keepLimits[(int)region] ? LimitMode.Anatomical : LimitMode.Free);
+                SetMuscle(part, muscled ? pins[(int)region] : 0f, dt);
                 if (body.isKinematic != kinematic)
                 {
                     body.isKinematic = kinematic;
@@ -212,6 +220,112 @@ namespace PhysicsBattler.Authority
 
         /// <summary>The most turn the servo closes as if it were this far (radians, 120 degrees).</summary>
         public const float MaxTurnError = 2.1f;
+
+        // ---- Muscles (milestone 10, the arm rebuild's step 6) -------------------------------------
+
+        /// <summary>
+        /// The weapon arm is held by its joints' motors, not pulled about in the world (true), or by
+        /// the world servo as before (false; the sandbox's switch, to compare them).
+        /// </summary>
+        public static bool ArmMuscles = true;
+
+        private readonly bool[] muscleOn = new bool[PartInfo.Count];
+        private readonly float[] muscleLoad = new float[PartInfo.Count];
+        private readonly Quaternion[] lastPoseTurn = new Quaternion[PartInfo.Count];
+        private readonly bool[] poseTurnKnown = new bool[PartInfo.Count];
+
+        /// <summary>
+        /// A muscled part's joint motor: the joint's slerp drive aimed at the pose's turn (in the
+        /// joint's frame, so the limits PhysX holds and the drive agree), critically damped at the
+        /// servo's frequency for the strength, made strong enough for what hangs from it (the upper
+        /// arm swings the whole arm), with the pose's own turning fed forward and its weight carried
+        /// (a held arm doesn't sag: its muscles hold it up). 0: off, the drive empty again.
+        /// </summary>
+        private void SetMuscle(BodyPart part, float strength, float dt)
+        {
+            int i = (int)part.id;
+            var joint = part.joint;
+            if (joint == null || part.body == null)
+            {
+                return;
+            }
+
+            if (strength <= 0f)
+            {
+                if (muscleOn[i])
+                {
+                    muscleOn[i] = false;
+                    poseTurnKnown[i] = false;
+                    joint.slerpDrive = new JointDrive { maximumForce = float.MaxValue, useAcceleration = true };
+                    joint.targetRotation = Quaternion.identity;
+                    joint.targetAngularVelocity = Vector3.zero;
+                }
+
+                return;
+            }
+
+            if (!muscleOn[i])
+            {
+                muscleOn[i] = true;
+                muscleLoad[i] = ChainLoad(part);
+            }
+
+            var parent = anim.Part(PartInfo.Parent(part.id));
+            var pose = anim.Part(part.id);
+            Quaternion poseLocal = Quaternion.Inverse(parent.rotation) * pose.rotation;
+            JointMath.DriveGains(HoldFrequency(strength), HoldDamping, 1f, muscleLoad[i], out float spring, out float damper);
+            joint.rotationDriveMode = RotationDriveMode.Slerp;
+            joint.slerpDrive = new JointDrive { positionSpring = spring, positionDamper = damper, maximumForce = float.MaxValue, useAcceleration = true };
+            joint.targetRotation = JointMath.TargetRotation(poseLocal, part.restLocalRotation, part.jointFrame);
+
+            // The pose's own turning at the joint, fed forward (a jump isn't followed).
+            Quaternion turn = JointFrames.ToJoint(Quaternion.Inverse(part.restLocalRotation) * poseLocal, part.jointFrame);
+            Vector3 spin = Vector3.zero;
+            if (poseTurnKnown[i] && JointConventions.VelocityProbed && Quaternion.Angle(lastPoseTurn[i], turn) < PoseTurnJump)
+            {
+                spin = Vector3.Scale(JointMath.BodyAngularVelocity(lastPoseTurn[i], turn, dt), JointConventions.VelocitySign);
+            }
+
+            lastPoseTurn[i] = turn;
+            poseTurnKnown[i] = true;
+            joint.targetAngularVelocity = spin;
+
+            // (Its weight held up, as the servo takes gravity out in advance.)
+            if (part.body.useGravity && !part.body.isKinematic)
+            {
+                part.body.AddForce(-UnityEngine.Physics.gravity, ForceMode.Acceleration);
+            }
+        }
+
+        /// <summary>
+        /// How much more than its own part a joint's motor turns (at least 1): what hangs from it
+        /// (the parts below it, each at its distance from the joint) against the part alone, so every
+        /// joint of the arm follows at the same speed.
+        /// </summary>
+        private float ChainLoad(BodyPart part)
+        {
+            Vector3 at = part.body.position;
+            float Inertia(BodyPart p)
+            {
+                Vector3 t = p.body.inertiaTensor;
+                return Mathf.Max(t.x, Mathf.Max(t.y, t.z)) + p.body.mass * (p.body.worldCenterOfMass - at).sqrMagnitude;
+            }
+
+            float own = Mathf.Max(1e-5f, Inertia(part));
+            float all = own;
+            foreach (var id in PartInfo.All)
+            {
+                if (id != part.id && !rig.IsSevered(id) && PartInfo.IsBelow(id, part.id) && rig.Part(id).body != null)
+                {
+                    all += Inertia(rig.Part(id));
+                }
+            }
+
+            return Mathf.Clamp(all / own, 1f, MaxMuscleLoad);
+        }
+
+        /// <summary>The most a joint's motor is strengthened for what hangs from it.</summary>
+        public const float MaxMuscleLoad = 8f;
 
         /// <summary>The servo's damping: critical (1) never overshoots.</summary>
         public const float HoldDamping = 1f;
@@ -405,8 +519,7 @@ namespace PhysicsBattler.Authority
         private Vector3 CurrentAngles(BodyPart part)
         {
             var parent = rig.Part(PartInfo.Parent(part.id));
-            Quaternion local = Quaternion.Inverse(part.restLocalRotation) * (Quaternion.Inverse(parent.transform.rotation) * part.transform.rotation);
-            JointMath.PastLimits(local, part.limits, out float pitch, out float y, out float z);
+            JointMath.PastLimits(part.JointTurn(parent.transform.rotation, part.transform.rotation), part.limits, out float pitch, out float y, out float z);
             return new Vector3(pitch, y, z);
         }
 
@@ -421,7 +534,7 @@ namespace PhysicsBattler.Authority
         /// </summary>
         public static bool HeldLimits(PartId id, out JointLimitSpec limits)
         {
-            return JointMath.ConeAround(Margined(JointLimitTable.For(id), AnatomicalMargin), out limits);
+            return JointMath.ConeAround(Margined(JointLimitTable.Physical(id), AnatomicalMargin), out limits);
         }
 
         /// <summary>Limits widened by a margin on every side (at most 177 degrees about Y and Z).</summary>
@@ -436,6 +549,23 @@ namespace PhysicsBattler.Authority
                 Mathf.Min(spec.pitchMin, angles.x - room), Mathf.Max(spec.pitchMax, angles.x + room),
                 Mathf.Min(177f, Mathf.Max(Mathf.Max(spec.twist, LockWithin), Mathf.Abs(angles.y) + room)),
                 Mathf.Min(177f, Mathf.Max(Mathf.Max(spec.swing, LockWithin), Mathf.Abs(angles.z) + room)));
+        }
+
+        /// <summary>
+        /// Milestone 10: how far a joint's turn is from its pose's (degrees): the part against its
+        /// parent, physical and posed, so a parent off its pose doesn't count (for the log).
+        /// </summary>
+        public float JointError(PartId id)
+        {
+            if (!PartInfo.HasParent(id) || rig.IsSevered(id))
+            {
+                return 0f;
+            }
+
+            var parentId = PartInfo.Parent(id);
+            Quaternion physical = Quaternion.Inverse(rig.Part(parentId).transform.rotation) * rig.Part(id).transform.rotation;
+            Quaternion posed = Quaternion.Inverse(anim.Part(parentId).rotation) * anim.Part(id).rotation;
+            return Quaternion.Angle(physical, posed);
         }
 
         /// <summary>Distance and angle between a part and its pose (for the log).</summary>

@@ -20,7 +20,7 @@ namespace PhysicsBattler.Diagnostics
     /// much the captured walk plays, walkSpeed, walkPhase); feet
     /// (stepL/R 0 or 1, liftL/R, slideL/R: how far each physical foot is from its planted spot,
     /// steps, shuffles); idle (swayX, swayZ, bob); authority per region (lvl_*: 0 kinematic,
-    /// 1 pinned, 2 loose, 3 ragdoll; pin_*); every part's distance (err_*, metres) and angle
+    /// 1 pinned, 2 loose, 3 ragdoll, 4 muscled; pin_*); every part's distance (err_*, metres) and angle
     /// (aerr_*, degrees) from its pose; and the blow under way (move: its name or empty, moveT 0 to 1,
     /// blend, part aimed at, the locked aim point aimX/Y/Z, the striking part on the pose strikeX/Y/Z
     /// and on the physical weapon pstrikeX/Y/Z, aimErr: posed striking part to aim point).
@@ -194,6 +194,11 @@ namespace PhysicsBattler.Diagnostics
                 unit.Authority.Error(part, out float distance, out float angle);
                 frames.Add("err_" + part, distance, 3);
                 frames.Add("aerr_" + part, angle, 1);
+                // Milestone 10: the arms' joints against their poses' (joint space; the arm rebuild's step 6).
+                if (AuthorityController.RegionOf(part) == BodyRegion.ArmL || AuthorityController.RegionOf(part) == BodyRegion.ArmR)
+                {
+                    frames.Add("jerr_" + part, unit.Authority.JointError(part), 1);
+                }
                 if (upright)
                 {
                     errSum[(int)part] += distance;

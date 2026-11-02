@@ -272,5 +272,74 @@ namespace PhysicsBattler.Tests
                 }
             }
         }
-    }
+    
+        /// <summary>
+        /// The arm rebuild's step 1: one limit model. Every elbow and wrist the rig can pose is inside
+        /// what PhysX holds in the joint's own frame (the elbow a hinge, bent within its range and not
+        /// off it; the wrist's twist within its range and its bend inside the ellipse, whichever way
+        /// round PhysX takes the turn), and the frame the body's joints get is the rig's.
+        /// </summary>
+        [Test]
+        public void EveryArmTheRigPosesIsOneItsJointsHold()
+        {
+            var random = new System.Random(7);
+            foreach (var body in Bodies)
+            {
+                var unit = RhythmTests.Build(body, Vector3.zero, 0f, 0);
+                try
+                {
+                    var anim = unit.Anim;
+                    foreach (bool right in new[] { true, false })
+                    {
+                        var fore = Fore(right);
+                        var hand = Hand(right);
+                        var elbowFrame = JointFrames.For(fore, anim.RestLocalPosition(fore), anim.RestLocalPosition(hand), anim.RestLocalRotation(fore));
+                        var wristFrame = JointFrames.For(hand, anim.RestLocalPosition(hand), Vector3.zero, anim.RestLocalRotation(hand));
+                        var elbowSpec = JointLimitTable.ForRagdoll(fore);
+                        var wristSpec = JointLimitTable.Physical(hand);
+                        Assert.Less(Vector3.Angle(elbowFrame * Vector3.right, ArmRig.ElbowAxis(anim, right)), 0.01f, $"{body}: the elbow joint's axis is the rig's");
+                        Assert.Less(Quaternion.Angle(wristFrame, ArmRig.WristFrame(anim, right)), 0.01f, $"{body}: the wrist joint's frame is the rig's");
+
+                        // The elbow: across its whole range, and a little past it each way.
+                        for (float bend = -10f; bend <= 155f; bend += 1f)
+                        {
+                            var q = JointFrames.ToJoint(Quaternion.AngleAxis(bend, ArmRig.ElbowAxis(anim, right)), elbowFrame);
+                            float past = JointMath.PastLimits(q, elbowSpec, out float pitch, out float y, out float z);
+                            Assert.AreEqual(bend, pitch, 0.05f, $"{body}: the elbow's bend is the joint's turn about its axis");
+                            Assert.Less(Mathf.Abs(y) + Mathf.Abs(z), 0.05f, $"{body}: an elbow bent {bend:0} is on its hinge");
+                            bool inside = bend >= -ArmRig.HingeSlack && bend <= ArmRig.ElbowBendLimit;
+                            Assert.AreEqual(inside, past <= 1e-3f, $"{body}: an elbow bent {bend:0} is {(inside ? "inside" : "past")} the joint's limits ({past:0.00})");
+                        }
+
+                        // The wrist: turns inside the rig's limits are inside the joint's.
+                        int inside2 = 0;
+                        for (int n = 0; n < 4000; n++)
+                        {
+                            var local = Quaternion.Euler(R(random, -180f, 180f), R(random, -180f, 180f), R(random, -180f, 180f));
+                            // (Inside: within Quaternion.Angle's resolution, 0.16 degrees.)
+                            if (ArmRig.WristAngles(local, ArmRig.WristFrame(anim, right), out _, out _, out _) > 0f)
+                            {
+                                continue;
+                            }
+
+                            inside2++;
+                            var q = JointFrames.ToJoint(local, wristFrame);
+                            foreach (var turn in new[] { q, Quaternion.Inverse(q) })
+                            {
+                                float past = JointMath.PastLimits(turn, new JointLimitSpec(wristSpec.pitchMin, wristSpec.pitchMax, 180f, 180f), out _, out _, out _);
+                                Assert.LessOrEqual(past, 0.2f, $"{body}: the wrist's twist inside the joint's");
+                                Assert.LessOrEqual(JointMath.SwingCone(turn, wristSpec), 1.001f, $"{body}: the wrist's bend inside the joint's ellipse");
+                            }
+                        }
+
+                        Assert.Greater(inside2, 50, $"{body}: enough wrist turns inside the rig's limits were tried");
+                    }
+                }
+                finally
+                {
+                    RhythmTests.Destroy(unit);
+                }
+            }
+        }
+}
 }
