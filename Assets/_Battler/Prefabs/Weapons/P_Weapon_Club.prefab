@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3587197274047565933}
   - component: {fileID: 4387539242477066955}
   - component: {fileID: 1338150752424030851}
-  m_Layer: 8
+  m_Layer: 9
   m_Name: Mesh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -103,7 +103,7 @@ GameObject:
   - component: {fileID: 2055150915256870915}
   - component: {fileID: 2433105612591137394}
   - component: {fileID: 7878157427544448937}
-  m_Layer: 8
+  m_Layer: 9
   m_Name: P_Weapon_Club
   m_TagString: Untagged
   m_Icon: {fileID: 0}

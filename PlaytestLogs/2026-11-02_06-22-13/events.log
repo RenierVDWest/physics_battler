@@ -1402,3 +1402,18 @@
    12.283 |    738 | A Small        | contact  | FootL touched Ground at 5.0 m/s
    12.300 |    739 | B Large        | attack   | ClubSwing done: the physical weapon passed 0.8 cm from the aim point at its closest; swing: 14.9 m/s at contact, 44.4 at its fastest, 22.3 cm past the aim point, a 379° arc
    12.467 |    749 | B Medium       | step     | left foot planted at (-3.04, 0.19), 5 cm from its spot
+   12.533 |    753 | B Small        | rhythm   | posture BaitRetreat, 0.55 s; open: Head Chest Belly 0.08–0.53 s; energy 0.85, aggression 0.55
+   12.600 |    757 | A Small        | contact  | HandL touched Ground at 1.4 m/s
+   12.633 |    759 | B Small        | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.85); energy 0.85, aggression 0.55
+   12.650 |    760 | B Small        | tempo    | gather → shell: pressed (pressure 0.92); energy 0.85, aggression 0.55
+   12.833 |    771 | B Small        | step     | left foot planted at (-2.51, 2.82), 7 cm from its spot
+   12.850 |    772 | -              | console  | EXCEPTION: MissingReferenceException: The object of type 'PhysicsBattler.Combat.Weapon' has been destroyed but you are still trying to access it. Your script should either check if it is null or you should not destroy the object. @ UnityEngine.Object+MarshalledUnityObject.TryThrowEditorNullExceptionObject (UnityEngine.Object unityObj, System.String parameterName) (at <2a0aacfdb6844320ae79174c32157248>:0)
+   12.850 |    772 | -              | console  | EXCEPTION: MissingReferenceException: The object of type 'PhysicsBattler.Combat.Weapon' has been destroyed but you are still trying to access it. Your script should either check if it is null or you should not destroy the object. @ UnityEngine.Object+MarshalledUnityObject.TryThrowEditorNullExceptionObject (UnityEngine.Object unityObj, System.String parameterName) (at <2a0aacfdb6844320ae79174c32157248>:0)
+   12.850 |    772 | A Small        | despawn  | recording stopped
+   12.850 |    772 | A Medium       | despawn  | recording stopped
+   12.850 |    772 | A Large        | despawn  | recording stopped
+   12.850 |    772 | B Small        | despawn  | recording stopped
+   12.850 |    772 | B Medium       | despawn  | recording stopped
+   12.850 |    772 | B Large        | despawn  | recording stopped
+   12.850 |    772 | -              | session  | 103 pictures saved
+   12.850 |    772 | -              | session  | reco

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7661627251513562881}
   - component: {fileID: 3846409074897591853}
   - component: {fileID: 6643480957290423587}
-  m_Layer: 8
+  m_Layer: 9
   m_Name: Mesh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -103,7 +103,7 @@ GameObject:
   - component: {fileID: 5192003155453272884}
   - component: {fileID: 1539549471781114847}
   - component: {fileID: 6203032991963657745}
-  m_Layer: 8
+  m_Layer: 9
   m_Name: P_Weapon_Shield
   m_TagString: Untagged
   m_Icon: {fileID: 0}
