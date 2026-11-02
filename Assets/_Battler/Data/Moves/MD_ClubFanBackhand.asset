@@ -15,6 +15,7 @@ MonoBehaviour:
   strikeWith: 2
   targets: 51
   shape: 1
+  bodies: 1
   planeTilt: 20
   backhand: 1
   windUpAngle: 100
