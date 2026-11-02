@@ -129,6 +129,20 @@ namespace PhysicsBattler.Units
         public const float DownTone = 0.6f, DeadTone = 0.35f;
 
         /// <summary>
+        /// Milestone 10: a body on the ground never flies off by itself. For <see cref="LyingFree"/>
+        /// seconds after it falls or is struck it moves as it was sent; after that no part of it
+        /// goes faster than <see cref="LyingMostSpeed"/> (m/s at medium size) or rises faster than
+        /// <see cref="LyingMostRise"/>, and a part already faster (still rolling, thrown) only slows
+        /// (by <see cref="LyingSlowing"/> m/s², falling aside). The playtests had a downed large one
+        /// thrown 7.8 m up and a medium one shaking for a second against a standing unit's legs: a
+        /// limb trapped (under a foot, past a joint's limit) and the solver pushing the rest away.
+        /// </summary>
+        public const float LyingFree = 1f, LyingMostSpeed = 4f, LyingMostRise = 2f, LyingSlowing = 8f;
+
+        private float lyingSince;
+        private readonly float[] lyingCeiling = new float[PartInfo.Count];
+
+        /// <summary>
         /// Called once at start (rest pose): finds the pairs of its own parts that may collide on the
         /// ground, weights its joints for the light limbs, and registers its parts as standing.
         /// </summary>
@@ -224,7 +238,17 @@ namespace PhysicsBattler.Units
 
                     part.body.solverIterations = lying ? GroundSolverIterations : profile.solverIterations;
                     part.body.solverVelocityIterations = lying ? GroundSolverVelocityIterations : profile.solverVelocityIterations;
+                    // Milestone 10: on the ground the joints weigh both sides as they are. (A light limb
+                    // weighted toward the heavy body keeps a push on the arm from tearing it standing,
+                    // but a joint held past its limit then makes speed out of nothing: the body flies.)
+                    if (part.joint != null && part.joint.connectedBody != null)
+                    {
+                        float ratio = part.joint.connectedBody.mass / Mathf.Max(0.01f, part.body.mass);
+                        part.joint.connectedMassScale = !lying && ratio > 3f ? ratio / 3f : 1f;
+                    }
                 }
+
+                lyingSince = groundClock;
 
                 groundCalm = 0f;
                 groundHeavy = 0f;
@@ -240,6 +264,8 @@ namespace PhysicsBattler.Units
             {
                 return;
             }
+
+            HoldLyingSpeed(dt);
 
             // Settled: the hips slow under 0.5 m/s (by size) for 0.3 s; then it grows heavy over 0.5 s,
             // and stays so (a walking leg nudging it doesn't make it light again; a blow does, or being
@@ -265,6 +291,50 @@ namespace PhysicsBattler.Units
         }
 
         private float groundClock;
+
+        /// <summary>Milestone 10: the speed limit on a body on the ground (<see cref="LyingFree"/>).</summary>
+        private void HoldLyingSpeed(float dt)
+        {
+            bool free = groundClock < lyingSince + LyingFree || groundClock < groundStruckUntil;
+            float k = SizeSpeed();
+            float most = LyingMostSpeed * k, rise = LyingMostRise * k;
+            float fall = -UnityEngine.Physics.gravity.y * dt;
+            foreach (var part in Rig.Parts)
+            {
+                var body = part.body;
+                if (body == null || body.isKinematic || Rig.IsSevered(part.id))
+                {
+                    continue;
+                }
+
+                int i = (int)part.id;
+                Vector3 v = body.linearVelocity;
+                float speed = v.magnitude;
+                if (free)
+                {
+                    lyingCeiling[i] = Mathf.Max(most, speed);
+                    continue;
+                }
+
+                // Faster than the limit: it only slows (falling, gravity may add to it).
+                float ceiling = Mathf.Max(most, lyingCeiling[i] - LyingSlowing * dt + (v.y < 0f ? fall : 0f));
+                lyingCeiling[i] = ceiling;
+                if (speed > ceiling)
+                {
+                    v *= ceiling / speed;
+                }
+
+                if (v.y > rise)
+                {
+                    v.y = rise;
+                }
+
+                if (v != body.linearVelocity)
+                {
+                    body.linearVelocity = v;
+                }
+            }
+        }
 
         /// <summary>Struck while on the ground (a blow, a thrown body): light again for a moment, so it is still thrown.</summary>
         private void NoteGroundStruck()

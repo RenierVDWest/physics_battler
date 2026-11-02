@@ -197,6 +197,10 @@ namespace PhysicsBattler.Units
 
             severedLimbs.Add(limb);
             severedAt.Add((at, 0f));
+            // Milestone 10: a cut-off limb is a body on the ground: a standing unit's foot nudges it,
+            // never pins it to the floor (a get-up's foot came down on a severed shin and the downed
+            // body beside it was thrown 7.8 m up).
+            GroundContacts.Set(SeveredColliders(at), true);
             if (!physical)
             {
                 foreach (var t in limb.GetComponentsInChildren<Transform>(true))
@@ -365,6 +369,19 @@ namespace PhysicsBattler.Units
         /// <summary>Removes the limbs cut off this unit (with the unit), and the weapons they dropped.</summary>
         private void DestroySeveredLimbs()
         {
+            // (Its cut-off limbs no longer count as bodies on the ground.)
+            if (Rig != null)
+            {
+                foreach (var id in PartInfo.All)
+                {
+                    var cut = Rig.CutAt(id);
+                    if (cut.HasValue && cut.Value == id)
+                    {
+                        GroundContacts.Set(SeveredColliders(id), null);
+                    }
+                }
+            }
+
             foreach (var weapon in droppedWeapons)
             {
                 if (weapon == null)
@@ -401,6 +418,22 @@ namespace PhysicsBattler.Units
             }
 
             severedLimbs.Clear();
+        }
+
+        /// <summary>The colliders of the limb cut off at <paramref name="at"/>, each with its part's mass.</summary>
+        private System.Collections.Generic.List<(Collider, float)> SeveredColliders(PartId at)
+        {
+            var list = new System.Collections.Generic.List<(Collider, float)>();
+            foreach (var id in PartInfo.All)
+            {
+                var part = Rig.Part(id);
+                if (Rig.CutAt(id) == at && part.partCollider != null && part.body != null)
+                {
+                    list.Add((part.partCollider, part.body.mass));
+                }
+            }
+
+            return list;
         }
 
         /// <summary>

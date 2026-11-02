@@ -789,13 +789,14 @@ namespace PhysicsBattler.Units
 
         private void TakeHit(HitReport hit)
         {
+            // (A body on the ground, dead or alive, is let fly by a blow: milestone 10's speed limit.)
+            NoteGroundStruck();
             if (!IsAlive)
             {
                 return;
             }
 
             NoteStruck(hit);
-            NoteGroundStruck();
             var r = hit.Result;
             Health = Mathf.Max(0f, Health - r.Damage);
             Rhythm?.NoteHit(r.Damage / Mathf.Max(1f, profile.maxHealth));
