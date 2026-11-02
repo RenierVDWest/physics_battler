@@ -47,8 +47,10 @@ namespace PhysicsBattler.Editor.Setup
         /// 20 = Milestone 10: the club's backhand and fan strikes (MD_ClubBackhand, MD_ClubFan,
         ///     MD_ClubFanBackhand) made and put on the club.
         /// 21 = Moves say which bodies throw them: the fan strikes are the small body's.
+        /// 22 = The arm rebuild: elbow nulls and wrist keys on each move, an elbow null on each body's guard,
+        ///     a grip roll on each weapon.
         /// </summary>
-        public const int Current = 21;
+        public const int Current = 22;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

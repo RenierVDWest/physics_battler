@@ -50,12 +50,6 @@ namespace PhysicsBattler.Tests
 
         private static float R(System.Random random, float lo, float hi) => lo + (float)random.NextDouble() * (hi - lo);
 
-        private static Vector3 ChestNull(AnimRig anim, bool right, Vector3 worldWay)
-        {
-            Vector3 local = Quaternion.Inverse(anim.Part(PartId.Chest).rotation) * worldWay;
-            return right ? local : new Vector3(-local.x, local.y, local.z);
-        }
-
         [Test]
         public void AnArmMadeInsideItsLimitsIsFoundAgainExactly()
         {
@@ -92,9 +86,10 @@ namespace PhysicsBattler.Tests
                             continue;
                         }
 
+                        float swivel = ArmRig.SwivelOf(anim, right, elbow, wrist);
                         // Scrambled first: the rig keeps nothing from before.
                         PoseFromAngles(anim, right, Quaternion.Euler(-40f, 30f, 20f), 60f, 30f, 10f, 0f);
-                        var solve = ArmRig.Solve(anim, right, ArmGoal.Hand(wrist, Vector3.zero, hand, ChestNull(anim, right, way.normalized)));
+                        var solve = ArmRig.Solve(anim, right, ArmGoal.Hand(wrist, Vector3.zero, hand, swivel));
                         worstPoint = Mathf.Max(worstPoint, solve.pointMiss);
                         worstTurn = Mathf.Max(worstTurn, solve.turnMiss);
                         worstElbow = Mathf.Max(worstElbow, Vector3.Distance(anim.Part(Fore(right)).position, elbow));
@@ -143,7 +138,7 @@ namespace PhysicsBattler.Tests
                         }
 
                         Vector3 point = shoulder + anim.Part(PartId.Chest).rotation * way * R(random, 0.05f, 1.1f) * full;
-                        var goal = ArmGoal.Hand(point, Vector3.zero, RandomTurn(random), Random.onUnitSphereOf(random));
+                        var goal = ArmGoal.Hand(point, Vector3.zero, RandomTurn(random), R(random, -180f, 180f));
                         var solve = ArmRig.Solve(anim, right, goal);
                         Quaternion handLocal = Quaternion.Inverse(anim.RestLocalRotation(Hand(right))) * anim.Part(Hand(right)).localRotation;
                         float past = ArmRig.WristAngles(handLocal, ArmRig.WristFrame(anim, right), out float twist, out _, out float deviation);
@@ -186,7 +181,7 @@ namespace PhysicsBattler.Tests
                 for (int i = 0; i < 40; i++)
                 {
                     Vector3 shoulder = anim.Part(PartId.UpperArmR).position;
-                    var goal = ArmGoal.Hand(shoulder + Random.onUnitSphereOf(random) * R(random, 0.2f, 0.7f), Vector3.zero, RandomTurn(random), Random.onUnitSphereOf(random));
+                    var goal = ArmGoal.Hand(shoulder + Random.onUnitSphereOf(random) * R(random, 0.2f, 0.7f), Vector3.zero, RandomTurn(random), R(random, -180f, 180f));
                     PoseFromAngles(anim, true, RandomShoulder(random, PartId.UpperArmR), R(random, 0f, 140f), R(random, -80f, 80f), 0f, 0f);
                     ArmRig.Solve(anim, true, goal);
                     Quaternion u = anim.Part(PartId.UpperArmR).rotation, f = anim.Part(PartId.ForearmR).rotation, h = anim.Part(PartId.HandR).rotation;
@@ -228,8 +223,8 @@ namespace PhysicsBattler.Tests
                             Vector3 s0 = anim.Part(PartId.UpperArmR).position, e0 = anim.Part(PartId.ForearmR).position, w0 = anim.Part(PartId.HandR).position;
                             Quaternion h0 = anim.Part(PartId.HandR).rotation;
                             Vector3 n = (w0 - s0).normalized, way = (e0 - s0) - n * Vector3.Dot(e0 - s0, n);
-                            Vector3 elbowNull = straight ? new Vector3(0.4f, -1f, 0f) : ChestNull(anim, true, way.normalized);
-                            var solve = ArmRig.Solve(anim, true, ArmGoal.Hand(w0, Vector3.zero, h0, elbowNull));
+                            float elbowSwivel = straight ? 20f : ArmRig.SwivelOf(anim, true, e0, w0);
+                            var solve = ArmRig.Solve(anim, true, ArmGoal.Hand(w0, Vector3.zero, h0, elbowSwivel));
                             if (!straight)
                             {
                                 worstPoint = Mathf.Max(worstPoint, solve.pointMiss);

@@ -67,6 +67,9 @@ namespace PhysicsBattler.Combat
         [Tooltip("Which way the weapon points in guard: degrees up from forward, and turned in (+) across the body.")]
         public Vector2 guardAngles = new Vector2(35f, 12f);
 
+        [Tooltip("The arm rebuild: how far the hand may roll about the grip when the wrist can't take the turn asked (degrees each way): a club's roll hardly shows, a sword's edge must land.")]
+        public float gripRoll;
+
         [Header("Moves")]
         public MoveDefinition[] moves = new MoveDefinition[0];
 
@@ -83,11 +86,15 @@ namespace PhysicsBattler.Combat
             }
         }
 
+        /// <summary>The arm rebuild's grip roll by kind: a club 30, a sword 10, a shield none.</summary>
+        public static float DefaultGripRoll(WeaponKind kind) => kind == WeaponKind.Club ? 30f : kind == WeaponKind.Shield ? 0f : 10f;
+
         public static WeaponDefinition CreateDefault(WeaponKind kind)
         {
             var weapon = CreateInstance<WeaponDefinition>();
             weapon.name = "WD_" + kind;
             weapon.kind = kind;
+            weapon.gripRoll = DefaultGripRoll(kind);
             switch (kind)
             {
                 case WeaponKind.Club:

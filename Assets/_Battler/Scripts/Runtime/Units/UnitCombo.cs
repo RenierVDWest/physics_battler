@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PhysicsBattler.Authority;
 using PhysicsBattler.Combat;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
@@ -412,6 +413,14 @@ namespace PhysicsBattler.Units
                 if (IsLeg(id))
                 {
                     continue;   // (the feet stay where the stance has them)
+                }
+
+                // (The arm rebuild: the arms' joints are their rig's, never turned after its solve; the
+                // weapon's target and elbow null are blended from link to link instead, and the arms
+                // ride on the chest as it eases over.)
+                if (AuthorityController.RegionOf(id) == BodyRegion.ArmL || AuthorityController.RegionOf(id) == BodyRegion.ArmR)
+                {
+                    continue;
                 }
 
                 var part = Anim.Part(id);

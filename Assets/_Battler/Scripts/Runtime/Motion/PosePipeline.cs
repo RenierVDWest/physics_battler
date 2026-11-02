@@ -541,7 +541,12 @@ namespace PhysicsBattler.Motion
                 offLift = offClampMemory;
             }
 
-            WeaponGroundGap = KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, 1f, false, mainLift, offLift);
+            // (The weapon arm keeps its weapon out of the ground on its target, before its solve.)
+            WeaponGroundGap = KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, 1f, false, mainLift, offLift, keepMain: false);
+            if (Loadout?.Main != null)
+            {
+                WeaponGroundGap = Mathf.Min(WeaponGroundGap, WeaponLowest(Loadout.Main, Loadout.Scale, anim.SlotWeaponR.position, anim.SlotWeaponR.rotation) - stance.GroundY);
+            }
             CenterOfMass = CenterOfMassNow();
         }
 
@@ -553,7 +558,7 @@ namespace PhysicsBattler.Motion
 
         /// <summary>Keeps what both hands hold out of the ground (<see cref="GroundClamp"/>); returns the lowest gap left.</summary>
         public static float KeepWeaponsOffGround(AnimRig anim, Loadout loadout, float size, float groundY, float weight = 1f, bool free = false,
-            GroundClamp.Memory mainMemory = null, GroundClamp.Memory offMemory = null)
+            GroundClamp.Memory mainMemory = null, GroundClamp.Memory offMemory = null, bool keepMain = true)
         {
             if (loadout == null)
             {
@@ -561,7 +566,7 @@ namespace PhysicsBattler.Motion
             }
 
             float gap = float.MaxValue;
-            if (loadout.Main != null)
+            if (loadout.Main != null && keepMain)
             {
                 gap = Mathf.Min(gap, GroundClamp.Keep(anim, true, loadout.Main, loadout.Scale, size, groundY, weight, free, mainMemory));
             }
@@ -641,7 +646,6 @@ namespace PhysicsBattler.Motion
             var hand = anim.Part(PartId.HandR);
             var slot = anim.SlotWeaponR;
             float scale = loadout.Scale;
-            Vector3 pole = facing * new Vector3(0.6f, -1f, -0.3f);
             float armLength = anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude;
 
             // (Milestone 9c: a thrust grips the handle more along the palm, the blade leaning further
@@ -658,89 +662,106 @@ namespace PhysicsBattler.Motion
                 }
             }
 
-            GuardPose(loadout.Main, true, facing, scale, out var guardGrip, out var guardRotation);
-            guardGrip += FlailOffset(facing, 1f);
-            RhythmGuard(facing, rhythm.main, rhythm.mainTurn, ref guardGrip, ref guardRotation);
-            Vector3 grip = guardGrip;
-            Quaternion rotation = guardRotation;
+            // ---- The arm rebuild: the arm's three controls (ArmRig) -------------------------------
+            // Everything below sets the controls: where the weapon goes, how it is turned, and the
+            // elbow null. One solve at the end makes the arm; nothing changes the arm after it.
+            float guardSwivel = Style != null ? Style.guardElbowSwivel : 20f;
+            Vector3 strikeLocal = Vector3.zero;
+            float anchorShare = 0f;
             if (move != null && moveBlend > 0f)
             {
-                // If the arm can't reach, the spine bends toward the hand (a few small turns, up to 50 degrees).
-                var spine = anim.Part(PartId.Spine);
-                Vector3 moveGrip = grip;
-                Quaternion moveRotation = rotation;
-                for (int i = 0; i < 6; i++)
-                {
-                    MovePose(move, scale, out moveGrip, out moveRotation, out _);
-                    Vector3 reachGrip = moveGrip;
-                    Quaternion reachRotation = moveRotation;
-                    float bendShare = moveBlend;
-                    if (LinkFrom != null && LinkWeight > 0f)
-                    {
-                        // (Milestone 10: reaching for where the weapon is between the two links.)
-                        MovePose(LinkFrom, scale, out var fromGrip, out var fromRotation, out _);
-                        reachGrip = Vector3.Lerp(reachGrip, fromGrip, LinkWeight);
-                        reachRotation = Quaternion.Slerp(reachRotation, fromRotation, LinkWeight);
-                        bendShare = Mathf.Lerp(moveBlend, LinkFrom.Blend, LinkWeight);
-                    }
+                // A blow puts its striking part on the path all the way, eased in from the grip as it
+                // blends in from the guard (a feint aims at nothing and holds the grip to its path).
+                strikeLocal = (move.Weapon != null ? move.Weapon.StrikePoint(move.Move.strikeWith) : Vector3.forward * 0.6f) * scale;
+                anchorShare = move == Feint ? 0f : Mathf.Clamp01(2f * moveBlend);
+                LeanForContact(move, moveBlend, strikeLocal, hand, slot);
+            }
 
-                    Vector3 handAt = HandFor(reachGrip, reachRotation, slot);
-                    Vector3 shoulder = upper.position;
-                    float excess = Vector3.Distance(handAt, shoulder) - 0.97f * armLength;
-                    if (excess <= 0f || SpineBend >= 50f)
-                    {
-                        break;
-                    }
-
-                    Vector3 a = shoulder - spine.position;
-                    Vector3 c = handAt - spine.position;
-                    float angle = Mathf.Min(Vector3.Angle(a, c), Mathf.Min(12f, 50f - SpineBend),
-                        Mathf.Rad2Deg * excess / Mathf.Max(0.1f, a.magnitude) + 1f);
-                    Vector3 axis = Vector3.Cross(a, c);
-                    if (axis.sqrMagnitude < 1e-8f)
-                    {
-                        break;
-                    }
-
-                    spine.rotation = Quaternion.AngleAxis(angle * bendShare, axis.normalized) * spine.rotation;
-                    SpineBend += angle * bendShare;
-                }
-
-                // The guard is posed again after the bend (it hangs off the chest).
-                GuardPose(loadout.Main, true, facing, scale, out guardGrip, out guardRotation);
-                guardGrip += FlailOffset(facing, 1f);
-                RhythmGuard(facing, rhythm.main, rhythm.mainTurn, ref guardGrip, ref guardRotation);
-                grip = Vector3.Lerp(guardGrip, moveGrip, moveBlend);
-                rotation = Quaternion.Slerp(guardRotation, moveRotation, moveBlend);
+            // The guard's target: the weapon's guard, the rhythm's, a hit's knock, out of the chest and
+            // off the ground (posed after the body: it hangs off the chest).
+            var torso = Rig != null ? new BodyClearance.Posed(Rig, anim, scale) : null;
+            GuardTarget(loadout, facing, scale, torso, out var guardGrip, out var guardRotation);
+            Vector3 grip = guardGrip;
+            Quaternion rotation = guardRotation;
+            float elbowSwivel = guardSwivel;
+            if (move != null && moveBlend > 0f)
+            {
+                MovePose(move, scale, out var moveGrip, out var moveRotation, out _);
+                grip = Vector3.Lerp(guardGrip, moveGrip + KnockR, moveBlend);
+                rotation = Quaternion.Slerp(guardRotation, TurnOf(KnockTurnR) * moveRotation, moveBlend);
+                elbowSwivel = Mathf.Lerp(guardSwivel, move.Move.ElbowSwivel(move.T, guardSwivel), moveBlend);
 
                 // Milestone 10: from a combo's last link (still carrying on through its
-                // follow-through), the weapon eases into this link's way.
+                // follow-through), the weapon and the elbow ease into this link's way.
                 if (LinkFrom != null && LinkWeight > 0f)
                 {
                     MovePose(LinkFrom, scale, out var fromGrip, out var fromRotation, out _);
                     float fb = LinkFrom.Blend;
-                    fromGrip = Vector3.Lerp(guardGrip, fromGrip, fb);
-                    fromRotation = Quaternion.Slerp(guardRotation, fromRotation, fb);
+                    fromGrip = Vector3.Lerp(guardGrip, fromGrip + KnockR, fb);
+                    fromRotation = Quaternion.Slerp(guardRotation, TurnOf(KnockTurnR) * fromRotation, fb);
+                    float fromSwivel = Mathf.Lerp(guardSwivel, LinkFrom.Move.ElbowSwivel(LinkFrom.T, guardSwivel), fb);
                     grip = Vector3.Lerp(grip, fromGrip, LinkWeight);
                     rotation = Quaternion.Slerp(rotation, fromRotation, LinkWeight);
+                    elbowSwivel = Mathf.Lerp(elbowSwivel, fromSwivel, LinkWeight);
+                }
+
+                // The weapon kept out of the ground, on its target: tipped up about the grip, or the
+                // grip raised, before the arm is solved (the arm itself is never bent after).
+                KeepTargetOffGround(loadout.Main, scale, ref grip, ref rotation);
+            }
+
+            // The guard's wrist: the weapon held as the guard has it, the wrist taking as much of its
+            // turn as it can, the elbow at the guard's null (measured, not applied). The arm is then
+            // always solved the same way, the wrist held: in the guard as measured, in a blow as the
+            // move keys it (from the guard's wrist and back), the striking part put on the path so the
+            // blow lands exactly. The weapon points where the arm and wrist put it.
+            var guardGoal = WeaponGoal(hand, slot, guardGrip, guardRotation, Vector3.zero, guardSwivel, loadout.Main);
+            Quaternion guardWrist = ArmRig.Solve(anim, true, guardGoal, torso, apply: false).wristLocal;
+            Quaternion wrist = guardWrist;
+            if (move != null && moveBlend > 0f)
+            {
+                wrist = Quaternion.Slerp(guardWrist, KeyedWrist(move, guardWrist), moveBlend);
+                if (LinkFrom != null && LinkWeight > 0f)
+                {
+                    wrist = Quaternion.Slerp(wrist, Quaternion.Slerp(guardWrist, KeyedWrist(LinkFrom, guardWrist), LinkFrom.Blend), LinkWeight);
                 }
             }
 
-            // (A hit's knock on the arm: the hand back along the blow and turned with it.)
+            var goal = WeaponGoal(hand, slot, grip, rotation, strikeLocal * anchorShare, elbowSwivel, loadout.Main);
+            goal.wristGiven = true;
+            goal.wristLocal = wrist;
+            LastWeaponArm = ArmRig.Solve(anim, true, goal, torso);
+            float under = WeaponLowest(loadout.Main, scale, slot.position, slot.rotation) - (stance.GroundY + GroundClamp.Margin * body.SizeFactor);
+            if (under < -0.005f)
+            {
+                // (A weapon the arm and wrist still bring down: the hand's point raised by what is left,
+                // and solved once more.)
+                goal.point.y -= under;
+                LastWeaponArm = ArmRig.Solve(anim, true, goal, torso);
+            }
+
+            WeaponArmSwivel = elbowSwivel;
+            WristBend = Vector3.Angle(fore.rotation * anim.RestLocalPosition(PartId.HandR), hand.rotation * anim.RestLocalPosition(PartId.HandR));
+            if (move != null)
+            {
+                Vector3 local = move.Weapon != null ? move.Weapon.StrikePoint(move.Move.strikeWith) : Vector3.forward * 0.6f;
+                StrikePoint = slot.position + slot.rotation * (local * scale);
+                AimError = Vector3.Distance(StrikePoint, move.Aim);
+            }
+        }
+
+        /// <summary>
+        /// The weapon's guard target: the weapon's guard, the rhythm's, a hit's knock, the grip moved out
+        /// of the chest (a guard tucked into it leaves the wrist no room), and kept off the ground.
+        /// </summary>
+        private void GuardTarget(Loadout loadout, Quaternion facing, float scale, BodyClearance.Posed torso, out Vector3 grip, out Quaternion rotation)
+        {
+            GuardPose(loadout.Main, true, facing, scale, out grip, out rotation);
+            grip += FlailOffset(facing, 1f);
+            RhythmGuard(facing, rhythm.main, rhythm.mainTurn, ref grip, ref rotation);
             grip += KnockR;
             rotation = TurnOf(KnockTurnR) * rotation;
-            // Milestone 9c: the arm points the weapon. The hand reaches the grip (the elbow toward its
-            // pole, swung round to where the wrist is straightest); the wrist keeps within a gripping
-            // wrist's easy range, and what it can't take turns the weapon instead. The anchor (the
-            // striking part in a blow, the grip in the guard) is then put back where it was asked to
-            // be by moving the hand, a few times over: the blow still lands exactly, and the arm, not
-            // the wrist, points the weapon.
-            float length = (loadout.Main != null ? loadout.Main.length : 0.9f) * scale;
-            var torso = Rig != null ? new BodyClearance.Posed(Rig, anim, scale) : null;
-            // (The guard's hand keeps a forearm's room from the torso: a guard tucked into the chest is
-            // moved out, so the arm can hold the weapon with the wrist straight.)
-            float guardShare = move != null ? 1f - moveBlend : 1f;
-            if (torso != null && guardShare > 0f)
+            if (torso != null)
             {
                 Vector3 chestAt = anim.Part(PartId.Chest).position;
                 for (int i = 0; i < 3; i++)
@@ -754,119 +775,157 @@ namespace PhysicsBattler.Motion
                     Vector3 away = grip - chestAt;
                     away.y = 0f;
                     away = away.sqrMagnitude > 1e-6f ? away.normalized : facing * Vector3.forward;
-                    grip += away * (-room * guardShare);
+                    grip += away * -room;
                 }
             }
 
-            Vector3 anchorLocal = Vector3.zero;
-            if (move != null && moveBlend > 0f)
+            KeepTargetOffGround(loadout.Main, scale, ref grip, ref rotation);
+        }
+
+        /// <summary>
+        /// A blow whose striking moment the arm can't reach (with the wrist the move keys there) leans
+        /// the spine toward it: the bend the contact point needs, eased in toward the striking moment
+        /// and out after it (a function of the blow's time, so it never jumps), up to 50 degrees.
+        /// </summary>
+        private void LeanForContact(MoveState move, float moveBlend, Vector3 strikeLocal, Transform hand, Transform slot)
+        {
+            if (move == Feint || !move.Generated)
             {
-                Vector3 strikeLocal = (move.Weapon != null ? move.Weapon.StrikePoint(move.Move.strikeWith) : Vector3.forward * 0.6f) * scale;
-                // (A feint aims at nothing: the hand holds to its path.)
-                anchorLocal = move == Feint ? Vector3.zero : strikeLocal * Mathf.Clamp01(2f * moveBlend);
+                return;
             }
 
-            grip += facing * GuardOutWay * (guardOut * guardShare);
-            Vector3 anchor = grip + rotation * anchorLocal;
-            var easy = Easy(move != null ? moveBlend : 0f);
-            // Milestone 9c: the arm solved in its joints' own angles, each inside its range (WeaponArmSolve.cs).
-            // A playing arm carries on from last step's shape; a tried pose, or one after a gap (getting
-            // up, say), finds its shape afresh.
-            bool playing = !composingDry || composingArmPlays;
-            if (playing)
+            float tc = move.ContactTime, t = move.T;
+            float w = t <= tc ? Smooth01((t - (tc - LeanAhead)) / LeanAhead) : 1f - Smooth01((t - tc) / LeanAfter);
+            w *= moveBlend;
+            if (LinkFrom != null)
             {
-                if (weaponArmComposed != composeCount - 1)
-                {
-                    armWasKnown = false;
-                    armAnglesKnown = false;
-                    guardOut = guardOutSpeed = 0f;
-                }
-
-                weaponArmComposed = composeCount;
+                w *= 1f - LinkWeight;
             }
 
-            // (The striking part's place counts fully near the striking moment; in the wind-up and the
-            // follow-through, where a natural arm comes first, less.)
-            float aimWeight = ArmAimWeight, fromStrike = 0f;
-            if (move != null && move != Feint)
+            if (w <= 0f)
             {
-                fromStrike = Mathf.Clamp01((Mathf.Abs(move.Progress - move.Move.ContactProgress) - AimHeldNear) / AimHeldRamp);
-                aimWeight = Mathf.Lerp(ArmAimWeight, ArmAimWeightAway, fromStrike * moveBlend);
+                return;
             }
 
-            // (How far a playing arm is carried on from how it was moving: fully in a blow, not in the guard.)
-            float follow = move != null && move != Feint ? moveBlend : 0f;
-            // (Drawn toward the blow's planned striking shape as the moment comes: from 60% of the way
-            // before it, fully at it, and off again after.)
-            float[] plan = null;
-            float planWeight = 0f;
-            if (move != null && move != Feint)
+            var spine = anim.Part(PartId.Spine);
+            var upper = anim.Part(PartId.UpperArmR);
+            Vector3 inHand = Quaternion.Inverse(hand.rotation) * (slot.position - hand.position) + slot.localRotation * strikeLocal;
+            float longest = ArmRig.MaxReach(anim, true, ArmRig.Wrist(anim, true, move.Move.wristContact), inHand);
+            Vector3 point = move.Aim;
+            Quaternion before = spine.rotation;
+            float bent = 0f;
+            for (int i = 0; i < 6; i++)
             {
-                plan = move.ContactArm;
-                float before = Mathf.Clamp01((move.Progress - (move.Move.ContactProgress - 0.6f)) / 0.55f);
-                planWeight = ArmPlanWeight * moveBlend * (move.Progress <= move.Move.ContactProgress ? before : 1f - fromStrike);
-            }
-
-            // (Milestone 10: handed over from a combo's last link, the arm eases into this one: its
-            // pull toward the planned striking shape and its rush near the strike come in as the last
-            // link's share of the pose goes.)
-            float handedOver = LinkFrom != null ? 1f - LinkWeight : 1f;
-            planWeight *= handedOver;
-            aimWeight = Mathf.Lerp(ArmAimWeightAway, aimWeight, handedOver);
-
-            KeepArmAngles();
-            SolveWeaponArm(slot, anchorLocal, anchor, rotation, pole, easy, torso, length, aimWeight, playing, follow, plan, planWeight, move != null && move != Feint ? (1f - fromStrike) * moveBlend * handedOver : 0f);
-
-            // (Short of a point ahead near the striking moment, the body leans after it, up to 50 degrees.)
-            for (int round = 0; round < 2 && move != null && move != Feint && moveBlend > 0f && fromStrike < 1f; round++)
-            {
-                Vector3 landed = slot.position + slot.rotation * anchorLocal;
-                var spine = anim.Part(PartId.Spine);
-                Vector3 back = upper.position - spine.position, reach = anchor - spine.position;
-                Vector3 leanAxis = Vector3.Cross(back, reach);
-                float missed = Vector3.Distance(landed, anchor);
-                if (missed <= 0.004f || (anchor - upper.position).magnitude <= (landed - upper.position).magnitude
-                    || SpineBend >= 49.9f || Vector3.Dot(reach, facing * Vector3.forward) <= 0f || leanAxis.sqrMagnitude < 1e-8f)
+                Vector3 shoulder = upper.position;
+                float excess = Vector3.Distance(point, shoulder) - 0.97f * longest;
+                if (excess <= 0f || bent >= 50f)
                 {
                     break;
                 }
 
-                float lean = Mathf.Min(50f - SpineBend, 1.2f * Mathf.Rad2Deg * missed / Mathf.Max(0.1f, back.magnitude) + 0.5f) * moveBlend * (1f - fromStrike);
-                spine.rotation = Quaternion.AngleAxis(lean, leanAxis.normalized) * spine.rotation;
-                SpineBend += lean;
-                torso = Rig != null ? new BodyClearance.Posed(Rig, anim, scale) : null;
-                RestoreArmAngles();
-                SolveWeaponArm(slot, anchorLocal, anchor, rotation, pole, easy, torso, length, aimWeight, playing, follow, plan, planWeight, move != null && move != Feint ? (1f - fromStrike) * moveBlend * handedOver : 0f);
+                Vector3 a = shoulder - spine.position;
+                Vector3 c = point - spine.position;
+                Vector3 axis = Vector3.Cross(a, c);
+                if (axis.sqrMagnitude < 1e-8f)
+                {
+                    break;
+                }
+
+                float angle = Mathf.Min(Vector3.Angle(a, c), Mathf.Min(12f, 50f - bent), Mathf.Rad2Deg * excess / Mathf.Max(0.1f, a.magnitude) + 1f);
+                spine.rotation = Quaternion.AngleAxis(angle, axis.normalized) * spine.rotation;
+                bent += angle;
             }
 
-            // (A tried pose at the striking moment is the blow's planned striking shape.)
-            if (!playing && move != null && move != Feint && Mathf.Abs(move.T - move.ContactTime) < 1e-4f)
+            // (The whole bend the striking moment needs, weighted by how near it is.)
+            Quaternion full = spine.rotation * Quaternion.Inverse(before);
+            spine.rotation = Quaternion.Slerp(Quaternion.identity, full, w) * before;
+            SpineBend += bent * w;
+        }
+
+        private static float Smooth01(float x)
+        {
+            x = Mathf.Clamp01(x);
+            return x * x * (3f - 2f * x);
+        }
+
+        /// <summary>How long before the striking moment the lean for it starts, and how long after it eases out (normalized time).</summary>
+        public const float LeanAhead = 0.25f, LeanAfter = 0.3f;
+
+        /// <summary>A blow's keyed wrist at its time now (the guard's wrist at its start and end).</summary>
+        private Quaternion KeyedWrist(MoveState state, Quaternion guardWrist)
+        {
+            state.Move.Phase(state.T, out int from, out int to, out float share);
+            Quaternion Key(int k) => k == 0 ? guardWrist : ArmRig.Wrist(anim, true, state.Move.WristKey(k));
+            return Quaternion.Slerp(Key(from), Key(to), share);
+        }
+
+        /// <summary>The arm rebuild: what the weapon arm's solve last made (for the gizmo, the log and the tests).</summary>
+        public ArmSolve LastWeaponArm { get; private set; }
+
+        /// <summary>The arm rebuild: the weapon arm's elbow null last asked (degrees round the arm).</summary>
+        public float WeaponArmSwivel { get; private set; }
+
+        /// <summary>The weapon arm's goal: the hand put so the weapon's anchor lands on its target, turned as the weapon is, the elbow toward its null.</summary>
+        private ArmGoal WeaponGoal(Transform hand, Transform slot, Vector3 grip, Quaternion rotation, Vector3 anchorLocal, float elbowSwivel, WeaponDefinition weapon)
+        {
+            Quaternion handTurn = rotation * Quaternion.Inverse(slot.localRotation);
+            // (The anchor in the hand's frame: the slot's place on the hand, then the anchor along the weapon.)
+            Vector3 inHand = Quaternion.Inverse(hand.rotation) * (slot.position - hand.position) + slot.localRotation * anchorLocal;
+            return new ArmGoal
             {
-                System.Array.Copy(armTheta, move.ContactArm, 9);
+                point = grip + rotation * anchorLocal,
+                pointInHand = inHand,
+                handTurn = handTurn,
+                rollAxisInHand = slot.localRotation * Vector3.forward,
+                rollAllowance = weapon != null ? weapon.gripRoll : 0f,
+                elbowSwivel = elbowSwivel,
+                clearance = ArmClearance * body.SizeFactor,
+            };
+        }
+
+        /// <summary>How far the arm keeps from its own torso (metres, medium size).</summary>
+        public const float ArmClearance = 0.02f;
+
+        /// <summary>The lowest of a weapon's grip, striking part and tip, held at a grip and turned so (world height).</summary>
+        private static float WeaponLowest(WeaponDefinition weapon, float scale, Vector3 grip, Quaternion rotation)
+        {
+            float low = grip.y;
+            low = Mathf.Min(low, (grip + rotation * (weapon.tip * scale)).y);
+            low = Mathf.Min(low, (grip + rotation * (weapon.head * scale)).y);
+            return low;
+        }
+
+        /// <summary>
+        /// Keeps a weapon's target out of the ground: tipped up about its grip until its lowest point
+        /// clears, and the grip raised if that isn't enough. A function of the target alone, so a
+        /// smoothly moving target stays smooth (no memory, no rate limit).
+        /// </summary>
+        private void KeepTargetOffGround(WeaponDefinition weapon, float scale, ref Vector3 grip, ref Quaternion rotation)
+        {
+            if (weapon == null || weapon.IsShield)
+            {
+                return;
             }
 
-            // (In the guard a weapon that would lie against its own head or body is held further out in
-            // front and lower, eased out and back in as needed.)
-            if (torso != null && (!composingDry || composingArmPlays) && composeDt > 0f)
+            float floor = stance.GroundY + (GroundClamp.Margin + GroundClamp.Soft) * body.SizeFactor;
+            Vector3 tip = rotation * (weapon.tip * scale);
+            float length = tip.magnitude;
+            if (length > 1e-4f && grip.y + tip.y < floor)
             {
-                float clear = torso.Blade(slot.position, slot.position + slot.rotation * (Vector3.forward * length));
-                float needed = Mathf.Clamp(guardOut + (ArmBodyMargin - clear), 0f, GuardOutMost * body.SizeFactor);
-                // (On a critically damped spring: it starts and stops smoothly.)
-                float target = guardShare > 0.5f ? needed : 0f;
-                float w = 2f * Mathf.PI * GuardOutRate, e = guardOut - target, c = guardOutSpeed + w * e, decay = Mathf.Exp(-w * composeDt);
-                guardOutSpeed = (guardOutSpeed - c * w * composeDt) * decay;
-                guardOut = Mathf.Max(0f, target + (e + c * composeDt) * decay);
+                // (In the vertical plane through the weapon: from its slope now to the least that clears.)
+                float now = Mathf.Asin(Mathf.Clamp(tip.y / length, -1f, 1f));
+                float need = Mathf.Asin(Mathf.Clamp((floor - grip.y) / length, -1f, 1f));
+                Vector3 axis = Vector3.Cross(tip, Vector3.up);
+                if (axis.sqrMagnitude > 1e-8f && need > now)
+                {
+                    rotation = Quaternion.AngleAxis((need - now) * Mathf.Rad2Deg, axis.normalized) * rotation;
+                }
             }
 
-            // (Out of a blow, the arm eases between poses rather than jumping: a guard that changes
-            // quickly, or the wrist coming off its easy range, moves it smoothly.)
-            SmoothWeaponArm(move != null && move != Feint ? 1f : 0f);
-            WristBend = Vector3.Angle(fore.rotation * anim.RestLocalPosition(PartId.HandR), hand.rotation * anim.RestLocalPosition(PartId.HandR));
-            if (move != null)
+            float low = WeaponLowest(weapon, scale, grip, rotation);
+            if (low < floor)
             {
-                Vector3 local = move.Weapon != null ? move.Weapon.StrikePoint(move.Move.strikeWith) : Vector3.forward * 0.6f;
-                StrikePoint = slot.position + slot.rotation * (local * scale);
-                AimError = Vector3.Distance(StrikePoint, move.Aim);
+                grip.y += floor - low;
             }
         }
 

@@ -58,6 +58,21 @@ namespace PhysicsBattler.Editor.Setup
         /// </summary>
         public static void Migrate(int from)
         {
+            // Setup 22 (the arm rebuild): each body's guard elbow null.
+            if (from >= 9 && from < 22)
+            {
+                foreach (string body in new[] { "Small", "Medium", "Large" })
+                {
+                    var style = AssetDatabase.LoadAssetAtPath<CombatStyle>(BattlerPaths.Style(body));
+                    if (style != null)
+                    {
+                        style.guardElbowSwivel = CombatStyle.DefaultGuardElbowSwivel(body);
+                        EditorUtility.SetDirty(style);
+                        Debug.Log($"[Battler Setup] {BattlerPaths.Style(body)}: guard elbow null {style.guardElbowSwivel} degrees.");
+                    }
+                }
+            }
+
             // Setup 17: the medium and small units stand as their captured idles do (unless their
             // stance was already changed), and every body walks with its captured walk.
             if (from >= 9 && from < 17)

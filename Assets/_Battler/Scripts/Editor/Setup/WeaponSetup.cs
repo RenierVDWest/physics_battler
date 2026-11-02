@@ -42,9 +42,20 @@ namespace PhysicsBattler.Editor.Setup
             // Setup 21 (milestone 10): moves say which bodies throw them; the fan strikes, made by
             // setup 20 for every body, are the small body's.
             bool bodies = SetupVersion.Installed >= 10 && SetupVersion.Installed < 21;
+            // Setup 22 (the arm rebuild): each move's elbow nulls and wrist keys, each weapon's grip roll.
+            bool elbows = SetupVersion.Installed >= 10 && SetupVersion.Installed < 22;
             foreach (MoveStyle style in Enum.GetValues(typeof(MoveStyle)))
             {
                 moves[(int)style] = EnsureMove(style, refresh);
+                var m = moves[(int)style];
+                if (elbows)
+                {
+                    MoveDefinition.DefaultElbows(style, out m.elbowWindUp, out m.elbowContact, out m.elbowFollow);
+                    MoveDefinition.DefaultWrists(style, out m.wristWindUp, out m.wristContact, out m.wristFollow);
+                    EditorUtility.SetDirty(m);
+                    Debug.Log($"[Battler Setup] {BattlerPaths.Move(style.ToString())}: elbow nulls and wrist keys.");
+                }
+
                 if (bodies && moves[(int)style].bodies != MoveDefinition.DefaultBodies(style))
                 {
                     moves[(int)style].bodies = MoveDefinition.DefaultBodies(style);
@@ -71,6 +82,12 @@ namespace PhysicsBattler.Editor.Setup
 
                 var kind = (WeaponKind)Enum.Parse(typeof(WeaponKind), entry.kind);
                 var definition = EnsureWeapon(name, kind, moves);
+                if (elbows && definition.gripRoll == 0f && kind != WeaponKind.Shield)
+                {
+                    definition.gripRoll = WeaponDefinition.DefaultGripRoll(kind);
+                    Debug.Log($"[Battler Setup] {BattlerPaths.Weapon(name)}: grip roll {definition.gripRoll}.");
+                }
+
                 // (Setup 20, milestone 10: the club's backhand and fan strikes go on the club.)
                 if (swings || (SetupVersion.Installed >= 10 && SetupVersion.Installed < 20))
                 {
