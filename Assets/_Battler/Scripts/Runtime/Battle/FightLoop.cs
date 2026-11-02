@@ -55,6 +55,11 @@ namespace PhysicsBattler.Battle
         private sealed class Plan
         {
             public UnitController target;
+
+            /// <summary>The performance pass: the blow being planned a few poses a step, and the step it last went on.</summary>
+            public MovePlanner.Job job;
+            public int jobStep;
+            public AimParts jobPrefer;
             public float retargetAt;
             public float nextAttack = -1f;
             public bool readsThisTime;
@@ -104,11 +109,12 @@ namespace PhysicsBattler.Battle
             return unit != null && unit.IsInitialized && unit.IsAlive && !unit.LegLost && unit.Loadout?.Main != null;
         }
 
-        private int stepCount, plannedAtStep = -1;
+        private int stepCount;
 
         public void Step(IReadOnlyList<UnitController> units, float dt, float now)
         {
             stepCount++;
+            MovePlanner.BeginStep(stepCount);
             if (StartedAt < 0f && Fight)
             {
                 StartedAt = now;
@@ -458,9 +464,30 @@ namespace PhysicsBattler.Battle
             // links come from the combo itself).
             if (unit.IsAttacking || unit.Combo != null)
             {
+                plan.job = null;
                 plan.blowEnd = now;
                 plan.nextAttack = Mathf.Max(plan.nextAttack, now + plan.delayAfter);
                 return;
+            }
+
+            // (The performance pass: a blow being planned carries on, a few poses a step; one left off
+            // (the unit was busy, knocked about) is dropped.)
+            if (plan.job != null)
+            {
+                if (stepCount - plan.jobStep > 2)
+                {
+                    plan.job = null;
+                }
+                else
+                {
+                    plan.jobStep = stepCount;
+                    if (plan.job.Step())
+                    {
+                        FinishPlanning(unit, enemy, plan, distance, now, style, tempo, size);
+                    }
+
+                    return;
+                }
             }
 
             if (tempo != null)
@@ -506,14 +533,6 @@ namespace PhysicsBattler.Battle
                 }
             }
 
-            // (Performance: one unit plans a blow a physics step, the others the next: planning poses
-            // the body dry dozens of times, and two plans in one step made a visible stutter.)
-            if (plannedAtStep == stepCount)
-            {
-                return;
-            }
-
-            plannedAtStep = stepCount;
 
             // Its target first, then any other enemy in reach in front of it.
             var candidates = new List<UnitController> { enemy };
@@ -532,9 +551,11 @@ namespace PhysicsBattler.Battle
                 }
             }
 
+            var targets = new List<(UnitController, AimParts)>();
             foreach (var target in candidates)
             {
                 var prefer = target == enemy && plan.readsThisTime ? open : AimParts.None;
+                targets.Add((target, prefer));
 
                 // Milestone 10: a combo, when the tempo and the energy call for one.
                 var combo = ChooseCombo(unit, tempo, target, out int length, out string why);
@@ -552,13 +573,29 @@ namespace PhysicsBattler.Battle
                         return;
                     }
                 }
+            }
 
-                var state = MovePlanner.Plan(unit, target, random, prefer, 4f);
-                if (state == null)
-                {
-                    continue;
-                }
+            // The blow, at its target first, then the others (the performance pass: planned a few
+            // poses a step, so no step carries all of it).
+            plan.job = new MovePlanner.Job(unit, targets, random, 4f);
+            plan.jobStep = stepCount;
+            plan.jobPrefer = plan.readsThisTime ? open : AimParts.None;
+            if (plan.job.Step())
+            {
+                FinishPlanning(unit, enemy, plan, distance, now, style, tempo, size);
+            }
+        }
 
+        /// <summary>A blow planned: thrown (or, if nothing lands, the unit closes in or gives ground).</summary>
+        private void FinishPlanning(UnitController unit, UnitController enemy, Plan plan, float distance, float now, CombatStyle style, TempoDirector tempo, float size)
+        {
+            var job = plan.job;
+            plan.job = null;
+            var state = job.Result;
+            var target = job.Target;
+            if (state != null && target != null && target.IsAlive && unit.CanAct && !unit.IsAttacking)
+            {
+                var prefer = target == enemy ? plan.jobPrefer : AimParts.None;
                 if (unit.StartMove(state))
                 {
                     plan.ledInAt = -999f;

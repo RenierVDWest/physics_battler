@@ -558,61 +558,73 @@ namespace PhysicsBattler.Units
 
         private float ClearanceCore(MoveState state, int samples, float enough, out PartId closest, out float when, out bool weapon)
         {
-            // (The performance pass: a hand-keyed blow's striking part is kept at each pose, so the
-            // posed path the blow lays as it starts takes these instead of posing them again.)
-            bool keep = state.Generated && state.HasContactHand;
-            if (keep)
-            {
-                state.PosedTimes = new float[samples];
-                state.PosedStrikes = new Vector3[samples];
-                state.PosedRoot = transform.position;
-                state.PosedCount = 0;
-            }
-
             float best = float.MaxValue;
             closest = PartId.Chest;
             when = 0f;
             weapon = false;
-            float length = state.Weapon != null ? state.Weapon.length * 0.98f : 0.8f;
             for (int i = 0; i < samples; i++)
             {
-                float t = Mathf.Lerp(0.04f, 0.96f, i / (float)Mathf.Max(1, samples - 1));
-                var saved = Stance.Save();
-                var anim = SaveAnim();
-                var rotation = transform.rotation;
-                try
+                float c = ClearanceAt(state, i, samples, out var part, out bool blade);
+                if (c < best)
                 {
-                    PoseDry(state, t, true);
-                    if (keep)
-                    {
-                        state.PosedTimes[i] = t;
-                        state.PosedStrikes[i] = Pose.StrikePoint;
-                        state.PosedCount = i + 1;
-                    }
-
-                    float c = BodyClearance.Measure(Rig, Anim, length, Loadout.Scale, out var part, out bool blade);
-                    if (c < best)
-                    {
-                        best = c;
-                        closest = part;
-                        when = t;
-                        weapon = blade;
-                    }
-
-                    if (best < enough)
-                    {
-                        break;   // (it fails: no need to see the rest)
-                    }
+                    best = c;
+                    closest = part;
+                    when = ClearanceTime(i, samples);
+                    weapon = blade;
                 }
-                finally
+
+                if (best < enough)
                 {
-                    transform.rotation = rotation;
-                    Stance.Restore(saved);
-                    RestoreAnim(anim);
+                    break;   // (it fails: no need to see the rest)
                 }
             }
 
             return best;
+        }
+
+        /// <summary>The normalized time of the <paramref name="i"/>th of <paramref name="samples"/> clearance poses.</summary>
+        public static float ClearanceTime(int i, int samples) => Mathf.Lerp(0.04f, 0.96f, i / (float)Mathf.Max(1, samples - 1));
+
+        /// <summary>
+        /// One of a blow's clearance poses (the <paramref name="i"/>th of <paramref name="samples"/>):
+        /// how clear of its own body the weapon and weapon arm are there, everything put back after.
+        /// (The performance pass: a hand-keyed blow's striking part is kept at each pose, from where
+        /// the body stood, so the posed path the blow lays as it starts takes these instead of posing
+        /// them again; and the planner can take them a few a step.)
+        /// </summary>
+        public float ClearanceAt(MoveState state, int i, int samples, out PartId part, out bool blade)
+        {
+            bool keep = state.Generated && state.HasContactHand;
+            if (keep && (i == 0 || state.PosedTimes == null || state.PosedTimes.Length != samples))
+            {
+                state.PosedTimes = new float[samples];
+                state.PosedStrikes = new Vector3[samples];
+                state.PosedCount = 0;
+            }
+
+            float t = ClearanceTime(i, samples);
+            float length = state.Weapon != null ? state.Weapon.length * 0.98f : 0.8f;
+            var saved = Stance.Save();
+            var anim = SaveAnim();
+            var rotation = transform.rotation;
+            try
+            {
+                PoseDry(state, t, true);
+                if (keep && state.PosedCount == i)
+                {
+                    state.PosedTimes[i] = t;
+                    state.PosedStrikes[i] = Pose.StrikePoint - transform.position;
+                    state.PosedCount = i + 1;
+                }
+
+                return BodyClearance.Measure(Rig, Anim, length, Loadout.Scale, out part, out blade);
+            }
+            finally
+            {
+                transform.rotation = rotation;
+                Stance.Restore(saved);
+                RestoreAnim(anim);
+            }
         }
 
         /// <summary>

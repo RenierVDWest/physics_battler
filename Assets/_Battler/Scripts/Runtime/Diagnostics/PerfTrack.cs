@@ -29,6 +29,12 @@ namespace PhysicsBattler.Diagnostics
         /// <summary>A frame longer than this is a hitch (milliseconds).</summary>
         public const float HitchMs = 40f;
 
+        /// <summary>A frame that ran no physics and took less than this isn't written (milliseconds).</summary>
+        public const float QuietFrameMs = 20f;
+
+        private int quietFrames;
+        private double quietSeconds;
+
         // Unity's counters and markers worth recording, by name (those Unity doesn't have are skipped).
         private static readonly string[] Wanted =
         {
@@ -183,9 +189,16 @@ namespace PhysicsBattler.Diagnostics
             Perf.Take(ms, count, out double contactMs, out long pairs, out long calls);
             int steps = fixedThisFrame;
             fixedThisFrame = 0;
-            if (haveLast)
+            // (A row for a frame that ran physics or was slow; the editor renders hundreds of quiet
+            // frames a second between, and writing them all made garbage of its own.)
+            if (haveLast && (lastFixed > 0 || Time.unscaledDeltaTime * 1000f >= QuietFrameMs))
             {
                 WriteRow(t, step, units, hitch);
+            }
+            else if (haveLast)
+            {
+                quietFrames++;
+                quietSeconds += Time.unscaledDeltaTime;
             }
 
             Array.Copy(ms, lastMs, ms.Length);
@@ -338,17 +351,19 @@ namespace PhysicsBattler.Diagnostics
             sorted.Sort();
             float P(float q) => sorted[Mathf.Clamp((int)(q * (sorted.Count - 1)), 0, sorted.Count - 1)];
             var inv = CultureInfo.InvariantCulture;
-            md.AppendLine(string.Format(inv, "{0} frames in {1:0.0} s ({2:0} fps on average). Frame time: median {3:0.0} ms, 95% {4:0.0}, 99% {5:0.0}, worst {6:0.0}. "
+            double seconds = profiledSeconds + quietSeconds;
+            md.AppendLine(string.Format(inv, "{0} frames in {1:0.0} s ({2:0} fps on average); {11} quiet ones (no physics, under {12:0} ms) not written. "
+                                             + "Frame time of those written: median {3:0.0} ms, 95% {4:0.0}, 99% {5:0.0}, worst {6:0.0}. "
                                              + "{7} hitches over {8:0} ms ({9} over 100 ms). {10} garbage collections.",
-                frames, profiledSeconds, frames / Math.Max(1e-3, profiledSeconds), P(0.5f), P(0.95f), P(0.99f), sorted[sorted.Count - 1],
-                hitches, HitchMs, bigHitches, gcCollections));
+                frames + quietFrames, seconds, (frames + quietFrames) / Math.Max(1e-3, seconds), P(0.5f), P(0.95f), P(0.99f), sorted[sorted.Count - 1],
+                hitches, HitchMs, bigHitches, gcCollections, quietFrames, QuietFrameMs));
             md.AppendLine();
             md.AppendLine("Our work, milliseconds per second of play (a section inside another counts in both):");
             md.AppendLine();
             var totals = new List<(string, double)>();
             for (int i = 0; i < (int)PerfSection.Count; i++)
             {
-                totals.Add((((PerfSection)i).ToString(), sectionTotal[i] / Math.Max(1e-3, profiledSeconds)));
+                totals.Add((((PerfSection)i).ToString(), sectionTotal[i] / Math.Max(1e-3, profiledSeconds + quietSeconds)));
             }
 
             totals.Sort((a, b) => b.Item2.CompareTo(a.Item2));

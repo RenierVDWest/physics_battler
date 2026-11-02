@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using PhysicsBattler.Motion;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
@@ -300,14 +301,39 @@ namespace PhysicsBattler.Combat
                 return;
             }
 
-            // (Evenly along the blow, and closely round the striking moment, where the striking part
-            // turns fastest and the sweeps measure its pass.)
+            // (The performance pass: posed already, a few a step, by the planner.)
+            if (state.PosedPath == null)
+            {
+                var samples = PathSamples(state);
+                for (int k = 0; k < samples.Count; k++)
+                {
+                    if (!samples[k].known)
+                    {
+                        samples[k] = PoseSample(attacker, state, samples[k].at);
+                    }
+                }
+
+                state.PosedPath = new List<(float, Vector3)>();
+                foreach (var sample in samples)
+                {
+                    state.PosedPath.Add((sample.at, sample.strike));
+                }
+            }
+
+            BuildPath(attacker, state);
+        }
+
+        /// <summary>
+        /// Where along a blow its posed path is sampled (progress, sorted), and those the planner's
+        /// clearance poses have already (their striking part from where the body stood).
+        /// </summary>
+        public static List<(float at, Vector3 strike, bool known)> PathSamples(MoveState state)
+        {
             float cp = state.Move.ContactProgress;
-            var samples = new System.Collections.Generic.List<(float at, Vector3 posed, bool known)>();
-            // (The performance pass: the planner's clearance poses, when it posed this blow from where
-            // the body stands now, are taken as they are: the whole blow's samples, posed already.)
-            bool reuse = state.PosedTimes != null && state.PosedCount == state.PosedTimes.Length && state.PosedCount >= 8
-                         && (attacker.Root.position - state.PosedRoot).sqrMagnitude < 1e-6f;
+            var samples = new List<(float at, Vector3 strike, bool known)>();
+            // (The performance pass: the planner's clearance poses, taken as they are: the whole blow's
+            // samples, posed already.)
+            bool reuse = state.PosedTimes != null && state.PosedCount == state.PosedTimes.Length && state.PosedCount >= 8;
             if (reuse)
             {
                 samples.Add((0f, Vector3.zero, false));
@@ -332,33 +358,38 @@ namespace PhysicsBattler.Combat
             }
 
             samples.Sort((a, b) => a.at.CompareTo(b.at));
-            var at = new System.Collections.Generic.List<float>(samples.Count);
-            var posed = new Vector3[samples.Count];
-            for (int k = 0; k < samples.Count; k++)
+            return samples;
+        }
+
+        /// <summary>One posed path sample: the blow posed dry at that progress, its striking part from where the body stands.</summary>
+        public static (float at, Vector3 strike, bool known) PoseSample(UnitController attacker, MoveState state, float at)
+        {
+            attacker.WeaponAt(state, TimeAt(state.Move, at), out _, out var strike);
+            return (at, strike - attacker.Root.position, true);
+        }
+
+        /// <summary>The blow's path from its posed samples, laid from where the body stands now.</summary>
+        public static void BuildPath(UnitController attacker, MoveState state)
+        {
+            var samples = state.PosedPath;
+            if (samples == null || samples.Count < 2 || state.Path == null)
             {
-                at.Add(samples[k].at);
-                if (samples[k].known)
-                {
-                    posed[k] = samples[k].posed;
-                }
-                else
-                {
-                    attacker.WeaponAt(state, TimeAt(state.Move, samples[k].at), out _, out posed[k]);
-                }
+                return;
             }
 
+            Vector3 root = attacker.Root.position;
             var path = new Vector3[state.Path.Length];
             int j = 0;
             for (int i = 0; i < path.Length; i++)
             {
                 float u = i / (float)(path.Length - 1);
-                while (j < at.Count - 2 && at[j + 1] < u)
+                while (j < samples.Count - 2 && samples[j + 1].at < u)
                 {
                     j++;
                 }
 
-                float span = at[j + 1] - at[j];
-                path[i] = span > 1e-6f ? Vector3.Lerp(posed[j], posed[j + 1], Mathf.Clamp01((u - at[j]) / span)) : posed[j];
+                float span = samples[j + 1].at - samples[j].at;
+                path[i] = root + (span > 1e-6f ? Vector3.Lerp(samples[j].strike, samples[j + 1].strike, Mathf.Clamp01((u - samples[j].at) / span)) : samples[j].strike);
             }
 
             state.Path = path;

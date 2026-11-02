@@ -214,10 +214,28 @@ namespace PhysicsBattler.Combat
 
         private static MoveState PlanCore(UnitController attacker, UnitController target, System.Random random, AimParts prefer, float preferWeight)
         {
-            var weapon = attacker.Loadout?.Main;
-            if (weapon == null || weapon.moves == null)
+            var options = Options(attacker, target, prefer, preferWeight);
+            while (options.Count > 0)
             {
-                return null;
+                var option = Pick(options, random);
+                var state = Prepare(attacker, target, option.move, option.part);
+                if (state != null && Acceptable(attacker, state))
+                {
+                    return state;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Every move and body part the attacker could throw at the target, weighted (the body more than the limbs, the parts preferred more).</summary>
+        public static List<(MoveDefinition move, AimPart part, float weight)> Options(UnitController attacker, UnitController target, AimParts prefer, float preferWeight)
+        {
+            var options = new List<(MoveDefinition move, AimPart part, float weight)>();
+            var weapon = attacker.Loadout?.Main;
+            if (weapon == null || weapon.moves == null || target == null)
+            {
+                return options;
             }
 
             // (Milestone 10: and the off hand's blows, the jab with a bare lead hand.)
@@ -234,7 +252,6 @@ namespace PhysicsBattler.Combat
                 }
             }
 
-            var options = new List<(MoveDefinition move, AimPart part, float weight)>();
             foreach (var move in moves)
             {
                 if (move == null || !move.UsableBy(attacker.Body.SizeFactor))
@@ -253,35 +270,188 @@ namespace PhysicsBattler.Combat
                 }
             }
 
-            while (options.Count > 0)
+            return options;
+        }
+
+        /// <summary>Takes one option out at random by its weight.</summary>
+        public static (MoveDefinition move, AimPart part, float weight) Pick(List<(MoveDefinition move, AimPart part, float weight)> options, System.Random random)
+        {
+            float total = 0f;
+            foreach (var o in options)
             {
-                float total = 0f;
-                foreach (var o in options)
-                {
-                    total += o.weight;
-                }
+                total += o.weight;
+            }
 
-                float pick = (float)random.NextDouble() * total;
-                int i = 0;
-                for (; i < options.Count - 1; i++)
+            float pick = (float)random.NextDouble() * total;
+            int i = 0;
+            for (; i < options.Count - 1; i++)
+            {
+                pick -= options[i].weight;
+                if (pick <= 0f)
                 {
-                    pick -= options[i].weight;
-                    if (pick <= 0f)
-                    {
-                        break;
-                    }
-                }
-
-                var option = options[i];
-                options.RemoveAt(i);
-                var state = Prepare(attacker, target, option.move, option.part);
-                if (state != null && Acceptable(attacker, state))
-                {
-                    return state;
+                    break;
                 }
             }
 
-            return null;
+            var option = options[i];
+            options.RemoveAt(i);
+            return option;
+        }
+
+        // ---- Planning a few poses a step (the performance pass) -----------------------------------
+
+        /// <summary>
+        /// How long the planning may take each physics step, all units together (milliseconds): a
+        /// blow's planning poses the body dry fifty-odd times, which in one step was a 40 to 120 ms
+        /// stutter; spread over a few steps, while the attacker gets ready, it is never seen.
+        /// </summary>
+        public const float StepBudgetMs = 4f;
+
+        private static long budgetStart;
+        private static int budgetStep = -1;
+
+        /// <summary>Starts this physics step's planning budget (once a step; the fight loop calls it).</summary>
+        public static void BeginStep(int step)
+        {
+            if (budgetStep != step)
+            {
+                budgetStep = step;
+                budgetStart = System.Diagnostics.Stopwatch.GetTimestamp();
+            }
+        }
+
+        private static bool BudgetLeft() =>
+            (System.Diagnostics.Stopwatch.GetTimestamp() - budgetStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency < StepBudgetMs;
+
+        /// <summary>
+        /// A blow being planned a few dry poses a step: the planner's choice (<see cref="Plan"/>) at
+        /// each target in turn, with each candidate's checks (<see cref="Acceptable"/>: its contact,
+        /// then its clearance pose by pose) and, for the one chosen, its posed path, so the blow starts
+        /// with no posing left to do. The same choices as planning in one go.
+        /// </summary>
+        public sealed class Job
+        {
+            private readonly IEnumerator<bool> work;
+
+            /// <summary>The blow chosen (once <see cref="Done"/>), or null: nothing lands.</summary>
+            public MoveState Result { get; private set; }
+
+            /// <summary>The target the blow was chosen at.</summary>
+            public UnitController Target { get; private set; }
+
+            public bool Done { get; private set; }
+
+            /// <summary>The steps it has taken so far.</summary>
+            public int Steps { get; private set; }
+
+            public Job(UnitController attacker, IList<(UnitController target, AimParts prefer)> targets, System.Random random, float preferWeight)
+            {
+                work = Run(attacker, targets, random, preferWeight);
+            }
+
+            /// <summary>Does this step's share of the work (at least one pose; then as long as the step's budget lasts). True once done.</summary>
+            public bool Step()
+            {
+                if (Done)
+                {
+                    return true;
+                }
+
+                Steps++;
+                using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Plan))
+                {
+                    do
+                    {
+                        if (!work.MoveNext())
+                        {
+                            Done = true;
+                            return true;
+                        }
+                    }
+                    while (BudgetLeft());
+                }
+
+                return false;
+            }
+
+            private IEnumerator<bool> Run(UnitController attacker, IList<(UnitController target, AimParts prefer)> targets, System.Random random, float preferWeight)
+            {
+                foreach (var (target, prefer) in targets)
+                {
+                    if (target == null || !target.IsInitialized || !target.IsAlive)
+                    {
+                        continue;
+                    }
+
+                    var options = Options(attacker, target, prefer, preferWeight);
+                    while (options.Count > 0)
+                    {
+                        var option = Pick(options, random);
+                        var state = Prepare(attacker, target, option.move, option.part);
+                        yield return false;
+                        if (state == null)
+                        {
+                            continue;
+                        }
+
+                        // Its contact.
+                        bool lands;
+                        using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.TryOut))
+                        {
+                            lands = attacker.TryOut(state) <= (state.Generated ? 0.66f : 1f) * Tolerance
+                                    && attacker.Pose.HandCleared.magnitude <= ContactPush * attacker.Body.SizeFactor;
+                        }
+
+                        yield return false;
+                        if (!lands)
+                        {
+                            continue;
+                        }
+
+                        // Its clearance, pose by pose.
+                        float limit = -OwnBodyClearance * attacker.Body.SizeFactor;
+                        bool clear = true;
+                        for (int i = 0; i < ClearanceSamples && clear; i++)
+                        {
+                            using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Clearance))
+                            {
+                                clear = attacker.ClearanceAt(state, i, ClearanceSamples, out _, out _) >= limit;
+                            }
+
+                            yield return false;
+                        }
+
+                        if (!clear)
+                        {
+                            continue;
+                        }
+
+                        // Chosen: its posed path, pose by pose.
+                        if (state.Generated && state.HasContactHand)
+                        {
+                            var samples = SwingPath.PathSamples(state);
+                            for (int k = 0; k < samples.Count; k++)
+                            {
+                                if (!samples[k].known)
+                                {
+                                    samples[k] = SwingPath.PoseSample(attacker, state, samples[k].at);
+                                    yield return false;
+                                }
+                            }
+
+                            state.PosedPath = new List<(float, Vector3)>();
+                            foreach (var sample in samples)
+                            {
+                                state.PosedPath.Add((sample.at, sample.strike));
+                            }
+                        }
+
+                        Result = state;
+                        Target = target;
+                        yield break;
+                    }
+                }
+            }
         }
     }
 }

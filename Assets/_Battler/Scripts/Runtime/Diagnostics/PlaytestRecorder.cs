@@ -77,6 +77,7 @@ namespace PhysicsBattler.Diagnostics
 
         private StreamWriter events;
         private PerfTrack perf;
+        private Action<string> onHitch;
         private TableWriter world;
         private string sessionPath;
         private DateTime startedAt;
@@ -654,17 +655,17 @@ namespace PhysicsBattler.Diagnostics
                 SampleProps();
             }
 
-            if (step % 30 == 0)
-            {
-                Flush();
-            }
+            // (The performance pass: one file a step, in turn, rather than every file at once every
+            // half second: written all together they took 27 ms in one step, a stutter.)
+            FlushOne();
         }
 
         private void LateUpdate()
         {
             if (Recording && perf != null)
             {
-                perf.EndFrame(Now - startTime, step, tracks.Count, text => Event((string)null, "perf", text));
+                onHitch ??= text => Event((string)null, "perf", text);
+                perf.EndFrame(Now - startTime, step, tracks.Count, onHitch);
             }
         }
 
@@ -761,6 +762,50 @@ namespace PhysicsBattler.Diagnostics
             using (Perf.Begin(PerfSection.RecorderFlush))
             {
                 FlushFiles();
+            }
+        }
+
+        private int flushTurn;
+
+        /// <summary>Writes out one of the recording's files (in turn: the events, the props, the performance table, then each unit's).</summary>
+        private void FlushOne()
+        {
+            using (Perf.Begin(PerfSection.RecorderFlush))
+            {
+                int files = 3 + tracks.Count;
+                int turn = flushTurn++ % Mathf.Max(1, files);
+                try
+                {
+                    switch (turn)
+                    {
+                        case 0:
+                            // (A unit described in meta.json only once it is set up.)
+                            foreach (var track in tracks)
+                            {
+                                if (track.metaFields == null && track.unit != null && track.unit.IsInitialized)
+                                {
+                                    WriteMeta(false);
+                                    break;
+                                }
+                            }
+
+                            events.Flush();
+                            break;
+                        case 1:
+                            world?.Flush();
+                            break;
+                        case 2:
+                            perf?.Flush();
+                            break;
+                        default:
+                            tracks[turn - 3].Flush();
+                            break;
+                    }
+                }
+                catch (Exception)
+                {
+                    // (Next time round.)
+                }
             }
         }
 

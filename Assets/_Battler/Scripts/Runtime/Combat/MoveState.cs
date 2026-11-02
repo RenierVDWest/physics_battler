@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PhysicsBattler.Combat
@@ -158,11 +159,13 @@ namespace PhysicsBattler.Combat
         /// <summary>Where the shoulder was in the planned contact pose (world; for measuring how the played blow differs).</summary>
         public Vector3 ContactShoulder;
 
-        /// <summary>The performance pass: the striking part at the planner's clearance poses (normalized times), and where the body stood, for the posed path to reuse.</summary>
+        /// <summary>The performance pass: the striking part at the planner's clearance poses (normalized times; from where the body stood then), for the posed path to reuse.</summary>
         public float[] PosedTimes;
         public Vector3[] PosedStrikes;
-        public Vector3 PosedRoot;
         public int PosedCount;
+
+        /// <summary>The performance pass: the posed path's samples, all posed already (the planner's, a few a step): progress and the striking part from where the body stood.</summary>
+        public List<(float at, Vector3 strike)> PosedPath;
         public Vector3 LastRadial;
         public float LastProgress, LastDeviation;
         public bool HasLastRadial;
