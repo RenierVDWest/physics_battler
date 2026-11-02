@@ -1,0 +1,257 @@
+{
+    "strikeWith": 1,
+    "targets": 15,
+    "shape": 2,
+    "planeTilt": 40.0,
+    "backhand": false,
+    "windUpAngle": 190.0,
+    "followAngle": 130.0,
+    "guardAngle": 40.0,
+    "through": 0.6000000238418579,
+    "pivotSide": 0.20000000298023224,
+    "pivotUp": 0.11999999731779099,
+    "pivotForward": 0.0,
+    "windUpRadius": 0.6000000238418579,
+    "stretchAfter": 35.0,
+    "wristLag": 35.0,
+    "drawBack": 0.30000001192092896,
+    "windUpTime": 0.47999998927116394,
+    "holdTime": 0.11999999731779099,
+    "strikeTime": 0.10000000149011612,
+    "accelShare": 0.5,
+    "recoveryTime": 0.44999998807907104,
+    "turnBack": 45.0,
+    "turnThrough": -15.0,
+    "leanBack": -6.0,
+    "leanThrough": 30.0,
+    "crouchLoad": 0.10000000149011612,
+    "crouchStrike": 0.07999999821186066,
+    "rockBack": 0.6000000238418579,
+    "passingStep": true,
+    "drive": 0.3499999940395355,
+    "duration": 1.225000023841858,
+    "speed": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 0.0,
+                "inSlope": 0.0,
+                "outSlope": 0.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 0.44999998807907104,
+                "value": 0.3799999952316284,
+                "inSlope": 1.0,
+                "outSlope": 1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 0.6000000238418579,
+                "value": 0.6000000238418579,
+                "inSlope": 1.2333333492279053,
+                "outSlope": 1.2333333492279053,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 0.75,
+                "value": 0.75,
+                "inSlope": 1.0,
+                "outSlope": 1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 1.0,
+                "value": 1.0,
+                "inSlope": 0.0,
+                "outSlope": 0.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "blend": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 0.0,
+                "inSlope": 0.0,
+                "outSlope": 0.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 0.15000000596046448,
+                "value": 1.0,
+                "inSlope": 1.25,
+                "outSlope": 1.25,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 0.800000011920929,
+                "value": 1.0,
+                "inSlope": -1.1764706373214722,
+                "outSlope": -1.1764706373214722,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 1.0,
+                "value": 0.0,
+                "inSlope": 0.0,
+                "outSlope": 0.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "activeWindow": {
+        "x": 0.47154468297958374,
+        "y": 1.0
+    },
+    "hitStop": 0.07000000029802322,
+    "path": [
+        {
+            "x": 0.25,
+            "y": -0.30000001192092896,
+            "z": -0.5
+        },
+        {
+            "x": 0.2800000011920929,
+            "y": -0.11999999731779099,
+            "z": -0.6000000238418579
+        },
+        {
+            "x": 0.07999999821186066,
+            "y": -0.029999999329447746,
+            "z": -0.2199999988079071
+        },
+        {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.05999999865889549
+        },
+        {
+            "x": 0.2199999988079071,
+            "y": -0.25,
+            "z": -0.550000011920929
+        }
+    ],
+    "contactIndex": 3,
+    "pointForward": true,
+    "pivotRaise": 0.0,
+    "reach": 1.2200000286102295,
+    "maxLunge": 1.399999976158142,
+    "bodyCurve": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 0.0,
+                "inSlope": 0.0,
+                "outSlope": 0.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 0.41999998688697815,
+                "value": -0.30000001192092896,
+                "inSlope": 1.6666666269302368,
+                "outSlope": 1.6666666269302368,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 0.6000000238418579,
+                "value": 1.0,
+                "inSlope": 3.6363635063171387,
+                "outSlope": 3.6363635063171387,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 0.75,
+                "value": 0.8999999761581421,
+                "inSlope": -2.500000238418579,
+                "outSlope": -2.500000238418579,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            },
+            {
+                "serializedVersion": "3",
+                "time": 1.0,
+                "value": 0.0,
+                "inSlope": 0.0,
+                "outSlope": 0.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.0,
+                "outWeight": 0.0
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "lean": 16.0,
+    "twistStart": 20.0,
+    "twistEnd": -15.0,
+    "weaponArmPin": 1.0
+}
