@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "session": "2026-11-02_15-34-04",
+  "unity": "6000.6.7f1",
+  "fixedDeltaTime": 0.01667,
+  "startTime": 0,
+  "endTime": 16.05,
+  "physicsSteps": 964,
+  "parts": [{"name": "Pelvis", "parent": "", "bit": 0}, {"name": "Spine", "parent": "Pelvis", "bit": 1}, {"name": "Chest", "parent": "Spine", "bit": 2}, {"name": "Head", "parent": "Chest", "bit": 3}, {"name": "UpperArmL", "parent": "Chest", "bit": 4}, {"name": "ForearmL", "parent": "UpperArmL", "bit": 5}, {"name": "HandL", "parent": "ForearmL", "bit": 6}, {"name": "UpperArmR", "parent": "Chest", "bit": 7}, {"name": "ForearmR", "parent": "UpperArmR", "bit": 8}, {"name": "HandR", "parent": "ForearmR", "bit": 9}, {"name": "ThighL", "parent": "Pelvis", "bit": 10}, {"name": "ShinL", "parent": "ThighL", "bit": 11}, {"name": "FootL", "parent": "ShinL", "bit": 12}, {"name": "ThighR", "parent": "Pelvis", "bit": 13}, {"name": "ShinR", "parent": "ThighR", "bit": 14}, {"name": "FootR", "parent": "ShinR", "bit": 15}],
+  "units": [
+    {"id": 1, "label": "A Small", "stem": "01_A_Small", "frames": "units/01_A_Small.frames.csv.gz", "pose": "units/01_A_Small.pose.csv.gz", "spawnTime": 0, "endTime": 16.05, "team": 0, "mass": 38.001, "scale": 1, "restPelvisHeight": 0.5631, "legLength": 0.46152, "profile": "UP_Small"},
+    {"id": 2, "label": "A Medium", "stem": "02_A_Medium", "frames": "units/02_A_Medium.frames.csv.gz", "pose": "units/02_A_Medium.pose.csv.gz", "spawnTime": 0, "endTime": 16.05, "team": 0, "mass": 84.00098, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 3, "label": "A Large", "stem": "03_A_Large", "frames": "units/03_A_Large.frames.csv.gz", "pose": "units/03_A_Large.pose.csv.gz", "spawnTime": 0, "endTime": 16.05, "team": 0, "mass": 279.998, "scale": 1, "restPelvisHeight": 1.2577, "legLength": 1.04971, "profile": "UP_Large"},
+    {"id": 4, "label": "B Small", "stem": "04_B_Small", "frames": "units/04_B_Small.frames.csv.gz", "pose": "units/04_B_Small.pose.csv.gz", "spawnTime": 0, "endTime": 16.05, "team": 1, "mass": 38.001, "scale": 1, "restPelvisHeight": 0.5631, "legLength": 0.46152, "profile": "UP_Small"},
+    {"id": 5, "label": "B Medium", "stem": "05_B_Medium", "frames": "units/05_B_Medium.frames.csv.gz", "pose": "units/05_B_Medium.pose.csv.gz", "spawnTime": 0, "endTime": 16.05, "team": 1, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 6, "label": "B Large", "stem": "06_B_Large", "frames": "units/06_B_Large.frames.csv.gz", "pose": "units/06_B_Large.pose.csv.gz", "spawnTime": 0, "endTime": 16.05, "team": 1, "mass": 279.998, "scale": 1, "restPelvisHeight": 1.2577, "legLength": 1.04971, "profile": "UP_Large"}
+  ],
+  "frames": {"index": "frames/frames.csv", "size": 300, "perSecond": 8, "saved": 129},
+  "marks": []
+}

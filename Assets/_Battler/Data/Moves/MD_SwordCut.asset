@@ -15,6 +15,7 @@ MonoBehaviour:
   strikeWith: 0
   targets: 255
   shape: 1
+  bodies: 7
   planeTilt: 40
   backhand: 0
   windUpAngle: 190
@@ -28,9 +29,17 @@ MonoBehaviour:
   stretchAfter: 35
   wristLag: 35
   drawBack: 0.3
-  windUpTime: 0.45
+  elbowWindUp: 120
+  elbowContact: 84
+  elbowFollow: 66
+  handWindUp: {x: 0.3, y: 0.32, z: -0.31}
+  handFollow: {x: -0.27, y: -0.38, z: 0.24}
+  wristWindUp: {x: 45, y: 12, z: -29}
+  wristContact: {x: 77, y: -10, z: -17}
+  wristFollow: {x: 36, y: 41, z: -12}
+  windUpTime: 0.59
   holdTime: 0.09
-  strikeTime: 0.3
+  strikeTime: 0.21
   accelShare: 0.4
   recoveryTime: 0.45
   turnBack: 100

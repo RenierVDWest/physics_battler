@@ -29,6 +29,14 @@ MonoBehaviour:
   stretchAfter: 20
   wristLag: 50
   drawBack: 0.15
+  elbowWindUp: 30
+  elbowContact: 20
+  elbowFollow: 20
+  handWindUp: {x: 0.25, y: 0.1, z: 0.15}
+  handFollow: {x: -0.05, y: -0.05, z: 0.3}
+  wristWindUp: {x: 0, y: -45, z: 15}
+  wristContact: {x: 0, y: 0, z: -5}
+  wristFollow: {x: 0, y: 25, z: -20}
   windUpTime: 0.22
   holdTime: 0.04
   strikeTime: 0.2

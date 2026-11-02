@@ -26,6 +26,7 @@ MonoBehaviour:
   guardIn: 14
   guardElbow: -110
   leadArmReach: -12
+  guardElbowSwivel: 25
   swayAmplitude: 0
   swayFrequency: 0.7
   bobAmplitude: 0
