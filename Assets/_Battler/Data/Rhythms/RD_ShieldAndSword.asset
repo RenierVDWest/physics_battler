@@ -491,6 +491,7 @@ MonoBehaviour:
     composure: 0.5
     maxShell: 4
     counterEnergy: 0.25
+    shellGuard: 0
     gather:
       crouch: 0.06
       lean: -3

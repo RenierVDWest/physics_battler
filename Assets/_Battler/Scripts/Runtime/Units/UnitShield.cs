@@ -184,6 +184,15 @@ namespace PhysicsBattler.Units
                 }
             }
 
+            if (LocalTime < GuardOpenUntil)
+            {
+                // (Milestone 11: a broken guard: the shield flung out to its side and down, the face
+                // turned away.)
+                mode = ShieldState.Guard;
+                blocking = false;
+                threat = chest + Quaternion.Euler(0f, chestYaw, 0f) * new Vector3(-1f, -0.45f, 0.35f);
+            }
+
             // Milestone 9c: its state holds a moment (a block goes at once).
             if (mode != ShieldMode && mode != ShieldState.Block && ShieldMode != ShieldState.None && shieldPlaced
                 && LocalTime - modeSince < ShieldModeHold)

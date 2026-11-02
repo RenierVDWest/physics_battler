@@ -141,12 +141,18 @@ namespace PhysicsBattler.Combat
         /// Resolves one contact. <paramref name="momentumFactor"/> is what is left of the swing after
         /// bowling through earlier bodies (1 for the first).
         /// </summary>
+        /// <summary>Milestone 11: poise a blow on a guarding forearm costs, per N·s of its momentum (a body hit's is about 0.45).</summary>
+        public const float GuardArmPoise = 0.3f;
+
+        /// <summary>Milestone 11: the share of a blow's poise a parry lets through (against the 0.6 of a shield, and 1 of a body hit's at most).</summary>
+        public const float ParryPoise = 0.85f;
+
         /// <summary>Milestone 10: what a shield bash hurts (at the reference speed), a shield's own damage being none.</summary>
         public const float ShieldBashDamage = 4f;
 
         public static HitResult Resolve(WeaponDefinition weapon, StrikeWith with, float weaponScale, float speed, Vector3 direction,
             float attackerMass, float struckMass, PartId part, bool shield, float momentumFactor,
-            float health, float poise, float maxPoise)
+            float health, float poise, float maxPoise, bool parry = false, bool armGuard = false)
         {
             var r = new HitResult();
             float mass = EffectiveMass(weapon, weaponScale, attackerMass);
@@ -165,16 +171,17 @@ namespace PhysicsBattler.Combat
             {
                 r.Blocked = true;
                 r.Damage = 0f;
-                r.PoiseDamage = 0.6f * PoiseScale * momentum;   // a block still costs poise
+                r.PoiseDamage = (parry ? ParryPoise : 0.6f) * PoiseScale * momentum;   // a block still costs poise (a parry more)
                 r.Impulse = dir * (0.8f * momentum);
-                r.PartShare = 0.7f;               // the shield arm takes most of it
+                r.PartShare = parry ? 0.75f : 0.7f;   // the shield arm (or the parrying arm) takes most of it
                 r.StopsSwing = true;
             }
             else
             {
                 r.Damage = baseDamage * speedFactor * Mathf.Clamp01(momentumFactor) * PartMultiplier(part);
                 r.Impulse = dir * (momentum * Transfer(with));
-                r.PoiseDamage = PoiseScale * r.Impulse.magnitude;
+                // (Milestone 11: a guarding forearm takes it as a block does: braced, it isn't rocked.)
+                r.PoiseDamage = armGuard ? GuardArmPoise * momentum : PoiseScale * r.Impulse.magnitude;
                 r.PartShare = PartShare(part);
                 // A swing heavy enough for the body it meets carries on through it (the body is shoved
                 // out of the arc, never passed through); otherwise it stops where it met it.

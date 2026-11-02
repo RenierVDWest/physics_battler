@@ -419,6 +419,7 @@ namespace PhysicsBattler.Diagnostics
             hitsDealt++;
             damageDealt += hit.Result.Damage;
             if (hit.Shield) blocked++;
+            else if (hit.Parried) parried++;
             else if (hit.Kind == "the part aimed at") aimedHits++;
             else if (hit.Kind.StartsWith("an ally")) allyHits++;
             else if (hit.Kind.StartsWith("someone")) strayHits++;
@@ -437,6 +438,9 @@ namespace PhysicsBattler.Diagnostics
         }
 
         public int incoming, shieldsRaised, defenceless, seenClearly, seenAtEdge, neverSeen;
+
+        // Milestone 11: parries (its own blows parried; its weapon set across blows).
+        public int parried, parriesTried;
 
         // Milestone 9: the look and the shield while standing.
         // Milestone 9b: joints against their limits, and bodies on the ground.
@@ -458,6 +462,7 @@ namespace PhysicsBattler.Diagnostics
 
             incoming++;
             shieldsRaised += what.StartsWith("raises the shield") ? 1 : 0;
+            parriesTried += what.StartsWith("parries") ? 1 : 0;
             defenceless += what.StartsWith("nothing to defend with") ? 1 : 0;
             seenClearly += what.Contains("(seen clearly") ? 1 : 0;
             seenAtEdge += what.Contains("(seen at the edge") ? 1 : 0;
@@ -547,7 +552,7 @@ namespace PhysicsBattler.Diagnostics
             md.AppendLine();
             if (hitsDealt > 0 || hitsTaken > 0)
             {
-                md.AppendLine($"Hits dealt: {hitsDealt} ({aimedHits} on the part aimed at, {blocked} blocked, {strayHits} on someone in the way, "
+                md.AppendLine($"Hits dealt: {hitsDealt} ({aimedHits} on the part aimed at, {blocked} blocked, {parried} parried, {strayHits} on someone in the way, "
                               + $"{allyHits} on allies), {damageDealt:0} damage. Hits taken: {hitsTaken}, {damageTaken:0} damage. "
                               + $"{(unit != null && !unit.IsAlive ? "Killed." : $"Health at the end {(unit != null ? unit.Health : 0f):0}.")}");
                 md.AppendLine();
@@ -556,7 +561,7 @@ namespace PhysicsBattler.Diagnostics
             if (incoming > 0)
             {
                 md.AppendLine($"Defence: {incoming} blows came at it ({seenClearly} seen clearly, {seenAtEdge} at the edge of its view, {neverSeen} never seen); "
-                              + $"it raised the shield against {shieldsRaised}"
+                              + $"it raised the shield against {shieldsRaised}, set its weapon across {parriesTried}"
                               + (defenceless > 0 ? $", and had nothing to defend with against {defenceless}." : "."));
                 md.AppendLine();
             }

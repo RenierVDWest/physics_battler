@@ -207,18 +207,47 @@ namespace PhysicsBattler.Units
             t.perceivedAt = LocalTime;
             Rhythm?.NoteThreat();
             Tempo?.NoteIncoming(FromPress(t.attacker));
+            GiveGroundUnder(t.attacker);
             DecideDefence(t.attacker, t.move, sight);
         }
+
+        /// <summary>Milestone 11: the chance it blocks or parries a seen blow (its style's, by its skill; more in the shell, a shield's most there).</summary>
+        public float DefenceChance(float styleChance, bool shelled)
+        {
+            float chance = styleChance * Mathf.Lerp(0.6f, 1.4f, profile.defenceSkill);
+            if (shelled)
+            {
+                chance += ShellDefence;
+            }
+
+            return Mathf.Clamp(chance, 0f, styleChance >= 1f ? 1f : 0.92f);   // (never sure, unless told to be)
+        }
+
+        /// <summary>Milestone 11: how much sooner (below 1) or later it reacts, by its skill.</summary>
+        public float ReactionSkill => Mathf.Lerp(1.3f, 0.75f, profile.defenceSkill);
+
+        /// <summary>Milestone 11: what the shell adds to the chance to block or parry.</summary>
+        public const float ShellDefence = 0.25f;
+
+        /// <summary>Milestone 11: a combo's later link, soaked in the shell, is met this much sooner.</summary>
+        public const float ExpectedLinkReaction = 0.7f;
 
         private static bool FromPress(UnitController attacker) => attacker != null && attacker.Tempo != null && attacker.TempoOn && attacker.Tempo.State == TempoState.Press;
 
         private static string Seen(Sight sight) => sight == Sight.Clear ? "seen clearly" : "seen at the edge of its view";
 
-        /// <summary>A blow it has just seen: with a shield (and on its feet, and not in a blow of its own) it may raise it, after its reaction time.</summary>
+        /// <summary>
+        /// A blow it has just seen: with a shield (and on its feet, and not in a blow of its own) it
+        /// may raise it, after its reaction time; without one (milestone 11) it may set its weapon
+        /// across the blow, a parry. Shelled up it does either more readily; in the shell, a combo's
+        /// later links are expected and met sooner.
+        /// </summary>
         private void DecideDefence(UnitController attacker, MoveState move, Sight sight)
         {
             string seen = Seen(sight);
-            if (!CanAct || Loadout == null || !Loadout.HasShield || IsAttacking)
+            bool shield = Loadout != null && Loadout.HasShield;
+            bool parry = !shield && CanParry && move != null && !move.Move.Close;
+            if (!CanAct || (!shield && !parry) || IsAttacking)
             {
                 Defending?.Invoke(this, attacker, move, (!CanAct ? "can't defend: off its feet"
                     : IsAttacking ? "can't defend: in a blow of its own"
@@ -226,17 +255,37 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            // Shelled up (milestone 8), it raises the shield more readily.
-            float chance = Tempo != null && TempoOn && Tempo.State == TempoState.Shell ? Mathf.Min(0.9f, 1.4f * Style.blockChance) : Style.blockChance;
-            if (combatRandom.NextDouble() >= chance)
+            if (LocalTime < GuardOpenUntil)
             {
-                Defending?.Invoke(this, attacker, move, $"doesn't block ({seen})");
+                Defending?.Invoke(this, attacker, move, $"can't defend: its guard is broken ({seen})");
                 return;
             }
 
-            float reaction = Style.reactionTime * Perception.ReactionScale(sight, Senses);
+            bool shelled = Tempo != null && TempoOn && Tempo.State == TempoState.Shell;
+            float chance = DefenceChance(shield ? Style.blockChance : Style.parryChance, shelled);
+            if (combatRandom.NextDouble() >= chance)
+            {
+                Defending?.Invoke(this, attacker, move, $"{(shield ? "doesn't block" : "doesn't parry")} ({seen})");
+                return;
+            }
+
+            float reaction = Style.reactionTime * Perception.ReactionScale(sight, Senses) * ReactionSkill;
+            bool expected = shelled && attacker != null && attacker.Combo != null && attacker.Combo.Link > 0;
+            if (expected)
+            {
+                reaction *= ExpectedLinkReaction;   // (the next link of a combo it is soaking: it knows it is coming)
+            }
+
             float contactIn = Mathf.Max(0f, move.ContactTime * move.Duration - move.Time);
-            Defending?.Invoke(this, attacker, move, $"raises the shield after {reaction:0.00} s ({seen}{(reaction > contactIn ? ", too late" : "")})");
+            string late = reaction > contactIn ? ", too late" : "";
+            if (parry)
+            {
+                Defending?.Invoke(this, attacker, move, $"parries after {reaction:0.00} s ({seen}{(expected ? ", expected" : "")}{late})");
+                StartParry(attacker, move, reaction);
+                return;
+            }
+
+            Defending?.Invoke(this, attacker, move, $"raises the shield after {reaction:0.00} s ({seen}{(expected ? ", expected" : "")}{late})");
             incoming = move;
             incomingAttacker = attacker;
             blockFrom = LocalTime + reaction;

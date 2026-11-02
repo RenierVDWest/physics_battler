@@ -72,6 +72,55 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public ShieldAim Shield { get; set; }
 
+        /// <summary>Milestone 11: the weapon set across a seen blow (a club's or a stick's parry), over its guard.</summary>
+        public ParryAim Parry { get; set; }
+
+        /// <summary>Milestone 11: how the style's arms cover it in the shell, and how far into it (0 to 1, eased in and out).</summary>
+        public ShellGuard ShellKind { get; set; }
+        public float ShellWeight { get; set; }
+
+        /// <summary>Milestone 11: a broken guard: the arms flung open (0 to 1).</summary>
+        public float GuardOpen { get; set; }
+
+        /// <summary>The chest's turn about the vertical (the guard's frame: hands go round with the body).</summary>
+        private Quaternion ChestTurn(Quaternion facing)
+        {
+            Vector3 forward = Vector3.ProjectOnPlane(anim.Part(PartId.Chest).rotation * Vector3.forward, Vector3.up);
+            return Quaternion.LookRotation(forward.sqrMagnitude > 1e-6f ? forward : facing * Vector3.forward, Vector3.up);
+        }
+
+        /// <summary>
+        /// Milestone 11: where the shell holds the weapon (its grip, and which way the blade points):
+        /// the boxer's upright in front of the right side of its face, the forearm beside the head;
+        /// the eskrimador's stick across the body, low. False when the shell doesn't move the weapon.
+        /// </summary>
+        private bool ShellWeaponHold(Quaternion facing, out Vector3 grip, out Vector3 blade)
+        {
+            float size = body.SizeFactor;
+            var turn = ChestTurn(facing);
+            switch (ShellKind)
+            {
+                case ShellGuard.High:
+                    grip = anim.Part(PartId.Head).position + turn * (HighShellWeaponGrip * size);
+                    blade = (turn * new Vector3(0.1f, 1f, 0.3f)).normalized;
+                    return true;
+                case ShellGuard.Across:
+                    grip = anim.Part(PartId.Chest).position + turn * (new Vector3(0.17f, -0.06f, 0.26f) * size);
+                    blade = (turn * new Vector3(-1f, 0.3f, 0.15f)).normalized;
+                    return true;
+                default:
+                    grip = Vector3.zero;
+                    blade = Vector3.forward;
+                    return false;
+            }
+        }
+
+        /// <summary>Milestone 11: the high shell's fists, from the head (its frame, metres at medium size): beside the temples, in front.</summary>
+        public static readonly Vector3 HighShellWeaponGrip = new Vector3(0.1f, -0.06f, 0.13f), HighShellFist = new Vector3(-0.1f, 0.0f, 0.12f);
+
+        /// <summary>Milestone 11: how far along the blade (grip to tip) a parry meets the blow.</summary>
+        public const float ParryAlong = 0.4f;
+
         /// <summary>The shield as posed: its face's middle, which way it faces, and how far its rim stays from its own body (metres; negative: inside).</summary>
         public Vector3 ShieldCenter { get; private set; }
         public Vector3 ShieldFace { get; private set; } = Vector3.forward;
@@ -819,7 +868,9 @@ namespace PhysicsBattler.Motion
 
             // (Never folded tight: near its full bend the elbow's circle turns fast round a short arm,
             // and a hand that moves a little swings the elbow a long way.)
-            handAt = Unfolded(shoulderAt, handAt);
+            // (Milestone 11: the high shell folds the arm tight, the fist by the temple.)
+            float fold = ShellKind == ShellGuard.High ? Mathf.Lerp(MostFold, ShellFold, Mathf.Clamp01(ShellWeight) * (1f - moveBlend)) : MostFold;
+            handAt = Unfolded(shoulderAt, handAt, fold);
             var goal = new ArmGoal
             {
                 point = handAt,
@@ -946,6 +997,37 @@ namespace PhysicsBattler.Motion
             GuardPose(loadout.Main, true, facing, scale, out grip, out rotation);
             grip += FlailOffset(facing, 1f);
             RhythmGuard(facing, rhythm.main, rhythm.mainTurn, ref grip, ref rotation);
+            if (ShellWeight > 0f && loadout.Main != null && !loadout.Main.IsShield && ShellWeaponHold(facing, out var shellGrip, out var shellBlade))
+            {
+                // (Milestone 11: the shell's hold, over the guard.)
+                float sw = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(ShellWeight));
+                Quaternion held = Quaternion.FromToRotation(rotation * Vector3.forward, shellBlade) * rotation;
+                grip = Vector3.Lerp(grip, shellGrip, sw);
+                rotation = Quaternion.Slerp(rotation, held, sw);
+            }
+
+            var parry = Parry;
+            if (parry.weight > 0f && loadout.Main != null && !loadout.Main.IsShield && parry.blade.sqrMagnitude > 1e-6f)
+            {
+                // (Milestone 11: a parry: the blade's middle on the blow's path, lying across it; the
+                // weapon turned there from its guard the shortest way, so its grip doesn't roll.)
+                Vector3 blade = parry.blade.normalized;
+                float along = ParryAlong * loadout.Main.length * scale;
+                Quaternion across = Quaternion.FromToRotation(rotation * Vector3.forward, blade) * rotation;
+                float w = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(parry.weight));
+                grip = Vector3.Lerp(grip, parry.point - blade * along, w);
+                rotation = Quaternion.Slerp(rotation, across, w);
+            }
+
+            if (GuardOpen > 0f)
+            {
+                // (Milestone 11: a broken guard: the weapon flung out to its side and back, the blade
+                // falling away outward.)
+                var turn = ChestTurn(facing);
+                grip += turn * (GuardOpenWeapon * (body.SizeFactor * GuardOpen));
+                rotation = Quaternion.AngleAxis(-55f * GuardOpen, turn * Vector3.forward) * rotation;
+            }
+
             grip += KnockR;
             rotation = TurnOf(KnockTurnR) * rotation;
             if (torso != null)
@@ -953,7 +1035,9 @@ namespace PhysicsBattler.Motion
                 Vector3 chestAt = anim.Part(PartId.Chest).position;
                 for (int i = 0; i < 3; i++)
                 {
-                    float room = torso.Blade(grip, grip) - GripRoom * body.SizeFactor;
+                    // (Milestone 11: the high shell holds the fist close by the face.)
+                    float gripRoom = ShellKind == ShellGuard.High ? Mathf.Lerp(GripRoom, 0.05f, Mathf.Clamp01(ShellWeight)) : GripRoom;
+                    float room = torso.Blade(grip, grip) - gripRoom * body.SizeFactor;
                     if (room >= 0f)
                     {
                         break;
@@ -1095,10 +1179,10 @@ namespace PhysicsBattler.Motion
         }
 
         /// <summary>The hand moved out from the shoulder, if it is nearer, to where the elbow is bent <see cref="MostFold"/>.</summary>
-        private Vector3 Unfolded(Vector3 shoulder, Vector3 hand)
+        private Vector3 Unfolded(Vector3 shoulder, Vector3 hand, float mostFold = MostFold)
         {
             float l1 = anim.RestLocalPosition(PartId.ForearmR).magnitude, l2 = anim.RestLocalPosition(PartId.HandR).magnitude;
-            float least = Mathf.Sqrt(l1 * l1 + l2 * l2 + 2f * l1 * l2 * Mathf.Cos(MostFold * Mathf.Deg2Rad));
+            float least = Mathf.Sqrt(l1 * l1 + l2 * l2 + 2f * l1 * l2 * Mathf.Cos(mostFold * Mathf.Deg2Rad));
             Vector3 d = hand - shoulder;
             float at = d.magnitude;
             return at >= least || at < 1e-5f ? hand : shoulder + d * (least / at);
@@ -1106,6 +1190,9 @@ namespace PhysicsBattler.Motion
 
         /// <summary>How far the weapon arm's elbow bends at most in a pose (degrees; its limit is <see cref="ArmRig.ElbowBendLimit"/>).</summary>
         public const float MostFold = 125f;
+
+        /// <summary>Milestone 11: how far the high shell folds the weapon arm (degrees; a boxer's tight guard).</summary>
+        public const float ShellFold = 140f;
 
         /// <summary>Between two hand places on an arc round the shoulder (the way, then the reach), as a swinging hand goes.</summary>
         private static Vector3 AroundShoulder(Vector3 shoulder, Vector3 a, Vector3 b, float share)
@@ -2027,9 +2114,13 @@ namespace PhysicsBattler.Motion
         /// <summary>Which way a jab's elbow points (the chest's frame): down behind the fist, a little out.</summary>
         public static readonly Vector3 JabElbowWay = new Vector3(-0.3f, -1f, 0f);
 
+        /// <summary>Milestone 11: how far a broken guard flings the weapon hand and the off hand (the chest's frame, metres at medium size).</summary>
+        public static readonly Vector3 GuardOpenWeapon = new Vector3(0.24f, -0.1f, -0.12f), GuardOpenOff = new Vector3(-0.26f, -0.12f, -0.08f);
+
         private void PoseBareGuard(Quaternion facing)
         {
-            if (rhythm.off.sqrMagnitude < 1e-8f && Flail <= 0f)
+            bool high = ShellKind == ShellGuard.High && ShellWeight > 0f;
+            if (rhythm.off.sqrMagnitude < 1e-8f && Flail <= 0f && !high && GuardOpen <= 0f)
             {
                 return;
             }
@@ -2043,6 +2134,17 @@ namespace PhysicsBattler.Motion
             Vector3 placed = chestPart.position + chestTurn * rhythm.off;
             float w = Mathf.Clamp01(rhythm.off.magnitude / Mathf.Max(1e-4f, Rhythm.off.magnitude));
             Vector3 target = Vector3.Lerp(hand.position, placed, Rhythm.off.sqrMagnitude > 1e-8f ? w : 0f) + FlailOffset(facing, -1f);
+            Vector3 elbowWay = new Vector3(-0.35f, -1f, 0f);
+            if (high)
+            {
+                // (Milestone 11: the high shell: the fist up beside the left temple, in front, the
+                // elbow tight down over the ribs: the forearm covers the side of the head.)
+                float sw = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(ShellWeight));
+                target = Vector3.Lerp(target, anim.Part(PartId.Head).position + chestTurn * (HighShellFist * body.SizeFactor), sw);
+                elbowWay = Vector3.Lerp(elbowWay, new Vector3(-0.1f, -1f, 0.15f), sw);
+            }
+
+            target += chestTurn * (GuardOpenOff * (body.SizeFactor * GuardOpen));
             target = Reachable(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target);
             // (The elbow down under the fist, a little out: tucked in front of the ribs.) A fist on a
             // straight wrist, in line with the forearm (as the plain guard holds it). Milestone 10 (the
@@ -2053,7 +2155,7 @@ namespace PhysicsBattler.Motion
                 point = target,
                 wristGiven = true,
                 wristLocal = anim.RestLocalRotation(PartId.HandL) * Quaternion.Euler(-10f, 0f, 0f),
-                elbowSwivel = ArmRig.SwivelToward(anim, false, target, chestTurn * new Vector3(-0.35f, -1f, 0f)),
+                elbowSwivel = ArmRig.SwivelToward(anim, false, target, chestTurn * elbowWay),
                 nearNull = true,
             });
         }

@@ -15,6 +15,18 @@ namespace PhysicsBattler.Units
         public UnitController Struck;
         public PartId Part;
         public bool Shield;
+
+        /// <summary>Milestone 11: met by the struck unit's weapon set across it (a parry): stopped, no damage.</summary>
+        public bool Parried;
+
+        /// <summary>Stopped by a shield or a parrying weapon.</summary>
+        public bool Blocked => Shield || Parried;
+
+        /// <summary>Milestone 11: landed on an arm the struck unit's shell guards with (its poise as a block's).</summary>
+        public bool ArmGuard;
+
+        /// <summary>Milestone 11: it broke the struck unit's guard.</summary>
+        public bool GuardBreak;
         public MoveState Move;
         public Vector3 Point;
         public float Speed;
@@ -259,7 +271,8 @@ namespace PhysicsBattler.Units
             // (In a blow, and while a stopped one fades, the weapon arm is posed exactly: the physical
             // arm can't follow a fast swing's turns, and chasing them shakes. Milestone 9c tried holding
             // it by the servo instead; the playtest showed the blade trailing and flailing.)
-            bool kinematicArm = move != null && profile.weaponArmKinematicInBlows && blend > 0.01f;
+            bool kinematicArm = (move != null && profile.weaponArmKinematicInBlows && blend > 0.01f)
+                || (ParryBlend > 0f && profile.weaponArmKinematicInBlows);   // (milestone 11: and while it parries)
             // Milestone 10: and for a moment after, while the arm comes back to its guard (held by the
             // servo straight away, the arm trailed its fast return by 30 to 80 degrees and twisted).
             if (kinematicArm)
@@ -714,9 +727,16 @@ namespace PhysicsBattler.Units
                         continue;
                     }
 
+                    if (shield != null && shield.Owner != null && shield.Owner != this && shield.Owner.Parrying && shield.InMainHand)
+                    {
+                        // (Milestone 11: a weapon set across the blow: a parry, met like a shield.)
+                        found.Add((shield.Owner, null, shield, collider, AlongBlade(collider, a, b) - 0.05f));
+                        continue;
+                    }
+
                     if (shield != null)
                     {
-                        continue;   // a weapon, not a body (clashes come in milestone 7)
+                        continue;   // a weapon not set against the blow: they pass (clashes in passing are for later)
                     }
 
                     var part = collider.GetComponentInParent<BodyPart>();
@@ -806,16 +826,20 @@ namespace PhysicsBattler.Units
         private HitReport Strike(MoveState move, UnitController struck, BodyPart part, Weapon shield, Vector3 point, float speed, Vector3 direction,
             Vector3 bladeFrom, Vector3 bladeTo)
         {
-            var partId = shield != null ? PartId.HandL : part.id;
+            bool parried = shield != null && (shield.definition == null || !shield.definition.IsShield);
+            var partId = parried ? PartId.HandR : shield != null ? PartId.HandL : part.id;
+            bool armGuard = shield == null && struck.ArmGuarding(partId);
             var result = DamageRules.Resolve(move.Weapon, move.Move.strikeWith, Loadout.Scale, speed, direction,
-                Body.Mass, struck.Body.Mass, partId, shield != null, momentumLeft, struck.Health, struck.Poise, struck.profile.maxPoise);
-            string kind = shield != null ? "blocked by the shield"
+                Body.Mass, struck.Body.Mass, partId, shield != null, momentumLeft, struck.Health, struck.Poise, struck.profile.maxPoise, parried, armGuard);
+            string kind = armGuard ? "its guarding arm"
+                : parried ? "parried by the " + (shield.definition != null ? shield.definition.kind.ToString().ToLowerInvariant() : "weapon")
+                : shield != null ? "blocked by the shield"
                 : ReferenceEquals(struck, move.Target) && partId == AimPartInfo.BodyPartOf(move.Part) ? "the part aimed at"
                 : ReferenceEquals(struck, move.Target) ? "the target, another part"
                 : struck.Team == Team ? "an ally (friendly fire)" : "someone in the way";
             var report = new HitReport
             {
-                Attacker = this, Struck = struck, Part = partId, Shield = shield != null, Move = move, Point = point, Speed = speed,
+                Attacker = this, Struck = struck, Part = partId, Shield = shield != null && !parried, Parried = parried, ArmGuard = armGuard, Move = move, Point = point, Speed = speed,
                 Result = result, Kind = kind,
             };
             // Milestone 5: a sword's edge crossing a joint, fast and hard enough, cuts the limb off
@@ -833,7 +857,7 @@ namespace PhysicsBattler.Units
                 report.Result = r;
             }
 
-            if (!report.Shield)
+            if (!report.Blocked)
             {
                 Rhythm?.NoteLanded();
             }
@@ -843,7 +867,7 @@ namespace PhysicsBattler.Units
             HitStop = Mathf.Max(HitStop, stop);
             struck.HitStop = Mathf.Max(struck.HitStop, stop);
             // The attacker feels it too: the blow's push comes back up the weapon arm.
-            Recoil(-result.Impulse, MainWeapon != null ? MainWeapon.transform.position : point, PartId.HandR, shield != null ? 0.35f : 0.2f);
+            Recoil(-result.Impulse, MainWeapon != null ? MainWeapon.transform.position : point, PartId.HandR, shield != null ? (parried ? 0.45f : 0.35f) : 0.2f);
             Hit?.Invoke(report);
             return report;
         }
@@ -861,12 +885,12 @@ namespace PhysicsBattler.Units
                 Rebound(-report.Result.Impulse, report.Point, move.Move.hand == MoveHand.Off);
             }
 
-            if (report.Shield)
+            if (report.Blocked)
             {
                 Tempo?.NoteBlocked();
             }
 
-            CancelMove(move, "stopped by " + report.Struck.name + (report.Shield ? "'s shield" : ""));
+            CancelMove(move, "stopped by " + report.Struck.name + (report.Shield ? "'s shield" : report.Parried ? "'s parry" : ""));
         }
 
         // ---- Being struck ------------------------------------------------------------------------
@@ -886,6 +910,11 @@ namespace PhysicsBattler.Units
             Rhythm?.NoteHit(r.Damage / Mathf.Max(1f, profile.maxHealth));
             Tempo?.NoteHit(r.PoiseDamage / Mathf.Max(1f, profile.maxPoise));
             Poise -= r.PoiseDamage;
+            if (hit.Blocked || hit.ArmGuard)
+            {
+                NoteGuarded(hit, ref r);   // (milestone 11: its energy, and a guard broken under a long barrage)
+            }
+
             LastReaction = r.Reaction;
 
             // The struck part gives (held loosely for a moment, the pins ramp back), the regions
@@ -908,7 +937,8 @@ namespace PhysicsBattler.Units
             Vector3 left = r.Impulse * r.PartShare;
             float taken = 0f;
             bool armHeld = (region == BodyRegion.ArmL || region == BodyRegion.ArmR) && (State == UnitState.Standing || State == UnitState.Stumbling);
-            float carried = hit.Shield && region == BodyRegion.ArmL && Loadout.Off != null ? Loadout.Off.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale : 0f;
+            float carried = hit.Shield && region == BodyRegion.ArmL && Loadout.Off != null ? Loadout.Off.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale
+                : hit.Parried && region == BodyRegion.ArmR && Loadout.Main != null ? Loadout.Main.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale : 0f;
             if (armHeld && r.Impulse.sqrMagnitude > 1e-8f)
             {
                 // Milestone 9c: a standing unit's arm (and the shield it holds) takes the blow as one:
@@ -1056,6 +1086,7 @@ namespace PhysicsBattler.Units
 
             incoming = null;
             incomingAttacker = null;
+            DropParry();
             threats.Clear();
             BlockBlend = 0f;
             Pose.BlockBlend = 0f;

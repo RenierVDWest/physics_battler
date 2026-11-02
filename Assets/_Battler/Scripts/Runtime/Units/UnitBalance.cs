@@ -697,6 +697,7 @@ namespace PhysicsBattler.Units
 
         private void DropBlock()
         {
+            DropParry();
             incoming = null;
             BlockBlend = 0f;
             Pose.BlockBlend = 0f;

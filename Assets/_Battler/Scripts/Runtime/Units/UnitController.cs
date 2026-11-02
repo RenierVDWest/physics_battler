@@ -461,6 +461,7 @@ namespace PhysicsBattler.Units
             threats.Clear();
             incoming = null;
             incomingAttacker = null;
+            DropParry();
             shieldPlaced = false;
             facePoint = null;
             Look.Reset();
@@ -898,8 +899,10 @@ namespace PhysicsBattler.Units
             CombatBeforePose(dt);
             UpdateGait(poseDt);
             UpdateTempo(poseDt);
+            UpdateGuard(poseDt);
             UpdateRhythm(poseDt);
             UpdateShield(dt);
+            UpdateParry(dt);
             UpdateLook(poseDt);
 
             if (move != null)

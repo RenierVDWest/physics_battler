@@ -382,6 +382,8 @@ namespace PhysicsBattler.Diagnostics
             var r = hit.Result;
             string what = hit.Shield
                 ? $"blocked by {hit.Struck.name}'s shield ({r.PoiseDamage:0} poise)"
+                : hit.Parried
+                ? $"parried by {hit.Struck.name}'s {hit.Kind.Replace("parried by the ", "")} ({r.PoiseDamage:0} poise)"
                 : $"{r.Damage:0.0} damage, {r.PoiseDamage:0} poise, {r.Reaction.ToString().ToLowerInvariant()}";
             string swing = r.StopsSwing ? "the swing stopped" : $"cleaved through ({r.MomentumLeft * 100f:0}% of the swing left)";
             if (hit.Impact)

@@ -140,6 +140,11 @@ internal static class Program
             return ComboReport.Run();
         }
 
+        if (args.Length >= 1 && args[0] == "shells")
+        {
+            return ShellReport.Run(args.Length >= 2 ? args[1] : ".");
+        }
+
         if (args.Length >= 1 && args[0] == "aim")
         {
             return AimMatrix.Run(args.Length >= 2 ? float.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 1f);

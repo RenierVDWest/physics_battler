@@ -63,6 +63,8 @@ namespace PhysicsBattler.Motion
         [Range(0f, 1f)] public float blockChance = 0.55f;
         [Tooltip("Seconds from a blow starting to the shield moving.")]
         public float reactionTime = 0.22f;
+        [Tooltip("Milestone 11: without a shield, the chance it sets its weapon across a blow coming at it (a parry; less sure than a shield).")]
+        [Range(0f, 1f)] public float parryChance = 0.4f;
 
         [Header("Fight Rhythm (how it moves between blows)")]
         [Tooltip("The fighting style's base loop, postures and mood. Empty: the ready-made one for the unit's body (large: boxing, medium: shield and sword, small: Eskrima).")]

@@ -34,6 +34,10 @@ namespace PhysicsBattler.Units
         [Tooltip("Poise back per second.")]
         public float poiseRegen = 15f;
 
+        [Header("Defence (milestone 11)")]
+        [Tooltip("How well this unit defends, whatever its style: 0.5 is the style's own chances to block or parry and its reaction time; 0 blocks far less often and later, 1 far more often and sooner.")]
+        [Range(0f, 1f)] public float defenceSkill = 0.5f;
+
         [Header("Physics authority")]
         [Tooltip("How firmly the torso and head are held to the pose each physics step (0 = loose, 1 = exactly).")]
         [Range(0f, 1f)] public float torsoPin = 0.85f;

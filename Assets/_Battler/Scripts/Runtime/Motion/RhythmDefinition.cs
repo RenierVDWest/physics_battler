@@ -285,7 +285,7 @@ namespace PhysicsBattler.Motion
             // A pressure fighter: short breathers, long bursts walking forward, hard to rattle.
             temperament = new Temperament
             {
-                probeAt = 0.45f, pressAt = 0.7f, pressAggression = 0.4f, burstMax = 4, composure = 0.8f, holdChance = 0.35f, fullCharge = 0.85f,
+                probeAt = 0.45f, pressAt = 0.7f, pressAggression = 0.4f, burstMax = 4, composure = 0.8f, holdChance = 0.35f, fullCharge = 0.85f, shellGuard = ShellGuard.High,
                 probeInterval = new Vector2(0.8f, 1.6f), pressGap = new Vector2(0.15f, 0.35f),
                 // Gathering: sits down into the stance, chin tucked, the guard pulled in, breathing deep.
                 gather = new MoodStance { crouch = 0.05f, lean = -2f, forward = -0.05f, chin = 8f, main = new Vector3(0.02f, -0.03f, 0.03f), off = new Vector3(0.02f, 0f, -0.08f), loopSpeed = 0.75f, loopSize = 1.25f },
@@ -462,7 +462,7 @@ namespace PhysicsBattler.Motion
             // Timing: short breathers circling out of reach, quick flurries in and out, would rather move than shell.
             temperament = new Temperament
             {
-                probeAt = 0.45f, pressAt = 0.7f, pressAggression = 0.45f, burstMax = 6, composure = 0.6f, pressCost = 0.1f, holdChance = 0.3f, fullCharge = 0.85f,
+                probeAt = 0.45f, pressAt = 0.7f, pressAggression = 0.45f, burstMax = 6, composure = 0.6f, pressCost = 0.1f, holdChance = 0.3f, fullCharge = 0.85f, shellGuard = ShellGuard.Across,
                 probeInterval = new Vector2(0.6f, 1.4f), pressGap = new Vector2(0.1f, 0.3f),
                 // Gathering: light and back on the rear foot, the stick low, the alive hand in.
                 gather = new MoodStance { crouch = 0.04f, lean = -3f, forward = -0.06f, chin = 4f, main = new Vector3(0f, -0.06f, -0.06f), off = new Vector3(0.04f, -0.06f, -0.1f), loopSpeed = 0.8f, loopSize = 1.15f },

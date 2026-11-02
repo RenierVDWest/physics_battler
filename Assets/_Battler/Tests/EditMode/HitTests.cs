@@ -835,5 +835,118 @@ namespace PhysicsBattler.Tests
                 Destroy(everyone);
             }
         }
+
+        /// <summary>
+        /// Milestone 11: a unit with a club and no shield sets it across a blow it sees coming (a
+        /// parry): the sword meets the club, not the body; no damage, and the swing stops there.
+        /// </summary>
+        [Test]
+        public void AClubParries()
+        {
+            foreach (var part in new[] { AimPart.Chest, AimPart.Head })
+            {
+                var (attacker, target, _) = Duel();
+                var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
+                target.Equip(club, null);
+                // The default club has no prefab: give it a haft to strike.
+                var haft = target.MainWeapon.gameObject.AddComponent<CapsuleCollider>();
+                haft.direction = 2;
+                haft.center = new Vector3(0f, 0f, 0.5f * club.length);
+                haft.height = club.length;
+                haft.radius = 0.035f;
+                haft.isTrigger = true;
+                target.Style.parryChance = 1f;
+                var everyone = new[] { attacker, target };
+                try
+                {
+                    Step(everyone, 20);
+                    var state = MovePlanner.Prepare(attacker, target, attacker.Loadout.Main.moves[0], part);
+                    Assert.IsNotNull(state);
+                    float health = target.Health;
+                    string cut = null;
+                    void OnEnded(UnitController unit, MoveState move)
+                    {
+                        if (unit == attacker)
+                        {
+                            cut = move.Cancelled;
+                        }
+                    }
+
+                    UnitController.MoveEnded += OnEnded;
+                    List<HitReport> hits;
+                    try
+                    {
+                        hits = Play(attacker, state, everyone);
+                    }
+                    finally
+                    {
+                        UnitController.MoveEnded -= OnEnded;
+                    }
+
+                    Assert.Greater(hits.Count, 0, $"{part}: the blow strikes something");
+                    Assert.IsTrue(hits[0].Parried, $"{part}: the club takes it (struck the {hits[0].Part}, {hits[0].Kind}; parry {target.ParryBlend:0.00})");
+                    Assert.IsTrue(hits[0].Result.Blocked);
+                    Assert.AreEqual(health, target.Health, $"{part}: no damage");
+                    Assert.IsTrue((cut ?? "").Contains("parry"), $"{part}: the swing is stopped by the parry (ended: {cut ?? "not cut short"})");
+                }
+                finally
+                {
+                    Destroy(everyone);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Milestone 11: shelled up, the large boxer holds its forearms up beside its head: a cut at
+        /// its head lands on a guarding arm, and costs the poise a block would.
+        /// </summary>
+        [Test]
+        public void TheHighShellCoversTheHead()
+        {
+            var results = new List<string>();
+            int guarded = 0;
+            foreach (var move in new[] { 0, 1 })
+            {
+                var (attacker, target, _) = Duel("Large");
+                target.Equip(WeaponDefinition.CreateDefault(WeaponKind.Club), null);
+                target.Style.parryChance = 0f;
+                var everyone = new[] { attacker, target };
+                try
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        target.Tempo.NoteIncoming(true);
+                    }
+
+                    target.Tempo.Force(TempoState.Shell);
+                    Step(everyone, 30);
+                    Assert.AreEqual(TempoState.Shell, target.Tempo.State, "it is shelled up");
+                    Assert.Greater(target.ShellWeight, 0.99f, "its guard is up");
+                    var moves = attacker.Loadout.Main.moves;
+                    var state = MovePlanner.Prepare(attacker, target, moves[move % moves.Length], AimPart.Head);
+                    if (state == null)
+                    {
+                        results.Add($"{moves[move % moves.Length].name}: no reach");
+                        continue;
+                    }
+
+                    var hits = Play(attacker, state, everyone);
+                    var first = hits.Count > 0 ? hits[0] : null;
+                    results.Add($"{state.Move.name}: {(first == null ? "missed" : $"{first.Part} ({first.Kind}), {first.Result.PoiseDamage:0} poise")}");
+                    if (first != null && first.ArmGuard)
+                    {
+                        guarded++;
+                        Assert.IsTrue(first.Part != PartId.Head, "not on the head");
+                    }
+                }
+                finally
+                {
+                    Destroy(everyone);
+                }
+            }
+
+            System.Console.WriteLine("high shell: " + string.Join("; ", results));
+            Assert.Greater(guarded, 0, "a blow at its head lands on its guard: " + string.Join("; ", results));
+        }
     }
 }

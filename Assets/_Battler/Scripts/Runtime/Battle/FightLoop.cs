@@ -376,7 +376,7 @@ namespace PhysicsBattler.Battle
                     engage = Mathf.Max(engage, enemyReach) + 0.35f * size;
                     break;
                 case TempoState.Shell:
-                    engage += 0.2f * size;
+                    engage += 0.2f * size + unit.GiveGround;   // (milestone 11: and the ground it gives under each blow)
                     break;
                 case TempoState.Press:
                     engage = Mathf.Max(closest, engage - 0.1f * size);
@@ -399,8 +399,8 @@ namespace PhysicsBattler.Battle
             {
                 // (Only when its blows can't land from this close, it is really crowded, or it is
                 // holding back: a longer reach doesn't keep backing off from a shorter one, or the
-                // shorter could never get in. Shelled up, it gives ground slowly.)
-                desired = -toward * (state == TempoState.Shell ? 0.4f : 0.6f) * speed * Mathf.Clamp01(-off / (0.3f * size));
+                // shorter could never get in. Shelled up, it gives ground too: milestone 11 keeps it further off under each blow.)
+                desired = -toward * 0.6f * speed * Mathf.Clamp01(-off / (0.3f * size));
             }
 
             bool near = off <= 0.3f * size;

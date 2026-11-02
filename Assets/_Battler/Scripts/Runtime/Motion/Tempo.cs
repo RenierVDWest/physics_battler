@@ -72,6 +72,19 @@ namespace PhysicsBattler.Motion
         };
     }
 
+    /// <summary>Milestone 11: how a style's arms cover it in the shell.</summary>
+    public enum ShellGuard
+    {
+        /// <summary>The stance's own hands (a shield-bearer: the shield raised to the eyes).</summary>
+        None = 0,
+
+        /// <summary>The boxer's high shell: both forearms up beside the head, the weapon upright in front, elbows tight over the ribs.</summary>
+        High = 1,
+
+        /// <summary>The stick held across the body, low and light.</summary>
+        Across = 2,
+    }
+
     /// <summary>
     /// A fighting style's temperament (milestone 8): when it holds back, when it presses and for how
     /// long, how much pressure it takes before it shells up, and what its energy costs and earns.
@@ -122,6 +135,8 @@ namespace PhysicsBattler.Motion
         public float maxShell = 4f;
         [Tooltip("Energy it needs to counter once the barrage stops.")]
         [Range(0f, 1f)] public float counterEnergy = 0.25f;
+        [Tooltip("Milestone 11: how its arms cover it in the shell (a shield is raised to the eyes whatever this says).")]
+        public ShellGuard shellGuard = ShellGuard.None;
 
         [Header("Stances (on top of the Fight Rhythm)")]
         public MoodStance gather = MoodStance.Neutral;
@@ -280,6 +295,30 @@ namespace PhysicsBattler.Motion
             }
         }
 
+        /// <summary>
+        /// Milestone 11: it took a blow on its guard (a block, a parry, its guarding arms). Shelled up,
+        /// with the energy to answer and its composure about it, it may riposte at once, between the
+        /// barrage's links, instead of waiting for the barrage to end.
+        /// </summary>
+        public void NoteDefended()
+        {
+            if (State != TempoState.Shell || energyNow < Temperament.counterEnergy)
+            {
+                return;
+            }
+
+            float composed = Mathf.Clamp01(1.5f - Pressure / Mathf.Max(0.1f, Temperament.composure));
+            if (random.NextDouble() < RiposteChance * composed)
+            {
+                Go(TempoState.Counter, $"a riposte between links (pressure {Pressure:0.00}, energy {energyNow:0.00})");
+            }
+        }
+
+        /// <summary>Milestone 11: the chance a fully composed unit ripostes off a blow it took on its guard.</summary>
+        public const float RiposteChance = 0.5f;
+
+        private float energyNow;
+
         /// <summary>When its last blow ended (its own clock).</summary>
         public float LastBlowEnd { get; private set; } = -999f;
 
@@ -300,6 +339,7 @@ namespace PhysicsBattler.Motion
 
             var t = Temperament;
             float e = input.energy;
+            energyNow = e;
             untouched = input.engaged ? 0f : untouched + dt;
             bool fired = input.aggression >= t.pressAggression;
             if (input.canAct && !input.attacking)
