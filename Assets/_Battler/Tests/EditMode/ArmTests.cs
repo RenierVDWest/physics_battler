@@ -315,5 +315,50 @@ namespace PhysicsBattler.Tests
                 RhythmTests.Destroy(both);
             }
         }
+    
+        [Test]
+        public void AHeldJointNeverHoldsAPoseInsideItsTableOff()
+        {
+            // (Milestone 10: PhysX holds the two swing limits together, an ellipse; the table and the
+            // pose solvers have them one at a time, a box. The 07:02 playtest's Large guard: the
+            // shoulder rolled 90 and out 70, inside the box, outside the ellipse; held off, the arm
+            // stuck 30 to 40 degrees from its pose.)
+            foreach (var id in new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR, PartId.UpperArmL, PartId.ForearmL, PartId.HandL })
+            {
+                var table = PhysicsBattler.Muscles.JointLimitTable.For(id);
+                if (!AuthorityController.HeldLimits(id, out var held))
+                {
+                    Assert.IsTrue(id == PartId.UpperArmR || id == PartId.UpperArmL, $"{id}: only the shoulder is left free");
+                    continue;
+                }
+
+                float worst = 0f;
+                string where = "";
+                for (float pitch = table.pitchMin; pitch <= table.pitchMax; pitch += 10f)
+                for (float y = -table.twist; y <= table.twist + 0.01f; y += table.twist / 6f)
+                for (float z = -table.swing; z <= table.swing + 0.01f; z += table.swing / 6f)
+                {
+                    float sy = Mathf.Sin(0.5f * y * Mathf.Deg2Rad), sz = Mathf.Sin(0.5f * z * Mathf.Deg2Rad);
+                    if (sy * sy + sz * sz >= 1f)
+                    {
+                        continue;
+                    }
+
+                    var swing = new Quaternion(0f, sy, sz, Mathf.Sqrt(1f - sy * sy - sz * sz));
+                    var local = swing * Quaternion.AngleAxis(pitch, Vector3.right);
+                    Assert.AreEqual(0f, PhysicsBattler.Muscles.JointMath.PastLimits(local, table, out _, out _, out _), 0.5f, $"{id}: the sample is inside the table");
+                    float cone = PhysicsBattler.Muscles.JointMath.SwingCone(local, held);
+                    if (cone > worst)
+                    {
+                        worst = cone;
+                        where = $"bend {pitch:0}, about Y {y:0}, about Z {z:0}";
+                    }
+                }
+
+                Assert.LessOrEqual(worst, 1.001f, $"{id}: a pose inside the table is inside the limits PhysX holds ({where}: {worst:0.00})");
+                Assert.Less(held.twist, 177.01f, id.ToString());
+                Assert.Less(held.swing, 177.01f, id.ToString());
+            }
+        }
     }
 }

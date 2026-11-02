@@ -46,8 +46,9 @@ namespace PhysicsBattler.Editor.Setup
         ///     the unit prefabs are rebuilt from the new rigs.
         /// 20 = Milestone 10: the club's backhand and fan strikes (MD_ClubBackhand, MD_ClubFan,
         ///     MD_ClubFanBackhand) made and put on the club.
+        /// 21 = Moves say which bodies throw them: the fan strikes are the small body's.
         /// </summary>
-        public const int Current = 20;
+        public const int Current = 21;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

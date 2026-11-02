@@ -197,6 +197,48 @@ namespace PhysicsBattler.Tests
         }
 
         [Test]
+        public void TheFanStrikesAreTheSmallBodysOnly()
+        {
+            // (The 07:02 playtest: the Large threw the small body's wristy fan strikes as single blows.)
+            foreach (var body in new[] { "Small", "Large" })
+            {
+                UnitController.ResetSeeds(3);
+                var pair = RhythmTests.Pair(body);
+                try
+                {
+                    RhythmTests.Step(new[] { pair.unit, pair.opponent }, 30);
+                    var random = new System.Random(5);
+                    int fans = 0, planned = 0;
+                    for (int i = 0; i < 300; i++)
+                    {
+                        var state = MovePlanner.Plan(pair.unit, pair.opponent, random);
+                        if (state == null)
+                        {
+                            continue;
+                        }
+
+                        planned++;
+                        fans += state.Move.name.Contains("ClubFan") ? 1 : 0;
+                    }
+
+                    Assert.Greater(planned, 100, $"{body}: blows planned");
+                    if (body == "Large")
+                    {
+                        Assert.AreEqual(0, fans, "the Large never throws a fan strike");
+                    }
+                    else
+                    {
+                        Assert.Greater(fans, 0, "the Small does");
+                    }
+                }
+                finally
+                {
+                    RhythmTests.Destroy(pair.unit, pair.opponent);
+                }
+            }
+        }
+
+        [Test]
         public void TheLinkTimesAreWhereThePlanPutsThem()
         {
             var move = MoveDefinition.Create(MoveStyle.ClubSwing);

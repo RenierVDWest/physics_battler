@@ -310,8 +310,16 @@ namespace PhysicsBattler.Authority
                         SetTone(joint, part, 0f);
                         break;
                     case LimitMode.Anatomical:
-                        JointMath.ApplyLimits(joint, Margined(JointLimitTable.For(part.id), AnatomicalMargin));
-                        SetMotion(joint, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited);
+                        if (HeldLimits(part.id, out var held))
+                        {
+                            JointMath.ApplyLimits(joint, held);
+                            SetMotion(joint, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited, ConfigurableJointMotion.Limited);
+                        }
+                        else
+                        {
+                            SetMotion(joint, ConfigurableJointMotion.Free, ConfigurableJointMotion.Free, ConfigurableJointMotion.Free);
+                        }
+
                         SetTone(joint, part, 0f);
                         break;
                     default:
@@ -404,6 +412,17 @@ namespace PhysicsBattler.Authority
 
         /// <summary>A held joint's physical limits are this much wider than the pose's own (degrees), so they never fight the pose.</summary>
         public const float AnatomicalMargin = 5f;
+
+        /// <summary>
+        /// The limits a held joint keeps (false: it is left free). The table's, with the margin, the
+        /// swing widened to the ellipse PhysX holds that takes in all of it (<see cref="JointMath.ConeAround"/>),
+        /// so a pose inside the table is never held off by its joint. The shoulder's range fits no
+        /// such ellipse: a held shoulder swings free (its pose keeps it in the table).
+        /// </summary>
+        public static bool HeldLimits(PartId id, out JointLimitSpec limits)
+        {
+            return JointMath.ConeAround(Margined(JointLimitTable.For(id), AnatomicalMargin), out limits);
+        }
 
         /// <summary>Limits widened by a margin on every side (at most 177 degrees about Y and Z).</summary>
         public static JointLimitSpec Margined(JointLimitSpec spec, float margin) => new JointLimitSpec(

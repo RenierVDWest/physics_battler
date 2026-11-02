@@ -99,7 +99,7 @@ namespace PhysicsBattler.Units
             var others = new List<MoveDefinition>();
             foreach (var other in weapon.moves)
             {
-                if (other != null && other != move && other != before)
+                if (other != null && other != move && other != before && other.UsableBy(Body.SizeFactor))
                 {
                     others.Insert(random.Next(others.Count + 1), other);
                 }

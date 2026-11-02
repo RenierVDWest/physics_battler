@@ -57,6 +57,8 @@ namespace PhysicsBattler.Combat
         public AimParts targets = AimParts.All;
         [Tooltip("Swing and Thrust: the move is built from the numbers below (a real swing by construction). Path: the hand-drawn path further down.")]
         public MoveShape shape = MoveShape.Path;
+        [Tooltip("The bodies (fighting styles) that throw this blow: the fan strikes are the small body's eskrima, not the large one's.")]
+        public ComboBodies bodies = ComboBodies.All;
 
         [Header("Swing (medium size; Swing and Thrust shapes)")]
         [Tooltip("Degrees the swing plane tilts: 0 a flat swing, 90 straight down from overhead, negative rising from below.")]
@@ -222,6 +224,13 @@ namespace PhysicsBattler.Combat
                            + (3f * p1 - p0 - 3f * p2 + p3) * (s * s * s));
         }
 
+        /// <summary>The bodies a ready-made move is for (milestone 10: the fan strikes are the small body's).</summary>
+        public static ComboBodies DefaultBodies(MoveStyle style) =>
+            style == MoveStyle.ClubFan || style == MoveStyle.ClubFanBackhand ? ComboBodies.Small : ComboBodies.All;
+
+        /// <summary>Whether a unit of this size throws this blow (none listed: every body does).</summary>
+        public bool UsableBy(float sizeFactor) => bodies == ComboBodies.None || (bodies & ComboDefinition.BodyOf(sizeFactor)) != 0;
+
         public static MoveDefinition Create(MoveStyle style)
         {
             var move = CreateInstance<MoveDefinition>();
@@ -239,6 +248,7 @@ namespace PhysicsBattler.Combat
             shape = MoveShape.Swing;
             strikeWith = StrikeWith.Edge;
             targets = AimParts.All;
+            bodies = DefaultBodies(style);
             backhand = false;
             planeTilt = 40f;
             windUpAngle = 190f;

@@ -39,9 +39,19 @@ namespace PhysicsBattler.Editor.Setup
             // Setup 13 (milestone 3) gives weapons damage and a hit-detection radius: weapons made
             // earlier have the sword's figures, so each gets its kind's defaults once.
             bool hits = SetupVersion.Installed >= 10 && SetupVersion.Installed < 13;
+            // Setup 21 (milestone 10): moves say which bodies throw them; the fan strikes, made by
+            // setup 20 for every body, are the small body's.
+            bool bodies = SetupVersion.Installed >= 10 && SetupVersion.Installed < 21;
             foreach (MoveStyle style in Enum.GetValues(typeof(MoveStyle)))
             {
                 moves[(int)style] = EnsureMove(style, refresh);
+                if (bodies && moves[(int)style].bodies != MoveDefinition.DefaultBodies(style))
+                {
+                    moves[(int)style].bodies = MoveDefinition.DefaultBodies(style);
+                    EditorUtility.SetDirty(moves[(int)style]);
+                    Debug.Log($"[Battler Setup] {BattlerPaths.Move(style.ToString())}: thrown by {moves[(int)style].bodies}.");
+                }
+
                 if (swings && moves[(int)style].shape == MoveShape.Path)
                 {
                     moves[(int)style].ApplyDefaults(style);

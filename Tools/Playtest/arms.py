@@ -309,6 +309,26 @@ def section(session):
         for by, g in d.groupby('by'):
             L.append(f"| {by} | {len(g)} | {g.err.median():.2f} / {g.err.max():.2f} m | {g.aerr.median():.0f}° / {g.aerr.max():.0f}° |")
         L.append("")
+    held = []
+    for u, pose, fr in _units(session):
+        if 'lvl_ArmR' not in fr:
+            continue
+        m = ((fr['state'] == 'Standing') & (fr['lvl_ArmR'] == 1) & fr['move'].isna()).to_numpy()
+        if m.sum() >= 30:
+            up = fr['aerr_UpperArmR'].to_numpy(float)[m]
+            hand = fr['aerr_HandR'].to_numpy(float)[m]
+            held.append((u.label, np.median(up), np.percentile(up, 95), np.median(hand), np.percentile(hand, 95), int(m.sum())))
+    if held:
+        # (Milestone 10: the held arms' joint limits fought the guard's pose; the arm stuck 30-40° off it.
+        # The 21:30 playtest, before them: about 2° / 9° at the shoulder.)
+        L.append("The weapon arm held in the guard (pinned, no blow): its turn off the pose (median / 95th; target ≤ 5° / ≤ 15° at the shoulder).")
+        L.append("")
+        L.append("| unit | upper arm | hand | steps |")
+        L.append("| --- | --- | --- | --- |")
+        for unit, um, u95, hm, h95, n in held:
+            flag = "  **stuck off its pose**" if um > 10 else ""
+            L.append(f"| {unit} | {um:.0f}° / {u95:.0f}°{flag} | {hm:.0f}° / {h95:.0f}° | {n} |")
+        L.append("")
     if r['limits']:
         L.append("Standing: the share of steps with a joint more than 10° past its limits (target: none), and the joint most often.")
         L.append("")

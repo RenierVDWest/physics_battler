@@ -46,7 +46,24 @@ after a blow (`UnitCombat.WeaponArmHeldAfter`).
 pointing at the threat, the wrist straight; not pointed out at arm's length. The arm fit keeps the elbow
 to its way (`ArmFit`'s elbow term: it had gone up over the shield).
 
-**Measures** (stub): 145 tests pass. `aim`: no misses (32 blows turned down for their own body). Four
+**The arm "gimping out" in the guard** (the 07:02 playtest, still there after the 0.4 s hold): the
+held arms' joint limits (milestone 9c's fix for twisted sword wrists) fought their own poses. PhysX
+doesn't hold a joint's two swing limits one at a time, as the table and the pose solvers have them
+(a box); it holds them together, as an ellipse, and a swing near both limits at once is outside it.
+The Large's guard has the shoulder rolled 90 degrees and out 70, inside the table, outside the
+ellipse: held off it, the arm stuck 30 to 40 degrees from its pose, its wrist bent, for a second at a
+time (the shoulder trailed its pose by 28 degrees median in the guard, 2 the night before the limits).
+Now a held joint's swing limits are the smallest ellipse that takes in its whole table
+(`JointMath.ConeAround`, `AuthorityController.HeldLimits`): the elbow keeps limits (roll 94, sideways
+30), the wrist too (roll 127, bend 70: wider than the table on one axis at a time, still well short of
+the 100 to 150 degree twists they were put in for), and the shoulder, whose range fits no ellipse,
+swings free as it did before. Test: `ArmTests.AHeldJointNeverHoldsAPoseInsideItsTableOff`. arms.py
+prints the guard arm's turn off its pose (target at most 5 degrees median at the shoulder).
+
+**Moves say which bodies throw them** (`MoveDefinition.bodies`, Setup 21 sets it on the move assets):
+the fan strikes are the small body's; the Large threw them as single blows in the playtest.
+
+**Measures** (stub): 147 tests pass. `aim`: no misses (32 blows turned down for their own body). Four
 fights: 32-44% of blows in combos, from one striking moment to the next 0.57-0.82 s median, no standing
 bodies overlapping. `combos`: the fan strings throw every link, 0.42-0.45 s apart; the Large's three-link
 strings stop after two (the smash doesn't reach from the backhand's end).

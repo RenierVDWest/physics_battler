@@ -186,7 +186,7 @@ namespace PhysicsBattler.Combat
             var options = new List<(MoveDefinition move, AimPart part, float weight)>();
             foreach (var move in weapon.moves)
             {
-                if (move == null)
+                if (move == null || !move.UsableBy(attacker.Body.SizeFactor))
                 {
                     continue;
                 }

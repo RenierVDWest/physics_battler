@@ -113,6 +113,60 @@ namespace PhysicsBattler.Muscles
         }
 
         /// <summary>
+        /// Milestone 10: PhysX doesn't hold the two swing limits (about Y and Z) one at a time, as the
+        /// table and the pose solvers have them (a box: each within its own limit). It holds them
+        /// together, as an ellipse (in the tangent of a quarter of the swing): a swing near both
+        /// limits at once is outside it. A held arm's poses go right into those corners (the Large's
+        /// guard: the shoulder rolled 90 and out 70), and there the joint's limit fought the pose,
+        /// leaving the arm stuck 30 to 40 degrees off it for a second at a time (the 07:02 playtest).
+        /// These are the swing limits of the smallest such ellipse (of the same shape) that holds the
+        /// whole box. False if none does inside PhysX's 177 degrees (the shoulder's 130 out to the
+        /// side with its roll of 90): that joint is left free.
+        /// </summary>
+        public static bool ConeAround(JointLimitSpec spec, out JointLimitSpec cone)
+        {
+            cone = spec;
+            float sy = Mathf.Sin(0.5f * spec.twist * Mathf.Deg2Rad), sz = Mathf.Sin(0.5f * spec.swing * Mathf.Deg2Rad);
+            if (sy * sy + sz * sz >= 1f)
+            {
+                return false;   // (the box's corner is past a half turn of swing)
+            }
+
+            // (The box's worst point is its corner: both tangents are largest there.)
+            float w = Mathf.Sqrt(1f - sy * sy - sz * sz);
+            float ty = sy / (1f + w), tz = sz / (1f + w);
+            float baseY = Mathf.Tan(0.25f * spec.twist * Mathf.Deg2Rad), baseZ = Mathf.Tan(0.25f * spec.swing * Mathf.Deg2Rad);
+            float k = Mathf.Max(1f, Mathf.Sqrt(Sq(ty / Mathf.Max(1e-4f, baseY)) + Sq(tz / Mathf.Max(1e-4f, baseZ))));
+            cone.twist = 4f * Mathf.Atan(k * baseY) * Mathf.Rad2Deg;
+            cone.swing = 4f * Mathf.Atan(k * baseZ) * Mathf.Rad2Deg;
+            return cone.twist <= 177f && cone.swing <= 177f;
+        }
+
+        /// <summary>
+        /// Whether a joint's turn (as <see cref="PastLimits"/> takes it) is inside the swing limits as
+        /// PhysX holds them, the ellipse (1 is on it). The bend about X is left out.
+        /// </summary>
+        public static float SwingCone(Quaternion local, JointLimitSpec spec)
+        {
+            if (local.w < 0f)
+            {
+                local = new Quaternion(-local.x, -local.y, -local.z, -local.w);
+            }
+
+            float pitch = 2f * Mathf.Atan2(local.x, local.w) * Mathf.Rad2Deg;
+            var swing = local * Quaternion.Inverse(Quaternion.AngleAxis(pitch, Vector3.right));
+            if (swing.w < 0f)
+            {
+                swing = new Quaternion(-swing.x, -swing.y, -swing.z, -swing.w);
+            }
+
+            float ty = swing.y / (1f + swing.w), tz = swing.z / (1f + swing.w);
+            return Sq(ty / Mathf.Tan(0.25f * Mathf.Max(1f, spec.twist) * Mathf.Deg2Rad)) + Sq(tz / Mathf.Tan(0.25f * Mathf.Max(1f, spec.swing) * Mathf.Deg2Rad));
+        }
+
+        private static float Sq(float x) => x * x;
+
+        /// <summary>
         /// A joint's turn against its rest (<paramref name="local"/>: the child's rotation in its
         /// parent's frame, the rest taken out), split as PhysX does: the bend about X (signed, as
         /// <see cref="JointLimitSpec"/> has it) and the swing that follows, about Y and Z. How far
