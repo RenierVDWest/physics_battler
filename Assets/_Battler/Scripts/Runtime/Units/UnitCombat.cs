@@ -264,12 +264,16 @@ namespace PhysicsBattler.Units
         private void SetRegion(BodyRegion region, float pin, bool kinematic)
         {
             int r = (int)region;
-            // Milestone 9c: a held arm keeps its anatomical limits (the arms' poses are solved inside
-            // them now, so the limits don't fight the pose). Without them, an arm handed back from a
-            // blow, or knocked by a hit, could be pulled round part by part into a twist no arm makes:
-            // the playtests had sword wrists 100 to 150 degrees past their limits for up to half a
-            // second after a blow.
-            bool limits = region == BodyRegion.ArmL || region == BodyRegion.ArmR;
+            // A held arm's joints swing free: the servo shapes it. (Milestone 9c gave held arms their
+            // anatomical limits, against sword wrists twisted 100 to 150 degrees past them after
+            // blows; milestone 10 found the limits trapped the arm instead. Each part is turned
+            // straight toward its pose, and that way ran the wrist into the ends of its narrow
+            // side-to-side range (55 degrees, beside a roll of up to 127): stopped there, the guard
+            // arm sat 20 to 30 degrees off its pose for seconds at a time, every playtest from the
+            // night they went in, against 2 degrees before. Free bodies in the stub track it within
+            // a degree. The twists after blows are kept off by holding the weapon arm on its pose
+            // for a moment after each blow instead: WeaponArmHeldAfter.)
+            const bool limits = false;
             if (recoverLeft[r] > 0f)
             {
                 // Recovering from a hit: physics has it, the pin eases back up.

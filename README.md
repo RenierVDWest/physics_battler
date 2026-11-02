@@ -46,19 +46,19 @@ after a blow (`UnitCombat.WeaponArmHeldAfter`).
 pointing at the threat, the wrist straight; not pointed out at arm's length. The arm fit keeps the elbow
 to its way (`ArmFit`'s elbow term: it had gone up over the shield).
 
-**The arm "gimping out" in the guard** (the 07:02 playtest, still there after the 0.4 s hold): the
-held arms' joint limits (milestone 9c's fix for twisted sword wrists) fought their own poses. PhysX
-doesn't hold a joint's two swing limits one at a time, as the table and the pose solvers have them
-(a box); it holds them together, as an ellipse, and a swing near both limits at once is outside it.
-The Large's guard has the shoulder rolled 90 degrees and out 70, inside the table, outside the
-ellipse: held off it, the arm stuck 30 to 40 degrees from its pose, its wrist bent, for a second at a
-time (the shoulder trailed its pose by 28 degrees median in the guard, 2 the night before the limits).
-Now a held joint's swing limits are the smallest ellipse that takes in its whole table
-(`JointMath.ConeAround`, `AuthorityController.HeldLimits`): the elbow keeps limits (roll 94, sideways
-30), the wrist too (roll 127, bend 70: wider than the table on one axis at a time, still well short of
-the 100 to 150 degree twists they were put in for), and the shoulder, whose range fits no ellipse,
-swings free as it did before. Test: `ArmTests.AHeldJointNeverHoldsAPoseInsideItsTableOff`. arms.py
-prints the guard arm's turn off its pose (target at most 5 degrees median at the shoulder).
+**The arm "gimping out" in the guard** (the 07:02 and 07:22 playtests): every playtest since the night
+held arms were given their anatomical joint limits (milestone 9c) had the guard arm 20 to 30 degrees off
+its pose for seconds at a time (the Large's shoulder 25 median; 2 the evening before, for every body).
+The limits trapped it. A held part is turned straight toward its pose, and that way can run a joint into
+a limit even when the pose is well inside it: the wrist's side-to-side range is 55 degrees, beside a
+roll of up to 127, and the stuck wrists sat on its ends (15 to 48% of the stuck steps; never while the
+arm tracked). A first fix (`JointMath.ConeAround`: PhysX holds a joint's two swing limits together, as
+an ellipse, not one at a time as the table has them) was right but not enough. Held arms' joints swing
+free again, as they did before; the twists after blows the limits were for are kept off by the 0.4 s
+the weapon arm stays posed after each blow. Any joint held with its limits (`HeldLimits`) gets the
+ellipse that takes in its whole table. `guard` runner: the arm held in the guard against its pose with
+free bodies (within a degree: the pose and the servo are sound); arms.py: the same in a playtest
+(target at most 5 degrees median at the shoulder).
 
 **Moves say which bodies throw them** (`MoveDefinition.bodies`, Setup 21 sets it on the move assets):
 the fan strikes are the small body's; the Large threw them as single blows in the playtest.
