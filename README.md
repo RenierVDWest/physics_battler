@@ -45,7 +45,7 @@ elbow pole into a null. The same goal gives the same arm.
   faster than it was sent up, and a second after it falls or is struck no part speeds up; the joints
   aren't mass-weighted on the ground; cut-off limbs count as bodies on the ground.
 
-### Milestone 10's off-hand blows: the jab
+### Milestone 10's close blows: the jab, the shield bash, the butt strike
 
 - **The jab** (`MoveStyle.OffJab`, the large boxer's): the bare lead fist snaps straight from its
   guard to the aim point, a little through, and straight back, palm turning down, the lead shoulder
@@ -57,7 +57,29 @@ elbow pole into a null. The same goal gives the same arm.
   its own); the sweep follows the fist from the wrist to the knuckles (`UnitCombat.StrikingPart`); a
   stopped jab springs the off arm back. The planner offers it beside the weapon's blows: it reaches
   only from close in.
-- Still to come: the butt strike (punyo) and the shield bash.
+- **The shield bash** (`MoveStyle.ShieldBash`, the Medium shield-bearer's): the shield's face driven
+  straight from its guard into the target and back, as the jab, the face turned to meet the way it
+  goes. Any shield without blows of its own gets it (`WeaponDefinition.MovesOf`). It shoves more than
+  it hurts (`DamageRules.ShieldBashDamage`); the sweep covers most of the face.
+- **The butt strike** (`MoveStyle.ClubPunyo`, the Small's with a club): the butt end below the fist
+  goes up to a chamber above the aim, then hammers straight down onto the face, the neck or the
+  collarbone and a little through, the stick standing up behind the fist (`PosePipeline.PoseButtStrike`).
+  A close blow on the weapon arm (`MoveDefinition.Close`; `OffHandPath` prepares either arm). Made in
+  code for every club (`WeaponDefinition.ExtraMoves`), so no asset changes. It never cuts. It reaches
+  only a target about as tall as the Small (a Medium's chest is above its shoulder).
+- The fight's spacing doesn't yet seek the close range these need, so the bash and the butt strike
+  come up only when a fight happens to bring two units together (in three headless fights the jab
+  came up nine times, the bash and the butt strike not at all).
+- Still to come: the weapon arm's get-up keys on the rig (they need keying by eye).
+
+### Performance: planning spread over steps
+
+- `Diagnostics/Perf` and `PerfTrack` time the game's own work per frame (perf.csv.gz, perf_counters.txt,
+  hitches over 40 ms logged as "perf" events, a Performance section in session.md).
+- A new blow is planned a few poses at a time (`MovePlanner.Job`, about 4 ms of each physics step),
+  not all in one frame; the playtest recorder writes one file a step. Combo links are still planned
+  in one go (the one hitch source left that I know of). The planner's dry poses skip the off arm, its
+  clearance check stops at the first pose that fails, and the paths are kept relative to the root.
 
 ## Before the arm rebuild: milestone 10, combos (chained links; the club's backhand and fan strikes)
 
