@@ -636,3 +636,26 @@
     5.450 |    328 | B Small        | contact  | Head touched Collider at 4.2 m/s
     5.450 |    328 | A Large        | contact  | FootL touched Collider at 4.2 m/s
     5.450 |    328 | B Small        | contact  | Head touched Ground at 2.3 m/s
+    5.500 |    331 | B Small        | contact  | FootR touched Collider at 3.7 m/s
+    5.500 |    331 | A Large        | contact  | FootL touched Collider at 3.7 m/s
+    5.533 |    333 | A Medium       | step     | left foot planted at (-1.04, -0.50), 27 cm from its spot
+    5.550 |    334 | B Medium       | contact  | Head touched Collider at 2.0 m/s
+    5.550 |    334 | B Medium       | contact  | ForearmR touched Collider at 2.0 m/s
+    5.567 |    335 | A Medium       | contact  | SwordBackhand at B Large's Chest: passed 19.3 cm from the aim point; nearest part B Large's UpperArmL (18.3 cm); the Chest had moved 34.4 cm since the aim was locked
+    5.567 |    335 | B Medium       | contact  | HandL touched Ground at 2.7 m/s
+    5.567 |    335 | B Small        | contact  | ForearmL touched Ground at 1.4 m/s
+    5.567 |    335 | B Small        | contact  | FootR touched Collider at 1.9 m/s
+    5.567 |    335 | B Small        | contact  | FootL touched Collider at 1.9 m/s
+    5.567 |    335 | B Small        | contact  | FootR touched Ground at 1.9 m/s
+    5.567 |    335 | B Small        | contact  | HandL touched Ground at 2.4 m/s
+    5.583 |    336 | A Medium       | hit      | SwordBackhand struck B Large's ForearmL at 16.0 m/s: 10.7 damage, 16 poise, recoil; impulse 31.9 N·s (80% into the part); the swing stopped; the target, another part; no sever: the edge ran along the bone at the left elbow
+    5.583 |    336 | B Large        | struck   | by A Medium on the ForearmL: health 188/220, poise 101/120, recoil, standing
+    5.583 |    336 | A Medium       | attack   | SwordBackhand cut short: stopped by B Large
+    5.583 |    336 | A Large        | step     | left foot planted at (0.53, 0.42), 0 cm from its spot
+    5.600 |    337 | B Medium       | contact  | HandR touched Ground at 2.6 m/s
+    5.617 |    338 | B Medium       | contact  | HandR touched Ground at 1.8 m/s
+    5.617 |    338 | B Medium       | contact  | HandR touched Ground at 1.8 m/s
+    5.667 |    341 | A Small        | step     | right foot planted at (-1.81, -0.50), 23 cm from its spot
+    5.667 |    341 | -              | console  | EXCEPTION: MissingReferenceException: The object of type 'PhysicsBattler.Combat.Weapon' has been destroyed but you are still trying to access it. Your script should either check if it is null or you should not destroy the object. @ UnityEngine.Object+MarshalledUnityObject.TryThrowEditorNullExceptionObject (UnityEngine.Object unityObj, System.String parameterName) (at <2a0aacfdb6844320ae79174c32157248>:0)
+    5.667 |    341 | -              | console  | EXCEPTION: MissingReferenceException: The object of type 'PhysicsBattler.Combat.Weapon' has been destroyed but you are still trying to access it. Your script should either check if it is null or you should not destroy the object. @ UnityEngine.Object+MarshalledUnityObject.TryThrowEditorNullExceptionObject (UnityEngine.Object unityObj, System.String parameterName) (at <2a0aacfdb6844320ae79174c32157248>:0)
+    5.667 |    341 | A Small        | despaw
