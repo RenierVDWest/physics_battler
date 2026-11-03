@@ -110,7 +110,7 @@ def clean(flags, rate, loop):
     return f
 
 
-def bake(clip, d, B, F, mirrored_of=None):
+def bake(clip, d, B, F, mirrored_of=None, yaw_from='head'):
     rate = d['rate']
     loop = clip in LOOPS
     ix = {b: i for i, b in enumerate(B)}
@@ -136,6 +136,13 @@ def bake(clip, d, B, F, mirrored_of=None):
         mean_hips = np.mean(hips - np.outer(t, drift), axis=0)
         root = mean_hips + np.outer(t, drift)
     else:
+        if yaw_from == 'hips':
+            # (A strike's head looks about wildly; the body's turn is the hips' line's, kept at the
+            # head's facing at the start: a side-on guard's hips stay turned against it.)
+            hr = F[:, ix['RightUpLeg']] - F[:, ix['LeftUpLeg']]
+            hips_yaw = np.unwrap(np.array([yaw_of(np.array([-v[2], 0.0, v[0]])) for v in hr]))
+            head0 = math.atan2(np.mean(np.sin(head_yaw[:5])), np.mean(np.cos(head_yaw[:5])))
+            head_yaw = hips_yaw + (head0 - hips_yaw[0])
         yaw = smooth(head_yaw, rate, 0.3)
         root = smooth(hips, rate, 0.4)
         drift = root[-1] - root[0]

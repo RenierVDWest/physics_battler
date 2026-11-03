@@ -303,6 +303,22 @@ namespace PhysicsBattler.Locomotion
         private readonly Vector3[] swingMean = new Vector3[2];
         private readonly bool[] swingKnown = new bool[2];
 
+        /// <summary>
+        /// How much the arms are the clip's own even where a hand carries something (0: the carry's;
+        /// 1: the clip's): a guard or strike clip's hands hold the weapons themselves, so while one plays
+        /// the arms go over to it, and come back to the carry after.
+        /// </summary>
+        public float ClipArms { get; private set; }
+
+        /// <summary>How long the arms take to go over to a guard clip's, or back (seconds).</summary>
+        public const float ClipArmsBlend = 0.2f;
+
+        private void UpdateClipArms()
+        {
+            bool guardClip = loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard;
+            ClipArms = Mathf.MoveTowards(ClipArms, guardClip ? 1f : 0f, poseDt / ClipArmsBlend);
+        }
+
         private void Arm(PartId upperId, PartId foreId, PartId handId, LocoBone shoulder, LocoBone elbow, LocoBone wrist,
             LocoBone middle, LocoBone index, LocoBone pinky)
         {
@@ -310,22 +326,53 @@ namespace PhysicsBattler.Locomotion
             var fore = anim.Part(foreId);
             var hand = anim.Part(handId);
             bool right = handId == PartId.HandR;
+            if (right)
+            {
+                UpdateClipArms();
+            }
+
             int a = right ? 0 : 1;
             var carry = right ? CarryR : CarryL;
+            float clipShare = carry == Carry.Free ? 1f : ClipArms;
             Vector3 s = World(shoulder), e = World(elbow), w = World(wrist);
             float clipArm = (e - s).magnitude + (w - e).magnitude;
             float ourArm = anim.RestLocalPosition(foreId).magnitude + anim.RestLocalPosition(handId).magnitude;
             Vector3 reach = (w - s) * (ourArm / Mathf.Max(1e-3f, clipArm));
-            Vector3 target = upper.position + reach;
-            Vector3 pole = e - 0.5f * (s + w);
+
+            // The clip's arm: the hand where the clip's is against the shoulder, the elbow toward the
+            // clip's, the hand turned as the clip's (wrist to the middle knuckle, its thumb side the clip's).
+            Vector3 clipTarget = upper.position + reach;
+            Vector3 clipPole = e - 0.5f * (s + w);
+            var clipHand = hand.rotation;
+            bool clipHandKnown = false;
+            {
+                Vector3 along = World(middle) - w;
+                Vector3 side = World(index) - World(pinky);
+                Vector3 restAlong = anim.RestLocalPosition(handId).normalized;   // (the hand carries on the forearm's line at rest)
+                var slot = right ? anim.SlotWeaponR : anim.SlotWeaponL;
+                if (slot != null && slot.localPosition.sqrMagnitude > 1e-6f)
+                {
+                    restAlong = slot.localPosition.normalized;
+                }
+
+                if (along.sqrMagnitude > 1e-8f && side.sqrMagnitude > 1e-8f)
+                {
+                    var want = Quaternion.LookRotation(along.normalized, Vector3.Cross(along, side).normalized);
+                    var rest = Quaternion.LookRotation(restAlong, Vector3.Cross(restAlong, Vector3.forward).normalized);
+                    clipHand = want * Quaternion.Inverse(rest);
+                    clipHandKnown = true;
+                }
+            }
+
             var turn = RootTurn;
             Vector3 swing = Vector3.zero;
             Vector3 restFore = Vector3.zero;   // (the forearm's way at rest, world)
-            if (carry != Carry.Free)
+            Vector3 target = clipTarget, pole = clipPole;
+            if (clipShare < 1f)
             {
-                // The clip's swing kept, smaller, about where the carried thing is held: its swing is the
-                // hand's way off its own mean over the last second or so (the clip's rhythm, whatever
-                // the cycle).
+                // The carrying arm: the clip's swing kept, smaller, about where the carried thing is held:
+                // its swing is the hand's way off its own mean over the last second or so (the clip's
+                // rhythm, whatever the cycle).
                 Vector3 rel = Quaternion.Inverse(turn) * reach / ourArm;
                 if (!swingKnown[a])
                 {
@@ -347,67 +394,57 @@ namespace PhysicsBattler.Locomotion
                 Vector3 elbowAt = upper.position + turn * up * upperLength;
                 Vector3 restHand = elbowAt + turn * down * foreLength;
                 restFore = turn * down;
-                target = restHand + turn * swing * ((carry == Carry.Weapon ? WeaponSwing : ShieldSwing) * ourArm);
+                Vector3 carryTarget = restHand + turn * swing * ((carry == Carry.Weapon ? WeaponSwing : ShieldSwing) * ourArm);
                 // (The elbow where the rest pose has it: the forearm keeps its way as the arm swings.)
-                pole = elbowAt - 0.5f * (upper.position + target);
+                Vector3 carryPole = elbowAt - 0.5f * (upper.position + carryTarget);
+                target = Vector3.Lerp(carryTarget, clipTarget, clipShare);
+                pole = Vector3.Lerp(carryPole.normalized, clipPole.normalized, clipShare);
             }
 
             TwoBoneIK.Solve(upper, fore, hand, target, pole);
 
-            if (carry != Carry.Free)
+            if (clipShare >= 1f)
             {
-                // The wrist straight, as a hand holding something is (a weapon's angle is the grip's on
-                // the forearm's; a shield faces the way the forearm points), but for two things: it
-                // takes out most of the turn the arm's swing gives the forearm (StabiliseWrist: the
-                // weapon and the shield keep facing much the same way against the body as it walks,
-                // not quite, or it would look mounted on a rig), and a shield is tipped a little
-                // further out than its forearm (ShieldFaces). A weapon's twist about the forearm points
-                // it the way the body goes, a little out.
-                hand.rotation = fore.rotation;
-                Vector3 foreNow = (hand.position - fore.position).normalized;
-                if (restFore.sqrMagnitude > 1e-6f)
+                if (clipHandKnown)
                 {
-                    hand.rotation = Quaternion.Slerp(Quaternion.identity, Quaternion.FromToRotation(foreNow, restFore), StabiliseWrist) * hand.rotation;
-                }
-
-                Vector3 handAlong = hand.rotation * anim.RestLocalPosition(handId).normalized;
-                if (carry == Carry.Shield)
-                {
-                    Vector3 faces = ShieldFaces.normalized;
-                    faces.x *= right ? 1f : -1f;
-                    hand.rotation = Quaternion.FromToRotation(restFore, turn * faces) * hand.rotation;
-                }
-                else
-                {
-                    Vector3 blade = Vector3.ProjectOnPlane(hand.rotation * (right ? BladeR : BladeL), handAlong);
-                    Vector3 wantWay = Vector3.ProjectOnPlane(turn * Quaternion.Euler(0f, right ? 8f : -8f, 0f) * Vector3.forward, handAlong);
-                    if (blade.sqrMagnitude > 1e-6f && wantWay.sqrMagnitude > 1e-6f)
-                    {
-                        float twist = Mathf.Clamp(Vector3.SignedAngle(blade, wantWay, handAlong), -MostWristTwist, MostWristTwist);
-                        hand.rotation = Quaternion.AngleAxis(twist, handAlong) * hand.rotation;
-                    }
+                    hand.rotation = clipHand;
                 }
 
                 return;
             }
 
-            // The hand: along the clip's hand (wrist to the middle knuckle), its thumb side the clip's.
-            Vector3 along = World(middle) - w;
-            Vector3 side = World(index) - World(pinky);
-            Vector3 restAlong = anim.RestLocalPosition(handId).normalized;   // (the hand carries on the forearm's line at rest)
-            var slot = right ? anim.SlotWeaponR : anim.SlotWeaponL;
-            if (slot != null && slot.localPosition.sqrMagnitude > 1e-6f)
+            // The carrying hand: the wrist straight, as a hand holding something is (a weapon's angle is
+            // the grip's on the forearm's; a shield faces the way the forearm points), but for two things:
+            // it takes out most of the turn the arm's swing gives the forearm (StabiliseWrist: the weapon
+            // and the shield keep facing much the same way against the body as it walks, not quite, or it
+            // would look mounted on a rig), and a shield is tipped a little further out than its forearm
+            // (ShieldFaces). A weapon's twist about the forearm points it the way the body goes, a little out.
+            var held = fore.rotation;
+            Vector3 foreNow = (hand.position - fore.position).normalized;
+            if (restFore.sqrMagnitude > 1e-6f)
             {
-                restAlong = slot.localPosition.normalized;
+                held = Quaternion.Slerp(Quaternion.identity, Quaternion.FromToRotation(foreNow, restFore), StabiliseWrist) * held;
             }
 
-            if (along.sqrMagnitude > 1e-8f && side.sqrMagnitude > 1e-8f)
+            Vector3 handAlong = held * anim.RestLocalPosition(handId).normalized;
+            if (carry == Carry.Shield)
             {
-                var want = Quaternion.LookRotation(along.normalized, Vector3.Cross(along, side).normalized);
-                var rest = Quaternion.LookRotation(restAlong, Vector3.Cross(restAlong, Vector3.forward).normalized);
-                hand.rotation = want * Quaternion.Inverse(rest);
+                Vector3 faces = ShieldFaces.normalized;
+                faces.x *= right ? 1f : -1f;
+                held = Quaternion.FromToRotation(restFore, turn * faces) * held;
+            }
+            else
+            {
+                Vector3 blade = Vector3.ProjectOnPlane(held * (right ? BladeR : BladeL), handAlong);
+                Vector3 wantWay = Vector3.ProjectOnPlane(turn * Quaternion.Euler(0f, right ? 8f : -8f, 0f) * Vector3.forward, handAlong);
+                if (blade.sqrMagnitude > 1e-6f && wantWay.sqrMagnitude > 1e-6f)
+                {
+                    float twist = Mathf.Clamp(Vector3.SignedAngle(blade, wantWay, handAlong), -MostWristTwist, MostWristTwist);
+                    held = Quaternion.AngleAxis(twist, handAlong) * held;
+                }
             }
 
+            hand.rotation = clipHandKnown && clipShare > 0f ? Quaternion.Slerp(held, clipHand, clipShare) : held;
         }
 
         /// <summary>How far a carrying hand twists about its forearm to point its weapon (degrees: a forearm turns about this far).</summary>

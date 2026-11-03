@@ -106,6 +106,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Seconds a switch between whole motions takes to fade out.</summary>
         public float SwitchHalfLife = 0.1f;
 
+        /// <summary>A switch between the relaxed walk and a combat clip changes the whole body: it fades over this (seconds, half-life).</summary>
+        public float GuardSwitchHalfLife = 0.2f;
+
+        private float switchHalfLifeNow = 0.1f;
+        private bool lastWasGuard;
+
         // ---- The clips ----------------------------------------------------------------------------
 
         private readonly LocoClip idle, walkF, walkB, walkLc, walkRc, walkLs, walkRs, runF, runL, runR;
@@ -285,6 +291,20 @@ namespace PhysicsBattler.Locomotion
 
             Inertialize(dt);
             Facing = Mathf.DeltaAngle(0f, Facing);
+        }
+
+        /// <summary>
+        /// Plays a clip as it is, its root moving the body, then stands (the films of the combat clips: a
+        /// loop plays for <paramref name="loops"/> rounds).
+        /// </summary>
+        public void Play(LocoClip clip, int loops = 2)
+        {
+            if (clip == null)
+            {
+                return;
+            }
+
+            StartShot(clip, ShotEnds.Idle, endAt: clip.Loop ? clip.Duration * Mathf.Max(1, loops) : clip.Duration);
         }
 
         /// <summary>
@@ -1023,6 +1043,10 @@ namespace PhysicsBattler.Locomotion
         {
             if (pendingSwitch)
             {
+                // (Into or out of a combat clip: a longer fade; between walk clips, the usual.)
+                bool guardNow = Current == Mode.OneShot && Shot != null && Shot.IsGuard;
+                switchHalfLifeNow = guardNow != lastWasGuard ? GuardSwitchHalfLife : SwitchHalfLife;
+                lastWasGuard = guardNow;
                 for (int i = 0; i < offset.Length; i++)
                 {
                     offset[i] = lastOut[i] - raw[i];
@@ -1036,7 +1060,7 @@ namespace PhysicsBattler.Locomotion
             {
                 if (offset[i].sqrMagnitude > 1e-10f || offsetVelocity[i].sqrMagnitude > 1e-10f)
                 {
-                    Springs.Decay(ref offset[i], ref offsetVelocity[i], SwitchHalfLife, dt);
+                    Springs.Decay(ref offset[i], ref offsetVelocity[i], switchHalfLifeNow, dt);
                 }
 
                 Points[i] = raw[i] + offset[i];

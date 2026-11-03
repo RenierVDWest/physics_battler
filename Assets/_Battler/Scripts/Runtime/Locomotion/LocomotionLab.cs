@@ -405,6 +405,13 @@ namespace PhysicsBattler.Locomotion
             }
 
             Bumped(dt);
+            if (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard)
+            {
+                // (A combat clip playing: it moves the body itself; the steering waits.)
+                want = Vector3.zero;
+                facing = loco.Facing;
+            }
+
             loco.Step(dt, want, facing);
             poser.Pose(dt);
             measures.Sample(dt, time, leg);
@@ -585,6 +592,49 @@ namespace PhysicsBattler.Locomotion
         /// A shove from a random side: the chest is struck (the physical upper body takes it) and the walk
         /// steps to catch the body.
         /// </summary>
+        // ---- The combat clips, played as they are (the combat plan's step 1: checking them on our body) ----
+
+        private int combatClip;
+
+        /// <summary>This body's guard and strike clips: the Large's own, the Medium's for the Medium and the Small.</summary>
+        private List<string> CombatClips()
+        {
+            string prefix = body == BodySize.Large ? "lg_" : "sns_";
+            var names = new List<string>();
+            foreach (var pair in LocoLibrary.Clips)
+            {
+                if (pair.Value.IsGuard && pair.Key.StartsWith(prefix))
+                {
+                    names.Add(pair.Key);
+                }
+            }
+
+            names.Sort((x, y) => string.CompareOrdinal(Order(x), Order(y)));
+            return names;
+        }
+
+        // (Strikes first, then the guards, the footwork, the turns.)
+        private static string Order(string name)
+        {
+            var clip = LocoLibrary.Get(name);
+            string role = clip != null ? clip.Role : "";
+            int rank = role == "strike" ? 0 : role == "guard_idle" ? 1 : role == "block" ? 2 : role == "cycle" ? 3 : 4;
+            return rank + name;
+        }
+
+        private void PlayCombatClip()
+        {
+            var combat = CombatClips();
+            if (loco == null || combat.Count == 0)
+            {
+                return;
+            }
+
+            var clip = LocoLibrary.Get(combat[Mathf.Clamp(combatClip, 0, combat.Count - 1)]);
+            loco.Play(clip);
+            legs.Add($"{time:0.00} s: played {clip.Name}");
+        }
+
         private void NextLoadout()
         {
             if (loadouts.Count == 0)
@@ -663,6 +713,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             if (SandboxInput.KeyPressed(KeyCode.L)) { NextLoadout(); }
+            if (SandboxInput.KeyPressed(KeyCode.J)) { PlayCombatClip(); }
             if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
         }
@@ -821,6 +872,22 @@ namespace PhysicsBattler.Locomotion
             }
 
             GUILayout.EndHorizontal();
+            var combat = CombatClips();
+            if (combat.Count > 0)
+            {
+                combatClip = Mathf.Clamp(combatClip, 0, combat.Count - 1);
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("<")) combatClip = (combatClip + combat.Count - 1) % combat.Count;
+                if (GUILayout.Button($"Play {combat[combatClip]} (J)")) PlayCombatClip();
+                if (GUILayout.Button(">")) combatClip = (combatClip + 1) % combat.Count;
+                GUILayout.EndHorizontal();
+                var shown = LocoLibrary.Get(combat[combatClip]);
+                if (shown != null)
+                {
+                    GUILayout.Label($"  {shown.Role}{(shown.Kind.Length > 0 ? ", " + shown.Kind : "")}, {shown.Duration:0.00} s{(shown.ContactFrame >= 0 ? $", contact at {shown.ContactFrame / shown.Rate:0.00} s" : "")}");
+                }
+            }
+
             if (loadouts.Count > 0 && GUILayout.Button($"Carrying: {loadouts[loadoutNow].name} (L)"))
             {
                 NextLoadout();

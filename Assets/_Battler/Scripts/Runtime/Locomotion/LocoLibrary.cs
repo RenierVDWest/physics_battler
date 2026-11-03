@@ -27,6 +27,8 @@ namespace PhysicsBattler.Locomotion
         public int[] contacts;
         public float[] phase;
         public string about;
+        public string kind;
+        public string set;
     }
 
     [Serializable]
@@ -68,6 +70,15 @@ namespace PhysicsBattler.Locomotion
 
         public readonly string Name;
         public readonly string Role;
+
+        /// <summary>A strike's kind and height ("forehand high"); empty for the rest.</summary>
+        public readonly string Kind;
+
+        /// <summary>A combat clip (a guard, a guard's footwork, a strike): its hands hold the weapons themselves.</summary>
+        public readonly bool IsGuard;
+
+        /// <summary>A strike's marks (frames in the clip): its contact, and from when a next strike may follow; empty for the rest.</summary>
+        public readonly int ContactFrame = -1, LinkFrom = -1;
         public readonly bool Loop;
         public readonly float Rate;
         public readonly int Frames;
@@ -95,6 +106,13 @@ namespace PhysicsBattler.Locomotion
         {
             Name = d.name;
             Role = d.role;
+            Kind = d.kind ?? "";
+            IsGuard = d.set == "guard";
+            if (Role == "strike" && d.markers != null && d.markers.Length == 2)
+            {
+                ContactFrame = d.markers[0];
+                LinkFrom = d.markers[1];
+            }
             Loop = d.loop;
             Rate = d.rate;
             Frames = d.frames;
@@ -124,7 +142,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             phase = d.phase != null && d.phase.Length == Frames ? d.phase : null;
-            if (d.markers != null && d.markers.Length == 2 && phase != null)
+            if (d.markers != null && d.markers.Length == 2 && phase != null && Role != "strike")
             {
                 LeftLands = d.markers[0];
                 RightLands = d.markers[1];
@@ -309,22 +327,36 @@ namespace PhysicsBattler.Locomotion
         public static void Load()
         {
             clips = new Dictionary<string, LocoClip>();
-            string text = null;
-            var asset = Resources.Load<TextAsset>(ResourcePath);
-            if (asset != null)
+            // (The locomotion's clips, and the combat's guards and strikes beside them.)
+            if (!LoadFile(ResourcePath, AssetPath))
             {
-                text = asset.text;
+                Debug.LogWarning("Locomotion: no clip library at Resources/" + ResourcePath);
+            }
+
+            LoadFile(CombatResourcePath, CombatAssetPath);
+        }
+
+        public const string CombatResourcePath = "Locomotion/CombatClips";
+        public const string CombatAssetPath = "_Battler/Resources/Locomotion/CombatClips.json";
+
+        private static bool LoadFile(string resource, string asset)
+        {
+            string text = null;
+            var loaded = Resources.Load<TextAsset>(resource);
+            if (loaded != null)
+            {
+                text = loaded.text;
             }
             else
             {
-                string path = Path.Combine(Application.dataPath, AssetPath);
+                string path = Path.Combine(Application.dataPath, asset);
                 if (!File.Exists(path))
                 {
                     // (Headless runs may point the data path elsewhere: the project's Assets, looked
                     // for up from where it runs.)
                     for (var dir = new DirectoryInfo(Directory.GetCurrentDirectory()); dir != null; dir = dir.Parent)
                     {
-                        string tryPath = Path.Combine(dir.FullName, "Assets", AssetPath);
+                        string tryPath = Path.Combine(dir.FullName, "Assets", asset);
                         if (File.Exists(tryPath))
                         {
                             path = tryPath;
@@ -341,8 +373,7 @@ namespace PhysicsBattler.Locomotion
 
             if (string.IsNullOrEmpty(text))
             {
-                Debug.LogWarning("Locomotion: no clip library at Resources/" + ResourcePath);
-                return;
+                return false;
             }
 
             var file = JsonUtility.FromJson<LocoClipFile>(text);
@@ -350,6 +381,8 @@ namespace PhysicsBattler.Locomotion
             {
                 clips[d.name] = new LocoClip(d);
             }
+
+            return true;
         }
     }
 }
