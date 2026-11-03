@@ -33,6 +33,18 @@ internal static class LocoLabReport
 
         var poser = new LocoBody(anim, loco);
         poser.SoleFrom(unitRig);
+        float bladeLength = 0f, shieldRadius = 0f;
+        if (Environment.GetEnvironmentVariable("LOCO_ARMS") == "sword")
+        {
+            // A weapon in the right hand and a shield in the left, gripped as the game grips them.
+            anim.SlotWeaponR.localRotation = UnitController.MainGrip;
+            anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+            poser.CarryR = LocoBody.Carry.Weapon;
+            poser.CarryL = LocoBody.Carry.Shield;
+            poser.BladeR = UnitController.MainGrip * Vector3.forward;
+            bladeLength = 0.9f * leg / 0.845f;
+            shieldRadius = 0.3f * leg / 0.845f;
+        }
         string legName = "";
         if (Environment.GetEnvironmentVariable("LOCO_TRACE") != null)
         {
@@ -54,7 +66,7 @@ internal static class LocoLabReport
         loco.Place(course.Start, course.StartYaw);
         course.Reset();
         const float dt = 0.02f;
-        var film = new LocoFilm(dt);
+        var film = new LocoFilm(dt) { BladeLength = bladeLength, ShieldRadius = shieldRadius };
         int steps = (int)(seconds / dt);
         string lastMode = "";
         for (int i = 0; i < steps && course.Current != null; i++)
