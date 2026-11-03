@@ -76,6 +76,7 @@ namespace PhysicsBattler.Locomotion
 
         public LocoBody(AnimRig anim, Locomotor loco)
         {
+            loco.RootTurned += OnRootTurned;
             this.anim = anim;
             this.loco = loco;
             pelvisAboveHips = -anim.RestLocalPosition(PartId.ThighL).y;
@@ -334,6 +335,20 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The fastest an elbow's way turns (degrees a second).</summary>
         public float MostElbowTurn = 540f;
 
+        /// <summary>The root turned at once (a combo's link): the directions kept against it turned back, so the body doesn't turn with it.</summary>
+        private void OnRootTurned(float degrees)
+        {
+            var back = Quaternion.Euler(0f, -degrees, 0f);
+            var there = Quaternion.Euler(0f, degrees, 0f);
+            for (int a = 0; a < 2; a++)
+            {
+                elbowWay[a] = back * elbowWay[a];
+                swingMean[a] = back * swingMean[a];
+                lastReach[a] = back * lastReach[a];
+                reachFade[a] = back * reachFade[a] * there;
+            }
+        }
+
         private Vector3 SteadyElbow(int a, Vector3 pole, Vector3 shoulder, Vector3 target)
         {
             // (Which way the elbow points is what the pole says across the shoulder-to-hand line; it is
@@ -481,9 +496,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (An aimed strike: the weapon hand pulled toward the line through its target, most at contact.)
-            if (aimClip != null && (right || TwoHanded))
+            if ((aimClip != null || pullLeftWeight > 0f) && (right || TwoHanded))
             {
-                target += aimPull * AimWeight();
+                target += aimPull * AimWeight() + pullLeft * pullLeftWeight;
             }
 
             pole = SteadyElbow(a, pole, upper.position, target);
@@ -580,7 +595,11 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How much of the wrist's steer is on now (worked out once a pose: <see cref="UpdateAimWeights"/>).</summary>
         private float SteerWeight() => steerWeight;
 
-        private float aimWeight, steerWeight;
+        private float aimWeight, steerWeight, aimFrom;
+
+        // (A combo's strike taken up while the last one's pull is still on: that pull is let go over AimLetGo.)
+        private Vector3 pullLeft;
+        private float pullLeftWeight;
 
         /// <summary>How long an aimed strike's pull and steer take to let go when it ends early (cut short).</summary>
         public const float AimLetGo = 0.25f;
@@ -592,6 +611,7 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         private void UpdateAimWeights(float dt)
         {
+            pullLeftWeight = Mathf.MoveTowards(pullLeftWeight, 0f, dt / AimLetGo);
             if (aimClip == null)
             {
                 aimWeight = steerWeight = 0f;
@@ -611,9 +631,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             float t = loco.ShotTime, c = aimClip.ContactFrame / aimClip.Rate, end = aimClip.Duration;
-            float u = t <= c ? Mathf.Clamp01(t / Mathf.Max(0.05f, c)) : 1f - Mathf.Clamp01((t - c) / Mathf.Max(0.05f, end - c));
+            float u = t <= c ? Mathf.Clamp01((t - aimFrom) / Mathf.Max(0.05f, c - aimFrom)) : 1f - Mathf.Clamp01((t - c) / Mathf.Max(0.05f, end - c));
             aimWeight = u * u * (3f - 2f * u);
-            float from = IsThrust(aimClip) ? 0.4f * c : Mathf.Max(0f, c - 0.15f);
+            float from = Mathf.Max(aimFrom, IsThrust(aimClip) ? 0.4f * c : Mathf.Max(0f, c - 0.15f));
             float v = t <= c ? Mathf.Clamp01((t - from) / Mathf.Max(0.05f, c - from)) : 1f - Mathf.Clamp01((t - c) / 0.25f);
             steerWeight = v * v * (3f - 2f * v);
         }
@@ -747,11 +767,19 @@ namespace PhysicsBattler.Locomotion
         /// rest of the way, most at contact. The feet step as the clip's do.
         /// </summary>
         /// <param name="plan">False: played as it is, no turn, stretch or pull (the wrist still steers toward the target).</param>
-        public void PlayStrike(LocoClip clip, Vector3 target, bool plan = true)
+        /// <param name="startFrom">Taken up from this far into the clip (seconds): a combo's next strike, its wind-up met part way.</param>
+        public void PlayStrike(LocoClip clip, Vector3 target, bool plan = true, float startFrom = 0f)
         {
             if (clip == null || clip.ContactFrame < 0)
             {
                 return;
+            }
+
+            startFrom = Mathf.Clamp(startFrom, 0f, Mathf.Max(0f, clip.ContactFrame / clip.Rate - 0.05f));
+            if (aimClip != null && aimWeight > 0f)
+            {
+                pullLeft = aimPull * aimWeight + pullLeft * pullLeftWeight;
+                pullLeftWeight = 1f;
             }
 
             if (!plan)
@@ -762,7 +790,8 @@ namespace PhysicsBattler.Locomotion
                 AimMissBeforePull = 0f;
                 AimTarget = target;
                 aimClip = clip;
-                loco.PlayAimed(clip, 1f, 0f, clip.ContactFrame / clip.Rate);
+                aimFrom = startFrom;
+                loco.PlayAimed(clip, 1f, 0f, clip.ContactFrame / clip.Rate, startFrom);
                 return;
             }
 
@@ -774,6 +803,16 @@ namespace PhysicsBattler.Locomotion
             Vector3 point = StrikeReach.TryGet(BodyKey, clip.Name, out var grip, out var bladeWay)
                 ? grip + bladeWay * (WeaponLength * SweetSpot) - travel
                 : Quaternion.Euler(0f, turned, 0f) * ClipWeaponPoint(clip, contact);
+            if (startFrom > 0f)
+            {
+                // (Taken up part way: the travel and the reach against where the root is then.)
+                clip.RootMotion(0f, startFrom, out var before, out float turnedBefore);
+                Vector3 rootThen = new Vector3(before.x, 0f, before.y) * loco.Leg;
+                var back = Quaternion.Euler(0f, -turnedBefore, 0f);
+                Vector3 atContact = travel + point;
+                travel = back * (travel - rootThen);
+                point = back * (atContact - rootThen) - travel;
+            }
             var turn0 = Quaternion.Euler(0f, loco.Facing, 0f);
             Vector3 want = Quaternion.Inverse(turn0) * (target - new Vector3(loco.Position.x, GroundY, loco.Position.z));
             Vector3 wantFlat = new Vector3(want.x, 0f, want.z);
@@ -801,7 +840,8 @@ namespace PhysicsBattler.Locomotion
             AimPredicted = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * predicted;
             AimTarget = target;
             aimClip = clip;
-            loco.PlayAimed(clip, k, by, contact);
+            aimFrom = startFrom;
+            loco.PlayAimed(clip, k, by, contact, startFrom);
         }
 
         /// <summary>How much of the aim's pull is on now (worked out once a pose: <see cref="UpdateAimWeights"/>).</summary>

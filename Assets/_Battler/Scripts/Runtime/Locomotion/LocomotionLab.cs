@@ -349,6 +349,8 @@ namespace PhysicsBattler.Locomotion
 
             hits = new StrikeHits(loco, poser, anim) { Weapon = mainWeapon, Scale = size, Slot = rig.SlotWeaponR, Mass = Mathf.Max(20f, mass) };
             hits.Landed += text => legs.Add($"{time:0.00} s: {text}");
+            combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor };
+            combo.Started += (clip, link) => BeganAim(clip, poser.AimTarget);
             path = LocoCourse.Lab();
             path.SpeedScale = PaceScale;
             path.LegStarted += (i, name) =>
@@ -452,6 +454,7 @@ namespace PhysicsBattler.Locomotion
             if (!frozen)
             {
                 loco.Step(dt, want, facing);
+                combo?.Step();
                 poser.Pose(dt);
             }
 
@@ -707,7 +710,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             var clip = LocoLibrary.Get(combat[Mathf.Clamp(combatClip, 0, combat.Count - 1)]);
-            if (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0)
+            if ((combo != null && combo.Playing) || (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0))
             {
                 // (A strike is under way: it plays out first. Started again on top of itself, it jerked back
                 // to its own start each time J was pressed.)
@@ -717,19 +720,10 @@ namespace PhysicsBattler.Locomotion
             if (clip.ContactFrame >= 0 && !course)
             {
                 // (A strike: aimed at the dummy's part picked; a blocking dummy raises its shield there.)
-                aimPoint = DummyTarget;
-                poser.PlayStrike(clip, aimPoint);
-                if (dummy != null)
-                {
-                    dummy.BlockAt = aimPoint;
-                }
-
-                aiming = clip;
-                aimBest = float.MaxValue;
-                aimHits = hits != null ? hits.Hits : 0;
-                aimBlocks = hits != null ? hits.Blocks : 0;
-                ShowAimMark(true, new Color(0.95f, 0.85f, 0.3f));
-                legs.Add($"{time:0.00} s: struck at the dummy ({DummyHeightNames[dummyHeight]}, {Flat(aimPoint - loco.Position):0.00} m away; it {DummyStanceName}) with {clip.Name}: turn {poser.AimTurn:+0;-0} degrees, lunge x{poser.AimLunge:0.00}, the arm to make up {poser.AimMissBeforePull:0.00} m");
+                Vector3 at = DummyTarget;
+                poser.PlayStrike(clip, at);
+                BeganAim(clip, at);
+                legs.Add($"{time:0.00} s: struck at the dummy ({DummyHeightNames[dummyHeight]}, {Flat(at - loco.Position):0.00} m away; it {DummyStanceName}) with {clip.Name}: turn {poser.AimTurn:+0;-0} degrees, lunge x{poser.AimLunge:0.00}, the arm to make up {poser.AimMissBeforePull:0.00} m");
                 return;
             }
 
@@ -936,7 +930,127 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
-        /// <summary>How near the blade came to where it was aimed about the strike's contact; told when it ends.</summary>
+        /// <summary>What the strike aimed last did, told (when it ends, or the combo's next takes over).</summary>
+        private void FinishAim()
+        {
+            if (aiming == null)
+            {
+                return;
+            }
+
+            bool landed = hits != null && hits.Hits > aimHits, blocked = hits != null && hits.Blocks > aimBlocks;
+            string result = landed || blocked ? hits.Last.Substring(hits.Last.IndexOf(':') + 2)
+                : aimBest < float.MaxValue ? $"missed: the blade passed {aimBest * 100f:0} cm from where it was aimed" : "missed";
+            lastAim = $"{aiming.Name}: {aimPlan}; {result}";
+            legs.Add($"{time:0.00} s: {lastAim}");
+            ShowAimMark(true, landed ? new Color(0.35f, 0.8f, 0.35f) : blocked ? new Color(0.35f, 0.55f, 0.9f) : new Color(0.9f, 0.35f, 0.3f));
+            aiming = null;
+        }
+
+        /// <summary>A strike aimed at the dummy has started (alone, or in a combo): watched from now.</summary>
+        private void BeganAim(LocoClip clip, Vector3 at)
+        {
+            FinishAim();
+            aimPoint = at;
+            if (dummy != null)
+            {
+                dummy.BlockAt = at;
+            }
+
+            aiming = clip;
+            aimBest = float.MaxValue;
+            aimHits = hits != null ? hits.Hits : 0;
+            aimBlocks = hits != null ? hits.Blocks : 0;
+            aimPlan = $"turn {poser.AimTurn:+0;-0}°, lunge x{poser.AimLunge:0.00}, the arm made up {poser.AimMissBeforePull:0.00} m";
+            ShowAimMark(true, new Color(0.95f, 0.85f, 0.3f));
+        }
+
+        private string aimPlan = "";
+
+        // ---- Combos (the combat plan's step 5) ----------------------------------------------------------
+
+        private ComboPlayer combo;
+        private string lastCombo = "";
+
+        /// <summary>This body's strikes, as clips.</summary>
+        private List<LocoClip> Strikes()
+        {
+            var strikes = new List<LocoClip>();
+            foreach (var name in CombatClips())
+            {
+                var clip = LocoLibrary.Get(name);
+                if (clip != null && clip.Role == "strike")
+                {
+                    strikes.Add(clip);
+                }
+            }
+
+            return strikes;
+        }
+
+        /// <summary>The combo the picked strike starts: up to three strikes, each the best follow-on of the last.</summary>
+        private List<StrikeLink> ComboFrom(LocoClip first) => first != null && first.ContactFrame >= 0 ? StrikeCombos.Chain(first, Strikes(), 3) : new List<StrikeLink>();
+
+        private LocoClip PickedClip()
+        {
+            var combat = CombatClips();
+            return combat.Count > 0 ? LocoLibrary.Get(combat[Mathf.Clamp(combatClip, 0, combat.Count - 1)]) : null;
+        }
+
+        /// <summary>Plays the picked strike's combo at the dummy (I), each strike aimed at the part nearest its own reach's height.</summary>
+        private void PlayCombo()
+        {
+            var first = PickedClip();
+            if (combo == null || course || first == null || first.ContactFrame < 0 || combo.Playing
+                || (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0))
+            {
+                return;
+            }
+
+            var chain = ComboFrom(first);
+            lastCombo = ComboText(first, chain);
+            legs.Add($"{time:0.00} s: combo {lastCombo}");
+            combo.Start(first, chain);
+        }
+
+        private static string ComboText(LocoClip first, List<StrikeLink> chain)
+        {
+            var text = new StringBuilder(first.Name);
+            foreach (var link in chain)
+            {
+                text.Append($" > {link.To.Name} ({link.Cost:0.00})");
+            }
+
+            return text.ToString();
+        }
+
+        /// <summary>Where on the dummy a strike goes: its part nearest the height the strike reaches.</summary>
+        private Vector3 TargetFor(LocoClip clip)
+        {
+            if (dummy == null)
+            {
+                return DummyTarget;
+            }
+
+            float h = dummy.TargetAt(1).y;
+            if (StrikeReach.TryGet(body.ToString(), clip.Name, out var grip, out var way))
+            {
+                h = (grip + way * (poser.WeaponLength * poser.SweetSpot)).y + origin.y;
+            }
+
+            int best = 0;
+            for (int k = 1; k < 3; k++)
+            {
+                if (Mathf.Abs(dummy.TargetAt(k).y - h) < Mathf.Abs(dummy.TargetAt(best).y - h))
+                {
+                    best = k;
+                }
+            }
+
+            return dummy.TargetAt(best);
+        }
+
+        /// <summary>How near the blade came to the dummy's head about the aimed strike's contact; told when it ends.</summary>
         private void WatchAim()
         {
             if (aiming == null)
@@ -946,13 +1060,7 @@ namespace PhysicsBattler.Locomotion
 
             if (loco.Shot != aiming)
             {
-                bool landed = hits != null && hits.Hits > aimHits, blocked = hits != null && hits.Blocks > aimBlocks;
-                string result = landed || blocked ? hits.Last.Substring(hits.Last.IndexOf(':') + 2)
-                    : aimBest < float.MaxValue ? $"missed: the blade passed {aimBest * 100f:0} cm from where it was aimed" : "missed";
-                lastAim = $"{aiming.Name}: turn {poser.AimTurn:+0;-0}°, lunge x{poser.AimLunge:0.00}, the arm made up {poser.AimMissBeforePull:0.00} m; {result}";
-                legs.Add($"{time:0.00} s: {lastAim}");
-                ShowAimMark(true, landed ? new Color(0.35f, 0.8f, 0.35f) : blocked ? new Color(0.35f, 0.55f, 0.9f) : new Color(0.9f, 0.35f, 0.3f));
-                aiming = null;
+                FinishAim();
                 return;
             }
 
@@ -1062,6 +1170,7 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.U)) { NextDummyHeight(); }
             if (SandboxInput.KeyPressed(KeyCode.Y)) { DummyInReach(); }
             if (SandboxInput.KeyPressed(KeyCode.O)) { NextDummyStance(); }
+            if (SandboxInput.KeyPressed(KeyCode.I)) { PlayCombo(); }
             if (SandboxInput.KeyPressed(KeyCode.T)) { ToggleGuard(); }
             if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
@@ -1243,6 +1352,15 @@ namespace PhysicsBattler.Locomotion
                     {
                         Vector3 sweet = grip + way * (poser.WeaponLength * poser.SweetSpot);
                         GUILayout.Label($"  reaches {Flat(sweet):0.0} m ahead, {sweet.y:0.0} m up{(Mathf.Abs(sweet.x) > 0.3f ? (sweet.x > 0f ? ", to the right" : ", to the left") : "")}");
+                    }
+                }
+
+                if (!course && shown != null && shown.ContactFrame >= 0)
+                {
+                    var chain = ComboFrom(shown);
+                    if (GUILayout.Button(chain.Count > 0 ? $"Combo (I): {ComboText(shown, chain).Replace(LocoLibrary.CombatPrefix(body.ToString()), "")}" : "Combo (I): no follow-on"))
+                    {
+                        PlayCombo();
                     }
                 }
 

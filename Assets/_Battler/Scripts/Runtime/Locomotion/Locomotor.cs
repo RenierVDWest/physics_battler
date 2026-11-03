@@ -394,17 +394,19 @@ namespace PhysicsBattler.Locomotion
         /// or shortened by <paramref name="moveScale"/>, and turned by <paramref name="turnBy"/> degrees
         /// over its first <paramref name="turnOver"/> seconds (its wind-up). Its feet step as the clip's do.
         /// </summary>
-        public void PlayAimed(LocoClip clip, float moveScale, float turnBy, float turnOver)
+        /// <param name="startFrom">Taken up this far into the clip (a combo's next strike): the turn is spread from there.</param>
+        public void PlayAimed(LocoClip clip, float moveScale, float turnBy, float turnOver, float startFrom = 0f)
         {
             if (clip == null)
             {
                 return;
             }
 
-            StartShot(clip, ShotEnds.Idle);
+            StartShot(clip, ShotEnds.Idle, startFrom: startFrom);
             shotMoveScale = moveScale;
             shotAimTurn = turnBy;
-            shotAimOver = Mathf.Max(0.05f, turnOver);
+            shotAimFrom = startFrom;
+            shotAimOver = Mathf.Max(startFrom + 0.05f, turnOver);
         }
 
         /// <summary>The playing strike's own time (seconds into its clip) and its contact time; -1 when no strike plays.</summary>
@@ -689,7 +691,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         private ShotEnds shotThen;
-        private float shotEnd, shotTurnScale = 1f, shotMoveScale = 1f, shotAimTurn, shotAimOver;
+        private float shotEnd, shotTurnScale = 1f, shotMoveScale = 1f, shotAimTurn, shotAimOver, shotAimFrom;
         private Quaternion shotBend = Quaternion.identity;
 
         /// <summary>
@@ -785,7 +787,7 @@ namespace PhysicsBattler.Locomotion
             shotTurnScale = turnScale;
             shotMoveScale = 1f;
             shotBend = Quaternion.identity;
-            shotAimTurn = shotAimOver = 0f;
+            shotAimTurn = shotAimOver = shotAimFrom = 0f;
             rewinding = false;
             ShotSpeed = 1f;
             shotEnd = endAt > 0f ? endAt : then == ShotEnds.Cycle ? HandOver(clip, startFrom) : clip.Duration;
@@ -971,6 +973,41 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        /// <summary>
+        /// The root turned by <paramref name="degrees"/> at once, the body left where it is in the world (the pose
+        /// and its fade turned back against the new facing): a combo's next strike, whose clip's root faces another
+        /// way where the two bodies meet.
+        /// </summary>
+        /// <param name="shift">And moved by this (world, metres).</param>
+        public void TurnRoot(float degrees, Vector3 shift = default)
+        {
+            shift.y = 0f;
+            if (Mathf.Abs(degrees) < 1e-3f && shift.sqrMagnitude < 1e-8f)
+            {
+                return;
+            }
+
+            // (Each place against the root, kept where it is in the world: p' = turn'^-1 (turn p - shift).)
+            var before = Quaternion.Euler(0f, Facing, 0f);
+            Facing += degrees;
+            Position += shift;
+            var after = Quaternion.Inverse(Quaternion.Euler(0f, Facing, 0f));
+            var back = after * before;
+            Vector3 moved = after * shift;
+            for (int i = 0; i < raw.Length; i++)
+            {
+                Points[i] = back * Points[i] - moved;
+                lastOut[i] = back * lastOut[i] - moved;
+                offset[i] = back * offset[i];
+                offsetVelocity[i] = back * offsetVelocity[i];
+            }
+
+            RootTurned?.Invoke(degrees);
+        }
+
+        /// <summary>The root was turned at once by this much (degrees): what keeps directions against it turns them back.</summary>
+        public event System.Action<float> RootTurned;
+
         /// <summary>The playing one-shot ends here, now, into the stand (faded).</summary>
         public void EndShotNow()
         {
@@ -993,7 +1030,7 @@ namespace PhysicsBattler.Locomotion
             if (shotAimOver > 0f && from < shotAimOver)
             {
                 // (An aimed strike's turn toward its target, spread over its wind-up.)
-                float share = (Mathf.Min(ShotTime, shotAimOver) - from) / shotAimOver;
+                float share = (Mathf.Min(ShotTime, shotAimOver) - Mathf.Max(from, shotAimFrom)) / Mathf.Max(0.05f, shotAimOver - shotAimFrom);
                 Facing += shotAimTurn * share;
             }
 
