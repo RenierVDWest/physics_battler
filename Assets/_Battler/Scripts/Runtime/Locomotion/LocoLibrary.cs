@@ -304,6 +304,18 @@ namespace PhysicsBattler.Locomotion
     /// </summary>
     public static class LocoLibrary
     {
+        /// <summary>
+        /// The Large's own two-handed clips (lg_) for its guard and strikes; off (the playtest's choice for
+        /// now): it uses the Medium's sword and shield clips, its club in the sword hand, the shield hand empty.
+        /// </summary>
+        public static bool LargeOwnClips = false;
+
+        /// <summary>The guard and strike clips' prefix for a body ("Small", "Medium", "Large").</summary>
+        public static string CombatPrefix(string body) => body == "Large" && LargeOwnClips ? "lg_" : "sns_";
+
+        /// <summary>The body holds its weapon in both hands (the Large with its own two-handed clips).</summary>
+        public static bool TwoHanded(string body) => body == "Large" && LargeOwnClips;
+
         public const string ResourcePath = "Locomotion/LocoClips";
         public const string AssetPath = "_Battler/Resources/Locomotion/LocoClips.json";
 

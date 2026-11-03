@@ -57,7 +57,7 @@ internal static class LocoLabReport
         string guardTimes = Environment.GetEnvironmentVariable("LOCO_GUARD") ?? (courseName == "guard" ? "1.5,19.5" : null);
         if (guardTimes != null)
         {
-            loco.SetGuard(body == "Large" ? "lg_" : "sns_");
+            loco.SetGuard(LocoLibrary.CombatPrefix(body));
         }
         string line = Environment.GetEnvironmentVariable("LOCO_LINE");   // "speed,facing": a straight line along +z at that speed, facing that way
         if (line != null)

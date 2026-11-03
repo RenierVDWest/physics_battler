@@ -22,7 +22,7 @@ internal static class CombatFilmReport
         var profile = UnitProfile.CreateDefault();
         profile.body = body;
         LocoLibrary.Load();
-        string prefix = body == "Large" ? "lg_" : "sns_";
+        string prefix = LocoLibrary.CombatPrefix(body);
         var names = LocoLibrary.Clips.Keys.Where(n => which == null ? n.StartsWith(prefix) : which.Contains(",") ? which.Split(',').Contains(n) : n.StartsWith(which)).OrderBy(n => n).ToList();
         foreach (string name in names)
         {

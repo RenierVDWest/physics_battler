@@ -28,7 +28,7 @@ internal static class StrikeAimReport
         var profile = UnitProfile.CreateDefault();
         profile.body = body;
         LocoLibrary.Load();
-        string prefix = body == "Large" ? "lg_" : "sns_";
+        string prefix = LocoLibrary.CombatPrefix(body);
         var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
         var ci = CultureInfo.InvariantCulture;
         var allMisses = new List<float>();
@@ -85,7 +85,7 @@ internal static class StrikeAimReport
                     var loco = new Locomotor(leg);
                     loco.SetGuard(prefix);
                     loco.GuardWanted = true;
-                    var poser = new LocoBody(anim, loco) { WeaponLength = 0.9f * size, TwoHanded = body == "Large" };
+                    var poser = new LocoBody(anim, loco) { WeaponLength = 0.9f * size, TwoHanded = LocoLibrary.TwoHanded(body) };
                     poser.SoleFrom(unitRig);
                     anim.SlotWeaponR.localRotation = UnitController.MainGrip;
                     poser.BladeR = UnitController.MainGrip * Vector3.forward;
@@ -219,7 +219,7 @@ internal static class StrikeAimReport
             var loco = new Locomotor(leg);
             loco.SetGuard(prefix);
             loco.GuardWanted = true;
-            var poser = new LocoBody(anim, loco) { WeaponLength = 0.9f * size, TwoHanded = body == "Large", BodyKey = body };
+            var poser = new LocoBody(anim, loco) { WeaponLength = 0.9f * size, TwoHanded = LocoLibrary.TwoHanded(body), BodyKey = body };
             poser.SoleFrom(unitRig);
             anim.SlotWeaponR.localRotation = UnitController.MainGrip;
             poser.BladeR = UnitController.MainGrip * Vector3.forward;

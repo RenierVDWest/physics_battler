@@ -33,7 +33,7 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     it holds the thing: the weapon low at the side, point forward and a little down (lifting as the hand swings
     forward), the shield in front of the belly facing forward. N changes the body.
   - The combat clips (the combat overhaul's step 1): `<` and `>` in the panel (or the , and . keys) pick one of the body's guard and
-    strike clips (the Medium's for the Medium and the Small, the Large's own), J plays it as it is: its root moves the
+    strike clips (the Medium's, for every body for now), J plays it as it is: its root moves the
     body, its feet lock where they land, its own hands hold the weapons. Baked by `Tools/Mocap/Combat/combat_bake.py`
     into `Resources/Locomotion/CombatClips.json`; filmed headless with `combatfilm <dir> [Medium|Large] [clips]`.
   - The guard (the combat overhaul's step 2): T raises it and lowers it again (over half a second). In the guard
@@ -49,9 +49,9 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     picked strike reaches; the panel shows each strike's reach. Where each strike's weapon is at contact on each
     body is measured headless into `Resources/Locomotion/StrikeReach.json` (`strikes <dir> <Small|Medium|Large>
     --measure`); `strikes <dir> <body> [clips]` aims each at targets (`AIM_REACH=1`: about its own reach).
-  - The Large holds its club two-handed: only the two-handed clips are its references (its one-handed club combo
-    and the great sword idles whose hands come apart are gone), and in the guard and its strikes the left hand
-    holds the handle 0.12 m below the right. A strike plays out before J starts another.
+  - The Large uses the Medium's sword and shield clips for now (its club in the sword hand, the shield hand empty):
+    `LocoLibrary.LargeOwnClips` switches back to its own two-handed clips (lg_, with the left hand on the handle).
+    A strike plays out before J starts another.
   - Hits (step 4): the weapon is swept from step to step about each strike's contact, and the first part or shield
     of the dummy it meets is struck by the fight's own damage rules. Both stand still a moment (the hit stop);
     the dummy's upper body is thrown back by the blow's lever, its head snapped by one to it, a struck arm (or the

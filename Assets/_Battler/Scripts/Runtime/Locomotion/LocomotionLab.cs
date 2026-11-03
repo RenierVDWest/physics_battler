@@ -140,7 +140,7 @@ namespace PhysicsBattler.Locomotion
             poser.WeaponLength = main != null && !main.IsShield ? main.length * scale : 0.9f * scale;
             mainWeapon = main != null && !main.IsShield ? main : null;
             poser.BodyKey = body.ToString();
-            poser.TwoHanded = body == BodySize.Large;
+            poser.TwoHanded = LocoLibrary.TwoHanded(body.ToString());
             film.ShieldRadius = off != null && off.IsShield ? 0.3f * scale : 0f;
         }
 
@@ -336,8 +336,8 @@ namespace PhysicsBattler.Locomotion
             poser.SoleFrom(rig);
             measures = new LocoMeasures(anim, loco, poser);
             film = new LocoFilm(Time.fixedDeltaTime, Mathf.Max(1, Mathf.RoundToInt(0.04f / Time.fixedDeltaTime)));
-            // (The guard, step 2 of the combat overhaul: the Large's own, the sword and shield's for the rest.)
-            loco.SetGuard(body == BodySize.Large ? "lg_" : "sns_");
+            // (The guard, step 2 of the combat overhaul: the sword and shield clips for every body for now, LocoLibrary.CombatPrefix.)
+            loco.SetGuard(LocoLibrary.CombatPrefix(body.ToString()));
             loco.GuardWanted = guardUp;
             size = legLength / 0.845f;
             EquipLoadout(size);
@@ -656,10 +656,10 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
-        /// <summary>This body's guard and strike clips: the Large's own, the Medium's for the Medium and the Small.</summary>
+        /// <summary>This body's guard and strike clips (LocoLibrary.CombatPrefix: the Medium's for every body for now).</summary>
         private List<string> CombatClips()
         {
-            string prefix = body == BodySize.Large ? "lg_" : "sns_";
+            string prefix = LocoLibrary.CombatPrefix(body.ToString());
             var names = new List<string>();
             foreach (var pair in LocoLibrary.Clips)
             {

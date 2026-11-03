@@ -21,7 +21,7 @@ internal static class DummyHitReport
         body ??= "Medium";
         LocoLibrary.Load();
         var ci = CultureInfo.InvariantCulture;
-        string prefix = body == "Large" ? "lg_" : "sns_";
+        string prefix = LocoLibrary.CombatPrefix(body);
         var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
         int landed = 0, blocked = 0, missed = 0, tries = 0;
         foreach (string name in names)
@@ -139,9 +139,9 @@ internal static class DummyHitReport
         var anim = new AnimRig(root.transform, unitRig);
         float leg = anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude;
         var loco = new Locomotor(leg);
-        loco.SetGuard(body == "Large" ? "lg_" : "sns_");
+        loco.SetGuard(LocoLibrary.CombatPrefix(body));
         loco.GuardWanted = true;
-        var poser = new LocoBody(anim, loco) { BodyKey = body, TwoHanded = body == "Large" };
+        var poser = new LocoBody(anim, loco) { BodyKey = body, TwoHanded = LocoLibrary.TwoHanded(body) };
         poser.SoleFrom(unitRig);
         anim.SlotWeaponR.localRotation = UnitController.MainGrip;
         poser.BladeR = UnitController.MainGrip * Vector3.forward;
