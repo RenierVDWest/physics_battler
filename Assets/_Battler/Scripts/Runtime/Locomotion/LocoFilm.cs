@@ -63,8 +63,8 @@ namespace PhysicsBattler.Locomotion
 
             if (ShieldRadius > 0f && sl != null)
             {
-                // (The shield's face is across the forearm: its centre at the grip, its normal the forearm's line.)
-                Vector3 n = (anim.Part(PartId.HandL).position - anim.Part(PartId.ForearmL).position).normalized;
+                // (The shield's face is across the hand: its centre at the grip, its normal the hand's line.)
+                Vector3 n = (anim.Part(PartId.HandL).rotation * anim.RestLocalPosition(PartId.HandL)).normalized;
                 sb.Append($",\"ShieldC\":{V(sl.position - origin)},\"ShieldN\":{V(n)}");
             }
 

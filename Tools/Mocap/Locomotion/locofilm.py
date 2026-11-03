@@ -60,10 +60,12 @@ def main():
     ap.add_argument("--every", type=int, default=2, help="draw every Nth film frame")
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--view", default="follow", choices=["follow", "side", "front", "left"], help="the camera: following from the right-front, or square on from the right side, the front or the left side")
+    ap.add_argument("--pitch", type=float, default=25.0, help="how far the camera looks down (degrees; 80: nearly from above)")
     ap.add_argument("--shield", type=float, default=1.0, help="the shield's size (1: a Medium's)")
     a = ap.parse_args()
 
     film = json.load(open(a.film))
+    pitch = a.pitch
     frames = [f for f in film["frames"] if a.t0 <= f["t"] <= a.t1]
     dt = film.get("dt", 0.04)
     scale = 150 * a.scale
@@ -100,20 +102,20 @@ def main():
         for n in range(8):
             for line in (((gx0 + n * tile, gz0), (gx0 + n * tile, gz0 + 8 * tile)),
                          ((gx0, gz0 + n * tile), (gx0 + 8 * tile, gz0 + n * tile))):
-                p0 = project((line[0][0], 0, line[0][1]), centre, cam_yaw, 25, scale)
-                p1 = project((line[1][0], 0, line[1][1]), centre, cam_yaw, 25, scale)
+                p0 = project((line[0][0], 0, line[0][1]), centre, cam_yaw, pitch, scale)
+                p1 = project((line[1][0], 0, line[1][1]), centre, cam_yaw, pitch, scale)
                 d.line([p0, p1], fill=(225, 222, 212), width=1)
         for heel, toe, k in prints[-12:]:
-            p0 = project((heel[0], 0, heel[2]), centre, cam_yaw, 25, scale)
-            p1 = project((toe[0], 0, toe[2]), centre, cam_yaw, 25, scale)
+            p0 = project((heel[0], 0, heel[2]), centre, cam_yaw, pitch, scale)
+            p1 = project((toe[0], 0, toe[2]), centre, cam_yaw, pitch, scale)
             d.line([p0, p1], fill=(180, 200, 235) if k == 0 else (235, 190, 180), width=5)
 
         for a_, b_ in BONES:
             if a_ in pose and b_ in pose:
-                d.line([project(pose[a_], centre, cam_yaw, 25, scale), project(pose[b_], centre, cam_yaw, 25, scale)],
+                d.line([project(pose[a_], centre, cam_yaw, pitch, scale), project(pose[b_], centre, cam_yaw, pitch, scale)],
                        fill=side(a_, b_), width=4)
         if "BladeTipR" in pose:
-            d.line([project(pose["HandTipR"], centre, cam_yaw, 25, scale), project(pose["BladeTipR"], centre, cam_yaw, 25, scale)],
+            d.line([project(pose["HandTipR"], centre, cam_yaw, pitch, scale), project(pose["BladeTipR"], centre, cam_yaw, pitch, scale)],
                    fill=(120, 120, 135), width=3)
         if "ShieldC" in pose:
             c, n = pose["ShieldC"], pose["ShieldN"]
@@ -123,13 +125,13 @@ def main():
             v = [n[1] * u[2] - n[2] * u[1], n[2] * u[0] - n[0] * u[2], n[0] * u[1] - n[1] * u[0]]
             rad = 0.3 * a.shield
             ring = [project([c[i] + rad * (math.cos(k / 12 * 2 * math.pi) * u[i] + math.sin(k / 12 * 2 * math.pi) * v[i]) for i in range(3)],
-                            centre, cam_yaw, 25, scale) for k in range(13)]
+                            centre, cam_yaw, pitch, scale) for k in range(13)]
             d.polygon(ring, outline=(110, 80, 50), fill=(170, 130, 90))
-        hx, hy = project([pose["Head"][0], pose["Head"][1] + 0.12, pose["Head"][2]], centre, cam_yaw, 25, scale)
+        hx, hy = project([pose["Head"][0], pose["Head"][1] + 0.12, pose["Head"][2]], centre, cam_yaw, pitch, scale)
         d.ellipse([hx - 13, hy - 13, hx + 13, hy + 13], outline=MID, width=3)
         for k, name in ((0, "FootL"), (1, "FootR")):
             if f["locks"][k]:
-                x, y = project(pose[name], centre, cam_yaw, 25, scale)
+                x, y = project(pose[name], centre, cam_yaw, pitch, scale)
                 d.ellipse([x - 5, y - 5, x + 5, y + 5], fill=LEFT if k == 0 else RIGHT)
 
         # Board panel.
