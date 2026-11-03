@@ -61,6 +61,9 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     guard, or blocking (its shield held across each blow). A small ball marks where the last strike was aimed:
     green it landed, blue it was blocked, red it missed. Headless: `dummyhits <dir> <body> [clips]` strikes a
     kinematic dummy open and blocking, and writes both bodies' films (`Tools/Mocap/Locomotion/twofilm.py` draws them).
+  - Sparring (X, on by default when driving): the walker keeps its guard up, faces the dummy and walks itself to
+    where the picked strike reaches it (the panel says when it is in position), so J or I strike from a meaningful
+    spot; W A S D still move it. The dummy steps back onto its spot a second after it was last struck.
   - Combos (step 5): I plays the picked strike's combo at the dummy (the panel shows it): up to three strikes,
     each the best follow-on of the last (`StrikeCombos`: for every pair, where the first is left and the second
     taken up, by how well the hands, the weapon's line, the hips and the feet meet there, the hips lined up), each

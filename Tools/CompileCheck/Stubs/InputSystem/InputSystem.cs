@@ -55,6 +55,7 @@ namespace UnityEngine.InputSystem
         public KeyControl yKey { get; } = new KeyControl();
         public KeyControl oKey { get; } = new KeyControl();
         public KeyControl iKey { get; } = new KeyControl();
+        public KeyControl xKey { get; } = new KeyControl();
         public KeyControl commaKey { get; } = new KeyControl();
         public KeyControl wKey { get; } = new KeyControl();
         public KeyControl aKey { get; } = new KeyControl();

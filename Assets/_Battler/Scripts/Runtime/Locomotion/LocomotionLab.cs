@@ -1111,6 +1111,39 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        [Tooltip("Sparring (X): the walker keeps its guard up, faces the dummy and walks itself to where the picked strike reaches it; J or I strikes from there. W A S D still move it.")]
+        public bool spar = true;
+
+        /// <summary>Within this of its sparring spot (m at a Medium's size) and facing the dummy within 10 degrees, it is in position.</summary>
+        public const float SparNear = 0.1f;
+
+        private bool InPosition { get; set; }
+
+        /// <summary>Where the walker stands to strike the dummy with the picked strike (or the combo it starts): the strike's own reach from its target.</summary>
+        private Vector3 SparSpot()
+        {
+            var clip = PickedClip();
+            Vector3 dummyAtNow = dummy.Loco.Position;
+            Vector3 target = clip != null && clip.ContactFrame >= 0 ? TargetFor(clip) : DummyTarget;
+            float reach = 1.4f * size;
+            if (clip != null && StrikeReach.TryGet(body.ToString(), clip.Name, out var grip, out var way))
+            {
+                reach = Flat(grip + way * (poser.WeaponLength * poser.SweetSpot));
+            }
+
+            Vector3 from = loco.Position - dummyAtNow;
+            from.y = 0f;
+            Vector3 dir = from.sqrMagnitude > 1e-4f ? from.normalized : Quaternion.Euler(0f, dummyFacing, 0f) * Vector3.forward;
+            Vector3 spot = new Vector3(target.x, loco.Position.y, target.z) + dir * reach;
+            return spot;
+        }
+
+        private void ToggleSpar()
+        {
+            spar = !spar;
+            legs.Add($"{time:0.00} s: sparring {(spar ? "on" : "off")}");
+        }
+
         private void Drive(out Vector3 want, out float facing)
         {
             Vector3 input = Vector3.zero;
@@ -1123,6 +1156,27 @@ namespace PhysicsBattler.Locomotion
             float speed = SandboxInput.KeyHeld(KeyCode.LeftShift) ? RunSpeed : walkSpeed * PaceScale;
             want = way * speed;
             bool hold = SandboxInput.KeyHeld(KeyCode.Space);
+            if (spar && !course && dummy != null)
+            {
+                // (Sparring: the guard up, facing the dummy, walked to the picked strike's reach of it.)
+                if (!guardUp)
+                {
+                    ToggleGuard();
+                }
+
+                Vector3 toDummy = dummy.Loco.Position - loco.Position;
+                facing = Flat(toDummy) > 0.2f ? Mathf.Atan2(toDummy.x, toDummy.z) * Mathf.Rad2Deg : loco.Facing;
+                Vector3 off = SparSpot() - loco.Position;
+                off.y = 0f;
+                bool driven = way.sqrMagnitude > 0.01f;
+                InPosition = !driven && off.magnitude < SparNear * size && Mathf.Abs(Mathf.DeltaAngle(loco.Facing, facing)) < 10f;
+                want = driven ? way * speed
+                    : off.magnitude < 0.5f * SparNear * size ? Vector3.zero
+                    : Vector3.ClampMagnitude(off * 2.5f, walkSpeed * PaceScale * 0.8f);
+                return;
+            }
+
+            InPosition = false;
             if (loco.GuardWanted)
             {
                 // (In the guard it faces the dummy, as it would an enemy (where the camera looks, on the
@@ -1171,6 +1225,7 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.Y)) { DummyInReach(); }
             if (SandboxInput.KeyPressed(KeyCode.O)) { NextDummyStance(); }
             if (SandboxInput.KeyPressed(KeyCode.I)) { PlayCombo(); }
+            if (SandboxInput.KeyPressed(KeyCode.X)) { ToggleSpar(); }
             if (SandboxInput.KeyPressed(KeyCode.T)) { ToggleGuard(); }
             if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
@@ -1366,6 +1421,11 @@ namespace PhysicsBattler.Locomotion
 
                 if (!course)
                 {
+                    if (GUILayout.Button(spar ? $"Sparring (X): on, {(InPosition ? "in position" : "moving into position")}" : "Sparring (X): off, driven by hand"))
+                    {
+                        ToggleSpar();
+                    }
+
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button($"Aim: {DummyHeightNames[dummyHeight]} (U)")) NextDummyHeight();
                     if (GUILayout.Button($"Dummy {DummyStanceName} (O)")) NextDummyStance();

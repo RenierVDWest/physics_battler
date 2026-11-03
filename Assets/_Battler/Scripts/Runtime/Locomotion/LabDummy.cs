@@ -31,6 +31,14 @@ namespace PhysicsBattler.Locomotion
         private readonly UnitProfile profile;
         private bool snapped;
 
+        /// <summary>Where it stands: knocked off it, it steps back onto it (after <see cref="HomeAfter"/> seconds unstruck).</summary>
+        public Vector3 Home;
+
+        /// <summary>How long after a blow it starts back, from how far off its spot (leg lengths... a Medium's metres), and how fast (m/s).</summary>
+        public const float HomeAfter = 1f, HomeFrom = 0.15f, HomeSpeed = 0.7f;
+
+        private float clock, lastHit = -10f;
+
         /// <summary>The body's mass (kg) and its size against a Medium's.</summary>
         public readonly float Mass, Size;
 
@@ -152,6 +160,7 @@ namespace PhysicsBattler.Locomotion
             Loco.SetGuard(guardPrefix);
             Loco.GuardWanted = true;
             Loco.Place(new Vector3(at.x, groundY, at.z), facing);
+            Home = new Vector3(at.x, groundY, at.z);
             MaxPoise = Poise = profile.maxPoise;
         }
 
@@ -192,11 +201,21 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public void Step(float dt, Vector3 faceToward, bool frozen)
         {
+            clock += dt;
             if (!frozen)
             {
                 Vector3 to = faceToward - Loco.Position;
                 float yaw = new Vector2(to.x, to.z).sqrMagnitude > 0.01f ? Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg : Loco.Facing;
-                Loco.Step(dt, Vector3.zero, yaw);
+                // (Knocked off its spot, it steps back onto it once it has stood a moment, as a sparring partner would.)
+                Vector3 home = Home - Loco.Position;
+                home.y = 0f;
+                Vector3 want = Vector3.zero;
+                if (Loco.Current != Locomotor.Mode.OneShot && clock - lastHit > HomeAfter && home.magnitude > HomeFrom * Size)
+                {
+                    want = Vector3.ClampMagnitude(home * 2f, HomeSpeed * Mathf.Sqrt(Size));
+                }
+
+                Loco.Step(dt, want, yaw);
                 Poser.Pose(dt);
                 RaiseShield(dt, faceToward);
                 React(dt);
@@ -286,6 +305,7 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point)
         {
+            lastHit = clock;
             // The pose shows it (the fight's recoil): the pinned body is pulled back to its pose each step,
             // so a kick on the physical part alone hardly shows.
             float react = (reaction == Combat.Reaction.Stagger ? 1.6f : reaction == Combat.Reaction.Flinch ? 1.25f : 1f) * ReactScale;
