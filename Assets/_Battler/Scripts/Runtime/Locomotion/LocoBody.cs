@@ -280,17 +280,18 @@ namespace PhysicsBattler.Locomotion
         public Vector3 BladeR = Vector3.forward, BladeL = Vector3.forward;
 
         /// <summary>
-        /// A carrying arm's hand at rest, against its shoulder in the body's frame (x out to its side, y up,
-        /// z forward; arm lengths): the weapon hand low at the side, the elbow bent a little; the shield
-        /// hand in front of the belly, the forearm across, so the shield faces forward.
+        /// A carrying arm at rest: the way its upper arm and its forearm point, in the body's frame (x out
+        /// to its side, y up, z forward). The weapon arm hangs a little out and back, the forearm forward
+        /// and down, so with the wrist straight the weapon's point is up and forward; the shield arm's
+        /// elbow is a little out, the forearm forward and well out, so the shield faces that way, clear
+        /// of the body.
         /// </summary>
-        public Vector3 WeaponRest = new Vector3(0.08f, -0.84f, 0.14f), ShieldRest = new Vector3(-0.12f, -0.62f, 0.32f);
+        public Vector3 WeaponUpper = new Vector3(0.12f, -0.97f, -0.18f), WeaponFore = new Vector3(0.1f, -0.75f, 0.65f);
+        public Vector3 ShieldUpper = new Vector3(0.3f, -0.92f, -0.15f), ShieldFore = new Vector3(0.68f, -0.12f, 0.72f);
 
         /// <summary>How much of the clip's arm swing a carrying arm keeps (the rhythm stays; a heavy or held thing swings less).</summary>
         public float WeaponSwing = 0.75f, ShieldSwing = 0.4f;
 
-        /// <summary>A carried weapon's angle below level, and how much its swing tips it (degrees: forward lifts the point).</summary>
-        public float BladeDown = 20f, BladeSwingTip = 12f;
 
         private float poseDt = 0.02f;
         private readonly Vector3[] swingMean = new Vector3[2];
@@ -327,20 +328,43 @@ namespace PhysicsBattler.Locomotion
 
                 swingMean[a] = Vector3.Lerp(swingMean[a], rel, 1f - Mathf.Exp(-poseDt / 0.8f));
                 swing = rel - swingMean[a];
-                Vector3 rest = carry == Carry.Weapon ? WeaponRest : ShieldRest;
-                rest.x *= right ? 1f : -1f;
-                Vector3 held = rest + swing * (carry == Carry.Weapon ? WeaponSwing : ShieldSwing);
-                target = upper.position + turn * held * ourArm;
-                // (The elbow back and out: a bent arm carrying something.)
-                pole = turn * new Vector3(right ? 0.6f : -0.6f, -0.2f, -1f);
+                Vector3 up = (carry == Carry.Weapon ? WeaponUpper : ShieldUpper).normalized;
+                Vector3 down = (carry == Carry.Weapon ? WeaponFore : ShieldFore).normalized;
+                if (!right)
+                {
+                    up.x = -up.x;
+                    down.x = -down.x;
+                }
+
+                float upperLength = anim.RestLocalPosition(foreId).magnitude, foreLength = anim.RestLocalPosition(handId).magnitude;
+                Vector3 elbowAt = upper.position + turn * up * upperLength;
+                Vector3 restHand = elbowAt + turn * down * foreLength;
+                target = restHand + turn * swing * ((carry == Carry.Weapon ? WeaponSwing : ShieldSwing) * ourArm);
+                // (The elbow where the rest pose has it: the forearm keeps its way as the arm swings.)
+                pole = elbowAt - 0.5f * (upper.position + target);
             }
 
             TwoBoneIK.Solve(upper, fore, hand, target, pole);
 
-            if (carry == Carry.Shield)
+            if (carry != Carry.Free)
             {
-                // The wrist straight: the shield faces the way the forearm points.
+                // The wrist straight, as a hand holding something is: the shield faces the way the
+                // forearm points; a weapon's angle is the grip's on the forearm's. Only its twist about
+                // the forearm is chosen: a weapon's point the way the body goes (a little out), a
+                // shield's grip bar across the fist the way it hangs.
                 hand.rotation = fore.rotation;
+                if (carry == Carry.Weapon)
+                {
+                    Vector3 axis = (hand.position - fore.position).normalized;
+                    Vector3 blade = Vector3.ProjectOnPlane(hand.rotation * (right ? BladeR : BladeL), axis);
+                    Vector3 wantWay = Vector3.ProjectOnPlane(turn * Quaternion.Euler(0f, right ? 8f : -8f, 0f) * Vector3.forward, axis);
+                    if (blade.sqrMagnitude > 1e-6f && wantWay.sqrMagnitude > 1e-6f)
+                    {
+                        float twist = Mathf.Clamp(Vector3.SignedAngle(blade, wantWay, axis), -MostWristTwist, MostWristTwist);
+                        hand.rotation = Quaternion.AngleAxis(twist, axis) * hand.rotation;
+                    }
+                }
+
                 return;
             }
 
@@ -361,16 +385,10 @@ namespace PhysicsBattler.Locomotion
                 hand.rotation = want * Quaternion.Inverse(rest);
             }
 
-            if (carry == Carry.Weapon)
-            {
-                // The weapon carried point forward and down, a little out, the point lifting as the hand
-                // swings forward: the wrist turns the clip's hand the least it can to hold it so.
-                float tip = Mathf.Clamp(swing.z / 0.25f, -1f, 1f) * BladeSwingTip;
-                Vector3 wantBlade = turn * Quaternion.Euler(BladeDown - tip, right ? 10f : -10f, 0f) * Vector3.forward;
-                Vector3 blade = hand.rotation * (right ? BladeR : BladeL);
-                hand.rotation = Quaternion.FromToRotation(blade, wantBlade) * hand.rotation;
-            }
         }
+
+        /// <summary>How far a carrying hand twists about its forearm to point its weapon (degrees: a forearm turns about this far).</summary>
+        public const float MostWristTwist = 90f;
 
         private void Leg(int f, PartId thighId, PartId shinId, PartId footId, LocoBone hip, LocoBone knee, LocoBone ankle, LocoBone toeEnd)
         {
