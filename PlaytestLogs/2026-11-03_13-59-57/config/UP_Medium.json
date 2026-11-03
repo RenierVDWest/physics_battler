@@ -1,0 +1,32 @@
+{
+    "body": "Medium",
+    "scale": 1.0,
+    "totalMassKg": 0.0,
+    "style": {
+        "instanceID": 1099511647793
+    },
+    "turnSpeed": 220.0,
+    "perception": {
+        "fieldOfView": 100.0,
+        "fieldUpDown": 70.0,
+        "clearView": 30.0,
+        "edgeReaction": 1.5,
+        "memory": 3.0,
+        "feltRadius": 0.8999999761581421
+    },
+    "maxHealth": 100.0,
+    "maxPoise": 45.0,
+    "poiseRegen": 15.0,
+    "defenceSkill": 0.5,
+    "torsoPin": 0.8500000238418579,
+    "armPin": 0.699999988079071,
+    "weaponArmKinematicInBlows": true,
+    "linearDamping": 0.05000000074505806,
+    "angularDamping": 0.10000000149011612,
+    "solverIterations": 12,
+    "solverVelocityIterations": 4,
+    "maxAngularVelocity": 30.0,
+    "maxDepenetrationVelocity": 3.0,
+    "bodyFriction": 0.6000000238418579,
+    "footFriction": 1.0
+}
