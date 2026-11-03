@@ -103,6 +103,22 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            BeginFight();
+        }
+
+        /// <summary>From the locomotion lab to the fight (the lab's F): the units spawn and fight, walking with the new walk.</summary>
+        public void WatchFight()
+        {
+            watchFrom = Time.frameCount;
+            locomotionLab = false;
+            enabled = true;
+            BeginFight();
+        }
+
+        private int watchFrom = -1;
+
+        private void BeginFight()
+        {
             recorder = FindAnyObjectByType<PlaytestRecorder>();
             if (recorder == null)
             {
@@ -300,9 +316,9 @@ namespace PhysicsBattler.Sandbox
 
         private void Update()
         {
-            if (!Application.isPlaying)
+            if (!Application.isPlaying || Time.frameCount <= watchFrom)
             {
-                return;
+                return;   // (the key that left the lab is not the fight's too)
             }
 
             if (SandboxInput.KeyPressed(KeyCode.R)) Spawn();

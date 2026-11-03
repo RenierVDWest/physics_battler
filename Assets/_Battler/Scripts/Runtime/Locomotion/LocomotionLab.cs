@@ -447,6 +447,34 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
+        /// Leaves the lab for the fight (F): this run is logged, the lab's body and footprints go, and the
+        /// sandbox spawns the fight, whose units walk with the new walk.
+        /// </summary>
+        public void WatchFight()
+        {
+            WriteLog();
+            ClearPrints();
+            if (unit != null)
+            {
+                Destroy(unit);
+            }
+
+            loco = null;
+            Time.timeScale = 1f;
+            var sandbox = GetComponent<BattleSandbox>();
+            if (sandbox == null)
+            {
+                sandbox = FindAnyObjectByType<BattleSandbox>();
+            }
+
+            Destroy(this);
+            if (sandbox != null)
+            {
+                sandbox.WatchFight();
+            }
+        }
+
+        /// <summary>
         /// A shove from a random side: the chest is struck (the physical upper body takes it) and the walk
         /// steps to catch the body.
         /// </summary>
@@ -510,6 +538,12 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.G)) Shove();
             if (SandboxInput.KeyPressed(KeyCode.H)) Throw();
             if (SandboxInput.KeyPressed(KeyCode.K)) Shove(2.5f);
+            if (SandboxInput.KeyPressed(KeyCode.F))
+            {
+                WatchFight();
+                return;
+            }
+
             if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
         }
@@ -644,6 +678,11 @@ namespace PhysicsBattler.Locomotion
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(course ? "Drive (C)" : "Course (C)")) { course = !course; Build(); }
             if (GUILayout.Button("Restart (R)")) Build();
+            if (GUILayout.Button("Watch the fight (F)"))
+            {
+                WatchFight();
+                return;
+            }
             if (GUILayout.Button(paused ? "Play (P)" : "Pause (P)")) paused = !paused;
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
