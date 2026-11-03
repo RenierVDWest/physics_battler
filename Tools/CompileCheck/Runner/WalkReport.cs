@@ -35,6 +35,7 @@ internal static class WalkReport
             int steps0 = unit.Stance.StepsTaken;
             var planted = new Vector3[2];
             var wasPlanted = new bool[2];
+            var wasToe = new bool[2];
             (Vector3 dir, float seconds)[] legs = { (Vector3.forward, 3f), (Vector3.back, 1.5f), (Vector3.right, 1.5f), (Vector3.zero, 1.5f), (Vector3.up, 3f), (Vector3.zero, 1f) };
             float pelvisDrop = 0f;
             Vector3 heading = Vector3.forward;
@@ -71,10 +72,18 @@ internal static class WalkReport
                     t += 1f / 60f;
                     for (int f = 0; f < 2; f++)
                     {
-                        bool p = !unit.Stance.Stepping(f);
-                        if (p && wasPlanted[f]) slide = Mathf.Max(slide, Vector3.Distance(planted[f], unit.Stance.Position(f)));
-                        if (p && !wasPlanted[f]) planted[f] = unit.Stance.Position(f);
+                        // (The new walk: a foot is planted while its lock holds, measured where the posed
+                        // foot meets the ground, heel or toe; the old: while the stance doesn't step it.)
+                        var walkBody = unit.WalkBody;
+                        bool newWalk = walkBody != null && unit.WalkWeight > 0.99f;
+                        bool p = newWalk ? walkBody.Feet[f].Locked : !unit.Stance.Stepping(f);
+                        Vector3 at = newWalk ? walkBody.ContactPoint(f) : unit.Stance.Position(f);
+                        at.y = 0f;
+                        bool toe = newWalk && walkBody.Feet[f].OnToe;
+                        if (p && wasPlanted[f] && toe == wasToe[f]) slide = Mathf.Max(slide, Vector3.Distance(planted[f], at));
+                        if (p && (!wasPlanted[f] || toe != wasToe[f])) planted[f] = at;
                         wasPlanted[f] = p;
+                        wasToe[f] = toe;
                         var thigh = unit.Anim.Part(f == 0 ? PartId.ThighL : PartId.ThighR).position;
                         var foot = unit.Anim.Part(f == 0 ? PartId.FootL : PartId.FootR).position;
                         overReach = Mathf.Max(overReach, Vector3.Distance(thigh, foot) / leg);
@@ -87,7 +96,7 @@ internal static class WalkReport
                     Add(csv, unit.Root.position, ci);
                     csv.AppendLine();
                 }
-                Console.WriteLine($"{body} walking {(way == Vector3.zero ? "to a stop" : way == Vector3.up ? "round in a circle" : way.ToString())}: hips dropped at most {pelvisDrop * 100f:0} cm, walk weight {unit.Gait.Weight:0.00}, cycle {unit.Gait.CycleTime:0.00} s, {unit.Stance.StepsTaken - steps0} steps so far");
+                Console.WriteLine($"{body} walking {(way == Vector3.zero ? "to a stop" : way == Vector3.up ? "round in a circle" : way.ToString())}: hips dropped at most {pelvisDrop * 100f:0} cm, walk weight {(unit.Walk != null ? unit.WalkWeight : unit.Gait.Weight):0.00}{(unit.Walk != null ? $" ({unit.Walk.Current}, {unit.WalkBody.Feet[0].Landings + unit.WalkBody.Feet[1].Landings} landings)" : "")}, cycle {unit.Gait.CycleTime:0.00} s, {unit.Stance.StepsTaken - steps0} steps so far");
                 pelvisDrop = 0f;
             }
             Vector3 home = unit.Stance.HomeWorld(Stance.Left, unit.Root.position, unit.FacingYaw);

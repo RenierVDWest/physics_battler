@@ -20,6 +20,11 @@ internal static class Program
             catch (Exception e) { return "{\"error\": \"" + e.GetType().Name + "\"}"; }
         };
 
+        if (Environment.GetEnvironmentVariable("OLD_WALK") != null)
+        {
+            PhysicsBattler.Units.UnitController.NewWalk = false;   // (the walk before the locomotion lab)
+        }
+
         if (args.Length >= 2 && args[0] == "smoke")
         {
             return Smoke.Run(args[1]);

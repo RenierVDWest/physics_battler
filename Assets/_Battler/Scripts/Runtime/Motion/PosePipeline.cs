@@ -224,6 +224,17 @@ namespace PhysicsBattler.Motion
         /// <summary>How much the unit is walking (0 to 1): the hips go with the root, not the feet.</summary>
         public float GaitWeight { get; set; }
 
+        /// <summary>
+        /// Branch locomotion-lab: the new walk (<see cref="Locomotion.LocoBody"/>), and how much of the
+        /// lower body and torso is its (0: the stance's). The pelvis, spine, chest and head start from
+        /// the walk's, the feet go where its locks hold them, turned as its feet are, the knees its way;
+        /// everything after (blows, the Fight Rhythm, the look, the arms) goes on top as before.
+        /// </summary>
+        public Locomotion.LocoBody Walk { get; set; }
+        public float WalkWeight { get; set; }
+
+        private float WalkW => Walk != null ? Mathf.Clamp01(WalkWeight) : 0f;
+
         /// <summary>Milestone 5: a part cut off the unit (it no longer counts in the weight).</summary>
         public System.Func<PartId, bool> IsSevered { get; set; }
 
@@ -336,6 +347,23 @@ namespace PhysicsBattler.Motion
             // The head keeps looking ahead: it undoes most of the turn below it.
             float turnBelow = leadSign * (hipTurn + counterTurn) + s.hips.y + s.chest.y;
             anim.Part(PartId.Head).localRotation = Quaternion.Euler(-style.lean + s.head.x, -0.9f * turnBelow + s.head.y, s.head.z);
+
+            // 2b. The walk (branch locomotion-lab): the pelvis and the torso as the walk has them, the
+            //     style's crouch kept (the knees bend for it), blended in by the walk's weight.
+            float walkW = WalkW;
+            if (walkW > 0f)
+            {
+                Walk.Pelvis(out Vector3 walkHips, out var walkTurn);
+                walkHips += Vector3.down * (style.crouch * leg);
+                var spineNow = anim.Part(PartId.Spine);
+                var chestNow = anim.Part(PartId.Chest);
+                var headNow = anim.Part(PartId.Head);
+                Quaternion spineWas = spineNow.rotation, chestWas = chestNow.rotation, headWas = headNow.rotation;
+                pelvis.SetPositionAndRotation(Vector3.Lerp(pelvis.position, walkHips, walkW), Quaternion.Slerp(pelvis.rotation, walkTurn, walkW));
+                spineNow.rotation = Quaternion.Slerp(spineWas, Walk.SpineRotation, walkW);
+                chestNow.rotation = Quaternion.Slerp(chestWas, Walk.ChestRotation, walkW);
+                headNow.rotation = Quaternion.Slerp(headWas, Walk.HeadRotation, walkW);
+            }
             Guard(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, +1f, stance.LeadLeft, style);
             Guard(PartId.UpperArmR, PartId.ForearmR, PartId.HandR, -1f, !stance.LeadLeft, style);
 
@@ -399,7 +427,7 @@ namespace PhysicsBattler.Motion
             Vector3 com = CenterOfMassNow();
             Vector3 shift = wanted - com;
             shift.y = 0f;
-            shift = Vector3.ClampMagnitude(shift * 0.85f, MaxWeightShift * leg) * (1f - 0.85f * moveBlend);
+            shift = Vector3.ClampMagnitude(shift * 0.85f, MaxWeightShift * leg) * (1f - 0.85f * moveBlend) * (1f - walkW);
             WeightShift = shift.magnitude;
             pelvis.position += shift;
             if (move != null)
@@ -2198,7 +2226,9 @@ namespace PhysicsBattler.Motion
         public Vector3 AnkleTarget(int foot)
         {
             Vector3 ground = stance.Position(foot);
-            return ground + Vector3.up * (body.AnkleHeight + stance.Lift(foot));
+            Vector3 own = ground + Vector3.up * (body.AnkleHeight + stance.Lift(foot));
+            float w = WalkW;
+            return w > 0f ? Vector3.Lerp(own, Walk.Feet[foot].Target, w) : own;
         }
 
         private void SolveLeg(int foot)
@@ -2213,12 +2243,22 @@ namespace PhysicsBattler.Motion
             float hipsYaw = ShieldCone.FacingOf(anim.Part(PartId.Pelvis).rotation, stance.Yaw(foot));
             float kneeYaw = hipsYaw + Mathf.Clamp(Mathf.DeltaAngle(hipsYaw, stance.Yaw(foot)), -HipTurnOut, HipTurnOut);
             Vector3 pole = Quaternion.Euler(0f, kneeYaw, 0f) * new Vector3(left ? -0.15f : 0.15f, 0f, 1f);
+            float walkW = WalkW;
+            if (walkW > 0f)
+            {
+                pole = Vector3.Lerp(pole.normalized, Walk.KneePole(foot, thigh.position).normalized, walkW);
+            }
+
             TwoBoneIK.Solve(thigh, shin, ankle, AnkleTarget(foot), pole);
             AlignHinge(left ? PartId.ThighL : PartId.ThighR, left ? PartId.ShinL : PartId.ShinR);
             // Flat on the ground, toes down a little as it lifts.
             float t = stance.StepProgress(foot);
             float pitch = stance.Stepping(foot) ? 18f * Mathf.Sin(Mathf.PI * t) * (t < 0.5f ? 1f : -0.6f) : 0f;
             ankle.rotation = footYaw * Quaternion.Euler(pitch, 0f, 0f);
+            if (walkW > 0f)
+            {
+                ankle.rotation = Quaternion.Slerp(ankle.rotation, Walk.FootRotation(foot), walkW);
+            }
         }
 
         /// <summary>

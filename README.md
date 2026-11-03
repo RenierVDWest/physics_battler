@@ -31,6 +31,12 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
   - R restarts, P pauses, . steps once.
 - **Logs:** each run writes `PlaytestLogs/locolab-(time)/`, with the measures in session.md and the film in
   locolab.json. To draw the film: `python3 Tools/Mocap/Locomotion/locofilm.py <that>/locolab.json film.gif`.
+- **In the fight (first join):** untick *Locomotion lab* and the fight's units walk with the new locomotion
+  (`Units/UnitWalk.cs`): while a unit is free to walk, the walk animates the root the fight moves (its feet locked
+  where they land, the pelvis, spine, chest and head as the reference walk has them); the pose pipeline blends its
+  own lower body and torso into the walk's, and the Fight Rhythm, guard, look and arms go on top. A blow, a
+  knock-back or a stumble hands the feet back to the stance where the walk left them. `UnitController.NewWalk`
+  switches it off (`OLD_WALK=1` headless).
 - **Headless:** `dotnet Tools/CompileCheck/bin/Tests/Debug/PhysicsBattler.Tests.dll locolab <dir> 70` runs the
   same course and prints the measures. `LOCO_MODES=1` traces the clip switches;
   `LOCO_SHOVE="time,yaw,m/s;..."` adds shoves; `LOCO_BODY=Small|Large` walks another body;

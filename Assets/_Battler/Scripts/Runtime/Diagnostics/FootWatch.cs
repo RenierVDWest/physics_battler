@@ -36,7 +36,8 @@ namespace PhysicsBattler.Diagnostics
             // Last step's, for speeds.
             public Vector3 lastPhys, lastAnim;
             public float lastPhysYaw, lastAnimYaw;
-            public bool hasLast, wasPlanted;
+            public bool hasLast, wasPlanted, onToe, walkHad;
+            public Vector3 lastAnkle;
 
             // The plant under way.
             public Vector3 plantStartPhys, plantStartAnim;
@@ -89,7 +90,11 @@ namespace PhysicsBattler.Diagnostics
             var stance = unit.Stance;
             var anim = unit.Anim;
             bool upright = unit.IsAlive && unit.State == UnitState.Standing;
-            bool walking = unit.Gait != null && unit.Gait.Weight >= 0.3f;
+            // (Branch locomotion-lab: while the new walk has the feet, its locks say which are planted,
+            // and a planted foot is where it meets the ground, heel or toe.)
+            var walkBody = unit.Walk != null && unit.WalkOwnsFeet ? unit.WalkBody : null;
+            bool walking = walkBody != null ? unit.Walk.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Cycle : unit.Gait != null && unit.Gait.Weight >= 0.3f;
+            Vector3 walkVelocity = walkBody != null ? unit.Walk.Velocity : unit.Gait != null ? unit.Gait.Velocity : Vector3.zero;
             float ground = stance.GroundY;
             Vector3 root = unit.Root.position;
             for (int f = 0; f < 2; f++)
@@ -100,8 +105,35 @@ namespace PhysicsBattler.Diagnostics
                 Vector3 phys = bodyPart.body != null ? bodyPart.body.position : bodyPart.transform.position;
                 Quaternion physRot = bodyPart.body != null ? bodyPart.body.rotation : bodyPart.transform.rotation;
                 Vector3 animAt = animFoot.position;
+                Vector3 ankleAt = animAt;   // (travel by the ankle: the contact point jumps as the foot rolls)
                 float physYaw = YawOf(physRot, foot.localForward), animYaw = YawOf(animFoot.rotation, foot.localForward);
-                bool planted = upright && !stance.Stepping(f);
+                bool planted = upright && (walkBody != null ? walkBody.Feet[f].Locked : !stance.Stepping(f));
+                bool onToe = walkBody != null && walkBody.Feet[f].OnToe;
+                if (walkBody != null)
+                {
+                    Vector3 contact = walkBody.ContactPoint(f) - animAt;
+                    contact.y = 0f;   // (where on the ground; the sole's height is measured as before)
+                    phys += contact;
+                    animAt += contact;
+                    if (planted && foot.wasPlanted && onToe != foot.onToe)
+                    {
+                        // (Rolled onto the toe, or down onto the heel: the point on the ground changes.)
+                        EndPlant(foot, phys, animAt, physYaw, animYaw);
+                        foot.wasPlanted = false;
+                        foot.hasLast = false;
+                    }
+                }
+
+                if (planted && foot.wasPlanted && (walkBody != null) != foot.walkHad)
+                {
+                    // (The walk took the feet over or gave them back: measured afresh from here.)
+                    EndPlant(foot, phys, animAt, physYaw, animYaw);
+                    foot.wasPlanted = false;
+                    foot.hasLast = false;
+                }
+
+                foot.walkHad = walkBody != null;
+                foot.onToe = onToe;
 
                 // The sole off the ground: the collider's lowest point (the foot's centre less its height
                 // over its sole when first planted, where there is no collider to measure).
@@ -114,6 +146,11 @@ namespace PhysicsBattler.Diagnostics
 
                 float offset = float.IsNaN(foot.soleOffset) ? 0f : foot.soleOffset;
                 float physSole = measured ? bounds.min.y - ground : phys.y - offset - ground;
+                if (onToe && !measured)
+                {
+                    // (Up on its toe, rolling off it: the heel is meant to be up; the toe is on the ground.)
+                    physSole = Mathf.Min(physSole, 0f);
+                }
                 float animSole = animAt.y - offset - ground;
 
                 float physSpeed = 0f, animSpeed = 0f, twist = 0f;
@@ -134,7 +171,7 @@ namespace PhysicsBattler.Diagnostics
                 frames.Add("aFootYaw" + foot.side, animYaw, 1);
                 frames.Add("plantYaw" + foot.side, plantYaw, 1);
                 frames.Add("footVsHips" + foot.side, offHips, 1);
-                frames.Add("aSlide" + foot.side, planted ? Flat(animAt, stance.Position(f)) : 0f, 3);
+                frames.Add("aSlide" + foot.side, planted ? (walkBody != null ? Flat(animAt, foot.plantStartAnim) : Flat(animAt, stance.Position(f))) : 0f, 3);
                 frames.Add("slip" + foot.side, planted ? physSpeed : 0f, 3);
                 frames.Add("aSlip" + foot.side, planted ? animSpeed : 0f, 3);
                 frames.Add("twist" + foot.side, planted ? twist : 0f, 1);
@@ -178,9 +215,9 @@ namespace PhysicsBattler.Diagnostics
                     EndPlant(foot, phys, animAt, physYaw, animYaw);
                 }
 
-                if (upright && walking && unit.Gait.Velocity.sqrMagnitude > 0.01f)
+                if (upright && walking && walkVelocity.sqrMagnitude > 0.01f)
                 {
-                    Vector3 v = unit.Gait.Velocity;
+                    Vector3 v = walkVelocity;
                     float moveYaw = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
                     if (f == 0)
                     {
@@ -196,13 +233,14 @@ namespace PhysicsBattler.Diagnostics
                     moveOff.Add(Mathf.Min(d, 180f - d));
                     if (foot.hasLast)
                     {
-                        footTravelWalking += 0.5f * Flat(animAt, foot.lastAnim);
+                        footTravelWalking += 0.5f * Flat(ankleAt, foot.lastAnkle);
                     }
                 }
 
                 foot.wasPlanted = planted;
                 foot.lastPhys = phys;
                 foot.lastAnim = animAt;
+                foot.lastAnkle = ankleAt;
                 foot.lastPhysYaw = physYaw;
                 foot.lastAnimYaw = animYaw;
                 foot.hasLast = true;
@@ -262,7 +300,7 @@ namespace PhysicsBattler.Diagnostics
 
             if (what.Length > 0)
             {
-                bool walking = unit.Gait != null && unit.Gait.Weight >= 0.3f;
+                bool walking = unit.Walk != null && unit.WalkOwnsFeet ? unit.Walk.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Cycle : unit.Gait != null && unit.Gait.Weight >= 0.3f;
                 note?.Invoke($"{(foot.side == "L" ? "left" : "right")} foot, planted {foot.plantTime:0.00} s{(walking ? " while walking" : "")}: {what}");
             }
         }

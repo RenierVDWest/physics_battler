@@ -223,6 +223,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             poser = new LocoBody(anim, loco) { GroundY = origin.y };
+            poser.SoleFrom(rig);
             measures = new LocoMeasures(anim, loco, poser);
             film = new LocoFilm(Time.fixedDeltaTime, Mathf.Max(1, Mathf.RoundToInt(0.04f / Time.fixedDeltaTime)));
             path = LocoCourse.Lab();

@@ -32,6 +32,7 @@ internal static class LocoLabReport
         }
 
         var poser = new LocoBody(anim, loco);
+        poser.SoleFrom(unitRig);
         string legName = "";
         if (Environment.GetEnvironmentVariable("LOCO_TRACE") != null)
         {

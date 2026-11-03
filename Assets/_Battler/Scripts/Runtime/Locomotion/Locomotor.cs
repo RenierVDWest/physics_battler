@@ -158,10 +158,40 @@ namespace PhysicsBattler.Locomotion
             Phase = 0f;
             idleTime = 0f;
             hasLast = false;
+            stanceHeld = false;
+            Shot = null;
             for (int i = 0; i < offset.Length; i++)
             {
                 offset[i] = offsetVelocity[i] = Vector3.zero;
             }
+        }
+
+        /// <summary>
+        /// Placed standing with its ankles where they are (world: handed the body by another pose, its
+        /// feet stay put): the standing clip's legs, each moved onto its ankle.
+        /// </summary>
+        public void PlaceStanding(Vector3 position, float facing, Vector3 leftAnkle, Vector3 rightAnkle)
+        {
+            Place(new Vector3(position.x, 0f, position.z), facing);
+            if (idle == null)
+            {
+                return;
+            }
+
+            idle.Pose(0f, raw, Leg);
+            var turn = Quaternion.Euler(0f, Facing, 0f);
+            for (int f = 0; f < 2; f++)
+            {
+                Vector3 clipAnkle = Position + turn * raw[(int)(f == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot)];
+                Vector3 want = f == 0 ? leftAnkle : rightAnkle;
+                Vector3 shift = new Vector3(want.x - clipAnkle.x, 0f, want.z - clipAnkle.z);
+                for (int i = 0; i < 4; i++)
+                {
+                    stance[f * 4 + i] = Position + turn * raw[(int)LegBones[f * 4 + i]] + shift;
+                }
+            }
+
+            stanceHeld = true;
         }
 
         // ---- Each step ------------------------------------------------------------------------------
@@ -255,6 +285,56 @@ namespace PhysicsBattler.Locomotion
 
             Inertialize(dt);
             Facing = Mathf.DeltaAngle(0f, Facing);
+        }
+
+        /// <summary>
+        /// The walk animating a root that something else moves (the fight's steering, knock-backs, a
+        /// lunge): its place, facing and velocity are taken as they are, and only the body is posed:
+        /// the cycles and the standing feet, no clips that move the root themselves.
+        /// </summary>
+        public void Follow(float dt, Vector3 position, float facing, Vector3 velocity)
+        {
+            if (!Ready || dt <= 0f)
+            {
+                return;
+            }
+
+            if (Current == Mode.OneShot)
+            {
+                Shot = null;
+                Current = Mode.Cycle;
+                pendingSwitch = hasLast;
+            }
+
+            velocity.y = 0f;
+            wantNow = velocity;
+            // (A little smoothing: the measured velocity jitters step to step.)
+            Vector3 was = Velocity;
+            Velocity = Vector3.Lerp(Velocity, velocity, 1f - Mathf.Exp(-dt / 0.06f));
+            Acceleration = (Velocity - was) / dt;
+            FacingSpeed = Mathf.DeltaAngle(Facing, facing) / dt;
+            Facing = Mathf.DeltaAngle(0f, facing);
+            Position = new Vector3(position.x, 0f, position.z);
+            float speed = new Vector2(Velocity.x, Velocity.z).magnitude;
+            if (Current == Mode.Idle && speed > WalkFrom)
+            {
+                Switch(Mode.Cycle);
+            }
+            else if (Current == Mode.Cycle && speed < StandBelow && velocity.magnitude < StandBelow && BothFeetDown() && (StandsWide() || finishing > 1.2f))
+            {
+                Switch(Mode.Idle);
+            }
+
+            if (Current == Mode.Idle)
+            {
+                IdlePose(dt);
+            }
+            else
+            {
+                CyclePose(dt, speed);
+            }
+
+            Inertialize(dt);
         }
 
         /// <summary>
