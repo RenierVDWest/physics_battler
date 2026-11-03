@@ -50,6 +50,7 @@ namespace UnityEngine.InputSystem
         public KeyControl jKey { get; } = new KeyControl();
         public KeyControl cKey { get; } = new KeyControl();
         public KeyControl vKey { get; } = new KeyControl();
+        public KeyControl nKey { get; } = new KeyControl();
         public KeyControl wKey { get; } = new KeyControl();
         public KeyControl aKey { get; } = new KeyControl();
         public KeyControl sKey { get; } = new KeyControl();

@@ -234,7 +234,7 @@ namespace PhysicsBattler.Locomotion
                 else if (speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
                 {
                 }
-                else if (speed < StandBelow && want < StandBelow && BothFeetDown())
+                else if (speed < StandBelow && want < StandBelow && BothFeetDown() && (StandsWide() || finishing > 1.2f))
                 {
                     Switch(Mode.Idle);
                 }
@@ -317,6 +317,19 @@ namespace PhysicsBattler.Locomotion
 
         private bool BothFeetDown() => Down[0] >= 0.5f && Down[1] >= 0.5f;
 
+        /// <summary>The feet apart enough to stand on (across the body: at least 60% of the standing clip's stance); a stop with them together steps once more.</summary>
+        private bool StandsWide()
+        {
+            if (idleWidth <= 0f && idle != null)
+            {
+                idleWidth = Mathf.Abs(idle.Point(LocoBone.LeftFoot, 0f).x - idle.Point(LocoBone.RightFoot, 0f).x);
+            }
+
+            return Mathf.Abs(lastOut[(int)LocoBone.LeftFoot].x - lastOut[(int)LocoBone.RightFoot].x) >= 0.6f * idleWidth * Leg;
+        }
+
+        private float idleWidth, finishing;
+
         /// <summary>A switch between whole motions: the new one starts, what differs is faded out.</summary>
         private void Switch(Mode to)
         {
@@ -324,9 +337,8 @@ namespace PhysicsBattler.Locomotion
             Current = to;
             if (to == Mode.Cycle && from == Mode.Idle)
             {
-                // (It sets off with whichever foot is not carrying it: the phase at which that foot lifts.)
-                Phase = Down[0] >= Down[1] ? 0.1f : 0.6f;
                 AimTravel(wantNow);
+                Phase = SetOffPhase();
             }
             else if (to == Mode.Idle)
             {
@@ -337,6 +349,26 @@ namespace PhysicsBattler.Locomotion
             // (What the old motion had and the new one doesn't is kept, then faded out: worked out
             // once the new motion's first pose is known.)
             pendingSwitch = hasLast;
+        }
+
+        /// <summary>
+        /// The phase to set off at from a stand: the foot that steps first lifts (phase 0.1: the right;
+        /// 0.6: the left). Going forward or back, the foot behind; going sideways, the foot on that side
+        /// (a side-step leads with it); a foot that is up already, that one.
+        /// </summary>
+        private float SetOffPhase()
+        {
+            if (Down[0] < 0.5f || Down[1] < 0.5f)
+            {
+                return Down[0] >= Down[1] ? 0.1f : 0.6f;
+            }
+
+            Vector3 way = Quaternion.Euler(0f, travelAngle, 0f) * Vector3.forward;
+            float left = Vector3.Dot(lastOut[(int)LocoBone.LeftFoot], way);
+            float right = Vector3.Dot(lastOut[(int)LocoBone.RightFoot], way);
+            bool sideways = Mathf.Abs(travelAngle) > 45f && Mathf.Abs(travelAngle) < 135f;
+            bool rightFirst = sideways ? right > left : right < left;
+            return rightFirst ? 0.1f : 0.6f;
         }
 
         // ---- Standing ---------------------------------------------------------------------------------
@@ -737,7 +769,8 @@ namespace PhysicsBattler.Locomotion
             StrideScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, k)), StrideLeast, StrideMost);
             Cadence = k / StrideScale;
             PhaseRate = speed / Mathf.Max(0.05f, stride * StrideScale);
-            if (wantNow.magnitude < StandBelow && !BothFeetDown())
+            finishing = wantNow.magnitude < StandBelow ? finishing + dt : 0f;
+            if (wantNow.magnitude < StandBelow && (!BothFeetDown() || !StandsWide()))
             {
                 // (Come to a stand with a foot up: the step is finished, not frozen.)
                 PhaseRate = Mathf.Max(PhaseRate, 0.7f);
@@ -803,7 +836,10 @@ namespace PhysicsBattler.Locomotion
                 Down[f] = u < sBlend ? 1f : 0f;
 
                 // Stride warping: the foot (and half as much the knee) nearer or further along the way
-                // it travels, about the hips; on top, what makes the stance foot's travel the root's.
+                // it travels, about its own hip (where it stands at rest: about the hips' middle, a
+                // short side-step would draw the feet together); on top, what makes the stance foot's
+                // travel the root's.
+                Vector3 hip = raw[(int)(f == 0 ? LocoBone.LeftUpLeg : LocoBone.RightUpLeg)];
                 float fit = stanceTravel > 1e-4f ? stride * sBlend / stanceTravel : 1f;
                 float warp = StrideScale * Mathf.Clamp(fit, 0.8f, 1.25f);
                 if (Mathf.Abs(warp - 1f) > 1e-3f)
@@ -812,7 +848,7 @@ namespace PhysicsBattler.Locomotion
                     {
                         float share = b == LocoBone.LeftLeg || b == LocoBone.RightLeg ? 0.5f : 1f;
                         Vector3 p = raw[(int)b];
-                        float along = Vector3.Dot(p - hips, d);
+                        float along = Vector3.Dot(p - hip, d);
                         raw[(int)b] = p + d * (along * (warp - 1f) * share);
                     }
                 }

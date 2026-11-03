@@ -26,6 +26,10 @@ namespace PhysicsBattler.Locomotion
     public class LocomotionLab : MonoBehaviour
     {
         public UnitController prefab;
+        public UnitController smallPrefab, mediumPrefab, largePrefab;
+
+        [Tooltip("Which body walks (N: the next one).")]
+        public BodySize body = BodySize.Medium;
         public OrbitCamera orbitCamera;
         public Material tint;
 
@@ -63,11 +67,18 @@ namespace PhysicsBattler.Locomotion
         private Rect panel = new Rect(12, 12, 330, 10);
         private string folder;
 
-        public const float RunSpeed = 3.6f;
+        public const float BaseRunSpeed = 3.6f;
 
-        public void Begin(UnitController medium, OrbitCamera cam, Material material, Vector3 boardOrigin)
+        /// <summary>A Medium's speeds, for this body: its natural pace goes with the square root of its leg.</summary>
+        private float PaceScale => loco != null ? Mathf.Sqrt(loco.Leg / 0.845f) : 1f;
+
+        private float RunSpeed => BaseRunSpeed * PaceScale;
+
+        public void Begin(UnitController small, UnitController medium, UnitController large, OrbitCamera cam, Material material, Vector3 boardOrigin)
         {
-            prefab = medium;
+            smallPrefab = small;
+            mediumPrefab = medium;
+            largePrefab = large;
             orbitCamera = cam;
             tint = material;
             origin = boardOrigin;
@@ -93,9 +104,15 @@ namespace PhysicsBattler.Locomotion
             }
 
             LocoLibrary.Load();
+            prefab = body == BodySize.Small ? smallPrefab : body == BodySize.Large ? largePrefab : mediumPrefab;
             if (prefab == null)
             {
-                Debug.LogError("[LocomotionLab] no Medium prefab: run Physics Battler > Setup > Run Project Setup.");
+                prefab = mediumPrefab;
+            }
+
+            if (prefab == null)
+            {
+                Debug.LogError("[LocomotionLab] no unit prefab: run Physics Battler > Setup > Run Project Setup.");
                 enabled = false;
                 return;
             }
@@ -209,6 +226,7 @@ namespace PhysicsBattler.Locomotion
             measures = new LocoMeasures(anim, loco, poser);
             film = new LocoFilm(Time.fixedDeltaTime, Mathf.Max(1, Mathf.RoundToInt(0.04f / Time.fixedDeltaTime)));
             path = LocoCourse.Lab();
+            path.SpeedScale = PaceScale;
             path.LegStarted += (i, name) =>
             {
                 leg = name ?? "";
@@ -464,7 +482,7 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyHeld(KeyCode.A)) input.x -= 1f;
             float camYaw = orbitCamera != null ? orbitCamera.transform.eulerAngles.y : 0f;
             Vector3 way = Quaternion.Euler(0f, camYaw, 0f) * Vector3.ClampMagnitude(input, 1f);
-            float speed = SandboxInput.KeyHeld(KeyCode.LeftShift) ? RunSpeed : walkSpeed;
+            float speed = SandboxInput.KeyHeld(KeyCode.LeftShift) ? RunSpeed : walkSpeed * PaceScale;
             want = way * speed;
             bool hold = SandboxInput.KeyHeld(KeyCode.Space);
             if (hold != holding)
@@ -491,6 +509,7 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.G)) Shove();
             if (SandboxInput.KeyPressed(KeyCode.H)) Throw();
             if (SandboxInput.KeyPressed(KeyCode.K)) Shove(2.5f);
+            if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
         }
 
@@ -605,7 +624,18 @@ namespace PhysicsBattler.Locomotion
         {
             GUILayout.Label(course ? $"Course: {leg}" : "Driving: W A S D, Shift run, Space hold facing, V walk speed");
             GUILayout.Label($"{loco.Current}{(loco.Shot != null ? " " + loco.Shot.Name : "")}   {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s   run {loco.RunWeight:0.00}   phase {loco.Phase:0.00}");
-            GUILayout.Label($"walking speed {walkSpeed:0.0} m/s");
+            GUILayout.Label($"{body}: walking speed {walkSpeed * PaceScale:0.0} m/s, running {RunSpeed:0.0} m/s");
+            GUILayout.BeginHorizontal();
+            foreach (BodySize size in new[] { BodySize.Small, BodySize.Medium, BodySize.Large })
+            {
+                if (GUILayout.Button(body == size ? "> " + size + " <" : size.ToString()) && body != size)
+                {
+                    body = size;
+                    Build();
+                }
+            }
+
+            GUILayout.EndHorizontal();
             if (down > 0f)
             {
                 GUILayout.Label(note + $" (up again in {down:0.0} s)");

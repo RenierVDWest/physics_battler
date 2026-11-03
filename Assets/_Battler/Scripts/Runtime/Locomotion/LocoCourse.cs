@@ -40,6 +40,9 @@ namespace PhysicsBattler.Locomotion
         public bool Repeat = true;
 
         /// <summary>How fast it slows to arrive (m/s²), and how close to a point counts as there.</summary>
+        /// <summary>The legs' speeds are a Medium's; another body walks them at its own natural pace (times this).</summary>
+        public float SpeedScale = 1f;
+
         public float Braking = 1.6f, There = 0.25f, PassWithin = 0.6f;
 
         private float held;
@@ -202,7 +205,7 @@ namespace PhysicsBattler.Locomotion
                 float left = Mathf.Abs(leg.Arc) - arcDone;
                 Vector3 tangent = Vector3.Cross(Vector3.up, rel.normalized) * sign;   // (clockwise from above, for +)
                 Vector3 back = (radius - rel.magnitude) * rel.normalized;
-                float speed = leg.Speed;
+                float speed = leg.Speed * SpeedScale;
                 if (leg.Stop)
                 {
                     speed = Mathf.Min(speed, Mathf.Sqrt(2f * Braking * Mathf.Max(0f, left * Mathf.Deg2Rad * radius)));
@@ -220,7 +223,7 @@ namespace PhysicsBattler.Locomotion
 
             Vector3 to = leg.To - position;
             float distance = to.magnitude;
-            float s = leg.Speed;
+            float s = leg.Speed * SpeedScale;
             if (leg.Stop)
             {
                 s = Mathf.Min(s, Mathf.Sqrt(2f * Braking * Mathf.Max(0f, distance - 0.5f * There)));

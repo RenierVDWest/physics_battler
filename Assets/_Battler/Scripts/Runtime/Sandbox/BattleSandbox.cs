@@ -98,7 +98,7 @@ namespace PhysicsBattler.Sandbox
                     spawn.ClearPreview();
                 }
 
-                lab.Begin(mediumPrefab, orbitCamera, teamA, board != null ? board.grid.origin : Vector3.zero);
+                lab.Begin(smallPrefab, mediumPrefab, largePrefab, orbitCamera, teamA, board != null ? board.grid.origin : Vector3.zero);
                 enabled = false;
                 return;
             }

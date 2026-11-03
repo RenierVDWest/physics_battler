@@ -48,6 +48,7 @@ internal static class LocoLabReport
             course.Hold(0.5f).To(0f, 5f, sp, $"line at {sp} m/s facing {yaw}", true, LocoCourse.Face.Fixed, yaw).Hold(0.5f);
         }
         course.Repeat = false;
+        course.SpeedScale = Mathf.Sqrt(leg / 0.845f);
         course.LegStarted += (i, name) => { legName = name ?? ""; Console.WriteLine($"  {i,2}: {name}"); };
         loco.Place(course.Start, course.StartYaw);
         course.Reset();
