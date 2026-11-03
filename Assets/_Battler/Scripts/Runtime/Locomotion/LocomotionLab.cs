@@ -317,6 +317,9 @@ namespace PhysicsBattler.Locomotion
                 authority.Set(Authority.BodyRegion.Head, Authority.AuthorityLevel.Pinned, profile.torsoPin);
                 authority.Set(Authority.BodyRegion.ArmL, Authority.AuthorityLevel.Pinned, profile.armPin);
                 authority.Set(Authority.BodyRegion.ArmR, Authority.AuthorityLevel.Pinned, profile.armPin);
+                armPin = profile.armPin;
+                weaponArmHeld = false;
+                weaponArmHeldUntil = -1f;
             }
 
             snapped = false;
@@ -348,8 +351,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             hits = new StrikeHits(loco, poser, anim) { Weapon = mainWeapon, Scale = size, Slot = rig.SlotWeaponR, Mass = Mathf.Max(20f, mass) };
-            hits.Landed += text => legs.Add($"{time:0.00} s: {text}");
-            combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor, Strikes = Strikes() };
+            hits.Landed += text => legs.Add($"{time:0.00} s: {text}{(dummy != null && dummy.LastReaction.Length > 0 ? "; the dummy: " + dummy.LastReaction : "")}");
+            combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor, Strikes = Strikes(), TargetVelocity = () => dummy != null ? dummy.Loco.Velocity : Vector3.zero };
             combo.Started += (clip, link) => BeganAim(clip, poser.AimTarget);
             path = LocoCourse.Lab();
             path.SpeedScale = PaceScale;
@@ -413,6 +416,13 @@ namespace PhysicsBattler.Locomotion
                 Drive(out want, out facing);
                 loco.StopAt = null;
                 leg = "driving";
+                // (A combo pressing after the dummy (its last blow drove it back): the combo walks the walker in.)
+                if (combo != null && combo.Pressing)
+                {
+                    want = combo.Want;
+                    facing = combo.WantFacing;
+                    leg = "pressing";
+                }
             }
 
             if (down > 0f)
@@ -454,18 +464,46 @@ namespace PhysicsBattler.Locomotion
             if (!frozen)
             {
                 loco.Step(dt, want, facing);
-                combo?.Step();
+                combo?.Step(dt);
+                if ((combo == null || !combo.Playing) && dummy != null && loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0)
+                {
+                    // (A strike alone follows the dummy too, as far as its pull goes.)
+                    poser.Retarget(TargetFor(loco.Shot));
+                }
+
                 poser.Pose(dt);
                 if (comboWas && combo != null && !combo.Playing)
                 {
                     legs.Add($"{time:0.00} s: the combo ended{(combo.Ended.Length > 0 ? ": " + combo.Ended : "")}");
                 }
 
+                if (combo != null && combo.Pressing && !pressingWas)
+                {
+                    legs.Add($"{time:0.00} s: the combo presses after the dummy: {combo.Ended}");
+                }
+
                 comboWas = combo != null && combo.Playing;
+                pressingWas = combo != null && combo.Pressing;
             }
 
             hits?.Step(dt, dummy);
+            if (dummy != null)
+            {
+                // (The blow coming, for the dummy to meet with its shield.)
+                if (hits != null && hits.Incoming(out var blade, out var aimed, out var comesFrom))
+                {
+                    dummy.IncomingBlade = blade;
+                    dummy.IncomingAim = aimed;
+                    dummy.IncomingFrom = comesFrom;
+                }
+                else
+                {
+                    dummy.IncomingBlade = dummy.IncomingAim = dummy.IncomingFrom = null;
+                }
+            }
+
             dummy?.Step(dt, anim.Part(PartId.Chest).position, frozen);
+            HoldWeaponArm();
             // (The shields as turned in the hand: the seen shield is on the physical hand's slot.)
             if (rig.SlotWeaponL != null && anim.SlotWeaponL != null)
             {
@@ -953,7 +991,7 @@ namespace PhysicsBattler.Locomotion
             bool landed = hits != null && hits.Hits > aimHits, blocked = hits != null && hits.Blocks > aimBlocks;
             string result = landed || blocked ? hits.Last.Substring(hits.Last.IndexOf(':') + 2)
                 : aimBest < float.MaxValue ? $"missed: the blade passed {aimBest * 100f:0} cm from where it was aimed" : "missed";
-            lastAim = $"{aiming.Name}: {aimPlan}; {result}";
+            lastAim = $"{aiming.Name}: {aimPlan}; {result}{((landed || blocked) && dummy != null && dummy.LastReaction.Length > 0 ? "; the dummy: " + dummy.LastReaction : "")}";
             legs.Add($"{time:0.00} s: {lastAim}");
             ShowAimMark(true, landed ? new Color(0.35f, 0.8f, 0.35f) : blocked ? new Color(0.35f, 0.55f, 0.9f) : new Color(0.9f, 0.35f, 0.3f));
             aiming = null;
@@ -979,10 +1017,51 @@ namespace PhysicsBattler.Locomotion
 
         private string aimPlan = "";
 
+        // ---- The weapon arm in a blow (as the fight holds it) --------------------------------------------
+
+        /// <summary>How long after a strike the weapon arm stays held exactly to its pose (the fight's).</summary>
+        public const float WeaponArmHeldAfter = 0.4f;
+
+        private float weaponArmHeldUntil = -1f;
+        private bool weaponArmHeld;
+        private float armPin = 0.7f;
+
+        /// <summary>
+        /// Through a strike and a moment after it, the weapon arm (both, two-handed) is held exactly to its pose,
+        /// kinematic, as the fight holds it in a blow: pinned, the physical arm, and the weapon seen on it and
+        /// swept for hits, trailed a 16 m/s swing by tens of centimetres and passed by what the pose struck.
+        /// </summary>
+        private void HoldWeaponArm()
+        {
+            if (authority == null)
+            {
+                return;
+            }
+
+            if (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0)
+            {
+                weaponArmHeldUntil = time + WeaponArmHeldAfter;
+            }
+
+            bool held = time < weaponArmHeldUntil;
+            if (held == weaponArmHeld)
+            {
+                return;
+            }
+
+            weaponArmHeld = held;
+            var level = held ? Authority.AuthorityLevel.Kinematic : Authority.AuthorityLevel.Pinned;
+            authority.Set(Authority.BodyRegion.ArmR, level, armPin);
+            if (poser.TwoHanded)
+            {
+                authority.Set(Authority.BodyRegion.ArmL, level, armPin);
+            }
+        }
+
         // ---- Combos (the combat plan's step 5) ----------------------------------------------------------
 
         private ComboPlayer combo;
-        private bool comboWas;
+        private bool comboWas, pressingWas;
         private string lastCombo = "";
 
         /// <summary>This body's strikes, as clips.</summary>

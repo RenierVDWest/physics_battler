@@ -797,6 +797,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Where the plan put the weapon's sweet spot at contact before the hand's pull (world).</summary>
         public Vector3 AimPredicted { get; private set; }
 
+        /// <summary>Where the strike will land, with the arm's pull (world): the target, or as near it as the pull goes.</summary>
+        public Vector3 AimLands { get; private set; }
+
         private LocoClip aimClip;
         private Vector3 aimPull;
         private readonly Vector3[] clipPose = new Vector3[LocoClip.BoneCount];
@@ -845,6 +848,7 @@ namespace PhysicsBattler.Locomotion
             AimLunge = k;
             AimPredicted = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * predicted;
             AimTarget = target;
+            AimLands = AimPredicted + aimPull;
             aimClip = clip;
             aimFrom = startFrom;
             loco.PlayAimed(clip, k, by, contact, startFrom);
@@ -914,6 +918,35 @@ namespace PhysicsBattler.Locomotion
             startFrom = Mathf.Clamp(startFrom, 0f, Mathf.Max(0f, clip.ContactFrame / clip.Rate - 0.05f));
             Plan(clip, target, startFrom, rootAt, facing, out _, out _, out Vector3 predicted, out Vector3 want);
             return Mathf.Max(0f, (want - predicted).magnitude - MostAimPull);
+        }
+
+        /// <summary>
+        /// The target of the strike playing has moved (a body being driven back, flinching): the hand's pull follows it
+        /// until contact, as far as the pull goes (<see cref="MostAimPull"/> in all). The plan's turn and lunge stay.
+        /// </summary>
+        public void Retarget(Vector3 target)
+        {
+            if (aimClip == null || loco.Current != Locomotor.Mode.OneShot || loco.Shot != aimClip || loco.ShotTime > aimClip.ContactFrame / aimClip.Rate)
+            {
+                return;
+            }
+
+            aimPull = Vector3.ClampMagnitude(aimPull + (target - AimTarget), MostAimPull);
+            AimTarget = target;
+            AimLands = AimPredicted + aimPull;
+        }
+
+        /// <summary>How far a strike's plan would turn the body to bring it onto its target from a root (degrees; 0: it lands as it is played).</summary>
+        public float AimTurnFor(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing)
+        {
+            if (clip == null || clip.ContactFrame < 0)
+            {
+                return 0f;
+            }
+
+            startFrom = Mathf.Clamp(startFrom, 0f, Mathf.Max(0f, clip.ContactFrame / clip.Rate - 0.05f));
+            Plan(clip, target, startFrom, rootAt, facing, out _, out float by, out _, out _);
+            return by;
         }
 
         /// <summary>How much of the aim's pull is on now (worked out once a pose: <see cref="UpdateAimWeights"/>).</summary>

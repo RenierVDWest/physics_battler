@@ -625,6 +625,16 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public float SettleStep = 0.1f, SettleFrom = 0.35f, SettleBetween = 0.45f;
 
+        /// <summary>Standing, how far the held feet are from where the standing clip has them (metres; 0: none held).</summary>
+        public float StanceOff { get; private set; }
+
+        /// <summary>Standing in its own stance: no held foot further from the standing clip's than a settling step (<see cref="SettleStep"/>).</summary>
+        public bool StanceSettled => Current == Mode.Idle && (!stanceHeld || StanceOff <= SettleStep * Leg * 1.5f);
+
+        /// <summary>In a hurry (a combo pressing on): the feet settle into the stance sooner, by this share of the times.</summary>
+        public bool Hurry;
+        public const float HurryShare = 0.4f;
+
         private void IdlePose(float dt)
         {
             idleTime += dt * TimeScale;
@@ -649,7 +659,19 @@ namespace PhysicsBattler.Locomotion
                 // (The legs where it stopped; the knees a little the idle's way. A held foot far from
                 // the standing clip's is given back to it, one at a time.)
                 var back = Quaternion.Euler(0f, -Facing, 0f);
-                if (idleTime > SettleFrom && idleTime - lastSettle > SettleBetween)
+                StanceOff = 0f;
+                for (int f = 0; f < 2; f++)
+                {
+                    Vector3 off = back * (stance[f * 4 + 1] - Position) - raw[(int)(f == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot)];
+                    off.y = 0f;
+                    if (footHeld[f])
+                    {
+                        StanceOff = Mathf.Max(StanceOff, off.magnitude);
+                    }
+                }
+
+                float hurry = Hurry ? HurryShare : 1f;
+                if (idleTime > SettleFrom * hurry && idleTime - lastSettle > SettleBetween * hurry)
                 {
                     int worst = -1;
                     float most = SettleStep * Leg;
@@ -1062,8 +1084,25 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        /// <summary>
+        /// A strike cut short (stopped by what it met) faces, as it goes into its guard, the way its clip would have faced
+        /// at its end: a strike's root turns with its hips through the blow (a cut twists the body round, a spinning
+        /// chop goes all the way round), and the guard put on the root where it was stopped would stand turned off its
+        /// opponent. The body is left where it is (<see cref="TurnRoot"/>); the guard's fade turns it.
+        /// </summary>
+        public bool UntwistCutStrikes = false;
+
         private void EndShot(LocoClip clip)
         {
+            float untwist = 0f;
+            // (Only with both feet down: held where they are, they step round into the turned guard as it settles;
+            // a foot in the air is given to the guard at once, and the turn would throw it.)
+            if (UntwistCutStrikes && clip != null && clip.ContactFrame >= 0 && ShotTime < clip.Duration - 0.05f && Down[0] >= 0.5f && Down[1] >= 0.5f)
+            {
+                clip.RootMotion(ShotTime, clip.Duration, out _, out float turned);
+                untwist = turned * shotTurnScale;
+            }
+
             rewinding = false;
             ShotSpeed = 1f;
             {
@@ -1093,6 +1132,11 @@ namespace PhysicsBattler.Locomotion
 
                 pendingSwitch = hasLast;
                 Shot = null;
+            }
+
+            if (Mathf.Abs(untwist) > 1f)
+            {
+                TurnRoot(untwist);
             }
         }
 

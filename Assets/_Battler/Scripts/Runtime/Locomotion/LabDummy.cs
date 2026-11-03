@@ -54,19 +54,80 @@ namespace PhysicsBattler.Locomotion
         }
 
         private Stances stance = Stances.Guard;
+        private LocoClip guardIdle;
 
         public Stances Stance
         {
             get => stance;
             set
             {
+                var was = stance;
                 stance = value;
                 Loco.GuardWanted = value != Stances.Open;
+                if (Loco.Guard == null)
+                {
+                    return;
+                }
+
+                guardIdle ??= Loco.Guard.Idle;
+                // (Blocking: the shield raised with the pack's block clip and held up with its block idle;
+                // lowered with its lowering clip. The guard's own idle stands for the rest.)
+                var raise = LocoLibrary.Get("sns_block_raise");
+                var hold = LocoLibrary.Get("sns_block_hold");
+                var lower = LocoLibrary.Get("sns_block_lower");
+                if (value == Stances.Block && was != Stances.Block && hold != null)
+                {
+                    Loco.Guard.Idle = hold;
+                    if (raise != null && Loco.Current != Locomotor.Mode.Cycle)
+                    {
+                        Loco.Play(raise);
+                    }
+                }
+                else if (value != Stances.Block && was == Stances.Block)
+                {
+                    Loco.Guard.Idle = guardIdle;
+                    if (value == Stances.Guard && lower != null && Loco.Current != Locomotor.Mode.Cycle)
+                    {
+                        Loco.Play(lower);
+                    }
+                }
             }
         }
 
-        /// <summary>It stands its ground: a blow throws its upper body and arms about, but doesn't push it back a step (a training dummy, for strikes and combos that should all land).</summary>
-        public bool Anchored = true;
+        /// <summary>
+        /// It stands its ground (a training post): a blow throws its upper body and arms about but doesn't drive it
+        /// back. Off (the lab's default): it is an enemy unit that doesn't fight back, driven back by what the
+        /// struck part doesn't take, as the fight's rules have it.
+        /// </summary>
+        public bool Anchored;
+
+        /// <summary>A blow that would set it moving faster than this (m/s) drives it back with steps (the walk's own); a lighter one plays a reaction clip where it stands.</summary>
+        public const float DrivenFrom = 0.35f;
+
+        /// <summary>The blow coming: where the striker's weapon is now, and where its blow is aimed (world); null when none comes.</summary>
+        public Vector3? IncomingBlade, IncomingAim;
+
+        /// <summary>The way the blow coming will come in at its contact (world, unit), read from its wind-up; null: not read.</summary>
+        public Vector3? IncomingFrom;
+
+        /// <summary>How much the shield goes by the blow's line as read (the rest by where the weapon is now).</summary>
+        public const float ReadLine = 0.75f;
+
+        /// <summary>How long a blow has been coming (seconds), and how long before the shield moves to meet it.</summary>
+        private float incomingFor;
+
+        /// <summary>How long it takes to see a blow coming (seconds), and the fastest it moves its shield (m/s at a Medium's size).</summary>
+        public const float SeeBlowAfter = 0.12f, ShieldSpeed = 5f;
+
+        private Vector3 shieldAt;
+        private bool shieldAtKnown;
+        private float interceptWeight;
+
+        /// <summary>The shield arm is held exactly to its pose now (meeting a blow): the physical arm doesn't trail it.</summary>
+        public bool ShieldArmHeld => interceptWeight > 0.05f || blockWeight > 0.05f;
+
+        /// <summary>The reaction it played last ("" before any), for the logs.</summary>
+        public string LastReaction = "";
 
         /// <summary>The shield is held up across the blow coming.</summary>
         public bool Blocking => stance == Stances.Block;
@@ -218,12 +279,33 @@ namespace PhysicsBattler.Locomotion
                     want = Vector3.ClampMagnitude(home * 2f, HomeSpeed * Mathf.Sqrt(Size));
                 }
 
+                if (pushAt >= 0f && clock >= pushAt)
+                {
+                    Loco.Push(pendingKnock);
+                    pushAt = -1f;
+                    pendingKnock = Vector3.zero;
+                }
+
                 Loco.Step(dt, want, yaw);
                 Poser.Pose(dt);
                 RaiseShield(dt, faceToward);
                 React(dt);
                 Recover(dt);
                 Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
+            }
+
+            // (Meeting a blow, the shield arm is held exactly to its pose, as the fight holds a weapon arm in a
+            // blow: pinned, the physical arm and the shield on it would trail the pose.)
+            if (Authority != null)
+            {
+                if (ShieldArmHeld)
+                {
+                    Authority.Set(BodyRegion.ArmL, AuthorityLevel.Kinematic, 1f);
+                }
+                else if (pinLeft[(int)BodyRegion.ArmL] <= 0f)
+                {
+                    Hold(BodyRegion.ArmL, 1f);
+                }
             }
 
             // (The shield as turned in the hand: the shield that is seen, and blocks, is on the physical hand's slot.)
@@ -244,32 +326,61 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
-        /// The shield held across the blow: the left hand put between where the blow is aimed and the
-        /// striker, its face toward the striker.
+        /// The shield meeting the blow: blocking (and, by half, in its guard) it watches the striker's weapon from the
+        /// moment the blow starts, and after <see cref="SeeBlowAfter"/> moves its shield, at most
+        /// <see cref="ShieldSpeed"/>, to where the weapon will come in: on the line from the part aimed at out toward
+        /// the weapon, a forearm's length out, its face toward the weapon. With no blow coming, a blocking dummy
+        /// holds its shield across the striker's line.
         /// </summary>
         private void RaiseShield(float dt, Vector3 striker)
         {
             blockWeight = Mathf.MoveTowards(blockWeight, Blocking ? 1f : 0f, dt / BlockRaise);
-            if (blockWeight <= 0f)
+            incomingFor = IncomingBlade.HasValue ? incomingFor + dt : 0f;
+            float wantIntercept = IncomingBlade.HasValue && incomingFor > SeeBlowAfter && stance != Stances.Open ? (stance == Stances.Block ? 1f : 0.5f) : 0f;
+            interceptWeight = Mathf.MoveTowards(interceptWeight, wantIntercept, dt / BlockRaise);
+            float weight = Mathf.Max(blockWeight, interceptWeight);
+            var hand = Anim.Part(PartId.HandL);
+            if (weight <= 0f)
             {
+                shieldAtKnown = false;
                 return;
             }
 
             var upper = Anim.Part(PartId.UpperArmL);
             var fore = Anim.Part(PartId.ForearmL);
-            var hand = Anim.Part(PartId.HandL);
             Vector3 chest = Anim.Part(PartId.Chest).position;
-            Vector3 aimed = BlockAt ?? chest;
-            Vector3 toStriker = striker + Vector3.up * (aimed.y - striker.y) - aimed;
-            toStriker = toStriker.sqrMagnitude > 1e-4f ? toStriker.normalized : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
-            Vector3 want = aimed + toStriker * (0.32f * Size);
+            Vector3 aimed = IncomingAim ?? BlockAt ?? chest;
+            Vector3 from = IncomingBlade.HasValue && interceptWeight > 0f ? IncomingBlade.Value : striker + Vector3.up * (aimed.y - striker.y);
+            Vector3 toBlade = from - aimed;
+            toBlade = toBlade.sqrMagnitude > 1e-4f ? toBlade.normalized : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+            // (Read from the wind-up: across the line the blow will come in on, not after the weapon, which is
+            // faster than any shield at the end.)
+            if (IncomingFrom.HasValue && IncomingBlade.HasValue && interceptWeight > 0f)
+            {
+                toBlade = Vector3.Slerp(toBlade, IncomingFrom.Value.normalized, ReadLine);
+            }
+            // (Not behind itself: the shield stays in front of the body.)
+            Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+            if (Vector3.Dot(toBlade, ahead) < 0.2f)
+            {
+                toBlade = (toBlade + ahead * (0.2f - Vector3.Dot(toBlade, ahead))).normalized;
+            }
+
+            Vector3 want = aimed + toBlade * (0.32f * Size);
             float reach = (Anim.RestLocalPosition(PartId.ForearmL).magnitude + Anim.RestLocalPosition(PartId.HandL).magnitude) * 0.9f;
-            Vector3 fromShoulder = Vector3.ClampMagnitude(want - upper.position, reach);
-            Vector3 target = Vector3.Lerp(hand.position, upper.position + fromShoulder, blockWeight);
+            want = upper.position + Vector3.ClampMagnitude(want - upper.position, reach);
+            if (!shieldAtKnown)
+            {
+                shieldAt = hand.position;
+                shieldAtKnown = true;
+            }
+
+            shieldAt = Vector3.MoveTowards(shieldAt, want, ShieldSpeed * Size * dt);
+            Vector3 target = Vector3.Lerp(hand.position, shieldAt, weight);
             var turn = Quaternion.Euler(0f, Loco.Facing, 0f);
             TwoBoneIK.Solve(upper, fore, hand, target, turn * new Vector3(-1f, -0.6f, 0f));
-            // (The wrist straight along the forearm, the shield turned in the fist to face the striker.)
-            Poser.FaceShieldAt(toStriker, Mathf.Max(blockWeight, Poser.ClipArms * Poser.ShieldTurned));
+            // (The wrist straight along the forearm, the shield turned in the fist to face the blow.)
+            Poser.FaceShieldAt(toBlade, Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
         }
 
         /// <summary>The softened holds coming back.</summary>
@@ -305,7 +416,7 @@ namespace PhysicsBattler.Locomotion
         public const float MostPartSpeed = 5f, MostShieldSpeed = 2f;
 
         /// <summary>The most a blow pushes the whole dummy back (m/s).</summary>
-        public const float MostKnock = 1.6f;
+        public const float MostKnock = 2.2f;
 
         /// <summary>
         /// A blow lands: on <paramref name="part"/>, or on the shield. What the part takes knocks it (its
@@ -349,12 +460,62 @@ namespace PhysicsBattler.Locomotion
                 struck.AddForce(Vector3.ClampMagnitude(kick, (shield ? MostShieldSpeed : MostPartSpeed) * Size), ForceMode.VelocityChange);
             }
 
-            Vector3 knock = impulse * (1f - 0.5f * partShare) * KnockScale / Mass;
+            // Driven back: what the struck part doesn't take moves the whole body (the fight's rule), with steps
+            // when it is hard enough. The body first takes the blow where it stands (its reaction clip), then
+            // the steps carry it back (a push at once would cut the reaction off before it showed).
+            Vector3 knock = impulse * (1f - partShare) * KnockScale / Mass;
             knock.y = 0f;
-            if (!Anchored)
+            bool driven = !Anchored && knock.magnitude > DrivenFrom;
+            string clipName = shield ? null : ReactionClip(part, impulse.magnitude / Mass, reaction);
+            var clip = clipName != null ? LocoLibrary.Get(clipName) : null;
+            if (clip != null)
             {
-                Loco.Push(Vector3.ClampMagnitude(knock, MostKnock));
+                Loco.Play(clip);
             }
+
+            string reacted = clip != null ? clipName.Replace("sns_impact_", "") + " reaction" : shield ? "the shield knocked back" : "no reaction clip";
+            if (driven)
+            {
+                // (Already being carried back: the new blow adds to it now.)
+                pendingKnock = Vector3.ClampMagnitude(knock + (pushAt > clock ? pendingKnock : Vector3.zero), MostKnock);
+                pushAt = clock + (clip != null ? DriveAfter : 0f);
+                LastReaction = $"{reacted}, then driven back at {pendingKnock.magnitude:0.0} m/s";
+                return;
+            }
+
+            LastReaction = reacted;
+        }
+
+        /// <summary>How long a driven body takes the blow where it stands before its steps carry it back (seconds: the reaction clips' peak).</summary>
+        public const float DriveAfter = 0.22f;
+
+        private Vector3 pendingKnock;
+        private float pushAt = -1f;
+
+        /// <summary>What a blow this hard (impulse per kilogram of the body, m/s) feels like below which it only flinches, and from which it is thrown.</summary>
+        public const float LightBelow = 0.2f, HeavyFrom = 0.7f;
+
+        /// <summary>
+        /// The reaction clip for a blow: a light flinch for a light one; for a real one, doubled over when it is to the
+        /// body, the upper body thrown back when it is to the head or the top of the chest; thrown for a heavy one
+        /// or a broken poise, wherever it lands.
+        /// </summary>
+        private string ReactionClip(PartId part, float strength, Combat.Reaction reaction)
+        {
+            bool high = part == PartId.Head || PartAt(part).y > PartAt(PartId.Chest).y - 0.05f * Size;
+            if (reaction == Combat.Reaction.Stagger || reaction == Combat.Reaction.Killed || strength >= HeavyFrom)
+            {
+                return "sns_impact_heavy";
+            }
+
+            // (An arm struck jerks the body less than a blow to it.)
+            var region = AuthorityController.RegionOf(part);
+            if ((strength < LightBelow && reaction == Combat.Reaction.Recoil) || region == BodyRegion.ArmL || region == BodyRegion.ArmR)
+            {
+                return "sns_impact_light";
+            }
+
+            return high ? "sns_impact_heavy" : "sns_impact_body";
         }
 
         // ---- The pose's reaction to a blow (the fight's recoil and arm knock, UnitCombat) -------------------
@@ -370,7 +531,7 @@ namespace PhysicsBattler.Locomotion
         /// at the fight's own, a Medium's blow on a Medium leaned it 7 to 17 degrees and pushed it 0.2 m/s, and
         /// read as nothing). The fight's own are tuned when the walk joins it (step 8).
         /// </summary>
-        public float ReactScale = 1.8f, KnockScale = 1.6f;
+        public float ReactScale = 1.8f, KnockScale = 2.5f;
 
         /// <summary>The recoil's swing back (Hz), its damping and the head's; the most it throws the upper body and the head (radians).</summary>
         public const float ReactFrequency = 1.6f, ReactDamping = 0.55f, HeadFrequency = 2.4f, MostLean = 0.6f, MostHeadSnap = 0.7f, Kick = 1.8f;

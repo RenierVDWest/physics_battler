@@ -46,7 +46,7 @@ namespace PhysicsBattler.Locomotion
         private static readonly Vector3[] b0 = new Vector3[LocoClip.BoneCount], b1 = new Vector3[LocoClip.BoneCount];
 
         /// <summary>The way the right hand's weapon points in a pose (its knuckles' line, leaned toward the fingers).</summary>
-        private static Vector3 Blade(Vector3[] p)
+        internal static Vector3 Blade(Vector3[] p)
         {
             Vector3 wrist = p[(int)LocoBone.RightHand];
             Vector3 along = (p[(int)LocoBone.RightHandMiddle] - wrist).normalized;
@@ -144,6 +144,46 @@ namespace PhysicsBattler.Locomotion
                         best.Turn = turn;
                         best.Shift = shift;
                     }
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// The best way into <paramref name="b"/> from <paramref name="a"/> left at <paramref name="at"/> (its own time):
+        /// a strike cut short (stopped by what it met) is left where it stopped, not at its link mark, and its
+        /// body is turned and placed as it is there.
+        /// </summary>
+        public static StrikeLink BestAt(LocoClip a, float at, LocoClip b)
+        {
+            var best = new StrikeLink { From = a, To = b, Cost = float.MaxValue, At = at };
+            if (a == null || b == null || b.ContactFrame < 0)
+            {
+                return best;
+            }
+
+            float lastEntry = Mathf.Max(0f, b.ContactFrame / b.Rate - LeastWindUp);
+            float step = 1f / Mathf.Max(a.Rate, b.Rate);
+            PoseAt(a, Mathf.Clamp(at, 0f, a.Duration), a0, a1);
+            float yawA = HipsYaw(a0);
+            for (float tb = 0f; tb <= lastEntry + 1e-4f; tb += step)
+            {
+                PoseAt(b, tb, b0, b1);
+                float turn = Mathf.DeltaAngle(HipsYaw(b0), yawA);
+                Turned(b0, turn);
+                Turned(b1, turn);
+                Vector3 shift = a0[(int)LocoBone.Hips] - b0[(int)LocoBone.Hips];
+                shift.y = 0f;
+                Shifted(b0, shift);
+                Shifted(b1, shift);
+                float cost = Cost(a0, a1, b0, b1);
+                if (cost < best.Cost)
+                {
+                    best.Cost = cost;
+                    best.Entry = tb;
+                    best.Turn = turn;
+                    best.Shift = shift;
                 }
             }
 

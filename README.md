@@ -53,14 +53,28 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     `LocoLibrary.LargeOwnClips` switches back to its own two-handed clips (lg_, with the left hand on the handle).
     A strike plays out before J starts another.
   - Hits (step 4): the weapon is swept from step to step about each strike's contact, and the first part or shield
-    of the dummy it meets is struck by the fight's own damage rules. Both stand still a moment (the hit stop);
-    the dummy's upper body is thrown back by the blow's lever, its head snapped by one to it, a struck arm (or the
-    shield) knocked aside, and the rest of the blow pushes it back a step (all harder than the fight has it for
-    now: `LabDummy.ReactScale`, `KnockScale`). A blow that cuts through slows; one that is stopped (a shield, a body too heavy for it) is shown where it
-    met, backs out a little and fades into the guard. O changes how the dummy stands: open (its guard down), in its
-    guard, or blocking (its shield held across each blow). A small ball marks where the last strike was aimed:
-    green it landed, blue it was blocked, red it missed. Headless: `dummyhits <dir> <body> [clips]` strikes a
-    kinematic dummy open and blocking, and writes both bodies' films (`Tools/Mocap/Locomotion/twofilm.py` draws them).
+    of the dummy it meets is struck by the fight's own damage rules. Both stand still a moment (the hit stop). A
+    blow that cuts through slows; one that is stopped (a shield, a body too heavy for it) is shown where it met,
+    backs out a little and fades into the guard. While a strike plays, the weapon arm is held exactly to its pose
+    (kinematic, as the fight holds it in a blow): pinned, the physical sword trailed a 16 m/s swing and missed what
+    the pose struck, which is why so many hits went through the dummy in the lab and not headless.
+  - The dummy is an enemy unit that doesn't strike back (`LabDummy`): a Medium in the Medium's guard, nothing
+    dumbed down. A blow throws its upper body back by the blow's lever, snaps its head, knocks a struck arm or the
+    shield aside, and plays the pack's impact clips by how hard it was (impulse per kilogram): a light flinch, doubled
+    over for one to the body, thrown back for one to the head, the chest's top, a heavy blow or a broken poise; an
+    arm struck only flinches. What the struck part doesn't take drives it back with the walk's own steps, after the
+    reaction has shown (the fight's rule, `KnockScale`): the Large's blows drive a Medium back 0.3 to 0.9 m.
+    `Anchored` makes it a training post again. It steps back onto its spot a second after it was last struck.
+  - O changes how the dummy stands: open (its guard down), in its guard (it half meets blows with its shield), or
+    blocking (the pack's block clips: the shield raised and held). Blocking, it reads each blow from the striker's
+    wind-up (where it will land, `LocoBody.AimLands`, and the way it will come in, from the clip:
+    `StrikeHits.Incoming`), and after 0.12 s moves its shield there at up to 5 m/s, its face to the blow, its arm held
+    exactly to the pose: headless it blocks every strike a Medium or a Large can throw at it, but the combo's quick
+    backhand (0.18 s from its start to its contact). A shield-blocked blow still throws it back and drives it.
+    A small ball marks where the last strike was aimed: green it landed, blue it was blocked, red it missed. The log
+    says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]` strikes the dummy
+    open and blocking at its chest and head (`SHIELD_TRACE=1`: the blade and the shield each step), and writes both
+    bodies' films (`Tools/Mocap/Locomotion/twofilm.py` draws them).
   - Sparring (X, on by default when driving): the walker keeps its guard up, faces the dummy and walks itself to
     where the picked strike reaches it (the panel says when it is in position), so J or I strike from a meaningful
     spot; W A S D still move it. The dummy steps back onto its spot a second after it was last struck.
@@ -68,14 +82,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     each the best follow-on of the last (`StrikeCombos`: for every pair, where the first is left and the second
     taken up, by how well the hands, the weapon's line, the hips and the feet meet there, the hips lined up), each
     aimed at the dummy's part nearest the height it reaches. As each strike goes on, its follow-on is chosen
-    there and then, as the old move planner chose a move only if it could land: of the follow-ons in order of
-    cost, the first that lands from where the link leaves the body (within 5 cm, with the turn up to 60°, the
-    lunge 0.4 to 1.4 times and the arm's pull); none does, the combo ends rather than swing at the air. The root
-    turns and moves at each link so the next clip's hips land on the last one's. The dummy stands its ground
-    (`LabDummy.Anchored`): blows throw its upper body and arms about but don't push it back. Shields face the way
-    their body does in the guard and its strikes (turned in the fist), a blocking dummy's at the striker. A strike stopped by what it met goes on into the next from where it backed
-    out. Headless: `combos <dir> <body>` (the cost table, each combo played at the dummy, films of both bodies;
-    `COMBO_CURVE=a>b` the cost through the first's recovery).
+    there and then, as the old move planner chose a move only if it could land: of the follow-ons that land from
+    where the link leaves the body (within 5 cm, with the turn up to 60°, the lunge 0.4 to 1.4 times and the arm's
+    pull), the cheapest, a turn of the body onto the target counting against it (`ComboPlayer.TurnWeight`). The
+    root turns and moves at each link so the next clip's hips land on the last one's. Each strike's hand follows
+    its target as it moves (`LocoBody.Retarget`, within the pull), and a follow-on is aimed where a driven-back
+    dummy will be. A strike stopped by what it met (most of a Medium's, against a Medium) is over where it stopped,
+    not at its link mark: its follow-on is taken up from there if their poses meet, and otherwise from the guard
+    (linking as if it had played out turned the next strike 60 to 90 degrees off the dummy). None lands from where
+    the body is (the dummy driven back), the combo presses: it steps in after the dummy in its guard, turning to it
+    if it is well off to the side, stands into its guard, and goes on (for at most 3 s). Headless: `combos <dir>
+    <body>` (the cost table, each combo played at the dummy, now driven back, films of both bodies;
+    `COMBO_WHY=1` the follow-ons weighed; `COMBO_CURVE=a>b` the cost through the first's recovery): the Medium's
+    and the Small's land 27 of 27 strikes, the Large's 7 of 8.
   - R restarts, P pauses (the physical body is still held to the pose while paused).
 - **Logs:** each run writes `PlaytestLogs/locolab-(time)/`, with the measures in session.md and the film in
   locolab.json. To draw the film: `python3 Tools/Mocap/Locomotion/locofilm.py <that>/locolab.json film.gif`.

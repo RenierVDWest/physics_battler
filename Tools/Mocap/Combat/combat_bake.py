@@ -37,6 +37,13 @@ GUARD = {
     'sns_turn180': ('sword_and_shield_180_turn', 'turn', False, 'Medium guard, turning round'),
     'sns_turn180_b': ('sword_and_shield_180_turn_1', 'turn', False, 'Medium guard, turning round the other way'),
     'sns_block': ('sword_and_shield_block', 'block', False, 'Medium shield block'),
+    # (Being struck and blocking, from the Pro Sword and Shield pack: in place, from the guard and back to it.)
+    'sns_impact_light': ('pack_sns_impact', 'impact', False, 'Medium struck lightly: the head and chest flinch back'),
+    'sns_impact_body': ('pack_sns_impact_2', 'impact', False, 'Medium struck in the body: it doubles over'),
+    'sns_impact_heavy': ('pack_sns_impact_3', 'impact', False, 'Medium struck hard: the upper body thrown back and to its right'),
+    'sns_block_raise': ('pack_sns_block', 'block_raise', False, 'Medium raising its shield into a block, from the guard'),
+    'sns_block_hold': ('pack_sns_block_idle', 'block_hold', True, 'Medium holding its shield up in a block'),
+    'sns_block_lower': ('pack_sns_block_2', 'block_lower', False, 'Medium lowering its shield from a block back to the guard'),
     'lg_idle_b': ('large_great_sword_idle_02', 'guard_idle', True, 'Large two-handed guard, standing (short take)'),
     'lg_walk': ('large_great_sword_walk', 'cycle', True, 'Large two-handed guard, walking forward'),
     'lg_step_left': ('large_great_sword_strafe', 'cycle', True, 'Large two-handed guard, side-stepping left'),

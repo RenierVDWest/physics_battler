@@ -94,6 +94,47 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        /// <summary>
+        /// A blow is coming (a strike playing, up to just after its contact): where its striking point is now, and
+        /// where it is aimed. What a defender watches to meet it.
+        /// </summary>
+        public bool Incoming(out Vector3 blade, out Vector3 aim) => Incoming(out blade, out aim, out _);
+
+        /// <summary>
+        /// The same, and the way the blow comes in at its contact (world, unit: back up its striking point's path,
+        /// from the clip): the line a defender reads from the wind-up, to put a shield across.
+        /// </summary>
+        public bool Incoming(out Vector3 blade, out Vector3 aim, out Vector3 comesFrom)
+        {
+            blade = aim = comesFrom = Vector3.zero;
+            var clip = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
+            if (clip == null || clip.ContactFrame < 0 || loco.ShotTime > clip.ContactFrame / clip.Rate + 0.1f || !Blade(clip, out _, out _, out blade))
+            {
+                return false;
+            }
+
+            aim = poser.AimLands;
+            float contact = clip.ContactFrame / clip.Rate;
+            Vector3 way = StrikeAt(clip, Mathf.Max(0f, contact - ReadOver)) - StrikeAt(clip, contact);
+            // (Into the world as the root will face at contact: the clip's turn still to come on the facing now.)
+            clip.RootMotion(Mathf.Min(loco.ShotTime, contact), contact, out _, out float turnLeft);
+            comesFrom = way.sqrMagnitude > 1e-6f ? Quaternion.Euler(0f, loco.Facing + turnLeft, 0f) * way.normalized : (blade - aim).normalized;
+            return true;
+        }
+
+        /// <summary>How far before contact the blow's line is read from (seconds of the clip).</summary>
+        public const float ReadOver = 0.06f;
+
+        private readonly Vector3[] readPose = new Vector3[LocoClip.BoneCount];
+
+        /// <summary>A clip's striking point at a time, against its root then (metres at this body's size).</summary>
+        private Vector3 StrikeAt(LocoClip clip, float t)
+        {
+            clip.Pose(t, readPose, loco.Leg);
+            float along = IsThrust(clip) ? 1f : poser.SweetSpot;
+            return readPose[(int)LocoBone.RightHand] + StrikeCombos.Blade(readPose) * (poser.WeaponLength * along);
+        }
+
         /// <summary>One step, after the striker is posed (and while the hit stop lasts, only its clock).</summary>
         public void Step(float dt, LabDummy dummy)
         {
@@ -180,6 +221,16 @@ namespace PhysicsBattler.Locomotion
                 // (Nearest the hand first: the blade turns about the hand, so what is nearer it is in the way.)
                 found.Sort((x, y) => x.order.CompareTo(y.order));
                 var f = found[0];
+                // (The fist that holds the shield is behind it: met with the shield, the shield takes the blow.)
+                if (!f.shield && (f.part == PartId.HandL || f.part == PartId.ForearmL))
+                {
+                    int s0 = found.FindIndex(x => x.shield);
+                    if (s0 >= 0)
+                    {
+                        f = found[s0];
+                    }
+                }
+
                 // (Where in this step it met it: a stopped blow is put back there.)
                 float met = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
                 Strike(clip, dummy, f.part, f.shield, f.collider.ClosestPoint(0.5f * (a + b)), speed, direction, met);

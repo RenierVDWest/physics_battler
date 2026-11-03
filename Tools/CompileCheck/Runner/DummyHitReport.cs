@@ -52,10 +52,13 @@ internal static class DummyHitReport
                     var dummy = new LabDummy(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, "sns_", physical: false);
                     // (Its shield: a board on its left hand's slot, as a shield's collider is.)
                     var shield = new GameObject("Dummy shield");
+                    // (Held as the lab holds it: the slots turned by the shield's grip, the board's face the slot's forward.)
+                    dummy.Rig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+                    dummy.Anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
                     shield.transform.SetParent(dummy.Rig.SlotWeaponL, false);
-                    shield.transform.localRotation = UnitController.ShieldGrip;
                     var board = shield.AddComponent<BoxCollider>();
-                    board.size = new Vector3(0.6f, 0.6f, 0.05f);
+                    board.size = new Vector3(0.522f, 0.522f, 0.05f);   // (P_Weapon_Shield's)
+                    board.center = new Vector3(0f, 0f, 0.075f);
                     board.isTrigger = true;
                     dummy.ShieldColliders.Add(board);
                     dummy.Stance = stance;
@@ -79,10 +82,11 @@ internal static class DummyHitReport
 
                     target = dummy.TargetAt(height);
                     dummy.BlockAt = target;
+                    Vector3 dummyStart = dummy.Loco.Position;
                     poser.PlayStrike(clip, target);
                     var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
                     var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = 0.3f };
-                    float started = 0f, ended = -1f, mostLean = 0f;
+                    float started = 0f, ended = -1f, mostLean = 0f, mostMoved = 0f;
                     string what = "missed";
                     hits.Landed += text => what = text.Substring(text.IndexOf(':') + 2);
                     for (int i = 0; i < 400; i++)
@@ -95,9 +99,29 @@ internal static class DummyHitReport
                         }
 
                         hits.Step(dt, dummy);
+                        // (The dummy watches the blow coming, as the lab has it.)
+                        if (hits.Incoming(out var bladeNow, out var aimNow, out var fromNow))
+                        {
+                            dummy.IncomingBlade = bladeNow;
+                            dummy.IncomingAim = aimNow;
+                            dummy.IncomingFrom = fromNow;
+                        }
+                        else
+                        {
+                            dummy.IncomingBlade = dummy.IncomingAim = dummy.IncomingFrom = null;
+                        }
+
                         dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
+                        if (Environment.GetEnvironmentVariable("SHIELD_TRACE") != null && dummy.IncomingBlade.HasValue)
+                        {
+                            Vector3 sc = board.transform.position, n = board.transform.forward;
+                            Vector3 bl = dummy.IncomingBlade.Value;
+                            Console.WriteLine(string.Format(ci, "  t {0:0.00} shot {1:0.00} blade {2:0.00},{3:0.00},{4:0.00} shield {5:0.00},{6:0.00},{7:0.00} gap {8:0.00} face-to-blade {9:0}",
+                                i * dt, loco.ShotTime, bl.x, bl.y, bl.z, sc.x, sc.y, sc.z, Vector3.Distance(bl, sc), Vector3.Angle(n, bl - sc)));
+                        }
                         film.Add(i * dt, name, loco, poser, anim);
                         mostLean = Mathf.Max(mostLean, dummy.Lean);
+                        mostMoved = Mathf.Max(mostMoved, new Vector2(dummy.Loco.Position.x - dummyStart.x, dummy.Loco.Position.z - dummyStart.z).magnitude);
                         dummyFilm.Add(i * dt, "dummy", dummy.Loco, dummy.Poser, dummy.Anim);
                         if (loco.Current != Locomotor.Mode.OneShot && ended < 0f)
                         {
@@ -117,8 +141,8 @@ internal static class DummyHitReport
                     if (what == "missed") missed++;
                     else if (what.StartsWith("blocked")) blocked++;
                     else landed++;
-                    Console.WriteLine(string.Format(ci, "{0,-20} at the {1,-5} {2}: {3}; the blow ended after {4:0.00} s (the clip is {5:0.00} s); the dummy leaned {6:0} degrees (mass {7:0} kg)",
-                        name, part.ToString().ToLowerInvariant(), stance == LabDummy.Stances.Open ? "open " : "block", what, ended, clip.Duration, mostLean * Mathf.Rad2Deg, dummy.Mass));
+                    Console.WriteLine(string.Format(ci, "{0,-20} at the {1,-5} {2}: {3}; the dummy leaned {4:0} degrees, {5}, and was moved {6:0.00} m",
+                        name, part.ToString().ToLowerInvariant(), stance == LabDummy.Stances.Open ? "open " : "block", what, mostLean * Mathf.Rad2Deg, dummy.LastReaction, mostMoved));
                     UnityEngine.Object.DestroyImmediate(root);
                     UnityEngine.Object.DestroyImmediate(droot);
                 }

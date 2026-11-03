@@ -83,6 +83,7 @@ internal static class StrikeComboReport
             var player = new ComboPlayer(loco, poser)
             {
                 Strikes = Environment.GetEnvironmentVariable("COMBO_FIXED") != null ? null : strikes,
+                TargetVelocity = () => dummy.Loco.Velocity,
                 // (Each strike at the dummy's part nearest its own reach's height.)
                 TargetFor = clip =>
                 {
@@ -108,7 +109,13 @@ internal static class StrikeComboReport
             hits.Landed += text => results.Add(text.Substring(0, text.IndexOf(" (", StringComparison.Ordinal) > 0 ? text.IndexOf(" (", StringComparison.Ordinal) : text.Length));
             var linkTimes = new List<float>();
             var playedNames = new List<string>();
-            player.Started += (clip, link) => { playedNames.Add(clip.Name.Replace(prefix, "")); if (link != null) { linkTimes.Add(loco.ShotTime); } };
+            bool wasPressing = false;
+            player.Started += (clip, link) =>
+            {
+                playedNames.Add((wasPressing ? "(pressed in) " : "") + clip.Name.Replace(prefix, "") + string.Format(ci, " [turn {0:+0;-0}]", poser.AimTurn));
+                if (link != null) { linkTimes.Add(loco.ShotTime); }
+                if (link != null && Environment.GetEnvironmentVariable("COMBO_WHY") != null) { Console.WriteLine("      chose " + clip.Name + " of: " + player.LastChoice); }
+            };
             var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
             var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = 0.3f };
             player.Start(first, chain);
@@ -121,11 +128,19 @@ internal static class StrikeComboReport
                 bool frozen = hits.HitStop > 0f;
                 if (!frozen)
                 {
-                    loco.Step(dt, Vector3.zero, loco.Facing);
-                    player.Step();
+                    // (Pressing after the dummy, the combo walks the walker in.)
+                    loco.Step(dt, player.Pressing ? player.Want : Vector3.zero, player.Pressing ? player.WantFacing : loco.Facing);
+                    player.Step(dt);
                     poser.Pose(dt);
                 }
 
+                if (player.Pressing && !wasPressing && Environment.GetEnvironmentVariable("COMBO_WHY") != null) { Console.WriteLine("      pressing: " + player.Ended); }
+                if (Environment.GetEnvironmentVariable("COMBO_FEET") != null && (player.Pressing || loco.Current == Locomotor.Mode.Idle))
+                {
+                    Console.WriteLine(string.Format(ci, "      {0:0.00} {1} off {2:0.00} settled {3} held {4}{5} facing {6:0}", i * dt, loco.Current, loco.StanceOff, loco.StanceSettled, loco.FootHeld(0) ? "L" : "-", loco.FootHeld(1) ? "R" : "-", loco.Facing));
+                }
+
+                wasPressing = player.Pressing;
                 hits.Step(dt, dummy);
                 dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
                 film.Add(i * dt, string.Join(">", new[] { first.Name }.Concat(chain.Select(l => l.To.Name))), loco, poser, anim);
