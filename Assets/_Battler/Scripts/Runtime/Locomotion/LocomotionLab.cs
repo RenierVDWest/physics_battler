@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using PhysicsBattler.Combat;
 using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Sandbox;
@@ -73,6 +74,111 @@ namespace PhysicsBattler.Locomotion
         private float PaceScale => loco != null ? Mathf.Sqrt(loco.Leg / 0.845f) : 1f;
 
         private float RunSpeed => BaseRunSpeed * PaceScale;
+
+        // ---- What it carries (the join's step 1: walking with weapons) -----------------------------------
+
+        /// <summary>The loadouts it can carry: bare hands, and each one a unit marker in the scene holds.</summary>
+        private readonly List<(string name, WeaponDefinition main, WeaponDefinition off)> loadouts = new List<(string, WeaponDefinition, WeaponDefinition)>();
+
+        [Tooltip("Which loadout it carries (L: the next one); -1: the body's own, as its marker in the scene has it.")]
+        public int loadout = -1;
+
+        private int loadoutNow;
+
+        private void FindLoadouts()
+        {
+            loadouts.Clear();
+            loadouts.Add(("bare hands", null, null));
+            foreach (var spawn in FindObjectsByType<UnitSpawn>())
+            {
+                if (spawn.mainHand == null && spawn.offHand == null)
+                {
+                    continue;
+                }
+
+                string name = (spawn.mainHand != null ? spawn.mainHand.name : "bare") + (spawn.offHand != null ? " + " + spawn.offHand.name : "");
+                if (!loadouts.Exists(l => l.main == spawn.mainHand && l.off == spawn.offHand))
+                {
+                    loadouts.Add((name, spawn.mainHand, spawn.offHand));
+                }
+            }
+        }
+
+        private int OwnLoadout()
+        {
+            // (The body's own: what its marker holds, the first team's first.)
+            UnitSpawn own = null;
+            foreach (var spawn in FindObjectsByType<UnitSpawn>())
+            {
+                if (spawn.body == body && (own == null || spawn.team < own.team))
+                {
+                    own = spawn;
+                }
+            }
+
+            int i = own != null ? loadouts.FindIndex(l => l.main == own.mainHand && l.off == own.offHand) : 0;
+            return Mathf.Max(0, i);
+        }
+
+        /// <summary>The loadout's weapons put in the hands (just their look: they hit nothing here), and the walk told what each hand carries.</summary>
+        private void EquipLoadout(float scale)
+        {
+            if (loadouts.Count == 0)
+            {
+                FindLoadouts();
+            }
+
+            loadoutNow = loadout >= 0 && loadout < loadouts.Count ? loadout : OwnLoadout();
+            var (_, main, off) = loadouts[loadoutNow];
+            Hold(rig.SlotWeaponR, anim.SlotWeaponR, main, main != null && !main.IsShield ? UnitController.MainGrip : Quaternion.identity, scale);
+            Hold(rig.SlotWeaponL, anim.SlotWeaponL, off, off != null && off.IsShield ? UnitController.ShieldGrip : Quaternion.identity, scale);
+            poser.CarryR = main == null ? LocoBody.Carry.Free : main.IsShield ? LocoBody.Carry.Shield : LocoBody.Carry.Weapon;
+            poser.CarryL = off == null ? LocoBody.Carry.Free : off.IsShield ? LocoBody.Carry.Shield : LocoBody.Carry.Weapon;
+            poser.BladeR = (anim.SlotWeaponR != null ? anim.SlotWeaponR.localRotation : Quaternion.identity) * Vector3.forward;
+            poser.BladeL = (anim.SlotWeaponL != null ? anim.SlotWeaponL.localRotation : Quaternion.identity) * Vector3.forward;
+            film.BladeLength = main != null && !main.IsShield ? main.length * scale : 0f;
+            film.ShieldRadius = off != null && off.IsShield ? 0.3f * scale : 0f;
+        }
+
+        private void Hold(Transform slot, Transform animSlot, WeaponDefinition definition, Quaternion grip, float scale)
+        {
+            if (slot == null)
+            {
+                return;
+            }
+
+            slot.localRotation = grip;
+            if (animSlot != null)
+            {
+                animSlot.localRotation = grip;
+            }
+
+            if (definition == null || definition.prefab == null)
+            {
+                return;
+            }
+
+            var held = Instantiate(definition.prefab, slot);
+            held.transform.localPosition = Vector3.zero;
+            held.transform.localRotation = Quaternion.identity;
+            held.transform.localScale = Vector3.one * scale;
+            foreach (var behaviour in held.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                Destroy(behaviour);
+            }
+
+            foreach (var collider in held.GetComponentsInChildren<Collider>(true))
+            {
+                collider.isTrigger = true;
+                foreach (var part in rig.Parts)
+                {
+                    if (part.partCollider != null)
+                    {
+                        Physics.IgnoreCollision(collider, part.partCollider, true);
+                    }
+                }
+            }
+        }
 
         public void Begin(UnitController small, UnitController medium, UnitController large, OrbitCamera cam, Material material, Vector3 boardOrigin)
         {
@@ -226,6 +332,7 @@ namespace PhysicsBattler.Locomotion
             poser.SoleFrom(rig);
             measures = new LocoMeasures(anim, loco, poser);
             film = new LocoFilm(Time.fixedDeltaTime, Mathf.Max(1, Mathf.RoundToInt(0.04f / Time.fixedDeltaTime)));
+            EquipLoadout(legLength / 0.845f);
             path = LocoCourse.Lab();
             path.SpeedScale = PaceScale;
             path.LegStarted += (i, name) =>
@@ -478,6 +585,17 @@ namespace PhysicsBattler.Locomotion
         /// A shove from a random side: the chest is struck (the physical upper body takes it) and the walk
         /// steps to catch the body.
         /// </summary>
+        private void NextLoadout()
+        {
+            if (loadouts.Count == 0)
+            {
+                return;
+            }
+
+            loadout = (loadoutNow + 1) % loadouts.Count;
+            Build();
+        }
+
         public void Shove() => Shove(1f);
 
         public void Shove(float times)
@@ -544,6 +662,7 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            if (SandboxInput.KeyPressed(KeyCode.L)) { NextLoadout(); }
             if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
         }
@@ -702,6 +821,11 @@ namespace PhysicsBattler.Locomotion
             }
 
             GUILayout.EndHorizontal();
+            if (loadouts.Count > 0 && GUILayout.Button($"Carrying: {loadouts[loadoutNow].name} (L)"))
+            {
+                NextLoadout();
+            }
+
             footprints = GUILayout.Toggle(footprints, "Footprints");
             GUILayout.Label($"Planted feet moved at most {measures.PlantDriftWorst * 100f:0.0} cm over {measures.PlantsDone} plants; {measures.ForcedReleases} forced steps.");
             GUI.DragWindow();

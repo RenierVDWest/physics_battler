@@ -28,6 +28,10 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
   - B switches the body between physical (legs carried exactly; torso, head and arms pinned) and kinematic.
   - G shoves the chest and the walk steps to catch the body; K shoves hard enough to knock it down (a ragdoll, up
     again after 3 s); H throws a heavy ball at the chest, and the knock pushes the walk.
+  - L changes what it carries: its own loadout (as its marker in the scene holds it), bare hands, or any other
+    marker's. A carrying arm keeps the walk's swing, smaller (a weapon about 3/4, a shield about 2/5), about where
+    it holds the thing: the weapon low at the side, point forward and a little down (lifting as the hand swings
+    forward), the shield in front of the belly facing forward. N changes the body.
   - R restarts, P pauses, . steps once.
 - **Logs:** each run writes `PlaytestLogs/locolab-(time)/`, with the measures in session.md and the film in
   locolab.json. To draw the film: `python3 Tools/Mocap/Locomotion/locofilm.py <that>/locolab.json film.gif`.
@@ -40,7 +44,8 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
 - **Headless:** `dotnet Tools/CompileCheck/bin/Tests/Debug/PhysicsBattler.Tests.dll locolab <dir> 70` runs the
   same course and prints the measures. `LOCO_MODES=1` traces the clip switches;
   `LOCO_SHOVE="time,yaw,m/s;..."` adds shoves; `LOCO_BODY=Small|Large` walks another body;
-  `LOCO_COURSE=strafing` walks the facing-held test course.
+  `LOCO_COURSE=strafing` walks the facing-held test course; `LOCO_ARMS=sword` carries a weapon and a shield.
+  `locofilm.py --view side|front|left|follow` picks the camera.
 
 ## Current state: milestone 11, the defensive posture
 

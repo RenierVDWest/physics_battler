@@ -56,11 +56,26 @@ namespace PhysicsBattler.Locomotion
             sb.Append($",\"HandTipL\":{V((sl != null ? sl.position : anim.Part(PartId.HandL).position) - origin)},\"HandTipR\":{V((sr != null ? sr.position : anim.Part(PartId.HandR).position) - origin)}");
             sb.Append($",\"ToeL\":{V(anim.Part(PartId.FootL).position + anim.Part(PartId.FootL).rotation * new Vector3(0f, -0.06f, 0.16f) - origin)}");
             sb.Append($",\"ToeR\":{V(anim.Part(PartId.FootR).position + anim.Part(PartId.FootR).rotation * new Vector3(0f, -0.06f, 0.16f) - origin)}");
+            if (BladeLength > 0f && sr != null)
+            {
+                sb.Append($",\"BladeTipR\":{V(sr.position + sr.rotation * Vector3.forward * BladeLength - origin)}");
+            }
+
+            if (ShieldRadius > 0f && sl != null)
+            {
+                // (The shield's face is across the forearm: its centre at the grip, its normal the forearm's line.)
+                Vector3 n = (anim.Part(PartId.HandL).position - anim.Part(PartId.ForearmL).position).normalized;
+                sb.Append($",\"ShieldC\":{V(sl.position - origin)},\"ShieldN\":{V(n)}");
+            }
+
             sb.Append("}}");
             film.Append(sb);
         }
 
         public int Frames => frames;
+
+        /// <summary>A carried weapon's length in the right hand and a shield's radius in the left (metres; 0: none), drawn in the film.</summary>
+        public float BladeLength, ShieldRadius;
 
         public override string ToString() => film + "]}";
     }

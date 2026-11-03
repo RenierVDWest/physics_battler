@@ -59,6 +59,8 @@ def main():
     ap.add_argument("--to", dest="t1", type=float, default=1e9)
     ap.add_argument("--every", type=int, default=2, help="draw every Nth film frame")
     ap.add_argument("--scale", type=float, default=1.0)
+    ap.add_argument("--view", default="follow", choices=["follow", "side", "front", "left"], help="the camera: following from the right-front, or square on from the right side, the front or the left side")
+    ap.add_argument("--shield", type=float, default=1.0, help="the shield's size (1: a Medium's)")
     a = ap.parse_args()
 
     film = json.load(open(a.film))
@@ -82,8 +84,8 @@ def main():
             was[k] = f["locks"][k]
 
         # (The camera: from the body's right-front, turning slowly after it.)
-        want = f["facing"] - 60.0
-        cam_yaw = want if cam_yaw is None else cam_yaw + ((want - cam_yaw + 180) % 360 - 180) * 0.03
+        want = f["facing"] + {"follow": -60.0, "side": -90.0, "front": 180.0, "left": 90.0}[a.view]
+        cam_yaw = want if cam_yaw is None or a.view != "follow" else cam_yaw + ((want - cam_yaw + 180) % 360 - 180) * 0.03
         if i % a.every:
             continue
 
@@ -110,6 +112,19 @@ def main():
             if a_ in pose and b_ in pose:
                 d.line([project(pose[a_], centre, cam_yaw, 25, scale), project(pose[b_], centre, cam_yaw, 25, scale)],
                        fill=side(a_, b_), width=4)
+        if "BladeTipR" in pose:
+            d.line([project(pose["HandTipR"], centre, cam_yaw, 25, scale), project(pose["BladeTipR"], centre, cam_yaw, 25, scale)],
+                   fill=(120, 120, 135), width=3)
+        if "ShieldC" in pose:
+            c, n = pose["ShieldC"], pose["ShieldN"]
+            u = [n[1], -n[0], 0.0] if abs(n[2]) > 0.9 else [-n[2], 0.0, n[0]]
+            ul = math.sqrt(sum(x * x for x in u)) or 1.0
+            u = [x / ul for x in u]
+            v = [n[1] * u[2] - n[2] * u[1], n[2] * u[0] - n[0] * u[2], n[0] * u[1] - n[1] * u[0]]
+            rad = 0.3 * a.shield
+            ring = [project([c[i] + rad * (math.cos(k / 12 * 2 * math.pi) * u[i] + math.sin(k / 12 * 2 * math.pi) * v[i]) for i in range(3)],
+                            centre, cam_yaw, 25, scale) for k in range(13)]
+            d.polygon(ring, outline=(110, 80, 50), fill=(170, 130, 90))
         hx, hy = project([pose["Head"][0], pose["Head"][1] + 0.12, pose["Head"][2]], centre, cam_yaw, 25, scale)
         d.ellipse([hx - 13, hy - 13, hx + 13, hy + 13], outline=MID, width=3)
         for k, name in ((0, "FootL"), (1, "FootR")):
