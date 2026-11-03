@@ -978,8 +978,19 @@ namespace PhysicsBattler.Locomotion
             if (speed > 0.2f || wantNow.magnitude > 0.2f)
             {
                 float measured = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
-                // (Kept within ±180: past it, the blend below would find no pair of directions.)
-                travelAngle = Mathf.DeltaAngle(0f, travelAngle + Mathf.DeltaAngle(travelAngle, measured) * (1f - Mathf.Pow(0.5f, dt / 0.08f)));
+                // (Kept within ±180: past it, the blend below would find no pair of directions. Slow, a
+                // way that turns right round (side to side, forward to back) is a switch, faded: swept
+                // through the ways between, the swinging foot would be thrown across.)
+                float change = Mathf.DeltaAngle(travelAngle, measured);
+                if (Mathf.Abs(change) > 100f && speed < 0.6f)
+                {
+                    travelAngle = Mathf.DeltaAngle(0f, measured);
+                    pendingSwitch = hasLast;
+                }
+                else
+                {
+                    travelAngle = Mathf.DeltaAngle(0f, travelAngle + change * (1f - Mathf.Pow(0.5f, dt / 0.08f)));
+                }
             }
 
             float angle = travelAngle;
