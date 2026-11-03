@@ -65,6 +65,9 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        /// <summary>It stands its ground: a blow throws its upper body and arms about, but doesn't push it back a step (a training dummy, for strikes and combos that should all land).</summary>
+        public bool Anchored = true;
+
         /// <summary>The shield is held up across the blow coming.</summary>
         public bool Blocking => stance == Stances.Block;
 
@@ -223,6 +226,12 @@ namespace PhysicsBattler.Locomotion
                 Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
             }
 
+            // (The shield as turned in the hand: the shield that is seen, and blocks, is on the physical hand's slot.)
+            if (Rig.SlotWeaponL != null && Anim.SlotWeaponL != null)
+            {
+                Rig.SlotWeaponL.localRotation = Anim.SlotWeaponL.localRotation;
+            }
+
             if (Authority != null && snapped)
             {
                 Authority.Apply(dt);
@@ -259,9 +268,8 @@ namespace PhysicsBattler.Locomotion
             Vector3 target = Vector3.Lerp(hand.position, upper.position + fromShoulder, blockWeight);
             var turn = Quaternion.Euler(0f, Loco.Facing, 0f);
             TwoBoneIK.Solve(upper, fore, hand, target, turn * new Vector3(-1f, -0.6f, 0f));
-            // (The shield's face is across the hand: it looks the way the hand points.)
-            Vector3 along = hand.rotation * Anim.RestLocalPosition(PartId.HandL).normalized;
-            hand.rotation = Quaternion.Slerp(Quaternion.identity, Quaternion.FromToRotation(along, toStriker), blockWeight) * hand.rotation;
+            // (The wrist straight along the forearm, the shield turned in the fist to face the striker.)
+            Poser.FaceShieldAt(toStriker, Mathf.Max(blockWeight, Poser.ClipArms * Poser.ShieldTurned));
         }
 
         /// <summary>The softened holds coming back.</summary>
@@ -343,7 +351,10 @@ namespace PhysicsBattler.Locomotion
 
             Vector3 knock = impulse * (1f - 0.5f * partShare) * KnockScale / Mass;
             knock.y = 0f;
-            Loco.Push(Vector3.ClampMagnitude(knock, MostKnock));
+            if (!Anchored)
+            {
+                Loco.Push(Vector3.ClampMagnitude(knock, MostKnock));
+            }
         }
 
         // ---- The pose's reaction to a blow (the fight's recoil and arm knock, UnitCombat) -------------------

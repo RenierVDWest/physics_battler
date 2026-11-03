@@ -170,6 +170,12 @@ namespace PhysicsBattler.Locomotion
                 GripTwoHanded();
             }
 
+            if (CarryL == Carry.Shield)
+            {
+                // (In the guard and its strikes the shield faces the way the body does, at the enemy, a little out.)
+                FaceShieldAt(RootTurn * Quaternion.Euler(0f, -ShieldOut, 0f) * Vector3.forward, ClipArms * ShieldTurned);
+            }
+
             // The legs.
             Leg(0, PartId.ThighL, PartId.ShinL, PartId.FootL, LocoBone.LeftUpLeg, LocoBone.LeftLeg, LocoBone.LeftFoot, LocoBone.LeftToeEnd);
             Leg(1, PartId.ThighR, PartId.ShinR, PartId.FootR, LocoBone.RightUpLeg, LocoBone.RightLeg, LocoBone.RightFoot, LocoBone.RightToeEnd);
@@ -708,6 +714,40 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Which body this is ("Small", "Medium", "Large"): its strikes' measured reach is looked up by it.</summary>
         public string BodyKey = "Medium";
 
+        /// <summary>How much a held shield is turned in the guard to face the way the body does (not all of it: it moves with the arm), and how far out to the side of straight ahead (degrees).</summary>
+        public float ShieldTurned = 0.85f, ShieldOut = 12f;
+
+        private Quaternion shieldGrip;
+        private bool shieldGripKnown;
+
+        /// <summary>
+        /// The shield turned in the hand to face <paramref name="way"/> (by <paramref name="share"/>: 0 holds it as
+        /// gripped): its face (the slot's forward) toward it. A round shield held by its middle turns about the fist.
+        /// </summary>
+        public void FaceShieldAt(Vector3 way, float share)
+        {
+            var slot = anim.SlotWeaponL;
+            if (slot == null)
+            {
+                return;
+            }
+
+            if (!shieldGripKnown)
+            {
+                shieldGrip = slot.localRotation;
+                shieldGripKnown = true;
+            }
+
+            slot.localRotation = shieldGrip;
+            if (share <= 0f || way.sqrMagnitude < 1e-6f)
+            {
+                return;
+            }
+
+            Vector3 face = slot.rotation * Vector3.forward;
+            slot.rotation = Quaternion.Slerp(Quaternion.identity, Quaternion.FromToRotation(face, way.normalized), Mathf.Clamp01(share)) * slot.rotation;
+        }
+
         /// <summary>How far below the weapon hand the other hand holds a two-handed weapon (metres at a Medium's size: the clips' hands are 0.10 to 0.15 m apart).</summary>
         public float SecondGrip = 0.12f;
 
@@ -747,7 +787,7 @@ namespace PhysicsBattler.Locomotion
         public bool TwoHanded;
 
         /// <summary>The most a strike's hand is pulled to aim it (metres), and the most the body turns toward its target (degrees); its lunge is stretched or shortened within these.</summary>
-        public float MostAimPull = 0.4f, MostAimTurn = 35f, LeastLunge = 0.6f, MostLunge = 1.4f;
+        public float MostAimPull = 0.4f, MostAimTurn = 60f, LeastLunge = 0.4f, MostLunge = 1.4f;
 
         /// <summary>The last aimed strike's plan: its turn (degrees), its lunge's stretch, and how far its weapon would have missed with no pull (metres).</summary>
         public float AimTurn, AimLunge, AimMissBeforePull;
@@ -796,6 +836,31 @@ namespace PhysicsBattler.Locomotion
             }
 
             float contact = clip.ContactFrame / clip.Rate;
+            Plan(clip, target, startFrom, out float k, out float by, out Vector3 predicted, out Vector3 want);
+            var turn0 = Quaternion.Euler(0f, loco.Facing, 0f);
+            Vector3 miss = want - predicted;
+            AimMissBeforePull = miss.magnitude;
+            aimPull = turn0 * Quaternion.Euler(0f, by, 0f) * Vector3.ClampMagnitude(Quaternion.Inverse(Quaternion.Euler(0f, by, 0f)) * miss, MostAimPull);
+            AimTurn = by;
+            AimLunge = k;
+            AimPredicted = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * predicted;
+            AimTarget = target;
+            aimClip = clip;
+            aimFrom = startFrom;
+            loco.PlayAimed(clip, k, by, contact, startFrom);
+        }
+
+        /// <summary>
+        /// A strike's plan at a target from where the body is now: the turn and the lunge's stretch, and where the
+        /// weapon would be at contact without the arm's pull, against the root now (<paramref name="predicted"/>),
+        /// with where the target is against it (<paramref name="want"/>).
+        /// </summary>
+        private void Plan(LocoClip clip, Vector3 target, float startFrom, out float k, out float by, out Vector3 predicted, out Vector3 want)
+            => Plan(clip, target, startFrom, loco.Position, loco.Facing, out k, out by, out predicted, out want);
+
+        private void Plan(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing, out float k, out float by, out Vector3 predicted, out Vector3 want)
+        {
+            float contact = clip.ContactFrame / clip.Rate;
             clip.RootMotion(0f, contact, out var moved, out float turned);
             Vector3 travel = new Vector3(moved.x, 0f, moved.y) * loco.Leg;
             // (Where the weapon is at contact against the start, played as it is on this body: measured once
@@ -813,10 +878,11 @@ namespace PhysicsBattler.Locomotion
                 travel = back * (travel - rootThen);
                 point = back * (atContact - rootThen) - travel;
             }
-            var turn0 = Quaternion.Euler(0f, loco.Facing, 0f);
-            Vector3 want = Quaternion.Inverse(turn0) * (target - new Vector3(loco.Position.x, GroundY, loco.Position.z));
+            var turn0 = Quaternion.Euler(0f, facing, 0f);
+            want = Quaternion.Inverse(turn0) * (target - new Vector3(rootAt.x, GroundY, rootAt.z));
             Vector3 wantFlat = new Vector3(want.x, 0f, want.z);
-            float k = 1f, by = 0f;
+            k = 1f;
+            by = 0f;
             for (int i = 0; i < 3; i++)
             {
                 Vector3 q = k * travel + point;
@@ -831,17 +897,23 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            Vector3 predicted = Quaternion.Euler(0f, by, 0f) * (k * travel + point);
-            Vector3 miss = want - predicted;
-            AimMissBeforePull = miss.magnitude;
-            aimPull = turn0 * Quaternion.Euler(0f, by, 0f) * Vector3.ClampMagnitude(Quaternion.Inverse(Quaternion.Euler(0f, by, 0f)) * miss, MostAimPull);
-            AimTurn = by;
-            AimLunge = k;
-            AimPredicted = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * predicted;
-            AimTarget = target;
-            aimClip = clip;
-            aimFrom = startFrom;
-            loco.PlayAimed(clip, k, by, contact, startFrom);
+            predicted = Quaternion.Euler(0f, by, 0f) * (k * travel + point);
+        }
+
+        /// <summary>How far an aimed strike would miss its target even with all its pull (metres; 0: it lands).</summary>
+        public float MissAfterPull(LocoClip clip, Vector3 target, float startFrom = 0f) => MissAfterPull(clip, target, startFrom, loco.Position, loco.Facing);
+
+        /// <summary>The same, from a root somewhere else (a combo's link: the root turned and moved there).</summary>
+        public float MissAfterPull(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing)
+        {
+            if (clip == null || clip.ContactFrame < 0)
+            {
+                return float.MaxValue;
+            }
+
+            startFrom = Mathf.Clamp(startFrom, 0f, Mathf.Max(0f, clip.ContactFrame / clip.Rate - 0.05f));
+            Plan(clip, target, startFrom, rootAt, facing, out _, out _, out Vector3 predicted, out Vector3 want);
+            return Mathf.Max(0f, (want - predicted).magnitude - MostAimPull);
         }
 
         /// <summary>How much of the aim's pull is on now (worked out once a pose: <see cref="UpdateAimWeights"/>).</summary>

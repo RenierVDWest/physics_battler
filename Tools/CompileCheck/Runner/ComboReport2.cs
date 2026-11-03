@@ -82,6 +82,7 @@ internal static class StrikeComboReport
 
             var player = new ComboPlayer(loco, poser)
             {
+                Strikes = Environment.GetEnvironmentVariable("COMBO_FIXED") != null ? null : strikes,
                 // (Each strike at the dummy's part nearest its own reach's height.)
                 TargetFor = clip =>
                 {
@@ -106,7 +107,8 @@ internal static class StrikeComboReport
             var results = new List<string>();
             hits.Landed += text => results.Add(text.Substring(0, text.IndexOf(" (", StringComparison.Ordinal) > 0 ? text.IndexOf(" (", StringComparison.Ordinal) : text.Length));
             var linkTimes = new List<float>();
-            player.Started += (clip, link) => { if (link != null) { linkTimes.Add(loco.ShotTime); } };
+            var playedNames = new List<string>();
+            player.Started += (clip, link) => { playedNames.Add(clip.Name.Replace(prefix, "")); if (link != null) { linkTimes.Add(loco.ShotTime); } };
             var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
             var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = 0.3f };
             player.Start(first, chain);
@@ -156,15 +158,16 @@ internal static class StrikeComboReport
             }
 
             combos++;
-            strikesPlayed += chain.Count + 1;
+            strikesPlayed += playedNames.Count;
             foreach (var r in results)
             {
                 if (r.Contains("blocked")) blocked++;
                 else landed++;
             }
 
-            missed += chain.Count + 1 - results.Count;
-            Console.WriteLine("    played: " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)));
+            missed += playedNames.Count - results.Count;
+            Console.WriteLine("    played: " + string.Join(" > ", playedNames) + (player.Ended.Length > 0 ? $" (ended: {player.Ended})" : ""));
+            Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)));
             File.WriteAllText(Path.Combine(dir, first.Name + ".json"), film.ToString());
             File.WriteAllText(Path.Combine(dir, first.Name + ".dummy"), dummyFilm.ToString());
             UnityEngine.Object.DestroyImmediate(root);

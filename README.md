@@ -67,8 +67,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
   - Combos (step 5): I plays the picked strike's combo at the dummy (the panel shows it): up to three strikes,
     each the best follow-on of the last (`StrikeCombos`: for every pair, where the first is left and the second
     taken up, by how well the hands, the weapon's line, the hips and the feet meet there, the hips lined up), each
-    aimed at the dummy's part nearest the height it reaches. The root turns and moves at each link so the next
-    clip's hips land on the last one's. A strike stopped by what it met goes on into the next from where it backed
+    aimed at the dummy's part nearest the height it reaches. As each strike goes on, its follow-on is chosen
+    there and then, as the old move planner chose a move only if it could land: of the follow-ons in order of
+    cost, the first that lands from where the link leaves the body (within 5 cm, with the turn up to 60°, the
+    lunge 0.4 to 1.4 times and the arm's pull); none does, the combo ends rather than swing at the air. The root
+    turns and moves at each link so the next clip's hips land on the last one's. The dummy stands its ground
+    (`LabDummy.Anchored`): blows throw its upper body and arms about but don't push it back. Shields face the way
+    their body does in the guard and its strikes (turned in the fist), a blocking dummy's at the striker. A strike stopped by what it met goes on into the next from where it backed
     out. Headless: `combos <dir> <body>` (the cost table, each combo played at the dummy, films of both bodies;
     `COMBO_CURVE=a>b` the cost through the first's recovery).
   - R restarts, P pauses (the physical body is still held to the pose while paused).

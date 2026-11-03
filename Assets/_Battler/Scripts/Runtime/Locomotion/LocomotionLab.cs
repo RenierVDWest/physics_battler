@@ -349,7 +349,7 @@ namespace PhysicsBattler.Locomotion
 
             hits = new StrikeHits(loco, poser, anim) { Weapon = mainWeapon, Scale = size, Slot = rig.SlotWeaponR, Mass = Mathf.Max(20f, mass) };
             hits.Landed += text => legs.Add($"{time:0.00} s: {text}");
-            combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor };
+            combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor, Strikes = Strikes() };
             combo.Started += (clip, link) => BeganAim(clip, poser.AimTarget);
             path = LocoCourse.Lab();
             path.SpeedScale = PaceScale;
@@ -456,10 +456,22 @@ namespace PhysicsBattler.Locomotion
                 loco.Step(dt, want, facing);
                 combo?.Step();
                 poser.Pose(dt);
+                if (comboWas && combo != null && !combo.Playing)
+                {
+                    legs.Add($"{time:0.00} s: the combo ended{(combo.Ended.Length > 0 ? ": " + combo.Ended : "")}");
+                }
+
+                comboWas = combo != null && combo.Playing;
             }
 
             hits?.Step(dt, dummy);
             dummy?.Step(dt, anim.Part(PartId.Chest).position, frozen);
+            // (The shields as turned in the hand: the seen shield is on the physical hand's slot.)
+            if (rig.SlotWeaponL != null && anim.SlotWeaponL != null)
+            {
+                rig.SlotWeaponL.localRotation = anim.SlotWeaponL.localRotation;
+            }
+
             WatchAim();
             measures.Sample(dt, time, leg);
             film.Add(time, leg, loco, poser, anim, origin);
@@ -970,6 +982,7 @@ namespace PhysicsBattler.Locomotion
         // ---- Combos (the combat plan's step 5) ----------------------------------------------------------
 
         private ComboPlayer combo;
+        private bool comboWas;
         private string lastCombo = "";
 
         /// <summary>This body's strikes, as clips.</summary>
@@ -1009,7 +1022,7 @@ namespace PhysicsBattler.Locomotion
 
             var chain = ComboFrom(first);
             lastCombo = ComboText(first, chain);
-            legs.Add($"{time:0.00} s: combo {lastCombo}");
+            legs.Add($"{time:0.00} s: combo from {first.Name} (planned {lastCombo}; each next strike is chosen as it comes, one that will land)");
             combo.Start(first, chain);
         }
 
