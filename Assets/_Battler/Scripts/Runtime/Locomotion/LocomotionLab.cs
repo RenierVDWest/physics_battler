@@ -74,12 +74,19 @@ namespace PhysicsBattler.Locomotion
             Build();
         }
 
-        private void Build()
+        private void Build() => Build(null, 0f);
+
+        /// <param name="standAt">Stand up here (after a knockdown: the same run goes on), not at the start.</param>
+        private void Build(Vector3? standAt, float standFacing)
         {
             // (Each run is logged on its own: a restart or a switch writes the run before it.)
-            WriteLog();
-            written = false;
-            legs.Clear();
+            if (!standAt.HasValue)
+            {
+                WriteLog();
+                written = false;
+                legs.Clear();
+            }
+
             if (unit != null)
             {
                 Destroy(unit);
@@ -186,6 +193,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             snapped = false;
+            down = 0f;
+            usualOff = Vector3.zero;
 
             float legLength = anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude;
             loco = new Locomotor(legLength);
@@ -205,6 +214,13 @@ namespace PhysicsBattler.Locomotion
                 leg = name ?? "";
                 legs.Add($"{time:0.00} s: {leg}");
             };
+            if (standAt.HasValue)
+            {
+                loco.Place(standAt.Value, standFacing);
+                path.Reset();
+                return;
+            }
+
             loco.Place(origin + (course ? path.Start : Vector3.zero), course ? path.StartYaw : 0f);
             path.Reset();
             time = 0f;
@@ -237,6 +253,32 @@ namespace PhysicsBattler.Locomotion
                 leg = "driving";
             }
 
+            if (down > 0f)
+            {
+                // Knocked down: physics alone has the body; it is stood up again after a while.
+                down -= dt;
+                authority.Apply(dt);
+                if (down <= 0f)
+                {
+                    // (Up again where it fell, facing the way its chest faces: the getting up itself
+                    // is the game's, when the two are joined.)
+                    var pelvis = rig.Part(PartId.Pelvis).transform;
+                    Vector3 at = new Vector3(pelvis.position.x, origin.y, pelvis.position.z);
+                    Vector3 chestForward = rig.Part(PartId.Chest).transform.forward;
+                    float yaw = new Vector2(chestForward.x, chestForward.z).sqrMagnitude > 1e-4f ? Mathf.Atan2(chestForward.x, chestForward.z) * Mathf.Rad2Deg : loco.Facing;
+                    // (The film and the clock go on; the measures start again with the new body.)
+                    var keepFilm = film;
+                    float keepTime = time;
+                    Build(at, yaw);
+                    film = keepFilm;
+                    time = keepTime;
+                    legs.Add($"{time:0.00} s: stood up again");
+                }
+
+                return;
+            }
+
+            Bumped(dt);
             loco.Step(dt, want, facing);
             poser.Pose(dt);
             measures.Sample(dt, time, leg);
@@ -244,6 +286,10 @@ namespace PhysicsBattler.Locomotion
             if (authority != null && snapped)
             {
                 authority.Apply(dt);
+                if (new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude > KnockdownSpeed)
+                {
+                    KnockDown("pushed faster than it can step");
+                }
             }
             else
             {
@@ -253,6 +299,114 @@ namespace PhysicsBattler.Locomotion
 
             Prints();
         }
+
+        // ---- Bumps and knockdowns (the plan's stage 6) ---------------------------------------------------
+
+        [Tooltip("Something that knocks the physical upper body this far off its pose (m) pushes the walk; it steps to follow.")]
+        public float bumpFrom = 0.04f;
+
+        [Tooltip("How hard the upper body's displacement pushes the walk (m/s added a second, per metre).")]
+        public float bumpGain = 25f;
+
+        [Tooltip("Faster than this (m/s) and the steps cannot catch the body: it goes down (a ragdoll), and stands again after a while.")]
+        public float knockdownSpeed = 3.2f;
+
+        private float KnockdownSpeed => Mathf.Max(knockdownSpeed, loco.Running ? RunSpeed * 1.2f : knockdownSpeed);
+
+        private float down;
+        private string note = "";
+        private Vector3 usualOff;
+
+        /// <summary>
+        /// Contact: the chest's physical body pushed off its pose (by a ball, a body, a blow) pushes the
+        /// walk the same way, so the feet step after the body instead of the body tipping over them.
+        /// </summary>
+        private void Bumped(float dt)
+        {
+            if (authority == null || !snapped)
+            {
+                return;
+            }
+
+            var chest = rig.Part(PartId.Chest).body;
+            if (chest == null || chest.isKinematic)
+            {
+                return;
+            }
+
+            Vector3 off = chest.position - anim.Part(PartId.Chest).position;
+            off.y = 0f;
+            // (Against the chest's usual lag behind its pose, which the walk's own speeding up and
+            // slowing down makes: only a knock off that counts, or the walk would push itself.)
+            usualOff = Vector3.Lerp(usualOff, off, 1f - Mathf.Exp(-dt / 0.5f));
+            Vector3 knock = off - usualOff;
+            float beyond = knock.magnitude - bumpFrom;
+            if (beyond > 0f)
+            {
+                loco.Nudge(knock.normalized * (beyond * bumpGain * dt));
+            }
+
+            if (off.magnitude > 0.45f)
+            {
+                KnockDown("upper body knocked " + (off.magnitude * 100f).ToString("0") + " cm off");
+            }
+        }
+
+        private void KnockDown(string why)
+        {
+            if (authority == null || down > 0f)
+            {
+                return;
+            }
+
+            down = 3f;
+            note = "Knocked down: " + why;
+            legs.Add($"{time:0.00} s: knocked down ({why})");
+            foreach (Authority.BodyRegion region in Enum.GetValues(typeof(Authority.BodyRegion)))
+            {
+                authority.Set(region, Authority.AuthorityLevel.Ragdoll, 0f);
+            }
+
+            // (The body keeps the speed it had.)
+            foreach (var part in rig.Parts)
+            {
+                if (part.body != null && !part.body.isKinematic)
+                {
+                    continue;
+                }
+
+                if (part.body != null)
+                {
+                    part.body.isKinematic = false;
+                    part.body.linearVelocity = loco.Velocity;
+                }
+            }
+        }
+
+        /// <summary>A heavy ball thrown at the chest from a random side (H): something physical to bump into it.</summary>
+        public void Throw()
+        {
+            if (loco == null)
+            {
+                return;
+            }
+
+            float yaw = (float)(dice.NextDouble() * 360.0);
+            Vector3 chest = anim.Part(PartId.Chest).position;
+            Vector3 from = chest + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * 3f + Vector3.up * 0.3f;
+            var ball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            ball.name = "Lab ball";
+            ball.transform.position = from;
+            ball.transform.localScale = Vector3.one * 0.3f;
+            var body = ball.AddComponent<Rigidbody>();
+            body.mass = ballMass;
+            body.linearVelocity = (chest - from).normalized * ballSpeed + Vector3.up * 1.2f;
+            Destroy(ball, 5f);
+            legs.Add($"{time:0.00} s: ball thrown from {yaw:0} degrees");
+        }
+
+        [Tooltip("The thrown ball (H): its mass (kg) and speed (m/s).")]
+        public float ballMass = 12f, ballSpeed = 8f;
 
         /// <summary>The body parts where the animation rig has them (each one kinematic, moved by its body).</summary>
         private void Carry()
@@ -277,7 +431,9 @@ namespace PhysicsBattler.Locomotion
         /// A shove from a random side: the chest is struck (the physical upper body takes it) and the walk
         /// steps to catch the body.
         /// </summary>
-        public void Shove()
+        public void Shove() => Shove(1f);
+
+        public void Shove(float times)
         {
             if (loco == null)
             {
@@ -286,7 +442,7 @@ namespace PhysicsBattler.Locomotion
 
             float yaw = (float)(dice.NextDouble() * 360.0);
             Vector3 way = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
-            loco.Push(way * shove);
+            loco.Push(way * shove * times);
             shoves++;
             legs.Add($"{time:0.00} s: shoved toward {yaw:0} degrees");
             if (authority != null)
@@ -294,7 +450,7 @@ namespace PhysicsBattler.Locomotion
                 var chest = rig.Part(PartId.Chest).body;
                 if (chest != null && !chest.isKinematic)
                 {
-                    chest.AddForce(way * (shove * 2.5f), ForceMode.VelocityChange);
+                    chest.AddForce(way * (shove * times * 2.5f), ForceMode.VelocityChange);
                 }
             }
         }
@@ -333,6 +489,8 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.Period)) { paused = true; stepOnce = true; }
             if (SandboxInput.KeyPressed(KeyCode.B)) { physical = !physical; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.G)) Shove();
+            if (SandboxInput.KeyPressed(KeyCode.H)) Throw();
+            if (SandboxInput.KeyPressed(KeyCode.K)) Shove(2.5f);
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
         }
 
@@ -448,6 +606,10 @@ namespace PhysicsBattler.Locomotion
             GUILayout.Label(course ? $"Course: {leg}" : "Driving: W A S D, Shift run, Space hold facing, V walk speed");
             GUILayout.Label($"{loco.Current}{(loco.Shot != null ? " " + loco.Shot.Name : "")}   {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s   run {loco.RunWeight:0.00}   phase {loco.Phase:0.00}");
             GUILayout.Label($"walking speed {walkSpeed:0.0} m/s");
+            if (down > 0f)
+            {
+                GUILayout.Label(note + $" (up again in {down:0.0} s)");
+            }
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(course ? "Drive (C)" : "Course (C)")) { course = !course; Build(); }
             if (GUILayout.Button("Restart (R)")) Build();
@@ -455,6 +617,8 @@ namespace PhysicsBattler.Locomotion
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Shove (G)")) Shove();
+            if (GUILayout.Button("Hard (K)")) Shove(2.5f);
+            if (GUILayout.Button("Ball (H)")) Throw();
             if (GUILayout.Button(physical ? "Kinematic body (B)" : "Physical body (B)")) { physical = !physical; Build(); }
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();

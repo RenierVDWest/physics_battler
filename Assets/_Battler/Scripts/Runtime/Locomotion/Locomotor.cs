@@ -81,7 +81,7 @@ namespace PhysicsBattler.Locomotion
                 {
                     if ((Shot.Contact(foot, t) & LocoContact.Down) != 0)
                     {
-                        return t - ShotTime;
+                        return (t - ShotTime) / TimeScale;
                     }
                 }
             }
@@ -120,10 +120,18 @@ namespace PhysicsBattler.Locomotion
         private readonly Vector3[] scratch = new Vector3[LocoClip.BoneCount];
         private bool hasLast;
 
+        /// <summary>The clips' actor's leg (metres), and how much faster than the clips this body's gait runs.</summary>
+        public const float ClipLeg = 0.889f;
+        public readonly float TimeScale = 1f;
+
         public Locomotor(float leg)
         {
             Leg = leg;
             RunSpeed = Mathf.Sqrt(0.5f * 9.81f * leg);
+            // (Bodies of other sizes move as the clips would at their size: a gait's speed goes with the
+            // square root of the leg (the Froude number), its stride with the leg, so a shorter leg steps
+            // quicker. The clips' actor had legs of 0.89 m.)
+            TimeScale = Mathf.Clamp(Mathf.Sqrt(ClipLeg / Mathf.Max(0.1f, leg)), 0.7f, 1.6f);
             idle = LocoLibrary.Get("idle");
             walkF = LocoLibrary.Get("walk_fwd");
             walkB = LocoLibrary.Get("walk_back");
@@ -287,6 +295,20 @@ namespace PhysicsBattler.Locomotion
 
         public int Pushes { get; private set; }
 
+        /// <summary>
+        /// A small, steady push (m/s added this step, flat): something leaning on the body, or the
+        /// upper body knocked off its pose. Only the velocity changes; the walk follows it as it would
+        /// any change of speed (a standing body sets off once it is moving). Ignored during a clip.
+        /// </summary>
+        public void Nudge(Vector3 change)
+        {
+            change.y = 0f;
+            if (Current != Mode.OneShot)
+            {
+                Velocity += change;
+            }
+        }
+
         /// <summary>Standing, how far the body turns on its feet (degrees) before it steps round (a turning clip), and when it turns at all.</summary>
         public float StandTwist = 30f, TurnFrom = 40f;
 
@@ -346,7 +368,7 @@ namespace PhysicsBattler.Locomotion
 
         private void IdlePose(float dt)
         {
-            idleTime += dt;
+            idleTime += dt * TimeScale;
             idle.Pose(idleTime, raw, Leg);
             Contacts(idle, idleTime, 1f, true);
             Blend.Clear();
@@ -574,7 +596,7 @@ namespace PhysicsBattler.Locomotion
                     }
 
                     clip.RootMotion(t - 0.05f, t + 0.05f, out var m, out _);
-                    float clipSpeed = m.magnitude * Leg / 0.1f;
+                    float clipSpeed = m.magnitude * Leg * TimeScale / 0.1f;
                     float cost = Mathf.Abs(clipSpeed - speed) + 0.5f * Mathf.Abs((t - lastLanding) - sinceLanding * 1.0f);
                     if (cost < bestCost)
                     {
@@ -592,7 +614,7 @@ namespace PhysicsBattler.Locomotion
         {
             var clip = Shot;
             float from = ShotTime;
-            ShotTime = Mathf.Min(shotEnd, ShotTime + dt);
+            ShotTime = Mathf.Min(shotEnd, ShotTime + dt * TimeScale);
             clip.RootMotion(from, ShotTime, out var moved, out float turned);
             var turn = Quaternion.Euler(0f, Facing, 0f);
             Vector3 step = shotBend * (turn * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
@@ -704,7 +726,7 @@ namespace PhysicsBattler.Locomotion
             float naturalSpeed = 0f, stride = 0f, total = 0f;
             foreach (var (clip, w) in Blend)
             {
-                naturalSpeed += w * clip.Speed * Leg;
+                naturalSpeed += w * clip.Speed * Leg * TimeScale;
                 stride += w * clip.Stride * Leg;
                 total += w;
             }

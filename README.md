@@ -26,13 +26,15 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
 - **Keys:**
   - C switches between the course and driving: W A S D (relative to the camera), Shift to run, Space to keep facing the same way, V to change walking speed.
   - B switches the body between physical (legs carried exactly; torso, head and arms pinned) and kinematic.
-  - G shoves the chest; the walk steps to catch the body.
+  - G shoves the chest and the walk steps to catch the body; K shoves hard enough to knock it down (a ragdoll, up
+    again after 3 s); H throws a heavy ball at the chest, and the knock pushes the walk.
   - R restarts, P pauses, . steps once.
 - **Logs:** each run writes `PlaytestLogs/locolab-(time)/`, with the measures in session.md and the film in
   locolab.json. To draw the film: `python3 Tools/Mocap/Locomotion/locofilm.py <that>/locolab.json film.gif`.
 - **Headless:** `dotnet Tools/CompileCheck/bin/Tests/Debug/PhysicsBattler.Tests.dll locolab <dir> 70` runs the
   same course and prints the measures. `LOCO_MODES=1` traces the clip switches;
-  `LOCO_SHOVE="time,yaw,m/s;..."` adds shoves.
+  `LOCO_SHOVE="time,yaw,m/s;..."` adds shoves; `LOCO_BODY=Small|Large` walks another body;
+  `LOCO_COURSE=strafing` walks the facing-held test course.
 
 ## Current state: milestone 11, the defensive posture
 

@@ -153,9 +153,11 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
+                // (Travel and swing speed by the ankle: the contact point jumps from heel to toe as the foot rolls.)
+                Vector3 ankle = anim.Part(FootParts[f]).position;
                 if (cycling && hasLast)
                 {
-                    Vector3 m = p - lastFoot[f];
+                    Vector3 m = ankle - lastFoot[f];
                     m.y = 0f;
                     FeetTravel += 0.5f * m.magnitude;
                 }
@@ -163,7 +165,7 @@ namespace PhysicsBattler.Locomotion
                 if (hasLast && dt > 0f && !lk.Locked)
                 {
                     // (A swinging foot's speed against the body's: a foot that whips about shows here.)
-                    Vector3 rel = (p - lastFoot[f]) / dt - loco.Velocity;
+                    Vector3 rel = (ankle - lastFoot[f]) / dt - loco.Velocity;
                     rel.y = 0f;
                     if (rel.magnitude > 5f && time - lastWhip > 0.3f)
                     {
@@ -178,7 +180,7 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
-                lastFoot[f] = p;
+                lastFoot[f] = ankle;
             }
 
             ForcedReleases = poser.Feet[0].ForcedReleases + poser.Feet[1].ForcedReleases;
