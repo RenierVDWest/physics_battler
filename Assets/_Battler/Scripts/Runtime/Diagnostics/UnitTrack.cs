@@ -50,6 +50,9 @@ namespace PhysicsBattler.Diagnostics
         public float endTime = -1f;
         public int samples, uprightSamples;
         public float maxSlide;
+
+        /// <summary>The legs and feet watched: plants, sliding, twisting, floating, walking.</summary>
+        private readonly FootWatch footWatch;
         public float maxComOffset;
         public float maxPelvisDrop;
         public int steps;
@@ -74,6 +77,7 @@ namespace PhysicsBattler.Diagnostics
             if (unit != null && unit.Stance != null)
             {
                 unit.Stance.Landed += OnLanded;
+                footWatch = new FootWatch(unit, text => recorder.Event(this, "foot", text));
             }
         }
 
@@ -173,6 +177,7 @@ namespace PhysicsBattler.Diagnostics
                 }
             }
 
+            footWatch?.Sample(frames, Time.fixedDeltaTime);
             steps = stance.StepsTaken;
             shuffles = stance.ShufflesTaken;
             frames.Add("steps", steps);
@@ -350,6 +355,15 @@ namespace PhysicsBattler.Diagnostics
                 pose.Add(n + ".gx", g.x, 3);
                 pose.Add(n + ".gy", g.y, 3);
                 pose.Add(n + ".gz", g.z, 3);
+                if (part == PartId.ThighL || part == PartId.ThighR || part == PartId.ShinL || part == PartId.ShinR || part == PartId.FootL || part == PartId.FootR)
+                {
+                    // (The legs: the posed rotation too, to see which way they point.)
+                    Quaternion gq = unit.Anim.Part(part).rotation;
+                    pose.Add(n + ".gqx", gq.x, 3);
+                    pose.Add(n + ".gqy", gq.y, 3);
+                    pose.Add(n + ".gqz", gq.z, 3);
+                    pose.Add(n + ".gqw", gq.w, 3);
+                }
             }
 
             for (int f = 0; f < 2; f++)
@@ -541,6 +555,7 @@ namespace PhysicsBattler.Diagnostics
                           + $"Feet slid at most {maxSlide * 100f:0.0} cm while planted; the weight was at most "
                           + $"{maxComOffset * 100f:0} cm from the support point; hips dropped for reach by up to {maxPelvisDrop * 100f:0} cm.");
             md.AppendLine();
+            footWatch?.Write(md);
             md.AppendLine("Physical parts against the pose while standing (mean / max): distance in cm, angle in degrees.");
             md.AppendLine();
             md.AppendLine("| Part | Authority | Distance | Angle |");
