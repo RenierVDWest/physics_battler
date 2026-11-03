@@ -49,7 +49,7 @@ GUARD = {
 STRIKES = {
     'sns_forehand': ('sword_and_shield_slash_3', 0.0, 1.50, 0.63, 'forehand high', 'Medium forehand cut, diagonal down, in place'),
     'sns_rising': ('sword_and_shield_slash_1', 0.0, 1.67, 0.83, 'rising middle', 'Medium rising backhand cut, in place'),
-    'sns_thrust': ('sword_and_shield_attack_2', 0.0, 1.00, 0.30, 'thrust high', 'Medium high thrust over the shield, in place'),
+    'sns_thrust': ('sword_and_shield_attack_2', 0.0, 1.00, 0.48, 'thrust high', 'Medium high thrust over the shield, in place'),
     'sns_backhand_lunge': ('sword_and_shield_attack_1', 0.0, 1.73, 0.77, 'backhand middle', 'Medium stepping backhand, a long lunge'),
     'sns_chop_side': ('sword_and_shield_slash_2', 0.0, 2.43, 1.40, 'downward high', 'Medium overhead chop with a side step'),
     'sns_chop_lunge': ('sword_and_shield_attack_3', 0.0, 2.33, 1.17, 'downward high', 'Medium overhead chop with a lunge'),

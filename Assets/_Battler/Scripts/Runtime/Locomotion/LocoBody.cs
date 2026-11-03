@@ -420,6 +420,12 @@ namespace PhysicsBattler.Locomotion
                 pole = Vector3.Lerp(carryPole.normalized, clipPole.normalized, clipShare);
             }
 
+            // (An aimed strike: the weapon hand pulled toward the line through its target, most at contact.)
+            if (aimClip != null && (right || TwoHanded))
+            {
+                target += aimPull * AimWeight();
+            }
+
             TwoBoneIK.Solve(upper, fore, hand, target, pole);
 
             if (clipShare >= 1f)
@@ -427,6 +433,11 @@ namespace PhysicsBattler.Locomotion
                 if (clipHandKnown)
                 {
                     hand.rotation = FadeHand(a, clipHand);
+                }
+
+                if (right)
+                {
+                    SteerBlade(hand);
                 }
 
                 return;
@@ -464,6 +475,59 @@ namespace PhysicsBattler.Locomotion
             }
 
             hand.rotation = FadeHand(a, clipHandKnown && clipShare > 0f ? Quaternion.Slerp(held, clipHand, clipShare) : held);
+            if (right)
+            {
+                SteerBlade(hand);
+            }
+        }
+
+        /// <summary>
+        /// An aimed strike's wrist: about contact the weapon hand turns the blade toward the target, as far as
+        /// a wrist would for a cut (<see cref="MostBladeSteer"/>); a thrust is pointed at it all the way
+        /// (<see cref="MostThrustSteer"/>: the clips' thrusting hands don't say where their blade points).
+        /// </summary>
+        private void SteerBlade(Transform hand)
+        {
+            float w = SteerWeight();
+            if (w <= 0f)
+            {
+                return;
+            }
+
+            var slot = anim.SlotWeaponR;
+            Vector3 grip = slot != null ? slot.position : hand.position;
+            Vector3 blade = hand.rotation * BladeR;
+            Vector3 want = AimTarget - grip;
+            if (want.sqrMagnitude < 1e-4f || blade.sqrMagnitude < 1e-6f)
+            {
+                return;
+            }
+
+            float most = IsThrust(aimClip) ? MostThrustSteer : MostBladeSteer;
+            Vector3 axis = Vector3.Cross(blade, want);
+            if (axis.sqrMagnitude < 1e-10f)
+            {
+                return;
+            }
+
+            float angle = Mathf.Min(Vector3.Angle(blade, want), most) * w;
+            hand.rotation = Quaternion.AngleAxis(angle, axis.normalized) * hand.rotation;
+        }
+
+        private static bool IsThrust(LocoClip clip) => clip != null && clip.Kind != null && clip.Kind.StartsWith("thrust");
+
+        /// <summary>How much of the wrist's steer is on now: a thrust's from halfway through its wind-up, a cut's just before contact; let go after.</summary>
+        private float SteerWeight()
+        {
+            if (aimClip == null || loco.Shot != aimClip)
+            {
+                return 0f;
+            }
+
+            float t = loco.ShotTime, c = aimClip.ContactFrame / aimClip.Rate;
+            float from = IsThrust(aimClip) ? 0.4f * c : Mathf.Max(0f, c - 0.15f);
+            float u = t <= c ? Mathf.Clamp01((t - from) / Mathf.Max(0.05f, c - from)) : 1f - Mathf.Clamp01((t - c) / 0.25f);
+            return u * u * (3f - 2f * u);
         }
 
         // Each hand's turn faded at each switch between motions, as the walk fades the places: what the
@@ -486,6 +550,139 @@ namespace PhysicsBattler.Locomotion
             lastHand[a] = shown;
             handKnown[a] = true;
             return shown;
+        }
+
+        // ---- Aimed strikes (the combat plan's step 3) ---------------------------------------------------
+
+        /// <summary>The weapon's length (metres) and where along it a strike meets its target (its share of the length).</summary>
+        public float WeaponLength = 0.9f, SweetSpot = 0.7f;
+
+        /// <summary>How far an aimed cut's wrist turns its blade toward the target (degrees), and a thrust's.</summary>
+        public float MostBladeSteer = 30f, MostThrustSteer = 110f;
+
+        /// <summary>A target for a strike played at nothing in particular: ahead at chest height, where the strikes' reach is measured.</summary>
+        public Vector3 NominalTarget() => new Vector3(loco.Position.x, GroundY, loco.Position.z) + Quaternion.Euler(0f, loco.Facing, 0f) * new Vector3(0f, NominalHeight * loco.Leg, NominalReach * loco.Leg);
+
+        /// <summary>The nominal target's height and distance (leg lengths: about 1.3 m up and 1.5 m ahead of a Medium).</summary>
+        public const float NominalHeight = 1.54f, NominalReach = 1.78f;
+
+        /// <summary>Which body this is ("Small", "Medium", "Large"): its strikes' measured reach is looked up by it.</summary>
+        public string BodyKey = "Medium";
+
+        /// <summary>Both hands hold the weapon (the Large's two-handed grip): both are pulled to aim it.</summary>
+        public bool TwoHanded;
+
+        /// <summary>The most a strike's hand is pulled to aim it (metres), and the most the body turns toward its target (degrees); its lunge is stretched or shortened within these.</summary>
+        public float MostAimPull = 0.4f, MostAimTurn = 35f, LeastLunge = 0.6f, MostLunge = 1.4f;
+
+        /// <summary>The last aimed strike's plan: its turn (degrees), its lunge's stretch, and how far its weapon would have missed with no pull (metres).</summary>
+        public float AimTurn, AimLunge, AimMissBeforePull;
+
+        public Vector3 AimTarget { get; private set; }
+
+        /// <summary>Where the plan put the weapon's sweet spot at contact before the hand's pull (world).</summary>
+        public Vector3 AimPredicted { get; private set; }
+
+        private LocoClip aimClip;
+        private Vector3 aimPull;
+        private readonly Vector3[] clipPose = new Vector3[LocoClip.BoneCount];
+
+        /// <summary>
+        /// Starts a strike clip aimed at a point (world): the body turns toward it over the wind-up, the
+        /// lunge is stretched or shortened so contact is at its distance, and the weapon hand is pulled the
+        /// rest of the way, most at contact. The feet step as the clip's do.
+        /// </summary>
+        /// <param name="plan">False: played as it is, no turn, stretch or pull (the wrist still steers toward the target).</param>
+        public void PlayStrike(LocoClip clip, Vector3 target, bool plan = true)
+        {
+            if (clip == null || clip.ContactFrame < 0)
+            {
+                return;
+            }
+
+            if (!plan)
+            {
+                aimPull = Vector3.zero;
+                AimTurn = 0f;
+                AimLunge = 1f;
+                AimMissBeforePull = 0f;
+                AimTarget = target;
+                aimClip = clip;
+                loco.PlayAimed(clip, 1f, 0f, clip.ContactFrame / clip.Rate);
+                return;
+            }
+
+            float contact = clip.ContactFrame / clip.Rate;
+            clip.RootMotion(0f, contact, out var moved, out float turned);
+            Vector3 travel = new Vector3(moved.x, 0f, moved.y) * loco.Leg;
+            // (Where the weapon is at contact against the start, played as it is on this body: measured once
+            // by the headless runner, StrikeReach.json; without it, worked out from the clip's hand.)
+            Vector3 point = StrikeReach.TryGet(BodyKey, clip.Name, out var grip, out var bladeWay)
+                ? grip + bladeWay * (WeaponLength * SweetSpot) - travel
+                : Quaternion.Euler(0f, turned, 0f) * ClipWeaponPoint(clip, contact);
+            var turn0 = Quaternion.Euler(0f, loco.Facing, 0f);
+            Vector3 want = Quaternion.Inverse(turn0) * (target - new Vector3(loco.Position.x, GroundY, loco.Position.z));
+            Vector3 wantFlat = new Vector3(want.x, 0f, want.z);
+            float k = 1f, by = 0f;
+            for (int i = 0; i < 3; i++)
+            {
+                Vector3 q = k * travel + point;
+                Vector3 qFlat = new Vector3(q.x, 0f, q.z);
+                by = Mathf.Clamp(Vector3.SignedAngle(qFlat, wantFlat, Vector3.up), -MostAimTurn, MostAimTurn);
+                // (The lunge takes up the difference in distance, as far as it goes that way.)
+                Vector3 way = qFlat.sqrMagnitude > 1e-6f ? qFlat.normalized : Vector3.forward;
+                float along = Vector3.Dot(travel, way);
+                if (along > 0.05f)
+                {
+                    k = Mathf.Clamp(k + (wantFlat.magnitude - qFlat.magnitude) / along, LeastLunge, MostLunge);
+                }
+            }
+
+            Vector3 predicted = Quaternion.Euler(0f, by, 0f) * (k * travel + point);
+            Vector3 miss = want - predicted;
+            AimMissBeforePull = miss.magnitude;
+            aimPull = turn0 * Quaternion.Euler(0f, by, 0f) * Vector3.ClampMagnitude(Quaternion.Inverse(Quaternion.Euler(0f, by, 0f)) * miss, MostAimPull);
+            AimTurn = by;
+            AimLunge = k;
+            AimPredicted = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * predicted;
+            AimTarget = target;
+            aimClip = clip;
+            loco.PlayAimed(clip, k, by, contact);
+        }
+
+        /// <summary>How much of the aim's pull is on now: rising through the wind-up, all of it at contact, gone by the end.</summary>
+        private float AimWeight()
+        {
+            if (aimClip == null || loco.Shot != aimClip)
+            {
+                aimClip = null;
+                return 0f;
+            }
+
+            float t = loco.ShotTime, c = aimClip.ContactFrame / aimClip.Rate, end = aimClip.Duration;
+            float u = t <= c ? Mathf.Clamp01(t / Mathf.Max(0.05f, c)) : 1f - Mathf.Clamp01((t - c) / Mathf.Max(0.05f, end - c));
+            return u * u * (3f - 2f * u);
+        }
+
+        /// <summary>
+        /// Where a clip's weapon would be at a time (its sweet spot), against the clip's root then (metres):
+        /// the hand as the arm reaches it on our body, turned as the clip's hand, holding our weapon in our grip.
+        /// </summary>
+        public Vector3 ClipWeaponPoint(LocoClip clip, float time)
+        {
+            clip.Pose(time, clipPose, loco.Leg);
+            Vector3 P(LocoBone b) => clipPose[(int)b] + Vector3.up * 0f;
+            Vector3 sh = P(LocoBone.RightArm), el = P(LocoBone.RightForeArm), wr = P(LocoBone.RightHand);
+            float clipArm = (el - sh).magnitude + (wr - el).magnitude;
+            float ourArm = anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude;
+            Vector3 hand = sh + (wr - sh) * (ourArm / Mathf.Max(1e-3f, clipArm));
+            Vector3 along = P(LocoBone.RightHandMiddle) - wr;
+            Vector3 side = P(LocoBone.RightHandIndex) - P(LocoBone.RightHandPinky);
+            var slot = anim.SlotWeaponR;
+            Vector3 restAlong = slot != null && slot.localPosition.sqrMagnitude > 1e-6f ? slot.localPosition.normalized : anim.RestLocalPosition(PartId.HandR).normalized;
+            var rot = Quaternion.LookRotation(along.normalized, Vector3.Cross(along, side).normalized) * Quaternion.Inverse(Quaternion.LookRotation(restAlong, Vector3.Cross(restAlong, Vector3.forward).normalized));
+            Vector3 grip = hand + rot * (slot != null ? slot.localPosition : Vector3.zero);
+            return grip + rot * BladeR * (WeaponLength * SweetSpot);
         }
 
         /// <summary>How far a carrying hand twists about its forearm to point its weapon (degrees: a forearm turns about this far).</summary>

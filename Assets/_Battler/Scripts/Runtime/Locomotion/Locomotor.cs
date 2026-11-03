@@ -387,6 +387,27 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
+        /// Plays a strike aimed (the combat plan's "aiming a clip strike"): its root's travel stretched
+        /// or shortened by <paramref name="moveScale"/>, and turned by <paramref name="turnBy"/> degrees
+        /// over its first <paramref name="turnOver"/> seconds (its wind-up). Its feet step as the clip's do.
+        /// </summary>
+        public void PlayAimed(LocoClip clip, float moveScale, float turnBy, float turnOver)
+        {
+            if (clip == null)
+            {
+                return;
+            }
+
+            StartShot(clip, ShotEnds.Idle);
+            shotMoveScale = moveScale;
+            shotAimTurn = turnBy;
+            shotAimOver = Mathf.Max(0.05f, turnOver);
+        }
+
+        /// <summary>The playing strike's own time (seconds into its clip) and its contact time; -1 when no strike plays.</summary>
+        public float StrikeTime => Current == Mode.OneShot && Shot != null && Shot.ContactFrame >= 0 ? ShotTime : -1f;
+
+        /// <summary>
         /// The walk animating a root that something else moves (the fight's steering, knock-backs, a
         /// lunge): its place, facing and velocity are taken as they are, and only the body is posed:
         /// the cycles and the standing feet, no clips that move the root themselves.
@@ -665,7 +686,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         private ShotEnds shotThen;
-        private float shotEnd, shotTurnScale = 1f, shotMoveScale = 1f;
+        private float shotEnd, shotTurnScale = 1f, shotMoveScale = 1f, shotAimTurn, shotAimOver;
         private Quaternion shotBend = Quaternion.identity;
 
         /// <summary>
@@ -761,6 +782,7 @@ namespace PhysicsBattler.Locomotion
             shotTurnScale = turnScale;
             shotMoveScale = 1f;
             shotBend = Quaternion.identity;
+            shotAimTurn = shotAimOver = 0f;
             shotEnd = endAt > 0f ? endAt : then == ShotEnds.Cycle ? HandOver(clip, startFrom) : clip.Duration;
             Current = Mode.OneShot;
             Blend.Clear();
@@ -897,6 +919,13 @@ namespace PhysicsBattler.Locomotion
             float from = ShotTime;
             ShotTime = Mathf.Min(shotEnd, ShotTime + dt * TimeScale);
             clip.RootMotion(from, ShotTime, out var moved, out float turned);
+            if (shotAimOver > 0f && from < shotAimOver)
+            {
+                // (An aimed strike's turn toward its target, spread over its wind-up.)
+                float share = (Mathf.Min(ShotTime, shotAimOver) - from) / shotAimOver;
+                Facing += shotAimTurn * share;
+            }
+
             var turn = Quaternion.Euler(0f, Facing, 0f);
             Vector3 step = shotBend * (turn * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
             Position += step;

@@ -137,6 +137,9 @@ namespace PhysicsBattler.Locomotion
             poser.BladeR = (anim.SlotWeaponR != null ? anim.SlotWeaponR.localRotation : Quaternion.identity) * Vector3.forward;
             poser.BladeL = (anim.SlotWeaponL != null ? anim.SlotWeaponL.localRotation : Quaternion.identity) * Vector3.forward;
             film.BladeLength = main != null && !main.IsShield ? main.length * scale : 0f;
+            poser.WeaponLength = main != null && !main.IsShield ? main.length * scale : 0.9f * scale;
+            poser.BodyKey = body.ToString();
+            poser.TwoHanded = body == BodySize.Large;
             film.ShieldRadius = off != null && off.IsShield ? 0.3f * scale : 0f;
         }
 
@@ -335,7 +338,8 @@ namespace PhysicsBattler.Locomotion
             // (The guard, step 2 of the combat overhaul: the Large's own, the sword and shield's for the rest.)
             loco.SetGuard(body == BodySize.Large ? "lg_" : "sns_");
             loco.GuardWanted = guardUp;
-            EquipLoadout(legLength / 0.845f);
+            size = legLength / 0.845f;
+            EquipLoadout(size);
             path = LocoCourse.Lab();
             path.SpeedScale = PaceScale;
             path.LegStarted += (i, name) =>
@@ -354,6 +358,10 @@ namespace PhysicsBattler.Locomotion
             path.Reset();
             time = 0f;
             ClearPrints();
+            dummyAt = origin + Vector3.forward * (1.6f * size);
+            aiming = null;
+            lastAim = "";
+            ShowDummy();
         }
 
         private void FixedUpdate()
@@ -429,6 +437,7 @@ namespace PhysicsBattler.Locomotion
 
             loco.Step(dt, want, facing);
             poser.Pose(dt);
+            WatchAim();
             measures.Sample(dt, time, leg);
             film.Add(time, leg, loco, poser, anim, origin);
             if (authority != null && snapped)
@@ -668,8 +677,130 @@ namespace PhysicsBattler.Locomotion
             }
 
             var clip = LocoLibrary.Get(combat[Mathf.Clamp(combatClip, 0, combat.Count - 1)]);
+            if (clip.ContactFrame >= 0 && !course)
+            {
+                // (A strike: aimed at the dummy.)
+                poser.PlayStrike(clip, DummyTarget);
+                aiming = clip;
+                aimBest = float.MaxValue;
+                legs.Add($"{time:0.00} s: struck at the dummy ({DummyHeightNames[dummyHeight]}, {Flat(DummyTarget - loco.Position):0.00} m away) with {clip.Name}: turn {poser.AimTurn:+0;-0} degrees, lunge x{poser.AimLunge:0.00}, the arm to make up {poser.AimMissBeforePull:0.00} m");
+                return;
+            }
+
             loco.Play(clip);
             legs.Add($"{time:0.00} s: played {clip.Name}");
+        }
+
+        // ---- The dummy (the combat plan's step 3: single strikes aimed at a target) ---------------------
+
+        private static readonly float[] DummyHeights = { 0.9f, 1.3f, 1.6f };
+        private static readonly string[] DummyHeightNames = { "low", "middle", "high" };
+        private int dummyHeight = 1;
+        private Vector3 dummyAt;
+        private float size = 1f;
+        private GameObject dummyPole, dummyHead;
+        private Material dummyMaterial;
+        private LocoClip aiming;
+        private float aimBest;
+        private string lastAim = "";
+
+        /// <summary>Where the dummy is to be struck (its head, at the height picked).</summary>
+        private Vector3 DummyTarget => dummyAt + Vector3.up * (DummyHeights[dummyHeight] * size);
+
+        private static float Flat(Vector3 v) => new Vector2(v.x, v.z).magnitude;
+
+        private void ShowDummy()
+        {
+            bool shown = !course;
+            if (dummyPole == null)
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (shader == null)
+                {
+                    shader = Shader.Find("Standard");
+                }
+
+                dummyMaterial = new Material(shader) { color = new Color(0.75f, 0.6f, 0.35f) };
+                dummyPole = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                dummyHead = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                foreach (var made in new[] { dummyPole, dummyHead })
+                {
+                    made.name = "Strike dummy";
+                    var collider = made.GetComponent<Collider>();
+                    if (collider != null)
+                    {
+                        Destroy(collider);
+                    }
+
+                    made.GetComponent<MeshRenderer>().sharedMaterial = dummyMaterial;
+                }
+            }
+
+            float h = DummyHeights[dummyHeight] * size;
+            dummyPole.SetActive(shown);
+            dummyHead.SetActive(shown);
+            dummyPole.transform.position = dummyAt + Vector3.up * (0.5f * h);
+            dummyPole.transform.localScale = new Vector3(0.05f, 0.5f * h, 0.05f);
+            dummyHead.transform.position = DummyTarget;
+            dummyHead.transform.localScale = Vector3.one * 0.12f;
+        }
+
+        private void NextDummyHeight()
+        {
+            dummyHeight = (dummyHeight + 1) % DummyHeights.Length;
+            ShowDummy();
+        }
+
+        /// <summary>The dummy put straight ahead of the body, as far as the picked strike reaches (Y).</summary>
+        private void DummyInReach()
+        {
+            var combat = CombatClips();
+            var clip = combat.Count > 0 ? LocoLibrary.Get(combat[Mathf.Clamp(combatClip, 0, combat.Count - 1)]) : null;
+            float reach = 1.6f * size;
+            if (clip != null && StrikeReach.TryGet(body.ToString(), clip.Name, out var grip, out var way))
+            {
+                Vector3 sweet = grip + way * (poser.WeaponLength * poser.SweetSpot);
+                reach = Flat(sweet);
+            }
+
+            dummyAt = new Vector3(loco.Position.x, origin.y, loco.Position.z) + Quaternion.Euler(0f, loco.Facing, 0f) * Vector3.forward * reach;
+            ShowDummy();
+        }
+
+        /// <summary>How near the blade came to the dummy's head about the aimed strike's contact; told when it ends.</summary>
+        private void WatchAim()
+        {
+            if (aiming == null)
+            {
+                return;
+            }
+
+            if (loco.Shot != aiming)
+            {
+                lastAim = aimBest < float.MaxValue
+                    ? $"{aiming.Name}: turn {poser.AimTurn:+0;-0}°, lunge x{poser.AimLunge:0.00}, the arm made up {poser.AimMissBeforePull:0.00} m; the blade passed {aimBest * 100f:0} cm from the target"
+                    : $"{aiming.Name}: cut short before contact";
+                legs.Add($"{time:0.00} s: {lastAim}");
+                if (dummyMaterial != null)
+                {
+                    dummyMaterial.color = aimBest <= 0.05f ? new Color(0.35f, 0.75f, 0.35f) : aimBest <= 0.15f ? new Color(0.85f, 0.75f, 0.3f) : new Color(0.85f, 0.35f, 0.3f);
+                }
+
+                aiming = null;
+                return;
+            }
+
+            float contact = aiming.ContactFrame / aiming.Rate;
+            var slot = anim.SlotWeaponR;
+            if (slot == null || Mathf.Abs(loco.ShotTime - contact) > 0.1f)
+            {
+                return;
+            }
+
+            Vector3 a = slot.position, ab = slot.rotation * Vector3.forward * poser.WeaponLength;
+            Vector3 target = DummyTarget;
+            float t = Mathf.Clamp01(Vector3.Dot(target - a, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
+            aimBest = Mathf.Min(aimBest, (a + ab * t - target).magnitude);
         }
 
         private void NextLoadout()
@@ -721,10 +852,11 @@ namespace PhysicsBattler.Locomotion
             bool hold = SandboxInput.KeyHeld(KeyCode.Space);
             if (loco.GuardWanted)
             {
-                // (In the guard it faces where the camera looks, as if at an enemy there, and steps
-                // whichever way it is driven: forward, back, to the sides.)
+                // (In the guard it faces the dummy, as it would an enemy (where the camera looks, on the
+                // course), and steps whichever way it is driven: forward, back, to the sides.)
                 want = way * speed;
-                facing = camYaw;
+                Vector3 toDummy = dummyAt - loco.Position;
+                facing = !course && Flat(toDummy) > 0.2f ? Mathf.Atan2(toDummy.x, toDummy.z) * Mathf.Rad2Deg : camYaw;
                 return;
             }
 
@@ -762,6 +894,8 @@ namespace PhysicsBattler.Locomotion
 
             if (SandboxInput.KeyPressed(KeyCode.L)) { NextLoadout(); }
             if (SandboxInput.KeyPressed(KeyCode.J)) { PlayCombatClip(); }
+            if (SandboxInput.KeyPressed(KeyCode.U)) { NextDummyHeight(); }
+            if (SandboxInput.KeyPressed(KeyCode.Y)) { DummyInReach(); }
             if (SandboxInput.KeyPressed(KeyCode.T)) { ToggleGuard(); }
             if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
@@ -939,6 +1073,24 @@ namespace PhysicsBattler.Locomotion
                 if (shown != null)
                 {
                     GUILayout.Label($"  {shown.Role}{(shown.Kind.Length > 0 ? ", " + shown.Kind : "")}, {shown.Duration:0.00} s{(shown.ContactFrame >= 0 ? $", contact at {shown.ContactFrame / shown.Rate:0.00} s" : "")}");
+                    if (shown.ContactFrame >= 0 && StrikeReach.TryGet(body.ToString(), shown.Name, out var grip, out var way))
+                    {
+                        Vector3 sweet = grip + way * (poser.WeaponLength * poser.SweetSpot);
+                        GUILayout.Label($"  reaches {Flat(sweet):0.0} m ahead, {sweet.y:0.0} m up{(Mathf.Abs(sweet.x) > 0.3f ? (sweet.x > 0f ? ", to the right" : ", to the left") : "")}");
+                    }
+                }
+
+                if (!course)
+                {
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button($"Dummy: {DummyHeightNames[dummyHeight]} (U)")) NextDummyHeight();
+                    if (GUILayout.Button("Put it in reach (Y)")) DummyInReach();
+                    GUILayout.EndHorizontal();
+                    GUILayout.Label($"  the dummy is {Flat(DummyTarget - loco.Position):0.0} m away, struck at {DummyTarget.y - origin.y:0.0} m");
+                    if (lastAim.Length > 0)
+                    {
+                        GUILayout.Label("  " + lastAim);
+                    }
                 }
             }
 
@@ -962,7 +1114,17 @@ namespace PhysicsBattler.Locomotion
 
         private void OnApplicationQuit() => WriteLog();
 
-        private void OnDestroy() => WriteLog();
+        private void OnDestroy()
+        {
+            WriteLog();
+            foreach (var made in new[] { dummyPole, dummyHead })
+            {
+                if (made != null)
+                {
+                    Destroy(made);
+                }
+            }
+        }
 
         private bool written;
 
