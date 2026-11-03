@@ -17,8 +17,8 @@ namespace PhysicsBattler.Units
     /// </summary>
     public partial class UnitController
     {
-        /// <summary>The new walk in the fight (off: the old gait and stance).</summary>
-        public static bool NewWalk = true;
+        /// <summary>The new walk in the fight (off: the old gait and stance). Off until the join is taken step by step in the lab.</summary>
+        public static bool NewWalk = false;
 
         /// <summary>How fast the walk takes the body over, and gives it back (seconds for all of it).</summary>
         public const float WalkTakeOver = 0.25f, WalkHandBack = 0.12f;
