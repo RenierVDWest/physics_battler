@@ -131,6 +131,9 @@ namespace UnityEngine
     {
         public Vector3 center;
         public Vector3 size;
+        public Vector3 extents => size * 0.5f;
+        public Vector3 min => center - size * 0.5f;
+        public Vector3 max => center + size * 0.5f;
     }
 
     public class BoxCollider : Collider
