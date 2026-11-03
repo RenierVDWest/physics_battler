@@ -126,6 +126,64 @@ namespace PhysicsBattler.Locomotion
         private readonly LocoClip idle, walkF, walkB, walkLc, walkRc, walkLs, walkRs, runF, runL, runR;
         private float idleTime;
 
+        /// <summary>
+        /// One way of moving's clips (the relaxed walk's, a guard's): standing, walking each way, side-steps
+        /// and crossovers, running, turning on the spot. A missing clip is filled from the relaxed set.
+        /// </summary>
+        public sealed class ClipSet
+        {
+            public string Name;
+            public LocoClip Idle, WalkF, WalkB, StepL, StepR, CrossL, CrossR, RunF, RunB, RunL, RunR, TurnL, TurnR, Turn180;
+        }
+
+        /// <summary>The relaxed walk's clips.</summary>
+        public readonly ClipSet Relaxed;
+
+        /// <summary>The guard's clips (null: no guard); <see cref="GuardWeight"/> blends them in.</summary>
+        public ClipSet Guard { get; private set; }
+
+        /// <summary>How much of the body moves as the guard (0: relaxed, 1: in guard); it goes toward <see cref="GuardWanted"/>.</summary>
+        public float GuardWeight { get; private set; }
+
+        /// <summary>Whether the guard is wanted (the walker goes into it, or out of it, over <see cref="GuardBlend"/> seconds).</summary>
+        public bool GuardWanted;
+
+        public float GuardBlend = 0.5f;
+
+        private bool InGuard => Guard != null && GuardWeight > 0.5f;
+
+        /// <summary>
+        /// Gives the walker a guard: the body's guard clips by their names' prefix ("sns_": the sword and
+        /// shield's, "lg_": the Large's two-handed one). Null takes it away.
+        /// </summary>
+        public void SetGuard(string prefix)
+        {
+            if (string.IsNullOrEmpty(prefix))
+            {
+                Guard = null;
+                GuardWeight = 0f;
+                return;
+            }
+
+            LocoClip Get(string name) => LocoLibrary.Get(prefix + name);
+            var set = new ClipSet
+            {
+                Name = prefix,
+                // (The steadier of the standing takes first: the long one lowers its shield now and then.)
+                Idle = Get("idle_b") ?? Get("idle"),
+                WalkF = Get("walk"),
+                WalkB = Get("walk_back"),
+                StepL = Get("step_left"),
+                StepR = Get("step_right"),
+                RunF = Get("run"),
+                RunB = Get("run_back"),
+                TurnL = Get("turn_left"),
+                TurnR = Get("turn_right"),
+                Turn180 = Get("turn180"),
+            };
+            Guard = set.Idle != null && set.WalkF != null ? set : null;
+        }
+
         // Inertialization: what is left of the last motion's pose against the new one, fading out.
         private readonly Vector3[] offset = new Vector3[LocoClip.BoneCount];
         private readonly Vector3[] offsetVelocity = new Vector3[LocoClip.BoneCount];
@@ -157,6 +215,12 @@ namespace PhysicsBattler.Locomotion
             runF = LocoLibrary.Get("run_fwd");
             runL = LocoLibrary.Get("run_left");
             runR = LocoLibrary.Get("run_right");
+            Relaxed = new ClipSet
+            {
+                Name = "relaxed", Idle = idle, WalkF = walkF, WalkB = walkB, StepL = walkLs, StepR = walkRs, CrossL = walkLc, CrossR = walkRc,
+                RunF = runF, RunL = runL, RunR = runR,
+                TurnL = LocoLibrary.Get("turn90_left"), TurnR = LocoLibrary.Get("turn90_right"), Turn180 = LocoLibrary.Get("turn180_right"),
+            };
         }
 
         public bool Ready => idle != null && walkF != null && walkB != null && walkLc != null && walkRc != null;
@@ -225,6 +289,7 @@ namespace PhysicsBattler.Locomotion
             wantVelocity.y = 0f;
             wantNow = wantVelocity;
             float want = wantVelocity.magnitude;
+            GuardWeight = Guard != null ? Mathf.MoveTowards(GuardWeight, GuardWanted ? 1f : 0f, dt / Mathf.Max(0.05f, GuardBlend)) : 0f;
             if (Current == Mode.OneShot)
             {
                 ShotStep(dt);
@@ -260,7 +325,7 @@ namespace PhysicsBattler.Locomotion
                 {
                     StartTurn(turnWanted);
                 }
-                else if (want > WalkFrom && Mathf.Abs(wantAngle) < 35f && want < RunSpeed && StartClip() != null)
+                else if (!InGuard && want > WalkFrom && Mathf.Abs(wantAngle) < 35f && want < RunSpeed && StartClip() != null)
                 {
                     StartShot(StartClip(), ShotEnds.Cycle, startFrom: StartFirstMove);
                 }
@@ -276,9 +341,12 @@ namespace PhysicsBattler.Locomotion
                 float reverse = want > 0.3f && speed > 0.3f ? Vector3.Angle(Velocity, wantVelocity) : 0f;
                 if (reverse > 135f && speed > 0.6f && Mathf.Abs(angle) < 40f && Mathf.Abs(turnWanted) > 100f)
                 {
-                    StartPivot(Vector3.Cross(Velocity, wantVelocity).y);
+                    if (!InGuard)
+                    {
+                        StartPivot(Vector3.Cross(Velocity, wantVelocity).y);
+                    }
                 }
-                else if (speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
+                else if (!InGuard && speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
                 {
                 }
                 else if (speed < StandBelow && want < StandBelow && BothFeetDown() && (StandsWide() || finishing > 1.2f))
@@ -339,6 +407,7 @@ namespace PhysicsBattler.Locomotion
 
             velocity.y = 0f;
             wantNow = velocity;
+            GuardWeight = Guard != null ? Mathf.MoveTowards(GuardWeight, GuardWanted ? 1f : 0f, dt / Mathf.Max(0.05f, GuardBlend)) : 0f;
             // (A little smoothing: the measured velocity jitters step to step.)
             Vector3 was = Velocity;
             Velocity = Vector3.Lerp(Velocity, velocity, 1f - Mathf.Exp(-dt / 0.06f));
@@ -536,7 +605,19 @@ namespace PhysicsBattler.Locomotion
             idle.Pose(idleTime, raw, Leg);
             Contacts(idle, idleTime, 1f, true);
             Blend.Clear();
-            Blend.Add((idle, 1f));
+            float g = Guard != null ? GuardWeight : 0f;
+            Blend.Add((idle, 1f - g));
+            if (g > 0f)
+            {
+                // (The guard's standing, blended in: its wider stance is stepped into below.)
+                Guard.Idle.Pose(idleTime, scratch, Leg);
+                for (int i = 0; i < raw.Length; i++)
+                {
+                    raw[i] = Vector3.Lerp(raw[i], scratch[i], g);
+                }
+
+                Blend.Add((Guard.Idle, g));
+            }
             if (stanceHeld)
             {
                 // (The legs where it stopped; the knees a little the idle's way. A held foot far from
@@ -725,6 +806,15 @@ namespace PhysicsBattler.Locomotion
             bool big = Mathf.Abs(degrees) >= 135f;
             string name = (big ? "turn180_" : "turn90_") + (degrees > 0f ? "right" : "left");
             var clip = LocoLibrary.Get(name);
+            if (InGuard)
+            {
+                // (In the guard, its own turns.)
+                var own = big ? Guard.Turn180 : degrees > 0f ? Guard.TurnR : Guard.TurnL;
+                if (own != null && Mathf.Abs(own.Turn) > 1f)
+                {
+                    clip = own;
+                }
+            }
             if (clip == null || Mathf.Abs(clip.Turn) < 1f)
             {
                 Facing += degrees;   // (no clip: it just turns)
@@ -894,7 +984,8 @@ namespace PhysicsBattler.Locomotion
 
             float angle = travelAngle;
             float up = RunSpeed * 1.08f, down = RunSpeed * 0.92f;
-            bool backward = Mathf.Abs(angle) > 120f;
+            // (Backward, only a guard runs: it has a clip for it.)
+            bool backward = Mathf.Abs(angle) > 120f && !(InGuard && Guard.RunB != null);
             if (!Running && speed > up && !backward && runF != null)
             {
                 Running = true;
@@ -907,10 +998,21 @@ namespace PhysicsBattler.Locomotion
             RunWeight = Mathf.MoveTowards(RunWeight, Running ? 1f : 0f, dt / 0.4f);
 
             Blend.Clear();
-            AddDirections(Blend, angle, speed, 1f - RunWeight, false);
+            float g = Guard != null ? GuardWeight : 0f;
+            AddDirections(Relaxed, Blend, angle, speed, (1f - RunWeight) * (1f - g), false);
             if (RunWeight > 0f)
             {
-                AddDirections(Blend, angle, speed, RunWeight, true);
+                AddDirections(Relaxed, Blend, angle, speed, RunWeight * (1f - g), true);
+            }
+
+            if (g > 0f)
+            {
+                // The guard's cycles, at the same phase: a step under way goes on as one step.
+                AddDirections(Guard, Blend, angle, speed, (1f - RunWeight) * g, false);
+                if (RunWeight > 0f)
+                {
+                    AddDirections(Guard, Blend, angle, speed, RunWeight * g, true);
+                }
             }
 
             // The blend's own speed and stride (m/s, metres a cycle): the phase goes on by the ground covered.
@@ -1019,18 +1121,22 @@ namespace PhysicsBattler.Locomotion
 
 
         /// <summary>The cycles for a way of travelling: the two nearest of forward, right, backward and left, by angle.</summary>
-        private void AddDirections(List<(LocoClip, float)> into, float angle, float speed, float weight, bool run)
+        private void AddDirections(List<(LocoClip, float)> into, float angle, float speed, float weight, bool run) =>
+            AddDirections(Relaxed, into, angle, speed, weight, run);
+
+        private void AddDirections(ClipSet set, List<(LocoClip, float)> into, float angle, float speed, float weight, bool run)
         {
             if (weight <= 0f)
             {
                 return;
             }
 
-            // (Sideways: slow side-steps blend into the crossover walk as it speeds up.)
+            // (Sideways: slow side-steps blend into the crossover walk as it speeds up. A set without a
+            // clip for a way has the relaxed walk's.)
             angle = Mathf.DeltaAngle(0f, angle);
             float cross = Mathf.Clamp01((speed - 0.8f) / 0.6f);
-            var forward = run ? runF : walkF;
-            var back = walkB;
+            var forward = (run ? set.RunF : set.WalkF) ?? (run ? runF : walkF);
+            var back = (run ? set.RunB ?? set.WalkB : set.WalkB) ?? walkB;
             float sideAt = 85f;
             var dirs = new[] { -180f, -sideAt, 0f, sideAt, 180f };
             int seg = 0;
@@ -1050,14 +1156,22 @@ namespace PhysicsBattler.Locomotion
                     return;
                 }
 
-                if (run)
+                var runSide = right ? set.RunR : set.RunL;
+                if (run && runSide != null)
                 {
-                    into.Add((right ? runR : runL, w));
+                    into.Add((runSide, w));
                     return;
                 }
 
-                var slow = right ? walkRs : walkLs;
-                var fast = right ? walkRc : walkLc;
+                var slow = (right ? set.StepR : set.StepL) ?? (set == Relaxed ? null : right ? walkRs : walkLs);
+                var fast = right ? set.CrossR : set.CrossL;
+                if (fast == null)
+                {
+                    // (A guard steps sideways at any speed: it never crosses its feet.)
+                    into.Add((slow ?? (right ? walkRc : walkLc), w));
+                    return;
+                }
+
                 if (slow != null && cross < 1f)
                 {
                     into.Add((slow, w * (1f - cross)));

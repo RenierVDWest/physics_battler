@@ -121,6 +121,32 @@ namespace PhysicsBattler.Locomotion
             return c;
         }
 
+        /// <summary>
+        /// The guard's test (the combat overhaul's step 2): standing, then in the guard (raised at 1.5 s by
+        /// whoever runs it) stepping forward, back and to each side facing one way, turning on the spot,
+        /// then walking on as the guard comes down.
+        /// </summary>
+        public static LocoCourse GuardTest()
+        {
+            var c = new LocoCourse { Start = new Vector3(0f, 0f, -3f), StartYaw = 0f };
+            c.Hold(3f, "stand, the guard going up")
+                .To(0f, -1.5f, 1.0f, "guard: forward", true, Face.Fixed, 0f)
+                .Hold(1f, "guard: standing")
+                .To(0f, -2.7f, 0.8f, "guard: back", true, Face.Fixed, 0f)
+                .Hold(0.6f, "guard: standing")
+                .To(1.2f, -2.7f, 0.9f, "guard: step right", true, Face.Fixed, 0f)
+                .Hold(0.6f, "guard: standing")
+                .To(0f, -2.7f, 0.9f, "guard: step left", true, Face.Fixed, 0f)
+                .Hold(0.6f, "guard: standing")
+                .To(0f, -2.7f, 0.5f, "guard: turn right", true, Face.Fixed, 90f)
+                .Hold(1.5f, "guard: turned")
+                .To(0f, -2.7f, 0.5f, "guard: turn back", true, Face.Fixed, 0f)
+                .Hold(1.5f, "guard: turned back")
+                .To(0f, 2.5f, 1.4f, "walk on, the guard coming down", true)
+                .Hold(1f);
+            return c;
+        }
+
         public void Reset()
         {
             Index = 0;

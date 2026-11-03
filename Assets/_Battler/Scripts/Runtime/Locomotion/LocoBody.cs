@@ -246,7 +246,7 @@ namespace PhysicsBattler.Locomotion
         private float Time() => clock;
 
         /// <summary>Standing still: the standing clip, or a guard or strike clip playing (they plant their own feet).</summary>
-        private bool Standing => loco.Current == Locomotor.Mode.Idle || (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard);
+        private bool Standing => loco.Current == Locomotor.Mode.Idle || (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard && loco.Shot.Role != "turn");
 
         /// <summary>A planted foot keeps its turn while the body turns over it, up to this (degrees); past it the foot pivots.</summary>
         public const float MostYawHold = 35f;
@@ -328,8 +328,10 @@ namespace PhysicsBattler.Locomotion
 
         private void UpdateClipArms()
         {
+            // (A guard or strike clip playing, or the guard's own cycles: the clips' hands hold the weapons.)
             bool guardClip = loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard;
-            ClipArms = Mathf.MoveTowards(ClipArms, guardClip ? 1f : 0f, poseDt / ClipArmsBlend);
+            float wanted = guardClip ? 1f : loco.Guard != null ? loco.GuardWeight : 0f;
+            ClipArms = Mathf.MoveTowards(ClipArms, wanted, poseDt / ClipArmsBlend);
         }
 
         private void Arm(PartId upperId, PartId foreId, PartId handId, LocoBone shoulder, LocoBone elbow, LocoBone wrist,

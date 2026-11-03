@@ -332,6 +332,9 @@ namespace PhysicsBattler.Locomotion
             poser.SoleFrom(rig);
             measures = new LocoMeasures(anim, loco, poser);
             film = new LocoFilm(Time.fixedDeltaTime, Mathf.Max(1, Mathf.RoundToInt(0.04f / Time.fixedDeltaTime)));
+            // (The guard, step 2 of the combat overhaul: the Large's own, the sword and shield's for the rest.)
+            loco.SetGuard(body == BodySize.Large ? "lg_" : "sns_");
+            loco.GuardWanted = guardUp;
             EquipLoadout(legLength / 0.845f);
             path = LocoCourse.Lab();
             path.SpeedScale = PaceScale;
@@ -608,6 +611,19 @@ namespace PhysicsBattler.Locomotion
 
         private int combatClip;
 
+        [Tooltip("The guard is up (T): the walker goes into its guard, and out of it again, over half a second.")]
+        public bool guardUp;
+
+        private void ToggleGuard()
+        {
+            guardUp = !guardUp;
+            if (loco != null)
+            {
+                loco.GuardWanted = guardUp;
+                legs.Add($"{time:0.00} s: guard {(guardUp ? "up" : "down")}");
+            }
+        }
+
         /// <summary>This body's guard and strike clips: the Large's own, the Medium's for the Medium and the Small.</summary>
         private List<string> CombatClips()
         {
@@ -703,6 +719,15 @@ namespace PhysicsBattler.Locomotion
             float speed = SandboxInput.KeyHeld(KeyCode.LeftShift) ? RunSpeed : walkSpeed * PaceScale;
             want = way * speed;
             bool hold = SandboxInput.KeyHeld(KeyCode.Space);
+            if (loco.GuardWanted)
+            {
+                // (In the guard it faces where the camera looks, as if at an enemy there, and steps
+                // whichever way it is driven: forward, back, to the sides.)
+                want = way * speed;
+                facing = camYaw;
+                return;
+            }
+
             if (hold != holding)
             {
                 holding = hold;
@@ -737,6 +762,7 @@ namespace PhysicsBattler.Locomotion
 
             if (SandboxInput.KeyPressed(KeyCode.L)) { NextLoadout(); }
             if (SandboxInput.KeyPressed(KeyCode.J)) { PlayCombatClip(); }
+            if (SandboxInput.KeyPressed(KeyCode.T)) { ToggleGuard(); }
             if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
         }
@@ -895,6 +921,11 @@ namespace PhysicsBattler.Locomotion
             }
 
             GUILayout.EndHorizontal();
+            if (GUILayout.Button(guardUp ? $"Guard down (T)   [guard {loco.GuardWeight:0.0}]" : $"Guard up (T)   [guard {loco.GuardWeight:0.0}]"))
+            {
+                ToggleGuard();
+            }
+
             var combat = CombatClips();
             if (combat.Count > 0)
             {

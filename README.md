@@ -36,6 +36,11 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     strike clips (the Medium's for the Medium and the Small, the Large's own), J plays it as it is: its root moves the
     body, its feet lock where they land, its own hands hold the weapons. Baked by `Tools/Mocap/Combat/combat_bake.py`
     into `Resources/Locomotion/CombatClips.json`; filmed headless with `combatfilm <dir> [Medium|Large] [clips]`.
+  - The guard (the combat overhaul's step 2): T raises it and lowers it again (over half a second). In the guard
+    the walker plays the guard's clips (its standing, walking forward and back, side-steps, running, turning on the
+    spot) blended in at the same gait phase, the clips' own hands holding the weapons; standing, the feet step into
+    the guard's wider stance and back out. Driving in the guard, it faces where the camera looks and steps whichever
+    way it is driven. Headless: `LOCO_COURSE=guard` (with `LOCO_ARMS=sword`).
   - R restarts, P pauses (the physical body is still held to the pose while paused).
 - **Logs:** each run writes `PlaytestLogs/locolab-(time)/`, with the measures in session.md and the film in
   locolab.json. To draw the film: `python3 Tools/Mocap/Locomotion/locofilm.py <that>/locolab.json film.gif`.

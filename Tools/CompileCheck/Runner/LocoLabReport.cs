@@ -51,7 +51,14 @@ internal static class LocoLabReport
             LocoBody.Trace = text => Console.WriteLine($"    {legName}: {text}");
         }
         var measures = new LocoMeasures(anim, loco, poser);
-        var course = Environment.GetEnvironmentVariable("LOCO_COURSE") == "strafing" ? LocoCourse.Strafing() : LocoCourse.Lab();
+        string courseName = Environment.GetEnvironmentVariable("LOCO_COURSE");
+        var course = courseName == "strafing" ? LocoCourse.Strafing() : courseName == "guard" ? LocoCourse.GuardTest() : LocoCourse.Lab();
+        // (The guard: "up,down,..." times in seconds, or the guard test's own: up at 1.5 s, down as it walks on.)
+        string guardTimes = Environment.GetEnvironmentVariable("LOCO_GUARD") ?? (courseName == "guard" ? "1.5,19.5" : null);
+        if (guardTimes != null)
+        {
+            loco.SetGuard(body == "Large" ? "lg_" : "sns_");
+        }
         string line = Environment.GetEnvironmentVariable("LOCO_LINE");   // "speed,facing": a straight line along +z at that speed, facing that way
         if (line != null)
         {
@@ -73,6 +80,19 @@ internal static class LocoLabReport
         {
             course.Steer(dt, loco.Position, loco.Facing, loco.Velocity, out var want, out float facing);
             loco.StopAt = course.StopPoint;
+            if (guardTimes != null)
+            {
+                int toggles = 0;
+                foreach (var g in guardTimes.Split(','))
+                {
+                    if (i * dt >= float.Parse(g, CultureInfo.InvariantCulture))
+                    {
+                        toggles++;
+                    }
+                }
+
+                loco.GuardWanted = toggles % 2 == 1;
+            }
             foreach (var shove in (Environment.GetEnvironmentVariable("LOCO_SHOVE") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
                 // "time,yaw,m/s;...": shoves at those times.
