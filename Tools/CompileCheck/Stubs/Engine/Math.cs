@@ -78,6 +78,8 @@ namespace UnityEngine
             return MoveTowards(current, target, maxDelta);
         }
 
+        public static float LerpAngle(float a, float b, float t) { float d = DeltaAngle(a, b); return a + d * Clamp01(t); }
+
         public static float DeltaAngle(float current, float target)
         {
             float delta = Repeat(target - current, 360f);
@@ -102,6 +104,7 @@ namespace UnityEngine
         public float sqrMagnitude => x * x + y * y;
 
         public static float Dot(Vector2 a, Vector2 b) => a.x * b.x + a.y * b.y;
+        public static Vector2 Lerp(Vector2 a, Vector2 b, float t) { t = t < 0f ? 0f : t > 1f ? 1f : t; return new Vector2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t); }
         public static float Distance(Vector2 a, Vector2 b) => (a - b).magnitude;
         public static Vector2 operator +(Vector2 a, Vector2 b) => new Vector2(a.x + b.x, a.y + b.y);
         public static Vector2 operator -(Vector2 a, Vector2 b) => new Vector2(a.x - b.x, a.y - b.y);

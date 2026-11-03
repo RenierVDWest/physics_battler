@@ -71,6 +71,11 @@ namespace UnityEngine
         }
     }
 
+    public static class Resources
+    {
+        public static T Load<T>(string path) where T : Object => null;
+    }
+
     public class TextAsset : Object
     {
         public TextAsset() { }

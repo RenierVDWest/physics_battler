@@ -140,6 +140,11 @@ internal static class Program
             return ComboReport.Run();
         }
 
+        if (args.Length >= 1 && args[0] == "locolab")
+        {
+            return LocoLabReport.Run(args.Length >= 2 ? args[1] : ".", args.Length >= 3 ? float.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture) : 200f);
+        }
+
         if (args.Length >= 1 && args[0] == "parries")
         {
             return ParryReport.Run();
