@@ -9,6 +9,31 @@ Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4g
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
 
+## Branch locomotion-lab: the walking overhaul
+
+Plan and progress: https://claude.ai/artifact/PRykbXtbFivnTjXWBN2ntf
+
+On this branch the sandbox runs the **locomotion lab** instead of the fight; untick *Locomotion lab* on the
+BattleSandbox to get the fight back. In the lab, one Medium walks using the new locomotion
+(`Scripts/Runtime/Locomotion/`). The walk is built from the Mixamo reference clips, which are baked into
+`Resources/Locomotion/LocoClips.json` by `Tools/Mocap/Locomotion/loco_sample.py` and `loco_bake.py`.
+
+- **What it does:**
+  - Forward, side, backward and running cycles, blended at a shared gait phase.
+  - Start and stop clips. A stop is matched to the distance left, so it ends on the spot.
+  - Turns on the spot and 180° pivots.
+  - Feet lock when they land and roll heel to toe. Planted feet move at most 0.5 cm over the whole course.
+- **Keys:**
+  - C switches between the course and driving: W A S D (relative to the camera), Shift to run, Space to keep facing the same way, V to change walking speed.
+  - B switches the body between physical (legs carried exactly; torso, head and arms pinned) and kinematic.
+  - G shoves the chest; the walk steps to catch the body.
+  - R restarts, P pauses, . steps once.
+- **Logs:** each run writes `PlaytestLogs/locolab-(time)/`, with the measures in session.md and the film in
+  locolab.json. To draw the film: `python3 Tools/Mocap/Locomotion/locofilm.py <that>/locolab.json film.gif`.
+- **Headless:** `dotnet Tools/CompileCheck/bin/Tests/Debug/PhysicsBattler.Tests.dll locolab <dir> 70` runs the
+  same course and prints the measures. `LOCO_MODES=1` traces the clip switches;
+  `LOCO_SHOVE="time,yaw,m/s;..."` adds shoves.
+
 ## Current state: milestone 11, the defensive posture
 
 The pressure meter, the shell and the counter came in milestone 8; milestone 11 makes the shell defend.
