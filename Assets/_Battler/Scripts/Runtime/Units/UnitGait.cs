@@ -30,6 +30,7 @@ namespace PhysicsBattler.Units
         {
             Gait = new GaitPlayer(Style.walk);
             Gait.SetSize(Body.SizeFactor);
+            InitializeWalk();
         }
 
         /// <summary>The walk's step: after the root has moved (walked, knocked back), before the rhythm and the pose.</summary>
@@ -44,6 +45,14 @@ namespace PhysicsBattler.Units
             rhythmMoved = Vector3.zero;
             bool free = IsAlive && State == UnitState.Standing && CurrentMove == null && cutShort == null && HitStop <= 0f
                         && Knockback.magnitude < 0.05f * SizeSpeed();
+            if (Walk != null)
+            {
+                // (Branch locomotion-lab: the new walk has the feet and the body while it walks, and
+                // animates all the root's travel, the Fight Rhythm's too: its feet are planted.)
+                UpdateWalk(dt, WalkVelocity, free);
+                return;
+            }
+
             Gait.Update(dt, velocity, free, WalkSpeed, Body.LegLength);
 
             if (free && Gait.Weight >= 0.3f && Gait.Walking)

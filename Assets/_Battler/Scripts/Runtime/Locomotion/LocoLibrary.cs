@@ -318,6 +318,21 @@ namespace PhysicsBattler.Locomotion
             else
             {
                 string path = Path.Combine(Application.dataPath, AssetPath);
+                if (!File.Exists(path))
+                {
+                    // (Headless runs may point the data path elsewhere: the project's Assets, looked
+                    // for up from where it runs.)
+                    for (var dir = new DirectoryInfo(Directory.GetCurrentDirectory()); dir != null; dir = dir.Parent)
+                    {
+                        string tryPath = Path.Combine(dir.FullName, "Assets", AssetPath);
+                        if (File.Exists(tryPath))
+                        {
+                            path = tryPath;
+                            break;
+                        }
+                    }
+                }
+
                 if (File.Exists(path))
                 {
                     text = File.ReadAllText(path);
