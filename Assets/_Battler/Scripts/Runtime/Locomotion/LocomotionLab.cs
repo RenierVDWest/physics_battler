@@ -700,6 +700,13 @@ namespace PhysicsBattler.Locomotion
             }
 
             var clip = LocoLibrary.Get(combat[Mathf.Clamp(combatClip, 0, combat.Count - 1)]);
+            if (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0)
+            {
+                // (A strike is under way: it plays out first. Started again on top of itself, it jerked back
+                // to its own start each time J was pressed.)
+                return;
+            }
+
             if (clip.ContactFrame >= 0 && !course)
             {
                 // (A strike: aimed at the dummy's part picked; a blocking dummy raises its shield there.)

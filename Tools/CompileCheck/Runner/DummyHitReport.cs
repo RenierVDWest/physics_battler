@@ -82,7 +82,7 @@ internal static class DummyHitReport
                     poser.PlayStrike(clip, target);
                     var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
                     var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = 0.3f };
-                    float started = 0f, ended = -1f;
+                    float started = 0f, ended = -1f, mostLean = 0f;
                     string what = "missed";
                     hits.Landed += text => what = text.Substring(text.IndexOf(':') + 2);
                     for (int i = 0; i < 400; i++)
@@ -97,6 +97,7 @@ internal static class DummyHitReport
                         hits.Step(dt, dummy);
                         dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
                         film.Add(i * dt, name, loco, poser, anim);
+                        mostLean = Mathf.Max(mostLean, dummy.Lean);
                         dummyFilm.Add(i * dt, "dummy", dummy.Loco, dummy.Poser, dummy.Anim);
                         if (loco.Current != Locomotor.Mode.OneShot && ended < 0f)
                         {
@@ -116,8 +117,8 @@ internal static class DummyHitReport
                     if (what == "missed") missed++;
                     else if (what.StartsWith("blocked")) blocked++;
                     else landed++;
-                    Console.WriteLine(string.Format(ci, "{0,-20} at the {1,-5} {2}: {3}; the blow ended after {4:0.00} s (the clip is {5:0.00} s)",
-                        name, part.ToString().ToLowerInvariant(), stance == LabDummy.Stances.Open ? "open " : "block", what, ended, clip.Duration));
+                    Console.WriteLine(string.Format(ci, "{0,-20} at the {1,-5} {2}: {3}; the blow ended after {4:0.00} s (the clip is {5:0.00} s); the dummy leaned {6:0} degrees (mass {7:0} kg)",
+                        name, part.ToString().ToLowerInvariant(), stance == LabDummy.Stances.Open ? "open " : "block", what, ended, clip.Duration, mostLean * Mathf.Rad2Deg, dummy.Mass));
                     UnityEngine.Object.DestroyImmediate(root);
                     UnityEngine.Object.DestroyImmediate(droot);
                 }

@@ -164,6 +164,10 @@ namespace PhysicsBattler.Locomotion
                 LocoBone.LeftHandMiddle, LocoBone.LeftHandIndex, LocoBone.LeftHandPinky);
             Arm(PartId.UpperArmR, PartId.ForearmR, PartId.HandR, LocoBone.RightArm, LocoBone.RightForeArm, LocoBone.RightHand,
                 LocoBone.RightHandMiddle, LocoBone.RightHandIndex, LocoBone.RightHandPinky);
+            if (TwoHanded)
+            {
+                GripTwoHanded();
+            }
 
             // The legs.
             Leg(0, PartId.ThighL, PartId.ShinL, PartId.FootL, LocoBone.LeftUpLeg, LocoBone.LeftLeg, LocoBone.LeftFoot, LocoBone.LeftToeEnd);
@@ -683,6 +687,41 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>Which body this is ("Small", "Medium", "Large"): its strikes' measured reach is looked up by it.</summary>
         public string BodyKey = "Medium";
+
+        /// <summary>How far below the weapon hand the other hand holds a two-handed weapon (metres at a Medium's size: the clips' hands are 0.10 to 0.15 m apart).</summary>
+        public float SecondGrip = 0.12f;
+
+        /// <summary>
+        /// A two-handed weapon: in the guard and its strikes (the clips' own hands, <see cref="ClipArms"/>),
+        /// the left hand is put on the handle below the right, turned to hold it as the right does. The
+        /// clips' own left hands are there, near enough: on our weapon they would float beside it.
+        /// </summary>
+        private void GripTwoHanded()
+        {
+            float share = CarryL == Carry.Free ? ClipArms : 0f;
+            var slotR = anim.SlotWeaponR;
+            var slotL = anim.SlotWeaponL;
+            if (share <= 0f || slotR == null)
+            {
+                return;
+            }
+
+            var upper = anim.Part(PartId.UpperArmL);
+            var fore = anim.Part(PartId.ForearmL);
+            var hand = anim.Part(PartId.HandL);
+            Vector3 blade = (slotR.rotation * Vector3.forward).normalized;
+            float size = loco.Leg / 0.845f;
+            Vector3 gripAt = slotR.position - blade * (SecondGrip * size);
+            // (The left hand turned so its grip runs along the handle the way the right's does.)
+            Vector3 leftWay = hand.rotation * BladeL;
+            var turnTo = Quaternion.FromToRotation(leftWay, blade);
+            var wantHand = Quaternion.Slerp(hand.rotation, turnTo * hand.rotation, share);
+            Vector3 palm = slotL != null ? slotL.localPosition : Vector3.zero;
+            Vector3 wrist = gripAt - wantHand * palm;
+            Vector3 pole = fore.position - 0.5f * (upper.position + hand.position);
+            TwoBoneIK.Solve(upper, fore, hand, Vector3.Lerp(hand.position, wrist, share), pole);
+            hand.rotation = wantHand;
+        }
 
         /// <summary>Both hands hold the weapon (the Large's two-handed grip): both are pulled to aim it.</summary>
         public bool TwoHanded;

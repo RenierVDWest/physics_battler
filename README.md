@@ -49,10 +49,14 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     picked strike reaches; the panel shows each strike's reach. Where each strike's weapon is at contact on each
     body is measured headless into `Resources/Locomotion/StrikeReach.json` (`strikes <dir> <Small|Medium|Large>
     --measure`); `strikes <dir> <body> [clips]` aims each at targets (`AIM_REACH=1`: about its own reach).
+  - The Large holds its club two-handed: only the two-handed clips are its references (its one-handed club combo
+    and the great sword idles whose hands come apart are gone), and in the guard and its strikes the left hand
+    holds the handle 0.12 m below the right. A strike plays out before J starts another.
   - Hits (step 4): the weapon is swept from step to step about each strike's contact, and the first part or shield
     of the dummy it meets is struck by the fight's own damage rules. Both stand still a moment (the hit stop);
-    the struck part is knocked (its hold softened, coming back) and the rest of the blow pushes the dummy back a
-    step. A blow that cuts through slows; one that is stopped (a shield, a body too heavy for it) is shown where it
+    the dummy's upper body is thrown back by the blow's lever, its head snapped by one to it, a struck arm (or the
+    shield) knocked aside, and the rest of the blow pushes it back a step (all harder than the fight has it for
+    now: `LabDummy.ReactScale`, `KnockScale`). A blow that cuts through slows; one that is stopped (a shield, a body too heavy for it) is shown where it
     met, backs out a little and fades into the guard. O changes how the dummy stands: open (its guard down), in its
     guard, or blocking (its shield held across each blow). A small ball marks where the last strike was aimed:
     green it landed, blue it was blocked, red it missed. Headless: `dummyhits <dir> <body> [clips]` strikes a

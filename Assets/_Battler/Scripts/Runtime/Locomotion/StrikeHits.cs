@@ -192,7 +192,7 @@ namespace PhysicsBattler.Locomotion
             struck = true;
             var r = DamageRules.Resolve(Weapon, With(clip), Scale, speed, direction, Mass, dummy.Mass, part, shield, momentumLeft,
                 1e6f, dummy.Poise, dummy.MaxPoise);
-            dummy.TakeHit(part, shield, r.Impulse, r.PartShare, r.PoiseDamage, r.Reaction);
+            dummy.TakeHit(part, shield, r.Impulse, r.PartShare, r.PoiseDamage, r.Reaction, point);
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
             HitStop = Mathf.Clamp(0.06f * (0.6f + r.Impulse.magnitude / 40f), 0.04f, 0.1f);
             string what;

@@ -37,15 +37,15 @@ GUARD = {
     'sns_turn180': ('sword_and_shield_180_turn', 'turn', False, 'Medium guard, turning round'),
     'sns_turn180_b': ('sword_and_shield_180_turn_1', 'turn', False, 'Medium guard, turning round the other way'),
     'sns_block': ('sword_and_shield_block', 'block', False, 'Medium shield block'),
-    'lg_idle': ('large_great_sword_idle', 'guard_idle', True, 'Large two-handed guard, standing'),
     'lg_idle_b': ('large_great_sword_idle_02', 'guard_idle', True, 'Large two-handed guard, standing (short take)'),
-    'lg_idle_c': ('large_great_sword_idle_03', 'guard_idle', True, 'Large two-handed guard, standing (third take)'),
     'lg_walk': ('large_great_sword_walk', 'cycle', True, 'Large two-handed guard, walking forward'),
     'lg_step_left': ('large_great_sword_strafe', 'cycle', True, 'Large two-handed guard, side-stepping left'),
     'lg_step_right': ('large_great_sword_strafe_02', 'cycle', True, 'Large two-handed guard, side-stepping right'),
 }
 
 # Strikes: name: (sample, from s, to s, contact s, kind, about)
+# (The Large holds its club two-handed: only the two-handed clips are its references. Its one-handed club combo
+# and the great sword idles whose hands come apart were taken out.)
 STRIKES = {
     'sns_forehand': ('sword_and_shield_slash_3', 0.0, 1.50, 0.63, 'forehand high', 'Medium forehand cut, diagonal down, in place'),
     'sns_rising': ('sword_and_shield_slash_1', 0.0, 1.67, 0.83, 'rising middle', 'Medium rising backhand cut, in place'),
@@ -63,10 +63,6 @@ STRIKES = {
     'lg_club_a': ('large_two_hand_club_combo', 0.0, 2.45, 1.65, 'downward high', 'Large two-handed club swing (first of three)'),
     'lg_club_b': ('large_two_hand_club_combo', 2.45, 3.50, 2.87, 'forehand middle', 'Large two-handed club swing (second of three)'),
     'lg_club_c': ('large_two_hand_club_combo', 3.50, 5.43, 3.93, 'backhand middle', 'Large two-handed club swing (third of three)'),
-    'lg_jab': ('large_one_hand_club_combo', 0.0, 1.00, 0.67, 'thrust middle', 'Large one-handed club jab'),
-    'lg_smash_a': ('large_one_hand_club_combo', 1.00, 1.90, 1.30, 'downward high', 'Large one-handed club smash'),
-    'lg_smash_b': ('large_one_hand_club_combo', 1.90, 2.55, 2.30, 'downward high', 'Large one-handed club smash, the other way'),
-    'lg_smash_c': ('large_one_hand_club_combo', 2.55, 3.63, 2.83, 'forehand middle', 'Large one-handed club swing to finish'),
 }
 
 

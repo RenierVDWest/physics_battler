@@ -199,6 +199,7 @@ namespace PhysicsBattler.Locomotion
                 Loco.Step(dt, Vector3.zero, yaw);
                 Poser.Pose(dt);
                 RaiseShield(dt, faceToward);
+                React(dt);
                 Recover(dt);
                 Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
             }
@@ -283,8 +284,18 @@ namespace PhysicsBattler.Locomotion
         /// A blow lands: on <paramref name="part"/>, or on the shield. What the part takes knocks it (its
         /// hold softened, coming back), the rest pushes the walk back.
         /// </summary>
-        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction)
+        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point)
         {
+            // The pose shows it (the fight's recoil): the pinned body is pulled back to its pose each step,
+            // so a kick on the physical part alone hardly shows.
+            float react = (reaction == Combat.Reaction.Stagger ? 1.6f : reaction == Combat.Reaction.Flinch ? 1.25f : 1f) * ReactScale;
+            Recoil(impulse, point, shield ? PartId.HandL : part, shield ? 0.6f * react : react);
+            var armRegion = shield ? BodyRegion.ArmL : AuthorityController.RegionOf(part);
+            if (armRegion == BodyRegion.ArmL || armRegion == BodyRegion.ArmR)
+            {
+                KnockArm(armRegion == BodyRegion.ArmR ? 0 : 1, impulse * (shield ? 1f : partShare), point);
+            }
+
             if (shield)
             {
                 Blocks++;
@@ -310,9 +321,162 @@ namespace PhysicsBattler.Locomotion
                 struck.AddForce(Vector3.ClampMagnitude(kick, (shield ? MostShieldSpeed : MostPartSpeed) * Size), ForceMode.VelocityChange);
             }
 
-            Vector3 knock = impulse * (1f - partShare) / Mass;
+            Vector3 knock = impulse * (1f - 0.5f * partShare) * KnockScale / Mass;
             knock.y = 0f;
             Loco.Push(Vector3.ClampMagnitude(knock, MostKnock));
+        }
+
+        // ---- The pose's reaction to a blow (the fight's recoil and arm knock, UnitCombat) -------------------
+
+        private Vector3 lean, leanV, headSnap, headV;
+
+        /// <summary>How far the blows throw the upper body now (radians), for the logs.</summary>
+        public float Lean => lean.magnitude;
+        private readonly Vector3[] knock = new Vector3[2], knockV = new Vector3[2], knockTurn = new Vector3[2], knockTurnV = new Vector3[2];
+
+        /// <summary>
+        /// How much harder the dummy reacts than the fight's rules have a unit react (the lab's first playtest:
+        /// at the fight's own, a Medium's blow on a Medium leaned it 7 to 17 degrees and pushed it 0.2 m/s, and
+        /// read as nothing). The fight's own are tuned when the walk joins it (step 8).
+        /// </summary>
+        public float ReactScale = 1.8f, KnockScale = 1.6f;
+
+        /// <summary>The recoil's swing back (Hz), its damping and the head's; the most it throws the upper body and the head (radians).</summary>
+        public const float ReactFrequency = 1.6f, ReactDamping = 0.55f, HeadFrequency = 2.4f, MostLean = 0.6f, MostHeadSnap = 0.7f, Kick = 1.8f;
+
+        /// <summary>A struck arm's knock aside: its return (Hz, critically damped), the most it moves the hand (m at a Medium's size) and turns it (radians).</summary>
+        public const float ArmKnockFrequency = 2.5f, MostArmKnock = 0.12f, MostArmTurn = 0.44f;
+
+        private static float Tanh(float x)
+        {
+            float e = Mathf.Exp(-2f * Mathf.Abs(x));
+            return Mathf.Sign(x) * (1f - e) / (1f + e);
+        }
+
+        /// <summary>The upper body turned about the hips by the blow's lever; the head snapped by one to it.</summary>
+        private void Recoil(Vector3 impulse, Vector3 point, PartId part, float scale)
+        {
+            float j = impulse.magnitude * scale;
+            if (j < 1e-4f)
+            {
+                return;
+            }
+
+            float leg = Loco.Leg;
+            Vector3 dir = impulse / impulse.magnitude;
+            float w = 2f * Mathf.PI * ReactFrequency;
+            Vector3 lever = point - Anim.Part(PartId.Pelvis).position;
+            Vector3 axis = Vector3.Cross(lever, dir);
+            if (axis.sqrMagnitude > 1e-8f)
+            {
+                float leverage = Mathf.Clamp(lever.magnitude / leg, 0.2f, 1.4f);
+                float amount = MostLean * Tanh(1.5f * j * leverage / (Mass * leg));
+                leanV += axis.normalized * (amount * Kick * w);
+            }
+
+            if (part == PartId.Head)
+            {
+                Vector3 headLever = point - Anim.Part(PartId.Head).position + Vector3.up * (0.1f * leg);
+                Vector3 headAxis = Vector3.Cross(headLever, dir);
+                if (headAxis.sqrMagnitude > 1e-8f)
+                {
+                    float snap = MostHeadSnap * Tanh(6f * j / (Mass * leg));
+                    headV += headAxis.normalized * (snap * Kick * 2f * Mathf.PI * HeadFrequency);
+                }
+            }
+        }
+
+        /// <summary>A struck arm (or the shield it holds) knocked aside and turned, then back.</summary>
+        private void KnockArm(int a, Vector3 impulse, Vector3 point)
+        {
+            float j = impulse.magnitude;
+            if (j < 1e-4f)
+            {
+                return;
+            }
+
+            float armMass = 0f;
+            foreach (var id in a == 0 ? new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR } : new[] { PartId.UpperArmL, PartId.ForearmL, PartId.HandL })
+            {
+                var body = Rig.Part(id).body;
+                armMass += body != null ? body.mass : 0f;
+            }
+
+            float hard = Tanh(j / (Mathf.Max(1f, armMass + 3f) * 3f * Mathf.Sqrt(Size)));
+            float kick = (float)System.Math.E * 2f * Mathf.PI * ArmKnockFrequency;
+            Vector3 dir = impulse / j;
+            knockV[a] += dir * (MostArmKnock * Size * hard * kick);
+            Vector3 lever = point - Anim.Part(a == 0 ? PartId.HandR : PartId.HandL).position;
+            Vector3 axis = Vector3.Cross(lever, dir);
+            if (axis.sqrMagnitude > 1e-8f)
+            {
+                knockTurnV[a] += axis.normalized * (MostArmTurn * hard * kick);
+            }
+        }
+
+        private static void Spring(ref Vector3 x, ref Vector3 v, float hz, float damping, float dt)
+        {
+            float w = 2f * Mathf.PI * hz;
+            v += (-w * w * x - 2f * damping * w * v) * dt;
+            x += v * dt;
+        }
+
+        private static void CriticalSpring(ref Vector3 x, ref Vector3 v, float w, float dt)
+        {
+            float decay = Mathf.Exp(-w * dt);
+            Vector3 c = v + w * x;
+            Vector3 nx = (x + c * dt) * decay;
+            v = (v - c * (w * dt)) * decay;
+            x = nx;
+        }
+
+        /// <summary>The reaction springs stepped and put on the pose: the upper body leans away, the head snaps, a struck arm is knocked aside.</summary>
+        private void React(float dt)
+        {
+            Spring(ref lean, ref leanV, ReactFrequency, ReactDamping, dt);
+            Spring(ref headSnap, ref headV, HeadFrequency, ReactDamping, dt);
+            lean = Vector3.ClampMagnitude(lean, MostLean);
+            headSnap = Vector3.ClampMagnitude(headSnap, MostHeadSnap);
+            float wk = 2f * Mathf.PI * ArmKnockFrequency;
+            for (int a = 0; a < 2; a++)
+            {
+                CriticalSpring(ref knock[a], ref knockV[a], wk, dt);
+                CriticalSpring(ref knockTurn[a], ref knockTurnV[a], wk, dt);
+            }
+
+            float angle = lean.magnitude * Mathf.Rad2Deg;
+            if (angle > 0.01f)
+            {
+                // (The spine takes some of the turn, the chest the rest; the hips and legs stay as they stand.)
+                Vector3 axis = lean.normalized;
+                var spine = Anim.Part(PartId.Spine);
+                var chest = Anim.Part(PartId.Chest);
+                spine.rotation = Quaternion.AngleAxis(0.45f * angle, axis) * spine.rotation;
+                chest.rotation = Quaternion.AngleAxis(0.55f * angle, axis) * chest.rotation;
+            }
+
+            if (headSnap.sqrMagnitude > 1e-8f)
+            {
+                var head = Anim.Part(PartId.Head);
+                head.rotation = Quaternion.AngleAxis(headSnap.magnitude * Mathf.Rad2Deg, headSnap.normalized) * head.rotation;
+            }
+
+            for (int a = 0; a < 2; a++)
+            {
+                if (knock[a].sqrMagnitude < 1e-8f && knockTurn[a].sqrMagnitude < 1e-8f)
+                {
+                    continue;
+                }
+
+                var upper = Anim.Part(a == 0 ? PartId.UpperArmR : PartId.UpperArmL);
+                var fore = Anim.Part(a == 0 ? PartId.ForearmR : PartId.ForearmL);
+                var hand = Anim.Part(a == 0 ? PartId.HandR : PartId.HandL);
+                var turnHand = knockTurn[a].sqrMagnitude > 1e-8f ? Quaternion.AngleAxis(knockTurn[a].magnitude * Mathf.Rad2Deg, knockTurn[a].normalized) : Quaternion.identity;
+                var keep = turnHand * hand.rotation;
+                Vector3 pole = fore.position - 0.5f * (upper.position + hand.position);
+                TwoBoneIK.Solve(upper, fore, hand, hand.position + knock[a], pole);
+                hand.rotation = keep;
+            }
         }
 
         /// <summary>The body parts where the animation rig has them (kinematic).</summary>
