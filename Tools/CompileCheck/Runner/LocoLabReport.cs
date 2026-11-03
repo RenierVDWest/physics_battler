@@ -38,7 +38,7 @@ internal static class LocoLabReport
             LocoBody.Trace = text => Console.WriteLine($"    {legName}: {text}");
         }
         var measures = new LocoMeasures(anim, loco, poser);
-        var course = LocoCourse.Lab();
+        var course = Environment.GetEnvironmentVariable("LOCO_COURSE") == "strafing" ? LocoCourse.Strafing() : LocoCourse.Lab();
         string line = Environment.GetEnvironmentVariable("LOCO_LINE");   // "speed,facing": a straight line along +z at that speed, facing that way
         if (line != null)
         {

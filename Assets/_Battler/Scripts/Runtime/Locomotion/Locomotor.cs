@@ -246,6 +246,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             Inertialize(dt);
+            Facing = Mathf.DeltaAngle(0f, Facing);
         }
 
         /// <summary>
@@ -674,7 +675,8 @@ namespace PhysicsBattler.Locomotion
             if (speed > 0.2f || wantNow.magnitude > 0.2f)
             {
                 float measured = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
-                travelAngle += Mathf.DeltaAngle(travelAngle, measured) * (1f - Mathf.Pow(0.5f, dt / 0.08f));
+                // (Kept within ±180: past it, the blend below would find no pair of directions.)
+                travelAngle = Mathf.DeltaAngle(0f, travelAngle + Mathf.DeltaAngle(travelAngle, measured) * (1f - Mathf.Pow(0.5f, dt / 0.08f)));
             }
 
             float angle = travelAngle;
@@ -808,6 +810,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (Sideways: slow side-steps blend into the crossover walk as it speeds up.)
+            angle = Mathf.DeltaAngle(0f, angle);
             float cross = Mathf.Clamp01((speed - 0.8f) / 0.6f);
             var forward = run ? runF : walkF;
             var back = walkB;

@@ -52,6 +52,7 @@ namespace PhysicsBattler.Locomotion
         private Authority.AuthorityController authority;
         private bool snapped;
         private int shoves;
+        private bool holding;
         private readonly System.Random dice = new System.Random();
         private float time;
         private string leg = "";
@@ -75,6 +76,10 @@ namespace PhysicsBattler.Locomotion
 
         private void Build()
         {
+            // (Each run is logged on its own: a restart or a switch writes the run before it.)
+            WriteLog();
+            written = false;
+            legs.Clear();
             if (unit != null)
             {
                 Destroy(unit);
@@ -306,6 +311,12 @@ namespace PhysicsBattler.Locomotion
             float speed = SandboxInput.KeyHeld(KeyCode.LeftShift) ? RunSpeed : walkSpeed;
             want = way * speed;
             bool hold = SandboxInput.KeyHeld(KeyCode.Space);
+            if (hold != holding)
+            {
+                holding = hold;
+                legs.Add($"{time:0.00} s: facing {(hold ? "held" : "let go")}");
+            }
+
             facing = !hold && way.sqrMagnitude > 0.01f ? Mathf.Atan2(way.x, way.z) * Mathf.Rad2Deg : loco.Facing;
         }
 
@@ -479,7 +490,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The run's measures, its legs and its film, into PlaytestLogs/locolab-(time)/.</summary>
         private void WriteLog()
         {
-            if (written || measures == null || time < 1f)
+            if (written || measures == null || time < 3f)
             {
                 return;
             }
@@ -487,7 +498,7 @@ namespace PhysicsBattler.Locomotion
             written = true;
             try
             {
-                folder = Path.Combine(Path.GetFullPath(Path.Combine(Application.dataPath, "..", "PlaytestLogs")), "locolab-" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss"));
+                folder = Path.Combine(Path.GetFullPath(Path.Combine(Application.dataPath, "..", "PlaytestLogs")), "locolab-" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + (course ? "-course" : "-driven"));
                 Directory.CreateDirectory(folder);
                 var md = new StringBuilder();
                 md.AppendLine("# Locomotion lab");

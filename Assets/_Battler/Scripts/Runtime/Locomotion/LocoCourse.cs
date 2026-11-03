@@ -44,7 +44,7 @@ namespace PhysicsBattler.Locomotion
 
         private float held;
         private float arcDone;
-        private Vector3 arcFrom;
+        private Vector3 arcFrom, arcLast;
         private bool arcStarted;
 
         /// <summary>A leg changed: (its index, its name).</summary>
@@ -94,6 +94,26 @@ namespace PhysicsBattler.Locomotion
                 .Around(-4.5f, -3.5f, -180f, 3.2f, "running curve", false)
                 .To(-1f, -5.5f, 1.4f, "slow to a walk", false)
                 .To(-4.5f, -4.5f, 1.2f, "back to the start", true)
+                .Hold(0.5f);
+            return c;
+        }
+
+        /// <summary>
+        /// A test of keeping the facing (the lab's Space): a square walked facing one way, then on as
+        /// normal, then tight circles both ways (the 3 November playtest: out of step afterwards).
+        /// </summary>
+        public static LocoCourse Strafing()
+        {
+            var c = new LocoCourse { Start = new Vector3(-2f, 0f, -2f), StartYaw = 0f };
+            c.Hold(1f)
+                .To(-2f, 1f, 1.2f, "facing kept: forward", false, Face.Fixed, 0f)
+                .To(1f, 1f, 1.0f, "facing kept: right", false, Face.Fixed, 0f)
+                .To(1f, -2f, 1.0f, "facing kept: back", false, Face.Fixed, 0f)
+                .To(-2f, -2f, 1.0f, "facing kept: left", false, Face.Fixed, 0f)
+                .To(-2f, -5f, 1.4f, "walk on after", false)
+                .Around(-3.2f, -5f, 360f, 1.4f, "tight circle right")
+                .Around(-0.8f, -5f, -360f, 1.4f, "tight circle left")
+                .To(4f, -5f, 1.4f, "walk on", true)
                 .Hold(0.5f);
             return c;
         }
@@ -168,6 +188,7 @@ namespace PhysicsBattler.Locomotion
                 {
                     arcStarted = true;
                     arcFrom = position - leg.ArcCenter;
+                    arcLast = arcFrom;
                     arcDone = 0f;
                 }
 
@@ -175,8 +196,9 @@ namespace PhysicsBattler.Locomotion
                 float sign = Mathf.Sign(leg.Arc);
                 // (Along the circle at its speed, a little ahead of where it is; pulled back onto it.)
                 Vector3 rel = position - leg.ArcCenter;
-                float angleNow = Vector3.SignedAngle(arcFrom, rel, Vector3.up);
-                arcDone = Mathf.Max(arcDone, angleNow * sign);
+                // (Added up step by step: an arc may go all the way round.)
+                arcDone += Vector3.SignedAngle(arcLast, rel, Vector3.up) * sign;
+                arcLast = rel;
                 float left = Mathf.Abs(leg.Arc) - arcDone;
                 Vector3 tangent = Vector3.Cross(Vector3.up, rel.normalized) * sign;   // (clockwise from above, for +)
                 Vector3 back = (radius - rel.magnitude) * rel.normalized;
