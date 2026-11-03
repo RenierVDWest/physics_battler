@@ -286,7 +286,7 @@ namespace PhysicsBattler.Locomotion
         /// elbow is a little out, the forearm forward and well out, so the shield faces that way, clear
         /// of the body.
         /// </summary>
-        public Vector3 WeaponUpper = new Vector3(0.12f, -0.97f, -0.18f), WeaponFore = new Vector3(0.1f, -0.75f, 0.65f);
+        public Vector3 WeaponUpper = new Vector3(0.12f, -0.97f, -0.18f), WeaponFore = new Vector3(0.1f, -0.45f, 0.89f);
         public Vector3 ShieldUpper = new Vector3(0.3f, -0.92f, -0.15f), ShieldFore = new Vector3(0.68f, -0.12f, 0.72f);
 
         /// <summary>How much of the clip's arm swing a carrying arm keeps (the rhythm stays; a heavy or held thing swings less).</summary>
