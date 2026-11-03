@@ -248,6 +248,44 @@ namespace PhysicsBattler.Locomotion
             Inertialize(dt);
         }
 
+        /// <summary>
+        /// A shove: the body's velocity jumps by <paramref name="change"/> (m/s, flat). Whatever it was doing
+        /// it steps now, its feet catching it; the steering's velocity spring brings it back to what it
+        /// wants, step by step (the plan's stage 6: a capture step from the clips' own stepping).
+        /// </summary>
+        public void Push(Vector3 change)
+        {
+            change.y = 0f;
+            if (change.sqrMagnitude < 1e-6f || !Ready)
+            {
+                return;
+            }
+
+            Velocity += change;
+            Acceleration = Vector3.zero;
+            if (Current == Mode.OneShot)
+            {
+                Shot = null;
+                Current = Mode.Cycle;
+                Phase = Down[0] >= Down[1] ? 0.1f : 0.6f;
+                pendingSwitch = hasLast;
+            }
+            else if (Current == Mode.Idle)
+            {
+                Switch(Mode.Cycle);
+                AimTravel(Velocity);
+            }
+            else
+            {
+                // (Already stepping: the blend turns to the new way over a few steps' time, faded.)
+                pendingSwitch = hasLast;
+            }
+
+            Pushes++;
+        }
+
+        public int Pushes { get; private set; }
+
         /// <summary>Standing, how far the body turns on its feet (degrees) before it steps round (a turning clip), and when it turns at all.</summary>
         public float StandTwist = 30f, TurnFrom = 40f;
 

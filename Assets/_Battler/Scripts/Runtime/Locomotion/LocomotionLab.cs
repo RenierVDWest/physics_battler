@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Sandbox;
 using PhysicsBattler.Units;
@@ -31,6 +32,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Walk the lab's course (off: drive it with W A S D).")]
         public bool course = true;
 
+        [Tooltip("The body is physical (B): the legs carried exactly, so the feet stay planted; the torso, head and arms held by pins, swaying with the walk and pushed about by what hits them. Off: every part carried kinematically.")]
+        public bool physical = true;
+
+        [Tooltip("How hard a shove (G) is: the change in the body's speed (m/s).")]
+        public float shove = 1.3f;
+
         [Tooltip("Show the footprints planted feet leave.")]
         public bool footprints = true;
 
@@ -42,6 +49,10 @@ namespace PhysicsBattler.Locomotion
         private LocoMeasures measures;
         private LocoCourse path;
         private LocoFilm film;
+        private Authority.AuthorityController authority;
+        private bool snapped;
+        private int shoves;
+        private readonly System.Random dice = new System.Random();
         private float time;
         private string leg = "";
         private bool paused, stepOnce;
@@ -102,8 +113,33 @@ namespace PhysicsBattler.Locomotion
             unit.transform.SetParent(null, true);
             Destroy(holder);
 
-            // The animation rig is copied while the body is still in its rest pose; then the parts are
-            // made kinematic and carried along by it, each on its own.
+            // The physical body set up as a unit sets up its own (its joints in their frames, its
+            // limits, its friction), while it is still in its rest pose; the animation rig is copied
+            // then too. The parts then leave the hierarchy, each its own body.
+            var profile = prefab.Profile != null ? prefab.Profile : UnitProfile.CreateDefault();
+            if (physical)
+            {
+                JointConventions.EnsureProbed();
+                var bodyMaterial = PhysicsMaterials.Get("Body", profile.bodyFriction);
+                var footMaterial = PhysicsMaterials.Get("Foot", profile.footFriction);
+                foreach (var part in rig.Parts)
+                {
+                    UnitBuilder.ConfigureBody(part.body, profile);
+                    part.limits = JointLimitTable.Physical(part.id);
+                    if (part.joint != null)
+                    {
+                        part.jointFrame = JointFrames.For(rig, part.id);
+                        JointFrames.Apply(part.joint, part.jointFrame);
+                        JointMath.ApplyLimits(part.joint, part.limits);
+                    }
+
+                    if (part.partCollider != null)
+                    {
+                        part.partCollider.sharedMaterial = PartInfo.IsFoot(part.id) ? footMaterial : bodyMaterial;
+                    }
+                }
+            }
+
             anim = new AnimRig(unit.transform, rig);
             foreach (var part in rig.Parts)
             {
@@ -118,6 +154,33 @@ namespace PhysicsBattler.Locomotion
             {
                 rig.Part(id).transform.SetParent(unit.transform, true);
             }
+
+            authority = null;
+            if (physical)
+            {
+                Physics.SyncTransforms();
+                var parts = rig.Parts;
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    for (int j = i + 1; j < parts.Length; j++)
+                    {
+                        if (parts[i].partCollider != null && parts[j].partCollider != null)
+                        {
+                            Physics.IgnoreCollision(parts[i].partCollider, parts[j].partCollider, true);
+                        }
+                    }
+                }
+
+                // As in the fight: the legs carried exactly (the feet's plants are the walk's), the rest held.
+                authority = new Authority.AuthorityController(rig, anim);
+                authority.Set(Authority.BodyRegion.Legs, Authority.AuthorityLevel.Kinematic, 1f);
+                authority.Set(Authority.BodyRegion.Torso, Authority.AuthorityLevel.Pinned, profile.torsoPin);
+                authority.Set(Authority.BodyRegion.Head, Authority.AuthorityLevel.Pinned, profile.torsoPin);
+                authority.Set(Authority.BodyRegion.ArmL, Authority.AuthorityLevel.Pinned, profile.armPin);
+                authority.Set(Authority.BodyRegion.ArmR, Authority.AuthorityLevel.Pinned, profile.armPin);
+            }
+
+            snapped = false;
 
             float legLength = anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude;
             loco = new Locomotor(legLength);
@@ -173,7 +236,16 @@ namespace PhysicsBattler.Locomotion
             poser.Pose(dt);
             measures.Sample(dt, time, leg);
             film.Add(time, leg, loco, poser, anim, origin);
-            Carry();
+            if (authority != null && snapped)
+            {
+                authority.Apply(dt);
+            }
+            else
+            {
+                Carry();
+                snapped = true;
+            }
+
             Prints();
         }
 
@@ -192,6 +264,32 @@ namespace PhysicsBattler.Locomotion
                 else
                 {
                     part.transform.SetPositionAndRotation(target.position, target.rotation);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A shove from a random side: the chest is struck (the physical upper body takes it) and the walk
+        /// steps to catch the body.
+        /// </summary>
+        public void Shove()
+        {
+            if (loco == null)
+            {
+                return;
+            }
+
+            float yaw = (float)(dice.NextDouble() * 360.0);
+            Vector3 way = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+            loco.Push(way * shove);
+            shoves++;
+            legs.Add($"{time:0.00} s: shoved toward {yaw:0} degrees");
+            if (authority != null)
+            {
+                var chest = rig.Part(PartId.Chest).body;
+                if (chest != null && !chest.isKinematic)
+                {
+                    chest.AddForce(way * (shove * 2.5f), ForceMode.VelocityChange);
                 }
             }
         }
@@ -222,6 +320,8 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.C)) { course = !course; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.P)) paused = !paused;
             if (SandboxInput.KeyPressed(KeyCode.Period)) { paused = true; stepOnce = true; }
+            if (SandboxInput.KeyPressed(KeyCode.B)) { physical = !physical; Build(); }
+            if (SandboxInput.KeyPressed(KeyCode.G)) Shove();
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
         }
 
@@ -341,6 +441,10 @@ namespace PhysicsBattler.Locomotion
             if (GUILayout.Button(course ? "Drive (C)" : "Course (C)")) { course = !course; Build(); }
             if (GUILayout.Button("Restart (R)")) Build();
             if (GUILayout.Button(paused ? "Play (P)" : "Pause (P)")) paused = !paused;
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Shove (G)")) Shove();
+            if (GUILayout.Button(physical ? "Kinematic body (B)" : "Physical body (B)")) { physical = !physical; Build(); }
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label("Speed");

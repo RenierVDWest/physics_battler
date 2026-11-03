@@ -199,14 +199,18 @@ namespace PhysicsBattler.Locomotion
 
         private void Leg(int f, PartId thighId, PartId shinId, PartId footId, LocoBone hip, LocoBone knee, LocoBone ankle, LocoBone toeEnd)
         {
-            Vector3 pole = World(knee) - 0.5f * (World(hip) + World(ankle));
-            if (pole.sqrMagnitude < 1e-6f)
-            {
-                pole = RootTurn * Vector3.forward;
-            }
+            // (The knee the clip's way, and always somewhat forward: a held foot far from the clip's
+            // can leave the clip's knee on the wrong side, and the knee would flip.)
+            Vector3 dir = Quaternion.Inverse(RootTurn) * (World(toeEnd) - World(ankle));
+            // The clip's knee against its own hip-to-ankle line, carried onto ours (turned from the
+            // clip's line to ours): our foot is held where it was planted, the clip's has gone on.
+            Vector3 clipAxis = World(ankle) - World(hip);
+            Vector3 ourAxis = Feet[f].Target - anim.Part(thighId).position;
+            Vector3 bend = Vector3.ProjectOnPlane(World(knee) - World(hip), clipAxis.sqrMagnitude > 1e-8f ? clipAxis.normalized : Vector3.down);
+            Vector3 pole = Quaternion.FromToRotation(clipAxis, ourAxis) * bend;
+            pole = (pole.sqrMagnitude > 1e-8f ? pole.normalized : Vector3.zero) + 0.3f * (RootTurn * Vector3.forward);
 
             TwoBoneIK.Solve(anim.Part(thighId), anim.Part(shinId), anim.Part(footId), Feet[f].Target, pole);
-            Vector3 dir = Quaternion.Inverse(RootTurn) * (World(toeEnd) - World(ankle));
             anim.Part(footId).rotation = RootTurn * Quaternion.FromToRotation(restFootDir, dir.normalized);
         }
 
@@ -215,9 +219,11 @@ namespace PhysicsBattler.Locomotion
         {
             var foot = Feet[f];
             var ankleBone = f == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot;
-            var toeBone = f == 0 ? LocoBone.LeftToeBase : LocoBone.RightToeBase;
             Vector3 posed = World(ankleBone);
-            Vector3 posedToe = World(toeBone);
+            // (The toe where our own foot will put it, turned as the clip's foot is: the clip's toe is
+            // where a foot of the clip's proportions has it, and holding that would slide ours.)
+            Vector3 dir = Quaternion.Inverse(RootTurn) * (World(f == 0 ? LocoBone.LeftToeEnd : LocoBone.RightToeEnd) - posed);
+            Vector3 posedToe = posed + RootTurn * Quaternion.FromToRotation(restFootDir, dir.normalized) * restToe;
             foot.Posed = posed;
             bool down = loco.Down[f] >= 0.5f;
             bool heel = loco.Heel[f] >= 0.5f;

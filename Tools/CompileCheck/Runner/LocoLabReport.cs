@@ -59,6 +59,18 @@ internal static class LocoLabReport
         {
             course.Steer(dt, loco.Position, loco.Facing, loco.Velocity, out var want, out float facing);
             loco.StopAt = course.StopPoint;
+            foreach (var shove in (Environment.GetEnvironmentVariable("LOCO_SHOVE") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                // "time,yaw,m/s;...": shoves at those times.
+                var p = shove.Split(',');
+                float at = float.Parse(p[0], CultureInfo.InvariantCulture);
+                if (Mathf.Abs(i * dt - at) < 0.5f * dt)
+                {
+                    loco.Push(Quaternion.Euler(0f, float.Parse(p[1], CultureInfo.InvariantCulture), 0f) * Vector3.forward * float.Parse(p[2], CultureInfo.InvariantCulture));
+                    Console.WriteLine($"    shoved at {at} s");
+                }
+            }
+
             loco.Step(dt, want, facing);
             poser.Pose(dt);
             measures.Sample(dt, i * dt, legName);
