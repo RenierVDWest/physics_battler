@@ -59,6 +59,31 @@ namespace PhysicsBattler.Sandbox
                 case KeyCode.K: return keyboard.kKey.wasPressedThisFrame;
                 case KeyCode.D: return keyboard.dKey.wasPressedThisFrame;
                 case KeyCode.J: return keyboard.jKey.wasPressedThisFrame;
+                case KeyCode.C: return keyboard.cKey.wasPressedThisFrame;
+                case KeyCode.V: return keyboard.vKey.wasPressedThisFrame;
+                default: return false;
+            }
+        }
+
+        /// <summary>A key held down (the locomotion lab's driving keys).</summary>
+        public static bool KeyHeld(KeyCode key)
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                return false;
+            }
+
+            switch (key)
+            {
+                case KeyCode.W: return keyboard.wKey.isPressed;
+                case KeyCode.A: return keyboard.aKey.isPressed;
+                case KeyCode.S: return keyboard.sKey.isPressed;
+                case KeyCode.D: return keyboard.dKey.isPressed;
+                case KeyCode.Q: return keyboard.qKey.isPressed;
+                case KeyCode.E: return keyboard.eKey.isPressed;
+                case KeyCode.LeftShift: return keyboard.leftShiftKey.isPressed;
+                case KeyCode.Space: return keyboard.spaceKey.isPressed;
                 default: return false;
             }
         }
@@ -70,6 +95,7 @@ namespace PhysicsBattler.Sandbox
         public static bool RightHeld => Input.GetMouseButton(1);
         public static bool MiddleHeld => Input.GetMouseButton(2);
         public static bool KeyPressed(KeyCode key) => Input.GetKeyDown(key);
+        public static bool KeyHeld(KeyCode key) => Input.GetKey(key);
 #endif
     }
 }

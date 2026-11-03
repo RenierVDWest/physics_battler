@@ -48,5 +48,13 @@ namespace UnityEngine.InputSystem
         public KeyControl kKey { get; } = new KeyControl();
         public KeyControl dKey { get; } = new KeyControl();
         public KeyControl jKey { get; } = new KeyControl();
+        public KeyControl cKey { get; } = new KeyControl();
+        public KeyControl vKey { get; } = new KeyControl();
+        public KeyControl wKey { get; } = new KeyControl();
+        public KeyControl aKey { get; } = new KeyControl();
+        public KeyControl sKey { get; } = new KeyControl();
+        public KeyControl qKey { get; } = new KeyControl();
+        public KeyControl eKey { get; } = new KeyControl();
+        public KeyControl leftShiftKey { get; } = new KeyControl();
     }
 }

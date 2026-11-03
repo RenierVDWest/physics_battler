@@ -35,6 +35,10 @@ namespace PhysicsBattler.Sandbox
         public Material teamA;
         public Material teamB;
 
+        [Header("Locomotion lab (branch locomotion-lab)")]
+        [Tooltip("Instead of the fight: one Medium walks the new locomotion round the lab's course (C: drive it with W A S D).")]
+        public bool locomotionLab = true;
+
         [Header("Fighting")]
         [Tooltip("Units close in and strike. Off: they only stand and face each other (F).")]
         public bool fight = true;
@@ -77,6 +81,25 @@ namespace PhysicsBattler.Sandbox
         {
             if (!Application.isPlaying)
             {
+                return;
+            }
+
+            if (locomotionLab)
+            {
+                // The lab runs on its own: the sandbox's fight, recorder and panel stay off.
+                var lab = gameObject.GetComponent<Locomotion.LocomotionLab>();
+                if (lab == null)
+                {
+                    lab = gameObject.AddComponent<Locomotion.LocomotionLab>();
+                }
+
+                foreach (var spawn in FindObjectsByType<UnitSpawn>())
+                {
+                    spawn.ClearPreview();
+                }
+
+                lab.Begin(mediumPrefab, orbitCamera, teamA, board != null ? board.grid.origin : Vector3.zero);
+                enabled = false;
                 return;
             }
 

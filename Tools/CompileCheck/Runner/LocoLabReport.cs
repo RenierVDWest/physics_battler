@@ -52,10 +52,8 @@ internal static class LocoLabReport
         loco.Place(course.Start, course.StartYaw);
         course.Reset();
         const float dt = 0.02f;
-        var film = new StringBuilder("{\"dt\":0.04,\"frames\":[");
-        string V(Vector3 v) => string.Format(CultureInfo.InvariantCulture, "[{0:0.###},{1:0.###},{2:0.###}]", v.x, v.y, v.z);
+        var film = new LocoFilm(dt);
         int steps = (int)(seconds / dt);
-        bool first = true;
         string lastMode = "";
         for (int i = 0; i < steps && course.Current != null; i++)
         {
@@ -78,32 +76,9 @@ internal static class LocoLabReport
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "t {0:0.00} phase {1:0.000} down {2} heel {3:0.0} toe {4:0.0} locked {5} toe? {6} posed {7:0.000},{8:0.000} lock {9:0.000},{10:0.000} root z {11:0.000} speed {12:0.00} stride x{13:0.00}",
                     i * dt, loco.Phase, loco.Down[0], loco.Heel[0], loco.Toe[0], fl.Locked, fl.OnToe, fl.Posed.x, fl.Posed.z, fl.Ankle.x, fl.Ankle.z, loco.Position.z, loco.Velocity.magnitude, loco.StrideScale));
             }
-            if (i % 2 == 0)
-            {
-                var sb = new StringBuilder("{");
-                sb.Append(string.Format(CultureInfo.InvariantCulture, "\"t\":{0:0.00},\"leg\":\"{1}\",\"mode\":\"{2}\",\"speed\":{3:0.00},\"run\":{4:0.00},\"phase\":{5:0.00},",
-                    i * dt, legName, loco.Current, new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude, loco.RunWeight, loco.Phase));
-                sb.Append($"\"root\":{V(loco.Position)},\"facing\":{loco.Facing.ToString("0.0", CultureInfo.InvariantCulture)},");
-                sb.Append($"\"locks\":[{(poser.Feet[0].Locked ? 1 : 0)},{(poser.Feet[1].Locked ? 1 : 0)}],");
-                sb.Append("\"pose\":{");
-                bool f2 = true;
-                foreach (var id in PartInfo.All)
-                {
-                    sb.Append(f2 ? "" : ",").Append($"\"{id}\":{V(anim.Part(id).position)}");
-                    f2 = false;
-                }
-
-                var sl = anim.SlotWeaponL; var sr = anim.SlotWeaponR;
-                sb.Append($",\"HandTipL\":{V(sl != null ? sl.position : anim.Part(PartId.HandL).position)},\"HandTipR\":{V(sr != null ? sr.position : anim.Part(PartId.HandR).position)}");
-                sb.Append($",\"ToeL\":{V(anim.Part(PartId.FootL).position + anim.Part(PartId.FootL).rotation * new Vector3(0f, -0.06f, 0.16f))}");
-                sb.Append($",\"ToeR\":{V(anim.Part(PartId.FootR).position + anim.Part(PartId.FootR).rotation * new Vector3(0f, -0.06f, 0.16f))}");
-                sb.Append("}}");
-                film.Append(first ? "" : ",").Append(sb);
-                first = false;
-            }
+            film.Add(i * dt, legName, loco, poser, anim);
         }
 
-        film.Append("]}");
         File.WriteAllText(Path.Combine(dir, "locolab.json"), film.ToString());
         Console.WriteLine(measures.Report());
         return 0;

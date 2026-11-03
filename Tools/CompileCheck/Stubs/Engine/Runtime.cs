@@ -256,7 +256,7 @@ namespace UnityEngine
         public static int hotControl { get; set; }
     }
 
-    public enum KeyCode { None = 0, Space = 32, Period = 46, B = 98, D = 100, F = 102, G = 103, H = 104, J = 106, K = 107, L = 108, M = 109, P = 112, R = 114, T = 116 }
+    public enum KeyCode { None = 0, Space = 32, Period = 46, A = 97, B = 98, C = 99, D = 100, E = 101, F = 102, G = 103, H = 104, J = 106, K = 107, L = 108, M = 109, P = 112, Q = 113, R = 114, S = 115, T = 116, V = 118, W = 119, LeftShift = 304 }
 
     public static class Input
     {
@@ -266,6 +266,7 @@ namespace UnityEngine
         public static bool GetMouseButtonDown(int button) => false;
         public static bool GetMouseButton(int button) => false;
         public static bool GetKeyDown(KeyCode key) => false;
+        public static bool GetKey(KeyCode key) => false;
     }
 
     public class AsyncOperation : YieldInstruction
