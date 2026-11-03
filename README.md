@@ -41,15 +41,22 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     spot) blended in at the same gait phase, the clips' own hands holding the weapons; standing, the feet step into
     the guard's wider stance and back out. Driving in the guard, it faces where the camera looks and steps whichever
     way it is driven. Headless: `LOCO_COURSE=guard` (with `LOCO_ARMS=sword`).
-  - Aimed strikes (the combat overhaul's step 3): a training dummy stands ahead (driving, not on the course). In
-    the guard the walker faces it; J plays a strike clip aimed at its head: the body turns into it (up to 35°),
-    the lunge stretches or shortens (0.6 to 1.4 times the clip's), the arm reaches up to 0.4 m toward it, and about
-    contact the wrist turns the blade onto it (a thrust's all the way). U changes the dummy's height (low, middle,
-    high), Y puts it straight ahead as far as the picked strike reaches; the panel shows each strike's reach and how
-    near the last one's blade passed (the dummy turns green within 5 cm). Where each strike's weapon is at contact
-    on each body is measured headless into `Resources/Locomotion/StrikeReach.json`
-    (`strikes <dir> <Small|Medium|Large> --measure`); `strikes <dir> <body> [clips]` aims each at targets
-    (`AIM_REACH=1`: about its own reach) and prints how near the blade passed.
+  - Aimed strikes (the combat overhaul's step 3): driving (not on the course) a second Medium stands ahead as a
+    training dummy, holding a Medium's own loadout. In the guard the walker faces it; J plays a strike clip aimed at
+    it: the body turns into it (up to 35°), the lunge stretches or shortens (0.6 to 1.4 times the clip's), the arm
+    reaches up to 0.4 m toward it, and about contact the wrist turns the blade onto it (a thrust's all the way). U
+    picks where: low (its hips), middle (its chest) or high (its face); Y puts it straight ahead as far as the
+    picked strike reaches; the panel shows each strike's reach. Where each strike's weapon is at contact on each
+    body is measured headless into `Resources/Locomotion/StrikeReach.json` (`strikes <dir> <Small|Medium|Large>
+    --measure`); `strikes <dir> <body> [clips]` aims each at targets (`AIM_REACH=1`: about its own reach).
+  - Hits (step 4): the weapon is swept from step to step about each strike's contact, and the first part or shield
+    of the dummy it meets is struck by the fight's own damage rules. Both stand still a moment (the hit stop);
+    the struck part is knocked (its hold softened, coming back) and the rest of the blow pushes the dummy back a
+    step. A blow that cuts through slows; one that is stopped (a shield, a body too heavy for it) is shown where it
+    met, backs out a little and fades into the guard. O changes how the dummy stands: open (its guard down), in its
+    guard, or blocking (its shield held across each blow). A small ball marks where the last strike was aimed:
+    green it landed, blue it was blocked, red it missed. Headless: `dummyhits <dir> <body> [clips]` strikes a
+    kinematic dummy open and blocking, and writes both bodies' films (`Tools/Mocap/Locomotion/twofilm.py` draws them).
   - R restarts, P pauses (the physical body is still held to the pose while paused).
 - **Logs:** each run writes `PlaytestLogs/locolab-(time)/`, with the measures in session.md and the film in
   locolab.json. To draw the film: `python3 Tools/Mocap/Locomotion/locofilm.py <that>/locolab.json film.gif`.

@@ -786,6 +786,8 @@ namespace PhysicsBattler.Locomotion
             shotMoveScale = 1f;
             shotBend = Quaternion.identity;
             shotAimTurn = shotAimOver = 0f;
+            rewinding = false;
+            ShotSpeed = 1f;
             shotEnd = endAt > 0f ? endAt : then == ShotEnds.Cycle ? HandOver(clip, startFrom) : clip.Duration;
             Current = Mode.OneShot;
             Blend.Clear();
@@ -916,11 +918,77 @@ namespace PhysicsBattler.Locomotion
             return best != null;
         }
 
+        /// <summary>
+        /// How fast the playing one-shot goes against its own speed (1): a blow slowed by what it cut
+        /// through, or below zero, backing out of what stopped it (<see cref="CutShort"/>).
+        /// </summary>
+        public float ShotSpeed = 1f;
+
+        private float rewindLeft, rewindFloor;
+        private bool rewinding;
+
+        /// <summary>
+        /// The playing strike met something it can't go through: it backs out of it a little
+        /// (<paramref name="back"/> seconds of its own time, at <paramref name="speed"/> of its speed),
+        /// then ends there and fades into the stand.
+        /// </summary>
+        public void CutShort(float back = 0.12f, float speed = 0.5f)
+        {
+            if (Current != Mode.OneShot || Shot == null)
+            {
+                return;
+            }
+
+            rewinding = true;
+            rewindFloor = Mathf.Max(0f, ShotTime - back);
+            rewindLeft = back / Mathf.Max(0.05f, speed);
+            ShotSpeed = -speed;
+        }
+
+        /// <summary>
+        /// The playing one-shot put back to an earlier moment of itself, at once (its root moved back with
+        /// it): a blow stopped by what it met is shown where it met it, not a step's travel beyond. The
+        /// body is to be posed again after it.
+        /// </summary>
+        public void WindBack(float to)
+        {
+            if (Current != Mode.OneShot || Shot == null || to >= ShotTime)
+            {
+                return;
+            }
+
+            to = Mathf.Max(0f, to);
+            Shot.RootMotion(ShotTime, to, out var moved, out float turned);
+            var turn = Quaternion.Euler(0f, Facing, 0f);
+            Position += shotBend * (turn * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
+            Facing += turned * shotTurnScale;
+            ShotTime = to;
+            Shot.Pose(ShotTime, raw, Leg);
+            for (int i = 0; i < raw.Length; i++)
+            {
+                Points[i] = raw[i] + offset[i];
+                lastOut[i] = Points[i];
+            }
+        }
+
+        /// <summary>The playing one-shot ends here, now, into the stand (faded).</summary>
+        public void EndShotNow()
+        {
+            if (Current == Mode.OneShot && Shot != null)
+            {
+                shotEnd = ShotTime;
+                shotThen = ShotEnds.Idle;
+                EndShot(Shot);
+            }
+        }
+
         private void ShotStep(float dt)
         {
             var clip = Shot;
             float from = ShotTime;
-            ShotTime = Mathf.Min(shotEnd, ShotTime + dt * TimeScale);
+            ShotTime = rewinding
+                ? Mathf.Max(rewindFloor, ShotTime + dt * TimeScale * ShotSpeed)
+                : Mathf.Min(shotEnd, ShotTime + dt * TimeScale * Mathf.Max(0f, ShotSpeed));
             clip.RootMotion(from, ShotTime, out var moved, out float turned);
             if (shotAimOver > 0f && from < shotAimOver)
             {
@@ -938,7 +1006,29 @@ namespace PhysicsBattler.Locomotion
             FacingSpeed = turned * shotTurnScale / dt;
             clip.Pose(ShotTime, raw, Leg);
             Contacts(clip, ShotTime, 1f, true);
+            if (rewinding)
+            {
+                rewindLeft -= dt;
+                if (rewindLeft <= 0f || ShotTime <= rewindFloor + 1e-4f)
+                {
+                    shotEnd = ShotTime;
+                    shotThen = ShotEnds.Idle;
+                    EndShot(clip);
+                }
+
+                return;
+            }
+
             if (ShotTime >= shotEnd - 1e-4f)
+            {
+                EndShot(clip);
+            }
+        }
+
+        private void EndShot(LocoClip clip)
+        {
+            rewinding = false;
+            ShotSpeed = 1f;
             {
                 // (The new motion's pose is worked out now, in this same step, so the switch fades from
                 // the last pose shown into it.)

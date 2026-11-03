@@ -123,6 +123,7 @@ namespace PhysicsBattler.Locomotion
         public void Pose(float dt)
         {
             poseDt = dt;
+            UpdateAimWeights(dt);
             // The feet first (the hips drop for them).
             UpdateFeet(dt);
             Pelvis(out Vector3 pelvisAt, out var pelvisTurn);
@@ -572,18 +573,45 @@ namespace PhysicsBattler.Locomotion
 
         private static bool IsThrust(LocoClip clip) => clip != null && clip.Kind != null && clip.Kind.StartsWith("thrust");
 
-        /// <summary>How much of the wrist's steer is on now: a thrust's from halfway through its wind-up, a cut's just before contact; let go after.</summary>
-        private float SteerWeight()
+        /// <summary>How much of the wrist's steer is on now (worked out once a pose: <see cref="UpdateAimWeights"/>).</summary>
+        private float SteerWeight() => steerWeight;
+
+        private float aimWeight, steerWeight;
+
+        /// <summary>How long an aimed strike's pull and steer take to let go when it ends early (cut short).</summary>
+        public const float AimLetGo = 0.25f;
+
+        /// <summary>
+        /// The aim's pull: rising through the wind-up, all of it at contact, gone by the end; the wrist's
+        /// steer: a thrust's from halfway through its wind-up, a cut's just before contact, let go after. A
+        /// strike that ends early lets both go over <see cref="AimLetGo"/>, not at once.
+        /// </summary>
+        private void UpdateAimWeights(float dt)
         {
-            if (aimClip == null || loco.Shot != aimClip)
+            if (aimClip == null)
             {
-                return 0f;
+                aimWeight = steerWeight = 0f;
+                return;
             }
 
-            float t = loco.ShotTime, c = aimClip.ContactFrame / aimClip.Rate;
+            if (loco.Shot != aimClip)
+            {
+                aimWeight = Mathf.MoveTowards(aimWeight, 0f, dt / AimLetGo);
+                steerWeight = Mathf.MoveTowards(steerWeight, 0f, dt / AimLetGo);
+                if (aimWeight <= 0f && steerWeight <= 0f)
+                {
+                    aimClip = null;
+                }
+
+                return;
+            }
+
+            float t = loco.ShotTime, c = aimClip.ContactFrame / aimClip.Rate, end = aimClip.Duration;
+            float u = t <= c ? Mathf.Clamp01(t / Mathf.Max(0.05f, c)) : 1f - Mathf.Clamp01((t - c) / Mathf.Max(0.05f, end - c));
+            aimWeight = u * u * (3f - 2f * u);
             float from = IsThrust(aimClip) ? 0.4f * c : Mathf.Max(0f, c - 0.15f);
-            float u = t <= c ? Mathf.Clamp01((t - from) / Mathf.Max(0.05f, c - from)) : 1f - Mathf.Clamp01((t - c) / 0.25f);
-            return u * u * (3f - 2f * u);
+            float v = t <= c ? Mathf.Clamp01((t - from) / Mathf.Max(0.05f, c - from)) : 1f - Mathf.Clamp01((t - c) / 0.25f);
+            steerWeight = v * v * (3f - 2f * v);
         }
 
         // Each arm's reach (shoulder to hand, against the body's turn) faded at each switch: the turn
@@ -737,19 +765,8 @@ namespace PhysicsBattler.Locomotion
             loco.PlayAimed(clip, k, by, contact);
         }
 
-        /// <summary>How much of the aim's pull is on now: rising through the wind-up, all of it at contact, gone by the end.</summary>
-        private float AimWeight()
-        {
-            if (aimClip == null || loco.Shot != aimClip)
-            {
-                aimClip = null;
-                return 0f;
-            }
-
-            float t = loco.ShotTime, c = aimClip.ContactFrame / aimClip.Rate, end = aimClip.Duration;
-            float u = t <= c ? Mathf.Clamp01(t / Mathf.Max(0.05f, c)) : 1f - Mathf.Clamp01((t - c) / Mathf.Max(0.05f, end - c));
-            return u * u * (3f - 2f * u);
-        }
+        /// <summary>How much of the aim's pull is on now (worked out once a pose: <see cref="UpdateAimWeights"/>).</summary>
+        private float AimWeight() => aimWeight;
 
         /// <summary>
         /// Where a clip's weapon would be at a time (its sweet spot), against the clip's root then (metres):
@@ -784,6 +801,9 @@ namespace PhysicsBattler.Locomotion
             anim.Part(footId).rotation = FootRotation(f);
         }
 
+        /// <summary>An ankle this high above the ground (leg lengths) is in the air, whatever the motion says.</summary>
+        public float AloftFrom = 0.3f;
+
         /// <summary>A foot's lock: on as it lands, onto the toe as the heel lifts, faded off as it lifts.</summary>
         private void HoldFoot(int f, float dt)
         {
@@ -797,7 +817,10 @@ namespace PhysicsBattler.Locomotion
             foot.Posed = posed;
             bool down = loco.Down[f] >= 0.5f;
             bool heel = loco.Heel[f] >= 0.5f;
-            bool landing = down && !foot.Locked && (!foot.Stepping || foot.FadeTime >= foot.FadeOver);
+            // (A foot the motion says is down but which is still well up in the air (a leap cut short, a
+            // switch from a jump into a stand) is not planted where it is: it comes down with the fade first.)
+            bool aloft = posed.y - GroundY > AloftFrom * loco.Leg;
+            bool landing = down && !aloft && !foot.Locked && (!foot.Stepping || foot.FadeTime >= foot.FadeOver);
             if (landing)
             {
                 foot.LockYaw = clipYaw + foot.YawHold;
