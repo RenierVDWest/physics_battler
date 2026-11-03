@@ -110,6 +110,15 @@ namespace PhysicsBattler.Locomotion
         public float GuardSwitchHalfLife = 0.2f;
 
         private float switchHalfLifeNow = 0.1f;
+
+        /// <summary>How many switches between motions there have been (each one faded); a pose built on the walk fades its own parts at each.</summary>
+        public int Switches { get; private set; }
+
+        /// <summary>The fade of the switch going on now (seconds, half-life).</summary>
+        public float SwitchHalfLifeNow => switchHalfLifeNow;
+
+        /// <summary>The current motion's own pose this step, before the switch's fade (leg lengths... scaled, against the root, as <see cref="Points"/>).</summary>
+        public Vector3[] RawPoints => raw;
         private bool lastWasGuard;
 
         // ---- The clips ----------------------------------------------------------------------------
@@ -198,6 +207,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             stanceHeld = true;
+            footHeld[0] = footHeld[1] = true;
+            lastSettle = 0f;
         }
 
         // ---- Each step ------------------------------------------------------------------------------
@@ -496,7 +507,28 @@ namespace PhysicsBattler.Locomotion
             }
 
             stanceHeld = hasLast;
+            for (int f = 0; f < 2; f++)
+            {
+                // (A foot in the air when it stops is not held there: the standing clip puts it down.)
+                footHeld[f] = stanceHeld && Down[f] >= 0.5f;
+            }
+
+            lastSettle = 0f;
         }
+
+        /// <summary>Standing: whether a foot is held where it stood (or given back to the standing clip).</summary>
+        public bool FootHeld(int f) => stanceHeld && footHeld[f];
+
+        // Each foot held where it stood, or given back to the standing clip.
+        private readonly bool[] footHeld = new bool[2];
+        private float lastSettle;
+
+        /// <summary>
+        /// Standing, a held foot further than this (leg lengths) from where the standing clip has it is given
+        /// back to the clip, one foot at a time (the body's feet then step there): after a stop, a strike or
+        /// a guard clip it settles into its own stance rather than staying where it ended.
+        /// </summary>
+        public float SettleStep = 0.1f, SettleFrom = 0.35f, SettleBetween = 0.45f;
 
         private void IdlePose(float dt)
         {
@@ -507,11 +539,38 @@ namespace PhysicsBattler.Locomotion
             Blend.Add((idle, 1f));
             if (stanceHeld)
             {
-                // (The legs where it stopped; the knees a little the idle's way.)
+                // (The legs where it stopped; the knees a little the idle's way. A held foot far from
+                // the standing clip's is given back to it, one at a time.)
                 var back = Quaternion.Euler(0f, -Facing, 0f);
+                if (idleTime > SettleFrom && idleTime - lastSettle > SettleBetween)
+                {
+                    int worst = -1;
+                    float most = SettleStep * Leg;
+                    for (int f = 0; f < 2; f++)
+                    {
+                        Vector3 held = back * (stance[f * 4 + 1] - Position) - raw[(int)(f == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot)];
+                        held.y = 0f;
+                        if (footHeld[f] && held.magnitude > most)
+                        {
+                            most = held.magnitude;
+                            worst = f;
+                        }
+                    }
+
+                    if (worst >= 0)
+                    {
+                        footHeld[worst] = false;
+                        lastSettle = idleTime;
+                        pendingSwitch = hasLast;
+                    }
+                }
+
                 for (int i = 0; i < LegBones.Length; i++)
                 {
-                    raw[(int)LegBones[i]] = back * (stance[i] - Position);
+                    if (footHeld[i / 4])
+                    {
+                        raw[(int)LegBones[i]] = back * (stance[i] - Position);
+                    }
                 }
             }
         }
@@ -1054,6 +1113,7 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 pendingSwitch = false;
+                Switches++;
             }
 
             for (int i = 0; i < raw.Length; i++)

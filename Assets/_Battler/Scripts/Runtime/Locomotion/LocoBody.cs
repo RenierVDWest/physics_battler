@@ -115,6 +115,8 @@ namespace PhysicsBattler.Locomotion
             soleToe = new Vector3(0f, bottom, c.z + half.z);
         }
 
+        private Vector3 RawWorld(LocoBone bone) => loco.Position + RootTurn * loco.RawPoints[(int)bone] + Vector3.up * GroundY;
+
         private Vector3 World(LocoBone bone) => loco.Position + RootTurn * loco.Points[(int)bone] + Vector3.up * GroundY;
 
         /// <summary>Poses the rig for this step (after the locomotor's step).</summary>
@@ -322,7 +324,7 @@ namespace PhysicsBattler.Locomotion
         public float ClipArms { get; private set; }
 
         /// <summary>How long the arms take to go over to a guard clip's, or back (seconds).</summary>
-        public const float ClipArmsBlend = 0.2f;
+        public const float ClipArmsBlend = 0.3f;
 
         private void UpdateClipArms()
         {
@@ -357,8 +359,12 @@ namespace PhysicsBattler.Locomotion
             var clipHand = hand.rotation;
             bool clipHandKnown = false;
             {
-                Vector3 along = World(middle) - w;
-                Vector3 side = World(index) - World(pinky);
+                // (The hand's turn from the current motion's own fingers, not the faded ones: fading the
+                // fingers' places between two very different grips can turn the hand over. The turn is
+                // faded on its own below.)
+                Vector3 rw = RawWorld(wrist);
+                Vector3 along = RawWorld(middle) - rw;
+                Vector3 side = RawWorld(index) - RawWorld(pinky);
                 Vector3 restAlong = anim.RestLocalPosition(handId).normalized;   // (the hand carries on the forearm's line at rest)
                 var slot = right ? anim.SlotWeaponR : anim.SlotWeaponL;
                 if (slot != null && slot.localPosition.sqrMagnitude > 1e-6f)
@@ -418,7 +424,7 @@ namespace PhysicsBattler.Locomotion
             {
                 if (clipHandKnown)
                 {
-                    hand.rotation = clipHand;
+                    hand.rotation = FadeHand(a, clipHand);
                 }
 
                 return;
@@ -455,7 +461,29 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            hand.rotation = clipHandKnown && clipShare > 0f ? Quaternion.Slerp(held, clipHand, clipShare) : held;
+            hand.rotation = FadeHand(a, clipHandKnown && clipShare > 0f ? Quaternion.Slerp(held, clipHand, clipShare) : held);
+        }
+
+        // Each hand's turn faded at each switch between motions, as the walk fades the places: what the
+        // last pose had and the new one hasn't is kept, then let go.
+        private readonly Quaternion[] lastHand = { Quaternion.identity, Quaternion.identity };
+        private readonly Quaternion[] handFade = { Quaternion.identity, Quaternion.identity };
+        private readonly int[] handSwitches = new int[2];
+        private readonly bool[] handKnown = new bool[2];
+
+        private Quaternion FadeHand(int a, Quaternion want)
+        {
+            if (handKnown[a] && handSwitches[a] != loco.Switches)
+            {
+                handFade[a] = lastHand[a] * Quaternion.Inverse(want);
+            }
+
+            handSwitches[a] = loco.Switches;
+            handFade[a] = Quaternion.Slerp(handFade[a], Quaternion.identity, 1f - Mathf.Pow(0.5f, poseDt / Mathf.Max(0.02f, loco.SwitchHalfLifeNow)));
+            var shown = handFade[a] * want;
+            lastHand[a] = shown;
+            handKnown[a] = true;
+            return shown;
         }
 
         /// <summary>How far a carrying hand twists about its forearm to point its weapon (degrees: a forearm turns about this far).</summary>
@@ -509,6 +537,7 @@ namespace PhysicsBattler.Locomotion
             {
                 foot.Locked = true;
                 foot.LockedFor = 0f;
+                foot.Stepping = false;
                 // (Where it is now, faded in: a release still fading carries on into the lock. A foot
                 // that lands toe first, walking backward, is held at its toe until the heel comes down.)
                 foot.Ankle = posed + foot.Fade;

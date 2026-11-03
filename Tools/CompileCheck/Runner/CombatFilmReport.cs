@@ -74,12 +74,23 @@ internal static class CombatFilmReport
                 hasTip = true;
             }
 
-            for (int i = 0; i < 30; i++, t += dt)
+            // (A while standing after: the feet settle back into the standing stance.)
+            for (int i = 0; i < 120; i++, t += dt)
             {
                 loco.Step(dt, Vector3.zero, loco.Facing);
                 poser.Pose(dt);
                 film.Add(t, name, loco, poser, anim);
+                if (Environment.GetEnvironmentVariable("FILM_DEBUG") != null && i % 15 == 0)
+                {
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "    {0:0.00} {1} held {2}{3} locked {4}{5} stepping {6}{7} pull {8:0.00} {9:0.00}",
+                        t, loco.Current, loco.FootHeld(0) ? 1 : 0, loco.FootHeld(1) ? 1 : 0, poser.Feet[0].Locked ? 1 : 0, poser.Feet[1].Locked ? 1 : 0,
+                        poser.Feet[0].Stepping ? 1 : 0, poser.Feet[1].Stepping ? 1 : 0, (poser.Feet[0].Target - poser.Feet[0].Posed).magnitude, (poser.Feet[1].Target - poser.Feet[1].Posed).magnitude));
+                }
             }
+
+            float apart = (anim.Part(PartId.FootL).position - anim.Part(PartId.FootR).position).magnitude;
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "    standing after: feet {0:0.00} m apart, the left foot {1:0.00} m up, the right {2:0.00} m up",
+                apart, anim.Part(PartId.FootL).position.y, anim.Part(PartId.FootR).position.y));
 
             File.WriteAllText(Path.Combine(dir, name + ".json"), film.ToString());
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0,-20} {1,5:0.00} s ({2}): planted feet moved at most {3:0.0} cm in {4} plants; the weapon's tip fastest {5:0.0} m/s at {6:0.00} s (contact mark {7:0.00} s); {8} forced steps",
