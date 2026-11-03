@@ -22,7 +22,7 @@ internal static class DummyHitReport
         LocoLibrary.Load();
         var ci = CultureInfo.InvariantCulture;
         string prefix = LocoLibrary.CombatPrefix(body);
-        var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
+        var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
         int landed = 0, blocked = 0, missed = 0, tries = 0;
         foreach (string name in names)
         {

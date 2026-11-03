@@ -463,7 +463,10 @@ namespace PhysicsBattler.Locomotion
             if (authority != null && snapped)
             {
                 authority.Apply(dt);
-                if (new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude > KnockdownSpeed)
+                // (Its own clip carrying it fast, a lunge stretched to reach, is not a push it can't step after:
+                // the Large's long lunge reached 3.3 m/s and was knocked down by its own strike.)
+                bool ownMotion = loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard;
+                if (!ownMotion && new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude > KnockdownSpeed)
                 {
                     KnockDown("pushed faster than it can step");
                 }
@@ -523,9 +526,13 @@ namespace PhysicsBattler.Locomotion
                 loco.Nudge(knock.normalized * (beyond * bumpGain * dt));
             }
 
-            if (off.magnitude > 0.45f)
+            // (Its own lunge leaves the pinned chest behind its pose for a moment, more the bigger and faster the
+            // body: that lag is not a knock. Then only a knock beyond the usual lag counts.)
+            bool ownMotion = loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard;
+            float offNow = ownMotion ? knock.magnitude : off.magnitude;
+            if (offNow > 0.45f * Mathf.Max(1f, size))
             {
-                KnockDown("upper body knocked " + (off.magnitude * 100f).ToString("0") + " cm off");
+                KnockDown("upper body knocked " + (offNow * 100f).ToString("0") + " cm off");
             }
         }
 
@@ -663,7 +670,7 @@ namespace PhysicsBattler.Locomotion
             var names = new List<string>();
             foreach (var pair in LocoLibrary.Clips)
             {
-                if (pair.Value.IsGuard && pair.Key.StartsWith(prefix))
+                if (pair.Value.IsGuard && pair.Key.StartsWith(prefix) && (pair.Value.Role != "strike" || LocoLibrary.StrikeFor(body.ToString(), pair.Key)))
                 {
                     names.Add(pair.Key);
                 }

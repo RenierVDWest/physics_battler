@@ -29,7 +29,7 @@ internal static class StrikeAimReport
         profile.body = body;
         LocoLibrary.Load();
         string prefix = LocoLibrary.CombatPrefix(body);
-        var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
+        var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
         var ci = CultureInfo.InvariantCulture;
         var allMisses = new List<float>();
         if (measure)
@@ -104,10 +104,12 @@ internal static class StrikeAimReport
                     poser.PlayStrike(clip, target);
                     var film = filmed ? null : new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
                     float contact = clip.ContactFrame / clip.Rate, best = float.MaxValue;
+                    float fastestRoot = 0f;
                     for (int i = 0; i < 400 && loco.Current == Locomotor.Mode.OneShot; i++)
                     {
                         loco.Step(dt, Vector3.zero, loco.Facing);
                         poser.Pose(dt);
+                        fastestRoot = Mathf.Max(fastestRoot, new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude);
                         film?.Add(i * dt, name, loco, poser, anim);
                         if (Environment.GetEnvironmentVariable("AIM_CHECK") != null && Mathf.Abs(loco.ShotTime - contact) < 0.5f * dt)
                         {
@@ -165,7 +167,7 @@ internal static class StrikeAimReport
                     }
 
                     misses.Add(best);
-                    plans.Add(string.Format(ci, "{6:+0;-0}deg {0:0.00}m/{1:0.00}m: turn {2:+0;-0} lunge x{3:0.00} pull {4:0.00} -> miss {5:0.00}", distance, height, poser.AimTurn, poser.AimLunge, poser.AimMissBeforePull, best, bearing));
+                    plans.Add(string.Format(ci, "{6:+0;-0}deg {0:0.00}m/{1:0.00}m: turn {2:+0;-0} lunge x{3:0.00} pull {4:0.00} -> miss {5:0.00}; the root at most {7:0.0} m/s", distance, height, poser.AimTurn, poser.AimLunge, poser.AimMissBeforePull, best, bearing, fastestRoot));
                     UnityEngine.Object.DestroyImmediate(root);
                 }
             }

@@ -313,6 +313,13 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The guard and strike clips' prefix for a body ("Small", "Medium", "Large").</summary>
         public static string CombatPrefix(string body) => body == "Large" && LargeOwnClips ? "lg_" : "sns_";
 
+        /// <summary>The Medium's strikes the Large uses (the playtest's picks: the rest look wrong on it).</summary>
+        public static readonly string[] LargeStrikes = { "sns_backhand_lunge", "sns_combo_forehand", "sns_forehand" };
+
+        /// <summary>A strike clip is one of this body's.</summary>
+        public static bool StrikeFor(string body, string clip) =>
+            body != "Large" || LargeOwnClips || System.Array.IndexOf(LargeStrikes, clip) >= 0;
+
         /// <summary>The body holds its weapon in both hands (the Large with its own two-handed clips).</summary>
         public static bool TwoHanded(string body) => body == "Large" && LargeOwnClips;
 
