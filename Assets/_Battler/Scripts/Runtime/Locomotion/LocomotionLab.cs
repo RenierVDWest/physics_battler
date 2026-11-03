@@ -19,7 +19,7 @@ namespace PhysicsBattler.Locomotion
     /// following it is the plan's stage 5).
     ///
     /// Turned on by <see cref="BattleSandbox.locomotionLab"/>. Keys: C course or driving, R restart,
-    /// P pause, period one step. Driving: W A S D (against the camera), Shift run, Space hold the facing
+    /// P pause, comma and period the combat clip to play, J play it. Driving: W A S D (against the camera), Shift run, Space hold the facing
     /// (side-steps and walking backward), V walking speed. Each run's measures and film are written to
     /// PlaytestLogs/locolab-(time)/ when Play stops.
     /// </summary>
@@ -355,8 +355,20 @@ namespace PhysicsBattler.Locomotion
 
         private void FixedUpdate()
         {
-            if (loco == null || (paused && !stepOnce))
+            if (loco == null)
             {
+                return;
+            }
+
+            if (paused && !stepOnce)
+            {
+                // (Paused: the pose stands still, and the physical body is still held to it; left alone,
+                // its pinned upper body would sag over its kinematic legs.)
+                if (authority != null && snapped)
+                {
+                    authority.Apply(Time.fixedDeltaTime);
+                }
+
                 return;
             }
 
@@ -622,6 +634,15 @@ namespace PhysicsBattler.Locomotion
             return rank + name;
         }
 
+        private void StepCombatClip(int by)
+        {
+            int count = CombatClips().Count;
+            if (count > 0)
+            {
+                combatClip = ((combatClip + by) % count + count) % count;
+            }
+        }
+
         private void PlayCombatClip()
         {
             var combat = CombatClips();
@@ -701,7 +722,9 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.R)) Build();
             if (SandboxInput.KeyPressed(KeyCode.C)) { course = !course; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.P)) paused = !paused;
-            if (SandboxInput.KeyPressed(KeyCode.Period)) { paused = true; stepOnce = true; }
+            // (< and > pick the combat clip, as the panel's buttons do; the pause, P, stays.)
+            if (SandboxInput.KeyPressed(KeyCode.Comma)) { StepCombatClip(-1); }
+            if (SandboxInput.KeyPressed(KeyCode.Period)) { StepCombatClip(1); }
             if (SandboxInput.KeyPressed(KeyCode.B)) { physical = !physical; Build(); }
             if (SandboxInput.KeyPressed(KeyCode.G)) Shove();
             if (SandboxInput.KeyPressed(KeyCode.H)) Throw();
@@ -877,9 +900,9 @@ namespace PhysicsBattler.Locomotion
             {
                 combatClip = Mathf.Clamp(combatClip, 0, combat.Count - 1);
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button("<")) combatClip = (combatClip + combat.Count - 1) % combat.Count;
+                if (GUILayout.Button("< (,)")) StepCombatClip(-1);
                 if (GUILayout.Button($"Play {combat[combatClip]} (J)")) PlayCombatClip();
-                if (GUILayout.Button(">")) combatClip = (combatClip + 1) % combat.Count;
+                if (GUILayout.Button("(.) >")) StepCombatClip(1);
                 GUILayout.EndHorizontal();
                 var shown = LocoLibrary.Get(combat[combatClip]);
                 if (shown != null)

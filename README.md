@@ -32,11 +32,11 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     marker's. A carrying arm keeps the walk's swing, smaller (a weapon about 3/4, a shield about 2/5), about where
     it holds the thing: the weapon low at the side, point forward and a little down (lifting as the hand swings
     forward), the shield in front of the belly facing forward. N changes the body.
-  - The combat clips (the combat overhaul's step 1): `<` and `>` in the panel pick one of the body's guard and
+  - The combat clips (the combat overhaul's step 1): `<` and `>` in the panel (or the , and . keys) pick one of the body's guard and
     strike clips (the Medium's for the Medium and the Small, the Large's own), J plays it as it is: its root moves the
     body, its feet lock where they land, its own hands hold the weapons. Baked by `Tools/Mocap/Combat/combat_bake.py`
     into `Resources/Locomotion/CombatClips.json`; filmed headless with `combatfilm <dir> [Medium|Large] [clips]`.
-  - R restarts, P pauses, . steps once.
+  - R restarts, P pauses (the physical body is still held to the pose while paused).
 - **Logs:** each run writes `PlaytestLogs/locolab-(time)/`, with the measures in session.md and the film in
   locolab.json. To draw the film: `python3 Tools/Mocap/Locomotion/locofilm.py <that>/locolab.json film.gif`.
 - **In the fight (first join):** untick *Locomotion lab* and the fight's units walk with the new locomotion

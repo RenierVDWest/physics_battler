@@ -172,6 +172,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The feet's locks for this step: where each ankle goes (<see cref="FootLock.Target"/>).</summary>
         public void UpdateFeet(float dt)
         {
+            clock += dt;
             for (int f = 0; f < 2; f++)
             {
                 HoldFoot(f, dt);
@@ -234,6 +235,16 @@ namespace PhysicsBattler.Locomotion
             Vector3 dir = Quaternion.Inverse(RootTurn) * (World(f == 0 ? LocoBone.LeftToeEnd : LocoBone.RightToeEnd) - World(f == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot));
             return RootTurn * Quaternion.FromToRotation(restFootDir, dir.normalized);
         }
+
+        /// <summary>A planted foot this far from the clip's (leg lengths), standing, steps over to it; after it has been down this long (seconds), and not within this long of the last such step.</summary>
+        public float SettleRadius = 0.12f, SettleAfter = 0.1f, SettleGap = 0.3f;
+
+        private float lastSettle = -10f, clock;
+
+        private float Time() => clock;
+
+        /// <summary>Standing still: the standing clip, or a guard or strike clip playing (they plant their own feet).</summary>
+        private bool Standing => loco.Current == Locomotor.Mode.Idle || (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard);
 
         /// <summary>A planted foot keeps its turn while the body turns over it, up to this (degrees); past it the foot pivots.</summary>
         public const float MostYawHold = 35f;
@@ -530,6 +541,17 @@ namespace PhysicsBattler.Locomotion
                 pull.y = 0f;
                 Vector3 hipLow = World(f == 0 ? LocoBone.LeftUpLeg : LocoBone.RightUpLeg) + Vector3.down * (0.12f * legReach);
                 bool stretched = pull.magnitude > UnlockRadius * loco.Leg || (held - hipLow).magnitude > legReach;
+
+                // Standing (or in a guard or strike clip) with a planted foot well away from where the
+                // clip stands it (going from the relaxed stance into the guard's wider one, say): it takes
+                // a short step there, one foot at a time, rather than the legs stretching to it.
+                bool settling = Standing && foot.LockedFor > SettleAfter && pull.magnitude > SettleRadius * loco.Leg
+                                && Feet[1 - f].Locked && !Feet[1 - f].Stepping && Time() - lastSettle > SettleGap;
+                if (settling)
+                {
+                    stretched = true;
+                    lastSettle = Time();
+                }
                 if (!down || stretched)
                 {
                     foot.Locked = false;
