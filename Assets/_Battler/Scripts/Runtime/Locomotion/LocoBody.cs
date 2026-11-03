@@ -261,7 +261,11 @@ namespace PhysicsBattler.Locomotion
             Vector3 ourAxis = Feet[f].Target - hip;
             Vector3 bend = Vector3.ProjectOnPlane(World(knee) - World(hipBone), clipAxis.sqrMagnitude > 1e-8f ? clipAxis.normalized : Vector3.down);
             Vector3 pole = Quaternion.FromToRotation(clipAxis, ourAxis) * bend;
-            return (pole.sqrMagnitude > 1e-8f ? pole.normalized : Vector3.zero) + 0.3f * (RootTurn * Vector3.forward);
+            // (A nearly straight clip leg says little about which way its knee goes: its bend counts in
+            // full only from a tenth of a leg off the line, so a straight leg's knee goes forward, not
+            // whichever way a few millimetres point.)
+            float says = Mathf.Clamp01(pole.magnitude / (0.1f * loco.Leg));
+            return (pole.sqrMagnitude > 1e-8f ? pole.normalized * says : Vector3.zero) + 0.3f * (RootTurn * Vector3.forward);
         }
 
         /// <summary>A frame (rest: up +y, right +x) turned so its up lies along <paramref name="up"/> and its right toward <paramref name="right"/>.</summary>
@@ -316,6 +320,52 @@ namespace PhysicsBattler.Locomotion
         private readonly Vector3[] swingMean = new Vector3[2];
         private readonly bool[] swingKnown = new bool[2];
 
+        // Each elbow's way across its shoulder-to-hand line, against the body's turn: it turns at most
+        // MostElbowTurn a second. A hand brought down past its shoulder sweeps that line through the
+        // clip's elbow's way, and the elbow would be flung round to the other side at once.
+        private readonly Vector3[] elbowWay = new Vector3[2];
+        private readonly bool[] elbowKnown = new bool[2];
+
+        /// <summary>The fastest an elbow's way turns (degrees a second).</summary>
+        public float MostElbowTurn = 540f;
+
+        private Vector3 SteadyElbow(int a, Vector3 pole, Vector3 shoulder, Vector3 target)
+        {
+            // (Which way the elbow points is what the pole says across the shoulder-to-hand line; it is
+            // that, kept against the body's turn, which turns at most MostElbowTurn a second.)
+            var turn = RootTurn;
+            Vector3 axis = target - shoulder;
+            if (axis.sqrMagnitude < 1e-8f)
+            {
+                return pole;
+            }
+
+            axis.Normalize();
+            Vector3 across = Vector3.ProjectOnPlane(pole, axis);
+            if (!elbowKnown[a])
+            {
+                if (across.sqrMagnitude > 1e-8f)
+                {
+                    elbowWay[a] = Quaternion.Inverse(turn) * across.normalized;
+                    elbowKnown[a] = true;
+                }
+
+                return pole;
+            }
+
+            Vector3 was = Vector3.ProjectOnPlane(turn * elbowWay[a], axis);
+            if (was.sqrMagnitude < 1e-6f)
+            {
+                was = across;
+            }
+
+            Vector3 now = across.sqrMagnitude > 1e-8f && pole.magnitude > 1e-4f && across.magnitude > 0.2f * pole.magnitude
+                ? Vector3.RotateTowards(was.normalized, across.normalized, MostElbowTurn * Mathf.Deg2Rad * poseDt, 0f)
+                : was.normalized;
+            elbowWay[a] = Quaternion.Inverse(turn) * now;
+            return now;
+        }
+
         /// <summary>
         /// How much the arms are the clip's own even where a hand carries something (0: the carry's;
         /// 1: the clip's): a guard or strike clip's hands hold the weapons themselves, so while one plays
@@ -349,15 +399,20 @@ namespace PhysicsBattler.Locomotion
             int a = right ? 0 : 1;
             var carry = right ? CarryR : CarryL;
             float clipShare = carry == Carry.Free ? 1f : ClipArms;
-            Vector3 s = World(shoulder), e = World(elbow), w = World(wrist);
+            // (The clip's arm from the current motion's own pose, its switch faded as a turn of the arm
+            // about the shoulder and a change in its reach (FadeReach): faded point by point, a hand
+            // brought down from overhead would pass by its shoulder, and the arm's way swing round.)
+            Vector3 s = RawWorld(shoulder), e = RawWorld(elbow), w = RawWorld(wrist);
             float clipArm = (e - s).magnitude + (w - e).magnitude;
             float ourArm = anim.RestLocalPosition(foreId).magnitude + anim.RestLocalPosition(handId).magnitude;
             Vector3 reach = (w - s) * (ourArm / Mathf.Max(1e-3f, clipArm));
+            Vector3 clipPole = e - 0.5f * (s + w);
+            var reachTurn = FadeReach(a, ref reach);
+            clipPole = reachTurn * clipPole;
 
             // The clip's arm: the hand where the clip's is against the shoulder, the elbow toward the
             // clip's, the hand turned as the clip's (wrist to the middle knuckle, its thumb side the clip's).
             Vector3 clipTarget = upper.position + reach;
-            Vector3 clipPole = e - 0.5f * (s + w);
             var clipHand = hand.rotation;
             bool clipHandKnown = false;
             {
@@ -426,6 +481,7 @@ namespace PhysicsBattler.Locomotion
                 target += aimPull * AimWeight();
             }
 
+            pole = SteadyElbow(a, pole, upper.position, target);
             TwoBoneIK.Solve(upper, fore, hand, target, pole);
 
             if (clipShare >= 1f)
@@ -528,6 +584,37 @@ namespace PhysicsBattler.Locomotion
             float from = IsThrust(aimClip) ? 0.4f * c : Mathf.Max(0f, c - 0.15f);
             float u = t <= c ? Mathf.Clamp01((t - from) / Mathf.Max(0.05f, c - from)) : 1f - Mathf.Clamp01((t - c) / 0.25f);
             return u * u * (3f - 2f * u);
+        }
+
+        // Each arm's reach (shoulder to hand, against the body's turn) faded at each switch: the turn
+        // and the length the last pose had and the new one hasn't, let go together.
+        private readonly Quaternion[] reachFade = { Quaternion.identity, Quaternion.identity };
+        private readonly float[] reachFadeLength = new float[2];
+        private readonly Vector3[] lastReach = new Vector3[2];
+        private readonly int[] reachSwitches = new int[2];
+        private readonly bool[] reachKnown = new bool[2];
+
+        /// <returns>The fade's turn now (world), to turn the elbow's way by as well.</returns>
+        private Quaternion FadeReach(int a, ref Vector3 reach)
+        {
+            var turn = RootTurn;
+            Vector3 local = Quaternion.Inverse(turn) * reach;
+            if (reachKnown[a] && reachSwitches[a] != loco.Switches && local.sqrMagnitude > 1e-8f && lastReach[a].sqrMagnitude > 1e-8f)
+            {
+                reachFade[a] = Quaternion.FromToRotation(local, lastReach[a]);
+                reachFadeLength[a] = lastReach[a].magnitude - local.magnitude;
+            }
+
+            reachSwitches[a] = loco.Switches;
+            float keep = Mathf.Pow(0.5f, poseDt / Mathf.Max(0.02f, loco.SwitchHalfLifeNow));
+            reachFade[a] = Quaternion.Slerp(Quaternion.identity, reachFade[a], keep);
+            reachFadeLength[a] *= keep;
+            float length = Mathf.Max(0f, local.magnitude + reachFadeLength[a]);
+            local = reachFade[a] * (local.sqrMagnitude > 1e-8f ? local.normalized : Vector3.down) * length;
+            lastReach[a] = local;
+            reachKnown[a] = true;
+            reach = turn * local;
+            return turn * reachFade[a] * Quaternion.Inverse(turn);
         }
 
         // Each hand's turn faded at each switch between motions, as the walk fades the places: what the

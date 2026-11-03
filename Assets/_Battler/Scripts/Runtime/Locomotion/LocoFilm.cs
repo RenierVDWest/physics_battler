@@ -41,7 +41,7 @@ namespace PhysicsBattler.Locomotion
             frames++;
             sb.Append(string.Format(CultureInfo.InvariantCulture, "\"t\":{0:0.00},\"leg\":\"{1}\",\"mode\":\"{2}\",\"shot\":\"{3}\",\"speed\":{4:0.00},\"run\":{5:0.00},\"phase\":{6:0.00},",
                 time, (leg ?? "").Replace("\"", "'"), loco.Current, loco.Shot != null ? loco.Shot.Name : "", new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude, loco.RunWeight, loco.Phase));
-            sb.Append($"\"root\":{V(loco.Position)},\"facing\":{loco.Facing.ToString("0.0", CultureInfo.InvariantCulture)},");
+            sb.Append($"\"root\":{V(loco.Position)},\"facing\":{loco.Facing.ToString("0.0", CultureInfo.InvariantCulture)},\"travel\":{loco.TravelAngle.ToString("0", CultureInfo.InvariantCulture)},\"strideScale\":{loco.StrideScale.ToString("0.00", CultureInfo.InvariantCulture)},\"want\":{V(loco.Wanted)},");
             sb.Append($"\"locks\":[{(poser.Feet[0].Locked ? 1 : 0)},{(poser.Feet[1].Locked ? 1 : 0)}],");
             sb.Append("\"pose\":{");
             bool first = true;

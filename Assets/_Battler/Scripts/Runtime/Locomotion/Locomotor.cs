@@ -111,6 +111,9 @@ namespace PhysicsBattler.Locomotion
 
         private float switchHalfLifeNow = 0.1f;
 
+        /// <summary>The fastest a switch's fade moves any part (m/s).</summary>
+        public float MostFadeSpeed = 3f;
+
         /// <summary>How many switches between motions there have been (each one faded); a pose built on the walk fades its own parts at each.</summary>
         public int Switches { get; private set; }
 
@@ -990,6 +993,12 @@ namespace PhysicsBattler.Locomotion
         private Vector3 wantNow;
         private float travelAngle;
 
+        /// <summary>The velocity it was last asked for (world, m/s).</summary>
+        public Vector3 Wanted => wantNow;
+
+        /// <summary>The way it travels against its facing, as the cycles' blend has it (degrees, + right).</summary>
+        public float TravelAngle => travelAngle;
+
         private void AimTravel(Vector3 way)
         {
             Vector3 local = Quaternion.Euler(0f, -Facing, 0f) * way;
@@ -1011,7 +1020,11 @@ namespace PhysicsBattler.Locomotion
                 // way that turns right round (side to side, forward to back) is a switch, faded: swept
                 // through the ways between, the swinging foot would be thrown across.)
                 float change = Mathf.DeltaAngle(travelAngle, measured);
-                if (Mathf.Abs(change) > 100f && speed < 0.6f)
+                if (Mathf.Abs(change) > 100f && speed < 0.6f && wantNow.magnitude < 0.4f)
+                {
+                    // (A small pull back the other way: settling onto where it stops, not a reversal.)
+                }
+                else if (Mathf.Abs(change) > 100f && speed < 0.6f)
                 {
                     travelAngle = Mathf.DeltaAngle(0f, measured);
                     pendingSwitch = hasLast;
@@ -1102,7 +1115,9 @@ namespace PhysicsBattler.Locomotion
             // The legs, each foot on its own: every cycle's stance stretched onto the blend's, so all
             // the cycles have the foot down together (Johansen's semi-procedural locomotion). A foot
             // that is down in one cycle and swinging in another would slide.
-            Vector3 d = speed > 0.05f ? new Vector3(local.x, 0f, local.z).normalized : Vector3.forward;
+            // (Along the way it travels as the blend has it: slowing to a stand, the way it wants to go is
+            // nothing, and warping along no way at all would drop the warp, and throw the swinging foot, at once.)
+            Vector3 d = Quaternion.Euler(0f, travelAngle, 0f) * Vector3.forward;
             Vector3 hips = 0.5f * (raw[(int)LocoBone.LeftUpLeg] + raw[(int)LocoBone.RightUpLeg]);
             for (int f = 0; f < 2; f++)
             {
@@ -1260,11 +1275,18 @@ namespace PhysicsBattler.Locomotion
                 bool guardNow = Current == Mode.OneShot && Shot != null && Shot.IsGuard;
                 switchHalfLifeNow = guardNow != lastWasGuard ? GuardSwitchHalfLife : SwitchHalfLife;
                 lastWasGuard = guardNow;
+                float most = 0f;
                 for (int i = 0; i < offset.Length; i++)
                 {
                     offset[i] = lastOut[i] - raw[i];
                     offsetVelocity[i] = Vector3.zero;
+                    most = Mathf.Max(most, offset[i].magnitude);
                 }
+
+                // (A big difference fades slower: no part is thrown faster than MostFadeSpeed by it (a
+                // critically damped fade from rest peaks at about half its distance over its half-life a
+                // second). Arms left high by a strike come down, not drop.)
+                switchHalfLifeNow = Mathf.Max(switchHalfLifeNow, 0.51f * most / MostFadeSpeed);
 
                 pendingSwitch = false;
                 Switches++;

@@ -127,6 +127,37 @@ internal static class StrikeAimReport
                         }
                     }
 
+                    // (After it: back to the guard and turned 60 degrees toward the next target, as the lab
+                    // does; the fastest a hand or forearm moves through it all is told.)
+                    if (Environment.GetEnvironmentVariable("AIM_AFTER") != null)
+                    {
+                        float fastest = 0f;
+                        string where = "";
+                        var parts = new[] { PartId.HandL, PartId.HandR, PartId.ForearmL, PartId.ForearmR };
+                        var last = parts.Select(p => anim.Part(p).position).ToArray();
+                        float turnTo = loco.Facing + 60f;
+                        for (int i = 0; i < 90; i++)
+                        {
+                            loco.Step(dt, Vector3.zero, turnTo);
+                            poser.Pose(dt);
+                            film?.Add((400 + i) * dt, name + " after", loco, poser, anim);
+                            for (int k = 0; k < parts.Length; k++)
+                            {
+                                Vector3 now = anim.Part(parts[k]).position;
+                                float v = (now - last[k]).magnitude / dt;
+                                if (v > fastest)
+                                {
+                                    fastest = v;
+                                    where = $"{parts[k]} at {i * dt:0.00} s after ({loco.Current} {loco.Shot?.Name})";
+                                }
+
+                                last[k] = now;
+                            }
+                        }
+
+                        Console.WriteLine(string.Format(ci, "    after {0}: the arms moved at most {1:0.0} m/s ({2})", name, fastest, where));
+                    }
+
                     if (film != null)
                     {
                         File.WriteAllText(Path.Combine(dir, name + ".json"), film.ToString());
