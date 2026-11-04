@@ -210,6 +210,18 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     (`LocoBody.SnappedBy`). The step in at a blow's start is taken in its first 0.08 s (`Locomotor.StepInOver`),
     and steps in until the swing lands within 3 cm. Headless: 42 of 42 blows land for the Medium, the Small and
     (9 of 9) the Large; the second blows pass within about 10 cm of their aim (15 to 30 before).
+  - Parry skill (the defence plan's stage 3; `SwordParry.Skill`, the dummy's `ParrySkill`; the Defender section's
+    − and + in quarters, novice to expert). Its levers at skill 0 (all off at 1): it moves only 0.4 s into a blow
+    and 0.12 s before contact (0.1 s and 0.32 s), reads where the blow lands up to 25 cm off and reads it again only
+    every 0.3 s (every step), takes the wrong parry 3 times in 10, and goes where it read the blow rather than
+    playing its parry on against the blade it sees (an expert always does), its hand at 2.5 m/s (6), its blade
+    hardly squared to the blow (a shallow cross) and met out toward its own foible. The contact's rules (stage 2)
+    then let the blow glance through. Each blow's slips are drawn as it starts, the same each run; on a curve, so
+    skill 0.5 is about midway. Headless (`PARRY_SKILL=<0..1>` with `dummyhits` and `DUMMY_STANCE=sword`, or with
+    `combos` and `COMBO_STANCE=sword`): of a Medium's 27 single strikes it parries 24 at skill 1, 25 at 0.75, 17
+    at 0.5, 12 at 0.25, 10 at 0 (glancing 0, 0, 3, 6, 7); of 42 combo blows 17 at skill 1, 16 at 0.5, 9 at 0,
+    most of the expert's on the opener. Not yet: giving ground when late, and a second parry after a feint (there
+    are no feints yet).
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

@@ -83,6 +83,10 @@ internal static class DummyHitReport
                     dprofile.body = "Medium";
                     var droot = UnitBuilder.Build(dummyRig, dprofile, "Dummy", _ => null, 1);
                     var dummy = new LabDummy(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, stance == LabDummy.Stances.Sword ? "sw_" : "sns_", physical: false);
+                    if (float.TryParse(Environment.GetEnvironmentVariable("PARRY_SKILL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float parrySkill))
+                    {
+                        dummy.ParrySkill = parrySkill;
+                    }
                     // (Its sword, as the lab holds it.)
                     dummy.Rig.SlotWeaponR.localRotation = UnitController.MainGrip;
                     dummy.Anim.SlotWeaponR.localRotation = UnitController.MainGrip;

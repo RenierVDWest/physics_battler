@@ -1165,6 +1165,19 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>The combo the picked strike starts: up to three strikes, each the best follow-on of the last.</summary>
+        private static string SkillName(float skill) => skill < 0.125f ? "novice" : skill < 0.375f ? "poor" : skill < 0.625f ? "fair" : skill < 0.875f ? "good" : "expert";
+
+        private void SetParrySkill(float skill)
+        {
+            dummyParrySkill = Mathf.Clamp01(Mathf.Round(skill * 4f) / 4f);
+            if (dummy != null)
+            {
+                dummy.ParrySkill = dummyParrySkill;
+            }
+
+            legs.Add($"{time:0.00} s: parry skill {dummyParrySkill:0.00} ({SkillName(dummyParrySkill)})");
+        }
+
         /// <summary>The combo the picked strike is in (Bam! Bam! BAM!): it opens it, or a showstopper picked ends it (<see cref="StrikeCombos.CoreChain"/>).</summary>
         private List<StrikeLink> ComboFrom(LocoClip first) => first == null || first.ContactFrame < 0 ? new List<StrikeLink>()
             : combo != null && !combo.Cores ? StrikeCombos.Chain(first, Strikes(), 3) : StrikeCombos.CoreChain(first, Strikes(), 3, comboVariant);
@@ -1806,7 +1819,21 @@ namespace PhysicsBattler.Locomotion
                     GUILayout.EndHorizontal();
                     Note(dummyStance == LabDummy.Stances.Open ? "Open: its guard down, no defence; every blow lands. (O cycles the three.)"
                         : dummyStance == LabDummy.Stances.Shield ? $"Blocks each blow with its shield. Shield skill {dummyShieldSkill:0.0} (levels come with the shield step). (O cycles the three.)"
-                        : $"Parries each blow with its sword from a medium guard. Parry skill {dummyParrySkill:0.0} (levels come in stage 3). (O cycles the three.)");
+                        : $"Parries each blow with its sword from a medium guard. (O cycles the three.)");
+                    if (dummyStance == LabDummy.Stances.Sword)
+                    {
+                        // (Parry skill, 0 a novice to 1 an expert: how soon it moves, how well it reads the blow and meets the blade.)
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label($"Parry skill {dummyParrySkill:0.00} ({SkillName(dummyParrySkill)})");
+                        if (GUILayout.Button("\u2212", GUILayout.Width(36f))) SetParrySkill(dummyParrySkill - 0.25f);
+                        if (GUILayout.Button("+", GUILayout.Width(36f))) SetParrySkill(dummyParrySkill + 0.25f);
+                        GUILayout.EndHorizontal();
+                        if (dummy?.Parry != null && dummy.Parry.BlowsRead > 0)
+                        {
+                            Note($"Read {dummy.Parry.BlowsRead} blows, took the wrong parry for {dummy.Parry.WrongPicks}");
+                        }
+                    }
+
                     if (dummy != null)
                     {
                         dummy.Anchored = GUILayout.Toggle(dummy.Anchored, "Anchored (a training post: not driven back)");

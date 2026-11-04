@@ -345,6 +345,7 @@ namespace PhysicsBattler.Locomotion
                 Poser.Pose(dt);
                 if (stance == Stances.Sword && Parry != null)
                 {
+                    Parry.Skill = ParrySkill;
                     Parry.Step(dt, Blow, faceToward);
                 }
                 else

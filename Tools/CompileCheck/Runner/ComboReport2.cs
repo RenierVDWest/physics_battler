@@ -113,6 +113,10 @@ internal static class StrikeComboReport
                     Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? anim.SlotWeaponL : null, 0.27f) { WeaponSlot = anim.SlotWeaponR, WeaponLength = poser.WeaponLength },
                 };
                 dummy.Stance = LabDummy.Stances.Sword;
+                if (float.TryParse(Environment.GetEnvironmentVariable("PARRY_SKILL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float parrySkill))
+                {
+                    dummy.ParrySkill = parrySkill;
+                }
             }
             else
             {

@@ -119,6 +119,48 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A line each step, for the runner's trace (null: none).</summary>
         public static System.Action<string> Trace;
 
+        // ---- Parry skill (the defence plan's stage 3): 0 a novice, 1 an expert -------------------------------------
+
+        /// <summary>
+        /// How well it parries, 0 to 1 (the defence plan's table of levers): how soon into a blow it moves (0.4 s, on the
+        /// blade, to 0.1 s, on the wind-up), how far off it reads where the blow lands (25 cm to none) and how often it
+        /// reads it again as it comes (never to every step), how often it takes the wrong parry (30% to never), its hand's
+        /// speed (2.5 to 6 m/s), and how it meets the blade (a shallow cross, often out on its own foible, to square on
+        /// its forte: the blow then glances off, or is stopped). Each blow's slips are drawn as it starts, the same each run.
+        /// </summary>
+        public float Skill = 1f;
+
+        /// <summary>The levers at skill 0 (at 1: 0.1 s, none, every step, never, 6 m/s, square on the forte).</summary>
+        public const float NoviceReadAfter = 0.4f, NoviceMisread = 0.25f, NoviceRereadEvery = 0.3f, NoviceWrongPick = 0.3f, NoviceHandSpeed = 2.5f,
+            NoviceSquare = 0.15f, NoviceFoible = 0.4f, NoviceMoveLead = 0.12f;
+
+        private readonly System.Random luck = new System.Random(20261104);
+        private float lastComing = -1f, rereadIn, foibleBy;
+        private Vector3 misread, heldLand, heldMotion;
+        private bool wrongPick, readHeld, playsOn = true;
+
+        /// <summary>Blows read and how many of them it took the wrong parry for (for the logs).</summary>
+        public int BlowsRead, WrongPicks;
+
+        /// <summary>How far from an expert, 0 to 1: a curve, so the middle of the scale parries about midway between a novice and an expert (in a straight line, skill 0.5 already parried nine in ten).</summary>
+        private float Lack => 1f - Mathf.Clamp01(Skill) * Mathf.Clamp01(Skill);
+
+        /// <summary>A new blow: this one's slips drawn.</summary>
+        private void NewBlow()
+        {
+            BlowsRead++;
+            float lack = Lack;
+            Vector3 dir = new Vector3((float)luck.NextDouble() * 2f - 1f, (float)luck.NextDouble() * 2f - 1f, (float)luck.NextDouble() * 2f - 1f);
+            misread = (dir.sqrMagnitude > 1e-4f ? dir.normalized : Vector3.up) * (NoviceMisread * lack * (0.4f + 0.6f * (float)luck.NextDouble()) * size);
+            wrongPick = luck.NextDouble() < NoviceWrongPick * lack;
+            WrongPicks += wrongPick ? 1 : 0;
+            foibleBy = NoviceFoible * lack * (float)luck.NextDouble();
+            // (An expert plays its parry on against the blade it sees coming; a novice goes where it read it would be.)
+            playsOn = luck.NextDouble() >= lack;
+            rereadIn = 0f;
+            readHeld = false;
+        }
+
         public SwordParry(AnimRig anim, Locomotor loco, UnitRig rig, float size, float weaponLength)
         {
             this.anim = anim;
@@ -392,20 +434,49 @@ namespace PhysicsBattler.Locomotion
             Vector3 wantForte, wantBlade, wantEdge;
             float wantSwivel, wantTurn, wantLean;
             sinceBlow = blow.HasValue ? 0f : sinceBlow + dt;
+            if (blow.HasValue && (lastComing < 0f || blow.Value.Coming < lastComing - 0.05f))
+            {
+                NewBlow();
+            }
+
+            lastComing = blow.HasValue ? blow.Value.Coming : -1f;
             // (Read from early, moved late: the parry starts out only so long before contact as it takes to get there,
-            // as an expert's does. Up early, it would show the attacker where to cut instead.)
-            bool reading = blow.HasValue && blow.Value.Coming >= ReadAfter && blow.Value.ToContact <= MoveLead;
+            // as an expert's does. Up early, it would show the attacker where to cut instead. A novice only sees the blow
+            // once the blade is well on its way.)
+            float readAfter = Mathf.Lerp(ReadAfter, NoviceReadAfter, Lack);
+            bool reading = blow.HasValue && blow.Value.Coming >= readAfter && blow.Value.ToContact <= Mathf.Lerp(MoveLead, NoviceMoveLead, Lack);
             if (reading || (Current >= 0 && sinceBlow <= HoldAfter))
             {
                 if (reading)
                 {
                     Landing(blow.Value, out landAt, out landMotion);
+                    // (Where a less skilled eye reads it landing: off by its misread, and read again only now and then.)
+                    rereadIn -= dt;
+                    if (readHeld && rereadIn > 0f)
+                    {
+                        landAt = heldLand;
+                        landMotion = heldMotion;
+                    }
+                    else
+                    {
+                        landAt += misread;
+                        heldLand = landAt;
+                        heldMotion = landMotion;
+                        readHeld = true;
+                        rereadIn = Lack >= 0.999f ? float.MaxValue : NoviceRereadEvery * Lack;
+                    }
+
                     int chosen = Choose(blow.Value, landAt, landMotion, out _);
                     // (Too late to change: the parry taken is held, only placed on the blade as it comes.)
                     float toLand = landK >= 1 ? blow.Value.SecondsTo(landK - 1 + landU) : blow.Value.ToContact;
                     if (Current >= 0 && toLand < LockWithin)
                     {
                         chosen = Current;
+                    }
+                    else if (wrongPick || !playsOn)
+                    {
+                        // (The wrong parry for this blow, taken and kept: a novice's guess, not played on against the blow.)
+                        chosen = Current >= 0 ? Current : wrongPick ? WrongFor(chosen) : chosen;
                     }
                     else
                     {
@@ -495,8 +566,10 @@ namespace PhysicsBattler.Locomotion
 
             // Each control closes on where it is going at a human's speed (an eased approach, capped).
             float close = 1f - Mathf.Exp(-Close * dt);
-            forte += Vector3.ClampMagnitude((wantForte - forte) * close, HandSpeed * Pace * size * dt);
-            swivel += Mathf.Clamp(Mathf.DeltaAngle(swivel, wantSwivel) * close, -SwivelSpeed * Pace * dt, SwivelSpeed * Pace * dt);
+            // (A novice's hand is slower to get there.)
+            float quick = Mathf.Lerp(1f, NoviceHandSpeed / HandSpeed, Lack);
+            forte += Vector3.ClampMagnitude((wantForte - forte) * close, HandSpeed * quick * Pace * size * dt);
+            swivel += Mathf.Clamp(Mathf.DeltaAngle(swivel, wantSwivel) * close, -SwivelSpeed * quick * Pace * dt, SwivelSpeed * quick * Pace * dt);
             turn += Mathf.Clamp((wantTurn - turn) * close, -TrunkSpeed * dt, TrunkSpeed * dt);
             lean += Mathf.Clamp((wantLean - lean) * close, -TrunkSpeed * dt, TrunkSpeed * dt);
 
@@ -515,6 +588,19 @@ namespace PhysicsBattler.Locomotion
             PushedOffOpponent(opponent, dt);
         }
 
+        /// <summary>A parry other than the right one, drawn for this blow: the neighbouring line most often.</summary>
+        private int WrongFor(int right)
+        {
+            int n = Parries.Length;
+            if (n < 2)
+            {
+                return right;
+            }
+
+            int pick = luck.Next(n - 1);
+            return pick >= right ? pick + 1 : pick;
+        }
+
         /// <summary>
         /// Where a parry puts the sword for the blow read (<see cref="landAt"/>, <see cref="landMotion"/>): the forte onto
         /// the incoming blade's path where it is still a forearm and more out from the body, the blade square to the
@@ -531,6 +617,12 @@ namespace PhysicsBattler.Locomotion
             wantEdge = Vector3.ProjectOnPlane(bodyTurn * aim.Edge, wantBlade).normalized;
             Vector3 motion = landMotion;
             Vector3 across = CrossingOnPath(b, landAt + motion * Mathf.Clamp(Vector3.Dot(wantForte - landAt, motion), -0.6f * size, -0.06f * size));
+            // (Not played on against the blade itself: put where it was read to be, misread and all.)
+            if (!playsOn)
+            {
+                across += misread;
+            }
+
             wantForte += Vector3.ClampMagnitude(across - wantForte, PlaceMost * size);
             Vector3 square = Vector3.Cross(b.BladeWay, motion);
             if (square.sqrMagnitude > 1e-4f)
@@ -541,9 +633,14 @@ namespace PhysicsBattler.Locomotion
                     square = -square;
                 }
 
-                // (Less of it while the arm can't take the turn: the parry's own way is one it can.)
-                wantBlade = Vector3.RotateTowards(wantBlade, square, MostBladeOff * (parry == Current ? feasible : 1f) * Mathf.Deg2Rad, 0f);
+                // (Less of it while the arm can't take the turn: the parry's own way is one it can. A novice hardly
+                // squares it at all: a shallow cross the blow glances along.)
+                float squaring = Mathf.Lerp(1f, NoviceSquare, Lack);
+                wantBlade = Vector3.RotateTowards(wantBlade, square, MostBladeOff * squaring * (parry == Current ? feasible : 1f) * Mathf.Deg2Rad, 0f);
             }
+
+            // (A novice meets the blow out on its own foible: the whole blade drawn back along itself, the meeting further out.)
+            wantForte -= wantBlade * (foibleBy * WeaponLength);
 
             Vector3 toBlow = Vector3.ProjectOnPlane(-motion, wantBlade);
             wantEdge = toBlow.sqrMagnitude > 1e-4f ? toBlow.normalized : Vector3.ProjectOnPlane(wantEdge, wantBlade).normalized;
