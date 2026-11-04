@@ -355,6 +355,16 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How fast the magnet snaps the body in (seconds, the e-folding: most of the gap is closed in twice this).</summary>
         public float SnapTime = 0.03f;
 
+        /// <summary>
+        /// The most the magnet carries the body over one blow, and in one step (metres at a Medium's size): the playtest,
+        /// a Large snapped 1.5 m in a frame after a dummy it had driven off, its physical body was left behind and it went
+        /// down, sliding across the board. Beyond it, the arm's pull and the miss.
+        /// </summary>
+        public float MostSnap = 0.6f, MostSnapStep = 0.12f;
+
+        private float snapped;
+        private LocoClip snappedFor;
+
         private void Magnet(float dt)
         {
             if (!Cores || !Magnetic || TargetFor == null || current == null || magnetFor != current || loco.Shot != current
@@ -386,6 +396,15 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            if (snappedFor != current)
+            {
+                snappedFor = current;
+                snapped = 0f;
+            }
+
+            float scale = loco.Leg / 0.845f;
+            move = Vector3.ClampMagnitude(move, Mathf.Min(MostSnapStep * scale, Mathf.Max(0f, MostSnap * scale - snapped)));
+            snapped += move.magnitude;
             loco.Position += move;
             poser.SnappedBy(move);
         }

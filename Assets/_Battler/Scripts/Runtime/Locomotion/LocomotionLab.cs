@@ -657,7 +657,8 @@ namespace PhysicsBattler.Locomotion
                 if (part.body != null)
                 {
                     part.body.isKinematic = false;
-                    part.body.linearVelocity = loco.Velocity;
+                    // (No faster than a body can be pushed: a combo's snap is not a speed it carries off, sliding.)
+                    part.body.linearVelocity = Vector3.ClampMagnitude(loco.Velocity, KnockdownSpeed);
                 }
             }
         }

@@ -355,7 +355,10 @@ namespace PhysicsBattler.Locomotion
         /// foot off the ground) is swept from under it from <see cref="SweptFrom"/>; a foot in the air is knocked away from
         /// <see cref="KnockedAwayFrom"/>.
         /// </summary>
-        public const float StumbleFrom = 0.6f, FallFrom = 1.8f, SweptFrom = 0.3f, KnockedAwayFrom = 0.25f;
+        public const float StumbleFrom = 0.6f, FallFrom = 4f, SweptFrom = 1.2f, KnockedAwayFrom = 0.25f;
+
+        /// <summary>A foot in the air knocked away drops the body from this blow (m/s): a Large's, not a Medium's sword.</summary>
+        public const float KnockedDownFrom = 1.8f;
 
         /// <summary>The swept leg's speed along the blow when it falls, and the upper body's (m/s at a Medium's size).</summary>
         public const float SweptLegSpeed = 3f, ThrownBodySpeed = 0.9f;
@@ -403,9 +406,10 @@ namespace PhysicsBattler.Locomotion
             string why;
             if (struckDown && !otherDown)
             {
-                // (All its weight on the leg struck: swept from under it, it has nothing to stand on.)
+                // (All its weight on the leg struck: swept from under it, it has nothing to stand on. A Medium's sword
+                // only makes it stumble: the playtest, it went down to every thigh cut.)
                 falls = knock >= SweptFrom;
-                stumbles = false;
+                stumbles = !falls && knock >= KnockedAwayFrom;
                 why = "its weight all on that leg";
             }
             else if (struckDown)
@@ -418,7 +422,7 @@ namespace PhysicsBattler.Locomotion
             else
             {
                 // (A foot in the air, knocked away: it stands on the other.)
-                falls = knock >= FallFrom;
+                falls = knock >= KnockedDownFrom;
                 stumbles = !falls && knock >= KnockedAwayFrom;
                 why = "that foot in the air";
             }
@@ -453,7 +457,7 @@ namespace PhysicsBattler.Locomotion
             Poser.Feet[f].Locked || Anim.Part(f == 0 ? PartId.FootL : PartId.FootR).position.y - groundLevel < FootDownWithin * Size;
 
         /// <summary>A foot this near the ground (its ankle, metres at a Medium's size) is standing on it.</summary>
-        public const float FootDownWithin = 0.12f;
+        public const float FootDownWithin = 0.2f;
 
         /// <summary>Down: the body given to physics, the swept leg thrown along the blow and the body over it, falling.</summary>
         private void Fall(int leg, Vector3 way, float knock)
@@ -489,6 +493,22 @@ namespace PhysicsBattler.Locomotion
                 p.body.linearVelocity = way * (speed * k * Mathf.Clamp(knock / 0.5f, 0.6f, 1.6f));
                 p.body.angularVelocity = Vector3.zero;
             }
+        }
+
+        /// <summary>The most a blow sends a part of a fallen body (m/s at a Medium's size).</summary>
+        public const float MostFallenPartSpeed = 2.5f;
+
+        /// <summary>A blow on a fallen body: the part it struck knocked, nothing else (its holds are the fall's or the get-up's).</summary>
+        private void PushFallen(PartId part, Vector3 impulse, float share)
+        {
+            var struck = Authority != null ? Rig.Part(part).body : null;
+            if (struck == null || struck.isKinematic)
+            {
+                return;
+            }
+
+            Vector3 kick = impulse * Mathf.Clamp01(share) / Mathf.Max(0.5f, struck.mass);
+            struck.AddForce(Vector3.ClampMagnitude(kick, MostFallenPartSpeed * Mathf.Sqrt(Size)), ForceMode.VelocityChange);
         }
 
         /// <summary>A step down or getting up: the body lies until it is still, then gets up as a unit does.</summary>
@@ -908,6 +928,13 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            if (Fallen)
+            {
+                PushFallen(shield ? PartId.HandL : sword ? PartId.HandR : part, impulse, 0.5f);
+                Touches++;
+                return;
+            }
+
             if (sword)
             {
                 KnockArm(0, impulse, point);
@@ -939,6 +966,21 @@ namespace PhysicsBattler.Locomotion
         public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false)
         {
             lastHit = clock;
+            if (Fallen)
+            {
+                // (Down or getting up: no standing reaction. Its clip and its softened holds would pin the ragdoll to a
+                // standing pose: the playtest, it was hauled up into the air and dropped again. The blow only knocks
+                // the part it struck.)
+                PushFallen(shield ? PartId.HandL : parried ? PartId.HandR : part, impulse, partShare);
+                if (!shield && !parried)
+                {
+                    Hits++;
+                }
+
+                LastReaction = Footing == Footings.Down ? "struck lying down" : "struck getting up";
+                return;
+            }
+
             // (A struck leg is knocked along the blow: the body's reaction comes on top.)
             string swept = "";
             if (!shield && !parried && AuthorityController.RegionOf(part) == BodyRegion.Legs && part != PartId.Pelvis)

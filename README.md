@@ -237,15 +237,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     an overhead chop aimed at the hips passes the head above the shield, and a thrust takes the shield arm.
   - Leg hits and falls (the defence plan's leg hits; `LabDummy.SweepLeg`). A blow on a thigh, shin or foot is weighed
     against the weight that leg carries (the blow's knock over the body's mass; its parts' knocks within 0.2 s added,
-    one blow sweeping through both legs): on both feet it stumbles from 0.6 m/s on that leg (a catch step, the swept
-    foot let go) and falls from 1.8 (under the fight's 0.8 and 2.2 for a push: a leg swept takes less); with the other
-    foot off the ground its weight is all on the leg struck, and it is swept from under it from 0.3; a foot in the air
-    is knocked away from 0.25 (a stumble) and only a blow over 1.8 drops it. Down, the body goes to physics, the swept
+    one blow sweeping through both legs): on both feet it stumbles from 0.3 m/s on that leg (a catch step, the swept
+    foot let go) and falls from 2 (under the fight's 2.2 for a push); with the other foot off the ground its weight is
+    all on the leg struck: it stumbles from 0.25 and is swept from under it from 1.2; a foot in the air is knocked away
+    from 0.25 (a stumble) and only a blow over 1.8 drops it. A Medium's sword makes it stumble; only a Large's solid
+    cut drops it (the playtest: every thigh cut dropped it). Down or getting up, a blow only knocks the part it struck
+    (no reaction clip or softened hold, which hauled the ragdoll up to a standing pose). Down, the body goes to physics, the swept
     leg thrown along the blow and the body over it; it lies at least 1 s and until still (2.5 s at most), then gets up
     with the fight's own get-up (`Motion/GetUp`, face up or face down, its guard taking over at the end). Not when
     anchored. Headless (`DUMMY_LOW=1` with `dummyhits`: the low blows at its knees): a Medium's thigh cuts on a
-    planted Medium make it stumble (2 of 9; a light one does nothing), the Large's backhand lunge drops it, the Large's
-    forehand, through other parts first, makes it stumble; struck anywhere else it never falls. (Headless has no body
+    planted Medium make it stumble; the Large's shin cuts there (1 to 1.6 m/s) make it stumble, its solid thigh cuts in
+    the lab (2.5 to 3.2 m/s) drop it; struck anywhere else it never falls. A combo's magnet carries the body at most
+    0.6 m a blow and 0.12 m a step (a Medium's; the playtest: a Large snapped 1.5 m in a frame, went down and slid off
+    across the board), and a body knocked down keeps no more than the knockdown speed. (Headless has no body
     to fall: the fall and the get-up are seen in the lab: U's fourth aim, legs, sends every strike and combo blow at
     its knees.)
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
