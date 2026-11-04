@@ -417,6 +417,9 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         private Vector3 shotStepIn;
 
+        /// <summary>How long a combo's step in takes, from where its blow is taken up (seconds of the clip): a snap.</summary>
+        public float StepInOver = 0.08f;
+
         private float StepInShare(float from, float to)
         {
             if (shotStepIn.sqrMagnitude < 1e-8f || shotAimOver <= shotAimFrom)
@@ -424,9 +427,11 @@ namespace PhysicsBattler.Locomotion
                 return 0f;
             }
 
+            // (A snap, not a slide: taken in the first StepInOver of the wind-up.)
+            float over = Mathf.Min(StepInOver, shotAimOver - shotAimFrom);
             float S(float t)
             {
-                float u = Mathf.Clamp01((t - shotAimFrom) / (shotAimOver - shotAimFrom));
+                float u = Mathf.Clamp01((t - shotAimFrom) / over);
                 return u * u * (3f - 2f * u);
             }
 

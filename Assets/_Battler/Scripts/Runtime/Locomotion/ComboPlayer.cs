@@ -153,7 +153,6 @@ namespace PhysicsBattler.Locomotion
                 LastStepIn = stepIn.magnitude;
                 poser.PlayStrike(first, target, startFrom: entry, stepIn: stepIn);
                 loco.Chamber(StrikeCombos.CoreChamberSpeed(core.Contact - entry), core.Contact, chain.Count > 0 ? FollowSpeed : 1f);
-                magnetAim = target;
                 magnetFor = first;
                 shotTime = entry;
             }
@@ -284,7 +283,6 @@ namespace PhysicsBattler.Locomotion
             LastStepIn = stepIn.magnitude;
             poser.PlayStrike(to, target, startFrom: entry, stepIn: stepIn);
             loco.Chamber(StrikeCombos.CoreChamberSpeed(core.Lead), core.Contact, next + 1 < chain.Count ? FollowSpeed : 1f);
-            magnetAim = target;
             magnetFor = to;
             current = to;
             shotTime = entry;
@@ -352,8 +350,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A combo blow's follow-through (its slash swept on through contact to its core's exit) plays this much faster; the showstopper's at its own pace.</summary>
         public float FollowSpeed = 1.8f;
 
-        private Vector3 magnetAim;
         private LocoClip magnetFor;
+
+        /// <summary>How fast the magnet snaps the body in (seconds, the e-folding: most of the gap is closed in twice this).</summary>
+        public float SnapTime = 0.03f;
 
         private void Magnet(float dt)
         {
@@ -363,13 +363,17 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            // (Where the blade lands as the strike swings it, without the arm's pull, against where its target will be
+            // then: the body snapped across the difference, so the swing itself lands it and the arm needn't reach.)
             float left = (core.Contact - loco.ShotTime) / Mathf.Max(0.3f, loco.ShotRate);
             Vector3 v = TargetVelocity != null ? TargetVelocity() : Vector3.zero;
             v.y = 0f;
-            Vector3 future = TargetFor(current) + v * (LeadShare * Mathf.Min(left, MostLead));
-            Vector3 off = future - magnetAim;
+            // (Led only by what the snap lags it: snapped every step, it follows as the target moves; led by the whole
+            // wind-up, a body driven off and slowing was overshot by 0.3 m.)
+            Vector3 future = TargetFor(current) + v * Mathf.Min(left, 2f * SnapTime);
+            Vector3 off = future - poser.AimPredicted;
             off.y = 0f;
-            Vector3 move = off * Mathf.Clamp01(dt / Mathf.Max(dt, left));
+            Vector3 move = off * (1f - Mathf.Exp(-dt / Mathf.Max(1e-3f, SnapTime)));
             if (poser.KeepFrom.HasValue && poser.KeepDistance > 0f)
             {
                 // (No nearer than the fighting distance, of where the target's body is now.)
@@ -383,12 +387,11 @@ namespace PhysicsBattler.Locomotion
             }
 
             loco.Position += move;
-            magnetAim += move;
-            poser.CarriedBy(move);
+            poser.SnappedBy(move);
         }
 
         /// <summary>A follow-on steps in until its blade would reach within this of its target before the arm's pull (metres): the pull is for the last of it, not the distance.</summary>
-        public float StepWithin = 0.08f;
+        public float StepWithin = 0.03f;
 
         public void Stop()
         {

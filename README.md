@@ -203,6 +203,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     open dummy, 0.47 s hit to hit, the third about 1 s after the first; the Large 9 of 9, 0.92 s; the Small 41 of
     42, 0.72 s. Against the sword dummy 33 of 42: the backhands' cores don't reach its hips from the fighting
     distance when it parries.
+  - The magnet snaps (playtest: a second or third blow still missed now and then, and the pull should snap, not
+    slide). Through each blow's wind-up the body is snapped across the gap between where the swing itself lands
+    the blade (without the arm's pull) and where the target is (`ComboPlayer.SnapTime` 0.03 s, the e-folding),
+    led only by the snap's own lag, never nearer than the fighting distance; the arm's pull needs that much less
+    (`LocoBody.SnappedBy`). The step in at a blow's start is taken in its first 0.08 s (`Locomotor.StepInOver`),
+    and steps in until the swing lands within 3 cm. Headless: 42 of 42 blows land for the Medium, the Small and
+    (9 of 9) the Large; the second blows pass within about 10 cm of their aim (15 to 30 before).
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

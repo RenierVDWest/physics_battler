@@ -1200,6 +1200,15 @@ namespace PhysicsBattler.Locomotion
             planGripWorld += move;
         }
 
+        /// <summary>The body was snapped by <paramref name="move"/> (world) toward where its strike lands on its target: the weapon's way there goes with it, and the arm's pull needs that much less.</summary>
+        public void SnappedBy(Vector3 move)
+        {
+            AimPredicted += move;
+            planGripWorld += move;
+            aimPull = Vector3.ClampMagnitude(aimPull - move, MostAimPull);
+            AimLands = AimPredicted + aimPull;
+        }
+
         public void Retarget(Vector3 target)
         {
             if (aimClip == null || loco.Current != Locomotor.Mode.OneShot || loco.Shot != aimClip || loco.ShotTime > aimClip.ContactFrame / aimClip.Rate)
