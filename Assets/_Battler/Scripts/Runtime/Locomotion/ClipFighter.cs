@@ -342,7 +342,7 @@ namespace PhysicsBattler.Locomotion
                 getUpStance = new Stance();
                 getUpStance.Configure(profile.style != null ? profile.style : CombatStyle.CreateDefault(), body);
                 getUpStance.GroundY = groundY;
-                getUpRoot = new GameObject("Dummy get-up root").transform;
+                getUpRoot = new GameObject(unit.name + " get-up root").transform;
                 getUpRoot.SetParent(unit.transform.parent, false);
                 getUp = new GetUp(getUpRoot, Anim, body, getUpStance) { Rig = rig };
             }

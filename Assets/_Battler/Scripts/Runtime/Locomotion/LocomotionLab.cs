@@ -478,7 +478,16 @@ namespace PhysicsBattler.Locomotion
             measures.Sample(dt, time, leg);
             film.Add(time, leg, loco, poser, anim, origin);
             bool wasSnapped = walker.Snapped;
-            walker.Apply(dt);
+            if (down > 0f)
+            {
+                // (Knocked down by a bump this step: the body is all physics's now; its arms aren't held again.)
+                authority.Apply(dt);
+            }
+            else
+            {
+                walker.Apply(dt);
+            }
+
             if (authority != null && wasSnapped)
             {
                 // (Its own clip carrying it fast, a lunge stretched to reach, is not a push it can't step after:
@@ -1763,6 +1772,8 @@ namespace PhysicsBattler.Locomotion
         private void OnDestroy()
         {
             WriteLog();
+            walker?.Destroy();
+            walker = null;
             dummy?.Destroy();
             dummy = null;
             if (aimMark != null)
