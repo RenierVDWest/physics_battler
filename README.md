@@ -58,7 +58,7 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     backs out a little and fades into the guard. While a strike plays, the weapon arm is held exactly to its pose
     (kinematic, as the fight holds it in a blow): pinned, the physical sword trailed a 16 m/s swing and missed what
     the pose struck, which is why so many hits went through the dummy in the lab and not headless.
-  - The dummy is an enemy unit that doesn't strike back (`LabDummy`): a Medium in the Medium's guard, nothing
+  - The dummy is an enemy unit that doesn't strike back (a `ClipFighter`, as the walker is): a Medium in the Medium's guard, nothing
     dumbed down. A blow throws its upper body back by the blow's lever, snaps its head, knocks a struck arm or the
     shield aside, and plays the pack's impact clips by how hard it was (impulse per kilogram): a light flinch, doubled
     over for one to the body, thrown back for one to the head, the chest's top, a heavy blow or a broken poise; an
@@ -94,7 +94,7 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     at the head or the arm; a blow at the head is met at least 0.3 m before the face. Any weapon touching a body
     outside a blow pushes it, and a leg struck twists at the thigh. The upper arm turns at the shoulder at most 900
     degrees a second (`UpperArmSpeed`): the hand's step is held back to it.
-  - Distance: the two stand 1.6 m apart between blows (root to root for two Mediums, `LabDummy.StandingDistance`);
+  - Distance: the two stand 1.6 m apart between blows (root to root for two Mediums, `ClipFighter.StandingDistance`);
     the attacker strikes from there, its lunge taking it in, and steps in only for a strike that can't reach from
     there (the lab's `SparSpot`). No blow takes them nearer than 1.2 m (`FightingDistance`: about half a metre
     between the shield and the other body): the lunge is cut short there, pressing stops there, the aim's pull
@@ -222,7 +222,7 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     at 0.5, 12 at 0.25, 10 at 0 (glancing 0, 0, 3, 6, 7); of 42 combo blows 17 at skill 1, 16 at 0.5, 9 at 0,
     most of the expert's on the opener. Not yet: giving ground when late, and a second parry after a feint (there
     are no feints yet).
-  - Shield skill (the defence plan's shield table; `LabDummy.ShieldSkill`, the Defender section's − and + in quarters).
+  - Shield skill (the defence plan's shield table; `ClipFighter.ShieldSkill`, the Defender section's − and + in quarters).
     At skill 0 (all off at 1): it moves its shield only 0.05 s before contact (an expert as soon as it reads the
     wind-up; between them most of the scale is spent on 0.05 to 0.2 s, where a block is won or lost), 0.35 s into
     the blow at the soonest (0.12 s), chases the blade where it is instead of closing the line it will come in on,
@@ -235,9 +235,9 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     10 at 0.25, 9 at 0 (the guard alone, never moved, 8); of a Large's 9, 9, 8, 3; of 27 combo blows 25 at skill 1,
     26 at 0.5, 16 at 0 (a shield still up from the last blow meets the next). The expert's 4 are its geometry:
     an overhead chop aimed at the hips passes the head above the shield, and a thrust takes the shield arm.
-  - Leg hits and falls (the defence plan's leg hits; `LabDummy.SweepLeg`). A blow on a thigh, shin or foot is weighed
+  - Leg hits and falls (the defence plan's leg hits; `ClipFighter.SweepLeg`). A blow on a thigh, shin or foot is weighed
     against the weight that leg carries (the blow's knock over the body's mass; its parts' knocks within 0.2 s added,
-    one blow sweeping through both legs) — shelved, off (`LabDummy.LegFalls`; `LEG_FALLS=1` headless): the falls
+    one blow sweeping through both legs) — shelved, off (`ClipFighter.LegFalls`; `LEG_FALLS=1` headless): the falls
     and the get-up didn't read well in the playtests, so a leg hit is a body hit with the leg twisted. On: on both feet it stumbles from 0.3 m/s on that leg (a catch step, the swept
     foot let go) and falls from 2 (under the fight's 2.2 for a push); with the other foot off the ground its weight is
     all on the leg struck: it stumbles from 0.25 and is swept from under it from 1.2; a foot in the air is knocked away
@@ -253,6 +253,14 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     across the board), and a body knocked down keeps no more than the knockdown speed. (Headless has no body
     to fall: the fall and the get-up are seen in the lab: U's fourth aim, legs, sends every strike and combo blow at
     its knees.)
+  - Clip fighters (the plan "Bringing the lab into the fight", step 1; `Locomotion/ClipFighter.cs`): the walker and
+    the dummy are now the same kind of body, a clip fighter that walks, guards, strikes and defends from the clips.
+    A step is `Move` (the walk, the strike or combo, the pose, the defence) then `Apply` (the arms' holds, the
+    physical body driven to the pose); the dummy steers itself with `Step`. `EnableStrikes` gives a fighter its
+    blade's hits, swept against any number of bodies (`StrikeHits.Step(dt, bodies)`: the first part, shield or
+    sword of anyone's the blade meets, each body's parts struck once a blow, its own never). The walker doesn't
+    defend yet (`Defends`), since nothing strikes it; the dummy keeps its lab-only spot and training-post switch.
+    Nothing plays differently: headless, every combo, strike, skill and walk figure is unchanged.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

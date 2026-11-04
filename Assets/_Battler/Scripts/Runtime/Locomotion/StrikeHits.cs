@@ -6,9 +6,9 @@ using UnityEngine;
 namespace PhysicsBattler.Locomotion
 {
     /// <summary>
-    /// A walker's strikes meeting a body (the combat plan's step 4, at the lab's dummy): about each
-    /// strike's contact the weapon is swept from where it was last step to where it is now, and the first
-    /// part or shield of the dummy it meets is struck, by the fight's own damage rules
+    /// A fighter's strikes meeting the bodies about it (the combat plan's step 4, first at the lab's dummy): about
+    /// each strike's contact the weapon is swept from where it was last step to where it is now, and the first
+    /// part, shield or sword of anyone's it meets is struck, by the fight's own damage rules
     /// (<see cref="DamageRules.Resolve"/>). Both stand still a moment (the hit stop, as the fight has it);
     /// a blow that cuts on through is slowed by what it gave up; one that is stopped (a shield, a body too
     /// heavy for it) backs out a little and fades into the guard (<see cref="Locomotor.CutShort"/>).
@@ -120,7 +120,10 @@ namespace PhysicsBattler.Locomotion
         private bool had;
         private Vector3 lastGrip, lastTip, lastStrike;
         private float momentumLeft = 1f, lastShotTime;
-        private readonly List<(Collider collider, PartId part, bool shield, float order)> found = new List<(Collider, PartId, bool, float)>();
+        private readonly List<(ClipFighter body, Collider collider, PartId part, bool shield, float order)> found = new List<(ClipFighter, Collider, PartId, bool, float)>();
+
+        /// <summary>Whose strikes these are: its own body is never struck by them.</summary>
+        public ClipFighter Owner;
 
         public StrikeHits(Locomotor loco, LocoBody poser, AnimRig anim)
         {
@@ -277,12 +280,14 @@ namespace PhysicsBattler.Locomotion
             return readPose[(int)LocoBone.RightHand] + StrikeCombos.Blade(readPose) * (poser.WeaponLength * along);
         }
 
-        /// <summary>The parts of the dummy this blow has struck already (a blade that cuts through goes on to the next), whether it was stopped, and whether its blade has been deflected off the dummy's.</summary>
-        private readonly HashSet<PartId> struckParts = new HashSet<PartId>();
-        private bool stopped, deflected;
+        /// <summary>The parts of each body this blow has struck already (a blade that cuts through goes on to the next), whether it was stopped, and the bodies whose blade it has been deflected off.</summary>
+        private readonly HashSet<(ClipFighter, PartId)> struckParts = new HashSet<(ClipFighter, PartId)>();
+        private readonly HashSet<ClipFighter> deflectedBy = new HashSet<ClipFighter>();
+        private bool stopped;
 
-        /// <summary>When each part (and the shield, and the sword) was last touched outside a blow (seconds).</summary>
-        private readonly Dictionary<int, float> touched = new Dictionary<int, float>();
+        /// <summary>When each body's parts (and its shield, and its sword) were last touched outside a blow (seconds).</summary>
+        private readonly Dictionary<(ClipFighter, int), float> touched = new Dictionary<(ClipFighter, int), float>();
+        private readonly List<ClipFighter> one = new List<ClipFighter>(1);
         private float clock;
 
         /// <summary>A weapon touching a body outside a blow (the wind-up passing through it, a guard too close) pushes it: at most once in this long per part (seconds), with the weapon's weight (kg).</summary>
@@ -302,7 +307,19 @@ namespace PhysicsBattler.Locomotion
         /// strike the next part it meets. At any other time (the wind-up, the recovery, the guard), whatever the
         /// blade touches is pushed by it: nothing passes through a body without its feeling it.
         /// </summary>
-        public void Step(float dt, LabDummy dummy)
+        public void Step(float dt, ClipFighter body)
+        {
+            one.Clear();
+            if (body != null)
+            {
+                one.Add(body);
+            }
+
+            Step(dt, one);
+        }
+
+        /// <summary>The same against every body in <paramref name="bodies"/> (its own skipped): the first part, shield or sword the blade meets, whoever's it is.</summary>
+        public void Step(float dt, IReadOnlyList<ClipFighter> bodies)
         {
             clock += dt;
             if (HitStop > 0f)
@@ -325,7 +342,8 @@ namespace PhysicsBattler.Locomotion
             else if (clip != blow)
             {
                 blow = clip;
-                stopped = deflected = false;
+                stopped = false;
+                deflectedBy.Clear();
                 momentumLeft = 1f;
                 struckParts.Clear();
                 pausedThisBlow = false;
@@ -352,7 +370,7 @@ namespace PhysicsBattler.Locomotion
             lastStrike = strike;
             lastShotTime = loco.ShotTime;
             had = true;
-            if (!wasHad || dummy == null)
+            if (!wasHad || bodies == null || bodies.Count == 0)
             {
                 return;
             }
@@ -371,30 +389,57 @@ namespace PhysicsBattler.Locomotion
                 float s = i / (float)samples;
                 Vector3 a = Vector3.Lerp(lastG, grip, s), b = Vector3.Lerp(lastT, tip, s);
                 found.Clear();
-                // (The dummy's own sword, parrying: blade against blade, two segments' nearest points.)
+                // (A defender's own sword, parrying: blade against blade, two segments' nearest points; the nearest the
+                // hand first, of all of them.)
                 float parryAlong = -1f;
                 Vector3 parryAt = Vector3.zero;
-                if (dummy.Stance == LabDummy.Stances.Sword && dummy.Parry != null && !deflected)
+                ClipFighter parrier = null;
+                foreach (var body in bodies)
                 {
-                    dummy.Parry.BladeNow(out var dg, out var dt2);
-                    float defRadius = 0.02f * Scale;
-                    if (SegmentsNearest(a, b, dg, dt2, out float sa, out float sd, out Vector3 pa, out Vector3 pd) <= radius + defRadius)
+                    if (body == null || body == Owner)
                     {
-                        parryAlong = sa;
-                        parryAt = 0.5f * (pa + pd);
-                        lastParryOn = sd;
+                        continue;
+                    }
+
+                    if (body.Stance == ClipFighter.Stances.Sword && body.Parry != null && !deflectedBy.Contains(body))
+                    {
+                        body.Parry.BladeNow(out var dg, out var dt2);
+                        float defRadius = 0.02f * Scale;
+                        if (SegmentsNearest(a, b, dg, dt2, out float sa, out float sd, out Vector3 pa, out Vector3 pd) <= radius + defRadius
+                            && (parrier == null || sa < parryAlong))
+                        {
+                            parryAlong = sa;
+                            parryAt = 0.5f * (pa + pd);
+                            lastParryOn = sd;
+                            parrier = body;
+                        }
                     }
                 }
 
                 foreach (var collider in Physics.OverlapCapsule(a, b, radius, ~0, QueryTriggerInteraction.Collide))
                 {
-                    if (dummy.ShieldColliders.Contains(collider))
+                    foreach (var body in bodies)
                     {
-                        found.Add((collider, PartId.HandL, true, AlongBlade(collider, a, b) - 0.05f));
-                    }
-                    else if (dummy.PartOf(collider, out var id) && !(live && struckParts.Contains(id)))
-                    {
-                        found.Add((collider, id, false, AlongBlade(collider, a, b)));
+                        if (body == null || body == Owner)
+                        {
+                            continue;
+                        }
+
+                        if (body.ShieldColliders.Contains(collider))
+                        {
+                            found.Add((body, collider, PartId.HandL, true, AlongBlade(collider, a, b) - 0.05f));
+                            break;
+                        }
+
+                        if (body.PartOf(collider, out var id))
+                        {
+                            if (!(live && struckParts.Contains((body, id))))
+                            {
+                                found.Add((body, collider, id, false, AlongBlade(collider, a, b)));
+                            }
+
+                            break;
+                        }
                     }
                 }
 
@@ -408,19 +453,19 @@ namespace PhysicsBattler.Locomotion
                 // (The parrying sword before what it guards: its arm and hand, which hold it behind the blade, and
                 // whatever is further along the attacker's blade.)
                 bool parryFirst = parryAlong >= 0f && (found.Count == 0 || parryAlong - 0.05f <= found[0].order
-                    || found[0].part == PartId.HandR || found[0].part == PartId.ForearmR);
+                    || (found[0].body == parrier && (found[0].part == PartId.HandR || found[0].part == PartId.ForearmR)));
                 if (!live)
                 {
                     // Outside a blow: a touch, a push on what it touches.
                     Vector3 velocity = direction / Mathf.Max(1e-4f, dt);
                     if (parryFirst)
                     {
-                        Touch(dummy, -2, PartId.HandR, false, true, parryAt, velocity);
+                        Touch(parrier, -2, PartId.HandR, false, true, parryAt, velocity);
                     }
                     else
                     {
                         var ft = found[0];
-                        Touch(dummy, ft.shield ? -1 : (int)ft.part, ft.part, ft.shield, false, ft.collider.ClosestPoint(0.5f * (a + b)), velocity);
+                        Touch(ft.body, ft.shield ? -1 : (int)ft.part, ft.part, ft.shield, false, ft.collider.ClosestPoint(0.5f * (a + b)), velocity);
                     }
 
                     return;
@@ -429,7 +474,7 @@ namespace PhysicsBattler.Locomotion
                 if (parryFirst)
                 {
                     float metAt = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
-                    Strike(clip, dummy, PartId.HandR, true, parryAt, speed, direction, metAt, parryAlong, b - a);
+                    Strike(clip, parrier, PartId.HandR, true, parryAt, speed, direction, metAt, parryAlong, b - a);
                     return;
                 }
 
@@ -437,7 +482,8 @@ namespace PhysicsBattler.Locomotion
                 // (The fist that holds the shield is behind it: met with the shield, the shield takes the blow.)
                 if (!f.shield && (f.part == PartId.HandL || f.part == PartId.ForearmL))
                 {
-                    int s0 = found.FindIndex(x => x.shield);
+                    var holder = f.body;
+                    int s0 = found.FindIndex(x => x.shield && x.body == holder);
                     if (s0 >= 0)
                     {
                         f = found[s0];
@@ -446,45 +492,45 @@ namespace PhysicsBattler.Locomotion
 
                 // (Where in this step it met it: a stopped blow is put back there.)
                 float met = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
-                Strike(clip, dummy, f.part, f.shield, f.collider.ClosestPoint(0.5f * (a + b)), speed, direction, met);
+                Strike(clip, f.body, f.part, f.shield, f.collider.ClosestPoint(0.5f * (a + b)), speed, direction, met);
                 return;
             }
         }
 
         /// <summary>A touch outside a blow: what the blade touches is pushed by the weapon's weight at its speed.</summary>
-        private void Touch(LabDummy dummy, int key, PartId part, bool shield, bool sword, Vector3 point, Vector3 velocity)
+        private void Touch(ClipFighter struck, int key, PartId part, bool shield, bool sword, Vector3 point, Vector3 velocity)
         {
             // (Only a weapon moving into it pushes: one resting against it, swaying with its holder, is felt but not knocked.)
-            if (velocity.magnitude < TouchSpeed * Mathf.Sqrt(Scale) || (touched.TryGetValue(key, out float last) && clock - last < TouchEvery))
+            if (velocity.magnitude < TouchSpeed * Mathf.Sqrt(Scale) || (touched.TryGetValue((struck, key), out float last) && clock - last < TouchEvery))
             {
                 return;
             }
 
-            touched[key] = clock;
+            touched[(struck, key)] = clock;
             Touches++;
             if (shield || sword)
             {
                 Sounded?.Invoke(shield ? Met.TouchShield : Met.TouchBlade, point, velocity.magnitude, Club, false);
             }
 
-            dummy.Touch(part, shield, sword, point, Vector3.ClampMagnitude(velocity, 8f) * (WeaponMass * Scale));
+            struck.Touch(part, shield, sword, point, Vector3.ClampMagnitude(velocity, 8f) * (WeaponMass * Scale));
         }
 
-        private void Strike(LocoClip clip, LabDummy dummy, PartId part, bool shield, Vector3 point, float speed, Vector3 direction, float met,
+        private void Strike(LocoClip clip, ClipFighter struck, PartId part, bool shield, Vector3 point, float speed, Vector3 direction, float met,
             float parryAlong = -1f, Vector3 bladeWay = default)
         {
             bool parried = parryAlong >= 0f;
             if (!parried && !shield)
             {
-                struckParts.Add(part);
+                struckParts.Add((struck, part));
             }
 
-            var r = DamageRules.Resolve(Weapon, With(clip), Scale, speed, direction, Mass, dummy.Mass, part, shield, momentumLeft,
-                1e6f, dummy.Poise, dummy.MaxPoise);
+            var r = DamageRules.Resolve(Weapon, With(clip), Scale, speed, direction, Mass, struck.Mass, part, shield, momentumLeft,
+                1e6f, struck.Poise, struck.MaxPoise);
             bool glanced = false;
             if (parried)
             {
-                dummy.Parry.BladeNow(out var dg, out var dtip);
+                struck.Parry.BladeNow(out var dg, out var dtip);
                 LastCross = Vector3.Angle(bladeWay, dtip - dg);
                 LastCross = Mathf.Min(LastCross, 180f - LastCross);
                 LastParryAt = parryAlong;
@@ -493,12 +539,12 @@ namespace PhysicsBattler.Locomotion
                 glanced = lastParryOn > CleanOnBlade || LastCross < CleanCross;
                 if (glanced)
                 {
-                    deflected = true;
+                    deflectedBy.Add(struck);
                     Deflects++;
                     // (Turned off the dummy's blade: away from the arm that holds it.)
-                    struckParts.Add(PartId.HandR);
-                    struckParts.Add(PartId.ForearmR);
-                    struckParts.Add(PartId.UpperArmR);
+                    struckParts.Add((struck, PartId.HandR));
+                    struckParts.Add((struck, PartId.ForearmR));
+                    struckParts.Add((struck, PartId.UpperArmR));
                 }
                 else
                 {
@@ -514,9 +560,9 @@ namespace PhysicsBattler.Locomotion
             // (A slanted shield turns part of the blow aside; one taken square on takes all of it.)
             if (shield && !parried)
             {
-                knock *= 1f - dummy.ShieldGlance;
+                knock *= 1f - struck.ShieldGlance;
             }
-            dummy.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * knock, r.PartShare, r.PoiseDamage * knock, r.Reaction, point, parried);
+            struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * knock, r.PartShare, r.PoiseDamage * knock, r.Reaction, point, parried);
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
             HitStop = Mathf.Clamp(0.06f * (0.6f + r.Impulse.magnitude / 40f), 0.04f, 0.1f);
@@ -540,7 +586,7 @@ namespace PhysicsBattler.Locomotion
                 momentumLeft = Mathf.Min(momentumLeft, GlanceLeft);
                 loco.ShotSpeed = Mathf.Max(0.3f, GlanceLeft);
                 poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.12f, 1.5f));
-                what = $"glanced off the sword ({dummy.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
+                what = $"glanced off the sword ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
                 HitStop = Mathf.Min(HitStop, 0.04f);
             }
             else if ((r.StopsSwing && !(comboing && !shield)) || parried)
@@ -562,8 +608,8 @@ namespace PhysicsBattler.Locomotion
                     poser.Pose(1e-4f);
                     loco.CutShort(RewindMost, ReboundSpeed);
                 }
-                what = parried ? $"parried by the sword ({dummy.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
-                    : shield ? (dummy.ShieldGlance > 0.25f ? "blocked by the shield, turned aside" : "blocked by the shield, square on") : "stopped in the " + Name(part);
+                what = parried ? $"parried by the sword ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
+                    : shield ? (struck.ShieldGlance > 0.25f ? "blocked by the shield, turned aside" : "blocked by the shield, square on") : "stopped in the " + Name(part);
                 if (shield && !parried)
                 {
                     Blocks++;

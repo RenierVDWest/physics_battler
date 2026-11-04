@@ -77,10 +77,12 @@ internal static class StrikeComboReport
 
             Console.WriteLine($"{first.Name}: " + (chain.Count == 0 ? "no follow-on" : string.Join("; ", chain.Select(l => l.ToString()))));
             // Played at the dummy (a strike with no quick follow-on too: the combo goes on from the guard).
-            var (anim, loco, poser, root, size) = DummyHitReportWalker(body);
+            var (anim, loco, poser, root, walker) = DummyHitReport.Walker(body);
+            float size = walker.Size;
             var weapon = WeaponDefinition.CreateDefault(body == "Large" ? WeaponKind.Club : WeaponKind.Sword);
             poser.WeaponLength = weapon.length * size;
-            var hits = new StrikeHits(loco, poser, anim) { Weapon = weapon, Scale = size, Mass = 70f * size * size * size };
+            var hits = walker.EnableStrikes(weapon);
+            hits.Mass = 70f * size * size * size;
             ComboPlayer playerRef = null;
             hits.Finishing = () => playerRef != null && playerRef.LastBlow;
             hits.Comboing = () => playerRef != null && playerRef.Playing && playerRef.Cores;
@@ -92,13 +94,13 @@ internal static class StrikeComboReport
             }
 
             // (From the standing distance, as the lab sets them up.)
-            reach = Mathf.Max(reach, LabDummy.StandingDistance(size, 1f));
+            reach = Mathf.Max(reach, ClipFighter.StandingDistance(size, 1f));
             var dummyRig = RigFile.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "_Battler/Data/Rigs/medium_rig.json")));
             var dprofile = UnitProfile.CreateDefault();
             dprofile.body = "Medium";
             var droot = UnitBuilder.Build(dummyRig, dprofile, "Dummy", _ => null, 1);
             bool swordDummy = Environment.GetEnvironmentVariable("COMBO_STANCE") == "sword";
-            var dummy = new LabDummy(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, swordDummy ? "sw_" : "sns_", physical: false);
+            var dummy = new ClipFighter(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, swordDummy ? "sw_" : "sns_", physical: false);
             if (swordDummy)
             {
                 // (Its sword, as the lab holds it, parrying.)
@@ -112,7 +114,7 @@ internal static class StrikeComboReport
                 {
                     Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? anim.SlotWeaponL : null, 0.27f) { WeaponSlot = anim.SlotWeaponR, WeaponLength = poser.WeaponLength },
                 };
-                dummy.Stance = LabDummy.Stances.Sword;
+                dummy.Stance = ClipFighter.Stances.Sword;
                 if (float.TryParse(Environment.GetEnvironmentVariable("PARRY_SKILL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float parrySkill))
                 {
                     dummy.ParrySkill = parrySkill;
@@ -135,7 +137,7 @@ internal static class StrikeComboReport
                 box.center = new Vector3(0f, 0f, 0.075f);
                 box.isTrigger = true;
                 dummy.ShieldColliders.Add(box);
-                dummy.Stance = LabDummy.Stances.Shield;
+                dummy.Stance = ClipFighter.Stances.Shield;
                 if (float.TryParse(Environment.GetEnvironmentVariable("SHIELD_SKILL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float shieldSkill))
                 {
                     dummy.ShieldSkill = shieldSkill;
@@ -143,13 +145,12 @@ internal static class StrikeComboReport
             }
             else
             {
-                dummy.Stance = LabDummy.Stances.Open;
+                dummy.Stance = ClipFighter.Stances.Open;
             }
             const float dt = 1f / 60f;
             for (int i = 0; i < 80; i++)
             {
-                loco.Step(dt, Vector3.zero, 0f);
-                poser.Pose(dt);
+                walker.Move(dt, Vector3.zero, 0f, dummy.Loco.Position, false);
                 dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, false);
             }
 
@@ -181,6 +182,7 @@ internal static class StrikeComboReport
                 },
             };
             playerRef = player;
+            walker.Combo = player;
             var results = new List<string>();
             float clock = 0f;
             var hitTimes = new List<float>();
@@ -234,11 +236,11 @@ internal static class StrikeComboReport
             for (int i = 0; i < 900; i++)
             {
                 clock = i * dt;
-                float keepAt = LabDummy.FightingDistance(size, dummy.Size);
+                float keepAt = ClipFighter.FightingDistance(size, dummy.Size);
                 poser.KeepFrom = dummy.Loco.Position;
                 poser.KeepDistance = keepAt;
                 dummy.KeepDistance = keepAt;
-                dummy.StandDistance = LabDummy.StandingDistance(size, dummy.Size);
+                dummy.StandDistance = ClipFighter.StandingDistance(size, dummy.Size);
                 bool frozen = hits.HitStop > 0f;
                 if (Environment.GetEnvironmentVariable("COMBO_TIMELINE") != null)
                 {
@@ -249,13 +251,8 @@ internal static class StrikeComboReport
                         lastState = state;
                     }
                 }
-                if (!frozen)
-                {
-                    // (Pressing after the dummy, the combo walks the walker in.)
-                    loco.Step(dt, player.Pressing ? player.Want : Vector3.zero, player.Pressing ? player.WantFacing : loco.Facing);
-                    player.Step(dt);
-                    poser.Pose(dt);
-                }
+                // (Pressing after the dummy, the combo walks the walker in.)
+                walker.Move(dt, player.Pressing ? player.Want : Vector3.zero, player.Pressing ? player.WantFacing : loco.Facing, dummy.Loco.Position, frozen);
 
                 if (player.Pressing && !wasPressing && Environment.GetEnvironmentVariable("COMBO_WHY") != null) { Console.WriteLine("      pressing: " + player.Ended); }
                 if (Environment.GetEnvironmentVariable("COMBO_FEET") != null && (player.Pressing || loco.Current == Locomotor.Mode.Idle))
@@ -387,33 +384,5 @@ internal static class StrikeComboReport
         Console.WriteLine(string.Format(ci, "All: {0} combos, {1} strikes: {2} landed, {3} blocked, {4} missed; about the switches the hands and feet moved at most {5:0.0} m/s ({6})",
             combos, strikesPlayed, landed, blocked, missed, fastest, fastestWhere));
         return 0;
-    }
-
-    private static (AnimRig, Locomotor, LocoBody, GameObject, float) DummyHitReportWalker(string body)
-    {
-        var rig = RigFile.Parse(File.ReadAllText(Path.Combine(Application.dataPath, $"_Battler/Data/Rigs/{body.ToLowerInvariant()}_rig.json")));
-        var profile = UnitProfile.CreateDefault();
-        profile.body = body;
-        var root = UnitBuilder.Build(rig, profile, "Striker " + body, _ => null, 0);
-        var unitRig = root.GetComponent<UnitRig>();
-        var anim = new AnimRig(root.transform, unitRig);
-        float leg = anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude;
-        var loco = new Locomotor(leg);
-        loco.SetGuard(LocoLibrary.CombatPrefix(body));
-        loco.GuardWanted = true;
-        var poser = new LocoBody(anim, loco) { BodyKey = body, TwoHanded = LocoLibrary.TwoHanded(body) };
-        poser.SoleFrom(unitRig);
-        anim.SlotWeaponR.localRotation = UnitController.MainGrip;
-        poser.BladeR = UnitController.MainGrip * Vector3.forward;
-        poser.CarryR = LocoBody.Carry.Weapon;
-        if (!LocoLibrary.TwoHanded(body))
-        {
-            anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
-            unitRig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
-            poser.CarryL = LocoBody.Carry.Shield;
-        }
-
-        loco.Place(Vector3.zero, 0f);
-        return (anim, loco, poser, root, leg / 0.845f);
     }
 }

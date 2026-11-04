@@ -9,14 +9,21 @@ using UnityEngine;
 namespace PhysicsBattler.Locomotion
 {
     /// <summary>
-    /// The lab's training dummy (the combat plan's step 4): a second body standing in its guard, facing
-    /// the walker, walked by its own <see cref="Locomotor"/> and <see cref="LocoBody"/>. Physical, as the
-    /// walker is (the legs carried, the torso, head and arms held by pins), it takes blows: the part struck
-    /// is knocked and its hold softened for a moment, the rest of the blow pushes the walk back a step.
-    /// Set up open (no defence: every blow lands), with a shield (it meets each blow with its shield) or with a
-    /// sword alone (it parries each blow with its sword: <see cref="SwordParry"/>).
+    /// A fighter whose body moves from the mocap clips (the plan "Bringing the lab into the fight", step 1): one
+    /// body that walks, guards, strikes and defends, the same in the lab and (to come) in the fight. Walked by its
+    /// own <see cref="Locomotor"/> and posed by its <see cref="LocoBody"/>; physical (the legs carried, the torso,
+    /// head and arms held by pins).
+    /// <para>Attacking (<see cref="EnableStrikes"/>, <see cref="Strikes"/>, <see cref="Combo"/>): its strikes and combos, their blades swept
+    /// against the bodies about it (<see cref="StrikeHits"/>), the weapon arm held to its pose through a blow.</para>
+    /// <para>Defending (<see cref="Defends"/>): it watches the blow coming and meets it, open (no defence: every blow
+    /// lands), with a shield (<see cref="Stances.Shield"/>) or its sword (<see cref="Stances.Sword"/>,
+    /// <see cref="SwordParry"/>), each at its skill; a blow that lands knocks the part struck and softens its hold
+    /// for a moment, and the rest pushes its walk back a step.</para>
+    /// <para>A step is <see cref="Move"/> (the walk, the strike, the pose, the defence) then <see cref="Apply"/>
+    /// (the arms' holds, the physical body driven to the pose); the lab's dummy steers itself with <see cref="Step"/>.
+    /// Lab-only: its spot (<see cref="Home"/>) and standing as a training post (<see cref="Anchored"/>).</para>
     /// </summary>
-    public sealed class LabDummy
+    public sealed class ClipFighter
     {
         public readonly GameObject Unit;
         public readonly UnitRig Rig;
@@ -242,15 +249,18 @@ namespace PhysicsBattler.Locomotion
         private readonly float[] pinFrom = new float[5], pinTime = new float[5], pinLeft = new float[5];
 
         /// <param name="unit">The unit's body, just built (its own controller taken off), in its rest pose.</param>
-        public LabDummy(GameObject unit, UnitRig rig, UnitProfile profile, Vector3 at, float facing, float groundY, string guardPrefix, bool physical)
+        public ClipFighter(GameObject unit, UnitRig rig, UnitProfile profile, Vector3 at, float facing, float groundY, string guardPrefix, bool physical)
         {
             Unit = unit;
             Rig = rig;
             this.profile = profile;
             if (physical)
             {
-                // (As the lab's walker: the body set up as a unit sets up its own, in its rest pose.)
+                // (The body set up as a unit sets up its own (its joints in their frames, its limits, its
+                // friction), while it is still in its rest pose.)
                 JointConventions.EnsureProbed();
+                var bodyMaterial = PhysicsMaterials.Get("Body", profile.bodyFriction);
+                var footMaterial = PhysicsMaterials.Get("Foot", profile.footFriction);
                 foreach (var part in rig.Parts)
                 {
                     UnitBuilder.ConfigureBody(part.body, profile);
@@ -260,6 +270,11 @@ namespace PhysicsBattler.Locomotion
                         part.jointFrame = JointFrames.For(rig, part.id);
                         JointFrames.Apply(part.joint, part.jointFrame);
                         JointMath.ApplyLimits(part.joint, part.limits);
+                    }
+
+                    if (part.partCollider != null)
+                    {
+                        part.partCollider.sharedMaterial = PartInfo.IsFoot(part.id) ? footMaterial : bodyMaterial;
                     }
                 }
             }
@@ -639,8 +654,9 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
-        /// One step: it stands in its guard facing <paramref name="faceToward"/> (held still through a hit
-        /// stop, <paramref name="frozen"/>), the shield raised if it blocks, the physical body held to it.
+        /// One step of the lab's dummy, steering itself: it stands in its guard facing <paramref name="faceToward"/>
+        /// (held still through a hit stop, <paramref name="frozen"/>), back to its spot after a blow and to its
+        /// standing distance, the shield raised if it blocks, the physical body held to it.
         /// </summary>
         public void Step(float dt, Vector3 faceToward, bool frozen)
         {
@@ -655,74 +671,166 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            Vector3 want = Vector3.zero;
+            float yaw = Loco.Facing;
             if (!frozen)
             {
-                Vector3 to = faceToward - Loco.Position;
-                float yaw = new Vector2(to.x, to.z).sqrMagnitude > 0.01f ? Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg : Loco.Facing;
-                // (Knocked off its spot, it steps back onto it once it has stood a moment, as a sparring partner would.)
-                Vector3 home = Home - Loco.Position;
-                home.y = 0f;
-                Vector3 want = Vector3.zero;
-                Vector3 fromOpponent = Loco.Position - faceToward;
-                fromOpponent.y = 0f;
-                float apart = fromOpponent.magnitude;
-                Vector3 away = apart > 1e-3f ? fromOpponent / apart : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
-                if (Loco.Current != Locomotor.Mode.OneShot && clock - lastHit > HomeAfter && home.magnitude > HomeFrom * Size)
-                {
-                    want = Vector3.ClampMagnitude(home * 2f, HomeSpeed * Mathf.Sqrt(Size));
-                    // (Not back onto its spot through the other body: no nearer it than the standing distance.)
-                    float keepOff = Mathf.Max(KeepDistance + 0.15f * Size, StandDistance);
-                    if (keepOff > 0f && apart < keepOff && Vector3.Dot(want, away) < 0f)
-                    {
-                        want -= away * Vector3.Dot(want, away);
-                    }
-                }
-
-                // (Closer than it stands between blows just after a blow: it steps back to there, as a fencer recovers
-                // the measure. Not otherwise: one walking in to strike is let come.)
-                float sinceBlow = clock - lastBlowAt;
-                if (StandDistance > 0f && apart < StandDistance - 0.05f * Size && Loco.Current != Locomotor.Mode.OneShot && !Blow.HasValue
-                    && clock - lastHit > StandBackAfter && sinceBlow > StandBackAfter && sinceBlow < StandBackWithin)
-                {
-                    want = away * Mathf.Clamp((StandDistance - apart) * 2.5f, 0.35f, 1.2f) * Mathf.Sqrt(Size);
-                }
-
-                // (Too near the other body: it steps back to the fighting distance, as anyone would.)
-                if (KeepDistance > 0f && apart < KeepDistance && Loco.Current != Locomotor.Mode.OneShot && pushAt < 0f && clock - lastSeparate > 0.25f)
-                {
-                    Loco.Push(away * Mathf.Clamp((KeepDistance - apart) * 3f, 0.3f, 1.2f) * Mathf.Sqrt(Size));
-                    lastSeparate = clock;
-                }
-
-                if (pushAt >= 0f && clock >= pushAt)
-                {
-                    Loco.Push(pendingKnock);
-                    pushAt = -1f;
-                    pendingKnock = Vector3.zero;
-                }
-
-                Loco.Step(dt, want, yaw);
-                Poser.Pose(dt);
-                if (stance == Stances.Sword && Parry != null)
-                {
-                    Parry.Skill = ParrySkill;
-                    Parry.Step(dt, Blow, faceToward);
-                }
-                else
-                {
-                    RaiseShield(dt, faceToward);
-                }
-
-                React(dt);
-                Recover(dt);
-                Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
+                Steer(faceToward, out want, out yaw);
             }
 
-            // (Meeting a blow, the shield arm is held exactly to its pose, as the fight holds a weapon arm in a
-            // blow: pinned, the physical arm and the shield on it would trail the pose.)
+            MoveOn(dt, want, yaw, faceToward, frozen);
+            Apply(dt);
+        }
+
+        /// <summary>
+        /// The dummy's own steering: facing <paramref name="faceToward"/>, back onto its spot a while after a blow,
+        /// and back to its standing distance just after one (as a fencer recovers the measure).
+        /// </summary>
+        private void Steer(Vector3 faceToward, out Vector3 want, out float yaw)
+        {
+            Vector3 to = faceToward - Loco.Position;
+            yaw = new Vector2(to.x, to.z).sqrMagnitude > 0.01f ? Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg : Loco.Facing;
+            // (Knocked off its spot, it steps back onto it once it has stood a moment, as a sparring partner would.)
+            Vector3 home = Home - Loco.Position;
+            home.y = 0f;
+            want = Vector3.zero;
+            Vector3 fromOpponent = Loco.Position - faceToward;
+            fromOpponent.y = 0f;
+            float apart = fromOpponent.magnitude;
+            Vector3 away = apart > 1e-3f ? fromOpponent / apart : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+            if (Loco.Current != Locomotor.Mode.OneShot && clock - lastHit > HomeAfter && home.magnitude > HomeFrom * Size)
+            {
+                want = Vector3.ClampMagnitude(home * 2f, HomeSpeed * Mathf.Sqrt(Size));
+                // (Not back onto its spot through the other body: no nearer it than the standing distance.)
+                float keepOff = Mathf.Max(KeepDistance + 0.15f * Size, StandDistance);
+                if (keepOff > 0f && apart < keepOff && Vector3.Dot(want, away) < 0f)
+                {
+                    want -= away * Vector3.Dot(want, away);
+                }
+            }
+
+            // (Closer than it stands between blows just after a blow: it steps back to there, as a fencer recovers
+            // the measure. Not otherwise: one walking in to strike is let come.)
+            float sinceBlow = clock - lastBlowAt;
+            if (StandDistance > 0f && apart < StandDistance - 0.05f * Size && Loco.Current != Locomotor.Mode.OneShot && !Blow.HasValue
+                && clock - lastHit > StandBackAfter && sinceBlow > StandBackAfter && sinceBlow < StandBackWithin)
+            {
+                want = away * Mathf.Clamp((StandDistance - apart) * 2.5f, 0.35f, 1.2f) * Mathf.Sqrt(Size);
+            }
+        }
+
+        /// <summary>
+        /// The first half of a step, steered from outside (the lab's walker, a fight unit): the walk toward
+        /// <paramref name="want"/> (m/s) facing <paramref name="yaw"/> (degrees), the strike or combo playing, the
+        /// pose, and (when it <see cref="Defends"/>) the defence against <paramref name="opponent"/> (where the
+        /// one it faces is; world). Held still through a hit stop (<paramref name="frozen"/>). Then the second half:
+        /// <see cref="Apply"/>.
+        /// </summary>
+        public void Move(float dt, Vector3 want, float yaw, Vector3 opponent, bool frozen)
+        {
+            clock += dt;
+            if (Fallen)
+            {
+                if (!frozen)
+                {
+                    StepFallen(dt);
+                }
+
+                return;
+            }
+
+            MoveOn(dt, want, yaw, opponent, frozen);
+        }
+
+        private void MoveOn(float dt, Vector3 want, float yaw, Vector3 opponent, bool frozen)
+        {
+            if (frozen)
+            {
+                return;
+            }
+
+            // (Too near the other body: it steps back to the fighting distance, as anyone would.)
+            Vector3 fromOpponent = Loco.Position - opponent;
+            fromOpponent.y = 0f;
+            float apart = fromOpponent.magnitude;
+            Vector3 away = apart > 1e-3f ? fromOpponent / apart : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+            if (KeepDistance > 0f && apart < KeepDistance && Loco.Current != Locomotor.Mode.OneShot && pushAt < 0f && clock - lastSeparate > 0.25f)
+            {
+                Loco.Push(away * Mathf.Clamp((KeepDistance - apart) * 3f, 0.3f, 1.2f) * Mathf.Sqrt(Size));
+                lastSeparate = clock;
+            }
+
+            if (pushAt >= 0f && clock >= pushAt)
+            {
+                Loco.Push(pendingKnock);
+                pushAt = -1f;
+                pendingKnock = Vector3.zero;
+            }
+
+            Loco.Step(dt, want, yaw);
+            if (Combo != null)
+            {
+                Combo.Step(dt);
+            }
+
+            // (A strike alone follows its target too, as far as its pull goes.)
+            if (Follow != null && (Combo == null || !Combo.Playing) && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0)
+            {
+                var at = Follow(Loco.Shot);
+                if (at.HasValue)
+                {
+                    Poser.Retarget(at.Value);
+                }
+            }
+
+            Poser.Pose(dt);
+            if (!Defends)
+            {
+                return;
+            }
+
+            if (stance == Stances.Sword && Parry != null)
+            {
+                Parry.Skill = ParrySkill;
+                Parry.Step(dt, Blow, opponent);
+            }
+            else
+            {
+                RaiseShield(dt, opponent);
+            }
+
+            React(dt);
+            Recover(dt);
+            Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
+        }
+
+        /// <summary>
+        /// The second half of a step: the arms held to their pose where they must be (the weapon arm through a
+        /// strike and a moment after, both two-handed; the shield arm meeting a blow; the sword arm parrying), the
+        /// shield turned in the physical hand as in the posed one, and the physical body driven to the pose for the
+        /// coming physics step (or, the first step, put on it).
+        /// </summary>
+        public void Apply(float dt)
+        {
+            if (Fallen)
+            {
+                return;
+            }
+
             if (Authority != null)
             {
-                if (ShieldArmHeld)
+                // (Through a strike and a moment after it the weapon arm is held exactly to its pose, kinematic, as
+                // the fight holds it in a blow: pinned, the physical arm, and the weapon seen on it and swept for
+                // hits, trailed a 16 m/s swing by tens of centimetres and passed by what the pose struck.)
+                if (Strikes != null && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0)
+                {
+                    weaponArmHeldUntil = clock + WeaponArmHeldAfter;
+                }
+
+                bool striking = clock < weaponArmHeldUntil;
+                // (Meeting a blow, the shield arm is held exactly to its pose, as the fight holds a weapon arm in a
+                // blow: pinned, the physical arm and the shield on it would trail the pose.)
+                if ((Defends && ShieldArmHeld) || (striking && Poser.TwoHanded))
                 {
                     Authority.Set(BodyRegion.ArmL, AuthorityLevel.Kinematic, 1f);
                 }
@@ -732,9 +840,13 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 // (Parrying, the sword arm is held exactly to its pose: pinned, the physical sword would trail the parry.)
-                if (stance == Stances.Sword && Parry != null)
+                if (striking || (Defends && stance == Stances.Sword && Parry != null))
                 {
                     Authority.Set(BodyRegion.ArmR, AuthorityLevel.Kinematic, 1f);
+                }
+                else if (pinLeft[(int)BodyRegion.ArmR] <= 0f)
+                {
+                    Hold(BodyRegion.ArmR, 1f);
                 }
             }
 
@@ -754,6 +866,38 @@ namespace PhysicsBattler.Locomotion
                 snapped = true;
             }
         }
+
+        /// <summary>The physical body has been put on its pose (the first <see cref="Apply"/> carries it there; after that it is driven).</summary>
+        public bool Snapped => snapped;
+
+        // ---- Attacking -------------------------------------------------------------------------------------------
+
+        /// <summary>Its strikes' hits (null until <see cref="EnableStrikes"/>): their blades swept against the bodies about it.</summary>
+        public StrikeHits Strikes { get; private set; }
+
+        /// <summary>Its combos (set by whoever plays them); stepped with its walk.</summary>
+        public ComboPlayer Combo;
+
+        /// <summary>A strike alone follows its target, as far as the arm's pull goes: where its target is now (null: none to follow).</summary>
+        public System.Func<LocoClip, Vector3?> Follow;
+
+        /// <summary>The weapon arm is held to its pose this long after a strike (seconds).</summary>
+        public const float WeaponArmHeldAfter = 0.4f;
+
+        private float weaponArmHeldUntil = -1f;
+
+        /// <summary>It strikes with <paramref name="weapon"/> (null: a plain sword of its poser's weapon length): its blade's hits, swept from the physical hand's slot when it is physical.</summary>
+        public StrikeHits EnableStrikes(Combat.WeaponDefinition weapon)
+        {
+            Strikes = new StrikeHits(Loco, Poser, Anim) { Weapon = weapon, Scale = Size, Slot = Authority != null ? Rig.SlotWeaponR : null, Mass = Mass, Owner = this };
+            return Strikes;
+        }
+
+        /// <summary>
+        /// It meets the blows coming at it and reacts to those that land (the dummy's way; the lab's walker, which
+        /// nothing strikes yet, doesn't: its pose is the clip's and nothing else).
+        /// </summary>
+        public bool Defends = true;
 
         /// <summary>
         /// The shield meeting the blow: blocking (and, by half, in its guard) it watches the striker's weapon from the
@@ -1334,6 +1478,12 @@ namespace PhysicsBattler.Locomotion
             if (Unit != null)
             {
                 Object.Destroy(Unit);
+            }
+
+            // (And its get-up's root, which lives beside it.)
+            if (getUpRoot != null)
+            {
+                Object.Destroy(getUpRoot.gameObject);
             }
         }
     }

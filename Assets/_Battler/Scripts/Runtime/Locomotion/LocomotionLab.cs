@@ -46,16 +46,20 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Show the footprints planted feet leave.")]
         public bool footprints = true;
 
+        /// <summary>The walker: a clip fighter that strikes (and doesn't defend yet: nothing strikes it), steered by the course or by hand.</summary>
+        private ClipFighter walker;
+
+        // (The walker's own parts, for short.)
         private GameObject unit;
         private UnitRig rig;
         private AnimRig anim;
         private Locomotor loco;
         private LocoBody poser;
+        private Authority.AuthorityController authority;
+
         private LocoMeasures measures;
         private LocoCourse path;
         private LocoFilm film;
-        private Authority.AuthorityController authority;
-        private bool snapped;
         private int shoves;
         private bool holding;
         private readonly System.Random dice = new System.Random();
@@ -226,9 +230,10 @@ namespace PhysicsBattler.Locomotion
                 legs.Clear();
             }
 
-            if (unit != null)
+            if (walker != null)
             {
-                Destroy(unit);
+                walker.Destroy();
+                walker = null;
             }
 
             LocoLibrary.Load();
@@ -270,82 +275,17 @@ namespace PhysicsBattler.Locomotion
             unit.transform.SetParent(null, true);
             Destroy(holder);
 
-            // The physical body set up as a unit sets up its own (its joints in their frames, its
-            // limits, its friction), while it is still in its rest pose; the animation rig is copied
-            // then too. The parts then leave the hierarchy, each its own body.
+            // The walker: a clip fighter, its body set up as a unit sets up its own (its joints in their frames,
+            // its limits, its friction) while it is still in its rest pose, then held as in the fight: the legs
+            // carried exactly (the feet's plants are the walk's), the rest pinned.
             var profile = prefab.Profile != null ? prefab.Profile : UnitProfile.CreateDefault();
-            if (physical)
-            {
-                JointConventions.EnsureProbed();
-                var bodyMaterial = PhysicsMaterials.Get("Body", profile.bodyFriction);
-                var footMaterial = PhysicsMaterials.Get("Foot", profile.footFriction);
-                foreach (var part in rig.Parts)
-                {
-                    UnitBuilder.ConfigureBody(part.body, profile);
-                    part.limits = JointLimitTable.Physical(part.id);
-                    if (part.joint != null)
-                    {
-                        part.jointFrame = JointFrames.For(rig, part.id);
-                        JointFrames.Apply(part.joint, part.jointFrame);
-                        JointMath.ApplyLimits(part.joint, part.limits);
-                    }
-
-                    if (part.partCollider != null)
-                    {
-                        part.partCollider.sharedMaterial = PartInfo.IsFoot(part.id) ? footMaterial : bodyMaterial;
-                    }
-                }
-            }
-
-            anim = new AnimRig(unit.transform, rig);
-            foreach (var part in rig.Parts)
-            {
-                if (part.body != null)
-                {
-                    part.body.isKinematic = true;
-                    part.body.interpolation = RigidbodyInterpolation.Interpolate;
-                }
-            }
-
-            foreach (var id in PartInfo.All)
-            {
-                rig.Part(id).transform.SetParent(unit.transform, true);
-            }
-
-            authority = null;
-            if (physical)
-            {
-                Physics.SyncTransforms();
-                var parts = rig.Parts;
-                for (int i = 0; i < parts.Length; i++)
-                {
-                    for (int j = i + 1; j < parts.Length; j++)
-                    {
-                        if (parts[i].partCollider != null && parts[j].partCollider != null)
-                        {
-                            Physics.IgnoreCollision(parts[i].partCollider, parts[j].partCollider, true);
-                        }
-                    }
-                }
-
-                // As in the fight: the legs carried exactly (the feet's plants are the walk's), the rest held.
-                authority = new Authority.AuthorityController(rig, anim);
-                authority.Set(Authority.BodyRegion.Legs, Authority.AuthorityLevel.Kinematic, 1f);
-                authority.Set(Authority.BodyRegion.Torso, Authority.AuthorityLevel.Pinned, profile.torsoPin);
-                authority.Set(Authority.BodyRegion.Head, Authority.AuthorityLevel.Pinned, profile.torsoPin);
-                authority.Set(Authority.BodyRegion.ArmL, Authority.AuthorityLevel.Pinned, profile.armPin);
-                authority.Set(Authority.BodyRegion.ArmR, Authority.AuthorityLevel.Pinned, profile.armPin);
-                armPin = profile.armPin;
-                weaponArmHeld = false;
-                weaponArmHeldUntil = -1f;
-            }
-
-            snapped = false;
+            walker = new ClipFighter(unit, rig, profile, origin, 0f, origin.y, LocoLibrary.CombatPrefix(body.ToString()), physical) { Defends = false };
+            anim = walker.Anim;
+            loco = walker.Loco;
+            poser = walker.Poser;
+            authority = walker.Authority;
             down = 0f;
             usualOff = Vector3.zero;
-
-            float legLength = anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude;
-            loco = new Locomotor(legLength);
             if (!loco.Ready)
             {
                 Debug.LogError("[LocomotionLab] the clip library (Resources/Locomotion/LocoClips.json) is missing clips.");
@@ -353,24 +293,21 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            poser = new LocoBody(anim, loco) { GroundY = origin.y };
-            poser.SoleFrom(rig);
             measures = new LocoMeasures(anim, loco, poser);
             film = new LocoFilm(Time.fixedDeltaTime, Mathf.Max(1, Mathf.RoundToInt(0.04f / Time.fixedDeltaTime)));
             // (The guard, step 2 of the combat overhaul: the sword and shield clips for every body for now, LocoLibrary.CombatPrefix.)
-            loco.SetGuard(LocoLibrary.CombatPrefix(body.ToString()));
             loco.GuardWanted = guardUp;
-            size = legLength / 0.845f;
+            size = walker.Size;
             EquipLoadout(size);
-            float mass = 0f;
-            foreach (var part in rig.Parts)
-            {
-                mass += part.body != null ? part.body.mass : 0f;
-            }
-
-            hits = new StrikeHits(loco, poser, anim) { Weapon = mainWeapon, Scale = size, Slot = rig.SlotWeaponR, Mass = Mathf.Max(20f, mass), Finishing = () => combo != null && combo.LastBlow, Comboing = () => combo != null && combo.Playing && combo.Cores };
+            hits = walker.EnableStrikes(mainWeapon);
+            hits.Slot = rig.SlotWeaponR;
+            hits.Finishing = () => combo != null && combo.LastBlow;
+            hits.Comboing = () => combo != null && combo.Playing && combo.Cores;
             hits.Landed += text => legs.Add($"{time:0.00} s: {text}{(dummy != null && dummy.LastReaction.Length > 0 ? "; the dummy: " + dummy.LastReaction : "")}");
             combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor, Strikes = Strikes(), TargetVelocity = () => dummy != null ? dummy.Loco.Velocity : Vector3.zero };
+            walker.Combo = combo;
+            // (A strike alone follows the dummy, as far as its pull goes.)
+            walker.Follow = clip => dummy != null ? TargetFor(clip) : (Vector3?)null;
             combo.Started += (clip, link) =>
             {
                 BeganAim(clip, poser.AimTarget);
@@ -426,7 +363,7 @@ namespace PhysicsBattler.Locomotion
             {
                 // (Paused: the pose stands still, and the physical body is still held to it; left alone,
                 // its pinned upper body would sag over its kinematic legs.)
-                if (authority != null && snapped)
+                if (authority != null && walker.Snapped)
                 {
                     authority.Apply(Time.fixedDeltaTime);
                 }
@@ -499,11 +436,11 @@ namespace PhysicsBattler.Locomotion
             // there, the dummy stepping back from it.)
             if (dummy != null)
             {
-                float keep = LabDummy.FightingDistance(size, dummy.Size);
+                float keep = ClipFighter.FightingDistance(size, dummy.Size);
                 poser.KeepFrom = dummy.Loco.Position;
                 poser.KeepDistance = keep;
                 dummy.KeepDistance = keep;
-                dummy.StandDistance = LabDummy.StandingDistance(size, dummy.Size);
+                dummy.StandDistance = ClipFighter.StandingDistance(size, dummy.Size);
             }
             else
             {
@@ -512,17 +449,9 @@ namespace PhysicsBattler.Locomotion
 
             // (A hit stop: the walker and the dummy stand still a moment; the physical bodies are still held.)
             bool frozen = hits != null && hits.HitStop > 0f;
+            walker.Move(dt, want, facing, dummy != null ? dummy.Loco.Position : loco.Position, frozen);
             if (!frozen)
             {
-                loco.Step(dt, want, facing);
-                combo?.Step(dt);
-                if ((combo == null || !combo.Playing) && dummy != null && loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0)
-                {
-                    // (A strike alone follows the dummy too, as far as its pull goes.)
-                    poser.Retarget(TargetFor(loco.Shot));
-                }
-
-                poser.Pose(dt);
                 if (comboWas && combo != null && !combo.Playing)
                 {
                     legs.Add($"{time:0.00} s: the combo ended{(combo.Ended.Length > 0 ? ": " + combo.Ended : "")}");
@@ -545,19 +474,13 @@ namespace PhysicsBattler.Locomotion
             }
 
             dummy?.Step(dt, anim.Part(PartId.Chest).position, frozen);
-            HoldWeaponArm();
-            // (The shields as turned in the hand: the seen shield is on the physical hand's slot.)
-            if (rig.SlotWeaponL != null && anim.SlotWeaponL != null)
-            {
-                rig.SlotWeaponL.localRotation = anim.SlotWeaponL.localRotation;
-            }
-
             WatchAim();
             measures.Sample(dt, time, leg);
             film.Add(time, leg, loco, poser, anim, origin);
-            if (authority != null && snapped)
+            bool wasSnapped = walker.Snapped;
+            walker.Apply(dt);
+            if (authority != null && wasSnapped)
             {
-                authority.Apply(dt);
                 // (Its own clip carrying it fast, a lunge stretched to reach, is not a push it can't step after:
                 // the Large's long lunge reached 3.3 m/s and was knocked down by its own strike.)
                 bool ownMotion = loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard;
@@ -565,11 +488,6 @@ namespace PhysicsBattler.Locomotion
                 {
                     KnockDown("pushed faster than it can step");
                 }
-            }
-            else
-            {
-                Carry();
-                snapped = true;
             }
 
             Prints();
@@ -598,7 +516,7 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         private void Bumped(float dt)
         {
-            if (authority == null || !snapped)
+            if (authority == null || !walker.Snapped)
             {
                 return;
             }
@@ -688,25 +606,6 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The thrown ball (H): its mass (kg) and speed (m/s).")]
         public float ballMass = 12f, ballSpeed = 8f;
 
-        /// <summary>The body parts where the animation rig has them (each one kinematic, moved by its body).</summary>
-        private void Carry()
-        {
-            foreach (var id in PartInfo.All)
-            {
-                var part = rig.Part(id);
-                var target = anim.Part(id);
-                if (part.body != null)
-                {
-                    part.body.MovePosition(target.position);
-                    part.body.MoveRotation(target.rotation);
-                }
-                else
-                {
-                    part.transform.SetPositionAndRotation(target.position, target.rotation);
-                }
-            }
-        }
-
         /// <summary>
         /// Leaves the lab for the fight (F): this run is logged, the lab's body and footprints go, and the
         /// sandbox spawns the fight, whose units walk with the new walk.
@@ -715,9 +614,10 @@ namespace PhysicsBattler.Locomotion
         {
             WriteLog();
             ClearPrints();
-            if (unit != null)
+            if (walker != null)
             {
-                Destroy(unit);
+                walker.Destroy();
+                walker = null;
             }
 
             dummy?.Destroy();
@@ -834,7 +734,7 @@ namespace PhysicsBattler.Locomotion
         private Vector3 dummyAt;
         private float dummyFacing = 180f;
         private float size = 1f;
-        private LabDummy dummy;
+        private ClipFighter dummy;
         private StrikeHits hits;
         private WeaponDefinition mainWeapon;
         private GameObject aimMark;
@@ -846,7 +746,7 @@ namespace PhysicsBattler.Locomotion
         private string lastAim = "";
 
         [Tooltip("How the dummy is set up (O): open (its guard down, a sword only: every blow lands), sword and shield (it blocks with the shield), or sword only (it parries with the sword).")]
-        public LabDummy.Stances dummyStance = LabDummy.Stances.Sword;
+        public ClipFighter.Stances dummyStance = ClipFighter.Stances.Sword;
 
         [Tooltip("The dummy's shield skill and parry skill (0 to 1).")]
         [Range(0f, 1f)] public float dummyShieldSkill = 1f, dummyParrySkill = 1f;
@@ -890,9 +790,9 @@ namespace PhysicsBattler.Locomotion
             Destroy(holder);
             var profile = mediumPrefab.Profile != null ? mediumPrefab.Profile : UnitProfile.CreateDefault();
             // (Sword alone, it stands as a fencer does: the sword guard, right foot forward.)
-            dummy = new LabDummy(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, dummyStance == LabDummy.Stances.Sword ? "sw_" : "sns_", physical) { Stance = dummyStance };
+            dummy = new ClipFighter(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, dummyStance == ClipFighter.Stances.Sword ? "sw_" : "sns_", physical) { Stance = dummyStance };
             var (main, off) = LoadoutOf(BodySize.Medium);
-            if (dummyStance != LabDummy.Stances.Shield)
+            if (dummyStance != ClipFighter.Stances.Shield)
             {
                 // (Open, and parrying with the sword: no shield.)
                 off = null;
@@ -909,7 +809,7 @@ namespace PhysicsBattler.Locomotion
             Streak(dummyRig.SlotWeaponR, main, dummy.Size);
             float swordLength = (main != null && !main.IsShield ? main.length : 0.8f) * dummy.Size;
             dummy.Poser.WeaponLength = swordLength;
-            if (dummyStance == LabDummy.Stances.Sword)
+            if (dummyStance == ClipFighter.Stances.Sword)
             {
                 dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummyRig, dummy.Size, swordLength)
                 {
@@ -935,7 +835,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>A weapon put in the dummy's hand: its colliders only for the sweep (a shield's block blows).</summary>
-        private static void HoldFor(LabDummy holder, Transform slot, Transform animSlot, WeaponDefinition definition, Quaternion grip)
+        private static void HoldFor(ClipFighter holder, Transform slot, Transform animSlot, WeaponDefinition definition, Quaternion grip)
         {
             if (slot == null)
             {
@@ -984,14 +884,14 @@ namespace PhysicsBattler.Locomotion
 
         private void NextDummyStance()
         {
-            dummyStance = (LabDummy.Stances)(((int)dummyStance + 1) % 3);
+            dummyStance = (ClipFighter.Stances)(((int)dummyStance + 1) % 3);
             // (Made again: what it holds changes with it.)
             MakeDummy();
             legs.Add($"{time:0.00} s: the dummy {DummyStanceName}");
         }
 
-        private string DummyStanceName => dummyStance == LabDummy.Stances.Open ? "stands open"
-            : dummyStance == LabDummy.Stances.Shield ? "has a sword and shield" : "has a sword only";
+        private string DummyStanceName => dummyStance == ClipFighter.Stances.Open ? "stands open"
+            : dummyStance == ClipFighter.Stances.Shield ? "has a sword and shield" : "has a sword only";
 
         /// <summary>The dummy put straight ahead of the walker, as far as the picked strike reaches (Y).</summary>
         private void DummyInReach()
@@ -1085,45 +985,6 @@ namespace PhysicsBattler.Locomotion
         private string aimPlan = "";
 
         // ---- The weapon arm in a blow (as the fight holds it) --------------------------------------------
-
-        /// <summary>How long after a strike the weapon arm stays held exactly to its pose (the fight's).</summary>
-        public const float WeaponArmHeldAfter = 0.4f;
-
-        private float weaponArmHeldUntil = -1f;
-        private bool weaponArmHeld;
-        private float armPin = 0.7f;
-
-        /// <summary>
-        /// Through a strike and a moment after it, the weapon arm (both, two-handed) is held exactly to its pose,
-        /// kinematic, as the fight holds it in a blow: pinned, the physical arm, and the weapon seen on it and
-        /// swept for hits, trailed a 16 m/s swing by tens of centimetres and passed by what the pose struck.
-        /// </summary>
-        private void HoldWeaponArm()
-        {
-            if (authority == null)
-            {
-                return;
-            }
-
-            if (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0)
-            {
-                weaponArmHeldUntil = time + WeaponArmHeldAfter;
-            }
-
-            bool held = time < weaponArmHeldUntil;
-            if (held == weaponArmHeld)
-            {
-                return;
-            }
-
-            weaponArmHeld = held;
-            var level = held ? Authority.AuthorityLevel.Kinematic : Authority.AuthorityLevel.Pinned;
-            authority.Set(Authority.BodyRegion.ArmR, level, armPin);
-            if (poser.TwoHanded)
-            {
-                authority.Set(Authority.BodyRegion.ArmL, level, armPin);
-            }
-        }
 
         // ---- Combos (the combat plan's step 5) ----------------------------------------------------------
 
@@ -1369,8 +1230,8 @@ namespace PhysicsBattler.Locomotion
             Vector3 dir = from.sqrMagnitude > 1e-4f ? from.normalized : Quaternion.Euler(0f, dummyFacing, 0f) * Vector3.forward;
             // (From the standing distance, the strike's lunge taking it in; a strike that can't reach from there
             // (a Small's, a short one) is stood in for, only as near as it needs, never nearer than the fighting distance.)
-            float least = LabDummy.FightingDistance(size, dummy.Size) + 0.1f * size, ownReach = reach;
-            reach = Mathf.Max(reach, LabDummy.StandingDistance(size, dummy.Size));
+            float least = ClipFighter.FightingDistance(size, dummy.Size) + 0.1f * size, ownReach = reach;
+            reach = Mathf.Max(reach, ClipFighter.StandingDistance(size, dummy.Size));
             Vector3 flatTarget = new Vector3(target.x, loco.Position.y, target.z);
             if (clip != null && clip.ContactFrame >= 0)
             {
@@ -1820,9 +1681,9 @@ namespace PhysicsBattler.Locomotion
                 if (Section("Defender (the dummy)", ref showDefender))
                 {
                     GUILayout.BeginHorizontal();
-                    foreach (var st in new[] { LabDummy.Stances.Open, LabDummy.Stances.Shield, LabDummy.Stances.Sword })
+                    foreach (var st in new[] { ClipFighter.Stances.Open, ClipFighter.Stances.Shield, ClipFighter.Stances.Sword })
                     {
-                        string name = st == LabDummy.Stances.Open ? "Open" : st == LabDummy.Stances.Shield ? "Sword + shield" : "Sword only";
+                        string name = st == ClipFighter.Stances.Open ? "Open" : st == ClipFighter.Stances.Shield ? "Sword + shield" : "Sword only";
                         if (GUILayout.Button(dummyStance == st ? "> " + name + " <" : name) && dummyStance != st)
                         {
                             dummyStance = st;
@@ -1832,10 +1693,10 @@ namespace PhysicsBattler.Locomotion
                     }
 
                     GUILayout.EndHorizontal();
-                    Note(dummyStance == LabDummy.Stances.Open ? "Open: its guard down, no defence; every blow lands. (O cycles the three.)"
-                        : dummyStance == LabDummy.Stances.Shield ? "Blocks each blow with its shield. (O cycles the three.)"
+                    Note(dummyStance == ClipFighter.Stances.Open ? "Open: its guard down, no defence; every blow lands. (O cycles the three.)"
+                        : dummyStance == ClipFighter.Stances.Shield ? "Blocks each blow with its shield. (O cycles the three.)"
                         : $"Parries each blow with its sword from a medium guard. (O cycles the three.)");
-                    if (dummyStance == LabDummy.Stances.Shield)
+                    if (dummyStance == ClipFighter.Stances.Shield)
                     {
                         // (Shield skill, 0 a novice to 1 an expert: how soon it moves, how well it reads the line, how fast its
                         // shield comes and turns, whether it covers low cuts and slants the shield so a cut glances off.)
@@ -1846,7 +1707,7 @@ namespace PhysicsBattler.Locomotion
                         GUILayout.EndHorizontal();
                     }
 
-                    if (dummyStance == LabDummy.Stances.Sword)
+                    if (dummyStance == ClipFighter.Stances.Sword)
                     {
                         // (Parry skill, 0 a novice to 1 an expert: how soon it moves, how well it reads the blow and meets the blade.)
                         GUILayout.BeginHorizontal();
