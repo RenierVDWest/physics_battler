@@ -94,7 +94,7 @@ internal static class DummyHitReport
                     {
                         dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummy.Rig, dummy.Size, dummySword.length * dummy.Size)
                         {
-                            Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? anim.SlotWeaponL : null, 0.27f),
+                            Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? anim.SlotWeaponL : null, 0.27f) { WeaponSlot = anim.SlotWeaponR, WeaponLength = poser.WeaponLength },
                         };
                     }
 
@@ -175,7 +175,7 @@ internal static class DummyHitReport
                     poser.PlayStrike(clip, target);
                     var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
                     var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = stance == LabDummy.Stances.Shield ? 0.3f : 0f, BladeLength = stance == LabDummy.Stances.Sword ? dummySword.length * dummy.Size : 0f };
-                    float started = 0f, ended = -1f, mostLean = 0f, mostMoved = 0f, nearest = 99f, handNearest = 99f, swordNearest = 99f, guardNearest = 99f, guardWhen = 0f, mostBladeTurn = 0f; Vector3 lastBladeWay = Vector3.zero;
+                    float started = 0f, ended = -1f, mostLean = 0f, mostMoved = 0f, nearest = 99f, handNearest = 99f, swordNearest = 99f, guardNearest = 99f, guardWhen = 0f, mostBladeTurn = 0f; Vector3 lastBladeWay = Vector3.zero, lastBladeDelta = Vector3.zero; int buzz = 0;
                     string what = "missed";
                     bool predicted = false; Vector3[] predTip = null, predStrike = null; float predFrom = 0f;
                     hits.Landed += text => what = text.Substring(text.IndexOf(':') + 2);
@@ -242,6 +242,17 @@ internal static class DummyHitReport
                                 mostBladeTurn = Mathf.Max(mostBladeTurn, turnStep);
                                 if (turnStep > 20f && Environment.GetEnvironmentVariable("PARRY_TRACE") != null) Console.WriteLine(string.Format(ci, "    the guard's blade turned {0:0} deg at {1:0.00} s (hit stop {2:0.00})", turnStep, i * dt, hits.HitStop));
                             }
+                            if (lastBladeWay != Vector3.zero)
+                            {
+                                Vector3 delta = bw - lastBladeWay;
+                                if (dummy.Parry.Current < 0 && lastBladeDelta.magnitude > 0.008f && delta.magnitude > 0.008f && Vector3.Dot(delta, lastBladeDelta) < 0f)
+                                {
+                                    buzz++;
+                                    if (Environment.GetEnvironmentVariable("BUZZ_TRACE") != null) Console.WriteLine(string.Format(ci, "    the guard's blade turned back at {0:0.00} s ({1:0.0} then {2:0.0} deg; hit stop {3:0.00})", i * dt, Mathf.Asin(Mathf.Min(1f, lastBladeDelta.magnitude)) * Mathf.Rad2Deg, Mathf.Asin(Mathf.Min(1f, delta.magnitude)) * Mathf.Rad2Deg, hits.HitStop));
+                                }
+                                lastBladeDelta = delta;
+                            }
+
                             lastBladeWay = bw;
                             float cl = dummy.Parry.Opponent.Clearance(dg, dt2);
                             swordNearest = Mathf.Min(swordNearest, cl);
@@ -277,7 +288,7 @@ internal static class DummyHitReport
                         Console.WriteLine(string.Format(ci, "      parries made: {0}; the arm: wrist short at most {1:0} deg, the elbow's biggest jump {2:0} deg a step, the hand at most {3:0.0} m/s, the shoulder past {4:0} deg, into the torso {5:0.00} m",
                             pr.Made.Length > 0 ? pr.Made : "none", pr.MostWristShort, pr.MostSwivelJump, pr.MostHandSpeed, pr.MostShoulderPast, pr.MostIntoTorso));
                         if (dummy.Parry.Pushed > 0) Console.WriteLine("      the dummy's sword was pushed out of the attacker " + dummy.Parry.Pushed + " times (5 deg each)");
-                        Console.WriteLine(string.Format(ci, "      the dummy's sword came within {0:0.00} m of the attacker's body{1} (below 0: into it); in its guard {2:0.00} m (at {3:0.00} s), the guard's blade turning at most {4:0} deg a step", swordNearest, dummy.Parry.Opponent != null && dummy.Parry.Opponent.HasShield ? " and shield" : "", guardNearest, guardWhen, mostBladeTurn));
+                        Console.WriteLine(string.Format(ci, "      the dummy's sword came within {0:0.00} m of the attacker's body{1} (below 0: into it); in its guard {2:0.00} m (at {3:0.00} s), the guard's blade turning at most {4:0} deg a step; its blade turned back on itself {5} times", swordNearest, dummy.Parry.Opponent != null && dummy.Parry.Opponent.HasShield ? " and shield" : "", guardNearest, guardWhen, mostBladeTurn, buzz));
                         worstSword = Mathf.Min(worstSword, swordNearest);
                         swordTries++;
                         if (what.StartsWith("parried")) swordParried++;

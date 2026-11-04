@@ -873,7 +873,7 @@ namespace PhysicsBattler.Locomotion
                 dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummyRig, dummy.Size, swordLength)
                 {
                     // (The walker as its sword keeps out of it: its body, and its shield if it carries one.)
-                    Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? rig.SlotWeaponL : null, 0.27f),
+                    Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? rig.SlotWeaponL : null, 0.27f) { WeaponSlot = poser.CarryR == LocoBody.Carry.Weapon ? rig.SlotWeaponR : null, WeaponLength = poser.WeaponLength },
                 };
             }
         }

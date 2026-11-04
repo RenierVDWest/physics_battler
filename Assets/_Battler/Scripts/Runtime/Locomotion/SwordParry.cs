@@ -374,6 +374,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far the guard keeps its sword from the other body and its shield (metres): room for the shield to move before it meets it.</summary>
         public const float GuardClear = 0.15f;
 
+        /// <summary>How far the guard keeps its blade off the other's (metres).</summary>
+        public const float GuardBladeClear = 0.05f;
+
         /// <summary>The most the sword is pushed off the other body in a step (degrees): a fast shield knocks it aside over a few steps, not in one.</summary>
         public const float MostPushStep = 25f;
 
@@ -453,7 +456,7 @@ namespace PhysicsBattler.Locomotion
             wantLean = aim.Lean;
             if (Current >= 0 && blow.HasValue)
             {
-                Place(Current, blow.Value, opponent, out wantForte, out wantBlade, out wantEdge);
+                Place(Current, blow.Value, opponent, out wantForte, out wantBlade, out wantEdge, dt);
                 if (Trace != null)
                 {
                     Vector3 hw = wantForte - wantBlade * (ForteAt * WeaponLength);
@@ -478,7 +481,7 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
-                KeepOffOpponent(opponent, ref wantForte, ref wantBlade);
+                KeepOffOpponent(opponent, ref wantForte, ref wantBlade, dt);
             }
 
             if (!started)
@@ -518,7 +521,7 @@ namespace PhysicsBattler.Locomotion
         /// plane that blade sweeps (its way and its motion), turned from the parry's own way as little as that needs,
         /// the edge to the blow; in front of the body, and never into the other body or its shield.
         /// </summary>
-        private void Place(int parry, in BlowRead b, Vector3 opponent, out Vector3 wantForte, out Vector3 wantBlade, out Vector3 wantEdge)
+        private void Place(int parry, in BlowRead b, Vector3 opponent, out Vector3 wantForte, out Vector3 wantBlade, out Vector3 wantEdge, float dt = -1f)
         {
             var bodyTurn = BodyTurn;
             var aim = Parries[parry];
@@ -585,7 +588,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            KeepOffOpponent(opponent, ref wantForte, ref wantBlade);
+            KeepOffOpponent(opponent, ref wantForte, ref wantBlade, dt);
         }
 
         /// <summary>
@@ -695,9 +698,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             float pushedFrom = pushAngle;
-            for (int i = 0; i < 18 && pushAngle - pushedFrom < MostPushStep && !Clear(pushAngle, 0f); i++)
+            for (int i = 0; i < 50 && pushAngle - pushedFrom < MostPushStep && !Clear(pushAngle, 0f); i++)
             {
-                pushAngle += 5f;
+                pushAngle += 1f;
                 Pushed++;
             }
 
@@ -712,13 +715,13 @@ namespace PhysicsBattler.Locomotion
         private float pushAngle;
 
         /// <summary>How fast a push off the other body eases off once the sword is clear (degrees a second).</summary>
-        public const float PushEase = 120f;
+        public const float PushEase = 60f;
 
         /// <summary>How many times the sword was pushed out of the other body or its shield (5 degrees each).</summary>
         public int Pushed;
 
         /// <summary>Never into the other body or its shield: the sword drawn back toward its own body until it is clear, its point raised a little, as a sword held off a body too close.</summary>
-        private void KeepOffOpponent(Vector3 opponent, ref Vector3 wantForte, ref Vector3 wantBlade)
+        private void KeepOffOpponent(Vector3 opponent, ref Vector3 wantForte, ref Vector3 wantBlade, float dt = -1f)
         {
             if (Opponent == null || NoClear)
             {
@@ -728,18 +731,67 @@ namespace PhysicsBattler.Locomotion
             Vector3 back = Root - opponent;
             back.y = 0f;
             back = back.sqrMagnitude > 1e-4f ? back.normalized : -(BodyTurn * Vector3.forward);
-            for (int i = 0; i < 12; i++)
+            float margin = (Current < 0 ? GuardClear : KeepClear) * size;
+            Vector3 forte0 = wantForte, blade0 = wantBlade;
+            // (How far it is drawn back and raised, 0 to 1 of the most: the least that clears, found by halving, so a
+            // body that moves a little moves the sword a little, never by a whole step at a time.)
+            void At(float t, out Vector3 f, out Vector3 w)
             {
-                Vector3 g = wantForte - wantBlade * (ForteAt * WeaponLength);
-                if (Opponent.Clearance(g, g + wantBlade * WeaponLength) >= (Current < 0 ? GuardClear : KeepClear) * size)
+                f = forte0 + back * (t * MostDrawBack * size);
+                w = Vector3.RotateTowards(blade0, Vector3.up, t * MostRaise * Mathf.Deg2Rad, 0f);
+            }
+
+            bool ClearAt(float t)
+            {
+                At(t, out Vector3 f, out Vector3 w);
+                Vector3 g = f - w * (ForteAt * WeaponLength);
+                float clear = Opponent.Clearance(g, g + w * WeaponLength);
+                // (At rest in the guard, off the other's blade too: two guards' blades resting on each other buzz.)
+                if (Current < 0)
                 {
-                    break;
+                    clear = Mathf.Min(clear, Opponent.WeaponClearance(g, g + w * WeaponLength) + (GuardClear - GuardBladeClear) * size);
                 }
 
-                wantForte += back * (0.04f * size);
-                wantBlade = Vector3.RotateTowards(wantBlade, Vector3.up, 6f * Mathf.Deg2Rad, 0f);
+                return clear >= margin;
             }
+
+            float need = 0f;
+            if (!ClearAt(0f))
+            {
+                need = 1f;
+                if (ClearAt(1f))
+                {
+                    float lo = 0f, hi = 1f;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        float mid = 0.5f * (lo + hi);
+                        if (ClearAt(mid)) hi = mid; else lo = mid;
+                    }
+
+                    need = hi;
+                }
+            }
+
+            // (The sword's own step: drawn off promptly, let back slowly, so the guard rests rather than hunts.)
+            float t2 = need;
+            if (dt >= 0f)
+            {
+                // (A parry lets it go as quickly as it takes it up: it has a blow to meet.)
+                float fall = Current >= 0 ? DrawBackRise : DrawBackFall;
+                drawnBack = need > drawnBack ? Mathf.MoveTowards(drawnBack, need, DrawBackRise * dt) : Mathf.MoveTowards(drawnBack, need, fall * dt);
+                t2 = drawnBack;
+            }
+
+            At(t2, out wantForte, out wantBlade);
         }
+
+        private float drawnBack;
+
+        /// <summary>The most the sword is drawn back off the other body (metres at a Medium's size) and its point raised (degrees).</summary>
+        public const float MostDrawBack = 0.48f, MostRaise = 72f;
+
+        /// <summary>How fast the drawing back is taken up, and let go (of the most, a second).</summary>
+        public const float DrawBackRise = 6f, DrawBackFall = 0.8f;
 
         /// <summary>What the blow read would meet first with the sword placed so (forte, way).</summary>
         private enum Meeting { Nothing, Body, Glance, Blade }
@@ -966,6 +1018,22 @@ namespace PhysicsBattler.Locomotion
             this.size = size;
             shield = shieldSlot;
             this.shieldRadius = shieldRadius;
+        }
+
+        /// <summary>Its weapon (the slot, the blade's length in metres): kept off by a guard at rest, met by a parry.</summary>
+        public Transform WeaponSlot;
+        public float WeaponLength;
+
+        /// <summary>How far a segment is from the other's weapon (metres; a large number with none).</summary>
+        public float WeaponClearance(Vector3 p, Vector3 q)
+        {
+            if (WeaponSlot == null || WeaponLength <= 0f)
+            {
+                return float.MaxValue;
+            }
+
+            Vector3 g = WeaponSlot.position, t = g + WeaponSlot.rotation * Vector3.forward * WeaponLength;
+            return StrikeHits.SegmentsNearest(p, q, g, t, out _, out _, out _, out _) - 0.02f * size;
         }
 
         private static readonly (PartId a, PartId b, float r)[] Capsules =

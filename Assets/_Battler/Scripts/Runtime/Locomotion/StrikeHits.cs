@@ -249,6 +249,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A weapon touching a body outside a blow (the wind-up passing through it, a guard too close) pushes it: at most once in this long per part (seconds), with the weapon's weight (kg).</summary>
         public const float TouchEvery = 0.3f, WeaponMass = 1.3f;
 
+        /// <summary>The least speed a touching weapon pushes what it touches at (m/s at a Medium's size).</summary>
+        public const float TouchSpeed = 1f;
+
         public int Touches;
 
         /// <summary>How many stopped blows were jumping strikes stopped in the air (played on into their landing).</summary>
@@ -404,7 +407,8 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A touch outside a blow: what the blade touches is pushed by the weapon's weight at its speed.</summary>
         private void Touch(LabDummy dummy, int key, PartId part, bool shield, bool sword, Vector3 point, Vector3 velocity)
         {
-            if (touched.TryGetValue(key, out float last) && clock - last < TouchEvery)
+            // (Only a weapon moving into it pushes: one resting against it, swaying with its holder, is felt but not knocked.)
+            if (velocity.magnitude < TouchSpeed * Mathf.Sqrt(Scale) || (touched.TryGetValue(key, out float last) && clock - last < TouchEvery))
             {
                 return;
             }
