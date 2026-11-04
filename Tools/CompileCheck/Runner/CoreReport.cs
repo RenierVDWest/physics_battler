@@ -15,14 +15,14 @@ internal static class CoreReport
         LocoLibrary.Load();
         var ci = CultureInfo.InvariantCulture;
         var strikes = LocoLibrary.Clips.Values.Where(c => c.Role == "strike" && c.ContactFrame >= 0).OrderBy(c => c.Name).ToList();
-        Console.WriteLine("strike                     contact  turnaround  entry (lead)   exit   tip at entry  turn left  travel left  feet");
+        Console.WriteLine("strike                     contact  turnaround  entry (lead)   exit   tip at entry  turn left  travel left  weight  feet");
         var json = new StringBuilder("{\"strikes\": [");
         bool firstClip = true;
         foreach (var clip in strikes)
         {
             StrikeCores.TryGet(clip, out var core);
-            Console.WriteLine(string.Format(ci, "{0,-26} {1,6:0.00} s {2,8:0.00} s {3,6:0.00} s ({4:0.00}) {5,6:0.00} s {6,9:0%} {7,9:+0;-0}° {8,9:0.00} leg  {9}",
-                clip.Name, core.Contact, core.Turnaround, core.Entry, core.Lead, core.Exit, core.EntrySpeedShare, core.TurnLeft, core.TravelLeft, core.Airborne ? "in the air" : core.Leap ? "leap (opener only)" : "down"));
+            Console.WriteLine(string.Format(ci, "{0,-26} {1,6:0.00} s {2,8:0.00} s {3,6:0.00} s ({4:0.00}) {5,6:0.00} s {6,9:0%} {7,9:+0;-0}° {8,9:0.00} leg  {10,6:0.00}  {9}",
+                clip.Name, core.Contact, core.Turnaround, core.Entry, core.Lead, core.Exit, core.EntrySpeedShare, core.TurnLeft, core.TravelLeft, core.Airborne ? "in the air" : core.Leap ? "leap (finisher only)" : "down", core.Weight));
 
             float from = Mathf.Max(0f, core.Entry - (core.Leap ? 0.15f : 0.4f)), to = Mathf.Min(clip.Duration, core.Exit + 0.25f);
             json.Append(firstClip ? "" : ",").Append("\n{\"name\": \"").Append(clip.Name).Append("\", \"kind\": \"").Append(clip.Kind)
@@ -50,6 +50,17 @@ internal static class CoreReport
             }
 
             json.Append("]}");
+        }
+
+        if (Environment.GetEnvironmentVariable("BEARINGS") != null)
+        {
+            foreach (var clip in strikes)
+            {
+                StrikeCores.TryGet(clip, out var core);
+                float open = core.Leap ? core.Entry : Mathf.Max(0f, core.Contact - StrikeCombos.OpenLead);
+                Console.WriteLine(string.Format(ci, "{0,-22} bearing from the opener's entry {1:+0;-0}, from the core's entry {2:+0;-0}, at contact {3:+0;-0}", clip.Name,
+                    StrikeCores.Bearing(clip, open), StrikeCores.Bearing(clip, core.Entry), StrikeCores.Bearing(clip, core.Contact)));
+            }
         }
 
         json.Append("\n]}\n");

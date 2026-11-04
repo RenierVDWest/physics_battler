@@ -46,15 +46,27 @@ internal static class StrikeComboReport
         int combos = 0, landed = 0, blocked = 0, missed = 0, strikesPlayed = 0;
         float fastest = 0f;
         string fastestWhere = "";
-        foreach (var first in strikes)
+        bool cores = Environment.GetEnvironmentVariable("COMBO_OLD") == null && (body != "Large" || Environment.GetEnvironmentVariable("COMBO_CORES") != null);
+        var beats = new List<float>();
+        var spans = new List<float>();
+        foreach (var picked in strikes)
         {
-            var chain = StrikeCombos.Chain(first, strikes, 3);
+            // (Cores: the picked strike opens its combo, or a showstopper picked ends it.)
+            var chain = cores ? StrikeCombos.CoreChain(picked, strikes) : StrikeCombos.Chain(picked, strikes, 3);
+            var first = chain.Count > 0 ? chain[0].From : picked;
+            if (cores && first != picked)
+            {
+                Console.WriteLine($"{picked.Name} (picked) ends its combo:");
+            }
+
             Console.WriteLine($"{first.Name}: " + (chain.Count == 0 ? "no follow-on" : string.Join("; ", chain.Select(l => l.ToString()))));
             // Played at the dummy (a strike with no quick follow-on too: the combo goes on from the guard).
             var (anim, loco, poser, root, size) = DummyHitReportWalker(body);
             var weapon = WeaponDefinition.CreateDefault(body == "Large" ? WeaponKind.Club : WeaponKind.Sword);
             poser.WeaponLength = weapon.length * size;
             var hits = new StrikeHits(loco, poser, anim) { Weapon = weapon, Scale = size, Mass = 70f * size * size * size };
+            ComboPlayer playerRef = null;
+            hits.Finishing = () => playerRef != null && playerRef.LastBlow;
             float reach = 1.6f;
             if (StrikeReach.TryGet(body, first.Name, out var grip, out var way))
             {
@@ -99,6 +111,7 @@ internal static class StrikeComboReport
 
             var player = new ComboPlayer(loco, poser)
             {
+                Cores = cores,
                 Strikes = Environment.GetEnvironmentVariable("COMBO_FIXED") != null ? null : strikes,
                 TargetVelocity = () => dummy.Loco.Velocity,
                 // (Each strike at the dummy's part nearest its own reach's height.)
@@ -122,6 +135,7 @@ internal static class StrikeComboReport
                     return dummy.TargetAt(best);
                 },
             };
+            playerRef = player;
             var results = new List<string>();
             float clock = 0f;
             var hitTimes = new List<float>();
@@ -141,9 +155,20 @@ internal static class StrikeComboReport
                 results.Add(text.Substring(0, text.IndexOf(" (", StringComparison.Ordinal) > 0 ? text.IndexOf(" (", StringComparison.Ordinal) : text.Length));
             };
             bool wasPressing = false;
+            Vector3 aimAt = Vector3.zero;
+            float aimNearest = float.MaxValue;
+            var passed = new List<string>();
             player.Started += (clip, link) =>
             {
-                playedNames.Add((wasPressing ? "(pressed in) " : "") + clip.Name.Replace(prefix, "") + string.Format(ci, " [turn {0:+0;-0}]", poser.AimTurn));
+                if (playedNames.Count > 0)
+                {
+                    passed.Add((aimNearest * 100f).ToString("0", ci) + " cm");
+                }
+
+                aimAt = poser.AimTarget;
+                aimNearest = float.MaxValue;
+                playedNames.Add((wasPressing ? "(pressed in) " : "") + clip.Name.Replace(prefix, "") + string.Format(ci, " [turn {0:+0;-0}{1}]", poser.AimTurn,
+                    player.LastStepIn > 0.01f ? string.Format(ci, ", stepped in {0:0.00} m", player.LastStepIn) : ""));
                 if (link != null) { linkTimes.Add(loco.ShotTime); }
                 if (link != null && Environment.GetEnvironmentVariable("COMBO_WHY") != null) { Console.WriteLine("      chose " + clip.Name + " of: " + player.LastChoice); }
             };
@@ -196,6 +221,37 @@ internal static class StrikeComboReport
                 }
 
                 wasPressing = player.Pressing;
+                if (loco.Shot != null && hits.Blade(loco.Shot, out var bg, out var btip, out _))
+                {
+                    StrikeHits.SegmentsNearest(bg, btip, aimAt, aimAt + Vector3.up * 1e-3f, out _, out _, out _, out _);
+                    Vector3 ab = btip - bg;
+                    float u = Mathf.Clamp01(Vector3.Dot(aimAt - bg, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
+                    aimNearest = Mathf.Min(aimNearest, (bg + ab * u - aimAt).magnitude);
+                }
+
+                if (Environment.GetEnvironmentVariable("COMBO_HAND") is string hw && first.Name.Contains(hw.Split(':')[0]))
+                {
+                    var range = hw.Split(':')[1].Split('-');
+                    if (i * dt >= float.Parse(range[0], ci) && i * dt <= float.Parse(range[1], ci))
+                    {
+                        Vector3 clipHand = loco.Position + Quaternion.Euler(0f, loco.Facing, 0f) * loco.Points[(int)LocoBone.RightHand];
+                        Console.WriteLine(string.Format(ci, "      {0:0.000} {1} {2:0.00} {3} hand {4} clip's hand {5} pull weight {6:0.00} aim lands {7}", i * dt, loco.Shot?.Name, loco.ShotTime, frozen ? "frozen" : "", anim.Part(PartId.HandR).position, clipHand, poser.AimWeightNow, poser.AimLands));
+                    }
+                }
+
+                if (Environment.GetEnvironmentVariable("COMBO_AIM") != null && loco.Shot != null && loco.Shot.ContactFrame >= 0)
+                {
+                    float c = loco.Shot.ContactFrame / loco.Shot.Rate;
+                    if (loco.ShotTime >= c && loco.ShotTime - loco.ShotRate * dt < c)
+                    {
+                        Vector3 nowAt = player.TargetFor(loco.Shot);
+                        hits.Blade(loco.Shot, out var cg, out var ct, out _);
+                        Console.WriteLine(string.Format(ci, "      {0} at contact: aimed at {1}, the target now {2} ({3:0.00} m off), the tip at {4}, the dummy {5:0.00} m away (root to root), live {6}",
+                            loco.Shot.Name, aimAt, nowAt, (nowAt - aimAt).magnitude, ct,
+                            new Vector2(dummy.Loco.Position.x - loco.Position.x, dummy.Loco.Position.z - loco.Position.z).magnitude, hits.LiveBefore));
+                    }
+                }
+
                 hits.Step(dt, dummy);
                 dummy.Watch(hits);
                 dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
@@ -245,15 +301,30 @@ internal static class StrikeComboReport
 
             missed += playedNames.Count - results.Count;
             Console.WriteLine("    played: " + string.Join(" > ", playedNames) + (player.Ended.Length > 0 ? $" (ended: {player.Ended})" : ""));
-            Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)));
+            passed.Add((aimNearest * 100f).ToString("0", ci) + " cm");
+            Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)) + "; the blades passed their aim points by " + string.Join(", ", passed));
             if (hitTimes.Count > 1)
             {
-                Console.WriteLine("    between blows: " + string.Join(", ", hitTimes.Zip(hitTimes.Skip(1), (a, b) => (b - a).ToString("0.00", ci) + " s")));
+                Console.WriteLine("    between blows: " + string.Join(", ", hitTimes.Zip(hitTimes.Skip(1), (a, b) => (b - a).ToString("0.00", ci) + " s"))
+                    + string.Format(ci, "; first contact to last {0:0.00} s", hitTimes[hitTimes.Count - 1] - hitTimes[0]));
+                beats.AddRange(hitTimes.Zip(hitTimes.Skip(1), (a, b) => b - a));
+                if (hitTimes.Count >= 3)
+                {
+                    spans.Add(hitTimes[hitTimes.Count - 1] - hitTimes[0]);
+                }
             }
             File.WriteAllText(Path.Combine(dir, first.Name + ".json"), film.ToString());
             File.WriteAllText(Path.Combine(dir, first.Name + ".dummy"), dummyFilm.ToString());
             UnityEngine.Object.DestroyImmediate(root);
             UnityEngine.Object.DestroyImmediate(droot);
+        }
+
+        beats.Sort();
+        spans.Sort();
+        if (beats.Count > 0)
+        {
+            Console.WriteLine(string.Format(ci, "Hit to hit: median {0:0.00} s, most {1:0.00} s; first contact to the third: median {2:0.00} s, most {3:0.00} s ({4} of {5} combos landed three)",
+                beats[beats.Count / 2], beats[beats.Count - 1], spans.Count > 0 ? spans[spans.Count / 2] : 0f, spans.Count > 0 ? spans[spans.Count - 1] : 0f, spans.Count, combos));
         }
 
         Console.WriteLine(string.Format(ci, "All: {0} combos, {1} strikes: {2} landed, {3} blocked, {4} missed; about the switches the hands and feet moved at most {5:0.0} m/s ({6})",

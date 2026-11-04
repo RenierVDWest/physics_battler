@@ -96,6 +96,18 @@ namespace PhysicsBattler.Locomotion
 
         private Quaternion RootTurn => Quaternion.Euler(0f, loco.Facing, 0f);
 
+        /// <summary>
+        /// The root's facing as what is kept to it sees it (the shield's way, the knees' forward): a combo's link turns
+        /// the root at once (<see cref="Locomotor.TurnRoot"/>), the pose kept where it is, and these follow it over
+        /// <see cref="RootTurnEase"/> rather than snapping round (the shield hand jumped 30 m/s at a 70 degree link).
+        /// </summary>
+        private Quaternion SmoothRootTurn => Quaternion.Euler(0f, loco.Facing - rootTurnLeft, 0f);
+
+        private float rootTurnLeft;
+
+        /// <summary>The time a link's root turn takes to reach what is kept to the root's facing (seconds, the e-folding).</summary>
+        public float RootTurnEase = 0.08f;
+
         private Vector3 restHeel, soleToe;
 
         /// <summary>
@@ -124,6 +136,7 @@ namespace PhysicsBattler.Locomotion
         public void Pose(float dt)
         {
             poseDt = dt;
+            rootTurnLeft *= Mathf.Exp(-dt / Mathf.Max(1e-3f, RootTurnEase));
             HeldArms();
             StepHandKnock(dt);
             UpdateAimWeights(dt);
@@ -175,7 +188,7 @@ namespace PhysicsBattler.Locomotion
             if (CarryL == Carry.Shield)
             {
                 // (In the guard and its strikes the shield faces the way the body does, at the enemy, a little out.)
-                FaceShieldAt(RootTurn * Quaternion.Euler(0f, -ShieldOut, 0f) * Vector3.forward, ClipArms * ShieldTurned);
+                FaceShieldAt(SmoothRootTurn * Quaternion.Euler(0f, -ShieldOut, 0f) * Vector3.forward, ClipArms * ShieldTurned);
             }
 
             // The legs.
@@ -279,7 +292,7 @@ namespace PhysicsBattler.Locomotion
             // full only from a tenth of a leg off the line, so a straight leg's knee goes forward, not
             // whichever way a few millimetres point.)
             float says = Mathf.Clamp01(pole.magnitude / (0.1f * loco.Leg));
-            return (pole.sqrMagnitude > 1e-8f ? pole.normalized * says : Vector3.zero) + 0.3f * (RootTurn * Vector3.forward);
+            return (pole.sqrMagnitude > 1e-8f ? pole.normalized * says : Vector3.zero) + 0.3f * (SmoothRootTurn * Vector3.forward);
         }
 
         /// <summary>A frame (rest: up +y, right +x) turned so its up lies along <paramref name="up"/> and its right toward <paramref name="right"/>.</summary>
@@ -346,6 +359,14 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The root turned at once (a combo's link): the directions kept against it turned back, so the body doesn't turn with it.</summary>
         private void OnRootTurned(float degrees)
         {
+            rootTurnLeft += degrees;
+            var backTurn = Quaternion.Euler(0f, -degrees, 0f);
+            for (int i = 0; i < heldApplied.Length; i++)
+            {
+                heldApplied[i] = backTurn * heldApplied[i];
+                armRelease[i] = backTurn * armRelease[i];
+            }
+
             var back = Quaternion.Euler(0f, -degrees, 0f);
             var there = Quaternion.Euler(0f, degrees, 0f);
             for (int a = 0; a < 2; a++)
@@ -611,6 +632,9 @@ namespace PhysicsBattler.Locomotion
 
         private float aimWeight, steerWeight, aimFrom;
 
+        /// <summary>How much of the aim's pull is on now (for the logs).</summary>
+        public float AimWeightNow => aimWeight;
+
         // (A combo's strike taken up while the last one's pull is still on: that pull is let go over AimLetGo.)
         private Vector3 pullLeft;
         private float pullLeftWeight;
@@ -819,7 +843,8 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         /// <param name="plan">False: played as it is, no turn, stretch or pull (the wrist still steers toward the target).</param>
         /// <param name="startFrom">Taken up from this far into the clip (seconds): a combo's next strike, its wind-up met part way.</param>
-        public void PlayStrike(LocoClip clip, Vector3 target, bool plan = true, float startFrom = 0f)
+        /// <param name="stepIn">A combo's longer step in on top of the strike's travel (world, metres; <see cref="Locomotor.PlayAimed"/>): planned from where it ends.</param>
+        public void PlayStrike(LocoClip clip, Vector3 target, bool plan = true, float startFrom = 0f, Vector3 stepIn = default)
         {
             if (clip == null || clip.ContactFrame < 0)
             {
@@ -847,21 +872,23 @@ namespace PhysicsBattler.Locomotion
             }
 
             float contact = clip.ContactFrame / clip.Rate;
-            Plan(clip, target, startFrom, out float k, out float by, out Vector3 predicted, out Vector3 want);
+            stepIn.y = 0f;
+            Vector3 rootAt = loco.Position + stepIn;
+            Plan(clip, target, startFrom, rootAt, loco.Facing, out float k, out float by, out Vector3 predicted, out Vector3 want);
             var turn0 = Quaternion.Euler(0f, loco.Facing, 0f);
             Vector3 miss = want - predicted;
             AimMissBeforePull = miss.magnitude;
             aimPull = turn0 * Quaternion.Euler(0f, by, 0f) * Vector3.ClampMagnitude(Quaternion.Inverse(Quaternion.Euler(0f, by, 0f)) * miss, MostAimPull);
             AimTurn = by;
             AimLunge = k;
-            planGripWorld = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * planGrip;
+            planGripWorld = new Vector3(rootAt.x, GroundY, rootAt.z) + turn0 * planGrip;
             KeepHandOff();
-            AimPredicted = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * predicted;
+            AimPredicted = new Vector3(rootAt.x, GroundY, rootAt.z) + turn0 * predicted;
             AimTarget = target;
             AimLands = AimPredicted + aimPull;
             aimClip = clip;
             aimFrom = startFrom;
-            loco.PlayAimed(clip, k, by, contact, startFrom);
+            loco.PlayAimed(clip, k, by, contact, startFrom, stepIn);
         }
 
         /// <summary>
@@ -1019,12 +1046,28 @@ namespace PhysicsBattler.Locomotion
         {
             if (armHeldIn == null)
             {
+                ReleasedArms();
                 return;
             }
 
             if (loco.Current != Locomotor.Mode.OneShot || loco.Shot != armHeldIn)
             {
+                // (Let go into the next motion (a combo's next blow): where the held arm was, faded out as a switch is,
+                // not dropped in a frame.)
+                var now = loco.RawPoints;
+                foreach (var b in RightArmBones)
+                {
+                    armRelease[(int)b] = heldApplied[(int)b] - (now[(int)b] - now[(int)LocoBone.RightArm]);
+                }
+
+                foreach (var b in LeftArmBones)
+                {
+                    armRelease[(int)b] = TwoHanded ? heldApplied[(int)b] - (now[(int)b] - now[(int)LocoBone.LeftArm]) : Vector3.zero;
+                }
+
+                armReleaseWeight = 1f;
                 armHeldIn = null;
+                ReleasedArms();
                 return;
             }
 
@@ -1033,16 +1076,44 @@ namespace PhysicsBattler.Locomotion
             var raw = loco.RawPoints;
             foreach (var b in RightArmBones)
             {
-                raw[(int)b] = raw[(int)LocoBone.RightArm] + Vector3.Lerp(heldArm[(int)b], endArm[(int)b], w);
+                heldApplied[(int)b] = Vector3.Lerp(heldArm[(int)b], endArm[(int)b], w);
+                raw[(int)b] = raw[(int)LocoBone.RightArm] + heldApplied[(int)b];
             }
 
             if (TwoHanded)
             {
                 foreach (var b in LeftArmBones)
                 {
-                    raw[(int)b] = raw[(int)LocoBone.LeftArm] + Vector3.Lerp(heldArm[(int)b], endArm[(int)b], w);
+                    heldApplied[(int)b] = Vector3.Lerp(heldArm[(int)b], endArm[(int)b], w);
+                    raw[(int)b] = raw[(int)LocoBone.LeftArm] + heldApplied[(int)b];
                 }
             }
+        }
+
+        private readonly Vector3[] heldApplied = new Vector3[LocoClip.BoneCount], armRelease = new Vector3[LocoClip.BoneCount];
+        private float armReleaseWeight;
+
+        /// <summary>A held arm let go: what it was off the new motion's, faded out over the switch's half-life.</summary>
+        private void ReleasedArms()
+        {
+            if (armReleaseWeight <= 1e-3f)
+            {
+                armReleaseWeight = 0f;
+                return;
+            }
+
+            var raw = loco.RawPoints;
+            foreach (var b in RightArmBones)
+            {
+                raw[(int)b] += armRelease[(int)b] * armReleaseWeight;
+            }
+
+            foreach (var b in LeftArmBones)
+            {
+                raw[(int)b] += armRelease[(int)b] * armReleaseWeight;
+            }
+
+            armReleaseWeight *= Mathf.Pow(0.5f, poseDt / Mathf.Max(0.03f, loco.SwitchHalfLifeNow));
         }
 
         // ---- A blow's knock on the weapon arm (a parry or a block met it): the hand thrown back, and back again -----
@@ -1070,6 +1141,19 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How far an aimed strike would miss its target even with all its pull (metres; 0: it lands).</summary>
         public float MissAfterPull(LocoClip clip, Vector3 target, float startFrom = 0f) => MissAfterPull(clip, target, startFrom, loco.Position, loco.Facing);
+
+        /// <summary>How far a strike from a root there would miss before the arm's pull takes any of it up (metres): a combo's step in plans on this, the pull only for what it can't reach.</summary>
+        public float MissBeforePull(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing)
+        {
+            if (clip == null || clip.ContactFrame < 0)
+            {
+                return float.MaxValue;
+            }
+
+            startFrom = Mathf.Clamp(startFrom, 0f, Mathf.Max(0f, clip.ContactFrame / clip.Rate - 0.05f));
+            Plan(clip, target, startFrom, rootAt, facing, out _, out _, out Vector3 predicted, out Vector3 want);
+            return (want - predicted).magnitude;
+        }
 
         /// <summary>The same, from a root somewhere else (a combo's link: the root turned and moved there).</summary>
         public float MissAfterPull(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing)

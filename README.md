@@ -143,6 +143,27 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     prints the table and writes cores.json; `python3 Tools/Mocap/Combat/coresheet.py <dir>/cores.json sheet.png
     [sns_,lg_]` draws the film sheet (tip speed with the marks; the body from the target and from above at the
     entry, contact and exit; the tip's path, thick over the core).
+  - Combo feel, step 3: combos of cores, Bam! Bam! BAM! (`ComboPlayer.Cores`, on for the Small and the Medium; the
+    Large keeps the earlier chooser until step 5). A combo is planned up front (`StrikeCombos.CoreChain`) and ends
+    on its showstopper: a leap (the jump chop, the side chop, the combo chop), or with none the heaviest blow
+    (`StrikeCore.Weight`). A showstopper picked ends its combo, two quick blows before it; any other strike picked
+    opens it. The quick blows are the ones whose cores meet best: the hips lined up at the link, the root's turn
+    there and the aim's turn the next blow needs (`StrikeLink.Aim`: no link whose blow lands more than 50 degrees
+    off the way the last one did, so the spinning chops, which land 120 to 160 degrees off where they take off,
+    never end a combo; picked, they open it, taken up from before their spin). Each blow is cut 0.06 s after
+    its contact (or where it was stopped), and the next taken up at once at its core's entry, its chamber
+    quickened to take about 0.42 s (`StrikeCombos.CoreChamberSpeed`, up to 2 times for a leap's takeoff). The
+    opener is taken up 0.4 s before its contact, from the guard. A follow-on aimed at a target its last blow
+    drove back takes a longer step in on top of its own travel (`ComboPlayer.StepIn`, up to 0.7 m, eased over its
+    wind-up, never nearer than the fighting distance): no pressing, no combo given up. The showstopper lands 1.5
+    times as hard, with a longer hit stop (0.13 to 0.17 s; `StrikeHits.Finishing`). Fixed on the way: a link's
+    root turn snapped the shield hand round for a frame (`LocoBody.SmoothRootTurn`; the clip's own pose is now
+    turned with the root too), and a jump strike stopped in the air dropped its held arm in a frame at the next
+    blow (now faded out). Headless (`combos <dir> <body>`; `COMBO_OLD=1` the earlier chooser, `COMBO_AIM=1` where
+    each blade was at contact, `COMBO_HAND=<strike>:<from>-<to>` the weapon hand each frame): the Medium lands 27
+    of 27 blows on the open dummy and the sword dummy, 0.25 to 0.38 s between the quick blows and 0.47 to 0.55 s
+    into the showstopper, the third 0.73 to 0.93 s after the first; the Small 26 of 27, 0.22 to 0.37 s; the hands
+    at most 15.6 m/s about the switches.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

@@ -395,7 +395,7 @@ namespace PhysicsBattler.Locomotion
         /// over its first <paramref name="turnOver"/> seconds (its wind-up). Its feet step as the clip's do.
         /// </summary>
         /// <param name="startFrom">Taken up this far into the clip (a combo's next strike): the turn is spread from there.</param>
-        public void PlayAimed(LocoClip clip, float moveScale, float turnBy, float turnOver, float startFrom = 0f)
+        public void PlayAimed(LocoClip clip, float moveScale, float turnBy, float turnOver, float startFrom = 0f, Vector3 stepIn = default)
         {
             if (clip == null)
             {
@@ -407,6 +407,30 @@ namespace PhysicsBattler.Locomotion
             shotAimTurn = turnBy;
             shotAimFrom = startFrom;
             shotAimOver = Mathf.Max(startFrom + 0.05f, turnOver);
+            stepIn.y = 0f;
+            shotStepIn = stepIn;
+        }
+
+        /// <summary>
+        /// A combo's longer step in (world, metres): on top of the strike's own travel, eased in over its wind-up from
+        /// where it was taken up to its contact, so a follow-on meets a target its last blow drove back.
+        /// </summary>
+        private Vector3 shotStepIn;
+
+        private float StepInShare(float from, float to)
+        {
+            if (shotStepIn.sqrMagnitude < 1e-8f || shotAimOver <= shotAimFrom)
+            {
+                return 0f;
+            }
+
+            float S(float t)
+            {
+                float u = Mathf.Clamp01((t - shotAimFrom) / (shotAimOver - shotAimFrom));
+                return u * u * (3f - 2f * u);
+            }
+
+            return S(to) - S(from);
         }
 
         /// <summary>The playing strike's own time (seconds into its clip) and its contact time; -1 when no strike plays.</summary>
@@ -746,6 +770,7 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 position += shotBend * (Quaternion.Euler(0f, facing, 0f) * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
+                position += shotStepIn * StepInShare(from, next);
                 facing += turned * shotTurnScale;
                 from = next;
             }
@@ -845,6 +870,7 @@ namespace PhysicsBattler.Locomotion
             shotMoveScale = 1f;
             shotBend = Quaternion.identity;
             shotAimTurn = shotAimOver = shotAimFrom = 0f;
+            shotStepIn = Vector3.zero;
             rewinding = false;
             ShotSpeed = 1f;
             chamberSpeed = 1f;
@@ -993,6 +1019,7 @@ namespace PhysicsBattler.Locomotion
             if (Current == Mode.OneShot && Shot != null)
             {
                 shotMoveScale = 0f;
+                shotStepIn = Vector3.zero;
             }
         }
 
@@ -1116,6 +1143,9 @@ namespace PhysicsBattler.Locomotion
             Vector3 moved = after * shift;
             for (int i = 0; i < raw.Length; i++)
             {
+                // (The clip's own pose too, until the next step samples it again: posed before that, against the turned
+                // root, it would have the hands the clip leads jump by the turn for a frame.)
+                raw[i] = back * raw[i] - moved;
                 Points[i] = back * Points[i] - moved;
                 lastOut[i] = back * lastOut[i] - moved;
                 offset[i] = back * offset[i];
@@ -1156,6 +1186,11 @@ namespace PhysicsBattler.Locomotion
 
             var turn = Quaternion.Euler(0f, Facing, 0f);
             Vector3 step = shotBend * (turn * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
+            if (!rewinding)
+            {
+                step += shotStepIn * StepInShare(from, ShotTime);
+            }
+
             Position += step;
             Facing += turned * shotTurnScale;
             Velocity = step / dt;

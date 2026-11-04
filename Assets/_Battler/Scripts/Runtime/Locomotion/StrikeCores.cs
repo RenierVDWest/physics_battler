@@ -20,11 +20,18 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The blade tip's speed at the entry against its fastest about contact (0 to 1), and the body's turn and travel left from the entry to contact (degrees; leg lengths).</summary>
         public readonly float EntrySpeedShare, TurnLeft, TravelLeft;
 
-        /// <summary>Entered with both feet off the ground (no takeoff found); a leap: entered at its takeoff, longer before contact than a beat allows (it opens combos, never follows on).</summary>
+        /// <summary>The tip's fastest about contact (leg lengths a second), the way it sweeps over the core (leg lengths, turning round the shoulder), and the blow's weight from them (<see cref="StrikeCores.WeightOf"/>): a combo ends on its heaviest.</summary>
+        public readonly float Peak, Sweep, Weight;
+
+        /// <summary>Entered with both feet off the ground (no takeoff found); a leap: entered at its takeoff, longer before contact than a beat allows (only ever a combo's last blow, its wind-up quickened).</summary>
         public readonly bool Airborne, Leap;
 
-        public StrikeCore(float entry, float exit, float contact, float turnaround, float entryShare, float turnLeft, float travelLeft, bool airborne, bool leap)
+        public StrikeCore(float entry, float exit, float contact, float turnaround, float entryShare, float turnLeft, float travelLeft, bool airborne, bool leap,
+            float peak, float sweep)
         {
+            Peak = peak;
+            Sweep = sweep;
+            Weight = StrikeCores.WeightOf(peak, sweep, travelLeft, leap);
             Airborne = airborne;
             Leap = leap;
             Entry = entry;
@@ -90,6 +97,36 @@ namespace PhysicsBattler.Locomotion
             return hand + (way.sqrMagnitude > 1e-8f ? way.normalized : Vector3.up) * BladeLength;
         }
 
+        /// <summary>
+        /// Which way the blow lands, seen from the root at <paramref name="from"/> (degrees off its facing, + right, as
+        /// the walk turns): the blade's tip at contact, carried by the root's own move and turn from then to contact.
+        /// A combo turns least where each next blow lands the way the last one did.
+        /// </summary>
+        public static float Bearing(LocoClip clip, float from, string body = "Medium")
+        {
+            const float leg = 0.845f, reach = 0.9f * 0.7f;
+            float contact = clip.ContactFrame / clip.Rate;
+            Vector3 point;
+            if (StrikeReach.TryGet(body, clip.Name, out var grip, out var way))
+            {
+                // (As the strike's plan has it: the weapon's sweet spot at contact, against the root at the clip's start.)
+                point = grip + way * reach;
+                clip.RootMotion(0f, from, out var before, out float turnedBefore);
+                point = Quaternion.Euler(0f, -turnedBefore, 0f) * (point - new Vector3(before.x, 0f, before.y) * leg);
+            }
+            else
+            {
+                Vector3 hand = clip.Point(LocoBone.RightHand, contact);
+                Vector3 side = (clip.Point(LocoBone.RightHandIndex, contact) - clip.Point(LocoBone.RightHandPinky, contact)).normalized;
+                Vector3 along = (clip.Point(LocoBone.RightHandMiddle, contact) - hand).normalized;
+                Vector3 tip = hand + (side * Mathf.Cos(20f * Mathf.Deg2Rad) + along * Mathf.Sin(20f * Mathf.Deg2Rad)).normalized * BladeLength;
+                clip.RootMotion(from, contact, out var moved, out float turned);
+                point = new Vector3(moved.x, 0f, moved.y) + Quaternion.Euler(0f, turned, 0f) * tip;
+            }
+
+            return Mathf.Atan2(point.x, point.z) * Mathf.Rad2Deg;
+        }
+
         /// <summary>A bone where the clip has it on its own ground (its root's track applied; leg lengths).</summary>
         public static Vector3 World(LocoClip clip, LocoBone bone, float time)
         {
@@ -112,6 +149,13 @@ namespace PhysicsBattler.Locomotion
             Vector3 bodyMoved = World(clip, LocoBone.RightArm, b) - World(clip, LocoBone.RightArm, a);
             return (tipMoved - bodyMoved).magnitude / (b - a);
         }
+
+        /// <summary>
+        /// How heavy a blow reads (the showstopper of a combo is its heaviest): the tip's sweep into contact over the
+        /// last <see cref="MostLead"/> (leg lengths), its speed there (a tenth a leg length a second), the body carried
+        /// into it (leg lengths), and a leap's a full one more.
+        /// </summary>
+        public static float WeightOf(float peak, float sweep, float travel, bool leap) => sweep + 0.1f * peak + travel + (leap ? 1f : 0f);
 
         private static StrikeCore Find(LocoClip clip)
         {
@@ -148,7 +192,7 @@ namespace PhysicsBattler.Locomotion
             float entry = Mathf.Clamp(turnaround + PastTurnaround, earliest, latest);
             // (A jump: entered as it leaves the ground, never in the air, where the bridge would lift the body in
             // 0.1 s. The long chops leap a leg length high from 0.5 to 0.8 s before contact: a leap's core is
-            // longer than a beat, and it opens a combo but never follows on.)
+            // longer than a beat: it ends a combo, its showstopper, its chamber quickened to fit.)
             bool airborne = Aloft(clip, entry);
             if (airborne)
             {
@@ -167,7 +211,13 @@ namespace PhysicsBattler.Locomotion
 
             float share = peak > 1e-4f ? TipSpeed(clip, entry) / peak : 0f;
             clip.RootMotion(entry, contact, out var moved, out float turned);
-            return new StrikeCore(entry, exit, contact, turnaround, share, turned, moved.magnitude, airborne, leap);
+            float sweep = 0f;
+            for (float t = Mathf.Max(entry, contact - MostLead); t < contact; t += Step)
+            {
+                sweep += TipSpeed(clip, t) * Step;
+            }
+
+            return new StrikeCore(entry, exit, contact, turnaround, share, turned, moved.magnitude, airborne, leap, peak, sweep);
         }
 
         private static bool Aloft(LocoClip clip, float t) =>

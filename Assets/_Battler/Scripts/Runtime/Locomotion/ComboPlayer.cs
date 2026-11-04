@@ -77,6 +77,25 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Why the combo ended where it did ("" while it goes on).</summary>
         public string Ended = "";
 
+        /// <summary>
+        /// A combo of cores (the plan "Combo feel"): the chain given to <see cref="Start"/> played as it is
+        /// (<see cref="StrikeCombos.CoreChain"/>), each blow cut at its core's exit (or where what it met stopped it)
+        /// and the next taken up at once at its core's entry, its chamber quickened (<see cref="StrikeCombos.CoreChamberSpeed"/>),
+        /// the root turned and moved so the hips meet, aimed where the target will be, with a longer step in where the
+        /// last blow drove it back (<see cref="MostStepIn"/>). The opener is taken up <see cref="StrikeCombos.OpenLead"/>
+        /// before its contact. No pressing, no choosing as it goes. Off: the earlier chooser.
+        /// </summary>
+        public bool Cores = true;
+
+        /// <summary>A follow-on's longest step in after a target its last blow drove back (metres at a Medium's size), and how near the try steps are.</summary>
+        public float MostStepIn = 0.7f;
+
+        /// <summary>The longer step in the last follow-on took (metres).</summary>
+        public float LastStepIn { get; private set; }
+
+        /// <summary>The blow playing is the combo's last, its showstopper.</summary>
+        public bool LastBlow => current != null && played >= Mathf.Min(Most, (Cores ? chain.Count : Most - 1) + 1);
+
         public ComboPlayer(Locomotor loco, LocoBody poser)
         {
             this.loco = loco;
@@ -124,10 +143,118 @@ namespace PhysicsBattler.Locomotion
             Pressing = false;
             Want = Vector3.zero;
             FollowOns(false);
-            poser.PlayStrike(first, Target(first));
+            if (Cores && StrikeCores.TryGet(first, out var core))
+            {
+                // (From the guard straight into its blow: a leap at its takeoff, the rest as late as a beat allows, so
+                // long as it lands facing its target (a spinning chop from before its spin).)
+                float entry = StrikeCombos.OpenerEntry(first);
+                var target = Target(first, entry);
+                Vector3 stepIn = StepIn(first, target, entry, loco.Leg / 0.845f);
+                LastStepIn = stepIn.magnitude;
+                poser.PlayStrike(first, target, startFrom: entry, stepIn: stepIn);
+                loco.Chamber(StrikeCombos.CoreChamberSpeed(core.Contact - entry), core.Contact);
+                shotTime = entry;
+            }
+            else
+            {
+                poser.PlayStrike(first, Target(first));
+            }
+
             FollowOns(true);
             Started?.Invoke(first, null);
         }
+
+        /// <summary>A combo of cores: the blow playing goes on to its core's exit (or ends, or is stopped), then the next is taken up.</summary>
+        private void StepCores(bool still)
+        {
+            if (next >= chain.Count || played >= Most)
+            {
+                if (!still)
+                {
+                    current = null;
+                }
+
+                return;
+            }
+
+            if (still && StrikeCores.TryGet(current, out var core) && loco.ShotTime < core.Exit)
+            {
+                return;
+            }
+
+            GoCore(chain[next].To, Mathf.Min(shotTime, current.Duration));
+            next++;
+        }
+
+        private void GoCore(LocoClip to, float at)
+        {
+            StrikeCores.TryGet(to, out var core);
+            float entry = core.Entry;
+            var meet = StrikeCombos.Meet(current, at, to, entry);
+            float scale = loco.Leg / 0.845f;
+            loco.TurnRoot(meet.Turn, Quaternion.Euler(0f, loco.Facing, 0f) * meet.Shift * scale);
+            var target = Target(to, entry);
+            Vector3 stepIn = StepIn(to, target, entry, scale);
+            LastStepIn = stepIn.magnitude;
+            poser.PlayStrike(to, target, startFrom: entry, stepIn: stepIn);
+            loco.Chamber(StrikeCombos.CoreChamberSpeed(core.Lead), core.Contact);
+            current = to;
+            shotTime = entry;
+            used.Add(to);
+            played++;
+            Started?.Invoke(to, meet);
+        }
+
+        /// <summary>The longer step in a follow-on needs to land on a target driven back (none if it lands from where the body is): straight toward it, no nearer the target's body than the fighting distance.</summary>
+        private Vector3 StepIn(LocoClip to, Vector3 target, float entry, float scale)
+        {
+            Vector3 rootAt = loco.Position;
+            float miss = poser.MissBeforePull(to, target, entry, rootAt, loco.Facing);
+            if (miss <= StepWithin)
+            {
+                return Vector3.zero;
+            }
+
+            Vector3 way = target - rootAt;
+            way.y = 0f;
+            if (way.sqrMagnitude < 1e-6f)
+            {
+                return Vector3.zero;
+            }
+
+            way.Normalize();
+            Vector3 best = Vector3.zero;
+            for (float d = 0.05f; d <= MostStepIn * scale + 1e-4f; d += 0.05f)
+            {
+                Vector3 at = rootAt + way * d;
+                if (poser.KeepFrom.HasValue && poser.KeepDistance > 0f)
+                {
+                    Vector3 off = at - poser.KeepFrom.Value;
+                    off.y = 0f;
+                    if (off.magnitude < poser.KeepDistance + 0.02f)
+                    {
+                        break;
+                    }
+                }
+
+                float m = poser.MissBeforePull(to, target, entry, at, loco.Facing);
+                if (m < miss - 0.01f)
+                {
+                    miss = m;
+                    best = way * d;
+                }
+
+                if (miss <= StepWithin)
+                {
+                    break;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>A follow-on steps in until its blade would reach within this of its target before the arm's pull (metres): the pull is for the last of it, not the distance.</summary>
+        public float StepWithin = 0.08f;
 
         public void Stop()
         {
@@ -439,7 +566,7 @@ namespace PhysicsBattler.Locomotion
             bool still = loco.Current == Locomotor.Mode.OneShot && loco.Shot == current;
             // (A blow stopped by what it met, backing out of it: the next blow is taken up from there at once, not
             // after it has backed out and stood in its guard. Bam, and bam again.)
-            if (still && loco.ShotSpeed < 0f && Strikes != null && !Pressing)
+            if (still && loco.ShotSpeed < 0f && (Strikes != null || Cores) && !Pressing)
             {
                 shotTime = loco.ShotTime;
                 still = false;
@@ -450,6 +577,12 @@ namespace PhysicsBattler.Locomotion
             {
                 // (Where the strike is, for the moment it is over: a cut-short one stops short of its links.)
                 shotTime = loco.ShotTime;
+            }
+
+            if (Cores)
+            {
+                StepCores(still);
+                return;
             }
 
             if (Strikes != null)

@@ -58,6 +58,16 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Seconds of hit stop left: the striker and the struck stand still.</summary>
         public float HitStop { get; private set; }
 
+        /// <summary>The blow playing is a combo's showstopper (its last): it lands harder (<see cref="FinisherKnock"/>) and its hit stop is longer (<see cref="FinisherStop"/>).</summary>
+        public System.Func<bool> Finishing;
+
+        /// <summary>A showstopper's knock on the body it lands on (times a blow's), and its hit stop (seconds, least and most).</summary>
+        public float FinisherKnock = 1.5f;
+        public Vector2 FinisherStop = new Vector2(0.13f, 0.17f);
+
+        /// <summary>The last blow that landed was a showstopper.</summary>
+        public bool LastFinished { get; private set; }
+
         /// <summary>What the last blow did, for the panel and the log ("" before any).</summary>
         public string Last = "";
 
@@ -454,10 +464,18 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            dummy.TakeHit(part, shield && !parried, glanced ? r.Impulse * GlanceLeft : r.Impulse, r.PartShare, r.PoiseDamage, r.Reaction, point, parried);
+            // (A combo's showstopper lands harder, and the moment it lands is held longer: Bam! Bam! BAM!)
+            bool finishing = Finishing != null && Finishing() && !glanced;
+            LastFinished = finishing;
+            float knock = finishing ? FinisherKnock : 1f;
+            dummy.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * knock, r.PartShare, r.PoiseDamage * knock, r.Reaction, point, parried);
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
             HitStop = Mathf.Clamp(0.06f * (0.6f + r.Impulse.magnitude / 40f), 0.04f, 0.1f);
+            if (finishing)
+            {
+                HitStop = Mathf.Clamp(HitStop * 1.7f, FinisherStop.x, FinisherStop.y);
+            }
             string what;
             if (glanced)
             {
@@ -507,7 +525,7 @@ namespace PhysicsBattler.Locomotion
                 Cleaves++;
             }
 
-            Last = $"{clip.Name} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, hit stop {HitStop:0.00} s)";
+            Last = $"{clip.Name} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")})";
             Landed?.Invoke(Last);
         }
 
