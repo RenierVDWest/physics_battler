@@ -1570,7 +1570,19 @@ namespace PhysicsBattler.Locomotion
             }
 
             var combat = CombatClips();
-            if (!course && combat.Count > 0)
+            if (course)
+            {
+                // (On the walking course there is no dummy: the attacker and the defender wait for driving.)
+                if (Section("Attacker and defender", ref showAttacker, "On the walking course there is no dummy to strike. Leave the course to strike, spar and set up the dummy."))
+                {
+                    if (GUILayout.Button("Leave the course: drive and strike (C)"))
+                    {
+                        course = false;
+                        Build();
+                    }
+                }
+            }
+            else if (combat.Count > 0)
             {
                 // ---- Attacker
                 combatClip = Mathf.Clamp(combatClip, 0, combat.Count - 1);
