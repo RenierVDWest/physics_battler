@@ -89,18 +89,22 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     held is kept while it meets the blade first, else the one read, else whichever does, nearest to hand; within
     0.15 s of the blow landing it is no longer changed, only placed. Outcomes: a clean stop on the forte (the
     attacker's hand knocked back, `LocoBody.KnockHand`; the dummy's arm and body take the rest) or a glance off
-    the foible or a flat crossing, which goes on at half its speed past the sword arm. Any weapon touching a body
-    outside a blow pushes it, and a leg struck twists at the thigh. The bodies keep the fighting distance (1 m
-    root to root for two Mediums, `LabDummy.FightingDistance`): the lunge is cut short there, pressing stops there,
-    the aim's pull never takes the hand into the other body, and the dummy's sword is kept out of the attacker's
-    body and shield (`OpponentShape`). The upper arm turns at the shoulder at most 900 degrees a second
-    (`UpperArmSpeed`): the hand's step is held back to it. Headless, the sword dummy parries 25 of 27 of a Medium's
-    strikes (a side chop at the hips meets the upper arm, from too close for the forte; a combo backhand at the
-    head glances on), 9 of 9 of a Large's, 14 of 27 of a Small's; the hand at most 10 m/s for the Medium's and
-    Large's. Not yet: footwork (stepping back from a blow too close), the Small's quick low blows, and a rare elbow
-    flip of the arm rig in the folded guard after a Small's blow. Combos: pressing in after a strike stops at the
-    fighting distance and may take up any strike from the guard there (25 of 27 land); the close pair
-    combo_backhand > combo_chop no longer links at that distance.
+    the foible or a flat crossing, which goes on at half its speed past the sword arm. A parry is clean only when it
+    takes the attacker's blade a quarter of the way along or more (not a jam at the hilt) and before that blade is
+    at the head or the arm; a blow at the head is met at least 0.3 m before the face. Any weapon touching a body
+    outside a blow pushes it, and a leg struck twists at the thigh. The upper arm turns at the shoulder at most 900
+    degrees a second (`UpperArmSpeed`): the hand's step is held back to it.
+  - Distance: the two stand 1.4 m apart between blows (root to root for two Mediums, `LabDummy.StandingDistance`);
+    the attacker strikes from there, its lunge taking it in, and steps in only for a strike that can't reach from
+    there (the lab's `SparSpot`). No blow takes them nearer than 1 m (`FightingDistance`): the lunge is cut short
+    there, pressing stops there, the aim's pull never takes the hand into the other body. After a blow the dummy
+    steps back to 1.4 m. Its sword is kept out of the attacker's body and shield (`OpponentShape`), and where the
+    shield swings into its guard's point anyway, the sword is pushed off at once, turned at the wrist.
+  - Headless (the attacker carrying its shield), the sword dummy parries 25 of 27 of a Medium's strikes, 8 of 9 of
+    a Large's, 18 of 27 of a Small's. Not yet: footwork (stepping back from a blow too close), the Small's quick
+    low blows, and a rare elbow flip of the arm rig in the folded guard. Combos: pressing in after a strike stops
+    at the fighting distance and may take up any strike from the guard there (26 of 27 land); the close pair
+    combo_backhand > combo_chop no longer links at that distance. M puts the lab's panel back at the top left.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;
