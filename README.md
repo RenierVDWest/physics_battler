@@ -127,6 +127,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     against the parrying dummy): a Medium's blows land 0.52 s apart (median) on the open dummy and 0.53 s on the
     sword dummy (1.58 s before); a Small's 0.4 s. Not yet: the Large (three strikes, 1.7-2.7 s), the long chops
     as follow-ons, the authored combos.
+  - Combo feel, step 1 (the plan doc "Combo feel: Bam! Bam! Bam! in one second"): blade streaks and the beat.
+    Each sword and club leaves a pale grey streak (`BladeStreak`, from Hexamus's MotionTrail): the band from a
+    quarter of the way up the blade to its tip (a club from just under half), drawn only while the tip turns
+    round the base faster than 3.5 m/s (full at 7), fading over 0.16 s and from the tip down to the base, in world
+    space so it finishes fading through a hit stop or a switch. The attacker's panel switches them off and on and
+    sets how long they last; it also shows the last combo's beat (the time from each contact to the next, and from
+    the first contact to the last; also in the log), the measure the next steps are gated on.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

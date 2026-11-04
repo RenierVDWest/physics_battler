@@ -90,6 +90,9 @@ namespace UnityEngine
         public void SetTriangles(System.Collections.Generic.List<int> t, int submesh) { }
         public void RecalculateNormals() { }
         public void RecalculateBounds() { }
+        public void Clear() { vertices = new System.Collections.Generic.List<Vector3>(); }
+        public void MarkDynamic() { }
+        public void SetColors(System.Collections.Generic.List<Color> c) { }
     }
 
     public class Shader : Object
@@ -128,6 +131,8 @@ namespace UnityEngine
         public bool enabled { get; set; } = true;
         public Material sharedMaterial { get; set; }
         public Material[] sharedMaterials { get; set; } = new Material[0];
+        public UnityEngine.Rendering.ShadowCastingMode shadowCastingMode { get; set; }
+        public bool receiveShadows { get; set; } = true;
     }
 
     public class MeshRenderer : Renderer { }
@@ -141,7 +146,6 @@ namespace UnityEngine
         public Color endColor { get; set; }
         public bool emitting { get; set; } = true;
         public float minVertexDistance { get; set; } = 0.1f;
-        public UnityEngine.Rendering.ShadowCastingMode shadowCastingMode { get; set; }
         public void Clear() { }
     }
 

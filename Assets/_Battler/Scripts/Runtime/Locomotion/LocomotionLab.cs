@@ -142,6 +142,24 @@ namespace PhysicsBattler.Locomotion
             poser.BodyKey = body.ToString();
             poser.TwoHanded = LocoLibrary.TwoHanded(body.ToString());
             film.ShieldRadius = off != null && off.IsShield ? 0.3f * scale : 0f;
+            Streak(rig.SlotWeaponR, main, scale);
+        }
+
+        /// <summary>How the blades' streaks look (every streak shares it: the panel's switch and length change it live).</summary>
+        private readonly StreakSettings streaks = new StreakSettings();
+
+        /// <summary>A streak on the blade in a hand (none for a shield or an empty hand); it goes when the blade does.</summary>
+        private void Streak(Transform slot, WeaponDefinition definition, float scale)
+        {
+            if (slot == null || definition == null || definition.IsShield || !Application.isPlaying)
+            {
+                return;
+            }
+
+            // (The slot's own space: the weapon sits on it unturned, at the unit's scale.)
+            Vector3 tip = definition.tip.sqrMagnitude > 1e-6f ? definition.tip * scale : Vector3.forward * (definition.length * scale);
+            float from = definition.kind == WeaponKind.Club ? 0.45f : 0.25f;
+            BladeStreak.Sweep(slot, tip * from, tip, streaks, transform);
         }
 
         private void Hold(Transform slot, Transform animSlot, WeaponDefinition definition, Quaternion grip, float scale)
@@ -353,7 +371,25 @@ namespace PhysicsBattler.Locomotion
             hits = new StrikeHits(loco, poser, anim) { Weapon = mainWeapon, Scale = size, Slot = rig.SlotWeaponR, Mass = Mathf.Max(20f, mass) };
             hits.Landed += text => legs.Add($"{time:0.00} s: {text}{(dummy != null && dummy.LastReaction.Length > 0 ? "; the dummy: " + dummy.LastReaction : "")}");
             combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor, Strikes = Strikes(), TargetVelocity = () => dummy != null ? dummy.Loco.Velocity : Vector3.zero };
-            combo.Started += (clip, link) => BeganAim(clip, poser.AimTarget);
+            combo.Started += (clip, link) =>
+            {
+                BeganAim(clip, poser.AimTarget);
+                if (link == null && !combo.Pressing && comboBlow < 0)
+                {
+                    comboHits.Clear();
+                }
+
+                comboBlow++;
+            };
+            // (The combo's beat: when each of its blows first landed, for the panel.)
+            hits.Landed += text =>
+            {
+                if (combo != null && combo.Playing && comboBlow != comboLanded)
+                {
+                    comboLanded = comboBlow;
+                    comboHits.Add(time);
+                }
+            };
             path = LocoCourse.Lab();
             path.SpeedScale = PaceScale;
             path.LegStarted += (i, name) =>
@@ -866,6 +902,7 @@ namespace PhysicsBattler.Locomotion
             dummy.Poser.CarryL = off == null ? LocoBody.Carry.Free : off.IsShield ? LocoBody.Carry.Shield : LocoBody.Carry.Weapon;
             dummy.Poser.BladeR = (dummy.Anim.SlotWeaponR != null ? dummy.Anim.SlotWeaponR.localRotation : Quaternion.identity) * Vector3.forward;
             dummy.Poser.BladeL = (dummy.Anim.SlotWeaponL != null ? dummy.Anim.SlotWeaponL.localRotation : Quaternion.identity) * Vector3.forward;
+            Streak(dummyRig.SlotWeaponR, main, dummy.Size);
             float swordLength = (main != null && !main.IsShield ? main.length : 0.8f) * dummy.Size;
             dummy.Poser.WeaponLength = swordLength;
             if (dummyStance == LabDummy.Stances.Sword)
@@ -1090,6 +1127,27 @@ namespace PhysicsBattler.Locomotion
         private bool comboWas, pressingWas;
         private string lastCombo = "";
 
+        /// <summary>The last combo's blows: when each first landed (seconds of the lab's clock), and which blow is playing.</summary>
+        private readonly List<float> comboHits = new List<float>();
+        private int comboBlow = -1, comboLanded = -2;
+
+        /// <summary>The last combo's beat, as the panel shows it: hit to hit, and first contact to last.</summary>
+        private string ComboBeat()
+        {
+            if (comboHits.Count < 2)
+            {
+                return comboHits.Count == 1 ? "Last combo: one blow landed" : "";
+            }
+
+            var gaps = new StringBuilder();
+            for (int i = 1; i < comboHits.Count; i++)
+            {
+                gaps.Append(i > 1 ? ", " : "").Append((comboHits[i] - comboHits[i - 1]).ToString("0.00"));
+            }
+
+            return $"Last combo: {comboHits.Count} blows, hit to hit {gaps} s; first contact to last {comboHits[comboHits.Count - 1] - comboHits[0]:0.00} s";
+        }
+
         /// <summary>This body's strikes, as clips.</summary>
         private List<LocoClip> Strikes()
         {
@@ -1126,6 +1184,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             var chain = ComboFrom(first);
+            comboHits.Clear();
+            comboBlow = -1;
+            comboLanded = -2;
             lastCombo = ComboText(first, chain);
             legs.Add($"{time:0.00} s: combo from {first.Name} (planned {lastCombo}; each next strike is chosen as it comes, one that will land)");
             combo.Start(first, chain);
@@ -1671,6 +1732,19 @@ namespace PhysicsBattler.Locomotion
                             }
                         }
                     }
+
+                    string beat = ComboBeat();
+                    if (beat.Length > 0)
+                    {
+                        Note(beat);
+                    }
+
+                    GUILayout.BeginHorizontal();
+                    streaks.On = GUILayout.Toggle(streaks.On, "Blade streaks");
+                    GUILayout.Label($"{streaks.Lifetime:0.00} s");
+                    if (GUILayout.Button("\u2212", GUILayout.Width(36f))) streaks.Lifetime = Mathf.Max(0.04f, streaks.Lifetime - 0.02f);
+                    if (GUILayout.Button("+", GUILayout.Width(36f))) streaks.Lifetime = Mathf.Min(0.5f, streaks.Lifetime + 0.02f);
+                    GUILayout.EndHorizontal();
 
                     if (GUILayout.Button(spar ? $"Sparring (X): on, {(InPosition ? "in position" : "moving into position")}" : "Sparring (X): off, driven by hand"))
                     {
