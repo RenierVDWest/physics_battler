@@ -68,7 +68,27 @@ internal static class StrikeComboReport
             var dprofile = UnitProfile.CreateDefault();
             dprofile.body = "Medium";
             var droot = UnitBuilder.Build(dummyRig, dprofile, "Dummy", _ => null, 1);
-            var dummy = new LabDummy(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, "sns_", physical: false) { Stance = LabDummy.Stances.Open };
+            bool swordDummy = Environment.GetEnvironmentVariable("COMBO_STANCE") == "sword";
+            var dummy = new LabDummy(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, swordDummy ? "sw_" : "sns_", physical: false);
+            if (swordDummy)
+            {
+                // (Its sword, as the lab holds it, parrying.)
+                dummy.Rig.SlotWeaponR.localRotation = UnitController.MainGrip;
+                dummy.Anim.SlotWeaponR.localRotation = UnitController.MainGrip;
+                dummy.Poser.CarryR = LocoBody.Carry.Weapon;
+                dummy.Poser.BladeR = UnitController.MainGrip * Vector3.forward;
+                var dummySword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
+                dummy.Poser.WeaponLength = dummySword.length * dummy.Size;
+                dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummy.Rig, dummy.Size, dummySword.length * dummy.Size)
+                {
+                    Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? anim.SlotWeaponL : null, 0.27f) { WeaponSlot = anim.SlotWeaponR, WeaponLength = poser.WeaponLength },
+                };
+                dummy.Stance = LabDummy.Stances.Sword;
+            }
+            else
+            {
+                dummy.Stance = LabDummy.Stances.Open;
+            }
             const float dt = 1f / 60f;
             for (int i = 0; i < 80; i++)
             {
@@ -167,6 +187,7 @@ internal static class StrikeComboReport
 
                 wasPressing = player.Pressing;
                 hits.Step(dt, dummy);
+                dummy.Watch(hits);
                 dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
                 film.Add(i * dt, string.Join(">", new[] { first.Name }.Concat(chain.Select(l => l.To.Name))), loco, poser, anim);
                 dummyFilm.Add(i * dt, "dummy", dummy.Loco, dummy.Poser, dummy.Anim);
@@ -184,6 +205,11 @@ internal static class StrikeComboReport
                     // (About each switch between strikes: the strikes' own swings are fast anyway.)
                     // (Not the blow itself: a follow-on taken up late in its wind-up swings into its live moments within that.)
                     bool inBlow = loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0 && loco.ShotTime > loco.Shot.ContactFrame / loco.Shot.Rate - hits.LiveBefore;
+                    if (v > 15f && Environment.GetEnvironmentVariable("COMBO_SPEED") != null)
+                    {
+                        Console.WriteLine(string.Format(ci, "      {0} at {1:0.0} m/s at {2:0.00} s ({3} at {4:0.00} s, {5:0.00} s after a switch; facing {6:0})", parts[k], v, i * dt, loco.Shot?.Name ?? loco.Current.ToString(), loco.ShotTime, sinceSwitch, loco.Facing));
+                    }
+
                     if (sinceSwitch < 0.3f && !inBlow && v > fastest)
                     {
                         fastest = v;
@@ -242,6 +268,13 @@ internal static class StrikeComboReport
         anim.SlotWeaponR.localRotation = UnitController.MainGrip;
         poser.BladeR = UnitController.MainGrip * Vector3.forward;
         poser.CarryR = LocoBody.Carry.Weapon;
+        if (!LocoLibrary.TwoHanded(body))
+        {
+            anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+            unitRig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+            poser.CarryL = LocoBody.Carry.Shield;
+        }
+
         loco.Place(Vector3.zero, 0f);
         return (anim, loco, poser, root, leg / 0.845f);
     }

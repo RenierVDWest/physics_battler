@@ -118,7 +118,7 @@ namespace PhysicsBattler.Locomotion
         private float lastBlowAt = -10f;
 
         /// <summary>The fighting distance for two bodies (metres, root to root): their sizes against a Medium's, times this.</summary>
-        public const float BodyGap = 1.0f;
+        public const float BodyGap = 1.2f;
 
         public static float FightingDistance(float sizeA, float sizeB) => 0.5f * (sizeA + sizeB) * BodyGap;
 
@@ -126,7 +126,7 @@ namespace PhysicsBattler.Locomotion
         public float StandDistance;
 
         /// <summary>The standing distance for two bodies: their sizes against a Medium's, times this (1.4 m for two Mediums).</summary>
-        public const float StandGap = 1.4f;
+        public const float StandGap = 1.6f;
 
         public static float StandingDistance(float sizeA, float sizeB) => 0.5f * (sizeA + sizeB) * StandGap;
 

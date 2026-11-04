@@ -36,6 +36,11 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The strikes a combo may go on with (null: the chain given to <see cref="Start"/> as it is).</summary>
         public IList<LocoClip> Strikes;
 
+        /// <summary>The most a follow-on out of a stopped blow may cost (its poses met less well, bridged by the switch's fade).</summary>
+        public float ReboundMostCost = 3.2f;
+
+        private bool rebounding;
+
         /// <summary>The most strikes in a combo, and how near a follow-on must reach its target to be chosen (metres).</summary>
         public int Most = 3;
         public float LandWithin = 0.15f, MostCost = 2.2f;
@@ -44,10 +49,10 @@ namespace PhysicsBattler.Locomotion
         public float TurnWeight = 1.0f;
 
         /// <summary>Pressing: the longest it steps in after the target (seconds), and how fast (m/s at a Medium's size).</summary>
-        public float PressMost = 3f, PressSpeed = 1.5f;
+        public float PressMost = 3f, PressSpeed = 2.2f;
 
         /// <summary>Pressing, a follow-on is taken up once the body needs turning at most this onto the target (degrees), for the first half of the pressing.</summary>
-        public float PressTurn = 60f;
+        public float PressTurn = 90f;
 
         /// <summary>Pressing, it stops stepping in once the nearest follow-on would miss by no more than this past landing (metres): the plan's lunge and pull take up the rest.</summary>
         public float StopWithin = 0.15f;
@@ -89,10 +94,17 @@ namespace PhysicsBattler.Locomotion
             if (firstLunge < 0f)
             {
                 firstLunge = poser.MostLunge;
+                firstTurn = poser.MostAimTurn;
             }
 
             poser.MostLunge = on ? Mathf.Max(firstLunge, FollowLunge) : firstLunge;
+            poser.MostAimTurn = on ? Mathf.Max(firstTurn, FollowTurn) : firstTurn;
         }
+
+        /// <summary>The most a follow-on turns the body onto its target in its wind-up (degrees): a combo pivots after its target rather than stopping to turn.</summary>
+        public float FollowTurn = 90f;
+
+        private float firstTurn = 60f;
 
         /// <summary>A combo is under way.</summary>
         public bool Playing => current != null;
@@ -219,7 +231,10 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
-                options.RemoveAll(l => l.Cost > MostCost);
+                // (Out of a stopped blow, a poorer meeting of the poses is bridged: the switch's fade carries it.)
+                float most = rebounding ? ReboundMostCost : MostCost;
+                rebounding = false;
+                options.RemoveAll(l => l.Cost > most);
                 if (options.Count == 0)
                 {
                     // (Stopped mid-blow, its pose meets no follow-on's wind-up: it backs out into its guard, and the
@@ -233,8 +248,9 @@ namespace PhysicsBattler.Locomotion
 
             if (options.Count == 0)
             {
-                // (None follows on out of this strike quickly enough: once it is over, the next is taken up from the
-                // guard, as pressing does.)
+                // (None follows on out of this strike quickly enough: its recovery is cut short, and the next is taken
+                // up from the guard, as pressing does.)
+                CutRecovery(still);
                 if (!still)
                 {
                     Pressing = true;
@@ -278,9 +294,10 @@ namespace PhysicsBattler.Locomotion
 
             if (best == null)
             {
-                // (None lands from here: the strike plays on (the body moves); at its end the combo presses.)
+                // (None lands from here: the strike plays on a little (the body moves); then the combo presses.)
                 if (still)
                 {
+                    CutRecovery(true);
                     return;
                 }
 
@@ -299,6 +316,22 @@ namespace PhysicsBattler.Locomotion
 
             Go(best);
         }
+
+        /// <summary>How long after its contact a strike with no follow-on out of it plays on before it is ended (seconds of its clip): a combo doesn't wait out a long recovery.</summary>
+        public const float RecoverFor = 0.3f;
+
+        /// <summary>A pressed-in strike is taken up this far before its contact (seconds of its clip), its chamber quickened: from the guard, the wind-up's start is skipped.</summary>
+        public const float PressEntryLead = 0.45f;
+
+        private void CutRecovery(bool still)
+        {
+            if (still && current != null && current.ContactFrame >= 0 && loco.ShotTime > current.ContactFrame / current.Rate + RecoverFor)
+            {
+                loco.EndShotNow();
+            }
+        }
+
+        private static float PressEntry(LocoClip clip) => clip.ContactFrame < 0 ? 0f : Mathf.Max(0f, clip.ContactFrame / clip.Rate - PressEntryLead);
 
         /// <summary>
         /// Pressing: stepping in after the target in the guard until a follow-on of the last strike would land from
@@ -323,10 +356,11 @@ namespace PhysicsBattler.Locomotion
             // (Out of the last strike and in the guard, any strike not yet used may come next: its cost only orders them.)
             foreach (var link in Options(fromGuard: true))
             {
-                var at = Target(link.To);
-                float miss = poser.MissAfterPull(link.To, at, 0f, loco.Position, loco.Facing);
+                float entry = PressEntry(link.To);
+                var at = Target(link.To, entry);
+                float miss = poser.MissAfterPull(link.To, at, entry, loco.Position, loco.Facing);
                 nearestMiss = Mathf.Min(nearestMiss, miss);
-                float turnNeeded = Mathf.Abs(poser.AimTurnFor(link.To, at, 0f, loco.Position, loco.Facing));
+                float turnNeeded = Mathf.Abs(poser.AimTurnFor(link.To, at, entry, loco.Position, loco.Facing));
                 // (Facing the target first, for a while: a strike swung from a body turned away has to turn it in its wind-up.)
                 // (Once it has stood within reach a moment (it stops stepping in there), as near as it got will do.)
                 float within = pressedFor > 0.5f ? LandWithin + StopWithin : LandWithin;
@@ -348,9 +382,11 @@ namespace PhysicsBattler.Locomotion
                 loco.Hurry = false;
                 Want = Vector3.zero;
                 Ended = "";
-                poser.PlayStrike(best.To, Target(best.To));
+                float from = PressEntry(best.To);
+                poser.PlayStrike(best.To, Target(best.To, from), startFrom: from);
+                loco.Chamber(StrikeCombos.ChamberSpeed, best.To.ContactFrame / best.To.Rate);
                 current = best.To;
-                shotTime = 0f;
+                shotTime = from;
                 used.Add(best.To);
                 played++;
                 Started?.Invoke(best.To, null);
@@ -401,6 +437,15 @@ namespace PhysicsBattler.Locomotion
             }
 
             bool still = loco.Current == Locomotor.Mode.OneShot && loco.Shot == current;
+            // (A blow stopped by what it met, backing out of it: the next blow is taken up from there at once, not
+            // after it has backed out and stood in its guard. Bam, and bam again.)
+            if (still && loco.ShotSpeed < 0f && Strikes != null && !Pressing)
+            {
+                shotTime = loco.ShotTime;
+                still = false;
+                rebounding = true;
+            }
+
             if (still)
             {
                 // (Where the strike is, for the moment it is over: a cut-short one stops short of its links.)

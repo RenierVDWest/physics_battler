@@ -94,11 +94,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     at the head or the arm; a blow at the head is met at least 0.3 m before the face. Any weapon touching a body
     outside a blow pushes it, and a leg struck twists at the thigh. The upper arm turns at the shoulder at most 900
     degrees a second (`UpperArmSpeed`): the hand's step is held back to it.
-  - Distance: the two stand 1.4 m apart between blows (root to root for two Mediums, `LabDummy.StandingDistance`);
+  - Distance: the two stand 1.6 m apart between blows (root to root for two Mediums, `LabDummy.StandingDistance`);
     the attacker strikes from there, its lunge taking it in, and steps in only for a strike that can't reach from
-    there (the lab's `SparSpot`). No blow takes them nearer than 1 m (`FightingDistance`): the lunge is cut short
-    there, pressing stops there, the aim's pull never takes the hand into the other body. After a blow the dummy
-    steps back to 1.4 m. Its sword is kept out of the attacker's body and shield (`OpponentShape`), and where the
+    there (the lab's `SparSpot`). No blow takes them nearer than 1.2 m (`FightingDistance`: about half a metre
+    between the shield and the other body): the lunge is cut short there, pressing stops there, the aim's pull
+    never takes the hand into the other body. After a blow the dummy steps back to 1.6 m. From there every Medium
+    strike lands but the quick combo backhand (its reach is 0.7 m). Pressed on (by a shield or a body too close),
+    the sword is drawn out to its side and raised toward upright, and the forearm is kept off the shield too. Its sword is kept out of the attacker's body and shield (`OpponentShape`), and where the
     shield swings into its guard's point anyway, the sword is pushed off, turned at the wrist up to 25 degrees a
     step and eased back at 120 degrees a second while it stays clear (the guard keeps 0.15 m off it to begin with).
     Back to the guard after a parry at half the parry's speeds. The parry's grip stays within the arm's reach.
@@ -112,17 +114,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     low blows, and a rare elbow flip of the arm rig in the folded guard. Combos: pressing in after a strike stops
     at the fighting distance and may take up any strike from the guard there (26 of 27 land); the close pair
     combo_backhand > combo_chop no longer links at that distance. M puts the lab's panel back at the top left.
-  - Combo flow, step 1 (the Bam! Bam! Bam! plan): the time from one blow's contact to the next's is part of a link's
-    cost (`StrikeCombos.TimeCost`: 0.2 a second, and 2.5 a second more past 0.55 s); a strike may be left 0.1 s
-    after its contact and the next taken up as late as 0.25 s before its own; the follow-on's chamber (its wind-up)
-    plays up to 1.2 times as fast, easing back to its own pace by contact (`Locomotor.Chamber`), the blow itself not
-    sped; links up to cost 2.2 are taken (the switch's fade keeps every part under 3 m/s of its own). A follow-on's
-    lunge may stretch to 1.7 times and is aimed 0.9 of the way to where a driven target will be; a strike with no
-    quick follow-on goes on from the guard instead of ending the combo; the dummy waits 0.8 s after a blow before it
-    steps back to its standing distance. Headless (`combos <dir> Medium`): a Medium's blows land 0.63 s apart
-    (median; 1.58 s before), 24 of 27 land. Not yet: the Large (three strikes only: 2.6 s apart; its great sword
-    combos are to be baked), follow-ons that need the body turned 60 degrees onto the target, a stopped blow's own
-    rebound into the next, and the authored combos.
+  - Combo flow (the Bam! Bam! Bam! plan): the time from one blow's contact to the next's is part of a link's cost
+    (`StrikeCombos.TimeCost`: 0.2 a second, and 2.5 a second more past 0.55 s); a strike may be left 0.1 s after
+    its contact and the next taken up as late as 0.25 s before its own; the follow-on's chamber (its wind-up) plays
+    up to 1.2 times as fast, easing back to its own pace by contact (`Locomotor.Chamber`). A blow stopped by what
+    it met (parried, blocked, stopped in the body) goes straight into the next from where it stopped, without
+    backing out to its guard (links up to cost 3.2 there: the switch's fade carries the difference). A follow-on
+    may lunge to 1.7 times and turn the body up to 90 degrees onto a target that was driven back, aimed 0.9 of
+    the way to where it will be. With no quick follow-on, the strike's recovery is cut 0.3 s after its contact and
+    the next is pressed in: stepped after at 2.2 m/s and taken up 0.45 s before its contact, chamber quickened.
+    The dummy waits 0.8 s after a blow before it steps back. Headless (`combos <dir> <body>`, `COMBO_STANCE=sword`
+    against the parrying dummy): a Medium's blows land 0.52 s apart (median) on the open dummy and 0.53 s on the
+    sword dummy (1.58 s before); a Small's 0.4 s. Not yet: the Large (three strikes, 1.7-2.7 s), the long chops
+    as follow-ons, the authored combos.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

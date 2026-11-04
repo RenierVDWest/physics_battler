@@ -731,6 +731,9 @@ namespace PhysicsBattler.Locomotion
             Vector3 back = Root - opponent;
             back.y = 0f;
             back = back.sqrMagnitude > 1e-4f ? back.normalized : -(BodyTurn * Vector3.forward);
+            // (Out to the sword's side more than back: drawn straight back, the hand folds in behind the body.)
+            Vector3 swordSide = Vector3.Cross(Vector3.up, -back).normalized;
+            back = (0.75f * swordSide + 0.45f * back + 0.2f * Vector3.up).normalized;
             float margin = (Current < 0 ? GuardClear : KeepClear) * size;
             Vector3 forte0 = wantForte, blade0 = wantBlade;
             // (How far it is drawn back and raised, 0 to 1 of the most: the least that clears, found by halving, so a
@@ -741,11 +744,13 @@ namespace PhysicsBattler.Locomotion
                 w = Vector3.RotateTowards(blade0, Vector3.up, t * MostRaise * Mathf.Deg2Rad, 0f);
             }
 
+            Vector3 elbowNow = anim.Part(PartId.ForearmR).position;
             bool ClearAt(float t)
             {
                 At(t, out Vector3 f, out Vector3 w);
                 Vector3 g = f - w * (ForteAt * WeaponLength);
-                float clear = Opponent.Clearance(g, g + w * WeaponLength);
+                // (The sword and the forearm holding it: a shield pressed on the arm throws it about as on the blade.)
+                float clear = Mathf.Min(Opponent.Clearance(g, g + w * WeaponLength), Opponent.Clearance(elbowNow, g) + 0.5f * margin);
                 // (At rest in the guard, off the other's blade too: two guards' blades resting on each other buzz.)
                 if (Current < 0)
                 {
@@ -787,8 +792,8 @@ namespace PhysicsBattler.Locomotion
 
         private float drawnBack;
 
-        /// <summary>The most the sword is drawn back off the other body (metres at a Medium's size) and its point raised (degrees).</summary>
-        public const float MostDrawBack = 0.48f, MostRaise = 72f;
+        /// <summary>The most the sword is drawn off the other body, out to its side and back (metres at a Medium's size), and its point raised toward upright (degrees).</summary>
+        public const float MostDrawBack = 0.4f, MostRaise = 80f;
 
         /// <summary>How fast the drawing back is taken up, and let go (of the most, a second).</summary>
         public const float DrawBackRise = 6f, DrawBackFall = 0.8f;

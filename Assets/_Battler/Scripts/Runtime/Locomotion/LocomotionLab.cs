@@ -1238,7 +1238,7 @@ namespace PhysicsBattler.Locomotion
         private bool InPosition { get; set; }
 
         /// <summary>How near its target a strike planned from the standing distance must come to be taken from there (metres at a Medium's size): near enough to land on the body somewhere.</summary>
-        public const float LandsNear = 0.25f;
+        public const float LandsNear = 0.1f;
 
         /// <summary>Where the walker stands to strike the dummy with the picked strike (or the combo it starts): the strike's own reach from its target.</summary>
         private Vector3 SparSpot()
