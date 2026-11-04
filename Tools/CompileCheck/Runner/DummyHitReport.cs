@@ -87,6 +87,11 @@ internal static class DummyHitReport
                     {
                         dummy.ParrySkill = parrySkill;
                     }
+
+                    if (float.TryParse(Environment.GetEnvironmentVariable("SHIELD_SKILL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float shieldSkill))
+                    {
+                        dummy.ShieldSkill = shieldSkill;
+                    }
                     // (Its sword, as the lab holds it.)
                     dummy.Rig.SlotWeaponR.localRotation = UnitController.MainGrip;
                     dummy.Anim.SlotWeaponR.localRotation = UnitController.MainGrip;

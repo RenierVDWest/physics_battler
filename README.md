@@ -222,6 +222,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     at 0.5, 12 at 0.25, 10 at 0 (glancing 0, 0, 3, 6, 7); of 42 combo blows 17 at skill 1, 16 at 0.5, 9 at 0,
     most of the expert's on the opener. Not yet: giving ground when late, and a second parry after a feint (there
     are no feints yet).
+  - Shield skill (the defence plan's shield table; `LabDummy.ShieldSkill`, the Defender section's − and + in quarters).
+    At skill 0 (all off at 1): it moves its shield only 0.05 s before contact (an expert as soon as it reads the
+    wind-up; between them most of the scale is spent on 0.05 to 0.2 s, where a block is won or lost), 0.35 s into
+    the blow at the soonest (0.12 s), chases the blade where it is instead of closing the line it will come in on,
+    reads where it lands up to 25 cm off to one side of the line and the line up to 30 degrees off, keeps to its first
+    read (every step), its shield comes at 2 m/s building up to it (6 m/s) and turns at 200 degrees a second (720:
+    no whipping round at the last moment), it holds the shield at the chest against a low cut, takes a blow square
+    on (an expert's shield is slanted 30 degrees and turns half the knock aside: "blocked by the shield, turned aside"),
+    and stays up 0.6 s after (0.25 s). Headless (`SHIELD_SKILL=<0..1>` with `dummyhits` and `DUMMY_STANCE=shield`,
+    or `combos` and `COMBO_STANCE=shield`): of a Medium's 27 strikes it blocks 23 at skill 1, 24 at 0.75, 16 at 0.5,
+    10 at 0.25, 9 at 0 (the guard alone, never moved, 8); of a Large's 9, 9, 8, 3; of 27 combo blows 25 at skill 1,
+    26 at 0.5, 16 at 0 (a shield still up from the last blow meets the next). The expert's 4 are its geometry:
+    an overhead chop aimed at the hips passes the head above the shield, and a thrust takes the shield arm.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

@@ -511,6 +511,11 @@ namespace PhysicsBattler.Locomotion
             bool comboing = Comboing != null && Comboing();
             LastFinished = finishing;
             float knock = finishing ? FinisherKnock : comboing ? ComboKnock : 1f;
+            // (A slanted shield turns part of the blow aside; one taken square on takes all of it.)
+            if (shield && !parried)
+            {
+                knock *= 1f - dummy.ShieldGlance;
+            }
             dummy.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * knock, r.PartShare, r.PoiseDamage * knock, r.Reaction, point, parried);
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
@@ -558,7 +563,7 @@ namespace PhysicsBattler.Locomotion
                     loco.CutShort(RewindMost, ReboundSpeed);
                 }
                 what = parried ? $"parried by the sword ({dummy.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
-                    : shield ? "blocked by the shield" : "stopped in the " + Name(part);
+                    : shield ? (dummy.ShieldGlance > 0.25f ? "blocked by the shield, turned aside" : "blocked by the shield, square on") : "stopped in the " + Name(part);
                 if (shield && !parried)
                 {
                     Blocks++;

@@ -146,7 +146,71 @@ namespace PhysicsBattler.Locomotion
         private float incomingFor;
 
         /// <summary>How long it takes to see a blow coming (seconds), and the fastest it moves its shield (m/s at a Medium's size).</summary>
-        public const float SeeBlowAfter = 0.12f, ShieldSpeed = 5f;
+        public const float SeeBlowAfter = 0.12f, ShieldSpeed = 6f;
+
+        // ---- Shield skill (the defence plan's table): 0 a novice, 1 an expert ---------------------------------------
+
+        /// <summary>
+        /// The levers at shield skill 0 (at 1: 0.12 s, none, none, 6 m/s, every step, covers the legs, slanted, 0.25 s): it
+        /// moves only 0.35 s into a blow, reads where it lands up to 25 cm off and the line it comes on up to 30 degrees
+        /// off, its shield comes at 2 m/s (and builds up to its speed, not jumping), it keeps to its first read, it holds
+        /// its shield at the chest against a low cut, it takes a blow square on (all of it), and its shield is back in
+        /// the guard 0.6 s after.
+        /// </summary>
+        public const float NoviceSeeAfter = 0.35f, NoviceMisread = 0.25f, NoviceMisline = 30f, NoviceShieldSpeed = 2f, NoviceBackAfter = 0.6f,
+            ExpertBackAfter = 0.25f, ExpertSlant = 30f, ExpertGlance = 0.5f;
+
+        /// <summary>It moves its shield no sooner than this before contact (seconds): an expert as soon as it reads the blow, a novice only once the blade is on its way (between them on a steep curve: how much sooner is what decides most blocks).</summary>
+        public const float ExpertSeesBefore = 2f, NoviceSeesBefore = 0.05f;
+
+        /// <summary>The fastest the shield's face turns toward a blow (degrees a second), an expert's and a novice's.</summary>
+        public const float ShieldTurnSpeed = 720f, NoviceShieldTurnSpeed = 200f;
+
+        /// <summary>
+        /// How long before contact it moves, for how good it is (0 to 1 past the curve): a block is won or lost between
+        /// 0.05 and 0.2 s before contact, so most of the scale is spent there; only the best read the whole wind-up.
+        /// </summary>
+        private static float SeesBefore(float good) => good < 0.75f
+            ? Mathf.Lerp(NoviceSeesBefore, NearlySeesBefore, good / 0.75f)
+            : Mathf.Lerp(NearlySeesBefore, ExpertSeesBefore, (good - 0.75f) / 0.25f);
+
+        /// <summary>Where the steep part of <see cref="SeesBefore"/> ends (seconds before contact).</summary>
+        public const float NearlySeesBefore = 0.2f;
+
+        private Vector3 shieldFace;
+        private bool shieldFaceKnown;
+
+        /// <summary>The shield's speed builds up over this long (seconds): it accelerates, it doesn't jump.</summary>
+        public const float ShieldSpeedUp = 0.08f;
+
+        /// <summary>How far from an expert, 0 to 1 (on the curve the parry uses: skill 0.5 midway).</summary>
+        private float ShieldLack => 1f - Mathf.Clamp01(ShieldSkill) * Mathf.Clamp01(ShieldSkill);
+
+        /// <summary>How much of a blow a slanted shield turns aside (0 square on: all of it taken); StrikeHits takes it off the knock.</summary>
+        public float ShieldGlance => ExpertGlance * (1f - ShieldLack);
+
+        private readonly System.Random shieldLuck = new System.Random(20261104);
+        private Vector3 shieldMisread, shieldHeldAim, shieldHeldLine;
+        private Quaternion shieldMisline = Quaternion.identity;
+        private bool coversLow = true, shieldReadHeld;
+        private float lastComing = -1f, shieldReread, shieldSpeedNow, backIn;
+
+        /// <summary>Blows its shield has read (for the logs).</summary>
+        public int ShieldBlowsRead;
+
+        private void NewShieldBlow()
+        {
+            ShieldBlowsRead++;
+            float lack = ShieldLack;
+            Vector3 r = new Vector3((float)shieldLuck.NextDouble() * 2f - 1f, (float)shieldLuck.NextDouble() * 2f - 1f, (float)shieldLuck.NextDouble() * 2f - 1f);
+            shieldMisread = (r.sqrMagnitude > 1e-4f ? r.normalized : Vector3.up) * (NoviceMisread * lack * (0.4f + 0.6f * (float)shieldLuck.NextDouble()) * Size);
+            Vector3 axis = new Vector3((float)shieldLuck.NextDouble() * 2f - 1f, (float)shieldLuck.NextDouble() * 2f - 1f, (float)shieldLuck.NextDouble() * 2f - 1f);
+            shieldMisline = Quaternion.AngleAxis(NoviceMisline * lack * (0.4f + 0.6f * (float)shieldLuck.NextDouble()), axis.sqrMagnitude > 1e-4f ? axis.normalized : Vector3.up);
+            coversLow = shieldLuck.NextDouble() >= lack;
+            shieldReadHeld = false;
+            shieldReread = 0f;
+            shieldSpeedNow = 0f;
+        }
 
         private Vector3 shieldAt;
         private bool shieldAtKnown;
@@ -406,14 +470,30 @@ namespace PhysicsBattler.Locomotion
         {
             // (The guard holds the shield as its clip does; it moves only to meet a blow.)
             blockWeight = 0f;
+            float lack = ShieldLack;
+            float coming = Blow.HasValue ? Blow.Value.Coming : -1f;
+            if (Blow.HasValue && (lastComing < 0f || coming < lastComing - 0.05f))
+            {
+                NewShieldBlow();
+                incomingFor = 0f;
+            }
+
+            lastComing = coming;
             incomingFor = IncomingBlade.HasValue ? incomingFor + dt : 0f;
-            float wantIntercept = IncomingBlade.HasValue && incomingFor > SeeBlowAfter && Blocking ? 1f : 0f;
+            // (A novice sees the blow late; once it has passed, the shield stays up a moment, longer for a novice.)
+            // (An expert reads the wind-up; a novice moves only once the blade itself is coming, the last moment before contact.)
+            float toContact = Blow.HasValue ? Blow.Value.ToContact : 0f;
+            bool sees = IncomingBlade.HasValue && incomingFor > Mathf.Lerp(SeeBlowAfter, NoviceSeeAfter, lack)
+                        && toContact <= SeesBefore(1f - lack) && Blocking;
+            backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
+            float wantIntercept = sees || (backIn > 0f && Blocking && interceptWeight > 0f) ? 1f : 0f;
             interceptWeight = Mathf.MoveTowards(interceptWeight, wantIntercept, dt / BlockRaise);
             float weight = Mathf.Max(blockWeight, interceptWeight);
             var hand = Anim.Part(PartId.HandL);
             if (weight <= 0f)
             {
                 shieldAtKnown = false;
+                shieldFaceKnown = false;
                 return;
             }
 
@@ -426,10 +506,39 @@ namespace PhysicsBattler.Locomotion
             toBlade = toBlade.sqrMagnitude > 1e-4f ? toBlade.normalized : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
             // (Read from the wind-up: across the line the blow will come in on, not after the weapon, which is
             // faster than any shield at the end.)
+            // (A novice chases the blade where it is now instead of closing the line it will come in on.)
             if (IncomingFrom.HasValue && IncomingBlade.HasValue && interceptWeight > 0f)
             {
-                toBlade = Vector3.Slerp(toBlade, IncomingFrom.Value.normalized, ReadLine);
+                toBlade = Vector3.Slerp(toBlade, IncomingFrom.Value.normalized, ReadLine * (1f - lack));
             }
+            // (How well it reads the blow: a novice's shield goes where it guessed (off by its misread, and its line),
+            // keeps to that first guess, and holds at the chest against a low cut.)
+            if (IncomingBlade.HasValue && interceptWeight > 0f)
+            {
+                shieldReread -= dt;
+                if (shieldReadHeld && shieldReread > 0f)
+                {
+                    aimed = shieldHeldAim;
+                    toBlade = shieldHeldLine;
+                }
+                else
+                {
+                    float hips = Anim.Part(PartId.Pelvis).position.y;
+                    if (!coversLow && aimed.y < hips)
+                    {
+                        aimed = new Vector3(aimed.x, chest.y, aimed.z);
+                    }
+
+                    // (Off to one side of the line, not along it, where a misread would make no difference.)
+                    aimed += Vector3.ProjectOnPlane(shieldMisread, toBlade).normalized * shieldMisread.magnitude;
+                    toBlade = (shieldMisline * toBlade).normalized;
+                    shieldHeldAim = aimed;
+                    shieldHeldLine = toBlade;
+                    shieldReadHeld = true;
+                    shieldReread = lack >= 0.999f ? float.MaxValue : 0.4f * lack;
+                }
+            }
+
             // (Not behind itself: the shield stays in front of the body.)
             Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
             if (Vector3.Dot(toBlade, ahead) < 0.2f)
@@ -446,12 +555,36 @@ namespace PhysicsBattler.Locomotion
                 shieldAtKnown = true;
             }
 
-            shieldAt = Vector3.MoveTowards(shieldAt, want, ShieldSpeed * Size * dt);
+            // (Its speed builds up, a novice's to less.)
+            float most = Mathf.Lerp(ShieldSpeed, NoviceShieldSpeed, lack) * Size;
+            shieldSpeedNow = Mathf.MoveTowards(shieldSpeedNow, most, most / ShieldSpeedUp * dt);
+            shieldAt = Vector3.MoveTowards(shieldAt, want, Mathf.Max(0.2f * most, shieldSpeedNow) * dt);
             Vector3 target = Vector3.Lerp(hand.position, shieldAt, weight);
             var turn = Quaternion.Euler(0f, Loco.Facing, 0f);
             TwoBoneIK.Solve(upper, fore, hand, target, turn * new Vector3(-1f, -0.6f, 0f));
-            // (The wrist straight along the forearm, the shield turned in the fist to face the blow.)
-            Poser.FaceShieldAt(toBlade, Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
+            // (The wrist straight along the forearm, the shield turned in the fist to face the blow: an expert's slanted so a
+            // cut glances off, a novice's square on.)
+            Vector3 face = toBlade;
+            float slant = ExpertSlant * (1f - lack);
+            if (slant > 0.5f && IncomingFrom.HasValue)
+            {
+                Vector3 across = Vector3.Cross(IncomingFrom.Value, Vector3.up);
+                if (across.sqrMagnitude > 1e-4f)
+                {
+                    face = Quaternion.AngleAxis(slant, across.normalized) * face;
+                }
+            }
+
+            // (And turned no faster than the arm can turn it: a novice's shield can't whip round to catch a blade at the last
+            // moment.)
+            if (!shieldFaceKnown || shieldFace.sqrMagnitude < 1e-6f)
+            {
+                shieldFace = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+                shieldFaceKnown = true;
+            }
+
+            shieldFace = Vector3.RotateTowards(shieldFace, face, Mathf.Lerp(ShieldTurnSpeed, NoviceShieldTurnSpeed, lack) * Mathf.Deg2Rad * dt, 0f);
+            Poser.FaceShieldAt(shieldFace, Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
         }
 
         /// <summary>The softened holds coming back.</summary>

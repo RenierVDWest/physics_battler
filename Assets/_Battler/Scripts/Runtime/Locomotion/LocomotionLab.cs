@@ -1167,6 +1167,17 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The combo the picked strike starts: up to three strikes, each the best follow-on of the last.</summary>
         private static string SkillName(float skill) => skill < 0.125f ? "novice" : skill < 0.375f ? "poor" : skill < 0.625f ? "fair" : skill < 0.875f ? "good" : "expert";
 
+        private void SetShieldSkill(float skill)
+        {
+            dummyShieldSkill = Mathf.Clamp01(Mathf.Round(skill * 4f) / 4f);
+            if (dummy != null)
+            {
+                dummy.ShieldSkill = dummyShieldSkill;
+            }
+
+            legs.Add($"{time:0.00} s: shield skill {dummyShieldSkill:0.00} ({SkillName(dummyShieldSkill)})");
+        }
+
         private void SetParrySkill(float skill)
         {
             dummyParrySkill = Mathf.Clamp01(Mathf.Round(skill * 4f) / 4f);
@@ -1818,8 +1829,19 @@ namespace PhysicsBattler.Locomotion
 
                     GUILayout.EndHorizontal();
                     Note(dummyStance == LabDummy.Stances.Open ? "Open: its guard down, no defence; every blow lands. (O cycles the three.)"
-                        : dummyStance == LabDummy.Stances.Shield ? $"Blocks each blow with its shield. Shield skill {dummyShieldSkill:0.0} (levels come with the shield step). (O cycles the three.)"
+                        : dummyStance == LabDummy.Stances.Shield ? "Blocks each blow with its shield. (O cycles the three.)"
                         : $"Parries each blow with its sword from a medium guard. (O cycles the three.)");
+                    if (dummyStance == LabDummy.Stances.Shield)
+                    {
+                        // (Shield skill, 0 a novice to 1 an expert: how soon it moves, how well it reads the line, how fast its
+                        // shield comes and turns, whether it covers low cuts and slants the shield so a cut glances off.)
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label($"Shield skill {dummyShieldSkill:0.00} ({SkillName(dummyShieldSkill)})");
+                        if (GUILayout.Button("\u2212", GUILayout.Width(36f))) SetShieldSkill(dummyShieldSkill - 0.25f);
+                        if (GUILayout.Button("+", GUILayout.Width(36f))) SetShieldSkill(dummyShieldSkill + 0.25f);
+                        GUILayout.EndHorizontal();
+                    }
+
                     if (dummyStance == LabDummy.Stances.Sword)
                     {
                         // (Parry skill, 0 a novice to 1 an expert: how soon it moves, how well it reads the blow and meets the blade.)

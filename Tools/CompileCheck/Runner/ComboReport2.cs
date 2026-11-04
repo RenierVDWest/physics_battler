@@ -117,6 +117,29 @@ internal static class StrikeComboReport
                 {
                     dummy.ParrySkill = parrySkill;
                 }
+
+                if (float.TryParse(Environment.GetEnvironmentVariable("SHIELD_SKILL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float shieldSkill))
+                {
+                    dummy.ShieldSkill = shieldSkill;
+                }
+            }
+            else if (Environment.GetEnvironmentVariable("COMBO_STANCE") == "shield")
+            {
+                // (Its shield, as dummyhits gives it: a board on its left hand's slot.)
+                var board = new GameObject("Dummy shield");
+                dummy.Rig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+                dummy.Anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+                board.transform.SetParent(dummy.Rig.SlotWeaponL, false);
+                var box = board.AddComponent<BoxCollider>();
+                box.size = new Vector3(0.522f, 0.522f, 0.05f);
+                box.center = new Vector3(0f, 0f, 0.075f);
+                box.isTrigger = true;
+                dummy.ShieldColliders.Add(box);
+                dummy.Stance = LabDummy.Stances.Shield;
+                if (float.TryParse(Environment.GetEnvironmentVariable("SHIELD_SKILL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float shieldSkill))
+                {
+                    dummy.ShieldSkill = shieldSkill;
+                }
             }
             else
             {
