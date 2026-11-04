@@ -50,12 +50,7 @@ internal static class StrikeComboReport
         {
             var chain = StrikeCombos.Chain(first, strikes, 3);
             Console.WriteLine($"{first.Name}: " + (chain.Count == 0 ? "no follow-on" : string.Join("; ", chain.Select(l => l.ToString()))));
-            if (chain.Count == 0)
-            {
-                continue;
-            }
-
-            // Played at the dummy.
+            // Played at the dummy (a strike with no quick follow-on too: the combo goes on from the guard).
             var (anim, loco, poser, root, size) = DummyHitReportWalker(body);
             var weapon = WeaponDefinition.CreateDefault(body == "Large" ? WeaponKind.Club : WeaponKind.Sword);
             poser.WeaponLength = weapon.length * size;
@@ -110,9 +105,21 @@ internal static class StrikeComboReport
             var results = new List<string>();
             float clock = 0f;
             var hitTimes = new List<float>();
-            hits.Landed += text => { hitTimes.Add(clock); results.Add(text.Substring(0, text.IndexOf(" (", StringComparison.Ordinal) > 0 ? text.IndexOf(" (", StringComparison.Ordinal) : text.Length)); };
             var linkTimes = new List<float>();
             var playedNames = new List<string>();
+            // (One result a blow: a blade that cuts through goes on to strike more parts, which is still the one blow.)
+            int lastLandedBlow = -1;
+            hits.Landed += text =>
+            {
+                if (playedNames.Count == lastLandedBlow)
+                {
+                    return;
+                }
+
+                lastLandedBlow = playedNames.Count;
+                hitTimes.Add(clock);
+                results.Add(text.Substring(0, text.IndexOf(" (", StringComparison.Ordinal) > 0 ? text.IndexOf(" (", StringComparison.Ordinal) : text.Length));
+            };
             bool wasPressing = false;
             player.Started += (clip, link) =>
             {
@@ -175,10 +182,12 @@ internal static class StrikeComboReport
                     Vector3 now = anim.Part(parts[k]).position;
                     float v = (now - last[k]).magnitude / dt;
                     // (About each switch between strikes: the strikes' own swings are fast anyway.)
-                    if (sinceSwitch < 0.3f && v > fastest)
+                    // (Not the blow itself: a follow-on taken up late in its wind-up swings into its live moments within that.)
+                    bool inBlow = loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0 && loco.ShotTime > loco.Shot.ContactFrame / loco.Shot.Rate - hits.LiveBefore;
+                    if (sinceSwitch < 0.3f && !inBlow && v > fastest)
                     {
                         fastest = v;
-                        fastestWhere = $"{parts[k]} {sinceSwitch:0.00} s after a switch in the combo from {first.Name} ({loco.Shot?.Name})";
+                        fastestWhere = $"{parts[k]} {sinceSwitch:0.00} s after a switch in the combo from {first.Name} ({loco.Shot?.Name} at {loco.ShotTime:0.00} s, the fade's half-life {loco.SwitchHalfLifeNow:0.00} s)";
                     }
 
                     last[k] = now;

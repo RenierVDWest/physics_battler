@@ -169,7 +169,7 @@ namespace PhysicsBattler.Locomotion
             clip.RootMotion(Mathf.Min(loco.ShotTime, contact), contact, out _, out float turnLeft);
             read.BladeWay = Quaternion.Euler(0f, loco.Facing + turnLeft, 0f) * way;
             // (In seconds as they pass: a smaller body's clips play faster.)
-            float speed = Mathf.Max(0.05f, loco.ShotSpeed) * loco.TimeScale;
+            float speed = Mathf.Max(0.05f, loco.ShotRate) * loco.TimeScale;
             read.ToContact = Mathf.Max(0f, contact - loco.ShotTime) / speed;
             read.Coming = loco.ShotTime / loco.TimeScale;
             read.Thrust = IsThrust(clip);

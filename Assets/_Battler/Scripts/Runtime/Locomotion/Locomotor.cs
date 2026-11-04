@@ -847,6 +847,7 @@ namespace PhysicsBattler.Locomotion
             shotAimTurn = shotAimOver = shotAimFrom = 0f;
             rewinding = false;
             ShotSpeed = 1f;
+            chamberSpeed = 1f;
             shotEnd = endAt > 0f ? endAt : then == ShotEnds.Cycle ? HandOver(clip, startFrom) : clip.Duration;
             Current = Mode.OneShot;
             Blend.Clear();
@@ -996,6 +997,37 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
+        /// A combo's next strike: its wind-up (the chamber) played up to <paramref name="speed"/> times as fast, easing
+        /// back to its own pace by <paramref name="until"/> (seconds of its clip, its contact): the blow itself not sped.
+        /// </summary>
+        public void Chamber(float speed, float until)
+        {
+            chamberSpeed = Mathf.Max(1f, speed);
+            chamberFrom = ShotTime;
+            chamberUntil = until;
+        }
+
+        private float chamberSpeed = 1f, chamberFrom, chamberUntil;
+
+        /// <summary>How much faster than its own pace the playing one-shot goes now for its chamber (1: its own).</summary>
+        public float ChamberNow
+        {
+            get
+            {
+                if (chamberSpeed <= 1f || ShotTime >= chamberUntil || chamberUntil <= chamberFrom)
+                {
+                    return 1f;
+                }
+
+                float u = Mathf.Clamp01((ShotTime - chamberFrom) / (chamberUntil - chamberFrom));
+                return Mathf.Lerp(chamberSpeed, 1f, u * u);
+            }
+        }
+
+        /// <summary>How fast the playing one-shot goes against its own pace (its speed and its chamber's).</summary>
+        public float ShotRate => ShotSpeed * ChamberNow;
+
+        /// <summary>
         /// Whether the playing one-shot has both feet off the ground now or in the last <paramref name="within"/>
         /// seconds of its clip (a jumping strike): one stopped in the air can't back out of what it met, it comes down.
         /// </summary>
@@ -1113,7 +1145,7 @@ namespace PhysicsBattler.Locomotion
             float from = ShotTime;
             ShotTime = rewinding
                 ? Mathf.Max(rewindFloor, ShotTime + dt * TimeScale * ShotSpeed)
-                : Mathf.Min(shotEnd, ShotTime + dt * TimeScale * Mathf.Max(0f, ShotSpeed));
+                : Mathf.Min(shotEnd, ShotTime + dt * TimeScale * Mathf.Max(0f, ShotSpeed) * ChamberNow);
             clip.RootMotion(from, ShotTime, out var moved, out float turned);
             if (shotAimOver > 0f && from < shotAimOver)
             {

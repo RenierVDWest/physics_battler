@@ -110,7 +110,7 @@ namespace PhysicsBattler.Locomotion
         private float lastSeparate = -10f;
 
         /// <summary>How long after it was last struck, or a blow passed, it steps back to its standing distance (seconds).</summary>
-        public const float StandBackAfter = 0.3f;
+        public const float StandBackAfter = 0.8f;
 
         /// <summary>How long after a blow it still steps back to its standing distance (seconds).</summary>
         public const float StandBackWithin = 1.5f;

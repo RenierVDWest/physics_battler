@@ -38,10 +38,10 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The most strikes in a combo, and how near a follow-on must reach its target to be chosen (metres).</summary>
         public int Most = 3;
-        public float LandWithin = 0.05f, MostCost = 1.2f;
+        public float LandWithin = 0.15f, MostCost = 2.2f;
 
         /// <summary>What turning the body a full <see cref="LocoBody.MostAimTurn"/> onto the target adds to a follow-on's cost.</summary>
-        public float TurnWeight = 0.4f;
+        public float TurnWeight = 1.0f;
 
         /// <summary>Pressing: the longest it steps in after the target (seconds), and how fast (m/s at a Medium's size).</summary>
         public float PressMost = 3f, PressSpeed = 1.5f;
@@ -78,6 +78,22 @@ namespace PhysicsBattler.Locomotion
             this.poser = poser;
         }
 
+        /// <summary>The most a follow-on's lunge is stretched (the first strike's, <see cref="LocoBody.MostLunge"/> as it is): a combo goes after a body its blows drive back.</summary>
+        public float FollowLunge = 1.7f;
+
+        private float firstLunge = -1f;
+
+        /// <summary>The follow-ons' lunge on (or the first strike's back).</summary>
+        private void FollowOns(bool on)
+        {
+            if (firstLunge < 0f)
+            {
+                firstLunge = poser.MostLunge;
+            }
+
+            poser.MostLunge = on ? Mathf.Max(firstLunge, FollowLunge) : firstLunge;
+        }
+
         /// <summary>A combo is under way.</summary>
         public bool Playing => current != null;
 
@@ -95,12 +111,15 @@ namespace PhysicsBattler.Locomotion
             Ended = "";
             Pressing = false;
             Want = Vector3.zero;
+            FollowOns(false);
             poser.PlayStrike(first, Target(first));
+            FollowOns(true);
             Started?.Invoke(first, null);
         }
 
         public void Stop()
         {
+            FollowOns(false);
             current = null;
             Pressing = false;
             loco.Hurry = false;
@@ -111,7 +130,7 @@ namespace PhysicsBattler.Locomotion
         public Func<Vector3> TargetVelocity;
 
         /// <summary>How much of the target's way it is led by, at most how far ahead (seconds): a driven body slows.</summary>
-        public const float LeadShare = 0.6f, MostLead = 0.6f;
+        public const float LeadShare = 0.9f, MostLead = 0.8f;
 
         private Vector3 Target(LocoClip clip, float startFrom = 0f)
         {
@@ -149,6 +168,8 @@ namespace PhysicsBattler.Locomotion
         {
             loco.TurnRoot(link.Turn, Quaternion.Euler(0f, loco.Facing, 0f) * link.Shift * (loco.Leg / 0.845f));
             poser.PlayStrike(link.To, Target(link.To, link.Entry), startFrom: link.Entry);
+            // (Its chamber quickened: the next blow's wind-up, not the blow.)
+            loco.Chamber(StrikeCombos.ChamberSpeed, link.To.ContactFrame / link.To.Rate);
             current = link.To;
             shotTime = link.Entry;
             used.Add(link.To);
@@ -212,10 +233,13 @@ namespace PhysicsBattler.Locomotion
 
             if (options.Count == 0)
             {
-                Ended = "no follow-on";
+                // (None follows on out of this strike quickly enough: once it is over, the next is taken up from the
+                // guard, as pressing does.)
                 if (!still)
                 {
-                    current = null;
+                    Pressing = true;
+                    pressedFor = 0f;
+                    Ended = "no follow-on out of it; the next is taken up from the guard";
                 }
 
                 return;
@@ -304,7 +328,9 @@ namespace PhysicsBattler.Locomotion
                 nearestMiss = Mathf.Min(nearestMiss, miss);
                 float turnNeeded = Mathf.Abs(poser.AimTurnFor(link.To, at, 0f, loco.Position, loco.Facing));
                 // (Facing the target first, for a while: a strike swung from a body turned away has to turn it in its wind-up.)
-                if (miss <= LandWithin && (turnNeeded <= PressTurn || pressedFor > PressMost * 0.6f))
+                // (Once it has stood within reach a moment (it stops stepping in there), as near as it got will do.)
+                float within = pressedFor > 0.5f ? LandWithin + StopWithin : LandWithin;
+                if (miss <= within && (turnNeeded <= PressTurn || pressedFor > PressMost * 0.6f))
                 {
                     float turn = turnNeeded;
                     float score = link.Cost + TurnWeight * turn / Mathf.Max(1f, poser.MostAimTurn);
@@ -360,6 +386,11 @@ namespace PhysicsBattler.Locomotion
         {
             if (current == null)
             {
+                if (firstLunge >= 0f)
+                {
+                    FollowOns(false);
+                }
+
                 return;
             }
 

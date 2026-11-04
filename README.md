@@ -112,6 +112,17 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     low blows, and a rare elbow flip of the arm rig in the folded guard. Combos: pressing in after a strike stops
     at the fighting distance and may take up any strike from the guard there (26 of 27 land); the close pair
     combo_backhand > combo_chop no longer links at that distance. M puts the lab's panel back at the top left.
+  - Combo flow, step 1 (the Bam! Bam! Bam! plan): the time from one blow's contact to the next's is part of a link's
+    cost (`StrikeCombos.TimeCost`: 0.2 a second, and 2.5 a second more past 0.55 s); a strike may be left 0.1 s
+    after its contact and the next taken up as late as 0.25 s before its own; the follow-on's chamber (its wind-up)
+    plays up to 1.2 times as fast, easing back to its own pace by contact (`Locomotor.Chamber`), the blow itself not
+    sped; links up to cost 2.2 are taken (the switch's fade keeps every part under 3 m/s of its own). A follow-on's
+    lunge may stretch to 1.7 times and is aimed 0.9 of the way to where a driven target will be; a strike with no
+    quick follow-on goes on from the guard instead of ending the combo; the dummy waits 0.8 s after a blow before it
+    steps back to its standing distance. Headless (`combos <dir> Medium`): a Medium's blows land 0.63 s apart
+    (median; 1.58 s before), 24 of 27 land. Not yet: the Large (three strikes only: 2.6 s apart; its great sword
+    combos are to be baked), follow-ons that need the body turned 60 degrees onto the target, a stopped blow's own
+    rebound into the next, and the authored combos.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

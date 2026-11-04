@@ -34,13 +34,28 @@ namespace PhysicsBattler.Locomotion
     public static class StrikeCombos
     {
         /// <summary>The second strike keeps at least this much of its wind-up before contact (seconds).</summary>
-        public const float LeastWindUp = 0.3f;
+        public const float LeastWindUp = 0.25f;
+
+        /// <summary>The first strike is left no sooner than this after its contact (seconds): once the blade is through.</summary>
+        public const float LeaveAfter = 0.1f;
+
+        /// <summary>
+        /// The time from one blow's contact to the next's is part of a link's cost (a combo is a rhythm: Bam! Bam!
+        /// Bam!): this much a second of it, and this much more a second past <see cref="BeatWithin"/>.
+        /// </summary>
+        public const float TimeWeight = 0.2f, LateWeight = 2.5f, BeatWithin = 0.55f;
+
+        /// <summary>What the time between two contacts adds to a link's cost (seconds of the clips).</summary>
+        /// <summary>A follow-on's chamber (its wind-up from where it is taken up) plays up to this much faster (<see cref="Locomotor.Chamber"/>).</summary>
+        public const float ChamberSpeed = 1.2f;
+
+        /// <summary>The seconds as they pass of a follow-on's wind-up of so many seconds of its clip, its chamber quickened (easing back to its own pace by contact).</summary>
+        public static float Chambered(float windUp) => windUp / (0.5f * (ChamberSpeed + 1f) + (ChamberSpeed - 1f) / 6f);
+
+        public static float TimeCost(float beat) => TimeWeight * beat + LateWeight * Mathf.Max(0f, beat - BeatWithin);
 
         /// <summary>The cost's weights: metres of a hand, of the hips, of a foot; radians of the weapon's line; m/s of a hand.</summary>
         public const float HandWeight = 1f, OffHandWeight = 0.4f, HipsWeight = 1f, FootWeight = 0.6f, BladeWeight = 0.25f, MotionWeight = 0.08f;
-
-        /// <summary>Each tenth of a second the first strike goes on past its link mark costs this (a combo goes on, it doesn't wait).</summary>
-        public const float LatePerTenth = 0.05f;
 
         private static readonly Vector3[] a0 = new Vector3[LocoClip.BoneCount], a1 = new Vector3[LocoClip.BoneCount];
         private static readonly Vector3[] b0 = new Vector3[LocoClip.BoneCount], b1 = new Vector3[LocoClip.BoneCount];
@@ -115,7 +130,8 @@ namespace PhysicsBattler.Locomotion
                 return best;
             }
 
-            float linkFrom = Mathf.Max(a.ContactFrame, a.LinkFrom) / a.Rate;
+            float aContact = a.ContactFrame / a.Rate;
+            float linkFrom = Mathf.Min(aContact + LeaveAfter, a.Duration);
             float bContact = b.ContactFrame / b.Rate;
             float lastEntry = Mathf.Max(0f, bContact - LeastWindUp);
             float step = 1f / Mathf.Max(a.Rate, b.Rate);
@@ -135,7 +151,7 @@ namespace PhysicsBattler.Locomotion
                     shift.y = 0f;
                     Shifted(b0, shift);
                     Shifted(b1, shift);
-                    float cost = Cost(a0, a1, b0, b1) + LatePerTenth * (ta - linkFrom) / 0.1f;
+                    float cost = Cost(a0, a1, b0, b1) + TimeCost((ta - aContact) + Chambered(bContact - tb));
                     if (cost < best.Cost)
                     {
                         best.Cost = cost;
@@ -163,7 +179,9 @@ namespace PhysicsBattler.Locomotion
                 return best;
             }
 
-            float lastEntry = Mathf.Max(0f, b.ContactFrame / b.Rate - LeastWindUp);
+            float bContactAt = b.ContactFrame / b.Rate;
+            float lastEntry = Mathf.Max(0f, bContactAt - LeastWindUp);
+            float since = a.ContactFrame >= 0 ? Mathf.Max(0f, at - a.ContactFrame / a.Rate) : 0f;
             float step = 1f / Mathf.Max(a.Rate, b.Rate);
             PoseAt(a, Mathf.Clamp(at, 0f, a.Duration), a0, a1);
             float yawA = HipsYaw(a0);
@@ -177,7 +195,7 @@ namespace PhysicsBattler.Locomotion
                 shift.y = 0f;
                 Shifted(b0, shift);
                 Shifted(b1, shift);
-                float cost = Cost(a0, a1, b0, b1);
+                float cost = Cost(a0, a1, b0, b1) + TimeCost(since + Chambered(bContactAt - tb));
                 if (cost < best.Cost)
                 {
                     best.Cost = cost;
@@ -194,7 +212,7 @@ namespace PhysicsBattler.Locomotion
         public static List<(float at, float entry, float cost)> Curve(LocoClip a, LocoClip b)
         {
             var curve = new List<(float, float, float)>();
-            float linkFrom = Mathf.Max(a.ContactFrame, a.LinkFrom) / a.Rate;
+            float linkFrom = Mathf.Min(a.ContactFrame / a.Rate + LeaveAfter, a.Duration);
             float lastEntry = Mathf.Max(0f, b.ContactFrame / b.Rate - LeastWindUp);
             float step = 2f / Mathf.Max(a.Rate, b.Rate);
             for (float ta = linkFrom; ta <= a.Duration + 1e-4f; ta += step)
@@ -243,7 +261,7 @@ namespace PhysicsBattler.Locomotion
         /// A combo of up to <paramref name="count"/> strikes from <paramref name="first"/>: each next the lowest
         /// cost follow-on of the last that the chain hasn't used, if it costs at most <paramref name="mostCost"/>.
         /// </summary>
-        public static List<StrikeLink> Chain(LocoClip first, IList<LocoClip> strikes, int count, float mostCost = 1.2f)
+        public static List<StrikeLink> Chain(LocoClip first, IList<LocoClip> strikes, int count, float mostCost = 2.2f)
         {
             var chain = new List<StrikeLink>();
             var used = new HashSet<LocoClip> { first };
