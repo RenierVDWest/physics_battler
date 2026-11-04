@@ -154,6 +154,7 @@ internal static class StrikeComboReport
             var last = parts.Select(p => anim.Part(p).position).ToArray();
             int switches = loco.Switches;
             float sinceSwitch = 99f;
+            string lastState = "";
             for (int i = 0; i < 900; i++)
             {
                 clock = i * dt;
@@ -163,6 +164,15 @@ internal static class StrikeComboReport
                 dummy.KeepDistance = keepAt;
                 dummy.StandDistance = LabDummy.StandingDistance(size, dummy.Size);
                 bool frozen = hits.HitStop > 0f;
+                if (Environment.GetEnvironmentVariable("COMBO_TIMELINE") != null)
+                {
+                    string state = $"{loco.Current} {(loco.Shot != null ? loco.Shot.Name.Replace(prefix, "") : "-")}{(frozen ? " hit stop" : "")}{(loco.ShotSpeed < 0f ? " backing out" : "")}{(player.Pressing ? " pressing" : "")}";
+                    if (state != lastState)
+                    {
+                        Console.WriteLine(string.Format(ci, "      {0:0.00} s: {1} (at {2:0.00} s of it)", i * dt, state, loco.ShotTime));
+                        lastState = state;
+                    }
+                }
                 if (!frozen)
                 {
                     // (Pressing after the dummy, the combo walks the walker in.)
