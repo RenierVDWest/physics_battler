@@ -30,6 +30,11 @@ internal static class Program
             return StrikeComboReport.Run(args[1], args.Length >= 3 ? args[2] : null);
         }
 
+        if (args.Length >= 2 && args[0] == "cores")
+        {
+            return CoreReport.Run(args[1]);
+        }
+
         if (args.Length >= 1 && args[0] == "parryreach")
         {
             return ParryReachReport.Run(args.Length >= 2 ? args[1] : null);

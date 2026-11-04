@@ -134,6 +134,15 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     space so it finishes fading through a hit stop or a switch. The attacker's panel switches them off and on and
     sets how long they last; it also shows the last combo's beat (the time from each contact to the next, and from
     the first contact to the last; also in the log), the measure the next steps are gated on.
+  - Combo feel, step 2: each strike's combo core (`StrikeCores`, worked out from the clip's own tracks; nothing
+    plays differently yet). Its entry is 0.03 s after the chamber's turnaround (the blade tip, turning round the
+    shoulder, last slower than a fifth of its contact speed), kept 0.18 to 0.30 s before contact; its exit 0.06 s
+    after contact. A strike in the air at its entry is entered at its takeoff instead: the three long chops leap a
+    leg length high 0.6 to 0.7 s before contact, so their cores are leaps, which open combos but never follow on
+    (entering one in the air would lift the body a leg length in the bridge's 0.1 s). Headless: `cores <dir>`
+    prints the table and writes cores.json; `python3 Tools/Mocap/Combat/coresheet.py <dir>/cores.json sheet.png
+    [sns_,lg_]` draws the film sheet (tip speed with the marks; the body from the target and from above at the
+    entry, contact and exit; the tip's path, thick over the core).
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;
