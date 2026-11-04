@@ -106,7 +106,9 @@ internal static class StrikeComboReport
                 },
             };
             var results = new List<string>();
-            hits.Landed += text => results.Add(text.Substring(0, text.IndexOf(" (", StringComparison.Ordinal) > 0 ? text.IndexOf(" (", StringComparison.Ordinal) : text.Length));
+            float clock = 0f;
+            var hitTimes = new List<float>();
+            hits.Landed += text => { hitTimes.Add(clock); results.Add(text.Substring(0, text.IndexOf(" (", StringComparison.Ordinal) > 0 ? text.IndexOf(" (", StringComparison.Ordinal) : text.Length)); };
             var linkTimes = new List<float>();
             var playedNames = new List<string>();
             bool wasPressing = false;
@@ -125,6 +127,7 @@ internal static class StrikeComboReport
             float sinceSwitch = 99f;
             for (int i = 0; i < 900; i++)
             {
+                clock = i * dt;
                 bool frozen = hits.HitStop > 0f;
                 if (!frozen)
                 {
@@ -183,6 +186,10 @@ internal static class StrikeComboReport
             missed += playedNames.Count - results.Count;
             Console.WriteLine("    played: " + string.Join(" > ", playedNames) + (player.Ended.Length > 0 ? $" (ended: {player.Ended})" : ""));
             Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)));
+            if (hitTimes.Count > 1)
+            {
+                Console.WriteLine("    between blows: " + string.Join(", ", hitTimes.Zip(hitTimes.Skip(1), (a, b) => (b - a).ToString("0.00", ci) + " s")));
+            }
             File.WriteAllText(Path.Combine(dir, first.Name + ".json"), film.ToString());
             File.WriteAllText(Path.Combine(dir, first.Name + ".dummy"), dummyFilm.ToString());
             UnityEngine.Object.DestroyImmediate(root);
