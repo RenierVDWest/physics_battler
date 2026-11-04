@@ -164,6 +164,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     of 27 blows on the open dummy and the sword dummy, 0.25 to 0.38 s between the quick blows and 0.47 to 0.55 s
     into the showstopper, the third 0.73 to 0.93 s after the first; the Small 26 of 27, 0.22 to 0.37 s; the hands
     at most 15.6 m/s about the switches.
+  - Combo feel, step 4: the flow chooser. A link's cost now also counts the figure-eight (`StrikeLink.Flow`: the
+    weapon hand going on the way it was moving into the next blow's start, not back the way it came) and takes off
+    a pair the mocap actor did in a row (`StrikeCombos.MocapPairs`: the four-cut combo's forehand into its
+    backhand, the Large's three-strike sets); no planned link turns the body more than 45 degrees onto its
+    target. Each strike's combos within 0.5 of its best are gone round in turn (`StrikeCombos.CoreChains`; the
+    panel shows "n of m", each I plays the next). As it goes, a follow-on that would turn the body more than 45
+    degrees from where the last blow actually left it (a blow stopped early has turned less than its plan) is
+    swapped for the unused one of its part that turns least (`ComboPlayer.Reconsider`; never the strike picked,
+    `ComboPlayer.Keep`). Headless, the Medium against the open dummy: 30 of 30 blows land, the follow-ons turn the
+    body 18 degrees (median), 45 at most; against the sword dummy 16 of 20 within 45 (the jump chop, its only
+    showstopper that can be led into, is kept). The Small lands 25 of 30: its low blows don't reach the dummy's
+    hips from the fighting distance (step 5). Not yet: a second showstopper for the Medium (its other two leaps
+    are spinning chops, which can't end a combo).
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

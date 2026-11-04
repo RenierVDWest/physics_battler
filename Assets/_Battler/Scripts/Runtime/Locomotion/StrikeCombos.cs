@@ -24,6 +24,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A combo of cores: how far the next blow lands off the way the last one did, which its aim turns the body by in its wind-up (degrees).</summary>
         public float Aim;
 
+        /// <summary>A combo of cores: how well the weapon hand goes on the way it was moving into the next blow's start (1 straight on, -1 straight back), and the actor did the two in a row (<see cref="StrikeCombos.MocapPairs"/>).</summary>
+        public float Flow = 1f;
+        public bool Mocap;
+
         public override string ToString() => $"{From.Name} at {At:0.00} s -> {To.Name} from {Entry:0.00} s (turn {Turn:+0;-0}{(Aim != 0f ? $", aim {Aim:+0;-0}" : "")}, cost {Cost:0.00})";
     }
 
@@ -311,7 +315,7 @@ namespace PhysicsBattler.Locomotion
         /// earlier until it lands within this of straight ahead (a spinning chop from before its spin); a follow-on whose
         /// aim would turn the body more is not chosen (a spinning chop never ends a combo).
         /// </summary>
-        public const float MostAim = 50f;
+        public const float MostAim = 45f;
 
         /// <summary>Where a combo's opener is taken up: <see cref="OpenLead"/> before contact (a leap at its takeoff), or earlier, as late as it still lands within <see cref="MostAim"/> of straight ahead.</summary>
         public static float OpenerEntry(LocoClip clip)
@@ -348,6 +352,29 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public const float CoreTurnWeight = 0.4f, AimWeight = 2.5f, FreeAim = 15f;
 
+        /// <summary>What a link's hand going back the way it came adds to its cost (all the way back: this much), and what a pair the actor did in a row takes off it.</summary>
+        public const float FlowWeight = 0.6f, MocapBonus = 0.6f;
+
+        /// <summary>The strikes the mocap actor did in a row, first then next (the four-cut combo; the Large's three-strike sets): the most natural links there are.</summary>
+        public static readonly (string, string)[] MocapPairs =
+        {
+            ("sns_combo_forehand", "sns_combo_backhand"), ("sns_combo_backhand", "sns_combo_chop"),
+            ("lg_slash_a", "lg_slash_b"), ("lg_slash_b", "lg_slash_c"), ("lg_club_a", "lg_club_b"), ("lg_club_b", "lg_club_c"),
+        };
+
+        private static bool IsMocapPair(LocoClip a, LocoClip b)
+        {
+            foreach (var (x, y) in MocapPairs)
+            {
+                if (a.Name == x && b.Name == y)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>The chamber speed (<see cref="Locomotor.Chamber"/>) a core of this lead plays at: up to the most, so on average it takes <see cref="CoreChamber"/> (the quickened pace eases back to the clip's own by contact).</summary>
         public static float CoreChamberSpeed(float lead)
         {
@@ -372,6 +399,11 @@ namespace PhysicsBattler.Locomotion
             link.Turn = turn;
             link.Shift = shift;
             link.Cost = Cost(a0, a1, b0, b1);
+            // (The figure-eight: the weapon hand goes on the way it was moving, round into the next blow's chamber,
+            // rather than back the way it came. 1: straight on; -1: straight back.)
+            Vector3 moving = a1[(int)LocoBone.RightHand] - a0[(int)LocoBone.RightHand];
+            Vector3 toNext = b0[(int)LocoBone.RightHand] - a0[(int)LocoBone.RightHand];
+            link.Flow = moving.sqrMagnitude > 1e-8f && toNext.magnitude > 0.1f ? Vector3.Dot(moving.normalized, toNext.normalized) : 1f;
             return link;
         }
 
@@ -389,7 +421,9 @@ namespace PhysicsBattler.Locomotion
                 // and the next lands at its bearing from there: the aim turns the body by what that is off the target.)
                 a.RootMotion(ca.Contact, ca.Exit, out _, out float turnedOn);
                 link.Aim = Mathf.DeltaAngle(turnedOn + link.Turn + StrikeCores.Bearing(b, cb.Entry), StrikeCores.Bearing(a, ca.Contact));
-                link.Cost += CoreTurnWeight * Mathf.Abs(link.Turn) / 90f + AimWeight * Mathf.Max(0f, Mathf.Abs(link.Aim) - FreeAim) / 90f;
+                link.Mocap = IsMocapPair(a, b);
+                link.Cost += CoreTurnWeight * Mathf.Abs(link.Turn) / 90f + AimWeight * Mathf.Max(0f, Mathf.Abs(link.Aim) - FreeAim) / 90f
+                             + FlowWeight * 0.5f * (1f - link.Flow) - (link.Mocap ? MocapBonus : 0f);
                 coreLinks[(a, b)] = link;
             }
 
@@ -435,58 +469,29 @@ namespace PhysicsBattler.Locomotion
         /// whose cores meet best, the links' costs summed (a heavier finisher a little cheaper). The links in order:
         /// the first's <see cref="StrikeLink.From"/> is the opener.
         /// </summary>
-        /// <summary>A combo opened by <paramref name="opener"/> whatever it is, the rest the best of <paramref name="strikes"/> after it (a finisher last).</summary>
-        private static List<StrikeLink> OpenedBy(LocoClip opener, List<LocoClip> strikes, int count)
+        /// <summary>Combos within this much of the best one's cost are as good: the lab goes round them, one each time (variety).</summary>
+        public const float ChainSlack = 0.5f;
+
+        /// <summary>
+        /// A combo of cores from the picked strike, Bam! Bam! BAM!: three blows ending on a finisher (<see cref="Finishers"/>).
+        /// A finisher picked ends the combo, two quick blows before it; any other opens it. The rest are the quick strikes
+        /// whose cores meet best, the links' costs summed (a heavier finisher a little cheaper), no link turning the body
+        /// more than <see cref="MostAim"/> onto the target. The links in order: the first's <see cref="StrikeLink.From"/>
+        /// is the opener. <paramref name="variant"/> picks among the combos as good as the best (<see cref="CoreChains"/>).
+        /// </summary>
+        public static List<StrikeLink> CoreChain(LocoClip picked, IList<LocoClip> strikes, int count = 3, int variant = 0)
         {
-            var with = new List<LocoClip>(strikes) { opener };
-            var chain = new List<StrikeLink>();
-            var finishers = Finishers(strikes);
-            float best = float.MaxValue;
-            LocoClip bestB = null, bestC = null;
-            foreach (var c in finishers)
-            {
-                foreach (var b in strikes)
-                {
-                    if (b == c || finishers.Contains(b) || Mathf.Abs(CoreLink(opener, b).Aim) > MostAim || Mathf.Abs(CoreLink(b, c).Aim) > MostAim)
-                    {
-                        continue;
-                    }
-
-                    float cost = CoreLink(opener, b).Cost + CoreLink(b, c).Cost;
-                    if (cost < best)
-                    {
-                        best = cost;
-                        bestB = b;
-                        bestC = c;
-                    }
-                }
-            }
-
-            if (bestB != null)
-            {
-                chain.Add(CoreLink(opener, bestB));
-                if (count >= 3)
-                {
-                    chain.Add(CoreLink(bestB, bestC));
-                }
-            }
-
-            return chain;
+            var chains = CoreChains(picked, strikes, count);
+            return chains.Count == 0 ? new List<StrikeLink>() : chains[((variant % chains.Count) + chains.Count) % chains.Count];
         }
 
-        public static List<StrikeLink> CoreChain(LocoClip picked, IList<LocoClip> strikes, int count = 3)
+        /// <summary>The combos the picked strike is in, best first, those within <see cref="ChainSlack"/> of the best.</summary>
+        public static List<List<StrikeLink>> CoreChains(LocoClip picked, IList<LocoClip> strikes, int count = 3)
         {
-            var chain = CoreChain(picked, strikes, count, MostAim);
-            // (Too few strikes to keep every aim within the most (the Large's three): the best there is.)
-            return chain.Count > 0 ? chain : CoreChain(picked, strikes, count, 180f);
-        }
-
-        private static List<StrikeLink> CoreChain(LocoClip picked, IList<LocoClip> strikes, int count, float mostAim)
-        {
-            var chain = new List<StrikeLink>();
+            var found = new List<(float cost, List<StrikeLink> links)>();
             if (picked == null || !StrikeCores.TryGet(picked, out _))
             {
-                return chain;
+                return new List<List<StrikeLink>>();
             }
 
             var finishers = Finishers(strikes);
@@ -500,11 +505,56 @@ namespace PhysicsBattler.Locomotion
             }
 
             bool pickedEnds = finishers.Contains(picked);
-            float best = float.MaxValue;
-            LocoClip bestA = null, bestB = null, bestC = null;
+            foreach (float mostAim in new[] { MostAim, 180f })
+            {
+                Collect(found, pickedEnds ? quick : new List<LocoClip> { picked }, quick, pickedEnds ? new List<LocoClip> { picked } : finishers, count, mostAim);
+                if (found.Count == 0 && pickedEnds && mostAim < 180f)
+                {
+                    // (A showstopper picked that no blow can lead into facing its target (a spinning chop): it opens instead.)
+                    var others = new List<LocoClip>();
+                    foreach (var c in quick)
+                    {
+                        if (c != picked)
+                        {
+                            others.Add(c);
+                        }
+                    }
+
+                    var ends = new List<LocoClip>();
+                    foreach (var c in finishers)
+                    {
+                        if (c != picked)
+                        {
+                            ends.Add(c);
+                        }
+                    }
+
+                    Collect(found, new List<LocoClip> { picked }, others, ends, count, mostAim);
+                }
+
+                if (found.Count > 0)
+                {
+                    break;
+                }
+            }
+
+            found.Sort((x, y) => x.cost.CompareTo(y.cost));
+            var chains = new List<List<StrikeLink>>();
+            foreach (var f in found)
+            {
+                if (f.cost <= found[0].cost + ChainSlack)
+                {
+                    chains.Add(f.links);
+                }
+            }
+
+            return chains;
+        }
+
+        private static void Collect(List<(float, List<StrikeLink>)> found, List<LocoClip> openers, List<LocoClip> middles, List<LocoClip> ends, int count, float mostAim)
+        {
             float Weight(LocoClip c) => StrikeCores.TryGet(c, out var core) ? core.Weight : 0f;
-            var openers = pickedEnds ? quick : new List<LocoClip> { picked };
-            var ends = pickedEnds ? new List<LocoClip> { picked } : finishers;
+            bool Turns(StrikeLink l) => Mathf.Abs(l.Aim) > mostAim;
             foreach (var a in openers)
             {
                 foreach (var c in ends)
@@ -515,75 +565,27 @@ namespace PhysicsBattler.Locomotion
                     }
 
                     // (Too few strikes for a middle one: two blows, the finisher last.)
-                    if (count < 3 || quick.Count < (pickedEnds ? 2 : 1))
+                    bool middle = false;
+                    if (count >= 3)
                     {
-                        if (Mathf.Abs(CoreLink(a, c).Aim) > mostAim)
+                        foreach (var b in middles)
                         {
-                            continue;
-                        }
+                            if (b == a || b == c || Turns(CoreLink(a, b)) || Turns(CoreLink(b, c)))
+                            {
+                                continue;
+                            }
 
-                        float two = CoreLink(a, c).Cost - 0.2f * Weight(c);
-                        if (two < best)
-                        {
-                            best = two;
-                            bestA = a;
-                            bestB = null;
-                            bestC = c;
+                            middle = true;
+                            found.Add((CoreLink(a, b).Cost + CoreLink(b, c).Cost - 0.2f * Weight(c), new List<StrikeLink> { CoreLink(a, b), CoreLink(b, c) }));
                         }
-
-                        continue;
                     }
 
-                    foreach (var b in quick)
+                    if (!middle && (count < 3 || middles.Count <= 1) && !Turns(CoreLink(a, c)))
                     {
-                        if (b == a || b == c || Mathf.Abs(CoreLink(a, b).Aim) > mostAim || Mathf.Abs(CoreLink(b, c).Aim) > mostAim)
-                        {
-                            continue;
-                        }
-
-                        float cost = CoreLink(a, b).Cost + CoreLink(b, c).Cost - 0.2f * Weight(c);
-                        if (cost < best)
-                        {
-                            best = cost;
-                            bestA = a;
-                            bestB = b;
-                            bestC = c;
-                        }
+                        found.Add((CoreLink(a, c).Cost - 0.2f * Weight(c), new List<StrikeLink> { CoreLink(a, c) }));
                     }
                 }
             }
-
-            if (bestA == null)
-            {
-                // (A showstopper picked that no blow can lead into facing its target (a spinning chop): it opens instead.)
-                if (pickedEnds && count >= 2 && mostAim < 180f)
-                {
-                    var rest = new List<LocoClip>();
-                    foreach (var c in strikes)
-                    {
-                        if (c != picked && !(StrikeCores.TryGet(c, out var core) && core.Leap && Mathf.Abs(StrikeCores.Bearing(c, core.Entry)) > MostAim))
-                        {
-                            rest.Add(c);
-                        }
-                    }
-
-                    return OpenedBy(picked, rest, count);
-                }
-
-                return chain;
-            }
-
-            if (bestB != null)
-            {
-                chain.Add(CoreLink(bestA, bestB));
-                chain.Add(CoreLink(bestB, bestC));
-            }
-            else
-            {
-                chain.Add(CoreLink(bestA, bestC));
-            }
-
-            return chain;
         }
     }
 }

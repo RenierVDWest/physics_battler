@@ -182,8 +182,90 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            GoCore(chain[next].To, Mathf.Min(shotTime, current.Duration));
+            float at = Mathf.Min(shotTime, current.Duration);
+            var to = Reconsider(chain[next].To, at);
+            if (to != chain[next].To)
+            {
+                // (The rest of the plan from the blow taken instead.)
+                LastChoice = $"{chain[next].To.Name} would turn the body {plannedTurn:0} degrees onto its target from where the last blow left it; {to.Name} instead";
+                chain[next] = StrikeCombos.CoreLink(current, to);
+                if (next + 1 < chain.Count && chain[next + 1].To != to)
+                {
+                    chain[next + 1] = StrikeCombos.CoreLink(to, chain[next + 1].To);
+                }
+                else if (next + 1 < chain.Count)
+                {
+                    chain.RemoveAt(next + 1);
+                }
+            }
+
+            GoCore(to, at);
             next++;
+        }
+
+        /// <summary>The strike picked for the combo: never swapped for another as it goes.</summary>
+        public LocoClip Keep;
+
+        /// <summary>A follow-on turns the body at most this much onto its target in its wind-up (degrees): past it, another is taken.</summary>
+        public float MostCoreTurn = StrikeCombos.MostAim;
+
+        private float plannedTurn;
+
+        /// <summary>
+        /// The planned next blow, or, if it would turn the body more than <see cref="MostCoreTurn"/> onto its target from
+        /// where the last one actually left it (a blow stopped early has turned less than its plan), the one of the same
+        /// part (a showstopper for the last, a quick blow before) not yet used that turns it least and meets best.
+        /// </summary>
+        private LocoClip Reconsider(LocoClip planned, float at)
+        {
+            if (Strikes == null || planned == Keep)
+            {
+                return planned;
+            }
+
+            float Turn(LocoClip to, out float cost)
+            {
+                StrikeCores.TryGet(to, out var core);
+                var meet = StrikeCombos.Meet(current, at, to, core.Entry);
+                float scale = loco.Leg / 0.845f;
+                float facing = loco.Facing + meet.Turn;
+                Vector3 rootAt = loco.Position + Quaternion.Euler(0f, loco.Facing, 0f) * meet.Shift * scale;
+                cost = meet.Cost;
+                return Mathf.Abs(poser.AimTurnFor(to, Target(to, core.Entry), core.Entry, rootAt, facing));
+            }
+
+            plannedTurn = Turn(planned, out _);
+            if (plannedTurn <= MostCoreTurn)
+            {
+                return planned;
+            }
+
+            bool last = next == chain.Count - 1;
+            var finishers = StrikeCombos.Finishers(Strikes);
+            LocoClip best = planned;
+            float bestScore = plannedTurn / 90f * 3f;
+            foreach (var c in Strikes)
+            {
+                if (used.Contains(c) || c == planned || finishers.Contains(c) != last || !StrikeCores.TryGet(c, out var core) || (core.Leap && !last))
+                {
+                    continue;
+                }
+
+                float turn = Turn(c, out float cost);
+                if (turn > MostCoreTurn)
+                {
+                    continue;
+                }
+
+                float score = cost * 0.3f + turn / 90f * 3f;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = c;
+                }
+            }
+
+            return best;
         }
 
         private void GoCore(LocoClip to, float at)

@@ -52,6 +52,18 @@ internal static class CoreReport
             json.Append("]}");
         }
 
+        if (Environment.GetEnvironmentVariable("CORELINKS") != null)
+        {
+            var sns = strikes.Where(c => c.Name.StartsWith("sns_")).ToList();
+            Console.WriteLine("Core links (rows: from; columns: to): cost / root turn / aim");
+            Console.WriteLine("".PadRight(16) + string.Join("", sns.Select(c => c.Name.Replace("sns_", "").PadLeft(18).Substring(0, 18))));
+            foreach (var a in sns)
+            {
+                Console.WriteLine(a.Name.Replace("sns_", "").PadRight(16) + string.Join("", sns.Select(b => a == b ? "-".PadLeft(18)
+                    : string.Format(ci, "{0:0.00}/{1:+0;-0}/{2:+0;-0}", StrikeCombos.CoreLink(a, b).Cost, StrikeCombos.CoreLink(a, b).Turn, StrikeCombos.CoreLink(a, b).Aim).PadLeft(18))));
+            }
+        }
+
         if (Environment.GetEnvironmentVariable("BEARINGS") != null)
         {
             foreach (var clip in strikes)

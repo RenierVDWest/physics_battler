@@ -49,10 +49,26 @@ internal static class StrikeComboReport
         bool cores = Environment.GetEnvironmentVariable("COMBO_OLD") == null && (body != "Large" || Environment.GetEnvironmentVariable("COMBO_CORES") != null);
         var beats = new List<float>();
         var spans = new List<float>();
+        // (Cores: each picked strike's combos as good as its best, up to COMBO_VARIANTS of them (3), as the lab goes round them.)
+        int variants = int.TryParse(Environment.GetEnvironmentVariable("COMBO_VARIANTS"), out int nv) ? nv : 3;
+        var jobs = new List<(LocoClip picked, List<StrikeLink> chain)>();
         foreach (var picked in strikes)
         {
-            // (Cores: the picked strike opens its combo, or a showstopper picked ends it.)
-            var chain = cores ? StrikeCombos.CoreChain(picked, strikes) : StrikeCombos.Chain(picked, strikes, 3);
+            if (!cores)
+            {
+                jobs.Add((picked, StrikeCombos.Chain(picked, strikes, 3)));
+                continue;
+            }
+
+            foreach (var c in StrikeCombos.CoreChains(picked, strikes).Take(variants))
+            {
+                jobs.Add((picked, c));
+            }
+        }
+
+        var follows = new List<float>();
+        foreach (var (picked, chain) in jobs)
+        {
             var first = chain.Count > 0 ? chain[0].From : picked;
             if (cores && first != picked)
             {
@@ -112,6 +128,7 @@ internal static class StrikeComboReport
             var player = new ComboPlayer(loco, poser)
             {
                 Cores = cores,
+                Keep = picked,
                 Strikes = Environment.GetEnvironmentVariable("COMBO_FIXED") != null ? null : strikes,
                 TargetVelocity = () => dummy.Loco.Velocity,
                 // (Each strike at the dummy's part nearest its own reach's height.)
@@ -169,7 +186,7 @@ internal static class StrikeComboReport
                 aimNearest = float.MaxValue;
                 playedNames.Add((wasPressing ? "(pressed in) " : "") + clip.Name.Replace(prefix, "") + string.Format(ci, " [turn {0:+0;-0}{1}]", poser.AimTurn,
                     player.LastStepIn > 0.01f ? string.Format(ci, ", stepped in {0:0.00} m", player.LastStepIn) : ""));
-                if (link != null) { linkTimes.Add(loco.ShotTime); }
+                if (link != null) { linkTimes.Add(loco.ShotTime); follows.Add(Mathf.Abs(poser.AimTurn)); }
                 if (link != null && Environment.GetEnvironmentVariable("COMBO_WHY") != null) { Console.WriteLine("      chose " + clip.Name + " of: " + player.LastChoice); }
             };
             var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
@@ -313,7 +330,7 @@ internal static class StrikeComboReport
                     spans.Add(hitTimes[hitTimes.Count - 1] - hitTimes[0]);
                 }
             }
-            File.WriteAllText(Path.Combine(dir, first.Name + ".json"), film.ToString());
+            File.WriteAllText(Path.Combine(dir, first.Name + (chain.Count > 0 ? "_" + chain[chain.Count - 1].To.Name.Replace(prefix, "") + "_" + chain[0].To.Name.Replace(prefix, "") : "") + ".json"), film.ToString());
             File.WriteAllText(Path.Combine(dir, first.Name + ".dummy"), dummyFilm.ToString());
             UnityEngine.Object.DestroyImmediate(root);
             UnityEngine.Object.DestroyImmediate(droot);
@@ -321,6 +338,12 @@ internal static class StrikeComboReport
 
         beats.Sort();
         spans.Sort();
+        follows.Sort();
+        if (follows.Count > 0)
+        {
+            Console.WriteLine(string.Format(ci, "Follow-ons' turns onto the target: median {0:0} degrees, most {1:0}; {2} of {3} within 45", follows[follows.Count / 2], follows[follows.Count - 1], follows.Count(f => f <= 45f), follows.Count));
+        }
+
         if (beats.Count > 0)
         {
             Console.WriteLine(string.Format(ci, "Hit to hit: median {0:0.00} s, most {1:0.00} s; first contact to the third: median {2:0.00} s, most {3:0.00} s ({4} of {5} combos landed three)",

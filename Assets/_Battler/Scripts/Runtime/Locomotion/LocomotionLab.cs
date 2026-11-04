@@ -1169,7 +1169,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The combo the picked strike starts: up to three strikes, each the best follow-on of the last.</summary>
         /// <summary>The combo the picked strike is in (Bam! Bam! BAM!): it opens it, or a showstopper picked ends it (<see cref="StrikeCombos.CoreChain"/>).</summary>
         private List<StrikeLink> ComboFrom(LocoClip first) => first == null || first.ContactFrame < 0 ? new List<StrikeLink>()
-            : combo != null && !combo.Cores ? StrikeCombos.Chain(first, Strikes(), 3) : StrikeCombos.CoreChain(first, Strikes());
+            : combo != null && !combo.Cores ? StrikeCombos.Chain(first, Strikes(), 3) : StrikeCombos.CoreChain(first, Strikes(), 3, comboVariant);
+
+        /// <summary>Which of the picked strike's combos as good as its best plays next (each I plays the next one round).</summary>
+        private int comboVariant;
+
+        private int ComboVariants(LocoClip first) => combo != null && combo.Cores && first != null && first.ContactFrame >= 0 ? StrikeCombos.CoreChains(first, Strikes()).Count : 1;
 
         /// <summary>A chain's opener (its first link's from; the picked strike when it has none).</summary>
         private static LocoClip Opener(LocoClip picked, List<StrikeLink> chain) => chain.Count > 0 ? chain[0].From : picked;
@@ -1191,6 +1196,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             var chain = ComboFrom(first);
+            combo.Keep = first;
             first = Opener(first, chain);
             comboHits.Clear();
             comboBlow = -1;
@@ -1198,6 +1204,7 @@ namespace PhysicsBattler.Locomotion
             lastCombo = ComboText(first, chain);
             legs.Add($"{time:0.00} s: combo from {first.Name} ({(combo.Cores ? $"cores: {lastCombo}, each blow cut just after its contact and the next taken up just before its own, the last the showstopper" : $"planned {lastCombo}; each next strike is chosen as it comes, one that will land")})");
             combo.Start(first, chain);
+            comboVariant++;
         }
 
         private static string ComboText(LocoClip first, List<StrikeLink> chain)
@@ -1734,7 +1741,8 @@ namespace PhysicsBattler.Locomotion
                         if (shown.ContactFrame >= 0)
                         {
                             var chain = ComboFrom(shown);
-                            if (GUILayout.Button(chain.Count > 0 ? $"Combo (I): {ComboText(Opener(shown, chain), chain).Replace(LocoLibrary.CombatPrefix(body.ToString()), "")}" : "Combo (I): no follow-on"))
+                            int ways = ComboVariants(shown);
+                            if (GUILayout.Button(chain.Count > 0 ? $"Combo (I): {ComboText(Opener(shown, chain), chain).Replace(LocoLibrary.CombatPrefix(body.ToString()), "")}{(ways > 1 ? $" ({comboVariant % ways + 1} of {ways})" : "")}" : "Combo (I): no follow-on"))
                             {
                                 PlayCombo();
                             }
