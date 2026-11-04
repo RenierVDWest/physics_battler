@@ -1318,8 +1318,20 @@ namespace PhysicsBattler.Locomotion
         public float AloftFrom = 0.3f;
 
         /// <summary>A foot's lock: on as it lands, onto the toe as the heel lifts, faded off as it lifts.</summary>
+        /// <summary>A foot was planted (any body's): where, how fast the body was going (m/s), and how long since either foot was last down (s; long after a leap).</summary>
+        public static event System.Action<LocoBody, int, Vector3, float, float> FootPlanted;
+
+        private float poseClock;
+        private readonly float[] liftedAt = { 0f, 0f };
+
         private void HoldFoot(int f, float dt)
         {
+            poseClock += f == 0 ? dt : 0f;
+            if (Feet[f].Locked)
+            {
+                liftedAt[f] = poseClock;
+            }
+
             var foot = Feet[f];
             var ankleBone = f == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot;
             Vector3 posed = World(ankleBone);
@@ -1357,6 +1369,8 @@ namespace PhysicsBattler.Locomotion
 
             if (landing)
             {
+                // (A foot down: heard, a step, or a landing after a while with both feet off the ground.)
+                FootPlanted?.Invoke(this, f, posed, loco.Velocity.magnitude, Mathf.Min(poseClock - liftedAt[1 - f], poseClock - liftedAt[f]));
                 foot.Locked = true;
                 foot.LockedFor = 0f;
                 foot.Stepping = false;

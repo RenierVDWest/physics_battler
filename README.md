@@ -222,6 +222,11 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     at 0.5, 12 at 0.25, 10 at 0 (glancing 0, 0, 3, 6, 7); of 42 combo blows 17 at skill 1, 16 at 0.5, 9 at 0,
     most of the expert's on the opener. Not yet: giving ground when late, and a second parry after a feint (there
     are no feints yet).
+  - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
+    ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
+    Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
+    clubs on bodies, on blades and on shields, glances, taps, shields meeting, bodies colliding, severing, bodies
+    and dropped weapons on the ground, the showstopper's boom.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

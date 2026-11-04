@@ -25,6 +25,15 @@ internal static class Program
             PhysicsBattler.Units.UnitController.NewWalk = false;   // (the walk before the locomotion lab)
         }
 
+        // (SOUND_LOG=1: the sounds the run asked for, counted, printed at its end.)
+        var heard = new System.Collections.Generic.SortedDictionary<string, int>();
+        if (Environment.GetEnvironmentVariable("SOUND_LOG") != null)
+        {
+            PhysicsBattler.Audio.SoundHooks.Install();
+            PhysicsBattler.Audio.Sfx.Requested += (id, volume) => heard[id] = heard.TryGetValue(id, out int n) ? n + 1 : 1;
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => Console.WriteLine("Sounds asked for: " + (heard.Count == 0 ? "none" : string.Join(", ", heard.Select(h => $"{h.Key} {h.Value}"))));
+        }
+
         if (args.Length >= 2 && args[0] == "combos")
         {
             return StrikeComboReport.Run(args[1], args.Length >= 3 ? args[2] : null);

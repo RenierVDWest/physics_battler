@@ -160,6 +160,7 @@ namespace UnityEngine
         public float nearClipPlane { get; set; } = 0.3f;
         public float farClipPlane { get; set; } = 1000f;
         public Vector3 WorldToScreenPoint(Vector3 position) => position;
+        public Vector3 WorldToViewportPoint(Vector3 position) => position;
         public Ray ScreenPointToRay(Vector3 position) => new Ray(position, Vector3.forward);
         public static Camera[] allCameras => new Camera[0];
         public float aspect { get; set; } = 16f / 9f;
@@ -261,6 +262,13 @@ namespace UnityEngine
 
     public sealed class GUILayoutOption { }
 
+    public class GUIContent
+    {
+        public GUIContent() { }
+        public GUIContent(string text) { }
+        public GUIContent(string text, string tooltip) { }
+    }
+
     public static class GUI
     {
         public static Matrix4x4 matrix { get; set; }
@@ -272,6 +280,7 @@ namespace UnityEngine
         public static void DragWindow() { }
         public static bool Button(Rect position, string text) => false;
         public static Color color { get; set; }
+        public static void FocusControl(string name) { }
     }
 
     public static class GUILayout
@@ -289,6 +298,12 @@ namespace UnityEngine
         public static void EndVertical() { }
         public static void Space(float pixels) { }
         public static GUILayoutOption Width(float width) => new GUILayoutOption();
+        public static GUILayoutOption Height(float height) => new GUILayoutOption();
+        public static GUILayoutOption MinWidth(float width) => new GUILayoutOption();
+        public static GUILayoutOption MinHeight(float height) => new GUILayoutOption();
+        public static void FlexibleSpace() { }
+        public static bool Button(GUIContent content, params GUILayoutOption[] options) => false;
+        public static bool Button(GUIContent content, GUIStyle style, params GUILayoutOption[] options) => false;
     }
 
     public static class GUIUtility

@@ -118,6 +118,14 @@ namespace PhysicsBattler.Combat
             return weapon;
         }
 
+        /// <summary>A weapon or shield (any, held or dropped) struck something: for the sounds of shields meeting and things dropped.</summary>
+        public static event System.Action<Weapon, Collision> Collided;
+
+        private void OnCollisionEnter(Collision collision)
+        {
+            Collided?.Invoke(this, collision);
+        }
+
         /// <summary>
         /// Lets go of it (its hand was cut off): it is no one's any more. A physical unit's falls on its
         /// own: out of the hand, solid, with a body of its own carrying on as the hand moved, to land

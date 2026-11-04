@@ -61,6 +61,30 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The blow playing is a combo's showstopper (its last): it lands harder (<see cref="FinisherKnock"/>) and its hit stop is longer (<see cref="FinisherStop"/>).</summary>
         public System.Func<bool> Finishing;
 
+        /// <summary>What a blade met, for the sounds: a body, a shield, a blade it was stopped by, a blade it glanced off, or a light touch on a shield or a blade.</summary>
+        public enum Met
+        {
+            Flesh,
+            Shield,
+            Parry,
+            Glance,
+            TouchShield,
+            TouchBlade,
+        }
+
+        /// <summary>A blow met something (any lab attacker's): what, where, how fast (m/s), with a club, as a combo's showstopper.</summary>
+        public static event System.Action<Met, Vector3, float, bool, bool> Sounded;
+
+        /// <summary>A blow is about to land (its swing heard just before contact): where its blade is, with a club, as a showstopper.</summary>
+        public static event System.Action<Vector3, bool, bool> Swung;
+
+        /// <summary>The swing is heard this long before contact (seconds of the clip).</summary>
+        public const float SwingHeardBefore = 0.14f;
+
+        private bool swingHeard;
+
+        private bool Club => Weapon != null && Weapon.kind == WeaponKind.Club;
+
         /// <summary>A blow of a combo: it drives the body it lands on back harder than a single blow (<see cref="ComboKnock"/>; the combo pulls itself in after it), and its slash sweeps on through the body rather than stopping in it (slowed to no less than <see cref="ComboCarry"/>).</summary>
         public System.Func<bool> Comboing;
 
@@ -305,6 +329,13 @@ namespace PhysicsBattler.Locomotion
                 momentumLeft = 1f;
                 struckParts.Clear();
                 pausedThisBlow = false;
+                swingHeard = false;
+            }
+
+            if (striking && !swingHeard && loco.ShotTime >= clip.ContactFrame / clip.Rate - SwingHeardBefore)
+            {
+                swingHeard = true;
+                Swung?.Invoke(Slot != null ? Slot.position : anim.Part(PartId.HandR).position, Club, Finishing != null && Finishing());
             }
 
             if (!Blade(striking ? clip : null, out Vector3 grip, out Vector3 tip, out Vector3 strike))
@@ -431,6 +462,11 @@ namespace PhysicsBattler.Locomotion
 
             touched[key] = clock;
             Touches++;
+            if (shield || sword)
+            {
+                Sounded?.Invoke(shield ? Met.TouchShield : Met.TouchBlade, point, velocity.magnitude, Club, false);
+            }
+
             dummy.Touch(part, shield, sword, point, Vector3.ClampMagnitude(velocity, 8f) * (WeaponMass * Scale));
         }
 
@@ -539,6 +575,12 @@ namespace PhysicsBattler.Locomotion
                 what = (comboing && r.StopsSwing ? "swept through the " : "cut through the ") + Name(part);
                 Hits++;
                 Cleaves++;
+            }
+
+            // (Heard once a blow for its first contact: a slash sweeping on through part after part is one blow.)
+            if (!(pausedThisBlow && HitStop <= 0f && !parried && !shield) || struckParts.Count <= 1)
+            {
+                Sounded?.Invoke(glanced ? Met.Glance : parried ? Met.Parry : shield ? Met.Shield : Met.Flesh, point, speed, Club, finishing);
             }
 
             Last = $"{clip.Name} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")})";

@@ -25,6 +25,18 @@ namespace UnityEditor
         public static bool isUpdating => false;
         public static bool isPlaying => false;
         public static bool isPlayingOrWillChangePlaymode => false;
+        public static CallbackFunction update;
+        public static double timeSinceStartup => 0;
+    }
+
+    public static class Selection
+    {
+        public static UnityEngine.Object activeObject { get; set; }
+    }
+
+    public static class EditorGUIUtility
+    {
+        public static void PingObject(UnityEngine.Object obj) { }
     }
 
     public static class EditorUtility
@@ -146,6 +158,8 @@ namespace UnityEditor
         public static T GetWindow<T>(string title) where T : EditorWindow => UnityEngine.ScriptableObject.CreateInstance<T>();
         public void Show() { }
         public void Repaint() { }
+        public UnityEngine.Vector2 minSize { get; set; }
+        public UnityEngine.GUIContent titleContent { get; set; }
     }
 
     public enum MessageType { None, Info, Warning, Error }
@@ -153,12 +167,31 @@ namespace UnityEditor
     public static class EditorStyles
     {
         public static UnityEngine.GUIStyle boldLabel => new UnityEngine.GUIStyle();
+        public static UnityEngine.GUIStyle miniButton => new UnityEngine.GUIStyle();
+        public static UnityEngine.GUIStyle miniButtonLeft => new UnityEngine.GUIStyle();
+        public static UnityEngine.GUIStyle miniButtonRight => new UnityEngine.GUIStyle();
+        public static UnityEngine.GUIStyle foldout => new UnityEngine.GUIStyle();
+        public static UnityEngine.GUIStyle textArea => new UnityEngine.GUIStyle();
     }
 
     public static class EditorGUI
     {
         public static void BeginChangeCheck() { }
         public static bool EndChangeCheck() => false;
+        public static void ProgressBar(UnityEngine.Rect position, float value, string text) { }
+
+        public sealed class DisabledScope : System.IDisposable
+        {
+            public DisabledScope(bool disabled) { }
+            public void Dispose() { }
+        }
+
+        public sealed class IndentLevelScope : System.IDisposable
+        {
+            public IndentLevelScope() { }
+            public IndentLevelScope(int increment) { }
+            public void Dispose() { }
+        }
     }
 
     public static class EditorGUILayout
@@ -173,6 +206,20 @@ namespace UnityEditor
         public static void HelpBox(string message, MessageType type) { }
         public static UnityEngine.Vector3 Vector3Field(string label, UnityEngine.Vector3 value, params UnityEngine.GUILayoutOption[] options) => value;
         public static void Space() { }
+        public static void Space(float width) { }
+        public static string TextArea(string text, UnityEngine.GUIStyle style, params UnityEngine.GUILayoutOption[] options) => text;
+        public static string PasswordField(UnityEngine.GUIContent label, string password, params UnityEngine.GUILayoutOption[] options) => password;
+        public static string PasswordField(string label, string password, params UnityEngine.GUILayoutOption[] options) => password;
+        public static int IntSlider(UnityEngine.GUIContent label, int value, int leftValue, int rightValue, params UnityEngine.GUILayoutOption[] options) => value;
+        public static float Slider(UnityEngine.GUIContent label, float value, float leftValue, float rightValue, params UnityEngine.GUILayoutOption[] options) => value;
+        public static float Slider(float value, float leftValue, float rightValue, params UnityEngine.GUILayoutOption[] options) => value;
+        public static UnityEngine.Rect GetControlRect(bool hasLabel, float height, params UnityEngine.GUILayoutOption[] options) => default;
+        public static bool Foldout(bool foldout, UnityEngine.GUIContent content, bool toggleOnLabelClick, UnityEngine.GUIStyle style) => foldout;
+        public static bool Foldout(bool foldout, string content, bool toggleOnLabelClick) => foldout;
+        public static UnityEngine.Vector2 BeginScrollView(UnityEngine.Vector2 scrollPosition, params UnityEngine.GUILayoutOption[] options) => scrollPosition;
+        public static void EndScrollView() { }
+        public static bool Toggle(bool value, params UnityEngine.GUILayoutOption[] options) => value;
+        public static bool ToggleLeft(string label, bool value, params UnityEngine.GUILayoutOption[] options) => value;
 
         public sealed class HorizontalScope : System.IDisposable
         {
@@ -203,8 +250,40 @@ namespace UnityEditor
     public static class Undo
     {
         public static void RecordObject(UnityEngine.Object objectToUndo, string name) { }
+        public static void RegisterCreatedObjectUndo(UnityEngine.Object objectToUndo, string name) { }
     }
 
     public enum PrefabUnpackMode { OutermostRoot, Completely }
     public enum InteractionMode { AutomatedAction, UserAction }
+}
+
+namespace UnityEditor
+{
+    // The sound list's import settings and its relinking (Audio/Sfx).
+    public struct AudioImporterSampleSettings
+    {
+        public UnityEngine.AudioClipLoadType loadType;
+        public UnityEngine.AudioCompressionFormat compressionFormat;
+        public float quality;
+        public bool preloadAudioData;
+    }
+
+    public class AudioImporter : AssetImporter
+    {
+        public bool forceToMono { get; set; }
+        public bool loadInBackground { get; set; }
+        public AudioImporterSampleSettings defaultSampleSettings { get; set; }
+    }
+
+    public class AssetPostprocessor
+    {
+        public string assetPath { get; set; } = "";
+        public AssetImporter assetImporter { get; set; }
+    }
+
+    public static class EditorPrefs
+    {
+        public static string GetString(string key, string defaultValue = "") => defaultValue;
+        public static void SetString(string key, string value) { }
+    }
 }

@@ -104,9 +104,27 @@ namespace PhysicsBattler.Rig
             return part != null && part.Owner == Owner;
         }
 
+        /// <summary>A part (any unit's) struck something: for the sounds of bodies on the ground.</summary>
+        public static event System.Action<BodyPart, Collision> Collided;
+
+        /// <summary>The ground's layer (Layers.Ground), looked up once.</summary>
+        public static int GroundLayer
+        {
+            get
+            {
+                if (groundLayer == -2)
+                {
+                    groundLayer = LayerMask.NameToLayer(Layers.Ground);
+                }
+
+                return groundLayer;
+            }
+        }
+
         private void OnCollisionEnter(Collision collision)
         {
             RecordContact(collision);
+            Collided?.Invoke(this, collision);
             if (Owner != null)
             {
                 Owner.OnPartCollision(this, collision, true);

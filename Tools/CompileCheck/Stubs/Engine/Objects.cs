@@ -53,6 +53,8 @@ namespace UnityEngine
 
         public GameObject() : this("New Game Object") { }
 
+        public UnityEngine.SceneManagement.Scene scene => default;
+
         public GameObject(string name)
         {
             this.name = name;
