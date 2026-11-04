@@ -190,6 +190,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     third 0.9 s after the first). The lab's sparring spot is where the combo's opener reaches from, taken up
     where the combo takes it. Headless: the Medium lands 32 of 33 (open dummy) and 33 of 33 (sword dummy), 0.35 s
     hit to hit; the Small 32 of 33, 0.23 s; single strikes, the Medium 27 of 27.
+  - Combo feel, the whole slash (playtest: cut at contact, the slash's tail was lost, and every combo read as
+    short blows). A core now runs on through its contact until the slash has swept out (`StrikeCores.Exit`: the
+    blade's tip slower than 12% of its speed about contact, 0.18 to 0.35 s after it), the follow-through played
+    1.8 times as fast (`ComboPlayer.FollowSpeed`; the showstopper's at its own pace). In a combo a blow that lands
+    on the body sweeps on through it, slowed to no less than 0.9 (`StrikeHits.ComboCarry`), and pauses once a blow,
+    on its first contact. The blows knock harder: 1.5 times a single blow's, the showstopper 2 times
+    (`StrikeHits.ComboKnock`, `FinisherKnock`). The magnet (`ComboPlayer.Magnetic`): the follow-on steps in as far
+    as its blow needs (up to 2 m), and through each wind-up the body is carried after its target as it is driven
+    off from where the blow was aimed, the gap closed by contact, never nearer than the fighting distance
+    (`LocoBody.CarriedBy` keeps the arm's pull from asking for it again). Headless: the Medium lands 42 of 42 on the
+    open dummy, 0.47 s hit to hit, the third about 1 s after the first; the Large 9 of 9, 0.92 s; the Small 41 of
+    42, 0.72 s. Against the sword dummy 33 of 42: the backhands' cores don't reach its hips from the fighting
+    distance when it parries.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

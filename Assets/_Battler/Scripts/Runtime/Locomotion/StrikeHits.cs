@@ -61,12 +61,14 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The blow playing is a combo's showstopper (its last): it lands harder (<see cref="FinisherKnock"/>) and its hit stop is longer (<see cref="FinisherStop"/>).</summary>
         public System.Func<bool> Finishing;
 
-        /// <summary>A blow of a combo before its showstopper: it drives the body it lands on back only so far (<see cref="ComboKnock"/>), so the next still reaches it.</summary>
+        /// <summary>A blow of a combo: it drives the body it lands on back harder than a single blow (<see cref="ComboKnock"/>; the combo pulls itself in after it), and its slash sweeps on through the body rather than stopping in it (slowed to no less than <see cref="ComboCarry"/>).</summary>
         public System.Func<bool> Comboing;
 
         /// <summary>A showstopper's knock on the body it lands on (times a blow's), and a combo's blows' before it; and the showstopper's hit stop (seconds, least and most).</summary>
-        public float FinisherKnock = 1.5f, ComboKnock = 0.5f;
+        public float FinisherKnock = 2f, ComboKnock = 1.5f, ComboCarry = 0.9f;
         public Vector2 FinisherStop = new Vector2(0.13f, 0.17f);
+
+        private bool pausedThisBlow;
 
         /// <summary>The last blow that landed was a showstopper.</summary>
         public bool LastFinished { get; private set; }
@@ -302,6 +304,7 @@ namespace PhysicsBattler.Locomotion
                 stopped = deflected = false;
                 momentumLeft = 1f;
                 struckParts.Clear();
+                pausedThisBlow = false;
             }
 
             if (!Blade(striking ? clip : null, out Vector3 grip, out Vector3 tip, out Vector3 strike))
@@ -469,8 +472,9 @@ namespace PhysicsBattler.Locomotion
 
             // (A combo's showstopper lands harder, and the moment it lands is held longer: Bam! Bam! BAM!)
             bool finishing = Finishing != null && Finishing() && !glanced;
+            bool comboing = Comboing != null && Comboing();
             LastFinished = finishing;
-            float knock = finishing ? FinisherKnock : Comboing != null && Comboing() ? ComboKnock : 1f;
+            float knock = finishing ? FinisherKnock : comboing ? ComboKnock : 1f;
             dummy.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * knock, r.PartShare, r.PoiseDamage * knock, r.Reaction, point, parried);
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
@@ -479,6 +483,15 @@ namespace PhysicsBattler.Locomotion
             {
                 HitStop = Mathf.Clamp(HitStop * 1.7f, FinisherStop.x, FinisherStop.y);
             }
+
+            // (One hit stop a blow: a slash sweeping on through the body strikes part after part, and stopping at each
+            // held a combo's showstopper still for 0.6 s.)
+            if (pausedThisBlow && !parried && !(shield && !parried))
+            {
+                HitStop = 0f;
+            }
+
+            pausedThisBlow = true;
             string what;
             if (glanced)
             {
@@ -489,7 +502,7 @@ namespace PhysicsBattler.Locomotion
                 what = $"glanced off the sword ({dummy.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
                 HitStop = Mathf.Min(HitStop, 0.04f);
             }
-            else if (r.StopsSwing || parried)
+            else if ((r.StopsSwing && !(comboing && !shield)) || parried)
             {
                 stopped = true;
                 // (The blades or the shield meet: the attacker's hand thrown back along the blow, its arm taking it.)
@@ -522,8 +535,8 @@ namespace PhysicsBattler.Locomotion
             else
             {
                 momentumLeft = r.MomentumLeft;
-                loco.ShotSpeed = Mathf.Max(0.3f, r.MomentumLeft);
-                what = "cut through the " + Name(part);
+                loco.ShotSpeed = Mathf.Max(comboing ? ComboCarry : 0.3f, r.MomentumLeft);
+                what = (comboing && r.StopsSwing ? "swept through the " : "cut through the ") + Name(part);
                 Hits++;
                 Cleaves++;
             }

@@ -871,6 +871,7 @@ namespace PhysicsBattler.Locomotion
             shotBend = Quaternion.identity;
             shotAimTurn = shotAimOver = shotAimFrom = 0f;
             shotStepIn = Vector3.zero;
+            followSpeed = 1f;
             rewinding = false;
             ShotSpeed = 1f;
             chamberSpeed = 1f;
@@ -1027,20 +1028,30 @@ namespace PhysicsBattler.Locomotion
         /// A combo's next strike: its wind-up (the chamber) played up to <paramref name="speed"/> times as fast, easing
         /// back to its own pace by <paramref name="until"/> (seconds of its clip, its contact): the blow itself not sped.
         /// </summary>
-        public void Chamber(float speed, float until)
+        /// <param name="after">And after <paramref name="until"/> (its follow-through, a combo's slash swept on through its contact) at this pace, reached over <see cref="FollowRamp"/>.</param>
+        public void Chamber(float speed, float until, float after = 1f)
         {
             chamberSpeed = Mathf.Max(1f, speed);
             chamberFrom = ShotTime;
             chamberUntil = until;
+            followSpeed = Mathf.Max(1f, after);
         }
 
-        private float chamberSpeed = 1f, chamberFrom, chamberUntil;
+        private float chamberSpeed = 1f, chamberFrom, chamberUntil, followSpeed = 1f;
+
+        /// <summary>How long a combo blow's follow-through takes to reach its quickened pace after contact (seconds of the clip).</summary>
+        public const float FollowRamp = 0.06f;
 
         /// <summary>How much faster than its own pace the playing one-shot goes now for its chamber (1: its own).</summary>
         public float ChamberNow
         {
             get
             {
+                if (ShotTime >= chamberUntil && followSpeed > 1f && chamberUntil > 0f)
+                {
+                    return Mathf.Lerp(1f, followSpeed, Mathf.Clamp01((ShotTime - chamberUntil) / FollowRamp));
+                }
+
                 if (chamberSpeed <= 1f || ShotTime >= chamberUntil || chamberUntil <= chamberFrom)
                 {
                     return 1f;

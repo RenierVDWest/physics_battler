@@ -1191,6 +1191,15 @@ namespace PhysicsBattler.Locomotion
         /// The target of the strike playing has moved (a body being driven back, flinching): the hand's pull follows it
         /// until contact, as far as the pull goes (<see cref="MostAimPull"/> in all). The plan's turn and lunge stay.
         /// </summary>
+        /// <summary>The body was carried by <paramref name="move"/> (world; a combo's pull toward its target): its aim's plan goes with it, so the arm's pull isn't asked for it as well.</summary>
+        public void CarriedBy(Vector3 move)
+        {
+            AimTarget += move;
+            AimPredicted += move;
+            AimLands += move;
+            planGripWorld += move;
+        }
+
         public void Retarget(Vector3 target)
         {
             if (aimClip == null || loco.Current != Locomotor.Mode.OneShot || loco.Shot != aimClip || loco.ShotTime > aimClip.ContactFrame / aimClip.Rate)

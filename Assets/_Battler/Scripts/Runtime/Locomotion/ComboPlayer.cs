@@ -88,7 +88,7 @@ namespace PhysicsBattler.Locomotion
         public bool Cores = true;
 
         /// <summary>A follow-on's longest step in after a target its last blow drove back (metres at a Medium's size), and how near the try steps are.</summary>
-        public float MostStepIn = 0.7f;
+        public float MostStepIn = 2f;
 
         /// <summary>The longer step in the last follow-on took (metres).</summary>
         public float LastStepIn { get; private set; }
@@ -152,7 +152,9 @@ namespace PhysicsBattler.Locomotion
                 Vector3 stepIn = StepIn(first, target, entry, loco.Leg / 0.845f);
                 LastStepIn = stepIn.magnitude;
                 poser.PlayStrike(first, target, startFrom: entry, stepIn: stepIn);
-                loco.Chamber(StrikeCombos.CoreChamberSpeed(core.Contact - entry), core.Contact);
+                loco.Chamber(StrikeCombos.CoreChamberSpeed(core.Contact - entry), core.Contact, chain.Count > 0 ? FollowSpeed : 1f);
+                magnetAim = target;
+                magnetFor = first;
                 shotTime = entry;
             }
             else
@@ -281,7 +283,9 @@ namespace PhysicsBattler.Locomotion
             Vector3 stepIn = StepIn(to, target, entry, scale);
             LastStepIn = stepIn.magnitude;
             poser.PlayStrike(to, target, startFrom: entry, stepIn: stepIn);
-            loco.Chamber(StrikeCombos.CoreChamberSpeed(core.Lead), core.Contact);
+            loco.Chamber(StrikeCombos.CoreChamberSpeed(core.Lead), core.Contact, next + 1 < chain.Count ? FollowSpeed : 1f);
+            magnetAim = target;
+            magnetFor = to;
             current = to;
             shotTime = entry;
             used.Add(to);
@@ -335,6 +339,52 @@ namespace PhysicsBattler.Locomotion
             }
 
             return best;
+        }
+
+        /// <summary>
+        /// A combo's magnet (the playtest: let the blows knock the target back, and pull the attacker in after it): through
+        /// each blow's wind-up the body is carried after its target as it moves off from where the blow was aimed, the
+        /// gap closed by contact, never nearer than the fighting distance. Fast as a combo is, the feet keeping up with
+        /// it doesn't show.
+        /// </summary>
+        public bool Magnetic = true;
+
+        /// <summary>A combo blow's follow-through (its slash swept on through contact to its core's exit) plays this much faster; the showstopper's at its own pace.</summary>
+        public float FollowSpeed = 1.8f;
+
+        private Vector3 magnetAim;
+        private LocoClip magnetFor;
+
+        private void Magnet(float dt)
+        {
+            if (!Cores || !Magnetic || TargetFor == null || current == null || magnetFor != current || loco.Shot != current
+                || loco.Current != Locomotor.Mode.OneShot || !StrikeCores.TryGet(current, out var core) || loco.ShotTime >= core.Contact)
+            {
+                return;
+            }
+
+            float left = (core.Contact - loco.ShotTime) / Mathf.Max(0.3f, loco.ShotRate);
+            Vector3 v = TargetVelocity != null ? TargetVelocity() : Vector3.zero;
+            v.y = 0f;
+            Vector3 future = TargetFor(current) + v * (LeadShare * Mathf.Min(left, MostLead));
+            Vector3 off = future - magnetAim;
+            off.y = 0f;
+            Vector3 move = off * Mathf.Clamp01(dt / Mathf.Max(dt, left));
+            if (poser.KeepFrom.HasValue && poser.KeepDistance > 0f)
+            {
+                // (No nearer than the fighting distance, of where the target's body is now.)
+                Vector3 from = loco.Position + move - poser.KeepFrom.Value;
+                from.y = 0f;
+                if (from.magnitude < poser.KeepDistance)
+                {
+                    Vector3 back = (from.sqrMagnitude > 1e-6f ? from.normalized : -off.normalized) * poser.KeepDistance - from;
+                    move += back;
+                }
+            }
+
+            loco.Position += move;
+            magnetAim += move;
+            poser.CarriedBy(move);
         }
 
         /// <summary>A follow-on steps in until its blade would reach within this of its target before the arm's pull (metres): the pull is for the last of it, not the distance.</summary>
@@ -641,6 +691,7 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            Magnet(dt);
             // (The strike playing follows its target, as far as its pull goes.)
             if (TargetFor != null && !Pressing)
             {

@@ -52,8 +52,13 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The core's entry: no earlier and no later than this before contact (s).</summary>
         public const float MostLead = 0.30f, LeastLead = 0.18f;
 
-        /// <summary>Where the core is cut, after contact (s).</summary>
-        public const float ExitAfter = 0.06f;
+        /// <summary>
+        /// Where the core is cut: once the slash has swept on through its contact (the playtest: cut at contact, the
+        /// tail of the slash was lost, and every combo read as short blows). The first time after contact the blade's
+        /// tip turns slower than <see cref="SweptOutBelow"/> of its speed about contact, no sooner than
+        /// <see cref="ExitAfter"/> and no later than <see cref="MostFollowThrough"/> after it (s).
+        /// </summary>
+        public const float ExitAfter = 0.18f, MostFollowThrough = 0.35f, SweptOutBelow = 0.12f;
 
         /// <summary>Entered a little after the chamber's turnaround, once the blade is on its way (s).</summary>
         public const float PastTurnaround = 0.03f;
@@ -160,13 +165,23 @@ namespace PhysicsBattler.Locomotion
         private static StrikeCore Find(LocoClip clip)
         {
             float contact = clip.ContactFrame / clip.Rate;
-            float exit = Mathf.Min(contact + ExitAfter, clip.Duration);
             float earliest = Mathf.Max(0f, contact - MostLead), latest = Mathf.Max(0f, contact - LeastLead);
 
             float peak = 0f;
             for (float t = contact - 0.06f; t <= contact + 0.06f; t += Step)
             {
                 peak = Mathf.Max(peak, TipSpeed(clip, Mathf.Clamp(t, 0f, clip.Duration)));
+            }
+
+            // (The follow-through: on until the slash has swept out.)
+            float exit = Mathf.Min(contact + MostFollowThrough, clip.Duration);
+            for (float t = contact + ExitAfter; t <= contact + MostFollowThrough; t += Step)
+            {
+                if (t >= clip.Duration || TipSpeed(clip, t) < SweptOutBelow * peak)
+                {
+                    exit = Mathf.Min(t, clip.Duration);
+                    break;
+                }
             }
 
             // The chamber's turnaround: going back from contact, where the tip is slowest before it gathers into the
