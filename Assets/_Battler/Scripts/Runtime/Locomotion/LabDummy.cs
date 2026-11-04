@@ -85,6 +85,7 @@ namespace PhysicsBattler.Locomotion
             if (hits != null && hits.Read(out var read))
             {
                 Blow = read;
+                lastBlowAt = clock;
                 IncomingBlade = read.Blade;
                 IncomingAim = read.Aim;
                 IncomingFrom = read.ComesFrom;
@@ -108,10 +109,26 @@ namespace PhysicsBattler.Locomotion
 
         private float lastSeparate = -10f;
 
+        /// <summary>How long after it was last struck, or a blow passed, it steps back to its standing distance (seconds).</summary>
+        public const float StandBackAfter = 0.3f;
+
+        /// <summary>How long after a blow it still steps back to its standing distance (seconds).</summary>
+        public const float StandBackWithin = 1.5f;
+
+        private float lastBlowAt = -10f;
+
         /// <summary>The fighting distance for two bodies (metres, root to root): their sizes against a Medium's, times this.</summary>
         public const float BodyGap = 1.0f;
 
         public static float FightingDistance(float sizeA, float sizeB) => 0.5f * (sizeA + sizeB) * BodyGap;
+
+        /// <summary>How far apart it stands from the other body between blows (metres, root to root; 0: as near as <see cref="KeepDistance"/>): out of reach of a blow without a step, the guards' points short of the other's shield.</summary>
+        public float StandDistance;
+
+        /// <summary>The standing distance for two bodies: their sizes against a Medium's, times this (1.4 m for two Mediums).</summary>
+        public const float StandGap = 1.4f;
+
+        public static float StandingDistance(float sizeA, float sizeB) => 0.5f * (sizeA + sizeB) * StandGap;
 
         /// <summary>A blow that would set it moving faster than this (m/s) drives it back with steps (the walk's own); a lighter one plays a reaction clip where it stands.</summary>
         public const float DrivenFrom = 0.35f;
@@ -293,11 +310,21 @@ namespace PhysicsBattler.Locomotion
                 if (Loco.Current != Locomotor.Mode.OneShot && clock - lastHit > HomeAfter && home.magnitude > HomeFrom * Size)
                 {
                     want = Vector3.ClampMagnitude(home * 2f, HomeSpeed * Mathf.Sqrt(Size));
-                    // (Not back onto its spot through the other body: no nearer it than the fighting distance.)
-                    if (KeepDistance > 0f && apart < KeepDistance + 0.15f * Size && Vector3.Dot(want, away) < 0f)
+                    // (Not back onto its spot through the other body: no nearer it than the standing distance.)
+                    float keepOff = Mathf.Max(KeepDistance + 0.15f * Size, StandDistance);
+                    if (keepOff > 0f && apart < keepOff && Vector3.Dot(want, away) < 0f)
                     {
                         want -= away * Vector3.Dot(want, away);
                     }
+                }
+
+                // (Closer than it stands between blows just after a blow: it steps back to there, as a fencer recovers
+                // the measure. Not otherwise: one walking in to strike is let come.)
+                float sinceBlow = clock - lastBlowAt;
+                if (StandDistance > 0f && apart < StandDistance - 0.05f * Size && Loco.Current != Locomotor.Mode.OneShot && !Blow.HasValue
+                    && clock - lastHit > StandBackAfter && sinceBlow > StandBackAfter && sinceBlow < StandBackWithin)
+                {
+                    want = away * Mathf.Clamp((StandDistance - apart) * 2.5f, 0.35f, 1.2f) * Mathf.Sqrt(Size);
                 }
 
                 // (Too near the other body: it steps back to the fighting distance, as anyone would.)

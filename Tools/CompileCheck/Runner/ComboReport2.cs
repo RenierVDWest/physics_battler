@@ -67,6 +67,8 @@ internal static class StrikeComboReport
                 reach = new Vector2(sweet.x, sweet.z).magnitude;
             }
 
+            // (From the standing distance, as the lab sets them up.)
+            reach = Mathf.Max(reach, LabDummy.StandingDistance(size, 1f));
             var dummyRig = RigFile.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "_Battler/Data/Rigs/medium_rig.json")));
             var dprofile = UnitProfile.CreateDefault();
             dprofile.body = "Medium";
@@ -132,6 +134,7 @@ internal static class StrikeComboReport
                 poser.KeepFrom = dummy.Loco.Position;
                 poser.KeepDistance = keepAt;
                 dummy.KeepDistance = keepAt;
+                dummy.StandDistance = LabDummy.StandingDistance(size, dummy.Size);
                 bool frozen = hits.HitStop > 0f;
                 if (!frozen)
                 {

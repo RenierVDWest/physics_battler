@@ -33,6 +33,11 @@ internal static class DummyHitReport
             SwordParry.UpperArmSpeed = float.Parse(Environment.GetEnvironmentVariable("PARRY_ARMSPEED"), CultureInfo.InvariantCulture);
         }
 
+        if (Environment.GetEnvironmentVariable("PARRY_HEADFRONT") != null)
+        {
+            SwordParry.HeadFront = float.Parse(Environment.GetEnvironmentVariable("PARRY_HEADFRONT"), CultureInfo.InvariantCulture);
+        }
+
         SwordParry.NoClear = Environment.GetEnvironmentVariable("PARRY_NOCLEAR") != null;
         if (Environment.GetEnvironmentVariable("PARRY_TRACE") != null)
         {
@@ -40,7 +45,7 @@ internal static class DummyHitReport
         }
 
         int landed = 0, blocked = 0, missed = 0, tries = 0, swordTries = 0, swordParried = 0;
-        float worstWrist = 0f, worstJump = 0f, worstHand = 0f, closest = 99f;
+        float worstWrist = 0f, worstJump = 0f, worstHand = 0f, closest = 99f, worstSword = 99f;
         int allTouches = 0;
         foreach (string name in names)
         {
@@ -69,8 +74,9 @@ internal static class DummyHitReport
                         reach = new Vector2(sweet.x, sweet.z).magnitude;
                     }
 
-                    // (Never nearer than the fighting distance, as the lab sets them up.)
-                    reach = Mathf.Max(reach, LabDummy.FightingDistance(size, 1f) + 0.1f * size);
+                    // (From the standing distance, as the lab sets them up.)
+                    float ownReach = reach;
+                    reach = Mathf.Max(reach, Environment.GetEnvironmentVariable("STAND") != null ? float.Parse(Environment.GetEnvironmentVariable("STAND"), CultureInfo.InvariantCulture) * size : LabDummy.StandingDistance(size, 1f));
 
                     var dummyRig = RigFile.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "_Battler/Data/Rigs/medium_rig.json")));
                     var dprofile = UnitProfile.CreateDefault();
@@ -88,7 +94,7 @@ internal static class DummyHitReport
                     {
                         dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummy.Rig, dummy.Size, dummySword.length * dummy.Size)
                         {
-                            Opponent = new OpponentShape(anim, size),
+                            Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? anim.SlotWeaponL : null, 0.27f),
                         };
                     }
 
@@ -130,6 +136,38 @@ internal static class DummyHitReport
                     }
 
                     target = dummy.TargetAt(height);
+                    // (A strike that can't reach from the standing distance is stood in for, as the lab does: only as
+                    // near as it needs, never nearer than the fighting distance.)
+                    {
+                        float least = LabDummy.FightingDistance(size, dummy.Size) + 0.1f * size;
+                        poser.KeepFrom = dummy.Loco.Position;
+                        poser.KeepDistance = LabDummy.FightingDistance(size, dummy.Size);
+                        // (Else from its own reach, as near as the fighting distance lets it.)
+                        float zOwn = Mathf.Max(0f, reach - Mathf.Max(ownReach, least)), z = zOwn;
+                        for (float zz = 0f; zz < zOwn; zz += 0.05f * size)
+                        {
+                            if (poser.MissAfterPull(clip, target, 0f, new Vector3(0f, 0f, zz), 0f) <= LocomotionLab.LandsNear * size)
+                            {
+                                z = zz;
+                                break;
+                            }
+                        }
+
+                        if (z > 0f)
+                        {
+                            if (Environment.GetEnvironmentVariable("STEP_TRACE") != null) Console.WriteLine(string.Format(ci, "    stepped in {0:0.00} m from {1:0.00} m (miss from there {2:0.00} m)", z, reach, poser.MissAfterPull(clip, target, 0f, Vector3.zero, 0f)));
+                            loco.Place(new Vector3(0f, 0f, z), 0f);
+                            for (int i = 0; i < 20; i++)
+                            {
+                                loco.Step(dt, Vector3.zero, 0f);
+                                poser.Pose(dt);
+                                dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, false);
+                            }
+
+                            target = dummy.TargetAt(height);
+                        }
+                    }
+
                     dummy.BlockAt = target;
                     Vector3 dummyStart = dummy.Loco.Position;
                     poser.KeepFrom = dummy.Loco.Position;
@@ -137,7 +175,7 @@ internal static class DummyHitReport
                     poser.PlayStrike(clip, target);
                     var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
                     var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = stance == LabDummy.Stances.Shield ? 0.3f : 0f, BladeLength = stance == LabDummy.Stances.Sword ? dummySword.length * dummy.Size : 0f };
-                    float started = 0f, ended = -1f, mostLean = 0f, mostMoved = 0f, nearest = 99f, handNearest = 99f;
+                    float started = 0f, ended = -1f, mostLean = 0f, mostMoved = 0f, nearest = 99f, handNearest = 99f, swordNearest = 99f, guardNearest = 99f, guardWhen = 0f;
                     string what = "missed";
                     bool predicted = false; Vector3[] predTip = null, predStrike = null; float predFrom = 0f;
                     hits.Landed += text => what = text.Substring(text.IndexOf(':') + 2);
@@ -147,6 +185,7 @@ internal static class DummyHitReport
                         poser.KeepFrom = dummy.Loco.Position;
                         poser.KeepDistance = keepAt;
                         dummy.KeepDistance = keepAt;
+                        dummy.StandDistance = LabDummy.StandingDistance(size, dummy.Size);
                         bool frozen = hits.HitStop > 0f;
                         if (!frozen)
                         {
@@ -193,6 +232,13 @@ internal static class DummyHitReport
                         handNearest = Mathf.Min(handNearest, new Vector2(dummy.Loco.Position.x - handW.x, dummy.Loco.Position.z - handW.z).magnitude);
                         mostMoved = Mathf.Max(mostMoved, new Vector2(dummy.Loco.Position.x - dummyStart.x, dummy.Loco.Position.z - dummyStart.z).magnitude);
                         dummyFilm.Add(i * dt, "dummy", dummy.Loco, dummy.Poser, dummy.Anim);
+                        if (dummy.Parry != null && dummy.Parry.Opponent != null)
+                        {
+                            dummy.Parry.BladeNow(out var dg, out var dt2);
+                            float cl = dummy.Parry.Opponent.Clearance(dg, dt2);
+                            swordNearest = Mathf.Min(swordNearest, cl);
+                            if (dummy.Parry.Current < 0 && cl < guardNearest) { guardNearest = cl; guardWhen = i * dt; }
+                        }
                         if (loco.Current != Locomotor.Mode.OneShot && ended < 0f)
                         {
                             ended = i * dt;
@@ -222,6 +268,9 @@ internal static class DummyHitReport
                         var pr = dummy.Parry;
                         Console.WriteLine(string.Format(ci, "      parries made: {0}; the arm: wrist short at most {1:0} deg, the elbow's biggest jump {2:0} deg a step, the hand at most {3:0.0} m/s, the shoulder past {4:0} deg, into the torso {5:0.00} m",
                             pr.Made.Length > 0 ? pr.Made : "none", pr.MostWristShort, pr.MostSwivelJump, pr.MostHandSpeed, pr.MostShoulderPast, pr.MostIntoTorso));
+                        if (dummy.Parry.Pushed > 0) Console.WriteLine("      the dummy's sword was pushed out of the attacker " + dummy.Parry.Pushed + " times (5 deg each)");
+                        Console.WriteLine(string.Format(ci, "      the dummy's sword came within {0:0.00} m of the attacker's body{1} (below 0: into it); in its guard {2:0.00} m (at {3:0.00} s)", swordNearest, dummy.Parry.Opponent != null && dummy.Parry.Opponent.HasShield ? " and shield" : "", guardNearest, guardWhen));
+                        worstSword = Mathf.Min(worstSword, swordNearest);
                         swordTries++;
                         if (what.StartsWith("parried")) swordParried++;
                         worstWrist = Mathf.Max(worstWrist, pr.MostWristShort);
@@ -260,6 +309,14 @@ internal static class DummyHitReport
         anim.SlotWeaponR.localRotation = UnitController.MainGrip;
         poser.BladeR = UnitController.MainGrip * Vector3.forward;
         poser.CarryR = LocoBody.Carry.Weapon;
+        if (!LocoLibrary.TwoHanded(body) && Environment.GetEnvironmentVariable("NO_SHIELD") == null)
+        {
+            // (Its shield, as the lab's sword-and-shield loadout holds it.)
+            anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+            unitRig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+            poser.CarryL = LocoBody.Carry.Shield;
+        }
+
         loco.Place(Vector3.zero, 0f);
         // (The striker's own colliders are not in the dummy's: the sweep only counts the dummy's.)
         return (anim, loco, poser, root);

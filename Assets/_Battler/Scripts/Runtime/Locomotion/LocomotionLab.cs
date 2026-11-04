@@ -19,7 +19,7 @@ namespace PhysicsBattler.Locomotion
     /// following it is the plan's stage 5).
     ///
     /// Turned on by <see cref="BattleSandbox.locomotionLab"/>. Keys: C course or driving, R restart,
-    /// P pause, comma and period the combat clip to play, J play it. Driving: W A S D (against the camera), Shift run, Space hold the facing
+    /// P pause, M the panel back at the top left, comma and period the combat clip to play, J play it. Driving: W A S D (against the camera), Shift run, Space hold the facing
     /// (side-steps and walking backward), V walking speed. Each run's measures and film are written to
     /// PlaytestLogs/locolab-(time)/ when Play stops.
     /// </summary>
@@ -467,6 +467,7 @@ namespace PhysicsBattler.Locomotion
                 poser.KeepFrom = dummy.Loco.Position;
                 poser.KeepDistance = keep;
                 dummy.KeepDistance = keep;
+                dummy.StandDistance = LabDummy.StandingDistance(size, dummy.Size);
             }
             else
             {
@@ -1236,6 +1237,9 @@ namespace PhysicsBattler.Locomotion
 
         private bool InPosition { get; set; }
 
+        /// <summary>How near its target a strike planned from the standing distance must come to be taken from there (metres at a Medium's size): near enough to land on the body somewhere.</summary>
+        public const float LandsNear = 0.25f;
+
         /// <summary>Where the walker stands to strike the dummy with the picked strike (or the combo it starts): the strike's own reach from its target.</summary>
         private Vector3 SparSpot()
         {
@@ -1251,10 +1255,29 @@ namespace PhysicsBattler.Locomotion
             Vector3 from = loco.Position - dummyAtNow;
             from.y = 0f;
             Vector3 dir = from.sqrMagnitude > 1e-4f ? from.normalized : Quaternion.Euler(0f, dummyFacing, 0f) * Vector3.forward;
-            // (Never nearer the dummy than the fighting distance, with a little to spare.)
-            reach = Mathf.Max(reach, LabDummy.FightingDistance(size, dummy.Size) + 0.1f * size);
-            Vector3 spot = new Vector3(target.x, loco.Position.y, target.z) + dir * reach;
-            return spot;
+            // (From the standing distance, the strike's lunge taking it in; a strike that can't reach from there
+            // (a Small's, a short one) is stood in for, only as near as it needs, never nearer than the fighting distance.)
+            float least = LabDummy.FightingDistance(size, dummy.Size) + 0.1f * size, ownReach = reach;
+            reach = Mathf.Max(reach, LabDummy.StandingDistance(size, dummy.Size));
+            Vector3 flatTarget = new Vector3(target.x, loco.Position.y, target.z);
+            if (clip != null && clip.ContactFrame >= 0)
+            {
+                // (Else from its own reach, as near as the fighting distance lets it.)
+                float faceIn = Mathf.Atan2(-dir.x, -dir.z) * Mathf.Rad2Deg;
+                float own = Mathf.Max(ownReach, least), best = own;
+                for (float d = reach; d > own; d -= 0.05f * size)
+                {
+                    if (poser.MissAfterPull(clip, target, 0f, flatTarget + dir * d, faceIn) <= LandsNear * size)
+                    {
+                        best = d;
+                        break;
+                    }
+                }
+
+                reach = best;
+            }
+
+            return flatTarget + dir * Mathf.Max(reach, least);
         }
 
         private void ToggleSpar()
@@ -1347,6 +1370,7 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.X)) { ToggleSpar(); }
             if (SandboxInput.KeyPressed(KeyCode.T)) { ToggleGuard(); }
             if (SandboxInput.KeyPressed(KeyCode.N)) { body = body == BodySize.Small ? BodySize.Medium : body == BodySize.Medium ? BodySize.Large : BodySize.Small; Build(); }
+            if (SandboxInput.KeyPressed(KeyCode.M)) { ResetPanel(); }
             if (SandboxInput.KeyPressed(KeyCode.V)) walkSpeed = walkSpeed > 1.2f ? 0.7f : walkSpeed > 0.9f ? 1.4f : 1.0f;
         }
 
@@ -1474,7 +1498,19 @@ namespace PhysicsBattler.Locomotion
             GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
             panel.width = 400f;
             panel = GUILayout.Window(7711, panel, DrawPanel, "Locomotion lab");
+            // (Never dragged off the screen: its title bar stays where it can be grabbed.)
+            float screenW = Screen.width / uiScale, screenH = Screen.height / uiScale;
+            panel.x = Mathf.Clamp(panel.x, 60f - panel.width, Mathf.Max(0f, screenW - 60f));
+            panel.y = Mathf.Clamp(panel.y, 0f, Mathf.Max(0f, screenH - 30f));
             GUI.matrix = was;
+        }
+
+        /// <summary>The panel back at the top left at its usual size (M): for when it was dragged away or scaled too big.</summary>
+        private void ResetPanel()
+        {
+            uiScale = 1.5f;
+            PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+            panel = new Rect(12, 12, 400, 10);
         }
 
         /// <summary>A section's heading, a button that opens and closes it.</summary>
@@ -1524,6 +1560,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             GUILayout.EndHorizontal();
+            Note("Lost the panel? M puts it back here.");
 
             // ---- Body
             if (Section($"Body: {body}", ref showBody))
