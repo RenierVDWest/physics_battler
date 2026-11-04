@@ -50,6 +50,18 @@ GUARD = {
     'lg_step_right': ('large_great_sword_strafe_02', 'cycle', True, 'Large two-handed guard, side-stepping right'),
 }
 
+# The sword-alone guard (the sword-only dummy, and any unit without its shield): the sword and shield guard
+# mirrored, right foot forward, the trunk turned sword side to the opponent as a sabre fencer's (its arms are
+# posed by the parry). name: (guard clip it mirrors)
+SWORD_GUARD = {
+    'sw_idle': 'sns_idle', 'sw_idle_b': 'sns_idle_b', 'sw_idle_c': 'sns_idle_c',
+    'sw_walk': 'sns_walk', 'sw_walk_back': 'sns_walk_back',
+    'sw_step_left': 'sns_step_right', 'sw_step_right': 'sns_step_left',
+    'sw_run': 'sns_run', 'sw_run_back': 'sns_run_back',
+    'sw_turn_left': 'sns_turn_right', 'sw_turn_right': 'sns_turn_left',
+    'sw_turn180': 'sns_turn180_b', 'sw_turn180_b': 'sns_turn180',
+}
+
 # Strikes: name: (sample, from s, to s, contact s, kind, about)
 # (The Large holds its club two-handed: only the two-handed clips are its references. Its one-handed club combo
 # and the great sword idles whose hands come apart were taken out.)
@@ -102,6 +114,18 @@ def main(report):
         d, B, F = load(sample)
         bones = B
         clips.append(bake_one(name, d, B, F, loop, role, about, yaw_from='hips' if role in ('turn', 'block') else 'head'))
+    for name, of in SWORD_GUARD.items():
+        sample, role, loop, about = GUARD[of]
+        d, B, F = load(sample)
+        lb.LOOPS.discard(name)
+        if loop:
+            lb.LOOPS.add(name)
+        dd = dict(d, about=about.replace('Medium guard', 'Medium sword guard (mirrored: right foot forward)'))
+        c = lb.bake(name, dd, B, lb.mirror(B, F), mirrored_of=of, yaw_from='hips' if role in ('turn', 'block') else 'head')
+        c['role'] = role
+        c['kind'] = ''
+        c['set'] = 'guard'
+        clips.append(c)
     for name, (sample, a, b, contact, kind, about) in STRIKES.items():
         d, B, F = load(sample)
         rate = d['rate']

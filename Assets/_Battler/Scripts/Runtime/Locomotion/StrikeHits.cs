@@ -28,8 +28,14 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The weapon's length (metres).</summary>
         public float Length;
 
-        /// <summary>The striking point's path up to contact (world, earliest first; the last is <see cref="Aim"/>), and the tip's.</summary>
-        public Vector3[] Path, TipPath;
+        /// <summary>The striking point's path about contact (world, earliest first; <see cref="StrikeHits.ContactPoint"/> is at contact, <see cref="Aim"/>), the tip's and the grip's.</summary>
+        public Vector3[] Path, TipPath, GripPath;
+
+        /// <summary>How far apart the path's points are (seconds as they pass).</summary>
+        public float PathSeconds;
+
+        /// <summary>Seconds (as they pass) until the path reaches a point along it (an index, fractional).</summary>
+        public float SecondsTo(float along) => Mathf.Max(0f, ToContact + (along - StrikeHits.ContactPoint) * PathSeconds);
 
         public bool Thrust;
     }
@@ -72,7 +78,7 @@ namespace PhysicsBattler.Locomotion
         public const float SlowedFor = 0.3f;
 
         private LocoClip blow;
-        private bool had, struck;
+        private bool had;
         private Vector3 lastGrip, lastTip, lastStrike;
         private float momentumLeft = 1f, lastShotTime;
         private readonly List<(Collider collider, PartId part, bool shield, float order)> found = new List<(Collider, PartId, bool, float)>();
@@ -84,13 +90,13 @@ namespace PhysicsBattler.Locomotion
             this.anim = anim;
         }
 
-        private static bool IsThrust(LocoClip clip) => clip.Kind != null && clip.Kind.StartsWith("thrust");
+        private static bool IsThrust(LocoClip clip) => clip != null && clip.Kind != null && clip.Kind.StartsWith("thrust");
 
         private StrikeWith With(LocoClip clip) =>
-            IsThrust(clip) ? StrikeWith.Tip : Weapon != null && Weapon.kind == WeaponKind.Club ? StrikeWith.Head : StrikeWith.Edge;
+            clip != null && IsThrust(clip) ? StrikeWith.Tip : Weapon != null && Weapon.kind == WeaponKind.Club ? StrikeWith.Head : StrikeWith.Edge;
 
         /// <summary>The weapon now: the swept stretch (from near the hand to the tip) and the striking point.</summary>
-        private bool Blade(LocoClip clip, out Vector3 grip, out Vector3 tip, out Vector3 strike)
+        public bool Blade(LocoClip clip, out Vector3 grip, out Vector3 tip, out Vector3 strike)
         {
             var slot = Slot != null ? Slot : anim.SlotWeaponR;
             grip = tip = strike = Vector3.zero;
@@ -168,26 +174,55 @@ namespace PhysicsBattler.Locomotion
             read.Coming = loco.ShotTime / loco.TimeScale;
             read.Thrust = IsThrust(clip);
             read.Length = Weapon != null ? Weapon.length * Scale : poser.WeaponLength;
-            // (The striking point's path over the last of the blow, from the clip, set on where it lands: a blow
-            // aimed at the chest from above passes the head first.)
+            // (The blade's path over the last of the blow and just past its contact: from where the blade is now, on
+            // by the clip's arm as the root will carry it (the lunge cut or stretched, the aimed turn) and the aim's
+            // pull as it will be then. A blow aimed at the chest from above passes the head first.)
             read.Path = new Vector3[PathPoints];
             read.TipPath = new Vector3[PathPoints];
-            var toWorld = Quaternion.Euler(0f, loco.Facing + turnLeft, 0f);
-            Vector3 atContact = StrikeAt(clip, contact);
-            for (int k = 0; k < PathPoints; k++)
+            read.GripPath = new Vector3[PathPoints];
+            read.PathSeconds = PathStep / speed;
+            Blade(clip, out Vector3 gripNow, out Vector3 tipNow, out Vector3 strikeNow);
+            float now = loco.ShotTime;
+            var turnNow = Quaternion.Euler(0f, loco.Facing, 0f);
+            Vector3 pullNow = poser.PullAhead(now, 0f);
+            // (The blade as it lies now: its way, its length, and where along it the grip and the striking point are,
+            // from the hand's end of it.)
+            Vector3 wayNow = tipNow - gripNow;
+            float gripAlong = Weapon != null ? (Weapon.kind == WeaponKind.Club ? 0.35f : 0.1f) : 0.1f;
+            float bladeLength = wayNow.magnitude / Mathf.Max(0.05f, 1f - gripAlong);
+            wayNow = wayNow.sqrMagnitude > 1e-8f ? wayNow.normalized : turnNow * Vector3.forward;
+            Vector3 handNow = gripNow - wayNow * (gripAlong * bladeLength);
+            float strikeAlong = Vector3.Dot(strikeNow - handNow, wayNow) / Mathf.Max(0.05f, bladeLength);
+            Vector3 clipHandNow = turnNow * StrikeAt(clip, now, 0f);
+            Vector3 ClipWay(Quaternion turn, float at)
             {
-                float t = Mathf.Max(0f, contact - PathStep * (PathPoints - 1 - k));
-                clip.RootMotion(t, contact, out var moved, out _);
-                Vector3 rootMoved = new Vector3(moved.x, 0f, moved.y) * loco.Leg;
-                read.Path[k] = read.Aim + toWorld * (StrikeAt(clip, t) - rootMoved - atContact);
-                read.TipPath[k] = read.Aim + toWorld * (StrikeAt(clip, t, 1f) - rootMoved - atContact);
+                Vector3 w = StrikeAt(clip, at, 1f) - StrikeAt(clip, at, 0f);
+                return w.sqrMagnitude > 1e-8f ? turn * w.normalized : wayNow;
             }
 
+            // (What the clip's way misses of the posed blade now, taken on: the hand's fade, the grip.)
+            Vector3 steeredNow = poser.SteerAhead(now, handNow, ClipWay(turnNow, now));
+            Quaternion wayFix = Quaternion.FromToRotation(steeredNow, wayNow);
+            for (int k = 0; k < PathPoints; k++)
+            {
+                float t = Mathf.Max(now, contact + PathStep * (k - ContactPoint));
+                loco.ShotRootAhead(t, out Vector3 rootThen, out float facingThen);
+                var turnThen = Quaternion.Euler(0f, facingThen, 0f);
+                Vector3 handThen = handNow + (rootThen - loco.Position) + poser.PullAhead(t, (t - now) / speed) - pullNow + turnThen * StrikeAt(clip, t, 0f) - clipHandNow;
+                // (The blade's way then: the clip's, as the wrist will steer it.)
+                Vector3 wayThen = poser.SteerAhead(t, handThen, wayFix * ClipWay(turnThen, t)).normalized;
+                read.Path[k] = handThen + wayThen * (strikeAlong * bladeLength);
+                read.TipPath[k] = handThen + wayThen * bladeLength;
+                read.GripPath[k] = handThen + wayThen * (gripAlong * bladeLength);
+            }
+
+            // (Where it lands, as read so: the striking point at contact.)
+            read.Aim = read.Path[ContactPoint];
             return true;
         }
 
-        /// <summary>How many points of the blow's last path are read, how far apart (seconds of the clip).</summary>
-        public const int PathPoints = 9;
+        /// <summary>How many points of the blow's path are read (from 0.28 s before its contact to the end of its live moments), which is at contact, how far apart (seconds of the clip).</summary>
+        public const int PathPoints = 13, ContactPoint = 7;
         public const float PathStep = 0.04f;
 
         /// <summary>How far before contact the blow's line is read from (seconds of the clip).</summary>
@@ -203,9 +238,28 @@ namespace PhysicsBattler.Locomotion
             return readPose[(int)LocoBone.RightHand] + StrikeCombos.Blade(readPose) * (poser.WeaponLength * along);
         }
 
-        /// <summary>One step, after the striker is posed (and while the hit stop lasts, only its clock).</summary>
+        /// <summary>The parts of the dummy this blow has struck already (a blade that cuts through goes on to the next), whether it was stopped, and whether its blade has been deflected off the dummy's.</summary>
+        private readonly HashSet<PartId> struckParts = new HashSet<PartId>();
+        private bool stopped, deflected;
+
+        /// <summary>When each part (and the shield, and the sword) was last touched outside a blow (seconds).</summary>
+        private readonly Dictionary<int, float> touched = new Dictionary<int, float>();
+        private float clock;
+
+        /// <summary>A weapon touching a body outside a blow (the wind-up passing through it, a guard too close) pushes it: at most once in this long per part (seconds), with the weapon's weight (kg).</summary>
+        public const float TouchEvery = 0.3f, WeaponMass = 1.3f;
+
+        public int Touches;
+
+        /// <summary>
+        /// One step, after the striker is posed (and while the hit stop lasts, only its clock). In a strike's live
+        /// moments the first part, shield or sword the blade meets is struck; a blade that cuts through goes on to
+        /// strike the next part it meets. At any other time (the wind-up, the recovery, the guard), whatever the
+        /// blade touches is pushed by it: nothing passes through a body without its feeling it.
+        /// </summary>
         public void Step(float dt, LabDummy dummy)
         {
+            clock += dt;
             if (HitStop > 0f)
             {
                 HitStop = Mathf.Max(0f, HitStop - dt);
@@ -218,23 +272,22 @@ namespace PhysicsBattler.Locomotion
             }
 
             var clip = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
-            if (clip == null || clip.ContactFrame < 0)
+            bool striking = clip != null && clip.ContactFrame >= 0;
+            if (!striking)
             {
                 blow = null;
-                had = false;
-                return;
             }
-
-            if (clip != blow)
+            else if (clip != blow)
             {
                 blow = clip;
-                had = false;
-                struck = false;
+                stopped = deflected = false;
                 momentumLeft = 1f;
+                struckParts.Clear();
             }
 
-            if (!Blade(clip, out Vector3 grip, out Vector3 tip, out Vector3 strike))
+            if (!Blade(striking ? clip : null, out Vector3 grip, out Vector3 tip, out Vector3 strike))
             {
+                had = false;
                 return;
             }
 
@@ -246,20 +299,16 @@ namespace PhysicsBattler.Locomotion
             lastStrike = strike;
             lastShotTime = loco.ShotTime;
             had = true;
-            float contact = clip.ContactFrame / clip.Rate, t = loco.ShotTime;
-            bool live = t >= contact - LiveBefore && t <= contact + LiveAfter && loco.ShotSpeed > 0f;
-            if (!wasHad || !live || struck || dummy == null)
+            if (!wasHad || dummy == null)
             {
                 return;
             }
 
             // (Capped: a jump in one step is not a blow's speed.)
             float speed = Mathf.Min(Vector3.Distance(strike, lastS) / dt, 16f);
-            if (speed < (Weapon != null ? Weapon.minHitSpeed : 2f))
-            {
-                return;
-            }
-
+            float contact = striking ? clip.ContactFrame / clip.Rate : 0f, t = loco.ShotTime;
+            bool live = striking && !stopped && t >= contact - LiveBefore && t <= contact + LiveAfter && loco.ShotSpeed > 0f
+                        && speed >= (Weapon != null ? Weapon.minHitSpeed : 2f);
             Vector3 direction = strike - lastS;
             float radius = Mathf.Max(0.01f, (Weapon != null ? Weapon.sweepRadius : 0.035f) * Scale);
             float travel = Mathf.Max(Vector3.Distance(grip, lastG), Vector3.Distance(tip, lastT));
@@ -272,7 +321,7 @@ namespace PhysicsBattler.Locomotion
                 // (The dummy's own sword, parrying: blade against blade, two segments' nearest points.)
                 float parryAlong = -1f;
                 Vector3 parryAt = Vector3.zero;
-                if (dummy.Stance == LabDummy.Stances.Sword && dummy.Parry != null)
+                if (dummy.Stance == LabDummy.Stances.Sword && dummy.Parry != null && !deflected)
                 {
                     dummy.Parry.BladeNow(out var dg, out var dt2);
                     float defRadius = 0.02f * Scale;
@@ -290,7 +339,7 @@ namespace PhysicsBattler.Locomotion
                     {
                         found.Add((collider, PartId.HandL, true, AlongBlade(collider, a, b) - 0.05f));
                     }
-                    else if (dummy.PartOf(collider, out var id))
+                    else if (dummy.PartOf(collider, out var id) && !(live && struckParts.Contains(id)))
                     {
                         found.Add((collider, id, false, AlongBlade(collider, a, b)));
                     }
@@ -307,6 +356,23 @@ namespace PhysicsBattler.Locomotion
                 // whatever is further along the attacker's blade.)
                 bool parryFirst = parryAlong >= 0f && (found.Count == 0 || parryAlong - 0.05f <= found[0].order
                     || found[0].part == PartId.HandR || found[0].part == PartId.ForearmR);
+                if (!live)
+                {
+                    // Outside a blow: a touch, a push on what it touches.
+                    Vector3 velocity = direction / Mathf.Max(1e-4f, dt);
+                    if (parryFirst)
+                    {
+                        Touch(dummy, -2, PartId.HandR, false, true, parryAt, velocity);
+                    }
+                    else
+                    {
+                        var ft = found[0];
+                        Touch(dummy, ft.shield ? -1 : (int)ft.part, ft.part, ft.shield, false, ft.collider.ClosestPoint(0.5f * (a + b)), velocity);
+                    }
+
+                    return;
+                }
+
                 if (parryFirst)
                 {
                     float metAt = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
@@ -332,39 +398,85 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        /// <summary>A touch outside a blow: what the blade touches is pushed by the weapon's weight at its speed.</summary>
+        private void Touch(LabDummy dummy, int key, PartId part, bool shield, bool sword, Vector3 point, Vector3 velocity)
+        {
+            if (touched.TryGetValue(key, out float last) && clock - last < TouchEvery)
+            {
+                return;
+            }
+
+            touched[key] = clock;
+            Touches++;
+            dummy.Touch(part, shield, sword, point, Vector3.ClampMagnitude(velocity, 8f) * (WeaponMass * Scale));
+        }
+
         private void Strike(LocoClip clip, LabDummy dummy, PartId part, bool shield, Vector3 point, float speed, Vector3 direction, float met,
             float parryAlong = -1f, Vector3 bladeWay = default)
         {
-            struck = true;
             bool parried = parryAlong >= 0f;
+            if (!parried && !shield)
+            {
+                struckParts.Add(part);
+            }
+
             var r = DamageRules.Resolve(Weapon, With(clip), Scale, speed, direction, Mass, dummy.Mass, part, shield, momentumLeft,
                 1e6f, dummy.Poise, dummy.MaxPoise);
-            dummy.TakeHit(part, shield && !parried, r.Impulse, r.PartShare, r.PoiseDamage, r.Reaction, point, parried);
+            bool glanced = false;
             if (parried)
             {
                 dummy.Parry.BladeNow(out var dg, out var dtip);
                 LastCross = Vector3.Angle(bladeWay, dtip - dg);
                 LastCross = Mathf.Min(LastCross, 180f - LastCross);
                 LastParryAt = parryAlong;
-                Parries++;
+                // (A clean parry stops the blow: taken on the strong of the blade, near square. Taken out on the
+                // weak of it, or at a slant, the blow glances off and goes on, slowed.)
+                glanced = lastParryOn > CleanOnBlade || LastCross < CleanCross;
+                if (glanced)
+                {
+                    deflected = true;
+                    Deflects++;
+                    // (Turned off the dummy's blade: away from the arm that holds it.)
+                    struckParts.Add(PartId.HandR);
+                    struckParts.Add(PartId.ForearmR);
+                    struckParts.Add(PartId.UpperArmR);
+                }
+                else
+                {
+                    Parries++;
+                }
             }
+
+            dummy.TakeHit(part, shield && !parried, glanced ? r.Impulse * GlanceLeft : r.Impulse, r.PartShare, r.PoiseDamage, r.Reaction, point, parried);
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
             HitStop = Mathf.Clamp(0.06f * (0.6f + r.Impulse.magnitude / 40f), 0.04f, 0.1f);
             string what;
-            if (r.StopsSwing || parried)
+            if (glanced)
             {
+                // Glanced off the dummy's blade: on, slowed, its hand jolted; the sweep goes on to what lies beyond.
+                momentumLeft = Mathf.Min(momentumLeft, GlanceLeft);
+                loco.ShotSpeed = Mathf.Max(0.3f, GlanceLeft);
+                poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.12f, 1.5f));
+                what = $"glanced off the sword ({dummy.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
+                HitStop = Mathf.Min(HitStop, 0.04f);
+            }
+            else if (r.StopsSwing || parried)
+            {
+                stopped = true;
+                // (The blades or the shield meet: the attacker's hand thrown back along the blow, its arm taking it.)
+                poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.25f, 3f));
                 // Back to where the weapon met it, shown through the hit stop; then it backs out a little.
                 loco.WindBack(met);
                 poser.Pose(1e-4f);
                 loco.CutShort(RewindMost, ReboundSpeed);
                 what = parried ? $"parried by the sword ({dummy.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
                     : shield ? "blocked by the shield" : "stopped in the " + Name(part);
-                if (shield)
+                if (shield && !parried)
                 {
                     Blocks++;
                 }
-                else
+                else if (!parried)
                 {
                     Hits++;
                 }
@@ -394,7 +506,10 @@ namespace PhysicsBattler.Locomotion
         public float LastCross, LastParryAt;
         private float lastParryOn;
 
-        public int Parries;
+        public int Parries, Deflects;
+
+        /// <summary>A parry stops the blow when it is taken within this share of the dummy's blade from its hilt, crossing at this angle or more (degrees); otherwise the blow glances off, left with this much of its momentum.</summary>
+        public const float CleanOnBlade = 0.65f, CleanCross = 40f, GlanceLeft = 0.5f;
 
         /// <summary>The nearest points of two segments (their shares along each, and the points), and how far apart they are.</summary>
         public static float SegmentsNearest(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2, out float s, out float t, out Vector3 c1, out Vector3 c2)

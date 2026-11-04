@@ -64,7 +64,7 @@ namespace PhysicsBattler.Locomotion
         public const float ForteAt = 0.3f;
 
         /// <summary>How far the forte may go from its parry's own place to meet the incoming blade's path, and the blade turn from the parry's own way (metres at a Medium's size, degrees).</summary>
-        public const float PlaceMost = 0.25f, MostBladeOff = 35f;
+        public const float PlaceMost = 0.35f, MostBladeOff = 35f;
 
         /// <summary>The fastest the hand moves, the blade turns, the elbow swivels and the trunk turns (m/s, degrees a second); and how quickly each closes on where it is going (1/s).</summary>
         public const float HandSpeed = 6f, BladeTurnSpeed = 1200f, SwivelSpeed = 540f, TrunkSpeed = 300f, Close = 18f;
@@ -91,6 +91,11 @@ namespace PhysicsBattler.Locomotion
         private int edgeSign = 1, lastChosen = -2;
         private Vector3 lastSlot;
         private float lastSolvedSwivel;
+        private Vector3 lastUpperArm, lastForte;
+        private bool lastForteKnown;
+
+        /// <summary>The most the upper arm turns at the shoulder (degrees a second): a fast parry's, and no faster.</summary>
+        public static float UpperArmSpeed = 900f;
 
         /// <summary>How near the body's middle the blow's path must come to be at the body (metres at a Medium's size), and how high the head reaches (real metres).</summary>
         public const float BodyRadius = 0.3f, HeadTop = 1.75f;
@@ -149,29 +154,34 @@ namespace PhysicsBattler.Locomotion
             motion = -blow.ComesFrom;
             landHeight = blow.Aim.y;
             landPart = 0;
+            landK = -1;
             if (blow.Path == null)
             {
                 return;
             }
 
-            // (The striking point's path and the tip's, the deeper: whichever reaches the body first, looked for along
-            // each step of the path, since a blade crosses a head between two of its points.)
-            // (The body as the blade meets it: the torso, the head, each thigh and shin, as they stand now.)
+            // (The body as the blade meets it, as it stands now: the head, the torso, each thigh and shin; looked for
+            // along each step of the blade's path, since a blade crosses a head between two of its points.)
             Vector3 P(PartId id) => anim.Part(id).position;
-            float Near(Vector3 p, Vector3 a, Vector3 b)
-            {
-                Vector3 ab = b - a;
-                float t = Mathf.Clamp01(Vector3.Dot(p - a, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
-                return (a + ab * t - p).magnitude;
-            }
 
-            bool Inside(Vector3 p)
+            // (The whole blade, grip to tip, against each part: a chop at the chest passes the head with its middle.)
+            bool Inside(Vector3 g, Vector3 tp)
             {
                 float r = size;
-                if (Near(p, P(PartId.Pelvis), P(PartId.Chest)) <= 0.18f * r || Near(p, P(PartId.Chest), P(PartId.Head)) <= 0.17f * r
-                    || (p - P(PartId.Head)).magnitude <= 0.16f * r)
+                Vector3 headAt = P(PartId.Head) + Vector3.up * (0.08f * r);
+                float Seg(Vector3 a2, Vector3 b2) => StrikeHits.SegmentsNearest(g, tp, a2, b2, out _, out _, out _, out _);
+                if (Seg(headAt, headAt) <= 0.14f * r)
                 {
                     landPart = 0;
+                    landHeight = headAt.y;
+                    return true;
+                }
+
+                if (Seg(P(PartId.Pelvis), P(PartId.Chest)) <= 0.17f * r || Seg(P(PartId.Chest), P(PartId.Head)) <= 0.15f * r)
+                {
+                    landPart = 0;
+                    StrikeHits.SegmentsNearest(g, tp, P(PartId.Pelvis), headAt, out _, out _, out _, out Vector3 onBody);
+                    landHeight = onBody.y;
                     return true;
                 }
 
@@ -180,9 +190,11 @@ namespace PhysicsBattler.Locomotion
                     var thigh = P(leg == 0 ? PartId.ThighL : PartId.ThighR);
                     var shin = P(leg == 0 ? PartId.ShinL : PartId.ShinR);
                     var foot = P(leg == 0 ? PartId.FootL : PartId.FootR);
-                    if (Near(p, thigh, shin) <= 0.11f * r || Near(p, shin, foot) <= 0.09f * r)
+                    if (Seg(thigh, shin) <= 0.1f * r || Seg(shin, foot) <= 0.08f * r)
                     {
                         landPart = leg == 0 ? -1 : 1;
+                        StrikeHits.SegmentsNearest(g, tp, thigh, foot, out _, out _, out _, out Vector3 onLeg);
+                        landHeight = onLeg.y;
                         return true;
                     }
                 }
@@ -190,31 +202,32 @@ namespace PhysicsBattler.Locomotion
                 return false;
             }
 
+            var grips = blow.GripPath ?? blow.Path;
+            var tips = blow.TipPath ?? blow.Path;
             for (int k = 1; k < blow.Path.Length; k++)
             {
                 for (int j = 1; j <= 8; j++)
                 {
                     float u = j / 8f;
-                    foreach (var path in new[] { blow.TipPath, blow.Path })
+                    Vector3 g = Vector3.Lerp(grips[k - 1], grips[k], u), tp = Vector3.Lerp(tips[k - 1], tips[k], u);
+                    if (Inside(g, tp))
                     {
-                        if (path == null)
+                        landK = k;
+                        landU = u;
+                        // (Where the striking point is then: the forte goes across its path there.)
+                        land = Vector3.Lerp(blow.Path[k - 1], blow.Path[k], u);
+                        Vector3 step = Vector3.Lerp(tips[k - 1], tips[k], u) - Vector3.Lerp(tips[k - 1], tips[k], Mathf.Max(0f, u - 0.125f));
+                        if (step.sqrMagnitude < 1e-8f)
                         {
-                            continue;
+                            step = tips[k] - tips[k - 1];
                         }
 
-                        Vector3 p = Vector3.Lerp(path[k - 1], path[k], u);
-                        if (Inside(p))
+                        if (step.sqrMagnitude > 1e-8f)
                         {
-                            // (Where the striking point is then: the forte goes across its path there.)
-                            land = Vector3.Lerp(blow.Path[k - 1], blow.Path[k], u);
-                            if ((path[k] - path[k - 1]).sqrMagnitude > 1e-6f)
-                            {
-                                motion = (path[k] - path[k - 1]).normalized;
-                            }
-
-                            landHeight = p.y;
-                            return;
+                            motion = step.normalized;
                         }
+
+                        return;
                     }
                 }
             }
@@ -283,8 +296,62 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How long a new read must hold before the parry changes to it (seconds).</summary>
         public const float ChangeAfter = 0.06f;
 
+        /// <summary>How near the blow's landing the parry taken is no longer changed for another (seconds): too late to go round to it.</summary>
+        public const float LockWithin = 0.15f;
+
         /// <summary>What the blow first meets: 0 the torso or head, -1 the left leg, +1 the right leg.</summary>
-        private int landPart;
+        private int landPart, landK = -1;
+        private float landU;
+
+        /// <summary>How far out from the body's middle the blades are to meet (metres at a Medium's size: a forearm and more, well clear of the head and the body).</summary>
+        public static float CrossOut = 0.45f;
+
+        /// <summary>
+        /// Where up the blow's path (from where it would reach the body, back toward the attacker) it is first a
+        /// <see cref="CrossOut"/> out from the body's middle: there the blades are to cross.
+        /// </summary>
+        private Vector3 CrossingOnPath(in BlowRead blow, Vector3 fallback)
+        {
+            if (blow.Path == null || landK < 1)
+            {
+                return fallback;
+            }
+
+            Vector3 pelvis = anim.Part(PartId.Pelvis).position, head = anim.Part(PartId.Head).position;
+            float Out(Vector3 p)
+            {
+                Vector3 ab = head - pelvis;
+                float t = Mathf.Clamp01(Vector3.Dot(p - pelvis, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
+                return (pelvis + ab * t - p).magnitude;
+            }
+
+            Vector3 at = Vector3.Lerp(blow.Path[landK - 1], blow.Path[landK], landU);
+            for (int k = landK; k >= 1; k--)
+            {
+                for (int j = 8; j >= 0; j--)
+                {
+                    float u = k == landK ? Mathf.Min(landU, j / 8f) : j / 8f;
+                    Vector3 p = Vector3.Lerp(blow.Path[k - 1], blow.Path[k], u);
+                    if (Out(p) >= CrossOut * size)
+                    {
+                        return p;
+                    }
+
+                    at = p;
+                }
+            }
+
+            return at;
+        }
+
+        /// <summary>The other body as solid shapes (its torso, head, arms and shield), for keeping this sword out of it; null: none.</summary>
+        public OpponentShape Opponent;
+
+        /// <summary>How far the sword keeps from the other body and its shield (metres).</summary>
+        public const float KeepClear = 0.04f;
+
+        /// <summary>For the runner's comparisons: the keeping clear of the other body off.</summary>
+        public static bool NoClear;
 
         private static string V(Vector3 v) => $"({v.x:0.00},{v.y:0.00},{v.z:0.00})";
 
@@ -304,6 +371,18 @@ namespace PhysicsBattler.Locomotion
                 {
                     Landing(blow.Value, out landAt, out landMotion);
                     int chosen = Choose(blow.Value, landAt, landMotion, out _);
+                    // (Too late to change: the parry taken is held, only placed on the blade as it comes.)
+                    float toLand = landK >= 1 ? blow.Value.SecondsTo(landK - 1 + landU) : blow.Value.ToContact;
+                    if (Current >= 0 && toLand < LockWithin)
+                    {
+                        chosen = Current;
+                    }
+                    else
+                    {
+                        // (Played on against the blow read: the parry that meets it on the blade, not the arm or the body.)
+                        chosen = Pick(blow.Value, chosen, opponent);
+                    }
+
                     // (A change of mind holds a moment before it is taken: the read wavers between two near parries.)
                     if (Current >= 0 && chosen != Current)
                     {
@@ -342,57 +421,32 @@ namespace PhysicsBattler.Locomotion
                 Current = -1;
             }
 
-            Vector3 hand = World(aim.Hand);
-            wantBlade = (bodyTurn * aim.Blade).normalized;
-            wantForte = hand + wantBlade * (ForteAt * WeaponLength);
-            wantEdge = Vector3.ProjectOnPlane(bodyTurn * aim.Edge, wantBlade).normalized;
             wantSwivel = aim.Swivel;
             wantTurn = aim.Turn;
             wantLean = aim.Lean;
-            if (Current < 0)
+            if (Current >= 0 && blow.HasValue)
             {
-                // (The guard's point at the opponent's face.)
-                Vector3 toFace = opponent + Vector3.up * (0.2f * size) - hand;
-                if (toFace.sqrMagnitude > 0.01f)
-                {
-                    wantBlade = Vector3.RotateTowards(wantBlade, toFace.normalized, 25f * Mathf.Deg2Rad, 0f);
-                    wantForte = hand + wantBlade * (ForteAt * WeaponLength);
-                    wantEdge = Vector3.ProjectOnPlane(Vector3.down, wantBlade).normalized;
-                }
+                Place(Current, blow.Value, opponent, out wantForte, out wantBlade, out wantEdge);
             }
-            else if (blow.HasValue)
+            else
             {
-                // The forte onto the incoming blade's path just before it lands; the blade square to the plane that
-                // blade sweeps (its way and its motion), turned from the parry's own way as little as that needs; the
-                // edge to the blow.
-                var b = blow.Value;
-                Vector3 motion = landMotion;
-                float t = Mathf.Clamp(Vector3.Dot(wantForte - landAt, motion), -0.6f * size, -0.06f * size);
-                Vector3 across = landAt + motion * t;
-                wantForte += Vector3.ClampMagnitude(across - wantForte, PlaceMost * size);
-                Vector3 square = Vector3.Cross(b.BladeWay, motion);
-                if (square.sqrMagnitude > 1e-4f)
+                Vector3 hand = World(aim.Hand);
+                wantBlade = (bodyTurn * aim.Blade).normalized;
+                wantForte = hand + wantBlade * (ForteAt * WeaponLength);
+                wantEdge = Vector3.ProjectOnPlane(bodyTurn * aim.Edge, wantBlade).normalized;
+                if (Current < 0)
                 {
-                    square.Normalize();
-                    if (Vector3.Dot(square, wantBlade) < 0f)
+                    // (The guard's point at the opponent's face.)
+                    Vector3 toFace = opponent + Vector3.up * (0.2f * size) - hand;
+                    if (toFace.sqrMagnitude > 0.01f)
                     {
-                        square = -square;
+                        wantBlade = Vector3.RotateTowards(wantBlade, toFace.normalized, 25f * Mathf.Deg2Rad, 0f);
+                        wantForte = hand + wantBlade * (ForteAt * WeaponLength);
+                        wantEdge = Vector3.ProjectOnPlane(Vector3.down, wantBlade).normalized;
                     }
-
-                    // (Less of it while the arm can't take the turn: the parry's own way is one it can.)
-                    wantBlade = Vector3.RotateTowards(wantBlade, square, MostBladeOff * feasible * Mathf.Deg2Rad, 0f);
                 }
 
-                Vector3 toBlow = Vector3.ProjectOnPlane(-motion, wantBlade);
-                wantEdge = toBlow.sqrMagnitude > 1e-4f ? toBlow.normalized : Vector3.ProjectOnPlane(wantEdge, wantBlade).normalized;
-
-                // (In front of the body, never through it.)
-                Vector3 ahead = bodyTurn * Vector3.forward;
-                float front = Vector3.Dot(wantForte - Root, ahead);
-                if (front < 0.22f * size)
-                {
-                    wantForte += ahead * (0.22f * size - front);
-                }
+                KeepOffOpponent(opponent, ref wantForte, ref wantBlade);
             }
 
             if (!started)
@@ -423,6 +477,226 @@ namespace PhysicsBattler.Locomotion
 
             TuckFreeArm(bodyTurn);
             SolveArm(dt, close, wantBlade, wantEdge);
+        }
+
+        /// <summary>
+        /// Where a parry puts the sword for the blow read (<see cref="landAt"/>, <see cref="landMotion"/>): the forte onto
+        /// the incoming blade's path where it is still a forearm and more out from the body, the blade square to the
+        /// plane that blade sweeps (its way and its motion), turned from the parry's own way as little as that needs,
+        /// the edge to the blow; in front of the body, and never into the other body or its shield.
+        /// </summary>
+        private void Place(int parry, in BlowRead b, Vector3 opponent, out Vector3 wantForte, out Vector3 wantBlade, out Vector3 wantEdge)
+        {
+            var bodyTurn = BodyTurn;
+            var aim = Parries[parry];
+            Vector3 hand = World(aim.Hand);
+            wantBlade = (bodyTurn * aim.Blade).normalized;
+            wantForte = hand + wantBlade * (ForteAt * WeaponLength);
+            wantEdge = Vector3.ProjectOnPlane(bodyTurn * aim.Edge, wantBlade).normalized;
+            Vector3 motion = landMotion;
+            Vector3 across = CrossingOnPath(b, landAt + motion * Mathf.Clamp(Vector3.Dot(wantForte - landAt, motion), -0.6f * size, -0.06f * size));
+            wantForte += Vector3.ClampMagnitude(across - wantForte, PlaceMost * size);
+            Vector3 square = Vector3.Cross(b.BladeWay, motion);
+            if (square.sqrMagnitude > 1e-4f)
+            {
+                square.Normalize();
+                if (Vector3.Dot(square, wantBlade) < 0f)
+                {
+                    square = -square;
+                }
+
+                // (Less of it while the arm can't take the turn: the parry's own way is one it can.)
+                wantBlade = Vector3.RotateTowards(wantBlade, square, MostBladeOff * (parry == Current ? feasible : 1f) * Mathf.Deg2Rad, 0f);
+            }
+
+            Vector3 toBlow = Vector3.ProjectOnPlane(-motion, wantBlade);
+            wantEdge = toBlow.sqrMagnitude > 1e-4f ? toBlow.normalized : Vector3.ProjectOnPlane(wantEdge, wantBlade).normalized;
+
+            // (In front of the body, never through it.)
+            Vector3 ahead = bodyTurn * Vector3.forward;
+            float front = Vector3.Dot(wantForte - Root, ahead);
+            if (front < 0.22f * size)
+            {
+                wantForte += ahead * (0.22f * size - front);
+            }
+
+            KeepOffOpponent(opponent, ref wantForte, ref wantBlade);
+        }
+
+        /// <summary>
+        /// The parry to take: the one held while it still meets the blow on the blade (or the blow misses); else the one
+        /// read (<paramref name="chosen"/>) if it does; else whichever does, the nearest to where the sword is; else the one read.
+        /// </summary>
+        private int Pick(in BlowRead b, int chosen, Vector3 opponent)
+        {
+            int Rank(Meeting m) => m == Meeting.Blade || m == Meeting.Nothing ? 0 : m == Meeting.Glance ? 1 : 2;
+            Meeting Try(int p, in BlowRead read, out Vector3 at)
+            {
+                Place(p, read, opponent, out at, out Vector3 way, out _);
+                return Meets(read, at, way, Parries[p].Swivel);
+            }
+
+            if (Current >= 0)
+            {
+                var held = Try(Current, b, out _);
+                Trace?.Invoke($"pick: holding {Parries[Current].Name} meets {held} @{meetAlong:0.00}/{meetCross:0}");
+                if (Rank(held) == 0)
+                {
+                    return Current;
+                }
+            }
+
+            var firstMeets = Try(chosen, b, out _);
+            int firstRank = Rank(firstMeets);
+            if (firstRank == 0)
+            {
+                Trace?.Invoke($"pick: read {Parries[chosen].Name} meets {firstMeets} @{meetAlong:0.00}/{meetCross:0}");
+                return chosen;
+            }
+
+            if (Trace != null)
+            {
+                var sb = new System.Text.StringBuilder("pick: read " + Parries[chosen].Name + " meets");
+                for (int p = 0; p < Parries.Length; p++)
+                {
+                    var m = Try(p, b, out _);
+                    sb.Append($" {Parries[p].Name}:{m}{(m == Meeting.Blade || m == Meeting.Glance ? $"@{meetAlong:0.00}/{meetCross:0}" : "")}");
+                }
+
+                Trace(sb.ToString());
+            }
+
+            int best = chosen, bestRank = firstRank;
+            float bestCost = float.MaxValue;
+            Vector3 from = started ? forte : World(Guard.Hand);
+            for (int p = 0; p < Parries.Length; p++)
+            {
+                if (p == chosen)
+                {
+                    continue;
+                }
+
+                int rank = Rank(Try(p, b, out Vector3 at));
+                float cost = Vector3.Distance(at, from);
+                if (rank < bestRank || (rank == bestRank && rank < firstRank && cost < bestCost))
+                {
+                    best = p;
+                    bestRank = rank;
+                    bestCost = cost;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>Never into the other body or its shield: the sword drawn back toward its own body until it is clear, its point raised a little, as a sword held off a body too close.</summary>
+        private void KeepOffOpponent(Vector3 opponent, ref Vector3 wantForte, ref Vector3 wantBlade)
+        {
+            if (Opponent == null || NoClear)
+            {
+                return;
+            }
+
+            Vector3 back = Root - opponent;
+            back.y = 0f;
+            back = back.sqrMagnitude > 1e-4f ? back.normalized : -(BodyTurn * Vector3.forward);
+            for (int i = 0; i < 12; i++)
+            {
+                Vector3 g = wantForte - wantBlade * (ForteAt * WeaponLength);
+                if (Opponent.Clearance(g, g + wantBlade * WeaponLength) >= KeepClear * size)
+                {
+                    break;
+                }
+
+                wantForte += back * (0.04f * size);
+                wantBlade = Vector3.RotateTowards(wantBlade, Vector3.up, 6f * Mathf.Deg2Rad, 0f);
+            }
+        }
+
+        /// <summary>What the blow read would meet first with the sword placed so (forte, way).</summary>
+        private enum Meeting { Nothing, Body, Glance, Blade }
+
+        /// <summary>Where on the sword (from the hilt, of its length) and at what crossing (degrees) a meeting found by <see cref="Meets"/> was.</summary>
+        private float meetAlong, meetCross;
+
+        /// <summary>
+        /// The blow read played on against the sword held at a forte and a way (the arm out to it from the shoulder,
+        /// bent at its elbow as the parry bends it): which the incoming blade meets first, the sword (on its forte,
+        /// well crossed: a clean parry; else a glance) or the body (the sword arm, the head, the torso, the legs).
+        /// </summary>
+        private Meeting Meets(in BlowRead b, Vector3 atForte, Vector3 way, float swivelAt)
+        {
+            if (b.Path == null)
+            {
+                return Meeting.Nothing;
+            }
+
+            float L = WeaponLength, r = size;
+            Vector3 hand = atForte - way * (ForteAt * L);
+            Vector3 bladeFrom = hand + way * (0.05f * L), bladeTo = hand + way * L;
+            Vector3 shoulder = anim.Part(PartId.UpperArmR).position;
+            float upper = anim.RestLocalPosition(PartId.ForearmR).magnitude, fore = anim.RestLocalPosition(PartId.HandR).magnitude;
+            Vector3 axis = hand - shoulder;
+            float d = axis.magnitude;
+            axis = d > 1e-4f ? axis / d : Vector3.forward;
+            Vector3 down0 = Vector3.ProjectOnPlane(Vector3.down, axis);
+            down0 = down0.sqrMagnitude > 1e-6f ? down0.normalized : Vector3.ProjectOnPlane(BodyTurn * Vector3.back, axis).normalized;
+            // (The elbow off the shoulder-to-hand line by what the arm's bend makes of the distance, round the line by the parry's swivel.)
+            float along = Mathf.Clamp((upper * upper - fore * fore + d * d) / Mathf.Max(1e-4f, 2f * d), 0f, upper);
+            float off = Mathf.Sqrt(Mathf.Max(0f, upper * upper - along * along));
+            Vector3 elbow = shoulder + axis * along + Quaternion.AngleAxis(swivelAt, axis) * down0 * off;
+            var grips = b.GripPath ?? b.Path;
+            var tips = b.TipPath ?? b.Path;
+            const int Sub = 16;
+            for (int k = 1; k < b.Path.Length; k++)
+            {
+                for (int j = 1; j <= Sub; j++)
+                {
+                    float u = j / (float)Sub;
+                    Vector3 g = Vector3.Lerp(grips[k - 1], grips[k], u), tp = Vector3.Lerp(tips[k - 1], tips[k], u);
+                    if (StrikeHits.SegmentsNearest(g, tp, bladeFrom, bladeTo, out _, out float s, out _, out _) <= 0.04f * r)
+                    {
+                        Vector3 theirs = tp - g;
+                        meetAlong = 0.05f + 0.95f * s;
+                        meetCross = Vector3.Angle(theirs, way);
+                        meetCross = Mathf.Min(meetCross, 180f - meetCross);
+                        return meetAlong <= 0.6f && meetCross >= 40f ? Meeting.Blade : Meeting.Glance;
+                    }
+
+                    if (StrikeHits.SegmentsNearest(g, tp, shoulder, elbow, out _, out _, out _, out _) <= 0.06f * r
+                        || StrikeHits.SegmentsNearest(g, tp, elbow, hand, out _, out _, out _, out _) <= 0.055f * r
+                        || BodyTouches(g, tp))
+                    {
+                        return Meeting.Body;
+                    }
+                }
+            }
+
+            return Meeting.Nothing;
+        }
+
+        /// <summary>Whether a blade (grip to tip) is at the body as it stands now: its head, its torso, its legs.</summary>
+        private bool BodyTouches(Vector3 g, Vector3 tp)
+        {
+            float r = size;
+            Vector3 P(PartId id) => anim.Part(id).position;
+            float Seg(Vector3 a2, Vector3 b2) => StrikeHits.SegmentsNearest(g, tp, a2, b2, out _, out _, out _, out _);
+            Vector3 headAt = P(PartId.Head) + Vector3.up * (0.08f * r);
+            if (Seg(headAt, headAt) <= 0.14f * r || Seg(P(PartId.Pelvis), P(PartId.Chest)) <= 0.17f * r || Seg(P(PartId.Chest), P(PartId.Head)) <= 0.15f * r)
+            {
+                return true;
+            }
+
+            for (int leg = 0; leg < 2; leg++)
+            {
+                if (Seg(P(leg == 0 ? PartId.ThighL : PartId.ThighR), P(leg == 0 ? PartId.ShinL : PartId.ShinR)) <= 0.1f * r
+                    || Seg(P(leg == 0 ? PartId.ShinL : PartId.ShinR), P(leg == 0 ? PartId.FootL : PartId.FootR)) <= 0.08f * r)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Where the free (left) hand is kept: behind the left hip, the elbow out and back (the sabreur's off hand, out of the way of blows).</summary>
@@ -507,8 +781,25 @@ namespace PhysicsBattler.Locomotion
             elbow += Mathf.Clamp(Mathf.DeltaAngle(elbow, keep.swivel) * close, -SwivelSpeed * dt, SwivelSpeed * dt);
             feasible = keep.wristExcess > 20f ? Mathf.Max(0f, feasible - 4f * dt) : Mathf.Min(1f, feasible + 2f * dt);
             var solved = ArmRig.Solve(anim, true, Goal(handRot, elbow, 0f), torso, apply: true);
+            // (How far the elbow went round the shoulder this step: the upper arm's turn against the chest. More than a
+            // shoulder turns (UpperArmSpeed), the step is taken only so far: the forte and the hand's turn held back.)
+            var chestTurn = Quaternion.Inverse(anim.Part(PartId.Chest).rotation);
+            float UpperTurn() => lastUpperArm == Vector3.zero ? 0f : Vector3.Angle(chestTurn * (anim.Part(PartId.ForearmR).position - anim.Part(PartId.UpperArmR).position), lastUpperArm);
+            float jump = UpperTurn();
+            float mostTurn = UpperArmSpeed * dt;
+            for (int i = 0; i < 2 && jump > mostTurn && handKnown && lastForteKnown; i++)
+            {
+                float share = mostTurn / jump;
+                forte = lastForte + (forte - lastForte) * share;
+                handRot = Quaternion.Slerp(heldHand, handRot, share);
+                solved = ArmRig.Solve(anim, true, Goal(handRot, elbow, 0f), torso, apply: true);
+                jump = UpperTurn();
+            }
+
             heldHand = hand.rotation;
-            float jump = Mathf.Abs(Mathf.DeltaAngle(lastSolvedSwivel, solved.swivel));
+            lastForte = forte;
+            lastForteKnown = true;
+            lastUpperArm = chestTurn * (anim.Part(PartId.ForearmR).position - anim.Part(PartId.UpperArmR).position);
             Vector3 slotNow = slot.position;
             if (lastSlot != Vector3.zero)
             {
@@ -516,9 +807,9 @@ namespace PhysicsBattler.Locomotion
                 MostSwivelJump = Mathf.Max(MostSwivelJump, jump);
             }
 
-            if (Trace != null)
+            if (Trace != null && (Current >= 0 || jump > 12f))
             {
-                Trace($"{CurrentName,-12} edge {edgeSign:+0;-0} null {swivel,5:0} wants {keep.swivel,5:0} elbow {elbow,5:0} solved {solved.swivel,5:0} short {solved.wristExcess,3:0} miss {solved.pointMiss:0.00} bend {solved.elbowBend,3:0} hand {Vector3.Distance(slotNow, lastSlot) / Mathf.Max(1e-4f, dt),5:0.0} m/s");
+                Trace($"{CurrentName,-12} jump {jump,3:0} edge {edgeSign:+0;-0} null {swivel,5:0} wants {keep.swivel,5:0} elbow {elbow,5:0} solved {solved.swivel,5:0} short {solved.wristExcess,3:0} miss {solved.pointMiss:0.00} bend {solved.elbowBend,3:0} hand {Vector3.Distance(slotNow, lastSlot) / Mathf.Max(1e-4f, dt),5:0.0} m/s");
             }
 
             lastSlot = slotNow;
@@ -526,6 +817,75 @@ namespace PhysicsBattler.Locomotion
             MostWristShort = Mathf.Max(MostWristShort, solved.wristExcess);
             MostShoulderPast = Mathf.Max(MostShoulderPast, solved.shoulderPast);
             MostIntoTorso = Mathf.Max(MostIntoTorso, solved.clearanceShort);
+        }
+    }
+
+    /// <summary>
+    /// The other body, as a sword sees it: its torso, head, arms and legs as capsules, its shield as a disc (each
+    /// step from its posed rig). <see cref="Clearance"/> is how far a blade is from all of it (less than 0: inside).
+    /// </summary>
+    public sealed class OpponentShape
+    {
+        private readonly AnimRig anim;
+        private readonly Transform shield;
+        private readonly float size, shieldRadius;
+
+        public OpponentShape(AnimRig anim, float size, Transform shieldSlot = null, float shieldRadius = 0.26f)
+        {
+            this.anim = anim;
+            this.size = size;
+            shield = shieldSlot;
+            this.shieldRadius = shieldRadius;
+        }
+
+        private static readonly (PartId a, PartId b, float r)[] Capsules =
+        {
+            (PartId.Pelvis, PartId.Chest, 0.17f), (PartId.Chest, PartId.Head, 0.15f), (PartId.Head, PartId.Head, 0.13f),
+            (PartId.UpperArmL, PartId.ForearmL, 0.06f), (PartId.ForearmL, PartId.HandL, 0.05f),
+            (PartId.UpperArmR, PartId.ForearmR, 0.06f), (PartId.ForearmR, PartId.HandR, 0.05f),
+            (PartId.ThighL, PartId.ShinL, 0.09f), (PartId.ShinL, PartId.FootL, 0.07f),
+            (PartId.ThighR, PartId.ShinR, 0.09f), (PartId.ShinR, PartId.FootR, 0.07f),
+        };
+
+        public bool HasShield => shield != null;
+
+        /// <summary>How far the segment from <paramref name="p"/> to <paramref name="q"/> is from the body and its shield (metres; less than 0: inside).</summary>
+        public float Clearance(Vector3 p, Vector3 q)
+        {
+            float least = float.MaxValue;
+            foreach (var c in Capsules)
+            {
+                Vector3 a = anim.Part(c.a).position, b = anim.Part(c.b).position;
+                float d = StrikeHits.SegmentsNearest(p, q, a, b, out _, out _, out _, out _) - c.r * size;
+                least = Mathf.Min(least, d);
+            }
+
+            if (shield != null)
+            {
+                // (The shield as a disc: its face the slot's forward, its boss a little in front of the fist.)
+                Vector3 n = shield.rotation * Vector3.forward;
+                Vector3 centre = shield.position + n * (0.075f * size);
+                // (Where the segment passes the disc's plane, or its nearest point to the centre.)
+                StrikeHits.SegmentsNearest(p, q, centre, centre, out float s, out _, out Vector3 near, out _);
+                Vector3 off = near - centre;
+                float across = Vector3.ProjectOnPlane(off, n).magnitude;
+                float through = Mathf.Abs(Vector3.Dot(off, n));
+                float d = across <= shieldRadius * size ? through - 0.03f * size : Mathf.Sqrt(through * through + (across - shieldRadius * size) * (across - shieldRadius * size));
+                // (A segment crossing the plane inside the rim goes through it.)
+                float dp = Vector3.Dot(p - centre, n), dq = Vector3.Dot(q - centre, n);
+                if (dp * dq < 0f)
+                {
+                    Vector3 hit = p + (q - p) * (dp / (dp - dq));
+                    if ((hit - centre).magnitude <= shieldRadius * size)
+                    {
+                        d = -0.01f;
+                    }
+                }
+
+                least = Mathf.Min(least, d);
+            }
+
+            return least;
         }
     }
 }

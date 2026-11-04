@@ -714,7 +714,42 @@ namespace PhysicsBattler.Locomotion
 
         private ShotEnds shotThen;
         private float shotEnd, shotTurnScale = 1f, shotMoveScale = 1f, shotAimTurn, shotAimOver, shotAimFrom;
+
+        /// <summary>How much of its clip's travel the playing one-shot moves the root (an aimed strike's lunge).</summary>
+        public float ShotMoveScale => shotMoveScale;
         private Quaternion shotBend = Quaternion.identity;
+
+        /// <summary>
+        /// Where the playing one-shot will have taken the root by a later time of its clip (world place and facing):
+        /// its travel and turn played on from now as <see cref="ShotStep"/> plays them (the lunge's scale, an aimed
+        /// strike's turn spread over its wind-up), nothing pushing it. What a defender reads of where a blow comes from.
+        /// </summary>
+        public void ShotRootAhead(float to, out Vector3 position, out float facing)
+        {
+            position = Position;
+            facing = Facing;
+            if (Current != Mode.OneShot || Shot == null)
+            {
+                return;
+            }
+
+            to = Mathf.Min(to, shotEnd);
+            const float step = 1f / 60f;
+            for (float from = ShotTime; from < to - 1e-5f;)
+            {
+                float next = Mathf.Min(to, from + step);
+                Shot.RootMotion(from, next, out var moved, out float turned);
+                if (shotAimOver > 0f && from < shotAimOver)
+                {
+                    float share = (Mathf.Min(next, shotAimOver) - Mathf.Max(from, shotAimFrom)) / Mathf.Max(0.05f, shotAimOver - shotAimFrom);
+                    facing += shotAimTurn * Mathf.Max(0f, share);
+                }
+
+                position += shotBend * (Quaternion.Euler(0f, facing, 0f) * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
+                facing += turned * shotTurnScale;
+                from = next;
+            }
+        }
 
         /// <summary>
         /// Where the steering means to stop (world), if it does: the stopping clip is started where its

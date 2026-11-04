@@ -126,8 +126,8 @@ namespace PhysicsBattler.Locomotion
             return at;
         }
 
-        /// <summary>The follow-ons of the strike playing (not yet used, cost at most <see cref="MostCost"/>).</summary>
-        private List<StrikeLink> Options()
+        /// <summary>The follow-ons of the strike playing (not yet used, cost at most <see cref="MostCost"/>; any cost, <paramref name="fromGuard"/>: taken up from the guard, not out of it).</summary>
+        private List<StrikeLink> Options(bool fromGuard = false)
         {
             var options = new List<StrikeLink>();
             foreach (var to in Strikes)
@@ -135,7 +135,7 @@ namespace PhysicsBattler.Locomotion
                 if (!used.Contains(to))
                 {
                     var link = StrikeCombos.Link(current, to);
-                    if (link.Cost <= MostCost)
+                    if (fromGuard || link.Cost <= MostCost)
                     {
                         options.Add(link);
                     }
@@ -296,7 +296,8 @@ namespace PhysicsBattler.Locomotion
             bool free = loco.StanceSettled;
             StrikeLink best = null;
             float bestScore = float.MaxValue, nearestMiss = float.MaxValue;
-            foreach (var link in Options())
+            // (Out of the last strike and in the guard, any strike not yet used may come next: its cost only orders them.)
+            foreach (var link in Options(fromGuard: true))
             {
                 var at = Target(link.To);
                 float miss = poser.MissAfterPull(link.To, at, 0f, loco.Position, loco.Facing);
@@ -340,6 +341,14 @@ namespace PhysicsBattler.Locomotion
             // (Toward the target, slowing as the nearest follow-on comes within reach of it; within reach, it stops
             // and stands into its guard to strike.)
             float speed = nearestMiss <= LandWithin + StopWithin ? 0f : PressSpeed * Mathf.Sqrt(loco.Leg / 0.845f) * Mathf.Clamp01(0.3f + nearestMiss / 0.3f);
+            // (Never in nearer than the fighting distance: there it stands, and strikes from there or not at all.)
+            if (poser.KeepFrom.HasValue && poser.KeepDistance > 0f)
+            {
+                Vector3 off = loco.Position - poser.KeepFrom.Value;
+                off.y = 0f;
+                speed *= Mathf.Clamp01((off.magnitude - poser.KeepDistance - 0.02f) / 0.15f);
+            }
+
             Want = to.sqrMagnitude > 1e-4f ? to.normalized * speed : Vector3.zero;
         }
 

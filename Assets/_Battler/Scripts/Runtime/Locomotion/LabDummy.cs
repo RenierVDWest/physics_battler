@@ -103,6 +103,16 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public bool Anchored;
 
+        /// <summary>How near the other body it lets come (metres, root to root: the fighting distance); 0: no limit.</summary>
+        public float KeepDistance;
+
+        private float lastSeparate = -10f;
+
+        /// <summary>The fighting distance for two bodies (metres, root to root): their sizes against a Medium's, times this.</summary>
+        public const float BodyGap = 1.0f;
+
+        public static float FightingDistance(float sizeA, float sizeB) => 0.5f * (sizeA + sizeB) * BodyGap;
+
         /// <summary>A blow that would set it moving faster than this (m/s) drives it back with steps (the walk's own); a lighter one plays a reaction clip where it stands.</summary>
         public const float DrivenFrom = 0.35f;
 
@@ -276,9 +286,25 @@ namespace PhysicsBattler.Locomotion
                 Vector3 home = Home - Loco.Position;
                 home.y = 0f;
                 Vector3 want = Vector3.zero;
+                Vector3 fromOpponent = Loco.Position - faceToward;
+                fromOpponent.y = 0f;
+                float apart = fromOpponent.magnitude;
+                Vector3 away = apart > 1e-3f ? fromOpponent / apart : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
                 if (Loco.Current != Locomotor.Mode.OneShot && clock - lastHit > HomeAfter && home.magnitude > HomeFrom * Size)
                 {
                     want = Vector3.ClampMagnitude(home * 2f, HomeSpeed * Mathf.Sqrt(Size));
+                    // (Not back onto its spot through the other body: no nearer it than the fighting distance.)
+                    if (KeepDistance > 0f && apart < KeepDistance + 0.15f * Size && Vector3.Dot(want, away) < 0f)
+                    {
+                        want -= away * Vector3.Dot(want, away);
+                    }
+                }
+
+                // (Too near the other body: it steps back to the fighting distance, as anyone would.)
+                if (KeepDistance > 0f && apart < KeepDistance && Loco.Current != Locomotor.Mode.OneShot && pushAt < 0f && clock - lastSeparate > 0.25f)
+                {
+                    Loco.Push(away * Mathf.Clamp((KeepDistance - apart) * 3f, 0.3f, 1.2f) * Mathf.Sqrt(Size));
+                    lastSeparate = clock;
                 }
 
                 if (pushAt >= 0f && clock >= pushAt)
@@ -439,9 +465,55 @@ namespace PhysicsBattler.Locomotion
         /// A blow lands: on <paramref name="part"/>, or on the shield. What the part takes knocks it (its
         /// hold softened, coming back), the rest pushes the walk back.
         /// </summary>
+        /// <summary>
+        /// A weapon touching it outside a blow (a wind-up or a recovery passing through, a guard held too close): the
+        /// part it touches pushed by the weapon's weight at its speed (<paramref name="impulse"/>, N·s), no harm done.
+        /// Nothing passes through the body without its feeling it.
+        /// </summary>
+        public void Touch(PartId part, bool shield, bool sword, Vector3 point, Vector3 impulse)
+        {
+            if (impulse.sqrMagnitude < 1e-6f)
+            {
+                return;
+            }
+
+            if (sword)
+            {
+                KnockArm(0, impulse, point);
+            }
+            else if (shield)
+            {
+                KnockArm(1, impulse, point);
+                Recoil(impulse, point, PartId.HandL, 0.3f * ReactScale);
+            }
+            else
+            {
+                var region = AuthorityController.RegionOf(part);
+                Recoil(impulse, point, part, 0.6f * ReactScale);
+                if (region == BodyRegion.ArmL || region == BodyRegion.ArmR)
+                {
+                    KnockArm(region == BodyRegion.ArmR ? 0 : 1, impulse, point);
+                }
+                else if (region == BodyRegion.Legs)
+                {
+                    KnockLeg(part, impulse, point);
+                }
+            }
+
+            Touches++;
+        }
+
+        public int Touches;
+
         public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false)
         {
             lastHit = clock;
+            // (A struck leg is knocked along the blow: the body's reaction comes on top.)
+            if (!shield && !parried && AuthorityController.RegionOf(part) == BodyRegion.Legs)
+            {
+                KnockLeg(part, impulse, point);
+            }
+
             if (parried)
             {
                 // Parried: the blow on the sword knocks the sword arm and rocks the body; the rest drives it back, as a
@@ -664,6 +736,33 @@ namespace PhysicsBattler.Locomotion
             x = nx;
         }
 
+        private readonly Vector3[] legTurn = new Vector3[2], legTurnV = new Vector3[2];
+
+        /// <summary>The most a blow turns a struck leg at the hip (radians), and how quickly it comes back (Hz, critically damped).</summary>
+        public const float MostLegTurn = 0.5f, LegKnockFrequency = 2.2f;
+
+        /// <summary>A struck leg knocked along the blow: turned at the hip about the blow's lever, then back.</summary>
+        private void KnockLeg(PartId part, Vector3 impulse, Vector3 point)
+        {
+            float j = impulse.magnitude;
+            if (j < 1e-4f)
+            {
+                return;
+            }
+
+            int leg = part == PartId.ThighL || part == PartId.ShinL || part == PartId.FootL ? 0 : 1;
+            var hip = Anim.Part(leg == 0 ? PartId.ThighL : PartId.ThighR).position;
+            Vector3 axis = Vector3.Cross(point - hip, impulse / j);
+            if (axis.sqrMagnitude < 1e-8f)
+            {
+                return;
+            }
+
+            float hard = Tanh(j / (12f * Size * Size));
+            float kick = (float)System.Math.E * 2f * Mathf.PI * LegKnockFrequency;
+            legTurnV[leg] += axis.normalized * (MostLegTurn * hard * kick);
+        }
+
         /// <summary>The reaction springs stepped and put on the pose: the upper body leans away, the head snaps, a struck arm is knocked aside.</summary>
         private void React(float dt)
         {
@@ -676,6 +775,18 @@ namespace PhysicsBattler.Locomotion
             {
                 CriticalSpring(ref knock[a], ref knockV[a], wk, dt);
                 CriticalSpring(ref knockTurn[a], ref knockTurnV[a], wk, dt);
+            }
+
+            float wl = 2f * Mathf.PI * LegKnockFrequency;
+            for (int l = 0; l < 2; l++)
+            {
+                CriticalSpring(ref legTurn[l], ref legTurnV[l], wl, dt);
+                legTurn[l] = Vector3.ClampMagnitude(legTurn[l], MostLegTurn);
+                if (legTurn[l].sqrMagnitude > 1e-8f)
+                {
+                    var thigh = Anim.Part(l == 0 ? PartId.ThighL : PartId.ThighR);
+                    thigh.rotation = Quaternion.AngleAxis(legTurn[l].magnitude * Mathf.Rad2Deg, legTurn[l].normalized) * thigh.rotation;
+                }
             }
 
             float angle = lean.magnitude * Mathf.Rad2Deg;

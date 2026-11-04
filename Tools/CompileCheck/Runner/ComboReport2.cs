@@ -128,6 +128,10 @@ internal static class StrikeComboReport
             for (int i = 0; i < 900; i++)
             {
                 clock = i * dt;
+                float keepAt = LabDummy.FightingDistance(size, dummy.Size);
+                poser.KeepFrom = dummy.Loco.Position;
+                poser.KeepDistance = keepAt;
+                dummy.KeepDistance = keepAt;
                 bool frozen = hits.HitStop > 0f;
                 if (!frozen)
                 {
@@ -141,6 +145,14 @@ internal static class StrikeComboReport
                 if (Environment.GetEnvironmentVariable("COMBO_FEET") != null && (player.Pressing || loco.Current == Locomotor.Mode.Idle))
                 {
                     Console.WriteLine(string.Format(ci, "      {0:0.00} {1} off {2:0.00} settled {3} held {4}{5} facing {6:0}", i * dt, loco.Current, loco.StanceOff, loco.StanceSettled, loco.FootHeld(0) ? "L" : "-", loco.FootHeld(1) ? "R" : "-", loco.Facing));
+                }
+
+                if (wasPressing && !player.Pressing && !player.Playing && Environment.GetEnvironmentVariable("COMBO_WHY") != null)
+                {
+                    var d = dummy.Loco.Position - loco.Position;
+                    Console.WriteLine(string.Format(ci, "      ended pressing {0:0.00} m from the dummy (root to root), facing off {1:0}; each strike would miss by: {2}", new Vector2(d.x, d.z).magnitude,
+                        Mathf.DeltaAngle(loco.Facing, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg),
+                        string.Join(", ", strikes.Select(c => c.Name.Replace(prefix, "") + " " + poser.MissAfterPull(c, player.TargetFor(c)).ToString("0.00", ci)))));
                 }
 
                 wasPressing = player.Pressing;

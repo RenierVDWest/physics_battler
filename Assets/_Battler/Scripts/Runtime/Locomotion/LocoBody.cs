@@ -124,6 +124,7 @@ namespace PhysicsBattler.Locomotion
         public void Pose(float dt)
         {
             poseDt = dt;
+            StepHandKnock(dt);
             UpdateAimWeights(dt);
             // The feet first (the hips drop for them).
             UpdateFeet(dt);
@@ -507,6 +508,12 @@ namespace PhysicsBattler.Locomotion
                 target += aimPull * AimWeight() + pullLeft * pullLeftWeight;
             }
 
+            // (A knock on the weapon: the hand thrown, the elbow giving.)
+            if (right || TwoHanded)
+            {
+                target += handKnock;
+            }
+
             pole = SteadyElbow(a, pole, upper.position, target);
             TwoBoneIK.Solve(upper, fore, hand, target, pole);
 
@@ -846,6 +853,8 @@ namespace PhysicsBattler.Locomotion
             aimPull = turn0 * Quaternion.Euler(0f, by, 0f) * Vector3.ClampMagnitude(Quaternion.Inverse(Quaternion.Euler(0f, by, 0f)) * miss, MostAimPull);
             AimTurn = by;
             AimLunge = k;
+            planGripWorld = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * planGrip;
+            KeepHandOff();
             AimPredicted = new Vector3(loco.Position.x, GroundY, loco.Position.z) + turn0 * predicted;
             AimTarget = target;
             AimLands = AimPredicted + aimPull;
@@ -869,18 +878,21 @@ namespace PhysicsBattler.Locomotion
             Vector3 travel = new Vector3(moved.x, 0f, moved.y) * loco.Leg;
             // (Where the weapon is at contact against the start, played as it is on this body: measured once
             // by the headless runner, StrikeReach.json; without it, worked out from the clip's hand.)
-            Vector3 point = StrikeReach.TryGet(BodyKey, clip.Name, out var grip, out var bladeWay)
+            bool gripKnown = StrikeReach.TryGet(BodyKey, clip.Name, out var grip, out var bladeWay);
+            Vector3 point = gripKnown
                 ? grip + bladeWay * (WeaponLength * SweetSpot) - travel
                 : Quaternion.Euler(0f, turned, 0f) * ClipWeaponPoint(clip, contact);
+            Vector3 gripAt = gripKnown ? grip - travel : point;
             if (startFrom > 0f)
             {
                 // (Taken up part way: the travel and the reach against where the root is then.)
                 clip.RootMotion(0f, startFrom, out var before, out float turnedBefore);
                 Vector3 rootThen = new Vector3(before.x, 0f, before.y) * loco.Leg;
                 var back = Quaternion.Euler(0f, -turnedBefore, 0f);
-                Vector3 atContact = travel + point;
+                Vector3 atContact = travel + point, gripAtContact = travel + gripAt;
                 travel = back * (travel - rootThen);
                 point = back * (atContact - rootThen) - travel;
+                gripAt = back * (gripAtContact - rootThen) - travel;
             }
             var turn0 = Quaternion.Euler(0f, facing, 0f);
             want = Quaternion.Inverse(turn0) * (target - new Vector3(rootAt.x, GroundY, rootAt.z));
@@ -901,7 +913,88 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            // (Never into the other body: the lunge is cut short where its root would come nearer the body kept
+            // from than KeepDistance. The arm's pull and the blade's reach take up what it can.)
+            if (KeepFrom.HasValue && KeepDistance > 0f)
+            {
+                Vector3 keep = Quaternion.Inverse(turn0) * (KeepFrom.Value - rootAt);
+                keep.y = 0f;
+                var byTurn = Quaternion.Euler(0f, by, 0f);
+                for (int i = 0; i < 20 && k > ShortestLunge; i++)
+                {
+                    Vector3 rootThere = byTurn * (k * travel);
+                    if ((keep - rootThere).magnitude >= KeepDistance)
+                    {
+                        break;
+                    }
+
+                    k = Mathf.Max(ShortestLunge, k - 0.06f);
+                }
+            }
+
             predicted = Quaternion.Euler(0f, by, 0f) * (k * travel + point);
+            planGrip = Quaternion.Euler(0f, by, 0f) * (k * travel + gripAt);
+            planGripKnown = gripKnown;
+        }
+
+        // (The plan's grip at contact, against the root as planned from, and in the world; whether it is known: StrikeReach has it.)
+        private Vector3 planGrip, planGripWorld;
+        private bool planGripKnown;
+
+        /// <summary>How near the other body's middle the weapon hand may be pulled at contact (metres at a Medium's size, across the ground): the torso and the hand, clear.</summary>
+        public const float HandKeep = 0.32f;
+
+        /// <summary>
+        /// The aim's pull never takes the weapon hand into the other body (<see cref="KeepFrom"/>): a blow that would
+        /// need it to lands short instead, as a cut from too close does.
+        /// </summary>
+        private void KeepHandOff()
+        {
+            if (!KeepFrom.HasValue || !planGripKnown)
+            {
+                return;
+            }
+
+            Vector3 off = planGripWorld + aimPull - KeepFrom.Value;
+            off.y = 0f;
+            float near = HandKeep * (loco.Leg / 0.845f);
+            if (off.magnitude >= near)
+            {
+                return;
+            }
+
+            Vector3 way = off.sqrMagnitude > 1e-6f ? off.normalized : -(Quaternion.Euler(0f, loco.Facing, 0f) * Vector3.forward);
+            aimPull = Vector3.ClampMagnitude(aimPull + way * (near - off.magnitude), MostAimPull);
+        }
+
+        /// <summary>The other body's place (world; null: none): an aimed strike's lunge stops short of coming nearer it than <see cref="KeepDistance"/> (metres, root to root).</summary>
+        public Vector3? KeepFrom;
+        public float KeepDistance;
+
+        /// <summary>The shortest a lunge may be cut to, to keep that distance.</summary>
+        public const float ShortestLunge = 0.15f;
+
+        // ---- A blow's knock on the weapon arm (a parry or a block met it): the hand thrown back, and back again -----
+
+        private Vector3 handKnock, handKnockV;
+
+        /// <summary>How quickly a knocked weapon hand comes back (Hz, critically damped), and the most it is thrown (m at a Medium's size).</summary>
+        public const float HandKnockFrequency = 3f, MostHandKnock = 0.18f;
+
+        /// <summary>The weapon hand thrown by a meeting of blades or a shield (m/s at the hand): the arm takes it, the elbow giving, the shoulder going back with it.</summary>
+        public void KnockHand(Vector3 velocity)
+        {
+            handKnockV += velocity;
+        }
+
+        private void StepHandKnock(float dt)
+        {
+            float w = 2f * Mathf.PI * HandKnockFrequency;
+            float decay = Mathf.Exp(-w * dt);
+            Vector3 c = handKnockV + w * handKnock;
+            Vector3 next = (handKnock + c * dt) * decay;
+            handKnockV = (handKnockV - c * (w * dt)) * decay;
+            handKnock = Vector3.ClampMagnitude(next, MostHandKnock * (loco.Leg / 0.845f));
         }
 
         /// <summary>How far an aimed strike would miss its target even with all its pull (metres; 0: it lands).</summary>
@@ -932,6 +1025,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             aimPull = Vector3.ClampMagnitude(aimPull + (target - AimTarget), MostAimPull);
+            KeepHandOff();
             AimTarget = target;
             AimLands = AimPredicted + aimPull;
         }
@@ -951,6 +1045,49 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How much of the aim's pull is on now (worked out once a pose: <see cref="UpdateAimWeights"/>).</summary>
         private float AimWeight() => aimWeight;
+
+        /// <summary>
+        /// A blade's way (world, from <paramref name="grip"/>) as the aimed strike's wrist will have steered it at a
+        /// later time of its clip (<see cref="SteerBlade"/>: toward the target about contact, a thrust's all the way).
+        /// </summary>
+        public Vector3 SteerAhead(float clipTime, Vector3 grip, Vector3 blade)
+        {
+            if (aimClip == null || loco.Shot != aimClip || blade.sqrMagnitude < 1e-8f)
+            {
+                return blade;
+            }
+
+            float c = aimClip.ContactFrame / aimClip.Rate;
+            float from = Mathf.Max(aimFrom, IsThrust(aimClip) ? 0.4f * c : Mathf.Max(0f, c - 0.15f));
+            float v = clipTime <= c ? Mathf.Clamp01((clipTime - from) / Mathf.Max(0.05f, c - from)) : 1f - Mathf.Clamp01((clipTime - c) / 0.25f);
+            float w = v * v * (3f - 2f * v);
+            Vector3 want = AimTarget - grip;
+            Vector3 axis = Vector3.Cross(blade, want);
+            if (w <= 0f || want.sqrMagnitude < 1e-4f || axis.sqrMagnitude < 1e-10f)
+            {
+                return blade;
+            }
+
+            float most = IsThrust(aimClip) ? MostThrustSteer : MostBladeSteer;
+            return Quaternion.AngleAxis(Mathf.Min(Vector3.Angle(blade, want), most) * w, axis.normalized) * blade;
+        }
+
+        /// <summary>
+        /// The weapon hand's pull (world, metres) as it will be at a later time of the playing strike's clip, the
+        /// real seconds until then given: the aim's, rising to contact, and a last strike's being let go.
+        /// </summary>
+        public Vector3 PullAhead(float clipTime, float realSeconds)
+        {
+            Vector3 left = pullLeft * Mathf.Max(0f, pullLeftWeight - realSeconds / AimLetGo);
+            if (aimClip == null || loco.Shot != aimClip)
+            {
+                return left + aimPull * Mathf.Max(0f, aimWeight - realSeconds / AimLetGo);
+            }
+
+            float c = aimClip.ContactFrame / aimClip.Rate, end = aimClip.Duration;
+            float u = clipTime <= c ? Mathf.Clamp01((clipTime - aimFrom) / Mathf.Max(0.05f, c - aimFrom)) : 1f - Mathf.Clamp01((clipTime - c) / Mathf.Max(0.05f, end - c));
+            return left + aimPull * (u * u * (3f - 2f * u));
+        }
 
         /// <summary>
         /// Where a clip's weapon would be at a time (its sweet spot), against the clip's root then (metres):

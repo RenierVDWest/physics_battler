@@ -459,6 +459,20 @@ namespace PhysicsBattler.Locomotion
                 facing = loco.Facing;
             }
 
+            // (The fighting distance: neither body is taken nearer the other than it, the walker's lunges cut short
+            // there, the dummy stepping back from it.)
+            if (dummy != null)
+            {
+                float keep = LabDummy.FightingDistance(size, dummy.Size);
+                poser.KeepFrom = dummy.Loco.Position;
+                poser.KeepDistance = keep;
+                dummy.KeepDistance = keep;
+            }
+            else
+            {
+                poser.KeepFrom = null;
+            }
+
             // (A hit stop: the walker and the dummy stand still a moment; the physical bodies are still held.)
             bool frozen = hits != null && hits.HitStop > 0f;
             if (!frozen)
@@ -834,7 +848,8 @@ namespace PhysicsBattler.Locomotion
             go.transform.SetParent(null, true);
             Destroy(holder);
             var profile = mediumPrefab.Profile != null ? mediumPrefab.Profile : UnitProfile.CreateDefault();
-            dummy = new LabDummy(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, "sns_", physical) { Stance = dummyStance };
+            // (Sword alone, it stands as a fencer does: the sword guard, right foot forward.)
+            dummy = new LabDummy(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, dummyStance == LabDummy.Stances.Sword ? "sw_" : "sns_", physical) { Stance = dummyStance };
             var (main, off) = LoadoutOf(BodySize.Medium);
             if (dummyStance != LabDummy.Stances.Shield)
             {
@@ -854,7 +869,11 @@ namespace PhysicsBattler.Locomotion
             dummy.Poser.WeaponLength = swordLength;
             if (dummyStance == LabDummy.Stances.Sword)
             {
-                dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummyRig, dummy.Size, swordLength);
+                dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummyRig, dummy.Size, swordLength)
+                {
+                    // (The walker as its sword keeps out of it: its body, and its shield if it carries one.)
+                    Opponent = new OpponentShape(anim, size, poser.CarryL == LocoBody.Carry.Shield ? rig.SlotWeaponL : null, 0.27f),
+                };
             }
         }
 
@@ -1232,6 +1251,8 @@ namespace PhysicsBattler.Locomotion
             Vector3 from = loco.Position - dummyAtNow;
             from.y = 0f;
             Vector3 dir = from.sqrMagnitude > 1e-4f ? from.normalized : Quaternion.Euler(0f, dummyFacing, 0f) * Vector3.forward;
+            // (Never nearer the dummy than the fighting distance, with a little to spare.)
+            reach = Mathf.Max(reach, LabDummy.FightingDistance(size, dummy.Size) + 0.1f * size);
             Vector3 spot = new Vector3(target.x, loco.Position.y, target.z) + dir * reach;
             return spot;
         }

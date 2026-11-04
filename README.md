@@ -78,10 +78,29 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     with every parry. The arm is the fight's arm rig: the elbow on the parry's null and swivelling at most 540
     degrees a second, the hand turning at most 1,200 degrees a second, the wrist within its limits, the arm clear
     of the torso. Blade meets blade as two segments' nearest points: a parried blow is stopped (the hit stop, it
-    backs out) and knocks the sword arm and drives the dummy back. Headless, against a Medium's strikes at its
-    hips, chest and head: 21 of 27 parried, crossing at 42-90 degrees, the hand at most 11 m/s, no elbow flips.
-    Not yet: the combo's quick backhand (0.18 s from its start to contact), a thrust at the face, and a Small's low
-    blows (12 of 27). `parryreach <body>` tests each manual position on the arm rig.
+    backs out) and knocks the sword arm and drives the dummy back. `parryreach <body>` tests each manual position
+    on the arm rig.
+  - Stage 2: the blow is read as it will really come. `StrikeHits.Read` plays the blade on from where it is now:
+    the clip's arm carried by the root as the lunge will move it (cut short or stretched, the aimed turn spread
+    over the wind-up: `Locomotor.ShotRootAhead`), the aim's pull as it will be then (`LocoBody.PullAhead`) and the
+    wrist's steer (`LocoBody.SteerAhead`), from 0.28 s before contact to the end of its live moments. (Before, the
+    path was hung on where the strike was aimed, and missed where it went by up to a metre.) Each parry is then
+    tried against that path with the sword, the arm and the body as they would be (`SwordParry.Meets`): the one
+    held is kept while it meets the blade first, else the one read, else whichever does, nearest to hand; within
+    0.15 s of the blow landing it is no longer changed, only placed. Outcomes: a clean stop on the forte (the
+    attacker's hand knocked back, `LocoBody.KnockHand`; the dummy's arm and body take the rest) or a glance off
+    the foible or a flat crossing, which goes on at half its speed past the sword arm. Any weapon touching a body
+    outside a blow pushes it, and a leg struck twists at the thigh. The bodies keep the fighting distance (1 m
+    root to root for two Mediums, `LabDummy.FightingDistance`): the lunge is cut short there, pressing stops there,
+    the aim's pull never takes the hand into the other body, and the dummy's sword is kept out of the attacker's
+    body and shield (`OpponentShape`). The upper arm turns at the shoulder at most 900 degrees a second
+    (`UpperArmSpeed`): the hand's step is held back to it. Headless, the sword dummy parries 25 of 27 of a Medium's
+    strikes (a side chop at the hips meets the upper arm, from too close for the forte; a combo backhand at the
+    head glances on), 9 of 9 of a Large's, 14 of 27 of a Small's; the hand at most 10 m/s for the Medium's and
+    Large's. Not yet: footwork (stepping back from a blow too close), the Small's quick low blows, and a rare elbow
+    flip of the arm rig in the folded guard after a Small's blow. Combos: pressing in after a strike stops at the
+    fighting distance and may take up any strike from the guard there (25 of 27 land); the close pair
+    combo_backhand > combo_chop no longer links at that distance.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;
