@@ -1,0 +1,217 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e51c8a108dd9c44d8e3d9b3a208a0ff, type: 3}
+  m_Name: MD_OffJab
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Combat.MoveDefinition
+  strikeWith: 3
+  targets: 7
+  shape: 2
+  bodies: 4
+  hand: 1
+  planeTilt: 40
+  backhand: 0
+  windUpAngle: 190
+  followAngle: 130
+  guardAngle: 40
+  through: 0.08
+  pivotSide: -0.2
+  pivotUp: 0.12
+  pivotForward: 0
+  windUpRadius: 0.6
+  stretchAfter: 35
+  wristLag: 35
+  drawBack: 0.05
+  elbowWindUp: 0
+  elbowContact: 0
+  elbowFollow: 0
+  handWindUp: {x: 0.3, y: 0, z: 0}
+  handFollow: {x: -0.2, y: -0.2, z: 0.3}
+  wristWindUp: {x: 0, y: 0, z: 0}
+  wristContact: {x: 0, y: 0, z: 0}
+  wristFollow: {x: 0, y: 0, z: 0}
+  windUpTime: 0.1
+  holdTime: 0.02
+  strikeTime: 0.12
+  accelShare: 0.5
+  recoveryTime: 0.22
+  turnBack: -6
+  turnThrough: -22
+  leanBack: 0
+  leanThrough: 8
+  crouchLoad: 0.03
+  crouchStrike: 0.02
+  rockBack: 0.15
+  passingStep: 0
+  drive: 0.15
+  duration: 0.478
+  speed:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.4
+      value: 0.32
+      inSlope: 1.0344828
+      outSlope: 1.0344828
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.58
+      value: 0.6
+      inSlope: 1.5624999
+      outSlope: 1.5624999
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.72
+      value: 0.82
+      inSlope: 0.95238084
+      outSlope: 0.95238084
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  blend:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.15
+      value: 1
+      inSlope: 1.25
+      outSlope: 1.25
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.8
+      value: 1
+      inSlope: -1.1764706
+      outSlope: -1.1764706
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  activeWindow: {x: 0.5631068, y: 1}
+  hitStop: 0.04
+  path:
+  - {x: 0.3, y: -0.3, z: -0.45}
+  - {x: 0.55, y: 0.4, z: -0.75}
+  - {x: 0.42, y: 0.22, z: -0.3}
+  - {x: 0, y: 0, z: 0}
+  - {x: -0.36, y: -0.12, z: 0.04}
+  - {x: -0.6, y: -0.2, z: -0.06}
+  contactIndex: 3
+  pointForward: 0
+  pivotRaise: 0
+  reach: 1
+  maxLunge: 0.35
+  bodyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.3
+      value: -0.25
+      inSlope: 1.724138
+      outSlope: 1.724138
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.58
+      value: 1
+      inSlope: 2.4444447
+      outSlope: 2.4444447
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.75
+      value: 0.85
+      inSlope: -2.3809524
+      outSlope: -2.3809524
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  lean: 12
+  twistStart: 35
+  twistEnd: -40
+  weaponArmPin: 1

@@ -1,0 +1,352 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fda258bdcde51a4f92d22355545e6bd, type: 3}
+  m_Name: DA_Sfx
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Audio.SfxLibrary
+  _music: {fileID: 0}
+  _chapters: []
+  _sounds:
+  - Id: step_walk
+    Group: 1
+    Muted: 0
+    Prompt: A single soft footstep of a leather boot on packed earth, a light gritty scuff. Game sound effect, close and dry, no music, no voices.
+    Duration: 0.5
+    Takes: 5
+    Loop: 0
+    PromptInfluence: 0.5
+    Volume: 0.45
+    PitchVariation: 0.08
+    Clips:
+    - {fileID: 8300000, guid: 00a34826897c3e2429b7e4f6c60e3561, type: 3}
+    - {fileID: 8300000, guid: 49c9b7cdb6b40f148bbe4b6c38077ce1, type: 3}
+    - {fileID: 8300000, guid: e04c0830c1523314f84af8e44c1a67cf, type: 3}
+    - {fileID: 8300000, guid: dfceed947da430541b2137c5fe1e3a03, type: 3}
+    - {fileID: 8300000, guid: 72b4312064acd254b9ba9483d61d86e2, type: 3}
+  - Id: step_run
+    Group: 1
+    Muted: 0
+    Prompt: A single quick running footstep of a leather boot striking packed earth, a firm crisp thud. Game sound effect, close and dry, no music, no voices.
+    Duration: 0.5
+    Takes: 4
+    Loop: 0
+    PromptInfluence: 0.5
+    Volume: 0.55
+    PitchVariation: 0.1
+    Clips:
+    - {fileID: 8300000, guid: 8fe7f1252dc73504ea88a39574073a88, type: 3}
+    - {fileID: 8300000, guid: efa7709e9b0711e499e78287cc88d0ec, type: 3}
+    - {fileID: 8300000, guid: 68b7ef9df0bee0f4b923904675e6286a, type: 3}
+    - {fileID: 8300000, guid: ca33fdfe19238f14da9c227247f9d7da, type: 3}
+  - Id: land
+    Group: 1
+    Muted: 0
+    Prompt: 'A warrior landing from a leap onto packed earth with both feet: a heavy solid thud, a puff of dirt, armour leather creaking. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.8
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: b54ceb02c28c9644089dd536ae869c4a, type: 3}
+    - {fileID: 8300000, guid: d8542ed5a53a5a448ad96ea8f8aaf35c, type: 3}
+    - {fileID: 8300000, guid: 48fded52ee0ccac4392dc469c1acedfc, type: 3}
+  - Id: body_fall
+    Group: 4
+    Muted: 0
+    Prompt: 'A man in leather armour collapsing onto packed earth: a heavy body thud, the breath knocked out, leather and buckles rattling. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.9
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.9
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 1875aace2a4e91f49823bda01155b493, type: 3}
+    - {fileID: 8300000, guid: 435a7c159ca9fda45a4e644fb473d036, type: 3}
+    - {fileID: 8300000, guid: 0db7c1e778e2765429d81006aff48b8f, type: 3}
+  - Id: body_thud
+    Group: 4
+    Muted: 0
+    Prompt: 'An arm or a leg knocking against the ground: a short dull soft thump on earth. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.5
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.5
+    PitchVariation: 0.1
+    Clips:
+    - {fileID: 8300000, guid: 3c55b28397304e543a761408305f9e40, type: 3}
+    - {fileID: 8300000, guid: 104d99c307b796f4e8e6889fbd1a46fb, type: 3}
+    - {fileID: 8300000, guid: a04dad15756125d40919dda469ced6eb, type: 3}
+  - Id: body_impact
+    Group: 4
+    Muted: 0
+    Prompt: 'Two men crashing into each other in a fight: a heavy dull body slam, leather armour and a grunt of air. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 2
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.8
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 635d0ccb798b0e84f9400ff50a098331, type: 3}
+    - {fileID: 8300000, guid: df100c40e427188448a7d3510f93b95c, type: 3}
+  - Id: swing_blade
+    Group: 2
+    Muted: 0
+    Prompt: 'A fast longsword swing cutting through the air: a sharp clean swish. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.5
+    Takes: 4
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.55
+    PitchVariation: 0.08
+    Clips:
+    - {fileID: 8300000, guid: 32cc70431016b6d418d9a60ab68361fa, type: 3}
+    - {fileID: 8300000, guid: 8def10dff9f297d479dbda10c620be41, type: 3}
+    - {fileID: 8300000, guid: 24a8c76221f52ae48b2f373910da4a64, type: 3}
+    - {fileID: 8300000, guid: 7c1014c7a7e3f1e468183d639aee4943, type: 3}
+  - Id: swing_club
+    Group: 2
+    Muted: 0
+    Prompt: 'A heavy wooden club swung hard: a deep slow whoosh. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.6
+    PitchVariation: 0.08
+    Clips:
+    - {fileID: 8300000, guid: ff17f9edf96e7e649b28b5f98df4b703, type: 3}
+    - {fileID: 8300000, guid: 7c74bbaf19a75dd42b26c78a775be57d, type: 3}
+    - {fileID: 8300000, guid: aa772abc934a9af4899fce7a67572b02, type: 3}
+  - Id: swing_heavy
+    Group: 2
+    Muted: 0
+    Prompt: 'A huge two-handed overhead sword blow tearing through the air: a powerful deep whoosh building to a roar. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.8
+    Takes: 2
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.75
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 01dd5b258a4178147a13e9319d978733, type: 3}
+    - {fileID: 8300000, guid: ee2d1ad6150509d4db58860f3bc2500d, type: 3}
+  - Id: hit_blade_flesh
+    Group: 2
+    Muted: 0
+    Prompt: 'A sword slicing into a body through leather: a wet meaty slash, punchy and short. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 4
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.9
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 86d8dc2f7812c8a4abd65299487c6f98, type: 3}
+    - {fileID: 8300000, guid: 1be7da13134a5264fa4457df0374b796, type: 3}
+    - {fileID: 8300000, guid: d820256dd712b4f429d6deddb772d4ea, type: 3}
+    - {fileID: 8300000, guid: 9a6e8e0cea2062b43a9748f1681be5b9, type: 3}
+  - Id: hit_club_flesh
+    Group: 2
+    Muted: 0
+    Prompt: 'A heavy wooden club smashing into a body: a deep crunching thump with a crack. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.95
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: ee9011b463ea05547a44200a08ca43e8, type: 3}
+    - {fileID: 8300000, guid: 87d7bcd03d16c95418fc7cdc629a2ade, type: 3}
+    - {fileID: 8300000, guid: 7a41ad33d0cda2d499901ecf58eb7cb0, type: 3}
+  - Id: hit_showstopper
+    Group: 2
+    Muted: 0
+    Prompt: 'The final crushing blow of a combo: a huge heavy impact boom with a deep sub-bass punch and a short crunch, cinematic and satisfying. Game sound effect, close and dry, no music, no voices.'
+    Duration: 1
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.9
+    PitchVariation: 0.04
+    Clips:
+    - {fileID: 8300000, guid: a9d4f06eb6205754ea9e25f01365071d, type: 3}
+    - {fileID: 8300000, guid: a696cab4bf7dc1440bc8452812a428c8, type: 3}
+    - {fileID: 8300000, guid: 0c1f9c54938bdef4facc3fce05b23f04, type: 3}
+  - Id: sever
+    Group: 2
+    Muted: 0
+    Prompt: 'A sword chopping clean through a limb: a sharp wet chop and a crunch of bone. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.8
+    Takes: 2
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 1
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 11db5ffd7bb8f7743b88d3875c59055e, type: 3}
+    - {fileID: 8300000, guid: ffe718d88107bb443b73dab71ed02676, type: 3}
+  - Id: parry_clang
+    Group: 3
+    Muted: 0
+    Prompt: 'Two steel longswords clashing hard in a parry: a bright ringing metallic clang with a short shimmer. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.8
+    Takes: 4
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.85
+    PitchVariation: 0.07
+    Clips:
+    - {fileID: 8300000, guid: c4e7550845a49114fa0cb674dcc6361d, type: 3}
+    - {fileID: 8300000, guid: df183ebc80b96d448ada0887a4f0e6e2, type: 3}
+    - {fileID: 8300000, guid: 065a74a3b098f844093de0bdcb52a048, type: 3}
+    - {fileID: 8300000, guid: 8f2d8d1f05ded0248aa4933956f59ab8, type: 3}
+  - Id: blade_glance
+    Group: 3
+    Muted: 0
+    Prompt: 'A steel sword blade glancing and scraping along another blade: a quick metallic screech and slide. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.7
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.75
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: f3e235a8d308e444f927e9b75ba02c8e, type: 3}
+    - {fileID: 8300000, guid: 4d2d903c0460a804c933ff00001c71ab, type: 3}
+    - {fileID: 8300000, guid: e0abecac5c898404b9eca701afb33cf5, type: 3}
+  - Id: blade_shield
+    Group: 3
+    Muted: 0
+    Prompt: 'A steel sword striking a round wooden shield: a hard hollow wooden thunk with a metallic bite. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 4
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.85
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 913249bb891136f4f8b4574f6a2c42ce, type: 3}
+    - {fileID: 8300000, guid: e1c8a989121eb144cb11fcc3d6d6bfd1, type: 3}
+    - {fileID: 8300000, guid: eab970ac48548384ab2bda4d35fcc135, type: 3}
+    - {fileID: 8300000, guid: 9948edb46b8776842a2352e2c507e35e, type: 3}
+  - Id: club_shield
+    Group: 3
+    Muted: 0
+    Prompt: 'A heavy wooden club slamming into a round wooden shield: a deep booming wooden knock. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.9
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: c5ffe7159552bdb48834698be0b5abcb, type: 3}
+    - {fileID: 8300000, guid: 79903849536a7084897b3568411f3626, type: 3}
+    - {fileID: 8300000, guid: e51dc6cc5674c3b4e8ec9fe8bcf34a68, type: 3}
+  - Id: club_parry
+    Group: 3
+    Muted: 0
+    Prompt: 'A heavy wooden club meeting a steel sword: a dull wooden crack with a short metal ring. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.85
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 362e879653bbec547bcd9aea20a8477a, type: 3}
+    - {fileID: 8300000, guid: 2cf19fe6966611c44bc02ff56e4f648b, type: 3}
+    - {fileID: 8300000, guid: e06269c8ee90f284f9854046e79b748e, type: 3}
+  - Id: shield_shield
+    Group: 3
+    Muted: 0
+    Prompt: 'Two round wooden shields bashing together: a heavy hollow wooden clack with the rattle of their iron rims. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.6
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.85
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: f758e65df3e82f34199165658866a4c0, type: 3}
+    - {fileID: 8300000, guid: 770f69b6b42b1fc40a6786b8b4fe0eb8, type: 3}
+    - {fileID: 8300000, guid: 9451e15db5e84424abc5200785b8b4ea, type: 3}
+  - Id: blade_tap
+    Group: 3
+    Muted: 0
+    Prompt: 'A sword blade lightly touching a shield rim or another blade: a small metallic tick. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.5
+    Takes: 3
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.35
+    PitchVariation: 0.1
+    Clips:
+    - {fileID: 8300000, guid: 454a9b2411c124f479fde85d7b2d392d, type: 3}
+    - {fileID: 8300000, guid: ade9a0b8b6b4bf7469cf2a7529cb00ea, type: 3}
+    - {fileID: 8300000, guid: c5a2d89fd4ef5954fad2bd2a0342abd7, type: 3}
+  - Id: guard_break
+    Group: 3
+    Muted: 0
+    Prompt: 'A shield guard smashed aside by a heavy blow: a loud wooden crack and the clatter of the shield knocked away. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.8
+    Takes: 2
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.9
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 93b662118e2824b4dbea8c52fb42f22e, type: 3}
+    - {fileID: 8300000, guid: c6933ecb3d5970b419503fdb193c606b, type: 3}
+  - Id: weapon_drop
+    Group: 3
+    Muted: 0
+    Prompt: 'A steel sword dropped onto packed earth: a metallic clatter and a short scrape. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.8
+    Takes: 2
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.75
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: a433d43e93ca32d4eaeb237871e9d70e, type: 3}
+    - {fileID: 8300000, guid: 241bb78801b8327418a20fa54e8fa4fe, type: 3}
+  - Id: shield_drop
+    Group: 3
+    Muted: 0
+    Prompt: 'A round wooden shield falling flat onto packed earth: a hollow wooden thud and a wobble of its rim. Game sound effect, close and dry, no music, no voices.'
+    Duration: 0.8
+    Takes: 2
+    Loop: 0
+    PromptInfluence: 0.45
+    Volume: 0.75
+    PitchVariation: 0.06
+    Clips:
+    - {fileID: 8300000, guid: 7e7c1cce3f52ade4492af7f3ba2c19b0, type: 3}
+    - {fileID: 8300000, guid: 756e4a76ff67c2a4b8d912909f7f2717, type: 3}
+  - Id: ambience_field
+    Group: 5
+    Muted: 0
+    Prompt: 'An open grassy battlefield on a calm day: a soft steady wind, distant birds, grass rustling. Seamless loop, no music, no voices.'
+    Duration: 20
+    Takes: 1
+    Loop: 1
+    PromptInfluence: 0.4
+    Volume: 0.6
+    PitchVariation: 0
+    Clips:
+    - {fileID: 8300000, guid: 9c52200069741684f8fa43061dd46dea, type: 3}
