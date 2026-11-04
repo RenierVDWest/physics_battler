@@ -46,7 +46,7 @@ internal static class StrikeComboReport
         int combos = 0, landed = 0, blocked = 0, missed = 0, strikesPlayed = 0;
         float fastest = 0f;
         string fastestWhere = "";
-        bool cores = Environment.GetEnvironmentVariable("COMBO_OLD") == null && (body != "Large" || Environment.GetEnvironmentVariable("COMBO_CORES") != null);
+        bool cores = Environment.GetEnvironmentVariable("COMBO_OLD") == null;
         var beats = new List<float>();
         var spans = new List<float>();
         // (Cores: each picked strike's combos as good as its best, up to COMBO_VARIANTS of them (3), as the lab goes round them.)
@@ -83,6 +83,7 @@ internal static class StrikeComboReport
             var hits = new StrikeHits(loco, poser, anim) { Weapon = weapon, Scale = size, Mass = 70f * size * size * size };
             ComboPlayer playerRef = null;
             hits.Finishing = () => playerRef != null && playerRef.LastBlow;
+            hits.Comboing = () => playerRef != null && playerRef.Playing && playerRef.Cores;
             float reach = 1.6f;
             if (StrikeReach.TryGet(body, first.Name, out var grip, out var way))
             {
@@ -184,6 +185,12 @@ internal static class StrikeComboReport
 
                 aimAt = poser.AimTarget;
                 aimNearest = float.MaxValue;
+                if (Environment.GetEnvironmentVariable("COMBO_AIM") != null)
+                {
+                    Console.WriteLine(string.Format(ci, "      {0} from {1:0.00} s: planned to miss by {2:0.00} m before the pull, turn {3:+0;-0}, lunge x{4:0.00}, predicted at {5}, the target {6}, the dummy {7:0.00} m away",
+                        clip.Name, loco.ShotTime, poser.AimMissBeforePull, poser.AimTurn, poser.AimLunge, poser.AimPredicted, poser.AimTarget,
+                        new Vector2(dummy.Loco.Position.x - loco.Position.x, dummy.Loco.Position.z - loco.Position.z).magnitude));
+                }
                 playedNames.Add((wasPressing ? "(pressed in) " : "") + clip.Name.Replace(prefix, "") + string.Format(ci, " [turn {0:+0;-0}{1}]", poser.AimTurn,
                     player.LastStepIn > 0.01f ? string.Format(ci, ", stepped in {0:0.00} m", player.LastStepIn) : ""));
                 if (link != null) { linkTimes.Add(loco.ShotTime); follows.Add(Mathf.Abs(poser.AimTurn)); }

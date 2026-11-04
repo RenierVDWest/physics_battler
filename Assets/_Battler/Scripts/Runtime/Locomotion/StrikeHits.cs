@@ -61,8 +61,11 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The blow playing is a combo's showstopper (its last): it lands harder (<see cref="FinisherKnock"/>) and its hit stop is longer (<see cref="FinisherStop"/>).</summary>
         public System.Func<bool> Finishing;
 
-        /// <summary>A showstopper's knock on the body it lands on (times a blow's), and its hit stop (seconds, least and most).</summary>
-        public float FinisherKnock = 1.5f;
+        /// <summary>A blow of a combo before its showstopper: it drives the body it lands on back only so far (<see cref="ComboKnock"/>), so the next still reaches it.</summary>
+        public System.Func<bool> Comboing;
+
+        /// <summary>A showstopper's knock on the body it lands on (times a blow's), and a combo's blows' before it; and the showstopper's hit stop (seconds, least and most).</summary>
+        public float FinisherKnock = 1.5f, ComboKnock = 0.5f;
         public Vector2 FinisherStop = new Vector2(0.13f, 0.17f);
 
         /// <summary>The last blow that landed was a showstopper.</summary>
@@ -467,7 +470,7 @@ namespace PhysicsBattler.Locomotion
             // (A combo's showstopper lands harder, and the moment it lands is held longer: Bam! Bam! BAM!)
             bool finishing = Finishing != null && Finishing() && !glanced;
             LastFinished = finishing;
-            float knock = finishing ? FinisherKnock : 1f;
+            float knock = finishing ? FinisherKnock : Comboing != null && Comboing() ? ComboKnock : 1f;
             dummy.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * knock, r.PartShare, r.PoiseDamage * knock, r.Reaction, point, parried);
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).

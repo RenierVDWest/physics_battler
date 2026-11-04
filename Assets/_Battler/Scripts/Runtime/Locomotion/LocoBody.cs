@@ -713,6 +713,10 @@ namespace PhysicsBattler.Locomotion
         private readonly Quaternion[] handFade = { Quaternion.identity, Quaternion.identity };
         private readonly int[] handSwitches = new int[2];
         private readonly bool[] handKnown = new bool[2];
+        private readonly float[] lastHandU = new float[2];
+
+        /// <summary>A strike's hand has let go of the last motion's turn by this long before contact (seconds of its clip).</summary>
+        public float HandFadeGoneBefore = 0.08f;
 
         private Quaternion FadeHand(int a, Quaternion want)
         {
@@ -723,6 +727,21 @@ namespace PhysicsBattler.Locomotion
 
             handSwitches[a] = loco.Switches;
             handFade[a] = Quaternion.Slerp(handFade[a], Quaternion.identity, 1f - Mathf.Pow(0.5f, poseDt / Mathf.Max(0.02f, loco.SwitchHalfLifeNow)));
+            // (A strike taken up late in its wind-up (a combo's next blow): the turn the last pose had is let go by just
+            // before contact, whatever is left of it, so the weapon meets its target the way the strike swings it. Left
+            // to the fade alone, a long club still pointed a metre off when the blow landed.)
+            if (aimClip != null && loco.Shot == aimClip && aimClip.ContactFrame >= 0)
+            {
+                float c = aimClip.ContactFrame / aimClip.Rate - HandFadeGoneBefore;
+                float u = Mathf.Clamp01((loco.ShotTime - aimFrom) / Mathf.Max(0.05f, c - aimFrom));
+                handFade[a] = Quaternion.Slerp(Quaternion.identity, handFade[a], (1f - u) / Mathf.Max(1e-3f, 1f - lastHandU[a]));
+                lastHandU[a] = u < 1f ? u : 0f;
+            }
+            else
+            {
+                lastHandU[a] = 0f;
+            }
+
             var shown = handFade[a] * want;
             lastHand[a] = shown;
             handKnown[a] = true;

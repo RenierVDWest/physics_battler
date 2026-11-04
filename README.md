@@ -177,6 +177,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     showstopper that can be led into, is kept). The Small lands 25 of 30: its low blows don't reach the dummy's
     hips from the fighting distance (step 5). Not yet: a second showstopper for the Medium (its other two leaps
     are spinning chops, which can't end a combo).
+  - Combo feel, from the playtest after step 4: hard left, right, left. Each cut sweeps back the way the last one
+    came (`StrikeCombos.Side`: forehand 1, backhand and rising backhand -1, chops and thrusts 0), the middle blow
+    always a cut (never the thrust), the showstopper back across again or straight down. The showstoppers are now
+    the jump chop and the heaviest cut each way (the diagonal forehand, the rising backhand), and going round a
+    strike's combos (I) gives each showstopper's best in turn. A strike that leads well into nothing may go in a
+    combo's middle. The swap as it goes keeps the sweep. Blows before the showstopper drive the target back half
+    as far (`StrikeHits.ComboKnock`), so the next still reaches it; the showstopper 1.5 times. A strike taken up
+    late in its wind-up lets go of the last motion's hand turn by 0.08 s before contact (`LocoBody.HandFadeGoneBefore`):
+    the fade alone left the Large's club pointing up to a metre off as its follow-ons landed. The Large plays
+    combos of cores too (combo forehand > backhand lunge > forehand: 9 of 9 land, 0.55 s and 0.35 s apart, the
+    third 0.9 s after the first). The lab's sparring spot is where the combo's opener reaches from, taken up
+    where the combo takes it. Headless: the Medium lands 32 of 33 (open dummy) and 33 of 33 (sword dummy), 0.35 s
+    hit to hit; the Small 32 of 33, 0.23 s; single strikes, the Medium 27 of 27.
   - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
     missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
     strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;

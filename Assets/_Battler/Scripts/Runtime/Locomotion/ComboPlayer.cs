@@ -246,7 +246,9 @@ namespace PhysicsBattler.Locomotion
             float bestScore = plannedTurn / 90f * 3f;
             foreach (var c in Strikes)
             {
-                if (used.Contains(c) || c == planned || finishers.Contains(c) != last || !StrikeCores.TryGet(c, out var core) || (core.Leap && !last))
+                // (Of the same part and the same sweep: the left, right, left kept.)
+                if (used.Contains(c) || c == planned || finishers.Contains(c) != last || !StrikeCores.TryGet(c, out var core) || (core.Leap && !last)
+                    || StrikeCombos.Side(c) != StrikeCombos.Side(planned))
                 {
                     continue;
                 }

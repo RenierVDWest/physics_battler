@@ -430,10 +430,18 @@ namespace PhysicsBattler.Locomotion
             return link;
         }
 
-        /// <summary>The strikes that may end a combo: the leaps, or with none, the heaviest (<see cref="StrikeCore.Weight"/>); a leap never opens one or goes in its middle.</summary>
+        /// <summary>Which way a strike's blade sweeps through its blow: 1 a forehand (from the weapon side across), -1 a backhand or a rising backhand (back across), 0 straight (a chop, a thrust).</summary>
+        public static int Side(LocoClip c) => c == null ? 0 : c.Kind.StartsWith("forehand") ? 1 : c.Kind.StartsWith("backhand") || c.Kind.StartsWith("rising") ? -1 : 0;
+
+        /// <summary>
+        /// The strikes that may end a combo, its showstoppers: the leaps a blow can lead into facing the target (the jump
+        /// chop; not the spinning chops), and the heaviest cut each way (<see cref="StrikeCore.Weight"/>: the Medium's
+        /// diagonal forehand and its rising backhand) where that leaves a quicker cut that way to go before it. A leap
+        /// never opens a combo or goes in its middle.
+        /// </summary>
         public static List<LocoClip> Finishers(IList<LocoClip> strikes)
         {
-            var leaps = new List<LocoClip>();
+            var ends = new List<LocoClip>();
             LocoClip heaviest = null;
             float most = float.MinValue;
             foreach (var c in strikes)
@@ -443,9 +451,9 @@ namespace PhysicsBattler.Locomotion
                     continue;
                 }
 
-                if (core.Leap)
+                if (core.Leap && Mathf.Abs(StrikeCores.Bearing(c, core.Entry)) <= MostAim)
                 {
-                    leaps.Add(c);
+                    ends.Add(c);
                 }
 
                 if (core.Weight > most)
@@ -455,20 +463,38 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            if (leaps.Count == 0 && heaviest != null)
+            foreach (int side in new[] { 1, -1 })
             {
-                leaps.Add(heaviest);
+                LocoClip big = null;
+                float bigWeight = float.MinValue;
+                int count = 0;
+                foreach (var c in strikes)
+                {
+                    if (StrikeCores.TryGet(c, out var core) && !core.Leap && Side(c) == side)
+                    {
+                        count++;
+                        if (core.Weight > bigWeight)
+                        {
+                            bigWeight = core.Weight;
+                            big = c;
+                        }
+                    }
+                }
+
+                if (big != null && count >= 2)
+                {
+                    ends.Add(big);
+                }
             }
 
-            return leaps;
+            if (ends.Count == 0 && heaviest != null)
+            {
+                ends.Add(heaviest);
+            }
+
+            return ends;
         }
 
-        /// <summary>
-        /// A combo of cores from the picked strike, Bam! Bam! BAM!: three blows ending on a finisher (<see cref="Finishers"/>).
-        /// A finisher picked ends the combo, two quick blows before it; any other opens it. The rest are the quick strikes
-        /// whose cores meet best, the links' costs summed (a heavier finisher a little cheaper). The links in order:
-        /// the first's <see cref="StrikeLink.From"/> is the opener.
-        /// </summary>
         /// <summary>Combos within this much of the best one's cost are as good: the lab goes round them, one each time (variety).</summary>
         public const float ChainSlack = 0.5f;
 
@@ -485,7 +511,14 @@ namespace PhysicsBattler.Locomotion
             return chains.Count == 0 ? new List<StrikeLink>() : chains[((variant % chains.Count) + chains.Count) % chains.Count];
         }
 
-        /// <summary>The combos the picked strike is in, best first, those within <see cref="ChainSlack"/> of the best.</summary>
+        /// <summary>
+        /// The combos the picked strike is in, best first: the best with each showstopper first (so going round them
+        /// varies the end), then the rest within <see cref="ChainSlack"/> of the best. Hard left, right, left: each cut
+        /// sweeps back the way the last came (<see cref="Side"/>), the middle one always a cut (never a thrust), the
+        /// showstopper back across again or straight down. Asked of in turn, until some combo is found: alternating
+        /// with the picked strike opening (a showstopper ending), then with it anywhere; then not alternating; then
+        /// letting the aim turn the body past <see cref="MostAim"/>.
+        /// </summary>
         public static List<List<StrikeLink>> CoreChains(LocoClip picked, IList<LocoClip> strikes, int count = 3)
         {
             var found = new List<(float cost, List<StrikeLink> links)>();
@@ -505,31 +538,34 @@ namespace PhysicsBattler.Locomotion
             }
 
             bool pickedEnds = finishers.Contains(picked);
-            foreach (float mostAim in new[] { MostAim, 180f })
+            foreach (var passes in new[] { (true, MostAim, false), (true, MostAim, true), (false, MostAim, false), (false, 180f, false), (false, 180f, true) })
             {
-                Collect(found, pickedEnds ? quick : new List<LocoClip> { picked }, quick, pickedEnds ? new List<LocoClip> { picked } : finishers, count, mostAim);
-                if (found.Count == 0 && pickedEnds && mostAim < 180f)
+                var (alternate, mostAim, anywhere) = passes;
+                if (!anywhere)
                 {
-                    // (A showstopper picked that no blow can lead into facing its target (a spinning chop): it opens instead.)
-                    var others = new List<LocoClip>();
+                    if (pickedEnds)
+                    {
+                        Collect(found, quick, quick, new List<LocoClip> { picked }, count, mostAim, alternate);
+                    }
+                    else
+                    {
+                        // (A spinning chop picked opens; any other strike opens and a showstopper ends.)
+                        Collect(found, new List<LocoClip> { picked }, quick, finishers, count, mostAim, alternate);
+                    }
+                }
+                else
+                {
+                    // (The picked one in the middle: a cut that leads well into nothing from the guard but follows well.)
+                    var openers = new List<LocoClip>();
                     foreach (var c in quick)
                     {
                         if (c != picked)
                         {
-                            others.Add(c);
+                            openers.Add(c);
                         }
                     }
 
-                    var ends = new List<LocoClip>();
-                    foreach (var c in finishers)
-                    {
-                        if (c != picked)
-                        {
-                            ends.Add(c);
-                        }
-                    }
-
-                    Collect(found, new List<LocoClip> { picked }, others, ends, count, mostAim);
+                    Collect(found, openers, new List<LocoClip> { picked }, finishers, count, mostAim, alternate);
                 }
 
                 if (found.Count > 0)
@@ -540,9 +576,18 @@ namespace PhysicsBattler.Locomotion
 
             found.Sort((x, y) => x.cost.CompareTo(y.cost));
             var chains = new List<List<StrikeLink>>();
+            var ended = new HashSet<LocoClip>();
             foreach (var f in found)
             {
-                if (f.cost <= found[0].cost + ChainSlack)
+                if (ended.Add(f.links[f.links.Count - 1].To))
+                {
+                    chains.Add(f.links);
+                }
+            }
+
+            foreach (var f in found)
+            {
+                if (!chains.Contains(f.links) && f.cost <= found[0].cost + ChainSlack)
                 {
                     chains.Add(f.links);
                 }
@@ -551,7 +596,10 @@ namespace PhysicsBattler.Locomotion
             return chains;
         }
 
-        private static void Collect(List<(float, List<StrikeLink>)> found, List<LocoClip> openers, List<LocoClip> middles, List<LocoClip> ends, int count, float mostAim)
+        /// <summary>The hand comes back across: the next cut sweeps the other way (a straight blow goes with either).</summary>
+        private static bool Across(LocoClip a, LocoClip b) => Side(a) == 0 || Side(b) == 0 || Side(a) == -Side(b);
+
+        private static void Collect(List<(float, List<StrikeLink>)> found, List<LocoClip> openers, List<LocoClip> middles, List<LocoClip> ends, int count, float mostAim, bool alternate)
         {
             float Weight(LocoClip c) => StrikeCores.TryGet(c, out var core) ? core.Weight : 0f;
             bool Turns(StrikeLink l) => Mathf.Abs(l.Aim) > mostAim;
@@ -564,7 +612,6 @@ namespace PhysicsBattler.Locomotion
                         continue;
                     }
 
-                    // (Too few strikes for a middle one: two blows, the finisher last.)
                     bool middle = false;
                     if (count >= 3)
                     {
@@ -575,12 +622,26 @@ namespace PhysicsBattler.Locomotion
                                 continue;
                             }
 
+                            // (Hard left, right, left: the middle a cut back across the opener's, the end back again or straight.)
+                            if (alternate && (Side(b) == 0 || !Across(a, b) || !Across(b, c)))
+                            {
+                                continue;
+                            }
+
                             middle = true;
-                            found.Add((CoreLink(a, b).Cost + CoreLink(b, c).Cost - 0.2f * Weight(c), new List<StrikeLink> { CoreLink(a, b), CoreLink(b, c) }));
+                            // (A heavier middle cut and a heavier end a little cheaper: big blows, not small ones in between.)
+                            found.Add((CoreLink(a, b).Cost + CoreLink(b, c).Cost - 0.15f * Weight(b) - 0.2f * Weight(c), new List<StrikeLink> { CoreLink(a, b), CoreLink(b, c) }));
                         }
                     }
 
-                    if (!middle && (count < 3 || middles.Count <= 1) && !Turns(CoreLink(a, c)))
+                    // (Too few strikes for a middle one: two blows, the showstopper last.)
+                    bool noneBetween = true;
+                    foreach (var b in middles)
+                    {
+                        noneBetween &= b == a || b == c;
+                    }
+
+                    if (!middle && (count < 3 || noneBetween) && !Turns(CoreLink(a, c)) && (!alternate || Across(a, c)))
                     {
                         found.Add((CoreLink(a, c).Cost - 0.2f * Weight(c), new List<StrikeLink> { CoreLink(a, c) }));
                     }

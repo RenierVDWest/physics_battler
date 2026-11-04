@@ -368,11 +368,9 @@ namespace PhysicsBattler.Locomotion
                 mass += part.body != null ? part.body.mass : 0f;
             }
 
-            hits = new StrikeHits(loco, poser, anim) { Weapon = mainWeapon, Scale = size, Slot = rig.SlotWeaponR, Mass = Mathf.Max(20f, mass), Finishing = () => combo != null && combo.LastBlow };
+            hits = new StrikeHits(loco, poser, anim) { Weapon = mainWeapon, Scale = size, Slot = rig.SlotWeaponR, Mass = Mathf.Max(20f, mass), Finishing = () => combo != null && combo.LastBlow, Comboing = () => combo != null && combo.Playing && combo.Cores };
             hits.Landed += text => legs.Add($"{time:0.00} s: {text}{(dummy != null && dummy.LastReaction.Length > 0 ? "; the dummy: " + dummy.LastReaction : "")}");
-            // (The Large keeps the earlier chooser until its great sword's own combos are baked, the plan's step 5: three
-            // strikes and a club that drives the dummy far back don't make cores that land.)
-            combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor, Strikes = Strikes(), TargetVelocity = () => dummy != null ? dummy.Loco.Velocity : Vector3.zero, Cores = body != BodySize.Large };
+            combo = new ComboPlayer(loco, poser) { TargetFor = TargetFor, Strikes = Strikes(), TargetVelocity = () => dummy != null ? dummy.Loco.Velocity : Vector3.zero };
             combo.Started += (clip, link) =>
             {
                 BeganAim(clip, poser.AimTarget);
@@ -1320,6 +1318,16 @@ namespace PhysicsBattler.Locomotion
         private Vector3 SparSpot()
         {
             var clip = PickedClip();
+            // (Where the combo the picked strike is in reaches from: its opener, taken up where the combo takes it up.
+            // From the picked strike's own start, a combo opening with a lunge already part done stood too near and its
+            // lunge was cut to a fifth.)
+            float startFrom = 0f;
+            if (combo != null && combo.Cores && clip != null && clip.ContactFrame >= 0)
+            {
+                clip = Opener(clip, ComboFrom(clip));
+                startFrom = StrikeCombos.OpenerEntry(clip);
+            }
+
             Vector3 dummyAtNow = dummy.Loco.Position;
             Vector3 target = clip != null && clip.ContactFrame >= 0 ? TargetFor(clip) : DummyTarget;
             float reach = 1.4f * size;
@@ -1343,7 +1351,7 @@ namespace PhysicsBattler.Locomotion
                 float own = Mathf.Max(ownReach, least), best = own;
                 for (float d = reach; d > own; d -= 0.05f * size)
                 {
-                    if (poser.MissAfterPull(clip, target, 0f, flatTarget + dir * d, faceIn) <= LandsNear * size)
+                    if (poser.MissAfterPull(clip, target, startFrom, flatTarget + dir * d, faceIn) <= LandsNear * size)
                     {
                         best = d;
                         break;
