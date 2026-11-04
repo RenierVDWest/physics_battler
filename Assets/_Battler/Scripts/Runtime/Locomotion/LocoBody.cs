@@ -209,6 +209,15 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>Lets go of both feet at once (the walk hands the body over, or is handed it).</summary>
+        /// <summary>Lets go of one foot (a leg swept by a blow: it steps again from where it is thrown).</summary>
+        public void ReleaseFoot(int f)
+        {
+            var foot = Feet[f];
+            foot.Locked = false;
+            foot.OnToe = false;
+            foot.Stepping = false;
+        }
+
         public void ReleaseFeet()
         {
             foreach (var foot in Feet)

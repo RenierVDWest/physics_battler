@@ -135,6 +135,11 @@ internal static class DummyHitReport
                     }
 
                     int height = part == PartId.Head ? 2 : part == PartId.Chest ? 1 : 0;
+                    // (DUMMY_LOW=1: the low blows at its knees instead of its hips, to take its legs out.)
+                    if (height == 0 && Environment.GetEnvironmentVariable("DUMMY_LOW") != null)
+                    {
+                        height = -1;
+                    }
                     Vector3 target = dummy.TargetAt(height);
                     dummy.BlockAt = target;
                     for (int i = 0; i < 20; i++)
@@ -285,8 +290,9 @@ internal static class DummyHitReport
                     if (what == "missed") missed++;
                     else if (what.StartsWith("blocked") || what.StartsWith("parried")) blocked++;
                     else landed++;
-                    Console.WriteLine(string.Format(ci, "{0,-20} at the {1,-6} {2,-6}: {3}; the dummy leaned {4:0} degrees, {5}, and was moved {6:0.00} m",
-                        name, part == PartId.Pelvis ? "hips" : part.ToString().ToLowerInvariant(), stance.ToString().ToLowerInvariant(), what, mostLean * Mathf.Rad2Deg, dummy.LastReaction, mostMoved));
+                    Console.WriteLine(string.Format(ci, "{0,-20} at the {1,-6} {2,-6}: {3}; the dummy leaned {4:0} degrees, {5}, and was moved {6:0.00} m{7}",
+                        name, part == PartId.Pelvis ? "hips" : part.ToString().ToLowerInvariant(), stance.ToString().ToLowerInvariant(), what, mostLean * Mathf.Rad2Deg, dummy.LastReaction, mostMoved,
+                        dummy.Falls + dummy.Stumbles > 0 ? $" [{(dummy.Falls > 0 ? "fell" : "stumbled")}; feet down {(dummy.Poser.Feet[0].Locked ? "L" : "-")}{(dummy.Poser.Feet[1].Locked ? "R" : "-")}]" : $" [stood; feet down {(dummy.Poser.Feet[0].Locked ? "L" : "-")}{(dummy.Poser.Feet[1].Locked ? "R" : "-")}, mass {dummy.Mass:0} kg]"));
                     Console.WriteLine(string.Format(ci, "      the bodies came within {0:0.00} m (root to root; the fighting distance {1:0.00} m), the weapon hand within {5:0.00} m of its middle; the lunge x{2:0.00}; touches {3}{4}",
                         nearest, LabDummy.FightingDistance(size, dummy.Size), poser.AimLunge, hits.Touches, hits.Deflects > 0 ? $"; glanced off the sword {hits.Deflects}" : "", handNearest));
                     allTouches += hits.Touches;

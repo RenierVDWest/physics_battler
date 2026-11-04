@@ -319,17 +319,277 @@ namespace PhysicsBattler.Locomotion
             Loco.Place(new Vector3(at.x, groundY, at.z), facing);
             Home = new Vector3(at.x, groundY, at.z);
             MaxPoise = Poise = profile.maxPoise;
+            groundLevel = groundY;
+            if (Authority != null)
+            {
+                // (The fight's own get-up, as a unit has it: its body's measure, a stance for its feet's spots, a root.)
+                body = BodyMeasure.Of(unit.transform, Anim, rig);
+                getUpStance = new Stance();
+                getUpStance.Configure(profile.style != null ? profile.style : CombatStyle.CreateDefault(), body);
+                getUpStance.GroundY = groundY;
+                getUpRoot = new GameObject("Dummy get-up root").transform;
+                getUpRoot.SetParent(unit.transform.parent, false);
+                getUp = new GetUp(getUpRoot, Anim, body, getUpStance) { Rig = rig };
+            }
+        }
+
+        // ---- Leg hits and falls (the defence plan: a hard blow to a leg takes the leg out) --------------------------
+
+        /// <summary>Standing; stumbling on a swept leg; down on the ground; getting up (the fight's own get-up).</summary>
+        public enum Footings
+        {
+            Standing,
+            Down,
+            GettingUp,
+        }
+
+        public Footings Footing { get; private set; } = Footings.Standing;
+
+        /// <summary>Down or getting up: not standing to defend.</summary>
+        public bool Fallen => Footing != Footings.Standing;
+
+        /// <summary>
+        /// A blow on a leg against the weight it carries (m/s of knock to the whole body, the blow over its mass, for a leg
+        /// carrying half the weight): it stumbles from <see cref="StumbleFrom"/> and falls from <see cref="FallFrom"/>, under the
+        /// fight's own for a push (0.8 and 2.2 m/s): a leg swept takes less than a body pushed; a leg holding all the weight (the other
+        /// foot off the ground) is swept from under it from <see cref="SweptFrom"/>; a foot in the air is knocked away from
+        /// <see cref="KnockedAwayFrom"/>.
+        /// </summary>
+        public const float StumbleFrom = 0.6f, FallFrom = 1.8f, SweptFrom = 0.3f, KnockedAwayFrom = 0.25f;
+
+        /// <summary>The swept leg's speed along the blow when it falls, and the upper body's (m/s at a Medium's size).</summary>
+        public const float SweptLegSpeed = 3f, ThrownBodySpeed = 0.9f;
+
+        /// <summary>Down at least this long and still this long before it gets up, at most this long down (seconds).</summary>
+        public const float LeastDown = 1f, StillFor = 0.3f, MostDown = 2.5f;
+
+        public int Stumbles, Falls;
+
+        /// <summary>Leg hits this close together are one blow's (seconds).</summary>
+        public const float OneSweepWithin = 0.2f;
+
+        private float lastLegHit = -1f, lastStumble = -1f;
+        private Vector3 legSweep;
+
+        private float groundLevel, footingTime, stillFor;
+        private BodyMeasure body;
+        private Stance getUpStance;
+        private Transform getUpRoot;
+        private GetUp getUp;
+        private readonly PoseBuffer lying = new PoseBuffer(), standingPose = new PoseBuffer();
+
+        /// <summary>What a blow on a leg does: knocks it, makes the body stumble, or takes the leg out from under it.</summary>
+        private string SweepLeg(PartId part, Vector3 impulse)
+        {
+            if (Anchored || Fallen)
+            {
+                return "";
+            }
+
+            int leg = part == PartId.ThighL || part == PartId.ShinL || part == PartId.FootL ? 0 : 1;
+            bool struckDown = FootDown(leg), otherDown = FootDown(1 - leg);
+            // (One blow sweeping through both legs, or a thigh and a shin, sweeps them as one: its parts' knocks added.)
+            Vector3 flat = new Vector3(impulse.x, 0f, impulse.z);
+            if (clock - lastLegHit < OneSweepWithin)
+            {
+                flat += legSweep;
+            }
+
+            lastLegHit = clock;
+            legSweep = flat;
+            float knock = flat.magnitude / Mass;
+            Vector3 way = flat.sqrMagnitude > 1e-6f ? flat.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+            bool falls, stumbles;
+            string why;
+            if (struckDown && !otherDown)
+            {
+                // (All its weight on the leg struck: swept from under it, it has nothing to stand on.)
+                falls = knock >= SweptFrom;
+                stumbles = false;
+                why = "its weight all on that leg";
+            }
+            else if (struckDown)
+            {
+                float swept = knock / 0.5f;
+                falls = swept >= FallFrom;
+                stumbles = !falls && swept >= StumbleFrom;
+                why = "on both feet";
+            }
+            else
+            {
+                // (A foot in the air, knocked away: it stands on the other.)
+                falls = knock >= FallFrom;
+                stumbles = !falls && knock >= KnockedAwayFrom;
+                why = "that foot in the air";
+            }
+
+            string side = leg == 0 ? "left" : "right";
+            if (falls)
+            {
+                Fall(leg, way, knock);
+                return $"the {side} leg taken out from under it ({why}, a {knock:0.0} m/s blow), down";
+            }
+
+            if (stumbles)
+            {
+                // (A catch step: the swept leg let go and the body knocked along the blow.)
+                if (clock - lastStumble > OneSweepWithin)
+                {
+                    Stumbles++;
+                }
+
+                lastStumble = clock;
+                Poser.ReleaseFoot(leg);
+                pendingKnock = Vector3.ClampMagnitude(way * Mathf.Max(0.5f, 0.6f * knock / 0.5f), MostKnock);
+                pushAt = clock;
+                return $"stumbled on the {side} leg ({why}, a {knock:0.0} m/s blow)";
+            }
+
+            return "";
+        }
+
+        /// <summary>A foot carrying weight: held where it landed, or on the ground (a guard's small shuffles let go of a lock now and then).</summary>
+        private bool FootDown(int f) =>
+            Poser.Feet[f].Locked || Anim.Part(f == 0 ? PartId.FootL : PartId.FootR).position.y - groundLevel < FootDownWithin * Size;
+
+        /// <summary>A foot this near the ground (its ankle, metres at a Medium's size) is standing on it.</summary>
+        public const float FootDownWithin = 0.12f;
+
+        /// <summary>Down: the body given to physics, the swept leg thrown along the blow and the body over it, falling.</summary>
+        private void Fall(int leg, Vector3 way, float knock)
+        {
+            Falls++;
+            Footing = Footings.Down;
+            footingTime = stillFor = 0f;
+            Blow = null;
+            if (Authority == null)
+            {
+                return;
+            }
+
+            for (int r = 0; r < 5; r++)
+            {
+                Authority.Set((BodyRegion)r, AuthorityLevel.Ragdoll, 0f);
+            }
+
+            float k = Mathf.Sqrt(Size);
+            foreach (var p in Rig.Parts)
+            {
+                if (p.body == null)
+                {
+                    continue;
+                }
+
+                p.body.isKinematic = false;
+                bool swept = leg == 0 ? p.id == PartId.ThighL || p.id == PartId.ShinL || p.id == PartId.FootL
+                    : p.id == PartId.ThighR || p.id == PartId.ShinR || p.id == PartId.FootR;
+                var region = AuthorityController.RegionOf(p.id);
+                float speed = swept ? SweptLegSpeed * (p.id == PartId.ThighL || p.id == PartId.ThighR ? 0.5f : 1f)
+                    : region == BodyRegion.Legs ? 0.2f * ThrownBodySpeed : ThrownBodySpeed;
+                p.body.linearVelocity = way * (speed * k * Mathf.Clamp(knock / 0.5f, 0.6f, 1.6f));
+                p.body.angularVelocity = Vector3.zero;
+            }
+        }
+
+        /// <summary>A step down or getting up: the body lies until it is still, then gets up as a unit does.</summary>
+        private void StepFallen(float dt)
+        {
+            footingTime += dt;
+            if (Authority == null)
+            {
+                // (Headless, no body to fall: down a moment, then standing.)
+                if (footingTime > LeastDown + 0.5f)
+                {
+                    Footing = Footings.Standing;
+                }
+
+                return;
+            }
+
+            var pelvis = Rig.Part(PartId.Pelvis).body;
+            if (Footing == Footings.Down)
+            {
+                stillFor = pelvis.linearVelocity.magnitude < 0.25f * Mathf.Sqrt(Size) ? stillFor + dt : 0f;
+                Authority.Apply(dt);
+                // (Its place goes with the body on the ground: what keeps its distance from it, or aims at it, follows.)
+                Loco.Position = new Vector3(pelvis.position.x, groundLevel, pelvis.position.z);
+                if ((footingTime >= LeastDown && stillFor >= StillFor) || footingTime >= MostDown)
+                {
+                    BeginGetUp();
+                }
+
+                return;
+            }
+
+            // Getting up: the fight's key poses from how it lies, and its guard taking over at the end.
+            PoseBuffer stand = null;
+            if (footingTime > getUp.StandFrom)
+            {
+                Loco.Step(dt, Vector3.zero, Loco.Facing);
+                Poser.Pose(dt);
+                standingPose.Capture(Anim);
+                stand = standingPose;
+            }
+
+            getUp.Compose(footingTime, stand);
+            float u = Mathf.Clamp01(footingTime / Mathf.Max(0.1f, getUp.Duration));
+            for (int r = 0; r < 5; r++)
+            {
+                Authority.Set((BodyRegion)r, AuthorityLevel.Pinned, Mathf.Lerp(0.4f, 1f, u) * (r == (int)BodyRegion.Legs ? profile.torsoPin : BasePin((BodyRegion)r)));
+            }
+
+            Authority.Apply(dt);
+            if (footingTime >= getUp.Duration)
+            {
+                Footing = Footings.Standing;
+                for (int r = 0; r < 5; r++)
+                {
+                    Hold((BodyRegion)r, 1f);
+                }
+
+                LastReaction = "got up";
+            }
+        }
+
+        private void BeginGetUp()
+        {
+            var pelvis = Rig.Part(PartId.Pelvis).body;
+            Vector3 front = pelvis.rotation * Vector3.forward;
+            var kind = front.y > 0f ? GetUp.Kind.FaceUp : GetUp.Kind.FaceDown;
+            Vector3 headward = Rig.Part(PartId.Head).body.position - pelvis.position;
+            headward.y = 0f;
+            if (headward.sqrMagnitude < 0.01f * Size * Size)
+            {
+                headward = pelvis.rotation * Vector3.up;
+                headward.y = 0f;
+            }
+
+            GetUp.Place(kind, pelvis.position, headward, body.SizeFactor, out var position, out float yaw);
+            position.y = groundLevel;
+            getUpRoot.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+            getUpStance.Plant(position, yaw);
+            // (Where it will stand: its walk placed there, the feet let go to land on their spots.)
+            Loco.Place(position, yaw);
+            Poser.ReleaseFeet();
+            lying.Capture(Rig);
+            getUp.HoldsMain = stance == Stances.Sword;
+            getUp.HoldsOff = stance == Stances.Shield;
+            getUp.Begin(kind, lying);
+            Footing = Footings.GettingUp;
+            footingTime = 0f;
+            LastReaction = $"getting up {(kind == GetUp.Kind.FaceDown ? "face down" : "face up")}";
         }
 
         /// <summary>The body part a collider is, if it is one of the dummy's.</summary>
         public bool PartOf(Collider collider, out PartId id) => parts.TryGetValue(collider, out id);
 
         /// <summary>Where a part of it is now, as posed (world).</summary>
-        public Vector3 PartAt(PartId id) => Anim.Part(id).position;
+        public Vector3 PartAt(PartId id) => Fallen && Authority != null && Rig.Part(id).body != null ? Rig.Part(id).body.position : Anim.Part(id).position;
 
-        /// <summary>Where to strike it, low, in the middle or high (0, 1, 2): its hips, the middle of its chest, its face.</summary>
+        /// <summary>Where to strike it, low, in the middle or high (0, 1, 2): its hips, the middle of its chest, its face; at its legs (-1): its knees.</summary>
         public Vector3 TargetAt(int height) =>
-            height <= 0 ? PartAt(PartId.Pelvis)
+            height < 0 ? 0.5f * (PartAt(PartId.ShinL) + PartAt(PartId.ShinR))
+            : height == 0 ? PartAt(PartId.Pelvis)
             : height == 1 ? 0.5f * (PartAt(PartId.Spine) + PartAt(PartId.Chest))
             : PartAt(PartId.Head) + Vector3.up * (0.08f * Size);
 
@@ -359,6 +619,16 @@ namespace PhysicsBattler.Locomotion
         public void Step(float dt, Vector3 faceToward, bool frozen)
         {
             clock += dt;
+            if (Fallen)
+            {
+                if (!frozen)
+                {
+                    StepFallen(dt);
+                }
+
+                return;
+            }
+
             if (!frozen)
             {
                 Vector3 to = faceToward - Loco.Position;
@@ -670,9 +940,16 @@ namespace PhysicsBattler.Locomotion
         {
             lastHit = clock;
             // (A struck leg is knocked along the blow: the body's reaction comes on top.)
-            if (!shield && !parried && AuthorityController.RegionOf(part) == BodyRegion.Legs)
+            string swept = "";
+            if (!shield && !parried && AuthorityController.RegionOf(part) == BodyRegion.Legs && part != PartId.Pelvis)
             {
                 KnockLeg(part, impulse, point);
+                swept = SweepLeg(part, impulse);
+                if (Fallen)
+                {
+                    LastReaction = swept;
+                    return;
+                }
             }
 
             if (parried)
@@ -754,11 +1031,11 @@ namespace PhysicsBattler.Locomotion
                 // (Already being carried back: the new blow adds to it now.)
                 pendingKnock = Vector3.ClampMagnitude(knock + (pushAt > clock ? pendingKnock : Vector3.zero), MostKnock);
                 pushAt = clock + (clip != null ? DriveAfter : 0f);
-                LastReaction = $"{reacted}, then driven back at {pendingKnock.magnitude:0.0} m/s";
+                LastReaction = $"{(swept.Length > 0 ? swept + "; " : "")}{reacted}, then driven back at {pendingKnock.magnitude:0.0} m/s";
                 return;
             }
 
-            LastReaction = reacted;
+            LastReaction = (swept.Length > 0 ? swept + "; " : "") + reacted;
         }
 
         /// <summary>How long a driven body takes the blow where it stands before its steps carry it back (seconds: the reaction clips' peak).</summary>

@@ -235,6 +235,18 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     10 at 0.25, 9 at 0 (the guard alone, never moved, 8); of a Large's 9, 9, 8, 3; of 27 combo blows 25 at skill 1,
     26 at 0.5, 16 at 0 (a shield still up from the last blow meets the next). The expert's 4 are its geometry:
     an overhead chop aimed at the hips passes the head above the shield, and a thrust takes the shield arm.
+  - Leg hits and falls (the defence plan's leg hits; `LabDummy.SweepLeg`). A blow on a thigh, shin or foot is weighed
+    against the weight that leg carries (the blow's knock over the body's mass; its parts' knocks within 0.2 s added,
+    one blow sweeping through both legs): on both feet it stumbles from 0.6 m/s on that leg (a catch step, the swept
+    foot let go) and falls from 1.8 (under the fight's 0.8 and 2.2 for a push: a leg swept takes less); with the other
+    foot off the ground its weight is all on the leg struck, and it is swept from under it from 0.3; a foot in the air
+    is knocked away from 0.25 (a stumble) and only a blow over 1.8 drops it. Down, the body goes to physics, the swept
+    leg thrown along the blow and the body over it; it lies at least 1 s and until still (2.5 s at most), then gets up
+    with the fight's own get-up (`Motion/GetUp`, face up or face down, its guard taking over at the end). Not when
+    anchored. Headless (`DUMMY_LOW=1` with `dummyhits`: the low blows at its knees): a Medium's thigh cuts on a
+    planted Medium make it stumble (2 of 9; a light one does nothing), the Large's backhand lunge drops it, the Large's
+    forehand, through other parts first, makes it stumble; struck anywhere else it never falls. (Headless has no body
+    to fall: the fall and the get-up are seen in the lab.)
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
