@@ -237,7 +237,8 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     an overhead chop aimed at the hips passes the head above the shield, and a thrust takes the shield arm.
   - Leg hits and falls (the defence plan's leg hits; `LabDummy.SweepLeg`). A blow on a thigh, shin or foot is weighed
     against the weight that leg carries (the blow's knock over the body's mass; its parts' knocks within 0.2 s added,
-    one blow sweeping through both legs): on both feet it stumbles from 0.3 m/s on that leg (a catch step, the swept
+    one blow sweeping through both legs) — shelved, off (`LabDummy.LegFalls`; `LEG_FALLS=1` headless): the falls
+    and the get-up didn't read well in the playtests, so a leg hit is a body hit with the leg twisted. On: on both feet it stumbles from 0.3 m/s on that leg (a catch step, the swept
     foot let go) and falls from 2 (under the fight's 2.2 for a push); with the other foot off the ground its weight is
     all on the leg struck: it stumbles from 0.25 and is swept from under it from 1.2; a foot in the air is knocked away
     from 0.25 (a stumble) and only a blow over 1.8 drops it. A Medium's sword makes it stumble; only a Large's solid

@@ -20,6 +20,8 @@ internal static class DummyHitReport
         Directory.CreateDirectory(dir);
         body ??= "Medium";
         LocoLibrary.Load();
+        // (LEG_FALLS=1: the shelved leg sweeps on.)
+        LabDummy.LegFalls = Environment.GetEnvironmentVariable("LEG_FALLS") != null;
         var ci = CultureInfo.InvariantCulture;
         string prefix = LocoLibrary.CombatPrefix(body);
         var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();

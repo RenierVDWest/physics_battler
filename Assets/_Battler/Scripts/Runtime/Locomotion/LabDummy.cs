@@ -381,10 +381,16 @@ namespace PhysicsBattler.Locomotion
         private GetUp getUp;
         private readonly PoseBuffer lying = new PoseBuffer(), standingPose = new PoseBuffer();
 
+        /// <summary>
+        /// Leg sweeps on: a blow on a leg can make it stumble or drop it (shelved after the first playtests: the falls
+        /// and the get-up didn't read well; off, a leg hit is a body hit, the leg twisted by it).
+        /// </summary>
+        public static bool LegFalls;
+
         /// <summary>What a blow on a leg does: knocks it, makes the body stumble, or takes the leg out from under it.</summary>
         private string SweepLeg(PartId part, Vector3 impulse)
         {
-            if (Anchored || Fallen)
+            if (!LegFalls || Anchored || Fallen)
             {
                 return "";
             }
