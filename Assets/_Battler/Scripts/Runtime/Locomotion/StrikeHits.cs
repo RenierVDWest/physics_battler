@@ -251,6 +251,9 @@ namespace PhysicsBattler.Locomotion
 
         public int Touches;
 
+        /// <summary>How many stopped blows were jumping strikes stopped in the air (played on into their landing).</summary>
+        public int Landings;
+
         /// <summary>
         /// One step, after the striker is posed (and while the hit stop lasts, only its clock). In a strike's live
         /// moments the first part, shield or sword the blade meets is struck; a blade that cuts through goes on to
@@ -466,10 +469,20 @@ namespace PhysicsBattler.Locomotion
                 stopped = true;
                 // (The blades or the shield meet: the attacker's hand thrown back along the blow, its arm taking it.)
                 poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.25f, 3f));
-                // Back to where the weapon met it, shown through the hit stop; then it backs out a little.
-                loco.WindBack(met);
-                poser.Pose(1e-4f);
-                loco.CutShort(RewindMost, ReboundSpeed);
+                // Back to where the weapon met it, shown through the hit stop; then it backs out a little. A jumping
+                // strike met in the air can't back out: it comes down, its landing played on, the arm thrown back.
+                if (loco.ShotAirborne())
+                {
+                    Landings++;
+                    poser.HoldWeaponArm();
+                    loco.StopShotTravel();
+                }
+                else
+                {
+                    loco.WindBack(met);
+                    poser.Pose(1e-4f);
+                    loco.CutShort(RewindMost, ReboundSpeed);
+                }
                 what = parried ? $"parried by the sword ({dummy.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
                     : shield ? "blocked by the shield" : "stopped in the " + Name(part);
                 if (shield && !parried)

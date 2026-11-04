@@ -97,6 +97,11 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The most the upper arm turns at the shoulder (degrees a second): a fast parry's, and no faster.</summary>
         public static float UpperArmSpeed = 900f;
 
+        /// <summary>How fast the arm goes back to the guard after a parry, against the parry's own speeds: unhurried.</summary>
+        public const float GuardPace = 0.5f;
+
+        private float Pace => Current >= 0 ? 1f : GuardPace;
+
         /// <summary>How near the body's middle the blow's path must come to be at the body (metres at a Medium's size), and how high the head reaches (real metres).</summary>
         public const float BodyRadius = 0.3f, HeadTop = 1.75f;
 
@@ -312,6 +317,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The least way along the attacker's blade (grip to tip) a clean parry takes it.</summary>
         public static float TheirsFrom = 0.25f;
 
+        /// <summary>The nearest the sword hand comes to its shoulder in a parry, of the arm's length (the elbow bent no more than about 110 degrees).</summary>
+        public const float LeastReach = 0.6f;
+
+        /// <summary>The furthest the grip goes from the shoulder in a parry, of the arm's length (shoulder to wrist): the elbow kept a little bent.</summary>
+        public const float MostReach = 0.92f;
+
         /// <summary>How far before the face a parry at head height meets the blade (metres at a Medium's size).</summary>
         public static float HeadFront = 0.3f;
 
@@ -359,6 +370,12 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How far the sword keeps from the other body and its shield (metres).</summary>
         public const float KeepClear = 0.04f;
+
+        /// <summary>How far the guard keeps its sword from the other body and its shield (metres): room for the shield to move before it meets it.</summary>
+        public const float GuardClear = 0.15f;
+
+        /// <summary>The most the sword is pushed off the other body in a step (degrees): a fast shield knocks it aside over a few steps, not in one.</summary>
+        public const float MostPushStep = 25f;
 
         /// <summary>For the runner's comparisons: the keeping clear of the other body off.</summary>
         public static bool NoClear;
@@ -437,6 +454,11 @@ namespace PhysicsBattler.Locomotion
             if (Current >= 0 && blow.HasValue)
             {
                 Place(Current, blow.Value, opponent, out wantForte, out wantBlade, out wantEdge);
+                if (Trace != null)
+                {
+                    Vector3 hw = wantForte - wantBlade * (ForteAt * WeaponLength);
+                    Trace($"placed: the hand {Vector3.Distance(hw, anim.Part(PartId.UpperArmR).position):0.00} m from the shoulder (arm {anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude:0.00}), the forte {V(Quaternion.Inverse(bodyTurn) * (wantForte - anim.Part(PartId.Head).position))} from the head");
+                }
             }
             else
             {
@@ -470,8 +492,8 @@ namespace PhysicsBattler.Locomotion
 
             // Each control closes on where it is going at a human's speed (an eased approach, capped).
             float close = 1f - Mathf.Exp(-Close * dt);
-            forte += Vector3.ClampMagnitude((wantForte - forte) * close, HandSpeed * size * dt);
-            swivel += Mathf.Clamp(Mathf.DeltaAngle(swivel, wantSwivel) * close, -SwivelSpeed * dt, SwivelSpeed * dt);
+            forte += Vector3.ClampMagnitude((wantForte - forte) * close, HandSpeed * Pace * size * dt);
+            swivel += Mathf.Clamp(Mathf.DeltaAngle(swivel, wantSwivel) * close, -SwivelSpeed * Pace * dt, SwivelSpeed * Pace * dt);
             turn += Mathf.Clamp((wantTurn - turn) * close, -TrunkSpeed * dt, TrunkSpeed * dt);
             lean += Mathf.Clamp((wantLean - lean) * close, -TrunkSpeed * dt, TrunkSpeed * dt);
 
@@ -487,7 +509,7 @@ namespace PhysicsBattler.Locomotion
 
             TuckFreeArm(bodyTurn);
             SolveArm(dt, close, wantBlade, wantEdge);
-            PushedOffOpponent(opponent);
+            PushedOffOpponent(opponent, dt);
         }
 
         /// <summary>
@@ -539,6 +561,27 @@ namespace PhysicsBattler.Locomotion
                 if (beforeFace < HeadFront * size)
                 {
                     wantForte += ahead * (HeadFront * size - beforeFace);
+                }
+            }
+
+            // (The hand never drawn in so close to its shoulder that the elbow folds shut, nor out past the arm's reach.)
+            {
+                Vector3 shoulderAt = anim.Part(PartId.UpperArmR).position;
+                float armLength = anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude;
+                Vector3 handAt = wantForte - wantBlade * (ForteAt * WeaponLength);
+                Vector3 fromShoulder = handAt - shoulderAt;
+                float least = LeastReach * armLength, most = MostReach * armLength;
+                if (fromShoulder.magnitude < least)
+                {
+                    Vector3 outWay = fromShoulder.sqrMagnitude > 1e-6f ? fromShoulder.normalized : ahead;
+                    outWay = (outWay + ahead).normalized;
+                    wantForte += outWay * (least - fromShoulder.magnitude);
+                }
+                else if (fromShoulder.magnitude > most)
+                {
+                    // (Nor out past the arm's reach: a hand asked further than the arm goes leaves the elbow straight,
+                    // and a straight elbow has no way round it to keep.)
+                    wantForte -= fromShoulder.normalized * (fromShoulder.magnitude - most);
                 }
             }
 
@@ -616,13 +659,15 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>
         /// Where the sword as posed is in the other body or its shield (a shield swung into the guard's point, a body
-        /// come too close), it is pushed out at once, as a blade is: turned at the wrist, the point up and away, and
-        /// the hand left there to come back from at its own pace.
+        /// come too close), it is pushed out, as a blade is: turned at the wrist, the point up and away. The push is
+        /// kept from step to step and eased off only as far as the sword stays clear, so the blade rides the shield
+        /// smoothly rather than being snapped out and pulled back in each step.
         /// </summary>
-        private void PushedOffOpponent(Vector3 opponent)
+        private void PushedOffOpponent(Vector3 opponent, float dt)
         {
             if (Opponent == null || NoClear || anim.SlotWeaponR == null)
             {
+                pushAngle = 0f;
                 return;
             }
 
@@ -631,21 +676,43 @@ namespace PhysicsBattler.Locomotion
             toOpponent.y = 0f;
             toOpponent = toOpponent.sqrMagnitude > 1e-4f ? toOpponent.normalized : BodyTurn * Vector3.forward;
             Vector3 away = (Vector3.up - 0.6f * toOpponent).normalized;
-            for (int i = 0; i < 16; i++)
+            Quaternion solvedHand = hand.rotation;
+            bool Clear(float angle, float margin)
             {
+                BladeNow(out Vector3 g0, out Vector3 t0);
+                Vector3 way0 = (t0 - g0).normalized;
+                var turn0 = Quaternion.FromToRotation(way0, Vector3.RotateTowards(way0, away, angle * Mathf.Deg2Rad, 0f));
+                hand.rotation = turn0 * solvedHand;
                 BladeNow(out Vector3 g, out Vector3 tp);
-                if (Opponent.Clearance(g, tp) >= 0f)
-                {
-                    break;
-                }
+                return Opponent.Clearance(g, tp) >= margin;
+            }
 
-                Vector3 way = (tp - g).normalized;
-                var turn = Quaternion.FromToRotation(way, Vector3.RotateTowards(way, away, 5f * Mathf.Deg2Rad, 0f));
-                hand.rotation = turn * hand.rotation;
-                heldHand = hand.rotation;
+            // (Eased off at a wrist's pace while it stays clear; pushed further, at once, while it is in.)
+            float eased = Mathf.Max(0f, pushAngle - PushEase * dt);
+            if (pushAngle > 0f && Clear(eased, 0.01f * size))
+            {
+                pushAngle = eased;
+            }
+
+            float pushedFrom = pushAngle;
+            for (int i = 0; i < 18 && pushAngle - pushedFrom < MostPushStep && !Clear(pushAngle, 0f); i++)
+            {
+                pushAngle += 5f;
                 Pushed++;
             }
+
+            // (Posed with the push; the arm's own turn, held for the next step, stays the solved one.)
+            Clear(pushAngle, 0f);
+            if (Trace != null && pushAngle > 0f)
+            {
+                Trace($"pushed {pushAngle:0} deg off the opponent ({CurrentName})");
+            }
         }
+
+        private float pushAngle;
+
+        /// <summary>How fast a push off the other body eases off once the sword is clear (degrees a second).</summary>
+        public const float PushEase = 120f;
 
         /// <summary>How many times the sword was pushed out of the other body or its shield (5 degrees each).</summary>
         public int Pushed;
@@ -664,7 +731,7 @@ namespace PhysicsBattler.Locomotion
             for (int i = 0; i < 12; i++)
             {
                 Vector3 g = wantForte - wantBlade * (ForteAt * WeaponLength);
-                if (Opponent.Clearance(g, g + wantBlade * WeaponLength) >= KeepClear * size)
+                if (Opponent.Clearance(g, g + wantBlade * WeaponLength) >= (Current < 0 ? GuardClear : KeepClear) * size)
                 {
                     break;
                 }
@@ -830,10 +897,10 @@ namespace PhysicsBattler.Locomotion
             // can't take never runs on ahead of the arm.)
             if (handKnown)
             {
-                handRot = Quaternion.RotateTowards(heldHand, handRot, BladeTurnSpeed * dt);
+                handRot = Quaternion.RotateTowards(heldHand, handRot, BladeTurnSpeed * Pace * dt);
             }
 
-            handRot = Quaternion.RotateTowards(handRot, target, Mathf.Min(Quaternion.Angle(handRot, target) * close, BladeTurnSpeed * dt));
+            handRot = Quaternion.RotateTowards(handRot, target, Mathf.Min(Quaternion.Angle(handRot, target) * close, BladeTurnSpeed * Pace * dt));
             var keep = ArmRig.Solve(anim, true, Goal(handRot, swivel, 1f), torso, apply: false);
             if (!handKnown)
             {
@@ -841,7 +908,7 @@ namespace PhysicsBattler.Locomotion
                 handKnown = true;
             }
 
-            elbow += Mathf.Clamp(Mathf.DeltaAngle(elbow, keep.swivel) * close, -SwivelSpeed * dt, SwivelSpeed * dt);
+            elbow += Mathf.Clamp(Mathf.DeltaAngle(elbow, keep.swivel) * close, -SwivelSpeed * Pace * dt, SwivelSpeed * Pace * dt);
             feasible = keep.wristExcess > 20f ? Mathf.Max(0f, feasible - 4f * dt) : Mathf.Min(1f, feasible + 2f * dt);
             var solved = ArmRig.Solve(anim, true, Goal(handRot, elbow, 0f), torso, apply: true);
             // (How far the elbow went round the shoulder this step: the upper arm's turn against the chest. More than a
@@ -849,7 +916,7 @@ namespace PhysicsBattler.Locomotion
             var chestTurn = Quaternion.Inverse(anim.Part(PartId.Chest).rotation);
             float UpperTurn() => lastUpperArm == Vector3.zero ? 0f : Vector3.Angle(chestTurn * (anim.Part(PartId.ForearmR).position - anim.Part(PartId.UpperArmR).position), lastUpperArm);
             float jump = UpperTurn();
-            float mostTurn = UpperArmSpeed * dt;
+            float mostTurn = UpperArmSpeed * Pace * dt;
             for (int i = 0; i < 2 && jump > mostTurn && handKnown && lastForteKnown; i++)
             {
                 float share = mostTurn / jump;

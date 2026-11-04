@@ -986,6 +986,37 @@ namespace PhysicsBattler.Locomotion
         private float rewindLeft, rewindFloor;
         private bool rewinding;
 
+        /// <summary>The playing one-shot's root goes no further (a jumping strike stopped in the air comes down where it is, not on through what stopped it).</summary>
+        public void StopShotTravel()
+        {
+            if (Current == Mode.OneShot && Shot != null)
+            {
+                shotMoveScale = 0f;
+            }
+        }
+
+        /// <summary>
+        /// Whether the playing one-shot has both feet off the ground now or in the last <paramref name="within"/>
+        /// seconds of its clip (a jumping strike): one stopped in the air can't back out of what it met, it comes down.
+        /// </summary>
+        public bool ShotAirborne(float within = 0.15f)
+        {
+            if (Current != Mode.OneShot || Shot == null)
+            {
+                return false;
+            }
+
+            for (float t = ShotTime; t >= Mathf.Max(0f, ShotTime - within); t -= 1f / 60f)
+            {
+                if ((Shot.Contact(0, t) & LocoContact.Down) == 0 && (Shot.Contact(1, t) & LocoContact.Down) == 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// The playing strike met something it can't go through: it backs out of it a little
         /// (<paramref name="back"/> seconds of its own time, at <paramref name="speed"/> of its speed),

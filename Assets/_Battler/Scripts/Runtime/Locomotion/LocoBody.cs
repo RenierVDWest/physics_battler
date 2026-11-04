@@ -124,6 +124,7 @@ namespace PhysicsBattler.Locomotion
         public void Pose(float dt)
         {
             poseDt = dt;
+            HeldArms();
             StepHandKnock(dt);
             UpdateAimWeights(dt);
             // The feet first (the hips drop for them).
@@ -973,6 +974,76 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The shortest a lunge may be cut to, to keep that distance.</summary>
         public const float ShortestLunge = 0.15f;
+
+        // ---- A jumping strike stopped in the air: the weapon arm held off its follow-through ------------------------
+
+        private static readonly LocoBone[] RightArmBones = { LocoBone.RightForeArm, LocoBone.RightHand, LocoBone.RightHandIndex, LocoBone.RightHandMiddle, LocoBone.RightHandPinky };
+        private static readonly LocoBone[] LeftArmBones = { LocoBone.LeftForeArm, LocoBone.LeftHand, LocoBone.LeftHandIndex, LocoBone.LeftHandMiddle, LocoBone.LeftHandPinky };
+        private readonly Vector3[] heldArm = new Vector3[LocoClip.BoneCount], endArm = new Vector3[LocoClip.BoneCount];
+        private LocoClip armHeldIn;
+
+        /// <summary>How long a held weapon arm takes to come back to the clip's guard (seconds of the clip).</summary>
+        public const float ArmBackOver = 0.4f;
+        private float armHeldFrom;
+
+        /// <summary>
+        /// The playing strike was stopped but plays on (a jump met in the air comes down): the weapon arm is held
+        /// where it was stopped, against its shoulder, and comes back up to where the clip's ends (its guard) over
+        /// <see cref="ArmBackOver"/>, never through the follow-through the blow no longer has.
+        /// </summary>
+        public void HoldWeaponArm()
+        {
+            if (loco.Current != Locomotor.Mode.OneShot || loco.Shot == null)
+            {
+                return;
+            }
+
+            var raw = loco.RawPoints;
+            armHeldIn = loco.Shot;
+            armHeldFrom = loco.ShotTime;
+            armHeldIn.Pose(armHeldIn.Duration, endArm, loco.Leg);
+            foreach (var b in RightArmBones)
+            {
+                heldArm[(int)b] = raw[(int)b] - raw[(int)LocoBone.RightArm];
+                endArm[(int)b] -= endArm[(int)LocoBone.RightArm];
+            }
+
+            foreach (var b in LeftArmBones)
+            {
+                heldArm[(int)b] = raw[(int)b] - raw[(int)LocoBone.LeftArm];
+                endArm[(int)b] -= endArm[(int)LocoBone.LeftArm];
+            }
+        }
+
+        private void HeldArms()
+        {
+            if (armHeldIn == null)
+            {
+                return;
+            }
+
+            if (loco.Current != Locomotor.Mode.OneShot || loco.Shot != armHeldIn)
+            {
+                armHeldIn = null;
+                return;
+            }
+
+            float u = Mathf.Clamp01((loco.ShotTime - armHeldFrom) / Mathf.Clamp(armHeldIn.Duration - armHeldFrom, 0.1f, ArmBackOver));
+            float w = u * u * (3f - 2f * u);
+            var raw = loco.RawPoints;
+            foreach (var b in RightArmBones)
+            {
+                raw[(int)b] = raw[(int)LocoBone.RightArm] + Vector3.Lerp(heldArm[(int)b], endArm[(int)b], w);
+            }
+
+            if (TwoHanded)
+            {
+                foreach (var b in LeftArmBones)
+                {
+                    raw[(int)b] = raw[(int)LocoBone.LeftArm] + Vector3.Lerp(heldArm[(int)b], endArm[(int)b], w);
+                }
+            }
+        }
 
         // ---- A blow's knock on the weapon arm (a parry or a block met it): the hand thrown back, and back again -----
 

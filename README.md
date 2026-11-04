@@ -99,9 +99,16 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     there (the lab's `SparSpot`). No blow takes them nearer than 1 m (`FightingDistance`): the lunge is cut short
     there, pressing stops there, the aim's pull never takes the hand into the other body. After a blow the dummy
     steps back to 1.4 m. Its sword is kept out of the attacker's body and shield (`OpponentShape`), and where the
-    shield swings into its guard's point anyway, the sword is pushed off at once, turned at the wrist.
-  - Headless (the attacker carrying its shield), the sword dummy parries 25 of 27 of a Medium's strikes, 8 of 9 of
-    a Large's, 18 of 27 of a Small's. Not yet: footwork (stepping back from a blow too close), the Small's quick
+    shield swings into its guard's point anyway, the sword is pushed off, turned at the wrist up to 25 degrees a
+    step and eased back at 120 degrees a second while it stays clear (the guard keeps 0.15 m off it to begin with).
+    Back to the guard after a parry at half the parry's speeds. The parry's grip stays within the arm's reach.
+  - A jumping strike stopped in the air (blocked, parried, or stopped in the body: `Locomotor.ShotAirborne`) no
+    longer backs out of the clip, which had it float back up and drop into the stand: it comes down where it is,
+    its own landing played on (`StopShotTravel`), the weapon arm held off the follow-through and brought back to
+    the clip's closing guard over 0.4 s (`LocoBody.HoldWeaponArm`). The pack's Falling_To_Landing is sampled
+    (`samples/falling_to_landing.json`) if a jump ever needs a landing of its own.
+  - Headless (the attacker carrying its shield), the sword dummy parries 23 of 27 of a Medium's strikes, 9 of 9 of
+    a Large's, 15 of 27 of a Small's. Not yet: footwork (stepping back from a blow too close), the Small's quick
     low blows, and a rare elbow flip of the arm rig in the folded guard. Combos: pressing in after a strike stops
     at the fighting distance and may take up any strike from the guard there (26 of 27 land); the close pair
     combo_backhand > combo_chop no longer links at that distance. M puts the lab's panel back at the top left.
