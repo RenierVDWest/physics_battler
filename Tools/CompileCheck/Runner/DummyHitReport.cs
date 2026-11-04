@@ -23,13 +23,25 @@ internal static class DummyHitReport
         var ci = CultureInfo.InvariantCulture;
         string prefix = LocoLibrary.CombatPrefix(body);
         var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
-        int landed = 0, blocked = 0, missed = 0, tries = 0;
+        if (Environment.GetEnvironmentVariable("PARRY_TRACE") != null)
+        {
+            SwordParry.Trace = line => Console.WriteLine("        " + line);
+        }
+
+        int landed = 0, blocked = 0, missed = 0, tries = 0, swordTries = 0, swordParried = 0;
+        float worstWrist = 0f, worstJump = 0f, worstHand = 0f;
         foreach (string name in names)
         {
             var clip = LocoLibrary.Get(name);
-            foreach (var stance in new[] { LabDummy.Stances.Open, LabDummy.Stances.Block })
+            string onlyStance = Environment.GetEnvironmentVariable("DUMMY_STANCE");
+            foreach (var stance in new[] { LabDummy.Stances.Open, LabDummy.Stances.Shield, LabDummy.Stances.Sword })
             {
-                foreach (var part in new[] { PartId.Chest, PartId.Head })   // (the middle and the high target)
+                if (onlyStance != null && !string.Equals(onlyStance, stance.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                foreach (var part in new[] { PartId.Pelvis, PartId.Chest, PartId.Head })   // (the low, the middle and the high target)
                 {
                     var (anim, loco, poser, root) = Walker(body);
                     float size = (anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude) / 0.845f;
@@ -50,6 +62,18 @@ internal static class DummyHitReport
                     dprofile.body = "Medium";
                     var droot = UnitBuilder.Build(dummyRig, dprofile, "Dummy", _ => null, 1);
                     var dummy = new LabDummy(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, "sns_", physical: false);
+                    // (Its sword, as the lab holds it.)
+                    dummy.Rig.SlotWeaponR.localRotation = UnitController.MainGrip;
+                    dummy.Anim.SlotWeaponR.localRotation = UnitController.MainGrip;
+                    dummy.Poser.CarryR = LocoBody.Carry.Weapon;
+                    dummy.Poser.BladeR = UnitController.MainGrip * Vector3.forward;
+                    var dummySword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
+                    dummy.Poser.WeaponLength = dummySword.length * dummy.Size;
+                    if (stance == LabDummy.Stances.Sword)
+                    {
+                        dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummy.Rig, dummy.Size, dummySword.length * dummy.Size);
+                    }
+
                     // (Its shield: a board on its left hand's slot, as a shield's collider is.)
                     var shield = new GameObject("Dummy shield");
                     // (Held as the lab holds it: the slots turned by the shield's grip, the board's face the slot's forward.)
@@ -60,7 +84,14 @@ internal static class DummyHitReport
                     board.size = new Vector3(0.522f, 0.522f, 0.05f);   // (P_Weapon_Shield's)
                     board.center = new Vector3(0f, 0f, 0.075f);
                     board.isTrigger = true;
-                    dummy.ShieldColliders.Add(board);
+                    if (stance == LabDummy.Stances.Shield)
+                    {
+                        dummy.ShieldColliders.Add(board);
+                    }
+                    else
+                    {
+                        board.enabled = false;
+                    }
                     dummy.Stance = stance;
                     const float dt = 1f / 60f;
                     for (int i = 0; i < 60; i++)
@@ -70,7 +101,7 @@ internal static class DummyHitReport
                         dummy.Step(dt, loco.Position, false);
                     }
 
-                    int height = part == PartId.Head ? 2 : 1;
+                    int height = part == PartId.Head ? 2 : part == PartId.Chest ? 1 : 0;
                     Vector3 target = dummy.TargetAt(height);
                     dummy.BlockAt = target;
                     for (int i = 0; i < 20; i++)
@@ -85,7 +116,7 @@ internal static class DummyHitReport
                     Vector3 dummyStart = dummy.Loco.Position;
                     poser.PlayStrike(clip, target);
                     var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
-                    var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = 0.3f };
+                    var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = stance == LabDummy.Stances.Shield ? 0.3f : 0f, BladeLength = stance == LabDummy.Stances.Sword ? dummySword.length * dummy.Size : 0f };
                     float started = 0f, ended = -1f, mostLean = 0f, mostMoved = 0f;
                     string what = "missed";
                     hits.Landed += text => what = text.Substring(text.IndexOf(':') + 2);
@@ -100,16 +131,7 @@ internal static class DummyHitReport
 
                         hits.Step(dt, dummy);
                         // (The dummy watches the blow coming, as the lab has it.)
-                        if (hits.Incoming(out var bladeNow, out var aimNow, out var fromNow))
-                        {
-                            dummy.IncomingBlade = bladeNow;
-                            dummy.IncomingAim = aimNow;
-                            dummy.IncomingFrom = fromNow;
-                        }
-                        else
-                        {
-                            dummy.IncomingBlade = dummy.IncomingAim = dummy.IncomingFrom = null;
-                        }
+                        dummy.Watch(hits);
 
                         dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
                         if (Environment.GetEnvironmentVariable("SHIELD_TRACE") != null && dummy.IncomingBlade.HasValue)
@@ -139,17 +161,33 @@ internal static class DummyHitReport
 
                     tries++;
                     if (what == "missed") missed++;
-                    else if (what.StartsWith("blocked")) blocked++;
+                    else if (what.StartsWith("blocked") || what.StartsWith("parried")) blocked++;
                     else landed++;
-                    Console.WriteLine(string.Format(ci, "{0,-20} at the {1,-5} {2}: {3}; the dummy leaned {4:0} degrees, {5}, and was moved {6:0.00} m",
-                        name, part.ToString().ToLowerInvariant(), stance == LabDummy.Stances.Open ? "open " : "block", what, mostLean * Mathf.Rad2Deg, dummy.LastReaction, mostMoved));
+                    Console.WriteLine(string.Format(ci, "{0,-20} at the {1,-6} {2,-6}: {3}; the dummy leaned {4:0} degrees, {5}, and was moved {6:0.00} m",
+                        name, part == PartId.Pelvis ? "hips" : part.ToString().ToLowerInvariant(), stance.ToString().ToLowerInvariant(), what, mostLean * Mathf.Rad2Deg, dummy.LastReaction, mostMoved));
+                    if (dummy.Parry != null)
+                    {
+                        var pr = dummy.Parry;
+                        Console.WriteLine(string.Format(ci, "      parries made: {0}; the arm: wrist short at most {1:0} deg, the elbow's biggest jump {2:0} deg a step, the hand at most {3:0.0} m/s, the shoulder past {4:0} deg, into the torso {5:0.00} m",
+                            pr.Made.Length > 0 ? pr.Made : "none", pr.MostWristShort, pr.MostSwivelJump, pr.MostHandSpeed, pr.MostShoulderPast, pr.MostIntoTorso));
+                        swordTries++;
+                        if (what.StartsWith("parried")) swordParried++;
+                        worstWrist = Mathf.Max(worstWrist, pr.MostWristShort);
+                        worstJump = Mathf.Max(worstJump, pr.MostSwivelJump);
+                        worstHand = Mathf.Max(worstHand, pr.MostHandSpeed);
+                    }
                     UnityEngine.Object.DestroyImmediate(root);
                     UnityEngine.Object.DestroyImmediate(droot);
                 }
             }
         }
 
-        Console.WriteLine($"All: {landed} landed, {blocked} blocked, {missed} missed of {tries}");
+        Console.WriteLine($"All: {landed} landed, {blocked} blocked or parried, {missed} missed of {tries}");
+        if (swordTries > 0)
+        {
+            Console.WriteLine(string.Format(ci, "The sword: parried {0} of {1}; the arm's worst: wrist short {2:0} deg, elbow jump {3:0} deg a step, hand {4:0.0} m/s",
+                swordParried, swordTries, worstWrist, worstJump, worstHand));
+        }
         return 0;
     }
 

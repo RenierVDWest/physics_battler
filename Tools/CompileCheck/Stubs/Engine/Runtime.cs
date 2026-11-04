@@ -222,12 +222,46 @@ namespace UnityEngine
         public static Rendering.RenderPipelineAsset renderPipeline { get; set; }
     }
 
-    public sealed class GUIStyle { }
+    public enum FontStyle { Normal, Bold, Italic, BoldAndItalic }
+
+    public enum TextAnchor { UpperLeft, UpperCenter, UpperRight, MiddleLeft, MiddleCenter, MiddleRight, LowerLeft, LowerCenter, LowerRight }
+
+    public sealed class GUIStyle
+    {
+        public GUIStyle() { }
+        public GUIStyle(GUIStyle other) { }
+        public TextAnchor alignment { get; set; }
+        public FontStyle fontStyle { get; set; }
+        public bool wordWrap { get; set; }
+        public int fontSize { get; set; }
+    }
+
+    public sealed class GUISkin
+    {
+        public GUIStyle button { get; } = new GUIStyle();
+        public GUIStyle label { get; } = new GUIStyle();
+    }
+
+    public struct Matrix4x4
+    {
+        public static Matrix4x4 identity => default;
+        public static Matrix4x4 Scale(Vector3 vector) => default;
+    }
+
+    public static class PlayerPrefs
+    {
+        private static readonly System.Collections.Generic.Dictionary<string, float> floats = new System.Collections.Generic.Dictionary<string, float>();
+        public static float GetFloat(string key, float defaultValue = 0f) => floats.TryGetValue(key, out float v) ? v : defaultValue;
+        public static void SetFloat(string key, float value) => floats[key] = value;
+    }
 
     public sealed class GUILayoutOption { }
 
     public static class GUI
     {
+        public static Matrix4x4 matrix { get; set; }
+        public static GUISkin skin { get; } = new GUISkin();
+        public static Color contentColor { get; set; }
         public delegate void WindowFunction(int id);
         public static void Label(Rect position, string text) { }
         public static void DrawTexture(Rect position, Texture image) { }
@@ -240,7 +274,9 @@ namespace UnityEngine
     {
         public static Rect Window(int id, Rect screenRect, GUI.WindowFunction func, string text, params GUILayoutOption[] options) => screenRect;
         public static void Label(string text, params GUILayoutOption[] options) { }
+        public static void Label(string text, GUIStyle style, params GUILayoutOption[] options) { }
         public static bool Button(string text, params GUILayoutOption[] options) => false;
+        public static bool Button(string text, GUIStyle style, params GUILayoutOption[] options) => false;
         public static bool Toggle(bool value, string text, params GUILayoutOption[] options) => value;
         public static float HorizontalSlider(float value, float leftValue, float rightValue, params GUILayoutOption[] options) => value;
         public static void BeginHorizontal(params GUILayoutOption[] options) { }

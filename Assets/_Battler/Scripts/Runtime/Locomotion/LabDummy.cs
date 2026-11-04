@@ -13,7 +13,8 @@ namespace PhysicsBattler.Locomotion
     /// the walker, walked by its own <see cref="Locomotor"/> and <see cref="LocoBody"/>. Physical, as the
     /// walker is (the legs carried, the torso, head and arms held by pins), it takes blows: the part struck
     /// is knocked and its hold softened for a moment, the rest of the blow pushes the walk back a step.
-    /// With its shield up (<see cref="Blocking"/>) it holds the shield across the blow.
+    /// Set up open (no defence: every blow lands), with a shield (it meets each blow with its shield) or with a
+    /// sword alone (it parries each blow with its sword: <see cref="SwordParry"/>).
     /// </summary>
     public sealed class LabDummy
     {
@@ -45,52 +46,53 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Its poise: blows wear it down, it comes back over time (as a unit's does in the fight).</summary>
         public float Poise, MaxPoise;
 
-        /// <summary>How the dummy stands (O in the lab): open (no guard), in its guard, or blocking.</summary>
+        /// <summary>How the dummy is set up (the lab's dummy picker): open (its guard down, no defence: every blow lands),
+        /// shield (sword and shield, meeting each blow with its shield), or sword (sword alone, parrying each blow with it).</summary>
         public enum Stances
         {
             Open,
-            Guard,
-            Block,
+            Shield,
+            Sword,
         }
 
-        private Stances stance = Stances.Guard;
-        private LocoClip guardIdle;
+        private Stances stance = Stances.Shield;
 
         public Stances Stance
         {
             get => stance;
             set
             {
-                var was = stance;
                 stance = value;
                 Loco.GuardWanted = value != Stances.Open;
-                if (Loco.Guard == null)
-                {
-                    return;
-                }
+            }
+        }
 
-                guardIdle ??= Loco.Guard.Idle;
-                // (Blocking: the shield raised with the pack's block clip and held up with its block idle;
-                // lowered with its lowering clip. The guard's own idle stands for the rest.)
-                var raise = LocoLibrary.Get("sns_block_raise");
-                var hold = LocoLibrary.Get("sns_block_hold");
-                var lower = LocoLibrary.Get("sns_block_lower");
-                if (value == Stances.Block && was != Stances.Block && hold != null)
-                {
-                    Loco.Guard.Idle = hold;
-                    if (raise != null && Loco.Current != Locomotor.Mode.Cycle)
-                    {
-                        Loco.Play(raise);
-                    }
-                }
-                else if (value != Stances.Block && was == Stances.Block)
-                {
-                    Loco.Guard.Idle = guardIdle;
-                    if (value == Stances.Guard && lower != null && Loco.Current != Locomotor.Mode.Cycle)
-                    {
-                        Loco.Play(lower);
-                    }
-                }
+        /// <summary>How well it blocks with a shield and parries with a sword (0 to 1; stage 1 of the sword parry: only 1 is made yet).</summary>
+        public float ShieldSkill = 1f, ParrySkill = 1f;
+
+        /// <summary>Its sword parry (with <see cref="Stances.Sword"/>; made by whoever gives it its sword).</summary>
+        public SwordParry Parry;
+
+        /// <summary>The blow coming, as it reads it (null: none).</summary>
+        public BlowRead? Blow;
+
+        /// <summary>The parries it has made.</summary>
+        public int Parries;
+
+        /// <summary>The blow coming, read from the striker's hits (or none).</summary>
+        public void Watch(StrikeHits hits)
+        {
+            if (hits != null && hits.Read(out var read))
+            {
+                Blow = read;
+                IncomingBlade = read.Blade;
+                IncomingAim = read.Aim;
+                IncomingFrom = read.ComesFrom;
+            }
+            else
+            {
+                Blow = null;
+                IncomingBlade = IncomingAim = IncomingFrom = null;
             }
         }
 
@@ -129,8 +131,8 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The reaction it played last ("" before any), for the logs.</summary>
         public string LastReaction = "";
 
-        /// <summary>The shield is held up across the blow coming.</summary>
-        public bool Blocking => stance == Stances.Block;
+        /// <summary>It meets blows with its shield.</summary>
+        public bool Blocking => stance == Stances.Shield;
 
         /// <summary>Where the blow coming is aimed (world): the shield goes between it and the striker.</summary>
         public Vector3? BlockAt;
@@ -288,7 +290,15 @@ namespace PhysicsBattler.Locomotion
 
                 Loco.Step(dt, want, yaw);
                 Poser.Pose(dt);
-                RaiseShield(dt, faceToward);
+                if (stance == Stances.Sword && Parry != null)
+                {
+                    Parry.Step(dt, Blow, faceToward);
+                }
+                else
+                {
+                    RaiseShield(dt, faceToward);
+                }
+
                 React(dt);
                 Recover(dt);
                 Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
@@ -305,6 +315,12 @@ namespace PhysicsBattler.Locomotion
                 else if (pinLeft[(int)BodyRegion.ArmL] <= 0f)
                 {
                     Hold(BodyRegion.ArmL, 1f);
+                }
+
+                // (Parrying, the sword arm is held exactly to its pose: pinned, the physical sword would trail the parry.)
+                if (stance == Stances.Sword && Parry != null)
+                {
+                    Authority.Set(BodyRegion.ArmR, AuthorityLevel.Kinematic, 1f);
                 }
             }
 
@@ -334,9 +350,10 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         private void RaiseShield(float dt, Vector3 striker)
         {
-            blockWeight = Mathf.MoveTowards(blockWeight, Blocking ? 1f : 0f, dt / BlockRaise);
+            // (The guard holds the shield as its clip does; it moves only to meet a blow.)
+            blockWeight = 0f;
             incomingFor = IncomingBlade.HasValue ? incomingFor + dt : 0f;
-            float wantIntercept = IncomingBlade.HasValue && incomingFor > SeeBlowAfter && stance != Stances.Open ? (stance == Stances.Block ? 1f : 0.5f) : 0f;
+            float wantIntercept = IncomingBlade.HasValue && incomingFor > SeeBlowAfter && Blocking ? 1f : 0f;
             interceptWeight = Mathf.MoveTowards(interceptWeight, wantIntercept, dt / BlockRaise);
             float weight = Mathf.Max(blockWeight, interceptWeight);
             var hand = Anim.Part(PartId.HandL);
@@ -422,9 +439,34 @@ namespace PhysicsBattler.Locomotion
         /// A blow lands: on <paramref name="part"/>, or on the shield. What the part takes knocks it (its
         /// hold softened, coming back), the rest pushes the walk back.
         /// </summary>
-        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point)
+        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false)
         {
             lastHit = clock;
+            if (parried)
+            {
+                // Parried: the blow on the sword knocks the sword arm and rocks the body; the rest drives it back, as a
+                // shield's block does.
+                Parries++;
+                Blocks++;
+                Recoil(impulse, point, PartId.HandR, 0.4f * ReactScale);
+                KnockArm(0, impulse, point);
+                Poise = Mathf.Max(0f, Poise - poiseDamage);
+                Vector3 push = impulse * KnockScale / Mass;
+                push.y = 0f;
+                if (!Anchored && push.magnitude > DrivenFrom)
+                {
+                    pendingKnock = Vector3.ClampMagnitude(push, MostKnock);
+                    pushAt = clock;
+                    LastReaction = $"parried with {Parry?.CurrentName}, then driven back at {pendingKnock.magnitude:0.0} m/s";
+                }
+                else
+                {
+                    LastReaction = $"parried with {Parry?.CurrentName}";
+                }
+
+                return;
+            }
+
             // The pose shows it (the fight's recoil): the pinned body is pulled back to its pose each step,
             // so a kick on the physical part alone hardly shows.
             float react = (reaction == Combat.Reaction.Stagger ? 1.6f : reaction == Combat.Reaction.Flinch ? 1.25f : 1f) * ReactScale;

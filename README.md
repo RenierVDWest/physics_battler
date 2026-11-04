@@ -65,16 +65,30 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     arm struck only flinches. What the struck part doesn't take drives it back with the walk's own steps, after the
     reaction has shown (the fight's rule, `KnockScale`): the Large's blows drive a Medium back 0.3 to 0.9 m.
     `Anchored` makes it a training post again. It steps back onto its spot a second after it was last struck.
-  - O changes how the dummy stands: open (its guard down), in its guard (it half meets blows with its shield), or
-    blocking (the pack's block clips: the shield raised and held). Blocking, it reads each blow from the striker's
-    wind-up (where it will land, `LocoBody.AimLands`, and the way it will come in, from the clip:
-    `StrikeHits.Incoming`), and after 0.12 s moves its shield there at up to 5 m/s, its face to the blow, its arm held
-    exactly to the pose: headless it blocks every strike a Medium or a Large can throw at it, but the combo's quick
-    backhand (0.18 s from its start to its contact). A shield-blocked blow still throws it back and drives it.
-    A small ball marks where the last strike was aimed: green it landed, blue it was blocked, red it missed. The log
-    says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]` strikes the dummy
-    open and blocking at its chest and head (`SHIELD_TRACE=1`: the blade and the shield each step), and writes both
-    bodies' films (`Tools/Mocap/Locomotion/twofilm.py` draws them).
+  - The dummy's setup (the panel's Defender section, or O to cycle): **open** (its guard down, a sword only, no
+    defence: every blow lands), **sword and shield** (it meets each blow with its shield, read from the striker's
+    wind-up, `StrikeHits.Read`), or **sword only** (it parries with its sword, `SwordParry`). Shield skill and
+    parry skill are separate stats (levels come later; for now both are full).
+  - The sword parry (stage 1 of the defence plan): from a medium guard (the hand before the belly, the point at the
+    opponent's face, the free hand behind the left hip), the dummy reads each blow's path from the striker's clip
+    (where the blade first reaches the body: torso, head or either leg; the striking point's and the tip's path),
+    and about 0.3 s before contact takes the sabre manuals' parry for it (St George or hanging for the head; tierce,
+    high tierce, quarte, high quarte, prime for the body; low tierce, low quarte, seconde, septime, octave low). The
+    forte goes onto the incoming blade's path, the blade square to the plane it sweeps, the trunk turned and leaned
+    with every parry. The arm is the fight's arm rig: the elbow on the parry's null and swivelling at most 540
+    degrees a second, the hand turning at most 1,200 degrees a second, the wrist within its limits, the arm clear
+    of the torso. Blade meets blade as two segments' nearest points: a parried blow is stopped (the hit stop, it
+    backs out) and knocks the sword arm and drives the dummy back. Headless, against a Medium's strikes at its
+    hips, chest and head: 21 of 27 parried, crossing at 42-90 degrees, the hand at most 11 m/s, no elbow flips.
+    Not yet: the combo's quick backhand (0.18 s from its start to contact), a thrust at the face, and a Small's low
+    blows (12 of 27). `parryreach <body>` tests each manual position on the arm rig.
+  - A small ball marks where the last strike was aimed: green it landed, blue it was blocked or parried, red it
+    missed. The log says what each blow did and how the dummy took it. Headless: `dummyhits <dir> <body> [clips]`
+    strikes the dummy in each setup at its hips, chest and head (`DUMMY_STANCE=open|shield|sword` one setup;
+    `SHIELD_TRACE=1` the blade and the shield each step, `PARRY_TRACE=1` the parry's arm each step), and writes
+    both bodies' films (`Tools/Mocap/Locomotion/twofilm.py` draws them).
+  - The panel: 1.5x by default (its − and + buttons, kept between runs), in five sections that open and close:
+    body, walk, attacker, defender, log.
   - Sparring (X, on by default when driving): the walker keeps its guard up, faces the dummy and walks itself to
     where the picked strike reaches it (the panel says when it is in position), so J or I strike from a meaningful
     spot; W A S D still move it. The dummy steps back onto its spot a second after it was last struck.

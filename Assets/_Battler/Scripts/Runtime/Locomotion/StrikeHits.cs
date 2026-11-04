@@ -13,6 +13,27 @@ namespace PhysicsBattler.Locomotion
     /// a blow that cuts on through is slowed by what it gave up; one that is stopped (a shield, a body too
     /// heavy for it) backs out a little and fades into the guard (<see cref="Locomotor.CutShort"/>).
     /// </summary>
+    /// <summary>What a defender reads of a blow coming (world): <see cref="StrikeHits.Read"/>.</summary>
+    public struct BlowRead
+    {
+        /// <summary>The striking point now, where the blow will land, and the way it comes in there (unit: back up its path).</summary>
+        public Vector3 Blade, Aim, ComesFrom;
+
+        /// <summary>The way the attacker's blade will lie at contact (grip to tip, unit).</summary>
+        public Vector3 BladeWay;
+
+        /// <summary>Seconds until contact, and how long the blow has been coming (seconds as they pass).</summary>
+        public float ToContact, Coming;
+
+        /// <summary>The weapon's length (metres).</summary>
+        public float Length;
+
+        /// <summary>The striking point's path up to contact (world, earliest first; the last is <see cref="Aim"/>), and the tip's.</summary>
+        public Vector3[] Path, TipPath;
+
+        public bool Thrust;
+    }
+
     public sealed class StrikeHits
     {
         private readonly Locomotor loco;
@@ -122,16 +143,63 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        /// <summary>
+        /// All a defender reads of the blow coming (<see cref="BlowRead"/>): the above, and the way the attacker's blade
+        /// will lie at contact (grip to tip, world), how long until then, how long the blow has been coming, and
+        /// whether it is a thrust.
+        /// </summary>
+        public bool Read(out BlowRead read)
+        {
+            read = default;
+            if (!Incoming(out read.Blade, out read.Aim, out read.ComesFrom))
+            {
+                return false;
+            }
+
+            var clip = loco.Shot;
+            float contact = clip.ContactFrame / clip.Rate;
+            clip.Pose(contact, readPose, loco.Leg);
+            Vector3 way = StrikeCombos.Blade(readPose);
+            clip.RootMotion(Mathf.Min(loco.ShotTime, contact), contact, out _, out float turnLeft);
+            read.BladeWay = Quaternion.Euler(0f, loco.Facing + turnLeft, 0f) * way;
+            // (In seconds as they pass: a smaller body's clips play faster.)
+            float speed = Mathf.Max(0.05f, loco.ShotSpeed) * loco.TimeScale;
+            read.ToContact = Mathf.Max(0f, contact - loco.ShotTime) / speed;
+            read.Coming = loco.ShotTime / loco.TimeScale;
+            read.Thrust = IsThrust(clip);
+            read.Length = Weapon != null ? Weapon.length * Scale : poser.WeaponLength;
+            // (The striking point's path over the last of the blow, from the clip, set on where it lands: a blow
+            // aimed at the chest from above passes the head first.)
+            read.Path = new Vector3[PathPoints];
+            read.TipPath = new Vector3[PathPoints];
+            var toWorld = Quaternion.Euler(0f, loco.Facing + turnLeft, 0f);
+            Vector3 atContact = StrikeAt(clip, contact);
+            for (int k = 0; k < PathPoints; k++)
+            {
+                float t = Mathf.Max(0f, contact - PathStep * (PathPoints - 1 - k));
+                clip.RootMotion(t, contact, out var moved, out _);
+                Vector3 rootMoved = new Vector3(moved.x, 0f, moved.y) * loco.Leg;
+                read.Path[k] = read.Aim + toWorld * (StrikeAt(clip, t) - rootMoved - atContact);
+                read.TipPath[k] = read.Aim + toWorld * (StrikeAt(clip, t, 1f) - rootMoved - atContact);
+            }
+
+            return true;
+        }
+
+        /// <summary>How many points of the blow's last path are read, how far apart (seconds of the clip).</summary>
+        public const int PathPoints = 9;
+        public const float PathStep = 0.04f;
+
         /// <summary>How far before contact the blow's line is read from (seconds of the clip).</summary>
         public const float ReadOver = 0.06f;
 
         private readonly Vector3[] readPose = new Vector3[LocoClip.BoneCount];
 
         /// <summary>A clip's striking point at a time, against its root then (metres at this body's size).</summary>
-        private Vector3 StrikeAt(LocoClip clip, float t)
+        private Vector3 StrikeAt(LocoClip clip, float t, float alongBlade = -1f)
         {
             clip.Pose(t, readPose, loco.Leg);
-            float along = IsThrust(clip) ? 1f : poser.SweetSpot;
+            float along = alongBlade >= 0f ? alongBlade : IsThrust(clip) ? 1f : poser.SweetSpot;
             return readPose[(int)LocoBone.RightHand] + StrikeCombos.Blade(readPose) * (poser.WeaponLength * along);
         }
 
@@ -201,6 +269,21 @@ namespace PhysicsBattler.Locomotion
                 float s = i / (float)samples;
                 Vector3 a = Vector3.Lerp(lastG, grip, s), b = Vector3.Lerp(lastT, tip, s);
                 found.Clear();
+                // (The dummy's own sword, parrying: blade against blade, two segments' nearest points.)
+                float parryAlong = -1f;
+                Vector3 parryAt = Vector3.zero;
+                if (dummy.Stance == LabDummy.Stances.Sword && dummy.Parry != null)
+                {
+                    dummy.Parry.BladeNow(out var dg, out var dt2);
+                    float defRadius = 0.02f * Scale;
+                    if (SegmentsNearest(a, b, dg, dt2, out float sa, out float sd, out Vector3 pa, out Vector3 pd) <= radius + defRadius)
+                    {
+                        parryAlong = sa;
+                        parryAt = 0.5f * (pa + pd);
+                        lastParryOn = sd;
+                    }
+                }
+
                 foreach (var collider in Physics.OverlapCapsule(a, b, radius, ~0, QueryTriggerInteraction.Collide))
                 {
                     if (dummy.ShieldColliders.Contains(collider))
@@ -213,13 +296,24 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
-                if (found.Count == 0)
+                if (found.Count == 0 && parryAlong < 0f)
                 {
                     continue;
                 }
 
                 // (Nearest the hand first: the blade turns about the hand, so what is nearer it is in the way.)
                 found.Sort((x, y) => x.order.CompareTo(y.order));
+                // (The parrying sword before what it guards: its arm and hand, which hold it behind the blade, and
+                // whatever is further along the attacker's blade.)
+                bool parryFirst = parryAlong >= 0f && (found.Count == 0 || parryAlong - 0.05f <= found[0].order
+                    || found[0].part == PartId.HandR || found[0].part == PartId.ForearmR);
+                if (parryFirst)
+                {
+                    float metAt = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
+                    Strike(clip, dummy, PartId.HandR, true, parryAt, speed, direction, metAt, parryAlong, b - a);
+                    return;
+                }
+
                 var f = found[0];
                 // (The fist that holds the shield is behind it: met with the shield, the shield takes the blow.)
                 if (!f.shield && (f.part == PartId.HandL || f.part == PartId.ForearmL))
@@ -238,22 +332,34 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
-        private void Strike(LocoClip clip, LabDummy dummy, PartId part, bool shield, Vector3 point, float speed, Vector3 direction, float met)
+        private void Strike(LocoClip clip, LabDummy dummy, PartId part, bool shield, Vector3 point, float speed, Vector3 direction, float met,
+            float parryAlong = -1f, Vector3 bladeWay = default)
         {
             struck = true;
+            bool parried = parryAlong >= 0f;
             var r = DamageRules.Resolve(Weapon, With(clip), Scale, speed, direction, Mass, dummy.Mass, part, shield, momentumLeft,
                 1e6f, dummy.Poise, dummy.MaxPoise);
-            dummy.TakeHit(part, shield, r.Impulse, r.PartShare, r.PoiseDamage, r.Reaction, point);
+            dummy.TakeHit(part, shield && !parried, r.Impulse, r.PartShare, r.PoiseDamage, r.Reaction, point, parried);
+            if (parried)
+            {
+                dummy.Parry.BladeNow(out var dg, out var dtip);
+                LastCross = Vector3.Angle(bladeWay, dtip - dg);
+                LastCross = Mathf.Min(LastCross, 180f - LastCross);
+                LastParryAt = parryAlong;
+                Parries++;
+            }
+
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
             HitStop = Mathf.Clamp(0.06f * (0.6f + r.Impulse.magnitude / 40f), 0.04f, 0.1f);
             string what;
-            if (r.StopsSwing)
+            if (r.StopsSwing || parried)
             {
                 // Back to where the weapon met it, shown through the hit stop; then it backs out a little.
                 loco.WindBack(met);
                 poser.Pose(1e-4f);
                 loco.CutShort(RewindMost, ReboundSpeed);
-                what = shield ? "blocked by the shield" : "stopped in the " + Name(part);
+                what = parried ? $"parried by the sword ({dummy.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
+                    : shield ? "blocked by the shield" : "stopped in the " + Name(part);
                 if (shield)
                 {
                     Blocks++;
@@ -282,6 +388,61 @@ namespace PhysicsBattler.Locomotion
             return n.EndsWith("L") ? "left " + n.Substring(0, n.Length - 1).ToLowerInvariant()
                 : n.EndsWith("R") ? "right " + n.Substring(0, n.Length - 1).ToLowerInvariant()
                 : n.ToLowerInvariant();
+        }
+
+        /// <summary>The last parry: the angle the blades crossed at (degrees, 0 to 90), and where on each it met (0 the hilt's end, 1 the tip).</summary>
+        public float LastCross, LastParryAt;
+        private float lastParryOn;
+
+        public int Parries;
+
+        /// <summary>The nearest points of two segments (their shares along each, and the points), and how far apart they are.</summary>
+        public static float SegmentsNearest(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2, out float s, out float t, out Vector3 c1, out Vector3 c2)
+        {
+            Vector3 d1 = q1 - p1, d2 = q2 - p2, r = p1 - p2;
+            float a = Vector3.Dot(d1, d1), e = Vector3.Dot(d2, d2), f = Vector3.Dot(d2, r);
+            if (a <= 1e-8f && e <= 1e-8f)
+            {
+                s = t = 0f;
+                c1 = p1;
+                c2 = p2;
+                return (c1 - c2).magnitude;
+            }
+
+            if (a <= 1e-8f)
+            {
+                s = 0f;
+                t = Mathf.Clamp01(f / e);
+            }
+            else
+            {
+                float c = Vector3.Dot(d1, r);
+                if (e <= 1e-8f)
+                {
+                    t = 0f;
+                    s = Mathf.Clamp01(-c / a);
+                }
+                else
+                {
+                    float b = Vector3.Dot(d1, d2), denom = a * e - b * b;
+                    s = denom > 1e-8f ? Mathf.Clamp01((b * f - c * e) / denom) : 0f;
+                    t = (b * s + f) / e;
+                    if (t < 0f)
+                    {
+                        t = 0f;
+                        s = Mathf.Clamp01(-c / a);
+                    }
+                    else if (t > 1f)
+                    {
+                        t = 1f;
+                        s = Mathf.Clamp01((b - c) / a);
+                    }
+                }
+            }
+
+            c1 = p1 + d1 * s;
+            c2 = p2 + d2 * t;
+            return (c1 - c2).magnitude;
         }
 
         /// <summary>How far out along the blade (0 at the hand's end, 1 at the tip) a collider touches it.</summary>

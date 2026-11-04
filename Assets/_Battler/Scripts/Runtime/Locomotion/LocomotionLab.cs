@@ -489,17 +489,8 @@ namespace PhysicsBattler.Locomotion
             hits?.Step(dt, dummy);
             if (dummy != null)
             {
-                // (The blow coming, for the dummy to meet with its shield.)
-                if (hits != null && hits.Incoming(out var blade, out var aimed, out var comesFrom))
-                {
-                    dummy.IncomingBlade = blade;
-                    dummy.IncomingAim = aimed;
-                    dummy.IncomingFrom = comesFrom;
-                }
-                else
-                {
-                    dummy.IncomingBlade = dummy.IncomingAim = dummy.IncomingFrom = null;
-                }
+                // (The blow coming, for the dummy to meet with its shield or its sword.)
+                dummy.Watch(hits);
             }
 
             dummy?.Step(dt, anim.Part(PartId.Chest).position, frozen);
@@ -799,8 +790,11 @@ namespace PhysicsBattler.Locomotion
         private int aimHits, aimBlocks;
         private string lastAim = "";
 
-        [Tooltip("How the dummy stands (O): open (its guard down), in its guard, or blocking (its shield held across each blow).")]
-        public LabDummy.Stances dummyStance = LabDummy.Stances.Guard;
+        [Tooltip("How the dummy is set up (O): open (its guard down, a sword only: every blow lands), sword and shield (it blocks with the shield), or sword only (it parries with the sword).")]
+        public LabDummy.Stances dummyStance = LabDummy.Stances.Sword;
+
+        [Tooltip("The dummy's shield skill and parry skill (0 to 1).")]
+        [Range(0f, 1f)] public float dummyShieldSkill = 1f, dummyParrySkill = 1f;
 
         /// <summary>Where the dummy is to be struck: the part picked (U), as it stands now.</summary>
         private Vector3 DummyTarget => dummy != null ? dummy.TargetAt(dummyHeight) : dummyAt + Vector3.up * (1.3f * size);
@@ -842,12 +836,26 @@ namespace PhysicsBattler.Locomotion
             var profile = mediumPrefab.Profile != null ? mediumPrefab.Profile : UnitProfile.CreateDefault();
             dummy = new LabDummy(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, "sns_", physical) { Stance = dummyStance };
             var (main, off) = LoadoutOf(BodySize.Medium);
+            if (dummyStance != LabDummy.Stances.Shield)
+            {
+                // (Open, and parrying with the sword: no shield.)
+                off = null;
+            }
+
+            dummy.ShieldSkill = dummyShieldSkill;
+            dummy.ParrySkill = dummyParrySkill;
             HoldFor(dummy, dummyRig.SlotWeaponR, dummy.Anim.SlotWeaponR, main, main != null && !main.IsShield ? UnitController.MainGrip : Quaternion.identity);
             HoldFor(dummy, dummyRig.SlotWeaponL, dummy.Anim.SlotWeaponL, off, off != null && off.IsShield ? UnitController.ShieldGrip : Quaternion.identity);
             dummy.Poser.CarryR = main == null ? LocoBody.Carry.Free : main.IsShield ? LocoBody.Carry.Shield : LocoBody.Carry.Weapon;
             dummy.Poser.CarryL = off == null ? LocoBody.Carry.Free : off.IsShield ? LocoBody.Carry.Shield : LocoBody.Carry.Weapon;
             dummy.Poser.BladeR = (dummy.Anim.SlotWeaponR != null ? dummy.Anim.SlotWeaponR.localRotation : Quaternion.identity) * Vector3.forward;
             dummy.Poser.BladeL = (dummy.Anim.SlotWeaponL != null ? dummy.Anim.SlotWeaponL.localRotation : Quaternion.identity) * Vector3.forward;
+            float swordLength = (main != null && !main.IsShield ? main.length : 0.8f) * dummy.Size;
+            dummy.Poser.WeaponLength = swordLength;
+            if (dummyStance == LabDummy.Stances.Sword)
+            {
+                dummy.Parry = new SwordParry(dummy.Anim, dummy.Loco, dummyRig, dummy.Size, swordLength);
+            }
         }
 
         /// <summary>What a body's marker in the scene holds (the first team's first).</summary>
@@ -916,15 +924,13 @@ namespace PhysicsBattler.Locomotion
         private void NextDummyStance()
         {
             dummyStance = (LabDummy.Stances)(((int)dummyStance + 1) % 3);
-            if (dummy != null)
-            {
-                dummy.Stance = dummyStance;
-            }
-
+            // (Made again: what it holds changes with it.)
+            MakeDummy();
             legs.Add($"{time:0.00} s: the dummy {DummyStanceName}");
         }
 
-        private string DummyStanceName => dummyStance == LabDummy.Stances.Open ? "stands open" : dummyStance == LabDummy.Stances.Guard ? "is in its guard" : "blocks";
+        private string DummyStanceName => dummyStance == LabDummy.Stances.Open ? "stands open"
+            : dummyStance == LabDummy.Stances.Shield ? "has a sword and shield" : "has a sword only";
 
         /// <summary>The dummy put straight ahead of the walker, as far as the picked strike reaches (Y).</summary>
         private void DummyInReach()
@@ -1420,6 +1426,16 @@ namespace PhysicsBattler.Locomotion
 
         // ---- The panel and the log ----------------------------------------------------------------------
 
+        /// <summary>How big the panel is drawn (its − and + buttons; kept between runs).</summary>
+        private float uiScale = -1f;
+
+        private const string UiScaleKey = "LocomotionLab.UiScale";
+
+        /// <summary>Which of the panel's sections are open.</summary>
+        private bool showBody = true, showWalk = false, showAttacker = true, showDefender = true, showLog = true;
+
+        private GUIStyle wrapped, header;
+
         private void OnGUI()
         {
             if (loco == null)
@@ -1427,92 +1443,165 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            if (uiScale < 0f)
+            {
+                uiScale = PlayerPrefs.GetFloat(UiScaleKey, 1.5f);
+            }
+
+            // (The whole panel scaled: text and buttons alike.)
+            var was = GUI.matrix;
+            GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
+            panel.width = 400f;
             panel = GUILayout.Window(7711, panel, DrawPanel, "Locomotion lab");
+            GUI.matrix = was;
+        }
+
+        /// <summary>A section's heading, a button that opens and closes it.</summary>
+        private bool Section(string title, ref bool open, string about = null)
+        {
+            header ??= new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold };
+            if (GUILayout.Button((open ? "\u25BE  " : "\u25B8  ") + title, header))
+            {
+                open = !open;
+            }
+
+            if (open && about != null)
+            {
+                Note(about);
+            }
+
+            return open;
+        }
+
+        private void Note(string text, Color? color = null)
+        {
+            wrapped ??= new GUIStyle(GUI.skin.label) { wordWrap = true };
+            var was = GUI.contentColor;
+            if (color.HasValue)
+            {
+                GUI.contentColor = color.Value;
+            }
+
+            GUILayout.Label(text, wrapped);
+            GUI.contentColor = was;
         }
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label(course ? $"Course: {leg}" : "Driving: W A S D, Shift run, Space hold facing, V walk speed");
-            GUILayout.Label($"{loco.Current}{(loco.Shot != null ? " " + loco.Shot.Name : "")}   {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s   run {loco.RunWeight:0.00}   phase {loco.Phase:0.00}");
-            GUILayout.Label($"{body}: walking speed {walkSpeed * PaceScale:0.0} m/s, running {RunSpeed:0.0} m/s");
             GUILayout.BeginHorizontal();
-            foreach (BodySize size in new[] { BodySize.Small, BodySize.Medium, BodySize.Large })
+            GUILayout.Label($"Panel size {uiScale:0.0}x");
+            if (GUILayout.Button("\u2212", GUILayout.Width(36f)))
             {
-                if (GUILayout.Button(body == size ? "> " + size + " <" : size.ToString()) && body != size)
-                {
-                    body = size;
-                    Build();
-                }
+                uiScale = Mathf.Max(0.8f, uiScale - 0.1f);
+                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+            }
+
+            if (GUILayout.Button("+", GUILayout.Width(36f)))
+            {
+                uiScale = Mathf.Min(3f, uiScale + 0.1f);
+                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
             }
 
             GUILayout.EndHorizontal();
-            if (down > 0f)
+
+            // ---- Body
+            if (Section($"Body: {body}", ref showBody))
             {
-                GUILayout.Label(note + $" (up again in {down:0.0} s)");
-            }
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button(course ? "Drive (C)" : "Course (C)")) { course = !course; Build(); }
-            if (GUILayout.Button("Restart (R)")) Build();
-            if (GUILayout.Button("Watch the fight (F)"))
-            {
-                WatchFight();
-                return;
-            }
-            if (GUILayout.Button(paused ? "Play (P)" : "Pause (P)")) paused = !paused;
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Shove (G)")) Shove();
-            if (GUILayout.Button("Hard (K)")) Shove(2.5f);
-            if (GUILayout.Button("Ball (H)")) Throw();
-            if (GUILayout.Button(physical ? "Kinematic body (B)" : "Physical body (B)")) { physical = !physical; Build(); }
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Speed");
-            foreach (float s in new[] { 0.25f, 0.5f, 1f })
-            {
-                if (GUILayout.Button(s.ToString("0.##") + "x"))
+                GUILayout.BeginHorizontal();
+                foreach (BodySize size in new[] { BodySize.Small, BodySize.Medium, BodySize.Large })
                 {
-                    Time.timeScale = s;
+                    if (GUILayout.Button(body == size ? "> " + size + " <" : size.ToString()) && body != size)
+                    {
+                        body = size;
+                        Build();
+                    }
+                }
+
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Restart (R)")) Build();
+                if (GUILayout.Button(paused ? "Play (P)" : "Pause (P)")) paused = !paused;
+                if (GUILayout.Button(physical ? "Physical (B)" : "Kinematic (B)")) { physical = !physical; Build(); }
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Time");
+                foreach (float sp in new[] { 0.25f, 0.5f, 1f })
+                {
+                    if (GUILayout.Button(sp.ToString("0.##") + "x"))
+                    {
+                        Time.timeScale = sp;
+                    }
+                }
+
+                GUILayout.EndHorizontal();
+                if (loadouts.Count > 0 && GUILayout.Button($"Carrying: {loadouts[loadoutNow].name} (L)"))
+                {
+                    NextLoadout();
+                }
+
+                if (GUILayout.Button("Watch the fight (F)"))
+                {
+                    WatchFight();
+                    return;
+                }
+
+                Note($"{loco.Current}{(loco.Shot != null ? " " + loco.Shot.Name : "")}, {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s");
+                if (down > 0f)
+                {
+                    Note(note + $" (up again in {down:0.0} s)", new Color(1f, 0.6f, 0.4f));
                 }
             }
 
-            GUILayout.EndHorizontal();
-            if (GUILayout.Button(guardUp ? $"Guard down (T)   [guard {loco.GuardWeight:0.0}]" : $"Guard up (T)   [guard {loco.GuardWeight:0.0}]"))
+            // ---- Walk
+            if (Section("Walk", ref showWalk, course ? $"Course: {leg}" : "W A S D drive, Shift runs, Space holds the facing, V the walking speed."))
             {
-                ToggleGuard();
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(course ? "Drive (C)" : "Course (C)")) { course = !course; Build(); }
+                if (GUILayout.Button(guardUp ? "Guard down (T)" : "Guard up (T)")) ToggleGuard();
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Shove (G)")) Shove();
+                if (GUILayout.Button("Hard (K)")) Shove(2.5f);
+                if (GUILayout.Button("Ball (H)")) Throw();
+                GUILayout.EndHorizontal();
+                footprints = GUILayout.Toggle(footprints, "Footprints");
+                Note($"Walking {walkSpeed * PaceScale:0.0} m/s, running {RunSpeed:0.0} m/s; run {loco.RunWeight:0.00}, phase {loco.Phase:0.00}, guard {loco.GuardWeight:0.0}.");
+                Note($"Planted feet moved at most {measures.PlantDriftWorst * 100f:0.0} cm over {measures.PlantsDone} plants; {measures.ForcedReleases} forced steps.");
             }
 
             var combat = CombatClips();
-            if (combat.Count > 0)
+            if (!course && combat.Count > 0)
             {
+                // ---- Attacker
                 combatClip = Mathf.Clamp(combatClip, 0, combat.Count - 1);
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("< (,)")) StepCombatClip(-1);
-                if (GUILayout.Button($"Play {combat[combatClip]} (J)")) PlayCombatClip();
-                if (GUILayout.Button("(.) >")) StepCombatClip(1);
-                GUILayout.EndHorizontal();
                 var shown = LocoLibrary.Get(combat[combatClip]);
-                if (shown != null)
+                if (Section("Attacker", ref showAttacker))
                 {
-                    GUILayout.Label($"  {shown.Role}{(shown.Kind.Length > 0 ? ", " + shown.Kind : "")}, {shown.Duration:0.00} s{(shown.ContactFrame >= 0 ? $", contact at {shown.ContactFrame / shown.Rate:0.00} s" : "")}");
-                    if (shown.ContactFrame >= 0 && StrikeReach.TryGet(body.ToString(), shown.Name, out var grip, out var way))
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("<  (,)", GUILayout.Width(70f))) StepCombatClip(-1);
+                    if (GUILayout.Button($"Strike: {combat[combatClip].Replace(LocoLibrary.CombatPrefix(body.ToString()), "")} (J)")) PlayCombatClip();
+                    if (GUILayout.Button("(.)  >", GUILayout.Width(70f))) StepCombatClip(1);
+                    GUILayout.EndHorizontal();
+                    if (shown != null)
                     {
-                        Vector3 sweet = grip + way * (poser.WeaponLength * poser.SweetSpot);
-                        GUILayout.Label($"  reaches {Flat(sweet):0.0} m ahead, {sweet.y:0.0} m up{(Mathf.Abs(sweet.x) > 0.3f ? (sweet.x > 0f ? ", to the right" : ", to the left") : "")}");
-                    }
-                }
+                        string reach = "";
+                        if (shown.ContactFrame >= 0 && StrikeReach.TryGet(body.ToString(), shown.Name, out var grip, out var way))
+                        {
+                            Vector3 sweet = grip + way * (poser.WeaponLength * poser.SweetSpot);
+                            reach = $"; reaches {Flat(sweet):0.0} m ahead, {sweet.y:0.0} m up{(Mathf.Abs(sweet.x) > 0.3f ? (sweet.x > 0f ? ", to the right" : ", to the left") : "")}";
+                        }
 
-                if (!course && shown != null && shown.ContactFrame >= 0)
-                {
-                    var chain = ComboFrom(shown);
-                    if (GUILayout.Button(chain.Count > 0 ? $"Combo (I): {ComboText(shown, chain).Replace(LocoLibrary.CombatPrefix(body.ToString()), "")}" : "Combo (I): no follow-on"))
-                    {
-                        PlayCombo();
+                        Note($"{shown.Kind}{(shown.ContactFrame >= 0 ? $", contact at {shown.ContactFrame / shown.Rate:0.00} s" : "")}{reach}");
+                        if (shown.ContactFrame >= 0)
+                        {
+                            var chain = ComboFrom(shown);
+                            if (GUILayout.Button(chain.Count > 0 ? $"Combo (I): {ComboText(shown, chain).Replace(LocoLibrary.CombatPrefix(body.ToString()), "")}" : "Combo (I): no follow-on"))
+                            {
+                                PlayCombo();
+                            }
+                        }
                     }
-                }
 
-                if (!course)
-                {
                     if (GUILayout.Button(spar ? $"Sparring (X): on, {(InPosition ? "in position" : "moving into position")}" : "Sparring (X): off, driven by hand"))
                     {
                         ToggleSpar();
@@ -1520,24 +1609,62 @@ namespace PhysicsBattler.Locomotion
 
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button($"Aim: {DummyHeightNames[dummyHeight]} (U)")) NextDummyHeight();
-                    if (GUILayout.Button($"Dummy {DummyStanceName} (O)")) NextDummyStance();
-                    if (GUILayout.Button("In reach (Y)")) DummyInReach();
+                    if (GUILayout.Button("Dummy in reach (Y)")) DummyInReach();
                     GUILayout.EndHorizontal();
-                    GUILayout.Label($"  the dummy is {Flat(DummyTarget - loco.Position):0.0} m away, struck at {DummyTarget.y - origin.y:0.0} m{(hits != null ? $"; {hits.Hits} hits, {hits.Blocks} blocked" : "")}");
                     if (lastAim.Length > 0)
                     {
-                        GUILayout.Label("  " + lastAim);
+                        // (Green it landed, blue it was blocked or parried, red it missed.)
+                        var colour = lastAim.Contains("missed") ? new Color(1f, 0.5f, 0.45f)
+                            : lastAim.Contains("blocked") || lastAim.Contains("parried") ? new Color(0.55f, 0.75f, 1f) : new Color(0.55f, 0.95f, 0.55f);
+                        Note("Last: " + lastAim, colour);
+                    }
+                }
+
+                // ---- Defender
+                if (Section("Defender (the dummy)", ref showDefender))
+                {
+                    GUILayout.BeginHorizontal();
+                    foreach (var st in new[] { LabDummy.Stances.Open, LabDummy.Stances.Shield, LabDummy.Stances.Sword })
+                    {
+                        string name = st == LabDummy.Stances.Open ? "Open" : st == LabDummy.Stances.Shield ? "Sword + shield" : "Sword only";
+                        if (GUILayout.Button(dummyStance == st ? "> " + name + " <" : name) && dummyStance != st)
+                        {
+                            dummyStance = st;
+                            MakeDummy();
+                            legs.Add($"{time:0.00} s: the dummy {DummyStanceName}");
+                        }
+                    }
+
+                    GUILayout.EndHorizontal();
+                    Note(dummyStance == LabDummy.Stances.Open ? "Open: its guard down, no defence; every blow lands. (O cycles the three.)"
+                        : dummyStance == LabDummy.Stances.Shield ? $"Blocks each blow with its shield. Shield skill {dummyShieldSkill:0.0} (levels come with the shield step). (O cycles the three.)"
+                        : $"Parries each blow with its sword from a medium guard. Parry skill {dummyParrySkill:0.0} (levels come in stage 3). (O cycles the three.)");
+                    if (dummy != null)
+                    {
+                        dummy.Anchored = GUILayout.Toggle(dummy.Anchored, "Anchored (a training post: not driven back)");
+                        Note($"{Flat(DummyTarget - loco.Position):0.0} m away, struck at {DummyTarget.y - origin.y:0.0} m; {(hits != null ? $"{hits.Hits} hits, {hits.Blocks} blocked, {hits.Parries} parried" : "")}");
+                        if (dummy.Parry != null)
+                        {
+                            Note($"Now: {dummy.Parry.CurrentName}");
+                        }
+
+                        if (dummy.LastReaction.Length > 0)
+                        {
+                            Note($"Took the last blow: {dummy.LastReaction}");
+                        }
                     }
                 }
             }
 
-            if (loadouts.Count > 0 && GUILayout.Button($"Carrying: {loadouts[loadoutNow].name} (L)"))
+            // ---- Log
+            if (Section("Log (newest first)", ref showLog))
             {
-                NextLoadout();
+                for (int i = legs.Count - 1, n = 0; i >= 0 && n < 8; i--, n++)
+                {
+                    Note(legs[i]);
+                }
             }
 
-            footprints = GUILayout.Toggle(footprints, "Footprints");
-            GUILayout.Label($"Planted feet moved at most {measures.PlantDriftWorst * 100f:0.0} cm over {measures.PlantsDone} plants; {measures.ForcedReleases} forced steps.");
             GUI.DragWindow();
         }
 
