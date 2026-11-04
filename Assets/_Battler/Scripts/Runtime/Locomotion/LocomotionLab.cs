@@ -825,7 +825,10 @@ namespace PhysicsBattler.Locomotion
 
         // ---- The dummy (the combat plan's steps 3 and 4: strikes aimed at it, and landing on it) ----------
 
-        private static readonly string[] DummyHeightNames = { "low (hips)", "middle (chest)", "high (face)" };
+        private static readonly string[] DummyHeightNames = { "low (hips)", "middle (chest)", "high (face)", "legs (knees: every strike and combo)" };
+
+        /// <summary>The aim at the dummy's legs (U's fourth): every strike and combo blow goes at its knees, to sweep them.</summary>
+        private const int AimLegs = 3;
         private int dummyHeight = 1;
         private Vector3 dummyAt;
         private float dummyFacing = 180f;
@@ -848,7 +851,7 @@ namespace PhysicsBattler.Locomotion
         [Range(0f, 1f)] public float dummyShieldSkill = 1f, dummyParrySkill = 1f;
 
         /// <summary>Where the dummy is to be struck: the part picked (U), as it stands now.</summary>
-        private Vector3 DummyTarget => dummy != null ? dummy.TargetAt(dummyHeight) : dummyAt + Vector3.up * (1.3f * size);
+        private Vector3 DummyTarget => dummy != null ? dummy.TargetAt(dummyHeight == AimLegs ? -1 : dummyHeight) : dummyAt + Vector3.up * (1.3f * size);
 
         private static float Flat(Vector3 v) => new Vector2(v.x, v.z).magnitude;
 
@@ -1243,7 +1246,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Where on the dummy a strike goes: its part nearest the height the strike reaches.</summary>
         private Vector3 TargetFor(LocoClip clip)
         {
-            if (dummy == null)
+            if (dummy == null || dummyHeight == AimLegs)
             {
                 return DummyTarget;
             }

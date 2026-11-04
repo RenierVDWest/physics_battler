@@ -246,7 +246,8 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     anchored. Headless (`DUMMY_LOW=1` with `dummyhits`: the low blows at its knees): a Medium's thigh cuts on a
     planted Medium make it stumble (2 of 9; a light one does nothing), the Large's backhand lunge drops it, the Large's
     forehand, through other parts first, makes it stumble; struck anywhere else it never falls. (Headless has no body
-    to fall: the fall and the get-up are seen in the lab.)
+    to fall: the fall and the get-up are seen in the lab: U's fourth aim, legs, sends every strike and combo blow at
+    its knees.)
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
