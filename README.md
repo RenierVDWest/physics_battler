@@ -310,7 +310,11 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     blow's next one as starting at once (a met blow takes up the next as it backs out). Headless (`combos`,
     `COMBO_TARGET=legs` for leg-aimed runs; each run reports the steps the blade went through the sword unmet):
     such steps 97 to 4 in 18 runs; the Large's club met by every skill; the expert lets 4 of the Medium's 25
-    blows through (was 9 of 42) and 3 of the Small's 14 (was 23 of 41).
+    blows through (was 9 of 42) and 3 of the Small's 14 (was 23 of 41). A clean parry holds the blow on the middle
+    of the blade (`SwordParry.HoldAt`): met wherever it first touches (the Large's long club near the hilt, over
+    the hand), the sword slides along itself at once so the blow sits on its middle, then sweeps. The lab writes
+    the parry's read of each blow into the session log ("the parry: blow N: ..."); `combos` takes
+    `COMBO_PLACE=x,z` to start the dummy off to the side and further away.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

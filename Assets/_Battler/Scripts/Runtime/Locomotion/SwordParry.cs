@@ -64,8 +64,15 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Our Medium against a real one (the positions are a real body's; the parryreach study scaled them so).</summary>
         public const float BodyScale = 0.9f;
 
-        /// <summary>Where the forte is along the blade (share of its length from the grip), where on it the parry meets the blow.</summary>
+        /// <summary>Where the forte is along the blade (share of its length from the grip), where the parry is placed to meet the blow.</summary>
         public const float ForteAt = 0.3f;
+
+        /// <summary>
+        /// Where on the blade a blow is held once met (share of its length from the grip): the middle (the playtest: the
+        /// Large's club, met wherever its long shaft first reached the sword, sat over the hand). The sword slides along
+        /// itself to it as the bind takes hold (<see cref="StrikeHits"/>); placed to meet there, the arm could not reach.
+        /// </summary>
+        public const float HoldAt = 0.5f;
 
         /// <summary>How far the forte may go from its parry's own place to meet the incoming blade's path, and the blade turn from the parry's own way (metres at a Medium's size, degrees).</summary>
         public const float PlaceMost = 0.35f, MostBladeOff = 35f;
@@ -745,6 +752,9 @@ namespace PhysicsBattler.Locomotion
                 float squaring = Mathf.Lerp(1f, NoviceSquare, Lack);
                 wantBlade = Vector3.RotateTowards(wantBlade, square, MostBladeOff * squaring * (parry == Current ? feasible : 1f) * Mathf.Deg2Rad, 0f);
             }
+
+            // (Slid along itself so the blow meets it at its middle (ForteAt): put on the path of the blow's striking point,
+            // the Large's club met it at the hilt, over the hand, its shaft there first.)
 
             // (A novice meets the blow out on its own foible: the whole blade drawn back along itself, the meeting further out.)
             wantForte -= wantBlade * (foibleBy * WeaponLength);

@@ -781,6 +781,15 @@ namespace PhysicsBattler.Locomotion
         {
             dummy?.Destroy();
             dummy = null;
+            // (The parry's reading of each blow, into the session's log: what it read coming, what it took, and how its
+            // read changed as the blow came on; the playtest's own record of a parry that was late or wrong.)
+            SwordParry.Trace = line =>
+            {
+                if (line.StartsWith("blow ", StringComparison.Ordinal))
+                {
+                    legs.Add($"{time:0.00} s: the parry: {line}");
+                }
+            };
             ShowAimMark(false);
             if (course || mediumPrefab == null)
             {

@@ -942,6 +942,15 @@ namespace PhysicsBattler.Locomotion
             float length = Vector3.Distance(dg, dtip);
             float onBlade = Mathf.Clamp01(Vector3.Dot(point - dg, way) / Mathf.Max(0.05f, length));
             float thick = Mathf.Max(0.01f, (Weapon != null ? Weapon.sweepRadius : 0.035f) * Scale) + 0.02f * sz;
+            // (The sword slides along itself at once so the blow sits on its middle: met by the long shaft of a club near
+            // the hilt, over the hand, it is held on the middle instead; the blow stays where it was met.)
+            float toMiddle = Mathf.Clamp(onBlade - SwordParry.HoldAt, -0.35f, 0.35f) * length;
+            if (!glance && Mathf.Abs(toMiddle) > 0.01f)
+            {
+                with.Parry.Sweep(way * toMiddle);
+                onBlade -= toMiddle / Mathf.Max(0.05f, length);
+            }
+
             bindAlongWay = way;
             bindSlideNeed = glance ? (1f - onBlade) * length + thick : 0f;
             Binds++;

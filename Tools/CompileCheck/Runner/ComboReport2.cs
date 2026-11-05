@@ -107,7 +107,18 @@ internal static class StrikeComboReport
                 SwordParry.Trace = line => Console.WriteLine("        parry: " + line);
                 _ = traceFrom;
             }
-            var dummy = new ClipFighter(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, "sns_", physical: false);
+            // (COMBO_PLACE="x,z": the dummy that far to the side and further off (metres), facing the walker; the lab's
+            // combos start from wherever the walker was driven to.)
+            Vector3 dummyAt = new Vector3(0f, 0f, reach);
+            var placeArg = Environment.GetEnvironmentVariable("COMBO_PLACE");
+            if (placeArg != null)
+            {
+                var xz = placeArg.Split(',');
+                dummyAt += new Vector3(float.Parse(xz[0], System.Globalization.CultureInfo.InvariantCulture), 0f, float.Parse(xz[1], System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            float dummyFacing = Mathf.Atan2(-dummyAt.x, -dummyAt.z) * Mathf.Rad2Deg;
+            var dummy = new ClipFighter(droot, droot.GetComponent<UnitRig>(), dprofile, dummyAt, dummyFacing, 0f, "sns_", physical: false);
             if (swordDummy)
             {
                 // (Its sword, as the lab holds it, parrying.)
