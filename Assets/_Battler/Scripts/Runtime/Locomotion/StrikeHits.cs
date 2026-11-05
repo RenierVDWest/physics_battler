@@ -800,7 +800,9 @@ namespace PhysicsBattler.Locomotion
             struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * knock, r.PartShare, r.PoiseDamage * knock, r.Reaction, point, parried);
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
-            HitStop = Mathf.Clamp(0.06f * (0.6f + r.Impulse.magnitude / 40f), 0.04f, 0.1f);
+            // (Longer for a heavier blow (the plan "Weight and momentum", step 3), by its weight: by its momentum, a
+            // sword already held it the most, 0.1 s, as long as the Large's club. The scene's Combat Feel sets it.)
+            HitStop = Mathf.Clamp(CombatFeel.HitStopBase + CombatFeel.HitStopPerWeight * r.Weight * knock, CombatFeel.LeastHitStop, CombatFeel.MostHitStop);
             if (finishing)
             {
                 HitStop = Mathf.Clamp(HitStop * 1.7f, FinisherStop.x, FinisherStop.y);

@@ -346,6 +346,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     soon it peaks) and the older lean and head snap (as multipliers). Added by itself to any scene with the lab in
     it (`Editor/CombatFeelInScene.cs`; also Physics Battler > Add Combat Feel): save the scene once to keep it.
     Headless, its defaults hold. More of the fight's feel joins it as it is made.
+  - Weight in a clean hit (the plan "Weight and momentum", step 3): the hit stop, the drive back and the stumble go
+    by the blow's weight. The hit stop is 0.03 s plus 0.05 s per m/s (0.04 to 0.16 s); the drive back is stronger
+    (3.5, was 2.5) and caps at 2.2 m/s; from 1 m/s of weight the body skips its reaction clip and is thrown back
+    stumbling at once (1.3 times the drive, at most 2.8 m/s), its walk taking the catch steps, and can't strike for
+    0.7 s while it finds its feet. All of these are on Combat Feel ("Hit stop", "Driven back"). Headless (single
+    blows on the open Medium): a Medium's sword stops it 0.05 s and moves it 0.22 m; its club 0.07 s, 0.44 m; the
+    Large's club 0.10 s, 0.97 m, every blow a stumble.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

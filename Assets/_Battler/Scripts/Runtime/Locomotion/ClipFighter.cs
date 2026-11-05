@@ -1050,7 +1050,12 @@ namespace PhysicsBattler.Locomotion
         public bool Striking => (Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0) || (Combo != null && Combo.Playing);
 
         /// <summary>Busy with something it can't break off to strike: a strike, a reaction, down.</summary>
-        public bool Busy => Fallen || Striking || Loco.Current == Locomotor.Mode.OneShot;
+        public bool Busy => Fallen || Striking || Loco.Current == Locomotor.Mode.OneShot || Stumbling;
+
+        /// <summary>Thrown back stumbling and not yet on its feet again (<see cref="CombatFeel.StumbleRecovery"/>): it can't strike.</summary>
+        public bool Stumbling => thrownAt >= 0f && clock - thrownAt < CombatFeel.StumbleRecovery;
+
+        private float thrownAt = -1f;
 
         /// <summary>Where on <paramref name="target"/> a strike goes: its part (hips, chest or face) nearest the height the strike reaches.</summary>
         public Vector3 AimAt(ClipFighter target, LocoClip clip)
@@ -1422,7 +1427,8 @@ namespace PhysicsBattler.Locomotion
         public const float MostPartSpeed = 5f, MostShieldSpeed = 2f;
 
         /// <summary>The most a blow pushes the whole dummy back (m/s).</summary>
-        public const float MostKnock = 2.2f;
+        /// <summary>The most a blow drives the body back (m/s; the scene's Combat Feel sets it).</summary>
+        public static float MostKnock => CombatFeel.MostDrive;
 
         /// <summary>
         /// A blow lands: on <paramref name="part"/>, or on the shield. What the part takes knocks it (its
@@ -1580,6 +1586,13 @@ namespace PhysicsBattler.Locomotion
             string clipName = shield ? null : ReactionClip(part, impulse.magnitude / Mass, reaction);
             var clip = clipName != null ? LocoLibrary.Get(clipName) : null;
             string reacted = null;
+            // (Heavy enough (the plan "Weight and momentum", step 3: the Large's club on a Medium), it is thrown back
+            // stumbling at once, its walk taking the catch steps, no reaction clip to wait out first.)
+            bool stumbles = driven && !shield && !Striking && impulse.magnitude / Mathf.Max(1f, Mass) >= CombatFeel.StumbleFrom;
+            if (stumbles)
+            {
+                clip = null;
+            }
             if (Striking)
             {
                 // Struck in its own strike: as the fight has it, a flinch or a stagger cuts the strike short (it backs
@@ -1612,6 +1625,16 @@ namespace PhysicsBattler.Locomotion
             }
 
             reacted ??= clip != null ? clipName.Replace("sns_impact_", "") + " reaction" : shield ? "the shield knocked back" : "no reaction clip";
+            if (stumbles)
+            {
+                Stumbles++;
+                thrownAt = clock;
+                pendingKnock = Vector3.ClampMagnitude(knock * CombatFeel.StumbleBoost + (pushAt > clock ? pendingKnock : Vector3.zero), CombatFeel.MostStumble);
+                pushAt = clock;
+                LastReaction = $"{(swept.Length > 0 ? swept + "; " : "")}thrown back stumbling at {pendingKnock.magnitude:0.0} m/s";
+                return;
+            }
+
             if (driven)
             {
                 // (Already being carried back: the new blow adds to it now.)
@@ -1669,7 +1692,10 @@ namespace PhysicsBattler.Locomotion
         /// at the fight's own, a Medium's blow on a Medium leaned it 7 to 17 degrees and pushed it 0.2 m/s, and
         /// read as nothing). The fight's own are tuned when the walk joins it (step 8).
         /// </summary>
-        public float ReactScale = 1.8f, KnockScale = 2.5f;
+        public float ReactScale = 1.8f;
+
+        /// <summary>How hard what the struck part doesn't take drives the body back (per m/s of it; the scene's Combat Feel sets it).</summary>
+        public float KnockScale => CombatFeel.DriveBack;
 
         /// <summary>The recoil's swing back (Hz), its damping and the head's; the most it throws the upper body and the head (radians).</summary>
         public const float ReactFrequency = 1.6f, ReactDamping = 0.55f, HeadFrequency = 2.4f, MostLean = 0.6f, MostHeadSnap = 0.7f, Kick = 1.8f;
