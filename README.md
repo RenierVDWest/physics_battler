@@ -338,9 +338,14 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     landed (nothing 1.2 m away at a Medium's size), so the body bends round the blow; out to its peak in 0.07 s and
     back, mostly gone in 0.35 s (`ClipFighter.Bend`). The hips move by theirs as far as both legs still reach their
     planted feet (the knees take it), then the spine, the chest, the head and the arms each turn so the joint they
-    carry goes where its share puts it. How far by the blow's weight (0.18 m per m/s, at most 0.25 m): single blows
-    on a Medium bend it 0.07 m from a Medium's sword, 0.13 from its club, 0.25 from the Large's club (`dummyhits`
+    carry goes where its share puts it. How far by the blow's weight (0.35 m per m/s, at most 0.4 m): single blows
+    on a Medium bend it 0.13 m from a Medium's sword, 0.25 from its club, 0.4 from the Large's club (`dummyhits`
     prints "bent ... at its peak").
+  - Combat Feel (`Locomotion/CombatFeel.cs`): the scene's "Combat Feel" object holds the fight's visual feedback to
+    tweak live, in play mode or out of it: the hit bend (its strength per m/s of weight, its most, its reach, how
+    soon it peaks) and the older lean and head snap (as multipliers). Added by itself to any scene with the lab in
+    it (`Editor/CombatFeelInScene.cs`; also Physics Battler > Add Combat Feel): save the scene once to keep it.
+    Headless, its defaults hold. More of the fight's feel joins it as it is made.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

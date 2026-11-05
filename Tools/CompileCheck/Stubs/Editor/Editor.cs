@@ -146,6 +146,8 @@ namespace UnityEditor.SceneManagement
         public static Scene OpenScene(string scenePath, OpenSceneMode mode = OpenSceneMode.Single) => default;
         public static Scene NewScene(NewSceneSetup setup, NewSceneMode mode = NewSceneMode.Single) => default;
         public static bool MarkSceneDirty(Scene scene) => true;
+        public delegate void SceneOpenedCallback(Scene scene, OpenSceneMode mode);
+        public static event SceneOpenedCallback sceneOpened { add { } remove { } }
         public static bool SaveScene(Scene scene, string dstScenePath = "", bool saveAsCopy = false) => true;
     }
 }

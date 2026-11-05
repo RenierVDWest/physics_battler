@@ -1700,7 +1700,7 @@ namespace PhysicsBattler.Locomotion
             if (axis.sqrMagnitude > 1e-8f)
             {
                 float leverage = Mathf.Clamp(lever.magnitude / leg, 0.2f, 1.4f);
-                float amount = MostLean * Tanh(1.5f * j * leverage / (Mass * leg));
+                float amount = MostLean * Tanh(1.5f * j * leverage / (Mass * leg)) * CombatFeel.LeanScale;
                 leanV += axis.normalized * (amount * Kick * w);
             }
 
@@ -1710,7 +1710,7 @@ namespace PhysicsBattler.Locomotion
                 Vector3 headAxis = Vector3.Cross(headLever, dir);
                 if (headAxis.sqrMagnitude > 1e-8f)
                 {
-                    float snap = MostHeadSnap * Tanh(6f * j / (Mass * leg));
+                    float snap = MostHeadSnap * Tanh(6f * j / (Mass * leg)) * CombatFeel.HeadSnapScale;
                     headV += headAxis.normalized * (snap * Kick * 2f * Mathf.PI * HeadFrequency);
                 }
             }
@@ -1886,9 +1886,16 @@ namespace PhysicsBattler.Locomotion
         /// The bend a blow puts in the body: every part pushed along the blow, the part struck the most and the rest less
         /// the further they are from where it landed, so the body bends round the blow; for a moment, then it
         /// straightens. A pose only, no physics: how far by the blow's weight (m per m/s of it, at most, metres at a
-        /// Medium's size), out to how far from the blow it reaches, how soon it peaks (seconds).
+        /// Medium's size), out to how far from the blow it reaches, how soon it peaks (seconds); the scene's Combat Feel
+        /// sets them (<see cref="CombatFeel"/>).
         /// </summary>
-        public const float BendPerWeight = 0.18f, MostBend = 0.25f, BendReach = 1.2f, BendPeak = 0.07f;
+        private static float BendPerWeight => CombatFeel.BendPerWeight;
+
+        private static float MostBend => CombatFeel.MostBend;
+
+        private static float BendReach => CombatFeel.BendReach;
+
+        private static float BendPeak => CombatFeel.BendPeak;
 
         private struct Impact
         {
