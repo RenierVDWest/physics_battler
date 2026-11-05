@@ -183,7 +183,8 @@ namespace PhysicsBattler.Locomotion
         {
             blade = aim = comesFrom = Vector3.zero;
             var clip = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
-            if (clip == null || clip.ContactFrame < 0 || loco.ShotTime > clip.ContactFrame / clip.Rate + 0.1f || !Blade(clip, out _, out _, out blade))
+            // (A blow already met, set aside or slid off, is no longer coming: backing out it is short of its contact again.)
+            if (clip == null || clip.ContactFrame < 0 || loco.ShotTime > clip.ContactFrame / clip.Rate + 0.1f || (stopped && clip == blow) || !Blade(clip, out _, out _, out blade))
             {
                 return false;
             }
@@ -295,7 +296,8 @@ namespace PhysicsBattler.Locomotion
             read = default;
             var combo = Owner != null ? Owner.Combo : null;
             var now = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
-            if (combo == null || now == null || now.ContactFrame < 0 || loco.ShotTime <= now.ContactFrame / now.Rate
+            // (Past its contact, or met already: a blow set aside or slid off backs out from where it met.)
+            if (combo == null || now == null || now.ContactFrame < 0 || (loco.ShotTime <= now.ContactFrame / now.Rate && !stopped)
                 || !combo.Upcoming(out var clip, out float entry, out float toContact, out Vector3 rootAt, out float facing, out float lunge, out Vector3 pull))
             {
                 return false;
@@ -418,6 +420,13 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            // (Bound to a parrying blade: a clean parry's sweep holds the strike still while it carries the weapon off; a
+            // glance slides it along the blade, its blow tested as it goes.)
+            if (bindWith != null && StepBind(dt))
+            {
+                return;
+            }
+
             if (loco.Current == Locomotor.Mode.OneShot && loco.ShotSpeed > 0f && loco.ShotSpeed < 1f)
             {
                 loco.ShotSpeed = Mathf.MoveTowards(loco.ShotSpeed, 1f, dt / SlowedFor);
@@ -432,8 +441,10 @@ namespace PhysicsBattler.Locomotion
             else if (clip != blow)
             {
                 blow = clip;
+                EndBind();
                 stopped = false;
                 deflectedBy.Clear();
+                spentOn.Clear();
                 momentumLeft = 1f;
                 struckParts.Clear();
                 pausedThisBlow = false;
@@ -454,6 +465,7 @@ namespace PhysicsBattler.Locomotion
 
             bool wasHad = had;
             Vector3 lastG = lastGrip, lastT = lastTip, lastS = lastStrike;
+            int metBefore = Parries + Deflects;
             float shotWas = lastShotTime;
             lastGrip = grip;
             lastTip = tip;
@@ -474,6 +486,36 @@ namespace PhysicsBattler.Locomotion
             float radius = Mathf.Max(0.01f, (Weapon != null ? Weapon.sweepRadius : 0.035f) * Scale);
             float travel = Mathf.Max(Vector3.Distance(grip, lastG), Vector3.Distance(tip, lastT));
             int samples = Mathf.Clamp(Mathf.CeilToInt(travel / (1.5f * radius)), 1, 10);
+            // (A blade the swing crossed between two samples is met all the same: the area the blade swept this step,
+            // against each parrying sword; met at the sample it crossed it by.)
+            ClipFighter crossBody = null;
+            float crossS = 2f, crossOn = 0f;
+            Vector3 crossAt = Vector3.zero;
+            if (live)
+            {
+                foreach (var body in bodies)
+                {
+                    if (body == null || body == Owner || body.Stance != ClipFighter.Stances.Sword || body.Parry == null || deflectedBy.Contains(body))
+                    {
+                        continue;
+                    }
+
+                    body.Parry.BladeNow(out var cg, out var ct);
+                    if (SegmentCrossesTriangle(cg, ct, lastG, lastT, tip, out float on, out Vector3 at) || SegmentCrossesTriangle(cg, ct, lastG, tip, grip, out on, out at))
+                    {
+                        Vector3 m0 = 0.5f * (lastG + lastT), m1 = 0.5f * (grip + tip);
+                        float sw = Mathf.Clamp01(Vector3.Dot(at - m0, m1 - m0) / Mathf.Max(1e-8f, (m1 - m0).sqrMagnitude));
+                        if (sw < crossS)
+                        {
+                            crossS = sw;
+                            crossBody = body;
+                            crossOn = on;
+                            crossAt = at;
+                        }
+                    }
+                }
+            }
+
             for (int i = 1; i <= samples; i++)
             {
                 float s = i / (float)samples;
@@ -506,6 +548,14 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
+                if (parrier == null && crossBody != null && s >= crossS - 1e-4f)
+                {
+                    parrier = crossBody;
+                    parryAt = crossAt;
+                    lastParryOn = crossOn;
+                    parryAlong = Mathf.Clamp01(Vector3.Dot(crossAt - a, b - a) / Mathf.Max(1e-8f, (b - a).sqrMagnitude));
+                }
+
                 foreach (var collider in Physics.OverlapCapsule(a, b, radius, ~0, QueryTriggerInteraction.Collide))
                 {
                     foreach (var body in bodies)
@@ -523,7 +573,7 @@ namespace PhysicsBattler.Locomotion
 
                         if (body.PartOf(collider, out var id))
                         {
-                            if (!(live && struckParts.Contains((body, id))))
+                            if (!(live && (struckParts.Contains((body, id)) || spentOn.Contains(body))))
                             {
                                 found.Add((body, collider, id, false, AlongBlade(collider, a, b)));
                             }
@@ -582,9 +632,84 @@ namespace PhysicsBattler.Locomotion
 
                 // (Where in this step it met it: a stopped blow is put back there.)
                 float met = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
+                CountPassing(bodies, lastG, lastT, grip, tip, striking, live, metBefore);
                 Strike(clip, f.body, f.part, f.shield, f.collider.ClosestPoint(0.5f * (a + b)), speed, direction, met);
                 return;
             }
+
+            CountPassing(bodies, lastG, lastT, grip, tip, striking, live, metBefore);
+        }
+
+        /// <summary>
+        /// Steps in which the blade swept through another's sword without meeting it (the plan "Parries that divert",
+        /// step 1): the area it swept this step against each sword. In a blow's live moments, and outside them (its
+        /// wind-up, its recovery). What the bind is to bring to none.
+        /// </summary>
+        public int PassedThroughLive, PassedThroughOutside;
+
+        private void CountPassing(IReadOnlyList<ClipFighter> bodies, Vector3 g0, Vector3 t0, Vector3 g1, Vector3 t1, bool striking, bool live, int metBefore)
+        {
+            if (!striking || Parries + Deflects != metBefore)
+            {
+                return;
+            }
+
+            foreach (var body in bodies)
+            {
+                if (body == null || body == Owner || body.Stance != ClipFighter.Stances.Sword || body.Parry == null)
+                {
+                    continue;
+                }
+
+                body.Parry.BladeNow(out var dg, out var dt2);
+                if (SegmentCrossesTriangle(dg, dt2, g0, t0, t1) || SegmentCrossesTriangle(dg, dt2, g0, t1, g1))
+                {
+                    if (live)
+                    {
+                        PassedThroughLive++;
+                    }
+                    else
+                    {
+                        PassedThroughOutside++;
+                    }
+                }
+            }
+        }
+
+        /// <summary>Whether the segment p to q passes through the triangle a, b, c (Moller and Trumbore).</summary>
+        public static bool SegmentCrossesTriangle(Vector3 p, Vector3 q, Vector3 a, Vector3 b, Vector3 c) => SegmentCrossesTriangle(p, q, a, b, c, out _, out _);
+
+        /// <summary>The same, with where along the segment (0 to 1) and the point it crosses at.</summary>
+        public static bool SegmentCrossesTriangle(Vector3 p, Vector3 q, Vector3 a, Vector3 b, Vector3 c, out float along, out Vector3 at)
+        {
+            along = 0f;
+            at = Vector3.zero;
+            Vector3 d = q - p, e1 = b - a, e2 = c - a;
+            Vector3 h = Vector3.Cross(d, e2);
+            float det = Vector3.Dot(e1, h);
+            if (Mathf.Abs(det) < 1e-9f)
+            {
+                return false;
+            }
+
+            float inv = 1f / det;
+            Vector3 s0 = p - a;
+            float u = inv * Vector3.Dot(s0, h);
+            if (u < 0f || u > 1f)
+            {
+                return false;
+            }
+
+            Vector3 qv = Vector3.Cross(s0, e1);
+            float v = inv * Vector3.Dot(d, qv);
+            if (v < 0f || u + v > 1f)
+            {
+                return false;
+            }
+
+            along = inv * Vector3.Dot(e2, qv);
+            at = p + d * along;
+            return along >= 0f && along <= 1f;
         }
 
         /// <summary>A touch outside a blow: what the blade touches is pushed by the weapon's weight at its speed.</summary>
@@ -675,13 +800,37 @@ namespace PhysicsBattler.Locomotion
                 // Glanced off the dummy's blade: on, slowed, its hand jolted; the sweep goes on to what lies beyond.
                 momentumLeft = Mathf.Min(momentumLeft, GlanceLeft);
                 loco.ShotSpeed = Mathf.Max(0.3f, GlanceLeft);
-                poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.12f, 1.5f));
+                // (Back to where the blades met and held there: the bind slides it on along the blade, past its point.)
+                loco.WindBack(met);
+                poser.Pose(1e-4f);
+                loco.ShotSpeed = 0f;
+                stopped = true;
+                StartBind(struck, point, speed, direction, parryAlong, true);
                 what = $"glanced off the sword ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
                 HitStop = Mathf.Min(HitStop, 0.04f);
             }
             else if ((r.StopsSwing && !(comboing && !shield)) || parried)
             {
                 stopped = true;
+                // (A clean parry ends the combo: its next blow doesn't come.)
+                if (parried && Owner != null && Owner.Combo != null && Owner.Combo.Playing)
+                {
+                    Owner.Combo.Stop();
+                    ComboEnded++;
+                }
+
+                if (parried && !loco.ShotAirborne())
+                {
+                    // Set aside (the plan "Parries that divert"): back to where the blades met, held there through the
+                    // hit stop; then the parrying sword sweeps it off the body at the blow's own speed, the two blades
+                    // together, and only then does it back out. A clean parry ends the combo.
+                    loco.WindBack(met);
+                    poser.Pose(1e-4f);
+                    loco.ShotSpeed = 0f;
+                    StartBind(struck, point, speed, direction, parryAlong, false);
+                }
+                else
+                {
                 // (The blades or the shield meet: the attacker's hand thrown back along the blow, its arm taking it.)
                 poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.25f, 3f));
                 // Back to where the weapon met it, shown through the hit stop; then it backs out a little. A jumping
@@ -698,6 +847,8 @@ namespace PhysicsBattler.Locomotion
                     poser.Pose(1e-4f);
                     loco.CutShort(RewindMost, ReboundSpeed);
                 }
+                }
+
                 what = parried ? $"parried by the sword ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
                     : shield ? (struck.ShieldGlance > 0.25f ? "blocked by the shield, turned aside" : "blocked by the shield, square on") : "stopped in the " + Name(part);
                 if (shield && !parried)
@@ -734,6 +885,133 @@ namespace PhysicsBattler.Locomotion
             return n.EndsWith("L") ? "left " + n.Substring(0, n.Length - 1).ToLowerInvariant()
                 : n.EndsWith("R") ? "right " + n.Substring(0, n.Length - 1).ToLowerInvariant()
                 : n.ToLowerInvariant();
+        }
+
+        // ---- The bind (the plan "Parries that divert") --------------------------------------------------------
+
+        private ClipFighter bindWith;
+        private bool bindGlance;
+        private float bindSpeed, bindNeed, bindCarried, bindSlid, bindTime, bindAttackAlong;
+        private Vector3 bindOut;
+
+        /// <summary>A bind lasts at most this long (seconds), whatever is left of its sweep or its slide.</summary>
+        public const float MostBind = 0.25f;
+
+        /// <summary>A clean parry carries the blow out to this far beyond the parrying body's middle (metres at a Medium's size: half its width and a margin), at least this much, at most this much.</summary>
+        public const float SetAsideTo = 0.4f, LeastSetAside = 0.1f;
+
+        /// <summary>Binds begun; blows set aside (a clean parry's sweep); blows slid off the point (a glance); combos a clean parry ended.</summary>
+        public int Binds, SetAside, SlidOff, ComboEnded;
+
+        /// <summary>Bound to a parrying blade now.</summary>
+        public bool Bound => bindWith != null;
+
+        /// <summary>
+        /// The blades met on <paramref name="with"/>'s sword at <paramref name="point"/>: from here they stay together.
+        /// The way out is square to its blade, away from its chest through where they met: where a sweep carries a
+        /// blow off the body. A clean parry is carried out that way until the blow is past the body; a glance slides on
+        /// along the blade to its point, never through it.
+        /// </summary>
+        private void StartBind(ClipFighter with, Vector3 point, float speed, Vector3 direction, float attackAlong, bool glance)
+        {
+            if (with == null || with.Parry == null)
+            {
+                return;
+            }
+
+            with.Parry.BladeNow(out var dg, out var dtip);
+            Vector3 way = (dtip - dg).normalized;
+            Vector3 chest = with.Anim.Part(PartId.Chest).position;
+            // (Out the side of the blade the blow came in from, which is the side the weapon is on: pushed the other
+            // way it would be driven through the blade. Turned toward away from the chest as far as that side allows.)
+            Vector3 back = Vector3.ProjectOnPlane(-direction, way);
+            back = back.sqrMagnitude > 1e-8f ? back.normalized : Vector3.up;
+            Vector3 away = Vector3.ProjectOnPlane(point - chest, way);
+            away = away.sqrMagnitude > 1e-8f ? away.normalized : back;
+            Vector3 both = back + 0.5f * away;
+            bindOut = both.sqrMagnitude > 1e-6f && Vector3.Dot(both.normalized, back) > 0.3f ? both.normalized : back;
+            bindWith = with;
+            bindGlance = glance;
+            bindSpeed = Mathf.Max(2f, speed);
+            float sz = with.Size;
+            bindNeed = Mathf.Clamp(SetAsideTo * sz - Vector3.Dot(point - chest, bindOut), LeastSetAside * sz, SetAsideTo * sz);
+            bindCarried = bindSlid = bindTime = 0f;
+            bindAttackAlong = Mathf.Clamp01(attackAlong);
+            // (A glance slides on along the blade, out past its point: from where they met to the point and the
+            // weapon's own thickness beyond.)
+            float length = Vector3.Distance(dg, dtip);
+            float onBlade = Mathf.Clamp01(Vector3.Dot(point - dg, way) / Mathf.Max(0.05f, length));
+            float thick = Mathf.Max(0.01f, (Weapon != null ? Weapon.sweepRadius : 0.035f) * Scale) + 0.02f * sz;
+            bindAlongWay = way;
+            bindSlideNeed = glance ? (1f - onBlade) * length + thick : 0f;
+            Binds++;
+        }
+
+        /// <summary>
+        /// One step of the bind; true while it holds the strike, so nothing else is tested. The strike is held where the
+        /// blades met and its weapon moved only by the bind, at the blow's own speed: a clean parry's sweep carries it
+        /// out off the body, then it backs out; a glance carries it out and on along the blade past its point, then
+        /// plays on from there, slowed, still carried off line until its live moments are over.
+        /// </summary>
+        private bool StepBind(float dt)
+        {
+            bindTime += dt;
+            if (bindWith == null || bindWith.Parry == null || bindWith.Fallen)
+            {
+                EndBind();
+                return false;
+            }
+
+            float step = bindSpeed * dt;
+            float by = Mathf.Min(step, bindNeed - bindCarried);
+            bindCarried += by;
+            if (by > 0f)
+            {
+                bindWith.Parry.Sweep(bindOut * by);
+            }
+
+            bindSlid = Mathf.Min(bindSlideNeed, bindSlid + step);
+            poser.Bind(bindOut * bindCarried + bindAlongWay * bindSlid);
+            bool done = (bindCarried >= bindNeed - 1e-4f && bindSlid >= bindSlideNeed - 1e-4f) || bindTime >= MostBind;
+            if (!done)
+            {
+                return true;
+            }
+
+            var with = bindWith;
+            if (!bindGlance)
+            {
+                SetAside++;
+                EndBind();
+                poser.KnockHand(bindOut * Mathf.Min(bindSpeed * 0.1f, 1.5f));
+                loco.CutShort(RewindMost, ReboundSpeed);
+                return true;
+            }
+
+            // (Slid off its point: spent on the one it slid off, it backs out as a stopped blow does. Played on, its
+            // swing carried it back across the blade it had slid off. A glance doesn't end the combo: its next blow comes.)
+            SlidOff++;
+            spentOn.Add(with);
+            EndBind();
+            loco.CutShort(RewindMost, ReboundSpeed);
+            return true;
+        }
+
+        /// <summary>The bodies this blow was set aside by: it lands on nothing of theirs any more.</summary>
+        private readonly HashSet<ClipFighter> spentOn = new HashSet<ClipFighter>();
+
+        private float bindSlideNeed;
+        private Vector3 bindAlongWay;
+
+        private void EndBind()
+        {
+            if (bindWith != null && bindWith.Parry != null)
+            {
+                bindWith.Parry.EndSweep();
+            }
+
+            poser.LetGo();
+            bindWith = null;
         }
 
         /// <summary>The last parry: the angle the blades crossed at (degrees, 0 to 90), and where on each it met (0 the hilt's end, 1 the tip).</summary>

@@ -298,6 +298,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     it, up to 0.12 m at full knock). Giving ground (`ClipFighter.GiveGround`) is a last resort for an arm 0.05 s late:
     given at any lateness it stepped away from where the arm put the sword. Headless (`combos`, expert sword): the
     Medium's 42 blows 26 parried, 7 glanced, 9 through (was 20, 8, 13); the Large's club 9 of 9 parried.
+  - Parries that divert (the plan "Parries that divert: research and plan", steps 1 to 4): the blades meet and stay
+    together, and the parry turns the blow aside; nothing passes through the sword. The meeting covers the whole
+    area the attacker's blade swept in a step, so a fast club can't cross the sword between samples. At contact
+    the strike is put back to where the blades met and held there (`StrikeHits` bind; `LocoBody.Bind` holds the
+    weapon hand off its clip). A clean parry then sweeps it out off the body at the blow's own speed
+    (`SwordParry.Sweep`), the two blades together, out to 0.4 m beyond the body's middle; then it backs out, and a
+    clean parry ends the combo. A glance carries it out and along the sword past its point, then it backs out; its
+    combo goes on, and the blow is spent on that body. Two point-down parries for blows below the knees (under
+    0.6 m at a Medium's size): low prime over the left leg, low seconde over the right. The read-ahead counts a met
+    blow's next one as starting at once (a met blow takes up the next as it backs out). Headless (`combos`,
+    `COMBO_TARGET=legs` for leg-aimed runs; each run reports the steps the blade went through the sword unmet):
+    such steps 97 to 4 in 18 runs; the Large's club met by every skill; the expert lets 4 of the Medium's 25
+    blows through (was 9 of 42) and 3 of the Small's 14 (was 23 of 41).
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

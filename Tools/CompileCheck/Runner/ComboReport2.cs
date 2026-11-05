@@ -170,6 +170,12 @@ internal static class StrikeComboReport
                 // (Each strike at the dummy's part nearest its own reach's height.)
                 TargetFor = clip =>
                 {
+                    // (COMBO_TARGET=legs: every blow at the knees, the low blows the parry must meet too.)
+                    if (Environment.GetEnvironmentVariable("COMBO_TARGET") == "legs")
+                    {
+                        return dummy.TargetAt(-1);
+                    }
+
                     float h = 1.3f * size;
                     if (StrikeReach.TryGet(body, clip.Name, out var g, out var w))
                     {
@@ -371,6 +377,7 @@ internal static class StrikeComboReport
             Console.WriteLine("    played: " + string.Join(" > ", playedNames) + (player.Ended.Length > 0 ? $" (ended: {player.Ended})" : ""));
             passed.Add((aimNearest * 100f).ToString("0", ci) + " cm");
             Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)) + "; the blades passed their aim points by " + string.Join(", ", passed) + (dummy.Retires > 0 ? $"; the dummy gave ground {dummy.Retires} times" : ""));
+            Console.WriteLine(string.Format(ci, "    through the dummy's sword without meeting it: {0} steps in the blows, {1} outside them", hits.PassedThroughLive, hits.PassedThroughOutside));
             Console.WriteLine(string.Format(ci, "    the attacker's root at most {0:0.0} m/s ({1}), its chest {2:0.0} m/s ({3})", fastestRoot, fastestRootAt, fastestChest, fastestChestAt));
             if (hitTimes.Count > 1)
             {

@@ -55,6 +55,10 @@ namespace PhysicsBattler.Locomotion
             new Position("low quarte", new Vector3(0.15f, 0.95f, 0.30f), new Vector3(-0.5f, 0.75f, 0.15f), new Vector3(-0.3f, -0.2f, 0.9f), -10f, -8f, 6f),
             new Position("septime", new Vector3(0.00f, 0.95f, 0.35f), new Vector3(-0.2f, -0.6f, 0.75f), Vector3.left, -20f, -15f, 10f),
             new Position("octave", new Vector3(0.15f, 1.00f, 0.40f), new Vector3(0.3f, -0.75f, 0.55f), Vector3.right, 0f, 8f, 8f),
+            // (The plan "Parries that divert": point down along a leg, for a blow below the knees, the blade hanging
+            // nearly straight to the ground. Low prime over the left leg, the lead leg, low seconde over the right.)
+            new Position("low prime", new Vector3(-0.15f, 0.92f, 0.35f), new Vector3(-0.15f, -1f, 0.25f), Vector3.left, 110f, -15f, 12f),
+            new Position("low seconde", new Vector3(0.30f, 0.90f, 0.35f), new Vector3(0.15f, -1f, 0.25f), Vector3.right, 40f, 12f, 12f),
         };
 
         /// <summary>Our Medium against a real one (the positions are a real body's; the parryreach study scaled them so).</summary>
@@ -149,6 +153,24 @@ namespace PhysicsBattler.Locomotion
         {
             forte += by;
         }
+
+        /// <summary>
+        /// The set-aside (the plan "Parries that divert"): the forte carried this much further at once, the blade with
+        /// it, the blow it is bound to carried along. Held there, not eased back to the parry, until <see cref="EndSweep"/>.
+        /// </summary>
+        public void Sweep(Vector3 by)
+        {
+            forte += by;
+            sweeping = true;
+        }
+
+        /// <summary>The sweep over: the sword goes back to its parry at the hand's own speed.</summary>
+        public void EndSweep() => sweeping = false;
+
+        /// <summary>Sweeping a blow aside (<see cref="Sweep"/>).</summary>
+        public bool Sweeping => sweeping;
+
+        private bool sweeping;
         private Vector3 misread, heldLand, heldMotion;
         private bool wrongPick, readHeld, playsOn = true;
 
@@ -306,13 +328,14 @@ namespace PhysicsBattler.Locomotion
             if (landPart != 0 && y < 1.0f)
             {
                 // (A leg first: its own side's low parry.)
-                return landPart < 0 ? 10 : (y >= 0.6f ? 7 : 11);
+                // (Below the knee, point down along it.)
+                return landPart < 0 ? (y >= KneeLine ? 10 : 12) : (y >= KneeLine ? 7 : 13);
             }
 
             if (blow.Thrust)
             {
                 outside = x > 0.05f;
-                return y >= 1.45f ? (x < -0.1f ? 1 : 2) : y >= 0.95f ? (outside ? 3 : 4) : (outside ? 11 : 10);
+                return y >= 1.45f ? (x < -0.1f ? 1 : 2) : y >= 0.95f ? (outside ? 3 : 4) : y >= KneeLine ? (outside ? 11 : 10) : (outside ? 13 : 12);
             }
 
             if (y >= 1.5f)
@@ -342,8 +365,11 @@ namespace PhysicsBattler.Locomotion
                 return outside ? 8 : 9;
             }
 
-            return outside ? (y >= 0.6f ? 7 : 11) : 10;
+            return y >= KneeLine ? (outside ? 7 : 10) : (outside ? 13 : 12);
         }
+
+        /// <summary>Below this height a blow is met point down along the leg (metres at a Medium's size: about its knees).</summary>
+        public const float KneeLine = 0.6f;
 
         /// <summary>
         /// One step, after the body is posed (the guard clip's arms on it): the trunk turned, and the sword arm set to
@@ -367,7 +393,7 @@ namespace PhysicsBattler.Locomotion
         public static float CrossOut = 0.45f;
 
         /// <summary>The parries for each line a blow lands in (indices into <see cref="Parries"/>): the head's, the body's, the hips' and legs'.</summary>
-        private static readonly int[] HighLine = { 0, 1, 2, 5, 6 }, MiddleLine = { 2, 3, 4, 5, 6, 7, 8, 9 }, LowLine = { 3, 4, 7, 8, 9, 10, 11 };
+        private static readonly int[] HighLine = { 0, 1, 2, 5, 6 }, MiddleLine = { 2, 3, 4, 5, 6, 7, 8, 9 }, LowLine = { 3, 4, 7, 8, 9, 10, 11, 12, 13 };
 
         /// <summary>The least way along the attacker's blade (grip to tip) a clean parry takes it.</summary>
         public static float TheirsFrom = 0.25f;
@@ -646,7 +672,10 @@ namespace PhysicsBattler.Locomotion
                 ? (wantForte - forte).magnitude / Mathf.Max(0.1f, HandSpeed * quick * Pace * size) - toLandNow
                 : 0f;
             toLandNow = -1f;
-            forte += Vector3.ClampMagnitude((wantForte - forte) * close, HandSpeed * quick * Pace * size * dt);
+            if (!sweeping)
+            {
+                forte += Vector3.ClampMagnitude((wantForte - forte) * close, HandSpeed * quick * Pace * size * dt);
+            }
             swivel += Mathf.Clamp(Mathf.DeltaAngle(swivel, wantSwivel) * close, -SwivelSpeed * quick * Pace * dt, SwivelSpeed * quick * Pace * dt);
             turn += Mathf.Clamp((wantTurn - turn) * close, -TrunkSpeed * dt, TrunkSpeed * dt);
             lean += Mathf.Clamp((wantLean - lean) * close, -TrunkSpeed * dt, TrunkSpeed * dt);

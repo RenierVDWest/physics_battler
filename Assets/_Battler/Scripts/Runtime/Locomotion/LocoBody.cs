@@ -139,6 +139,7 @@ namespace PhysicsBattler.Locomotion
             rootTurnLeft *= Mathf.Exp(-dt / Mathf.Max(1e-3f, RootTurnEase));
             HeldArms();
             StepHandKnock(dt);
+            StepBind(dt);
             UpdateAimWeights(dt);
             // The feet first (the hips drop for them).
             UpdateFeet(dt);
@@ -539,10 +540,11 @@ namespace PhysicsBattler.Locomotion
                 target += aimPull * AimWeight() + pullLeft * pullLeftWeight;
             }
 
-            // (A knock on the weapon: the hand thrown, the elbow giving.)
+            // (A knock on the weapon: the hand thrown, the elbow giving. Bound to a parrying blade: held off its clip
+            // so its weapon stays on that blade.)
             if (right || TwoHanded)
             {
-                target += handKnock;
+                target += handKnock + bindOffset;
             }
 
             pole = SteadyElbow(a, pole, upper.position, target);
@@ -1155,6 +1157,36 @@ namespace PhysicsBattler.Locomotion
         public void KnockHand(Vector3 velocity)
         {
             handKnockV += velocity;
+        }
+
+        /// <summary>
+        /// The weapon held on a blade it is bound to (the plan "Parries that divert"): the weapon hand moved this far
+        /// off where its clip puts it (world) for as long as the bind lasts; let go, it eases back to the clip.
+        /// </summary>
+        public void Bind(Vector3 offset)
+        {
+            bindOffset = offset;
+            bound = true;
+        }
+
+        /// <summary>The bind over: the hand eases back to its clip (most of the way in <see cref="BindLetGo"/> times three).</summary>
+        public void LetGo() => bound = false;
+
+        /// <summary>The hand held off its clip by a bind (world).</summary>
+        public Vector3 BindOffset => bindOffset;
+
+        /// <summary>How fast a let-go hand eases back to its clip (seconds, the e-folding).</summary>
+        public const float BindLetGo = 0.08f;
+
+        private Vector3 bindOffset;
+        private bool bound;
+
+        private void StepBind(float dt)
+        {
+            if (!bound)
+            {
+                bindOffset *= Mathf.Exp(-dt / BindLetGo);
+            }
         }
 
         private void StepHandKnock(float dt)

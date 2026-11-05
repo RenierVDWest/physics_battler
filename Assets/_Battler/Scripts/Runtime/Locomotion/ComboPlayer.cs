@@ -230,15 +230,19 @@ namespace PhysicsBattler.Locomotion
             clip = chain[next].To;
             entry = nextCore.Entry;
             float pace = Mathf.Max(0.05f, loco.TimeScale);
-            float untilExit = Mathf.Max(0f, core.Exit - loco.ShotTime) / (Mathf.Max(0.3f, loco.ShotRate) * pace);
+            // (A blow met, held in its bind or backing out of it, takes its next one up at once, from where it is.)
+            bool met = loco.ShotSpeed <= 0f;
+            float from = met ? Mathf.Min(loco.ShotTime, core.Exit) : core.Exit;
+            float untilExit = met ? 0f : Mathf.Max(0f, core.Exit - loco.ShotTime) / (Mathf.Max(0.3f, loco.ShotRate) * pace);
             // (Its chamber quickened from s down to its own pace: on average (2s + 1) / 3 times as fast.)
             float chamber = StrikeCombos.CoreChamberSpeed(nextCore.Lead);
             toContact = untilExit + nextCore.Lead / ((2f * chamber + 1f) / 3f * pace);
-            if (upcomingFrom != current || upcomingTo != clip)
+            if (upcomingFrom != current || upcomingTo != clip || Mathf.Abs(upcomingAt - from) > 0.02f)
             {
                 upcomingFrom = current;
                 upcomingTo = clip;
-                upcomingMeet = StrikeCombos.Meet(current, core.Exit, clip, entry);
+                upcomingAt = from;
+                upcomingMeet = StrikeCombos.Meet(current, from, clip, entry);
             }
 
             float scale = loco.Leg / 0.845f;
@@ -279,6 +283,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         private LocoClip upcomingFrom, upcomingTo;
+        private float upcomingAt;
         private StrikeLink upcomingMeet;
 
         /// <summary>A follow-on turns the body at most this much onto its target in its wind-up (degrees): past it, another is taken.</summary>
