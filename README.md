@@ -333,6 +333,14 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     0.37 m/s (median), its club 0.65, the Large's club 1.24; the Large's club through a body 0 times (was 10).
     The Large's combos on the open dummy now land 2 of 3: its backhand, stopped, hasn't turned the body as its
     sweep through did, and the forehand after it needs a 67 degree turn (60 at most).
+  - The impact's bend (the playtest): every blow on the body bends it for a moment, a pose only, no physics. Each
+    part is pushed along the blow, the part struck the most and the rest less the further they are from where it
+    landed (nothing 1.2 m away at a Medium's size), so the body bends round the blow; out to its peak in 0.07 s and
+    back, mostly gone in 0.35 s (`ClipFighter.Bend`). The hips move by theirs as far as both legs still reach their
+    planted feet (the knees take it), then the spine, the chest, the head and the arms each turn so the joint they
+    carry goes where its share puts it. How far by the blow's weight (0.18 m per m/s, at most 0.25 m): single blows
+    on a Medium bend it 0.07 m from a Medium's sword, 0.13 from its club, 0.25 from the Large's club (`dummyhits`
+    prints "bent ... at its peak").
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

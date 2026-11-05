@@ -1535,6 +1535,11 @@ namespace PhysicsBattler.Locomotion
             // so a kick on the physical part alone hardly shows.
             float react = (reaction == Combat.Reaction.Stagger ? 1.6f : reaction == Combat.Reaction.Flinch ? 1.25f : 1f) * ReactScale;
             Recoil(impulse, point, shield ? PartId.HandL : part, shield ? 0.6f * react : react);
+            if (!shield)
+            {
+                AddImpact(point, impulse);
+            }
+
             var armRegion = shield ? BodyRegion.ArmL : AuthorityController.RegionOf(part);
             if (armRegion == BodyRegion.ArmL || armRegion == BodyRegion.ArmR)
             {
@@ -1855,6 +1860,8 @@ namespace PhysicsBattler.Locomotion
                 head.rotation = Quaternion.AngleAxis(headSnap.magnitude * Mathf.Rad2Deg, headSnap.normalized) * head.rotation;
             }
 
+            Bend(dt);
+
             for (int a = 0; a < 2; a++)
             {
                 if (knock[a].sqrMagnitude < 1e-8f && knockTurn[a].sqrMagnitude < 1e-8f)
@@ -1871,6 +1878,162 @@ namespace PhysicsBattler.Locomotion
                 TwoBoneIK.Solve(upper, fore, hand, hand.position + knock[a], pole);
                 hand.rotation = keep;
             }
+        }
+
+        // ---- The impact's bend (the playtest: the blow's force felt through the body) ---------------------------
+
+        /// <summary>
+        /// The bend a blow puts in the body: every part pushed along the blow, the part struck the most and the rest less
+        /// the further they are from where it landed, so the body bends round the blow; for a moment, then it
+        /// straightens. A pose only, no physics: how far by the blow's weight (m per m/s of it, at most, metres at a
+        /// Medium's size), out to how far from the blow it reaches, how soon it peaks (seconds).
+        /// </summary>
+        public const float BendPerWeight = 0.18f, MostBend = 0.25f, BendReach = 1.2f, BendPeak = 0.07f;
+
+        private struct Impact
+        {
+            public Vector3 At, Way;
+            public float X, V;
+        }
+
+        private readonly List<Impact> impacts = new List<Impact>(4);
+
+        /// <summary>How far the last blow's bend went at its peak (metres), for the logs.</summary>
+        public float LastBend { get; private set; }
+
+        private void AddImpact(Vector3 point, Vector3 impulse)
+        {
+            float weight = impulse.magnitude / Mathf.Max(1f, Mass);
+            float peak = Mathf.Min(BendPerWeight * weight, MostBend) * Size;
+            if (peak < 0.005f)
+            {
+                return;
+            }
+
+            Vector3 way = impulse;
+            way.y *= 0.3f;
+            way = way.sqrMagnitude > 1e-8f ? way.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+            if (impacts.Count >= 4)
+            {
+                impacts.RemoveAt(0);
+            }
+
+            // (Out to its peak at BendPeak and back: a critically damped spring set off at the speed that peaks there.)
+            float w = 1f / BendPeak;
+            impacts.Add(new Impact { At = point, Way = way, X = 0f, V = peak * w * Mathf.Exp(1f) });
+            LastBend = peak;
+        }
+
+        /// <summary>Where the bend puts a point of the body (world): every blow's push there, by how near it is to where the blow landed.</summary>
+        private Vector3 BendAt(Vector3 point)
+        {
+            Vector3 d = Vector3.zero;
+            float reach = BendReach * Size;
+            foreach (var i in impacts)
+            {
+                d += i.Way * (i.X * Mathf.Max(0f, 1f - Vector3.Distance(point, i.At) / reach));
+            }
+
+            return d;
+        }
+
+        /// <summary>
+        /// The bend on the posed body: the hips moved by theirs with the feet kept where they stand (the knees taking it),
+        /// then the spine, the chest, the head and the arms each turned so its end goes where its share puts it.
+        /// </summary>
+        private void Bend(float dt)
+        {
+            if (impacts.Count == 0)
+            {
+                return;
+            }
+
+            float w = 1f / BendPeak;
+            bool any = false;
+            for (int k = impacts.Count - 1; k >= 0; k--)
+            {
+                var i = impacts[k];
+                float decay = Mathf.Exp(-w * dt);
+                float c = i.V + w * i.X;
+                float nx = (i.X + c * dt) * decay;
+                i.V = (i.V - c * (w * dt)) * decay;
+                i.X = nx;
+                if (i.X < 1e-4f && i.V <= 0f)
+                {
+                    impacts.RemoveAt(k);
+                    continue;
+                }
+
+                impacts[k] = i;
+                any = true;
+            }
+
+            if (!any)
+            {
+                return;
+            }
+
+            // (Where each joint was, posed, and where the bend wants it: the bend is of the pose as it stood.)
+            var pelvis = Anim.Part(PartId.Pelvis);
+            Vector3[] feet = { Anim.Part(PartId.FootL).position, Anim.Part(PartId.FootR).position };
+            Quaternion[] feetTurn = { Anim.Part(PartId.FootL).rotation, Anim.Part(PartId.FootR).rotation };
+            Vector3[] knees = { Anim.Part(PartId.ShinL).position, Anim.Part(PartId.ShinR).position };
+            Vector3 headTipWas = Anim.Part(PartId.Head).position + Anim.Part(PartId.Head).up * (0.2f * Size);
+            var chain = new[] { PartId.Spine, PartId.Chest, PartId.Head, PartId.UpperArmL, PartId.ForearmL, PartId.HandL, PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
+            var was = new Vector3[chain.Length];
+            for (int k = 0; k < chain.Length; k++)
+            {
+                was[k] = Anim.Part(chain[k]).position;
+            }
+
+            Vector3 Want(int k) => was[k] + BendAt(was[k]);
+
+            // The hips, as far as both legs still reach their feet from there (a leg near straight dragged its planted
+            // foot after them), and the legs under them to where the feet stand.
+            Vector3 hipShift = BendAt(pelvis.position);
+            for (int l = 0; l < 2; l++)
+            {
+                var thigh = Anim.Part(l == 0 ? PartId.ThighL : PartId.ThighR);
+                var shin = Anim.Part(l == 0 ? PartId.ShinL : PartId.ShinR);
+                float leg = 0.98f * (Vector3.Distance(thigh.position, shin.position) + Vector3.Distance(shin.position, feet[l]));
+                float now = Vector3.Distance(thigh.position, feet[l]);
+                for (int k = 0; k < 6 && Vector3.Distance(thigh.position + hipShift, feet[l]) > Mathf.Max(leg, now); k++)
+                {
+                    hipShift *= 0.5f;
+                }
+            }
+
+            pelvis.position += hipShift;
+            for (int l = 0; l < 2; l++)
+            {
+                var thigh = Anim.Part(l == 0 ? PartId.ThighL : PartId.ThighR);
+                var shin = Anim.Part(l == 0 ? PartId.ShinL : PartId.ShinR);
+                var foot = Anim.Part(l == 0 ? PartId.FootL : PartId.FootR);
+                Vector3 knee = knees[l] + BendAt(knees[l]);
+                Vector3 pole = knee - 0.5f * (thigh.position + feet[l]);
+                TwoBoneIK.Solve(thigh, shin, foot, feet[l], pole.sqrMagnitude > 1e-8f ? pole : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+                foot.rotation = feetTurn[l];
+            }
+
+            // Each bone turned about its own joint so the joint it carries goes where the bend wants it.
+            void Aim(PartId bone, Vector3 end, Vector3 want)
+            {
+                var t = Anim.Part(bone);
+                Vector3 from = end - t.position, to = want - t.position;
+                if (from.sqrMagnitude > 1e-8f && to.sqrMagnitude > 1e-8f)
+                {
+                    t.rotation = Quaternion.FromToRotation(from, to) * t.rotation;
+                }
+            }
+
+            Aim(PartId.Spine, Anim.Part(PartId.Chest).position, Want(1));
+            Aim(PartId.Chest, Anim.Part(PartId.Head).position, Want(2));
+            var head = Anim.Part(PartId.Head);
+            Aim(PartId.Head, head.position + head.up * (0.2f * Size), headTipWas + BendAt(headTipWas));
+            Aim(PartId.UpperArmL, Anim.Part(PartId.ForearmL).position, Want(4));
+            Aim(PartId.ForearmL, Anim.Part(PartId.HandL).position, Want(5));
+            Aim(PartId.UpperArmR, Anim.Part(PartId.ForearmR).position, Want(7));
+            Aim(PartId.ForearmR, Anim.Part(PartId.HandR).position, Want(8));
         }
 
         /// <summary>The body parts where the animation rig has them (kinematic).</summary>
