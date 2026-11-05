@@ -261,6 +261,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     sword of anyone's the blade meets, each body's parts struck once a blow, its own never). The walker doesn't
     defend yet (`Defends`), since nothing strikes it; the dummy keeps its lab-only spot and training-post switch.
     Nothing plays differently: headless, every combo, strike, skill and walk figure is unchanged.
+  - Both fight back (step 2). The dummy strikes the walker: Z a strike, Shift+Z a combo, and with "Fights back"
+    (the Defender section, on by default) it answers each of the walker's strikes or combos 0.45 s after it ends,
+    every third answer a combo. It picks one of its strikes that lands from where it stands
+    (`ClipFighter.StrikeThatLands`: the blade within 10 cm of its aim, the turn, lunge and arm's pull taken), aimed
+    at the walker's part nearest the strike's height (`AimAt`), and plays it (`StrikeAt`, `ComboAt`). The walker now
+    defends as its loadout has it, at its own skill (the Attacker section's − and +, 0.5 to start): the shield
+    blocks, a sword alone parries, a club or bare hands take the blows. It reacts and is driven back as the dummy
+    is; a blow that lands on it is not a bump (no knock-down from it). Either one's hit stop holds both. A sword
+    fighter's parry stands down while it strikes with that sword (it had kept posing the arm, and fought the
+    strike's), and takes the arm up again from where the strike leaves it (`SwordParry.Resync`); its arms and trunk
+    are faded into the strike's over 0.2 s (`ClipFighter.HandOffOver`), the free arm back to its tuck over 0.3 s.
+    Headless: `spar <dir> [s]` (two Mediums trade blows, `SPAR_A`/`SPAR_B` open, shield or sword, `SPAR_SKILL`):
+    blows land, are blocked and parried both ways; no hand faster than a swing's 22 m/s.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

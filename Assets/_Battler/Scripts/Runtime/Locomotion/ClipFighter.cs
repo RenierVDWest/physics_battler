@@ -717,6 +717,19 @@ namespace PhysicsBattler.Locomotion
             {
                 want = away * Mathf.Clamp((StandDistance - apart) * 2.5f, 0.35f, 1.2f) * Mathf.Sqrt(Size);
             }
+
+            // (Its own blows: a strike turns the body as it was aimed, and a combo pressing after the one it drove back
+            // walks it in.)
+            if (Combo != null && Combo.Pressing)
+            {
+                want = Combo.Want;
+                yaw = Combo.WantFacing;
+            }
+            else if (Striking)
+            {
+                want = Vector3.zero;
+                yaw = Loco.Facing;
+            }
         }
 
         /// <summary>
@@ -773,6 +786,13 @@ namespace PhysicsBattler.Locomotion
                 Combo.Step(dt);
             }
 
+            // (Its own strike taking the sword arm from the parry: the parry's arms and trunk, as they were last step,
+            // faded into the strike's, not dropped in a frame.)
+            if (Defends && stance == Stances.Sword && Parry != null && Striking && !parryWaited)
+            {
+                CaptureHandOff();
+            }
+
             // (A strike alone follows its target too, as far as its pull goes.)
             if (Follow != null && (Combo == null || !Combo.Playing) && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0)
             {
@@ -784,6 +804,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             Poser.Pose(dt);
+            HandOff(dt);
             if (!Defends)
             {
                 return;
@@ -791,8 +812,22 @@ namespace PhysicsBattler.Locomotion
 
             if (stance == Stances.Sword && Parry != null)
             {
-                Parry.Skill = ParrySkill;
-                Parry.Step(dt, Blow, opponent);
+                if (Striking)
+                {
+                    // (Its own strike has the sword arm: the parry waits, and takes it up from where the strike leaves it.)
+                    parryWaited = true;
+                }
+                else
+                {
+                    if (parryWaited)
+                    {
+                        Parry.Resync();
+                        parryWaited = false;
+                    }
+
+                    Parry.Skill = ParrySkill;
+                    Parry.Step(dt, Blow, opponent);
+                }
             }
             else
             {
@@ -890,14 +925,186 @@ namespace PhysicsBattler.Locomotion
         public StrikeHits EnableStrikes(Combat.WeaponDefinition weapon)
         {
             Strikes = new StrikeHits(Loco, Poser, Anim) { Weapon = weapon, Scale = Size, Slot = Authority != null ? Rig.SlotWeaponR : null, Mass = Mass, Owner = this };
+            StrikeClips = StrikesOf(Poser.BodyKey);
+            Strikes.Finishing = () => Combo != null && Combo.LastBlow;
+            Strikes.Comboing = () => Combo != null && Combo.Playing && Combo.Cores;
             return Strikes;
         }
 
         /// <summary>
-        /// It meets the blows coming at it and reacts to those that land (the dummy's way; the lab's walker, which
-        /// nothing strikes yet, doesn't: its pose is the clip's and nothing else).
+        /// It meets the blows coming at it and reacts to those that land (off: its pose is the clip's and nothing else,
+        /// as the lab's walker was before anything struck back).
         /// </summary>
         public bool Defends = true;
+
+        /// <summary>A strike lands when its blade passes within this of its aim from where the body stands, the arm's pull taken (leg lengths... a Medium's metres).</summary>
+        public const float LandsNear = 0.1f;
+
+        /// <summary>The strikes a body knows (its clips with the strike role, as <see cref="LocoLibrary.StrikeFor"/> allows it).</summary>
+        public static List<LocoClip> StrikesOf(string body)
+        {
+            string prefix = LocoLibrary.CombatPrefix(body);
+            var names = new List<string>();
+            foreach (var pair in LocoLibrary.Clips)
+            {
+                if (pair.Value.IsGuard && pair.Value.Role == "strike" && pair.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, pair.Key))
+                {
+                    names.Add(pair.Key);
+                }
+            }
+
+            names.Sort(string.CompareOrdinal);
+            var strikes = new List<LocoClip>();
+            foreach (var name in names)
+            {
+                strikes.Add(LocoLibrary.Get(name));
+            }
+
+            return strikes;
+        }
+
+        /// <summary>Its strikes (<see cref="StrikesOf"/> its body, set by <see cref="EnableStrikes"/>).</summary>
+        public List<LocoClip> StrikeClips = new List<LocoClip>();
+
+        /// <summary>A strike is under way: one playing up to its end, or a combo.</summary>
+        public bool Striking => (Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0) || (Combo != null && Combo.Playing);
+
+        /// <summary>Busy with something it can't break off to strike: a strike, a reaction, down.</summary>
+        public bool Busy => Fallen || Striking || Loco.Current == Locomotor.Mode.OneShot;
+
+        /// <summary>Where on <paramref name="target"/> a strike goes: its part (hips, chest or face) nearest the height the strike reaches.</summary>
+        public Vector3 AimAt(ClipFighter target, LocoClip clip)
+        {
+            float h = target.TargetAt(1).y;
+            if (clip != null && StrikeReach.TryGet(Poser.BodyKey, clip.Name, out var grip, out var way))
+            {
+                h = (grip + way * (Poser.WeaponLength * Poser.SweetSpot)).y + Poser.GroundY;
+            }
+
+            int best = 0;
+            for (int k = 1; k < 3; k++)
+            {
+                if (Mathf.Abs(target.TargetAt(k).y - h) < Mathf.Abs(target.TargetAt(best).y - h))
+                {
+                    best = k;
+                }
+            }
+
+            return target.TargetAt(best);
+        }
+
+        /// <summary>Its lunges and its hand kept off <paramref name="target"/>'s body: no nearer it than the fighting distance.</summary>
+        public void KeepOff(ClipFighter target)
+        {
+            Poser.KeepFrom = target != null ? target.Loco.Position : (Vector3?)null;
+            Poser.KeepDistance = target != null ? FightingDistance(Size, target.Size) : 0f;
+        }
+
+        private readonly System.Random strikeLuck = new System.Random(20261105);
+
+        /// <summary>
+        /// A strike of its own that lands on <paramref name="target"/> from where it stands (its blade within
+        /// <see cref="LandsNear"/> of the aim, the turn, lunge and arm's pull taken), one of them by chance; null when none
+        /// reaches.
+        /// </summary>
+        public LocoClip StrikeThatLands(ClipFighter target)
+        {
+            if (target == null || StrikeClips.Count == 0)
+            {
+                return null;
+            }
+
+            KeepOff(target);
+            var landing = new List<LocoClip>();
+            foreach (var clip in StrikeClips)
+            {
+                if (Poser.MissAfterPull(clip, AimAt(target, clip)) <= LandsNear * Size)
+                {
+                    landing.Add(clip);
+                }
+            }
+
+            return landing.Count > 0 ? landing[strikeLuck.Next(landing.Count)] : null;
+        }
+
+        /// <summary>Plays <paramref name="clip"/> at <paramref name="target"/> (aimed at its part nearest the strike's height); a strike alone.</summary>
+        public Vector3 StrikeAt(ClipFighter target, LocoClip clip)
+        {
+            KeepOff(target);
+            Vector3 at = AimAt(target, clip);
+            Poser.PlayStrike(clip, at);
+            return at;
+        }
+
+        /// <summary>
+        /// Plays the combo <paramref name="first"/> is in at <paramref name="target"/> (Bam! Bam! BAM!: <paramref name="variant"/>
+        /// picks among its combos as good as its best), each blow aimed at its part nearest the strike's height. Its
+        /// combo player is made the first time. False when it has no follow-on: then nothing plays.
+        /// </summary>
+        public bool ComboAt(ClipFighter target, LocoClip first, int variant, out LocoClip opener, out List<StrikeLink> chain)
+        {
+            opener = first;
+            chain = first != null && first.ContactFrame >= 0 ? StrikeCombos.CoreChain(first, StrikeClips, 3, variant) : new List<StrikeLink>();
+            if (target == null || chain.Count == 0)
+            {
+                return false;
+            }
+
+            if (Combo == null)
+            {
+                Combo = new ComboPlayer(Loco, Poser) { Strikes = StrikeClips };
+            }
+
+            Combo.TargetFor = clip => AimAt(target, clip);
+            Combo.TargetVelocity = () => target.Loco.Velocity;
+            KeepOff(target);
+            Combo.Keep = first;
+            opener = chain[0].From;
+            Combo.Start(opener, chain);
+            return true;
+        }
+
+        private bool parryWaited;
+
+        /// <summary>How long a pose handed over to the strike's (the parry's arms and trunk) takes to fade out (seconds).</summary>
+        public const float HandOffOver = 0.2f;
+
+        private static readonly PartId[] HandOffParts =
+            { PartId.Spine, PartId.Chest, PartId.UpperArmL, PartId.ForearmL, PartId.HandL, PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
+
+        private readonly Quaternion[] handOff = new Quaternion[8];
+        private float handOffLeft;
+
+        private void CaptureHandOff()
+        {
+            for (int i = 0; i < HandOffParts.Length; i++)
+            {
+                handOff[i] = Anim.Part(HandOffParts[i]).localRotation;
+            }
+
+            handOffLeft = HandOffOver;
+        }
+
+        private void HandOff(float dt)
+        {
+            if (handOffLeft <= 0f)
+            {
+                return;
+            }
+
+            float u = handOffLeft / HandOffOver;
+            float w = u * u * (3f - 2f * u);
+            for (int i = 0; i < HandOffParts.Length; i++)
+            {
+                var part = Anim.Part(HandOffParts[i]);
+                part.localRotation = Quaternion.Slerp(part.localRotation, handOff[i], w);
+            }
+
+            handOffLeft = Mathf.Max(0f, handOffLeft - dt);
+        }
+
+        /// <summary>How long since a blow last landed on it (seconds).</summary>
+        public float SinceStruck => clock - lastHit;
 
         /// <summary>
         /// The shield meeting the blow: blocking (and, by half, in its guard) it watches the striker's weapon from the

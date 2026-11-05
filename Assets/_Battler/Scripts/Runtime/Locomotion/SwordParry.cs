@@ -84,7 +84,7 @@ namespace PhysicsBattler.Locomotion
         private readonly float size;
         public float WeaponLength;
 
-        private bool started, handKnown;
+        private bool started, handKnown, resyncElbow;
         private Vector3 forte;
         private Quaternion handRot, heldHand;
         private float swivel, elbow, turn, lean, sinceBlow = 99f;
@@ -427,6 +427,29 @@ namespace PhysicsBattler.Locomotion
 
         private static string V(Vector3 v) => $"({v.x:0.00},{v.y:0.00},{v.z:0.00})";
 
+        /// <summary>
+        /// The sword arm was the fighter's own a while (a strike of its own, posed by its clip): the parry takes it up
+        /// again from where the strike left it (the blade, the hand's turn, the trunk's), not from where it let go of it,
+        /// which would whip the arm back there.
+        /// </summary>
+        public void Resync()
+        {
+            var hand = anim.Part(PartId.HandR);
+            var slot = anim.SlotWeaponR;
+            Vector3 grip = slot != null ? slot.position : hand.position;
+            Vector3 blade = slot != null ? slot.rotation * Vector3.forward : hand.rotation * Vector3.forward;
+            forte = grip + blade.normalized * (ForteAt * WeaponLength);
+            handRot = heldHand = hand.rotation;
+            turn = lean = 0f;
+            lastForte = forte;
+            lastForteKnown = true;
+            lastUpperArm = Quaternion.Inverse(anim.Part(PartId.Chest).rotation) * (anim.Part(PartId.ForearmR).position - anim.Part(PartId.UpperArmR).position);
+            lastSlot = slot != null ? slot.position : Vector3.zero;
+            started = true;
+            resyncElbow = handKnown;
+            tucked = 0f;
+        }
+
         public void Step(float dt, BlowRead? blow, Vector3 opponent)
         {
             var bodyTurn = BodyTurn;
@@ -583,7 +606,7 @@ namespace PhysicsBattler.Locomotion
             chest.rotation = Quaternion.AngleAxis(0.55f * turn, up) * Quaternion.AngleAxis(0.55f * lean, right) * chest.rotation;
             head.rotation = Quaternion.Slerp(head.rotation, headWas, 0.8f);
 
-            TuckFreeArm(bodyTurn);
+            TuckFreeArm(bodyTurn, dt);
             SolveArm(dt, close, wantBlade, wantEdge);
             PushedOffOpponent(opponent, dt);
         }
@@ -986,13 +1009,22 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Where the free (left) hand is kept: behind the left hip, the elbow out and back (the sabreur's off hand, out of the way of blows).</summary>
         public static readonly Vector3 FreeHand = new Vector3(-0.12f, 1.0f, -0.22f);
 
-        private void TuckFreeArm(Quaternion bodyTurn)
+        /// <summary>How long the free arm takes to go back to its tuck after the fighter's own strike had it (seconds).</summary>
+        public const float TuckBackOver = 0.3f;
+
+        private float tucked = 1f;
+
+        private void TuckFreeArm(Quaternion bodyTurn, float dt)
         {
             var upper = anim.Part(PartId.UpperArmL);
             var fore = anim.Part(PartId.ForearmL);
             var handL = anim.Part(PartId.HandL);
             var keep = handL.rotation;
-            TwoBoneIK.Solve(upper, fore, handL, World(FreeHand), bodyTurn * new Vector3(-1f, -0.6f, -0.5f));
+            // (Eased back from where its own strike left it, not snapped there.)
+            tucked = Mathf.MoveTowards(tucked, 1f, dt / TuckBackOver);
+            float ease = tucked * tucked * (3f - 2f * tucked);
+            Vector3 tuck = World(FreeHand);
+            TwoBoneIK.Solve(upper, fore, handL, ease >= 1f ? tuck : Vector3.Lerp(handL.position, tuck, ease), bodyTurn * new Vector3(-1f, -0.6f, -0.5f));
             handL.rotation = keep;
         }
 
@@ -1056,10 +1088,11 @@ namespace PhysicsBattler.Locomotion
 
             handRot = Quaternion.RotateTowards(handRot, target, Mathf.Min(Quaternion.Angle(handRot, target) * close, BladeTurnSpeed * Pace * dt));
             var keep = ArmRig.Solve(anim, true, Goal(handRot, swivel, 1f), torso, apply: false);
-            if (!handKnown)
+            if (!handKnown || resyncElbow)
             {
                 elbow = keep.swivel;
                 handKnown = true;
+                resyncElbow = false;
             }
 
             elbow += Mathf.Clamp(Mathf.DeltaAngle(elbow, keep.swivel) * close, -SwivelSpeed * Pace * dt, SwivelSpeed * Pace * dt);
