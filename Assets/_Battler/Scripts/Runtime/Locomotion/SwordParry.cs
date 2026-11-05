@@ -64,6 +64,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Our Medium against a real one (the positions are a real body's; the parryreach study scaled them so).</summary>
         public const float BodyScale = 0.9f;
 
+        /// <summary>What it parries with, for the logs ("sword"; a one-handed club parries as a sword does: "club").</summary>
+        public string WeaponName = "sword";
+
         /// <summary>Where the forte is along the blade (share of its length from the grip), where the parry is placed to meet the blow.</summary>
         public const float ForteAt = 0.3f;
 

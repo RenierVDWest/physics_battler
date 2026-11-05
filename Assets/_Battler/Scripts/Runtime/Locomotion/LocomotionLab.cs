@@ -137,9 +137,12 @@ namespace PhysicsBattler.Locomotion
             walker.ShieldColliders.Clear();
             HoldFor(walker, rig.SlotWeaponR, anim.SlotWeaponR, main, main != null && !main.IsShield ? UnitController.MainGrip : Quaternion.identity);
             HoldFor(walker, rig.SlotWeaponL, anim.SlotWeaponL, off, off != null && off.IsShield ? UnitController.ShieldGrip : Quaternion.identity);
-            // (Its defence, as its loadout has it: a shield blocks; a sword alone parries; a club or bare hands, none yet.)
+            // (Its defence, as its loadout has it: a shield blocks; a sword or a club in one hand alone parries, the free
+            // hand tucked out of the way (the playtest: the Large's club alone guarded as if behind an unseen shield);
+            // bare hands, none yet.)
+            bool oneHanded = main != null && (main.kind == WeaponKind.Sword || main.kind == WeaponKind.Club) && !LocoLibrary.TwoHanded(body.ToString());
             walker.Stance = off != null && off.IsShield ? ClipFighter.Stances.Shield
-                : main != null && main.kind == WeaponKind.Sword ? ClipFighter.Stances.Sword : ClipFighter.Stances.Open;
+                : oneHanded && off == null ? ClipFighter.Stances.Sword : ClipFighter.Stances.Open;
             walker.ShieldSkill = walkerShieldSkill;
             walker.ParrySkill = walkerParrySkill;
             poser.CarryR = main == null ? LocoBody.Carry.Free : main.IsShield ? LocoBody.Carry.Shield : LocoBody.Carry.Weapon;
@@ -153,6 +156,11 @@ namespace PhysicsBattler.Locomotion
             poser.TwoHanded = LocoLibrary.TwoHanded(body.ToString());
             film.ShieldRadius = off != null && off.IsShield ? 0.3f * scale : 0f;
             Streak(rig.SlotWeaponR, main, scale);
+            // (One weapon alone: its parry from the start, so its free hand is tucked away even with no dummy to face;
+            // the dummy's making gives it the dummy to keep out of.)
+            walker.Parry = walker.Stance == ClipFighter.Stances.Sword
+                ? new SwordParry(anim, loco, rig, size, poser.WeaponLength) { WeaponName = main != null && main.kind == WeaponKind.Club ? "club" : "sword" }
+                : null;
         }
 
         /// <summary>How the blades' streaks look (every streak shares it: the panel's switch and length change it live).</summary>
@@ -856,6 +864,7 @@ namespace PhysicsBattler.Locomotion
                 // (The walker's own sword parry, against the dummy: its body, its shield, its sword as they keep out of it.)
                 walker.Parry = new SwordParry(anim, loco, rig, size, poser.WeaponLength)
                 {
+                    WeaponName = mainWeapon != null && mainWeapon.kind == WeaponKind.Club ? "club" : "sword",
                     Opponent = new OpponentShape(dummy.Anim, dummy.Size, dummyStance == ClipFighter.Stances.Shield ? dummyRig.SlotWeaponL : null, 0.27f)
                     {
                         WeaponSlot = dummyRig.SlotWeaponR, WeaponLength = swordLength,

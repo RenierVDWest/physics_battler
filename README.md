@@ -314,7 +314,11 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     of the blade (`SwordParry.HoldAt`): met wherever it first touches (the Large's long club near the hilt, over
     the hand), the sword slides along itself at once so the blow sits on its middle, then sweeps. The lab writes
     the parry's read of each blow into the session log ("the parry: blow N: ..."); `combos` takes
-    `COMBO_PLACE=x,z` to start the dummy off to the side and further away.
+    `COMBO_PLACE=x,z` to start the dummy off to the side and further away. A fighter with one weapon alone, a club
+    as much as a sword, takes the sword-only stance: its free hand tucked out of the way and its weapon parrying
+    (the playtest: the Large's club alone guarded as if behind an unseen shield); the logs name the weapon
+    ("parried by the club"). Headless: `spar` with `SPAR_A=club` (a Large with its club): the expert parries 8 of
+    the Medium's 9 blows with its club.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

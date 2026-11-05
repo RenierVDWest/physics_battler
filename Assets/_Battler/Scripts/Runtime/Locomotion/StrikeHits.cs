@@ -806,7 +806,7 @@ namespace PhysicsBattler.Locomotion
                 loco.ShotSpeed = 0f;
                 stopped = true;
                 StartBind(struck, point, speed, direction, parryAlong, true);
-                what = $"glanced off the sword ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
+                what = $"glanced off the {struck.Parry.WeaponName} ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
                 HitStop = Mathf.Min(HitStop, 0.04f);
             }
             else if ((r.StopsSwing && !(comboing && !shield)) || parried)
@@ -849,7 +849,7 @@ namespace PhysicsBattler.Locomotion
                 }
                 }
 
-                what = parried ? $"parried by the sword ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
+                what = parried ? $"parried by the {struck.Parry.WeaponName} ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
                     : shield ? (struck.ShieldGlance > 0.25f ? "blocked by the shield, turned aside" : "blocked by the shield, square on") : "stopped in the " + Name(part);
                 if (shield && !parried)
                 {

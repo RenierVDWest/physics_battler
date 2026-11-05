@@ -2,7 +2,7 @@
 // until a strike of its own lands, then the two take turns, each striking at the other with a strike that lands from
 // where it stands (every third turn a combo), each meeting the other's blows with its shield or sword. Not physical
 // (the bodies carried to their poses), as the other lab runners are.
-// SPAR_A / SPAR_B: open | shield | sword (each one's defence, default shield); SPAR_SKILL: both one's skill (default 0.5).
+// SPAR_A / SPAR_B: open | shield | sword | club (each one's defence, default shield; club: a Large with its club alone); SPAR_SKILL: both one's skill (default 0.5).
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -30,6 +30,7 @@ internal static class SparReport
             {
                 f.Parry = new SwordParry(f.Anim, f.Loco, f.Rig, f.Size, f.Poser.WeaponLength)
                 {
+                    WeaponName = f.Strikes != null && f.Strikes.Weapon != null && f.Strikes.Weapon.kind == WeaponKind.Club ? "club" : "sword",
                     Opponent = new OpponentShape(other.Anim, other.Size, other.Stance == ClipFighter.Stances.Shield ? other.Rig.SlotWeaponL : null, 0.27f)
                     {
                         WeaponSlot = other.Anim.SlotWeaponR, WeaponLength = other.Poser.WeaponLength,
@@ -219,18 +220,21 @@ internal static class SparReport
     /// <summary>A Medium with a sword, and a shield (a board on its left slot, as dummyhits gives it) unless it defends open or with the sword.</summary>
     private static ClipFighter Fighter(string name, string stance, Vector3 at, float facing, float skill)
     {
-        var rigFile = RigFile.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "_Battler/Data/Rigs/medium_rig.json")));
+        // ("club": a Large with its club alone, parrying with it, its free hand tucked, as the lab arms it.)
+        bool club = stance == "club";
+        string bodyName = club ? "Large" : "Medium";
+        var rigFile = RigFile.Parse(File.ReadAllText(Path.Combine(Application.dataPath, $"_Battler/Data/Rigs/{bodyName.ToLowerInvariant()}_rig.json")));
         var profile = UnitProfile.CreateDefault();
-        profile.body = "Medium";
+        profile.body = bodyName;
         var root = UnitBuilder.Build(rigFile, profile, name, _ => null, name == "A" ? 0 : 1);
-        var kind = stance == "sword" ? ClipFighter.Stances.Sword : stance == "open" ? ClipFighter.Stances.Open : ClipFighter.Stances.Shield;
-        var f = new ClipFighter(root, root.GetComponent<UnitRig>(), profile, at, facing, 0f, "sns_", physical: false);
-        f.Poser.BodyKey = "Medium";
+        var kind = stance == "sword" || club ? ClipFighter.Stances.Sword : stance == "open" ? ClipFighter.Stances.Open : ClipFighter.Stances.Shield;
+        var f = new ClipFighter(root, root.GetComponent<UnitRig>(), profile, at, facing, 0f, LocoLibrary.CombatPrefix(bodyName), physical: false);
+        f.Poser.BodyKey = bodyName;
         f.Rig.SlotWeaponR.localRotation = UnitController.MainGrip;
         f.Anim.SlotWeaponR.localRotation = UnitController.MainGrip;
         f.Poser.CarryR = LocoBody.Carry.Weapon;
         f.Poser.BladeR = UnitController.MainGrip * Vector3.forward;
-        var sword = WeaponDefinition.CreateDefault(WeaponKind.Sword);
+        var sword = WeaponDefinition.CreateDefault(club ? WeaponKind.Club : WeaponKind.Sword);
         f.Poser.WeaponLength = sword.length * f.Size;
         if (kind == ClipFighter.Stances.Shield)
         {
