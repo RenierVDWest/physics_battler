@@ -232,6 +232,7 @@ namespace PhysicsBattler.Locomotion
         private Quaternion shieldMisline = Quaternion.identity;
         private bool coversLow = true, shieldReadHeld;
         private float lastComing = -1f, shieldReread, shieldSpeedNow, backIn;
+        private int lastShieldSerial = -1;
 
         /// <summary>Blows its shield has read (for the logs).</summary>
         public int ShieldBlowsRead;
@@ -660,10 +661,10 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>Where to strike it, low, in the middle or high (0, 1, 2): its hips, the middle of its chest, its face; at its legs (-1): its knees.</summary>
         public Vector3 TargetAt(int height) =>
-            height < 0 ? 0.5f * (PartAt(PartId.ShinL) + PartAt(PartId.ShinR))
+            (height < 0 ? 0.5f * (PartAt(PartId.ShinL) + PartAt(PartId.ShinR))
             : height == 0 ? PartAt(PartId.Pelvis)
             : height == 1 ? 0.5f * (PartAt(PartId.Spine) + PartAt(PartId.Chest))
-            : PartAt(PartId.Head) + Vector3.up * (0.08f * Size);
+            : PartAt(PartId.Head) + Vector3.up * (0.08f * Size)) - Voided;
 
         private float BasePin(BodyRegion region) =>
             region == BodyRegion.ArmL || region == BodyRegion.ArmR ? profile.armPin : profile.torsoPin;
@@ -793,6 +794,8 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            GiveGround(dt);
+
             // (Too near the other body: it steps back to the fighting distance, as anyone would.)
             Vector3 fromOpponent = Loco.Position - opponent;
             fromOpponent.y = 0f;
@@ -843,6 +846,8 @@ namespace PhysicsBattler.Locomotion
 
             if (stance == Stances.Sword && Parry != null)
             {
+                // (The body's sway first, then the parry solved on it: swayed after, the sword went off its line.)
+                React(dt);
                 if (Striking)
                 {
                     // (Its own strike has the sword arm: the parry waits, and takes it up from where the strike leaves it.)
@@ -858,14 +863,15 @@ namespace PhysicsBattler.Locomotion
 
                     Parry.Skill = ParrySkill;
                     Parry.Step(dt, Blow, opponent);
+                    MaybeRetire(opponent);
                 }
             }
             else
             {
                 RaiseShield(dt, opponent);
+                React(dt);
             }
 
-            React(dt);
             Recover(dt);
             Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
         }
@@ -1097,6 +1103,79 @@ namespace PhysicsBattler.Locomotion
 
         private bool parryWaited;
 
+        // ---- Giving ground (the weight plan's step 1: a parry that can't get there in time steps back to meet it) ----
+
+        /// <summary>
+        /// How far it steps back to a blow its parry can't reach in time (metres at a Medium's size: a novice's, an
+        /// expert's), and how fast the step is snapped in (m/s), as the combo's magnet snaps the attacker in. A combo's
+        /// next blow comes into view only 0.15 to 0.3 s before its contact, often on the other side: no arm gets a sword
+        /// from a high parry to a low one in that.
+        /// </summary>
+        public const float NoviceRetire = 0.25f, ExpertRetire = 0.45f, RetireSpeed = 4f;
+
+        /// <summary>
+        /// It gives ground only when its sword arm would be this late to the blow (seconds): a last resort. Given at the
+        /// least lateness, every fresh parry stepped away from where its arm was putting the sword, and the arm, overreached,
+        /// let more blows through (the Medium's combos: 22 parried and 11 through against 26 and 9).
+        /// </summary>
+        public const float RetireLate = 0.05f;
+
+        /// <summary>How far it has stepped back from where the blow coming was aimed (world): the blow is still aimed there (<see cref="TargetAt"/>), a step back not being a body driven off by a blow that the attacker follows.</summary>
+        public Vector3 Voided { get; private set; }
+
+        private Vector3 retireLeft;
+        private int retiredFor = -1, voidedFor = -1;
+
+        /// <summary>Fighters step back to a blow they can't meet in time (the lab's and the runners' switch).</summary>
+        public static bool GivesGround = true;
+
+        /// <summary>Times it stepped back to meet a blow (for the logs).</summary>
+        public int Retires;
+
+        private void MaybeRetire(Vector3 opponent)
+        {
+            if (!GivesGround || !Blow.HasValue || Parry == null || Anchored || retiredFor == Blow.Value.Serial || Parry.Late <= RetireLate)
+            {
+                return;
+            }
+
+            // (An expert always gives the ground it needs; a novice only now and then, and less of it.)
+            retiredFor = Blow.Value.Serial;
+            float lack = 1f - Mathf.Clamp01(ParrySkill) * Mathf.Clamp01(ParrySkill);
+            if (strikeLuck.NextDouble() < lack)
+            {
+                return;
+            }
+
+            Vector3 away = Loco.Position - opponent;
+            away.y = 0f;
+            away = away.sqrMagnitude > 1e-4f ? away.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+            retireLeft = away * (Mathf.Lerp(ExpertRetire, NoviceRetire, lack) * Size);
+            voidedFor = Blow.Value.Serial;
+            Retires++;
+            // (The walk steps after it, as a body driven back does.)
+            if (Loco.Current != Locomotor.Mode.OneShot)
+            {
+                Loco.Push(away * (0.6f * Mathf.Sqrt(Size)));
+            }
+        }
+
+        private void GiveGround(float dt)
+        {
+            if (retireLeft.sqrMagnitude > 1e-8f)
+            {
+                Vector3 move = Vector3.ClampMagnitude(retireLeft, RetireSpeed * Mathf.Sqrt(Size) * dt);
+                Loco.Position += move;
+                retireLeft -= move;
+                Voided += move;
+            }
+            else if (!Blow.HasValue || Blow.Value.Serial != voidedFor)
+            {
+                // (The blow it gave ground to is over: the next is aimed at where it stands now.)
+                Voided = Vector3.zero;
+            }
+        }
+
         /// <summary>How long a pose handed over to the strike's (the parry's arms and trunk) takes to fade out (seconds).</summary>
         public const float HandOffOver = 0.2f;
 
@@ -1150,8 +1229,9 @@ namespace PhysicsBattler.Locomotion
             blockWeight = 0f;
             float lack = ShieldLack;
             float coming = Blow.HasValue ? Blow.Value.Coming : -1f;
-            if (Blow.HasValue && (lastComing < 0f || coming < lastComing - 0.05f))
+            if (Blow.HasValue && Blow.Value.Serial != lastShieldSerial)
             {
+                lastShieldSerial = Blow.Value.Serial;
                 NewShieldBlow();
                 incomingFor = 0f;
             }
@@ -1325,7 +1405,7 @@ namespace PhysicsBattler.Locomotion
 
             if (sword)
             {
-                KnockArm(0, impulse, point);
+                KnockSword(impulse, point);
             }
             else if (shield)
             {
@@ -1389,7 +1469,7 @@ namespace PhysicsBattler.Locomotion
                 Parries++;
                 Blocks++;
                 Recoil(impulse, point, PartId.HandR, 0.4f * ReactScale);
-                KnockArm(0, impulse, point);
+                KnockSword(impulse, point);
                 Poise = Mathf.Max(0f, Poise - poiseDamage);
                 Vector3 push = impulse * KnockScale / Mass;
                 push.y = 0f;
@@ -1585,6 +1665,36 @@ namespace PhysicsBattler.Locomotion
                     headV += headAxis.normalized * (snap * Kick * 2f * Mathf.PI * HeadFrequency);
                 }
             }
+        }
+
+        /// <summary>
+        /// The sword met by a blow: parrying, the knock goes into the parry (its hand driven back along the blow, coming
+        /// back at the hand's pace), so the sword stays the parry's; put on the pose after it, the knock moved the blade
+        /// off the line the next blow comes on. Otherwise the arm is knocked as any arm is.
+        /// </summary>
+        private void KnockSword(Vector3 impulse, Vector3 point)
+        {
+            if (stance != Stances.Sword || Parry == null)
+            {
+                KnockArm(0, impulse, point);
+                return;
+            }
+
+            float j = impulse.magnitude;
+            if (j < 1e-4f)
+            {
+                return;
+            }
+
+            float armMass = 0f;
+            foreach (var id in new[] { PartId.UpperArmR, PartId.ForearmR, PartId.HandR })
+            {
+                var body = Rig.Part(id).body;
+                armMass += body != null ? body.mass : 0f;
+            }
+
+            float hard = Tanh(j / (Mathf.Max(1f, armMass + 3f) * 3f * Mathf.Sqrt(Size)));
+            Parry.Knock(impulse / j * (MostArmKnock * Size * hard));
         }
 
         /// <summary>A struck arm (or the shield it holds) knocked aside and turned, then back.</summary>

@@ -207,6 +207,80 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The strike picked for the combo: never swapped for another as it goes.</summary>
         public LocoClip Keep;
 
+        /// <summary>
+        /// The blow it takes up next, as the one it strikes at can see it coming (the weight plan's step 1). Taken up at
+        /// its core's entry, a combo's next blow comes into view only 0.15 to 0.3 s before its contact, often on the other
+        /// side, but a fighter reads it coming out of the last one's follow-through. Its clip, where its core is taken
+        /// up, how long until its contact (seconds as they pass), and its plan as the strike will be played: the root (the
+        /// link's, stepped in) and facing (turned onto its target) it plays from, the lunge's stretch, and the arm's pull
+        /// (world) as far as it goes. False when none is planned (or it is not a combo of cores).
+        /// </summary>
+        public bool Upcoming(out LocoClip clip, out float entry, out float toContact, out Vector3 rootAt, out float facing, out float lunge, out Vector3 pull)
+        {
+            clip = null;
+            entry = toContact = facing = 0f;
+            lunge = 1f;
+            rootAt = pull = Vector3.zero;
+            if (!Cores || current == null || next >= chain.Count || played >= Most || loco.Current != Locomotor.Mode.OneShot || loco.Shot != current
+                || !StrikeCores.TryGet(current, out var core) || !StrikeCores.TryGet(chain[next].To, out var nextCore))
+            {
+                return false;
+            }
+
+            clip = chain[next].To;
+            entry = nextCore.Entry;
+            float pace = Mathf.Max(0.05f, loco.TimeScale);
+            float untilExit = Mathf.Max(0f, core.Exit - loco.ShotTime) / (Mathf.Max(0.3f, loco.ShotRate) * pace);
+            // (Its chamber quickened from s down to its own pace: on average (2s + 1) / 3 times as fast.)
+            float chamber = StrikeCombos.CoreChamberSpeed(nextCore.Lead);
+            toContact = untilExit + nextCore.Lead / ((2f * chamber + 1f) / 3f * pace);
+            if (upcomingFrom != current || upcomingTo != clip)
+            {
+                upcomingFrom = current;
+                upcomingTo = clip;
+                upcomingMeet = StrikeCombos.Meet(current, core.Exit, clip, entry);
+            }
+
+            float scale = loco.Leg / 0.845f;
+            facing = loco.Facing + upcomingMeet.Turn;
+            rootAt = loco.Position + Quaternion.Euler(0f, loco.Facing, 0f) * upcomingMeet.Shift * scale;
+            Vector3 aim = Target(clip, entry);
+            rootAt += StepIn(clip, aim, entry, scale, rootAt, facing);
+            poser.PlanFrom(clip, aim, entry, rootAt, facing, out float by, out lunge, out pull, out Vector3 miss);
+            if (Magnetic && TargetFor != null)
+            {
+                // (Its wind-up's magnet will carry the body across what the swing misses by, as far as it goes: the pull
+                // takes up only the rest.)
+                Vector3 snap = Snap(miss, rootAt, MostSnap * scale);
+                rootAt += snap;
+                pull = Vector3.ClampMagnitude(pull - snap, poser.MostAimPull);
+            }
+
+            facing += by;
+            return true;
+        }
+
+        /// <summary>The magnet's carry across <paramref name="miss"/> from a root there: flat, no nearer the target's body than the fighting distance, at most <paramref name="most"/>.</summary>
+        private Vector3 Snap(Vector3 miss, Vector3 rootAt, float most)
+        {
+            Vector3 off = miss;
+            off.y = 0f;
+            if (poser.KeepFrom.HasValue && poser.KeepDistance > 0f)
+            {
+                Vector3 from = rootAt + off - poser.KeepFrom.Value;
+                from.y = 0f;
+                if (from.magnitude < poser.KeepDistance)
+                {
+                    off += (from.sqrMagnitude > 1e-6f ? from.normalized : -off.normalized) * poser.KeepDistance - from;
+                }
+            }
+
+            return Vector3.ClampMagnitude(off, most);
+        }
+
+        private LocoClip upcomingFrom, upcomingTo;
+        private StrikeLink upcomingMeet;
+
         /// <summary>A follow-on turns the body at most this much onto its target in its wind-up (degrees): past it, another is taken.</summary>
         public float MostCoreTurn = StrikeCombos.MostAim;
 
@@ -292,10 +366,11 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>The longer step in a follow-on needs to land on a target driven back (none if it lands from where the body is): straight toward it, no nearer the target's body than the fighting distance.</summary>
-        private Vector3 StepIn(LocoClip to, Vector3 target, float entry, float scale)
+        private Vector3 StepIn(LocoClip to, Vector3 target, float entry, float scale) => StepIn(to, target, entry, scale, loco.Position, loco.Facing);
+
+        private Vector3 StepIn(LocoClip to, Vector3 target, float entry, float scale, Vector3 rootAt, float facing)
         {
-            Vector3 rootAt = loco.Position;
-            float miss = poser.MissBeforePull(to, target, entry, rootAt, loco.Facing);
+            float miss = poser.MissBeforePull(to, target, entry, rootAt, facing);
             if (miss <= StepWithin)
             {
                 return Vector3.zero;
@@ -323,7 +398,7 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
-                float m = poser.MissBeforePull(to, target, entry, at, loco.Facing);
+                float m = poser.MissBeforePull(to, target, entry, at, facing);
                 if (m < miss - 0.01f)
                 {
                     miss = m;

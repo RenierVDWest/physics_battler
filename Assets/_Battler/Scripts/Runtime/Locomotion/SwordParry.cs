@@ -136,6 +136,19 @@ namespace PhysicsBattler.Locomotion
 
         private readonly System.Random luck = new System.Random(20261104);
         private float lastComing = -1f, rereadIn, foibleBy;
+        private int lastSerial = -1, takenFor = -1;
+        private Vector3 tracedAim;
+        private bool takenAhead, readAhead;
+        private float toLandNow = -1f;
+
+        /// <summary>How late its hand will be to the blow it is meeting (seconds: what it still needs to get there less what the blow gives it; 0 or less, in time).</summary>
+        public float Late { get; private set; }
+
+        /// <summary>A blow met on the blade drives the sword back along it (world, metres): the hand gives and comes back at the hand's pace, and the next parry starts from where it was knocked.</summary>
+        public void Knock(Vector3 by)
+        {
+            forte += by;
+        }
         private Vector3 misread, heldLand, heldMotion;
         private bool wrongPick, readHeld, playsOn = true;
 
@@ -457,8 +470,10 @@ namespace PhysicsBattler.Locomotion
             Vector3 wantForte, wantBlade, wantEdge;
             float wantSwivel, wantTurn, wantLean;
             sinceBlow = blow.HasValue ? 0f : sinceBlow + dt;
-            if (blow.HasValue && (lastComing < 0f || blow.Value.Coming < lastComing - 0.05f))
+            // (A new blow, a combo's next one too: read afresh, its parry chosen again.)
+            if (blow.HasValue && blow.Value.Serial != lastSerial)
             {
+                lastSerial = blow.Value.Serial;
                 NewBlow();
             }
 
@@ -473,8 +488,15 @@ namespace PhysicsBattler.Locomotion
                 if (reading)
                 {
                     Landing(blow.Value, out landAt, out landMotion);
-                    // (Where a less skilled eye reads it landing: off by its misread, and read again only now and then.)
+                    // (Where a less skilled eye reads it landing: off by its misread, and read again only now and then; and
+                    // always again as a blow read ahead comes into view.)
                     rereadIn -= dt;
+                    if (readAhead && !blow.Value.Predicted)
+                    {
+                        readHeld = false;
+                    }
+
+                    readAhead = blow.Value.Predicted;
                     if (readHeld && rereadIn > 0f)
                     {
                         landAt = heldLand;
@@ -490,25 +512,51 @@ namespace PhysicsBattler.Locomotion
                     }
 
                     int chosen = Choose(blow.Value, landAt, landMotion, out _);
-                    // (Too late to change: the parry taken is held, only placed on the blade as it comes.)
+                    if (Trace != null && takenFor == lastSerial && (blow.Value.Aim - tracedAim).magnitude > 0.15f)
+                    {
+                        Trace($"blow {lastSerial} read again: {blow.Value.ToContact:0.00} s to contact, aim {V(Quaternion.Inverse(bodyTurn) * (blow.Value.Aim - Root))}, would choose {Parries[chosen].Name}");
+                    }
+
+                    if (Trace != null)
+                    {
+                        if (takenFor != lastSerial || (blow.Value.Aim - tracedAim).magnitude > 0.15f)
+                        {
+                            tracedAim = blow.Value.Aim;
+                        }
+                    }
+
+                    if (Trace != null && takenFor != lastSerial)
+                    {
+                        var back0 = Quaternion.Inverse(bodyTurn);
+                        Trace($"blow {lastSerial}: {blow.Value.ToContact:0.00} s to contact, aim {V(back0 * (blow.Value.Aim - Root))}, land {V(back0 * (landAt - Root))}, chose {Parries[chosen].Name} (holding {(Current >= 0 ? Parries[Current].Name : "none")})");
+                    }
+                    // (Too late to change: the parry taken for this blow is held, only placed on the blade as it comes. The one
+                    // still held from the last blow of a combo is no parry for this one: a combo's next blow comes into
+                    // view only 0.15 to 0.3 s before its contact, and held so, the parry stayed high for a low cut.)
                     float toLand = landK >= 1 ? blow.Value.SecondsTo(landK - 1 + landU) : blow.Value.ToContact;
-                    if (Current >= 0 && toLand < LockWithin)
+                    toLandNow = toLand;
+                    bool takenForIt = Current >= 0 && takenFor == lastSerial;
+                    // (Taken on the blow read ahead, the parry is looked at once more as the blow itself comes into view:
+                    // the read ahead gives the line, not the place.)
+                    bool firstSight = takenForIt && takenAhead && !blow.Value.Predicted;
+                    if (takenForIt && toLand < LockWithin && !firstSight)
                     {
                         chosen = Current;
                     }
                     else if (wrongPick || !playsOn)
                     {
                         // (The wrong parry for this blow, taken and kept: a novice's guess, not played on against the blow.)
-                        chosen = Current >= 0 ? Current : wrongPick ? WrongFor(chosen) : chosen;
+                        chosen = takenForIt ? Current : wrongPick ? WrongFor(chosen) : chosen;
                     }
                     else
                     {
                         // (Played on against the blow read: the parry that meets it on the blade, not the arm or the body.)
-                        chosen = Pick(blow.Value, chosen, opponent);
+                        chosen = Pick(blow.Value, chosen, opponent, takenForIt);
                     }
 
-                    // (A change of mind holds a moment before it is taken: the read wavers between two near parries.)
-                    if (Current >= 0 && chosen != Current)
+                    // (A change of mind holds a moment before it is taken: the read wavers between two near parries. Not a
+                    // new blow's first: that one is taken at once.)
+                    if (takenForIt && chosen != Current && !firstSight)
                     {
                         pendingFor = chosen == pending ? pendingFor + dt : 0f;
                         pending = chosen;
@@ -536,6 +584,8 @@ namespace PhysicsBattler.Locomotion
                     }
 
                     Current = chosen;
+                    takenFor = lastSerial;
+                    takenAhead = blow.Value.Predicted;
                 }
 
                 aim = Parries[Current];
@@ -591,6 +641,11 @@ namespace PhysicsBattler.Locomotion
             float close = 1f - Mathf.Exp(-Close * dt);
             // (A novice's hand is slower to get there.)
             float quick = Mathf.Lerp(1f, NoviceHandSpeed / HandSpeed, Lack);
+            // (How late the hand will be: the time it still needs to get the forte there, against the time the blade gives it.)
+            Late = Current >= 0 && blow.HasValue && toLandNow >= 0f
+                ? (wantForte - forte).magnitude / Mathf.Max(0.1f, HandSpeed * quick * Pace * size) - toLandNow
+                : 0f;
+            toLandNow = -1f;
             forte += Vector3.ClampMagnitude((wantForte - forte) * close, HandSpeed * quick * Pace * size * dt);
             swivel += Mathf.Clamp(Mathf.DeltaAngle(swivel, wantSwivel) * close, -SwivelSpeed * quick * Pace * dt, SwivelSpeed * quick * Pace * dt);
             turn += Mathf.Clamp((wantTurn - turn) * close, -TrunkSpeed * dt, TrunkSpeed * dt);
@@ -714,8 +769,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>
         /// The parry to take: the one held while it still meets the blow on the blade (or the blow misses); else the one
         /// read (<paramref name="chosen"/>) if it does; else whichever does, the nearest to where the sword is; else the one read.
+        /// One held from the last blow (<paramref name="ownBlow"/> false: a combo's next) is kept only on the blade: the
+        /// blow read missing it is no reason to stay in the last one's parry.
         /// </summary>
-        private int Pick(in BlowRead b, int chosen, Vector3 opponent)
+        private int Pick(in BlowRead b, int chosen, Vector3 opponent, bool ownBlow = true)
         {
             int Rank(Meeting m) => m == Meeting.Blade || m == Meeting.Nothing ? 0 : m == Meeting.Glance ? 1 : 2;
             Meeting Try(int p, in BlowRead read, out Vector3 at)
@@ -728,7 +785,7 @@ namespace PhysicsBattler.Locomotion
             {
                 var held = Try(Current, b, out Vector3 heldAt);
                 Trace?.Invoke($"pick: holding {Parries[Current].Name} meets {held} @{meetAlong:0.00}/{meetCross:0}, the forte {V(Quaternion.Inverse(BodyTurn) * (heldAt - anim.Part(PartId.Head).position))} from the head");
-                if (Rank(held) == 0)
+                if (held == Meeting.Blade || (ownBlow && held == Meeting.Nothing))
                 {
                     return Current;
                 }

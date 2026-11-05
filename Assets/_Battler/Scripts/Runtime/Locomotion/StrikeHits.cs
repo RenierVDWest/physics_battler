@@ -25,6 +25,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Seconds until contact, and how long the blow has been coming (seconds as they pass).</summary>
         public float ToContact, Coming;
 
+        /// <summary>Read ahead: a combo's next blow, seen coming out of the last one's follow-through before its own clip starts.</summary>
+        public bool Predicted;
+
         /// <summary>The weapon's length (metres).</summary>
         public float Length;
 
@@ -38,6 +41,9 @@ namespace PhysicsBattler.Locomotion
         public float SecondsTo(float along) => Mathf.Max(0f, ToContact + (along - StrikeHits.ContactPoint) * PathSeconds);
 
         public bool Thrust;
+
+        /// <summary>Which blow this is: it changes as each new blow starts, a combo's next one too (its clip taken up partway, its time into the clip doesn't start again from nought).</summary>
+        public int Serial;
     }
 
     public sealed class StrikeHits
@@ -201,10 +207,21 @@ namespace PhysicsBattler.Locomotion
             read = default;
             if (!Incoming(out read.Blade, out read.Aim, out read.ComesFrom))
             {
-                return false;
+                return ReadUpcoming(out read);
             }
 
             var clip = loco.Shot;
+            // (A new blow: another clip, or the same one started again; the combo's next blow, read coming, is the same
+            // blow it was read as.)
+            if (clip != readClip || loco.ShotTime < readTime - 0.05f)
+            {
+                readSerial = clip == predictedFor ? predictedSerial : readSerial + 1;
+                predictedFor = null;
+            }
+
+            readClip = clip;
+            readTime = loco.ShotTime;
+            read.Serial = readSerial;
             float contact = clip.ContactFrame / clip.Rate;
             clip.Pose(contact, readPose, loco.Leg);
             Vector3 way = StrikeCombos.Blade(readPose);
@@ -263,6 +280,76 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        private LocoClip predictedFor;
+        private int predictedSerial;
+        private float predictedSince;
+
+        /// <summary>
+        /// The combo's next blow, read coming once the one playing is past its contact (<see cref="ComboPlayer.Upcoming"/>):
+        /// its path from its core's entry on, played as the strike will be (the root the link and the step in leave it at,
+        /// the turn onto its target, the lunge's stretch, the arm's pull as far as it goes). What a fighter reading the
+        /// attacker sees of the blow coming out of the last.
+        /// </summary>
+        private bool ReadUpcoming(out BlowRead read)
+        {
+            read = default;
+            var combo = Owner != null ? Owner.Combo : null;
+            var now = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
+            if (combo == null || now == null || now.ContactFrame < 0 || loco.ShotTime <= now.ContactFrame / now.Rate
+                || !combo.Upcoming(out var clip, out float entry, out float toContact, out Vector3 rootAt, out float facing, out float lunge, out Vector3 pull))
+            {
+                return false;
+            }
+
+            if (predictedFor != clip)
+            {
+                predictedFor = clip;
+                predictedSerial = readSerial + 1;
+                predictedSince = clock;
+            }
+
+            float contact = clip.ContactFrame / clip.Rate;
+            float pace = Mathf.Max(0.05f, loco.TimeScale);
+            read.Serial = predictedSerial;
+            read.Predicted = true;
+            read.ToContact = toContact;
+            // (Seen coming out of the last one's follow-through, which the defender has been watching all along: an
+            // expert's eye is already on it; a novice's still lags its usual while behind.)
+            read.Coming = clock - predictedSince + SwordParry.ReadAfter;
+            read.Thrust = IsThrust(clip);
+            read.Length = Weapon != null ? Weapon.length * Scale : poser.WeaponLength;
+            read.PathSeconds = PathStep / pace;
+            read.Path = new Vector3[PathPoints];
+            read.TipPath = new Vector3[PathPoints];
+            read.GripPath = new Vector3[PathPoints];
+            float gripAlong = Weapon != null && Weapon.kind == WeaponKind.Club ? 0.35f : 0.1f;
+            float strikeAlong = IsThrust(clip) ? 1f : poser.SweetSpot;
+            var turn0 = Quaternion.Euler(0f, facing, 0f);
+            Vector3 Point(float t, float along)
+            {
+                clip.RootMotion(entry, t, out var moved, out float turned);
+                return rootAt + turn0 * new Vector3(moved.x, 0f, moved.y) * (lunge * loco.Leg) + Quaternion.Euler(0f, facing + turned, 0f) * StrikeAt(clip, t, along) + pull;
+            }
+
+            for (int k = 0; k < PathPoints; k++)
+            {
+                float t = Mathf.Max(entry, contact + PathStep * (k - ContactPoint));
+                read.Path[k] = Point(t, strikeAlong);
+                read.TipPath[k] = Point(t, 1f);
+                read.GripPath[k] = Point(t, gripAlong);
+            }
+
+            read.Aim = read.Path[ContactPoint];
+            Blade(now, out _, out _, out read.Blade);
+            clip.RootMotion(entry, contact, out _, out float turnedAt);
+            var turnAt = Quaternion.Euler(0f, facing + turnedAt, 0f);
+            clip.Pose(contact, readPose, loco.Leg);
+            read.BladeWay = turnAt * StrikeCombos.Blade(readPose);
+            Vector3 way = StrikeAt(clip, Mathf.Max(entry, contact - ReadOver)) - StrikeAt(clip, contact);
+            read.ComesFrom = way.sqrMagnitude > 1e-6f ? turnAt * way.normalized : (read.Blade - read.Aim).normalized;
+            return true;
+        }
+
         /// <summary>How many points of the blow's path are read (from 0.28 s before its contact to the end of its live moments), which is at contact, how far apart (seconds of the clip).</summary>
         public const int PathPoints = 13, ContactPoint = 7;
         public const float PathStep = 0.04f;
@@ -271,6 +358,9 @@ namespace PhysicsBattler.Locomotion
         public const float ReadOver = 0.06f;
 
         private readonly Vector3[] readPose = new Vector3[LocoClip.BoneCount];
+        private LocoClip readClip;
+        private float readTime = -1f;
+        private int readSerial;
 
         /// <summary>A clip's striking point at a time, against its root then (metres at this body's size).</summary>
         private Vector3 StrikeAt(LocoClip clip, float t, float alongBlade = -1f)

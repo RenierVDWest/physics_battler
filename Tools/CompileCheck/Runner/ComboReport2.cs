@@ -100,6 +100,13 @@ internal static class StrikeComboReport
             dprofile.body = "Medium";
             var droot = UnitBuilder.Build(dummyRig, dprofile, "Dummy", _ => null, 1);
             bool swordDummy = Environment.GetEnvironmentVariable("COMBO_STANCE") == "sword";
+            ClipFighter.GivesGround = Environment.GetEnvironmentVariable("NO_RETIRE") == null;
+            if (Environment.GetEnvironmentVariable("PARRY_TRACE") != null)
+            {
+                float traceFrom = 0f;
+                SwordParry.Trace = line => Console.WriteLine("        parry: " + line);
+                _ = traceFrom;
+            }
             var dummy = new ClipFighter(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, "sns_", physical: false);
             if (swordDummy)
             {
@@ -350,7 +357,7 @@ internal static class StrikeComboReport
             missed += playedNames.Count - results.Count;
             Console.WriteLine("    played: " + string.Join(" > ", playedNames) + (player.Ended.Length > 0 ? $" (ended: {player.Ended})" : ""));
             passed.Add((aimNearest * 100f).ToString("0", ci) + " cm");
-            Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)) + "; the blades passed their aim points by " + string.Join(", ", passed));
+            Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)) + "; the blades passed their aim points by " + string.Join(", ", passed) + (dummy.Retires > 0 ? $"; the dummy gave ground {dummy.Retires} times" : ""));
             if (hitTimes.Count > 1)
             {
                 Console.WriteLine("    between blows: " + string.Join(", ", hitTimes.Zip(hitTimes.Skip(1), (a, b) => (b - a).ToString("0.00", ci) + " s"))

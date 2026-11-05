@@ -289,6 +289,15 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     switch dragged a planted foot up to 26 cm). Headless: `footwork <dir> [s]` (`FOOT_A`/`FOOT_B` probe, gather, press,
     shell): planted feet within 0.2 cm, 1.30 to 1.49 m apart by tempo, no turn clips needed; `spar` with
     `SPAR_CLASH=1` (blows that cross): planted feet within 6 to 12 cm (was 26), the bodies no nearer than 1.02 m.
+  - Every combo blow met (the weight plan "Weight and momentum", step 1): a parry reads each blow afresh by its serial
+    (`BlowRead.Serial`), so the last blow's parry is no longer held for the next; a combo's next blow is read ahead
+    out of the last one's follow-through (`ComboPlayer.Upcoming`, `StrikeHits.ReadUpcoming`: planned as the strike will
+    be, the link, the step in, the aimed turn and lunge, the magnet, the capped pull), about 0.25 s before contact
+    instead of 0.15; a parry taken on that read is looked at once more as the blow comes into view; one held from the
+    last blow is kept only where it meets the blade. The blow's knock goes into the parry (the sword arm is moved by
+    it, up to 0.12 m at full knock). Giving ground (`ClipFighter.GiveGround`) is a last resort for an arm 0.05 s late:
+    given at any lateness it stepped away from where the arm put the sword. Headless (`combos`, expert sword): the
+    Medium's 42 blows 26 parried, 7 glanced, 9 through (was 20, 8, 13); the Large's club 9 of 9 parried.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

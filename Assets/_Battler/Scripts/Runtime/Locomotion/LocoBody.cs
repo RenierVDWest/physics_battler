@@ -1183,6 +1183,27 @@ namespace PhysicsBattler.Locomotion
             return (want - predicted).magnitude;
         }
 
+        /// <summary>
+        /// A strike's plan from a root there (a combo's next blow, read coming): the turn onto its target (degrees), the
+        /// lunge's stretch, and the arm's pull onto it as far as the pull goes (world), as <see cref="PlayStrike"/> takes them;
+        /// and how far the swing would miss it without the pull (<paramref name="miss"/>, world: from where it lands to the target).
+        /// </summary>
+        public void PlanFrom(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing, out float by, out float k, out Vector3 pull, out Vector3 miss)
+        {
+            by = 0f;
+            k = 1f;
+            pull = miss = Vector3.zero;
+            if (clip == null || clip.ContactFrame < 0)
+            {
+                return;
+            }
+
+            startFrom = Mathf.Clamp(startFrom, 0f, Mathf.Max(0f, clip.ContactFrame / clip.Rate - 0.05f));
+            Plan(clip, target, startFrom, rootAt, facing, out k, out by, out Vector3 predicted, out Vector3 want);
+            miss = Quaternion.Euler(0f, facing, 0f) * (want - predicted);
+            pull = Vector3.ClampMagnitude(miss, MostAimPull);
+        }
+
         /// <summary>The same, from a root somewhere else (a combo's link: the root turned and moved there).</summary>
         public float MissAfterPull(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing)
         {
