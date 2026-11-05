@@ -628,6 +628,17 @@ namespace PhysicsBattler.Locomotion
                     {
                         f = found[s0];
                     }
+                    else if (holder.Stance == ClipFighter.Stances.Shield && holder.ShieldColliders.Count > 0 && DamageRules.Blunt(With(clip)))
+                    {
+                        // (Not touched this step, the board just behind the arm still takes a blunt blow: stopped in the
+                        // forearm before it reached the board, where a cleaving one had gone on into it.)
+                        var board = System.Linq.Enumerable.First(holder.ShieldColliders);
+                        Vector3 at = f.collider.ClosestPoint(0.5f * (a + b));
+                        if (Vector3.Distance(board.ClosestPoint(at), at) < 0.2f * holder.Size)
+                        {
+                            f = (holder, board, PartId.HandL, true, f.order);
+                        }
+                    }
                 }
 
                 // (Where in this step it met it: a stopped blow is put back there.)
@@ -742,6 +753,15 @@ namespace PhysicsBattler.Locomotion
 
             var r = DamageRules.Resolve(Weapon, With(clip), Scale, speed, direction, Mass, struck.Mass, part, shield, momentumLeft,
                 1e6f, struck.Poise, struck.MaxPoise);
+            // (A blunt blow never cleaves (the plan "Weight and momentum", step 2): a club's head, a fist, a shield's face
+            // stop in the first body they meet and their weight goes into it, a shove, not a cut through. The playtest:
+            // one Large club blow struck a Medium's head, upper arm and pelvis in turn. The fight's own swing still
+            // cleaves until it takes these rules up.)
+            if (!shield && DamageRules.Blunt(With(clip)))
+            {
+                r.StopsSwing = true;
+                r.MomentumLeft = 0f;
+            }
             bool glanced = false;
             if (parried)
             {
@@ -809,7 +829,9 @@ namespace PhysicsBattler.Locomotion
                 what = $"glanced off the {struck.Parry.WeaponName} ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
                 HitStop = Mathf.Min(HitStop, 0.04f);
             }
-            else if ((r.StopsSwing && !(comboing && !shield)) || parried)
+            // (A combo's blow sweeps on through a body it would stop in, Bam and on; a blunt one doesn't: it stops there,
+            // its weight shoved into the body, and the combo's next blow is taken up from there.)
+            else if ((r.StopsSwing && !(comboing && !shield && !DamageRules.Blunt(With(clip)))) || parried)
             {
                 stopped = true;
                 // (A clean parry ends the combo: its next blow doesn't come.)
@@ -875,7 +897,8 @@ namespace PhysicsBattler.Locomotion
                 Sounded?.Invoke(glanced ? Met.Glance : parried ? Met.Parry : shield ? Met.Shield : Met.Flesh, point, speed, Club, finishing);
             }
 
-            Last = $"{clip.Name} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")})";
+            LastWeight = r.Weight * knock * (glanced ? GlanceLeft : 1f);
+            Last = $"{clip.Name} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, weight {LastWeight:0.00} m/s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")})";
             Landed?.Invoke(Last);
         }
 
@@ -1022,6 +1045,9 @@ namespace PhysicsBattler.Locomotion
             poser.LetGo();
             bindWith = null;
         }
+
+        /// <summary>The last contact's weight (m/s: the momentum the struck body took over its mass, as <see cref="DamageRules"/> has it, with the combo's knock).</summary>
+        public float LastWeight;
 
         /// <summary>The last parry: the angle the blades crossed at (degrees, 0 to 90), and where on each it met (0 the hilt's end, 1 the tip).</summary>
         public float LastCross, LastParryAt;

@@ -324,6 +324,15 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     `SPAR_A=club` (a Large with its club; `SPAR_TRACE=from,to` prints the parries' reads): the expert parries 8 of
     the Medium's 8 blows with its club; the club flicks back and forth 21 times in 40 s out of its strikes (45 with
     the pointed guard; a Medium's sword 51).
+  - The blow's weight (the plan "Weight and momentum", step 2): a blunt blow (a club's head, a fist, a shield's
+    face) never cleaves through a body: it stops in the first body it meets and its weight goes into it, in a combo
+    too (the combo's next blow is taken up from there); a blunt blow stopped in a shield arm with the board just
+    behind it is the shield's. Edges cleave as before; the fight's own swing still cleaves until it takes these
+    rules up. Every contact logs its weight (`HitResult.Weight`: the momentum the struck body took over its mass,
+    m/s). Headless (`dummyhits`, `DUMMY_WEAPON=club|sword`; on the open Medium, single blows): a Medium's sword
+    0.37 m/s (median), its club 0.65, the Large's club 1.24; the Large's club through a body 0 times (was 10).
+    The Large's combos on the open dummy now land 2 of 3: its backhand, stopped, hasn't turned the body as its
+    sweep through did, and the forehand after it needs a 67 degree turn (60 at most).
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

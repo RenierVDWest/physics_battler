@@ -64,7 +64,9 @@ internal static class DummyHitReport
                 {
                     var (anim, loco, poser, root, walker) = Walker(body);
                     float size = (anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude) / 0.845f;
-                    var weapon = WeaponDefinition.CreateDefault(body == "Large" ? WeaponKind.Club : WeaponKind.Sword);
+                    // (DUMMY_WEAPON=club | sword: the attacker's weapon; by default a Large's club, any other's sword.)
+                    string weaponArg = Environment.GetEnvironmentVariable("DUMMY_WEAPON");
+                    var weapon = WeaponDefinition.CreateDefault(weaponArg == "club" ? WeaponKind.Club : weaponArg == "sword" ? WeaponKind.Sword : body == "Large" ? WeaponKind.Club : WeaponKind.Sword);
                     poser.WeaponLength = weapon.length * size;
                     var hits = walker.EnableStrikes(weapon);
                     hits.Mass = 70f * size * size * size;

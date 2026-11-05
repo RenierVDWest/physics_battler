@@ -41,6 +41,12 @@ namespace PhysicsBattler.Combat
         public float MomentumLeft;
 
         public bool Blocked;
+
+        /// <summary>
+        /// The blow's weight (the plan "Weight and momentum", step 2): the momentum the struck body takes over its mass,
+        /// the speed it would give the whole body (m/s). One figure every reaction can be scaled by.
+        /// </summary>
+        public float Weight;
     }
 
     /// <summary>
@@ -90,6 +96,9 @@ namespace PhysicsBattler.Combat
                 default: return 0.55f;
             }
         }
+
+        /// <summary>A blow that strikes with weight, not an edge or a point (the lab's clip fighters stop it in what it meets, <c>StrikeHits</c>).</summary>
+        public static bool Blunt(StrikeWith with) => with == StrikeWith.Head || with == StrikeWith.Fist || with == StrikeWith.Face || with == StrikeWith.Butt;
 
         /// <summary>How much a blow to this part hurts, against the chest.</summary>
         public static float PartMultiplier(PartId part)
@@ -189,6 +198,8 @@ namespace PhysicsBattler.Combat
                 r.StopsSwing = keep < CleaveShare;
                 r.MomentumLeft = r.StopsSwing ? 0f : keep * Mathf.Clamp01(momentumFactor);
             }
+
+            r.Weight = r.Impulse.magnitude / Mathf.Max(1f, struckMass);
 
             if (health - r.Damage <= 0f)
             {
