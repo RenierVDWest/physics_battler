@@ -122,7 +122,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The parry being made now (-1: the guard).</summary>
         public int Current { get; private set; } = -1;
 
-        public string CurrentName => Current >= 0 ? Parries[Current].Name : Guard.Name;
+        public string CurrentName => Current >= 0 ? Parries[Current].Name : GuardPose.Name;
 
         /// <summary>The worst the arm did since <see cref="ResetMeasures"/>: the wrist's shortfall of the turn asked (degrees), the elbow's biggest jump round its circle in a step (degrees), the fastest hand (m/s), the shoulder past its limits (degrees), the arm into the torso (metres).</summary>
         public float MostWristShort, MostSwivelJump, MostHandSpeed, MostShoulderPast, MostIntoTorso;
@@ -502,7 +502,7 @@ namespace PhysicsBattler.Locomotion
         public void Step(float dt, BlowRead? blow, Vector3 opponent)
         {
             var bodyTurn = BodyTurn;
-            Position aim = Guard;
+            Position aim = GuardPose;
             Vector3 wantForte, wantBlade, wantEdge;
             float wantSwivel, wantTurn, wantLean;
             sinceBlow = blow.HasValue ? 0f : sinceBlow + dt;
@@ -855,7 +855,7 @@ namespace PhysicsBattler.Locomotion
 
             int best = chosen, bestRank = firstRank;
             float bestCost = float.MaxValue;
-            Vector3 from = started ? forte : World(Guard.Hand);
+            Vector3 from = started ? forte : World(GuardPose.Hand);
             // (Only the parries for the height the blow lands at: one from another line folds the arm up to get there.)
             float y = (landHeight - Root.y) / (BodyScale * size);
             int[] band = y >= 1.4f ? HighLine : y >= 1.0f ? MiddleLine : LowLine;
@@ -1093,6 +1093,12 @@ namespace PhysicsBattler.Locomotion
                 return true;
             }
 
+            // (The free arm too, where it hangs: a brute's at its side caught the cuts the parry let by it.)
+            if (FreeArmOut && (Seg(P(PartId.UpperArmL), P(PartId.ForearmL)) <= 0.07f * r || Seg(P(PartId.ForearmL), P(PartId.HandL)) <= 0.06f * r))
+            {
+                return true;
+            }
+
             for (int leg = 0; leg < 2; leg++)
             {
                 if (Seg(P(leg == 0 ? PartId.ThighL : PartId.ThighR), P(leg == 0 ? PartId.ShinL : PartId.ShinR)) <= 0.1f * r
@@ -1108,6 +1114,36 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Where the free (left) hand is kept: behind the left hip, the elbow out and back (the sabreur's off hand, out of the way of blows).</summary>
         public static readonly Vector3 FreeHand = new Vector3(-0.12f, 1.0f, -0.22f);
 
+        /// <summary>Where this one's free hand goes, and which way its elbow points (the body's frame; a fencer's behind its back, by default).</summary>
+        public Vector3 FreeHandAt = FreeHand, FreeElbow = new Vector3(-1f, -0.6f, -0.5f);
+
+        /// <summary>Its free arm hangs where a cut can reach it (a brute's, at its side), so the parry keeps blows off it too; a fencer's is behind its back.</summary>
+        public bool FreeArmOut;
+
+        /// <summary>The guard it holds between blows (a fencer's sword at the other, by default).</summary>
+        public Position GuardPose = Guard;
+
+        /// <summary>
+        /// A club's guard and a brute's free hand (the playtest: no fencer's hand behind the back, no club pointed at
+        /// the other like a sword): the club held up, leaning forward and a little out, not straight up; the free
+        /// hand hanging at the side, a little behind the hip (forward of it, it caught the cuts from that side), the
+        /// elbow out and back.
+        /// </summary>
+        public static readonly Position ClubGuard = new Position("club guard", new Vector3(0.22f, 1.0f, 0.25f), new Vector3(0.15f, 1f, 0.35f), Vector3.forward, 20f, 0f, 0f);
+
+        public static readonly Vector3 BruteFreeHand = new Vector3(-0.27f, 0.92f, -0.10f), BruteElbow = new Vector3(-0.5f, 0f, -1f);
+
+        /// <summary>Held as a brute holds a club (<see cref="ClubGuard"/>, <see cref="BruteFreeHand"/>), named so in the logs.</summary>
+        public SwordParry AsClub()
+        {
+            GuardPose = ClubGuard;
+            FreeHandAt = BruteFreeHand;
+            FreeElbow = BruteElbow;
+            FreeArmOut = true;
+            WeaponName = "club";
+            return this;
+        }
+
         /// <summary>How long the free arm takes to go back to its tuck after the fighter's own strike had it (seconds).</summary>
         public const float TuckBackOver = 0.3f;
 
@@ -1122,8 +1158,8 @@ namespace PhysicsBattler.Locomotion
             // (Eased back from where its own strike left it, not snapped there.)
             tucked = Mathf.MoveTowards(tucked, 1f, dt / TuckBackOver);
             float ease = tucked * tucked * (3f - 2f * tucked);
-            Vector3 tuck = World(FreeHand);
-            TwoBoneIK.Solve(upper, fore, handL, ease >= 1f ? tuck : Vector3.Lerp(handL.position, tuck, ease), bodyTurn * new Vector3(-1f, -0.6f, -0.5f));
+            Vector3 tuck = World(FreeHandAt);
+            TwoBoneIK.Solve(upper, fore, handL, ease >= 1f ? tuck : Vector3.Lerp(handL.position, tuck, ease), bodyTurn * FreeElbow);
             handL.rotation = keep;
         }
 

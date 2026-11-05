@@ -158,10 +158,12 @@ namespace PhysicsBattler.Locomotion
             Streak(rig.SlotWeaponR, main, scale);
             // (One weapon alone: its parry from the start, so its free hand is tucked away even with no dummy to face;
             // the dummy's making gives it the dummy to keep out of.)
-            walker.Parry = walker.Stance == ClipFighter.Stances.Sword
-                ? new SwordParry(anim, loco, rig, size, poser.WeaponLength) { WeaponName = main != null && main.kind == WeaponKind.Club ? "club" : "sword" }
-                : null;
+            walker.Parry = walker.Stance == ClipFighter.Stances.Sword ? HeldAs(new SwordParry(anim, loco, rig, size, poser.WeaponLength), main) : null;
         }
+
+        /// <summary>A parry held as its weapon is: a club as a brute holds one (<see cref="SwordParry.AsClub"/>), a sword as a fencer.</summary>
+        private static SwordParry HeldAs(SwordParry parry, WeaponDefinition weapon) =>
+            weapon != null && weapon.kind == WeaponKind.Club ? parry.AsClub() : parry;
 
         /// <summary>How the blades' streaks look (every streak shares it: the panel's switch and length change it live).</summary>
         private readonly StreakSettings streaks = new StreakSettings();
@@ -862,14 +864,13 @@ namespace PhysicsBattler.Locomotion
             if (walker.Stance == ClipFighter.Stances.Sword)
             {
                 // (The walker's own sword parry, against the dummy: its body, its shield, its sword as they keep out of it.)
-                walker.Parry = new SwordParry(anim, loco, rig, size, poser.WeaponLength)
+                walker.Parry = HeldAs(new SwordParry(anim, loco, rig, size, poser.WeaponLength)
                 {
-                    WeaponName = mainWeapon != null && mainWeapon.kind == WeaponKind.Club ? "club" : "sword",
                     Opponent = new OpponentShape(dummy.Anim, dummy.Size, dummyStance == ClipFighter.Stances.Shield ? dummyRig.SlotWeaponL : null, 0.27f)
                     {
                         WeaponSlot = dummyRig.SlotWeaponR, WeaponLength = swordLength,
                     },
-                };
+                }, mainWeapon);
             }
             else
             {

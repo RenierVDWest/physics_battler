@@ -30,19 +30,40 @@ internal static class SparReport
             {
                 f.Parry = new SwordParry(f.Anim, f.Loco, f.Rig, f.Size, f.Poser.WeaponLength)
                 {
-                    WeaponName = f.Strikes != null && f.Strikes.Weapon != null && f.Strikes.Weapon.kind == WeaponKind.Club ? "club" : "sword",
                     Opponent = new OpponentShape(other.Anim, other.Size, other.Stance == ClipFighter.Stances.Shield ? other.Rig.SlotWeaponL : null, 0.27f)
                     {
                         WeaponSlot = other.Anim.SlotWeaponR, WeaponLength = other.Poser.WeaponLength,
                     },
                 };
+                if (f.Strikes != null && f.Strikes.Weapon != null && f.Strikes.Weapon.kind == WeaponKind.Club)
+                {
+                    f.Parry.AsClub();
+                }
             }
         }
 
         var log = new List<string>();
         float clock = 0f;
+        // (SPAR_TRACE=from,to: the parries' reads between those seconds.)
+        var traceArg = Environment.GetEnvironmentVariable("SPAR_TRACE");
+        if (traceArg != null)
+        {
+            var ft = traceArg.Split(',');
+            float tFrom = float.Parse(ft[0], ci), tTo = float.Parse(ft[1], ci);
+            SwordParry.Trace = line =>
+            {
+                if (clock >= tFrom && clock <= tTo && !line.StartsWith("placed", StringComparison.Ordinal) && !line.Contains(" jump "))
+                {
+                    Console.WriteLine(string.Format(ci, "{0,6:0.00} s  parry: {1}", clock, line));
+                }
+            };
+        }
         a.Strikes.Landed += text => log.Add(string.Format(ci, "{0,6:0.00} s  A > B: {1}; B: {2}", clock, text, b.LastReaction));
         b.Strikes.Landed += text => log.Add(string.Format(ci, "{0,6:0.00} s  B > A: {1}; A: {2}", clock, text, a.LastReaction));
+        Vector3 bladeWas = Vector3.zero, lastTurn = Vector3.zero;
+        bool bladeKnown = false;
+        float lastTurnDeg = 0f;
+        int flicks = 0;
         var onlyA = new List<ClipFighter> { a };
         var onlyB = new List<ClipFighter> { b };
         const float dt = 1f / 60f;
@@ -153,6 +174,35 @@ internal static class SparReport
             b.Strikes.Step(dt, onlyA);
             ClipFighter.KeepApart(a, b);
             a.Apply(dt);
+            // (A's weapon, step to step, out of its strikes: how often it flicks one way and straight back, a jitter.)
+            if (a.Anim.SlotWeaponR != null)
+            {
+                Vector3 wayNow = a.Anim.SlotWeaponR.rotation * Vector3.forward;
+                bool inStrike = a.Loco.Current == Locomotor.Mode.OneShot && a.Loco.Shot != null && a.Loco.Shot.ContactFrame >= 0;
+                if (bladeKnown && !inStrike)
+                {
+                    Vector3 turnNow = wayNow - bladeWas;
+                    float deg = Vector3.Angle(bladeWas, wayNow);
+                    if (deg > 1.5f && lastTurnDeg > 1.5f && Vector3.Dot(turnNow, lastTurn) < 0f)
+                    {
+                        flicks++;
+                        if (Environment.GetEnvironmentVariable("SPAR_FLICKS") != null)
+                        {
+                            Console.WriteLine(string.Format(ci, "{0,6:0.00} s  A's weapon flicked {1:0.0} then {2:0.0} deg ({3} {4}; parry {5})", clock, lastTurnDeg, deg, a.Loco.Current, a.Loco.Shot?.Name, a.Parry?.CurrentName));
+                        }
+                    }
+
+                    lastTurn = turnNow;
+                    lastTurnDeg = deg;
+                }
+                else
+                {
+                    lastTurnDeg = 0f;
+                }
+
+                bladeWas = wayNow;
+                bladeKnown = true;
+            }
             measuresA.Sample(dt, clock, "A");
             measuresB.Sample(dt, clock, "B");
             filmA.Add(clock, "A", a.Loco, a.Poser, a.Anim);
@@ -208,6 +258,7 @@ internal static class SparReport
 
         File.WriteAllText(Path.Combine(dir, "a.json"), filmA.ToString());
         File.WriteAllText(Path.Combine(dir, "b.json"), filmB.ToString());
+        Console.WriteLine(string.Format(ci, "A's weapon out of its strikes flicked one way and straight back (over 1.5 deg each step) {0} times", flicks));
         Console.WriteLine(string.Format(ci, "A ({0}): {1} blows thrown ({2} combos): {3} landed, {4} blocked, {5} parried. B took {6} hits.",
             a.Stance, thrownA, combosA, a.Strikes.Hits, a.Strikes.Blocks, a.Strikes.Parries, b.Hits));
         Console.WriteLine(string.Format(ci, "B ({0}): {1} blows thrown ({2} combos): {3} landed, {4} blocked, {5} parried. A took {6} hits.",
