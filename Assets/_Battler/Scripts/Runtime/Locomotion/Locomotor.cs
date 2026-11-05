@@ -282,8 +282,15 @@ namespace PhysicsBattler.Locomotion
 
         /// <param name="wantVelocity">Where the steering wants it to go (world, m/s, flat).</param>
         /// <param name="wantFacing">Which way it wants to face (degrees).</param>
+        /// <summary>
+        /// What this step moved the root by at once rather than walking it (a follow-on's step in, a snap): what carries
+        /// a physical body after its pose carries it the same way, or its pinned upper body is left behind its legs.
+        /// </summary>
+        public Vector3 SnappedThisStep { get; private set; }
+
         public void Step(float dt, Vector3 wantVelocity, float wantFacing)
         {
+            SnappedThisStep = Vector3.zero;
             if (!Ready || dt <= 0f)
             {
                 return;
@@ -1204,7 +1211,9 @@ namespace PhysicsBattler.Locomotion
             Vector3 step = shotBend * (turn * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
             if (!rewinding)
             {
-                step += shotStepIn * StepInShare(from, ShotTime);
+                Vector3 snap = shotStepIn * StepInShare(from, ShotTime);
+                step += snap;
+                SnappedThisStep += snap;
             }
 
             Position += step;

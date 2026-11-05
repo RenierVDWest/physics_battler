@@ -237,6 +237,10 @@ internal static class StrikeComboReport
             player.Start(first, chain);
             var parts = new[] { PartId.HandR, PartId.HandL, PartId.ForearmR, PartId.ForearmL, PartId.FootL, PartId.FootR };
             var last = parts.Select(p => anim.Part(p).position).ToArray();
+            // (The attacker's root and chest, step to step: a physical body can't follow a pose that jumps.)
+            Vector3 lastRoot = loco.Position, lastChest = anim.Part(PartId.Chest).position;
+            float fastestRoot = 0f, fastestChest = 0f;
+            string fastestRootAt = "", fastestChestAt = "";
             int switches = loco.Switches;
             float sinceSwitch = 99f;
             string lastState = "";
@@ -319,6 +323,15 @@ internal static class StrikeComboReport
                 }
 
                 sinceSwitch += dt;
+                {
+                    float vr = (loco.Position - lastRoot).magnitude / dt, vc = (anim.Part(PartId.Chest).position - lastChest).magnitude / dt;
+                    string at = string.Format(ci, "{0:0.00} s, {1}", i * dt, loco.Shot != null ? loco.Shot.Name.Replace(prefix, "") : loco.Current.ToString());
+                    if (vr > fastestRoot) { fastestRoot = vr; fastestRootAt = at; }
+                    if (vc > fastestChest) { fastestChest = vc; fastestChestAt = at; }
+                    lastRoot = loco.Position;
+                    lastChest = anim.Part(PartId.Chest).position;
+                }
+
                 for (int k = 0; k < parts.Length; k++)
                 {
                     Vector3 now = anim.Part(parts[k]).position;
@@ -358,6 +371,7 @@ internal static class StrikeComboReport
             Console.WriteLine("    played: " + string.Join(" > ", playedNames) + (player.Ended.Length > 0 ? $" (ended: {player.Ended})" : ""));
             passed.Add((aimNearest * 100f).ToString("0", ci) + " cm");
             Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)) + "; the blades passed their aim points by " + string.Join(", ", passed) + (dummy.Retires > 0 ? $"; the dummy gave ground {dummy.Retires} times" : ""));
+            Console.WriteLine(string.Format(ci, "    the attacker's root at most {0:0.0} m/s ({1}), its chest {2:0.0} m/s ({3})", fastestRoot, fastestRootAt, fastestChest, fastestChestAt));
             if (hitTimes.Count > 1)
             {
                 Console.WriteLine("    between blows: " + string.Join(", ", hitTimes.Zip(hitTimes.Skip(1), (a, b) => (b - a).ToString("0.00", ci) + " s"))

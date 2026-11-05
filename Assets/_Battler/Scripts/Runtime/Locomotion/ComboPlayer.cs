@@ -482,7 +482,11 @@ namespace PhysicsBattler.Locomotion
             snapped += move.magnitude;
             loco.Position += move;
             poser.SnappedBy(move);
+            Carried?.Invoke(move);
         }
+
+        /// <summary>The magnet moved the body this far at once (world): a physical body goes with it (<see cref="ClipFighter.CarryBy"/>).</summary>
+        public Action<Vector3> Carried;
 
         /// <summary>A follow-on steps in until its blade would reach within this of its target before the arm's pull (metres): the pull is for the last of it, not the distance.</summary>
         public float StepWithin = 0.03f;

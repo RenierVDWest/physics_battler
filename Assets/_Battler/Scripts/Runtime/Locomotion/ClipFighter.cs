@@ -158,6 +158,8 @@ namespace PhysicsBattler.Locomotion
             float into = least - apart, shareA = b.Mass / Mathf.Max(1f, a.Mass + b.Mass);
             a.Loco.Position -= way * (into * shareA);
             b.Loco.Position += way * (into * (1f - shareA));
+            a.CarryBy(-way * (into * shareA));
+            b.CarryBy(way * (into * (1f - shareA)));
         }
 
         /// <summary>How far apart it stands from the other body between blows (metres, root to root; 0: as near as <see cref="KeepDistance"/>): out of reach of a blow without a step, the guards' points short of the other's shield.</summary>
@@ -815,6 +817,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             Loco.Step(dt, want, yaw);
+            CarryBy(Loco.SnappedThisStep);
             if (Combo != null)
             {
                 Combo.Step(dt);
@@ -930,6 +933,17 @@ namespace PhysicsBattler.Locomotion
 
             if (Authority != null && snapped)
             {
+                if (carried.sqrMagnitude > 1e-10f)
+                {
+                    foreach (var p in Rig.Parts)
+                    {
+                        if (p.body != null && !p.body.isKinematic)
+                        {
+                            p.body.position += carried;
+                        }
+                    }
+                }
+
                 Authority.Apply(dt);
             }
             else
@@ -937,6 +951,8 @@ namespace PhysicsBattler.Locomotion
                 Carry();
                 snapped = true;
             }
+
+            carried = Vector3.zero;
         }
 
         /// <summary>The physical body has been put on its pose (the first <see cref="Apply"/> carries it there; after that it is driven).</summary>
@@ -948,7 +964,34 @@ namespace PhysicsBattler.Locomotion
         public StrikeHits Strikes { get; private set; }
 
         /// <summary>Its combos (set by whoever plays them); stepped with its walk.</summary>
-        public ComboPlayer Combo;
+        public ComboPlayer Combo
+        {
+            get => combo;
+            set
+            {
+                combo = value;
+                if (combo != null)
+                {
+                    combo.Carried = CarryBy;
+                }
+            }
+        }
+
+        private ComboPlayer combo;
+
+        /// <summary>
+        /// The walk was moved this far at once, not walked (a combo's magnet or step in, two bodies kept apart, ground
+        /// given): the physical body goes with it at the next <see cref="Apply"/>, a teleport keeping its speed. Left
+        /// behind, the pinned upper body trailed the Large's snaps after a dummy driven off (up to 10 m/s) by 0.8 m
+        /// over its kinematic legs, and the lab took it for a knock-down, throwing it onto the dummy.
+        /// </summary>
+        public void CarryBy(Vector3 move)
+        {
+            move.y = 0f;
+            carried += move;
+        }
+
+        private Vector3 carried;
 
         /// <summary>A strike alone follows its target, as far as the arm's pull goes: where its target is now (null: none to follow).</summary>
         public System.Func<LocoClip, Vector3?> Follow;
@@ -1166,6 +1209,7 @@ namespace PhysicsBattler.Locomotion
             {
                 Vector3 move = Vector3.ClampMagnitude(retireLeft, RetireSpeed * Mathf.Sqrt(Size) * dt);
                 Loco.Position += move;
+                CarryBy(move);
                 retireLeft -= move;
                 Voided += move;
             }
