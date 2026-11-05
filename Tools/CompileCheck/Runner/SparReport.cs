@@ -52,6 +52,8 @@ internal static class SparReport
         var filmA = new LocoFilm(dt, 2) { BladeLength = a.Poser.WeaponLength, ShieldRadius = a.Stance == ClipFighter.Stances.Shield ? 0.3f : 0f };
         var filmB = new LocoFilm(dt, 2) { BladeLength = b.Poser.WeaponLength, ShieldRadius = b.Stance == ClipFighter.Stances.Shield ? 0.3f : 0f };
         var lastPos = new Dictionary<(ClipFighter, PartId), Vector3>();
+        var measuresA = new LocoMeasures(a.Anim, a.Loco, a.Poser);
+        var measuresB = new LocoMeasures(b.Anim, b.Loco, b.Poser);
         for (int i = 0; i < Mathf.RoundToInt(seconds / dt); i++)
         {
             clock = i * dt;
@@ -127,6 +129,8 @@ internal static class SparReport
             b.Step(dt, a.Anim.Part(PartId.Chest).position, frozen);
             b.Strikes.Step(dt, onlyA);
             a.Apply(dt);
+            measuresA.Sample(dt, clock, "A");
+            measuresB.Sample(dt, clock, "B");
             filmA.Add(clock, "A", a.Loco, a.Poser, a.Anim);
             filmB.Add(clock, "B", b.Loco, b.Poser, b.Anim);
             Vector3 gap = b.Loco.Position - a.Loco.Position;
@@ -164,6 +168,18 @@ internal static class SparReport
         foreach (var line in log)
         {
             Console.WriteLine(line);
+        }
+
+        foreach (var (name, m) in new[] { ("A", measuresA), ("B", measuresB) })
+        {
+            Console.WriteLine($"{name}'s feet: " + m.Report().Split('\n')[0].Trim());
+            foreach (var note in m.Notes)
+            {
+                if (note.Contains("while planted"))
+                {
+                    Console.WriteLine("    " + note);
+                }
+            }
         }
 
         File.WriteAllText(Path.Combine(dir, "a.json"), filmA.ToString());

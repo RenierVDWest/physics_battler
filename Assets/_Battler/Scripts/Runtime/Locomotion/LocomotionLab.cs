@@ -451,6 +451,7 @@ namespace PhysicsBattler.Locomotion
             {
                 walkerOnly[0] = walker;
                 dummy.Strikes.Step(dt, walkerOnly);
+                WatchDummyBlow();
             }
 
             if (!frozen)
@@ -806,7 +807,11 @@ namespace PhysicsBattler.Locomotion
             // (It strikes back too (the plan's step 2): with its sword, at the walker.)
             dummy.Poser.BodyKey = BodySize.Medium.ToString();
             var dummyHits = dummy.EnableStrikes(main != null && !main.IsShield ? main : null);
-            dummyHits.Landed += text => legs.Add($"{time:0.00} s: the dummy's {text}{(walker.LastReaction.Length > 0 ? "; the walker: " + walker.LastReaction : "")}");
+            dummyHits.Landed += text =>
+            {
+                dummyBlowLanded = true;
+                legs.Add($"{time:0.00} s: the dummy's {text}{(walker.LastReaction.Length > 0 ? "; the walker: " + walker.LastReaction : "")}");
+            };
             dummy.Follow = clip => walker != null ? dummy.AimAt(walker, clip) : (Vector3?)null;
             dummyAnswerAt = -1f;
             if (walker.Stance == ClipFighter.Stances.Sword)
@@ -850,6 +855,31 @@ namespace PhysicsBattler.Locomotion
         private bool walkerWasStriking;
         private int dummyAnswers, dummyVariant;
 
+        private LocoClip dummyBlow;
+        private bool dummyBlowLanded;
+
+        /// <summary>Each of the dummy's blows that met nothing is logged as it ends: missed, or cut off by its reaction to the walker's.</summary>
+        private void WatchDummyBlow()
+        {
+            var shot = dummy.Loco.Current == Locomotor.Mode.OneShot && dummy.Loco.Shot != null && dummy.Loco.Shot.ContactFrame >= 0 ? dummy.Loco.Shot : null;
+            if (dummyBlow != null && shot != dummyBlow)
+            {
+                if (!dummyBlowLanded)
+                {
+                    bool cut = dummy.Loco.Current == Locomotor.Mode.OneShot && dummy.Loco.Shot != null && dummy.Loco.Shot.ContactFrame < 0;
+                    legs.Add($"{time:0.00} s: the dummy's {dummyBlow.Name}: {(cut ? "cut off by its reaction to your blow" : "missed")}");
+                }
+
+                dummyBlow = null;
+            }
+
+            if (shot != null && shot != dummyBlow)
+            {
+                dummyBlow = shot;
+                dummyBlowLanded = false;
+            }
+        }
+
         /// <summary>Trading blows: the walker's blow over, the dummy answers a moment later.</summary>
         private void TradeBlows()
         {
@@ -862,6 +892,11 @@ namespace PhysicsBattler.Locomotion
             if (walkerWasStriking && !striking && dummyFightsBack)
             {
                 dummyAnswerAt = time + answerAfter;
+            }
+            else if (striking)
+            {
+                // (The walker strikes again before it answers: its turn waits until this blow is over too.)
+                dummyAnswerAt = -1f;
             }
 
             walkerWasStriking = striking;
