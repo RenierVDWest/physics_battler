@@ -373,6 +373,16 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     skill 1: single blows 23 of 27 on the board, the blade a median 0.99 of the radius from the centre (13 on the
     rim), the face 39 deg off square (most 90: edge on); the four off it are two chops to the head on their way to
     the hips and two thrusts into the shield arm.
+  - The shield meets the blade on its path (the plan "Shield and blade contact", step 2): the board goes where the
+    blow's blade, read along its path from grip to tip (the parry's read), first comes within 0.42 m of the body's
+    line (hips to the top of the head), not out from where the blow is aimed; its face square to the blade's motion
+    there, an expert's slanted about the blade's own line so a cut glances off outward. Skill still misreads and
+    holds its first guess as before. A path that never comes so near is met as before. Each blow's plan goes into
+    the lab's session log ("the shield: blow N ..."). Headless at skill 1: single blows 27 of 27 on the board (was
+    23), the blade a median 0.43 of the radius from its centre (was 0.99), 3 on the rim (was 13); the Medium's
+    combos 42 of 42, 0.30 from the centre, none on the rim (was 30); in the spar the rim went from 15 of 27 to 2 of
+    26. Skill 0.5 is no better yet (step 5 tunes it); high blows are still met only as high as the arm reached
+    before (step 3).
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
