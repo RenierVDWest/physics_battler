@@ -38,6 +38,22 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Its shield's board: its radius at a Medium's size (metres; the lab's shield 0.29, the headless board's half width 0.26).</summary>
         public float ShieldRadius = 0.27f;
 
+        private Vector3 boardLocal;
+        private bool boardLocalKnown;
+
+        /// <summary>Where its board's centre sits on the shield's slot (the slot's own frame, metres; fixed, so taken once).</summary>
+        public bool BoardOnSlot(out Vector3 local)
+        {
+            if (!boardLocalKnown && Rig.SlotWeaponL != null && ShieldBoard(out var c, out _, out _))
+            {
+                boardLocal = Rig.SlotWeaponL.InverseTransformPoint(c);
+                boardLocalKnown = true;
+            }
+
+            local = boardLocal;
+            return boardLocalKnown;
+        }
+
         /// <summary>Its shield's board now: the centre of its face, the way the face looks (the shield slot's forward, as the shield's prefab has it) and its radius (metres).</summary>
         public bool ShieldBoard(out Vector3 centre, out Vector3 normal, out float radius)
         {
@@ -1318,7 +1334,7 @@ namespace PhysicsBattler.Locomotion
             // (An expert reads the wind-up; a novice moves only once the blade itself is coming, the last moment before contact.)
             float toContact = Blow.HasValue ? Blow.Value.ToContact : 0f;
             bool sees = IncomingBlade.HasValue && incomingFor > Mathf.Lerp(SeeBlowAfter, NoviceSeeAfter, lack)
-                        && toContact <= SeesBefore(1f - lack) && Blocking && !GuardOpen;
+                        && toContact <= Mathf.Min(SeesBefore(1f - lack), MovesWithin) && Blocking && !GuardOpen;
             backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
             // (Knocked open: the shield meets nothing until the guard is back.)
             float wantIntercept = !GuardOpen && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
@@ -1340,54 +1356,100 @@ namespace PhysicsBattler.Locomotion
             // (The plan "Shield and blade contact", step 2: on the blade's own path, where it first comes within the guard
             // of the body, square to its motion there. What the blow would strike first, not where it is aimed: a chop
             // aimed at the hips passes the head on its way.)
-            if (interceptWeight > 0f && Blow.HasValue && PlanMeet(Blow.Value, out var meetAt, out var meetNormal, out var meetMotion, out var bladeWay, out float meetIn))
+            // (Held, not chased (the playtest: the board moved and turned back and forth as the blade came): planned once as
+            // the blow is first read, kept in the body's own frame so it goes with the body, and planned again only when a
+            // later read moves it by more than <see cref="ReplanBy"/> or turns it by more than <see cref="ReplanTurn"/>. Once
+            // the blade is inside the guard, the plan stands.)
+            Vector3 freshAt = Vector3.zero, freshNormal = Vector3.zero, freshMotion = Vector3.zero, freshWay = Vector3.zero;
+            float meetIn = 0f;
+            bool inside = false;
+            bool fresh = interceptWeight > 0f && Blow.HasValue && PlanMeet(Blow.Value, out freshAt, out freshNormal, out freshMotion, out freshWay, out meetIn, out inside);
+            bool havePlan = interceptWeight > 0f && Blow.HasValue && planSerial == Blow.Value.Serial;
+            if (fresh || havePlan)
             {
-                shieldReread -= dt;
-                if (shieldReadHeld && shieldReread > 0f)
+                var rootTurn = Quaternion.Euler(0f, Loco.Facing, 0f);
+                var rootBack = Quaternion.Inverse(rootTurn);
+                if (fresh && !(havePlan && inside))
                 {
-                    meetAt = shieldHeldAim;
-                    meetNormal = shieldHeldLine;
+                    shieldReread -= dt;
+                    if (!havePlan || shieldReread <= 0f)
+                    {
+                        // (How well it reads the blow: a novice's board goes where it guessed (off by its misread, across the
+                        // blade's motion, and its face turned by its misline), keeps to that first guess a while, and holds at
+                        // the chest against a low cut.)
+                        float hips = Anim.Part(PartId.Pelvis).position.y;
+                        if (!coversLow && freshAt.y < hips)
+                        {
+                            freshAt = new Vector3(freshAt.x, chest.y, freshAt.z);
+                        }
+
+                        Vector3 side = Vector3.ProjectOnPlane(shieldMisread, freshMotion.sqrMagnitude > 1e-8f ? freshMotion.normalized : freshNormal);
+                        freshAt += side.sqrMagnitude > 1e-8f ? side.normalized * shieldMisread.magnitude : Vector3.zero;
+                        freshNormal = (shieldMisline * freshNormal).normalized;
+                        Vector3 heldAt = Loco.Position + rootTurn * planAt, heldNormal = rootTurn * planNormal;
+                        if (havePlan && Vector3.Angle(freshNormal, heldNormal) > 120f)
+                        {
+                            freshNormal = -freshNormal;
+                        }
+
+                        if (!havePlan || Vector3.Distance(freshAt, heldAt) > ReplanBy * Size || Vector3.Angle(freshNormal, heldNormal) > ReplanTurn)
+                        {
+                            // (An expert's face slanted so a cut glances off it, away from the body: turned about the blade's
+                            // own line, the way chosen once.)
+                            Vector3 freshFace = freshNormal;
+                            float slantBy = ExpertSlant * (1f - lack);
+                            if (slantBy > 0.5f && freshWay.sqrMagnitude > 1e-6f && !Blow.Value.Thrust)
+                            {
+                                Vector3 outward = Vector3.ProjectOnPlane(freshAt - chest, freshWay);
+                                Vector3 tilted = Quaternion.AngleAxis(slantBy, freshWay) * freshNormal;
+                                Vector3 slide = Vector3.ProjectOnPlane(freshMotion, tilted);
+                                freshFace = Vector3.Dot(slide, outward) >= 0f ? tilted : Quaternion.AngleAxis(-slantBy, freshWay) * freshNormal;
+                            }
+
+                            planSerial = Blow.Value.Serial;
+                            planAt = rootBack * (freshAt - Loco.Position);
+                            planNormal = rootBack * freshNormal;
+                            planFace = rootBack * freshFace;
+                            Replans += havePlan ? 1 : 0;
+                        }
+
+                        shieldReread = lack >= 0.999f ? float.MaxValue : lack <= 0.001f ? 0f : 0.4f * lack;
+                    }
+                }
+
+                // (A plan read again eases over to where it now goes, never a jump.)
+                if (easedSerial != planSerial)
+                {
+                    easedSerial = planSerial;
+                    easedAt = planAt;
+                    easedNormal = planNormal;
+                    easedFace = planFace;
                 }
                 else
                 {
-                    // (How well it reads the blow: a novice's board goes where it guessed (off by its misread, across the
-                    // blade's motion, and its face turned by its misline), keeps to that first guess, and holds at the
-                    // chest against a low cut.)
-                    float hips = Anim.Part(PartId.Pelvis).position.y;
-                    if (!coversLow && meetAt.y < hips)
-                    {
-                        meetAt = new Vector3(meetAt.x, chest.y, meetAt.z);
-                    }
-
-                    Vector3 side = Vector3.ProjectOnPlane(shieldMisread, meetMotion.sqrMagnitude > 1e-8f ? meetMotion.normalized : meetNormal);
-                    meetAt += side.sqrMagnitude > 1e-8f ? side.normalized * shieldMisread.magnitude : Vector3.zero;
-                    meetNormal = (shieldMisline * meetNormal).normalized;
-                    shieldHeldAim = meetAt;
-                    shieldHeldLine = meetNormal;
-                    shieldReadHeld = true;
-                    shieldReread = lack >= 0.999f ? float.MaxValue : 0.4f * lack;
+                    // (Quicker the less time is left: eased at its full pace, a read just before contact never arrived.)
+                    float ease = 1f - Mathf.Exp(-dt / Mathf.Clamp(0.3f * meetIn, 0.02f, PlanEase));
+                    easedAt = Vector3.Lerp(easedAt, planAt, ease);
+                    easedNormal = Vector3.Slerp(easedNormal, planNormal, ease);
+                    easedFace = Vector3.Slerp(easedFace, planFace, ease);
                 }
 
-                // (The board's centre on the meeting point: the hand behind it by the board's own offset from the fist,
-                // as the face will be turned.)
+                Vector3 meetAt = Loco.Position + rootTurn * easedAt, meetNormal = rootTurn * easedNormal;
+                face = rootTurn * easedFace;
+                // (The board's centre on the meeting point: the hand behind it by the board's own offset in the fist, as the
+                // face will be turned. From the clip's pose of the hand this step and the board's fixed place on its slot:
+                // taken from the physical board as it was, the hand went back and forth between two places step to step.)
                 Vector3 boardFromHand = -meetNormal * (0.08f * Size);
-                if (ShieldBoard(out var boardNow, out var normalNow, out _))
+                var posedSlot = Anim.SlotWeaponL;
+                if (posedSlot != null && BoardOnSlot(out var boardLocal))
                 {
-                    boardFromHand = Quaternion.FromToRotation(normalNow, meetNormal) * (boardNow - Rig.Part(PartId.HandL).transform.position);
+                    var slotThen = Quaternion.FromToRotation(posedSlot.forward, face) * posedSlot.rotation;
+                    boardFromHand = (posedSlot.position - hand.position) + slotThen * boardLocal;
                 }
 
                 want = meetAt - boardFromHand;
-                face = meetNormal;
-                // (An expert's slanted so a cut glances off it, away from the body: turned about the blade's own line.)
-                float slantBy = ExpertSlant * (1f - lack);
-                if (slantBy > 0.5f && bladeWay.sqrMagnitude > 1e-6f && !(Blow.Value.Thrust))
-                {
-                    Vector3 outward = Vector3.ProjectOnPlane(meetAt - Anim.Part(PartId.Chest).position, bladeWay);
-                    Vector3 tilted = Quaternion.AngleAxis(slantBy, bladeWay) * face;
-                    Vector3 slide = Vector3.ProjectOnPlane(meetMotion, tilted);
-                    face = Vector3.Dot(slide, outward) >= 0f ? tilted : Quaternion.AngleAxis(-slantBy, bladeWay) * face;
-                }
-
+                DebugWant = want;
+                DebugFace = face;
                 TraceMeet(Blow.Value, meetAt, meetNormal, meetIn);
             }
             else
@@ -1452,13 +1514,39 @@ namespace PhysicsBattler.Locomotion
             // moment.)
             if (!shieldFaceKnown || shieldFace.sqrMagnitude < 1e-6f)
             {
-                shieldFace = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+                // (From where the guard holds it: started from straight ahead, the board snapped round 35 degrees in the
+                // step it began to move.)
+                shieldFace = Anim.SlotWeaponL != null ? Anim.SlotWeaponL.forward : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
                 shieldFaceKnown = true;
             }
 
             shieldFace = Vector3.RotateTowards(shieldFace, face, Mathf.Lerp(ShieldTurnSpeed, NoviceShieldTurnSpeed, lack) * Mathf.Deg2Rad * dt, 0f);
             Poser.FaceShieldAt(shieldFace, Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
         }
+
+        /// <summary>
+        /// The shield moves to meet a blow no sooner than this before contact (seconds): read from further out, the wind-up
+        /// still swings the blade's path about, and the board followed it round (the playtest: it moved and turned back and
+        /// forth as the blade came). In this time the arm still has more than enough of its speed to get there.
+        /// </summary>
+        public const float MovesWithin = 0.6f;
+
+        /// <summary>A later read of the blow moves the shield's plan only by more than this (metres at a Medium's size) or turns it by more than this (degrees): less, it holds where it is going.</summary>
+        public const float ReplanBy = 0.1f, ReplanTurn = 25f;
+
+        private int planSerial = -1;
+        private Vector3 planAt, planNormal, planFace;
+        private int easedSerial = -1;
+        private Vector3 easedAt, easedNormal, easedFace;
+
+        /// <summary>How quickly a plan read again eases over to its new place (seconds, the e-folding).</summary>
+        public const float PlanEase = 0.06f;
+
+        /// <summary>Plans moved by a later read of the same blow (for the logs).</summary>
+        public int Replans;
+
+        /// <summary>Where the shield's hand is going and the way its face is to look, this step (for the runners' traces).</summary>
+        public Vector3 DebugWant, DebugFace;
 
         /// <summary>How far from the body's line (hips to the top of the head) the shield meets a blade (metres at a Medium's size): where the board is held, about a forearm out from the body's front.</summary>
         public const float GuardShell = 0.42f;
@@ -1469,10 +1557,11 @@ namespace PhysicsBattler.Locomotion
         /// point on the blade nearest the body then, the face square to the blade's motion there (pointing out, back up
         /// the blow), that motion, the blade's way, and how soon (seconds). False: the path never comes that near.
         /// </summary>
-        private bool PlanMeet(in BlowRead b, out Vector3 at, out Vector3 normal, out Vector3 motion, out Vector3 bladeWay, out float inSeconds)
+        private bool PlanMeet(in BlowRead b, out Vector3 at, out Vector3 normal, out Vector3 motion, out Vector3 bladeWay, out float inSeconds, out bool inside)
         {
             at = normal = motion = bladeWay = Vector3.zero;
             inSeconds = 0f;
+            inside = false;
             if (b.GripPath == null || b.TipPath == null || b.GripPath.Length < 2)
             {
                 return false;
@@ -1510,6 +1599,7 @@ namespace PhysicsBattler.Locomotion
                     }
 
                     inSeconds = b.SecondsTo(Mathf.Max(0, k - 1) + (k > 0 ? u : 0f));
+                    inside = k == 0;
                     return true;
                 }
 

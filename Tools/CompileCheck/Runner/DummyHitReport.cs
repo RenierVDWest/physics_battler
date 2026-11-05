@@ -24,6 +24,7 @@ internal static class DummyHitReport
         ClipFighter.LegFalls = Environment.GetEnvironmentVariable("LEG_FALLS") != null;
         var ci = CultureInfo.InvariantCulture;
         var allShieldMeets = new List<StrikeHits.ShieldMeet>();
+        var steadies = new List<ShieldSteadiness>();
         if (Environment.GetEnvironmentVariable("SHIELD_PLAN") != null) ClipFighter.ShieldTrace = line => Console.WriteLine("    the shield: " + line);
         int allInside = 0;
         string prefix = LocoLibrary.CombatPrefix(body);
@@ -72,6 +73,8 @@ internal static class DummyHitReport
                     var weapon = WeaponDefinition.CreateDefault(weaponArg == "club" ? WeaponKind.Club : weaponArg == "sword" ? WeaponKind.Sword : body == "Large" ? WeaponKind.Club : WeaponKind.Sword);
                     poser.WeaponLength = weapon.length * size;
                     var hits = walker.EnableStrikes(weapon);
+                    var steady = new ShieldSteadiness();
+                    steadies.Add(steady);
                     hits.Mass = 70f * size * size * size;
 
                     // The dummy (a Medium) where the strike reaches, facing the walker.
@@ -233,6 +236,15 @@ internal static class DummyHitReport
                         dummy.Watch(hits);
 
                         dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
+                        steady.Step(dummy);
+                        if (Environment.GetEnvironmentVariable("SHIELD_STEPS") != null && dummy.IncomingBlade.HasValue && dummy.ShieldBoard(out var sbc, out var sbn, out _))
+                        {
+                            var bk = Quaternion.Inverse(Quaternion.Euler(0f, dummy.Loco.Facing, 0f));
+                            string V3(Vector3 v) => string.Format(ci, "({0:0.00},{1:0.00},{2:0.00})", v.x, v.y, v.z);
+                            Console.WriteLine(string.Format(ci, "    {0:0.00} board {1} n {2} | posed hand {3} want {4} face {5} | replans {6} hitstop {7:0.00}", i * dt,
+                                V3(bk * (sbc - dummy.Loco.Position)), V3(bk * sbn), V3(bk * (dummy.Anim.Part(PartId.HandL).position - dummy.Loco.Position)),
+                                V3(bk * (dummy.DebugWant - dummy.Loco.Position)), V3(bk * dummy.DebugFace), dummy.Replans, hits.HitStop));
+                        }
                         if (Environment.GetEnvironmentVariable("SHIELD_TRACE") != null && dummy.IncomingBlade.HasValue)
                         {
                             Vector3 sc = board.transform.position, n = board.transform.forward;
@@ -322,6 +334,8 @@ internal static class DummyHitReport
         }
 
         ShieldMeetSummary.Print(allShieldMeets);
+        foreach (var st in steadies) st.Close();
+        ShieldSteadiness.Print(steadies);
         Console.WriteLine($"Outside its blows the blade was in a body or a shield {allInside} steps");
         Console.WriteLine($"All: {landed} landed, {blocked} blocked or parried, {missed} missed of {tries}; the bodies came within {closest:0.00} m; {allTouches} touches outside the blows");
         if (swordTries > 0)

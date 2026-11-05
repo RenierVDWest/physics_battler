@@ -383,6 +383,17 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     combos 42 of 42, 0.30 from the centre, none on the rim (was 30); in the spar the rim went from 15 of 27 to 2 of
     26. Skill 0.5 is no better yet (step 5 tunes it); high blows are still met only as high as the arm reached
     before (step 3).
+  - The shield held steady (the playtest: it moved and turned back and forth as the blade came). Three causes: the
+    hand was placed from the physical board's offset as it was, so it went back and forth between two places step to
+    step; the face started its turn from straight ahead, not from the guard, a 35 deg snap as it began to move; and
+    it chased every read of the wind-up, whose path swings about. Now the hand is placed from the board's fixed place
+    in the fist; the face turns from where the guard holds it; the plan is made once, kept in the body's own frame,
+    and moved only when a later read moves it more than 10 cm or turns it more than 25 deg, easing over (in 0.06 s,
+    quicker as contact nears) and never once the blade is inside the guard; and the shield moves no sooner than 0.6
+    s before contact. Headless at skill 1, single blows, from first read to contact: the board moves a median 0.82
+    m to get 0.54 m (was 1.23 to 0.53), the most 1.6 m (was 5.0), going back on itself at most 6 times (was 19); the
+    face turns 143 deg to turn 106 (was 212 to 101), the most 269 (was 512). Still 26 of 27 on the board, a median
+    0.37 of the radius from its centre. `dummyhits` and `combos` print "The shield's steadiness".
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

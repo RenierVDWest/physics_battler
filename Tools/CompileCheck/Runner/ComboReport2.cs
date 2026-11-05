@@ -22,6 +22,8 @@ internal static class StrikeComboReport
         LocoLibrary.Load();
         var ci = CultureInfo.InvariantCulture;
         var allShieldMeets = new List<StrikeHits.ShieldMeet>();
+        if (Environment.GetEnvironmentVariable("SHIELD_PLAN") != null) ClipFighter.ShieldTrace = line => Console.WriteLine("      the shield: " + line);
+        var steadies = new List<ShieldSteadiness>();
         int allInside = 0;
         string prefix = LocoLibrary.CombatPrefix(body);
         var strikes = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key))
@@ -84,6 +86,8 @@ internal static class StrikeComboReport
             var weapon = WeaponDefinition.CreateDefault(body == "Large" ? WeaponKind.Club : WeaponKind.Sword);
             poser.WeaponLength = weapon.length * size;
             var hits = walker.EnableStrikes(weapon);
+            var steady = new ShieldSteadiness();
+            steadies.Add(steady);
             hits.Mass = 70f * size * size * size;
             ComboPlayer playerRef = null;
             hits.Finishing = () => playerRef != null && playerRef.LastBlow;
@@ -333,6 +337,7 @@ internal static class StrikeComboReport
                 hits.Step(dt, dummy);
                 dummy.Watch(hits);
                 dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
+                steady.Step(dummy);
                 film.Add(i * dt, string.Join(">", new[] { first.Name }.Concat(chain.Select(l => l.To.Name))), loco, poser, anim);
                 dummyFilm.Add(i * dt, "dummy", dummy.Loco, dummy.Poser, dummy.Anim);
                 if (loco.Switches != switches)
@@ -425,6 +430,8 @@ internal static class StrikeComboReport
         }
 
         ShieldMeetSummary.Print(allShieldMeets);
+        foreach (var st in steadies) st.Close();
+        ShieldSteadiness.Print(steadies);
         Console.WriteLine($"Outside its blows the blade was in a body or a shield {allInside} steps");
         Console.WriteLine(string.Format(ci, "All: {0} combos, {1} strikes: {2} landed, {3} blocked, {4} missed; about the switches the hands and feet moved at most {5:0.0} m/s ({6})",
             combos, strikesPlayed, landed, blocked, missed, fastest, fastestWhere));
