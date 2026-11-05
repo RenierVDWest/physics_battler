@@ -129,6 +129,37 @@ namespace PhysicsBattler.Locomotion
 
         public static float FightingDistance(float sizeA, float sizeB) => 0.5f * (sizeA + sizeB) * BodyGap;
 
+        /// <summary>
+        /// The nearest two bodies come, whatever they do (a share of their fighting distance): two lunging into each other
+        /// at once each cut its lunge short of where the other stood, and passed through each other (spar: 0.51 m).
+        /// </summary>
+        public const float LeastGap = 0.85f;
+
+        /// <summary>
+        /// Two bodies kept apart: nearer than <see cref="LeastGap"/> of their fighting distance (root to root), each is
+        /// moved straight off the other at once, the lighter the further, as two bodies meeting push each other off.
+        /// </summary>
+        public static void KeepApart(ClipFighter a, ClipFighter b)
+        {
+            if (a == null || b == null || a.Fallen || b.Fallen)
+            {
+                return;
+            }
+
+            Vector3 gap = b.Loco.Position - a.Loco.Position;
+            gap.y = 0f;
+            float apart = gap.magnitude, least = LeastGap * FightingDistance(a.Size, b.Size);
+            if (apart >= least)
+            {
+                return;
+            }
+
+            Vector3 way = apart > 1e-4f ? gap / apart : Quaternion.Euler(0f, a.Loco.Facing, 0f) * Vector3.forward;
+            float into = least - apart, shareA = b.Mass / Mathf.Max(1f, a.Mass + b.Mass);
+            a.Loco.Position -= way * (into * shareA);
+            b.Loco.Position += way * (into * (1f - shareA));
+        }
+
         /// <summary>How far apart it stands from the other body between blows (metres, root to root; 0: as near as <see cref="KeepDistance"/>): out of reach of a blow without a step, the guards' points short of the other's shield.</summary>
         public float StandDistance;
 
@@ -1419,12 +1450,39 @@ namespace PhysicsBattler.Locomotion
             bool driven = !Anchored && knock.magnitude > DrivenFrom;
             string clipName = shield ? null : ReactionClip(part, impulse.magnitude / Mass, reaction);
             var clip = clipName != null ? LocoLibrary.Get(clipName) : null;
+            string reacted = null;
+            if (Striking)
+            {
+                // Struck in its own strike: as the fight has it, a flinch or a stagger cuts the strike short (it backs
+                // out a little and fades into its guard), a lighter blow lets it carry on; either way the blow shows in
+                // the body's sway, not in a reaction clip, whose feet would drag those the strike has planted.
+                clip = null;
+                if (reaction == Combat.Reaction.Stagger || reaction == Combat.Reaction.Flinch)
+                {
+                    Combo?.Stop();
+                    Loco.CutShort(StrikeHits.RewindMost, StrikeHits.ReboundSpeed);
+                    reacted = "its strike cut short";
+                }
+                else
+                {
+                    reacted = "its strike carried on";
+                }
+            }
+
+            if (clip != null && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.Name.StartsWith("sns_impact_"))
+            {
+                // (Already reeling from a blow: it goes on, the new blow in its sway. A reaction started over another
+                // dragged the foot the first had planted.)
+                clip = null;
+                reacted = "still reeling";
+            }
+
             if (clip != null)
             {
                 Loco.Play(clip);
             }
 
-            string reacted = clip != null ? clipName.Replace("sns_impact_", "") + " reaction" : shield ? "the shield knocked back" : "no reaction clip";
+            reacted ??= clip != null ? clipName.Replace("sns_impact_", "") + " reaction" : shield ? "the shield knocked back" : "no reaction clip";
             if (driven)
             {
                 // (Already being carried back: the new blow adds to it now.)

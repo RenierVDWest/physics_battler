@@ -355,6 +355,13 @@ namespace PhysicsBattler.Locomotion
                 Drive(out want, out facing);
                 loco.StopAt = null;
                 leg = "driving";
+                if (footwork && dummy != null && walkerFeet != null)
+                {
+                    // (Footwork: it steers itself against the dummy, as the fight's units steer.)
+                    walkerFeet.Steer(dummy, dummyFeet, dt, out want, out facing);
+                    leg = "footwork: " + walkerFeet.Doing;
+                }
+
                 // (A combo pressing after the dummy (its last blow drove it back): the combo walks the walker in.)
                 if (combo != null && combo.Pressing)
                 {
@@ -446,7 +453,25 @@ namespace PhysicsBattler.Locomotion
                 dummy.KeepOff(walker);
             }
 
-            dummy?.Step(dt, anim.Part(PartId.Chest).position, frozen);
+            if (footwork && dummy != null && dummyFeet != null)
+            {
+                // (Footwork: the dummy steers itself against the walker too, instead of keeping to its spot.)
+                dummyFeet.Steer(walker, walkerFeet, dt, out var dummyWant, out float dummyYaw);
+                dummy.Move(dt, dummyWant, dummyYaw, anim.Part(PartId.Chest).position, frozen);
+                dummy.Apply(dt);
+                LogFootwork();
+            }
+            else
+            {
+                dummy?.Step(dt, anim.Part(PartId.Chest).position, frozen);
+            }
+
+            // (Two bodies never pass into each other, whatever they do.)
+            if (dummy != null)
+            {
+                ClipFighter.KeepApart(walker, dummy);
+            }
+
             if (dummy?.Strikes != null)
             {
                 walkerOnly[0] = walker;
@@ -784,8 +809,9 @@ namespace PhysicsBattler.Locomotion
             go.transform.SetParent(null, true);
             Destroy(holder);
             var profile = mediumPrefab.Profile != null ? mediumPrefab.Profile : UnitProfile.CreateDefault();
-            // (Sword alone, it stands as a fencer does: the sword guard, right foot forward.)
-            dummy = new ClipFighter(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, dummyStance == ClipFighter.Stances.Sword ? "sw_" : "sns_", physical) { Stance = dummyStance };
+            // (Every guard left foot forward, sword alone too: every strike and hit reaction is, and a fencer's right-lead guard
+            // dragged a planted foot through the switch each time it struck or was struck.)
+            dummy = new ClipFighter(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, "sns_", physical) { Stance = dummyStance };
             var (main, off) = LoadoutOf(BodySize.Medium);
             if (dummyStance != ClipFighter.Stances.Shield)
             {
@@ -814,6 +840,8 @@ namespace PhysicsBattler.Locomotion
             };
             dummy.Follow = clip => walker != null ? dummy.AimAt(walker, clip) : (Vector3?)null;
             dummyAnswerAt = -1f;
+            walkerFeet = new Footwork(walker, 0) { Mode = walkerTempo };
+            dummyFeet = new Footwork(dummy, 1) { Mode = dummyTempo };
             if (walker.Stance == ClipFighter.Stances.Sword)
             {
                 // (The walker's own sword parry, against the dummy: its body, its shield, its sword as they keep out of it.)
@@ -839,6 +867,45 @@ namespace PhysicsBattler.Locomotion
                 };
             }
         }
+
+        // ---- Footwork (the plan "Bringing the lab into the fight", step 3) --------------------------------------
+
+        [Tooltip("Both steer themselves: each walks in to where its strikes land, holds that distance, circles, backs off when crowded, as the fight's units do (its tempo moves the distance).")]
+        public bool footwork;
+
+        public Footwork.Tempo walkerTempo = Footwork.Tempo.Probe, dummyTempo = Footwork.Tempo.Probe;
+
+        private Footwork walkerFeet, dummyFeet;
+        private string footworkWas = "";
+
+        private void ToggleFootwork()
+        {
+            footwork = !footwork;
+            if (!footwork && dummy != null)
+            {
+                // (Its spot is where the footwork left it: it doesn't walk back across the board.)
+                dummy.Home = dummy.Loco.Position;
+            }
+
+            legs.Add($"{time:0.00} s: footwork {(footwork ? $"on (the walker {walkerTempo}, the dummy {dummyTempo})" : "off")}");
+        }
+
+        private void LogFootwork()
+        {
+            if (walkerFeet == null || dummyFeet == null)
+            {
+                return;
+            }
+
+            string now = $"the walker {walkerFeet.Doing}, the dummy {dummyFeet.Doing}";
+            if (now != footworkWas)
+            {
+                footworkWas = now;
+                legs.Add($"{time:0.00} s: {Flat(dummy.Loco.Position - loco.Position):0.00} m apart (the walker wants {walkerFeet.Want:0.00}, the dummy {dummyFeet.Want:0.00}): {now}");
+            }
+        }
+
+        private static Footwork.Tempo NextTempo(Footwork.Tempo t) => (Footwork.Tempo)(((int)t + 1) % 4);
 
         // ---- The dummy strikes back (the plan "Bringing the lab into the fight", step 2) -------------------------
 
@@ -1587,7 +1654,7 @@ namespace PhysicsBattler.Locomotion
         private const string UiScaleKey = "LocomotionLab.UiScale";
 
         /// <summary>Which of the panel's sections are open.</summary>
-        private bool showBody = true, showWalk = false, showAttacker = true, showDefender = true, showLog = true;
+        private bool showBody = true, showWalk = false, showAttacker = true, showFootwork = true, showDefender = true, showLog = true;
 
         private GUIStyle wrapped, header;
 
@@ -1827,6 +1894,37 @@ namespace PhysicsBattler.Locomotion
                         var colour = lastAim.Contains("missed") ? new Color(1f, 0.5f, 0.45f)
                             : lastAim.Contains("blocked") || lastAim.Contains("parried") ? new Color(0.55f, 0.75f, 1f) : new Color(0.55f, 0.95f, 0.55f);
                         Note("Last: " + lastAim, colour);
+                    }
+                }
+
+                // ---- Footwork
+                if (Section("Footwork (both steer themselves)", ref showFootwork))
+                {
+                    if (GUILayout.Button(footwork ? "Footwork: on (W A S D off)" : "Footwork: off"))
+                    {
+                        ToggleFootwork();
+                    }
+
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button($"Walker: {walkerTempo}"))
+                    {
+                        walkerTempo = NextTempo(walkerTempo);
+                        if (walkerFeet != null) walkerFeet.Mode = walkerTempo;
+                        legs.Add($"{time:0.00} s: the walker's tempo {walkerTempo}");
+                    }
+
+                    if (GUILayout.Button($"Dummy: {dummyTempo}"))
+                    {
+                        dummyTempo = NextTempo(dummyTempo);
+                        if (dummyFeet != null) dummyFeet.Mode = dummyTempo;
+                        legs.Add($"{time:0.00} s: the dummy's tempo {dummyTempo}");
+                    }
+
+                    GUILayout.EndHorizontal();
+                    Note("Probe: at its striking distance. Gather: just out of the other's reach. Press: closes in. Shell: gives ground.");
+                    if (footwork && walkerFeet != null && dummyFeet != null && dummy != null)
+                    {
+                        Note($"{Flat(dummy.Loco.Position - loco.Position):0.00} m apart. The walker: {walkerFeet.Doing} (wants {walkerFeet.Want:0.00}). The dummy: {dummyFeet.Doing} (wants {dummyFeet.Want:0.00}).");
                     }
                 }
 

@@ -49,6 +49,11 @@ internal static class Program
             return ParryReachReport.Run(args.Length >= 2 ? args[1] : null);
         }
 
+        if (args.Length >= 2 && args[0] == "footwork")
+        {
+            return FootworkReport.Run(args[1], args.Length >= 3 ? float.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture) : 30f);
+        }
+
         if (args.Length >= 2 && args[0] == "spar")
         {
             return SparReport.Run(args[1], args.Length >= 3 ? float.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture) : 40f);

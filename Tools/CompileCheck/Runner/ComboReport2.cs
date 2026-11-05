@@ -100,7 +100,7 @@ internal static class StrikeComboReport
             dprofile.body = "Medium";
             var droot = UnitBuilder.Build(dummyRig, dprofile, "Dummy", _ => null, 1);
             bool swordDummy = Environment.GetEnvironmentVariable("COMBO_STANCE") == "sword";
-            var dummy = new ClipFighter(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, swordDummy ? "sw_" : "sns_", physical: false);
+            var dummy = new ClipFighter(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, "sns_", physical: false);
             if (swordDummy)
             {
                 // (Its sword, as the lab holds it, parrying.)

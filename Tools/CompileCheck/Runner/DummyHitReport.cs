@@ -85,7 +85,7 @@ internal static class DummyHitReport
                     var dprofile = UnitProfile.CreateDefault();
                     dprofile.body = "Medium";
                     var droot = UnitBuilder.Build(dummyRig, dprofile, "Dummy", _ => null, 1);
-                    var dummy = new ClipFighter(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, stance == ClipFighter.Stances.Sword ? "sw_" : "sns_", physical: false);
+                    var dummy = new ClipFighter(droot, droot.GetComponent<UnitRig>(), dprofile, new Vector3(0f, 0f, reach), 180f, 0f, "sns_", physical: false);
                     if (float.TryParse(Environment.GetEnvironmentVariable("PARRY_SKILL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float parrySkill))
                     {
                         dummy.ParrySkill = parrySkill;

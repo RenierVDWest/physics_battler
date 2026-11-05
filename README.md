@@ -274,6 +274,21 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     are faded into the strike's over 0.2 s (`ClipFighter.HandOffOver`), the free arm back to its tuck over 0.3 s.
     Headless: `spar <dir> [s]` (two Mediums trade blows, `SPAR_A`/`SPAR_B` open, shield or sword, `SPAR_SKILL`):
     blows land, are blocked and parried both ways; no hand faster than a swing's 22 m/s.
+  - Footwork (step 3; `Locomotion/Footwork.cs`, the panel's Footwork section): both steer themselves, as the fight's
+    units do (`FightLoop.Approach` and the Fight Rhythm's circling, as a velocity and a facing the guard's clips walk):
+    each walks in to its striking distance (the middle of its strikes' reaches, never inside the fighting distance),
+    slowing over the last 0.4 m; holds it; backs off only when crowded or holding back; near, goes round the other
+    sideways in spells (1.5 to 3.5 s, then standing 0.8 to 2.2 s, either way round; the two go round the same way);
+    and faces it. Its tempo moves the distance: Probe its striking distance, Gather just out of the other's reach,
+    Press closer in, Shell giving ground. Two bodies never come nearer than 0.85 of their fighting distance
+    (`ClipFighter.KeepApart`: each pushed straight off the other at once, the lighter further; two lunges at once
+    passed through each other). Feet, from the step 2 playtest: a sword-only fighter now guards left foot forward as
+    every strike and hit reaction clip is (the fencer's right-lead guard dragged a planted foot through the switch:
+    up to 19 cm); a blow on a fighter in its own strike doesn't start a reaction clip (a flinch or a stagger cuts the
+    strike short, a lighter blow lets it carry on: the fight's rule), nor on one still reeling from the last (each
+    switch dragged a planted foot up to 26 cm). Headless: `footwork <dir> [s]` (`FOOT_A`/`FOOT_B` probe, gather, press,
+    shell): planted feet within 0.2 cm, 1.30 to 1.49 m apart by tempo, no turn clips needed; `spar` with
+    `SPAR_CLASH=1` (blows that cross): planted feet within 6 to 12 cm (was 26), the bodies no nearer than 1.02 m.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

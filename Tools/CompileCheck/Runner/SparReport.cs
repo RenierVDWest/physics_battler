@@ -49,6 +49,10 @@ internal static class SparReport
         float idleFor = 0f, nearest = 99f, nearestAt = 0f, worstPart = 0f;
         string nearestWhat = "", worstWhat = "";
         bool inRange = false;
+        // (SPAR_CLASH=1: the one struck at strikes back 0.25 s into the other's blow: blows that cross, a strike struck.)
+        bool clash = Environment.GetEnvironmentVariable("SPAR_CLASH") != null;
+        float clashAt = -1f;
+        ClipFighter clasher = null, clashTarget = null;
         var filmA = new LocoFilm(dt, 2) { BladeLength = a.Poser.WeaponLength, ShieldRadius = a.Stance == ClipFighter.Stances.Shield ? 0.3f : 0f };
         var filmB = new LocoFilm(dt, 2) { BladeLength = b.Poser.WeaponLength, ShieldRadius = b.Stance == ClipFighter.Stances.Shield ? 0.3f : 0f };
         var lastPos = new Dictionary<(ClipFighter, PartId), Vector3>();
@@ -112,6 +116,12 @@ internal static class SparReport
                     if (clip != null)
                     {
                         if (striker == a) thrownA++; else thrownB++;
+                        if (clash)
+                        {
+                            clashAt = clock + 0.25f;
+                            clasher = target;
+                            clashTarget = striker;
+                        }
                     }
 
                     turn++;
@@ -122,12 +132,25 @@ internal static class SparReport
                 idleFor = 0f;
             }
 
+            if (clashAt >= 0f && clock >= clashAt && !frozen)
+            {
+                clashAt = -1f;
+                var back = clasher.Busy ? null : clasher.StrikeThatLands(clashTarget);
+                if (back != null)
+                {
+                    clasher.StrikeAt(clashTarget, back);
+                    log.Add(string.Format(ci, "{0,6:0.00} s  {1} strikes into it: {2}", clock, clasher == a ? "A" : "B", back.Name));
+                    if (clasher == a) thrownA++; else thrownB++;
+                }
+            }
+
             a.Watch(b.Strikes);
             a.Move(dt, want, a.Striking || a.Loco.Current == Locomotor.Mode.OneShot ? a.Loco.Facing : yaw, b.Loco.Position, frozen);
             a.Strikes.Step(dt, onlyB);
             b.Watch(a.Strikes);
             b.Step(dt, a.Anim.Part(PartId.Chest).position, frozen);
             b.Strikes.Step(dt, onlyA);
+            ClipFighter.KeepApart(a, b);
             a.Apply(dt);
             measuresA.Sample(dt, clock, "A");
             measuresB.Sample(dt, clock, "B");
@@ -201,7 +224,7 @@ internal static class SparReport
         profile.body = "Medium";
         var root = UnitBuilder.Build(rigFile, profile, name, _ => null, name == "A" ? 0 : 1);
         var kind = stance == "sword" ? ClipFighter.Stances.Sword : stance == "open" ? ClipFighter.Stances.Open : ClipFighter.Stances.Shield;
-        var f = new ClipFighter(root, root.GetComponent<UnitRig>(), profile, at, facing, 0f, kind == ClipFighter.Stances.Sword ? "sw_" : "sns_", physical: false);
+        var f = new ClipFighter(root, root.GetComponent<UnitRig>(), profile, at, facing, 0f, "sns_", physical: false);
         f.Poser.BodyKey = "Medium";
         f.Rig.SlotWeaponR.localRotation = UnitController.MainGrip;
         f.Anim.SlotWeaponR.localRotation = UnitController.MainGrip;
