@@ -3,73 +3,120 @@ using UnityEngine;
 namespace PhysicsBattler.Locomotion
 {
     /// <summary>
-    /// The fight's visual feedback, in one place to tweak live (the scene's "Combat Feel" object): how a blow is
-    /// felt on the body it lands on. Pose effects only, no physics. Its values are pushed to the statics the clip
-    /// fighters read every frame, in play mode and out of it; with none in the scene (headless) the defaults hold.
-    /// More of the fight's feel joins it as it is made.
+    /// The fight's feel, in one place to tweak live (the scene's "Combat Feel" object): how a blow is felt by the body
+    /// it lands on, the shield or the blade that meets it, and the attacker it is stopped on. Its values are pushed to
+    /// the statics the clip fighters read every frame, in play mode and out of it; with none in the scene (headless)
+    /// the defaults hold. More of the fight's feel joins it as it is made.
     /// </summary>
     [ExecuteAlways]
     public sealed class CombatFeel : MonoBehaviour
     {
         [Header("Hit bend: a blow bends the body round where it landed")]
-        [Tooltip("How far the bend pushes the struck part, per m/s of the blow's weight (metres at a Medium's size). A Medium's sword weighs about 0.4 m/s, its club 0.65, the Large's club 1.2 to 2.5.")]
+        [Tooltip("How far the bend pushes the part the blow struck, per m/s of the blow's weight (metres, at a Medium's size; bigger bodies scale up). The parts around it are pushed less the further they are from the blow, so the body curves round it. For scale, a Medium's sword weighs about 0.4 m/s, its club 0.65, the Large's club 1.2 to 3. Raise it for a more violent bend on every blow; 0 turns the bend off. Default 0.35.")]
         [Range(0f, 1.5f)] public float bendPerWeight = DefaultBendPerWeight;
 
-        [Tooltip("The most a single blow's bend pushes the struck part (metres at a Medium's size).")]
+        [Tooltip("The furthest any one blow's bend can push the struck part (metres, at a Medium's size), however heavy the blow. Keeps the Large's club from folding the body in half. Default 0.4.")]
         [Range(0f, 1f)] public float mostBend = DefaultMostBend;
 
-        [Tooltip("How far from where the blow landed the bend reaches, falling off to nothing there (metres at a Medium's size): smaller, the bend is tighter round the blow; larger, the whole body goes with it.")]
+        [Tooltip("How far from the point of contact the bend spreads before it fades to nothing (metres, at a Medium's size). Smaller: only the struck part and its close neighbours move, a sharp local jolt. Larger: the whole body goes with the blow. Default 1.2.")]
         [Range(0.2f, 3f)] public float bendReach = DefaultBendReach;
 
-        [Tooltip("How soon the bend is at its furthest (seconds); it is mostly gone in about five times this.")]
+        [Tooltip("How long the bend takes to reach its furthest (seconds). It then springs back and is mostly gone after about five times this. Smaller is snappier, larger is a slower, heavier sway. Default 0.08.")]
         [Range(0.02f, 0.3f)] public float bendPeak = DefaultBendPeak;
 
         [Header("Hit lean and head snap (the older whole-body reaction)")]
-        [Tooltip("How far a blow leans the upper body as a whole: 1 as before, 0 none.")]
+        [Tooltip("Scales how far a blow tips the whole upper body away from it (the lean that came before the bend, on top of it). 1 is as it was tuned, 0 turns it off, 2 doubles it.")]
         [Range(0f, 3f)] public float leanScale = 1f;
 
-        [Tooltip("How far a blow to the head snaps it: 1 as before, 0 none.")]
+        [Tooltip("Scales how far a blow to the head snaps the head back or aside. 1 is as it was tuned, 0 turns it off, 2 doubles it.")]
         [Range(0f, 3f)] public float headSnapScale = 1f;
 
         [Header("Hit stop: both stand still a moment as a blow lands")]
-        [Tooltip("The hit stop's length before the blow's weight (seconds).")]
+        [Tooltip("The part of the hit stop every blow gets, whatever its weight (seconds). The weight then adds to it. Default 0.03.")]
         [Range(0f, 0.2f)] public float hitStopBase = DefaultHitStopBase;
 
-        [Tooltip("How much longer the hit stop is per m/s of the blow's weight (seconds): a Medium's sword weighs about 0.4 m/s, the Large's club 1.2 to 2.5.")]
+        [Tooltip("How much longer the hit stop gets per m/s of the blow's weight (seconds), so heavy blows freeze the moment longer. With the defaults a Medium's sword stops about 0.05 s, its club 0.07, the Large's club 0.10 to 0.16. Default 0.05.")]
         [Range(0f, 0.2f)] public float hitStopPerWeight = DefaultHitStopPerWeight;
 
-        [Tooltip("The least and the most a hit stop lasts (seconds; a combo's showstopper holds longer still).")]
+        [Tooltip("The shortest hit stop any blow that lands gets (seconds), so even the lightest blow registers. Default 0.04.")]
         [Range(0f, 0.2f)] public float leastHitStop = DefaultLeastHitStop;
 
+        [Tooltip("The longest hit stop a blow can get (seconds), however heavy. A combo's final blow (the showstopper) has its own hold, 0.13 to 0.17 s. Default 0.16.")]
         [Range(0f, 0.4f)] public float mostHitStop = DefaultMostHitStop;
 
         [Header("Driven back: what the struck part doesn't take moves the whole body")]
-        [Tooltip("How hard a blow drives the body back, per m/s of the weight the struck part passes on.")]
+        [Tooltip("How hard a blow drives the struck body back across the ground: the share of the blow's momentum the struck part doesn't absorb, over the body's mass, times this, becomes the speed its steps carry it back at. Raise it to make every hit move the target further. Default 3.5.")]
         [Range(0f, 8f)] public float driveBack = DefaultDriveBack;
 
-        [Tooltip("The most a blow drives the body back (m/s).")]
+        [Tooltip("The fastest a blow can drive a body back (m/s), when it doesn't stumble. Default 2.2.")]
         [Range(0f, 4f)] public float mostDrive = DefaultMostDrive;
 
-        [Tooltip("A blow this heavy or more (m/s of weight) throws the body back stumbling at once, its feet catching it, instead of a reaction first.")]
+        [Tooltip("The weight (m/s) from which a blow throws the body back stumbling at once, its feet scrambling to catch it, instead of playing a reaction first and being driven back after. The Large's club on a Medium is about 1.2 to 3, a Medium's club 0.65, a sword 0.4. Lower it to make more blows stumble. Default 1.")]
         [Range(0.2f, 4f)] public float stumbleFrom = DefaultStumbleFrom;
 
-        [Tooltip("How much harder a stumble throws the body back than a drive, and the most it does (m/s).")]
+        [Tooltip("How much harder a stumbling blow throws the body back than an ordinary drive (times the drive-back speed). Default 1.3.")]
         [Range(1f, 3f)] public float stumbleBoost = DefaultStumbleBoost;
 
+        [Tooltip("The fastest a stumble can throw a body back (m/s). Higher sends it further but its feet may slide trying to keep up. Default 2.8.")]
         [Range(0f, 5f)] public float mostStumble = DefaultMostStumble;
 
-        [Tooltip("How long a stumbling body takes to find its feet before it can strike again (seconds).")]
+        [Tooltip("How long a stumbling body needs to find its feet before it can strike or steer again (seconds). Default 0.7.")]
         [Range(0f, 2f)] public float stumbleRecovery = DefaultStumbleRecovery;
+
+        [Header("Block and parry: the defender feels the blow's weight too")]
+        [Tooltip("How far a parried blow drives the parrying sword back toward the body before it sweeps the blow aside, per m/s of the blow's weight (metres, at a Medium's size). The attacking weapon stays on the blade as it gives. A Medium's sword (about 0.4 m/s) gives it 0.04 m, the Large's club (about 1.4) 0.14. Default 0.1.")]
+        [Range(0f, 0.4f)] public float parryGivePerWeight = DefaultParryGivePerWeight;
+
+        [Tooltip("The furthest a held parry gives (metres, at a Medium's size), however heavy the blow. Default 0.2.")]
+        [Range(0f, 0.5f)] public float mostParryGive = DefaultMostParryGive;
+
+        [Tooltip("The heaviest blow (m/s of weight) a novice's square parry can hold. Anything heavier beats the parry: the blade is crushed back into the defender and part of the blow lands through it. A blow taken at a slant (a glance) is never beaten. A combo's final blow counts double. Default 0.8: a novice holds a Medium's club but not the Large's.")]
+        [Range(0.2f, 4f)] public float parryHolds = DefaultParryHolds;
+
+        [Tooltip("The heaviest blow (m/s of weight) an expert's square parry can hold; skill in between holds in proportion. Default 2: an expert holds the Large's single blows, not its combo's final blow.")]
+        [Range(0.2f, 5f)] public float expertParryHolds = DefaultExpertParryHolds;
+
+        [Tooltip("When a parry is beaten, the share of the blow's weight that lands through it on the body behind the blade (the rest is spent on the sword). Default 0.6.")]
+        [Range(0f, 1f)] public float beatenShare = DefaultBeatenShare;
+
+        [Tooltip("How far a blocked blow knocks the shield arm back, per m/s of the blow's weight on the shield (metres, at a Medium's size). A sword on a shield is about 0.5 m/s, the Large's club taken square on about 1.2. Default 0.12.")]
+        [Range(0f, 0.4f)] public float shieldGivePerWeight = DefaultShieldGivePerWeight;
+
+        [Tooltip("The furthest a block knocks the shield arm back (metres, at a Medium's size). Default 0.25.")]
+        [Range(0f, 0.6f)] public float mostShieldGive = DefaultMostShieldGive;
+
+        [Tooltip("A blow this heavy on the shield or more (m/s of weight) knocks the guard open: the shield arm is thrown wide, comes back slowly, and the shield doesn't move to meet another blow until the guard is back. A shield slanted to turn the blow takes less of its weight. Default 1.")]
+        [Range(0.2f, 4f)] public float guardOpenFrom = DefaultGuardOpenFrom;
+
+        [Tooltip("How long a guard knocked open stays open (seconds). Default 0.5.")]
+        [Range(0f, 2f)] public float guardOpenFor = DefaultGuardOpenFor;
+
+        [Header("The attacker's rebound off a block or a parry")]
+        [Tooltip("How fast the attacker's weapon hand is thrown back off a block or a parry, per m/s of the blow's weight (m/s). The heavier the blow, the harder it is stopped and the more it jars the arm. Default 2.4.")]
+        [Range(0f, 6f)] public float reboundPerWeight = DefaultReboundPerWeight;
+
+        [Tooltip("The least the attacker's hand is thrown back off a block or a parry (m/s), so even a light blow visibly bounces. Default 0.8.")]
+        [Range(0f, 3f)] public float leastRebound = DefaultLeastRebound;
+
+        [Tooltip("The most the attacker's hand is thrown back off a block or a parry (m/s). Default 3.5.")]
+        [Range(0f, 8f)] public float mostRebound = DefaultMostRebound;
+
+        [Tooltip("How much a blow stopped on a shield or a blade jars the attacker's own upper body (its lean back, against the lean a blow gives the one it hits). 0 none. Default 0.3.")]
+        [Range(0f, 1.5f)] public float jarScale = DefaultJarScale;
 
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultHitStopBase = 0.03f, DefaultHitStopPerWeight = 0.05f, DefaultLeastHitStop = 0.04f, DefaultMostHitStop = 0.16f;
         public const float DefaultDriveBack = 3.5f, DefaultMostDrive = 2.2f, DefaultStumbleFrom = 1.0f, DefaultStumbleBoost = 1.3f, DefaultMostStumble = 2.8f, DefaultStumbleRecovery = 0.7f;
+        public const float DefaultParryGivePerWeight = 0.1f, DefaultMostParryGive = 0.2f, DefaultParryHolds = 0.8f, DefaultExpertParryHolds = 2f, DefaultBeatenShare = 0.6f,
+            DefaultShieldGivePerWeight = 0.12f, DefaultMostShieldGive = 0.25f, DefaultGuardOpenFrom = 1f, DefaultGuardOpenFor = 0.5f,
+            DefaultReboundPerWeight = 2.4f, DefaultLeastRebound = 0.8f, DefaultMostRebound = 3.5f, DefaultJarScale = 0.3f;
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float BendPerWeight = DefaultBendPerWeight, MostBend = DefaultMostBend, BendReach = DefaultBendReach, BendPeak = DefaultBendPeak,
             LeanScale = 1f, HeadSnapScale = 1f,
             HitStopBase = DefaultHitStopBase, HitStopPerWeight = DefaultHitStopPerWeight, LeastHitStop = DefaultLeastHitStop, MostHitStop = DefaultMostHitStop,
-            DriveBack = DefaultDriveBack, MostDrive = DefaultMostDrive, StumbleFrom = DefaultStumbleFrom, StumbleBoost = DefaultStumbleBoost, MostStumble = DefaultMostStumble, StumbleRecovery = DefaultStumbleRecovery;
+            DriveBack = DefaultDriveBack, MostDrive = DefaultMostDrive, StumbleFrom = DefaultStumbleFrom, StumbleBoost = DefaultStumbleBoost, MostStumble = DefaultMostStumble, StumbleRecovery = DefaultStumbleRecovery,
+            ParryGivePerWeight = DefaultParryGivePerWeight, MostParryGive = DefaultMostParryGive, ParryHolds = DefaultParryHolds, ExpertParryHolds = DefaultExpertParryHolds, BeatenShare = DefaultBeatenShare, ShieldGivePerWeight = DefaultShieldGivePerWeight, MostShieldGive = DefaultMostShieldGive, GuardOpenFrom = DefaultGuardOpenFrom, GuardOpenFor = DefaultGuardOpenFor, ReboundPerWeight = DefaultReboundPerWeight, LeastRebound = DefaultLeastRebound, MostRebound = DefaultMostRebound, JarScale = DefaultJarScale;
 
         private void OnEnable() => Push();
 
@@ -94,6 +141,19 @@ namespace PhysicsBattler.Locomotion
             StumbleBoost = DefaultStumbleBoost;
             MostStumble = DefaultMostStumble;
             StumbleRecovery = DefaultStumbleRecovery;
+            ParryGivePerWeight = DefaultParryGivePerWeight;
+            MostParryGive = DefaultMostParryGive;
+            ParryHolds = DefaultParryHolds;
+            ExpertParryHolds = DefaultExpertParryHolds;
+            BeatenShare = DefaultBeatenShare;
+            ShieldGivePerWeight = DefaultShieldGivePerWeight;
+            MostShieldGive = DefaultMostShieldGive;
+            GuardOpenFrom = DefaultGuardOpenFrom;
+            GuardOpenFor = DefaultGuardOpenFor;
+            ReboundPerWeight = DefaultReboundPerWeight;
+            LeastRebound = DefaultLeastRebound;
+            MostRebound = DefaultMostRebound;
+            JarScale = DefaultJarScale;
         }
 
         private void Push()
@@ -114,6 +174,19 @@ namespace PhysicsBattler.Locomotion
             StumbleBoost = stumbleBoost;
             MostStumble = mostStumble;
             StumbleRecovery = stumbleRecovery;
+            ParryGivePerWeight = parryGivePerWeight;
+            MostParryGive = mostParryGive;
+            ParryHolds = parryHolds;
+            ExpertParryHolds = expertParryHolds;
+            BeatenShare = beatenShare;
+            ShieldGivePerWeight = shieldGivePerWeight;
+            MostShieldGive = mostShieldGive;
+            GuardOpenFrom = guardOpenFrom;
+            GuardOpenFor = guardOpenFor;
+            ReboundPerWeight = reboundPerWeight;
+            LeastRebound = leastRebound;
+            MostRebound = mostRebound;
+            JarScale = jarScale;
         }
     }
 }

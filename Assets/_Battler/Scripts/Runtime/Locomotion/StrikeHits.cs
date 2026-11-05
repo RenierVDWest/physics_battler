@@ -792,12 +792,23 @@ namespace PhysicsBattler.Locomotion
             bool comboing = Comboing != null && Comboing();
             LastFinished = finishing;
             float knock = finishing ? FinisherKnock : comboing ? ComboKnock : 1f;
+            // (The plan "Weight and momentum", step 4: a square parry holds a blow up to its skill's weight; a heavier one
+            // beats it, the blade crushed back into the body and part of the blow landing through it. A glance, taken at a
+            // slant, is never beaten. The showstopper counts double, as it lands.)
+            bool beaten = parried && !glanced && !loco.ShotAirborne() && r.Weight * (finishing ? FinisherKnock : 1f) > struck.ParryHolds;
+            if (beaten)
+            {
+                Parries--;
+                Beaten++;
+            }
             // (A slanted shield turns part of the blow aside; one taken square on takes all of it.)
             if (shield && !parried)
             {
                 knock *= 1f - struck.ShieldGlance;
             }
-            struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * knock, r.PartShare, r.PoiseDamage * knock, r.Reaction, point, parried);
+            float onBlade = beaten ? 1f - CombatFeel.BeatenShare : 1f;
+            struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
+                bound: parried && !glanced && !loco.ShotAirborne());
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
             // (Longer for a heavier blow (the plan "Weight and momentum", step 3), by its weight: by its momentum, a
@@ -827,7 +838,7 @@ namespace PhysicsBattler.Locomotion
                 poser.Pose(1e-4f);
                 loco.ShotSpeed = 0f;
                 stopped = true;
-                StartBind(struck, point, speed, direction, parryAlong, true);
+                StartBind(struck, point, speed, direction, parryAlong, true, 0f);
                 what = $"glanced off the {struck.Parry.WeaponName} ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
                 HitStop = Mathf.Min(HitStop, 0.04f);
             }
@@ -836,8 +847,8 @@ namespace PhysicsBattler.Locomotion
             else if ((r.StopsSwing && !(comboing && !shield && !DamageRules.Blunt(With(clip)))) || parried)
             {
                 stopped = true;
-                // (A clean parry ends the combo: its next blow doesn't come.)
-                if (parried && Owner != null && Owner.Combo != null && Owner.Combo.Playing)
+                // (A clean parry ends the combo: its next blow doesn't come. One beaten doesn't.)
+                if (parried && !beaten && Owner != null && Owner.Combo != null && Owner.Combo.Playing)
                 {
                     Owner.Combo.Stop();
                     ComboEnded++;
@@ -851,12 +862,27 @@ namespace PhysicsBattler.Locomotion
                     loco.WindBack(met);
                     poser.Pose(1e-4f);
                     loco.ShotSpeed = 0f;
-                    StartBind(struck, point, speed, direction, parryAlong, false);
+                    StartBind(struck, point, speed, direction, parryAlong, false, r.Weight * knock);
+                    Owner?.Jar(-direction.normalized * (r.Impulse.magnitude * knock * (beaten ? 0.5f : 1f)), point);
+                    if (beaten)
+                    {
+                        BeatenThrough(clip, struck, point, speed, direction, knock);
+                    }
                 }
                 else
                 {
-                // (The blades or the shield meet: the attacker's hand thrown back along the blow, its arm taking it.)
-                poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.25f, 3f));
+                // (The blades or the shield meet: the attacker's hand thrown back along the blow, its arm taking it; by the
+                // blow's weight (the plan "Weight and momentum", step 4), the heavier the harder it is stopped and the more
+                // it jars the attacker. Stopped in a body, as before.)
+                if (shield || parried)
+                {
+                    poser.KnockHand(-direction.normalized * Rebound(r.Weight * knock));
+                    Owner?.Jar(-direction.normalized * (r.Impulse.magnitude * knock), point);
+                }
+                else
+                {
+                    poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.25f, 3f));
+                }
                 // Back to where the weapon met it, shown through the hit stop; then it backs out a little. A jumping
                 // strike met in the air can't back out: it comes down, its landing played on, the arm thrown back.
                 if (loco.ShotAirborne())
@@ -873,7 +899,8 @@ namespace PhysicsBattler.Locomotion
                 }
                 }
 
-                what = parried ? $"parried by the {struck.Parry.WeaponName} ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00})"
+                what = beaten ? $"beat the parry ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt; it holds {struck.ParryHolds:0.0} m/s)"
+                    : parried ? $"parried by the {struck.Parry.WeaponName} ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt, on the attacker's {parryAlong:0.00}{(Bound ? $"; it gave {bindGiveNeed:0.00} m" : "")})"
                     : shield ? (struck.ShieldGlance > 0.25f ? "blocked by the shield, turned aside" : "blocked by the shield, square on") : "stopped in the " + Name(part);
                 if (shield && !parried)
                 {
@@ -928,6 +955,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Binds begun; blows set aside (a clean parry's sweep); blows slid off the point (a glance); combos a clean parry ended.</summary>
         public int Binds, SetAside, SlidOff, ComboEnded;
 
+        /// <summary>Square parries beaten by a blow too heavy for them (the plan "Weight and momentum", step 4).</summary>
+        public int Beaten;
+
         /// <summary>Bound to a parrying blade now.</summary>
         public bool Bound => bindWith != null;
 
@@ -937,7 +967,7 @@ namespace PhysicsBattler.Locomotion
         /// blow off the body. A clean parry is carried out that way until the blow is past the body; a glance slides on
         /// along the blade to its point, never through it.
         /// </summary>
-        private void StartBind(ClipFighter with, Vector3 point, float speed, Vector3 direction, float attackAlong, bool glance)
+        private void StartBind(ClipFighter with, Vector3 point, float speed, Vector3 direction, float attackAlong, bool glance, float weight)
         {
             if (with == null || with.Parry == null)
             {
@@ -978,7 +1008,78 @@ namespace PhysicsBattler.Locomotion
 
             bindAlongWay = way;
             bindSlideNeed = glance ? (1f - onBlade) * length + thick : 0f;
+            // (The plan "Weight and momentum", step 4: held, the parry first gives along the blow by its weight, the
+            // blow on the blade the while, then sweeps it out; never so far the blade reaches the body.)
+            bindGiveWay = direction.sqrMagnitude > 1e-8f ? direction.normalized : -bindOut;
+            float room = Mathf.Max(0f, Vector3.Dot(chest - point, bindGiveWay) - CrushStop * sz);
+            bindGiveNeed = glance ? 0f : Mathf.Min(with.ParryGive(weight), 0.5f * room);
+            bindGiven = 0f;
+            bindNeed += Mathf.Max(0f, -Vector3.Dot(bindGiveWay * bindGiveNeed, bindOut));
+            bindBeaten = false;
+            bindWeight = weight;
             Binds++;
+        }
+
+        /// <summary>How fast a blow of this weight (m/s) stopped on a shield or a blade throws the attacker's hand back (m/s; the scene's Combat Feel).</summary>
+        public static float Rebound(float weight) => Mathf.Clamp(CombatFeel.ReboundPerWeight * weight, CombatFeel.LeastRebound, CombatFeel.MostRebound);
+
+        private float bindWeight;
+
+        /// <summary>A beaten parry's blade is crushed back to this far short of the body's middle (metres at a Medium's size).</summary>
+        public const float CrushStop = 0.15f;
+
+        private Vector3 bindGiveWay;
+        private float bindGiveNeed, bindGiven;
+        private bool bindBeaten;
+        private LocoClip crushClip;
+        private float crushKnock, crushSpeed;
+        private Vector3 crushDirection;
+
+        /// <summary>
+        /// The parry bound is beaten (the plan "Weight and momentum", step 4): instead of the sweep out, the blow drives
+        /// the blade back into the body, the two weapons together, at the blow's speed; there part of the blow lands
+        /// (<see cref="CombatFeel.BeatenShare"/>) on what the blade is crushed into. A combo goes on.
+        /// </summary>
+        private void BeatenThrough(LocoClip clip, ClipFighter with, Vector3 point, float speed, Vector3 direction, float knock)
+        {
+            Vector3 chest = with.Anim.Part(PartId.Chest).position;
+            float sz = with.Size;
+            bindBeaten = true;
+            bindNeed = 0f;
+            bindGiveNeed = Mathf.Clamp(Vector3.Dot(chest - point, bindGiveWay) - CrushStop * sz, 0.05f * sz, 0.4f * sz);
+            crushClip = clip;
+            crushKnock = knock;
+            crushSpeed = speed;
+            crushDirection = direction;
+        }
+
+        /// <summary>The beaten parry crushed home: the rest of the blow lands on the part nearest where the blade is.</summary>
+        private void Crush(ClipFighter with, Vector3 at)
+        {
+            var part = PartId.Chest;
+            float best = float.MaxValue;
+            foreach (var id in new[] { PartId.Head, PartId.Chest, PartId.Spine, PartId.Pelvis, PartId.UpperArmL, PartId.UpperArmR })
+            {
+                float d = (with.Anim.Part(id).position - at).sqrMagnitude;
+                if (d < best)
+                {
+                    best = d;
+                    part = id;
+                }
+            }
+
+            var r = DamageRules.Resolve(Weapon, crushClip != null ? With(crushClip) : StrikeWith.Head, Scale, crushSpeed, crushDirection, Mass, with.Mass, part, false, 1f,
+                1e6f, with.Poise, with.MaxPoise);
+            float share = CombatFeel.BeatenShare * crushKnock;
+            struckParts.Add((with, part));
+            with.TakeHit(part, false, r.Impulse * share, r.PartShare, r.PoiseDamage * share, r.Reaction, at);
+            Hits++;
+            float weight = r.Weight * share;
+            HitStop = Mathf.Clamp(CombatFeel.HitStopBase + CombatFeel.HitStopPerWeight * weight, CombatFeel.LeastHitStop, CombatFeel.MostHitStop);
+            Sounded?.Invoke(Met.Flesh, at, crushSpeed, Club, false);
+            LastWeight = weight;
+            Last = $"{(crushClip != null ? crushClip.Name : "the blow")}: the beaten parry crushed into the {Name(part)} ({r.Reaction.ToString().ToLowerInvariant()}, weight {weight:0.00} m/s, hit stop {HitStop:0.00} s); {with.LastReaction}";
+            Landed?.Invoke(Last);
         }
 
         /// <summary>
@@ -997,6 +1098,30 @@ namespace PhysicsBattler.Locomotion
             }
 
             float step = bindSpeed * dt;
+            // (Held: the give along the blow first, the sword with it; beaten, the give is the crush.)
+            if (bindGiven < bindGiveNeed - 1e-5f)
+            {
+                float give = Mathf.Min(step * (bindBeaten ? 0.6f : 1f), bindGiveNeed - bindGiven);
+                bindGiven += give;
+                bindWith.Parry.Sweep(bindGiveWay * give);
+                poser.Bind(bindGiveWay * bindGiven);
+                if (bindGiven >= bindGiveNeed - 1e-5f && bindBeaten)
+                {
+                    bindWith.Parry.BladeNow(out var cg, out var ct);
+                    var with0 = bindWith;
+                    Crush(with0, Vector3.Lerp(cg, ct, SwordParry.HoldAt));
+                    spentOn.Add(with0);
+                    EndBind();
+                    loco.CutShort(RewindMost, ReboundSpeed);
+                    return true;
+                }
+
+                if (bindTime < MostBind)
+                {
+                    return true;
+                }
+            }
+
             float by = Mathf.Min(step, bindNeed - bindCarried);
             bindCarried += by;
             if (by > 0f)
@@ -1005,7 +1130,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             bindSlid = Mathf.Min(bindSlideNeed, bindSlid + step);
-            poser.Bind(bindOut * bindCarried + bindAlongWay * bindSlid);
+            poser.Bind(bindGiveWay * bindGiven + bindOut * bindCarried + bindAlongWay * bindSlid);
             bool done = (bindCarried >= bindNeed - 1e-4f && bindSlid >= bindSlideNeed - 1e-4f) || bindTime >= MostBind;
             if (!done)
             {
@@ -1017,7 +1142,8 @@ namespace PhysicsBattler.Locomotion
             {
                 SetAside++;
                 EndBind();
-                poser.KnockHand(bindOut * Mathf.Min(bindSpeed * 0.1f, 1.5f));
+                // (Carried off, and jarred back by its weight, half as hard as off a shield: the sweep took some of it.)
+                poser.KnockHand(bindOut * Mathf.Min(bindSpeed * 0.1f, 1.5f) - bindGiveWay * (0.5f * Rebound(bindWeight)));
                 loco.CutShort(RewindMost, ReboundSpeed);
                 return true;
             }

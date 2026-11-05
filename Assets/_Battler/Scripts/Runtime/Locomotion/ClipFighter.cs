@@ -1291,9 +1291,10 @@ namespace PhysicsBattler.Locomotion
             // (An expert reads the wind-up; a novice moves only once the blade itself is coming, the last moment before contact.)
             float toContact = Blow.HasValue ? Blow.Value.ToContact : 0f;
             bool sees = IncomingBlade.HasValue && incomingFor > Mathf.Lerp(SeeBlowAfter, NoviceSeeAfter, lack)
-                        && toContact <= SeesBefore(1f - lack) && Blocking;
+                        && toContact <= SeesBefore(1f - lack) && Blocking && !GuardOpen;
             backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
-            float wantIntercept = sees || (backIn > 0f && Blocking && interceptWeight > 0f) ? 1f : 0f;
+            // (Knocked open: the shield meets nothing until the guard is back.)
+            float wantIntercept = !GuardOpen && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
             interceptWeight = Mathf.MoveTowards(interceptWeight, wantIntercept, dt / BlockRaise);
             float weight = Mathf.Max(blockWeight, interceptWeight);
             var hand = Anim.Part(PartId.HandL);
@@ -1481,7 +1482,7 @@ namespace PhysicsBattler.Locomotion
 
         public int Touches;
 
-        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false)
+        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false, bool bound = false)
         {
             lastHit = clock;
             if (Fallen)
@@ -1519,7 +1520,12 @@ namespace PhysicsBattler.Locomotion
                 Parries++;
                 Blocks++;
                 Recoil(impulse, point, PartId.HandR, 0.4f * ReactScale);
-                KnockSword(impulse, point);
+                // (Bound (the plan "Weight and momentum", step 4): the bind gives the sword back with the blow on it, the
+                // two weapons together; knocked here, the sword left the weapon it was meeting.)
+                if (!bound)
+                {
+                    KnockSword(impulse, point);
+                }
                 Poise = Mathf.Max(0f, Poise - poiseDamage);
                 Vector3 push = impulse * KnockScale / Mass;
                 push.y = 0f;
@@ -1547,9 +1553,24 @@ namespace PhysicsBattler.Locomotion
             }
 
             var armRegion = shield ? BodyRegion.ArmL : AuthorityController.RegionOf(part);
-            if (armRegion == BodyRegion.ArmL || armRegion == BodyRegion.ArmR)
+            bool knockedOpen = false;
+            if (shield)
             {
-                KnockArm(armRegion == BodyRegion.ArmR ? 0 : 1, impulse * (shield ? 1f : partShare), point);
+                // (The plan "Weight and momentum", step 4: the shield arm gives by the blow's weight; heavy enough, the
+                // guard is knocked open, the arm thrown wide and slow to come back, the shield meeting nothing till then.)
+                float weight = impulse.magnitude / Mathf.Max(1f, Mass);
+                knockedOpen = weight >= CombatFeel.GuardOpenFrom;
+                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight, CombatFeel.MostShieldGive) * Size;
+                KnockArmBy(1, impulse, point, knockedOpen ? Mathf.Max(give, CombatFeel.MostShieldGive * Size) : give, knockedOpen ? GuardOpenFrequency : ArmKnockFrequency);
+                if (knockedOpen)
+                {
+                    guardOpenUntil = clock + CombatFeel.GuardOpenFor;
+                    GuardsOpened++;
+                }
+            }
+            else if (armRegion == BodyRegion.ArmL || armRegion == BodyRegion.ArmR)
+            {
+                KnockArm(armRegion == BodyRegion.ArmR ? 0 : 1, impulse * partShare, point);
             }
 
             if (shield)
@@ -1624,7 +1645,7 @@ namespace PhysicsBattler.Locomotion
                 Loco.Play(clip);
             }
 
-            reacted ??= clip != null ? clipName.Replace("sns_impact_", "") + " reaction" : shield ? "the shield knocked back" : "no reaction clip";
+            reacted ??= clip != null ? clipName.Replace("sns_impact_", "") + " reaction" : shield ? (knockedOpen ? "the guard knocked open" : "the shield knocked back") : "no reaction clip";
             if (stumbles)
             {
                 Stumbles++;
@@ -1768,13 +1789,71 @@ namespace PhysicsBattler.Locomotion
                 armMass += body != null ? body.mass : 0f;
             }
 
+            // (Heavier blows drive it further, by their weight (the plan "Weight and momentum", step 4). Not less than it
+            // was: knocked less after a glance, the sword was off the line of the combo's next blow, 7 of 14 lost.)
             float hard = Tanh(j / (Mathf.Max(1f, armMass + 3f) * 3f * Mathf.Sqrt(Size)));
-            Parry.Knock(impulse / j * (MostArmKnock * Size * hard));
+            Parry.Knock(impulse / j * Mathf.Max(MostArmKnock * Size * hard, ParryGive(j / Mathf.Max(1f, Mass))));
+        }
+
+        /// <summary>How far a parry gives under a blow of this weight (m/s): metres, at its size (the scene's Combat Feel).</summary>
+        public float ParryGive(float weight) => Mathf.Min(CombatFeel.ParryGivePerWeight * weight, CombatFeel.MostParryGive) * Size;
+
+        /// <summary>The heaviest blow (m/s of weight) its square parry holds, by its skill; heavier beats it (the scene's Combat Feel).</summary>
+        public float ParryHolds => Mathf.Lerp(CombatFeel.ParryHolds, CombatFeel.ExpertParryHolds, Mathf.Clamp01(ParrySkill));
+
+        /// <summary>
+        /// A blow of its own stopped on a shield or a blade jars it (the plan "Weight and momentum", step 4): its upper
+        /// body rocked back by <paramref name="impulse"/> (world, N·s, back along its blow) at the weapon hand.
+        /// </summary>
+        public void Jar(Vector3 impulse, Vector3 point)
+        {
+            if (Fallen || CombatFeel.JarScale <= 0f)
+            {
+                return;
+            }
+
+            Recoil(impulse, point, PartId.HandR, CombatFeel.JarScale * ReactScale);
+        }
+
+        /// <summary>Its shield guard knocked open by a heavy blow and not back yet: the shield moves to meet nothing.</summary>
+        public bool GuardOpen => clock < guardOpenUntil;
+
+        private float guardOpenUntil = -1f;
+
+        /// <summary>Guards knocked open (for the logs).</summary>
+        public int GuardsOpened;
+
+        /// <summary>How quickly a shield arm knocked open comes back (Hz, critically damped; a knocked arm's is <see cref="ArmKnockFrequency"/>).</summary>
+        public const float GuardOpenFrequency = 1.1f;
+
+        private readonly float[] armKnockHz = { ArmKnockFrequency, ArmKnockFrequency };
+
+        /// <summary>An arm (the shield arm) knocked back along <paramref name="impulse"/> by <paramref name="give"/> (metres) at its peak and turned with it, coming back at <paramref name="hz"/> (critically damped).</summary>
+        private void KnockArmBy(int a, Vector3 impulse, Vector3 point, float give, float hz)
+        {
+            float j = impulse.magnitude;
+            if (j < 1e-4f || give <= 0f)
+            {
+                return;
+            }
+
+            // (A critically damped spring kicked at v peaks at v / (e w).)
+            armKnockHz[a] = hz;
+            float kick = (float)System.Math.E * 2f * Mathf.PI * hz;
+            Vector3 dir = impulse / j;
+            knockV[a] += dir * (give * kick);
+            Vector3 lever = point - Anim.Part(a == 0 ? PartId.HandR : PartId.HandL).position;
+            Vector3 axis = Vector3.Cross(lever, dir);
+            if (axis.sqrMagnitude > 1e-8f)
+            {
+                knockTurnV[a] += axis.normalized * (MostArmTurn * Mathf.Min(1.5f, give / (MostArmKnock * Size)) * kick);
+            }
         }
 
         /// <summary>A struck arm (or the shield it holds) knocked aside and turned, then back.</summary>
         private void KnockArm(int a, Vector3 impulse, Vector3 point)
         {
+            armKnockHz[a] = ArmKnockFrequency;
             float j = impulse.magnitude;
             if (j < 1e-4f)
             {
@@ -1850,9 +1929,9 @@ namespace PhysicsBattler.Locomotion
             Spring(ref headSnap, ref headV, HeadFrequency, ReactDamping, dt);
             lean = Vector3.ClampMagnitude(lean, MostLean);
             headSnap = Vector3.ClampMagnitude(headSnap, MostHeadSnap);
-            float wk = 2f * Mathf.PI * ArmKnockFrequency;
             for (int a = 0; a < 2; a++)
             {
+                float wk = 2f * Mathf.PI * armKnockHz[a];
                 CriticalSpring(ref knock[a], ref knockV[a], wk, dt);
                 CriticalSpring(ref knockTurn[a], ref knockTurnV[a], wk, dt);
             }

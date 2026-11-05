@@ -353,6 +353,19 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     0.7 s while it finds its feet. All of these are on Combat Feel ("Hit stop", "Driven back"). Headless (single
     blows on the open Medium): a Medium's sword stops it 0.05 s and moves it 0.22 m; its club 0.07 s, 0.44 m; the
     Large's club 0.10 s, 0.97 m, every blow a stumble.
+  - Weight in a block and a parry (the plan "Weight and momentum", step 4): a held parry first gives along the blow
+    by its weight, the attacking weapon on the blade as it goes (0.1 m per m/s, at most 0.2, never more than half the
+    way to the body: a Medium's sword 0.05 m, its club 0.06, the Large's club up to 0.12), then sweeps it aside. A
+    square parry holds a blow up to 0.8 m/s of weight for a novice, 2 for an expert (a combo's last blow counts
+    double); a heavier one beats it: the blade is crushed back into the body at the blow's pace and 0.6 of the blow
+    lands on what it is crushed into, and the combo goes on. A glance is never beaten. The shield arm is knocked back
+    by the blow's weight (0.12 m per m/s, at most 0.25); from 1 m/s on the shield the guard is knocked open: the arm
+    thrown wide and slow to come back, the shield meeting nothing for 0.5 s. Stopped on a shield or a blade, the
+    attacker's hand is thrown back by the weight (2.4 m/s per m/s, 0.8 to 3.5) and its upper body jarred. All on
+    Combat Feel ("Block and parry", "The attacker's rebound"), every value with a tooltip. Headless: the parry and
+    shield rates are as they were except against the Large: the novice's parries of its combos are beaten (3 of 3),
+    a mid-skill shield's guard is knocked open by each of its single blows; the parrying hand's fastest fell from
+    20 to 15 m/s.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
