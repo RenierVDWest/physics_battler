@@ -27,6 +27,16 @@ internal static class ShieldMeetSummary
                 Median(on.Select(m => m.Off)), on.Max(m => m.Off), Median(on.Select(m => m.FaceOff)), on.Max(m => m.FaceOff), on.Count(m => m.Off > 0.8f)));
         }
 
+        string Band(StrikeHits.ShieldMeet m) => m.Height > 0.25f ? "high" : m.Height < -0.35f ? "low" : "middle";
+        foreach (var band in new[] { "high", "middle", "low" })
+        {
+            var b = all.Where(m => Band(m) == band).ToList();
+            if (b.Count > 0)
+            {
+                Console.WriteLine(string.Format(ci, "  {0,-6}: {1} of {2} on the board, the blade from its centre median {3:0.00} of the radius", band, b.Count(m => m.OnBoard), b.Count, Median(b.Where(m => m.OnBoard).Select(m => m.Off))));
+            }
+        }
+
         foreach (var m in off)
         {
             Console.WriteLine(string.Format(ci, "  off the board: {0,-20} in the {1,-10} {2:+0.00;-0.00} m from the chest; the blade {3:0.00} of the radius from the board's centre, its face {4:0} deg off square",

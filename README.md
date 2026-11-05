@@ -403,6 +403,16 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     back on itself more than once (was 6 times); the face turns 79 deg to turn 59 (was 127 to 57). The cost: the
     blade meets it a little further from its centre, a median 0.57 of the radius (was 0.40), 6 of 25 on the rim
     (was 2 of 26); a smaller settle time or replan distance on Combat Feel trades back.
+  - High and low guards, and the shield arm kept behind its board (the plan "Shield and blade contact", step 3; the
+    playtest: the raised board cut through its own forearm). Where the blade first comes within the guard out of the
+    arm's reach (a chop from high above, a cut at the legs), the board meets it further along its way in, at the
+    first place the arm reaches. The elbow bends behind the board, away from its face, and out to the side, never
+    into its own chest (it is solved again turned further out if it comes within 0.16 m of the body's line); and the
+    face turns no further than keeps the forearm and the upper arm going into the board's back, eased into like any
+    other turn. Headless: the shield arm through its own board 0 steps everywhere (was 270 in the expert's single
+    blows, 241 in its combos, 67 in the spar); the elbow at least 0.16 m from the body's line (was 0.07). At skill 1
+    the high blows (the blade over 0.25 m above the chest) were already all met on the board, 13 of 13; single blows
+    26 of 27, the Medium's combos 40 of 42. `dummyhits`, `combos` and `spar` print the arm through the board.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

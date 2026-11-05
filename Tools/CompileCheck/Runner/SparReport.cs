@@ -267,6 +267,7 @@ internal static class SparReport
             b.Stance, thrownB, combosB, b.Strikes.Hits, b.Strikes.Blocks, b.Strikes.Parries, a.Hits));
         steadyB.Close();
         ShieldSteadiness.Print(new[] { steadyB });
+        Console.WriteLine(string.Format(ci, "B's shield arm through its own board: {0} steps, at most {1:0.00} m; its elbow at the nearest {2:0.00} m from its body's line ({3:0.00} m while blocking)", b.ArmThroughBoard, b.ArmThroughBoardMost, b.ElbowNearestBody, b.ElbowNearestBlocking));
         Console.WriteLine(string.Format(ci, "No strike reached {0} times; the bodies came within {1:0.00} m at {4:0.00} s ({5}; root to root, the fighting distance {2:0.00}); fastest hand, head or foot {3:0.0} m/s ({6})",
             outOfReach, nearest, ClipFighter.FightingDistance(a.Size, b.Size), worstPart, nearestAt, nearestWhat, worstWhat));
         return 0;

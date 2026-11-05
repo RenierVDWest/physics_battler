@@ -915,6 +915,7 @@ namespace PhysicsBattler.Locomotion
             else
             {
                 RaiseShield(dt, opponent);
+                CountArmCut();
                 React(dt);
             }
 
@@ -1495,6 +1496,13 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            float short_ = (want - upper.position).magnitude - reach;
+            if (short_ > 0.05f * Size && Blow.HasValue)
+            {
+                ShortSteps++;
+                MostShort = Mathf.Max(MostShort, short_);
+            }
+
             want = upper.position + Vector3.ClampMagnitude(want - upper.position, reach);
             // (Held in the body's own frame, so it goes with the body as it steps and turns; and moved there as an arm
             // moves, speeding up and settling in (a critically damped spring, the scene's Combat Feel's settle time), never
@@ -1515,7 +1523,40 @@ namespace PhysicsBattler.Locomotion
             shieldAtV = Vector3.ClampMagnitude(shieldAtV, most);
             Vector3 target = Vector3.Lerp(hand.position, Loco.Position + bodyTurn * shieldAt, weight);
             var turn = bodyTurn;
-            TwoBoneIK.Solve(upper, fore, hand, target, turn * new Vector3(-1f, -0.6f, 0f));
+            // (The elbow behind the board, away from its face, as it bends: the arm then goes into the board's back, not
+            // out through its face (the playtest: raised high, the board cut through the forearm). Its face is kept; only
+            // what this leaves through the board turns it, at the end.)
+            Vector3 elbowWay = turn * new Vector3(-1f, -0.6f, 0f);
+            Vector3 faceNow = bodyTurn * shieldFace;
+            if (faceNow.sqrMagnitude > 1e-6f)
+            {
+                elbowWay = Vector3.Lerp(elbowWay.normalized, -faceNow.normalized, ElbowBehindBoard * weight);
+            }
+
+            // (And out from the body, never into its own chest: at least this much of its way out to the side of the shoulder.)
+            Vector3 outSide = Vector3.ProjectOnPlane(upper.position - Anim.Part(PartId.Chest).position, Vector3.up);
+            if (outSide.sqrMagnitude > 1e-6f && elbowWay.sqrMagnitude > 1e-6f)
+            {
+                outSide.Normalize();
+                elbowWay.Normalize();
+                float side = Vector3.Dot(elbowWay, outSide);
+                if (side < ElbowOut)
+                {
+                    elbowWay = (elbowWay + outSide * (ElbowOut - side)).normalized;
+                }
+            }
+
+            TwoBoneIK.Solve(upper, fore, hand, target, elbowWay);
+            // (Still in its own chest (a board held across the body): solved again with the elbow turned well out to the side,
+            // and once more straight out, until it is clear.)
+            if (outSide.sqrMagnitude > 0.5f)
+            {
+                for (int tries = 1; tries <= 2 && ElbowGap() < ElbowClear * Size; tries++)
+                {
+                    elbowWay = (elbowWay + outSide * (tries * 1.5f)).normalized;
+                    TwoBoneIK.Solve(upper, fore, hand, target, elbowWay);
+                }
+            }
 
             // (And turned no faster than the arm can turn it: a novice's shield can't whip round to catch a blade at the last
             // moment.)
@@ -1528,10 +1569,11 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (Turned smoothly, settling in as the hand does, and no faster than the arm can turn it; in the body's frame.)
-            Vector3 faceLocal = bodyBack * face;
+            // (Its arm kept behind it as it turns: the way to turn to is the one that keeps it so, eased into like any other.)
+            Vector3 faceLocal = bodyBack * KeepArmBehind(face);
             Vector3 eased = Vector3.Slerp(shieldFace, faceLocal, 1f - Mathf.Exp(-dt * 3f / Mathf.Max(0.01f, CombatFeel.ShieldFaceSettle)));
             shieldFace = Vector3.RotateTowards(shieldFace, eased, Mathf.Lerp(ShieldTurnSpeed, NoviceShieldTurnSpeed, lack) * Mathf.Deg2Rad * dt, 0f);
-            Poser.FaceShieldAt(bodyTurn * shieldFace, Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
+            Poser.FaceShieldAt(KeepArmBehind(bodyTurn * shieldFace), Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
         }
 
 
@@ -1571,38 +1613,65 @@ namespace PhysicsBattler.Locomotion
 
             Vector3 lo = Anim.Part(PartId.Pelvis).position, hi = Anim.Part(PartId.Head).position + Vector3.up * (0.1f * Size);
             float shell = GuardShell * Size;
+            Vector3 shoulder = Anim.Part(PartId.UpperArmL).position;
+            // (How far from the shoulder the board's centre can be: the arm's reach and the board's own offset in front of
+            // the fist.)
+            float reach = (Anim.RestLocalPosition(PartId.ForearmL).magnitude + Anim.RestLocalPosition(PartId.HandL).magnitude) * 0.9f + 0.08f * Size;
             float prevD = float.MaxValue, prevS = 0f;
             Vector3 prevAt = Vector3.zero;
             int last = Mathf.Min(b.GripPath.Length - 1, StrikeHits.ContactPoint + 2);
             LastMeetNearest = float.MaxValue;
+            int found = -1;
+            float foundU = 1f, foundS = 0f;
             for (int k = 0; k <= last; k++)
             {
                 Vector3 g = b.GripPath[k], t = b.TipPath[k];
                 float d = StrikeHits.SegmentsNearest(g, t, lo, hi, out float sb, out _, out Vector3 onBlade, out _);
                 LastMeetNearest = Mathf.Min(LastMeetNearest, d);
-                if (d <= shell)
+                if (found < 0 && d <= shell)
                 {
                     float u = k > 0 && prevD < float.MaxValue && prevD > d ? Mathf.Clamp01((prevD - shell) / (prevD - d)) : 1f;
+                    found = k;
+                    foundU = u;
+                    foundS = k > 0 ? Mathf.Lerp(prevS, sb, u) : sb;
                     at = k > 0 ? Vector3.Lerp(prevAt, onBlade, u) : onBlade;
-                    // (The blade's motion there: the same point along it, a step apart.)
-                    int k0 = Mathf.Max(0, k - 1), k1 = k0 + 1;
-                    float s = k > 0 ? Mathf.Lerp(prevS, sb, u) : sb;
-                    motion = Vector3.Lerp(b.GripPath[k1], b.TipPath[k1], s) - Vector3.Lerp(b.GripPath[k0], b.TipPath[k0], s);
-                    bladeWay = Vector3.Lerp(b.TipPath[k0] - b.GripPath[k0], t - g, u);
-                    bladeWay = bladeWay.sqrMagnitude > 1e-8f ? bladeWay.normalized : Vector3.up;
-                    Vector3 square = Vector3.ProjectOnPlane(-motion, bladeWay);
-                    normal = !b.Thrust && square.sqrMagnitude > 0.04f * motion.sqrMagnitude ? square.normalized
-                        : motion.sqrMagnitude > 1e-10f ? -motion.normalized : (b.Blade - at).normalized;
-                    // (Out from the body, toward the blow.)
-                    Vector3 axisNear = lo + (hi - lo) * Mathf.Clamp01(Vector3.Dot(at - lo, hi - lo) / Mathf.Max(1e-6f, (hi - lo).sqrMagnitude));
-                    if (Vector3.Dot(normal, at - axisNear) < 0f && Vector3.Dot(normal, -motion) < 0.2f * motion.magnitude)
+                    // (Out of the arm's reach there (a chop from high above, a cut low at the legs): further along the blade's
+                    // way in, the first place the arm can reach, else the nearest to it; the board meets the blade there.)
+                    if (Vector3.Distance(at, shoulder) > reach)
                     {
-                        normal = -normal;
+                        float best = Vector3.Distance(at, shoulder);
+                        for (int j = k; j <= last; j++)
+                        {
+                            float dj = StrikeHits.SegmentsNearest(b.GripPath[j], b.TipPath[j], lo, hi, out float sj, out _, out Vector3 pj, out _);
+                            // (Not inside the body: the blade there has already struck it.)
+                            if (dj < 0.18f * Size)
+                            {
+                                break;
+                            }
+
+                            // (The point on the blade nearest the shoulder, so far as it is still between the blade's way in
+                            // and the body.)
+                            StrikeHits.SegmentsNearest(b.GripPath[j], b.TipPath[j], shoulder, shoulder, out float sn, out _, out Vector3 pn, out _);
+                            float s2 = Mathf.Clamp(sn, Mathf.Min(sj, 0.5f), 1f);
+                            Vector3 pick = Vector3.Lerp(b.GripPath[j], b.TipPath[j], s2);
+                            float dist = Vector3.Distance(pick, shoulder);
+                            if (dist < best)
+                            {
+                                best = dist;
+                                at = pick;
+                                found = j;
+                                foundU = 1f;
+                                foundS = s2;
+                            }
+
+                            if (dist <= reach)
+                            {
+                                break;
+                            }
+                        }
                     }
 
-                    inSeconds = b.SecondsTo(Mathf.Max(0, k - 1) + (k > 0 ? u : 0f));
-                    inside = k == 0;
-                    return true;
+                    break;
                 }
 
                 prevD = d;
@@ -1610,7 +1679,146 @@ namespace PhysicsBattler.Locomotion
                 prevAt = onBlade;
             }
 
-            return false;
+            if (found < 0)
+            {
+                return false;
+            }
+
+            // (The blade's motion there: the same point along it, a step apart.)
+            int k0 = Mathf.Max(0, found - 1), k1 = Mathf.Min(k0 + 1, b.GripPath.Length - 1);
+            motion = Vector3.Lerp(b.GripPath[k1], b.TipPath[k1], foundS) - Vector3.Lerp(b.GripPath[k0], b.TipPath[k0], foundS);
+            bladeWay = Vector3.Lerp(b.TipPath[k0] - b.GripPath[k0], b.TipPath[found] - b.GripPath[found], foundU);
+            bladeWay = bladeWay.sqrMagnitude > 1e-8f ? bladeWay.normalized : Vector3.up;
+            Vector3 square = Vector3.ProjectOnPlane(-motion, bladeWay);
+            normal = !b.Thrust && square.sqrMagnitude > 0.04f * motion.sqrMagnitude ? square.normalized
+                : motion.sqrMagnitude > 1e-10f ? -motion.normalized : (b.Blade - at).normalized;
+            // (Out from the body, toward the blow.)
+            Vector3 axisNear = lo + (hi - lo) * Mathf.Clamp01(Vector3.Dot(at - lo, hi - lo) / Mathf.Max(1e-6f, (hi - lo).sqrMagnitude));
+            if (Vector3.Dot(normal, at - axisNear) < 0f && Vector3.Dot(normal, -motion) < 0.2f * motion.magnitude)
+            {
+                normal = -normal;
+            }
+
+            inSeconds = b.SecondsTo(Mathf.Max(0, found - 1) + (found > 0 ? foundU : 0f));
+            inside = found == 0;
+            return true;
+        }
+
+        /// <summary>Steps the shield's hand was wanted further than the arm reaches (by over 5 cm), and the most (metres).</summary>
+        public int ShortSteps;
+        public float MostShort;
+
+        /// <summary>
+        /// The board's face turned no further than keeps its own arm behind it (the playtest: raised high, the board cut
+        /// through the forearm): the forearm and the upper arm must point into the board's back, not out through its face.
+        /// The face is turned toward the arm as little as that takes.
+        /// </summary>
+        private Vector3 KeepArmBehind(Vector3 face)
+        {
+            if (face.sqrMagnitude < 1e-8f)
+            {
+                return face;
+            }
+
+            face = face.normalized;
+            Vector3 shoulder = Anim.Part(PartId.UpperArmL).position, elbow = Anim.Part(PartId.ForearmL).position, wrist = Anim.Part(PartId.HandL).position;
+            Vector3 upper = wrist - shoulder, fore = wrist - elbow;
+            if (upper.sqrMagnitude > 1e-8f)
+            {
+                face = Behind(face, upper.normalized, UpperArmIntoBoard);
+            }
+
+            if (fore.sqrMagnitude > 1e-8f)
+            {
+                face = Behind(face, fore.normalized, ForearmIntoBoard);
+            }
+
+            return face;
+        }
+
+        /// <summary>How far the shield arm's elbow is turned to lie behind the board as it bends (0 its guard's way, 1 straight away from the board's face).</summary>
+        public const float ElbowBehindBoard = 0.6f;
+
+        /// <summary>How near the shield arm's elbow may come to its own body's line (metres at a Medium's size: the chest is about 0.13 across from it).</summary>
+        public const float ElbowClear = 0.16f;
+
+        /// <summary>How far the shield arm's elbow is from its own body's line (hips to the neck), as posed now.</summary>
+        private float ElbowGap()
+        {
+            Vector3 lo = Anim.Part(PartId.Pelvis).position, hi = Anim.Part(PartId.Chest).position + Vector3.up * (0.12f * Size);
+            Vector3 e = Anim.Part(PartId.ForearmL).position;
+            Vector3 axis = lo + (hi - lo) * Mathf.Clamp01(Vector3.Dot(e - lo, hi - lo) / Mathf.Max(1e-6f, (hi - lo).sqrMagnitude));
+            return Vector3.Distance(e, axis);
+        }
+
+        /// <summary>How far out to the side at least the shield arm's elbow points as it bends (the cosine to straight out from the shoulder).</summary>
+        public const float ElbowOut = 0.5f;
+
+        /// <summary>How far the forearm and the line from the shoulder to the wrist must point into the board's back (the cosine to its face's way): at 0 they lie flat behind it.</summary>
+        public const float ForearmIntoBoard = 0.2f, UpperArmIntoBoard = 0.1f;
+
+        private static Vector3 Behind(Vector3 face, Vector3 arm, float least)
+        {
+            float into = Vector3.Dot(face, arm);
+            if (into >= least)
+            {
+                return face;
+            }
+
+            Vector3 across = Vector3.ProjectOnPlane(face, arm);
+            across = across.sqrMagnitude > 1e-8f ? across.normalized : Vector3.Cross(arm, Vector3.up).normalized;
+            return (across * Mathf.Sqrt(1f - least * least) + arm * least).normalized;
+        }
+
+        /// <summary>Steps its own shield arm went through its board (the playtest: the raised board cut through the forearm), and the deepest (metres past the board's back).</summary>
+        public int ArmThroughBoard;
+        public float ArmThroughBoardMost;
+
+        /// <summary>The nearest the shield arm's elbow came to its own body's line (metres; a body is about 0.13 m across from it).</summary>
+        public float ElbowNearestBody = float.MaxValue, ElbowNearestBlocking = float.MaxValue;
+
+        /// <summary>Whether the shield arm (shoulder to elbow, elbow to wrist) goes through its own board, as posed this step; counted.</summary>
+        private void CountArmCut()
+        {
+            var slot = Anim.SlotWeaponL;
+            if (slot == null || !BoardOnSlot(out var local))
+            {
+                return;
+            }
+
+            Vector3 c = slot.TransformPoint(local), n = slot.forward;
+            float r = 0.95f * ShieldRadius * Size;
+            float worst = ArmCut(Anim.Part(PartId.UpperArmL).position, Anim.Part(PartId.ForearmL).position, c, n, r);
+            worst = Mathf.Max(worst, ArmCut(Anim.Part(PartId.ForearmL).position, Anim.Part(PartId.HandL).position, c, n, r));
+            if (worst > 0.01f * Size)
+            {
+                ArmThroughBoard++;
+                ArmThroughBoardMost = Mathf.Max(ArmThroughBoardMost, worst);
+            }
+
+            // (And its elbow kept out of its own chest: the line from the hips to the neck, a body's half width.)
+            Vector3 lo = Anim.Part(PartId.Pelvis).position, hi = Anim.Part(PartId.Chest).position + Vector3.up * (0.12f * Size);
+            Vector3 e = Anim.Part(PartId.ForearmL).position;
+            Vector3 axis = lo + (hi - lo) * Mathf.Clamp01(Vector3.Dot(e - lo, hi - lo) / Mathf.Max(1e-6f, (hi - lo).sqrMagnitude));
+            float elbowGap = Vector3.Distance(e, axis);
+            ElbowNearestBody = Mathf.Min(ElbowNearestBody, elbowGap);
+            if (interceptWeight > 0f)
+            {
+                ElbowNearestBlocking = Mathf.Min(ElbowNearestBlocking, elbowGap);
+            }
+        }
+
+        /// <summary>How far a segment goes through a disc (centre, normal, radius) past its back: 0 if it doesn't cross it within the disc.</summary>
+        private static float ArmCut(Vector3 p, Vector3 q, Vector3 c, Vector3 n, float r)
+        {
+            float dp = Vector3.Dot(p - c, n), dq = Vector3.Dot(q - c, n);
+            if (dp * dq > 0f || Mathf.Abs(dp - dq) < 1e-6f)
+            {
+                return 0f;
+            }
+
+            Vector3 x = p + (q - p) * (dp / (dp - dq));
+            return Vector3.Distance(x, c) <= r ? Mathf.Max(dp, dq) : 0f;
         }
 
         /// <summary>How near the last blow's path came to the body's line (metres), as the shield read it.</summary>
