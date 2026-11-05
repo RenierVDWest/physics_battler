@@ -80,6 +80,7 @@ internal static class SparReport
         var lastPos = new Dictionary<(ClipFighter, PartId), Vector3>();
         var measuresA = new LocoMeasures(a.Anim, a.Loco, a.Poser);
         var measuresB = new LocoMeasures(b.Anim, b.Loco, b.Poser);
+        var steadyB = new ShieldSteadiness();
         for (int i = 0; i < Mathf.RoundToInt(seconds / dt); i++)
         {
             clock = i * dt;
@@ -171,6 +172,7 @@ internal static class SparReport
             a.Strikes.Step(dt, onlyB);
             b.Watch(a.Strikes);
             b.Step(dt, a.Anim.Part(PartId.Chest).position, frozen);
+            steadyB.Step(b);
             b.Strikes.Step(dt, onlyA);
             ClipFighter.KeepApart(a, b);
             a.Apply(dt);
@@ -263,6 +265,8 @@ internal static class SparReport
             a.Stance, thrownA, combosA, a.Strikes.Hits, a.Strikes.Blocks, a.Strikes.Parries, b.Hits));
         Console.WriteLine(string.Format(ci, "B ({0}): {1} blows thrown ({2} combos): {3} landed, {4} blocked, {5} parried. A took {6} hits.",
             b.Stance, thrownB, combosB, b.Strikes.Hits, b.Strikes.Blocks, b.Strikes.Parries, a.Hits));
+        steadyB.Close();
+        ShieldSteadiness.Print(new[] { steadyB });
         Console.WriteLine(string.Format(ci, "No strike reached {0} times; the bodies came within {1:0.00} m at {4:0.00} s ({5}; root to root, the fighting distance {2:0.00}); fastest hand, head or foot {3:0.0} m/s ({6})",
             outOfReach, nearest, ClipFighter.FightingDistance(a.Size, b.Size), worstPart, nearestAt, nearestWhat, worstWhat));
         return 0;

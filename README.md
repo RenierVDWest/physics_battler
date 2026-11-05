@@ -394,6 +394,15 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     m to get 0.54 m (was 1.23 to 0.53), the most 1.6 m (was 5.0), going back on itself at most 6 times (was 19); the
     face turns 143 deg to turn 106 (was 212 to 101), the most 269 (was 512). Still 26 of 27 on the board, a median
     0.37 of the radius from its centre. `dummyhits` and `combos` print "The shield's steadiness".
+  - The shield held steadier still (the playtest: no difference seen). The hand now goes where the shield is going
+    as an arm moves, speeding up and settling in (a critically damped spring, settling in 0.08 s), held in the
+    body's own frame so it doesn't trail behind as the body steps and turns; the face eases round the same way (0.1
+    s). A later read of the blow moves the plan only if it changes by more than 20 cm or 40 deg: the shield commits
+    to its first read. All five on Combat Feel ("Shield"). In the spar at skill 1 (`spar` now prints the shield's
+    steadiness): the board moves 0.69 m to get 0.67 m (was 1.09 to 0.60 before the first steadying), never going
+    back on itself more than once (was 6 times); the face turns 79 deg to turn 59 (was 127 to 57). The cost: the
+    blade meets it a little further from its centre, a median 0.57 of the radius (was 0.40), 6 of 25 on the rim
+    (was 2 of 26); a smaller settle time or replan distance on Combat Feel trades back.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

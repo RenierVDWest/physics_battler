@@ -104,19 +104,37 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How much a blow stopped on a shield or a blade jars the attacker's own upper body (its lean back, against the lean a blow gives the one it hits). 0 none. Default 0.3.")]
         [Range(0f, 1.5f)] public float jarScale = DefaultJarScale;
 
+        [Header("Shield: how it moves to meet a blow")]
+        [Tooltip("How long the shield takes to settle where it is going (seconds): it speeds up and slows in like an arm, never jumping. Larger is calmer and slower to arrive, smaller snappier. Default 0.08.")]
+        [Range(0.02f, 0.5f)] public float shieldSettle = DefaultShieldSettle;
+
+        [Tooltip("How long the shield's face takes to settle into the way it is turning (seconds). Larger is calmer, smaller snappier. Default 0.1.")]
+        [Range(0.02f, 0.5f)] public float shieldFaceSettle = DefaultShieldFaceSettle;
+
+        [Tooltip("Once the shield knows where to meet a blow, a later read moves that place only if it changes by more than this (metres, at a Medium's size). Larger: it commits to its first read and holds still; smaller: it follows the blade more closely but moves more. Default 0.2.")]
+        [Range(0f, 0.6f)] public float shieldReplanBy = DefaultShieldReplanBy;
+
+        [Tooltip("The same for the way the face looks (degrees): a later read turns it only if it changes by more than this. Default 40.")]
+        [Range(0f, 90f)] public float shieldReplanTurn = DefaultShieldReplanTurn;
+
+        [Tooltip("The shield starts to move to meet a blow no sooner than this before contact (seconds). Earlier, the wind-up still swings the blade's path about and the shield would follow it round. Default 0.6.")]
+        [Range(0.2f, 2f)] public float shieldMovesWithin = DefaultShieldMovesWithin;
+
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultHitStopBase = 0.03f, DefaultHitStopPerWeight = 0.05f, DefaultLeastHitStop = 0.04f, DefaultMostHitStop = 0.16f;
         public const float DefaultDriveBack = 3.5f, DefaultMostDrive = 2.2f, DefaultStumbleFrom = 1.0f, DefaultStumbleBoost = 1.3f, DefaultMostStumble = 2.8f, DefaultStumbleRecovery = 0.7f;
         public const float DefaultParryGivePerWeight = 0.1f, DefaultMostParryGive = 0.2f, DefaultParryHolds = 0.8f, DefaultExpertParryHolds = 2f, DefaultBeatenShare = 0.6f,
             DefaultShieldGivePerWeight = 0.12f, DefaultMostShieldGive = 0.25f, DefaultGuardOpenFrom = 1f, DefaultGuardOpenFor = 0.5f,
             DefaultReboundPerWeight = 2.4f, DefaultLeastRebound = 0.8f, DefaultMostRebound = 3.5f, DefaultJarScale = 0.3f;
+        public const float DefaultShieldSettle = 0.08f, DefaultShieldFaceSettle = 0.1f, DefaultShieldReplanBy = 0.2f, DefaultShieldReplanTurn = 40f, DefaultShieldMovesWithin = 0.6f;
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float BendPerWeight = DefaultBendPerWeight, MostBend = DefaultMostBend, BendReach = DefaultBendReach, BendPeak = DefaultBendPeak,
             LeanScale = 1f, HeadSnapScale = 1f,
             HitStopBase = DefaultHitStopBase, HitStopPerWeight = DefaultHitStopPerWeight, LeastHitStop = DefaultLeastHitStop, MostHitStop = DefaultMostHitStop,
             DriveBack = DefaultDriveBack, MostDrive = DefaultMostDrive, StumbleFrom = DefaultStumbleFrom, StumbleBoost = DefaultStumbleBoost, MostStumble = DefaultMostStumble, StumbleRecovery = DefaultStumbleRecovery,
-            ParryGivePerWeight = DefaultParryGivePerWeight, MostParryGive = DefaultMostParryGive, ParryHolds = DefaultParryHolds, ExpertParryHolds = DefaultExpertParryHolds, BeatenShare = DefaultBeatenShare, ShieldGivePerWeight = DefaultShieldGivePerWeight, MostShieldGive = DefaultMostShieldGive, GuardOpenFrom = DefaultGuardOpenFrom, GuardOpenFor = DefaultGuardOpenFor, ReboundPerWeight = DefaultReboundPerWeight, LeastRebound = DefaultLeastRebound, MostRebound = DefaultMostRebound, JarScale = DefaultJarScale;
+            ParryGivePerWeight = DefaultParryGivePerWeight, MostParryGive = DefaultMostParryGive, ParryHolds = DefaultParryHolds, ExpertParryHolds = DefaultExpertParryHolds, BeatenShare = DefaultBeatenShare, ShieldGivePerWeight = DefaultShieldGivePerWeight, MostShieldGive = DefaultMostShieldGive, GuardOpenFrom = DefaultGuardOpenFrom, GuardOpenFor = DefaultGuardOpenFor, ReboundPerWeight = DefaultReboundPerWeight, LeastRebound = DefaultLeastRebound, MostRebound = DefaultMostRebound, JarScale = DefaultJarScale,
+            ShieldSettle = DefaultShieldSettle, ShieldFaceSettle = DefaultShieldFaceSettle, ShieldReplanBy = DefaultShieldReplanBy, ShieldReplanTurn = DefaultShieldReplanTurn, ShieldMovesWithin = DefaultShieldMovesWithin;
 
         private void OnEnable() => Push();
 
@@ -154,6 +172,11 @@ namespace PhysicsBattler.Locomotion
             LeastRebound = DefaultLeastRebound;
             MostRebound = DefaultMostRebound;
             JarScale = DefaultJarScale;
+            ShieldSettle = DefaultShieldSettle;
+            ShieldFaceSettle = DefaultShieldFaceSettle;
+            ShieldReplanBy = DefaultShieldReplanBy;
+            ShieldReplanTurn = DefaultShieldReplanTurn;
+            ShieldMovesWithin = DefaultShieldMovesWithin;
         }
 
         private void Push()
@@ -187,6 +210,11 @@ namespace PhysicsBattler.Locomotion
             LeastRebound = leastRebound;
             MostRebound = mostRebound;
             JarScale = jarScale;
+            ShieldSettle = shieldSettle;
+            ShieldFaceSettle = shieldFaceSettle;
+            ShieldReplanBy = shieldReplanBy;
+            ShieldReplanTurn = shieldReplanTurn;
+            ShieldMovesWithin = shieldMovesWithin;
         }
     }
 }

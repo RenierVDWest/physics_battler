@@ -296,7 +296,7 @@ namespace PhysicsBattler.Locomotion
             shieldSpeedNow = 0f;
         }
 
-        private Vector3 shieldAt;
+        private Vector3 shieldAt, shieldAtV;
         private bool shieldAtKnown;
         private float interceptWeight;
 
@@ -1334,7 +1334,7 @@ namespace PhysicsBattler.Locomotion
             // (An expert reads the wind-up; a novice moves only once the blade itself is coming, the last moment before contact.)
             float toContact = Blow.HasValue ? Blow.Value.ToContact : 0f;
             bool sees = IncomingBlade.HasValue && incomingFor > Mathf.Lerp(SeeBlowAfter, NoviceSeeAfter, lack)
-                        && toContact <= Mathf.Min(SeesBefore(1f - lack), MovesWithin) && Blocking && !GuardOpen;
+                        && toContact <= Mathf.Min(SeesBefore(1f - lack), CombatFeel.ShieldMovesWithin) && Blocking && !GuardOpen;
             backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
             // (Knocked open: the shield meets nothing until the guard is back.)
             float wantIntercept = !GuardOpen && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
@@ -1358,7 +1358,7 @@ namespace PhysicsBattler.Locomotion
             // aimed at the hips passes the head on its way.)
             // (Held, not chased (the playtest: the board moved and turned back and forth as the blade came): planned once as
             // the blow is first read, kept in the body's own frame so it goes with the body, and planned again only when a
-            // later read moves it by more than <see cref="ReplanBy"/> or turns it by more than <see cref="ReplanTurn"/>. Once
+            // later read moves it or turns it by more than the scene's Combat Feel allows. Once
             // the blade is inside the guard, the plan stands.)
             Vector3 freshAt = Vector3.zero, freshNormal = Vector3.zero, freshMotion = Vector3.zero, freshWay = Vector3.zero;
             float meetIn = 0f;
@@ -1392,7 +1392,7 @@ namespace PhysicsBattler.Locomotion
                             freshNormal = -freshNormal;
                         }
 
-                        if (!havePlan || Vector3.Distance(freshAt, heldAt) > ReplanBy * Size || Vector3.Angle(freshNormal, heldNormal) > ReplanTurn)
+                        if (!havePlan || Vector3.Distance(freshAt, heldAt) > CombatFeel.ShieldReplanBy * Size || Vector3.Angle(freshNormal, heldNormal) > CombatFeel.ShieldReplanTurn)
                         {
                             // (An expert's face slanted so a cut glances off it, away from the body: turned about the blade's
                             // own line, the way chosen once.)
@@ -1496,18 +1496,25 @@ namespace PhysicsBattler.Locomotion
             }
 
             want = upper.position + Vector3.ClampMagnitude(want - upper.position, reach);
+            // (Held in the body's own frame, so it goes with the body as it steps and turns; and moved there as an arm
+            // moves, speeding up and settling in (a critically damped spring, the scene's Combat Feel's settle time), never
+            // faster than the arm can: it doesn't jerk from place to place.)
+            var bodyTurn = Quaternion.Euler(0f, Loco.Facing, 0f);
+            var bodyBack = Quaternion.Inverse(bodyTurn);
+            Vector3 wantLocal = bodyBack * (want - Loco.Position);
             if (!shieldAtKnown)
             {
-                shieldAt = hand.position;
+                shieldAt = bodyBack * (hand.position - Loco.Position);
+                shieldAtV = Vector3.zero;
                 shieldAtKnown = true;
             }
 
-            // (Its speed builds up, a novice's to less.)
             float most = Mathf.Lerp(ShieldSpeed, NoviceShieldSpeed, lack) * Size;
-            shieldSpeedNow = Mathf.MoveTowards(shieldSpeedNow, most, most / ShieldSpeedUp * dt);
-            shieldAt = Vector3.MoveTowards(shieldAt, want, Mathf.Max(0.2f * most, shieldSpeedNow) * dt);
-            Vector3 target = Vector3.Lerp(hand.position, shieldAt, weight);
-            var turn = Quaternion.Euler(0f, Loco.Facing, 0f);
+            float settle = Mathf.Max(0.01f, CombatFeel.ShieldSettle);
+            CriticalSpring(ref shieldAt, ref shieldAtV, wantLocal, 4f / settle, dt);
+            shieldAtV = Vector3.ClampMagnitude(shieldAtV, most);
+            Vector3 target = Vector3.Lerp(hand.position, Loco.Position + bodyTurn * shieldAt, weight);
+            var turn = bodyTurn;
             TwoBoneIK.Solve(upper, fore, hand, target, turn * new Vector3(-1f, -0.6f, 0f));
 
             // (And turned no faster than the arm can turn it: a novice's shield can't whip round to catch a blade at the last
@@ -1516,23 +1523,18 @@ namespace PhysicsBattler.Locomotion
             {
                 // (From where the guard holds it: started from straight ahead, the board snapped round 35 degrees in the
                 // step it began to move.)
-                shieldFace = Anim.SlotWeaponL != null ? Anim.SlotWeaponL.forward : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+                shieldFace = bodyBack * (Anim.SlotWeaponL != null ? Anim.SlotWeaponL.forward : bodyTurn * Vector3.forward);
                 shieldFaceKnown = true;
             }
 
-            shieldFace = Vector3.RotateTowards(shieldFace, face, Mathf.Lerp(ShieldTurnSpeed, NoviceShieldTurnSpeed, lack) * Mathf.Deg2Rad * dt, 0f);
-            Poser.FaceShieldAt(shieldFace, Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
+            // (Turned smoothly, settling in as the hand does, and no faster than the arm can turn it; in the body's frame.)
+            Vector3 faceLocal = bodyBack * face;
+            Vector3 eased = Vector3.Slerp(shieldFace, faceLocal, 1f - Mathf.Exp(-dt * 3f / Mathf.Max(0.01f, CombatFeel.ShieldFaceSettle)));
+            shieldFace = Vector3.RotateTowards(shieldFace, eased, Mathf.Lerp(ShieldTurnSpeed, NoviceShieldTurnSpeed, lack) * Mathf.Deg2Rad * dt, 0f);
+            Poser.FaceShieldAt(bodyTurn * shieldFace, Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
         }
 
-        /// <summary>
-        /// The shield moves to meet a blow no sooner than this before contact (seconds): read from further out, the wind-up
-        /// still swings the blade's path about, and the board followed it round (the playtest: it moved and turned back and
-        /// forth as the blade came). In this time the arm still has more than enough of its speed to get there.
-        /// </summary>
-        public const float MovesWithin = 0.6f;
 
-        /// <summary>A later read of the blow moves the shield's plan only by more than this (metres at a Medium's size) or turns it by more than this (degrees): less, it holds where it is going.</summary>
-        public const float ReplanBy = 0.1f, ReplanTurn = 25f;
 
         private int planSerial = -1;
         private Vector3 planAt, planNormal, planFace;
@@ -2127,6 +2129,14 @@ namespace PhysicsBattler.Locomotion
             float w = 2f * Mathf.PI * hz;
             v += (-w * w * x - 2f * damping * w * v) * dt;
             x += v * dt;
+        }
+
+        /// <summary>A critically damped spring toward <paramref name="to"/> (its rate <paramref name="w"/>, 1/s).</summary>
+        private static void CriticalSpring(ref Vector3 x, ref Vector3 v, Vector3 to, float w, float dt)
+        {
+            Vector3 off = x - to;
+            CriticalSpring(ref off, ref v, w, dt);
+            x = to + off;
         }
 
         private static void CriticalSpring(ref Vector3 x, ref Vector3 v, float w, float dt)
