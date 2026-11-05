@@ -1335,54 +1335,104 @@ namespace PhysicsBattler.Locomotion
             var upper = Anim.Part(PartId.UpperArmL);
             var fore = Anim.Part(PartId.ForearmL);
             Vector3 chest = Anim.Part(PartId.Chest).position;
-            Vector3 aimed = IncomingAim ?? BlockAt ?? chest;
-            Vector3 from = IncomingBlade.HasValue && interceptWeight > 0f ? IncomingBlade.Value : striker + Vector3.up * (aimed.y - striker.y);
-            Vector3 toBlade = from - aimed;
-            toBlade = toBlade.sqrMagnitude > 1e-4f ? toBlade.normalized : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
-            // (Read from the wind-up: across the line the blow will come in on, not after the weapon, which is
-            // faster than any shield at the end.)
-            // (A novice chases the blade where it is now instead of closing the line it will come in on.)
-            if (IncomingFrom.HasValue && IncomingBlade.HasValue && interceptWeight > 0f)
-            {
-                toBlade = Vector3.Slerp(toBlade, IncomingFrom.Value.normalized, ReadLine * (1f - lack));
-            }
-            // (How well it reads the blow: a novice's shield goes where it guessed (off by its misread, and its line),
-            // keeps to that first guess, and holds at the chest against a low cut.)
-            if (IncomingBlade.HasValue && interceptWeight > 0f)
+            float reach = (Anim.RestLocalPosition(PartId.ForearmL).magnitude + Anim.RestLocalPosition(PartId.HandL).magnitude) * 0.9f;
+            Vector3 want, face;
+            // (The plan "Shield and blade contact", step 2: on the blade's own path, where it first comes within the guard
+            // of the body, square to its motion there. What the blow would strike first, not where it is aimed: a chop
+            // aimed at the hips passes the head on its way.)
+            if (interceptWeight > 0f && Blow.HasValue && PlanMeet(Blow.Value, out var meetAt, out var meetNormal, out var meetMotion, out var bladeWay, out float meetIn))
             {
                 shieldReread -= dt;
                 if (shieldReadHeld && shieldReread > 0f)
                 {
-                    aimed = shieldHeldAim;
-                    toBlade = shieldHeldLine;
+                    meetAt = shieldHeldAim;
+                    meetNormal = shieldHeldLine;
                 }
                 else
                 {
+                    // (How well it reads the blow: a novice's board goes where it guessed (off by its misread, across the
+                    // blade's motion, and its face turned by its misline), keeps to that first guess, and holds at the
+                    // chest against a low cut.)
                     float hips = Anim.Part(PartId.Pelvis).position.y;
-                    if (!coversLow && aimed.y < hips)
+                    if (!coversLow && meetAt.y < hips)
                     {
-                        aimed = new Vector3(aimed.x, chest.y, aimed.z);
+                        meetAt = new Vector3(meetAt.x, chest.y, meetAt.z);
                     }
 
-                    // (Off to one side of the line, not along it, where a misread would make no difference.)
-                    aimed += Vector3.ProjectOnPlane(shieldMisread, toBlade).normalized * shieldMisread.magnitude;
-                    toBlade = (shieldMisline * toBlade).normalized;
-                    shieldHeldAim = aimed;
-                    shieldHeldLine = toBlade;
+                    Vector3 side = Vector3.ProjectOnPlane(shieldMisread, meetMotion.sqrMagnitude > 1e-8f ? meetMotion.normalized : meetNormal);
+                    meetAt += side.sqrMagnitude > 1e-8f ? side.normalized * shieldMisread.magnitude : Vector3.zero;
+                    meetNormal = (shieldMisline * meetNormal).normalized;
+                    shieldHeldAim = meetAt;
+                    shieldHeldLine = meetNormal;
                     shieldReadHeld = true;
                     shieldReread = lack >= 0.999f ? float.MaxValue : 0.4f * lack;
                 }
-            }
 
-            // (Not behind itself: the shield stays in front of the body.)
-            Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
-            if (Vector3.Dot(toBlade, ahead) < 0.2f)
+                // (The board's centre on the meeting point: the hand behind it by the board's own offset from the fist,
+                // as the face will be turned.)
+                Vector3 boardFromHand = -meetNormal * (0.08f * Size);
+                if (ShieldBoard(out var boardNow, out var normalNow, out _))
+                {
+                    boardFromHand = Quaternion.FromToRotation(normalNow, meetNormal) * (boardNow - Rig.Part(PartId.HandL).transform.position);
+                }
+
+                want = meetAt - boardFromHand;
+                face = meetNormal;
+                // (An expert's slanted so a cut glances off it, away from the body: turned about the blade's own line.)
+                float slantBy = ExpertSlant * (1f - lack);
+                if (slantBy > 0.5f && bladeWay.sqrMagnitude > 1e-6f && !(Blow.Value.Thrust))
+                {
+                    Vector3 outward = Vector3.ProjectOnPlane(meetAt - Anim.Part(PartId.Chest).position, bladeWay);
+                    Vector3 tilted = Quaternion.AngleAxis(slantBy, bladeWay) * face;
+                    Vector3 slide = Vector3.ProjectOnPlane(meetMotion, tilted);
+                    face = Vector3.Dot(slide, outward) >= 0f ? tilted : Quaternion.AngleAxis(-slantBy, bladeWay) * face;
+                }
+
+                TraceMeet(Blow.Value, meetAt, meetNormal, meetIn);
+            }
+            else
             {
-                toBlade = (toBlade + ahead * (0.2f - Vector3.Dot(toBlade, ahead))).normalized;
+                if (interceptWeight > 0f && Blow.HasValue && ShieldTrace != null && Blow.Value.Serial != tracedShieldSerial)
+                {
+                    tracedShieldSerial = Blow.Value.Serial;
+                    ShieldTrace(string.Format(System.Globalization.CultureInfo.InvariantCulture, "blow {0}: {1:0.00} s to contact, its path comes no nearer the body than {2:0.00} m (the guard {3:0.00}): held across its line",
+                        Blow.Value.Serial, Blow.Value.ToContact, LastMeetNearest, GuardShell * Size));
+                }
+
+                Vector3 aimed = IncomingAim ?? BlockAt ?? chest;
+                Vector3 from = IncomingBlade.HasValue && interceptWeight > 0f ? IncomingBlade.Value : striker + Vector3.up * (aimed.y - striker.y);
+                Vector3 toBlade = from - aimed;
+                toBlade = toBlade.sqrMagnitude > 1e-4f ? toBlade.normalized : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+                // (Read from the wind-up: across the line the blow will come in on, not after the weapon, which is
+                // faster than any shield at the end.)
+                // (A novice chases the blade where it is now instead of closing the line it will come in on.)
+                if (IncomingFrom.HasValue && IncomingBlade.HasValue && interceptWeight > 0f)
+                {
+                    toBlade = Vector3.Slerp(toBlade, IncomingFrom.Value.normalized, ReadLine * (1f - lack));
+                }
+
+                // (Not behind itself: the shield stays in front of the body.)
+                Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+                if (Vector3.Dot(toBlade, ahead) < 0.2f)
+                {
+                    toBlade = (toBlade + ahead * (0.2f - Vector3.Dot(toBlade, ahead))).normalized;
+                }
+
+                want = aimed + toBlade * (0.32f * Size);
+                // (The wrist straight along the forearm, the shield turned in the fist to face the blow: an expert's slanted
+                // so a cut glances off, a novice's square on.)
+                face = toBlade;
+                float slant = ExpertSlant * (1f - lack);
+                if (slant > 0.5f && IncomingFrom.HasValue)
+                {
+                    Vector3 across = Vector3.Cross(IncomingFrom.Value, Vector3.up);
+                    if (across.sqrMagnitude > 1e-4f)
+                    {
+                        face = Quaternion.AngleAxis(slant, across.normalized) * face;
+                    }
+                }
             }
 
-            Vector3 want = aimed + toBlade * (0.32f * Size);
-            float reach = (Anim.RestLocalPosition(PartId.ForearmL).magnitude + Anim.RestLocalPosition(PartId.HandL).magnitude) * 0.9f;
             want = upper.position + Vector3.ClampMagnitude(want - upper.position, reach);
             if (!shieldAtKnown)
             {
@@ -1397,18 +1447,6 @@ namespace PhysicsBattler.Locomotion
             Vector3 target = Vector3.Lerp(hand.position, shieldAt, weight);
             var turn = Quaternion.Euler(0f, Loco.Facing, 0f);
             TwoBoneIK.Solve(upper, fore, hand, target, turn * new Vector3(-1f, -0.6f, 0f));
-            // (The wrist straight along the forearm, the shield turned in the fist to face the blow: an expert's slanted so a
-            // cut glances off, a novice's square on.)
-            Vector3 face = toBlade;
-            float slant = ExpertSlant * (1f - lack);
-            if (slant > 0.5f && IncomingFrom.HasValue)
-            {
-                Vector3 across = Vector3.Cross(IncomingFrom.Value, Vector3.up);
-                if (across.sqrMagnitude > 1e-4f)
-                {
-                    face = Quaternion.AngleAxis(slant, across.normalized) * face;
-                }
-            }
 
             // (And turned no faster than the arm can turn it: a novice's shield can't whip round to catch a blade at the last
             // moment.)
@@ -1420,6 +1458,94 @@ namespace PhysicsBattler.Locomotion
 
             shieldFace = Vector3.RotateTowards(shieldFace, face, Mathf.Lerp(ShieldTurnSpeed, NoviceShieldTurnSpeed, lack) * Mathf.Deg2Rad * dt, 0f);
             Poser.FaceShieldAt(shieldFace, Mathf.Max(weight, Poser.ClipArms * Poser.ShieldTurned));
+        }
+
+        /// <summary>How far from the body's line (hips to the top of the head) the shield meets a blade (metres at a Medium's size): where the board is held, about a forearm out from the body's front.</summary>
+        public const float GuardShell = 0.42f;
+
+        /// <summary>
+        /// Where the blow's blade will first come within <see cref="GuardShell"/> of the body (the plan "Shield and blade
+        /// contact", step 2), read from its path (<see cref="BlowRead.GripPath"/> to <see cref="BlowRead.TipPath"/>): the
+        /// point on the blade nearest the body then, the face square to the blade's motion there (pointing out, back up
+        /// the blow), that motion, the blade's way, and how soon (seconds). False: the path never comes that near.
+        /// </summary>
+        private bool PlanMeet(in BlowRead b, out Vector3 at, out Vector3 normal, out Vector3 motion, out Vector3 bladeWay, out float inSeconds)
+        {
+            at = normal = motion = bladeWay = Vector3.zero;
+            inSeconds = 0f;
+            if (b.GripPath == null || b.TipPath == null || b.GripPath.Length < 2)
+            {
+                return false;
+            }
+
+            Vector3 lo = Anim.Part(PartId.Pelvis).position, hi = Anim.Part(PartId.Head).position + Vector3.up * (0.1f * Size);
+            float shell = GuardShell * Size;
+            float prevD = float.MaxValue, prevS = 0f;
+            Vector3 prevAt = Vector3.zero;
+            int last = Mathf.Min(b.GripPath.Length - 1, StrikeHits.ContactPoint + 2);
+            LastMeetNearest = float.MaxValue;
+            for (int k = 0; k <= last; k++)
+            {
+                Vector3 g = b.GripPath[k], t = b.TipPath[k];
+                float d = StrikeHits.SegmentsNearest(g, t, lo, hi, out float sb, out _, out Vector3 onBlade, out _);
+                LastMeetNearest = Mathf.Min(LastMeetNearest, d);
+                if (d <= shell)
+                {
+                    float u = k > 0 && prevD < float.MaxValue && prevD > d ? Mathf.Clamp01((prevD - shell) / (prevD - d)) : 1f;
+                    at = k > 0 ? Vector3.Lerp(prevAt, onBlade, u) : onBlade;
+                    // (The blade's motion there: the same point along it, a step apart.)
+                    int k0 = Mathf.Max(0, k - 1), k1 = k0 + 1;
+                    float s = k > 0 ? Mathf.Lerp(prevS, sb, u) : sb;
+                    motion = Vector3.Lerp(b.GripPath[k1], b.TipPath[k1], s) - Vector3.Lerp(b.GripPath[k0], b.TipPath[k0], s);
+                    bladeWay = Vector3.Lerp(b.TipPath[k0] - b.GripPath[k0], t - g, u);
+                    bladeWay = bladeWay.sqrMagnitude > 1e-8f ? bladeWay.normalized : Vector3.up;
+                    Vector3 square = Vector3.ProjectOnPlane(-motion, bladeWay);
+                    normal = !b.Thrust && square.sqrMagnitude > 0.04f * motion.sqrMagnitude ? square.normalized
+                        : motion.sqrMagnitude > 1e-10f ? -motion.normalized : (b.Blade - at).normalized;
+                    // (Out from the body, toward the blow.)
+                    Vector3 axisNear = lo + (hi - lo) * Mathf.Clamp01(Vector3.Dot(at - lo, hi - lo) / Mathf.Max(1e-6f, (hi - lo).sqrMagnitude));
+                    if (Vector3.Dot(normal, at - axisNear) < 0f && Vector3.Dot(normal, -motion) < 0.2f * motion.magnitude)
+                    {
+                        normal = -normal;
+                    }
+
+                    inSeconds = b.SecondsTo(Mathf.Max(0, k - 1) + (k > 0 ? u : 0f));
+                    return true;
+                }
+
+                prevD = d;
+                prevS = sb;
+                prevAt = onBlade;
+            }
+
+            return false;
+        }
+
+        /// <summary>How near the last blow's path came to the body's line (metres), as the shield read it.</summary>
+        public float LastMeetNearest { get; private set; }
+
+        /// <summary>The shield's reading of each blow, for the logs (the lab writes it into the session's log).</summary>
+        public static System.Action<string> ShieldTrace;
+
+        private int tracedShieldSerial = -1;
+        private Vector3 tracedMeet;
+
+        /// <summary>Its plan for a blow, traced when it is new and when it moves by more than 10 cm: where it will meet the blade, against its own body.</summary>
+        private void TraceMeet(in BlowRead b, Vector3 at, Vector3 normal, float inSeconds)
+        {
+            if (ShieldTrace == null || (b.Serial == tracedShieldSerial && Vector3.Distance(at, tracedMeet) < 0.1f * Size))
+            {
+                return;
+            }
+
+            bool again = b.Serial == tracedShieldSerial;
+            tracedShieldSerial = b.Serial;
+            tracedMeet = at;
+            var back = Quaternion.Inverse(Quaternion.Euler(0f, Loco.Facing, 0f));
+            Vector3 local = back * (at - Loco.Position), n = back * normal;
+            string V(Vector3 v) => string.Format(System.Globalization.CultureInfo.InvariantCulture, "({0:0.00},{1:0.00},{2:0.00})", v.x, v.y, v.z);
+            ShieldTrace(string.Format(System.Globalization.CultureInfo.InvariantCulture, "blow {0}{1}: {2:0.00} s to contact, meets the blade in {3:0.00} s at {4}, the face {5}{6}",
+                b.Serial, again ? " read again" : "", b.ToContact, inSeconds, V(local), V(n), b.Predicted ? " (read ahead)" : ""));
         }
 
         /// <summary>The softened holds coming back.</summary>

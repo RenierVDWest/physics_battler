@@ -800,6 +800,8 @@ namespace PhysicsBattler.Locomotion
                     legs.Add($"{time:0.00} s: the parry: {line}");
                 }
             };
+            // (And the shield's (the plan "Shield and blade contact"): where it plans to meet each blow's blade.)
+            ClipFighter.ShieldTrace = line => legs.Add($"{time:0.00} s: the shield: {line}");
             ShowAimMark(false);
             if (course || mediumPrefab == null)
             {

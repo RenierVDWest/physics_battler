@@ -24,6 +24,7 @@ internal static class DummyHitReport
         ClipFighter.LegFalls = Environment.GetEnvironmentVariable("LEG_FALLS") != null;
         var ci = CultureInfo.InvariantCulture;
         var allShieldMeets = new List<StrikeHits.ShieldMeet>();
+        if (Environment.GetEnvironmentVariable("SHIELD_PLAN") != null) ClipFighter.ShieldTrace = line => Console.WriteLine("    the shield: " + line);
         int allInside = 0;
         string prefix = LocoLibrary.CombatPrefix(body);
         var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
