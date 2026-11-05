@@ -700,7 +700,10 @@ namespace PhysicsBattler.Locomotion
             chest.rotation = Quaternion.AngleAxis(0.55f * turn, up) * Quaternion.AngleAxis(0.55f * lean, right) * chest.rotation;
             head.rotation = Quaternion.Slerp(head.rotation, headWas, 0.8f);
 
-            TuckFreeArm(bodyTurn, dt);
+            if (TucksFreeArm)
+            {
+                TuckFreeArm(bodyTurn, dt);
+            }
             SolveArm(dt, close, wantBlade, wantEdge);
             PushedOffOpponent(opponent, dt);
         }
@@ -1093,7 +1096,7 @@ namespace PhysicsBattler.Locomotion
                 return true;
             }
 
-            // (The free arm too, where it hangs: a brute's at its side caught the cuts the parry let by it.)
+            // (The free arm too, where it is: a brute's, out in front, caught the cuts the parry let by it.)
             if (FreeArmOut && (Seg(P(PartId.UpperArmL), P(PartId.ForearmL)) <= 0.07f * r || Seg(P(PartId.ForearmL), P(PartId.HandL)) <= 0.06f * r))
             {
                 return true;
@@ -1117,28 +1120,29 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Where this one's free hand goes, and which way its elbow points (the body's frame; a fencer's behind its back, by default).</summary>
         public Vector3 FreeHandAt = FreeHand, FreeElbow = new Vector3(-1f, -0.6f, -0.5f);
 
-        /// <summary>Its free arm hangs where a cut can reach it (a brute's, at its side), so the parry keeps blows off it too; a fencer's is behind its back.</summary>
+        /// <summary>
+        /// It puts its free hand away (a fencer's behind its back). Not a brute's: its arm is left as its guard clip has
+        /// it (the playtest: at its side, or behind its back, the Large's looked wrong).
+        /// </summary>
+        public bool TucksFreeArm = true;
+
+        /// <summary>Its free arm is where a cut can reach it (a brute's, out in front as its guard clip holds it), so the parry keeps blows off it too; a fencer's is behind its back.</summary>
         public bool FreeArmOut;
 
         /// <summary>The guard it holds between blows (a fencer's sword at the other, by default).</summary>
         public Position GuardPose = Guard;
 
         /// <summary>
-        /// A club's guard and a brute's free hand (the playtest: no fencer's hand behind the back, no club pointed at
-        /// the other like a sword): the club held up, leaning forward and a little out, not straight up; the free
-        /// hand hanging at the side, a little behind the hip (forward of it, it caught the cuts from that side), the
-        /// elbow out and back.
+        /// A club's guard (the playtest: no club pointed at the other like a sword): held up, leaning forward and a
+        /// little out, not straight up. A brute's free arm is left as its guard clip has it.
         /// </summary>
         public static readonly Position ClubGuard = new Position("club guard", new Vector3(0.22f, 1.0f, 0.25f), new Vector3(0.15f, 1f, 0.35f), Vector3.forward, 20f, 0f, 0f);
 
-        public static readonly Vector3 BruteFreeHand = new Vector3(-0.27f, 0.92f, -0.10f), BruteElbow = new Vector3(-0.5f, 0f, -1f);
-
-        /// <summary>Held as a brute holds a club (<see cref="ClubGuard"/>, <see cref="BruteFreeHand"/>), named so in the logs.</summary>
+        /// <summary>Held as a brute holds a club (<see cref="ClubGuard"/>, its free arm left to its clip), named so in the logs.</summary>
         public SwordParry AsClub()
         {
             GuardPose = ClubGuard;
-            FreeHandAt = BruteFreeHand;
-            FreeElbow = BruteElbow;
+            TucksFreeArm = false;
             FreeArmOut = true;
             WeaponName = "club";
             return this;
