@@ -27,6 +27,13 @@ internal static class ShieldMeetSummary
                 Median(on.Select(m => m.Off)), on.Max(m => m.Off), Median(on.Select(m => m.FaceOff)), on.Max(m => m.FaceOff), on.Count(m => m.Off > 0.8f)));
         }
 
+        var planned = all.Where(m => m.Planned).ToList();
+        if (planned.Count > 0)
+        {
+            Console.WriteLine(string.Format(ci, "  planned {0} of {1}: made median {2:0.00} s before contact; the blade came from the first plan median {3:0.00} m (most {4:0.00}), from the one held median {5:0.00} m (most {6:0.00})",
+                planned.Count, all.Count, Median(planned.Select(m => m.PlanMadeBefore)), Median(planned.Select(m => m.FirstPlanOff)), planned.Max(m => m.FirstPlanOff), Median(planned.Select(m => m.HeldPlanOff)), planned.Max(m => m.HeldPlanOff)));
+        }
+
         string Band(StrikeHits.ShieldMeet m) => m.Height > 0.25f ? "high" : m.Height < -0.35f ? "low" : "middle";
         foreach (var band in new[] { "high", "middle", "low" })
         {

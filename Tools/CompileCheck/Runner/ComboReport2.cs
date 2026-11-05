@@ -222,6 +222,7 @@ internal static class StrikeComboReport
             int lastLandedBlow = -1;
             hits.Landed += text =>
             {
+                if (Environment.GetEnvironmentVariable("SHIELD_PLAN") != null) Console.WriteLine(string.Format(ci, "      {0:0.00} s: {1}", clock, text));
                 if (playedNames.Count == lastLandedBlow)
                 {
                     return;

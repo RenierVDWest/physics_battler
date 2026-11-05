@@ -1398,7 +1398,7 @@ namespace PhysicsBattler.Locomotion
                             // (An expert's face slanted so a cut glances off it, away from the body: turned about the blade's
                             // own line, the way chosen once.)
                             Vector3 freshFace = freshNormal;
-                            float slantBy = ExpertSlant * (1f - lack);
+                            float slantBy = ExpertShieldSlant * (1f - lack);
                             if (slantBy > 0.5f && freshWay.sqrMagnitude > 1e-6f && !Blow.Value.Thrust)
                             {
                                 Vector3 outward = Vector3.ProjectOnPlane(freshAt - chest, freshWay);
@@ -1411,6 +1411,12 @@ namespace PhysicsBattler.Locomotion
                             planAt = rootBack * (freshAt - Loco.Position);
                             planNormal = rootBack * freshNormal;
                             planFace = rootBack * freshFace;
+                            if (!havePlan)
+                            {
+                                firstPlanAt = planAt;
+                                firstPlanToContact = Blow.Value.ToContact;
+                            }
+
                             Replans += havePlan ? 1 : 0;
                         }
 
@@ -1586,6 +1592,22 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How quickly a plan read again eases over to its new place (seconds, the e-folding).</summary>
         public const float PlanEase = 0.06f;
 
+        private Vector3 firstPlanAt;
+        private float firstPlanToContact;
+
+        /// <summary>How far an expert's shield face is slanted so a cut glances off it (degrees).</summary>
+        public const float ExpertShieldSlant = 30f;
+
+        /// <summary>The shield's plan for the blow it is meeting (world, from its body's own frame now): the first and the one it holds, and how long before contact it was first made (false: no plan for this blow).</summary>
+        public bool ShieldPlan(int serial, out Vector3 first, out Vector3 held, out float madeBefore)
+        {
+            var turn = Quaternion.Euler(0f, Loco.Facing, 0f);
+            first = Loco.Position + turn * firstPlanAt;
+            held = Loco.Position + turn * easedAt;
+            madeBefore = firstPlanToContact;
+            return planSerial == serial && easedSerial == serial;
+        }
+
         /// <summary>Plans moved by a later read of the same blow (for the logs).</summary>
         public int Replans;
 
@@ -1611,6 +1633,14 @@ namespace PhysicsBattler.Locomotion
                 return false;
             }
 
+            // (The finer path about contact where there is one: a fast blow's blade sweeps a metre between two of the coarse
+            // path's points, and the board went where the line between them crossed, not the blade.)
+            bool fine = UseFinePath && b.FineGrip != null && b.FineTip != null && b.FineGrip.Length >= 2;
+            var G = fine ? b.FineGrip : b.GripPath;
+            var T = fine ? b.FineTip : b.TipPath;
+            var read = b;
+            float StepSeconds(float along) => fine ? Mathf.Max(0f, read.FineStart + along * read.FineSeconds) : read.SecondsTo(along);
+
             Vector3 lo = Anim.Part(PartId.Pelvis).position, hi = Anim.Part(PartId.Head).position + Vector3.up * (0.1f * Size);
             float shell = GuardShell * Size;
             Vector3 shoulder = Anim.Part(PartId.UpperArmL).position;
@@ -1619,13 +1649,13 @@ namespace PhysicsBattler.Locomotion
             float reach = (Anim.RestLocalPosition(PartId.ForearmL).magnitude + Anim.RestLocalPosition(PartId.HandL).magnitude) * 0.9f + 0.08f * Size;
             float prevD = float.MaxValue, prevS = 0f;
             Vector3 prevAt = Vector3.zero;
-            int last = Mathf.Min(b.GripPath.Length - 1, StrikeHits.ContactPoint + 2);
+            int last = fine ? G.Length - 1 : Mathf.Min(G.Length - 1, StrikeHits.ContactPoint + 2);
             LastMeetNearest = float.MaxValue;
             int found = -1;
             float foundU = 1f, foundS = 0f;
             for (int k = 0; k <= last; k++)
             {
-                Vector3 g = b.GripPath[k], t = b.TipPath[k];
+                Vector3 g = G[k], t = T[k];
                 float d = StrikeHits.SegmentsNearest(g, t, lo, hi, out float sb, out _, out Vector3 onBlade, out _);
                 LastMeetNearest = Mathf.Min(LastMeetNearest, d);
                 if (found < 0 && d <= shell)
@@ -1642,7 +1672,7 @@ namespace PhysicsBattler.Locomotion
                         float best = Vector3.Distance(at, shoulder);
                         for (int j = k; j <= last; j++)
                         {
-                            float dj = StrikeHits.SegmentsNearest(b.GripPath[j], b.TipPath[j], lo, hi, out float sj, out _, out Vector3 pj, out _);
+                            float dj = StrikeHits.SegmentsNearest(G[j], T[j], lo, hi, out float sj, out _, out Vector3 pj, out _);
                             // (Not inside the body: the blade there has already struck it.)
                             if (dj < 0.18f * Size)
                             {
@@ -1651,9 +1681,9 @@ namespace PhysicsBattler.Locomotion
 
                             // (The point on the blade nearest the shoulder, so far as it is still between the blade's way in
                             // and the body.)
-                            StrikeHits.SegmentsNearest(b.GripPath[j], b.TipPath[j], shoulder, shoulder, out float sn, out _, out Vector3 pn, out _);
+                            StrikeHits.SegmentsNearest(G[j], T[j], shoulder, shoulder, out float sn, out _, out Vector3 pn, out _);
                             float s2 = Mathf.Clamp(sn, Mathf.Min(sj, 0.5f), 1f);
-                            Vector3 pick = Vector3.Lerp(b.GripPath[j], b.TipPath[j], s2);
+                            Vector3 pick = Vector3.Lerp(G[j], T[j], s2);
                             float dist = Vector3.Distance(pick, shoulder);
                             if (dist < best)
                             {
@@ -1685,9 +1715,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (The blade's motion there: the same point along it, a step apart.)
-            int k0 = Mathf.Max(0, found - 1), k1 = Mathf.Min(k0 + 1, b.GripPath.Length - 1);
-            motion = Vector3.Lerp(b.GripPath[k1], b.TipPath[k1], foundS) - Vector3.Lerp(b.GripPath[k0], b.TipPath[k0], foundS);
-            bladeWay = Vector3.Lerp(b.TipPath[k0] - b.GripPath[k0], b.TipPath[found] - b.GripPath[found], foundU);
+            int k0 = Mathf.Max(0, found - 1), k1 = Mathf.Min(k0 + 1, G.Length - 1);
+            motion = Vector3.Lerp(G[k1], T[k1], foundS) - Vector3.Lerp(G[k0], T[k0], foundS);
+            bladeWay = Vector3.Lerp(T[k0] - G[k0], T[found] - G[found], foundU);
             bladeWay = bladeWay.sqrMagnitude > 1e-8f ? bladeWay.normalized : Vector3.up;
             Vector3 square = Vector3.ProjectOnPlane(-motion, bladeWay);
             normal = !b.Thrust && square.sqrMagnitude > 0.04f * motion.sqrMagnitude ? square.normalized
@@ -1699,7 +1729,7 @@ namespace PhysicsBattler.Locomotion
                 normal = -normal;
             }
 
-            inSeconds = b.SecondsTo(Mathf.Max(0, found - 1) + (found > 0 ? foundU : 0f));
+            inSeconds = StepSeconds(Mathf.Max(0, found - 1) + (found > 0 ? foundU : 0f));
             inside = found == 0;
             return true;
         }
@@ -1820,6 +1850,9 @@ namespace PhysicsBattler.Locomotion
             Vector3 x = p + (q - p) * (dp / (dp - dq));
             return Vector3.Distance(x, c) <= r ? Mathf.Max(dp, dq) : 0f;
         }
+
+        /// <summary>Whether the shield plans on the blow's finer path about contact (off: tried for combos, it met the blade further from the board's centre; on for experiments with SHIELD_FINE).</summary>
+        public static bool UseFinePath = System.Environment.GetEnvironmentVariable("SHIELD_FINE") != null;
 
         /// <summary>How near the last blow's path came to the body's line (metres), as the shield read it.</summary>
         public float LastMeetNearest { get; private set; }

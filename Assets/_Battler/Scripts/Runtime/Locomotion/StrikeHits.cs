@@ -37,6 +37,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far apart the path's points are (seconds as they pass).</summary>
         public float PathSeconds;
 
+        /// <summary>The blade's path about contact at a finer step (<see cref="StrikeHits.FineStep"/>): grip and tip, from <see cref="FineStart"/> seconds from now (as they pass), <see cref="FineSeconds"/> apart.</summary>
+        public Vector3[] FineGrip, FineTip;
+        public float FineStart, FineSeconds;
+
         /// <summary>Seconds (as they pass) until the path reaches a point along it (an index, fractional).</summary>
         public float SecondsTo(float along) => Mathf.Max(0f, ToContact + (along - StrikeHits.ContactPoint) * PathSeconds);
 
@@ -263,17 +267,38 @@ namespace PhysicsBattler.Locomotion
             // (What the clip's way misses of the posed blade now, taken on: the hand's fade, the grip.)
             Vector3 steeredNow = poser.SteerAhead(now, handNow, ClipWay(turnNow, now));
             Quaternion wayFix = Quaternion.FromToRotation(steeredNow, wayNow);
-            for (int k = 0; k < PathPoints; k++)
+            void PointAt(float t, out Vector3 gripThen, out Vector3 strikeThen, out Vector3 tipThen)
             {
-                float t = Mathf.Max(now, contact + PathStep * (k - ContactPoint));
                 loco.ShotRootAhead(t, out Vector3 rootThen, out float facingThen);
                 var turnThen = Quaternion.Euler(0f, facingThen, 0f);
                 Vector3 handThen = handNow + (rootThen - loco.Position) + poser.PullAhead(t, (t - now) / speed) - pullNow + turnThen * StrikeAt(clip, t, 0f) - clipHandNow;
                 // (The blade's way then: the clip's, as the wrist will steer it.)
                 Vector3 wayThen = poser.SteerAhead(t, handThen, wayFix * ClipWay(turnThen, t)).normalized;
-                read.Path[k] = handThen + wayThen * (strikeAlong * bladeLength);
-                read.TipPath[k] = handThen + wayThen * bladeLength;
-                read.GripPath[k] = handThen + wayThen * (gripAlong * bladeLength);
+                strikeThen = handThen + wayThen * (strikeAlong * bladeLength);
+                tipThen = handThen + wayThen * bladeLength;
+                gripThen = handThen + wayThen * (gripAlong * bladeLength);
+            }
+
+            for (int k = 0; k < PathPoints; k++)
+            {
+                PointAt(Mathf.Max(now, contact + PathStep * (k - ContactPoint)), out read.GripPath[k], out read.Path[k], out read.TipPath[k]);
+            }
+
+            // (And finer about contact, for the shield: a fast blow's blade sweeps a metre between two of the path's points. Only
+            // while tried: each point is a pose of the clip.)
+            if (!ClipFighter.UseFinePath)
+            {
+                read.Aim = read.Path[ContactPoint];
+                return true;
+            }
+
+            read.FineGrip = new Vector3[FinePoints];
+            read.FineTip = new Vector3[FinePoints];
+            read.FineSeconds = FineStep / speed;
+            read.FineStart = (contact - FineBefore - now) / speed;
+            for (int k = 0; k < FinePoints; k++)
+            {
+                PointAt(Mathf.Max(now, contact - FineBefore + FineStep * k), out read.FineGrip[k], out _, out read.FineTip[k]);
             }
 
             // (Where it lands, as read so: the striking point at contact.)
@@ -341,6 +366,20 @@ namespace PhysicsBattler.Locomotion
                 read.GripPath[k] = Point(t, gripAlong);
             }
 
+            if (ClipFighter.UseFinePath)
+            {
+            read.FineGrip = new Vector3[FinePoints];
+            read.FineTip = new Vector3[FinePoints];
+            read.FineSeconds = FineStep / pace;
+            read.FineStart = toContact - FineBefore / pace;
+            for (int k = 0; k < FinePoints; k++)
+            {
+                float t = Mathf.Max(entry, contact - FineBefore + FineStep * k);
+                read.FineGrip[k] = Point(t, gripAlong);
+                read.FineTip[k] = Point(t, 1f);
+            }
+            }
+
             read.Aim = read.Path[ContactPoint];
             Blade(now, out _, out _, out read.Blade);
             clip.RootMotion(entry, contact, out _, out float turnedAt);
@@ -355,6 +394,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How many points of the blow's path are read (from 0.28 s before its contact to the end of its live moments), which is at contact, how far apart (seconds of the clip).</summary>
         public const int PathPoints = 13, ContactPoint = 7;
         public const float PathStep = 0.04f;
+
+        /// <summary>The finer path about contact the shield reads (the plan "Shield and blade contact", step 4): from this long before contact (seconds of the clip) to just after it, this far apart.</summary>
+        public const float FineBefore = 0.3f, FineStep = 0.01f;
+        public const int FinePoints = 34;
 
         /// <summary>How far before contact the blow's line is read from (seconds of the clip).</summary>
         public const float ReadOver = 0.06f;
@@ -971,6 +1014,10 @@ namespace PhysicsBattler.Locomotion
             /// <summary>How high the blade met, against the shield-bearer's chest (metres, + above).</summary>
             public float Height;
 
+            /// <summary>Whether the shield had a plan for this blow; how far the blade came from its first plan and from the one it held (metres), and how long before contact the first was made (seconds).</summary>
+            public bool Planned;
+            public float FirstPlanOff, HeldPlanOff, PlanMadeBefore;
+
             public override string ToString() => string.Format(System.Globalization.CultureInfo.InvariantCulture,
                 "{0} the board, the blade {1:0.00} of its radius from its centre, the face {2:0} deg off square", OnBoard ? "on" : "off", Off, FaceOff);
         }
@@ -1000,6 +1047,16 @@ namespace PhysicsBattler.Locomotion
             Vector3 ab = b - a;
             float u = Mathf.Clamp01(Vector3.Dot(c - a, ab) / Mathf.Max(1e-8f, ab.sqrMagnitude));
             m.Off = Vector3.Distance(a + ab * u, c) / Mathf.Max(0.01f, radius);
+
+            // (How far off its plan was: where the blade came, nearest the board's centre, against the first plan and the one held.)
+            if (body.Blow.HasValue && body.ShieldPlan(body.Blow.Value.Serial, out var first, out var held, out float madeBefore))
+            {
+                Vector3 onBlade = a + ab * u;
+                m.Planned = true;
+                m.FirstPlanOff = Vector3.Distance(onBlade, first);
+                m.HeldPlanOff = Vector3.Distance(onBlade, held);
+                m.PlanMadeBefore = madeBefore;
+            }
 
             float face = direction.sqrMagnitude > 1e-8f ? Vector3.Angle(direction, -n) : 90f;
             m.FaceOff = Mathf.Min(face, 180f - face);

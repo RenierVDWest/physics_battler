@@ -413,6 +413,12 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     blows, 241 in its combos, 67 in the spar); the elbow at least 0.16 m from the body's line (was 0.07). At skill 1
     the high blows (the blade over 0.25 m above the chest) were already all met on the board, 13 of 13; single blows
     26 of 27, the Medium's combos 40 of 42. `dummyhits`, `combos` and `spar` print the arm through the board.
+  - Combo blows on the shield, measured (the plan "Shield and blade contact", step 4, begun): each blow met now logs
+    how far the blade came from the shield's first plan for it and from the plan it held ("planned ..."). At skill
+    1 the blade came a median 0.14 m from the plan held against the Medium's combos, 0.2 to 0.3 m against the
+    Large's (the board's radius is 0.27): the shield's read of the blade's path is what is off, the first read of a
+    combo's blow most (up to 0.78 m). Tried and left off: planning on a finer path about contact (`SHIELD_FINE`; met
+    the blade further from the board's centre), one late correction, a smaller slant. Nothing changes in play yet.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
