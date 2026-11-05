@@ -35,6 +35,33 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The colliders of what the dummy holds as a shield (a blade that meets one is blocked).</summary>
         public readonly HashSet<Collider> ShieldColliders = new HashSet<Collider>();
 
+        /// <summary>Its shield's board: its radius at a Medium's size (metres; the lab's shield 0.29, the headless board's half width 0.26).</summary>
+        public float ShieldRadius = 0.27f;
+
+        /// <summary>Its shield's board now: the centre of its face, the way the face looks (the shield slot's forward, as the shield's prefab has it) and its radius (metres).</summary>
+        public bool ShieldBoard(out Vector3 centre, out Vector3 normal, out float radius)
+        {
+            centre = normal = Vector3.zero;
+            radius = ShieldRadius * Size;
+            if (ShieldColliders.Count == 0 || Rig.SlotWeaponL == null)
+            {
+                return false;
+            }
+
+            var board = System.Linq.Enumerable.First(ShieldColliders);
+            if (board == null)
+            {
+                return false;
+            }
+
+            centre = board is BoxCollider box ? box.transform.TransformPoint(box.center)
+                : board is SphereCollider ball ? ball.transform.TransformPoint(ball.center)
+                : board is CapsuleCollider cap ? cap.transform.TransformPoint(cap.center)
+                : board.bounds.center;
+            normal = Rig.SlotWeaponL.forward;
+            return true;
+        }
+
         private readonly Dictionary<Collider, PartId> parts = new Dictionary<Collider, PartId>();
         private readonly UnitProfile profile;
         private bool snapped;

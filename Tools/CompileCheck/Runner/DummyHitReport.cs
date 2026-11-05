@@ -23,6 +23,8 @@ internal static class DummyHitReport
         // (LEG_FALLS=1: the shelved leg sweeps on.)
         ClipFighter.LegFalls = Environment.GetEnvironmentVariable("LEG_FALLS") != null;
         var ci = CultureInfo.InvariantCulture;
+        var allShieldMeets = new List<StrikeHits.ShieldMeet>();
+        int allInside = 0;
         string prefix = LocoLibrary.CombatPrefix(body);
         var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
         if (Environment.GetEnvironmentVariable("PARRY_CROSSOUT") != null)
@@ -310,12 +312,16 @@ internal static class DummyHitReport
                         worstJump = Mathf.Max(worstJump, pr.MostSwivelJump);
                         worstHand = Mathf.Max(worstHand, pr.MostHandSpeed);
                     }
+                    allShieldMeets.AddRange(hits.ShieldMeets);
+                    allInside += hits.InsideOutside;
                     UnityEngine.Object.DestroyImmediate(root);
                     UnityEngine.Object.DestroyImmediate(droot);
                 }
             }
         }
 
+        ShieldMeetSummary.Print(allShieldMeets);
+        Console.WriteLine($"Outside its blows the blade was in a body or a shield {allInside} steps");
         Console.WriteLine($"All: {landed} landed, {blocked} blocked or parried, {missed} missed of {tries}; the bodies came within {closest:0.00} m; {allTouches} touches outside the blows");
         if (swordTries > 0)
         {

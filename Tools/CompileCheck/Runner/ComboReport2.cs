@@ -21,6 +21,8 @@ internal static class StrikeComboReport
         body ??= "Medium";
         LocoLibrary.Load();
         var ci = CultureInfo.InvariantCulture;
+        var allShieldMeets = new List<StrikeHits.ShieldMeet>();
+        int allInside = 0;
         string prefix = LocoLibrary.CombatPrefix(body);
         var strikes = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key))
             .OrderBy(p => p.Key).Select(p => p.Value).ToList();
@@ -402,6 +404,8 @@ internal static class StrikeComboReport
             }
             File.WriteAllText(Path.Combine(dir, first.Name + (chain.Count > 0 ? "_" + chain[chain.Count - 1].To.Name.Replace(prefix, "") + "_" + chain[0].To.Name.Replace(prefix, "") : "") + ".json"), film.ToString());
             File.WriteAllText(Path.Combine(dir, first.Name + ".dummy"), dummyFilm.ToString());
+            allShieldMeets.AddRange(hits.ShieldMeets);
+            allInside += hits.InsideOutside;
             UnityEngine.Object.DestroyImmediate(root);
             UnityEngine.Object.DestroyImmediate(droot);
         }
@@ -420,6 +424,8 @@ internal static class StrikeComboReport
                 beats[beats.Count / 2], beats[beats.Count - 1], spans.Count > 0 ? spans[spans.Count / 2] : 0f, spans.Count > 0 ? spans[spans.Count - 1] : 0f, spans.Count, combos));
         }
 
+        ShieldMeetSummary.Print(allShieldMeets);
+        Console.WriteLine($"Outside its blows the blade was in a body or a shield {allInside} steps");
         Console.WriteLine(string.Format(ci, "All: {0} combos, {1} strikes: {2} landed, {3} blocked, {4} missed; about the switches the hands and feet moved at most {5:0.0} m/s ({6})",
             combos, strikesPlayed, landed, blocked, missed, fastest, fastestWhere));
         return 0;

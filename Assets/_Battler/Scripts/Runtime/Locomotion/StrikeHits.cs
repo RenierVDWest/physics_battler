@@ -449,6 +449,7 @@ namespace PhysicsBattler.Locomotion
                 struckParts.Clear();
                 pausedThisBlow = false;
                 swingHeard = false;
+                shieldMeasured.Clear();
             }
 
             if (striking && !swingHeard && loco.ShotTime >= clip.ContactFrame / clip.Rate - SwingHeardBefore)
@@ -597,6 +598,12 @@ namespace PhysicsBattler.Locomotion
                 if (!live)
                 {
                     // Outside a blow: a touch, a push on what it touches.
+                    // (Counted (the plan "Shield and blade contact", step 1): a step the blade is in a body or a shield.)
+                    if (found.Count > 0)
+                    {
+                        InsideOutside++;
+                    }
+
                     Vector3 velocity = direction / Mathf.Max(1e-4f, dt);
                     if (parryFirst)
                     {
@@ -641,6 +648,7 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
+                MeasureShield(f.body, a, b, direction, f.shield, f.part, clip);
                 // (Where in this step it met it: a stopped blow is put back there.)
                 float met = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
                 CountPassing(bodies, lastG, lastT, grip, tip, striking, live, metBefore);
@@ -657,6 +665,9 @@ namespace PhysicsBattler.Locomotion
         /// wind-up, its recovery). What the bind is to bring to none.
         /// </summary>
         public int PassedThroughLive, PassedThroughOutside;
+
+        /// <summary>Steps outside its blows its blade was in another body or a shield (nothing stops it there yet).</summary>
+        public int InsideOutside;
 
         private void CountPassing(IReadOnlyList<ClipFighter> bodies, Vector3 g0, Vector3 t0, Vector3 g1, Vector3 t1, bool striking, bool live, int metBefore)
         {
@@ -927,7 +938,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             LastWeight = r.Weight * knock * (glanced ? GlanceLeft : 1f);
-            Last = $"{clip.Name} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, weight {LastWeight:0.00} m/s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")})";
+            Last = $"{clip.Name} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, weight {LastWeight:0.00} m/s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")}{(LastShieldMeet.HasValue && measuredNow ? "; " + LastShieldMeet.Value : "")})";
+            measuredNow = false;
             Landed?.Invoke(Last);
         }
 
@@ -937,6 +949,63 @@ namespace PhysicsBattler.Locomotion
             return n.EndsWith("L") ? "left " + n.Substring(0, n.Length - 1).ToLowerInvariant()
                 : n.EndsWith("R") ? "right " + n.Substring(0, n.Length - 1).ToLowerInvariant()
                 : n.ToLowerInvariant();
+        }
+
+        // ---- The shield's meeting, measured (the plan "Shield and blade contact", step 1) -------------------------
+
+        /// <summary>How a blow met a shield-bearer, at its first contact with it (shield or body).</summary>
+        public struct ShieldMeet
+        {
+            /// <summary>The blow's clip, and the part it met (<see cref="PartId.HandL"/> with <see cref="OnBoard"/> for the board).</summary>
+            public string Clip;
+            public PartId Part;
+            public bool OnBoard;
+
+            /// <summary>How near the blade passed the board's centre, in shares of its radius (over 1: on the rim, or off the board); and whether the blade lay across the board's plane where it met.</summary>
+            public float Off;
+            public bool Across;
+
+            /// <summary>The angle between the blade's motion and square on to the face (degrees: 0 square, 90 edge on).</summary>
+            public float FaceOff;
+
+            /// <summary>How high the blade met, against the shield-bearer's chest (metres, + above).</summary>
+            public float Height;
+
+            public override string ToString() => string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "{0} the board, the blade {1:0.00} of its radius from its centre, the face {2:0} deg off square", OnBoard ? "on" : "off", Off, FaceOff);
+        }
+
+        /// <summary>Every blow's first meeting with a shield-bearer (for the logs and the gates).</summary>
+        public readonly List<ShieldMeet> ShieldMeets = new List<ShieldMeet>();
+
+        /// <summary>The last blow's meeting with a shield-bearer (null: none this blow).</summary>
+        public ShieldMeet? LastShieldMeet;
+
+        private readonly HashSet<ClipFighter> shieldMeasured = new HashSet<ClipFighter>();
+        private bool measuredNow;
+
+        private void MeasureShield(ClipFighter body, Vector3 a, Vector3 b, Vector3 direction, bool onBoard, PartId part, LocoClip clip)
+        {
+            if (body == null || body.Stance != ClipFighter.Stances.Shield || !body.ShieldBoard(out var c, out var n, out float radius) || !shieldMeasured.Add(body))
+            {
+                return;
+            }
+
+            measuredNow = true;
+
+            float da = Vector3.Dot(a - c, n), db = Vector3.Dot(b - c, n);
+            var m = new ShieldMeet { Clip = clip != null ? clip.Name : "", Part = part, OnBoard = onBoard, Across = da * db <= 0f };
+            // (How near the blade passes the board's centre: its nearest point to it, in shares of the radius. Over 1, the
+            // blade met the rim or missed the board.)
+            Vector3 ab = b - a;
+            float u = Mathf.Clamp01(Vector3.Dot(c - a, ab) / Mathf.Max(1e-8f, ab.sqrMagnitude));
+            m.Off = Vector3.Distance(a + ab * u, c) / Mathf.Max(0.01f, radius);
+
+            float face = direction.sqrMagnitude > 1e-8f ? Vector3.Angle(direction, -n) : 90f;
+            m.FaceOff = Mathf.Min(face, 180f - face);
+            m.Height = 0.5f * (a.y + b.y) - body.Anim.Part(PartId.Chest).position.y;
+            ShieldMeets.Add(m);
+            LastShieldMeet = m;
         }
 
         // ---- The bind (the plan "Parries that divert") --------------------------------------------------------

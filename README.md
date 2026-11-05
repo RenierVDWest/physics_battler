@@ -366,6 +366,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     shield rates are as they were except against the Large: the novice's parries of its combos are beaten (3 of 3),
     a mid-skill shield's guard is knocked open by each of its single blows; the parrying hand's fastest fell from
     20 to 15 m/s.
+  - The shield's meeting, measured (the plan "Shield and blade contact", step 1): every blow's first contact with a
+    shield-bearer logs how near the blade passed the board's centre (in shares of its radius: past 0.8 is the rim,
+    over 1 off it) and how far the face was off square to the blade's motion; `dummyhits` and `combos` sum it up
+    ("The shield met: ..."), and count the steps a blade rests in a body or a shield outside its blows. Today, at
+    skill 1: single blows 23 of 27 on the board, the blade a median 0.99 of the radius from the centre (13 on the
+    rim), the face 39 deg off square (most 90: edge on); the four off it are two chops to the head on their way to
+    the hips and two thrusts into the shield arm.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
