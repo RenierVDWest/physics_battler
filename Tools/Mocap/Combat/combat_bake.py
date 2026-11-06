@@ -62,6 +62,21 @@ SWORD_GUARD = {
     'sw_turn180': 'sns_turn180_b', 'sw_turn180_b': 'sns_turn180',
 }
 
+# Hit reactions by the side the blow came from (Renier's Mixamo clips, 6 November: the plan "Fighting off several
+# attackers", step 6), unarmed, in place, back to where they began. name: (sample, about); each hit_left_ one is
+# mirrored into a hit_right_ one. (Read off the clips: facing +z, the head thrown to its right (+x) = a blow from its left.)
+HITS = {
+    'hit_body': ('hit_to_body', 'Struck in the body from in front: doubles over, the hips back'),
+    'hit_body_b': ('hit_to_body_1', 'Struck in the body from in front: doubles over (second take)'),
+    'hit_body_c': ('hit_to_body_2', 'Struck in the body from in front: doubles over (third take)'),
+    'hit_rib': ('rib_hit', 'Struck lightly in the body from in front: bends a little'),
+    'hit_left_head': ('head_hit', 'Struck on the head from its front left: the head thrown back and to its right'),
+    'hit_left_head_big': ('big_hit_to_head_1', 'Struck hard on the head from its front left: thrown back, right and down'),
+    'hit_left_head_big_b': ('big_hit_to_head_2', 'Struck hard on the head from its front left (second take)'),
+    'hit_left_rib': ('big_rib_hit', 'Struck hard in the ribs from its left: bent over to its right'),
+    'hit_back_head': ('big_hit_to_head', 'Struck from behind: the head thrown forward and down, the hips back'),
+}
+
 # Strikes: name: (sample, from s, to s, contact s, kind, about)
 # (The Large holds its club two-handed: only the two-handed clips are its references. Its one-handed club combo
 # and the great sword idles whose hands come apart were taken out.)
@@ -126,6 +141,17 @@ def main(report):
         c['kind'] = ''
         c['set'] = 'guard'
         clips.append(c)
+    for name, (sample, about) in HITS.items():
+        d, B, F = load(sample)
+        clips.append(bake_one(name, d, B, F, False, 'impact', about, 'hit', yaw_from='hips'))
+        if name.startswith('hit_left_'):
+            mirrored = name.replace('hit_left_', 'hit_right_')
+            dd = dict(d, about=about.replace('its front left', 'its front right').replace('its left', 'its right').replace('to its right', 'to its left') + ' (mirrored)')
+            c = lb.bake(mirrored, dd, B, lb.mirror(B, F), mirrored_of=name, yaw_from='hips')
+            c['role'] = 'impact'
+            c['kind'] = 'hit'
+            c['set'] = 'guard'
+            clips.append(c)
     for name, (sample, a, b, contact, kind, about) in STRIKES.items():
         d, B, F = load(sample)
         rate = d['rate']

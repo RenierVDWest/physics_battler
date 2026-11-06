@@ -557,6 +557,17 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     time it stood with its attackers more than 120 degrees apart round it went from 24 to 11% of the time it was
     outnumbered; on 3 it lasted 20 to 60 s (was 16 to 32). `fight` prints it ("outnumbered"). Left: planted feet still
     drag up to 22 cm in the press (reaction and strike clips, the drive-back), as before this work.
+  - Fighting off several attackers, step 6: reactions by side. A blow that throws the body sideways or forward (a
+    second or third attacker's, from its side or behind) plays Renier's new hit clips (`Tools/Mocap/Combat/samples`,
+    baked by `combat_bake.py`, each `hit_left_` one mirrored into a `hit_right_` one): thrown to its right, a blow from
+    its left (`hit_left_head`, `_head_big`, `_head_big_b` for a heavy one to the head, `_rib` to the body); thrown
+    forward, `hit_back_head`. From in front it keeps the pack's own reactions. The bend (the struck part 100, its
+    neighbours less, along the blow) stays, and off the front it bends and throws the upper body harder (Combat Feel's
+    Off Front Bend, 1.35). The clips are long (1.3 to 1.6 s), so after the blow lands (0.4 s) their recovery is
+    hurried to end within Combat Feel's Side Hit Time (1 s): in a full one the unit couldn't turn or step to the next
+    attacker. `hitlook` strikes a standing Medium eight ways and prints what it played; `NO_SIDE_HITS=1` plays the
+    front reactions whatever the side, as before. Headless over four fights (1 on 2, 1 on 3) the outnumbered unit
+    lasted about as long as before (48, 26, 60, 17 s; was 48, 24, 44, 27).
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session

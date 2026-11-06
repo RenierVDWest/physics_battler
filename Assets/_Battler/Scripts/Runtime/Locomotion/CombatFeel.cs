@@ -18,6 +18,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The furthest any one blow's bend can push the struck part (metres, at a Medium's size), however heavy the blow. Keeps the Large's club from folding the body in half. Default 0.4.")]
         [Range(0f, 1f)] public float mostBend = DefaultMostBend;
 
+        [Tooltip("How much harder a blow that doesn't push the body straight back bends it and throws its upper body: one that throws it sideways or forward, as a second or third attacker's from its side or behind does (the plan \"Fighting off several attackers\", step 6), so it reads as contact. 1: the same as from in front. Default 1.35.")]
+        [Range(1f, 2.5f)] public float offFrontBend = DefaultOffFrontBend;
+
+        [Tooltip("The longest a reaction to a blow from the side or behind takes (seconds), its recovery hurried to end in time. The side hit clips are long (1.3 to 1.6 s); a unit in one can't step, turn or strike back, so against two or three attackers a full one left it open to the next blow. Its first moments, the blow landing, play at their own speed. Default 1.0.")]
+        [Range(0.6f, 2f)] public float sideHitTime = DefaultSideHitTime;
+
         [Tooltip("How far from the point of contact the bend spreads before it fades to nothing (metres, at a Medium's size). Smaller: only the struck part and its close neighbours move, a sharp local jolt. Larger: the whole body goes with the blow. Default 1.2.")]
         [Range(0.2f, 3f)] public float bendReach = DefaultBendReach;
 
@@ -146,6 +152,7 @@ namespace PhysicsBattler.Locomotion
         [Range(0f, 0.8f)] public float giveGroundEases = DefaultGiveGroundEases;
 
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
+        public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
         public const float DefaultHitStopBase = 0.03f, DefaultHitStopPerWeight = 0.05f, DefaultLeastHitStop = 0.04f, DefaultMostHitStop = 0.16f;
         public const float DefaultDriveBack = 3.5f, DefaultMostDrive = 2.2f, DefaultStumbleFrom = 1.0f, DefaultStumbleBoost = 1.3f, DefaultMostStumble = 2.8f, DefaultStumbleRecovery = 0.7f;
         public const float DefaultParryGivePerWeight = 0.1f, DefaultMostParryGive = 0.2f, DefaultParryHolds = 0.8f, DefaultExpertParryHolds = 2f, DefaultBeatenShare = 0.6f,
@@ -156,6 +163,8 @@ namespace PhysicsBattler.Locomotion
         public const float DefaultGiveGroundFrom = 0.9f, DefaultGiveGroundDeep = 0f, DefaultGiveGroundLead = 0.22f, DefaultLeastGiveGround = 0.1f, DefaultMostGiveGround = 0.2f, DefaultGiveGroundEases = 0.3f;
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
+        public static float OffFrontBend = DefaultOffFrontBend, SideHitTime = DefaultSideHitTime;
+
         public static float BendPerWeight = DefaultBendPerWeight, MostBend = DefaultMostBend, BendReach = DefaultBendReach, BendPeak = DefaultBendPeak,
             LeanScale = 1f, HeadSnapScale = 1f,
             HitStopBase = DefaultHitStopBase, HitStopPerWeight = DefaultHitStopPerWeight, LeastHitStop = DefaultLeastHitStop, MostHitStop = DefaultMostHitStop,
@@ -174,6 +183,8 @@ namespace PhysicsBattler.Locomotion
         private void OnDisable()
         {
             BendPerWeight = DefaultBendPerWeight;
+            OffFrontBend = DefaultOffFrontBend;
+            SideHitTime = DefaultSideHitTime;
             MostBend = DefaultMostBend;
             BendReach = DefaultBendReach;
             BendPeak = DefaultBendPeak;
@@ -219,6 +230,8 @@ namespace PhysicsBattler.Locomotion
         private void Push()
         {
             BendPerWeight = bendPerWeight;
+            OffFrontBend = offFrontBend;
+            SideHitTime = Mathf.Max(0.3f, sideHitTime);
             MostBend = mostBend;
             BendReach = bendReach;
             BendPeak = Mathf.Max(0.01f, bendPeak);

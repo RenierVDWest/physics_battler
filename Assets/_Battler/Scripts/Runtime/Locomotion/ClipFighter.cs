@@ -939,6 +939,7 @@ namespace PhysicsBattler.Locomotion
                 pendingKnock = Vector3.zero;
             }
 
+            HurrySideHit();
             Loco.Step(dt, want, yaw);
             CarryBy(Loco.SnappedThisStep);
             if (Combo != null)
@@ -2214,11 +2215,16 @@ namespace PhysicsBattler.Locomotion
 
             // The pose shows it (the fight's recoil): the pinned body is pulled back to its pose each step,
             // so a kick on the physical part alone hardly shows.
-            float react = (reaction == Combat.Reaction.Stagger ? 1.6f : reaction == Combat.Reaction.Flinch ? 1.25f : 1f) * ReactScale;
+            // (Its side: which way the blow throws the body, against where it faces. Off the front (thrown sideways or
+            // forward: a second attacker's from beside or behind), the bend and the lean are stronger, so it reads as
+            // contact: the plan "Fighting off several attackers", step 6.)
+            var thrown = BlowSideOf(impulse);
+            float offFront = thrown == BlowSide.Back ? 1f : CombatFeel.OffFrontBend;
+            float react = (reaction == Combat.Reaction.Stagger ? 1.6f : reaction == Combat.Reaction.Flinch ? 1.25f : 1f) * ReactScale * offFront;
             Recoil(impulse, point, shield ? PartId.HandL : part, shield ? 0.6f * react : react);
             if (!shield)
             {
-                AddImpact(point, impulse);
+                AddImpact(point, impulse, offFront);
             }
 
             var armRegion = shield ? BodyRegion.ArmL : AuthorityController.RegionOf(part);
@@ -2273,7 +2279,7 @@ namespace PhysicsBattler.Locomotion
             Vector3 knock = impulse * (1f - partShare) * KnockScale / Mass;
             knock.y = 0f;
             bool driven = !Anchored && knock.magnitude > DrivenFrom;
-            string clipName = shield ? null : ReactionClip(part, impulse.magnitude / Mass, reaction);
+            string clipName = shield ? null : ReactionClip(part, impulse.magnitude / Mass, reaction, thrown);
             var clip = clipName != null ? LocoLibrary.Get(clipName) : null;
             string reacted = null;
             // (Heavy enough (the plan "Weight and momentum", step 3: the Large's club on a Medium), it is thrown back
@@ -2311,7 +2317,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            if (clip != null && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.Name.StartsWith("sns_impact_"))
+            if (clip != null && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && IsReaction(Loco.Shot.Name))
             {
                 // (Already reeling from a blow: it goes on, the new blow in its sway. A reaction started over another
                 // dragged the foot the first had planted.)
@@ -2347,6 +2353,26 @@ namespace PhysicsBattler.Locomotion
             LastReaction = (swept.Length > 0 ? swept + "; " : "") + reacted;
         }
 
+        private static bool IsReaction(string clip) => clip.StartsWith("sns_impact_") || clip.StartsWith("hit_");
+
+        /// <summary>The side hit clips' blow landing: played at its own speed (seconds), the recovery after it hurried.</summary>
+        public const float SideHitLands = 0.4f;
+
+        /// <summary>
+        /// A side hit clip's recovery hurried so the whole reaction takes no longer than <see cref="CombatFeel.SideHitTime"/>
+        /// (against several attackers a 1.6 s reaction left it open to the next one's blow: the playtest runs of 6 November).
+        /// </summary>
+        private void HurrySideHit()
+        {
+            if (Loco.Current != Locomotor.Mode.OneShot || Loco.Shot == null || !Loco.Shot.Name.StartsWith("hit_") || Loco.ShotTime < SideHitLands)
+            {
+                return;
+            }
+
+            float rest = Loco.Shot.Duration - SideHitLands, left = CombatFeel.SideHitTime - SideHitLands;
+            Loco.ShotSpeed = left > 0.05f && rest > left ? rest / left : 1f;
+        }
+
         /// <summary>How long a driven body takes the blow where it stands before its steps carry it back (seconds: the reaction clips' peak).</summary>
         public const float DriveAfter = 0.22f;
 
@@ -2361,17 +2387,83 @@ namespace PhysicsBattler.Locomotion
         /// body, the upper body thrown back when it is to the head or the top of the chest; thrown for a heavy one
         /// or a broken poise, wherever it lands.
         /// </summary>
-        private string ReactionClip(PartId part, float strength, Combat.Reaction reaction)
+        /// <summary>Which way a blow throws the body, against where it faces: back (a blow from in front), to its left or right, or forward (from behind).</summary>
+        /// <summary>Side hits play the side's clips (headless: <c>NO_SIDE_HITS</c> plays the front ones whatever the side, as before).</summary>
+        public static bool SideHits = System.Environment.GetEnvironmentVariable("NO_SIDE_HITS") == null;
+
+        public enum BlowSide
+        {
+            Back,
+            Left,
+            Right,
+            Forward,
+        }
+
+        /// <summary>Within this of straight back (degrees) a blow counts as from in front; past this from it, from behind.</summary>
+        public const float FrontWithin = 50f, BehindFrom = 130f;
+
+        public BlowSide BlowSideOf(Vector3 impulse)
+        {
+            impulse.y = 0f;
+            if (impulse.sqrMagnitude < 1e-8f)
+            {
+                return BlowSide.Back;
+            }
+
+            var turn = Quaternion.Euler(0f, Loco.Facing, 0f);
+            Vector3 back = turn * Vector3.back;
+            float off = Vector3.Angle(back, impulse);
+            if (off <= FrontWithin)
+            {
+                return BlowSide.Back;
+            }
+
+            if (off >= BehindFrom)
+            {
+                return BlowSide.Forward;
+            }
+
+            return Vector3.Dot(impulse, turn * Vector3.right) > 0f ? BlowSide.Right : BlowSide.Left;
+        }
+
+        private int sideTake;
+
+        /// <summary>
+        /// Its reaction clip: thrown back (a blow from in front), the pack's own, held in its guard; thrown sideways or
+        /// forward, Renier's hit clips by the side (6 November): to its right is a blow from its left (hit_left_), and so on.
+        /// Thrown forward, the blow from behind (hit_back_head), but for a light one, which only bends it.
+        /// </summary>
+        private string ReactionClip(PartId part, float strength, Combat.Reaction reaction, BlowSide thrown = BlowSide.Back)
         {
             bool high = part == PartId.Head || PartAt(part).y > PartAt(PartId.Chest).y - 0.05f * Size;
-            if (reaction == Combat.Reaction.Stagger || reaction == Combat.Reaction.Killed || strength >= HeavyFrom)
+            bool heavy = reaction == Combat.Reaction.Stagger || reaction == Combat.Reaction.Killed || strength >= HeavyFrom;
+            bool light = strength < LightBelow && reaction == Combat.Reaction.Recoil;
+            var region = AuthorityController.RegionOf(part);
+            bool arm = region == BodyRegion.ArmL || region == BodyRegion.ArmR;
+            if (thrown != BlowSide.Back && SideHits && !arm)
+            {
+                string side = thrown == BlowSide.Right ? "hit_left_" : thrown == BlowSide.Left ? "hit_right_" : null;
+                string name = side == null
+                    ? (light ? null : "hit_back_head")
+                    : part == PartId.Head ? side + (heavy ? ((sideTake++ & 1) == 0 ? "head_big" : "head_big_b") : "head") : side + "rib";
+                if (name == null || LocoLibrary.Get(name) != null)
+                {
+                    return name;
+                }
+            }
+
+            if (thrown == BlowSide.Forward && light)
+            {
+                return null;
+            }
+
+            if (heavy)
             {
                 return "sns_impact_heavy";
             }
 
             // (An arm struck jerks the body less than a blow to it.)
-            var region = AuthorityController.RegionOf(part);
-            if ((strength < LightBelow && reaction == Combat.Reaction.Recoil) || region == BodyRegion.ArmL || region == BodyRegion.ArmR)
+            if (light || arm)
             {
                 return "sns_impact_light";
             }
@@ -2700,10 +2792,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far the last blow's bend went at its peak (metres), for the logs.</summary>
         public float LastBend { get; private set; }
 
-        private void AddImpact(Vector3 point, Vector3 impulse)
+        private void AddImpact(Vector3 point, Vector3 impulse, float scale = 1f)
         {
             float weight = impulse.magnitude / Mathf.Max(1f, Mass);
-            float peak = Mathf.Min(BendPerWeight * weight, MostBend) * Size;
+            float peak = Mathf.Min(BendPerWeight * weight * scale, MostBend * Mathf.Max(1f, scale)) * Size;
             if (peak < 0.005f)
             {
                 return;

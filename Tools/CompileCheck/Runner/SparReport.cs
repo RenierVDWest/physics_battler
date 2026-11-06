@@ -302,6 +302,54 @@ internal static class SparReport
         return 0;
     }
 
+    /// <summary>
+    /// The plan "Fighting off several attackers", step 6: a Medium with sword and shield struck from in front, its left,
+    /// its right and behind, on the head and the body, a blow every 2 s; which reaction each played, and a film of it
+    /// (hitlook.json, for Tools/Mocap/Locomotion/twofilm.py or locofilm.py).
+    /// </summary>
+    public static int RunHitLook(string dir, string stance)
+    {
+        Directory.CreateDirectory(dir);
+        LocoLibrary.Load();
+        float dt = 1f / 60f;
+        var f = Fighter("B", stance, Vector3.zero, 0f, 1f);
+        var film = new LocoFilm(dt, 2) { BladeLength = f.Poser.WeaponLength, ShieldRadius = f.Stance == ClipFighter.Stances.Shield ? 0.3f : 0f };
+        var blows = new (string what, Vector3 push, PartId part, PhysicsBattler.Combat.Reaction reaction)[]
+        {
+            ("from in front, head, heavy", Vector3.back, PartId.Head, PhysicsBattler.Combat.Reaction.Stagger),
+            ("from its left, head, heavy", Vector3.right, PartId.Head, PhysicsBattler.Combat.Reaction.Stagger),
+            ("from its right, head, heavy", Vector3.left, PartId.Head, PhysicsBattler.Combat.Reaction.Stagger),
+            ("from its left, head, a flinch", Vector3.right, PartId.Head, PhysicsBattler.Combat.Reaction.Flinch),
+            ("from its left, body", Vector3.right, PartId.Chest, PhysicsBattler.Combat.Reaction.Flinch),
+            ("from its right, body", Vector3.left, PartId.Chest, PhysicsBattler.Combat.Reaction.Flinch),
+            ("from behind, head, heavy", Vector3.forward, PartId.Head, PhysicsBattler.Combat.Reaction.Stagger),
+            ("from behind, body, a flinch", Vector3.forward, PartId.Chest, PhysicsBattler.Combat.Reaction.Flinch),
+        };
+        float clock = 0f;
+        int next = 0;
+        float nextAt = 1f;
+        var ci = System.Globalization.CultureInfo.InvariantCulture;
+        for (int i = 0; i < (int)((1f + 2.2f * blows.Length) / dt); i++)
+        {
+            clock = i * dt;
+            if (next < blows.Length && clock >= nextAt)
+            {
+                var b = blows[next++];
+                nextAt += 2.2f;
+                Vector3 at = f.PartAt(b.part);
+                f.TakeHit(b.part, false, b.push * 35f, 0.5f, 20f, b.reaction, at);
+                Console.WriteLine(string.Format(ci, "  {0:0.0} s, struck {1}: thrown {2}; {3}", clock, b.what, f.BlowSideOf(b.push), f.LastReaction));
+            }
+
+            f.Move(dt, Vector3.zero, 0f, new Vector3(0f, 0f, 1.6f), false);
+            f.Apply(dt);
+            film.Add(clock, "B", f.Loco, f.Poser, f.Anim);
+        }
+
+        File.WriteAllText(Path.Combine(dir, "hitlook.json"), film.ToString());
+        return 0;
+    }
+
     /// <summary>A Medium with a sword, and a shield (a board on its left slot, as dummyhits gives it) unless it defends open or with the sword.</summary>
     private static ClipFighter Fighter(string name, string stance, Vector3 at, float facing, float skill)
     {

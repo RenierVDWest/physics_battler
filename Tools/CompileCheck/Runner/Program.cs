@@ -54,6 +54,11 @@ internal static class Program
             return FootworkReport.Run(args[1], args.Length >= 3 ? float.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture) : 30f);
         }
 
+        if (args.Length >= 2 && args[0] == "hitlook")
+        {
+            return SparReport.RunHitLook(args[1], args.Length >= 3 ? args[2] : "shield");
+        }
+
         if (args.Length >= 2 && args[0] == "spar")
         {
             return SparReport.Run(args[1], args.Length >= 3 ? float.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture) : 40f);
