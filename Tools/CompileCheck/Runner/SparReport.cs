@@ -80,6 +80,7 @@ internal static class SparReport
         var lastPos = new Dictionary<(ClipFighter, PartId), Vector3>();
         var measuresA = new LocoMeasures(a.Anim, a.Loco, a.Poser);
         var measuresB = new LocoMeasures(b.Anim, b.Loco, b.Poser);
+        var rootWas = new Vector3[2]; var rootKnown = new bool[2]; var rootJump = new float[2]; var rootJumpWhat = new string[2];
         var steadyB = new ShieldSteadiness();
         for (int i = 0; i < Mathf.RoundToInt(seconds / dt); i++)
         {
@@ -175,6 +176,24 @@ internal static class SparReport
             steadyB.Step(b);
             b.Strikes.Step(dt, onlyA);
             ClipFighter.KeepApart(a, b);
+            // (The biggest jump of each root in one step: a pose jumping far ahead of its physical body throws it.)
+            foreach (var (f, k) in new[] { (a, 0), (b, 1) })
+            {
+                Vector3 now = f.Loco.Position;
+                if (rootKnown[k])
+                {
+                    float jump = Vector3.Distance(now, rootWas[k]);
+                    if (jump > rootJump[k])
+                    {
+                        rootJump[k] = jump;
+                        rootJumpWhat[k] = string.Format(ci, "{0:0.00} m at {1:0.00} s ({2} {3}; snapped {4:0.00} m)", jump, clock, f.Loco.Current, f.Loco.Shot?.Name, f.Loco.SnappedThisStep.magnitude);
+                    }
+                }
+
+                rootWas[k] = now;
+                rootKnown[k] = true;
+            }
+
             a.Apply(dt);
             // (A's weapon, step to step, out of its strikes: how often it flicks one way and straight back, a jitter.)
             if (a.Anim.SlotWeaponR != null)
@@ -266,6 +285,7 @@ internal static class SparReport
         Console.WriteLine(string.Format(ci, "B ({0}): {1} blows thrown ({2} combos): {3} landed, {4} blocked, {5} parried. A took {6} hits.",
             b.Stance, thrownB, combosB, b.Strikes.Hits, b.Strikes.Blocks, b.Strikes.Parries, a.Hits));
         steadyB.Close();
+        Console.WriteLine("The biggest root jump in a step: A " + rootJumpWhat[0] + "; B " + rootJumpWhat[1]);
         ShieldSteadiness.Print(new[] { steadyB });
         Console.WriteLine(string.Format(ci, "B's shield arm through its own board: {0} steps, at most {1:0.00} m; its elbow at the nearest {2:0.00} m from its body's line ({3:0.00} m while blocking)", b.ArmThroughBoard, b.ArmThroughBoardMost, b.ElbowNearestBody, b.ElbowNearestBlocking));
         Console.WriteLine(string.Format(ci, "No strike reached {0} times; the bodies came within {1:0.00} m at {4:0.00} s ({5}; root to root, the fighting distance {2:0.00}); fastest hand, head or foot {3:0.0} m/s ({6})",

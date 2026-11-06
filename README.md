@@ -428,6 +428,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     single blows missed (blade not on the board): skill 0.5 26% (Medium attacker; the Large 33%), skill 0 70% (67%),
     skill 1 4% (0%); combo blows: skill 0.5 40% (the Large 50%), skill 0 55%, skill 1 7% (0%). The aim was a
     quarter of single blows and half of a combo's at skill 0.5.
+  - The Large thrown off the field (the playtest of 6 November): starting a combo as the dummy started its own, its
+    pose jumped 1.3 m in one step (a combo's step in, taken in 0.08 s), and its physical body, the kinematic legs
+    swept after the pose into the dummy's, was knocked down and flung 32 m. A combo's step in now carries the body no
+    faster than 9 m/s (at a Medium's size), the rest taken in the steps after; and a carry moves every physical part,
+    the kinematic legs too, instead of sweeping them there. In the spar the biggest root jump in a step went from
+    0.62 m to 0.30 m (`spar` prints it). Combos land as before but for the Small's against the sword, now parried a
+    blow later.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

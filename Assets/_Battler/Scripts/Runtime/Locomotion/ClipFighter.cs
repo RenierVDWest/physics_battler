@@ -999,9 +999,11 @@ namespace PhysicsBattler.Locomotion
             {
                 if (carried.sqrMagnitude > 1e-10f)
                 {
+                    // (Every part, the kinematic legs too: moved after their pose instead, they swept across the
+                    // ground, and into the other body, at the speed of the snap.)
                     foreach (var p in Rig.Parts)
                     {
-                        if (p.body != null && !p.body.isKinematic)
+                        if (p.body != null)
                         {
                             p.body.position += carried;
                         }

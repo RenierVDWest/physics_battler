@@ -427,6 +427,11 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How long a combo's step in takes, from where its blow is taken up (seconds of the clip): a snap.</summary>
         public float StepInOver = 0.08f;
 
+        /// <summary>The fastest a combo's step in carries the body (m/s at a Medium's size): a snap, but not a jump.</summary>
+        public const float MostStepInSpeed = 9f;
+
+        private Vector3 stepInLeft;
+
         private float StepInShare(float from, float to)
         {
             if (shotStepIn.sqrMagnitude < 1e-8f || shotAimOver <= shotAimFrom)
@@ -1033,6 +1038,7 @@ namespace PhysicsBattler.Locomotion
             {
                 shotMoveScale = 0f;
                 shotStepIn = Vector3.zero;
+                stepInLeft = Vector3.zero;
             }
         }
 
@@ -1211,7 +1217,12 @@ namespace PhysicsBattler.Locomotion
             Vector3 step = shotBend * (turn * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
             if (!rewinding)
             {
-                Vector3 snap = shotStepIn * StepInShare(from, ShotTime);
+                // (No faster than <see cref="MostStepInSpeed"/>: what is left is taken in the steps after. Taken at once, a
+                // Large's step in jumped 1.3 m in one step and its physical body, swept after its pose into the other's,
+                // was knocked down and thrown off the field (the playtest of 6 November).)
+                stepInLeft += shotStepIn * StepInShare(from, ShotTime);
+                Vector3 snap = Vector3.ClampMagnitude(stepInLeft, MostStepInSpeed * (Leg / 0.845f) * dt);
+                stepInLeft -= snap;
                 step += snap;
                 SnappedThisStep += snap;
             }
