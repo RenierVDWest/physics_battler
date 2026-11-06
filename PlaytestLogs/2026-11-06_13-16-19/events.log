@@ -1,0 +1,1165 @@
+# Physics Battler playtest 2026-11-06_13-16-19
+# time (s since Play) | physics step | who | what | details
+    2.599 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    2.599 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+    2.599 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+    2.599 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    2.599 |      0 | -              | input    | at most 50 ms of physics a frame
+    2.599 |      0 | -              | input    | spawn: 6 units on the 8x8 board
+    2.600 |      1 | A Medium       | spawn    | at (-2.40, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.600 |      1 | A Medium 2     | spawn    | at (-0.80, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.600 |      1 | A Large        | spawn    | at (0.80, -2.40) facing 0°, team 0, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    2.600 |      1 | B Medium       | spawn    | at (-2.40, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.600 |      1 | B Medium 2     | spawn    | at (0.80, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.600 |      1 | B Large        | spawn    | at (-0.80, 2.40) facing 180°, team 1, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    2.600 |      1 | A Medium       | equip    | WD_Sword, scaled 1.00
+    2.600 |      1 | A Medium 2     | equip    | WD_Sword and WD_Shield, scaled 1.00
+    2.600 |      1 | A Large        | equip    | WD_Club, scaled 1.24
+    2.600 |      1 | B Medium       | equip    | WD_Sword and WD_Shield, scaled 1.00
+    2.600 |      1 | B Medium 2     | equip    | WD_Sword, scaled 1.00
+    2.600 |      1 | B Large        | equip    | WD_Club, scaled 1.24
+    2.600 |      1 | A Medium       | sight    | noticed A Medium 2 at the edge of its view (1.6 m)
+    2.600 |      1 | A Medium       | sight    | noticed A Large at the edge of its view (3.2 m)
+    2.600 |      1 | A Medium       | sight    | noticed B Medium in clear view (4.8 m)
+    2.600 |      1 | A Medium       | sight    | noticed B Medium 2 at the edge of its view (5.8 m)
+    2.600 |      1 | A Medium       | sight    | noticed B Large in clear view (5.1 m)
+    2.600 |      1 | A Medium 2     | sight    | noticed A Medium at the edge of its view (1.6 m)
+    2.600 |      1 | A Medium 2     | sight    | noticed A Large at the edge of its view (1.6 m)
+    2.600 |      1 | A Medium 2     | sight    | noticed B Medium in clear view (5.1 m)
+    2.600 |      1 | A Medium 2     | sight    | noticed B Medium 2 in clear view (5.1 m)
+    2.600 |      1 | A Medium 2     | sight    | noticed B Large in clear view (4.8 m)
+    2.600 |      1 | A Large        | sight    | noticed A Medium at the edge of its view (3.2 m)
+    2.600 |      1 | A Large        | sight    | noticed A Medium 2 at the edge of its view (1.6 m)
+    2.600 |      1 | A Large        | sight    | noticed B Medium at the edge of its view (5.8 m)
+    2.600 |      1 | A Large        | sight    | noticed B Medium 2 in clear view (4.8 m)
+    2.600 |      1 | A Large        | sight    | noticed B Large in clear view (5.1 m)
+    2.600 |      1 | B Medium       | sight    | noticed A Medium in clear view (4.8 m)
+    2.600 |      1 | B Medium       | sight    | noticed A Medium 2 in clear view (5.1 m)
+    2.600 |      1 | B Medium       | sight    | noticed A Large at the edge of its view (5.8 m)
+    2.600 |      1 | B Medium       | sight    | noticed B Medium 2 at the edge of its view (3.2 m)
+    2.600 |      1 | B Medium       | sight    | noticed B Large at the edge of its view (1.6 m)
+    2.600 |      1 | B Medium 2     | sight    | noticed A Medium at the edge of its view (5.8 m)
+    2.600 |      1 | B Medium 2     | sight    | noticed A Medium 2 in clear view (5.1 m)
+    2.600 |      1 | B Medium 2     | sight    | noticed A Large in clear view (4.8 m)
+    2.600 |      1 | B Medium 2     | sight    | noticed B Medium at the edge of its view (3.2 m)
+    2.600 |      1 | B Medium 2     | sight    | noticed B Large at the edge of its view (1.6 m)
+    2.600 |      1 | B Large        | sight    | noticed A Medium in clear view (5.1 m)
+    2.600 |      1 | B Large        | sight    | noticed A Medium 2 in clear view (4.8 m)
+    2.600 |      1 | B Large        | sight    | noticed A Large in clear view (5.1 m)
+    2.600 |      1 | B Large        | sight    | noticed B Medium at the edge of its view (1.6 m)
+    2.600 |      1 | B Large        | sight    | noticed B Medium 2 at the edge of its view (1.6 m)
+    2.617 |      2 | A Medium       | target   | B Medium (4.8 m, health 100)
+    2.617 |      2 | A Medium 2     | target   | B Large (4.8 m, health 220)
+    2.617 |      2 | A Large        | target   | B Medium 2 (4.8 m, health 100)
+    2.617 |      2 | B Medium       | target   | A Medium (4.8 m, health 100)
+    2.617 |      2 | B Medium 2     | target   | A Large (4.8 m, health 220)
+    2.617 |      2 | B Large        | target   | A Medium 2 (4.8 m, health 100)
+    2.649 |      3 | -              | perf     | 258 ms frame, 0 physics steps, garbage collected (gen0 6, gen1 6, gen2 6); ours: nothing over 0.5 ms; Unity: GC_Collect 25.7 ms, Gfx_WaitForGfxCommandsFromMainThread 4.4 ms, PlayerLoop 4.4 ms, CPU_Total_Frame_Time 1.3 ms, CPU_Main_Thread_Frame_Time 0.8 ms, CPU_Render_Thread_Frame_Time 0.5 ms, GC_Alloc 0.4 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 0.2 ms
+    2.699 |      6 | -              | perf     | 104 ms frame, 3 physics steps; ours: RecorderSample 42.7 ms (3), UnitStep 36.2 ms (18), ArmSolve 19.3 ms (32), Sandbox 5.8 ms (3), CaptureRender 1.0 ms (1); Unity: Main_Thread 107.4 ms, Gfx_WaitForGfxCommandsFromMainThread 105.1 ms, PlayerLoop 97.2 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 87.9 ms, FixedBehaviourUpdate 87.9 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 3.0 ms, LateBehaviourUpdate 3.0 ms, Update_ScriptRunBehaviourUpdate 1.7 ms
+    4.917 |    140 | A Large        | target   | B Large, close by (2.7 m): committed
+    4.917 |    140 | B Large        | target   | A Large, close by (2.7 m): committed
+    4.917 |    140 | A Large        | tempo    | gather → press: fully charged (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+    4.917 |    140 | B Large        | tempo    | gather → press: fully charged (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+    5.000 |    145 | B Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.117 |    152 | A Medium 2     | target   | B Medium 2 (4.7 m, health 100)
+    5.117 |    152 | B Medium 2     | target   | A Medium 2 (4.7 m, health 100)
+    5.283 |    162 | A Medium       | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.283 |    162 | B Medium       | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.433 |    171 | B Medium 2     | target   | A Large, close by (1.5 m): committed
+    5.700 |    187 | B Large        | contact  | Chest touched Collider at 14.8 m/s
+    5.700 |    187 | A Large        | contact  | HandR touched Collider at 14.8 m/s
+    5.733 |    189 | A Medium 2     | sight    | lost track of A Medium
+    5.733 |    189 | A Large        | contact  | Chest touched Collider at 16.6 m/s
+    5.733 |    189 | B Large        | contact  | HandR touched Collider at 16.6 m/s
+    5.750 |    190 | A Large        | hit      | blow struck B Large's Head at 16.0 m/s: 41.0 damage, 129 poise, flinch; impulse 172.1 N·s (60% into the part); the swing stopped; the target
+    5.750 |    190 | B Large        | struck   | by A Large on the Head: health 179/220, poise 0/120, flinch, standing
+    5.767 |    191 | B Large        | tempo    | press → shell: pressed (pressure 1.30); energy 0.93, aggression 0.59
+    5.967 |    203 | A Medium 2     | contact  | ForearmL touched Collider at 9.8 m/s
+    5.967 |    203 | A Large        | contact  | HandR touched Collider at 9.8 m/s
+    6.000 |    205 | A Medium 2     | contact  | ForearmL touched Collider at 5.6 m/s
+    6.000 |    205 | A Large        | contact  | ForearmR touched Collider at 5.6 m/s
+    6.000 |    205 | A Medium 2     | contact  | HandL touched Collider at 9.6 m/s
+    6.000 |    205 | A Large        | contact  | HandR touched Collider at 9.6 m/s
+    6.000 |    205 | A Medium 2     | contact  | HandL touched Collider at 6.3 m/s
+    6.000 |    205 | A Large        | contact  | ForearmR touched Collider at 6.3 m/s
+    6.067 |    209 | A Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (43 poise); impulse 153.0 N·s (70% into the part); the swing stopped; blocked by the shield
+    6.067 |    209 | A Medium 2     | struck   | by A Large on the HandL: health 100/100, poise 2/45, stagger, standing
+    6.133 |    213 | B Medium       | hit      | blow struck A Medium's Head at 16.0 m/s: 51.2 damage, 20 poise, recoil; impulse 26.1 N·s (60% into the part); the swing stopped; the target
+    6.133 |    213 | A Medium       | struck   | by B Medium on the Head: health 49/100, poise 25/45, recoil, standing
+    6.217 |    218 | B Medium       | hit      | blow struck A Medium's HandR at 16.0 m/s: parried by A Medium's parried (0 poise); impulse 0.0 N·s (70% into the part); the swing stopped; parried
+    6.217 |    218 | A Medium       | struck   | by B Medium on the HandR: health 49/100, poise 26/45, recoil, standing
+    6.233 |    219 | B Medium 2     | hit      | blow struck A Large's Chest at 5.8 m/s: 7.7 damage, 5 poise, recoil; impulse 9.4 N·s (45% into the part); the swing stopped; the target
+    6.233 |    219 | A Large        | struck   | by B Medium 2 on the Chest: health 212/220, poise 115/120, recoil, standing
+    6.250 |    220 | A Large        | target   | B Medium 2, who struck it: committed
+    6.317 |    224 | A Large        | hit      | blow struck B Large's HandL at 16.0 m/s: 13.7 damage, 172 poise, stagger; impulse 172.1 N·s (80% into the part); the swing stopped; the target
+    6.317 |    224 | B Large        | struck   | by A Large on the HandL: health 165/220, poise 0/120, stagger, standing
+    6.383 |    228 | A Medium       | hit      | blow struck B Medium's ForearmR at 16.0 m/s: 16.0 damage, 24 poise, flinch; impulse 31.9 N·s (80% into the part); the swing stopped; the target
+    6.383 |    228 | B Medium       | struck   | by A Medium on the ForearmR: health 84/100, poise 21/45, flinch, standing
+    6.400 |    229 | B Medium       | tempo    | press → shell: pressed (pressure 1.07); energy 0.94, aggression 0.52
+    6.433 |    231 | A Medium 2     | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.44
+    6.500 |    235 | A Medium       | hit      | blow struck B Medium's HandR at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (80% into the part); the swing stopped; the target
+    6.500 |    235 | B Medium       | struck   | by A Medium on the HandR: health 84/100, poise 22/45, recoil, standing
+    6.533 |    237 | A Large        | contact  | ForearmL touched Collider at 2.0 m/s
+    6.533 |    237 | A Medium 2     | contact  | ForearmL touched Collider at 2.0 m/s
+    6.550 |    238 | A Large        | contact  | ForearmL touched Collider at 2.1 m/s
+    6.550 |    238 | A Medium 2     | contact  | UpperArmL touched Collider at 2.1 m/s
+    6.633 |    243 | A Large        | attack   | none of its strikes reaches B Medium 2 from 1.32 m; backing off
+    6.850 |    256 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+    6.850 |    256 | B Medium       | struck   | by A Medium on the HandL: health 84/100, poise 7/45, flinch, standing
+    7.033 |    267 | A Large        | attack   | none of its strikes reaches B Medium 2 from 1.35 m; backing off
+    7.133 |    273 | A Medium       | tempo    | press → gather: the press was broken; energy 0.82, aggression 0.54
+    7.150 |    274 | A Medium       | tempo    | gather → shell: pressed (pressure 0.62); energy 0.82, aggression 0.54
+    7.317 |    284 | A Medium 2     | tempo    | probe → shell: pressed (pressure 0.88); energy 1.00, aggression 0.44
+    7.317 |    284 | B Medium 2     | hit      | blow struck A Large's Chest at 14.4 m/s: 28.9 damage, 22 poise, recoil; impulse 28.8 N·s (45% into the part); the swing stopped; someone in the way
+    7.317 |    284 | A Large        | struck   | by B Medium 2 on the Chest: health 183/220, poise 98/120, recoil, standing
+    7.433 |    291 | A Large        | attack   | none of its strikes reaches B Medium 2 from 1.35 m; backing off
+    7.433 |    291 | B Medium 2     | hit      | blow struck A Medium 2's ThighL at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (15% into the part); the swing stopped; the target
+    7.433 |    291 | A Medium 2     | struck   | by B Medium 2 on the ThighL: health 100/100, poise 11/45, recoil, standing
+    7.450 |    292 | B Medium 2     | hit      | blow struck A Medium 2's ThighR at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (15% into the part); the swing stopped; the target
+    7.450 |    292 | A Medium 2     | struck   | by B Medium 2 on the ThighR: health 100/100, poise 11/45, recoil, standing
+    7.667 |    305 | B Medium 2     | hit      | blow struck A Medium 2's Pelvis at 16.0 m/s: 27.2 damage, 24 poise, stagger; impulse 31.9 N·s (20% into the part); the swing stopped; someone in the way
+    7.667 |    305 | A Medium 2     | struck   | by B Medium 2 on the Pelvis: health 73/100, poise 0/45, stagger, standing
+    7.750 |    310 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 8.1 m/s: blocked by A Medium 2's shield (0 poise); impulse 0.0 N·s (70% into the part); the swing stopped; blocked by the shield
+    7.750 |    310 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 73/100, poise 1/45, recoil, standing
+    7.783 |    312 | A Large        | tempo    | press → shell: pressed (pressure 1.31); energy 0.94, aggression 0.69
+    8.250 |    340 | B Medium 2     | hit      | blow struck A Large's Chest at 16.0 m/s: 42.7 damage, 32 poise, recoil; impulse 31.9 N·s (45% into the part); the swing stopped; the target
+    8.250 |    340 | A Large        | struck   | by B Medium 2 on the Chest: health 141/220, poise 83/120, recoil, standing
+    8.417 |    350 | B Large        | sight    | lost track of B Medium
+    8.433 |    351 | B Medium 2     | hit      | blow struck A Large's Spine at 12.1 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (45% into the part); the swing stopped; the target
+    8.433 |    351 | A Large        | struck   | by B Medium 2 on the Spine: health 141/220, poise 87/120, recoil, standing
+    8.450 |    352 | A Medium       | tempo    | shell → counter: the barrage stopped (energy 0.85); energy 0.85, aggression 0.54
+    8.450 |    352 | B Medium 2     | hit      | blow struck A Large's Pelvis at 15.7 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (20% into the part); the swing stopped; the target
+    8.450 |    352 | A Large        | struck   | by B Medium 2 on the Pelvis: health 141/220, poise 87/120, recoil, standing
+    8.517 |    356 | A Medium       | sight    | lost track of A Medium 2
+    8.517 |    356 | B Large        | sight    | lost track of A Medium
+    8.667 |    365 | A Medium       | sight    | noticed A Medium 2 at the edge of its view (6.0 m)
+    9.117 |    392 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+    9.117 |    392 | B Medium       | struck   | by A Medium on the HandL: health 84/100, poise 13/45, flinch, standing
+    9.283 |    402 | A Medium 2     | sight    | noticed A Medium at the edge of its view (6.6 m)
+    9.567 |    419 | A Medium       | attack   | none of its strikes reaches B Medium from 1.57 m; closing in
+    9.667 |    425 | A Medium       | tempo    | counter → probe: no answer came; energy 0.85, aggression 0.54
+    9.683 |    426 | A Medium       | tempo    | probe → press: fired up (energy 0.85, aggression 0.54); energy 0.85, aggression 0.54
+    9.783 |    432 | B Large        | tempo    | shell → counter: the barrage stopped (energy 0.99); energy 0.99, aggression 0.53
+    9.850 |    436 | B Medium 2     | hit      | blow struck A Large's HandR at 16.0 m/s: 12.8 damage, 20 poise, recoil; impulse 26.1 N·s (80% into the part); the swing stopped; the target
+    9.850 |    436 | A Large        | struck   | by B Medium 2 on the HandR: health 128/220, poise 93/120, recoil, standing
+    9.917 |    440 | B Medium 2     | hit      | blow struck A Large's ForearmR at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (80% into the part); the swing stopped; the target
+    9.917 |    440 | A Large        | struck   | by B Medium 2 on the ForearmR: health 128/220, poise 94/120, recoil, standing
+    9.933 |    441 | B Medium 2     | hit      | blow struck A Large's UpperArmR at 15.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (80% into the part); the swing stopped; someone in the way
+    9.933 |    441 | A Large        | struck   | by B Medium 2 on the UpperArmR: health 128/220, poise 94/120, recoil, standing
+    9.950 |    442 | B Medium 2     | hit      | blow struck A Large's Head at 9.1 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (60% into the part); the swing stopped; someone in the way
+    9.950 |    442 | A Large        | struck   | by B Medium 2 on the Head: health 128/220, poise 94/120, recoil, standing
+    9.983 |    444 | B Medium 2     | hit      | blow struck A Large's Chest at 6.3 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (45% into the part); the swing stopped; someone in the way
+    9.983 |    444 | A Large        | struck   | by B Medium 2 on the Chest: health 128/220, poise 95/120, recoil, standing
+   10.000 |    445 | B Medium 2     | hit      | blow struck A Large's HandR at 13.1 m/s: parried by A Large's parried (0 poise); impulse 0.0 N·s (70% into the part); the swing stopped; parried
+   10.000 |    445 | A Large        | struck   | by B Medium 2 on the HandR: health 128/220, poise 95/120, recoil, standing
+   10.367 |    467 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 13.2 m/s: blocked by A Medium 2's shield (16 poise); impulse 38.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   10.367 |    467 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 73/100, poise 2/45, recoil, standing
+   10.550 |    478 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   10.550 |    478 | B Medium       | struck   | by A Medium on the HandL: health 84/100, poise 14/45, flinch, standing
+   11.033 |    507 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (26 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   11.033 |    507 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 73/100, poise 0/45, stagger, standing
+   11.400 |    529 | B Large        | tempo    | counter → probe: no answer came; energy 0.99, aggression 0.53
+   11.767 |    551 | A Medium       | sight    | lost track of A Medium 2
+   11.800 |    553 | A Large        | tempo    | shell → counter: the barrage stopped (energy 0.93); energy 0.93, aggression 0.15
+   11.833 |    555 | A Medium       | sight    | lost track of B Medium 2
+   12.050 |    568 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.99); energy 0.99, aggression 0.08
+   12.517 |    596 | B Medium 2     | contact  | Chest touched Collider at 18.4 m/s
+   12.517 |    596 | A Large        | contact  | HandR touched Collider at 18.4 m/s
+   12.533 |    597 | A Large        | hit      | blow struck B Medium 2's Chest at 16.0 m/s: 17.1 damage, 86 poise, stagger; impulse 172.1 N·s (45% into the part); the swing stopped; the target
+   12.533 |    597 | B Medium 2     | struck   | by A Large on the Chest: health 83/100, poise 0/45, stagger, standing
+   12.550 |    598 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 1.00); energy 1.00, aggression 0.28
+   12.633 |    603 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   12.633 |    603 | B Medium       | struck   | by A Medium on the HandL: health 84/100, poise 20/45, flinch, standing
+   12.633 |    603 | B Medium 2     | tempo    | press → shell: pressed (pressure 0.80); energy 0.94, aggression 0.94
+   12.800 |    613 | A Medium 2     | hit      | blow struck B Medium 2's HandR at 16.0 m/s: parried by B Medium 2's parried (26 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   12.800 |    613 | B Medium 2     | struck   | by A Medium 2 on the HandR: health 83/100, poise 0/45, stagger, standing
+   12.817 |    614 | B Medium 2     | target   | A Medium 2, who struck it: committed
+   12.967 |    623 | A Medium       | sight    | noticed B Medium 2 at the edge of its view (8.6 m)
+   13.100 |    631 | B Large        | move     | no headway toward A Large (3.6 m): going round to the right
+   13.267 |    641 | A Medium 2     | tempo    | counter → probe: no answer came; energy 0.99, aggression 0.08
+   13.283 |    642 | A Medium 2     | tempo    | probe → shell: pressed (pressure 2.48); energy 0.99, aggression 0.08
+   13.433 |    651 | A Medium 2     | target   | B Large (4.4 m, health 165)
+   13.433 |    651 | B Medium 2     | target   | A Large, close by (1.8 m): committed
+   13.600 |    661 | A Large        | hit      | blow struck B Medium 2's Head at 16.0 m/s: 27.3 damage, 86 poise, stagger; impulse 172.1 N·s (60% into the part); the swing stopped; the target
+   13.600 |    661 | B Medium 2     | struck   | by A Large on the Head: health 56/100, poise 0/45, stagger, standing
+   14.017 |    686 | B Medium       | hit      | blow struck A Medium's Head at 16.0 m/s: 34.1 damage, 13 poise, recoil; impulse 26.1 N·s (60% into the part); the swing stopped; the target
+   14.017 |    686 | A Medium       | struck   | by B Medium on the Head: health 15/100, poise 32/45, recoil, standing
+   14.150 |    694 | A Medium       | sight    | noticed A Medium 2 at the edge of its view (7.5 m)
+   14.150 |    694 | A Large        | tempo    | counter → probe: no answer came; energy 0.93, aggression 0.31
+   14.167 |    695 | A Large        | tempo    | probe → shell: pressed (pressure 1.74); energy 0.94, aggression 0.31
+   14.200 |    697 | B Large        | tempo    | probe → press: fired up (energy 1.00, aggression 0.53); energy 1.00, aggression 0.53
+   14.217 |    698 | B Medium       | tempo    | counter → probe: no answer came; energy 1.00, aggression 0.30
+   14.233 |    699 | B Medium       | tempo    | probe → shell: pressed (pressure 3.00); energy 1.00, aggression 0.30
+   14.817 |    734 | A Medium 2     | move     | no headway toward B Large (3.7 m): going round to the left
+   14.967 |    743 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   14.967 |    743 | B Medium       | struck   | by A Medium on the HandL: health 84/100, poise 27/45, flinch, standing
+   15.317 |    764 | A Large        | sight    | lost track of B Medium
+   15.317 |    764 | A Large        | sight    | lost track of B Large
+   15.767 |    791 | A Large        | sight    | noticed B Large at the edge of its view (2.2 m)
+   15.950 |    802 | A Large        | sight    | noticed B Medium at the edge of its view (8.9 m)
+   16.267 |    821 | B Large        | contact  | ForearmL touched Collider at 5.8 m/s
+   16.267 |    821 | A Large        | contact  | UpperArmL touched Collider at 5.8 m/s
+   16.267 |    821 | B Large        | contact  | HandL touched Collider at 6.5 m/s
+   16.267 |    821 | A Large        | contact  | UpperArmL touched Collider at 6.5 m/s
+   16.550 |    838 | A Large        | contact  | HandL touched Collider at 7.5 m/s
+   16.550 |    838 | B Large        | contact  | UpperArmR touched Collider at 7.5 m/s
+   16.550 |    838 | A Large        | contact  | HandL touched Collider at 11.4 m/s
+   16.550 |    838 | B Large        | contact  | ForearmR touched Collider at 11.4 m/s
+   16.550 |    838 | A Large        | contact  | ForearmL touched Collider at 11.0 m/s
+   16.550 |    838 | B Large        | contact  | ForearmR touched Collider at 11.0 m/s
+   16.550 |    838 | A Large        | contact  | Chest touched Collider at 13.8 m/s
+   16.550 |    838 | B Large        | contact  | HandR touched Collider at 13.8 m/s
+   16.567 |    839 | B Large        | hit      | blow struck A Large's HandR at 16.0 m/s: parried by A Large's parried (86 poise); impulse 153.0 N·s (70% into the part); the swing stopped; parried
+   16.567 |    839 | A Large        | struck   | by B Large on the HandR: health 128/220, poise 34/120, flinch, standing
+   16.583 |    840 | A Large        | target   | B Large, who struck it: committed
+   16.583 |    840 | A Large        | contact  | UpperArmL touched Collider at 10.8 m/s
+   16.583 |    840 | B Large        | contact  | HandR touched Collider at 10.8 m/s
+   16.650 |    844 | B Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.93); energy 0.93, aggression 0.82
+   16.683 |    846 | A Large        | contact  | UpperArmL touched Collider at 9.1 m/s
+   16.683 |    846 | B Large        | contact  | HandR touched Collider at 9.1 m/s
+   16.683 |    846 | A Large        | contact  | ForearmL touched Collider at 13.4 m/s
+   16.683 |    846 | B Large        | contact  | HandR touched Collider at 13.4 m/s
+   16.833 |    855 | B Large        | hit      | blow struck A Medium 2's HandL at 15.7 m/s: blocked by A Medium 2's shield (42 poise); impulse 150.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   16.833 |    855 | A Medium 2     | struck   | by B Large on the HandL: health 73/100, poise 0/45, stagger, standing
+   16.950 |    862 | A Medium 2     | target   | B Medium 2 (2.4 m, health 56)
+   16.967 |    863 | A Medium 2     | target   | B Large, who struck it: committed
+   16.983 |    864 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   16.983 |    864 | B Medium       | struck   | by A Medium on the HandL: health 84/100, poise 31/45, flinch, standing
+   17.117 |    872 | A Large        | contact  | ForearmL touched Collider at 9.0 m/s
+   17.117 |    872 | B Large        | contact  | HandR touched Collider at 9.0 m/s
+   17.183 |    876 | A Medium       | tempo    | press → gather: nothing to press; energy 0.73, aggression 0.48
+   17.200 |    877 | B Large        | hit      | blow struck A Large's ForearmL at 16.0 m/s: 17.1 damage, 172 poise, stagger; impulse 172.1 N·s (80% into the part); the swing stopped; someone in the way
+   17.200 |    877 | A Large        | struck   | by B Large on the ForearmL: health 111/220, poise 0/120, stagger, standing
+   17.267 |    881 | A Medium       | sight    | lost track of A Medium 2
+   17.267 |    881 | B Medium 2     | contact  | ThighL touched Collider at 9.2 m/s
+   17.267 |    881 | A Large        | contact  | HandL touched Collider at 9.2 m/s
+   17.517 |    896 | B Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 0.61
+   17.517 |    896 | B Medium 2     | contact  | ThighL touched Collider at 3.4 m/s
+   17.517 |    896 | A Large        | contact  | HandL touched Collider at 3.4 m/s
+   17.683 |    906 | A Medium       | sight    | lost track of A Large
+   17.850 |    916 | A Medium       | sight    | lost track of B Large
+   18.000 |    925 | A Medium       | tempo    | gather → probe: rested (energy 0.94); energy 0.94, aggression 0.48
+   18.000 |    925 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 1.00); energy 1.00, aggression 0.02
+   18.017 |    926 | A Medium       | tempo    | probe → press: fired up (energy 0.94, aggression 0.48); energy 0.94, aggression 0.48
+   18.217 |    938 | A Large        | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.99); energy 0.99, aggression 0.19
+   18.233 |    939 | A Large        | tempo    | gather → shell: pressed (pressure 2.93); energy 0.99, aggression 0.19
+   18.250 |    940 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 1.00); energy 1.00, aggression 0.18
+   18.283 |    942 | A Medium 2     | move     | no headway toward B Large (2.4 m): going round to the left
+   18.333 |    945 | B Large        | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.61
+   18.350 |    946 | B Large        | tempo    | probe → press: fired up (energy 1.00, aggression 0.61); energy 1.00, aggression 0.61
+   18.617 |    962 | B Medium       | hit      | blow struck A Medium's HandR at 16.0 m/s: parried by A Medium's parried (26 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   18.617 |    962 | A Medium       | struck   | by B Medium on the HandR: health 15/100, poise 19/45, flinch, standing
+   18.650 |    964 | A Medium       | tempo    | press → gather: the press was broken; energy 0.94, aggression 0.42
+   18.717 |    968 | A Medium       | sight    | noticed A Large at the edge of its view (10.1 m)
+   18.750 |    970 | A Medium       | sight    | noticed B Large at the edge of its view (7.6 m)
+   18.950 |    982 | B Medium 2     | attack   | none of its strikes reaches A Large from 1.09 m; backing off
+   18.950 |    982 | B Medium 2     | tempo    | counter → probe: no answer came; energy 0.93, aggression 0.82
+   18.967 |    983 | B Medium 2     | tempo    | probe → press: fired up (energy 0.93, aggression 0.82); energy 0.93, aggression 0.82
+   19.233 |    999 | B Medium 2     | attack   | none of its strikes reaches A Large from 1.17 m; backing off
+   19.467 |   1013 | A Medium       | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.42
+   19.467 |   1013 | B Medium       | tempo    | counter → probe: no answer came; energy 1.00, aggression 0.18
+   19.483 |   1014 | B Medium       | tempo    | probe → shell: pressed (pressure 3.00); energy 1.00, aggression 0.18
+   19.767 |   1031 | B Medium 2     | contact  | Chest touched Collider at 1.5 m/s
+   19.767 |   1031 | A Large        | contact  | HandL touched Collider at 1.5 m/s
+   19.800 |   1033 | B Large        | move     | no headway toward A Large (2.4 m): going round to the right
+   19.817 |   1034 | A Medium 2     | hit      | blow struck B Large's HandR at 16.0 m/s: parried by B Large's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   19.817 |   1034 | B Large        | struck   | by A Medium 2 on the HandR: health 165/220, poise 103/120, recoil, standing
+   19.833 |   1035 | B Large        | target   | A Medium 2, who struck it: committed
+   19.833 |   1035 | B Large        | contact  | ForearmL touched Collider at 7.9 m/s
+   19.833 |   1035 | A Medium 2     | contact  | ForearmL touched Collider at 7.9 m/s
+   19.833 |   1035 | B Large        | contact  | HandL touched Collider at 8.1 m/s
+   19.833 |   1035 | A Medium 2     | contact  | ForearmL touched Collider at 8.1 m/s
+   19.833 |   1035 | B Large        | contact  | ForearmL touched Collider at 6.6 m/s
+   19.833 |   1035 | A Medium 2     | contact  | HandL touched Collider at 6.6 m/s
+   19.850 |   1036 | B Large        | contact  | HandL touched Collider at 4.1 m/s
+   19.850 |   1036 | A Medium 2     | contact  | HandL touched Collider at 4.1 m/s
+   20.017 |   1046 | B Medium 2     | contact  | HandR touched Collider at 6.7 m/s
+   20.017 |   1046 | A Large        | contact  | ForearmL touched Collider at 6.7 m/s
+   20.017 |   1046 | B Medium 2     | contact  | HandR touched Collider at 6.8 m/s
+   20.017 |   1046 | A Large        | contact  | HandL touched Collider at 6.8 m/s
+   20.050 |   1048 | B Medium 2     | contact  | Head touched Collider at 1.4 m/s
+   20.050 |   1048 | A Large        | contact  | HandL touched Collider at 1.4 m/s
+   20.083 |   1050 | B Medium 2     | contact  | HandR touched Collider at 4.1 m/s
+   20.083 |   1050 | A Large        | contact  | HandL touched Collider at 4.1 m/s
+   20.117 |   1052 | B Medium 2     | contact  | Head touched Collider at 1.0 m/s
+   20.117 |   1052 | A Large        | contact  | ForearmL touched Collider at 1.0 m/s
+   20.183 |   1056 | B Medium 2     | contact  | UpperArmR touched Collider at 2.4 m/s
+   20.183 |   1056 | A Large        | contact  | HandL touched Collider at 2.4 m/s
+   20.217 |   1058 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (43 poise); impulse 153.0 N·s (70% into the part); the swing stopped; blocked by the shield
+   20.217 |   1058 | A Medium 2     | struck   | by B Large on the HandL: health 73/100, poise 0/45, stagger, standing
+   20.433 |   1071 | B Medium 2     | hit      | blow struck A Large's HandR at 16.0 m/s: 8.5 damage, 16 poise, recoil; impulse 31.9 N·s (80% into the part); the swing stopped; the target
+   20.433 |   1071 | A Large        | struck   | by B Medium 2 on the HandR: health 102/220, poise 42/120, recoil, standing
+   20.450 |   1072 | A Large        | target   | B Medium 2, who struck it: committed
+   20.483 |   1074 | B Medium 2     | contact  | HandR touched Collider at 5.6 m/s
+   20.483 |   1074 | A Large        | contact  | HandL touched Collider at 5.6 m/s
+   20.583 |   1080 | B Large        | hit      | blow struck B Medium 2's ThighR at 16.0 m/s: 17.9 damage, 129 poise, stagger; impulse 172.1 N·s (15% into the part); the swing stopped; an ally (friendly fire)
+   20.583 |   1080 | B Medium 2     | struck   | by B Large on the ThighR: health 38/100, poise 0/45, stagger, standing
+   20.617 |   1082 | B Medium 2     | tempo    | press → gather: the press was broken; energy 0.86, aggression 0.84
+   20.633 |   1083 | B Medium 2     | tempo    | gather → shell: pressed (pressure 0.50); energy 0.87, aggression 0.84
+   20.917 |   1100 | B Large        | hit      | blow struck A Large's ForearmL at 16.0 m/s: 17.1 damage, 172 poise, stagger; impulse 172.1 N·s (80% into the part); the swing stopped; the target
+   20.917 |   1100 | A Large        | struck   | by B Large on the ForearmL: health 85/220, poise 0/120, stagger, standing
+   20.933 |   1101 | A Large        | target   | B Large, who struck it: committed
+   21.233 |   1119 | B Large        | attack   | none of its strikes reaches A Medium 2 from 2.12 m; closing in
+   21.233 |   1119 | A Medium 2     | tempo    | counter → probe: no answer came; energy 1.00, aggression 0.00
+   21.250 |   1120 | A Medium 2     | tempo    | probe → shell: pressed (pressure 1.78); energy 1.00, aggression 0.00
+   21.367 |   1127 | B Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 0.71
+   21.600 |   1141 | B Large        | sight    | noticed A Medium at the edge of its view (8.1 m)
+   21.633 |   1143 | B Large        | sight    | noticed B Medium at the edge of its view (8.6 m)
+   21.950 |   1162 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   21.950 |   1162 | B Medium       | struck   | by A Medium on the HandL: health 84/100, poise 36/45, flinch, standing
+   22.183 |   1176 | B Large        | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.71
+   22.200 |   1177 | B Large        | tempo    | probe → press: fired up (energy 1.00, aggression 0.71); energy 1.00, aggression 0.71
+   22.250 |   1180 | A Large        | tempo    | shell → counter: the barrage stopped (energy 1.00); energy 1.00, aggression 0.07
+   22.400 |   1189 | B Medium 2     | sight    | lost track of B Medium
+   22.483 |   1194 | B Medium 2     | sight    | lost track of A Medium
+   22.600 |   1201 | B Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.90); energy 0.90, aggression 0.84
+   22.683 |   1206 | B Large        | contact  | HandL touched Collider at 14.6 m/s
+   22.683 |   1206 | A Large        | contact  | ForearmL touched Collider at 14.6 m/s
+   22.683 |   1206 | B Large        | contact  | HandL touched Collider at 12.4 m/s
+   22.683 |   1206 | A Large        | contact  | HandL touched Collider at 12.4 m/s
+   22.833 |   1215 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (50 poise); impulse 117.5 N·s (70% into the part); the swing stopped; blocked by the shield
+   22.833 |   1215 | A Medium 2     | struck   | by B Large on the HandL: health 73/100, poise 0/45, stagger, standing
+   22.933 |   1221 | B Large        | contact  | ForearmL touched Collider at 18.9 m/s
+   22.933 |   1221 | A Large        | contact  | HandR touched Collider at 18.9 m/s
+   22.967 |   1223 | A Large        | hit      | blow struck B Large's Chest at 16.0 m/s: 17.1 damage, 86 poise, flinch; impulse 172.1 N·s (45% into the part); the swing stopped; the target
+   22.967 |   1223 | B Large        | struck   | by A Large on the Chest: health 148/220, poise 34/120, flinch, standing
+   22.983 |   1224 | B Large        | target   | A Large, who struck it: committed
+   22.983 |   1224 | B Large        | tempo    | press → gather: the press was broken; energy 0.97, aggression 0.65
+   23.083 |   1230 | B Large        | contact  | HandL touched Collider at 7.2 m/s
+   23.083 |   1230 | A Large        | contact  | UpperArmR touched Collider at 7.2 m/s
+   23.083 |   1230 | B Large        | contact  | HandL touched Collider at 13.8 m/s
+   23.083 |   1230 | A Large        | contact  | ForearmR touched Collider at 13.8 m/s
+   23.100 |   1231 | B Large        | contact  | ForearmL touched Collider at 4.0 m/s
+   23.100 |   1231 | A Large        | contact  | UpperArmR touched Collider at 4.0 m/s
+   23.100 |   1231 | B Large        | contact  | ForearmL touched Collider at 9.4 m/s
+   23.100 |   1231 | A Large        | contact  | ForearmR touched Collider at 9.4 m/s
+   23.117 |   1232 | B Large        | contact  | ForearmL touched Collider at 12.2 m/s
+   23.117 |   1232 | A Large        | contact  | HandR touched Collider at 12.2 m/s
+   23.117 |   1232 | B Large        | contact  | UpperArmL touched Collider at 13.7 m/s
+   23.117 |   1232 | A Large        | contact  | HandR touched Collider at 13.7 m/s
+   23.267 |   1241 | A Large        | attack   | none of its strikes reaches B Large from 1.79 m; closing in
+   23.433 |   1251 | B Medium 2     | hit      | blow struck A Large's ForearmR at 16.0 m/s: 10.7 damage, 16 poise, recoil; impulse 31.9 N·s (80% into the part); the swing stopped; the target
+   23.433 |   1251 | A Large        | struck   | by B Medium 2 on the ForearmR: health 75/220, poise 28/120, recoil, standing
+   23.433 |   1251 | B Large        | contact  | HandL touched Collider at 2.8 m/s
+   23.433 |   1251 | A Large        | contact  | HandL touched Collider at 2.8 m/s
+   23.450 |   1252 | A Large        | target   | B Medium 2, who struck it: committed
+   23.467 |   1253 | A Large        | tempo    | counter → probe: no answer came; energy 0.98, aggression 0.09
+   23.483 |   1254 | A Large        | tempo    | probe → shell: pressed (pressure 3.00); energy 0.98, aggression 0.09
+   23.500 |   1255 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 1.00); energy 1.00, aggression 0.12
+   23.617 |   1262 | B Large        | contact  | ForearmL touched Collider at 3.4 m/s
+   23.617 |   1262 | A Large        | contact  | HandL touched Collider at 3.4 m/s
+   23.633 |   1263 | B Medium 2     | attack   | none of its strikes reaches A Large from 1.79 m; closing in
+   23.683 |   1266 | B Large        | contact  | HandL touched Collider at 3.8 m/s
+   23.683 |   1266 | A Large        | contact  | ForearmL touched Collider at 3.8 m/s
+   23.700 |   1267 | B Large        | contact  | HandL touched Collider at 2.6 m/s
+   23.700 |   1267 | A Large        | contact  | UpperArmL touched Collider at 2.6 m/s
+   23.800 |   1273 | B Large        | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.65
+   23.817 |   1274 | B Medium 2     | tempo    | counter → probe: no answer came; energy 0.90, aggression 0.92
+   23.817 |   1274 | B Large        | tempo    | probe → press: fired up (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+   23.833 |   1275 | B Medium 2     | tempo    | probe → press: fired up (energy 0.91, aggression 0.92); energy 0.91, aggression 0.92
+   23.850 |   1276 | A Medium       | sight    | lost track of B Large
+   24.350 |   1306 | A Large        | contact  | Chest touched Collider at 14.0 m/s
+   24.350 |   1306 | B Large        | contact  | HandR touched Collider at 14.0 m/s
+   24.383 |   1308 | B Large        | hit      | blow struck A Large's HandR at 16.0 m/s: parried by A Large's parried (86 poise); impulse 153.0 N·s (70% into the part); the swing stopped; parried
+   24.383 |   1308 | A Large        | struck   | by B Large on the HandR: health 75/220, poise 0/120, stagger, standing
+   24.383 |   1308 | A Large        | contact  | ForearmL touched Collider at 15.5 m/s
+   24.383 |   1308 | B Large        | contact  | HandR touched Collider at 15.5 m/s
+   24.383 |   1308 | A Large        | contact  | UpperArmL touched Collider at 17.7 m/s
+   24.383 |   1308 | B Large        | contact  | HandR touched Collider at 17.7 m/s
+   24.383 |   1308 | A Large        | contact  | UpperArmL touched Collider at 12.9 m/s
+   24.383 |   1308 | B Large        | contact  | ForearmR touched Collider at 12.9 m/s
+   24.400 |   1309 | A Large        | target   | B Large, who struck it: committed
+   24.433 |   1311 | A Large        | contact  | UpperArmL touched Collider at 4.6 m/s
+   24.433 |   1311 | B Large        | contact  | HandR touched Collider at 4.6 m/s
+   24.617 |   1322 | A Medium       | death    | killed by B Medium's blow to the Head
+   24.617 |   1322 | B Medium       | hit      | blow struck A Medium's Head at 16.0 m/s: 34.1 damage, 16 poise, killed; impulse 31.9 N·s (60% into the part); the swing stopped; the target
+   24.617 |   1322 | A Medium       | struck   | by B Medium on the Head: health 0/100, poise 29/45, killed, dead
+   24.617 |   1322 | B Large        | sight    | lost track of A Medium
+   24.633 |   1323 | B Medium       | target   | A Medium 2 (9.3 m, health 73)
+   24.633 |   1323 | A Medium 2     | sight    | lost track of A Medium
+   24.633 |   1323 | A Large        | sight    | lost track of A Medium
+   24.633 |   1323 | B Medium       | sight    | lost track of A Medium
+   24.683 |   1326 | B Medium 2     | sight    | noticed B Medium at the edge of its view (9.3 m)
+   25.067 |   1349 | A Medium       | contact  | FootL touched Ground at 4.7 m/s
+   25.100 |   1351 | A Medium       | contact  | ShinL touched Ground at 3.0 m/s
+   25.100 |   1351 | A Medium       | contact  | ShinR touched Ground at 5.0 m/s
+   25.100 |   1351 | A Medium       | contact  | ThighR touched Ground at 5.0 m/s
+   25.117 |   1352 | A Medium       | contact  | ThighL touched Ground at 1.3 m/s
+   25.233 |   1359 | A Medium       | contact  | FootR touched Ground at 3.1 m/s
+   25.250 |   1360 | A Medium       | contact  | HandL touched Ground at 8.8 m/s
+   25.267 |   1361 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 1.00); energy 1.00, aggression 0.00
+   25.300 |   1363 | A Medium       | contact  | FootL touched Ground at 2.7 m/s
+   25.300 |   1363 | A Medium       | contact  | HandR touched Ground at 4.5 m/s
+   25.333 |   1365 | A Medium       | contact  | Head touched Ground at 4.0 m/s
+   25.350 |   1366 | A Medium       | contact  | UpperArmR touched Ground at 3.6 m/s
+   25.400 |   1369 | A Medium       | contact  | FootR touched Ground at 1.5 m/s
+   25.400 |   1369 | A Medium       | contact  | FootL touched Ground at 2.6 m/s
+   25.433 |   1371 | A Medium       | contact  | Spine touched Ground at 2.6 m/s
+   25.433 |   1371 | A Medium       | contact  | Chest touched Ground at 1.8 m/s
+   25.433 |   1371 | A Medium       | contact  | Pelvis touched Ground at 2.0 m/s
+   25.500 |   1375 | A Medium       | contact  | UpperArmL touched Ground at 1.2 m/s
+   25.517 |   1376 | A Medium       | contact  | ShinL touched Ground at 1.4 m/s
+   25.533 |   1377 | A Medium       | contact  | ThighL touched Ground at 1.3 m/s
+   25.583 |   1380 | A Medium       | contact  | ThighR touched Ground at 1.7 m/s
+   25.583 |   1380 | A Medium       | contact  | ShinR touched Ground at 1.3 m/s
+   25.583 |   1380 | A Medium       | contact  | ForearmL touched Ground at 1.4 m/s
+   25.650 |   1384 | B Medium 2     | move     | no headway toward A Large (1.6 m): going round to the left
+   25.667 |   1385 | A Medium       | contact  | HandL touched Ground at 3.4 m/s
+   25.833 |   1395 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (65 poise); impulse 153.0 N·s (70% into the part); the swing stopped; blocked by the shield
+   25.833 |   1395 | A Medium 2     | struck   | by B Large on the HandL: health 73/100, poise 0/45, stagger, standing
+   25.850 |   1396 | B Medium       | tempo    | counter → probe: no answer came; energy 1.00, aggression 0.20
+   25.867 |   1397 | B Medium       | tempo    | probe → shell: pressed (pressure 2.11); energy 1.00, aggression 0.20
+   26.267 |   1421 | B Medium 2     | hit      | blow struck A Large's HandR at 16.0 m/s: parried by A Large's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   26.267 |   1421 | A Large        | struck   | by B Medium 2 on the HandR: health 75/220, poise 17/120, recoil, standing
+   26.283 |   1422 | A Large        | target   | B Medium 2, who struck it: committed
+   26.367 |   1427 | B Large        | hit      | blow struck A Medium 2's ThighR at 16.0 m/s: 17.9 damage, 129 poise, stagger; impulse 172.1 N·s (15% into the part); the swing stopped; someone in the way
+   26.367 |   1427 | A Medium 2     | struck   | by B Large on the ThighR: health 55/100, poise 0/45, stagger, standing
+   26.417 |   1430 | A Medium 2     | hit      | blow struck B Large's HandR at 12.4 m/s: parried by B Large's parried (13 poise); impulse 35.9 N·s (70% into the part); the swing stopped; parried
+   26.417 |   1430 | B Large        | struck   | by A Medium 2 on the HandR: health 148/220, poise 78/120, recoil, standing
+   26.433 |   1431 | B Large        | target   | A Medium 2, who struck it: committed
+   26.633 |   1443 | B Medium       | move     | no headway toward A Medium 2 (8.8 m): going round to the left
+   26.667 |   1445 | A Medium 2     | tempo    | counter → probe: no answer came; energy 0.94, aggression 0.00
+   26.683 |   1446 | A Medium 2     | tempo    | probe → shell: pressed (pressure 3.00); energy 0.94, aggression 0.00
+   26.750 |   1450 | B Large        | hit      | blow struck A Large's Pelvis at 16.0 m/s: 29.0 damage, 172 poise, stagger; impulse 172.1 N·s (20% into the part); the swing stopped; the target
+   26.750 |   1450 | A Large        | struck   | by B Large on the Pelvis: health 46/220, poise 0/120, stagger, standing
+   26.767 |   1451 | A Large        | target   | B Large, who struck it: committed
+   26.850 |   1456 | B Medium 2     | tempo    | press → gather: nothing to press; energy 0.91, aggression 0.92
+   27.017 |   1466 | B Medium 2     | contact  | Chest touched Collider at 1.8 m/s
+   27.017 |   1466 | A Large        | contact  | HandL touched Collider at 1.8 m/s
+   27.067 |   1469 | B Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 0.75
+   27.183 |   1476 | B Medium 2     | contact  | UpperArmL touched Collider at 1.5 m/s
+   27.183 |   1476 | A Large        | contact  | HandL touched Collider at 1.5 m/s
+   27.667 |   1505 | B Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.92); energy 1.00, aggression 0.92
+   27.883 |   1518 | B Large        | tempo    | gather → press: fully charged (energy 1.00, aggression 0.75); energy 1.00, aggression 0.75
+   28.083 |   1530 | B Medium 2     | contact  | ForearmR touched Collider at 5.6 m/s
+   28.083 |   1530 | A Large        | contact  | HandL touched Collider at 5.6 m/s
+   28.083 |   1530 | B Medium 2     | contact  | HandR touched Collider at 6.6 m/s
+   28.083 |   1530 | A Large        | contact  | HandL touched Collider at 6.6 m/s
+   28.100 |   1531 | B Medium       | contact  | FootR touched Collider at 2.2 m/s
+   28.100 |   1531 | A Medium       | contact  | ShinR touched Collider at 2.2 m/s
+   28.117 |   1532 | B Medium 2     | contact  | ForearmR touched Collider at 6.5 m/s
+   28.117 |   1532 | A Large        | contact  | HandL touched Collider at 6.5 m/s
+   28.117 |   1532 | B Medium       | contact  | FootR touched Collider at 1.9 m/s
+   28.117 |   1532 | A Medium       | contact  | FootR touched Collider at 1.9 m/s
+   28.167 |   1535 | A Medium       | contact  | FootL touched Collider at 2.4 m/s
+   28.167 |   1535 | B Medium       | contact  | FootR touched Collider at 2.4 m/s
+   28.183 |   1536 | A Medium       | contact  | HandR touched Collider at 2.4 m/s
+   28.183 |   1536 | B Medium       | contact  | FootR touched Collider at 2.4 m/s
+   28.250 |   1540 | B Medium 2     | sight    | lost track of B Medium
+   28.283 |   1542 | A Medium       | contact  | FootR touched Ground at 1.2 m/s
+   28.317 |   1544 | A Medium       | contact  | Spine touched Ground at 1.1 m/s
+   28.333 |   1545 | A Medium       | contact  | Pelvis touched Ground at 1.4 m/s
+   28.350 |   1546 | A Medium       | contact  | FootR touched Ground at 2.3 m/s
+   28.417 |   1550 | A Medium       | contact  | Head touched Ground at 1.1 m/s
+   28.433 |   1551 | A Medium       | contact  | FootR touched Ground at 3.6 m/s
+   28.450 |   1552 | B Medium       | contact  | ShinR touched Collider at 4.3 m/s
+   28.450 |   1552 | A Medium       | contact  | FootR touched Collider at 4.3 m/s
+   28.517 |   1556 | B Medium       | contact  | ShinR touched Collider at 5.2 m/s
+   28.517 |   1556 | A Medium       | contact  | FootR touched Collider at 5.2 m/s
+   28.550 |   1558 | B Medium       | contact  | ShinR touched Collider at 7.7 m/s
+   28.550 |   1558 | A Medium       | contact  | FootR touched Collider at 7.7 m/s
+   28.567 |   1559 | A Medium       | contact  | FootR touched Ground at 6.9 m/s
+   28.617 |   1562 | A Medium       | contact  | FootR touched Ground at 2.9 m/s
+   28.667 |   1565 | B Medium 2     | contact  | ThighL touched Collider at 2.0 m/s
+   28.667 |   1565 | A Large        | contact  | HandL touched Collider at 2.0 m/s
+   28.700 |   1567 | A Large        | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.99); energy 0.99, aggression 0.00
+   28.717 |   1568 | A Large        | tempo    | gather → shell: pressed (pressure 3.00); energy 1.00, aggression 0.00
+   28.717 |   1568 | A Medium       | contact  | UpperArmL touched Ground at 1.5 m/s
+   28.767 |   1571 | A Medium       | contact  | ThighL touched Ground at 3.2 m/s
+   28.767 |   1571 | A Medium       | contact  | Pelvis touched Ground at 1.0 m/s
+   28.767 |   1571 | A Medium       | contact  | ShinL touched Ground at 2.8 m/s
+   28.783 |   1572 | B Medium 2     | hit      | blow struck A Large's HandR at 16.0 m/s: parried by A Large's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   28.783 |   1572 | A Large        | struck   | by B Medium 2 on the HandR: health 46/220, poise 19/120, recoil, standing
+   28.783 |   1572 | A Medium       | contact  | FootR touched Ground at 1.8 m/s
+   28.800 |   1573 | A Large        | target   | B Medium 2, who struck it: committed
+   28.833 |   1575 | B Medium 2     | contact  | ForearmL touched Collider at 2.8 m/s
+   28.833 |   1575 | A Large        | contact  | HandL touched Collider at 2.8 m/s
+   28.833 |   1575 | A Medium       | contact  | FootL touched Ground at 3.4 m/s
+   28.850 |   1576 | A Medium       | contact  | ShinL touched Ground at 1.4 m/s
+   28.867 |   1577 | B Medium 2     | contact  | HandR touched Collider at 2.2 m/s
+   28.867 |   1577 | A Large        | contact  | UpperArmL touched Collider at 2.2 m/s
+   28.867 |   1577 | B Medium 2     | contact  | UpperArmL touched Collider at 6.2 m/s
+   28.867 |   1577 | A Large        | contact  | HandL touched Collider at 6.2 m/s
+   28.883 |   1578 | B Medium 2     | contact  | Chest touched Collider at 6.1 m/s
+   28.883 |   1578 | A Large        | contact  | HandL touched Collider at 6.1 m/s
+   28.900 |   1579 | B Medium 2     | contact  | ForearmL touched Collider at 9.2 m/s
+   28.900 |   1579 | A Large        | contact  | HandL touched Collider at 9.2 m/s
+   28.933 |   1581 | B Medium 2     | contact  | Head touched Collider at 5.9 m/s
+   28.933 |   1581 | A Large        | contact  | HandL touched Collider at 5.9 m/s
+   28.933 |   1581 | B Medium 2     | contact  | HandR touched Collider at 12.6 m/s
+   28.933 |   1581 | A Large        | contact  | ForearmL touched Collider at 12.6 m/s
+   28.933 |   1581 | B Medium 2     | contact  | ForearmR touched Collider at 10.0 m/s
+   28.933 |   1581 | A Large        | contact  | ForearmL touched Collider at 10.0 m/s
+   28.950 |   1582 | B Medium 2     | contact  | Chest touched Collider at 8.5 m/s
+   28.950 |   1582 | A Large        | contact  | HandL touched Collider at 8.5 m/s
+   28.967 |   1583 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (43 poise); impulse 153.0 N·s (70% into the part); the swing stopped; blocked by the shield
+   28.967 |   1583 | A Medium 2     | struck   | by B Large on the HandL: health 55/100, poise 0/45, stagger, standing
+   29.000 |   1585 | B Medium 2     | contact  | ForearmR touched Collider at 10.1 m/s
+   29.000 |   1585 | A Large        | contact  | HandL touched Collider at 10.1 m/s
+   29.100 |   1591 | B Medium       | contact  | ShinR touched Collider at 1.1 m/s
+   29.100 |   1591 | A Medium       | contact  | FootR touched Collider at 1.1 m/s
+   29.117 |   1592 | A Medium       | contact  | ForearmR touched Ground at 2.8 m/s
+   29.117 |   1592 | A Medium       | contact  | HandR touched Ground at 4.3 m/s
+   29.133 |   1593 | A Medium       | contact  | ThighL touched Collider at 1.1 m/s
+   29.133 |   1593 | B Medium       | contact  | FootR touched Collider at 1.1 m/s
+   29.150 |   1594 | A Medium       | contact  | ForearmR touched Ground at 1.2 m/s
+   29.183 |   1596 | A Medium       | contact  | FootL touched Ground at 2.6 m/s
+   29.283 |   1602 | A Medium       | contact  | HandL touched Ground at 1.8 m/s
+   29.283 |   1602 | A Medium       | contact  | ForearmL touched Ground at 1.8 m/s
+   29.400 |   1609 | A Medium       | contact  | ThighR touched Ground at 2.8 m/s
+   29.450 |   1612 | A Medium       | contact  | ThighL touched Ground at 1.1 m/s
+   29.500 |   1615 | A Medium       | contact  | Pelvis touched Ground at 4.8 m/s
+   29.500 |   1615 | A Medium       | contact  | ThighL touched Ground at 6.4 m/s
+   29.517 |   1616 | A Medium       | contact  | ThighR touched Ground at 6.1 m/s
+   29.517 |   1616 | A Medium       | contact  | ShinR touched Ground at 6.6 m/s
+   29.533 |   1617 | A Medium       | contact  | HandL touched Ground at 1.7 m/s
+   29.550 |   1618 | A Medium       | contact  | UpperArmL touched Ground at 4.1 m/s
+   29.567 |   1619 | B Medium       | contact  | ShinR touched Collider at 5.3 m/s
+   29.567 |   1619 | A Medium       | contact  | FootR touched Collider at 5.3 m/s
+   29.600 |   1621 | B Medium       | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.20
+   29.650 |   1624 | A Medium       | contact  | ShinR touched Ground at 4.1 m/s
+   29.750 |   1630 | A Medium       | contact  | ForearmL touched Collider at 12.0 m/s
+   29.750 |   1630 | B Medium       | contact  | FootL touched Collider at 12.0 m/s
+   29.767 |   1631 | A Medium       | contact  | FootL touched Ground at 9.3 m/s
+   29.783 |   1632 | A Medium       | contact  | HandL touched Ground at 13.3 m/s
+   29.783 |   1632 | A Medium       | contact  | ForearmL touched Ground at 11.3 m/s
+   29.800 |   1633 | A Medium       | contact  | ThighR touched Ground at 1.8 m/s
+   29.817 |   1634 | A Medium       | contact  | ThighL touched Ground at 4.6 m/s
+   29.817 |   1634 | A Medium       | contact  | FootL touched Ground at 10.3 m/s
+   29.817 |   1634 | A Medium       | contact  | ShinL touched Ground at 7.5 m/s
+   29.833 |   1635 | A Medium       | contact  | UpperArmL touched Ground at 3.9 m/s
+   29.850 |   1636 | A Medium       | contact  | FootR touched Ground at 1.8 m/s
+   29.883 |   1638 | A Medium       | contact  | HandR touched Collider at 12.5 m/s
+   29.883 |   1638 | B Medium       | contact  | ThighR touched Collider at 12.5 m/s
+   29.883 |   1638 | B Medium       | contact  | ThighR touched Collider at 9.4 m/s
+   29.883 |   1638 | A Medium       | contact  | ForearmR touched Collider at 9.4 m/s
+   29.900 |   1639 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (50 poise); impulse 117.5 N·s (70% into the part); the swing stopped; blocked by the shield
+   29.900 |   1639 | A Medium 2     | struck   | by B Large on the HandL: health 55/100, poise 0/45, stagger, standing
+   29.900 |   1639 | A Medium       | contact  | HandR touched Collider at 10.9 m/s
+   29.900 |   1639 | B Medium       | contact  | ShinL touched Collider at 10.9 m/s
+   29.900 |   1639 | A Medium       | contact  | HandR touched Collider at 10.8 m/s
+   29.900 |   1639 | B Medium       | contact  | ThighL touched Collider at 10.8 m/s
+   30.033 |   1647 | A Medium       | contact  | FootL touched Ground at 6.7 m/s
+   30.050 |   1648 | A Medium       | contact  | HandR touched Ground at 6.9 m/s
+   30.117 |   1652 | A Medium       | contact  | ForearmL touched Ground at 6.1 m/s
+   30.117 |   1652 | A Medium       | contact  | HandL touched Ground at 10.1 m/s
+   30.133 |   1653 | A Medium       | contact  | ForearmR touched Ground at 2.3 m/s
+   30.133 |   1653 | A Medium       | contact  | UpperArmR touched Ground at 2.5 m/s
+   30.233 |   1659 | A Medium       | contact  | HandR touched Ground at 1.4 m/s
+   30.300 |   1663 | B Medium 2     | hit      | blow struck A Large's HandL at 16.0 m/s: 12.8 damage, 20 poise, recoil; impulse 26.1 N·s (80% into the part); the swing stopped; the target
+   30.300 |   1663 | A Large        | struck   | by B Medium 2 on the HandL: health 33/220, poise 27/120, recoil, standing
+   30.350 |   1666 | B Large        | hit      | blow struck B Medium 2's ForearmR at 16.0 m/s: 12.8 damage, 129 poise, stagger; impulse 172.1 N·s (80% into the part); the swing stopped; an ally (friendly fire)
+   30.350 |   1666 | B Medium 2     | struck   | by B Large on the ForearmR: health 25/100, poise 0/45, stagger, standing
+   30.383 |   1668 | B Medium 2     | tempo    | press → gather: the press was broken; energy 0.96, aggression 0.94
+   30.400 |   1669 | B Medium 2     | tempo    | gather → shell: pressed (pressure 0.50); energy 0.96, aggression 0.94
+   30.500 |   1675 | A Medium       | contact  | ForearmR touched Ground at 1.7 m/s
+   30.517 |   1676 | A Medium       | contact  | FootR touched Ground at 3.4 m/s
+   30.517 |   1676 | A Medium       | contact  | Chest touched Ground at 1.5 m/s
+   30.567 |   1679 | A Medium       | contact  | UpperArmL touched Ground at 1.2 m/s
+   30.567 |   1679 | A Medium       | contact  | ForearmL touched Ground at 4.3 m/s
+   30.567 |   1679 | A Medium       | contact  | HandL touched Ground at 3.7 m/s
+   30.650 |   1684 | A Medium       | contact  | Pelvis touched Ground at 2.1 m/s
+   30.650 |   1684 | A Medium       | contact  | Spine touched Ground at 1.5 m/s
+   30.683 |   1686 | B Large        | hit      | blow struck A Large's ForearmL at 16.0 m/s: 17.1 damage, 172 poise, stagger; impulse 172.1 N·s (80% into the part); the swing stopped; the target
+   30.683 |   1686 | A Large        | struck   | by B Large on the ForearmL: health 16/220, poise 0/120, stagger, standing
+   30.683 |   1686 | A Medium       | contact  | HandL touched Ground at 2.6 m/s
+   30.683 |   1686 | A Medium       | contact  | ForearmL touched Ground at 2.2 m/s
+   30.700 |   1687 | A Large        | target   | B Large, who struck it: committed
+   30.700 |   1687 | A Medium       | contact  | HandR touched Ground at 1.2 m/s
+   30.717 |   1688 | B Medium 2     | sight    | noticed B Medium at the edge of its view (7.1 m)
+   30.850 |   1696 | A Medium       | contact  | Head touched Ground at 1.0 m/s
+   30.900 |   1699 | A Medium 2     | target   | B Medium (4.0 m, health 84)
+   30.917 |   1700 | A Medium 2     | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   30.933 |   1701 | A Medium 2     | target   | B Large, who struck it: committed
+   30.933 |   1701 | A Medium 2     | tempo    | gather → shell: pressed (pressure 3.00); energy 1.00, aggression 0.00
+   31.000 |   1705 | B Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 0.91
+   31.200 |   1717 | A Medium       | contact  | FootR touched Ground at 3.5 m/s
+   31.233 |   1719 | A Medium       | contact  | FootL touched Ground at 1.8 m/s
+   31.317 |   1724 | A Medium       | contact  | ShinR touched Ground at 2.6 m/s
+   31.317 |   1724 | A Medium       | contact  | ThighR touched Ground at 2.0 m/s
+   31.983 |   1764 | A Medium 2     | move     | no headway toward B Large (3.0 m): going round to the right
+   31.983 |   1764 | B Large        | move     | no headway toward A Medium 2 (3.0 m): going round to the right
+   32.367 |   1787 | B Medium 2     | tempo    | shell → counter: the barrage stopped (energy 1.00); energy 1.00, aggression 0.94
+   32.833 |   1815 | A Large        | death    | killed by B Medium 2's blow to the Head
+   32.833 |   1815 | B Medium 2     | hit      | blow struck A Large's Head at 16.0 m/s: 34.1 damage, 13 poise, killed; impulse 26.1 N·s (60% into the part); the swing stopped; the target
+   32.833 |   1815 | A Large        | struck   | by B Medium 2 on the Head: health 0/220, poise 26/120, killed, dead
+   32.833 |   1815 | B Large        | sight    | lost track of A Large
+   32.850 |   1816 | B Medium 2     | target   | A Medium 2 (4.5 m, health 55)
+   32.850 |   1816 | A Medium 2     | sight    | lost track of A Large
+   32.850 |   1816 | B Medium       | sight    | lost track of A Large
+   32.850 |   1816 | B Medium 2     | sight    | lost track of A Large
+   33.317 |   1844 | B Large        | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.91
+   33.333 |   1845 | B Large        | tempo    | probe → press: fired up (energy 1.00, aggression 0.91); energy 1.00, aggression 0.91
+   33.400 |   1849 | A Large        | contact  | HandR touched Ground at 9.4 m/s
+   33.517 |   1856 | A Large        | contact  | HandR touched Ground at 1.6 m/s
+   33.583 |   1860 | B Medium 2     | tempo    | counter → probe: no answer came; energy 1.00, aggression 1.00
+   33.600 |   1861 | B Medium       | move     | no headway toward A Medium 2 (3.0 m): going round to the left
+   33.750 |   1870 | A Large        | contact  | HandL touched Ground at 5.3 m/s
+   33.767 |   1871 | A Large        | contact  | Pelvis touched Ground at 2.3 m/s
+   33.800 |   1873 | A Large        | contact  | ForearmR touched Ground at 1.1 m/s
+   33.867 |   1877 | A Large        | contact  | UpperArmR touched Ground at 1.6 m/s
+   33.917 |   1880 | B Medium 2     | contact  | FootR touched Collider at 4.5 m/s
+   33.917 |   1880 | A Large        | contact  | ShinL touched Collider at 4.5 m/s
+   33.950 |   1882 | A Large        | contact  | Chest touched Ground at 2.1 m/s
+   33.983 |   1884 | B Medium 2     | contact  | ShinR touched Collider at 1.3 m/s
+   33.983 |   1884 | A Large        | contact  | ShinL touched Collider at 1.3 m/s
+   34.000 |   1885 | B Large        | move     | no headway toward A Medium 2 (2.5 m): going round to the right
+   34.017 |   1886 | A Large        | contact  | ForearmR touched Ground at 1.3 m/s
+   34.067 |   1889 | A Large        | contact  | HandR touched Ground at 2.1 m/s
+   34.117 |   1892 | A Large        | contact  | ThighR touched Ground at 2.1 m/s
+   34.133 |   1893 | A Large        | contact  | HandR touched Ground at 2.1 m/s
+   34.150 |   1894 | A Large        | contact  | FootR touched Collider at 1.9 m/s
+   34.150 |   1894 | B Medium 2     | contact  | Pelvis touched Collider at 1.9 m/s
+   34.167 |   1895 | A Large        | contact  | FootR touched Collider at 3.0 m/s
+   34.167 |   1895 | B Medium 2     | contact  | ThighR touched Collider at 3.0 m/s
+   34.167 |   1895 | A Large        | contact  | FootR touched Collider at 4.5 m/s
+   34.167 |   1895 | B Medium 2     | contact  | ThighL touched Collider at 4.5 m/s
+   34.200 |   1897 | A Large        | contact  | FootL touched Ground at 1.0 m/s
+   34.300 |   1903 | A Large        | contact  | ShinR touched Collider at 4.6 m/s
+   34.300 |   1903 | B Medium 2     | contact  | ShinL touched Collider at 4.6 m/s
+   34.350 |   1906 | A Large        | contact  | FootR touched Collider at 4.1 m/s
+   34.350 |   1906 | B Medium 2     | contact  | ThighR touched Collider at 4.1 m/s
+   34.350 |   1906 | B Medium 2     | contact  | FootL touched Collider at 7.1 m/s
+   34.350 |   1906 | A Large        | contact  | ForearmR touched Collider at 7.1 m/s
+   34.367 |   1907 | B Medium 2     | contact  | FootL touched Collider at 5.7 m/s
+   34.367 |   1907 | A Large        | contact  | UpperArmR touched Collider at 5.7 m/s
+   34.383 |   1908 | A Large        | contact  | ShinR touched Collider at 3.7 m/s
+   34.383 |   1908 | B Medium 2     | contact  | FootL touched Collider at 3.7 m/s
+   34.383 |   1908 | A Large        | contact  | ThighR touched Collider at 3.3 m/s
+   34.383 |   1908 | B Medium 2     | contact  | FootL touched Collider at 3.3 m/s
+   34.400 |   1909 | A Large        | contact  | ForearmR touched Ground at 6.3 m/s
+   34.417 |   1910 | A Large        | contact  | UpperArmR touched Ground at 6.2 m/s
+   34.433 |   1911 | A Large        | contact  | ShinR touched Ground at 4.7 m/s
+   34.433 |   1911 | A Large        | contact  | FootR touched Ground at 8.9 m/s
+   34.450 |   1912 | A Large        | contact  | ThighR touched Collider at 1.0 m/s
+   34.450 |   1912 | B Medium 2     | contact  | ShinL touched Collider at 1.0 m/s
+   34.450 |   1912 | A Large        | contact  | Pelvis touched Ground at 3.1 m/s
+   34.467 |   1913 | B Medium 2     | tempo    | probe → press: fired up (energy 1.00, aggression 1.00); energy 1.00, aggression 1.00
+   34.467 |   1913 | A Large        | contact  | HandR touched Ground at 6.3 m/s
+   34.467 |   1913 | A Large        | contact  | HandL touched Ground at 13.9 m/s
+   34.533 |   1917 | A Large        | contact  | Head touched Ground at 2.1 m/s
+   34.550 |   1918 | A Large        | contact  | FootL touched Ground at 3.4 m/s
+   34.567 |   1919 | A Large        | contact  | FootR touched Ground at 2.0 m/s
+   34.600 |   1921 | A Large        | contact  | HandR touched Ground at 2.0 m/s
+   34.617 |   1922 | B Medium 2     | contact  | ShinL touched Collider at 2.4 m/s
+   34.617 |   1922 | A Large        | contact  | ForearmR touched Collider at 2.4 m/s
+   34.633 |   1923 | A Large        | contact  | HandR touched Collider at 5.2 m/s
+   34.633 |   1923 | B Medium 2     | contact  | FootR touched Collider at 5.2 m/s
+   34.683 |   1926 | A Large        | contact  | Chest touched Ground at 1.5 m/s
+   34.683 |   1926 | B Medium 2     | contact  | FootR touched Collider at 4.0 m/s
+   34.683 |   1926 | A Large        | contact  | ForearmR touched Collider at 4.0 m/s
+   34.683 |   1926 | A Large        | contact  | FootR touched Collider at 4.9 m/s
+   34.683 |   1926 | B Medium 2     | contact  | FootR touched Collider at 4.9 m/s
+   34.700 |   1927 | A Large        | contact  | UpperArmR touched Ground at 4.3 m/s
+   34.717 |   1928 | A Large        | contact  | FootR touched Collider at 5.3 m/s
+   34.717 |   1928 | B Medium 2     | contact  | FootL touched Collider at 5.3 m/s
+   34.733 |   1929 | A Large        | contact  | ForearmR touched Ground at 6.9 m/s
+   34.733 |   1929 | A Large        | contact  | ThighR touched Ground at 4.6 m/s
+   34.750 |   1930 | A Large        | contact  | ShinL touched Ground at 1.4 m/s
+   34.767 |   1931 | A Large        | contact  | ThighL touched Ground at 1.6 m/s
+   34.767 |   1931 | A Large        | contact  | Pelvis touched Ground at 1.8 m/s
+   34.817 |   1934 | A Large        | contact  | Pelvis touched Ground at 1.3 m/s
+   34.850 |   1936 | B Medium 2     | move     | no headway toward A Medium 2 (2.1 m): going round to the right
+   34.850 |   1936 | B Medium 2     | contact  | ShinR touched Collider at 2.6 m/s
+   34.850 |   1936 | A Large        | contact  | ForearmR touched Collider at 2.6 m/s
+   34.933 |   1941 | A Large        | contact  | Chest touched Ground at 1.0 m/s
+   35.217 |   1958 | B Medium 2     | contact  | FootL touched Collider at 3.2 m/s
+   35.217 |   1958 | A Large        | contact  | ForearmR touched Collider at 3.2 m/s
+   35.250 |   1960 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (20 poise); impulse 107.1 N·s (70% into the part); the swing stopped; blocked by the shield
+   35.250 |   1960 | A Medium 2     | struck   | by B Large on the HandL: health 55/100, poise 16/45, stagger, standing
+   35.267 |   1961 | B Medium 2     | contact  | ShinR touched Collider at 3.2 m/s
+   35.267 |   1961 | A Large        | contact  | ForearmR touched Collider at 3.2 m/s
+   35.317 |   1964 | A Large        | contact  | HandR touched Collider at 6.9 m/s
+   35.317 |   1964 | B Medium 2     | contact  | ShinR touched Collider at 6.9 m/s
+   35.333 |   1965 | A Large        | contact  | HandR touched Ground at 6.0 m/s
+   35.333 |   1965 | A Large        | contact  | HandR touched Collider at 6.0 m/s
+   35.333 |   1965 | B Medium 2     | contact  | FootR touched Collider at 6.0 m/s
+   35.350 |   1966 | A Large        | contact  | HandR touched Collider at 3.7 m/s
+   35.350 |   1966 | B Medium 2     | contact  | ShinR touched Collider at 3.7 m/s
+   35.400 |   1969 | B Medium 2     | contact  | FootL touched Collider at 2.9 m/s
+   35.400 |   1969 | A Large        | contact  | ForearmR touched Collider at 2.9 m/s
+   35.467 |   1973 | A Large        | contact  | HandL touched Ground at 7.2 m/s
+   35.500 |   1975 | A Large        | contact  | Spine touched Collider at 2.0 m/s
+   35.500 |   1975 | B Medium 2     | contact  | ShinL touched Collider at 2.0 m/s
+   35.533 |   1977 | A Large        | contact  | HandL touched Ground at 4.3 m/s
+   35.567 |   1979 | A Large        | contact  | FootR touched Ground at 4.7 m/s
+   35.567 |   1979 | A Large        | contact  | Spine touched Collider at 1.9 m/s
+   35.567 |   1979 | B Medium 2     | contact  | FootL touched Collider at 1.9 m/s
+   35.583 |   1980 | A Large        | contact  | FootL touched Ground at 4.9 m/s
+   35.600 |   1981 | A Large        | contact  | ForearmL touched Ground at 3.2 m/s
+   35.600 |   1981 | A Large        | contact  | Head touched Ground at 3.1 m/s
+   35.600 |   1981 | A Large        | contact  | Chest touched Ground at 2.2 m/s
+   35.600 |   1981 | A Large        | contact  | UpperArmL touched Ground at 3.8 m/s
+   35.617 |   1982 | B Medium       | move     | no headway toward A Medium 2 (4.4 m): going round to the right
+   35.750 |   1990 | A Large        | contact  | HandL touched Ground at 4.9 m/s
+   35.767 |   1991 | B Medium 2     | contact  | FootL touched Collider at 4.1 m/s
+   35.767 |   1991 | A Large        | contact  | HandL touched Collider at 4.1 m/s
+   35.783 |   1992 | B Medium 2     | contact  | FootR touched Collider at 2.7 m/s
+   35.783 |   1992 | A Large        | contact  | ForearmR touched Collider at 2.7 m/s
+   35.783 |   1992 | B Medium 2     | contact  | FootL touched Collider at 1.2 m/s
+   35.783 |   1992 | A Large        | contact  | ForearmL touched Collider at 1.2 m/s
+   35.800 |   1993 | A Large        | contact  | ForearmL touched Ground at 1.4 m/s
+   35.817 |   1994 | B Medium 2     | contact  | ShinL touched Collider at 1.7 m/s
+   35.817 |   1994 | A Large        | contact  | HandL touched Collider at 1.7 m/s
+   35.817 |   1994 | B Medium 2     | contact  | FootL touched Collider at 1.1 m/s
+   35.817 |   1994 | A Large        | contact  | ForearmL touched Collider at 1.1 m/s
+   36.083 |   2010 | A Medium 2     | sight    | lost track of B Medium
+   36.100 |   2011 | B Medium 2     | contact  | ShinL touched Collider at 2.9 m/s
+   36.100 |   2011 | A Large        | contact  | ForearmR touched Collider at 2.9 m/s
+   36.133 |   2013 | B Medium 2     | contact  | FootL touched Collider at 1.5 m/s
+   36.133 |   2013 | A Large        | contact  | ForearmR touched Collider at 1.5 m/s
+   36.133 |   2013 | A Large        | contact  | HandR touched Ground at 2.7 m/s
+   36.167 |   2015 | B Medium 2     | contact  | FootL touched Collider at 1.9 m/s
+   36.167 |   2015 | A Large        | contact  | Pelvis touched Collider at 1.9 m/s
+   36.250 |   2020 | A Large        | contact  | Spine touched Ground at 2.0 m/s
+   36.317 |   2024 | B Medium 2     | contact  | ShinL touched Collider at 1.8 m/s
+   36.317 |   2024 | A Large        | contact  | UpperArmR touched Collider at 1.8 m/s
+   36.367 |   2027 | A Large        | contact  | HandL touched Ground at 3.7 m/s
+   36.367 |   2027 | B Medium 2     | contact  | ShinL touched Collider at 1.1 m/s
+   36.367 |   2027 | A Large        | contact  | Chest touched Collider at 1.1 m/s
+   36.417 |   2030 | A Large        | contact  | HandL touched Ground at 2.2 m/s
+   36.433 |   2031 | B Large        | hit      | blow struck A Medium 2's UpperArmL at 16.0 m/s: 15.4 damage, 129 poise, stagger; impulse 172.1 N·s (80% into the part); the swing stopped; the target
+   36.433 |   2031 | A Medium 2     | struck   | by B Large on the UpperArmL: health 40/100, poise 0/45, stagger, standing
+   36.467 |   2033 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   36.467 |   2033 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 40/100, poise 0/45, stagger, standing
+   36.467 |   2033 | A Large        | contact  | UpperArmR touched Ground at 1.2 m/s
+   36.483 |   2034 | A Medium 2     | target   | B Medium 2, who struck it: committed
+   36.483 |   2034 | A Large        | contact  | ForearmR touched Ground at 1.2 m/s
+   36.533 |   2037 | A Large        | contact  | FootR touched Ground at 2.4 m/s
+   36.567 |   2039 | A Large        | contact  | FootL touched Ground at 1.9 m/s
+   36.683 |   2046 | A Large        | contact  | HandR touched Ground at 2.0 m/s
+   36.717 |   2048 | A Large        | contact  | HandL touched Ground at 1.9 m/s
+   37.200 |   2077 | A Large        | contact  | FootR touched Collider at 3.6 m/s
+   37.200 |   2077 | B Large        | contact  | ShinR touched Collider at 3.6 m/s
+   37.267 |   2081 | B Large        | hit      | blow struck A Medium 2's Pelvis at 16.0 m/s: 29.0 damage, 172 poise, stagger; impulse 172.1 N·s (20% into the part); the swing stopped; the target
+   37.267 |   2081 | A Medium 2     | struck   | by B Large on the Pelvis: health 11/100, poise 0/45, stagger, standing
+   37.283 |   2082 | A Medium 2     | target   | B Large, who struck it: committed
+   37.300 |   2083 | A Large        | contact  | HandL touched Collider at 4.3 m/s
+   37.300 |   2083 | A Medium 2     | contact  | FootR touched Collider at 4.3 m/s
+   37.317 |   2084 | A Large        | contact  | HandR touched Collider at 10.8 m/s
+   37.317 |   2084 | A Medium 2     | contact  | FootR touched Collider at 10.8 m/s
+   37.433 |   2091 | A Large        | contact  | Pelvis touched Collider at 1.2 m/s
+   37.433 |   2091 | A Medium 2     | contact  | ShinL touched Collider at 1.2 m/s
+   37.483 |   2094 | A Large        | contact  | ThighL touched Collider at 1.5 m/s
+   37.483 |   2094 | A Medium 2     | contact  | FootL touched Collider at 1.5 m/s
+   37.483 |   2094 | A Large        | contact  | Spine touched Ground at 2.0 m/s
+   37.517 |   2096 | A Large        | contact  | Pelvis touched Collider at 4.8 m/s
+   37.517 |   2096 | A Medium 2     | contact  | FootL touched Collider at 4.8 m/s
+   37.517 |   2096 | A Large        | contact  | Pelvis touched Collider at 5.8 m/s
+   37.517 |   2096 | A Medium 2     | contact  | ShinL touched Collider at 5.8 m/s
+   37.533 |   2097 | B Medium 2     | contact  | HandL touched Collider at 5.5 m/s
+   37.533 |   2097 | A Medium 2     | contact  | UpperArmL touched Collider at 5.5 m/s
+   37.583 |   2100 | A Large        | contact  | Spine touched Ground at 2.1 m/s
+   37.583 |   2100 | A Large        | contact  | Pelvis touched Ground at 1.9 m/s
+   37.600 |   2101 | B Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 1.00
+   37.600 |   2101 | A Large        | contact  | Chest touched Collider at 3.7 m/s
+   37.600 |   2101 | A Medium 2     | contact  | ShinL touched Collider at 3.7 m/s
+   37.600 |   2101 | A Large        | contact  | ForearmL touched Ground at 1.7 m/s
+   37.617 |   2102 | A Large        | contact  | UpperArmL touched Collider at 3.6 m/s
+   37.617 |   2102 | A Medium 2     | contact  | FootL touched Collider at 3.6 m/s
+   37.617 |   2102 | A Large        | contact  | HandR touched Collider at 7.2 m/s
+   37.617 |   2102 | A Medium 2     | contact  | FootL touched Collider at 7.2 m/s
+   37.617 |   2102 | A Large        | contact  | HandR touched Collider at 5.6 m/s
+   37.617 |   2102 | A Medium 2     | contact  | ShinL touched Collider at 5.6 m/s
+   37.617 |   2102 | A Large        | contact  | Chest touched Collider at 4.1 m/s
+   37.617 |   2102 | A Medium 2     | contact  | FootL touched Collider at 4.1 m/s
+   37.650 |   2104 | A Large        | contact  | HandL touched Ground at 4.7 m/s
+   37.650 |   2104 | A Large        | contact  | ForearmL touched Ground at 3.5 m/s
+   37.667 |   2105 | B Medium 2     | contact  | ShinL touched Collider at 4.3 m/s
+   37.667 |   2105 | A Large        | contact  | Pelvis touched Collider at 4.3 m/s
+   37.683 |   2106 | A Large        | contact  | ThighR touched Collider at 2.3 m/s
+   37.683 |   2106 | B Medium 2     | contact  | ShinL touched Collider at 2.3 m/s
+   37.683 |   2106 | A Large        | contact  | ThighR touched Collider at 3.4 m/s
+   37.683 |   2106 | B Medium 2     | contact  | ShinR touched Collider at 3.4 m/s
+   37.700 |   2107 | A Large        | contact  | Chest touched Collider at 2.0 m/s
+   37.700 |   2107 | A Medium 2     | contact  | FootL touched Collider at 2.0 m/s
+   37.717 |   2108 | A Large        | contact  | ThighR touched Collider at 3.1 m/s
+   37.717 |   2108 | B Medium 2     | contact  | ShinL touched Collider at 3.1 m/s
+   37.733 |   2109 | A Large        | contact  | Chest touched Ground at 3.1 m/s
+   37.750 |   2110 | A Large        | contact  | Pelvis touched Collider at 2.0 m/s
+   37.750 |   2110 | A Medium 2     | contact  | ShinL touched Collider at 2.0 m/s
+   37.750 |   2110 | A Large        | contact  | ThighR touched Collider at 3.8 m/s
+   37.750 |   2110 | B Medium 2     | contact  | ShinR touched Collider at 3.8 m/s
+   37.767 |   2111 | A Large        | contact  | ThighR touched Collider at 5.5 m/s
+   37.767 |   2111 | B Medium 2     | contact  | FootR touched Collider at 5.5 m/s
+   37.767 |   2111 | A Large        | contact  | FootR touched Ground at 6.5 m/s
+   37.783 |   2112 | A Large        | contact  | Pelvis touched Collider at 2.0 m/s
+   37.783 |   2112 | A Medium 2     | contact  | FootL touched Collider at 2.0 m/s
+   37.800 |   2113 | A Large        | contact  | ShinR touched Collider at 7.9 m/s
+   37.800 |   2113 | B Medium 2     | contact  | FootR touched Collider at 7.9 m/s
+   37.800 |   2113 | B Medium 2     | contact  | ShinR touched Collider at 2.6 m/s
+   37.800 |   2113 | A Large        | contact  | ShinL touched Collider at 2.6 m/s
+   37.800 |   2113 | A Large        | contact  | ThighR touched Collider at 2.7 m/s
+   37.800 |   2113 | B Medium 2     | contact  | FootL touched Collider at 2.7 m/s
+   37.800 |   2113 | A Large        | contact  | Pelvis touched Ground at 2.5 m/s
+   37.817 |   2114 | A Large        | contact  | FootR touched Ground at 10.5 m/s
+   37.850 |   2116 | A Large        | contact  | ShinR touched Collider at 3.8 m/s
+   37.850 |   2116 | B Medium 2     | contact  | ShinR touched Collider at 3.8 m/s
+   37.867 |   2117 | A Large        | contact  | ThighR touched Collider at 1.2 m/s
+   37.867 |   2117 | B Medium 2     | contact  | ShinL touched Collider at 1.2 m/s
+   37.867 |   2117 | A Large        | contact  | Chest touched Ground at 1.5 m/s
+   37.883 |   2118 | A Large        | contact  | FootL touched Ground at 3.2 m/s
+   37.900 |   2119 | A Large        | contact  | ForearmL touched Ground at 1.5 m/s
+   37.950 |   2122 | B Medium 2     | contact  | FootR touched Collider at 1.0 m/s
+   37.950 |   2122 | A Large        | contact  | ShinL touched Collider at 1.0 m/s
+   38.033 |   2127 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   38.033 |   2127 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 11/100, poise 0/45, stagger, standing
+   38.033 |   2127 | A Large        | contact  | UpperArmR touched Ground at 1.1 m/s
+   38.050 |   2128 | A Medium 2     | target   | B Medium 2, who struck it: committed
+   38.100 |   2131 | A Large        | contact  | Head touched Ground at 1.8 m/s
+   38.183 |   2136 | A Large        | contact  | HandL touched Ground at 1.1 m/s
+   38.233 |   2139 | B Medium 2     | tempo    | press → gather: nothing to press; energy 1.00, aggression 1.00
+   38.300 |   2143 | A Medium 2     | sight    | noticed B Medium at the edge of its view (3.8 m)
+   38.300 |   2143 | A Large        | contact  | HandL touched Collider at 1.1 m/s
+   38.300 |   2143 | A Medium 2     | contact  | ShinL touched Collider at 1.1 m/s
+   38.317 |   2144 | A Large        | contact  | FootR touched Ground at 3.6 m/s
+   38.317 |   2144 | A Large        | contact  | ShinR touched Collider at 2.4 m/s
+   38.317 |   2144 | B Medium 2     | contact  | FootR touched Collider at 2.4 m/s
+   38.450 |   2152 | B Large        | tempo    | gather → press: smells blood; energy 1.00, aggression 1.00
+   38.517 |   2156 | A Large        | contact  | HandR touched Ground at 2.7 m/s
+   38.600 |   2161 | A Large        | contact  | HandL touched Collider at 2.3 m/s
+   38.600 |   2161 | A Medium 2     | contact  | FootL touched Collider at 2.3 m/s
+   38.683 |   2166 | A Large        | contact  | Spine touched Collider at 1.1 m/s
+   38.683 |   2166 | A Medium 2     | contact  | FootR touched Collider at 1.1 m/s
+   38.800 |   2173 | A Large        | contact  | HandL touched Ground at 3.3 m/s
+   38.850 |   2176 | A Large        | contact  | HandL touched Ground at 2.1 m/s
+   39.050 |   2188 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.90); energy 0.90, aggression 0.00
+   39.050 |   2188 | B Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 1.00); energy 1.00, aggression 1.00
+   39.117 |   2192 | A Large        | contact  | Pelvis touched Collider at 2.1 m/s
+   39.117 |   2192 | A Medium 2     | contact  | FootL touched Collider at 2.1 m/s
+   39.167 |   2195 | B Medium       | move     | no headway toward A Medium 2 (3.5 m): going round to the right
+   39.217 |   2198 | A Large        | contact  | ThighR touched Collider at 1.4 m/s
+   39.217 |   2198 | B Medium 2     | contact  | ShinR touched Collider at 1.4 m/s
+   39.267 |   2201 | A Large        | contact  | ThighR touched Collider at 2.2 m/s
+   39.267 |   2201 | B Medium 2     | contact  | ShinL touched Collider at 2.2 m/s
+   39.283 |   2202 | B Medium 2     | contact  | FootL touched Collider at 1.4 m/s
+   39.283 |   2202 | A Large        | contact  | Pelvis touched Collider at 1.4 m/s
+   39.333 |   2205 | B Medium 2     | contact  | HandL touched Collider at 2.9 m/s
+   39.333 |   2205 | A Medium 2     | contact  | HandL touched Collider at 2.9 m/s
+   39.367 |   2207 | A Large        | contact  | ThighL touched Collider at 2.1 m/s
+   39.367 |   2207 | B Medium 2     | contact  | ShinR touched Collider at 2.1 m/s
+   39.383 |   2208 | A Large        | contact  | FootL touched Ground at 2.0 m/s
+   39.433 |   2211 | A Large        | contact  | FootR touched Ground at 1.2 m/s
+   39.733 |   2229 | B Large        | move     | no headway toward A Medium 2 (2.2 m): going round to the left
+   40.167 |   2255 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   40.167 |   2255 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 11/100, poise 6/45, stagger, standing
+   40.183 |   2256 | B Medium 2     | death    | killed by A Medium 2's blow to the Head
+   40.183 |   2256 | A Medium 2     | hit      | blow struck B Medium 2's Head at 16.0 m/s: 34.1 damage, 16 poise, killed; impulse 31.9 N·s (60% into the part); the swing stopped; the target
+   40.183 |   2256 | B Medium 2     | struck   | by A Medium 2 on the Head: health 0/100, poise 29/45, killed, dead
+   40.183 |   2256 | B Medium       | sight    | lost track of B Medium 2
+   40.183 |   2256 | B Large        | sight    | lost track of B Medium 2
+   40.183 |   2256 | A Large        | contact  | Chest touched Collider at 10.3 m/s
+   40.183 |   2256 | A Medium 2     | contact  | FootR touched Collider at 10.3 m/s
+   40.200 |   2257 | A Medium 2     | target   | B Large, close by (2.1 m): committed
+   40.200 |   2257 | A Medium 2     | sight    | lost track of B Medium 2
+   40.200 |   2257 | A Large        | contact  | ThighL touched Collider at 8.2 m/s
+   40.200 |   2257 | A Medium 2     | contact  | FootL touched Collider at 8.2 m/s
+   40.217 |   2258 | A Large        | contact  | HandL touched Ground at 4.9 m/s
+   40.233 |   2259 | A Large        | contact  | FootR touched Ground at 1.6 m/s
+   40.233 |   2259 | B Medium 2     | contact  | FootR touched Collider at 4.9 m/s
+   40.233 |   2259 | A Large        | contact  | ShinL touched Collider at 4.9 m/s
+   40.267 |   2261 | A Large        | contact  | ShinL touched Ground at 6.8 m/s
+   40.267 |   2261 | A Large        | contact  | ThighR touched Collider at 6.7 m/s
+   40.267 |   2261 | A Medium 2     | contact  | FootL touched Collider at 6.7 m/s
+   40.267 |   2261 | A Large        | contact  | Spine touched Collider at 5.5 m/s
+   40.267 |   2261 | A Medium 2     | contact  | FootR touched Collider at 5.5 m/s
+   40.283 |   2262 | A Large        | contact  | ThighR touched Ground at 6.7 m/s
+   40.283 |   2262 | A Large        | contact  | ShinR touched Ground at 4.6 m/s
+   40.300 |   2263 | B Medium 2     | contact  | FootR touched Collider at 6.8 m/s
+   40.300 |   2263 | A Large        | contact  | ShinL touched Collider at 6.8 m/s
+   40.300 |   2263 | A Large        | contact  | FootR touched Ground at 10.7 m/s
+   40.300 |   2263 | B Medium 2     | contact  | FootL touched Collider at 2.8 m/s
+   40.300 |   2263 | A Medium 2     | contact  | ShinR touched Collider at 2.8 m/s
+   40.317 |   2264 | A Large        | contact  | ForearmL touched Ground at 4.0 m/s
+   40.317 |   2264 | A Large        | contact  | HandL touched Ground at 11.5 m/s
+   40.317 |   2264 | B Medium 2     | contact  | ShinR touched Collider at 8.0 m/s
+   40.317 |   2264 | A Large        | contact  | ShinL touched Collider at 8.0 m/s
+   40.333 |   2265 | A Large        | contact  | Spine touched Ground at 3.5 m/s
+   40.333 |   2265 | B Medium 2     | contact  | FootL touched Collider at 6.1 m/s
+   40.333 |   2265 | A Large        | contact  | Spine touched Collider at 6.1 m/s
+   40.333 |   2265 | A Large        | contact  | Spine touched Collider at 4.6 m/s
+   40.333 |   2265 | A Medium 2     | contact  | ShinR touched Collider at 4.6 m/s
+   40.350 |   2266 | A Large        | contact  | Pelvis touched Collider at 2.6 m/s
+   40.350 |   2266 | A Medium 2     | contact  | ShinR touched Collider at 2.6 m/s
+   40.367 |   2267 | B Medium 2     | contact  | FootL touched Collider at 2.7 m/s
+   40.367 |   2267 | A Large        | contact  | Spine touched Collider at 2.7 m/s
+   40.383 |   2268 | A Large        | contact  | ForearmL touched Ground at 2.4 m/s
+   40.383 |   2268 | A Large        | contact  | FootR touched Collider at 7.4 m/s
+   40.383 |   2268 | B Large        | contact  | ShinL touched Collider at 7.4 m/s
+   40.400 |   2269 | B Medium 2     | contact  | ThighR touched Collider at 2.8 m/s
+   40.400 |   2269 | A Large        | contact  | ShinL touched Collider at 2.8 m/s
+   40.400 |   2269 | B Medium 2     | contact  | FootL touched Collider at 4.6 m/s
+   40.400 |   2269 | A Large        | contact  | ThighR touched Collider at 4.6 m/s
+   40.400 |   2269 | B Medium 2     | contact  | Pelvis touched Collider at 5.8 m/s
+   40.400 |   2269 | A Large        | contact  | ShinL touched Collider at 5.8 m/s
+   40.400 |   2269 | B Medium 2     | contact  | UpperArmR touched Collider at 11.4 m/s
+   40.400 |   2269 | A Large        | contact  | FootL touched Collider at 11.4 m/s
+   40.417 |   2270 | B Medium 2     | contact  | Pelvis touched Collider at 5.6 m/s
+   40.417 |   2270 | A Large        | contact  | FootL touched Collider at 5.6 m/s
+   40.433 |   2271 | B Medium 2     | contact  | ThighR touched Collider at 3.2 m/s
+   40.433 |   2271 | A Large        | contact  | ShinL touched Collider at 3.2 m/s
+   40.450 |   2272 | B Medium 2     | contact  | FootL touched Collider at 5.9 m/s
+   40.450 |   2272 | A Large        | contact  | Spine touched Collider at 5.9 m/s
+   40.450 |   2272 | B Medium 2     | contact  | ThighL touched Collider at 3.3 m/s
+   40.450 |   2272 | A Medium 2     | contact  | HandR touched Collider at 3.3 m/s
+   40.450 |   2272 | B Medium 2     | contact  | UpperArmR touched Collider at 2.2 m/s
+   40.450 |   2272 | A Large        | contact  | FootL touched Collider at 2.2 m/s
+   40.467 |   2273 | B Large        | contact  | HandL touched Collider at 5.4 m/s
+   40.467 |   2273 | A Large        | contact  | FootL touched Collider at 5.4 m/s
+   40.467 |   2273 | A Large        | contact  | UpperArmL touched Collider at 1.2 m/s
+   40.467 |   2273 | A Medium 2     | contact  | ShinR touched Collider at 1.2 m/s
+   40.483 |   2274 | A Large        | contact  | ForearmL touched Collider at 1.7 m/s
+   40.483 |   2274 | A Medium 2     | contact  | ShinR touched Collider at 1.7 m/s
+   40.483 |   2274 | A Large        | contact  | Spine touched Collider at 2.0 m/s
+   40.483 |   2274 | A Medium 2     | contact  | ThighR touched Collider at 2.0 m/s
+   40.483 |   2274 | B Medium 2     | contact  | ShinL touched Collider at 7.5 m/s
+   40.483 |   2274 | A Medium 2     | contact  | HandR touched Collider at 7.5 m/s
+   40.500 |   2275 | B Medium 2     | contact  | Pelvis touched Collider at 2.9 m/s
+   40.500 |   2275 | A Large        | contact  | ShinR touched Collider at 2.9 m/s
+   40.517 |   2276 | B Medium 2     | contact  | ForearmR touched Collider at 2.6 m/s
+   40.517 |   2276 | A Large        | contact  | ShinL touched Collider at 2.6 m/s
+   40.533 |   2277 | A Large        | contact  | ThighL touched Ground at 2.9 m/s
+   40.533 |   2277 | B Medium 2     | contact  | ForearmR touched Collider at 5.0 m/s
+   40.533 |   2277 | A Large        | contact  | FootL touched Collider at 5.0 m/s
+   40.533 |   2277 | B Medium 2     | contact  | ThighL touched Collider at 6.2 m/s
+   40.533 |   2277 | A Large        | contact  | ShinR touched Collider at 6.2 m/s
+   40.550 |   2278 | B Medium 2     | contact  | FootR touched Collider at 5.1 m/s
+   40.550 |   2278 | A Medium 2     | contact  | ThighL touched Collider at 5.1 m/s
+   40.550 |   2278 | A Large        | contact  | Spine touched Collider at 5.8 m/s
+   40.550 |   2278 | A Medium 2     | contact  | ThighR touched Collider at 5.8 m/s
+   40.550 |   2278 | B Medium 2     | contact  | FootR touched Collider at 5.1 m/s
+   40.550 |   2278 | A Medium 2     | contact  | ShinL touched Collider at 5.1 m/s
+   40.550 |   2278 | B Medium 2     | contact  | ShinL touched Collider at 2.3 m/s
+   40.550 |   2278 | A Large        | contact  | ThighR touched Collider at 2.3 m/s
+   40.567 |   2279 | A Large        | contact  | ForearmL touched Ground at 2.3 m/s
+   40.567 |   2279 | B Medium 2     | contact  | FootL touched Collider at 6.4 m/s
+   40.567 |   2279 | A Large        | contact  | ThighR touched Collider at 6.4 m/s
+   40.567 |   2279 | B Medium 2     | contact  | ThighR touched Collider at 4.0 m/s
+   40.567 |   2279 | A Large        | contact  | ShinL touched Collider at 4.0 m/s
+   40.567 |   2279 | B Medium 2     | contact  | FootR touched Collider at 5.1 m/s
+   40.567 |   2279 | A Large        | contact  | ShinL touched Collider at 5.1 m/s
+   40.567 |   2279 | B Medium 2     | contact  | ForearmL touched Collider at 14.7 m/s
+   40.567 |   2279 | A Large        | contact  | FootR touched Collider at 14.7 m/s
+   40.583 |   2280 | B Medium 2     | contact  | HandR touched Collider at 6.6 m/s
+   40.583 |   2280 | A Large        | contact  | ShinL touched Collider at 6.6 m/s
+   40.583 |   2280 | A Large        | contact  | Spine touched Collider at 2.5 m/s
+   40.583 |   2280 | A Medium 2     | contact  | ThighR touched Collider at 2.5 m/s
+   40.583 |   2280 | B Medium 2     | contact  | FootL touched Collider at 2.2 m/s
+   40.583 |   2280 | A Large        | contact  | Spine touched Collider at 2.2 m/s
+   40.583 |   2280 | B Medium 2     | contact  | FootL touched Collider at 2.9 m/s
+   40.583 |   2280 | A Large        | contact  | Pelvis touched Collider at 2.9 m/s
+   40.583 |   2280 | B Medium 2     | contact  | FootR touched Collider at 3.1 m/s
+   40.583 |   2280 | A Large        | contact  | ThighL touched Collider at 3.1 m/s
+   40.583 |   2280 | B Medium 2     | contact  | Pelvis touched Collider at 8.2 m/s
+   40.583 |   2280 | A Large        | contact  | FootR touched Collider at 8.2 m/s
+   40.583 |   2280 | B Medium 2     | contact  | HandL touched Collider at 12.1 m/s
+   40.583 |   2280 | A Large        | contact  | FootR touched Collider at 12.1 m/s
+   40.600 |   2281 | A Large        | contact  | Pelvis touched Collider at 2.7 m/s
+   40.600 |   2281 | A Medium 2     | contact  | ThighR touched Collider at 2.7 m/s
+   40.600 |   2281 | B Medium 2     | contact  | HandL touched Collider at 7.8 m/s
+   40.600 |   2281 | A Large        | contact  | ShinR touched Collider at 7.8 m/s
+   40.600 |   2281 | B Medium 2     | contact  | ShinR touched Collider at 2.8 m/s
+   40.600 |   2281 | A Large        | contact  | ShinL touched Collider at 2.8 m/s
+   40.600 |   2281 | A Large        | contact  | FootL touched Collider at 4.0 m/s
+   40.600 |   2281 | A Medium 2     | contact  | ForearmL touched Collider at 4.0 m/s
+   40.617 |   2282 | B Medium 2     | contact  | FootL touched Collider at 5.9 m/s
+   40.617 |   2282 | A Large        | contact  | Pelvis touched Collider at 5.9 m/s
+   40.617 |   2282 | A Large        | contact  | Chest touched Ground at 1.3 m/s
+   40.617 |   2282 | B Medium 2     | contact  | FootL touched Collider at 7.5 m/s
+   40.617 |   2282 | A Large        | contact  | ForearmL touched Collider at 7.5 m/s
+   40.633 |   2283 | B Medium 2     | contact  | ForearmL touched Collider at 3.4 m/s
+   40.633 |   2283 | A Large        | contact  | ThighR touched Collider at 3.4 m/s
+   40.633 |   2283 | B Medium 2     | contact  | FootL touched Collider at 7.0 m/s
+   40.633 |   2283 | A Large        | contact  | ThighR touched Collider at 7.0 m/s
+   40.633 |   2283 | B Medium 2     | contact  | FootR touched Collider at 4.0 m/s
+   40.633 |   2283 | A Large        | contact  | FootR touched Collider at 4.0 m/s
+   40.633 |   2283 | A Large        | contact  | HandL touched Ground at 3.1 m/s
+   40.650 |   2284 | B Medium 2     | contact  | UpperArmL touched Collider at 2.8 m/s
+   40.650 |   2284 | A Large        | contact  | ThighR touched Collider at 2.8 m/s
+   40.683 |   2286 | B Medium 2     | contact  | HandL touched Collider at 4.4 m/s
+   40.683 |   2286 | A Large        | contact  | FootR touched Collider at 4.4 m/s
+   40.683 |   2286 | B Medium 2     | contact  | ThighL touched Collider at 2.7 m/s
+   40.683 |   2286 | A Medium 2     | contact  | Chest touched Collider at 2.7 m/s
+   40.683 |   2286 | B Medium 2     | contact  | ShinL touched Collider at 3.3 m/s
+   40.683 |   2286 | A Medium 2     | contact  | HandR touched Collider at 3.3 m/s
+   40.683 |   2286 | B Medium 2     | contact  | ShinL touched Collider at 3.5 m/s
+   40.683 |   2286 | A Medium 2     | contact  | Chest touched Collider at 3.5 m/s
+   40.700 |   2287 | B Medium 2     | contact  | ThighR touched Collider at 2.1 m/s
+   40.700 |   2287 | A Medium 2     | contact  | Head touched Collider at 2.1 m/s
+   40.700 |   2287 | B Medium 2     | contact  | FootR touched Collider at 5.6 m/s
+   40.700 |   2287 | A Large        | contact  | ShinL touched Collider at 5.6 m/s
+   40.700 |   2287 | A Large        | contact  | Chest touched Ground at 6.3 m/s
+   40.700 |   2287 | B Medium 2     | contact  | FootL touched Collider at 1.8 m/s
+   40.700 |   2287 | A Medium 2     | contact  | HandR touched Collider at 1.8 m/s
+   40.717 |   2288 | B Medium 2     | contact  | ShinR touched Collider at 2.2 m/s
+   40.717 |   2288 | A Large        | contact  | ThighR touched Collider at 2.2 m/s
+   40.717 |   2288 | B Medium 2     | contact  | ThighR touched Collider at 2.0 m/s
+   40.717 |   2288 | A Large        | contact  | ShinR touched Collider at 2.0 m/s
+   40.717 |   2288 | A Large        | contact  | ThighR touched Collider at 3.2 m/s
+   40.717 |   2288 | A Medium 2     | contact  | Chest touched Collider at 3.2 m/s
+   40.717 |   2288 | B Medium 2     | contact  | ShinR touched Collider at 2.2 m/s
+   40.717 |   2288 | A Large        | contact  | ShinR touched Collider at 2.2 m/s
+   40.750 |   2290 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (29 poise); impulse 153.0 N·s (70% into the part); the swing stopped; blocked by the shield
+   40.750 |   2290 | A Medium 2     | struck   | by B Large on the HandL: health 11/100, poise 0/45, stagger, standing
+   40.750 |   2290 | B Medium 2     | contact  | Spine touched Collider at 16.0 m/s
+   40.750 |   2290 | B Large        | contact  | ForearmR touched Collider at 16.0 m/s
+   40.750 |   2290 | B Medium 2     | contact  | ThighR touched Collider at 19.2 m/s
+   40.750 |   2290 | B Large        | contact  | HandR touched Collider at 19.2 m/s
+   40.750 |   2290 | B Medium 2     | contact  | FootL touched Collider at 4.5 m/s
+   40.750 |   2290 | A Medium 2     | contact  | ThighR touched Collider at 4.5 m/s
+   40.750 |   2290 | B Medium 2     | contact  | Pelvis touched Collider at 14.9 m/s
+   40.750 |   2290 | B Large        | contact  | ForearmR touched Collider at 14.9 m/s
+   40.767 |   2291 | B Medium 2     | contact  | Pelvis touched Collider at 6.7 m/s
+   40.767 |   2291 | B Large        | contact  | HandR touched Collider at 6.7 m/s
+   40.767 |   2291 | B Medium 2     | contact  | FootR touched Collider at 6.7 m/s
+   40.767 |   2291 | A Large        | contact  | ShinL touched Collider at 6.7 m/s
+   40.767 |   2291 | B Medium 2     | contact  | UpperArmR touched Collider at 9.2 m/s
+   40.767 |   2291 | B Large        | contact  | ForearmR touched Collider at 9.2 m/s
+   40.767 |   2291 | B Medium 2     | contact  | Chest touched Collider at 11.4 m/s
+   40.767 |   2291 | B Large        | contact  | ForearmR touched Collider at 11.4 m/s
+   40.783 |   2292 | B Medium 2     | contact  | ThighL touched Collider at 25.9 m/s
+   40.783 |   2292 | A Large        | contact  | FootR touched Collider at 25.9 m/s
+   40.783 |   2292 | B Medium 2     | contact  | ShinR touched Collider at 14.5 m/s
+   40.783 |   2292 | A Large        | contact  | ThighL touched Collider at 14.5 m/s
+   40.783 |   2292 | B Medium 2     | contact  | FootR touched Collider at 17.1 m/s
+   40.783 |   2292 | A Large        | contact  | ThighL touched Collider at 17.1 m/s
+   40.783 |   2292 | B Medium 2     | contact  | UpperArmL touched Collider at 8.2 m/s
+   40.783 |   2292 | A Large        | contact  | FootR touched Collider at 8.2 m/s
+   40.800 |   2293 | A Large        | contact  | Pelvis touched Collider at 3.4 m/s
+   40.800 |   2293 | A Medium 2     | contact  | ThighR touched Collider at 3.4 m/s
+   40.800 |   2293 | B Medium 2     | contact  | UpperArmL touched Collider at 2.3 m/s
+   40.800 |   2293 | A Large        | contact  | ShinR touched Collider at 2.3 m/s
+   40.800 |   2293 | B Medium 2     | contact  | Chest touched Collider at 9.3 m/s
+   40.800 |   2293 | A Large        | contact  | FootR touched Collider at 9.3 m/s
+   40.800 |   2293 | B Medium 2     | contact  | Chest touched Collider at 6.6 m/s
+   40.800 |   2293 | B Large        | contact  | ForearmR touched Collider at 6.6 m/s
+   40.817 |   2294 | B Medium 2     | contact  | FootR touched Collider at 10.4 m/s
+   40.817 |   2294 | A Large        | contact  | ThighL touched Collider at 10.4 m/s
+   40.833 |   2295 | A Large        | contact  | ThighL touched Ground at 4.9 m/s
+   40.833 |   2295 | B Medium 2     | contact  | FootL touched Ground at 27.5 m/s
+   40.833 |   2295 | A Large        | contact  | FootL touched Ground at 5.8 m/s
+   40.833 |   2295 | A Large        | contact  | ShinL touched Ground at 7.0 m/s
+   40.850 |   2296 | B Medium 2     | contact  | HandL touched Collider at 27.4 m/s
+   40.850 |   2296 | B Large        | contact  | HandR touched Collider at 27.4 m/s
+   40.850 |   2296 | B Medium 2     | contact  | FootR touched Collider at 7.3 m/s
+   40.850 |   2296 | A Large        | contact  | ShinL touched Collider at 7.3 m/s
+   40.850 |   2296 | A Large        | contact  | ThighR touched Collider at 9.1 m/s
+   40.850 |   2296 | A Medium 2     | contact  | HandR touched Collider at 9.1 m/s
+   40.900 |   2299 | A Large        | contact  | FootL touched Ground at 1.8 m/s
+   40.900 |   2299 | A Large        | contact  | HandL touched Ground at 2.5 m/s
+   40.917 |   2300 | B Medium       | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.20
+   40.933 |   2301 | B Medium 2     | contact  | FootR touched Ground at 21.0 m/s
+   40.950 |   2302 | A Large        | contact  | Chest touched Collider at 1.3 m/s
+   40.950 |   2302 | A Medium 2     | contact  | FootR touched Collider at 1.3 m/s
+   40.950 |   2302 | B Large        | contact  | HandL touched Collider at 8.2 m/s
+   40.950 |   2302 | B Medium 2     | contact  | Chest touched Collider at 8.2 m/s
+   40.967 |   2303 | B Large        | contact  | HandL touched Collider at 12.0 m/s
+   40.967 |   2303 | B Medium 2     | contact  | Head touched Collider at 12.0 m/s
+   41.067 |   2309 | A Large        | contact  | Chest touched Ground at 1.4 m/s
+   41.083 |   2310 | A Large        | contact  | HandR touched Ground at 5.5 m/s
+   41.150 |   2314 | A Medium 2     | hit      | blow struck B Large's HandR at 16.0 m/s: parried by B Large's parried (26 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   41.150 |   2314 | B Large        | struck   | by A Medium 2 on the HandR: health 148/220, poise 94/120, recoil, standing
+   41.217 |   2318 | A Large        | contact  | FootL touched Ground at 2.0 m/s
+   41.250 |   2320 | B Medium 2     | contact  | Head touched Ground at 4.0 m/s
+   41.283 |   2322 | A Large        | contact  | ShinL touched Ground at 1.9 m/s
+   41.283 |   2322 | B Medium 2     | contact  | Chest touched Ground at 3.2 m/s
+   41.317 |   2324 | A Large        | contact  | ThighL touched Ground at 1.6 m/s
+   41.333 |   2325 | B Medium 2     | contact  | HandR touched Ground at 12.7 m/s
+   41.333 |   2325 | A Large        | contact  | Pelvis touched Ground at 1.6 m/s
+   41.350 |   2326 | B Medium 2     | contact  | ForearmR touched Ground at 1.4 m/s
+   41.350 |   2326 | A Large        | contact  | FootL touched Collider at 6.1 m/s
+   41.350 |   2326 | A Medium 2     | contact  | ShinR touched Collider at 6.1 m/s
+   41.400 |   2329 | A Large        | contact  | ShinL touched Collider at 7.9 m/s
+   41.400 |   2329 | A Medium 2     | contact  | FootR touched Collider at 7.9 m/s
+   41.417 |   2330 | A Medium 2     | tempo    | counter → probe: no answer came; energy 0.90, aggression 0.02
+   41.433 |   2331 | A Medium 2     | tempo    | probe → shell: pressed (pressure 3.00); energy 0.90, aggression 0.02
+   41.433 |   2331 | B Medium 2     | contact  | ForearmR touched Ground at 1.9 m/s
+   41.433 |   2331 | A Large        | contact  | UpperArmL touched Ground at 1.8 m/s
+   41.433 |   2331 | A Large        | contact  | FootR touched Ground at 8.1 m/s
+   41.450 |   2332 | B Medium 2     | contact  | UpperArmR touched Ground at 1.8 m/s
+   41.467 |   2333 | B Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 0.94
+   41.483 |   2334 | B Medium 2     | contact  | Head touched Ground at 2.7 m/s
+   41.483 |   2334 | A Large        | contact  | FootR touched Ground at 1.8 m/s
+   41.500 |   2335 | B Medium 2     | contact  | Pelvis touched Ground at 1.3 m/s
+   41.533 |   2337 | B Medium 2     | contact  | HandL touched Ground at 10.0 m/s
+   41.550 |   2338 | B Medium 2     | contact  | ThighR touched Ground at 2.4 m/s
+   41.600 |   2341 | B Medium 2     | contact  | ShinR touched Ground at 3.0 m/s
+   41.600 |   2341 | B Medium 2     | contact  | FootR touched Ground at 8.4 m/s
+   41.617 |   2342 | A Large        | contact  | FootR touched Ground at 3.2 m/s
+   41.617 |   2342 | A Large        | contact  | FootL touched Ground at 4.5 m/s
+   41.633 |   2343 | B Medium 2     | contact  | FootL touched Ground at 5.0 m/s
+   41.667 |   2345 | A Large        | contact  | FootL touched Ground at 3.2 m/s
+   41.767 |   2351 | A Large        | contact  | FootL touched Ground at 2.6 m/s
+   41.900 |   2359 | A Large        | contact  | HandR touched Ground at 1.1 m/s
+   41.917 |   2360 | A Large        | contact  | UpperArmR touched Ground at 1.2 m/s
+   41.967 |   2363 | B Medium 2     | contact  | FootL touched Collider at 1.0 m/s
+   41.967 |   2363 | A Large        | contact  | FootL touched Collider at 1.0 m/s
+   42.083 |   2370 | A Large        | contact  | FootR touched Ground at 2.0 m/s
+   42.167 |   2375 | B Medium 2     | contact  | ShinL touched Ground at 1.3 m/s
+   42.200 |   2377 | B Medium 2     | contact  | HandL touched Ground at 7.9 m/s
+   42.200 |   2377 | B Medium 2     | contact  | ForearmL touched Ground at 4.6 m/s
+   42.217 |   2378 | A Large        | contact  | HandR touched Ground at 1.3 m/s
+   42.300 |   2383 | A Large        | contact  | HandL touched Ground at 2.5 m/s
+   42.367 |   2387 | B Medium 2     | contact  | HandL touched Ground at 1.8 m/s
+   42.817 |   2414 | B Large        | tempo    | gather → press: smells blood; energy 1.00, aggression 0.94
+   43.050 |   2428 | A Medium 2     | move     | no headway toward B Large (2.6 m): going round to the right
+   43.617 |   2462 | B Large        | move     | no headway toward A Medium 2 (2.1 m): going round to the right
+   44.017 |   2486 | B Large        | contact  | FootL touched Collider at 6.0 m/s
+   44.017 |   2486 | A Large        | contact  | FootL touched Collider at 6.0 m/s
+   44.083 |   2490 | A Large        | contact  | FootL touched Ground at 6.3 m/s
+   44.150 |   2494 | B Medium 2     | contact  | FootL touched Ground at 1.3 m/s
+   44.300 |   2503 | A Medium 2     | death    | killed by B Medium's blow to the UpperArmL
+   44.300 |   2503 | B Medium       | hit      | blow struck A Medium 2's UpperArmL at 16.0 m/s: 19.2 damage, 24 poise, killed; impulse 31.9 N·s (80% into the part); the swing stopped; the target
+   44.300 |   2503 | A Medium 2     | struck   | by B Medium on the UpperArmL: health 0/100, poise 0/45, killed, dead
+   44.300 |   2503 | B Large        | sight    | lost track of A Medium 2
+   44.300 |   2503 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (20 poise); impulse 107.1 N·s (70% into the part); the swing stopped; blocked by the shield
+   44.300 |   2503 | A Medium 2     | struck   | by B Large on the HandL: health 0/100, poise 0/45, killed, dead
+   44.317 |   2504 | -              | fight    | over: team B wins after 42 s (the other team can't fight)
+   44.317 |   2504 | -              | input    | fight over: team B wins after 42 s (the other team can't fight)
+   44.317 |   2504 | B Medium       | sight    | lost track of A Medium 2
+   44.383 |   2508 | B Medium       | hit      | blow struck A Medium 2's Head at 16.0 m/s: 0.0 damage, 0 poise, killed; impulse 0.0 N·s (60% into the part); the swing stopped; the target
+   44.383 |   2508 | A Medium 2     | struck   | by B Medium on the Head: health 0/100, poise 0/45, killed, dead
+   44.400 |   2509 | B Medium       | hit      | blow struck B Large's HandR at 16.0 m/s: parried by B Large's parried (0 poise); impulse 0.0 N·s (70% into the part); the swing stopped; parried
+   44.400 |   2509 | B Large        | struck   | by B Medium on the HandR: health 148/220, poise 120/120, recoil, standing
+   44.733 |   2529 | A Medium 2     | contact  | HandR touched Ground at 4.1 m/s
+   44.833 |   2535 | A Medium 2     | contact  | FootR touched Ground at 5.0 m/s
+   45.050 |   2548 | A Medium 2     | contact  | FootR touched Ground at 5.0 m/s
+   45.167 |   2555 | A Large        | contact  | FootL touched Ground at 1.9 m/s
+   45.300 |   2563 | A Medium 2     | contact  | HandL touched Ground at 2.3 m/s
+   45.433 |   2571 | A Medium 2     | contact  | HandR touched Ground at 3.4 m/s
+   45.517 |   2576 | B Large        | contact  | FootL touched Collider at 3.0 m/s
+   45.517 |   2576 | B Medium 2     | contact  | FootL touched Collider at 3.0 m/s
+   45.550 |   2578 | B Large        | contact  | FootL touched Collider at 1.9 m/s
+   45.550 |   2578 | B Medium 2     | contact  | ShinL touched Collider at 1.9 m/s
+   45.583 |   2580 | B Large        | contact  | FootL touched Collider at 1.2 m/s
+   45.583 |   2580 | B Medium 2     | contact  | ShinL touched Collider at 1.2 m/s
+   45.633 |   2583 | B Large        | contact  | FootL touched Collider at 2.7 m/s
+   45.633 |   2583 | B Medium 2     | contact  | ShinL touched Collider at 2.7 m/s
+   45.717 |   2588 | B Large        | contact  | FootR touched Collider at 2.8 m/s
+   45.717 |   2588 | B Medium 2     | contact  | FootL touched Collider at 2.8 m/s
+   45.767 |   2591 | B Medium 2     | contact  | FootL touched Ground at 2.0 m/s
+   45.833 |   2595 | B Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 0.88
+   45.850 |   2596 | B Medium 2     | contact  | ThighL touched Ground at 1.3 m/s
+   45.850 |   2596 | B Medium 2     | contact  | ShinL touched Ground at 1.7 m/s
+   46.067 |   2609 | A Medium 2     | contact  | Chest touched Ground at 2.1 m/s
+   46.117 |   2612 | A Medium 2     | contact  | ShinL touched Ground at 1.6 m/s
+   46.117 |   2612 | A Medium 2     | contact  | ThighL touched Ground at 1.3 m/s
+   46.133 |   2613 | A Medium 2     | contact  | UpperArmL touched Ground at 2.3 m/s
+   46.183 |   2616 | A Medium 2     | contact  | ThighR touched Ground at 1.3 m/s
+   46.200 |   2617 | A Medium 2     | contact  | HandL touched Ground at 3.7 m/s
+   46.217 |   2618 | B Medium 2     | contact  | FootR touched Ground at 2.6 m/s
+   46.267 |   2621 | A Medium 2     | contact  | Pelvis touched Ground at 1.2 m/s
+   46.300 |   2623 | A Medium 2     | contact  | ForearmL touched Ground at 2.0 m/s
+   46.333 |   2625 | A Medium 2     | contact  | HandL touched Ground at 2.8 m/s
+   46.333 |   2625 | A Medium 2     | contact  | ForearmL touched Ground at 2.0 m/s
+   46.367 |   2627 | A Medium 2     | contact  | HandR touched Ground at 5.0 m/s
+   46.450 |   2632 | A Medium 2     | contact  | HandL touched Ground at 1.4 m/s
+   46.650 |   2644 | B Large        | tempo    | gather → press: fully charged (energy 1.00, aggression 0.88); energy 1.00, aggression 0.88
+   46.900 |   2659 | A Medium       | despawn  | recording stopped
+   46.900 |   2659 | A Medium 2     | despawn  | recording stopped
+   46.900 |   2659 | A Large        | despawn  | recording stopped
+   46.900 |   2659 | B Medium       | despawn  | recording stopped
+   46.900 |   2659 | B Medium 2     | despawn  | recording stopped
+   46.900 |   2659 | B Large        | despawn  | recording stopped
+   46.900 |   2659 | -              | session  | 355 pictures saved
+   46.900 |   2659 | -              | session  | recording stopped after 44.3 s (2659 physics steps)
