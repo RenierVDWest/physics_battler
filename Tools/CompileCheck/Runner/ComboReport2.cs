@@ -15,6 +15,8 @@ using UnityEngine;
 
 internal static class StrikeComboReport
 {
+    private static readonly List<float> predOff = new List<float>();
+
     public static int Run(string dir, string body)
     {
         Directory.CreateDirectory(dir);
@@ -268,6 +270,11 @@ internal static class StrikeComboReport
             int switches = loco.Switches;
             float sinceSwitch = 99f;
             string lastState = "";
+            bool predTrace = Environment.GetEnvironmentVariable("PRED_TRACE") != null;
+            var firstPred = new Dictionary<int, (Vector3, Vector3, float, Vector3, float)>();
+            var lastPred = new Dictionary<int, (Vector3, Vector3, float, Vector3, float)>();
+            int nowSerial = -1;
+            var predClip = new Dictionary<int, LocoClip>();
             for (int i = 0; i < 900; i++)
             {
                 clock = i * dt;
@@ -332,6 +339,41 @@ internal static class StrikeComboReport
                         Console.WriteLine(string.Format(ci, "      {0} at contact: aimed at {1}, the target now {2} ({3:0.00} m off), the tip at {4}, the dummy {5:0.00} m away (root to root), live {6}",
                             loco.Shot.Name, aimAt, nowAt, (nowAt - aimAt).magnitude, ct,
                             new Vector2(dummy.Loco.Position.x - loco.Position.x, dummy.Loco.Position.z - loco.Position.z).magnitude, hits.LiveBefore));
+                    }
+                }
+
+                if (predTrace && hits.Read(out var prd))
+                {
+                    if (prd.Predicted)
+                    {
+                        var p = (prd.Path[StrikeHits.ContactPoint], hits.PredictedRoot, hits.PredictedFacing, hits.PredictedPull, prd.ToContact);
+                        predClip[prd.Serial] = hits.PredictedClip;
+                        if (!firstPred.ContainsKey(prd.Serial)) firstPred[prd.Serial] = p;
+                        lastPred[prd.Serial] = p;
+                    }
+                    else if (prd.ToContact > 0f)
+                    {
+                        nowSerial = prd.Serial;
+                    }
+                }
+
+                if (predTrace && loco.Shot != null && loco.Shot.ContactFrame >= 0)
+                {
+                    float c = loco.Shot.ContactFrame / loco.Shot.Rate;
+                    if (loco.ShotTime >= c && loco.ShotTime - loco.ShotRate * dt < c && firstPred.TryGetValue(nowSerial, out var fp) && hits.Blade(loco.Shot, out _, out _, out var strikeNow))
+                    {
+                        var lp = lastPred[nowSerial];
+                        string Err((Vector3 strike, Vector3 root, float facing, Vector3 pull, float ahead) q)
+                        {
+                            Vector3 armP = Quaternion.Inverse(Quaternion.Euler(0f, q.facing, 0f)) * (q.strike - q.root);
+                            Vector3 armA = Quaternion.Inverse(Quaternion.Euler(0f, loco.Facing, 0f)) * (strikeNow - loco.Position);
+                            Vector3 rootOff = loco.Position - q.root; rootOff.y = 0f;
+                            return string.Format(ci, "{0:0.00} s ahead: off {1:0.00} m; the root {2:0.00} m off, facing {3:+0;-0} deg off, the arm (in the body's frame) {4:0.00} m off (pull {5:0.00} m planned)",
+                                q.ahead, (strikeNow - q.strike).magnitude, rootOff.magnitude, Mathf.DeltaAngle(q.facing, loco.Facing), (armA - armP).magnitude, q.pull.magnitude);
+                        }
+
+                        Console.WriteLine("      predicted " + (predClip.TryGetValue(nowSerial, out var pcn) && pcn != null ? pcn.Name.Replace(prefix, "") : "?") + ", played " + loco.Shot.Name.Replace(prefix, "") + string.Format(ci, " (strike {0} vs read {1}, root {2} vs {3})", strikeNow, fp.Item1, loco.Position, fp.Item2) + ": first read " + Err(fp) + " | last read " + Err(lp));
+                        predOff.Add((strikeNow - fp.Item1).magnitude);
                     }
                 }
 
@@ -435,6 +477,12 @@ internal static class StrikeComboReport
         ShieldSteadiness.Print(steadies);
         Console.WriteLine($"Outside its blows the blade touched a body or a shield {allInside} steps, was over 2 cm into one {allDeep} steps, the longest {longestDeep} steps running");
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "The shield arm through its own board: {0} steps, at most {1:0.00} m", armThrough, armThroughMost));
+        if (predOff.Count > 0)
+        {
+            var po = predOff.OrderBy(v => v).ToList();
+            Console.WriteLine(string.Format(ci, "The combos' next blows read ahead: at contact the blade came from the first read median {0:0.00} m, 90% {1:0.00} m, at most {2:0.00} m ({3} blows)", po[po.Count / 2], po[(int)(po.Count * 0.9f)], po[po.Count - 1], po.Count));
+        }
+
         Console.WriteLine(string.Format(ci, "All: {0} combos, {1} strikes: {2} landed, {3} blocked, {4} missed; about the switches the hands and feet moved at most {5:0.0} m/s ({6})",
             combos, strikesPlayed, landed, blocked, missed, fastest, fastestWhere));
         return 0;

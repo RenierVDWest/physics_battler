@@ -324,7 +324,7 @@ namespace PhysicsBattler.Locomotion
             var now = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
             // (Past its contact, or met already: a blow set aside or slid off backs out from where it met.)
             if (combo == null || now == null || now.ContactFrame < 0 || (loco.ShotTime <= now.ContactFrame / now.Rate && !stopped)
-                || !combo.Upcoming(out var clip, out float entry, out float toContact, out Vector3 rootAt, out float facing, out float lunge, out Vector3 pull))
+                || !combo.Upcoming(out var clip, out float entry, out float toContact, out Vector3 rootAt, out float facing, out float lunge, out Vector3 pull, out bool bladeKnown, out Vector3 gripAt, out Vector3 wayAt))
             {
                 return false;
             }
@@ -353,10 +353,32 @@ namespace PhysicsBattler.Locomotion
             float gripAlong = Weapon != null && Weapon.kind == WeaponKind.Club ? 0.35f : 0.1f;
             float strikeAlong = IsThrust(clip) ? 1f : poser.SweetSpot;
             var turn0 = Quaternion.Euler(0f, facing, 0f);
-            Vector3 Point(float t, float along)
+            // (The clip's hand and blade as the root will carry them, the arm's pull added.)
+            void ClipBlade(float t, out Vector3 hand, out Vector3 way)
             {
                 clip.RootMotion(entry, t, out var moved, out float turned);
-                return rootAt + turn0 * new Vector3(moved.x, 0f, moved.y) * (lunge * loco.Leg) + Quaternion.Euler(0f, facing + turned, 0f) * StrikeAt(clip, t, along) + pull;
+                var turnThen = Quaternion.Euler(0f, facing + turned, 0f);
+                hand = rootAt + turn0 * new Vector3(moved.x, 0f, moved.y) * (lunge * loco.Leg) + turnThen * StrikeAt(clip, t, 0f) + pull;
+                Vector3 w = StrikeAt(clip, t, 1f) - StrikeAt(clip, t, 0f);
+                way = w.sqrMagnitude > 1e-8f ? turnThen * w.normalized : turnThen * Vector3.forward;
+            }
+
+            // (Fitted to where the plan will have the blade at contact, held in our grip and steered by the wrist (the
+            // plan "Shield and blade contact", step 4): the clip's hand bones alone put a chop's blade 0.6 m low and a
+            // thrust's point over the head.)
+            Vector3 handFix = Vector3.zero;
+            Quaternion wayFix = Quaternion.identity;
+            if (bladeKnown && UseFittedAhead)
+            {
+                ClipBlade(contact, out Vector3 handAt, out Vector3 clipWayAt);
+                handFix = gripAt - handAt;
+                wayFix = Quaternion.FromToRotation(clipWayAt, wayAt);
+            }
+
+            Vector3 Point(float t, float along)
+            {
+                ClipBlade(t, out Vector3 hand, out Vector3 way);
+                return hand + handFix + wayFix * way * (poser.WeaponLength * along);
             }
 
             for (int k = 0; k < PathPoints; k++)
@@ -383,12 +405,18 @@ namespace PhysicsBattler.Locomotion
 
             read.Aim = read.Path[ContactPoint];
             Blade(now, out _, out _, out read.Blade);
-            clip.RootMotion(entry, contact, out _, out float turnedAt);
+            clip.RootMotion(entry, contact, out var movedAt, out float turnedAt);
+            PredictedRoot = rootAt + turn0 * new Vector3(movedAt.x, 0f, movedAt.y) * (lunge * loco.Leg);
+            PredictedFacing = facing + turnedAt;
+            PredictedPull = pull;
+            PredictedClip = clip;
             var turnAt = Quaternion.Euler(0f, facing + turnedAt, 0f);
             clip.Pose(contact, readPose, loco.Leg);
-            read.BladeWay = turnAt * StrikeCombos.Blade(readPose);
-            Vector3 way = StrikeAt(clip, Mathf.Max(entry, contact - ReadOver)) - StrikeAt(clip, contact);
-            read.ComesFrom = way.sqrMagnitude > 1e-6f ? turnAt * way.normalized : (read.Blade - read.Aim).normalized;
+            read.BladeWay = bladeKnown && UseFittedAhead ? wayAt : turnAt * StrikeCombos.Blade(readPose);
+            Vector3 way = bladeKnown && UseFittedAhead
+                ? Point(Mathf.Max(entry, contact - ReadOver), strikeAlong) - read.Aim
+                : turnAt * (StrikeAt(clip, Mathf.Max(entry, contact - ReadOver)) - StrikeAt(clip, contact));
+            read.ComesFrom = way.sqrMagnitude > 1e-6f ? way.normalized : (read.Blade - read.Aim).normalized;
             return true;
         }
 
@@ -407,6 +435,18 @@ namespace PhysicsBattler.Locomotion
         private LocoClip readClip;
         private float readTime = -1f;
         private int readSerial;
+
+        /// <summary>Whether a combo's next blow is read fitted to its plan's blade at contact (headless: <c>NO_FIT_AHEAD</c> reads it off the clip's hand alone, as before).</summary>
+        public static bool UseFittedAhead = System.Environment.GetEnvironmentVariable("NO_FIT_AHEAD") == null;
+
+        /// <summary>For the headless trace of a combo's next blow read ahead: where its root, facing and the arm's pull were expected at its contact (the last read ahead).</summary>
+        public Vector3 PredictedRoot, PredictedPull;
+
+        /// <summary>See <see cref="PredictedRoot"/>.</summary>
+        public float PredictedFacing;
+
+        /// <summary>See <see cref="PredictedRoot"/>.</summary>
+        public LocoClip PredictedClip;
 
         // (Counted across every attacker, so no defender takes a new blow for one it met before: a fighter set up again
         // starts its own count over, and a second attacker has its own.)

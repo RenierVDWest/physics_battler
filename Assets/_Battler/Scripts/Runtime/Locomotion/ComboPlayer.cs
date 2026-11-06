@@ -213,14 +213,16 @@ namespace PhysicsBattler.Locomotion
         /// side, but a fighter reads it coming out of the last one's follow-through. Its clip, where its core is taken
         /// up, how long until its contact (seconds as they pass), and its plan as the strike will be played: the root (the
         /// link's, stepped in) and facing (turned onto its target) it plays from, the lunge's stretch, and the arm's pull
-        /// (world) as far as it goes. False when none is planned (or it is not a combo of cores).
+        /// (world) as far as it goes; and, when known, the grip and the blade's way at contact (world). False when none
+        /// is planned (or it is not a combo of cores).
         /// </summary>
-        public bool Upcoming(out LocoClip clip, out float entry, out float toContact, out Vector3 rootAt, out float facing, out float lunge, out Vector3 pull)
+        public bool Upcoming(out LocoClip clip, out float entry, out float toContact, out Vector3 rootAt, out float facing, out float lunge, out Vector3 pull, out bool bladeKnown, out Vector3 grip, out Vector3 way)
         {
             clip = null;
             entry = toContact = facing = 0f;
             lunge = 1f;
-            rootAt = pull = Vector3.zero;
+            rootAt = pull = grip = way = Vector3.zero;
+            bladeKnown = false;
             if (!Cores || current == null || next >= chain.Count || played >= Most || loco.Current != Locomotor.Mode.OneShot || loco.Shot != current
                 || !StrikeCores.TryGet(current, out var core) || !StrikeCores.TryGet(chain[next].To, out var nextCore))
             {
@@ -251,6 +253,8 @@ namespace PhysicsBattler.Locomotion
             Vector3 aim = Target(clip, entry);
             rootAt += StepIn(clip, aim, entry, scale, rootAt, facing);
             poser.PlanFrom(clip, aim, entry, rootAt, facing, out float by, out lunge, out pull, out Vector3 miss);
+            // (Where its blade will be at contact, as the plan has it: what the one it strikes at reads coming.)
+            bladeKnown = poser.PlannedBlade(clip, aim, entry, rootAt, facing, pull, out grip, out way);
             if (Magnetic && TargetFor != null)
             {
                 // (Its wind-up's magnet will carry the body across what the swing misses by, as far as it goes: the pull

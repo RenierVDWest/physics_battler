@@ -448,6 +448,17 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     for that one, 5 s old: the dummy's thrust went in at the walker's head, off the board. Blows are now counted
     across every attacker. The lab's shield lines say whose shield ("the walker", "the dummy"). In the spar A throws
     9 blows (was 8); `dummyhits` and `combos` as before.
+  - A combo's next blow read where its blade will really be (the plan "Shield and blade contact", step 4). Read
+    coming out of the last blow, the next one's blade was taken from the clip's hand bones alone, which hold it nothing
+    like our grip does and leave out the wrist's steer at the target: a chop's blade came out 0.6 m low, a thrust's
+    point over the head. The read is now fitted to where the strike's own plan will have the blade at contact (the
+    grip as measured for each clip on each body, `StrikeReach`, the arm's pull, the wrist's steer). Headless at skill
+    1, the blade at contact from the first read: the Medium's combos median 0.81 to 0.29 m, the worst 1.49 to 0.45 m;
+    the Small's the worst 0.77 to 0.38 m (median 0.23 to 0.35). The Medium's combos all on the board, 42 of 42 (was 39),
+    if further from its centre (median 0.64 of the radius, was 0.47). The Large's forehand stays 0.9 m off: it falls
+    short of where it is aimed. At skill 0.5 nothing changes (a middling shield waits to see a blow, it doesn't read
+    it ahead): combos still 40% off the board. `PRED_TRACE=1 combos` prints each read against the blow;
+    `NO_FIT_AHEAD=1` reads as before.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

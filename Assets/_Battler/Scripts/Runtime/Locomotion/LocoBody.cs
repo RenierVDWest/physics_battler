@@ -1285,6 +1285,54 @@ namespace PhysicsBattler.Locomotion
             pull = Vector3.ClampMagnitude(miss, MostAimPull);
         }
 
+        /// <summary>
+        /// Where a strike planned from a root will hold its blade at contact (world): the grip, the arm's
+        /// <paramref name="pull"/> added, and the blade's way, as the wrist will have steered it at the target. What a
+        /// fighter reads of a combo's next blow coming (the plan "Shield and blade contact", step 4). False when the
+        /// strike's reach on this body isn't known (StrikeReach).
+        /// </summary>
+        public bool PlannedBlade(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing, Vector3 pull, out Vector3 grip, out Vector3 way)
+        {
+            grip = way = Vector3.zero;
+            if (clip == null || clip.ContactFrame < 0)
+            {
+                return false;
+            }
+
+            startFrom = Mathf.Clamp(startFrom, 0f, Mathf.Max(0f, clip.ContactFrame / clip.Rate - 0.05f));
+            // (Planning it leaves the plan of the strike playing as it was.)
+            Vector3 keepGrip = planGrip;
+            bool keepKnown = planGripKnown;
+            Plan(clip, target, startFrom, rootAt, facing, out _, out _, out Vector3 predicted, out _);
+            Vector3 gripAt = planGrip;
+            bool known = planGripKnown;
+            planGrip = keepGrip;
+            planGripKnown = keepKnown;
+            if (!known)
+            {
+                return false;
+            }
+
+            var ground = new Vector3(rootAt.x, GroundY, rootAt.z);
+            var turn = Quaternion.Euler(0f, facing, 0f);
+            grip = ground + turn * gripAt + pull;
+            way = turn * (predicted - gripAt);
+            if (way.sqrMagnitude < 1e-8f)
+            {
+                return false;
+            }
+
+            way.Normalize();
+            Vector3 want = target - grip;
+            Vector3 axis = Vector3.Cross(way, want);
+            if (want.sqrMagnitude > 1e-4f && axis.sqrMagnitude > 1e-10f)
+            {
+                way = Quaternion.AngleAxis(Mathf.Min(Vector3.Angle(way, want), IsThrust(clip) ? MostThrustSteer : MostBladeSteer), axis.normalized) * way;
+            }
+
+            return true;
+        }
+
         /// <summary>The same, from a root somewhere else (a combo's link: the root turned and moved there).</summary>
         public float MissAfterPull(LocoClip clip, Vector3 target, float startFrom, Vector3 rootAt, float facing)
         {
