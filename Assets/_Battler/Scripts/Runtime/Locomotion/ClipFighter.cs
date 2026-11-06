@@ -1280,9 +1280,10 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            // (In a clip of its own (a reaction, a strike) its feet can't step: the body would slide over them. Only a late
-            // arm's last resort steps back then.)
-            if (!late && Loco.Current == Locomotor.Mode.OneShot)
+            // (In a clip of its own its feet can't step: the body would slide over them (the playtest of 6 November: a planted
+            // foot dragged 30 cm, a late arm's step taken in a reaction clip). In its own strike it doesn't step back; in a
+            // reaction a late arm's last resort still does, the reaction given up for the walk's steps.)
+            if (Loco.Current == Locomotor.Mode.OneShot && (!late || Striking))
             {
                 return;
             }
@@ -1324,11 +1325,8 @@ namespace PhysicsBattler.Locomotion
             GroundTrace?.Invoke(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}gave ground {1:0.00} m to blow {2}, {3:0.00} s before contact ({4}{5}{6}), the weight eased {7:0%}",
                 Traced, step * Size, b.Serial, b.ToContact, late ? "its arm late" : "", heavy >= 1f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}heavy: {1:0.00} m/s", late ? ", " : "", heavy * heavyFrom) : "",
                 deep > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}deep: the hand {1:0.00} m in", late || heavy >= 1f ? ", " : "", deep) : "", groundEase));
-            // (The walk steps after it, as a body driven back does.)
-            if (Loco.Current != Locomotor.Mode.OneShot)
-            {
-                Loco.Push(away * (0.6f * Mathf.Sqrt(Size)));
-            }
+            // (The walk steps after it, as a body driven back does; out of a reaction clip too.)
+            Loco.Push(away * (0.6f * Mathf.Sqrt(Size)));
         }
 
         /// <summary>The share of blow <paramref name="serial"/>'s weight its step back takes off as it is met (0: it didn't step back to it).</summary>

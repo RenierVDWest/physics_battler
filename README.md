@@ -484,6 +484,12 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     as a jump stopped by what it struck does (the weapon arm held off the follow-through), and the blow drives it
     back only once a foot is down. Headless (`JUMP_HIT=0.7 JUMP_TRACE=1 dummyhits <dir> Medium sns_chop_lunge` strikes
     the attacker 0.7 s into its jump): it falls from 1.71 m to its touchdown at 1.2 s, then steps back.
+  - No step back over planted feet (the playtest of 6 November: the walker's planted foot dragged 17, 30 and 34 cm).
+    Still in a reaction clip from one blow, a late arm's last-resort step back to the next moved the body while the
+    clip kept the feet planted. It now gives the reaction up for the walk's steps; in its own strike it doesn't step
+    back. A scene's Combat Feel keeps the giving-ground values it first saved (0.25 and 0.5 m): the new defaults, 0.1
+    and 0.2, show only once set there. Left: a Small's combos at parry skill 0.5 still drag a planted foot 14 cm as
+    the dummy is driven back (as before).
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
