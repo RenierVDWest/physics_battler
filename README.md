@@ -502,6 +502,11 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     most); planted feet within 0.2 cm but one plant of 2.2 cm; bodies overlapping 12 steps of 3600, never nearer than
     0.49 m (none with the teams swapped). The old path (the switch off) as it was. `fight` prints each clip fighter's
     approach, feet and root (`FIGHT_SECONDS`, `FIGHT_OVERLAP_TRACE`).
+  - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
+    was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
+    are now readable while written (a session still recording commits as far as it has got). And stopping a session
+    closes every file even if its summary fails. A clip fighter's track records its walk (mode, speed, the speed
+    asked, the feet held) instead of the old pose's.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

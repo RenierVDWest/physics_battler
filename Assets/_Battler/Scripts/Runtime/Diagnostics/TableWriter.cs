@@ -29,7 +29,9 @@ namespace PhysicsBattler.Diagnostics
 
         public TableWriter(string path)
         {
-            file = File.Create(path);
+            // (Shared for reading while it is written: git and the editor can read a session still recording. File.Create
+            // shares nothing, and on Windows a commit of the logs failed with "Permission denied" until Unity was closed.)
+            file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
             gzip = new GZipStream(file, CompressionLevel.Fastest);
             writer = new StreamWriter(gzip, new UTF8Encoding(false), 1 << 16);
         }
