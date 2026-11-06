@@ -435,6 +435,14 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     the kinematic legs too, instead of sweeping them there. In the spar the biggest root jump in a step went from
     0.62 m to 0.30 m (`spar` prints it). Combos land as before but for the Small's against the sword, now parried a
     blow later.
+  - Weapons rest against bodies and shields outside their blows (the plan "Shield and blade contact", step 6). Out
+    of a blow (winding up, recovering, on guard) a blade sitting in the other fighter's body or shield pushes its
+    hand out, along the shortest way out of what it is in, taken in quickly (0.01 s) and let go slowly (0.08 s), the
+    arm solved again to reach it; in a blow nothing changes, so slashes still carry through. Headless, steps the
+    blade was over 2 cm into a body or shield outside its blows: against the Medium 165 to 89, the Small 105 to 41,
+    the Large 25 to 11, the Medium's combos 78 to 57; the longest such run 12 steps to 5 (the Small), 6 to 2 (the
+    Large). What lands, is blocked or parried, the hit stops and drive-backs are as before; the spar's weapon flicks
+    the same (3). `NO_REST=1` turns it off headless; `dummyhits` and `combos` print the blade outside its blows.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
