@@ -85,6 +85,15 @@ namespace PhysicsBattler.Battle
         /// <summary>More room between two of one team on one target (metres at medium size): to swing in.</summary>
         public const float ElbowRoom = 0.45f;
 
+        /// <summary>How much further (tiles) a target already taken by each teammate counts, to a clip fighter choosing one: they pair off.</summary>
+        public const float ClipPairing = 2.5f;
+
+        /// <summary>The more room a clip fighter keeps from any teammate (metres at a Medium's size, on top of the rest): two of a side spread out, each on its own.</summary>
+        public const float ClipAllySpread = 0.5f;
+
+        /// <summary>The more room a clip fighter keeps from an enemy it isn't fighting, and that isn't fighting it (metres at a Medium's size): the pairs spread apart.</summary>
+        public const float ClipPairSpread = 0.7f;
+
         /// <summary>A want smaller than this share of the walking speed is dropped (no nervous little steps).</summary>
         public const float DeadZone = 0.12f;
 
@@ -296,9 +305,18 @@ namespace PhysicsBattler.Battle
                 }
 
                 // (Its attack ring full: others are on it already. It goes for another, or waits.)
-                if (Attackers(units, other, unit) >= RingSize)
+                int on = Attackers(units, other, unit);
+                if (on >= RingSize)
                 {
                     score += 3f;
+                }
+
+                // (A clip fighter pairs off (the playtest of 6 November: they clumped up, four on one spot): one already
+                // taken by a teammate counts as further, so they spread over the enemies, two on one only when the numbers
+                // make it so.)
+                if (unit.UsesClips)
+                {
+                    score += ClipPairing * on;
                 }
 
                 if (score < bestScore)
@@ -365,6 +383,12 @@ namespace PhysicsBattler.Battle
             float closest = 0.45f * size + 0.2f * enemy.Body.SizeFactor;
             float engage = Mathf.Max(closest, EngageDistance(unit, enemy) - plan.closeIn);
             Vector3 toward = to / Mathf.Max(1e-4f, distance);
+            float flankLeft = 0f;
+            if (unit.UsesClips)
+            {
+                toward = Flank(units, unit, enemy, toward, engage, out flankLeft);
+            }
+
             float speed = unit.WalkSpeed;
             bool busy = unit.IsAttacking || unit.HitStop > 0f || unit.Knockback.magnitude >= 0.05f;
 
@@ -407,6 +431,12 @@ namespace PhysicsBattler.Battle
                 // holding back: a longer reach doesn't keep backing off from a shorter one, or the
                 // shorter could never get in. Shelled up, it gives ground too: milestone 11 keeps it further off under each blow.)
                 desired = -toward * 0.6f * speed * Mathf.Clamp01(-off / (0.3f * size));
+            }
+
+            // (Flanking: at its striking distance but not yet round at its side, it goes on round.)
+            if (flankLeft > 0.25f * size && desired.sqrMagnitude < 0.01f * speed * speed)
+            {
+                desired = toward * (0.7f * speed * Mathf.Clamp01(flankLeft / (0.4f * size)));
             }
 
             bool near = off <= 0.3f * size;
@@ -465,6 +495,72 @@ namespace PhysicsBattler.Battle
 
             Attack(units, unit, enemy, plan, distance, now);
         }
+
+        /// <summary>
+        /// A clip fighter's way in to a target a teammate is on already (the playtest of 6 November: the second came in
+        /// behind the first, stuck in its back): round to a side of the target that's free, as far round from each of them
+        /// as <see cref="FlankApart"/> asks. The way to that place at the striking distance, from where it stands.
+        /// </summary>
+        private Vector3 Flank(IReadOnlyList<UnitController> units, UnitController unit, UnitController enemy, Vector3 toward, float engage, out float left)
+        {
+            left = 0f;
+            Vector3 from = Flat(unit.Root.position - enemy.Root.position);
+            if (from.sqrMagnitude < 1e-4f)
+            {
+                return toward;
+            }
+
+            from.Normalize();
+            float turn = 0f;
+            foreach (var other in units)
+            {
+                if (other == null || other == unit || other.Team != unit.Team || !other.IsInitialized || !other.IsAlive || other.IsDown
+                    || !plans.TryGetValue(other, out var theirs) || theirs.target != enemy)
+                {
+                    continue;
+                }
+
+                Vector3 theirFrom = Flat(other.Root.position - enemy.Root.position);
+                if (theirFrom.sqrMagnitude < 1e-4f)
+                {
+                    continue;
+                }
+
+                // (Its side of the target against theirs: nearer than FlankApart round, it goes further round, away from them.)
+                float angle = Vector3.SignedAngle(theirFrom, from, Vector3.up);
+                if (Mathf.Abs(angle) < FlankApart)
+                {
+                    float side = Mathf.Abs(angle) < 1f ? (unitsOrder(unit) < unitsOrder(other) ? 1f : -1f) : Mathf.Sign(angle);
+                    turn += side * (FlankApart - Mathf.Abs(angle));
+                }
+            }
+
+            if (Mathf.Abs(turn) < 1f)
+            {
+                return toward;
+            }
+
+            Vector3 place = enemy.Root.position + Quaternion.Euler(0f, Mathf.Clamp(turn, -FlankApart, FlankApart), 0f) * from * engage;
+            Vector3 way = Flat(place - unit.Root.position);
+            left = way.magnitude;
+            return way.sqrMagnitude > 1e-4f ? way.normalized : toward;
+
+            int unitsOrder(UnitController u)
+            {
+                for (int i = 0; i < units.Count; i++)
+                {
+                    if (units[i] == u)
+                    {
+                        return i;
+                    }
+                }
+
+                return 0;
+            }
+        }
+
+        /// <summary>Two of a side on one target stand at least this far round it from each other (degrees).</summary>
+        public const float FlankApart = 100f;
 
         /// <summary>In reach: when its timer comes round (or an opening it reads), a blow at the target or another enemy in front of it.</summary>
         private void Attack(IReadOnlyList<UnitController> units, UnitController unit, UnitController enemy, Plan plan, float distance, float now)
@@ -831,8 +927,18 @@ namespace PhysicsBattler.Battle
                 float room = mine + BodyRadius(other) + Margin * unit.Body.SizeFactor;
                 if (unit.UsesClips)
                 {
-                    // (A clip fighter's walk answers a push late, its feet taking the steps: it starts sooner.)
+                    // (A clip fighter's walk answers a push late, its feet taking the steps: it starts sooner; and it keeps off
+                    // its own side, each fighting its own.)
                     room += ClipRoom * unit.Body.SizeFactor;
+                    if (other.Team == unit.Team)
+                    {
+                        room += ClipAllySpread * unit.Body.SizeFactor;
+                    }
+                    else if (other != plan.target && other.Opponent != unit)
+                    {
+                        // (An enemy fighting someone else: the next pair over, kept off.)
+                        room += ClipPairSpread * unit.Body.SizeFactor;
+                    }
                 }
 
                 if (other.Team == unit.Team && plans.TryGetValue(other, out var theirs) && theirs.target != null && theirs.target == plan.target)

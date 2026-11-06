@@ -108,6 +108,8 @@ internal static class FightReport
         var rootJump = new Dictionary<UnitController, (float most, float at)>();
         var reachedAt = new Dictionary<UnitController, float>();
         var overlapPairs = new Dictionary<string, (int steps, float nearest)>();
+        var mateGaps = new List<float>();
+        int targetSteps = 0, aloneSteps = 0;
         var offs = new Dictionary<UnitController, List<float>>();
         if (clips)
         {
@@ -228,6 +230,29 @@ internal static class FightReport
 
                 if (clips)
                 {
+                    // (How they spread: each standing one's nearest teammate, and whether its target has others of its side on it.)
+                    foreach (var u in units)
+                    {
+                        if (!u.IsAlive || u.State != UnitState.Standing) continue;
+                        float nearestMate = 99f;
+                        foreach (var o in units)
+                        {
+                            if (o != u && o.IsAlive && o.Team == u.Team && o.State == UnitState.Standing)
+                                nearestMate = Mathf.Min(nearestMate, Vector3.Distance(FightLoop.BodyAt(u), FightLoop.BodyAt(o)));
+                        }
+                        if (nearestMate < 90f) mateGaps.Add(nearestMate);
+                        if (u.Opponent != null && u.Opponent.IsAlive)
+                        {
+                            int sharing = 0;
+                            foreach (var o in units)
+                            {
+                                if (o != u && o.IsAlive && o.Team == u.Team && o.Opponent == u.Opponent) sharing++;
+                            }
+                            targetSteps++;
+                            if (sharing == 0) aloneSteps++;
+                        }
+                    }
+
                     float t = Time.time - startTime;
                     foreach (var u in units)
                     {
@@ -305,6 +330,11 @@ internal static class FightReport
         if (clips)
         {
             sb.AppendLine($"  clip fighters ({(UnitController.ClipBlows ? "step 5: striking" : "step 4: moving only")}): {damageAll:0} damage dealt in all; bodies moved straight out of each other {UnitController.ClipDeepMoves} times, {UnitController.ClipDeepMoved:0.00} m in all");
+            mateGaps.Sort();
+            if (mateGaps.Count > 0)
+            {
+                sb.AppendLine($"    spread: nearest teammate median {mateGaps[mateGaps.Count / 2]:0.00} m (10% {mateGaps[mateGaps.Count / 10]:0.00}, least {mateGaps[0]:0.00}); a unit alone on its target {100f * aloneSteps / Mathf.Max(1, targetSteps):0}% of the time");
+            }
             foreach (var u in units)
             {
                 if (hitKinds.TryGetValue(u, out var k) || clipBlows.ContainsKey(u))

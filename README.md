@@ -516,6 +516,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     friendly fire 3 to 10 of 25 to 40 hits (the old fight: 2 or 3 of 65). Left: planted feet still drag in the press,
     up to 43 cm (in reaction and strike clips; the lab's spar had 21 cm). `CLIP_NO_BLOWS=1` moves only; `fight`
     prints each clip fighter's blows and hits (`FIGHT_HITS` each hit, `FIGHT_FEET` each foot dragged).
+  - Clip fighters pair off and spread out (the playtest of 6 November: they clumped up, four on one spot, the
+    Small stuck in its own Large's back). Choosing a target, one already taken by a teammate counts 2.5 tiles
+    further, so they spread over the enemies; two on one target go round to sides of it at least 100 degrees apart
+    (flanking) instead of queuing; and a clip fighter keeps 0.5 m more room from any teammate and 0.7 m from an
+    enemy fighting someone else (the next pair over). Headless, the share of time three or more stood in one knot
+    went from 29, 12 and 6% to 12, 17 and 8% (four or more: 13, 1, 0% to 7, 5, 6%); the playtest's sessions had
+    40, 8 and 52%. `python3 Tools/Playtest/clump.py PlaytestLogs/<session>` measures a session's knots.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session

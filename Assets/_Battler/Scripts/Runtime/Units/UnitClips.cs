@@ -58,7 +58,7 @@ namespace PhysicsBattler.Units
         private static readonly bool NoKeepApart = System.Environment.GetEnvironmentVariable("CLIP_NO_KEEPAPART") != null;
 
         /// <summary>Two of a side stand no nearer than this many times their two bodies' radii together (root to root).</summary>
-        public const float ClipAllyGap = 1.1f;
+        public const float ClipAllyGap = 1.6f;
 
         /// <summary>Who its strike playing is aimed at (its arm's pull follows them).</summary>
         public UnitController ClipTarget { get; private set; }
