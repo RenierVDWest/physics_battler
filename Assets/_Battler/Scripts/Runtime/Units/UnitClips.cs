@@ -134,6 +134,8 @@ namespace PhysicsBattler.Units
         /// </summary>
         private void StepClips(float dt)
         {
+            UpdateSeveredCollisions(dt);
+            UpdateBleeding(dt);
             if (!IsAlive)
             {
                 // (Dead: its body lies where it fell, its place with it.)
@@ -864,13 +866,96 @@ namespace PhysicsBattler.Units
                 Kind = s.Parried ? "parried" : s.Shield ? "blocked by the shield"
                     : struck == ClipTarget ? "the target" : struck.Team == Team ? "an ally (friendly fire)" : "someone in the way",
             };
+            // (Milestone 5's severing, for clip fighters (the plan "Bringing the lab into the fight", step 7): an edge across a
+            // joint, fast and hard enough, cuts the limb off there; judged before the blow moves anything.)
+            PartId? cut = null;
+            if (s.CanCut && Severs && Clip.Strikes != null && struck.Rig != null)
+            {
+                cut = struck.SeverCut(struck.Rig.Part(s.Part), Clip.Strikes.Weapon, s.With, Loadout.Scale, s.Speed, s.Direction, s.BladeFrom, s.BladeTo, s.Point,
+                    s.Damage, out report.SeverMiss);
+            }
+
             struck.ClipTakeHit(report, Clip.Strikes != null ? Clip.Strikes.HitStop : 0f);
+            if (cut.HasValue && struck.Sever(cut.Value, report.Result.Impulse, report))
+            {
+                report.Severed = cut;
+            }
+
             if (!report.Blocked)
             {
                 Rhythm?.NoteLanded();
             }
 
             Hit?.Invoke(report);
+        }
+
+        /// <summary>Clip fighters' blows sever (headless: <c>CLIP_NO_SEVER</c> keeps every limb on, as before).</summary>
+        public static bool Severs = System.Environment.GetEnvironmentVariable("CLIP_NO_SEVER") == null;
+
+        /// <summary>
+        /// What losing a limb does to a clip fighter (milestone 5's rules, the walk's way): the head is its life; the wound
+        /// costs health and bleeds; the weapon arm takes its weapon, its strikes and its parry; the shield arm its shield
+        /// (one-handed, it parries with its sword now); a leg its footing: down for good, bleeding.
+        /// </summary>
+        private void ClipWounded(PartId at, Vector3 impulse, bool weaponArm, bool offArm, bool leg)
+        {
+            if (at == PartId.Head)
+            {
+                ClipDie(Wound("beheaded", at));
+                return;
+            }
+
+            Health = Mathf.Max(0f, Health - DamageRules.SeverLoss(at) * profile.maxHealth);
+            Clip.Health = Health;
+            Bleeding += DamageRules.BleedRate(at) * profile.maxHealth;
+            if (Health <= 0f)
+            {
+                ClipDie(Wound("bled out", at));
+                return;
+            }
+
+            var poser = Clip.Poser;
+            if (weaponArm && Loadout.Main != null && !Loadout.Main.IsShield)
+            {
+                // (Its weapon went with the hand: no strikes, no parry; its shield, if it has one, still guards.)
+                Loadout.Main = null;
+                Clip.DisableStrikes();
+                Clip.Parry = null;
+                poser.CarryR = LocoBody.Carry.Free;
+                if (ClipShape != null)
+                {
+                    ClipShape.WeaponSlot = null;
+                }
+
+                if (Clip.Stance == ClipFighter.Stances.Sword)
+                {
+                    Clip.Stance = ClipFighter.Stances.Open;
+                }
+            }
+
+            if (offArm && Loadout.Off != null)
+            {
+                // (Its shield went with the hand: a one-handed sword left parries now.)
+                Loadout.Off = null;
+                Clip.ShieldColliders.Clear();
+                poser.CarryL = LocoBody.Carry.Free;
+                var main = Loadout.Main;
+                bool oneHanded = main != null && (main.kind == WeaponKind.Sword || main.kind == WeaponKind.Club) && !LocoLibrary.TwoHanded(poser.BodyKey);
+                Clip.Stance = oneHanded ? ClipFighter.Stances.Sword : ClipFighter.Stances.Open;
+                Clip.Parry = oneHanded ? HeldAs(new SwordParry(Anim, Clip.Loco, Rig, Clip.Size, poser.WeaponLength), main) : null;
+                ClipShape = new OpponentShape(Anim, Clip.Size, null, 0.27f)
+                {
+                    WeaponSlot = poser.CarryR == LocoBody.Carry.Weapon ? Rig.SlotWeaponR : null,
+                    WeaponLength = poser.WeaponLength,
+                };
+            }
+
+            if (leg)
+            {
+                LegLost = true;
+                ClipWant = Vector3.zero;
+                Clip.Collapse(impulse, impulse.magnitude / Mathf.Max(1f, Body.Mass));
+            }
         }
 
         /// <summary>A blow taken (its reaction is the clip fighter's own): health, poise, the tempo's and rhythm's notes, the hit stop, and death.</summary>

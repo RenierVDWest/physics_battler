@@ -151,6 +151,16 @@ namespace PhysicsBattler.Locomotion
             public float Damage, PoiseDamage;
 
             public LocoClip Clip;
+
+            /// <summary>
+            /// What severing judges by (the fight's milestone 5, for clip fighters: the plan "Bringing the lab into the
+            /// fight", step 7): the blade this step (grip to tip), the way it moved, and what struck (an edge, the point, a
+            /// club's head). Null blade: a blow that can't cut (a beaten parry's crush).
+            /// </summary>
+            public Vector3 BladeFrom, BladeTo, Direction;
+
+            public StrikeWith With;
+            public bool CanCut;
         }
 
         /// <summary>Each body a blow meets (<see cref="StruckBy"/>), after its reaction.</summary>
@@ -184,6 +194,9 @@ namespace PhysicsBattler.Locomotion
             this.poser = poser;
             this.anim = anim;
         }
+
+        /// <summary>The blade at the sample being met (grip to tip, world): what a cut is judged by.</summary>
+        private Vector3 cutFrom, cutTo;
 
         private static bool IsThrust(LocoClip clip) => clip != null && clip.Kind != null && clip.Kind.StartsWith("thrust");
 
@@ -670,6 +683,8 @@ namespace PhysicsBattler.Locomotion
             {
                 float s = i / (float)samples;
                 Vector3 a = Vector3.Lerp(lastG, grip, s), b = Vector3.Lerp(lastT, tip, s);
+                cutFrom = a;
+                cutTo = b;
                 found.Clear();
                 // (A defender's own sword, parrying: blade against blade, two segments' nearest points; the nearest the
                 // hand first, of all of them.)
@@ -995,6 +1010,7 @@ namespace PhysicsBattler.Locomotion
             {
                 Struck = struck, Part = part, Result = r, Shield = shield && !parried, Parried = parried, Point = point, Speed = speed,
                 Damage = shield || parried ? 0f : r.Damage * knock, PoiseDamage = r.PoiseDamage * knock * onBlade, Clip = clip,
+                BladeFrom = cutFrom, BladeTo = cutTo, Direction = direction, With = With(clip), CanCut = !shield && !parried,
             });
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).

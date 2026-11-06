@@ -246,16 +246,22 @@ namespace PhysicsBattler.Units
             }
 
             lastWounder = hit != null ? hit.Attacker : lastWounder;
-            Wounded(at, impulse, weaponArm, leg);
+            Wounded(at, impulse, weaponArm, leg, offArm);
             Severed?.Invoke(this, at, hit);   // (after the wound: the log shows the unit as it is now)
             return true;
         }
 
         /// <summary>What losing the limb does to the unit (nothing, if it was dead already).</summary>
-        private void Wounded(PartId at, Vector3 impulse, bool weaponArm, bool leg)
+        private void Wounded(PartId at, Vector3 impulse, bool weaponArm, bool leg, bool offArm = false)
         {
             if (!IsAlive)
             {
+                return;
+            }
+
+            if (Clip != null)
+            {
+                ClipWounded(at, impulse, weaponArm, offArm, leg);
                 return;
             }
 
@@ -336,9 +342,21 @@ namespace PhysicsBattler.Units
             }
 
             Health = Mathf.Max(0f, Health - Bleeding * dt);
+            if (Clip != null)
+            {
+                Clip.Health = Health;
+            }
+
             if (Health <= 0f)
             {
-                Die(Wound("bled out"));
+                if (Clip != null)
+                {
+                    ClipDie(Wound("bled out"));
+                }
+                else
+                {
+                    Die(Wound("bled out"));
+                }
             }
         }
 
@@ -457,6 +475,12 @@ namespace PhysicsBattler.Units
         /// <summary>Where a part's joint is in the physics (the transform lags it inside the physics step).</summary>
         private Vector3 Pos(PartId id)
         {
+            // (A clip fighter's blows meet its pose: the cut is judged where they met it.)
+            if (Clip != null && Anim != null && Anim.Part(id) != null)
+            {
+                return Anim.Part(id).position;
+            }
+
             var part = Rig.Part(id);
             return part.body != null ? part.body.position : part.transform.position;
         }

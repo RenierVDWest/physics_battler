@@ -711,7 +711,7 @@ namespace PhysicsBattler.Locomotion
             if (Authority == null)
             {
                 // (Headless, no body to fall: down a moment, then standing.)
-                if (footingTime > LeastDown + 0.5f)
+                if (footingTime > LeastDown + 0.5f && !StaysDown)
                 {
                     Footing = Footings.Standing;
                 }
@@ -726,7 +726,7 @@ namespace PhysicsBattler.Locomotion
                 Authority.Apply(dt);
                 // (Its place goes with the body on the ground: what keeps its distance from it, or aims at it, follows.)
                 Loco.Position = new Vector3(pelvis.position.x, groundLevel, pelvis.position.z);
-                if ((footingTime >= LeastDown && stillFor >= StillFor) || footingTime >= MostDown)
+                if (!StaysDown && ((footingTime >= LeastDown && stillFor >= StillFor) || footingTime >= MostDown))
                 {
                     BeginGetUp();
                 }
@@ -1147,6 +1147,36 @@ namespace PhysicsBattler.Locomotion
         private float weaponArmHeldUntil = -1f;
 
         /// <summary>It strikes with <paramref name="weapon"/> (null: a plain sword of its poser's weapon length): its blade's hits, swept from the physical hand's slot when it is physical.</summary>
+        /// <summary>Its weapon gone (its weapon arm cut off): no more strikes.</summary>
+        public void DisableStrikes()
+        {
+            Combo?.Stop();
+            Strikes = null;
+        }
+
+        /// <summary>
+        /// Down for good though alive (a leg cut off): the body to physics as a fall, and it never gets up. Its wounds
+        /// bleed it out.
+        /// </summary>
+        public bool StaysDown { get; private set; }
+
+        public void Collapse(Vector3 way, float knock)
+        {
+            if (Dead || StaysDown)
+            {
+                return;
+            }
+
+            StaysDown = true;
+            Combo?.Stop();
+            Blow = null;
+            way.y = 0f;
+            if (Footing != Footings.Down)
+            {
+                Fall(-1, way.sqrMagnitude > 1e-6f ? way.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward), knock);
+            }
+        }
+
         public StrikeHits EnableStrikes(Combat.WeaponDefinition weapon)
         {
             Strikes = new StrikeHits(Loco, Poser, Anim) { Weapon = weapon, Scale = Size, Slot = Authority != null ? Rig.SlotWeaponR : null, Mass = Mass, Owner = this };

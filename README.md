@@ -602,6 +602,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     and less pressing than before (it tires now), with about the same damage dealt. `fight` prints the combos' reasons.
     Clip motion was already the fight's default in Unity (the sandbox's Clip Motion, on); headless it stays behind
     `CLIP_FIGHT=1`, the old pose path's tests running without it.
+  - Severing for clip fighters (milestone 5's rules, which their blows had skipped). A clip fighter's edge crossing a
+    joint, fast and hard enough, cuts the limb off there, judged on the pose where the blow met it, the blade the
+    strike swept that step. The limb flies off with what it held; the wound costs health and bleeds. The head is its
+    life; the weapon arm takes its weapon, strikes and parry (a shield still guards); the shield arm its shield (a
+    one-handed sword left parries now); a leg its footing: it falls and stays down, bleeding out (`StaysDown`, no
+    get-up). Headless over four 3 v 3 fights, five limbs came off in two (knees, elbows, a hip), none in the other
+    two; the log says why a cut didn't go through (`no sever: ...`). `CLIP_NO_SEVER=1` keeps every limb on.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session
