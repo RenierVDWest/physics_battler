@@ -255,7 +255,7 @@ namespace PhysicsBattler.Locomotion
             // its limits, its friction) while it is still in its rest pose, then held as in the fight: the legs
             // carried exactly (the feet's plants are the walk's), the rest pinned.
             var profile = prefab.Profile != null ? prefab.Profile : UnitProfile.CreateDefault();
-            walker = new ClipFighter(unit, rig, profile, origin, 0f, origin.y, LocoLibrary.CombatPrefix(body.ToString()), physical);
+            walker = new ClipFighter(unit, rig, profile, origin, 0f, origin.y, LocoLibrary.CombatPrefix(body.ToString()), physical) { TraceName = "the walker" };
             anim = walker.Anim;
             loco = walker.Loco;
             poser = walker.Poser;
@@ -832,7 +832,7 @@ namespace PhysicsBattler.Locomotion
             var profile = mediumPrefab.Profile != null ? mediumPrefab.Profile : UnitProfile.CreateDefault();
             // (Every guard left foot forward, sword alone too: every strike and hit reaction is, and a fencer's right-lead guard
             // dragged a planted foot through the switch each time it struck or was struck.)
-            dummy = new ClipFighter(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, "sns_", physical) { Stance = dummyStance };
+            dummy = new ClipFighter(go, dummyRig, profile, dummyAt, dummyFacing, origin.y, "sns_", physical) { Stance = dummyStance, TraceName = "the dummy" };
             var (main, off) = LoadoutOf(BodySize.Medium);
             if (dummyStance != ClipFighter.Stances.Shield)
             {

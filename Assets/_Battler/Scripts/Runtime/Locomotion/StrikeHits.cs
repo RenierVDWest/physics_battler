@@ -221,7 +221,7 @@ namespace PhysicsBattler.Locomotion
             // blow it was read as.)
             if (clip != readClip || loco.ShotTime < readTime - 0.05f)
             {
-                readSerial = clip == predictedFor ? predictedSerial : readSerial + 1;
+                readSerial = clip == predictedFor ? predictedSerial : ++lastSerial;
                 predictedFor = null;
             }
 
@@ -332,7 +332,7 @@ namespace PhysicsBattler.Locomotion
             if (predictedFor != clip)
             {
                 predictedFor = clip;
-                predictedSerial = readSerial + 1;
+                predictedSerial = ++lastSerial;
                 predictedSince = clock;
             }
 
@@ -407,6 +407,10 @@ namespace PhysicsBattler.Locomotion
         private LocoClip readClip;
         private float readTime = -1f;
         private int readSerial;
+
+        // (Counted across every attacker, so no defender takes a new blow for one it met before: a fighter set up again
+        // starts its own count over, and a second attacker has its own.)
+        private static int lastSerial;
 
         /// <summary>A clip's striking point at a time, against its root then (metres at this body's size).</summary>
         private Vector3 StrikeAt(LocoClip clip, float t, float alongBlade = -1f)

@@ -1510,7 +1510,7 @@ namespace PhysicsBattler.Locomotion
                 if (interceptWeight > 0f && Blow.HasValue && ShieldTrace != null && Blow.Value.Serial != tracedShieldSerial)
                 {
                     tracedShieldSerial = Blow.Value.Serial;
-                    ShieldTrace(string.Format(System.Globalization.CultureInfo.InvariantCulture, "blow {0}: {1:0.00} s to contact, its path comes no nearer the body than {2:0.00} m (the guard {3:0.00}): held across its line",
+                    ShieldTrace(Traced + string.Format(System.Globalization.CultureInfo.InvariantCulture, "blow {0}: {1:0.00} s to contact, its path comes no nearer the body than {2:0.00} m (the guard {3:0.00}): held across its line",
                         Blow.Value.Serial, Blow.Value.ToContact, LastMeetNearest, GuardShell * Size));
                 }
 
@@ -1907,6 +1907,11 @@ namespace PhysicsBattler.Locomotion
         public static System.Action<string> ShieldTrace;
 
         private int tracedShieldSerial = -1;
+
+        /// <summary>Who this fighter is in a trace (the lab's "the walker", "the dummy"), or none.</summary>
+        public string TraceName;
+
+        private string Traced => string.IsNullOrEmpty(TraceName) ? "" : TraceName + ", ";
         private Vector3 tracedMeet;
 
         /// <summary>Its plan for a blow, traced when it is new and when it moves by more than 10 cm: where it will meet the blade, against its own body.</summary>
@@ -1923,7 +1928,7 @@ namespace PhysicsBattler.Locomotion
             var back = Quaternion.Inverse(Quaternion.Euler(0f, Loco.Facing, 0f));
             Vector3 local = back * (at - Loco.Position), n = back * normal;
             string V(Vector3 v) => string.Format(System.Globalization.CultureInfo.InvariantCulture, "({0:0.00},{1:0.00},{2:0.00})", v.x, v.y, v.z);
-            ShieldTrace(string.Format(System.Globalization.CultureInfo.InvariantCulture, "blow {0}{1}: {2:0.00} s to contact, meets the blade in {3:0.00} s at {4}, the face {5}{6}",
+            ShieldTrace(Traced + string.Format(System.Globalization.CultureInfo.InvariantCulture, "blow {0}{1}: {2:0.00} s to contact, meets the blade in {3:0.00} s at {4}, the face {5}{6}",
                 b.Serial, again ? " read again" : "", b.ToContact, inSeconds, V(local), V(n), b.Predicted ? " (read ahead)" : ""));
         }
 

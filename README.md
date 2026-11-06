@@ -443,6 +443,11 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     the Large 25 to 11, the Medium's combos 78 to 57; the longest such run 12 steps to 5 (the Small), 6 to 2 (the
     Large). What lands, is blocked or parried, the hit stops and drive-backs are as before; the spar's weapon flicks
     the same (3). `NO_REST=1` turns it off headless; `dummyhits` and `combos` print the blade outside its blows.
+  - A new blow taken for an old one (the playtest of 6 November): each attacker counted its own blows, so a dummy
+    set up again (or the spar's other fighter) began again at blow 1, and a shield that had met a blow 1 kept its plan
+    for that one, 5 s old: the dummy's thrust went in at the walker's head, off the board. Blows are now counted
+    across every attacker. The lab's shield lines say whose shield ("the walker", "the dummy"). In the spar A throws
+    9 blows (was 8); `dummyhits` and `combos` as before.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
