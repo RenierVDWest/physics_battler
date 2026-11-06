@@ -587,6 +587,11 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     stood where; `CLIP_COMBO_ONE=1` keeps every blow on one, as before. Headless the turn comes up less than hoped: the
     second and third attacker mostly stand off (3 to 7 m, often behind) while one is in, so over five 1-on-3 fights
     the outnumbered unit turned 0 to 6 blows a fight; in the 3 v 3 fights, 0 to 3 a unit.
+  - From the playtest of 6 November (13:14): a combo whose target fell went on striking the body (four blows over a
+    second, logged as hits on a dead unit); its blow that killed is now its last unless it can turn on another, and a
+    blade through a body already dead is no hit. The playtest log now says what a clip fighter did: each strike and
+    combo it started (`attack`, with its concentration), each combo blow turned on another enemy, and in each `struck`
+    line the reaction it played (`hit_left_rib reaction`, `parried with ...`) and its concentration.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session

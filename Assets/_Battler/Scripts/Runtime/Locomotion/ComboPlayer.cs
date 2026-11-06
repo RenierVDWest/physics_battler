@@ -222,6 +222,16 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public Action<int> PastContact;
 
+        /// <summary>The blow playing is the combo's last: none follows it (its target down, and no other to turn on).</summary>
+        public void EndAfterThis()
+        {
+            if (current != null && chain != null)
+            {
+                next = chain.Count;
+                Ended = "its target down";
+            }
+        }
+
         private LocoClip contactPassed;
 
         /// <summary>

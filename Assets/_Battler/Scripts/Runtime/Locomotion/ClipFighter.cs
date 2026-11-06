@@ -1318,6 +1318,13 @@ namespace PhysicsBattler.Locomotion
             var next = NextComboTarget?.Invoke(comboTarget, played);
             if (next == null || next == comboTarget || next.Dead)
             {
+                // (Its target down and none other to turn on: the combo ends with this blow. Its next blows fell on the
+                // body, the playtest of 6 November.)
+                if (comboTarget == null || comboTarget.Dead)
+                {
+                    Combo.EndAfterThis();
+                }
+
                 return;
             }
 

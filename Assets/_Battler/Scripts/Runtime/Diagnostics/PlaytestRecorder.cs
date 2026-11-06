@@ -217,6 +217,8 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Forgot += OnForgot;
             UnitController.TempoChanged += OnTempo;
             UnitController.GuardBroken += OnGuardBroken;
+            UnitController.ClipStrikeStarted += OnClipStrike;
+            UnitController.ClipComboTurnedOn += OnClipComboTurned;
             defence = new DefenceStats();
             Application.logMessageReceived += OnConsole;
 
@@ -287,6 +289,8 @@ namespace PhysicsBattler.Diagnostics
             UnitController.Forgot -= OnForgot;
             UnitController.TempoChanged -= OnTempo;
             UnitController.GuardBroken -= OnGuardBroken;
+            UnitController.ClipStrikeStarted -= OnClipStrike;
+            UnitController.ClipComboTurnedOn -= OnClipComboTurned;
             Application.logMessageReceived -= OnConsole;
 
             // (Whatever goes wrong summing the session up, its files are closed: one left open stays locked until the editor
@@ -474,8 +478,22 @@ namespace PhysicsBattler.Diagnostics
             Event(struck, "struck", $"by {hit.Attacker.name} on the {hit.Part}: health {hit.Struck.Health:0}/{hit.Struck.Profile.maxHealth:0}, "
                                     + $"poise {Mathf.Max(0f, hit.Struck.Poise):0}/{hit.Struck.Profile.maxPoise:0}, {r.Reaction.ToString().ToLowerInvariant()}"
                                     + $"{(hit.Struck.Knockback.magnitude > 0.05f ? $", knocked back at {hit.Struck.Knockback.magnitude:0.00} m/s" : "")}"
-                                    + $", {StateOf(hit.Struck)}");
+                                    + $", {StateOf(hit.Struck)}"
+                                    + (hit.Struck.UsesClips && hit.Struck.Clip != null && !string.IsNullOrEmpty(hit.Struck.Clip.LastReaction) ? $"; {hit.Struck.Clip.LastReaction}" : "")
+                                    + (hit.Struck.UsesClips && hit.Struck.Concentration > 0.01f ? $"; concentration {hit.Struck.Concentration:0.00}" : ""));
             struck?.NoteHitTaken(hit);
+        }
+
+        /// <summary>A clip fighter started a strike or a combo (the plan "Bringing the lab into the fight", step 5).</summary>
+        private void OnClipStrike(UnitController unit, string what, UnitController target)
+        {
+            Event(TrackOf(unit), "attack", $"{what} at {LabelOf(target)}{(unit.Concentration > 0.01f ? $", concentration {unit.Concentration:0.00}" : "")}");
+        }
+
+        /// <summary>A combo's next blow turned on another enemy (the plan "Fighting off several attackers", step 8).</summary>
+        private void OnClipComboTurned(UnitController unit, UnitController was, UnitController now)
+        {
+            Event(TrackOf(unit), "attack", $"its combo's next blow turned from {LabelOf(was)} to {LabelOf(now)}");
         }
 
         private static string StateOf(UnitController unit)

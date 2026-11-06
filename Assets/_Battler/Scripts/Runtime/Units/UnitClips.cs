@@ -800,7 +800,8 @@ namespace PhysicsBattler.Units
         private void OnClipStruck(StrikeHits.StruckBy s)
         {
             var struck = s.Struck != null ? s.Struck.FightUnit : null;
-            if (struck == null)
+            // (A blade through a body already down for good: no hit to take or to report.)
+            if (struck == null || !struck.IsAlive)
             {
                 return;
             }
