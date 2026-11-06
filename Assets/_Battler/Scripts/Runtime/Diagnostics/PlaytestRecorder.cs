@@ -41,7 +41,10 @@ namespace PhysicsBattler.Diagnostics
         [Tooltip("Save small pictures of what the main camera sees while recording.")]
         public bool captureFrames = true;
         [Tooltip("Picture size in pixels (square).")]
-        public int frameSize = 300;
+        public int frameSize = 448;
+
+        [Tooltip("The pictures move in to frame the fighters still standing (the game camera's side and angle, as close as fits them). Off: the game view as it is.")]
+        public bool framesFollowFight = true;
         [Tooltip("Pictures per second of game time.")]
         public float framesPerSecond = 8f;
         [Range(10, 100)] public int frameQuality = 70;
@@ -108,6 +111,34 @@ namespace PhysicsBattler.Diagnostics
             {
                 StartSession();
             }
+        }
+
+        /// <summary>The living units' bodies: their middle (hip height) and how far out from it they reach.</summary>
+        private (Vector3 centre, float radius)? FightFocus()
+        {
+            Vector3 lo = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue), hi = -lo;
+            int n = 0;
+            foreach (var unit in UnitController.All)
+            {
+                if (unit == null || !unit.IsAlive || !unit.IsInitialized)
+                {
+                    continue;
+                }
+
+                Vector3 p = unit.Root.position;
+                float size = unit.Body != null ? unit.Body.SizeFactor : 1f;
+                lo = Vector3.Min(lo, p - new Vector3(0.6f, 0f, 0.6f) * size);
+                hi = Vector3.Max(hi, p + new Vector3(0.6f, 1.9f, 0.6f) * size);
+                n++;
+            }
+
+            if (n == 0)
+            {
+                return null;
+            }
+
+            Vector3 centre = 0.5f * (lo + hi);
+            return (centre, 0.5f * Vector3.Distance(lo, hi));
         }
 
         private void OnDisable()
@@ -206,6 +237,7 @@ namespace PhysicsBattler.Diagnostics
                 }
 
                 frames.CurrentStep = () => step;
+                frames.Focus = framesFollowFight ? FightFocus : null;
                 frames.Begin(sessionPath, startTime, frameSize, framesPerSecond, frameQuality, maxFrames);
                 if (frames.Capturing)
                 {

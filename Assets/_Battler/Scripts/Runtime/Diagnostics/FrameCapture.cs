@@ -50,6 +50,16 @@ namespace PhysicsBattler.Diagnostics
         /// <summary>The physics step the recorder is on, for the index.</summary>
         public Func<int> CurrentStep;
 
+        /// <summary>
+        /// What the pictures frame (world): the fight's living bodies, centre and radius. The picture looks the main camera's
+        /// way but moves in to fit them (the logs' pictures copied the game view whole, the fighters small in it); none, or
+        /// a null, takes the game view as it is.
+        /// </summary>
+        public Func<(Vector3 centre, float radius)?> Focus;
+
+        /// <summary>The least radius framed (metres): one pair of fighters fills the picture, no closer.</summary>
+        public const float LeastFocus = 1.6f;
+
         public void Begin(string sessionPath, float start, int pixels, float perSecond, int jpegQuality, int limit)
         {
             End();
@@ -173,6 +183,18 @@ namespace PhysicsBattler.Diagnostics
             // The same width as the main view, in a square picture.
             captureCamera.fieldOfView = Mathf.Min(120f, Camera.VerticalToHorizontalFieldOfView(main.fieldOfView, main.aspect));
             captureCamera.depth = main.depth - 1f;
+            var focus = Focus?.Invoke();
+            if (focus.HasValue)
+            {
+                // (In close: from the game camera's side and angle, as near as fits the bodies, a little margin round them.)
+                float radius = Mathf.Max(LeastFocus, focus.Value.radius) * 1.15f;
+                float half = 0.5f * captureCamera.fieldOfView * Mathf.Deg2Rad;
+                float distance = radius / Mathf.Max(0.05f, Mathf.Sin(half));
+                var way = main.transform.forward;
+                captureCamera.transform.SetPositionAndRotation(focus.Value.centre - way * distance, main.transform.rotation);
+                captureCamera.nearClipPlane = Mathf.Min(main.nearClipPlane, 0.1f);
+            }
+
             captureCamera.enabled = true;   // renders this frame; read back next Update
             renderPending = true;
             pendingTime = Time.time - startTime;
