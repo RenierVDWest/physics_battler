@@ -51,8 +51,10 @@ namespace PhysicsBattler.Editor.Setup
         ///     a grip roll on each weapon.
         /// 23 = The arm rebuild: each blow's hand, wrist and elbow keys authored again (designed poses, fitted
         ///     for the arc, the landing, the clearance and the speed through contact).
+        /// 24 = The fight on clip fighters: the default lineup's small units become mediums with a sword only (see
+        ///     <see cref="SceneSetup"/>).
         /// </summary>
-        public const int Current = 23;
+        public const int Current = 24;
 
         /// <summary>The version that last ran here (0 if never).</summary>
         public static int Installed => Read();

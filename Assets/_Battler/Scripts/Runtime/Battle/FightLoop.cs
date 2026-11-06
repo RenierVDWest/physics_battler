@@ -55,6 +55,10 @@ namespace PhysicsBattler.Battle
         private sealed class Plan
         {
             public UnitController target;
+            public bool committed;            // (a clip fighter close to an enemy: on it until it is out of reach)
+            public bool running;              // (a clip fighter's pace on its way in: running or walking, in spells)
+            public float paceUntil;
+            public float flankSide;           // (a flanker's side of the fight: -1 or 1, kept once chosen)
 
             /// <summary>The performance pass: the blow being planned a few poses a step, and the step it last went on.</summary>
             public MovePlanner.Job job;
@@ -269,6 +273,53 @@ namespace PhysicsBattler.Battle
         {
             var current = plan.target;
             bool valid = current != null && current.IsInitialized && current.IsAlive && current.Team != unit.Team && !current.IsDown && unit.Knows(current);
+            if (unit.UsesClips)
+            {
+                // (Renier, 6 November: close to any enemy, it commits to fighting it; it stays on it while it is near.)
+                float size = unit.Body.SizeFactor;
+                if (valid && plan.committed && Flat(current.Root.position - unit.Root.position).magnitude < ClipRelease * size)
+                {
+                    return current;
+                }
+
+                UnitController close = null;
+                float nearest = float.MaxValue;
+                bool flanking = ClipRoleOf(unit) == ClipRole.Flank;
+                foreach (var other in units)
+                {
+                    if (other == null || !other.IsInitialized || !other.IsAlive || other.Team == unit.Team || other.IsDown || !unit.Knows(other))
+                    {
+                        continue;
+                    }
+
+                    // (A flanker on its way round passes others: it commits to its own target, or to one that is right on it.)
+                    float d = Flat(other.Root.position - unit.Root.position).magnitude;
+                    float commit = (flanking && !plan.committed && other != current && other.Opponent != unit ? ClipPassBy : ClipCommit) * size;
+                    if (d < commit && d < nearest)
+                    {
+                        nearest = d;
+                        close = other;
+                    }
+                }
+
+                plan.committed = close != null;
+                if (close != null)
+                {
+                    if (close != current)
+                    {
+                        plan.closeIn = 0f;
+                        if (PlaytestTrace.Enabled)
+                        {
+                            PlaytestTrace.Note(unit, "target", $"{close.name}, close by ({nearest:0.0} m): committed");
+                        }
+                    }
+
+                    plan.target = close;
+                    plan.retargetAt = now + 0.5f;
+                    return close;
+                }
+            }
+
             if (valid && now < plan.retargetAt)
             {
                 return current;
@@ -314,8 +365,9 @@ namespace PhysicsBattler.Battle
                 // (A clip fighter pairs off (the playtest of 6 November: they clumped up, four on one spot): one already
                 // taken by a teammate counts as further, so they spread over the enemies, two on one only when the numbers
                 // make it so.)
-                if (unit.UsesClips)
+                if (unit.UsesClips && ClipRoleOf(unit) == ClipRole.Flank)
                 {
+                    // (A large charges the nearest, taken or not.)
                     score += ClipPairing * on;
                 }
 
@@ -390,6 +442,18 @@ namespace PhysicsBattler.Battle
             }
 
             float speed = unit.WalkSpeed;
+            if (unit.UsesClips && !plan.committed && distance > ClipCommit * size)
+            {
+                // (On its way in, by its role: a large straight at its target, a medium out round the fight's side to come
+                // at it from there; each walking or running in spells.)
+                speed = ClipPace(unit, plan, now);
+                if (ClipRoleOf(unit) == ClipRole.Flank)
+                {
+                    toward = FlankWide(units, unit, enemy, plan, toward);
+                    flankLeft = 0f;
+                }
+            }
+
             bool busy = unit.IsAttacking || unit.HitStop > 0f || unit.Knockback.magnitude >= 0.05f;
 
             // Milestone 8: its tempo sets the distance. Gathering, it holds just out of the target's
@@ -557,6 +621,123 @@ namespace PhysicsBattler.Battle
 
                 return 0;
             }
+        }
+
+        /// <summary>How a clip fighter comes in to the fight (Renier, 6 November): a large charges straight at the nearest; a medium flanks.</summary>
+        public enum ClipRole
+        {
+            Charge,
+            Flank,
+        }
+
+        public static ClipRole ClipRoleOf(UnitController unit) => unit.Profile != null && unit.Profile.body == "Large" ? ClipRole.Charge : ClipRole.Flank;
+
+        /// <summary>A clip fighter this near an enemy (metres at a Medium's size, root to root) commits to it, and stays on it until it is this far.</summary>
+        public const float ClipCommit = 2.2f, ClipRelease = 3.2f;
+
+        /// <summary>A flanker on its way round commits to an enemy other than its target only this near (metres at a Medium's size).</summary>
+        public const float ClipPassBy = 1.5f;
+
+        /// <summary>How far out to the side of its target a flanker heads first (metres at a Medium's size).</summary>
+        public const float ClipFlankWide = 2.8f;
+
+        /// <summary>And how far past it, along the line between the teams (metres at a Medium's size): it comes at it from the side, a little behind.</summary>
+        public const float ClipFlankPast = 0.5f;
+
+        /// <summary>The share of spells a flanker runs, and a charger (most of the way it walks, now and then a charge).</summary>
+        public const float FlankerRuns = 0.5f, ChargerRuns = 0.25f;
+
+        /// <summary>A pace spell lasts this long (seconds).</summary>
+        private static readonly Vector2 PaceFor = new Vector2(1.5f, 3.5f);
+
+        /// <summary>Its pace on its way in: its walk, or a run (just over the walk's running pace), changed in spells.</summary>
+        private float ClipPace(UnitController unit, Plan plan, float now)
+        {
+            if (now >= plan.paceUntil)
+            {
+                plan.running = random.NextDouble() < (ClipRoleOf(unit) == ClipRole.Flank ? FlankerRuns : ChargerRuns);
+                plan.paceUntil = now + Mathf.Lerp(PaceFor.x, PaceFor.y, (float)random.NextDouble());
+            }
+
+            return plan.running && unit.Clip != null ? Mathf.Max(unit.WalkSpeed, 1.25f * unit.Clip.Loco.RunSpeed) : unit.WalkSpeed;
+        }
+
+        /// <summary>
+        /// A flanker's way in: to a place out to the side of its target, on its own side of the fight (away from the middle of
+        /// its team, across the line between the two teams), to come at it from there once near.
+        /// </summary>
+        private Vector3 FlankWide(IReadOnlyList<UnitController> units, UnitController unit, UnitController enemy, Plan plan, Vector3 toward)
+        {
+            Vector3 mine = Vector3.zero, theirs = Vector3.zero;
+            int nMine = 0, nTheirs = 0;
+            foreach (var u in units)
+            {
+                if (u == null || !u.IsInitialized || !u.IsAlive || u.IsDown)
+                {
+                    continue;
+                }
+
+                if (u.Team == unit.Team)
+                {
+                    mine += u.Root.position;
+                    nMine++;
+                }
+                else
+                {
+                    theirs += u.Root.position;
+                    nTheirs++;
+                }
+            }
+
+            if (nMine == 0 || nTheirs == 0)
+            {
+                return toward;
+            }
+
+            mine /= nMine;
+            theirs /= nTheirs;
+            Vector3 axis = Flat(theirs - mine);
+            if (axis.sqrMagnitude < 1e-4f)
+            {
+                return toward;
+            }
+
+            axis.Normalize();
+            Vector3 across = Vector3.Cross(Vector3.up, axis);
+            if (plan.flankSide == 0f)
+            {
+                // (Its side: the one fewer of its team's flankers have taken (two go round opposite sides, not crossing);
+                // even, the side of its team it stands on; in the middle, by its place in the lineup.)
+                float taken = 0f;
+                foreach (var u in units)
+                {
+                    if (u != null && u != unit && u.Team == unit.Team && plans.TryGetValue(u, out var mate))
+                    {
+                        taken += mate.flankSide;
+                    }
+                }
+
+                float lateral = Vector3.Dot(Flat(unit.Root.position - mine), across);
+                plan.flankSide = taken != 0f ? -Mathf.Sign(taken)
+                    : Mathf.Abs(lateral) > 0.3f ? Mathf.Sign(lateral) : (IndexOf(units, unit) % 2 == 0 ? 1f : -1f);
+            }
+
+            Vector3 place = enemy.Root.position + (across * (plan.flankSide * ClipFlankWide) + axis * ClipFlankPast) * unit.Body.SizeFactor;
+            Vector3 way = Flat(place - unit.Root.position);
+            return way.sqrMagnitude > 1e-4f ? way.normalized : toward;
+        }
+
+        private static int IndexOf(IReadOnlyList<UnitController> units, UnitController unit)
+        {
+            for (int i = 0; i < units.Count; i++)
+            {
+                if (units[i] == unit)
+                {
+                    return i;
+                }
+            }
+
+            return 0;
         }
 
         /// <summary>Two of a side on one target stand at least this far round it from each other (degrees).</summary>
@@ -964,7 +1145,8 @@ namespace PhysicsBattler.Battle
             if (local.z > halfD) push.z -= speed * Mathf.Clamp01((local.z - halfD) / 0.2f);
             if (local.z < -halfD) push.z += speed * Mathf.Clamp01((-halfD - local.z) / 0.2f);
 
-            Vector3 want = Vector3.ClampMagnitude(desired + push, speed);
+            // (A clip fighter on its way in may run: its pace is what it was asked.)
+            Vector3 want = Vector3.ClampMagnitude(desired + push, unit.UsesClips ? Mathf.Max(speed, desired.magnitude) : speed);
             if (want.magnitude < DeadZone * speed)
             {
                 want = Vector3.zero;

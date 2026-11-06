@@ -51,13 +51,17 @@ internal static class FightReport
     }
 
     /// <summary>Plays a fight to its end (or the time limit); the result line, and per-unit figures.</summary>
+    private static readonly bool Smalls = Environment.GetEnvironmentVariable("FIGHT_SMALLS") != null;
+
     public static string Play(Dictionary<string, RigFile> rigs, int seed, float limit, PlaytestRecorder recorder, out string stats)
     {
         var grid = new BoardGrid();
         var lineup = new[]
         {
-            new[] { ("Small", new Tile(2, 1)), ("Medium", new Tile(3, 1)), ("Large", new Tile(4, 1)) },
-            new[] { ("Medium", new Tile(4, 6)), ("Large", new Tile(2, 6)), ("Small", new Tile(3, 6)) },
+            // (The small units left the battle on 6 November: a medium with a sword only in their place, "Swordsman";
+            // FIGHT_SMALLS=1 has them back.)
+            new[] { (Smalls ? "Small" : "Swordsman", new Tile(2, 1)), ("Medium", new Tile(3, 1)), ("Large", new Tile(4, 1)) },
+            new[] { ("Medium", new Tile(4, 6)), ("Large", new Tile(2, 6)), (Smalls ? "Small" : "Swordsman", new Tile(3, 6)) },
         };
         if (Environment.GetEnvironmentVariable("FIGHT_MIRROR") != null)
         {
@@ -78,22 +82,23 @@ internal static class FightReport
         var units = new List<UnitController>();
         for (int team = 0; team < 2; team++)
         {
-            foreach (var (body, tile) in lineup[team])
+            foreach (var (named, tile) in lineup[team])
             {
+                string body = named == "Swordsman" ? "Medium" : named;
                 var profile = UnitProfile.CreateDefault();
                 profile.name = "UP_" + body;
                 profile.body = body;
                 profile.style = CombatStyle.CreateFor(body);
                 if (body == "Small") { profile.maxHealth = 60f; profile.maxPoise = 25f; }
                 if (body == "Large") { profile.maxHealth = 220f; profile.maxPoise = 120f; }
-                var root = UnitBuilder.Build(rigs[body], profile, $"{(team == 0 ? "A" : "B")} {body}", _ => null, 8);
+                var root = UnitBuilder.Build(rigs[body], profile, $"{(team == 0 ? "A" : "B")} {named}", _ => null, 8);
                 root.transform.position = grid.Center(tile);
                 root.transform.rotation = Quaternion.Euler(0f, BoardGrid.TeamYaw(team), 0f);
                 var unit = root.GetComponent<UnitController>();
                 unit.Team = team;
                 unit.Profile = profile;
                 Call(unit, "Awake");
-                if (body == "Medium") unit.Equip(sword, shield); else unit.Equip(club, null);
+                if (named == "Swordsman") unit.Equip(sword, null); else if (body == "Medium") unit.Equip(sword, shield); else unit.Equip(club, null);
                 if (Environment.GetEnvironmentVariable("FIGHT_NO_COLLIDERS") == null && !unit.UsesClips) Smoke.GiveColliders(unit);   // (milestone 11: blocks and parries headless)
                 units.Add(unit);
             }
@@ -109,6 +114,9 @@ internal static class FightReport
         var reachedAt = new Dictionary<UnitController, float>();
         var overlapPairs = new Dictionary<string, (int steps, float nearest)>();
         var mateGaps = new List<float>();
+        var moving = new Dictionary<UnitController, int>();
+        var running = new Dictionary<UnitController, int>();
+        var cameAt = new Dictionary<UnitController, float>();
         int targetSteps = 0, aloneSteps = 0;
         var offs = new Dictionary<UnitController, List<float>>();
         if (clips)
@@ -261,6 +269,21 @@ internal static class FightReport
                             continue;
                         }
 
+                        if (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Cycle && u.Clip.Loco.Velocity.magnitude > 0.3f)
+                        {
+                            moving[u] = (moving.TryGetValue(u, out var mv) ? mv : 0) + 1;
+                            if (u.Clip.Loco.Running) running[u] = (running.TryGetValue(u, out var rn) ? rn : 0) + 1;
+                        }
+
+                        // (The side it first came at its target from: the angle between its way in and the line between the teams.)
+                        if (!cameAt.ContainsKey(u) && u.Opponent != null && Vector3.Distance(u.Root.position, u.Opponent.Root.position) < 2.2f * u.Body.SizeFactor)
+                        {
+                            Vector3 axis = (u.Team == 0 ? 1f : -1f) * Vector3.forward;
+                            Vector3 way = u.Opponent.Root.position - u.Root.position;
+                            way.y = 0f;
+                            cameAt[u] = Vector3.Angle(axis, way);
+                        }
+
                         m.Sample(dt, t, u.Clip.Loco.Current + (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "") + (u.Clip.Fallen ? " fallen" : "") + (u.Clip.Striking ? " striking" : "") + (u.Clip.Stumbling ? " stumbling" : ""));
                         float jump = Vector3.Distance(u.Root.position, lastRoot[u]);
                         lastRoot[u] = u.Root.position;
@@ -371,6 +394,7 @@ internal static class FightReport
                     }
                 }
 
+                sb.AppendLine($"    {u.name}: ran {(moving.TryGetValue(u, out var mvn) && mvn > 0 ? 100f * (running.TryGetValue(u, out var rnn) ? rnn : 0) / mvn : 0f):0}% of its walking; came at its first target {(cameAt.TryGetValue(u, out var ca) ? $"{ca:0}° off head-on" : "never")}");
                 sb.AppendLine($"    {u.name}: {near}; planted feet moved at most {m.PlantDriftWorst * 100f:0.0} cm ({m.PlantsDone} plants); the root's biggest step {rootJump[u].most:0.00} m at {rootJump[u].at:0.0} s; feet travelled {m.FeetTravel:0.0} m for the body's {m.BodyTravel:0.0}");
             }
         }

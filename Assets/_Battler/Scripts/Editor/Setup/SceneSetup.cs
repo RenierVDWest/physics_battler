@@ -30,6 +30,7 @@ namespace PhysicsBattler.Editor.Setup
             bool changed = sandbox != null && Wire(sandbox);
             changed |= EnsureLineup();
             changed |= MigrateLineup(SetupVersion.Installed);
+            changed |= SwordsmenForSmalls(SetupVersion.Installed);
             if (changed)
             {
                 EditorSceneManager.MarkSceneDirty(scene);
@@ -165,7 +166,7 @@ namespace PhysicsBattler.Editor.Setup
             var sword = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Sword"));
             var shield = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Shield"));
             var lineup = new GameObject("Lineup").transform;
-            var bodies = new[] { BodySize.Small, BodySize.Medium, BodySize.Large };
+            var bodies = new[] { BodySize.Small, BodySize.Medium, BodySize.Large };   // (the small then made a swordsman: SwordsmenForSmalls)
             for (int team = 0; team < 2; team++)
             {
                 for (int k = 0; k < 3; k++)
@@ -180,6 +181,14 @@ namespace PhysicsBattler.Editor.Setup
                     var spawn = go.AddComponent<UnitSpawn>();
                     spawn.team = team;
                     Arm(spawn, body, club, sword, shield);
+                    if (body == BodySize.Small)
+                    {
+                        spawn.body = BodySize.Medium;
+                        spawn.mainHand = sword;
+                        spawn.offHand = null;
+                        go.name = $"{(team == 0 ? "A" : "B")} Medium (sword)";
+                    }
+
                     spawn.Snap();
                 }
             }
@@ -247,6 +256,44 @@ namespace PhysicsBattler.Editor.Setup
 
             Debug.Log("[Battler Setup] Team B of the default lineup rearranged (medium, large, small), so each unit faces a different size.");
             return true;
+        }
+
+        /// <summary>
+        /// Setup 24: the small units leave the battle; each small spawn becomes a medium with a sword only (Renier's
+        /// choice, 6 November, as the fight moves to the lab's clip fighters). Each side then has a large with a club, a
+        /// medium with sword and shield, and a medium with a sword.
+        /// </summary>
+        private static bool SwordsmenForSmalls(int from)
+        {
+            if (from >= 24)
+            {
+                return false;
+            }
+
+            var sword = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BattlerPaths.Weapon("Sword"));
+            bool changed = false;
+            foreach (var spawn in Object.FindObjectsByType<UnitSpawn>())
+            {
+                if (spawn.body != BodySize.Small)
+                {
+                    continue;
+                }
+
+                spawn.body = BodySize.Medium;
+                spawn.mainHand = sword;
+                spawn.offHand = null;
+                spawn.profileOverride = null;
+                spawn.gameObject.name = $"{(spawn.team == 0 ? "A" : "B")} Medium (sword)";
+                EditorUtility.SetDirty(spawn);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                Debug.Log("[Battler Setup] The small units became mediums with a sword only.");
+            }
+
+            return changed;
         }
 
         private static T LoadComponent<T>(string prefabPath) where T : Component

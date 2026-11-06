@@ -523,6 +523,16 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     enemy fighting someone else (the next pair over). Headless, the share of time three or more stood in one knot
     went from 29, 12 and 6% to 12, 17 and 8% (four or more: 13, 1, 0% to 7, 5, 6%); the playtest's sessions had
     40, 8 and 52%. `python3 Tools/Playtest/clump.py PlaytestLogs/<session>` measures a session's knots.
+  - Roles on the way in, and the smalls out (Renier, 6 November). The default lineup's small units leave the battle:
+    setup 24 turns each small spawn into a medium with a sword only ("A Medium (sword)"); each side has a large with a
+    club, a medium with sword and shield, a medium with a sword (headless: "Swordsman"; `FIGHT_SMALLS=1` has the smalls
+    back). Clip fighters come in by role: a large charges the nearest enemy, mostly walking, a run now and then; a
+    medium flanks, heading first for a place 2.8 m out to the side of its target and a little past it, on its own side
+    of the fight (a team's two flankers go round opposite sides), running or walking in spells of 1.5 to 3.5 s (half
+    of them running). Close to any enemy (2.2 m; a flanker on its way round, 1.5 m but for its own target) it commits
+    to fighting it, and stays on it until it is 3.2 m off. Headless, four fights: three or more in one knot at most
+    10% of the time (was up to 17%), the mediums running 5 to 54% of their way in, allies hit 0 to 4 times a fight.
+    `fight` prints each unit's running and the side it came at its first target from.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session
