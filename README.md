@@ -543,6 +543,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     with sword and shield in the middle on 2 or 3 swordsmen): on 2 it lasts 36 to 41 s (was 4 to 8), blocking or
     parrying 70 to 90% of the blows that reach it; on 3, 7 to 16 s, the blows from beside and behind it never sees
     landing (steps 4 and 5). `fight` prints every blow met by where it came from and whether it was seen.
+  - Fighting off several attackers, step 4: turning to the threat. A clip fighter faces the attacker of the seen
+    blow landing first; between blows, with two or more enemies on it within 3.2 m, the middle of the two nearest
+    when they stand within 90 degrees of each other as it sees them, else the nearer; only then where the fight loop
+    points it. Struck by another than the one it fights, it turns its fight to them for 1.5 s (committed). Headless,
+    on 3 (`FIGHT_LINEUP=gang3`) it lasts 16 to 32 s (was 7 to 16), most blows from beside it now blocked; it faces an
+    attacker starting a blow from beside or behind in a median 0.3 to 0.8 s (90%: 1.1 to 2.3 s). Planted feet as
+    before (the drive-back's slides under staggering blows, 14 to 22 cm in two fights, were there before).
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session

@@ -162,9 +162,10 @@ namespace PhysicsBattler.Units
             want.y = 0f;
             want += ClipCircling(dt);
             float yaw = loco.Facing;
-            if (facePoint.HasValue)
+            Vector3? faceAt = ClipFacing() ?? facePoint;
+            if (faceAt.HasValue)
             {
-                Vector3 to = facePoint.Value - loco.Position;
+                Vector3 to = faceAt.Value - loco.Position;
                 to.y = 0f;
                 if (to.sqrMagnitude > 1e-4f)
                 {
@@ -438,6 +439,85 @@ namespace PhysicsBattler.Units
             Clip.Watch(meet != null ? meet.Read : (BlowRead?)null);
         }
 
+        // ---- Step 4: turning to the threat -------------------------------------------------------------------------
+
+        /// <summary>Who struck it last, and when (its local time): the fight loop turns its fight to them.</summary>
+        public UnitController ClipStruckBy { get; private set; }
+
+        public float ClipStruckAt { get; private set; } = -10f;
+
+        /// <summary>Two attackers within this of each other, as it sees them (degrees), it faces the middle of; further apart, the nearer.</summary>
+        public const float ClipFaceBetween = 90f;
+
+        /// <summary>An enemy this near (metres at a Medium's size) and fighting it counts among those it keeps in front.</summary>
+        public const float ClipEngagedWithin = 3.2f;
+
+        /// <summary>
+        /// Where it turns to face, when the fight around it says so (else where the fight loop pointed it): a seen blow
+        /// coming, its attacker (the one landing first); between blows, with two or more enemies on it, the middle of the
+        /// two nearest when they stand close together as it sees them, else the nearer one.
+        /// </summary>
+        private Vector3? ClipFacing()
+        {
+            ClipThreat first = null;
+            foreach (var t in clipThreats)
+            {
+                if (t.Seen && (first == null || t.Read.ToContact < first.Read.ToContact))
+                {
+                    first = t;
+                }
+            }
+
+            if (first != null)
+            {
+                return first.Attacker.Root.position;
+            }
+
+            UnitController a = null, b = null;
+            float da = float.MaxValue, db = float.MaxValue, within = ClipEngagedWithin * Body.SizeFactor;
+            foreach (var other in all)
+            {
+                if (other == null || other.Team == Team || !other.IsAlive || other.IsDown || !Knows(other)
+                    || (other.ClipTarget != this && other.Opponent != this && other != Opponent))
+                {
+                    continue;
+                }
+
+                float d = Vector3.Distance(other.Root.position, Root.position);
+                if (d > within)
+                {
+                    continue;
+                }
+
+                if (d < da)
+                {
+                    b = a;
+                    db = da;
+                    a = other;
+                    da = d;
+                }
+                else if (d < db)
+                {
+                    b = other;
+                    db = d;
+                }
+            }
+
+            if (a == null || b == null)
+            {
+                return null;
+            }
+
+            Vector3 toA = a.Root.position - Root.position, toB = b.Root.position - Root.position;
+            toA.y = toB.y = 0f;
+            if (Vector3.Angle(toA, toB) <= ClipFaceBetween)
+            {
+                return Root.position + toA.normalized + toB.normalized;
+            }
+
+            return a.Root.position;
+        }
+
         /// <summary>
         /// Two bodies nearer than <paramref name="least"/> (root to root) are parted the way the feet allow: one walking or
         /// standing is pushed off, its walk taking the steps; one lunging into the other has the rest of its lunge cut;
@@ -604,6 +684,11 @@ namespace PhysicsBattler.Units
             clipStopLeft = Mathf.Max(clipStopLeft, stop);
             // (Struck, it knows who did it, seen or not: an attacker from behind is known from now on.)
             NoteStruck(hit);
+            if (hit.Attacker != null && hit.Attacker.Team != Team)
+            {
+                ClipStruckBy = hit.Attacker;
+                ClipStruckAt = LocalTime;
+            }
             if (Health <= 0f)
             {
                 ClipDie(hit);

@@ -277,6 +277,24 @@ namespace PhysicsBattler.Battle
             {
                 // (Renier, 6 November: close to any enemy, it commits to fighting it; it stays on it while it is near.)
                 float size = unit.Body.SizeFactor;
+                // (Struck by another than the one it fights: it turns its fight to them (the plan "Fighting off several
+                // attackers", step 4).)
+                var by = unit.ClipStruckBy;
+                if (by != null && by != current && by.IsAlive && !by.IsDown && by.Team != unit.Team && unit.LocalTime - unit.ClipStruckAt < ClipStruckFor
+                    && Flat(by.Root.position - unit.Root.position).magnitude < ClipRelease * size)
+                {
+                    if (PlaytestTrace.Enabled)
+                    {
+                        PlaytestTrace.Note(unit, "target", $"{by.name}, who struck it: committed");
+                    }
+
+                    plan.closeIn = 0f;
+                    plan.committed = true;
+                    plan.target = by;
+                    plan.retargetAt = now + 0.5f;
+                    return by;
+                }
+
                 if (valid && plan.committed && Flat(current.Root.position - unit.Root.position).magnitude < ClipRelease * size)
                 {
                     return current;
@@ -634,6 +652,9 @@ namespace PhysicsBattler.Battle
 
         /// <summary>A clip fighter this near an enemy (metres at a Medium's size, root to root) commits to it, and stays on it until it is this far.</summary>
         public const float ClipCommit = 2.2f, ClipRelease = 3.2f;
+
+        /// <summary>For this long after a blow from another (seconds), a clip fighter turns its fight to the one who struck it.</summary>
+        public const float ClipStruckFor = 1.5f;
 
         /// <summary>A flanker on its way round commits to an enemy other than its target only this near (metres at a Medium's size).</summary>
         public const float ClipPassBy = 1.5f;

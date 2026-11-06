@@ -161,6 +161,9 @@ internal static class FightReport
         // (Clip fighters' blows, which have no MoveState, and what every blow did: step 5 of the plan.)
         var clipBlows = new Dictionary<UnitController, List<string>>();
         var startedFrom = new Dictionary<string, int>();
+        var turning = new List<(UnitController who, UnitController to, float since)>();
+        var turnTimes = new List<float>();
+        int turnsMissed = 0;
         void OnClipStrike(UnitController u, string what, UnitController at)
         {
             started[u] = (started.TryGetValue(u, out int n) ? n : 0) + 1;
@@ -175,6 +178,7 @@ internal static class FightReport
                 float angle = Vector3.Angle(Quaternion.Euler(0f, at.FacingYaw, 0f) * Vector3.forward, from);
                 string sector = angle < 45f ? "front" : angle < 135f ? "side" : "back";
                 startedFrom[sector] = (startedFrom.TryGetValue(sector, out int sn) ? sn : 0) + 1;
+                if (angle > 45f) turning.Add((at, u, Time.time));
             }
         }
         var hitKinds = new Dictionary<UnitController, Dictionary<string, int>>();
@@ -278,6 +282,17 @@ internal static class FightReport
 
                 if (clips)
                 {
+                    // (How long a unit took to face an attacker that started a blow from its side or behind.)
+                    for (int k = turning.Count - 1; k >= 0; k--)
+                    {
+                        var (who, to, since) = turning[k];
+                        Vector3 from = to.Root.position - who.Root.position;
+                        from.y = 0f;
+                        float off = Vector3.Angle(Quaternion.Euler(0f, who.FacingYaw, 0f) * Vector3.forward, from);
+                        if (off < 30f) { turnTimes.Add(Time.time - since); turning.RemoveAt(k); }
+                        else if (!who.IsAlive || !to.IsAlive || Time.time - since > 3f) { turnsMissed++; turning.RemoveAt(k); }
+                    }
+
                     // (How they spread: each standing one's nearest teammate, and whether its target has others of its side on it.)
                     foreach (var u in units)
                     {
@@ -398,6 +413,8 @@ internal static class FightReport
                 var keys = new List<string>(sectors.Keys);
                 keys.Sort();
                 sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
+                turnTimes.Sort();
+                sb.AppendLine($"    turning to an attacker starting a blow from beside or behind: {turnTimes.Count} faced it (median {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count / 2] : 0f):0.00} s, 90% {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count * 9 / 10] : 0f):0.00} s), {turnsMissed} not within 3 s");
                 sb.AppendLine("    blows started, by where the attacker stood (against its target's facing): " + string.Join(", ", new List<string>(startedFrom.Keys).ConvertAll(k => $"{k} {startedFrom[k]}")));
             }
 
