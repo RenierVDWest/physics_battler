@@ -324,6 +324,39 @@ namespace PhysicsBattler.Units
         private static SwordParry HeldAs(SwordParry parry, WeaponDefinition weapon) =>
             weapon != null && weapon.kind == WeaponKind.Club ? parry.AsClub() : parry;
 
+        // ---- The plan "Fighting off several attackers", step 7: concentration ----------------------------------------
+
+        /// <summary>
+        /// Its concentration (0 to 1): with two or more enemies on it, it builds (Combat Feel's Concentration Rise, for
+        /// each past the first); with one or none, it fades. It sharpens its own blocks and parries and blunts those of
+        /// whoever it strikes (<see cref="CombatFeel.ConcentrationGuard"/>, <see cref="CombatFeel.ConcentrationAccuracy"/>).
+        /// </summary>
+        public float Concentration { get; private set; }
+
+        /// <summary>Concentration builds (headless: <c>NO_CONCENTRATION</c> keeps it at nothing, as before).</summary>
+        public static bool ConcentrationOn = System.Environment.GetEnvironmentVariable("NO_CONCENTRATION") == null;
+
+        /// <summary>The most it has reached (for the logs).</summary>
+        public float MostConcentration { get; private set; }
+
+        /// <summary>Its concentration a step on, with this many enemies on it (the fight's steering counts them).</summary>
+        public void UpdateConcentration(int attackers, float dt)
+        {
+            attackers = ConcentrationOn ? attackers : 0;
+            Concentration = attackers >= 2
+                ? Mathf.Min(1f, Concentration + CombatFeel.ConcentrationRise * (attackers - 1) * dt)
+                : Mathf.Max(0f, Concentration - CombatFeel.ConcentrationFall * dt);
+            MostConcentration = Mathf.Max(MostConcentration, Concentration);
+            if (Clip != null)
+            {
+                Clip.Concentration = Concentration;
+                if (Clip.Strikes != null)
+                {
+                    Clip.Strikes.Keen = Concentration * CombatFeel.ConcentrationAccuracy;
+                }
+            }
+        }
+
         // ---- The plan "Fighting off several attackers", steps 2 and 3: every blow coming, and the one to meet ----------
 
         /// <summary>A blow coming at it: whose, its read, whether it has seen it, and since when.</summary>

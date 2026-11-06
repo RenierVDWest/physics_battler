@@ -150,6 +150,7 @@ namespace PhysicsBattler.Diagnostics
                 frames.Add("clipWant", new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude, 3);
                 frames.Add("heldL", loco.FootHeld(0) ? 1 : 0);
                 frames.Add("heldR", loco.FootHeld(1) ? 1 : 0);
+                frames.Add("concentration", unit.Concentration, 2);
                 frames.End();
                 samples++;
                 if (writePose && unit.Authority != null)
@@ -560,7 +561,7 @@ namespace PhysicsBattler.Diagnostics
             {
                 var loco = unit.Clip.Loco;
                 return $"facing {unit.FacingYaw:0}°, {loco.Current}{(loco.Shot != null && loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot ? " " + loco.Shot.Name : "")}, "
-                       + $"walking {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s (asked {new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude:0.00}), feet held {(loco.FootHeld(0) ? "L" : "-")}{(loco.FootHeld(1) ? "R" : "-")}";
+                       + $"walking {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s (asked {new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude:0.00}), feet held {(loco.FootHeld(0) ? "L" : "-")}{(loco.FootHeld(1) ? "R" : "-")}, concentration {unit.Concentration:0.00}";
             }
 
             var p = unit.Pose;

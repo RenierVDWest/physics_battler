@@ -155,6 +155,9 @@ namespace PhysicsBattler.Battle
                 {
                     // (Stood still unless the steering below asks it to walk.)
                     unit.ClipWant = Vector3.zero;
+                    // (Its concentration, from the enemies on it: the plan "Fighting off several attackers", step 7.)
+                    bool fighting = Fight && !Over && unit.IsAlive && unit.CanAct;
+                    unit.UpdateConcentration(fighting ? OnIt(units, unit, UnitController.ClipEngagedWithin * unit.Body.SizeFactor).Count : 0, dt);
                 }
 
                 if (!unit.IsAlive || !unit.CanAct)

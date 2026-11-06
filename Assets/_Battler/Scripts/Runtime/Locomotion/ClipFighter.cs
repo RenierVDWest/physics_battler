@@ -129,6 +129,23 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How well it blocks with a shield and parries with a sword (0 to 1; stage 1 of the sword parry: only 1 is made yet).</summary>
         public float ShieldSkill = 1f, ParrySkill = 1f;
 
+        /// <summary>
+        /// Its concentration (0 to 1; the plan "Fighting off several attackers", step 7): outnumbered it builds, and it
+        /// blocks and parries better (<see cref="CombatFeel.ConcentrationGuard"/>). Set by the unit each step.
+        /// </summary>
+        public float Concentration;
+
+        /// <summary>What the blow it meets has taken off its skill (its striker's concentration).</summary>
+        private float BlowKeen => Blow.HasValue ? Blow.Value.Keen : 0f;
+
+        /// <summary>Its skills against the blow it meets now: its own, its concentration added, the striker's taken off.</summary>
+        public float ShieldSkillNow => Mathf.Clamp01(ShieldSkill + Concentration * CombatFeel.ConcentrationGuard - BlowKeen);
+
+        public float ParrySkillNow => Mathf.Clamp01(ParrySkill + Concentration * CombatFeel.ConcentrationGuard - BlowKeen);
+
+        /// <summary>What its concentration adds to the weight its guard takes (1: none).</summary>
+        public float GuardHolds => 1f + Concentration * CombatFeel.ConcentrationGuard;
+
         /// <summary>Its sword parry (with <see cref="Stances.Sword"/>; made by whoever gives it its sword).</summary>
         public SwordParry Parry;
 
@@ -297,7 +314,7 @@ namespace PhysicsBattler.Locomotion
         public const float ShieldSpeedUp = 0.08f;
 
         /// <summary>How far from an expert, 0 to 1 (on the curve the parry uses: skill 0.5 midway).</summary>
-        private float ShieldLack => 1f - Mathf.Clamp01(ShieldSkill) * Mathf.Clamp01(ShieldSkill);
+        private float ShieldLack => 1f - ShieldSkillNow * ShieldSkillNow;
 
         /// <summary>How much of a blow a slanted shield turns aside (0 square on: all of it taken); StrikeHits takes it off the knock.</summary>
         public float ShieldGlance => ExpertGlance * (1f - ShieldLack);
@@ -331,7 +348,7 @@ namespace PhysicsBattler.Locomotion
         private void NewShieldBlow()
         {
             ShieldBlowsRead++;
-            float skill = Mathf.Clamp01(ShieldSkill);
+            float skill = ShieldSkillNow;
             bool follow = clock - lastBlowSeenAt < ComboGap;
             ShieldComboBlowsRead += follow ? 1 : 0;
             blowLack = 1f - Mathf.Pow(skill, follow ? CombatFeel.ShieldComboCurve : CombatFeel.ShieldSingleCurve);
@@ -988,7 +1005,7 @@ namespace PhysicsBattler.Locomotion
                         parryWaited = false;
                     }
 
-                    Parry.Skill = ParrySkill;
+                    Parry.Skill = ParrySkillNow;
                     Parry.Step(dt, Blow, opponent);
                     MaybeRetire(opponent);
                 }
@@ -1347,7 +1364,7 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            float skill = Mathf.Clamp01(sword ? ParrySkill : ShieldSkill);
+            float skill = sword ? ParrySkillNow : ShieldSkillNow;
             float lack = 1f - skill * skill;
             // (A novice reads it later: it steps nearer contact, if at all.)
             if (!late && b.ToContact > CombatFeel.GiveGroundLead * (1f - 0.6f * lack))
@@ -2234,8 +2251,9 @@ namespace PhysicsBattler.Locomotion
                 // (The plan "Weight and momentum", step 4: the shield arm gives by the blow's weight; heavy enough, the
                 // guard is knocked open, the arm thrown wide and slow to come back, the shield meeting nothing till then.)
                 float weight = impulse.magnitude / Mathf.Max(1f, Mass);
-                knockedOpen = weight >= CombatFeel.GuardOpenFrom;
-                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight, CombatFeel.MostShieldGive) * Size;
+                // (Concentrated, it takes more before its guard is knocked open, and gives less: step 7 of the plan.)
+                knockedOpen = weight >= CombatFeel.GuardOpenFrom * GuardHolds;
+                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight / GuardHolds, CombatFeel.MostShieldGive) * Size;
                 KnockArmBy(1, impulse, point, knockedOpen ? Mathf.Max(give, CombatFeel.MostShieldGive * Size) : give, knockedOpen ? GuardOpenFrequency : ArmKnockFrequency);
                 if (knockedOpen)
                 {
@@ -2570,7 +2588,7 @@ namespace PhysicsBattler.Locomotion
         public float ParryGive(float weight) => Mathf.Min(CombatFeel.ParryGivePerWeight * weight, CombatFeel.MostParryGive) * Size;
 
         /// <summary>The heaviest blow (m/s of weight) its square parry holds, by its skill; heavier beats it (the scene's Combat Feel).</summary>
-        public float ParryHolds => Mathf.Lerp(CombatFeel.ParryHolds, CombatFeel.ExpertParryHolds, Mathf.Clamp01(ParrySkill));
+        public float ParryHolds => Mathf.Lerp(CombatFeel.ParryHolds, CombatFeel.ExpertParryHolds, ParrySkillNow) * GuardHolds;
 
         /// <summary>
         /// A blow of its own stopped on a shield or a blade jars it (the plan "Weight and momentum", step 4): its upper

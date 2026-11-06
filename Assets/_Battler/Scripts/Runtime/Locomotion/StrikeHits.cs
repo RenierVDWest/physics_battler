@@ -52,6 +52,12 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public float Momentum;
 
+        /// <summary>
+        /// What the striker's concentration takes off the defender's block and parry skill against this blow (0 to 1:
+        /// the plan "Fighting off several attackers", step 7).
+        /// </summary>
+        public float Keen;
+
         /// <summary>Which blow this is: it changes as each new blow starts, a combo's next one too (its clip taken up partway, its time into the clip doesn't start again from nought).</summary>
         public int Serial;
     }
@@ -246,6 +252,19 @@ namespace PhysicsBattler.Locomotion
         /// whether it is a thrust.
         /// </summary>
         public bool Read(out BlowRead read)
+        {
+            bool seen = ReadNow(out read);
+            read.Keen = seen ? Keen : 0f;
+            return seen;
+        }
+
+        /// <summary>
+        /// What its striker's concentration takes off a defender's block and parry skill against its blows (0 to 1; the
+        /// plan "Fighting off several attackers", step 7: set by the unit each step).
+        /// </summary>
+        public float Keen;
+
+        private bool ReadNow(out BlowRead read)
         {
             read = default;
             if (!Incoming(out read.Blade, out read.Aim, out read.ComesFrom))

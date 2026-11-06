@@ -568,6 +568,15 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     attacker. `hitlook` strikes a standing Medium eight ways and prints what it played; `NO_SIDE_HITS=1` plays the
     front reactions whatever the side, as before. Headless over four fights (1 on 2, 1 on 3) the outnumbered unit
     lasted about as long as before (48, 26, 60, 17 s; was 48, 24, 44, 27).
+  - Fighting off several attackers, step 7: concentration. With two or more enemies on it a unit's concentration builds
+    (0 to 1; Combat Feel's Concentration Rise, 0.3 a second for each attacker past the first) and with one or none it
+    fades (Concentration Fall, 0.15). It adds to its own shield and parry skill (Concentration Guard, 0.5 at full) and
+    as much again to the weight its parry holds and its guard takes before it is knocked open (its shield knocked back
+    less); and it takes off the block and parry skill of whoever it strikes (Concentration Accuracy, 0.3 at full: an
+    expert defends as 0.7). The units in the fight are experts (skill 1), so the guard's gain shows in the weight it
+    holds and against a concentrated attacker. Headless over four fights (1 on 2, 1 on 3), the outnumbered unit landed
+    12 of 27 blows (was 8 of 29) and lasted 60, 36, 49, 17 s (was 48, 26, 60, 17). `fight` prints each unit's highest;
+    the playtest logs record it each frame (`concentration`). `NO_CONCENTRATION=1` keeps it at nothing.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session

@@ -151,8 +151,22 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The share of a blow's weight a full step back takes off as it is met (its block or parry knocked back less, the parry beaten less often). 0: stepping back only looks right. Default 0.3.")]
         [Range(0f, 0.8f)] public float giveGroundEases = DefaultGiveGroundEases;
 
+        [Header("Concentration: outnumbered, a unit fights sharper")]
+        [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
+        [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
+
+        [Tooltip("How fast concentration fades once it has one enemy or none on it (per second). Default 0.15: from full to nothing in about 7 seconds, so a unit that has just broken out of a gang keeps some of its edge a while.")]
+        [Range(0f, 2f)] public float concentrationFall = DefaultConcentrationFall;
+
+        [Tooltip("What full concentration adds to a unit's own blocks and parries: this much on its shield and parry skill (0 to 1; it reads blows truer and misses fewer), and as much again of the weight its parry holds and its guard takes before it is knocked open, its shield knocked back less. 0: no help to its defence. Default 0.5.")]
+        [Range(0f, 1f)] public float concentrationGuard = DefaultConcentrationGuard;
+
+        [Tooltip("What full concentration takes off the block and parry skill of whoever it strikes (0 to 1): its blows are aimed truer, so they are misread and slip past guards more often. An expert (skill 1) struck by a fully concentrated unit defends as one of skill 1 minus this. 0: no effect on its blows. Default 0.3.")]
+        [Range(0f, 1f)] public float concentrationAccuracy = DefaultConcentrationAccuracy;
+
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
+        public const float DefaultConcentrationRise = 0.3f, DefaultConcentrationFall = 0.15f, DefaultConcentrationGuard = 0.5f, DefaultConcentrationAccuracy = 0.3f;
         public const float DefaultHitStopBase = 0.03f, DefaultHitStopPerWeight = 0.05f, DefaultLeastHitStop = 0.04f, DefaultMostHitStop = 0.16f;
         public const float DefaultDriveBack = 3.5f, DefaultMostDrive = 2.2f, DefaultStumbleFrom = 1.0f, DefaultStumbleBoost = 1.3f, DefaultMostStumble = 2.8f, DefaultStumbleRecovery = 0.7f;
         public const float DefaultParryGivePerWeight = 0.1f, DefaultMostParryGive = 0.2f, DefaultParryHolds = 0.8f, DefaultExpertParryHolds = 2f, DefaultBeatenShare = 0.6f,
@@ -164,6 +178,8 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float OffFrontBend = DefaultOffFrontBend, SideHitTime = DefaultSideHitTime;
+
+        public static float ConcentrationRise = DefaultConcentrationRise, ConcentrationFall = DefaultConcentrationFall, ConcentrationGuard = DefaultConcentrationGuard, ConcentrationAccuracy = DefaultConcentrationAccuracy;
 
         public static float BendPerWeight = DefaultBendPerWeight, MostBend = DefaultMostBend, BendReach = DefaultBendReach, BendPeak = DefaultBendPeak,
             LeanScale = 1f, HeadSnapScale = 1f,
@@ -225,6 +241,10 @@ namespace PhysicsBattler.Locomotion
             LeastGiveGround = DefaultLeastGiveGround;
             MostGiveGround = DefaultMostGiveGround;
             GiveGroundEases = DefaultGiveGroundEases;
+            ConcentrationRise = DefaultConcentrationRise;
+            ConcentrationFall = DefaultConcentrationFall;
+            ConcentrationGuard = DefaultConcentrationGuard;
+            ConcentrationAccuracy = DefaultConcentrationAccuracy;
         }
 
         private void Push()
@@ -273,6 +293,10 @@ namespace PhysicsBattler.Locomotion
             LeastGiveGround = leastGiveGround;
             MostGiveGround = mostGiveGround;
             GiveGroundEases = giveGroundEases;
+            ConcentrationRise = concentrationRise;
+            ConcentrationFall = concentrationFall;
+            ConcentrationGuard = concentrationGuard;
+            ConcentrationAccuracy = concentrationAccuracy;
         }
     }
 }
