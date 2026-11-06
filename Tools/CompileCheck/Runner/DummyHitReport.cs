@@ -241,6 +241,20 @@ internal static class DummyHitReport
                         }
 
                         hits.Step(dt, dummy);
+                        if (float.TryParse(Environment.GetEnvironmentVariable("JUMP_HIT"), NumberStyles.Float, ci, out float jumpHit) && loco.Current == Locomotor.Mode.OneShot
+                            && loco.ShotTime >= jumpHit && loco.ShotTime - dt * 1.5f < jumpHit)
+                        {
+                            // (The attacker struck in its own jump, as the dummy striking back would: the playtest's jump drifting down.)
+                            Vector3 back = -(Quaternion.Euler(0f, loco.Facing, 0f) * Vector3.forward);
+                            walker.TakeHit(PartId.Chest, false, back * 120f, 0.4f, 10f, PhysicsBattler.Combat.Reaction.Stagger, anim.Part(PartId.Chest).position);
+                            Console.WriteLine("      struck at " + loco.ShotTime.ToString("0.00", ci) + ": " + walker.LastReaction);
+                        }
+
+                        if (Environment.GetEnvironmentVariable("JUMP_TRACE") != null)
+                        {
+                            Console.WriteLine(string.Format(ci, "      {0:0.00} {1} {2} at {3:0.00} (speed {4:0.00}, move {5}) pelvis {6:0.00} root {7:0.00} air {8} stop {9:0.00} {10}", i * dt, loco.Current, loco.Shot?.Name, loco.ShotTime, loco.ShotSpeed,
+                                "", anim.Part(PartId.Pelvis).position.y, loco.Position.y, loco.ShotAirborne(0f), hits.HitStop, ""));
+                        }
                         // (The dummy watches the blow coming, as the lab has it.)
                         dummy.Watch(hits);
 

@@ -474,6 +474,16 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     parries and the spar as before. The dummy's planted feet within 0.2 cm in every combo (`combos` prints them, and
     the weights read). `GROUND_TRACE=1` prints each step back; the lab's log has them; `NO_GROUND_STEP=1` steps back
     only for a late arm, as before.
+  - Giving ground, smaller and followed (the playtest of 6 November: far too far, the blow no longer landing). The step
+    back to a heavy blow is 0.1 to 0.2 m (was 0.25 to 0.5), and the attacker follows it: the blow still meets the
+    shield, further out (only a late arm's step is a void the blow is still aimed past). The Large's blows met at 0.14
+    m back, all on the shield (9 of 9 single, 9 of 9 in combos), at 0.49 m/s (were 0.62).
+  - A jump struck in the air comes down (the playtest: drifting to the floor). A fighter struck mid-jump (the dummy's
+    jumping chop met by the walker's blow) had its strike cut short there, backing out and fading to its walk in the
+    air: its pelvis sank from 1.55 m over half a second. It now comes down through its own clip's fall and landing,
+    as a jump stopped by what it struck does (the weapon arm held off the follow-through), and the blow drives it
+    back only once a foot is down. Headless (`JUMP_HIT=0.7 JUMP_TRACE=1 dummyhits <dir> Medium sns_chop_lunge` strikes
+    the attacker 0.7 s into its jump): it falls from 1.71 m to its touchdown at 1.2 s, then steps back.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

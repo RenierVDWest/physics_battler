@@ -872,7 +872,9 @@ namespace PhysicsBattler.Locomotion
                 lastSeparate = clock;
             }
 
-            if (pushAt >= 0f && clock >= pushAt)
+            // (Not while its feet are both off the ground: a push would cut its jump off in the air for the walk's catch
+            // steps, the body drifting down to the floor. It is driven back as it lands.)
+            if (pushAt >= 0f && clock >= pushAt && !Loco.ShotAirborne(0f))
             {
                 Loco.Push(pendingKnock);
                 pushAt = -1f;
@@ -1309,6 +1311,9 @@ namespace PhysicsBattler.Locomotion
             away = away.sqrMagnitude > 1e-4f ? away.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
             retireLeft = away * (step * Size);
             voidedFor = b.Serial;
+            // (A step back to a heavy blow is followed: the blow is meant to meet the shield further out, not miss it (the
+            // playtest of 6 November: the Large's blows fell short of a shield 0.5 m back). A late arm's step is a void.)
+            retireVoids = late;
             groundEase = late ? 0f : CombatFeel.GiveGroundEases * Mathf.Clamp01(step / Mathf.Max(0.05f, most));
             Retires++;
             if (!late)
@@ -1339,6 +1344,7 @@ namespace PhysicsBattler.Locomotion
         public static System.Action<string> GroundTrace;
 
         private float groundEase;
+        private bool retireVoids;
         private readonly System.Random groundLuck = new System.Random(20261106);
 
         private void GiveGround(float dt)
@@ -1349,7 +1355,10 @@ namespace PhysicsBattler.Locomotion
                 Loco.Position += move;
                 CarryBy(move);
                 retireLeft -= move;
-                Voided += move;
+                if (retireVoids)
+                {
+                    Voided += move;
+                }
             }
             else if (!Blow.HasValue || Blow.Value.Serial != voidedFor)
             {
@@ -2224,7 +2233,17 @@ namespace PhysicsBattler.Locomotion
                 // out a little and fades into its guard), a lighter blow lets it carry on; either way the blow shows in
                 // the body's sway, not in a reaction clip, whose feet would drag those the strike has planted.
                 clip = null;
-                if (reaction == Combat.Reaction.Stagger || reaction == Combat.Reaction.Flinch)
+                if ((reaction == Combat.Reaction.Stagger || reaction == Combat.Reaction.Flinch) && Loco.ShotAirborne())
+                {
+                    // (Struck in the air, its jump can't back out or fade into its guard there: it comes down where it
+                    // is, its own fall and landing played on, the weapon arm held off the follow-through, as a jump
+                    // stopped by what it struck does (the playtest of 6 November: it drifted down to the floor).)
+                    Combo?.Stop();
+                    Poser.HoldWeaponArm();
+                    Loco.StopShotTravel();
+                    reacted = "struck in the air, it comes down";
+                }
+                else if (reaction == Combat.Reaction.Stagger || reaction == Combat.Reaction.Flinch)
                 {
                     Combo?.Stop();
                     Loco.CutShort(StrikeHits.RewindMost, StrikeHits.ReboundSpeed);

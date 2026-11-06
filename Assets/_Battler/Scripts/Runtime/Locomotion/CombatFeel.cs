@@ -136,10 +136,10 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How long before the blow's contact an expert starts its step back (seconds). The step takes about 0.1 s; started much earlier the attacker would see it and follow. A novice steps later, by how much it lacks. Default 0.22.")]
         [Range(0.05f, 0.5f)] public float giveGroundLead = DefaultGiveGroundLead;
 
-        [Tooltip("How far an expert steps back (metres at a Medium's size), at the least (a blow just heavy enough) and at the most (one twice as heavy, or as deep as it gets). A novice steps a little over half as far. Defaults 0.25 and 0.5.")]
+        [Tooltip("How far an expert steps back (metres at a Medium's size), at the least (a blow just heavy enough) and at the most (one twice as heavy, or as deep as it gets). A novice steps a little over half as far. The attacker follows it: the blow still meets the shield, further out. Defaults 0.1 and 0.2 (0.25 to 0.5 was far too much in the playtest).")]
         [Range(0f, 1f)] public float leastGiveGround = DefaultLeastGiveGround;
 
-        [Tooltip("See the least step back: the most (metres at a Medium's size). Default 0.5.")]
+        [Tooltip("See the least step back: the most (metres at a Medium's size). Default 0.2.")]
         [Range(0f, 1.2f)] public float mostGiveGround = DefaultMostGiveGround;
 
         [Tooltip("The share of a blow's weight a full step back takes off as it is met (its block or parry knocked back less, the parry beaten less often). 0: stepping back only looks right. Default 0.3.")]
@@ -153,7 +153,7 @@ namespace PhysicsBattler.Locomotion
             DefaultReboundPerWeight = 2.4f, DefaultLeastRebound = 0.8f, DefaultMostRebound = 3.5f, DefaultJarScale = 0.3f;
         public const float DefaultShieldSettle = 0.08f, DefaultShieldFaceSettle = 0.1f, DefaultShieldReplanBy = 0.2f, DefaultShieldReplanTurn = 40f, DefaultShieldMovesWithin = 0.6f,
             DefaultShieldSingleCurve = 1f, DefaultShieldComboCurve = 4f;
-        public const float DefaultGiveGroundFrom = 0.9f, DefaultGiveGroundDeep = 0f, DefaultGiveGroundLead = 0.22f, DefaultLeastGiveGround = 0.25f, DefaultMostGiveGround = 0.5f, DefaultGiveGroundEases = 0.3f;
+        public const float DefaultGiveGroundFrom = 0.9f, DefaultGiveGroundDeep = 0f, DefaultGiveGroundLead = 0.22f, DefaultLeastGiveGround = 0.1f, DefaultMostGiveGround = 0.2f, DefaultGiveGroundEases = 0.3f;
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float BendPerWeight = DefaultBendPerWeight, MostBend = DefaultMostBend, BendReach = DefaultBendReach, BendPeak = DefaultBendPeak,
