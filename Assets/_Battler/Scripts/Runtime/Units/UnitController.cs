@@ -101,7 +101,7 @@ namespace PhysicsBattler.Units
 
         /// <summary>The blow under way, or null.</summary>
         public MoveState CurrentMove { get; private set; }
-        public bool IsAttacking => CurrentMove != null;
+        public bool IsAttacking => CurrentMove != null || (Clip != null && Clip.Striking);
 
         public bool IsInitialized => initialized;
         public float Scale => Rig != null ? Rig.Scale : 1f;

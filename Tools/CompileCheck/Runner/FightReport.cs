@@ -134,6 +134,32 @@ internal static class FightReport
             blowsAt.Add((Time.time, u, s.Target as UnitController, s.Duration));
         }
         UnitController.MoveStarted += OnMove;
+        // (Clip fighters' blows, which have no MoveState, and what every blow did: step 5 of the plan.)
+        var clipBlows = new Dictionary<UnitController, List<string>>();
+        void OnClipStrike(UnitController u, string what, UnitController at)
+        {
+            started[u] = (started.TryGetValue(u, out int n) ? n : 0) + 1;
+            attacks++;
+            blowsAt.Add((Time.time, u, at, 1f));
+            if (!clipBlows.TryGetValue(u, out var l)) clipBlows[u] = l = new List<string>();
+            l.Add(what);
+        }
+        var hitKinds = new Dictionary<UnitController, Dictionary<string, int>>();
+        float damageAll = 0f;
+        void OnHit(HitReport h)
+        {
+            if (h.Attacker == null) return;
+            if (!hitKinds.TryGetValue(h.Attacker, out var k)) hitKinds[h.Attacker] = k = new Dictionary<string, int>();
+            string kind = h.Kind ?? "?";
+            k[kind] = (k.TryGetValue(kind, out int n) ? n : 0) + 1;
+            damageAll += h.Result.Damage;
+            if (Environment.GetEnvironmentVariable("FIGHT_HITS") != null)
+            {
+                Console.WriteLine($"  {Time.time:0.00} {h.Attacker.name} > {h.Struck.name}: {kind}, {h.Part}, {h.Result.Damage:0} damage, {h.Result.Reaction}; {h.Struck.Health:0} hp left");
+            }
+        }
+        UnitController.ClipStrikeStarted += OnClipStrike;
+        UnitController.Hit += OnHit;
         // Milestone 10: blows inside combos, and the time from one link's start to the next.
         int comboBlows = 0, combos = 0;
         var linkGaps = new List<float>();
@@ -210,7 +236,7 @@ internal static class FightReport
                             continue;
                         }
 
-                        m.Sample(dt, t, u.Clip.Loco.Current.ToString());
+                        m.Sample(dt, t, u.Clip.Loco.Current + (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "") + (u.Clip.Fallen ? " fallen" : "") + (u.Clip.Striking ? " striking" : "") + (u.Clip.Stumbling ? " stumbling" : ""));
                         float jump = Vector3.Distance(u.Root.position, lastRoot[u]);
                         lastRoot[u] = u.Root.position;
                         if (!rootJump.TryGetValue(u, out var j) || jump > j.most)
@@ -270,13 +296,26 @@ internal static class FightReport
         finally
         {
             UnitController.MoveStarted -= OnMove;
+            UnitController.ClipStrikeStarted -= OnClipStrike;
+            UnitController.Hit -= OnHit;
             UnitController.ComboChanged -= OnCombo;
         }
 
         var sb = new System.Text.StringBuilder();
         if (clips)
         {
-            sb.AppendLine("  clip fighters (step 4: moving only):");
+            sb.AppendLine($"  clip fighters ({(UnitController.ClipBlows ? "step 5: striking" : "step 4: moving only")}): {damageAll:0} damage dealt in all; bodies moved straight out of each other {UnitController.ClipDeepMoves} times, {UnitController.ClipDeepMoved:0.00} m in all");
+            foreach (var u in units)
+            {
+                if (hitKinds.TryGetValue(u, out var k) || clipBlows.ContainsKey(u))
+                {
+                    var parts = new List<string>();
+                    if (k != null) foreach (var pair in k) parts.Add($"{pair.Key} {pair.Value}");
+                    int combosThrown = clipBlows.TryGetValue(u, out var l) ? l.FindAll(x => x.StartsWith("a combo")).Count : 0;
+                    sb.AppendLine($"    {u.name}: {(l != null ? l.Count : 0)} blows ({combosThrown} combos); its hits: {(parts.Count > 0 ? string.Join(", ", parts) : "none")}; it fell {u.Clip.Falls - (u.IsAlive ? 0 : 1)} times alive, was thrown back stumbling {u.Clip.Stumbles} times{(u.IsAlive ? "" : ", killed")}");
+                }
+            }
+
             foreach (var pair in overlapPairs)
             {
                 sb.AppendLine($"    overlapping: {pair.Key}, {pair.Value.steps} steps, as near as {pair.Value.nearest:0.00} m");
@@ -294,6 +333,14 @@ internal static class FightReport
                 string near = reachedAt.TryGetValue(u, out float at)
                     ? $"reached its target at {at:0.0} s, then off its striking distance median {(o.Count > 0 ? o[o.Count / 2] : 0f):+0.00;-0.00} m (10% {(o.Count > 0 ? o[o.Count / 10] : 0f):+0.00;-0.00}, 90% {(o.Count > 0 ? o[o.Count * 9 / 10] : 0f):+0.00;-0.00})"
                     : "never reached its target";
+                if (Environment.GetEnvironmentVariable("FIGHT_FEET") != null)
+                {
+                    foreach (var line in m.Report().Split('\n'))
+                    {
+                        if (line.Contains("while planted")) sb.AppendLine($"      {u.name}: {line.Trim()}");
+                    }
+                }
+
                 sb.AppendLine($"    {u.name}: {near}; planted feet moved at most {m.PlantDriftWorst * 100f:0.0} cm ({m.PlantsDone} plants); the root's biggest step {rootJump[u].most:0.00} m at {rootJump[u].at:0.0} s; feet travelled {m.FeetTravel:0.0} m for the body's {m.BodyTravel:0.0}");
             }
         }

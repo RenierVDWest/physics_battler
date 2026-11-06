@@ -534,7 +534,7 @@ namespace PhysicsBattler.Battle
             // Its Fight Rhythm may lead into the blow first (not into an opening: that would waste it;
             // in a press only before its first blow; never before a counter).
             bool leads = tempo == null || tempo.State == TempoState.Probe || (tempo.State == TempoState.Press && tempo.BurstBlows == 0);
-            if (!opening && leads && now - plan.ledInAt > 1.5f)
+            if (!opening && leads && now - plan.ledInAt > 1.5f && !unit.UsesClips)
             {
                 float lead = unit.LeadIn();
                 if (lead > 0f)
@@ -561,6 +561,37 @@ namespace PhysicsBattler.Battle
                 {
                     candidates.Insert(1 + random.Next(candidates.Count), other);
                 }
+            }
+
+            if (unit.UsesClips)
+            {
+                // (The plan "Bringing the lab into the fight", step 5: a clip fighter strikes with the lab's strikes, a
+                // combo when the fight would throw one, at its target first, then the others in reach in front of it.)
+                foreach (var target in candidates)
+                {
+                    var combo = ChooseCombo(unit, tempo, target, out _, out _);
+                    if (unit.ClipStrike(target, combo != null))
+                    {
+                        plan.ledInAt = -999f;
+                        plan.closeIn = 0f;
+                        plan.blowEnd = now + 1f;
+                        plan.delayAfter = tempo != null ? tempo.BlowDelay((float)random.NextDouble()) : Next(style);
+                        plan.nextAttack = plan.blowEnd + plan.delayAfter;
+                        plan.readsThisTime = random.NextDouble() < style.readsOpenings;
+                        return;
+                    }
+                }
+
+                // (None of its strikes reaches: too far, it closes in; too close, it gives ground.)
+                bool tooClose = distance < EngageDistance(unit, enemy) - 0.1f * size;
+                plan.closeIn = Mathf.Clamp(plan.closeIn + (tooClose ? -0.15f : 0.15f) * size, -0.5f * size, 0.9f * size);
+                plan.nextAttack = now + 0.4f;
+                if (PlaytestTrace.Enabled)
+                {
+                    PlaytestTrace.Note(unit, "attack", $"none of its strikes reaches {enemy.name} from {distance:0.00} m; {(tooClose ? "backing off" : "closing in")}");
+                }
+
+                return;
             }
 
             var targets = new List<(UnitController, AimParts)>();
@@ -735,7 +766,7 @@ namespace PhysicsBattler.Battle
         /// <summary>Where a unit's body is on the board: the root standing, the hips lying.</summary>
         public static Vector3 BodyAt(UnitController unit)
         {
-            Vector3 p = unit.IsAlive && !unit.IsDown ? unit.Root.position : unit.Rig.Part(PartId.Pelvis).transform.position;
+            Vector3 p = unit.IsAlive && !unit.IsDown ? unit.Root.position : unit.PartPosition(PartId.Pelvis);
             p.y = 0f;
             return p;
         }
@@ -863,7 +894,7 @@ namespace PhysicsBattler.Battle
         /// <summary>The push away from a body lying on the ground: from its head to its hips and its hips to each foot.</summary>
         public static Vector3 AroundBody(Vector3 here, float mine, UnitController lying, float speed)
         {
-            Vector3 pelvis = Flat(lying.Rig.Part(PartId.Pelvis).transform.position);
+            Vector3 pelvis = Flat(lying.PartPosition(PartId.Pelvis));
             float room = mine + BodyClearance * lying.Body.SizeFactor;
             Vector3 push = Vector3.zero;
             foreach (var end in new[] { PartId.Head, PartId.FootL, PartId.FootR })
@@ -873,7 +904,7 @@ namespace PhysicsBattler.Battle
                     continue;
                 }
 
-                Vector3 b = Flat(lying.Rig.Part(end).transform.position);
+                Vector3 b = Flat(lying.PartPosition(end));
                 Vector3 ab = b - pelvis;
                 float t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector3.Dot(here - pelvis, ab) / ab.sqrMagnitude) : 0f;
                 Vector3 d = here - (pelvis + ab * t);

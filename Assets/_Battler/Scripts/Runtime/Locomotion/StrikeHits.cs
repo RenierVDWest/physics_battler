@@ -77,6 +77,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The blow playing is a combo's showstopper (its last): it lands harder (<see cref="FinisherKnock"/>) and its hit stop is longer (<see cref="FinisherStop"/>).</summary>
         public System.Func<bool> Finishing;
 
+        /// <summary>Whether a body is on its own side (the fight: a blow stops in an ally rather than sweeping on through).</summary>
+        public System.Func<ClipFighter, bool> IsAlly;
+
         /// <summary>What a blade met, for the sounds: a body, a shield, a blade it was stopped by, a blade it glanced off, or a light touch on a shield or a blade.</summary>
         public enum Met
         {
@@ -124,6 +127,28 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>A line for each blow, as it lands (the lab logs them).</summary>
         public event System.Action<string> Landed;
+
+        /// <summary>What a blow did to a body, each time it meets one (the fight's health, poise and death take it: the plan "Bringing the lab into the fight", step 5).</summary>
+        public struct StruckBy
+        {
+            public ClipFighter Struck;
+            public PartId Part;
+
+            /// <summary>The fight's damage rules' result (its impulse before the combo's knock).</summary>
+            public HitResult Result;
+
+            public bool Shield, Parried, Crushed;
+            public Vector3 Point;
+            public float Speed;
+
+            /// <summary>The health and poise it costs, the combo's knock in them (no health on a shield or a parry; a beaten parry's crush does).</summary>
+            public float Damage, PoiseDamage;
+
+            public LocoClip Clip;
+        }
+
+        /// <summary>Each body a blow meets (<see cref="StruckBy"/>), after its reaction.</summary>
+        public event System.Action<StruckBy> Struck;
 
         public int Hits, Blocks, Cleaves;
 
@@ -874,7 +899,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             var r = DamageRules.Resolve(Weapon, With(clip), Scale, speed, direction, Mass, struck.Mass, part, shield, momentumLeft,
-                1e6f, struck.Poise, struck.MaxPoise);
+                struck.Health, struck.Poise, struck.MaxPoise);
             if (shield || parried)
             {
                 // (Met further out by a step back (the weight plan's step 5): earlier in its arc, lighter.)
@@ -888,6 +913,14 @@ namespace PhysicsBattler.Locomotion
             // one Large club blow struck a Medium's head, upper arm and pelvis in turn. The fight's own swing still
             // cleaves until it takes these rules up.)
             if (!shield && DamageRules.Blunt(With(clip)))
+            {
+                r.StopsSwing = true;
+                r.MomentumLeft = 0f;
+            }
+
+            // (A friend is not cut through (the fight, the plan "Bringing the lab into the fight", step 5): the blade stops in
+            // them, the combo with it. A combo's slash swept on through one ally into the next.)
+            if (IsAlly != null && IsAlly(struck))
             {
                 r.StopsSwing = true;
                 r.MomentumLeft = 0f;
@@ -939,6 +972,11 @@ namespace PhysicsBattler.Locomotion
             float onBlade = beaten ? 1f - CombatFeel.BeatenShare : 1f;
             struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
                 bound: parried && !glanced && !loco.ShotAirborne());
+            Struck?.Invoke(new StruckBy
+            {
+                Struck = struck, Part = part, Result = r, Shield = shield && !parried, Parried = parried, Point = point, Speed = speed,
+                Damage = shield || parried ? 0f : r.Damage * knock, PoiseDamage = r.PoiseDamage * knock * onBlade, Clip = clip,
+            });
 
             // Hit stop: both stand still a moment, longer for a heavier blow (as the fight has it).
             // (Longer for a heavier blow (the plan "Weight and momentum", step 3), by its weight: by its momentum, a
@@ -1271,10 +1309,14 @@ namespace PhysicsBattler.Locomotion
             }
 
             var r = DamageRules.Resolve(Weapon, crushClip != null ? With(crushClip) : StrikeWith.Head, Scale, crushSpeed, crushDirection, Mass, with.Mass, part, false, 1f,
-                1e6f, with.Poise, with.MaxPoise);
+                with.Health, with.Poise, with.MaxPoise);
             float share = CombatFeel.BeatenShare * crushKnock;
             struckParts.Add((with, part));
             with.TakeHit(part, false, r.Impulse * share, r.PartShare, r.PoiseDamage * share, r.Reaction, at);
+            Struck?.Invoke(new StruckBy
+            {
+                Struck = with, Part = part, Result = r, Point = at, Speed = crushSpeed, Damage = r.Damage * share, PoiseDamage = r.PoiseDamage * share, Clip = crushClip, Crushed = true,
+            });
             Hits++;
             float weight = r.Weight * share;
             HitStop = Mathf.Clamp(CombatFeel.HitStopBase + CombatFeel.HitStopPerWeight * weight, CombatFeel.LeastHitStop, CombatFeel.MostHitStop);

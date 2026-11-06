@@ -96,6 +96,15 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Its poise: blows wear it down, it comes back over time (as a unit's does in the fight).</summary>
         public float Poise, MaxPoise;
 
+        /// <summary>Its health, as the fight's damage rules judge a blow by it (the lab's fighters never die: 1e6); a fight unit keeps it.</summary>
+        public float Health = 1e6f;
+
+        /// <summary>Killed: down for good, its body given to physics, never getting up.</summary>
+        public bool Dead { get; private set; }
+
+        /// <summary>The fight unit this fighter moves, if any.</summary>
+        public Units.UnitController FightUnit;
+
         /// <summary>How the dummy is set up (the lab's dummy picker): open (its guard down, no defence: every blow lands),
         /// shield (sword and shield, meeting each blow with its shield), or sword (sword alone, parrying each blow with it).</summary>
         public enum Stances
@@ -182,7 +191,10 @@ namespace PhysicsBattler.Locomotion
         /// Two bodies kept apart: nearer than <see cref="LeastGap"/> of their fighting distance (root to root), each is
         /// moved straight off the other at once, the lighter the further, as two bodies meeting push each other off.
         /// </summary>
-        public static void KeepApart(ClipFighter a, ClipFighter b)
+        public static void KeepApart(ClipFighter a, ClipFighter b) => KeepApart(a, b, a != null && b != null ? LeastGap * FightingDistance(a.Size, b.Size) : 0f);
+
+        /// <summary>The same, no nearer than <paramref name="least"/> (metres, root to root: two of a side stand closer than two who fight).</summary>
+        public static void KeepApart(ClipFighter a, ClipFighter b, float least)
         {
             if (a == null || b == null || a.Fallen || b.Fallen)
             {
@@ -191,7 +203,7 @@ namespace PhysicsBattler.Locomotion
 
             Vector3 gap = b.Loco.Position - a.Loco.Position;
             gap.y = 0f;
-            float apart = gap.magnitude, least = LeastGap * FightingDistance(a.Size, b.Size);
+            float apart = gap.magnitude;
             if (apart >= least)
             {
                 return;
@@ -577,6 +589,21 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A foot this near the ground (its ankle, metres at a Medium's size) is standing on it.</summary>
         public const float FootDownWithin = 0.2f;
 
+        /// <summary>Killed (the fight): it falls as a body knocked off its feet does, along <paramref name="way"/>, and never gets up.</summary>
+        public void Die(Vector3 way, float knock)
+        {
+            if (Dead)
+            {
+                return;
+            }
+
+            Dead = true;
+            Combo?.Stop();
+            Blow = null;
+            way.y = 0f;
+            Fall(-1, way.sqrMagnitude > 1e-6f ? way.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward), knock);
+        }
+
         /// <summary>Down: the body given to physics, the swept leg thrown along the blow and the body over it, falling.</summary>
         private void Fall(int leg, Vector3 way, float knock)
         {
@@ -604,7 +631,7 @@ namespace PhysicsBattler.Locomotion
 
                 p.body.isKinematic = false;
                 bool swept = leg == 0 ? p.id == PartId.ThighL || p.id == PartId.ShinL || p.id == PartId.FootL
-                    : p.id == PartId.ThighR || p.id == PartId.ShinR || p.id == PartId.FootR;
+                    : leg == 1 && (p.id == PartId.ThighR || p.id == PartId.ShinR || p.id == PartId.FootR);
                 var region = AuthorityController.RegionOf(p.id);
                 float speed = swept ? SweptLegSpeed * (p.id == PartId.ThighL || p.id == PartId.ThighR ? 0.5f : 1f)
                     : region == BodyRegion.Legs ? 0.2f * ThrownBodySpeed : ThrownBodySpeed;
@@ -633,6 +660,19 @@ namespace PhysicsBattler.Locomotion
         private void StepFallen(float dt)
         {
             footingTime += dt;
+            if (Dead)
+            {
+                // (Dead: it lies where it fell; its place goes with its body.)
+                if (Authority != null)
+                {
+                    Authority.Apply(dt);
+                    var lying = Rig.Part(PartId.Pelvis).body;
+                    Loco.Position = new Vector3(lying.position.x, groundLevel, lying.position.z);
+                }
+
+                return;
+            }
+
             if (Authority == null)
             {
                 // (Headless, no body to fall: down a moment, then standing.)

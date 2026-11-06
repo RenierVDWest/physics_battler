@@ -45,7 +45,7 @@ namespace PhysicsBattler.Sandbox
         [Tooltip("Seed for the choice of blows and timings (0: different every time).")]
         public int seed;
 
-        [Tooltip("The fight's units are the lab's clip fighters: the lab's walk, guard and body (the plan \"Bringing the lab into the fight\"). For now they only move: they walk in to their targets, ring them and keep their room, no blows yet (step 4). Off: the old pose path, blows and all. Taken when the units spawn (R).")]
+        [Tooltip("The fight's units are the lab's clip fighters: the lab's walk, guard and body (the plan \"Bringing the lab into the fight\"). They walk in to their targets, ring them and keep their room (step 4), and strike with the lab's strikes and combos, the fight's damage, poise and death taking each hit (step 5). No defence yet but the held guard (step 6), and no severing yet. Off: the old pose path, blows and all. Taken when the units spawn (R).")]
         public bool clipMotion = true;
 
         private readonly List<UnitController> units = new List<UnitController>();

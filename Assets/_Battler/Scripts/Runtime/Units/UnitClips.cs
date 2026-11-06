@@ -22,8 +22,11 @@ namespace PhysicsBattler.Units
         /// <summary>A clip fighter's body is physical (off headless, where there is no physics: the lab's runners have it so).</summary>
         public static bool ClipPhysical = true;
 
-        /// <summary>Clip fighters strike (step 5 of the plan); off, they only move.</summary>
-        public static bool ClipBlows = false;
+        /// <summary>Clip fighters strike (step 5 of the plan); off, they only move (step 4).</summary>
+        public static bool ClipBlows = System.Environment.GetEnvironmentVariable("CLIP_NO_BLOWS") == null;
+
+        /// <summary>A clip fighter started a strike or a combo (what, at whom): the logs and the runners count blows by it, a clip strike having no <see cref="MoveState"/>.</summary>
+        public static event System.Action<UnitController, string, UnitController> ClipStrikeStarted;
 
         /// <summary>The clip fighter moving this unit, or null (the old pose path).</summary>
         public ClipFighter Clip { get; private set; }
@@ -41,6 +44,24 @@ namespace PhysicsBattler.Units
         public const float ClipCircleSpeed = 0.35f;
 
         private static readonly Vector2 ClipCircleFor = new Vector2(1.5f, 3.5f), ClipStandFor = new Vector2(0.8f, 2.2f);
+
+        private static readonly System.Collections.Generic.List<ClipFighter> clipBodies = new System.Collections.Generic.List<ClipFighter>();
+        private float clipStopLeft;
+        private int clipVariant;
+
+        /// <summary>Where one of its parts is now: a clip fighter's as it has it (posed, or its body on the ground), else the physical part's.</summary>
+        public Vector3 PartPosition(PartId id) => Clip != null ? Clip.PartAt(id) : Rig.Part(id).transform.position;
+
+        /// <summary>It doesn't swing with an ally nearer than the fighting distance within this of the line to its target (degrees).</summary>
+        public const float ClipAllyAngle = 70f;
+
+        private static readonly bool NoKeepApart = System.Environment.GetEnvironmentVariable("CLIP_NO_KEEPAPART") != null;
+
+        /// <summary>Two of a side stand no nearer than this many times their two bodies' radii together (root to root).</summary>
+        public const float ClipAllyGap = 1.1f;
+
+        /// <summary>Who its strike playing is aimed at (its arm's pull follows them).</summary>
+        public UnitController ClipTarget { get; private set; }
 
         private float circleSide = 1f, circleLeft;
         private bool circleStanding;
@@ -63,6 +84,8 @@ namespace PhysicsBattler.Units
 
             Anim = Clip.Anim;
             Authority = Clip.Authority;
+            Clip.FightUnit = this;
+            Clip.Health = profile.maxHealth;
             Body = BodyMeasure.Of(transform, Anim, Rig);
             Loadout = new Loadout { Scale = Body.SizeFactor };
             Clip.Poser.BodyKey = body;
@@ -113,6 +136,9 @@ namespace PhysicsBattler.Units
         {
             if (!IsAlive)
             {
+                // (Dead: its body lies where it fell, its place with it.)
+                Clip.Move(dt, Vector3.zero, Clip.Loco.Facing, Clip.Loco.Position, false);
+                transform.position = new Vector3(Clip.Loco.Position.x, Stance.GroundY, Clip.Loco.Position.z);
                 return;
             }
 
@@ -146,7 +172,43 @@ namespace PhysicsBattler.Units
             }
 
             Vector3 opponent = Opponent != null ? Opponent.Root.position : loco.Position + Quaternion.Euler(0f, loco.Facing, 0f) * Vector3.forward * 2f;
-            Clip.Move(dt, want, yaw, opponent, false);
+            // (Hit stop: both stand still a moment as a blow lands, the one it landed from and the one it landed on.)
+            float ownStop = Clip.Strikes != null ? Clip.Strikes.HitStop : 0f;
+            clipStopLeft = Mathf.Max(0f, clipStopLeft - dt);
+            HitStop = Mathf.Max(ownStop, clipStopLeft);
+            bool frozen = HitStop > 0f;
+            Clip.Move(dt, want, yaw, opponent, frozen);
+            if (Clip.Strikes != null)
+            {
+                // (Its blade sweeps every other body on the board: its target, the others in the way, its own side.)
+                clipBodies.Clear();
+                foreach (var other in all)
+                {
+                    if (other != this && other != null && other.Clip != null)
+                    {
+                        clipBodies.Add(other.Clip);
+                    }
+                }
+
+                Clip.Strikes.Step(dt, clipBodies);
+            }
+
+            // (Bodies never pass through each other: the lab's rule, each pair once a step. Two who fight keep its least gap;
+            // two of a side stand side by side.)
+            foreach (var other in all)
+            {
+                if (NoKeepApart || other == null || other.Clip == null || other.unitNumber <= unitNumber || !other.IsAlive)
+                {
+                    continue;
+                }
+
+                float least = other.Team == Team
+                    ? ClipAllyGap * (Battle.FightLoop.BodyRadius(this) + Battle.FightLoop.BodyRadius(other))
+                    : ClipFighter.LeastGap * ClipFighter.FightingDistance(Clip.Size, other.Clip.Size);
+                KeepClear(other, least);
+            }
+
+            Poise = Clip.Poise;
             Clip.Apply(dt);
             facingYaw = loco.Facing;
             transform.SetPositionAndRotation(new Vector3(loco.Position.x, Stance.GroundY, loco.Position.z), Quaternion.Euler(0f, loco.Facing, 0f));
@@ -203,7 +265,7 @@ namespace PhysicsBattler.Units
                 energy = Rhythm.Energy,
                 aggression = Rhythm.Aggression,
                 canAct = CanAct && IsAlive,
-                attacking = CurrentMove != null,
+                attacking = IsAttacking,
                 walking = walking,
                 engaged = TempoEngaged,
                 targetVulnerable = TargetVulnerable,
@@ -236,10 +298,201 @@ namespace PhysicsBattler.Units
             Clip.Parry = Clip.Stance == ClipFighter.Stances.Sword
                 ? HeldAs(new SwordParry(Anim, Clip.Loco, Rig, scale, poser.WeaponLength), main)
                 : null;
+
+            // (Its strikes, the lab's for its body, swept from its weapon: step 5 of the plan.)
+            var hits = Clip.EnableStrikes(main != null && !main.IsShield ? main : null);
+            hits.Comboing = () => Clip.Combo != null && Clip.Combo.Playing && Clip.Combo.Cores;
+            hits.Struck += OnClipStruck;
+            hits.IsAlly = body => body != null && body.FightUnit != null && body.FightUnit != this && body.FightUnit.Team == Team;
+            Clip.Follow = clip => ClipTarget != null && ClipTarget.Clip != null && ClipTarget.IsAlive ? Clip.AimAt(ClipTarget.Clip, clip) : (Vector3?)null;
         }
 
         private static SwordParry HeldAs(SwordParry parry, WeaponDefinition weapon) =>
             weapon != null && weapon.kind == WeaponKind.Club ? parry.AsClub() : parry;
+
+        /// <summary>
+        /// Two bodies nearer than <paramref name="least"/> (root to root) are parted the way the feet allow: one walking or
+        /// standing is pushed off, its walk taking the steps; one lunging into the other has the rest of its lunge cut;
+        /// only one already deep in the other (inside <see cref="ClipDeepIn"/> of it) is moved straight out, feet and all.
+        /// Moved straight out every time, the planted feet dragged up to 36 cm under the lunges.
+        /// </summary>
+        private void KeepClear(UnitController other, float least)
+        {
+            if (Clip.Fallen || other.Clip.Fallen)
+            {
+                return;
+            }
+
+            Vector3 gap = other.Clip.Loco.Position - Clip.Loco.Position;
+            gap.y = 0f;
+            float apart = gap.magnitude;
+            if (apart >= least)
+            {
+                return;
+            }
+
+            if (apart < ClipDeepIn * least)
+            {
+                ClipDeepMoves++;
+                ClipDeepMoved += ClipDeepIn * least - apart;
+                ClipFighter.KeepApart(Clip, other.Clip, ClipDeepIn * least);
+            }
+
+            Vector3 way = apart > 1e-4f ? gap / apart : Quaternion.Euler(0f, Clip.Loco.Facing, 0f) * Vector3.forward;
+            PartFrom(this, -way, least - apart);
+            PartFrom(other, way, least - apart);
+        }
+
+        private static void PartFrom(UnitController u, Vector3 away, float into)
+        {
+            var loco = u.Clip.Loco;
+            if (loco.Current == Locomotor.Mode.OneShot)
+            {
+                // (Lunging into the other: its root goes no further.)
+                if (Vector3.Dot(loco.Velocity, away) < -0.05f)
+                {
+                    loco.StopShotTravel();
+                }
+
+                return;
+            }
+
+            if (u.LocalTime - u.clipPushedAt > 0.25f)
+            {
+                u.clipPushedAt = u.LocalTime;
+                loco.Push(away * (Mathf.Clamp(into * 3f, 0.3f, 1.2f) * Mathf.Sqrt(u.Body.SizeFactor)));
+            }
+        }
+
+        /// <summary>A body this far into another (a share of the least gap) is moved straight out of it.</summary>
+        public const float ClipDeepIn = 0.75f;
+
+        private float clipPushedAt = -10f;
+
+        /// <summary>How often two bodies were found deep in each other and moved straight out, and how far in all (metres): for the logs.</summary>
+        public static int ClipDeepMoves;
+
+        public static float ClipDeepMoved;
+
+        /// <summary>
+        /// Starts a strike at <paramref name="target"/> (the fight loop's choice of when and at whom; the lab's of how): one of
+        /// its strikes that lands from where it stands, or, when <paramref name="combo"/>, the lab's combo it opens. False when
+        /// none of its strikes reaches, or it is busy.
+        /// </summary>
+        public bool ClipStrike(UnitController target, bool combo)
+        {
+            if (Clip == null || Clip.Strikes == null || Clip.Busy || !CanAct || target == null || target.Clip == null || !target.IsAlive)
+            {
+                return false;
+            }
+
+            // (Not with a friend in the swing's way: near it, between it and its target or beside the line. The fight's
+            // own blows hit an ally now and then; the lab's combos, sweeping wide, did so one blow in four.)
+            Vector3 toTarget = target.Root.position - Root.position;
+            toTarget.y = 0f;
+            foreach (var other in all)
+            {
+                if (other == this || other == target || other.Team != Team || !other.IsAlive || other.Clip == null)
+                {
+                    continue;
+                }
+
+                Vector3 toAlly = other.Root.position - Root.position;
+                toAlly.y = 0f;
+                if (toAlly.magnitude < ClipFighter.FightingDistance(Clip.Size, other.Clip.Size) && Vector3.Angle(toTarget, toAlly) < ClipAllyAngle)
+                {
+                    return false;
+                }
+            }
+
+            var clip = Clip.StrikeThatLands(target.Clip);
+            if (clip == null)
+            {
+                return false;
+            }
+
+            ClipTarget = target;
+            string what;
+            if (combo && Clip.ComboAt(target.Clip, clip, clipVariant++, out var opener, out var chain))
+            {
+                what = "a combo: " + opener.Name;
+                foreach (var link in chain)
+                {
+                    what += " > " + link.To.Name;
+                }
+            }
+            else
+            {
+                Clip.StrikeAt(target.Clip, clip);
+                what = clip.Name;
+            }
+
+            ClipStrikeStarted?.Invoke(this, what, target);
+            return true;
+        }
+
+        /// <summary>One of its blows met a body: that unit takes it as the fight does (its health, poise, death), and the logs hear of it.</summary>
+        private void OnClipStruck(StrikeHits.StruckBy s)
+        {
+            var struck = s.Struck != null ? s.Struck.FightUnit : null;
+            if (struck == null)
+            {
+                return;
+            }
+
+            var r = s.Result;
+            r.Damage = s.Damage;
+            r.PoiseDamage = s.PoiseDamage;
+            var report = new HitReport
+            {
+                Attacker = this, Struck = struck, Part = s.Part, Shield = s.Shield, Parried = s.Parried, Point = s.Point, Speed = s.Speed, Result = r,
+                Kind = s.Parried ? "parried" : s.Shield ? "blocked by the shield"
+                    : struck == ClipTarget ? "the target" : struck.Team == Team ? "an ally (friendly fire)" : "someone in the way",
+            };
+            struck.ClipTakeHit(report, Clip.Strikes != null ? Clip.Strikes.HitStop : 0f);
+            if (!report.Blocked)
+            {
+                Rhythm?.NoteLanded();
+            }
+
+            Hit?.Invoke(report);
+        }
+
+        /// <summary>A blow taken (its reaction is the clip fighter's own): health, poise, the tempo's and rhythm's notes, the hit stop, and death.</summary>
+        private void ClipTakeHit(HitReport hit, float stop)
+        {
+            if (!IsAlive)
+            {
+                return;
+            }
+
+            var r = hit.Result;
+            Health = Mathf.Max(0f, Health - r.Damage);
+            Clip.Health = Health;
+            Rhythm?.NoteHit(r.Damage / Mathf.Max(1f, profile.maxHealth));
+            Tempo?.NoteHit(r.PoiseDamage / Mathf.Max(1f, profile.maxPoise));
+            Poise = Clip.Poise;
+            LastReaction = r.Reaction;
+            clipStopLeft = Mathf.Max(clipStopLeft, stop);
+            if (Health <= 0f)
+            {
+                ClipDie(hit);
+            }
+        }
+
+        /// <summary>Killed: down for good, its body to physics (the clip fighter's fall), and the fight told.</summary>
+        private void ClipDie(HitReport hit)
+        {
+            IsAlive = false;
+            Health = 0f;
+            Clip.Health = 0f;
+            State = UnitState.Down;
+            ClipWant = Vector3.zero;
+            ClipTarget = null;
+            Vector3 push = hit.Result.Impulse * (1f - hit.Result.PartShare);
+            Clip.Die(push, push.magnitude / Mathf.Max(1f, Body.Mass));
+            Died?.Invoke(this, hit);
+        }
 
         private void Hold(Transform slot, Transform animSlot, WeaponDefinition definition, Quaternion grip)
         {

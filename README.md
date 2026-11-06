@@ -502,6 +502,20 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     most); planted feet within 0.2 cm but one plant of 2.2 cm; bodies overlapping 12 steps of 3600, never nearer than
     0.49 m (none with the teams swapped). The old path (the switch off) as it was. `fight` prints each clip fighter's
     approach, feet and root (`FIGHT_SECONDS`, `FIGHT_OVERLAP_TRACE`).
+  - The fight on clip fighters, striking (the plan "Bringing the lab into the fight", step 5). The fight loop still
+    chooses when to strike and at whom (its tempo, its delays, the openings it reads, when to throw a combo); a clip
+    fighter strikes with the lab's: a strike of its own that lands from where it stands, or the lab's combo it opens.
+    Its blade sweeps every other body on the board; each body it meets takes the fight's damage rules (health, poise;
+    the combo's knock in them), its reaction the lab's (bend, hit stop, drive-back, stumble), and dies when its health
+    is gone: it falls as a body knocked down does, and never gets up. The fight hears every hit (`UnitController.Hit`,
+    `Died`, and `ClipStrikeStarted` for each blow). A blow stops in an ally instead of sweeping on through, and a fighter
+    doesn't swing with an ally in the way (the lab's combos hit one in four on allies). Bodies are kept from passing
+    through each other as the feet allow: pushed off with catch steps, a lunge into a body cut short, only one deep in
+    another moved straight out. No defence yet but the held guard (step 6), no severing yet. Headless 3 v 3, three
+    fights: each ends with a winner in 15 to 42 s; no unit floored but by its death; bodies never overlapping;
+    friendly fire 3 to 10 of 25 to 40 hits (the old fight: 2 or 3 of 65). Left: planted feet still drag in the press,
+    up to 43 cm (in reaction and strike clips; the lab's spar had 21 cm). `CLIP_NO_BLOWS=1` moves only; `fight`
+    prints each clip fighter's blows and hits (`FIGHT_HITS` each hit, `FIGHT_FEET` each foot dragged).
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session
