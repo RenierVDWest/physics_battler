@@ -138,6 +138,12 @@ namespace PhysicsBattler.Battle
                 }
 
                 var plan = PlanOf(unit);
+                if (unit.UsesClips)
+                {
+                    // (Stood still unless the steering below asks it to walk.)
+                    unit.ClipWant = Vector3.zero;
+                }
+
                 if (!unit.IsAlive || !unit.CanAct)
                 {
                     // Off its feet or gone: it doesn't steer (a body on the board is in others' way).
@@ -447,6 +453,12 @@ namespace PhysicsBattler.Battle
             // if no blow lands, the planner sends it closer); held up for a moment, it tries from there.
             plan.blocked = off > 0.05f && plan.velocity.magnitude < 0.25f * speed ? plan.blocked + dt : 0f;
             if (busy || (off > 0.35f * size && plan.blocked < 0.6f) || (tempo != null && !tempo.Strikes))
+            {
+                return;
+            }
+
+            // (Step 4 of the plan: clip fighters only move; their blows come with step 5.)
+            if (unit.UsesClips && !UnitController.ClipBlows)
             {
                 return;
             }
@@ -786,6 +798,12 @@ namespace PhysicsBattler.Battle
 
                 Vector3 d = here - BodyAt(other);
                 float room = mine + BodyRadius(other) + Margin * unit.Body.SizeFactor;
+                if (unit.UsesClips)
+                {
+                    // (A clip fighter's walk answers a push late, its feet taking the steps: it starts sooner.)
+                    room += ClipRoom * unit.Body.SizeFactor;
+                }
+
                 if (other.Team == unit.Team && plans.TryGetValue(other, out var theirs) && theirs.target != null && theirs.target == plan.target)
                 {
                     room += ElbowRoom * unit.Body.SizeFactor;   // (two on one target: room to swing without hitting each other)
@@ -816,6 +834,18 @@ namespace PhysicsBattler.Battle
             }
 
             plan.velocity = Vector3.MoveTowards(plan.velocity, want, Acceleration * speed * dt);
+            if (unit.UsesClips)
+            {
+                // (Being pushed off a body, it doesn't circle on into it.)
+                unit.ClipCrowded = Mathf.Clamp01(push.magnitude / Mathf.Max(0.05f, speed));
+                // (The plan "Bringing the lab into the fight", step 4: a clip fighter walks there itself, its feet doing
+                // the stepping, its walk easing into what it is asked (so not eased here as well: a push off a body
+                // came too late, and teammates on one target overlapped); its root follows its walk.)
+                plan.velocity = want;
+                unit.ClipWant = want;
+                return;
+            }
+
             Vector3 next = unit.Root.position + plan.velocity * dt;
             // (Never off the board, whatever pushed it.)
             Vector3 n = next - Grid.origin;
@@ -823,6 +853,9 @@ namespace PhysicsBattler.Battle
             n.z = Mathf.Clamp(n.z, -0.5f * Grid.Depth + 0.5f * mine, 0.5f * Grid.Depth - 0.5f * mine);
             unit.Root.position = new Vector3(Grid.origin.x + n.x, next.y, Grid.origin.z + n.z);
         }
+
+        /// <summary>The more room a clip fighter keeps from other bodies (metres at a Medium's size): its walk answers late.</summary>
+        public const float ClipRoom = 0.2f;
 
         /// <summary>How far round a body on the ground a walking unit keeps (metres at medium size, beyond its own radius).</summary>
         public const float BodyClearance = 0.12f;

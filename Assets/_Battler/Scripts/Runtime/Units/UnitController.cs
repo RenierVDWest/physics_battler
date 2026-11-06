@@ -153,6 +153,12 @@ namespace PhysicsBattler.Units
                 part.Owner = this;
             }
 
+            // (The plan "Bringing the lab into the fight", step 4: moved by the lab's clip fighter instead.)
+            if (ClipMotion && asPhysical)
+            {
+                return InitializeClips(asPhysical);
+            }
+
             if (physical)
             {
                 JointConventions.EnsureProbed();
@@ -246,6 +252,7 @@ namespace PhysicsBattler.Units
         private void OnDestroy()
         {
             all.Remove(this);
+            Clip?.DestroyGetUpRoot();
             ForgetGround();
             DestroySeveredLimbs();
             if (detachedBody != null)
@@ -325,6 +332,12 @@ namespace PhysicsBattler.Units
         /// <summary>Puts weapons in the hands: a main weapon (right hand) and an off-hand item (left), either may be null.</summary>
         public void Equip(WeaponDefinition main, WeaponDefinition off)
         {
+            if (Clip != null)
+            {
+                EquipClips(Rig.IsSevered(PartId.HandR) ? null : main, Rig.IsSevered(PartId.HandL) ? null : off);
+                return;
+            }
+
             if (MainWeapon != null)
             {
                 DestroyWeapon(MainWeapon);
@@ -447,6 +460,19 @@ namespace PhysicsBattler.Units
         /// <summary>Moves the unit somewhere else at once, body and all (the sandbox's scenarios).</summary>
         public void Teleport(Vector3 position, float yaw)
         {
+            if (Clip != null)
+            {
+                // (A clip fighter: its walk placed there, its body carried with it.)
+                Vector3 from = Clip.Loco.Position;
+                Clip.Loco.Place(new Vector3(position.x, Stance.GroundY, position.z), yaw);
+                Clip.CarryBy(Clip.Loco.Position - from);
+                transform.SetPositionAndRotation(Clip.Loco.Position, Quaternion.Euler(0f, yaw, 0f));
+                facingYaw = yaw;
+                facePoint = null;
+                ClipWant = Vector3.zero;
+                return;
+            }
+
             if (CurrentMove != null)
             {
                 CancelMove(CurrentMove, "moved by the sandbox");
@@ -809,6 +835,12 @@ namespace PhysicsBattler.Units
 
             using (Perf.Begin(PerfSection.UnitStep))
             {
+                if (Clip != null)
+                {
+                    StepClips(Time.fixedDeltaTime);
+                    return;
+                }
+
                 Step(Time.fixedDeltaTime, true);
             }
         }

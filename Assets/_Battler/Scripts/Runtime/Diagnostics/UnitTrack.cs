@@ -141,6 +141,25 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("rootYaw", unit.FacingYaw, 1);
             frames.Add("pelvisH", unit.Rig.Part(PartId.Pelvis).body.position.y - ground, 3);
             frames.Add("animPelvisH", anim.Part(PartId.Pelvis).position.y - ground, 3);
+            if (unit.UsesClips)
+            {
+                // (A clip fighter (the plan "Bringing the lab into the fight", step 4): its walk, not the old pose.)
+                var loco = unit.Clip.Loco;
+                frames.Add("clipMode", (int)loco.Current);
+                frames.Add("clipSpeed", new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude, 3);
+                frames.Add("clipWant", new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude, 3);
+                frames.Add("heldL", loco.FootHeld(0) ? 1 : 0);
+                frames.Add("heldR", loco.FootHeld(1) ? 1 : 0);
+                frames.End();
+                samples++;
+                if (writePose && unit.Authority != null)
+                {
+                    WritePose(t);
+                }
+
+                return;
+            }
+
             frames.Add("pelvisDrop", p.PelvisDrop, 3);
             frames.Add("weightShift", p.WeightShift, 3);
 
@@ -368,7 +387,7 @@ namespace PhysicsBattler.Diagnostics
 
             for (int f = 0; f < 2; f++)
             {
-                Vector3 planted = unit.Stance.Position(f);
+                Vector3 planted = unit.UsesClips ? unit.Clip.Poser.Feet[f].Target : unit.Stance.Position(f);
                 string side = f == Stance.Left ? "L" : "R";
                 pose.Add("plant" + side + ".x", planted.x, 3);
                 pose.Add("plant" + side + ".z", planted.z, 3);
@@ -535,6 +554,13 @@ namespace PhysicsBattler.Diagnostics
             if (unit == null || !unit.IsInitialized)
             {
                 return "gone";
+            }
+
+            if (unit.UsesClips)
+            {
+                var loco = unit.Clip.Loco;
+                return $"facing {unit.FacingYaw:0}°, {loco.Current}{(loco.Shot != null && loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot ? " " + loco.Shot.Name : "")}, "
+                       + $"walking {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s (asked {new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude:0.00}), feet held {(loco.FootHeld(0) ? "L" : "-")}{(loco.FootHeld(1) ? "R" : "-")}";
             }
 
             var p = unit.Pose;

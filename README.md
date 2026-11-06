@@ -490,6 +490,18 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     back. A scene's Combat Feel keeps the giving-ground values it first saved (0.25 and 0.5 m): the new defaults, 0.1
     and 0.2, show only once set there. Left: a Small's combos at parry skill 0.5 still drag a planted foot 14 cm as
     the dummy is driven back (as before).
+  - The fight on clip fighters, moving only (the plan "Bringing the lab into the fight", step 4; now on `main`). With
+    the sandbox's "Clip motion" on (headless `CLIP_FIGHT=1`), each fight unit is the lab's clip fighter: the lab's
+    walk, guard and body, its weapons held as the lab holds them (`Units/UnitClips.cs`). It keeps what the fight reads
+    of it (health and poise, team, perception, tempo, rhythm); the old pose pipeline, gait, balance and stance are not
+    built. The fight loop steers it as a walk and a facing instead of moving its root, its root following the walk;
+    once near its target it circles it in spells, as the lab's footwork does, giving way when crowded. Clip fighters
+    keep 0.2 m more room from other bodies (their walk answers a push late, the feet taking the steps). Knocked off
+    its feet, the fight sees it down until its get-up. No blows yet (step 5). Headless 3 v 3, 60 s: every unit
+    reaches its target in 5.6 to 7.2 s and holds near its striking distance; the root never jumps (0.01 m a step at
+    most); planted feet within 0.2 cm but one plant of 2.2 cm; bodies overlapping 12 steps of 3600, never nearer than
+    0.49 m (none with the teams swapped). The old path (the switch off) as it was. `fight` prints each clip fighter's
+    approach, feet and root (`FIGHT_SECONDS`, `FIGHT_OVERLAP_TRACE`).
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

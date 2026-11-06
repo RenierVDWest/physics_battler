@@ -186,7 +186,7 @@ namespace PhysicsBattler.Audio
             // (Feet are heard as steps: the new walk's when it plants them (OnFoot); the fight's own gait's as they come down.)
             if (part.id == PartId.FootL || part.id == PartId.FootR)
             {
-                if (!UnitController.NewWalk && speed > 0.25f && (!lastStep.TryGetValue(part, out float was) || now - was > 0.2f))
+                if (!UnitController.NewWalk && !(part.Owner != null && part.Owner.UsesClips) && speed > 0.25f && (!lastStep.TryGetValue(part, out float was) || now - was > 0.2f))
                 {
                     lastStep[part] = now;
                     Sfx.Play(speed > 2.2f ? SfxIds.StepRun : SfxIds.StepWalk, part.transform.position, Mathf.Clamp(0.5f + speed * 0.25f, 0.5f, 1f));

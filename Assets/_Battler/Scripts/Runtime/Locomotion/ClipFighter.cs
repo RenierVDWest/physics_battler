@@ -2796,6 +2796,22 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        /// <summary>Its get-up's root, which lives beside it (a fight unit that owns its own object goes; this goes with it).</summary>
+        public void DestroyGetUpRoot()
+        {
+            if (getUpRoot != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Object.Destroy(getUpRoot.gameObject);
+                }
+                else
+                {
+                    Object.DestroyImmediate(getUpRoot.gameObject);
+                }
+            }
+        }
+
         public void Destroy()
         {
             if (Unit != null)

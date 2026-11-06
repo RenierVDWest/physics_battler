@@ -34,7 +34,14 @@ internal static class FightReport
         Application.dataPath = Path.Combine(Path.GetFullPath(output), "Assets");
         var recorder = new GameObject("Recorder").AddComponent<PlaytestRecorder>();
         Call(recorder, "OnEnable");
-        var result = Play(rigs, seed, 240f, recorder, out var stats);
+        if (UnitController.ClipMotion)
+        {
+            // (No physics headless: the clip fighters' bodies are the lab runners', posed only.)
+            UnitController.ClipPhysical = false;
+        }
+
+        float seconds = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SECONDS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fs) ? fs : 240f;
+        var result = Play(rigs, seed, seconds, recorder, out var stats);
         Call(recorder, "OnDisable");
         Application.dataPath = assets;
         Console.WriteLine(result);
@@ -87,12 +94,34 @@ internal static class FightReport
                 unit.Profile = profile;
                 Call(unit, "Awake");
                 if (body == "Medium") unit.Equip(sword, shield); else unit.Equip(club, null);
-                if (Environment.GetEnvironmentVariable("FIGHT_NO_COLLIDERS") == null) Smoke.GiveColliders(unit);   // (milestone 11: blocks and parries headless)
+                if (Environment.GetEnvironmentVariable("FIGHT_NO_COLLIDERS") == null && !unit.UsesClips) Smoke.GiveColliders(unit);   // (milestone 11: blocks and parries headless)
                 units.Add(unit);
             }
         }
 
         var loop = new FightLoop(seed) { Grid = grid };
+        // (The plan "Bringing the lab into the fight", step 4: CLIP_FIGHT=1 moves the units as clip fighters, their
+        // walk measured as the lab's is.)
+        bool clips = UnitController.ClipMotion;
+        var feet = new Dictionary<UnitController, PhysicsBattler.Locomotion.LocoMeasures>();
+        var lastRoot = new Dictionary<UnitController, Vector3>();
+        var rootJump = new Dictionary<UnitController, (float most, float at)>();
+        var reachedAt = new Dictionary<UnitController, float>();
+        var overlapPairs = new Dictionary<string, (int steps, float nearest)>();
+        var offs = new Dictionary<UnitController, List<float>>();
+        if (clips)
+        {
+            foreach (var u in units)
+            {
+                if (u.UsesClips)
+                {
+                    feet[u] = new PhysicsBattler.Locomotion.LocoMeasures(u.Clip.Anim, u.Clip.Loco, u.Clip.Poser);
+                    lastRoot[u] = u.Root.position;
+                    offs[u] = new List<float>();
+                }
+            }
+        }
+
         float dt = Time.fixedDeltaTime;
         int shared = 0, attacks = 0;
         var started = new Dictionary<UnitController, int>();
@@ -165,13 +194,73 @@ internal static class FightReport
                 foreach (var unit in units)
                 {
                     Call(unit, "FixedUpdate");
-                    PhysicsBattler.Tests.BalanceTests.Integrate(unit, dt);
+                    if (!unit.UsesClips)
+                    {
+                        PhysicsBattler.Tests.BalanceTests.Integrate(unit, dt);
+                    }
+                }
+
+                if (clips)
+                {
+                    float t = Time.time - startTime;
+                    foreach (var u in units)
+                    {
+                        if (!feet.TryGetValue(u, out var m))
+                        {
+                            continue;
+                        }
+
+                        m.Sample(dt, t, u.Clip.Loco.Current.ToString());
+                        float jump = Vector3.Distance(u.Root.position, lastRoot[u]);
+                        lastRoot[u] = u.Root.position;
+                        if (!rootJump.TryGetValue(u, out var j) || jump > j.most)
+                        {
+                            rootJump[u] = (jump, t);
+                        }
+
+                        // (How far it is from where it would strike its opponent from: the fight's engage distance.)
+                        if (u.Opponent != null)
+                        {
+                            Vector3 d = u.Opponent.Root.position - u.Root.position;
+                            float off = new Vector2(d.x, d.z).magnitude - (u.Style.engageDistance * u.Body.SizeFactor + 0.25f * u.Opponent.Body.SizeFactor);
+                            if (off < 0.35f * u.Body.SizeFactor && !reachedAt.ContainsKey(u))
+                            {
+                                reachedAt[u] = t;
+                            }
+
+                            if (reachedAt.ContainsKey(u))
+                            {
+                                offs[u].Add(off);
+                            }
+                        }
+                    }
                 }
 
                 OnStep?.Invoke(units, dt);
 
                 // Two standing bodies overlapping (free roam: the steering should keep them apart).
                 int overlapping = FightLoop.Overlapping(units);
+                if (overlapping > 0 && clips)
+                {
+                    for (int i = 0; i < units.Count; i++)
+                    {
+                        for (int j = i + 1; j < units.Count; j++)
+                        {
+                            float apart = Vector3.Distance(FightLoop.BodyAt(units[i]), FightLoop.BodyAt(units[j]));
+                            if (units[i].IsAlive && units[j].IsAlive && apart < 0.8f * (FightLoop.BodyRadius(units[i]) + FightLoop.BodyRadius(units[j])))
+                            {
+                                string key = units[i].name + " & " + units[j].name;
+                                if (Environment.GetEnvironmentVariable("FIGHT_OVERLAP_TRACE") != null && step % 6 == 0)
+                                {
+                                    string W(UnitController u) => $"{u.name} want {u.ClipWant.magnitude:0.00} ({Vector3.Dot(u.ClipWant, (FightLoop.BodyAt(u) - FightLoop.BodyAt(u == units[i] ? units[j] : units[i])).normalized):+0.00;-0.00} away) walks {u.Clip.Loco.Velocity.magnitude:0.00} {u.Clip.Loco.Current} circling {u.CircleOpponent}";
+                                    Console.WriteLine($"  {Time.time - startTime:0.00} {key} {apart:0.00} m: {W(units[i])} | {W(units[j])}");
+                                }
+
+                                overlapPairs[key] = (overlapPairs.TryGetValue(key, out var op) ? op.steps : 0) + 1 is int k ? (k, Mathf.Min(op.nearest == 0f ? 9f : op.nearest, apart)) : op;
+                            }
+                        }
+                    }
+                }
                 if (overlapping > 0 && shared++ % 120 == 0 && Environment.GetEnvironmentVariable("FIGHT_DEBUG") != null)
                 {
                     Console.WriteLine($"  t {Time.time - startTime:0.0}: {overlapping} pairs of bodies overlapping");
@@ -185,6 +274,30 @@ internal static class FightReport
         }
 
         var sb = new System.Text.StringBuilder();
+        if (clips)
+        {
+            sb.AppendLine("  clip fighters (step 4: moving only):");
+            foreach (var pair in overlapPairs)
+            {
+                sb.AppendLine($"    overlapping: {pair.Key}, {pair.Value.steps} steps, as near as {pair.Value.nearest:0.00} m");
+            }
+
+            foreach (var u in units)
+            {
+                if (!feet.TryGetValue(u, out var m))
+                {
+                    continue;
+                }
+
+                var o = offs[u];
+                o.Sort();
+                string near = reachedAt.TryGetValue(u, out float at)
+                    ? $"reached its target at {at:0.0} s, then off its striking distance median {(o.Count > 0 ? o[o.Count / 2] : 0f):+0.00;-0.00} m (10% {(o.Count > 0 ? o[o.Count / 10] : 0f):+0.00;-0.00}, 90% {(o.Count > 0 ? o[o.Count * 9 / 10] : 0f):+0.00;-0.00})"
+                    : "never reached its target";
+                sb.AppendLine($"    {u.name}: {near}; planted feet moved at most {m.PlantDriftWorst * 100f:0.0} cm ({m.PlantsDone} plants); the root's biggest step {rootJump[u].most:0.00} m at {rootJump[u].at:0.0} s; feet travelled {m.FeetTravel:0.0} m for the body's {m.BodyTravel:0.0}");
+            }
+        }
+
         foreach (var u in units)
         {
             sb.AppendLine($"  {u.name}: {(u.IsAlive ? $"alive, {u.Health:0}/{u.Profile.maxHealth:0} hp" : "dead")}{(u.Loadout?.Main == null ? ", unarmed" : "")}{(u.LegLost ? ", legless" : "")}, "
