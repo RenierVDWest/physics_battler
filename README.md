@@ -459,6 +459,21 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     short of where it is aimed. At skill 0.5 nothing changes (a middling shield waits to see a blow, it doesn't read
     it ahead): combos still 40% off the board. `PRED_TRACE=1 combos` prints each read against the blow;
     `NO_FIT_AHEAD=1` reads as before.
+  - Giving ground to a heavy blow (the plan "Weight and momentum", step 5). A blow's read carries the momentum a block
+    of it would take (a combo's blow 1.5 times, its showstopper twice); over the defender's mass, the weight it reads
+    coming. A shield steps back from one at least 0.9 m/s heavy, about 0.22 s before contact, 0.25 to 0.5 m by how heavy
+    (an expert always, a novice now and then, later and shorter), its feet stepping after it, and meets the blow
+    further out, lighter by up to 30% (its shield arm knocked back less, the guard knocked open less often). Not in a
+    clip of its own (a reaction, a strike), where its feet can't step. A parry steps back only from a blow heavier than
+    its skill holds (it would beat it), and still when its arm would be late: stepped back from lighter ones, or from
+    blows coming in deep, the body left where its arm was putting the sword (the expert let 2 more of the Large's
+    single blows through). Stepping back from deep blows stays on Combat Feel, off. All six on Combat Feel ("Giving
+    ground"). Headless at skill 1: the shield steps back from every Large blow (weight 1.85 m/s in combos; single
+    blows met at 0.44 to 0.49 m/s, were 0.62) and the Medium's combo blows (1.07 m/s), never the Medium's single blows
+    (0.8) or the Small's (0.13). The Large's combos blocked 9 of 9 (were 6, 3 missed); everything else, the sword's
+    parries and the spar as before. The dummy's planted feet within 0.2 cm in every combo (`combos` prints them, and
+    the weights read). `GROUND_TRACE=1` prints each step back; the lab's log has them; `NO_GROUND_STEP=1` steps back
+    only for a late arm, as before.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and

@@ -46,6 +46,12 @@ namespace PhysicsBattler.Locomotion
 
         public bool Thrust;
 
+        /// <summary>
+        /// The momentum a block or parry of it would take (N·s, the combo's knock in it: a showstopper's counts double):
+        /// over the defender's mass, the weight it would be met with (the weight plan's step 5, giving ground to a heavy blow).
+        /// </summary>
+        public float Momentum;
+
         /// <summary>Which blow this is: it changes as each new blow starts, a combo's next one too (its clip taken up partway, its time into the clip doesn't start again from nought).</summary>
         public int Serial;
     }
@@ -94,6 +100,12 @@ namespace PhysicsBattler.Locomotion
         private bool swingHeard;
 
         private bool Club => Weapon != null && Weapon.kind == WeaponKind.Club;
+
+        /// <summary>What a block of a blow at full speed takes (as <see cref="DamageRules.Resolve"/> has it: 0.8 of the blow's momentum), its knock given.</summary>
+        private float MetMomentum(float knock) => 0.8f * DamageRules.EffectiveMass(Weapon, Scale, Mass) * MostSpeed * knock;
+
+        /// <summary>A blade's speed is taken at no more than this (m/s).</summary>
+        public const float MostSpeed = 16f;
 
         /// <summary>A blow of a combo: it drives the body it lands on back harder than a single blow (<see cref="ComboKnock"/>; the combo pulls itself in after it), and its slash sweeps on through the body rather than stopping in it (slowed to no less than <see cref="ComboCarry"/>).</summary>
         public System.Func<bool> Comboing;
@@ -238,6 +250,7 @@ namespace PhysicsBattler.Locomotion
             read.ToContact = Mathf.Max(0f, contact - loco.ShotTime) / speed;
             read.Coming = loco.ShotTime / loco.TimeScale;
             read.Thrust = IsThrust(clip);
+            read.Momentum = MetMomentum(Finishing != null && Finishing() ? FinisherKnock : Comboing != null && Comboing() ? ComboKnock : 1f);
             read.Length = Weapon != null ? Weapon.length * Scale : poser.WeaponLength;
             // (The blade's path over the last of the blow and just past its contact: from where the blade is now, on
             // by the clip's arm as the root will carry it (the lunge cut or stretched, the aimed turn) and the aim's
@@ -345,6 +358,7 @@ namespace PhysicsBattler.Locomotion
             // expert's eye is already on it; a novice's still lags its usual while behind.)
             read.Coming = clock - predictedSince + SwordParry.ReadAfter;
             read.Thrust = IsThrust(clip);
+            read.Momentum = MetMomentum(ComboKnock);
             read.Length = Weapon != null ? Weapon.length * Scale : poser.WeaponLength;
             read.PathSeconds = PathStep / pace;
             read.Path = new Vector3[PathPoints];
@@ -567,7 +581,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (Capped: a jump in one step is not a blow's speed.)
-            float speed = Mathf.Min(Vector3.Distance(strike, lastS) / dt, 16f);
+            float speed = Mathf.Min(Vector3.Distance(strike, lastS) / dt, MostSpeed);
             float contact = striking ? clip.ContactFrame / clip.Rate : 0f, t = loco.ShotTime;
             bool live = striking && !stopped && t >= contact - LiveBefore && t <= contact + LiveAfter && loco.ShotSpeed > 0f
                         && speed >= (Weapon != null ? Weapon.minHitSpeed : 2f);
@@ -861,6 +875,14 @@ namespace PhysicsBattler.Locomotion
 
             var r = DamageRules.Resolve(Weapon, With(clip), Scale, speed, direction, Mass, struck.Mass, part, shield, momentumLeft,
                 1e6f, struck.Poise, struck.MaxPoise);
+            if (shield || parried)
+            {
+                // (Met further out by a step back (the weight plan's step 5): earlier in its arc, lighter.)
+                float eased = 1f - struck.GroundEase(readSerial);
+                r.Impulse *= eased;
+                r.Weight *= eased;
+                r.PoiseDamage *= eased;
+            }
             // (A blunt blow never cleaves (the plan "Weight and momentum", step 2): a club's head, a fist, a shield's face
             // stop in the first body they meet and their weight goes into it, a shove, not a cut through. The playtest:
             // one Large club blow struck a Medium's head, upper arm and pelvis in turn. The fight's own swing still

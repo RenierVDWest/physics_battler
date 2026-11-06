@@ -17,6 +17,15 @@ internal static class DummyHitReport
 {
     public static int Run(string dir, string body, string which)
     {
+        if (Environment.GetEnvironmentVariable("NO_GROUND_STEP") != null)
+        {
+            // (Only the late arm's step back, as before the weight plan's step 5.)
+            CombatFeel.GiveGroundFrom = 1e6f;
+            CombatFeel.GiveGroundDeep = 0f;
+        }
+
+        if (Environment.GetEnvironmentVariable("GROUND_TRACE") != null) ClipFighter.GroundTrace = line => Console.WriteLine("      " + line);
+
         Directory.CreateDirectory(dir);
         body ??= "Medium";
         LocoLibrary.Load();

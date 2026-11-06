@@ -126,6 +126,25 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The shield starts to move to meet a blow no sooner than this before contact (seconds). Earlier, the wind-up still swings the blade's path about and the shield would follow it round. Default 0.6.")]
         [Range(0.2f, 2f)] public float shieldMovesWithin = DefaultShieldMovesWithin;
 
+        [Header("Giving ground: a quick step back to meet a heavy or deep blow")]
+        [Tooltip("A fighter steps back to block or parry a blow it reads coming at least this heavy: the weight it would be met with (m/s, the momentum a block takes over the defender's mass; a combo's blow counts 1.5 times, its showstopper twice). Met further out, earlier in its arc, it lands lighter. A parry steps back only from a blow heavier than it holds as well (its skill's \"parry holds\"): stepped back from lighter ones, its arm lost the blade. An expert always steps; a novice now and then, and late. Default 0.9.")]
+        [Range(0.2f, 4f)] public float giveGroundFrom = DefaultGiveGroundFrom;
+
+        [Tooltip("A sword fighter steps back to a blow whose attacker's hand will come within this of its body at contact (metres at a Medium's size): too deep to parry on the strong of the blade. 0: never for depth. Default 0: off. Tried at 0.45 m, the step back took the body from where the parry's arm was putting the sword and let blows through it (against the Large's single blows, 2 more landed); against the Small's combos it parried 2 more. Turn it on to try.")]
+        [Range(0f, 1.2f)] public float giveGroundDeep = DefaultGiveGroundDeep;
+
+        [Tooltip("How long before the blow's contact an expert starts its step back (seconds). The step takes about 0.1 s; started much earlier the attacker would see it and follow. A novice steps later, by how much it lacks. Default 0.22.")]
+        [Range(0.05f, 0.5f)] public float giveGroundLead = DefaultGiveGroundLead;
+
+        [Tooltip("How far an expert steps back (metres at a Medium's size), at the least (a blow just heavy enough) and at the most (one twice as heavy, or as deep as it gets). A novice steps a little over half as far. Defaults 0.25 and 0.5.")]
+        [Range(0f, 1f)] public float leastGiveGround = DefaultLeastGiveGround;
+
+        [Tooltip("See the least step back: the most (metres at a Medium's size). Default 0.5.")]
+        [Range(0f, 1.2f)] public float mostGiveGround = DefaultMostGiveGround;
+
+        [Tooltip("The share of a blow's weight a full step back takes off as it is met (its block or parry knocked back less, the parry beaten less often). 0: stepping back only looks right. Default 0.3.")]
+        [Range(0f, 0.8f)] public float giveGroundEases = DefaultGiveGroundEases;
+
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultHitStopBase = 0.03f, DefaultHitStopPerWeight = 0.05f, DefaultLeastHitStop = 0.04f, DefaultMostHitStop = 0.16f;
         public const float DefaultDriveBack = 3.5f, DefaultMostDrive = 2.2f, DefaultStumbleFrom = 1.0f, DefaultStumbleBoost = 1.3f, DefaultMostStumble = 2.8f, DefaultStumbleRecovery = 0.7f;
@@ -134,6 +153,7 @@ namespace PhysicsBattler.Locomotion
             DefaultReboundPerWeight = 2.4f, DefaultLeastRebound = 0.8f, DefaultMostRebound = 3.5f, DefaultJarScale = 0.3f;
         public const float DefaultShieldSettle = 0.08f, DefaultShieldFaceSettle = 0.1f, DefaultShieldReplanBy = 0.2f, DefaultShieldReplanTurn = 40f, DefaultShieldMovesWithin = 0.6f,
             DefaultShieldSingleCurve = 1f, DefaultShieldComboCurve = 4f;
+        public const float DefaultGiveGroundFrom = 0.9f, DefaultGiveGroundDeep = 0f, DefaultGiveGroundLead = 0.22f, DefaultLeastGiveGround = 0.25f, DefaultMostGiveGround = 0.5f, DefaultGiveGroundEases = 0.3f;
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float BendPerWeight = DefaultBendPerWeight, MostBend = DefaultMostBend, BendReach = DefaultBendReach, BendPeak = DefaultBendPeak,
@@ -142,7 +162,8 @@ namespace PhysicsBattler.Locomotion
             DriveBack = DefaultDriveBack, MostDrive = DefaultMostDrive, StumbleFrom = DefaultStumbleFrom, StumbleBoost = DefaultStumbleBoost, MostStumble = DefaultMostStumble, StumbleRecovery = DefaultStumbleRecovery,
             ParryGivePerWeight = DefaultParryGivePerWeight, MostParryGive = DefaultMostParryGive, ParryHolds = DefaultParryHolds, ExpertParryHolds = DefaultExpertParryHolds, BeatenShare = DefaultBeatenShare, ShieldGivePerWeight = DefaultShieldGivePerWeight, MostShieldGive = DefaultMostShieldGive, GuardOpenFrom = DefaultGuardOpenFrom, GuardOpenFor = DefaultGuardOpenFor, ReboundPerWeight = DefaultReboundPerWeight, LeastRebound = DefaultLeastRebound, MostRebound = DefaultMostRebound, JarScale = DefaultJarScale,
             ShieldSettle = DefaultShieldSettle, ShieldFaceSettle = DefaultShieldFaceSettle, ShieldReplanBy = DefaultShieldReplanBy, ShieldReplanTurn = DefaultShieldReplanTurn, ShieldMovesWithin = DefaultShieldMovesWithin,
-            ShieldSingleCurve = DefaultShieldSingleCurve, ShieldComboCurve = DefaultShieldComboCurve;
+            ShieldSingleCurve = DefaultShieldSingleCurve, ShieldComboCurve = DefaultShieldComboCurve,
+            GiveGroundFrom = DefaultGiveGroundFrom, GiveGroundDeep = DefaultGiveGroundDeep, GiveGroundLead = DefaultGiveGroundLead, LeastGiveGround = DefaultLeastGiveGround, MostGiveGround = DefaultMostGiveGround, GiveGroundEases = DefaultGiveGroundEases;
 
         private void OnEnable() => Push();
 
@@ -187,6 +208,12 @@ namespace PhysicsBattler.Locomotion
             ShieldMovesWithin = DefaultShieldMovesWithin;
             ShieldSingleCurve = DefaultShieldSingleCurve;
             ShieldComboCurve = DefaultShieldComboCurve;
+            GiveGroundFrom = DefaultGiveGroundFrom;
+            GiveGroundDeep = DefaultGiveGroundDeep;
+            GiveGroundLead = DefaultGiveGroundLead;
+            LeastGiveGround = DefaultLeastGiveGround;
+            MostGiveGround = DefaultMostGiveGround;
+            GiveGroundEases = DefaultGiveGroundEases;
         }
 
         private void Push()
@@ -227,6 +254,12 @@ namespace PhysicsBattler.Locomotion
             ShieldMovesWithin = shieldMovesWithin;
             ShieldSingleCurve = shieldSingleCurve;
             ShieldComboCurve = shieldComboCurve;
+            GiveGroundFrom = giveGroundFrom;
+            GiveGroundDeep = giveGroundDeep;
+            GiveGroundLead = giveGroundLead;
+            LeastGiveGround = leastGiveGround;
+            MostGiveGround = mostGiveGround;
+            GiveGroundEases = giveGroundEases;
         }
     }
 }

@@ -935,6 +935,7 @@ namespace PhysicsBattler.Locomotion
             else
             {
                 RaiseShield(dt, opponent);
+                MaybeRetire(opponent);
                 CountArmCut();
                 React(dt);
             }
@@ -1248,31 +1249,97 @@ namespace PhysicsBattler.Locomotion
 
         private void MaybeRetire(Vector3 opponent)
         {
-            if (!GivesGround || !Blow.HasValue || Parry == null || Anchored || retiredFor == Blow.Value.Serial || Parry.Late <= RetireLate)
+            if (!GivesGround || !Blow.HasValue || Anchored || retiredFor == Blow.Value.Serial || (Parry == null && !Blocking))
+            {
+                return;
+            }
+
+            var b = Blow.Value;
+            bool sword = Parry != null;
+            // (The weight plan's step 5: it steps back, too, to a blow it reads coming heavy, to meet it earlier in its
+            // arc, further out, before it is at full speed on the body; and, with a sword, to one coming in too deep to
+            // parry on the strong of the blade, the attacker's hand inside the reach of its forte.)
+            // (A parry steps back only from a blow that would beat it, heavier than its skill holds: stepping back, the body
+            // leaves where its arm was putting the sword, and an expert's parried forehands from the Large landed.)
+            float heavyFrom = sword ? Mathf.Max(CombatFeel.GiveGroundFrom, ParryHolds) : CombatFeel.GiveGroundFrom;
+            float heavy = b.Momentum / Mathf.Max(1f, Mass) / Mathf.Max(0.05f, heavyFrom);
+            float deep = 0f;
+            if (sword && CombatFeel.GiveGroundDeep > 0f && b.GripPath != null && b.GripPath.Length > StrikeHits.ContactPoint)
+            {
+                Vector3 hand = b.GripPath[StrikeHits.ContactPoint] - Loco.Position;
+                hand.y = 0f;
+                deep = Mathf.Max(0f, CombatFeel.GiveGroundDeep * Size - hand.magnitude);
+            }
+
+            bool late = sword && Parry.Late > RetireLate;
+            LastGroundWeight = heavy * heavyFrom;
+            if (!late && heavy < 1f && deep <= 0f)
+            {
+                return;
+            }
+
+            // (In a clip of its own (a reaction, a strike) its feet can't step: the body would slide over them. Only a late
+            // arm's last resort steps back then.)
+            if (!late && Loco.Current == Locomotor.Mode.OneShot)
+            {
+                return;
+            }
+
+            float skill = Mathf.Clamp01(sword ? ParrySkill : ShieldSkill);
+            float lack = 1f - skill * skill;
+            // (A novice reads it later: it steps nearer contact, if at all.)
+            if (!late && b.ToContact > CombatFeel.GiveGroundLead * (1f - 0.6f * lack))
             {
                 return;
             }
 
             // (An expert always gives the ground it needs; a novice only now and then, and less of it.)
-            retiredFor = Blow.Value.Serial;
-            float lack = 1f - Mathf.Clamp01(ParrySkill) * Mathf.Clamp01(ParrySkill);
-            if (strikeLuck.NextDouble() < lack)
+            retiredFor = b.Serial;
+            if ((late ? strikeLuck : groundLuck).NextDouble() < lack)
             {
                 return;
             }
 
+            float least = CombatFeel.LeastGiveGround, most = Mathf.Max(least, CombatFeel.MostGiveGround);
+            float expertStep = late ? ExpertRetire
+                : Mathf.Max(heavy >= 1f ? Mathf.Lerp(least, most, Mathf.Clamp01(heavy - 1f)) : 0f, deep > 0f ? Mathf.Clamp(least + deep / Size, least, most) : 0f);
+            float step = Mathf.Lerp(expertStep, expertStep * (NoviceRetire / ExpertRetire), lack);
             Vector3 away = Loco.Position - opponent;
             away.y = 0f;
             away = away.sqrMagnitude > 1e-4f ? away.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
-            retireLeft = away * (Mathf.Lerp(ExpertRetire, NoviceRetire, lack) * Size);
-            voidedFor = Blow.Value.Serial;
+            retireLeft = away * (step * Size);
+            voidedFor = b.Serial;
+            groundEase = late ? 0f : CombatFeel.GiveGroundEases * Mathf.Clamp01(step / Mathf.Max(0.05f, most));
             Retires++;
+            if (!late)
+            {
+                GroundSteps++;
+            }
+
+            GroundTrace?.Invoke(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}gave ground {1:0.00} m to blow {2}, {3:0.00} s before contact ({4}{5}{6}), the weight eased {7:0%}",
+                Traced, step * Size, b.Serial, b.ToContact, late ? "its arm late" : "", heavy >= 1f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}heavy: {1:0.00} m/s", late ? ", " : "", heavy * heavyFrom) : "",
+                deep > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}deep: the hand {1:0.00} m in", late || heavy >= 1f ? ", " : "", deep) : "", groundEase));
             // (The walk steps after it, as a body driven back does.)
             if (Loco.Current != Locomotor.Mode.OneShot)
             {
                 Loco.Push(away * (0.6f * Mathf.Sqrt(Size)));
             }
         }
+
+        /// <summary>The share of blow <paramref name="serial"/>'s weight its step back takes off as it is met (0: it didn't step back to it).</summary>
+        public float GroundEase(int serial) => serial == voidedFor ? groundEase : 0f;
+
+        /// <summary>Times it stepped back to a heavy or deep blow (not a late arm's), and the weight it last read coming (m/s; for the logs).</summary>
+        public int GroundSteps;
+
+        /// <summary>See <see cref="GroundSteps"/>.</summary>
+        public float LastGroundWeight;
+
+        /// <summary>Each step back given, said (the lab's log, the runners).</summary>
+        public static System.Action<string> GroundTrace;
+
+        private float groundEase;
+        private readonly System.Random groundLuck = new System.Random(20261106);
 
         private void GiveGround(float dt)
         {

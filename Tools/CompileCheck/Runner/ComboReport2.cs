@@ -16,6 +16,10 @@ using UnityEngine;
 internal static class StrikeComboReport
 {
     private static readonly List<float> predOff = new List<float>();
+    private static float feetWorst;
+    private static string feetWorstWhat = "";
+    private static int retiresAll, groundAll;
+    private static readonly List<float> readWeights = new List<float>();
 
     public static int Run(string dir, string body)
     {
@@ -24,6 +28,7 @@ internal static class StrikeComboReport
         LocoLibrary.Load();
         var ci = CultureInfo.InvariantCulture;
         var allShieldMeets = new List<StrikeHits.ShieldMeet>();
+        if (Environment.GetEnvironmentVariable("GROUND_TRACE") != null) ClipFighter.GroundTrace = line => Console.WriteLine("      " + line);
         if (Environment.GetEnvironmentVariable("SHIELD_PLAN") != null) ClipFighter.ShieldTrace = line => Console.WriteLine("      the shield: " + line);
         var steadies = new List<ShieldSteadiness>();
         int allInside = 0, allDeep = 0, longestDeep = 0, armThrough = 0; float armThroughMost = 0f;
@@ -109,6 +114,12 @@ internal static class StrikeComboReport
             var droot = UnitBuilder.Build(dummyRig, dprofile, "Dummy", _ => null, 1);
             bool swordDummy = Environment.GetEnvironmentVariable("COMBO_STANCE") == "sword";
             ClipFighter.GivesGround = Environment.GetEnvironmentVariable("NO_RETIRE") == null;
+            if (Environment.GetEnvironmentVariable("NO_GROUND_STEP") != null)
+            {
+                // (Only the late arm's step back, as before the weight plan's step 5.)
+                CombatFeel.GiveGroundFrom = 1e6f;
+                CombatFeel.GiveGroundDeep = 0f;
+            }
             if (Environment.GetEnvironmentVariable("PARRY_TRACE") != null)
             {
                 float traceFrom = 0f;
@@ -260,6 +271,7 @@ internal static class StrikeComboReport
             };
             var film = new LocoFilm(dt, 2) { BladeLength = poser.WeaponLength };
             var dummyFilm = new LocoFilm(dt, 2) { ShieldRadius = 0.3f };
+            var dummyFeet = new LocoMeasures(dummy.Anim, dummy.Loco, dummy.Poser);
             player.Start(first, chain);
             var parts = new[] { PartId.HandR, PartId.HandL, PartId.ForearmR, PartId.ForearmL, PartId.FootL, PartId.FootR };
             var last = parts.Select(p => anim.Part(p).position).ToArray();
@@ -273,7 +285,7 @@ internal static class StrikeComboReport
             bool predTrace = Environment.GetEnvironmentVariable("PRED_TRACE") != null;
             var firstPred = new Dictionary<int, (Vector3, Vector3, float, Vector3, float)>();
             var lastPred = new Dictionary<int, (Vector3, Vector3, float, Vector3, float)>();
-            int nowSerial = -1;
+            int nowSerial = -1, weighedSerial = -1;
             var predClip = new Dictionary<int, LocoClip>();
             for (int i = 0; i < 900; i++)
             {
@@ -342,6 +354,12 @@ internal static class StrikeComboReport
                     }
                 }
 
+                if (hits.Read(out var wrd) && wrd.ToContact <= 0.25f && wrd.Serial != weighedSerial)
+                {
+                    weighedSerial = wrd.Serial;
+                    readWeights.Add(wrd.Momentum / Mathf.Max(1f, dummy.Mass));
+                }
+
                 if (predTrace && hits.Read(out var prd))
                 {
                     if (prd.Predicted)
@@ -380,6 +398,12 @@ internal static class StrikeComboReport
                 hits.Step(dt, dummy);
                 dummy.Watch(hits);
                 dummy.Step(dt, loco.Position + Vector3.up * 1.3f * size, frozen);
+                dummyFeet.Sample(dt, clock, "combo");
+                if (dummyFeet.PlantDriftWorst > feetWorst)
+                {
+                    feetWorst = dummyFeet.PlantDriftWorst;
+                    feetWorstWhat = string.Format(ci, "{0:0.00} s of the combo from {1}{2}", clock, first.Name.Replace(prefix, ""), dummy.Retires > 0 ? $", after giving ground {dummy.Retires} times" : "");
+                }
                 steady.Step(dummy);
                 film.Add(i * dt, string.Join(">", new[] { first.Name }.Concat(chain.Select(l => l.To.Name))), loco, poser, anim);
                 dummyFilm.Add(i * dt, "dummy", dummy.Loco, dummy.Poser, dummy.Anim);
@@ -437,6 +461,8 @@ internal static class StrikeComboReport
             missed += playedNames.Count - results.Count;
             Console.WriteLine("    played: " + string.Join(" > ", playedNames) + (player.Ended.Length > 0 ? $" (ended: {player.Ended})" : ""));
             passed.Add((aimNearest * 100f).ToString("0", ci) + " cm");
+            retiresAll += dummy.Retires;
+            groundAll += dummy.GroundSteps;
             Console.WriteLine("    " + (results.Count == 0 ? "nothing landed" : string.Join("; ", results)) + "; the blades passed their aim points by " + string.Join(", ", passed) + (dummy.Retires > 0 ? $"; the dummy gave ground {dummy.Retires} times" : ""));
             Console.WriteLine(string.Format(ci, "    through the dummy's sword without meeting it: {0} steps in the blows, {1} outside them", hits.PassedThroughLive, hits.PassedThroughOutside));
             Console.WriteLine(string.Format(ci, "    the attacker's root at most {0:0.0} m/s ({1}), its chest {2:0.0} m/s ({3})", fastestRoot, fastestRootAt, fastestChest, fastestChestAt));
@@ -477,6 +503,12 @@ internal static class StrikeComboReport
         ShieldSteadiness.Print(steadies);
         Console.WriteLine($"Outside its blows the blade touched a body or a shield {allInside} steps, was over 2 cm into one {allDeep} steps, the longest {longestDeep} steps running");
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "The shield arm through its own board: {0} steps, at most {1:0.00} m", armThrough, armThroughMost));
+        Console.WriteLine(string.Format(ci, "The dummy's planted feet moved at most {0:0.0} cm ({1}); it gave ground {2} times, {3} of them to a heavy or deep blow", feetWorst * 100f, feetWorstWhat, retiresAll, groundAll));
+        if (readWeights.Count > 0)
+        {
+            var rw = readWeights.OrderBy(v => v).ToList();
+            Console.WriteLine(string.Format(ci, "The weights the dummy read coming (m/s, a block's): least {0:0.00}, median {1:0.00}, most {2:0.00} ({3} blows)", rw[0], rw[rw.Count / 2], rw[rw.Count - 1], rw.Count));
+        }
         if (predOff.Count > 0)
         {
             var po = predOff.OrderBy(v => v).ToList();
