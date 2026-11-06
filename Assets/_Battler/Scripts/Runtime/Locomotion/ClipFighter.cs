@@ -139,6 +139,24 @@ namespace PhysicsBattler.Locomotion
         public int Parries;
 
         /// <summary>The blow coming, read from the striker's hits (or none).</summary>
+        /// <summary>The same, given the read of the one blow it meets (the fight: chosen from every attacker's), or none.</summary>
+        public void Watch(BlowRead? read)
+        {
+            if (read.HasValue)
+            {
+                Blow = read;
+                lastBlowAt = clock;
+                IncomingBlade = read.Value.Blade;
+                IncomingAim = read.Value.Aim;
+                IncomingFrom = read.Value.ComesFrom;
+            }
+            else
+            {
+                Blow = null;
+                IncomingBlade = IncomingAim = IncomingFrom = null;
+            }
+        }
+
         public void Watch(StrikeHits hits)
         {
             if (hits != null && hits.Read(out var read))

@@ -191,6 +191,10 @@ internal static class FightReport
                 float angle = Vector3.Angle(Quaternion.Euler(0f, h.Struck.FacingYaw, 0f) * Vector3.forward, from);
                 string sector = angle < 45f ? "front" : angle < 135f ? "side" : "back";
                 string what = h.Parried ? "parried" : h.Shield ? "blocked" : "landed";
+                var seen = h.Struck.ClipThreats != null ? ((List<UnitController.ClipThreat>)null) : null;
+                bool sawIt = false;
+                foreach (var th in h.Struck.ClipThreats) if (th.Attacker == h.Attacker && th.Seen) sawIt = true;
+                what += sawIt ? " (seen)" : " (unseen)";
                 string key = sector + " " + what;
                 sectors[key] = (sectors.TryGetValue(key, out int sn) ? sn : 0) + 1;
             }

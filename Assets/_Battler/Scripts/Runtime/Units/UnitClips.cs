@@ -155,6 +155,7 @@ namespace PhysicsBattler.Units
 
             UpdatePerception();
             UpdateClipTempo(dt);
+            UpdateClipThreats();
 
             var loco = Clip.Loco;
             Vector3 want = ClipWant;
@@ -171,7 +172,12 @@ namespace PhysicsBattler.Units
                 }
             }
 
-            Vector3 opponent = Opponent != null ? Opponent.Root.position : loco.Position + Quaternion.Euler(0f, loco.Facing, 0f) * Vector3.forward * 2f;
+            var against = Watched ?? Opponent;
+            Vector3 opponent = against != null ? against.Root.position : loco.Position + Quaternion.Euler(0f, loco.Facing, 0f) * Vector3.forward * 2f;
+            if (Clip.Parry != null && against != null && against.ClipShape != null)
+            {
+                Clip.Parry.Opponent = against.ClipShape;
+            }
             // (Hit stop: both stand still a moment as a blow lands, the one it landed from and the one it landed on.)
             float ownStop = Clip.Strikes != null ? Clip.Strikes.HitStop : 0f;
             clipStopLeft = Mathf.Max(0f, clipStopLeft - dt);
@@ -299,6 +305,13 @@ namespace PhysicsBattler.Units
                 ? HeldAs(new SwordParry(Anim, Clip.Loco, Rig, scale, poser.WeaponLength), main)
                 : null;
 
+            // (Its shape, for the parries of those it fights: its body, shield and blade, kept off and met.)
+            ClipShape = new OpponentShape(Anim, scale, poser.CarryL == LocoBody.Carry.Shield ? Rig.SlotWeaponL : null, 0.27f)
+            {
+                WeaponSlot = poser.CarryR == LocoBody.Carry.Weapon ? Rig.SlotWeaponR : null,
+                WeaponLength = poser.WeaponLength,
+            };
+
             // (Its strikes, the lab's for its body, swept from its weapon: step 5 of the plan.)
             var hits = Clip.EnableStrikes(main != null && !main.IsShield ? main : null);
             hits.Comboing = () => Clip.Combo != null && Clip.Combo.Playing && Clip.Combo.Cores;
@@ -309,6 +322,121 @@ namespace PhysicsBattler.Units
 
         private static SwordParry HeldAs(SwordParry parry, WeaponDefinition weapon) =>
             weapon != null && weapon.kind == WeaponKind.Club ? parry.AsClub() : parry;
+
+        // ---- The plan "Fighting off several attackers", steps 2 and 3: every blow coming, and the one to meet ----------
+
+        /// <summary>A blow coming at it: whose, its read, whether it has seen it, and since when.</summary>
+        public sealed class ClipThreat
+        {
+            public UnitController Attacker;
+            public BlowRead Read;
+            public int Serial = -1;
+            public bool Seen;
+            public float SeenAt = -1f, StartedAt;
+            public bool Fresh;
+        }
+
+        private readonly System.Collections.Generic.List<ClipThreat> clipThreats = new System.Collections.Generic.List<ClipThreat>();
+
+        /// <summary>The blows coming at it now (from every attacker striking at it).</summary>
+        public System.Collections.Generic.IReadOnlyList<ClipThreat> ClipThreats => clipThreats;
+
+        /// <summary>The attacker whose blow it is meeting, if any.</summary>
+        public UnitController Watched { get; private set; }
+
+        /// <summary>Its shape (body, shield, blade), for the parries of those who fight it.</summary>
+        public OpponentShape ClipShape { get; private set; }
+
+        /// <summary>A blow it is meeting is given up for another only when that one lands this much sooner (seconds).</summary>
+        public const float ClipSwitchSooner = 0.12f;
+
+        /// <summary>Its guard reaches a blow from this far round from where it faces (degrees, each way): beyond, it must turn first.</summary>
+        public const float ClipGuardArc = 100f;
+
+        /// <summary>
+        /// Every blow coming at it, from every enemy striking at it (the old fight's threats, for clip blows): each kept
+        /// with its read, seen once it is in view (or felt, right beside it); and of those it has seen and its guard can
+        /// reach, the one landing first is the one it meets, given up only for one landing clearly sooner.
+        /// </summary>
+        private void UpdateClipThreats()
+        {
+            foreach (var t in clipThreats)
+            {
+                t.Attacker = t.Attacker != null && t.Attacker.IsAlive ? t.Attacker : null;
+            }
+
+            foreach (var other in all)
+            {
+                if (other == null || other == this || other.Team == Team || !other.IsAlive || other.Clip == null || other.Clip.Strikes == null
+                    || other.ClipTarget != this || !other.Clip.Striking || !other.Clip.Strikes.Read(out var read))
+                {
+                    continue;
+                }
+
+                var threat = clipThreats.Find(t => t.Attacker == other);
+                if (threat == null)
+                {
+                    threat = new ClipThreat { Attacker = other };
+                    clipThreats.Add(threat);
+                }
+
+                if (threat.Serial != read.Serial)
+                {
+                    threat.Serial = read.Serial;
+                    threat.Seen = false;
+                    threat.SeenAt = -1f;
+                    threat.StartedAt = LocalTime;
+                }
+
+                threat.Read = read;
+                threat.Fresh = true;
+                if (!threat.Seen && Perception.CanReact(SightOf(other)))
+                {
+                    // (Seen: it feels the threat, as the old fight's units do.)
+                    threat.Seen = true;
+                    threat.SeenAt = LocalTime;
+                    Rhythm?.NoteThreat();
+                    Tempo?.NoteIncoming(FromPress(other));
+                }
+            }
+
+            clipThreats.RemoveAll(t => t.Attacker == null || !t.Fresh);
+            foreach (var t in clipThreats)
+            {
+                t.Fresh = false;
+            }
+
+            // (The one to meet: seen, within its guard's reach, landing first.)
+            ClipThreat meet = null, now = null;
+            Vector3 ahead = Quaternion.Euler(0f, Clip.Loco.Facing, 0f) * Vector3.forward;
+            foreach (var t in clipThreats)
+            {
+                if (t.Attacker == Watched)
+                {
+                    now = t;
+                }
+
+                Vector3 from = t.Attacker.Root.position - Root.position;
+                from.y = 0f;
+                if (!t.Seen || Vector3.Angle(ahead, from) > ClipGuardArc)
+                {
+                    continue;
+                }
+
+                if (meet == null || t.Read.ToContact < meet.Read.ToContact)
+                {
+                    meet = t;
+                }
+            }
+
+            if (now != null && now.Seen && meet != null && meet != now && meet.Read.ToContact > now.Read.ToContact - ClipSwitchSooner)
+            {
+                meet = now;
+            }
+
+            Watched = meet?.Attacker;
+            Clip.Watch(meet != null ? meet.Read : (BlowRead?)null);
+        }
 
         /// <summary>
         /// Two bodies nearer than <paramref name="least"/> (root to root) are parted the way the feet allow: one walking or
@@ -474,6 +602,8 @@ namespace PhysicsBattler.Units
             Poise = Clip.Poise;
             LastReaction = r.Reaction;
             clipStopLeft = Mathf.Max(clipStopLeft, stop);
+            // (Struck, it knows who did it, seen or not: an attacker from behind is known from now on.)
+            NoteStruck(hit);
             if (Health <= 0f)
             {
                 ClipDie(hit);
@@ -521,8 +651,25 @@ namespace PhysicsBattler.Units
                 animSlot.localRotation = grip;
             }
 
-            if (definition == null || definition.prefab == null)
+            if (definition == null)
             {
+                return;
+            }
+
+            if (definition.prefab == null)
+            {
+                if (definition.IsShield)
+                {
+                    // (No model (headless): a board the shield's size to block with, as the lab's runners give theirs.)
+                    var board = new GameObject(name + " shield board");
+                    board.transform.SetParent(slot, false);
+                    var box = board.AddComponent<BoxCollider>();
+                    box.size = new Vector3(0.522f, 0.522f, 0.05f) * Clip.Size;
+                    box.center = new Vector3(0f, 0f, 0.075f) * Clip.Size;
+                    box.isTrigger = true;
+                    Clip.ShieldColliders.Add(box);
+                }
+
                 return;
             }
 

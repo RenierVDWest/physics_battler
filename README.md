@@ -533,6 +533,16 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     to fighting it, and stays on it until it is 3.2 m off. Headless, four fights: three or more in one knot at most
     10% of the time (was up to 17%), the mediums running 5 to 54% of their way in, allies hit 0 to 4 times a fight.
     `fight` prints each unit's running and the side it came at its first target from.
+  - Fighting off several attackers, steps 2 and 3 (the plan "Fighting off several attackers"; the fight plan's step 6
+    folded in). A clip fighter knows every blow coming at it: each enemy's strike aimed at it is a threat it keeps,
+    with its read path and time to contact, seen once it is in its view (or felt beside it), as the old fight's blows
+    were; struck, it knows who struck it. Of the blows it has seen and its guard can reach (100 degrees each way of
+    where it faces), it meets the one landing first with its shield or sword (`ClipFighter.Watch` given that read),
+    given up only for one landing 0.12 s sooner; its parry keeps off that attacker's body, shield and blade. A shield
+    with no model of its own (headless) gets a board its size. Headless (`FIGHT_LINEUP=gang2`, `gang3`: a medium
+    with sword and shield in the middle on 2 or 3 swordsmen): on 2 it lasts 36 to 41 s (was 4 to 8), blocking or
+    parrying 70 to 90% of the blows that reach it; on 3, 7 to 16 s, the blows from beside and behind it never sees
+    landing (steps 4 and 5). `fight` prints every blow met by where it came from and whether it was seen.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session
