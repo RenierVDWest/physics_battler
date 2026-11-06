@@ -1285,13 +1285,48 @@ namespace PhysicsBattler.Locomotion
                 Combo = new ComboPlayer(Loco, Poser) { Strikes = StrikeClips };
             }
 
-            Combo.TargetFor = clip => AimAt(target, clip);
-            Combo.TargetVelocity = () => target.Loco.Velocity;
+            comboTarget = target;
+            heldClip = null;
+            heldTarget = null;
+            Combo.TargetFor = clip => AimAt(clip == heldClip && heldTarget != null ? heldTarget : comboTarget, clip);
+            Combo.TargetVelocity = () => comboTarget.Loco.Velocity;
+            Combo.PastContact = TurnCombo;
             KeepOff(target);
             Combo.Keep = first;
             opener = chain[0].From;
             Combo.Start(opener, chain);
             return true;
+        }
+
+        private ClipFighter comboTarget, heldTarget;
+        private LocoClip heldClip;
+
+        /// <summary>
+        /// Who a combo's next blow is at, given who the last was at (the plan "Fighting off several attackers", step 8: a
+        /// combo strung across the enemies on it); null or the same: the same one.
+        /// </summary>
+        public System.Func<ClipFighter, int, ClipFighter> NextComboTarget;
+
+        /// <summary>A combo's next blow was turned on another (the new target).</summary>
+        public event System.Action<ClipFighter> ComboTurned;
+
+        /// <summary>Who the combo playing is aimed at now.</summary>
+        public ClipFighter ComboTarget => Combo != null && Combo.Playing ? comboTarget : null;
+
+        private void TurnCombo(int played)
+        {
+            var next = NextComboTarget?.Invoke(comboTarget, played);
+            if (next == null || next == comboTarget || next.Dead)
+            {
+                return;
+            }
+
+            // (The blow playing, past its contact, stays on whom it was at: only the next is turned.)
+            heldClip = Loco.Shot;
+            heldTarget = comboTarget;
+            comboTarget = next;
+            KeepOff(next);
+            ComboTurned?.Invoke(next);
         }
 
         private bool parryWaited;

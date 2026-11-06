@@ -168,6 +168,15 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A combo of cores: the blow playing goes on to its core's exit (or ends, or is stopped), then the next is taken up.</summary>
         private void StepCores(bool still)
         {
+            // (Past the blow's contact, met short of it (backing out of a block or parry) or over, with another to come:
+            // whoever plays it may turn the next on someone else.)
+            if (PastContact != null && current != null && contactPassed != current && next < chain.Count && played < Most
+                && (!still || loco.Shot != current || loco.ShotSpeed < 0f || (StrikeCores.TryGet(current, out var playing) && loco.ShotTime >= playing.Contact)))
+            {
+                contactPassed = current;
+                PastContact(played);
+            }
+
             if (next >= chain.Count || played >= Most)
             {
                 if (!still)
@@ -206,6 +215,14 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The strike picked for the combo: never swapped for another as it goes.</summary>
         public LocoClip Keep;
+
+        /// <summary>
+        /// Called once a blow with another to follow has passed its contact, with how many it has played: the moment to
+        /// turn the next on another target (<see cref="TargetFor"/>; the plan "Fighting off several attackers", step 8).
+        /// </summary>
+        public Action<int> PastContact;
+
+        private LocoClip contactPassed;
 
         /// <summary>
         /// The blow it takes up next, as the one it strikes at can see it coming (the weight plan's step 1). Taken up at

@@ -577,6 +577,16 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     holds and against a concentrated attacker. Headless over four fights (1 on 2, 1 on 3), the outnumbered unit landed
     12 of 27 blows (was 8 of 29) and lasted 60, 36, 49, 17 s (was 48, 26, 60, 17). `fight` prints each unit's highest;
     the playtest logs record it each frame (`concentration`). `NO_CONCENTRATION=1` keeps it at nothing.
+  - Fighting off several attackers, step 8: combos across several enemies. Once a combo's blow has passed its contact
+    (or been met short of it), the next may turn on another enemy fighting the unit, standing within Combat Feel's
+    Combo Spread Reach (3.2 m) and Turn (100 degrees) of where it faces, with no friend in the swing's way: one the
+    combo hasn't struck at yet first, then the one it turns least to (two on it: the first, the second, the first
+    again). The blow playing stays on whom it was at; the new one becomes its target, so its threat board sees the
+    next blow coming. With two or more such enemies, a blow now and then opens a combo whatever its tempo says (Combo
+    Sweep Chance, 0.25). `fight` prints how many blows each unit turned; `COMBO_TRACE=1` prints each choice and who
+    stood where; `CLIP_COMBO_ONE=1` keeps every blow on one, as before. Headless the turn comes up less than hoped: the
+    second and third attacker mostly stand off (3 to 7 m, often behind) while one is in, so over five 1-on-3 fights
+    the outnumbered unit turned 0 to 6 blows a fight; in the 3 v 3 fights, 0 to 3 a unit.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session

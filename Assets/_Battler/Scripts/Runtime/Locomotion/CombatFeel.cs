@@ -164,8 +164,19 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("What full concentration takes off the block and parry skill of whoever it strikes (0 to 1): its blows are aimed truer, so they are misread and slip past guards more often. An expert (skill 1) struck by a fully concentrated unit defends as one of skill 1 minus this. 0: no effect on its blows. Default 0.3.")]
         [Range(0f, 1f)] public float concentrationAccuracy = DefaultConcentrationAccuracy;
 
+        [Header("Combos across several enemies")]
+        [Tooltip("A combo's next blow may turn on another enemy fighting the unit, if that one stands within this of where the unit faces (degrees), so a combo is strung across the enemies on it (one, the next, back to the first) instead of all its blows at one. 0: every blow at the one it opened on, as before. Default 100.")]
+        [Range(0f, 180f)] public float comboSpreadTurn = DefaultComboSpreadTurn;
+
+        [Tooltip("How near another enemy must stand for a combo's next blow to turn on it (metres from the unit, at a Medium's size): the follow-on steps in after it, at most about 2 m. Default 3.2, the distance at which an enemy counts as on it.")]
+        [Range(1f, 4f)] public float comboSpreadReach = DefaultComboSpreadReach;
+
+        [Tooltip("With two or more enemies fighting it within that reach and turn, the chance a blow it starts opens a combo strung across them, whatever its tempo would say (its tempo's own combos come as well). 0: only its tempo's combos. Default 0.25 (more commits it to long strings with others round it).")]
+        [Range(0f, 1f)] public float comboSweepChance = DefaultComboSweepChance;
+
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
+        public const float DefaultComboSpreadTurn = 100f, DefaultComboSpreadReach = 3.2f, DefaultComboSweepChance = 0.25f;
         public const float DefaultConcentrationRise = 0.3f, DefaultConcentrationFall = 0.15f, DefaultConcentrationGuard = 0.5f, DefaultConcentrationAccuracy = 0.3f;
         public const float DefaultHitStopBase = 0.03f, DefaultHitStopPerWeight = 0.05f, DefaultLeastHitStop = 0.04f, DefaultMostHitStop = 0.16f;
         public const float DefaultDriveBack = 3.5f, DefaultMostDrive = 2.2f, DefaultStumbleFrom = 1.0f, DefaultStumbleBoost = 1.3f, DefaultMostStumble = 2.8f, DefaultStumbleRecovery = 0.7f;
@@ -178,6 +189,8 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float OffFrontBend = DefaultOffFrontBend, SideHitTime = DefaultSideHitTime;
+
+        public static float ComboSpreadTurn = DefaultComboSpreadTurn, ComboSpreadReach = DefaultComboSpreadReach, ComboSweepChance = DefaultComboSweepChance;
 
         public static float ConcentrationRise = DefaultConcentrationRise, ConcentrationFall = DefaultConcentrationFall, ConcentrationGuard = DefaultConcentrationGuard, ConcentrationAccuracy = DefaultConcentrationAccuracy;
 
@@ -245,6 +258,9 @@ namespace PhysicsBattler.Locomotion
             ConcentrationFall = DefaultConcentrationFall;
             ConcentrationGuard = DefaultConcentrationGuard;
             ConcentrationAccuracy = DefaultConcentrationAccuracy;
+            ComboSpreadTurn = DefaultComboSpreadTurn;
+            ComboSpreadReach = DefaultComboSpreadReach;
+            ComboSweepChance = DefaultComboSweepChance;
         }
 
         private void Push()
@@ -297,6 +313,9 @@ namespace PhysicsBattler.Locomotion
             ConcentrationFall = concentrationFall;
             ConcentrationGuard = concentrationGuard;
             ConcentrationAccuracy = concentrationAccuracy;
+            ComboSpreadTurn = comboSpreadTurn;
+            ComboSpreadReach = comboSpreadReach;
+            ComboSweepChance = comboSweepChance;
         }
     }
 }

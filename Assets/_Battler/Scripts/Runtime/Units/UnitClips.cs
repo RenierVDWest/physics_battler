@@ -319,6 +319,9 @@ namespace PhysicsBattler.Units
             hits.Struck += OnClipStruck;
             hits.IsAlly = body => body != null && body.FightUnit != null && body.FightUnit != this && body.FightUnit.Team == Team;
             Clip.Follow = clip => ClipTarget != null && ClipTarget.Clip != null && ClipTarget.IsAlive ? Clip.AimAt(ClipTarget.Clip, clip) : (Vector3?)null;
+            Clip.NextComboTarget = NextInCombo;
+            Clip.ComboTurned -= OnComboTurned;
+            Clip.ComboTurned += OnComboTurned;
         }
 
         private static SwordParry HeldAs(SwordParry parry, WeaponDefinition weapon) =>
@@ -627,23 +630,9 @@ namespace PhysicsBattler.Units
                 return false;
             }
 
-            // (Not with a friend in the swing's way: near it, between it and its target or beside the line. The fight's
-            // own blows hit an ally now and then; the lab's combos, sweeping wide, did so one blow in four.)
-            Vector3 toTarget = target.Root.position - Root.position;
-            toTarget.y = 0f;
-            foreach (var other in all)
+            if (ClipAllyInTheWay(target))
             {
-                if (other == this || other == target || other.Team != Team || !other.IsAlive || other.Clip == null)
-                {
-                    continue;
-                }
-
-                Vector3 toAlly = other.Root.position - Root.position;
-                toAlly.y = 0f;
-                if (toAlly.magnitude < ClipFighter.FightingDistance(Clip.Size, other.Clip.Size) && Vector3.Angle(toTarget, toAlly) < ClipAllyAngle)
-                {
-                    return false;
-                }
+                return false;
             }
 
             var clip = Clip.StrikeThatLands(target.Clip);
@@ -653,6 +642,8 @@ namespace PhysicsBattler.Units
             }
 
             ClipTarget = target;
+            comboStruck.Clear();
+            comboStruck.Add(target);
             string what;
             if (combo && Clip.ComboAt(target.Clip, clip, clipVariant++, out var opener, out var chain))
             {
@@ -670,6 +661,139 @@ namespace PhysicsBattler.Units
 
             ClipStrikeStarted?.Invoke(this, what, target);
             return true;
+        }
+
+        /// <summary>
+        /// A friend in the swing's way: near it, between it and <paramref name="target"/> or beside the line. The fight's own
+        /// blows hit an ally now and then; the lab's combos, sweeping wide, did so one blow in four.
+        /// </summary>
+        private bool ClipAllyInTheWay(UnitController target)
+        {
+            Vector3 toTarget = target.Root.position - Root.position;
+            toTarget.y = 0f;
+            foreach (var other in all)
+            {
+                if (other == this || other == target || other.Team != Team || !other.IsAlive || other.Clip == null)
+                {
+                    continue;
+                }
+
+                Vector3 toAlly = other.Root.position - Root.position;
+                toAlly.y = 0f;
+                if (toAlly.magnitude < ClipFighter.FightingDistance(Clip.Size, other.Clip.Size) && Vector3.Angle(toTarget, toAlly) < ClipAllyAngle)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // ---- The plan "Fighting off several attackers", step 8: combos across the enemies on it ------------------------
+
+        /// <summary>Combos strung across several enemies (headless: <c>CLIP_COMBO_ONE</c> keeps every blow on one, as before).</summary>
+        public static bool ComboSpreads = System.Environment.GetEnvironmentVariable("CLIP_COMBO_ONE") == null;
+
+        /// <summary>A combo's blows turned on another enemy than the last's (for the logs).</summary>
+        public int ClipComboTurns { get; private set; }
+
+        /// <summary>A combo's next blow was turned on another enemy: the unit, the one it was at, the one it is at now.</summary>
+        public static event System.Action<UnitController, UnitController, UnitController> ClipComboTurnedOn;
+
+        private readonly System.Collections.Generic.List<UnitController> comboStruck = new System.Collections.Generic.List<UnitController>();
+
+        /// <summary>
+        /// Who a combo's next blow is at: another enemy fighting it (striking at it, or it their target), standing within
+        /// Combat Feel's Combo Spread Reach and Turn of where it faces, no friend in the swing's way; one this combo hasn't
+        /// yet struck at first, then the one it would turn least to. None: the same one.
+        /// </summary>
+        private ClipFighter NextInCombo(ClipFighter last, int played)
+        {
+            var next = ComboCandidate(last, out _);
+            if (ComboTrace)
+            {
+                string seen = "";
+                foreach (var other in all)
+                {
+                    if (other == this || other.Team == Team || !other.IsAlive || other.Clip == null || other.Clip == last) continue;
+                    Vector3 to = other.Root.position - Root.position;
+                    to.y = 0f;
+                    seen += $" [{other.name}: {to.magnitude:0.0} m, {Vector3.Angle(Quaternion.Euler(0f, Clip.Loco.Facing, 0f) * Vector3.forward, to):0} deg, {(other.ClipTarget == this ? "striking it" : other.Opponent == this ? "on it" : "not on it")}{(other.IsDown ? ", down" : "")}{(ClipAllyInTheWay(other) ? ", ally in the way" : "")}]";
+                }
+
+                Debug.Log($"[ComboTurn] {LocalTime:0.00} {name} after blow {played}: {(next != null ? "turns on " + next.FightUnit.name : "stays")};{seen}");
+            }
+
+            return next;
+        }
+
+        private static readonly bool ComboTrace = System.Environment.GetEnvironmentVariable("COMBO_TRACE") != null;
+
+        /// <summary>How many enemies fighting it a combo could be strung across now (in reach and turn, as <see cref="NextInCombo"/> takes them).</summary>
+        public int ClipSweepable()
+        {
+            ComboCandidate(null, out int n);
+            return n;
+        }
+
+        private ClipFighter ComboCandidate(ClipFighter last, out int count)
+        {
+            count = 0;
+            if (!ComboSpreads || CombatFeel.ComboSpreadTurn <= 0f || Clip == null)
+            {
+                return null;
+            }
+
+            float reach = CombatFeel.ComboSpreadReach * Body.SizeFactor;
+            Vector3 ahead = Quaternion.Euler(0f, Clip.Loco.Facing, 0f) * Vector3.forward;
+            UnitController best = null;
+            float bestScore = float.MaxValue;
+            foreach (var other in all)
+            {
+                if (other == this || other.Team == Team || !other.IsAlive || other.IsDown || other.Clip == null || other.Clip == last
+                    || (other.ClipTarget != this && other.Opponent != this))
+                {
+                    continue;
+                }
+
+                Vector3 to = other.Root.position - Root.position;
+                to.y = 0f;
+                float off = Vector3.Angle(ahead, to);
+                if (to.magnitude > reach || off > CombatFeel.ComboSpreadTurn || ClipAllyInTheWay(other))
+                {
+                    continue;
+                }
+
+                count++;
+
+                float score = off + (comboStruck.Contains(other) ? 180f : 0f);
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = other;
+                }
+            }
+
+            return best != null ? best.Clip : null;
+        }
+
+        private void OnComboTurned(ClipFighter next)
+        {
+            var was = ClipTarget;
+            var now = next.FightUnit;
+            if (now == null)
+            {
+                return;
+            }
+
+            ClipTarget = now;
+            ClipComboTurns++;
+            if (!comboStruck.Contains(now))
+            {
+                comboStruck.Add(now);
+            }
+
+            ClipComboTurnedOn?.Invoke(this, was, now);
         }
 
         /// <summary>One of its blows met a body: that unit takes it as the fight does (its health, poise, death), and the logs hear of it.</summary>

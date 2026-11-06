@@ -441,7 +441,7 @@ internal static class FightReport
                     var parts = new List<string>();
                     if (k != null) foreach (var pair in k) parts.Add($"{pair.Key} {pair.Value}");
                     int combosThrown = clipBlows.TryGetValue(u, out var l) ? l.FindAll(x => x.StartsWith("a combo")).Count : 0;
-                    sb.AppendLine($"    {u.name}: {(l != null ? l.Count : 0)} blows ({combosThrown} combos); its hits: {(parts.Count > 0 ? string.Join(", ", parts) : "none")}; it fell {u.Clip.Falls - (u.IsAlive ? 0 : 1)} times alive, was thrown back stumbling {u.Clip.Stumbles} times; concentration at most {u.MostConcentration:0.00}{(u.IsAlive ? "" : ", killed")}");
+                    sb.AppendLine($"    {u.name}: {(l != null ? l.Count : 0)} blows ({combosThrown} combos); its hits: {(parts.Count > 0 ? string.Join(", ", parts) : "none")}; it fell {u.Clip.Falls - (u.IsAlive ? 0 : 1)} times alive, was thrown back stumbling {u.Clip.Stumbles} times; concentration at most {u.MostConcentration:0.00}; combo blows turned on another {u.ClipComboTurns}{(u.IsAlive ? "" : ", killed")}");
                 }
             }
 

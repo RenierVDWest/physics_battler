@@ -992,7 +992,10 @@ namespace PhysicsBattler.Battle
                 foreach (var target in candidates)
                 {
                     var combo = ChooseCombo(unit, tempo, target, out _, out _);
-                    if (unit.ClipStrike(target, combo != null))
+                    // (Two or more on it within a combo's reach: now and then a combo strung across them, whatever its
+                    // tempo says: the plan "Fighting off several attackers", step 8.)
+                    bool sweep = combo == null && PhysicsBattler.Locomotion.CombatFeel.ComboSweepChance > 0f && unit.ClipSweepable() >= 2 && random.NextDouble() < PhysicsBattler.Locomotion.CombatFeel.ComboSweepChance;
+                    if (unit.ClipStrike(target, combo != null || sweep))
                     {
                         plan.ledInAt = -999f;
                         plan.closeIn = 0f;
