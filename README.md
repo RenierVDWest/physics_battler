@@ -592,6 +592,16 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     blade through a body already dead is no hit. The playtest log now says what a clip fighter did: each strike and
     combo it started (`attack`, with its concentration), each combo blow turned on another enemy, and in each `struck`
     line the reaction it played (`hit_left_rib reaction`, `parried with ...`) and its concentration.
+  - Bringing the lab into the fight, step 7: combos and tempo. A clip fighter's blows now reach its tempo and its
+    rhythm as the old fight's do: each it starts, a combo's next ones too, costs its energy and counts in its press's
+    burst, and each end is noted. Until now they never heard of them: its energy never fell, its press never ended on a
+    burst, its counter never knew it had answered (it waited 1.2 s and gave up). Its combos are as long as the tempo
+    makes them (a counter's two blows, an opener and a showstopper; a press's, a punish's and a full gather's three),
+    and the log says why (`a combo (full gather): ...`). Headless over three 3 v 3 fights, 20 to 24% of blows came in
+    combos (was none counted), for full gathers, counters, punishes and presses; the tempo spends more time probing
+    and less pressing than before (it tires now), with about the same damage dealt. `fight` prints the combos' reasons.
+    Clip motion was already the fight's default in Unity (the sandbox's Clip Motion, on); headless it stays behind
+    `CLIP_FIGHT=1`, the old pose path's tests running without it.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session

@@ -219,6 +219,31 @@ internal static class FightReport
         var linkGaps = new List<float>();
         var contactGaps = new List<float>();
         var comboEnds = new Dictionary<string, int>();
+        // (Clip fighters' combos, the plan "Bringing the lab into the fight", step 7: each counted as it starts, with the
+        // tempo's reason, and each of its blows inside it.)
+        var comboWhy = new Dictionary<string, int>();
+        var lastClipContact = new Dictionary<UnitController, float>();
+        void OnClipCombo(UnitController u, string what, UnitController at)
+        {
+            if (!what.StartsWith("a combo")) return;
+            combos++;
+            comboBlows++;
+            int open = what.IndexOf('('), close = what.IndexOf(')');
+            string why = open > 0 && close > open ? what.Substring(open + 1, close - open - 1) : "the lab's";
+            comboWhy[why] = (comboWhy.TryGetValue(why, out int n) ? n : 0) + 1;
+        }
+        void OnClipBlow(UnitController u, bool next)
+        {
+            if (next)
+            {
+                comboBlows++;
+                attacks++;
+                if (lastClipContact.TryGetValue(u, out float t0)) linkGaps.Add(Time.time - t0);
+            }
+            lastClipContact[u] = Time.time;
+        }
+        UnitController.ClipStrikeStarted += OnClipCombo;
+        UnitController.ClipBlowStarted += OnClipBlow;
         void OnCombo(UnitController u, ComboRun c, string what)
         {
             if (what == "started")
@@ -410,6 +435,8 @@ internal static class FightReport
         {
             UnitController.MoveStarted -= OnMove;
             UnitController.ClipStrikeStarted -= OnClipStrike;
+            UnitController.ClipStrikeStarted -= OnClipCombo;
+            UnitController.ClipBlowStarted -= OnClipBlow;
             UnitController.Hit -= OnHit;
             UnitController.ComboChanged -= OnCombo;
         }
@@ -528,9 +555,11 @@ internal static class FightReport
         linkGaps.Sort();
         var ends = new List<string>();
         foreach (var pair in comboEnds) ends.Add($"{pair.Key} {pair.Value}");
+        var whys = new List<string>();
+        foreach (var pair in comboWhy) whys.Add($"{pair.Key} {pair.Value}");
         contactGaps.Sort();
         sb.AppendLine($"  combos: {combos}, {100f * comboBlows / Mathf.Max(1, attacks):0}% of blows inside them (target 25-40%); striking moment to the next: median {(contactGaps.Count > 0 ? contactGaps[contactGaps.Count / 2] : 0f):0.00} s "
-                      + $"(target 0.4-0.7, {contactGaps.Count}); link start to the next: median {(linkGaps.Count > 0 ? linkGaps[linkGaps.Count / 2] : 0f):0.00} s; ended: {string.Join(", ", ends)}");
+                      + $"(target 0.4-0.7, {contactGaps.Count}); link start to the next: median {(linkGaps.Count > 0 ? linkGaps[linkGaps.Count / 2] : 0f):0.00} s; ended: {string.Join(", ", ends)}{(whys.Count > 0 ? "; clip combos for: " + string.Join(", ", whys) : "")}");
         sb.Append($"  steps with standing bodies overlapping: {shared}; times a unit made no headway and went round: {loop.Stalls}");
         stats = sb.ToString();
         string result = loop.Over ? $"fight over: {loop.Result}" : $"not over after {Time.time - startTime:0} s";

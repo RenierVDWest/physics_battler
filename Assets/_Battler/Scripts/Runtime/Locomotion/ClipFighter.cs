@@ -1271,10 +1271,11 @@ namespace PhysicsBattler.Locomotion
         /// picks among its combos as good as its best), each blow aimed at its part nearest the strike's height. Its
         /// combo player is made the first time. False when it has no follow-on: then nothing plays.
         /// </summary>
-        public bool ComboAt(ClipFighter target, LocoClip first, int variant, out LocoClip opener, out List<StrikeLink> chain)
+        public bool ComboAt(ClipFighter target, LocoClip first, int variant, out LocoClip opener, out List<StrikeLink> chain, int blows = 3)
         {
             opener = first;
-            chain = first != null && first.ContactFrame >= 0 ? StrikeCombos.CoreChain(first, StrikeClips, 3, variant) : new List<StrikeLink>();
+            blows = Mathf.Clamp(blows, 2, 3);
+            chain = first != null && first.ContactFrame >= 0 ? StrikeCombos.CoreChain(first, StrikeClips, blows, variant) : new List<StrikeLink>();
             if (target == null || chain.Count == 0)
             {
                 return false;
@@ -1293,6 +1294,7 @@ namespace PhysicsBattler.Locomotion
             Combo.PastContact = TurnCombo;
             KeepOff(target);
             Combo.Keep = first;
+            Combo.Most = chain.Count + 1;
             opener = chain[0].From;
             Combo.Start(opener, chain);
             return true;

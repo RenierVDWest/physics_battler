@@ -991,11 +991,12 @@ namespace PhysicsBattler.Battle
                 // combo when the fight would throw one, at its target first, then the others in reach in front of it.)
                 foreach (var target in candidates)
                 {
-                    var combo = ChooseCombo(unit, tempo, target, out _, out _);
+                    // (Step 7 of the plan "Bringing the lab into the fight": its combo as long as the tempo makes it.)
+                    var combo = ChooseCombo(unit, tempo, target, out int length, out string why);
                     // (Two or more on it within a combo's reach: now and then a combo strung across them, whatever its
                     // tempo says: the plan "Fighting off several attackers", step 8.)
                     bool sweep = combo == null && PhysicsBattler.Locomotion.CombatFeel.ComboSweepChance > 0f && unit.ClipSweepable() >= 2 && random.NextDouble() < PhysicsBattler.Locomotion.CombatFeel.ComboSweepChance;
-                    if (unit.ClipStrike(target, combo != null || sweep))
+                    if (unit.ClipStrike(target, combo != null ? length : sweep ? 3 : 1, combo != null ? why : sweep ? "a sweep" : null))
                     {
                         plan.ledInAt = -999f;
                         plan.closeIn = 0f;

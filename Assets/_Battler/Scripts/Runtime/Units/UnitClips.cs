@@ -185,6 +185,7 @@ namespace PhysicsBattler.Units
             HitStop = Mathf.Max(ownStop, clipStopLeft);
             bool frozen = HitStop > 0f;
             Clip.Move(dt, want, yaw, opponent, frozen);
+            NoteClipBlows();
             if (Clip.Strikes != null)
             {
                 // (Its blade sweeps every other body on the board: its target, the others in the way, its own side.)
@@ -256,6 +257,46 @@ namespace PhysicsBattler.Units
             }
 
             return Vector3.Cross(Vector3.up, to.normalized) * (circleSide * ClipCircleSpeed * Mathf.Sqrt(Body.SizeFactor) * Mathf.Clamp01(1f - 2f * ClipCrowded));
+        }
+
+        // ---- The plan "Bringing the lab into the fight", step 7: combos and tempo -----------------------------------
+
+        private LocoClip clipBlowShot;
+        private bool clipWasStriking;
+
+        /// <summary>Blows it has started, a combo's each counted (for the logs).</summary>
+        public int ClipBlowsStarted { get; private set; }
+
+        /// <summary>A clip fighter's blow started (each of a combo's too): the unit, and whether it is a combo's next.</summary>
+        public static event System.Action<UnitController, bool> ClipBlowStarted;
+
+        /// <summary>
+        /// Each blow it starts, a combo's next ones too, is paid for and counted as the fight's are (its rhythm's energy, the
+        /// tempo's burst), and each strike's end noted: the tempo, which sets when it strikes and how near it stands, runs
+        /// on its blows as the old fight's units' do. (Until now it never heard of them: its energy never fell, its press
+        /// never counted a burst.)
+        /// </summary>
+        private void NoteClipBlows()
+        {
+            var loco = Clip.Loco;
+            var shot = loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0 ? loco.Shot : null;
+            if (shot != null && shot != clipBlowShot)
+            {
+                bool next = clipWasStriking && Clip.Combo != null && Clip.Combo.Playing;
+                ClipBlowsStarted++;
+                Rhythm?.NoteBlow();
+                TempoBlowStarted();
+                ClipBlowStarted?.Invoke(this, next);
+            }
+
+            clipBlowShot = shot;
+            bool striking = Clip.Striking;
+            if (clipWasStriking && !striking)
+            {
+                Tempo?.NoteBlowEnded();
+            }
+
+            clipWasStriking = striking;
         }
 
         /// <summary>The tempo's step (as <see cref="UpdateTempo"/>, without the old pose's mood and the rhythm's postures).</summary>
@@ -623,8 +664,16 @@ namespace PhysicsBattler.Units
         /// its strikes that lands from where it stands, or, when <paramref name="combo"/>, the lab's combo it opens. False when
         /// none of its strikes reaches, or it is busy.
         /// </summary>
-        public bool ClipStrike(UnitController target, bool combo)
+        public bool ClipStrike(UnitController target, bool combo) => ClipStrike(target, combo ? 3 : 1, null);
+
+        /// <summary>
+        /// As above, a combo of <paramref name="blows"/> (2 or 3: the lab's combos open, cut back across and end on a
+        /// showstopper; of two, the opener and the showstopper) when more than one, as the fight's tempo chose it
+        /// (<paramref name="why"/>: punish, counter, press, full gather; for the logs).
+        /// </summary>
+        public bool ClipStrike(UnitController target, int blows, string why)
         {
+            bool combo = blows >= 2;
             if (Clip == null || Clip.Strikes == null || Clip.Busy || !CanAct || target == null || target.Clip == null || !target.IsAlive)
             {
                 return false;
@@ -645,9 +694,9 @@ namespace PhysicsBattler.Units
             comboStruck.Clear();
             comboStruck.Add(target);
             string what;
-            if (combo && Clip.ComboAt(target.Clip, clip, clipVariant++, out var opener, out var chain))
+            if (combo && Clip.ComboAt(target.Clip, clip, clipVariant++, out var opener, out var chain, Mathf.Clamp(blows, 2, 3)))
             {
-                what = "a combo: " + opener.Name;
+                what = $"a combo{(why != null ? $" ({why})" : "")}: " + opener.Name;
                 foreach (var link in chain)
                 {
                     what += " > " + link.To.Name;
