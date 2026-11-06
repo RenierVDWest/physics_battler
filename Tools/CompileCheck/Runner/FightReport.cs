@@ -163,7 +163,7 @@ internal static class FightReport
         var startedFrom = new Dictionary<string, int>();
         var turning = new List<(UnitController who, UnitController to, float since)>();
         var turnTimes = new List<float>();
-        int turnsMissed = 0;
+        int turnsMissed = 0, outnumberedSteps = 0, surroundedSteps = 0;
         void OnClipStrike(UnitController u, string what, UnitController at)
         {
             started[u] = (started.TryGetValue(u, out int n) ? n : 0) + 1;
@@ -293,6 +293,16 @@ internal static class FightReport
                         else if (!who.IsAlive || !to.IsAlive || Time.time - since > 3f) { turnsMissed++; turning.RemoveAt(k); }
                     }
 
+                    // (How spread round a unit its attackers stood: the plan "Fighting off several attackers", step 5.)
+                    foreach (var u in units)
+                    {
+                        if (!u.IsAlive || !u.UsesClips || u.IsDown) continue;
+                        var on = FightLoop.OnIt(units, u, UnitController.ClipEngagedWithin * u.Body.SizeFactor);
+                        if (on.Count < 2) continue;
+                        outnumberedSteps++;
+                        if (FightLoop.Spread(u.Root.position, on) > 120f) surroundedSteps++;
+                    }
+
                     // (How they spread: each standing one's nearest teammate, and whether its target has others of its side on it.)
                     foreach (var u in units)
                     {
@@ -413,6 +423,7 @@ internal static class FightReport
                 var keys = new List<string>(sectors.Keys);
                 keys.Sort();
                 sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
+                sb.AppendLine($"    outnumbered (two or more on it): {outnumberedSteps * dt:0.0} s in all; with them more than 120 degrees apart round it {100f * surroundedSteps / Mathf.Max(1, outnumberedSteps):0}% of that");
                 turnTimes.Sort();
                 sb.AppendLine($"    turning to an attacker starting a blow from beside or behind: {turnTimes.Count} faced it (median {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count / 2] : 0f):0.00} s, 90% {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count * 9 / 10] : 0f):0.00} s), {turnsMissed} not within 3 s");
                 sb.AppendLine("    blows started, by where the attacker stood (against its target's facing): " + string.Join(", ", new List<string>(startedFrom.Keys).ConvertAll(k => $"{k} {startedFrom[k]}")));

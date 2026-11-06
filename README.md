@@ -550,6 +550,13 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     on 3 (`FIGHT_LINEUP=gang3`) it lasts 16 to 32 s (was 7 to 16), most blows from beside it now blocked; it faces an
     attacker starting a blow from beside or behind in a median 0.3 to 0.8 s (90%: 1.1 to 2.3 s). Planted feet as
     before (the drive-back's slides under staggering blows, 14 to 22 cm in two fights, were there before).
+  - Fighting off several attackers, step 5: keeping them in front. Set on by two or more spread round it more than 90
+    degrees, a clip fighter looks a step (1 m) out each of 16 ways and walks the one from which they stand in the
+    narrowest arc (the outside of the group, the nearest between it and the others), on the board and not into any of
+    them; spread more than 150 degrees, it breaks out at a run. Headless over seven fights (1 on 2, 1 on 3, 3 v 3), the
+    time it stood with its attackers more than 120 degrees apart round it went from 24 to 11% of the time it was
+    outnumbered; on 3 it lasted 20 to 60 s (was 16 to 32). `fight` prints it ("outnumbered"). Left: planted feet still
+    drag up to 22 cm in the press (reaction and strike clips, the drive-back), as before this work.
   - The playtest logs can be committed while Unity is open (Windows: "Permission denied" on `perf.csv.gz` until Unity
     was closed). The recorder's tables (`perf.csv.gz`, each unit's frames and poses) were opened sharing nothing; they
     are now readable while written (a session still recording commits as far as it has got). And stopping a session

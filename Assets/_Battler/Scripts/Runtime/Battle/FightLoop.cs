@@ -523,6 +523,17 @@ namespace PhysicsBattler.Battle
 
             bool near = off <= 0.3f * size;
             unit.CircleOpponent = near && !busy;
+            if (unit.UsesClips && !busy)
+            {
+                // (The plan "Fighting off several attackers", step 5: set on by two or more spread round it, it steps out to
+                // keep them in front, instead of circling its one.)
+                Vector3 outside = KeepInFront(units, unit, speed);
+                if (outside.sqrMagnitude > 1e-4f)
+                {
+                    desired = desired * 0.4f + outside;
+                    unit.CircleOpponent = false;
+                }
+            }
             if (busy)
             {
                 plan.velocity = Vector3.zero;
@@ -640,6 +651,116 @@ namespace PhysicsBattler.Battle
                 return 0;
             }
         }
+
+        /// <summary>The enemies on a unit: standing, alive, fighting it (striking at it, or it their target), within reach.</summary>
+        public static List<UnitController> OnIt(IReadOnlyList<UnitController> units, UnitController unit, float within)
+        {
+            var on = new List<UnitController>();
+            foreach (var other in units)
+            {
+                if (other == null || other == unit || !other.IsInitialized || other.Team == unit.Team || !other.IsAlive || other.IsDown
+                    || (other.ClipTarget != unit && other.Opponent != unit))
+                {
+                    continue;
+                }
+
+                if (Flat(other.Root.position - unit.Root.position).magnitude <= within)
+                {
+                    on.Add(other);
+                }
+            }
+
+            return on;
+        }
+
+        /// <summary>How far round a place the bodies stand (degrees): the narrowest arc, seen from there, that holds them all.</summary>
+        public static float Spread(Vector3 from, List<UnitController> bodies)
+        {
+            if (bodies.Count < 2)
+            {
+                return 0f;
+            }
+
+            var angles = new List<float>(bodies.Count);
+            foreach (var b in bodies)
+            {
+                Vector3 d = Flat(b.Root.position - from);
+                angles.Add(Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
+            }
+
+            angles.Sort();
+            float widestGap = 360f - (angles[angles.Count - 1] - angles[0]);
+            for (int i = 1; i < angles.Count; i++)
+            {
+                widestGap = Mathf.Max(widestGap, angles[i] - angles[i - 1]);
+            }
+
+            return 360f - widestGap;
+        }
+
+        /// <summary>
+        /// Step 5 of the plan "Fighting off several attackers": set on by two or more spread round it more than
+        /// <see cref="ClipSpreadFrom"/> degrees, the way to step (a want, m/s) that brings them most nearly in front of it:
+        /// of 16 ways round, the one whose place a short step on sees them in the narrowest arc (the outside of the group,
+        /// the nearest between it and the others), on the board and not into any of them. None: zero.
+        /// </summary>
+        private Vector3 KeepInFront(IReadOnlyList<UnitController> units, UnitController unit, float speed)
+        {
+            float size = unit.Body.SizeFactor;
+            var on = OnIt(units, unit, UnitController.ClipEngagedWithin * size);
+            Vector3 here = unit.Root.position;
+            float now = Spread(here, on);
+            if (on.Count < 2 || now < ClipSpreadFrom)
+            {
+                return Vector3.zero;
+            }
+
+            float step = ClipOutsideStep * size, mine = BodyRadius(unit);
+            float halfW = 0.5f * Grid.Width - mine, halfD = 0.5f * Grid.Depth - mine;
+            Vector3 best = Vector3.zero;
+            float bestSpread = now - 10f;
+            for (int k = 0; k < 16; k++)
+            {
+                Vector3 way = Quaternion.Euler(0f, k * 22.5f, 0f) * Vector3.forward;
+                Vector3 there = here + way * step;
+                Vector3 local = there - Grid.origin;
+                if (Mathf.Abs(local.x) > halfW || Mathf.Abs(local.z) > halfD)
+                {
+                    continue;
+                }
+
+                bool into = false;
+                foreach (var o in on)
+                {
+                    into |= Flat(o.Root.position - there).magnitude < 0.9f * size;
+                }
+
+                if (into)
+                {
+                    continue;
+                }
+
+                float spread = Spread(there, on);
+                if (spread < bestSpread)
+                {
+                    bestSpread = spread;
+                    best = way;
+                }
+            }
+
+            // (Surrounded, it breaks out at a run, before the ring closes.)
+            float pace = now > ClipBreakOutFrom && unit.Clip != null ? Mathf.Max(speed, 1.25f * unit.Clip.Loco.RunSpeed) : speed * Mathf.Clamp01((now - ClipSpreadFrom) / 60f + 0.4f);
+            return best * pace;
+        }
+
+        /// <summary>Attackers spread round a clip fighter more than this (degrees, as it sees them), it steps out to bring them in front.</summary>
+        public const float ClipSpreadFrom = 90f;
+
+        /// <summary>Spread round it more than this (degrees), it breaks out at a run.</summary>
+        public const float ClipBreakOutFrom = 150f;
+
+        /// <summary>How far ahead it looks for the step out (metres at a Medium's size).</summary>
+        public const float ClipOutsideStep = 1.0f;
 
         /// <summary>How a clip fighter comes in to the fight (Renier, 6 November): a large charges straight at the nearest; a medium flanks.</summary>
         public enum ClipRole
