@@ -282,10 +282,30 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Blows its shield has read (for the logs).</summary>
         public int ShieldBlowsRead;
 
+        /// <summary>
+        /// How far from an expert it is against this blow (the plan "Shield and blade contact", step 5): a blow on its
+        /// own is easier to read than a combo's next one, coming on the heels of the last (within <see cref="ComboGap"/>).
+        /// Each on its own curve of the skill (the scene's Combat Feel), so a middling shield (skill 0.5) misses about a
+        /// quarter of single blows and half a combo's.
+        /// </summary>
+        private float blowLack = 1f;
+
+        /// <summary>A blow read within this long of the last one passing is a combo's next blow (seconds).</summary>
+        public const float ComboGap = 0.6f;
+
+        private float lastBlowSeenAt = -10f;
+
+        /// <summary>Blows it read as a combo's next (for the logs).</summary>
+        public int ShieldComboBlowsRead;
+
         private void NewShieldBlow()
         {
             ShieldBlowsRead++;
-            float lack = ShieldLack;
+            float skill = Mathf.Clamp01(ShieldSkill);
+            bool follow = clock - lastBlowSeenAt < ComboGap;
+            ShieldComboBlowsRead += follow ? 1 : 0;
+            blowLack = 1f - Mathf.Pow(skill, follow ? CombatFeel.ShieldComboCurve : CombatFeel.ShieldSingleCurve);
+            float lack = blowLack;
             Vector3 r = new Vector3((float)shieldLuck.NextDouble() * 2f - 1f, (float)shieldLuck.NextDouble() * 2f - 1f, (float)shieldLuck.NextDouble() * 2f - 1f);
             shieldMisread = (r.sqrMagnitude > 1e-4f ? r.normalized : Vector3.up) * (NoviceMisread * lack * (0.4f + 0.6f * (float)shieldLuck.NextDouble()) * Size);
             Vector3 axis = new Vector3((float)shieldLuck.NextDouble() * 2f - 1f, (float)shieldLuck.NextDouble() * 2f - 1f, (float)shieldLuck.NextDouble() * 2f - 1f);
@@ -1320,7 +1340,6 @@ namespace PhysicsBattler.Locomotion
         {
             // (The guard holds the shield as its clip does; it moves only to meet a blow.)
             blockWeight = 0f;
-            float lack = ShieldLack;
             float coming = Blow.HasValue ? Blow.Value.Coming : -1f;
             if (Blow.HasValue && Blow.Value.Serial != lastShieldSerial)
             {
@@ -1328,6 +1347,13 @@ namespace PhysicsBattler.Locomotion
                 NewShieldBlow();
                 incomingFor = 0f;
             }
+
+            if (Blow.HasValue)
+            {
+                lastBlowSeenAt = clock;
+            }
+
+            float lack = Blow.HasValue ? blowLack : ShieldLack;
 
             lastComing = coming;
             incomingFor = IncomingBlade.HasValue ? incomingFor + dt : 0f;
@@ -1339,6 +1365,12 @@ namespace PhysicsBattler.Locomotion
             backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
             // (Knocked open: the shield meets nothing until the guard is back.)
             float wantIntercept = !GuardOpen && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
+            // (A poor shield lets its guard fall back once the blow it met has passed, as a combo's next comes on unseen: a
+            // good one keeps it where it was until it sees where the next is going.)
+            if (Blow.HasValue && !sees && seenSerial != Blow.Value.Serial && blowLack > 0.5f)
+            {
+                wantIntercept = 0f;
+            }
             interceptWeight = Mathf.MoveTowards(interceptWeight, wantIntercept, dt / BlockRaise);
             float weight = Mathf.Max(blockWeight, interceptWeight);
             var hand = Anim.Part(PartId.HandL);
@@ -1364,9 +1396,18 @@ namespace PhysicsBattler.Locomotion
             Vector3 freshAt = Vector3.zero, freshNormal = Vector3.zero, freshMotion = Vector3.zero, freshWay = Vector3.zero;
             float meetIn = 0f;
             bool inside = false;
-            bool fresh = interceptWeight > 0f && Blow.HasValue && PlanMeet(Blow.Value, out freshAt, out freshNormal, out freshMotion, out freshWay, out meetIn, out inside);
+            // (A blow is planned for only once it is seen: until then a shield still up from the last block stays where that
+            // was (a combo's next blow, which a novice sees late, finds it there or not), never tracking the new one unseen.)
+            if (sees && Blow.HasValue)
+            {
+                seenSerial = Blow.Value.Serial;
+            }
+
+            bool seen = Blow.HasValue && seenSerial == Blow.Value.Serial;
+            bool fresh = interceptWeight > 0f && seen && PlanMeet(Blow.Value, out freshAt, out freshNormal, out freshMotion, out freshWay, out meetIn, out inside);
             bool havePlan = interceptWeight > 0f && Blow.HasValue && planSerial == Blow.Value.Serial;
-            if (fresh || havePlan)
+            bool holdLast = interceptWeight > 0f && !seen && planSerial >= 0 && easedSerial == planSerial;
+            if (fresh || havePlan || holdLast)
             {
                 var rootTurn = Quaternion.Euler(0f, Loco.Facing, 0f);
                 var rootBack = Quaternion.Inverse(rootTurn);
@@ -1457,7 +1498,10 @@ namespace PhysicsBattler.Locomotion
                 want = meetAt - boardFromHand;
                 DebugWant = want;
                 DebugFace = face;
-                TraceMeet(Blow.Value, meetAt, meetNormal, meetIn);
+                if (Blow.HasValue && seen)
+                {
+                    TraceMeet(Blow.Value, meetAt, meetNormal, meetIn);
+                }
             }
             else
             {
@@ -1584,7 +1628,7 @@ namespace PhysicsBattler.Locomotion
 
 
 
-        private int planSerial = -1;
+        private int planSerial = -1, seenSerial = -1;
         private Vector3 planAt, planNormal, planFace;
         private int easedSerial = -1;
         private Vector3 easedAt, easedNormal, easedFace;
