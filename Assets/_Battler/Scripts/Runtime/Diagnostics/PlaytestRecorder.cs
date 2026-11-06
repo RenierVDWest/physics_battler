@@ -257,26 +257,45 @@ namespace PhysicsBattler.Diagnostics
             UnitController.GuardBroken -= OnGuardBroken;
             Application.logMessageReceived -= OnConsole;
 
-            foreach (var track in tracks.ToArray())
+            // (Whatever goes wrong summing the session up, its files are closed: one left open stays locked until the editor
+            // quits.)
+            try
             {
-                CloseTrack(track, "recording stopped");
-            }
+                foreach (var track in tracks.ToArray())
+                {
+                    try
+                    {
+                        CloseTrack(track, "recording stopped");
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogWarning($"[Playtest] Closing a unit's track: {exception}");
+                    }
+                }
 
-            shieldEnded.Clear();
-            shieldContacts.CloseAll(Time.fixedDeltaTime, shieldEnded);
-            LogShieldContacts();
-            CheckConfigChanges();
-            if (frames != null && (frames.Capturing || frames.Saved > 0))
+                shieldEnded.Clear();
+                shieldContacts.CloseAll(Time.fixedDeltaTime, shieldEnded);
+                LogShieldContacts();
+                CheckConfigChanges();
+                if (frames != null && (frames.Capturing || frames.Saved > 0))
+                {
+                    Event((string)null, "session", $"{frames.Saved} pictures saved" + (frames.Failed > 0 ? $", {frames.Failed} failed" : ""));
+                    frames.End();
+                }
+
+                Event((string)null, "session", $"recording stopped after {Now - startTime:0.0} s ({step} physics steps)");
+                WriteMeta(true);
+                WriteSummary(true);
+            }
+            catch (Exception exception)
             {
-                Event((string)null, "session", $"{frames.Saved} pictures saved" + (frames.Failed > 0 ? $", {frames.Failed} failed" : ""));
-                frames.End();
+                Debug.LogWarning($"[Playtest] Summing the session up: {exception}");
             }
-
-            Event((string)null, "session", $"recording stopped after {Now - startTime:0.0} s ({step} physics steps)");
-            WriteMeta(true);
-            WriteSummary(true);
-            perf?.Dispose();
-            perf = null;
+            finally
+            {
+                perf?.Dispose();
+                perf = null;
+            }
 
             try
             {
