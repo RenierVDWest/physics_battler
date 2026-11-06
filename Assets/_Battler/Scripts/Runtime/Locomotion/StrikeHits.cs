@@ -611,7 +611,13 @@ namespace PhysicsBattler.Locomotion
 
                         if (body.ShieldColliders.Contains(collider))
                         {
-                            found.Add((body, collider, PartId.HandL, true, AlongBlade(collider, a, b) - 0.05f));
+                            // (The board is round, its collider a square: a blade past the round rim, in the square's
+                            // corners, goes on by (the shield blocked blades it was nowhere near).)
+                            if (OnRoundBoard(body, a, b, radius))
+                            {
+                                found.Add((body, collider, PartId.HandL, true, AlongBlade(collider, a, b) - 0.05f));
+                            }
+
                             break;
                         }
 
@@ -1362,6 +1368,21 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>How far out along the blade (0 at the hand's end, 1 at the tip) a collider touches it.</summary>
+        /// <summary>Whether a blade (a to b, this thick) is within its shield's round board, not only its square collider.</summary>
+        private static bool OnRoundBoard(ClipFighter body, Vector3 a, Vector3 b, float thick)
+        {
+            if (!body.ShieldBoard(out var c, out var n, out float r))
+            {
+                return true;
+            }
+
+            Vector3 ab = b - a;
+            float u = Mathf.Clamp01(Vector3.Dot(c - a, ab) / Mathf.Max(1e-8f, ab.sqrMagnitude));
+            Vector3 q = a + ab * u;
+            Vector3 inPlane = Vector3.ProjectOnPlane(q - c, n);
+            return inPlane.magnitude <= r + thick;
+        }
+
         private static float AlongBlade(Collider collider, Vector3 a, Vector3 b)
         {
             Vector3 ab = b - a;

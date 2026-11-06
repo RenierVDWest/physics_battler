@@ -419,6 +419,15 @@ BattleSandbox to get the fight back. In the lab, one Medium walks using the new 
     Large's (the board's radius is 0.27): the shield's read of the blade's path is what is off, the first read of a
     combo's blow most (up to 0.78 m). Tried and left off: planning on a finer path about contact (`SHIELD_FINE`; met
     the blade further from the board's centre), one late correction, a smaller slant. Nothing changes in play yet.
+  - Skill on the shield (the plan "Shield and blade contact", step 5): a blow read within 0.6 s of the last one
+    passing is a combo's next, harder to read than one on its own; each has its own curve of the skill on Combat Feel
+    (skill to the power of "shield single curve", 1, and "shield combo curve", 4). A blow is planned for only once it
+    is seen: a shield still up from the last block stays where that was, and a poor one (more than half way to a
+    novice) lets it fall back to its guard, never tracking the next blow unseen. And the board is round: a blade past
+    its rim, in the corners of its square collider, goes on by (it blocked blades well off the board). Headless,
+    single blows missed (blade not on the board): skill 0.5 26% (Medium attacker; the Large 33%), skill 0 70% (67%),
+    skill 1 4% (0%); combo blows: skill 0.5 40% (the Large 50%), skill 0 55%, skill 1 7% (0%). The aim was a
+    quarter of single blows and half of a combo's at skill 0.5.
   - Sound (Hexamus's tool as it is; `Docs/Sound.md`): Physics Battler > Audio > Sound Effects makes the sounds with
     ElevenLabs (the key is the one entered for Hexamus on this computer), takes heard and re-rolled in the window.
     Every place two things meet plays its sound (`Audio/SoundHooks.cs`): steps and landings, swings, blades and
