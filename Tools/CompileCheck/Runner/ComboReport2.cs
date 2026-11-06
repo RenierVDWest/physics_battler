@@ -24,7 +24,7 @@ internal static class StrikeComboReport
         var allShieldMeets = new List<StrikeHits.ShieldMeet>();
         if (Environment.GetEnvironmentVariable("SHIELD_PLAN") != null) ClipFighter.ShieldTrace = line => Console.WriteLine("      the shield: " + line);
         var steadies = new List<ShieldSteadiness>();
-        int allInside = 0, armThrough = 0; float armThroughMost = 0f;
+        int allInside = 0, allDeep = 0, longestDeep = 0, armThrough = 0; float armThroughMost = 0f;
         string prefix = LocoLibrary.CombatPrefix(body);
         var strikes = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key))
             .OrderBy(p => p.Key).Select(p => p.Value).ToList();
@@ -411,7 +411,7 @@ internal static class StrikeComboReport
             File.WriteAllText(Path.Combine(dir, first.Name + (chain.Count > 0 ? "_" + chain[chain.Count - 1].To.Name.Replace(prefix, "") + "_" + chain[0].To.Name.Replace(prefix, "") : "") + ".json"), film.ToString());
             File.WriteAllText(Path.Combine(dir, first.Name + ".dummy"), dummyFilm.ToString());
             allShieldMeets.AddRange(hits.ShieldMeets); armThrough += dummy.ArmThroughBoard; armThroughMost = Mathf.Max(armThroughMost, dummy.ArmThroughBoardMost);
-            allInside += hits.InsideOutside;
+            allInside += hits.InsideOutside; allDeep += hits.InsideDeep; longestDeep = Math.Max(longestDeep, hits.LongestDeep);
             UnityEngine.Object.DestroyImmediate(root);
             UnityEngine.Object.DestroyImmediate(droot);
         }
@@ -433,7 +433,7 @@ internal static class StrikeComboReport
         ShieldMeetSummary.Print(allShieldMeets);
         foreach (var st in steadies) st.Close();
         ShieldSteadiness.Print(steadies);
-        Console.WriteLine($"Outside its blows the blade was in a body or a shield {allInside} steps");
+        Console.WriteLine($"Outside its blows the blade touched a body or a shield {allInside} steps, was over 2 cm into one {allDeep} steps, the longest {longestDeep} steps running");
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "The shield arm through its own board: {0} steps, at most {1:0.00} m", armThrough, armThroughMost));
         Console.WriteLine(string.Format(ci, "All: {0} combos, {1} strikes: {2} landed, {3} blocked, {4} missed; about the switches the hands and feet moved at most {5:0.0} m/s ({6})",
             combos, strikesPlayed, landed, blocked, missed, fastest, fastestWhere));

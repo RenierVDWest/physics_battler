@@ -140,6 +140,7 @@ namespace PhysicsBattler.Locomotion
             HeldArms();
             StepHandKnock(dt);
             StepBind(dt);
+            StepRest(dt);
             UpdateAimWeights(dt);
             // The feet first (the hips drop for them).
             UpdateFeet(dt);
@@ -181,6 +182,7 @@ namespace PhysicsBattler.Locomotion
                 LocoBone.LeftHandMiddle, LocoBone.LeftHandIndex, LocoBone.LeftHandPinky);
             Arm(PartId.UpperArmR, PartId.ForearmR, PartId.HandR, LocoBone.RightArm, LocoBone.RightForeArm, LocoBone.RightHand,
                 LocoBone.RightHandMiddle, LocoBone.RightHandIndex, LocoBone.RightHandPinky);
+            RestNow();
             if (TwoHanded)
             {
                 GripTwoHanded();
@@ -544,7 +546,7 @@ namespace PhysicsBattler.Locomotion
             // so its weapon stays on that blade.)
             if (right || TwoHanded)
             {
-                target += handKnock + bindOffset;
+                target += handKnock + bindOffset + restOffset;
             }
 
             pole = SteadyElbow(a, pole, upper.position, target);
@@ -1171,6 +1173,53 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The bind over: the hand eases back to its clip (most of the way in <see cref="BindLetGo"/> times three).</summary>
         public void LetGo() => bound = false;
+
+        /// <summary>
+        /// Its weapon resting against what it touches outside a blow (the plan "Shield and blade contact", step 6): the
+        /// weapon hand held off its clip by <paramref name="offset"/> (world, the way out and the depth the weapon would go
+        /// in), eased into and out of so it doesn't snap.
+        /// </summary>
+        public void RestAgainst(Vector3 offset) => restWant = offset;
+
+        /// <summary>The weapon hand held off its clip by its weapon resting against a body or a shield (world).</summary>
+        public Vector3 RestOffset => restOffset;
+
+        /// <summary>How quickly a weapon comes to rest against what it touches, and lets go of it (seconds, the e-folding).</summary>
+        public const float RestIn = 0.01f, RestOut = 0.08f;
+
+        private Vector3 restOffset, restWant;
+
+        /// <summary>Asked once the weapon arm is posed: how far its weapon is into what it touches (world, the way out and the depth; its striker's, outside its blows).</summary>
+        public System.Func<Vector3> RestProbe;
+
+        /// <summary>The weapon arm put back out of what its weapon would go into, in the same step: the hand moved out, its turn kept.</summary>
+        private void RestNow()
+        {
+            if (RestProbe == null || TwoHanded)
+            {
+                return;
+            }
+
+            Vector3 push = RestProbe();
+            if (push.sqrMagnitude < 1e-8f)
+            {
+                return;
+            }
+
+            Transform upper = anim.Part(PartId.UpperArmR), fore = anim.Part(PartId.ForearmR), hand = anim.Part(PartId.HandR);
+            var turn = hand.rotation;
+            Vector3 target = hand.position + push;
+            Vector3 pole = fore.position - 0.5f * (upper.position + target);
+            TwoBoneIK.Solve(upper, fore, hand, target, pole.sqrMagnitude > 1e-8f ? pole : RootTurn * Vector3.right);
+            hand.rotation = turn;
+            restOffset += push;
+        }
+
+        private void StepRest(float dt)
+        {
+            float t = restWant.sqrMagnitude >= restOffset.sqrMagnitude ? RestIn : RestOut;
+            restOffset = Vector3.Lerp(restOffset, restWant, 1f - Mathf.Exp(-dt / t));
+        }
 
         /// <summary>The hand held off its clip by a bind (world).</summary>
         public Vector3 BindOffset => bindOffset;

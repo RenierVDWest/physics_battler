@@ -26,7 +26,7 @@ internal static class DummyHitReport
         var allShieldMeets = new List<StrikeHits.ShieldMeet>();
         var steadies = new List<ShieldSteadiness>();
         if (Environment.GetEnvironmentVariable("SHIELD_PLAN") != null) ClipFighter.ShieldTrace = line => Console.WriteLine("    the shield: " + line);
-        int allInside = 0, armThrough = 0, shortSteps = 0; float armThroughMost = 0f, mostShort = 0f;
+        int allInside = 0, allDeep = 0, longestDeep = 0, armThrough = 0, shortSteps = 0; float armThroughMost = 0f, mostShort = 0f;
         string prefix = LocoLibrary.CombatPrefix(body);
         var names = LocoLibrary.Clips.Where(p => p.Value.Role == "strike" && (which == null ? p.Key.StartsWith(prefix) && LocoLibrary.StrikeFor(body, p.Key) : which.Split(',').Contains(p.Key))).Select(p => p.Key).OrderBy(n => n).ToList();
         if (Environment.GetEnvironmentVariable("PARRY_CROSSOUT") != null)
@@ -326,7 +326,7 @@ internal static class DummyHitReport
                         worstHand = Mathf.Max(worstHand, pr.MostHandSpeed);
                     }
                     allShieldMeets.AddRange(hits.ShieldMeets); armThrough += dummy.ArmThroughBoard; shortSteps += dummy.ShortSteps; mostShort = Mathf.Max(mostShort, dummy.MostShort); armThroughMost = Mathf.Max(armThroughMost, dummy.ArmThroughBoardMost);
-                    allInside += hits.InsideOutside;
+                    allInside += hits.InsideOutside; allDeep += hits.InsideDeep; longestDeep = Math.Max(longestDeep, hits.LongestDeep);
                     UnityEngine.Object.DestroyImmediate(root);
                     UnityEngine.Object.DestroyImmediate(droot);
                 }
@@ -336,7 +336,7 @@ internal static class DummyHitReport
         ShieldMeetSummary.Print(allShieldMeets);
         foreach (var st in steadies) st.Close();
         ShieldSteadiness.Print(steadies);
-        Console.WriteLine($"Outside its blows the blade was in a body or a shield {allInside} steps");
+        Console.WriteLine($"Outside its blows the blade touched a body or a shield {allInside} steps, was over 2 cm into one {allDeep} steps, the longest {longestDeep} steps running");
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "The shield arm through its own board: {0} steps, at most {1:0.00} m; the arm short of where the board was wanted {2} steps, at most {3:0.00} m", armThrough, armThroughMost, shortSteps, mostShort));
         Console.WriteLine($"All: {landed} landed, {blocked} blocked or parried, {missed} missed of {tries}; the bodies came within {closest:0.00} m; {allTouches} touches outside the blows");
         if (swordTries > 0)

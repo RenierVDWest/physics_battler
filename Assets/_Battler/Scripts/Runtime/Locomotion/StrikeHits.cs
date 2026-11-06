@@ -148,9 +148,10 @@ namespace PhysicsBattler.Locomotion
             clip != null && IsThrust(clip) ? StrikeWith.Tip : Weapon != null && Weapon.kind == WeaponKind.Club ? StrikeWith.Head : StrikeWith.Edge;
 
         /// <summary>The weapon now: the swept stretch (from near the hand to the tip) and the striking point.</summary>
-        public bool Blade(LocoClip clip, out Vector3 grip, out Vector3 tip, out Vector3 strike)
+        public bool Blade(LocoClip clip, out Vector3 grip, out Vector3 tip, out Vector3 strike) => BladeOn(Slot != null ? Slot : anim.SlotWeaponR, clip, out grip, out tip, out strike);
+
+        private bool BladeOn(Transform slot, LocoClip clip, out Vector3 grip, out Vector3 tip, out Vector3 strike)
         {
-            var slot = Slot != null ? Slot : anim.SlotWeaponR;
             grip = tip = strike = Vector3.zero;
             if (slot == null)
             {
@@ -528,6 +529,9 @@ namespace PhysicsBattler.Locomotion
                         && speed >= (Weapon != null ? Weapon.minHitSpeed : 2f);
             Vector3 direction = strike - lastS;
             float radius = Mathf.Max(0.01f, (Weapon != null ? Weapon.sweepRadius : 0.035f) * Scale);
+            // (Outside its blows its weapon rests against what it touches, held off by the depth it would go in (the plan
+            // "Shield and blade contact", step 6): a blow's slash still carries through.)
+            Rest(live, grip, tip, radius, bodies);
             float travel = Mathf.Max(Vector3.Distance(grip, lastG), Vector3.Distance(tip, lastT));
             int samples = Mathf.Clamp(Mathf.CeilToInt(travel / (1.5f * radius)), 1, 10);
             // (A blade the swing crossed between two samples is met all the same: the area the blade swept this step,
@@ -1368,6 +1372,179 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>How far out along the blade (0 at the hand's end, 1 at the tip) a collider touches it.</summary>
+        /// <summary>Steps outside its blows its weapon was more than 2 cm into a body or a shield, after resting it against them.</summary>
+        public int InsideDeep;
+
+        /// <summary>The longest run of steps it stayed so.</summary>
+        public int LongestDeep;
+
+        private int deepRun;
+
+        /// <summary>Whether its weapon rests against what it touches outside its blows (the plan "Shield and blade contact", step 6).</summary>
+        public static System.Action<string> RestTrace = System.Environment.GetEnvironmentVariable("REST_TRACE") != null ? (System.Action<string>)(l => System.Console.WriteLine("    rest " + l)) : null;
+
+        public static bool RestsOnBodies = System.Environment.GetEnvironmentVariable("NO_REST") == null;
+
+        private bool restLive = true;
+        private IReadOnlyList<ClipFighter> restBodies;
+        private float restRadius;
+
+        /// <summary>
+        /// The same at once, as the pose is made (LocoBody asks it once the weapon arm is posed): how far the posed blade is
+        /// into what it touches, so the arm is put back out in the same step. A step late, a blade moving into a body went a
+        /// step deeper each step than the last step's rest.
+        /// </summary>
+        private Vector3 RestProbe()
+        {
+            if (restLive || restBodies == null || !RestsOnBodies || anim.SlotWeaponR == null || !BladeOn(anim.SlotWeaponR, null, out var g, out var t, out _))
+            {
+                return Vector3.zero;
+            }
+
+            return Into(g, t, restRadius, restBodies);
+        }
+
+        private void Rest(bool live, Vector3 grip, Vector3 tip, float radius, IReadOnlyList<ClipFighter> bodies)
+        {
+            restLive = live;
+            restBodies = bodies;
+            restRadius = radius;
+            if (poser.RestProbe == null)
+            {
+                poser.RestProbe = RestProbe;
+            }
+
+            if (live || bodies == null)
+            {
+                poser.RestAgainst(Vector3.zero);
+                return;
+            }
+
+            if (Into(grip, tip, radius, bodies).magnitude > 0.02f)
+            {
+                InsideDeep++;
+                deepRun++;
+                LongestDeep = Mathf.Max(LongestDeep, deepRun);
+            }
+            else
+            {
+                deepRun = 0;
+            }
+
+            if (!RestsOnBodies)
+            {
+                return;
+            }
+
+            // (Where its blade would be without the rest: held off by it, it would let go, come back in, and shake.)
+            Vector3 off = poser.RestOffset;
+            Vector3 want = Into(grip - off, tip - off, radius, bodies);
+            poser.RestAgainst(want);
+            if (RestTrace != null && (want.sqrMagnitude > 1e-6f || off.sqrMagnitude > 1e-6f))
+            {
+                RestTrace(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.00} s: want {1:0.000} off {2:0.000} now in {3:0.000} ({4} {5:0.00})", clock, want.magnitude, off.magnitude,
+                    Into(grip, tip, radius, bodies).magnitude, loco.Current, loco.ShotTime));
+            }
+        }
+
+        /// <summary>How far a blade (a to b, this thick) is into the other bodies' parts and shields: the way out and the depth, the deepest one's (world).</summary>
+        private Vector3 Into(Vector3 a, Vector3 b, float thick, IReadOnlyList<ClipFighter> bodies)
+        {
+            Vector3 best = Vector3.zero;
+            foreach (var collider in Physics.OverlapCapsule(a, b, thick, ~0, QueryTriggerInteraction.Collide))
+            {
+                foreach (var body in bodies)
+                {
+                    if (body == null || body == Owner)
+                    {
+                        continue;
+                    }
+
+                    bool shield = body.ShieldColliders.Contains(collider);
+                    if (!shield && !body.PartOf(collider, out _))
+                    {
+                        continue;
+                    }
+
+                    for (int k = 0; k <= 8; k++)
+                    {
+                        Vector3 p = Vector3.Lerp(a, b, k / 8f);
+                        if (Outside(collider, p, out Vector3 way, out float gap))
+                        {
+                            float depth = thick - gap;
+                            if (depth > best.magnitude)
+                            {
+                                best = way * depth;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>A point against a collider: its signed distance out of it (negative inside) and the way out (world, unit).</summary>
+        private static bool Outside(Collider collider, Vector3 p, out Vector3 way, out float gap)
+        {
+            way = Vector3.up;
+            gap = 0f;
+            var tr = collider.transform;
+            float scale = Mathf.Max(1e-4f, Mathf.Abs(tr.lossyScale.x));
+            switch (collider)
+            {
+                case CapsuleCollider cap:
+                {
+                    Vector3 axis = cap.direction == 0 ? Vector3.right : cap.direction == 2 ? Vector3.forward : Vector3.up;
+                    float r = cap.radius * scale, half = Mathf.Max(0f, cap.height * scale * 0.5f - r);
+                    Vector3 c = tr.TransformPoint(cap.center), ax = tr.TransformDirection(axis).normalized;
+                    float along = Mathf.Clamp(Vector3.Dot(p - c, ax), -half, half);
+                    Vector3 off = p - (c + ax * along);
+                    way = off.sqrMagnitude > 1e-10f ? off.normalized : Vector3.Cross(ax, Vector3.up).normalized;
+                    gap = off.magnitude - r;
+                    return true;
+                }
+
+                case SphereCollider ball:
+                {
+                    Vector3 c = tr.TransformPoint(ball.center);
+                    Vector3 off = p - c;
+                    way = off.sqrMagnitude > 1e-10f ? off.normalized : Vector3.up;
+                    gap = off.magnitude - ball.radius * scale;
+                    return true;
+                }
+
+                case BoxCollider box:
+                {
+                    Vector3 local = tr.InverseTransformPoint(p) - box.center;
+                    Vector3 half = 0.5f * box.size;
+                    Vector3 q = new Vector3(Mathf.Abs(local.x) - half.x, Mathf.Abs(local.y) - half.y, Mathf.Abs(local.z) - half.z);
+                    Vector3 outside = new Vector3(Mathf.Max(q.x, 0f), Mathf.Max(q.y, 0f), Mathf.Max(q.z, 0f));
+                    if (outside.sqrMagnitude > 1e-12f)
+                    {
+                        Vector3 dir = new Vector3(Mathf.Sign(local.x) * outside.x, Mathf.Sign(local.y) * outside.y, Mathf.Sign(local.z) * outside.z);
+                        way = tr.TransformDirection(dir).normalized;
+                        gap = outside.magnitude * scale;
+                    }
+                    else
+                    {
+                        // (Inside: out through the nearest face.)
+                        int axis = q.x > q.y ? (q.x > q.z ? 0 : 2) : (q.y > q.z ? 1 : 2);
+                        Vector3 dir = axis == 0 ? new Vector3(Mathf.Sign(local.x), 0f, 0f) : axis == 1 ? new Vector3(0f, Mathf.Sign(local.y), 0f) : new Vector3(0f, 0f, Mathf.Sign(local.z));
+                        way = tr.TransformDirection(dir).normalized;
+                        gap = (axis == 0 ? q.x : axis == 1 ? q.y : q.z) * scale;
+                    }
+
+                    return true;
+                }
+
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>Whether a blade (a to b, this thick) is within its shield's round board, not only its square collider.</summary>
         private static bool OnRoundBoard(ClipFighter body, Vector3 a, Vector3 b, float thick)
         {
