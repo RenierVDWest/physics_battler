@@ -63,6 +63,20 @@ internal static class FightReport
             new[] { (Smalls ? "Small" : "Swordsman", new Tile(2, 1)), ("Medium", new Tile(3, 1)), ("Large", new Tile(4, 1)) },
             new[] { ("Medium", new Tile(4, 6)), ("Large", new Tile(2, 6)), (Smalls ? "Small" : "Swordsman", new Tile(3, 6)) },
         };
+        // (The plan "Fighting off several attackers": FIGHT_LINEUP=gang2 or gang3 sets one medium with sword and shield
+        // in the middle on 2 or 3 swordsmen coming from in front, the side and behind.)
+        string gang = Environment.GetEnvironmentVariable("FIGHT_LINEUP");
+        if (gang == "gang2" || gang == "gang3")
+        {
+            lineup = new[]
+            {
+                new[] { ("Medium", new Tile(3, 3)) },
+                gang == "gang2"
+                    ? new[] { ("Swordsman", new Tile(3, 6)), ("Swordsman", new Tile(6, 3)) }
+                    : new[] { ("Swordsman", new Tile(3, 6)), ("Swordsman", new Tile(6, 3)), ("Swordsman", new Tile(3, 0)) },
+            };
+        }
+
         if (Environment.GetEnvironmentVariable("FIGHT_MIRROR") != null)
         {
             // (Each team in the other's places, to see whether a side or a slot wins, not the units.)
@@ -146,6 +160,7 @@ internal static class FightReport
         UnitController.MoveStarted += OnMove;
         // (Clip fighters' blows, which have no MoveState, and what every blow did: step 5 of the plan.)
         var clipBlows = new Dictionary<UnitController, List<string>>();
+        var startedFrom = new Dictionary<string, int>();
         void OnClipStrike(UnitController u, string what, UnitController at)
         {
             started[u] = (started.TryGetValue(u, out int n) ? n : 0) + 1;
@@ -153,12 +168,33 @@ internal static class FightReport
             blowsAt.Add((Time.time, u, at, 1f));
             if (!clipBlows.TryGetValue(u, out var l)) clipBlows[u] = l = new List<string>();
             l.Add(what);
+            if (at != null && at.UsesClips)
+            {
+                Vector3 from = u.Root.position - at.Root.position;
+                from.y = 0f;
+                float angle = Vector3.Angle(Quaternion.Euler(0f, at.FacingYaw, 0f) * Vector3.forward, from);
+                string sector = angle < 45f ? "front" : angle < 135f ? "side" : "back";
+                startedFrom[sector] = (startedFrom.TryGetValue(sector, out int sn) ? sn : 0) + 1;
+            }
         }
         var hitKinds = new Dictionary<UnitController, Dictionary<string, int>>();
+        var sectors = new Dictionary<string, int>();
         float damageAll = 0f;
         void OnHit(HitReport h)
         {
             if (h.Attacker == null) return;
+            if (h.Struck != null && h.Struck.UsesClips && h.Result.Impulse.sqrMagnitude > 1e-6f)
+            {
+                // (Where the blow came from, against the way the one struck faced: in front, beside, behind.)
+                Vector3 from = h.Attacker.Root.position - h.Struck.Root.position;
+                from.y = 0f;
+                float angle = Vector3.Angle(Quaternion.Euler(0f, h.Struck.FacingYaw, 0f) * Vector3.forward, from);
+                string sector = angle < 45f ? "front" : angle < 135f ? "side" : "back";
+                string what = h.Parried ? "parried" : h.Shield ? "blocked" : "landed";
+                string key = sector + " " + what;
+                sectors[key] = (sectors.TryGetValue(key, out int sn) ? sn : 0) + 1;
+            }
+
             if (!hitKinds.TryGetValue(h.Attacker, out var k)) hitKinds[h.Attacker] = k = new Dictionary<string, int>();
             string kind = h.Kind ?? "?";
             k[kind] = (k.TryGetValue(kind, out int n) ? n : 0) + 1;
@@ -353,6 +389,14 @@ internal static class FightReport
         if (clips)
         {
             sb.AppendLine($"  clip fighters ({(UnitController.ClipBlows ? "step 5: striking" : "step 4: moving only")}): {damageAll:0} damage dealt in all; bodies moved straight out of each other {UnitController.ClipDeepMoves} times, {UnitController.ClipDeepMoved:0.00} m in all");
+            if (sectors.Count > 0)
+            {
+                var keys = new List<string>(sectors.Keys);
+                keys.Sort();
+                sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
+                sb.AppendLine("    blows started, by where the attacker stood (against its target's facing): " + string.Join(", ", new List<string>(startedFrom.Keys).ConvertAll(k => $"{k} {startedFrom[k]}")));
+            }
+
             mateGaps.Sort();
             if (mateGaps.Count > 0)
             {
