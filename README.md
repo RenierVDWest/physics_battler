@@ -1778,7 +1778,7 @@ What had to be found out to build it (for the Unity side later):
 
 Where the 67 m/s comes from: the clips themselves. In `sns_forehand` the hand turns 83 degrees between two frames
 (2500 degrees a second) with the wrist at 13 m/s; the wrist's steer onto the target adds the rest. To follow that with
-this sword a wrist needs about 850 N m; a person's turns with 25.
+this sword a wrist needs some hundreds of N m; a person's turns with about 25.
 
 So a strike's blade is given a speed limit: Combat Feel > A blow's speed > `mostBladeSpeed` (m/s; 0, the default:
 off, the clips at their own pace, and the fight's log is the same line for line). With a limit set, `LocoBody` turns
