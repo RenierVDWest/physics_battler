@@ -47,7 +47,7 @@ internal static class FightReport
             PhysicsBattler.Engine.PhysXWorld.Install(BodyPart.GroundLayer, int.TryParse(Environment.GetEnvironmentVariable("PHYSX_SUBSTEPS"), out int sub) ? sub : 1);
         }
 #endif
-        if (UnitController.ClipMotion && !engine)
+        if (!engine)
         {
             // (No physics headless: the clip fighters' bodies are the lab runners', posed only.)
             UnitController.ClipPhysical = false;
@@ -152,7 +152,6 @@ internal static class FightReport
                 unit.Profile = profile;
                 Call(unit, "Awake");
                 if (named == "Swordsman") unit.Equip(sword, null); else if (body == "Medium") unit.Equip(sword, shield); else unit.Equip(club, null);
-                if (Environment.GetEnvironmentVariable("FIGHT_NO_COLLIDERS") == null && !unit.UsesClips) Smoke.GiveColliders(unit);   // (milestone 11: blocks and parries headless)
                 units.Add(unit);
             }
         }
@@ -160,7 +159,6 @@ internal static class FightReport
         var loop = new FightLoop(seed) { Grid = grid };
         // (The plan "Bringing the lab into the fight", step 4: CLIP_FIGHT=1 moves the units as clip fighters, their
         // walk measured as the lab's is.)
-        bool clips = UnitController.ClipMotion;
         var feet = new Dictionary<UnitController, PhysicsBattler.Locomotion.LocoMeasures>();
         var lastRoot = new Dictionary<UnitController, Vector3>();
         var rootJump = new Dictionary<UnitController, (float most, float at)>();
@@ -172,17 +170,11 @@ internal static class FightReport
         var cameAt = new Dictionary<UnitController, float>();
         int targetSteps = 0, aloneSteps = 0;
         var offs = new Dictionary<UnitController, List<float>>();
-        if (clips)
+        foreach (var u in units)
         {
-            foreach (var u in units)
-            {
-                if (u.UsesClips)
-                {
-                    feet[u] = new PhysicsBattler.Locomotion.LocoMeasures(u.Clip.Anim, u.Clip.Loco, u.Clip.Poser);
-                    lastRoot[u] = u.Root.position;
-                    offs[u] = new List<float>();
-                }
-            }
+            feet[u] = new PhysicsBattler.Locomotion.LocoMeasures(u.Clip.Anim, u.Clip.Loco, u.Clip.Poser);
+            lastRoot[u] = u.Root.position;
+            offs[u] = new List<float>();
         }
 
         float dt = Time.fixedDeltaTime;
@@ -210,7 +202,7 @@ internal static class FightReport
             blowsAt.Add((Time.time, u, at, 1f));
             if (!clipBlows.TryGetValue(u, out var l)) clipBlows[u] = l = new List<string>();
             l.Add(what);
-            if (at != null && at.UsesClips)
+            if (at != null)
             {
                 Vector3 from = u.Root.position - at.Root.position;
                 from.y = 0f;
@@ -226,7 +218,7 @@ internal static class FightReport
         void OnHit(HitReport h)
         {
             if (h.Attacker == null) return;
-            if (h.Struck != null && h.Struck.UsesClips && h.Result.Impulse.sqrMagnitude > 1e-6f)
+            if (h.Struck != null && h.Result.Impulse.sqrMagnitude > 1e-6f)
             {
                 // (Where the blow came from, against the way the one struck faced: in front, beside, behind.)
                 Vector3 from = h.Attacker.Root.position - h.Struck.Root.position;
@@ -338,10 +330,6 @@ internal static class FightReport
                 foreach (var unit in units)
                 {
                     Call(unit, "FixedUpdate");
-                    if (!unit.UsesClips && Physics.Backend == null)
-                    {
-                        PhysicsBattler.Tests.BalanceTests.Integrate(unit, dt);
-                    }
                 }
 
                 // (The engine under the stubs: every script's step, then the physics step, as in Unity.)
@@ -354,97 +342,94 @@ internal static class FightReport
                 }
 #endif
 
-                if (clips)
+                // (How long a unit took to face an attacker that started a blow from its side or behind.)
+                for (int k = turning.Count - 1; k >= 0; k--)
                 {
-                    // (How long a unit took to face an attacker that started a blow from its side or behind.)
-                    for (int k = turning.Count - 1; k >= 0; k--)
-                    {
-                        var (who, to, since) = turning[k];
-                        Vector3 from = to.Root.position - who.Root.position;
-                        from.y = 0f;
-                        float off = Vector3.Angle(Quaternion.Euler(0f, who.FacingYaw, 0f) * Vector3.forward, from);
-                        if (off < 30f) { turnTimes.Add(Time.time - since); turning.RemoveAt(k); }
-                        else if (!who.IsAlive || !to.IsAlive || Time.time - since > 3f) { turnsMissed++; turning.RemoveAt(k); }
-                    }
+                    var (who, to, since) = turning[k];
+                    Vector3 from = to.Root.position - who.Root.position;
+                    from.y = 0f;
+                    float off = Vector3.Angle(Quaternion.Euler(0f, who.FacingYaw, 0f) * Vector3.forward, from);
+                    if (off < 30f) { turnTimes.Add(Time.time - since); turning.RemoveAt(k); }
+                    else if (!who.IsAlive || !to.IsAlive || Time.time - since > 3f) { turnsMissed++; turning.RemoveAt(k); }
+                }
 
-                    // (How spread round a unit its attackers stood: the plan "Fighting off several attackers", step 5.)
-                    foreach (var u in units)
-                    {
-                        if (!u.IsAlive || !u.UsesClips || u.IsDown) continue;
-                        var on = FightLoop.OnIt(units, u, UnitController.ClipEngagedWithin * u.Body.SizeFactor);
-                        if (on.Count < 2) continue;
-                        outnumberedSteps++;
-                        if (FightLoop.Spread(u.Root.position, on) > 120f) surroundedSteps++;
-                    }
+                // (How spread round a unit its attackers stood: the plan "Fighting off several attackers", step 5.)
+                foreach (var u in units)
+                {
+                    if (!u.IsAlive || u.IsDown) continue;
+                    var on = FightLoop.OnIt(units, u, UnitController.ClipEngagedWithin * u.Body.SizeFactor);
+                    if (on.Count < 2) continue;
+                    outnumberedSteps++;
+                    if (FightLoop.Spread(u.Root.position, on) > 120f) surroundedSteps++;
+                }
 
-                    // (How they spread: each standing one's nearest teammate, and whether its target has others of its side on it.)
-                    foreach (var u in units)
+                // (How they spread: each standing one's nearest teammate, and whether its target has others of its side on it.)
+                foreach (var u in units)
+                {
+                    if (!u.IsAlive || u.State != UnitState.Standing) continue;
+                    float nearestMate = 99f;
+                    foreach (var o in units)
                     {
-                        if (!u.IsAlive || u.State != UnitState.Standing) continue;
-                        float nearestMate = 99f;
+                        if (o != u && o.IsAlive && o.Team == u.Team && o.State == UnitState.Standing)
+                            nearestMate = Mathf.Min(nearestMate, Vector3.Distance(FightLoop.BodyAt(u), FightLoop.BodyAt(o)));
+                    }
+                    if (nearestMate < 90f) mateGaps.Add(nearestMate);
+                    if (u.Opponent != null && u.Opponent.IsAlive)
+                    {
+                        int sharing = 0;
                         foreach (var o in units)
                         {
-                            if (o != u && o.IsAlive && o.Team == u.Team && o.State == UnitState.Standing)
-                                nearestMate = Mathf.Min(nearestMate, Vector3.Distance(FightLoop.BodyAt(u), FightLoop.BodyAt(o)));
+                            if (o != u && o.IsAlive && o.Team == u.Team && o.Opponent == u.Opponent) sharing++;
                         }
-                        if (nearestMate < 90f) mateGaps.Add(nearestMate);
-                        if (u.Opponent != null && u.Opponent.IsAlive)
-                        {
-                            int sharing = 0;
-                            foreach (var o in units)
-                            {
-                                if (o != u && o.IsAlive && o.Team == u.Team && o.Opponent == u.Opponent) sharing++;
-                            }
-                            targetSteps++;
-                            if (sharing == 0) aloneSteps++;
-                        }
+                        targetSteps++;
+                        if (sharing == 0) aloneSteps++;
+                    }
+                }
+
+                float t = Time.time - startTime;
+                foreach (var u in units)
+                {
+                    if (!feet.TryGetValue(u, out var m))
+                    {
+                        continue;
                     }
 
-                    float t = Time.time - startTime;
-                    foreach (var u in units)
+                    if (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Cycle && u.Clip.Loco.Velocity.magnitude > 0.3f)
                     {
-                        if (!feet.TryGetValue(u, out var m))
+                        moving[u] = (moving.TryGetValue(u, out var mv) ? mv : 0) + 1;
+                        if (u.Clip.Loco.Running) running[u] = (running.TryGetValue(u, out var rn) ? rn : 0) + 1;
+                    }
+
+                    // (The side it first came at its target from: the angle between its way in and the line between the teams.)
+                    if (!cameAt.ContainsKey(u) && u.Opponent != null && Vector3.Distance(u.Root.position, u.Opponent.Root.position) < 2.2f * u.Body.SizeFactor)
+                    {
+                        Vector3 axis = (u.Team == 0 ? 1f : -1f) * Vector3.forward;
+                        Vector3 way = u.Opponent.Root.position - u.Root.position;
+                        way.y = 0f;
+                        cameAt[u] = Vector3.Angle(axis, way);
+                    }
+
+                    m.Sample(dt, t, u.Clip.Loco.Current + (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "") + (u.Clip.Fallen ? " fallen" : "") + (u.Clip.Striking ? " striking" : "") + (u.Clip.Stumbling ? " stumbling" : ""));
+                    float jump = Vector3.Distance(u.Root.position, lastRoot[u]);
+                    lastRoot[u] = u.Root.position;
+                    if (!rootJump.TryGetValue(u, out var j) || jump > j.most)
+                    {
+                        rootJump[u] = (jump, t);
+                    }
+
+                    // (How far it is from where it would strike its opponent from: the fight's engage distance.)
+                    if (u.Opponent != null)
+                    {
+                        Vector3 d = u.Opponent.Root.position - u.Root.position;
+                        float off = new Vector2(d.x, d.z).magnitude - (u.Style.engageDistance * u.Body.SizeFactor + 0.25f * u.Opponent.Body.SizeFactor);
+                        if (off < 0.35f * u.Body.SizeFactor && !reachedAt.ContainsKey(u))
                         {
-                            continue;
+                            reachedAt[u] = t;
                         }
 
-                        if (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Cycle && u.Clip.Loco.Velocity.magnitude > 0.3f)
+                        if (reachedAt.ContainsKey(u))
                         {
-                            moving[u] = (moving.TryGetValue(u, out var mv) ? mv : 0) + 1;
-                            if (u.Clip.Loco.Running) running[u] = (running.TryGetValue(u, out var rn) ? rn : 0) + 1;
-                        }
-
-                        // (The side it first came at its target from: the angle between its way in and the line between the teams.)
-                        if (!cameAt.ContainsKey(u) && u.Opponent != null && Vector3.Distance(u.Root.position, u.Opponent.Root.position) < 2.2f * u.Body.SizeFactor)
-                        {
-                            Vector3 axis = (u.Team == 0 ? 1f : -1f) * Vector3.forward;
-                            Vector3 way = u.Opponent.Root.position - u.Root.position;
-                            way.y = 0f;
-                            cameAt[u] = Vector3.Angle(axis, way);
-                        }
-
-                        m.Sample(dt, t, u.Clip.Loco.Current + (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "") + (u.Clip.Fallen ? " fallen" : "") + (u.Clip.Striking ? " striking" : "") + (u.Clip.Stumbling ? " stumbling" : ""));
-                        float jump = Vector3.Distance(u.Root.position, lastRoot[u]);
-                        lastRoot[u] = u.Root.position;
-                        if (!rootJump.TryGetValue(u, out var j) || jump > j.most)
-                        {
-                            rootJump[u] = (jump, t);
-                        }
-
-                        // (How far it is from where it would strike its opponent from: the fight's engage distance.)
-                        if (u.Opponent != null)
-                        {
-                            Vector3 d = u.Opponent.Root.position - u.Root.position;
-                            float off = new Vector2(d.x, d.z).magnitude - (u.Style.engageDistance * u.Body.SizeFactor + 0.25f * u.Opponent.Body.SizeFactor);
-                            if (off < 0.35f * u.Body.SizeFactor && !reachedAt.ContainsKey(u))
-                            {
-                                reachedAt[u] = t;
-                            }
-
-                            if (reachedAt.ContainsKey(u))
-                            {
-                                offs[u].Add(off);
-                            }
+                            offs[u].Add(off);
                         }
                     }
                 }
@@ -453,7 +438,7 @@ internal static class FightReport
 
                 // Two standing bodies overlapping (free roam: the steering should keep them apart).
                 int overlapping = FightLoop.Overlapping(units);
-                if (overlapping > 0 && clips)
+                if (overlapping > 0)
                 {
                     for (int i = 0; i < units.Count; i++)
                     {
@@ -491,64 +476,61 @@ internal static class FightReport
         }
 
         var sb = new System.Text.StringBuilder();
-        if (clips)
+        sb.AppendLine($"  clip fighters ({(UnitController.ClipBlows ? "step 5: striking" : "step 4: moving only")}): {damageAll:0} damage dealt in all; bodies moved straight out of each other {UnitController.ClipDeepMoves} times, {UnitController.ClipDeepMoved:0.00} m in all");
+        if (sectors.Count > 0)
         {
-            sb.AppendLine($"  clip fighters ({(UnitController.ClipBlows ? "step 5: striking" : "step 4: moving only")}): {damageAll:0} damage dealt in all; bodies moved straight out of each other {UnitController.ClipDeepMoves} times, {UnitController.ClipDeepMoved:0.00} m in all");
-            if (sectors.Count > 0)
+            var keys = new List<string>(sectors.Keys);
+            keys.Sort();
+            sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
+            sb.AppendLine($"    outnumbered (two or more on it): {outnumberedSteps * dt:0.0} s in all; with them more than 120 degrees apart round it {100f * surroundedSteps / Mathf.Max(1, outnumberedSteps):0}% of that");
+            turnTimes.Sort();
+            sb.AppendLine($"    turning to an attacker starting a blow from beside or behind: {turnTimes.Count} faced it (median {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count / 2] : 0f):0.00} s, 90% {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count * 9 / 10] : 0f):0.00} s), {turnsMissed} not within 3 s");
+            sb.AppendLine("    blows started, by where the attacker stood (against its target's facing): " + string.Join(", ", new List<string>(startedFrom.Keys).ConvertAll(k => $"{k} {startedFrom[k]}")));
+        }
+
+        mateGaps.Sort();
+        if (mateGaps.Count > 0)
+        {
+            sb.AppendLine($"    spread: nearest teammate median {mateGaps[mateGaps.Count / 2]:0.00} m (10% {mateGaps[mateGaps.Count / 10]:0.00}, least {mateGaps[0]:0.00}); a unit alone on its target {100f * aloneSteps / Mathf.Max(1, targetSteps):0}% of the time");
+        }
+        foreach (var u in units)
+        {
+            if (hitKinds.TryGetValue(u, out var k) || clipBlows.ContainsKey(u))
             {
-                var keys = new List<string>(sectors.Keys);
-                keys.Sort();
-                sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
-                sb.AppendLine($"    outnumbered (two or more on it): {outnumberedSteps * dt:0.0} s in all; with them more than 120 degrees apart round it {100f * surroundedSteps / Mathf.Max(1, outnumberedSteps):0}% of that");
-                turnTimes.Sort();
-                sb.AppendLine($"    turning to an attacker starting a blow from beside or behind: {turnTimes.Count} faced it (median {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count / 2] : 0f):0.00} s, 90% {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count * 9 / 10] : 0f):0.00} s), {turnsMissed} not within 3 s");
-                sb.AppendLine("    blows started, by where the attacker stood (against its target's facing): " + string.Join(", ", new List<string>(startedFrom.Keys).ConvertAll(k => $"{k} {startedFrom[k]}")));
+                var parts = new List<string>();
+                if (k != null) foreach (var pair in k) parts.Add($"{pair.Key} {pair.Value}");
+                int combosThrown = clipBlows.TryGetValue(u, out var l) ? l.FindAll(x => x.StartsWith("a combo")).Count : 0;
+                sb.AppendLine($"    {u.name}: {(l != null ? l.Count : 0)} blows ({combosThrown} combos); its hits: {(parts.Count > 0 ? string.Join(", ", parts) : "none")}; it fell {u.Clip.Falls - (u.IsAlive ? 0 : 1)} times alive, was thrown back stumbling {u.Clip.Stumbles} times; concentration at most {u.MostConcentration:0.00}; combo blows turned on another {u.ClipComboTurns}{(u.IsAlive ? "" : ", killed")}");
+            }
+        }
+
+        foreach (var pair in overlapPairs)
+        {
+            sb.AppendLine($"    overlapping: {pair.Key}, {pair.Value.steps} steps, as near as {pair.Value.nearest:0.00} m");
+        }
+
+        foreach (var u in units)
+        {
+            if (!feet.TryGetValue(u, out var m))
+            {
+                continue;
             }
 
-            mateGaps.Sort();
-            if (mateGaps.Count > 0)
+            var o = offs[u];
+            o.Sort();
+            string near = reachedAt.TryGetValue(u, out float at)
+                ? $"reached its target at {at:0.0} s, then off its striking distance median {(o.Count > 0 ? o[o.Count / 2] : 0f):+0.00;-0.00} m (10% {(o.Count > 0 ? o[o.Count / 10] : 0f):+0.00;-0.00}, 90% {(o.Count > 0 ? o[o.Count * 9 / 10] : 0f):+0.00;-0.00})"
+                : "never reached its target";
+            if (Environment.GetEnvironmentVariable("FIGHT_FEET") != null)
             {
-                sb.AppendLine($"    spread: nearest teammate median {mateGaps[mateGaps.Count / 2]:0.00} m (10% {mateGaps[mateGaps.Count / 10]:0.00}, least {mateGaps[0]:0.00}); a unit alone on its target {100f * aloneSteps / Mathf.Max(1, targetSteps):0}% of the time");
-            }
-            foreach (var u in units)
-            {
-                if (hitKinds.TryGetValue(u, out var k) || clipBlows.ContainsKey(u))
+                foreach (var line in m.Report().Split('\n'))
                 {
-                    var parts = new List<string>();
-                    if (k != null) foreach (var pair in k) parts.Add($"{pair.Key} {pair.Value}");
-                    int combosThrown = clipBlows.TryGetValue(u, out var l) ? l.FindAll(x => x.StartsWith("a combo")).Count : 0;
-                    sb.AppendLine($"    {u.name}: {(l != null ? l.Count : 0)} blows ({combosThrown} combos); its hits: {(parts.Count > 0 ? string.Join(", ", parts) : "none")}; it fell {u.Clip.Falls - (u.IsAlive ? 0 : 1)} times alive, was thrown back stumbling {u.Clip.Stumbles} times; concentration at most {u.MostConcentration:0.00}; combo blows turned on another {u.ClipComboTurns}{(u.IsAlive ? "" : ", killed")}");
+                    if (line.Contains("while planted")) sb.AppendLine($"      {u.name}: {line.Trim()}");
                 }
             }
 
-            foreach (var pair in overlapPairs)
-            {
-                sb.AppendLine($"    overlapping: {pair.Key}, {pair.Value.steps} steps, as near as {pair.Value.nearest:0.00} m");
-            }
-
-            foreach (var u in units)
-            {
-                if (!feet.TryGetValue(u, out var m))
-                {
-                    continue;
-                }
-
-                var o = offs[u];
-                o.Sort();
-                string near = reachedAt.TryGetValue(u, out float at)
-                    ? $"reached its target at {at:0.0} s, then off its striking distance median {(o.Count > 0 ? o[o.Count / 2] : 0f):+0.00;-0.00} m (10% {(o.Count > 0 ? o[o.Count / 10] : 0f):+0.00;-0.00}, 90% {(o.Count > 0 ? o[o.Count * 9 / 10] : 0f):+0.00;-0.00})"
-                    : "never reached its target";
-                if (Environment.GetEnvironmentVariable("FIGHT_FEET") != null)
-                {
-                    foreach (var line in m.Report().Split('\n'))
-                    {
-                        if (line.Contains("while planted")) sb.AppendLine($"      {u.name}: {line.Trim()}");
-                    }
-                }
-
-                sb.AppendLine($"    {u.name}: ran {(moving.TryGetValue(u, out var mvn) && mvn > 0 ? 100f * (running.TryGetValue(u, out var rnn) ? rnn : 0) / mvn : 0f):0}% of its walking; came at its first target {(cameAt.TryGetValue(u, out var ca) ? $"{ca:0}° off head-on" : "never")}");
-                sb.AppendLine($"    {u.name}: {near}; planted feet moved at most {m.PlantDriftWorst * 100f:0.0} cm ({m.PlantsDone} plants); the root's biggest step {rootJump[u].most:0.00} m at {rootJump[u].at:0.0} s; feet travelled {m.FeetTravel:0.0} m for the body's {m.BodyTravel:0.0}");
-            }
+            sb.AppendLine($"    {u.name}: ran {(moving.TryGetValue(u, out var mvn) && mvn > 0 ? 100f * (running.TryGetValue(u, out var rnn) ? rnn : 0) / mvn : 0f):0}% of its walking; came at its first target {(cameAt.TryGetValue(u, out var ca) ? $"{ca:0}° off head-on" : "never")}");
+            sb.AppendLine($"    {u.name}: {near}; planted feet moved at most {m.PlantDriftWorst * 100f:0.0} cm ({m.PlantsDone} plants); the root's biggest step {rootJump[u].most:0.00} m at {rootJump[u].at:0.0} s; feet travelled {m.FeetTravel:0.0} m for the body's {m.BodyTravel:0.0}");
         }
 
         foreach (var u in units)

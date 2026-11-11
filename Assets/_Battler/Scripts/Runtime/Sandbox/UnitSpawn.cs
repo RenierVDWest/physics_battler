@@ -154,7 +154,7 @@ namespace PhysicsBattler.Sandbox
             preview = null;
         }
 
-        /// <summary>The unit in its stance, armed and coloured: built from the sandbox's prefabs, never saved.</summary>
+        /// <summary>The unit's body in its team's colour: built from the sandbox's prefabs, never saved.</summary>
         public void BuildPreview()
         {
             ClearPreview();
@@ -180,18 +180,8 @@ namespace PhysicsBattler.Sandbox
 
             unit.Team = team;
             unit.Profile = profileOverride != null ? profileOverride : sandbox.ProfileFor(body);
-            if (!unit.InitializePreview())
-            {
-                return;
-            }
-
-            unit.Equip(mainHand, offHand);
-            // A moment of idle, so it stands in its stance rather than the rest pose.
-            for (int i = 0; i < 30; i++)
-            {
-                unit.PreviewPose(1f / 60f);
-            }
-
+            // (The body as it is built, in its team's colour: unarmed and at rest. The stance and the weapons in the
+            // hands were the old pose pipeline's preview, which is gone; the clip fighter only runs in play.)
             BattleSandbox.Tint(unit, sandbox.TeamMaterial(team));
             foreach (var t in preview.GetComponentsInChildren<Transform>(true))
             {

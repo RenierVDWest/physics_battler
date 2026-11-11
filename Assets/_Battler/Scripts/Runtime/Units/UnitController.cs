@@ -101,7 +101,7 @@ namespace PhysicsBattler.Units
 
         /// <summary>The blow under way, or null.</summary>
         public MoveState CurrentMove { get; private set; }
-        public bool IsAttacking => CurrentMove != null || (Clip != null && Clip.Striking);
+        public bool IsAttacking => Clip.Striking;
 
         public bool IsInitialized => initialized;
         public float Scale => Rig != null ? Rig.Scale : 1f;
@@ -119,21 +119,12 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            Initialize(true);
+            Initialize();
         }
 
-        /// <summary>
-        /// Edit mode: builds the pose machinery without touching physics or the hierarchy, so the
-        /// unit can be posed (<see cref="PreviewPose"/>) as a preview in the scene.
-        /// </summary>
-        public bool InitializePreview()
+        private bool Initialize()
         {
-            return initialized || Initialize(false);
-        }
-
-        private bool Initialize(bool asPhysical)
-        {
-            physical = asPhysical;
+            physical = true;
             Rig = GetComponent<UnitRig>();
             if (Rig == null || !Rig.IsComplete())
             {
@@ -153,100 +144,8 @@ namespace PhysicsBattler.Units
                 part.Owner = this;
             }
 
-            // (The plan "Bringing the lab into the fight", step 4: moved by the lab's clip fighter instead.)
-            if (ClipMotion && asPhysical)
-            {
-                return InitializeClips(asPhysical);
-            }
-
-            if (physical)
-            {
-                JointConventions.EnsureProbed();
-                var bodyMaterial = PhysicsMaterials.Get("Body", profile.bodyFriction);
-                var footMaterial = PhysicsMaterials.Get("Foot", profile.footFriction);
-                foreach (var part in Rig.Parts)
-                {
-                    UnitBuilder.ConfigureBody(part.body, profile);
-                    part.limits = JointLimitTable.Physical(part.id);   // (the table as it is now, not as the prefab was baked)
-                    if (part.joint != null)
-                    {
-                        // Milestone 10: each joint in its own frame (the arm rig's: the elbow a hinge
-                        // about its axis, the wrist twisting about the forearm), set up here in the
-                        // rest pose the body is still in.
-                        part.jointFrame = JointFrames.For(Rig, part.id);
-                        JointFrames.Apply(part.joint, part.jointFrame);
-                        JointMath.ApplyLimits(part.joint, part.limits);
-                    }
-
-                    if (part.partCollider != null)
-                    {
-                        part.partCollider.sharedMaterial = PartInfo.IsFoot(part.id) ? footMaterial : bodyMaterial;
-                    }
-                }
-            }
-
-            // The animation rig is cloned while the body is still in its rest pose under this object.
-            Anim = new AnimRig(transform, Rig);
-            if (!physical)
-            {
-                Anim.Root.gameObject.hideFlags = HideFlags.HideAndDontSave;
-            }
-
-            Body = BodyMeasure.Of(transform, Anim, Rig);
-            Loadout = new Loadout { Scale = Body.SizeFactor };
-
-            if (physical)
-            {
-                // The physical parts leave the unit's hierarchy: each is its own rigidbody, side by side,
-                // so moving the root never drags them. Only the authority layer moves them.
-                var container = new GameObject(name + " (body)").transform;
-                container.SetParent(BodiesContainer, false);
-                detachedBody = container.gameObject;
-                foreach (var id in PartInfo.All)
-                {
-                    Rig.Part(id).transform.SetParent(container, true);
-                }
-
-                Physics.SyncTransforms();
-                IgnoreSelfCollisions();
-                InitializeGround();
-            }
-
-            int seed = 7919 * team + 104729 * ++spawnCount;
-            unitNumber = spawnCount;
-            InitializeCombat(seed);
-            Stance = new Stance(seed);
-            Stance.Configure(Style, Body);
-            Idle = new CombatIdle(seed + 1);
-            Pose = new PosePipeline(transform, Anim, Body, Stance, Idle, Style) { Loadout = Loadout, IsSevered = Rig.IsSevered, Rig = Rig };
-            Authority = new AuthorityController(Rig, Anim);
-            Authority.Set(BodyRegion.Legs, AuthorityLevel.Kinematic, 1f);
-            Authority.Set(BodyRegion.Torso, AuthorityLevel.Pinned, profile.torsoPin);
-            Authority.Set(BodyRegion.Head, AuthorityLevel.Pinned, profile.torsoPin);
-            Authority.Set(BodyRegion.ArmL, AuthorityLevel.Pinned, profile.armPin);
-            Authority.Set(BodyRegion.ArmR, AuthorityController.ArmMuscles ? AuthorityLevel.Muscled : AuthorityLevel.Pinned, profile.armPin, AuthorityController.ArmMuscles);
-            InitializeBalance();
-            InitializeRhythm(seed);
-            InitializeTempo(seed);
-            InitializePerception(seed);
-            InitializeGait();
-
-            facingYaw = transform.eulerAngles.y;
-            Stance.GroundY = transform.position.y;
-            Stance.Plant(transform.position, facingYaw);
-
-            // Start in the pose, so nothing snaps on the first step.
-            Pose.Compose(0f, 0f);
-            SnapBodyToPose();
-
-            initialized = true;
-            if (physical)
-            {
-                all.Add(this);
-                Initialized?.Invoke(this);
-            }
-
-            return true;
+            // (Moved by the lab's clip fighter: the plan "Bringing the lab into the fight", step 4.)
+            return InitializeClips(true);
         }
 
         private void OnDestroy()
@@ -332,86 +231,8 @@ namespace PhysicsBattler.Units
         /// <summary>Puts weapons in the hands: a main weapon (right hand) and an off-hand item (left), either may be null.</summary>
         public void Equip(WeaponDefinition main, WeaponDefinition off)
         {
-            if (Clip != null)
-            {
-                EquipClips(Rig.IsSevered(PartId.HandR) ? null : main, Rig.IsSevered(PartId.HandL) ? null : off);
-                return;
-            }
-
-            if (MainWeapon != null)
-            {
-                DestroyWeapon(MainWeapon);
-            }
-
-            if (OffWeapon != null)
-            {
-                DestroyWeapon(OffWeapon);
-            }
-
-            // (Not into a hand that has been cut off.)
-            if (Rig.IsSevered(PartId.HandR))
-            {
-                main = null;
-            }
-
-            if (Rig.IsSevered(PartId.HandL))
-            {
-                off = null;
-            }
-
-            Loadout.Main = main;
-            Loadout.Off = off;
-
-            // Milestone 9b: a shield is held by its centre grip, the bar across the fist and the forearm
-            // pointing at the boss (its face follows the forearm); a weapon in a hammer grip, as before.
-            var grip = off != null && off.IsShield ? ShieldGrip : Quaternion.identity;
-            if (Rig.SlotWeaponL != null)
-            {
-                Rig.SlotWeaponL.localRotation = grip;
-            }
-
-            if (Anim.SlotWeaponL != null)
-            {
-                Anim.SlotWeaponL.localRotation = grip;
-            }
-
-            // Milestone 9c: a handle crosses the fist diagonally, so with the wrist straight the blade
-            // leans toward the forearm's line (toward the fingers).
-            var mainGrip = main != null && !main.IsShield ? MainGrip : Quaternion.identity;
-            if (Rig.SlotWeaponR != null)
-            {
-                Rig.SlotWeaponR.localRotation = mainGrip;
-            }
-
-            if (Anim.SlotWeaponR != null)
-            {
-                Anim.SlotWeaponR.localRotation = mainGrip;
-            }
-
-            MainWeapon = main != null ? Weapon.Equip(main, this, Rig.SlotWeaponR, true, Loadout.Scale) : null;
-            OffWeapon = off != null ? Weapon.Equip(off, this, Rig.SlotWeaponL, false, Loadout.Scale) : null;
-
-            // Milestone 9c: the hand carries the shield's weight (a blow on it moves a heavy thing).
-            var shieldHand = Rig.Part(PartId.HandL).body;
-            if (shieldHand != null)
-            {
-                shieldHand.mass = Mathf.Max(0.05f, shieldHand.mass - shieldMassOnHand);
-                shieldMassOnHand = physical && off != null && off.IsShield ? off.massKg * Loadout.Scale * Loadout.Scale * Loadout.Scale : 0f;
-                shieldHand.mass += shieldMassOnHand;
-            }
-            if (!physical)
-            {
-                foreach (var w in new[] { MainWeapon, OffWeapon })
-                {
-                    if (w != null)
-                    {
-                        foreach (var t in w.GetComponentsInChildren<Transform>(true))
-                        {
-                            t.gameObject.hideFlags = HideFlags.DontSave;
-                        }
-                    }
-                }
-            }
+            EquipClips(Rig.IsSevered(PartId.HandR) ? null : main, Rig.IsSevered(PartId.HandL) ? null : off);
+            return;
         }
 
         /// <summary>
@@ -460,47 +281,15 @@ namespace PhysicsBattler.Units
         /// <summary>Moves the unit somewhere else at once, body and all (the sandbox's scenarios).</summary>
         public void Teleport(Vector3 position, float yaw)
         {
-            if (Clip != null)
-            {
-                // (A clip fighter: its walk placed there, its body carried with it.)
-                Vector3 from = Clip.Loco.Position;
-                Clip.Loco.Place(new Vector3(position.x, Stance.GroundY, position.z), yaw);
-                Clip.CarryBy(Clip.Loco.Position - from);
-                transform.SetPositionAndRotation(Clip.Loco.Position, Quaternion.Euler(0f, yaw, 0f));
-                facingYaw = yaw;
-                facePoint = null;
-                ClipWant = Vector3.zero;
-                return;
-            }
-
-            if (CurrentMove != null)
-            {
-                CancelMove(CurrentMove, "moved by the sandbox");
-            }
-
-            DropCutShort();
-            StopRhythm();
-            StopGait();
-            ResetBalance();
-            Place(position, yaw);
-            Knockback = Vector3.zero;
-            threats.Clear();
-            incoming = null;
-            incomingAttacker = null;
-            DropParry();
-            shieldPlaced = false;
+            // (A clip fighter: its walk placed there, its body carried with it.)
+            Vector3 from = Clip.Loco.Position;
+            Clip.Loco.Place(new Vector3(position.x, Stance.GroundY, position.z), yaw);
+            Clip.CarryBy(Clip.Loco.Position - from);
+            transform.SetPositionAndRotation(Clip.Loco.Position, Quaternion.Euler(0f, yaw, 0f));
+            facingYaw = yaw;
             facePoint = null;
-            Look.Reset();
-            Pose.Compose(LocalTime, 0f, true);
-            SnapBodyToPose();
-            foreach (var part in Rig.Parts)
-            {
-                if (part.body != null && !part.body.isKinematic && !Rig.IsSevered(part.id))
-                {
-                    part.body.linearVelocity = Vector3.zero;
-                    part.body.angularVelocity = Vector3.zero;
-                }
-            }
+            ClipWant = Vector3.zero;
+            return;
         }
 
         /// <summary>How far the unit still has to turn to face a point (degrees).</summary>
@@ -835,13 +624,8 @@ namespace PhysicsBattler.Units
 
             using (Perf.Begin(PerfSection.UnitStep))
             {
-                if (Clip != null)
-                {
-                    StepClips(Time.fixedDeltaTime);
-                    return;
-                }
-
-                Step(Time.fixedDeltaTime, true);
+                StepClips(Time.fixedDeltaTime);
+                return;
             }
         }
 

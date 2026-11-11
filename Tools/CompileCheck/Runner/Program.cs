@@ -91,124 +91,9 @@ internal static class Program
             return CombatFilmReport.Run(args[1], args.Length >= 3 ? args[2] : null, args.Length >= 4 ? args[3] : null);
         }
 
-        if (args.Length >= 2 && args[0] == "smoke")
-        {
-            return Smoke.Run(args[1]);
-        }
-
-        if (args.Length >= 6 && args[0] == "aimdebug")
-        {
-            return AimDebug.Run(args[1], args[2], args[3], args[4], float.Parse(args[5], System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        if (args.Length >= 1 && args[0] == "swings")
-        {
-            return SwingReport.Run(args.Length >= 2 ? args[1] : null);
-        }
-
         if (args.Length >= 2 && args[0] == "fight")
         {
             return FightReport.Run(args[1], args.Length >= 3 ? int.Parse(args[2]) : 7);
-        }
-
-        if (args.Length >= 1 && args[0] == "walks")
-        {
-            return WalkReport.Run(args.Length >= 2 ? args[1] : null, args.Length >= 3 ? args[2] : null);
-        }
-
-        if (args.Length >= 1 && args[0] == "rhythms")
-        {
-            return RhythmReport.Run(args.Length >= 2 ? args[1] : null, args.Length >= 3 ? args[2] : null, args.Length >= 4 ? args[3] : null);
-        }
-
-        if (args.Length >= 1 && args[0] == "balance")
-        {
-            return BalanceReport.Run(args.Length >= 2 ? args[1] : null);
-        }
-
-        if (args.Length >= 1 && args[0] == "poselimits")
-        {
-            return PoseLimitsReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "look")
-        {
-            return LookReport.Run(args.Length >= 2 ? args[1] : null);
-        }
-
-        if (args.Length >= 1 && args[0] == "feint")
-        {
-            return FeintReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "combopop")
-        {
-            return ComboPopReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "aimseq")
-        {
-            return AimSequenceReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "guardpop")
-        {
-            return GuardPopReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "armfilm")
-        {
-            return ArmFilmReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "keyfit")
-        {
-            return KeyFitReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "keysearch")
-        {
-            return KeySearchReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "planwhy")
-        {
-            return PlanWhyReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "armmoves")
-        {
-            return ArmMovesReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "armtime")
-        {
-            return ArmRigTime.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "guard")
-        {
-            return GuardReport.Run(args.Length >= 2 ? int.Parse(args[1]) : 7);
-        }
-
-        if (args.Length >= 1 && args[0] == "arms")
-        {
-            return ArmReport.Run(args.Length >= 2 ? int.Parse(args[1]) : 7);
-        }
-
-        if (args.Length >= 1 && args[0] == "shield")
-        {
-            return ShieldReport.Run(args.Length >= 2 ? args[1] : null);
-        }
-
-        if (args.Length >= 1 && args[0] == "windows")
-        {
-            return WindowReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "combos")
-        {
-            return ComboReport.Run();
         }
 
         if (args.Length >= 1 && args[0] == "locolab")
@@ -216,23 +101,8 @@ internal static class Program
             return LocoLabReport.Run(args.Length >= 2 ? args[1] : ".", args.Length >= 3 ? float.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture) : 200f);
         }
 
-        if (args.Length >= 1 && args[0] == "parries")
-        {
-            return ParryReport.Run();
-        }
-
-        if (args.Length >= 1 && args[0] == "shells")
-        {
-            return ShellReport.Run(args.Length >= 2 ? args[1] : ".");
-        }
-
-        if (args.Length >= 1 && args[0] == "aim")
-        {
-            return AimMatrix.Run(args.Length >= 2 ? float.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 1f);
-        }
-
         int passed = 0, failed = 0;
-        var fixtures = typeof(PhysicsBattler.Tests.SupportPolygonTests).Assembly.GetTypes()
+        var fixtures = typeof(Program).Assembly.GetTypes()
             .Where(t => t.GetCustomAttribute<TestFixtureAttribute>() != null).OrderBy(t => t.Name);
         foreach (var fixture in fixtures)
         {

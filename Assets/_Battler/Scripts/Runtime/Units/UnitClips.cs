@@ -17,7 +17,6 @@ namespace PhysicsBattler.Units
     public partial class UnitController
     {
         /// <summary>Fight units are clip fighters (headless: <c>CLIP_FIGHT=1</c>; in Unity, the sandbox's "Clip motion").</summary>
-        public static bool ClipMotion = System.Environment.GetEnvironmentVariable("CLIP_FIGHT") != null;
 
         /// <summary>A clip fighter's body is physical (off headless, where there is no physics: the lab's runners have it so).</summary>
         public static bool ClipPhysical = true;
