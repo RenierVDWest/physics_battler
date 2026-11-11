@@ -1914,86 +1914,122 @@ What is left of the old pipeline is still reached by live code, so it can't be t
 editor's set-up menus that build them. `PosePipeline` (2,300 lines) hangs by two lines in `UnitController`. Each
 of these is a cut to make by hand, with the logs compared after it.
 
-**The physical upper body in the fight (step 5, behind a switch; not yet seen in Unity).** With Combat Feel > The
-physical upper body > `physicalUpperBody` on (off by default; it takes effect at the next Spawn), a clip fighter's
-hips, torso, head and both arms are one jointed body (`UpperBodyArticulation`, on Unity's `ArticulationBody`), on legs
-the animation still moves:
+**The physical upper body in the fight (step 5, behind a switch).** With Combat Feel > The physical upper body >
+`physicalUpperBody` on (off by default; it takes effect at the next Spawn), a clip fighter's hips, torso, head and
+both arms are one jointed body (`UpperBodyArticulation`, on Unity's `ArticulationBody`), on legs the animation still
+moves:
 
 - Its hips are carried where the pose's are (locked to a body that is moved there); every other joint has a motor
   driven to the pose's turn, sized by what hangs from it (a quickness in Hz, so one setting holds a head and a whole
-  arm alike) and limited in strength: 600 N m at the shoulders and spine, 0.7 of it at an elbow, a quarter at a wrist
-  and the neck. Torso, neck and shield arm 30 Hz, the weapon arm 40.
+  arm alike): torso, neck and shield arm 30 Hz, the weapon arm 40.
+- Each muscle has a strength, what it holds against the world with: 600 N m at a Medium's shoulders and spine
+  (`muscleStrength`), 0.7 of it at an elbow, a quarter at a wrist and the neck, and as much more for a body as it
+  is heavier to turn (its weight times its size squared: a Large has 5.4 times a Medium's). On top of it each is
+  allowed what the pose's own motion takes (`Allow`): the torque that turns what hangs from the joint as fast as
+  the pose turns it, that carries it as the hips are carried and turned, and what the joints further out are
+  allowed. So the strength sets how hard a stopped blade pushes and how firmly a body stands, not how fast a sword
+  can be swung.
 - The sword's blade is a solid on the hand. The shield is a part of its own on a ball joint at the grip, driven to
   where the pose turns it in the hand.
 - The game steps the physics itself, four times for each of its own steps (`PhysicsSteps`; in Unity the
-  `PhysicsStepper` the sandbox adds), each motor's target moved a quarter of the way each time. A strike's blade is
-  limited to 30 m/s unless `mostBladeSpeed` says otherwise.
+  `PhysicsStepper` the sandbox adds), each motor's target moved a quarter of the way each time and named the way
+  nearest where its joint is. A strike's blade is limited to 30 m/s unless `mostBladeSpeed` says otherwise.
 - The rig's own upper parts follow it as shadows (triggers, moved onto it after each step), so everything that
   reads a part's place, and everything drawn, follows the physical body. Hits are still decided as before, by the
   pose's swept blade: that is step 6.
 - A part cut off, or a change of what is held, builds the body again without it; a body that falls lets it go and
   falls as the rig's own parts; it is built again when the unit is back on its feet.
 
-What passes through what, six Mediums, three fights of 60 s on the real engine (`PHYSX=1`, and
-`FIGHT_PHYSICAL=1` for the physical body), living units on their feet, all three fights together:
+What passes through what, three fights of 60 s on the real engine (`PHYSX=1`, and `FIGHT_PHYSICAL=1` for the physical
+body), living units on their feet, the three fights together. Six Mediums (four with shields):
 
 | | held to the pose (as today) | physical upper body |
 |---|---|---|
-| a blade in another's body (over 2 cm) | 195 times, 7.2 s, to 12.7 cm | once, under 0.05 s, 2.5 cm |
-| a blade in a shield (over 1 cm) | 177 times, 9.1 s, to 25 cm | 8 times, 0.4 s, to 6.0 cm |
-| a blade through a blade (over 0.5 cm) | 33 times, 0.7 s, to 2.4 cm | 7 times, 0.1 s, to 2.0 cm |
-| a shield in another's body (over 2 cm) | 172 times, 12.9 s, to 16.6 cm | never |
-| a body in another's body (over 2 cm) | 24 times, 1.2 s, to 7.3 cm | 11 times, 0.8 s, to 8.8 cm |
-| a blade in its own body (over 2 cm) | 114 times, 5.1 s | 374 times, 13.3 s |
+| a blade in another's body (over 2 cm) | 195 times, 7.2 s, to 12.7 cm | twice, under 0.05 s, to 3.8 cm |
+| a blade in a shield (over 1 cm) | 177 times, 9.1 s, to 25 cm | 7 times, 0.1 s, to 5.5 cm |
+| a blade through a blade (over 0.5 cm) | 33 times, 0.7 s, to 2.4 cm | 7 times, 0.2 s, to 1.6 cm |
+| a shield in another's body (over 2 cm) | 172 times, 12.9 s, to 16.6 cm | 11 times, 0.2 s, to 4.5 cm |
+| a body in another's body (over 2 cm) | 24 times, 1.2 s, to 7.3 cm | 6 times, 0.3 s, to 6.3 cm |
 
-The bodies still in each other are legs (a foot in a shin): the legs are the pose's. A unit's own blade and shield
-are not stopped by its own body, by choice for now, and with the arm physical the blade is in its own body more.
+The scene's own line-up, a Swordsman, a Medium with a shield and a Large with a club a side:
 
-Four things this step found, each of which had the bodies passing through each other or thrown about:
+| | held to the pose (as today) | physical upper body |
+|---|---|---|
+| a blade in another's body | 456 times, 16.0 s, to 20.3 cm | 10 times, 0.2 s, to 4.7 cm |
+| a blade in a shield | 160 times, 6.4 s, to 21.7 cm | 8 times, 0.3 s, to 10.2 cm |
+| a blade through a blade | 63 times, 1.4 s, to 2.6 cm | 11 times, 0.2 s, to 1.9 cm |
+| a shield in another's body | 175 times, 10.5 s, to 18.2 cm | never |
+| a body in another's body | 84 times, 1.9 s, to 12.4 cm | 18 times, 1.1 s, to 11.7 cm |
+
+How far the physical body is from the pose (units on their feet, both line-ups): the head within 2 cm 95% of the
+time and 6 cm 99% of it; the weapon hand in a strike within 2.5 cm half the time, 9 to 19 cm 95% of it; outside a
+strike within 3 to 7 cm 95% of the time; the shield hand within 10 to 19 cm 95% of the time; the shield in its
+hand within 9° of the pose 95% of the time. At the worst, for moments: a head 36 to 75 cm off, a hand over a
+metre. No body was borne down or had to be put back on its pose in these six fights.
+
+What it took, in the order it was found. The first five are from before the first look in Unity, the rest from it
+(11 November: with the scene's line-up the upper bodies "spun like fan blades"; the same line-up, never run
+headless until then, did the same there).
 
 - *The headless engine's own filter (a fault of the test rig, not of the game).* PhysX's default filter, which the
   rig called first, reads a shape's first filter word as a collision group of 32; the rig keeps a shape's id there.
   Past id 31 it read whatever lay beyond its table, and where that was zero the pair was found and reported but never
-  solved. In a duel few ids are that high; with six units most are. `PhysXWorld.Filter` now says in full what a pair
-  does. Unity has no such fault. Any figure taken on six physical bodies before this was found was
-  this fault; the table above is from after it.
+  solved. `PhysXWorld.Filter` now says in full what a pair does. Unity has no such fault.
 - *A shield turned in the hand by being put there.* The pose turns the shield in its hand to face a blow, up to
-  47° in a step; the solid was moved with it, through whatever stood in the way (once into the arm that struck at
-  it, where it stayed 11 s). It is now a part on a joint (`HoldTurned`), turned by a motor, and its grip holds with
-  the full 600 N m: pressed on, the arm gives, not the board in the fist (in its hand it is within 8° of the pose
-  95% of the time).
+  47° in a step; the solid was moved with it, through whatever stood in the way. It is now a part on a joint
+  (`HoldTurned`), turned by a motor, and its grip holds with the full strength: pressed on, the arm gives, not the
+  board in the fist.
 - *A fallen body kept its physical upper body.* A fallen unit is not stepped as a standing one is, so its
   articulation was never let go: the dead stood on from the hips up, unseen, and fought the living. `Fall` lets it go.
-- *Strength with nothing behind it to give.* The hips are carried by the pose and give to nothing, and 600 N m is
-  several times a man's strength (it is what swinging a sword as fast as the clips do takes). So three rules, all
-  Combat Feel fields:
-  - `blockedArmStrength` (0.2): a weapon arm whose hand is held off its pose gives, from 10 cm off down to this
-    share of its strength at 22 cm. A stopped blade rests where it was stopped instead of shoving on. The shield arm
-    never gives.
-  - `pressedBackSpeed` (6): a body whose chest is held off its pose is moved the way it is pressed, 6 m/s for each
-    metre past 4 cm, 2 m/s at most (`PressedBack`; 1.8 to 3.5 m in all over a fight of six).
-  - `borneDownFrom` (28 cm): a chest held that far off for a tenth of a second (a fighter landing on it from a
-    leap) and the body falls, and gets up again. Once in the three fights.
-  - `muscleStrength` (600) is there to try with.
+- *A body pressed on.* The hips are carried by the pose and give to nothing. `pressedBackSpeed` (6): a body whose
+  chest is held off its pose is moved the way it is pressed, 6 m/s for each metre past 4 cm, 2 m/s at most.
+  `borneDownFrom` (28 cm): a chest held that far off for a tenth of a second and the body falls, and gets up again.
+- *A stopped arm.* `blockedArmStrength` (0.2): a weapon arm whose hand is held off its pose gives, from 10 cm off
+  down to this share of its strength at 22 cm, so a stopped blade rests where it was stopped instead of shoving
+  on. Only a hand that is hardly moving (under 1 m/s against its own hips) counts as held: at first any hand behind
+  its pose gave, and an arm that fell behind in a fast cut lost four fifths of its strength and never caught up.
+  The shield arm never gives.
+- *A turn has many names.* A ball joint's motor pulls each of the joint's three numbers toward the target's, and
+  the same turn can be written half a turn one way or half a turn the other, 360 apart in numbers. Targets were
+  kept continuous with where the pose last was; a shoulder that passed half a turn was then sent the long way
+  round at full strength, and round again. Each target is now named the way nearest where the joint is
+  (`Where`, by the engine's own joint position, which the probe checks reads as the targets do).
+- *Muscles at their limit.* Held to 600 N m, the torso could not follow what the pose does: a hit reaction snaps it
+  over at 880 rad/s² (600 N m gives a Medium's torso 90), a combo's cut carries the hips 18 cm in a step. And a
+  motor at its limit no longer damps: it overshoots and swings. With nothing to touch at all (`UPPER_GHOST=1`) the
+  heads were still 19 cm from the pose 5% of the time and 50 cm 1% of it. Hence the allowance above; with it,
+  touching nothing, 1 cm and 2.4 cm.
+- *A Large's strength.* It had a Medium's times its size squared (1.5); its arm with its club is 5 times a
+  Medium's to turn. Now by weight as well.
+- *Joints the pose turns at once.* An arm's roll about its own length flips when the arm is straight (the arm's
+  pose has nothing to tell its roll by), 70° to 170° in a step, and the shield arm is at times placed anew at once.
+  No muscle turns that. A joint the pose turns more than 70° in a step (the fastest clip turns 42) is put there
+  (`MostJointTurn`): 150 to 300 times in a fight of six.
+- *The ground.* The clips swing a blade low, and through the ground at the bottom of a rising cut; stopped there
+  it held its arm a metre from the pose. Nothing of the physical body is stopped by the ground now (`ClearOfGround`).
+- *A body that stays away.* A hand 0.9 m or the head 0.5 m from the pose for half a second, and the body is put back
+  on its pose (`RanAway`): for whatever is still to be found. It did not happen in the six fights above.
+- *A body thrown into a clip fighter* went by the old path's stumble, which poses a body the clip fighter no
+  longer has, and threw a null reference (seen once in the Unity log). It is taken by the clip fighter's own path
+  now (`ImpactTaken`: its health, the knock to its walk, off its feet if hard enough).
 
-How far the physical body is from the pose in those three fights (units on their feet): the weapon hand outside a
-strike within 8 to 11 cm 95% of the time; in a strike within 4 cm half the time and over 67 to 79 cm for 5% of it
-(a blade stopped on a shield while the clip plays its strike out: until hits come from contacts the clip does not
-know it was stopped); the shield hand within 17 to 32 cm 95% of the time; the head within 9 to 12 cm 95% of the
-time, 22 to 30 cm 99% of it, and at the worst 60 to 79 cm for a moment (a body doubled over by a lunging one).
+Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
+vector, stiffness for radians, the force limit a torque, a part built turned takes its turn on its own axes), so
+what the headless engine shows is what Unity does. A frame cost 11.4 ms with the physical body against 7.7 ms
+without (six units; `Physics.Simulate` 2.8 ms against 0.4), in a session where the bodies whirled and touched far
+more than they should. Headless, a 30 s fight of six takes 175 s against 40 s held to the pose.
 
 Known, and for the next steps: the legs are the pose's and push with no limit; a blow lands or not by the pose,
-whatever the physical blade met; a blocked strike's clip plays on; nothing here has run in Unity. The game measures
-the engine's articulation conventions at start-up and logs them (`[Articulation probe] ...`: targets as a turn
-vector, stiffness for radians, the force limit a torque, a part built turned takes its turn on its own axes); where
-Unity differs from what the body assumes the line says so and the body stays off. Headless, a 30 s fight of six
-takes 175 s with the physical body against 40 s held to the pose (four physics steps for one, and six
-articulations); Unity's cost is not measured.
+whatever the physical blade met; a blocked strike's clip plays on while the blade rests where it was stopped; a
+unit's own blade and shield are not stopped by its own body; a joint put where the pose flipped it goes through
+whatever is in its way.
 
 For looking into a fight: `OVERLAP_WHO=1` splits each kind of overlap by who was in it, `OVERLAP_TRACE=1` prints
 each step of each (with where the engine itself has the two shapes), `FIGHT_STRAY=1` each step a body is far off
-its pose with what it touches. `FIGHT_GIVE`, `FIGHT_GIVE_FROM=0.1,0.22`, `FIGHT_PRESSED`, `FIGHT_BORNE`,
-`FIGHT_EASE` set the rules above for a run.
+its pose with what it touches, `FIGHT_WATCH="B Medium"` every step of one unit with its joints' targets and where
+they are, `UPPER_DEBUG=1` what each body is built of and each joint the pose flips, `UPPER_GHOST=1` the bodies
+touching nothing, `UPPER_ALLOW=0` the muscles held to their strength. `FIGHT_GIVE`, `FIGHT_GIVE_FROM=0.1,0.22`,
+`FIGHT_PRESSED`, `FIGHT_BORNE`, `FIGHT_EASE` set the rules above for a run.
 
 `Tools/CompileCheck` compiles every script against small UnityEngine/UnityEditor/URP stubs (with real vector maths)
 and runs the headless reports:
