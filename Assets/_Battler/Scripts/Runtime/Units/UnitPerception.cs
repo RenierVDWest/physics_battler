@@ -59,16 +59,6 @@ namespace PhysicsBattler.Units
         /// <summary>Where it sees from: its head (as posed; the body's own while it lies on the ground).</summary>
         private Transform SightHead => State == UnitState.Down || !IsAlive ? Rig.Part(PartId.Head).transform : Anim.Part(PartId.Head);
 
-        /// <summary>Between the eyes.</summary>
-        public Vector3 EyePosition
-        {
-            get
-            {
-                var head = SightHead;
-                return head.position + head.rotation * (new Vector3(0f, 0.07f, 0.08f) * Body.SizeFactor);
-            }
-        }
-
         /// <summary>How it perceives another unit now: the best of its chest, its head and (in a blow) its weapon.</summary>
         public Sight SightOf(UnitController other)
         {
@@ -111,18 +101,6 @@ namespace PhysicsBattler.Units
 
         /// <summary>Does it know <paramref name="other"/> is there (seen, felt or remembered)?</summary>
         public bool Knows(UnitController other) => other != null && Known.Knows(other);
-
-        /// <summary>Where it thinks <paramref name="other"/>'s chest is: where it is, if it sees it; else remembered.</summary>
-        public Vector3 ChestOf(UnitController other)
-        {
-            if (Sees(other) != Sight.Unseen || !Known.Knows(other))
-            {
-                return other.Anim.Part(PartId.Chest).position;
-            }
-
-            Vector3 at = Known.Estimate(other, LocalTime);
-            return at + (other.Anim.Part(PartId.Chest).position - other.transform.position);
-        }
 
         /// <summary>Each step: what it perceives of every other unit, what it forgets, and the blows coming at it it now sees.</summary>
         private void UpdatePerception()

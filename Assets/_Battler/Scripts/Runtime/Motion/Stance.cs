@@ -118,12 +118,6 @@ namespace PhysicsBattler.Motion
         }
 
         public Vector3 Position(int foot) => feet[foot].position;
-
-        /// <summary>Seconds until a stepping foot lands (0 if it stands).</summary>
-        public float StepTimeLeft(int foot) => feet[foot].stepping ? (1f - feet[foot].t) * (feet[foot].duration > 0f ? feet[foot].duration : duration) : 0f;
-
-        /// <summary>Where a foot is going (where it stands, if it isn't stepping).</summary>
-        public Vector3 Target(int foot) => feet[foot].stepping ? feet[foot].to : feet[foot].position;
         public float Yaw(int foot) => feet[foot].yaw;
         public float Lift(int foot) => feet[foot].lift;
         public bool Stepping(int foot) => feet[foot].stepping;

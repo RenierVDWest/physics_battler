@@ -67,11 +67,6 @@ namespace PhysicsBattler.Motion
         public bool wristGiven;
 
         public Quaternion wristLocal;
-
-        public static ArmGoal Hand(Vector3 point, Vector3 pointInHand, Quaternion handTurn, float elbowSwivel) => new ArmGoal
-        {
-            point = point, pointInHand = pointInHand, handTurn = handTurn, elbowSwivel = elbowSwivel, turnWeight = 1f,
-        };
     }
 
     /// <summary>What the arm rig made of a goal, for the caller, the log and the gizmo.</summary>
@@ -309,13 +304,6 @@ namespace PhysicsBattler.Motion
             return frame * (swing * Quaternion.AngleAxis(twist, Vector3.right)) * Quaternion.Inverse(frame);
         }
 
-        /// <summary>A hand's local rotation on the forearm as a blow keys it (the inverse of <see cref="Wrist"/>).</summary>
-        public static Vector3 WristKey(AnimRig anim, bool right, Quaternion local)
-        {
-            WristAngles(local, WristFrame(anim, right), out float twist, out float flexion, out float deviation);
-            return new Vector3(right ? twist : -twist, right ? -flexion : flexion, deviation);
-        }
-
         /// <summary>
         /// The reach (B): the hand held on the forearm (<paramref name="handLocal"/>), the arm a two-bone
         /// chain from the shoulder to the hand's point, the second "bone" the elbow-to-point line, which
@@ -480,49 +468,6 @@ namespace PhysicsBattler.Motion
             e.cost = SwivelCost * off * off + ShoulderCost * e.shoulderPast * e.shoulderPast
                      + (g.turnWeight > 0f ? ClearanceCost * (100f * e.clearanceShort) * (100f * e.clearanceShort) : 0f);
             return e;
-        }
-
-        /// <summary>
-        /// How far an arm's joint is past the rig's limits (degrees; 0 inside), for any rig built as the
-        /// animation rig is (the pose or the physical body): the upper arm against the shoulder's
-        /// reach, the elbow against its hinge (any turn off its axis, a bend past 145 or back past
-        /// straight), the hand against the wrist's twist and swing. Other parts: 0.
-        /// </summary>
-        public static float PastLimits(AnimRig anim, PartId id, Quaternion parent, Quaternion child)
-        {
-            bool right = id == PartId.UpperArmR || id == PartId.ForearmR || id == PartId.HandR;
-            switch (id)
-            {
-                case PartId.UpperArmR:
-                case PartId.UpperArmL:
-                {
-                    Vector3 along = child * anim.RestLocalPosition(right ? PartId.ForearmR : PartId.ForearmL).normalized;
-                    Vector3 neutral = parent * Side(NeutralReach, right).normalized;
-                    return Mathf.Max(0f, Vector3.Angle(along, neutral) - ShoulderReach);
-                }
-                case PartId.ForearmR:
-                case PartId.ForearmL:
-                {
-                    var local = Quaternion.Inverse(anim.RestLocalRotation(id)) * (Quaternion.Inverse(parent) * child);
-                    if (local.w < 0f)
-                    {
-                        local = new Quaternion(-local.x, -local.y, -local.z, -local.w);
-                    }
-
-                    Vector3 h = ElbowAxis(anim, right);
-                    float bend = 2f * Mathf.Atan2(Vector3.Dot(new Vector3(local.x, local.y, local.z), h), local.w) * Mathf.Rad2Deg;
-                    float off = Quaternion.Angle(local, Quaternion.AngleAxis(bend, h));
-                    return Mathf.Max(0f, Mathf.Max(off - HingeSlack, Mathf.Max(bend - ElbowBendLimit, -bend - HingeSlack)));
-                }
-                case PartId.HandR:
-                case PartId.HandL:
-                {
-                    var local = Quaternion.Inverse(anim.RestLocalRotation(id)) * (Quaternion.Inverse(parent) * child);
-                    return WristAngles(local, WristFrame(anim, right), out _, out _, out _);
-                }
-                default:
-                    return 0f;
-            }
         }
 
         private static readonly float[] BothWays = { 1f, -1f };

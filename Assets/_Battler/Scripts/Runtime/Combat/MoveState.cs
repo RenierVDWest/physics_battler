@@ -62,10 +62,6 @@ namespace PhysicsBattler.Combat
         /// <summary>Why the blow ended early (stopped, flinched, staggered, killed), or null.</summary>
         public string Cancelled;
         public bool SteppedOut, LeadOut, SteppedBack, RearMoved, RearOut, RearBack;
-        public float LeadOutAt;
-
-        /// <summary>The striking part's position the step before (animated and physical), to judge contact on the sweep.</summary>
-        public Vector3 LastStrike, LastPhysical;
         public bool HasLastStrike, HasLastPhysical;
 
         /// <summary>
@@ -76,21 +72,12 @@ namespace PhysicsBattler.Combat
         public float PhysicalClosest = -1f;
 
         public float T => Duration > 0f ? Mathf.Clamp01(Time / Duration) : 1f;
-        public bool Done => Time >= Duration;
         public float Progress => Move.ProgressAt(T);
         public float Blend => Move.BlendAt(T) * Fade;
 
         /// <summary>1 while the blow plays; a cut-short blow fades to 0 from where it stopped (milestone 3).</summary>
         public float Fade = 1f;
-
-        /// <summary>A blow stopped by what it struck bounces back: it plays backwards as it fades.</summary>
-        public bool Rewind;
-
-        /// <summary>Milestone 9c: how far back a stopped blow may play (its time, seconds): just back out of what it met, never into its wind-up.</summary>
-        public float RewindFloor;
         public float Body => Move.BodyAt(T) / (Mathf.Abs(BodyPeak) > 1e-4f ? BodyPeak : 1f);
-        public bool Active => Progress >= Move.activeWindow.x && Progress <= Move.activeWindow.y;
-
         /// <summary>A point on the path (world), at a progress along it.</summary>
         public Vector3 PathPoint(float progress)
         {
@@ -119,9 +106,6 @@ namespace PhysicsBattler.Combat
 
         /// <summary>The weapon's reach from the pivot at full stretch (metres).</summary>
         public float FullReach;
-
-        /// <summary>How fast the blow plays (1; a cleave through a body slows it, and it picks up again).</summary>
-        public float TimeScale = 1f;
 
         public bool Generated => Path != null && Path.Length > 1;
 
@@ -162,11 +146,8 @@ namespace PhysicsBattler.Combat
 
         /// <summary>The performance pass: the posed path's samples, all posed already (the planner's, a few a step): progress and the striking part from where the body stood.</summary>
         public List<(float at, Vector3 strike)> PosedPath;
-        public Vector3 LastRadial;
         public float LastProgress, LastDeviation;
         public bool HasLastRadial;
-
-        public Vector3 PivotAt(float progress) => Pivots != null && Pivots.Length > 1 ? MoveDefinition.CatmullRom(Pivots, progress) : Aim;
 
         /// <summary>The hips' and the chest's turn now (degrees, + right), the lean (degrees forward), the crouch (share of the leg), the drive past contact (metres) and the wrist's lag (degrees).</summary>
         public float HipTurn => Move.HipTurnAt(T);

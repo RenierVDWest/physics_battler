@@ -125,56 +125,6 @@ namespace PhysicsBattler.Units
             dirty = true;
         }
 
-        /// <summary>Main thread, before the physics step: the snapshot the physics threads read.</summary>
-        public static void Publish()
-        {
-            if (!dirty)
-            {
-                return;
-            }
-
-            dirty = false;
-            var s = new Snapshot();
-            foreach (var pair in Lying)
-            {
-                if (pair.Key != null)
-                {
-                    s.lying[pair.Key.GetEntityId()] = pair.Value;
-                }
-            }
-
-            foreach (var c in Standing)
-            {
-                if (c != null)
-                {
-                    s.standing.Add(c.GetEntityId());
-                }
-            }
-
-            foreach (var c in Shields)
-            {
-                if (c != null)
-                {
-                    s.shields.Add(c.GetEntityId());
-                }
-            }
-
-            foreach (var c in Kinematic)
-            {
-                if (c != null)
-                {
-                    s.kinematic.Add(c.GetEntityId());
-                }
-            }
-
-            current = s;
-            if (!hooked && Application.isPlaying)
-            {
-                Physics.ContactModifyEvent += Modify;
-                hooked = true;
-            }
-        }
-
         /// <summary>The push a standing part may give a lying part at one contact point (N·s), out of <paramref name="points"/>.</summary>
         public static float Cap(float lyingMass, int points) => lyingMass * MaxNudge / Mathf.Max(1, points);
 

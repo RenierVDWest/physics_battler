@@ -59,35 +59,18 @@ namespace PhysicsBattler.Units
 
         /// <summary>A stumble's speed (m/s, world, horizontal).</summary>
         public Vector3 StumbleVelocity { get; private set; }
-
-        /// <summary>How the last get-up started.</summary>
-        public GetUp.Kind LastGetUp { get; private set; }
-
-        /// <summary>Milestone 9c: the lowest point of what the hands hold over the ground in this step's pose (metres; negative: in it).</summary>
-        public float WeaponGroundGap => State == UnitState.GettingUp ? getUp.WeaponGroundGap : Pose.WeaponGroundGap;
         /// <summary>Seconds in the current state.</summary>
         public float StateTime { get; private set; }
 
         public int TimesDown { get; private set; }
-        public int TimesUp { get; private set; }
-
         /// <summary>Pushes (m/s at medium size) from which a blow makes a unit stumble, knocks it down, launches it.</summary>
         public const float StumbleAt = 0.8f, KnockdownAt = 2.2f, LaunchAt = 4f;
 
         /// <summary>The slowest a broken poise sends a unit stumbling (m/s, medium size).</summary>
         private const float OffBalanceSpeed = 1.1f;
 
-        /// <summary>Share of a stumble's speed left after each catch step, and its slowing in between (seconds).</summary>
-        private const float CatchStep = 0.55f, StumbleDrag = 1.4f;
-
         /// <summary>The fastest a unit is launched (m/s, medium size, horizontal), and how much of it goes up.</summary>
         private const float MaxLaunch = 6.5f, LaunchLift = 0.35f;
-
-        /// <summary>Least time down (seconds, medium size), the most, and the pelvis's speed it must stay under for <see cref="SettleTime"/> to get up.</summary>
-        private const float MinDown = 1.1f, MaxDown = 4f, SettleSpeed = 0.25f, SettleTime = 0.3f;
-
-        /// <summary>Lean of a stumbling body (degrees per m/s at medium size, and the most).</summary>
-        private const float LeanPerSpeed = 14f, MaxStumbleLean = 30f;
 
         /// <summary>A part of a body down hits another unit at this closing speed or more (m/s).</summary>
         private const float ImpactSpeed = 1.5f;
@@ -99,8 +82,6 @@ namespace PhysicsBattler.Units
         private const float ImpactCooldown = 0.5f;
 
         private GetUp getUp;
-        private readonly PoseBuffer lying = new PoseBuffer();
-        private readonly PoseBuffer standing = new PoseBuffer();
         private readonly Dictionary<UnitController, float> impactsUntil = new Dictionary<UnitController, float>();
         private float downCalm;
         private UnitController knockedBy;
@@ -204,53 +185,6 @@ namespace PhysicsBattler.Units
             }
         }
 
-        /// <summary>The stumble carries the unit along, slowing; it is over once it is slow and both feet are down.</summary>
-        private void UpdateStumble(float dt)
-        {
-            transform.position += StumbleVelocity * dt;
-            StumbleVelocity *= Mathf.Exp(-dt / StumbleDrag);
-            float k = SizeSpeed();
-            bool settled = StumbleVelocity.magnitude < 0.15f * k && !Stance.AnyStepping && StateTime > 0.3f;
-            if (settled || StateTime > 3f)
-            {
-                Vector3 moved = transform.position - stumbleFrom;
-                moved.y = 0f;
-                StumbleVelocity = Vector3.zero;
-                SetState(UnitState.Standing);
-                BalanceChanged?.Invoke(this, $"regained balance after {stumbleSteps} catch step{(stumbleSteps == 1 ? "" : "s")}, {moved.magnitude:0.00} m toward {Heading(moved)}");
-            }
-        }
-
-        /// <summary>The pose leans with a stumble and the arms go out; both ease in and out.</summary>
-        private void UpdateTopple(float dt)
-        {
-            float k = SizeSpeed();
-            Vector3 v = State == UnitState.Stumbling ? StumbleVelocity : Vector3.zero;
-            Vector3 wantedLean = Vector3.zero, wantedShift = Vector3.zero;
-            float wantedFlail = 0f;
-            if (v.sqrMagnitude > 1e-6f)
-            {
-                float speed = v.magnitude / k;
-                Vector3 axis = Vector3.Cross(Vector3.up, v.normalized);
-                wantedLean = axis * (Mathf.Min(MaxStumbleLean, LeanPerSpeed * speed) * Mathf.Deg2Rad);
-                wantedShift = v.normalized * Mathf.Min(0.15f * Body.LegLength, 0.12f * v.magnitude);
-                wantedFlail = Mathf.Clamp01(speed / 1.2f);
-            }
-
-            float rate = dt / 0.08f;
-            topple = Vector3.Lerp(topple, wantedLean, Mathf.Clamp01(rate));
-            toppleShift = Vector3.Lerp(toppleShift, wantedShift, Mathf.Clamp01(rate));
-            flail = Mathf.Lerp(flail, wantedFlail, Mathf.Clamp01(0.6f * rate));
-            Stance.Urgency = Mathf.Clamp01(v.magnitude / k / 0.8f);
-            Pose.Topple = topple;
-            Pose.ToppleShift = toppleShift;
-            Pose.Flail = flail;
-            if (v.sqrMagnitude > 1e-6f)
-            {
-                Pose.FlailDirection = v.normalized;
-            }
-        }
-
         // ---- Down --------------------------------------------------------------------------------
 
         private void KnockDown(Vector3 velocity, bool launch, string cause)
@@ -338,113 +272,6 @@ namespace PhysicsBattler.Units
         }
 
         /// <summary>
-        /// A body on the ground: the root follows its pelvis; flung parts hit whoever they meet; once
-        /// it has lain still long enough it gets up.
-        /// </summary>
-        private void StepDown(float dt, bool drive)
-        {
-            StateTime += dt;
-            LocalTime += dt;
-            var pelvis = Rig.Part(PartId.Pelvis).body;
-            Vector3 p = pelvis.position;
-            transform.position = new Vector3(p.x, Stance.GroundY, p.z);
-            if (drive)
-            {
-                FindImpacts();
-            }
-
-            float k = SizeSpeed();
-            downCalm = pelvis.linearVelocity.magnitude < SettleSpeed * k ? downCalm + dt : 0f;
-            float least = MinDown * Mathf.Sqrt(Mathf.Max(0.3f, Body.SizeFactor));
-            // (A unit that lost a leg doesn't get up again.)
-            if (!LegLost && ((StateTime >= least && downCalm >= SettleTime) || StateTime >= MaxDown))
-            {
-                BeginGetUp();
-                StepGetUp(0f, drive);
-                return;
-            }
-
-            if (drive)
-            {
-                SetAuthority(null);
-                Authority.Apply(dt);
-                foreach (var part in Rig.Parts)
-                {
-                    preStep[(int)part.id] = part.body.linearVelocity;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Parts of a thrown body moving fast into another unit's parts strike it: an impulse of
-        /// half the closing speed times the two units' reduced mass, which hurts and knocks it
-        /// (it may stumble, fall or be launched in turn). The thrown body takes half the damage.
-        /// PhysX does the bounce.
-        /// </summary>
-        private void FindImpacts()
-        {
-            if (StateTime > 2.5f || !IsAlive)
-            {
-                return;
-            }
-
-            float reach = 2.5f * Mathf.Max(1f, Body.SizeFactor);
-            float dt = Time.fixedDeltaTime;
-            foreach (var mine in Rig.Parts)
-            {
-                if (mine.body == null || mine.partCollider == null || Rig.IsSevered(mine.id))
-                {
-                    continue;
-                }
-
-                Vector3 v = mine.body.linearVelocity;
-                if (v.sqrMagnitude < ImpactSpeed * ImpactSpeed)
-                {
-                    continue;
-                }
-
-                Vector3 c = mine.body.worldCenterOfMass;
-                for (int u = 0; u < all.Count && IsAlive; u++)
-                {
-                    var other = all[u];
-                    if (!CanStrike(other))
-                    {
-                        continue;
-                    }
-
-                    Vector3 apart = other.transform.position - transform.position;
-                    apart.y = 0f;
-                    if (apart.magnitude > reach + 2.5f * other.Body.SizeFactor)
-                    {
-                        continue;
-                    }
-
-                    foreach (var theirs in other.Rig.Parts)
-                    {
-                        if (theirs.partCollider == null || theirs.body == null || other.Rig.IsSevered(theirs.id))
-                        {
-                            continue;
-                        }
-
-                        // Touching, or about to within this step (a fast part moves several centimetres a step).
-                        Vector3 q = theirs.partCollider.ClosestPoint(c);
-                        Vector3 r = mine.partCollider.ClosestPoint(q);
-                        float gap = 0.04f + (v - PartVelocity(other, theirs)).magnitude * dt;
-                        if ((q - r).sqrMagnitude > gap * gap)
-                        {
-                            continue;
-                        }
-
-                        if (TryImpact(mine, v, other, theirs, q))
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// PhysX reported a part of this body touching something: another unit's part met at speed is
         /// a body impact (the speed it had before the step, since the contact has already slowed it).
         /// </summary>
@@ -527,94 +354,6 @@ namespace PhysicsBattler.Units
         }
 
         // ---- Getting up --------------------------------------------------------------------------
-
-        /// <summary>Face up or down by which way the pelvis's front looks; the root goes under it, facing along the body.</summary>
-        private void BeginGetUp()
-        {
-            var pelvis = Rig.Part(PartId.Pelvis).body;
-            Vector3 front = pelvis.rotation * Vector3.forward;
-            var kind = front.y > 0f ? GetUp.Kind.FaceUp : GetUp.Kind.FaceDown;
-            Vector3 headward = Rig.Part(PartId.Head).body.position - pelvis.position;
-            headward.y = 0f;
-            if (headward.sqrMagnitude < 0.01f * Body.SizeFactor * Body.SizeFactor)
-            {
-                // (Sitting or curled up: along the pelvis instead.)
-                headward = pelvis.rotation * Vector3.up;
-                headward.y = 0f;
-            }
-
-            GetUp.Place(kind, pelvis.position, headward, Body.SizeFactor, out var position, out float yaw);
-            position.y = Stance.GroundY;
-            transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
-            facingYaw = yaw;
-            Stance.Plant(position, yaw);
-            hasLastRoot = false;
-            Stance.Hold = true;
-            Stance.Drift = Vector3.zero;
-            ClearTimers();
-            lying.Capture(Rig);
-            getUp.HoldsMain = MainWeapon != null;
-            getUp.HoldsOff = OffWeapon != null;
-            getUp.Loadout = Loadout;
-            getUp.Rig = Rig;
-            getUp.Threat = GetUpThreat();
-            getUp.Begin(kind, lying);
-            LastGetUp = kind;
-            float down = StateTime;
-            SetState(UnitState.GettingUp);
-            BalanceChanged?.Invoke(this, $"getting up {(kind == GetUp.Kind.FaceDown ? "face down" : "face up")} after {down:0.0} s down");
-        }
-
-        private void StepGetUp(float dt, bool drive)
-        {
-            StateTime += dt;
-            LocalTime += dt;
-            float t = StateTime;
-            PoseBuffer stand = null;
-            if (t > getUp.StandFrom)
-            {
-                // The standing pose, as it will be once up (the feet already on their spots, the
-                // rhythm's base loop playing).
-                PoseRhythmBase();
-                Pose.Compose(LocalTime, dt, true, armPlays: true);
-                standing.Capture(Anim);
-                stand = standing;
-            }
-
-            getUp.Threat = GetUpThreat();
-            getUp.Compose(t, stand);
-            if (drive)
-            {
-                SetAuthority(null);
-                Authority.Apply(dt);
-            }
-
-            if (t >= getUp.Duration)
-            {
-                SetState(UnitState.Standing);
-                Stance.Hold = false;
-                Poise = profile.maxPoise;
-                NeedsSpot = true;
-                TimesUp++;
-                BalanceChanged?.Invoke(this, $"got up ({(LastGetUp == GetUp.Kind.FaceDown ? "face down" : "face up")})");
-            }
-        }
-
-        /// <summary>
-        /// Milestone 9c: where the enemy it minds is, as it knows it (chest height), for the shield
-        /// getting up; none if it knows of none.
-        /// </summary>
-        private Vector3? GetUpThreat()
-        {
-            var foe = Foe();
-            if (foe == null || !Known.Knows(foe))
-            {
-                return null;
-            }
-
-            Vector3 at = Known.Estimate(foe, LocalTime);
-            return at + Vector3.up * (foe.Body.PelvisHeight + 0.35f * foe.Body.SizeFactor);
-        }
 
         /// <summary>How firmly the body is held while getting up: the pins come back from weak, the legs kinematic once blended in.</summary>
         private void SetGetUpAuthority()

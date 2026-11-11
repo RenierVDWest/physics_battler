@@ -121,10 +121,6 @@ namespace PhysicsBattler.Combat
     {
         private readonly Dictionary<T, Known> known = new Dictionary<T, Known>();
         private readonly List<T> scratch = new List<T>();
-
-        public int Count => known.Count;
-        public IEnumerable<KeyValuePair<T, Known>> All => known;
-
         /// <summary>It perceived <paramref name="who"/> now (nothing happens for <see cref="Sight.Unseen"/>). True the first time.</summary>
         public bool Observe(T who, Vector3 position, Sight sight, float now)
         {
@@ -156,8 +152,6 @@ namespace PhysicsBattler.Combat
 
         public bool Knows(T who) => who != null && known.ContainsKey(who);
 
-        public bool TryGet(T who, out Known k) => known.TryGetValue(who, out k);
-
         /// <summary>When it last looked about (<see cref="BeginLook"/>): what it perceived then is what it perceives now.</summary>
         public float LastLook { get; private set; } = float.NegativeInfinity;
 
@@ -166,13 +160,6 @@ namespace PhysicsBattler.Combat
 
         /// <summary>How it perceives <paramref name="who"/> now: as at its last look about (unseen if it wasn't perceived then).</summary>
         public Sight Current(T who) => who != null && known.TryGetValue(who, out var k) && k.seenAt >= LastLook - 1e-5f ? k.sight : Sight.Unseen;
-
-        /// <summary>Where it thinks <paramref name="who"/> is: last seen, carried along its motion (at most a second's worth).</summary>
-        public Vector3 Estimate(T who, float now)
-        {
-            var k = known[who];
-            return k.position + k.velocity * Mathf.Clamp(now - k.seenAt, 0f, 1f);
-        }
 
         /// <summary>Forgets what it hasn't perceived for longer than its memory, and anything <paramref name="gone"/> says is gone. What it forgot.</summary>
         public List<T> Forget(float now, float memory, Func<T, bool> gone = null)

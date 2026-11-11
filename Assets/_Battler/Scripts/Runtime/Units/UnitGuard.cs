@@ -22,11 +22,6 @@ namespace PhysicsBattler.Units
         /// <summary>Until when its guard is open after a guard break (unit time): it can't block or parry.</summary>
         public float GuardOpenUntil { get; private set; } = float.NegativeInfinity;
 
-        /// <summary>How far into its shell's guard it is (0 to 1).</summary>
-        public float ShellWeight { get; private set; }
-
-        private float guardOpen;
-
         /// <summary>Milestone 11: how much ground the shell has given (metres): the fight loop keeps it this much further off.</summary>
         public float GiveGround { get; private set; }
 
@@ -50,70 +45,6 @@ namespace PhysicsBattler.Units
 
         /// <summary>What a block or a parry costs in energy.</summary>
         public const float BlockEnergy = 0.04f;
-
-        /// <summary>Seconds the shell's guard takes to come up (and to go down).</summary>
-        public const float ShellRise = 0.3f;
-
-        /// <summary>Is this part one its shell's arms guard with now (the high shell's forearms, hands and upper arms)?</summary>
-        public bool ArmGuarding(PartId part)
-        {
-            if (Pose.ShellKind != ShellGuard.High || ShellWeight < 0.5f || LocalTime < GuardOpenUntil)
-            {
-                return false;
-            }
-
-            switch (part)
-            {
-                case PartId.ForearmL:
-                case PartId.ForearmR:
-                case PartId.HandL:
-                case PartId.HandR:
-                case PartId.UpperArmL:
-                case PartId.UpperArmR:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        /// <summary>Each step, after the tempo: the shell's guard eased in and out, and a broken guard's arms.</summary>
-        private void UpdateGuard(float dt)
-        {
-            bool shelled = Tempo != null && TempoOn && Tempo.State == TempoState.Shell && CanAct && IsAlive && State == UnitState.Standing;
-            ShellWeight = Mathf.MoveTowards(ShellWeight, shelled ? 1f : 0f, dt / ShellRise);
-            if (Tempo != null && TempoOn && IsAlive && TempoEngaged && PressedByAnEnemy())
-            {
-                Tempo.NotePressed(dt);
-            }
-
-            if (!shelled)
-            {
-                GiveGround = Mathf.MoveTowards(GiveGround, 0f, 0.5f * Body.LegLength * dt);
-            }
-
-            Pose.ShellKind = Tempo != null ? Tempo.Temperament.shellGuard : ShellGuard.None;
-            Pose.ShellWeight = ShellWeight;
-
-            // (Flung open fast, coming back slower once the moment has passed.)
-            bool open = LocalTime < GuardOpenUntil && IsAlive;
-            guardOpen = Mathf.MoveTowards(guardOpen, open ? 1f : 0f, dt / (open ? 0.08f : 0.35f));
-            Pose.GuardOpen = Mathf.SmoothStep(0f, 1f, guardOpen);
-        }
-
-        /// <summary>Is an enemy that is fighting it pressing it now?</summary>
-        private bool PressedByAnEnemy()
-        {
-            foreach (var other in all)
-            {
-                if (other != this && other.initialized && other.IsAlive && other.Team != Team && other.TempoOn && other.Tempo != null
-                    && other.Tempo.State == TempoState.Press && other.Opponent == this && other.TempoEngaged)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
 
         /// <summary>A blow it has seen coming: shelled up, it gives ground under it.</summary>
         private void GiveGroundUnder(UnitController attacker)

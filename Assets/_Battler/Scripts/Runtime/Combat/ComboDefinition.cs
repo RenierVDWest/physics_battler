@@ -254,14 +254,5 @@ namespace PhysicsBattler.Combat
 
             return list;
         }
-
-        /// <summary>Where a chained link starts (normalized time): three quarters of the way through its wind-up.</summary>
-        public static float LinkIn(MoveDefinition move) => LinkInShare * move.WindUpEnd;
-
-        /// <summary>Where a link is cut for the next (normalized time): a little into its follow-through.</summary>
-        public static float LinkOut(MoveDefinition move, float contactTime) => contactTime + LinkOutShare * Mathf.Max(0f, move.SwingFollowEnd - contactTime);
-
-        /// <summary>How much of the wind-up a chained link skips; how far into the follow-through a link is cut.</summary>
-        public const float LinkInShare = 0.75f, LinkOutShare = 0.15f;
     }
 }

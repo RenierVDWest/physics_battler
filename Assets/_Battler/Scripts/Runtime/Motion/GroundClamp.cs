@@ -63,7 +63,6 @@ namespace PhysicsBattler.Motion
         {
             public float turn, raise;
             public bool known;
-            public int frame = -10;
         }
 
         /// <summary>How much the lift may change in a step (degrees, wrist and shoulder each).</summary>

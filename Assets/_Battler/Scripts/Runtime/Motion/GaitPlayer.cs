@@ -40,8 +40,6 @@ namespace PhysicsBattler.Motion
 
         public bool IsEmpty => Clip == null || Clip.IsEmpty;
 
-        public void SetSize(float size) => pace = Mathf.Sqrt(Mathf.Clamp(size, 0.3f, 3f));
-
         /// <param name="velocity">How fast the unit's root is being walked (world).</param>
         /// <param name="free">On its feet with nothing else moving its legs (no blow, no knock-back).</param>
         /// <param name="nominal">The style's walking speed on this body, m/s.</param>
@@ -110,41 +108,6 @@ namespace PhysicsBattler.Motion
         private static bool Crossed(float from, float to, float at)
         {
             return from <= to ? at > from && at <= to : at > from || at <= to;
-        }
-
-        /// <summary>
-        /// The walk's body motion, weighted in, in unit space: what the walk changes from the stance
-        /// (its lean, how low it goes, how turned) and its motion round the cycle.
-        /// </summary>
-        /// <param name="travel">The walking direction in the unit's own space (z forward), unit length.</param>
-        public RhythmSample Sample(float leg, float size, CombatStyle style, bool leadLeft, Vector3 travel)
-        {
-            var r = new RhythmSample();
-            if (IsEmpty || Weight <= 0f)
-            {
-                return r;
-            }
-
-            var k = Clip.body.Sample(Phase);
-            float a = Weight * Clip.strength;
-            // The cycle's fore-aft and side sway go along the way it walks.
-            Quaternion along = travel.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(travel, Vector3.up) : Quaternion.identity;
-            float forward = Mathf.Clamp(travel.z, -0.4f, 1f);
-            float side = leadLeft ? 1f : -1f;
-            float leanExtra = (Clip.lean - style.lean) * forward;
-            float turnExtra = Clip.chestTurn - side * (style.hipTurn + style.chestCounterTurn);
-            float hipExtra = Clip.pelvisTurn - side * style.hipTurn - 0.45f * turnExtra;
-            r.hips = along * k.hips * (leg * a);
-            r.drop = (k.drop + Mathf.Max(-0.03f, Clip.crouch - style.crouch)) * leg * a;
-            r.lean = (k.lean + leanExtra) * a;
-            r.roll = k.roll * a;
-            r.turn = (k.turn + turnExtra) * a;
-            r.hipTurn = (k.hipTurn + hipExtra) * a;
-            // (The head keeps looking ahead over the lean.)
-            r.head = (k.head + new Vector2(-0.8f * leanExtra, -0.9f * turnExtra)) * a;
-            r.main = k.main * (size * a);
-            r.off = k.off * (size * a);
-            return r;
         }
     }
 }

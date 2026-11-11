@@ -41,18 +41,6 @@ namespace PhysicsBattler.Combat
             pitch = Mathf.Clamp(pitch, -Down, Up);
         }
 
-        /// <summary>How far outside the cone a direction is (degrees; 0 inside).</summary>
-        public static float Outside(Vector3 direction, float chestYaw, bool leftHand)
-        {
-            Angles(direction, chestYaw, out float yaw, out float pitch);
-            float y = yaw, p = pitch;
-            Clamp(ref y, ref p, leftHand);
-            return Mathf.Max(Mathf.Abs(Mathf.DeltaAngle(yaw, y)), Mathf.Abs(pitch - p));
-        }
-
-        /// <summary>The direction at a yaw against the chest facing and a pitch.</summary>
-        public static Vector3 Direction(float chestYaw, float yaw, float pitch) => Quaternion.Euler(-pitch, chestYaw + yaw, 0f) * Vector3.forward;
-
         /// <summary>A chest's facing (degrees): its forward, flattened (or the fallback when it points straight up or down).</summary>
         public static float FacingOf(Quaternion chest, float fallback)
         {

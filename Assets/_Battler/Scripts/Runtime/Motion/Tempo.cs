@@ -58,18 +58,6 @@ namespace PhysicsBattler.Motion
         public float loopSize;
 
         public static MoodStance Neutral => new MoodStance { loopSpeed = 1f, loopSize = 1f };
-
-        public static MoodStance Lerp(MoodStance a, MoodStance b, float t) => new MoodStance
-        {
-            crouch = Mathf.Lerp(a.crouch, b.crouch, t),
-            lean = Mathf.Lerp(a.lean, b.lean, t),
-            forward = Mathf.Lerp(a.forward, b.forward, t),
-            chin = Mathf.Lerp(a.chin, b.chin, t),
-            main = Vector3.Lerp(a.main, b.main, t),
-            off = Vector3.Lerp(a.off, b.off, t),
-            loopSpeed = Mathf.Lerp(a.loopSpeed, b.loopSpeed, t),
-            loopSize = Mathf.Lerp(a.loopSize, b.loopSize, t),
-        };
     }
 
     /// <summary>Milestone 11: how a style's arms cover it in the shell.</summary>
@@ -142,19 +130,6 @@ namespace PhysicsBattler.Motion
         public MoodStance gather = MoodStance.Neutral;
         public MoodStance press = MoodStance.Neutral;
         public MoodStance shell = MoodStance.Neutral;
-
-        /// <summary>The stance held in a state (probing: the plain one; countering: the press's).</summary>
-        public MoodStance StanceFor(TempoState state)
-        {
-            switch (state)
-            {
-                case TempoState.Gather: return gather;
-                case TempoState.Press: return press;
-                case TempoState.Counter: return press;
-                case TempoState.Shell: return shell;
-                default: return MoodStance.Neutral;
-            }
-        }
     }
 
     /// <summary>What the tempo needs to know about the unit and its fight each step.</summary>
@@ -217,22 +192,6 @@ namespace PhysicsBattler.Motion
         /// <summary>Seconds without a blow at it before the pressure starts to fade.</summary>
         public const float QuietTime = 1.5f;
 
-        /// <summary>Which postures may play now.</summary>
-        public TempoUse Use
-        {
-            get
-            {
-                switch (State)
-                {
-                    case TempoState.Gather: return TempoUse.Gather;
-                    case TempoState.Press: return TempoUse.Press;
-                    case TempoState.Shell: return TempoUse.Shell;
-                    case TempoState.Counter: return TempoUse.Counter;
-                    default: return TempoUse.Probe;
-                }
-            }
-        }
-
         /// <summary>What its next blow costs.</summary>
         public float BlowCost => State == TempoState.Press || State == TempoState.Counter ? Temperament.pressCost : Temperament.probeCost;
 
@@ -261,25 +220,6 @@ namespace PhysicsBattler.Motion
             lastIncoming = time;
         }
 
-        /// <summary>
-        /// Milestone 11: an enemy is pressing it, close in: the pressure builds while the press lasts
-        /// (it sees the barrage coming), and doesn't fade until it is over.
-        /// </summary>
-        public void NotePressed(float dt)
-        {
-            // (Enough to shell it up, no more: the blows themselves take it further.)
-            float cap = PressedCap * Temperament.composure;
-            if (Pressure < cap)
-            {
-                Pressure = Mathf.Min(cap, Pressure + PressedRate * dt);
-            }
-
-            lastIncoming = Mathf.Max(lastIncoming, time - 0.5f * QuietTime);
-        }
-
-        /// <summary>Milestone 11: pressure a second while an enemy presses it.</summary>
-        public const float PressedRate = 0.35f;
-
         /// <summary>Milestone 11: a press alone takes the pressure to this share of its composure at most; and nothing takes it past <see cref="MostPressure"/>.</summary>
         public const float PressedCap = 1.1f, MostPressure = 3f;
 
@@ -291,15 +231,6 @@ namespace PhysicsBattler.Motion
             if (State == TempoState.Press && poiseShare > 0.35f)
             {
                 broken = true;   // (a heavy hit breaks a press)
-            }
-        }
-
-        /// <summary>Its blow was blocked: two in one press break it.</summary>
-        public void NoteBlocked()
-        {
-            if (State == TempoState.Press && ++blocked >= 2)
-            {
-                broken = true;
             }
         }
 
@@ -519,8 +450,5 @@ namespace PhysicsBattler.Motion
 
             Changed?.Invoke(from, to, why);
         }
-
-        /// <summary>Puts it in a state now (tests, the gallery).</summary>
-        public void Force(TempoState state) => Go(state, "forced");
     }
 }

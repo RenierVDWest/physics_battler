@@ -148,26 +148,6 @@ namespace PhysicsBattler.Motion
 
         public float LinkWeight { get; set; }
 
-        /// <summary>
-        /// The arm rebuild: a combo's link with no blow to hand over from (after a stopped one) eases
-        /// the weapon arm out of where it was held when the link started (by <see cref="LinkWeight"/>).
-        /// True takes the arm as it is now; false lets it go.
-        /// </summary>
-        public void HoldLinkArm(bool hold)
-        {
-            LinkArmHeld = hold;
-            linkCapture = true;
-            linkHandOffset = Vector3.zero;
-            linkWristOffset = Quaternion.identity;
-            linkSwivelOffset = 0f;
-            // (As the arm stands now, the last step's pose done: the hand from the shoulder in the
-            // chest's frame, so it rides on the chest as the hand-over eases the body.)
-            var chest = anim.Part(PartId.Chest);
-            linkHand = Quaternion.Inverse(chest.rotation) * (anim.Part(PartId.HandR).position - anim.Part(PartId.UpperArmR).position);
-            linkWrist = anim.Part(PartId.HandR).localRotation;
-            linkSwivel = LastWeaponArm.swivel;
-        }
-
         public bool LinkArmHeld { get; private set; }
 
         private Vector3 linkHand;
@@ -2051,7 +2031,6 @@ namespace PhysicsBattler.Motion
         /// </summary>
         private bool PoseOffHandBlow(MoveState move, Quaternion facing, Vector3 strikeLocal, Vector3 elbowWay)
         {
-
             float blend = move.Blend;
             if (blend <= 0f)
             {

@@ -16,7 +16,6 @@ namespace PhysicsBattler.Combat
         public WeaponDefinition definition;
 
         public UnitController Owner { get; private set; }
-        public bool InMainHand { get; private set; }
         public float Scale { get; private set; } = 1f;
 
         private BodyPart hand;
@@ -58,64 +57,6 @@ namespace PhysicsBattler.Combat
             }
 
             trail.emitting = on;
-        }
-
-        /// <summary>
-        /// Puts a weapon in a hand: the prefab (or, without one, a bare object with no mesh), at the
-        /// slot, scaled with the unit.
-        /// </summary>
-        public static Weapon Equip(WeaponDefinition definition, UnitController owner, Transform slot, bool mainHand, float scale)
-        {
-            GameObject go;
-            if (definition.prefab != null)
-            {
-                go = Instantiate(definition.prefab, slot);
-                go.name = definition.prefab.name;
-            }
-            else
-            {
-                go = new GameObject("Weapon " + definition.name);
-                go.transform.SetParent(slot, false);
-            }
-
-            go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = Quaternion.identity;
-            go.transform.localScale = Vector3.one * scale;
-            var weapon = go.GetComponent<Weapon>();
-            if (weapon == null)
-            {
-                weapon = go.AddComponent<Weapon>();
-            }
-
-            weapon.definition = definition;
-            weapon.Owner = owner;
-            weapon.InMainHand = mainHand;
-            weapon.Scale = scale;
-            weapon.hand = owner.Rig.Part(mainHand ? PartId.HandR : PartId.HandL);
-            // Milestone 9c: a shield is solid (it stops against bodies, its contacts capped in
-            // GroundContacts); weapons only report what they touch (solid only while their unit lies
-            // on the ground: SetLying). All of it on the Weapon layer.
-            bool solid = definition.IsShield && !mainHand && owner.IsPhysical;
-            weapon.physical = owner.IsPhysical;
-            int layer = Layers.Index(Layers.Weapon);
-            foreach (var collider in weapon.Colliders)
-            {
-                collider.gameObject.layer = layer;
-                collider.isTrigger = !solid;
-                if (solid)
-                {
-                    GroundContacts.SetShield(collider, true);
-                }
-                foreach (var part in owner.Rig.Parts)
-                {
-                    if (part.partCollider != null)
-                    {
-                        Physics.IgnoreCollision(collider, part.partCollider, true);
-                    }
-                }
-            }
-
-            return weapon;
         }
 
         /// <summary>A weapon or shield (any, held or dropped) struck something: for the sounds of shields meeting and things dropped.</summary>
