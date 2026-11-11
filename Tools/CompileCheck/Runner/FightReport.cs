@@ -66,6 +66,10 @@ internal static class FightReport
     /// <summary>Plays a fight to its end (or the time limit); the result line, and per-unit figures.</summary>
     private static readonly bool Smalls = Environment.GetEnvironmentVariable("FIGHT_SMALLS") != null;
 
+#if PHYSX
+    private static Overlaps overlaps;
+#endif
+
     public static string Play(Dictionary<string, RigFile> rigs, int seed, float limit, PlaytestRecorder recorder, out string stats)
     {
         var grid = new BoardGrid();
@@ -88,6 +92,12 @@ internal static class FightReport
                     ? new[] { ("Swordsman", new Tile(3, 6)), ("Swordsman", new Tile(6, 3)) }
                     : new[] { ("Swordsman", new Tile(3, 6)), ("Swordsman", new Tile(6, 3)), ("Swordsman", new Tile(3, 0)) },
             };
+        }
+
+        if (gang == "duel")
+        {
+            // (One on one: a Medium with sword and shield against a swordsman.)
+            lineup = new[] { new[] { ("Medium", new Tile(3, 2)) }, new[] { ("Swordsman", new Tile(3, 5)) } };
         }
 
         if (gang == "mediums")
@@ -330,6 +340,13 @@ internal static class FightReport
 
                 // (The engine under the stubs: every script's step, then the physics step, as in Unity.)
                 Physics.Simulate(dt);
+#if PHYSX
+                if (Physics.Backend is PhysicsBattler.Engine.PhysXWorld px)
+                {
+                    overlaps ??= new Overlaps(px);
+                    overlaps.Step(units);
+                }
+#endif
 
                 if (clips)
                 {
@@ -587,6 +604,13 @@ internal static class FightReport
         sb.AppendLine($"  combos: {combos}, {100f * comboBlows / Mathf.Max(1, attacks):0}% of blows inside them (target 25-40%); striking moment to the next: median {(contactGaps.Count > 0 ? contactGaps[contactGaps.Count / 2] : 0f):0.00} s "
                       + $"(target 0.4-0.7, {contactGaps.Count}); link start to the next: median {(linkGaps.Count > 0 ? linkGaps[linkGaps.Count / 2] : 0f):0.00} s; ended: {string.Join(", ", ends)}{(whys.Count > 0 ? "; clip combos for: " + string.Join(", ", whys) : "")}");
         sb.Append($"  steps with standing bodies overlapping: {shared}; times a unit made no headway and went round: {loop.Stalls}");
+#if PHYSX
+        if (overlaps != null)
+        {
+            sb.AppendLine();
+            sb.Append(overlaps.Report());
+        }
+#endif
         stats = sb.ToString();
         string result = loop.Over ? $"fight over: {loop.Result}" : $"not over after {Time.time - startTime:0} s";
         foreach (var u in units)

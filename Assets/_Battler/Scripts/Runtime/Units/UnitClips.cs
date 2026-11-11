@@ -332,6 +332,7 @@ namespace PhysicsBattler.Units
             Loadout.Main = main;
             Loadout.Off = off;
             Clip.ShieldColliders.Clear();
+            ClipBladeColliders.Clear();
             Hold(Rig.SlotWeaponR, Anim.SlotWeaponR, main, main != null && !main.IsShield ? MainGrip : Quaternion.identity);
             Hold(Rig.SlotWeaponL, Anim.SlotWeaponL, off, off != null && off.IsShield ? ShieldGrip : Quaternion.identity);
             string body = Clip.Poser.BodyKey;
@@ -1046,6 +1047,21 @@ namespace PhysicsBattler.Units
                     box.isTrigger = true;
                     Clip.ShieldColliders.Add(box);
                 }
+                else
+                {
+                    // (No model (headless): a blade the weapon's length, from above the grip to the point, so what it
+                    // passes through can be measured as in Unity, where the model's own colliders are there.)
+                    var blade = new GameObject(name + " blade");
+                    blade.transform.SetParent(slot, false);
+                    var capsule = blade.AddComponent<CapsuleCollider>();
+                    float length = definition.length * Clip.Size, above = 0.12f * Clip.Size;
+                    capsule.direction = 2;
+                    capsule.radius = 0.012f * Clip.Size;
+                    capsule.height = length - above;
+                    capsule.center = new Vector3(0f, 0f, 0.5f * (length + above));
+                    capsule.isTrigger = true;
+                    ClipBladeColliders.Add(capsule);
+                }
 
                 return;
             }
@@ -1074,7 +1090,14 @@ namespace PhysicsBattler.Units
                 {
                     Clip.ShieldColliders.Add(collider);
                 }
+                else
+                {
+                    ClipBladeColliders.Add(collider);
+                }
             }
         }
+
+        /// <summary>The colliders of the weapon a clip fighter holds (not its shield's): what its blade is, for measuring what it passes through.</summary>
+        public readonly System.Collections.Generic.List<Collider> ClipBladeColliders = new System.Collections.Generic.List<Collider>();
     }
 }
