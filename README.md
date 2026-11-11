@@ -1863,9 +1863,9 @@ worst single slide; `FIGHT_SLIDES=1` lists each slide over 5 cm with what was pl
 sliding step), and how far roots were moved at once instead of walked ("roots moved at once": two bodies kept apart,
 ground given to a blow, a combo's strike snapped onto its target). Six Mediums, three fights of 60 s:
 
-| | worst single slide | roots moved at once | blows met |
+| | worst single slide | bodies carried in by combos' strikes | blows met |
 |---|---|---|---|
-| before | 18, 10, 55 cm | 24 m (22 m of it combos' strikes) | 252 |
+| before | 18, 10, 55 cm | 24 m | 252 |
 | now | 2, 2, 3 cm | 24 m | 252 |
 
 What the slides were: a combo's strike carried its body in after its target at up to 7.2 m/s (12 cm a step); a
@@ -1883,7 +1883,7 @@ quick steps read well is for the eye. The fights are no longer the same line for
 foot's height moves the hips, and with them everything).
 
 Still as they were: ground given to a blow (the body moved 4 m/s for a tenth of a second, then pushed into a step)
-and two bodies kept apart (moved off each other at once). Together about 1.5 m a minute over six units, and with the
+and two bodies kept apart (moved off each other at once). Together about 1 m a minute over six units, and with the
 lift they no longer drag a foot. A blow's own push already goes to the walk as a change of speed (`Locomotor.Push`),
 as step 3 found it should.
 
