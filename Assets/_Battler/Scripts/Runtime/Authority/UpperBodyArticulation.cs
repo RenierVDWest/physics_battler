@@ -187,6 +187,12 @@ namespace PhysicsBattler.Authority
             SnapJoints();
         }
 
+        /// <summary>
+        /// Once everything is in its hands: every joint put where the pose has it again. A part added (a shield's
+        /// grip) may have the engine build the whole body anew, with every joint back at its zero.
+        /// </summary>
+        public void Settle() => SnapJoints();
+
         /// <summary>Every joint put where the pose has it, at once and still (as it is built, and when the body is put somewhere).</summary>
         private void SnapJoints()
         {

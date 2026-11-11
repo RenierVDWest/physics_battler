@@ -1355,6 +1355,7 @@ namespace PhysicsBattler.Locomotion
             pressed = Vector3.zero;
             pressedOff = 0f;
             HoldSolids();
+            Upper.Settle();
             solidsChanged = false;
         }
 
