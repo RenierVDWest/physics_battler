@@ -1576,6 +1576,11 @@ If something looks off, press **M** at the moment and mention the mark number.
 
 ## Playtest logs
 
+Code review of 11 November 2026 (the puppet, the stand-in physics, and a plan for a physical upper body):
+https://claude.ai/artifact/5YY9GpcDGQRLVyZPRJjcsP. Its figures come from `python3 Tools/Playtest/puppet.py
+PlaytestLogs/<session>`: how far each physical part is from its pose, and how often two living bodies overlap,
+measured on a real Unity log.
+
 Every Play session is recorded into `PlaytestLogs/<date_time>/` (next to `Assets/`, so Unity doesn't import it):
 what happened and why (`events.log`: spawns, steps, blows (where each was aimed, how close it passed and what was
 there), hits (who struck whom where, how hard, the reaction, whether the swing stopped), blows cut short, deaths,
