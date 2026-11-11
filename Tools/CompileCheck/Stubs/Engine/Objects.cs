@@ -81,6 +81,7 @@ namespace UnityEngine
             if (component is Collider collider) Physics.Register(collider);
             if (component is Rigidbody body) Physics.Bodies.Add(body);
             if (component is Joint joint) Physics.Joints.Add(joint);
+            if (component is ArticulationBody link) Physics.Articulations.Add(link);
             return component;
         }
 
@@ -95,6 +96,7 @@ namespace UnityEngine
                 if (c is Collider collider) Physics.Unregister(collider);
                 if (c is Rigidbody body) Physics.Bodies.Remove(body);
                 if (c is Joint joint) { joint.Destroyed = true; Physics.Joints.Remove(joint); }
+                if (c is ArticulationBody link) Physics.Articulations.Remove(link);
                 // As in Unity: a destroyed behaviour hears OnDestroy.
                 if (c is MonoBehaviour)
                 {

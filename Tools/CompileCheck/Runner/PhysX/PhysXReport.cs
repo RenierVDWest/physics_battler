@@ -33,6 +33,12 @@ internal static class PhysXReport
         bool turned = System.Text.RegularExpressions.Regex.IsMatch(JointConventions.Report, @"\(turned -2[456] -2[456] -2[456]°\)$");
         Check("the joint probe reads as in Unity", Signs(JointConventions.Report) == Signs(UnityProbe) && turned, $"here: {JointConventions.Report}");
 
+        // 1b. The game's articulation probe: this engine's articulations as the stubs give them to it must be what
+        // the physical upper body assumes (in Unity the same probe says what Unity's are).
+        ArticulationConventions.EnsureProbed();
+        Check("the articulation probe reads as the body assumes", ArticulationConventions.Usable && ArticulationConventions.LimitIsTorque && ArticulationConventions.TargetSign == Vector3.one
+            && Mathf.Approximately(ArticulationConventions.StiffnessScale, 1f), $"here: {ArticulationConventions.Report}");
+
         // 2. A box dropped on the ground comes to rest on it.
         var box = new GameObject("Box");
         box.transform.position = new Vector3(3f, 1f, 0f);

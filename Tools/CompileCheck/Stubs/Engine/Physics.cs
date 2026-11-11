@@ -109,6 +109,7 @@ namespace UnityEngine
         public PhysicsMaterial sharedMaterial { get; set; }
         public PhysicsMaterial material { get; set; }
         public Rigidbody attachedRigidbody => GetComponentInParent<Rigidbody>();
+        public ArticulationBody attachedArticulationBody => GetComponentInParent<ArticulationBody>();
         public Bounds bounds => default;
         // Real geometry for the shapes the project uses (Unity's own is exact; this is close enough for the dry run).
         public Vector3 ClosestPoint(Vector3 position)
@@ -235,6 +236,7 @@ namespace UnityEngine
         private Rigidbody connected;
         private Vector3 jointAxis = Vector3.right, jointAnchor;
         public Rigidbody connectedBody { get => connected; set { connected = value; TakeFrames(); } }
+        public ArticulationBody connectedArticulationBody { get; set; }
         public Vector3 axis { get => jointAxis; set { jointAxis = value; TakeFrames(); } }
         public Vector3 anchor { get => jointAnchor; set { jointAnchor = value; TakeFrames(); } }
         public Vector3 connectedAnchor { get; set; }
@@ -334,6 +336,7 @@ namespace UnityEngine
         /// <summary>Every live rigidbody and joint, for the engine under the stubs.</summary>
         public static readonly List<Rigidbody> Bodies = new List<Rigidbody>();
         public static readonly List<Joint> Joints = new List<Joint>();
+        public static readonly List<ArticulationBody> Articulations = new List<ArticulationBody>();
         public static IReadOnlyList<Collider> Colliders => colliders;
 
         public static void IgnoreCollision(Collider a, Collider b, bool ignore = true) { Backend?.IgnoreCollision(a, b, ignore); }

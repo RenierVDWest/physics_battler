@@ -22,7 +22,7 @@ namespace PhysicsBattler.Engine
         public float Separation;
     }
 
-    public sealed unsafe class PhysXWorld : IPhysicsBackend
+    public sealed unsafe partial class PhysXWorld : IPhysicsBackend
     {
         /// <summary>The world the engine's callbacks speak to (one at a time).</summary>
         public static PhysXWorld Current { get; private set; }
@@ -350,6 +350,7 @@ namespace PhysicsBattler.Engine
                 }
 
                 BeforeSubstep?.Invoke(k, n, step / n);
+                DriveArticulations(k);
                 PxScene_simulate_mut(scene, step / n, null, null, 0, true);
                 uint error = 0;
                 PxScene_fetchResults_mut(scene, true, &error);
@@ -358,6 +359,7 @@ namespace PhysicsBattler.Engine
 
             pushes.Clear();
             ReadBack();
+            ReadBackArticulations();
             Tell();
         }
 
@@ -417,6 +419,11 @@ namespace PhysicsBattler.Engine
         private Vector3 SpeedBefore(Collider collider)
         {
             var body = collider.attachedRigidbody;
+            if (body == null && collider.attachedArticulationBody != null)
+            {
+                return collider.attachedArticulationBody.linearVelocity;
+            }
+
             return body != null && bodies.TryGetValue(body, out var s) ? s.Before : Vector3.zero;
         }
 
@@ -435,8 +442,9 @@ namespace PhysicsBattler.Engine
 
             var collision = new Collision { impulse = impulse, relativeVelocity = relative, rigidbody = other.attachedRigidbody, collider = other, Points = points };
             string name = entered ? "OnCollisionEnter" : "OnCollisionStay";
-            Call(body != null ? body.gameObject : null, name, collision);
-            if (body == null || mine.gameObject != body.gameObject)
+            var onLink = body == null ? mine.attachedArticulationBody : null;
+            Call(body != null ? body.gameObject : onLink != null ? onLink.gameObject : null, name, collision);
+            if ((body == null && onLink == null) || mine.gameObject != (body != null ? body.gameObject : onLink.gameObject))
             {
                 Call(mine.gameObject, name, collision);
             }
@@ -562,6 +570,8 @@ namespace PhysicsBattler.Engine
                     ordered.RemoveAt(i);
                 }
             }
+
+            SyncArticulations();
 
             // Colliders: new shapes on their bodies (or standing still in the world), gone ones taken off.
             foreach (var sh in shapes.Values)
@@ -735,6 +745,7 @@ namespace PhysicsBattler.Engine
                 s.Before = s.Body.linearVelocity;
             }
 
+            FinishArticulations();
             SyncJoints();
             if (filteringDirty)
             {
@@ -780,7 +791,16 @@ namespace PhysicsBattler.Engine
             PxShape_setContactOffset_mut(sh.Shape, Physics.defaultContactOffset);
             PxShape_setRestOffset_mut(sh.Shape, 0f);
             var t = collider.transform;
-            if (body != null)
+            var onLink = body == null ? collider.attachedArticulationBody : null;
+            if (onLink != null && links.TryGetValue(onLink, out var link))
+            {
+                // (A link's collider: on its link, where it sits against it.)
+                sh.Actor = (PxRigidActor*)link.Link;
+                var inv = Quaternion.Inverse(onLink.transform.rotation);
+                var local = T(inv * (t.position + t.rotation * offset - onLink.transform.position), inv * t.rotation * turn);
+                PxShape_setLocalPose_mut(sh.Shape, &local);
+            }
+            else if (body != null)
             {
                 sh.Owner = StateOf(body);
                 sh.Actor = (PxRigidActor*)sh.Owner.Actor;
@@ -865,7 +885,8 @@ namespace PhysicsBattler.Engine
                 }
 
                 var own = cj.GetComponent<Rigidbody>();
-                if (own == null || !bodies.ContainsKey(own) || (cj.connectedBody != null && !bodies.ContainsKey(cj.connectedBody)))
+                if (own == null || !bodies.ContainsKey(own) || (cj.connectedBody != null && !bodies.ContainsKey(cj.connectedBody))
+                    || (cj.connectedArticulationBody != null && !links.ContainsKey(cj.connectedArticulationBody)))
                 {
                     continue;
                 }
@@ -935,7 +956,15 @@ namespace PhysicsBattler.Engine
             Quaternion worldTurn = ownTurn * frame;
             PxTransform local1;
             PxRigidActor* other = null;
-            if (cj.connectedBody != null)
+            if (cj.connectedArticulationBody != null)
+            {
+                // (Joined to a link of an articulation: where the link is now.)
+                var c = cj.connectedArticulationBody.transform;
+                var inv = Quaternion.Inverse(c.rotation);
+                local1 = T(inv * (worldAt - c.position), inv * worldTurn);
+                other = (PxRigidActor*)links[cj.connectedArticulationBody].Link;
+            }
+            else if (cj.connectedBody != null)
             {
                 var c = cj.connectedBody;
                 var inv = Quaternion.Inverse(cj.FramesTaken ? cj.ConnectedTurn : c.rotation);

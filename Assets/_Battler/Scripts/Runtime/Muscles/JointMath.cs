@@ -381,5 +381,40 @@ namespace PhysicsBattler.Muscles
 
             return axis.normalized * (angle * Mathf.Deg2Rad);
         }
+
+        /// <summary>A turn as a turn vector: its axis times its angle (radians), the short way round.</summary>
+        public static Vector3 TurnVector(Quaternion q)
+        {
+            if (q.w < 0f)
+            {
+                q = new Quaternion(-q.x, -q.y, -q.z, -q.w);
+            }
+
+            var v = new Vector3(q.x, q.y, q.z);
+            float s = v.magnitude;
+            return s < 1e-7f ? Vector3.zero : v / s * (2f * Mathf.Atan2(s, q.w));
+        }
+
+        /// <summary>The same turn as <paramref name="v"/> (a turn vector, radians), written the way nearest <paramref name="last"/>: a turn and it plus a whole turn about its axis are one.</summary>
+        public static Vector3 TurnVectorNear(Vector3 v, Vector3 last)
+        {
+            float angle = v.magnitude;
+            if (angle < 1e-6f)
+            {
+                return v;
+            }
+
+            Vector3 axis = v / angle, best = v;
+            for (int k = -1; k <= 1; k += 2)
+            {
+                Vector3 other = axis * (angle + k * 2f * Mathf.PI);
+                if ((other - last).sqrMagnitude < (best - last).sqrMagnitude)
+                {
+                    best = other;
+                }
+            }
+
+            return best;
+        }
     }
 }
