@@ -1728,8 +1728,38 @@ plan's battle: six Mediums. How well it stands in for Unity, measured:
 - A ragdoll's joints come 2 cm apart at worst in a fall; Unity's dead came 2 to 12 cm apart in the playtests.
 - The same seed repeats exactly, with the engine and without it.
 
-Not yet in it: contact modification (`GroundContacts`), raycasts, weapons' own colliders (headless a sword has no
-model; a shield a board), limit springs. Unity stays the final word.
+Not yet in it: contact modification (`GroundContacts`), raycasts, limit springs, colliders' own materials. Unity
+stays the final word.
+
+**What passes through what (step 1's baseline).** With `PHYSX=1`, `fight` prints, for the living units on their feet,
+how often and how deep a blade is in another's body, in a shield, through another blade or in its own body, a shield
+in a body and a body in a body (the engine's own overlap query each step; headless a sword is a thin capsule its
+length, a shield its board). Today's build, 60 s of six Mediums (three seeds): a blade over 2 cm into another's body
+90 to 116 times (3 to 4 s, deepest 11 to 13 cm); over 1 cm into a shield 77 to 107 times (deepest 19 to 26 cm: through
+the board); into its own body 43 to 66 times (deepest 10 cm); a shield into a body about 90 to 100 times (deepest 13 to
+17 cm). `FIGHT_LINEUP=duel`: one on one.
+
+**One physical sword arm (step 2, the experiment so far).** `physx-arm`: the Medium's strikes with the weapon arm held
+several ways, swung at nothing, at a fixed post and at a free 20 kg ball (`ARM_SETUP`, `ARM_ONLY`, `ARM_CLIPS`,
+`ARM_TRACE=1`, `ARM_HZ`, `ARM_FORCE`). `ClipFighter.StrikeArm` and `TorsoHold` set how the arm and the torso are held
+(as they have been by default); `AuthorityController.MusclesByInertia` sizes each joint's motor for what hangs from it.
+What it found:
+
+- The clips' blades are faster than an arm: about contact the posed point moves at up to 67 m/s for two frames (the
+  hand at 17), three times a real cut. Today's kinematic arm, held to 15 m/s and 1800 degrees a second, is itself 64 to
+  100 cm behind its pose for those frames.
+- The motors as they were (accelerations, boosted by the load) can't hold a sword: PhysX sizes them for the lighter of
+  a joint's two bodies, the forearm, a sixtieth of what a hand with a sword takes. Sized by inertia they follow a slow
+  pose within 5 to 15 cm at the point and are back on it within 7 cm after a blow; about contact they are 40 to 50 cm
+  behind.
+- A motor on the arm turns a torso held by its pins (up to 84 degrees): the arm needs something that can't be turned
+  to push against.
+- Contact is right at 240 physics steps a second: the blade never goes more than 0.5 cm into the post (5 cm at 60 Hz;
+  today's passes through it), and leaves the ball at 0.2 to 0.7 m/s where today's kinematic arm launches it at 9.
+- No blow-ups in any of it.
+
+Next: the same arm as an articulation (PhysX's reduced coordinates), and the blow's fastest frames slowed to a real
+cut's speed.
 
 `Tools/CompileCheck` compiles every script against small UnityEngine/UnityEditor/URP stubs (with real vector maths),
 runs the EditMode tests, and can dry-run the battle (six units on the board, with a tiny integrator standing in for

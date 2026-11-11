@@ -213,9 +213,30 @@ namespace UnityEngine
         /// <summary>Destroyed (Object.Destroy on the component): the bodies it held are free of each other.</summary>
         public bool Destroyed;
 
-        public Rigidbody connectedBody { get; set; }
-        public Vector3 axis { get; set; } = Vector3.right;
-        public Vector3 anchor { get; set; }
+        // (As in Unity: the joint's frames are taken from the pose its bodies are in when it is set up, that is when
+        // its connected body, its anchor or its axes are given. The engine under the stubs makes it from this.)
+        public bool FramesTaken;
+        public Vector3 OwnAt, ConnectedAt;
+        public Quaternion OwnTurn = Quaternion.identity, ConnectedTurn = Quaternion.identity;
+        protected void TakeFrames()
+        {
+            var own = GetComponent<Rigidbody>();
+            if (own == null) return;
+            FramesTaken = true;
+            OwnAt = own.position;
+            OwnTurn = own.rotation;
+            if (connected != null)
+            {
+                ConnectedAt = connected.position;
+                ConnectedTurn = connected.rotation;
+            }
+        }
+
+        private Rigidbody connected;
+        private Vector3 jointAxis = Vector3.right, jointAnchor;
+        public Rigidbody connectedBody { get => connected; set { connected = value; TakeFrames(); } }
+        public Vector3 axis { get => jointAxis; set { jointAxis = value; TakeFrames(); } }
+        public Vector3 anchor { get => jointAnchor; set { jointAnchor = value; TakeFrames(); } }
         public Vector3 connectedAnchor { get; set; }
         public bool autoConfigureConnectedAnchor { get; set; } = true;
         public float breakForce { get; set; } = float.PositiveInfinity;
@@ -230,7 +251,8 @@ namespace UnityEngine
 
     public class ConfigurableJoint : Joint
     {
-        public Vector3 secondaryAxis { get; set; } = Vector3.up;
+        private Vector3 second = Vector3.up;
+        public Vector3 secondaryAxis { get => second; set { second = value; TakeFrames(); } }
         public ConfigurableJointMotion xMotion { get; set; }
         public ConfigurableJointMotion yMotion { get; set; }
         public ConfigurableJointMotion zMotion { get; set; }

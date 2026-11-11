@@ -231,6 +231,10 @@ namespace PhysicsBattler.Authority
 
         private readonly bool[] muscleOn = new bool[PartInfo.Count];
         private readonly float[] muscleLoad = new float[PartInfo.Count];
+        private readonly float[] muscleInertia = new float[PartInfo.Count];
+
+        /// <summary>The motors' gains sized by the inertia of what hangs from each joint, as forces (false: as accelerations with the load's boost, as they have been).</summary>
+        public static bool MusclesByInertia;
         private readonly Quaternion[] lastPoseTurn = new Quaternion[PartInfo.Count];
         private readonly bool[] poseTurnKnown = new bool[PartInfo.Count];
 
@@ -267,15 +271,19 @@ namespace PhysicsBattler.Authority
             if (!muscleOn[i])
             {
                 muscleOn[i] = true;
-                muscleLoad[i] = ChainLoad(part);
+                muscleLoad[i] = ChainLoad(part, out muscleInertia[i]);
             }
 
             var parent = anim.Part(PartInfo.Parent(part.id));
             var pose = anim.Part(part.id);
             Quaternion poseLocal = Quaternion.Inverse(parent.rotation) * pose.rotation;
-            JointMath.DriveGains(Mathf.Min(MostMuscleFrequency, MuscleGain * HoldFrequency(strength)), HoldDamping, 1f, muscleLoad[i], out float spring, out float damper);
+            // (By inertia (the plan "A different approach", step 2): the motor's torque sized for everything that hangs
+            // from the joint, as a force. As an acceleration PhysX sizes it for the lighter of the joint's two bodies:
+            // a wrist's for the forearm, a sixtieth of what a hand with a sword in it takes to turn.)
+            JointMath.DriveGains(Mathf.Min(MostMuscleFrequency, MuscleGain * HoldFrequency(strength)), HoldDamping, 1f, MusclesByInertia ? muscleInertia[i] : muscleLoad[i],
+                out float spring, out float damper);
             joint.rotationDriveMode = RotationDriveMode.Slerp;
-            joint.slerpDrive = new JointDrive { positionSpring = spring, positionDamper = damper, maximumForce = float.MaxValue, useAcceleration = true };
+            joint.slerpDrive = new JointDrive { positionSpring = spring, positionDamper = damper, maximumForce = MuscleMostForce, useAcceleration = !MusclesByInertia };
             joint.targetRotation = JointMath.TargetRotation(poseLocal, part.restLocalRotation, part.jointFrame);
 
             // The pose's own turning at the joint, fed forward (a jump isn't followed).
@@ -302,7 +310,7 @@ namespace PhysicsBattler.Authority
         /// (the parts below it, each at its distance from the joint) against the part alone, so every
         /// joint of the arm follows at the same speed.
         /// </summary>
-        private float ChainLoad(BodyPart part)
+        private float ChainLoad(BodyPart part, out float inertia)
         {
             Vector3 at = part.body.position;
             float Inertia(BodyPart p)
@@ -321,11 +329,12 @@ namespace PhysicsBattler.Authority
                 }
             }
 
+            inertia = all;
             return Mathf.Clamp(all / own, 1f, MaxMuscleLoad);
         }
 
         /// <summary>The most a joint's motor is strengthened for what hangs from it.</summary>
-        public const float MaxMuscleLoad = 8f;
+        public static float MaxMuscleLoad = 8f;
 
         /// <summary>
         /// How much quicker a motor is asked to be than the servo at the same pin. The first motor
@@ -334,7 +343,13 @@ namespace PhysicsBattler.Authority
         /// against 1 to 3 on the servo: PhysX's joint drive turns the parts below and the one above
         /// too, so it moves less than its gains say. The cap keeps it inside what a 60 Hz step holds.
         /// </summary>
-        public const float MuscleGain = 3f, MostMuscleFrequency = 24f;
+        public const float MuscleGain = 3f;
+
+        /// <summary>The quickest a motor is asked to be (Hz): 24 inside a 60 Hz step; a faster physics step holds more (the plan "A different approach", step 2).</summary>
+        public static float MostMuscleFrequency = 24f;
+
+        /// <summary>The most a motor pushes (its drive's force limit; unlimited by default): a muscle of limited strength loses to what is in its way.</summary>
+        public static float MuscleMostForce = float.MaxValue;
 
         /// <summary>The servo's damping: critical (1) never overshoots.</summary>
         public const float HoldDamping = 1f;

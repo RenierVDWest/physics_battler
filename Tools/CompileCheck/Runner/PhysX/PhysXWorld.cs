@@ -36,8 +36,9 @@ namespace PhysicsBattler.Engine
         /// <summary>Physics steps simulated so far.</summary>
         public long Steps { get; private set; }
 
-        private readonly PxFoundation* foundation;
-        private readonly PxPhysics* physics;
+        // (One foundation and one physics for the process, as PhysX has it; a world is a scene of its own.)
+        private static PxFoundation* foundation;
+        private static PxPhysics* physics;
         private readonly PxScene* scene;
         private readonly PxMaterial* material;
 
@@ -117,8 +118,17 @@ namespace PhysicsBattler.Engine
 
         public PhysXWorld(bool ground = true)
         {
-            foundation = physx_create_foundation();
-            physics = physx_create_physics(foundation);
+            if (physics == null)
+            {
+                foundation = physx_create_foundation();
+                physics = physx_create_physics(foundation);
+            }
+
+            if (Current != null)
+            {
+                Current.Close();
+            }
+
             var desc = PxSceneDesc_new(PxPhysics_getTolerancesScale(physics));
             var g = Physics.gravity;
             desc.gravity = V(g);
@@ -140,6 +150,18 @@ namespace PhysicsBattler.Engine
             }
 
             Current = this;
+        }
+
+        /// <summary>The world let go (a new one takes its place): its scene released, with everything in it.</summary>
+        private void Close()
+        {
+            foreach (var j in joints.Values)
+            {
+                Release(j);
+            }
+
+            joints.Clear();
+            PxScene_release_mut(scene);
         }
 
         // ---- The stubs' calls ------------------------------------------------------------------------------------
@@ -863,15 +885,18 @@ namespace PhysicsBattler.Engine
             var frame = Quaternion.LookRotation(z, y);
             Vector3 anchor = Vector3.Scale(cj.anchor, own.transform.lossyScale);
             var local0 = T(anchor, frame);
-            Vector3 worldAt = own.position + own.rotation * anchor;
-            Quaternion worldTurn = own.rotation * frame;
+            // (From the pose its bodies were in when it was set up, as Unity takes it: not the one they are in now.)
+            Vector3 ownAt = cj.FramesTaken ? cj.OwnAt : own.position;
+            Quaternion ownTurn = cj.FramesTaken ? cj.OwnTurn : own.rotation;
+            Vector3 worldAt = ownAt + ownTurn * anchor;
+            Quaternion worldTurn = ownTurn * frame;
             PxTransform local1;
             PxRigidActor* other = null;
             if (cj.connectedBody != null)
             {
                 var c = cj.connectedBody;
-                var inv = Quaternion.Inverse(c.rotation);
-                local1 = T(inv * (worldAt - c.position), inv * worldTurn);
+                var inv = Quaternion.Inverse(cj.FramesTaken ? cj.ConnectedTurn : c.rotation);
+                local1 = T(inv * (worldAt - (cj.FramesTaken ? cj.ConnectedAt : c.position)), inv * worldTurn);
                 other = (PxRigidActor*)bodies[c].Actor;
             }
             else

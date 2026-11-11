@@ -1058,7 +1058,12 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 // (Parrying, the sword arm is held exactly to its pose: pinned, the physical sword would trail the parry.)
-                if (striking || (Defends && stance == Stances.Sword && Parry != null))
+                if (striking && StrikeArm != AuthorityLevel.Kinematic)
+                {
+                    // (The plan "A different approach", step 2: the weapon arm physical through a blow, on its muscles.)
+                    Authority.Set(BodyRegion.ArmR, StrikeArm, StrikeArmStrength);
+                }
+                else if (striking || (Defends && stance == Stances.Sword && Parry != null))
                 {
                     Authority.Set(BodyRegion.ArmR, AuthorityLevel.Kinematic, 1f);
                 }
@@ -1087,6 +1092,12 @@ namespace PhysicsBattler.Locomotion
                             p.body.position += carried;
                         }
                     }
+                }
+
+                if (TorsoHold.HasValue)
+                {
+                    Authority.Set(BodyRegion.Torso, TorsoHold.Value, TorsoStrength);
+                    Authority.Set(BodyRegion.Head, TorsoHold.Value, TorsoStrength);
                 }
 
                 Authority.Apply(dt);
@@ -1140,6 +1151,23 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>A strike alone follows its target, as far as the arm's pull goes: where its target is now (null: none to follow).</summary>
         public System.Func<LocoClip, Vector3?> Follow;
+
+        /// <summary>
+        /// How the weapon arm is held through a blow: kinematic (exactly on its pose, as it has been: nothing can stop
+        /// it), or on its muscles at <see cref="StrikeArmStrength"/> (the plan "A different approach", step 2: the
+        /// experiment).
+        /// </summary>
+        public AuthorityLevel StrikeArm = AuthorityLevel.Kinematic;
+
+        public float StrikeArmStrength = 1f;
+
+        /// <summary>
+        /// The torso and head held another way than by their pins (null: by their pins, as they have been): kinematic, or
+        /// on their joints' motors from the carried pelvis (the experiment's whole physical upper body).
+        /// </summary>
+        public AuthorityLevel? TorsoHold;
+
+        public float TorsoStrength = 1f;
 
         /// <summary>The weapon arm is held to its pose this long after a strike (seconds).</summary>
         public const float WeaponArmHeldAfter = 0.4f;

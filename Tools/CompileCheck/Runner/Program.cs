@@ -35,6 +35,11 @@ internal static class Program
         }
 
 #if PHYSX
+        if (args.Length >= 1 && args[0] == "physx-arm")
+        {
+            return ArmExperiment.Run(args);
+        }
+
         if (args.Length >= 1 && args[0] == "physx")
         {
             return PhysXReport.Run(args);
