@@ -111,6 +111,40 @@ namespace PhysicsBattler.Authority
 
         public AuthorityLevel Level(BodyRegion region) => levels[(int)region];
 
+        /// <summary>Parts this leaves alone: moved by something else (the physical upper body's shadows).</summary>
+        public readonly bool[] Skipped = new bool[PartInfo.All.Length];
+
+        private readonly bool[] kinematicMoving = new bool[PartInfo.All.Length];
+        private readonly Vector3[] kinematicFrom = new Vector3[PartInfo.All.Length], kinematicTo = new Vector3[PartInfo.All.Length];
+        private readonly Quaternion[] kinematicTurnFrom = new Quaternion[PartInfo.All.Length], kinematicTurnTo = new Quaternion[PartInfo.All.Length];
+
+        /// <summary>
+        /// Before physics step <paramref name="k"/> of <paramref name="n"/> in this game step (<see cref="PhysicsSteps"/>):
+        /// each kinematic part a share of its way to its pose, so what it meets is pushed at the speed it moves, not
+        /// at four times it for a quarter of the step.
+        /// </summary>
+        public void Substep(int k, int n)
+        {
+            float share = k / (float)n;
+            foreach (var id in PartInfo.All)
+            {
+                int i = (int)id;
+                if (!kinematicMoving[i] || rig.IsSevered(id))
+                {
+                    continue;
+                }
+
+                var body = rig.Part(id).body;
+                if (!body.isKinematic)
+                {
+                    continue;
+                }
+
+                body.MovePosition(Vector3.Lerp(kinematicFrom[i], kinematicTo[i], share));
+                body.MoveRotation(Quaternion.Slerp(kinematicTurnFrom[i], kinematicTurnTo[i], share));
+            }
+        }
+
         /// <summary>Drives every part toward its pose for the coming physics step.</summary>
         public void Apply(float dt)
         {
@@ -127,6 +161,12 @@ namespace PhysicsBattler.Authority
                     PhysicsBattler.Units.GroundContacts.SetKinematic(rig.Part(id).partCollider, false);
                     SetMuscle(rig.Part(id), 0f, dt);
                     continue;   // (cut off: physics alone has it now)
+                }
+
+                if (Skipped[(int)id])
+                {
+                    kinematicMoving[(int)id] = false;
+                    continue;   // (another body's shadow: the physical upper body moves it)
                 }
 
                 var part = rig.Part(id);
@@ -173,10 +213,22 @@ namespace PhysicsBattler.Authority
                             turn = Quaternion.RotateTowards(body.rotation, turn, KinematicMostTurn * dt);
                         }
 
-                        body.MovePosition(to);
-                        body.MoveRotation(turn);
+                        if (PhysicsSteps.Manual)
+                        {
+                            // (The game steps the engine itself, several steps to this one: it goes a share of its way at each.)
+                            kinematicFrom[i] = body.position;
+                            kinematicTurnFrom[i] = body.rotation;
+                            kinematicTo[i] = to;
+                            kinematicTurnTo[i] = turn;
+                        }
+                        else
+                        {
+                            body.MovePosition(to);
+                            body.MoveRotation(turn);
+                        }
                     }
 
+                    kinematicMoving[i] = kinematic && PhysicsSteps.Manual;
                     kinematicKnown[i] = kinematic;
                     followed[i] = false;
                     continue;

@@ -35,6 +35,8 @@ internal static class HitExperiment
         public float Loose = 1f, LooseFor = 0.12f;
         /// <summary>What the blow gives the body goes to its walk as a change of speed (its weight over the body's mass): the legs take it, stepping.</summary>
         public bool Legs;
+        /// <summary>Built by the game's own class (<see cref="UpperBodyArticulation"/>, on the stubs' ArticulationBody, the game stepping the engine), not straight in the engine.</summary>
+        public bool Game;
     }
 
     private sealed class Blow
@@ -60,6 +62,7 @@ internal static class HitExperiment
         var ci = CultureInfo.InvariantCulture;
         Physics.Backend = new PhysXWorld(false);
         JointConventions.EnsureProbed();
+        ArticulationConventions.EnsureProbed();
         float F(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), NumberStyles.Float, ci, out float v) ? v : otherwise;
         var setups = new List<Setup>
         {
@@ -68,6 +71,7 @@ internal static class HitExperiment
             new Setup { Name = "muscles: torso 6 Hz", Articulated = true, Torso = 6f, Neck = 8f },
             new Setup { Name = "muscles: torso 12 Hz", Articulated = true, Torso = 12f, Neck = 14f },
             new Setup { Name = "muscles: torso 12 Hz, let go to a quarter for 0.12 s when struck", Articulated = true, Torso = 12f, Neck = 14f, Loose = 0.25f },
+            new Setup { Name = "the game's own upper body: torso 6 Hz", Articulated = true, Game = true, Torso = 6f, Neck = 8f },
             new Setup { Name = "muscles: torso 6 Hz, and the legs take the blow", Articulated = true, Torso = 6f, Neck = 8f, Legs = true },
             new Setup { Name = "muscles: torso 6 Hz, let go to a quarter for 0.12 s, and the legs take the blow", Articulated = true, Torso = 6f, Neck = 8f, Loose = 0.25f, Legs = true },
             new Setup { Name = "muscles: as set", Articulated = true, Legs = Environment.GetEnvironmentVariable("HIT_LEGS") != null, Torso = F("HIT_TORSO", 6f), Neck = F("HIT_NECK", 8f), Arms = F("HIT_ARMS", 10f), Strength = F("HIT_STRENGTH", 600f), Loose = F("HIT_LOOSE", 1f), LooseFor = F("HIT_LOOSE_FOR", 0.12f) },
@@ -117,7 +121,9 @@ internal static class HitExperiment
         const float dt = 1f / 60f;
         foreach (var body in Physics.Bodies.ToArray()) UnityEngine.Object.DestroyImmediate(body.gameObject);
         foreach (var collider in Physics.Colliders.ToArray()) UnityEngine.Object.DestroyImmediate(collider.gameObject);
-        var world = PhysXWorld.Install(BodyPart.GroundLayer, setup.Substeps);
+        var world = PhysXWorld.Install(BodyPart.GroundLayer, setup.Game ? 1 : setup.Substeps);
+        PhysicsSteps.Manual = setup.Game;
+        PhysicsSteps.Substeps = setup.Substeps;
         var rig = RigFile.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "_Battler/Data/Rigs/medium_rig.json")));
         var profile = UnitProfile.CreateDefault();
         profile.body = "Medium";
@@ -127,12 +133,30 @@ internal static class HitExperiment
         fighter.Loco.Place(Vector3.zero, 0f);
         var parts = ArticulatedBody.UpperBody;
         ArticulatedBody body2 = null;
+        UpperBodyArticulation upper = null;
+        void Before(int k, int n, float sub)
+        {
+            fighter.Authority.Substep(k, n);
+            upper?.Substep(k, n, dt);
+        }
+
         void Step()
         {
             fighter.Move(dt, Vector3.zero, 0f, new Vector3(0f, 1.3f, 2f), false);
             fighter.Apply(dt);
-            Physics.Simulate(dt);
+            if (setup.Game)
+            {
+                upper?.BeginStep();
+                PhysicsSteps.Run(dt);
+                upper?.MoveShadows();
+            }
+            else
+            {
+                Physics.Simulate(dt);
+            }
         }
+
+        if (setup.Game) PhysicsSteps.BeforeSubstep += Before;
 
         for (int i = 0; i < 5; i++) Step();
         (float hz, float most) Muscle(PartId id, float loose)
@@ -158,11 +182,25 @@ internal static class HitExperiment
                 if (c != null) c.enabled = false;
             }
 
-            body2 = new ArticulatedBody(world, fighter.Anim, unitRig, parts, id => Muscle(id, 1f));
+            if (setup.Game)
+            {
+                foreach (var id in parts)
+                {
+                    fighter.Authority.Skipped[(int)id] = true;
+                    unitRig.Part(id).body.isKinematic = true;
+                }
+
+                upper = new UpperBodyArticulation(unitRig, fighter.Anim, null, id => Muscle(id, 1f));
+            }
+            else
+            {
+                body2 = new ArticulatedBody(world, fighter.Anim, unitRig, parts, id => Muscle(id, 1f));
+            }
         }
 
-        Vector3 Off(PartId id) => body2 != null ? body2.Off(id) : unitRig.Part(id).body.position - fighter.Anim.Part(id).position;
-        Vector3 At(PartId id) => body2 != null ? body2.PartAt(id, out _) : unitRig.Part(id).body.position;
+        Vector3 Off(PartId id) => upper != null ? upper.Link(id).transform.position - fighter.Anim.Part(id).position
+            : body2 != null ? body2.Off(id) : unitRig.Part(id).body.position - fighter.Anim.Part(id).position;
+        Vector3 At(PartId id) => upper != null ? upper.Link(id).transform.position : body2 != null ? body2.PartAt(id, out _) : unitRig.Part(id).body.position;
         // (A part's middle: its collider's, as it sits on the part.)
         var middle = new Dictionary<PartId, Vector3>();
         foreach (var id in parts)
@@ -174,6 +212,12 @@ internal static class HitExperiment
 
         Vector3 Middle(PartId id)
         {
+            if (upper != null)
+            {
+                var t = upper.Link(id).transform;
+                return t.position + t.rotation * middle[id];
+            }
+
             if (body2 != null)
             {
                 Vector3 at = body2.PartAt(id, out var turn);
@@ -197,6 +241,7 @@ internal static class HitExperiment
         if (Trace)
         {
             if (body2 != null) Console.WriteLine("    what hangs from each joint (kg m2): " + string.Join(", ", parts.Skip(1).Select(id => $"{id} {body2.Hangs(id)}")));
+            if (upper != null) Console.WriteLine("    what hangs from each joint (kg m2): " + string.Join(", ", parts.Skip(1).Select(id => $"{id} {upper.Hangs(id)}")));
             if (body2 != null) Console.WriteLine("    joints off (deg): " + string.Join(", ", parts.Skip(1).Select(id => $"{id} {body2.JointOff(id):0.0}")));
         }
 
@@ -262,7 +307,8 @@ internal static class HitExperiment
             {
                 foreach (var id in PartInfo.All)
                 {
-                    Vector3 at = body2 != null && Array.IndexOf(parts, id) >= 0 ? body2.PartAt(id, out _) : unitRig.Part(id).body.position;
+                    Vector3 at = upper != null && Array.IndexOf(parts, id) >= 0 ? upper.Link(id).transform.position
+                        : body2 != null && Array.IndexOf(parts, id) >= 0 ? body2.PartAt(id, out _) : unitRig.Part(id).body.position;
                     film.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0},{1},{2},{3:0.0000},{4:0.0000},{5:0.0000}", i, metAt >= 0 ? i - metAt : -1, id, at.x, at.y, at.z));
                 }
 
@@ -279,12 +325,9 @@ internal static class HitExperiment
                     result.Met = true;
                     // (The part struck: the nearest to the ball as it met the body.)
                     result.Struck = parts.OrderBy(id => (Middle(id) - ball.position).sqrMagnitude).First();
-                    if (body2 != null)
+                    if (setup.Loose < 1f)
                     {
-                        if (setup.Loose < 1f)
-                        {
-                            foreach (var id in parts) { var m = Muscle(id, setup.Loose); body2.SetMuscle(id, m.hz, m.most); }
-                        }
+                        foreach (var id in parts) { var m = Muscle(id, setup.Loose); body2?.SetMuscle(id, m.hz, m.most); upper?.SetMuscle(id, m.hz, m.most); }
                     }
                 }
                 else if (i > 60)
@@ -307,9 +350,9 @@ internal static class HitExperiment
                 ball.position = ballObject.transform.position;
             }
 
-            if (body2 != null && setup.Loose < 1f && since == Mathf.RoundToInt(setup.LooseFor / dt))
+            if (setup.Loose < 1f && since == Mathf.RoundToInt(setup.LooseFor / dt))
             {
-                foreach (var id in parts) { var m = Muscle(id, 1f); body2.SetMuscle(id, m.hz, m.most); }
+                foreach (var id in parts) { var m = Muscle(id, 1f); body2?.SetMuscle(id, m.hz, m.most); upper?.SetMuscle(id, m.hz, m.most); }
             }
 
             bool anyOut = false;
@@ -376,6 +419,9 @@ internal static class HitExperiment
         }
 
         film?.Dispose();
+        if (setup.Game) PhysicsSteps.BeforeSubstep -= Before;
+        PhysicsSteps.Manual = false;
+        upper?.Destroy();
         fighter.Destroy();
         return result;
     }

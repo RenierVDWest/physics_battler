@@ -18,6 +18,8 @@ namespace PhysicsBattler.Engine
             public PxArticulationLink* Link;
             public ArtState Art;
             public bool Gravity = true;
+            public float Mass;
+            public Vector3 Centre, Turns;
         }
 
         private sealed class ArtState
@@ -179,12 +181,12 @@ namespace PhysicsBattler.Engine
                     }
                     else
                     {
-                        PxRigidBody_setMass_mut(rigid, Mathf.Max(1e-4f, b.mass));
-                        var cm = T(b.centerOfMass, b.inertiaTensorRotation);
-                        PxRigidBody_setCMassLocalPose_mut(rigid, &cm);
-                        var tensor = V(b.inertiaTensor);
-                        PxRigidBody_setMassSpaceInertiaTensor_mut(rigid, &tensor);
+                        SetMass(l);
                     }
+
+                    l.Mass = b.mass;
+                    l.Centre = b.centerOfMass;
+                    l.Turns = b.inertiaTensor;
 
                     PxRigidBody_setLinearDamping_mut(rigid, b.linearDamping);
                     PxRigidBody_setAngularDamping_mut(rigid, b.angularDamping);
@@ -197,6 +199,20 @@ namespace PhysicsBattler.Engine
                 PxScene_addArticulation_mut(scene, a.Art);
                 a.InScene = true;
             }
+        }
+
+        private static void SetMass(LinkState l)
+        {
+            var rigid = (PxRigidBody*)l.Link;
+            var b = l.Body;
+            PxRigidBody_setMass_mut(rigid, Mathf.Max(1e-4f, b.mass));
+            var cm = T(b.centerOfMass, b.inertiaTensorRotation);
+            PxRigidBody_setCMassLocalPose_mut(rigid, &cm);
+            var tensor = V(b.inertiaTensor);
+            PxRigidBody_setMassSpaceInertiaTensor_mut(rigid, &tensor);
+            l.Mass = b.mass;
+            l.Centre = b.centerOfMass;
+            l.Turns = b.inertiaTensor;
         }
 
         /// <summary>Before each physics step: the drives as the stubs have them now, the pushes asked for, a root put somewhere.</summary>
@@ -248,6 +264,12 @@ namespace PhysicsBattler.Engine
                         }
 
                         b.DrivesChanged = false;
+                    }
+
+                    if (b.mass != l.Mass || Differs(b.centerOfMass, l.Centre) || Differs(b.inertiaTensor, l.Turns))
+                    {
+                        // (Its weight changed: something put in its hand.)
+                        SetMass(l);
                     }
 
                     foreach (var p in b.Pushes)
