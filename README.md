@@ -1758,8 +1758,60 @@ What it found:
   today's passes through it), and leaves the ball at 0.2 to 0.7 m/s where today's kinematic arm launches it at 9.
 - No blow-ups in any of it.
 
-Next: the same arm as an articulation (PhysX's reduced coordinates), and the blow's fastest frames slowed to a real
-cut's speed.
+**The sword arm as an articulation, and a limit on a blade's speed (step 2, the second build).** The same experiment
+with the arm built the other way the plan named: `Runner/PhysX/ArticulatedArm.cs`, a PhysX articulation (reduced
+coordinates: the joints can't come apart, and its motors are solved with the chain, not after it). Chest, upper arm,
+forearm, hand with a solid 1.2 kg sword (balanced 18 cm past the grip, as a sword is, not halfway along its blade);
+ball joints, each motor an acceleration drive toward the posed joint's turn (its turn vector) with the pose's speed fed
+forward; the chest locked to a body the pose carries. `physx-arm` now ends with it (`ART_HZ` the motors' frequency,
+default 80; `ART_FORCE` the shoulder's most torque, default 600 N m, the elbow 0.7 and the wrist 0.25 of it).
+
+What had to be found out to build it (for the Unity side later):
+
+- A ball joint's position is the child's turn against its parent as a turn vector (axis times angle, radians).
+- A part's inertia must be given in the part's own frame. PhysX works out a capsule's in a frame turned along the
+  capsule; with that, a ball joint settles up to 18 degrees off its target. (`ART_TURNED_MASS=1` shows it.)
+- Each joint needs a little armature (0.02 kg m2): without it a blade, which has next to no inertia about its own
+  length, rings on a stiff motor (the hand at 1 to 4 m/s standing still).
+- A motor's limit is an impulse a step unless the articulation is told its limits are forces
+  (`DriveLimitsAreForces`), as Unity's are.
+
+Where the 67 m/s comes from: the clips themselves. In `sns_forehand` the hand turns 83 degrees between two frames
+(2500 degrees a second) with the wrist at 13 m/s; the wrist's steer onto the target adds the rest. To follow that with
+this sword a wrist needs about 850 N m; a person's turns with 25.
+
+So a strike's blade is given a speed limit: Combat Feel > A blow's speed > `mostBladeSpeed` (m/s; 0, the default:
+off, the clips at their own pace, and the fight's log is the same line for line). With a limit set, `LocoBody` turns
+the weapon hand back where the pose would swing the blade's point further than the limit allows in a step
+(`LimitBlade`), and slows the strike's clip by what the pose wanted (`BladePace`, through `Locomotor.ShotPace`), so
+the body waits for its blade. At 30 m/s a blow lands 0.05 s later than its clip's (0.07 at most); the posed point
+never goes faster than 30.
+
+The eight strikes, each at nothing, at a post and at a 20 kg ball, 240 physics steps a second (tip: how far the
+physical blade's point is from the posed one):
+
+| | tip in the wind-up, at most | tip through the blow, at most (median) | tip at contact | deepest in the post | ball left at |
+|---|---|---|---|---|---|
+| joints with motors, limit 30 | 81 cm | 77 cm (65) | 53 cm | 0.2 cm | 0.3 m/s |
+| articulation 600 N m, no limit | 8 cm | 91 cm (55) | 36 cm | 7.2 cm | 0.9 m/s |
+| articulation 600 N m, limit 30 | 8 cm | 44 cm (28) | 10 cm | 0.1 cm | 0.9 m/s |
+| articulation, motors without limit, limit 30 | 7 cm | 19 cm (15) | 9 cm | 0.1 cm | 2.9 m/s |
+| articulation 600 N m, limit 30, 120 steps a second | 14 cm | 45 cm (32) | 13 cm | 7.7 cm | 0.7 m/s |
+
+The verdict: the articulation, with the limit. It holds a slow pose within 8 cm at the point of a 90 cm blade, meets
+its target within 10 cm, stops on the post and gives the ball a real blow's push, with no blow-ups; the joints with
+motors are 40 to 80 cm off even in the wind-up. For the two or three steps of a blow's fastest part the blade is up to
+44 cm behind its pose: an arm of that strength can't be there sooner, and it is back on the pose after. Without the
+limit the blade also goes too fast for the engine to catch (7 cm into the post). 240 steps a second are needed (at 120:
+8 cm into the post). Motors without a limit follow closest, but fight what they meet (the hand at 37 m/s after the
+post, the ball launched at up to 7 m/s): strength is what makes contact right.
+
+Tried and dropped: slowing the clip by how far the physical blade is behind its pose (a closed loop). The pose jumps
+a metre in a step before the arm has fallen behind, and the arm then overshoots: worse than no limit.
+
+With `FIGHT_BLADE=30` the headless clip fight (posed, the old way) plays with the limit: 97 blows where there were
+109, parries 12 where there were 27. The defender's reading of when a blow lands doesn't know about the slowed clip
+yet; that is for the step that brings the arm into the fight.
 
 `Tools/CompileCheck` compiles every script against small UnityEngine/UnityEditor/URP stubs (with real vector maths),
 runs the EditMode tests, and can dry-run the battle (six units on the board, with a tiny integrator standing in for

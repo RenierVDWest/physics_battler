@@ -53,6 +53,12 @@ internal static class FightReport
             UnitController.ClipPhysical = false;
         }
 
+        // (The Combat Feel's limit on a blade's speed, for a fight played with it: FIGHT_BLADE=30.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_BLADE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float blade))
+        {
+            PhysicsBattler.Locomotion.CombatFeel.MostBladeSpeed = blade;
+        }
+
         float seconds = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SECONDS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fs) ? fs : 240f;
         var result = Play(rigs, seed, seconds, recorder, out var stats);
         Call(recorder, "OnDisable");

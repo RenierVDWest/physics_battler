@@ -152,6 +152,40 @@ namespace PhysicsBattler.Engine
             Current = this;
         }
 
+        // ---- For what is built straight in the engine (the articulation experiment) ---------------------------------
+
+        internal PxPhysics* Px => physics;
+        internal PxScene* Scene => scene;
+        internal PxMaterial* Material => material;
+
+        /// <summary>Called before each physics step of a game step: which one (from 1), of how many, and the physics step's length.</summary>
+        public Action<int, int, float> BeforeSubstep;
+
+        internal uint NewId() => nextId++;
+
+        internal void IgnoreIds(uint a, uint b) => extraIgnored.Add(Key(a, b));
+
+        /// <summary>A collider of the stubs' and a shape built straight in the engine don't stop each other.</summary>
+        internal void IgnoreWith(Collider stub, uint id)
+        {
+            pendingIgnore.Add((stub, id));
+            filteringDirty = true;
+        }
+
+        private readonly List<(Collider, uint)> pendingIgnore = new List<(Collider, uint)>();
+
+        private readonly HashSet<ulong> extraIgnored = new HashSet<ulong>();
+
+        internal static PxVec3 Vec(Vector3 v) => V(v);
+        internal static Vector3 Vec(PxVec3 v) => U(v);
+        internal static Quaternion Quat(PxQuat q) => U(q);
+        internal static PxTransform Pose(Vector3 p, Quaternion q) => T(p, q);
+
+        /// <summary>A collider's shape for the engine, with where it sits against the collider's own transform.</summary>
+        internal static bool ShapeOf(Collider collider, PxGeometry* into, out Vector3 offset, out Quaternion turn) => MakeGeo(collider, (Geo*)into, out offset, out turn);
+
+        internal const int GeoSize = 64;
+
         /// <summary>The world let go (a new one takes its place): its scene released, with everything in it.</summary>
         private void Close()
         {
@@ -315,6 +349,7 @@ namespace PhysicsBattler.Engine
                     }
                 }
 
+                BeforeSubstep?.Invoke(k, n, step / n);
                 PxScene_simulate_mut(scene, step / n, null, null, 0, true);
                 uint error = 0;
                 PxScene_fetchResults_mut(scene, true, &error);
@@ -705,6 +740,14 @@ namespace PhysicsBattler.Engine
             {
                 filteringDirty = false;
                 ignored.Clear();
+                foreach (var (stub, id) in pendingIgnore)
+                {
+                    if (shapes.TryGetValue(stub, out var st))
+                    {
+                        extraIgnored.Add(Key(st.Id, id));
+                    }
+                }
+
                 foreach (var (a, b) in ignoredPairs)
                 {
                     if (shapes.TryGetValue(a, out var sa) && shapes.TryGetValue(b, out var sb))
@@ -729,7 +772,7 @@ namespace PhysicsBattler.Engine
             }
 
             var body = collider.attachedRigidbody;
-            var sh = new ShapeState { Collider = collider, Id = nextId++, Layer = -1 };
+            var sh = new ShapeState { Collider = collider, Id = nextId++, Layer = int.MinValue };
             sh.Trigger = collider.isTrigger;
             sh.Enabled = collider.enabled;
             var flags = !sh.Enabled ? (PxShapeFlags)0 : sh.Trigger ? PxShapeFlags.TriggerShape | PxShapeFlags.SceneQueryShape : PxShapeFlags.SimulationShape | PxShapeFlags.SceneQueryShape;
@@ -991,6 +1034,8 @@ namespace PhysicsBattler.Engine
             PxD6Joint_setDrive_mut(px, which, &drive);
         }
 
+        public static bool TraceUnknown = Environment.GetEnvironmentVariable("PHYSX_CONTACT_TRACE") != null;
+
         // ---- The engine's callbacks ------------------------------------------------------------------------------
 
         private static ulong Key(uint a, uint b) => a < b ? ((ulong)a << 32) | b : ((ulong)b << 32) | a;
@@ -1000,7 +1045,7 @@ namespace PhysicsBattler.Engine
         {
             var world = Current;
             uint a = info->filterData0.word0, b = info->filterData1.word0;
-            if (world != null && a != 0 && b != 0 && (world.ignored.Contains(Key(a, b)) || world.layerIgnored[info->filterData0.word1 & 31, info->filterData1.word1 & 31]))
+            if (world != null && a != 0 && b != 0 && (world.ignored.Contains(Key(a, b)) || world.extraIgnored.Contains(Key(a, b)) || world.layerIgnored[info->filterData0.word1 & 31, info->filterData1.word1 & 31]))
             {
                 return PxFilterFlags.Suppress;
             }
@@ -1027,6 +1072,13 @@ namespace PhysicsBattler.Engine
                 IntPtr s0 = *(IntPtr*)pair, s1 = *(IntPtr*)(pair + 8);
                 if (!world.byShape.TryGetValue(s0, out var a) || !world.byShape.TryGetValue(s1, out var b))
                 {
+                    if (TraceUnknown)
+                    {
+                        var d0 = PxShape_getSimulationFilterData((PxShape*)s0);
+                        var d1 = PxShape_getSimulationFilterData((PxShape*)s1);
+                        Console.WriteLine($"    [engine contact] shapes {d0.word0} and {d1.word0}");
+                    }
+
                     // (The ground's plane has no collider of the stubs': the other is still told.)
                     world.byShape.TryGetValue(s0, out a);
                     world.byShape.TryGetValue(s1, out b);

@@ -79,6 +79,7 @@ namespace PhysicsBattler.Locomotion
             loco.RootTurned += OnRootTurned;
             this.anim = anim;
             this.loco = loco;
+            loco.ShotPace = BladePace;
             pelvisAboveHips = -anim.RestLocalPosition(PartId.ThighL).y;
             legReach = anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude;
 
@@ -562,6 +563,7 @@ namespace PhysicsBattler.Locomotion
                 if (right)
                 {
                     SteerBlade(hand);
+                    LimitBlade(hand);
                 }
 
                 return;
@@ -602,6 +604,7 @@ namespace PhysicsBattler.Locomotion
             if (right)
             {
                 SteerBlade(hand);
+                LimitBlade(hand);
             }
         }
 
@@ -636,6 +639,85 @@ namespace PhysicsBattler.Locomotion
 
             float angle = Mathf.Min(Vector3.Angle(blade, want), most) * w;
             hand.rotation = Quaternion.AngleAxis(angle, axis.normalized) * hand.rotation;
+        }
+
+        // A strike's blade as the pose last left it, and how far the pose wanted its point to go for each second of
+        // its clip over the last step.
+        private Vector3 bladeTipWas;
+        private LocoClip bladeTipClip;
+        private float bladeTipTime, bladePerClipSecond;
+
+        /// <summary>
+        /// The share of the blade's speed limit a strike's clip is paced for: under 1, the clip is slowed a little more
+        /// than the limit asks, so a blade the limit has left behind its pose has speed to spare to catch it up with.
+        /// </summary>
+        public static float BladePaceShare = 0.8f;
+
+        /// <summary>How far behind the pose its blade's point was left by its speed limit this step (metres; 0: on it).</summary>
+        public float BladeBehind { get; private set; }
+
+        /// <summary>
+        /// A strike's blade goes no faster than <see cref="CombatFeel.MostBladeSpeed"/> (the clips whip it through their
+        /// fastest frames at two or three times what an arm can swing a sword at). Where the pose would swing its point
+        /// further than that in this step, the weapon hand is turned back: the point goes as far along its way as the
+        /// limit lets it. What the pose wanted is noted, and the clip is slowed by it from the next step
+        /// (<see cref="BladePace"/>), so the body waits for its blade and the blade is back on its pose within a step or two.
+        /// </summary>
+        private void LimitBlade(Transform hand)
+        {
+            float most = CombatFeel.MostBladeSpeed;
+            var clip = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
+            var slot = anim.SlotWeaponR;
+            BladeBehind = 0f;
+            if (most <= 0f || clip == null || clip.ContactFrame < 0 || slot == null)
+            {
+                bladeTipClip = null;
+                bladePerClipSecond = 0f;
+                return;
+            }
+
+            Vector3 grip = slot.position, way = slot.rotation * Vector3.forward;
+            Vector3 tip = grip + way * WeaponLength;
+            if (bladeTipClip != clip)
+            {
+                bladePerClipSecond = 0f;
+            }
+            else
+            {
+                float far = (tip - bladeTipWas).magnitude, went = loco.ShotTime - bladeTipTime;
+                if (went > 1e-4f)
+                {
+                    bladePerClipSecond = far / went;
+                }
+
+                float reach = most * poseDt;
+                if (far > reach && far > 1e-5f)
+                {
+                    Vector3 to = bladeTipWas + (tip - bladeTipWas) * (reach / far) - grip;
+                    if (to.sqrMagnitude > 1e-8f)
+                    {
+                        hand.rotation = Quaternion.FromToRotation(way, to.normalized) * hand.rotation;
+                        BladeBehind = far - reach;
+                        tip = slot.position + slot.rotation * Vector3.forward * WeaponLength;
+                    }
+                }
+            }
+
+            bladeTipWas = tip;
+            bladeTipTime = loco.ShotTime;
+            bladeTipClip = clip;
+        }
+
+        /// <summary>
+        /// How fast a strike's clip plays (0..1 of its own pace) for its blade's point to go no faster than
+        /// <see cref="CombatFeel.MostBladeSpeed"/>: by what the pose did with it over the last step (how far it wanted
+        /// the point to go, the way it had fallen behind as well). 1 with no limit set, and for what isn't a strike.
+        /// </summary>
+        public float BladePace(LocoClip clip, float time)
+        {
+            float most = CombatFeel.MostBladeSpeed;
+            most *= BladePaceShare;
+            return most > 0f && bladeTipClip == clip && bladePerClipSecond > most ? most / bladePerClipSecond : 1f;
         }
 
         private static bool IsThrust(LocoClip clip) => clip != null && clip.Kind != null && clip.Kind.StartsWith("thrust");

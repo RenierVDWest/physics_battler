@@ -1081,7 +1081,17 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>How fast the playing one-shot goes against its own pace (its speed and its chamber's).</summary>
-        public float ShotRate => ShotSpeed * ChamberNow;
+        public float ShotRate => ShotSpeed * ChamberNow * PaceNow;
+
+        /// <summary>
+        /// The playing one-shot's pace where its body says it must go slower than its clip does (the clip and its time
+        /// to 0..1 of its own pace): a strike waits for the arm that swings it. The clips whip a blade through their
+        /// fastest frames at two or three times what an arm can swing a sword at.
+        /// </summary>
+        public System.Func<LocoClip, float, float> ShotPace;
+
+        /// <summary>That pace now (1: the clip's own).</summary>
+        public float PaceNow => ShotPace != null && Current == Mode.OneShot && Shot != null && !rewinding ? Mathf.Clamp(ShotPace(Shot, ShotTime), 0.05f, 1f) : 1f;
 
         /// <summary>
         /// Whether the playing one-shot has both feet off the ground now or in the last <paramref name="within"/>
@@ -1204,7 +1214,7 @@ namespace PhysicsBattler.Locomotion
             float from = ShotTime;
             ShotTime = rewinding
                 ? Mathf.Max(rewindFloor, ShotTime + dt * TimeScale * ShotSpeed)
-                : Mathf.Min(shotEnd, ShotTime + dt * TimeScale * Mathf.Max(0f, ShotSpeed) * ChamberNow);
+                : Mathf.Min(shotEnd, ShotTime + dt * TimeScale * Mathf.Max(0f, ShotSpeed) * ChamberNow * PaceNow);
             clip.RootMotion(from, ShotTime, out var moved, out float turned);
             if (shotAimOver > 0f && from < shotAimOver)
             {
