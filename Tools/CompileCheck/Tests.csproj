@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>PhysicsBattler.Tests</AssemblyName>
+    <DefineConstants>UNITY_INCLUDE_TESTS</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <PhysXDir>$(MSBuildThisFileDirectory)ThirdParty/MagicPhysX/src/MagicPhysX/</PhysXDir>
+  </PropertyGroup>
+  <!-- The real PhysX engine under the stubs (get-physx.sh fetches it; without it, the dry run as before). -->
+  <PropertyGroup Condition="Exists('$(PhysXDir)NativeMethods.g.cs')">
+    <DefineConstants>$(DefineConstants);PHYSX</DefineConstants>
+    <NoWarn>$(NoWarn);CS8981;CS8500;CS8632</NoWarn>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(PhysXDir)NativeMethods.g.cs')">
+    <Compile Include="$(PhysXDir)NativeMethods.g.cs" Link="ThirdParty/NativeMethods.g.cs" />
+    <Compile Include="$(PhysXDir)NativeMethods.DllImportResolver.cs" Link="ThirdParty/NativeMethods.DllImportResolver.cs" />
+    <None Include="$(PhysXDir)runtimes/linux-x64/native/libmagicphysx.so" Link="runtimes/linux-x64/native/libmagicphysx.so" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/_Battler/Tests/EditMode/**/*.cs" />
+    <Compile Include="Runner/**/*.cs" />
+    <ProjectReference Include="UnityEngine.csproj" />
+    <ProjectReference Include="NUnitStub.csproj" />
+    <ProjectReference Include="Runtime.csproj" />
+  </ItemGroup>
+</Project>

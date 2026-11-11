@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>Unity.RenderPipelines.Universal.Runtime</AssemblyName></PropertyGroup>
+  <ItemGroup><Compile Include="Stubs/URP/**/*.cs" /><ProjectReference Include="UnityEngine.csproj" /></ItemGroup>
+</Project>

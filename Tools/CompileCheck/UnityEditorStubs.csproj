@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>UnityEditor</AssemblyName></PropertyGroup>
+  <ItemGroup><Compile Include="Stubs/Editor/**/*.cs" /><ProjectReference Include="UnityEngine.csproj" /></ItemGroup>
+</Project>

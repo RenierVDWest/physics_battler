@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>nunit.framework</AssemblyName></PropertyGroup>
+  <ItemGroup><Compile Include="Stubs/NUnit/**/*.cs" /></ItemGroup>
+</Project>

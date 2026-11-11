@@ -73,3 +73,6 @@ Tools/BuildSim/results.json
 
 # The real PhysX engine for the headless runner (Tools/CompileCheck/get-physx.sh fetches it)
 /Tools/CompileCheck/ThirdParty/
+
+# The headless harness's own project files are not Unity's: kept (they were ignored, and lived only on one machine)
+!/Tools/CompileCheck/*.csproj

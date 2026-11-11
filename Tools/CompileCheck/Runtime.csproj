@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- dotnet build Runtime.csproj [-p:LegacyInput=true] [-p:WithEditor=true]
+       WithEditor also compiles the UNITY_EDITOR parts of runtime scripts (edit-mode previews). -->
+  <PropertyGroup>
+    <AssemblyName>PhysicsBattler.Runtime</AssemblyName>
+    <DefineConstants Condition="'$(LegacyInput)' != 'true'">ENABLE_INPUT_SYSTEM</DefineConstants>
+    <DefineConstants Condition="'$(LegacyInput)' == 'true'">ENABLE_LEGACY_INPUT_MANAGER</DefineConstants>
+    <DefineConstants Condition="'$(WithEditor)' == 'true'">$(DefineConstants);UNITY_EDITOR</DefineConstants>
+    <OutputPath Condition="'$(WithEditor)' == 'true'">bin/RuntimeWithEditor/</OutputPath>
+    <BaseIntermediateOutputPath Condition="'$(WithEditor)' == 'true'">obj/RuntimeWithEditor/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/_Battler/Scripts/Runtime/**/*.cs" />
+    <ProjectReference Include="UnityEngine.csproj" />
+    <ProjectReference Include="UnityInputSystem.csproj" />
+    <ProjectReference Condition="'$(WithEditor)' == 'true'" Include="UnityEditorStubs.csproj" />
+  </ItemGroup>
+</Project>

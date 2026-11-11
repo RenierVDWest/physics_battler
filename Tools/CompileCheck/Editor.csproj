@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>PhysicsBattler.Editor</AssemblyName>
+    <DefineConstants>UNITY_EDITOR;ENABLE_INPUT_SYSTEM</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/_Battler/Scripts/Editor/**/*.cs" />
+    <ProjectReference Include="UnityEngine.csproj" />
+    <ProjectReference Include="UnityEditorStubs.csproj" />
+    <ProjectReference Include="UnityUrp.csproj" />
+    <ProjectReference Include="Runtime.csproj" />
+  </ItemGroup>
+</Project>

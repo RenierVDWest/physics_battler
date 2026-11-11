@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>UnityEngine</AssemblyName></PropertyGroup>
+  <ItemGroup><Compile Include="Stubs/Engine/**/*.cs" /></ItemGroup>
+</Project>
