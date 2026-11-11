@@ -1658,6 +1658,7 @@ namespace PhysicsBattler.Locomotion
                 else
                 {
                     foot.Target = AboveGround(f, held);
+                    LiftMoving(f, foot, dt);
                     return;
                 }
             }
@@ -1672,6 +1673,56 @@ namespace PhysicsBattler.Locomotion
             }
             foot.YawHold = foot.YawFrom * (1f - u * u * (3f - 2f * u));
             foot.Target = AboveGround(f, posed + foot.Fade);
+            LiftMoving(f, foot, dt);
+        }
+
+        /// <summary>
+        /// A foot moving over the ground is in the air (the plan "A different approach", step 4): a foot is either held
+        /// where it stands or stepping, never slid. Where its place moves faster than <see cref="LiftFrom"/> (m/s at a
+        /// Medium's size) with its sole still down (the root snapped away under a combo's link dragged a foot 55 cm
+        /// along the ground in a sixth of a second), its ankle is raised by <see cref="LiftPerSpeed"/> metres for each
+        /// m/s over that, <see cref="MostLift"/> at most, up quickly and down again as it slows. A walk's own swing is
+        /// already higher than this and is left as it is. The most is the Combat Feel's (<see cref="CombatFeel.MovingFootLift"/>,
+        /// centimetres; 0: off).
+        /// </summary>
+        public static float LiftFrom = 0.4f, LiftPerSpeed = 0.03f;
+
+        private readonly Vector3[] liftWas = new Vector3[2];
+        private readonly float[] lift = new float[2];
+        private readonly bool[] liftKnown = new bool[2], liftStandKnown = new bool[2];
+        private readonly float[] liftStand = new float[2];
+
+        private void LiftMoving(int f, FootLock foot, float dt)
+        {
+            float scale = loco.Leg / 0.85f;
+            Vector3 at = foot.Target;
+            float want = 0f;
+            float most = 0.01f * CombatFeel.MovingFootLift;
+            if (liftKnown[f] && dt > 1e-5f && most > 0f)
+            {
+                Vector3 moved = at - liftWas[f];
+                moved.y = 0f;
+                want = Mathf.Clamp((moved.magnitude / dt - LiftFrom * scale) * LiftPerSpeed, 0f, most * scale);
+            }
+
+            lift[f] = Mathf.MoveTowards(lift[f], want, (want > lift[f] ? 1.2f : 0.6f) * scale * dt);
+            liftWas[f] = at;
+            liftKnown[f] = true;
+            // (Its standing height: where its ankle is while it is held flat on the ground.)
+            if (foot.Locked && !foot.OnToe && lift[f] <= 0f)
+            {
+                liftStand[f] = liftStandKnown[f] ? Mathf.Lerp(liftStand[f], at.y, 0.2f) : at.y;
+                liftStandKnown[f] = true;
+            }
+
+            if (lift[f] > 0f && liftStandKnown[f])
+            {
+                float least = liftStand[f] + lift[f];
+                if (at.y < least)
+                {
+                    foot.Target = new Vector3(at.x, least, at.z);
+                }
+            }
         }
 
         /// <summary>

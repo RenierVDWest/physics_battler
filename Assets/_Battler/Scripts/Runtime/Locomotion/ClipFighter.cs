@@ -246,6 +246,7 @@ namespace PhysicsBattler.Locomotion
 
             Vector3 way = apart > 1e-4f ? gap / apart : Quaternion.Euler(0f, a.Loco.Facing, 0f) * Vector3.forward;
             float into = least - apart, shareA = b.Mass / Mathf.Max(1f, a.Mass + b.Mass);
+            RootShoves[0] += into;
             a.Loco.Position -= way * (into * shareA);
             b.Loco.Position += way * (into * (1f - shareA));
             a.CarryBy(-way * (into * shareA));
@@ -1125,7 +1126,11 @@ namespace PhysicsBattler.Locomotion
                 combo = value;
                 if (combo != null)
                 {
-                    combo.Carried = CarryBy;
+                    combo.Carried = move =>
+                    {
+                        RootShoves[2] += move.magnitude;
+                        CarryBy(move);
+                    };
                 }
             }
         }
@@ -1145,6 +1150,13 @@ namespace PhysicsBattler.Locomotion
         }
 
         private Vector3 carried;
+
+        /// <summary>
+        /// How far roots have been moved at once, not walked, since the run began (metres, all fighters): two bodies kept
+        /// apart, ground given to a blow, a combo's strike snapped onto its target. For the reports: what the walk
+        /// doesn't own.
+        /// </summary>
+        public static readonly float[] RootShoves = new float[3];
 
         /// <summary>A strike alone follows its target, as far as the arm's pull goes: where its target is now (null: none to follow).</summary>
         public System.Func<LocoClip, Vector3?> Follow;
@@ -1522,6 +1534,7 @@ namespace PhysicsBattler.Locomotion
             if (retireLeft.sqrMagnitude > 1e-8f)
             {
                 Vector3 move = Vector3.ClampMagnitude(retireLeft, RetireSpeed * Mathf.Sqrt(Size) * dt);
+                RootShoves[1] += move.magnitude;
                 Loco.Position += move;
                 CarryBy(move);
                 retireLeft -= move;

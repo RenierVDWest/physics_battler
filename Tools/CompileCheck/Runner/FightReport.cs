@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using PhysicsBattler.Battle;
 using PhysicsBattler.Board;
@@ -51,6 +52,17 @@ internal static class FightReport
         {
             // (No physics headless: the clip fighters' bodies are the lab runners', posed only.)
             UnitController.ClipPhysical = false;
+        }
+
+        // (The Combat Feel's feet, for a fight played with them set: FIGHT_PULL=3 (m/s), FIGHT_LIFT=0 (cm).)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_PULL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pull))
+        {
+            PhysicsBattler.Locomotion.CombatFeel.ComboPullSpeed = pull;
+        }
+
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_LIFT"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float footLift))
+        {
+            PhysicsBattler.Locomotion.CombatFeel.MovingFootLift = footLift;
         }
 
         // (The Combat Feel's limit on a blade's speed, for a fight played with it: FIGHT_BLADE=30.)
@@ -161,6 +173,9 @@ internal static class FightReport
         // walk measured as the lab's is.)
         var feet = new Dictionary<UnitController, PhysicsBattler.Locomotion.LocoMeasures>();
         var lastRoot = new Dictionary<UnitController, Vector3>();
+        // (Feet sliding on the ground: each foot's ankle, while it is down at its standing height, and how far it moves there.)
+        var slide = new Dictionary<UnitController, GroundSlide>();
+        Array.Clear(PhysicsBattler.Locomotion.ClipFighter.RootShoves, 0, 3);
         var rootJump = new Dictionary<UnitController, (float most, float at)>();
         var reachedAt = new Dictionary<UnitController, float>();
         var overlapPairs = new Dictionary<string, (int steps, float nearest)>();
@@ -409,6 +424,8 @@ internal static class FightReport
                         cameAt[u] = Vector3.Angle(axis, way);
                     }
 
+                    if (!slide.TryGetValue(u, out var gs)) slide[u] = gs = new GroundSlide(u.Clip.Anim, u.Clip.Loco) { Poser = u.Clip.Poser, Name = u.name };
+                    gs.Sample(u.IsAlive && !u.IsDown, dt, t);
                     m.Sample(dt, t, u.Clip.Loco.Current + (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "") + (u.Clip.Fallen ? " fallen" : "") + (u.Clip.Striking ? " striking" : "") + (u.Clip.Stumbling ? " stumbling" : ""));
                     float jump = Vector3.Distance(u.Root.position, lastRoot[u]);
                     lastRoot[u] = u.Root.position;
@@ -504,6 +521,16 @@ internal static class FightReport
             }
         }
 
+        var shoved = PhysicsBattler.Locomotion.ClipFighter.RootShoves;
+        sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    roots moved at once, not walked (all units): kept apart {0:0.00} m, ground given {1:0.00} m, strikes snapped onto targets {2:0.00} m",
+            shoved[0], shoved[1], shoved[2]));
+        var slides = slide.Values.Where(g => g.Seconds > 0f).ToList();
+        if (slides.Count > 0)
+        {
+            sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    feet sliding on the ground (all units): {0:0.0} cm a second on their feet ({3:0.0} m in strikes, {4:0.0} m otherwise), the worst single slide {1:0} cm, {2:0.0}% of the time with a foot sliding faster than 0.3 m/s",
+                100f * slides.Sum(g => g.Slid) / slides.Sum(g => g.Seconds), 100f * slides.Max(g => g.Worst), 100f * slides.Sum(g => g.FastSeconds) / slides.Sum(g => g.Seconds), slides.Sum(g => g.SlidStriking), slides.Sum(g => g.SlidOtherwise)));
+        }
+
         foreach (var pair in overlapPairs)
         {
             sb.AppendLine($"    overlapping: {pair.Key}, {pair.Value.steps} steps, as near as {pair.Value.nearest:0.00} m");
@@ -530,6 +557,17 @@ internal static class FightReport
             }
 
             sb.AppendLine($"    {u.name}: ran {(moving.TryGetValue(u, out var mvn) && mvn > 0 ? 100f * (running.TryGetValue(u, out var rnn) ? rnn : 0) / mvn : 0f):0}% of its walking; came at its first target {(cameAt.TryGetValue(u, out var ca) ? $"{ca:0}° off head-on" : "never")}");
+            if (slide.TryGetValue(u, out var gs))
+            {
+                if (Environment.GetEnvironmentVariable("FIGHT_SLIDES") != null)
+                {
+                    foreach (var note in gs.Notes) sb.AppendLine($"      {u.name}: {note}");
+                }
+
+                sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    {0}: feet slid on the ground {1:0.00} m in all ({2:0.0} cm a second on its feet), the worst single slide {3:0} cm, {4:0.0}% of its time with a foot sliding faster than 0.3 m/s",
+                    u.name, gs.Slid, gs.Seconds > 0f ? 100f * gs.Slid / gs.Seconds : 0f, gs.Worst * 100f, gs.Seconds > 0f ? 100f * gs.FastSeconds / gs.Seconds : 0f));
+            }
+
             sb.AppendLine($"    {u.name}: {near}; planted feet moved at most {m.PlantDriftWorst * 100f:0.0} cm ({m.PlantsDone} plants); the root's biggest step {rootJump[u].most:0.00} m at {rootJump[u].at:0.0} s; feet travelled {m.FeetTravel:0.0} m for the body's {m.BodyTravel:0.0}");
         }
 
@@ -613,5 +651,104 @@ internal static class FightReport
     private static void Call(object target, string method)
     {
         target?.GetType().GetMethod(method, Any)?.Invoke(target, null);
+    }
+}
+
+/// <summary>
+/// A unit's feet sliding on the ground: each ankle while it is down at its standing height, and how far it moves
+/// there (flat). A planted foot doesn't move; one that does is being dragged by a root something moved under it.
+/// </summary>
+internal sealed class GroundSlide
+{
+    private readonly PhysicsBattler.Rig.AnimRig anim;
+    private readonly Vector3[] was = new Vector3[2];
+    private readonly bool[] down = new bool[2];
+    private readonly float[] run = new float[2];
+    private static readonly PhysicsBattler.Rig.PartId[] Feet = { PhysicsBattler.Rig.PartId.FootL, PhysicsBattler.Rig.PartId.FootR };
+
+    /// <summary>Metres slid in all, the furthest in one stay on the ground, the seconds sampled and those with a foot sliding faster than 0.3 m/s.</summary>
+    public float Slid, Worst, Seconds, FastSeconds;
+
+    private readonly PhysicsBattler.Locomotion.Locomotor loco;
+
+    public PhysicsBattler.Locomotion.LocoBody Poser;
+    public string Name;
+    private static readonly bool TraceSlides = Environment.GetEnvironmentVariable("FIGHT_SLIDE_TRACE") != null;
+
+    /// <summary>Metres slid while a strike's clip played, and otherwise.</summary>
+    public float SlidStriking, SlidOtherwise;
+
+    public GroundSlide(PhysicsBattler.Rig.AnimRig anim, PhysicsBattler.Locomotion.Locomotor loco)
+    {
+        this.anim = anim;
+        this.loco = loco;
+    }
+
+    private float lowest = float.MaxValue;
+
+    /// <summary>Each slide of over 5 cm: when, what was playing, how far.</summary>
+    public readonly List<string> Notes = new List<string>();
+    private readonly string[] during = new string[2];
+
+    public void Sample(bool onItsFeet, float dt, float time)
+    {
+        if (!onItsFeet)
+        {
+            down[0] = down[1] = false;
+            return;
+        }
+
+        Seconds += dt;
+        bool fast = false;
+        for (int f = 0; f < 2; f++)
+        {
+            Vector3 at = anim.Part(Feet[f]).position;
+            // (Its standing ankle height: the lowest an ankle has been, found as it goes.)
+            lowest = Mathf.Min(lowest, at.y);
+            // (Down: where its motion says the foot is on the ground, and it is.)
+            bool now = at.y <= lowest + 0.015f && loco.Down[f] >= 0.5f;
+            if (now && down[f])
+            {
+                Vector3 moved = at - was[f];
+                moved.y = 0f;
+                float far = moved.magnitude;
+                Slid += far;
+                if (loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.ContactFrame >= 0) SlidStriking += far; else SlidOtherwise += far;
+                run[f] += far;
+                if (TraceSlides && far > 0.004f && Poser != null)
+                {
+                    var lk = Poser.Feet[f];
+                    Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "  slide {0} {1:0.00} s {2}: {3:0.0} cm this step (run {4:0.0}); locked {5}, stepping {6}, fade {7:0.0} cm, height {8:0.0} cm (asked {12:0.0} cm up, {13:0.0} cm from its place); {9} {10} t {11:0.00}",
+                        Name, time, f == 0 ? "L" : "R", far * 100f, (run[f] + far) * 100f, lk.Locked, lk.Stepping, lk.Fade.magnitude * 100f, (at.y - lowest) * 100f, loco.Current, loco.Shot != null ? loco.Shot.Name : "", loco.ShotTime, (lk.Target.y - lowest) * 100f, Vector3.Distance(lk.Target, at) * 100f));
+                }
+
+                if (far > 0.002f)
+                {
+                    string what = loco.Current + (loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && loco.Shot != null ? " " + loco.Shot.Name : "");
+                    if (during[f] == null || !during[f].Contains(what)) during[f] = (during[f] == null ? "" : during[f] + ", ") + what;
+                }
+
+                Worst = Mathf.Max(Worst, run[f]);
+                fast |= far > 0.3f * dt;
+            }
+            else
+            {
+                if (run[f] > 0.05f && Notes.Count < 30)
+                {
+                    Notes.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "until {0:0.00} s the {1} foot slid {2:0} cm ({3})", time, f == 0 ? "left" : "right", run[f] * 100f, during[f]));
+                }
+
+                run[f] = 0f;
+                during[f] = null;
+            }
+
+            down[f] = now;
+            was[f] = at;
+        }
+
+        if (fast)
+        {
+            FastSeconds += dt;
+        }
     }
 }

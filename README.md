@@ -1857,6 +1857,36 @@ top as today (hit stop, the hit clips), with one honest dial if more is wanted: 
 this yet: the blow from the physical sword itself (the ball stands in), the shield, the body's own parts stopping
 each other, a blow to the legs, and anything in Unity.
 
+**Feet that don't slide (step 4).** `fight` now measures it: each foot's ankle while its motion says it is down and
+it is at its standing height, and how far it moves there ("feet sliding on the ground": centimetres a second, the
+worst single slide; `FIGHT_SLIDES=1` lists each slide over 5 cm with what was playing, `FIGHT_SLIDE_TRACE=1` every
+sliding step), and how far roots were moved at once instead of walked ("roots moved at once": two bodies kept apart,
+ground given to a blow, a combo's strike snapped onto its target). Six Mediums, three fights of 60 s:
+
+| | worst single slide | roots moved at once | blows met |
+|---|---|---|---|
+| before | 18, 10, 55 cm | 24 m (22 m of it combos' strikes) | 252 |
+| now | 2, 2, 3 cm | 24 m | 252 |
+
+What the slides were: a combo's strike carried its body in after its target at up to 7.2 m/s (12 cm a step); a
+planted foot was let go when its leg could no longer reach, and then followed its place under the body along the
+ground, 55 cm in a sixth of a second at the worst. Two changes, both Combat Feel fields under "Feet":
+
+- `comboPullSpeed` (m/s; 3, it was 7.2): how fast a combo's strike may carry the body in. At 3 the body is carried
+  as far in all and as many blows are met; at 2 it is carried 40% less far.
+- `movingFootLift` (cm; 7; 0: off): a foot moving over the ground is lifted, as a stepping foot is, from 0.4 m/s
+  up (`LocoBody.LiftMoving`). A foot is then either held where it stands or in the air.
+
+On the real engine (`PHYSX=1`, 30 s) the worst was 10 cm, once, in a walk; the rest 1 to 2 cm. The slide measure
+counts a foot within 1.5 cm of its standing height: a foot lifted over that is a step, however quick. Whether those
+quick steps read well is for the eye. The fights are no longer the same line for line as before this step (a
+foot's height moves the hips, and with them everything).
+
+Still as they were: ground given to a blow (the body moved 4 m/s for a tenth of a second, then pushed into a step)
+and two bodies kept apart (moved off each other at once). Together about 1.5 m a minute over six units, and with the
+lift they no longer drag a foot. A blow's own push already goes to the walk as a change of speed (`Locomotor.Push`),
+as step 3 found it should.
+
 **The old pose pipeline goes (branch `physical-body`, begun 11 November 2026).** Every unit is now a clip fighter:
 `UnitController` always builds one, and the `ClipMotion` switch, the sandbox's "Clip motion" toggle and `CLIP_FIGHT`
 are gone. What went with them so far:

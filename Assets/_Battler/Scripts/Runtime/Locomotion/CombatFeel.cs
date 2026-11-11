@@ -174,6 +174,13 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("With two or more enemies fighting it within that reach and turn, the chance a blow it starts opens a combo strung across them, whatever its tempo would say (its tempo's own combos come as well). 0: only its tempo's combos. Default 0.25 (more commits it to long strings with others round it).")]
         [Range(0f, 1f)] public float comboSweepChance = DefaultComboSweepChance;
 
+        [Header("Feet")]
+        [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
+        [Range(0.5f, 8f)] public float comboPullSpeed = DefaultComboPullSpeed;
+
+        [Tooltip("A foot moving over the ground is lifted, as a stepping foot is: this many centimetres at most (at a Medium's size), from 0.4 m/s up. A foot is then either held where it stands or in the air, never slid: without it, a body snapped away under a combo dragged a foot 55 cm along the ground. A walk's own swing is higher and is left as it is. 0: off, as before. Default 7.")]
+        [Range(0f, 12f)] public float movingFootLift = DefaultMovingFootLift;
+
         [Header("A blow's speed")]
         [Tooltip("The fastest a strike may swing its blade's point (metres a second). The strike clips whip the blade through their two fastest frames at 45 to 67 m/s, two or three times what an arm can swing a sword at (a real cut's point goes 20 to 30 m/s), which no body made of muscles can follow. With a limit set, the blade's point never goes faster than this, and the strike's clip is slowed over those frames so the body waits for its blade: a blow lands about 0.07 s later at 30, about 0.12 s later at 25. 0: the clips play at their own pace, as before. Default 0.")]
         [Range(0f, 80f)] public float mostBladeSpeed = DefaultMostBladeSpeed;
@@ -181,6 +188,7 @@ namespace PhysicsBattler.Locomotion
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
         public const float DefaultMostBladeSpeed = 0f;
+        public const float DefaultComboPullSpeed = 3f, DefaultMovingFootLift = 7f;
         public const float DefaultComboSpreadTurn = 100f, DefaultComboSpreadReach = 3.2f, DefaultComboSweepChance = 0.25f;
         public const float DefaultConcentrationRise = 0.3f, DefaultConcentrationFall = 0.15f, DefaultConcentrationGuard = 0.5f, DefaultConcentrationAccuracy = 0.3f;
         public const float DefaultHitStopBase = 0.03f, DefaultHitStopPerWeight = 0.05f, DefaultLeastHitStop = 0.04f, DefaultMostHitStop = 0.16f;
@@ -196,6 +204,8 @@ namespace PhysicsBattler.Locomotion
         public static float OffFrontBend = DefaultOffFrontBend, SideHitTime = DefaultSideHitTime;
 
         public static float MostBladeSpeed = DefaultMostBladeSpeed;
+
+        public static float ComboPullSpeed = DefaultComboPullSpeed, MovingFootLift = DefaultMovingFootLift;
 
         public static float ComboSpreadTurn = DefaultComboSpreadTurn, ComboSpreadReach = DefaultComboSpreadReach, ComboSweepChance = DefaultComboSweepChance;
 
@@ -324,6 +334,8 @@ namespace PhysicsBattler.Locomotion
             ComboSpreadReach = comboSpreadReach;
             ComboSweepChance = comboSweepChance;
             MostBladeSpeed = mostBladeSpeed;
+            ComboPullSpeed = comboPullSpeed;
+            MovingFootLift = movingFootLift;
         }
     }
 }

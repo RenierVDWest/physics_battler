@@ -471,7 +471,7 @@ namespace PhysicsBattler.Locomotion
         /// a Large snapped 1.5 m in a frame after a dummy it had driven off, its physical body was left behind and it went
         /// down, sliding across the board. Beyond it, the arm's pull and the miss.
         /// </summary>
-        public float MostSnap = 0.6f, MostSnapStep = 0.12f;
+        public float MostSnap = 0.6f;
 
         private float snapped;
         private LocoClip snappedFor;
@@ -514,7 +514,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             float scale = loco.Leg / 0.845f;
-            move = Vector3.ClampMagnitude(move, Mathf.Min(MostSnapStep * scale, Mathf.Max(0f, MostSnap * scale - snapped)));
+            move = Vector3.ClampMagnitude(move, Mathf.Min(CombatFeel.ComboPullSpeed * dt * scale, Mathf.Max(0f, MostSnap * scale - snapped)));
             snapped += move.magnitude;
             loco.Position += move;
             poser.SnappedBy(move);
