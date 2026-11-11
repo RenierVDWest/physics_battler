@@ -1,0 +1,355 @@
+# Physics Battler playtest 2026-11-11_12-00-22
+# time (s since Play) | physics step | who | what | details
+    1.863 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    1.863 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+    1.863 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+    1.863 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    1.863 |      0 | -              | input    | at most 50 ms of physics a frame
+    1.863 |      0 | -              | input    | spawn: 6 units on the 8x8 board
+    1.867 |      1 | A Medium       | spawn    | at (-2.40, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    1.867 |      1 | A Medium 2     | spawn    | at (-0.80, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    1.867 |      1 | A Large        | spawn    | at (0.80, -2.40) facing 0°, team 0, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    1.867 |      1 | B Medium       | spawn    | at (-2.40, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    1.867 |      1 | B Medium 2     | spawn    | at (0.80, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    1.867 |      1 | B Large        | spawn    | at (-0.80, 2.40) facing 180°, team 1, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    1.867 |      1 | A Medium       | equip    | WD_Sword, scaled 1.00
+    1.867 |      1 | A Medium 2     | equip    | WD_Sword and WD_Shield, scaled 1.00
+    1.867 |      1 | A Large        | equip    | WD_Club, scaled 1.24
+    1.867 |      1 | B Medium       | equip    | WD_Sword and WD_Shield, scaled 1.00
+    1.867 |      1 | B Medium 2     | equip    | WD_Sword, scaled 1.00
+    1.867 |      1 | B Large        | equip    | WD_Club, scaled 1.24
+    1.867 |      1 | A Medium       | sight    | noticed A Medium 2 at the edge of its view (1.6 m)
+    1.867 |      1 | A Medium       | sight    | noticed A Large at the edge of its view (3.2 m)
+    1.867 |      1 | A Medium       | sight    | noticed B Medium in clear view (4.8 m)
+    1.867 |      1 | A Medium       | sight    | noticed B Medium 2 at the edge of its view (5.8 m)
+    1.867 |      1 | A Medium       | sight    | noticed B Large in clear view (5.1 m)
+    1.867 |      1 | A Medium 2     | sight    | noticed A Medium at the edge of its view (1.6 m)
+    1.867 |      1 | A Medium 2     | sight    | noticed A Large at the edge of its view (1.6 m)
+    1.867 |      1 | A Medium 2     | sight    | noticed B Medium in clear view (5.1 m)
+    1.867 |      1 | A Medium 2     | sight    | noticed B Medium 2 in clear view (5.1 m)
+    1.867 |      1 | A Medium 2     | sight    | noticed B Large in clear view (4.8 m)
+    1.867 |      1 | A Large        | sight    | noticed A Medium at the edge of its view (3.2 m)
+    1.867 |      1 | A Large        | sight    | noticed A Medium 2 at the edge of its view (1.6 m)
+    1.867 |      1 | A Large        | sight    | noticed B Medium at the edge of its view (5.8 m)
+    1.867 |      1 | A Large        | sight    | noticed B Medium 2 in clear view (4.8 m)
+    1.867 |      1 | A Large        | sight    | noticed B Large in clear view (5.1 m)
+    1.867 |      1 | B Medium       | sight    | noticed A Medium in clear view (4.8 m)
+    1.867 |      1 | B Medium       | sight    | noticed A Medium 2 in clear view (5.1 m)
+    1.867 |      1 | B Medium       | sight    | noticed A Large at the edge of its view (5.8 m)
+    1.867 |      1 | B Medium       | sight    | noticed B Medium 2 at the edge of its view (3.2 m)
+    1.867 |      1 | B Medium       | sight    | noticed B Large at the edge of its view (1.6 m)
+    1.867 |      1 | B Medium 2     | sight    | noticed A Medium at the edge of its view (5.8 m)
+    1.867 |      1 | B Medium 2     | sight    | noticed A Medium 2 in clear view (5.1 m)
+    1.867 |      1 | B Medium 2     | sight    | noticed A Large in clear view (4.8 m)
+    1.867 |      1 | B Medium 2     | sight    | noticed B Medium at the edge of its view (3.2 m)
+    1.867 |      1 | B Medium 2     | sight    | noticed B Large at the edge of its view (1.6 m)
+    1.867 |      1 | B Large        | sight    | noticed A Medium in clear view (5.1 m)
+    1.867 |      1 | B Large        | sight    | noticed A Medium 2 in clear view (4.8 m)
+    1.867 |      1 | B Large        | sight    | noticed A Large in clear view (5.1 m)
+    1.867 |      1 | B Large        | sight    | noticed B Medium at the edge of its view (1.6 m)
+    1.867 |      1 | B Large        | sight    | noticed B Medium 2 at the edge of its view (1.6 m)
+    1.883 |      2 | A Medium       | target   | B Medium (4.8 m, health 100)
+    1.883 |      2 | A Medium 2     | target   | B Large (4.8 m, health 220)
+    1.883 |      2 | A Large        | target   | B Medium 2 (4.8 m, health 100)
+    1.883 |      2 | B Medium       | target   | A Medium (4.8 m, health 100)
+    1.883 |      2 | B Medium 2     | target   | A Large (4.8 m, health 220)
+    1.883 |      2 | B Large        | target   | A Medium 2 (4.8 m, health 100)
+    1.913 |      3 | -              | perf     | 312 ms frame, 0 physics steps, garbage collected (gen0 5, gen1 5, gen2 5); ours: nothing over 0.5 ms; Unity: GC_Collect 29.8 ms, Gfx_WaitForGfxCommandsFromMainThread 5.4 ms, PlayerLoop 5.4 ms, CPU_Total_Frame_Time 1.9 ms, CPU_Main_Thread_Frame_Time 1.0 ms, GPU_Frame_Time 0.6 ms, CPU_Render_Thread_Frame_Time 0.5 ms, GC_Alloc 0.4 ms
+    1.963 |      6 | -              | perf     | 98 ms frame, 3 physics steps; ours: RecorderSample 40.3 ms (3), UnitStep 29.3 ms (18), ArmSolve 13.3 ms (32), Sandbox 5.9 ms (3), CaptureRender 1.1 ms (1); Unity: Main_Thread 116.4 ms, Gfx_WaitForGfxCommandsFromMainThread 113.6 ms, PlayerLoop 89.2 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 78.9 ms, FixedBehaviourUpdate 78.9 ms, GC_Collect 6.8 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 2.5 ms, LateBehaviourUpdate 2.5 ms
+    3.883 |    122 | A Large        | move     | no headway toward B Medium 2 (4.7 m): going round to the left
+    3.883 |    122 | B Medium 2     | move     | no headway toward A Large (4.7 m): going round to the left
+    4.117 |    136 | B Large        | tempo    | gather → press: fully charged (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+    4.200 |    141 | A Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    4.550 |    162 | A Medium       | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    4.550 |    162 | B Medium       | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    4.633 |    167 | B Medium 2     | target   | A Medium 2, close by (1.5 m): committed
+    4.633 |    167 | B Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    4.717 |    172 | B Large        | attack   | sns_forehand at A Medium 2
+    4.867 |    181 | A Medium 2     | attack   | sns_thrust at B Large, concentration 0.07
+    4.983 |    188 | B Medium       | sight    | lost track of B Large
+    5.000 |    189 | B Medium       | sight    | noticed B Large at the edge of its view (4.4 m)
+    5.033 |    191 | A Large        | sight    | lost track of A Medium
+    5.050 |    192 | B Medium 2     | attack   | a combo (full gather): sns_combo_forehand > sns_combo_backhand > sns_rising at A Medium 2
+    5.050 |    192 | A Large        | sight    | noticed A Medium at the edge of its view (4.7 m)
+    5.167 |    199 | B Medium       | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at A Medium
+    5.217 |    202 | A Medium       | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at B Medium
+    5.317 |    208 | A Medium 2     | hit      | blow struck B Large's Head at 16.0 m/s: 34.1 damage, 13 poise, recoil; impulse 26.1 N·s (60% into the part); the swing stopped; the target
+    5.317 |    208 | B Large        | struck   | by A Medium 2 on the Head: health 186/220, poise 107/120, recoil, standing; its strike carried on
+    5.383 |    212 | B Medium 2     | attack   | its combo's next blow turned from A Medium 2 to A Large
+    5.400 |    213 | B Medium 2     | hit      | blow struck A Medium 2's Head at 16.0 m/s: 51.2 damage, 24 poise, flinch; impulse 31.9 N·s (60% into the part); the swing stopped; someone in the way; no sever: the edge passed 14 cm from the bone at the neck (the limb is 9 thick with the edge)
+    5.400 |    213 | A Medium 2     | struck   | by B Medium 2 on the Head: health 49/100, poise 21/45, flinch, standing; its strike cut short, then driven back at 0.8 m/s; concentration 0.23
+    5.400 |    213 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (29 poise); impulse 153.0 N·s (70% into the part); the swing stopped; blocked by the shield
+    5.400 |    213 | A Medium 2     | struck   | by B Large on the HandL: health 49/100, poise 0/45, stagger, standing; its strike cut short, then driven back at 0.9 m/s; concentration 0.23
+    5.417 |    214 | A Large        | tempo    | gather → press: fully charged (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+    5.433 |    215 | A Medium 2     | tempo    | press → shell: pressed (pressure 1.38); energy 0.67, aggression 0.46
+    5.483 |    218 | B Medium 2     | hit      | blow struck B Large's HandR at 10.6 m/s: parried by B Large's parried (0 poise); impulse 0.0 N·s (70% into the part); the swing stopped; parried
+    5.483 |    218 | B Large        | struck   | by B Medium 2 on the HandR: health 186/220, poise 109/120, recoil, standing; parried with club guard
+    5.517 |    220 | B Medium       | hit      | blow struck A Medium's Chest at 15.8 m/s: 31.6 damage, 19 poise, recoil; impulse 25.8 N·s (45% into the part); the swing stopped; the target
+    5.517 |    220 | A Medium       | struck   | by B Medium on the Chest: health 68/100, poise 26/45, recoil, standing; its strike carried on, then driven back at 0.4 m/s
+    5.600 |    225 | B Medium       | hit      | blow struck A Medium's Head at 5.6 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (60% into the part); the swing stopped; the target
+    5.600 |    225 | A Medium       | struck   | by B Medium on the Head: health 68/100, poise 26/45, recoil, standing; its strike carried on
+    5.617 |    226 | B Medium       | hit      | blow struck A Medium's HandR at 7.1 m/s: parried by A Medium's parried (0 poise); impulse 0.0 N·s (70% into the part); the swing stopped; parried
+    5.617 |    226 | A Medium       | struck   | by B Medium on the HandR: health 68/100, poise 26/45, recoil, standing; parried with high quarte
+    5.883 |    242 | B Medium       | tempo    | press → shell: pressed (pressure 1.20); energy 0.85, aggression 0.66
+    5.950 |    246 | B Large        | attack   | sns_combo_forehand at A Medium 2
+    6.167 |    259 | A Medium       | hit      | blow struck B Medium's HandR at 16.0 m/s: 17.1 damage, 32 poise, flinch; impulse 31.9 N·s (80% into the part); the swing stopped; the target; no sever: the edge passed 9 cm from the bone at the right wrist (the limb is 7 thick with the edge)
+    6.167 |    259 | B Medium       | struck   | by A Medium on the HandR: health 83/100, poise 13/45, flinch, standing; heavy reaction, then driven back at 0.5 m/s
+    6.317 |    268 | A Medium       | hit      | blow struck B Medium's Chest at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (45% into the part); the swing stopped; the target
+    6.317 |    268 | B Medium       | struck   | by A Medium on the Chest: health 83/100, poise 14/45, recoil, standing; still reeling
+    6.333 |    269 | A Medium       | hit      | blow struck B Medium's ForearmL at 6.1 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (80% into the part); the swing stopped; the target; no sever: the edge passed 9 cm from the bone at the left elbow (the limb is 6 thick with the edge)
+    6.333 |    269 | B Medium       | struck   | by A Medium on the ForearmL: health 83/100, poise 14/45, recoil, standing; still reeling
+    6.450 |    276 | B Medium 2     | attack   | sns_combo_forehand at A Medium 2
+    6.600 |    285 | A Medium 2     | sight    | lost track of A Large
+    6.650 |    288 | B Medium 2     | contact  | HandL touched Collider at 4.6 m/s
+    6.650 |    288 | A Medium 2     | contact  | HandR touched Collider at 4.6 m/s
+    6.683 |    290 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (20 poise); impulse 107.1 N·s (70% into the part); the swing stopped; blocked by the shield
+    6.683 |    290 | A Medium 2     | struck   | by B Large on the HandL: health 49/100, poise 0/45, stagger, standing; the shield knocked back, then driven back at 0.6 m/s; concentration 0.61
+    7.067 |    313 | A Large        | move     | no headway toward B Medium 2 (2.6 m): going round to the right
+    7.083 |    314 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+    7.083 |    314 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 49/100, poise 0/45, stagger, standing; the shield knocked back; concentration 0.73
+    7.100 |    315 | A Medium 2     | target   | B Medium 2, who struck it: committed
+    7.150 |    318 | A Medium       | tempo    | press → gather: the press was broken; energy 0.44, aggression 0.56
+    7.167 |    319 | A Medium       | tempo    | gather → shell: pressed (pressure 0.58); energy 0.44, aggression 0.56
+    7.633 |    347 | A Medium       | sight    | lost track of A Large
+    7.767 |    355 | A Medium 2     | sight    | noticed A Large by touch (1.3 m)
+    7.783 |    356 | B Medium 2     | attack   | sns_thrust at A Medium 2, concentration 0.21
+    7.833 |    359 | A Medium       | tempo    | shell → counter: the barrage stopped (energy 0.46); energy 0.46, aggression 0.56
+    7.850 |    360 | A Medium       | attack   | sns_combo_forehand at B Medium
+    7.933 |    365 | A Medium       | sight    | noticed A Large at the edge of its view (5.1 m)
+    8.183 |    380 | B Large        | sight    | lost track of B Medium
+    8.200 |    381 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+    8.200 |    381 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 49/100, poise 0/45, stagger, standing; the shield knocked back; concentration 1.00
+    8.400 |    393 | B Medium 2     | tempo    | press → gather: burst done (3 blows); energy 0.55, aggression 0.58
+    8.433 |    395 | A Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 0.65
+    8.517 |    400 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+    8.517 |    400 | B Medium       | struck   | by A Medium on the HandL: health 83/100, poise 20/45, flinch, standing; the shield knocked back
+    8.533 |    401 | B Large        | move     | no headway toward A Medium 2 (2.8 m): going round to the right
+    8.950 |    426 | A Medium       | attack   | none of its strikes reaches B Medium from 1.45 m; closing in
+    8.950 |    426 | A Medium       | tempo    | counter → probe: answered; energy 0.31, aggression 0.56
+    8.950 |    426 | B Large        | tempo    | press → gather: nothing to press; energy 0.65, aggression 0.53
+    9.217 |    442 | B Medium 2     | tempo    | gather → probe: rested (energy 0.67); energy 0.67, aggression 0.58
+    9.250 |    444 | A Large        | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.65
+    9.267 |    445 | A Large        | tempo    | probe → press: fired up (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+    9.450 |    456 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.75); energy 0.75, aggression 0.28
+    9.467 |    457 | A Medium 2     | attack   | sns_combo_forehand at B Medium 2, concentration 1.00
+    9.550 |    462 | A Large        | sight    | lost track of A Medium
+    9.767 |    475 | B Large        | tempo    | gather → probe: rested (energy 0.77); energy 0.77, aggression 0.53
+    9.783 |    476 | B Large        | tempo    | probe → press: fired up (energy 0.77, aggression 0.53); energy 0.77, aggression 0.53
+    9.900 |    483 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 0.87); energy 0.87, aggression 0.42
+    9.917 |    484 | B Medium       | attack   | sns_combo_forehand at A Medium
+   10.067 |    493 | B Large        | attack   | a combo (press): sns_combo_forehand > sns_backhand_lunge > sns_forehand at A Medium 2
+   10.133 |    497 | A Medium 2     | hit      | blow struck B Medium 2's HandR at 16.0 m/s: parried by B Medium 2's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   10.133 |    497 | B Medium 2     | struck   | by A Medium 2 on the HandR: health 100/100, poise 28/45, flinch, standing; parried with hanging, then driven back at 1.7 m/s; concentration 0.91
+   10.283 |    506 | A Large        | contact  | Chest touched Collider at 6.5 m/s
+   10.283 |    506 | B Large        | contact  | HandR touched Collider at 6.5 m/s
+   10.300 |    507 | A Large        | contact  | Chest touched Collider at 9.2 m/s
+   10.300 |    507 | B Large        | contact  | ForearmR touched Collider at 9.2 m/s
+   10.333 |    509 | A Large        | contact  | UpperArmL touched Collider at 10.4 m/s
+   10.333 |    509 | B Large        | contact  | HandR touched Collider at 10.4 m/s
+   10.333 |    509 | A Large        | contact  | UpperArmL touched Collider at 11.0 m/s
+   10.333 |    509 | B Large        | contact  | ForearmR touched Collider at 11.0 m/s
+   10.383 |    512 | B Medium 2     | attack   | sns_chop_lunge at A Medium 2, concentration 0.99
+   10.433 |    515 | B Large        | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (43 poise); impulse 153.0 N·s (70% into the part); the swing stopped; blocked by the shield
+   10.433 |    515 | A Medium 2     | struck   | by B Large on the HandL: health 49/100, poise 0/45, stagger, standing; its strike cut short, then driven back at 1.5 m/s; concentration 1.00
+   10.450 |    516 | A Medium 2     | target   | B Large, who struck it: committed
+   10.467 |    517 | A Medium 2     | tempo    | counter → probe: answered; energy 0.60, aggression 0.22
+   10.483 |    518 | A Medium 2     | tempo    | probe → shell: pressed (pressure 3.00); energy 0.60, aggression 0.22
+   10.550 |    522 | A Medium       | attack   | sns_thrust at B Medium
+   10.583 |    524 | B Medium       | hit      | blow struck A Medium's HandR at 16.0 m/s: parried by A Medium's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   10.583 |    524 | A Medium       | struck   | by B Medium on the HandR: health 68/100, poise 28/45, flinch, standing; parried with hanging, then driven back at 1.8 m/s
+   10.683 |    530 | A Large        | sight    | lost track of B Medium
+   10.833 |    539 | A Large        | move     | no headway toward B Medium 2 (2.3 m): going round to the left
+   10.883 |    542 | B Large        | hit      | blow struck B Medium 2's Pelvis at 16.0 m/s: 21.8 damage, 129 poise, stagger; impulse 172.1 N·s (20% into the part); the swing stopped; an ally (friendly fire)
+   10.883 |    542 | B Medium 2     | struck   | by B Large on the Pelvis: health 78/100, poise 0/45, stagger, standing; struck in the air, it comes down, then driven back at 2.2 m/s; concentration 1.00
+   11.033 |    551 | B Medium       | attack   | none of its strikes reaches A Medium from 1.64 m; closing in
+   11.033 |    551 | B Medium       | tempo    | counter → probe: answered; energy 0.72, aggression 0.42
+   11.050 |    552 | B Medium       | tempo    | probe → shell: pressed (pressure 1.64); energy 0.72, aggression 0.42
+   11.250 |    564 | B Large        | sight    | noticed B Medium at the edge of its view (5.8 m)
+   11.533 |    581 | B Medium 2     | contact  | HandL touched Collider at 8.4 m/s
+   11.533 |    581 | B Large        | contact  | UpperArmR touched Collider at 8.4 m/s
+   11.550 |    582 | B Medium 2     | contact  | ForearmL touched Collider at 9.3 m/s
+   11.550 |    582 | B Large        | contact  | UpperArmR touched Collider at 9.3 m/s
+   11.567 |    583 | B Medium 2     | hit      | blow struck B Large's UpperArmR at 4.6 m/s: 3.7 damage, 5 poise, recoil; impulse 9.1 N·s (80% into the part); the swing stopped; an ally (friendly fire)
+   11.567 |    583 | B Large        | struck   | by B Medium 2 on the UpperArmR: health 182/220, poise 115/120, recoil, standing; its strike carried on
+   11.650 |    588 | B Medium 2     | tempo    | probe → shell: pressed (pressure 0.84); energy 0.60, aggression 0.54
+   11.783 |    596 | B Large        | contact  | HandL touched Collider at 6.6 m/s
+   11.783 |    596 | B Medium 2     | contact  | ForearmR touched Collider at 6.6 m/s
+   11.817 |    598 | A Large        | contact  | ForearmL touched Collider at 6.2 m/s
+   11.817 |    598 | B Large        | contact  | ForearmR touched Collider at 6.2 m/s
+   11.833 |    599 | A Large        | contact  | HandL touched Collider at 5.8 m/s
+   11.833 |    599 | B Large        | contact  | ForearmR touched Collider at 5.8 m/s
+   11.833 |    599 | A Large        | contact  | HandL touched Collider at 6.3 m/s
+   11.833 |    599 | B Large        | contact  | HandR touched Collider at 6.3 m/s
+   11.867 |    601 | A Large        | contact  | UpperArmL touched Collider at 5.5 m/s
+   11.867 |    601 | B Large        | contact  | ForearmR touched Collider at 5.5 m/s
+   11.883 |    602 | A Large        | contact  | ForearmL touched Collider at 7.0 m/s
+   11.883 |    602 | B Large        | contact  | HandR touched Collider at 7.0 m/s
+   12.283 |    626 | A Large        | tempo    | press → gather: nothing to press; energy 1.00, aggression 0.65
+   12.533 |    641 | B Large        | move     | no headway toward A Medium 2 (2.6 m): going round to the right
+   12.550 |    642 | A Medium 2     | move     | no headway toward B Large (2.6 m): going round to the right
+   13.033 |    671 | B Large        | attack   | sns_combo_forehand at A Medium 2
+   13.100 |    675 | A Large        | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.65
+   13.117 |    676 | A Large        | tempo    | probe → press: fired up (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+   13.250 |    684 | A Medium       | attack   | sns_chop_lunge at B Medium
+   13.583 |    704 | B Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.64); energy 0.64, aggression 0.54
+   13.600 |    705 | B Medium 2     | attack   | sns_chop_lunge at A Medium 2, concentration 1.00
+   13.650 |    708 | A Large        | attack   | none of its strikes reaches B Medium 2 from 2.02 m; closing in
+   13.650 |    708 | A Large        | contact  | UpperArmL touched Collider at 8.9 m/s
+   13.650 |    708 | B Large        | contact  | ForearmR touched Collider at 8.9 m/s
+   13.717 |    712 | A Large        | contact  | HandL touched Collider at 11.4 m/s
+   13.717 |    712 | B Large        | contact  | ForearmR touched Collider at 11.4 m/s
+   13.733 |    713 | B Large        | hit      | blow struck A Large's Head at 16.0 m/s: 27.3 damage, 86 poise, flinch; impulse 172.1 N·s (60% into the part); the swing stopped; someone in the way
+   13.733 |    713 | A Large        | struck   | by B Large on the Head: health 193/220, poise 34/120, flinch, standing; hit_left_head reaction, then driven back at 0.8 m/s
+   13.750 |    714 | A Large        | target   | B Large, who struck it: committed
+   13.750 |    714 | A Large        | tempo    | press → gather: the press was broken; energy 0.96, aggression 0.59
+   13.883 |    722 | B Medium 2     | contact  | Head touched Collider at 6.3 m/s
+   13.883 |    722 | B Large        | contact  | HandR touched Collider at 6.3 m/s
+   13.917 |    724 | B Medium 2     | contact  | Head touched Collider at 7.1 m/s
+   13.917 |    724 | B Large        | contact  | HandR touched Collider at 7.1 m/s
+   13.967 |    727 | A Medium       | sight    | lost track of A Medium 2
+   14.017 |    730 | A Large        | sight    | noticed B Medium at the edge of its view (6.5 m)
+   14.033 |    731 | A Large        | sight    | noticed A Medium at the edge of its view (5.7 m)
+   14.267 |    745 | B Large        | attack   | none of its strikes reaches A Medium 2 from 1.96 m; closing in
+   14.267 |    745 | B Large        | tempo    | press → gather: spent (energy 0.16, 4 blows); energy 0.16, aggression 0.63
+   14.283 |    746 | B Large        | sight    | lost track of B Medium
+   14.350 |    750 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   14.350 |    750 | B Medium       | struck   | by A Medium on the HandL: health 83/100, poise 36/45, flinch, standing; the shield knocked back
+   14.367 |    751 | A Medium       | sight    | lost track of A Large
+   14.400 |    753 | B Large        | sight    | lost track of A Medium
+   14.567 |    763 | A Large        | tempo    | gather → probe: rested (energy 1.00); energy 1.00, aggression 0.59
+   14.583 |    764 | A Large        | tempo    | probe → press: fired up (energy 1.00, aggression 0.59); energy 1.00, aggression 0.59
+   14.617 |    766 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.68); energy 0.68, aggression 0.22
+   14.633 |    767 | A Medium 2     | attack   | sns_thrust at B Large, concentration 1.00
+   14.667 |    769 | B Large        | sight    | noticed A Medium at the edge of its view (6.2 m)
+   14.700 |    771 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   14.700 |    771 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 49/100, poise 20/45, flinch, standing; its strike cut short; concentration 1.00
+   14.700 |    771 | B Large        | sight    | noticed B Medium at the edge of its view (7.0 m)
+   14.717 |    772 | A Medium 2     | target   | B Medium 2, who struck it: committed
+   14.817 |    778 | A Large        | attack   | none of its strikes reaches B Large from 1.92 m; closing in
+   14.850 |    780 | A Medium 2     | tempo    | counter → probe: answered; energy 0.53, aggression 0.16
+   14.867 |    781 | A Medium 2     | tempo    | probe → shell: pressed (pressure 3.00); energy 0.54, aggression 0.16
+   14.933 |    785 | B Large        | contact  | HandL touched Collider at 5.5 m/s
+   14.933 |    785 | B Medium 2     | contact  | Chest touched Collider at 5.5 m/s
+   15.217 |    802 | A Large        | attack   | a combo (full gather): sns_combo_forehand > sns_backhand_lunge > sns_forehand at B Large
+   15.350 |    810 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 0.81); energy 0.81, aggression 0.36
+   15.367 |    811 | B Medium       | attack   | sns_thrust at A Medium
+   15.567 |    823 | B Large        | contact  | UpperArmL touched Collider at 13.6 m/s
+   15.567 |    823 | A Large        | contact  | HandR touched Collider at 13.6 m/s
+   15.583 |    824 | A Medium       | attack   | sns_chop_lunge at B Medium
+   15.583 |    824 | A Large        | hit      | blow struck B Large's HandR at 16.0 m/s: parried by B Large's parried (86 poise); impulse 153.0 N·s (70% into the part); the swing stopped; parried
+   15.583 |    824 | B Large        | struck   | by A Large on the HandR: health 182/220, poise 34/120, flinch, standing; parried with tierce, then driven back at 2.2 m/s; concentration 0.55
+   15.583 |    824 | B Large        | tempo    | gather → shell: pressed (pressure 0.91); energy 0.45, aggression 0.57
+   15.600 |    825 | B Large        | target   | A Large, who struck it: committed
+   15.600 |    825 | B Large        | contact  | HandL touched Collider at 9.3 m/s
+   15.600 |    825 | A Large        | contact  | ForearmR touched Collider at 9.3 m/s
+   15.817 |    838 | B Medium       | hit      | blow struck A Medium's Head at 16.0 m/s: 34.1 damage, 13 poise, recoil; impulse 26.1 N·s (60% into the part); the swing stopped; the target
+   15.817 |    838 | A Medium       | struck   | by B Medium on the Head: health 34/100, poise 32/45, recoil, standing; its strike carried on
+   15.883 |    842 | A Medium       | sight    | noticed A Medium 2 at the edge of its view (7.3 m)
+   15.883 |    842 | A Medium       | sight    | noticed A Large at the edge of its view (5.5 m)
+   15.933 |    845 | B Medium 2     | attack   | sns_rising at A Medium 2, concentration 0.67
+   16.017 |    850 | B Medium       | tempo    | counter → probe: answered; energy 0.66, aggression 0.44
+   16.033 |    851 | B Medium       | tempo    | probe → shell: pressed (pressure 1.44); energy 0.66, aggression 0.44
+   16.683 |    890 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   16.683 |    890 | B Medium       | struck   | by A Medium on the HandL: health 83/100, poise 36/45, flinch, standing; the shield knocked back
+   16.717 |    892 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   16.717 |    892 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 49/100, poise 25/45, flinch, standing; the shield knocked back; concentration 0.89
+   16.917 |    904 | B Medium 2     | tempo    | counter → probe: answered; energy 0.34, aggression 0.54
+   17.717 |    952 | A Large        | attack   | sns_forehand at B Large
+   17.783 |    956 | A Large        | move     | no headway toward B Large (2.1 m): going round to the left
+   17.917 |    964 | A Medium       | tempo    | probe → gather: tired (energy 0.22); energy 0.22, aggression 0.44
+   18.367 |    991 | B Large        | contact  | ForearmL touched Collider at 18.4 m/s
+   18.367 |    991 | A Large        | contact  | HandR touched Collider at 18.4 m/s
+   18.383 |    992 | B Large        | contact  | HandL touched Collider at 8.0 m/s
+   18.383 |    992 | A Large        | contact  | HandR touched Collider at 8.0 m/s
+   18.400 |    993 | A Large        | hit      | blow struck B Large's HandR at 16.0 m/s: 6.8 damage, 86 poise, stagger; impulse 172.1 N·s (80% into the part); the swing stopped; the target
+   18.400 |    993 | B Large        | struck   | by A Large on the HandR: health 175/220, poise 0/120, stagger, standing; heavy reaction, then driven back at 0.4 m/s; concentration 1.00
+   18.567 |   1003 | B Large        | contact  | ForearmL touched Collider at 12.5 m/s
+   18.567 |   1003 | A Large        | contact  | HandR touched Collider at 12.5 m/s
+   18.567 |   1003 | B Large        | contact  | HandL touched Collider at 16.3 m/s
+   18.567 |   1003 | A Large        | contact  | HandR touched Collider at 16.3 m/s
+   18.717 |   1012 | B Medium 2     | attack   | sns_rising at A Medium 2, concentration 0.25
+   18.950 |   1026 | B Medium 2     | sight    | lost track of B Large
+   19.033 |   1031 | A Medium       | sight    | lost track of A Large
+   19.033 |   1031 | A Medium       | sight    | lost track of A Medium 2
+   19.050 |   1032 | A Large        | attack   | sns_combo_forehand at B Large
+   19.100 |   1035 | A Medium       | sight    | lost track of B Medium 2
+   19.167 |   1039 | A Medium       | tempo    | gather → probe: rested (energy 0.50); energy 0.50, aggression 0.44
+   19.183 |   1040 | A Medium       | attack   | sns_rising at B Medium
+   19.517 |   1060 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   19.517 |   1060 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 49/100, poise 35/45, flinch, standing; the shield knocked back; concentration 0.47
+   19.567 |   1063 | A Medium       | sight    | lost track of B Large
+   19.783 |   1076 | A Large        | hit      | blow struck B Large's HandR at 16.0 m/s: parried by B Large's parried (57 poise); impulse 153.0 N·s (70% into the part); the swing stopped; parried
+   19.783 |   1076 | B Large        | struck   | by A Large on the HandR: health 175/220, poise 0/120, stagger, standing; parried with hanging, then driven back at 1.6 m/s; concentration 0.91
+   20.000 |   1089 | A Medium       | hit      | blow struck B Medium's HandL at 16.0 m/s: blocked by B Medium's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   20.000 |   1089 | B Medium       | struck   | by A Medium on the HandL: health 83/100, poise 36/45, flinch, standing; the shield knocked back
+   20.033 |   1091 | B Medium 2     | sight    | lost track of B Medium
+   20.067 |   1093 | B Medium 2     | sight    | lost track of A Medium
+   20.367 |   1111 | A Medium       | sight    | noticed B Large at the edge of its view (5.7 m)
+   20.533 |   1121 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.65); energy 0.65, aggression 0.04
+   20.783 |   1136 | B Large        | tempo    | shell → counter: the barrage stopped (energy 0.55); energy 0.55, aggression 0.45
+   20.967 |   1147 | B Medium 2     | sight    | noticed A Medium at the edge of its view (8.5 m)
+   21.000 |   1149 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 0.76); energy 0.76, aggression 0.32
+   21.017 |   1150 | A Medium 2     | attack   | sns_chop_lunge at B Medium 2, concentration 0.25
+   21.200 |   1161 | B Medium 2     | attack   | sns_thrust at A Medium 2
+   21.267 |   1165 | A Medium       | sight    | noticed B Medium 2 at the edge of its view (8.6 m)
+   21.350 |   1170 | A Medium       | attack   | sns_rising at B Medium
+   21.350 |   1170 | B Medium       | attack   | a combo (counter): sns_combo_backhand > sns_chop_lunge at A Medium
+   21.383 |   1172 | B Medium 2     | sight    | noticed B Medium at the edge of its view (8.6 m)
+   21.500 |   1179 | B Medium       | hit      | blow struck A Medium's HandL at 16.0 m/s: 12.8 damage, 24 poise, flinch; impulse 31.9 N·s (80% into the part); the swing stopped; the target
+   21.500 |   1179 | A Medium       | struck   | by B Medium on the HandL: health 21/100, poise 21/45, flinch, standing; its strike cut short
+   21.567 |   1183 | A Medium       | contact  | HandL touched Collider at 5.7 m/s
+   21.567 |   1183 | B Medium       | contact  | HandR touched Collider at 5.7 m/s
+   21.583 |   1184 | B Medium       | hit      | blow struck A Medium's Pelvis at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (20% into the part); the swing stopped; the target
+   21.583 |   1184 | A Medium       | struck   | by B Medium on the Pelvis: health 21/100, poise 22/45, recoil, standing; its strike carried on
+   21.600 |   1185 | B Medium       | hit      | blow struck A Medium's ForearmL at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (80% into the part); the swing stopped; the target; no sever: the edge passed 11 cm from the bone at the left wrist (the limb is 7 thick with the edge)
+   21.600 |   1185 | A Medium       | struck   | by B Medium on the ForearmL: health 21/100, poise 22/45, recoil, standing; its strike carried on
+   21.633 |   1187 | B Medium 2     | hit      | blow struck A Medium 2's HandL at 16.0 m/s: blocked by A Medium 2's shield (9 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   21.633 |   1187 | A Medium 2     | struck   | by B Medium 2 on the HandL: health 49/100, poise 36/45, flinch, standing; struck in the air, it comes down; concentration 0.15
+   21.650 |   1188 | A Medium       | tempo    | probe → shell: pressed (pressure 0.57); energy 0.44, aggression 0.26
+   21.700 |   1191 | B Large        | attack   | sns_combo_forehand at A Large, concentration 0.63
+   21.867 |   1201 | A Large        | move     | no headway toward B Large (2.2 m): going round to the left
+   21.867 |   1201 | A Large        | attack   | sns_combo_forehand at B Large
+   22.083 |   1214 | A Medium       | death    | killed by B Medium's blow to the Head
+   22.083 |   1214 | B Medium       | hit      | blow struck A Medium's Head at 16.0 m/s: 68.3 damage, 32 poise, killed; impulse 31.9 N·s (60% into the part); the swing stopped; the target
+   22.083 |   1214 | A Medium       | struck   | by B Medium on the Head: health 0/100, poise 0/45, killed, dead; hit_left_head_big reaction, then driven back at 0.5 m/s
+   22.083 |   1214 | B Medium 2     | sight    | lost track of A Medium
+   22.083 |   1214 | B Large        | sight    | lost track of A Medium
+   22.100 |   1215 | B Medium       | target   | A Large (5.8 m, health 193)
+   22.100 |   1215 | A Medium 2     | sight    | lost track of A Medium
+   22.100 |   1215 | A Large        | sight    | lost track of A Medium
+   22.100 |   1215 | B Medium       | sight    | lost track of A Medium
+   22.217 |   1222 | A Medium 2     | hit      | blow struck B Medium 2's HandR at 3.0 m/s: parried by B Medium 2's parried (3 poise); impulse 8.6 N·s (70% into the part); the swing stopped; parried
+   22.217 |   1222 | B Medium 2     | struck   | by A Medium 2 on the HandR: health 78/100, poise 42/45, recoil, standing; parried with septime
+   22.433 |   1235 | B Large        | hit      | blow struck A Large's Head at 16.0 m/s: 27.3 damage, 86 poise, flinch; impulse 172.1 N·s (60% into the part); the swing stopped; the target
+   22.433 |   1235 | A Large        | struck   | by B Large on the Head: health 165/220, poise 34/120, flinch, standing; struck in the air, it comes down, then driven back at 0.8 m/s
+   22.450 |   1236 | A Large        | hit      | blow struck B Large's HandR at 3.7 m/s: parried by B Large's parried (13 poise); impulse 35.5 N·s (70% into the part); the swing stopped; parried
+   22.450 |   1236 | B Large        | struck   | by A Large on the HandR: health 175/220, poise 35/120, recoil, standing; parried with club guard; concentration 0.51
+   22.517 |   1240 | A Medium       | contact  | Head touched Ground at 4.1 m/s
+   22.517 |   1240 | A Medium       | contact  | FootR touched Ground at 4.7 m/s
+   22.533 |   1241 | A Medium       | contact  | ForearmR touched Ground at 5.6 m/s
+   22.533 |   1241 | A Medium       | contact  | HandL touched Ground at 6.0 m/s
+   22.533 |   1241 | A Medium       | contact  | HandR touched Ground at 5.8 m/s
+   22.600 |   1245 | A Medium       | contact  | Chest touched Ground at 2.5 m/s
+   22.800 |   1257 | A Large        | tempo    | press → gather: the press was broken; energy 0.36, aggression 0.61
+   22.817 |   1258 | A Medium       | contact  | Pelvis touched Ground at 1.7 m/s
+   22.933 |   1265 | B Large        | attack   | none of its strikes reaches A Large from 1.75 m; closing in
+   22.933 |   1265 | B Large        | tempo    | counter → probe: answered; energy 0.40, aggression 0.47
+   22.950 |   1266 | B Large        | tempo    | probe → shell: pressed (pressure 2.14); energy 0.40, aggression 0.47
+   22.950 |   1266 | A Medium       | contact  | HandL touched Ground at 7.1 m/s
+   22.950 |   1266 | A Medium       | contact  | ShinR touched Ground at 1.5 m/s
+   22.967 |   1267 | A Medium       | contact  | FootL touched Ground at 3.2 m/s
+   23.017 |   1270 | A Medium       | contact  | ForearmL touched Ground at 1.4 m/s
+   23.067 |   1273 | A Medium       | contact  | HandL touched Ground at 2.9 m/s
+   23.233 |   1283 | A Medium       | contact  | HandL touched Ground at 1.6 m/s
+   23.350 |   1290 | A Medium 2     | attack   | sns_chop_lunge at B Medium 2
+   23.517 |   1300 | B Medium       | tempo    | counter → probe: answered; energy 0.46, aggression 0.64
+   23.533 |   1301 | B Medium       | tempo    | probe → shell: pressed (pressure 1.08); energy 0.46, aggression 0.64
+   23.583 |   1304 | B Medium 2     | attack   | sns_chop_lunge at A Medium 2
+   23.583 |   1304 | A Medium       | despawn  | recording stopped
+   23.583 |   1304 | A Medium 2     | despawn  | recording stopped
+   23.583 |   1304 | A Large        | despawn  | recording stopped
+   23.583 |   1304 | B Medium       | despawn  | recording stopped
+   23.583 |   1304 | B Medium 2     | despawn  | recording stopped
+   23.583 |   1304 | B Large        | despawn  | recording stopped
+   23.583 |   1304 | -              | session  | 174 pictures saved
+   23.583 |   1304 | -              | session  | recording stopped after 21.7 s (1304 physics steps)
