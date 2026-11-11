@@ -1713,7 +1713,7 @@ step simulated in one or more physics steps, the result written back, and collis
 ```
 ./get-physx.sh && dotnet build Tests.csproj
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll physx                 # the engine's checks (pass/fail)
-PHYSX=1 CLIP_FIGHT=1 FIGHT_LINEUP=mediums dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll fight /tmp/fight 1
+PHYSX=1 FIGHT_LINEUP=mediums dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll fight /tmp/fight 1
 python3 ../Playtest/puppet.py /tmp/fight/PlaytestLogs/<session>       # the same measures as on a Unity log
 ```
 
@@ -1813,31 +1813,48 @@ With `FIGHT_BLADE=30` the headless clip fight (posed, the old way) plays with th
 109, parries 12 where there were 27. The defender's reading of when a blow lands doesn't know about the slowed clip
 yet; that is for the step that brings the arm into the fight.
 
-`Tools/CompileCheck` compiles every script against small UnityEngine/UnityEditor/URP stubs (with real vector maths),
-runs the EditMode tests, and can dry-run the battle (six units on the board, with a tiny integrator standing in for
-PhysX) to produce a playtest log for `analyze.py`:
+**The old pose pipeline goes (branch `physical-body`, begun 11 November 2026).** Every unit is now a clip fighter:
+`UnitController` always builds one, and the `ClipMotion` switch, the sandbox's "Clip motion" toggle and `CLIP_FIGHT`
+are gone. What went with them so far:
+
+- The old path's stepping, equipping and teleporting, and the 30 places that chose between it and the clip fighter
+  (`FightLoop`, `UnitSever`, `UnitTrack`, the recorder, the sounds).
+- The 18 EditMode test files (157 tests, all of the old path) and the 26 headless reports that drove only the old
+  path (`smoke`, `aim`, `swings`, `walks`, `rhythms`, `balance`, `parries`, `shield`, `arms`, `guard`, ...). There are
+  no unit tests at the moment; the checks are the ones listed below. (Unity will note that the test assembly in
+  `Assets/_Battler/Tests/EditMode` has no scripts: the next tests go there.)
+- The Move Preview window, and the spawn marker's posed preview: a marker now shows its body at rest in its team's
+  colour, unarmed (the stance and the weapons in the hands were the old pipeline's pose).
+- About 280 members nothing reaches any more, found by the compiler: everything removable in `Units/`, `Motion/` and
+  `Combat/` was taken out at once, and only what the three builds then missed was put back.
+
+The game's runtime code is 41,900 lines where it was 46,400, and about 10,700 lines of tests and reports are gone.
+After each stage the clip fight's event logs were compared with the ones from before, on eight fights (three seeds,
+two line-ups, posed and on the real engine): the same line for line.
+
+What is left of the old pipeline is still reached by live code, so it can't be taken out by rule. Where it hangs
+(names of the old types counted in the live code): `Stance` (the clip fighter's ground height and the logs),
+`MoveState` and `AimPart` (the sandbox's scenarios, the recorder), `Tempo` (the fight loop), `Perception`, `GetUp`
+(the clip fighter's get-up uses it), `MovePlanner` (the sandbox), `DamageRules`, `Weapon` and `WeaponDefinition`
+(live: kept), and `MoveDefinition`, `RhythmDefinition`, `PostureDefinition`, `CombatStyle` with their 37 assets and the
+editor's set-up menus that build them. `PosePipeline` (2,300 lines) hangs by two lines in `UnitController`. Each
+of these is a cut to make by hand, with the logs compared after it.
+
+`Tools/CompileCheck` compiles every script against small UnityEngine/UnityEditor/URP stubs (with real vector maths)
+and runs the headless reports:
 
 ```
 cd Tools/CompileCheck
 dotnet build Editor.csproj                     # runtime + editor scripts
 dotnet build Runtime.csproj -p:LegacyInput=true
-dotnet build Tests.csproj && dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll
-dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll smoke /tmp/smoke   # dry run, writes a playtest log
-dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim [tiles]         # every move at every part, every size pair
-dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll swings [/tmp/gallery] # every move's arc, speed, depth, turn, steps
-python3 ../Playtest/swings.py /tmp/gallery/PlaytestLogs               # review sheets of the gallery's swings
-dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll balance [/tmp/getups]  # every body knocked down and got up, and a stumble
-python3 ../Playtest/getups.py /tmp/getups                              # the get-ups drawn from the side and front
-dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll combos                         # every body's combo strings at a standing opponent (milestone 10)
-dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll rhythms /tmp/rhythms   # every style's base and posture: clearance, pops
-python3 ../Playtest/rhythms.py /tmp/rhythms                            # them drawn through time, side and front
-dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll walks /tmp/walks       # each body walking (forward, back, aside, round), CSVs for walkview.py
-AIM_STYLES=1 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll aim       # the aim matrix with each body's own stance
+dotnet build Tests.csproj
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll fight /tmp/fight 7     # a whole 3 v 3 fight (seed 7) with a playtest log; FIGHT_MIRROR=1 swaps the sides
-python3 ../Playtest/tempo.py /tmp/fight/PlaytestLogs/<session> [...]   # its rhythm and tempo (several sessions: pooled by body)
-dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll windows                # every move's wind-up end, drive and contact on each body
 python3 ../Playtest/fightview.py /tmp/fight/PlaytestLogs/<session> fight.mp4   # that fight as a video, seen from above
-TEST_ONLY=Balance dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll      # only the tests whose name contains this
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll physx                  # the real engine's checks (pass/fail)
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll physx-arm              # the sword arm experiment
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll locolab . 20           # the lab's walk
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll spar /tmp/spar 40      # the lab's two fighters
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll strikes /tmp/strikes   # each strike aimed; also dummyhits, combos, cores, footwork, parryreach, combatfilm
 ```
 
 The stubs only cover the API this project uses, and the dry run has no collisions or joints (a ragdoll's parts fall
