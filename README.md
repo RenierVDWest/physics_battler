@@ -1703,6 +1703,34 @@ points, masses, colliders). See `SourceArt/Bodies/README.md`. The sword, club an
 
 ## Compile check and tests without Unity
 
+**The real engine, headless (branch `physical-body`, 11 November 2026).** `Tools/CompileCheck/get-physx.sh` fetches
+Cysharp's MagicPhysX (.NET bindings for NVIDIA PhysX 5, MIT; kept out of the repository in `ThirdParty/`). With it
+there, `Tests.csproj` builds `Runner/PhysX/PhysXWorld.cs`: every stub Rigidbody, Collider and ConfigurableJoint
+mirrored into PhysX as Unity sets them up (a ConfigurableJoint is a PhysX D6 joint, its own body first), each game
+step simulated in one or more physics steps, the result written back, and collisions told to the scripts
+(`OnCollisionEnter`, `OnCollisionStay`). Without it everything builds and runs as before, on the dry run.
+
+```
+./get-physx.sh && dotnet build Tests.csproj
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll physx                 # the engine's checks (pass/fail)
+PHYSX=1 CLIP_FIGHT=1 FIGHT_LINEUP=mediums dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll fight /tmp/fight 1
+python3 ../Playtest/puppet.py /tmp/fight/PlaytestLogs/<session>       # the same measures as on a Unity log
+```
+
+`PHYSX_SUBSTEPS=4` runs four physics steps in each game step (240 a second). `FIGHT_LINEUP=mediums` is the new
+plan's battle: six Mediums. How well it stands in for Unity, measured:
+
+- The game's own joint probe reads on it what it reads in Unity: "drive standard (asked +35, got 35.0), X limit sign
+  -1 (pushed +, stopped at 5.0), velocity signs -1 -1 -1" (the turn 24 to 25 degrees; Unity 25).
+- A 60 s fight of physical clip fighters against the playtest of 6 November 14:16, how far each physical part is from
+  its pose (cm; median, 95%, 99%): torso and head 0.14, 1.05, 2.33 (Unity 0.14, 1.12, 2.87); shield arm 0.51, 7.81,
+  15.8 (Unity 0.62, 9.70, 17.1); weapon arm 0.00, 2.48, 5.34 (Unity 0.00, 1.97, 6.22); legs exactly on it in both.
+- A ragdoll's joints come 2 cm apart at worst in a fall; Unity's dead came 2 to 12 cm apart in the playtests.
+- The same seed repeats exactly, with the engine and without it.
+
+Not yet in it: contact modification (`GroundContacts`), raycasts, weapons' own colliders (headless a sword has no
+model; a shield a board), limit springs. Unity stays the final word.
+
 `Tools/CompileCheck` compiles every script against small UnityEngine/UnityEditor/URP stubs (with real vector maths),
 runs the EditMode tests, and can dry-run the battle (six units on the board, with a tiny integrator standing in for
 PhysX) to produce a playtest log for `analyze.py`:

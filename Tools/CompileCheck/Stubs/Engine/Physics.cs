@@ -14,8 +14,29 @@ namespace UnityEngine
     public enum SimulationMode { FixedUpdate, Update, Script }
     public enum PhysicsMaterialCombine { Average = 0, Multiply = 1, Minimum = 2, Maximum = 3 }
 
+    /// <summary>
+    /// A real physics engine under the stubs (the plan "A different approach", step 1: PhysX through MagicPhysX, set by
+    /// the runner). Null: the dry run as before (no collisions, no joints; the runner's integrator moves the parts).
+    /// </summary>
+    public interface IPhysicsBackend
+    {
+        void AddForce(Rigidbody body, Vector3 force, ForceMode mode);
+        void AddForceAtPosition(Rigidbody body, Vector3 force, Vector3 position, ForceMode mode);
+        void AddTorque(Rigidbody body, Vector3 torque, ForceMode mode);
+        Vector3 PointVelocity(Rigidbody body, Vector3 worldPoint);
+        Vector3 InertiaTensor(Rigidbody body);
+        Vector3 WorldCenterOfMass(Rigidbody body);
+        void IgnoreCollision(Collider a, Collider b, bool ignore);
+        void IgnoreLayerCollision(int a, int b, bool ignore);
+        bool ComputePenetration(Collider a, Vector3 positionA, Quaternion rotationA, Collider b, Vector3 positionB, Quaternion rotationB, out Vector3 direction, out float distance);
+        void Simulate(float step);
+    }
+
     public class Rigidbody : Component
     {
+        /// <summary>Moved with MovePosition or MoveRotation since the last simulated step (a kinematic body then pushes what it meets; set by position alone it is placed).</summary>
+        public bool MovedThisStep;
+
         public float mass { get; set; } = 1f;
         public bool useGravity { get; set; } = true;
         public bool isKinematic { get; set; }
@@ -32,8 +53,9 @@ namespace UnityEngine
         public Vector3 linearVelocity { get; set; }
         public Vector3 angularVelocity { get; set; }
         public Vector3 centerOfMass { get; set; }
-        public Vector3 worldCenterOfMass => position;
-        public Vector3 inertiaTensor { get; set; } = Vector3.one * 0.1f;
+        public Vector3 worldCenterOfMass => Physics.Backend != null ? Physics.Backend.WorldCenterOfMass(this) : position;
+        private Vector3 inertia = Vector3.one * 0.1f;
+        public Vector3 inertiaTensor { get => Physics.Backend != null ? Physics.Backend.InertiaTensor(this) : inertia; set => inertia = value; }
         public Quaternion inertiaTensorRotation { get; set; } = Quaternion.identity;
         public Vector3 position { get => transform.position; set => transform.position = value; }
         public Quaternion rotation { get => transform.rotation; set => transform.rotation = value; }
@@ -44,24 +66,26 @@ namespace UnityEngine
         public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force)
         {
             if (isKinematic) return;
+            if (Physics.Backend != null) { Physics.Backend.AddForce(this, force, mode); return; }
             if (mode == ForceMode.Impulse) linearVelocity += force / Mathf.Max(1e-3f, mass);
             else if (mode == ForceMode.VelocityChange) linearVelocity += force;
         }
 
         public void AddForceAtPosition(Vector3 force, Vector3 position, ForceMode mode = ForceMode.Force)
         {
+            if (Physics.Backend != null) { if (!isKinematic) Physics.Backend.AddForceAtPosition(this, force, position, mode); return; }
             if (isKinematic || mode != ForceMode.Impulse) return;
             linearVelocity += force / Mathf.Max(1e-3f, mass);
             angularVelocity += Vector3.Cross(position - this.position, force) / Mathf.Max(1e-3f, mass * 0.02f);
         }
-        public void AddTorque(Vector3 torque, ForceMode mode = ForceMode.Force) { }
+        public void AddTorque(Vector3 torque, ForceMode mode = ForceMode.Force) { if (Physics.Backend != null && !isKinematic) Physics.Backend.AddTorque(this, torque, mode); }
         public void AddRelativeForce(Vector3 force, ForceMode mode = ForceMode.Force) { }
-        public Vector3 GetPointVelocity(Vector3 worldPoint) => linearVelocity;
+        public Vector3 GetPointVelocity(Vector3 worldPoint) => Physics.Backend != null ? Physics.Backend.PointVelocity(this, worldPoint) : linearVelocity;
         public void ResetCenterOfMass() { }
         public void ResetInertiaTensor() { }
         // The stub has no solver: a move arrives at once (the smoke runner integrates the rest).
-        public void MovePosition(Vector3 position) { this.position = position; }
-        public void MoveRotation(Quaternion rotation) { this.rotation = rotation; }
+        public void MovePosition(Vector3 position) { this.position = position; MovedThisStep = true; }
+        public void MoveRotation(Quaternion rotation) { this.rotation = rotation; MovedThisStep = true; }
         public void Sleep() { }
         public void WakeUp() { }
     }
@@ -186,6 +210,9 @@ namespace UnityEngine
 
     public class Joint : Component
     {
+        /// <summary>Destroyed (Object.Destroy on the component): the bodies it held are free of each other.</summary>
+        public bool Destroyed;
+
         public Rigidbody connectedBody { get; set; }
         public Vector3 axis { get; set; } = Vector3.right;
         public Vector3 anchor { get; set; }
@@ -249,8 +276,10 @@ namespace UnityEngine
         public Collider collider { get; set; }
         public Transform transform => collider != null ? collider.transform : null;
         public GameObject gameObject => collider != null ? collider.gameObject : null;
-        public int contactCount { get; set; }
-        public ContactPoint GetContact(int index) => default;
+        public ContactPoint[] Points;
+        public int contactCount { get => Points != null ? Points.Length : count; set => count = value; }
+        private int count;
+        public ContactPoint GetContact(int index) => Points != null && index >= 0 && index < Points.Length ? Points[index] : default;
     }
 
     public struct RaycastHit
@@ -277,7 +306,15 @@ namespace UnityEngine
         public static bool autoSyncTransforms { get; set; }
         public static bool reuseCollisionCallbacks { get; set; } = true;
 
-        public static void IgnoreCollision(Collider a, Collider b, bool ignore = true) { }
+        /// <summary>The engine under the stubs (null: none, the dry run).</summary>
+        public static IPhysicsBackend Backend;
+
+        /// <summary>Every live rigidbody and joint, for the engine under the stubs.</summary>
+        public static readonly List<Rigidbody> Bodies = new List<Rigidbody>();
+        public static readonly List<Joint> Joints = new List<Joint>();
+        public static IReadOnlyList<Collider> Colliders => colliders;
+
+        public static void IgnoreCollision(Collider a, Collider b, bool ignore = true) { Backend?.IgnoreCollision(a, b, ignore); }
         public static event System.Action<PhysicsScene, Unity.Collections.NativeArray<ModifiableContactPair>> ContactModifyEvent { add { } remove { } }
 
         // Overlap queries over every live collider, with real shapes (Collider.ClosestPoint).
@@ -310,7 +347,7 @@ namespace UnityEngine
         public static Collider[] OverlapSphere(Vector3 position, float radius, int layerMask = -1,
             QueryTriggerInteraction queryTriggerInteraction = QueryTriggerInteraction.UseGlobal) =>
             OverlapCapsule(position, position, radius, layerMask, queryTriggerInteraction);
-        public static void IgnoreLayerCollision(int layer1, int layer2, bool ignore = true) { }
+        public static void IgnoreLayerCollision(int layer1, int layer2, bool ignore = true) { Backend?.IgnoreLayerCollision(layer1, layer2, ignore); }
 
         public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hitInfo, float maxDistance,
             int layerMask, QueryTriggerInteraction queryTriggerInteraction)
@@ -345,9 +382,9 @@ namespace UnityEngine
         {
             direction = Vector3.zero;
             distance = 0f;
-            return false;
+            return Backend != null && Backend.ComputePenetration(colliderA, positionA, rotationA, colliderB, positionB, rotationB, out direction, out distance);
         }
-        public static void Simulate(float step) { }
+        public static void Simulate(float step) { Backend?.Simulate(step); }
     }
 
     public struct ModifiableContactPair
@@ -365,7 +402,7 @@ namespace UnityEngine
     public struct PhysicsScene
     {
         public bool IsValid() => true;
-        public void Simulate(float step) { }
+        public void Simulate(float step) { Physics.Backend?.Simulate(step); }
     }
 
     public static class PhysicsSceneExtensions

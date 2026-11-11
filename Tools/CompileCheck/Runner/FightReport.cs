@@ -34,7 +34,20 @@ internal static class FightReport
         Application.dataPath = Path.Combine(Path.GetFullPath(output), "Assets");
         var recorder = new GameObject("Recorder").AddComponent<PlaytestRecorder>();
         Call(recorder, "OnEnable");
-        if (UnitController.ClipMotion)
+        bool engine = false;
+#if PHYSX
+        // (PHYSX=1: the real engine under the fight (the plan "A different approach", step 1): the clip fighters'
+        // bodies physical as in Unity, every step simulated by PhysX; PHYSX_SUBSTEPS physics steps in each, 1 as Unity.)
+        if (Environment.GetEnvironmentVariable("PHYSX") != null)
+        {
+            engine = true;
+            // (The joint probe first, in a world of its own: its bodies must not meet the fight's ground.)
+            Physics.Backend = new PhysicsBattler.Engine.PhysXWorld(false);
+            PhysicsBattler.Muscles.JointConventions.EnsureProbed();
+            PhysicsBattler.Engine.PhysXWorld.Install(BodyPart.GroundLayer, int.TryParse(Environment.GetEnvironmentVariable("PHYSX_SUBSTEPS"), out int sub) ? sub : 1);
+        }
+#endif
+        if (UnitController.ClipMotion && !engine)
         {
             // (No physics headless: the clip fighters' bodies are the lab runners', posed only.)
             UnitController.ClipPhysical = false;
@@ -74,6 +87,16 @@ internal static class FightReport
                 gang == "gang2"
                     ? new[] { ("Swordsman", new Tile(3, 6)), ("Swordsman", new Tile(6, 3)) }
                     : new[] { ("Swordsman", new Tile(3, 6)), ("Swordsman", new Tile(6, 3)), ("Swordsman", new Tile(3, 0)) },
+            };
+        }
+
+        if (gang == "mediums")
+        {
+            // (Mediums only, six of them: the new plan's battle. A swordsman and two with sword and shield a side.)
+            lineup = new[]
+            {
+                new[] { ("Swordsman", new Tile(2, 1)), ("Medium", new Tile(3, 1)), ("Medium", new Tile(4, 1)) },
+                new[] { ("Medium", new Tile(4, 6)), ("Medium", new Tile(2, 6)), ("Swordsman", new Tile(3, 6)) },
             };
         }
 
@@ -299,11 +322,14 @@ internal static class FightReport
                 foreach (var unit in units)
                 {
                     Call(unit, "FixedUpdate");
-                    if (!unit.UsesClips)
+                    if (!unit.UsesClips && Physics.Backend == null)
                     {
                         PhysicsBattler.Tests.BalanceTests.Integrate(unit, dt);
                     }
                 }
+
+                // (The engine under the stubs: every script's step, then the physics step, as in Unity.)
+                Physics.Simulate(dt);
 
                 if (clips)
                 {

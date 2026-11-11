@@ -34,6 +34,13 @@ internal static class Program
             AppDomain.CurrentDomain.ProcessExit += (_, _) => Console.WriteLine("Sounds asked for: " + (heard.Count == 0 ? "none" : string.Join(", ", heard.Select(h => $"{h.Key} {h.Value}"))));
         }
 
+#if PHYSX
+        if (args.Length >= 1 && args[0] == "physx")
+        {
+            return PhysXReport.Run(args);
+        }
+#endif
+
         if (args.Length >= 2 && args[0] == "combos")
         {
             return StrikeComboReport.Run(args[1], args.Length >= 3 ? args[2] : null);
