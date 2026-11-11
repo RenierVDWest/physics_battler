@@ -412,7 +412,7 @@ namespace PhysicsBattler.Muscles
             }
 
             Vector3 axis = v / angle, best = v;
-            for (int k = -1; k <= 1; k += 2)
+            for (int k = -2; k <= 2; k++)
             {
                 Vector3 other = axis * (angle + k * 2f * Mathf.PI);
                 if ((other - last).sqrMagnitude < (best - last).sqrMagnitude)

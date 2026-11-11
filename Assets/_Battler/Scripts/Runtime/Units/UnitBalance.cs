@@ -339,7 +339,7 @@ namespace PhysicsBattler.Units
                 Attacker = this, Struck = other, Part = part, Point = point, Speed = closing, Result = result,
                 Kind = launched ? "a launched body thrown into it" : "a falling body", Impact = true, ImpactPart = mine,
             };
-            other.TakeHit(report);
+            other.ImpactTaken(report);
             Hit?.Invoke(report);
 
             // The thrown body is hurt too (its own fall: no push, PhysX bounces it).
@@ -349,8 +349,39 @@ namespace PhysicsBattler.Units
                 Attacker = other, Struck = this, Part = mine, Point = point, Speed = closing, Result = back,
                 Kind = "thrown into " + other.name, Impact = true, ImpactPart = part,
             };
-            TakeHit(self);
+            ImpactTaken(self);
             Hit?.Invoke(self);
+        }
+
+        /// <summary>
+        /// A body thrown into this one, or this one's own hurt from being thrown: a clip fighter takes it by its own
+        /// path (health, death, the knock to its walk, and off its feet if it is hard enough). The old path's
+        /// stumble and knock-down pose a body the clip fighter no longer has.
+        /// </summary>
+        private void ImpactTaken(HitReport hit)
+        {
+            if (Clip == null)
+            {
+                TakeHit(hit);
+                return;
+            }
+
+            ClipTakeHit(hit, 0f);
+            if (!IsAlive || Clip.Fallen)
+            {
+                return;
+            }
+
+            Vector3 push = hit.Result.Impulse / Mathf.Max(1f, Body.Mass);
+            push.y = 0f;
+            if (push.magnitude / SizeSpeed() >= KnockdownAt)
+            {
+                Clip.KnockOver(push, push.magnitude, "a body thrown into it, off its feet");
+            }
+            else if (push.sqrMagnitude > 1e-4f)
+            {
+                Clip.Loco.Push(push);
+            }
         }
 
         // ---- Getting up --------------------------------------------------------------------------

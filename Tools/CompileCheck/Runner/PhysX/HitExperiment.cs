@@ -146,7 +146,7 @@ internal static class HitExperiment
             fighter.Apply(dt);
             if (setup.Game)
             {
-                upper?.BeginStep();
+                upper?.BeginStep(dt);
                 PhysicsSteps.Run(dt);
                 upper?.MoveShadows();
             }

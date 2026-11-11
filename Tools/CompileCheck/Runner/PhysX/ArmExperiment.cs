@@ -200,7 +200,7 @@ new Setup { Name = "articulation, 60 Hz, motors without limit", Arm = AuthorityL
             fighter.Apply(dt);
             if (setup.Game)
             {
-                upper?.BeginStep();
+                upper?.BeginStep(dt);
                 PhysicsSteps.Run(dt);
                 upper?.MoveShadows();
             }

@@ -150,15 +150,20 @@ namespace PhysicsBattler.Units
         private void StopRhythm()
         {
             Rhythm?.Stop();
-            if (feint != null && Pose.Move == feint)
+            // (A clip fighter has no pose pipeline: a body thrown into it stumbled it by the old path, and this threw.)
+            if (Pose != null)
             {
-                Pose.Move = null;
+                if (feint != null && Pose.Move == feint)
+                {
+                    Pose.Move = null;
+                }
+
+                Pose.Rhythm = default;
+                Pose.Feint = null;
             }
 
             feint = null;
-            Pose.Rhythm = default;
             ResetMood();
-            Pose.Feint = null;
             Circling = 0f;
             rhythmRoot = transform.position;
         }

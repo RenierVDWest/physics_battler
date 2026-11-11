@@ -35,7 +35,16 @@ namespace PhysicsBattler.Muscles
         /// </summary>
         public static bool TurnOnOwnAxes { get; private set; } = true;
 
+        /// <summary>
+        /// Whether the engine's own number for where a ball joint is (its jointPosition) reads as its targets do:
+        /// the same turn vector, in radians. The body names each target the way nearest where its joint is, by
+        /// this number; where it reads otherwise the links' own turns are used.
+        /// </summary>
+        public static bool PositionReadable { get; private set; }
+
         public static string Report { get; private set; } = "not probed";
+
+        private static Vector3 readAt;
 
         private const float Step = 1f / 240f;
         private static readonly Vector3 Asked = new Vector3(20f, -35f, 10f);
@@ -60,6 +69,9 @@ namespace PhysicsBattler.Muscles
                 float off = (mended - Asked).magnitude;
                 bool turnVector = off < 3f;
                 TargetSign = sign;
+                // (And where the engine says the joint then is: the same numbers, in radians?)
+                float readOff = (Vector3.Scale(readAt * Mathf.Rad2Deg, sign) - Asked).magnitude;
+                PositionReadable = turnVector && readOff < 3f;
 
                 // 2. Stiffness: a steady 5 N m about X against a spring of 400 N m a radian gives 0.0125 rad.
                 Vector3 held = Run(scene, physics, 400f, 12.65f, 0f, Vector3.zero, Vector3.right * 5f, 240);
@@ -85,11 +97,13 @@ namespace PhysicsBattler.Muscles
                 Report = string.Format(System.Globalization.CultureInfo.InvariantCulture,
                     "targets {0} (asked {1:0} {2:0} {3:0}, turned {4:0.0} {5:0.0} {6:0.0}°, signs {7:+0;-0} {8:+0;-0} {9:+0;-0}), "
                     + "stiffness {10} (5 N m on 400 gave {11:0.000}°; for radians 0.716), force limit {12} (5 N m on a 2 N m limit turned {13:0}°), "
-                    + "a part built turned takes its joint's turn {15} ({16:0.0}° off; the other way {17:0.0}°){14}",
+                    + "a part built turned takes its joint's turn {15} ({16:0.0}° off; the other way {17:0.0}°), "
+                    + "the joint's own position reads {18} ({19:0.0}° off){14}",
                     turnVector ? "a turn vector" : "NOT a turn vector", Asked.x, Asked.y, Asked.z, got.x, got.y, got.z, sign.x, sign.y, sign.z,
                     per > 0.5f && per < 2f ? "for radians" : stiffnessKnown ? "for degrees" : "UNKNOWN", Mathf.Abs(held.x),
                     LimitIsTorque ? "a torque" : "NOT a torque", Mathf.Abs(slipped.x), Usable ? "" : "; the physical upper body stays OFF",
-                    !builtKnown ? "NEITHER way known" : TurnOnOwnAxes ? "on its own axes" : "on its parent's", Mathf.Min(own, parents), Mathf.Max(own, parents));
+                    !builtKnown ? "NEITHER way known" : TurnOnOwnAxes ? "on its own axes" : "on its parent's", Mathf.Min(own, parents), Mathf.Max(own, parents),
+                    PositionReadable ? "as the targets do" : "OTHERWISE (the links' turns are used)", readOff);
                 Debug.Log($"[Articulation probe] {Report}");
             }
             finally
@@ -154,6 +168,8 @@ namespace PhysicsBattler.Muscles
                 physics.Simulate(Step);
             }
 
+            var read = part.jointPosition;
+            readAt = read.dofCount == 3 ? new Vector3(read[0], read[1], read[2]) : Vector3.one * 1e3f;
             var relative = Quaternion.Inverse(rootObject.transform.rotation) * partObject.transform.rotation;
             Object.DestroyImmediate(rootObject);
             return JointMath.TurnVector(relative) * Mathf.Rad2Deg;

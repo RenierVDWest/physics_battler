@@ -302,7 +302,12 @@ namespace PhysicsBattler.Engine
         /// A collider's shape as the engine itself has it, for finding where the two disagree: how far from where the
         /// collider's own transform puts it (metres), and its flags. Null: the engine has no shape for it.
         /// </summary>
-        public string EngineShape(Collider a)
+/// <summary>Every contact since the reader last cleared it, over all the physics steps between (kept only when asked).</summary>
+        public readonly List<EngineContact> Touched = new List<EngineContact>();
+
+        public bool KeepTouched;
+
+                public string EngineShape(Collider a)
         {
             if (a == null || !shapes.TryGetValue(a, out var sh) || sh.Shape == null || sh.Actor == null)
             {
@@ -1181,11 +1186,13 @@ namespace PhysicsBattler.Engine
                 uint n = PxContactPair_extractContacts((PxContactPair*)pair, points, 16);
                 for (uint k = 0; k < n; k++)
                 {
-                    world.Contacts.Add(new EngineContact
+                    var touch = new EngineContact
                     {
                         A = a?.Collider, B = b?.Collider, Point = U(points[k].position), Normal = U(points[k].normal), Impulse = U(points[k].impulse),
                         Separation = points[k].separation,
-                    });
+                    };
+                    world.Contacts.Add(touch);
+                    if (world.KeepTouched) world.Touched.Add(touch);
                 }
             }
         }

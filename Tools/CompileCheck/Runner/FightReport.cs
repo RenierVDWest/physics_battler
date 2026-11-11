@@ -96,6 +96,15 @@ internal static class FightReport
             PhysicsBattler.Locomotion.ClipFighter.BorneDownFrom = borne;
         }
 
+        // (UPPER_ALLOW=0: no muscle is allowed more than its strength for what the pose itself does.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("UPPER_ALLOW"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float allow))
+        {
+            PhysicsBattler.Authority.UpperBodyArticulation.AllowShare = allow;
+        }
+
+        // (UPPER_GHOST=1: the physical upper bodies touch nothing, to see how the muscles alone follow the pose.)
+        PhysicsBattler.Authority.UpperBodyArticulation.Ghost = Environment.GetEnvironmentVariable("UPPER_GHOST") == "1";
+
         // (How much of their quickness a struck body's muscles keep at the least: FIGHT_EASE=1 for all of it.)
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_EASE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float leastQuick))
         {
@@ -219,6 +228,7 @@ internal static class FightReport
         // (Feet sliding on the ground: each foot's ankle, while it is down at its standing height, and how far it moves there.)
         var slide = new Dictionary<UnitController, GroundSlide>();
         var upperSteps = new Dictionary<UnitController, (int on, int all)>();
+        var headOffs = new Dictionary<UnitController, List<float>>();
         var upperOffs = new[] { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
         Array.Clear(PhysicsBattler.Locomotion.ClipFighter.RootShoves, 0, 4);
         var rootJump = new Dictionary<UnitController, (float most, float at)>();
@@ -488,10 +498,17 @@ internal static class FightReport
                             bool striking = u.Clip.Striking;
                             if (up.Holds(PhysicsBattler.Rig.PartId.HandR)) (striking ? upperOffs[0] : upperOffs[1]).Add(up.Off(PhysicsBattler.Rig.PartId.HandR) * 100f);
                             if (up.Holds(PhysicsBattler.Rig.PartId.HandL)) upperOffs[2].Add(up.Off(PhysicsBattler.Rig.PartId.HandL) * 100f);
-                            if (up.Holds(PhysicsBattler.Rig.PartId.Head)) upperOffs[3].Add(up.Off(PhysicsBattler.Rig.PartId.Head) * 100f);
+                            if (up.Holds(PhysicsBattler.Rig.PartId.Head))
+                            {
+                                upperOffs[3].Add(up.Off(PhysicsBattler.Rig.PartId.Head) * 100f);
+                                if (!headOffs.TryGetValue(u, out var ho)) headOffs[u] = ho = new List<float>();
+                                ho.Add(up.Off(PhysicsBattler.Rig.PartId.Head) * 100f);
+                            }
                             if (up.Turns(PhysicsBattler.Rig.PartId.HandL)) upperOffs[4].Add(up.GripOff(PhysicsBattler.Rig.PartId.HandL));
-                            if (Environment.GetEnvironmentVariable("FIGHT_STRAY") == "1" && up.Holds(PhysicsBattler.Rig.PartId.Head)
-                                && (up.Off(PhysicsBattler.Rig.PartId.Head) > 0.25f || up.GripOff(PhysicsBattler.Rig.PartId.HandL) > 60f || (up.Holds(PhysicsBattler.Rig.PartId.HandR) && up.Off(PhysicsBattler.Rig.PartId.HandR) > 0.8f)))
+                            string watch = Environment.GetEnvironmentVariable("FIGHT_WATCH");
+                            if (up.Holds(PhysicsBattler.Rig.PartId.Head) && (watch != null ? u.name == watch
+                                : Environment.GetEnvironmentVariable("FIGHT_STRAY") == "1"
+                                && (up.Off(PhysicsBattler.Rig.PartId.Head) > 0.25f || up.GripOff(PhysicsBattler.Rig.PartId.HandL) > 60f || (up.Holds(PhysicsBattler.Rig.PartId.HandR) && up.Off(PhysicsBattler.Rig.PartId.HandR) > 0.8f))))
                             {
                                 UnitController near = null;
                                 foreach (var o in units)
@@ -505,7 +522,8 @@ internal static class FightReport
                                 {
                                     var mine = new HashSet<Collider>(up.Colliders);
                                     var seen = new HashSet<string>();
-                                    foreach (var c in pw.Contacts)
+                                    pw.KeepTouched = true;
+                                    foreach (var c in watch != null ? pw.Touched : pw.Contacts)
                                     {
                                         if (c.A == null || c.B == null || mine.Contains(c.A) == mine.Contains(c.B)) continue;
                                         var own = mine.Contains(c.A) ? c.A : c.B;
@@ -516,6 +534,12 @@ internal static class FightReport
                                     }
 
                                     touching = "; touching: " + string.Join(", ", seen);
+                                    if (watch != null)
+                                    {
+                                        pw.Touched.Clear();
+                                        touching += "\n      " + up.Describe(PhysicsBattler.Rig.PartId.Spine) + "; " + up.Describe(PhysicsBattler.Rig.PartId.Chest) + "; " + up.Describe(PhysicsBattler.Rig.PartId.UpperArmR)
+                                            + "; " + up.Describe(PhysicsBattler.Rig.PartId.ForearmR) + "; " + up.Describe(PhysicsBattler.Rig.PartId.UpperArmL);
+                                    }
                                 }
 #endif
                                 Console.WriteLine($"STRAY {t:0.000} {u.name} at {u.Root.position.x:0.0},{u.Root.position.z:0.0}: head {up.Off(PhysicsBattler.Rig.PartId.Head) * 100f:0} cm, chest {up.Off(PhysicsBattler.Rig.PartId.Chest) * 100f:0} cm, "
@@ -636,6 +660,10 @@ internal static class FightReport
             sb.AppendLine($"      the shield hand: {Spread(upperOffs[2], "cm")}");
             sb.AppendLine($"      the head: {Spread(upperOffs[3], "cm")}");
             sb.AppendLine($"      the shield in its hand: {Spread(upperOffs[4], "°")}");
+            foreach (var u in units)
+            {
+                if (headOffs.TryGetValue(u, out var ho)) sb.AppendLine($"      {u.name}'s head: {Spread(ho, "cm")}; joints put where the pose turned them at once: {u.Clip.SnappedBack}; put back on its pose after staying away: {u.Clip.RanAway}");
+            }
             sb.AppendLine("    physical upper bodies, the share of each unit's time on its feet with one: " + string.Join(", ", upperSteps.Select(p => $"{p.Key.name} {100f * p.Value.on / Mathf.Max(1, p.Value.all):0}%"
                 + (p.Value.on < p.Value.all ? $" (now {p.Key.Clip.Footing}, torso {p.Key.Clip.Authority.Level(PhysicsBattler.Authority.BodyRegion.Torso)}, lost: {string.Join(" ", PhysicsBattler.Rig.PartInfo.All.Where(id => p.Key.Rig.IsSevered(id)))})" : ""))));
         }
