@@ -21,27 +21,6 @@ namespace PhysicsBattler.Units
         public bool LookOn { get; set; } = true;
 
         private readonly List<LookPoint> lookPoints = new List<LookPoint>();
-
-        /// <summary>How far its gaze is from what it attends to (degrees): the head's pointing, less the few degrees its eyes take.</summary>
-        public float LookOff
-        {
-            get
-            {
-                if (Look.Current < 0)
-                {
-                    return 0f;
-                }
-
-                Vector3 to = Look.Point - EyePosition;
-                if (to.sqrMagnitude < 1e-6f)
-                {
-                    return 0f;
-                }
-
-                float eyes = new Vector2(HeadLook.EyesAcross(Look.Yaw), HeadLook.EyesUpDown(Look.Pitch)).magnitude;
-                return Mathf.Max(0f, Vector3.Angle(EyeRotation * Vector3.forward, to) - eyes);
-            }
-        }
         private float lookWeight, nextGlanceAt, glanceUntil;
         private UnitController glanceAt;
         private System.Random lookRandom;

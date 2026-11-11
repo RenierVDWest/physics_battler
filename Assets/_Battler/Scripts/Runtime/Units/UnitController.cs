@@ -52,9 +52,6 @@ namespace PhysicsBattler.Units
         private static readonly List<UnitController> all = new List<UnitController>();
         private static Transform bodiesContainer;
         private static int spawnCount;   // seeds each unit's idle and shuffles differently
-
-        /// <summary>The next units made get the same seeds as the first ones ever made (tests that must not depend on what ran before them).</summary>
-        public static void ResetSeeds(int count = 0) => spawnCount = count;
         private GameObject detachedBody;
         private float facingYaw;
         private Vector3? facePoint;
@@ -181,51 +178,6 @@ namespace PhysicsBattler.Units
             }
         }
 
-        /// <summary>
-        /// For now a unit's parts don't collide with each other: the pose keeps them apart, and
-        /// pinned arms grinding against a kinematic torso would only jitter. (Weapons and hits come
-        /// with their own rules in later milestones.)
-        /// </summary>
-        private void IgnoreSelfCollisions()
-        {
-            var parts = Rig.Parts;
-            for (int i = 0; i < parts.Length; i++)
-            {
-                for (int j = i + 1; j < parts.Length; j++)
-                {
-                    if (parts[i].partCollider != null && parts[j].partCollider != null)
-                    {
-                        Physics.IgnoreCollision(parts[i].partCollider, parts[j].partCollider, true);
-                    }
-                }
-            }
-        }
-
-        /// <summary>Moves every physical part straight onto the pose (start, and edit-mode previews).</summary>
-        private void SnapBodyToPose()
-        {
-            foreach (var id in PartInfo.All)
-            {
-                if (Rig.IsSevered(id))
-                {
-                    continue;
-                }
-
-                var part = Rig.Part(id);
-                part.transform.SetPositionAndRotation(Anim.Part(id).position, Anim.Part(id).rotation);
-                if (physical)
-                {
-                    part.body.position = Anim.Part(id).position;
-                    part.body.rotation = Anim.Part(id).rotation;
-                }
-            }
-
-            if (physical)
-            {
-                Physics.SyncTransforms();
-            }
-        }
-
         // ---- Equipment -------------------------------------------------------------------------
 
         /// <summary>Puts weapons in the hands: a main weapon (right hand) and an off-hand item (left), either may be null.</summary>
@@ -244,24 +196,6 @@ namespace PhysicsBattler.Units
 
         /// <summary>A weapon's turn in the hand: the hammer grip, its blade leaning <see cref="PosePipeline.GripLean"/> toward the fingers.</summary>
         public static readonly Quaternion MainGrip = Quaternion.Euler(PosePipeline.GripLean, 0f, 0f);
-
-        private static void DestroyWeapon(Weapon weapon)
-        {
-            weapon.SetLying(false);
-            foreach (var collider in weapon.GetComponentsInChildren<Collider>(true))
-            {
-                GroundContacts.SetShield(collider, false);
-            }
-
-            if (Application.isPlaying)
-            {
-                Destroy(weapon.gameObject);
-            }
-            else
-            {
-                DestroyImmediate(weapon.gameObject);
-            }
-        }
 
         // ---- Gameplay ----------------------------------------------------------------------------
 
@@ -498,9 +432,6 @@ namespace PhysicsBattler.Units
             }
         }
 
-        /// <summary>Poses a planned blow dry at a moment and leaves the animation rig there (the reports' dumps).</summary>
-        public bool PoseDryAt(MoveState state, float normalizedTime) => PoseDry(state, normalizedTime, true);
-
         private bool PoseDry(MoveState state, float normalizedTime, bool keep)
         {
             var saved = Stance.Save();
@@ -627,18 +558,6 @@ namespace PhysicsBattler.Units
                 StepClips(Time.fixedDeltaTime);
                 return;
             }
-        }
-
-        /// <summary>Edit mode: advance the pose by a time step and put the body (meshes) on it.</summary>
-        public void PreviewPose(float dt)
-        {
-            if (!initialized)
-            {
-                return;
-            }
-
-            Step(dt, false);
-            SnapBodyToPose();
         }
 
         private void Step(float dt, bool drive)

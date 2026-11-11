@@ -221,12 +221,6 @@ namespace PhysicsBattler.Combat
             return r;
         }
 
-        /// <summary>The speed (m/s) a knock-back gives the whole unit: what the part didn't take, over the unit's mass.</summary>
-        public static float KnockbackSpeed(HitResult hit, float unitMass)
-        {
-            return hit.Impulse.magnitude * (1f - hit.PartShare) / Mathf.Max(1f, unitMass);
-        }
-
         // ---- Milestone 5: severing ----------------------------------------------------------------
 
         /// <summary>
@@ -287,7 +281,5 @@ namespace PhysicsBattler.Combat
                 default: return 0.045f;
             }
         }
-
-        public static bool IsTorso(PartId part) => part == PartId.Chest || part == PartId.Spine || part == PartId.Pelvis;
     }
 }

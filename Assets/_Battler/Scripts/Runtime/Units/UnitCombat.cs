@@ -142,9 +142,6 @@ namespace PhysicsBattler.Units
         /// <summary>The fastest a knock-back slides the unit (m/s, medium size).</summary>
         private const float MaxKnockback = 3.5f;
 
-        /// <summary>The fastest a cleave throws a body aside (m/s, medium size).</summary>
-        private const float MaxCleaveSpeed = 3f;
-
         /// <summary>Speeds go with the square root of size (a bigger body's parts swing slower for the same look).</summary>
         private float SizeSpeed() => Mathf.Sqrt(Mathf.Max(0.3f, Body.SizeFactor));
 

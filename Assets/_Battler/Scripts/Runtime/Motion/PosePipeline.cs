@@ -176,9 +176,6 @@ namespace PhysicsBattler.Motion
 
         // (A hand-over from a link: what the last link's keys missed of where its arm was, kept for the blend.)
         private bool linkCapture;
-
-        /// <summary>The hand-over's offset on the last link's hand (for the reports).</summary>
-        public Vector3 LinkHandOffset => linkHandOffset;
         private Vector3 linkHandOffset;
         private Quaternion linkWristOffset = Quaternion.identity;
         private float linkSwivelOffset;
@@ -1613,16 +1610,6 @@ namespace PhysicsBattler.Motion
 
         /// <summary>How far a weapon's blade leans from square across the fist toward the forearm's line (degrees; the diagonal grip).</summary>
         public const float GripLean = 20f;
-
-        /// <summary>How far the weapon arm and its weapon keep from its own torso and head when it can (metres; the measure counts the shoulder's allowance).</summary>
-        public const float ArmBodyMargin = 0.045f;
-
-        /// <summary>How far a guard is held out at most to keep its weapon off its own head and body (metres at medium size), and how quickly it goes out and back (Hz, critically damped).</summary>
-        public const float GuardOutMost = 0.5f, GuardOutRate = 1.5f;
-        private float guardOut, guardOutSpeed;
-
-        /// <summary>Which way a guard is moved to keep its weapon off its own head (the facing's frame): forward and down.</summary>
-        public static readonly Vector3 GuardOutWay = new Vector3(0f, -0.6f, 0.8f);
         private int composeCount;
 
         /// <summary>How much further a thrust's grip leans the blade toward the forearm's line (degrees).</summary>
@@ -1701,14 +1688,6 @@ namespace PhysicsBattler.Motion
             var part = anim.Part(id);
             var parent = anim.Part(PartInfo.Parent(id));
             return Quaternion.Inverse(anim.RestLocalRotation(id)) * (Quaternion.Inverse(parent.rotation) * part.rotation);
-        }
-
-        /// <summary>How far a rotation turns about an axis (degrees): its twist, the swing taken out.</summary>
-        private static float TwistAbout(Quaternion q, Vector3 axis)
-        {
-            float along = q.x * axis.x + q.y * axis.y + q.z * axis.z;
-            float angle = 2f * Mathf.Atan2(along, q.w) * Mathf.Rad2Deg;
-            return Mathf.DeltaAngle(0f, angle);
         }
 
         /// <summary>How far out the shield arm reaches at most (share of the arm): the elbow stays a little bent.</summary>
@@ -1801,9 +1780,6 @@ namespace PhysicsBattler.Motion
             rotation = Quaternion.LookRotation(face, Vector3.up);
             grip = center - rotation * (shield.faceCenter * scale);
         }
-
-        /// <summary>How far a held shield's face turns in across the body (degrees).</summary>
-        public const float ShieldInward = 10f;
 
         private static readonly PartId[] ShieldKeepsClearOf = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head, PartId.ThighL, PartId.ThighR };
 

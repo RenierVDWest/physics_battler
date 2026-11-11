@@ -203,35 +203,5 @@ namespace PhysicsBattler.Rig
 
             return mass > 0f ? sum / mass : parts[0].transform.position;
         }
-
-        /// <summary>Mass-weighted velocity of all the parts.</summary>
-        public Vector3 CenterOfMassVelocity()
-        {
-            Vector3 sum = Vector3.zero;
-            float mass = 0f;
-            foreach (var part in parts)
-            {
-                if (severed[(int)part.id])
-                {
-                    continue;
-                }
-
-                sum += part.body.linearVelocity * part.body.mass;
-                mass += part.body.mass;
-            }
-
-            return mass > 0f ? sum / mass : Vector3.zero;
-        }
-
-        public bool Owns(Collider collider)
-        {
-            if (collider == null)
-            {
-                return false;
-            }
-
-            var part = collider.GetComponentInParent<BodyPart>();
-            return part != null && part.Owner != null && ReferenceEquals(part.Owner.Rig, this);
-        }
     }
 }

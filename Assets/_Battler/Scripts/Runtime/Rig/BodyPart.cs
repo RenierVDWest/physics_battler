@@ -29,13 +29,6 @@ namespace PhysicsBattler.Rig
         public Quaternion restLocalRotation = Quaternion.identity;
 
         public UnitController Owner { get; set; }
-
-        // Velocities recorded at the start of each physics step, before the solver changes them:
-        // collision callbacks arrive after the step, when the contact has already slowed things down.
-        public Vector3 CachedVelocity { get; private set; }
-        public Vector3 CachedAngularVelocity { get; private set; }
-        public Vector3 CachedCenterOfMass { get; private set; }
-
         /// <summary>Time.time of the last physics step this part touched the ground (or anything else).</summary>
         public float LastGroundContactTime { get; private set; } = -1f;
         public float LastOtherContactTime { get; private set; } = -1f;
@@ -55,19 +48,6 @@ namespace PhysicsBattler.Rig
         {
             Vector3 local = Quaternion.Inverse(transform.rotation) * (pointOnTransform - transform.position);
             return body.position + body.rotation * local;
-        }
-
-        public void CacheState()
-        {
-            CachedVelocity = body.linearVelocity;
-            CachedAngularVelocity = body.angularVelocity;
-            CachedCenterOfMass = body.worldCenterOfMass;
-        }
-
-        /// <summary>The velocity of a world point on this part as it was at the start of the step.</summary>
-        public Vector3 CachedPointVelocity(Vector3 worldPoint)
-        {
-            return CachedVelocity + Vector3.Cross(CachedAngularVelocity, worldPoint - CachedCenterOfMass);
         }
 
         private void RecordContact(Collision collision)

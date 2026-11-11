@@ -246,34 +246,6 @@ namespace PhysicsBattler.Combat
         /// <summary>The chest's share of the turn (on top of the hips'), between the hips and the weapon.</summary>
         public float ChestTurnAt(float t) => (1f - HipShare) * TurnAt(t + ChestLead / SwingDuration);
 
-        /// <summary>Degrees the weapon trails the hand's line (+) or leads it (-): cocked in the wind-up, whipping through to 0 at contact, leading after.</summary>
-        public float LagAt(float t)
-        {
-            float s = t * SwingDuration;
-            if (s <= T1)
-            {
-                return 0.5f * wristLag * Smooth(s / T1);
-            }
-
-            if (s <= T2)
-            {
-                return Mathf.Lerp(0.5f * wristLag, wristLag, Smooth((s - T1) / Mathf.Max(1e-3f, T2 - T1)));
-            }
-
-            if (s <= T3)
-            {
-                float u = (s - T2) / (T3 - T2);
-                return wristLag * (1f - u * u);
-            }
-
-            if (s <= T4)
-            {
-                return -0.6f * wristLag * Smooth((s - T3) / Mathf.Max(1e-3f, T4 - T3));
-            }
-
-            return -0.6f * wristLag * (1f - Smooth((s - T4) / Mathf.Max(0.05f, recoveryTime)));
-        }
-
         /// <summary>
         /// Swing: the angle on the arc at a progress (degrees; 0 is the contact, negative behind it).
         /// It runs back from the guard to the wound-up angle, then forward through the contact.

@@ -38,8 +38,6 @@ namespace PhysicsBattler.Editor.Setup
         public const string OldSandboxScene = ScenesFolder + "/Sandbox.unity";
 
         public const string GroundMaterial = MaterialsFolder + "/M_Ground.mat";
-        public const string BodyMainMaterial = MaterialsFolder + "/M_Body_Main.mat";
-        public const string BodyJointMaterial = MaterialsFolder + "/M_Body_Joint.mat";
         public const string TeamAMaterial = MaterialsFolder + "/M_Team_A.mat";
         public const string TeamBMaterial = MaterialsFolder + "/M_Team_B.mat";
         public const string BoardLightMaterial = MaterialsFolder + "/M_Board_Light.mat";

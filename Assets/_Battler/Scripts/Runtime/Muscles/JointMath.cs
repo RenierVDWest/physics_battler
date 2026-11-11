@@ -272,28 +272,6 @@ namespace PhysicsBattler.Muscles
             return cone.twist <= 177f && cone.swing <= 177f;
         }
 
-        /// <summary>
-        /// Whether a joint's turn (as <see cref="PastLimits"/> takes it) is inside the swing limits as
-        /// PhysX holds them, the ellipse (1 is on it). The bend about X is left out.
-        /// </summary>
-        public static float SwingCone(Quaternion local, JointLimitSpec spec)
-        {
-            if (local.w < 0f)
-            {
-                local = new Quaternion(-local.x, -local.y, -local.z, -local.w);
-            }
-
-            float pitch = 2f * Mathf.Atan2(local.x, local.w) * Mathf.Rad2Deg;
-            var swing = local * Quaternion.Inverse(Quaternion.AngleAxis(pitch, Vector3.right));
-            if (swing.w < 0f)
-            {
-                swing = new Quaternion(-swing.x, -swing.y, -swing.z, -swing.w);
-            }
-
-            float ty = swing.y / (1f + swing.w), tz = swing.z / (1f + swing.w);
-            return Sq(ty / Mathf.Tan(0.25f * Mathf.Max(1f, spec.twist) * Mathf.Deg2Rad)) + Sq(tz / Mathf.Tan(0.25f * Mathf.Max(1f, spec.swing) * Mathf.Deg2Rad));
-        }
-
         private static float Sq(float x) => x * x;
 
         /// <summary>

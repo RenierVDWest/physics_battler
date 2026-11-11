@@ -259,41 +259,8 @@ namespace PhysicsBattler.Units
                 return;
             }
 
-            if (Clip != null)
-            {
-                ClipWounded(at, impulse, weaponArm, offArm, leg);
-                return;
-            }
-
-            if (at == PartId.Head)
-            {
-                Die(Wound("beheaded", at));
-                return;
-            }
-
-            if (CurrentMove != null && (weaponArm || leg))
-            {
-                CancelMove(CurrentMove, "lost a limb");
-            }
-
-            // The wound, and the bleeding.
-            Health = Mathf.Max(0f, Health - DamageRules.SeverLoss(at) * profile.maxHealth);
-            Bleeding += DamageRules.BleedRate(at) * profile.maxHealth;
-            if (Health <= 0f)
-            {
-                Die(Wound("bled out", at));
-                return;
-            }
-
-            if (leg)
-            {
-                // No footing: down, and it stays down.
-                LegLost = true;
-                if (State == UnitState.Standing || State == UnitState.Stumbling || State == UnitState.GettingUp)
-                {
-                    KnockDown(impulse * 0.3f / Mathf.Max(1f, Body.Mass), false, "lost a leg");
-                }
-            }
+            ClipWounded(at, impulse, weaponArm, offArm, leg);
+            return;
         }
 
         /// <summary>
@@ -342,21 +309,11 @@ namespace PhysicsBattler.Units
             }
 
             Health = Mathf.Max(0f, Health - Bleeding * dt);
-            if (Clip != null)
-            {
-                Clip.Health = Health;
-            }
+            Clip.Health = Health;
 
             if (Health <= 0f)
             {
-                if (Clip != null)
-                {
-                    ClipDie(Wound("bled out"));
-                }
-                else
-                {
-                    Die(Wound("bled out"));
-                }
+                ClipDie(Wound("bled out"));
             }
         }
 
@@ -366,9 +323,6 @@ namespace PhysicsBattler.Units
         }
 
         private readonly List<GameObject> droppedWeapons = new List<GameObject>();
-
-        /// <summary>Weapons fallen from a cut-off hand (lying where they fell, cleared away with the unit).</summary>
-        public IReadOnlyList<GameObject> DroppedWeapons => droppedWeapons;
 
         private void KeepDropped(Weapon weapon, Rigidbody body)
         {
@@ -476,7 +430,7 @@ namespace PhysicsBattler.Units
         private Vector3 Pos(PartId id)
         {
             // (A clip fighter's blows meet its pose: the cut is judged where they met it.)
-            if (Clip != null && Anim != null && Anim.Part(id) != null)
+            if (Anim != null && Anim.Part(id) != null)
             {
                 return Anim.Part(id).position;
             }

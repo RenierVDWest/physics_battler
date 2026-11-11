@@ -532,9 +532,6 @@ namespace PhysicsBattler.Motion
             return 10f * past + Mathf.Abs(twist) + Mathf.Abs(flexion) + Mathf.Abs(deviation);
         }
 
-        /// <summary>How much the shield arm's elbow is kept to its way (down and out, never up over the shield) in the fit.</summary>
-        public const float ShieldElbowWeight = 1.5f;
-
         /// <summary>How far the shield's face may turn from the line of the forearm toward the threat (degrees): the centre grip and the wrist.</summary>
         public const float ShieldFaceOffArm = 60f;
 

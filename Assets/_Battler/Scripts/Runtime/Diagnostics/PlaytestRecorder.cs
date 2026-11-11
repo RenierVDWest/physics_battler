@@ -479,8 +479,8 @@ namespace PhysicsBattler.Diagnostics
                                     + $"poise {Mathf.Max(0f, hit.Struck.Poise):0}/{hit.Struck.Profile.maxPoise:0}, {r.Reaction.ToString().ToLowerInvariant()}"
                                     + $"{(hit.Struck.Knockback.magnitude > 0.05f ? $", knocked back at {hit.Struck.Knockback.magnitude:0.00} m/s" : "")}"
                                     + $", {StateOf(hit.Struck)}"
-                                    + (hit.Struck.UsesClips && hit.Struck.Clip != null && !string.IsNullOrEmpty(hit.Struck.Clip.LastReaction) ? $"; {hit.Struck.Clip.LastReaction}" : "")
-                                    + (hit.Struck.UsesClips && hit.Struck.Concentration > 0.01f ? $"; concentration {hit.Struck.Concentration:0.00}" : ""));
+                                    + (!string.IsNullOrEmpty(hit.Struck.Clip.LastReaction) ? $"; {hit.Struck.Clip.LastReaction}" : "")
+                                    + (hit.Struck.Concentration > 0.01f ? $"; concentration {hit.Struck.Concentration:0.00}" : ""));
             struck?.NoteHitTaken(hit);
         }
 
@@ -658,28 +658,6 @@ namespace PhysicsBattler.Diagnostics
             }
 
             return byUnit.TryGetValue(unit, out var track) ? track.label : unit.name;
-        }
-
-        /// <summary>A short description of a collider for the log: "Orc B Head", "Orc B's club", "the ground", "Crate".</summary>
-        public string Describe(Collider collider)
-        {
-            if (collider == null)
-            {
-                return "?";
-            }
-
-            var part = collider.GetComponentInParent<BodyPart>();
-            if (part != null && part.Owner != null)
-            {
-                return LabelOf(part.Owner) + " " + part.id;
-            }
-
-            if (collider.gameObject.layer == LayerMask.NameToLayer(Layers.Ground))
-            {
-                return "the ground";
-            }
-
-            return collider.attachedRigidbody != null ? collider.attachedRigidbody.name.Replace("(Clone)", "") : collider.name;
         }
 
         // ---- Sampling --------------------------------------------------------------------------

@@ -13,101 +13,8 @@ namespace PhysicsBattler.Units
     /// </summary>
     public partial class UnitController
     {
-        private static readonly PartId[] LegParts = { PartId.ThighL, PartId.ShinL, PartId.FootL, PartId.ThighR, PartId.ShinR, PartId.FootR };
-
         /// <summary>A body on the ground: down (alive) or dead.</summary>
         public bool Lying => initialized && (!IsAlive || State == UnitState.Down);
-
-        /// <summary>
-        /// How far a joint (the part and the one it hangs from) is past its limits, in degrees (0
-        /// inside): on the physical body, or on the pose.
-        /// </summary>
-        public float JointPast(PartId id, bool physical)
-        {
-            if (!PartInfo.HasParent(id) || Rig.IsSevered(id))
-            {
-                return 0f;
-            }
-
-            var part = Rig.Part(id);
-            var parentId = PartInfo.Parent(id);
-            Quaternion child = physical ? part.transform.rotation : Anim.Part(id).rotation;
-            Quaternion parent = physical ? Rig.Part(parentId).transform.rotation : Anim.Part(parentId).rotation;
-            // (The arms against the arm rig's limits, the model their poses are made in.)
-            if (AuthorityController.RegionOf(id) == BodyRegion.ArmL || AuthorityController.RegionOf(id) == BodyRegion.ArmR)
-            {
-                return PhysicsBattler.Motion.ArmRig.PastLimits(Anim, id, parent, child);
-            }
-
-            return JointMath.PastLimits(part.JointTurn(parent, child), part.limits, out _, out _, out _);
-        }
-
-        /// <summary>The joint furthest past its limits now, and by how much (degrees).</summary>
-        public float WorstJoint(bool physical, out PartId which)
-        {
-            which = PartId.Pelvis;
-            float worst = 0f;
-            foreach (var id in PartInfo.All)
-            {
-                float past = JointPast(id, physical);
-                if (past > worst)
-                {
-                    worst = past;
-                    which = id;
-                }
-            }
-
-            return worst;
-        }
-
-        /// <summary>The fastest any of its physical parts is moving (m/s).</summary>
-        public float FastestPart()
-        {
-            float fastest = 0f;
-            foreach (var part in Rig.Parts)
-            {
-                if (part.body != null && !Rig.IsSevered(part.id) && !part.body.isKinematic)
-                {
-                    fastest = Mathf.Max(fastest, part.body.linearVelocity.magnitude);
-                }
-            }
-
-            return fastest;
-        }
-
-        /// <summary>How close the nearest standing unit's legs come to any of its parts (metres; large if none near).</summary>
-        public float NearestStandingLeg()
-        {
-            float best = 99f;
-            foreach (var other in all)
-            {
-                if (other == this || !other.initialized || other.Lying || other.State == UnitState.GettingUp)
-                {
-                    continue;
-                }
-
-                Vector3 apart = other.transform.position - transform.position;
-                apart.y = 0f;
-                if (apart.magnitude > 4f * Mathf.Max(1f, Body.SizeFactor) + 2f * other.Body.SizeFactor)
-                {
-                    continue;
-                }
-
-                foreach (var leg in LegParts)
-                {
-                    Vector3 l = other.Rig.Part(leg).transform.position;
-                    foreach (var part in Rig.Parts)
-                    {
-                        if (!Rig.IsSevered(part.id))
-                        {
-                            best = Mathf.Min(best, Vector3.Distance(l, part.transform.position));
-                        }
-                    }
-                }
-            }
-
-            return best;
-        }
 
         // ---- On the ground (milestone 9b) -------------------------------------------------------
 
@@ -116,9 +23,6 @@ namespace PhysicsBattler.Units
 
         private bool onGround;
         private float groundCalm, groundHeavy, groundStruckUntil;
-
-        /// <summary>How settled a body on the ground is (0: just fell or was struck; 1: heavy, damped, still).</summary>
-        public float GroundSettled => groundHeavy;
 
         /// <summary>Damping and friction once a body has settled, its separation speed, and the solver work while it lies.</summary>
         public const float GroundLinearDamping = 1f, GroundAngularDamping = 4f, GroundFriction = 0.9f, GroundDepenetration = 1f;
@@ -148,50 +52,6 @@ namespace PhysicsBattler.Units
         private float lyingSince, lyingSent = -1f;
         private readonly float[] lyingCeiling = new float[PartInfo.Count];
         private readonly float[] lyingRise = new float[PartInfo.Count];
-
-        /// <summary>
-        /// Called once at start (rest pose): finds the pairs of its own parts that may collide on the
-        /// ground, weights its joints for the light limbs, and registers its parts as standing.
-        /// </summary>
-        private void InitializeGround()
-        {
-            groundPairs.Clear();
-            var parts = Rig.Parts;
-            for (int i = 0; i < parts.Length; i++)
-            {
-                for (int j = i + 1; j < parts.Length; j++)
-                {
-                    var a = parts[i];
-                    var b = parts[j];
-                    if (a.partCollider == null || b.partCollider == null || Neighbours(a.id, b.id))
-                    {
-                        continue;
-                    }
-
-                    if (Physics.ComputePenetration(a.partCollider, a.partCollider.transform.position, a.partCollider.transform.rotation,
-                            b.partCollider, b.partCollider.transform.position, b.partCollider.transform.rotation, out _, out _))
-                    {
-                        continue;   // (touching at rest: they would push apart at once)
-                    }
-
-                    groundPairs.Add((a.partCollider, b.partCollider));
-                }
-            }
-
-            // A light limb on a heavy body (the upper arm on the chest: 6.7 to 1) is weighted closer
-            // to it in the joint solve, at most 3 to 1, so a push on the arm doesn't tear the joint.
-            foreach (var part in parts)
-            {
-                if (part.joint != null && part.joint.connectedBody != null && part.body != null)
-                {
-                    float ratio = part.joint.connectedBody.mass / Mathf.Max(0.01f, part.body.mass);
-                    part.joint.connectedMassScale = ratio > 3f ? ratio / 3f : 1f;
-                }
-            }
-
-            onGround = false;
-            GroundContacts.Set(PartColliders(), false);
-        }
 
         private static bool Neighbours(PartId a, PartId b)
         {

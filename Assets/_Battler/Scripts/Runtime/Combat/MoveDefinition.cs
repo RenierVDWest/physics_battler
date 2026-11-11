@@ -185,11 +185,6 @@ namespace PhysicsBattler.Combat
         };
         [Tooltip("The path point that is the contact.")]
         public int contactIndex = 3;
-        [Tooltip("The blade points at the aim point the whole time, in line with the weapon arm's shoulder (thrusts), instead of out from the chest through the striking part.")]
-        public bool pointForward;
-        [Tooltip("Metres above the chest the blade points out from: raise it for blows that come down from above.")]
-        public float pivotRaise;
-
         [Header("Body (Path shape: all of it; Swing and Thrust: reach and lunge)")]
         [Tooltip("Path shape: distance from the attacker's chest to the aim point at contact (medium size). Swings work it out from their reach and Through.")]
         public float reach = 1f;

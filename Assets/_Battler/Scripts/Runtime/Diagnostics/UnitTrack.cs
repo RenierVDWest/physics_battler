@@ -82,8 +82,6 @@ namespace PhysicsBattler.Diagnostics
         }
 
         public bool Alive => unit != null;
-        public int FrameRows => frames.Rows;
-
         public void Close(string why)
         {
             if (unit != null && unit.Stance != null)
@@ -141,217 +139,22 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("rootYaw", unit.FacingYaw, 1);
             frames.Add("pelvisH", unit.Rig.Part(PartId.Pelvis).body.position.y - ground, 3);
             frames.Add("animPelvisH", anim.Part(PartId.Pelvis).position.y - ground, 3);
-            if (unit.UsesClips)
-            {
-                // (A clip fighter (the plan "Bringing the lab into the fight", step 4): its walk, not the old pose.)
-                var loco = unit.Clip.Loco;
-                frames.Add("clipMode", (int)loco.Current);
-                frames.Add("clipSpeed", new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude, 3);
-                frames.Add("clipWant", new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude, 3);
-                frames.Add("heldL", loco.FootHeld(0) ? 1 : 0);
-                frames.Add("heldR", loco.FootHeld(1) ? 1 : 0);
-                frames.Add("concentration", unit.Concentration, 2);
-                frames.End();
-                samples++;
-                if (writePose && unit.Authority != null)
-                {
-                    WritePose(t);
-                }
-
-                return;
-            }
-
-            frames.Add("pelvisDrop", p.PelvisDrop, 3);
-            frames.Add("weightShift", p.WeightShift, 3);
-
-            Vector3 support = p.WeightTarget;   // (the rhythm's deliberate shifts are meant)
-            Vector3 com = p.CenterOfMass - support;
-            com.y = 0f;
-            Vector3 phys = unit.Rig.CenterOfMass() - support;
-            phys.y = 0f;
-            frames.Add("comOffset", com.magnitude, 3);
-            frames.Add("physCom", phys.magnitude, 3);
-            // The stance figures only count while it stands (stumbling, down and getting up are meant to break them).
-            bool upright = unit.IsAlive && unit.State == UnitState.Standing;
-            if (upright)
-            {
-                maxComOffset = Mathf.Max(maxComOffset, com.magnitude);
-                maxPelvisDrop = Mathf.Max(maxPelvisDrop, p.PelvisDrop);
-                uprightSamples++;
-            }
-
-            for (int f = 0; f < 2; f++)
-            {
-                string side = f == Stance.Left ? "L" : "R";
-                frames.Add("step" + side, stance.Stepping(f));
-                frames.Add("lift" + side, stance.Lift(f), 3);
-                var footPart = unit.Rig.Part(f == Stance.Left ? PartId.FootL : PartId.FootR).body.position;
-                Vector3 planted = stance.Position(f);
-                Vector3 d = footPart - planted;
-                d.y = 0f;
-                float slide = stance.Stepping(f) ? 0f : d.magnitude;
-                frames.Add("slide" + side, slide, 3);
-                if (upright)
-                {
-                    maxSlide = Mathf.Max(maxSlide, slide);
-                }
-            }
-
-            footWatch?.Sample(frames, Time.fixedDeltaTime);
-            steps = stance.StepsTaken;
-            shuffles = stance.ShufflesTaken;
-            frames.Add("steps", steps);
-            frames.Add("shuffles", shuffles);
-            var idle = p.LastIdle;
-            frames.Add("swayX", idle.hipShift.x, 3);
-            frames.Add("swayZ", idle.hipShift.z, 3);
-            frames.Add("bob", idle.bob, 3);
-
-            for (int r = 0; r < 5; r++)
-            {
-                var region = (BodyRegion)r;
-                frames.Add("lvl_" + region, (int)unit.Authority.Level(region));
-                frames.Add("pin_" + region, unit.Authority.Pin(region), 2);
-            }
-
-            foreach (var part in PartInfo.All)
-            {
-                unit.Authority.Error(part, out float distance, out float angle);
-                frames.Add("err_" + part, distance, 3);
-                frames.Add("aerr_" + part, angle, 1);
-                // Milestone 10: the arms' joints against their poses' (joint space; the arm rebuild's step 6).
-                if (AuthorityController.RegionOf(part) == BodyRegion.ArmL || AuthorityController.RegionOf(part) == BodyRegion.ArmR)
-                {
-                    frames.Add("jerr_" + part, unit.Authority.JointError(part), 1);
-                }
-                if (upright)
-                {
-                    errSum[(int)part] += distance;
-                    errMax[(int)part] = Mathf.Max(errMax[(int)part], distance);
-                    angSum[(int)part] += angle;
-                    angMax[(int)part] = Mathf.Max(angMax[(int)part], angle);
-                }
-            }
-
-            var move = unit.CurrentMove;
-            var weapon = unit.MainWeapon;
-            frames.Add("move", move != null ? move.Move.name.Replace("MD_", "") : "");
-            frames.Add("moveT", move != null ? move.T : 0f, 3);
-            frames.Add("blend", move != null ? move.Blend : 0f, 2);
-            frames.Add("aimPart", move != null ? move.Part.ToString() : "");
-            Vector3 aim = move != null ? move.Aim : Vector3.zero;
-            Vector3 strike = move != null ? p.StrikePoint : Vector3.zero;
-            Vector3 physical = move != null && weapon != null && move.Weapon != null ? weapon.PhysicalPoint(move.Weapon.StrikePoint(move.Move.strikeWith)) : Vector3.zero;
-            frames.Add("aimX", aim.x, 3);
-            frames.Add("aimY", aim.y, 3);
-            frames.Add("aimZ", aim.z, 3);
-            frames.Add("strikeX", strike.x, 3);
-            frames.Add("strikeY", strike.y, 3);
-            frames.Add("strikeZ", strike.z, 3);
-            frames.Add("pstrikeX", physical.x, 3);
-            frames.Add("pstrikeY", physical.y, 3);
-            frames.Add("pstrikeZ", physical.z, 3);
-            frames.Add("aimErr", move != null ? p.AimError : 0f, 3);
-            frames.Add("health", unit.Health, 1);
-            frames.Add("poise", unit.Poise, 1);
-            frames.Add("alive", unit.IsAlive);
-            frames.Add("knock", unit.Knockback.magnitude, 3);
-            frames.Add("state", unit.IsAlive ? unit.State.ToString() : "Dead");
-            frames.Add("stumble", unit.StumbleVelocity.magnitude, 3);
-            var rhythm = unit.Rhythm;
-            frames.Add("posture", rhythm?.Current != null ? rhythm.Current.Label : "");
-            frames.Add("energy", rhythm != null ? rhythm.Energy : 1f, 3);
-            // The walk: how much it plays, how fast it is being walked, round the cycle.
-            frames.Add("walk", unit.Gait != null ? unit.Gait.Weight : 0f, 2);
-            frames.Add("walkSpeed", unit.Gait != null ? unit.Gait.Velocity.magnitude : 0f, 3);
-            frames.Add("walkPhase", unit.Gait != null ? unit.Gait.Phase : 0f, 3);
-            frames.Add("aggression", rhythm != null ? rhythm.Aggression : 0f, 3);
-            frames.Add("open", unit.Openings == Combat.AimParts.None ? "" : unit.Openings.ToString().Replace(", ", " "));
-            frames.Add("hitStop", unit.HitStop > 0f);
-            frames.Add("block", unit.BlockBlend, 2);
-            // Milestone 8: the tempo (gathering, probing, pressing, shelled up, countering) and the pressure on it.
-            var tempo = unit.TempoOn ? unit.Tempo : null;
-            frames.Add("tempo", tempo != null ? tempo.State.ToString() : "");
-            frames.Add("pressure", tempo != null ? tempo.Pressure : 0f, 2);
-            // Milestone 11: the shell's guard, a parry, a broken guard.
-            frames.Add("shellGuard", unit.ShellWeight, 2);
-            frames.Add("parry", unit.ParryBlend, 2);
-            frames.Add("guardOpen", unit.LocalTime < unit.GuardOpenUntil);
-            // Milestone 9: what the head attends to, how far it is turned against the chest (and up),
-            // how far from what it attends to it points; how many units it knows of; the shield's
-            // state, how far its face is from its threat, and how far its rim stays from its own body.
-            var look = unit.Look;
-            float lookOff = unit.LookOff;
-            frames.Add("look", look.Current >= 0 ? look.Kind : "");
-            frames.Add("headTurn", p.HeadTurn, 1);
-            frames.Add("headPitch", p.HeadPitch, 1);
-            frames.Add("lookOff", lookOff, 1);
-            frames.Add("known", unit.Known.Count);
-            bool hasShield = unit.Loadout != null && unit.Loadout.HasShield;
-            frames.Add("shield", hasShield ? unit.ShieldMode.ToString() : "");
-            frames.Add("shieldOff", hasShield ? unit.ShieldOffThreat : 0f, 1);
-            frames.Add("shieldClear", hasShield && p.ShieldClearance < 10f ? p.ShieldClearance : 0f, 3);
-            // Milestone 9b: the joints against their limits (the physical body, and the pose), and a body
-            // on the ground: its fastest part and how close the nearest standing unit's legs are.
-            float jointPast = unit.WorstJoint(true, out var joint);
-            float posePast = unit.WorstJoint(false, out var poseJoint);
-            bool lying = unit.Lying;
-            float fastest = lying ? unit.FastestPart() : 0f;
-            float nearLeg = lying ? unit.NearestStandingLeg() : 99f;
-            frames.Add("jointPast", jointPast, 1);
-            frames.Add("joint", jointPast > 0f ? joint.ToString() : "");
-            frames.Add("posePast", posePast, 1);
-            frames.Add("poseJoint", posePast > 0f ? poseJoint.ToString() : "");
-            frames.Add("lyingSpeed", fastest, 2);
-            frames.Add("nearLeg", lying ? Mathf.Min(nearLeg, 9f) : 0f, 2);
-            if (lying)
-            {
-                lyingSamples++;
-                lyingPast += jointPast > 10f ? 1 : 0;
-                if (jointPast > lyingWorst)
-                {
-                    lyingWorst = jointPast;
-                    lyingWorstJoint = joint.ToString();
-                }
-
-                (nearLeg < 0.5f ? speedsNear : speedsAlone).Add(fastest);
-            }
-
-            if (upright)
-            {
-                posePastSamples += posePast > 10f ? 1 : 0;
-                if (posePast > poseWorst)
-                {
-                    poseWorst = posePast;
-                    poseWorstJoint = poseJoint.ToString();
-                }
-            }
-
-            if (upright)
-            {
-                lookSamples++;
-                lookOnPoint += look.Current >= 0 && lookOff <= 25f ? 1 : 0;
-                if (look.Reachable)
-                {
-                    lookReachable++;
-                    lookReachableOn += look.Current >= 0 && lookOff <= 25f ? 1 : 0;
-                }
-                headOutside += Mathf.Abs(p.HeadTurn) > 80.5f || p.HeadPitch < -60.5f || p.HeadPitch > 50.5f ? 1 : 0;
-                if (hasShield)
-                {
-                    shieldSamples++;
-                    shieldFaced += unit.ShieldOffThreat <= 45f ? 1 : 0;
-                    shieldWorstClear = Mathf.Min(shieldWorstClear, p.ShieldClearance);
-                }
-            }
-
+            // (A clip fighter (the plan "Bringing the lab into the fight", step 4): its walk, not the old pose.)
+            var loco = unit.Clip.Loco;
+            frames.Add("clipMode", (int)loco.Current);
+            frames.Add("clipSpeed", new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude, 3);
+            frames.Add("clipWant", new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude, 3);
+            frames.Add("heldL", loco.FootHeld(0) ? 1 : 0);
+            frames.Add("heldR", loco.FootHeld(1) ? 1 : 0);
+            frames.Add("concentration", unit.Concentration, 2);
             frames.End();
             samples++;
-
-            if (writePose)
+            if (writePose && unit.Authority != null)
             {
                 WritePose(t);
             }
+
+            return;
         }
 
         private void WritePose(float t)
@@ -388,7 +191,7 @@ namespace PhysicsBattler.Diagnostics
 
             for (int f = 0; f < 2; f++)
             {
-                Vector3 planted = unit.UsesClips ? unit.Clip.Poser.Feet[f].Target : unit.Stance.Position(f);
+                Vector3 planted = unit.Clip.Poser.Feet[f].Target;
                 string side = f == Stance.Left ? "L" : "R";
                 pose.Add("plant" + side + ".x", planted.x, 3);
                 pose.Add("plant" + side + ".z", planted.z, 3);
@@ -557,19 +360,9 @@ namespace PhysicsBattler.Diagnostics
                 return "gone";
             }
 
-            if (unit.UsesClips)
-            {
-                var loco = unit.Clip.Loco;
-                return $"facing {unit.FacingYaw:0}°, {loco.Current}{(loco.Shot != null && loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot ? " " + loco.Shot.Name : "")}, "
-                       + $"walking {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s (asked {new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude:0.00}), feet held {(loco.FootHeld(0) ? "L" : "-")}{(loco.FootHeld(1) ? "R" : "-")}, concentration {unit.Concentration:0.00}";
-            }
-
-            var p = unit.Pose;
-            unit.Authority.Error(PartId.Chest, out float chest, out _);
-            unit.Authority.Error(PartId.HandR, out float hand, out _);
-            return $"facing {unit.FacingYaw:0}°, hips {unit.Rig.Part(PartId.Pelvis).body.position.y - unit.Root.position.y:0.00} m, "
-                   + $"weight {Vector3.ProjectOnPlane(p.CenterOfMass - p.SupportPoint, Vector3.up).magnitude * 100f:0} cm off the support point, "
-                   + $"{(unit.Stance.AnyStepping ? "stepping" : "planted")}, chest {chest * 100f:0} cm and right hand {hand * 100f:0} cm from the pose";
+            var loco = unit.Clip.Loco;
+            return $"facing {unit.FacingYaw:0}°, {loco.Current}{(loco.Shot != null && loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot ? " " + loco.Shot.Name : "")}, "
+                   + $"walking {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s (asked {new Vector2(unit.ClipWant.x, unit.ClipWant.z).magnitude:0.00}), feet held {(loco.FootHeld(0) ? "L" : "-")}{(loco.FootHeld(1) ? "R" : "-")}, concentration {unit.Concentration:0.00}";
         }
 
         public void AppendSummary(StringBuilder md)

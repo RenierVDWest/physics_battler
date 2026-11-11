@@ -79,16 +79,6 @@ namespace PhysicsBattler.Rig
             MuscleGroup.Legs, MuscleGroup.Legs, MuscleGroup.Legs,
         };
 
-        // How much more (or less) damage a hit on this part does. Head hits hurt most.
-        private static readonly float[] DamageMultipliers =
-        {
-            1.0f, 1.0f, 1.0f, 1.5f,
-            0.7f, 0.7f, 0.6f,
-            0.7f, 0.7f, 0.6f,
-            0.8f, 0.7f, 0.6f,
-            0.8f, 0.7f, 0.6f,
-        };
-
         public static string NullName(PartId part) => NullNames[(int)part];
 
         public static bool TryParse(string nullName, out PartId part)
@@ -169,28 +159,8 @@ namespace PhysicsBattler.Rig
 
         public static MuscleGroup Group(PartId part) => Groups[(int)part];
 
-        public static float DamageMultiplier(PartId part) => DamageMultipliers[(int)part];
-
         public static bool IsFoot(PartId part) => part == PartId.FootL || part == PartId.FootR;
 
         public static bool IsHand(PartId part) => part == PartId.HandL || part == PartId.HandR;
-
-        /// <summary>The part itself, its parent and its children: what a hit there softens.</summary>
-        public static IEnumerable<PartId> SelfAndNeighbours(PartId part)
-        {
-            yield return part;
-            if (HasParent(part))
-            {
-                yield return Parent(part);
-            }
-
-            for (int i = 0; i < Parents.Length; i++)
-            {
-                if (Parents[i] == (int)part)
-                {
-                    yield return (PartId)i;
-                }
-            }
-        }
     }
 }

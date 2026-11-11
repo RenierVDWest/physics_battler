@@ -132,13 +132,6 @@ namespace PhysicsBattler.Combat
         public Vector3 ContactWay;
 
         /// <summary>
-        /// Milestone 9c: the weapon arm's shape at the striking moment as the planner tried it (its
-        /// joints' angles; NaN until tried). Shared with the copies the planner tries, which fill it;
-        /// the playing arm is drawn toward it as the moment comes.
-        /// </summary>
-        public readonly float[] ContactArm = { float.NaN, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f };
-
-        /// <summary>
         /// The arm rebuild: where the hand is at the striking moment, from the aim, in the aim frame
         /// (metres): solved when the blow is planned, so the striking part lands on the aim with the
         /// contact's wrist and elbow keys.
@@ -181,8 +174,6 @@ namespace PhysicsBattler.Combat
         public float Lean => Move.LeanAt(T);
         public float Crouch => Move.CrouchAt(T);
         public float Drive => Move.DriveAt(T) * Scale;
-        public float Lag => Move.LagAt(T);
-
         public MoveState CopyAt(float normalizedTime)
         {
             var copy = (MoveState)MemberwiseClone();

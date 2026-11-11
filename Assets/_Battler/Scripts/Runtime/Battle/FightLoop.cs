@@ -151,14 +151,11 @@ namespace PhysicsBattler.Battle
                 }
 
                 var plan = PlanOf(unit);
-                if (unit.UsesClips)
-                {
-                    // (Stood still unless the steering below asks it to walk.)
-                    unit.ClipWant = Vector3.zero;
-                    // (Its concentration, from the enemies on it: the plan "Fighting off several attackers", step 7.)
-                    bool fighting = Fight && !Over && unit.IsAlive && unit.CanAct;
-                    unit.UpdateConcentration(fighting ? OnIt(units, unit, UnitController.ClipEngagedWithin * unit.Body.SizeFactor).Count : 0, dt);
-                }
+                // (Stood still unless the steering below asks it to walk.)
+                unit.ClipWant = Vector3.zero;
+                // (Its concentration, from the enemies on it: the plan "Fighting off several attackers", step 7.)
+                bool fighting = Fight && !Over && unit.IsAlive && unit.CanAct;
+                unit.UpdateConcentration(fighting ? OnIt(units, unit, UnitController.ClipEngagedWithin * unit.Body.SizeFactor).Count : 0, dt);
 
                 if (!unit.IsAlive || !unit.CanAct)
                 {
@@ -276,69 +273,66 @@ namespace PhysicsBattler.Battle
         {
             var current = plan.target;
             bool valid = current != null && current.IsInitialized && current.IsAlive && current.Team != unit.Team && !current.IsDown && unit.Knows(current);
-            if (unit.UsesClips)
+            // (Renier, 6 November: close to any enemy, it commits to fighting it; it stays on it while it is near.)
+            float size = unit.Body.SizeFactor;
+            // (Struck by another than the one it fights: it turns its fight to them (the plan "Fighting off several
+            // attackers", step 4).)
+            var by = unit.ClipStruckBy;
+            if (by != null && by != current && by.IsAlive && !by.IsDown && by.Team != unit.Team && unit.LocalTime - unit.ClipStruckAt < ClipStruckFor
+                && Flat(by.Root.position - unit.Root.position).magnitude < ClipRelease * size)
             {
-                // (Renier, 6 November: close to any enemy, it commits to fighting it; it stays on it while it is near.)
-                float size = unit.Body.SizeFactor;
-                // (Struck by another than the one it fights: it turns its fight to them (the plan "Fighting off several
-                // attackers", step 4).)
-                var by = unit.ClipStruckBy;
-                if (by != null && by != current && by.IsAlive && !by.IsDown && by.Team != unit.Team && unit.LocalTime - unit.ClipStruckAt < ClipStruckFor
-                    && Flat(by.Root.position - unit.Root.position).magnitude < ClipRelease * size)
+                if (PlaytestTrace.Enabled)
                 {
+                    PlaytestTrace.Note(unit, "target", $"{by.name}, who struck it: committed");
+                }
+
+                plan.closeIn = 0f;
+                plan.committed = true;
+                plan.target = by;
+                plan.retargetAt = now + 0.5f;
+                return by;
+            }
+
+            if (valid && plan.committed && Flat(current.Root.position - unit.Root.position).magnitude < ClipRelease * size)
+            {
+                return current;
+            }
+
+            UnitController close = null;
+            float nearest = float.MaxValue;
+            bool flanking = ClipRoleOf(unit) == ClipRole.Flank;
+            foreach (var other in units)
+            {
+                if (other == null || !other.IsInitialized || !other.IsAlive || other.Team == unit.Team || other.IsDown || !unit.Knows(other))
+                {
+                    continue;
+                }
+
+                // (A flanker on its way round passes others: it commits to its own target, or to one that is right on it.)
+                float d = Flat(other.Root.position - unit.Root.position).magnitude;
+                float commit = (flanking && !plan.committed && other != current && other.Opponent != unit ? ClipPassBy : ClipCommit) * size;
+                if (d < commit && d < nearest)
+                {
+                    nearest = d;
+                    close = other;
+                }
+            }
+
+            plan.committed = close != null;
+            if (close != null)
+            {
+                if (close != current)
+                {
+                    plan.closeIn = 0f;
                     if (PlaytestTrace.Enabled)
                     {
-                        PlaytestTrace.Note(unit, "target", $"{by.name}, who struck it: committed");
-                    }
-
-                    plan.closeIn = 0f;
-                    plan.committed = true;
-                    plan.target = by;
-                    plan.retargetAt = now + 0.5f;
-                    return by;
-                }
-
-                if (valid && plan.committed && Flat(current.Root.position - unit.Root.position).magnitude < ClipRelease * size)
-                {
-                    return current;
-                }
-
-                UnitController close = null;
-                float nearest = float.MaxValue;
-                bool flanking = ClipRoleOf(unit) == ClipRole.Flank;
-                foreach (var other in units)
-                {
-                    if (other == null || !other.IsInitialized || !other.IsAlive || other.Team == unit.Team || other.IsDown || !unit.Knows(other))
-                    {
-                        continue;
-                    }
-
-                    // (A flanker on its way round passes others: it commits to its own target, or to one that is right on it.)
-                    float d = Flat(other.Root.position - unit.Root.position).magnitude;
-                    float commit = (flanking && !plan.committed && other != current && other.Opponent != unit ? ClipPassBy : ClipCommit) * size;
-                    if (d < commit && d < nearest)
-                    {
-                        nearest = d;
-                        close = other;
+                        PlaytestTrace.Note(unit, "target", $"{close.name}, close by ({nearest:0.0} m): committed");
                     }
                 }
 
-                plan.committed = close != null;
-                if (close != null)
-                {
-                    if (close != current)
-                    {
-                        plan.closeIn = 0f;
-                        if (PlaytestTrace.Enabled)
-                        {
-                            PlaytestTrace.Note(unit, "target", $"{close.name}, close by ({nearest:0.0} m): committed");
-                        }
-                    }
-
-                    plan.target = close;
-                    plan.retargetAt = now + 0.5f;
-                    return close;
-                }
+                plan.target = close;
+                plan.retargetAt = now + 0.5f;
+                return close;
             }
 
             if (valid && now < plan.retargetAt)
@@ -386,7 +380,7 @@ namespace PhysicsBattler.Battle
                 // (A clip fighter pairs off (the playtest of 6 November: they clumped up, four on one spot): one already
                 // taken by a teammate counts as further, so they spread over the enemies, two on one only when the numbers
                 // make it so.)
-                if (unit.UsesClips && ClipRoleOf(unit) == ClipRole.Flank)
+                if (ClipRoleOf(unit) == ClipRole.Flank)
                 {
                     // (A large charges the nearest, taken or not.)
                     score += ClipPairing * on;
@@ -457,13 +451,10 @@ namespace PhysicsBattler.Battle
             float engage = Mathf.Max(closest, EngageDistance(unit, enemy) - plan.closeIn);
             Vector3 toward = to / Mathf.Max(1e-4f, distance);
             float flankLeft = 0f;
-            if (unit.UsesClips)
-            {
-                toward = Flank(units, unit, enemy, toward, engage, out flankLeft);
-            }
+            toward = Flank(units, unit, enemy, toward, engage, out flankLeft);
 
             float speed = unit.WalkSpeed;
-            if (unit.UsesClips && !plan.committed && distance > ClipCommit * size)
+            if (!plan.committed && distance > ClipCommit * size)
             {
                 // (On its way in, by its role: a large straight at its target, a medium out round the fight's side to come
                 // at it from there; each walking or running in spells.)
@@ -526,7 +517,7 @@ namespace PhysicsBattler.Battle
 
             bool near = off <= 0.3f * size;
             unit.CircleOpponent = near && !busy;
-            if (unit.UsesClips && !busy)
+            if (!busy)
             {
                 // (The plan "Fighting off several attackers", step 5: set on by two or more spread round it, it steps out to
                 // keep them in front, instead of circling its one.)
@@ -584,7 +575,7 @@ namespace PhysicsBattler.Battle
             }
 
             // (Step 4 of the plan: clip fighters only move; their blows come with step 5.)
-            if (unit.UsesClips && !UnitController.ClipBlows)
+            if (!UnitController.ClipBlows)
             {
                 return;
             }
@@ -752,7 +743,7 @@ namespace PhysicsBattler.Battle
             }
 
             // (Surrounded, it breaks out at a run, before the ring closes.)
-            float pace = now > ClipBreakOutFrom && unit.Clip != null ? Mathf.Max(speed, 1.25f * unit.Clip.Loco.RunSpeed) : speed * Mathf.Clamp01((now - ClipSpreadFrom) / 60f + 0.4f);
+            float pace = now > ClipBreakOutFrom ? Mathf.Max(speed, 1.25f * unit.Clip.Loco.RunSpeed) : speed * Mathf.Clamp01((now - ClipSpreadFrom) / 60f + 0.4f);
             return best * pace;
         }
 
@@ -804,7 +795,7 @@ namespace PhysicsBattler.Battle
                 plan.paceUntil = now + Mathf.Lerp(PaceFor.x, PaceFor.y, (float)random.NextDouble());
             }
 
-            return plan.running && unit.Clip != null ? Mathf.Max(unit.WalkSpeed, 1.25f * unit.Clip.Loco.RunSpeed) : unit.WalkSpeed;
+            return plan.running ? Mathf.Max(unit.WalkSpeed, 1.25f * unit.Clip.Loco.RunSpeed) : unit.WalkSpeed;
         }
 
         /// <summary>
@@ -956,16 +947,6 @@ namespace PhysicsBattler.Battle
             // Its Fight Rhythm may lead into the blow first (not into an opening: that would waste it;
             // in a press only before its first blow; never before a counter).
             bool leads = tempo == null || tempo.State == TempoState.Probe || (tempo.State == TempoState.Press && tempo.BurstBlows == 0);
-            if (!opening && leads && now - plan.ledInAt > 1.5f && !unit.UsesClips)
-            {
-                float lead = unit.LeadIn();
-                if (lead > 0f)
-                {
-                    plan.ledInAt = now + lead;
-                    plan.nextAttack = now + lead;
-                    return;
-                }
-            }
 
 
             // Its target first, then any other enemy in reach in front of it.
@@ -985,74 +966,37 @@ namespace PhysicsBattler.Battle
                 }
             }
 
-            if (unit.UsesClips)
-            {
-                // (The plan "Bringing the lab into the fight", step 5: a clip fighter strikes with the lab's strikes, a
-                // combo when the fight would throw one, at its target first, then the others in reach in front of it.)
-                foreach (var target in candidates)
-                {
-                    // (Step 7 of the plan "Bringing the lab into the fight": its combo as long as the tempo makes it.)
-                    var combo = ChooseCombo(unit, tempo, target, out int length, out string why);
-                    // (Two or more on it within a combo's reach: now and then a combo strung across them, whatever its
-                    // tempo says: the plan "Fighting off several attackers", step 8.)
-                    bool sweep = combo == null && PhysicsBattler.Locomotion.CombatFeel.ComboSweepChance > 0f && unit.ClipSweepable() >= 2 && random.NextDouble() < PhysicsBattler.Locomotion.CombatFeel.ComboSweepChance;
-                    if (unit.ClipStrike(target, combo != null ? length : sweep ? 3 : 1, combo != null ? why : sweep ? "a sweep" : null))
-                    {
-                        plan.ledInAt = -999f;
-                        plan.closeIn = 0f;
-                        plan.blowEnd = now + 1f;
-                        plan.delayAfter = tempo != null ? tempo.BlowDelay((float)random.NextDouble()) : Next(style);
-                        plan.nextAttack = plan.blowEnd + plan.delayAfter;
-                        plan.readsThisTime = random.NextDouble() < style.readsOpenings;
-                        return;
-                    }
-                }
-
-                // (None of its strikes reaches: too far, it closes in; too close, it gives ground.)
-                bool tooClose = distance < EngageDistance(unit, enemy) - 0.1f * size;
-                plan.closeIn = Mathf.Clamp(plan.closeIn + (tooClose ? -0.15f : 0.15f) * size, -0.5f * size, 0.9f * size);
-                plan.nextAttack = now + 0.4f;
-                if (PlaytestTrace.Enabled)
-                {
-                    PlaytestTrace.Note(unit, "attack", $"none of its strikes reaches {enemy.name} from {distance:0.00} m; {(tooClose ? "backing off" : "closing in")}");
-                }
-
-                return;
-            }
-
-            var targets = new List<(UnitController, AimParts)>();
+            // (The plan "Bringing the lab into the fight", step 5: a clip fighter strikes with the lab's strikes, a
+            // combo when the fight would throw one, at its target first, then the others in reach in front of it.)
             foreach (var target in candidates)
             {
-                var prefer = target == enemy && plan.readsThisTime ? open : AimParts.None;
-                targets.Add((target, prefer));
-
-                // Milestone 10: a combo, when the tempo and the energy call for one.
+                // (Step 7 of the plan "Bringing the lab into the fight": its combo as long as the tempo makes it.)
                 var combo = ChooseCombo(unit, tempo, target, out int length, out string why);
-                if (combo != null)
+                // (Two or more on it within a combo's reach: now and then a combo strung across them, whatever its
+                // tempo says: the plan "Fighting off several attackers", step 8.)
+                bool sweep = combo == null && PhysicsBattler.Locomotion.CombatFeel.ComboSweepChance > 0f && unit.ClipSweepable() >= 2 && random.NextDouble() < PhysicsBattler.Locomotion.CombatFeel.ComboSweepChance;
+                if (unit.ClipStrike(target, combo != null ? length : sweep ? 3 : 1, combo != null ? why : sweep ? "a sweep" : null))
                 {
-                    var first = unit.PlanLink(combo, 0, target, random);
-                    if (first != null && unit.StartCombo(combo, length, target, first, why))
-                    {
-                        plan.ledInAt = -999f;
-                        plan.closeIn = 0f;
-                        plan.blowEnd = now + first.Duration;
-                        plan.delayAfter = tempo != null ? tempo.BlowDelay((float)random.NextDouble()) : Next(style);
-                        plan.nextAttack = plan.blowEnd + plan.delayAfter;
-                        plan.readsThisTime = random.NextDouble() < style.readsOpenings;
-                        return;
-                    }
+                    plan.ledInAt = -999f;
+                    plan.closeIn = 0f;
+                    plan.blowEnd = now + 1f;
+                    plan.delayAfter = tempo != null ? tempo.BlowDelay((float)random.NextDouble()) : Next(style);
+                    plan.nextAttack = plan.blowEnd + plan.delayAfter;
+                    plan.readsThisTime = random.NextDouble() < style.readsOpenings;
+                    return;
                 }
             }
 
-            // The blow, at its target first, then the others (the performance pass: planned a few
-            // poses a step, so no step carries all of it).
-            plan.job = new MovePlanner.Job(unit, targets, random, 4f);
-            plan.jobStep = stepCount;
-            plan.jobPrefer = plan.readsThisTime ? open : AimParts.None;
-            if (plan.job.Step())
+            // (None of its strikes reaches: too far, it closes in; too close, it gives ground.)
+            bool tooClose = distance < EngageDistance(unit, enemy) - 0.1f * size;
+            plan.closeIn = Mathf.Clamp(plan.closeIn + (tooClose ? -0.15f : 0.15f) * size, -0.5f * size, 0.9f * size);
+            plan.nextAttack = now + 0.4f;
+            if (PlaytestTrace.Enabled)
             {
-                FinishPlanning(unit, enemy, plan, distance, now, style, tempo, size);
+                PlaytestTrace.Note(unit, "attack", $"none of its strikes reaches {enemy.name} from {distance:0.00} m; {(tooClose ? "backing off" : "closing in")}");
             }
+
+            return;
         }
 
         /// <summary>A blow planned: thrown (or, if nothing lands, the unit closes in or gives ground).</summary>
@@ -1255,20 +1199,17 @@ namespace PhysicsBattler.Battle
 
                 Vector3 d = here - BodyAt(other);
                 float room = mine + BodyRadius(other) + Margin * unit.Body.SizeFactor;
-                if (unit.UsesClips)
+                // (A clip fighter's walk answers a push late, its feet taking the steps: it starts sooner; and it keeps off
+                // its own side, each fighting its own.)
+                room += ClipRoom * unit.Body.SizeFactor;
+                if (other.Team == unit.Team)
                 {
-                    // (A clip fighter's walk answers a push late, its feet taking the steps: it starts sooner; and it keeps off
-                    // its own side, each fighting its own.)
-                    room += ClipRoom * unit.Body.SizeFactor;
-                    if (other.Team == unit.Team)
-                    {
-                        room += ClipAllySpread * unit.Body.SizeFactor;
-                    }
-                    else if (other != plan.target && other.Opponent != unit)
-                    {
-                        // (An enemy fighting someone else: the next pair over, kept off.)
-                        room += ClipPairSpread * unit.Body.SizeFactor;
-                    }
+                    room += ClipAllySpread * unit.Body.SizeFactor;
+                }
+                else if (other != plan.target && other.Opponent != unit)
+                {
+                    // (An enemy fighting someone else: the next pair over, kept off.)
+                    room += ClipPairSpread * unit.Body.SizeFactor;
                 }
 
                 if (other.Team == unit.Team && plans.TryGetValue(other, out var theirs) && theirs.target != null && theirs.target == plan.target)
@@ -1295,31 +1236,21 @@ namespace PhysicsBattler.Battle
             if (local.z < -halfD) push.z += speed * Mathf.Clamp01((-halfD - local.z) / 0.2f);
 
             // (A clip fighter on its way in may run: its pace is what it was asked.)
-            Vector3 want = Vector3.ClampMagnitude(desired + push, unit.UsesClips ? Mathf.Max(speed, desired.magnitude) : speed);
+            Vector3 want = Vector3.ClampMagnitude(desired + push, Mathf.Max(speed, desired.magnitude));
             if (want.magnitude < DeadZone * speed)
             {
                 want = Vector3.zero;
             }
 
             plan.velocity = Vector3.MoveTowards(plan.velocity, want, Acceleration * speed * dt);
-            if (unit.UsesClips)
-            {
-                // (Being pushed off a body, it doesn't circle on into it.)
-                unit.ClipCrowded = Mathf.Clamp01(push.magnitude / Mathf.Max(0.05f, speed));
-                // (The plan "Bringing the lab into the fight", step 4: a clip fighter walks there itself, its feet doing
-                // the stepping, its walk easing into what it is asked (so not eased here as well: a push off a body
-                // came too late, and teammates on one target overlapped); its root follows its walk.)
-                plan.velocity = want;
-                unit.ClipWant = want;
-                return;
-            }
-
-            Vector3 next = unit.Root.position + plan.velocity * dt;
-            // (Never off the board, whatever pushed it.)
-            Vector3 n = next - Grid.origin;
-            n.x = Mathf.Clamp(n.x, -0.5f * Grid.Width + 0.5f * mine, 0.5f * Grid.Width - 0.5f * mine);
-            n.z = Mathf.Clamp(n.z, -0.5f * Grid.Depth + 0.5f * mine, 0.5f * Grid.Depth - 0.5f * mine);
-            unit.Root.position = new Vector3(Grid.origin.x + n.x, next.y, Grid.origin.z + n.z);
+            // (Being pushed off a body, it doesn't circle on into it.)
+            unit.ClipCrowded = Mathf.Clamp01(push.magnitude / Mathf.Max(0.05f, speed));
+            // (The plan "Bringing the lab into the fight", step 4: a clip fighter walks there itself, its feet doing
+            // the stepping, its walk easing into what it is asked (so not eased here as well: a push off a body
+            // came too late, and teammates on one target overlapped); its root follows its walk.)
+            plan.velocity = want;
+            unit.ClipWant = want;
+            return;
         }
 
         /// <summary>The more room a clip fighter keeps from other bodies (metres at a Medium's size): its walk answers late.</summary>

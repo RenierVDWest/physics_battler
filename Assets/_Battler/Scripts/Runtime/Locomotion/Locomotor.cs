@@ -450,9 +450,6 @@ namespace PhysicsBattler.Locomotion
             return S(to) - S(from);
         }
 
-        /// <summary>The playing strike's own time (seconds into its clip) and its contact time; -1 when no strike plays.</summary>
-        public float StrikeTime => Current == Mode.OneShot && Shot != null && Shot.ContactFrame >= 0 ? ShotTime : -1f;
-
         /// <summary>
         /// The walk animating a root that something else moves (the fight's steering, knock-backs, a
         /// lunge): its place, facing and velocity are taken as they are, and only the body is posed:
@@ -755,9 +752,6 @@ namespace PhysicsBattler.Locomotion
 
         private ShotEnds shotThen;
         private float shotEnd, shotTurnScale = 1f, shotMoveScale = 1f, shotAimTurn, shotAimOver, shotAimFrom;
-
-        /// <summary>How much of its clip's travel the playing one-shot moves the root (an aimed strike's lunge).</summary>
-        public float ShotMoveScale => shotMoveScale;
         private Quaternion shotBend = Quaternion.identity;
 
         /// <summary>

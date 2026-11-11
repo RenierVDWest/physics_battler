@@ -78,18 +78,5 @@ namespace PhysicsBattler.Combat
         {
             return rig.Part(BodyPartOf(part)).PhysicalPoint(Physical(rig, part).position);
         }
-
-        /// <summary>The same null on the animation rig.</summary>
-        public static Transform Animated(AnimRig anim, AimPart part)
-        {
-            switch (part)
-            {
-                case AimPart.Head: return anim.AimHead;
-                case AimPart.Neck: return anim.AimNeck;
-                case AimPart.Chest: return anim.AimChest;
-                case AimPart.Belly: return anim.AimBelly;
-                default: return anim.Part(BodyPartOf(part));
-            }
-        }
     }
 }

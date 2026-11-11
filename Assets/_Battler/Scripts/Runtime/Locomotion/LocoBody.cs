@@ -71,9 +71,6 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A planted foot is let go when it is this far from the clip's (leg lengths), or out of the leg's reach.</summary>
         public const float UnlockRadius = 0.5f;
 
-        /// <summary>Seconds a released lock takes to fade into the clip's foot.</summary>
-        public const float ReleaseHalfLife = 0.06f;
-
         public LocoBody(AnimRig anim, Locomotor loco)
         {
             loco.RootTurned += OnRootTurned;
@@ -1303,9 +1300,6 @@ namespace PhysicsBattler.Locomotion
             restOffset = Vector3.Lerp(restOffset, restWant, 1f - Mathf.Exp(-dt / t));
         }
 
-        /// <summary>The hand held off its clip by a bind (world).</summary>
-        public Vector3 BindOffset => bindOffset;
-
         /// <summary>How fast a let-go hand eases back to its clip (seconds, the e-folding).</summary>
         public const float BindLetGo = 0.08f;
 
@@ -1426,19 +1420,6 @@ namespace PhysicsBattler.Locomotion
             startFrom = Mathf.Clamp(startFrom, 0f, Mathf.Max(0f, clip.ContactFrame / clip.Rate - 0.05f));
             Plan(clip, target, startFrom, rootAt, facing, out _, out _, out Vector3 predicted, out Vector3 want);
             return Mathf.Max(0f, (want - predicted).magnitude - MostAimPull);
-        }
-
-        /// <summary>
-        /// The target of the strike playing has moved (a body being driven back, flinching): the hand's pull follows it
-        /// until contact, as far as the pull goes (<see cref="MostAimPull"/> in all). The plan's turn and lunge stay.
-        /// </summary>
-        /// <summary>The body was carried by <paramref name="move"/> (world; a combo's pull toward its target): its aim's plan goes with it, so the arm's pull isn't asked for it as well.</summary>
-        public void CarriedBy(Vector3 move)
-        {
-            AimTarget += move;
-            AimPredicted += move;
-            AimLands += move;
-            planGripWorld += move;
         }
 
         /// <summary>The body was snapped by <paramref name="move"/> (world) toward where its strike lands on its target: the weapon's way there goes with it, and the arm's pull needs that much less.</summary>

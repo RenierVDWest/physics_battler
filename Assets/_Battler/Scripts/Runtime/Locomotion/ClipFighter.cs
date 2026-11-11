@@ -310,9 +310,6 @@ namespace PhysicsBattler.Locomotion
         private Vector3 shieldFace;
         private bool shieldFaceKnown;
 
-        /// <summary>The shield's speed builds up over this long (seconds): it accelerates, it doesn't jump.</summary>
-        public const float ShieldSpeedUp = 0.08f;
-
         /// <summary>How far from an expert, 0 to 1 (on the curve the parry uses: skill 0.5 midway).</summary>
         private float ShieldLack => 1f - ShieldSkillNow * ShieldSkillNow;
 
@@ -1369,9 +1366,6 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>A combo's next blow was turned on another (the new target).</summary>
         public event System.Action<ClipFighter> ComboTurned;
-
-        /// <summary>Who the combo playing is aimed at now.</summary>
-        public ClipFighter ComboTarget => Combo != null && Combo.Playing ? comboTarget : null;
 
         private void TurnCombo(int played)
         {

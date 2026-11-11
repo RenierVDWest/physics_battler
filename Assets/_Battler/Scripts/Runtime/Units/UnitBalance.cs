@@ -65,18 +65,6 @@ namespace PhysicsBattler.Units
 
         /// <summary>Milestone 9c: the lowest point of what the hands hold over the ground in this step's pose (metres; negative: in it).</summary>
         public float WeaponGroundGap => State == UnitState.GettingUp ? getUp.WeaponGroundGap : Pose.WeaponGroundGap;
-
-        /// <summary>Which way the shield faces getting up (world; zero without one, or not getting up).</summary>
-        public Vector3 GetUpShieldFace => State == UnitState.GettingUp ? getUp.ShieldFace : Vector3.zero;
-
-        /// <summary>How deep the shield arm goes into its own torso or head getting up (metres; 0 clear, or not getting up).</summary>
-        public float GetUpShieldArmInBody => State == UnitState.GettingUp && getUp.Shielded ? getUp.ArmInBody() : 0f;
-
-        /// <summary>When the standing pose starts to take over a get-up, and how long it lasts (seconds).</summary>
-        public float GetUpStandFrom => getUp.StandFrom;
-        public float GetUpBlendIn => getUp.BlendIn;
-        public float GetUpDuration => getUp.Duration;
-
         /// <summary>Seconds in the current state.</summary>
         public float StateTime { get; private set; }
 
@@ -123,31 +111,10 @@ namespace PhysicsBattler.Units
         private Vector3 topple, toppleShift;
         private float flail;
 
-        private void InitializeBalance()
-        {
-            getUp = new GetUp(transform, Anim, Body, Stance);
-            Stance.Landed += OnFootLanded;
-        }
-
         private void SetState(UnitState state)
         {
             State = state;
             StateTime = 0f;
-        }
-
-        /// <summary>Back on its feet at once (the sandbox moved it).</summary>
-        private void ResetBalance()
-        {
-            SetState(UnitState.Standing);
-            StumbleVelocity = Vector3.zero;
-            topple = toppleShift = Vector3.zero;
-            flail = 0f;
-            Pose.Topple = Pose.ToppleShift = Vector3.zero;
-            Pose.Flail = 0f;
-            Stance.Hold = false;
-            Stance.Drift = Vector3.zero;
-            Stance.Urgency = 0f;
-            NeedsSpot = false;
         }
 
         /// <summary>
@@ -234,16 +201,6 @@ namespace PhysicsBattler.Units
                 stumbleFrom = transform.position;
                 BalanceChanged?.Invoke(this, $"stumble: knocked off balance at {velocity.magnitude:0.00} m/s toward {Heading(velocity)}"
                                              + (cause != null ? $" ({cause})" : ""));
-            }
-        }
-
-        private void OnFootLanded(int foot, Vector3 at)
-        {
-            if (State == UnitState.Stumbling)
-            {
-                // A catch step: the foot stops some of the fall.
-                StumbleVelocity *= CatchStep;
-                stumbleSteps++;
             }
         }
 

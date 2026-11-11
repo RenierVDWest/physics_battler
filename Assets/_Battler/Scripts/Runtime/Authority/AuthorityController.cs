@@ -111,8 +111,6 @@ namespace PhysicsBattler.Authority
 
         public AuthorityLevel Level(BodyRegion region) => levels[(int)region];
 
-        public float Pin(BodyRegion region) => pins[(int)region];
-
         /// <summary>Drives every part toward its pose for the coming physics step.</summary>
         public void Apply(float dt)
         {
@@ -573,23 +571,6 @@ namespace PhysicsBattler.Authority
                 Mathf.Min(spec.pitchMin, angles.x - room), Mathf.Max(spec.pitchMax, angles.x + room),
                 Mathf.Min(177f, Mathf.Max(Mathf.Max(spec.twist, LockWithin), Mathf.Abs(angles.y) + room)),
                 Mathf.Min(177f, Mathf.Max(Mathf.Max(spec.swing, LockWithin), Mathf.Abs(angles.z) + room)));
-        }
-
-        /// <summary>
-        /// Milestone 10: how far a joint's turn is from its pose's (degrees): the part against its
-        /// parent, physical and posed, so a parent off its pose doesn't count (for the log).
-        /// </summary>
-        public float JointError(PartId id)
-        {
-            if (!PartInfo.HasParent(id) || rig.IsSevered(id))
-            {
-                return 0f;
-            }
-
-            var parentId = PartInfo.Parent(id);
-            Quaternion physical = Quaternion.Inverse(rig.Part(parentId).transform.rotation) * rig.Part(id).transform.rotation;
-            Quaternion posed = Quaternion.Inverse(anim.Part(parentId).rotation) * anim.Part(id).rotation;
-            return Quaternion.Angle(physical, posed);
         }
 
         /// <summary>Distance and angle between a part and its pose (for the log).</summary>

@@ -54,29 +54,5 @@ namespace PhysicsBattler.Motion
 
             return m;
         }
-
-        /// <summary>For tests: a medium-like body without a rig.</summary>
-        public static BodyMeasure Simple(float size = 1f)
-        {
-            var m = new BodyMeasure
-            {
-                PelvisHeight = 0.985f * size,
-                HipL = new Vector3(-0.095f, -0.055f, 0f) * size,
-                HipR = new Vector3(0.095f, -0.055f, 0f) * size,
-                Thigh = 0.43f * size,
-                Shin = 0.415f * size,
-                AnkleHeight = 0.085f * size,
-                ShoulderWidth = 0.41f * size,
-            };
-            m.AnkleL = new Vector3(-0.095f, 0.085f, 0f) * size;
-            m.AnkleR = new Vector3(0.095f, 0.085f, 0f) * size;
-            for (int i = 0; i < PartInfo.Count; i++)
-            {
-                m.PartMass[i] = 5f;
-                m.Mass += 5f;
-            }
-
-            return m;
-        }
     }
 }

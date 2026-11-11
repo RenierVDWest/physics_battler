@@ -26,13 +26,6 @@ namespace PhysicsBattler.Units
         // measured: not walking.
         private Vector3 rhythmMoved;
 
-        private void InitializeGait()
-        {
-            Gait = new GaitPlayer(Style.walk);
-            Gait.SetSize(Body.SizeFactor);
-            InitializeWalk();
-        }
-
         /// <summary>The walk's step: after the root has moved (walked, knocked back), before the rhythm and the pose.</summary>
         private void UpdateGait(float dt)
         {

@@ -58,9 +58,6 @@ namespace PhysicsBattler.Units
         /// <summary>The pace a chained link starts at (it picks up to full over about a third of a second).</summary>
         public const float LinkStartPace = 0.5f;
 
-        /// <summary>How far the target may have given ground beyond what a link reaches before the combo ends (metres at medium size; the planner's lunge covers the rest).</summary>
-        public const float LinkGiveGround = 0.5f;
-
         private readonly System.Random comboRandom = new System.Random(17);
 
         /// <summary>
@@ -144,27 +141,6 @@ namespace PhysicsBattler.Units
             }
 
             return null;
-        }
-
-        /// <summary>Starts a combo with its first link, planned already (<see cref="PlanLink"/>).</summary>
-        public bool StartCombo(ComboDefinition combo, int length, UnitController target, MoveState first, string why = null)
-        {
-            if (combo == null || first == null || Combo != null || !StartMove(first))
-            {
-                return false;
-            }
-
-            Combo = new ComboRun
-            {
-                Definition = combo,
-                Target = target,
-                Length = Mathf.Clamp(length, 1, combo.links.Length),
-                Link = 0,
-                Why = why ?? "",
-            };
-            Combo.LinkStarts.Add(LocalTime);
-            ComboChanged?.Invoke(this, Combo, "started");
-            return true;
         }
 
         /// <summary>Ends the combo (the link playing plays out as a single blow would).</summary>
@@ -494,18 +470,6 @@ namespace PhysicsBattler.Units
             }
 
             Pose.LinkWeight = 1f - k * k * (3f - 2f * k);
-        }
-
-        /// <summary>Drops a combo (the unit was reset or knocked out of it).</summary>
-        private void ClearCombo()
-        {
-            Combo = null;
-            handOverAge = -1f;
-            handOverPending = false;
-            linkOut = null;
-            Pose.LinkFrom = null;
-            Pose.LinkWeight = 0f;
-            Pose.HoldLinkArm(false);
         }
     }
 }

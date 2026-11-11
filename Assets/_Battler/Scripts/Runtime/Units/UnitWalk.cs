@@ -34,26 +34,6 @@ namespace PhysicsBattler.Units
         /// <summary>The walk has the feet now (its locks say which are planted).</summary>
         public bool WalkOwnsFeet => walkOwnsFeet;
 
-        private void InitializeWalk()
-        {
-            if (!NewWalk || Anim == null)
-            {
-                return;
-            }
-
-            LocoLibrary.Load();
-            var walk = new Locomotor(Body.LegLength);
-            if (!walk.Ready)
-            {
-                return;
-            }
-
-            Walk = walk;
-            WalkBody = new LocoBody(Anim, walk);
-            WalkBody.SoleFrom(Rig);
-            walkOwnsFeet = false;
-        }
-
         /// <summary>The walk's step, instead of the old gait's (<see cref="UpdateGait"/>).</summary>
         private void UpdateWalk(float dt, Vector3 velocity, bool free)
         {

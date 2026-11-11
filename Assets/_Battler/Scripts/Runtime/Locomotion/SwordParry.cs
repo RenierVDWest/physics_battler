@@ -177,9 +177,6 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The sweep over: the sword goes back to its parry at the hand's own speed.</summary>
         public void EndSweep() => sweeping = false;
 
-        /// <summary>Sweeping a blow aside (<see cref="Sweep"/>).</summary>
-        public bool Sweeping => sweeping;
-
         private bool sweeping;
         private Vector3 misread, heldLand, heldMotion;
         private bool wrongPick, readHeld, playsOn = true;
@@ -213,12 +210,6 @@ namespace PhysicsBattler.Locomotion
             this.rig = rig;
             this.size = size;
             WeaponLength = weaponLength;
-        }
-
-        public void ResetMeasures()
-        {
-            MostWristShort = MostSwivelJump = MostHandSpeed = MostShoulderPast = MostIntoTorso = 0f;
-            Made = "";
         }
 
         /// <summary>The sword's blade now (world): from the grip to the tip.</summary>

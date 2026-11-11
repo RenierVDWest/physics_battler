@@ -69,8 +69,6 @@ namespace PhysicsBattler.Units
             }
         }
 
-        public Quaternion EyeRotation => SightHead.rotation;
-
         /// <summary>How it perceives another unit now: the best of its chest, its head and (in a blow) its weapon.</summary>
         public Sight SightOf(UnitController other)
         {

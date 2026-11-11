@@ -83,11 +83,6 @@ namespace PhysicsBattler.Diagnostics
             }
         }
 
-        public void Blank(string name)
-        {
-            Name(name);
-        }
-
         public void End()
         {
             if (!headerWritten)

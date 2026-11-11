@@ -40,9 +40,6 @@ namespace PhysicsBattler.Diagnostics
         /// <summary>The contacts ended so far.</summary>
         public IReadOnlyList<Contact> Done => done;
 
-        /// <summary>Contacts going on now.</summary>
-        public int OpenCount => open.Count;
-
         /// <summary>A new step: what is not seen in it has ended.</summary>
         public void BeginStep() => stepNumber++;
 

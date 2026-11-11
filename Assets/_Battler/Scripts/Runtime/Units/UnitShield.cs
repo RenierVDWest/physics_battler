@@ -41,17 +41,6 @@ namespace PhysicsBattler.Units
         /// <summary>The point the shield is moved toward (world): in a block, the blow's path at contact.</summary>
         public Vector3 ShieldAimPoint { get; private set; }
 
-        /// <summary>How far the shield's face is turned from the way to its threat from the chest (degrees), as posed.</summary>
-        public float ShieldOffThreat
-        {
-            get
-            {
-                // (Seen from the chest: a big enemy up close can stand nearly where the shield is.)
-                Vector3 to = ShieldThreat - Anim.Part(PartId.Chest).position;
-                return to.sqrMagnitude > 1e-6f ? Vector3.Angle(Pose.ShieldFace, to) : 0f;
-            }
-        }
-
         /// <summary>The fastest the shield turns toward a blow, toward a wind-up, and back to the guard (degrees per second), and how stiffly (rad/s; critically damped).</summary>
         public const float ShieldFast = 300f, ShieldTrack = 250f, ShieldSlow = 150f, ShieldStiffFast = 16f, ShieldStiffSlow = 9f;
 

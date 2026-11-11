@@ -30,9 +30,6 @@ namespace PhysicsBattler.Units
         /// <summary>The clip fighter moving this unit, or null (the old pose path).</summary>
         public ClipFighter Clip { get; private set; }
 
-        /// <summary>Moved by a clip fighter.</summary>
-        public bool UsesClips => Clip != null;
-
         /// <summary>The walk the fight loop wants of it (world, m/s, flat): its steering, instead of moving its root.</summary>
         public Vector3 ClipWant { get; set; }
 
@@ -49,7 +46,7 @@ namespace PhysicsBattler.Units
         private int clipVariant;
 
         /// <summary>Where one of its parts is now: a clip fighter's as it has it (posed, or its body on the ground), else the physical part's.</summary>
-        public Vector3 PartPosition(PartId id) => Clip != null ? Clip.PartAt(id) : Rig.Part(id).transform.position;
+        public Vector3 PartPosition(PartId id) => Clip.PartAt(id);
 
         /// <summary>It doesn't swing with an ally nearer than the fighting distance within this of the line to its target (degrees).</summary>
         public const float ClipAllyAngle = 70f;
