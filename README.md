@@ -1961,8 +1961,10 @@ The scene's own line-up, a Swordsman, a Medium with a shield and a Large with a 
 | a shield in another's body | 175 times, 10.5 s, to 18.2 cm | never |
 | a body in another's body | 84 times, 1.9 s, to 12.4 cm | 18 times, 1.1 s, to 11.7 cm |
 
+(One of the physical fights was over after 49 s.)
+
 How far the physical body is from the pose (units on their feet, both line-ups): the head within 2 cm 95% of the
-time and 6 cm 99% of it; the weapon hand in a strike within 2.5 cm half the time, 9 to 19 cm 95% of it; outside a
+time and 4 to 6 cm 99% of it; the weapon hand in a strike within 2.5 cm half the time, 9 to 19 cm 95% of it; outside a
 strike within 3 to 7 cm 95% of the time; the shield hand within 10 to 19 cm 95% of the time; the shield in its
 hand within 9° of the pose 95% of the time. At the worst, for moments: a head 36 to 75 cm off, a hand over a
 metre. No body was borne down or had to be put back on its pose in these six fights.
@@ -1995,7 +1997,7 @@ headless until then, did the same there).
   round at full strength, and round again. Each target is now named the way nearest where the joint is
   (`Where`, by the engine's own joint position, which the probe checks reads as the targets do).
 - *Muscles at their limit.* Held to 600 N m, the torso could not follow what the pose does: a hit reaction snaps it
-  over at 880 rad/s² (600 N m gives a Medium's torso 90), a combo's cut carries the hips 18 cm in a step. And a
+  over at 880 rad/s² (600 N m gives a Medium's torso 90), and the hips are at times carried 18 cm in a step. And a
   motor at its limit no longer damps: it overshoots and swings. With nothing to touch at all (`UPPER_GHOST=1`) the
   heads were still 19 cm from the pose 5% of the time and 50 cm 1% of it. Hence the allowance above; with it,
   touching nothing, 1 cm and 2.4 cm.
@@ -2004,7 +2006,7 @@ headless until then, did the same there).
 - *Joints the pose turns at once.* An arm's roll about its own length flips when the arm is straight (the arm's
   pose has nothing to tell its roll by), 70° to 170° in a step, and the shield arm is at times placed anew at once.
   No muscle turns that. A joint the pose turns more than 70° in a step (the fastest clip turns 42) is put there
-  (`MostJointTurn`): 150 to 300 times in a fight of six.
+  (`MostJointTurn`): 140 to 300 times in a fight of six.
 - *The ground.* The clips swing a blade low, and through the ground at the bottom of a rising cut; stopped there
   it held its arm a metre from the pose. Nothing of the physical body is stopped by the ground now (`ClearOfGround`).
 - *A body that stays away.* A hand 0.9 m or the head 0.5 m from the pose for half a second, and the body is put back
