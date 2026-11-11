@@ -329,8 +329,10 @@ namespace PhysicsBattler.Units
             Loadout.Off = off;
             Clip.ShieldColliders.Clear();
             ClipBladeColliders.Clear();
+            Clip.Solids.Clear();
             Hold(Rig.SlotWeaponR, Anim.SlotWeaponR, main, main != null && !main.IsShield ? MainGrip : Quaternion.identity);
             Hold(Rig.SlotWeaponL, Anim.SlotWeaponL, off, off != null && off.IsShield ? ShieldGrip : Quaternion.identity);
+            Clip.SolidsChanged();
             string body = Clip.Poser.BodyKey;
             bool oneHanded = main != null && (main.kind == WeaponKind.Sword || main.kind == WeaponKind.Club) && !LocoLibrary.TwoHanded(body);
             Clip.Stance = off != null && off.IsShield ? ClipFighter.Stances.Shield
@@ -935,6 +937,8 @@ namespace PhysicsBattler.Units
                 // (Its shield went with the hand: a one-handed sword left parries now.)
                 Loadout.Off = null;
                 Clip.ShieldColliders.Clear();
+                Clip.Solids.RemoveAll(s => s.hand == PartId.HandL);
+                Clip.SolidsChanged();
                 poser.CarryL = LocoBody.Carry.Free;
                 var main = Loadout.Main;
                 bool oneHanded = main != null && (main.kind == WeaponKind.Sword || main.kind == WeaponKind.Club) && !LocoLibrary.TwoHanded(poser.BodyKey);
@@ -1042,6 +1046,7 @@ namespace PhysicsBattler.Units
                     box.center = new Vector3(0f, 0f, 0.075f) * Clip.Size;
                     box.isTrigger = true;
                     Clip.ShieldColliders.Add(box);
+                    Clip.Solids.Add((HandOf(slot), box, definition.massKg, false));
                 }
                 else
                 {
@@ -1057,6 +1062,7 @@ namespace PhysicsBattler.Units
                     capsule.center = new Vector3(0f, 0f, 0.5f * (length + above));
                     capsule.isTrigger = true;
                     ClipBladeColliders.Add(capsule);
+                    Clip.Solids.Add((HandOf(slot), capsule, definition.massKg, true));
                 }
 
                 return;
@@ -1090,8 +1096,13 @@ namespace PhysicsBattler.Units
                 {
                     ClipBladeColliders.Add(collider);
                 }
+
+                // (For the physical upper body: what the hand holds as a solid, its weight shared between its colliders.)
+                Clip.Solids.Add((HandOf(slot), collider, definition.massKg / Mathf.Max(1, held.GetComponentsInChildren<Collider>(true).Length), !definition.IsShield));
             }
         }
+
+        private PartId HandOf(Transform slot) => slot == Rig.SlotWeaponL ? PartId.HandL : PartId.HandR;
 
         /// <summary>The colliders of the weapon a clip fighter holds (not its shield's): what its blade is, for measuring what it passes through.</summary>
         public readonly System.Collections.Generic.List<Collider> ClipBladeColliders = new System.Collections.Generic.List<Collider>();

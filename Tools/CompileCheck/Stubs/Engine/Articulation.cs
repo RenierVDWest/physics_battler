@@ -98,7 +98,15 @@ namespace UnityEngine
         public CollisionDetectionMode collisionDetectionMode { get; set; }
         public Vector3 linearVelocity { get; set; }
         public Vector3 angularVelocity { get; set; }
-        public ArticulationReducedSpace jointPosition { get; set; }
+        private ArticulationReducedSpace position;
+
+        /// <summary>Its joint's position (radians). Set, the joint is put there at once (the engine under the stubs does it).</summary>
+        public ArticulationReducedSpace jointPosition { get => position; set { position = value; PositionAsked = true; } }
+
+        /// <summary>Its joint's position as the engine has it now (the engine under the stubs tells it).</summary>
+        public void Tell(ArticulationReducedSpace now) => position = now;
+
+        public bool PositionAsked;
         public ArticulationReducedSpace jointVelocity { get; set; }
         public int dofCount => jointType == ArticulationJointType.SphericalJoint ? 3 : jointType == ArticulationJointType.FixedJoint ? 0 : 1;
 

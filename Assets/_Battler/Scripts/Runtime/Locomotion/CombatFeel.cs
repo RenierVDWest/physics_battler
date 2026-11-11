@@ -174,6 +174,10 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("With two or more enemies fighting it within that reach and turn, the chance a blow it starts opens a combo strung across them, whatever its tempo would say (its tempo's own combos come as well). 0: only its tempo's combos. Default 0.25 (more commits it to long strings with others round it).")]
         [Range(0f, 1f)] public float comboSweepChance = DefaultComboSweepChance;
 
+        [Header("The physical upper body")]
+        [Tooltip("Clip fighters' upper bodies are physical (the plan \"A different approach\", step 5): the hips, torso, head and both arms are one jointed body on muscles of limited strength, with a solid sword and shield in its hands, on legs the animation still moves. A blade stops on what it meets, and bodies can't pass through each other. The game then steps the physics itself, 4 times for each of its own steps (240 a second), and a strike's blade is limited to 30 m/s unless Most Blade Speed says otherwise. Takes effect at the next Spawn. The hits themselves are still decided as before (by the pose). Off: held to the pose by pins, as it has been. Default off.")]
+        public bool physicalUpperBody = DefaultPhysicalUpperBody;
+
         [Header("Feet")]
         [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
         [Range(0.5f, 8f)] public float comboPullSpeed = DefaultComboPullSpeed;
@@ -188,6 +192,10 @@ namespace PhysicsBattler.Locomotion
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
         public const float DefaultMostBladeSpeed = 0f;
+        public const bool DefaultPhysicalUpperBody = false;
+
+        /// <summary>The blade's speed limit a physical upper body is given when none is set (m/s).</summary>
+        public const float PhysicalBladeSpeed = 30f;
         public const float DefaultComboPullSpeed = 3f, DefaultMovingFootLift = 7f;
         public const float DefaultComboSpreadTurn = 100f, DefaultComboSpreadReach = 3.2f, DefaultComboSweepChance = 0.25f;
         public const float DefaultConcentrationRise = 0.3f, DefaultConcentrationFall = 0.15f, DefaultConcentrationGuard = 0.5f, DefaultConcentrationAccuracy = 0.3f;
@@ -333,7 +341,8 @@ namespace PhysicsBattler.Locomotion
             ComboSpreadTurn = comboSpreadTurn;
             ComboSpreadReach = comboSpreadReach;
             ComboSweepChance = comboSweepChance;
-            MostBladeSpeed = mostBladeSpeed;
+            MostBladeSpeed = mostBladeSpeed > 0f ? mostBladeSpeed : physicalUpperBody ? PhysicalBladeSpeed : 0f;
+            ClipFighter.PhysicalUpper = physicalUpperBody;
             ComboPullSpeed = comboPullSpeed;
             MovingFootLift = movingFootLift;
         }

@@ -111,6 +111,9 @@ namespace PhysicsBattler.Authority
 
         public AuthorityLevel Level(BodyRegion region) => levels[(int)region];
 
+        /// <summary>How firmly a region is held to its pose (0 to 1).</summary>
+        public float Pin(BodyRegion region) => pins[(int)region];
+
         /// <summary>Parts this leaves alone: moved by something else (the physical upper body's shadows).</summary>
         public readonly bool[] Skipped = new bool[PartInfo.All.Length];
 

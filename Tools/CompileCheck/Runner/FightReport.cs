@@ -54,6 +54,17 @@ internal static class FightReport
             UnitController.ClipPhysical = false;
         }
 
+        // (FIGHT_PHYSICAL=1, with PHYSX=1: the clip fighters' upper bodies physical, the game stepping the engine itself
+        // (PHYSX_SUBSTEPS, 4), a blade limited to 30 m/s unless FIGHT_BLADE says otherwise.)
+        if (engine && Environment.GetEnvironmentVariable("FIGHT_PHYSICAL") != null)
+        {
+            PhysicsBattler.Locomotion.ClipFighter.PhysicalUpper = true;
+            PhysicsBattler.Locomotion.CombatFeel.MostBladeSpeed = PhysicsBattler.Locomotion.CombatFeel.PhysicalBladeSpeed;
+            PhysicsBattler.Authority.PhysicsSteps.Manual = true;
+            PhysicsBattler.Authority.PhysicsSteps.Substeps = int.TryParse(Environment.GetEnvironmentVariable("PHYSX_SUBSTEPS"), out int subs) ? subs : 4;
+            ((PhysicsBattler.Engine.PhysXWorld)Physics.Backend).Substeps = 1;
+        }
+
         // (The Combat Feel's feet, for a fight played with them set: FIGHT_PULL=3 (m/s), FIGHT_LIFT=0 (cm).)
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_PULL"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pull))
         {
@@ -348,7 +359,14 @@ internal static class FightReport
                 }
 
                 // (The engine under the stubs: every script's step, then the physics step, as in Unity.)
-                Physics.Simulate(dt);
+                if (PhysicsBattler.Authority.PhysicsSteps.Manual)
+                {
+                    PhysicsBattler.Authority.PhysicsSteps.Run(dt);
+                }
+                else
+                {
+                    Physics.Simulate(dt);
+                }
 #if PHYSX
                 if (Physics.Backend is PhysicsBattler.Engine.PhysXWorld px)
                 {

@@ -464,6 +464,9 @@ namespace PhysicsBattler.Locomotion
                 {
                     Hold((BodyRegion)r, 1f);
                 }
+
+                PhysicsSteps.BeforeSubstep += BeforeSubstep;
+                PhysicsSteps.AfterStep += AfterStep;
             }
 
             float leg = Anim.RestLocalPosition(PartId.ShinL).magnitude + Anim.RestLocalPosition(PartId.FootL).magnitude;
@@ -1099,6 +1102,12 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 Authority.Apply(dt);
+                if (carried.sqrMagnitude > 0.25f)
+                {
+                    Upper?.Teleport();
+                }
+
+                StepUpper(dt);
             }
             else
             {
@@ -1167,6 +1176,202 @@ namespace PhysicsBattler.Locomotion
         /// experiment).
         /// </summary>
         public AuthorityLevel StrikeArm = AuthorityLevel.Kinematic;
+
+        // ---- The physical upper body (the plan "A different approach", step 5) -------------------------------------
+
+        /// <summary>
+        /// Clip fighters' upper bodies are physical: the pelvis, torso, head and both arms one articulation on muscles
+        /// (<see cref="UpperBodyArticulation"/>), a solid sword and shield in its hands, the legs still the pose's. Off:
+        /// the upper body is held to its pose by pins, as it has been. (The Combat Feel's.)
+        /// </summary>
+        public static bool PhysicalUpper;
+
+        /// <summary>Its physical upper body while it has one (standing, whole): null when down, dead, or with the switch off.</summary>
+        public UpperBodyArticulation Upper { get; private set; }
+
+        /// <summary>What its hands hold, for the physical body: the colliders and their weight (the unit fills it as it arms it).</summary>
+        public readonly List<(PartId hand, Collider solid, float mass, bool blade)> Solids = new List<(PartId, Collider, float, bool)>();
+
+        /// <summary>
+        /// Its muscles, at a Medium's size: how quick the torso's, the neck's and each arm's are (Hz: what hangs from a
+        /// joint would swing at this undamped), and the most the spine and chest turn with (N m; the neck a quarter,
+        /// a shoulder as much as the spine, an elbow 0.7 and a wrist 0.25 of it). From the experiments: with these a
+        /// blade is within 11 cm of its pose in a strike's wind-up and at contact, stops on what it meets and gives
+        /// it a blow's push.
+        /// </summary>
+        public static float TorsoQuick = 30f, NeckQuick = 30f, WeaponArmQuick = 40f, ShieldArmQuick = 30f, MuscleStrength = 600f;
+
+        /// <summary>A region held less firmly (struck: its pin eased) has its muscles this much slower at the least, for as long.</summary>
+        public const float LeastQuick = 0.25f;
+
+        private bool upperOff, solidsChanged;
+        private float upperDt = 1f / 60f;
+        private readonly float[] upperEase = { 1f, 1f, 1f, 1f, 1f };
+
+        /// <summary>What its hands hold changed (armed, disarmed): the physical body is told at its next step.</summary>
+        public void SolidsChanged() => solidsChanged = true;
+
+        private (float hz, float most) MuscleOf(PartId id, float ease)
+        {
+            float strong = MuscleStrength * Size * Size;
+            switch (id)
+            {
+                case PartId.Spine:
+                case PartId.Chest: return (TorsoQuick * ease, strong);
+                case PartId.Head: return (NeckQuick * ease, 0.25f * strong);
+                case PartId.UpperArmR: return (WeaponArmQuick * ease, strong);
+                case PartId.ForearmR: return (WeaponArmQuick * ease, 0.7f * strong);
+                case PartId.HandR: return (WeaponArmQuick * ease, 0.25f * strong);
+                case PartId.UpperArmL: return (ShieldArmQuick * ease, strong);
+                case PartId.ForearmL: return (ShieldArmQuick * ease, 0.7f * strong);
+                default: return (ShieldArmQuick * ease, 0.25f * strong);
+            }
+        }
+
+        private void StepUpper(float dt)
+        {
+            upperDt = dt;
+            bool whole = true;
+            foreach (var id in UpperBodyArticulation.Parts)
+            {
+                whole &= !Rig.IsSevered(id);
+            }
+
+            // (Only with the game stepping the engine itself: its motors' targets are fed at each physics step.)
+            bool want = PhysicalUpper && PhysicsSteps.Manual && !upperOff && whole && !Fallen && Authority.Level(BodyRegion.Torso) != AuthorityLevel.Ragdoll;
+            if (want && Upper == null)
+            {
+                BuildUpper();
+            }
+            else if (!want && Upper != null)
+            {
+                ReleaseUpper();
+            }
+
+            if (Upper == null)
+            {
+                return;
+            }
+
+            if (solidsChanged)
+            {
+                solidsChanged = false;
+                Upper.LetGo(PartId.HandR);
+                Upper.LetGo(PartId.HandL);
+                HoldSolids();
+            }
+
+            // (A region held less firmly, struck, lets its muscles go for as long.)
+            for (int r = 1; r < 5; r++)
+            {
+                var region = (BodyRegion)r;
+                float ease = Mathf.Lerp(LeastQuick, 1f, Mathf.Clamp01(Authority.Pin(region) / Mathf.Max(1e-3f, BasePin(region))));
+                if (Authority.Level(region) == AuthorityLevel.Kinematic || Authority.Level(region) == AuthorityLevel.Muscled)
+                {
+                    ease = 1f;
+                }
+
+                if (Mathf.Abs(ease - upperEase[r]) > 0.02f)
+                {
+                    upperEase[r] = ease;
+                    foreach (var id in UpperBodyArticulation.Parts)
+                    {
+                        if (id != PartId.Pelvis && AuthorityController.RegionOf(id) == region)
+                        {
+                            var m = MuscleOf(id, ease);
+                            Upper.SetMuscle(id, m.hz, m.most);
+                        }
+                    }
+                }
+            }
+
+            Upper.BeginStep();
+        }
+
+        private void BuildUpper()
+        {
+            ArticulationConventions.EnsureProbed();
+            if (!ArticulationConventions.Usable)
+            {
+                upperOff = true;
+                return;
+            }
+
+            foreach (var id in UpperBodyArticulation.Parts)
+            {
+                var part = Rig.Part(id);
+                Authority.Skipped[(int)id] = true;
+                part.body.isKinematic = true;
+                // (Its shadow: found by what looks for a body's parts, in the way of nothing.)
+                if (part.partCollider != null)
+                {
+                    part.partCollider.isTrigger = true;
+                }
+            }
+
+            Upper = new UpperBodyArticulation(Rig, Anim, Rig.Part(PartId.Pelvis).transform.parent, id => MuscleOf(id, 1f));
+            for (int r = 0; r < 5; r++)
+            {
+                upperEase[r] = 1f;
+            }
+
+            HoldSolids();
+            solidsChanged = false;
+        }
+
+        private void HoldSolids()
+        {
+            foreach (var (hand, solid, mass, blade) in Solids)
+            {
+                if (solid == null)
+                {
+                    continue;
+                }
+
+                if (blade)
+                {
+                    // (A sword balances a hand's breadth past its guard and turns about that like a rod a third its length.)
+                    var slot = hand == PartId.HandR ? Rig.SlotWeaponR : Rig.SlotWeaponL;
+                    Vector3 balance = Rig.Part(hand).transform.InverseTransformPoint(slot.position + slot.forward * (0.18f * Size));
+                    Upper.Hold(hand, solid, mass, balance, 0.26f * Size);
+                }
+                else
+                {
+                    Upper.Hold(hand, solid, mass);
+                }
+            }
+        }
+
+        /// <summary>The physical upper body let go (down, dead, a limb off): the rig's own parts take over where it was, at its speeds.</summary>
+        private void ReleaseUpper()
+        {
+            foreach (var id in UpperBodyArticulation.Parts)
+            {
+                var part = Rig.Part(id);
+                var link = Upper.Link(id);
+                Authority.Skipped[(int)id] = false;
+                if (part.partCollider != null)
+                {
+                    part.partCollider.isTrigger = false;
+                }
+
+                part.transform.SetPositionAndRotation(link.transform.position, link.transform.rotation);
+                part.body.isKinematic = false;
+                part.body.linearVelocity = link.linearVelocity;
+                part.body.angularVelocity = link.angularVelocity;
+            }
+
+            Upper.Destroy();
+            Upper = null;
+        }
+
+        private void BeforeSubstep(int k, int n, float sub)
+        {
+            Authority?.Substep(k, n);
+            Upper?.Substep(k, n, upperDt);
+        }
+
+        private void AfterStep() => Upper?.MoveShadows();
 
         public float StrikeArmStrength = 1f;
 
@@ -3091,6 +3296,10 @@ namespace PhysicsBattler.Locomotion
 
         public void Destroy()
         {
+            PhysicsSteps.BeforeSubstep -= BeforeSubstep;
+            PhysicsSteps.AfterStep -= AfterStep;
+            Upper?.Destroy();
+            Upper = null;
             if (Unit != null)
             {
                 Object.Destroy(Unit);

@@ -19,6 +19,8 @@ internal static class ArmExperiment
 {
     private static readonly bool Trace = Environment.GetEnvironmentVariable("ARM_TRACE") != null;
 
+    private static float TorsoHz = 6f;
+
     private sealed class Setup
     {
         public string Name;
@@ -30,6 +32,8 @@ internal static class ArmExperiment
         public bool ByInertia;
         public int Iters;
         public bool Articulated;
+        /// <summary>The game's own physical upper body (UpperBodyArticulation), the game stepping the engine: its weapon arm's motors at MostHz, its shoulder's most torque MostForce.</summary>
+        public bool Game;
     }
 
     private struct Result
@@ -52,6 +56,8 @@ internal static class ArmExperiment
         if (float.TryParse(Environment.GetEnvironmentVariable("ARM_PACE_SHARE"), NumberStyles.Float, ci, out float paceShare)) LocoBody.BladePaceShare = paceShare;
         float fast = float.TryParse(Environment.GetEnvironmentVariable("ARM_HZ"), NumberStyles.Float, ci, out float hz) ? hz : 40f;
         float artHz = float.TryParse(Environment.GetEnvironmentVariable("ART_HZ"), NumberStyles.Float, ci, out float ah) ? ah : 80f;
+        if (float.TryParse(Environment.GetEnvironmentVariable("ARM_TORSO_HZ"), NumberStyles.Float, ci, out float torsoHz)) TorsoHz = torsoHz;
+        float gameHz = float.TryParse(Environment.GetEnvironmentVariable("GAME_HZ"), NumberStyles.Float, ci, out float gh) ? gh : 20f;
         float artForce = float.TryParse(Environment.GetEnvironmentVariable("ART_FORCE"), NumberStyles.Float, ci, out float af) ? af : 600f;
         var setups = new List<Setup>
         {
@@ -70,6 +76,7 @@ new Setup { Name = "articulation, 60 Hz, motors without limit", Arm = AuthorityL
             new Setup { Name = "articulation, 240 Hz, motors without limit", Arm = AuthorityLevel.Kinematic, Torso = AuthorityLevel.Kinematic, Articulated = true, Substeps = 4, MostHz = artHz },
             new Setup { Name = $"articulation of limited strength (shoulder {artForce:0} N m, elbow {0.7f * artForce:0}, wrist {0.25f * artForce:0}), 120 Hz", Arm = AuthorityLevel.Kinematic, Torso = AuthorityLevel.Kinematic, Articulated = true, Substeps = 2, MostHz = 0.5f * artHz, MostForce = artForce },
             new Setup { Name = $"articulation of limited strength (shoulder {artForce:0} N m, elbow {0.7f * artForce:0}, wrist {0.25f * artForce:0}), 240 Hz", Arm = AuthorityLevel.Kinematic, Torso = AuthorityLevel.Kinematic, Articulated = true, Substeps = 4, MostHz = artHz, MostForce = artForce },
+            new Setup { Name = $"the game's upper body, weapon arm {gameHz:0} Hz (shoulder {artForce:0} N m), 240 Hz", Arm = AuthorityLevel.Kinematic, Game = true, Substeps = 4, MostHz = gameHz, MostForce = artForce },
         };
         string only = Environment.GetEnvironmentVariable("ARM_ONLY");
         var clips = ClipFighter.StrikesOf("Medium").Where(c => c.ContactFrame >= 0 && (only == null || c.Name.Contains(only))).ToList();
@@ -119,7 +126,9 @@ new Setup { Name = "articulation, 60 Hz, motors without limit", Arm = AuthorityL
         // (A fresh world each: nothing left over from the last strike.)
         foreach (var body in Physics.Bodies.ToArray()) UnityEngine.Object.DestroyImmediate(body.gameObject);
         foreach (var collider in Physics.Colliders.ToArray()) UnityEngine.Object.DestroyImmediate(collider.gameObject);
-        var world = PhysXWorld.Install(BodyPart.GroundLayer, setup.Substeps);
+        var world = PhysXWorld.Install(BodyPart.GroundLayer, setup.Game ? 1 : setup.Substeps);
+        PhysicsSteps.Manual = setup.Game;
+        PhysicsSteps.Substeps = setup.Substeps;
         AuthorityController.MostMuscleFrequency = setup.MostHz;
         AuthorityController.MuscleMostForce = setup.MostForce;
         AuthorityController.MaxMuscleLoad = setup.MostLoad;
@@ -164,7 +173,12 @@ new Setup { Name = "articulation, 60 Hz, motors without limit", Arm = AuthorityL
             if (part.partCollider != null) Physics.IgnoreCollision(capsule, part.partCollider, true);
         }
 
-        if (setup.Articulated)
+        UpperBodyArticulation upper = null;
+        if (setup.Game)
+        {
+            capsule.isTrigger = true;
+        }
+        else if (setup.Articulated)
         {
             foreach (var part in unitRig.Parts)
             {
@@ -184,7 +198,17 @@ new Setup { Name = "articulation, 60 Hz, motors without limit", Arm = AuthorityL
         {
             fighter.Move(dt, Vector3.zero, 0f, new Vector3(0f, 1.3f, 2f), false);
             fighter.Apply(dt);
-            Physics.Simulate(dt);
+            if (setup.Game)
+            {
+                upper?.BeginStep();
+                PhysicsSteps.Run(dt);
+                upper?.MoveShadows();
+            }
+            else
+            {
+                Physics.Simulate(dt);
+            }
+
             if (arm != null)
             {
                 // (Its blade's shape where the articulation's blade is, for the overlap query.)
@@ -194,8 +218,34 @@ new Setup { Name = "articulation, 60 Hz, motors without limit", Arm = AuthorityL
             }
         }
 
+        void Before(int k, int n, float sub)
+        {
+            fighter.Authority.Substep(k, n);
+            upper?.Substep(k, n, dt);
+        }
+
+        if (setup.Game) PhysicsSteps.BeforeSubstep += Before;
         for (int i = 0; i < 5; i++) Step();
-        if (setup.Articulated)
+        if (setup.Game)
+        {
+            foreach (var id in UpperBodyArticulation.Parts)
+            {
+                fighter.Authority.Skipped[(int)id] = true;
+                unitRig.Part(id).body.isKinematic = true;
+                if (unitRig.Part(id).partCollider != null) unitRig.Part(id).partCollider.isTrigger = true;
+            }
+
+            float strong = setup.MostForce < 1e30f ? setup.MostForce : 0f;
+            upper = new UpperBodyArticulation(unitRig, fighter.Anim, null, id =>
+                id == PartId.Spine || id == PartId.Chest ? (TorsoHz, 600f) : id == PartId.Head ? (TorsoHz + 2f, 150f)
+                : id == PartId.UpperArmR ? (setup.MostHz, strong) : id == PartId.ForearmR ? (setup.MostHz, 0.7f * strong) : id == PartId.HandR ? (setup.MostHz, 0.25f * strong)
+                : id == PartId.UpperArmL ? (10f, 300f) : id == PartId.ForearmL ? (10f, 200f) : (10f, 75f));
+            // (Its sword: balanced 18 cm past the grip, turning about that like a rod a third its length.)
+            var slot = unitRig.SlotWeaponR;
+            Vector3 balance = unitRig.Part(PartId.HandR).transform.InverseTransformPoint(slot.position + slot.forward * 0.18f);
+            upper.Hold(PartId.HandR, capsule, 1.2f, balance, 0.26f);
+        }
+        else if (setup.Articulated)
         {
             arm = new ArticulatedArm(world, fighter.Anim, unitRig, length, setup.MostHz, setup.MostForce < 1e30f ? setup.MostForce : 0f);
         }
@@ -329,6 +379,9 @@ new Setup { Name = "articulation, 60 Hz, motors without limit", Arm = AuthorityL
         if (ball != null) result.WeightSpeed = ball.linearVelocity.magnitude;
         result.Later = landedAt >= 0f ? landedAt - contactAt : 0f;
         world.BeforeSubstep = null;
+        if (setup.Game) PhysicsSteps.BeforeSubstep -= Before;
+        PhysicsSteps.Manual = false;
+        upper?.Destroy();
         fighter.Destroy();
         return result;
     }

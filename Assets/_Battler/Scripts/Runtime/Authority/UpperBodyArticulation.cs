@@ -99,6 +99,8 @@ namespace PhysicsBattler.Authority
                 link.angularDamping = 0.05f;
                 link.jointFriction = 0f;
                 link.maxAngularVelocity = 100f;
+                // (What it will meet in the coming step is found ahead: a blade at 30 m/s moves 12 cm in a physics step, further than a shield is thick.)
+                link.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                 link.maxJointVelocity = 200f;
                 if (i == 0)
                 {
@@ -164,6 +166,27 @@ namespace PhysicsBattler.Authority
             hold.connectedAnchor = Vector3.zero;
             hold.xMotion = hold.yMotion = hold.zMotion = ConfigurableJointMotion.Locked;
             hold.angularXMotion = hold.angularYMotion = hold.angularZMotion = ConfigurableJointMotion.Locked;
+            SnapJoints();
+        }
+
+        /// <summary>Every joint put where the pose has it, at once and still (as it is built, and when the body is put somewhere).</summary>
+        private void SnapJoints()
+        {
+            Vector3 sign = ArticulationConventions.TargetSign;
+            for (int i = 1; i < Parts.Length; i++)
+            {
+                var local = Quaternion.Inverse(anim.Part(Parts[parent[i]]).rotation) * anim.Part(Parts[i]).rotation;
+                now[i] = was[i] = JointMath.TurnVector(local);
+                Vector3 at = Vector3.Scale(now[i], sign);
+                links[i].jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    links[i].SetDriveTarget((ArticulationDriveAxis)axis, at[axis] * Mathf.Rad2Deg);
+                    links[i].SetDriveTargetVelocity((ArticulationDriveAxis)axis, 0f);
+                }
+            }
+
+            known = true;
         }
 
         /// <summary>A part's link.</summary>
@@ -251,12 +274,29 @@ namespace PhysicsBattler.Authority
             }
 
             pieces[i].Add(piece);
-            held.Add((i, copy, pieces[i].Count - 1));
+            held.Add((i, copy, pieces[i].Count - 1, solid));
             RefreshMass();
             return copy;
         }
 
-        private readonly List<(int link, Collider collider, int piece)> held = new List<(int, Collider, int)>();
+        private readonly List<(int link, Collider collider, int piece, Collider source)> held = new List<(int, Collider, int, Collider)>();
+
+        /// <summary>What the hands hold kept where the rig's hands have it (a shield is turned in its hand as it is raised).</summary>
+        private void FollowHeld()
+        {
+            foreach (var h in held)
+            {
+                if (h.source == null || h.collider == null)
+                {
+                    continue;
+                }
+
+                var hand = rig.Part(Parts[h.link]).transform;
+                var t = h.collider.transform;
+                t.localPosition = hand.InverseTransformPoint(h.source.transform.position);
+                t.localRotation = Quaternion.Inverse(hand.rotation) * h.source.transform.rotation;
+            }
+        }
 
         /// <summary>What a hand held is let go: its collider and its weight taken off the hand's link.</summary>
         public void LetGo(PartId hand)
@@ -446,6 +486,7 @@ namespace PhysicsBattler.Authority
         /// <summary>The pose's joint turns now: what the motors are driven to over the coming physics steps. Once a game step, after the pose.</summary>
         public void BeginStep()
         {
+            FollowHeld();
             for (int i = 1; i < Parts.Length; i++)
             {
                 var local = Quaternion.Inverse(anim.Part(Parts[parent[i]]).rotation) * anim.Part(Parts[i]).rotation;
@@ -508,6 +549,7 @@ namespace PhysicsBattler.Authority
             carrier.position = rootWas;
             carrier.rotation = rootTurnWas;
             links[0].TeleportRoot(rootWas, rootTurnWas);
+            SnapJoints();
         }
 
         /// <summary>The rig's own upper parts moved onto its links (its shadows): what reads a part's place, and what is drawn, follows the physical body.</summary>

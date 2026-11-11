@@ -193,6 +193,7 @@ namespace PhysicsBattler.Engine
                     PxRigidBody_setMaxAngularVelocity_mut(rigid, b.maxAngularVelocity);
                     PxRigidBody_setMaxLinearVelocity_mut(rigid, b.maxLinearVelocity);
                     PxRigidBody_setMaxDepenetrationVelocity_mut(rigid, Mathf.Min(b.maxDepenetrationVelocity, 1e30f));
+                    PxRigidBody_setRigidBodyFlag_mut(rigid, PxRigidBodyFlag.EnableSpeculativeCcd, b.collisionDetectionMode == CollisionDetectionMode.ContinuousSpeculative);
                     b.DrivesChanged = true;
                 }
 
@@ -232,6 +233,7 @@ namespace PhysicsBattler.Engine
                     PxArticulationReducedCoordinate_setRootGlobalPose_mut(a.Art, &to, true);
                 }
 
+                bool placed = false;
                 foreach (var l in a.Links)
                 {
                     var b = l.Body;
@@ -264,6 +266,19 @@ namespace PhysicsBattler.Engine
                         }
 
                         b.DrivesChanged = false;
+                        if (b.PositionAsked)
+                        {
+                            // (Its joint put somewhere at once, still.)
+                            b.PositionAsked = false;
+                            var at = b.jointPosition;
+                            for (int axis = 0; axis < axes; axis++)
+                            {
+                                PxArticulationJointReducedCoordinate_setJointPosition_mut(joint, (PxArticulationAxis)axis, at[axis]);
+                                PxArticulationJointReducedCoordinate_setJointVelocity_mut(joint, (PxArticulationAxis)axis, 0f);
+                            }
+
+                            placed = true;
+                        }
                     }
 
                     if (b.mass != l.Mass || Differs(b.centerOfMass, l.Centre) || Differs(b.inertiaTensor, l.Turns))
@@ -298,6 +313,10 @@ namespace PhysicsBattler.Engine
                         }
                     }
                 }
+                if (placed)
+                {
+                    PxArticulationReducedCoordinate_updateKinematic_mut(a.Art, PxArticulationKinematicFlags.Position | PxArticulationKinematicFlags.Velocity);
+                }
             }
         }
 
@@ -322,10 +341,10 @@ namespace PhysicsBattler.Engine
                     {
                         var joint = PxArticulationLink_getInboundJoint(l.Link);
                         bool ball = l.Body.jointType == ArticulationJointType.SphericalJoint;
-                        l.Body.jointPosition = new ArticulationReducedSpace(
+                        l.Body.Tell(new ArticulationReducedSpace(
                             PxArticulationJointReducedCoordinate_getJointPosition(joint, PxArticulationAxis.Twist),
                             ball ? PxArticulationJointReducedCoordinate_getJointPosition(joint, PxArticulationAxis.Swing1) : 0f,
-                            ball ? PxArticulationJointReducedCoordinate_getJointPosition(joint, PxArticulationAxis.Swing2) : 0f) { dofCount = ball ? 3 : 1 };
+                            ball ? PxArticulationJointReducedCoordinate_getJointPosition(joint, PxArticulationAxis.Swing2) : 0f) { dofCount = ball ? 3 : 1 });
                     }
                 }
             }

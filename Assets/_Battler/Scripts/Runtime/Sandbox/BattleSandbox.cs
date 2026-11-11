@@ -177,6 +177,18 @@ namespace PhysicsBattler.Sandbox
         public void Spawn()
         {
             Clear();
+            // (With physical upper bodies the game steps the engine itself, several physics steps to each of its own.)
+            var stepper = GetComponent<PhysicsBattler.Authority.PhysicsStepper>();
+            if (PhysicsBattler.Locomotion.ClipFighter.PhysicalUpper && stepper == null)
+            {
+                stepper = gameObject.AddComponent<PhysicsBattler.Authority.PhysicsStepper>();
+            }
+
+            if (stepper != null)
+            {
+                stepper.enabled = PhysicsBattler.Locomotion.ClipFighter.PhysicalUpper;
+            }
+
             turnedAway = false;
             brawl = new Brawl(seed);
             fightLoop = new Battle.FightLoop(seed) { Grid = Grid };

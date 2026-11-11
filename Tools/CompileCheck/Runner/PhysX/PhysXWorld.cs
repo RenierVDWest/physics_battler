@@ -64,6 +64,10 @@ namespace PhysicsBattler.Engine
             public uint Id;
             public bool Trigger, Enabled, Seen;
             public int Layer;
+            // (Where it sits on what carries it: kept up as its collider is moved against it, a shield turned in a hand.)
+            public Transform On;
+            public Vector3 Offset, LocalAt;
+            public Quaternion Turn = Quaternion.identity, LocalTurn = Quaternion.identity;
         }
 
         private sealed class JointState
@@ -609,6 +613,21 @@ namespace PhysicsBattler.Engine
                     }
                 }
 
+                if (sh.On != null)
+                {
+                    var ct = collider.transform;
+                    var inv = Quaternion.Inverse(sh.On.rotation);
+                    Vector3 at = inv * (ct.position + ct.rotation * sh.Offset - sh.On.position);
+                    Quaternion turn = inv * ct.rotation * sh.Turn;
+                    if ((at - sh.LocalAt).sqrMagnitude > 1e-10f || Quaternion.Angle(turn, sh.LocalTurn) > 0.01f)
+                    {
+                        sh.LocalAt = at;
+                        sh.LocalTurn = turn;
+                        var local = T(at, turn);
+                        PxShape_setLocalPose_mut(sh.Shape, &local);
+                    }
+                }
+
                 if (layer != sh.Layer)
                 {
                     sh.Layer = layer;
@@ -797,7 +816,12 @@ namespace PhysicsBattler.Engine
                 // (A link's collider: on its link, where it sits against it.)
                 sh.Actor = (PxRigidActor*)link.Link;
                 var inv = Quaternion.Inverse(onLink.transform.rotation);
-                var local = T(inv * (t.position + t.rotation * offset - onLink.transform.position), inv * t.rotation * turn);
+                sh.On = onLink.transform;
+                sh.Offset = offset;
+                sh.Turn = turn;
+                sh.LocalAt = inv * (t.position + t.rotation * offset - onLink.transform.position);
+                sh.LocalTurn = inv * t.rotation * turn;
+                var local = T(sh.LocalAt, sh.LocalTurn);
                 PxShape_setLocalPose_mut(sh.Shape, &local);
             }
             else if (body != null)
