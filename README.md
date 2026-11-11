@@ -1813,6 +1813,50 @@ With `FIGHT_BLADE=30` the headless clip fight (posed, the old way) plays with th
 109, parries 12 where there were 27. The defender's reading of when a blow lands doesn't know about the slowed clip
 yet; that is for the step that brings the arm into the fight.
 
+**A hit on a physical body (step 3, the experiment).** `physx-hit`: a Medium stands in its guard, its legs the
+pose's, its upper body (pelvis to head, both arms) one articulation on muscles (`Runner/PhysX/ArticulatedBody.cs`),
+and is struck by a ball of a known weight at the chest, the head, the weapon arm and the back (`HIT_SETUP`, `HIT_ONLY`,
+`HIT_TRACE=1`; `HIT_TORSO`, `HIT_NECK`, `HIT_ARMS`, `HIT_STRENGTH`, `HIT_LOOSE`, `HIT_LEGS=1` with "as set"). A blade's
+blow gave the 20 kg ball of step 2 about 18 N s, so 3 kg at 8 m/s (24 N s) stands for a sword's blow, 6 kg at 10 m/s
+for a heavy one and 20 kg at 8 m/s (150 N s) for a Large's club. `HIT_FILM=<folder>` writes where every part is each
+step, and `python3 Tools/Playtest/hitfilm.py <folder> out.mp4 <blow> [setup ...]` draws it as a film, a quarter speed.
+
+What it found:
+
+- The engine's own "acceleration" motors size themselves for the one part below a joint, not for all that hangs from
+  it: a spine asked for 6 Hz let the body sag 63 degrees under its own weight. `ArticulatedBody` sizes each motor by
+  the inertia of everything that hangs from its joint (the spine's 5 kg m2, a hundred times the spine's own): the
+  body then stands within half a degree and 1 cm of its pose at 6 Hz. (So the sword arm's "80 Hz" in step 2 was a
+  name, not what it swung at: its motors were softer than their numbers. Its measures stand as measured.)
+- Today's body swallows the blow. A sword's blow moves the chest 1.5 cm for four frames; the club's 150 N s moves it
+  9 cm and it is back in a quarter of a second, its feet where they were. The pins write the parts back onto the pose
+  and the blow's momentum is gone.
+- The upper body on muscles is steady: no blow-up up to 150 N s, no swinging back and forth (the motors are damped
+  just enough not to), back on its pose within 0.1 to 0.2 s. And it is stiff, as a braced body is: a sword's blow
+  moves the struck part about 1 cm, and 16 of its 18 N s arrive at the pelvis. A torso soft enough to fold for that
+  blow (under half a hertz) could not follow its own animation.
+- So what a blow does to a body is mostly what it does to its feet. Given to the walk as a change of speed (the
+  blow's weight over the body's mass: `Locomotor.Push`, which the walk already answers with steps), a sword's blow
+  takes the body 11 cm back at 0.22 m/s, a heavy one 29 cm at 0.57 m/s, the club 90 cm at 1.5 m/s (in the fight:
+  off its feet).
+- Muscles let go to a quarter of their quickness for 0.12 s when struck: the arms and the head are thrown two to
+  three times as far (a blow to the head: the head 2.5 cm, the hands 10 cm), still without swinging back.
+- The struck part goes the blow's way (73 to 99% of its move in eight blows of nine), but it is not the part that
+  moves most: the free ends are, the hands.
+
+| 3 kg at 8 m/s at the chest | head moved | hands moved | back on its pose | its feet took it |
+|---|---|---|---|---|
+| today's body | 2.3 cm | 1.5 cm | 0.07 s | 0 |
+| muscles, torso 6 Hz | 0.5 cm | 1.5 cm | at once | 0 |
+| the same, and the legs take the blow | 1.1 cm | 4.1 cm | 1.4 s (walking) | 11 cm |
+| the same, muscles let go when struck | 1.7 cm | 5.2 cm | 1.4 s (walking) | 11 cm |
+
+The verdict: the physical upper body is sound, and it shows that a real-sized reaction to a sword's blow is small.
+What makes a hit read is the legs taking it (step 4), the muscles letting go for a moment, and what is layered on
+top as today (hit stop, the hit clips), with one honest dial if more is wanted: a blow's weight scaled up. Not in
+this yet: the blow from the physical sword itself (the ball stands in), the shield, the body's own parts stopping
+each other, a blow to the legs, and anything in Unity.
+
 **The old pose pipeline goes (branch `physical-body`, begun 11 November 2026).** Every unit is now a clip fighter:
 `UnitController` always builds one, and the `ClipMotion` switch, the sandbox's "Clip motion" toggle and `CLIP_FIGHT`
 are gone. What went with them so far:
