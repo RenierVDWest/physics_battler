@@ -36,6 +36,8 @@ namespace PhysicsBattler.Authority
             }
 
             AfterStep?.Invoke();
+            // (What was moved by its transform after the step, the shadows, is where queries find it before the next.)
+            Physics.SyncTransforms();
         }
     }
 

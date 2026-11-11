@@ -28,11 +28,18 @@ namespace PhysicsBattler.Authority
             PartId.UpperArmL, PartId.ForearmL, PartId.HandL, PartId.UpperArmR, PartId.ForearmR, PartId.HandR,
         };
 
+        /// <summary>The furthest the pose's pelvis is followed in one game step (metres; 15 m/s) and the most it is turned after (degrees; 1200 a second): past either the body is put where the pose is.</summary>
+        public const float MostCarry = 0.25f, MostCarryTurn = 20f;
+
+        /// <summary>Times the pose jumped and the body was put on it (for the reports).</summary>
+        public int Jumps;
+
         /// <summary>No axis of a part, or of what hangs from a joint, turns with less than this share of the most (a thin blade about its own length rings on a stiff motor).</summary>
         public const float InertiaFloor = 0.2f;
 
         private readonly UnitRig rig;
         private readonly AnimRig anim;
+        private readonly PartId[] parts;
         private readonly int[] parent;
         private readonly ArticulationBody[] links;
         private readonly Vector3[] was, now, hangs;
@@ -59,7 +66,18 @@ namespace PhysicsBattler.Authority
         {
             this.rig = rig;
             this.anim = anim;
-            int n = Parts.Length;
+            // (What is left of it: a part cut off, and what hung from it, is not its own.)
+            var own = new List<PartId>();
+            foreach (var id in Parts)
+            {
+                if (!rig.IsSevered(id) && (id == PartId.Pelvis || own.Contains(PartInfo.Parent(id))))
+                {
+                    own.Add(id);
+                }
+            }
+
+            parts = own.ToArray();
+            int n = parts.Length;
             parent = new int[n];
             links = new ArticulationBody[n];
             was = new Vector3[n];
@@ -76,9 +94,9 @@ namespace PhysicsBattler.Authority
             Root.transform.SetParent(under, false);
             for (int i = 0; i < n; i++)
             {
-                var part = rig.Part(Parts[i]);
-                parent[i] = i == 0 ? -1 : Array.IndexOf(Parts, PartInfo.Parent(Parts[i]));
-                var go = new GameObject(Parts[i] + " (link)") { layer = part.gameObject.layer };
+                var part = rig.Part(parts[i]);
+                parent[i] = i == 0 ? -1 : Array.IndexOf(parts, PartInfo.Parent(parts[i]));
+                var go = new GameObject(parts[i] + " (link)") { layer = part.gameObject.layer };
                 if (i == 0)
                 {
                     go.transform.SetParent(Root.transform, false);
@@ -130,7 +148,7 @@ namespace PhysicsBattler.Authority
                     pieces[i].Add(new Piece { Mass = part.body.mass, At = Vector3.zero, Turns = Vector3.one * (0.4f * part.body.mass * 0.05f * 0.05f) });
                 }
 
-                (hz[i], most[i]) = i > 0 ? muscle(Parts[i]) : (0f, 0f);
+                (hz[i], most[i]) = i > 0 ? muscle(parts[i]) : (0f, 0f);
             }
 
             // (Its own parts don't stop each other, as the pose's don't; nor do the rig's parts they stand in for.)
@@ -173,9 +191,9 @@ namespace PhysicsBattler.Authority
         private void SnapJoints()
         {
             Vector3 sign = ArticulationConventions.TargetSign;
-            for (int i = 1; i < Parts.Length; i++)
+            for (int i = 1; i < parts.Length; i++)
             {
-                var local = Quaternion.Inverse(anim.Part(Parts[parent[i]]).rotation) * anim.Part(Parts[i]).rotation;
+                var local = Quaternion.Inverse(anim.Part(parts[parent[i]]).rotation) * anim.Part(parts[i]).rotation;
                 now[i] = was[i] = JointMath.TurnVector(local);
                 Vector3 at = Vector3.Scale(now[i], sign);
                 links[i].jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
@@ -186,25 +204,37 @@ namespace PhysicsBattler.Authority
                 }
             }
 
+            foreach (var g in grips)
+            {
+                SnapGrip(g);
+            }
+
             known = true;
         }
 
         /// <summary>A part's link.</summary>
-        public ArticulationBody Link(PartId id) => links[Array.IndexOf(Parts, id)];
+        public ArticulationBody Link(PartId id)
+        {
+            int i = Array.IndexOf(parts, id);
+            return i >= 0 ? links[i] : null;
+        }
 
-        /// <summary>Whether a part is one of its own.</summary>
-        public static bool Has(PartId id) => Array.IndexOf(Parts, id) >= 0;
+        /// <summary>Whether a part is one of its own (not cut off when it was built).</summary>
+        public bool Holds(PartId id) => Array.IndexOf(parts, id) >= 0;
+
+        /// <summary>Its own parts, each after the one it hangs from.</summary>
+        public IReadOnlyList<PartId> Own => parts;
 
         /// <summary>Every collider on it (its parts', and what its hands hold).</summary>
         public IReadOnlyList<Collider> Colliders => colliders;
 
         /// <summary>What hangs from a part's joint, as an inertia about it on the part's three axes (kg m2).</summary>
-        public Vector3 Hangs(PartId id) => hangs[Array.IndexOf(Parts, id)];
+        public Vector3 Hangs(PartId id) => hangs[Array.IndexOf(parts, id)];
 
         /// <summary>A part's motor: how quick, and the most it turns with (N m; 0: no limit).</summary>
         public void SetMuscle(PartId id, float quick, float mostTorque)
         {
-            int i = Array.IndexOf(Parts, id);
+            int i = Array.IndexOf(parts, id);
             if (i <= 0)
             {
                 return;
@@ -225,6 +255,24 @@ namespace PhysicsBattler.Authority
                 links[i].SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale);
                 links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, most[i] > 0f ? most[i] : float.MaxValue);
             }
+
+            // (What the hand grips is turned as quick as the hand, and held with all the grip has: a shield is
+            // strapped to its arm, and pressed on it is the arm that gives, not the board that turns in the fist.)
+            foreach (var g in grips)
+            {
+                if (g.Hand != i)
+                {
+                    continue;
+                }
+
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    float turns = g.Hangs[axis];
+                    g.Link.SetDriveStiffness((ArticulationDriveAxis)axis, w * w * turns * scale);
+                    g.Link.SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale);
+                    g.Link.SetDriveForceLimit((ArticulationDriveAxis)axis, GripStrength > 0f ? GripStrength : float.MaxValue);
+                }
+            }
         }
 
         /// <summary>
@@ -235,7 +283,12 @@ namespace PhysicsBattler.Authority
         /// <param name="gyration">Its radius of gyration about that point across its length (metres; 0: as a solid of its collider's shape).</param>
         public Collider Hold(PartId hand, Collider solid, float mass, Vector3? balance = null, float gyration = 0f)
         {
-            int i = Array.IndexOf(Parts, hand);
+            int i = Array.IndexOf(parts, hand);
+            if (i < 0)
+            {
+                return null;
+            }
+
             var part = rig.Part(hand);
             var copy = CopyCollider(solid, part.transform, links[i].transform);
             if (copy == null)
@@ -279,11 +332,135 @@ namespace PhysicsBattler.Authority
             return copy;
         }
 
+        /// <summary>
+        /// What a hand holds that is turned in it (a shield, turned to face a blow): a part of its own on a joint at
+        /// the grip, driven to where the pose turns it. Turned by being put there it would pass through whatever
+        /// stood in its way (a board turned 47° in a step went through the arm that struck at it).
+        /// </summary>
+        private sealed class Grip
+        {
+            public int Hand;
+            public ArticulationBody Link;
+            public Transform Posed, Shown;      // the pose's slot (where it is turned to), the rig's (what is seen)
+            public Quaternion Rest;             // the slot's turn in the hand where the grip's joint is at zero
+            public Vector3 Was, Now, Hangs, Centre;
+            public readonly List<Piece> Pieces = new List<Piece>();
+        }
+
+        private readonly List<Grip> grips = new List<Grip>();
+
+        /// <summary>The most a grip turns what it holds with (N m; 0: no limit).</summary>
+        public float GripStrength;
+
+        /// <summary>Whether what a hand holds is a part of its own, turned by its grip's motor (not by the rig's slot).</summary>
+        public bool Turns(PartId hand)
+        {
+            int i = Array.IndexOf(parts, hand);
+            return i >= 0 && grips.Exists(g => g.Hand == i);
+        }
+
+        /// <summary>
+        /// Something solid a hand holds and turns in its grip (a shield's board): a part of its own under the hand's
+        /// link, on a ball joint where the slot is. To be held as the body is built, before the engine first steps:
+        /// a part added to a body that has stepped would have the engine build the whole body anew.
+        /// </summary>
+        /// <param name="posed">The pose's slot: its turn against the pose's hand is where the grip's motor is driven.</param>
+        /// <param name="shown">The rig's slot: what is seen, and what the solid is copied from; turned with the part after each step.</param>
+        /// <param name="rest">The slot's turn in the hand as it is gripped, unturned: the grip's joint is at zero there, so that no turn the pose asks for comes near half a turn about (where a ball joint's turn has two names and the part flips between them).</param>
+        public Collider HoldTurned(PartId hand, Collider solid, float mass, Transform posed, Transform shown, Quaternion rest)
+        {
+            int i = Array.IndexOf(parts, hand);
+            if (i < 0 || posed == null || shown == null)
+            {
+                return null;
+            }
+
+            var grip = grips.Find(g => g.Hand == i);
+            if (grip == null)
+            {
+                var part = rig.Part(hand);
+                var go = new GameObject(hand + " grip (link)") { layer = part.gameObject.layer };
+                go.transform.SetParent(links[i].transform, false);
+                go.transform.localPosition = part.transform.InverseTransformPoint(shown.position);
+                go.transform.localRotation = rest;
+                var link = go.AddComponent<ArticulationBody>();
+                link.useGravity = true;
+                link.linearDamping = 0f;
+                link.angularDamping = 0.05f;
+                link.jointFriction = 0f;
+                link.maxAngularVelocity = 100f;
+                link.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+                link.maxJointVelocity = 200f;
+                link.jointType = ArticulationJointType.SphericalJoint;
+                link.anchorPosition = Vector3.zero;
+                link.anchorRotation = Quaternion.identity;
+                link.twistLock = ArticulationDofLock.FreeMotion;
+                link.swingYLock = ArticulationDofLock.FreeMotion;
+                link.swingZLock = ArticulationDofLock.FreeMotion;
+                grip = new Grip { Hand = i, Link = link, Posed = posed, Shown = shown, Rest = rest };
+                grips.Add(grip);
+            }
+
+            // (Where it sits against the slot it is held by: the link is the slot, turned as the hand at its joint's zero.)
+            var copy = CopyCollider(solid, shown, grip.Link.transform);
+            if (copy == null)
+            {
+                return null;
+            }
+
+            copy.isTrigger = false;
+            foreach (var other in colliders)
+            {
+                Physics.IgnoreCollision(copy, other, true);
+            }
+
+            foreach (var p in rig.Parts)
+            {
+                if (p.partCollider != null)
+                {
+                    Physics.IgnoreCollision(copy, p.partCollider, true);
+                }
+            }
+
+            colliders.Add(copy);
+            // (Its weight on the link's axes: the slot's.)
+            var piece = PieceOf(copy, grip.Link.transform, mass);
+            grip.Pieces.Add(piece);
+            RefreshMass();
+            SnapGrip(grip);
+            return copy;
+        }
+
+        /// <summary>A grip's turn as the pose has it: its slot in its hand, from where it is gripped unturned (a turn vector on the slot's own axes, radians).</summary>
+        private Vector3 GripTurn(Grip g)
+        {
+            var inHand = Quaternion.Inverse(anim.Part(parts[g.Hand]).rotation) * g.Posed.rotation;
+            // (As this engine takes the turn of a part built turned: after how it was built, or before; measured.)
+            return JointMath.TurnVector(ArticulationConventions.TurnOnOwnAxes ? Quaternion.Inverse(g.Rest) * inHand : inHand * Quaternion.Inverse(g.Rest));
+        }
+
+        private void SnapGrip(Grip g)
+        {
+            Vector3 sign = ArticulationConventions.TargetSign;
+            g.Now = g.Was = GripTurn(g);
+            Vector3 at = Vector3.Scale(g.Now, sign);
+            g.Link.jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
+            for (int axis = 0; axis < 3; axis++)
+            {
+                g.Link.SetDriveTarget((ArticulationDriveAxis)axis, at[axis] * Mathf.Rad2Deg);
+                g.Link.SetDriveTargetVelocity((ArticulationDriveAxis)axis, 0f);
+            }
+        }
+
+        /// <summary>The most anything held was turned in its hand this step (degrees; for the reports).</summary>
+        public float HeldTurn;
+
         private readonly List<(int link, Collider collider, int piece, Collider source)> held = new List<(int, Collider, int, Collider)>();
 
         /// <summary>What the hands hold kept where the rig's hands have it (a shield is turned in its hand as it is raised).</summary>
         private void FollowHeld()
         {
+            HeldTurn = 0f;
             foreach (var h in held)
             {
                 if (h.source == null || h.collider == null)
@@ -291,17 +468,24 @@ namespace PhysicsBattler.Authority
                     continue;
                 }
 
-                var hand = rig.Part(Parts[h.link]).transform;
+                var hand = rig.Part(parts[h.link]).transform;
                 var t = h.collider.transform;
+                var turn = Quaternion.Inverse(hand.rotation) * h.source.transform.rotation;
+                HeldTurn = Mathf.Max(HeldTurn, Quaternion.Angle(t.localRotation, turn));
                 t.localPosition = hand.InverseTransformPoint(h.source.transform.position);
-                t.localRotation = Quaternion.Inverse(hand.rotation) * h.source.transform.rotation;
+                t.localRotation = turn;
             }
         }
 
         /// <summary>What a hand held is let go: its collider and its weight taken off the hand's link.</summary>
         public void LetGo(PartId hand)
         {
-            int i = Array.IndexOf(Parts, hand);
+            int i = Array.IndexOf(parts, hand);
+            if (i < 0)
+            {
+                return;
+            }
+
             for (int k = held.Count - 1; k >= 0; k--)
             {
                 if (held[k].link != i)
@@ -310,6 +494,7 @@ namespace PhysicsBattler.Authority
                 }
 
                 colliders.Remove(held[k].collider);
+                held[k].collider.enabled = false;
                 UnityEngine.Object.Destroy(held[k].collider.gameObject);
                 held.RemoveAt(k);
             }
@@ -324,7 +509,7 @@ namespace PhysicsBattler.Authority
         /// <summary>Each link's mass, centre and inertia from what is on it, then what hangs from each joint, and the motors sized by it.</summary>
         private void RefreshMass()
         {
-            int n = Parts.Length;
+            int n = parts.Length;
             var centre = new Vector3[n];
             for (int i = 0; i < n; i++)
             {
@@ -354,11 +539,39 @@ namespace PhysicsBattler.Authority
                 link.inertiaTensorRotation = Quaternion.identity;
             }
 
+            foreach (var g in grips)
+            {
+                float mass = 0f;
+                Vector3 at = Vector3.zero;
+                foreach (var p in g.Pieces)
+                {
+                    mass += p.Mass;
+                    at += p.Mass * p.At;
+                }
+
+                at /= Mathf.Max(1e-5f, mass);
+                Vector3 turns = Vector3.zero;
+                foreach (var p in g.Pieces)
+                {
+                    turns += p.Turns + Spread(p.Mass, p.At - at);
+                }
+
+                g.Centre = at;
+                g.Link.automaticCenterOfMass = false;
+                g.Link.automaticInertiaTensor = false;
+                g.Link.mass = mass;
+                g.Link.centerOfMass = at;
+                g.Link.inertiaTensor = Floored(turns);
+                g.Link.inertiaTensorRotation = Quaternion.identity;
+                // (What its own joint turns: itself about its grip.)
+                g.Hangs = Floored(g.Link.inertiaTensor + Spread(mass, at));
+            }
+
             // (At rest every link is turned as the pelvis is: a link's place against another is their rest places'.)
             var rest = new Vector3[n];
             for (int i = 1; i < n; i++)
             {
-                rest[i] = rest[parent[i]] + rig.Part(Parts[i]).restLocalPosition;
+                rest[i] = rest[parent[i]] + rig.Part(parts[i]).restLocalPosition;
             }
 
             for (int j = 1; j < n; j++)
@@ -378,6 +591,13 @@ namespace PhysicsBattler.Authority
                     }
 
                     sum += links[k].inertiaTensor + Spread(links[k].mass, rest[k] - rest[j] + centre[k]);
+                    foreach (var g in grips)
+                    {
+                        if (g.Hand == k)
+                        {
+                            sum += OnAxes(g.Link.inertiaTensor, g.Rest) + Spread(g.Link.mass, rest[k] - rest[j] + g.Link.transform.localPosition + g.Rest * g.Centre);
+                        }
+                    }
                 }
 
                 hangs[j] = Floored(sum);
@@ -474,29 +694,53 @@ namespace PhysicsBattler.Authority
             }
 
             // (Onto the link's axes: the diagonal of the turned tensor.)
-            var q = Quaternion.Inverse(link.rotation) * t.rotation;
+            var turns = OnAxes(own, Quaternion.Inverse(link.rotation) * t.rotation);
+            return new Piece { Mass = mass, At = link.InverseTransformPoint(t.TransformPoint(centre)), Turns = turns };
+        }
+
+        /// <summary>An inertia on its own axes, turned by <paramref name="q"/>, as it is about the axes it is turned against (the diagonal of the turned tensor).</summary>
+        private static Vector3 OnAxes(Vector3 own, Quaternion q)
+        {
             Vector3 ax = q * Vector3.right, ay = q * Vector3.up, az = q * Vector3.forward;
-            var turns = new Vector3(
+            return new Vector3(
                 ax.x * ax.x * own.x + ay.x * ay.x * own.y + az.x * az.x * own.z,
                 ax.y * ax.y * own.x + ay.y * ay.y * own.y + az.y * az.y * own.z,
                 ax.z * ax.z * own.x + ay.z * ay.z * own.y + az.z * az.z * own.z);
-            return new Piece { Mass = mass, At = link.InverseTransformPoint(t.TransformPoint(centre)), Turns = turns };
         }
 
         /// <summary>The pose's joint turns now: what the motors are driven to over the coming physics steps. Once a game step, after the pose.</summary>
         public void BeginStep()
         {
-            FollowHeld();
-            for (int i = 1; i < Parts.Length; i++)
+            // (A pose that jumps: a body turned at once onto another enemy, moved at once. Carried there in one game
+            // step the whole upper body would be swung through whatever stands about it; it is put there instead.)
+            var pelvis = anim.Part(PartId.Pelvis);
+            if (known && ((pelvis.position - rootWas).sqrMagnitude > MostCarry * MostCarry || Quaternion.Angle(rootTurnWas, pelvis.rotation) > MostCarryTurn))
             {
-                var local = Quaternion.Inverse(anim.Part(Parts[parent[i]]).rotation) * anim.Part(Parts[i]).rotation;
+                Jumps++;
+                Teleport();
+            }
+
+            FollowHeld();
+            for (int i = 1; i < parts.Length; i++)
+            {
+                var local = Quaternion.Inverse(anim.Part(parts[parent[i]]).rotation) * anim.Part(parts[i]).rotation;
                 now[i] = JointMath.TurnVectorNear(JointMath.TurnVector(local), was[i]);
+            }
+
+            foreach (var g in grips)
+            {
+                g.Now = JointMath.TurnVectorNear(GripTurn(g), g.Was);
             }
 
             if (!known)
             {
                 // (Its first step: nothing to come from.)
-                for (int i = 1; i < Parts.Length; i++)
+                foreach (var g in grips)
+                {
+                    g.Was = g.Now;
+                }
+
+                for (int i = 1; i < parts.Length; i++)
                 {
                     was[i] = now[i];
                 }
@@ -517,7 +761,7 @@ namespace PhysicsBattler.Authority
             carrier.MovePosition(Vector3.Lerp(rootWas, pelvis.position, share));
             carrier.MoveRotation(Quaternion.Slerp(rootTurnWas, pelvis.rotation, share));
             Vector3 sign = ArticulationConventions.TargetSign;
-            for (int i = 1; i < Parts.Length; i++)
+            for (int i = 1; i < parts.Length; i++)
             {
                 Vector3 target = Vector3.Scale(Vector3.Lerp(was[i], now[i], share), sign) * Mathf.Rad2Deg;
                 Vector3 speed = step > 1e-6f ? Vector3.Scale(now[i] - was[i], sign) * (Mathf.Rad2Deg / step) : Vector3.zero;
@@ -528,9 +772,25 @@ namespace PhysicsBattler.Authority
                 }
             }
 
+            foreach (var g in grips)
+            {
+                Vector3 target = Vector3.Scale(Vector3.Lerp(g.Was, g.Now, share), sign) * Mathf.Rad2Deg;
+                Vector3 speed = step > 1e-6f ? Vector3.Scale(g.Now - g.Was, sign) * (Mathf.Rad2Deg / step) : Vector3.zero;
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    g.Link.SetDriveTarget((ArticulationDriveAxis)axis, target[axis]);
+                    g.Link.SetDriveTargetVelocity((ArticulationDriveAxis)axis, speed[axis]);
+                }
+
+                if (k == n)
+                {
+                    g.Was = g.Now;
+                }
+            }
+
             if (k == n)
             {
-                for (int i = 1; i < Parts.Length; i++)
+                for (int i = 1; i < parts.Length; i++)
                 {
                     was[i] = now[i];
                 }
@@ -555,12 +815,28 @@ namespace PhysicsBattler.Authority
         /// <summary>The rig's own upper parts moved onto its links (its shadows): what reads a part's place, and what is drawn, follows the physical body.</summary>
         public void MoveShadows()
         {
-            for (int i = 0; i < Parts.Length; i++)
+            for (int i = 0; i < parts.Length; i++)
             {
-                var part = rig.Part(Parts[i]);
+                var part = rig.Part(parts[i]);
                 var t = links[i].transform;
                 part.transform.SetPositionAndRotation(t.position, t.rotation);
             }
+
+            // (What a hand turns in its grip is seen turned as its part is.)
+            foreach (var g in grips)
+            {
+                g.Shown.rotation = g.Link.transform.rotation;
+            }
+        }
+
+        /// <summary>How far what a hand grips is turned from where the pose turns it in the hand (degrees; 0: it grips nothing that turns).</summary>
+        public float GripOff(PartId hand)
+        {
+            int i = Array.IndexOf(parts, hand);
+            var g = i >= 0 ? grips.Find(x => x.Hand == i) : null;
+            return g == null ? 0f : Quaternion.Angle(
+                Quaternion.Inverse(links[i].transform.rotation) * g.Link.transform.rotation,
+                Quaternion.Inverse(anim.Part(parts[i]).rotation) * g.Posed.rotation);
         }
 
         /// <summary>How far a part is from where the pose has it (metres).</summary>
@@ -570,6 +846,15 @@ namespace PhysicsBattler.Authority
         {
             if (Root != null)
             {
+                // (Gone from the engine at once: destroyed only at the frame's end, it would stand a step in the way of the body built in its place.)
+                foreach (var c in colliders)
+                {
+                    if (c != null)
+                    {
+                        c.enabled = false;
+                    }
+                }
+
                 UnityEngine.Object.Destroy(Root);
             }
         }

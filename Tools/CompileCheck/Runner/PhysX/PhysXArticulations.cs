@@ -41,10 +41,43 @@ namespace PhysicsBattler.Engine
                 var a = arts[i];
                 if (a.Root == null || a.Root.gameObject == null || !Physics.Articulations.Contains(a.Root))
                 {
+                    // (Its colliders' shapes and the joints that held it go with it: nothing is asked of them after.)
+                    var mine = new HashSet<IntPtr>();
                     foreach (var l in a.Links)
                     {
+                        mine.Add((IntPtr)l.Link);
                         links.Remove(l.Body);
                         l.Body.Engine = null;
+                    }
+
+                    var lost = new List<ShapeState>();
+                    foreach (var sh in shapes.Values)
+                    {
+                        if (mine.Contains((IntPtr)sh.Actor))
+                        {
+                            lost.Add(sh);
+                        }
+                    }
+
+                    foreach (var sh in lost)
+                    {
+                        byShape.Remove((IntPtr)sh.Shape);
+                        shapes.Remove(sh.Collider);
+                    }
+
+                    var held = new List<Joint>();
+                    foreach (var pair in joints)
+                    {
+                        if (pair.Value.Px != null && pair.Value.Link != IntPtr.Zero && mine.Contains(pair.Value.Link))
+                        {
+                            held.Add(pair.Key);
+                        }
+                    }
+
+                    foreach (var key in held)
+                    {
+                        Release(joints[key]);
+                        joints.Remove(key);
                     }
 
                     if (a.InScene)

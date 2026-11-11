@@ -72,6 +72,8 @@ namespace PhysicsBattler.Engine
 
         private sealed class JointState
         {
+            /// <summary>The articulation's link it is joined to (none: zero).</summary>
+            public IntPtr Link;
             public ConfigurableJoint Joint;
             public PxD6Joint* Px;
             public Rigidbody Connected;
@@ -141,7 +143,7 @@ namespace PhysicsBattler.Engine
             desc.solverType = PxSolverType.Tgs;                       // the project's Physics settings: Temporal Gauss Seidel
             desc.bounceThresholdVelocity = Physics.bounceThreshold;
             desc.flags |= PxSceneFlags.EnableEnhancedDeterminism | PxSceneFlags.EnablePcm | PxSceneFlags.EnableCcd;
-            enable_custom_filter_shader(&desc, &Filter, 1);
+            enable_custom_filter_shader(&desc, &Filter, 0);
             var events = new SimulationEventCallbackInfo { collision_callback = &OnContact };
             desc.simulationEventCallback = create_simulation_event_callbacks(&events);
             scene = PxPhysics_createScene_mut(physics, &desc);
@@ -295,6 +297,29 @@ namespace PhysicsBattler.Engine
         /// <summary>How deep two colliders overlap where they are now (metres; 0: not at all).</summary>
         public float Overlap(Collider a, Collider b) =>
             ComputePenetration(a, a.transform.position, a.transform.rotation, b, b.transform.position, b.transform.rotation, out _, out float d) ? d : 0f;
+
+        /// <summary>
+        /// A collider's shape as the engine itself has it, for finding where the two disagree: how far from where the
+        /// collider's own transform puts it (metres), and its flags. Null: the engine has no shape for it.
+        /// </summary>
+        public string EngineShape(Collider a)
+        {
+            if (a == null || !shapes.TryGetValue(a, out var sh) || sh.Shape == null || sh.Actor == null)
+            {
+                return null;
+            }
+
+            Geo geo;
+            if (!MakeGeo(a, &geo, out var off, out var turn))
+            {
+                return "no shape";
+            }
+
+            var pose = PxShapeExt_getGlobalPose(sh.Shape, sh.Actor);
+            float away = Vector3.Distance(U(pose.p), a.transform.position + a.transform.rotation * off);
+            float turned = Quaternion.Angle(U(pose.q), a.transform.rotation * turn);
+            return $"{away * 100f:0.0} cm {turned:0}° off, {PxShape_getFlags(sh.Shape)}, id {sh.Id}";
+        }
 
         // ---- A game step -----------------------------------------------------------------------------------------
 
@@ -987,6 +1012,7 @@ namespace PhysicsBattler.Engine
                 var inv = Quaternion.Inverse(c.rotation);
                 local1 = T(inv * (worldAt - c.position), inv * worldTurn);
                 other = (PxRigidActor*)links[cj.connectedArticulationBody].Link;
+                j.Link = (IntPtr)other;
             }
             else if (cj.connectedBody != null)
             {
@@ -1103,7 +1129,18 @@ namespace PhysicsBattler.Engine
                 return PxFilterFlags.Suppress;
             }
 
-            *info->pairFlags |= PxPairFlags.NotifyTouchFound | PxPairFlags.NotifyTouchPersists | PxPairFlags.NotifyContactPoints | PxPairFlags.DetectCcdContact;
+            // (The engine's default filter, called first, takes a shape's first filter word for a collision group of
+            // 32 and looks it up in its table: with a shape's id there, past 31 it reads whatever lies beyond the
+            // table and where that is zero leaves the pair found but never solved, two solids passing through each
+            // other. So what a pair of solids does is said here in full.)
+            const uint IsTrigger = 1u << 5;
+            if (((info->attributes0 | info->attributes1) & IsTrigger) != 0)
+            {
+                *info->pairFlags = PxPairFlags.TriggerDefault;
+                return 0;
+            }
+
+            *info->pairFlags = PxPairFlags.ContactDefault | PxPairFlags.NotifyTouchFound | PxPairFlags.NotifyTouchPersists | PxPairFlags.NotifyContactPoints | PxPairFlags.DetectCcdContact;
             return 0;
         }
 

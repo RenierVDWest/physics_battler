@@ -76,6 +76,38 @@ internal static class FightReport
             PhysicsBattler.Locomotion.CombatFeel.MovingFootLift = footLift;
         }
 
+        // (How much of its strength a blocked arm presses on with: FIGHT_GIVE=1 for all of it.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GIVE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float giveShare))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.BlockedStrength = giveShare;
+        }
+
+        // (From how far off its pose an arm starts to give, and by where it has given all it will, metres: FIGHT_GIVE_FROM=0.1,0.22. A body falls with its chest FIGHT_BORNE metres off.)
+        var giveFrom = (Environment.GetEnvironmentVariable("FIGHT_GIVE_FROM") ?? "").Split(',');
+        if (giveFrom.Length == 2 && float.TryParse(giveFrom[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float gf)
+            && float.TryParse(giveFrom[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float gt))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.BlockedFrom = gf;
+            PhysicsBattler.Locomotion.ClipFighter.BlockedTo = gt;
+        }
+
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_BORNE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float borne))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.BorneDownFrom = borne;
+        }
+
+        // (How much of their quickness a struck body's muscles keep at the least: FIGHT_EASE=1 for all of it.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_EASE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float leastQuick))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.LeastQuick = leastQuick;
+        }
+
+        // (How fast a pressed body's feet give way, m/s for each metre its chest is held off: FIGHT_PRESSED=0 for not at all.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_PRESSED"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pressedGain))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.PressedGain = pressedGain;
+        }
+
         // (The Combat Feel's limit on a blade's speed, for a fight played with it: FIGHT_BLADE=30.)
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_BLADE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float blade))
         {
@@ -186,7 +218,9 @@ internal static class FightReport
         var lastRoot = new Dictionary<UnitController, Vector3>();
         // (Feet sliding on the ground: each foot's ankle, while it is down at its standing height, and how far it moves there.)
         var slide = new Dictionary<UnitController, GroundSlide>();
-        Array.Clear(PhysicsBattler.Locomotion.ClipFighter.RootShoves, 0, 3);
+        var upperSteps = new Dictionary<UnitController, (int on, int all)>();
+        var upperOffs = new[] { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
+        Array.Clear(PhysicsBattler.Locomotion.ClipFighter.RootShoves, 0, 4);
         var rootJump = new Dictionary<UnitController, (float most, float at)>();
         var reachedAt = new Dictionary<UnitController, float>();
         var overlapPairs = new Dictionary<string, (int steps, float nearest)>();
@@ -444,6 +478,53 @@ internal static class FightReport
 
                     if (!slide.TryGetValue(u, out var gs)) slide[u] = gs = new GroundSlide(u.Clip.Anim, u.Clip.Loco) { Poser = u.Clip.Poser, Name = u.name };
                     gs.Sample(u.IsAlive && !u.IsDown, dt, t);
+                    if (u.IsAlive && !u.IsDown)
+                    {
+                        upperSteps.TryGetValue(u, out var us);
+                        upperSteps[u] = (us.on + (u.Clip.Upper != null ? 1 : 0), us.all + 1);
+                        if (u.Clip.Upper != null)
+                        {
+                            var up = u.Clip.Upper;
+                            bool striking = u.Clip.Striking;
+                            if (up.Holds(PhysicsBattler.Rig.PartId.HandR)) (striking ? upperOffs[0] : upperOffs[1]).Add(up.Off(PhysicsBattler.Rig.PartId.HandR) * 100f);
+                            if (up.Holds(PhysicsBattler.Rig.PartId.HandL)) upperOffs[2].Add(up.Off(PhysicsBattler.Rig.PartId.HandL) * 100f);
+                            if (up.Holds(PhysicsBattler.Rig.PartId.Head)) upperOffs[3].Add(up.Off(PhysicsBattler.Rig.PartId.Head) * 100f);
+                            if (up.Turns(PhysicsBattler.Rig.PartId.HandL)) upperOffs[4].Add(up.GripOff(PhysicsBattler.Rig.PartId.HandL));
+                            if (Environment.GetEnvironmentVariable("FIGHT_STRAY") == "1" && up.Holds(PhysicsBattler.Rig.PartId.Head)
+                                && (up.Off(PhysicsBattler.Rig.PartId.Head) > 0.25f || up.GripOff(PhysicsBattler.Rig.PartId.HandL) > 60f || (up.Holds(PhysicsBattler.Rig.PartId.HandR) && up.Off(PhysicsBattler.Rig.PartId.HandR) > 0.8f)))
+                            {
+                                UnitController near = null;
+                                foreach (var o in units)
+                                {
+                                    if (o != u && o.IsAlive && (near == null || (o.Root.position - u.Root.position).sqrMagnitude < (near.Root.position - u.Root.position).sqrMagnitude)) near = o;
+                                }
+
+                                string touching = "";
+#if PHYSX
+                                if (Physics.Backend is PhysicsBattler.Engine.PhysXWorld pw)
+                                {
+                                    var mine = new HashSet<Collider>(up.Colliders);
+                                    var seen = new HashSet<string>();
+                                    foreach (var c in pw.Contacts)
+                                    {
+                                        if (c.A == null || c.B == null || mine.Contains(c.A) == mine.Contains(c.B)) continue;
+                                        var own = mine.Contains(c.A) ? c.A : c.B;
+                                        var other = mine.Contains(c.A) ? c.B : c.A;
+                                        var top = other.transform;
+                                        while (top.parent != null && top.parent.parent != null) top = top.parent;
+                                        seen.Add($"{own.transform.parent.name}/{own.name} on {top.name}/{other.name}{(other.attachedRigidbody != null ? (other.attachedRigidbody.isKinematic ? " (kinematic)" : " (free)") : "")}");
+                                    }
+
+                                    touching = "; touching: " + string.Join(", ", seen);
+                                }
+#endif
+                                Console.WriteLine($"STRAY {t:0.000} {u.name} at {u.Root.position.x:0.0},{u.Root.position.z:0.0}: head {up.Off(PhysicsBattler.Rig.PartId.Head) * 100f:0} cm, chest {up.Off(PhysicsBattler.Rig.PartId.Chest) * 100f:0} cm, "
+                                    + $"hands {(up.Holds(PhysicsBattler.Rig.PartId.HandR) ? up.Off(PhysicsBattler.Rig.PartId.HandR) * 100f : -1f):0} / {(up.Holds(PhysicsBattler.Rig.PartId.HandL) ? up.Off(PhysicsBattler.Rig.PartId.HandL) * 100f : -1f):0} cm, grip {up.GripOff(PhysicsBattler.Rig.PartId.HandL):0}°; jumps {up.Jumps}; "
+                                    + $"{u.Clip.Loco.Current} {(u.Clip.Loco.Shot != null ? u.Clip.Loco.Shot.Name : "")} {u.Clip.LastReaction}; torso ease pin {u.Clip.Authority.Pin(PhysicsBattler.Authority.BodyRegion.Torso):0.00}; "
+                                    + $"nearest {(near != null ? $"{near.name} {Vector3.Distance(near.Root.position, u.Root.position):0.00} m off, {(near.Team == u.Team ? "same side" : "enemy")}, {near.Clip.Loco.Current} {(near.Clip.Loco.Shot != null ? near.Clip.Loco.Shot.Name : "")}" : "none")}{touching}");
+                            }
+                        }
+                    }
                     m.Sample(dt, t, u.Clip.Loco.Current + (u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "") + (u.Clip.Fallen ? " fallen" : "") + (u.Clip.Striking ? " striking" : "") + (u.Clip.Stumbling ? " stumbling" : ""));
                     float jump = Vector3.Distance(u.Root.position, lastRoot[u]);
                     lastRoot[u] = u.Root.position;
@@ -539,9 +620,29 @@ internal static class FightReport
             }
         }
 
+        if (PhysicsBattler.Locomotion.ClipFighter.PhysicalUpper)
+        {
+            string Spread(List<float> l, string unit)
+            {
+                if (l.Count == 0) return "none";
+                l.Sort();
+                return $"half the time under {l[l.Count / 2]:0.0}, 95% under {l[Mathf.Min(l.Count - 1, (int)(l.Count * 0.95f))]:0.0}, 99% under {l[Mathf.Min(l.Count - 1, (int)(l.Count * 0.99f))]:0.0}, at most {l[l.Count - 1]:0.0} {unit}";
+            }
+
+            sb.AppendLine("    borne down (a body pressed so far off its pose that it fell): " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.BorneDown}")));
+            sb.AppendLine("    the physical body against the pose, units on their feet:");
+            sb.AppendLine($"      the weapon hand in a strike: {Spread(upperOffs[0], "cm")}");
+            sb.AppendLine($"      the weapon hand otherwise: {Spread(upperOffs[1], "cm")}");
+            sb.AppendLine($"      the shield hand: {Spread(upperOffs[2], "cm")}");
+            sb.AppendLine($"      the head: {Spread(upperOffs[3], "cm")}");
+            sb.AppendLine($"      the shield in its hand: {Spread(upperOffs[4], "°")}");
+            sb.AppendLine("    physical upper bodies, the share of each unit's time on its feet with one: " + string.Join(", ", upperSteps.Select(p => $"{p.Key.name} {100f * p.Value.on / Mathf.Max(1, p.Value.all):0}%"
+                + (p.Value.on < p.Value.all ? $" (now {p.Key.Clip.Footing}, torso {p.Key.Clip.Authority.Level(PhysicsBattler.Authority.BodyRegion.Torso)}, lost: {string.Join(" ", PhysicsBattler.Rig.PartInfo.All.Where(id => p.Key.Rig.IsSevered(id)))})" : ""))));
+        }
+
         var shoved = PhysicsBattler.Locomotion.ClipFighter.RootShoves;
-        sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    roots moved at once, not walked (all units): kept apart {0:0.00} m, ground given {1:0.00} m, strikes snapped onto targets {2:0.00} m",
-            shoved[0], shoved[1], shoved[2]));
+        sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    roots moved at once, not walked (all units): kept apart {0:0.00} m, ground given {1:0.00} m, strikes snapped onto targets {2:0.00} m, pressed back {3:0.00} m",
+            shoved[0], shoved[1], shoved[2], shoved[3]));
         var slides = slide.Values.Where(g => g.Seconds > 0f).ToList();
         if (slides.Count > 0)
         {

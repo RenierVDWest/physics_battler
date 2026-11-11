@@ -652,6 +652,13 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            // (Its physical upper body is let go as it goes down: the rig's own parts fall from where it was. A fallen
+            // body is not stepped as a standing one is, and left to that its upper body stood on where it died.)
+            if (Upper != null)
+            {
+                ReleaseUpper();
+            }
+
             for (int r = 0; r < 5; r++)
             {
                 Authority.Set((BodyRegion)r, AuthorityLevel.Ragdoll, 0f);
@@ -936,6 +943,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             GiveGround(dt);
+            PressedBack(dt);
 
             // (Too near the other body: it steps back to the fighting distance, as anyone would.)
             Vector3 fromOpponent = Loco.Position - opponent;
@@ -1075,7 +1083,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (The shield as turned in the hand: the shield that is seen, and blocks, is on the physical hand's slot.)
-            if (Rig.SlotWeaponL != null && Anim.SlotWeaponL != null)
+            if (Rig.SlotWeaponL != null && Anim.SlotWeaponL != null && (Upper == null || !Upper.Turns(PartId.HandL)))
             {
                 Rig.SlotWeaponL.localRotation = Anim.SlotWeaponL.localRotation;
             }
@@ -1162,10 +1170,10 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>
         /// How far roots have been moved at once, not walked, since the run began (metres, all fighters): two bodies kept
-        /// apart, ground given to a blow, a combo's strike snapped onto its target. For the reports: what the walk
+        /// apart, ground given to a blow, a combo's strike snapped onto its target, a body pressed back. For the reports: what the walk
         /// doesn't own.
         /// </summary>
-        public static readonly float[] RootShoves = new float[3];
+        public static readonly float[] RootShoves = new float[4];
 
         /// <summary>A strike alone follows its target, as far as the arm's pull goes: where its target is now (null: none to follow).</summary>
         public System.Func<LocoClip, Vector3?> Follow;
@@ -1202,9 +1210,10 @@ namespace PhysicsBattler.Locomotion
         public static float TorsoQuick = 30f, NeckQuick = 30f, WeaponArmQuick = 40f, ShieldArmQuick = 30f, MuscleStrength = 600f;
 
         /// <summary>A region held less firmly (struck: its pin eased) has its muscles this much slower at the least, for as long.</summary>
-        public const float LeastQuick = 0.25f;
+        public static float LeastQuick = 0.25f;
 
         private bool upperOff, solidsChanged;
+        private int upperLost;
         private float upperDt = 1f / 60f;
         private readonly float[] upperEase = { 1f, 1f, 1f, 1f, 1f };
 
@@ -1231,11 +1240,20 @@ namespace PhysicsBattler.Locomotion
         private void StepUpper(float dt)
         {
             upperDt = dt;
-            bool whole = true;
+            // (A part cut off since it was built: built again without it.)
+            int lost = 0;
             foreach (var id in UpperBodyArticulation.Parts)
             {
-                whole &= !Rig.IsSevered(id);
+                lost += Rig.IsSevered(id) ? 1 : 0;
             }
+
+            bool whole = !Rig.IsSevered(PartId.Spine) && !Rig.IsSevered(PartId.Chest);
+            if (Upper != null && lost != upperLost)
+            {
+                ReleaseUpper();
+            }
+
+            upperLost = lost;
 
             // (Only with the game stepping the engine itself: its motors' targets are fed at each physics step.)
             bool want = PhysicalUpper && PhysicsSteps.Manual && !upperOff && whole && !Fallen && Authority.Level(BodyRegion.Torso) != AuthorityLevel.Ragdoll;
@@ -1255,10 +1273,15 @@ namespace PhysicsBattler.Locomotion
 
             if (solidsChanged)
             {
+                // (What its hands hold has changed: built again with it. A part added to or taken from a body the
+                // engine has stepped has the engine build the whole of it anew, where it stood at rest.)
                 solidsChanged = false;
-                Upper.LetGo(PartId.HandR);
-                Upper.LetGo(PartId.HandL);
-                HoldSolids();
+                ReleaseUpper();
+                BuildUpper();
+                if (Upper == null)
+                {
+                    return;
+                }
             }
 
             // (A region held less firmly, struck, lets its muscles go for as long.)
@@ -1271,15 +1294,27 @@ namespace PhysicsBattler.Locomotion
                     ease = 1f;
                 }
 
-                if (Mathf.Abs(ease - upperEase[r]) > 0.02f)
+                // (An arm held off its pose, its blade stopped on a shield or its shield pressed back by a body: it
+                // gives. The strength that swings a sword as the clips do is several times a man's; pressed on
+                // against what stopped it, it would fold whoever stood there in two.)
+                float give = 1f;
+                // (Not the arm a shield is on: to hold against what presses on it is what a shield is for.)
+                if (region == BodyRegion.ArmR || (region == BodyRegion.ArmL && !Upper.Turns(PartId.HandL)))
+                {
+                    float off = region == BodyRegion.ArmR ? strainR : strainL;
+                    give = Mathf.Lerp(1f, BlockedStrength, Mathf.InverseLerp(BlockedFrom * Size, BlockedTo * Size, off));
+                }
+
+                if (Mathf.Abs(ease - upperEase[r]) > 0.02f || Mathf.Abs(give - upperGive[r]) > 0.02f)
                 {
                     upperEase[r] = ease;
-                    foreach (var id in UpperBodyArticulation.Parts)
+                    upperGive[r] = give;
+                    foreach (var id in Upper.Own)
                     {
                         if (id != PartId.Pelvis && AuthorityController.RegionOf(id) == region)
                         {
                             var m = MuscleOf(id, ease);
-                            Upper.SetMuscle(id, m.hz, m.most);
+                            Upper.SetMuscle(id, m.hz, m.most * give);
                         }
                     }
                 }
@@ -1297,7 +1332,8 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            foreach (var id in UpperBodyArticulation.Parts)
+            Upper = new UpperBodyArticulation(Rig, Anim, Rig.Part(PartId.Pelvis).transform.parent, id => MuscleOf(id, 1f)) { GripStrength = MuscleStrength * Size * Size };
+            foreach (var id in Upper.Own)
             {
                 var part = Rig.Part(id);
                 Authority.Skipped[(int)id] = true;
@@ -1309,12 +1345,15 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            Upper = new UpperBodyArticulation(Rig, Anim, Rig.Part(PartId.Pelvis).transform.parent, id => MuscleOf(id, 1f));
             for (int r = 0; r < 5; r++)
             {
                 upperEase[r] = 1f;
+                upperGive[r] = 1f;
             }
 
+            strainR = strainL = 0f;
+            pressed = Vector3.zero;
+            pressedOff = 0f;
             HoldSolids();
             solidsChanged = false;
         }
@@ -1335,6 +1374,14 @@ namespace PhysicsBattler.Locomotion
                     Vector3 balance = Rig.Part(hand).transform.InverseTransformPoint(slot.position + slot.forward * (0.18f * Size));
                     Upper.Hold(hand, solid, mass, balance, 0.26f * Size);
                 }
+                else if (hand == PartId.HandL && Rig.SlotWeaponL != null && Anim.SlotWeaponL != null)
+                {
+                    // (A shield is turned in its hand to face a blow: a part of its own, turned by the grip.)
+                    var posedHand = Anim.Part(PartId.HandL);
+                    Quaternion rest = Quaternion.Inverse(posedHand.rotation) * (Anim.SlotWeaponL.parent != null ? Anim.SlotWeaponL.parent.rotation : posedHand.rotation)
+                        * (Poser.ShieldGripRest ?? Anim.SlotWeaponL.localRotation);
+                    Upper.HoldTurned(hand, solid, mass, Anim.SlotWeaponL, Rig.SlotWeaponL, rest);
+                }
                 else
                 {
                     Upper.Hold(hand, solid, mass);
@@ -1345,7 +1392,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The physical upper body let go (down, dead, a limb off): the rig's own parts take over where it was, at its speeds.</summary>
         private void ReleaseUpper()
         {
-            foreach (var id in UpperBodyArticulation.Parts)
+            foreach (var id in Upper.Own)
             {
                 var part = Rig.Part(id);
                 var link = Upper.Link(id);
@@ -1371,7 +1418,32 @@ namespace PhysicsBattler.Locomotion
             Upper?.Substep(k, n, upperDt);
         }
 
-        private void AfterStep() => Upper?.MoveShadows();
+        private void AfterStep()
+        {
+            if (Upper == null)
+            {
+                return;
+            }
+
+            Upper.MoveShadows();
+            // (How far each hand ended from where the pose had it this step: what its arm gives by in the next.)
+            strainR = Upper.Holds(PartId.HandR) ? Upper.Off(PartId.HandR) : 0f;
+            strainL = Upper.Holds(PartId.HandL) ? Upper.Off(PartId.HandL) : 0f;
+            // (And its chest: what its feet give way to.)
+            pressed = Upper.Link(PartId.Chest).transform.position - Anim.Part(PartId.Chest).position;
+            pressedOff = pressed.magnitude;
+            pressed.y = 0f;
+        }
+
+        /// <summary>
+        /// An arm held off its pose gives: the share of its strength it presses on with (<see cref="BlockedStrength"/>)
+        /// once its hand is <see cref="BlockedTo"/> from where the pose has it, all of it up to <see cref="BlockedFrom"/>
+        /// (metres at a Medium's size; an arm nothing stops follows its pose within 0.10 m).
+        /// </summary>
+        public static float BlockedStrength = 0.2f, BlockedFrom = 0.10f, BlockedTo = 0.22f;
+
+        private float strainR, strainL;
+        private readonly float[] upperGive = { 1f, 1f, 1f, 1f, 1f };
 
         public float StrikeArmStrength = 1f;
 
@@ -1733,6 +1805,68 @@ namespace PhysicsBattler.Locomotion
         private float groundEase;
         private bool retireVoids;
         private readonly System.Random groundLuck = new System.Random(20261106);
+
+        /// <summary>
+        /// A body pressed on gives way with its feet: its chest held off where the pose has it, by another body it
+        /// stands against or a blade pressed on it, its root is carried the way it is pressed, the further off the
+        /// faster. Its pelvis is carried by the pose and gives to nothing: without this all of it is taken up by the
+        /// spine, a body pressed 0.3 m folded back over its own hips. From <see cref="PressedFrom"/> off (metres at
+        /// a Medium's size), <see cref="PressedGain"/> m/s for each metre further, <see cref="PressedSpeed"/> at most.
+        /// </summary>
+        public static float PressedFrom = 0.04f, PressedGain = 6f, PressedSpeed = 2f;
+
+        /// <summary>
+        /// A body borne down falls: its chest held this far from where the pose has it (metres at a Medium's size; 0:
+        /// never) for <see cref="BorneDownAfter"/> seconds, by what no muscle of its own will shift (another landing
+        /// on it from a leap, a body driven through where it stands), it goes down as one knocked off its feet does
+        /// and gets up again. Standing, it would be folded where it stood.
+        /// </summary>
+        public static float BorneDownFrom = 0.28f;
+
+        public const float BorneDownAfter = 0.1f;
+
+        /// <summary>Times it was borne down (for the reports).</summary>
+        public int BorneDown;
+
+        private Vector3 pressed;
+        private float pressedOff, bornDownFor;
+
+        private void PressedBack(float dt)
+        {
+            if (Upper == null)
+            {
+                bornDownFor = 0f;
+                return;
+            }
+
+            bornDownFor = BorneDownFrom > 0f && pressedOff > BorneDownFrom * Size ? bornDownFor + dt : 0f;
+            if (bornDownFor >= BorneDownAfter && !Dead && !StaysDown)
+            {
+                bornDownFor = 0f;
+                BorneDown++;
+                Combo?.Stop();
+                LastReaction = $"borne down, its body pressed {pressedOff * 100f:0} cm from where it stood";
+                Vector3 way = pressed.sqrMagnitude > 1e-6f ? pressed.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+                Fall(-1, way, 0.5f);
+                return;
+            }
+
+            if (PressedGain <= 0f)
+            {
+                return;
+            }
+
+            float off = pressed.magnitude, from = PressedFrom * Size;
+            if (off <= from)
+            {
+                return;
+            }
+
+            Vector3 move = pressed / off * (Mathf.Min((off - from) * PressedGain, PressedSpeed * Mathf.Sqrt(Size)) * dt);
+            RootShoves[3] += move.magnitude;
+            Loco.Position += move;
+            CarryBy(move);
+        }
 
         private void GiveGround(float dt)
         {

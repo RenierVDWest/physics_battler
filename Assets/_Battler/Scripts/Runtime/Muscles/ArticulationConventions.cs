@@ -28,6 +28,13 @@ namespace PhysicsBattler.Muscles
         /// <summary>Whether what was measured is what the body assumes (it can be built).</summary>
         public static bool Usable { get; private set; } = true;
 
+        /// <summary>
+        /// A part built turned against its parent (a shield's grip, built as the shield is gripped): whether its
+        /// joint's turn is taken on the part's own axes, from where it was built (so: its turn against its parent is
+        /// how it was built, then the joint's turn). Otherwise on its parent's, before how it was built.
+        /// </summary>
+        public static bool TurnOnOwnAxes { get; private set; } = true;
+
         public static string Report { get; private set; } = "not probed";
 
         private const float Step = 1f / 240f;
@@ -65,13 +72,24 @@ namespace PhysicsBattler.Muscles
                 Vector3 slipped = Run(scene, physics, 400f * StiffnessScale, 12.65f * StiffnessScale, 2f, Vector3.zero, Vector3.right * 5f, 120);
                 LimitIsTorque = Mathf.Abs(slipped.x) > 20f;
 
+                // 4. A part built turned against its parent: the same turn asked of it, and which way it is taken.
+                var built = Quaternion.Euler(0f, 70f, 30f);
+                Vector3 turnedTo = Run(scene, physics, 400f, 12.65f, 0f, Vector3.Scale(Asked, sign), Vector3.zero, 240, built);
+                var reached = JointMath.FromTurnVector(turnedTo * Mathf.Deg2Rad);
+                var asked = JointMath.FromTurnVector(Asked * Mathf.Deg2Rad);
+                float own = Quaternion.Angle(reached, built * asked), parents = Quaternion.Angle(reached, asked * built);
+                TurnOnOwnAxes = own <= parents;
+                bool builtKnown = Mathf.Min(own, parents) < 3f;
+
                 Usable = turnVector && stiffnessKnown;
                 Report = string.Format(System.Globalization.CultureInfo.InvariantCulture,
                     "targets {0} (asked {1:0} {2:0} {3:0}, turned {4:0.0} {5:0.0} {6:0.0}°, signs {7:+0;-0} {8:+0;-0} {9:+0;-0}), "
-                    + "stiffness {10} (5 N m on 400 gave {11:0.000}°; for radians 0.716), force limit {12} (5 N m on a 2 N m limit turned {13:0}°){14}",
+                    + "stiffness {10} (5 N m on 400 gave {11:0.000}°; for radians 0.716), force limit {12} (5 N m on a 2 N m limit turned {13:0}°), "
+                    + "a part built turned takes its joint's turn {15} ({16:0.0}° off; the other way {17:0.0}°){14}",
                     turnVector ? "a turn vector" : "NOT a turn vector", Asked.x, Asked.y, Asked.z, got.x, got.y, got.z, sign.x, sign.y, sign.z,
                     per > 0.5f && per < 2f ? "for radians" : stiffnessKnown ? "for degrees" : "UNKNOWN", Mathf.Abs(held.x),
-                    LimitIsTorque ? "a torque" : "NOT a torque", Mathf.Abs(slipped.x), Usable ? "" : "; the physical upper body stays OFF");
+                    LimitIsTorque ? "a torque" : "NOT a torque", Mathf.Abs(slipped.x), Usable ? "" : "; the physical upper body stays OFF",
+                    !builtKnown ? "NEITHER way known" : TurnOnOwnAxes ? "on its own axes" : "on its parent's", Mathf.Min(own, parents), Mathf.Max(own, parents));
                 Debug.Log($"[Articulation probe] {Report}");
             }
             finally
@@ -84,7 +102,8 @@ namespace PhysicsBattler.Muscles
         /// A fixed root and one part on a ball joint, its three drives alike; simulated, and the part's turn against
         /// the root returned as a turn vector (degrees).
         /// </summary>
-        private static Vector3 Run(Scene scene, PhysicsScene physics, float stiffness, float damping, float limit, Vector3 target, Vector3 torque, int steps)
+        private static Vector3 Run(Scene scene, PhysicsScene physics, float stiffness, float damping, float limit, Vector3 target, Vector3 torque, int steps,
+            Quaternion? built = null)
         {
             var rootObject = new GameObject("ArticulationProbeRoot");
             SceneManager.MoveGameObjectToScene(rootObject, scene);
@@ -95,6 +114,7 @@ namespace PhysicsBattler.Muscles
             var partObject = new GameObject("ArticulationProbePart");
             partObject.transform.SetParent(rootObject.transform, false);
             partObject.transform.localPosition = new Vector3(0f, -0.1f, 0f);
+            partObject.transform.localRotation = built ?? Quaternion.identity;
             var part = partObject.AddComponent<ArticulationBody>();
             part.useGravity = false;
             part.jointType = ArticulationJointType.SphericalJoint;

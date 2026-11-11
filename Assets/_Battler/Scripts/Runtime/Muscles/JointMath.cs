@@ -395,6 +395,13 @@ namespace PhysicsBattler.Muscles
             return s < 1e-7f ? Vector3.zero : v / s * (2f * Mathf.Atan2(s, q.w));
         }
 
+        /// <summary>The turn a turn vector stands for (its axis times its angle in radians).</summary>
+        public static Quaternion FromTurnVector(Vector3 v)
+        {
+            float angle = v.magnitude;
+            return angle < 1e-7f ? Quaternion.identity : Quaternion.AngleAxis(angle * Mathf.Rad2Deg, v / angle);
+        }
+
         /// <summary>The same turn as <paramref name="v"/> (a turn vector, radians), written the way nearest <paramref name="last"/>: a turn and it plus a whole turn about its axis are one.</summary>
         public static Vector3 TurnVectorNear(Vector3 v, Vector3 last)
         {

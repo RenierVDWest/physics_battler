@@ -863,6 +863,9 @@ namespace PhysicsBattler.Locomotion
         private Quaternion shieldGrip;
         private bool shieldGripKnown;
 
+        /// <summary>The shield's slot as it is gripped, unturned (against the hand); null before it was first turned.</summary>
+        public Quaternion? ShieldGripRest => shieldGripKnown ? shieldGrip : (Quaternion?)null;
+
         /// <summary>
         /// The shield turned in the hand to face <paramref name="way"/> (by <paramref name="share"/>: 0 holds it as
         /// gripped): its face (the slot's forward) toward it. A round shield held by its middle turns about the fist.

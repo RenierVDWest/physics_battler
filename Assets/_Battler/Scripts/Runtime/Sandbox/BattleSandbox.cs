@@ -234,6 +234,11 @@ namespace PhysicsBattler.Sandbox
             }
 
             Note($"spawn: {units.Count} units on the {Grid.columns}x{Grid.rows} board");
+            if (PhysicsBattler.Locomotion.ClipFighter.PhysicalUpper)
+            {
+                ArticulationConventions.EnsureProbed();
+                Note($"physical upper bodies: on, the game stepping the engine {PhysicsBattler.Authority.PhysicsSteps.Substeps} times a step; a blade at most {PhysicsBattler.Locomotion.CombatFeel.MostBladeSpeed:0} m/s; articulation probe: {ArticulationConventions.Report}");
+            }
         }
 
         // Weapons go in the hands once the unit has built its rig (its Awake runs on Instantiate).
