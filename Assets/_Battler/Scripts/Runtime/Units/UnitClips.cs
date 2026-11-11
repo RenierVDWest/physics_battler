@@ -1052,6 +1052,28 @@ namespace PhysicsBattler.Units
                 {
                     // (No model (headless): a blade the weapon's length, from above the grip to the point, so what it
                     // passes through can be measured as in Unity, where the model's own colliders are there.)
+                    if (HeadlessAsModel && definition.kind == WeaponKind.Sword)
+                    {
+                        // (As the sword's model has it in Unity: two boxes on one object, the blade and the guard.)
+                        var model = new GameObject("P_Weapon_Sword(Clone)");
+                        model.transform.SetParent(slot, false);
+                        model.transform.localScale = Vector3.one * Clip.Size;
+                        var edge = model.AddComponent<BoxCollider>();
+                        edge.size = new Vector3(0.02f, 0.06f, 0.775f);
+                        edge.center = new Vector3(0f, 0f, 0.472f);
+                        var guard = model.AddComponent<BoxCollider>();
+                        guard.size = new Vector3(0.03f, 0.19f, 0.03f);
+                        guard.center = new Vector3(0f, 0f, 0.075f);
+                        foreach (var box in new[] { edge, guard })
+                        {
+                            box.isTrigger = true;
+                            ClipBladeColliders.Add(box);
+                            Clip.Solids.Add((HandOf(slot), box, definition.massKg / 2f, true));
+                        }
+
+                        return;
+                    }
+
                     var blade = new GameObject(name + " blade");
                     blade.transform.SetParent(slot, false);
                     var capsule = blade.AddComponent<CapsuleCollider>();
@@ -1101,6 +1123,9 @@ namespace PhysicsBattler.Units
                 Clip.Solids.Add((HandOf(slot), collider, definition.massKg / Mathf.Max(1, held.GetComponentsInChildren<Collider>(true).Length), !definition.IsShield));
             }
         }
+
+        /// <summary>Headless (no models): the sword's colliders as its model has them in Unity (HEADLESS_MODELS=1 in the environment).</summary>
+        public static readonly bool HeadlessAsModel = System.Environment.GetEnvironmentVariable("HEADLESS_MODELS") == "1";
 
         private PartId HandOf(Transform slot) => slot == Rig.SlotWeaponL ? PartId.HandL : PartId.HandR;
 

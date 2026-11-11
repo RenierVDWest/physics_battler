@@ -69,7 +69,7 @@ namespace PhysicsBattler.Diagnostics
         private readonly List<UnitTrack> closedTracks = new List<UnitTrack>();
         private readonly Dictionary<UnitController, UnitTrack> byUnit = new Dictionary<UnitController, UnitTrack>();
         private readonly Dictionary<string, int> nameUses = new Dictionary<string, int>();
-        private readonly Dictionary<ScriptableObject, string> configs = new Dictionary<ScriptableObject, string>();
+        private readonly Dictionary<UnityEngine.Object, string> configs = new Dictionary<UnityEngine.Object, string>();
         private readonly List<string> marks = new List<string>();
         private readonly List<string> consoleProblems = new List<string>();
         private readonly Dictionary<Rigidbody, int> props = new Dictionary<Rigidbody, int>();
@@ -634,6 +634,9 @@ namespace PhysicsBattler.Diagnostics
                                   + $"profile {(unit.Profile != null ? unit.Profile.name : "default")}, style {(unit.Style != null ? unit.Style.name : "default")}");
             NoteConfig(unit.Profile);
             NoteConfig(unit.Style);
+            // (The scene's Combat Feel as it stands: its values are the scene's own, and a fight run elsewhere to
+            // look into this one needs them.)
+            NoteConfig(UnityEngine.Object.FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
 
             WriteMeta(false);
         }
@@ -998,8 +1001,8 @@ namespace PhysicsBattler.Diagnostics
 
         // ---- Config ----------------------------------------------------------------------------
 
-        /// <summary>Saves a tuning asset's values the first time it is seen.</summary>
-        public void NoteConfig(ScriptableObject asset)
+        /// <summary>Saves a tuning asset's values the first time it is seen (or a scene object's that holds tuning: the Combat Feel).</summary>
+        public void NoteConfig(UnityEngine.Object asset)
         {
             if (!Recording || asset == null || configs.ContainsKey(asset))
             {

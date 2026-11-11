@@ -190,6 +190,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A body borne down falls: its chest held this many centimetres (at a Medium's size) from where the animation has it for a tenth of a second, by what its muscles can't shift (a fighter landing on it from a leap), it goes down as one knocked off its feet and gets up again. 0: never, and it is folded where it stands. Default 28.")]
         [Range(0f, 80f)] public float borneDownFrom = DefaultBorneDownFrom;
 
+        [Tooltip("How fast a joint of the physical upper body that is off where the animation has it comes back (radians a second, on top of the animation's own turn; 6.3 is one turn a second): an arm knocked aside by a parry, a head thrown back by a blow, a shield arm let go by what held it. It is brought back at this speed at most, and slower the nearer it gets, so that it stops where the animation has it and does not swing past. Higher: it is back sooner and whips more; lower: a struck body hangs off its pose longer and looks softer. Default 20 (an arm knocked a quarter turn off is back in about a tenth of a second).")]
+        [Range(4f, 60f)] public float returnSpeed = DefaultReturnSpeed;
+
         [Header("Feet")]
         [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
         [Range(0.5f, 8f)] public float comboPullSpeed = DefaultComboPullSpeed;
@@ -205,7 +208,7 @@ namespace PhysicsBattler.Locomotion
         public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
         public const float DefaultMostBladeSpeed = 0f;
         public const bool DefaultPhysicalUpperBody = false;
-        public const float DefaultMuscleStrength = 600f, DefaultBlockedArmStrength = 0.2f, DefaultPressedBackSpeed = 6f, DefaultBorneDownFrom = 28f;
+        public const float DefaultMuscleStrength = 600f, DefaultBlockedArmStrength = 0.2f, DefaultPressedBackSpeed = 6f, DefaultBorneDownFrom = 28f, DefaultReturnSpeed = 20f;
 
         /// <summary>The blade's speed limit a physical upper body is given when none is set (m/s).</summary>
         public const float PhysicalBladeSpeed = 30f;
@@ -360,6 +363,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.BlockedStrength = blockedArmStrength;
             ClipFighter.PressedGain = pressedBackSpeed;
             ClipFighter.BorneDownFrom = borneDownFrom * 0.01f;
+            PhysicsBattler.Authority.UpperBodyArticulation.MostReturn = returnSpeed;
             ComboPullSpeed = comboPullSpeed;
             MovingFootLift = movingFootLift;
         }

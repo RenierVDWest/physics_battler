@@ -47,6 +47,7 @@ namespace PhysicsBattler.Authority
 
         // (What each joint's muscle is allowed over its own strength, to follow what the pose itself does.)
         private Vector3[] turning;                       // each joint's speed of turn in the last step (rad/s)
+        private Vector3[] rate;                          // each joint's speed of turn in the pose this step (rad/s, on the part's own axes)
         private float[] carried, lever, reach, more;     // what hangs from it (kg), its centre from the joint and from the hips (m), the allowance (N m)
         private Vector3 rootSpeed, rootSpin;
         private readonly Quaternion[] lastWorld = new Quaternion[PartInfo.Count];
@@ -126,7 +127,8 @@ namespace PhysicsBattler.Authority
                 link.maxAngularVelocity = 100f;
                 // (What it will meet in the coming step is found ahead: a blade at 30 m/s moves 12 cm in a physics step, further than a shield is thick.)
                 link.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-                link.maxJointVelocity = 200f;
+                link.maxJointVelocity = MostJointSpeed;
+                link.maxDepenetrationVelocity = MostPushOut;
                 if (i == 0)
                 {
                     link.solverIterations = 32;
@@ -207,6 +209,9 @@ namespace PhysicsBattler.Authority
         /// <summary>UPPER_DEBUG=1 in the environment: each joint the pose turns at once is logged with what kind of turn it was.</summary>
         public static readonly bool Debugging = System.Environment.GetEnvironmentVariable("UPPER_DEBUG") == "1";
 
+        /// <summary>How much of the pose's own speed of turn each motor is told to turn at (1: all of it).</summary>
+        public static float FeedForward = 1f;
+
         /// <summary>For measuring how the muscles alone follow the pose: the body touches nothing.</summary>
         public static bool Ghost;
 
@@ -262,6 +267,7 @@ namespace PhysicsBattler.Authority
                 now[i] = was[i] = JointMath.TurnVector(local);
                 Vector3 at = Vector3.Scale(now[i], sign);
                 links[i].jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
+                links[i].jointVelocity = new ArticulationReducedSpace(0f, 0f, 0f);
                 for (int axis = 0; axis < 3; axis++)
                 {
                     links[i].SetDriveTarget((ArticulationDriveAxis)axis, at[axis] * Mathf.Rad2Deg);
@@ -317,7 +323,7 @@ namespace PhysicsBattler.Authority
             {
                 float turns = hangs[i][axis];
                 links[i].SetDriveStiffness((ArticulationDriveAxis)axis, w * w * turns * scale);
-                links[i].SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale);
+                links[i].SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale * ArticulationConventions.DampingScale);
                 links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, most[i] > 0f ? most[i] + (more != null ? AllowShare * more[i] : 0f) : float.MaxValue);
             }
 
@@ -334,7 +340,7 @@ namespace PhysicsBattler.Authority
                 {
                     float turns = g.Hangs[axis];
                     g.Link.SetDriveStiffness((ArticulationDriveAxis)axis, w * w * turns * scale);
-                    g.Link.SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale);
+                    g.Link.SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale * ArticulationConventions.DampingScale);
                     g.Link.SetDriveForceLimit((ArticulationDriveAxis)axis, GripStrength > 0f ? GripStrength : float.MaxValue);
                 }
             }
@@ -408,7 +414,7 @@ namespace PhysicsBattler.Authority
             public ArticulationBody Link;
             public Transform Posed, Shown;      // the pose's slot (where it is turned to), the rig's (what is seen)
             public Quaternion Rest;             // the slot's turn in the hand where the grip's joint is at zero
-            public Vector3 Was, Now, Hangs, Centre;
+            public Vector3 Was, Now, Hangs, Centre, Rate;
             public readonly List<Piece> Pieces = new List<Piece>();
         }
 
@@ -455,7 +461,8 @@ namespace PhysicsBattler.Authority
                 link.jointFriction = 0f;
                 link.maxAngularVelocity = 100f;
                 link.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-                link.maxJointVelocity = 200f;
+                link.maxJointVelocity = MostJointSpeed;
+                link.maxDepenetrationVelocity = MostPushOut;
                 link.jointType = ArticulationJointType.SphericalJoint;
                 link.anchorPosition = Vector3.zero;
                 link.anchorRotation = Quaternion.identity;
@@ -510,6 +517,7 @@ namespace PhysicsBattler.Authority
             g.Now = g.Was = GripTurn(g);
             Vector3 at = Vector3.Scale(g.Now, sign);
             g.Link.jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
+            g.Link.jointVelocity = new ArticulationReducedSpace(0f, 0f, 0f);
             for (int axis = 0; axis < 3; axis++)
             {
                 g.Link.SetDriveTarget((ArticulationDriveAxis)axis, at[axis] * Mathf.Rad2Deg);
@@ -519,6 +527,9 @@ namespace PhysicsBattler.Authority
 
         /// <summary>The most the pose may turn a joint in one game step and have its muscle follow (degrees); past it the joint is put there.</summary>
         public const float MostJointTurn = 70f;
+
+        /// <summary>A joint the pose turns at once is put there (see <see cref="BeginStep"/>); off, its muscle brings it there as fast as it brings any joint back to its pose.</summary>
+        public static bool PutFlips = true;
 
         /// <summary>Times a joint was put where the pose turned it at once, and the last such joint (for the reports).</summary>
         public int JointJumps;
@@ -685,6 +696,7 @@ namespace PhysicsBattler.Authority
                 reach = new float[n];
                 more = new float[n];
                 turning = new Vector3[n];
+                rate = new Vector3[n];
             }
 
             for (int j = 1; j < n; j++)
@@ -746,7 +758,9 @@ namespace PhysicsBattler.Authority
             rootSpin = spin;
             for (int i = 1; i < n; i++)
             {
-                Vector3 turns = (now[i] - was[i]) / dt;
+                // (How fast the pose turns it: the turn itself, not its numbers' change. A turn past half a turn
+                // is written with numbers that move several times as fast as it does.)
+                Vector3 turns = rate[i];
                 float quickens = known && stepWas > 0f ? (turns - turning[i]).magnitude / dt : 0f;
                 turning[i] = turns;
                 float heaviest = Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z));
@@ -925,15 +939,24 @@ namespace PhysicsBattler.Authority
                     now[i] = JointMath.TurnVector(local);
                     was[i] = now[i];
                     turning[i] = Vector3.zero;
-                    Vector3 at = Vector3.Scale(now[i], ArticulationConventions.TargetSign);
-                    links[i].jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
-                    links[i].jointVelocity = new ArticulationReducedSpace(0f, 0f, 0f);
+                    if (PutFlips)
+                    {
+                        Vector3 at = Vector3.Scale(now[i], ArticulationConventions.TargetSign);
+                        links[i].jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
+                        links[i].jointVelocity = new ArticulationReducedSpace(0f, 0f, 0f);
+                    }
                 }
+            }
+
+            for (int i = 1; i < parts.Length; i++)
+            {
+                rate[i] = known && dt > 1e-6f ? TurnBetween(was[i], now[i]) / dt : Vector3.zero;
             }
 
             foreach (var g in grips)
             {
                 g.Now = JointMath.TurnVectorNear(GripTurn(g), g.Was);
+                g.Rate = known && dt > 1e-6f ? TurnBetween(g.Was, g.Now) / dt : Vector3.zero;
             }
 
             if (Debugging)
@@ -990,26 +1013,16 @@ namespace PhysicsBattler.Authority
                 // the other way round are 360 apart in numbers. Named by where the pose last was, a shoulder
                 // that passed half a turn was sent the long way round at full strength, and round again: the
                 // arm whirled, and its body with it.)
-                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(was[i], now[i], share), Where(links[i], links[parent[i]].transform, Quaternion.identity));
-                Vector3 target = Vector3.Scale(asked, sign) * Mathf.Rad2Deg;
-                Vector3 speed = step > 1e-6f ? Vector3.Scale(now[i] - was[i], sign) * (Mathf.Rad2Deg / step) : Vector3.zero;
-                for (int axis = 0; axis < 3; axis++)
-                {
-                    links[i].SetDriveTarget((ArticulationDriveAxis)axis, target[axis]);
-                    links[i].SetDriveTargetVelocity((ArticulationDriveAxis)axis, speed[axis]);
-                }
+                Vector3 at = Where(links[i], links[parent[i]].transform, Quaternion.identity);
+                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(was[i], now[i], share), at);
+                Ask(links[i], asked, at, rate[i], Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)), hz[i], most[i], sign);
             }
 
             foreach (var g in grips)
             {
-                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(g.Was, g.Now, share), Where(g.Link, links[g.Hand].transform, g.Rest));
-                Vector3 target = Vector3.Scale(asked, sign) * Mathf.Rad2Deg;
-                Vector3 speed = step > 1e-6f ? Vector3.Scale(g.Now - g.Was, sign) * (Mathf.Rad2Deg / step) : Vector3.zero;
-                for (int axis = 0; axis < 3; axis++)
-                {
-                    g.Link.SetDriveTarget((ArticulationDriveAxis)axis, target[axis]);
-                    g.Link.SetDriveTargetVelocity((ArticulationDriveAxis)axis, speed[axis]);
-                }
+                Vector3 at = Where(g.Link, links[g.Hand].transform, g.Rest);
+                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(g.Was, g.Now, share), at);
+                Ask(g.Link, asked, at, g.Rate, Mathf.Max(g.Hangs.x, Mathf.Max(g.Hangs.y, g.Hangs.z)), hz[g.Hand], GripStrength, sign);
 
                 if (k == n)
                 {
@@ -1029,6 +1042,88 @@ namespace PhysicsBattler.Authority
             }
         }
 
+        /// <summary>
+        /// A joint's motor told where to go for the coming physics step. Near its pose it is sent the pose and the
+        /// pose's speed: a spring and a damper. Away from it (knocked off by a blow, held off by what its blade met
+        /// and then let go, behind a pose that turned at once) that will not do. The spring asks for hundreds of
+        /// times the muscle's strength a few degrees out, the motor gives its strength and no more, and the damper's
+        /// share is lost in it: the joint is thrown at its pose at full strength, passes it, is thrown back, and
+        /// with nothing damping it a joint that has once gone right round goes on round, braked for one half of
+        /// each turn and driven for the other. That was the body that whirled. So, away from its pose, the motor is
+        /// asked for a speed instead: toward the pose, and no faster than it can still stop from before it gets
+        /// there (as fast as a muscle of that strength brakes what hangs from it), with the spring's pull kept to
+        /// a share of its strength. Whatever speed it has beyond that, the damper takes off at full strength,
+        /// whichever way it is turning.
+        /// </summary>
+        /// <param name="asked">Where the pose has the joint at the step's end (a turn vector, radians, written the way nearest <paramref name="at"/>).</param>
+        /// <param name="at">Where the joint is.</param>
+        /// <param name="turns">How fast the pose turns it (rad/s).</param>
+        /// <param name="inertia">What hangs from it (kg m2, about its heaviest axis).</param>
+        /// <param name="quick">Its motor's quickness (Hz).</param>
+        /// <param name="strength">Its muscle's strength (N m; 0: no limit, a plain spring).</param>
+        private static void Ask(ArticulationBody link, Vector3 asked, Vector3 at, Vector3 turns, float inertia, float quick, float strength, Vector3 sign)
+        {
+            Vector3 target = asked, speed = turns * FeedForward;
+            if (Returns && strength > 0f && inertia > 0f && quick > 0f)
+            {
+                float w = 2f * Mathf.PI * quick;
+                // (The turn that takes it from where it is to its pose, as a turn: the difference of the two
+                // turns' numbers is that only for a joint near its rest. A shield turned half round in its hand,
+                // sent after the difference of the numbers, went round the pose and not to it.)
+                var here = JointMath.FromTurnVector(at);
+                var there = JointMath.FromTurnVector(asked);
+                Vector3 off = JointMath.TurnVector(OwnAxes ? Quaternion.Inverse(here) * there : there * Quaternion.Inverse(here));
+                float far = off.magnitude;
+                // (As far out as the spring pulls with that share of its strength: within it, the spring as it is.)
+                float near = NearShare * strength / (w * w * inertia);
+                if (far > near)
+                {
+                    float beyond = far - near;
+                    float back = Mathf.Min(MostReturn, Mathf.Min(0.5f * w * beyond, Mathf.Sqrt(2f * BrakeShare * strength / inertia * beyond)));
+                    var part = JointMath.FromTurnVector(off * (near / far));
+                    target = JointMath.TurnVectorNear(JointMath.TurnVector(OwnAxes ? here * part : part * here), at);
+                    speed += off * (back / far);
+                }
+            }
+
+            target = Vector3.Scale(target, sign) * Mathf.Rad2Deg;
+            speed = Vector3.Scale(speed, sign) * (Mathf.Rad2Deg * ArticulationConventions.SpeedScale);
+            for (int axis = 0; axis < 3; axis++)
+            {
+                link.SetDriveTarget((ArticulationDriveAxis)axis, target[axis]);
+                link.SetDriveTargetVelocity((ArticulationDriveAxis)axis, speed[axis]);
+            }
+        }
+
+        /// <summary>The turn from one of a joint's turns to another, on the part's own axes (a turn vector, radians).</summary>
+        private static Vector3 TurnBetween(Vector3 from, Vector3 to)
+            => JointMath.TurnVector(OwnAxes ? Quaternion.Inverse(JointMath.FromTurnVector(from)) * JointMath.FromTurnVector(to)
+                : JointMath.FromTurnVector(to) * Quaternion.Inverse(JointMath.FromTurnVector(from)));
+
+        /// <summary>For the tests: a joint's speed of turn given to its motor on the other axes than the engine was measured to count it on.</summary>
+        public static bool OtherAxes;
+
+        /// <summary>A joint's speed of turn is given to its motor on the part's own axes, as the engine counts it (measured at start-up), or on its parent's.</summary>
+        private static bool OwnAxes => ArticulationConventions.SpeedOnOwnAxes != OtherAxes;
+
+        /// <summary>A joint off its pose is brought back at a speed it can stop from (see <see cref="Ask"/>); off, it is sent the pose itself however far off it is, as it was.</summary>
+        public static bool Returns = true;
+
+        /// <summary>The share of a muscle's strength its spring may pull with (0.25): beyond where it would pull harder, the joint is brought back by speed.</summary>
+        public static float NearShare = 0.25f;
+
+        /// <summary>The share of a muscle's strength counted on to stop a joint coming back to its pose (0.5): the rest is left for the load and the spring.</summary>
+        public static float BrakeShare = 0.5f;
+
+        /// <summary>The fastest a joint is brought back to its pose (rad/s, on top of the pose's own turn; 20: a little over three turns a second).</summary>
+        public static float MostReturn = 20f;
+
+        /// <summary>The fastest a joint may turn at all (rad/s). The fastest clip turns one at 44; nothing a muscle does is three times that, and a joint that is, is out of hand.</summary>
+        public static float MostJointSpeed = 90f;
+
+        /// <summary>The fastest a part found inside another is pushed out of it (m/s). Left to the engine a part put deep in a leg is thrown out at whatever speed clears it in one step.</summary>
+        public static float MostPushOut = 3f;
+
         /// <summary>The body put where the pose is at once (a teleport, a spawn): carried there, its joints still driven to the pose.</summary>
         public void Teleport()
         {
@@ -1038,6 +1133,9 @@ namespace PhysicsBattler.Authority
             carrier.position = rootWas;
             carrier.rotation = rootTurnWas;
             links[0].TeleportRoot(rootWas, rootTurnWas);
+            // (And still: put back because it was out of hand, it is not to go on as it was going.)
+            links[0].linearVelocity = Vector3.zero;
+            links[0].angularVelocity = Vector3.zero;
             SnapJoints();
         }
 
@@ -1100,7 +1198,70 @@ namespace PhysicsBattler.Authority
             var at = links[i].jointPosition;
             var d = links[i].xDrive;
             Vector3 t = now[i] * Mathf.Rad2Deg;
-            return $"{id} asked {t.x:0} {t.y:0} {t.z:0} ({t.magnitude:0}°) is {at[0] * Mathf.Rad2Deg:0} {at[1] * Mathf.Rad2Deg:0} {at[2] * Mathf.Rad2Deg:0}, k {d.stiffness:0} most {d.forceLimit:0}";
+            return $"{id} asked {t.x:0} {t.y:0} {t.z:0} ({t.magnitude:0}°) is {at[0] * Mathf.Rad2Deg:0} {at[1] * Mathf.Rad2Deg:0} {at[2] * Mathf.Rad2Deg:0}, {JointSpeed(i):0} rad/s, k {d.stiffness:0} most {d.forceLimit:0}";
+        }
+
+        /// <summary>How fast a joint turns: its part's spin against the part it hangs from (rad/s).</summary>
+        private float JointSpeed(int i) => (links[i].angularVelocity - links[parent[i]].angularVelocity).magnitude;
+
+        /// <summary>The fastest any of its joints turns (rad/s), and which.</summary>
+        public float FastestJoint(out PartId which)
+        {
+            float fastest = 0f;
+            which = PartId.Pelvis;
+            for (int i = 1; i < parts.Length; i++)
+            {
+                float speed = JointSpeed(i);
+                if (speed > fastest)
+                {
+                    fastest = speed;
+                    which = parts[i];
+                }
+            }
+
+            return fastest;
+        }
+
+        /// <summary>
+        /// For the tests: every joint set turning at <paramref name="speed"/> (rad/s), each about another axis,
+        /// as a body thrown out of hand is. One that is sound comes back to its pose and stays.
+        /// </summary>
+        public void Kick(float speed)
+        {
+            for (int i = 1; i < parts.Length; i++)
+            {
+                Vector3 axis = i % 3 == 0 ? Vector3.right : i % 3 == 1 ? Vector3.up : Vector3.forward;
+                float heaviest = Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z));
+                links[i].AddTorque(links[i].transform.rotation * axis * (heaviest * speed * (i % 2 == 0 ? 1f : -1f)), ForceMode.Impulse);
+            }
+        }
+
+        /// <summary>Every joint's target and where it is, for a trace.</summary>
+        public string DescribeAll()
+        {
+            var sb = new System.Text.StringBuilder();
+            for (int i = 1; i < parts.Length; i++)
+            {
+                sb.Append(Describe(parts[i])).Append("; ");
+            }
+
+            sb.Append(DescribeGrips());
+            return sb.ToString();
+        }
+
+        /// <summary>What its grips (a shield turned in its hand) are asked and where they are, for a trace.</summary>
+        public string DescribeGrips()
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var g in grips)
+            {
+                var at = g.Link.jointPosition;
+                var d = g.Link.xDrive;
+                Vector3 t = g.Now * Mathf.Rad2Deg;
+                sb.Append($"grip asked {t.x:0} {t.y:0} {t.z:0} ({t.magnitude:0}°) is {at[0] * Mathf.Rad2Deg:0} {at[1] * Mathf.Rad2Deg:0} {at[2] * Mathf.Rad2Deg:0}, k {d.stiffness:0} most {d.forceLimit:0}");
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>How far a part is from where the pose has it (metres).</summary>

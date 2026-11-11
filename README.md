@@ -1929,6 +1929,13 @@ moves:
   the pose turns it, that carries it as the hips are carried and turned, and what the joints further out are
   allowed. So the strength sets how hard a stopped blade pushes and how firmly a body stands, not how fast a sword
   can be swung.
+- A joint off its pose is brought back by a speed, not thrown at it (`UpperBodyArticulation.Ask`). Within the
+  little its spring can pull over with a quarter of the muscle's strength (a fraction of a degree) the motor is sent
+  the pose and the pose's speed, a spring and a damper. Further out it is sent a speed instead: toward the pose, no
+  faster than `returnSpeed` (20 rad/s) and no faster than it can still stop from before it gets there, on top of
+  the pose's own turn. Whatever speed it has beyond that the damper takes off with all the muscle has, whichever
+  way it is turning. No joint may turn faster than 90 rad/s (the fastest clip turns one at 44), and a part found
+  inside another is pushed out of it at 3 m/s at most.
 - The sword's blade is a solid on the hand. The shield is a part of its own on a ball joint at the grip, driven to
   where the pose turns it in the hand.
 - The game steps the physics itself, four times for each of its own steps (`PhysicsSteps`; in Unity the
@@ -1945,29 +1952,33 @@ body), living units on their feet, the three fights together. Six Mediums (four 
 
 | | held to the pose (as today) | physical upper body |
 |---|---|---|
-| a blade in another's body (over 2 cm) | 195 times, 7.2 s, to 12.7 cm | twice, under 0.05 s, to 3.8 cm |
-| a blade in a shield (over 1 cm) | 177 times, 9.1 s, to 25 cm | 7 times, 0.1 s, to 5.5 cm |
-| a blade through a blade (over 0.5 cm) | 33 times, 0.7 s, to 2.4 cm | 7 times, 0.2 s, to 1.6 cm |
-| a shield in another's body (over 2 cm) | 172 times, 12.9 s, to 16.6 cm | 11 times, 0.2 s, to 4.5 cm |
-| a body in another's body (over 2 cm) | 24 times, 1.2 s, to 7.3 cm | 6 times, 0.3 s, to 6.3 cm |
+| a blade in another's body (over 2 cm) | 195 times, 7.2 s, to 12.7 cm | 11 times, 0.6 s, to 6.3 cm |
+| a blade in a shield (over 1 cm) | 177 times, 9.1 s, to 25 cm | 10 times, 0.2 s, to 7.2 cm |
+| a blade through a blade (over 0.5 cm) | 33 times, 0.7 s, to 2.4 cm | once, under 0.05 s, 0.6 cm |
+| a shield in another's body (over 2 cm) | 172 times, 12.9 s, to 16.6 cm | once, 0.1 s, 5.8 cm |
+| a body in another's body (over 2 cm) | 24 times, 1.2 s, to 7.3 cm | 8 times, 0.6 s, to 9.3 cm |
 
 The scene's own line-up, a Swordsman, a Medium with a shield and a Large with a club a side:
 
 | | held to the pose (as today) | physical upper body |
 |---|---|---|
-| a blade in another's body | 456 times, 16.0 s, to 20.3 cm | 10 times, 0.2 s, to 4.7 cm |
-| a blade in a shield | 160 times, 6.4 s, to 21.7 cm | 8 times, 0.3 s, to 10.2 cm |
-| a blade through a blade | 63 times, 1.4 s, to 2.6 cm | 11 times, 0.2 s, to 1.9 cm |
+| a blade in another's body | 456 times, 16.0 s, to 20.3 cm | 10 times, 0.4 s, to 8.0 cm |
+| a blade in a shield | 160 times, 6.4 s, to 21.7 cm | 4 times, 0.1 s, to 8.6 cm |
+| a blade through a blade | 63 times, 1.4 s, to 2.6 cm | once, under 0.05 s, 0.6 cm |
 | a shield in another's body | 175 times, 10.5 s, to 18.2 cm | never |
-| a body in another's body | 84 times, 1.9 s, to 12.4 cm | 18 times, 1.1 s, to 11.7 cm |
+| a body in another's body | 84 times, 1.9 s, to 12.4 cm | 13 times, 0.8 s, to 9.4 cm |
 
-(One of the physical fights was over after 49 s.)
+(One of the physical fights was over after 41 s. The physical columns are from after the second look in Unity,
+below. Before it a blade was in another's body twice and 10 times, to 3.8 and 4.7 cm: a part found inside another
+is pushed out at 3 m/s now where it was 10, and stays a moment longer.)
 
-How far the physical body is from the pose (units on their feet, both line-ups): the head within 2 cm 95% of the
-time and 4 to 6 cm 99% of it; the weapon hand in a strike within 2.5 cm half the time, 9 to 19 cm 95% of it; outside a
-strike within 3 to 7 cm 95% of the time; the shield hand within 10 to 19 cm 95% of the time; the shield in its
-hand within 9° of the pose 95% of the time. At the worst, for moments: a head 36 to 75 cm off, a hand over a
-metre. No body was borne down or had to be put back on its pose in these six fights.
+How far the physical body is from the pose (units on their feet, both line-ups; in brackets, before the second
+look): the head within 1.2 to 1.4 cm 95% of the time (2) and 3 to 4 cm 99% of it (4 to 6); the weapon hand in a
+strike within 1.3 to 1.7 cm half the time (2.5), 8 to 13 cm 95% of it (9 to 19); outside a strike within 2 to 2.6 cm
+95% of the time (3 to 7); the shield hand within 5 to 7 cm 95% of the time (10 to 19) and 12 to 20 cm 99% of it (35 to
+49); the shield in its hand within 5° of the pose 95% of the time (9°) and 8° 99% of it (15° to 19°). At the worst,
+for moments: a head 17 to 64 cm off (36 to 75), a hand 0.8 to 1.1 m (1 to 2.2 m). No body was borne down or had to
+be put back on its pose in these six fights.
 
 What it took, in the order it was found. The first five are from before the first look in Unity, the rest from it
 (11 November: with the scene's line-up the upper bodies "spun like fan blades"; the same line-up, never run
@@ -2010,10 +2021,56 @@ headless until then, did the same there).
 - *The ground.* The clips swing a blade low, and through the ground at the bottom of a rising cut; stopped there
   it held its arm a metre from the pose. Nothing of the physical body is stopped by the ground now (`ClearOfGround`).
 - *A body that stays away.* A hand 0.9 m or the head 0.5 m from the pose for half a second, and the body is put back
-  on its pose (`RanAway`): for whatever is still to be found. It did not happen in the six fights above.
+  on its pose (`RanAway`): for whatever is still to be found.
 - *A body thrown into a clip fighter* went by the old path's stumble, which poses a body the clip fighter no
   longer has, and threw a null reference (seen once in the Unity log). It is taken by the clip fighter's own path
   now (`ImpactTaken`: its health, the knock to its walk, off its feet if hard enough).
+
+**The second look in Unity** (11 November, evening: "still happens, even between two Mediums"). With all of the
+above in, the bodies were calm in Unity until something met them (a shield pressed on a leg, a parry, a blow) and
+then whirled, joints at 150 to 185 rad/s for seconds. Headless the same fights stayed whole, so it was looked for
+in Unity's log, and then in the tails of the headless figures, where it had been all along in small: a shield hand
+2 m from its pose for a moment, a wrist swinging 70° to and fro about its forearm for a quarter of a second with
+nothing touching it.
+
+- *A motor at its limit does not damp, and that was the whirl.* A Medium's shoulder has a spring of 96,500 N m a
+  radian and a strength of 600 N m: it is at its limit a third of a degree from its pose. Past that the motor gives
+  its strength toward the pose and no more, whatever the damper asked, so a joint knocked off its pose is thrown
+  at it, passes it, and is thrown back. Unity's log shows it to the number: a head knocked 20° out by a parry
+  (A Medium 2, 7.13 s) nods 20°, 25°, back 20°, 38°, forward 37°, 44°, a step each, ten times a second, which is
+  what a neck of 150 N m does with a head when nothing damps it; a quarter of a second on it goes right round, 100°
+  and more a step, and takes the arms and the spine with it. And a joint that has once gone round goes on: its
+  target is named the way nearest where it is, so it is braked for half of each turn and driven for the other.
+  The allowance above had mended this only for what the pose itself does. Now a joint off its pose is asked for a
+  speed, as said above (`Ask`), and the damper works whatever the spring is doing. Tested by throwing the bodies
+  out of hand (`FIGHT_KICK="3,150"`: every joint of every body set turning at 150 rad/s): before, the fastest
+  joint was still turning at 360 rad/s in the second tenth of a second after and 118 in the third, and one body had
+  to be put back on its pose; now 26 rad/s in the second tenth.
+  Why Unity's engine kept the swing growing where the headless one let it die in a third of a second is not
+  found. It is the same motor asked the same things; the two engines are not the same build of PhysX.
+- *How fast the pose turns a joint* was taken from the change of its turn's three numbers. Kept continuous, a
+  shoulder's turn came to be written as 310° about one axis where it was 50° about the other way, and numbers
+  that far out move several times as fast as the turn does, and another way: the speed its motor was told, and
+  what it was allowed over its strength, were five times too much. Now from the turn itself (`TurnBetween`).
+- *The turn back to a pose is a turn too.* The first build of the above went after the difference of the numbers:
+  a shield turned half round in its hand then went round its pose and not to it, 180° off for a third of a second
+  (found headless, in the 1% tail of "the shield in its hand"). And a joint's speed is counted on the part's own
+  axes, not its parent's: given on the parent's, the weapon hand was 20 cm from its pose half the time.
+- *Limits said outright.* No joint turns faster than 90 rad/s (it was 200, and the whirl ran at it). A part found
+  inside another is pushed out at 3 m/s at most (`MostPushOut`): it was left to the engine, and in Unity's log
+  the legs were met by a shield at 24, 37 and 98 m/s as it was thrown out from between them.
+- *A body out of hand is put back sooner.* As well as a hand or the head far off for half a second (counted down
+  now when it is back, not dropped: a body thrown about passes its pose again and again), any joint turning
+  faster than 60 rad/s for a fifth of a second in all; and it is put back still, not turning as it was.
+- *More is measured at start-up* (`ArticulationConventions`, in the log's first lines): that a motor's target
+  speed is taken in degrees a second, that its damping is for radians a second, and that a speed is counted on the
+  part's own axes. Where Unity reads otherwise the body is given what Unity takes.
+- *The log says more.* A body out of hand (a joint over 60 rad/s, the head 25 cm or a hand 60 cm off its pose) is
+  written to the playtest log as it stands, a few times a second at most: `[Upper]` lines, each joint's target,
+  where it is, how fast it turns, its spring and its limit. And the scene's Combat Feel is saved with the session
+  (`config/Combat_Feel.json`), as the profiles and styles are.
+
+The two Larges' spawn markers in `Battle.unity` are switched off (inactive, not removed): four Mediums fight.
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
 vector, stiffness for radians, the force limit a torque, a part built turned takes its turn on its own axes), so
@@ -2030,7 +2087,11 @@ For looking into a fight: `OVERLAP_WHO=1` splits each kind of overlap by who was
 each step of each (with where the engine itself has the two shapes), `FIGHT_STRAY=1` each step a body is far off
 its pose with what it touches, `FIGHT_WATCH="B Medium"` every step of one unit with its joints' targets and where
 they are, `UPPER_DEBUG=1` what each body is built of and each joint the pose flips, `UPPER_GHOST=1` the bodies
-touching nothing, `UPPER_ALLOW=0` the muscles held to their strength. `FIGHT_GIVE`, `FIGHT_GIVE_FROM=0.1,0.22`,
+touching nothing, `UPPER_ALLOW=0` the muscles held to their strength, `FIGHT_KICK="3,150"` every body thrown out of
+hand at 3 s (and how fast its joints still turn each tenth of a second after), `UPPER_RETURN=0` the motors sent
+the pose however far off they are (as before the second look), `UPPER_MOSTRETURN`, `UPPER_JOINTSPEED`,
+`UPPER_PUSHOUT` the new limits, `UPPER_SNAP=0` a joint the pose flips brought there by its muscle, `UPPER_AXES=parent`
+speeds given on the wrong axes. `FIGHT_GIVE`, `FIGHT_GIVE_FROM=0.1,0.22`,
 `FIGHT_PRESSED`, `FIGHT_BORNE`, `FIGHT_EASE` set the rules above for a run.
 
 `Tools/CompileCheck` compiles every script against small UnityEngine/UnityEditor/URP stubs (with real vector maths)

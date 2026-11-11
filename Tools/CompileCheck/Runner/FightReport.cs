@@ -102,6 +102,24 @@ internal static class FightReport
             PhysicsBattler.Authority.UpperBodyArticulation.AllowShare = allow;
         }
 
+        // (UPPER_FF: how much of the pose's speed the motors are told to turn at; -1 or 57.3 to see what an engine that took it otherwise would do.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("UPPER_FF"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ff))
+        {
+            PhysicsBattler.Authority.UpperBodyArticulation.FeedForward = ff;
+        }
+
+        // (UPPER_RETURN=0: a joint off its pose is sent the pose itself, as it was; UPPER_MOSTRETURN, UPPER_NEAR, UPPER_BRAKE, UPPER_JOINTSPEED, UPPER_PUSHOUT: its numbers.)
+        PhysicsBattler.Authority.UpperBodyArticulation.Returns = Environment.GetEnvironmentVariable("UPPER_RETURN") != "0";
+        // (UPPER_AXES=parent: a joint's speed of turn given on its parent's axes, to see which the engine counts it on.)
+        PhysicsBattler.Authority.UpperBodyArticulation.OtherAxes = Environment.GetEnvironmentVariable("UPPER_AXES") == "parent";
+        // (UPPER_SNAP=0: a joint the pose turns at once is brought there by its muscle, not put there.)
+        PhysicsBattler.Authority.UpperBodyArticulation.PutFlips = Environment.GetEnvironmentVariable("UPPER_SNAP") != "0";
+        float Env(string name, float or) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : or;
+        PhysicsBattler.Authority.UpperBodyArticulation.MostReturn = Env("UPPER_MOSTRETURN", PhysicsBattler.Authority.UpperBodyArticulation.MostReturn);
+        PhysicsBattler.Authority.UpperBodyArticulation.NearShare = Env("UPPER_NEAR", PhysicsBattler.Authority.UpperBodyArticulation.NearShare);
+        PhysicsBattler.Authority.UpperBodyArticulation.BrakeShare = Env("UPPER_BRAKE", PhysicsBattler.Authority.UpperBodyArticulation.BrakeShare);
+        PhysicsBattler.Authority.UpperBodyArticulation.MostJointSpeed = Env("UPPER_JOINTSPEED", PhysicsBattler.Authority.UpperBodyArticulation.MostJointSpeed);
+        PhysicsBattler.Authority.UpperBodyArticulation.MostPushOut = Env("UPPER_PUSHOUT", PhysicsBattler.Authority.UpperBodyArticulation.MostPushOut);
         // (UPPER_GHOST=1: the physical upper bodies touch nothing, to see how the muscles alone follow the pose.)
         PhysicsBattler.Authority.UpperBodyArticulation.Ghost = Environment.GetEnvironmentVariable("UPPER_GHOST") == "1";
 
@@ -227,6 +245,18 @@ internal static class FightReport
         var lastRoot = new Dictionary<UnitController, Vector3>();
         // (Feet sliding on the ground: each foot's ankle, while it is down at its standing height, and how far it moves there.)
         var slide = new Dictionary<UnitController, GroundSlide>();
+        float kickAt = -1f, kickSpeed = 150f;
+        {
+            var kick = (Environment.GetEnvironmentVariable("FIGHT_KICK") ?? "").Split(',');
+            if (kick.Length == 2 && float.TryParse(kick[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ka)
+                && float.TryParse(kick[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ks))
+            {
+                kickAt = ka;
+                kickSpeed = ks;
+            }
+        }
+        var kicked = new HashSet<UnitController>();
+        float[] kickFastest = new float[20], kickHead = new float[20];
         var upperSteps = new Dictionary<UnitController, (int on, int all)>();
         var headOffs = new Dictionary<UnitController, List<float>>();
         var upperOffs = new[] { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
@@ -495,6 +525,24 @@ internal static class FightReport
                         if (u.Clip.Upper != null)
                         {
                             var up = u.Clip.Upper;
+                            // (FIGHT_KICK="4,150": at 4 s every joint of every physical upper body is set turning at 150 rad/s,
+                            // as a body thrown out of hand is; and for 2 s after, how fast its fastest joint still turns.)
+                            if (kickAt >= 0f && t >= kickAt && t < kickAt + 2f)
+                            {
+                                if (!kicked.Contains(u))
+                                {
+                                    kicked.Add(u);
+                                    up.Kick(kickSpeed);
+                                }
+                                else
+                                {
+                                    float fastest = up.FastestJoint(out var which);
+                                    int slot = Mathf.Clamp(Mathf.FloorToInt((t - kickAt) * 10f), 0, 19);
+                                    kickFastest[slot] = Mathf.Max(kickFastest[slot], fastest);
+                                    kickHead[slot] = Mathf.Max(kickHead[slot], up.Holds(PhysicsBattler.Rig.PartId.Head) ? up.Off(PhysicsBattler.Rig.PartId.Head) * 100f : 0f);
+                                }
+                            }
+
                             bool striking = u.Clip.Striking;
                             if (up.Holds(PhysicsBattler.Rig.PartId.HandR)) (striking ? upperOffs[0] : upperOffs[1]).Add(up.Off(PhysicsBattler.Rig.PartId.HandR) * 100f);
                             if (up.Holds(PhysicsBattler.Rig.PartId.HandL)) upperOffs[2].Add(up.Off(PhysicsBattler.Rig.PartId.HandL) * 100f);
@@ -538,7 +586,8 @@ internal static class FightReport
                                     {
                                         pw.Touched.Clear();
                                         touching += "\n      " + up.Describe(PhysicsBattler.Rig.PartId.Spine) + "; " + up.Describe(PhysicsBattler.Rig.PartId.Chest) + "; " + up.Describe(PhysicsBattler.Rig.PartId.UpperArmR)
-                                            + "; " + up.Describe(PhysicsBattler.Rig.PartId.ForearmR) + "; " + up.Describe(PhysicsBattler.Rig.PartId.UpperArmL);
+                                            + "; " + up.Describe(PhysicsBattler.Rig.PartId.ForearmR) + "; " + up.Describe(PhysicsBattler.Rig.PartId.HandR) + "\n      " + up.Describe(PhysicsBattler.Rig.PartId.UpperArmL)
+                                            + "; " + up.Describe(PhysicsBattler.Rig.PartId.ForearmL) + "; " + up.Describe(PhysicsBattler.Rig.PartId.HandL) + "; " + up.DescribeGrips() + "; " + up.Describe(PhysicsBattler.Rig.PartId.Head);
                                     }
                                 }
 #endif
@@ -654,6 +703,14 @@ internal static class FightReport
             }
 
             sb.AppendLine("    borne down (a body pressed so far off its pose that it fell): " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.BorneDown}")));
+            if (kickAt >= 0f)
+            {
+                sb.AppendLine($"    kicked at {kickAt:0.0} s (every joint set turning at {kickSpeed:0} rad/s): the fastest joint of any body (rad/s) / the furthest head from its pose (cm), each tenth of a second after:");
+                var row = new System.Text.StringBuilder("     ");
+                for (int i = 0; i < 20; i++) row.Append($" {kickFastest[i]:0}/{kickHead[i]:0}");
+                sb.AppendLine(row.ToString());
+            }
+
             sb.AppendLine("    the physical body against the pose, units on their feet:");
             sb.AppendLine($"      the weapon hand in a strike: {Spread(upperOffs[0], "cm")}");
             sb.AppendLine($"      the weapon hand otherwise: {Spread(upperOffs[1], "cm")}");

@@ -1368,6 +1368,7 @@ namespace PhysicsBattler.Locomotion
             handKnown[0] = handKnown[1] = false;
             handSpeed[0] = handSpeed[1] = 0f;
             awayFor = 0f;
+            spinFor = 0f;
             pressed = Vector3.zero;
             pressedOff = 0f;
             jointJumpsSeen = 0;
@@ -1491,14 +1492,35 @@ namespace PhysicsBattler.Locomotion
             // did that the headless one does not), it is put back on its pose rather than left to flail.)
             bool away = strainR > RanAwayHand * Size || strainL > RanAwayHand * Size
                 || (Upper.Holds(PartId.Head) && Upper.Off(PartId.Head) > RanAwayHead * Size);
-            awayFor = away ? awayFor + upperDt : 0f;
-            if (awayFor >= RanAwayAfter)
+            // (Counted down when it is back, not dropped: a body thrown about passes its pose again and again.)
+            awayFor = away ? awayFor + upperDt : Mathf.Max(0f, awayFor - 0.5f * upperDt);
+            // (Or one of its joints turning faster than any clip turns one, and staying so: it is out of hand.)
+            float fastestJoint = Upper.FastestJoint(out var fastestPart);
+            spinFor = fastestJoint > TraceJointSpeed ? spinFor + upperDt : Mathf.Max(0f, spinFor - upperDt);
+            if (awayFor >= RanAwayAfter || spinFor >= OutOfHandAfter)
             {
                 awayFor = 0f;
+                spinFor = 0f;
                 RanAway++;
                 Upper.Teleport();
                 strainR = strainL = 0f;
                 handKnown[0] = handKnown[1] = false;
+            }
+
+            // (For the playtest log: a body out of hand, as it stands, a few times a second at most. What the
+            // engine does in Unity that the headless one does not is only to be seen there.)
+            if (TraceUpper && upperTraced < 80 && clock >= upperTraceNext)
+            {
+                float fastest = fastestJoint;
+                var which = fastestPart;
+                float head = Upper.Holds(PartId.Head) ? Upper.Off(PartId.Head) : 0f;
+                if (fastest > TraceJointSpeed || head > 0.25f * Size || strainR > 0.6f * Size || strainL > 0.6f * Size)
+                {
+                    upperTraced++;
+                    upperTraceNext = clock + 0.2f;
+                    Debug.Log($"[Upper] {Rig.name}: {which} turning at {fastest:0} rad/s; head {head * 100f:0} cm, hands {strainR * 100f:0} / {strainL * 100f:0} cm off the pose; "
+                        + $"{Loco.Current} {(Loco.Shot != null ? Loco.Shot.Name : "")}; {LastReaction}; put back {RanAway}, joints put {SnappedBack}\n  {Upper.DescribeAll()}");
+                }
             }
 
             // (And its chest: what its feet give way to.)
@@ -1516,6 +1538,20 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>A hand this far from its pose, or the head this far (metres at a Medium's size), for this long (seconds): the body is put back on its pose.</summary>
         public const float RanAwayHand = 0.9f, RanAwayHead = 0.5f, RanAwayAfter = 0.5f;
+
+        /// <summary>A physical upper body out of hand is written to the log as it stands (a joint turning faster than <see cref="TraceJointSpeed"/>, its head or a hand far off its pose).</summary>
+        public static bool TraceUpper = true;
+
+        /// <summary>A joint turning faster than this is out of hand (rad/s; the fastest clip turns one at 44).</summary>
+        public const float TraceJointSpeed = 60f;
+
+        private int upperTraced;
+        private float upperTraceNext;
+
+        /// <summary>A joint turning faster than <see cref="TraceJointSpeed"/> for this long in all (seconds): the body is put back on its pose.</summary>
+        public const float OutOfHandAfter = 0.2f;
+
+        private float spinFor;
 
         /// <summary>Times its physical upper body left its pose and stayed away, and was put back on it (for the reports).</summary>
         public int RanAway;

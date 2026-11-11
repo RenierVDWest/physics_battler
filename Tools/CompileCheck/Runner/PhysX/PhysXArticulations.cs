@@ -12,6 +12,10 @@ namespace PhysicsBattler.Engine
 {
     public sealed unsafe partial class PhysXWorld
     {
+        /// <summary>MIRROR_DEPEN: every link's most speed out of an overlap as if the engine had it so (m/s; to see what an engine that leaves it unlimited does).</summary>
+        private static readonly float DepenetrationAs =
+            float.TryParse(System.Environment.GetEnvironmentVariable("MIRROR_DEPEN"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : 0f;
+
         private sealed class LinkState
         {
             public ArticulationBody Body;
@@ -225,7 +229,7 @@ namespace PhysicsBattler.Engine
                     PxRigidBody_setAngularDamping_mut(rigid, b.angularDamping);
                     PxRigidBody_setMaxAngularVelocity_mut(rigid, b.maxAngularVelocity);
                     PxRigidBody_setMaxLinearVelocity_mut(rigid, b.maxLinearVelocity);
-                    PxRigidBody_setMaxDepenetrationVelocity_mut(rigid, Mathf.Min(b.maxDepenetrationVelocity, 1e30f));
+                    PxRigidBody_setMaxDepenetrationVelocity_mut(rigid, DepenetrationAs > 0f ? DepenetrationAs : Mathf.Min(b.maxDepenetrationVelocity, 1e30f));
                     PxRigidBody_setRigidBodyFlag_mut(rigid, PxRigidBodyFlag.EnableSpeculativeCcd, b.collisionDetectionMode == CollisionDetectionMode.ContinuousSpeculative);
                     b.DrivesChanged = true;
                 }

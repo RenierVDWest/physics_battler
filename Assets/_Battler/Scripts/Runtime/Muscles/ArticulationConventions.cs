@@ -42,7 +42,32 @@ namespace PhysicsBattler.Muscles
         /// </summary>
         public static bool PositionReadable { get; private set; }
 
+        /// <summary>
+        /// What a drive's target speed in degrees a second is multiplied by to give this engine the same (1: it
+        /// takes degrees a second, as its targets are degrees; pi/180: radians a second), with its sign against
+        /// the targets'. A joint off its pose is brought back by the speed its motor is asked for: fifty-seven
+        /// times that, it would be thrown at its pose.
+        /// </summary>
+        public static float SpeedScale { get; private set; } = 1f;
+
+        /// <summary>
+        /// What a damping meant for radians a second is multiplied by, on top of <see cref="StiffnessScale"/>, to
+        /// give this engine the same (1 where a damper holds a torque back as it should). A motor that does not
+        /// damp as it is asked to never stops what it has once set swinging.
+        /// </summary>
+        public static float DampingScale { get; private set; } = 1f;
+
+        /// <summary>
+        /// Whether a ball joint's speed of turn (what a drive's target speed is compared with) is counted on the
+        /// part's own axes: the turn that takes it on from where it is, taken after where it is. Otherwise on its
+        /// parent's. The two are the same for a joint at rest and a quarter turn apart for one a quarter turn from
+        /// it; sent on the wrong ones, an arm raised overhead is steered sideways of where it should go.
+        /// </summary>
+        public static bool SpeedOnOwnAxes { get; private set; } = true;
+
         public static string Report { get; private set; } = "not probed";
+
+        private static Vector3 wentOwn, wentParents;
 
         private static Vector3 readAt;
 
@@ -93,17 +118,45 @@ namespace PhysicsBattler.Muscles
                 TurnOnOwnAxes = own <= parents;
                 bool builtKnown = Mathf.Min(own, parents) < 3f;
 
+                // 5. A target speed: a damper alone asked for 40 degrees a second about X turns the part 4 degrees
+                // in a tenth of a second, if degrees a second is what it takes (as radians a second: 229).
+                Vector3 spun = Run(scene, physics, 0f, 50f * StiffnessScale, 0f, Vector3.zero, Vector3.zero, 24, null, new Vector3(40f * sign.x, 0f, 0f));
+                float ran = Mathf.Abs(spun.x);
+                bool speedKnown = (ran > 2.5f && ran < 5.5f) || ran > 60f;
+                SpeedScale = (ran > 60f ? Mathf.Deg2Rad : 1f) * (spun.x < 0f ? -1f : 1f);
+
+                // 6. Damping: a steady 5 N m about X against a damper of 5 N m s a radian turns at 1 rad/s: 13 degrees
+                // in a quarter of a second.
+                Vector3 dragged = Run(scene, physics, 0f, 5f * StiffnessScale, 0f, Vector3.zero, Vector3.right * 5f, 60);
+                float drag = Mathf.Abs(dragged.x);
+                bool dampingKnown = drag > 9f && drag < 18f;
+                DampingScale = dampingKnown || drag < 0.05f || drag > 170f ? 1f : drag / 13.2f;
+
+                // 7. Which axes a speed is on: the part turned a quarter round Y and held there, then let go and
+                // asked for a speed about X alone. It turns about its own X, or about its parent's.
+                Run(scene, physics, 400f * StiffnessScale, 12.65f * StiffnessScale * DampingScale, 0f, new Vector3(0f, 90f * sign.y, 0f), Vector3.zero, 240, null,
+                    default, new Vector3(40f * sign.x * (SpeedScale < 0f ? -1f : 1f) * (Mathf.Abs(SpeedScale) < 0.5f ? Mathf.Deg2Rad : 1f), 0f, 0f));
+                float offOwn = (wentOwn - new Vector3(4f, 0f, 0f)).magnitude, offParents = (wentParents - new Vector3(4f, 0f, 0f)).magnitude;
+                bool axesKnown = Mathf.Min(offOwn, offParents) < 1.5f && Mathf.Abs(offOwn - offParents) > 1.5f;
+                SpeedOnOwnAxes = !axesKnown || offOwn <= offParents;
+
                 Usable = turnVector && stiffnessKnown;
                 Report = string.Format(System.Globalization.CultureInfo.InvariantCulture,
                     "targets {0} (asked {1:0} {2:0} {3:0}, turned {4:0.0} {5:0.0} {6:0.0}°, signs {7:+0;-0} {8:+0;-0} {9:+0;-0}), "
                     + "stiffness {10} (5 N m on 400 gave {11:0.000}°; for radians 0.716), force limit {12} (5 N m on a 2 N m limit turned {13:0}°), "
                     + "a part built turned takes its joint's turn {15} ({16:0.0}° off; the other way {17:0.0}°), "
-                    + "the joint's own position reads {18} ({19:0.0}° off){14}",
+                    + "the joint's own position reads {18} ({19:0.0}° off), a target speed is {20} (40 a second for 0.1 s turned {21:0.0}°), "
+                    + "damping {22} (5 N m on a damper of 5 turned {23:0.0}° in 0.25 s; for radians a second 13.2), "
+                    + "a speed is counted {24} (a quarter turn round Y, then 40 a second about X for 0.1 s: {25:0.0} {26:0.0} {27:0.0}° on its own axes, {28:0.0} {29:0.0} {30:0.0}° on its parent's){14}",
                     turnVector ? "a turn vector" : "NOT a turn vector", Asked.x, Asked.y, Asked.z, got.x, got.y, got.z, sign.x, sign.y, sign.z,
                     per > 0.5f && per < 2f ? "for radians" : stiffnessKnown ? "for degrees" : "UNKNOWN", Mathf.Abs(held.x),
                     LimitIsTorque ? "a torque" : "NOT a torque", Mathf.Abs(slipped.x), Usable ? "" : "; the physical upper body stays OFF",
                     !builtKnown ? "NEITHER way known" : TurnOnOwnAxes ? "on its own axes" : "on its parent's", Mathf.Min(own, parents), Mathf.Max(own, parents),
-                    PositionReadable ? "as the targets do" : "OTHERWISE (the links' turns are used)", readOff);
+                    PositionReadable ? "as the targets do" : "OTHERWISE (the links' turns are used)", readOff,
+                    !speedKnown ? "UNKNOWN (taken as degrees a second)" : Mathf.Abs(SpeedScale) < 0.5f ? "radians a second" : SpeedScale < 0f ? "degrees a second, the other way" : "degrees a second", spun.x,
+                    dampingKnown ? "for radians a second" : Mathf.Abs(DampingScale - 1f) > 1e-3f ? $"OTHERWISE (ours is multiplied by {DampingScale:0.000})" : "UNKNOWN (left as it is)", drag,
+                    !axesKnown ? "on axes UNKNOWN (taken as its own)" : SpeedOnOwnAxes ? "on the part's own axes" : "on its parent's axes",
+                    wentOwn.x, wentOwn.y, wentOwn.z, wentParents.x, wentParents.y, wentParents.z);
                 Debug.Log($"[Articulation probe] {Report}");
             }
             finally
@@ -117,7 +170,7 @@ namespace PhysicsBattler.Muscles
         /// the root returned as a turn vector (degrees).
         /// </summary>
         private static Vector3 Run(Scene scene, PhysicsScene physics, float stiffness, float damping, float limit, Vector3 target, Vector3 torque, int steps,
-            Quaternion? built = null)
+            Quaternion? built = null, Vector3 speed = default, Vector3 then = default)
         {
             var rootObject = new GameObject("ArticulationProbeRoot");
             SceneManager.MoveGameObjectToScene(rootObject, scene);
@@ -152,10 +205,13 @@ namespace PhysicsBattler.Muscles
                 lowerLimit = -180f, upperLimit = 180f,
             };
             drive.target = target.x;
+            drive.targetVelocity = speed.x;
             part.xDrive = drive;
             drive.target = target.y;
+            drive.targetVelocity = speed.y;
             part.yDrive = drive;
             drive.target = target.z;
+            drive.targetVelocity = speed.z;
             part.zDrive = drive;
 
             for (int i = 0; i < steps; i++)
@@ -166,6 +222,28 @@ namespace PhysicsBattler.Muscles
                 }
 
                 physics.Simulate(Step);
+            }
+
+            if (then != default)
+            {
+                // (Let go where it is, and asked for a speed alone: which way it turns from there.)
+                var from = Quaternion.Inverse(rootObject.transform.rotation) * partObject.transform.rotation;
+                drive.stiffness = 0f;
+                drive.damping = 50f * StiffnessScale * DampingScale;
+                drive.targetVelocity = then.x;
+                part.xDrive = drive;
+                drive.targetVelocity = then.y;
+                part.yDrive = drive;
+                drive.targetVelocity = then.z;
+                part.zDrive = drive;
+                for (int i = 0; i < 24; i++)
+                {
+                    physics.Simulate(Step);
+                }
+
+                var to = Quaternion.Inverse(rootObject.transform.rotation) * partObject.transform.rotation;
+                wentOwn = Vector3.Scale(JointMath.TurnVector(Quaternion.Inverse(from) * to) * Mathf.Rad2Deg, TargetSign);
+                wentParents = Vector3.Scale(JointMath.TurnVector(to * Quaternion.Inverse(from)) * Mathf.Rad2Deg, TargetSign);
             }
 
             var read = part.jointPosition;
