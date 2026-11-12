@@ -1,0 +1,44 @@
+# Physics Battler playtest 2026-11-12_06-16-08
+# time (s since Play) | physics step | who | what | details
+    2.877 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    2.877 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+    2.877 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+    2.877 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    2.877 |      0 | -              | input    | at most 50 ms of physics a frame
+    2.877 |      0 | -              | input    | spawn: 4 units on the 8x8 board
+    2.883 |      1 | A Medium       | spawn    | at (-2.40, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.883 |      1 | A Medium 2     | spawn    | at (-0.80, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.883 |      1 | B Medium       | spawn    | at (0.80, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.883 |      1 | B Medium 2     | spawn    | at (-2.40, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.883 |      1 | A Medium       | equip    | WD_Sword, scaled 1.00
+    2.883 |      1 | A Medium 2     | equip    | WD_Sword and WD_Shield, scaled 1.00
+    2.883 |      1 | B Medium       | equip    | WD_Sword, scaled 1.00
+    2.883 |      1 | B Medium 2     | equip    | WD_Sword and WD_Shield, scaled 1.00
+    2.883 |      1 | A Medium       | sight    | noticed A Medium 2 at the edge of its view (1.6 m)
+    2.883 |      1 | A Medium       | sight    | noticed B Medium at the edge of its view (5.8 m)
+    2.883 |      1 | A Medium       | sight    | noticed B Medium 2 in clear view (4.8 m)
+    2.883 |      1 | A Medium 2     | sight    | noticed A Medium at the edge of its view (1.6 m)
+    2.883 |      1 | A Medium 2     | sight    | noticed B Medium in clear view (5.1 m)
+    2.883 |      1 | A Medium 2     | sight    | noticed B Medium 2 in clear view (5.1 m)
+    2.883 |      1 | B Medium       | sight    | noticed A Medium at the edge of its view (5.8 m)
+    2.883 |      1 | B Medium       | sight    | noticed A Medium 2 in clear view (5.1 m)
+    2.883 |      1 | B Medium       | sight    | noticed B Medium 2 at the edge of its view (3.2 m)
+    2.883 |      1 | B Medium 2     | sight    | noticed A Medium in clear view (4.8 m)
+    2.883 |      1 | B Medium 2     | sight    | noticed A Medium 2 in clear view (5.1 m)
+    2.883 |      1 | B Medium 2     | sight    | noticed B Medium at the edge of its view (3.2 m)
+    2.900 |      2 | A Medium       | target   | B Medium 2 (4.8 m, health 100)
+    2.900 |      2 | A Medium 2     | target   | B Medium (5.1 m, health 100)
+    2.900 |      2 | B Medium       | target   | A Medium 2 (5.1 m, health 100)
+    2.900 |      2 | B Medium 2     | target   | A Medium (4.8 m, health 100)
+    2.927 |      3 | -              | perf     | 264 ms frame, 0 physics steps, garbage collected (gen0 3, gen1 3, gen2 3); ours: nothing over 0.5 ms; Unity: Gfx_WaitForGfxCommandsFromMainThread 27.6 ms, GC_Collect 22.1 ms, PlayerLoop 4.4 ms, CPU_Total_Frame_Time 2.3 ms, CPU_Main_Thread_Frame_Time 1.3 ms, GC_Alloc 0.7 ms, CPU_Render_Thread_Frame_Time 0.5 ms, GPU_Frame_Time 0.5 ms
+    2.977 |      6 | -              | perf     | 87 ms frame, 3 physics steps; ours: RecorderSample 25.9 ms (3), UnitStep 20.2 ms (12), Sandbox 5.9 ms (3), ArmSolve 5.2 ms (16), CaptureRender 1.5 ms (1); Unity: Main_Thread 97.5 ms, Gfx_WaitForGfxCommandsFromMainThread 89.5 ms, PlayerLoop 65.9 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 55.6 ms, FixedBehaviourUpdate 55.6 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 2.4 ms, LateBehaviourUpdate 2.4 ms, Update_ScriptRunBehaviourUpdate 2.4 ms
+    5.600 |    164 | A Medium       | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.600 |    164 | B Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.633 |    166 | A Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.633 |    166 | B Medium       | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.817 |    177 | A Medium       | despawn  | recording stopped
+    5.817 |    177 | A Medium 2     | despawn  | recording stopped
+    5.817 |    177 | B Medium       | despawn  | recording stopped
+    5.817 |    177 | B Medium 2     | despawn  | recording stopped
+    5.817 |    177 | -              | session  | 24 pictures saved
+    5.817 |    177 | -              | session  | recording stopped after 2.9 s (177 physics steps)
