@@ -1,0 +1,581 @@
+# Physics Battler playtest 2026-11-12_13-53-26
+# time (s since Play) | physics step | who | what | details
+    1.464 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    1.464 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+    1.464 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+    1.464 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    1.464 |      0 | -              | input    | at most 50 ms of physics a frame
+    1.464 |      0 | -              | input    | spawn: 6 units on the 8x8 board
+    1.464 |      0 | -              | console  | [Articulation probe] targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    1.464 |      0 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    1.467 |      1 | A Medium       | spawn    | at (-0.80, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    1.467 |      1 | A Medium 2     | spawn    | at (-2.40, -2.40) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    1.467 |      1 | A Large        | spawn    | at (0.80, -2.40) facing 0°, team 0, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    1.467 |      1 | B Medium       | spawn    | at (-2.40, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    1.467 |      1 | B Medium 2     | spawn    | at (0.80, 2.40) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    1.467 |      1 | B Large        | spawn    | at (-0.80, 2.40) facing 180°, team 1, Large body, mass 280.0 kg, leg length 1.05 m, rest pelvis height 1.26 m, profile UP_Large, style CS_Large
+    1.467 |      1 | A Medium       | equip    | WD_Sword and WD_Shield, scaled 1.00
+    1.467 |      1 | A Medium 2     | equip    | WD_Sword, scaled 1.00
+    1.467 |      1 | A Large        | equip    | WD_Club, scaled 1.24
+    1.467 |      1 | B Medium       | equip    | WD_Sword and WD_Shield, scaled 1.00
+    1.467 |      1 | B Medium 2     | equip    | WD_Sword, scaled 1.00
+    1.467 |      1 | B Large        | equip    | WD_Club, scaled 1.24
+    1.467 |      1 | A Medium       | sight    | noticed A Medium 2 at the edge of its view (1.6 m)
+    1.467 |      1 | A Medium       | sight    | noticed A Large at the edge of its view (1.6 m)
+    1.467 |      1 | A Medium       | sight    | noticed B Medium in clear view (5.1 m)
+    1.467 |      1 | A Medium       | sight    | noticed B Medium 2 in clear view (5.1 m)
+    1.467 |      1 | A Medium       | sight    | noticed B Large in clear view (4.8 m)
+    1.467 |      1 | A Medium 2     | sight    | noticed A Medium at the edge of its view (1.6 m)
+    1.467 |      1 | A Medium 2     | sight    | noticed A Large at the edge of its view (3.2 m)
+    1.467 |      1 | A Medium 2     | sight    | noticed B Medium in clear view (4.8 m)
+    1.467 |      1 | A Medium 2     | sight    | noticed B Medium 2 at the edge of its view (5.8 m)
+    1.467 |      1 | A Medium 2     | sight    | noticed B Large in clear view (5.1 m)
+    1.467 |      1 | A Large        | sight    | noticed A Medium at the edge of its view (1.6 m)
+    1.467 |      1 | A Large        | sight    | noticed A Medium 2 at the edge of its view (3.2 m)
+    1.467 |      1 | A Large        | sight    | noticed B Medium at the edge of its view (5.8 m)
+    1.467 |      1 | A Large        | sight    | noticed B Medium 2 in clear view (4.8 m)
+    1.467 |      1 | A Large        | sight    | noticed B Large in clear view (5.1 m)
+    1.467 |      1 | B Medium       | sight    | noticed A Medium in clear view (5.1 m)
+    1.467 |      1 | B Medium       | sight    | noticed A Medium 2 in clear view (4.8 m)
+    1.467 |      1 | B Medium       | sight    | noticed A Large at the edge of its view (5.8 m)
+    1.467 |      1 | B Medium       | sight    | noticed B Medium 2 at the edge of its view (3.2 m)
+    1.467 |      1 | B Medium       | sight    | noticed B Large at the edge of its view (1.6 m)
+    1.467 |      1 | B Medium 2     | sight    | noticed A Medium in clear view (5.1 m)
+    1.467 |      1 | B Medium 2     | sight    | noticed A Medium 2 at the edge of its view (5.8 m)
+    1.467 |      1 | B Medium 2     | sight    | noticed A Large in clear view (4.8 m)
+    1.467 |      1 | B Medium 2     | sight    | noticed B Medium at the edge of its view (3.2 m)
+    1.467 |      1 | B Medium 2     | sight    | noticed B Large at the edge of its view (1.6 m)
+    1.467 |      1 | B Large        | sight    | noticed A Medium in clear view (4.8 m)
+    1.467 |      1 | B Large        | sight    | noticed A Medium 2 in clear view (5.1 m)
+    1.467 |      1 | B Large        | sight    | noticed A Large in clear view (5.1 m)
+    1.467 |      1 | B Large        | sight    | noticed B Medium at the edge of its view (1.6 m)
+    1.467 |      1 | B Large        | sight    | noticed B Medium 2 at the edge of its view (1.6 m)
+    1.483 |      2 | A Medium       | target   | B Large (4.8 m, health 220)
+    1.483 |      2 | A Medium 2     | target   | B Medium (4.8 m, health 100)
+    1.483 |      2 | A Large        | target   | B Medium 2 (4.8 m, health 100)
+    1.483 |      2 | B Medium       | target   | A Medium 2 (4.8 m, health 100)
+    1.483 |      2 | B Medium 2     | target   | A Large (4.8 m, health 220)
+    1.483 |      2 | B Large        | target   | A Medium (4.8 m, health 100)
+    1.514 |      3 | -              | perf     | 341 ms frame, 0 physics steps, garbage collected (gen0 3, gen1 3, gen2 3); ours: nothing over 0.5 ms; Unity: Physics_Simulate 34.5 ms, GC_Collect 23.5 ms, Gfx_WaitForGfxCommandsFromMainThread 5.6 ms, PlayerLoop 5.2 ms, CPU_Total_Frame_Time 1.4 ms, CPU_Main_Thread_Frame_Time 0.9 ms, CPU_Render_Thread_Frame_Time 0.6 ms, GPU_Frame_Time 0.5 ms
+    1.564 |      6 | -              | perf     | 146 ms frame, 3 physics steps; ours: UnitStep 60.8 ms (18), RecorderSample 45.3 ms (3), ArmSolve 21.6 ms (32), Sandbox 6.3 ms (3), CaptureRender 1.2 ms (1); Unity: Main_Thread 150.3 ms, Gfx_WaitForGfxCommandsFromMainThread 147.7 ms, PlayerLoop 136.3 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 127.2 ms, FixedBehaviourUpdate 127.2 ms, Physics_Simulate 4.4 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 2.4 ms, LateBehaviourUpdate 2.4 ms
+    2.383 |     56 | -              | console  | [Upper] A Large: HandR turning at 63 rad/s; head 0 cm, hands 2 / 1 cm off the pose; OneShot turn90_right; ; put back 0, joints put 0   Spine asked -2 0 -2 (3°) is -1 -1 -2, 0 rad/s, left 0° aside (held), damping 45455 most 14095; Chest asked 0 0 -1 (1°) is 0 0 -1, 1 rad/s, left 0° aside (held), damping 29589 most 13312; Head asked 15 1 -1 (15°) is 15 1 -1, 2 rad/s, left 0° aside (held), damping 936 most 860; UpperArmL asked -1 -13 16 (21°) is -1 -13 16, 1 rad/s, left 0° aside, damping 5548 most 3469; ForearmL asked -2 1 2 (3°) is -2 1 2, 0 rad/s, left 0° aside, damping 1070 most 2297; HandL asked 6 15 6 (17°) is 6 15 7, 1 rad/s, left 0° aside, damping 54 most 814; UpperArmR asked 10 -12 -20 (25°) is 9 -13 -20, 18 rad/s, left 0° aside, damping 10610 most 12604; ForearmR asked -44 -19 0 (48°) is -44 -20 0, 2 rad/s, left 0° aside, damping 2578 most 4367; HandR asked -17 1 -30 (34°) is -15 1 -30, 63 rad/s, left 0° aside, damping 645 most 2699; 
+    2.383 |     56 | -              | console  | [Upper] B Large: HandR turning at 63 rad/s; head 0 cm, hands 2 / 1 cm off the pose; OneShot turn90_right; ; put back 0, joints put 0   Spine asked -2 0 -2 (3°) is -1 -1 -2, 0 rad/s, left 0° aside (held), damping 45455 most 14095; Chest asked 0 0 -1 (1°) is 0 0 -1, 1 rad/s, left 0° aside (held), damping 29589 most 13312; Head asked 15 1 -1 (15°) is 15 1 -1, 2 rad/s, left 0° aside (held), damping 936 most 860; UpperArmL asked -1 -13 16 (21°) is -1 -13 16, 1 rad/s, left 0° aside, damping 5548 most 3469; ForearmL asked -2 1 2 (3°) is -2 1 2, 0 rad/s, left 0° aside, damping 1070 most 2297; HandL asked 6 15 6 (17°) is 6 15 7, 1 rad/s, left 0° aside, damping 54 most 814; UpperArmR asked 10 -12 -20 (25°) is 9 -13 -20, 18 rad/s, left 0° aside, damping 10610 most 12604; ForearmR asked -44 -19 0 (48°) is -44 -20 0, 2 rad/s, left 0° aside, damping 2578 most 4367; HandR asked -17 1 -30 (34°) is -15 1 -30, 63 rad/s, left 0° aside, damping 645 most 2699; 
+    3.500 |    123 | A Medium 2     | move     | no headway toward B Medium (4.7 m): going round to the left
+    3.500 |    123 | A Large        | move     | no headway toward B Medium 2 (4.7 m): going round to the right
+    3.500 |    123 | B Medium       | move     | no headway toward A Medium 2 (4.7 m): going round to the left
+    3.500 |    123 | B Medium 2     | move     | no headway toward A Large (4.7 m): going round to the right
+    3.717 |    136 | B Large        | tempo    | gather → press: fully charged (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+    3.800 |    141 | A Medium       | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    4.183 |    164 | B Large        | attack   | a combo (full gather): sns_combo_forehand > sns_backhand_lunge > sns_forehand at A Medium
+    4.417 |    178 | A Medium       | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at B Large
+    4.567 |    187 | B Large        | hit      | blow struck A Medium's HandL at 3.4 m/s: blocked by A Medium's shield (6 poise); impulse 22.8 N·s (70% into the part); the swing stopped; blocked by the shield
+    4.567 |    187 | A Medium       | struck   | by B Large on the HandL: health 100/100, poise 39/45, recoil, standing; its strike carried on
+    4.750 |    198 | A Medium       | hit      | blow struck B Large's HandR at 16.0 m/s: parried by B Large's parried (26 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+    4.750 |    198 | B Large        | struck   | by A Medium on the HandR: health 220/220, poise 94/120, recoil, standing; parried with club guard, then driven back at 0.9 m/s
+    4.783 |    200 | A Large        | target   | B Large, close by (2.7 m): committed
+    4.783 |    200 | A Large        | tempo    | gather → press: fully charged (energy 1.00, aggression 0.65); energy 1.00, aggression 0.65
+    4.850 |    204 | -              | console  | [Upper] A Medium: ForearmR turning at 70 rad/s; head 1 cm, hands 22 / 2 cm off the pose; OneShot sns_thrust; its strike carried on; put back 0, joints put 2   Spine asked -6 -6 0 (9°) is -6 -7 0, 7 rad/s, left 9° aside (held), damping 7565 most 11611; Chest asked -12 -6 3 (14°) is -11 -9 5, 3 rad/s, left 0° aside (held), damping 6083 most 11162; Head asked 22 23 -5 (32°) is 14 29 -24, 25 rad/s, left 8° aside (held), damping 264 most 186; UpperArmL asked 57 -84 76 (127°) is 57 -86 70, 7 rad/s, left 8° aside (held), damping 3277 most 2212; ForearmL asked -58 17 -18 (63°) is -65 -18 7, 3 rad/s, left 37° aside (held), damping 1075 most 734; HandL asked -18 -18 -1 (25°) is -6 -40 19, 10 rad/s, left 0° aside (held), damping 223 most 785; UpperArmR asked -52 4 88 (102°) is -70 15 85, 39 rad/s, left 25° aside, damping 2075 most 9158; ForearmR asked -96 -28 20 (102°) is -93 32 13, 70 rad/s, left 15° aside, damping 678 most 3389; HandR asked 97 119 -13 (154°) is 81 115 15, 35 rad/s, left 10° aside, damping 234 most 526; grip asked 89 -42 0 (99°) is 90 -43 -1, k 0 most 600
+    4.983 |    212 | A Medium       | tempo    | press → shell: pressed (pressure 0.87); energy 0.85, aggression 0.44
+    4.983 |    212 | B Large        | attack   | its combo's next blow turned from A Medium to A Large
+    4.983 |    212 | -              | console  | [Upper] B Large: ForearmR turning at 12 rad/s; head 13 cm, hands 81 / 34 cm off the pose; OneShot sns_backhand_lunge; parried with club guard, then driven back at 0.9 m/s; put back 0, joints put 0   Spine asked 7 -15 -1 (17°) is 14 -39 6, 2 rad/s, left 20° aside (held), damping 45455 most 17448; Chest asked 0 -16 1 (16°) is 1 -17 1, 2 rad/s, left 0° aside (held), damping 29589 most 11667; Head asked -8 60 13 (62°) is -9 61 13, 3 rad/s, left 0° aside (held), damping 936 most 1289; UpperArmL asked 3 -64 -19 (67°) is 2 -64 -19, 5 rad/s, left 0° aside, damping 5548 most 5194; ForearmL asked -21 9 24 (33°) is -21 9 24, 5 rad/s, left 0° aside, damping 1070 most 2538; HandL asked -8 75 39 (85°) is -8 75 39, 4 rad/s, left 0° aside, damping 54 most 849; UpperArmR asked -101 49 25 (115°) is -105 25 36, 9 rad/s, left 17° aside, damping 10610 most 4230; ForearmR asked -2 -1 0 (2°) is -8 5 -11, 12 rad/s, left 12° aside, damping 2578 most 1131; HandR asked 47 -99 42 (118°) is 48 -99 43, 2 rad/s, left 0° aside, damping 645 most 488; 
+    5.067 |    217 | -              | console  | [Upper] A Medium: UpperArmR turning at 23 rad/s; head 55 cm, hands 83 / 23 cm off the pose; Cycle ; its strike carried on; put back 0, joints put 2   Spine asked 1 1 2 (2°) is 45 -16 62, 7 rad/s, left 20° aside (held), damping 7565 most 2014; Chest asked -5 1 1 (5°) is 3 -1 13, 17 rad/s, left 9° aside (held), damping 6083 most 1763; Head asked 16 0 -3 (16°) is 11 4 -22, 12 rad/s, left 11° aside (held), damping 264 most 178; UpperArmL asked -32 -172 -79 (192°) is -38 -142 -49, 13 rad/s, left 4° aside, damping 3277 most 1153; ForearmL asked -46 14 -15 (50°) is -64 -35 22, 14 rad/s, left 50° aside, damping 1075 most 537; HandL asked -20 -37 -15 (45°) is -19 -51 -13, 11 rad/s, left 0° aside, damping 223 most 764; UpperArmR asked 35 35 26 (56°) is 13 33 46, 23 rad/s, left 32° aside, damping 2075 most 1031; ForearmR asked -109 -32 23 (116°) is -107 24 -16, 4 rad/s, left 50° aside, damping 678 most 478; HandR asked -35 57 3 (67°) is -37 54 3, 8 rad/s, left 8° aside, damping 234 most 183; grip asked -43 2 0 (43°) is -40 7 -1, k 0 most 600
+    5.200 |    225 | -              | console  | [Upper] B Large: HandR turning at 39 rad/s; head 40 cm, hands 184 / 67 cm off the pose; OneShot sns_forehand; parried with club guard, then driven back at 0.9 m/s; put back 0, joints put 0   Spine asked 16 -8 2 (18°) is 44 -52 17, 3 rad/s, left 20° aside (held), damping 45455 most 27346; Chest asked 5 -6 1 (8°) is 11 -12 2, 2 rad/s, left 5° aside (held), damping 29589 most 17559; Head asked -19 39 8 (44°) is -24 40 6, 8 rad/s, left 0° aside (held), damping 936 most 1609; UpperArmL asked 1 -68 -19 (70°) is -1 -67 -17, 10 rad/s, left 0° aside, damping 5548 most 6748; ForearmL asked -33 14 38 (53°) is -35 13 38, 8 rad/s, left 0° aside, damping 1070 most 3103; HandL asked -21 39 51 (67°) is -21 39 51, 13 rad/s, left 0° aside, damping 54 most 882; UpperArmR asked -150 90 29 (177°) is -101 -22 91, 16 rad/s, left 50° aside, damping 10610 most 9486; ForearmR asked -56 -26 16 (64°) is -72 26 -27, 16 rad/s, left 50° aside, damping 2578 most 4281; HandR asked 151 -189 59 (249°) is 151 -188 49, 39 rad/s, left 0° aside (held), damping 645 most 1208; 
+    5.283 |    230 | -              | console  | [Upper] A Medium: ForearmR turning at 45 rad/s; head 64 cm, hands 142 / 32 cm off the pose; Cycle ; its strike carried on; put back 0, joints put 2   Spine asked 7 6 1 (9°) is -7 -29 76, 8 rad/s, left 20° aside (held), damping 7565 most 3902; Chest asked 1 6 2 (6°) is 2 7 38, 5 rad/s, left 20° aside (held), damping 6083 most 3361; Head asked 10 -19 1 (21°) is -9 -15 8, 3 rad/s, left 19° aside (held), damping 264 most 222; UpperArmL asked -122 -189 -9 (225°) is -15 -165 -47, 19 rad/s, left 3° aside (held), damping 3277 most 2751; ForearmL asked -110 33 -35 (120°) is -132 21 -16, 16 rad/s, left 42° aside (held), damping 1075 most 979; HandL asked -16 -40 -5 (43°) is -4 -20 0, 14 rad/s, left 0° aside (held), damping 223 most 781; UpperArmR asked 9 -7 25 (27°) is 51 -23 104, 26 rad/s, left 50° aside, damping 2075 most 835; ForearmR asked -75 -22 16 (80°) is -21 13 -15, 45 rad/s, left 50° aside, damping 678 most 497; HandR asked -37 39 -8 (55°) is -44 40 -6, 3 rad/s, left 6° aside, damping 234 most 173; grip asked -1 11 0 (11°) is -4 10 0, k 0 most 600
+    5.433 |    239 | A Large        | attack   | sns_combo_forehand at B Large, concentration 0.14
+    5.483 |    242 | -              | console  | [Upper] A Medium: UpperArmR turning at 10 rad/s; head 43 cm, hands 101 / 48 cm off the pose; Cycle ; its strike carried on; put back 0, joints put 2   Spine asked 6 11 0 (12°) is 21 27 37, 5 rad/s, left 20° aside (held), damping 7565 most 1071; Chest asked 0 10 1 (10°) is 7 12 41, 4 rad/s, left 20° aside (held), damping 6083 most 943; Head asked 9 -26 4 (28°) is 15 -22 28, 6 rad/s, left 20° aside (held), damping 264 most 163; UpperArmL asked 98 -228 197 (317°) is 169 -158 236, 4 rad/s, left 2° aside, damping 3277 most 821; ForearmL asked -77 23 -25 (84°) is -77 24 -29, 2 rad/s, left 2° aside, damping 1075 most 460; HandL asked -15 -42 -5 (45°) is -9 -26 -6, 8 rad/s, left 0° aside, damping 223 most 763; UpperArmR asked 9 -10 18 (22°) is 115 101 -10, 10 rad/s, left 20° aside (held), damping 2075 most 431; ForearmR asked -74 -22 16 (78°) is -31 -23 7, 5 rad/s, left 39° aside, damping 678 most 287; HandR asked -27 25 -11 (39°) is -7 19 -14, 2 rad/s, left 20° aside, damping 234 most 101; grip asked 10 -57 0 (58°) is 14 -56 2, k 0 most 600
+    6.067 |    277 | -              | console  | [Upper] A Medium: UpperArmL turning at 14 rad/s; head 9 cm, hands 31 / 62 cm off the pose; Cycle ; its strike carried on; put back 1, joints put 2   Spine asked 5 3 2 (6°) is 0 -21 -9, 1 rad/s, left 20° aside (held), damping 7565 most 825; Chest asked 2 3 1 (4°) is 2 -11 -2, 2 rad/s, left 12° aside (held), damping 6083 most 790; Head asked 5 -50 11 (52°) is 7 -49 12, 2 rad/s, left 0° aside (held), damping 264 most 154; UpperArmL asked -11 27 -30 (42°) is -31 -23 -40, 14 rad/s, left 0° aside, damping 3277 most 724; ForearmL asked -77 23 -25 (84°) is -77 -1 19, 3 rad/s, left 46° aside, damping 1075 most 436; HandL asked -10 -47 -4 (48°) is 32 12 77, 8 rad/s, left 0° aside, damping 223 most 759; UpperArmR asked 10 8 8 (15°) is 10 8 8, 1 rad/s, left 0° aside, damping 2075 most 167; ForearmR asked -80 -24 17 (86°) is -81 -23 17, 1 rad/s, left 0° aside, damping 678 most 93; HandR asked -17 10 -12 (23°) is -17 10 -12, 1 rad/s, left 0° aside, damping 234 most 35; grip asked 4 -77 0 (77°) is 20 -57 12, k 0 most 600
+    6.217 |    286 | A Large        | hit      | blow struck B Large's Head at 12.8 m/s: 21.8 damage, 69 poise, flinch; impulse 137.7 N·s (60% into the part); the swing stopped; the target
+    6.217 |    286 | B Large        | struck   | by A Large on the Head: health 198/220, poise 51/120, flinch, standing; its strike cut short, then driven back at 0.6 m/s; concentration 0.43
+    6.217 |    286 | -              | console  | [Upper] B Large: HandR turning at 74 rad/s; head 7 cm, hands 17 / 9 cm off the pose; Cycle ; its strike cut short, then driven back at 0.6 m/s; put back 0, joints put 0   Spine asked 0 -1 -4 (5°) is -1 -2 1, 11 rad/s, left 1° aside (held), damping 31863 most 90411; Chest asked -3 -1 2 (4°) is -3 -1 3, 2 rad/s, left 0° aside (held), damping 20741 most 49080; Head asked -2 -36 -7 (37°) is 0 -37 -4, 13 rad/s, left 0° aside (held), damping 375 most 2499; UpperArmL asked -36 -34 -22 (54°) is -36 -34 -22, 10 rad/s, left 0° aside, damping 5548 most 9174; ForearmL asked -56 22 63 (87°) is -56 22 63, 9 rad/s, left 0° aside, damping 1070 most 3336; HandL asked 7 17 8 (20°) is 12 13 2, 7 rad/s, left 9° aside, damping 54 most 893; UpperArmR asked -16 -3 1 (16°) is -21 17 -2, 46 rad/s, left 19° aside, damping 10610 most 35306; ForearmR asked -87 -39 0 (96°) is -99 -22 -17, 36 rad/s, left 18° aside, damping 2578 most 7748; HandR asked 20 -14 -21 (32°) is 92 59 316, 74 rad/s, left 50° aside, damping 645 most 2818; 
+    6.233 |    287 | B Large        | target   | A Large, who struck it: committed
+    6.233 |    287 | B Large        | attack   | a combo (press): sns_backhand_lunge > sns_forehand at A Large, concentration 0.44
+    6.417 |    298 | A Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    6.417 |    298 | B Medium       | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    6.500 |    303 | B Medium 2     | target   | A Medium (2.2 m, health 100)
+    6.500 |    303 | B Medium 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    6.617 |    310 | B Large        | contact  | ShinR touched P_Weapon_Club(Clone) (solid) at 3.6 m/s
+    6.700 |    315 | B Large        | hit      | blow struck A Large's Pelvis at 7.9 m/s: 10.8 damage, 64 poise, flinch; impulse 85.3 N·s (20% into the part); the swing stopped; the target
+    6.700 |    315 | A Large        | struck   | by B Large on the Pelvis: health 209/220, poise 56/120, flinch, standing; its strike cut short, then driven back at 1.0 m/s; concentration 0.42
+    6.717 |    316 | -              | console  | [Upper] A Large: UpperArmR turning at 79 rad/s; head 1 cm, hands 7 / 4 cm off the pose; Cycle ; its strike cut short, then driven back at 1.0 m/s; put back 0, joints put 0   Spine asked 16 -20 17 (31°) is 16 -23 17, 18 rad/s, left 0° aside (held), damping 31863 most 191416; Chest asked -18 -19 -14 (30°) is -18 -19 -14, 28 rad/s, left 0° aside (held), damping 20741 most 123958; Head asked -13 86 -8 (88°) is -13 87 -9, 6 rad/s, left 0° aside (held), damping 936 most 2301; UpperArmL asked -42 -34 -6 (55°) is -41 -33 -5, 9 rad/s, left 0° aside, damping 5548 most 10629; ForearmL asked -48 21 58 (78°) is -47 21 58, 5 rad/s, left 0° aside, damping 1070 most 3334; HandL asked 10 15 -4 (18°) is 11 14 -4, 9 rad/s, left 0° aside, damping 54 most 926; UpperArmR asked -86 24 21 (92°) is -86 20 20, 79 rad/s, left 0° aside, damping 10610 most 55695; ForearmR asked -12 -6 0 (14°) is -4 -39 15, 27 rad/s, left 34° aside, damping 2578 most 9607; HandR asked 16 239 119 (268°) is 49 209 151, 39 rad/s, left 17° aside, damping 645 most 2599; 
+    6.733 |    317 | A Large        | attack   | sns_combo_forehand at B Large, concentration 0.42
+    6.950 |    330 | B Large        | hit      | blow struck A Large's UpperArmR at 16.0 m/s: 20.5 damage, 172 poise, stagger; impulse 172.1 N·s (80% into the part); the swing stopped; the target
+    6.950 |    330 | A Large        | struck   | by B Large on the UpperArmR: health 189/220, poise 0/120, stagger, standing; its strike cut short, then driven back at 0.8 m/s; concentration 0.39
+    6.967 |    331 | -              | console  | [Upper] A Large: HandR turning at 71 rad/s; head 17 cm, hands 51 / 29 cm off the pose; Cycle ; its strike cut short, then driven back at 0.8 m/s; put back 0, joints put 2   Spine asked -8 1 -6 (10°) is 6 -17 -6, 13 rad/s, left 7° aside (held), damping 31863 most 142671; Chest asked 4 3 3 (6°) is 5 2 5, 10 rad/s, left 0° aside (held), damping 20741 most 63043; Head asked -3 14 4 (15°) is -3 16 3, 6 rad/s, left 0° aside (held), damping 936 most 4289; UpperArmL asked -55 -19 -36 (69°) is -59 -16 -38, 13 rad/s, left 0° aside, damping 5548 most 17757; ForearmL asked -15 6 15 (22°) is -14 5 13, 4 rad/s, left 0° aside, damping 1070 most 4899; HandL asked 10 17 29 (35°) is 9 18 27, 5 rad/s, left 0° aside, damping 54 most 1058; UpperArmR asked -71 12 11 (73°) is -72 1 17, 10 rad/s, left 0° aside, damping 10610 most 15396; ForearmR asked -62 -28 0 (68°) is -44 -35 18, 28 rad/s, left 20° aside, damping 2578 most 7196; HandR asked -9 -70 -39 (80°) is -5 -46 -47, 71 rad/s, left 13° aside, damping 645 most 1206; 
+    6.983 |    332 | A Large        | tempo    | press → shell: pressed (pressure 2.37); energy 0.65, aggression 0.61
+    7.250 |    348 | -              | console  | [Upper] B Large: HandR turning at 73 rad/s; head 3 cm, hands 35 / 5 cm off the pose; Idle ; its strike cut short, then driven back at 0.6 m/s; put back 0, joints put 0   Spine asked 5 -10 -1 (11°) is 3 -11 0, 1 rad/s, left 3° aside (held), damping 45073 most 51880; Chest asked -2 -10 -2 (10°) is -2 -9 -1, 0 rad/s, left 0° aside (held), damping 29341 most 43278; Head asked -9 28 -6 (30°) is -7 28 -5, 1 rad/s, left 1° aside (held), damping 910 most 1554; UpperArmL asked -20 -31 -6 (37°) is -21 -36 -7, 9 rad/s, left 4° aside, damping 5548 most 7714; ForearmL asked -52 21 59 (81°) is -52 21 59, 1 rad/s, left 0° aside, damping 1070 most 2627; HandL asked 19 22 3 (30°) is 21 21 1, 8 rad/s, left 3° aside, damping 54 most 859; UpperArmR asked -60 15 30 (69°) is -70 30 43, 34 rad/s, left 19° aside, damping 10610 most 33841; ForearmR asked -53 -23 0 (58°) is -66 -36 9, 58 rad/s, left 21° aside, damping 2578 most 12736; HandR asked -50 34 42 (73°) is 209 -109 -146, 73 rad/s, left 11° aside (held), damping 645 most 3408; 
+    7.267 |    349 | A Medium 2     | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at B Medium
+    7.267 |    349 | B Large        | tempo    | press → shell: pressed (pressure 1.60); energy 0.22, aggression 0.69
+    7.317 |    352 | A Medium       | tempo    | shell → counter: the barrage stopped (energy 0.90); energy 0.90, aggression 0.44
+    7.433 |    359 | -              | console  | [Upper] B Medium 2: HandR turning at 72 rad/s; head 0 cm, hands 2 / 0 cm off the pose; Cycle ; ; put back 0, joints put 1   Spine asked 5 6 1 (8°) is 5 6 1, 1 rad/s, left 0° aside (held), damping 6189 most 3167; Chest asked 0 6 1 (6°) is 0 6 1, 0 rad/s, left 0° aside (held), damping 4016 most 3115; Head asked 8 -41 6 (42°) is 8 -41 6, 0 rad/s, left 0° aside (held), damping 264 most 157; UpperArmL asked 24 11 44 (52°) is 24 11 44, 5 rad/s, left 0° aside, damping 781 most 716; ForearmL asked -7 2 7 (11°) is -7 2 7, 9 rad/s, left 0° aside, damping 145 most 453; HandL asked -90 65 -42 (119°) is -89 65 -42, 4 rad/s, left 0° aside, damping 5 most 151; UpperArmR asked -1 -38 -13 (40°) is -1 -36 -14, 6 rad/s, left 0° aside, damping 2075 most 2974; ForearmR asked -75 -22 0 (79°) is -75 -4 -14, 7 rad/s, left 15° aside, damping 678 most 1397; HandR asked 23 1 16 (28°) is 22 -3 13, 72 rad/s, left 0° aside, damping 234 most 979; 
+    7.467 |    361 | B Medium       | attack   | sns_thrust at A Medium 2
+    7.500 |    363 | B Medium 2     | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at A Medium
+    7.617 |    370 | A Medium 2     | hit      | blow struck B Medium's UpperArmL at 12.1 m/s: 14.5 damage, 15 poise, recoil; impulse 19.7 N·s (80% into the part); the swing stopped; the target
+    7.617 |    370 | B Medium       | struck   | by A Medium 2 on the UpperArmL: health 85/100, poise 30/45, recoil, standing; its strike carried on
+    7.900 |    387 | B Medium 2     | hit      | blow struck A Medium's Pelvis at 11.6 m/s: 19.7 damage, 14 poise, recoil; impulse 18.9 N·s (20% into the part); the swing stopped; the target
+    7.900 |    387 | A Medium       | struck   | by B Medium 2 on the Pelvis: health 80/100, poise 31/45, recoil, standing; hit_left_rib reaction, then driven back at 0.9 m/s
+    7.917 |    388 | A Medium       | target   | B Medium 2, who struck it: committed
+    7.917 |    388 | A Medium       | attack   | none of its strikes reaches B Medium 2 from 1.58 m; closing in
+    7.967 |    391 | B Medium       | hit      | blow struck A Medium 2's Head at 6.4 m/s: 13.6 damage, 5 poise, recoil; impulse 10.4 N·s (60% into the part); the swing stopped; the target
+    7.967 |    391 | A Medium 2     | struck   | by B Medium on the Head: health 86/100, poise 40/45, recoil, standing; its strike carried on
+    8.100 |    399 | B Medium       | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 10.9 m/s
+    8.117 |    400 | A Medium 2     | hit      | blow struck B Medium's ShinL at 11.1 m/s: 13.3 damage, 17 poise, recoil; impulse 22.0 N·s (15% into the part); the swing stopped; the target
+    8.117 |    400 | B Medium       | struck   | by A Medium 2 on the ShinL: health 72/100, poise 17/45, recoil, standing; its strike carried on, then driven back at 1.2 m/s
+    8.133 |    401 | B Medium       | tempo    | press → shell: pressed (pressure 1.15); energy 0.75, aggression 0.46
+    8.183 |    404 | B Medium       | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 2.1 m/s
+    8.317 |    412 | A Medium       | attack   | sns_combo_forehand at B Medium 2
+    8.367 |    415 | B Medium 2     | hit      | blow struck A Medium's Pelvis at 10.8 m/s: 18.3 damage, 16 poise, recoil; impulse 21.4 N·s (20% into the part); the swing stopped; the target
+    8.367 |    415 | A Medium       | struck   | by B Medium 2 on the Pelvis: health 62/100, poise 18/45, recoil, standing; its strike carried on, then driven back at 1.1 m/s
+    8.367 |    415 | A Medium       | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 9.5 m/s
+    8.400 |    417 | A Medium       | tempo    | counter → probe: answered; energy 0.61, aggression 0.32
+    8.417 |    418 | A Medium       | tempo    | probe → shell: pressed (pressure 1.29); energy 0.61, aggression 0.32
+    8.450 |    420 | B Medium 2     | hit      | blow struck A Medium's ThighL at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (15% into the part); the swing stopped; the target; no sever: not hard enough to cut through the left hip (0.0 of 8.0 damage)
+    8.450 |    420 | A Medium       | struck   | by B Medium 2 on the ThighL: health 62/100, poise 18/45, recoil, standing; light reaction
+    8.500 |    423 | A Large        | contact  | ShinR touched P_Weapon_Sword(Clone) (solid) at 10.1 m/s
+    8.617 |    430 | A Medium 2     | hit      | blow struck B Medium's HandL at 2.2 m/s: blocked by B Medium's shield (2 poise); impulse 5.2 N·s (70% into the part); the swing stopped; blocked by the shield
+    8.617 |    430 | B Medium       | struck   | by A Medium 2 on the HandL: health 72/100, poise 18/45, recoil, standing; the shield knocked back
+    8.850 |    444 | B Medium 2     | hit      | blow struck A Medium's HandL at 10.4 m/s: blocked by A Medium's shield (11 poise); impulse 30.3 N·s (70% into the part); the swing stopped; blocked by the shield
+    8.850 |    444 | A Medium       | struck   | by B Medium 2 on the HandL: health 62/100, poise 10/45, recoil, standing; the shield knocked back, then driven back at 0.4 m/s
+    8.900 |    447 | A Medium 2     | attack   | sns_chop_lunge at B Medium
+    9.017 |    454 | A Large        | sight    | lost track of B Medium 2
+    9.133 |    461 | B Medium 2     | attack   | sns_chop_lunge at A Large
+    9.467 |    481 | B Large        | sight    | lost track of A Medium 2
+   10.133 |    521 | B Medium       | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 10.4 m/s
+   10.133 |    521 | B Medium       | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 7.5 m/s
+   10.150 |    522 | B Large        | sight    | lost track of B Medium
+   10.150 |    522 | B Medium       | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 6.9 m/s
+   10.167 |    523 | B Medium       | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 3.7 m/s
+   10.183 |    524 | A Medium 2     | hit      | blow struck B Medium's ShinL at 7.3 m/s: 5.9 damage, 7 poise, recoil; impulse 14.6 N·s (15% into the part); the swing stopped; the target
+   10.183 |    524 | B Medium       | struck   | by A Medium 2 on the ShinL: health 66/100, poise 21/45, recoil, standing; hit_right_rib reaction, then driven back at 0.5 m/s
+   10.283 |    530 | A Large        | sight    | noticed B Medium 2 at the edge of its view (1.8 m)
+   10.317 |    532 | B Medium 2     | hit      | blow struck A Large's HandR at 8.9 m/s: parried by A Large's parried (10 poise); impulse 25.8 N·s (70% into the part); the swing stopped; parried
+   10.317 |    532 | A Large        | struck   | by B Medium 2 on the HandR: health 189/220, poise 51/120, recoil, standing; parried with tierce; concentration 0.41
+   10.333 |    533 | A Large        | target   | B Medium 2, who struck it: committed
+   10.350 |    534 | B Medium       | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 1.2 m/s
+   10.417 |    538 | B Large        | sight    | noticed B Medium at the edge of its view (3.6 m)
+   10.433 |    539 | B Medium       | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 4.6 m/s
+   10.467 |    541 | B Medium       | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 5.7 m/s
+   10.617 |    550 | B Large        | tempo    | shell → counter: the barrage stopped (energy 0.28); energy 0.28, aggression 0.69
+   10.833 |    563 | B Large        | attack   | sns_forehand at A Large, concentration 0.62
+   11.100 |    579 | B Large        | sight    | noticed A Medium 2 at the edge of its view (3.7 m)
+   11.250 |    588 | A Medium 2     | tempo    | press → gather: burst done (4 blows); energy 0.35, aggression 0.68
+   11.483 |    602 | B Medium 2     | attack   | sns_thrust at A Medium, concentration 0.35
+   11.567 |    607 | B Medium 2     | move     | no headway toward A Medium (1.7 m): going round to the left
+   11.633 |    611 | -              | console  | [Upper] B Large: ForearmR turning at 30 rad/s; head 13 cm, hands 75 / 28 cm off the pose; OneShot sns_forehand; its strike cut short, then driven back at 0.6 m/s; put back 0, joints put 0   Spine asked 6 -21 6 (22°) is -6 -1 1, 3 rad/s, left 16° aside (held), damping 45073 most 18919; Chest asked 1 -20 2 (20°) is 0 -19 2, 3 rad/s, left 0° aside (held), damping 29341 most 12512; Head asked -13 49 -8 (51°) is -13 48 -8, 5 rad/s, left 0° aside (held), damping 931 most 1256; UpperArmL asked -19 -35 -4 (40°) is -20 -35 -5, 3 rad/s, left 0° aside, damping 5548 most 3426; ForearmL asked -47 19 54 (75°) is -48 19 55, 3 rad/s, left 0° aside, damping 1070 most 1508; HandL asked 20 33 20 (43°) is 19 33 21, 5 rad/s, left 0° aside, damping 54 most 442; UpperArmR asked -83 -46 6 (95°) is -85 -36 18, 10 rad/s, left 12° aside, damping 10610 most 4347; ForearmR asked -2 -1 0 (2°) is 2 -11 21, 30 rad/s, left 19° aside, damping 2578 most 1053; HandR asked -40 83 23 (95°) is 57 -261 -45, 22 rad/s, left 0° aside, damping 645 most 414; 
+   11.767 |    619 | B Large        | hit      | blow struck A Large's HandR at 8.7 m/s: parried by A Large's parried (31 poise); impulse 83.6 N·s (70% into the part); the swing stopped; parried
+   11.767 |    619 | A Large        | struck   | by B Large on the HandR: health 189/220, poise 46/120, recoil, standing; parried with quarte, then driven back at 1.0 m/s; concentration 0.72
+   11.783 |    620 | A Large        | target   | B Large, who struck it: committed
+   11.850 |    624 | -              | console  | [Upper] B Large: ForearmR turning at 7 rad/s; head 10 cm, hands 79 / 16 cm off the pose; OneShot sns_forehand; its strike cut short, then driven back at 0.6 m/s; put back 0, joints put 0   Spine asked 5 -24 7 (26°) is -4 -11 3, 1 rad/s, left 14° aside (held), damping 45073 most 10038; Chest asked 2 -22 3 (22°) is 1 -22 3, 1 rad/s, left 0° aside (held), damping 29341 most 9237; Head asked -13 57 -8 (59°) is -12 57 -7, 1 rad/s, left 0° aside (held), damping 931 most 811; UpperArmL asked -4 -30 -5 (30°) is -4 -29 -5, 1 rad/s, left 0° aside, damping 5548 most 2545; ForearmL asked -39 16 44 (61°) is -38 16 44, 1 rad/s, left 0° aside, damping 1070 most 1781; HandL asked -1 41 21 (45°) is -1 40 21, 0 rad/s, left 0° aside, damping 54 most 636; UpperArmR asked -77 -71 8 (105°) is -81 -70 22, 4 rad/s, left 10° aside, damping 10610 most 8598; ForearmR asked -2 -1 0 (2°) is 10 -5 72, 7 rad/s, left 20° aside (held), damping 2578 most 2710; HandR asked 27 61 -27 (72°) is -128 -253 54, 7 rad/s, left 12° aside, damping 645 most 1251; 
+   11.950 |    630 | B Medium 2     | hit      | blow struck A Medium's UpperArmL at 9.4 m/s: 7.5 damage, 8 poise, recoil; impulse 15.3 N·s (80% into the part); the swing stopped; the target
+   11.950 |    630 | A Medium       | struck   | by B Medium 2 on the UpperArmL: health 54/100, poise 23/45, recoil, standing; light reaction
+   12.017 |    634 | B Large        | attack   | sns_combo_forehand at A Large, concentration 0.44
+   12.100 |    639 | B Medium       | sight    | lost track of A Large
+   12.150 |    642 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 0.81); energy 0.81, aggression 0.34
+   12.150 |    642 | B Medium 2     | tempo    | press → gather: burst done (5 blows); energy 0.25, aggression 0.82
+   12.167 |    643 | B Medium       | attack   | sns_combo_forehand at A Medium 2
+   12.233 |    647 | A Medium 2     | tempo    | gather → probe: rested (energy 0.50); energy 0.50, aggression 0.68
+   12.267 |    649 | B Medium       | sight    | noticed A Large at the edge of its view (5.1 m)
+   12.783 |    680 | B Large        | hit      | blow struck A Large's HandR at 16.0 m/s: parried by A Large's parried (57 poise); impulse 153.0 N·s (70% into the part); the swing stopped; parried
+   12.783 |    680 | A Large        | struck   | by B Large on the HandR: health 189/220, poise 7/120, flinch, standing; parried with hanging, then driven back at 1.8 m/s; concentration 0.57
+   12.867 |    685 | B Medium       | hit      | blow struck A Medium 2's HandR at 6.8 m/s: parried by A Medium 2's parried (7 poise); impulse 19.6 N·s (70% into the part); the swing stopped; parried
+   12.867 |    685 | A Medium 2     | struck   | by B Medium on the HandR: health 86/100, poise 38/45, recoil, standing; parried with hanging, then driven back at 0.7 m/s
+   12.967 |    691 | A Medium       | tempo    | shell → counter: the barrage stopped (energy 0.68); energy 0.68, aggression 0.14
+   12.983 |    692 | A Medium       | attack   | a combo (counter): sns_thrust > sns_chop_lunge at B Medium 2
+   13.017 |    694 | -              | console  | [Upper] A Large: HandR turning at 62 rad/s; head 0 cm, hands 1 / 1 cm off the pose; Cycle ; parried with hanging, then driven back at 1.8 m/s; put back 0, joints put 2   Spine asked 2 4 -1 (4°) is 2 4 -1, 1 rad/s, left 0° aside (held), damping 45073 most 14301; Chest asked -3 4 -3 (6°) is -3 4 -3, 1 rad/s, left 0° aside (held), damping 29341 most 13106; Head asked 8 -22 2 (24°) is 8 -22 2, 1 rad/s, left 0° aside (held), damping 936 most 902; UpperArmL asked -45 -25 -6 (52°) is -45 -24 -6, 1 rad/s, left 0° aside, damping 5548 most 3571; ForearmL asked -52 21 60 (82°) is -52 21 60, 0 rad/s, left 0° aside, damping 1070 most 2321; HandL asked 7 19 1 (20°) is 7 19 1, 1 rad/s, left 0° aside, damping 54 most 817; UpperArmR asked -63 -82 102 (145°) is -65 -81 100, 17 rad/s, left 0° aside, damping 10610 most 12041; ForearmR asked -58 -26 0 (63°) is -59 -21 -4, 13 rad/s, left 3° aside, damping 2578 most 5326; HandR asked 27 1 33 (42°) is 26 0 32, 62 rad/s, left 0° aside, damping 645 most 2498; 
+   13.217 |    706 | A Medium       | hit      | blow struck B Large's ForearmR at 16.0 m/s: 16.0 damage, 20 poise, recoil; impulse 26.1 N·s (80% into the part); the swing stopped; someone in the way
+   13.217 |    706 | B Large        | struck   | by A Medium on the ForearmR: health 182/220, poise 100/120, recoil, standing; its strike carried on; concentration 0.26
+   13.233 |    707 | B Large        | target   | A Medium, who struck it: committed
+   13.283 |    710 | A Medium       | hit      | blow struck B Large's UpperArmR at 16.0 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (80% into the part); the swing stopped; someone in the way
+   13.283 |    710 | B Large        | struck   | by A Medium on the UpperArmR: health 182/220, poise 102/120, recoil, standing; its strike carried on; concentration 0.25
+   13.283 |    710 | -              | console  | [Upper] A Medium: HandR turning at 11 rad/s; head 9 cm, hands 64 / 17 cm off the pose; OneShot sns_thrust; light reaction; put back 1, joints put 3   Spine asked 1 -4 0 (4°) is 3 16 -12, 3 rad/s, left 16° aside (held), damping 7502 most 19923; Chest asked -3 -5 -1 (6°) is -2 -4 -1, 3 rad/s, left 0° aside (held), damping 6032 most 14255; Head asked 11 5 -8 (14°) is 10 4 -8, 9 rad/s, left 0° aside (held), damping 264 most 847; UpperArmL asked -11 20 -20 (30°) is -11 7 -21, 11 rad/s, left 0° aside, damping 3218 most 6693; ForearmL asked -68 20 -22 (75°) is -67 11 -18, 4 rad/s, left 6° aside, damping 1056 most 1644; HandL asked -17 -13 -11 (24°) is -12 -12 -14, 7 rad/s, left 0° aside, damping 219 most 1040; UpperArmR asked -17 66 33 (76°) is 14 58 33, 9 rad/s, left 31° aside, damping 2075 most 3715; ForearmR asked -66 -19 14 (70°) is -11 14 5, 8 rad/s, left 50° aside, damping 678 most 1539; HandR asked -47 22 2 (52°) is 38 50 -8, 11 rad/s, left 50° aside, damping 234 most 518; grip asked 16 -29 0 (33°) is 16 -29 0, k 0 most 600
+   13.317 |    712 | A Medium       | hit      | blow struck B Large's HandR at 7.4 m/s: 0.0 damage, 0 poise, recoil; impulse 0.0 N·s (80% into the part); the swing stopped; someone in the way
+   13.317 |    712 | B Large        | struck   | by A Medium on the HandR: health 182/220, poise 102/120, recoil, standing; its strike carried on; concentration 0.25
+   13.467 |    721 | B Medium       | attack   | none of its strikes reaches A Medium 2 from 1.64 m; closing in
+   13.467 |    721 | B Medium       | tempo    | counter → probe: answered; energy 0.66, aggression 0.34
+   13.483 |    722 | B Large        | attack   | sns_combo_forehand at A Medium, concentration 0.22
+   13.483 |    722 | B Medium       | tempo    | probe → shell: pressed (pressure 1.14); energy 0.66, aggression 0.34
+   13.800 |    741 | A Large        | tempo    | shell → counter: the barrage stopped (energy 0.79); energy 0.79, aggression 0.43
+   13.817 |    742 | B Medium 2     | tempo    | gather → probe: rested (energy 0.50); energy 0.50, aggression 0.82
+   13.900 |    747 | A Medium       | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 8.4 m/s
+   13.917 |    748 | A Medium       | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 5.0 m/s
+   14.100 |    759 | A Medium       | sight    | lost track of A Medium 2
+   14.167 |    763 | A Medium 2     | attack   | sns_thrust at B Medium
+   14.233 |    767 | B Large        | sight    | lost track of A Medium 2
+   14.633 |    791 | A Medium 2     | hit      | blow struck B Medium's UpperArmL at 12.1 m/s: 9.7 damage, 10 poise, recoil; impulse 19.7 N·s (80% into the part); the swing stopped; the target
+   14.633 |    791 | B Medium       | struck   | by A Medium 2 on the UpperArmL: health 57/100, poise 35/45, recoil, standing; light reaction
+   14.717 |    796 | -              | console  | [Upper] B Large: UpperArmR turning at 62 rad/s; head 1 cm, hands 3 / 1 cm off the pose; Idle ; its strike carried on; put back 0, joints put 0   Spine asked 4 -16 2 (17°) is 3 -16 3, 1 rad/s, left 0° aside (held), damping 45073 most 61297; Chest asked 0 -16 1 (16°) is 0 -16 1, 0 rad/s, left 0° aside (held), damping 29341 most 51884; Head asked -11 80 -9 (82°) is -10 80 -9, 1 rad/s, left 0° aside (held), damping 931 most 1470; UpperArmL asked -48 -32 -12 (59°) is -48 -33 -12, 10 rad/s, left 0° aside, damping 5548 most 7905; ForearmL asked -46 19 52 (72°) is -45 19 52, 2 rad/s, left 0° aside, damping 1070 most 2801; HandL asked 17 14 6 (23°) is 17 14 5, 9 rad/s, left 0° aside, damping 54 most 872; UpperArmR asked -43 -33 4 (54°) is -42 -31 5, 62 rad/s, left 1° aside, damping 10610 most 41646; ForearmR asked -44 -20 0 (48°) is -41 -25 3, 11 rad/s, left 5° aside, damping 2578 most 6333; HandR asked -82 237 113 (275°) is 28 -76 -38, 56 rad/s, left 3° aside, damping 645 most 2802; 
+   14.733 |    797 | B Large        | tempo    | counter → probe: answered; energy 0.05, aggression 0.51
+   14.750 |    798 | B Large        | tempo    | probe → gather: tired (energy 0.05); energy 0.05, aggression 0.51
+   14.817 |    802 | -              | console  | [Upper] A Medium 2: HandR turning at 62 rad/s; head 2 cm, hands 4 / 1 cm off the pose; Idle ; parried with hanging, then driven back at 0.7 m/s; put back 0, joints put 0   Spine asked 1 -9 2 (9°) is 0 -7 3, 1 rad/s, left 0° aside (held), damping 6137 most 9906; Chest asked -3 -10 1 (10°) is -3 -9 2, 0 rad/s, left 0° aside (held), damping 3982 most 8873; Head asked 20 19 -7 (28°) is 21 18 -8, 1 rad/s, left 0° aside (held), damping 263 most 286; UpperArmL asked -47 -7 -30 (56°) is -46 -8 -30, 36 rad/s, left 0° aside, damping 781 most 2438; ForearmL asked -58 15 57 (83°) is -56 15 57, 3 rad/s, left 0° aside, damping 145 most 496; HandL asked -12 23 -12 (28°) is -11 23 -13, 29 rad/s, left 0° aside, damping 5 most 163; UpperArmR asked -80 42 31 (95°) is -82 44 29, 48 rad/s, left 0° aside, damping 2075 most 6341; ForearmR asked -22 -6 0 (23°) is -20 18 -1, 21 rad/s, left 16° aside, damping 678 most 1886; HandR asked 14 25 -12 (31°) is 14 24 -13, 62 rad/s, left 0° aside, damping 234 most 808; 
+   15.017 |    814 | A Large        | tempo    | counter → probe: no answer came; energy 0.79, aggression 0.43
+   15.033 |    815 | A Large        | tempo    | probe → shell: pressed (pressure 2.18); energy 0.79, aggression 0.43
+   15.067 |    817 | B Large        | sight    | lost track of B Medium
+   15.100 |    819 | A Large        | move     | no headway toward B Large (2.5 m): going round to the right
+   15.117 |    820 | A Medium       | attack   | sns_combo_backhand at B Medium 2, concentration 0.56
+   15.217 |    826 | B Medium 2     | attack   | sns_combo_backhand at A Medium
+   15.233 |    827 | B Medium 2     | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 10.6 m/s
+   15.250 |    828 | A Medium       | hit      | blow struck B Medium 2's ThighR at 14.2 m/s: 13.2 damage, 14 poise, recoil; impulse 28.2 N·s (15% into the part); the swing stopped; the target
+   15.250 |    828 | B Medium 2     | struck   | by A Medium on the ThighR: health 87/100, poise 31/45, recoil, standing; its strike carried on, then driven back at 0.9 m/s
+   15.250 |    828 | B Medium 2     | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 2.5 m/s
+   15.267 |    829 | B Medium 2     | tempo    | probe → shell: pressed (pressure 0.52); energy 0.47, aggression 0.76
+   15.450 |    840 | A Medium       | tempo    | counter → probe: answered; energy 0.23, aggression 0.46
+   15.467 |    841 | A Medium       | tempo    | probe → shell: pressed (pressure 1.90); energy 0.23, aggression 0.46
+   15.500 |    843 | A Medium       | sight    | noticed A Medium 2 at the edge of its view (7.0 m)
+   15.517 |    844 | B Medium       | sight    | lost track of A Large
+   15.533 |    845 | B Medium 2     | contact  | ShinR touched P_Weapon_Sword(Clone) (solid) at 4.4 m/s
+   15.533 |    845 | B Medium 2     | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 5.5 m/s
+   15.583 |    848 | B Medium 2     | sight    | lost track of A Large
+   15.667 |    853 | B Medium 2     | sight    | noticed A Large at the edge of its view (1.7 m)
+   16.500 |    903 | A Medium 2     | attack   | sns_chop_lunge at B Medium
+   16.567 |    907 | B Large        | tempo    | gather → probe: rested (energy 0.45); energy 0.45, aggression 0.51
+   17.083 |    938 | B Large        | sight    | noticed B Medium at the edge of its view (4.3 m)
+   17.250 |    948 | B Large        | sight    | noticed A Medium 2 at the edge of its view (5.0 m)
+   17.283 |    950 | B Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.51); energy 0.51, aggression 0.76
+   17.300 |    951 | B Medium 2     | attack   | sns_chop_lunge at A Medium
+   17.517 |    964 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 0.71); energy 0.71, aggression 0.28
+   17.533 |    965 | B Medium       | attack   | sns_thrust at A Medium 2
+   17.600 |    969 | A Medium 2     | hit      | blow struck B Medium's HandL at 9.6 m/s: blocked by B Medium's shield (5 poise); impulse 27.8 N·s (70% into the part); the swing stopped; blocked by the shield
+   17.600 |    969 | B Medium       | struck   | by A Medium 2 on the HandL: health 57/100, poise 40/45, recoil, standing; its strike carried on
+   17.800 |    981 | B Medium       | sight    | lost track of B Medium 2
+   17.817 |    982 | B Medium       | contact  | ThighL touched Collider (solid) at 6.6 m/s
+   17.917 |    988 | B Medium       | hit      | blow struck A Medium 2's HandR at 16.0 m/s: parried by A Medium 2's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   17.917 |    988 | A Medium 2     | struck   | by B Medium on the HandR: health 86/100, poise 28/45, flinch, standing; parried with medium guard, then driven back at 0.7 m/s
+   17.917 |    988 | -              | console  | [Upper] B Medium: UpperArmL turning at 68 rad/s; head 2 cm, hands 7 / 17 cm off the pose; OneShot sns_thrust; its strike carried on; put back 0, joints put 3   Spine asked 2 -8 2 (8°) is 1 -5 0, 2 rad/s, left 0° aside (held), damping 7502 most 20045; Chest asked -2 -9 2 (9°) is -4 -8 1, 2 rad/s, left 0° aside (held), damping 6032 most 17821; Head asked 19 20 -9 (28°) is 20 19 -8, 4 rad/s, left 0° aside (held), damping 264 most 414; UpperArmL asked -26 25 -25 (44°) is -32 19 -22, 68 rad/s, left 0° aside (held), damping 3218 most 14612; ForearmL asked -70 21 -22 (76°) is -80 59 -39, 33 rad/s, left 23° aside (held), damping 1056 most 3713; HandL asked -20 -19 2 (28°) is -34 31 -5, 36 rad/s, left 0° aside (held), damping 219 most 889; UpperArmR asked -17 91 21 (95°) is -18 95 21, 10 rad/s, left 0° aside (held), damping 2075 most 2045; ForearmR asked -74 -22 16 (78°) is -75 -22 15, 5 rad/s, left 0° aside, damping 678 most 895; HandR asked -120 85 111 (184°) is 116 -81 -104, 25 rad/s, left 0° aside, damping 234 most 431; grip asked 23 -25 0 (34°) is 23 -20 5, k 0 most 600
+   17.933 |    989 | B Medium       | contact  | ShinL touched Collider (solid) at 3.3 m/s
+   18.133 |   1001 | B Medium       | tempo    | counter → probe: answered; energy 0.56, aggression 0.22
+   18.150 |   1002 | B Medium       | tempo    | probe → shell: pressed (pressure 1.08); energy 0.56, aggression 0.22
+   18.417 |   1018 | B Medium 2     | hit      | blow struck A Medium's HandL at 4.0 m/s: blocked by A Medium's shield (2 poise); impulse 11.7 N·s (70% into the part); the swing stopped; blocked by the shield
+   18.417 |   1018 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 43/45, recoil, standing; the shield knocked back; concentration 1.00
+   18.600 |   1029 | A Large        | tempo    | shell → counter: the barrage stopped (energy 0.86); energy 0.86, aggression 0.43
+   18.850 |   1044 | B Large        | attack   | sns_forehand at A Medium
+   18.933 |   1049 | A Large        | attack   | sns_combo_forehand at B Large
+   19.000 |   1053 | A Medium 2     | attack   | sns_chop_lunge at B Medium
+   19.117 |   1060 | B Medium       | sight    | lost track of A Medium
+   19.333 |   1073 | B Medium       | sight    | lost track of B Large
+   19.600 |   1089 | B Large        | hit      | blow struck A Medium's HandL at 11.9 m/s: blocked by A Medium's shield (15 poise); impulse 79.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   19.600 |   1089 | A Medium       | struck   | by B Large on the HandL: health 54/100, poise 30/45, flinch, standing; the shield knocked back, then driven back at 0.4 m/s; concentration 1.00
+   19.617 |   1090 | A Medium       | target   | B Large, who struck it: committed
+   19.650 |   1092 | B Medium 2     | attack   | sns_rising at A Medium
+   19.800 |   1101 | B Medium       | sight    | noticed B Large at the edge of its view (5.4 m)
+   19.833 |   1103 | B Medium       | sight    | noticed A Medium at the edge of its view (7.3 m)
+   20.117 |   1120 | A Medium 2     | hit      | blow struck B Medium's HandL at 6.1 m/s: blocked by B Medium's shield (3 poise); impulse 17.7 N·s (70% into the part); the swing stopped; blocked by the shield
+   20.117 |   1120 | B Medium       | struck   | by A Medium 2 on the HandL: health 57/100, poise 42/45, recoil, standing; the shield knocked back
+   20.200 |   1125 | -              | console  | [Upper] A Large: UpperArmR turning at 69 rad/s; head 2 cm, hands 3 / 1 cm off the pose; Idle ; parried with hanging, then driven back at 1.8 m/s; put back 0, joints put 2   Spine asked 4 -16 2 (17°) is 3 -16 3, 1 rad/s, left 0° aside (held), damping 45073 most 65556; Chest asked 0 -16 1 (16°) is 0 -16 1, 0 rad/s, left 0° aside (held), damping 29341 most 55793; Head asked -11 81 -9 (82°) is -11 81 -9, 1 rad/s, left 0° aside (held), damping 936 most 1497; UpperArmL asked -48 -32 -11 (59°) is -48 -33 -11, 10 rad/s, left 0° aside, damping 5548 most 8018; ForearmL asked -46 19 52 (72°) is -45 19 52, 2 rad/s, left 0° aside, damping 1070 most 2842; HandL asked 18 14 5 (23°) is 18 14 4, 9 rad/s, left 0° aside, damping 54 most 882; UpperArmR asked -44 -28 -2 (52°) is -43 -25 -2, 69 rad/s, left 0° aside, damping 10610 most 45270; ForearmR asked -44 -20 0 (48°) is -43 -21 1, 11 rad/s, left 0° aside, damping 2578 most 6356; HandR asked 35 -68 -40 (86°) is 34 -68 -40, 54 rad/s, left 0° aside, damping 645 most 2807; 
+   20.217 |   1126 | A Large        | attack   | none of its strikes reaches B Large from 2.26 m; closing in
+   20.217 |   1126 | A Large        | tempo    | counter → press: answered; energy 0.71, aggression 0.43
+   20.367 |   1135 | -              | console  | [Upper] B Medium 2: HandR turning at 24 rad/s; head 2 cm, hands 60 / 20 cm off the pose; OneShot sns_rising; its strike carried on, then driven back at 0.9 m/s; put back 0, joints put 1   Spine asked 5 -16 2 (17°) is 6 -49 1, 4 rad/s, left 20° aside (held), damping 6137 most 8366; Chest asked 3 -16 0 (16°) is 4 -16 0, 1 rad/s, left 0° aside (held), damping 3982 most 6577; Head asked 9 51 6 (52°) is 9 51 6, 5 rad/s, left 0° aside (held), damping 264 most 405; UpperArmL asked 8 -34 -14 (38°) is 8 -32 -13, 6 rad/s, left 0° aside, damping 781 most 981; ForearmL asked -49 13 49 (70°) is -49 12 49, 5 rad/s, left 0° aside, damping 145 most 402; HandL asked 2 29 13 (32°) is 2 29 13, 3 rad/s, left 0° aside, damping 5 most 123; UpperArmR asked -41 -71 46 (94°) is -55 -87 39, 8 rad/s, left 13° aside, damping 2075 most 4862; ForearmR asked -2 -1 0 (2°) is -23 -16 3, 3 rad/s, left 23° aside, damping 678 most 2242; HandR asked -5 -16 0 (17°) is -6 -16 0, 24 rad/s, left 0° aside, damping 234 most 589; 
+   20.450 |   1140 | B Medium       | sight    | noticed A Large at the edge of its view (3.4 m)
+   20.450 |   1140 | B Medium 2     | hit      | blow struck B Large's Pelvis at 16.0 m/s: 18.1 damage, 16 poise, recoil; impulse 31.9 N·s (20% into the part); the swing stopped; an ally (friendly fire)
+   20.450 |   1140 | B Large        | struck   | by B Medium 2 on the Pelvis: health 164/220, poise 104/120, recoil, standing; light reaction; concentration 0.25
+   20.650 |   1152 | B Medium 2     | tempo    | counter → probe: answered; energy 0.21, aggression 0.84
+   20.667 |   1153 | B Large        | attack   | none of its strikes reaches A Medium from 2.12 m; closing in
+   20.667 |   1153 | A Medium       | tempo    | shell → counter: the barrage stopped (energy 0.33); energy 0.33, aggression 0.34
+   20.667 |   1153 | B Medium 2     | tempo    | probe → gather: tired (energy 0.21); energy 0.21, aggression 0.84
+   20.767 |   1159 | B Medium       | sight    | noticed B Medium 2 at the edge of its view (6.4 m)
+   20.900 |   1167 | A Large        | attack   | none of its strikes reaches B Large from 1.88 m; closing in
+   21.050 |   1176 | A Medium       | attack   | sns_combo_forehand at B Large, concentration 1.00
+   21.067 |   1177 | B Large        | attack   | none of its strikes reaches A Medium from 1.90 m; closing in
+   21.333 |   1193 | -              | console  | [Upper] A Medium 2: UpperArmR turning at 64 rad/s; head 0 cm, hands 2 / 0 cm off the pose; Idle ; parried with medium guard, then driven back at 0.7 m/s; put back 0, joints put 2   Spine asked 0 2 0 (2°) is 0 2 0, 1 rad/s, left 0° aside (held), damping 6137 most 10814; Chest asked -1 2 -3 (3°) is -1 2 -2, 1 rad/s, left 0° aside (held), damping 3982 most 9801; Head asked 8 -43 8 (45°) is 8 -43 8, 1 rad/s, left 0° aside (held), damping 263 most 279; UpperArmL asked -27 -20 -20 (39°) is -27 -21 -20, 6 rad/s, left 0° aside, damping 781 most 1097; ForearmL asked -65 17 65 (93°) is -66 17 65, 1 rad/s, left 0° aside, damping 145 most 458; HandL asked 3 9 -2 (10°) is 3 9 -3, 6 rad/s, left 0° aside, damping 5 most 155; UpperArmR asked -17 41 -10 (46°) is -16 42 -11, 64 rad/s, left 0° aside, damping 2075 most 8657; ForearmR asked -71 -20 0 (74°) is -73 -21 1, 15 rad/s, left 4° aside, damping 678 most 1606; HandR asked -22 -27 -39 (52°) is -27 -25 -41, 51 rad/s, left 4° aside, damping 234 most 769; 
+   21.350 |   1194 | A Medium 2     | attack   | sns_rising at B Medium
+   21.467 |   1201 | B Large        | attack   | none of its strikes reaches A Medium from 1.64 m; backing off
+   21.567 |   1207 | A Large        | attack   | sns_forehand at B Large
+   21.733 |   1217 | A Medium       | hit      | blow struck B Large's Chest at 11.3 m/s: 15.0 damage, 11 poise, recoil; impulse 22.5 N·s (45% into the part); the swing stopped; the target
+   21.733 |   1217 | B Large        | struck   | by A Medium on the Chest: health 149/220, poise 109/120, recoil, standing; hit_left_rib reaction; concentration 0.64
+   21.733 |   1217 | B Large        | tempo    | probe → shell: pressed (pressure 0.81); energy 0.65, aggression 0.39
+   22.200 |   1245 | A Medium 2     | hit      | blow struck B Medium's HandL at 9.0 m/s: blocked by B Medium's shield (5 poise); impulse 26.1 N·s (70% into the part); the swing stopped; blocked by the shield
+   22.200 |   1245 | B Medium       | struck   | by A Medium 2 on the HandL: health 57/100, poise 40/45, recoil, standing; the shield knocked back
+   22.300 |   1251 | A Large        | hit      | blow struck B Large's HandR at 7.7 m/s: 3.3 damage, 42 poise, recoil; impulse 83.2 N·s (80% into the part); the swing stopped; the target
+   22.300 |   1251 | B Large        | struck   | by A Large on the HandR: health 146/220, poise 77/120, recoil, standing; still reeling; concentration 0.81
+   22.317 |   1252 | B Large        | target   | A Large, who struck it: committed
+   22.333 |   1253 | A Medium       | attack   | none of its strikes reaches B Large from 1.71 m; closing in
+   22.333 |   1253 | A Medium       | tempo    | counter → probe: answered; energy 0.18, aggression 0.42
+   22.350 |   1254 | A Medium       | tempo    | probe → shell: pressed (pressure 1.65); energy 0.19, aggression 0.42
+   22.467 |   1261 | -              | console  | [Upper] B Large: HandR turning at 67 rad/s; head 1 cm, hands 0 / 1 cm off the pose; OneShot hit_left_rib; still reeling; put back 0, joints put 0   Spine asked 15 -9 8 (19°) is 15 -9 8, 3 rad/s, left 0° aside (held), damping 45242 most 18599; Chest asked 36 -9 11 (38°) is 36 -9 11, 3 rad/s, left 0° aside (held), damping 29451 most 15045; Head asked 22 -10 -8 (25°) is 22 -10 -8, 4 rad/s, left 0° aside (held), damping 931 most 1149; UpperArmL asked -33 -17 5 (37°) is -33 -17 5, 1 rad/s, left 0° aside, damping 5548 most 4637; ForearmL asked -64 25 72 (100°) is -64 25 72, 0 rad/s, left 0° aside, damping 1070 most 2463; HandL asked 8 36 -7 (38°) is 8 36 -7, 4 rad/s, left 0° aside, damping 54 most 823; UpperArmR asked -24 -82 -5 (85°) is -24 -83 -5, 25 rad/s, left 0° aside (held), damping 10610 most 10889; ForearmR asked -102 -46 0 (112°) is -101 -47 3, 3 rad/s, left 0° aside (held), damping 2578 most 3729; HandR asked 27 8 -8 (29°) is 29 8 -2, 67 rad/s, left 20° aside (held), damping 645 most 1986; 
+   22.850 |   1284 | A Large        | attack   | sns_forehand at B Large
+   23.200 |   1305 | B Medium       | tempo    | shell → counter: the barrage stopped (energy 0.66); energy 0.66, aggression 0.10
+   23.267 |   1309 | B Medium 2     | sight    | lost track of B Medium
+   23.283 |   1310 | B Medium 2     | sight    | lost track of A Large
+   23.450 |   1320 | A Large        | sight    | lost track of B Medium
+   23.533 |   1325 | A Large        | sight    | lost track of A Medium 2
+   23.600 |   1329 | A Large        | hit      | blow struck B Large's UpperArmL at 7.3 m/s: 4.7 damage, 39 poise, recoil; impulse 78.9 N·s (80% into the part); the swing stopped; the target
+   23.600 |   1329 | B Large        | struck   | by A Large on the UpperArmL: health 141/220, poise 61/120, recoil, standing; light reaction; concentration 1.00
+   23.683 |   1334 | A Medium 2     | attack   | sns_rising at B Medium
+   23.683 |   1334 | B Medium       | attack   | sns_chop_lunge at A Medium 2
+   24.150 |   1362 | A Large        | attack   | sns_forehand at B Large
+   24.550 |   1386 | A Medium 2     | hit      | blow struck B Medium's HandL at 5.4 m/s: blocked by B Medium's shield (3 poise); impulse 15.5 N·s (70% into the part); the swing stopped; blocked by the shield
+   24.550 |   1386 | B Medium       | struck   | by A Medium 2 on the HandL: health 57/100, poise 42/45, recoil, standing; its strike carried on
+   24.617 |   1390 | B Medium 2     | sight    | noticed A Large at the edge of its view (2.5 m)
+   24.633 |   1391 | -              | console  | [Upper] A Medium 2: ForearmR turning at 66 rad/s; head 1 cm, hands 11 / 2 cm off the pose; OneShot sns_rising; parried with medium guard, then driven back at 0.7 m/s; put back 0, joints put 2   Spine asked 6 -12 2 (14°) is 4 -12 2, 2 rad/s, left 0° aside (held), damping 6137 most 5567; Chest asked 3 -12 1 (12°) is 2 -12 1, 2 rad/s, left 0° aside (held), damping 3982 most 5285; Head asked 14 34 3 (37°) is 14 34 3, 2 rad/s, left 0° aside (held), damping 263 most 181; UpperArmL asked -12 -38 -22 (45°) is -13 -38 -23, 5 rad/s, left 0° aside, damping 781 most 745; ForearmL asked -25 6 25 (36°) is -26 6 25, 5 rad/s, left 0° aside, damping 145 most 436; HandL asked 5 41 17 (45°) is 4 41 17, 2 rad/s, left 0° aside, damping 5 most 152; UpperArmR asked -36 13 76 (85°) is -54 24 69, 24 rad/s, left 16° aside, damping 2075 most 4956; ForearmR asked -56 -17 12 (60°) is -53 -9 11, 66 rad/s, left 9° aside, damping 678 most 2902; HandR asked 87 -33 -24 (96°) is 88 -34 -24, 38 rad/s, left 0° aside, damping 234 most 569; 
+   24.783 |   1400 | B Medium 2     | tempo    | gather → press: fully charged (energy 0.95, aggression 0.84); energy 0.95, aggression 0.84
+   24.867 |   1405 | B Medium       | hit      | blow struck A Medium 2's ForearmR at 3.4 m/s: 2.3 damage, 3 poise, recoil; impulse 6.8 N·s (80% into the part); the swing stopped; the target; no sever: too slow to cut through the right wrist (3.4 of 7.0 m/s)
+   24.867 |   1405 | A Medium 2     | struck   | by B Medium on the ForearmR: health 84/100, poise 42/45, recoil, standing; no reaction clip
+   24.933 |   1409 | -              | console  | [Upper] B Large: HandR turning at 61 rad/s; head 0 cm, hands 2 / 3 cm off the pose; Cycle ; light reaction; put back 0, joints put 0   Spine asked 4 -1 4 (6°) is 4 -2 3, 1 rad/s, left 0° aside (held), damping 45073 most 13400; Chest asked 1 -1 3 (3°) is 1 -2 3, 0 rad/s, left 0° aside (held), damping 29341 most 12839; Head asked 6 -39 1 (40°) is 6 -39 1, 1 rad/s, left 0° aside (held), damping 931 most 857; UpperArmL asked -48 -24 -8 (55°) is -46 -24 -7, 2 rad/s, left 0° aside, damping 5523 most 3540; ForearmL asked -53 21 60 (83°) is -53 21 60, 0 rad/s, left 0° aside, damping 1065 most 2298; HandL asked 8 14 2 (16°) is 7 14 2, 0 rad/s, left 0° aside, damping 54 most 815; UpperArmR asked -17 -104 -42 (113°) is -17 -105 -42, 18 rad/s, left 0° aside (held), damping 10610 most 12217; ForearmR asked -55 -24 0 (60°) is -55 -24 0, 2 rad/s, left 0° aside (held), damping 2578 most 4349; HandR asked -18 5 -23 (30°) is -16 5 -22, 61 rad/s, left 1° aside (held), damping 645 most 2662; 
+   24.950 |   1410 | -              | console  | [Upper] A Large: ForearmR turning at 59 rad/s; head 7 cm, hands 85 / 19 cm off the pose; OneShot sns_forehand; parried with hanging, then driven back at 1.8 m/s; put back 0, joints put 2   Spine asked 6 -21 5 (22°) is 2 -6 1, 3 rad/s, left 11° aside (held), damping 45073 most 39571; Chest asked 1 -20 2 (20°) is 1 -18 1, 2 rad/s, left 0° aside (held), damping 29341 most 28744; Head asked -13 48 -8 (50°) is -13 46 -6, 5 rad/s, left 0° aside (held), damping 936 most 1555; UpperArmL asked -20 -35 -5 (41°) is -19 -39 -5, 4 rad/s, left 0° aside, damping 5548 most 5574; ForearmL asked -48 20 55 (76°) is -47 20 55, 3 rad/s, left 0° aside, damping 1070 most 2742; HandL asked 21 32 21 (43°) is 20 33 20, 4 rad/s, left 0° aside, damping 54 most 854; UpperArmR asked -80 -51 1 (95°) is -85 4 -17, 27 rad/s, left 0° aside, damping 10610 most 19870; ForearmR asked -2 -1 0 (2°) is -53 -23 24, 59 rad/s, left 32° aside, damping 2578 most 8420; HandR asked -46 77 30 (95°) is 0 100 -18, 32 rad/s, left 0° aside, damping 645 most 1814; 
+   24.983 |   1412 | B Medium 2     | sight    | noticed B Medium at the edge of its view (6.9 m)
+   25.050 |   1416 | A Medium 2     | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 4.6 m/s
+   25.100 |   1419 | A Large        | hit      | blow struck B Large's HandR at 16.0 m/s: parried by B Large's parried (57 poise); impulse 153.0 N·s (70% into the part); the swing stopped; parried
+   25.100 |   1419 | B Large        | struck   | by A Large on the HandR: health 141/220, poise 31/120, flinch, standing; parried with quarte, then driven back at 0.8 m/s; concentration 1.00
+   25.167 |   1423 | A Medium       | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.24); energy 0.24, aggression 0.42
+   25.350 |   1434 | A Large        | attack   | sns_combo_forehand at B Large
+   25.450 |   1440 | B Medium 2     | attack   | sns_rising at A Medium
+   25.467 |   1441 | A Medium       | tempo    | gather → shell: pressed (pressure 0.50); energy 0.29, aggression 0.42
+   25.550 |   1446 | -              | console  | [Upper] A Medium 2: HandR turning at 60 rad/s; head 0 cm, hands 3 / 0 cm off the pose; Cycle ; no reaction clip; put back 0, joints put 2   Spine asked 5 16 0 (16°) is 5 15 0, 1 rad/s, left 0° aside (held), damping 6137 most 2817; Chest asked 0 15 1 (15°) is 0 15 1, 0 rad/s, left 0° aside (held), damping 3982 most 2800; Head asked 6 -28 1 (29°) is 6 -28 1, 0 rad/s, left 0° aside (held), damping 263 most 152; UpperArmL asked 18 13 38 (44°) is 18 13 38, 0 rad/s, left 0° aside (held), damping 781 most 604; ForearmL asked -1 0 1 (2°) is -1 0 2, 0 rad/s, left 0° aside (held), damping 145 most 421; HandL asked -97 71 -38 (126°) is -97 71 -38, 0 rad/s, left 0° aside (held), damping 5 most 150; UpperArmR asked -5 -33 -14 (37°) is -8 -35 -15, 7 rad/s, left 4° aside, damping 2075 most 2788; ForearmR asked -66 -19 0 (68°) is -65 -10 -8, 6 rad/s, left 8° aside, damping 678 most 1483; HandR asked 28 9 6 (30°) is 28 5 4, 60 rad/s, left 0° aside, damping 234 most 855; 
+   25.867 |   1465 | A Large        | sight    | noticed A Medium 2 at the edge of its view (3.2 m)
+   26.033 |   1475 | B Medium       | attack   | sns_chop_lunge at A Medium 2
+   26.133 |   1481 | A Large        | hit      | blow struck B Large's HandR at 9.2 m/s: parried by B Large's parried (33 poise); impulse 88.1 N·s (70% into the part); the swing stopped; parried
+   26.133 |   1481 | B Large        | struck   | by A Large on the HandR: health 141/220, poise 16/120, recoil, standing; parried with hanging, then driven back at 0.9 m/s; concentration 1.00
+   26.283 |   1490 | B Medium 2     | hit      | blow struck A Medium's HandL at 2.3 m/s: blocked by A Medium's shield (1 poise); impulse 6.6 N·s (70% into the part); the swing stopped; blocked by the shield
+   26.283 |   1490 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 44/45, recoil, standing; the shield knocked back; concentration 1.00
+   26.300 |   1491 | A Medium       | target   | B Medium 2, who struck it: committed
+   26.317 |   1492 | A Large        | sight    | noticed B Medium at the edge of its view (4.2 m)
+   26.500 |   1503 | A Medium 2     | sight    | lost track of A Medium
+   26.500 |   1503 | A Medium 2     | sight    | lost track of B Large
+   26.517 |   1504 | A Medium 2     | attack   | sns_chop_lunge at B Medium
+   26.683 |   1514 | B Medium 2     | attack   | none of its strikes reaches A Medium from 1.67 m; closing in
+   26.900 |   1527 | A Large        | tempo    | press → gather: spent (energy 0.11, 4 blows); energy 0.11, aggression 0.59
+   27.117 |   1540 | -              | console  | [Upper] A Medium 2: HandR turning at 64 rad/s; head 4 cm, hands 34 / 5 cm off the pose; OneShot sns_chop_lunge; no reaction clip; put back 0, joints put 3   Spine asked -5 -5 -3 (8°) is -1 -5 -4, 3 rad/s, left 0° aside (held), damping 6137 most 5613; Chest asked -10 -4 -1 (11°) is -8 -3 -2, 2 rad/s, left 0° aside (held), damping 3982 most 5550; Head asked 24 0 3 (25°) is 14 0 5, 9 rad/s, left 0° aside (held), damping 263 most 156; UpperArmL asked -128 18 22 (131°) is -131 16 25, 5 rad/s, left 0° aside, damping 781 most 617; ForearmL asked -23 6 23 (33°) is -26 6 24, 1 rad/s, left 0° aside, damping 145 most 421; HandL asked -48 36 -15 (62°) is -49 36 -16, 6 rad/s, left 0° aside, damping 5 most 150; UpperArmR asked -144 -68 75 (176°) is -136 -57 67, 40 rad/s, left 1° aside (held), damping 2075 most 5500; ForearmR asked -2 -1 0 (2°) is 22 0 -4, 28 rad/s, left 1° aside (held), damping 678 most 1125; HandR asked -41 28 20 (53°) is -36 28 19, 64 rad/s, left 0° aside (held), damping 234 most 853; 
+   27.133 |   1541 | B Large        | tempo    | shell → counter: the barrage stopped (energy 0.74); energy 0.74, aggression 0.15
+   27.150 |   1542 | B Medium       | hit      | blow struck A Medium 2's Head at 4.3 m/s: 9.2 damage, 4 poise, recoil; impulse 8.6 N·s (60% into the part); the swing stopped; the target
+   27.150 |   1542 | A Medium 2     | struck   | by B Medium on the Head: health 75/100, poise 41/45, recoil, standing; its strike carried on
+   27.233 |   1547 | -              | console  | [Upper] B Medium: ForearmL turning at 64 rad/s; head 4 cm, hands 9 / 9 cm off the pose; OneShot sns_chop_lunge; its strike carried on; put back 0, joints put 6   Spine asked 1 -11 0 (11°) is -3 -9 -3, 3 rad/s, left 0° aside (held), damping 7502 most 11183; Chest asked 1 -11 -1 (11°) is 0 -11 -1, 1 rad/s, left 0° aside (held), damping 6032 most 9631; Head asked 9 -1 3 (9°) is 9 -1 4, 4 rad/s, left 0° aside (held), damping 264 most 377; UpperArmL asked -136 19 -111 (177°) is -136 28 -115, 36 rad/s, left 0° aside, damping 3218 most 7254; ForearmL asked -2 1 -1 (2°) is -4 -44 8, 64 rad/s, left 43° aside, damping 1056 most 3301; HandL asked 32 -56 3 (64°) is 26 -34 14, 17 rad/s, left 0° aside, damping 219 most 995; UpperArmR asked -75 -48 33 (95°) is -75 -49 33, 21 rad/s, left 0° aside, damping 2075 most 1930; ForearmR asked -45 -13 10 (48°) is -46 -18 12, 20 rad/s, left 0° aside, damping 678 most 1330; HandR asked 37 48 -4 (61°) is -182 -237 20, 8 rad/s, left 0° aside, damping 234 most 392; grip asked 10 -17 0 (20°) is 12 -12 2, k 0 most 600
+   27.383 |   1556 | A Medium 2     | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 5.8 m/s
+   27.400 |   1557 | A Medium 2     | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 7.0 m/s
+   27.400 |   1557 | A Medium 2     | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 6.8 m/s
+   27.417 |   1558 | A Medium 2     | contact  | ThighL touched P_Weapon_Shield(Clone) (solid) at 8.1 m/s
+   27.433 |   1559 | A Medium 2     | contact  | ShinL touched P_Weapon_Shield(Clone) (solid) at 7.5 m/s
+   27.550 |   1566 | B Large        | attack   | a combo (counter): sns_backhand_lunge > sns_forehand at A Large, concentration 1.00
+   27.550 |   1566 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 7.1 m/s
+   27.567 |   1567 | A Medium 2     | contact  | FootL touched Collider (solid) at 4.5 m/s
+   27.583 |   1568 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 2.9 m/s
+   27.583 |   1568 | A Medium 2     | contact  | ThighL touched P_Weapon_Shield(Clone) (solid) at 6.3 m/s
+   27.600 |   1569 | A Medium 2     | contact  | FootL touched Collider (solid) at 2.8 m/s
+   27.617 |   1570 | A Medium 2     | contact  | ThighR touched P_Weapon_Shield(Clone) (solid) at 3.4 m/s
+   27.633 |   1571 | A Medium 2     | contact  | ShinR touched P_Weapon_Sword(Clone) (solid) at 2.0 m/s
+   27.650 |   1572 | A Medium 2     | contact  | ThighL touched P_Weapon_Shield(Clone) (solid) at 3.4 m/s
+   27.650 |   1572 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 3.7 m/s
+   27.667 |   1573 | A Medium 2     | contact  | FootR touched P_Weapon_Sword(Clone) (solid) at 3.7 m/s
+   27.683 |   1574 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 8.1 m/s
+   27.683 |   1574 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 8.1 m/s
+   27.683 |   1574 | A Medium 2     | contact  | ShinR touched P_Weapon_Sword(Clone) (solid) at 8.4 m/s
+   27.683 |   1574 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 9.1 m/s
+   27.683 |   1574 | A Medium 2     | contact  | ShinR touched P_Weapon_Sword(Clone) (solid) at 9.4 m/s
+   27.683 |   1574 | A Medium 2     | contact  | ThighR touched P_Weapon_Shield(Clone) (solid) at 2.4 m/s
+   27.683 |   1574 | -              | console  | [Upper] B Large: ForearmL turning at 29 rad/s; head 8 cm, hands 20 / 89 cm off the pose; OneShot sns_backhand_lunge; parried with hanging, then driven back at 0.9 m/s; put back 0, joints put 0   Spine asked 5 7 -1 (8°) is 7 -15 5, 6 rad/s, left 16° aside (held), damping 45073 most 14278; Chest asked -1 6 0 (7°) is 0 4 0, 4 rad/s, left 0° aside (held), damping 29341 most 9875; Head asked 12 -13 -11 (21°) is 12 -12 -12, 4 rad/s, left 0° aside (held), damping 931 most 1178; UpperArmL asked -71 -40 30 (87°) is -65 -98 37, 9 rad/s, left 41° aside, damping 5548 most 5098; ForearmL asked -55 22 63 (87°) is -54 32 40, 29 rad/s, left 20° aside, damping 1070 most 2593; HandL asked -13 -3 -53 (54°) is -18 3 -61, 13 rad/s, left 0° aside, damping 54 most 854; UpperArmR asked 11 -82 31 (89°) is 11 -84 31, 18 rad/s, left 0° aside (held), damping 10610 most 6153; ForearmR asked -81 -37 16 (91°) is -80 -37 16, 3 rad/s, left 0° aside (held), damping 2578 most 3005; HandR asked 33 -45 17 (58°) is 33 -46 17, 4 rad/s, left 0° aside (held), damping 645 most 940; 
+   27.700 |   1575 | A Medium 2     | contact  | FootL touched Collider (solid) at 6.3 m/s
+   27.700 |   1575 | A Medium 2     | contact  | FootL touched Collider (solid) at 3.2 m/s
+   27.700 |   1575 | A Medium 2     | contact  | ThighR touched Collider (solid) at 4.8 m/s
+   27.700 |   1575 | -              | console  | [Upper] B Medium: HandR turning at 21 rad/s; head 28 cm, hands 54 / 34 cm off the pose; OneShot sns_chop_lunge; its strike carried on; put back 0, joints put 6   Spine asked 14 -6 3 (15°) is 42 -9 -13, 9 rad/s, left 20° aside (held), damping 7502 most 2136; Chest asked 4 -5 -2 (7°) is 10 -7 -10, 3 rad/s, left 8° aside (held), damping 6032 most 1867; Head asked 1 33 -10 (34°) is -2 34 -9, 6 rad/s, left 0° aside (held), damping 264 most 185; UpperArmL asked -148 55 -65 (171°) is -152 45 -47, 7 rad/s, left 0° aside, damping 3218 most 940; ForearmL asked -62 19 -20 (68°) is -112 10 -7, 16 rad/s, left 44° aside, damping 1056 most 574; HandL asked 7 92 14 (93°) is 27 85 27, 18 rad/s, left 0° aside, damping 219 most 766; UpperArmR asked -12 13 6 (18°) is -7 -7 6, 17 rad/s, left 0° aside, damping 2075 most 1346; ForearmR asked -81 -24 17 (86°) is -19 -12 14, 10 rad/s, left 0° aside, damping 678 most 643; HandR asked -22 9 -4 (24°) is 292 -58 70, 21 rad/s, left 0° aside, damping 234 most 210; grip asked 35 57 0 (67°) is 43 61 -7, k 0 most 600
+   27.717 |   1576 | A Medium 2     | contact  | FootL touched Collider (solid) at 4.1 m/s
+   27.717 |   1576 | A Medium 2     | contact  | FootL touched Collider (solid) at 5.2 m/s
+   27.717 |   1576 | A Medium 2     | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 7.7 m/s
+   27.733 |   1577 | A Medium 2     | contact  | ThighR touched P_Weapon_Shield(Clone) (solid) at 3.2 m/s
+   27.783 |   1580 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 3.3 m/s
+   27.800 |   1581 | A Medium 2     | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 4.1 m/s
+   27.817 |   1582 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 4.6 m/s
+   27.817 |   1582 | A Medium 2     | contact  | FootL touched Collider (solid) at 7.0 m/s
+   27.817 |   1582 | A Medium 2     | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 7.3 m/s
+   27.833 |   1583 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 2.6 m/s
+   27.833 |   1583 | A Medium 2     | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 2.8 m/s
+   27.883 |   1586 | A Medium 2     | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 4.3 m/s
+   28.083 |   1598 | A Medium 2     | sight    | lost track of A Large
+   28.100 |   1599 | B Large        | hit      | blow struck A Large's HandR at 14.1 m/s: 9.0 damage, 114 poise, flinch; impulse 152.0 N·s (80% into the part); the swing stopped; the target
+   28.100 |   1599 | A Large        | struck   | by B Large on the HandR: health 180/220, poise 6/120, flinch, standing; heavy reaction, then driven back at 0.5 m/s
+   28.117 |   1600 | A Medium 2     | sight    | lost track of B Medium 2
+   28.233 |   1607 | B Medium 2     | attack   | sns_thrust at A Medium
+   28.283 |   1610 | B Large        | hit      | blow struck A Large's HandR at 13.4 m/s: parried by A Large's parried (72 poise); impulse 127.9 N·s (70% into the part); the swing stopped; parried
+   28.283 |   1610 | A Large        | struck   | by B Large on the HandR: health 180/220, poise 0/120, stagger, standing; parried with low prime, then driven back at 1.2 m/s
+   28.300 |   1611 | A Large        | tempo    | gather → shell: pressed (pressure 1.07); energy 0.43, aggression 0.47
+   28.383 |   1616 | B Medium       | attack   | sns_rising at A Medium 2
+   28.517 |   1624 | B Large        | tempo    | counter → probe: answered; energy 0.44, aggression 0.23
+   28.533 |   1625 | B Large        | tempo    | probe → shell: pressed (pressure 2.27); energy 0.44, aggression 0.23
+   28.683 |   1634 | B Medium 2     | hit      | blow struck A Medium's HandL at 10.9 m/s: blocked by A Medium's shield (6 poise); impulse 31.7 N·s (70% into the part); the swing stopped; blocked by the shield
+   28.683 |   1634 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 39/45, recoil, standing; the shield knocked back; concentration 0.66
+   28.833 |   1643 | A Medium 2     | tempo    | probe → shell: pressed (pressure 0.54); energy 0.53, aggression 0.52
+   29.100 |   1659 | -              | console  | [Upper] B Medium: ForearmR turning at 71 rad/s; head 5 cm, hands 28 / 5 cm off the pose; OneShot sns_rising; its strike carried on; put back 0, joints put 6   Spine asked 5 -17 2 (18°) is 3 -26 -2, 2 rad/s, left 7° aside (held), damping 7502 most 14942; Chest asked 3 -16 0 (16°) is 0 -16 -1, 2 rad/s, left 0° aside (held), damping 6032 most 12867; Head asked 9 51 6 (52°) is 13 51 7, 5 rad/s, left 1° aside (held), damping 264 most 434; UpperArmL asked 29 23 -1 (37°) is 27 17 -2, 8 rad/s, left 0° aside, damping 3218 most 3250; ForearmL asked -65 19 -21 (71°) is -76 -1 2, 5 rad/s, left 24° aside, damping 1056 most 1072; HandL asked -20 -28 6 (35°) is -24 -38 11, 8 rad/s, left 0° aside, damping 219 most 910; UpperArmR asked -37 -111 30 (121°) is -56 -86 7, 35 rad/s, left 0° aside, damping 2075 most 8643; ForearmR asked -2 -1 0 (2°) is -16 -14 11, 71 rad/s, left 0° aside, damping 678 most 4192; HandR asked -3 16 23 (28°) is 61 -224 -235, 55 rad/s, left 0° aside, damping 234 most 983; grip asked -47 -44 0 (64°) is -49 -37 -4, k 0 most 600
+   29.167 |   1663 | A Medium 2     | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 7.0 m/s
+   29.200 |   1665 | B Medium       | hit      | blow struck A Medium 2's ThighR at 13.6 m/s: 12.7 damage, 14 poise, recoil; impulse 27.0 N·s (15% into the part); the swing stopped; the target
+   29.200 |   1665 | A Medium 2     | struck   | by B Medium on the ThighR: health 62/100, poise 31/45, recoil, standing; body reaction, then driven back at 0.8 m/s
+   29.283 |   1670 | A Medium 2     | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 8.5 m/s
+   29.400 |   1677 | B Medium       | attack   | sns_rising at A Medium 2
+   29.517 |   1684 | B Medium 2     | attack   | sns_chop_lunge at A Medium
+   30.233 |   1727 | B Medium       | hit      | blow struck A Medium 2's HandR at 4.4 m/s: parried by A Medium 2's parried (5 poise); impulse 12.9 N·s (70% into the part); the swing stopped; parried
+   30.233 |   1727 | A Medium 2     | struck   | by B Medium on the HandR: health 62/100, poise 34/45, recoil, standing; parried with tierce
+   30.417 |   1738 | B Medium 2     | sight    | lost track of B Medium
+   30.433 |   1739 | B Medium 2     | sight    | lost track of A Medium 2
+   30.467 |   1741 | B Medium 2     | sight    | lost track of A Large
+   30.483 |   1742 | B Medium       | attack   | none of its strikes reaches A Medium 2 from 1.68 m; closing in
+   30.483 |   1742 | B Medium       | tempo    | counter → probe: answered; energy 0.06, aggression 0.28
+   30.500 |   1743 | B Medium       | tempo    | probe → gather: tired (energy 0.07); energy 0.07, aggression 0.28
+   30.533 |   1745 | A Medium       | tempo    | shell → counter: the barrage stopped (energy 0.39); energy 0.39, aggression 0.30
+   30.550 |   1746 | A Medium       | attack   | sns_rising at B Medium 2, concentration 0.38
+   30.633 |   1751 | B Medium 2     | hit      | blow struck A Medium's HandL at 12.2 m/s: blocked by A Medium's shield (7 poise); impulse 35.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   30.633 |   1751 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 38/45, recoil, standing; its strike carried on; concentration 0.36
+   31.133 |   1781 | A Large        | tempo    | shell → counter: the barrage stopped (energy 0.48); energy 0.48, aggression 0.47
+   31.150 |   1782 | A Large        | attack   | sns_forehand at B Large
+   31.450 |   1800 | A Medium       | hit      | blow struck B Medium 2's Head at 8.5 m/s: 18.2 damage, 8 poise, recoil; impulse 17.0 N·s (60% into the part); the swing stopped; the target; no sever: the edge passed 12 cm from the bone at the neck (the limb is 9 thick with the edge)
+   31.450 |   1800 | B Medium 2     | struck   | by A Medium on the Head: health 69/100, poise 37/45, recoil, standing; its strike carried on
+   31.567 |   1807 | -              | console  | [Upper] A Medium: ForearmR turning at 64 rad/s; head 1 cm, hands 11 / 1 cm off the pose; OneShot sns_rising; its strike carried on; put back 1, joints put 6   Spine asked 4 -8 2 (9°) is 4 -8 3, 2 rad/s, left 6° aside (held), damping 7502 most 6275; Chest asked 1 -7 2 (7°) is 1 -6 2, 1 rad/s, left 0° aside (held), damping 6032 most 6200; Head asked 15 26 1 (30°) is 14 25 2, 3 rad/s, left 0° aside (held), damping 264 most 158; UpperArmL asked -85 -201 245 (328°) is -88 -198 247, 2 rad/s, left 0° aside, damping 3218 most 1059; ForearmL asked -16 5 -5 (17°) is -16 7 -6, 7 rad/s, left 0° aside, damping 1056 most 484; HandL asked -21 -16 10 (28°) is -22 -14 10, 4 rad/s, left 0° aside, damping 219 most 785; UpperArmR asked -63 174 -203 (275°) is -74 192 -164, 32 rad/s, left 14° aside, damping 2075 most 5664; ForearmR asked -2 -1 0 (2°) is -20 26 -11, 64 rad/s, left 24° aside, damping 678 most 2715; HandR asked -144 -263 -79 (310°) is -134 -264 -87, 29 rad/s, left 0° aside, damping 234 most 543; grip asked -40 -56 0 (69°) is -40 -56 0, k 0 most 600
+   31.650 |   1812 | A Medium       | attack   | sns_rising at B Medium 2, concentration 0.21
+   31.867 |   1825 | B Medium 2     | attack   | sns_thrust at A Medium
+   31.950 |   1830 | -              | console  | [Upper] A Large: HandR turning at 66 rad/s; head 5 cm, hands 55 / 19 cm off the pose; OneShot sns_forehand; parried with low prime, then driven back at 1.2 m/s; put back 0, joints put 5   Spine asked 6 -21 6 (23°) is 1 -10 5, 1 rad/s, left 10° aside (held), damping 45073 most 21667; Chest asked 1 -20 2 (20°) is 0 -19 3, 3 rad/s, left 0° aside (held), damping 29341 most 14236; Head asked -13 48 -8 (51°) is -12 47 -8, 6 rad/s, left 0° aside (held), damping 936 most 1319; UpperArmL asked -19 -34 -4 (40°) is -19 -36 -5, 3 rad/s, left 0° aside, damping 5548 most 4761; ForearmL asked -47 19 54 (75°) is -48 25 68, 5 rad/s, left 13° aside, damping 1070 most 2384; HandL asked 19 33 20 (43°) is 22 30 31, 6 rad/s, left 12° aside, damping 54 most 750; UpperArmR asked -38 -2 20 (43°) is -45 21 15, 22 rad/s, left 0° aside, damping 10610 most 7848; ForearmR asked -52 -23 14 (58°) is -48 -24 40, 24 rad/s, left 20° aside, damping 2578 most 3408; HandR asked -23 102 -4 (105°) is -54 106 36, 66 rad/s, left 0° aside, damping 645 most 1261; 
+   32.017 |   1834 | A Large        | hit      | blow struck B Large's ForearmL at 16.0 m/s: 8.5 damage, 86 poise, flinch; impulse 172.1 N·s (80% into the part); the swing stopped; the target
+   32.017 |   1834 | B Large        | struck   | by A Large on the ForearmL: health 132/220, poise 34/120, flinch, standing; light reaction, then driven back at 0.4 m/s; concentration 0.35
+   32.133 |   1841 | B Medium 2     | sight    | lost track of B Large
+   32.233 |   1847 | A Large        | attack   | sns_forehand at B Large
+   32.283 |   1850 | B Medium 2     | sight    | noticed B Large at the edge of its view (3.0 m)
+   32.333 |   1853 | B Medium 2     | hit      | blow struck A Medium's HandL at 12.2 m/s: blocked by A Medium's shield (7 poise); impulse 35.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   32.333 |   1853 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 38/45, recoil, standing; its strike carried on; concentration 0.11
+   32.533 |   1865 | B Medium 2     | tempo    | press → gather: burst done (4 blows); energy 0.29, aggression 0.78
+   32.667 |   1873 | A Medium       | hit      | blow struck B Medium 2's HandR at 4.4 m/s: parried by B Medium 2's parried (5 poise); impulse 12.7 N·s (70% into the part); the swing stopped; parried
+   32.667 |   1873 | B Medium 2     | struck   | by A Medium on the HandR: health 69/100, poise 40/45, recoil, standing; parried with high tierce
+   32.850 |   1884 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.57); energy 0.57, aggression 0.40
+   32.867 |   1885 | A Medium 2     | attack   | sns_thrust at B Medium
+   32.867 |   1885 | B Medium       | tempo    | gather → probe: rested (energy 0.50); energy 0.50, aggression 0.28
+   32.917 |   1888 | A Medium       | tempo    | counter → probe: answered; energy 0.09, aggression 0.26
+   32.933 |   1889 | A Medium       | tempo    | probe → shell: pressed (pressure 1.70); energy 0.09, aggression 0.26
+   32.983 |   1892 | A Large        | hit      | blow struck B Large's Chest at 12.5 m/s: 13.3 damage, 67 poise, stagger; impulse 134.3 N·s (45% into the part); the swing stopped; the target
+   32.983 |   1892 | B Large        | struck   | by A Large on the Chest: health 119/220, poise 0/120, stagger, standing; hit_left_rib reaction, then driven back at 0.9 m/s; concentration 0.20
+   33.200 |   1905 | A Large        | tempo    | counter → probe: answered; energy 0.18, aggression 0.63
+   33.217 |   1906 | A Large        | tempo    | probe → gather: tired (energy 0.18); energy 0.18, aggression 0.63
+   33.317 |   1912 | A Medium 2     | hit      | blow struck B Medium's HandL at 12.6 m/s: blocked by B Medium's shield (7 poise); impulse 36.6 N·s (70% into the part); the swing stopped; blocked by the shield
+   33.317 |   1912 | B Medium       | struck   | by A Medium 2 on the HandL: health 57/100, poise 38/45, recoil, standing; the shield knocked back
+   33.333 |   1913 | B Medium       | attack   | sns_thrust at A Medium 2
+   33.400 |   1917 | A Large        | sight    | lost track of B Medium
+   33.517 |   1924 | A Medium 2     | tempo    | counter → probe: answered; energy 0.42, aggression 0.40
+   33.783 |   1940 | B Medium       | hit      | blow struck A Medium 2's HandR at 16.0 m/s: parried by A Medium 2's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   33.783 |   1940 | A Medium 2     | struck   | by B Medium on the HandR: health 62/100, poise 28/45, flinch, standing; parried with hanging, then driven back at 1.6 m/s
+   33.950 |   1950 | B Medium 2     | tempo    | gather → probe: rested (energy 0.50); energy 0.50, aggression 0.72
+   33.983 |   1952 | B Large        | tempo    | shell → counter: the barrage stopped (energy 0.52); energy 0.52, aggression 0.11
+   34.250 |   1968 | B Large        | attack   | sns_forehand at A Large, concentration 0.01
+   34.283 |   1970 | A Large        | sight    | lost track of A Medium 2
+   34.983 |   2012 | B Large        | hit      | blow struck A Large's UpperArmL at 6.6 m/s: 4.2 damage, 35 poise, recoil; impulse 70.6 N·s (80% into the part); the swing stopped; the target
+   34.983 |   2012 | A Large        | struck   | by B Large on the UpperArmL: health 175/220, poise 83/120, recoil, standing; light reaction
+   35.000 |   2013 | A Medium 2     | attack   | sns_thrust at B Medium
+   35.033 |   2015 | A Large        | tempo    | gather → probe: rested (energy 0.45); energy 0.45, aggression 0.57
+   35.050 |   2016 | A Large        | attack   | none of its strikes reaches B Large from 1.79 m; closing in
+   35.183 |   2024 | B Large        | tempo    | counter → probe: answered; energy 0.37, aggression 0.19
+   35.200 |   2025 | B Large        | tempo    | probe → shell: pressed (pressure 1.53); energy 0.37, aggression 0.19
+   35.333 |   2033 | B Medium 2     | sight    | lost track of B Large
+   35.417 |   2038 | B Medium 2     | sight    | noticed B Large at the edge of its view (4.0 m)
+   35.450 |   2040 | A Large        | attack   | none of its strikes reaches B Large from 1.88 m; closing in
+   35.500 |   2043 | A Medium 2     | hit      | blow struck B Medium's ForearmL at 5.6 m/s: 3.7 damage, 5 poise, recoil; impulse 9.1 N·s (80% into the part); the swing stopped; the target
+   35.500 |   2043 | B Medium       | struck   | by A Medium 2 on the ForearmL: health 53/100, poise 40/45, recoil, standing; light reaction
+   35.683 |   2054 | -              | console  | [Upper] A Medium 2: HandR turning at 63 rad/s; head 2 cm, hands 6 / 3 cm off the pose; Idle ; parried with hanging, then driven back at 1.6 m/s; put back 0, joints put 4   Spine asked 1 -11 2 (12°) is 1 -13 3, 1 rad/s, left 0° aside (held), damping 6137 most 9570; Chest asked -2 -12 1 (13°) is -3 -13 2, 1 rad/s, left 0° aside (held), damping 3982 most 9245; Head asked 25 24 -6 (35°) is 25 24 -7, 3 rad/s, left 0° aside (held), damping 263 most 193; UpperArmL asked -58 -1 -26 (64°) is -58 -2 -25, 28 rad/s, left 0° aside, damping 781 most 2331; ForearmL asked -59 15 59 (85°) is -58 15 59, 2 rad/s, left 0° aside, damping 145 most 469; HandL asked -12 20 -11 (26°) is -12 19 -12, 31 rad/s, left 0° aside, damping 5 most 162; UpperArmR asked -69 16 16 (73°) is -70 31 11, 58 rad/s, left 16° aside, damping 2075 most 7315; ForearmR asked -52 -15 0 (54°) is -52 2 -8, 11 rad/s, left 0° aside, damping 678 most 1957; HandR asked 12 75 -28 (80°) is 13 76 -28, 63 rad/s, left 0° aside (held), damping 234 most 889; 
+   35.717 |   2056 | B Medium       | attack   | none of its strikes reaches A Medium 2 from 1.32 m; backing off
+   35.883 |   2066 | B Medium 2     | attack   | sns_thrust at A Medium
+   36.133 |   2081 | B Medium       | attack   | none of its strikes reaches A Medium 2 from 1.32 m; backing off
+   36.233 |   2087 | B Medium 2     | sight    | noticed A Large at the edge of its view (4.3 m)
+   36.250 |   2088 | B Medium 2     | sight    | noticed A Medium 2 at the edge of its view (5.8 m)
+   36.267 |   2089 | B Medium 2     | sight    | noticed B Medium at the edge of its view (6.8 m)
+   36.333 |   2093 | B Medium 2     | hit      | blow struck A Medium's HandL at 15.9 m/s: blocked by A Medium's shield (9 poise); impulse 46.0 N·s (70% into the part); the swing stopped; blocked by the shield
+   36.333 |   2093 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 36/45, flinch, standing; the shield knocked back
+   36.467 |   2101 | A Large        | attack   | sns_forehand at B Large
+   36.550 |   2106 | B Medium       | attack   | sns_chop_lunge at A Medium 2
+   37.300 |   2151 | B Large        | sight    | lost track of A Medium
+   37.350 |   2154 | A Medium       | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.18); energy 0.18, aggression 0.20
+   37.367 |   2155 | A Medium       | tempo    | gather → shell: pressed (pressure 0.92); energy 0.18, aggression 0.20
+   37.650 |   2172 | B Medium       | hit      | blow struck A Medium 2's HandR at 16.0 m/s: parried by A Medium 2's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   37.650 |   2172 | A Medium 2     | struck   | by B Medium on the HandR: health 62/100, poise 28/45, flinch, standing; parried with St George, then driven back at 1.7 m/s
+   38.000 |   2193 | A Medium 2     | attack   | sns_rising at B Medium
+   38.133 |   2201 | A Medium 2     | sight    | noticed A Large by touch (1.1 m)
+   38.550 |   2226 | B Medium 2     | attack   | sns_rising at A Medium
+   38.833 |   2243 | A Medium 2     | hit      | blow struck B Medium's HandL at 5.0 m/s: blocked by B Medium's shield (3 poise); impulse 14.5 N·s (70% into the part); the swing stopped; blocked by the shield
+   38.833 |   2243 | B Medium       | struck   | by A Medium 2 on the HandL: health 53/100, poise 42/45, recoil, standing; its strike carried on
+   38.917 |   2248 | B Medium       | attack   | sns_thrust at A Medium 2
+   38.950 |   2250 | A Large        | attack   | sns_forehand at B Large
+   39.367 |   2275 | B Medium       | hit      | blow struck A Medium 2's HandR at 16.0 m/s: parried by A Medium 2's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   39.367 |   2275 | A Medium 2     | struck   | by B Medium on the HandR: health 62/100, poise 21/45, flinch, standing; parried with hanging, then driven back at 1.5 m/s
+   39.383 |   2276 | A Medium 2     | tempo    | probe → shell: pressed (pressure 0.69); energy 0.58, aggression 0.30
+   39.467 |   2281 | B Medium 2     | hit      | blow struck A Medium's HandL at 11.0 m/s: blocked by A Medium's shield (6 poise); impulse 31.9 N·s (70% into the part); the swing stopped; blocked by the shield
+   39.467 |   2281 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 39/45, recoil, standing; the shield knocked back
+   39.767 |   2299 | -              | console  | [Upper] A Large: ForearmR turning at 23 rad/s; head 13 cm, hands 81 / 25 cm off the pose; OneShot sns_forehand; light reaction; put back 0, joints put 5   Spine asked 6 -22 6 (23°) is -7 -3 5, 2 rad/s, left 15° aside (held), damping 45073 most 14980; Chest asked 1 -20 2 (21°) is 0 -19 2, 3 rad/s, left 0° aside (held), damping 29341 most 11522; Head asked -13 51 -8 (53°) is -12 50 -8, 4 rad/s, left 0° aside (held), damping 936 most 1072; UpperArmL asked -18 -34 -4 (39°) is -17 -36 -5, 4 rad/s, left 0° aside, damping 5548 most 3250; ForearmL asked -46 19 53 (73°) is -47 19 54, 5 rad/s, left 0° aside, damping 1070 most 1904; HandL asked 17 34 21 (43°) is 17 34 21, 6 rad/s, left 0° aside, damping 54 most 641; UpperArmR asked -61 -30 10 (69°) is -63 -21 10, 14 rad/s, left 0° aside, damping 10610 most 8205; ForearmR asked -2 -1 0 (2°) is 9 -24 55, 23 rad/s, left 50° aside, damping 2578 most 3246; HandR asked -51 83 -7 (98°) is -53 83 -4, 7 rad/s, left 0° aside, damping 645 most 1857; 
+   39.967 |   2311 | B Large        | tempo    | shell → counter: the barrage stopped (energy 0.46); energy 0.46, aggression 0.19
+   39.983 |   2312 | B Large        | attack   | sns_combo_forehand at A Large
+   40.350 |   2334 | -              | console  | [Upper] B Large: HandL turning at 63 rad/s; head 2 cm, hands 6 / 26 cm off the pose; OneShot sns_combo_forehand; hit_left_rib reaction, then driven back at 0.9 m/s; put back 0, joints put 3   Spine asked 1 14 2 (14°) is 1 17 0, 2 rad/s, left 0° aside (held), damping 45212 most 15497; Chest asked -5 14 3 (15°) is -5 14 2, 0 rad/s, left 0° aside (held), damping 29431 most 10253; Head asked -8 -47 15 (50°) is -8 -47 16, 1 rad/s, left 0° aside (held), damping 931 most 1133; UpperArmL asked 12 -41 -53 (68°) is 14 -35 -52, 9 rad/s, left 10° aside, damping 5548 most 4182; ForearmL asked -1 0 1 (2°) is -25 -3 -1, 4 rad/s, left 19° aside, damping 1070 most 1657; HandL asked 17 -15 17 (29°) is -41 -27 9, 63 rad/s, left 42° aside, damping 54 most 555; UpperArmR asked -2 44 75 (86°) is -2 44 75, 11 rad/s, left 0° aside, damping 10610 most 4985; ForearmR asked -102 -47 29 (116°) is -102 -46 29, 3 rad/s, left 0° aside, damping 2578 most 2675; HandR asked -18 28 30 (44°) is -17 28 30, 7 rad/s, left 0° aside, damping 645 most 903; 
+   40.617 |   2350 | B Medium 2     | attack   | sns_chop_lunge at A Medium
+   40.817 |   2362 | A Large        | sight    | noticed A Medium 2 by touch (1.0 m)
+   40.833 |   2363 | B Large        | hit      | blow struck A Large's HandR at 16.0 m/s: parried by A Large's parried (57 poise); impulse 153.0 N·s (70% into the part); the swing stopped; parried
+   40.833 |   2363 | A Large        | struck   | by B Large on the HandR: health 175/220, poise 63/120, flinch, standing; parried with high quarte, then driven back at 1.8 m/s
+   41.383 |   2396 | -              | console  | [Upper] B Large: HandR turning at 70 rad/s; head 2 cm, hands 11 / 6 cm off the pose; Idle ; hit_left_rib reaction, then driven back at 0.9 m/s; put back 0, joints put 4   Spine asked 5 -18 3 (19°) is 4 -16 2, 1 rad/s, left 0° aside (held), damping 45212 most 39815; Chest asked 1 -18 2 (18°) is 1 -18 2, 2 rad/s, left 0° aside (held), damping 29431 most 24498; Head asked -11 82 -10 (84°) is -11 82 -10, 3 rad/s, left 0° aside (held), damping 931 most 1780; UpperArmL asked -48 -32 -12 (59°) is -46 -29 -12, 10 rad/s, left 4° aside, damping 5548 most 8329; ForearmL asked -46 19 52 (72°) is -51 15 54, 3 rad/s, left 7° aside, damping 1070 most 2926; HandL asked 17 14 5 (23°) is 7 13 6, 9 rad/s, left 10° aside, damping 54 most 892; UpperArmR asked -50 -6 -19 (54°) is -51 5 -23, 3 rad/s, left 0° aside, damping 10610 most 9652; ForearmR asked -37 -16 0 (40°) is -37 -13 1, 16 rad/s, left 0° aside, damping 2578 most 6745; HandR asked 19 243 111 (268°) is -9 236 115, 70 rad/s, left 0° aside, damping 645 most 3081; 
+   41.400 |   2397 | B Large        | tempo    | counter → probe: answered; energy 0.31, aggression 0.19
+   41.633 |   2411 | A Medium       | tempo    | shell → counter: the barrage stopped (energy 0.27); energy 0.27, aggression 0.14
+   41.650 |   2412 | A Medium       | attack   | sns_thrust at B Medium 2
+   41.733 |   2417 | B Medium 2     | hit      | blow struck A Medium's HandL at 2.7 m/s: blocked by A Medium's shield (1 poise); impulse 7.9 N·s (70% into the part); the swing stopped; blocked by the shield
+   41.733 |   2417 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 44/45, recoil, standing; its strike carried on
+   41.750 |   2418 | A Medium 2     | tempo    | shell → counter: the barrage stopped (energy 0.63); energy 0.63, aggression 0.30
+   41.767 |   2419 | A Medium 2     | attack   | sns_rising at B Medium
+   41.867 |   2425 | B Medium       | attack   | sns_thrust at A Medium 2
+   41.983 |   2432 | A Medium       | hit      | blow struck B Medium 2's HandR at 9.9 m/s: parried by B Medium 2's parried (11 poise); impulse 28.8 N·s (70% into the part); the swing stopped; parried
+   41.983 |   2432 | B Medium 2     | struck   | by A Medium on the HandR: health 69/100, poise 34/45, recoil, standing; parried with medium guard, then driven back at 0.5 m/s
+   42.233 |   2447 | A Medium       | tempo    | counter → probe: answered; energy 0.12, aggression 0.08
+   42.250 |   2448 | A Medium       | tempo    | probe → shell: pressed (pressure 0.95); energy 0.12, aggression 0.08
+   42.333 |   2453 | B Medium       | hit      | blow struck A Medium 2's Head at 4.5 m/s: 9.7 damage, 4 poise, recoil; impulse 7.4 N·s (60% into the part); the swing stopped; the target
+   42.333 |   2453 | A Medium 2     | struck   | by B Medium on the Head: health 53/100, poise 38/45, recoil, standing; its strike carried on
+   42.383 |   2456 | A Large        | attack   | sns_combo_forehand at B Large
+   42.583 |   2468 | A Medium 2     | hit      | blow struck B Medium's ForearmR at 7.0 m/s: 4.7 damage, 7 poise, recoil; impulse 14.0 N·s (80% into the part); the swing stopped; the target; no sever: the edge met the body 9 cm from the bone at the right elbow
+   42.583 |   2468 | B Medium       | struck   | by A Medium 2 on the ForearmR: health 48/100, poise 38/45, recoil, standing; light reaction
+   42.783 |   2480 | A Medium 2     | attack   | sns_chop_lunge at B Medium
+   42.983 |   2492 | A Medium 2     | sight    | noticed B Medium 2 at the edge of its view (5.0 m)
+   43.100 |   2499 | A Medium 2     | sight    | noticed B Large at the edge of its view (3.4 m)
+   43.117 |   2500 | A Medium 2     | sight    | noticed A Medium at the edge of its view (5.1 m)
+   43.150 |   2502 | A Large        | hit      | blow struck B Large's HandR at 13.2 m/s: parried by B Large's parried (47 poise); impulse 126.6 N·s (70% into the part); the swing stopped; parried
+   43.150 |   2502 | B Large        | struck   | by A Large on the HandR: health 119/220, poise 73/120, flinch, standing; parried with hanging, then driven back at 1.5 m/s
+   43.350 |   2514 | B Medium 2     | attack   | sns_forehand at A Medium
+   43.800 |   2541 | B Large        | attack   | sns_forehand at A Large
+   43.800 |   2541 | A Large        | sight    | noticed B Medium at the edge of its view (2.6 m)
+   43.900 |   2547 | A Medium 2     | hit      | blow struck B Medium's HandL at 9.0 m/s: blocked by B Medium's shield (5 poise); impulse 26.0 N·s (70% into the part); the swing stopped; blocked by the shield
+   43.900 |   2547 | B Medium       | struck   | by A Medium 2 on the HandL: health 48/100, poise 40/45, recoil, standing; the shield knocked back
+   44.017 |   2554 | B Medium 2     | hit      | blow struck A Medium's HandL at 3.0 m/s: blocked by A Medium's shield (2 poise); impulse 8.8 N·s (70% into the part); the swing stopped; blocked by the shield
+   44.017 |   2554 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 43/45, recoil, standing; the shield knocked back
+   44.483 |   2582 | B Large        | hit      | blow struck A Large's HandR at 11.4 m/s: parried by A Large's parried (41 poise); impulse 109.4 N·s (70% into the part); the swing stopped; parried
+   44.483 |   2582 | A Large        | struck   | by B Large on the HandR: health 175/220, poise 79/120, recoil, standing; parried with tierce, then driven back at 1.3 m/s
+   44.617 |   2590 | B Medium       | attack   | sns_rising at A Medium 2
+   45.133 |   2621 | A Medium 2     | attack   | sns_forehand at B Medium
+   45.433 |   2639 | A Large        | attack   | sns_combo_forehand at B Large
+   45.433 |   2639 | B Medium       | hit      | blow struck A Medium 2's Chest at 6.8 m/s: 9.0 damage, 7 poise, recoil; impulse 13.5 N·s (45% into the part); the swing stopped; the target
+   45.433 |   2639 | A Medium 2     | struck   | by B Medium on the Chest: health 44/100, poise 38/45, recoil, standing; its strike carried on
+   45.633 |   2651 | B Medium 2     | attack   | sns_forehand at A Medium
+   45.633 |   2651 | B Medium       | tempo    | probe → shell: pressed (pressure 0.58); energy 0.62, aggression 0.14
+   45.667 |   2653 | B Large        | attack   | sns_forehand at A Large
+   45.750 |   2658 | A Medium 2     | hit      | blow struck B Medium's HandL at 5.6 m/s: blocked by B Medium's shield (3 poise); impulse 16.2 N·s (70% into the part); the swing stopped; blocked by the shield
+   45.750 |   2658 | B Medium       | struck   | by A Medium 2 on the HandL: health 48/100, poise 42/45, recoil, standing; the shield knocked back
+   45.950 |   2670 | A Medium 2     | tempo    | counter → probe: answered; energy 0.12, aggression 0.26
+   45.967 |   2671 | A Medium 2     | tempo    | probe → gather: tired (energy 0.12); energy 0.12, aggression 0.26
+   46.200 |   2685 | A Large        | hit      | blow struck B Large's Head at 16.0 m/s: 27.3 damage, 86 poise, flinch; impulse 172.1 N·s (60% into the part); the swing stopped; the target
+   46.200 |   2685 | B Large        | struck   | by A Large on the Head: health 92/220, poise 34/120, flinch, standing; its strike cut short, then driven back at 0.8 m/s
+   46.250 |   2688 | B Medium 2     | hit      | blow struck A Medium's HandL at 14.3 m/s: blocked by A Medium's shield (8 poise); impulse 41.5 N·s (70% into the part); the swing stopped; blocked by the shield
+   46.250 |   2688 | A Medium       | struck   | by B Medium 2 on the HandL: health 54/100, poise 37/45, recoil, standing; the shield knocked back
+   46.400 |   2697 | A Medium 2     | sight    | lost track of B Large
+   46.433 |   2699 | A Medium 2     | sight    | lost track of A Medium
+   46.733 |   2717 | A Medium 2     | sight    | lost track of B Medium 2
+   46.817 |   2722 | B Large        | sight    | lost track of B Medium 2
+   46.883 |   2726 | A Large        | sight    | lost track of B Medium
+   47.267 |   2749 | A Medium       | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.22); energy 0.22, aggression 0.00
+   47.283 |   2750 | A Medium       | tempo    | gather → shell: pressed (pressure 1.24); energy 0.22, aggression 0.00
+   47.544 |   2765 | -              | console  | warning: Assembly for Assembly Definition File 'Assets/_Battler/Tests/EditMode/PhysicsBattler.Tests.EditMode.asmdef' will not be compiled, because it has no scripts associated with it.
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitController.cs(66,78): warning CS0067: The event 'UnitController.MoveContact' is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitCombo.cs(44,70): warning CS0067: The event 'UnitController.ComboChanged' is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitCombat.cs(90,22): warning CS0414: The field 'UnitController.hasLastSweep' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Locomotion\ClipFighter.cs(324,55): warning CS0414: The field 'ClipFighter.shieldSpeedNow' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitTempo.cs(34,23): warning CS0414: The field 'UnitController.moodBlend' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitRagdoll.cs(22,23): warning CS0414: The field 'UnitController.groundCalm' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitBalance.cs(86,23): warning CS0414: The field 'UnitController.downCalm' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitRhythm.cs(50,23): warning CS0414: The field 'UnitController.heldDrift' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Motion\HeadLook.cs(36,33): warning CS0414: The field 'HeadLook.pitchSpeed' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\GroundContacts.cs(82,29): warning CS0414: The field 'GroundContacts.dirty' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Locomotion\ClipFighter.cs(323,40): warning CS0414: The field 'ClipFighter.shieldReadHeld' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitTempo.cs(36,22): warning CS0414: The field 'UnitController.moodStanding' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Motion\HeadLook.cs(35,23): warning CS0414: The field 'HeadLook.chosenAt' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitLook.cs(19,23): warning CS0414: The field 'UnitController.lookWeight' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitLook.cs(19,49): warning CS0414: The field 'UnitController.glanceUntil' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitBalance.cs(90,21): warning CS0414: The field 'UnitController.stumbleSteps' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitLook.cs(20,32): warning CS0414: The field 'UnitController.glanceAt' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Motion\Tempo.cs(183,21): warning CS0414: The field 'TempoDirector.blocked' is assigned but its value is never used
+   47.544 |   2765 | -              | console  | warning: Assets\_Battler\Scripts\Runtime\Units\UnitCombat.cs(89,23): warning CS0414: The field 'UnitController.momentumLeft' is assigned but its value is never used
+   47.544 |   2765 | A Medium       | despawn  | recording stopped
+   47.544 |   2765 | A Medium 2     | despawn  | recording stopped
+   47.544 |   2765 | A Large        | despawn  | recording stopped
+   47.544 |   2765 | B Medium       | despawn  | recording stopped
+   47.544 |   2765 | B Medium 2     | despawn  | recording stopped
+   47.544 |   2765 | B Large        | despawn  | recording stopped
+   47.544 |   2765 | -              | session  | 369 pictures saved
+   47.544 |   2765 | -              | session  | recording stopped after 46.1 s (2765 physics steps)

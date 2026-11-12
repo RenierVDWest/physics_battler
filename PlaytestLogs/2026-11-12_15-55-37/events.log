@@ -1,0 +1,7 @@
+# Physics Battler playtest 2026-11-12_15-55-37
+# time (s since Play) | physics step | who | what | details
+   47.544 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+   47.544 |      0 | -              | console  | EXCEPTION: NullReferenceException: Object reference not set to an instance of an object @ PhysicsBattler.Diagnostics.PlaytestRecorder.Follow (PhysicsBattler.Units.UnitController unit) (at Assets/_Battler/Scripts/Runtime/Diagnostics/PlaytestRecorder.cs:631)
+   47.544 |      0 | A Medium 2     | despawn  | recording stopped
+   47.544 |      0 | -              | session  | 369 pictures saved
+   47.544 |      0 | -              | session  | recording stopped after 0.0 s (0 physics steps)
