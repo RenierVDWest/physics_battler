@@ -215,6 +215,13 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How much stronger the physical weapon arm is through a strike than at other times (times its muscles' strength), from the strike's start until 0.4 s after its contact. Through a strike the arm also has no slack: it is held to its swing and does not give way to what the weapon meets, so the weapon pushes on through a body instead of being turned by it. A blow stopped by a shield or a parry gives as before. 1: no stronger. Default 3.")]
         [Range(1f, 8f)] public float strikeArmStrength = DefaultStrikeArmStrength;
 
+        [Header("Arms that bend as a body does")]
+        [Tooltip("The gate at the end of the pose. On: after everything that moves an arm has had its say (the clip, the strike's aim, the shield, the parry, the knocks, the free arm), each arm is read as a body's arm (where the elbow is against the chest, which way it folds, how far it bends, the forearm's roll, the wrist) and brought into what a person's arm does, so no arm is posed in a way a body cannot bend. An arm already inside is not touched, and an arm may always be where the playing clip has it. A hand asked to go where no arm reaches stops short: a shield or a blade may then not get where it was sent. Off: as before, arms are posed wherever their hands are sent (to compare).")]
+        public bool armsHeldToABody = true;
+
+        [Tooltip("How fast the gate swings an arm over when it has to take it the long way (degrees a second). When a stage sends an elbow's fold, a forearm's roll or the elbow's place from one side of what a body can do right round to the other, the arm does not jump there: it goes over through what a body can do at this pace, on top of however fast the arm sent was moving itself. An arm left outside its range by a range that closed on it (an arm bending from straight, coming down from overhead) comes in at twice this. Higher: the arm is where it should be sooner, and whips there; lower: it swings over more gently, and lags what it was sent for longer. Default 600: a fold sent right round (195 degrees) goes over in a third of a second.")]
+        [Range(120f, 1500f)] public float armGoesOverAt = PhysicsBattler.Motion.ArmGate.DefaultCatchUp;
+
         [Header("Feet")]
         [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
         [Range(0.5f, 8f)] public float comboPullSpeed = DefaultComboPullSpeed;
@@ -279,6 +286,8 @@ namespace PhysicsBattler.Locomotion
         {
             WeaponWeight = DefaultWeaponWeight;
             SwingKept = DefaultSwingKept;
+            PhysicsBattler.Motion.ArmLimits.On = true;
+            PhysicsBattler.Motion.ArmGate.CatchUp = PhysicsBattler.Motion.ArmGate.DefaultCatchUp;
             StrikeArmStrength = DefaultStrikeArmStrength;
             BendPerWeight = DefaultBendPerWeight;
             OffFrontBend = DefaultOffFrontBend;
@@ -336,6 +345,8 @@ namespace PhysicsBattler.Locomotion
         {
             WeaponWeight = Mathf.Max(1f, weaponWeight);
             SwingKept = Mathf.Clamp01(swingKept);
+            PhysicsBattler.Motion.ArmLimits.On = armsHeldToABody;
+            PhysicsBattler.Motion.ArmGate.CatchUp = Mathf.Clamp(armGoesOverAt, 120f, 1500f);
             StrikeArmStrength = Mathf.Max(1f, strikeArmStrength);
             BendPerWeight = bendPerWeight;
             OffFrontBend = offFrontBend;

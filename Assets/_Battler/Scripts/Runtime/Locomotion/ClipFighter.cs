@@ -1038,6 +1038,84 @@ namespace PhysicsBattler.Locomotion
             Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
         }
 
+        /// <summary>How far past a body's range the pose had each arm this step, before the gate brought it back (degrees; left, right; 0: not touched).</summary>
+        public readonly float[] ArmHeldBy = new float[2];
+
+        /// <summary>
+        /// The gate at the end of the pose (the plan "Arms that bend as a body does", step 2): after every stage has had
+        /// its say (the clip, the strike's aim, the shield, the parry, the knocks, the free arm), each arm is read as a
+        /// body's arm and brought into a body's range (<see cref="ArmLimits"/>). What a stage asked for that no arm does,
+        /// it does not get: the hand stops short. A hand bound to a two-handed weapon is left to its grip.
+        /// </summary>
+        private readonly ArmGate[] armGates = { new ArmGate(), new ArmGate() };
+        private readonly (Quaternion, Quaternion, Quaternion)[] armSent = new (Quaternion, Quaternion, Quaternion)[2], armGone = new (Quaternion, Quaternion, Quaternion)[2];
+        private readonly bool[] armTurnsKnown = new bool[2];
+
+        /// <summary>A joint of an arm turned this far in a step counts as a jump (degrees; for the reports).</summary>
+        public const float ArmJump = 60f;
+
+        /// <summary>For the reports: steps an arm's joint jumped in the pose as it was sent to the gate, as it left it, and those the gate itself made (the pose sent had turned under half as far).</summary>
+        public int ArmSentJumps, ArmGoneJumps, ArmGateJumps;
+
+        /// <summary>For the reports: each jump the gate made, written out.</summary>
+        public System.Action<string> ArmGateTrace;
+
+        private void HoldArms(float dt)
+        {
+            ArmHeldBy[0] = ArmHeldBy[1] = 0f;
+            if (!ArmLimits.On || !snapped)
+            {
+                armGates[0].Forget();
+                armGates[1].Forget();
+                armTurnsKnown[0] = armTurnsKnown[1] = false;
+                return;
+            }
+
+            var chest = Anim.Part(PartId.Chest);
+            for (int side = 0; side < 2; side++)
+            {
+                bool left = side == 0;
+                if ((left && Poser.TwoHanded) || Rig.IsSevered(left ? PartId.HandL : PartId.HandR))
+                {
+                    armGates[side].Forget();
+                    armTurnsKnown[side] = false;
+                    continue;
+                }
+
+                var clip = ArmLimits.ReadClip(Loco.RawPoints, (int)LocoBone.Neck, (int)LocoBone.Spine2, (int)LocoBone.LeftArm, (int)LocoBone.RightArm, left);
+                Transform upper = Anim.Part(left ? PartId.UpperArmL : PartId.UpperArmR), fore = Anim.Part(left ? PartId.ForearmL : PartId.ForearmR), hand = Anim.Part(left ? PartId.HandL : PartId.HandR);
+                var sentTurns = (upper.localRotation, fore.localRotation, hand.localRotation);
+                var sentAs = ArmGateTrace != null ? ArmLimits.Read(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip) : default;
+                ArmHeldBy[side] = armGates[side].Hold(chest, upper, fore, hand, left, clip, dt);
+                // (For the reports: a joint the gate turned far in a step that the pose sent had hardly turned.)
+                var goneTurns = (upper.localRotation, fore.localRotation, hand.localRotation);
+                if (armTurnsKnown[side])
+                {
+                    float sentBy = Mathf.Max(Quaternion.Angle(sentTurns.Item1, armSent[side].Item1), Mathf.Max(Quaternion.Angle(sentTurns.Item2, armSent[side].Item2), Quaternion.Angle(sentTurns.Item3, armSent[side].Item3)));
+                    float goneBy = Mathf.Max(Quaternion.Angle(goneTurns.Item1, armGone[side].Item1), Mathf.Max(Quaternion.Angle(goneTurns.Item2, armGone[side].Item2), Quaternion.Angle(goneTurns.Item3, armGone[side].Item3)));
+                    ArmSentJumps += sentBy > ArmJump ? 1 : 0;
+                    ArmGoneJumps += goneBy > ArmJump ? 1 : 0;
+                    if (goneBy > ArmJump && sentBy < 0.5f * ArmJump)
+                    {
+                        ArmGateJumps++;
+                        if (ArmGateTrace != null)
+                        {
+                            var goneAs = ArmLimits.Read(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip);
+                            ArmGateTrace(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                "{0:0.00} s {1}: joints turned {2:0}° (sent {3:0}°): upper {4:0} fore {5:0} hand {6:0}; sent raised {7:0} toward {8:0} turned {9:0} bent {10:0} folded {11:0.00} rolled {12:0} wrist {13:0}/{14:0} (past {15:0}); let go raised {16:0} toward {17:0} turned {18:0} bent {19:0} rolled {20:0} wrist {21:0}/{22:0}",
+                                clock, left ? "left" : "right", goneBy, sentBy, Quaternion.Angle(goneTurns.Item1, armGone[side].Item1), Quaternion.Angle(goneTurns.Item2, armGone[side].Item2), Quaternion.Angle(goneTurns.Item3, armGone[side].Item3),
+                                sentAs.Raised, sentAs.Toward, sentAs.Turn, sentAs.Bend, sentAs.Folded, sentAs.Roll, sentAs.Flex, sentAs.Thumbward, sentAs.Worst,
+                                goneAs.Raised, goneAs.Toward, goneAs.Turn, goneAs.Bend, goneAs.Roll, goneAs.Flex, goneAs.Thumbward));
+                        }
+                    }
+                }
+
+                armSent[side] = sentTurns;
+                armGone[side] = goneTurns;
+                armTurnsKnown[side] = true;
+            }
+        }
+
         /// <summary>
         /// The second half of a step: the arms held to their pose where they must be (the weapon arm through a
         /// strike and a moment after, both two-handed; the shield arm meeting a blow; the sword arm parrying), the
@@ -1050,6 +1128,8 @@ namespace PhysicsBattler.Locomotion
             {
                 return;
             }
+
+            HoldArms(dt);
 
             if (Authority != null)
             {

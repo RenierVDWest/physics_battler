@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using PhysicsBattler.Motion;
 using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
@@ -35,6 +36,8 @@ public sealed class LimitMeasure
         public readonly int[] Over = new int[6], Over30 = new int[6], BodyOver = new int[6], ClipOver = new int[6];   // (reach, turn, bend, roll, wrist, any)
         public readonly float[] Worst = new float[5], BodyWorst = new float[5], ClipWorst = new float[5];
         public string WorstAt = "";
+        public int Held, Held30;
+        public float HeldMost;
         public float WorstAll;
     }
 
@@ -42,23 +45,15 @@ public sealed class LimitMeasure
     private readonly Dictionary<(string, string, string), ArmTally> arms = new Dictionary<(string, string, string), ArmTally>();
     private float clock;
 
-    private static ArmAnatomy ReadArm(Func<PartId, Transform> part, bool left) => ArmAnatomy.Read(part(PartId.Chest).rotation,
+    private static ArmReading ReadArm(Func<PartId, Transform> part, bool left, in ArmReading clip) => ArmLimits.Read(part(PartId.Chest).rotation,
         part(left ? PartId.UpperArmL : PartId.UpperArmR).position, part(left ? PartId.ForearmL : PartId.ForearmR).position,
-        part(left ? PartId.HandL : PartId.HandR).position, part(left ? PartId.HandL : PartId.HandR).rotation, left);
+        part(left ? PartId.HandL : PartId.HandR).position, part(left ? PartId.HandL : PartId.HandR).rotation, left, clip);
 
     /// <summary>The clip's own arm (the recorded motion, before anything of ours moves it), read the same way.</summary>
-    public static ArmAnatomy ReadClipArm(Vector3[] p, bool left)
-    {
-        Vector3 P(PhysicsBattler.Locomotion.LocoBone b) => p[(int)b];
-        Vector3 up = P(PhysicsBattler.Locomotion.LocoBone.Neck) - P(PhysicsBattler.Locomotion.LocoBone.Spine2), right = P(PhysicsBattler.Locomotion.LocoBone.RightArm) - P(PhysicsBattler.Locomotion.LocoBone.LeftArm);
-        var chest = Quaternion.LookRotation(Vector3.Cross(right, up), up);
-        var s = left ? PhysicsBattler.Locomotion.LocoBone.LeftArm : PhysicsBattler.Locomotion.LocoBone.RightArm;
-        Vector3 wrist = P(s + 2), along = P(s + 4) - wrist, side = P(s + 3) - P(s + 5);
-        var hand = Quaternion.LookRotation(Vector3.ProjectOnPlane(side, along), -along);
-        return ArmAnatomy.Read(chest, P(s), P(s + 1), wrist, hand, left);
-    }
+    public static ArmReading ReadClipArm(Vector3[] p, bool left) => ArmLimits.ReadClip(p, (int)PhysicsBattler.Locomotion.LocoBone.Neck,
+        (int)PhysicsBattler.Locomotion.LocoBone.Spine2, (int)PhysicsBattler.Locomotion.LocoBone.LeftArm, (int)PhysicsBattler.Locomotion.LocoBone.RightArm, left);
 
-    private static float[] Pasts(ArmAnatomy a) => new[] { a.PastReach, a.PastTurn, a.PastBend, a.PastRoll, a.PastWrist };
+    private static float[] Pasts(ArmReading a) => new[] { a.PastReach, a.PastTurn, a.PastBend, a.PastRoll, a.PastWrist };
 
     private readonly List<UnitController> units;
     private readonly Func<UnitController, string> kind;
@@ -70,6 +65,17 @@ public sealed class LimitMeasure
     {
         this.units = units;
         this.kind = kind;
+        if (Environment.GetEnvironmentVariable("FIGHT_ARMTRACE") == "1")
+        {
+            foreach (var u in units)
+            {
+                var named = u;
+                if (u.Clip != null)
+                {
+                    u.Clip.ArmGateTrace = line => Console.WriteLine($"[ArmGate] {named.name} {line}");
+                }
+            }
+        }
     }
 
     public void Step()
@@ -129,11 +135,13 @@ public sealed class LimitMeasure
                     arms[key] = at = new ArmTally();
                 }
 
-                var pose = ReadArm(id => clip.Anim.Part(id), left);
-                var body = ReadArm(id => clip.Rig.Part(id).transform, left);
+                var inClip = ReadClipArm(clip.Loco.RawPoints, left);
+                var pose = ReadArm(id => clip.Anim.Part(id), left, inClip);
+                var body = ReadArm(id => clip.Rig.Part(id).transform, left, inClip);
                 float[] p = Pasts(pose), b = Pasts(body);
-                var raw = clip.Loco.RawPoints;
-                var inClip = raw != null && raw.Length > (int)PhysicsBattler.Locomotion.LocoBone.RightHandPinky ? ReadClipArm(raw, left) : default;
+                at.Held += clip.ArmHeldBy[side] > 0.5f ? 1 : 0;
+                at.Held30 += clip.ArmHeldBy[side] > 30f ? 1 : 0;
+                at.HeldMost = Mathf.Max(at.HeldMost, clip.ArmHeldBy[side]);
                 float[] c = Pasts(inClip);
                 at.ClipOver[5] += inClip.Worst > 10f ? 1 : 0;
                 at.Steps++;
@@ -154,7 +162,7 @@ public sealed class LimitMeasure
                 if (pose.Worst > at.WorstAll)
                 {
                     at.WorstAll = pose.Worst;
-                    at.WorstAt = $"at {clock:0.00} s {u.name}: raised {pose.Raised:0}° toward {pose.Toward:0}° (highest there {ArmAnatomy.Highest(pose.Toward):0}), turned {pose.Turn:0}, bent {pose.Bend:0}, rolled {pose.Roll:0}, wrist {pose.Flex:0}/{pose.Thumbward:0}";
+                    at.WorstAt = $"at {clock:0.00} s {u.name}: raised {pose.Raised:0}° toward {pose.Toward:0}° (highest there {ArmLimits.Highest(pose.Toward):0}), turned {pose.Turn:0}, bent {pose.Bend:0}, rolled {pose.Roll:0}, wrist {pose.Flex:0}/{pose.Thumbward:0}";
                 }
             }
 
@@ -187,7 +195,7 @@ public sealed class LimitMeasure
             }
         }
 
-        sb.AppendLine("    arms as a body's arms (read from where the joints are; share of the time the POSE is over 10° past a person's range in any way [over 30°], and the BODY; then each way: pose share, worst pose, worst body):");
+        sb.AppendLine("    arms as a body's arms (read from where the joints are; share of the time the POSE, as it goes to the body, is over 10° past a person's range in any way [over 30°], and the BODY; how often the gate at the end of the pose had to bring the arm back; then each way: pose share, worst pose, worst body):");
         foreach (var e in arms.OrderBy(e => e.Key.Item1).ThenBy(e => e.Key.Item2).ThenBy(e => e.Key.Item3))
         {
             var t = e.Value;
@@ -205,13 +213,14 @@ public sealed class LimitMeasure
                 }
             }
 
-            sb.AppendLine($"      {e.Key.Item1}, {e.Key.Item2}, {e.Key.Item3} ({t.Steps / 60f:0.0} s): pose {100f * t.Over[5] / t.Steps:0.0}% [{100f * t.Over30[5] / t.Steps:0.0}%], body {100f * t.BodyOver[5] / t.Steps:0.0}%, the clip itself {100f * t.ClipOver[5] / t.Steps:0.0}%{(parts.Count > 0 ? ": " + string.Join("; ", parts) : "")}");
+            sb.AppendLine($"      {e.Key.Item1}, {e.Key.Item2}, {e.Key.Item3} ({t.Steps / 60f:0.0} s): pose {100f * t.Over[5] / t.Steps:0.0}% [{100f * t.Over30[5] / t.Steps:0.0}%], body {100f * t.BodyOver[5] / t.Steps:0.0}%, the clip itself {100f * t.ClipOver[5] / t.Steps:0.0}%; the gate brought it back {100f * t.Held / t.Steps:0.0}% of the time [from over 30° past {100f * t.Held30 / t.Steps:0.0}%, at most {t.HeldMost:0}°]{(parts.Count > 0 ? ": " + string.Join("; ", parts) : "")}");
             if (t.WorstAll > 30f)
             {
                 sb.AppendLine($"          worst {t.WorstAt}");
             }
         }
 
+        sb.AppendLine($"      an arm's joint turned over {PhysicsBattler.Locomotion.ClipFighter.ArmJump:0}° in a step: {units.Sum(u => u.Clip != null ? u.Clip.ArmSentJumps : 0)} times in the pose as the stages left it, {units.Sum(u => u.Clip != null ? u.Clip.ArmGoneJumps : 0)} as the gate let it go; of those the gate's own making (the pose sent turned under half as far): {units.Sum(u => u.Clip != null ? u.Clip.ArmGateJumps : 0)}");
         foreach (var s in shields.OrderBy(s => s.Key))
         {
             sb.AppendLine($"      {s.Key}: its shield or shield arm over 2 cm into its own head {100f * s.Value.head / s.Value.steps:0.0}% of the time (deepest {s.Value.headDeepest * 100f:0} cm), into its own trunk {100f * s.Value.trunk / s.Value.steps:0.0}% (deepest {s.Value.trunkDeepest * 100f:0} cm)");

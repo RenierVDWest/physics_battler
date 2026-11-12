@@ -2272,6 +2272,77 @@ arms, the board fixed in the fist and turned by the wrist, kept out of its own h
 through the elbow and the shoulder into the body; (5) the same ranges as hard stops in the physical joints (the
 elbow a hinge); (6) the weapons' real weight; (7) the legs.
 
+**The arm gate (the plan's step 2)** (12 November: "yes as you suggest", "you can go ahead"). After every stage of
+the pose has had its say, and just before the pose goes to the physical body (`ClipFighter.Apply`, first thing),
+each arm passes one gate (`Motion/ArmLimits.cs`: `ArmLimits`, the reading and the ranges; `ArmGate`, the gate, one
+for each arm). The arm is read as a body's arm and each reading brought into its range, in this order, each by
+turning the arm about one joint: where the elbow is (the whole arm about the shoulder, to the nearest place an
+elbow can be), the elbow's bend (the forearm about the elbow), which way the elbow folds (the arm about the upper
+arm's own length), the wrist (the hand, so the forearm lies in it as far to the palm and the thumb as a wrist
+bends), the forearm's roll (the hand about the forearm). No bone changes its length and nothing is solved for: the
+arm that leaves is made of turns that are each inside a range. What a stage asked for that no arm does, it does not
+get: the hand stops short.
+
+What the gate keeps to:
+
+- An arm inside its range is not touched (200,000 arms at random: none moved by a tenth of a degree), so the clips
+  and the walk are as they were.
+- An arm may always be where the playing clip has its own (12 degrees of room about each reading of the clip's arm):
+  the recorded motion is a person's. The ranges themselves are a person's, set from the clips: the fold 100 in and 95
+  out, the bend to 150, the roll 95 in and 100 out, the wrist 80 to the palm or the back of the hand, 50 to the
+  thumb, 55 to the little finger; against them the combat clips in use are over 10 degrees past in 0.5% of their frames,
+  the walks, turns and reactions in none.
+- The hand goes with the arm (its wrist bent as it was sent), and the forearm's roll then turns it back toward the
+  way its thumb was sent, as far as a forearm rolls: an arm turned under its hand leaves what the hand holds facing
+  as it was sent.
+- It does not jump. A range that goes round (the fold, the roll, the wrist's bend) has a far side, where an arm sent
+  is as near one end as the other; there the arm stays at the end it was at, and when it has to go to the other it
+  goes through the range at the scene's Combat Feel's "Arm Goes Over At" (600 degrees a second, on top of however
+  fast the arm sent moved itself), not across what is outside and not in a step. The same for the elbow's place.
+  What it remembers of the step before it keeps as ways in the chest's frame, not as readings: a reading's zero
+  swings round as an arm nears straight up or straight out. A range that closes on an arm (the fold's as an arm
+  bends from straight or comes down from overhead, where the fold says nothing and its range is open all round) is
+  come into at twice the pace: for those tenths of a second the arm is outside it.
+- A hand bound to a two-handed weapon is left to its grip (none in the fights now).
+
+The scene's Combat Feel, "Arms that bend as a body does": "Arms Held To A Body" (off: as before, to compare) and
+"Arm Goes Over At". Headless: `FIGHT_ARMGATE=0`, and `FIGHT_ARMTRACE=1` writes each jump the gate itself made.
+`dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll armgate` is its test: arms at random through it (the furthest past
+a body's range after it 0.12 degrees), arms moved a degree a joint a step for 600,000 steps (its arm moved over 35
+degrees in a step 6 times, the sent arm then deep outside every range at once), and an arm held still while the
+clip's own arm wobbles.
+
+Measured (60 s fights of six: four seeds with the gate; without it, two for the arms and four for the blows; the
+target test, Mediums and Larges):
+
+| Share of the time over 10 degrees past a body's range | The pose, before | The pose, with the gate | The physical body, with the gate |
+| --- | --- | --- | --- |
+| A swordsman's free arm, in guard | 85% | 0.0% | 0.0% |
+| The shield arm, just struck | 24% | 0.6% | 10% |
+| A swordsman's sword arm, just struck | 16% | 0.7% | 3.6% |
+| A Large's club arm, just struck | 17% | 0.3% | 1.4% |
+| A Large's club arm, striking | 13% | 0.0% | 0.4% |
+| A shield man's sword arm, striking | 8% | 0.0% | 1.0% |
+| The shield arm, in guard | 4.5% | 0.0% | 1.6% |
+
+What is left in the pose is the arm on its way over. The physical body is still past a body's range where a blow
+knocks it there or it trails a pose that swung over: it has no stops of its own yet (the plan's step 5); in the target
+test the Large target's shield arm, just struck, is so 20% of the time. How often the gate has work: the swordsman's
+free arm nearly always (its wrist: 87% of its guard), the shield arm just struck 35% of the time (23% from over 30
+degrees past), the sword and club arms in a strike 15 to 17%: those are for the plan's steps 3 and 4.
+
+The hands that stop short: of the blows started, 30% were blocked by a shield (37% before), 21% parried (18%), 47%
+landed (38%) (250 and 289 blows). In the target test the shield target blocked 17 of the Mediums' blows where it
+blocked 20, and 16 of the Larges' where it blocked 20. The shield and its arm are as often inside their own head
+and trunk as before (the plan's step 4).
+
+Also found: the stages themselves turn an arm's joint by over 60 degrees in a single step 36 to 66 times in a 60 s
+fight of six (a pole flipped, a hand sent across the shoulder); the gate lets those through where they are from one
+arm a body has to another, and makes 2 to 5 of its own (a hand held at the edge of the wrist's range, where a small
+turn of the hand sent is a larger one along the edge). An upper arm kept turning fast about its own length
+(`rolls.py`) 2, 3, 2 and 1 times with the gate and 0, 1, 5 and 1 without. Not seen in Unity yet.
+
+
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
 vector, stiffness for radians, the force limit a torque, a part built turned takes its turn on its own axes), so
@@ -2312,6 +2383,7 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll physx-arm              # the swo
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll locolab . 20           # the lab's walk
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll spar /tmp/spar 40      # the lab's two fighters
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll strikes /tmp/strikes   # each strike aimed; also dummyhits, combos, cores, footwork, parryreach, combatfilm
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll armgate                # the arm gate on arms at random; armrange: the clips' own arms against the ranges
 ```
 
 The stubs only cover the API this project uses, and the dry run has no collisions or joints (a ragdoll's parts fall

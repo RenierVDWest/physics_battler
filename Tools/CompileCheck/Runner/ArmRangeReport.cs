@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using PhysicsBattler.Locomotion;
+using PhysicsBattler.Motion;
 using UnityEngine;
 
 /// <summary>
-/// The recorded clips' own arms, read as a body's arms (<see cref="ArmAnatomy"/>): the range each reading takes over
+/// The recorded clips' own arms, read as a body's arms (<see cref="ArmLimits"/>): the range each reading takes over
 /// every frame of every clip, and how much of it is outside the model's range. The recorded motion is a person's:
 /// what it does, a body can do, so the model's ranges must hold all of it.
 /// </summary>
@@ -14,7 +15,7 @@ public static class ArmRangeReport
     public static int Run()
     {
         LocoLibrary.Load();
-        var all = new Dictionary<string, List<ArmAnatomy>>();
+        var all = new Dictionary<string, List<ArmReading>>();
         var worst = new List<(float past, string at)>();
         foreach (var pair in LocoLibrary.Clips.OrderBy(p => p.Key))
         {
@@ -37,7 +38,7 @@ public static class ArmRangeReport
                     string key = set + (side == 0 ? " left" : " right");
                     if (!all.TryGetValue(key, out var list))
                     {
-                        all[key] = list = new List<ArmAnatomy>();
+                        all[key] = list = new List<ArmReading>();
                     }
 
                     list.Add(a);
@@ -61,7 +62,7 @@ public static class ArmRangeReport
         foreach (var e in all.OrderBy(e => e.Key))
         {
             var l = e.Value;
-            var folded = l.Where(a => a.Bend > 20f && a.Bend < 175f && a.Raised < 165f).ToList();
+            var folded = l.Where(a => a.Folded > 0.5f).ToList();
             Console.WriteLine($"{e.Key} arm, {l.Count} frames (least, 1%, middle, 99%, most):");
             Console.WriteLine($"    raised       {Range(l.Select(a => a.Raised))}     past its place over 10°: {100f * l.Count(a => a.PastReach > 10f) / l.Count:0.0}% (most {l.Max(a => a.PastReach):0}°)");
             Console.WriteLine($"    turn         {Range(folded.Select(a => a.Turn))}     past over 10°: {100f * l.Count(a => a.PastTurn > 10f) / l.Count:0.0}% (most {l.Max(a => a.PastTurn):0}°)");

@@ -162,6 +162,12 @@ internal static class FightReport
             PhysicsBattler.Locomotion.CombatFeel.MostBladeSpeed = blade;
         }
 
+        // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
+        if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
+        {
+            PhysicsBattler.Motion.ArmLimits.On = false;
+        }
+
         // (Heavy weapons: FIGHT_HEFT="2.5,0.7,3" sets how much heavier a blow is felt, how much of its speed a weapon
         // keeps through a body, and how much stronger the weapon arm is through a strike; "1,0,1" is as it was before.)
         {
