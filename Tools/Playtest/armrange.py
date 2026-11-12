@@ -1,7 +1,8 @@
 # armrange.py <session>/units [past, degrees]: each arm read as a body's arm (the same reading as the headless fight
 # report's, Tools/CompileCheck/Runner/ArmAnatomy.cs): where the elbow is against the chest, how the upper arm is
 # turned about its length (which way the elbow folds), the elbow's bend, the forearm's roll, the wrist. For the
-# physical body (all five) and the pose (the first three: the log has the pose's places, not its turns), the share
+# physical body (all five) and the pose (the first three: the log has the pose's places, not its turns), against the
+# game's own ranges (Motion/ArmLimits.cs; without the room it gives about the playing clip's arm), the share
 # of the session each is past a person's range by more than [past] (10), and the longest runs, to find on the film.
 import sys, gzip, csv, math, glob, os
 d=sys.argv[1]; thr=float(sys.argv[2]) if len(sys.argv)>2 else 10
@@ -42,17 +43,17 @@ def read(chest,S,E,W,hand,left):
             reach=min(reach,ang(u,(math.sin(r)*math.sin(tr),-math.cos(r),math.sin(r)*math.cos(tr))))
     bend=ang(u,f); pbend=max(0,bend-150)
     sw=fromto((0,-1,0),u); ahead=rot(sw,(0,0,1)); inward=rot(sw,(-1,0,0)); fold=perp(f,u)
-    folded=20<bend<175 and raised<165
+    folded=35<bend<160 and raised<150   # (where the fold says all it can: the game's ranges open as the arm straightens or goes overhead)
     turn=0; pturn=0; roll=0; proll=0; pwrist=0
     if folded:
-        turn=math.degrees(math.atan2(dot(fold,inward),dot(fold,ahead))); pturn=max(0,turn-100,-90-turn)
+        turn=math.degrees(math.atan2(dot(fold,inward),dot(fold,ahead))); pturn=max(0,turn-100,-95-turn)
     if hand is not None:
         fingers=M(rot(back,rot(hand,(0,-1,0)))); thumb=M(rot(back,rot(hand,(0,0,1)))); palm=M(rot(back,rot(hand,(1,0,0) if left else (-1,0,0))))
         flex=-math.degrees(math.atan2(dot(f,palm),dot(f,fingers))); tw=-math.degrees(math.asin(max(-1,min(1,dot(f,thumb)))))
-        pwrist=max(0,abs(flex)-80,tw-30,-45-tw)
+        pwrist=max(0,abs(flex)-80,tw-50,-55-tw)
         if folded:
             up=nrm(perp(mul(u,-1),f)); t=perp(thumb,f); med=cross(f,up)
-            roll=math.degrees(math.atan2(dot(t,med),dot(t,up))); proll=max(0,abs(roll)-90)
+            roll=math.degrees(math.atan2(dot(t,med),dot(t,up))); proll=max(0,roll-95,-100-roll)
     return (reach,pturn,pbend,proll,pwrist),(raised,toward,turn,bend,roll)
 WHAT=['elbow\'s place','upper arm\'s turn','elbow\'s bend','forearm\'s roll','wrist']
 for f in sorted(glob.glob(d+'/*.pose.csv.gz')):

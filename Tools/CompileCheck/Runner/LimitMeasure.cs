@@ -55,6 +55,13 @@ public sealed class LimitMeasure
 
     private static float[] Pasts(ArmReading a) => new[] { a.PastReach, a.PastTurn, a.PastBend, a.PastRoll, a.PastWrist };
 
+    private sealed class Hold
+    {
+        public int Steps, ElbowOut, ElbowUp, WristOver, InFistOver;
+        public float Elbow, Wrist, InFist, InFistMost;
+    }
+
+    private readonly Dictionary<(string, string), Hold> holds = new Dictionary<(string, string), Hold>();
     private readonly List<UnitController> units;
     private readonly Func<UnitController, string> kind;
     private readonly Dictionary<(string, PartId), Tally> tallies = new Dictionary<(string, PartId), Tally>();
@@ -166,11 +173,42 @@ public sealed class LimitMeasure
                 }
             }
 
-            if (clip.Upper != null && clip.Upper.Turns(PartId.HandL))
+            if (clip.Blocking && !clip.Rig.IsSevered(PartId.HandL) && clip.ShieldBoard(out _, out Vector3 boardLooks, out _))
             {
-                shields.TryGetValue(k, out var s);
+                // (How the shield is held: which way the elbow points (against straight down), the hand's turn on the forearm
+                // (the knuckles against the forearm's line), the board's turn in the fist (its face against the knuckles).)
+                if (!holds.TryGetValue((k, state), out var h))
+                {
+                    holds[(k, state)] = h = new Hold();
+                }
+
+                Transform su = clip.Anim.Part(PartId.UpperArmL), sf = clip.Anim.Part(PartId.ForearmL), sh = clip.Anim.Part(PartId.HandL);
+                Vector3 way = PhysicsBattler.Motion.TwoBoneIK.BendWay(su, sf, sh);
+                // (Against the lowest the elbow can be with the fist where it is: straight down, across the line from the shoulder to the fist.)
+                Vector3 lowest = Vector3.ProjectOnPlane(Vector3.down, (sh.position - su.position).normalized);
+                float elbow = way.sqrMagnitude > 0.5f && lowest.sqrMagnitude > 1e-4f ? Vector3.Angle(way, lowest) : 0f;
+                float wrist = Vector3.Angle(sh.rotation * Vector3.down, sh.position - sf.position);
+                var bodyHand = clip.Rig.Part(PartId.HandL).transform;
+                float inFist = Vector3.Angle(boardLooks, bodyHand.rotation * Vector3.down);
+                h.Steps++;
+                h.Elbow += elbow;
+                h.ElbowOut += elbow > 60f ? 1 : 0;
+                h.ElbowUp += sf.position.y > su.position.y + 0.02f ? 1 : 0;
+                h.Wrist += wrist;
+                h.WristOver += wrist > 30f ? 1 : 0;
+                h.InFist += inFist;
+                h.InFistOver += inFist > 20f ? 1 : 0;
+                h.InFistMost = Mathf.Max(h.InFistMost, inFist);
+            }
+
+            if (clip.Upper != null && clip.Blocking && !clip.Rig.IsSevered(PartId.HandL))
+            {
                 float head = clip.Upper.Deepest(ShieldArm, Head), trunk = clip.Upper.Deepest(ShieldArm, Trunk);
-                shields[k] = (s.steps + 1, s.head + (head > 0.02f ? 1 : 0), s.trunk + (trunk > 0.02f ? 1 : 0), Mathf.Max(s.headDeepest, head), Mathf.Max(s.trunkDeepest, trunk));
+                foreach (string key in new[] { k, k + ", " + state })
+                {
+                    shields.TryGetValue(key, out var s);
+                    shields[key] = (s.steps + 1, s.head + (head > 0.02f ? 1 : 0), s.trunk + (trunk > 0.02f ? 1 : 0), Mathf.Max(s.headDeepest, head), Mathf.Max(s.trunkDeepest, trunk));
+                }
             }
         }
     }
@@ -221,6 +259,31 @@ public sealed class LimitMeasure
         }
 
         sb.AppendLine($"      an arm's joint turned over {PhysicsBattler.Locomotion.ClipFighter.ArmJump:0}° in a step: {units.Sum(u => u.Clip != null ? u.Clip.ArmSentJumps : 0)} times in the pose as the stages left it, {units.Sum(u => u.Clip != null ? u.Clip.ArmGoneJumps : 0)} as the gate let it go; of those the gate's own making (the pose sent turned under half as far): {units.Sum(u => u.Clip != null ? u.Clip.ArmGateJumps : 0)}");
+        foreach (var e in holds.OrderBy(e => e.Key.Item1).ThenBy(e => e.Key.Item2))
+        {
+            var h = e.Value;
+            if (h.Steps < 30)
+            {
+                continue;
+            }
+
+            sb.AppendLine($"      how the shield is held: {e.Key.Item1}, {e.Key.Item2} ({h.Steps / 60f:0.0} s): the elbow {h.Elbow / h.Steps:0}° round from the lowest it could be on average, over 60° round {100f * h.ElbowOut / h.Steps:0.0}% of the time, above its shoulder {100f * h.ElbowUp / h.Steps:0.0}%; the hand turned {h.Wrist / h.Steps:0}° on the forearm on average, over 30° {100f * h.WristOver / h.Steps:0.0}%; the board turned {h.InFist / h.Steps:0}° in the fist on average, over 20° {100f * h.InFistOver / h.Steps:0.0}%, at most {h.InFistMost:0}°");
+        }
+
+        {
+            var at = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.ShieldReadAt).OrderBy(x => x).ToList();
+            var before = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.ShieldReadBefore).OrderBy(x => x).ToList();
+            if (at.Count > 0)
+            {
+                sb.AppendLine($"      blows a shield moved to meet: {at.Count}; it first moved {100f * at[at.Count / 2]:0}% of the way through the blow at the middle (the earliest {100f * at[0]:0}%, a tenth before {100f * at[at.Count / 10]:0}%), {before[before.Count / 2]:0.00} s before its contact at the middle (the longest {before[before.Count - 1]:0.00} s)");
+            }
+        }
+
+        if (units.Any(u => u.Clip != null && u.Clip.ShieldKeptOut > 0))
+        {
+            sb.AppendLine($"      a shield's board moved off its own head or trunk as it was posed: {units.Sum(u => u.Clip != null ? u.Clip.ShieldKeptOut : 0)} times; still over 1 cm in after that: {units.Sum(u => u.Clip != null ? u.Clip.ShieldStillIn : 0)} steps, the deepest {100f * units.Max(u => u.Clip != null ? u.Clip.ShieldStillInMost : 0f):0.0} cm");
+        }
+
         foreach (var s in shields.OrderBy(s => s.Key))
         {
             sb.AppendLine($"      {s.Key}: its shield or shield arm over 2 cm into its own head {100f * s.Value.head / s.Value.steps:0.0}% of the time (deepest {s.Value.headDeepest * 100f:0} cm), into its own trunk {100f * s.Value.trunk / s.Value.steps:0.0}% (deepest {s.Value.trunkDeepest * 100f:0} cm)");

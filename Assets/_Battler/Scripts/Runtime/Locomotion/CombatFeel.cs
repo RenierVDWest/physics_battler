@@ -132,6 +132,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The shield starts to move to meet a blow no sooner than this before contact (seconds). Earlier, the wind-up still swings the blade's path about and the shield would follow it round. Default 0.6.")]
         [Range(0.2f, 2f)] public float shieldMovesWithin = DefaultShieldMovesWithin;
 
+        [Tooltip("The shield fixed in the fist. On: the board never turns in the hand (the fingers stay wrapped round its handle as the grip has them), and the hand hardly turns on the forearm, so the board looks where the forearm points and the whole arm has to put it where it is wanted: the fist goes to the place, with the elbow kept down (a little out and back), as a person carries a shield. The fist stays before the chest, no higher than the head and never behind it. A board that would have had to turn in the hand to meet a blow square now meets it as the arm has it, or misses it. The physical board is one piece with the hand (no blow turns it in the grip), and it is kept out of its own head and trunk. Changed in play, the grip itself changes at the next Reset. Off: as before, the board turns freely in the hand to face the blow and the elbow goes wherever keeps the arm behind the board (to compare).")]
+        public bool shieldFixedInFist = true;
+
+        [Tooltip("With the shield fixed in the fist: the most the hand turns on the forearm to turn the board toward a blow (degrees). A hand under a shield's weight turns very little; the rest of the board's turning is the arm's. 0: the wrist as the guard's clip has it, never turned. Default 15.")]
+        [Range(0f, 45f)] public float shieldWristTurn = DefaultShieldWristTurn;
+
+        [Tooltip("How much of a blow must have passed before the shield moves to meet it: a share of the blow's time from its start to its contact (0 to 0.9). The first part of a blow is its wind-up: nobody can tell from it where the blow will land, and a shield that went there at once looked as if it read the striker's mind. 0: as before, the shield may move as soon as it has seen the blow (within the seconds above). Default 0.5: it moves once the blow is half way to landing. Higher: it reads later and has less time to get there, so more blows get past.")]
+        [Range(0f, 0.9f)] public float shieldReadsFrom = DefaultShieldReadsFrom;
+
         [Header("Giving ground: a quick step back to meet a heavy or deep blow")]
         [Tooltip("A fighter steps back to block or parry a blow it reads coming at least this heavy: the weight it would be met with (m/s, the momentum a block takes over the defender's mass; a combo's blow counts 1.5 times, its showstopper twice). Met further out, earlier in its arc, it lands lighter. A parry steps back only from a blow heavier than it holds as well (its skill's \"parry holds\"): stepped back from lighter ones, its arm lost the blade. An expert always steps; a novice now and then, and late. Default 0.9.")]
         [Range(0.2f, 4f)] public float giveGroundFrom = DefaultGiveGroundFrom;
@@ -234,6 +243,7 @@ namespace PhysicsBattler.Locomotion
         [Range(0f, 80f)] public float mostBladeSpeed = DefaultMostBladeSpeed;
 
         public const float DefaultWeaponWeight = 3f, DefaultSwingKept = 0.7f, DefaultStrikeArmStrength = 3f;
+        public const float DefaultShieldWristTurn = 15f, DefaultShieldReadsFrom = 0.5f;
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
         public const float DefaultMostBladeSpeed = 0f;
@@ -257,6 +267,8 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float WeaponWeight = DefaultWeaponWeight, SwingKept = DefaultSwingKept, StrikeArmStrength = DefaultStrikeArmStrength;
+        public static bool ShieldFixed = true;
+        public static float ShieldWristTurn = DefaultShieldWristTurn, ShieldReadsFrom = DefaultShieldReadsFrom;
         public static float OffFrontBend = DefaultOffFrontBend, SideHitTime = DefaultSideHitTime;
 
         public static float MostBladeSpeed = DefaultMostBladeSpeed;
@@ -286,6 +298,9 @@ namespace PhysicsBattler.Locomotion
         {
             WeaponWeight = DefaultWeaponWeight;
             SwingKept = DefaultSwingKept;
+            ShieldFixed = true;
+            ShieldWristTurn = DefaultShieldWristTurn;
+            ShieldReadsFrom = DefaultShieldReadsFrom;
             PhysicsBattler.Motion.ArmLimits.On = true;
             PhysicsBattler.Motion.ArmGate.CatchUp = PhysicsBattler.Motion.ArmGate.DefaultCatchUp;
             StrikeArmStrength = DefaultStrikeArmStrength;
@@ -345,6 +360,9 @@ namespace PhysicsBattler.Locomotion
         {
             WeaponWeight = Mathf.Max(1f, weaponWeight);
             SwingKept = Mathf.Clamp01(swingKept);
+            ShieldFixed = shieldFixedInFist;
+            ShieldWristTurn = Mathf.Clamp(shieldWristTurn, 0f, 45f);
+            ShieldReadsFrom = Mathf.Clamp(shieldReadsFrom, 0f, 0.9f);
             PhysicsBattler.Motion.ArmLimits.On = armsHeldToABody;
             PhysicsBattler.Motion.ArmGate.CatchUp = Mathf.Clamp(armGoesOverAt, 120f, 1500f);
             StrikeArmStrength = Mathf.Max(1f, strikeArmStrength);

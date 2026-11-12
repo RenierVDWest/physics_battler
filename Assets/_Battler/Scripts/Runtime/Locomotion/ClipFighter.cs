@@ -1071,6 +1071,12 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            if (CombatFeel.ShieldFixed && Poser.CarryL == LocoBody.Carry.Shield && !Rig.IsSevered(PartId.HandL))
+            {
+                Transform su = Anim.Part(PartId.UpperArmL), sf = Anim.Part(PartId.ForearmL), sh = Anim.Part(PartId.HandL);
+                KeepShieldOff(su, sf, sh, TwoBoneIK.BendWay(su, sf, sh));
+            }
+
             var chest = Anim.Part(PartId.Chest);
             for (int side = 0; side < 2; side++)
             {
@@ -1570,9 +1576,11 @@ namespace PhysicsBattler.Locomotion
                     Vector3 balance = Rig.Part(hand).transform.InverseTransformPoint(slot.position + slot.forward * (0.18f * Size));
                     Upper.Hold(hand, solid, mass, balance, 0.26f * Size);
                 }
-                else if (hand == PartId.HandL && Rig.SlotWeaponL != null && Anim.SlotWeaponL != null)
+                else if (!CombatFeel.ShieldFixed && hand == PartId.HandL && Rig.SlotWeaponL != null && Anim.SlotWeaponL != null)
                 {
-                    // (A shield is turned in its hand to face a blow: a part of its own, turned by the grip.)
+                    // (A shield that is turned in its hand to face a blow: a part of its own, turned by the grip. Fixed in the
+                    // fist (the scene's Combat Feel, as the body is built), it is one piece with the hand, as a blade is: no
+                    // blow turns it in the grip.)
                     var posedHand = Anim.Part(PartId.HandL);
                     Quaternion rest = Quaternion.Inverse(posedHand.rotation) * (Anim.SlotWeaponL.parent != null ? Anim.SlotWeaponL.parent.rotation : posedHand.rotation)
                         * (Poser.ShieldGripRest ?? Anim.SlotWeaponL.localRotation);
@@ -2241,6 +2249,229 @@ namespace PhysicsBattler.Locomotion
         /// the weapon, a forearm's length out, its face toward the weapon. With no blow coming, a blocking dummy
         /// holds its shield across the striker's line.
         /// </summary>
+        /// <summary>How far before its chest a fist holds a shield at the least, how far over the base of its head at the most, how far out past its chest's middle on its own side and across it on the other (metres at a Medium's size).</summary>
+        public const float FistAhead = 0.26f, FistOverNeck = 0.08f, FistOut = 0.6f, FistAcross = 0.2f;
+
+        /// <summary>Which way the shield arm's elbow points as it holds the board to a blow (the body's frame; the left arm's): down, a little out and back, as an arm carries a weight before it.</summary>
+        public static readonly Vector3 ShieldElbowDown = new Vector3(-0.25f, -1f, -0.2f);
+
+        private Vector3 shieldBoardFrom;
+        private bool shieldBoardKnown;
+
+        /// <summary>For the reports: each blow the shield moved to meet, how far through it was as the shield first moved (a share of its time from start to contact) and how long before its contact (seconds).</summary>
+        public readonly List<float> ShieldReadAt = new List<float>(), ShieldReadBefore = new List<float>();
+
+        /// <summary>
+        /// The shield held fast in the fist (the plan "Arms that bend as a body does", the shield): the board does not
+        /// turn in the hand, and the hand hardly turns on the forearm (the scene's Combat Feel's wrist turn), so the board
+        /// faces where the forearm points and it is the whole arm that puts it where it is wanted: the fist to
+        /// <paramref name="target"/>, the elbow down (a little out and back), going over from the clip's own way as the
+        /// shield comes up and no faster than an elbow turns. The board then looks out from the elbow through the fist:
+        /// up and forward over a fist held high, down and forward from one held low, out to the side from one held wide.
+        /// </summary>
+        private void HoldShieldFast(float dt, Vector3 target, float weight, Vector3 face, float lack, Quaternion bodyTurn)
+        {
+            var upper = Anim.Part(PartId.UpperArmL);
+            var fore = Anim.Part(PartId.ForearmL);
+            var hand = Anim.Part(PartId.HandL);
+            var bodyBack = Quaternion.Inverse(bodyTurn);
+            Vector3 poseWay = TwoBoneIK.BendWay(upper, fore, hand);
+            Vector3 elbowWay = bodyTurn * ShieldElbowDown.normalized;
+            Vector3 line = target - upper.position;
+            Vector3 now = elbowWay;
+            if (line.sqrMagnitude > 1e-8f)
+            {
+                line.Normalize();
+                Vector3 to = Vector3.ProjectOnPlane(elbowWay, line), from = Vector3.ProjectOnPlane(poseWay, line);
+                if (to.sqrMagnitude < 1e-6f)
+                {
+                    // (The fist straight below the shoulder: the elbow back.)
+                    to = Vector3.ProjectOnPlane(bodyTurn * Vector3.back, line);
+                }
+
+                if (to.sqrMagnitude > 1e-6f)
+                {
+                    Vector3 wanted = from.sqrMagnitude > 1e-6f ? Vector3.ProjectOnPlane(Vector3.Slerp(from.normalized, to.normalized, weight), line) : to;
+                    wanted = wanted.sqrMagnitude > 1e-6f ? wanted.normalized : to.normalized;
+                    Vector3 was = shieldElbowKnown ? Vector3.ProjectOnPlane(bodyTurn * shieldElbow, line) : from;
+                    was = was.sqrMagnitude > 1e-6f ? was.normalized : wanted;
+                    now = Vector3.ProjectOnPlane(Vector3.RotateTowards(was, wanted, ShieldElbowTurn * Mathf.Deg2Rad * dt, 0f), line);
+                    now = now.sqrMagnitude > 1e-6f ? now.normalized : wanted;
+                    shieldElbow = bodyBack * now;
+                    shieldElbowKnown = true;
+                }
+            }
+
+            TwoBoneIK.Solve(upper, fore, hand, target, now);
+
+            // (The board as the fist holds it; then the hand turned a little on the forearm toward where the board should
+            // look, no further than a wrist gives under a shield's weight.)
+            Poser.FaceShieldAt(Vector3.zero, 0f);
+            var slot = Anim.SlotWeaponL;
+            if (slot != null)
+            {
+                if (!shieldFaceKnown || shieldFace.sqrMagnitude < 1e-6f)
+                {
+                    shieldFace = bodyBack * slot.forward;
+                    shieldFaceKnown = true;
+                }
+
+                Vector3 faceLocal = face.sqrMagnitude > 1e-6f ? bodyBack * face.normalized : shieldFace;
+                Vector3 eased = Vector3.Slerp(shieldFace, faceLocal, 1f - Mathf.Exp(-dt * 3f / Mathf.Max(0.01f, CombatFeel.ShieldFaceSettle)));
+                shieldFace = Vector3.RotateTowards(shieldFace, eased, Mathf.Lerp(ShieldTurnSpeed, NoviceShieldTurnSpeed, lack) * Mathf.Deg2Rad * dt, 0f);
+                Vector3 looks = slot.forward, should = bodyTurn * shieldFace;
+                Vector3 about = Vector3.Cross(looks, should);
+                float off = Vector3.Angle(looks, should);
+                if (about.sqrMagnitude > 1e-8f && off > 0.01f)
+                {
+                    // (Eased in as it nears its most: a hand at the end of its turn doesn't flick as what it turns to goes round.)
+                    float by = CombatFeel.ShieldWristTurn * (1f - Mathf.Exp(-off / Mathf.Max(1f, CombatFeel.ShieldWristTurn))) * weight;
+                    hand.rotation = Quaternion.AngleAxis(by, about.normalized) * hand.rotation;
+                }
+
+                KeepShieldOff(upper, fore, hand, now);
+                if (BoardOnSlot(out var boardLocal))
+                {
+                    shieldBoardFrom = bodyBack * (slot.TransformPoint(boardLocal) - hand.position);
+                    shieldBoardKnown = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The shield's board kept out of its own head and trunk, however the arm came to have it there (raised to a
+        /// blow, knocked back by one, carried through its own strike): a board the pose has in them is moved off, the fist
+        /// with it, by as far as it is in and <see cref="ShieldClear"/> more, and the arm solved to there with its elbow
+        /// the way it was.
+        /// </summary>
+        private void KeepShieldOff(Transform upper, Transform fore, Transform hand, Vector3 pole)
+        {
+            var slot = Anim.SlotWeaponL;
+            if (slot == null || !BoardOnSlot(out var boardLocal))
+            {
+                return;
+            }
+
+            float reach = (Anim.RestLocalPosition(PartId.ForearmL).magnitude + Anim.RestLocalPosition(PartId.HandL).magnitude) * 0.97f;
+            float radius = ShieldRadius * Size;
+            Vector3 target = hand.position;
+            float left = 0f;
+            for (int pass = 0; pass < 4; pass++)
+            {
+                Vector3 centre = slot.TransformPoint(boardLocal), boardLooks = slot.forward;
+                float deepest = 0f;
+                Vector3 moveOff = Vector3.zero;
+                foreach (var id in ShieldKeptOutOf)
+                {
+                    if (!PoseSolid(id, out Vector3 a, out Vector3 b, out float thick))
+                    {
+                        continue;
+                    }
+
+                    for (int i = 0; i <= 4; i++)
+                    {
+                        float gap = DiscGap(Vector3.Lerp(a, b, i / 4f), centre, boardLooks, radius, out Vector3 away) - thick - ShieldClear * Size;
+                        if (gap < deepest)
+                        {
+                            deepest = gap;
+                            moveOff = away * -gap;
+                        }
+                    }
+                }
+
+                left = deepest;
+                if (deepest >= 0f || pass == 3)
+                {
+                    break;
+                }
+
+                ShieldKeptOut++;
+                target = upper.position + Vector3.ClampMagnitude(target + moveOff - upper.position, reach);
+                TwoBoneIK.Solve(upper, fore, hand, target, pole);
+            }
+
+            // (For the reports: how deep the posed board is still in its own body.)
+            ShieldStillIn += left < -(ShieldClear + 0.01f) * Size ? 1 : 0;
+            ShieldStillInMost = Mathf.Max(ShieldStillInMost, -left - ShieldClear * Size);
+        }
+
+        /// <summary>The parts of its own body its shield's board is kept out of, and by how much clear of them (metres at a Medium's size).</summary>
+        private static readonly PartId[] ShieldKeptOutOf = { PartId.Head, PartId.Chest, PartId.Spine, PartId.Pelvis };
+
+        public const float ShieldClear = 0.06f;
+
+        /// <summary>For the reports: times the board was moved off its own body.</summary>
+        public int ShieldKeptOut;
+
+        /// <summary>For the reports: steps the posed board was still over a centimetre in its own body after being moved off, and the deepest (metres).</summary>
+        public int ShieldStillIn;
+        public float ShieldStillInMost;
+
+        /// <summary>A part's solid as the pose has the part (world): a line from one end to the other and its thickness about that line; a ball's ends are one.</summary>
+        private bool PoseSolid(PartId id, out Vector3 a, out Vector3 b, out float radius)
+        {
+            a = b = Vector3.zero;
+            radius = 0f;
+            var part = Rig.Part(id);
+            var posed = Anim.Part(id);
+            if (part == null || posed == null || part.partCollider == null)
+            {
+                return false;
+            }
+
+            var solid = part.partCollider;
+            var t = solid.transform;
+            float scale = Mathf.Max(Mathf.Abs(t.lossyScale.x), Mathf.Max(Mathf.Abs(t.lossyScale.y), Mathf.Abs(t.lossyScale.z)));
+            Vector3 la, lb;
+            if (solid is SphereCollider ball)
+            {
+                la = lb = ball.center;
+                radius = ball.radius * scale;
+            }
+            else if (solid is CapsuleCollider capsule)
+            {
+                Vector3 axis = capsule.direction == 0 ? Vector3.right : capsule.direction == 1 ? Vector3.up : Vector3.forward;
+                float half = Mathf.Max(0f, 0.5f * capsule.height - capsule.radius);
+                la = capsule.center - axis * half;
+                lb = capsule.center + axis * half;
+                radius = capsule.radius * scale;
+            }
+            else if (solid is BoxCollider box)
+            {
+                // (A box as the ball that fits inside it along its longest side.)
+                Vector3 size = box.size;
+                float thin = Mathf.Min(size.x, Mathf.Min(size.y, size.z)), longest = Mathf.Max(size.x, Mathf.Max(size.y, size.z));
+                Vector3 axis = longest == size.x ? Vector3.right : longest == size.y ? Vector3.up : Vector3.forward;
+                float half = Mathf.Max(0f, 0.5f * (longest - thin));
+                la = box.center - axis * half;
+                lb = box.center + axis * half;
+                radius = 0.5f * thin * scale;
+            }
+            else
+            {
+                return false;
+            }
+
+            // (From the physical part's own solid to the posed part: the same place on the part.)
+            a = posed.TransformPoint(part.transform.InverseTransformPoint(t.TransformPoint(la)));
+            b = posed.TransformPoint(part.transform.InverseTransformPoint(t.TransformPoint(lb)));
+            return true;
+        }
+
+        /// <summary>How far a point is from a round board (its centre, the way its face looks, its radius), and the way the board would move to get further from it.</summary>
+        private static float DiscGap(Vector3 point, Vector3 centre, Vector3 looks, float radius, out Vector3 away)
+        {
+            Vector3 d = point - centre;
+            float over = Vector3.Dot(d, looks);
+            Vector3 flat = d - looks * over;
+            float out_ = flat.magnitude;
+            Vector3 nearest = centre + (out_ > radius ? flat / out_ * radius : flat);
+            Vector3 from = nearest - point;
+            float gap = from.magnitude;
+            away = gap > 1e-5f ? from / gap : looks * (over >= 0f ? -1f : 1f);
+            return gap;
+        }
+
         private void RaiseShield(float dt, Vector3 striker)
         {
             // (The guard holds the shield as its clip does; it moves only to meet a blow.)
@@ -2267,6 +2498,19 @@ namespace PhysicsBattler.Locomotion
             float toContact = Blow.HasValue ? Blow.Value.ToContact : 0f;
             bool sees = IncomingBlade.HasValue && incomingFor > Mathf.Lerp(SeeBlowAfter, NoviceSeeAfter, lack)
                         && toContact <= Mathf.Min(SeesBefore(1f - lack), CombatFeel.ShieldMovesWithin) && Blocking && !GuardOpen;
+            // (Not before the blow can be read: through the first part of it (the scene's Combat Feel's share of its time
+            // from its start to its contact) it is a wind-up, and a shield that went to where it would land read the
+            // striker's mind.)
+            if (sees && Blow.HasValue && seenSerial != Blow.Value.Serial)
+            {
+                float whole = Blow.Value.Coming + Blow.Value.ToContact;
+                sees = whole <= 1e-3f || Blow.Value.Coming >= CombatFeel.ShieldReadsFrom * whole;
+                if (sees)
+                {
+                    ShieldReadAt.Add(whole > 1e-3f ? Blow.Value.Coming / whole : 1f);
+                    ShieldReadBefore.Add(Blow.Value.ToContact);
+                }
+            }
             backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
             // (Knocked open: the shield meets nothing until the guard is back.)
             float wantIntercept = !GuardOpen && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
@@ -2284,6 +2528,7 @@ namespace PhysicsBattler.Locomotion
                 shieldAtKnown = false;
                 shieldFaceKnown = false;
                 shieldElbowKnown = false;
+                shieldBoardKnown = false;
                 return;
             }
 
@@ -2395,9 +2640,15 @@ namespace PhysicsBattler.Locomotion
                 // taken from the physical board as it was, the hand went back and forth between two places step to step.)
                 Vector3 boardFromHand = -meetNormal * (0.08f * Size);
                 var posedSlot = Anim.SlotWeaponL;
-                if (posedSlot != null && BoardOnSlot(out var boardLocal))
+                if (CombatFeel.ShieldFixed && shieldBoardKnown)
                 {
-                    var slotThen = Quaternion.FromToRotation(posedSlot.forward, face) * posedSlot.rotation;
+                    // (Fixed in the fist: where the board was from the hand as the arm last held it, which is where the arm
+                    // that brings it there will have it, near enough; what is left is taken up step by step.)
+                    boardFromHand = rootTurn * shieldBoardFrom;
+                }
+                else if (posedSlot != null && BoardOnSlot(out var boardLocal))
+                {
+                    var slotThen = CombatFeel.ShieldFixed ? posedSlot.rotation : Quaternion.FromToRotation(posedSlot.forward, face) * posedSlot.rotation;
                     boardFromHand = (posedSlot.position - hand.position) + slotThen * boardLocal;
                 }
 
@@ -2466,6 +2717,16 @@ namespace PhysicsBattler.Locomotion
             var bodyTurn = Quaternion.Euler(0f, Loco.Facing, 0f);
             var bodyBack = Quaternion.Inverse(bodyTurn);
             Vector3 wantLocal = bodyBack * (want - Loco.Position);
+            if (CombatFeel.ShieldFixed)
+            {
+                // (Where a fist holds a shield: before the chest, no higher than the head (the board's rim covers what is
+                // above), from just across the body's middle to out past its own shoulder. Never over the head or behind it.)
+                Vector3 chestLocal = bodyBack * (chest - Loco.Position), headLocal = bodyBack * (Anim.Part(PartId.Head).position - Loco.Position);
+                wantLocal.z = Mathf.Max(wantLocal.z, chestLocal.z + FistAhead * Size);
+                wantLocal.y = Mathf.Min(wantLocal.y, headLocal.y + FistOverNeck * Size);
+                wantLocal.x = Mathf.Clamp(wantLocal.x, chestLocal.x - FistOut * Size, chestLocal.x + FistAcross * Size);
+            }
+
             if (!shieldAtKnown)
             {
                 shieldAt = bodyBack * (hand.position - Loco.Position);
@@ -2478,6 +2739,12 @@ namespace PhysicsBattler.Locomotion
             CriticalSpring(ref shieldAt, ref shieldAtV, wantLocal, 4f / settle, dt);
             shieldAtV = Vector3.ClampMagnitude(shieldAtV, most);
             Vector3 target = Vector3.Lerp(hand.position, Loco.Position + bodyTurn * shieldAt, weight);
+            if (CombatFeel.ShieldFixed)
+            {
+                HoldShieldFast(dt, target, weight, face, lack, bodyTurn);
+                return;
+            }
+
             var turn = bodyTurn;
             // (The elbow behind the board, away from its face, as it bends: the arm then goes into the board's back, not
             // out through its face (the playtest: raised high, the board cut through the forearm). Its face is kept; only

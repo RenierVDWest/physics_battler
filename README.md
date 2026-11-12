@@ -2342,6 +2342,58 @@ arm a body has to another, and makes 2 to 5 of its own (a hand held at the edge 
 turn of the hand sent is a larger one along the edge). An upper arm kept turning fast about its own length
 (`rolls.py`) 2, 3, 2 and 1 times with the gate and 0, 1, 5 and 1 without. Not seen in Unity yet.
 
+Seen in Unity (12 November, 19:49, the target test, 169 s: "working pretty damn well", "have not seen true issues").
+`armrange.py`, now against the game's own ranges, on that playtest and the one before the gate (16:49): the swordsmen's
+free arms past a body's range 24 to 94% of the time before and 0.0 to 0.3% after, their sword arms 3 to 10% and 1 to
+3%, the shield target's shield arm 14% and 5%.
+
+**The shield held fast (the plan's step 4, first half)** (12 November: "the shield guy is blocking blows in inhuman
+ways", "he would have his arm in a normal pose with the elbow pointing down", "it's the shield that's rotating out
+of his grip", "the shield block anticipates the blow a bit too quick"). Three things, all on the scene's Combat
+Feel under "Shield: how it moves to meet a blow":
+
+- **Shield Fixed In Fist** (on). The board never turns in the hand: the pose's shield slot stays as the grip has it
+  (`LocoBody.FaceShieldAt` only puts it back there), and the physical board is one piece with the hand, held as a
+  blade is (`Upper.Hold`, not the grip joint that turned it), so no blow turns it in the fist either; that part
+  changes when a unit is built (Reset). The hand turns on the forearm toward where the board should look by at most
+  **Shield Wrist Turn** (15 degrees). So the board looks where the forearm points, and it is the arm that places it
+  (`ClipFighter.HoldShieldFast`): the fist goes to where the board is wanted, and the elbow is kept down (a little
+  out and back), going over from the clip's own way as the shield comes up. The board then looks out from the elbow
+  through the fist: up and forward over a fist held high, down and forward from one held low, out to the side from
+  one held wide. The fist stays in a box before the body: at least 26 cm before the chest, no higher than 8 cm over
+  the base of the head, from 20 cm across the body's middle to 60 cm out on its own side (a Medium's).
+- **Kept out of its owner.** A board the pose has within 6 cm of its own head, chest, spine or hips is moved off
+  them, the fist with it, and the arm solved to there (`KeepShieldOff`): as the shield is raised, and again at the
+  gate for whatever else moved the arm (a knock, its own strike).
+- **Shield Reads From** (0.5). The shield does not move to meet a blow until that share of the blow's time from its
+  start to its contact has passed: before that the blow is a wind-up.
+
+Measured (the target test, Mediums on Mediums, 40 s; the fights of six, four seeds, against the same with the gate
+alone):
+
+| | Before | Now |
+| --- | --- | --- |
+| The board turned in the fist, on average (the most) | 71° (107°) | 0° (0°) |
+| The shield arm's elbow over 60° round from the lowest it could be: in guard, just struck | 15%, 46% of the time | 0.6%, 3.6% |
+| Its elbow above its shoulder: in guard, just struck | 11%, 40% | 0.7%, 6% |
+| The shield first moves, through the blow (the earliest) | 30% of the way (21%) | 51% (50%) |
+| and before the blow's contact | 0.48 s | 0.22 to 0.30 s |
+| The shield or its arm over 2 cm inside its own head, trunk (fights of six) | 0.3 to 2.2%, 2.1 to 5.8% | 1.3 to 2.1%, 1.1 to 1.9% |
+| The physical shield arm past a body's range, just struck (fights of six) | 10% | 2.5% |
+| The gate bringing the shield arm back, just struck | 35% of the time | 13% |
+| Blows blocked by a shield, parried, landed (fights of six) | 30%, 21%, 47% | 33%, 22%, 41% |
+| Blows the shield target blocked (target test, 54 blows) | 17 | 20 |
+
+Known: the posed board is clear of its owner (over a centimetre inside in 2 steps of four fights), but the physical
+one is still knocked into it by a blow, since its own body does not stop it: the Large target struck by Larges has
+its shield over 2 cm inside its own trunk 23% of the time just after a blow, as before. While a shield man strikes,
+his shield arm is the strike clip's own (its elbow where the recorded one is). The blow is not yet taken through
+the arm (the plan's step 4, second half). `FIGHT_SHIELD="0,15,0"` runs a fight with the shield as before (fixed or
+not, the wrist's turn, the share read from). The fight report has "how the shield is held" and when it first moved.
+
+The debug panel (the battle scene's): drawn 1.8 times the size, with the units' labels, and "Panel size" buttons
+at its top to change that (kept between sessions), as the locomotion lab's has.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

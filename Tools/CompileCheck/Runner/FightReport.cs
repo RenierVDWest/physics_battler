@@ -162,6 +162,19 @@ internal static class FightReport
             PhysicsBattler.Locomotion.CombatFeel.MostBladeSpeed = blade;
         }
 
+        // (The shield: FIGHT_SHIELD="fixed,wrist,reads" (1 or 0: fixed in the fist; the wrist's most turn, degrees; the share
+        // of a blow that must pass before the shield moves); "0,15,0" is as it was before.)
+        {
+            var shield = (Environment.GetEnvironmentVariable("FIGHT_SHIELD") ?? "").Split(',');
+            if (shield.Length >= 3 && float.TryParse(shield[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float wrist)
+                && float.TryParse(shield[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float reads))
+            {
+                PhysicsBattler.Locomotion.CombatFeel.ShieldFixed = shield[0].Trim() != "0";
+                PhysicsBattler.Locomotion.CombatFeel.ShieldWristTurn = wrist;
+                PhysicsBattler.Locomotion.CombatFeel.ShieldReadsFrom = reads;
+            }
+        }
+
         // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
         {

@@ -1178,15 +1178,52 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            if (uiScale < 0f)
+            {
+                uiScale = PlayerPrefs.GetFloat(UiScaleKey, DefaultUiScale);
+            }
+
+            // (The panel and the units' labels scaled together, text and buttons alike: at the screen's own size they
+            // were too small to read.)
+            var was = GUI.matrix;
+            GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
             panelRect = GUILayout.Window(4711, panelRect, DrawPanel, "Physics Battler", GUILayout.Width(290));
+            // (Never dragged off the screen: its title bar stays where it can be grabbed.)
+            panelRect.x = Mathf.Clamp(panelRect.x, 60f - panelRect.width, Mathf.Max(0f, Screen.width / uiScale - 60f));
+            panelRect.y = Mathf.Clamp(panelRect.y, 0f, Mathf.Max(0f, Screen.height / uiScale - 30f));
             foreach (var unit in units)
             {
                 DrawUnitLabel(unit);
             }
+
+            GUI.matrix = was;
         }
+
+        /// <summary>How large the panel and the labels are drawn (times the screen's own size; kept between sessions; below 0: not read yet).</summary>
+        private static float uiScale = -1f;
+
+        private const string UiScaleKey = "BattleSandbox.UiScale";
+
+        /// <summary>The size they are drawn at until it is changed with the panel's own buttons.</summary>
+        public const float DefaultUiScale = 1.8f;
 
         private void DrawPanel(int id)
         {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Panel size {uiScale:0.0}x");
+            if (GUILayout.Button("\u2212", GUILayout.Width(36f)))
+            {
+                uiScale = Mathf.Max(0.8f, uiScale - 0.1f);
+                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+            }
+
+            if (GUILayout.Button("+", GUILayout.Width(36f)))
+            {
+                uiScale = Mathf.Min(3f, uiScale + 0.1f);
+                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+            }
+
+            GUILayout.EndHorizontal();
             GUILayout.Label("R reset · F fight · 1 target test · B bystander · L launch · K sever · D ground · G gallery · H rhythms · P pause · . step · T turn · M mark");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
             GUILayout.BeginHorizontal();
@@ -1381,7 +1418,9 @@ namespace PhysicsBattler.Sandbox
                 }
             }
 
-            GUI.Label(new Rect(screen.x - 70f, Screen.height - screen.y - 48f, 140f, 52f), label);
+            // (Where the unit is on the screen, in the scaled panel's own measure.)
+            float scale = uiScale > 0f ? uiScale : 1f;
+            GUI.Label(new Rect(screen.x / scale - 70f, (Screen.height - screen.y) / scale - 48f, 140f, 52f), label);
         }
     }
 }

@@ -902,7 +902,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             slot.localRotation = shieldGrip;
-            if (share <= 0f || way.sqrMagnitude < 1e-6f)
+            // (Fixed in the fist (the scene's Combat Feel): the board stays as the hand grips it, and looks where the hand has it.)
+            if (CombatFeel.ShieldFixed || share <= 0f || way.sqrMagnitude < 1e-6f)
             {
                 return;
             }
