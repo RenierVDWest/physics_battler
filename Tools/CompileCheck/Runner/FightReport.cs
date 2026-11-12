@@ -175,6 +175,21 @@ internal static class FightReport
             }
         }
 
+        // (The gate's follow-up: FIGHT_ARMSTEADY="most,bones,hand" (the fastest it follows the arm sent, degrees a second, 0: no
+        // limit; 1 or 0: the bones set as a body's; 1 or 0: the free hand with its arm); "0,0,0" is as it was before.)
+        {
+            var steady = (Environment.GetEnvironmentVariable("FIGHT_ARMSTEADY") ?? "").Split(',');
+            if (steady.Length >= 2 && float.TryParse(steady[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float mostSent))
+            {
+                PhysicsBattler.Motion.ArmGate.MostSent = mostSent;
+                PhysicsBattler.Motion.ArmLimits.BonesAsABody = steady[1].Trim() != "0";
+                if (steady.Length >= 3)
+                {
+                    PhysicsBattler.Locomotion.SwordParry.FreeHandWithArm = steady[2].Trim() != "0";
+                }
+            }
+        }
+
         // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
         {

@@ -231,6 +231,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How fast the gate swings an arm over when it has to take it the long way (degrees a second). When a stage sends an elbow's fold, a forearm's roll or the elbow's place from one side of what a body can do right round to the other, the arm does not jump there: it goes over through what a body can do at this pace, on top of however fast the arm sent was moving itself. An arm left outside its range by a range that closed on it (an arm bending from straight, coming down from overhead) comes in at twice this. Higher: the arm is where it should be sooner, and whips there; lower: it swings over more gently, and lags what it was sent for longer. Default 600: a fold sent right round (195 degrees) goes over in a third of a second.")]
         [Range(120f, 1500f)] public float armGoesOverAt = PhysicsBattler.Motion.ArmGate.DefaultCatchUp;
 
+        [Tooltip("The fastest the gate follows the arm it is sent (degrees a second, for each of the elbow's place, the way it folds, the wrist and the forearm's roll; the pace above is added to it). Our own stages sometimes throw an arm's joint round by 60 degrees or more in a single step (a pole that flips, a parry's hand rolled over, a strike's wrist flicked): with this, the arm goes there over a few steps instead of in one. A sword arm in a strike turns at about 900 degrees a second, so the default leaves a real swing alone. 0: no limit, the arm is followed however fast it is sent (as before). Lower: snaps are smoothed more, and a very fast move starts to lag. Default 1500.")]
+        [Range(0f, 4000f)] public float armFollowsAtMost = PhysicsBattler.Motion.ArmGate.DefaultMostSent;
+
+        [Tooltip("After the gate, each arm's two bones are set the way a body's are for where its joints are: the upper arm turned so the elbow's own axis lies across the arm, the forearm bent about that axis alone, the hand's turn kept. A limb is round, so this shows nothing by itself; what it stops is a solver's hidden roll of a bone (which jumps when an arm is nearly straight) going to the physical arm as a sudden turn of its joints. An arm too straight to tell which way it folds keeps the way it folded the step before. Off: the bones as whatever posed the arm left them (as before).")]
+        public bool armBonesAsABody = true;
+
+        [Tooltip("A swordsman's free arm is tucked behind him while he guards. On: its hand lies in line with its forearm, the back of the hand against his back, the way a hand held behind you does. Off: the hand keeps the turn its clip gave it for an arm held in front (as before), which behind the back is a wrist bent further than a wrist goes, so the arm gate was turning it back nearly every step.")]
+        public bool freeHandGoesWithItsArm = true;
+
         [Header("Feet")]
         [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
         [Range(0.5f, 8f)] public float comboPullSpeed = DefaultComboPullSpeed;
@@ -303,6 +312,9 @@ namespace PhysicsBattler.Locomotion
             ShieldReadsFrom = DefaultShieldReadsFrom;
             PhysicsBattler.Motion.ArmLimits.On = true;
             PhysicsBattler.Motion.ArmGate.CatchUp = PhysicsBattler.Motion.ArmGate.DefaultCatchUp;
+            PhysicsBattler.Motion.ArmGate.MostSent = PhysicsBattler.Motion.ArmGate.DefaultMostSent;
+            PhysicsBattler.Motion.ArmLimits.BonesAsABody = true;
+            SwordParry.FreeHandWithArm = true;
             StrikeArmStrength = DefaultStrikeArmStrength;
             BendPerWeight = DefaultBendPerWeight;
             OffFrontBend = DefaultOffFrontBend;
@@ -365,6 +377,9 @@ namespace PhysicsBattler.Locomotion
             ShieldReadsFrom = Mathf.Clamp(shieldReadsFrom, 0f, 0.9f);
             PhysicsBattler.Motion.ArmLimits.On = armsHeldToABody;
             PhysicsBattler.Motion.ArmGate.CatchUp = Mathf.Clamp(armGoesOverAt, 120f, 1500f);
+            PhysicsBattler.Motion.ArmGate.MostSent = Mathf.Max(0f, armFollowsAtMost);
+            PhysicsBattler.Motion.ArmLimits.BonesAsABody = armBonesAsABody;
+            SwordParry.FreeHandWithArm = freeHandGoesWithItsArm;
             StrikeArmStrength = Mathf.Max(1f, strikeArmStrength);
             BendPerWeight = bendPerWeight;
             OffFrontBend = offFrontBend;

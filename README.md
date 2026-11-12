@@ -2404,6 +2404,61 @@ not, the wrist's turn, the share read from). The fight report has "how the shiel
 The debug panel (the battle scene's): drawn 1.8 times the size, with the units' labels, and "Panel size" buttons
 at its top to change that (kept between sessions), as the locomotion lab's has.
 
+**Arms that don't snap (the plan's step 3)** (12 to 13 November, built overnight and checked headless only: not yet
+seen in Unity). The gate kept an arm inside a body's range, but our own stages still threw one about inside it: a
+parry's hand rolled over in a step (the parry's solver has no memory of the step before), a strike's wrist flicked,
+an elbow straightened from 80 degrees in a step, a pole that flipped. Each of those went to the physical arm as a
+joint turned 60 to 170 degrees in a sixtieth of a second, 60 to 70 times a fight; over 70 degrees the physical
+joint was simply put there (some 40 times a fight), through whatever was in its way. Which stage did it is in the
+fight report ("which stage of the pose first turned an arm's joint over 60 degrees in a step", `FIGHT_JUMPTRACE=1`
+writes each one out): the parry about half, the strike's own arm a third, the shield's upper arm most of the rest.
+Rather than a memory for each solver, the gate, which every arm goes through last, now also holds the speed. Three
+things, each with its own switch on the scene's Combat Feel under "Arms that bend as a body does":
+
+- **Arm Follows At Most** (1500 degrees a second; 0: off, as before). However far a stage threw the arm in a step,
+  the gate follows it no faster than this (plus the gate's own pace of 600): the elbow's place, which way it folds,
+  how far it is bent, the wrist, the forearm's roll, each on its own. A snap becomes a fast move over three or four
+  steps (50 to 70 ms). A sword arm in a strike turns at about 900 degrees a second, so a real swing is left alone.
+- **Arm Bones As A Body** (on). After the gate each arm's two bones are set the way a body's are for where its joints
+  are (`ArmRig.SetBones`): the upper arm turned so the elbow's own axis lies across the arm, the forearm bent about
+  that axis alone, the hand's turn kept. A limb is round, so nothing of this shows; what it stops is a solver's
+  hidden roll of a bone going to the physical arm as a turn of its joints. An arm too straight to tell which way it
+  folds keeps the way it folded the step before, and comes round to a new one no faster than the gate follows. With
+  the forearm's roll now a body's, the hand's turn on it is held to the same speed (near the ends of a wrist's range
+  the gate's own two limits together let a hand turn twice as fast). This is also what the physical elbow needs
+  before it can be given a hinge's stops.
+- **Free Hand Goes With Its Arm** (on). A swordsman's free arm is tucked behind him; its hand kept the turn its clip
+  gave it for an arm held in front, which behind the back is a wrist bent further than a wrist goes, so the gate was
+  turning it back 79 to 95% of the time he stood in guard. The hand now lies in line with its forearm, its back to
+  his back (`SwordParry.TuckFreeArm`).
+
+Measured (fights of six, 60 s, four seeds; the target test), against the same build with the three off
+(`FIGHT_ARMSTEADY="0,0,0"`, which gives the fights of before to the blow):
+
+| | Before | Now |
+| --- | --- | --- |
+| An arm's joint turned over 60° in a step, as sent to the physical body (a fight) | 59 to 73 times | 0, 0, 0, 1 |
+| Physical joints put where the pose turned them at once (a fight) | 38 to 48 | 0, 0, 0, 1 |
+| The same two in the target test (Mediums; Larges) | 45 and 33; 92 and 63 | 0 and 0; 1 and 0 |
+| The gate turning the swordsman's free arm back, in guard | 79 to 95% of the time | 20 to 32% |
+| and how far it turned that hand, 95% of the time under | 37° | 7° |
+| Blows blocked by a shield, parried, landed (fights of six) | 33%, 22%, 47% | 39%, 19%, 36% |
+| Blows the shield target blocked, the sword target parried (target test, Mediums) | 31 of 31, 21 of 27 | 29 of 30, 23 of 26 |
+| The same, Larges on Larges | 19 of 23, 13 of 26 | 16 of 25, 12 of 27 |
+| The head off its pose, 99% of the time under (the four fights) | 5.4 to 7.8 cm | 5.9 to 8.3 cm |
+
+The arm test (`armgate`) passes as it did. The fight report has, for each kind of unit, arm and state, how far the
+gate moved the wrist from where the pose had it and how far it turned the hand: in a strike the weapon hand is moved
+under 5 cm 95% of the time and 14 to 28 cm 1% of the time, before and now alike (that is the range, not the speed).
+
+Not verified, for the first look in Unity: whether a parry or a shield now looks late (headless they block and
+parry as often); whether a strike's hand looks soft where its wrist used to flick. Known: the swordsman's tucked
+arm is still moved by the gate a fifth of the time (the place it is tucked to is at the edge of where an elbow
+goes); a knock still poses a struck arm far outside the range for the gate to bring back (a struck sword arm a
+third of the time, the wrist moved 40 cm): the knock itself is not yet shaped to the range. With the bones set as a
+body's, the report's "in the pose as the stages left it" counts a stage's own roll of a bone against the bones the
+gate set the step before, so it reads higher than it did; what reaches the body is the second number.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

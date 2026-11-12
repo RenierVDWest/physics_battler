@@ -38,6 +38,7 @@ public sealed class LimitMeasure
         public string WorstAt = "";
         public int Held, Held30;
         public float HeldMost;
+        public readonly List<float> Moved = new List<float>(), Turned = new List<float>();
         public float WorstAll;
     }
 
@@ -73,6 +74,19 @@ public sealed class LimitMeasure
     {
         this.units = units;
         this.kind = kind;
+        PhysicsBattler.Locomotion.ClipFighter.TraceArmJumps = true;
+        if (Environment.GetEnvironmentVariable("FIGHT_JUMPTRACE") == "1")
+        {
+            foreach (var u in units)
+            {
+                var named = u;
+                if (u.Clip != null)
+                {
+                    u.Clip.ArmJumpTrace = line => Console.WriteLine($"[ArmJump] {named.name} {line}");
+                }
+            }
+        }
+
         if (Environment.GetEnvironmentVariable("FIGHT_ARMTRACE") == "1")
         {
             foreach (var u in units)
@@ -150,6 +164,8 @@ public sealed class LimitMeasure
                 at.Held += clip.ArmHeldBy[side] > 0.5f ? 1 : 0;
                 at.Held30 += clip.ArmHeldBy[side] > 30f ? 1 : 0;
                 at.HeldMost = Mathf.Max(at.HeldMost, clip.ArmHeldBy[side]);
+                at.Moved.Add(100f * clip.ArmMovedBy[side]);
+                at.Turned.Add(clip.HandTurnedBy[side]);
                 float[] c = Pasts(inClip);
                 at.ClipOver[5] += inClip.Worst > 10f ? 1 : 0;
                 at.Steps++;
@@ -257,6 +273,14 @@ public sealed class LimitMeasure
             }
 
             sb.AppendLine($"      {e.Key.Item1}, {e.Key.Item2}, {e.Key.Item3} ({t.Steps / 60f:0.0} s): pose {100f * t.Over[5] / t.Steps:0.0}% [{100f * t.Over30[5] / t.Steps:0.0}%], body {100f * t.BodyOver[5] / t.Steps:0.0}%, the clip itself {100f * t.ClipOver[5] / t.Steps:0.0}%; the gate brought it back {100f * t.Held / t.Steps:0.0}% of the time [from over 30° past {100f * t.Held30 / t.Steps:0.0}%, at most {t.HeldMost:0}°]{(parts.Count > 0 ? ": " + string.Join("; ", parts) : "")}");
+            if (t.Moved.Count > 0)
+            {
+                t.Moved.Sort();
+                t.Turned.Sort();
+                float At(List<float> l, float share) => l[Mathf.Clamp((int)(share * l.Count), 0, l.Count - 1)];
+                sb.AppendLine($"          the gate moved its wrist from where the pose had it: 95% of the time under {At(t.Moved, 0.95f):0.0}, 99% under {At(t.Moved, 0.99f):0.0}, at most {t.Moved[t.Moved.Count - 1]:0.0} cm; turned its hand: 95% under {At(t.Turned, 0.95f):0}, 99% under {At(t.Turned, 0.99f):0}, at most {t.Turned[t.Turned.Count - 1]:0}°");
+            }
+
             if (t.WorstAll > 30f)
             {
                 sb.AppendLine($"          worst {t.WorstAt}");
@@ -264,6 +288,22 @@ public sealed class LimitMeasure
         }
 
         sb.AppendLine($"      an arm's joint turned over {PhysicsBattler.Locomotion.ClipFighter.ArmJump:0}° in a step: {units.Sum(u => u.Clip != null ? u.Clip.ArmSentJumps : 0)} times in the pose as the stages left it, {units.Sum(u => u.Clip != null ? u.Clip.ArmGoneJumps : 0)} as the gate let it go; of those the gate's own making (the pose sent turned under half as far): {units.Sum(u => u.Clip != null ? u.Clip.ArmGateJumps : 0)}");
+        {
+            var by = new Dictionary<string, int>();
+            foreach (var u in units.Where(u => u.Clip != null))
+            {
+                foreach (var e in u.Clip.ArmJumpsBy)
+                {
+                    by[e.Key] = by.TryGetValue(e.Key, out int n) ? n + e.Value : e.Value;
+                }
+            }
+
+            if (by.Count > 0)
+            {
+                sb.AppendLine($"      which stage of the pose first turned an arm's joint over {PhysicsBattler.Locomotion.ClipFighter.ArmJump:0}° in a step ({by.Values.Sum()} in all): " + string.Join("; ", by.OrderByDescending(e => e.Value).Select(e => $"{e.Key} {e.Value}")));
+            }
+        }
+
         foreach (var e in holds.OrderBy(e => e.Key.Item1).ThenBy(e => e.Key.Item2))
         {
             var h = e.Value;

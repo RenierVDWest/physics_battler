@@ -1156,7 +1156,24 @@ namespace PhysicsBattler.Locomotion
             Vector3 tuck = World(FreeHandAt);
             TwoBoneIK.Solve(upper, fore, handL, ease >= 1f ? tuck : Vector3.Lerp(handL.position, tuck, ease), bodyTurn * FreeElbow);
             handL.rotation = keep;
+            if (FreeHandWithArm)
+            {
+                // (The hand goes with the arm that was tucked: in line with the forearm, its back to the body's back, as a
+                // hand held behind one lies. Kept turned as the clip had it in front of the body, it was a hand bent back
+                // on its wrist further than a wrist bends, and the gate turned it back nearly every step.)
+                Vector3 along = handL.position - fore.position;
+                Vector3 palm = Vector3.ProjectOnPlane(bodyTurn * Vector3.back, along);
+                if (along.sqrMagnitude > 1e-10f && palm.sqrMagnitude > 1e-6f)
+                {
+                    // (The hand's own axes: its fingers down its -Y, a left hand's palm out of its +X.)
+                    var lies = Quaternion.LookRotation(Vector3.Cross(palm, -along), -along);
+                    handL.rotation = Quaternion.Slerp(keep, lies, ease);
+                }
+            }
         }
+
+        /// <summary>The tucked free arm's hand lies in line with its forearm, its back to the body (the scene's Combat Feel, "Free Hand Goes With Its Arm"); off, it keeps the turn the clip gave it.</summary>
+        public static bool FreeHandWithArm = true;
 
         private void SolveArm(float dt, float close, Vector3 wantBlade, Vector3 wantEdge)
         {
