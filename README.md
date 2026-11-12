@@ -2384,7 +2384,7 @@ alone):
 | Blows blocked by a shield, parried, landed (fights of six) | 30%, 21%, 47% | 33%, 22%, 41% |
 | Blows the shield target blocked (target test, 54 blows) | 17 | 20 |
 
-Known: the posed board is clear of its owner (over a centimetre inside in 2 steps of four fights), but the physical
+Known: the posed board is clear of its owner (over a centimetre inside in 4 steps of four fights), but the physical
 one is still knocked into it by a blow, since its own body does not stop it: the Large target struck by Larges has
 its shield over 2 cm inside its own trunk 23% of the time just after a blow, as before. While a shield man strikes,
 his shield arm is the strike clip's own (its elbow where the recorded one is). The blow is not yet taken through
