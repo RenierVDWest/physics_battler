@@ -210,6 +210,32 @@ internal static class FightReport
             PhysicsBattler.Motion.ArmLimits.On = false;
         }
 
+        // (Real weapon weight: FIGHT_WMASS="3,1" makes the weapons three times their own weight in the physical body and
+        // takes that much off what the script adds to a blow (",0": the script as it was); "0" is the weapons as before,
+        // their weight as written whatever their bearer's size.)
+        {
+            var wm = (Environment.GetEnvironmentVariable("FIGHT_WMASS") ?? "").Split(',');
+            if (wm.Length >= 1 && float.TryParse(wm[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float times))
+            {
+                PhysicsBattler.Locomotion.CombatFeel.WeaponsHaveMass = times > 0f;
+                if (times > 0f)
+                {
+                    PhysicsBattler.Locomotion.CombatFeel.WeaponMass = times;
+                }
+
+                if (wm.Length >= 2)
+                {
+                    PhysicsBattler.Locomotion.CombatFeel.MassTakesFromFelt = wm[1].Trim() != "0";
+                }
+
+                // (And ",0" after that: the weapon arm no stronger for a heavier weapon.)
+                if (wm.Length >= 3)
+                {
+                    PhysicsBattler.Locomotion.CombatFeel.ArmFollowsMass = wm[2].Trim() != "0";
+                }
+            }
+        }
+
         // (Heavy weapons: FIGHT_HEFT="2.5,0.7,3" sets how much heavier a blow is felt, how much of its speed a weapon
         // keeps through a body, and how much stronger the weapon arm is through a strike; "1,0,1" is as it was before.)
         {

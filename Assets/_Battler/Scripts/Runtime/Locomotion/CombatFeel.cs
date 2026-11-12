@@ -224,6 +224,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How much stronger the physical weapon arm is through a strike than at other times (times its muscles' strength), from the strike's start until 0.4 s after its contact. Through a strike the arm also has no slack: it is held to its swing and does not give way to what the weapon meets, so the weapon pushes on through a body instead of being turned by it. A blow stopped by a shield or a parry gives as before. 1: no stronger. Default 3.")]
         [Range(1f, 8f)] public float strikeArmStrength = DefaultStrikeArmStrength;
 
+        [Tooltip("On: what a fighter holds weighs in the physical body what it really weighs at its bearer's size (weight goes with volume: a Large's club is a bigger club, 4 to 5 kg where a Medium's is 2, and its shield is as much heavier). Off: every weapon and shield weighs what is written for a Medium's, whoever holds it (as before). For a Medium it changes nothing. Headless, the Larges' blows land as they did (as fast, the body struck thrown as far) and their weapon hands stay a little closer to their swings. The bodies are built again when this is changed.")]
+        public bool weaponsHaveTheirMass = true;
+
+        [Tooltip("How many times its real weight a weapon (not a shield) weighs in the physical body; the arm that swings it is as much stronger, so it still swings as the animation does. 1: its real weight. This is the dial for trying 'the weight of a blow from the weapon itself', and headless it did not give that: with swords three times their weight the blows on a body landed about as before (what throws a struck body is the script's 'Weapon Weight' above, not the physical blade), the weapon hand trailed its swing nearly twice as far, and a sword parry held 14 times in 25 where it held 23 in 27. So it is left at 1. Needs 'Weapons Have Their Mass'. The bodies are built again when this is changed.")]
+        [Range(0.5f, 6f)] public float weaponMass = DefaultWeaponMass;
+
         [Header("Arms that bend as a body does")]
         [Tooltip("The gate at the end of the pose. On: after everything that moves an arm has had its say (the clip, the strike's aim, the shield, the parry, the knocks, the free arm), each arm is read as a body's arm (where the elbow is against the chest, which way it folds, how far it bends, the forearm's roll, the wrist) and brought into what a person's arm does, so no arm is posed in a way a body cannot bend. An arm already inside is not touched, and an arm may always be where the playing clip has it. A hand asked to go where no arm reaches stops short: a shield or a blade may then not get where it was sent. Off: as before, arms are posed wherever their hands are sent (to compare).")]
         public bool armsHeldToABody = true;
@@ -282,6 +288,13 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float WeaponWeight = DefaultWeaponWeight, SwingKept = DefaultSwingKept, StrikeArmStrength = DefaultStrikeArmStrength;
+
+        /// <summary>Real weapon weight: the weapons weigh in the physical body what they weigh (at their bearer's size), times <see cref="WeaponMass"/>; and that much of "felt heavier" is taken off what the script adds.</summary>
+        public static bool WeaponsHaveMass = true, MassTakesFromFelt = false, ArmFollowsMass = true;
+
+        public static float WeaponMass = DefaultWeaponMass;
+
+        public const float DefaultWeaponMass = 1f;
         public static bool ShieldFixed = true;
         public static float ShieldWristTurn = DefaultShieldWristTurn, ShieldReadsFrom = DefaultShieldReadsFrom;
         public static float OffFrontBend = DefaultOffFrontBend, SideHitTime = DefaultSideHitTime;
@@ -324,6 +337,8 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.ArmStops = true;
             PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = PhysicsBattler.Authority.UpperBodyArticulation.DefaultStopTimes;
             StrikeArmStrength = DefaultStrikeArmStrength;
+            WeaponsHaveMass = true;
+            WeaponMass = DefaultWeaponMass;
             BendPerWeight = DefaultBendPerWeight;
             OffFrontBend = DefaultOffFrontBend;
             SideHitTime = DefaultSideHitTime;
@@ -391,6 +406,8 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.ArmStops = armsHaveStops;
             PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = Mathf.Clamp(armStopsHoldWith, 1f, 12f);
             StrikeArmStrength = Mathf.Max(1f, strikeArmStrength);
+            WeaponsHaveMass = weaponsHaveTheirMass;
+            WeaponMass = Mathf.Clamp(weaponMass, 0.5f, 6f);
             BendPerWeight = bendPerWeight;
             OffFrontBend = offFrontBend;
             SideHitTime = Mathf.Max(0.3f, sideHitTime);

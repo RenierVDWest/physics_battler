@@ -2496,6 +2496,48 @@ knocked into its bearer's own head or trunk by a blow is not an arm past its ran
 time just after a blow in the target tests); the blocks, parries and landed blows of the two seeds differ by as much
 as two fights do.
 
+**Real weapon weight (the plan's step 6): built, and it does not do what the plan hoped** (13 November, overnight,
+headless only). The plan: give the weapons their mass in the physical body, let the weight of a blow come from that
+mass, and turn the script's multiplier ("Weapon Weight", 3) down. What is there now, on the scene's Combat Feel
+under "Heavy weapons":
+
+- **Weapons Have Their Mass** (on). What a fighter holds weighs in the physical body what it weighs at its bearer's
+  size (weight goes with volume, as the damage rules already had it): a Large's club 3.8 kg where it was a
+  Medium's 2, its shield 7.7 kg where it was 4. For a Medium nothing changes. Off: as before.
+- **Weapon Mass** (1). A weapon that many times its real weight in the physical body, the arm that swings it as
+  much stronger (`ClipFighter.MuscleOf`), the script's reactions as they were. Left at 1, for what follows.
+
+Measured in the target test (60 s, one seed; each line the middle of 28 to 48 blows on the open target):
+
+| Swords, Mediums on Mediums | Blows land at | The part struck goes, in 0.1 s | The hips, in 0.5 s | The weapon hand off its swing, 95% under | The sword parry held |
+| --- | --- | --- | --- | --- | --- |
+| As before | 11.8 m/s | 28 cm | 19 cm | 12 cm | 23 of 27 |
+| Swords 3 times their weight, the arm as it was | 8.5 m/s | 22 cm | 11 cm | 32 cm | 21 of 27 |
+| 3 times, the arm 3 times as strong | 11.0 m/s | 25 cm | 19 cm | 22 cm | 14 of 25 |
+| 3 times, the arm 3 times as strong, the script's multiplier down to 1.7 | 6.9 m/s | 14 cm | 2 cm | 29 cm | 20 of 27 |
+| 6 times, the arm as it was, the script's multiplier down to 1 | 11.8 m/s | 13 cm | -1 cm | 21 cm | 19 of 26 |
+
+| Clubs, Larges on Larges | Blows land at | The part struck goes, in 0.1 s | The hips, in 0.5 s | The weapon hand off its swing, 95% under |
+| --- | --- | --- | --- | --- |
+| As before (the club 2 kg) | 12.9 m/s | 49 cm | 48 cm | 28 cm |
+| Its real mass at a Large's size (3.8 kg): what is on now | 12.8 m/s | 51 cm | 45 cm | 22 cm |
+| 3 times that, the arm 3 times as strong, the multiplier down to 1.8 | 13.2 m/s | 39 cm | 30 cm | 66 cm |
+
+So: a heavier blade in the physics does not throw the body it lands on any further. What throws a struck body
+(its bend, its lean, the reaction, the drive back) is the script acting on the pose; the physical blade meets a
+physical upper body that is held to that pose by muscles of 600 N m and stands on legs that are the pose's own, so
+its push is taken back within a step or two. Heavier, with the arm it has, the weapon trails its swing and lands
+slower; with an arm as much stronger it lands as before by the script and beats a sword parry through the physics
+(14 held of 25). With the script's multiplier turned down, as the plan had it, the blows are simply weaker. The
+weight of a blow can only come from the weapon once the body it lands on is carried by its legs instead of placed
+by the pose: that is the legs' work (the plan "Grounded legs", from "Supported hips"), not a dial. Until then the
+script's "Weapon Weight" stays what makes a blow heavy.
+
+`FIGHT_WMASS="3,1,1"` runs a fight with the weapons three times their weight (then: 1 the script's multiplier taken
+down by as much, 0 as it was; then: 1 the arm as much stronger, 0 as it was); `FIGHT_WMASS=0` the weapons as
+before. In fights of six (two seeds) with what is on now, against before: blocked 31%, parried 22%, landed 36%
+(29%, 19%, 43%), no body borne down, no joint put.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

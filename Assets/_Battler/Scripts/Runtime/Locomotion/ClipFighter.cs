@@ -1476,17 +1476,22 @@ namespace PhysicsBattler.Locomotion
         private (float hz, float most) MuscleOf(PartId id, float ease)
         {
             float strong = Strong;
+            // (Real weapon weight: an arm that swings a weapon made heavier than its own weight is as much stronger, so
+            // it still swings it as the clips do; with the muscles it has for the weapon as it is, a sword three times
+            // as heavy came a third slower and trailed its swing by 30 cm.)
+            float armed = CombatFeel.WeaponsHaveMass && CombatFeel.ArmFollowsMass ? Mathf.Max(1f, CombatFeel.WeaponMass) : 1f;
+            float left = Poser != null && Poser.TwoHanded ? armed : 1f;
             switch (id)
             {
                 case PartId.Spine:
                 case PartId.Chest: return (TorsoQuick * ease, strong);
                 case PartId.Head: return (NeckQuick * ease, 0.25f * strong);
-                case PartId.UpperArmR: return (WeaponArmQuick * ease, strong);
-                case PartId.ForearmR: return (WeaponArmQuick * ease, 0.7f * strong);
-                case PartId.HandR: return (WeaponArmQuick * ease, 0.25f * strong);
-                case PartId.UpperArmL: return (ShieldArmQuick * ease, strong);
-                case PartId.ForearmL: return (ShieldArmQuick * ease, 0.7f * strong);
-                default: return (ShieldArmQuick * ease, 0.25f * strong);
+                case PartId.UpperArmR: return (WeaponArmQuick * ease, strong * armed);
+                case PartId.ForearmR: return (WeaponArmQuick * ease, 0.7f * strong * armed);
+                case PartId.HandR: return (WeaponArmQuick * ease, 0.25f * strong * armed);
+                case PartId.UpperArmL: return (ShieldArmQuick * ease, strong * left);
+                case PartId.ForearmL: return (ShieldArmQuick * ease, 0.7f * strong * left);
+                default: return (ShieldArmQuick * ease, 0.25f * strong * left);
             }
         }
 
@@ -1522,6 +1527,12 @@ namespace PhysicsBattler.Locomotion
             if (Upper == null)
             {
                 return;
+            }
+
+            // (The weapons' mass in the physics changed on the scene's Combat Feel: the body is built again with it.)
+            if (builtWithMass != (CombatFeel.WeaponsHaveMass, CombatFeel.WeaponMass))
+            {
+                solidsChanged = true;
             }
 
             if (solidsChanged)
@@ -1796,7 +1807,7 @@ namespace PhysicsBattler.Locomotion
                     // (A sword balances a hand's breadth past its guard and turns about that like a rod a third its length.)
                     var slot = hand == PartId.HandR ? Rig.SlotWeaponR : Rig.SlotWeaponL;
                     Vector3 balance = Rig.Part(hand).transform.InverseTransformPoint(slot.position + slot.forward * (0.18f * Size));
-                    Upper.Hold(hand, solid, mass, balance, 0.26f * Size);
+                    Upper.Hold(hand, solid, WeighsInBody(mass, true), balance, 0.26f * Size);
                 }
                 else if (!CombatFeel.ShieldFixed && hand == PartId.HandL && Rig.SlotWeaponL != null && Anim.SlotWeaponL != null)
                 {
@@ -1806,14 +1817,27 @@ namespace PhysicsBattler.Locomotion
                     var posedHand = Anim.Part(PartId.HandL);
                     Quaternion rest = Quaternion.Inverse(posedHand.rotation) * (Anim.SlotWeaponL.parent != null ? Anim.SlotWeaponL.parent.rotation : posedHand.rotation)
                         * (Poser.ShieldGripRest ?? Anim.SlotWeaponL.localRotation);
-                    Upper.HoldTurned(hand, solid, mass, Anim.SlotWeaponL, Rig.SlotWeaponL, rest);
+                    Upper.HoldTurned(hand, solid, WeighsInBody(mass, false), Anim.SlotWeaponL, Rig.SlotWeaponL, rest);
                 }
                 else
                 {
-                    Upper.Hold(hand, solid, mass);
+                    Upper.Hold(hand, solid, WeighsInBody(mass, false));
                 }
             }
+
+            builtWithMass = (CombatFeel.WeaponsHaveMass, CombatFeel.WeaponMass);
         }
+
+        private (bool, float) builtWithMass;
+
+        /// <summary>
+        /// What a held thing weighs in the physical body (kg). Real weapon weight (the scene's Combat Feel, "Weapons
+        /// Have Their Mass"): its own weight at its bearer's size (weight goes with volume: a Large's club is a bigger
+        /// club), and a weapon <see cref="CombatFeel.WeaponMass"/> times that. Off: its weight as written, whatever the
+        /// bearer's size (as before).
+        /// </summary>
+        private float WeighsInBody(float mass, bool weapon) =>
+            CombatFeel.WeaponsHaveMass ? mass * Size * Size * Size * (weapon ? Mathf.Max(0.1f, CombatFeel.WeaponMass) : 1f) : mass;
 
         /// <summary>The physical upper body let go (down, dead, a limb off): the rig's own parts take over where it was, at its speeds.</summary>
         private void ReleaseUpper()
@@ -3437,8 +3461,16 @@ namespace PhysicsBattler.Locomotion
         public int Touches;
 
         /// <param name="drive">How much of the blow's weight drives the whole body back across the ground (1: all of it; less for a combo's blows before its last, which the combo has to follow).</param>
-        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false, bool bound = false, float drive = 1f)
+        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false, bool bound = false, float drive = 1f,
+            float heavier = -1f)
         {
+            // (How much heavier than its weapon's own weight a blow on a shield is felt: the scene's Combat Feel's, or what
+            // the striker's script has left of it once its weapon's mass in the physics has taken its share.)
+            if (heavier < 0f)
+            {
+                heavier = CombatFeel.WeaponWeight;
+            }
+
             lastHit = clock;
             if (Fallen)
             {
@@ -3523,7 +3555,7 @@ namespace PhysicsBattler.Locomotion
                 knockedOpen = weight >= CombatFeel.GuardOpenFrom * GuardHolds;
                 // (Heavy weapons: the shield gives further to the blow, by the scene's Combat Feel; whether the guard is
                 // knocked open goes by the blow's own weight, as before.)
-                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight * CombatFeel.WeaponWeight / GuardHolds, CombatFeel.MostShieldGive) * Size;
+                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight * heavier / GuardHolds, CombatFeel.MostShieldGive) * Size;
                 KnockArmBy(1, impulse, point, knockedOpen ? Mathf.Max(give, CombatFeel.MostShieldGive * Size) : give, knockedOpen ? GuardOpenFrequency : ArmKnockFrequency);
                 if (knockedOpen)
                 {
@@ -3566,7 +3598,7 @@ namespace PhysicsBattler.Locomotion
             // the steps carry it back (a push at once would cut the reaction off before it showed).
             // (A blow on the shield drives its bearer back as much harder as the scene's Combat Feel makes the weapons
             // heavy; one on the body comes here with that in it already.)
-            Vector3 knock = impulse * (1f - partShare) * KnockScale / Mass * (shield ? CombatFeel.WeaponWeight : drive);
+            Vector3 knock = impulse * (1f - partShare) * KnockScale / Mass * (shield ? heavier : drive);
             knock.y = 0f;
             bool driven = !Anchored && knock.magnitude > DrivenFrom;
             string clipName = shield ? null : ReactionClip(part, impulse.magnitude / Mass, reaction, thrown);

@@ -1024,12 +1024,17 @@ namespace PhysicsBattler.Locomotion
             float onBlade = beaten ? 1f - CombatFeel.BeatenShare : 1f;
             // (And landed on a body it is felt heavier than its own weight says, by the scene's Combat Feel: the body's
             // bend, its lean, how far it is driven or thrown back. Not its harm, and not what a shield or a parry takes.)
-            float felt = shield || parried ? 1f : CombatFeel.WeaponWeight;
+            // (Real weapon weight: with the weapons as heavy in the physics as the scene's Combat Feel makes them, that
+            // much of the blow's weight is the weapon's own, there in the physical blade that meets the body; what the
+            // script adds on top is only what is left of "felt heavier" after it.)
+            float heft = CombatFeel.WeaponsHaveMass ? DamageRules.Heft(Weapon, Scale, Mass, CombatFeel.WeaponMass) : 1f;
+            float scripted = CombatFeel.WeaponsHaveMass && CombatFeel.MassTakesFromFelt ? Mathf.Max(1f, CombatFeel.WeaponWeight / Mathf.Max(1f, heft)) : CombatFeel.WeaponWeight;
+            float felt = shield || parried ? 1f : scripted;
             // (A combo's blows before its last drive the body back by their own weight: the combo has to follow it to
             // land the next (thrown back three times as far, a blow in six of the dummy's combos missed). The body
             // still bends and leans by the heavier blow, and the combo's last throws it back with all of it.)
             struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade * felt), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
-                bound: parried && !glanced && !loco.ShotAirborne(), drive: comboing && !finishing ? 1f / felt : 1f);
+                bound: parried && !glanced && !loco.ShotAirborne(), drive: comboing && !finishing ? 1f / felt : 1f, heavier: scripted);
             Struck?.Invoke(new StruckBy
             {
                 Struck = struck, Part = part, Result = r, Shield = shield && !parried, Parried = parried, Point = point, Speed = speed,
