@@ -556,6 +556,8 @@ internal static class FightReport
         }
         UnitController.ComboChanged += OnCombo;
         var heft = new HeftMeasure(units);
+        var grounds = new GroundMeasure(units);
+        var legs = new LegMeasure(units);
         // (Each kind of unit on its own: in the target test, the attackers and each target; else by what it carries.)
         var limits = new LimitMeasure(units, u => targetTest ? (u.TargetDummy ? "the target " + (u.Clip != null ? u.Clip.Stance.ToString().ToLowerInvariant() : "?") : "the attackers") : u.name.Substring(2));
         var dummyOff = new Dictionary<UnitController, (float most, float last)>();
@@ -575,6 +577,8 @@ internal static class FightReport
                 loop.Step(units, dt, Time.time);
                 heft.Step(dt);
                 limits.Step();
+                grounds.Step(dt);
+                legs.Step(dt);
                 foreach (var u in units)
                 {
                     if (u.TargetDummy)
@@ -838,6 +842,8 @@ internal static class FightReport
             sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
             sb.Append(heft.Report());
             sb.Append(limits.Report());
+            sb.Append(grounds.Report());
+            sb.Append(legs.Report());
             if (dummyOff.Count > 0)
             {
                 sb.AppendLine("    the target test's targets, off their spots: " + string.Join("; ", units.Where(u => u.TargetDummy).Select(u =>

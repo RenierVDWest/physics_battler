@@ -214,6 +214,10 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How far a joint of the physical upper body has to be pushed from where it is wanted before it gives way and stays where it was pushed (degrees). A push smaller than this is undone at once, in a step: it is taken for the muscle being a little behind its animation, not for a blow. For each radian a second the animation is turning the joint it is a little more (0.6 degrees), since a fast cut is further behind. Lower: lighter knocks leave the arm aside, but fast cuts start being left behind their animation; higher: only harder knocks move an arm, and it follows the animation more exactly. Default 8.")]
         [Range(2f, 30f)] public float giveWayAngle = DefaultGiveWayAngle;
 
+        [Header("The legs: what they make of the body (a view only, it changes nothing)")]
+        [Tooltip("Draws the legs' opinion on the ground under each fighter, on today's animation (it changes nothing in play). Each sole's outline is coloured by what the foot is doing: green planted, red on the ground and sliding (over 10 cm a second), yellow just landing, orange in the air but too low to be a step (under 9 cm), blue stepping. The white outline is the support: the patch of ground the feet hold. The dot is under the body's weight (its centre of gravity): green over the support, red outside it (unbalanced). The cross is where a foot would have to be to stop the body as it moves now: grey while that is on the support, orange when it is over 10 cm outside it (a step is needed there).")]
+        public bool showLegsOpinion;
+
         [Header("Heavy weapons: the weapon is the steady one, what it lands on gives way")]
         [Tooltip("How much heavier a blow that lands on a body is felt than its weapon's own weight says (times). It multiplies what the struck body takes: how far the part struck is thrown, how far the body bends and leans, how hard it is driven back, whether it is thrown back stumbling, which reaction it plays. It does not change the damage, the poise a blow costs, or what a shield or a parry takes. 1: the weapons' own weights (a sword lands on a Medium at about 0.4 m/s, the Large's club at 1.2 to 3). Default 3, exaggerated on purpose: a sword's blow to the chest then drives a Medium back about a third of a metre, the Large's club a metre. Lower it to pull the weight back.")]
         [Range(1f, 6f)] public float weaponWeight = DefaultWeaponWeight;
@@ -292,6 +296,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Real weapon weight: the weapons weigh in the physical body what they weigh (at their bearer's size), times <see cref="WeaponMass"/>; and that much of "felt heavier" is taken off what the script adds.</summary>
         public static bool WeaponsHaveMass = true, MassTakesFromFelt = false, ArmFollowsMass = true;
 
+        /// <summary>The legs' opinion is drawn under each fighter (a view only).</summary>
+        public static bool ShowLegs;
+
         public static float WeaponMass = DefaultWeaponMass;
 
         public const float DefaultWeaponMass = 1f;
@@ -336,6 +343,7 @@ namespace PhysicsBattler.Locomotion
             SwordParry.FreeHandWithArm = true;
             ClipFighter.ArmStops = true;
             PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = PhysicsBattler.Authority.UpperBodyArticulation.DefaultStopTimes;
+            ShowLegs = false;
             StrikeArmStrength = DefaultStrikeArmStrength;
             WeaponsHaveMass = true;
             WeaponMass = DefaultWeaponMass;
@@ -405,6 +413,7 @@ namespace PhysicsBattler.Locomotion
             SwordParry.FreeHandWithArm = freeHandGoesWithItsArm;
             ClipFighter.ArmStops = armsHaveStops;
             PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = Mathf.Clamp(armStopsHoldWith, 1f, 12f);
+            ShowLegs = showLegsOpinion;
             StrikeArmStrength = Mathf.Max(1f, strikeArmStrength);
             WeaponsHaveMass = weaponsHaveTheirMass;
             WeaponMass = Mathf.Clamp(weaponMass, 0.5f, 6f);

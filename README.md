@@ -2538,6 +2538,56 @@ down by as much, 0 as it was; then: 1 the arm as much stronger, 0 as it was); `F
 before. In fights of six (two seeds) with what is on now, against before: blocked 31%, parried 22%, landed 36%
 (29%, 19%, 43%), no body borne down, no joint put.
 
+**The legs' opinion (the plan "Grounded legs", step 0: see it)** (13 November, overnight). Nothing in play
+changes: no foot, hip or step is moved by any of this. Each fighter now has a reading of what its legs make of
+its body (`Locomotion/Grounding.cs`, read once a step from the body as the physics left it): what each foot is
+doing, where the body's weight is and how fast it moves, the patch of ground its feet hold, and where a foot would
+have to be to stop the body as it moves now. It is the reading `Tools/Playtest/ground.py` takes from a log, made
+as the game runs (the same sole, the same thresholds: on one fight of Mediums the two give a foot planted 38 and
+39% of the time, sliding 7 and 8%, the weight outside the support 19 and 20% of the time a fighter stands still).
+Three things use it:
+
+- **Show Legs Opinion** (the scene's Combat Feel, off): draws it on the ground under each fighter, over the game
+  view (`Sandbox/GroundingView.cs`). Each sole's outline in the colour of what the foot is doing: green planted,
+  red on the ground and sliding (over 10 cm/s), yellow just landing, orange in the air under 9 cm (too low to be a
+  step), blue stepping. A white outline: the support. A dot under the body's weight: green over the support, red
+  outside it. A cross where a foot is needed to stop the body: grey while that is on the support, orange when it is
+  over 10 cm outside it.
+- The playtest log: each unit's frames have `footL`, `footR` (0 planted, 1 sliding, 2 landing, 3 low, 4 stepping),
+  `weightX`, `weightZ`, `weightH`, `neededX`, `neededZ`, and `weightOut`, `neededOut` (cm outside the support;
+  -1 with both feet up).
+- The fight report, "the legs' opinion": the plan's table, made by the report.
+
+| The plan's table (fights of six, 60 s, seeds 1 and 2) | Unity logs (the plan) | Headless now |
+| --- | --- | --- |
+| A fighter is standing (not walking, not in a clip) | 2% of the time | 1%, 1% |
+| A foot is planted (on the ground, not moving) | 30% | 28%, 29% |
+| Both feet are on the ground | 6% | 8%, 6% |
+| While walking, a foot is in the air | 85% | 93%, 94% |
+| Swings lasting over 0.6 s | 40% of swings, 76% of the time feet are up | 44%, 48%; 75%, 79% |
+| in them the foot goes, while the body goes | 60 cm, 34 cm | 70 and 40 cm, 70 and 41 cm |
+| A foot on the ground and moving over 10 cm/s | 8% of the time, 2.8 m a minute each | 11%, 10%; 5.3, 4.3 m |
+| Slides over 5 cm | 15 a minute each, the worst 42 cm | 32, 24; 52, 38 cm |
+| On one foot, the body under 0.3 m/s: the weight outside that foot | 13 cm at the middle, a quarter over 28 cm | 14 and 31 cm, 13 and 25 cm |
+| Still on both feet: the weight outside the support | 38% of the time | 32%, 35% |
+| Both feet down in a clip: a foot needed over 10 cm outside the support | 40% of the time | 34%, 29% |
+
+(The headless fights have two Larges in six; for a Large the thresholds go with its size, where the log tool's are
+a Medium's: its feet count as down a little more.)
+
+And the legs read as a body's legs, as the arms are (`Motion/LegLimits.cs`; a measure, nothing is held to it): the
+thigh's place against the hips, which way the knee folds, its bend, the ankle. The ranges are set from the clips,
+as the arm's were (`legrange` reads every frame of every clip: the thigh to 125 degrees forward, 75 to the side, 55
+behind, 30 across; the knee turned out to 85 and in to 50 from folding straight back; bent to 155, where the clips
+reach 148; no clip is past them). In the fights the clips' own legs are never past, and the pose's are 1 to 2% of the time in a strike or a
+reaction and 0.4 to 1% walking: a knee folding forward for a few frames of a combo (`sns_combo_forehand`: bent 40
+to 60 degrees the wrong way), and ankles with the toes 30 to 70 degrees up where the foot is held level under a
+shin that swings. That is what the legs' own gate will have to hold, when the legs are built.
+
+Not verified: the view itself. It is drawn with the game's own on-screen drawing and its numbers are checked
+against the log, but I have not seen it on a screen; if it draws nothing or in the wrong place, the log and the
+report still hold.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
@@ -2580,6 +2630,7 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll locolab . 20           # the lab
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll spar /tmp/spar 40      # the lab's two fighters
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll strikes /tmp/strikes   # each strike aimed; also dummyhits, combos, cores, footwork, parryreach, combatfilm
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll armgate                # the arm gate on arms at random; armrange: the clips' own arms against the ranges
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll legrange               # the clips' own legs against a leg's ranges
 ```
 
 The stubs only cover the API this project uses, and the dry run has no collisions or joints (a ragdoll's parts fall

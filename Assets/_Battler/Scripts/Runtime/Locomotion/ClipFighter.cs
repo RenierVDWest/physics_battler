@@ -942,8 +942,29 @@ namespace PhysicsBattler.Locomotion
             MoveOn(dt, want, yaw, opponent, frozen);
         }
 
+        /// <summary>The legs' opinion of the body as the physics last left it (the plan "Grounded legs", step 0): read each step, it moves nothing.</summary>
+        public readonly Grounding Ground = new Grounding();
+
+        private float restAnkle = -1f;
+
+        private void ReadGround(float dt)
+        {
+            if (restAnkle < 0f)
+            {
+                restAnkle = Anim.RestLocalPosition(PartId.Pelvis).y + Anim.RestLocalPosition(PartId.ThighL).y + Anim.RestLocalPosition(PartId.ShinL).y + Anim.RestLocalPosition(PartId.FootL).y;
+            }
+
+            if (Fallen || !snapped)
+            {
+                Ground.Forget();
+            }
+
+            Ground.Read(Rig, groundLevel, Size, restAnkle, dt);
+        }
+
         private void MoveOn(float dt, Vector3 want, float yaw, Vector3 opponent, bool frozen)
         {
+            ReadGround(dt);
             if (frozen)
             {
                 return;
