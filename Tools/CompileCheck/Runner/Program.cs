@@ -96,6 +96,11 @@ internal static class Program
             return CombatFilmReport.Run(args[1], args.Length >= 3 ? args[2] : null, args.Length >= 4 ? args[3] : null);
         }
 
+        if (args.Length >= 1 && args[0] == "armrange")
+        {
+            return ArmRangeReport.Run();
+        }
+
         if (args.Length >= 2 && args[0] == "fight")
         {
             return FightReport.Run(args[1], args.Length >= 3 ? int.Parse(args[2]) : 7);

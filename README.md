@@ -1612,7 +1612,8 @@ swings last; the centre of gravity against the feet's support). They are the mea
 
 `python3 Tools/Playtest/rolls.py PlaytestLogs/<session>/units` lists each time an upper arm kept turning fast and
 how much of it was about the arm's own length (a straight arm rolling); `elbows.py`, each step an elbow jumped with
-its hand hardly moving; `shake.py`, how long each part shook (its place going back and forth step by step), body and pose.
+its hand hardly moving; `shake.py`, how long each part shook (its place going back and forth step by step), body and pose;
+`armrange.py`, each arm read as a body's arm and how long it was past a person's range.
 
 `python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report with flags (sliding feet,
 weight off the feet, pinned parts lagging, shaking, blows that miss, friendly fire), a table of every blow and every
@@ -2214,6 +2215,63 @@ and 9 before). The hit stop still holds the weapon still for 0.04 to 0.16 s as i
 kept, the physical weapon was held up by a body that had not yet moved while its swing went on without it (a
 twentieth of a strike's time over 31 cm behind, where it is 12), so it is as it was. The weapons'
 own weight in the hand is as it was (a sword 1.3 kg, a club 2 kg). None of this has been seen in Unity.
+
+**Arms that bend as a body does: the measure, and a plan** (12 November, the target test: "the shield arm often
+bends in strange ways", "the shield can still go into the head", "we still need a robust system that prevents the
+arms from bending in ways that the body does not"). Nothing in play has changed; this is what was found, and the
+plan is the doc "Arms that bend as a body does, and the shield: findings and plan"
+(https://claude.ai/artifact/PwoViLF1TYzcBSx7yQ1QrK).
+
+Where the limits are today: the limit table (`JointLimitTable`) is put only on the old ragdoll joints, so it acts
+only once a unit has fallen; the standing physical body (`UpperBodyArticulation`) leaves every joint free on all
+three axes; the pose solves its arms with `TwoBoneIK` from a hand's place and a rough way for the elbow, with no
+limit (the shield, the knocks, the strike's aim, the swordsman's tucked free arm); only the sword arm as it parries
+(`ArmRig`) has limits, its own. And the table is in each bone's own frame, where a bone's roll about its length is
+whatever the solver left: the same arm to look at can read as inside it or outside.
+
+So an arm is now read as a body's arm, from where its joints are (`Tools/CompileCheck/Runner/ArmAnatomy.cs`): where
+the elbow is against the chest (how high the upper arm is raised, and toward where: all the way up in front and out
+to the side, 55 degrees straight back, 30 to 40 across the body), which way the elbow folds (the upper arm's turn
+about its length, 100 in and 90 out), the elbow's bend (to 150), the forearm's roll (90 each way) and the wrist (80
+to the palm or the back of the hand, 30 to the thumb, 45 to the little finger). The fight report prints, for each
+kind of unit, each arm and each moment (guarding, striking, just struck), the share of the time the pose, the
+physical body and the recorded clip itself are over 10 degrees past that, and each unit's shield or shield arm
+inside its own head and trunk; `python3 Tools/Playtest/armrange.py PlaytestLogs/<session>/units` reads the same
+from a playtest (the body in full; the pose's elbow, since the log has the pose's places and not its turns), with
+the longest runs to find on the film; `dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll armrange` reads every frame
+of every clip.
+
+What it shows (two 60 s fights of six, the target test with Mediums and with Larges, and the three target-test
+playtests of 16:22 to 16:49):
+
+| Share of the time over 10 degrees past a person's range | In the game | The recorded clip alone |
+| --- | --- | --- |
+| A swordsman's free arm, in guard (its wrist) | 68 to 97% | 0% |
+| A swordsman's sword arm, just struck (the elbow's place and fold) | 31 to 36% | 0 to 2% |
+| The shield arm, just struck (the elbow folded the wrong way, up to 90 degrees past) | 22 to 38% | 0 to 3% |
+| A shield man's sword arm, striking (the wrist, the forearm's roll) | 20% | 3 to 5% |
+| A Large's club arm, striking | 17 to 19% | 14 to 15% |
+| The shield arm, in guard | 5 to 7% | 0% |
+| An arm nothing of ours moves (the target that only stands) | 0% | 0% |
+
+The physical body is within a point or two of the pose in every row: it has no stops of its own. In the playtests
+the shield target's arm is past a person's range 14 to 15% of the session, the free arms 31 to 96%, the attackers'
+sword arms 10 to 24%. The shield or its arm is over 2 cm inside its own head 1 to 4% of the time (10 to 13 cm at
+the deepest) and inside its own trunk 2 to 8% (17 to 24 cm). Over the 4,700 frames of the clips, the walks, turns
+and reactions are never past the ranges and the combat clips 1 to 3% of the time, nearly all at the wrist (to the
+thumb up to 68 to 76 degrees, where the range has 30): the recorded motion is a person's, so the ranges are to be
+widened until all of it passes. The legs, against the old table only: feet and thighs past it 3 to 20% of the time;
+their own reading is for the legs' work.
+
+The plan, each step playtested: (2) the ranges set from the clips, and one gate at the end of the pose, after every
+stage: the arm read as its seven numbers, each brought into its range, the arm built again from them, so what leaves
+is an arm a body has; (3) the stages that ask for the most impossible arms (the free arm, the knocks) ask for
+possible ones; (4) the shield held as a centre-grip shield is (the recorded guard already holds it so: the elbow
+down and out, bent 90, the forearm at the enemy, the fist 30 cm before the chest): moved between wards that are
+arms, the board fixed in the fist and turned by the wrist, kept out of its own head and trunk, a blow taken
+through the elbow and the shoulder into the body; (5) the same ranges as hard stops in the physical joints (the
+elbow a hinge); (6) the weapons' real weight; (7) the legs.
+
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
 vector, stiffness for radians, the force limit a torque, a part built turned takes its turn on its own axes), so
