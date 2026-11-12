@@ -1333,7 +1333,73 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            HoldOrSlack();
             Upper.BeginStep(dt);
+        }
+
+        private static readonly PartId[] Trunk = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head };
+        private static readonly PartId[][] ArmEnds = { new[] { PartId.ForearmL, PartId.HandL }, new[] { PartId.ForearmR, PartId.HandR } };
+        private static readonly (PartId part, PartId on)[][] ArmJoints =
+        {
+            new[] { (PartId.UpperArmL, PartId.Chest), (PartId.ForearmL, PartId.UpperArmL), (PartId.HandL, PartId.ForearmL) },
+            new[] { (PartId.UpperArmR, PartId.Chest), (PartId.ForearmR, PartId.UpperArmR), (PartId.HandR, PartId.ForearmR) },
+        };
+
+        /// <summary>An arm's forearm, hand or what the hand holds this deep in its own trunk or head (metres) is not left there: the arm is held to its pose.</summary>
+        public const float InOwnBody = 0.03f;
+
+        /// <summary>A joint this far further past its range than the pose has it (degrees) is not left there: it is held to its pose.</summary>
+        public const float PastRange = 8f;
+
+        /// <summary>Times an arm was held to its pose for being in its own body, and for a joint past its range (steps; for the reports).</summary>
+        public int HeldForBody { get; private set; }
+
+        public int HeldForRange { get; private set; }
+
+        /// <summary>
+        /// Which joints of the physical upper body have slack and which are held to the pose
+        /// (<see cref="UpperBodyArticulation.Ask"/>). The arms have slack: knocked aside they stay aside and come
+        /// back over a second or so, doing meanwhile what the animation does. The spine, chest and head are held
+        /// (what the feet give way to and the body falls by is how far the chest is off its pose). And an arm is
+        /// held while its slack would leave it somewhere it can't be: its forearm, hand, sword or shield inside
+        /// its own trunk or head (its own parts pass through each other), or one of its joints bent further past
+        /// what a joint does than the animation has it.
+        /// </summary>
+        private void HoldOrSlack()
+        {
+            foreach (var id in Trunk)
+            {
+                Upper.SetTight(id, 1f);
+            }
+
+            for (int side = 0; side < 2; side++)
+            {
+                bool held = false;
+                if (Upper.Holds(ArmEnds[side][1]) && Upper.Deepest(ArmEnds[side], Trunk) > InOwnBody * Size)
+                {
+                    held = true;
+                    HeldForBody++;
+                }
+
+                foreach (var (id, on) in ArmJoints[side])
+                {
+                    if (!Upper.Holds(id))
+                    {
+                        continue;
+                    }
+
+                    var part = Rig.Part(id);
+                    float past = JointMath.PastLimits(part.JointTurn(Rig.Part(on).transform.rotation, part.transform.rotation), part.limits, out _, out _, out _);
+                    bool over = past > PastRange
+                        && past > PastRange + JointMath.PastLimits(part.JointTurn(Anim.Part(on).rotation, Anim.Part(id).rotation), part.limits, out _, out _, out _);
+                    if (over)
+                    {
+                        HeldForRange++;
+                    }
+
+                    Upper.SetTight(id, held || over ? 1f : 0f);
+                }
+            }
         }
 
         private void BuildUpper()

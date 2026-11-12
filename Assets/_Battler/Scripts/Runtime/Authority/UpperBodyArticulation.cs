@@ -44,6 +44,11 @@ namespace PhysicsBattler.Authority
         private readonly ArticulationBody[] links;
         private readonly Vector3[] was, now, hangs;
         private readonly float[] hz, most;
+        private readonly Quaternion[] slack;             // each joint: how far aside of its pose it has been left (a turn on the part's own axes, after the pose's)
+        private readonly bool[] gripped;                 // each joint: a hand with a shield strapped on it
+        private readonly bool[] put;                     // each joint: put where the pose turned it at once, this step (where it is is not yet to be read)
+        private readonly float[] tight;                  // each joint: 0 with slack (an arm), 1 held to its pose (the torso; an arm inside its own body or past its joint's range)
+        private readonly Dictionary<Collider, int> linkOf = new Dictionary<Collider, int>();   // each solid's part (what a hand holds counts as the hand)
 
         // (What each joint's muscle is allowed over its own strength, to follow what the pose itself does.)
         private Vector3[] turning;                       // each joint's speed of turn in the last step (rad/s)
@@ -92,6 +97,11 @@ namespace PhysicsBattler.Authority
             now = new Vector3[n];
             hangs = new Vector3[n];
             hz = new float[n];
+            tight = new float[parts.Length];
+            put = new bool[parts.Length];
+            gripped = new bool[parts.Length];
+            slack = new Quaternion[parts.Length];
+            for (int j = 0; j < slack.Length; j++) slack[j] = Quaternion.identity;
             most = new float[n];
             pieces = new List<Piece>[n];
             var pelvis = anim.Part(PartId.Pelvis);
@@ -120,7 +130,7 @@ namespace PhysicsBattler.Authority
 
                 var link = go.AddComponent<ArticulationBody>();
                 links[i] = link;
-                link.useGravity = true;
+                link.useGravity = !Weightless;
                 link.linearDamping = 0f;
                 link.angularDamping = 0.05f;
                 link.jointFriction = 0f;
@@ -131,8 +141,8 @@ namespace PhysicsBattler.Authority
                 link.maxDepenetrationVelocity = MostPushOut;
                 if (i == 0)
                 {
-                    link.solverIterations = 32;
-                    link.solverVelocityIterations = 4;
+                    link.solverIterations = SolverSteps;
+                    link.solverVelocityIterations = SolverSpeedSteps;
                     link.sleepThreshold = 0f;
                 }
                 else
@@ -150,6 +160,7 @@ namespace PhysicsBattler.Authority
                 if (copy != null)
                 {
                     colliders.Add(copy);
+                    linkOf[copy] = i;
                     pieces[i].Add(PieceOf(copy, go.transform, part.body.mass));
                 }
                 else
@@ -265,6 +276,7 @@ namespace PhysicsBattler.Authority
             {
                 var local = Quaternion.Inverse(anim.Part(parts[parent[i]]).rotation) * anim.Part(parts[i]).rotation;
                 now[i] = was[i] = JointMath.TurnVector(local);
+                slack[i] = Quaternion.identity;
                 Vector3 at = Vector3.Scale(now[i], sign);
                 links[i].jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
                 links[i].jointVelocity = new ArticulationReducedSpace(0f, 0f, 0f);
@@ -319,12 +331,20 @@ namespace PhysicsBattler.Authority
         private void SetDrives(int i)
         {
             float w = 2f * Mathf.PI * hz[i], scale = ArticulationConventions.StiffnessScale;
+            // (A wrist bears what turns the shield in its hand: the grip's motor has the arm's whole strength and
+            // pushes back on the hand with it, four times what a wrist has. Without this the wrist gave way each
+            // time the pose turned the shield to face a blow.)
+            float borne = Returns && GripStrength > 0f && gripped[i] ? GripStrength : 0f;
             for (int axis = 0; axis < 3; axis++)
             {
-                float turns = hangs[i][axis];
-                links[i].SetDriveStiffness((ArticulationDriveAxis)axis, w * w * turns * scale);
-                links[i].SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale * ArticulationConventions.DampingScale);
-                links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, most[i] > 0f ? most[i] + (more != null ? AllowShare * more[i] : 0f) : float.MaxValue);
+                // (A damper alone is as strong about every axis as about the heaviest: what hangs from a joint
+                // is measured at rest, and about its own length a straight arm is nothing; bent at the elbow, with
+                // a sword out, it is as much to turn that way as any. Sized by the rest, an upper arm's damper let
+                // it slip 15 degrees about its length each time the forearm swung.)
+                float turns = Returns && EvenDamping ? Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)) : hangs[i][axis];
+                links[i].SetDriveStiffness((ArticulationDriveAxis)axis, Returns ? 0f : w * w * turns * scale);
+                links[i].SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale * ArticulationConventions.DampingScale * (Returns ? DampTimes : 1f));
+                links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, most[i] > 0f ? most[i] + (more != null ? AllowShare * more[i] : 0f) + borne : float.MaxValue);
             }
 
             // (What the hand grips is turned as quick as the hand, and held with all the grip has: a shield is
@@ -338,9 +358,9 @@ namespace PhysicsBattler.Authority
 
                 for (int axis = 0; axis < 3; axis++)
                 {
-                    float turns = g.Hangs[axis];
-                    g.Link.SetDriveStiffness((ArticulationDriveAxis)axis, w * w * turns * scale);
-                    g.Link.SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale * ArticulationConventions.DampingScale);
+                    float turns = Returns && EvenDamping ? Mathf.Max(g.Hangs.x, Mathf.Max(g.Hangs.y, g.Hangs.z)) : g.Hangs[axis];
+                    g.Link.SetDriveStiffness((ArticulationDriveAxis)axis, Returns ? 0f : w * w * turns * scale);
+                    g.Link.SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale * ArticulationConventions.DampingScale * (Returns ? DampTimes : 1f));
                     g.Link.SetDriveForceLimit((ArticulationDriveAxis)axis, GripStrength > 0f ? GripStrength : float.MaxValue);
                 }
             }
@@ -382,6 +402,7 @@ namespace PhysicsBattler.Authority
             }
 
             colliders.Add(copy);
+            linkOf[copy] = i;
             var piece = PieceOf(copy, links[i].transform, mass);
             Vector3 middle = piece.At;
             if (balance.HasValue)
@@ -455,7 +476,7 @@ namespace PhysicsBattler.Authority
                 go.transform.localPosition = part.transform.InverseTransformPoint(shown.position);
                 go.transform.localRotation = rest;
                 var link = go.AddComponent<ArticulationBody>();
-                link.useGravity = true;
+                link.useGravity = !Weightless;
                 link.linearDamping = 0f;
                 link.angularDamping = 0.05f;
                 link.jointFriction = 0f;
@@ -471,6 +492,7 @@ namespace PhysicsBattler.Authority
                 link.swingZLock = ArticulationDofLock.FreeMotion;
                 grip = new Grip { Hand = i, Link = link, Posed = posed, Shown = shown, Rest = rest };
                 grips.Add(grip);
+                gripped[i] = true;
             }
 
             // (Where it sits against the slot it is held by: the link is the slot, turned as the hand at its joint's zero.)
@@ -495,6 +517,7 @@ namespace PhysicsBattler.Authority
             }
 
             colliders.Add(copy);
+            linkOf[copy] = i;
             // (Its weight on the link's axes: the slot's.)
             var piece = PieceOf(copy, grip.Link.transform, mass);
             grip.Pieces.Add(piece);
@@ -779,7 +802,8 @@ namespace PhysicsBattler.Authority
 
             for (int i = 1; i < n; i++)
             {
-                float limit = most[i] > 0f ? most[i] + AllowShare * more[i] : float.MaxValue;
+                // (And a wrist what turns the shield in its hand: see SetDrives.)
+                float limit = most[i] > 0f ? most[i] + AllowShare * more[i] + (Returns && GripStrength > 0f && gripped[i] ? GripStrength : 0f) : float.MaxValue;
                 for (int axis = 0; axis < 3; axis++)
                 {
                     links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, limit);
@@ -939,9 +963,11 @@ namespace PhysicsBattler.Authority
                     now[i] = JointMath.TurnVector(local);
                     was[i] = now[i];
                     turning[i] = Vector3.zero;
+                    put[i] = true;
                     if (PutFlips)
                     {
-                        Vector3 at = Vector3.Scale(now[i], ArticulationConventions.TargetSign);
+                        // (Where the pose is now, as far aside of it as the joint was left.)
+                        Vector3 at = Vector3.Scale(JointMath.TurnVector(local * slack[i]), ArticulationConventions.TargetSign);
                         links[i].jointPosition = new ArticulationReducedSpace(at.x, at.y, at.z);
                         links[i].jointVelocity = new ArticulationReducedSpace(0f, 0f, 0f);
                     }
@@ -951,6 +977,11 @@ namespace PhysicsBattler.Authority
             for (int i = 1; i < parts.Length; i++)
             {
                 rate[i] = known && dt > 1e-6f ? TurnBetween(was[i], now[i]) / dt : Vector3.zero;
+                // (What a joint was left aside by comes back out of it: slowly while it is little, quicker when
+                // it is much, or when the joint is held.)
+                float aside = Quaternion.Angle(slack[i], Quaternion.identity) * Mathf.Deg2Rad;
+                slack[i] = aside < 1e-4f ? Quaternion.identity
+                    : Quaternion.Slerp(slack[i], Quaternion.identity, Mathf.Clamp01(ReturnRate(aside, tight[i], TautTime) * dt));
             }
 
             foreach (var g in grips)
@@ -988,6 +1019,7 @@ namespace PhysicsBattler.Authority
                 for (int i = 1; i < parts.Length; i++)
                 {
                     was[i] = now[i];
+                    put[i] = false;
                 }
 
                 known = true;
@@ -1002,6 +1034,10 @@ namespace PhysicsBattler.Authority
         public void Substep(int k, int n, float step)
         {
             float share = k / (float)n;
+            // (Where the pose has a joint as this physics step begins: what the joint is measured against. Where
+            // the pose has it by the step's end is what its speed is for; measured against that, a joint the
+            // pose turns 40 degrees in a step would be 10 degrees "behind" at each quarter of it.)
+            float begun = Returns ? (k - 1) / (float)n : share;
             var pelvis = anim.Part(PartId.Pelvis);
             carrier.MovePosition(Vector3.Lerp(rootWas, pelvis.position, share));
             carrier.MoveRotation(Quaternion.Slerp(rootTurnWas, pelvis.rotation, share));
@@ -1014,15 +1050,29 @@ namespace PhysicsBattler.Authority
                 // that passed half a turn was sent the long way round at full strength, and round again: the
                 // arm whirled, and its body with it.)
                 Vector3 at = Where(links[i], links[parent[i]].transform, Quaternion.identity);
-                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(was[i], now[i], share), at);
-                Ask(links[i], asked, at, rate[i], Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)), hz[i], most[i], sign);
+                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(was[i], now[i], begun), at);
+                // (A wrist with a shield on it gives way to nothing: the shield is strapped along the forearm, and
+                // a hand between its forearm's motor and its shield's is too light to be told from either. Left
+                // its slack it was turned by the shield's motor each time the pose turned the board in the fist.)
+                // (Nor does a joint the pose has just turned at once: it is not behind, it has been moved.)
+                float gives = put[i] || gripped[i] ? float.MaxValue : GiveWay + GiveLag * rate[i].magnitude;
+                if (Ask(links[i], asked, ref slack[i], gives, MostAside * (tight[i] > 0.5f ? HeldAside : 1f), at, rate[i], Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)), most[i], sign))
+                {
+                    GaveWay++;
+                    if (Debugging)
+                    {
+                        Debug.Log($"GAVE {rig.name} {parts[i]}: {lastGave * Mathf.Rad2Deg:0}° from where it was wanted, the pose turning it at {rate[i].magnitude:0} rad/s, quickening {(rate[i] - turning[i]).magnitude / Mathf.Max(1e-4f, step * n):0} rad/s2, most {links[i].xDrive.forceLimit:0} N m, substep {k}");
+                    }
+                }
             }
 
             foreach (var g in grips)
             {
                 Vector3 at = Where(g.Link, links[g.Hand].transform, g.Rest);
-                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(g.Was, g.Now, share), at);
-                Ask(g.Link, asked, at, g.Rate, Mathf.Max(g.Hangs.x, Mathf.Max(g.Hangs.y, g.Hangs.z)), hz[g.Hand], GripStrength, sign);
+                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(g.Was, g.Now, begun), at);
+                // (A shield is strapped on: its grip gives way to nothing.)
+                var none = Quaternion.identity;
+                Ask(g.Link, asked, ref none, float.MaxValue, 0f, at, g.Rate, Mathf.Max(g.Hangs.x, Mathf.Max(g.Hangs.y, g.Hangs.z)), GripStrength, sign);
 
                 if (k == n)
                 {
@@ -1043,45 +1093,88 @@ namespace PhysicsBattler.Authority
         }
 
         /// <summary>
-        /// A joint's motor told where to go for the coming physics step. Near its pose it is sent the pose and the
-        /// pose's speed: a spring and a damper. Away from it (knocked off by a blow, held off by what its blade met
-        /// and then let go, behind a pose that turned at once) that will not do. The spring asks for hundreds of
-        /// times the muscle's strength a few degrees out, the motor gives its strength and no more, and the damper's
-        /// share is lost in it: the joint is thrown at its pose at full strength, passes it, is thrown back, and
-        /// with nothing damping it a joint that has once gone right round goes on round, braked for one half of
-        /// each turn and driven for the other. That was the body that whirled. So, away from its pose, the motor is
-        /// asked for a speed instead: toward the pose, and no faster than it can still stop from before it gets
-        /// there (as fast as a muscle of that strength brakes what hangs from it), with the spring's pull kept to
-        /// a share of its strength. Whatever speed it has beyond that, the damper takes off at full strength,
-        /// whichever way it is turning.
+        /// A joint's motor told what to do for the coming physics step: a speed, and no place. The motor is a
+        /// damper alone: it takes off whatever speed the joint has beyond what it is asked, with all the muscle
+        /// has and no more. The speed asked is the pose's own speed of turn, and on top of it what brings the
+        /// joint to where it is wanted in a sixtieth of a second.
+        ///
+        /// Where it is wanted is its pose and its slack: how far aside of the pose it has been left. Pushed
+        /// further from there than <paramref name="givesAt"/> (a blow, a blade that met a shield, the muscle not
+        /// keeping up) the joint gives way: where it now is becomes where it is wanted, and its slack is that
+        /// much more. The slack comes back out slowly (<see cref="BeginStep"/>, <see cref="ReturnRate"/>).
+        ///
+        /// So a blow that turns an arm 15 degrees leaves it 15 degrees aside: it goes on doing what the animation
+        /// does, that much off, and comes back over a second or so. There is no spring to throw it back and past.
+        ///
+        /// (It had a spring before, and that was two faults. A spring strong enough to hold a pose asks for
+        /// hundreds of times the muscle's strength a degree out; the motor gave its strength and the damper's
+        /// share was lost in it, so a joint knocked off its pose swung to and fro about it. And Unity's engine
+        /// writes a ball joint's turn anywhere from 0 to 360 degrees where the headless one keeps it under 180:
+        /// past 180 the numbers move the other way to the turn, sideways of its axis, and the engine's spring,
+        /// which works on the numbers, pushed the joint away from where it was sent. That was the whirl the
+        /// headless fights never showed, and what was left of it on 12 November: a sword hand swinging 80 degrees
+        /// to and fro for three seconds while its engine wrote it at 300.
+        /// The speed alone, with nothing to bring the joint to its place, was tried and is not enough: the engine
+        /// does not give a chain of joints quite the speeds they are asked, and an upper arm slipped 15 degrees
+        /// about its own length in a windup with nothing touching it.)
         /// </summary>
-        /// <param name="asked">Where the pose has the joint at the step's end (a turn vector, radians, written the way nearest <paramref name="at"/>).</param>
+        /// <param name="asked">Where the pose has the joint as the step begins (a turn vector, radians).</param>
+        /// <param name="aside">The joint's slack (a turn on the part's own axes, after the pose's); made more when it gives way.</param>
+        /// <param name="givesAt">How far from where it is wanted the joint gives way (radians).</param>
+        /// <param name="mostAside">The most slack it is ever left (radians).</param>
         /// <param name="at">Where the joint is.</param>
-        /// <param name="turns">How fast the pose turns it (rad/s).</param>
+        /// <param name="turns">How fast the pose turns it (rad/s, on the part's own axes).</param>
         /// <param name="inertia">What hangs from it (kg m2, about its heaviest axis).</param>
-        /// <param name="quick">Its motor's quickness (Hz).</param>
-        /// <param name="strength">Its muscle's strength (N m; 0: no limit, a plain spring).</param>
-        private static void Ask(ArticulationBody link, Vector3 asked, Vector3 at, Vector3 turns, float inertia, float quick, float strength, Vector3 sign)
+        /// <param name="strength">Its muscle's strength (N m; 0: no limit).</param>
+        /// <returns>Whether it gave way.</returns>
+        private static bool Ask(ArticulationBody link, Vector3 asked, ref Quaternion aside, float givesAt, float mostAside, Vector3 at, Vector3 turns, float inertia, float strength, Vector3 sign)
         {
             Vector3 target = asked, speed = turns * FeedForward;
-            if (Returns && strength > 0f && inertia > 0f && quick > 0f)
+            bool gave = false;
+            if (Returns)
             {
-                float w = 2f * Mathf.PI * quick;
-                // (The turn that takes it from where it is to its pose, as a turn: the difference of the two
-                // turns' numbers is that only for a joint near its rest. A shield turned half round in its hand,
-                // sent after the difference of the numbers, went round the pose and not to it.)
+                // (No spring: the place it is sent is the place it is, written as the engine writes it.)
+                target = at;
                 var here = JointMath.FromTurnVector(at);
-                var there = JointMath.FromTurnVector(asked);
-                Vector3 off = JointMath.TurnVector(OwnAxes ? Quaternion.Inverse(here) * there : there * Quaternion.Inverse(here));
+                var pose = JointMath.FromTurnVector(asked);
+                var wanted = pose * aside;
+                // (The turn that takes it from where it is to where it is wanted, as a turn, on the part's own
+                // axes or its parent's as the engine counts a speed.)
+                Vector3 off = JointMath.TurnVector(OwnAxes ? Quaternion.Inverse(here) * wanted : wanted * Quaternion.Inverse(here));
                 float far = off.magnitude;
-                // (As far out as the spring pulls with that share of its strength: within it, the spring as it is.)
-                float near = NearShare * strength / (w * w * inertia);
-                if (far > near)
+                if (far > givesAt)
                 {
-                    float beyond = far - near;
-                    float back = Mathf.Min(MostReturn, Mathf.Min(0.5f * w * beyond, Mathf.Sqrt(2f * BrakeShare * strength / inertia * beyond)));
-                    var part = JointMath.FromTurnVector(off * (near / far));
-                    target = JointMath.TurnVectorNear(JointMath.TurnVector(OwnAxes ? here * part : part * here), at);
+                    lastGave = far;
+                    // (As far aside as it now is, and no further than a joint is ever left: past that it is
+                    // held where it is with all the muscle has, and whatever pushes it has that to push against.)
+                    aside = Quaternion.Inverse(pose) * here;
+                    float left = Quaternion.Angle(aside, Quaternion.identity) * Mathf.Deg2Rad;
+                    if (left > mostAside)
+                    {
+                        aside = Quaternion.Slerp(Quaternion.identity, aside, mostAside / left);
+                    }
+
+                    wanted = pose * aside;
+                    off = JointMath.TurnVector(OwnAxes ? Quaternion.Inverse(here) * wanted : wanted * Quaternion.Inverse(here));
+                    far = off.magnitude;
+                    gave = true;
+                }
+
+                // (The pose's speed of turn, on the axes of a part that much aside of it.)
+                if (OwnAxes)
+                {
+                    speed = Quaternion.Inverse(aside) * speed;
+                }
+
+                if (far > 1e-5f)
+                {
+                    float back = Mathf.Min(MostReturn, far * Follow);
+                    if (strength > 0f && inertia > 0f)
+                    {
+                        // (And no faster than it can still stop from before it is there.)
+                        back = Mathf.Min(back, Mathf.Sqrt(2f * BrakeShare * strength / inertia * far));
+                    }
+
                     speed += off * (back / far);
                 }
             }
@@ -1093,6 +1186,21 @@ namespace PhysicsBattler.Authority
                 link.SetDriveTarget((ArticulationDriveAxis)axis, target[axis]);
                 link.SetDriveTargetVelocity((ArticulationDriveAxis)axis, speed[axis]);
             }
+
+            return gave;
+        }
+
+        /// <summary>
+        /// How fast a joint's slack comes back out of it, as a share of the slack a second (1/s): 1 over
+        /// <see cref="SlackTime"/> up to <see cref="SlackAngle"/> off, rising to 1 over <paramref name="within"/> at
+        /// <see cref="TautAngle"/> and beyond; and 1 over <paramref name="within"/> throughout for a joint that is held.
+        /// </summary>
+        public static float ReturnRate(float far, float held, float within)
+        {
+            float taut = Mathf.Max(Mathf.Clamp01(held), Mathf.InverseLerp(SlackAngle, Mathf.Max(SlackAngle + 1e-3f, TautAngle), far));
+            // (Smoothly: no step in its speed as it comes in through the angle.)
+            taut = taut * taut * (3f - 2f * taut);
+            return Mathf.Lerp(1f / Mathf.Max(0.05f, SlackTime), 1f / Mathf.Max(0.05f, within), taut);
         }
 
         /// <summary>The turn from one of a joint's turns to another, on the part's own axes (a turn vector, radians).</summary>
@@ -1106,16 +1214,70 @@ namespace PhysicsBattler.Authority
         /// <summary>A joint's speed of turn is given to its motor on the part's own axes, as the engine counts it (measured at start-up), or on its parent's.</summary>
         private static bool OwnAxes => ArticulationConventions.SpeedOnOwnAxes != OtherAxes;
 
-        /// <summary>A joint off its pose is brought back at a speed it can stop from (see <see cref="Ask"/>); off, it is sent the pose itself however far off it is, as it was.</summary>
+        /// <summary>A joint's motor is a damper asked for a speed (see <see cref="Ask"/>); off, for the tests, a spring sent the pose itself however far off it is, as it first was.</summary>
         public static bool Returns = true;
 
-        /// <summary>The share of a muscle's strength its spring may pull with (0.25): beyond where it would pull harder, the joint is brought back by speed.</summary>
-        public static float NearShare = 0.25f;
+        /// <summary>
+        /// The slack in an arm (radians; 15 degrees). A joint this far off its pose or less is in no hurry: it
+        /// comes back over <see cref="SlackTime"/>. Further off it comes back quicker, up to <see cref="TautAngle"/>.
+        /// </summary>
+        public static float SlackAngle = 15f * Mathf.Deg2Rad;
+
+        /// <summary>The time a joint within its slack comes back in (seconds; 1: two thirds of the way in a second, nearly all of it in two).</summary>
+        public static float SlackTime = 1f;
+
+        /// <summary>How far off its pose a joint is taut (radians; 40 degrees): from here on it comes back in <see cref="TautTime"/>.</summary>
+        public static float TautAngle = 40f * Mathf.Deg2Rad;
+
+        /// <summary>The time a taut joint comes back in (seconds; 0.3): one far off its pose, and the torso and head, an arm inside its own body or past its joint's range at any angle.</summary>
+        public static float TautTime = 0.3f;
+
+        /// <summary>
+        /// How far a joint is pushed from where it is wanted before it gives way and stays where it was pushed
+        /// (radians; 8 degrees, and see <see cref="GiveLag"/>). Under it the push is undone at once (a sixtieth of a second): it has to be more
+        /// than a muscle keeping up with its pose is ever behind by, or a fast cut is left behind.
+        /// </summary>
+        public static float GiveWay = 8f * Mathf.Deg2Rad;
+
+        /// <summary>The most a joint is ever left aside of its pose (radians; 50 degrees), and the share of that for a joint that is held (0.4: the spine, chest and head, 20 degrees).</summary>
+        public static float MostAside = 50f * Mathf.Deg2Rad, HeldAside = 0.4f;
+
+        /// <summary>
+        /// And this much further for each radian a second the pose turns the joint (seconds; 0.01: a joint turned
+        /// at 30 rad/s gives way 17 degrees further out). A joint is behind a fast pose by a few thousandths of
+        /// a second's turn with nothing in its way.
+        /// </summary>
+        public static float GiveLag = 0.01f;
+
+        /// <summary>How fast a joint is brought to where it is wanted, as a share of how far from it it is a second (1/s; 60: all of it in a step).</summary>
+        public static float Follow = 60f;
+
+        private static float lastGave;
+
+        /// <summary>Times a joint gave way (for the reports).</summary>
+        public int GaveWay { get; private set; }
+
+        /// <summary>
+        /// How many times the damping of a spring of the motor's quickness the damper has, now that it is a damper
+        /// alone. It is what makes a joint take up the speed it is asked for: the weaker it is, the longer a joint
+        /// is behind a pose that quickens (at 1, a sword hand was 8 cm behind its pose half the time in a strike,
+        /// touching nothing). It has no spring to be matched to, and the engine holds any damping steady.
+        /// </summary>
+        public static float DampTimes = 3f;
+
+        /// <summary>The damper as strong about each of a joint's axes as about its heaviest (see <see cref="SetDrives"/>); off, for the tests, each axis by what hangs about it at rest.</summary>
+        public static bool EvenDamping = true;
+
+        /// <summary>How many times over the engine works the body's joints and contacts out each physics step, and its speeds.</summary>
+        public static int SolverSteps = 32, SolverSpeedSteps = 4;
+
+        /// <summary>The parts weigh nothing on their joints. A muscle holds its limb up without being asked; a motor that is a damper alone would let it sink until its drift back held it, a sword's point a hand's breadth low.</summary>
+        public static bool Weightless = true;
 
         /// <summary>The share of a muscle's strength counted on to stop a joint coming back to its pose (0.5): the rest is left for the load and the spring.</summary>
         public static float BrakeShare = 0.5f;
 
-        /// <summary>The fastest a joint is brought back to its pose (rad/s, on top of the pose's own turn; 20: a little over three turns a second).</summary>
+        /// <summary>The fastest a joint is ever brought back to its pose (rad/s, on top of the pose's own turn; 20). Only one a long way off comes near it.</summary>
         public static float MostReturn = 20f;
 
         /// <summary>The fastest a joint may turn at all (rad/s). The fastest clip turns one at 44; nothing a muscle does is three times that, and a joint that is, is out of hand.</summary>
@@ -1198,7 +1360,7 @@ namespace PhysicsBattler.Authority
             var at = links[i].jointPosition;
             var d = links[i].xDrive;
             Vector3 t = now[i] * Mathf.Rad2Deg;
-            return $"{id} asked {t.x:0} {t.y:0} {t.z:0} ({t.magnitude:0}°) is {at[0] * Mathf.Rad2Deg:0} {at[1] * Mathf.Rad2Deg:0} {at[2] * Mathf.Rad2Deg:0}, {JointSpeed(i):0} rad/s, k {d.stiffness:0} most {d.forceLimit:0}";
+            return $"{id} asked {t.x:0} {t.y:0} {t.z:0} ({t.magnitude:0}°) is {at[0] * Mathf.Rad2Deg:0} {at[1] * Mathf.Rad2Deg:0} {at[2] * Mathf.Rad2Deg:0}, {JointSpeed(i):0} rad/s, left {Quaternion.Angle(slack[i], Quaternion.identity):0}° aside{(tight[i] > 0.5f ? " (held)" : "")}, damping {d.damping:0} most {d.forceLimit:0}";
         }
 
         /// <summary>How fast a joint turns: its part's spin against the part it hangs from (rad/s).</summary>
@@ -1247,6 +1409,48 @@ namespace PhysicsBattler.Authority
 
             sb.Append(DescribeGrips());
             return sb.ToString();
+        }
+
+        /// <summary>A joint held to its pose (1) or left its slack (0): see <see cref="Ask"/>.</summary>
+        public void SetTight(PartId id, float held)
+        {
+            int i = Array.IndexOf(parts, id);
+            if (i > 0)
+            {
+                tight[i] = held;
+            }
+        }
+
+        /// <summary>
+        /// How deep any of some parts' solids (and what those hands hold) are in any of some others' (metres; 0:
+        /// clear). Its own parts pass through each other, as the pose's do; an arm left off its pose is not to be
+        /// left inside its own chest.
+        /// </summary>
+        public float Deepest(PartId[] these, PartId[] those)
+        {
+            float deepest = 0f;
+            foreach (var a in linkOf)
+            {
+                if (a.Key == null || !a.Key.enabled || Array.IndexOf(these, parts[a.Value]) < 0)
+                {
+                    continue;
+                }
+
+                foreach (var b in linkOf)
+                {
+                    if (b.Key == null || !b.Key.enabled || Array.IndexOf(those, parts[b.Value]) < 0)
+                    {
+                        continue;
+                    }
+
+                    if (Physics.ComputePenetration(a.Key, a.Key.transform.position, a.Key.transform.rotation, b.Key, b.Key.transform.position, b.Key.transform.rotation, out _, out float depth))
+                    {
+                        deepest = Mathf.Max(deepest, depth);
+                    }
+                }
+            }
+
+            return deepest;
         }
 
         /// <summary>What its grips (a shield turned in its hand) are asked and where they are, for a trace.</summary>

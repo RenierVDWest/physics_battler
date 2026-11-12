@@ -108,7 +108,7 @@ internal static class FightReport
             PhysicsBattler.Authority.UpperBodyArticulation.FeedForward = ff;
         }
 
-        // (UPPER_RETURN=0: a joint off its pose is sent the pose itself, as it was; UPPER_MOSTRETURN, UPPER_NEAR, UPPER_BRAKE, UPPER_JOINTSPEED, UPPER_PUSHOUT: its numbers.)
+        // (UPPER_RETURN=0: a joint off its pose is sent the pose itself, as it was; UPPER_MOSTRETURN, UPPER_BRAKE, UPPER_JOINTSPEED, UPPER_PUSHOUT: its numbers.)
         PhysicsBattler.Authority.UpperBodyArticulation.Returns = Environment.GetEnvironmentVariable("UPPER_RETURN") != "0";
         // (UPPER_AXES=parent: a joint's speed of turn given on its parent's axes, to see which the engine counts it on.)
         PhysicsBattler.Authority.UpperBodyArticulation.OtherAxes = Environment.GetEnvironmentVariable("UPPER_AXES") == "parent";
@@ -116,7 +116,28 @@ internal static class FightReport
         PhysicsBattler.Authority.UpperBodyArticulation.PutFlips = Environment.GetEnvironmentVariable("UPPER_SNAP") != "0";
         float Env(string name, float or) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : or;
         PhysicsBattler.Authority.UpperBodyArticulation.MostReturn = Env("UPPER_MOSTRETURN", PhysicsBattler.Authority.UpperBodyArticulation.MostReturn);
-        PhysicsBattler.Authority.UpperBodyArticulation.NearShare = Env("UPPER_NEAR", PhysicsBattler.Authority.UpperBodyArticulation.NearShare);
+        // (UPPER_SLACK="15,1,40,0.3": the slack's angle and time, the taut angle and time; UPPER_WEIGHT=1: the parts weigh on their joints.)
+        {
+            var slack = (Environment.GetEnvironmentVariable("UPPER_SLACK") ?? "").Split(',');
+            if (slack.Length == 4)
+            {
+                PhysicsBattler.Authority.UpperBodyArticulation.SlackAngle = float.Parse(slack[0], System.Globalization.CultureInfo.InvariantCulture) * Mathf.Deg2Rad;
+                PhysicsBattler.Authority.UpperBodyArticulation.SlackTime = float.Parse(slack[1], System.Globalization.CultureInfo.InvariantCulture);
+                PhysicsBattler.Authority.UpperBodyArticulation.TautAngle = float.Parse(slack[2], System.Globalization.CultureInfo.InvariantCulture) * Mathf.Deg2Rad;
+                PhysicsBattler.Authority.UpperBodyArticulation.TautTime = float.Parse(slack[3], System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+        PhysicsBattler.Authority.UpperBodyArticulation.DampTimes = Env("UPPER_DAMP", PhysicsBattler.Authority.UpperBodyArticulation.DampTimes);
+        // (FIGHT_MUSCLE=6000: a Medium's muscle strength, N m.)
+        PhysicsBattler.Locomotion.ClipFighter.MuscleStrength = Env("FIGHT_MUSCLE", PhysicsBattler.Locomotion.ClipFighter.MuscleStrength);
+        PhysicsBattler.Authority.UpperBodyArticulation.SolverSteps = (int)Env("UPPER_ITER", PhysicsBattler.Authority.UpperBodyArticulation.SolverSteps);
+        PhysicsBattler.Authority.UpperBodyArticulation.SolverSpeedSteps = (int)Env("UPPER_VITER", PhysicsBattler.Authority.UpperBodyArticulation.SolverSpeedSteps);
+        // (UPPER_GIVEWAY=8: how far, degrees, a joint is pushed before it gives way; UPPER_FOLLOW=60.)
+        PhysicsBattler.Authority.UpperBodyArticulation.GiveWay = Env("UPPER_GIVEWAY", PhysicsBattler.Authority.UpperBodyArticulation.GiveWay * Mathf.Rad2Deg) * Mathf.Deg2Rad;
+        PhysicsBattler.Authority.UpperBodyArticulation.GiveLag = Env("UPPER_GIVELAG", PhysicsBattler.Authority.UpperBodyArticulation.GiveLag);
+        PhysicsBattler.Authority.UpperBodyArticulation.Follow = Env("UPPER_FOLLOW", PhysicsBattler.Authority.UpperBodyArticulation.Follow);
+        PhysicsBattler.Authority.UpperBodyArticulation.EvenDamping = Environment.GetEnvironmentVariable("UPPER_EVEN") != "0";
+        PhysicsBattler.Authority.UpperBodyArticulation.Weightless = Environment.GetEnvironmentVariable("UPPER_WEIGHT") != "1";
         PhysicsBattler.Authority.UpperBodyArticulation.BrakeShare = Env("UPPER_BRAKE", PhysicsBattler.Authority.UpperBodyArticulation.BrakeShare);
         PhysicsBattler.Authority.UpperBodyArticulation.MostJointSpeed = Env("UPPER_JOINTSPEED", PhysicsBattler.Authority.UpperBodyArticulation.MostJointSpeed);
         PhysicsBattler.Authority.UpperBodyArticulation.MostPushOut = Env("UPPER_PUSHOUT", PhysicsBattler.Authority.UpperBodyArticulation.MostPushOut);
@@ -719,7 +740,7 @@ internal static class FightReport
             sb.AppendLine($"      the shield in its hand: {Spread(upperOffs[4], "°")}");
             foreach (var u in units)
             {
-                if (headOffs.TryGetValue(u, out var ho)) sb.AppendLine($"      {u.name}'s head: {Spread(ho, "cm")}; joints put where the pose turned them at once: {u.Clip.SnappedBack}; put back on its pose after staying away: {u.Clip.RanAway}");
+                if (headOffs.TryGetValue(u, out var ho)) sb.AppendLine($"      {u.name}'s head: {Spread(ho, "cm")}; joints put where the pose turned them at once: {u.Clip.SnappedBack}; put back on its pose after staying away: {u.Clip.RanAway}; joints gave way: {(u.Clip.Upper != null ? u.Clip.Upper.GaveWay : 0)} times; an arm held to its pose for being in its own body: {u.Clip.HeldForBody} steps, for a joint past its range: {u.Clip.HeldForRange}");
             }
             sb.AppendLine("    physical upper bodies, the share of each unit's time on its feet with one: " + string.Join(", ", upperSteps.Select(p => $"{p.Key.name} {100f * p.Value.on / Mathf.Max(1, p.Value.all):0}%"
                 + (p.Value.on < p.Value.all ? $" (now {p.Key.Clip.Footing}, torso {p.Key.Clip.Authority.Level(PhysicsBattler.Authority.BodyRegion.Torso)}, lost: {string.Join(" ", PhysicsBattler.Rig.PartInfo.All.Where(id => p.Key.Rig.IsSevered(id)))})" : ""))));

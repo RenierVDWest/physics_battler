@@ -190,8 +190,20 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A body borne down falls: its chest held this many centimetres (at a Medium's size) from where the animation has it for a tenth of a second, by what its muscles can't shift (a fighter landing on it from a leap), it goes down as one knocked off its feet and gets up again. 0: never, and it is folded where it stands. Default 28.")]
         [Range(0f, 80f)] public float borneDownFrom = DefaultBorneDownFrom;
 
-        [Tooltip("How fast a joint of the physical upper body that is off where the animation has it comes back (radians a second, on top of the animation's own turn; 6.3 is one turn a second): an arm knocked aside by a parry, a head thrown back by a blow, a shield arm let go by what held it. It is brought back at this speed at most, and slower the nearer it gets, so that it stops where the animation has it and does not swing past. Higher: it is back sooner and whips more; lower: a struck body hangs off its pose longer and looks softer. Default 20 (an arm knocked a quarter turn off is back in about a tenth of a second).")]
-        [Range(4f, 60f)] public float returnSpeed = DefaultReturnSpeed;
+        [Tooltip("The slack in the arms of the physical upper body (degrees). A blow, a parry or a blade that met a shield turns an arm aside of where the animation has it, and it is left there: it goes on doing what the animation does, that much aside, and comes back slowly. An arm this far aside or less is in no hurry (it comes back over 'slackTime'); further aside it comes back quicker, up to 'tautAngle'. Higher: struck arms hang off their animation more and longer, looser and less exact; lower: they are back on it sooner. Default 15.")]
+        [Range(0f, 45f)] public float slackAngle = DefaultSlackAngle;
+
+        [Tooltip("How long an arm within its slack takes to come back to where the animation has it (seconds): two thirds of the way in this time, nearly all of it in twice this. Higher: an arm knocked a little aside stays aside longer; lower: it is back sooner. There is no spring in it at any setting: it comes back steadily and stops, it does not swing past. Default 1.")]
+        [Range(0.1f, 4f)] public float slackTime = DefaultSlackTime;
+
+        [Tooltip("How far aside of the animation an arm is taut (degrees): from here on it comes back in 'tautTime', not 'slackTime'. Between 'slackAngle' and this the time shortens smoothly from the one to the other. Higher: only an arm knocked far aside hurries back; lower (toward 'slackAngle'): anything past the slack comes back quickly. Default 40.")]
+        [Range(10f, 90f)] public float tautAngle = DefaultTautAngle;
+
+        [Tooltip("How long a taut joint takes to come back (seconds; two thirds of the way in this time): an arm far aside of its animation ('tautAngle'), and at any angle the spine, chest and head (the body's balance goes by how far the chest is off its animation), and an arm whose slack would leave it inside its own body or with a joint bent past what a joint does. Higher: softer, a struck torso leans longer; lower: snappier. It still only comes back and stops, with no swing. Default 0.3.")]
+        [Range(0.05f, 1.5f)] public float tautTime = DefaultTautTime;
+
+        [Tooltip("How far a joint of the physical upper body has to be pushed from where it is wanted before it gives way and stays where it was pushed (degrees). A push smaller than this is undone at once, in a step: it is taken for the muscle being a little behind its animation, not for a blow. For each radian a second the animation is turning the joint it is a little more (0.6 degrees), since a fast cut is further behind. Lower: lighter knocks leave the arm aside, but fast cuts start being left behind their animation; higher: only harder knocks move an arm, and it follows the animation more exactly. Default 8.")]
+        [Range(2f, 30f)] public float giveWayAngle = DefaultGiveWayAngle;
 
         [Header("Feet")]
         [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
@@ -208,7 +220,8 @@ namespace PhysicsBattler.Locomotion
         public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
         public const float DefaultMostBladeSpeed = 0f;
         public const bool DefaultPhysicalUpperBody = false;
-        public const float DefaultMuscleStrength = 600f, DefaultBlockedArmStrength = 0.2f, DefaultPressedBackSpeed = 6f, DefaultBorneDownFrom = 28f, DefaultReturnSpeed = 20f;
+        public const float DefaultMuscleStrength = 600f, DefaultBlockedArmStrength = 0.2f, DefaultPressedBackSpeed = 6f, DefaultBorneDownFrom = 28f, DefaultSlackAngle = 15f, DefaultSlackTime = 1f, DefaultTautAngle = 40f,
+            DefaultTautTime = 0.3f, DefaultGiveWayAngle = 8f;
 
         /// <summary>The blade's speed limit a physical upper body is given when none is set (m/s).</summary>
         public const float PhysicalBladeSpeed = 30f;
@@ -363,7 +376,11 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.BlockedStrength = blockedArmStrength;
             ClipFighter.PressedGain = pressedBackSpeed;
             ClipFighter.BorneDownFrom = borneDownFrom * 0.01f;
-            PhysicsBattler.Authority.UpperBodyArticulation.MostReturn = returnSpeed;
+            PhysicsBattler.Authority.UpperBodyArticulation.SlackAngle = slackAngle * Mathf.Deg2Rad;
+            PhysicsBattler.Authority.UpperBodyArticulation.SlackTime = slackTime;
+            PhysicsBattler.Authority.UpperBodyArticulation.TautAngle = tautAngle * Mathf.Deg2Rad;
+            PhysicsBattler.Authority.UpperBodyArticulation.TautTime = tautTime;
+            PhysicsBattler.Authority.UpperBodyArticulation.GiveWay = giveWayAngle * Mathf.Deg2Rad;
             ComboPullSpeed = comboPullSpeed;
             MovingFootLift = movingFootLift;
         }
