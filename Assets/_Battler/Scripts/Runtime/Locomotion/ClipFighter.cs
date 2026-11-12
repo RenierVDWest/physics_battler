@@ -1316,8 +1316,15 @@ namespace PhysicsBattler.Locomotion
                 // gives. The strength that swings a sword as the clips do is several times a man's; pressed on
                 // against what stopped it, it would fold whoever stood there in two.)
                 float give = 1f;
+                // (Heavy weapons: through a strike the weapon arm is as much stronger as the scene's Combat Feel has it,
+                // and gives to nothing: the weapon is the steady one, what it lands on gives way. A blow stopped by a
+                // shield or a parry gives as before.)
+                if (Swinging && (region == BodyRegion.ArmR || (region == BodyRegion.ArmL && Poser.TwoHanded)))
+                {
+                    give = CombatFeel.StrikeArmStrength;
+                }
                 // (Not the arm a shield is on: to hold against what presses on it is what a shield is for.)
-                if (region == BodyRegion.ArmR || (region == BodyRegion.ArmL && !Upper.Turns(PartId.HandL)))
+                else if (region == BodyRegion.ArmR || (region == BodyRegion.ArmL && !Upper.Turns(PartId.HandL)))
                 {
                     int side = region == BodyRegion.ArmR ? 0 : 1;
                     float off = side == 0 ? strainR : strainL;
@@ -1343,6 +1350,9 @@ namespace PhysicsBattler.Locomotion
             HoldOrSlack();
             Upper.BeginStep(dt);
         }
+
+        /// <summary>Its weapon arm is swinging a blow: a strike playing or just over (<see cref="WeaponArmHeldAfter"/>), not stopped by a shield, a parry or a friend.</summary>
+        private bool Swinging => clock < weaponArmHeldUntil && Strikes != null && !Strikes.Stopped;
 
         private static readonly PartId[] Trunk = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head };
         private static readonly PartId[][] ArmEnds = { new[] { PartId.ForearmL, PartId.HandL }, new[] { PartId.ForearmR, PartId.HandR } };
@@ -1404,7 +1414,8 @@ namespace PhysicsBattler.Locomotion
                         HeldForRange++;
                     }
 
-                    Upper.SetTight(id, held || over ? 1f : 0f);
+                    // (And an arm swinging its weapon has no slack: it is held to its swing.)
+                    Upper.SetTight(id, held || over || (Swinging && (side == 1 || Poser.TwoHanded)) ? 1f : 0f);
                 }
             }
         }
@@ -2858,7 +2869,8 @@ namespace PhysicsBattler.Locomotion
 
         public int Touches;
 
-        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false, bool bound = false)
+        /// <param name="drive">How much of the blow's weight drives the whole body back across the ground (1: all of it; less for a combo's blows before its last, which the combo has to follow).</param>
+        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false, bool bound = false, float drive = 1f)
         {
             lastHit = clock;
             if (Fallen)
@@ -2942,7 +2954,9 @@ namespace PhysicsBattler.Locomotion
                 float weight = impulse.magnitude / Mathf.Max(1f, Mass);
                 // (Concentrated, it takes more before its guard is knocked open, and gives less: step 7 of the plan.)
                 knockedOpen = weight >= CombatFeel.GuardOpenFrom * GuardHolds;
-                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight / GuardHolds, CombatFeel.MostShieldGive) * Size;
+                // (Heavy weapons: the shield gives further to the blow, by the scene's Combat Feel; whether the guard is
+                // knocked open goes by the blow's own weight, as before.)
+                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight * CombatFeel.WeaponWeight / GuardHolds, CombatFeel.MostShieldGive) * Size;
                 KnockArmBy(1, impulse, point, knockedOpen ? Mathf.Max(give, CombatFeel.MostShieldGive * Size) : give, knockedOpen ? GuardOpenFrequency : ArmKnockFrequency);
                 if (knockedOpen)
                 {
@@ -2983,7 +2997,9 @@ namespace PhysicsBattler.Locomotion
             // Driven back: what the struck part doesn't take moves the whole body (the fight's rule), with steps
             // when it is hard enough. The body first takes the blow where it stands (its reaction clip), then
             // the steps carry it back (a push at once would cut the reaction off before it showed).
-            Vector3 knock = impulse * (1f - partShare) * KnockScale / Mass;
+            // (A blow on the shield drives its bearer back as much harder as the scene's Combat Feel makes the weapons
+            // heavy; one on the body comes here with that in it already.)
+            Vector3 knock = impulse * (1f - partShare) * KnockScale / Mass * (shield ? CombatFeel.WeaponWeight : drive);
             knock.y = 0f;
             bool driven = !Anchored && knock.magnitude > DrivenFrom;
             string clipName = shield ? null : ReactionClip(part, impulse.magnitude / Mass, reaction, thrown);
@@ -2991,7 +3007,7 @@ namespace PhysicsBattler.Locomotion
             string reacted = null;
             // (Heavy enough (the plan "Weight and momentum", step 3: the Large's club on a Medium), it is thrown back
             // stumbling at once, its walk taking the catch steps, no reaction clip to wait out first.)
-            bool stumbles = driven && !shield && !Striking && impulse.magnitude / Mathf.Max(1f, Mass) >= CombatFeel.StumbleFrom;
+            bool stumbles = driven && !shield && !Striking && impulse.magnitude * drive / Mathf.Max(1f, Mass) >= CombatFeel.StumbleFrom;
             if (stumbles)
             {
                 clip = null;

@@ -2149,6 +2149,59 @@ is chosen in the step the guard is taken up, sometimes straight out of the unit'
 is kept for as long as the guard is held (seen for 12 s). A tenth of the time a Large's club lies 45° to 80° off
 its guard's line, before this fix and after it.
 
+**Heavy weapons, a first step** (12 November: "they are playing with polystyrene props", "the enemy stops the
+club in its tracks and the club will slide and bounce from the head over the neck and then arm", "the weapon is
+the steady one, the thing it hits gives way; exaggerate it, the sword too"). What the fights measured, with a new
+figure in the fight report (`Tools/CompileCheck/Runner/HeftMeasure.cs`, "the weapons' weight"): of each blow that
+met something, the weapon's speed along its own way once the hit stop is over, and how far the part struck and
+the hips of the body struck went the blow's way. Before, a club that landed on a body at 16 m/s was at a
+standstill or coming back 0.05 s after the hit stop (it came back in 11 of 21 blows), and a sword's blow moved the
+hips of the body it landed on 3 cm in half a second. Every one of the 94 hits in the Unity log reads "the swing stopped":
+a club was stopped by any body (a blunt blow "never cleaves"), a sword by any body its wielder's own weight; then
+the hand was thrown back along the blow and the clip backed out and faded to the guard.
+
+Three dials on the scene's Combat Feel, under "Heavy weapons", all exaggerated on purpose:
+
+- *`swingKept`, 0.7.* A blow that lands on a body is not stopped by it and does not back out: it goes on along its
+  arc at this share of its speed, picking up again over a third of a second. It strikes each body once (the rest
+  of that body, its shield and its sword are not met again by the same blow) and goes on to what lies beyond with
+  what is left. A shield, a parry and a friend still stop it; stopped by a shield its hand is thrown back, and
+  its clip backs out, only by the share it would not have kept (0.3).
+- *`weaponWeight`, 3.* What a body struck takes is this many times the weapon's own momentum: the bend, the lean,
+  the reaction, the drive back, the stumble. Not the harm, the poise, or whether a guard is knocked open or a
+  parry beaten. A shield gives as much further and its bearer is driven back as much harder. A combo's blows
+  before its last drive the body back by their own weight (thrown three times as far, 7 of the dummy's 42 combo
+  blows missed), and its last throws it back with all of it.
+- *`strikeArmStrength`, 3.* Through a strike and 0.4 s after its contact the physical weapon arm (both, two-handed)
+  is this many times stronger, has no slack and does not give to what it is held off by: the weapon pushes on.
+  Stopped by a shield or a parry it gives as before.
+
+| Headless, 60 s of six, seeds 1 and 2 | Before | After |
+| --- | --- | --- |
+| A club on a body: the weapon's speed along its way 0.05 s after the hit stop | -4%, -19% | 69%, 53% |
+| it came back off the body | 8 of 16, 3 of 5 | 0 of 10, 0 of 7 |
+| the part struck went, in 0.1 s | 38, 46 cm | 57, 65 cm |
+| the hips of the body struck went, in 0.5 s | 48, 23 cm | 108, 65 cm |
+| A sword on a body (six Mediums): it came back off the body | 13 of 26, 11 of 22 | 3 of 15, 5 of 15 |
+| the part struck went, in 0.1 s | 17, 12 cm | 31, 20 cm |
+| the hips went, in 0.5 s | 21, 2 cm | 17, 6 cm |
+| A sword on a shield: the shield hand went, in 0.1 s | 12, 18 cm | 21, 28 cm |
+| its bearer's hips went, in 0.5 s | 5, 9 cm | 17, 26 cm |
+| A club on a shield (seed 2): its bearer's hips went, in 0.5 s | 25 cm | 62 cm |
+
+`FIGHT_HEFT="1,0,1"` runs a fight as before (the weight, the share kept, the arm's strength; three more numbers
+set `mostDrive`, `mostStumble`, `mostBend`). The strikes' aim and the dummy's combos are unchanged (42 of 42
+land).
+
+Not there yet, and known: a sword's blow still moves the body it lands on little (most land on a hand or a
+forearm, which take four fifths of a blow themselves, or on a body in its own strike, which plays no reaction);
+raising `mostDrive`, `mostStumble` and `mostBend` changed the medians little. A sword that is parried now stays
+on the parrying blade and drives its bearer back further than one that lands (68 and 38 cm in half a second; 43
+and 9 before). The hit stop still holds the weapon still for 0.04 to 0.16 s as it lands: shortened with the share
+kept, the physical weapon was held up by a body that had not yet moved while its swing went on without it (a
+twentieth of a strike's time over 31 cm behind, where it is 12), so it is as it was. The weapons'
+own weight in the hand is as it was (a sword 1.3 kg, a club 2 kg). None of this has been seen in Unity.
+
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
 vector, stiffness for radians, the force limit a torque, a part built turned takes its turn on its own axes), so
 what the headless engine shows is what Unity does. A frame cost 11.4 ms with the physical body against 7.7 ms

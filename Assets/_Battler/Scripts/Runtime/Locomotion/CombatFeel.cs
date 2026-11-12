@@ -205,6 +205,16 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How far a joint of the physical upper body has to be pushed from where it is wanted before it gives way and stays where it was pushed (degrees). A push smaller than this is undone at once, in a step: it is taken for the muscle being a little behind its animation, not for a blow. For each radian a second the animation is turning the joint it is a little more (0.6 degrees), since a fast cut is further behind. Lower: lighter knocks leave the arm aside, but fast cuts start being left behind their animation; higher: only harder knocks move an arm, and it follows the animation more exactly. Default 8.")]
         [Range(2f, 30f)] public float giveWayAngle = DefaultGiveWayAngle;
 
+        [Header("Heavy weapons: the weapon is the steady one, what it lands on gives way")]
+        [Tooltip("How much heavier a blow that lands on a body is felt than its weapon's own weight says (times). It multiplies what the struck body takes: how far the part struck is thrown, how far the body bends and leans, how hard it is driven back, whether it is thrown back stumbling, which reaction it plays. It does not change the damage, the poise a blow costs, or what a shield or a parry takes. 1: the weapons' own weights (a sword lands on a Medium at about 0.4 m/s, the Large's club at 1.2 to 3). Default 3, exaggerated on purpose: a sword's blow to the chest then drives a Medium back about a third of a metre, the Large's club a metre. Lower it to pull the weight back.")]
+        [Range(1f, 6f)] public float weaponWeight = DefaultWeaponWeight;
+
+        [Tooltip("How much of its speed a weapon keeps as it lands on a body (0 to 1). The swing is not stopped by the body and does not back out of it: it goes on along its arc, slowed to this share, and picks its speed up again over a third of a second, while the body it landed on is thrown out of its way. A blow strikes each body once; what lies beyond is struck with what is left of it. 0: as before, the swing stops where it lands and backs out a little (a sword in a body its own weight, a club always). Default 0.7. A shield or a parry still stops the blow.")]
+        [Range(0f, 1f)] public float swingKept = DefaultSwingKept;
+
+        [Tooltip("How much stronger the physical weapon arm is through a strike than at other times (times its muscles' strength), from the strike's start until 0.4 s after its contact. Through a strike the arm also has no slack: it is held to its swing and does not give way to what the weapon meets, so the weapon pushes on through a body instead of being turned by it. A blow stopped by a shield or a parry gives as before. 1: no stronger. Default 3.")]
+        [Range(1f, 8f)] public float strikeArmStrength = DefaultStrikeArmStrength;
+
         [Header("Feet")]
         [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
         [Range(0.5f, 8f)] public float comboPullSpeed = DefaultComboPullSpeed;
@@ -216,6 +226,7 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The fastest a strike may swing its blade's point (metres a second). The strike clips whip the blade through their two fastest frames at 45 to 67 m/s, two or three times what an arm can swing a sword at (a real cut's point goes 20 to 30 m/s), which no body made of muscles can follow. With a limit set, the blade's point never goes faster than this, and the strike's clip is slowed over those frames so the body waits for its blade: a blow lands about 0.07 s later at 30, about 0.12 s later at 25. 0: the clips play at their own pace, as before. Default 0.")]
         [Range(0f, 80f)] public float mostBladeSpeed = DefaultMostBladeSpeed;
 
+        public const float DefaultWeaponWeight = 3f, DefaultSwingKept = 0.7f, DefaultStrikeArmStrength = 3f;
         public const float DefaultBendPerWeight = 0.35f, DefaultMostBend = 0.4f, DefaultBendReach = 1.2f, DefaultBendPeak = 0.08f;
         public const float DefaultOffFrontBend = 1.35f, DefaultSideHitTime = 1.0f;
         public const float DefaultMostBladeSpeed = 0f;
@@ -238,6 +249,7 @@ namespace PhysicsBattler.Locomotion
         public const float DefaultGiveGroundFrom = 0.9f, DefaultGiveGroundDeep = 0f, DefaultGiveGroundLead = 0.22f, DefaultLeastGiveGround = 0.1f, DefaultMostGiveGround = 0.2f, DefaultGiveGroundEases = 0.3f;
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
+        public static float WeaponWeight = DefaultWeaponWeight, SwingKept = DefaultSwingKept, StrikeArmStrength = DefaultStrikeArmStrength;
         public static float OffFrontBend = DefaultOffFrontBend, SideHitTime = DefaultSideHitTime;
 
         public static float MostBladeSpeed = DefaultMostBladeSpeed;
@@ -265,6 +277,9 @@ namespace PhysicsBattler.Locomotion
 
         private void OnDisable()
         {
+            WeaponWeight = DefaultWeaponWeight;
+            SwingKept = DefaultSwingKept;
+            StrikeArmStrength = DefaultStrikeArmStrength;
             BendPerWeight = DefaultBendPerWeight;
             OffFrontBend = DefaultOffFrontBend;
             SideHitTime = DefaultSideHitTime;
@@ -319,6 +334,9 @@ namespace PhysicsBattler.Locomotion
 
         private void Push()
         {
+            WeaponWeight = Mathf.Max(1f, weaponWeight);
+            SwingKept = Mathf.Clamp01(swingKept);
+            StrikeArmStrength = Mathf.Max(1f, strikeArmStrength);
             BendPerWeight = bendPerWeight;
             OffFrontBend = offFrontBend;
             SideHitTime = Mathf.Max(0.3f, sideHitTime);

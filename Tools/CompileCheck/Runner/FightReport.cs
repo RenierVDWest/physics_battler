@@ -162,6 +162,26 @@ internal static class FightReport
             PhysicsBattler.Locomotion.CombatFeel.MostBladeSpeed = blade;
         }
 
+        // (Heavy weapons: FIGHT_HEFT="2.5,0.7,3" sets how much heavier a blow is felt, how much of its speed a weapon
+        // keeps through a body, and how much stronger the weapon arm is through a strike; "1,0,1" is as it was before.)
+        {
+            var heft = (Environment.GetEnvironmentVariable("FIGHT_HEFT") ?? "").Split(',');
+            if (heft.Length >= 3 && float.TryParse(heft[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float hw)
+                && float.TryParse(heft[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float hk)
+                && float.TryParse(heft[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ha))
+            {
+                PhysicsBattler.Locomotion.CombatFeel.WeaponWeight = hw;
+                PhysicsBattler.Locomotion.CombatFeel.SwingKept = hk;
+                PhysicsBattler.Locomotion.CombatFeel.StrikeArmStrength = ha;
+                // (And, after them, the fastest a blow drives a body back, the fastest it throws it back stumbling, and the furthest it bends it.)
+                if (heft.Length >= 6)
+                {
+                    PhysicsBattler.Locomotion.CombatFeel.MostDrive = float.Parse(heft[3], System.Globalization.CultureInfo.InvariantCulture);
+                    PhysicsBattler.Locomotion.CombatFeel.MostStumble = float.Parse(heft[4], System.Globalization.CultureInfo.InvariantCulture);
+                    PhysicsBattler.Locomotion.CombatFeel.MostBend = float.Parse(heft[5], System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+        }
         float seconds = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SECONDS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fs) ? fs : 240f;
         var result = Play(rigs, seed, seconds, recorder, out var stats);
         Call(recorder, "OnDisable");
@@ -425,6 +445,7 @@ internal static class FightReport
             }
         }
         UnitController.ComboChanged += OnCombo;
+        var heft = new HeftMeasure(units);
         int steps = (int)(limit * 60f) + 600;
         float startTime = Time.time;
         try
@@ -439,6 +460,7 @@ internal static class FightReport
 
                 loop.TimeLimit = limit;
                 loop.Step(units, dt, Time.time);
+                heft.Step(dt);
                 foreach (var u in units)
                 {
                     if (u.IsAlive && u.State == UnitState.Standing && u.Tempo != null && u.TempoOn)
@@ -692,6 +714,7 @@ internal static class FightReport
             var keys = new List<string>(sectors.Keys);
             keys.Sort();
             sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
+            sb.Append(heft.Report());
             sb.AppendLine($"    outnumbered (two or more on it): {outnumberedSteps * dt:0.0} s in all; with them more than 120 degrees apart round it {100f * surroundedSteps / Mathf.Max(1, outnumberedSteps):0}% of that");
             turnTimes.Sort();
             sb.AppendLine($"    turning to an attacker starting a blow from beside or behind: {turnTimes.Count} faced it (median {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count / 2] : 0f):0.00} s, 90% {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count * 9 / 10] : 0f):0.00} s), {turnsMissed} not within 3 s");

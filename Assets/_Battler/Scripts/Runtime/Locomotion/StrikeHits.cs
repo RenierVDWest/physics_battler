@@ -168,6 +168,12 @@ namespace PhysicsBattler.Locomotion
 
         public int Hits, Blocks, Cleaves;
 
+        /// <summary>Blows that landed on a body and went on along their swing (<see cref="CombatFeel.SwingKept"/>).</summary>
+        public int Carried;
+
+        /// <summary>The blow playing was stopped by what it met (a shield, a parry, a friend).</summary>
+        public bool Stopped => stopped;
+
         /// <summary>How long before and after its contact moment a strike's weapon can strike (seconds of the clip's
         /// own time: its blow, not its wind-up, which can pass close by the body it is about to strike).</summary>
         public float LiveBefore = 0.12f, LiveAfter = 0.2f;
@@ -658,7 +664,7 @@ namespace PhysicsBattler.Locomotion
             {
                 foreach (var body in bodies)
                 {
-                    if (body == null || body == Owner || body.Stance != ClipFighter.Stances.Sword || body.Parry == null || deflectedBy.Contains(body))
+                    if (body == null || body == Owner || body.Stance != ClipFighter.Stances.Sword || body.Parry == null || deflectedBy.Contains(body) || spentOn.Contains(body))
                     {
                         continue;
                     }
@@ -698,7 +704,7 @@ namespace PhysicsBattler.Locomotion
                         continue;
                     }
 
-                    if (body.Stance == ClipFighter.Stances.Sword && body.Parry != null && !deflectedBy.Contains(body))
+                    if (body.Stance == ClipFighter.Stances.Sword && body.Parry != null && !deflectedBy.Contains(body) && !spentOn.Contains(body))
                     {
                         body.Parry.BladeNow(out var dg, out var dt2);
                         float defRadius = 0.02f * Scale;
@@ -734,7 +740,8 @@ namespace PhysicsBattler.Locomotion
                         {
                             // (The board is round, its collider a square: a blade past the round rim, in the square's
                             // corners, goes on by (the shield blocked blades it was nowhere near).)
-                            if (OnRoundBoard(body, a, b, radius))
+                            // (Nor the shield of a body this blow has already landed on and is driving on through.)
+                            if (OnRoundBoard(body, a, b, radius) && !(live && spentOn.Contains(body)))
                             {
                                 found.Add((body, collider, PartId.HandL, true, AlongBlade(collider, a, b) - 0.05f));
                             }
@@ -959,6 +966,17 @@ namespace PhysicsBattler.Locomotion
                 r.StopsSwing = true;
                 r.MomentumLeft = 0f;
             }
+            // (Heavy weapons, 12 November: a weapon that lands on a body is the steady one. It is not stopped there and
+            // does not back out: it goes on along its arc with the share of its speed the scene's Combat Feel leaves it,
+            // and the body gives way. The playtest: "the enemy stops the club in its tracks", a blow at 16 m/s came back off
+            // a body half the time and a sword's moved the hips of who it struck 3 cm. A friend still stops it.)
+            bool carries = !shield && !parried && CombatFeel.SwingKept > 0f && !(IsAlly != null && IsAlly(struck));
+            if (carries)
+            {
+                r.StopsSwing = false;
+                r.MomentumLeft = momentumLeft * CombatFeel.SwingKept;
+            }
+
             bool glanced = false;
             if (parried)
             {
@@ -1004,8 +1022,14 @@ namespace PhysicsBattler.Locomotion
                 knock *= 1f - struck.ShieldGlance;
             }
             float onBlade = beaten ? 1f - CombatFeel.BeatenShare : 1f;
-            struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
-                bound: parried && !glanced && !loco.ShotAirborne());
+            // (And landed on a body it is felt heavier than its own weight says, by the scene's Combat Feel: the body's
+            // bend, its lean, how far it is driven or thrown back. Not its harm, and not what a shield or a parry takes.)
+            float felt = shield || parried ? 1f : CombatFeel.WeaponWeight;
+            // (A combo's blows before its last drive the body back by their own weight: the combo has to follow it to
+            // land the next (thrown back three times as far, a blow in six of the dummy's combos missed). The body
+            // still bends and leans by the heavier blow, and the combo's last throws it back with all of it.)
+            struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade * felt), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
+                bound: parried && !glanced && !loco.ShotAirborne(), drive: comboing && !finishing ? 1f / felt : 1f);
             Struck?.Invoke(new StruckBy
             {
                 Struck = struck, Part = part, Result = r, Shield = shield && !parried, Parried = parried, Point = point, Speed = speed,
@@ -1045,6 +1069,17 @@ namespace PhysicsBattler.Locomotion
                 what = $"glanced off the {struck.Parry.WeaponName} ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
                 HitStop = Mathf.Min(HitStop, 0.04f);
             }
+            else if (carries)
+            {
+                // On through the body it landed on, slowed; that body is not struck again by this blow, and what
+                // lies beyond it is struck with what is left.
+                momentumLeft = r.MomentumLeft;
+                loco.ShotSpeed = Mathf.Max(0.3f, CombatFeel.SwingKept);
+                spentOn.Add(struck);
+                what = $"drove on through the {Name(part)} ({CombatFeel.SwingKept * 100f:0}% of its speed kept)";
+                Hits++;
+                Carried++;
+            }
             // (A combo's blow sweeps on through a body it would stop in, Bam and on; a blunt one doesn't: it stops there,
             // its weight shoved into the body, and the combo's next blow is taken up from there.)
             else if ((r.StopsSwing && !(comboing && !shield && !DamageRules.Blunt(With(clip)))) || parried)
@@ -1079,8 +1114,11 @@ namespace PhysicsBattler.Locomotion
                 // it jars the attacker. Stopped in a body, as before.)
                 if (shield || parried)
                 {
-                    poser.KnockHand(-direction.normalized * Rebound(r.Weight * knock));
-                    Owner?.Jar(-direction.normalized * (r.Impulse.magnitude * knock), point);
+                    // (A heavy weapon comes back off what stops it the less the more of its speed it would keep through a
+                    // body: it stays on the shield, which gives, and is not thrown back off it like a stick.)
+                    float steady = 1f - CombatFeel.SwingKept;
+                    poser.KnockHand(-direction.normalized * (Rebound(r.Weight * knock) * steady));
+                    Owner?.Jar(-direction.normalized * (r.Impulse.magnitude * knock * steady), point);
                 }
                 else
                 {
@@ -1098,7 +1136,9 @@ namespace PhysicsBattler.Locomotion
                 {
                     loco.WindBack(met);
                     poser.Pose(1e-4f);
-                    loco.CutShort(RewindMost, ReboundSpeed);
+                    // (Stopped by a shield, a heavy weapon backs out of it the less the more of its speed it would keep
+                    // through a body: it stays where it was stopped and goes back to its guard from there.)
+                    loco.CutShort(shield ? RewindMost * (1f - CombatFeel.SwingKept) : RewindMost, ReboundSpeed);
                 }
                 }
 
