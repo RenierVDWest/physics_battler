@@ -2459,6 +2459,43 @@ third of the time, the wrist moved 40 cm): the knock itself is not yet shaped to
 body's, the report's "in the pose as the stages left it" counts a stage's own roll of a bone against the bones the
 gate set the step before, so it reads higher than it did; what reaches the body is the second number.
 
+**Stops in the physical arm (the plan's step 5, as soft stops)** (13 November, built overnight and checked headless
+only). The gate holds the animation's arm to a body's ranges; the physical arm had none of its own: struck, it gave
+wherever it was pushed, up to 50 degrees aside of its pose, in range or not. Now the physical arm is read each step
+as the pose's arm is (`ClipFighter.StopArm`: where the elbow is, which way it folds, its bend, the forearm's roll,
+the wrist, against the same ranges with the clip's own room), and a joint over 2 degrees past its range is at its
+stop (`UpperBodyArticulation.StopAt`): it is wanted at the end of its range nearest where it is, it does not give
+way any further (inside its range an arm still gives and comes back as it did), and it is held there with **Arm
+Stops Hold With** (4) times its muscle's whole strength, however much a blow has let its muscles go. On the scene's
+Combat Feel: **Arms Have Stops** (on) and that strength.
+
+These are stops made of the joints' own motors, not the engine's joint limits: a blow can still knock a joint past
+its range for a step or two before the stop has it back. The engine's limits (an elbow that is a hinge in the
+engine, as the plan had it) need the articulation probed in Unity for how it counts a limited joint, and the body's
+"put a joint where the pose is" rewritten for joints with fewer than three turns; that is not something to build
+blind. The pose side of it is done (the arm's bones are a body's, the elbow a hinge in the pose).
+
+Measured (the stops off with `FIGHT_ARMSTOPS=0`, any other number the strength):
+
+| | Stops off | Stops on |
+| --- | --- | --- |
+| Target test, Larges on Larges: a physical arm over 10° past its range | 73 times, 4.6 s in all, 0.27 s at the longest | 27 times, 1.5 s, 0.20 s |
+| the arms just struck, over 10° past (over 30°) | 1.34% of the time (0.27%) | 0.50% (0.21%) |
+| the arms in guard, over 10° past; the furthest | 0.37%; 77° | 0.02%; 28° |
+| Blows the shield target blocked, the sword target parried | 16 of 25, 12 of 27 | 15 of 25, 11 of 25 |
+| Fights of six (seeds 1, 2): the arms just struck, over 10° past | 2.28%, 1.27% | 0.74%, 0.77% |
+| the arms in guard, over 10° past; the furthest | 0.16%, 0.22%; 84°, 77° | 0.05%, 0.06%; 24°, 40° |
+| the arms striking, over 10° past | 0.47%, 0.83% | 0.27%, 0.57% |
+| Blows blocked, parried, landed (fights of six, two seeds) | 42%, 20%, 30% | 29%, 19%, 43% |
+
+Stops three times as strong (12) did no better (0.55% just struck, 1.9 s in all): what is left are spikes of a step
+or two (half of them 0.02 to 0.03 s), up to 80 degrees in the reading of an arm nearly straight, where a few
+centimetres of the elbow turn "which way it folds" by a right angle. The fight report has the lines ("the physical
+arms, just struck", "a physical arm over 10 degrees past its range", "a physical arm at a stop"). Known: the board
+knocked into its bearer's own head or trunk by a blow is not an arm past its range and is as it was (2 to 9% of the
+time just after a blow in the target tests); the blocks, parries and landed blows of the two seeds differ by as much
+as two fights do.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

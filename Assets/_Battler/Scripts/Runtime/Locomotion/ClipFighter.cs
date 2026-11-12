@@ -1652,6 +1652,79 @@ namespace PhysicsBattler.Locomotion
                     // (And an arm swinging its weapon has no slack: it is held to its swing.)
                     Upper.SetTight(id, held || over || (Swinging && (side == 1 || Poser.TwoHanded)) ? 1f : 0f);
                 }
+
+                StopArm(side);
+            }
+        }
+
+        /// <summary>The physical arms have stops (the scene's Combat Feel, "Arms Have Stops"): see <see cref="StopArm"/>.</summary>
+        public static bool ArmStops = true;
+
+        /// <summary>A physical joint this far past what a body's does (degrees) is at its stop, and from <see cref="StopFull"/> past it is held with all a stop has.</summary>
+        public const float StopFrom = 2f, StopFull = 10f;
+
+        private readonly ArmGate stopGate = new ArmGate();
+
+        /// <summary>For the reports: steps a physical arm was at a stop, and the furthest past its range a stop found one (degrees): left, right.</summary>
+        public readonly int[] ArmStopped = new int[2];
+
+        public readonly float[] ArmStoppedMost = new float[2];
+
+        /// <summary>
+        /// The physical arm's stops (the plan "Arms that bend as a body does", step 5). The arm as it is in the
+        /// physics (knocked by a blow, pressed by a shield, left behind by its muscles) is read as the pose's arm is
+        /// read by the gate, against the same ranges: where the elbow is, which way it folds, how far it is bent, how
+        /// the forearm is rolled and the wrist bent. A joint past its range is told where its range ends nearest where
+        /// it is (<see cref="UpperBodyArticulation.StopAt"/>): it does not give way further, and is held there with
+        /// more than its muscle has. Inside its range nothing is changed: the arm gives and comes back as it did.
+        /// </summary>
+        /// <param name="side">0: the left arm; 1: the right.</param>
+        private void StopArm(int side)
+        {
+            bool left = side == 0;
+            var joints = ArmJoints[side];
+            if (!ArmStops || !ArmLimits.On || !snapped || !Upper.Holds(joints[2].part) || (left && Poser.TwoHanded) || Rig.IsSevered(joints[2].part))
+            {
+                foreach (var (id, _) in joints)
+                {
+                    Upper.NoStop(id);
+                }
+
+                return;
+            }
+
+            Transform chest = Rig.Part(PartId.Chest).transform, upper = Rig.Part(joints[0].part).transform, fore = Rig.Part(joints[1].part).transform, hand = Rig.Part(joints[2].part).transform;
+            var clip = ArmLimits.ReadClip(Loco.RawPoints, (int)LocoBone.Neck, (int)LocoBone.Spine2, (int)LocoBone.LeftArm, (int)LocoBone.RightArm, left);
+            float past = ArmLimits.Read(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip).Worst;
+            stopGate.Forget();
+            if (past < StopFrom
+                || !stopGate.Hold(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip, 1f / 60f, out var turnUpper, out var turnFore, out var turnHand))
+            {
+                foreach (var (id, _) in joints)
+                {
+                    Upper.NoStop(id);
+                }
+
+                return;
+            }
+
+            ArmStopped[side]++;
+            ArmStoppedMost[side] = Mathf.Max(ArmStoppedMost[side], past);
+            // (The arm as the gate would have it, each bone carried by the one it hangs from, and each joint's turn in it.)
+            Quaternion u = turnUpper * upper.rotation, f = turnFore * (turnUpper * fore.rotation), h = turnHand * (turnFore * (turnUpper * hand.rotation));
+            var then = new[] { Quaternion.Inverse(chest.rotation) * u, Quaternion.Inverse(u) * f, Quaternion.Inverse(f) * h };
+            var is_ = new[] { Quaternion.Inverse(chest.rotation) * upper.rotation, Quaternion.Inverse(upper.rotation) * fore.rotation, Quaternion.Inverse(fore.rotation) * hand.rotation };
+            for (int j = 0; j < 3; j++)
+            {
+                float by = Quaternion.Angle(is_[j], then[j]);
+                if (by >= StopFrom)
+                {
+                    Upper.StopAt(joints[j].part, then[j], ArmLimits.Smooth(StopFrom, StopFull, by), MuscleOf(joints[j].part, 1f).most);
+                }
+                else
+                {
+                    Upper.NoStop(joints[j].part);
+                }
             }
         }
 

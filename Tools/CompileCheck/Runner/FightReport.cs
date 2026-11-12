@@ -190,6 +190,20 @@ internal static class FightReport
             }
         }
 
+        // (The physical arms' stops: FIGHT_ARMSTOPS=0 runs a fight without them, any other number is how many times its
+        // muscle's strength a stopped joint is held with.)
+        {
+            string stops = Environment.GetEnvironmentVariable("FIGHT_ARMSTOPS");
+            if (stops != null && float.TryParse(stops, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float times))
+            {
+                PhysicsBattler.Locomotion.ClipFighter.ArmStops = times > 0f;
+                if (times > 0f)
+                {
+                    PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = times;
+                }
+            }
+        }
+
         // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
         {

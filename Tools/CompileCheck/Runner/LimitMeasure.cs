@@ -42,6 +42,11 @@ public sealed class LimitMeasure
         public float WorstAll;
     }
 
+    private readonly Dictionary<string, List<float>> bodyPast = new Dictionary<string, List<float>>();   // each state: how far past its range each physical arm was, each step
+
+    private readonly Dictionary<(UnitController, int), int> pastFor = new Dictionary<(UnitController, int), int>();
+    private readonly List<float> pastStays = new List<float>();
+
     private static readonly string[] What = { "elbow's place", "upper arm's turn", "elbow's bend", "forearm's roll", "wrist" };
     private readonly Dictionary<(string, string, string), ArmTally> arms = new Dictionary<(string, string, string), ArmTally>();
     private float clock;
@@ -183,6 +188,24 @@ public sealed class LimitMeasure
                 at.Over[5] += pose.Worst > 10f ? 1 : 0;
                 at.Over30[5] += pose.Worst > 30f ? 1 : 0;
                 at.BodyOver[5] += body.Worst > 10f ? 1 : 0;
+                if (!bodyPast.TryGetValue(state, out var pastList))
+                {
+                    bodyPast[state] = pastList = new List<float>();
+                }
+
+                pastList.Add(body.Worst);
+                // (How long an arm stays past its range once it is: each stay, from over 10° past until it is under.)
+                var stayKey = (u, side);
+                pastFor.TryGetValue(stayKey, out int stayed);
+                if (body.Worst > 10f)
+                {
+                    pastFor[stayKey] = stayed + 1;
+                }
+                else if (stayed > 0)
+                {
+                    pastStays.Add(stayed / 60f);
+                    pastFor[stayKey] = 0;
+                }
                 if (pose.Worst > at.WorstAll)
                 {
                     at.WorstAll = pose.Worst;
@@ -287,6 +310,20 @@ public sealed class LimitMeasure
             }
         }
 
+        foreach (var e in bodyPast.OrderBy(e => e.Key))
+        {
+            var l = e.Value;
+            l.Sort();
+            sb.AppendLine($"      the physical arms, {e.Key} ({l.Count / 60f:0.0} arm-seconds): past a body's range by over 10° {100f * l.Count(x => x > 10f) / l.Count:0.00}% of the time, over 30° {100f * l.Count(x => x > 30f) / l.Count:0.00}%, over 60° {100f * l.Count(x => x > 60f) / l.Count:0.00}%; 99% of the time under {l[Mathf.Clamp((int)(0.99f * l.Count), 0, l.Count - 1)]:0}°, at most {l[l.Count - 1]:0}°");
+        }
+
+        if (pastStays.Count > 0)
+        {
+            pastStays.Sort();
+            sb.AppendLine($"      a physical arm over 10° past its range: {pastStays.Count} times, for {pastStays[pastStays.Count / 2]:0.00} s at the middle, {pastStays[Mathf.Clamp((int)(0.9f * pastStays.Count), 0, pastStays.Count - 1)]:0.00} s for one in ten, {pastStays[pastStays.Count - 1]:0.00} s at the longest; {pastStays.Sum():0.0} s in all");
+        }
+
+        sb.AppendLine($"      a physical arm at a stop (over {PhysicsBattler.Locomotion.ClipFighter.StopFrom:0}° past its range, held there): {units.Sum(u => u.Clip != null ? u.Clip.ArmStopped[0] + u.Clip.ArmStopped[1] : 0)} arm-steps, the furthest past a stop found one {units.Max(u => u.Clip != null ? Mathf.Max(u.Clip.ArmStoppedMost[0], u.Clip.ArmStoppedMost[1]) : 0f):0}°{(PhysicsBattler.Locomotion.ClipFighter.ArmStops ? "" : " (the stops are off)")}");
         sb.AppendLine($"      an arm's joint turned over {PhysicsBattler.Locomotion.ClipFighter.ArmJump:0}° in a step: {units.Sum(u => u.Clip != null ? u.Clip.ArmSentJumps : 0)} times in the pose as the stages left it, {units.Sum(u => u.Clip != null ? u.Clip.ArmGoneJumps : 0)} as the gate let it go; of those the gate's own making (the pose sent turned under half as far): {units.Sum(u => u.Clip != null ? u.Clip.ArmGateJumps : 0)}");
         {
             var by = new Dictionary<string, int>();

@@ -240,6 +240,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A swordsman's free arm is tucked behind him while he guards. On: its hand lies in line with its forearm, the back of the hand against his back, the way a hand held behind you does. Off: the hand keeps the turn its clip gave it for an arm held in front (as before), which behind the back is a wrist bent further than a wrist goes, so the arm gate was turning it back nearly every step.")]
         public bool freeHandGoesWithItsArm = true;
 
+        [Tooltip("The physical arms have stops, as a body's joints do. The arm as it is in the physics (knocked by a blow, pressed by a shield, left behind by its muscles) is read against the same ranges the arm gate holds the animation to. A joint knocked past its range is wanted back at the end of its range, does not give way any further (inside its range a struck arm still gives and comes back over a second, as before), and is held there with more than its muscle has. So a blow can knock an arm to the end of what an arm does and no further: an elbow does not bend backward, a shield arm is not folded behind its owner's head. Off: a struck arm gives wherever it is pushed, up to 50 degrees aside of its pose, in range or not (as before).")]
+        public bool armsHaveStops = true;
+
+        [Tooltip("How many times its muscle's whole strength a physical arm joint is held with once it is past its range (all of it from 10 degrees past; it rises from 2 degrees). A stop is bone and sinew, not muscle: it holds against a blow the muscle gives way to, and it holds as hard when the arm's muscles have been let go by a blow. Higher: a struck arm is stopped harder at the end of its range and more of the blow goes on into the body. 1: the joint is wanted back at the end of its range with its muscle's strength alone. Default 4.")]
+        [Range(1f, 12f)] public float armStopsHoldWith = PhysicsBattler.Authority.UpperBodyArticulation.DefaultStopTimes;
+
         [Header("Feet")]
         [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
         [Range(0.5f, 8f)] public float comboPullSpeed = DefaultComboPullSpeed;
@@ -315,6 +321,8 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Motion.ArmGate.MostSent = PhysicsBattler.Motion.ArmGate.DefaultMostSent;
             PhysicsBattler.Motion.ArmLimits.BonesAsABody = true;
             SwordParry.FreeHandWithArm = true;
+            ClipFighter.ArmStops = true;
+            PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = PhysicsBattler.Authority.UpperBodyArticulation.DefaultStopTimes;
             StrikeArmStrength = DefaultStrikeArmStrength;
             BendPerWeight = DefaultBendPerWeight;
             OffFrontBend = DefaultOffFrontBend;
@@ -380,6 +388,8 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Motion.ArmGate.MostSent = Mathf.Max(0f, armFollowsAtMost);
             PhysicsBattler.Motion.ArmLimits.BonesAsABody = armBonesAsABody;
             SwordParry.FreeHandWithArm = freeHandGoesWithItsArm;
+            ClipFighter.ArmStops = armsHaveStops;
+            PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = Mathf.Clamp(armStopsHoldWith, 1f, 12f);
             StrikeArmStrength = Mathf.Max(1f, strikeArmStrength);
             BendPerWeight = bendPerWeight;
             OffFrontBend = offFrontBend;
