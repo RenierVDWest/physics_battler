@@ -1599,7 +1599,7 @@ swings last; the centre of gravity against the feet's support). They are the mea
 
 `python3 Tools/Playtest/rolls.py PlaytestLogs/<session>/units` lists each time an upper arm kept turning fast and
 how much of it was about the arm's own length (a straight arm rolling); `elbows.py`, each step an elbow jumped with
-its hand hardly moving.
+its hand hardly moving; `shake.py`, how long each part shook (its place going back and forth step by step), body and pose.
 
 `python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report with flags (sliding feet,
 weight off the feet, pinned parts lagging, shaking, blows that miss, friendly fire), a table of every blow and every
@@ -2121,6 +2121,33 @@ Still there: a sword wrist turns 120° to 240° in 4 to 7 steps some 14 times a 
 the hand's turn between two grips: not looked into); a swordsman's parrying elbow jumps when its hand is drawn in
 close to the shoulder (47 cm a step, three steps running, in `sns_turn180`); once a shield arm was folded 177°.
 A blow's bend takes a knee the same way `RestNow` took the elbow (`ClipFighter.Bend`): for the legs' own plan.
+
+**The look with the Larges back** (12 November, 13:06, six units, 75 s: "some vibrating and shakiness"). The two
+fixes above hold in Unity: no straight arm rolled, and the shield elbows jumped 7 times where they had 33. What
+shook was one thing, and again the pose's: `python3 Tools/Playtest/shake.py PlaytestLogs/<session>/units` counts
+how long each part's place against the pelvis goes back and forth step by step, for the body and for the pose.
+Of the 450 unit-seconds the weapon hand shook for 59 and its elbow for 51, the pose shaking with them all but 5 of
+those; every other part together 11. A Large's weapon hand shook 20 and 27 of its 75 s, a swordsman's 10: the
+hand turned 19° to and fro and moved 4 cm with it, twenty to thirty times a second, under a club that stayed on
+its line.
+
+- *A roll the hand is allowed was taken for a turn it had failed to make* (`SwordParry.SolveArm`). The parry's arm
+  asks its hand no further ahead than the turn the hand really has. The arm rig lets a hand roll about its grip
+  when the wrist can't take a turn; that roll was counted as falling short, the next ask pulled back to the
+  rolled hand, there the wrist took it unrolled, the ask went on to where it rolled again, and round, for as long
+  as a guard the wrist can't quite take was held. The turn the hand has is taken without its roll now.
+
+| Headless, 60 s of six, seeds 1 and 2 | With the Larges, before | after | Mediums, before | after |
+| --- | --- | --- | --- | --- |
+| The weapon hands shaking (unit-seconds of 360) | 35, 35 | 2.9, 1.4 | 24, 4.2 | 2.3, 1.0 |
+| Their elbows | 27, 28 | 4.1, 1.7 | 18, 6.1 | 3.9, 2.2 |
+
+The dummy's report: its sword parried 21 of 27 blows where it had 22 (a forehand at the chest glanced off low
+quarte), its blade turned back on itself 62 times where it had 225, and was pushed out of the attacker 108 times
+where it had 277; the combos' report is unchanged. Not looked into: which of a club's two edges a guard is held on
+is chosen in the step the guard is taken up, sometimes straight out of the unit's own strike, and a poor choice
+is kept for as long as the guard is held (seen for 12 s). A tenth of the time a Large's club lies 45° to 80° off
+its guard's line, before this fix and after it.
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
 vector, stiffness for radians, the force limit a torque, a part built turned takes its turn on its own axes), so

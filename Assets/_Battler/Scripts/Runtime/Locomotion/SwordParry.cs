@@ -1243,7 +1243,12 @@ namespace PhysicsBattler.Locomotion
                 jump = UpperTurn();
             }
 
-            heldHand = hand.rotation;
+            // (The turn the hand has, without the roll about the grip it was allowed. Taken with it, the roll counted as
+            // a turn the hand had failed to make: the next ask was pulled back to the rolled hand, there the wrist took
+            // it unrolled, the ask went on again to where it rolled, and round: a guard the wrist can't quite take
+            // shook, the hand turned 19 degrees to and fro and moved 4 cm with it, twenty to thirty times a second, for as long as it
+            // was held (a Large's club guard a quarter of the time).)
+            heldHand = Mathf.Abs(solved.roll) > 1e-3f ? hand.rotation * Quaternion.AngleAxis(-solved.roll, bladeInHand) : hand.rotation;
             lastForte = forte;
             lastForteKnown = true;
             lastUpperArm = chestTurn * (anim.Part(PartId.ForearmR).position - anim.Part(PartId.UpperArmR).position);
