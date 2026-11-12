@@ -363,6 +363,10 @@ namespace PhysicsBattler.Locomotion
         private readonly Vector3[] elbowWay = new Vector3[2];
         private readonly bool[] elbowKnown = new bool[2];
 
+        // Each arm's upper arm and forearm as its solve last left them (against their parents): what it is solved from.
+        private readonly Quaternion[] solvedUpper = new Quaternion[2], solvedFore = new Quaternion[2];
+        private readonly bool[] armSolved = new bool[2];
+
         /// <summary>The fastest an elbow's way turns (degrees a second).</summary>
         public float MostElbowTurn = 540f;
 
@@ -548,8 +552,21 @@ namespace PhysicsBattler.Locomotion
             }
 
             pole = SteadyElbow(a, pole, upper.position, target);
-            TwoBoneIK.Solve(upper, fore, hand, target, pole);
+            // (Solved from where this solve last left the arm, not from where what came after it moved it. Which
+            // way a limb near straight is bent is read from a few millimetres of elbow; a hand pushed a little
+            // further by a weapon at rest on a shield, or a blow's bend, moves those, and the solve, bending the
+            // arm that way and twisting its elbow back to its pole, rolled a straight arm about its own length
+            // by up to 78 degrees a step, on and on while the weapon lay there.)
+            if (armSolved[a])
+            {
+                upper.localRotation = solvedUpper[a];
+                fore.localRotation = solvedFore[a];
+            }
 
+            TwoBoneIK.Solve(upper, fore, hand, target, pole);
+            solvedUpper[a] = upper.localRotation;
+            solvedFore[a] = fore.localRotation;
+            armSolved[a] = true;
             if (clipShare >= 1f)
             {
                 if (clipHandKnown)
@@ -1291,7 +1308,10 @@ namespace PhysicsBattler.Locomotion
             Transform upper = anim.Part(PartId.UpperArmR), fore = anim.Part(PartId.ForearmR), hand = anim.Part(PartId.HandR);
             var turn = hand.rotation;
             Vector3 target = hand.position + push;
-            Vector3 pole = fore.position - 0.5f * (upper.position + target);
+            // (The elbow kept on the side of the arm it is on. Taken as the elbow's place against the line to where
+            // the hand is put, a straight arm's elbow, a few millimetres off its line, was on the other side of the
+            // new one: the arm was rolled about its own length by up to half a turn, and back by the next step's pose.)
+            Vector3 pole = TwoBoneIK.BendWay(upper, fore, hand);
             TwoBoneIK.Solve(upper, fore, hand, target, pole.sqrMagnitude > 1e-8f ? pole : RootTurn * Vector3.right);
             hand.rotation = turn;
             restOffset += push;

@@ -363,6 +363,13 @@ namespace PhysicsBattler.Locomotion
 
         private Vector3 shieldAt, shieldAtV;
         private bool shieldAtKnown;
+
+        // Which way the shield arm's elbow points across the line from its shoulder to its hand while the shield is moved (the body's frame).
+        private Vector3 shieldElbow;
+        private bool shieldElbowKnown;
+
+        /// <summary>The fastest the shield arm's elbow turns about the line from its shoulder to its hand while the shield is moved to meet a blow (degrees a second).</summary>
+        public const float ShieldElbowTurn = 720f;
         private float interceptWeight;
 
         /// <summary>The shield arm is held exactly to its pose now (meeting a blow): the physical arm doesn't trail it.</summary>
@@ -2185,6 +2192,7 @@ namespace PhysicsBattler.Locomotion
             {
                 shieldAtKnown = false;
                 shieldFaceKnown = false;
+                shieldElbowKnown = false;
                 return;
             }
 
@@ -2403,6 +2411,8 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            // (Which way the elbow points as the pose has the arm: where it goes over to the shield's way from.)
+            Vector3 poseWay = TwoBoneIK.BendWay(upper, fore, hand);
             TwoBoneIK.Solve(upper, fore, hand, target, elbowWay);
             // (Still in its own chest (a board held across the body): solved again with the elbow turned well out to the side,
             // and once more straight out, until it is clear.)
@@ -2412,6 +2422,30 @@ namespace PhysicsBattler.Locomotion
                 {
                     elbowWay = (elbowWay + outSide * (tries * 1.5f)).normalized;
                     TwoBoneIK.Solve(upper, fore, hand, target, elbowWay);
+                }
+            }
+
+            // (The elbow goes over to there as the hand does to its place, and comes back with it, turning about the
+            // line from the shoulder to the hand no faster than an elbow does. Put there at once, in the step the
+            // shield began to move and again in the step it was let go, and whenever the arm was solved again to
+            // clear the chest, the elbow jumped to the other side of the arm, up to 47 cm in a step, the hand hardly
+            // moving: a limb that spun.)
+            Vector3 line = target - upper.position;
+            if (line.sqrMagnitude > 1e-8f)
+            {
+                line.Normalize();
+                Vector3 to = Vector3.ProjectOnPlane(elbowWay, line), from = Vector3.ProjectOnPlane(poseWay, line);
+                if (to.sqrMagnitude > 1e-6f)
+                {
+                    Vector3 wanted = from.sqrMagnitude > 1e-6f ? Vector3.ProjectOnPlane(Vector3.Slerp(from.normalized, to.normalized, weight), line) : to;
+                    wanted = wanted.sqrMagnitude > 1e-6f ? wanted.normalized : to.normalized;
+                    Vector3 was = shieldElbowKnown ? Vector3.ProjectOnPlane(bodyTurn * shieldElbow, line) : from;
+                    was = was.sqrMagnitude > 1e-6f ? was.normalized : wanted;
+                    Vector3 now = Vector3.ProjectOnPlane(Vector3.RotateTowards(was, wanted, ShieldElbowTurn * Mathf.Deg2Rad * dt, 0f), line);
+                    now = now.sqrMagnitude > 1e-6f ? now.normalized : wanted;
+                    shieldElbow = bodyBack * now;
+                    shieldElbowKnown = true;
+                    TwoBoneIK.Solve(upper, fore, hand, target, now);
                 }
             }
 

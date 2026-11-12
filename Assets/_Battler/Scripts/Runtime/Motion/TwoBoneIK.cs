@@ -11,6 +11,25 @@ namespace PhysicsBattler.Motion
     {
         private const float Epsilon = 1e-4f;
 
+        /// <summary>
+        /// Which way the middle joint is bent as the chain stands (world, a unit vector square to the line from the
+        /// root to the end; zero for a chain quite straight): the pole that keeps a limb bent the way it is while
+        /// its end is moved. The middle joint's place against the line to where the end is going is not that: for
+        /// a limb near straight it is mostly the move itself, and the limb is rolled about its own length to bend
+        /// across it.
+        /// </summary>
+        public static Vector3 BendWay(Transform upper, Transform lower, Transform end)
+        {
+            Vector3 line = end.position - upper.position;
+            if (line.sqrMagnitude < Epsilon * Epsilon)
+            {
+                return Vector3.zero;
+            }
+
+            Vector3 off = Vector3.ProjectOnPlane(lower.position - upper.position, line.normalized);
+            return off.sqrMagnitude > 1e-10f ? off.normalized : Vector3.zero;
+        }
+
         /// <param name="upper">The root bone (shoulder or hip null).</param>
         /// <param name="lower">The middle bone (elbow or knee null).</param>
         /// <param name="end">The end null (wrist or ankle); only its position is used.</param>

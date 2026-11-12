@@ -1597,6 +1597,10 @@ session and whether the body is balanced over them (a foot planted, sliding, low
 swings last; the centre of gravity against the feet's support). They are the measures of the plan "Grounded legs"
 (https://claude.ai/artifact/P8Du2bu8f7hN8xMaVSY5xP, 12 November 2026: research and plan only, nothing built).
 
+`python3 Tools/Playtest/rolls.py PlaytestLogs/<session>/units` lists each time an upper arm kept turning fast and
+how much of it was about the arm's own length (a straight arm rolling); `elbows.py`, each step an elbow jumped with
+its hand hardly moving.
+
 `python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report with flags (sliding feet,
 weight off the feet, pinned parts lagging, shaking, blows that miss, friendly fire), a table of every blow and every
 hit, each unit's stumbles, knock-downs and get-ups (flagging any that never got up), an overview and a timeline per unit (with health and poise; stumbling, down and getting up shaded), film strips of hits, stick-figure film strips of each unit's idle, its turns, its blows (attacker and target, seen from
@@ -2073,6 +2077,50 @@ on their poses 1 to 4 times each.
   quickness would have: it has no spring to be matched to.
 - *Not done:* the legs are the animation's, so an arm's slack is the only give in a body. The old give of a
   stopped arm (`blockedArmStrength`) is still on beside it.
+
+**The limbs that spun** (12 November: the third look's "a little spinning of limbs at points" was still in the
+look after it, the slack's, "for sure an improvement"). That last log (09:38, four Mediums) has two kinds, and
+both are the pose's: the physical arm only goes where the pose puts it.
+
+- *A straight arm rolled about its own length.* 7 times an arm with its elbow near straight turned 240° to 550°
+  about its own length in 4 to 11 steps, its hand turning as far the other way
+  (`python3 Tools/Playtest/rolls.py PlaytestLogs/<session>/units`). Which way a straight arm is bent is read from
+  a few millimetres of elbow, and two things moved those. A weapon at rest on a body or a shield has its hand put
+  out of it each step (`LocoBody.RestNow`); the elbow's side was taken from where the elbow lay against the line
+  to the hand's new place, which for a straight arm is mostly the push itself: the arm was rolled by up to half a
+  turn, and back by the next step's pose. It is kept on the side it is on now (`TwoBoneIK.BendWay`). And each
+  step's arm was solved from wherever the last step had left it, after the rest, a blow's bend or a knock had
+  moved it: bent that way and its elbow twisted back to its pole, a straight arm rolled up to 78° a step for as
+  long as the weapon lay there. An arm is solved from where its own solve last left it now (`LocoBody.Arm`).
+- *The shield arm's elbow jumped.* 33 times its elbow moved over 20 cm in a step with the hand hardly moving
+  (`python3 Tools/Playtest/elbows.py PlaytestLogs/<session>/units`): in the step a shield began to move to a blow
+  the elbow was put behind the board at once, in the step it was let go it was put back, and each time the arm was
+  solved again to clear its own chest it jumped out to the side. The elbow goes over as the hand does now, with
+  the shield's weight, and turns about the line from the shoulder to the hand at most 720° a second
+  (`ClipFighter.ShieldElbowTurn`).
+
+Headless, 60 s of six on the real engine, before and after (seeds 1 and 2):
+
+| | Mediums, before | after | With the Larges, before | after |
+| --- | --- | --- | --- | --- |
+| An upper arm turning over 25° a step for 4 steps | 32, 19 | 1, 5 | 23, 18 | 3, 3 |
+| of those, about its own length | 16, 9 | 0, 2 | 12, 10 | 1, 2 |
+| An elbow jumping over 20 cm, the hand under 12 | 77, 53 | 9, 7 | 34, 36 | 4, 10 |
+| Joints put where the pose turned them at once | 376, 148 | 33, 46 | 238, 180 | 36, 62 |
+| Steps in which a joint turned over 45° | 651, 309 | 128, 196 | 493, 366 | 207, 236 |
+| A blade in another's body | 10, 3 | never | 1, 1 | never, 1 |
+
+The strikes' aim is as it was to the centimetre (`strikes`: 0.07 m median), and the combos' and the dummy's
+reports differ by a centimetre or a degree in a few lines.
+
+**The Larges are back** in `Battle.unity` (they were taken out on 11 November while the whirl was looked for).
+Headless a Large's head is within 2 cm of its pose 99% of the time and never more than 6 cm, and nothing whirls.
+Unity has not been seen with them since.
+
+Still there: a sword wrist turns 120° to 240° in 4 to 7 steps some 14 times a minute (the clips' own flicks, or
+the hand's turn between two grips: not looked into); a swordsman's parrying elbow jumps when its hand is drawn in
+close to the shoulder (47 cm a step, three steps running, in `sns_turn180`); once a shield arm was folded 177°.
+A blow's bend takes a knee the same way `RestNow` took the elbow (`ClipFighter.Bend`): for the legs' own plan.
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
 vector, stiffness for radians, the force limit a torque, a part built turned takes its turn on its own axes), so
