@@ -58,7 +58,8 @@ public sealed class LimitMeasure
     private sealed class Hold
     {
         public int Steps, ElbowOut, ElbowUp, WristOver, InFistOver;
-        public float Elbow, Wrist, InFist, InFistMost;
+        public float Elbow, Wrist, InFist, InFistMost, OffEnemy;
+        public int OffEnemyOver;
     }
 
     private readonly Dictionary<(string, string), Hold> holds = new Dictionary<(string, string), Hold>();
@@ -189,7 +190,11 @@ public sealed class LimitMeasure
                 float elbow = way.sqrMagnitude > 0.5f && lowest.sqrMagnitude > 1e-4f ? Vector3.Angle(way, lowest) : 0f;
                 float wrist = Vector3.Angle(sh.rotation * Vector3.down, sh.position - sf.position);
                 var bodyHand = clip.Rig.Part(PartId.HandL).transform;
-                float inFist = Vector3.Angle(boardLooks, bodyHand.rotation * Vector3.down);
+                float inFist = Vector3.Angle(boardLooks, bodyHand.rotation * (PhysicsBattler.Locomotion.CombatFeel.ShieldFixed ? Vector3.left : Vector3.down));
+                // (And where the board looks against the way the unit faces, its enemy's way.)
+                float offEnemy = Vector3.Angle(Vector3.ProjectOnPlane(boardLooks, Vector3.up), Quaternion.Euler(0f, clip.Loco.Facing, 0f) * Vector3.forward);
+                h.OffEnemy += offEnemy;
+                h.OffEnemyOver += offEnemy > 45f ? 1 : 0;
                 h.Steps++;
                 h.Elbow += elbow;
                 h.ElbowOut += elbow > 60f ? 1 : 0;
@@ -267,7 +272,7 @@ public sealed class LimitMeasure
                 continue;
             }
 
-            sb.AppendLine($"      how the shield is held: {e.Key.Item1}, {e.Key.Item2} ({h.Steps / 60f:0.0} s): the elbow {h.Elbow / h.Steps:0}° round from the lowest it could be on average, over 60° round {100f * h.ElbowOut / h.Steps:0.0}% of the time, above its shoulder {100f * h.ElbowUp / h.Steps:0.0}%; the hand turned {h.Wrist / h.Steps:0}° on the forearm on average, over 30° {100f * h.WristOver / h.Steps:0.0}%; the board turned {h.InFist / h.Steps:0}° in the fist on average, over 20° {100f * h.InFistOver / h.Steps:0.0}%, at most {h.InFistMost:0}°");
+            sb.AppendLine($"      how the shield is held: {e.Key.Item1}, {e.Key.Item2} ({h.Steps / 60f:0.0} s): the elbow {h.Elbow / h.Steps:0}° round from the lowest it could be on average, over 60° round {100f * h.ElbowOut / h.Steps:0.0}% of the time, above its shoulder {100f * h.ElbowUp / h.Steps:0.0}%; the hand turned {h.Wrist / h.Steps:0}° on the forearm on average, over 30° {100f * h.WristOver / h.Steps:0.0}%; the board turned {h.InFist / h.Steps:0}° in the fist on average, over 20° {100f * h.InFistOver / h.Steps:0.0}%, at most {h.InFistMost:0}°; the board looks {h.OffEnemy / h.Steps:0}° off the way the unit faces on average (seen from above), over 45° off {100f * h.OffEnemyOver / h.Steps:0.0}%");
         }
 
         {

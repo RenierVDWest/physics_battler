@@ -38,7 +38,7 @@ internal static class CombatFilmReport
             anim.SlotWeaponR.localRotation = UnitController.MainGrip;
             if (body == "Medium")
             {
-                anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+                anim.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
             }
 
             const float dt = 1f / 60f;

@@ -347,7 +347,7 @@ namespace PhysicsBattler.Units
             ClipBladeColliders.Clear();
             Clip.Solids.Clear();
             Hold(Rig.SlotWeaponR, Anim.SlotWeaponR, main, main != null && !main.IsShield ? MainGrip : Quaternion.identity);
-            Hold(Rig.SlotWeaponL, Anim.SlotWeaponL, off, off != null && off.IsShield ? ShieldGrip : Quaternion.identity);
+            Hold(Rig.SlotWeaponL, Anim.SlotWeaponL, off, off != null && off.IsShield ? ShieldGripNow : Quaternion.identity);
             Clip.SolidsChanged();
             string body = Clip.Poser.BodyKey;
             bool oneHanded = main != null && (main.kind == WeaponKind.Sword || main.kind == WeaponKind.Club) && !LocoLibrary.TwoHanded(body);

@@ -371,8 +371,8 @@ internal static class SparReport
         f.Poser.WeaponLength = sword.length * f.Size;
         if (kind == ClipFighter.Stances.Shield)
         {
-            f.Rig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
-            f.Anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+            f.Rig.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
+            f.Anim.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
             f.Poser.CarryL = LocoBody.Carry.Shield;
             var board = new GameObject(name + " shield");
             board.transform.SetParent(f.Rig.SlotWeaponL, false);

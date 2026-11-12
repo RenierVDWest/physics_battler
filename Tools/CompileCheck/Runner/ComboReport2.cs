@@ -166,8 +166,8 @@ internal static class StrikeComboReport
             {
                 // (Its shield, as dummyhits gives it: a board on its left hand's slot.)
                 var board = new GameObject("Dummy shield");
-                dummy.Rig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
-                dummy.Anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+                dummy.Rig.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
+                dummy.Anim.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
                 board.transform.SetParent(dummy.Rig.SlotWeaponL, false);
                 var box = board.AddComponent<BoxCollider>();
                 box.size = new Vector3(0.522f, 0.522f, 0.05f);

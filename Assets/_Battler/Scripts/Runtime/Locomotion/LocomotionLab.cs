@@ -136,7 +136,7 @@ namespace PhysicsBattler.Locomotion
             var (_, main, off) = loadouts[loadoutNow];
             walker.ShieldColliders.Clear();
             HoldFor(walker, rig.SlotWeaponR, anim.SlotWeaponR, main, main != null && !main.IsShield ? UnitController.MainGrip : Quaternion.identity);
-            HoldFor(walker, rig.SlotWeaponL, anim.SlotWeaponL, off, off != null && off.IsShield ? UnitController.ShieldGrip : Quaternion.identity);
+            HoldFor(walker, rig.SlotWeaponL, anim.SlotWeaponL, off, off != null && off.IsShield ? UnitController.ShieldGripNow : Quaternion.identity);
             // (Its defence, as its loadout has it: a shield blocks; a sword or a club in one hand alone parries, the free
             // hand tucked out of the way (the playtest: the Large's club alone guarded as if behind an unseen shield);
             // bare hands, none yet.)
@@ -857,7 +857,7 @@ namespace PhysicsBattler.Locomotion
             dummy.ShieldSkill = dummyShieldSkill;
             dummy.ParrySkill = dummyParrySkill;
             HoldFor(dummy, dummyRig.SlotWeaponR, dummy.Anim.SlotWeaponR, main, main != null && !main.IsShield ? UnitController.MainGrip : Quaternion.identity);
-            HoldFor(dummy, dummyRig.SlotWeaponL, dummy.Anim.SlotWeaponL, off, off != null && off.IsShield ? UnitController.ShieldGrip : Quaternion.identity);
+            HoldFor(dummy, dummyRig.SlotWeaponL, dummy.Anim.SlotWeaponL, off, off != null && off.IsShield ? UnitController.ShieldGripNow : Quaternion.identity);
             dummy.Poser.CarryR = main == null ? LocoBody.Carry.Free : main.IsShield ? LocoBody.Carry.Shield : LocoBody.Carry.Weapon;
             dummy.Poser.CarryL = off == null ? LocoBody.Carry.Free : off.IsShield ? LocoBody.Carry.Shield : LocoBody.Carry.Weapon;
             dummy.Poser.BladeR = (dummy.Anim.SlotWeaponR != null ? dummy.Anim.SlotWeaponR.localRotation : Quaternion.identity) * Vector3.forward;

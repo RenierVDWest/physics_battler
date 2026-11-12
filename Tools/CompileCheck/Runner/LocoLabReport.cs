@@ -38,7 +38,7 @@ internal static class LocoLabReport
         {
             // A weapon in the right hand and a shield in the left, gripped as the game grips them.
             anim.SlotWeaponR.localRotation = UnitController.MainGrip;
-            anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+            anim.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
             poser.CarryR = LocoBody.Carry.Weapon;
             poser.CarryL = LocoBody.Carry.Shield;
             poser.BladeR = UnitController.MainGrip * Vector3.forward;

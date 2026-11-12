@@ -2355,13 +2355,21 @@ Feel under "Shield: how it moves to meet a blow":
 - **Shield Fixed In Fist** (on). The board never turns in the hand: the pose's shield slot stays as the grip has it
   (`LocoBody.FaceShieldAt` only puts it back there), and the physical board is one piece with the hand, held as a
   blade is (`Upper.Hold`, not the grip joint that turned it), so no blow turns it in the fist either; that part
-  changes when a unit is built (Reset). The hand turns on the forearm toward where the board should look by at most
-  **Shield Wrist Turn** (15 degrees). So the board looks where the forearm points, and it is the arm that places it
-  (`ClipFighter.HoldShieldFast`): the fist goes to where the board is wanted, and the elbow is kept down (a little
-  out and back), going over from the clip's own way as the shield comes up. The board then looks out from the elbow
-  through the fist: up and forward over a fist held high, down and forward from one held low, out to the side from
-  one held wide. The fist stays in a box before the body: at least 26 cm before the chest, no higher than 8 cm over
-  the base of the head, from 20 cm across the body's middle to 60 cm out on its own side (a Medium's).
+  changes when a unit is built (Reset). The board looks the way the back of the hand does, its bar through the fist
+  along the thumb's line (`UnitController.ShieldGripFast`): the recorded guard holds its hand so, the back of it to
+  the enemy, the thumb up, the forearm lying across behind the board. (First built with the face along the forearm,
+  as the grip that turned had it at rest: "the shield is now pointing the wrong way by default", across the enemy's
+  line or at the ground.) It is the arm that places the board (`ClipFighter.HoldShieldFast`): the arm as the guard's
+  clip holds it is swung about the shoulder, as it is, until the fist points at where it is wanted, then bent or
+  straightened in its own plane to reach it, so the elbow keeps its way against the arm (and is brought half way
+  toward the lowest it can be, as an arm braced tucks it) and the board goes round with the arm, looking out from
+  the shoulder: up over a fist raised, down from one lowered, to the side of one swung wide. The hand stays on the
+  forearm as the clip has it, the wrist bending toward where the board should look by at most **Shield Wrist Turn**
+  (15 degrees). (Tried first: the fist sent to the place with the elbow straight down and the hand rolled to face
+  the blow; with the back of the hand as the board's face the forearm then pointed at the blow and the board met
+  it edge on: 15% of blows blocked.) The fist stays in a box before the body: at least 26 cm before the chest, no
+  higher than 8 cm over the base of the head, from 20 cm across the body's middle to 60 cm out on its own side (a
+  Medium's).
 - **Kept out of its owner.** A board the pose has within 6 cm of its own head, chest, spine or hips is moved off
   them, the fist with it, and the arm solved to there (`KeepShieldOff`): as the shield is raised, and again at the
   gate for whatever else moved the arm (a knock, its own strike).
@@ -2374,19 +2382,21 @@ alone):
 | | Before | Now |
 | --- | --- | --- |
 | The board turned in the fist, on average (the most) | 71° (107°) | 0° (0°) |
-| The shield arm's elbow over 60° round from the lowest it could be: in guard, just struck | 15%, 46% of the time | 0.6%, 3.6% |
-| Its elbow above its shoulder: in guard, just struck | 11%, 40% | 0.7%, 6% |
+| Where the board looks against the way its bearer faces, seen from above: in guard, just struck | 13°, 36° off | 25°, 33° off |
+| The shield arm's elbow over 60° round from the lowest it could be: in guard, just struck | 15%, 46% of the time | 0.1%, 3.5% |
+| Its elbow above its shoulder: in guard, just struck | 11%, 40% | 0.0%, 2.1% |
 | The shield first moves, through the blow (the earliest) | 30% of the way (21%) | 51% (50%) |
 | and before the blow's contact | 0.48 s | 0.22 to 0.30 s |
-| The shield or its arm over 2 cm inside its own head, trunk (fights of six) | 0.3 to 2.2%, 2.1 to 5.8% | 1.3 to 2.1%, 1.1 to 1.9% |
-| The physical shield arm past a body's range, just struck (fights of six) | 10% | 2.5% |
-| The gate bringing the shield arm back, just struck | 35% of the time | 13% |
-| Blows blocked by a shield, parried, landed (fights of six) | 30%, 21%, 47% | 33%, 22%, 41% |
-| Blows the shield target blocked (target test, 54 blows) | 17 | 20 |
+| The shield or its arm over 2 cm inside its own head, trunk (fights of six) | 0.3 to 2.2%, 2.1 to 5.8% | 0.7 to 2.2%, 0.5 to 1.8% |
+| The Large target's shield inside its own trunk, just struck by Larges | 23% of the time | 0.2% |
+| The physical shield arm past a body's range, just struck (fights of six) | 10% | 1.5% |
+| The gate bringing the shield arm back, just struck | 35% of the time | 10% |
+| Blows blocked by a shield, parried, landed (fights of six) | 30%, 21%, 47% | 33%, 22%, 47% |
+| Blows the shield target blocked (target test, Mediums; Larges) | 17 of 54; 16 of 54 | 23 of 50; 14 of 50 |
 
-Known: the posed board is clear of its owner (over a centimetre inside in 4 steps of four fights), but the physical
-one is still knocked into it by a blow, since its own body does not stop it: the Large target struck by Larges has
-its shield over 2 cm inside its own trunk 23% of the time just after a blow, as before. While a shield man strikes,
+Known: the posed board is clear of its owner (over a centimetre inside in 26 steps of four fights), but the physical
+one can still be knocked into it by a blow, since its own body does not stop it: over 2 cm into its own head 4 to
+9% of the time just after a blow in the target test. While a shield man strikes,
 his shield arm is the strike clip's own (its elbow where the recorded one is). The blow is not yet taken through
 the arm (the plan's step 4, second half). `FIGHT_SHIELD="0,15,0"` runs a fight with the shield as before (fixed or
 not, the wrist's turn, the share read from). The fight report has "how the shield is held" and when it first moved.

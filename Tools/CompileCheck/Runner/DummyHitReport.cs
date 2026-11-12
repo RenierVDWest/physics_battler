@@ -130,8 +130,8 @@ internal static class DummyHitReport
                     // (Its shield: a board on its left hand's slot, as a shield's collider is.)
                     var shield = new GameObject("Dummy shield");
                     // (Held as the lab holds it: the slots turned by the shield's grip, the board's face the slot's forward.)
-                    dummy.Rig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
-                    dummy.Anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+                    dummy.Rig.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
+                    dummy.Anim.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
                     shield.transform.SetParent(dummy.Rig.SlotWeaponL, false);
                     var board = shield.AddComponent<BoxCollider>();
                     board.size = new Vector3(0.522f, 0.522f, 0.05f);   // (P_Weapon_Shield's)
@@ -390,8 +390,8 @@ internal static class DummyHitReport
         if (!LocoLibrary.TwoHanded(body) && Environment.GetEnvironmentVariable("NO_SHIELD") == null)
         {
             // (Its shield, as the lab's sword-and-shield loadout holds it.)
-            anim.SlotWeaponL.localRotation = UnitController.ShieldGrip;
-            unitRig.SlotWeaponL.localRotation = UnitController.ShieldGrip;
+            anim.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
+            unitRig.SlotWeaponL.localRotation = UnitController.ShieldGripNow;
             poser.CarryL = LocoBody.Carry.Shield;
         }
 

@@ -2252,22 +2252,24 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far before its chest a fist holds a shield at the least, how far over the base of its head at the most, how far out past its chest's middle on its own side and across it on the other (metres at a Medium's size).</summary>
         public const float FistAhead = 0.26f, FistOverNeck = 0.08f, FistOut = 0.6f, FistAcross = 0.2f;
 
-        /// <summary>Which way the shield arm's elbow points as it holds the board to a blow (the body's frame; the left arm's): down, a little out and back, as an arm carries a weight before it.</summary>
-        public static readonly Vector3 ShieldElbowDown = new Vector3(-0.25f, -1f, -0.2f);
-
         private Vector3 shieldBoardFrom;
         private bool shieldBoardKnown;
+
+        /// <summary>How far the shield arm's elbow is brought from where the swung guard has it toward the lowest it can be, as the shield meets a blow (a share).</summary>
+        public const float ShieldElbowLow = 0.5f;
 
         /// <summary>For the reports: each blow the shield moved to meet, how far through it was as the shield first moved (a share of its time from start to contact) and how long before its contact (seconds).</summary>
         public readonly List<float> ShieldReadAt = new List<float>(), ShieldReadBefore = new List<float>();
 
         /// <summary>
         /// The shield held fast in the fist (the plan "Arms that bend as a body does", the shield): the board does not
-        /// turn in the hand, and the hand hardly turns on the forearm (the scene's Combat Feel's wrist turn), so the board
-        /// faces where the forearm points and it is the whole arm that puts it where it is wanted: the fist to
-        /// <paramref name="target"/>, the elbow down (a little out and back), going over from the clip's own way as the
-        /// shield comes up and no faster than an elbow turns. The board then looks out from the elbow through the fist:
-        /// up and forward over a fist held high, down and forward from one held low, out to the side from one held wide.
+        /// turn in the hand and the wrist hardly bends (the scene's Combat Feel's wrist turn), so the board looks the way
+        /// the back of the hand does, and it is the whole arm that moves it. The arm as the guard's clip holds it (its
+        /// elbow down and a little out, its forearm across behind the board, the back of the hand to the enemy) is swung
+        /// about the shoulder, as it is, until the fist points at <paramref name="target"/>, and then bent or
+        /// straightened in its own plane to reach it: the elbow keeps its way against the arm, and the board goes
+        /// round with the arm, looking out from the shoulder: up over a fist raised, down from one lowered, to the
+        /// side of one swung wide. The wrist then bends a little toward <paramref name="face"/>.
         /// </summary>
         private void HoldShieldFast(float dt, Vector3 target, float weight, Vector3 face, float lack, Quaternion bodyTurn)
         {
@@ -2276,36 +2278,31 @@ namespace PhysicsBattler.Locomotion
             var hand = Anim.Part(PartId.HandL);
             var bodyBack = Quaternion.Inverse(bodyTurn);
             Vector3 poseWay = TwoBoneIK.BendWay(upper, fore, hand);
-            Vector3 elbowWay = bodyTurn * ShieldElbowDown.normalized;
-            Vector3 line = target - upper.position;
-            Vector3 now = elbowWay;
-            if (line.sqrMagnitude > 1e-8f)
+            Vector3 was = hand.position - upper.position, to = target - upper.position;
+            var swing = was.sqrMagnitude > 1e-8f && to.sqrMagnitude > 1e-8f ? Quaternion.FromToRotation(was, to) : Quaternion.identity;
+            Vector3 now = swing * poseWay;
+            if (now.sqrMagnitude < 1e-6f)
             {
-                line.Normalize();
-                Vector3 to = Vector3.ProjectOnPlane(elbowWay, line), from = Vector3.ProjectOnPlane(poseWay, line);
-                if (to.sqrMagnitude < 1e-6f)
-                {
-                    // (The fist straight below the shoulder: the elbow back.)
-                    to = Vector3.ProjectOnPlane(bodyTurn * Vector3.back, line);
-                }
+                now = bodyTurn * new Vector3(-0.25f, -1f, -0.2f);
+            }
 
-                if (to.sqrMagnitude > 1e-6f)
+            // (And the elbow brought some of the way toward the lowest it can be with the fist there, as an arm braced to
+            // take a weight tucks it: round the line from the shoulder to the fist, which is near the way the board
+            // looks, so the board turns about its own middle and looks where it did.)
+            if (to.sqrMagnitude > 1e-8f)
+            {
+                Vector3 lowest = Vector3.ProjectOnPlane(Vector3.down, to.normalized);
+                Vector3 carried = Vector3.ProjectOnPlane(now, to.normalized);
+                if (lowest.sqrMagnitude > 1e-4f && carried.sqrMagnitude > 1e-6f)
                 {
-                    Vector3 wanted = from.sqrMagnitude > 1e-6f ? Vector3.ProjectOnPlane(Vector3.Slerp(from.normalized, to.normalized, weight), line) : to;
-                    wanted = wanted.sqrMagnitude > 1e-6f ? wanted.normalized : to.normalized;
-                    Vector3 was = shieldElbowKnown ? Vector3.ProjectOnPlane(bodyTurn * shieldElbow, line) : from;
-                    was = was.sqrMagnitude > 1e-6f ? was.normalized : wanted;
-                    now = Vector3.ProjectOnPlane(Vector3.RotateTowards(was, wanted, ShieldElbowTurn * Mathf.Deg2Rad * dt, 0f), line);
-                    now = now.sqrMagnitude > 1e-6f ? now.normalized : wanted;
-                    shieldElbow = bodyBack * now;
-                    shieldElbowKnown = true;
+                    now = Vector3.Slerp(carried.normalized, lowest.normalized, ShieldElbowLow * weight);
                 }
             }
 
             TwoBoneIK.Solve(upper, fore, hand, target, now);
 
-            // (The board as the fist holds it; then the hand turned a little on the forearm toward where the board should
-            // look, no further than a wrist gives under a shield's weight.)
+            // (The board as the fist holds it; then the wrist bent a little toward where the board should look, no
+            // further than a wrist gives under a shield's weight.)
             Poser.FaceShieldAt(Vector3.zero, 0f);
             var slot = Anim.SlotWeaponL;
             if (slot != null)
@@ -2319,7 +2316,8 @@ namespace PhysicsBattler.Locomotion
                 Vector3 faceLocal = face.sqrMagnitude > 1e-6f ? bodyBack * face.normalized : shieldFace;
                 Vector3 eased = Vector3.Slerp(shieldFace, faceLocal, 1f - Mathf.Exp(-dt * 3f / Mathf.Max(0.01f, CombatFeel.ShieldFaceSettle)));
                 shieldFace = Vector3.RotateTowards(shieldFace, eased, Mathf.Lerp(ShieldTurnSpeed, NoviceShieldTurnSpeed, lack) * Mathf.Deg2Rad * dt, 0f);
-                Vector3 looks = slot.forward, should = bodyTurn * shieldFace;
+                Vector3 should = bodyTurn * shieldFace;
+                Vector3 looks = slot.forward;
                 Vector3 about = Vector3.Cross(looks, should);
                 float off = Vector3.Angle(looks, should);
                 if (about.sqrMagnitude > 1e-8f && off > 0.01f)

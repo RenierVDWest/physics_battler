@@ -190,6 +190,18 @@ namespace PhysicsBattler.Units
         /// </summary>
         public static readonly Quaternion ShieldGrip = Quaternion.LookRotation(Vector3.down, Vector3.forward);
 
+        /// <summary>
+        /// The shield's turn in the left hand when it is fixed in the fist (the scene's Combat Feel): its face (forward)
+        /// the way the back of the hand looks, its bar (its up) through the fist along the thumb's line. The recorded
+        /// guard holds its hand so: the back of the hand to the enemy, the thumb up, the forearm lying across behind the
+        /// board. (With the face along the forearm, as above, a board that could not turn in the fist looked where the
+        /// forearm pointed: across the enemy's line, or at the ground.)
+        /// </summary>
+        public static readonly Quaternion ShieldGripFast = Quaternion.LookRotation(Vector3.left, Vector3.forward);
+
+        /// <summary>The shield's turn in the hand as a unit is given it.</summary>
+        public static Quaternion ShieldGripNow => PhysicsBattler.Locomotion.CombatFeel.ShieldFixed ? ShieldGripFast : ShieldGrip;
+
         /// <summary>A weapon's turn in the hand: the hammer grip, its blade leaning <see cref="PosePipeline.GripLean"/> toward the fingers.</summary>
         public static readonly Quaternion MainGrip = Quaternion.Euler(PosePipeline.GripLean, 0f, 0f);
 
