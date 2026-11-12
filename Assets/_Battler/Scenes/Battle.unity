@@ -209,7 +209,6 @@ MonoBehaviour:
   locomotionLab: 1
   fight: 1
   seed: 0
-  clipMotion: 1
 --- !u!4 &440875561
 Transform:
   m_ObjectHideFlags: 0
@@ -217,6 +216,114 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 440875559}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &593482352
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 593482354}
+  - component: {fileID: 593482353}
+  m_Layer: 0
+  m_Name: Combat Feel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &593482353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 593482352}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5e7852ad976a8d489d94b776d1c41ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhysicsBattler.Runtime::PhysicsBattler.Locomotion.CombatFeel
+  bendPerWeight: 0.35
+  mostBend: 0.4
+  offFrontBend: 1.35
+  sideHitTime: 1
+  bendReach: 1.2
+  bendPeak: 0.08
+  leanScale: 1
+  headSnapScale: 1
+  hitStopBase: 0.03
+  hitStopPerWeight: 0.05
+  leastHitStop: 0.04
+  mostHitStop: 0.16
+  driveBack: 3.5
+  mostDrive: 2.2
+  stumbleFrom: 1
+  stumbleBoost: 1.3
+  mostStumble: 2.8
+  stumbleRecovery: 0.7
+  parryGivePerWeight: 0.1
+  mostParryGive: 0.2
+  parryHolds: 0.8
+  expertParryHolds: 2
+  beatenShare: 0.6
+  shieldGivePerWeight: 0.12
+  mostShieldGive: 0.25
+  guardOpenFrom: 1
+  guardOpenFor: 0.5
+  reboundPerWeight: 2.4
+  leastRebound: 0.8
+  mostRebound: 3.5
+  jarScale: 0.3
+  shieldSettle: 0.08
+  shieldFaceSettle: 0.1
+  shieldReplanBy: 0.2
+  shieldReplanTurn: 40
+  shieldSingleCurve: 1
+  shieldComboCurve: 4
+  shieldMovesWithin: 0.6
+  giveGroundFrom: 0.9
+  giveGroundDeep: 0
+  giveGroundLead: 0.22
+  leastGiveGround: 0.1
+  mostGiveGround: 0.2
+  giveGroundEases: 0.3
+  concentrationRise: 0.3
+  concentrationFall: 0.15
+  concentrationGuard: 0.5
+  concentrationAccuracy: 0.3
+  comboSpreadTurn: 100
+  comboSpreadReach: 3.2
+  comboSweepChance: 0.25
+  physicalUpperBody: 1
+  muscleStrength: 600
+  blockedArmStrength: 0.2
+  pressedBackSpeed: 6
+  borneDownFrom: 28
+  slackAngle: 15
+  slackTime: 1
+  tautAngle: 40
+  tautTime: 0.3
+  giveWayAngle: 8
+  comboPullSpeed: 3
+  movingFootLift: 7
+  mostBladeSpeed: 0
+--- !u!4 &593482354
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 593482352}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -967,3 +1074,4 @@ SceneRoots:
   - {fileID: 2028289482}
   - {fileID: 440875561}
   - {fileID: 1614115024}
+  - {fileID: 593482354}
