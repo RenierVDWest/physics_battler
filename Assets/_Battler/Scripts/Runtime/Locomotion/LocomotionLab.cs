@@ -640,7 +640,12 @@ namespace PhysicsBattler.Locomotion
         /// Leaves the lab for the fight (F): this run is logged, the lab's body and footprints go, and the
         /// sandbox spawns the fight, whose units walk with the new walk.
         /// </summary>
-        public void WatchFight()
+        public void WatchFight() => Leave(false);
+
+        /// <summary>Leaves the lab for the sandbox's target test (1): three attackers, each on a target that stands there.</summary>
+        public void WatchTargets() => Leave(true);
+
+        private void Leave(bool targets)
         {
             WriteLog();
             ClearPrints();
@@ -664,7 +669,14 @@ namespace PhysicsBattler.Locomotion
             Destroy(this);
             if (sandbox != null)
             {
-                sandbox.WatchFight();
+                if (targets)
+                {
+                    sandbox.WatchTargets();
+                }
+                else
+                {
+                    sandbox.WatchFight();
+                }
             }
         }
 
@@ -1560,6 +1572,12 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            if (SandboxInput.KeyPressed(KeyCode.Alpha1))
+            {
+                WatchTargets();
+                return;
+            }
+
             if (SandboxInput.KeyPressed(KeyCode.L)) { NextLoadout(); }
             if (SandboxInput.KeyPressed(KeyCode.J)) { PlayCombatClip(); }
             if (SandboxInput.KeyPressed(KeyCode.U)) { NextDummyHeight(); }
@@ -1800,6 +1818,12 @@ namespace PhysicsBattler.Locomotion
                 if (GUILayout.Button("Watch the fight (F)"))
                 {
                     WatchFight();
+                    return;
+                }
+
+                if (GUILayout.Button("Target test (1)"))
+                {
+                    WatchTargets();
                     return;
                 }
 

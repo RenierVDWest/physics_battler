@@ -239,6 +239,21 @@ internal static class FightReport
             };
         }
 
+        // (The sandbox's target test: FIGHT_LINEUP=targets sets three attackers each on a target that stands there (one
+        // open, one with sword and shield, one with a sword); FIGHT_TARGETS="LM" makes the attackers Larges and leaves
+        // the targets Mediums, "ML" the other way, "LL" both.)
+        bool targetTest = gang == "targets";
+        if (targetTest)
+        {
+            string who = Environment.GetEnvironmentVariable("FIGHT_TARGETS") ?? "MM";
+            bool la = who.Length > 0 && who[0] == 'L', lt = who.Length > 1 && who[1] == 'L';
+            lineup = new[]
+            {
+                new[] { (la ? "Large" : "Swordsman", new Tile(1, 2)), (la ? "Large" : "Swordsman", new Tile(3, 2)), (la ? "Large" : "Swordsman", new Tile(6, 2)) },
+                new[] { (lt ? "Large open" : "Open", new Tile(1, 5)), (lt ? "Large shield" : "Medium", new Tile(3, 5)), (lt ? "Large sword" : "Swordsman", new Tile(6, 5)) },
+            };
+        }
+
         if (Environment.GetEnvironmentVariable("FIGHT_MIRROR") != null)
         {
             // (Each team in the other's places, to see whether a side or a slot wins, not the units.)
@@ -260,7 +275,7 @@ internal static class FightReport
         {
             foreach (var (named, tile) in lineup[team])
             {
-                string body = named == "Swordsman" ? "Medium" : named;
+                string body = named.StartsWith("Large") ? "Large" : named == "Small" ? "Small" : "Medium";
                 var profile = UnitProfile.CreateDefault();
                 profile.name = "UP_" + body;
                 profile.body = body;
@@ -274,12 +289,33 @@ internal static class FightReport
                 unit.Team = team;
                 unit.Profile = profile;
                 Call(unit, "Awake");
-                if (named == "Swordsman") unit.Equip(sword, null); else if (body == "Medium") unit.Equip(sword, shield); else unit.Equip(club, null);
+                if (named.EndsWith("pen")) unit.Equip(null, null);
+                else if (named == "Swordsman" || named.EndsWith("sword")) unit.Equip(sword, null);
+                else if (named == "Medium" || named.EndsWith("shield")) unit.Equip(sword, shield);
+                else unit.Equip(club, null);
                 units.Add(unit);
             }
         }
 
-        var loop = new FightLoop(seed) { Grid = grid };
+        if (targetTest)
+        {
+            // (Laid out as the sandbox lays them out: the pairs side by side, each attacker facing its target.)
+            for (int i = 0; i < 3; i++)
+            {
+                float x = (i - 1) * PhysicsBattler.Sandbox.BattleSandbox.TargetPairsApart;
+                var attacker = units[i];
+                var target = units[3 + i];
+                Vector3 spot = grid.origin + new Vector3(x, 0f, 0.5f * PhysicsBattler.Sandbox.BattleSandbox.TargetFromAttacker);
+                target.Teleport(spot, BoardGrid.TeamYaw(1));
+                attacker.Teleport(grid.origin + new Vector3(x, 0f, -0.5f * PhysicsBattler.Sandbox.BattleSandbox.TargetFromAttacker), BoardGrid.TeamYaw(0));
+                target.TargetDummy = true;
+                target.DummySpot = spot;
+                target.Unharmed = Environment.GetEnvironmentVariable("FIGHT_TARGETS_HARMED") == null;
+                attacker.OnlyTarget = target;
+            }
+        }
+
+        var loop = new FightLoop(seed) { Grid = grid, Endless = targetTest };
         // (The plan "Bringing the lab into the fight", step 4: CLIP_FIGHT=1 moves the units as clip fighters, their
         // walk measured as the lab's is.)
         var feet = new Dictionary<UnitController, PhysicsBattler.Locomotion.LocoMeasures>();
@@ -446,6 +482,7 @@ internal static class FightReport
         }
         UnitController.ComboChanged += OnCombo;
         var heft = new HeftMeasure(units);
+        var dummyOff = new Dictionary<UnitController, (float most, float last)>();
         int steps = (int)(limit * 60f) + 600;
         float startTime = Time.time;
         try
@@ -461,6 +498,14 @@ internal static class FightReport
                 loop.TimeLimit = limit;
                 loop.Step(units, dt, Time.time);
                 heft.Step(dt);
+                foreach (var u in units)
+                {
+                    if (u.TargetDummy)
+                    {
+                        float off = Vector3.Distance(new Vector3(u.Root.position.x, 0f, u.Root.position.z), new Vector3(u.DummySpot.x, 0f, u.DummySpot.z));
+                        dummyOff[u] = (Mathf.Max(dummyOff.TryGetValue(u, out var was) ? was.most : 0f, off), off);
+                    }
+                }
                 foreach (var u in units)
                 {
                     if (u.IsAlive && u.State == UnitState.Standing && u.Tempo != null && u.TempoOn)
@@ -715,6 +760,11 @@ internal static class FightReport
             keys.Sort();
             sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
             sb.Append(heft.Report());
+            if (dummyOff.Count > 0)
+            {
+                sb.AppendLine("    the target test's targets, off their spots: " + string.Join("; ", units.Where(u => u.TargetDummy).Select(u =>
+                    $"{u.name} ({(u.Clip != null ? u.Clip.Stance.ToString().ToLowerInvariant() : "?")}) at most {dummyOff[u].most:0.00} m, {dummyOff[u].last:0.00} m at the end, health {u.Health:0} of {u.Profile.maxHealth:0}{(u.IsAlive ? "" : ", dead")}")));
+            }
             sb.AppendLine($"    outnumbered (two or more on it): {outnumberedSteps * dt:0.0} s in all; with them more than 120 degrees apart round it {100f * surroundedSteps / Mathf.Max(1, outnumberedSteps):0}% of that");
             turnTimes.Sort();
             sb.AppendLine($"    turning to an attacker starting a blow from beside or behind: {turnTimes.Count} faced it (median {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count / 2] : 0f):0.00} s, 90% {(turnTimes.Count > 0 ? turnTimes[turnTimes.Count * 9 / 10] : 0f):0.00} s), {turnsMissed} not within 3 s");

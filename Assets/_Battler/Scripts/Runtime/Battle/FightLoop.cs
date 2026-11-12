@@ -38,6 +38,9 @@ namespace PhysicsBattler.Battle
         /// <summary>Seconds of fighting before it ends as a draw on what is left.</summary>
         public float TimeLimit = 240f;
 
+        /// <summary>The fight is never over (the sandbox's target test: its dummies can't fight, and it goes on all the same).</summary>
+        public bool Endless;
+
         public bool Over { get; private set; }
 
         /// <summary>The team that won, or -1 (a draw, or not over).</summary>
@@ -138,7 +141,7 @@ namespace PhysicsBattler.Battle
                 fought += dt;   // (the time limit counts fighting time only)
             }
 
-            if (Fight && !Over)
+            if (Fight && !Over && !Endless)
             {
                 CheckOver(units, now);
             }
@@ -180,6 +183,25 @@ namespace PhysicsBattler.Battle
                     }
 
                     plan.velocity = Vector3.zero;
+                    plan.progressAt = now;
+                    continue;
+                }
+
+                if (unit.TargetDummy)
+                {
+                    // (A target dummy: it stands on its spot facing the nearest enemy and never strikes; what it carries
+                    // meets the blows. Driven off its spot by a blow, it walks back to it.)
+                    var near = Nearest(units, unit, false);
+                    unit.Opponent = near;
+                    unit.CircleOpponent = false;
+                    Vector3 back = Flat(unit.DummySpot - unit.Root.position);
+                    float far = back.magnitude;
+                    Steer(units, unit, plan, far > DummyBackFrom * unit.Body.SizeFactor ? back / far * Mathf.Min(unit.WalkSpeed, 2f * far) : Vector3.zero, dt);
+                    if (near != null)
+                    {
+                        unit.FacePoint(near.Root.position);
+                    }
+
                     plan.progressAt = now;
                     continue;
                 }
@@ -269,8 +291,26 @@ namespace PhysicsBattler.Battle
 
         // ---- Choosing ---------------------------------------------------------------------------
 
+        /// <summary>A target dummy walks back to its spot once it is this far off it (metres at a Medium's size).</summary>
+        public const float DummyBackFrom = 0.3f;
+
         private UnitController ChooseTarget(IReadOnlyList<UnitController> units, UnitController unit, Plan plan, float now)
         {
+            // (Given one enemy to fight (the target test's pairs): that one, while it stands; no one else.)
+            if (unit.OnlyTarget != null)
+            {
+                var only = unit.OnlyTarget;
+                bool there = only.IsInitialized && only.IsAlive && !only.IsDown;
+                if (there && plan.target != only)
+                {
+                    plan.closeIn = 0f;
+                }
+
+                plan.target = there ? only : null;
+                plan.committed = there;
+                return plan.target;
+            }
+
             var current = plan.target;
             bool valid = current != null && current.IsInitialized && current.IsAlive && current.Team != unit.Team && !current.IsDown && unit.Knows(current);
             // (Renier, 6 November: close to any enemy, it commits to fighting it; it stays on it while it is near.)

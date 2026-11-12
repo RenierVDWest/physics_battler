@@ -1492,6 +1492,7 @@ and the real units spawn on the markers.
 | --- | --- |
 | R | Reset the board (respawn from the markers) |
 | F | Fighting on or off (off: they only stand and face each other) |
+| 1 | Target test: instead of the battle, three attackers each on a target that only stands there (from the locomotion lab, 1 instead of F goes straight to it) |
 | B | Bystander test: fighting stops, a sword unit strikes at an enemy with a third unit stood in the way |
 | G | Move gallery: every move in turn against a dummy, at a third of the speed and then at full speed (G again stops) |
 | L | Launch test: the heaviest armed unit swings at the lightest enemy, with a third unit standing where it will be thrown |
@@ -1503,6 +1504,18 @@ and the real units spawn on the markers.
 | P / . | Pause / step one physics frame |
 | M | Mark the playtest log |
 | Right-drag, middle-drag, scroll | Orbit, pan, zoom |
+
+**The target test** (1, or the panel's "Target test"; from the locomotion lab, 1 or its "Target test" button
+instead of F). Three pairs side by side, 4 m apart, for looking at what a blow does without a battle around it.
+From left to right the targets are one with nothing in its hands (it does not block: every blow lands), one with
+sword and shield (it blocks), one with a sword alone (it parries). A target never strikes, faces its attacker,
+and walks back to its spot when a blow has driven it off. Each attacker fights its own target and no one else.
+The panel then has "Attackers: Mediums / Larges" (a Medium attacks with a sword, a Large with its club),
+"Targets: Mediums / Larges" (the same three, as Larges), and "Targets take harm": off, as it starts, a target
+loses no health and no limb, so it can be struck again and again (it still reacts, and its poise still breaks).
+R resets the test; "Back to the battle" returns to the units the scene's markers lay out. Headless:
+`FIGHT_LINEUP=targets` with `FIGHT_TARGETS="LM"` (the attackers' body, then the targets'; M or L) and
+`FIGHT_TARGETS_HARMED=1`; the fight report then also says how far each target was driven off its spot.
 
 The panel has the same buttons plus a time scale slider and the recorder controls. Each unit's label
 shows its health and poise, the blow it is making and the body part it is aimed at, or that it is

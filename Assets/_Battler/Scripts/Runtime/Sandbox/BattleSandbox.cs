@@ -115,6 +115,15 @@ namespace PhysicsBattler.Sandbox
             BeginFight();
         }
 
+        /// <summary>From the locomotion lab to the target test (the lab's 1), as <see cref="WatchFight"/> goes to the battle.</summary>
+        public void WatchTargets()
+        {
+            targetTest = true;
+            fight = true;
+            WatchFight();
+            message = "Target test: left to right, a target that does not block, one with sword and shield, one with a sword. R resets.";
+        }
+
         private int watchFrom = -1;
 
         private void BeginFight()
@@ -193,51 +202,144 @@ namespace PhysicsBattler.Sandbox
             brawl = new Brawl(seed);
             fightLoop = new Battle.FightLoop(seed) { Grid = Grid };
             announced = false;
+            fightLoop.Endless = targetTest;
             var spawns = FindObjectsByType<UnitSpawn>();
             System.Array.Sort(spawns, (a, b) => a.team != b.team ? a.team.CompareTo(b.team) : a.body.CompareTo(b.body));
             var count = new Dictionary<string, int>();
             foreach (var spawn in spawns)
             {
                 spawn.ClearPreview();
-                var prefab = PrefabFor(spawn.body);
-                if (prefab == null)
+                if (targetTest)
                 {
-                    message = "Missing unit prefabs. Run Physics Battler > Setup > Run Project Setup.";
-                    continue;
+                    continue;   // (the target test lays its own units out)
                 }
 
-                // Made under an inactive holder, so its profile and team are set before it wakes and builds itself.
-                var holder = new GameObject("Spawning");
-                holder.SetActive(false);
-                var unit = Instantiate(prefab, spawn.transform.position, Quaternion.Euler(0f, BoardGrid.TeamYaw(spawn.team), 0f), holder.transform);
                 string label = $"{(spawn.team == 0 ? "A" : "B")} {spawn.BodyName}";
                 count[label] = count.TryGetValue(label, out int n) ? n + 1 : 1;
-                unit.name = count[label] > 1 ? $"{label} {count[label]}" : label;
-                unit.Team = spawn.team;
-                if (spawn.profileOverride != null)
-                {
-                    unit.Profile = spawn.profileOverride;
-                }
-
-                // (Tinted before it wakes: waking moves its body parts out from under it.)
-                Tint(unit, TeamMaterial(spawn.team));
-                unit.transform.SetParent(null, true);
-                Destroy(holder);
-
-                units.Add(unit);
-                pendingEquip.Add((unit, spawn.mainHand, spawn.offHand));
+                SpawnUnit(spawn.body, spawn.team, spawn.transform.position, count[label] > 1 ? $"{label} {count[label]}" : label, spawn.mainHand, spawn.offHand, spawn.profileOverride);
             }
 
-            if (spawns.Length == 0)
+            if (targetTest)
+            {
+                SpawnTargets();
+            }
+            else if (spawns.Length == 0)
             {
                 message = "No unit markers in the scene. Add a UnitSpawn (or run Physics Battler > Setup > Run Project Setup).";
             }
 
-            Note($"spawn: {units.Count} units on the {Grid.columns}x{Grid.rows} board");
+            Note($"spawn: {units.Count} units on the {Grid.columns}x{Grid.rows} board{(targetTest ? $" (the target test: {(largeAttackers ? "Large" : "Medium")} attackers on {(largeTargets ? "Large" : "Medium")} targets)" : "")}");
             if (PhysicsBattler.Locomotion.ClipFighter.PhysicalUpper)
             {
                 ArticulationConventions.EnsureProbed();
                 Note($"physical upper bodies: on, the game stepping the engine {PhysicsBattler.Authority.PhysicsSteps.Substeps} times a step; a blade at most {PhysicsBattler.Locomotion.CombatFeel.MostBladeSpeed:0} m/s; articulation probe: {ArticulationConventions.Report}");
+            }
+        }
+
+        /// <summary>One unit of a body and a team at a place, facing as its team does, with what it is to hold; null without its prefab.</summary>
+        private UnitController SpawnUnit(BodySize body, int team, Vector3 at, string label, WeaponDefinition main, WeaponDefinition off, UnitProfile profile = null)
+        {
+            var prefab = PrefabFor(body);
+            if (prefab == null)
+            {
+                message = "Missing unit prefabs. Run Physics Battler > Setup > Run Project Setup.";
+                return null;
+            }
+
+            // Made under an inactive holder, so its profile and team are set before it wakes and builds itself.
+            var holder = new GameObject("Spawning");
+            holder.SetActive(false);
+            var unit = Instantiate(prefab, at, Quaternion.Euler(0f, BoardGrid.TeamYaw(team), 0f), holder.transform);
+            unit.name = label;
+            unit.Team = team;
+            if (profile != null)
+            {
+                unit.Profile = profile;
+            }
+
+            // (Tinted before it wakes: waking moves its body parts out from under it.)
+            Tint(unit, TeamMaterial(team));
+            unit.transform.SetParent(null, true);
+            Destroy(holder);
+
+            units.Add(unit);
+            pendingEquip.Add((unit, main, off));
+            return unit;
+        }
+
+        // ---- The target test: three attackers, each on a target that stands there ---------------------------------
+
+        private bool targetTest, largeAttackers, largeTargets, targetsHarmed;
+
+        /// <summary>How far apart the target test's three pairs stand, and each attacker from its target (metres).</summary>
+        public const float TargetPairsApart = 4f, TargetFromAttacker = 2.6f;
+
+        /// <summary>
+        /// The target test (1): instead of the battle, three attackers each on a target that only stands there, side by
+        /// side: one with nothing in its hands (it does not block), one with sword and shield (it blocks), one with a
+        /// sword alone (it parries). The targets never strike and walk back to their spots when a blow has driven them
+        /// off; unless the panel says otherwise they take no harm, so they can be struck again and again. The panel
+        /// turns the attackers, or the targets, into Larges.
+        /// </summary>
+        public void TargetTest()
+        {
+            targetTest = true;
+            fight = true;
+            Spawn();
+            message = "Target test: left to right, a target that does not block, one with sword and shield, one with a sword. R resets.";
+        }
+
+        /// <summary>Back from the target test to the battle laid out by the scene's markers.</summary>
+        public void BattleLayout()
+        {
+            targetTest = false;
+            Spawn();
+            message = "";
+        }
+
+        private void SpawnTargets()
+        {
+            // (The weapons, from the scene's markers, whatever they stand for: a sword, a shield, a club.)
+            WeaponDefinition sword = null, shield = null, club = null;
+            foreach (var spawn in FindObjectsByType<UnitSpawn>(FindObjectsInactive.Include))
+            {
+                foreach (var w in new[] { spawn.mainHand, spawn.offHand })
+                {
+                    if (w == null)
+                    {
+                        continue;
+                    }
+
+                    if (w.IsShield) shield = shield != null ? shield : w;
+                    else if (w.kind == WeaponKind.Sword) sword = sword != null ? sword : w;
+                    else if (w.kind == WeaponKind.Club) club = club != null ? club : w;
+                }
+            }
+
+            if (sword == null || shield == null || (largeAttackers && club == null))
+            {
+                message = "The target test takes its sword, shield and club from the scene's unit markers: one of them is missing.";
+            }
+
+            var attackerBody = largeAttackers ? BodySize.Large : BodySize.Medium;
+            var targetBody = largeTargets ? BodySize.Large : BodySize.Medium;
+            string[] kinds = { "open", "shield", "sword" };
+            for (int i = 0; i < 3; i++)
+            {
+                float x = (i - 1) * TargetPairsApart;
+                Vector3 spot = Grid.origin + new Vector3(x, 0f, 0.5f * TargetFromAttacker);
+                var target = SpawnUnit(targetBody, 1, spot, $"Target {kinds[i]}", i == 0 ? null : sword, i == 1 ? shield : null);
+                // (A Large's weapon is its club; a Medium's its sword.)
+                var attacker = SpawnUnit(attackerBody, 0, Grid.origin + new Vector3(x, 0f, -0.5f * TargetFromAttacker), $"Attacker {i + 1}", largeAttackers ? club : sword, null);
+                if (target == null || attacker == null)
+                {
+                    continue;
+                }
+
+                target.TargetDummy = true;
+                target.DummySpot = spot;
+                target.Unharmed = !targetsHarmed;
+                attacker.OnlyTarget = target;
             }
         }
 
@@ -351,6 +453,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.K)) SeverTest();
             if (SandboxInput.KeyPressed(KeyCode.D)) GroundTest();
             if (SandboxInput.KeyPressed(KeyCode.J)) ShieldTest();
+            if (SandboxInput.KeyPressed(KeyCode.Alpha1)) TargetTest();
         }
 
         /// <summary>
@@ -1084,7 +1187,7 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawPanel(int id)
         {
-            GUILayout.Label("R reset · F fight · B bystander · L launch · K sever · D ground · G gallery · H rhythms · P pause · . step · T turn · M mark");
+            GUILayout.Label("R reset · F fight · 1 target test · B bystander · L launch · K sever · D ground · G gallery · H rhythms · P pause · . step · T turn · M mark");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Reset")) Spawn();
@@ -1105,7 +1208,41 @@ namespace PhysicsBattler.Sandbox
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Shield test (J)")) ShieldTest();
+            if (GUILayout.Button(targetTest ? "Back to the battle" : "Target test (1)"))
+            {
+                if (targetTest) BattleLayout(); else TargetTest();
+            }
             GUILayout.EndHorizontal();
+            if (targetTest)
+            {
+                // (Each respawns the test with the other body: the attackers with their weapon, a Large's club or a
+                // Medium's sword; the targets with what they stand with.)
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(largeAttackers ? "Attackers: Larges" : "Attackers: Mediums"))
+                {
+                    largeAttackers = !largeAttackers;
+                    TargetTest();
+                }
+
+                if (GUILayout.Button(largeTargets ? "Targets: Larges" : "Targets: Mediums"))
+                {
+                    largeTargets = !largeTargets;
+                    TargetTest();
+                }
+                GUILayout.EndHorizontal();
+                bool harmed = GUILayout.Toggle(targetsHarmed, "Targets take harm (off: they can't be hurt or cut)");
+                if (harmed != targetsHarmed)
+                {
+                    targetsHarmed = harmed;
+                    foreach (var u in units)
+                    {
+                        if (u != null && u.TargetDummy)
+                        {
+                            u.Unharmed = !targetsHarmed;
+                        }
+                    }
+                }
+            }
             bool tired = GUILayout.Toggle(tiredAll, "Everyone tired (Fight Rhythm energy 25%)");
             if (tired != tiredAll)
             {

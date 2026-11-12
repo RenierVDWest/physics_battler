@@ -33,6 +33,22 @@ namespace PhysicsBattler.Units
         /// <summary>The walk the fight loop wants of it (world, m/s, flat): its steering, instead of moving its root.</summary>
         public Vector3 ClipWant { get; set; }
 
+        /// <summary>
+        /// A target dummy (the sandbox's target test): it stands on its spot (<see cref="DummySpot"/>), faces whoever is
+        /// nearest and never strikes; it meets blows as what it carries has it (nothing: open; a shield; a sword), and
+        /// walks back to its spot when a blow has driven it off.
+        /// </summary>
+        public bool TargetDummy;
+
+        /// <summary>Where a target dummy stands (world).</summary>
+        public Vector3 DummySpot;
+
+        /// <summary>It takes no harm: a blow costs it no health and cuts nothing off, so it can be struck again and again (it still reacts, and its poise still breaks).</summary>
+        public bool Unharmed;
+
+        /// <summary>The one enemy it fights (the target test pairs each attacker with a dummy); null: it chooses its own.</summary>
+        public UnitController OnlyTarget;
+
         /// <summary>How hard the fight loop is pushing it off other bodies (0 to 1 of its walking pace): its circling gives way to it.</summary>
         public float ClipCrowded { get; set; }
 
@@ -868,7 +884,7 @@ namespace PhysicsBattler.Units
             // (Milestone 5's severing, for clip fighters (the plan "Bringing the lab into the fight", step 7): an edge across a
             // joint, fast and hard enough, cuts the limb off there; judged before the blow moves anything.)
             PartId? cut = null;
-            if (s.CanCut && Severs && Clip.Strikes != null && struck.Rig != null)
+            if (s.CanCut && Severs && !struck.Unharmed && Clip.Strikes != null && struck.Rig != null)
             {
                 cut = struck.SeverCut(struck.Rig.Part(s.Part), Clip.Strikes.Weapon, s.With, Loadout.Scale, s.Speed, s.Direction, s.BladeFrom, s.BladeTo, s.Point,
                     s.Damage, out report.SeverMiss);
@@ -968,7 +984,11 @@ namespace PhysicsBattler.Units
             }
 
             var r = hit.Result;
-            Health = Mathf.Max(0f, Health - r.Damage);
+            if (!Unharmed)
+            {
+                Health = Mathf.Max(0f, Health - r.Damage);
+            }
+
             Clip.Health = Health;
             Rhythm?.NoteHit(r.Damage / Mathf.Max(1f, profile.maxHealth));
             Tempo?.NoteHit(r.PoiseDamage / Mathf.Max(1f, profile.maxPoise));
