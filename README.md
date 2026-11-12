@@ -1592,6 +1592,11 @@ the game view (300×300, 8 per second of game time) into `frames/`. The panel sh
 *New log* starts a fresh folder; logs close when Play stops.
 
 To share one: stop Play, then commit and push the session folder.
+`python3 Tools/Playtest/ground.py PlaytestLogs/<session>` and `feet.py` measure how the feet meet the ground in a
+session and whether the body is balanced over them (a foot planted, sliding, low in the air or stepping; how long
+swings last; the centre of gravity against the feet's support). They are the measures of the plan "Grounded legs"
+(https://claude.ai/artifact/P8Du2bu8f7hN8xMaVSY5xP, 12 November 2026: research and plan only, nothing built).
+
 `python3 Tools/Playtest/analyze.py PlaytestLogs` analyses the newest session: a report with flags (sliding feet,
 weight off the feet, pinned parts lagging, shaking, blows that miss, friendly fire), a table of every blow and every
 hit, each unit's stumbles, knock-downs and get-ups (flagging any that never got up), an overview and a timeline per unit (with health and poise; stumbling, down and getting up shaded), film strips of hits, stick-figure film strips of each unit's idle, its turns, its blows (attacker and target, seen from
