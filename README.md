@@ -2774,6 +2774,65 @@ Not verified: how it looks, and Unity. In particular whether a fighter driven ba
 itself in its stance or as sliding back with its feet pattering under it; the feet take a fifth of a second a
 step whatever the push, and the body is not leaning into it (steps 3 and 4).
 
+In Unity since (the target test, 13 November, 78 s): as headless. A step in the stance lasts 0.22 s at the middle,
+the two armed targets step in their stance 55 and 58% of the time and walk off a shove 9 and 10% (a third before).
+The worst slides in that log are 54 to 59 cm, a target walking off a hard shove: the walk's own catch steps, which
+this did not touch.
+
+**The weight over the feet (the plan "Grounded legs", step 3)** (13 November). Three things, behind the Combat
+Feel's `weightShifts` (off: the hips stay where the standing animation has them, as in step 2).
+
+- *The weight shifts onto the carrying foot.* Standing in its stance, the hips go toward the foot that carries the
+  body while the other steps, and come back between the feet when both are down (`weightShift`: 0.4 of the way
+  from the middle of the stance to over that foot, about 17 cm for a Medium; `weightShiftTakes`). Never further
+  than both legs reach.
+- *A step from standing waits for it* (`stepWaitsForTheWeight`, 0.14 s). Settling into the stance after a strike
+  or a stop, or stepping round to face, the weight goes over first and then the foot lifts; one foot at a time.
+  Five to eight steps a minute for each fighter wait like this.
+- *The hips are placed over the support.* Standing on both feet with the body's weight off what the feet hold
+  (the upper body leaning, a stance landed a little ahead of the hips), the hips go the way the weight has to, up
+  to 14% of a leg's length, until it is over them, and ease back when it would stay.
+
+**The plan's measure for this step was wrong, and I have not met it.** It asked that on one foot the weight be
+over that foot. In this stance the feet are 85 cm apart, so that is a 35 cm swing of the hips and everything on
+them, there and back, for every step, and the steps are a fifth of a second. Nobody steps like that, and a body
+does not need to: with its weight 35 cm from the carrying foot it falls toward the lifted one at 3.7 m/s2, which
+in a fifth of a second is 9 cm and 0.8 m/s, and the foot coming down catches it. Pushed off the lifting foot
+first, as a person does, the sway is 2 to 5 cm. So while a fighter steps at a step's pace the shift is a third of
+`weightShift` (5 cm), and the full shift is for a step taken from standing, where the body has no going to carry
+it. The measure that says whether a quick step holds the body up is where the body would have to put a foot to
+stop itself, as the stepping foot comes down; the report has that now.
+
+Four fights of six, 60 s, the same seeds, step 2 against this:
+
+| | step 2 | now |
+|---|---|---|
+| Still on both feet: the weight off what they hold | 11 to 19% of the time (by over 3 cm 2 to 8%) | 4 to 11% (1 to 2%) |
+| On one foot in the stance, the body slow: the weight outside that foot | 37 to 38 cm | 26 to 35 cm |
+| The same, the body going: the weight outside that foot | 41 to 42 cm | 37 to 40 cm |
+| The same: where a foot is needed to stop the body, outside that foot | 45 to 46 cm | 26 to 30 cm |
+| As a stepping foot comes down: a foot needed over 10 cm outside the two | 19 to 20% of landings | 15 to 22% |
+| Standing still; stepping in the stance; walking | 10 to 16%; 29 to 39%; 11 to 13% | 12 to 21%; 31 to 37%; 9 to 11% |
+| A foot on the ground and sliding | 3% of the time, 1.0 to 1.9 m a minute | 3%, 1.1 to 1.7 m |
+| Blows started; blows that met something | 256; 239 | 271; 268 |
+
+Against the plan: standing with the weight inside the support over 95% of the time is met in three fights of four
+(89, 94, 96 and 96%; over 3 cm outside 1 to 2% of the time in all four). On one foot over that foot is not, as
+above. The landing row is unchanged: one landing in six still leaves the body needing a foot over 10 cm from
+where its two are. Two feet in a stance hold a strip of ground 10 cm wide between them, and a body going across
+that strip at a step's pace is ahead of it; that is the next step of the plan (a step lands where it holds the
+body up), not this one.
+
+Not done from the plan's step 3: "a lean the feet cannot hold triggers a step". A body pressed off its pose is
+already carried the way it is pressed, and its feet now step after it; a step placed for the lean is step 4.
+
+The playtest log's frames have `hipShift` (cm). The fight report has the weight over the feet in the stance, slow
+and going, and each landing. For a run: `FIGHT_SHIFT=0` (off), `FIGHT_SHIFT="0.4,0.14"` (the share, the wait).
+
+Not verified: how it looks, and Unity. The shift before a step from standing should be plain to see after each
+strike, as the fighter settles: the hips go to one side, a foot steps, they go to the other, the other steps. If
+it reads as rocking, `weightShift` is the dial; if the settling now drags, `stepWaitsForTheWeight`.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

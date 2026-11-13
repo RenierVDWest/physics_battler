@@ -165,6 +165,8 @@ namespace PhysicsBattler.Diagnostics
             // steering has asked for and it has not yet stepped, cm.)
             frames.Add("stepping", unit.Clip.StepState);
             frames.Add("owed", 100f * unit.Clip.Pacer.Owed.magnitude, 1);
+            // (The weight over the feet, the plan's step 3: how far the hips are shifted toward the carrying foot, cm.)
+            frames.Add("hipShift", 100f * unit.Clip.Poser.HipShift.magnitude, 1);
             frames.End();
             samples++;
             if (writePose && unit.Authority != null)

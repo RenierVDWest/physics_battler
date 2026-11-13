@@ -146,6 +146,7 @@ namespace PhysicsBattler.Locomotion
             // The feet first (the hips drop for them).
             UpdateFeet(dt);
             Pelvis(out Vector3 pelvisAt, out var pelvisTurn);
+            pelvisAt += ShiftHips(pelvisAt, pelvisTurn, dt);
             float drop = 0f;
             for (int f = 0; f < 2; f++)
             {
@@ -206,10 +207,127 @@ namespace PhysicsBattler.Locomotion
         public void UpdateFeet(float dt)
         {
             clock += dt;
+            shiftAsked = false;
             for (int f = 0; f < 2; f++)
             {
                 HoldFoot(f, dt);
             }
+
+            if (!shiftAsked)
+            {
+                shiftsFor = -1;
+            }
+        }
+
+        // ---- The weight over the feet (the plan "Grounded legs", step 3) ---------------------------------------
+
+        /// <summary>
+        /// The weight shifts before a foot lifts (the scene's Combat Feel, "Weight Shifts"). Standing in its stance, the
+        /// hips go toward the foot that carries the body while the other steps, and a step taken from standing waits
+        /// a moment for them to. The stance is wide: with the hips kept in its middle a foot lifted while all the
+        /// body's weight was half a stance away from the one left standing.
+        /// </summary>
+        public static bool WeightShifts = true;
+
+        /// <summary>
+        /// How far the hips go toward the carrying foot, as a share of the way from where the stance has them to over
+        /// that foot (<see cref="ShiftShare"/>, standing or going slowly), and how much of that is left while the body
+        /// is going at a step's pace (<see cref="ShiftGoing"/>: there each step is a fifth of a second and the body is
+        /// carried by its going, toward the foot it has lifted).
+        /// </summary>
+        public static float ShiftShare = DefaultShiftShare;
+
+        public const float DefaultShiftShare = 0.4f, ShiftGoing = 0.3f;
+
+        /// <summary>How long the hips take over it (seconds, the half of the way), and how long a step from standing waits for them before its foot lifts.</summary>
+        public static float ShiftTime = DefaultShiftTime, ShiftWaits = DefaultShiftWaits;
+
+        public const float DefaultShiftTime = 0.08f, DefaultShiftWaits = 0.14f;
+
+        /// <summary>How far the hips are shifted now from where the clip has them (world, flat, metres).</summary>
+        public Vector3 HipShift => hipShift;
+
+        /// <summary>Steps from standing that waited for the weight to shift (for the reports).</summary>
+        public int ShiftedSteps { get; private set; }
+
+        /// <summary>
+        /// Standing on both feet with the body's weight off what they hold: which way, and how far, it has to go to be
+        /// over them (world, flat, metres; zero when it is; set each step by whoever reads the body's weight). The hips
+        /// are placed over the support: they go that way until the weight is on it (<see cref="BalanceGain"/> of what
+        /// is left a second, <see cref="MostBalance"/> leg lengths at most), and ease back when it would stay on it.
+        /// </summary>
+        public Vector3 WeightOff;
+
+        public const float BalanceGain = 6f, MostBalance = 0.14f, BalanceEases = 1.5f;
+
+        private Vector3 balance;
+
+        private Vector3 hipShift, hipShiftSpeed;
+        private int shiftsFor = -1;
+        private float shiftWaited;
+        private bool shiftAsked;
+
+        /// <summary>Stepping in its stance, standing: where the weight is shifted.</summary>
+        private bool ShiftsNow => WeightShifts && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle;
+
+        private Vector3 ShiftHips(Vector3 pelvisAt, Quaternion pelvisTurn, float dt)
+        {
+            Vector3 want = Vector3.zero;
+            if (ShiftsNow)
+            {
+                // (The foot that carries: the one down while the other steps, or the one a waiting step will leave down.)
+                bool left = Feet[0].Locked, right = Feet[1].Locked;
+                int carries = left != right ? (left ? 0 : 1) : left && shiftsFor >= 0 ? 1 - shiftsFor : -1;
+                if (carries >= 0)
+                {
+                    float pace = loco.Going.magnitude / Mathf.Sqrt(loco.Leg / 0.85f);
+                    float going = Mathf.Clamp01((pace - 0.2f) / 0.5f);
+                    float share = ShiftShare * Mathf.Lerp(1f, ShiftGoing, going * going * (3f - 2f * going));
+                    Vector3 to = Feet[carries].Target - pelvisAt;
+                    to.y = 0f;
+                    want = Vector3.ClampMagnitude(to * share, 0.35f * loco.Leg);
+                }
+            }
+
+            // (Both feet down: the hips over what they hold.)
+            if (ShiftsNow && Feet[0].Locked && Feet[1].Locked && shiftsFor < 0)
+            {
+                Vector3 off = WeightOff;
+                off.y = 0f;
+                balance = off.sqrMagnitude > 1e-8f
+                    ? Vector3.ClampMagnitude(balance + off * Mathf.Min(1f, BalanceGain * dt), MostBalance * loco.Leg)
+                    : balance * Mathf.Exp(-dt / BalanceEases);
+            }
+            else
+            {
+                balance *= Mathf.Exp(-dt / (ShiftsNow ? 0.6f : 0.2f));
+            }
+
+            want += balance;
+            Springs.Track(ref hipShift, ref hipShiftSpeed, want, Mathf.Max(0.02f, ShiftTime), dt);
+            hipShift.y = 0f;
+            // (No further than both legs reach, the hips let down as far as they are for a leg: a leg past its reach
+            // is what the engine cannot take.)
+            for (int tries = 0; tries < 4 && hipShift.sqrMagnitude > 1e-8f; tries++)
+            {
+                bool reaches = true;
+                for (int f = 0; f < 2 && reaches; f++)
+                {
+                    Vector3 to = Feet[f].Target - HipPoint(f, pelvisAt + hipShift, pelvisTurn);
+                    float deep = Mathf.Max(0f, -to.y - 0.1f * legReach);
+                    reaches = new Vector2(to.x, to.z).sqrMagnitude + deep * deep <= 0.96f * legReach * legReach;
+                }
+
+                if (reaches)
+                {
+                    break;
+                }
+
+                hipShift *= tries == 3 ? 0f : 0.6f;
+                hipShiftSpeed = Vector3.zero;
+            }
+
+            return hipShift;
         }
 
         /// <summary>Lets go of both feet at once (the walk hands the body over, or is handed it).</summary>
@@ -236,6 +354,8 @@ namespace PhysicsBattler.Locomotion
 
             PelvisDrop = 0f;
             dropSpeed = 0f;
+            hipShift = hipShiftSpeed = balance = Vector3.zero;
+            shiftsFor = -1;
         }
 
         /// <summary>The walk's pelvis (world): its place (before any drop for the legs) and its turn, from the hips' line and the lower spine.</summary>
@@ -1702,6 +1822,35 @@ namespace PhysicsBattler.Locomotion
                         && Vector3.Dot(other.Posed - posed, loco.Going) > 0f)
                     {
                         settling = false;
+                    }
+                }
+
+                if (settling && !going && ShiftsNow && ShiftWaits > 0f)
+                {
+                    // (A step from standing: the weight goes over to the other foot first, and then this one lifts.
+                    // One foot at a time: while the other is waiting to, this one stands.)
+                    if (shiftsFor >= 0 && shiftsFor != f)
+                    {
+                        settling = false;
+                    }
+                    else
+                    {
+                        if (shiftsFor != f)
+                        {
+                            shiftsFor = f;
+                            shiftWaited = 0f;
+                        }
+
+                        shiftAsked = true;
+                        shiftWaited += dt;
+                        if (shiftWaited < ShiftWaits)
+                        {
+                            settling = false;
+                        }
+                        else
+                        {
+                            ShiftedSteps++;
+                        }
                     }
                 }
 

@@ -217,6 +217,25 @@ internal static class FightReport
         }
 
         if (Environment.GetEnvironmentVariable("FIGHT_STANDTRACE") == "1") { PhysicsBattler.Locomotion.Locomotor.StandTrace = m => Console.WriteLine("[stand] " + m); }
+        // (The weight over the feet: FIGHT_SHIFT=0 keeps the hips where the clip has them; "share,waits" sets how far they
+        // go toward the carrying foot and how long a step from standing waits for them (seconds).)
+        {
+            var sh = (Environment.GetEnvironmentVariable("FIGHT_SHIFT") ?? "").Split(',');
+            if (sh.Length >= 1 && float.TryParse(sh[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float share))
+            {
+                PhysicsBattler.Locomotion.LocoBody.WeightShifts = share > 0f;
+                if (share > 0f)
+                {
+                    PhysicsBattler.Locomotion.LocoBody.ShiftShare = share;
+                }
+
+                if (sh.Length >= 2 && float.TryParse(sh[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float waits))
+                {
+                    PhysicsBattler.Locomotion.LocoBody.ShiftWaits = waits;
+                }
+            }
+        }
+
         GroundMeasure.TraceSlides = Environment.GetEnvironmentVariable("FIGHT_SLIDETRACE") == "1";
 
         // (FIGHT_PACETRACE="A Swordsman,17,21": each step of that fighter's pacing between those seconds, written out.)

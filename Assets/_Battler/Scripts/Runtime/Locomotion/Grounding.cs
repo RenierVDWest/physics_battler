@@ -369,6 +369,33 @@ namespace PhysicsBattler.Locomotion
         private static float Cross(Vector2 o, Vector2 a, Vector2 b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
 
         /// <summary>How far a point is outside an outline (metres; 0: inside it; no outline: not a number; a line or a point: how far from it).</summary>
+        /// <summary>The nearest place on the support to <paramref name="p"/> (itself, when it is on it; with no support, itself).</summary>
+        public static Vector2 Nearest(List<Vector2> hull, Vector2 p)
+        {
+            int n = hull.Count;
+            if (n == 0 || Outside(hull, p) <= 0f)
+            {
+                return p;
+            }
+
+            Vector2 nearest = hull[0];
+            float best = float.MaxValue;
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 a = hull[i], b = hull[(i + 1) % n], e = b - a, to = p - a;
+                float len = e.sqrMagnitude;
+                Vector2 at = a + e * (len > 0f ? Mathf.Clamp01(Vector2.Dot(to, e) / len) : 0f);
+                float off = (p - at).sqrMagnitude;
+                if (off < best)
+                {
+                    best = off;
+                    nearest = at;
+                }
+            }
+
+            return nearest;
+        }
+
         public static float Outside(List<Vector2> hull, Vector2 p)
         {
             int n = hull.Count;

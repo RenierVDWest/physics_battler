@@ -994,6 +994,15 @@ namespace PhysicsBattler.Locomotion
             }
 
             Ground.Read(Rig, groundLevel, Size, restAnkle, dt);
+            // (The weight over the feet, the plan's step 3: standing on both feet with its weight off what they hold, the
+            // hips are told which way it has to go.)
+            Poser.WeightOff = Vector3.zero;
+            if (Ground.Known && Ground.FeetDown == 2 && Ground.WeightOut > 0f)
+            {
+                var weight = new Vector2(Ground.Weight.x, Ground.Weight.z);
+                var onto = Grounding.Nearest(Ground.Support, weight);
+                Poser.WeightOff = new Vector3(onto.x - weight.x, 0f, onto.y - weight.y);
+            }
         }
 
         private void MoveOn(float dt, Vector3 want, float yaw, Vector3 opponent, bool frozen)

@@ -25,7 +25,7 @@ public sealed class GroundMeasure
         public readonly int[] SlideSteps = new int[2];
         public readonly Vector3[] SlideTarget = new Vector3[2];
         public readonly float[] SlideFacing = new float[2], SlideYaw = new float[2];
-        public int ModeWas = -1, ModeFrom = -1;
+        public int ModeWas = -1, ModeFrom = -1, DownWas = -1;
         public readonly Vector3[] TargetWas = new Vector3[2];
         public readonly float[] YawWas = new float[2], ContactPath = new float[2], ContactFor = new float[2], ContactLoose = new float[2], ContactLooseFor = new float[2];
         public readonly bool[] HeldKnown = new bool[2], InContact = new bool[2], WasLocked = new bool[2];
@@ -60,6 +60,9 @@ public sealed class GroundMeasure
     private float slidMetres;
     private readonly List<(float length, string who, float at, int mode)> slides = new List<(float, string, float, int)>();
     private readonly List<(float lasted, float foot, float body, int mode)> swings = new List<(float, float, float, int)>();
+    private readonly List<float> stanceSlowOut = new List<float>(), stanceGoingOut = new List<float>(), stanceSlowNeeded = new List<float>(), stanceGoingNeeded = new List<float>();
+    private readonly float[] shiftSum = new float[2];
+    private readonly List<float> landedNeeded = new List<float>();
     private readonly List<float> oneFootOut = new List<float>(), standingOut = new List<float>(), stanceOff = new List<float>();
     private readonly List<float>[] neededOut = { new List<float>(), new List<float>(), new List<float>() };
 
@@ -302,6 +305,20 @@ public sealed class GroundMeasure
                 oneFootOut.Add(g.WeightOut / size);
             }
 
+            // (As a stepping foot comes down in the stance: is the body where its two feet can stop it?)
+            if (down == 2 && t.DownWas == 1 && mode == 0 && t.Seen && !float.IsNaN(g.NeededOut))
+            {
+                landedNeeded.Add(g.NeededOut / size);
+            }
+
+            t.DownWas = down;
+            if (down == 1 && mode == 0 && !float.IsNaN(g.WeightOut))
+            {
+                (speed < 0.3f ? stanceSlowOut : stanceGoingOut).Add(g.WeightOut / size);
+                (speed < 0.3f ? stanceSlowNeeded : stanceGoingNeeded).Add(float.IsNaN(g.NeededOut) ? 0f : g.NeededOut / size);
+                shiftSum[speed < 0.3f ? 0 : 1] += clip.Poser.HipShift.magnitude / size;
+            }
+
             if (down == 2 && speed < 0.15f && !float.IsNaN(g.WeightOut))
             {
                 standingOut.Add(g.WeightOut / size);
@@ -379,6 +396,29 @@ public sealed class GroundMeasure
         {
             oneFootOut.Sort();
             sb.AppendLine($"      on one foot, standing or walking, the body moving under 0.3 m/s ({oneFootOut.Count / 60f:0} unit-seconds): the weight is outside that foot by {100f * At(oneFootOut, 0.5f):0} cm at the middle, a quarter of the time over {100f * At(oneFootOut, 0.75f):0} cm");
+        }
+
+        if (stanceSlowOut.Count + stanceGoingOut.Count > 0)
+        {
+            string Line(List<float> outs, List<float> needed, float shifted)
+            {
+                if (outs.Count == 0)
+                {
+                    return "never";
+                }
+
+                outs.Sort();
+                needed.Sort();
+                return $"{outs.Count / 60f:0} unit-seconds, the weight outside that foot by {100f * At(outs, 0.5f):0} cm at the middle (a quarter over {100f * At(outs, 0.75f):0}), the place a foot is needed {100f * At(needed, 0.5f):0} cm outside it, the hips shifted {100f * shifted / outs.Count:0} cm on average";
+            }
+
+            int waited = units.Sum(u => u.Clip != null ? u.Clip.Poser.ShiftedSteps : 0);
+            if (landedNeeded.Count > 0)
+            {
+                sb.AppendLine($"      as a stepping foot comes down in the stance ({landedNeeded.Count} times): the place a foot is needed to stop the body is on what the two feet hold {100f * landedNeeded.Count(x => x <= 0f) / landedNeeded.Count:0}% of the time, within 5 cm of it {100f * landedNeeded.Count(x => x <= 0.05f) / landedNeeded.Count:0}%, over 10 cm outside it {100f * landedNeeded.Count(x => x > 0.10f) / landedNeeded.Count:0}%");
+            }
+
+            sb.AppendLine($"      the weight over the feet (the plan's step 3), standing in the stance on one foot: the body under 0.3 m/s: {Line(stanceSlowOut, stanceSlowNeeded, shiftSum[0])}; going faster: {Line(stanceGoingOut, stanceGoingNeeded, shiftSum[1])}; steps from standing that waited for the weight to shift: {waited} ({waited / Mathf.Max(1e-3f, minutes):0.0} a minute for each fighter)");
         }
 
         if (standingOut.Count > 0)

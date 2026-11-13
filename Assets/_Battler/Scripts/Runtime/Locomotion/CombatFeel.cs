@@ -252,6 +252,19 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Where a slow step is walked with the guard's walking animation (with 'stepsInTheStance' off, and while a shove is walked off), how much quicker than recorded the feet go (times). The recorded swings last 0.5 to 0.7 s; at 1.6 they last 0.3 to 0.45 s, and the strides are that much shorter. 1: the rhythm as recorded, slowing with the body as before. Default 1.6.")]
         [Range(1f, 2.2f)] public float walkedStepRhythm = Locomotor.DefaultStepCadence;
 
+        [Header("The legs: the weight over the feet (the plan \"Grounded legs\", step 3)")]
+        [Tooltip("The weight shifts before a foot lifts. Standing in its stance, a fighter's hips go toward the foot that carries it while the other foot steps, and come back between its feet when both are down. A step taken from standing (settling into the stance after a strike or a stop, stepping round to face) waits a moment first, for the hips to go over ('stepWaitsForTheWeight'). The stance is wide: with the hips kept in its middle, a foot lifted while the body's weight was a third of a metre from the foot left standing. Stepping in the stance at a step's pace the shift is small (a third of it): there each step is a fifth of a second and the body is carried by its own going. Off: the hips stay where the standing animation has them.")]
+        public bool weightShifts = true;
+
+        [Tooltip("How far the hips go toward the carrying foot, as a share of the way from the middle of the stance to over that foot (0 to 1). At 0.4 a Medium's hips go about 17 cm; at 1 they would be over the foot, which for this stance is a big sway of the whole upper body at every step. Higher: the body visibly rocks onto each foot; lower: it stays centred and the lifted foot looks unweighted. It never goes further than both legs reach. Default 0.4.")]
+        [Range(0.05f, 1f)] public float weightShift = LocoBody.DefaultShiftShare;
+
+        [Tooltip("How long a step taken from standing waits for the weight to go over to the other foot before its own foot lifts (seconds). 0: the foot lifts at once and the hips go over as it does. Higher: the shift is seen before the step, and settling into the stance takes that much longer for each foot. Steps taken while the body is going do not wait. Default 0.14.")]
+        [Range(0f, 0.4f)] public float stepWaitsForTheWeight = LocoBody.DefaultShiftWaits;
+
+        [Tooltip("How quickly the hips go over (seconds: half of the way in this time). Lower: a sharp shift; higher: a slow sway that lags the feet. Default 0.08.")]
+        [Range(0.03f, 0.3f)] public float weightShiftTakes = LocoBody.DefaultShiftTime;
+
         [Header("Heavy weapons: the weapon is the steady one, what it lands on gives way")]
         [Tooltip("How much heavier a blow that lands on a body is felt than its weapon's own weight says (times). It multiplies what the struck body takes: how far the part struck is thrown, how far the body bends and leans, how hard it is driven back, whether it is thrown back stumbling, which reaction it plays. It does not change the damage, the poise a blow costs, or what a shield or a parry takes. 1: the weapons' own weights (a sword lands on a Medium at about 0.4 m/s, the Large's club at 1.2 to 3). Default 3, exaggerated on purpose: a sword's blow to the chest then drives a Medium back about a third of a metre, the Large's club a metre. Lower it to pull the weight back.")]
         [Range(1f, 6f)] public float weaponWeight = DefaultWeaponWeight;
@@ -382,6 +395,10 @@ namespace PhysicsBattler.Locomotion
             Locomotor.StepsInStanceOn = true;
             Locomotor.ShovesInStance = true;
             LocoBody.StepTime = LocoBody.DefaultStepTime;
+            LocoBody.WeightShifts = true;
+            LocoBody.ShiftShare = LocoBody.DefaultShiftShare;
+            LocoBody.ShiftWaits = LocoBody.DefaultShiftWaits;
+            LocoBody.ShiftTime = LocoBody.DefaultShiftTime;
             LocoBody.StepHeight = LocoBody.DefaultStepHeight;
             StepPacer.StepWorth = StepPacer.DefaultStepWorth;
             StepPacer.StepPace = StepPacer.DefaultStepPace;
@@ -463,6 +480,10 @@ namespace PhysicsBattler.Locomotion
             Locomotor.StepsInStanceOn = stepsInTheStance;
             Locomotor.ShovesInStance = shovesSteppedInTheStance;
             LocoBody.StepTime = Mathf.Clamp(stepTakes, 0.15f, 0.4f);
+            LocoBody.WeightShifts = weightShifts;
+            LocoBody.ShiftShare = Mathf.Clamp(weightShift, 0.05f, 1f);
+            LocoBody.ShiftWaits = Mathf.Clamp(stepWaitsForTheWeight, 0f, 0.4f);
+            LocoBody.ShiftTime = Mathf.Clamp(weightShiftTakes, 0.03f, 0.3f);
             LocoBody.StepHeight = 0.01f * Mathf.Clamp(stepHeight, 2f, 14f);
             StepPacer.StepWorth = Mathf.Clamp(stepAfter, 0.08f, 0.6f);
             StepPacer.StepPace = Mathf.Clamp(stepPace, 0.3f, 0.9f);
