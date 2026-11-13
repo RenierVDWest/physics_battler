@@ -1072,6 +1072,11 @@ namespace PhysicsBattler.Locomotion
         /// <summary>For the reports: how far the gate moved each wrist from where the pose had it this step (metres), and how far it turned each hand (degrees): left, right.</summary>
         public readonly float[] ArmMovedBy = new float[2], HandTurnedBy = new float[2];
 
+        /// <summary>For the reports: steps the gate held an arm's speed, by what it held (the elbow's place, its bend, its fold, the wrist, the forearm's roll, the hand on the forearm): the weapon arm in a strike, and every other arm and time.</summary>
+        public readonly int[] ArmSlowedStriking = new int[6], ArmSlowedElse = new int[6];
+
+        private readonly int[,] slowedSeen = new int[2, 6];
+
         /// <summary>
         /// The gate at the end of the pose (the plan "Arms that bend as a body does", step 2): after every stage has had
         /// its say (the clip, the strike's aim, the shield, the parry, the knocks, the free arm), each arm is read as a
@@ -1263,6 +1268,16 @@ namespace PhysicsBattler.Locomotion
                 ArmHeldBy[side] = armGates[side].Hold(Anim, left, clip, dt);
                 ArmMovedBy[side] = Vector3.Distance(wristSent, hand.position);
                 HandTurnedBy[side] = Quaternion.Angle(handSent, hand.rotation);
+                // (For the reports: what of the arm's speed the gate held this step, the weapon arm in a strike apart.)
+                for (int k = 0; k < 6; k++)
+                {
+                    int now = armGates[side].Slowed[k];
+                    if (now != slowedSeen[side, k])
+                    {
+                        slowedSeen[side, k] = now;
+                        (Striking && (side == 1 || Poser.TwoHanded) ? ArmSlowedStriking : ArmSlowedElse)[k]++;
+                    }
+                }
                 // (For the reports: a joint the gate turned far in a step that the pose sent had hardly turned.)
                 var goneTurns = (upper.localRotation, fore.localRotation, hand.localRotation);
                 if (armTurnsKnown[side])

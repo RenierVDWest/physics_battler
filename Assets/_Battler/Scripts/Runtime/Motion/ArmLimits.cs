@@ -432,11 +432,16 @@ namespace PhysicsBattler.Motion
         /// <summary>
         /// The fastest the gate follows the arm it is sent, each of the elbow's place, its fold, the wrist and the
         /// forearm's roll (degrees a second, before the pace is added; 0: however fast it is sent): the scene's Combat
-        /// Feel, "Arm Follows At Most". A sword arm in a strike turns about its shoulder at 900 or so.
+        /// Feel, "Arm Follows At Most". The fastest of the clips turns a joint 42 degrees in a step (2500 a second), and
+        /// with the pace this lets that through: at 1500 an elbow straightening in a blow, a forearm rolling and a wrist
+        /// snapping were held back a step or so in nearly every strike, and one attack in ten lost its hit.
         /// </summary>
         public static float MostSent = DefaultMostSent;
 
-        public const float DefaultMostSent = 1500f;
+        public const float DefaultMostSent = 2400f;
+
+        /// <summary>For the reports: steps the gate held an arm's speed (the arm sent moved faster than <see cref="MostSent"/>), by what it held: the elbow's place, its bend, its fold, the wrist, the forearm's roll, the hand on the forearm.</summary>
+        public readonly int[] Slowed = new int[6];
 
         /// <summary>
         /// A gap in a range that goes round narrower than this (degrees: the fold's turn and the forearm's roll, as
@@ -539,7 +544,9 @@ namespace PhysicsBattler.Motion
             Vector3 allowed = ArmLimits.NearestAllowed(u, clip, known, outAlong);
             if (known)
             {
-                float most = Mathf.Min(Vector3.Angle(alongCame, inAlong), quick) + pace;
+                float came = Vector3.Angle(alongCame, inAlong);
+                float most = Mathf.Min(came, quick) + pace;
+                Slowed[0] += came > quick && Vector3.Angle(outAlong, allowed) > most ? 1 : 0;
                 if (Vector3.Angle(outAlong, allowed) > most)
                 {
                     allowed = ArmLimits.NearestAllowed(Vector3.RotateTowards(outAlong, allowed, most * Mathf.Deg2Rad, 0f).normalized, clip, true, outAlong);
@@ -591,6 +598,7 @@ namespace PhysicsBattler.Motion
             if (known && quick < float.MaxValue)
             {
                 float most = Mathf.Min(Mathf.Abs(bendCame - inBend), quick) + pace;
+                Slowed[1] += Mathf.Abs(bend - outBend) > most ? 1 : 0;
                 if (Mathf.Abs(bend - outBend) > most)
                 {
                     float to = outBend + Mathf.Sign(bend - outBend) * most;
@@ -647,7 +655,9 @@ namespace PhysicsBattler.Motion
                 if (from)
                 {
                     // (As far as the fold that came turned itself, and the pace; one read from the step before, the pace alone.)
-                    float moved = foldFromLast ? 0f : Mathf.Min(Vector3.Angle(fold, Vector3.ProjectOnPlane(inFold, u)), quick);
+                    float foldCameBy = foldFromLast ? 0f : Vector3.Angle(fold, Vector3.ProjectOnPlane(inFold, u));
+                    Slowed[2] += foldCameBy > quick ? 1 : 0;
+                    float moved = Mathf.Min(foldCameBy, quick);
                     into = From(last, into, low, high, moved + pace, pace);
                 }
 
@@ -692,7 +702,9 @@ namespace PhysicsBattler.Motion
             Vector3 lies = ArmLimits.NearestWrist(inHand, left, clip, known && wristKnown, outWrist);
             if (known && wristKnown)
             {
-                float most = Mathf.Min(Vector3.Angle(wristCame, inWrist), quick) + pace;
+                float came = Vector3.Angle(wristCame, inWrist);
+                float most = Mathf.Min(came, quick) + pace;
+                Slowed[3] += came > quick && Vector3.Angle(outWrist, lies) > most ? 1 : 0;
                 if (Vector3.Angle(outWrist, lies) > most)
                 {
                     lies = ArmLimits.NearestWrist(Vector3.RotateTowards(outWrist, lies, most * Mathf.Deg2Rad, 0f).normalized, left, clip, true, outWrist);
@@ -731,7 +743,9 @@ namespace PhysicsBattler.Motion
                     Vector3 was = Vector3.ProjectOnPlane(outThumb, f);
                     bool from = known && thumbKnown && was.sqrMagnitude > 1e-6f;
                     // (As far as the thumb sent turned itself, by as much as it says of the roll, now and the step before; and the pace.)
-                    float most = from ? Mathf.Min(Mathf.Min(says, inSays) * Vector3.Angle(sentThumb, Vector3.ProjectOnPlane(inThumb, f)), quick) + pace : 0f;
+                    float rollCame = from ? Mathf.Min(says, inSays) * Vector3.Angle(sentThumb, Vector3.ProjectOnPlane(inThumb, f)) : 0f;
+                    Slowed[4] += rollCame > quick ? 1 : 0;
+                    float most = from ? Mathf.Min(rollCame, quick) + pace : 0f;
                     Vector3 up = Vector3.ProjectOnPlane(-u, f);
                     Vector3 goes;
                     if (bend >= NoFoldUnder && up.sqrMagnitude > 1e-6f)
@@ -882,6 +896,7 @@ namespace PhysicsBattler.Motion
                 float most = (MostSent + CatchUp) * dt;
                 if (handKnown && Quaternion.Angle(handWas, hand.localRotation) > most)
                 {
+                    Slowed[5]++;
                     hand.localRotation = Quaternion.RotateTowards(handWas, hand.localRotation, most);
                 }
 

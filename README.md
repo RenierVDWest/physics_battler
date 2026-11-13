@@ -2415,10 +2415,14 @@ writes each one out): the parry about half, the strike's own arm a third, the sh
 Rather than a memory for each solver, the gate, which every arm goes through last, now also holds the speed. Three
 things, each with its own switch on the scene's Combat Feel under "Arms that bend as a body does":
 
-- **Arm Follows At Most** (1500 degrees a second; 0: off, as before). However far a stage threw the arm in a step,
+- **Arm Follows At Most** (2400 degrees a second; 0: off, as before). However far a stage threw the arm in a step,
   the gate follows it no faster than this (plus the gate's own pace of 600): the elbow's place, which way it folds,
-  how far it is bent, the wrist, the forearm's roll, each on its own. A snap becomes a fast move over three or four
-  steps (50 to 70 ms). A sword arm in a strike turns at about 900 degrees a second, so a real swing is left alone.
+  how far it is bent, the wrist, the forearm's roll, each on its own. A snap becomes a fast move over two or three
+  steps (30 to 50 ms). The fastest recorded strike turns a joint 42 degrees in a step (2500 a second: an elbow
+  straightening, a forearm rolling, a wrist snapping), and this lets that through. (First set to 1500: no joint then
+  turned over 60 degrees in a step at all, but those three were held back a step or so in nearly every strike, and
+  over four fights the attacks that hit anything fell from 77 to 68 in a hundred; with no limit, 78; at 2400, 81.
+  The fight report counts what the gate held, "the gate held an arm's speed", the weapon arm in a strike apart.)
 - **Arm Bones As A Body** (on). After the gate each arm's two bones are set the way a body's are for where its joints
   are (`ArmRig.SetBones`): the upper arm turned so the elbow's own axis lies across the arm, the forearm bent about
   that axis alone, the hand's turn kept. A limb is round, so nothing of this shows; what it stops is a solver's
@@ -2437,22 +2441,27 @@ Measured (fights of six, 60 s, four seeds; the target test), against the same bu
 
 | | Before | Now |
 | --- | --- | --- |
-| An arm's joint turned over 60° in a step, as sent to the physical body (a fight) | 59 to 73 times | 0, 0, 0, 1 |
-| Physical joints put where the pose turned them at once (a fight) | 38 to 48 | 0, 0, 0, 1 |
-| The same two in the target test (Mediums; Larges) | 45 and 33; 92 and 63 | 0 and 0; 1 and 0 |
-| The gate turning the swordsman's free arm back, in guard | 79 to 95% of the time | 20 to 32% |
-| and how far it turned that hand, 95% of the time under | 37° | 7° |
-| Blows blocked by a shield, parried, landed (fights of six) | 33%, 22%, 47% | 39%, 19%, 36% |
-| Blows the shield target blocked, the sword target parried (target test, Mediums) | 31 of 31, 21 of 27 | 29 of 30, 23 of 26 |
-| The same, Larges on Larges | 19 of 23, 13 of 26 | 16 of 25, 12 of 27 |
-| The head off its pose, 99% of the time under (the four fights) | 5.4 to 7.8 cm | 5.9 to 8.3 cm |
+| An arm's joint turned over 60° in a step, as sent to the physical body (a fight) | 59 to 73 times | 15, 9, 9, 4 |
+| Physical joints put where the pose turned them at once (a fight) | 38 to 48 | 2, 2, 3, 1 |
+| The same two in the target test (Mediums; Larges) | 45 and 33; 92 and 63 | 10 and 3; 20 and 7 |
+| The gate turning the swordsman's free arm back, in guard | 79 to 95% of the time | 28 to 33% |
+| and how far it turned that hand, 95% of the time under | 37° | 8° |
+| Attacks that hit something (a body, a shield, a blade), of 317 and 318 | 77% | 81% |
+| Blows blocked by a shield, parried, landed (fights of six) | 33%, 22%, 47% | 34%, 22%, 45% |
+| Blows the shield target blocked, the sword target parried (target test, Mediums) | 31 of 31, 21 of 27 | 26 of 26, 22 of 28 |
+| The same, Larges on Larges | 19 of 23, 13 of 26 | 15 of 21, 11 of 23 |
+| The head off its pose, 99% of the time under (the four fights) | 5.4 to 7.8 cm | 4.7 to 9.6 cm |
+
+("Now" is everything of this night on, as it is left; the tables of the stops and of the weapons' weight further
+down were measured while the arm's speed was still held at 1500.)
 
 The arm test (`armgate`) passes as it did. The fight report has, for each kind of unit, arm and state, how far the
 gate moved the wrist from where the pose had it and how far it turned the hand: in a strike the weapon hand is moved
 under 5 cm 95% of the time and 14 to 28 cm 1% of the time, before and now alike (that is the range, not the speed).
 
 Not verified, for the first look in Unity: whether a parry or a shield now looks late (headless they block and
-parry as often); whether a strike's hand looks soft where its wrist used to flick. Known: the swordsman's tucked
+parry as often); whether the snaps that are left (a joint over 60 degrees in a step some ten times a fight, where
+there were sixty) still show. Known: the swordsman's tucked
 arm is still moved by the gate a fifth of the time (the place it is tucked to is at the edge of where an elbow
 goes); a knock still poses a struck arm far outside the range for the gate to bring back (a struck sword arm a
 third of the time, the wrist moved 40 cm): the knock itself is not yet shaped to the range. With the bones set as a
@@ -2561,19 +2570,24 @@ Three things use it:
 | The plan's table (fights of six, 60 s, seeds 1 and 2) | Unity logs (the plan) | Headless now |
 | --- | --- | --- |
 | A fighter is standing (not walking, not in a clip) | 2% of the time | 1%, 1% |
-| A foot is planted (on the ground, not moving) | 30% | 28%, 29% |
-| Both feet are on the ground | 6% | 8%, 6% |
-| While walking, a foot is in the air | 85% | 93%, 94% |
-| Swings lasting over 0.6 s | 40% of swings, 76% of the time feet are up | 44%, 48%; 75%, 79% |
-| in them the foot goes, while the body goes | 60 cm, 34 cm | 70 and 40 cm, 70 and 41 cm |
-| A foot on the ground and moving over 10 cm/s | 8% of the time, 2.8 m a minute each | 11%, 10%; 5.3, 4.3 m |
-| Slides over 5 cm | 15 a minute each, the worst 42 cm | 32, 24; 52, 38 cm |
-| On one foot, the body under 0.3 m/s: the weight outside that foot | 13 cm at the middle, a quarter over 28 cm | 14 and 31 cm, 13 and 25 cm |
-| Still on both feet: the weight outside the support | 38% of the time | 32%, 35% |
-| Both feet down in a clip: a foot needed over 10 cm outside the support | 40% of the time | 34%, 29% |
+| A foot is planted (on the ground, not moving) | 30% | 27%, 28% |
+| Both feet are on the ground | 6% | 4%, 3% |
+| While walking, a foot is in the air | 85% | 97%, 97% |
+| Swings lasting over 0.6 s | 40% of swings, 76% of the time feet are up | 50%, 51%; 80%, 81% |
+| in them the foot goes, while the body goes | 60 cm, 34 cm | 70 and 43 cm, 71 and 44 cm |
+| A foot on the ground and moving over 10 cm/s | 8% of the time, 2.8 m a minute each | 8%, 7%; 2.6, 2.3 m |
+| Slides over 5 cm | 15 a minute each, the worst 42 cm | 14, 10; 52, 19 cm |
+| On one foot, the body under 0.3 m/s: the weight outside that foot | 13 cm at the middle, a quarter over 28 cm | 15 and 32 cm, 15 and 26 cm |
+| Still on both feet: the weight outside the support | 38% of the time | 23%, 26% |
+| Both feet down in a clip: a foot needed over 10 cm outside the support | 40% of the time | 42%, 37% |
 
-(The headless fights have two Larges in six; for a Large the thresholds go with its size, where the log tool's are
-a Medium's: its feet count as down a little more.)
+A foot's sole is measured from how high its ankle stands, and that is learnt as the fight goes (the height its
+ankles are under one step in twenty, as the log tool takes it), not read from the rig: the clips stand a Large's
+ankle at 10.3 cm where its rig has it at 12.8 at rest and its foot's box reaches 12.8 under it. By the rig's own
+height a Large's feet counted as on the ground and sliding twice as often. **Found by this, and not changed: by
+the log, the Larges' feet stand some 2.5 cm into the ground in a fight** (a Medium's 2 mm); to be looked at in
+Unity. `python3 Tools/Playtest/legsview.py PlaytestLogs/<session> <time> out.png` draws one moment of a session
+as the view does, each fighter from above.
 
 And the legs read as a body's legs, as the arms are (`Motion/LegLimits.cs`; a measure, nothing is held to it): the
 thigh's place against the hips, which way the knee folds, its bend, the ankle. The ranges are set from the clips,

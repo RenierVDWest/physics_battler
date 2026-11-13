@@ -324,6 +324,21 @@ public sealed class LimitMeasure
         }
 
         sb.AppendLine($"      a physical arm at a stop (over {PhysicsBattler.Locomotion.ClipFighter.StopFrom:0}° past its range, held there): {units.Sum(u => u.Clip != null ? u.Clip.ArmStopped[0] + u.Clip.ArmStopped[1] : 0)} arm-steps, the furthest past a stop found one {units.Max(u => u.Clip != null ? Mathf.Max(u.Clip.ArmStoppedMost[0], u.Clip.ArmStoppedMost[1]) : 0f):0}°{(PhysicsBattler.Locomotion.ClipFighter.ArmStops ? "" : " (the stops are off)")}");
+        {
+            string[] held = { "the elbow's place", "its bend", "its fold", "the wrist", "the forearm's roll", "the hand on the forearm" };
+            int[] inStrike = new int[6], other = new int[6];
+            foreach (var u in units)
+            {
+                for (int k = 0; k < 6 && u.Clip != null; k++)
+                {
+                    inStrike[k] += u.Clip.ArmSlowedStriking[k];
+                    other[k] += u.Clip.ArmSlowedElse[k];
+                }
+            }
+
+            sb.AppendLine($"      the gate held an arm's speed (the arm sent moved faster than {PhysicsBattler.Motion.ArmGate.MostSent:0}°/s), steps: the weapon arm in a strike: {string.Join(", ", held.Select((h, k) => $"{h} {inStrike[k]}"))}; otherwise: {string.Join(", ", held.Select((h, k) => $"{h} {other[k]}"))}");
+        }
+
         sb.AppendLine($"      an arm's joint turned over {PhysicsBattler.Locomotion.ClipFighter.ArmJump:0}° in a step: {units.Sum(u => u.Clip != null ? u.Clip.ArmSentJumps : 0)} times in the pose as the stages left it, {units.Sum(u => u.Clip != null ? u.Clip.ArmGoneJumps : 0)} as the gate let it go; of those the gate's own making (the pose sent turned under half as far): {units.Sum(u => u.Clip != null ? u.Clip.ArmGateJumps : 0)}");
         {
             var by = new Dictionary<string, int>();

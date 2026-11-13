@@ -95,6 +95,16 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Both feet on the ground, one, none.</summary>
         public int FeetDown => (Feet[0].Touching ? 1 : 0) + (Feet[1].Touching ? 1 : 0);
 
+        // (How high its ankles stand: what a foot's sole is measured from. The rig's own rest height is not it: the clips
+        // stand a Large's ankle 2.5 cm lower than its rig has it at rest. Learnt as the fight goes, as the log's reading
+        // learns it: the height its ankles are under one step in twenty.)
+        private readonly int[] ankleSeen = new int[400];   // (how often an ankle was seen at each millimetre over the ground)
+        private int anklesSeen;
+        private float standing = -1f;
+
+        /// <summary>How high over the ground its ankles stand when its feet are down (metres): the rest height at first, then learnt.</summary>
+        public float StandingAnkle => standing;
+
         private Vector3 weightWas;
         private readonly Vector3[] heelWas = new Vector3[2], toeWas = new Vector3[2];
         private readonly bool[] heelWasDown = new bool[2], toeWasDown = new bool[2];
@@ -120,7 +130,7 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         /// <param name="groundY">The ground's height under it.</param>
         /// <param name="size">Its size against a Medium's (1).</param>
-        /// <param name="restAnkle">How high its ankle stands over the ground at rest (metres): the sole lies that far under it.</param>
+        /// <param name="restAnkle">How high its ankle is over the ground in the rig at rest (metres): where its sole is taken to be until its standing height is learnt.</param>
         public void Read(UnitRig rig, float groundY, float size, float restAnkle, float dt)
         {
             if (rig == null)
@@ -170,6 +180,7 @@ namespace PhysicsBattler.Locomotion
             weightWas = Weight;
 
             // The feet.
+            LearnStanding(rig, groundY, size, restAnkle);
             float touch = Touch * size;
             points.Clear();
             for (int f = 0; f < 2; f++)
@@ -186,7 +197,7 @@ namespace PhysicsBattler.Locomotion
                     continue;
                 }
 
-                Sole(part, size, restAnkle, out foot.A, out foot.B, out foot.C, out foot.D);
+                Sole(part, size, standing, out foot.A, out foot.B, out foot.C, out foot.D);
                 foot.Heel = 0.5f * (foot.A + foot.B);
                 foot.Toe = 0.5f * (foot.C + foot.D);
                 foot.HeelDown = foot.Heel.y - groundY < touch;
@@ -257,19 +268,63 @@ namespace PhysicsBattler.Locomotion
 
         private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
+        /// <summary>A body is up (its ankles' height is learnt, as the log's reading has it) while its hips are over this (metres at a Medium's size).</summary>
+        public const float UpOver = 0.62f;
+
+        private void LearnStanding(UnitRig rig, float groundY, float size, float restAnkle)
+        {
+            if (standing < 0f)
+            {
+                // (Until it is learnt: the rest height, less the 2 mm a Medium's guard stands under it.)
+                standing = restAnkle - 0.002f * size;
+            }
+
+            var hips = rig.Part(PartId.Pelvis);
+            if (hips == null || hips.transform.position.y - groundY <= UpOver * size)
+            {
+                return;
+            }
+
+            for (int f = 0; f < 2; f++)
+            {
+                var part = rig.Part(FootParts[f]);
+                if (part == null || rig.IsSevered(FootParts[f]))
+                {
+                    continue;
+                }
+
+                int mm = Mathf.Clamp(Mathf.RoundToInt(1000f * (part.transform.position.y - groundY)), 0, ankleSeen.Length - 1);
+                ankleSeen[mm]++;
+                anklesSeen++;
+            }
+
+            // (From two seconds on, and then looked up again each second.)
+            if (anklesSeen >= 240 && anklesSeen % 120 < 2)
+            {
+                int under = anklesSeen / 20, count = 0;
+                for (int mm = 0; mm < ankleSeen.Length; mm++)
+                {
+                    count += ankleSeen[mm];
+                    if (count > under)
+                    {
+                        standing = 0.001f * mm;
+                        break;
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// The four corners of a foot's sole: under the ankle by its standing height less a centimetre and a half, from 2 cm
         /// behind the ankle to 10 cm before it, 10 cm wide (a Medium's): the sole <c>ground.py</c> reads a log with, so
         /// the two give the same numbers. (The box a foot is built of is longer and lies lower: by its corners a foot
         /// carried a centimetre over the ground counted as on it and sliding.)
         /// </summary>
-        private static void Sole(BodyPart part, float size, float restAnkle, out Vector3 a, out Vector3 b, out Vector3 c, out Vector3 d)
+        private static void Sole(BodyPart part, float size, float standing, out Vector3 a, out Vector3 b, out Vector3 c, out Vector3 d)
         {
             var turn = part.transform.rotation;
             Vector3 ankle = part.transform.position;
-            // (2 mm more than the centimetre and a half: in its guard a fighter's ankle stands that much under its rest height,
-            // and it is its standing height the log's reading goes by.)
-            float down = -(restAnkle - 0.017f * size), wide = 0.05f * size;
+            float down = -(standing - 0.015f * size), wide = 0.05f * size;
             a = ankle + turn * new Vector3(-wide, down, -0.02f * size);
             b = ankle + turn * new Vector3(wide, down, -0.02f * size);
             c = ankle + turn * new Vector3(wide, down, 0.10f * size);
