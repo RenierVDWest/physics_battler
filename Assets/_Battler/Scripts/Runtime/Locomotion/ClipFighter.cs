@@ -982,6 +982,8 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The legs' opinion of the body as the physics last left it (the plan "Grounded legs", step 0): read each step, it moves nothing.</summary>
         public readonly Grounding Ground = new Grounding();
 
+        private float groundReadAt = -10f;
+
         private float restAnkle = -1f;
 
         private void ReadGround(float dt)
@@ -991,11 +993,15 @@ namespace PhysicsBattler.Locomotion
                 restAnkle = Anim.RestLocalPosition(PartId.Pelvis).y + Anim.RestLocalPosition(PartId.ThighL).y + Anim.RestLocalPosition(PartId.ShinL).y + Anim.RestLocalPosition(PartId.FootL).y;
             }
 
-            if (Fallen || !snapped)
+            // (Or not read for a while: down, it is not read at all, and read again as it got up, each foot was taken to
+            // have slid in one step from where it stood before it fell: the legs' overlay flashed a slide, and the
+            // reports counted every knock-down as metres of sliding in the clip it got up into.)
+            if (Fallen || !snapped || clock - groundReadAt > 2.5f * dt)
             {
                 Ground.Forget();
             }
 
+            groundReadAt = clock;
             Ground.Read(Rig, groundLevel, Size, restAnkle, dt);
             // (The weight over the feet, the plan's step 3: standing on both feet with its weight off what they hold, the
             // hips are told which way it has to go.)
@@ -1579,6 +1585,17 @@ namespace PhysicsBattler.Locomotion
 
         private const float MediumMass = 80f;
 
+        /// <summary>
+        /// Clip fighters' legs are of the physical body too (the scene's Combat Feel; needs <see cref="PhysicalUpper"/>).
+        /// Off, as it has been: the legs go where the pose puts them and nothing stops or moves them.
+        /// </summary>
+        public static bool PhysicalLegs;
+
+        /// <summary>The legs' muscles: how quick (Hz), and how strong against the trunk's.</summary>
+        public static float LegQuick = 40f, LegStrength = 1.5f;
+
+        private bool builtWithLegs;
+
         private (float hz, float most) MuscleOf(PartId id, float ease)
         {
             float strong = Strong;
@@ -1595,6 +1612,15 @@ namespace PhysicsBattler.Locomotion
                 case PartId.UpperArmR: return (WeaponArmQuick * ease, strong * armed);
                 case PartId.ForearmR: return (WeaponArmQuick * ease, 0.7f * strong * armed);
                 case PartId.HandR: return (WeaponArmQuick * ease, 0.25f * strong * armed);
+                // (The legs, when they are of the physical body (the plan "Grounded legs", step 6): as strong as the trunk
+                // at the hip, less down the leg as an arm is down its length, and quick: a step puts a foot 30 cm on in a
+                // fifth of a second.)
+                case PartId.ThighL:
+                case PartId.ThighR: return (LegQuick, LegStrength * strong);
+                case PartId.ShinL:
+                case PartId.ShinR: return (LegQuick, 0.7f * LegStrength * strong);
+                case PartId.FootL:
+                case PartId.FootR: return (LegQuick, 0.3f * LegStrength * strong);
                 case PartId.UpperArmL: return (ShieldArmQuick * ease, strong * left);
                 case PartId.ForearmL: return (ShieldArmQuick * ease, 0.7f * strong * left);
                 default: return (ShieldArmQuick * ease, 0.25f * strong * left);
@@ -1609,6 +1635,14 @@ namespace PhysicsBattler.Locomotion
             foreach (var id in UpperBodyArticulation.Parts)
             {
                 lost += Rig.IsSevered(id) ? 1 : 0;
+            }
+
+            if (PhysicalLegs)
+            {
+                foreach (var id in UpperBodyArticulation.LegParts)
+                {
+                    lost += Rig.IsSevered(id) ? 1 : 0;
+                }
             }
 
             bool whole = !Rig.IsSevered(PartId.Spine) && !Rig.IsSevered(PartId.Chest);
@@ -1652,6 +1686,12 @@ namespace PhysicsBattler.Locomotion
 
             // (The weapons' mass in the physics changed on the scene's Combat Feel: the body is built again with it.)
             if (builtWithMass != (CombatFeel.WeaponsHaveMass, CombatFeel.WeaponMass))
+            {
+                solidsChanged = true;
+            }
+
+            // (Or its legs taken into the physical body, or out of it.)
+            if (builtWithLegs != PhysicalLegs)
             {
                 solidsChanged = true;
             }
@@ -1869,7 +1909,21 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            UpperBodyArticulation.WithLegs = PhysicalLegs;
+            builtWithLegs = PhysicalLegs;
             Upper = new UpperBodyArticulation(Rig, Anim, Rig.Part(PartId.Pelvis).transform.parent, id => MuscleOf(id, 1f)) { GripStrength = Strong };
+            if (Upper.HasLegs)
+            {
+                // (Held to the pose, as the trunk is: no slack. Where a foot stands is the pose's to say.)
+                foreach (var id in UpperBodyArticulation.LegParts)
+                {
+                    if (Upper.Holds(id))
+                    {
+                        Upper.SetTight(id, 1f);
+                    }
+                }
+            }
+
             foreach (var id in Upper.Own)
             {
                 var part = Rig.Part(id);
@@ -2566,6 +2620,9 @@ namespace PhysicsBattler.Locomotion
         }
 
         private float testRetireFor = -1f;
+
+        /// <summary>For the debug panel: standing, it turns by <paramref name="degrees"/> now (+ right) with its turn's clip. False: it cannot (down, in a clip, held where it is).</summary>
+        public bool TurnNow(float degrees) => !Fallen && !Anchored && Loco.TurnNow(degrees);
 
         /// <summary>The share of blow <paramref name="serial"/>'s weight its step back takes off as it is met (0: it didn't step back to it).</summary>
         public float GroundEase(int serial) => serial == voidedFor ? groundEase : 0f;

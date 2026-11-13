@@ -529,12 +529,41 @@ internal static class FightReport
         var upperSteps = new Dictionary<UnitController, (int on, int all)>();
         var headOffs = new Dictionary<UnitController, List<float>>();
         var upperOffs = new[] { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
+        // (Physical legs: how far each foot is from where the pose has it, held by its lock and not; and each knee.)
+        var legOffs = new[] { new List<float>(), new List<float>(), new List<float>() };
         Array.Clear(PhysicsBattler.Locomotion.ClipFighter.RootShoves, 0, 4);
         PhysicsBattler.Locomotion.ClipFighter.RetireSeconds = PhysicsBattler.Locomotion.ClipFighter.RetireFastest = 0f;
         // (FIGHT_HOP=1: a step back is a hop. Off by default since 13 November: its feet are let go as the body leaves them.)
         if (Environment.GetEnvironmentVariable("FIGHT_HOP") != null)
         {
             PhysicsBattler.Locomotion.ClipFighter.StepBackHops = Environment.GetEnvironmentVariable("FIGHT_HOP") == "1";
+        }
+
+        // (FIGHT_LEGS=1: the legs are of the physical body, the plan's step 6. Off by default.)
+        if (Environment.GetEnvironmentVariable("FIGHT_LEGS") != null)
+        {
+            PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs = Environment.GetEnvironmentVariable("FIGHT_LEGS") == "1";
+        }
+
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_LEGQUICK"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float legQuick))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.LegQuick = legQuick;
+        }
+
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_LEGSTRONG"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float legStrong))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.LegStrength = legStrong;
+        }
+
+        // (FIGHT_PIVOT=0: a planted foot that turns with the body goes round about its ankle, as before.)
+        if (Environment.GetEnvironmentVariable("FIGHT_PIVOT") == "0")
+        {
+            PhysicsBattler.Locomotion.LocoBody.PivotsOnBall = false;
+        }
+
+        if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_PIVOTWHEN"), out int pivotsWhen))
+        {
+            PhysicsBattler.Locomotion.LocoBody.PivotsWhen = pivotsWhen;
         }
 
         // (FIGHT_RETIRE=0: ground given is snapped in at 4 m/s, as before.)
@@ -721,7 +750,7 @@ internal static class FightReport
                             {
                                 var lk = f.Poser.Feet[ft];
                                 var gf = f.Ground.Feet[ft];
-                                Console.WriteLine($"[foot] {paceAt:0.00} {(ft == 0 ? "L" : "R")} {gf.State} speed {gf.Speed:0.00} locked {lk.Locked} toe {lk.OnToe} stepping {lk.Stepping} target ({lk.Target.x:0.000},{lk.Target.y:0.000},{lk.Target.z:0.000}) posed ({lk.Posed.x:0.000},{lk.Posed.z:0.000}) sole heel ({gf.Heel.x:0.000},{gf.Heel.y:0.000},{gf.Heel.z:0.000}) toe ({gf.Toe.x:0.000},{gf.Toe.y:0.000},{gf.Toe.z:0.000}) yawhold {lk.YawHold:0.0} phase {f.Loco.Phase:0.00} facing {f.Loco.Facing:0.0} at ({f.Loco.Position.x:0.000},{f.Loco.Position.z:0.000})");
+                                Console.WriteLine($"[foot] {paceAt:0.00} {(ft == 0 ? "L" : "R")} {gf.State} speed {gf.Speed:0.00} locked {lk.Locked} toe {lk.OnToe} stepping {lk.Stepping} target ({lk.Target.x:0.000},{lk.Target.y:0.000},{lk.Target.z:0.000}) posed ({lk.Posed.x:0.000},{lk.Posed.z:0.000}) sole heel ({gf.Heel.x:0.000},{gf.Heel.y:0.000},{gf.Heel.z:0.000}) toe ({gf.Toe.x:0.000},{gf.Toe.y:0.000},{gf.Toe.z:0.000}) yawhold {lk.YawHold:0.0} phase {f.Loco.Phase:0.00} facing {f.Loco.Facing:0.0} at ({f.Loco.Position.x:0.000},{f.Loco.Position.z:0.000}) down {f.Loco.Down[ft]:0} fade {100f * new Vector2(lk.Fade.x, lk.Fade.z).magnitude:0} cm {100f * lk.Fade.y:0} up, {lk.FadeTime:0.00}/{lk.FadeOver:0.00} lifted {100f * f.Poser.Lifted(ft):0.0} {f.Loco.Current} {(f.Loco.Shot != null ? f.Loco.Shot.Name : "")} {f.Loco.ShotTime:0.00}");
                             }
                         }
                     }
@@ -896,6 +925,16 @@ internal static class FightReport
                             bool striking = u.Clip.Striking;
                             if (up.Holds(PhysicsBattler.Rig.PartId.HandR)) (striking ? upperOffs[0] : upperOffs[1]).Add(up.Off(PhysicsBattler.Rig.PartId.HandR) * 100f);
                             if (up.Holds(PhysicsBattler.Rig.PartId.HandL)) upperOffs[2].Add(up.Off(PhysicsBattler.Rig.PartId.HandL) * 100f);
+                            if (up.HasLegs)
+                            {
+                                for (int ft = 0; ft < 2; ft++)
+                                {
+                                    var footId = ft == 0 ? PhysicsBattler.Rig.PartId.FootL : PhysicsBattler.Rig.PartId.FootR;
+                                    var shinId = ft == 0 ? PhysicsBattler.Rig.PartId.ShinL : PhysicsBattler.Rig.PartId.ShinR;
+                                    if (up.Holds(footId)) (u.Clip.Poser.Feet[ft].Locked ? legOffs[0] : legOffs[1]).Add(up.Off(footId) * 100f);
+                                    if (up.Holds(shinId)) legOffs[2].Add(up.Off(shinId) * 100f);
+                                }
+                            }
                             if (up.Holds(PhysicsBattler.Rig.PartId.Head))
                             {
                                 upperOffs[3].Add(up.Off(PhysicsBattler.Rig.PartId.Head) * 100f);
@@ -1067,6 +1106,7 @@ internal static class FightReport
             }
 
             sb.AppendLine("    borne down (a body pressed so far off its pose that it fell): " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.BorneDown}")));
+            sb.AppendLine("    planted feet that began to pivot on the ball of the foot: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.Poser.Pivots}")));
             sb.AppendLine("    lost by the engine and put back on its pose at once: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.LostBody}")));
             if (kickAt >= 0f)
             {
@@ -1081,6 +1121,12 @@ internal static class FightReport
             sb.AppendLine($"      the weapon hand otherwise: {Spread(upperOffs[1], "cm")}");
             sb.AppendLine($"      the shield hand: {Spread(upperOffs[2], "cm")}");
             sb.AppendLine($"      the head: {Spread(upperOffs[3], "cm")}");
+            if (legOffs[0].Count + legOffs[1].Count > 0)
+            {
+                sb.AppendLine($"      physical legs, a foot held by its lock: {Spread(legOffs[0], "cm")}");
+                sb.AppendLine($"      physical legs, a foot in the air or stepping: {Spread(legOffs[1], "cm")}");
+                sb.AppendLine($"      physical legs, a knee: {Spread(legOffs[2], "cm")}");
+            }
             sb.AppendLine($"      the shield in its hand: {Spread(upperOffs[4], "°")}");
             foreach (var u in units)
             {

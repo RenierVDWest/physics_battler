@@ -3070,6 +3070,59 @@ off by default now and renamed `stepBackHops`, so a scene saved with the old one
 stays in the code behind it, and the button and its toggle stay in the debug panel. Ground given in the time
 there is (`groundGivenInTime`) stays on.
 
+**The clips' feet: a planted foot pivots on the ball of the foot (the plan "Grounded legs", step 5)** (14 November,
+overnight; Combat Feel `feetPivotOnTheBall`; off: as before). The plan's step 5 has two things: a lunge re-plans
+where its feet land, and a turn pivots on a planted foot up to a limit, then steps. Measured first, the second is
+where the sliding is, and the first is mostly so already.
+
+*What the report says of a foot sliding in a clip* (new lines: by what the foot's hold was doing, by the clip, by
+how far through the clip). In the target test (no knock-downs, 60 s) 5.8 m of sliding in clips for six fighters:
+half of it in one clip, the turn to the right (2.9 m); each strike's clip 0.1 to 0.5 m. In four fights of six,
+14 of 21 m in the three turn clips. The lunges are not where the feet slide: a strike's pose is built on its root,
+so however the lunge is stretched or turned onto its target the front foot lands under the body as the clip has
+it; what is left there is the back foot stepping after the body, 0.1 to 0.6 m a fight for each clip.
+
+*What a turn did.* A planted foot keeps its own direction while the body turns over it, up to 35 degrees; past
+that it has to go round with the body. It went round about its ankle, flat on the ground, its toes sweeping
+sideways at 0.3 to 0.5 m/s: in one turn of 107 degrees a Large's toes swept 12 cm, then that foot stepped, and
+the other landed and swept through the last 45 degrees.
+
+*Now* it pivots on the ball of the foot: the toes stay where they are and the heel goes round, as a foot does. It
+goes back to standing on its heel a moment (0.15 s) after its turn stops going with the body. The clips still
+step each foot when they do; a foot whose leg runs out of reach still steps.
+
+| | as before | pivoting on the ball |
+|---|---|---|
+| Target test: sliding in clips, six fighters, 60 s | 5.8 m | 3.6 m |
+| of it in the turn to the right | 2.9 m | 0.5 m |
+| a foot's sliding in all, each fighter | 1.3 m a minute | 0.8 m |
+| slides over 5 cm, each fighter | 5 a minute | 3 |
+| the open target hit; the shield's blocks and hits; the sword's parries and hits | 29; 29 and 3; 19 and 7 | 32; 27 and 3; 19 and 7 |
+| Four fights of six: sliding in clips | 20.7 m | 15.5 m |
+| of it in the turn clips | 13.9 m | 6.4 m |
+
+*Whether it changes the fighting.* In the target test, no (the row above). In the four fights of six it looked as
+if it did: more blows landed and more fighters died with it on (the same four seeds: 105 blows landed of 292
+against 131 of 222). It is not so: fourteen fights of 15 s with other seeds, each run both ways, have 96 against
+108 blows landed (44% and 49% of those met), the difference in a fight anywhere from 6 fewer to 8 more and not
+distinguishable from none (t = 0.8). A fight of six goes another way from the first step that differs; four of
+them say nothing about a few per cent.
+
+**A fault in the measuring, found on the way and fixed.** After a knock-down the legs' reading was not made
+while the fighter was down, and the first reading as it got up took each foot to have slid, in one step, from
+where it stood before it fell: every knock-down counted as two to four metres of sliding in whatever clip the
+fighter got up into, a turn as often as not (the "worst slide 157 cm" of this afternoon was one). The reading is
+now forgotten when it has not been made for a moment. The slides in the tables before this one, from the day the
+knock-downs came in, are too high by that; these are not.
+
+**To see it:** the debug panel's **Turn now (3)** button (or the key 3): every fighter standing still turns 110
+degrees to its right with its turn's animation, and the fight turns it back to its opponent, a second turn. Under
+it the toggle **Planted feet pivot on the ball**. Watch the foot that stays on the ground: toes still and heel
+swinging round, against the whole foot swivelling flat. Best in the Target test (1), slowed down.
+
+Not verified: how it looks, and Unity. A heel swinging round a planted toe is what the numbers say happens; if a
+heel now reads as skidding, that is for your eye.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

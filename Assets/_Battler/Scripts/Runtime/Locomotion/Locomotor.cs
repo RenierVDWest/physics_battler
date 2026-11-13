@@ -1131,6 +1131,18 @@ namespace PhysicsBattler.Locomotion
             return clip.Duration;
         }
 
+        /// <summary>For the debug panel: standing, it turns by this much now (degrees, + right) with its turn's clip, as it does to face an enemy at its side or behind. False: it is not standing.</summary>
+        public bool TurnNow(float degrees)
+        {
+            if (!Ready || Current != Mode.Idle)
+            {
+                return false;
+            }
+
+            StartTurn(degrees);
+            return true;
+        }
+
         private void StartTurn(float degrees)
         {
             bool big = Mathf.Abs(degrees) >= 135f;

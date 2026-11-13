@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
 using UnityEngine;
@@ -27,6 +28,22 @@ namespace PhysicsBattler.Authority
             PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head,
             PartId.UpperArmL, PartId.ForearmL, PartId.HandL, PartId.UpperArmR, PartId.ForearmR, PartId.HandR,
         };
+
+        /// <summary>The legs' parts, each after the one it hangs from: a part of the body only when it is built <see cref="WithLegs"/>.</summary>
+        public static readonly PartId[] LegParts =
+        {
+            PartId.ThighL, PartId.ShinL, PartId.FootL, PartId.ThighR, PartId.ShinR, PartId.FootR,
+        };
+
+        /// <summary>
+        /// Bodies are built with their legs (the plan "Grounded legs", step 6: the thighs, shins and feet join the
+        /// physical body, hung from the carried hips and driven to the pose by muscles as the arms are). Read as a body
+        /// is built: one built without them stays so until it is built again.
+        /// </summary>
+        public static bool WithLegs;
+
+        /// <summary>This body has its legs.</summary>
+        public readonly bool HasLegs;
 
         /// <summary>The furthest the pose's pelvis is followed in one game step (metres; 15 m/s) and the most it is turned after (degrees; 1200 a second): past either the body is put where the pose is.</summary>
         public const float MostCarry = 0.25f, MostCarryTurn = 20f;
@@ -84,7 +101,8 @@ namespace PhysicsBattler.Authority
             this.anim = anim;
             // (What is left of it: a part cut off, and what hung from it, is not its own.)
             var own = new List<PartId>();
-            foreach (var id in Parts)
+            HasLegs = WithLegs;
+            foreach (var id in HasLegs ? Parts.Concat(LegParts) : Parts)
             {
                 if (!rig.IsSevered(id) && (id == PartId.Pelvis || own.Contains(PartInfo.Parent(id))))
                 {

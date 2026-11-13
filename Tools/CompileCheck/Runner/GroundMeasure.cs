@@ -46,6 +46,11 @@ public sealed class GroundMeasure
     /// <summary>Debugging (FIGHT_SLIDETRACE): each slide over 5 cm outside a clip is printed with what the foot's lock and the walk were doing.</summary>
     public static bool TraceSlides;
 
+    /// <summary>Debugging (FIGHT_HELDSLIDE): a foot held still by its lock in a clip whose sole slides is printed with what moves it.</summary>
+    public static bool TraceHeldSlides = Environment.GetEnvironmentVariable("FIGHT_HELDSLIDE") == "1";
+
+    private int heldSlideLines;
+
     private readonly List<UnitController> units;
     private readonly Dictionary<UnitController, Track> tracks = new Dictionary<UnitController, Track>();
     private float clock;
@@ -64,6 +69,8 @@ public sealed class GroundMeasure
     private readonly int[] states = new int[5];
     private readonly int[,] statesByMode = new int[3, 5];
     private float slidMetres;
+    private readonly float[] clipSlideBy = new float[7], clipSlideWhen = new float[10];
+    private readonly Dictionary<string, float> clipSlideIn = new Dictionary<string, float>();
     private readonly List<(float length, string who, float at, int mode)> slides = new List<(float, string, float, int)>();
     private readonly List<(float lasted, float foot, float body, int mode)> swings = new List<(float, float, float, int)>();
     private readonly List<float> stanceSlowOut = new List<float>(), stanceGoingOut = new List<float>(), stanceSlowNeeded = new List<float>(), stanceGoingNeeded = new List<float>();
@@ -161,6 +168,7 @@ public sealed class GroundMeasure
                     continue;
                 }
 
+                int whatNow = -1;
                 // (Planted or stepping, the plan's step 2: what the foot's hold is doing, and how far a foot on the
                 // ground goes over it from touching it to leaving it.)
                 {
@@ -173,6 +181,7 @@ public sealed class GroundMeasure
                         : lk.Stepping ? 4
                         : clip.Loco.Down[f] < 0.5f ? 5 : 6;
                     held[mode, what]++;
+                    whatNow = what;
                     if (what == 3)
                     {
                         raisedAs[mode, lk.Locked ? 0 : lk.Stepping ? 1 : 2]++;
@@ -248,10 +257,30 @@ public sealed class GroundMeasure
                 states[(int)foot.State]++;
                 statesByMode[mode, (int)foot.State]++;
                 // (Slides: each run of a foot on the ground and moving, its length.)
-                if (foot.State == Grounding.FootState.Sliding)
+                // (Not the first step after it was down or not yet there: the foot's place a step before is where it stood
+                // before it fell, and the whole way it was thrown counted as one slide, in whatever clip it got up into:
+                // a turn, as often as not, which made the turns look like half of all the sliding in a fight.)
+                if (foot.State == Grounding.FootState.Sliding && t.Seen)
                 {
                     float moved = foot.Speed * dt;
                     slidMetres += moved;
+                    if (mode == 2 && whatNow >= 0)
+                    {
+                        // (The clips' feet, the plan's step 5: what a foot sliding in a clip was doing, and in which clip.)
+                        clipSlideBy[whatNow] += moved;
+                        if (TraceHeldSlides && whatNow == 0 && heldSlideLines < 80)
+                        {
+                            // (FIGHT_HELDSLIDE=1: a foot held still by its lock, in a clip, and its sole moving: what moves it.)
+                            heldSlideLines++;
+                            var lk2 = clip.Poser.Feet[f];
+                            var part = u.Rig.Part(f == 0 ? PhysicsBattler.Rig.PartId.FootL : PhysicsBattler.Rig.PartId.FootR).transform;
+                            Console.WriteLine($"[heldslide] {clock:0.00} {u.name} {(f == 0 ? "L" : "R")} {(clip.Loco.Shot != null ? clip.Loco.Shot.Name : "?")} {clip.Loco.ShotTime:0.00}: sole {100f * foot.Speed:0} cm/s ({(foot.ToeDown ? "toe" : "heel")}); "
+                                + $"ankle {100f * (part.position - lk2.Target).magnitude:0.0} cm from the lock's place, on toe {lk2.OnToe} ball {lk2.BallHolds}, yaw hold {lk2.YawHold:0.0}, foot turned to {part.eulerAngles.y:0.0} pitch {Mathf.DeltaAngle(0f, part.eulerAngles.x):0.0} roll {Mathf.DeltaAngle(0f, part.eulerAngles.z):0.0}, facing {clip.Loco.Facing:0.0}, heel {100f * foot.Heel.y:0.0} toe {100f * foot.Toe.y:0.0} cm up");
+                        }
+                        string playing = clip.Loco.Shot != null ? clip.Loco.Shot.Name : "?";
+                        clipSlideIn[playing] = (clipSlideIn.TryGetValue(playing, out float was) ? was : 0f) + moved;
+                        clipSlideWhen[Mathf.Clamp((int)(10f * clip.Loco.ShotTime / Mathf.Max(0.05f, clip.Loco.Shot != null ? clip.Loco.Shot.Duration : 1f)), 0, 9)] += moved;
+                    }
                     if (t.SlideRun[f] <= 0f)
                     {
                         t.SlideMode[f] = mode;
@@ -455,6 +484,16 @@ public sealed class GroundMeasure
         var over5 = slides.Where(s => s.length > 0.05f).OrderByDescending(s => s.length).ToList();
         sb.AppendLine($"      a foot on the ground and moving over 10 cm/s: {Pct(states[1], footSteps)} of the time, {slidMetres / Mathf.Max(1e-3f, minutes):0.0} m a minute for each fighter; slides over 5 cm: {over5.Count} ({over5.Count / Mathf.Max(1e-3f, minutes):0} a minute for each fighter)"
             + (over5.Count > 0 ? $", the worst {100f * over5[0].length:0} cm ({over5[0].who} at {over5[0].at:0.0} s, {names[over5[0].mode]}); by what was playing: {string.Join(", ", over5.GroupBy(s => s.mode).OrderBy(x => x.Key).Select(x => $"{names[x.Key]} {x.Count()}"))}" : ""));
+        float clipSlid = clipSlideBy.Sum();
+        if (clipSlid > 0f)
+        {
+            // (The clips' feet, the plan's step 5.)
+            string[] doing = { "held still", "held, its place moving", "held, turning", "lifted to hover", "let go and stepping to its place", "in the clip's swing", "let go, the clip has it down" };
+            sb.AppendLine($"      sliding in a clip, {clipSlid:0.0} m in all, by what the foot's hold was doing: " + string.Join(", ", Enumerable.Range(0, 7).Select(i => $"{doing[i]} {100f * clipSlideBy[i] / clipSlid:0}%")));
+            sb.AppendLine("        by the clip: " + string.Join(", ", clipSlideIn.OrderByDescending(p => p.Value).Take(10).Select(p => $"{p.Key} {p.Value:0.0} m")));
+            sb.AppendLine("        by how far through the clip (tenths): " + string.Join(" ", clipSlideWhen.Select(v => $"{100f * v / clipSlid:0}%")));
+        }
+
         if (oneFootOut.Count > 0)
         {
             oneFootOut.Sort();

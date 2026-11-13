@@ -49,6 +49,8 @@ namespace PhysicsBattler.Locomotion
             public Vector3 StepLand;   // where that is (world)
             public bool Hopping;       // that step is its part of a hop: let go with the other foot, down with it
             public float HopFrom;      // how high it was when the hop took it up, already in a step of its own (metres)
+            public float Pivoted;      // seconds left of pivoting on the ball of the foot: its turn went with the body this lately
+            public bool BallHolds;     // held at its toe because it pivots there, not because the clip has its heel up
             public float LandedOff;    // the last landing's leftover offset from the clip's foot (metres)
             public int Landings;
         }
@@ -1729,6 +1731,21 @@ namespace PhysicsBattler.Locomotion
         private float poseClock;
         private readonly float[] liftedAt = { 0f, 0f };
 
+        /// <summary>
+        /// A planted foot whose turn goes with the body (past <see cref="MostYawHold"/>) pivots on the ball of the foot,
+        /// its toe held and its heel going round (the scene's Combat Feel). Off: about its ankle, as before.
+        /// </summary>
+        public static bool PivotsOnBall = true;
+
+        /// <summary>For finding what it does: 0 whenever, 1 only in a clip, 2 only out of one.</summary>
+        public static int PivotsWhen;
+
+        /// <summary>It goes on being held at the ball this long after its turn last went with the body (seconds).</summary>
+        public const float PivotAfter = 0.15f;
+
+        /// <summary>Times a planted foot began to pivot on its ball (for the reports).</summary>
+        public int Pivots { get; private set; }
+
         // ---- A hop: both feet off the ground together, and down together ----
 
         /// <summary>
@@ -1846,6 +1863,8 @@ namespace PhysicsBattler.Locomotion
                 {
                     hold = Mathf.Sign(hold) * MostYawHold;
                     foot.LockYaw = clipYaw + hold;
+                    // (Past what it holds, it goes round with the body: on the ball of the foot, as a foot pivots.)
+                    foot.Pivoted = PivotAfter;
                 }
 
                 foot.YawHold = hold;
@@ -1875,6 +1894,8 @@ namespace PhysicsBattler.Locomotion
                 foot.LandedOff = foot.Fade.magnitude;
                 foot.Landings++;
                 foot.OnToe = !heel && loco.Toe[f] >= 0.5f;
+                foot.BallHolds = false;
+                foot.Pivoted = 0f;
                 foot.ToePoint = posedToe + foot.Fade;
                 foot.Fade = foot.FadeSpeed = foot.FadeFrom = Vector3.zero;
             }
@@ -1882,16 +1903,35 @@ namespace PhysicsBattler.Locomotion
             if (foot.Locked)
             {
                 foot.LockedFor += dt;
+                // (A planted foot that turns with the body pivots on the ball of the foot (the plan "Grounded legs", step
+                // 5: turns pivot on a planted foot): its toe stays where it is and its heel goes round. Held at the ankle,
+                // as a foot standing still is, it swivelled flat about its heel and its toe swept over the ground: half of
+                // all the sliding in a fight, nearly all of it in the turns.)
+                bool pivots = PivotsOnBall && foot.Pivoted > 0f && (PivotsWhen == 0 || (PivotsWhen == 1) == (loco.Current == Locomotor.Mode.OneShot));
+                foot.Pivoted = Mathf.Max(0f, foot.Pivoted - dt);
+                if (pivots && !foot.OnToe)
+                {
+                    foot.OnToe = foot.BallHolds = true;
+                    foot.ToePoint = foot.Ankle + (posedToe - posed);
+                    Pivots++;
+                }
+
                 if (!heel && !foot.OnToe && loco.Toe[f] >= 0.5f)
                 {
                     // The heel lifts: the toe holds now.
                     foot.OnToe = true;
+                    foot.BallHolds = false;
                     foot.ToePoint = foot.Ankle + (posedToe - posed);
                 }
-                else if (heel && foot.OnToe)
+                else if (!heel && foot.OnToe && loco.Toe[f] >= 0.5f)
+                {
+                    // (The clip has its heel up now: its toe holds for that, pivoting or not.)
+                    foot.BallHolds = false;
+                }
+                else if (heel && foot.OnToe && !(foot.BallHolds && pivots))
                 {
                     // The heel comes down onto a foot that landed on its toe: the heel holds now.
-                    foot.OnToe = false;
+                    foot.OnToe = foot.BallHolds = false;
                     foot.Ankle = foot.ToePoint - (posedToe - posed);
                 }
 

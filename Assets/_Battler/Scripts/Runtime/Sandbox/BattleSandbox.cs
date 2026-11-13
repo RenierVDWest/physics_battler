@@ -456,7 +456,41 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.J)) ShieldTest();
             if (SandboxInput.KeyPressed(KeyCode.Alpha1)) TargetTest();
             if (SandboxInput.KeyPressed(KeyCode.Alpha2)) StepBackTest();
+            if (SandboxInput.KeyPressed(KeyCode.Alpha3)) TurnTest();
         }
+
+        /// <summary>
+        /// To see a turn on demand: every fighter standing still turns now, a quarter turn and a bit to its right
+        /// (<see cref="TurnTestDegrees"/>) with its turn's animation, as it does to face an enemy at its side; the fight
+        /// then turns it back to its opponent, which is a second turn the other way. Those in a strike, a reaction or a
+        /// step do not. Best in the target test, slowed down or stepped.
+        /// </summary>
+        public void TurnTest()
+        {
+            int turned = 0, all = 0;
+            foreach (var u in units)
+            {
+                if (u == null || !u.IsInitialized || !u.IsAlive || u.Clip == null)
+                {
+                    continue;
+                }
+
+                all++;
+                if (u.Clip.TurnNow(TurnTestDegrees))
+                {
+                    turned++;
+                }
+            }
+
+            bool ball = PhysicsBattler.Locomotion.LocoBody.PivotsOnBall;
+            message = $"Turn: {turned} of {all} fighters turned {TurnTestDegrees:0} degrees to their right, and will turn back to their opponents "
+                + $"({(ball ? "planted feet pivot on the ball of the foot" : "as before: planted feet go round about the ankle")}). Watch the foot that stays on the ground. "
+                + "3 or the button again to repeat; the speed buttons or Pause and Step to see it slowly.";
+            Note($"turn test: {turned} of {all} turned, {(ball ? "pivoting on the ball" : "about the ankle")}");
+        }
+
+        /// <summary>The turn test's turn (degrees, to the right).</summary>
+        public const float TurnTestDegrees = 110f;
 
         /// <summary>
         /// To see a step back on demand: every fighter standing in its guard steps back now from its opponent (or the
@@ -1362,6 +1396,36 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 PhysicsBattler.Locomotion.ClipFighter.StepBackHops = hopsNow;
+            }
+
+            if (GUILayout.Button("Turn now (3): every standing fighter")) TurnTest();
+            bool ball = feel != null ? feel.feetPivotOnTheBall : PhysicsBattler.Locomotion.LocoBody.PivotsOnBall;
+            bool ballNow = GUILayout.Toggle(ball, "Planted feet pivot on the ball (off: as before)");
+            if (ballNow != ball)
+            {
+                if (feel != null)
+                {
+                    feel.feetPivotOnTheBall = ballNow;
+                }
+
+                PhysicsBattler.Locomotion.LocoBody.PivotsOnBall = ballNow;
+            }
+
+            // (Physical legs: off until looked at. The scene's Combat Feel sets it every frame, so the toggle changes it there.)
+            bool legs = feel != null ? feel.physicalLegs : PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs;
+            bool legsNow = GUILayout.Toggle(legs, "Physical legs (new, off by default)");
+            if (legsNow != legs)
+            {
+                if (feel != null)
+                {
+                    feel.physicalLegs = legsNow;
+                }
+
+                PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs = legsNow;
+                message = legsNow
+                    ? "Physical legs on: the legs are part of the physical body now. Look at standing, stepping (2), a turn (3), a blow to a leg, a knock-down."
+                    : "Physical legs off: the legs go where the animation puts them, as before.";
+                Note(legsNow ? "physical legs on" : "physical legs off");
             }
 
             bool tired = GUILayout.Toggle(tiredAll, "Everyone tired (Fight Rhythm energy 25%)");
