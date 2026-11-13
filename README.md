@@ -2404,6 +2404,204 @@ not, the wrist's turn, the share read from). The fight report has "how the shiel
 The debug panel (the battle scene's): drawn 1.8 times the size, with the units' labels, and "Panel size" buttons
 at its top to change that (kept between sessions), as the locomotion lab's has.
 
+**Arms that don't snap (the plan's step 3)** (12 to 13 November, built overnight and checked headless only: not yet
+seen in Unity). The gate kept an arm inside a body's range, but our own stages still threw one about inside it: a
+parry's hand rolled over in a step (the parry's solver has no memory of the step before), a strike's wrist flicked,
+an elbow straightened from 80 degrees in a step, a pole that flipped. Each of those went to the physical arm as a
+joint turned 60 to 170 degrees in a sixtieth of a second, 60 to 70 times a fight; over 70 degrees the physical
+joint was simply put there (some 40 times a fight), through whatever was in its way. Which stage did it is in the
+fight report ("which stage of the pose first turned an arm's joint over 60 degrees in a step", `FIGHT_JUMPTRACE=1`
+writes each one out): the parry about half, the strike's own arm a third, the shield's upper arm most of the rest.
+Rather than a memory for each solver, the gate, which every arm goes through last, now also holds the speed. Three
+things, each with its own switch on the scene's Combat Feel under "Arms that bend as a body does":
+
+- **Arm Follows At Most** (2400 degrees a second; 0: off, as before). However far a stage threw the arm in a step,
+  the gate follows it no faster than this (plus the gate's own pace of 600): the elbow's place, which way it folds,
+  how far it is bent, the wrist, the forearm's roll, each on its own. A snap becomes a fast move over two or three
+  steps (30 to 50 ms). The fastest recorded strike turns a joint 42 degrees in a step (2500 a second: an elbow
+  straightening, a forearm rolling, a wrist snapping), and this lets that through. (First set to 1500: no joint then
+  turned over 60 degrees in a step at all, but those three were held back a step or so in nearly every strike, and
+  over four fights the attacks that hit anything fell from 77 to 68 in a hundred; with no limit, 78; at 2400, 81.
+  The fight report counts what the gate held, "the gate held an arm's speed", the weapon arm in a strike apart.)
+- **Arm Bones As A Body** (on). After the gate each arm's two bones are set the way a body's are for where its joints
+  are (`ArmRig.SetBones`): the upper arm turned so the elbow's own axis lies across the arm, the forearm bent about
+  that axis alone, the hand's turn kept. A limb is round, so nothing of this shows; what it stops is a solver's
+  hidden roll of a bone going to the physical arm as a turn of its joints. An arm too straight to tell which way it
+  folds keeps the way it folded the step before, and comes round to a new one no faster than the gate follows. With
+  the forearm's roll now a body's, the hand's turn on it is held to the same speed (near the ends of a wrist's range
+  the gate's own two limits together let a hand turn twice as fast). This is also what the physical elbow needs
+  before it can be given a hinge's stops.
+- **Free Hand Goes With Its Arm** (on). A swordsman's free arm is tucked behind him; its hand kept the turn its clip
+  gave it for an arm held in front, which behind the back is a wrist bent further than a wrist goes, so the gate was
+  turning it back 79 to 95% of the time he stood in guard. The hand now lies in line with its forearm, its back to
+  his back (`SwordParry.TuckFreeArm`).
+
+Measured (fights of six, 60 s, four seeds; the target test), against the same build with the three off
+(`FIGHT_ARMSTEADY="0,0,0"`, which gives the fights of before to the blow):
+
+| | Before | Now |
+| --- | --- | --- |
+| An arm's joint turned over 60° in a step, as sent to the physical body (a fight) | 59 to 73 times | 15, 9, 9, 4 |
+| Physical joints put where the pose turned them at once (a fight) | 38 to 48 | 2, 2, 3, 1 |
+| The same two in the target test (Mediums; Larges) | 45 and 33; 92 and 63 | 10 and 3; 20 and 7 |
+| The gate turning the swordsman's free arm back, in guard | 79 to 95% of the time | 28 to 33% |
+| and how far it turned that hand, 95% of the time under | 37° | 8° |
+| Attacks that hit something (a body, a shield, a blade), of 317 and 318 | 77% | 81% |
+| Blows blocked by a shield, parried, landed (fights of six) | 33%, 22%, 47% | 34%, 22%, 45% |
+| Blows the shield target blocked, the sword target parried (target test, Mediums) | 31 of 31, 21 of 27 | 26 of 26, 22 of 28 |
+| The same, Larges on Larges | 19 of 23, 13 of 26 | 15 of 21, 11 of 23 |
+| The head off its pose, 99% of the time under (the four fights) | 5.4 to 7.8 cm | 4.7 to 9.6 cm |
+
+("Now" is everything of this night on, as it is left; the tables of the stops and of the weapons' weight further
+down were measured while the arm's speed was still held at 1500.)
+
+The arm test (`armgate`) passes as it did. The fight report has, for each kind of unit, arm and state, how far the
+gate moved the wrist from where the pose had it and how far it turned the hand: in a strike the weapon hand is moved
+under 5 cm 95% of the time and 14 to 28 cm 1% of the time, before and now alike (that is the range, not the speed).
+
+Not verified, for the first look in Unity: whether a parry or a shield now looks late (headless they block and
+parry as often); whether the snaps that are left (a joint over 60 degrees in a step some ten times a fight, where
+there were sixty) still show. Known: the swordsman's tucked
+arm is still moved by the gate a fifth of the time (the place it is tucked to is at the edge of where an elbow
+goes); a knock still poses a struck arm far outside the range for the gate to bring back (a struck sword arm a
+third of the time, the wrist moved 40 cm): the knock itself is not yet shaped to the range. With the bones set as a
+body's, the report's "in the pose as the stages left it" counts a stage's own roll of a bone against the bones the
+gate set the step before, so it reads higher than it did; what reaches the body is the second number.
+
+**Stops in the physical arm (the plan's step 5, as soft stops)** (13 November, built overnight and checked headless
+only). The gate holds the animation's arm to a body's ranges; the physical arm had none of its own: struck, it gave
+wherever it was pushed, up to 50 degrees aside of its pose, in range or not. Now the physical arm is read each step
+as the pose's arm is (`ClipFighter.StopArm`: where the elbow is, which way it folds, its bend, the forearm's roll,
+the wrist, against the same ranges with the clip's own room), and a joint over 2 degrees past its range is at its
+stop (`UpperBodyArticulation.StopAt`): it is wanted at the end of its range nearest where it is, it does not give
+way any further (inside its range an arm still gives and comes back as it did), and it is held there with **Arm
+Stops Hold With** (4) times its muscle's whole strength, however much a blow has let its muscles go. On the scene's
+Combat Feel: **Arms Have Stops** (on) and that strength.
+
+These are stops made of the joints' own motors, not the engine's joint limits: a blow can still knock a joint past
+its range for a step or two before the stop has it back. The engine's limits (an elbow that is a hinge in the
+engine, as the plan had it) need the articulation probed in Unity for how it counts a limited joint, and the body's
+"put a joint where the pose is" rewritten for joints with fewer than three turns; that is not something to build
+blind. The pose side of it is done (the arm's bones are a body's, the elbow a hinge in the pose).
+
+Measured (the stops off with `FIGHT_ARMSTOPS=0`, any other number the strength):
+
+| | Stops off | Stops on |
+| --- | --- | --- |
+| Target test, Larges on Larges: a physical arm over 10° past its range | 73 times, 4.6 s in all, 0.27 s at the longest | 27 times, 1.5 s, 0.20 s |
+| the arms just struck, over 10° past (over 30°) | 1.34% of the time (0.27%) | 0.50% (0.21%) |
+| the arms in guard, over 10° past; the furthest | 0.37%; 77° | 0.02%; 28° |
+| Blows the shield target blocked, the sword target parried | 16 of 25, 12 of 27 | 15 of 25, 11 of 25 |
+| Fights of six (seeds 1, 2): the arms just struck, over 10° past | 2.28%, 1.27% | 0.74%, 0.77% |
+| the arms in guard, over 10° past; the furthest | 0.16%, 0.22%; 84°, 77° | 0.05%, 0.06%; 24°, 40° |
+| the arms striking, over 10° past | 0.47%, 0.83% | 0.27%, 0.57% |
+| Blows blocked, parried, landed (fights of six, two seeds) | 42%, 20%, 30% | 29%, 19%, 43% |
+
+Stops three times as strong (12) did no better (0.55% just struck, 1.9 s in all): what is left are spikes of a step
+or two (half of them 0.02 to 0.03 s), up to 80 degrees in the reading of an arm nearly straight, where a few
+centimetres of the elbow turn "which way it folds" by a right angle. The fight report has the lines ("the physical
+arms, just struck", "a physical arm over 10 degrees past its range", "a physical arm at a stop"). Known: the board
+knocked into its bearer's own head or trunk by a blow is not an arm past its range and is as it was (2 to 9% of the
+time just after a blow in the target tests); the blocks, parries and landed blows of the two seeds differ by as much
+as two fights do.
+
+**Real weapon weight (the plan's step 6): built, and it does not do what the plan hoped** (13 November, overnight,
+headless only). The plan: give the weapons their mass in the physical body, let the weight of a blow come from that
+mass, and turn the script's multiplier ("Weapon Weight", 3) down. What is there now, on the scene's Combat Feel
+under "Heavy weapons":
+
+- **Weapons Have Their Mass** (on). What a fighter holds weighs in the physical body what it weighs at its bearer's
+  size (weight goes with volume, as the damage rules already had it): a Large's club 3.8 kg where it was a
+  Medium's 2, its shield 7.7 kg where it was 4. For a Medium nothing changes. Off: as before.
+- **Weapon Mass** (1). A weapon that many times its real weight in the physical body, the arm that swings it as
+  much stronger (`ClipFighter.MuscleOf`), the script's reactions as they were. Left at 1, for what follows.
+
+Measured in the target test (60 s, one seed; each line the middle of 28 to 48 blows on the open target):
+
+| Swords, Mediums on Mediums | Blows land at | The part struck goes, in 0.1 s | The hips, in 0.5 s | The weapon hand off its swing, 95% under | The sword parry held |
+| --- | --- | --- | --- | --- | --- |
+| As before | 11.8 m/s | 28 cm | 19 cm | 12 cm | 23 of 27 |
+| Swords 3 times their weight, the arm as it was | 8.5 m/s | 22 cm | 11 cm | 32 cm | 21 of 27 |
+| 3 times, the arm 3 times as strong | 11.0 m/s | 25 cm | 19 cm | 22 cm | 14 of 25 |
+| 3 times, the arm 3 times as strong, the script's multiplier down to 1.7 | 6.9 m/s | 14 cm | 2 cm | 29 cm | 20 of 27 |
+| 6 times, the arm as it was, the script's multiplier down to 1 | 11.8 m/s | 13 cm | -1 cm | 21 cm | 19 of 26 |
+
+| Clubs, Larges on Larges | Blows land at | The part struck goes, in 0.1 s | The hips, in 0.5 s | The weapon hand off its swing, 95% under |
+| --- | --- | --- | --- | --- |
+| As before (the club 2 kg) | 12.9 m/s | 49 cm | 48 cm | 28 cm |
+| Its real mass at a Large's size (3.8 kg): what is on now | 12.8 m/s | 51 cm | 45 cm | 22 cm |
+| 3 times that, the arm 3 times as strong, the multiplier down to 1.8 | 13.2 m/s | 39 cm | 30 cm | 66 cm |
+
+So: a heavier blade in the physics does not throw the body it lands on any further. What throws a struck body
+(its bend, its lean, the reaction, the drive back) is the script acting on the pose; the physical blade meets a
+physical upper body that is held to that pose by muscles of 600 N m and stands on legs that are the pose's own, so
+its push is taken back within a step or two. Heavier, with the arm it has, the weapon trails its swing and lands
+slower; with an arm as much stronger it lands as before by the script and beats a sword parry through the physics
+(14 held of 25). With the script's multiplier turned down, as the plan had it, the blows are simply weaker. The
+weight of a blow can only come from the weapon once the body it lands on is carried by its legs instead of placed
+by the pose: that is the legs' work (the plan "Grounded legs", from "Supported hips"), not a dial. Until then the
+script's "Weapon Weight" stays what makes a blow heavy.
+
+`FIGHT_WMASS="3,1,1"` runs a fight with the weapons three times their weight (then: 1 the script's multiplier taken
+down by as much, 0 as it was; then: 1 the arm as much stronger, 0 as it was); `FIGHT_WMASS=0` the weapons as
+before. In fights of six (two seeds) with what is on now, against before: blocked 31%, parried 22%, landed 36%
+(29%, 19%, 43%), no body borne down, no joint put.
+
+**The legs' opinion (the plan "Grounded legs", step 0: see it)** (13 November, overnight). Nothing in play
+changes: no foot, hip or step is moved by any of this. Each fighter now has a reading of what its legs make of
+its body (`Locomotion/Grounding.cs`, read once a step from the body as the physics left it): what each foot is
+doing, where the body's weight is and how fast it moves, the patch of ground its feet hold, and where a foot would
+have to be to stop the body as it moves now. It is the reading `Tools/Playtest/ground.py` takes from a log, made
+as the game runs (the same sole, the same thresholds: on one fight of Mediums the two give a foot planted 38 and
+39% of the time, sliding 7 and 8%, the weight outside the support 19 and 20% of the time a fighter stands still).
+Three things use it:
+
+- **Show Legs Opinion** (the scene's Combat Feel, off): draws it on the ground under each fighter, over the game
+  view (`Sandbox/GroundingView.cs`). Each sole's outline in the colour of what the foot is doing: green planted,
+  red on the ground and sliding (over 10 cm/s), yellow just landing, orange in the air under 9 cm (too low to be a
+  step), blue stepping. A white outline: the support. A dot under the body's weight: green over the support, red
+  outside it. A cross where a foot is needed to stop the body: grey while that is on the support, orange when it is
+  over 10 cm outside it.
+- The playtest log: each unit's frames have `footL`, `footR` (0 planted, 1 sliding, 2 landing, 3 low, 4 stepping),
+  `weightX`, `weightZ`, `weightH`, `neededX`, `neededZ`, and `weightOut`, `neededOut` (cm outside the support;
+  -1 with both feet up).
+- The fight report, "the legs' opinion": the plan's table, made by the report.
+
+| The plan's table (fights of six, 60 s, seeds 1 and 2) | Unity logs (the plan) | Headless now |
+| --- | --- | --- |
+| A fighter is standing (not walking, not in a clip) | 2% of the time | 1%, 1% |
+| A foot is planted (on the ground, not moving) | 30% | 27%, 28% |
+| Both feet are on the ground | 6% | 4%, 3% |
+| While walking, a foot is in the air | 85% | 97%, 97% |
+| Swings lasting over 0.6 s | 40% of swings, 76% of the time feet are up | 50%, 51%; 80%, 81% |
+| in them the foot goes, while the body goes | 60 cm, 34 cm | 70 and 43 cm, 71 and 44 cm |
+| A foot on the ground and moving over 10 cm/s | 8% of the time, 2.8 m a minute each | 8%, 7%; 2.6, 2.3 m |
+| Slides over 5 cm | 15 a minute each, the worst 42 cm | 14, 10; 52, 19 cm |
+| On one foot, the body under 0.3 m/s: the weight outside that foot | 13 cm at the middle, a quarter over 28 cm | 15 and 32 cm, 15 and 26 cm |
+| Still on both feet: the weight outside the support | 38% of the time | 23%, 26% |
+| Both feet down in a clip: a foot needed over 10 cm outside the support | 40% of the time | 42%, 37% |
+
+A foot's sole is measured from how high its ankle stands, and that is learnt as the fight goes (the height its
+ankles are under one step in twenty, as the log tool takes it), not read from the rig: the clips stand a Large's
+ankle at 10.3 cm where its rig has it at 12.8 at rest and its foot's box reaches 12.8 under it. By the rig's own
+height a Large's feet counted as on the ground and sliding twice as often. **Found by this, and not changed: by
+the log, the Larges' feet stand some 2.5 cm into the ground in a fight** (a Medium's 2 mm); to be looked at in
+Unity. `python3 Tools/Playtest/legsview.py PlaytestLogs/<session> <time> out.png` draws one moment of a session
+as the view does, each fighter from above.
+
+And the legs read as a body's legs, as the arms are (`Motion/LegLimits.cs`; a measure, nothing is held to it): the
+thigh's place against the hips, which way the knee folds, its bend, the ankle. The ranges are set from the clips,
+as the arm's were (`legrange` reads every frame of every clip: the thigh to 125 degrees forward, 75 to the side, 55
+behind, 30 across; the knee turned out to 85 and in to 50 from folding straight back; bent to 155, where the clips
+reach 148; no clip is past them). In the fights the clips' own legs are never past, and the pose's are 1 to 2% of the time in a strike or a
+reaction and 0.4 to 1% walking: a knee folding forward for a few frames of a combo (`sns_combo_forehand`: bent 40
+to 60 degrees the wrong way), and ankles with the toes 30 to 70 degrees up where the foot is held level under a
+shin that swings. That is what the legs' own gate will have to hold, when the legs are built.
+
+Not verified: the view itself. It is drawn with the game's own on-screen drawing and its numbers are checked
+against the log, but I have not seen it on a screen; if it draws nothing or in the wrong place, the log and the
+report still hold.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
@@ -2446,6 +2644,7 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll locolab . 20           # the lab
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll spar /tmp/spar 40      # the lab's two fighters
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll strikes /tmp/strikes   # each strike aimed; also dummyhits, combos, cores, footwork, parryreach, combatfilm
 dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll armgate                # the arm gate on arms at random; armrange: the clips' own arms against the ranges
+dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll legrange               # the clips' own legs against a leg's ranges
 ```
 
 The stubs only cover the API this project uses, and the dry run has no collisions or joints (a ragdoll's parts fall

@@ -251,6 +251,46 @@ namespace PhysicsBattler.Motion
         }
 
         /// <summary>
+        /// The arm's two bones turned as the rig builds an arm (the upper arm so the elbow's own axis lies across the
+        /// arm's plane, the forearm bent about that axis alone), for an arm whose joints are where they are: the elbow
+        /// at <paramref name="elbow"/>, the wrist at <paramref name="wrist"/>, folding toward <paramref name="way"/>
+        /// (the elbow's way off the line from the shoulder to the wrist). Whatever posed the arm, its bones are then
+        /// rolled about their own lengths as a body's are, the same for the same arm: a solver's own roll of a bone
+        /// (which nothing shows, the limb being round) no longer goes to the physical joints as a turn. The hand is
+        /// carried with the forearm: the caller keeps its turn.
+        /// </summary>
+        public static void SetBones(AnimRig anim, bool right, Vector3 elbow, Vector3 wrist, Vector3 way)
+        {
+            var c = Chain.Of(anim, right);
+            Vector3 upperWay = elbow - c.shoulderAt, n = wrist - c.shoulderAt, toWrist = wrist - elbow;
+            if (upperWay.sqrMagnitude < 1e-10f || n.sqrMagnitude < 1e-10f || toWrist.sqrMagnitude < 1e-10f)
+            {
+                return;
+            }
+
+            upperWay.Normalize();
+            n.Normalize();
+            Vector3 hinge = Vector3.Cross(way, n);
+            if (hinge.sqrMagnitude < 1e-8f)
+            {
+                return;
+            }
+
+            hinge.Normalize();
+            var upper = Basis(upperWay, hinge) * c.restBasisInverse;
+            c.upper.rotation = upper;
+            float bend = Vector3.SignedAngle(upper * c.foreAlong, toWrist, hinge);
+            c.fore.localRotation = anim.RestLocalRotation(right ? PartId.ForearmR : PartId.ForearmL) * Quaternion.AngleAxis(bend, c.elbowAxis);
+            // (What the hinge alone leaves of the way to the wrist: an arm so nearly straight that its fold was kept from
+            // the step before, not read from it.)
+            Vector3 lies = c.hand.position - c.fore.position;
+            if (lies.sqrMagnitude > 1e-10f)
+            {
+                c.fore.rotation = Quaternion.FromToRotation(lies, toWrist) * c.fore.rotation;
+            }
+        }
+
+        /// <summary>
         /// How far from the shoulder the arm can put a point of the hand (metres), the hand held on the
         /// forearm so (<paramref name="wristLocal"/>): the longest reach, the elbow's bend within its range.
         /// </summary>

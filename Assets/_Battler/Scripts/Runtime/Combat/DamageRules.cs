@@ -83,6 +83,16 @@ namespace PhysicsBattler.Combat
             return weaponMass + 0.5f * ArmMassShare * attackerMass;
         }
 
+        /// <summary>
+        /// How many times heavier a blow is for a weapon <paramref name="times"/> as heavy as its own weight: the weapon
+        /// that heavy and half the arm swinging it, against the weapon as it is and the same arm.
+        /// </summary>
+        public static float Heft(WeaponDefinition weapon, float weaponScale, float attackerMass, float times)
+        {
+            float own = (weapon != null ? weapon.massKg : 1f) * weaponScale * weaponScale * weaponScale, arm = 0.5f * ArmMassShare * attackerMass;
+            return (own * Mathf.Max(0f, times) + arm) / Mathf.Max(1e-3f, own + arm);
+        }
+
         /// <summary>How much of the momentum goes into the body, by what strikes: a club's weight lands, an edge or point cuts in.</summary>
         public static float Transfer(StrikeWith with)
         {

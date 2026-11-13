@@ -91,7 +91,7 @@ public sealed class HeftMeasure
             if (h.Since < 0)
             {
                 // (Both stand still through the hit stop: what the weapon does is taken from when it ends.)
-                if (h.By.Clip.Strikes.HitStop > 0f && h.Waited++ < 30)
+                if (h.By.Clip != null && h.By.Clip.Strikes != null && h.By.Clip.Strikes.HitStop > 0f && h.Waited++ < 30)
                 {
                     continue;
                 }

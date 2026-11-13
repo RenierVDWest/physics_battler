@@ -1183,6 +1183,18 @@ namespace PhysicsBattler.Sandbox
                 uiScale = PlayerPrefs.GetFloat(UiScaleKey, DefaultUiScale);
             }
 
+            // (The legs' opinion under each fighter, at the screen's own size, under the panel and the labels.)
+            if (PhysicsBattler.Locomotion.CombatFeel.ShowLegs && Camera.main != null)
+            {
+                foreach (var unit in units)
+                {
+                    if (unit != null && unit.IsInitialized && unit.IsAlive && unit.Clip != null && !unit.Clip.Fallen)
+                    {
+                        GroundingView.Draw(unit.Clip.Ground, Camera.main, unit.Clip.Size);
+                    }
+                }
+            }
+
             // (The panel and the units' labels scaled together, text and buttons alike: at the screen's own size they
             // were too small to read.)
             var was = GUI.matrix;

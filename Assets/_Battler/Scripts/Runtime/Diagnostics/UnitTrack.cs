@@ -147,6 +147,19 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("heldL", loco.FootHeld(0) ? 1 : 0);
             frames.Add("heldR", loco.FootHeld(1) ? 1 : 0);
             frames.Add("concentration", unit.Concentration, 2);
+            // (The legs' opinion, the plan "Grounded legs", step 0: what each foot is doing (0 planted, 1 sliding, 2 landing,
+            // 3 low in the air, 4 stepping), the body's weight and where a foot is needed, and how far each is outside the
+            // support (cm; -1: both feet up).)
+            var legs = unit.Clip.Ground;
+            frames.Add("footL", (int)legs.Feet[0].State);
+            frames.Add("footR", (int)legs.Feet[1].State);
+            frames.Add("weightX", legs.Weight.x, 3);
+            frames.Add("weightZ", legs.Weight.z, 3);
+            frames.Add("weightH", legs.Weight.y - legs.GroundY, 3);
+            frames.Add("neededX", legs.Needed.x, 3);
+            frames.Add("neededZ", legs.Needed.z, 3);
+            frames.Add("weightOut", float.IsNaN(legs.WeightOut) ? -1f : 100f * legs.WeightOut, 1);
+            frames.Add("neededOut", float.IsNaN(legs.NeededOut) ? -1f : 100f * legs.NeededOut, 1);
             frames.End();
             samples++;
             if (writePose && unit.Authority != null)

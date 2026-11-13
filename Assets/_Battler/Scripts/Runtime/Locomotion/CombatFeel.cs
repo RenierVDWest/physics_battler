@@ -214,6 +214,10 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How far a joint of the physical upper body has to be pushed from where it is wanted before it gives way and stays where it was pushed (degrees). A push smaller than this is undone at once, in a step: it is taken for the muscle being a little behind its animation, not for a blow. For each radian a second the animation is turning the joint it is a little more (0.6 degrees), since a fast cut is further behind. Lower: lighter knocks leave the arm aside, but fast cuts start being left behind their animation; higher: only harder knocks move an arm, and it follows the animation more exactly. Default 8.")]
         [Range(2f, 30f)] public float giveWayAngle = DefaultGiveWayAngle;
 
+        [Header("The legs: what they make of the body (a view only, it changes nothing)")]
+        [Tooltip("Draws the legs' opinion on the ground under each fighter, on today's animation (it changes nothing in play). Each sole's outline is coloured by what the foot is doing: green planted, red on the ground and sliding (over 10 cm a second), yellow just landing, orange in the air but too low to be a step (under 9 cm), blue stepping. The white outline is the support: the patch of ground the feet hold. The dot is under the body's weight (its centre of gravity): green over the support, red outside it (unbalanced). The cross is where a foot would have to be to stop the body as it moves now: grey while that is on the support, orange when it is over 10 cm outside it (a step is needed there).")]
+        public bool showLegsOpinion;
+
         [Header("Heavy weapons: the weapon is the steady one, what it lands on gives way")]
         [Tooltip("How much heavier a blow that lands on a body is felt than its weapon's own weight says (times). It multiplies what the struck body takes: how far the part struck is thrown, how far the body bends and leans, how hard it is driven back, whether it is thrown back stumbling, which reaction it plays. It does not change the damage, the poise a blow costs, or what a shield or a parry takes. 1: the weapons' own weights (a sword lands on a Medium at about 0.4 m/s, the Large's club at 1.2 to 3). Default 3, exaggerated on purpose: a sword's blow to the chest then drives a Medium back about a third of a metre, the Large's club a metre. Lower it to pull the weight back.")]
         [Range(1f, 6f)] public float weaponWeight = DefaultWeaponWeight;
@@ -224,12 +228,33 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How much stronger the physical weapon arm is through a strike than at other times (times its muscles' strength), from the strike's start until 0.4 s after its contact. Through a strike the arm also has no slack: it is held to its swing and does not give way to what the weapon meets, so the weapon pushes on through a body instead of being turned by it. A blow stopped by a shield or a parry gives as before. 1: no stronger. Default 3.")]
         [Range(1f, 8f)] public float strikeArmStrength = DefaultStrikeArmStrength;
 
+        [Tooltip("On: what a fighter holds weighs in the physical body what it really weighs at its bearer's size (weight goes with volume: a Large's club is a bigger club, 4 to 5 kg where a Medium's is 2, and its shield is as much heavier). Off: every weapon and shield weighs what is written for a Medium's, whoever holds it (as before). For a Medium it changes nothing. Headless, the Larges' blows land as they did (as fast, the body struck thrown as far) and their weapon hands stay a little closer to their swings. The bodies are built again when this is changed.")]
+        public bool weaponsHaveTheirMass = true;
+
+        [Tooltip("How many times its real weight a weapon (not a shield) weighs in the physical body; the arm that swings it is as much stronger, so it still swings as the animation does. 1: its real weight. This is the dial for trying 'the weight of a blow from the weapon itself', and headless it did not give that: with swords three times their weight the blows on a body landed about as before (what throws a struck body is the script's 'Weapon Weight' above, not the physical blade), the weapon hand trailed its swing nearly twice as far, and a sword parry held 14 times in 25 where it held 23 in 27. So it is left at 1. Needs 'Weapons Have Their Mass'. The bodies are built again when this is changed.")]
+        [Range(0.5f, 6f)] public float weaponMass = DefaultWeaponMass;
+
         [Header("Arms that bend as a body does")]
         [Tooltip("The gate at the end of the pose. On: after everything that moves an arm has had its say (the clip, the strike's aim, the shield, the parry, the knocks, the free arm), each arm is read as a body's arm (where the elbow is against the chest, which way it folds, how far it bends, the forearm's roll, the wrist) and brought into what a person's arm does, so no arm is posed in a way a body cannot bend. An arm already inside is not touched, and an arm may always be where the playing clip has it. A hand asked to go where no arm reaches stops short: a shield or a blade may then not get where it was sent. Off: as before, arms are posed wherever their hands are sent (to compare).")]
         public bool armsHeldToABody = true;
 
         [Tooltip("How fast the gate swings an arm over when it has to take it the long way (degrees a second). When a stage sends an elbow's fold, a forearm's roll or the elbow's place from one side of what a body can do right round to the other, the arm does not jump there: it goes over through what a body can do at this pace, on top of however fast the arm sent was moving itself. An arm left outside its range by a range that closed on it (an arm bending from straight, coming down from overhead) comes in at twice this. Higher: the arm is where it should be sooner, and whips there; lower: it swings over more gently, and lags what it was sent for longer. Default 600: a fold sent right round (195 degrees) goes over in a third of a second.")]
         [Range(120f, 1500f)] public float armGoesOverAt = PhysicsBattler.Motion.ArmGate.DefaultCatchUp;
+
+        [Tooltip("The fastest the gate follows the arm it is sent (degrees a second, for each of the elbow's place, the way it folds, the wrist and the forearm's roll; the pace above is added to it). Our own stages sometimes throw an arm's joint round by 60 degrees or more in a single step (a pole that flips, a parry's hand rolled over, a strike's wrist flicked): with this, the arm goes there over two or three steps instead of in one. The fastest recorded strike turns a joint (an elbow straightening, a forearm rolling, a wrist snapping) at about 2500 degrees a second, and with the pace above the default lets that through. 0: no limit, the arm is followed however fast it is sent (as before). Lower: snaps are smoothed more, but the strikes' own fast joints are held back too and blows start to miss: at 1500, headless, one attack in ten lost its hit. Default 2400.")]
+        [Range(0f, 4000f)] public float armFollowsAtMost = PhysicsBattler.Motion.ArmGate.DefaultMostSent;
+
+        [Tooltip("After the gate, each arm's two bones are set the way a body's are for where its joints are: the upper arm turned so the elbow's own axis lies across the arm, the forearm bent about that axis alone, the hand's turn kept. A limb is round, so this shows nothing by itself; what it stops is a solver's hidden roll of a bone (which jumps when an arm is nearly straight) going to the physical arm as a sudden turn of its joints. An arm too straight to tell which way it folds keeps the way it folded the step before. Off: the bones as whatever posed the arm left them (as before).")]
+        public bool armBonesAsABody = true;
+
+        [Tooltip("A swordsman's free arm is tucked behind him while he guards. On: its hand lies in line with its forearm, the back of the hand against his back, the way a hand held behind you does. Off: the hand keeps the turn its clip gave it for an arm held in front (as before), which behind the back is a wrist bent further than a wrist goes, so the arm gate was turning it back nearly every step.")]
+        public bool freeHandGoesWithItsArm = true;
+
+        [Tooltip("The physical arms have stops, as a body's joints do. The arm as it is in the physics (knocked by a blow, pressed by a shield, left behind by its muscles) is read against the same ranges the arm gate holds the animation to. A joint knocked past its range is wanted back at the end of its range, does not give way any further (inside its range a struck arm still gives and comes back over a second, as before), and is held there with more than its muscle has. So a blow can knock an arm to the end of what an arm does and no further: an elbow does not bend backward, a shield arm is not folded behind its owner's head. Off: a struck arm gives wherever it is pushed, up to 50 degrees aside of its pose, in range or not (as before).")]
+        public bool armsHaveStops = true;
+
+        [Tooltip("How many times its muscle's whole strength a physical arm joint is held with once it is past its range (all of it from 10 degrees past; it rises from 2 degrees). A stop is bone and sinew, not muscle: it holds against a blow the muscle gives way to, and it holds as hard when the arm's muscles have been let go by a blow. Higher: a struck arm is stopped harder at the end of its range and more of the blow goes on into the body. 1: the joint is wanted back at the end of its range with its muscle's strength alone. Default 4.")]
+        [Range(1f, 12f)] public float armStopsHoldWith = PhysicsBattler.Authority.UpperBodyArticulation.DefaultStopTimes;
 
         [Header("Feet")]
         [Tooltip("How fast a combo's strike may carry the body in after its target through the strike's wind-up (metres a second, at a Medium's size): the pull that keeps a combo's blows landing on an enemy the last blow drove back. It was 7.2: a body moved that fast is not stepping, its feet were dragged after it. At 3 it goes as fast as a quick step and as many blows still land (measured over three fights); lower and blows start to fall short (at 2 the body is carried 40% less far). Default 3.")]
@@ -267,6 +292,16 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
         public static float WeaponWeight = DefaultWeaponWeight, SwingKept = DefaultSwingKept, StrikeArmStrength = DefaultStrikeArmStrength;
+
+        /// <summary>Real weapon weight: the weapons weigh in the physical body what they weigh (at their bearer's size), times <see cref="WeaponMass"/>; and that much of "felt heavier" is taken off what the script adds.</summary>
+        public static bool WeaponsHaveMass = true, MassTakesFromFelt = false, ArmFollowsMass = true;
+
+        /// <summary>The legs' opinion is drawn under each fighter (a view only).</summary>
+        public static bool ShowLegs;
+
+        public static float WeaponMass = DefaultWeaponMass;
+
+        public const float DefaultWeaponMass = 1f;
         public static bool ShieldFixed = true;
         public static float ShieldWristTurn = DefaultShieldWristTurn, ShieldReadsFrom = DefaultShieldReadsFrom;
         public static float OffFrontBend = DefaultOffFrontBend, SideHitTime = DefaultSideHitTime;
@@ -303,7 +338,15 @@ namespace PhysicsBattler.Locomotion
             ShieldReadsFrom = DefaultShieldReadsFrom;
             PhysicsBattler.Motion.ArmLimits.On = true;
             PhysicsBattler.Motion.ArmGate.CatchUp = PhysicsBattler.Motion.ArmGate.DefaultCatchUp;
+            PhysicsBattler.Motion.ArmGate.MostSent = PhysicsBattler.Motion.ArmGate.DefaultMostSent;
+            PhysicsBattler.Motion.ArmLimits.BonesAsABody = true;
+            SwordParry.FreeHandWithArm = true;
+            ClipFighter.ArmStops = true;
+            PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = PhysicsBattler.Authority.UpperBodyArticulation.DefaultStopTimes;
+            ShowLegs = false;
             StrikeArmStrength = DefaultStrikeArmStrength;
+            WeaponsHaveMass = true;
+            WeaponMass = DefaultWeaponMass;
             BendPerWeight = DefaultBendPerWeight;
             OffFrontBend = DefaultOffFrontBend;
             SideHitTime = DefaultSideHitTime;
@@ -365,7 +408,15 @@ namespace PhysicsBattler.Locomotion
             ShieldReadsFrom = Mathf.Clamp(shieldReadsFrom, 0f, 0.9f);
             PhysicsBattler.Motion.ArmLimits.On = armsHeldToABody;
             PhysicsBattler.Motion.ArmGate.CatchUp = Mathf.Clamp(armGoesOverAt, 120f, 1500f);
+            PhysicsBattler.Motion.ArmGate.MostSent = Mathf.Max(0f, armFollowsAtMost);
+            PhysicsBattler.Motion.ArmLimits.BonesAsABody = armBonesAsABody;
+            SwordParry.FreeHandWithArm = freeHandGoesWithItsArm;
+            ClipFighter.ArmStops = armsHaveStops;
+            PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = Mathf.Clamp(armStopsHoldWith, 1f, 12f);
+            ShowLegs = showLegsOpinion;
             StrikeArmStrength = Mathf.Max(1f, strikeArmStrength);
+            WeaponsHaveMass = weaponsHaveTheirMass;
+            WeaponMass = Mathf.Clamp(weaponMass, 0.5f, 6f);
             BendPerWeight = bendPerWeight;
             OffFrontBend = offFrontBend;
             SideHitTime = Mathf.Max(0.3f, sideHitTime);

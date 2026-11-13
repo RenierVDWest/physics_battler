@@ -1,3 +1,4 @@
+using PhysicsBattler.Rig;
 using UnityEngine;
 
 namespace PhysicsBattler.Motion
@@ -48,6 +49,9 @@ namespace PhysicsBattler.Motion
     {
         /// <summary>The gate on (the scene's Combat Feel, "Arms Held To A Body").</summary>
         public static bool On = true;
+
+        /// <summary>After the gate, an arm's two bones are set as a body's are for where its joints are (the scene's Combat Feel, "Arm Bones As A Body").</summary>
+        public static bool BonesAsABody = true;
 
         /// <summary>The upper arm's turn about its length: the forearm folded in toward the body's middle, and out (degrees from the fold a hanging arm has, carried the short way to where the upper arm points).</summary>
         public const float TurnIn = 100f, TurnOut = 95f;
@@ -426,6 +430,20 @@ namespace PhysicsBattler.Motion
         public const float DefaultCatchUp = 600f;
 
         /// <summary>
+        /// The fastest the gate follows the arm it is sent, each of the elbow's place, its fold, the wrist and the
+        /// forearm's roll (degrees a second, before the pace is added; 0: however fast it is sent): the scene's Combat
+        /// Feel, "Arm Follows At Most". The fastest of the clips turns a joint 42 degrees in a step (2500 a second), and
+        /// with the pace this lets that through: at 1500 an elbow straightening in a blow, a forearm rolling and a wrist
+        /// snapping were held back a step or so in nearly every strike, and one attack in ten lost its hit.
+        /// </summary>
+        public static float MostSent = DefaultMostSent;
+
+        public const float DefaultMostSent = 2400f;
+
+        /// <summary>For the reports: steps the gate held an arm's speed (the arm sent moved faster than <see cref="MostSent"/>), by what it held: the elbow's place, its bend, its fold, the wrist, the forearm's roll, the hand on the forearm.</summary>
+        public readonly int[] Slowed = new int[6];
+
+        /// <summary>
         /// A gap in a range that goes round narrower than this (degrees: the fold's turn and the forearm's roll, as
         /// the arm straightens or goes overhead and their ranges open) is crossed the short way; a wider one is gone
         /// round, through the range.
@@ -438,13 +456,21 @@ namespace PhysicsBattler.Motion
         // (Where the arm was let go the step before, and how it came to each of the gate's steps then, as ways in the
         // chest's frame (a right arm's) or in the hand's, not as readings: a reading's zero swings round as the arm
         // nears straight up or straight out, and what was held to a reading swung with it.)
-        private bool known, foldKnown, thumbKnown, wristKnown;
+        private bool known, foldKnown, thumbKnown, wristKnown, boneWayKnown, handKnown;
+        private Vector3 boneWay;
+        private Quaternion handWas;
+        private float outBend, inBend;
         private Vector3 outAlong, outFold, outThumb, outWrist;
         private Vector3 inAlong, inFold, inThumb, inWrist;
         private float inSays, twist;
 
         /// <summary>Forgets where the arm was (it was put somewhere else: a first step, a get-up).</summary>
-        public void Forget() => known = false;
+        public void Forget()
+        {
+            known = false;
+            boneWayKnown = false;
+            handKnown = false;
+        }
 
         private static float Toward(float from, float to, float most) => Mathf.Abs(to - from) <= most ? to : from + Mathf.Sign(to - from) * most;
 
@@ -506,6 +532,9 @@ namespace PhysicsBattler.Motion
             foreWay.Normalize();
             var back = Quaternion.Inverse(chest);
             float pace = CatchUp * dt;
+            // (However far the arm sent moved in the step, it is followed no faster than an arm moves: a stage that
+            // threw the elbow, its fold or the hand round in a step has it go there over a few.)
+            float quick = MostSent > 0f ? MostSent * dt : float.MaxValue;
             bool held = false;
             var handSent = hand;
 
@@ -515,7 +544,9 @@ namespace PhysicsBattler.Motion
             Vector3 allowed = ArmLimits.NearestAllowed(u, clip, known, outAlong);
             if (known)
             {
-                float most = Vector3.Angle(alongCame, inAlong) + pace;
+                float came = Vector3.Angle(alongCame, inAlong);
+                float most = Mathf.Min(came, quick) + pace;
+                Slowed[0] += came > quick && Vector3.Angle(outAlong, allowed) > most ? 1 : 0;
                 if (Vector3.Angle(outAlong, allowed) > most)
                 {
                     allowed = ArmLimits.NearestAllowed(Vector3.RotateTowards(outAlong, allowed, most * Mathf.Deg2Rad, 0f).normalized, clip, true, outAlong);
@@ -560,6 +591,35 @@ namespace PhysicsBattler.Motion
                 held = true;
             }
 
+            // (The bend as it was sent is followed no faster than an elbow bends: an arm thrown straight, or folded, in a
+            // step opens or closes over a few, in its own plane; one too straight to say which way it folds, the way it
+            // folded the step before.)
+            float bendCame = bend;
+            if (known && quick < float.MaxValue)
+            {
+                float most = Mathf.Min(Mathf.Abs(bendCame - inBend), quick) + pace;
+                Slowed[1] += Mathf.Abs(bend - outBend) > most ? 1 : 0;
+                if (Mathf.Abs(bend - outBend) > most)
+                {
+                    float to = outBend + Mathf.Sign(bend - outBend) * most;
+                    Vector3 was = Vector3.ProjectOnPlane(chest * ArmLimits.Mirror(outFold, left), upperWay);
+                    float says = foldNow.sqrMagnitude > 1e-10f ? ArmLimits.Smooth(FoldKeptUnder, FoldReadFrom, bend) : 0f;
+                    Vector3 way = was.sqrMagnitude < 1e-6f ? foldNow : says <= 0f ? was : Vector3.ProjectOnPlane(Vector3.Slerp(was.normalized, foldNow.normalized, says), upperWay);
+                    if (way.sqrMagnitude > 1e-10f)
+                    {
+                        float r = to * Mathf.Deg2Rad;
+                        Vector3 then = upperWay * Mathf.Cos(r) + way.normalized * Mathf.Sin(r);
+                        var more = Quaternion.FromToRotation(foreWay, then);
+                        unbend = more * unbend;
+                        foreWay = then.normalized;
+                        hand = more * hand;
+                        bend = to;
+                        foldNow = Vector3.ProjectOnPlane(foreWay, upperWay);
+                        held = true;
+                    }
+                }
+            }
+
             turnFore = unbend;
 
             // 3. Which way the elbow folds: the arm turned about the upper arm's own length (the forearm's own turn
@@ -595,7 +655,9 @@ namespace PhysicsBattler.Motion
                 if (from)
                 {
                     // (As far as the fold that came turned itself, and the pace; one read from the step before, the pace alone.)
-                    float moved = foldFromLast ? 0f : Vector3.Angle(fold, Vector3.ProjectOnPlane(inFold, u));
+                    float foldCameBy = foldFromLast ? 0f : Vector3.Angle(fold, Vector3.ProjectOnPlane(inFold, u));
+                    Slowed[2] += foldCameBy > quick ? 1 : 0;
+                    float moved = Mathf.Min(foldCameBy, quick);
                     into = From(last, into, low, high, moved + pace, pace);
                 }
 
@@ -640,7 +702,9 @@ namespace PhysicsBattler.Motion
             Vector3 lies = ArmLimits.NearestWrist(inHand, left, clip, known && wristKnown, outWrist);
             if (known && wristKnown)
             {
-                float most = Vector3.Angle(wristCame, inWrist) + pace;
+                float came = Vector3.Angle(wristCame, inWrist);
+                float most = Mathf.Min(came, quick) + pace;
+                Slowed[3] += came > quick && Vector3.Angle(outWrist, lies) > most ? 1 : 0;
                 if (Vector3.Angle(outWrist, lies) > most)
                 {
                     lies = ArmLimits.NearestWrist(Vector3.RotateTowards(outWrist, lies, most * Mathf.Deg2Rad, 0f).normalized, left, clip, true, outWrist);
@@ -679,7 +743,9 @@ namespace PhysicsBattler.Motion
                     Vector3 was = Vector3.ProjectOnPlane(outThumb, f);
                     bool from = known && thumbKnown && was.sqrMagnitude > 1e-6f;
                     // (As far as the thumb sent turned itself, by as much as it says of the roll, now and the step before; and the pace.)
-                    float most = from ? Mathf.Min(says, inSays) * Vector3.Angle(sentThumb, Vector3.ProjectOnPlane(inThumb, f)) + pace : 0f;
+                    float rollCame = from ? Mathf.Min(says, inSays) * Vector3.Angle(sentThumb, Vector3.ProjectOnPlane(inThumb, f)) : 0f;
+                    Slowed[4] += rollCame > quick ? 1 : 0;
+                    float most = from ? Mathf.Min(rollCame, quick) + pace : 0f;
                     Vector3 up = Vector3.ProjectOnPlane(-u, f);
                     Vector3 goes;
                     if (bend >= NoFoldUnder && up.sqrMagnitude > 1e-6f)
@@ -721,6 +787,8 @@ namespace PhysicsBattler.Motion
             turnHand = hand * Quaternion.Inverse(carried);
             outAlong = u;
             outWrist = lies;
+            outBend = bend;
+            inBend = bendCame;
             inAlong = alongCame;
             inFold = foldCame;
             inThumb = thumbCame;
@@ -732,25 +800,116 @@ namespace PhysicsBattler.Motion
             return held;
         }
 
-        /// <summary>The gate on a posed arm: its bones turned so it is an arm a body has. How far the arm was past (degrees; 0: let through as it was).</summary>
-        public float Hold(Transform chest, Transform upper, Transform fore, Transform hand, bool left, in ArmReading clip, float dt)
+        /// <summary>
+        /// The gate on a posed arm: its bones turned so it is an arm a body has; and then (<see cref="ArmLimits.BonesAsABody"/>)
+        /// its two bones set as a body's are for where its joints now are, the hand's turn kept. How far the arm was past
+        /// (degrees; 0: let through as it was).
+        /// </summary>
+        public float Hold(AnimRig anim, bool left, in ArmReading clip, float dt)
         {
+            Transform chest = anim.Part(PartId.Chest), upper = anim.Part(left ? PartId.UpperArmL : PartId.UpperArmR), fore = anim.Part(left ? PartId.ForearmL : PartId.ForearmR),
+                hand = anim.Part(left ? PartId.HandL : PartId.HandR);
             if (!ArmLimits.On || chest == null || upper == null || fore == null || hand == null)
             {
                 known = false;
+                boneWayKnown = false;
                 return 0f;
             }
 
             float past = ArmLimits.Read(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip).Worst;
-            if (!Hold(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip, dt, out var turnUpper, out var turnFore, out var turnHand))
+            bool held = Hold(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip, dt, out var turnUpper, out var turnFore, out var turnHand);
+            if (held)
             {
-                return 0f;
+                upper.rotation = turnUpper * upper.rotation;
+                fore.rotation = turnFore * fore.rotation;
+                hand.rotation = turnHand * hand.rotation;
             }
 
-            upper.rotation = turnUpper * upper.rotation;
-            fore.rotation = turnFore * fore.rotation;
-            hand.rotation = turnHand * hand.rotation;
-            return Mathf.Max(past, 0.01f);
+            if (ArmLimits.BonesAsABody)
+            {
+                SetBones(anim, left, chest, upper, fore, hand, dt);
+            }
+            else
+            {
+                boneWayKnown = false;
+                handKnown = false;
+            }
+
+            return held ? Mathf.Max(past, 0.01f) : 0f;
+        }
+
+        /// <summary>An arm bent less than this has its fold kept from the step before, and one bent more than <see cref="FoldReadFrom"/> has it read from where its joints are (degrees; between, by as much of each).</summary>
+        public const float FoldKeptUnder = 3f, FoldReadFrom = 12f;
+
+        /// <summary>
+        /// The arm's bones set as a body's are (<see cref="ArmRig.SetBones"/>) for where its joints are, whatever posed
+        /// it and however that rolled its bones. Which way the elbow folds is read from the joints' places; an arm too
+        /// straight to read it from keeps the way it folded the step before, carried with the arm.
+        /// </summary>
+        private void SetBones(AnimRig anim, bool left, Transform chest, Transform upper, Transform fore, Transform hand, float dt)
+        {
+            Vector3 shoulder = upper.position, elbow = fore.position, wrist = hand.position;
+            Vector3 n = wrist - shoulder;
+            if (n.sqrMagnitude < 1e-10f)
+            {
+                return;
+            }
+
+            n.Normalize();
+            var handTurn = hand.rotation;
+            Vector3 way = Vector3.ProjectOnPlane(elbow - shoulder, n);
+            float bend = Vector3.Angle(elbow - shoulder, wrist - elbow);
+            float says = way.sqrMagnitude > 1e-10f ? ArmLimits.Smooth(FoldKeptUnder, FoldReadFrom, bend) : 0f;
+            Vector3 kept = boneWayKnown ? Vector3.ProjectOnPlane(chest.rotation * boneWay, n) : Vector3.zero;
+            Vector3 use;
+            if (kept.sqrMagnitude < 1e-6f)
+            {
+                // (Nothing kept: as read, or, dead straight, down and a little back as an arm hangs.)
+                use = way.sqrMagnitude > 1e-10f ? way : Vector3.ProjectOnPlane(chest.rotation * new Vector3(0f, -1f, -0.3f), n);
+            }
+            else if (says <= 0f)
+            {
+                use = kept;
+            }
+            else
+            {
+                // (Toward the fold as it reads, by as much as it says and no faster than the gate follows an arm: an arm
+                // that comes out of straight folding another way has its upper arm turned to it over a few steps.)
+                float most = MostSent > 0f ? says * (MostSent + CatchUp) * dt : 180f;
+                use = Vector3.RotateTowards(kept.normalized, way.normalized, most * Mathf.Deg2Rad, 0f);
+            }
+
+            use = Vector3.ProjectOnPlane(use, n);
+            if (use.sqrMagnitude < 1e-10f)
+            {
+                return;
+            }
+
+            use.Normalize();
+            ArmRig.SetBones(anim, !left, elbow, wrist, use);
+            hand.rotation = handTurn;
+            // (The hand on the forearm, now that the forearm's own roll is a body's: turned no faster than a wrist and a
+            // forearm turn a hand. The gate holds the wrist's bend and the forearm's roll each to that, but near the ends
+            // of a wrist's range the two together turned the hand twice as far.)
+            if (MostSent > 0f)
+            {
+                float most = (MostSent + CatchUp) * dt;
+                if (handKnown && Quaternion.Angle(handWas, hand.localRotation) > most)
+                {
+                    Slowed[5]++;
+                    hand.localRotation = Quaternion.RotateTowards(handWas, hand.localRotation, most);
+                }
+
+                handWas = hand.localRotation;
+                handKnown = true;
+            }
+            else
+            {
+                handKnown = false;
+            }
+
+            boneWay = Quaternion.Inverse(chest.rotation) * use;
+            boneWayKnown = true;
         }
     }
 }

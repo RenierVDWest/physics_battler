@@ -101,6 +101,11 @@ internal static class Program
             return ArmGateReport.Run();
         }
 
+        if (args.Length >= 1 && args[0] == "legrange")
+        {
+            return LegRangeReport.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "armrange")
         {
             return ArmRangeReport.Run();

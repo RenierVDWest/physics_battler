@@ -175,10 +175,65 @@ internal static class FightReport
             }
         }
 
+        // (The gate's follow-up: FIGHT_ARMSTEADY="most,bones,hand" (the fastest it follows the arm sent, degrees a second, 0: no
+        // limit; 1 or 0: the bones set as a body's; 1 or 0: the free hand with its arm); "0,0,0" is as it was before.)
+        {
+            var steady = (Environment.GetEnvironmentVariable("FIGHT_ARMSTEADY") ?? "").Split(',');
+            if (steady.Length >= 2 && float.TryParse(steady[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float mostSent))
+            {
+                PhysicsBattler.Motion.ArmGate.MostSent = mostSent;
+                PhysicsBattler.Motion.ArmLimits.BonesAsABody = steady[1].Trim() != "0";
+                if (steady.Length >= 3)
+                {
+                    PhysicsBattler.Locomotion.SwordParry.FreeHandWithArm = steady[2].Trim() != "0";
+                }
+            }
+        }
+
+        // (The physical arms' stops: FIGHT_ARMSTOPS=0 runs a fight without them, any other number is how many times its
+        // muscle's strength a stopped joint is held with.)
+        {
+            string stops = Environment.GetEnvironmentVariable("FIGHT_ARMSTOPS");
+            if (stops != null && float.TryParse(stops, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float times))
+            {
+                PhysicsBattler.Locomotion.ClipFighter.ArmStops = times > 0f;
+                if (times > 0f)
+                {
+                    PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = times;
+                }
+            }
+        }
+
         // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
         {
             PhysicsBattler.Motion.ArmLimits.On = false;
+        }
+
+        // (Real weapon weight: FIGHT_WMASS="3,1" makes the weapons three times their own weight in the physical body and
+        // takes that much off what the script adds to a blow (",0": the script as it was); "0" is the weapons as before,
+        // their weight as written whatever their bearer's size.)
+        {
+            var wm = (Environment.GetEnvironmentVariable("FIGHT_WMASS") ?? "").Split(',');
+            if (wm.Length >= 1 && float.TryParse(wm[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float times))
+            {
+                PhysicsBattler.Locomotion.CombatFeel.WeaponsHaveMass = times > 0f;
+                if (times > 0f)
+                {
+                    PhysicsBattler.Locomotion.CombatFeel.WeaponMass = times;
+                }
+
+                if (wm.Length >= 2)
+                {
+                    PhysicsBattler.Locomotion.CombatFeel.MassTakesFromFelt = wm[1].Trim() != "0";
+                }
+
+                // (And ",0" after that: the weapon arm no stronger for a heavier weapon.)
+                if (wm.Length >= 3)
+                {
+                    PhysicsBattler.Locomotion.CombatFeel.ArmFollowsMass = wm[2].Trim() != "0";
+                }
+            }
         }
 
         // (Heavy weapons: FIGHT_HEFT="2.5,0.7,3" sets how much heavier a blow is felt, how much of its speed a weapon
@@ -501,6 +556,8 @@ internal static class FightReport
         }
         UnitController.ComboChanged += OnCombo;
         var heft = new HeftMeasure(units);
+        var grounds = new GroundMeasure(units);
+        var legs = new LegMeasure(units);
         // (Each kind of unit on its own: in the target test, the attackers and each target; else by what it carries.)
         var limits = new LimitMeasure(units, u => targetTest ? (u.TargetDummy ? "the target " + (u.Clip != null ? u.Clip.Stance.ToString().ToLowerInvariant() : "?") : "the attackers") : u.name.Substring(2));
         var dummyOff = new Dictionary<UnitController, (float most, float last)>();
@@ -520,6 +577,8 @@ internal static class FightReport
                 loop.Step(units, dt, Time.time);
                 heft.Step(dt);
                 limits.Step();
+                grounds.Step(dt);
+                legs.Step(dt);
                 foreach (var u in units)
                 {
                     if (u.TargetDummy)
@@ -783,6 +842,8 @@ internal static class FightReport
             sb.AppendLine("    blows met, by where they came from (against the facing of the one struck): " + string.Join(", ", keys.ConvertAll(k => $"{k} {sectors[k]}")));
             sb.Append(heft.Report());
             sb.Append(limits.Report());
+            sb.Append(grounds.Report());
+            sb.Append(legs.Report());
             if (dummyOff.Count > 0)
             {
                 sb.AppendLine("    the target test's targets, off their spots: " + string.Join("; ", units.Where(u => u.TargetDummy).Select(u =>

@@ -942,8 +942,29 @@ namespace PhysicsBattler.Locomotion
             MoveOn(dt, want, yaw, opponent, frozen);
         }
 
+        /// <summary>The legs' opinion of the body as the physics last left it (the plan "Grounded legs", step 0): read each step, it moves nothing.</summary>
+        public readonly Grounding Ground = new Grounding();
+
+        private float restAnkle = -1f;
+
+        private void ReadGround(float dt)
+        {
+            if (restAnkle < 0f)
+            {
+                restAnkle = Anim.RestLocalPosition(PartId.Pelvis).y + Anim.RestLocalPosition(PartId.ThighL).y + Anim.RestLocalPosition(PartId.ShinL).y + Anim.RestLocalPosition(PartId.FootL).y;
+            }
+
+            if (Fallen || !snapped)
+            {
+                Ground.Forget();
+            }
+
+            Ground.Read(Rig, groundLevel, Size, restAnkle, dt);
+        }
+
         private void MoveOn(float dt, Vector3 want, float yaw, Vector3 opponent, bool frozen)
         {
+            ReadGround(dt);
             if (frozen)
             {
                 return;
@@ -998,7 +1019,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             Poser.Pose(dt);
+            MarkArms("the clip's arms and the strike");
             HandOff(dt);
+            MarkArms("the hand-off");
             if (!Defends)
             {
                 return;
@@ -1008,6 +1031,7 @@ namespace PhysicsBattler.Locomotion
             {
                 // (The body's sway first, then the parry solved on it: swayed after, the sword went off its line.)
                 React(dt);
+                MarkArms("the reaction to a blow");
                 if (Striking)
                 {
                     // (Its own strike has the sword arm: the parry waits, and takes it up from where the strike leaves it.)
@@ -1023,23 +1047,35 @@ namespace PhysicsBattler.Locomotion
 
                     Parry.Skill = ParrySkillNow;
                     Parry.Step(dt, Blow, opponent);
+                    MarkArms("the parry and the free arm");
                     MaybeRetire(opponent);
                 }
             }
             else
             {
                 RaiseShield(dt, opponent);
+                MarkArms("the shield");
                 MaybeRetire(opponent);
                 CountArmCut();
                 React(dt);
+                MarkArms("the reaction to a blow");
             }
 
             Recover(dt);
+            MarkArms("the recovery");
             Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
         }
 
         /// <summary>How far past a body's range the pose had each arm this step, before the gate brought it back (degrees; left, right; 0: not touched).</summary>
         public readonly float[] ArmHeldBy = new float[2];
+
+        /// <summary>For the reports: how far the gate moved each wrist from where the pose had it this step (metres), and how far it turned each hand (degrees): left, right.</summary>
+        public readonly float[] ArmMovedBy = new float[2], HandTurnedBy = new float[2];
+
+        /// <summary>For the reports: steps the gate held an arm's speed, by what it held (the elbow's place, its bend, its fold, the wrist, the forearm's roll, the hand on the forearm): the weapon arm in a strike, and every other arm and time.</summary>
+        public readonly int[] ArmSlowedStriking = new int[6], ArmSlowedElse = new int[6];
+
+        private readonly int[,] slowedSeen = new int[2, 6];
 
         /// <summary>
         /// The gate at the end of the pose (the plan "Arms that bend as a body does", step 2): after every stage has had
@@ -1050,6 +1086,138 @@ namespace PhysicsBattler.Locomotion
         private readonly ArmGate[] armGates = { new ArmGate(), new ArmGate() };
         private readonly (Quaternion, Quaternion, Quaternion)[] armSent = new (Quaternion, Quaternion, Quaternion)[2], armGone = new (Quaternion, Quaternion, Quaternion)[2];
         private readonly bool[] armTurnsKnown = new bool[2];
+
+        /// <summary>For the reports (<see cref="TraceArmJumps"/>): which stage of the pose first turned an arm's joint by a jump in a step, counted by stage and arm, and each written out.</summary>
+        public readonly Dictionary<string, int> ArmJumpsBy = new Dictionary<string, int>();
+
+        public System.Action<string> ArmJumpTrace;
+
+        /// <summary>Whether the stages of the pose are watched for jumps of an arm's joints (the reports).</summary>
+        public static bool TraceArmJumps;
+
+        private readonly List<string> armStages = new List<string>();
+        private readonly List<Quaternion[]> armStageTurns = new List<Quaternion[]>();
+        private Dictionary<string, Quaternion[]> armGave = new Dictionary<string, Quaternion[]>(), armGaveLast = new Dictionary<string, Quaternion[]>();
+        private readonly Quaternion[] armLeft = new Quaternion[6];
+        private bool armLeftKnown;
+
+        private static readonly PartId[] ArmJoints6 = { PartId.UpperArmL, PartId.ForearmL, PartId.HandL, PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
+
+        /// <summary>For the reports: the arms' joints as a stage of the pose has just left them.</summary>
+        private void MarkArms(string stage)
+        {
+            if (!TraceArmJumps)
+            {
+                return;
+            }
+
+            var turns = new Quaternion[6];
+            for (int i = 0; i < 6; i++)
+            {
+                turns[i] = Anim.Part(ArmJoints6[i]).localRotation;
+            }
+
+            armStages.Add(stage);
+            armStageTurns.Add(turns);
+        }
+
+        /// <summary>
+        /// For the reports: at the end of the pose's stages, whether an arm's joint was left turned by a jump from where
+        /// the stages left it the step before, and if so which stage did it: the one whose own turn of the joint (what
+        /// it left against what it was given) changed the most since the step before. (A stage that only hands on what
+        /// another dropped, the hand-off from a parry to a strike, changes as much as the one that dropped it and the
+        /// arm is left where it was: no jump, and none counted.)
+        /// </summary>
+        private void TraceJumps()
+        {
+            if (!TraceArmJumps || armStages.Count == 0)
+            {
+                armStages.Clear();
+                armStageTurns.Clear();
+                return;
+            }
+
+            armGave = new Dictionary<string, Quaternion[]>();
+            for (int k = 0; k < armStages.Count; k++)
+            {
+                var gave = new Quaternion[6];
+                for (int i = 0; i < 6; i++)
+                {
+                    gave[i] = k == 0 ? armStageTurns[k][i] : Quaternion.Inverse(armStageTurns[k - 1][i]) * armStageTurns[k][i];
+                }
+
+                armGave[armStages[k]] = gave;
+            }
+
+            var left = armStageTurns[armStageTurns.Count - 1];
+            if (armLeftKnown)
+            {
+                for (int side = 0; side < 2; side++)
+                {
+                    float by = 0f;
+                    int joint = 0;
+                    for (int j = 0; j < 3; j++)
+                    {
+                        float turned = Quaternion.Angle(left[side * 3 + j], armLeft[side * 3 + j]);
+                        if (turned > by)
+                        {
+                            by = turned;
+                            joint = j;
+                        }
+                    }
+
+                    if (by <= ArmJump)
+                    {
+                        continue;
+                    }
+
+                    string did = "?";
+                    float most = -1f;
+                    var stages = new HashSet<string>(armGave.Keys);
+                    stages.UnionWith(armGaveLast.Keys);
+                    foreach (string stage in stages)
+                    {
+                        float changed = 0f;
+                        for (int j = 0; j < 3; j++)
+                        {
+                            var now = armGave.TryGetValue(stage, out var g) ? g[side * 3 + j] : Quaternion.identity;
+                            var before = armGaveLast.TryGetValue(stage, out var l) ? l[side * 3 + j] : Quaternion.identity;
+                            changed = Mathf.Max(changed, Quaternion.Angle(now, before));
+                        }
+
+                        if (changed > most)
+                        {
+                            most = changed;
+                            did = stage;
+                        }
+                    }
+
+                    bool isLeft = side == 0;
+                    string key = did + ", " + (isLeft ? "left" : "right") + " " + (joint == 0 ? "upper arm" : joint == 1 ? "forearm" : "hand");
+                    ArmJumpsBy[key] = ArmJumpsBy.TryGetValue(key, out int n) ? n + 1 : 1;
+                    if (ArmJumpTrace != null)
+                    {
+                        Transform u = Anim.Part(isLeft ? PartId.UpperArmL : PartId.UpperArmR), f = Anim.Part(isLeft ? PartId.ForearmL : PartId.ForearmR), h = Anim.Part(isLeft ? PartId.HandL : PartId.HandR);
+                        var read = ArmLimits.Read(Anim.Part(PartId.Chest).rotation, u.position, f.position, h.position, h.rotation, isLeft);
+                        ArmJumpTrace(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "{0:0.00} s {1}: {2:0}° (upper {3:0} fore {4:0} hand {5:0}; the stage's own turn changed {6:0}°); {7}{8}{9}, struck {10:0.00} s ago; bent {11:0}, raised {12:0} toward {13:0}, turned {14:0}, rolled {15:0}, wrist {16:0}/{17:0}",
+                            clock, key, by, Quaternion.Angle(left[side * 3], armLeft[side * 3]), Quaternion.Angle(left[side * 3 + 1], armLeft[side * 3 + 1]), Quaternion.Angle(left[side * 3 + 2], armLeft[side * 3 + 2]), most,
+                            Loco.Current, Loco.Shot != null ? " " + Loco.Shot.Name : "", Striking ? " striking" : "", SinceStruck,
+                            read.Bend, read.Raised, read.Toward, read.Turn, read.Roll, read.Flex, read.Thumbward));
+                    }
+                }
+            }
+
+            for (int i = 0; i < 6; i++)
+            {
+                armLeft[i] = left[i];
+            }
+
+            armLeftKnown = true;
+            armGaveLast = armGave;
+            armStages.Clear();
+            armStageTurns.Clear();
+        }
 
         /// <summary>A joint of an arm turned this far in a step counts as a jump (degrees; for the reports).</summary>
         public const float ArmJump = 60f;
@@ -1062,7 +1230,10 @@ namespace PhysicsBattler.Locomotion
 
         private void HoldArms(float dt)
         {
+            MarkArms("what came after (the fight's own turns)");
+            TraceJumps();
             ArmHeldBy[0] = ArmHeldBy[1] = 0f;
+            ArmMovedBy[0] = ArmMovedBy[1] = HandTurnedBy[0] = HandTurnedBy[1] = 0f;
             if (!ArmLimits.On || !snapped)
             {
                 armGates[0].Forget();
@@ -1092,7 +1263,21 @@ namespace PhysicsBattler.Locomotion
                 Transform upper = Anim.Part(left ? PartId.UpperArmL : PartId.UpperArmR), fore = Anim.Part(left ? PartId.ForearmL : PartId.ForearmR), hand = Anim.Part(left ? PartId.HandL : PartId.HandR);
                 var sentTurns = (upper.localRotation, fore.localRotation, hand.localRotation);
                 var sentAs = ArmGateTrace != null ? ArmLimits.Read(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip) : default;
-                ArmHeldBy[side] = armGates[side].Hold(chest, upper, fore, hand, left, clip, dt);
+                Vector3 wristSent = hand.position;
+                var handSent = hand.rotation;
+                ArmHeldBy[side] = armGates[side].Hold(Anim, left, clip, dt);
+                ArmMovedBy[side] = Vector3.Distance(wristSent, hand.position);
+                HandTurnedBy[side] = Quaternion.Angle(handSent, hand.rotation);
+                // (For the reports: what of the arm's speed the gate held this step, the weapon arm in a strike apart.)
+                for (int k = 0; k < 6; k++)
+                {
+                    int now = armGates[side].Slowed[k];
+                    if (now != slowedSeen[side, k])
+                    {
+                        slowedSeen[side, k] = now;
+                        (Striking && (side == 1 || Poser.TwoHanded) ? ArmSlowedStriking : ArmSlowedElse)[k]++;
+                    }
+                }
                 // (For the reports: a joint the gate turned far in a step that the pose sent had hardly turned.)
                 var goneTurns = (upper.localRotation, fore.localRotation, hand.localRotation);
                 if (armTurnsKnown[side])
@@ -1101,9 +1286,9 @@ namespace PhysicsBattler.Locomotion
                     float goneBy = Mathf.Max(Quaternion.Angle(goneTurns.Item1, armGone[side].Item1), Mathf.Max(Quaternion.Angle(goneTurns.Item2, armGone[side].Item2), Quaternion.Angle(goneTurns.Item3, armGone[side].Item3)));
                     ArmSentJumps += sentBy > ArmJump ? 1 : 0;
                     ArmGoneJumps += goneBy > ArmJump ? 1 : 0;
-                    if (goneBy > ArmJump && sentBy < 0.5f * ArmJump)
+                    if (goneBy > ArmJump)
                     {
-                        ArmGateJumps++;
+                        ArmGateJumps += sentBy < 0.5f * ArmJump ? 1 : 0;
                         if (ArmGateTrace != null)
                         {
                             var goneAs = ArmLimits.Read(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip);
@@ -1327,17 +1512,22 @@ namespace PhysicsBattler.Locomotion
         private (float hz, float most) MuscleOf(PartId id, float ease)
         {
             float strong = Strong;
+            // (Real weapon weight: an arm that swings a weapon made heavier than its own weight is as much stronger, so
+            // it still swings it as the clips do; with the muscles it has for the weapon as it is, a sword three times
+            // as heavy came a third slower and trailed its swing by 30 cm.)
+            float armed = CombatFeel.WeaponsHaveMass && CombatFeel.ArmFollowsMass ? Mathf.Max(1f, CombatFeel.WeaponMass) : 1f;
+            float left = Poser != null && Poser.TwoHanded ? armed : 1f;
             switch (id)
             {
                 case PartId.Spine:
                 case PartId.Chest: return (TorsoQuick * ease, strong);
                 case PartId.Head: return (NeckQuick * ease, 0.25f * strong);
-                case PartId.UpperArmR: return (WeaponArmQuick * ease, strong);
-                case PartId.ForearmR: return (WeaponArmQuick * ease, 0.7f * strong);
-                case PartId.HandR: return (WeaponArmQuick * ease, 0.25f * strong);
-                case PartId.UpperArmL: return (ShieldArmQuick * ease, strong);
-                case PartId.ForearmL: return (ShieldArmQuick * ease, 0.7f * strong);
-                default: return (ShieldArmQuick * ease, 0.25f * strong);
+                case PartId.UpperArmR: return (WeaponArmQuick * ease, strong * armed);
+                case PartId.ForearmR: return (WeaponArmQuick * ease, 0.7f * strong * armed);
+                case PartId.HandR: return (WeaponArmQuick * ease, 0.25f * strong * armed);
+                case PartId.UpperArmL: return (ShieldArmQuick * ease, strong * left);
+                case PartId.ForearmL: return (ShieldArmQuick * ease, 0.7f * strong * left);
+                default: return (ShieldArmQuick * ease, 0.25f * strong * left);
             }
         }
 
@@ -1373,6 +1563,12 @@ namespace PhysicsBattler.Locomotion
             if (Upper == null)
             {
                 return;
+            }
+
+            // (The weapons' mass in the physics changed on the scene's Combat Feel: the body is built again with it.)
+            if (builtWithMass != (CombatFeel.WeaponsHaveMass, CombatFeel.WeaponMass))
+            {
+                solidsChanged = true;
             }
 
             if (solidsChanged)
@@ -1503,6 +1699,79 @@ namespace PhysicsBattler.Locomotion
                     // (And an arm swinging its weapon has no slack: it is held to its swing.)
                     Upper.SetTight(id, held || over || (Swinging && (side == 1 || Poser.TwoHanded)) ? 1f : 0f);
                 }
+
+                StopArm(side);
+            }
+        }
+
+        /// <summary>The physical arms have stops (the scene's Combat Feel, "Arms Have Stops"): see <see cref="StopArm"/>.</summary>
+        public static bool ArmStops = true;
+
+        /// <summary>A physical joint this far past what a body's does (degrees) is at its stop, and from <see cref="StopFull"/> past it is held with all a stop has.</summary>
+        public const float StopFrom = 2f, StopFull = 10f;
+
+        private readonly ArmGate stopGate = new ArmGate();
+
+        /// <summary>For the reports: steps a physical arm was at a stop, and the furthest past its range a stop found one (degrees): left, right.</summary>
+        public readonly int[] ArmStopped = new int[2];
+
+        public readonly float[] ArmStoppedMost = new float[2];
+
+        /// <summary>
+        /// The physical arm's stops (the plan "Arms that bend as a body does", step 5). The arm as it is in the
+        /// physics (knocked by a blow, pressed by a shield, left behind by its muscles) is read as the pose's arm is
+        /// read by the gate, against the same ranges: where the elbow is, which way it folds, how far it is bent, how
+        /// the forearm is rolled and the wrist bent. A joint past its range is told where its range ends nearest where
+        /// it is (<see cref="UpperBodyArticulation.StopAt"/>): it does not give way further, and is held there with
+        /// more than its muscle has. Inside its range nothing is changed: the arm gives and comes back as it did.
+        /// </summary>
+        /// <param name="side">0: the left arm; 1: the right.</param>
+        private void StopArm(int side)
+        {
+            bool left = side == 0;
+            var joints = ArmJoints[side];
+            if (!ArmStops || !ArmLimits.On || !snapped || !Upper.Holds(joints[2].part) || (left && Poser.TwoHanded) || Rig.IsSevered(joints[2].part))
+            {
+                foreach (var (id, _) in joints)
+                {
+                    Upper.NoStop(id);
+                }
+
+                return;
+            }
+
+            Transform chest = Rig.Part(PartId.Chest).transform, upper = Rig.Part(joints[0].part).transform, fore = Rig.Part(joints[1].part).transform, hand = Rig.Part(joints[2].part).transform;
+            var clip = ArmLimits.ReadClip(Loco.RawPoints, (int)LocoBone.Neck, (int)LocoBone.Spine2, (int)LocoBone.LeftArm, (int)LocoBone.RightArm, left);
+            float past = ArmLimits.Read(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip).Worst;
+            stopGate.Forget();
+            if (past < StopFrom
+                || !stopGate.Hold(chest.rotation, upper.position, fore.position, hand.position, hand.rotation, left, clip, 1f / 60f, out var turnUpper, out var turnFore, out var turnHand))
+            {
+                foreach (var (id, _) in joints)
+                {
+                    Upper.NoStop(id);
+                }
+
+                return;
+            }
+
+            ArmStopped[side]++;
+            ArmStoppedMost[side] = Mathf.Max(ArmStoppedMost[side], past);
+            // (The arm as the gate would have it, each bone carried by the one it hangs from, and each joint's turn in it.)
+            Quaternion u = turnUpper * upper.rotation, f = turnFore * (turnUpper * fore.rotation), h = turnHand * (turnFore * (turnUpper * hand.rotation));
+            var then = new[] { Quaternion.Inverse(chest.rotation) * u, Quaternion.Inverse(u) * f, Quaternion.Inverse(f) * h };
+            var is_ = new[] { Quaternion.Inverse(chest.rotation) * upper.rotation, Quaternion.Inverse(upper.rotation) * fore.rotation, Quaternion.Inverse(fore.rotation) * hand.rotation };
+            for (int j = 0; j < 3; j++)
+            {
+                float by = Quaternion.Angle(is_[j], then[j]);
+                if (by >= StopFrom)
+                {
+                    Upper.StopAt(joints[j].part, then[j], ArmLimits.Smooth(StopFrom, StopFull, by), MuscleOf(joints[j].part, 1f).most);
+                }
+                else
+                {
+                    Upper.NoStop(joints[j].part);
+                }
             }
         }
 
@@ -1574,7 +1843,7 @@ namespace PhysicsBattler.Locomotion
                     // (A sword balances a hand's breadth past its guard and turns about that like a rod a third its length.)
                     var slot = hand == PartId.HandR ? Rig.SlotWeaponR : Rig.SlotWeaponL;
                     Vector3 balance = Rig.Part(hand).transform.InverseTransformPoint(slot.position + slot.forward * (0.18f * Size));
-                    Upper.Hold(hand, solid, mass, balance, 0.26f * Size);
+                    Upper.Hold(hand, solid, WeighsInBody(mass, true), balance, 0.26f * Size);
                 }
                 else if (!CombatFeel.ShieldFixed && hand == PartId.HandL && Rig.SlotWeaponL != null && Anim.SlotWeaponL != null)
                 {
@@ -1584,14 +1853,27 @@ namespace PhysicsBattler.Locomotion
                     var posedHand = Anim.Part(PartId.HandL);
                     Quaternion rest = Quaternion.Inverse(posedHand.rotation) * (Anim.SlotWeaponL.parent != null ? Anim.SlotWeaponL.parent.rotation : posedHand.rotation)
                         * (Poser.ShieldGripRest ?? Anim.SlotWeaponL.localRotation);
-                    Upper.HoldTurned(hand, solid, mass, Anim.SlotWeaponL, Rig.SlotWeaponL, rest);
+                    Upper.HoldTurned(hand, solid, WeighsInBody(mass, false), Anim.SlotWeaponL, Rig.SlotWeaponL, rest);
                 }
                 else
                 {
-                    Upper.Hold(hand, solid, mass);
+                    Upper.Hold(hand, solid, WeighsInBody(mass, false));
                 }
             }
+
+            builtWithMass = (CombatFeel.WeaponsHaveMass, CombatFeel.WeaponMass);
         }
+
+        private (bool, float) builtWithMass;
+
+        /// <summary>
+        /// What a held thing weighs in the physical body (kg). Real weapon weight (the scene's Combat Feel, "Weapons
+        /// Have Their Mass"): its own weight at its bearer's size (weight goes with volume: a Large's club is a bigger
+        /// club), and a weapon <see cref="CombatFeel.WeaponMass"/> times that. Off: its weight as written, whatever the
+        /// bearer's size (as before).
+        /// </summary>
+        private float WeighsInBody(float mass, bool weapon) =>
+            CombatFeel.WeaponsHaveMass ? mass * Size * Size * Size * (weapon ? Mathf.Max(0.1f, CombatFeel.WeaponMass) : 1f) : mass;
 
         /// <summary>The physical upper body let go (down, dead, a limb off): the rig's own parts take over where it was, at its speeds.</summary>
         private void ReleaseUpper()
@@ -3215,8 +3497,16 @@ namespace PhysicsBattler.Locomotion
         public int Touches;
 
         /// <param name="drive">How much of the blow's weight drives the whole body back across the ground (1: all of it; less for a combo's blows before its last, which the combo has to follow).</param>
-        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false, bool bound = false, float drive = 1f)
+        public void TakeHit(PartId part, bool shield, Vector3 impulse, float partShare, float poiseDamage, Combat.Reaction reaction, Vector3 point, bool parried = false, bool bound = false, float drive = 1f,
+            float heavier = -1f)
         {
+            // (How much heavier than its weapon's own weight a blow on a shield is felt: the scene's Combat Feel's, or what
+            // the striker's script has left of it once its weapon's mass in the physics has taken its share.)
+            if (heavier < 0f)
+            {
+                heavier = CombatFeel.WeaponWeight;
+            }
+
             lastHit = clock;
             if (Fallen)
             {
@@ -3301,7 +3591,7 @@ namespace PhysicsBattler.Locomotion
                 knockedOpen = weight >= CombatFeel.GuardOpenFrom * GuardHolds;
                 // (Heavy weapons: the shield gives further to the blow, by the scene's Combat Feel; whether the guard is
                 // knocked open goes by the blow's own weight, as before.)
-                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight * CombatFeel.WeaponWeight / GuardHolds, CombatFeel.MostShieldGive) * Size;
+                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight * heavier / GuardHolds, CombatFeel.MostShieldGive) * Size;
                 KnockArmBy(1, impulse, point, knockedOpen ? Mathf.Max(give, CombatFeel.MostShieldGive * Size) : give, knockedOpen ? GuardOpenFrequency : ArmKnockFrequency);
                 if (knockedOpen)
                 {
@@ -3344,7 +3634,7 @@ namespace PhysicsBattler.Locomotion
             // the steps carry it back (a push at once would cut the reaction off before it showed).
             // (A blow on the shield drives its bearer back as much harder as the scene's Combat Feel makes the weapons
             // heavy; one on the body comes here with that in it already.)
-            Vector3 knock = impulse * (1f - partShare) * KnockScale / Mass * (shield ? CombatFeel.WeaponWeight : drive);
+            Vector3 knock = impulse * (1f - partShare) * KnockScale / Mass * (shield ? heavier : drive);
             knock.y = 0f;
             bool driven = !Anchored && knock.magnitude > DrivenFrom;
             string clipName = shield ? null : ReactionClip(part, impulse.magnitude / Mass, reaction, thrown);

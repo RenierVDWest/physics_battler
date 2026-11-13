@@ -48,6 +48,9 @@ namespace PhysicsBattler.Authority
         private readonly bool[] gripped;                 // each joint: a hand with a shield strapped on it
         private readonly bool[] put;                     // each joint: put where the pose turned it at once, this step (where it is is not yet to be read)
         private readonly float[] tight;                  // each joint: 0 with slack (an arm), 1 held to its pose (the torso; an arm inside its own body or past its joint's range)
+        private readonly float[] stopped;                // each joint: 0, or up to 1 as it is at a stop (bent past what a body's joint does): see StopAt
+        private readonly float[] stopHold;               // each stopped joint: what the stop holds it with over its muscle's strength (N m)
+        private readonly Quaternion[] stopAt;            // each stopped joint: where it is wanted (its turn against its parent), the end of its range nearest where it is
         private readonly Dictionary<Collider, int> linkOf = new Dictionary<Collider, int>();   // each solid's part (what a hand holds counts as the hand)
 
         // (What each joint's muscle is allowed over its own strength, to follow what the pose itself does.)
@@ -98,6 +101,9 @@ namespace PhysicsBattler.Authority
             hangs = new Vector3[n];
             hz = new float[n];
             tight = new float[parts.Length];
+            stopped = new float[parts.Length];
+            stopHold = new float[parts.Length];
+            stopAt = new Quaternion[parts.Length];
             put = new bool[parts.Length];
             gripped = new bool[parts.Length];
             slack = new Quaternion[parts.Length];
@@ -344,7 +350,7 @@ namespace PhysicsBattler.Authority
                 float turns = Returns && EvenDamping ? Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)) : hangs[i][axis];
                 links[i].SetDriveStiffness((ArticulationDriveAxis)axis, Returns ? 0f : w * w * turns * scale);
                 links[i].SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale * ArticulationConventions.DampingScale * (Returns ? DampTimes : 1f));
-                links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, most[i] > 0f ? most[i] + (more != null ? AllowShare * more[i] : 0f) + borne : float.MaxValue);
+                links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, most[i] > 0f ? most[i] + (more != null ? AllowShare * more[i] : 0f) + borne + stopHold[i] : float.MaxValue);
             }
 
             // (What the hand grips is turned as quick as the hand, and held with all the grip has: a shield is
@@ -803,7 +809,7 @@ namespace PhysicsBattler.Authority
             for (int i = 1; i < n; i++)
             {
                 // (And a wrist what turns the shield in its hand: see SetDrives.)
-                float limit = most[i] > 0f ? most[i] + AllowShare * more[i] + (Returns && GripStrength > 0f && gripped[i] ? GripStrength : 0f) : float.MaxValue;
+                float limit = most[i] > 0f ? most[i] + AllowShare * more[i] + (Returns && GripStrength > 0f && gripped[i] ? GripStrength : 0f) + stopHold[i] : float.MaxValue;
                 for (int axis = 0; axis < 3; axis++)
                 {
                     links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, limit);
@@ -1056,7 +1062,18 @@ namespace PhysicsBattler.Authority
                 // its slack it was turned by the shield's motor each time the pose turned the board in the fist.)
                 // (Nor does a joint the pose has just turned at once: it is not behind, it has been moved.)
                 float gives = put[i] || gripped[i] ? float.MaxValue : GiveWay + GiveLag * rate[i].magnitude;
-                if (Ask(links[i], asked, ref slack[i], gives, MostAside * (tight[i] > 0.5f ? HeldAside : 1f), at, rate[i], Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)), most[i], sign))
+                float mostAside = MostAside * (tight[i] > 0.5f ? HeldAside : 1f);
+                if (stopped[i] > 0f && !put[i])
+                {
+                    // (At a stop: left aside of its pose by as far as the end of its range is from it, and no further
+                    // than a joint is ever left; and it gives way to nothing: what pushes it on has the stop to push against.)
+                    var aside = Quaternion.Inverse(JointMath.FromTurnVector(asked)) * stopAt[i];
+                    float left = Quaternion.Angle(aside, Quaternion.identity) * Mathf.Deg2Rad;
+                    slack[i] = left > mostAside ? Quaternion.Slerp(Quaternion.identity, aside, mostAside / left) : aside;
+                    gives = float.MaxValue;
+                }
+
+                if (Ask(links[i], asked, ref slack[i], gives, mostAside, at, rate[i], Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)), most[i] > 0f ? most[i] + stopHold[i] : 0f, sign))
                 {
                     GaveWay++;
                     if (Debugging)
@@ -1409,6 +1426,54 @@ namespace PhysicsBattler.Authority
 
             sb.Append(DescribeGrips());
             return sb.ToString();
+        }
+
+        /// <summary>How many times its muscle's strength a joint at a stop is held with (the scene's Combat Feel, "Arm Stops Hold With").</summary>
+        public static float StopTimes = DefaultStopTimes;
+
+        public const float DefaultStopTimes = 4f;
+
+        /// <summary>Times a joint was at a stop (steps; for the reports).</summary>
+        public int Stops { get; private set; }
+
+        /// <summary>
+        /// A joint knocked past what a body's joint does is at its stop. It is wanted at <paramref name="at"/> (its
+        /// turn against its parent: the end of its range nearest where it is), it does not give way further (see
+        /// <see cref="Ask"/>: what pushed it there has the stop to push against, not a slack that follows it), and
+        /// by as much as <paramref name="share"/> (0 to 1) it is held there with <see cref="StopTimes"/> its muscle's
+        /// whole strength (<paramref name="full"/>, N m: what the muscle has when nothing has softened it; a struck
+        /// arm's muscles are let go for a moment, its bones and sinews are not). Told again each step while it is
+        /// past; <see cref="NoStop"/> when it is not.
+        /// </summary>
+        public void StopAt(PartId id, Quaternion at, float share, float full)
+        {
+            int i = Array.IndexOf(parts, id);
+            if (i <= 0)
+            {
+                return;
+            }
+
+            float before = stopHold[i];
+            stopAt[i] = at;
+            stopped[i] = Mathf.Max(1e-3f, Mathf.Clamp01(share));
+            stopHold[i] = Mathf.Max(0f, stopped[i] * (StopTimes * full - most[i]));
+            Stops++;
+            if (Mathf.Abs(stopHold[i] - before) > 0.05f * Mathf.Max(1f, full))
+            {
+                SetDrives(i);
+            }
+        }
+
+        /// <summary>A joint within what a body's joint does: no stop holds it.</summary>
+        public void NoStop(PartId id)
+        {
+            int i = Array.IndexOf(parts, id);
+            if (i > 0 && stopped[i] > 0f)
+            {
+                stopped[i] = 0f;
+                stopHold[i] = 0f;
+                SetDrives(i);
+            }
         }
 
         /// <summary>A joint held to its pose (1) or left its slack (0): see <see cref="Ask"/>.</summary>
