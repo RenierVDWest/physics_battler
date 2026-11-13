@@ -531,10 +531,10 @@ internal static class FightReport
         var upperOffs = new[] { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
         Array.Clear(PhysicsBattler.Locomotion.ClipFighter.RootShoves, 0, 4);
         PhysicsBattler.Locomotion.ClipFighter.RetireSeconds = PhysicsBattler.Locomotion.ClipFighter.RetireFastest = 0f;
-        // (FIGHT_HOP=0: a step back's feet are let go as the body leaves them, as before.)
-        if (Environment.GetEnvironmentVariable("FIGHT_HOP") == "0")
+        // (FIGHT_HOP=1: a step back is a hop. Off by default since 13 November: its feet are let go as the body leaves them.)
+        if (Environment.GetEnvironmentVariable("FIGHT_HOP") != null)
         {
-            PhysicsBattler.Locomotion.ClipFighter.StepBackHops = false;
+            PhysicsBattler.Locomotion.ClipFighter.StepBackHops = Environment.GetEnvironmentVariable("FIGHT_HOP") == "1";
         }
 
         // (FIGHT_RETIRE=0: ground given is snapped in at 4 m/s, as before.)

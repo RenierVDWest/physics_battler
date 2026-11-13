@@ -2517,7 +2517,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>A step back is a hop (the scene's Combat Feel): both feet off the ground together and down together. Off: each is let go as the body leaves it and brought after, as before.</summary>
-        public static bool StepBackHops = true;
+        public static bool StepBackHops;
 
         /// <summary>A step back shorter than this is stepped, not hopped (metres at a Medium's size).</summary>
         public const float HopFrom = 0.12f;

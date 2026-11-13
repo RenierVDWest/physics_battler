@@ -1352,13 +1352,13 @@ namespace PhysicsBattler.Sandbox
             // frame, so the toggle changes it there.)
             if (GUILayout.Button("Step back now (2): every standing fighter")) StepBackTest();
             var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-            bool hops = feel != null ? feel.stepBackIsAHop : PhysicsBattler.Locomotion.ClipFighter.StepBackHops;
+            bool hops = feel != null ? feel.stepBackHops : PhysicsBattler.Locomotion.ClipFighter.StepBackHops;
             bool hopsNow = GUILayout.Toggle(hops, "A step back is a hop (off: as before)");
             if (hopsNow != hops)
             {
                 if (feel != null)
                 {
-                    feel.stepBackIsAHop = hopsNow;
+                    feel.stepBackHops = hopsNow;
                 }
 
                 PhysicsBattler.Locomotion.ClipFighter.StepBackHops = hopsNow;

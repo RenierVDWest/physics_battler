@@ -3065,6 +3065,11 @@ it reads as a hop back or as a body jerked back with its legs tucked is for your
 for now (`LocoBody.HopHeight`, `HopRise`, `HopDip`, `HopDipTime`); say which way it is off and they go on the
 Combat Feel.
 
+In Unity since (13 November): seen with the button both ways, and judged better without the hop. The switch is
+off by default now and renamed `stepBackHops`, so a scene saved with the old one on does not keep it; the hop
+stays in the code behind it, and the button and its toggle stay in the debug panel. Ground given in the time
+there is (`groundGivenInTime`) stays on.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
