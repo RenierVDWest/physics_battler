@@ -2602,6 +2602,103 @@ Not verified: the view itself. It is drawn with the game's own on-screen drawing
 against the log, but I have not seen it on a screen; if it draws nothing or in the wrong place, the log and the
 report still hold.
 
+**Stand and step (the plan "Grounded legs", step 1)** (13 November). In its guard a fighter now stands planted and
+moves in short quick steps, with standing between. Three parts, all behind the Combat Feel's `standAndStep`
+(off: the fighters walk exactly as they did; the same seeds give the same fights, blow for blow).
+
+*The pacing* (`Locomotion/StepPacer.cs`, between the fight's steering and the walk). The steering asks each
+fighter for a velocity, and near an enemy that is 0.3 to 0.8 m/s nearly all the time (closing on its distance,
+backing off while it gathers, going round). Walked as asked, that was a walk in slow motion. Paced, the fighter
+stands while what is asked adds up; at a step's worth (`stepAfter`, 0.22 m for a Medium) it goes that way at a
+step's pace (`stepPace`, 0.75 m/s, or as fast as it is asked if that is faster) until the steering stops asking
+that way or the ground asked for is covered; then it stands again. What is asked while it stands is forgotten over
+a second and a half, so a nudge never makes a step. A velocity as fast as a walk (0.9 m/s for a Medium) is walked
+as it is, and so is a shove.
+
+*The step itself: in the stance* (`stepsInTheStance`; `Locomotor.StepsInStance`). The guard's standing clip is a
+wide, deep stance (a Medium's feet 43 cm apart and 73 cm fore and aft, the left ahead). The guard's walking
+clips are not: they are upright walks with the feet under the hips. Stepped with those, every step drew the
+stance in and every stop stepped out into it again, the feet 35 to 40 cm from where the stance has them each time
+it stood. So a paced step does not use the walk at all. The body goes, standing as the guard stands, and the feet
+step after it one at a time to where the stance has them: the settling steps the body already had for finding its
+stance after a strike, made to follow one another as each lands (`LocoBody.StepGap`, 0.24 s), the foot ahead the
+way it goes first, and put down ahead of its place by a fifth of a second of the body's going (`footLandsAhead`)
+so that it stands as much ahead of its place as behind it. A step takes a quarter of a second; one foot is always
+down. Coming out of a walk or a shove, once it is slower than a walk it goes into the stance as it goes. With
+`stepsInTheStance` off the step is walked with the guard's walk instead, at 1.6 times its recorded rhythm
+(`walkedStepRhythm`) with the strides that much shorter, to compare.
+
+*The distance held* (`FightLoop.RingHeldWithin`, `holdsItsDistanceWithin`). At its striking distance a fighter
+holds it until its enemy is 18 cm nearer or further, then steps all the way back to it. A blow is thrown from up
+to 35 cm out already, so this costs none. It turned out to matter little: with it or without, the fighters step
+about as much, because what keeps them moving is not small corrections (see below).
+
+Four fights of six, 60 s each, the same seeds with it off and on:
+
+| | off (as before) | on |
+|---|---|---|
+| Standing still | 0 to 1% of the time | 9 to 15% |
+| Stepping in the stance | none | 23 to 33% |
+| Walking (the walk's animation) | 61 to 67% | 17 to 23% |
+| In a clip (a strike, a reaction, a turn) | 32 to 39% | 34 to 46% |
+| Both feet on the ground | 3 to 4% | 9 to 15% |
+| A foot planted | 26 to 30% | 35 to 38% |
+| A swing (foot off the ground until it is on it again), at the middle | 0.62 to 0.72 s | 0.27 s |
+| Swings over 0.45 s, walking or standing | 76 to 79% of them | 28 to 33% |
+| Swings over 1 s | 19 to 27% | 6 to 8% |
+| A foot on the ground and sliding | 7 to 8% of the time, 2.4 to 2.9 m a minute | 3 to 4%, 1.1 to 1.6 m |
+| Slides over 5 cm | 11 to 14 a minute for each fighter | 5 to 8 |
+| On one foot, the body slow: the weight outside that foot | 14 to 19 cm | 27 to 31 cm |
+| Blows started; blows that met something | 256; 259 | 268; 242 |
+
+Against the plan's measures. Standing time and both-feet time are up. "No swing over 0.45 s" is not met: the
+steps in the stance are a quarter of a second (13 to 18% of them counted longer, mostly a walk's last swing
+ending as it stands), but a fifth of the time is still the walk's own animation, at its recorded 0.5 to 0.7 s a
+swing: walking off a shove (11 to 13% of the time, at 0.9 to 1 m/s; a body kept off another is a shove) and
+walking as fast as it is asked (5 to 9%). Those are the plan's steps 2 and 4. Blows met are within the 10% (7%
+fewer), but one blow in ten now meets nothing where nearly every one met a body, a shield or a blade. I have not
+found why; the likeliest is that a fighter backing off now gets away in a quick step where it used to drift, and
+the strikes thrown as it goes fall short. Strikes that find nothing in reach before they start are up too (54 to
+75 over the four fights).
+
+Two things this step shows and leaves alone:
+
+- **The fighters still step most of the time they are in guard**, and that is the fight asking, not the legs. In
+  guard with no clip playing the steering asks nothing 3 to 13% of the time. Near its distance and free to move,
+  a fighter is closing on it half the time (a third of a metre out on average, asked 0.6 m/s) and backing off from
+  an enemy too near a third of the time (a fighter gathering holds out of its enemy's reach while that enemy
+  closes: they chase); it is asked nothing a seventh to a quarter of the time. A fighter's root travels 27 m a
+  minute (35 before). If they are to stand more than this, it is the tempo's distances and the circling that
+  would have to ask less.
+- **On one foot the weight is nowhere near that foot** (27 to 31 cm outside it, 14 to 19 before): the stance is
+  wide and the hips stay in its middle while a foot steps. That is the plan's step 3 (the weight shifts before a
+  foot lifts).
+
+Found on the way, in the walk, and fixed for when a slow step is walked (these apply with `standAndStep` on):
+strides shortened to almost nothing squashed the foot itself along the way it went, toe drawn in under the ankle,
+so the foot read from them turned sideways and its toe dragged (sliding went from 8 to 13% of the time before
+this was found; a foot is now moved as one piece); strides were shortened about the hip, which drew a staggered
+stance in with them (now about the foot's own place in the cycle); a walk stepping quickly has both feet down for
+a fortieth of a second a step and stepped on past it while the body's last drift died (it stays on both feet once
+it is as good as stopped); and a foot held where the walk stopped was held as it stopped, heel up or toes up (it
+stands flat).
+
+The playtest log's frames have two more columns: `stepping` (0 standing still, 1 stepping in the stance, 2 a step
+walked, 3 walking as asked, 4 walking off a shove, 5 a clip, 6 down) and `owed` (the ground asked for and not yet stepped,
+cm). `python3 Tools/Playtest/steps.py PlaytestLogs/<session> 10 30 out.png` draws each fighter's feet over time
+with what it was doing, to see the rhythm: stand, step, stand. The fight report's legs lines have the split of
+standing and walking by what it was, each stand out of a walk, and the swings by what was playing. For a run:
+`FIGHT_STEPS=0` (off), `FIGHT_STEPS="0.22,0.75,0.12,1,0.18"` (the step's worth, its pace, how quickly the body
+picks it up, in the stance or walked, the distance held), `FIGHT_PACETRACE="A Medium,10,20"` (each step of one
+fighter's pacing and feet), `FIGHT_PACEHIST=1` (what the steering asks, by speed), `FIGHT_SLIDETRACE=1` (each slide
+over 5 cm with what the foot's lock was doing), `FIGHT_STANDTRACE=1` (each stand out of a walk, the feet against
+the stance); `gaits` prints each walking clip's speed, stride and swing times.
+
+Not verified: how any of it looks. Headless I can count feet and seconds, not see whether a body going at the
+guard's height with its feet stepping under it reads as a fencer's step or as sliding on rails, whether the drop
+from the upright walk into the stance after a shove is too abrupt, or whether a quarter-second step with a 6 cm
+lift is too quick or too flat. Nor has it run in Unity.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

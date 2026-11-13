@@ -17,6 +17,12 @@ using UnityEngine;
 
 internal static class FightReport
 {
+    private static string[] paceTrace = new string[0];
+    private static readonly int[] paceHist = new int[16];
+    private static Vector3 paceHistSum;
+    private static float paceHistSpeed;
+    private static readonly Dictionary<PhysicsBattler.Locomotion.ClipFighter, (Vector3 asked, Vector3 want)> paceLast = new Dictionary<PhysicsBattler.Locomotion.ClipFighter, (Vector3 asked, Vector3 want)>();
+
     private const BindingFlags Any = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 
     /// <summary>Called after every step of a fight (the `arms` runner measures the poses here).</summary>
@@ -208,6 +214,67 @@ internal static class FightReport
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
         {
             PhysicsBattler.Motion.ArmLimits.On = false;
+        }
+
+        if (Environment.GetEnvironmentVariable("FIGHT_STANDTRACE") == "1") { PhysicsBattler.Locomotion.Locomotor.StandTrace = m => Console.WriteLine("[stand] " + m); }
+        GroundMeasure.TraceSlides = Environment.GetEnvironmentVariable("FIGHT_SLIDETRACE") == "1";
+
+        // (FIGHT_PACETRACE="A Swordsman,17,21": each step of that fighter's pacing between those seconds, written out.)
+        paceTrace = (Environment.GetEnvironmentVariable("FIGHT_PACETRACE") ?? "").Split(',');
+        if (paceTrace.Length >= 3)
+        {
+            PhysicsBattler.Locomotion.ClipFighter.PaceTrace = (f, asked, want) => paceLast[f] = (asked, want);
+        }
+
+        // (FIGHT_PACEHIST=1: what the steering asks of a fighter in guard with no clip playing, by speed.)
+        if (Environment.GetEnvironmentVariable("FIGHT_PACEHIST") == "1")
+        {
+            PhysicsBattler.Locomotion.ClipFighter.PaceTrace = (f, asked, want) =>
+            {
+                paceLast[f] = (asked, want);
+                if (f.Loco.Current != PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && f.Loco.Guarding)
+                {
+                    float a = asked.magnitude / Mathf.Sqrt(f.Size);
+                    paceHist[Mathf.Clamp((int)(a / 0.1f), 0, paceHist.Length - 1)]++;
+                    paceHistSum += asked;
+                    paceHistSpeed += asked.magnitude;
+                }
+            };
+        }
+
+        // (Stand and step: FIGHT_STEPS=0 runs a fight with the steering's velocity walked as it is; "worth,pace,eases,stance,held"
+        // sets how much ground is asked before a step (metres), the pace it is stepped at (m/s), how quickly the body picks
+        // it up (seconds), whether it is stepped in the stance (0: walked), and how far off its distance a fighter stands (metres).)
+        {
+            var st = (Environment.GetEnvironmentVariable("FIGHT_STEPS") ?? "").Split(',');
+            if (st.Length >= 1 && float.TryParse(st[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float worth))
+            {
+                PhysicsBattler.Locomotion.StepPacer.On = worth > 0f;
+                if (worth > 0f)
+                {
+                    PhysicsBattler.Locomotion.StepPacer.StepWorth = worth;
+                }
+
+                if (st.Length >= 2 && float.TryParse(st[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pace))
+                {
+                    PhysicsBattler.Locomotion.StepPacer.StepPace = pace;
+                }
+
+                if (st.Length >= 3 && float.TryParse(st[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float eases))
+                {
+                    PhysicsBattler.Locomotion.Locomotor.PacedHalfLife = eases;
+                }
+
+                if (st.Length >= 4)
+                {
+                    PhysicsBattler.Locomotion.Locomotor.StepsInStanceOn = st[3].Trim() != "0";
+                }
+
+                if (st.Length >= 5 && float.TryParse(st[4], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ring))
+                {
+                    PhysicsBattler.Battle.FightLoop.RingHeldWithin = ring;
+                }
+            }
         }
 
         // (Real weapon weight: FIGHT_WMASS="3,1" makes the weapons three times their own weight in the physical body and
@@ -578,6 +645,24 @@ internal static class FightReport
                 heft.Step(dt);
                 limits.Step();
                 grounds.Step(dt);
+                float paceAt = Time.time - startTime;
+                if (paceTrace.Length >= 3 && float.TryParse(paceTrace[1], out float paceFrom) && float.TryParse(paceTrace[2], out float paceTo) && paceAt >= paceFrom && paceAt <= paceTo)
+                {
+                    foreach (var u in units)
+                    {
+                        if (u.name == paceTrace[0] && u.Clip != null && paceLast.TryGetValue(u.Clip, out var p))
+                        {
+                            var f = u.Clip;
+                            Console.WriteLine($"[pace] {paceAt:0.00} asked {p.asked.magnitude:0.00} walk asked {p.want.magnitude:0.00} {(f.Pacer.Walking ? "walking" : f.Pacer.Stepping ? "stepping" : "standing")} owed {f.Pacer.Owed.magnitude:0.00} | speed {f.Loco.Velocity.magnitude:0.00} {f.Loco.Current} paced {f.Loco.Paced} rate {f.Loco.PhaseRate:0.00} stride {f.Loco.StrideScale:0.00} cadence {f.Loco.Cadence:0.00} down {f.Loco.Down[0]:0}{f.Loco.Down[1]:0}");
+                            for (int ft = 0; ft < 2; ft++)
+                            {
+                                var lk = f.Poser.Feet[ft];
+                                var gf = f.Ground.Feet[ft];
+                                Console.WriteLine($"[foot] {paceAt:0.00} {(ft == 0 ? "L" : "R")} {gf.State} speed {gf.Speed:0.00} locked {lk.Locked} toe {lk.OnToe} stepping {lk.Stepping} target ({lk.Target.x:0.000},{lk.Target.y:0.000},{lk.Target.z:0.000}) posed ({lk.Posed.x:0.000},{lk.Posed.z:0.000}) sole heel ({gf.Heel.x:0.000},{gf.Heel.y:0.000},{gf.Heel.z:0.000}) toe ({gf.Toe.x:0.000},{gf.Toe.y:0.000},{gf.Toe.z:0.000}) yawhold {lk.YawHold:0.0} phase {f.Loco.Phase:0.00} facing {f.Loco.Facing:0.0} at ({f.Loco.Position.x:0.000},{f.Loco.Position.z:0.000})");
+                            }
+                        }
+                    }
+                }
                 legs.Step(dt);
                 foreach (var u in units)
                 {
@@ -843,6 +928,11 @@ internal static class FightReport
             sb.Append(heft.Report());
             sb.Append(limits.Report());
             sb.Append(grounds.Report());
+            if (paceHist.Sum() > 0)
+            {
+                int n = paceHist.Sum();
+                sb.AppendLine("      the steering's velocity asked in guard with no clip playing, by speed (m/s at a Medium's size, share of the time): " + string.Join(", ", paceHist.Select((c, i) => $"{0.1f * i:0.0}: {100f * c / n:0}%")));
+            }
             sb.Append(legs.Report());
             if (dummyOff.Count > 0)
             {

@@ -160,6 +160,11 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("neededZ", legs.Needed.z, 3);
             frames.Add("weightOut", float.IsNaN(legs.WeightOut) ? -1f : 100f * legs.WeightOut, 1);
             frames.Add("neededOut", float.IsNaN(legs.NeededOut) ? -1f : 100f * legs.NeededOut, 1);
+            // (Stand and step, the plan's step 1: 0 standing still, 1 stepping in its stance, 2 a step walked with the
+            // guard's walk, 3 walking as fast as it is asked, 4 walking off a shove, 5 in a clip, 6 down; and the ground the
+            // steering has asked for and it has not yet stepped, cm.)
+            frames.Add("stepping", unit.Clip.StepState);
+            frames.Add("owed", 100f * unit.Clip.Pacer.Owed.magnitude, 1);
             frames.End();
             samples++;
             if (writePose && unit.Authority != null)

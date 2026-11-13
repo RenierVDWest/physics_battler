@@ -278,6 +278,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A planted foot this far from the clip's (leg lengths), standing, steps over to it; after it has been down this long (seconds), and not within this long of the last such step.</summary>
         public float SettleRadius = 0.12f, SettleAfter = 0.1f, SettleGap = 0.3f;
 
+        /// <summary>Stepping in the stance (<see cref="Locomotor.StepsInStance"/>), a foot steps this long after the other set off (seconds): as it lands.</summary>
+        public float StepGap = 0.24f;
+
         private float lastSettle = -10f, clock;
 
         private float Time() => clock;
@@ -1656,8 +1659,23 @@ namespace PhysicsBattler.Locomotion
                 // Standing (or in a guard or strike clip) with a planted foot well away from where the
                 // clip stands it (going from the relaxed stance into the guard's wider one, say): it takes
                 // a short step there, one foot at a time, rather than the legs stretching to it.
-                bool settling = Standing && foot.LockedFor > SettleAfter && pull.magnitude > SettleRadius * loco.Leg
-                                && Feet[1 - f].Locked && !Feet[1 - f].Stepping && Time() - lastSettle > SettleGap;
+                // (Stepping in the stance, the body going: the next foot goes as the last lands, and of two that both
+                // want to, the one ahead the way it goes steps first, as a fencer's leading foot does.)
+                bool going = loco.StepsInStance && loco.Velocity.sqrMagnitude > 0.02f;
+                var other = Feet[1 - f];
+                bool settling = Standing && foot.LockedFor > (going ? 0.03f : SettleAfter) && pull.magnitude > SettleRadius * loco.Leg
+                                && other.Locked && !other.Stepping && Time() - lastSettle > (going ? StepGap : SettleGap);
+                if (settling && going)
+                {
+                    Vector3 otherPull = other.Ankle - other.Posed;
+                    otherPull.y = 0f;
+                    if (otherPull.magnitude > SettleRadius * loco.Leg && otherPull.magnitude > pull.magnitude - 0.03f * loco.Leg
+                        && Vector3.Dot(other.Posed - posed, loco.Velocity) > 0f)
+                    {
+                        settling = false;
+                    }
+                }
+
                 if (settling)
                 {
                     stretched = true;

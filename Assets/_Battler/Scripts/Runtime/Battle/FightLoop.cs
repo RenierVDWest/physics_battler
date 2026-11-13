@@ -72,6 +72,7 @@ namespace PhysicsBattler.Battle
             public bool readsThisTime;
             public float ledInAt = -999f;
             public float closeIn;
+            public bool holdsRing;            // (stand and step: at its striking distance, and holding it until it is a step's worth out)
             public Vector3 velocity;          // the steering's smoothed velocity (m/s)
             public float progressAt;          // when it last got nearer its target's ring
             public float closestOff = float.MaxValue;
@@ -103,6 +104,15 @@ namespace PhysicsBattler.Battle
 
         /// <summary>A want smaller than this share of the walking speed is dropped (no nervous little steps).</summary>
         public const float DeadZone = 0.12f;
+
+        /// <summary>
+        /// Stand and step (the plan "Grounded legs", step 1): a clip fighter at its striking distance stands until it is
+        /// this far off it (metres at a Medium's size; nearer or further), then steps back to it. Without, it walked
+        /// after every centimetre of it and never stood.
+        /// </summary>
+        public static float RingHeldWithin = DefaultRingHeldWithin;
+
+        public const float DefaultRingHeldWithin = 0.18f;
 
         /// <summary>How fast the steering velocity changes: walking speeds a second.</summary>
         public const float Acceleration = 3f;
@@ -532,7 +542,22 @@ namespace PhysicsBattler.Battle
             // Toward the ring, slowing over the last stretch; out again if it is too close.
             Vector3 desired = Vector3.zero;
             float off = distance - engage;
-            if (off > 0.05f)
+            // (Stand and step: at its distance it holds it, standing, until it is a step's worth out; then it goes all
+            // the way back to it. A blow is thrown from further out than that, and a lunge covers it.)
+            if (Mathf.Abs(off) <= 0.05f)
+            {
+                plan.holdsRing = true;
+            }
+            else if (Mathf.Abs(off) > RingHeldWithin * size)
+            {
+                plan.holdsRing = false;
+            }
+
+            bool held = plan.holdsRing && Locomotion.StepPacer.On && RingHeldWithin > 0.05f && unit.Clip != null;
+            if (held)
+            {
+            }
+            else if (off > 0.05f)
             {
                 desired = toward * speed * Mathf.Clamp01(off / (0.4f * size));
                 // No headway for a while (someone in the way): round them, one side for a moment.

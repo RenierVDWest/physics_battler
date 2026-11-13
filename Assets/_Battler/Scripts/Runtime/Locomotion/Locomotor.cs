@@ -155,6 +155,76 @@ namespace PhysicsBattler.Locomotion
 
         private bool InGuard => Guard != null && GuardWeight > 0.5f;
 
+        /// <summary>In its guard now (its guard's clips do the walking).</summary>
+        public bool Guarding => InGuard;
+
+        /// <summary>
+        /// Stepping, not walking (the plan "Grounded legs", step 1; set each step by what paces it, <see cref="StepPacer"/>):
+        /// the velocity it is asked comes in short spells with standing between, and it takes it up and comes to rest
+        /// in a step's time (<see cref="PacedHalfLife"/>). Not for a second after a shove: that is walked off as it was.
+        /// </summary>
+        public bool Paced;
+
+        /// <summary>
+        /// A slow walk is short quick steps (the same step of the plan): well under its clips' own speed the walk
+        /// keeps a step's rhythm (<see cref="StepCadence"/> times the clips', easing to the clips' own as it nears
+        /// their speed) and shortens its stride instead, where it used to slow the rhythm with the speed: the guard's
+        /// walk at a third of its speed hung each foot in the air for over a second. With a paced step stepped in the
+        /// stance (<see cref="StepsInStance"/>) this is left the last drift of a shove walked off; with that off, it is
+        /// how a paced step is walked. It also has the walk move a foot as one piece, about its own place in the
+        /// cycle, come to a stand on both feet, and stand a held foot flat.
+        /// </summary>
+        public bool QuickSteps;
+
+        /// <summary>Stepping, the half-life of the velocity spring (seconds).</summary>
+        public static float PacedHalfLife = DefaultPacedHalfLife;
+
+        public const float DefaultPacedHalfLife = 0.12f;
+
+        /// <summary>
+        /// The rhythm of a short walked step against the clips' own (the scene's Combat Feel, "Walked Step Rhythm").
+        /// The guard's walks have a foot in the air half a second to 0.7 s at their own rhythm; at 1.6 times it, 0.3
+        /// to 0.45 s.
+        /// </summary>
+        public static float StepCadence = DefaultStepCadence;
+
+        public const float DefaultStepCadence = 1.6f;
+
+        /// <summary>Stepping, the shortest stride against the clips' (the rhythm kept, the stride is what shrinks).</summary>
+        public float PacedStrideLeast = 0.02f;
+
+        private float shoved;
+
+        /// <summary>Shoved, and still walking it off (until it has slowed to a stand's speed, a second at most): no step is begun on top of it.</summary>
+        public bool Shoved => shoved > 0f;
+
+        private bool PacedNow => Paced && shoved <= 0f && !Running;
+
+        private bool QuickNow => QuickSteps && !Running && InGuard;
+
+        /// <summary>
+        /// Standing in its guard and paced (<see cref="Paced"/>): what it is asked to move is stepped in the stance. The
+        /// body goes, standing as the guard stands, and its feet step after it one at a time to where the stance has
+        /// them (<see cref="LocoBody"/>'s settling steps, quicker and aimed ahead): a fencer's steps, the stance kept.
+        /// The guard's walks are upright walks, feet under the hips: walked for a step's worth they drew the stance in
+        /// and it stepped out into it again at every stop.
+        /// </summary>
+        public bool StepsInStance => StepsInStanceOn && PacedNow && InGuard && Current == Mode.Idle;
+
+        /// <summary>Steps in the stance at all (the scene's Combat Feel; off, a paced step is walked with the guard's walk).</summary>
+        public static bool StepsInStanceOn = true;
+
+        /// <summary>Stepping in the stance, a foot is put down this far ahead of where the stance has it, in seconds of the body's going: half a step's time, so it stands as much ahead of its place as behind it.</summary>
+        public static float StepLead = DefaultStepLead;
+
+        public const float DefaultStepLead = 0.2f;
+
+        /// <summary>Walking in its guard and paced, it goes into its stance, stepping in it, once it is slower than this (m/s at a Medium's size): under a walk's speed.</summary>
+        public float StanceFrom = 1f;
+
+        /// <summary>How far it goes on once it is asked to stand, for each m/s it is going (seconds): the velocity spring's coast.</summary>
+        public float Coasts => (PacedNow ? PacedHalfLife : VelocityHalfLife) / 0.6931f;
+
         /// <summary>
         /// Gives the walker a guard: the body's guard clips by their names' prefix ("sns_": the sword and
         /// shield's, "lg_": the Large's two-handed one). Null takes it away.
@@ -309,7 +379,8 @@ namespace PhysicsBattler.Locomotion
 
             // The springs: the velocity and the facing ease toward what is wanted, at the clips' pace.
             // (Standing, the body turns on its feet only a little: a bigger turn is a turning clip.)
-            float halfLife = Mathf.Lerp(VelocityHalfLife, RunVelocityHalfLife, RunWeight);
+            shoved = Mathf.Max(0f, shoved - dt);
+            float halfLife = PacedNow ? PacedHalfLife : Mathf.Lerp(VelocityHalfLife, RunVelocityHalfLife, RunWeight);
             Vector3 before = Velocity;
             Springs.Track(ref Velocity, ref Acceleration, wantVelocity, halfLife, dt);
             Position += 0.5f * (before + Velocity) * dt;
@@ -325,6 +396,10 @@ namespace PhysicsBattler.Locomotion
             }
 
             float speed = new Vector2(Velocity.x, Velocity.z).magnitude;
+            if (shoved > 0f && speed < WalkFrom)
+            {
+                shoved = 0f;
+            }
 
             // What it does next: a transition clip, or a change between standing and the cycles.
             if (Current == Mode.Idle)
@@ -339,8 +414,10 @@ namespace PhysicsBattler.Locomotion
                 {
                     StartShot(StartClip(), ShotEnds.Cycle, startFrom: StartFirstMove);
                 }
-                else if (speed > WalkFrom || want > WalkFrom)
+                else if ((speed > WalkFrom || want > WalkFrom) && !StepsInStance)
                 {
+                    // (Stand and step: in its guard a step's pace is stepped in the stance, below; a walk, or a shove
+                    // to walk off, is walked.)
                     Switch(Mode.Cycle);
                 }
             }
@@ -359,7 +436,14 @@ namespace PhysicsBattler.Locomotion
                 else if (!InGuard && speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
                 {
                 }
-                else if (speed < StandBelow && want < StandBelow && BothFeetDown() && (StandsWide() || finishing > 1.2f))
+                else if (StepsInStanceOn && PacedNow && InGuard && speed < StanceFrom * Mathf.Sqrt(Leg / 0.85f))
+                {
+                    // (Stand and step: out of a walk, or a shove walked off, and no longer asked to walk, it goes
+                    // into its stance as it goes: the foot in the air is put down where the stance has it, the other
+                    // steps out after it.)
+                    Switch(Mode.Idle);
+                }
+                else if (speed < StandBelow && want < StandBelow && StandsNow())
                 {
                     Switch(Mode.Idle);
                 }
@@ -516,6 +600,7 @@ namespace PhysicsBattler.Locomotion
 
             Velocity += change;
             Acceleration = Vector3.zero;
+            shoved = 1f;
             if (Current == Mode.OneShot)
             {
                 Shot = null;
@@ -574,6 +659,12 @@ namespace PhysicsBattler.Locomotion
 
         private float idleWidth, finishing;
 
+        /// <summary>Asked to stand, the feet are where it can: both down, and apart enough, or it has been stepping on for long enough since it was asked (sooner stepping quickly, where a step is a third of a second).</summary>
+        private bool StandsNow() => BothFeetDown() && (StandsWide() || finishing > (QuickNow ? QuickStandsAfter : 1.2f));
+
+        /// <summary>Stepping quickly and asked to stand: with the feet together it steps on this long at most (seconds), and it stays on both feet once the body will drift no further than this (leg lengths).</summary>
+        public float QuickStandsAfter = 0.5f, StandsWithin = 0.07f;
+
         /// <summary>A switch between whole motions: the new one starts, what differs is faded out.</summary>
         private void Switch(Mode to)
         {
@@ -588,6 +679,19 @@ namespace PhysicsBattler.Locomotion
             {
                 idleTime = 0f;
                 HoldStance();
+                if (StandTrace != null && from == Mode.Cycle)
+                {
+                    idle.Pose(0f, scratch, Leg);
+                    if (Guard != null && GuardWeight > 0f)
+                    {
+                        Guard.Idle.Pose(0f, stanceScratch, Leg);
+                        for (int i = 0; i < scratch.Length; i++) { scratch[i] = Vector3.Lerp(scratch[i], stanceScratch[i], GuardWeight); }
+                    }
+                    string F(Vector3 v) => $"({v.x:0.00},{v.z:0.00})";
+                    string blend = "";
+                    foreach (var (clip, w) in Blend) { blend += $" {clip.Name}x{w:0.00}[L{F(StancePlace(clip, 0))} R{F(StancePlace(clip, 1))}]"; }
+                    StandTrace($"stopped L{F(lastOut[(int)LocoBone.LeftFoot])} R{F(lastOut[(int)LocoBone.RightFoot])} hips L{F(lastOut[(int)LocoBone.LeftUpLeg])} R{F(lastOut[(int)LocoBone.RightUpLeg])} | idle L{F(scratch[(int)LocoBone.LeftFoot])} R{F(scratch[(int)LocoBone.RightFoot])} hips L{F(scratch[(int)LocoBone.LeftUpLeg])} R{F(scratch[(int)LocoBone.RightUpLeg])} | stride x{StrideScale:0.00} travel {travelAngle:0} guard {GuardWeight:0.00} down {Down[0]:0}{Down[1]:0} |{blend}");
+                }
             }
 
             // (What the old motion had and the new one doesn't is kept, then faded out: worked out
@@ -654,6 +758,7 @@ namespace PhysicsBattler.Locomotion
 
         // Each foot held where it stood, or given back to the standing clip.
         private readonly bool[] footHeld = new bool[2];
+        private readonly Vector3[] heldOff = new Vector3[2];
         private float lastSettle;
 
         /// <summary>
@@ -708,7 +813,7 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
-                float hurry = Hurry ? HurryShare : 1f;
+                float hurry = Hurry || StepsInStance && Velocity.sqrMagnitude > 0.02f ? HurryShare : 1f;
                 if (idleTime > SettleFrom * hurry && idleTime - lastSettle > SettleBetween * hurry)
                 {
                     int worst = -1;
@@ -734,9 +839,46 @@ namespace PhysicsBattler.Locomotion
 
                 for (int i = 0; i < LegBones.Length; i++)
                 {
-                    if (footHeld[i / 4])
+                    if (!footHeld[i / 4])
                     {
-                        raw[(int)LegBones[i]] = back * (stance[i] - Position);
+                        continue;
+                    }
+
+                    if (QuickSteps)
+                    {
+                        // (Stepping quickly it stops in the middle of a step, one heel up and the other foot's toes: held
+                        // as it stopped, it stood on them. The foot stands as the standing clip has it, where it stopped.)
+                        Vector3 off = back * (stance[i / 4 * 4 + 1] - Position) - raw[(int)LegBones[i / 4 * 4 + 1]];
+                        off.y = 0f;
+                        heldOff[i / 4] = off;
+                        continue;
+                    }
+
+                    raw[(int)LegBones[i]] = back * (stance[i] - Position);
+                }
+
+                if (QuickSteps)
+                {
+                    for (int i = 0; i < LegBones.Length; i++)
+                    {
+                        if (footHeld[i / 4])
+                        {
+                            raw[(int)LegBones[i]] += heldOff[i / 4] * (i % 4 == 0 ? 0.5f : 1f);
+                        }
+                    }
+                }
+            }
+
+            if (StepsInStance)
+            {
+                // (Stepping in the stance: the feet's places ahead of the stance's, the way the body goes.)
+                Vector3 ahead = Quaternion.Euler(0f, -Facing, 0f) * Velocity * StepLead;
+                ahead.y = 0f;
+                for (int i = 0; i < LegBones.Length; i++)
+                {
+                    if (!(stanceHeld && footHeld[i / 4]))
+                    {
+                        raw[(int)LegBones[i]] += ahead * (i % 4 == 0 ? 0.5f : 1f);
                     }
                 }
             }
@@ -1427,11 +1569,34 @@ namespace PhysicsBattler.Locomotion
             StrideScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, k)), StrideLeast, StrideMost);
             Cadence = k / StrideScale;
             PhaseRate = speed / Mathf.Max(0.05f, stride * StrideScale);
+            if (QuickNow)
+            {
+                // (A step's rhythm, the strides as short as the speed makes them. Slower than the shortest stride
+                // covers, the feet go on at the rhythm and the foot locks hold them: a step is finished at a step's
+                // pace, not hung in the air.)
+                // (Where a paced step is stepped in the stance, the walk is left its own rhythm from a slow walk up:
+                // only what is slower than that, a shove's last drift, is stepped quickly.)
+                float e = StepsInStanceOn ? Mathf.Clamp01((k - 0.3f) / 0.3f) : Mathf.Clamp01((k - 0.7f) / 0.5f);
+                float quick = Mathf.Lerp(StepCadence, 1f, e * e * (3f - 2f * e));
+                if (Cadence < quick)
+                {
+                    Cadence = quick;
+                    StrideScale = Mathf.Clamp(k / quick, PacedStrideLeast, StrideMost);
+                    PhaseRate = Mathf.Max(speed / Mathf.Max(0.05f, stride * StrideScale), quick * naturalSpeed / Mathf.Max(0.05f, stride));
+                }
+            }
             finishing = wantNow.magnitude < StandBelow ? finishing + dt : 0f;
-            if (wantNow.magnitude < StandBelow && (!BothFeetDown() || !StandsWide()))
+            if (wantNow.magnitude < StandBelow && !(QuickNow ? StandsNow() : BothFeetDown() && StandsWide()))
             {
                 // (Come to a stand with a foot up: the step is finished, not frozen.)
                 PhaseRate = Mathf.Max(PhaseRate, 0.7f);
+            }
+            else if (wantNow.magnitude < StandBelow && QuickNow && speed * Coasts < StandsWithin * Leg)
+            {
+                // (Stepping quickly, both feet are down together for a fortieth of a second in each step: asked to
+                // stand, and as good as stopped, it stays on them there instead of stepping on until the body's last
+                // drift is gone.)
+                PhaseRate = 0f;
             }
 
             Phase = Mathf.Repeat(Phase + PhaseRate * dt, 1f);
@@ -1504,16 +1669,82 @@ namespace PhysicsBattler.Locomotion
                 float warp = StrideScale * Mathf.Clamp(fit, 0.8f, 1.25f);
                 if (Mathf.Abs(warp - 1f) > 1e-3f)
                 {
+                    // (Stepping quickly the strides go down to almost nothing, and a foot warped point by point is
+                    // squashed with them: its toe drawn in under its ankle, the foot read from them turned sideways.
+                    // There the foot goes as one piece, by what its ankle is moved.)
+                    // (And about the foot's own place in the stance, not about its hip: a guard walks with one foot
+                    // kept ahead of the other, and strides shortened about the hips drew that stance in with them, the
+                    // feet side by side under the body by the time it stood.)
+                    bool whole = QuickSteps;
+                    Vector3 ankle = raw[(int)(f == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot)];
+                    Vector3 place = Vector3.zero;
+                    if (whole)
+                    {
+                        foreach (var (clip, w) in Blend)
+                        {
+                            place += StancePlace(clip, f) * (w / total);
+                        }
+                    }
+
+                    Vector3 ankleMoves = d * (Vector3.Dot(ankle - hip - place, d) * (warp - 1f));
                     foreach (var b in bones)
                     {
-                        float share = b == LocoBone.LeftLeg || b == LocoBone.RightLeg ? 0.5f : 1f;
+                        bool knee = b == LocoBone.LeftLeg || b == LocoBone.RightLeg;
                         Vector3 p = raw[(int)b];
+                        if (whole)
+                        {
+                            raw[(int)b] = p + ankleMoves * (knee ? 0.5f : 1f);
+                            continue;
+                        }
+
                         float along = Vector3.Dot(p - hip, d);
-                        raw[(int)b] = p + d * (along * (warp - 1f) * share);
+                        raw[(int)b] = p + d * (along * (warp - 1f) * (knee ? 0.5f : 1f));
                     }
                 }
             }
         }
+
+        /// <summary>Debugging (the runner's FIGHT_STANDTRACE): each stand out of a walk, where the feet stopped against where the standing clip has them.</summary>
+        public static System.Action<string> StandTrace;
+        private readonly Dictionary<LocoClip, Vector3[]> stancePlaces = new Dictionary<LocoClip, Vector3[]>();
+
+        /// <summary>
+        /// Where a cycle keeps a foot, over its whole round: its ankle from its hip, flat, at the middle of how far
+        /// forward and back (and side to side) it goes. A plain walk's is under the hip; a guard's walk keeps one foot
+        /// ahead and its feet apart.
+        /// </summary>
+        private Vector3 StancePlace(LocoClip clip, int f)
+        {
+            if (!stancePlaces.TryGetValue(clip, out var places))
+            {
+                places = new Vector3[2];
+                var low = new[] { Vector3.one * 1e9f, Vector3.one * 1e9f };
+                var high = new[] { Vector3.one * -1e9f, Vector3.one * -1e9f };
+                const int samples = 24;
+                for (int i = 0; i < samples; i++)
+                {
+                    clip.Pose(clip.TimeAtPhase((i + 0.5f) / samples), stanceScratch, Leg);
+                    for (int g = 0; g < 2; g++)
+                    {
+                        Vector3 off = stanceScratch[(int)(g == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot)] - stanceScratch[(int)(g == 0 ? LocoBone.LeftUpLeg : LocoBone.RightUpLeg)];
+                        low[g] = Vector3.Min(low[g], off);
+                        high[g] = Vector3.Max(high[g], off);
+                    }
+                }
+
+                for (int g = 0; g < 2; g++)
+                {
+                    places[g] = 0.5f * (low[g] + high[g]);
+                    places[g].y = 0f;
+                }
+
+                stancePlaces[clip] = places;
+            }
+
+            return places[f];
+        }
+
+        private readonly Vector3[] stanceScratch = new Vector3[LocoClip.BoneCount];
 
         private static readonly LocoBone[] LeftLegBones = { LocoBone.LeftLeg, LocoBone.LeftFoot, LocoBone.LeftToeBase, LocoBone.LeftToeEnd };
         private static readonly LocoBone[] RightLegBones = { LocoBone.RightLeg, LocoBone.RightFoot, LocoBone.RightToeBase, LocoBone.RightToeEnd };

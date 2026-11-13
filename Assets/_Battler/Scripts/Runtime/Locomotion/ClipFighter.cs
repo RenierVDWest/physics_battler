@@ -942,6 +942,40 @@ namespace PhysicsBattler.Locomotion
             MoveOn(dt, want, yaw, opponent, frozen);
         }
 
+        /// <summary>What paces its steps near its enemy (the plan "Grounded legs", step 1): stand, step, stand.</summary>
+        public readonly StepPacer Pacer = new StepPacer();
+
+        /// <summary>
+        /// For the logs, what its legs are doing (stand and step): 0 standing still, 1 stepping in its stance, 2 a step
+        /// walked with the guard's walk, 3 walking as fast as it is asked, 4 walking off a shove, 5 in a clip, 6 down
+        /// (fallen, or not on its pose).
+        /// </summary>
+        public int StepState
+        {
+            get
+            {
+                if (Fallen || !snapped)
+                {
+                    return 6;
+                }
+
+                if (Loco.Current == Locomotor.Mode.OneShot)
+                {
+                    return 5;
+                }
+
+                if (Loco.Current == Locomotor.Mode.Idle)
+                {
+                    return Loco.Velocity.sqrMagnitude > 0.02f ? 1 : 0;
+                }
+
+                return Loco.Shoved ? 4 : Loco.Paced ? 2 : 3;
+            }
+        }
+
+        /// <summary>For the reports: called each step with the velocity the steering asked and the one the walk was asked.</summary>
+        public static System.Action<ClipFighter, Vector3, Vector3> PaceTrace;
+
         /// <summary>The legs' opinion of the body as the physics last left it (the plan "Grounded legs", step 0): read each step, it moves nothing.</summary>
         public readonly Grounding Ground = new Grounding();
 
@@ -994,6 +1028,25 @@ namespace PhysicsBattler.Locomotion
             }
 
             HurrySideHit();
+            Vector3 asked = want;
+            // (Stand and step: near its enemy the steering's small velocity is not walked in slow motion; it stands until
+            // a step's worth is asked, and steps it.)
+            if (Loco.Current != Locomotor.Mode.OneShot && Loco.Guarding)
+            {
+                want = Pacer.Pace(dt, want, Loco.Velocity * dt, Size, Locomotor.PacedHalfLife / 0.6931f, !Loco.Shoved);
+                // (The walk takes a step's velocity up, and comes to rest from it, in a step's time; a shove is walked
+                // off as it was, see Locomotor.Paced.)
+                Loco.Paced = StepPacer.On && !Pacer.Walking;
+            }
+            else
+            {
+                Pacer.Forget();
+                Loco.Paced = false;
+            }
+
+            Loco.QuickSteps = StepPacer.On;
+            PaceTrace?.Invoke(this, asked, want);
+
             Loco.Step(dt, want, yaw);
             CarryBy(Loco.SnappedThisStep);
             if (Combo != null)

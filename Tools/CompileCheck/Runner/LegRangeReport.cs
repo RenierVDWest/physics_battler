@@ -12,6 +12,25 @@ using UnityEngine;
 /// </summary>
 public static class LegRangeReport
 {
+    /// <summary>The walking clips' own gaits: how fast each goes, how long its stride and its cycle are, how long each foot is down and up in it (at the clips' actor's size).</summary>
+    public static int Gaits()
+    {
+        LocoLibrary.Load();
+        foreach (var pair in LocoLibrary.Clips.OrderBy(p => p.Key))
+        {
+            var c = pair.Value;
+            if (!c.Loop || !c.HasPhase || c.Speed < 0.05f)
+            {
+                continue;
+            }
+
+            float leg = Locomotor.ClipLeg, speed = c.Speed * leg, stride = c.Stride * leg, period = stride / Mathf.Max(1e-3f, speed);
+            Console.WriteLine($"{pair.Key,-22} {speed,5:0.00} m/s, a stride of {stride,5:0.00} m in {period,5:0.00} s ({1f / period:0.00} cycles a second); the left foot down {100f * c.Duty[0]:0}% of it and in the air {period * (1f - c.Duty[0]):0.00} s, the right {100f * c.Duty[1]:0}% and {period * (1f - c.Duty[1]):0.00} s");
+        }
+
+        return 0;
+    }
+
     public static int Run()
     {
         LocoLibrary.Load();
