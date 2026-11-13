@@ -1635,6 +1635,21 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            // (A body the engine lost in the last step is built anew on its pose. Put back on it, it was out of the
+            // way of the others for that step; but a body thrown out of the world can be left with speeds and places
+            // that are no numbers at all, and nothing set on it afterwards mends those. A new one has none.)
+            if (upperLostNow)
+            {
+                upperLostNow = false;
+                Upper.Destroy();
+                Upper = null;
+                BuildUpper();
+                if (Upper == null)
+                {
+                    return;
+                }
+            }
+
             // (The weapons' mass in the physics changed on the scene's Combat Feel: the body is built again with it.)
             if (builtWithMass != (CombatFeel.WeaponsHaveMass, CombatFeel.WeaponMass))
             {
@@ -1981,6 +1996,36 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            // (A body the engine has lost, in the step it loses it: its pelvis torn off what carries it, a part thrown
+            // metres from its pose. Seen in Unity on 13 November: a spinning jump's leg, which goes where its pose puts
+            // it, hooked a standing fighter's sword arm and drew it out to its full length; two steps on that body was
+            // thrown out of the world, the five others with it in the same step, and all six were then taken for borne
+            // down and got up where they had been thrown. It is put back on its pose at once, before anything reads
+            // where it is: not its shadows, not what its arms give by, not what its feet give way to.)
+            if (UpperBodyArticulation.PutsBackAtOnce && Upper.OutOfHand(Size, out string lost))
+            {
+                LostBody++;
+                upperLostNow = true;
+                Upper.Teleport();
+                foreach (var id in Upper.Own)
+                {
+                    var posed = Anim.Part(id);
+                    Rig.Part(id).transform.SetPositionAndRotation(posed.position, posed.rotation);
+                }
+
+                strainR = strainL = 0f;
+                handKnown[0] = handKnown[1] = false;
+                awayFor = spinFor = 0f;
+                pressed = Vector3.zero;
+                pressedOff = 0f;
+                if (LostBody <= 40)
+                {
+                    Debug.Log($"[Upper] {Rig.name}: out of hand ({lost}); {Loco.Current} {(Loco.Shot != null ? Loco.Shot.Name : "")}; {LastReaction}: put back on its pose at once ({LostBody})");
+                }
+
+                return;
+            }
+
             Upper.MoveShadows();
             if (Upper.JointJumps != jointJumpsSeen)
             {
@@ -2079,6 +2124,11 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>Times its physical upper body left its pose and stayed away, and was put back on it (for the reports).</summary>
         public int RanAway;
+
+        /// <summary>Times the engine lost its physical upper body (<see cref="UpperBodyArticulation.OutOfHand"/>) and it was put back on its pose in the same step (for the reports).</summary>
+        public int LostBody;
+
+        private bool upperLostNow;
 
         private float awayFor;
 

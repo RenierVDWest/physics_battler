@@ -18,6 +18,7 @@ using UnityEngine;
 internal static class FightReport
 {
     private static string[] paceTrace = new string[0];
+    private static string[] blowUp = new string[0];
     private static readonly int[] paceHist = new int[16];
     private static Vector3 paceHistSum;
     private static float paceHistSpeed;
@@ -255,6 +256,15 @@ internal static class FightReport
 
         GroundMeasure.TraceSlides = Environment.GetEnvironmentVariable("FIGHT_SLIDETRACE") == "1";
 
+        // (A body the engine loses: FIGHT_LOST=0 puts it back only after half a second away, as before.
+        // FIGHT_BLOWUP="A Medium,10,200000": from that second, for three steps, that fighter's sword hand is pulled with
+        // that many newtons, as a leg that nothing stops pulls an arm it has hooked.)
+        if (Environment.GetEnvironmentVariable("FIGHT_LOST") == "0")
+        {
+            PhysicsBattler.Authority.UpperBodyArticulation.PutsBackAtOnce = false;
+        }
+
+        blowUp = (Environment.GetEnvironmentVariable("FIGHT_BLOWUP") ?? "").Split(',');
         // (FIGHT_PACETRACE="A Swordsman,17,21": each step of that fighter's pacing between those seconds, written out.)
         paceTrace = (Environment.GetEnvironmentVariable("FIGHT_PACETRACE") ?? "").Split(',');
         if (paceTrace.Length >= 3)
@@ -727,6 +737,22 @@ internal static class FightReport
                     Call(unit, "FixedUpdate");
                 }
 
+                if (blowUp.Length >= 2 && float.TryParse(blowUp[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float blowAt)
+                    && paceAt >= blowAt && paceAt < blowAt + 3.5f * dt)
+                {
+                    float pull = blowUp.Length >= 3 && float.TryParse(blowUp[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float n) ? n : 200000f;
+                    foreach (var u in units)
+                    {
+                        var hand = u.name == blowUp[0] && u.Clip != null && u.Clip.Upper != null ? u.Clip.Upper.Link(PartId.HandR) : null;
+                        if (hand != null)
+                        {
+                            hand.AddForce(new Vector3(0.6f, -0.2f, -0.8f).normalized * pull);
+                            Console.WriteLine($"BLOWUP {paceAt:0.000} {u.name}: its sword hand pulled with {pull:0} N; pelvis at {u.Clip.Upper.Link(PartId.Pelvis).transform.position}");
+                            break;
+                        }
+                    }
+                }
+
                 // (The engine under the stubs: every script's step, then the physics step, as in Unity.)
                 if (PhysicsBattler.Authority.PhysicsSteps.Manual)
                 {
@@ -1012,6 +1038,7 @@ internal static class FightReport
             }
 
             sb.AppendLine("    borne down (a body pressed so far off its pose that it fell): " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.BorneDown}")));
+            sb.AppendLine("    lost by the engine and put back on its pose at once: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.LostBody}")));
             if (kickAt >= 0f)
             {
                 sb.AppendLine($"    kicked at {kickAt:0.0} s (every joint set turning at {kickSpeed:0} rad/s): the fastest joint of any body (rad/s) / the furthest head from its pose (cm), each tenth of a second after:");

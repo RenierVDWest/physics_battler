@@ -1303,6 +1303,51 @@ namespace PhysicsBattler.Authority
         /// <summary>The fastest a part found inside another is pushed out of it (m/s). Left to the engine a part put deep in a leg is thrown out at whatever speed clears it in one step.</summary>
         public static float MostPushOut = 3f;
 
+        /// <summary>
+        /// A body out of hand is put back on its pose in the step it is found so (the scene's Combat Feel; off: only
+        /// after it has stayed away half a second, as before).
+        /// </summary>
+        public static bool PutsBackAtOnce = true;
+
+        /// <summary>
+        /// Its pelvis is locked to what carries it, and stands within 2 mm of it whatever is done to the body. This
+        /// far from it (metres at a Medium's size), the engine has failed to hold the lock: something that cannot give
+        /// (another's leg, which goes where its pose puts it) is forcing a part that cannot follow (an arm at its full
+        /// length). Left a step or two more, the body is thrown out of the world, and every body near it with it.
+        /// </summary>
+        public const float PelvisTornBy = 0.03f;
+
+        /// <summary>A part this far from where the pose has it (metres at a Medium's size) is not held off by anything: the body has been thrown.</summary>
+        public const float PartThrownBy = 2.5f;
+
+        /// <summary>
+        /// The engine has lost the body: its pelvis torn off what carries it (<see cref="PelvisTornBy"/>), a part
+        /// thrown far from its pose (<see cref="PartThrownBy"/>), or a part nowhere at all.
+        /// </summary>
+        public bool OutOfHand(float size, out string how)
+        {
+            how = null;
+            Vector3 hips = links[0].transform.position;
+            float torn = (hips - carrier.position).magnitude;
+            if (float.IsNaN(torn) || float.IsInfinity(torn) || torn > PelvisTornBy * size)
+            {
+                how = $"its pelvis {torn * 100f:0} cm off what carries it";
+                return true;
+            }
+
+            for (int i = 1; i < parts.Length; i++)
+            {
+                float off = (links[i].transform.position - anim.Part(parts[i]).position).magnitude;
+                if (float.IsNaN(off) || float.IsInfinity(off) || off > PartThrownBy * size)
+                {
+                    how = $"its {parts[i]} {off:0.0} m from its pose";
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>The body put where the pose is at once (a teleport, a spawn): carried there, its joints still driven to the pose.</summary>
         public void Teleport()
         {

@@ -199,6 +199,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A body borne down falls: its chest held this many centimetres (at a Medium's size) from where the animation has it for a tenth of a second, by what its muscles can't shift (a fighter landing on it from a leap), it goes down as one knocked off its feet and gets up again. 0: never, and it is folded where it stands. Default 28.")]
         [Range(0f, 80f)] public float borneDownFrom = DefaultBorneDownFrom;
 
+        [Tooltip("A safety net for the physics engine losing a fighter's upper body. A leg goes exactly where its animation puts it and nothing stops it; when it hooks another fighter's arm (a spinning jump next to a standing fighter) it can draw that arm out to its full length and go on pulling. The engine then cannot hold the body together: within two steps it is thrown out of the world, and it takes every fighter near it along (seen on 13 November: all six fighters gone at once, 36 seconds into a test). On: a body whose pelvis is torn more than 3 cm off where it is carried (it never is more than 2 mm off otherwise), or with a part more than 2.5 m from where the animation has it, is put back on its animation in that same step, before it can throw anything else. You may see an arm snap back into place for a frame when it happens. Off: as before, a lost body is only put back after it has stayed away for half a second. Each time it happens the log has a line '[Upper] ... out of hand'.")]
+        public bool lostBodyPutBackAtOnce = true;
+
         [Tooltip("The slack in the arms of the physical upper body (degrees). A blow, a parry or a blade that met a shield turns an arm aside of where the animation has it, and it is left there: it goes on doing what the animation does, that much aside, and comes back slowly. An arm this far aside or less is in no hurry (it comes back over 'slackTime'); further aside it comes back quicker, up to 'tautAngle'. Higher: struck arms hang off their animation more and longer, looser and less exact; lower: they are back on it sooner. Default 15.")]
         [Range(0f, 45f)] public float slackAngle = DefaultSlackAngle;
 
@@ -412,6 +415,7 @@ namespace PhysicsBattler.Locomotion
             Locomotor.ShovesInStance = true;
             Locomotor.ShoveSteppedTo = Locomotor.DefaultShoveSteppedTo;
             LegsDecide = true;
+            PhysicsBattler.Authority.UpperBodyArticulation.PutsBackAtOnce = true;
             LegsCatch = DefaultLegsCatch;
             LocoBody.StepTime = LocoBody.DefaultStepTime;
             LocoBody.WeightShifts = true;
@@ -500,6 +504,7 @@ namespace PhysicsBattler.Locomotion
             Locomotor.ShovesInStance = shovesSteppedInTheStance;
             Locomotor.ShoveSteppedTo = Mathf.Clamp(shoveSteppedUpTo, 1f, 2.8f);
             LegsDecide = legsDecideAFall;
+            PhysicsBattler.Authority.UpperBodyArticulation.PutsBackAtOnce = lostBodyPutBackAtOnce;
             LegsCatch = Mathf.Clamp(legsCatchUpTo, 2f, 12f);
             LocoBody.StepTime = Mathf.Clamp(stepTakes, 0.15f, 0.4f);
             LocoBody.WeightShifts = weightShifts;

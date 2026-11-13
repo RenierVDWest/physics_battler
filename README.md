@@ -2938,6 +2938,49 @@ shelved after your first playtests because the fall and the get-up did not read 
 If it is too much, `legsCatchUpTo` up to 6 leaves only the heaviest (three of the seven), and `legsDecideAFall`
 off is as it was.
 
+In Unity since (13 November, two target tests, 38 s and 60 s): the knock-downs happen there too, and more often
+than said above: one in the first test and four in the second, all a Medium's sword on a Medium (a thigh 6.9 m/s,
+a shin 9.0, a chest 5.3, a head 4.9, a pelvis 5.8). The headless target test had none: its blows throw a target far
+more lightly (0.7 m/s where Unity's are 3 to 4), which is not looked into. Each fall and getting up went through
+without fault (three seconds on the ground).
+
+**A body the engine loses is put back at once** (13 November; Combat Feel `lostBodyPutBackAtOnce`; off: as
+before). The first of those two tests broke at 36.4 s: all six fighters gone from the scene at once. What the log
+has: Attacker 2 struck with the spinning jump (`sns_combo_chop`) standing 0.8 m from Target shield. Its right leg,
+swung round at waist height at 5 to 8 m/s, hooked the target's sword and sword hand and drew the arm out: the hand
+11, 27, 45, 63 cm from its pose in four steps. A leg goes where its pose puts it and nothing stops it; the arm at
+its full length could give no more, and the engine could not hold the body together: its pelvis, locked to what
+carries it and never more than 2 mm off it, was 7 and 9 cm off for two steps, then 1.7 m, then 10^12 m. In that
+same step the five others were thrown as far (a body moving that fast touches everything). All six were then taken
+for borne down, fell where they had been thrown, and got up there. It is not the knock-downs: the one fall in that
+test was twelve seconds earlier and the target had long been back on its feet. It could have happened in any test
+since the upper bodies became physical; a leg met an arm 46 to 150 times in each of the tests before.
+
+Now, after every physics step, a body whose pelvis is more than 3 cm off what carries it, or with a part more than
+2.5 m from its pose or nowhere at all, is put back on its pose before anything reads where it is, and built anew
+before the next step (put back only, a body that had been thrown kept places that are no numbers, and stayed
+lost). The log has a line `[Upper] ... out of hand` each time, the fight report
+a count.
+
+Headless, the same fight with one fighter's sword hand pulled for four steps as a leg would pull it:
+
+| | pulled with 2,000 kN | pulled with 20,000 kN |
+|---|---|---|
+| before | not run | the program stopped: no numbers anywhere |
+| now | that body put back four times, nobody else touched, the fight goes on | all six thrown and put back three or four times, the fight goes on, everyone within 3 m of the middle |
+
+In four fights of six with nothing pulled (60 s, the seeds as before), three never use it and are blow for blow
+what they were. The fourth has the very thing in it, 5 s in: a fighter struck in the air comes down with its leg
+through another's upper body. Before, that body was thrown about for six steps (its parts met at up to 127 m/s),
+dragged its fighter 2 cm aside and happened to come back; now it is put back in the first of those steps, twice,
+and goes on with its strike. (This is the place where an earlier fault of this session's made every body in the
+fight a no-number.) That fight differs from there on: 91 blows where it had 93.
+
+Not verified: that it holds in Unity against the leg that did it; the pull above is a stand-in, and the engine
+there is the same one in another build. What you would see when it acts is an arm snapping back to its pose for a
+frame, in place of everyone vanishing. It is a net, not the cure: a leg still cannot be stopped by what it hits.
+That is what the plan's step 6 (physical legs) changes.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
