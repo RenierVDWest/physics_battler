@@ -236,6 +236,12 @@ internal static class FightReport
             }
         }
 
+        // (Steps where they are needed: FIGHT_SHOVETO=1 steps a shove in the stance only up to a walk's speed, as before step 4.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SHOVETO"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float shoveTo))
+        {
+            PhysicsBattler.Locomotion.Locomotor.ShoveSteppedTo = shoveTo;
+        }
+
         GroundMeasure.TraceSlides = Environment.GetEnvironmentVariable("FIGHT_SLIDETRACE") == "1";
 
         // (FIGHT_PACETRACE="A Swordsman,17,21": each step of that fighter's pacing between those seconds, written out.)

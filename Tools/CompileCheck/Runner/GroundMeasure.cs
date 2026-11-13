@@ -26,6 +26,12 @@ public sealed class GroundMeasure
         public readonly Vector3[] SlideTarget = new Vector3[2];
         public readonly float[] SlideFacing = new float[2], SlideYaw = new float[2];
         public int ModeWas = -1, ModeFrom = -1, DownWas = -1;
+        // (A shove being caught: since when, how hard, the landings since, how the body stood when it came.)
+        public int PushesSeen = -1, PushLandings, PushModeWas;
+        public bool Catching, PushWalked, PushAgain;
+        public float PushAt, PushSize, PushSteadyFor;
+        public Vector3 PushFrom;
+        public readonly bool[] PushTouch = new bool[2];
         public readonly Vector3[] TargetWas = new Vector3[2];
         public readonly float[] YawWas = new float[2], ContactPath = new float[2], ContactFor = new float[2], ContactLoose = new float[2], ContactLooseFor = new float[2];
         public readonly bool[] HeldKnown = new bool[2], InContact = new bool[2], WasLocked = new bool[2];
@@ -63,6 +69,7 @@ public sealed class GroundMeasure
     private readonly List<float> stanceSlowOut = new List<float>(), stanceGoingOut = new List<float>(), stanceSlowNeeded = new List<float>(), stanceGoingNeeded = new List<float>();
     private readonly float[] shiftSum = new float[2];
     private readonly List<float> landedNeeded = new List<float>();
+    private readonly List<(float size, int landings, float took, float went, bool walked, int ended, int from)> catches = new List<(float, int, float, float, bool, int, int)>();
     private readonly List<float> oneFootOut = new List<float>(), standingOut = new List<float>(), stanceOff = new List<float>();
     private readonly List<float>[] neededOut = { new List<float>(), new List<float>(), new List<float>() };
 
@@ -305,6 +312,62 @@ public sealed class GroundMeasure
                 oneFootOut.Add(g.WeightOut / size);
             }
 
+            // (Steps where they are needed, the plan's step 4: each shove, and how the legs caught it: how many
+            // landings and how long until the body stands on both feet with the place it needs a foot on what they hold.)
+            {
+                if (t.PushesSeen < 0)
+                {
+                    t.PushesSeen = clip.Loco.Pushes;
+                }
+
+                if (clip.Loco.Pushes != t.PushesSeen)
+                {
+                    t.PushesSeen = clip.Loco.Pushes;
+                    if (t.Catching)
+                    {
+                        t.PushAgain = true;
+                        t.PushSize = Mathf.Max(t.PushSize, clip.Loco.LastPush.magnitude / Mathf.Sqrt(size));
+                    }
+                    else
+                    {
+                        t.Catching = true;
+                        t.PushAgain = false;
+                        t.PushAt = clock;
+                        t.PushSize = clip.Loco.LastPush.magnitude / Mathf.Sqrt(size);
+                        t.PushLandings = 0;
+                        t.PushWalked = false;
+                        t.PushSteadyFor = 0f;
+                        t.PushFrom = clip.Loco.Position;
+                        t.PushModeWas = t.ModeWas >= 0 ? t.ModeWas : mode;
+                        t.PushTouch[0] = g.Feet[0].Touching;
+                        t.PushTouch[1] = g.Feet[1].Touching;
+                    }
+                }
+
+                if (t.Catching)
+                {
+                    for (int f = 0; f < 2; f++)
+                    {
+                        if (g.Feet[f].Touching && !t.PushTouch[f])
+                        {
+                            t.PushLandings++;
+                        }
+
+                        t.PushTouch[f] = g.Feet[f].Touching;
+                    }
+
+                    t.PushWalked |= mode == 1;
+                    bool steady = down == 2 && !float.IsNaN(g.NeededOut) && g.NeededOut <= 0.05f * size;
+                    t.PushSteadyFor = steady ? t.PushSteadyFor + dt : 0f;
+                    int ended = t.PushSteadyFor >= 0.1f ? 0 : mode == 2 ? 1 : clock - t.PushAt > 4f ? 2 : -1;
+                    if (ended >= 0)
+                    {
+                        t.Catching = false;
+                        catches.Add((t.PushSize, t.PushLandings, clock - t.PushAt - (ended == 0 ? 0.1f : 0f), (clip.Loco.Position - t.PushFrom).magnitude / size, t.PushWalked, t.PushAgain ? 3 : ended, t.PushModeWas));
+                    }
+                }
+            }
+
             // (As a stepping foot comes down in the stance: is the body where its two feet can stop it?)
             if (down == 2 && t.DownWas == 1 && mode == 0 && t.Seen && !float.IsNaN(g.NeededOut))
             {
@@ -396,6 +459,26 @@ public sealed class GroundMeasure
         {
             oneFootOut.Sort();
             sb.AppendLine($"      on one foot, standing or walking, the body moving under 0.3 m/s ({oneFootOut.Count / 60f:0} unit-seconds): the weight is outside that foot by {100f * At(oneFootOut, 0.5f):0} cm at the middle, a quarter of the time over {100f * At(oneFootOut, 0.75f):0} cm");
+        }
+
+        if (catches.Count > 0)
+        {
+            sb.AppendLine($"      shoves and how the legs caught them (the plan's step 4; {catches.Count}, {catches.Count / Mathf.Max(1e-3f, minutes):0.0} a minute for each fighter; caught: standing on both feet with the place a foot is needed within 5 cm of what they hold):");
+            float[] bands = { 0f, 0.5f, 1f, 1.6f, 99f };
+            for (int b = 0; b + 1 < bands.Length; b++)
+            {
+                var of = catches.Where(c => c.size >= bands[b] && c.size < bands[b + 1]).ToList();
+                if (of.Count == 0)
+                {
+                    continue;
+                }
+
+                var caught = of.Where(c => c.ended == 0).ToList();
+                var steps = caught.Select(c => (float)c.landings).OrderBy(x => x).ToList();
+                var took = caught.Select(c => c.took).OrderBy(x => x).ToList();
+                var went = caught.Select(c => c.went).OrderBy(x => x).ToList();
+                sb.AppendLine($"        {(b == bands.Length - 2 ? $"over {bands[b]:0.0}" : $"{bands[b]:0.0} to {bands[b + 1]:0.0}")} m/s: {of.Count}; caught {Pct(caught.Count, of.Count)} (in {At(steps, 0.5f):0} landings at the middle, {At(steps, 0.9f):0} for one in ten; within three landings {Pct(caught.Count(c => c.landings <= 3), of.Count)}; {At(took, 0.5f):0.00} s, the body gone {100f * At(went, 0.5f):0} cm), shoved again first {Pct(of.Count(c => c.ended == 3), of.Count)}, a clip began first {Pct(of.Count(c => c.ended == 1), of.Count)}, not in 4 s {Pct(of.Count(c => c.ended == 2), of.Count)}; walked {Pct(of.Count(c => c.walked), of.Count)}; it was in a clip when shoved {Pct(of.Count(c => c.from == 2), of.Count)}");
+            }
         }
 
         if (stanceSlowOut.Count + stanceGoingOut.Count > 0)

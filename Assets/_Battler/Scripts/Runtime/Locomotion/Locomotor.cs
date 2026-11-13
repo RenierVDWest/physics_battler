@@ -216,7 +216,21 @@ namespace PhysicsBattler.Locomotion
         /// "Grounded legs", step 2: a fighter pushed off another, or driven back by a blow, steps away in its stance;
         /// faster than <see cref="StanceFrom"/> it is walked, the feet could not keep up one at a time).
         /// </summary>
-        private bool InStanceNow => Paced && !Running && (shoved <= 0f || ShovesInStance && FlatSpeed < StanceLimit);
+        private bool InStanceNow => Paced && !Running && (shoved <= 0f || ShovesInStance && FlatSpeed < ShoveLimit);
+
+        /// <summary>
+        /// A shove up to this fast is stepped in the stance (m/s at a Medium's size; the scene's Combat Feel, "Shove
+        /// Stepped Up To"; the plan's step 4: more steps for a harder shove, two for a light one, three or four with a
+        /// hop for a hard one). Faster, and a blow that throws it back stumbling whatever its speed, is walked until it
+        /// has slowed to a walk's speed (<see cref="StanceFrom"/>).
+        /// </summary>
+        public static float ShoveSteppedTo = DefaultShoveSteppedTo;
+
+        public const float DefaultShoveSteppedTo = 1.6f;
+
+        private bool thrown;
+
+        private float ShoveLimit => (thrown ? StanceFrom : Mathf.Max(StanceFrom, ShoveSteppedTo)) * Mathf.Sqrt(Leg / 0.85f);
 
         private float FlatSpeed => new Vector2(Velocity.x, Velocity.z).magnitude;
 
@@ -433,6 +447,8 @@ namespace PhysicsBattler.Locomotion
                 shoved = 0f;
             }
 
+            thrown &= shoved > 0f;
+
             // What it does next: a transition clip, or a change between standing and the cycles.
             if (Current == Mode.Idle)
             {
@@ -468,7 +484,7 @@ namespace PhysicsBattler.Locomotion
                 else if (!InGuard && speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
                 {
                 }
-                else if (StepsInStanceOn && InGuard && InStanceNow && speed < StanceLimit)
+                else if (StepsInStanceOn && InGuard && InStanceNow && speed < (shoved > 0f ? ShoveLimit : StanceLimit))
                 {
                     // (Stand and step: out of a walk, or a shove walked off, and no longer asked to walk, it goes
                     // into its stance as it goes: the foot in the air is put down where the stance has it, the other
@@ -622,7 +638,8 @@ namespace PhysicsBattler.Locomotion
         /// it steps now, its feet catching it; the steering's velocity spring brings it back to what it
         /// wants, step by step (the plan's stage 6: a capture step from the clips' own stepping).
         /// </summary>
-        public void Push(Vector3 change)
+        /// <param name="stumbling">Thrown back stumbling: walked off whatever its speed, not stepped in the stance.</param>
+        public void Push(Vector3 change, bool stumbling = false)
         {
             change.y = 0f;
             if (change.sqrMagnitude < 1e-6f || !Ready)
@@ -632,6 +649,7 @@ namespace PhysicsBattler.Locomotion
 
             Velocity += change;
             Acceleration = Vector3.zero;
+            thrown = stumbling || thrown && shoved > 0f;
             shoved = 1f;
             if (Current == Mode.OneShot)
             {
@@ -656,9 +674,13 @@ namespace PhysicsBattler.Locomotion
             }
 
             Pushes++;
+            LastPush = change;
         }
 
         public int Pushes { get; private set; }
+
+        /// <summary>The last shove's change of velocity (m/s, flat; for the reports).</summary>
+        public Vector3 LastPush { get; private set; }
 
         /// <summary>
         /// A small, steady push (m/s added this step, flat): something leaning on the body, or the

@@ -1001,7 +1001,10 @@ namespace PhysicsBattler.Locomotion
             {
                 var weight = new Vector2(Ground.Weight.x, Ground.Weight.z);
                 var onto = Grounding.Nearest(Ground.Support, weight);
-                Poser.WeightOff = new Vector3(onto.x - weight.x, 0f, onto.y - weight.y);
+                // (And a little further: brought only to the edge of what they hold, it stood on the edge.)
+                Vector2 off = onto - weight;
+                off *= 1f + 0.02f * Size / Mathf.Max(1e-4f, off.magnitude);
+                Poser.WeightOff = new Vector3(off.x, 0f, off.y);
             }
         }
 
@@ -1031,7 +1034,8 @@ namespace PhysicsBattler.Locomotion
             // steps, the body drifting down to the floor. It is driven back as it lands.)
             if (pushAt >= 0f && clock >= pushAt && !Loco.ShotAirborne(0f))
             {
-                Loco.Push(pendingKnock);
+                // (Thrown back stumbling: that one is walked off, as it was.)
+                Loco.Push(pendingKnock, clock - thrownAt < 0.5f);
                 pushAt = -1f;
                 pendingKnock = Vector3.zero;
             }

@@ -2833,6 +2833,69 @@ Not verified: how it looks, and Unity. The shift before a step from standing sho
 strike, as the fighter settles: the hips go to one side, a foot steps, they go to the other, the other steps. If
 it reads as rocking, `weightShift` is the dial; if the settling now drags, `stepWaitsForTheWeight`.
 
+In Unity since (the target test, 13 November, 45 s): as headless. Standing on both feet the weight is off what they
+hold 5% of the time; the hips are shifted 2 to 3 cm at the middle for a target stepping in its stance, 10 to 11 cm
+one time in ten, 18 to 24 cm at the most.
+
+**Steps where they are needed (the plan "Grounded legs", step 4)** (13 November). The plan's step 4 was: a shove
+is answered by one to three steps placed where they catch the body, more for a harder shove, or by a stumble or a
+fall when none can reach. Measured first, with a test made for it, most of that was already so after steps 1 to
+3; what is built is the part that was not.
+
+`shoves` (a new report: `dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll shoves`) stands one Medium in its guard
+and shoves it at 0.3 to 2 m/s from four sides, each left to come to rest:
+
+| Shoved at | walked off (before step 2) | stepped in the stance up to 1 m/s (steps 2 and 3) | up to 1.6 m/s (now) |
+|---|---|---|---|
+| 0.3 m/s | 4 steps, at rest after 1.3 s | 1 to 2 steps, 0.5 to 0.8 s | the same |
+| 0.6 m/s | 4 steps, 1.4 s | 2 steps, 0.8 s | the same |
+| 0.9 m/s | 4 to 5 steps, 1.5 s | 2 to 3 steps, 0.9 s | the same |
+| 1.3 m/s | 4 to 6 steps, 1.7 to 2.1 s | 4 steps, 1.1 s, the first 0.2 s walked | 2 to 3 steps, 1.1 s, none walked |
+| 2 m/s | 5 to 6 steps, 1.8 to 2.2 s | 4 to 5 steps, 1.2 to 1.6 s, 0.4 s walked | 4 to 5 steps, 1.2 s, 0.2 s walked |
+
+- *Built: a harder shove is stepped in the stance* (`shoveSteppedUpTo`, 1.6 m/s for a Medium; at 1 it is as it
+  was). Between a walk's speed and that, a shove stood the fighter up into the upright walk for a fifth of a
+  second and dropped it into its stance again; now it keeps its stance, in two or three steps, with both feet off
+  the ground for up to a fifth of a second as it is thrown (a hop). A blow that throws it back stumbling is still
+  walked whatever its speed, as it was: that reaction's look is left alone.
+- *Tried and taken out: stepping straight to where the body will stop.* The body's velocity dies away at a known
+  rate, so where it comes to rest is known as it is shoved, and a foot could go straight to its place there. It
+  took no fewer steps (two instead of three at 0.9 m/s from two sides, four instead of three from another), and
+  it put both feet in the air more often: the foot left behind is at its leg's reach before the first has landed.
+- *The hips over the support, a little further.* Brought only to the edge of what the feet hold, the weight stood
+  on the edge and counted as off it up to 29% of the time in one fight; it is brought 2 cm inside, and is off it
+  3 to 7% of the time in all four fights (the plan's step 3 asked under 5%).
+
+In the fights the change is small, because it is a small share of them: walking off a shove was 3 to 5% of the
+time and is 2 to 3%, walking in all 9 to 11% and 7 to 9%. Four fights of six against step 3: standing, stepping,
+sliding, swings and blows are as they were (blows 271 and 296 started, 268 and 286 met).
+
+**The plan's measure cannot be read off a fight.** It asks that after a push the place a foot is needed is back
+on what the feet hold within three steps. The fight report counts it now (each shove: how many landings and how
+long until the body stands on both feet with that place within 5 cm of them), but of the eight to twelve shoves a
+minute each fighter takes, only one in four plays out: a third are overtaken by the next shove (a body kept off
+another is shoved again every quarter of a second), nearly half by a strike or a reaction beginning. Of those that play out,
+three landings at the middle. The `shoves` test is the measure that can be read: at rest in one to three steps up
+to 1.3 m/s, four or five at 2 m/s.
+
+Not done from the plan's step 4:
+
+- *A stumble or a fall from what the legs can catch.* When a blow stumbles a fighter or knocks it down is still
+  decided by the Combat Feel's speeds (`stumbleFrom` and the rest), which were set by eye. Replacing them with
+  whether a foot can reach would change which blows knock a fighter down; that wants your say before it is tried.
+- *A step placed toward where the body needs it.* One landing in six still leaves the body needing a foot over
+  10 cm from where its two are (15 to 22% of landings, as in step 3). Stepping straight to the resting place was
+  the attempt at it.
+- *The hard shove's own steps.* Over 1.6 m/s, and every stumble, is still the upright walk: 0.2 to 0.4 s with both
+  feet off the ground at 2 m/s, and in your log of this morning slides of over half a metre.
+
+For a run: `FIGHT_SHOVETO=1` (a shove stepped in the stance only under a walk's speed), `SHOVE_TO`, `SHOVE_STANCE=0`
+for the `shoves` test.
+
+Not verified: how it looks, and Unity. A fighter shoved hard (a body thrown into it, a blow it blocked from a
+Large) should now go back in its stance in two or three quick steps with a small hop, where it stood up and
+walked.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

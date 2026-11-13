@@ -258,7 +258,7 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public Vector3 WeightOff;
 
-        public const float BalanceGain = 6f, MostBalance = 0.14f, BalanceEases = 1.5f;
+        public const float BalanceGain = 6f, MostBalance = 0.14f, BalanceEases = 4f;
 
         private Vector3 balance;
 

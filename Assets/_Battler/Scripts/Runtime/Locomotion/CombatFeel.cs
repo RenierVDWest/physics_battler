@@ -228,6 +228,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A fighter in its guard that is pushed steps away in its stance (the plan's step 2; needs 'standAndStep' and 'stepsInTheStance'). Pushed means: kept off another body it has come too near, driven back by a blow that landed on it or that it blocked, a body thrown into it, ground it gives to a heavy blow. On: the body goes the way it is pushed, standing as the guard stands, and its feet step after it one at a time. That holds for a push the feet can step after (under about 1 m/s for a Medium); a harder one is walked off until it has slowed to that, and then goes into the stance. Off: every push stands it up into the guard's upright walk, as before, and it steps out into its stance again when it has stopped.")]
         public bool shovesSteppedInTheStance = true;
 
+        [Tooltip("How hard a shove a fighter still steps off in its stance (metres a second for a Medium; the plan's step 4: more steps for a harder shove). A light shove is caught in two steps, one near this in three or four, with both feet off the ground for a moment as the body is thrown. A harder shove than this is walked with the guard's upright walk until it has slowed to a walk's speed, and so is any blow that throws it back stumbling. At 1 it is as it was before step 4 (only shoves under a walk's speed stepped in the stance). Default 1.6.")]
+        [Range(1f, 2.8f)] public float shoveSteppedUpTo = Locomotor.DefaultShoveSteppedTo;
+
         [Tooltip("How much ground the fight has to have asked for before a standing fighter takes a step (metres for a Medium; a bigger body's is longer). What is asked adds up while it stands and is forgotten again over a second and a half, so a small nudge never makes a step. Higher: it stands longer and then goes further; lower: it steps sooner and more often, in smaller steps. Default 0.22.")]
         [Range(0.08f, 0.6f)] public float stepAfter = StepPacer.DefaultStepWorth;
 
@@ -394,6 +397,7 @@ namespace PhysicsBattler.Locomotion
             StepPacer.On = true;
             Locomotor.StepsInStanceOn = true;
             Locomotor.ShovesInStance = true;
+            Locomotor.ShoveSteppedTo = Locomotor.DefaultShoveSteppedTo;
             LocoBody.StepTime = LocoBody.DefaultStepTime;
             LocoBody.WeightShifts = true;
             LocoBody.ShiftShare = LocoBody.DefaultShiftShare;
@@ -479,6 +483,7 @@ namespace PhysicsBattler.Locomotion
             StepPacer.On = standAndStep;
             Locomotor.StepsInStanceOn = stepsInTheStance;
             Locomotor.ShovesInStance = shovesSteppedInTheStance;
+            Locomotor.ShoveSteppedTo = Mathf.Clamp(shoveSteppedUpTo, 1f, 2.8f);
             LocoBody.StepTime = Mathf.Clamp(stepTakes, 0.15f, 0.4f);
             LocoBody.WeightShifts = weightShifts;
             LocoBody.ShiftShare = Mathf.Clamp(weightShift, 0.05f, 1f);
