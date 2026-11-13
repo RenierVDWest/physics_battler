@@ -2699,6 +2699,81 @@ guard's height with its feet stepping under it reads as a fencer's step or as sl
 from the upright walk into the stance after a shove is too abrupt, or whether a quarter-second step with a 6 cm
 lift is too quick or too flat. Nor has it run in Unity.
 
+In Unity since (the target test, 13 November, 36 s): the log reads as headless does. A swing lasts 0.27 s at the
+middle in both, a foot is planted 44% of the time, on the ground and sliding 4%, the fighters stand 42% of the time.
+
+**Planted or stepping, first part: a shove is stepped in the stance (the plan "Grounded legs", step 2)** (13
+November). The plan's step 2 is four things: a planted foot is fixed, the hover lift and the fades go, what moved
+the body at once becomes a push, a fighter pushed off another steps away. This is the last of them first, because
+it was the most of what was left to see: after step 1 a fighter in guard still spent 11 to 13% of its time (a
+struck target a third of it) walking off a shove in the guard's upright walk, standing up out of its stance at
+every push and stepping out into it again after.
+
+- *A shove is stepped in the stance* (`shovesSteppedInTheStance`). A fighter in guard that is pushed (kept off a
+  body it has come too near, driven back by a blow that landed or that it blocked, a body thrown into it) keeps
+  its stance: the body goes the way it is pushed and the feet step after it, as they do for a paced step. That
+  holds for a push the feet can step after one at a time, under 1 m/s for a Medium; a harder one is walked until
+  it has slowed to that, then goes into the stance as it goes. How far a shove carries the body is unchanged.
+- *The feet step after whatever moves the body* (`Locomotor.Going`). Standing, the feet now follow how fast the
+  root is really going, not only the walk's own velocity: ground given to a heavy blow, two bodies moved apart and
+  a body pressed back all move the root at once, and the feet stepped after those late and slowly. They are
+  stepped after now as a pace is. (They still move the root at once; making them pushes is not done.)
+- *A step to its place is one arc* (`stepTakes`, `stepHeight`). The foot lifts (a tenth of the step's time), goes
+  over to where it lands, and comes straight down onto it (the last fifth); where it lands is fixed as it gets
+  there. Before, a stepping foot was also lifted by the rule that keeps a moving foot off the ground, which let it
+  down only over the tenth of a second after it had stopped: the foot landed in the air and sank. And without
+  that rule it went over the ground for its first and last centimetres. Standing only; in a strike or a reaction
+  a foot let go is handled as it was.
+
+Four fights of six, 60 s, the same seeds, step 1 against this:
+
+| | step 1 | now |
+|---|---|---|
+| Standing still | 9 to 15% of the time | 10 to 16% |
+| Stepping in the stance | 23 to 33% | 29 to 39% (4 to 12% after a shove) |
+| Walking (the walk's animation) | 17 to 23% | 11 to 13% (walking off a shove 3 to 5%, asked to walk 6 to 8%) |
+| Both feet on the ground | 9 to 15% | 13 to 18% |
+| A foot planted | 35 to 38% | 38 to 42% |
+| A swing, at the middle | 0.27 s | 0.22 s (a step in the stance 0.20 s) |
+| Swings over 0.45 s, walking or standing | 28 to 33% of them | 16 to 21% (steps in the stance 7 to 11%) |
+| A foot on the ground and sliding | 3 to 4% of the time, 1.1 to 1.6 m a minute | 3%, 1.0 to 1.9 m |
+| On one foot, the body slow: the weight outside that foot | 27 to 31 cm | 37 to 40 cm |
+| Blows started; blows that met something | 268; 242 | 256; 239 |
+
+The last row but one is worse and will go on getting worse until the plan's step 3: the more a fighter steps in
+its wide stance, the more of its time it is on one foot with its weight in the middle.
+
+What the report now says of "planted or stepping", for what is left of this step (the legs' lines: what each
+foot's hold is doing, how far a held foot's place goes and turns, how often a foot is let go because the body
+went too far from it, how often it is lifted to hover):
+
+- Standing, a held foot's place is fixed: over 1 cm in 2 to 5% of holds, never over 5.
+- Walking and in clips its place goes over 1 cm in a third to a half of holds, but nearly all of that is the ankle
+  going round a toe that stays (a foot rolling onto its toes). It turns over 20 degrees in 1 to 8% of holds: the
+  body turned further than a foot is let turn (35 degrees) and the foot goes round with it. The plan has that in
+  step 5 (a turn pivots to a limit, then steps).
+- In a strike or a reaction a held foot is let go 20 to 25 times a minute for each fighter because the body has
+  gone 21 to 25 cm from it (43 cm one time in ten): the strikes are scaled and snapped onto their targets (6 to
+  12 m of root moved at once in a fight, all six fighters) over feet their clips planted. That is step 5 too.
+- The hover lift still lifts a foot 20 to 23% of the time while walking and 12 to 16% in a clip, three quarters of
+  that in a swing the clip has too low or on a foot let go in a clip; standing, 1 to 3%.
+- Ground given to a blow still moves the root at 4 m/s (2.5 to 4.5 m a fight): a quarter to nearly half a metre in
+  a tenth of a second. In the stance both feet are then let go at once and step after it, which is a hop back.
+
+**Found on the way and fixed: the engine threw every body on the field.** A step's landing place, fixed in the
+world, was held until the ground took the foot up. When a walk began under the step it had that foot in the air,
+so the ground never took it up, the body walked on, and when the leg was past its reach the engine's next step
+put every physical body in the fight at speeds of 10^12 and then at no place at all (seed 4 at 5.08 s; nothing
+recovers from that). A foot come down over its landing now waits a twentieth of a second and no further than its
+leg reaches, then goes back onto the clip's path. The engine has no guard of its own against this; any foot target
+held in the world past a leg's reach would do it again.
+
+For a run: `FIGHT_STEPS="0.22,0.75,0.12,1,0.18,0"` (the sixth: 0 walks a shove off as before).
+
+Not verified: how it looks, and Unity. In particular whether a fighter driven back by a blow reads as catching
+itself in its stance or as sliding back with its feet pattering under it; the feet take a fifth of a second a
+step whatever the push, and the body is not leaning into it (steps 3 and 4).
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

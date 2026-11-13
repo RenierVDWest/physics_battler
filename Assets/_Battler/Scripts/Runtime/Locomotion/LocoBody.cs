@@ -44,6 +44,9 @@ namespace PhysicsBattler.Locomotion
             public Vector3 Posed;      // where the clip alone put it
             public float Released;     // the last release's pull (metres: how far the lock held it from the clip)
             public int Releases, ForcedReleases;
+            public bool StepArc;       // a step to its place taken as one arc (standing): lift, over, down
+            public bool StepLanded;    // that step is over where it lands, and coming down onto it
+            public Vector3 StepLand;   // where that is (world)
             public float LandedOff;    // the last landing's leftover offset from the clip's foot (metres)
             public int Landings;
         }
@@ -279,7 +282,25 @@ namespace PhysicsBattler.Locomotion
         public float SettleRadius = 0.12f, SettleAfter = 0.1f, SettleGap = 0.3f;
 
         /// <summary>Stepping in the stance (<see cref="Locomotor.StepsInStance"/>), a foot steps this long after the other set off (seconds): as it lands.</summary>
-        public float StepGap = 0.24f;
+        public float StepGap => StepTime + 0.02f;
+
+        /// <summary>How long a step to its place takes, lifting to landing (seconds; the scene's Combat Feel, "Step Takes").</summary>
+        public static float StepTime = DefaultStepTime;
+
+        public const float DefaultStepTime = 0.22f;
+
+        /// <summary>
+        /// A step to its place: the shares of its time the foot only lifts before it goes, and only comes down after
+        /// it is over where it lands; and how high it goes at its middle (metres at a Medium's size; the scene's Combat
+        /// Feel, "Step Height").
+        /// </summary>
+        public const float StepLifts = 0.1f, StepLands = 0.2f;
+
+        public static float StepHeight = DefaultStepHeight;
+        /// <summary>A step come down over where it lands waits this long (seconds) for the ground to take it up; a clip that began under it and has the foot in the air doesn't, and the foot goes back onto the clip's path.</summary>
+        public const float StepWaitsToLand = 0.05f;
+
+        public const float DefaultStepHeight = 0.06f;
 
         private float lastSettle = -10f, clock;
 
@@ -1626,6 +1647,14 @@ namespace PhysicsBattler.Locomotion
                 // (Where it is now, faded in: a release still fading carries on into the lock. A foot
                 // that lands toe first, walking backward, is held at its toe until the heel comes down.)
                 foot.Ankle = posed + foot.Fade;
+                if (foot.StepLanded)
+                {
+                    // (A step that came down onto its place lands there, not a step's drift on.)
+                    foot.Ankle = new Vector3(foot.StepLand.x, foot.Ankle.y, foot.StepLand.z);
+                    foot.Fade = foot.Ankle - posed;
+                    foot.StepLanded = false;
+                }
+
                 foot.LandedOff = foot.Fade.magnitude;
                 foot.Landings++;
                 foot.OnToe = !heel && loco.Toe[f] >= 0.5f;
@@ -1661,7 +1690,7 @@ namespace PhysicsBattler.Locomotion
                 // a short step there, one foot at a time, rather than the legs stretching to it.
                 // (Stepping in the stance, the body going: the next foot goes as the last lands, and of two that both
                 // want to, the one ahead the way it goes steps first, as a fencer's leading foot does.)
-                bool going = loco.StepsInStance && loco.Velocity.sqrMagnitude > 0.02f;
+                bool going = loco.StepsInStance && loco.Going.sqrMagnitude > 0.02f;
                 var other = Feet[1 - f];
                 bool settling = Standing && foot.LockedFor > (going ? 0.03f : SettleAfter) && pull.magnitude > SettleRadius * loco.Leg
                                 && other.Locked && !other.Stepping && Time() - lastSettle > (going ? StepGap : SettleGap);
@@ -1670,7 +1699,7 @@ namespace PhysicsBattler.Locomotion
                     Vector3 otherPull = other.Ankle - other.Posed;
                     otherPull.y = 0f;
                     if (otherPull.magnitude > SettleRadius * loco.Leg && otherPull.magnitude > pull.magnitude - 0.03f * loco.Leg
-                        && Vector3.Dot(other.Posed - posed, loco.Velocity) > 0f)
+                        && Vector3.Dot(other.Posed - posed, loco.Going) > 0f)
                     {
                         settling = false;
                     }
@@ -1694,7 +1723,9 @@ namespace PhysicsBattler.Locomotion
                     // (A foot that lifts swings from where it stood onto the clip's path by the time it
                     // lands; one let go while it should still be down is drawn back quickly.)
                     foot.Stepping = stretched && down;
-                    foot.FadeOver = foot.Stepping ? 0.22f : Mathf.Clamp(loco.SwingLeft(f), 0.12f, 0.8f);
+                    foot.StepLanded = false;
+                    foot.StepArc = foot.Stepping && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle;
+                    foot.FadeOver = foot.Stepping ? (foot.StepArc ? StepTime : 0.22f) : Mathf.Clamp(loco.SwingLeft(f), 0.12f, 0.8f);
                     Trace?.Invoke($"{(f == 0 ? "L" : "R")} released after {foot.LockedFor:0.00} s{(stretched ? " (stretched)" : "")}: pull {pull.magnitude * 100f:0.0} cm, speed {loco.Velocity.magnitude:0.00}, stride x{loco.StrideScale:0.00}, turn {loco.FacingSpeed:0} deg/s, {loco.Current}, on toe {foot.OnToe}");
                 }
                 else
@@ -1707,14 +1738,72 @@ namespace PhysicsBattler.Locomotion
 
             foot.FadeTime += dt;
             float u = Mathf.Clamp01(foot.FadeTime / Mathf.Max(0.05f, foot.FadeOver));
-            foot.Fade = foot.FadeFrom * (1f - u * u * (3f - 2f * u));
-            if (foot.Stepping)
+            // (Standing only: in a strike or a reaction the root goes as its clip throws it, and a foot let go there
+            // is kept off the ground as it was until it can land; the clips' feet are the plan's step 5.)
+            bool arc = foot.Stepping && foot.StepArc;
+            if (arc && foot.StepLanded && (foot.FadeTime > foot.FadeOver + StepWaitsToLand
+                    || (new Vector3(foot.StepLand.x, posed.y, foot.StepLand.z) - World(f == 0 ? LocoBone.LeftUpLeg : LocoBone.RightUpLeg)).magnitude > 0.97f * legReach))
             {
-                // (Lifted as it goes, as a step is: it is not dragged.)
-                foot.Fade.y = 4f * u * (1f - u) * 0.06f * loco.Leg / 0.85f;
+                // (Come down, and not taken up by the ground: a clip began under it that has this foot in the air, or
+                // the body has gone a leg's reach from it. It is no longer held over where it was to land, the body
+                // going on without it: it goes back onto the clip's path as a foot let go does. Held there, a walk
+                // that began under a step left the foot behind until its leg was past its reach, and the engine threw
+                // every body on the field.)
+                foot.StepArc = foot.StepLanded = false;
+                arc = false;
+                foot.FadeFrom = new Vector3(foot.StepLand.x - posed.x, 0f, foot.StepLand.z - posed.z);
+                foot.FadeTime = 0f;
+                foot.FadeOver = 0.15f;
+                u = 0f;
             }
+
+            if (arc)
+            {
+                // (A step to its place is one arc (the plan "Grounded legs", step 2): the foot lifts, goes over to
+                // where it lands, and comes down onto it; it does not go over the ground while it is on it. Where it
+                // lands is fixed as it gets there: the body goes on, the foot comes straight down.)
+                float over = Mathf.Clamp01((u - StepLifts) / (1f - StepLifts - StepLands));
+                Vector3 flat;
+                if (over < 1f)
+                {
+                    flat = foot.FadeFrom * (1f - over * over * (3f - 2f * over));
+                    foot.StepLanded = false;
+                }
+                else
+                {
+                    if (!foot.StepLanded)
+                    {
+                        foot.StepLanded = true;
+                        foot.StepLand = posed;
+                    }
+
+                    flat = foot.StepLand - posed;
+                }
+
+                foot.Fade = new Vector3(flat.x, 4f * u * (1f - u) * StepHeight * loco.Leg / 0.85f, flat.z);
+            }
+            else
+            {
+                foot.Fade = foot.FadeFrom * (1f - u * u * (3f - 2f * u));
+                if (foot.Stepping)
+                {
+                    // (Lifted as it goes, as a step is: it is not dragged.)
+                    foot.Fade.y = 4f * u * (1f - u) * 0.06f * loco.Leg / 0.85f;
+                }
+            }
+
             foot.YawHold = foot.YawFrom * (1f - u * u * (3f - 2f * u));
             foot.Target = AboveGround(f, posed + foot.Fade);
+            if (arc)
+            {
+                // (Its lift is the arc's: lifted for moving as well, it came down over the tenth of a second after it
+                // had landed, standing in the air.)
+                lift[f] = raised[f] = 0f;
+                liftWas[f] = foot.Target;
+                liftKnown[f] = true;
+                return;
+            }
+
             LiftMoving(f, foot, dt);
         }
 
@@ -1728,6 +1817,11 @@ namespace PhysicsBattler.Locomotion
         /// centimetres; 0: off).
         /// </summary>
         public static float LiftFrom = 0.4f, LiftPerSpeed = 0.03f;
+
+        /// <summary>How far a foot is lifted now for moving over the ground with its sole down (metres; for the reports).</summary>
+        public float Lifted(int f) => raised[f];
+
+        private readonly float[] raised = new float[2];
 
         private readonly Vector3[] liftWas = new Vector3[2];
         private readonly float[] lift = new float[2];
@@ -1757,11 +1851,13 @@ namespace PhysicsBattler.Locomotion
                 liftStandKnown[f] = true;
             }
 
+            raised[f] = 0f;
             if (lift[f] > 0f && liftStandKnown[f])
             {
                 float least = liftStand[f] + lift[f];
                 if (at.y < least)
                 {
+                    raised[f] = least - at.y;
                     foot.Target = new Vector3(at.x, least, at.z);
                 }
             }

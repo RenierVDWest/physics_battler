@@ -209,7 +209,31 @@ namespace PhysicsBattler.Locomotion
         /// The guard's walks are upright walks, feet under the hips: walked for a step's worth they drew the stance in
         /// and it stepped out into it again at every stop.
         /// </summary>
-        public bool StepsInStance => StepsInStanceOn && PacedNow && InGuard && Current == Mode.Idle;
+        public bool StepsInStance => StepsInStanceOn && InGuard && Current == Mode.Idle && InStanceNow;
+
+        /// <summary>
+        /// Its moving is the stance's to step: paced, and either not shoved or a shove the feet can step after (the plan
+        /// "Grounded legs", step 2: a fighter pushed off another, or driven back by a blow, steps away in its stance;
+        /// faster than <see cref="StanceFrom"/> it is walked, the feet could not keep up one at a time).
+        /// </summary>
+        private bool InStanceNow => Paced && !Running && (shoved <= 0f || ShovesInStance && FlatSpeed < StanceLimit);
+
+        private float FlatSpeed => new Vector2(Velocity.x, Velocity.z).magnitude;
+
+        private float StanceLimit => StanceFrom * Mathf.Sqrt(Leg / 0.85f);
+
+        /// <summary>A shove is stepped in the stance (the scene's Combat Feel; off, every shove is walked off with the guard's walk, as before).</summary>
+        public static bool ShovesInStance = true;
+
+        /// <summary>
+        /// How fast the root is going over the ground, whatever moves it (m/s, flat, smoothed over a twentieth of a
+        /// second): its own velocity, and what moves it at once (two bodies kept apart, ground given to a blow, a body
+        /// pressed back). What the feet step after in the stance.
+        /// </summary>
+        public Vector3 Going { get; private set; }
+
+        private Vector3 goingFrom;
+        private bool goingKnown;
 
         /// <summary>Steps in the stance at all (the scene's Combat Feel; off, a paced step is walked with the guard's walk).</summary>
         public static bool StepsInStanceOn = true;
@@ -374,6 +398,8 @@ namespace PhysicsBattler.Locomotion
             {
                 ShotStep(dt);
                 Inertialize(dt);
+                goingKnown = false;
+                Going = Vector3.zero;
                 return;
             }
 
@@ -384,6 +410,12 @@ namespace PhysicsBattler.Locomotion
             Vector3 before = Velocity;
             Springs.Track(ref Velocity, ref Acceleration, wantVelocity, halfLife, dt);
             Position += 0.5f * (before + Velocity) * dt;
+            // (How fast it is going, with whatever moved it since the last step.)
+            Vector3 went = goingKnown ? (Position - goingFrom) / dt : Velocity;
+            went.y = 0f;
+            Going = went.magnitude > 12f ? Velocity : Vector3.Lerp(Going, went, 1f - Mathf.Exp(-dt / 0.05f));
+            goingFrom = Position;
+            goingKnown = true;
             float turnWanted = Mathf.DeltaAngle(Facing, wantFacing);
             float facingGoal = Current == Mode.Idle ? Facing + Mathf.Clamp(turnWanted, -StandTwist, StandTwist) : Facing + turnWanted;
             float facing = Facing;
@@ -436,7 +468,7 @@ namespace PhysicsBattler.Locomotion
                 else if (!InGuard && speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
                 {
                 }
-                else if (StepsInStanceOn && PacedNow && InGuard && speed < StanceFrom * Mathf.Sqrt(Leg / 0.85f))
+                else if (StepsInStanceOn && InGuard && InStanceNow && speed < StanceLimit)
                 {
                     // (Stand and step: out of a walk, or a shove walked off, and no longer asked to walk, it goes
                     // into its stance as it goes: the foot in the air is put down where the stance has it, the other
@@ -610,8 +642,12 @@ namespace PhysicsBattler.Locomotion
             }
             else if (Current == Mode.Idle)
             {
-                Switch(Mode.Cycle);
-                AimTravel(Velocity);
+                // (In its stance, a shove its feet can step after is stepped there: it does not stand up into a walk.)
+                if (!StepsInStance)
+                {
+                    Switch(Mode.Cycle);
+                    AimTravel(Velocity);
+                }
             }
             else
             {
@@ -813,7 +849,7 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
-                float hurry = Hurry || StepsInStance && Velocity.sqrMagnitude > 0.02f ? HurryShare : 1f;
+                float hurry = Hurry || StepsInStance && Going.sqrMagnitude > 0.02f ? HurryShare : 1f;
                 if (idleTime > SettleFrom * hurry && idleTime - lastSettle > SettleBetween * hurry)
                 {
                     int worst = -1;
@@ -872,7 +908,7 @@ namespace PhysicsBattler.Locomotion
             if (StepsInStance)
             {
                 // (Stepping in the stance: the feet's places ahead of the stance's, the way the body goes.)
-                Vector3 ahead = Quaternion.Euler(0f, -Facing, 0f) * Velocity * StepLead;
+                Vector3 ahead = Vector3.ClampMagnitude(Quaternion.Euler(0f, -Facing, 0f) * Going * StepLead, 0.25f * Leg);
                 ahead.y = 0f;
                 for (int i = 0; i < LegBones.Length; i++)
                 {

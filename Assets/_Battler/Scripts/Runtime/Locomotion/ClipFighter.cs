@@ -966,7 +966,7 @@ namespace PhysicsBattler.Locomotion
 
                 if (Loco.Current == Locomotor.Mode.Idle)
                 {
-                    return Loco.Velocity.sqrMagnitude > 0.02f ? 1 : 0;
+                    return Loco.Going.sqrMagnitude > 0.02f ? 1 : 0;
                 }
 
                 return Loco.Shoved ? 4 : Loco.Paced ? 2 : 3;

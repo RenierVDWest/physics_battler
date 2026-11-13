@@ -225,6 +225,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How a step is taken ('standAndStep' on). On: in the stance. The body goes, standing as the guard stands, and the feet step after it one at a time to where the stance has them, each step about a quarter of a second, one foot always down: a fencer's steps, the stance kept. Off: the step is walked with the guard's walking animation at a quicker rhythm ('walkedStepRhythm'); that animation is an upright walk with the feet under the hips, so the wide stance is drawn in at every step and stepped out into again at every stop.")]
         public bool stepsInTheStance = true;
 
+        [Tooltip("A fighter in its guard that is pushed steps away in its stance (the plan's step 2; needs 'standAndStep' and 'stepsInTheStance'). Pushed means: kept off another body it has come too near, driven back by a blow that landed on it or that it blocked, a body thrown into it, ground it gives to a heavy blow. On: the body goes the way it is pushed, standing as the guard stands, and its feet step after it one at a time. That holds for a push the feet can step after (under about 1 m/s for a Medium); a harder one is walked off until it has slowed to that, and then goes into the stance. Off: every push stands it up into the guard's upright walk, as before, and it steps out into its stance again when it has stopped.")]
+        public bool shovesSteppedInTheStance = true;
+
         [Tooltip("How much ground the fight has to have asked for before a standing fighter takes a step (metres for a Medium; a bigger body's is longer). What is asked adds up while it stands and is forgotten again over a second and a half, so a small nudge never makes a step. Higher: it stands longer and then goes further; lower: it steps sooner and more often, in smaller steps. Default 0.22.")]
         [Range(0.08f, 0.6f)] public float stepAfter = StepPacer.DefaultStepWorth;
 
@@ -236,6 +239,12 @@ namespace PhysicsBattler.Locomotion
 
         [Tooltip("Stepping in the stance, how far ahead of its place in the stance a foot is put down, in seconds of the body's going (at 0.75 m/s, 0.2 is 15 cm). The body moves on over a planted foot, so a foot put down exactly at its place is behind it at once; put down ahead, it stands as much ahead of its place as behind. Higher: longer steps reaching further ahead; 0: each foot lands where the stance has it at that moment and trails. Default 0.2.")]
         [Range(0f, 0.4f)] public float footLandsAhead = Locomotor.DefaultStepLead;
+
+        [Tooltip("How long one step of a foot to its place takes, from lifting to landing (seconds). A tenth of it the foot only lifts, a fifth it only comes down; between, it goes over to where it lands. The other foot sets off as this one lands, so this is also the rhythm of the stepping. Lower: quicker, shorter steps; higher: slower, longer ones (the body covers more ground while a foot is in the air), and above about 0.3 the feet fall behind a body going at a step's pace. Default 0.22.")]
+        [Range(0.15f, 0.4f)] public float stepTakes = LocoBody.DefaultStepTime;
+
+        [Tooltip("How high a foot is lifted at the middle of a step to its place (centimetres for a Medium). Higher: the steps read more, a knee comes up; lower: flatter, a shuffle. Default 6.")]
+        [Range(2f, 14f)] public float stepHeight = 100f * LocoBody.DefaultStepHeight;
 
         [Tooltip("At its striking distance a fighter holds it, standing, until its enemy is this much nearer or further than that (metres for a Medium); then it steps all the way back to it. Without this it walked after every centimetre. A blow is thrown from up to 0.35 m out and a lunge covers the rest, so standing this far off costs no blows. Higher: it stands through more of its enemy's moving; 0: it follows its distance exactly, as before. Default 0.18.")]
         [Range(0f, 0.4f)] public float holdsItsDistanceWithin = PhysicsBattler.Battle.FightLoop.DefaultRingHeldWithin;
@@ -371,6 +380,9 @@ namespace PhysicsBattler.Locomotion
             ShowLegs = false;
             StepPacer.On = true;
             Locomotor.StepsInStanceOn = true;
+            Locomotor.ShovesInStance = true;
+            LocoBody.StepTime = LocoBody.DefaultStepTime;
+            LocoBody.StepHeight = LocoBody.DefaultStepHeight;
             StepPacer.StepWorth = StepPacer.DefaultStepWorth;
             StepPacer.StepPace = StepPacer.DefaultStepPace;
             Locomotor.PacedHalfLife = Locomotor.DefaultPacedHalfLife;
@@ -449,6 +461,9 @@ namespace PhysicsBattler.Locomotion
             ShowLegs = showLegsOpinion;
             StepPacer.On = standAndStep;
             Locomotor.StepsInStanceOn = stepsInTheStance;
+            Locomotor.ShovesInStance = shovesSteppedInTheStance;
+            LocoBody.StepTime = Mathf.Clamp(stepTakes, 0.15f, 0.4f);
+            LocoBody.StepHeight = 0.01f * Mathf.Clamp(stepHeight, 2f, 14f);
             StepPacer.StepWorth = Mathf.Clamp(stepAfter, 0.08f, 0.6f);
             StepPacer.StepPace = Mathf.Clamp(stepPace, 0.3f, 0.9f);
             Locomotor.PacedHalfLife = Mathf.Clamp(stepPicksUpIn, 0.05f, 0.25f);

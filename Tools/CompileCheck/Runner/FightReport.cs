@@ -242,9 +242,9 @@ internal static class FightReport
             };
         }
 
-        // (Stand and step: FIGHT_STEPS=0 runs a fight with the steering's velocity walked as it is; "worth,pace,eases,stance,held"
+        // (Stand and step: FIGHT_STEPS=0 runs a fight with the steering's velocity walked as it is; "worth,pace,eases,stance,held,shoves"
         // sets how much ground is asked before a step (metres), the pace it is stepped at (m/s), how quickly the body picks
-        // it up (seconds), whether it is stepped in the stance (0: walked), and how far off its distance a fighter stands (metres).)
+        // it up (seconds), whether it is stepped in the stance (0: walked), how far off its distance a fighter stands (metres), and whether a shove is stepped in the stance (0: walked off).)
         {
             var st = (Environment.GetEnvironmentVariable("FIGHT_STEPS") ?? "").Split(',');
             if (st.Length >= 1 && float.TryParse(st[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float worth))
@@ -273,6 +273,11 @@ internal static class FightReport
                 if (st.Length >= 5 && float.TryParse(st[4], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ring))
                 {
                     PhysicsBattler.Battle.FightLoop.RingHeldWithin = ring;
+                }
+
+                if (st.Length >= 6)
+                {
+                    PhysicsBattler.Locomotion.Locomotor.ShovesInStance = st[5].Trim() != "0";
                 }
             }
         }

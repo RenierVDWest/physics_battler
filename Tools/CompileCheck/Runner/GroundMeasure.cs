@@ -26,6 +26,12 @@ public sealed class GroundMeasure
         public readonly Vector3[] SlideTarget = new Vector3[2];
         public readonly float[] SlideFacing = new float[2], SlideYaw = new float[2];
         public int ModeWas = -1, ModeFrom = -1;
+        public readonly Vector3[] TargetWas = new Vector3[2];
+        public readonly float[] YawWas = new float[2], ContactPath = new float[2], ContactFor = new float[2], ContactLoose = new float[2], ContactLooseFor = new float[2];
+        public readonly bool[] HeldKnown = new bool[2], InContact = new bool[2], WasLocked = new bool[2];
+        public readonly float[] LockPath = new float[2], LockTurn = new float[2];
+        public readonly int[] LockMode = new int[2], ForcedWas = new int[2];
+        public readonly int[] ContactMode = new int[2];
         public bool StanceNoted;
         public float ModeSince;
         public float SlideModeAge0, SlideModeAge1;
@@ -38,7 +44,13 @@ public sealed class GroundMeasure
     private readonly Dictionary<UnitController, Track> tracks = new Dictionary<UnitController, Track>();
     private float clock;
 
-    private int steps, both, one, none, inStance;
+    private int steps, both, one, none, inStance, inStanceShoved;
+    private readonly int[,] held = new int[3, 7];
+    private readonly float[] fadeSum = new float[3], raisedSum = new float[3];
+    private readonly int[,] raisedAs = new int[3, 3];
+    private readonly List<(float path, float turn, int mode)> locks = new List<(float, float, int)>();
+    private readonly List<(float pull, int mode)> forced = new List<(float, int)>();
+    private readonly List<(float path, float lasted, int mode)> contacts = new List<(float, float, int)>(), looseContacts = new List<(float, float, int)>();
     private readonly int[] walkWhy = new int[5];
     private readonly float[] walkSpeed = new float[5];
     private readonly int[] byMode = new int[3], bothByMode = new int[3];
@@ -105,9 +117,13 @@ public sealed class GroundMeasure
                 walkSpeed[why] += clip.Loco.Velocity.magnitude;
             }
 
-            if (mode == 0 && clip.Loco.StepsInStance && clip.Loco.Velocity.sqrMagnitude > 0.02f)
+            if (mode == 0 && clip.Loco.StepsInStance && clip.Loco.Going.sqrMagnitude > 0.02f)
             {
                 inStance++;
+                if (clip.Loco.Shoved)
+                {
+                    inStanceShoved++;
+                }
             }
 
             int down = g.FeetDown;
@@ -133,6 +149,89 @@ public sealed class GroundMeasure
                 if (float.IsNaN(foot.Lowest))
                 {
                     continue;
+                }
+
+                // (Planted or stepping, the plan's step 2: what the foot's hold is doing, and how far a foot on the
+                // ground goes over it from touching it to leaving it.)
+                {
+                    var lk = clip.Poser.Feet[f];
+                    float yaw = clip.Poser.FootRotation(f).eulerAngles.y;
+                    float placeMoved = t.HeldKnown[f] ? new Vector2(lk.Target.x - t.TargetWas[f].x, lk.Target.z - t.TargetWas[f].z).magnitude : 0f;
+                    float turned = t.HeldKnown[f] ? Mathf.Abs(Mathf.DeltaAngle(t.YawWas[f], yaw)) : 0f;
+                    int what = clip.Poser.Lifted(f) > 0.002f ? 3
+                        : lk.Locked ? (placeMoved >= 0.001f ? 1 : turned > 0.3f ? 2 : 0)
+                        : lk.Stepping ? 4
+                        : clip.Loco.Down[f] < 0.5f ? 5 : 6;
+                    held[mode, what]++;
+                    if (what == 3)
+                    {
+                        raisedAs[mode, lk.Locked ? 0 : lk.Stepping ? 1 : 2]++;
+                        raisedSum[mode] += clip.Poser.Lifted(f);
+                    }
+
+                    // (While it is held: how far its place goes, and how far it turns, from being held to being let go.)
+                    if (lk.Locked)
+                    {
+                        if (!t.WasLocked[f])
+                        {
+                            t.LockPath[f] = t.LockTurn[f] = 0f;
+                            t.LockMode[f] = mode;
+                            t.ForcedWas[f] = lk.ForcedReleases;
+                        }
+                        else
+                        {
+                            t.LockPath[f] += placeMoved;
+                            t.LockTurn[f] += turned;
+                        }
+                    }
+                    else if (t.WasLocked[f] && t.Seen)
+                    {
+                        locks.Add((t.LockPath[f], t.LockTurn[f], t.LockMode[f]));
+                        if (lk.ForcedReleases > t.ForcedWas[f])
+                        {
+                            forced.Add((lk.Released / size, mode));
+                        }
+                    }
+
+                    t.WasLocked[f] = lk.Locked;
+                    if (what == 5)
+                    {
+                        fadeSum[mode] += new Vector2(lk.Fade.x, lk.Fade.z).magnitude;
+                    }
+
+                    t.TargetWas[f] = lk.Target;
+                    t.YawWas[f] = yaw;
+                    t.HeldKnown[f] = true;
+                    if (foot.Touching)
+                    {
+                        if (!t.InContact[f])
+                        {
+                            t.InContact[f] = true;
+                            t.ContactPath[f] = t.ContactFor[f] = t.ContactLoose[f] = t.ContactLooseFor[f] = 0f;
+                            t.ContactMode[f] = mode;
+                        }
+
+                        // (Held by its lock, or on the ground without one: landing, leaving, let go.)
+                        if (lk.Locked)
+                        {
+                            t.ContactPath[f] += foot.Speed * dt;
+                            t.ContactFor[f] += dt;
+                        }
+                        else
+                        {
+                            t.ContactLoose[f] += foot.Speed * dt;
+                            t.ContactLooseFor[f] += dt;
+                        }
+                    }
+                    else if (t.InContact[f])
+                    {
+                        t.InContact[f] = false;
+                        if (t.Seen)
+                        {
+                            contacts.Add((t.ContactPath[f], t.ContactFor[f], t.ContactMode[f]));
+                            looseContacts.Add((t.ContactLoose[f], t.ContactLooseFor[f], t.ContactMode[f]));
+                        }
+                    }
                 }
 
                 footSteps++;
@@ -233,7 +332,7 @@ public sealed class GroundMeasure
         sb.AppendLine($"    the legs' opinion (the plan \"Grounded legs\", step 0; {seconds:0} unit-seconds on their feet; a sole's end within 2 cm of the ground is on it):");
         sb.AppendLine($"      a fighter is standing (not walking, not in a clip) {Pct(byMode[0], steps)} of the time, walking {Pct(byMode[1], steps)}, in a clip (a strike, a reaction, a turn) {Pct(byMode[2], steps)}");
         sb.AppendLine($"      a foot is planted (on the ground, not moving) {Pct(states[0], footSteps)} of the time, on the ground and moving over 10 cm/s {Pct(states[1], footSteps)}, landing {Pct(states[2], footSteps)}, in the air under 9 cm {Pct(states[3], footSteps)}, in the air higher {Pct(states[4], footSteps)}");
-        sb.AppendLine($"      of the standing: stepping in the stance (the body going over 0.15 m/s, the feet stepping after it) {Pct(inStance, steps)} of all the time, standing still {Pct(byMode[0] - inStance, steps)}");
+        sb.AppendLine($"      of the standing: stepping in the stance (the body going over 0.15 m/s, the feet stepping after it) {Pct(inStance, steps)} of all the time (after a shove {Pct(inStanceShoved, steps)}), standing still {Pct(byMode[0] - inStance, steps)}");
         {
             string[] whys = { "out of its guard", "asked to walk (as fast as a walk)", "walking off a shove", "a step under way out of a walk", "coming to a stand" };
             sb.AppendLine("      of the walking: " + string.Join(", ", whys.Select((w, i) => $"{w} {Pct(walkWhy[i], steps)} (at {walkSpeed[i] / Mathf.Max(1, walkWhy[i]):0.00} m/s)")));
@@ -294,6 +393,63 @@ public sealed class GroundMeasure
             sb.AppendLine(PhysicsBattler.Locomotion.StepPacer.On
                 ? $"      stand and step: paced {stood + stepped:0} unit-seconds (in guard, no clip playing): standing {100f * stood / Mathf.Max(1e-3f, stood + stepped):0}% of it; {spells} spells of stepping ({spells / Mathf.Max(1e-3f, minutes):0.0} a minute for each fighter), {back} of them back the way of the one before within 2 s"
                 : "      stand and step: off (the steering's velocity walked as it is)");
+        }
+
+        {
+            string[] whats = { "held still", "held, its place moving", "held, turning", "lifted to hover over the ground", "let go and stepping to its place", "in the clip's swing", "let go, the clip has it down, not yet held" };
+            sb.AppendLine("      planted or stepping (the plan's step 2), what each foot's hold is doing, of the time:");
+            for (int m = 0; m < 3; m++)
+            {
+                int n = 0;
+                for (int w = 0; w < 7; w++)
+                {
+                    n += held[m, w];
+                }
+
+                if (n > 0)
+                {
+                    sb.AppendLine($"        {names[m]}: " + string.Join(", ", Enumerable.Range(0, 7).Select(w => $"{whats[w]} {100f * held[m, w] / n:0.0}%")) + $"; in a swing the foot is still {100f * fadeSum[m] / Mathf.Max(1, held[m, 5]):0} cm from the clip's path on average");
+                }
+            }
+
+            sb.AppendLine("      lifted to hover, by what the foot was then: " + string.Join("; ", Enumerable.Range(0, 3).Select(m =>
+            {
+                int n = raisedAs[m, 0] + raisedAs[m, 1] + raisedAs[m, 2];
+                return n == 0 ? $"{names[m]} never" : $"{names[m]} held {100f * raisedAs[m, 0] / n:0}%, stepping to its place {100f * raisedAs[m, 1] / n:0}%, in the clip's swing {100f * raisedAs[m, 2] / n:0}%, by {100f * raisedSum[m] / n:0.0} cm on average";
+            })));
+            if (locks.Count > 0)
+            {
+                sb.AppendLine("      a held foot's own place, from being held to being let go: " + string.Join("; ", Enumerable.Range(0, 3).Select(m =>
+                {
+                    var of = locks.Where(c => c.mode == m).ToList();
+                    return of.Count == 0 ? $"{names[m]} none" : $"{names[m]} ({of.Count}) moved over 1 cm {100f * of.Count(x => x.path > 0.01f) / of.Count:0}%, over 5 cm {100f * of.Count(x => x.path > 0.05f) / of.Count:0}%; turned over 5 degrees {100f * of.Count(x => x.turn > 5f) / of.Count:0}%, over 20 {100f * of.Count(x => x.turn > 20f) / of.Count:0}%";
+                })));
+            }
+
+            if (forced.Count > 0)
+            {
+                float minutes2 = steps / 3600f;
+                sb.AppendLine("      a held foot let go because the body had gone too far from it (it then steps to its place): " + string.Join("; ", Enumerable.Range(0, 3).Select(m =>
+                {
+                    var of = forced.Where(c => c.mode == m).Select(c => c.pull).OrderBy(x => x).ToList();
+                    return of.Count == 0 ? $"{names[m]} never" : $"{names[m]} {of.Count / Mathf.Max(1e-3f, minutes2):0.0} a minute for each fighter, the body {100f * At(of, 0.5f):0} cm from it at the middle, {100f * At(of, 0.9f):0} cm for one in ten";
+                })));
+            }
+
+            if (contacts.Count > 0)
+            {
+                sb.AppendLine("      a foot on the ground and held, from touching the ground to leaving it, how far it goes over it: " + string.Join("; ", Enumerable.Range(0, 3).Select(m =>
+                {
+                    var of = contacts.Where(c => c.mode == m && c.lasted > 0.05f).Select(c => c.path).OrderBy(x => x).ToList();
+                    return of.Count == 0 ? $"{names[m]} none" : $"{names[m]} ({of.Count}) {100f * At(of, 0.5f):0.0} cm at the middle, over 1 cm {100f * of.Count(x => x > 0.01f) / of.Count:0}%, over 3 cm {100f * of.Count(x => x > 0.03f) / of.Count:0}%, over 10 cm {100f * of.Count(x => x > 0.10f) / of.Count:0}%";
+                })));
+                sb.AppendLine("      and on the ground without being held (landing, leaving, let go): " + string.Join("; ", Enumerable.Range(0, 3).Select(m =>
+                {
+                    var of = looseContacts.Where(c => c.mode == m).Select(c => c.path).OrderBy(x => x).ToList();
+                    float time = looseContacts.Where(c => c.mode == m).Sum(c => c.lasted), all = contacts.Where(c => c.mode == m).Sum(c => c.lasted) + time;
+                    return of.Count == 0 ? $"{names[m]} none" : $"{names[m]} {100f * time / Mathf.Max(1e-3f, all):0}% of its time on the ground, {100f * At(of, 0.5f):0.0} cm at the middle, over 3 cm {100f * of.Count(x => x > 0.03f) / of.Count:0}%, over 10 cm {100f * of.Count(x => x > 0.10f) / of.Count:0}%";
+                })));
+            }
         }
 
         if (stanceOff.Count > 0)
