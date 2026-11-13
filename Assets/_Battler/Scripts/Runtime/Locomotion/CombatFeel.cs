@@ -231,6 +231,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How hard a shove a fighter still steps off in its stance (metres a second for a Medium; the plan's step 4: more steps for a harder shove). A light shove is caught in two steps, one near this in three or four, with both feet off the ground for a moment as the body is thrown. A harder shove than this is walked with the guard's upright walk until it has slowed to a walk's speed, and so is any blow that throws it back stumbling. At 1 it is as it was before step 4 (only shoves under a walk's speed stepped in the stance). Default 1.6.")]
         [Range(1f, 2.8f)] public float shoveSteppedUpTo = Locomotor.DefaultShoveSteppedTo;
 
+        [Tooltip("What a hard blow does to a fighter is decided by what its legs can catch (the plan's step 4). The blow would throw the body at some speed; add how fast it is already going. Up to 'shoveSteppedUpTo' its stance catches it in two or three steps. Up to 'legsCatchUpTo' it is thrown back stumbling, its walk taking the catch steps. Faster than that no step catches it: it goes down, and gets up again. Before, no blade ever knocked a standing fighter down, however heavy: the throw was simply held to 'mostStumble'. A blow taken on the shield, or in the middle of its own strike, still never does. Off: as before.")]
+        public bool legsDecideAFall = true;
+
+        [Tooltip("How fast a body can be thrown and still be caught by its legs (metres a second for a Medium; a bigger body's is higher). The default is how fast the backward running animation carries a body: thrown faster than it can run backward, it falls. In a fight of six about one stumble in four is past it, nearly all of them a Large's club landing on a smaller fighter. Lower: more knock-downs (at 2.8, every blow that reached 'mostStumble' is one); higher: fewer. Default 4.4.")]
+        [Range(2f, 12f)] public float legsCatchUpTo = DefaultLegsCatch;
+
         [Tooltip("How much ground the fight has to have asked for before a standing fighter takes a step (metres for a Medium; a bigger body's is longer). What is asked adds up while it stands and is forgotten again over a second and a half, so a small nudge never makes a step. Higher: it stands longer and then goes further; lower: it steps sooner and more often, in smaller steps. Default 0.22.")]
         [Range(0.08f, 0.6f)] public float stepAfter = StepPacer.DefaultStepWorth;
 
@@ -349,6 +355,13 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The legs' opinion is drawn under each fighter (a view only).</summary>
         public static bool ShowLegs;
 
+        /// <summary>A blow that would throw a body faster than its legs can catch knocks it down (the plan "Grounded legs", step 4), and the speed (m/s at a Medium's size: the backward run's).</summary>
+        public static bool LegsDecide = true;
+
+        public static float LegsCatch = DefaultLegsCatch;
+
+        public const float DefaultLegsCatch = 4.4f;
+
         public static float WeaponMass = DefaultWeaponMass;
 
         public const float DefaultWeaponMass = 1f;
@@ -398,6 +411,8 @@ namespace PhysicsBattler.Locomotion
             Locomotor.StepsInStanceOn = true;
             Locomotor.ShovesInStance = true;
             Locomotor.ShoveSteppedTo = Locomotor.DefaultShoveSteppedTo;
+            LegsDecide = true;
+            LegsCatch = DefaultLegsCatch;
             LocoBody.StepTime = LocoBody.DefaultStepTime;
             LocoBody.WeightShifts = true;
             LocoBody.ShiftShare = LocoBody.DefaultShiftShare;
@@ -484,6 +499,8 @@ namespace PhysicsBattler.Locomotion
             Locomotor.StepsInStanceOn = stepsInTheStance;
             Locomotor.ShovesInStance = shovesSteppedInTheStance;
             Locomotor.ShoveSteppedTo = Mathf.Clamp(shoveSteppedUpTo, 1f, 2.8f);
+            LegsDecide = legsDecideAFall;
+            LegsCatch = Mathf.Clamp(legsCatchUpTo, 2f, 12f);
             LocoBody.StepTime = Mathf.Clamp(stepTakes, 0.15f, 0.4f);
             LocoBody.WeightShifts = weightShifts;
             LocoBody.ShiftShare = Mathf.Clamp(weightShift, 0.05f, 1f);

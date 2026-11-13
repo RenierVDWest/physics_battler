@@ -2880,9 +2880,7 @@ to 1.3 m/s, four or five at 2 m/s.
 
 Not done from the plan's step 4:
 
-- *A stumble or a fall from what the legs can catch.* When a blow stumbles a fighter or knocks it down is still
-  decided by the Combat Feel's speeds (`stumbleFrom` and the rest), which were set by eye. Replacing them with
-  whether a foot can reach would change which blows knock a fighter down; that wants your say before it is tried.
+- *A stumble or a fall from what the legs can catch*: done since, below.
 - *A step placed toward where the body needs it.* One landing in six still leaves the body needing a foot over
   10 cm from where its two are (15 to 22% of landings, as in step 3). Stepping straight to the resting place was
   the attempt at it.
@@ -2895,6 +2893,50 @@ for the `shoves` test.
 Not verified: how it looks, and Unity. A fighter shoved hard (a body thrown into it, a blow it blocked from a
 Large) should now go back in its stance in two or three quick steps with a small hop, where it stood up and
 walked.
+
+In Unity since (the target test, 13 November, 112 s): as headless; standing on both feet the weight is off what
+they hold 3% of the time. Thirty of 129 blows that landed threw their target back stumbling, fifteen of them at
+the most a stumble goes (2.8 m/s). The worst slide in the log, 95 cm, is one of those: a target thrown back at
+2.8 m/s, the walk's catch steps dragging a foot.
+
+**What the legs can catch decides a stumble or a fall (the rest of step 4)** (13 November; Combat Feel
+`legsDecideAFall`, `legsCatchUpTo`; off: as before). Until now no blade knocked a standing fighter down, however
+heavy the blow: whatever speed it would have thrown the body at was held to `mostStumble` (2.8 m/s) and the body
+stumbled back at that. A Large's club on a Swordsman's chest asked 16 m/s and got 2.8. Now the speed the blow
+would throw the body at, on top of how fast it is going already, is set against what its legs can do:
+
+- up to 1.6 m/s (`shoveSteppedUpTo`): its stance catches it, two or three steps. A blow that "throws it back
+  stumbling" this lightly is no longer stood up into the walk for it.
+- up to 4.4 m/s (`legsCatchUpTo`): thrown back stumbling, the walk taking the catch steps, no faster than
+  `mostStumble`, as before.
+- faster: no step catches it. It goes down, and gets up again.
+
+4.4 m/s is not set by eye: it is how fast the backward run in the animation set carries a body (`sns_run_back`,
+4.41 m/s; the plain run 4.1 to 4.5). A body thrown faster than it can run backward falls. Because the speed
+counts what the body is already doing, a second hard blow on a fighter still reeling from the first takes it down
+where either alone would not.
+
+A blow taken on the shield, or in the middle of the fighter's own strike, still never knocks it down: those were
+not stumbles before and are not now.
+
+Four fights of six, 60 s, the same seeds, against step 4 as it was this afternoon:
+
+| | before | now |
+|---|---|---|
+| Knocked down by a blow | none | 1, 1, 2 and 3 a fight |
+| Thrown back stumbling | 4, 10, 6 and 10 a fight | 4, 5, 2 and 9 |
+| Walking (the walk's animation) | 7 to 9% of the time | 5 to 7% |
+| Blows started; blows that met something | 296; 286 | 297; 292 |
+
+All seven knock-downs are a Large's club: on a Swordsman's chest (asked 16 m/s), head (8) and sword hand (5), on
+a Medium's head (4.5), pelvis (5, its own side's Large) and thigh (34), and one Large on the other's thigh (10).
+No sword and no Medium's club reaches 4.4. In the target test (Mediums on Mediums) nobody is knocked down, as
+before. With it off the same seed gives the same fight as this afternoon.
+
+Not verified: how a knock-down and the getting up read in the middle of a fight of six. Falls from leg cuts were
+shelved after your first playtests because the fall and the get-up did not read well, and this uses the same fall.
+If it is too much, `legsCatchUpTo` up to 6 leaves only the heaviest (three of the seven), and `legsDecideAFall`
+off is as it was.
 
 
 

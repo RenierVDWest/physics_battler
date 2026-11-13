@@ -242,6 +242,17 @@ internal static class FightReport
             PhysicsBattler.Locomotion.Locomotor.ShoveSteppedTo = shoveTo;
         }
 
+        // (What the legs can catch: FIGHT_CATCH=0 never knocks a fighter down for the speed a blow throws it at, as before; a
+        // number sets that speed (m/s at a Medium's size).)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_CATCH"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float catches))
+        {
+            PhysicsBattler.Locomotion.CombatFeel.LegsDecide = catches > 0f;
+            if (catches > 0f)
+            {
+                PhysicsBattler.Locomotion.CombatFeel.LegsCatch = catches;
+            }
+        }
+
         GroundMeasure.TraceSlides = Environment.GetEnvironmentVariable("FIGHT_SLIDETRACE") == "1";
 
         // (FIGHT_PACETRACE="A Swordsman,17,21": each step of that fighter's pacing between those seconds, written out.)
@@ -987,7 +998,7 @@ internal static class FightReport
                 var parts = new List<string>();
                 if (k != null) foreach (var pair in k) parts.Add($"{pair.Key} {pair.Value}");
                 int combosThrown = clipBlows.TryGetValue(u, out var l) ? l.FindAll(x => x.StartsWith("a combo")).Count : 0;
-                sb.AppendLine($"    {u.name}: {(l != null ? l.Count : 0)} blows ({combosThrown} combos); its hits: {(parts.Count > 0 ? string.Join(", ", parts) : "none")}; it fell {u.Clip.Falls - (u.IsAlive ? 0 : 1)} times alive, was thrown back stumbling {u.Clip.Stumbles} times; concentration at most {u.MostConcentration:0.00}; combo blows turned on another {u.ClipComboTurns}{(u.IsAlive ? "" : ", killed")}");
+                sb.AppendLine($"    {u.name}: {(l != null ? l.Count : 0)} blows ({combosThrown} combos); its hits: {(parts.Count > 0 ? string.Join(", ", parts) : "none")}; it fell {u.Clip.Falls - (u.IsAlive ? 0 : 1)} times alive ({u.Clip.ThrownDown} of them thrown faster than its legs can catch), was thrown back stumbling {u.Clip.Stumbles} times; concentration at most {u.MostConcentration:0.00}; combo blows turned on another {u.ClipComboTurns}{(u.IsAlive ? "" : ", killed")}");
             }
         }
 

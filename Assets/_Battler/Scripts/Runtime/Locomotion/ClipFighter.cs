@@ -535,6 +535,9 @@ namespace PhysicsBattler.Locomotion
 
         public int Stumbles, Falls;
 
+        /// <summary>Times a blow threw it faster than its legs can catch, and it went down (for the reports).</summary>
+        public int ThrownDown;
+
         /// <summary>Leg hits this close together are one blow's (seconds).</summary>
         public const float OneSweepWithin = 0.2f;
 
@@ -1034,8 +1037,9 @@ namespace PhysicsBattler.Locomotion
             // steps, the body drifting down to the floor. It is driven back as it lands.)
             if (pushAt >= 0f && clock >= pushAt && !Loco.ShotAirborne(0f))
             {
-                // (Thrown back stumbling: that one is walked off, as it was.)
-                Loco.Push(pendingKnock, clock - thrownAt < 0.5f);
+                // (Thrown back stumbling: that one is walked off, as it was; with the legs deciding, only one too fast
+                // for the stance to step after is.)
+                Loco.Push(pendingKnock, !CombatFeel.LegsDecide && clock - thrownAt < 0.5f);
                 pushAt = -1f;
                 pendingKnock = Vector3.zero;
             }
@@ -3759,9 +3763,25 @@ namespace PhysicsBattler.Locomotion
             {
                 Stumbles++;
                 thrownAt = clock;
-                pendingKnock = Vector3.ClampMagnitude(knock * CombatFeel.StumbleBoost + (pushAt > clock ? pendingKnock : Vector3.zero), CombatFeel.MostStumble);
+                Vector3 thrownBy = knock * CombatFeel.StumbleBoost + (pushAt > clock ? pendingKnock : Vector3.zero);
+                // (What its legs can catch, the plan "Grounded legs", step 4. How fast the blow would throw it, on top of
+                // how fast it is going already: up to what its stance steps after it is caught there; up to what a body
+                // can run backward it is thrown back stumbling, its walk taking the catch steps (no faster than the
+                // scene's "Most Stumble"); faster than it can run, no step catches it and it goes down.)
+                Vector3 going = new Vector3(Loco.Velocity.x, 0f, Loco.Velocity.z);
+                float thrownAtSpeed = (thrownBy + going).magnitude, caught = CombatFeel.LegsCatch * Mathf.Sqrt(Size);
+                if (CombatFeel.LegsDecide && thrownAtSpeed > caught && !Anchored)
+                {
+                    ThrownDown++;
+                    pendingKnock = Vector3.zero;
+                    pushAt = -1f;
+                    KnockOver(thrownBy, 0.8f, $"{(swept.Length > 0 ? swept + "; " : "")}thrown at {thrownAtSpeed:0.0} m/s, faster than its legs can catch ({caught:0.0}): down");
+                    return;
+                }
+
+                pendingKnock = Vector3.ClampMagnitude(thrownBy, CombatFeel.MostStumble);
                 pushAt = clock;
-                LastReaction = $"{(swept.Length > 0 ? swept + "; " : "")}thrown back stumbling at {pendingKnock.magnitude:0.0} m/s";
+                LastReaction = $"{(swept.Length > 0 ? swept + "; " : "")}thrown back stumbling at {pendingKnock.magnitude:0.0} m/s (the blow's {thrownAtSpeed:0.0})";
                 return;
             }
 
