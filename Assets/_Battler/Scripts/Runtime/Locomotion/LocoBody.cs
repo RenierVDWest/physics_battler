@@ -47,6 +47,8 @@ namespace PhysicsBattler.Locomotion
             public bool StepArc;       // a step to its place taken as one arc (standing): lift, over, down
             public bool StepLanded;    // that step is over where it lands, and coming down onto it
             public Vector3 StepLand;   // where that is (world)
+            public bool Hopping;       // that step is its part of a hop: let go with the other foot, down with it
+            public float HopFrom;      // how high it was when the hop took it up, already in a step of its own (metres)
             public float LandedOff;    // the last landing's leftover offset from the clip's foot (metres)
             public int Landings;
         }
@@ -147,6 +149,7 @@ namespace PhysicsBattler.Locomotion
             UpdateFeet(dt);
             Pelvis(out Vector3 pelvisAt, out var pelvisTurn);
             pelvisAt += ShiftHips(pelvisAt, pelvisTurn, dt);
+            pelvisAt.y += HopHips(dt);
             float drop = 0f;
             for (int f = 0; f < 2; f++)
             {
@@ -211,6 +214,18 @@ namespace PhysicsBattler.Locomotion
             for (int f = 0; f < 2; f++)
             {
                 HoldFoot(f, dt);
+            }
+
+            if (hopAsked)
+            {
+                // (Both feet have been asked. Neither left the ground, each already in a step of its own: no hop.)
+                hopAsked = false;
+                if (!Feet[0].Hopping && !Feet[1].Hopping)
+                {
+                    hopOver = 0f;
+                    loco.NoLead = false;
+                    Hops--;
+                }
             }
 
             if (!shiftAsked)
@@ -1714,6 +1729,87 @@ namespace PhysicsBattler.Locomotion
         private float poseClock;
         private readonly float[] liftedAt = { 0f, 0f };
 
+        // ---- A hop: both feet off the ground together, and down together ----
+
+        /// <summary>
+        /// A hop's feet: how high they go (metres at a Medium's size), the shortest and the longest they are in the
+        /// air (seconds), how far the hips rise in the air and sink as the feet take the weight again (metres at a
+        /// Medium's size), and how long that sinking and coming up takes (seconds).
+        /// </summary>
+        public static float HopHeight = 0.07f, HopLeast = 0.14f, HopMost = 0.3f, HopRise = 0.02f, HopDip = 0.045f, HopDipTime = 0.24f;
+
+        /// <summary>Hops taken (for the reports).</summary>
+        public int Hops { get; private set; }
+
+        /// <summary>In a hop now: from its feet leaving the ground until its hips have come up again after landing.</summary>
+        public bool InHop => hopOver > 0f;
+
+        private float hopOver, hopFor, hopLandedFor = -1f;
+        private bool hopAsked;
+
+        /// <summary>
+        /// The body is about to be moved further and faster than its feet can step after one at a time (ground given to
+        /// a blow at the last moment: a third of a metre in a seventh of a second). It hops: both feet leave the ground
+        /// now, each goes in one arc to where the stance has it under the body as it arrives, they come down together
+        /// after <paramref name="seconds"/>, and the hips sink a little as the legs take the weight. Only standing in
+        /// its stance; false: it is not, and its feet are let go as the body leaves them, as before.
+        /// </summary>
+        public bool Hop(float seconds)
+        {
+            if (!loco.StepsInStance || !Standing || InHop)
+            {
+                return false;
+            }
+
+            hopOver = Mathf.Clamp(seconds, HopLeast, HopMost);
+            hopFor = 0f;
+            hopLandedFor = -1f;
+            hopAsked = true;
+            loco.NoLead = true;
+            Hops++;
+            return true;
+        }
+
+        /// <summary>The hips in a hop: up a little while the feet are off the ground, down and up again as they land.</summary>
+        private float HopHips(float dt)
+        {
+            if (hopOver <= 0f)
+            {
+                return 0f;
+            }
+
+            float scale = loco.Leg / 0.85f;
+            if (hopLandedFor < 0f)
+            {
+                hopFor += dt;
+                // (Landed: a foot of the hop is on the ground again. Or it never took off, or never came down: over.)
+                bool inAir = Feet[0].Hopping || Feet[1].Hopping;
+                if (!inAir || hopFor > hopOver + 0.15f)
+                {
+                    Feet[0].Hopping = Feet[1].Hopping = false;
+                    hopLandedFor = 0f;
+                    loco.NoLead = false;
+                    // (Landed, it stands a moment on both feet before either steps again.)
+                    lastSettle = Time();
+                    return 0f;
+                }
+
+                return HopRise * scale * Mathf.Sin(Mathf.PI * Mathf.Clamp01(hopFor / hopOver));
+            }
+
+            hopLandedFor += dt;
+            float v = hopLandedFor / HopDipTime;
+            if (v >= 1f)
+            {
+                hopOver = 0f;
+                return 0f;
+            }
+
+            // (Down quickly, up slowly: the legs take the weight and push up again.)
+            float w = v < 0.3f ? v / 0.3f : 1f - (v - 0.3f) / 0.7f;
+            return -HopDip * scale * w * w * (3f - 2f * w);
+        }
+
         private void HoldFoot(int f, float dt)
         {
             poseClock += f == 0 ? dt : 0f;
@@ -1767,6 +1863,7 @@ namespace PhysicsBattler.Locomotion
                 // (Where it is now, faded in: a release still fading carries on into the lock. A foot
                 // that lands toe first, walking backward, is held at its toe until the heel comes down.)
                 foot.Ankle = posed + foot.Fade;
+                foot.Hopping = false;
                 if (foot.StepLanded)
                 {
                     // (A step that came down onto its place lands there, not a step's drift on.)
@@ -1859,6 +1956,15 @@ namespace PhysicsBattler.Locomotion
                     stretched = true;
                     lastSettle = Time();
                 }
+
+                // (A hop: this foot leaves the ground now, with the other.)
+                bool hops = hopAsked && down && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle;
+                if (hops)
+                {
+                    stretched = true;
+                    lastSettle = Time();
+                }
+
                 if (!down || stretched)
                 {
                     foot.Locked = false;
@@ -1875,6 +1981,13 @@ namespace PhysicsBattler.Locomotion
                     foot.StepLanded = false;
                     foot.StepArc = foot.Stepping && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle;
                     foot.FadeOver = foot.Stepping ? (foot.StepArc ? StepTime : 0.22f) : Mathf.Clamp(loco.SwingLeft(f), 0.12f, 0.8f);
+                    foot.Hopping = hops && foot.StepArc;
+                    foot.HopFrom = 0f;
+                    if (foot.Hopping)
+                    {
+                        foot.FadeOver = hopOver;
+                    }
+
                     Trace?.Invoke($"{(f == 0 ? "L" : "R")} released after {foot.LockedFor:0.00} s{(stretched ? " (stretched)" : "")}: pull {pull.magnitude * 100f:0.0} cm, speed {loco.Velocity.magnitude:0.00}, stride x{loco.StrideScale:0.00}, turn {loco.FacingSpeed:0} deg/s, {loco.Current}, on toe {foot.OnToe}");
                 }
                 else
@@ -1883,6 +1996,19 @@ namespace PhysicsBattler.Locomotion
                     LiftMoving(f, foot, dt);
                     return;
                 }
+            }
+
+            if (hopAsked && !foot.Hopping && foot.Stepping && down && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle)
+            {
+                // (A foot already in a step of its own as the hop begins goes with it: from where it is, as high as it
+                // is, over to its place and down with the other.)
+                foot.Hopping = foot.StepArc = true;
+                foot.StepLanded = false;
+                foot.HopFrom = Mathf.Max(0f, foot.Fade.y);
+                foot.FadeFrom = new Vector3(foot.Fade.x, 0f, foot.Fade.z);
+                foot.YawFrom = foot.YawHold;
+                foot.FadeTime = 0f;
+                foot.FadeOver = hopOver;
             }
 
             foot.FadeTime += dt;
@@ -1898,7 +2024,7 @@ namespace PhysicsBattler.Locomotion
                 // going on without it: it goes back onto the clip's path as a foot let go does. Held there, a walk
                 // that began under a step left the foot behind until its leg was past its reach, and the engine threw
                 // every body on the field.)
-                foot.StepArc = foot.StepLanded = false;
+                foot.StepArc = foot.StepLanded = foot.Hopping = false;
                 arc = false;
                 foot.FadeFrom = new Vector3(foot.StepLand.x - posed.x, 0f, foot.StepLand.z - posed.z);
                 foot.FadeTime = 0f;
@@ -1929,7 +2055,7 @@ namespace PhysicsBattler.Locomotion
                     flat = foot.StepLand - posed;
                 }
 
-                foot.Fade = new Vector3(flat.x, 4f * u * (1f - u) * StepHeight * loco.Leg / 0.85f, flat.z);
+                foot.Fade = new Vector3(flat.x, 4f * u * (1f - u) * (foot.Hopping ? HopHeight : StepHeight) * loco.Leg / 0.85f + (foot.Hopping ? foot.HopFrom * (1f - u) : 0f), flat.z);
             }
             else
             {

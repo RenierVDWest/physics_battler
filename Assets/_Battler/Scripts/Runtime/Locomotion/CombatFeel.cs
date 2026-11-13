@@ -163,6 +163,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A step back to a blow takes the time there is before the blow arrives (the plan \"Grounded legs\", step 2: what moved the body at once becomes something the feet can step after). Before, the step back was snapped in at 4 metres a second whatever the time left: 10 to 45 cm in three to seven physics steps, both feet let go at once and brought after the body, which read as a small hop backward. On: the body goes back just fast enough to be there a moment (0.04 s) before the blow, never slower than 1 m/s and never faster than the old 4 m/s, so a blow read early is stepped back from at a step's pace and the feet follow one at a time; a blow read at the last moment is still snapped away from as before. Where the body stands when the blow arrives is the same either way. Off: as before.")]
         public bool groundGivenInTime = true;
 
+        [Tooltip("A step back to a blow is a hop. A fighter that gives ground at the last moment goes back a third of a metre in a seventh of a second: further and faster than feet can step one at a time. On: both feet leave the ground together as the body goes, each goes in one arc (7 cm high for a Medium) to where the stance has it under the body as it arrives, they come down together, and the hips sink 4 to 5 cm and come up again as the legs take the weight. Off: as before, each foot is let go when the body has left it behind and brought after it on its own, so they leave and land at different moments. Only for a step back of 12 cm or more by a fighter standing in its guard; a shorter one is stepped. Where the body goes and when is the same either way. To see it: the debug panel's 'Step back now' button makes every standing fighter do it at once.")]
+        public bool stepBackIsAHop = true;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -479,6 +482,7 @@ namespace PhysicsBattler.Locomotion
             MostGiveGround = DefaultMostGiveGround;
             GiveGroundEases = DefaultGiveGroundEases;
             ClipFighter.RetiresInTime = true;
+            ClipFighter.StepBackHops = true;
             ConcentrationRise = DefaultConcentrationRise;
             ConcentrationFall = DefaultConcentrationFall;
             ConcentrationGuard = DefaultConcentrationGuard;
@@ -570,6 +574,7 @@ namespace PhysicsBattler.Locomotion
             MostGiveGround = mostGiveGround;
             GiveGroundEases = giveGroundEases;
             ClipFighter.RetiresInTime = groundGivenInTime;
+            ClipFighter.StepBackHops = stepBackIsAHop;
             ConcentrationRise = concentrationRise;
             ConcentrationFall = concentrationFall;
             ConcentrationGuard = concentrationGuard;

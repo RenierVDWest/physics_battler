@@ -3023,6 +3023,48 @@ so it wants the swing's height mended first, not a switch.
 
 Not verified: how the slower step back looks, and Unity.
 
+**A step back is a hop, and a button to see it** (13 November; Combat Feel `stepBackIsAHop`; off: as before). Your
+choice of the three above. A fighter standing in its guard that gives 12 cm of ground or more:
+
+- both feet leave the ground as the body goes (a foot already in a step of its own goes with it, from where it
+  is);
+- each goes in one arc, 7 cm high for a Medium, to where the stance has it under the body as the body arrives;
+  the feet are not put ahead of the stance the way the body goes, as a step's are;
+- they come down together, 0.14 to 0.3 s after, and neither takes a step of its own for a quarter of a second
+  unless the body is carried on away from it;
+- the hips rise 2 cm in the air, sink 4.5 cm as the legs take the weight (in 0.07 s) and come up again (in 0.17).
+
+Where the body goes and when is unchanged. A step back begun in a reaction clip, or by a fighter already walking
+off a hard shove, is as it was: its walk steps after it.
+
+**To see it:** the debug panel has a button, **Step back now (2)** (the key 2 does the same): every fighter
+standing in its guard steps back 35 cm from its opponent at once, as to a blow read a tenth of a second before it
+lands; those in a strike or a reaction do not, and the panel's message says how many did. Under it a toggle, **A
+step back is a hop**, sets the Combat Feel's switch, so the same press shows it both ways. Best in the Target test
+(1): the three targets stand in guard. The panel's speed buttons, or Pause and Step, show it slowly.
+
+Headless, the button's step back (the target test, five presses, `FIGHT_STEPBACK="5,7,9,11,13"`), and four fights
+of six (60 s; `Tools/Playtest/hops.py`):
+
+| | the button, as before | the button, a hop | the fights, as before | the fights, a hop |
+|---|---|---|---|---|
+| Steps back | 18 | 19 | 94 | 74 |
+| Both feet came down together (within 0.035 s) | 11% | 68% | 1% | 51% |
+| and then both stood for | 0.03 s | 0.23 s | 0.03 s | 0.11 s |
+| Blows that landed, of those started | | | 36% | 37% |
+
+One fighter in the button's test, standing still as it began: both feet in the air from 0.03 to 0.15 s after, both
+down at 0.17 s, both planted until 0.42 s; its hips 2.3 cm up in the air, 3.7 cm down at 0.23 s, level again at
+0.4 s, never more than 1.5 cm in a physics step.
+
+In the fights 48 of 79 steps back were hopped; the rest began in a reaction or with the fighter already thrown.
+With the switch off the same seed gives the same fight as before, blow for blow.
+
+Not verified: how it looks. The numbers say the feet leave and land together and the hips move smoothly; whether
+it reads as a hop back or as a body jerked back with its legs tucked is for your eye. The dials are in the code
+for now (`LocoBody.HopHeight`, `HopRise`, `HopDip`, `HopDipTime`); say which way it is off and they go on the
+Combat Feel.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

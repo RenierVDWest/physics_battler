@@ -270,6 +270,7 @@ namespace PhysicsBattler.Sandbox
         // ---- The target test: three attackers, each on a target that stands there ---------------------------------
 
         private bool targetTest, largeAttackers, largeTargets, targetsHarmed;
+        private PhysicsBattler.Locomotion.CombatFeel combatFeel;
 
         /// <summary>How far apart the target test's three pairs stand, and each attacker from its target (metres).</summary>
         public const float TargetPairsApart = 4f, TargetFromAttacker = 2.6f;
@@ -454,7 +455,62 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.D)) GroundTest();
             if (SandboxInput.KeyPressed(KeyCode.J)) ShieldTest();
             if (SandboxInput.KeyPressed(KeyCode.Alpha1)) TargetTest();
+            if (SandboxInput.KeyPressed(KeyCode.Alpha2)) StepBackTest();
         }
+
+        /// <summary>
+        /// To see a step back on demand: every fighter standing in its guard steps back now from its opponent (or the
+        /// nearest enemy), as it does to a blow it reads at the last moment: a third of a metre, a tenth of a second's
+        /// warning. One in a strike or a reaction, or down, does not. In a fight or in the target test; best seen in the
+        /// target test, slowed down or stepped.
+        /// </summary>
+        public void StepBackTest()
+        {
+            int stepped = 0, standing = 0;
+            foreach (var u in units)
+            {
+                if (u == null || !u.IsInitialized || !u.IsAlive || u.Clip == null)
+                {
+                    continue;
+                }
+
+                standing++;
+                UnitController from = u.Opponent != null && u.Opponent.IsAlive && u.Opponent.Clip != null ? u.Opponent : null;
+                if (from == null)
+                {
+                    float nearest = float.MaxValue;
+                    foreach (var o in units)
+                    {
+                        if (o == null || o == u || !o.IsInitialized || !o.IsAlive || o.Clip == null || o.Team == u.Team)
+                        {
+                            continue;
+                        }
+
+                        float d = (o.Clip.Loco.Position - u.Clip.Loco.Position).sqrMagnitude;
+                        if (d < nearest)
+                        {
+                            nearest = d;
+                            from = o;
+                        }
+                    }
+                }
+
+                // (With no enemy left: straight back the way it faces.)
+                Vector3 away = from != null ? from.Clip.Loco.Position : u.Clip.Loco.Position;
+                if (u.Clip.StepBackNow(away, StepBackTestMetres, StepBackTestWarning))
+                {
+                    stepped++;
+                }
+            }
+
+            bool hop = PhysicsBattler.Locomotion.ClipFighter.StepBackHops;
+            message = $"Step back: {stepped} of {standing} fighters stepped back {StepBackTestMetres * 100f:0} cm ({(hop ? "a hop: both feet off and down together" : "as before: each foot let go and brought after")}). "
+                + "Those in a strike or a reaction did not. 2 or the button again to repeat; the speed buttons or Pause and Step to see it slowly.";
+            Note($"step back test: {stepped} of {standing} stepped back, {(hop ? "hopping" : "not hopping")}");
+        }
+
+        /// <summary>The step back test's step: how far (metres at a Medium's size) and how long before the blow it would be to (seconds). A late sword arm's: the common one.</summary>
+        public const float StepBackTestMetres = 0.35f, StepBackTestWarning = 0.1f;
 
         /// <summary>
         /// Milestone 3's gate, on demand: a sword unit strikes at an enemy with a third unit standing
@@ -1292,6 +1348,22 @@ namespace PhysicsBattler.Sandbox
                     }
                 }
             }
+            // (The step back: on demand, and as a hop or as it was. The scene's Combat Feel sets the second every
+            // frame, so the toggle changes it there.)
+            if (GUILayout.Button("Step back now (2): every standing fighter")) StepBackTest();
+            var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+            bool hops = feel != null ? feel.stepBackIsAHop : PhysicsBattler.Locomotion.ClipFighter.StepBackHops;
+            bool hopsNow = GUILayout.Toggle(hops, "A step back is a hop (off: as before)");
+            if (hopsNow != hops)
+            {
+                if (feel != null)
+                {
+                    feel.stepBackIsAHop = hopsNow;
+                }
+
+                PhysicsBattler.Locomotion.ClipFighter.StepBackHops = hopsNow;
+            }
+
             bool tired = GUILayout.Toggle(tiredAll, "Everyone tired (Fight Rhythm energy 25%)");
             if (tired != tiredAll)
             {

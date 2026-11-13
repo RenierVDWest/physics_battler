@@ -255,6 +255,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Stepping in the stance, a foot is put down this far ahead of where the stance has it, in seconds of the body's going: half a step's time, so it stands as much ahead of its place as behind it.</summary>
         public static float StepLead = DefaultStepLead;
 
+        /// <summary>The feet's places are not put ahead of the stance's the way the body goes (a hop's feet, while they are in the air).</summary>
+        public bool NoLead;
+
         public const float DefaultStepLead = 0.2f;
 
         /// <summary>Walking in its guard and paced, it goes into its stance, stepping in it, once it is slower than this (m/s at a Medium's size): under a walk's speed.</summary>
@@ -930,7 +933,9 @@ namespace PhysicsBattler.Locomotion
             if (StepsInStance)
             {
                 // (Stepping in the stance: the feet's places ahead of the stance's, the way the body goes.)
-                Vector3 ahead = Vector3.ClampMagnitude(Quaternion.Euler(0f, -Facing, 0f) * Going * StepLead, 0.25f * Leg);
+                // (Not in a hop: its feet come down under the stance where the body arrives, not a step ahead of a body
+                // that is thrown for a tenth of a second and then stands.)
+                Vector3 ahead = NoLead ? Vector3.zero : Vector3.ClampMagnitude(Quaternion.Euler(0f, -Facing, 0f) * Going * StepLead, 0.25f * Leg);
                 ahead.y = 0f;
                 for (int i = 0; i < LegBones.Length; i++)
                 {

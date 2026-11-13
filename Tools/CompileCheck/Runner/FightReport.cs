@@ -531,6 +531,12 @@ internal static class FightReport
         var upperOffs = new[] { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
         Array.Clear(PhysicsBattler.Locomotion.ClipFighter.RootShoves, 0, 4);
         PhysicsBattler.Locomotion.ClipFighter.RetireSeconds = PhysicsBattler.Locomotion.ClipFighter.RetireFastest = 0f;
+        // (FIGHT_HOP=0: a step back's feet are let go as the body leaves them, as before.)
+        if (Environment.GetEnvironmentVariable("FIGHT_HOP") == "0")
+        {
+            PhysicsBattler.Locomotion.ClipFighter.StepBackHops = false;
+        }
+
         // (FIGHT_RETIRE=0: ground given is snapped in at 4 m/s, as before.)
         if (Environment.GetEnvironmentVariable("FIGHT_RETIRE") == "0")
         {
@@ -741,6 +747,23 @@ internal static class FightReport
                 foreach (var unit in units)
                 {
                     Call(unit, "FixedUpdate");
+                }
+
+                // (FIGHT_STEPBACK="5,7,9": at those seconds every unit steps back from its opponent, as the debug panel's button has them do.)
+                foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_STEPBACK") ?? "").Split(','))
+                {
+                    if (float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float backAt) && paceAt >= backAt && paceAt < backAt + dt)
+                    {
+                        int did = 0;
+                        foreach (var u in units)
+                        {
+                            if (u.Clip != null && u.IsAlive && u.Opponent != null && u.Opponent.Clip != null && u.Clip.StepBackNow(u.Opponent.Clip.Loco.Position, 0.35f, 0.1f))
+                            {
+                                did++;
+                                Console.WriteLine($"STEPBACK {paceAt:0.000} {u.name}");
+                            }
+                        }
+                    }
                 }
 
                 if (blowUp.Length >= 2 && float.TryParse(blowUp[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float blowAt)
@@ -1068,8 +1091,8 @@ internal static class FightReport
         }
 
         var shoved = PhysicsBattler.Locomotion.ClipFighter.RootShoves;
-        sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    ground given (all units): {0:0.00} m in {1:0.00} s, {2:0.0} m/s on average, {3:0.0} at the fastest; steps back {4}",
-            shoved[1], PhysicsBattler.Locomotion.ClipFighter.RetireSeconds, shoved[1] / Mathf.Max(1e-3f, PhysicsBattler.Locomotion.ClipFighter.RetireSeconds), PhysicsBattler.Locomotion.ClipFighter.RetireFastest, units.Sum(u => u.Clip != null ? u.Clip.Retires : 0)));
+        sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    ground given (all units): {0:0.00} m in {1:0.00} s, {2:0.0} m/s on average, {3:0.0} at the fastest; steps back {4}, hopped {5}",
+            shoved[1], PhysicsBattler.Locomotion.ClipFighter.RetireSeconds, shoved[1] / Mathf.Max(1e-3f, PhysicsBattler.Locomotion.ClipFighter.RetireSeconds), PhysicsBattler.Locomotion.ClipFighter.RetireFastest, units.Sum(u => u.Clip != null ? u.Clip.Retires : 0), units.Sum(u => u.Clip != null ? u.Clip.Poser.Hops : 0)));
         sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    roots moved at once, not walked (all units): kept apart {0:0.00} m, ground given {1:0.00} m, strikes snapped onto targets {2:0.00} m, pressed back {3:0.00} m",
             shoved[0], shoved[1], shoved[2], shoved[3]));
         var slides = slide.Values.Where(g => g.Seconds > 0f).ToList();

@@ -2513,7 +2513,59 @@ namespace PhysicsBattler.Locomotion
                 deep > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}deep: the hand {1:0.00} m in", late || heavy >= 1f ? ", " : "", deep) : "", groundEase));
             // (The walk steps after it, as a body driven back does; out of a reaction clip too.)
             Loco.Push(away * (0.6f * Mathf.Sqrt(Size)));
+            HopBack(b.ToContact);
         }
+
+        /// <summary>A step back is a hop (the scene's Combat Feel): both feet off the ground together and down together. Off: each is let go as the body leaves it and brought after, as before.</summary>
+        public static bool StepBackHops = true;
+
+        /// <summary>A step back shorter than this is stepped, not hopped (metres at a Medium's size).</summary>
+        public const float HopFrom = 0.12f;
+
+        /// <summary>
+        /// The ground it has just been given to give (<see cref="retireLeft"/>) is hopped: its feet are in the air for
+        /// as long as the body takes to get there, and land as it arrives.
+        /// </summary>
+        private void HopBack(float toContact)
+        {
+            float far = retireLeft.magnitude;
+            if (!StepBackHops || far < HopFrom * Size)
+            {
+                return;
+            }
+
+            float most = RetireSpeed * Mathf.Sqrt(Size);
+            float speed = RetiresInTime ? Mathf.Clamp(far / Mathf.Max(0.01f, toContact - RetireThereBefore), Mathf.Min(most, RetireLeast * Mathf.Sqrt(Size)), most) : most;
+            // (A foot's place is fixed when it is four fifths of the way through its arc: the body is to be there by then.)
+            Poser.Hop(far / speed / 0.8f);
+        }
+
+        /// <summary>
+        /// For the debug panel: it steps back <paramref name="metres"/> (at a Medium's size) from <paramref name="from"/>
+        /// now, as it does to a blow read <paramref name="before"/> seconds before it lands. False: it cannot (down, in a
+        /// clip of its own, held where it is).
+        /// </summary>
+        public bool StepBackNow(Vector3 from, float metres, float before)
+        {
+            if (Fallen || Anchored || Loco.Current == Locomotor.Mode.OneShot)
+            {
+                return false;
+            }
+
+            Vector3 away = Loco.Position - from;
+            away.y = 0f;
+            away = away.sqrMagnitude > 1e-4f ? away.normalized : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+            retireLeft = away * (metres * Size);
+            retireVoids = false;
+            voidedFor = -1;
+            testRetireFor = before;
+            Retires++;
+            Loco.Push(away * (0.6f * Mathf.Sqrt(Size)));
+            HopBack(before);
+            return true;
+        }
+
+        private float testRetireFor = -1f;
 
         /// <summary>The share of blow <paramref name="serial"/>'s weight its step back takes off as it is met (0: it didn't step back to it).</summary>
         public float GroundEase(int serial) => serial == voidedFor ? groundEase : 0f;
@@ -2612,6 +2664,13 @@ namespace PhysicsBattler.Locomotion
                     // it takes the time there is until then (less a moment: there before the blow, not with it), no
                     // slower than a step in the stance goes and no faster than it was snapped in.)
                     float toContact = Blow.HasValue && Blow.Value.Serial == voidedFor ? Blow.Value.ToContact : 0f;
+                    if (testRetireFor >= 0f)
+                    {
+                        // (Asked for from the debug panel: as to a blow that far off.)
+                        toContact = testRetireFor;
+                        testRetireFor = Mathf.Max(0f, testRetireFor - dt);
+                    }
+
                     speed = Mathf.Clamp(retireLeft.magnitude / Mathf.Max(dt, toContact - RetireThereBefore), Mathf.Min(most, RetireLeast * Mathf.Sqrt(Size)), most);
                 }
 
@@ -2625,6 +2684,11 @@ namespace PhysicsBattler.Locomotion
                 if (retireVoids)
                 {
                     Voided += move;
+                }
+
+                if (retireLeft.sqrMagnitude <= 1e-8f)
+                {
+                    testRetireFor = -1f;
                 }
             }
             else if (!Blow.HasValue || Blow.Value.Serial != voidedFor)
