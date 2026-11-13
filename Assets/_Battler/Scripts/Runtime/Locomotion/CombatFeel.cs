@@ -160,6 +160,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The share of a blow's weight a full step back takes off as it is met (its block or parry knocked back less, the parry beaten less often). 0: stepping back only looks right. Default 0.3.")]
         [Range(0f, 0.8f)] public float giveGroundEases = DefaultGiveGroundEases;
 
+        [Tooltip("A step back to a blow takes the time there is before the blow arrives (the plan \"Grounded legs\", step 2: what moved the body at once becomes something the feet can step after). Before, the step back was snapped in at 4 metres a second whatever the time left: 10 to 45 cm in three to seven physics steps, both feet let go at once and brought after the body, which read as a small hop backward. On: the body goes back just fast enough to be there a moment (0.04 s) before the blow, never slower than 1 m/s and never faster than the old 4 m/s, so a blow read early is stepped back from at a step's pace and the feet follow one at a time; a blow read at the last moment is still snapped away from as before. Where the body stands when the blow arrives is the same either way. Off: as before.")]
+        public bool groundGivenInTime = true;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -475,6 +478,7 @@ namespace PhysicsBattler.Locomotion
             LeastGiveGround = DefaultLeastGiveGround;
             MostGiveGround = DefaultMostGiveGround;
             GiveGroundEases = DefaultGiveGroundEases;
+            ClipFighter.RetiresInTime = true;
             ConcentrationRise = DefaultConcentrationRise;
             ConcentrationFall = DefaultConcentrationFall;
             ConcentrationGuard = DefaultConcentrationGuard;
@@ -565,6 +569,7 @@ namespace PhysicsBattler.Locomotion
             LeastGiveGround = leastGiveGround;
             MostGiveGround = mostGiveGround;
             GiveGroundEases = giveGroundEases;
+            ClipFighter.RetiresInTime = groundGivenInTime;
             ConcentrationRise = concentrationRise;
             ConcentrationFall = concentrationFall;
             ConcentrationGuard = concentrationGuard;

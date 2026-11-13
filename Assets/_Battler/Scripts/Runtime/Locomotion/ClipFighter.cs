@@ -2411,6 +2411,18 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public const float RetireLate = 0.05f;
 
+        /// <summary>
+        /// Ground is given over the time there is before the blow (the scene's Combat Feel), no slower than
+        /// <see cref="RetireLeast"/> (m/s at a Medium's size) and there <see cref="RetireThereBefore"/> seconds before
+        /// the blow is. Off: snapped in at <see cref="RetireSpeed"/>, as before.
+        /// </summary>
+        public static bool RetiresInTime = true;
+
+        public const float RetireLeast = 1f, RetireThereBefore = 0.04f;
+
+        /// <summary>For the reports, all units: the time spent giving ground (seconds), and the fastest it was given (m/s at a Medium's size).</summary>
+        public static float RetireSeconds, RetireFastest;
+
         /// <summary>How far it has stepped back from where the blow coming was aimed (world): the blow is still aimed there (<see cref="TargetAt"/>), a step back not being a body driven off by a blow that the attacker follows.</summary>
         public Vector3 Voided { get; private set; }
 
@@ -2583,11 +2595,29 @@ namespace PhysicsBattler.Locomotion
             CarryBy(move);
         }
 
+        /// <summary>It is giving ground to a blow now: its root is being moved back (for the logs).</summary>
+        public bool GivingGround => retireLeft.sqrMagnitude > 1e-8f;
+
         private void GiveGround(float dt)
         {
             if (retireLeft.sqrMagnitude > 1e-8f)
             {
-                Vector3 move = Vector3.ClampMagnitude(retireLeft, RetireSpeed * Mathf.Sqrt(Size) * dt);
+                float most = RetireSpeed * Mathf.Sqrt(Size);
+                float speed = most;
+                if (RetiresInTime)
+                {
+                    // (The plan "Grounded legs", step 2: what moved the body at once becomes something its feet can
+                    // step after. Snapped in at 4 m/s the step back was over in three to seven physics steps, both
+                    // feet let go at once and brought after it: a hop. It only has to be there when the blow is, so
+                    // it takes the time there is until then (less a moment: there before the blow, not with it), no
+                    // slower than a step in the stance goes and no faster than it was snapped in.)
+                    float toContact = Blow.HasValue && Blow.Value.Serial == voidedFor ? Blow.Value.ToContact : 0f;
+                    speed = Mathf.Clamp(retireLeft.magnitude / Mathf.Max(dt, toContact - RetireThereBefore), Mathf.Min(most, RetireLeast * Mathf.Sqrt(Size)), most);
+                }
+
+                Vector3 move = Vector3.ClampMagnitude(retireLeft, speed * dt);
+                RetireSeconds += dt;
+                RetireFastest = Mathf.Max(RetireFastest, move.magnitude / Mathf.Max(1e-5f, dt) / Mathf.Sqrt(Size));
                 RootShoves[1] += move.magnitude;
                 Loco.Position += move;
                 CarryBy(move);

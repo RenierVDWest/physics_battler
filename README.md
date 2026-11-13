@@ -2981,6 +2981,48 @@ there is the same one in another build. What you would see when it acts is an ar
 frame, in place of everyone vanishing. It is a net, not the cure: a leg still cannot be stopped by what it hits.
 That is what the plan's step 6 (physical legs) changes.
 
+In Unity since (13 November, 96 s, the target test): the net was never used; the pelvis was never more than
+1.4 mm off what carries it. Six knock-downs, each gone through without fault.
+
+**Ground is given in the time there is (the plan "Grounded legs", step 2, the next part)** (13 November; Combat
+Feel `groundGivenInTime`; off: as before). The plan's step 2 has "what moved the body at once becomes a push".
+The largest of those moves is ground given to a blow: the step back was snapped in at 4 m/s whatever time was
+left, 10 to 45 cm in three to seven physics steps. It only has to be there when the blow is, so it now takes the
+time until then (less 0.04 s), no slower than 1 m/s and no faster than the 4 m/s it was snapped in at.
+
+**It does less than was hoped, and the hop back is still there.** Four fights of six, 60 s (the frames have a new
+column, `givingGround`; `Tools/Playtest/hops.py <fight folders>` reads each step back and the 0.45 s from it):
+
+| | snapped in (two fights, 31 steps back) | in the time there is (four fights, 94) |
+|---|---|---|
+| A step back | 26 cm in 0.07 s | 33 cm in 0.14 s |
+| Steps back slower than 2 m/s | none | 54% |
+| Both feet off the ground at once, for 0.05 s or more | 94% of steps back | 97% |
+| Both feet off the ground, of the 0.45 s from the step back | 52% | 46% |
+| Blows that landed, of those started | 38% | 36% |
+
+The body goes back half as fast, and where it stands when the blow arrives is as it was (as many blows land). But
+both feet still leave the ground on nearly every step back. Two reasons, both measured: most ground is given by a
+sword arm that is late to its parry, and that is read with a tenth of a second left, so half the steps back are
+still snapped; and a foot's step takes 0.22 s, in which even the slower ones carry the body 30 cm, further than
+the other foot can stay behind. A third of a metre in a seventh of a second cannot be stepped one foot at a time
+by anything; it is a hop, for a person too.
+
+So the plan's wording is wrong here, and what is left is a choice, not a fault to fix:
+
+- leave it a hop and make it one on purpose: both feet off and down together, the body dipping to land, in place
+  of two feet let go and brought after one by one; or
+- give ground earlier (the lead is 0.22 s for a heavy blow, and none for a late arm), which changes the fight: an
+  attacker follows a step back it sees early.
+
+With it off, the same seed gives the same fight as before, blow for blow.
+
+Left of the plan's step 2: the lift of a foot that moves over the ground with its sole down (it acts 20 to 23% of
+the time while walking). It hides a foot the walk's clip swings too low; taking it out shows that foot sliding,
+so it wants the swing's height mended first, not a switch.
+
+Not verified: how the slower step back looks, and Unity.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

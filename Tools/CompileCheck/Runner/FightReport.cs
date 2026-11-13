@@ -530,6 +530,12 @@ internal static class FightReport
         var headOffs = new Dictionary<UnitController, List<float>>();
         var upperOffs = new[] { new List<float>(), new List<float>(), new List<float>(), new List<float>(), new List<float>() };
         Array.Clear(PhysicsBattler.Locomotion.ClipFighter.RootShoves, 0, 4);
+        PhysicsBattler.Locomotion.ClipFighter.RetireSeconds = PhysicsBattler.Locomotion.ClipFighter.RetireFastest = 0f;
+        // (FIGHT_RETIRE=0: ground given is snapped in at 4 m/s, as before.)
+        if (Environment.GetEnvironmentVariable("FIGHT_RETIRE") == "0")
+        {
+            PhysicsBattler.Locomotion.ClipFighter.RetiresInTime = false;
+        }
         var rootJump = new Dictionary<UnitController, (float most, float at)>();
         var reachedAt = new Dictionary<UnitController, float>();
         var overlapPairs = new Dictionary<string, (int steps, float nearest)>();
@@ -1062,6 +1068,8 @@ internal static class FightReport
         }
 
         var shoved = PhysicsBattler.Locomotion.ClipFighter.RootShoves;
+        sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    ground given (all units): {0:0.00} m in {1:0.00} s, {2:0.0} m/s on average, {3:0.0} at the fastest; steps back {4}",
+            shoved[1], PhysicsBattler.Locomotion.ClipFighter.RetireSeconds, shoved[1] / Mathf.Max(1e-3f, PhysicsBattler.Locomotion.ClipFighter.RetireSeconds), PhysicsBattler.Locomotion.ClipFighter.RetireFastest, units.Sum(u => u.Clip != null ? u.Clip.Retires : 0)));
         sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    roots moved at once, not walked (all units): kept apart {0:0.00} m, ground given {1:0.00} m, strikes snapped onto targets {2:0.00} m, pressed back {3:0.00} m",
             shoved[0], shoved[1], shoved[2], shoved[3]));
         var slides = slide.Values.Where(g => g.Seconds > 0f).ToList();

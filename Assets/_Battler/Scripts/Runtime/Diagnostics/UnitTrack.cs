@@ -167,6 +167,8 @@ namespace PhysicsBattler.Diagnostics
             frames.Add("owed", 100f * unit.Clip.Pacer.Owed.magnitude, 1);
             // (The weight over the feet, the plan's step 3: how far the hips are shifted toward the carrying foot, cm.)
             frames.Add("hipShift", 100f * unit.Clip.Poser.HipShift.magnitude, 1);
+            // (Giving ground to a blow now: its root moved back, its feet to step after it.)
+            frames.Add("givingGround", unit.Clip.GivingGround ? 1f : 0f, 0);
             frames.End();
             samples++;
             if (writePose && unit.Authority != null)
