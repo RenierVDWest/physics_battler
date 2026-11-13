@@ -291,6 +291,9 @@ MonoBehaviour:
   shieldSingleCurve: 1
   shieldComboCurve: 4
   shieldMovesWithin: 0.6
+  shieldFixedInFist: 1
+  shieldWristTurn: 15
+  shieldReadsFrom: 0.5
   giveGroundFrom: 0.9
   giveGroundDeep: 0
   giveGroundLead: 0.22
@@ -314,6 +317,30 @@ MonoBehaviour:
   tautAngle: 40
   tautTime: 0.3
   giveWayAngle: 8
+  showLegsOpinion: 1
+  standAndStep: 1
+  stepsInTheStance: 1
+  shovesSteppedInTheStance: 1
+  stepAfter: 0.22
+  stepPace: 0.75
+  stepPicksUpIn: 0.12
+  footLandsAhead: 0.2
+  stepTakes: 0.22
+  stepHeight: 6
+  holdsItsDistanceWithin: 0.18
+  walkedStepRhythm: 1.6
+  weaponWeight: 6
+  swingKept: 0.7
+  strikeArmStrength: 3
+  weaponsHaveTheirMass: 1
+  weaponMass: 1
+  armsHeldToABody: 1
+  armGoesOverAt: 600
+  armFollowsAtMost: 2400
+  armBonesAsABody: 1
+  freeHandGoesWithItsArm: 1
+  armsHaveStops: 1
+  armStopsHoldWith: 4
   comboPullSpeed: 3
   movingFootLift: 7
   mostBladeSpeed: 0

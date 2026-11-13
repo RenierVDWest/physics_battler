@@ -1,0 +1,479 @@
+# Physics Battler playtest 2026-11-13_15-06-45
+# time (s since Play) | physics step | who | what | details
+   10.839 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+   10.839 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+   10.839 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+   10.839 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+   10.839 |      0 | -              | input    | at most 50 ms of physics a frame
+   10.839 |      0 | -              | input    | spawn: 6 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   10.839 |      0 | -              | console  | [Articulation probe] targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   10.839 |      0 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   10.850 |      1 | Target open    | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.850 |      1 | Attacker 1     | spawn    | at (-4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.850 |      1 | Target shield  | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.850 |      1 | Attacker 2     | spawn    | at (0.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.850 |      1 | Target sword   | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.850 |      1 | Attacker 3     | spawn    | at (4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.850 |      1 | Target open    | equip    | bare hands, scaled 1.00
+   10.850 |      1 | Attacker 1     | equip    | WD_Sword, scaled 1.00
+   10.850 |      1 | Target shield  | equip    | WD_Sword and WD_Shield, scaled 1.00
+   10.850 |      1 | Attacker 2     | equip    | WD_Sword, scaled 1.00
+   10.850 |      1 | Target sword   | equip    | WD_Sword, scaled 1.00
+   10.850 |      1 | Attacker 3     | equip    | WD_Sword, scaled 1.00
+   10.850 |      1 | Target open    | sight    | noticed Attacker 1 in clear view (2.6 m)
+   10.850 |      1 | Target open    | sight    | noticed Target shield at the edge of its view (4.0 m)
+   10.850 |      1 | Target open    | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   10.850 |      1 | Target open    | sight    | noticed Target sword at the edge of its view (8.0 m)
+   10.850 |      1 | Target open    | sight    | noticed Attacker 3 at the edge of its view (8.4 m)
+   10.850 |      1 | Attacker 1     | sight    | noticed Target open in clear view (2.6 m)
+   10.850 |      1 | Attacker 1     | sight    | noticed Target shield at the edge of its view (4.8 m)
+   10.850 |      1 | Attacker 1     | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+   10.850 |      1 | Attacker 1     | sight    | noticed Target sword at the edge of its view (8.4 m)
+   10.850 |      1 | Attacker 1     | sight    | noticed Attacker 3 at the edge of its view (8.0 m)
+   10.850 |      1 | Target shield  | sight    | noticed Target open at the edge of its view (4.0 m)
+   10.850 |      1 | Target shield  | sight    | noticed Attacker 1 at the edge of its view (4.8 m)
+   10.850 |      1 | Target shield  | sight    | noticed Attacker 2 in clear view (2.6 m)
+   10.850 |      1 | Target shield  | sight    | noticed Target sword at the edge of its view (4.0 m)
+   10.850 |      1 | Target shield  | sight    | noticed Attacker 3 at the edge of its view (4.8 m)
+   10.850 |      1 | Attacker 2     | sight    | noticed Target open at the edge of its view (4.8 m)
+   10.850 |      1 | Attacker 2     | sight    | noticed Attacker 1 at the edge of its view (4.0 m)
+   10.850 |      1 | Attacker 2     | sight    | noticed Target shield in clear view (2.6 m)
+   10.850 |      1 | Attacker 2     | sight    | noticed Target sword at the edge of its view (4.8 m)
+   10.850 |      1 | Attacker 2     | sight    | noticed Attacker 3 at the edge of its view (4.0 m)
+   10.850 |      1 | Target sword   | sight    | noticed Target open at the edge of its view (8.0 m)
+   10.850 |      1 | Target sword   | sight    | noticed Attacker 1 at the edge of its view (8.4 m)
+   10.850 |      1 | Target sword   | sight    | noticed Target shield at the edge of its view (4.0 m)
+   10.850 |      1 | Target sword   | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   10.850 |      1 | Target sword   | sight    | noticed Attacker 3 in clear view (2.6 m)
+   10.850 |      1 | Attacker 3     | sight    | noticed Target open at the edge of its view (8.4 m)
+   10.850 |      1 | Attacker 3     | sight    | noticed Attacker 1 at the edge of its view (8.0 m)
+   10.850 |      1 | Attacker 3     | sight    | noticed Target shield at the edge of its view (4.8 m)
+   10.850 |      1 | Attacker 3     | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+   10.850 |      1 | Attacker 3     | sight    | noticed Target sword in clear view (2.6 m)
+   10.889 |      3 | -              | perf     | 314 ms frame, 0 physics steps, garbage collected (gen0 8, gen1 8, gen2 8); ours: nothing over 0.5 ms; Unity: Physics_Simulate 31.3 ms, GC_Collect 23.1 ms, PlayerLoop 7.8 ms, Gfx_WaitForGfxCommandsFromMainThread 5.8 ms, CPU_Total_Frame_Time 1.2 ms, CPU_Main_Thread_Frame_Time 0.8 ms, CPU_Render_Thread_Frame_Time 0.6 ms, GPU_Frame_Time 0.5 ms
+   10.939 |      6 | -              | perf     | 121 ms frame, 3 physics steps; ours: UnitStep 45.4 ms (18), RecorderSample 35.5 ms (3), ArmSolve 9.3 ms (32), Sandbox 4.4 ms (3), CaptureRender 1.1 ms (1); Unity: Main_Thread 122.0 ms, Gfx_WaitForGfxCommandsFromMainThread 116.9 ms, PlayerLoop 112.4 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 97.0 ms, FixedBehaviourUpdate 97.0 ms, Loading_ReadObject 5.8 ms, Physics_Simulate 3.5 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 2.2 ms
+   11.967 |     68 | Attacker 1     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   11.967 |     68 | Attacker 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   11.967 |     68 | Attacker 3     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   12.967 |    128 | Attacker 2     | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at Target shield
+   13.017 |    131 | Attacker 1     | attack   | sns_thrust at Target open
+   13.033 |    132 | Attacker 3     | attack   | sns_thrust at Target sword
+   13.283 |    147 | Attacker 2     | hit      | blow struck Target shield's HandL at 16.0 m/s: blocked by Target shield's shield (13 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   13.283 |    147 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 32/45, flinch, standing; the shield knocked back, then driven back at 2.2 m/s
+   13.300 |    148 | Target shield  | tempo    | gather → shell: pressed (pressure 0.54); energy 1.00, aggression 0.44
+   13.500 |    160 | Attacker 1     | hit      | blow struck Target open's Chest at 10.4 m/s: 13.9 damage, 8 poise, recoil; impulse 17.0 N·s (45% into the part); the swing went on (70% of it left); the target
+   13.500 |    160 | Target open    | struck   | by Attacker 1 on the Chest: health 100/100, poise 37/45, recoil, standing; thrown back stumbling at 2.8 m/s
+   13.500 |    160 | Attacker 3     | hit      | blow struck Target sword's Chest at 15.6 m/s: 20.9 damage, 13 poise, recoil; impulse 25.5 N·s (45% into the part); the swing went on (70% of it left); the target
+   13.500 |    160 | Target sword   | struck   | by Attacker 3 on the Chest: health 100/100, poise 32/45, recoil, standing; thrown back stumbling at 2.8 m/s
+   13.517 |    161 | Target sword   | tempo    | gather → shell: pressed (pressure 0.54); energy 0.93, aggression 0.44
+   13.517 |    161 | -              | console  | [Upper] Target open: Spine turning at 61 rad/s; head 8 cm, hands 9 / 5 cm off the pose; Cycle ; thrown back stumbling at 2.8 m/s; put back 0, joints put 0   Spine asked -5 -1 -58 (58°) is -2 -2 -47, 61 rad/s, left 0° aside (held), damping 2748 most 40294; Chest asked 2 0 34 (34°) is 2 0 35, 39 rad/s, left 0° aside (held), damping 1609 most 15252; Head asked 11 -4 15 (19°) is 11 -7 33, 35 rad/s, left 0° aside (held), damping 264 most 784; UpperArmL asked 5 10 19 (22°) is 7 9 17, 30 rad/s, left 0° aside, damping 781 most 2730; ForearmL asked -3 1 -7 (8°) is -2 1 -9, 4 rad/s, left 0° aside, damping 145 most 648; HandL asked -1 0 4 (4°) is -1 0 1, 34 rad/s, left 0° aside, damping 5 most 176; UpperArmR asked 31 -60 7 (67°) is 27 -60 5, 29 rad/s, left 0° aside, damping 1042 most 2859; ForearmR asked -35 -10 0 (37°) is -39 -10 1, 30 rad/s, left 0° aside, damping 193 most 873; HandR asked -11 36 -4 (38°) is -13 35 -4, 19 rad/s, left 0° aside, damping 7 most 171; 
+   13.650 |    169 | Attacker 2     | hit      | blow struck Target shield's HandL at 5.5 m/s: blocked by Target shield's shield (4 poise); impulse 15.9 N·s (70% into the part); the swing stopped; blocked by the shield
+   13.650 |    169 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 30/45, recoil, standing; the shield knocked back, then driven back at 0.4 m/s
+   14.933 |    246 | Attacker 1     | attack   | sns_combo_forehand at Target open
+   14.950 |    247 | Target open    | tempo    | gather → shell: pressed (pressure 0.89); energy 1.00, aggression 0.44
+   15.117 |    257 | Attacker 2     | tempo    | press → gather: burst done (3 blows); energy 0.55, aggression 0.50
+   15.183 |    261 | Attacker 3     | tempo    | press → probe: lost touch; energy 0.85, aggression 0.58
+   15.350 |    271 | Attacker 3     | tempo    | probe → press: fired up (energy 0.87, aggression 0.58); energy 0.87, aggression 0.58
+   15.567 |    284 | Attacker 2     | move     | no headway toward Target shield (2.4 m): going round to the right
+   15.567 |    284 | Attacker 3     | move     | no headway toward Target sword (2.0 m): going round to the left
+   15.567 |    284 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.97); energy 0.97, aggression 0.44
+   15.733 |    294 | Attacker 3     | attack   | sns_combo_forehand at Target sword
+   15.750 |    295 | Target sword   | tempo    | gather → shell: pressed (pressure 0.57); energy 1.00, aggression 0.44
+   15.933 |    306 | Attacker 2     | tempo    | gather → probe: rested (energy 0.75); energy 0.75, aggression 0.50
+   16.300 |    328 | Attacker 1     | attack   | none of its strikes reaches Target open from 1.62 m; closing in
+   16.367 |    332 | Attacker 3     | hit      | blow struck Target sword's HandR at 16.0 m/s: parried by Target sword's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   16.367 |    332 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 28/45, flinch, standing; parried with hanging, then driven back at 2.0 m/s
+   16.700 |    352 | Attacker 1     | attack   | none of its strikes reaches Target open from 1.47 m; closing in
+   16.900 |    364 | Attacker 2     | tempo    | probe → press: fired up (energy 0.85, aggression 0.50); energy 0.85, aggression 0.50
+   17.000 |    370 | Attacker 3     | attack   | none of its strikes reaches Target sword from 1.50 m; closing in
+   17.100 |    376 | Attacker 1     | attack   | sns_thrust at Target open
+   17.183 |    381 | Attacker 2     | sight    | lost track of Attacker 1
+   17.267 |    386 | Attacker 2     | attack   | sns_combo_backhand at Target shield
+   17.400 |    394 | Attacker 3     | attack   | none of its strikes reaches Target sword from 1.13 m; backing off
+   17.467 |    398 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 9.3 m/s
+   17.467 |    398 | Target shield  | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 9.3 m/s
+   17.567 |    404 | Attacker 1     | hit      | blow struck Target open's Chest at 16.0 m/s: 21.3 damage, 13 poise, recoil; impulse 26.1 N·s (45% into the part); the swing went on (70% of it left); the target
+   17.567 |    404 | Target open    | struck   | by Attacker 1 on the Chest: health 100/100, poise 32/45, recoil, standing; thrown back stumbling at 2.8 m/s
+   17.617 |    407 | -              | console  | [Upper] Attacker 2: UpperArmR turning at 63 rad/s; head 3 cm, hands 22 / 16 cm off the pose; Idle ; ; put back 0, joints put 0   Spine asked -1 -12 -1 (12°) is -1 -9 1, 5 rad/s, left 0° aside (held), damping 6189 most 11877; Chest asked -3 -13 -2 (13°) is -1 -12 0, 1 rad/s, left 0° aside (held), damping 4016 most 10149; Head asked -3 28 6 (28°) is -4 27 3, 3 rad/s, left 0° aside (held), damping 264 most 388; UpperArmL asked 10 -21 -13 (27°) is 17 -38 -17, 50 rad/s, left 0° aside, damping 781 most 4182; ForearmL asked -35 10 1 (36°) is -26 13 -1, 9 rad/s, left 0° aside, damping 145 most 591; HandL asked -52 -35 -23 (66°) is -45 -33 -34, 56 rad/s, left 0° aside, damping 5 most 176; UpperArmR asked -86 41 -270 (287°) is -116 26 -251, 63 rad/s, left 0° aside (held), damping 2076 most 6768; ForearmR asked -31 -7 7 (33°) is -15 -6 6, 18 rad/s, left 9° aside (held), damping 679 most 2724; HandR asked 50 -259 129 (294°) is 25 -258 90, 38 rad/s, left 11° aside (held), damping 234 most 1078; 
+   17.800 |    418 | Attacker 3     | attack   | none of its strikes reaches Target sword from 1.02 m; backing off
+   18.150 |    439 | Attacker 1     | tempo    | press → gather: burst done (3 blows); energy 0.55, aggression 0.66
+   18.200 |    442 | Attacker 3     | attack   | sns_thrust at Target sword
+   18.267 |    446 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.38
+   18.283 |    447 | Target shield  | tempo    | gather → shell: pressed (pressure 0.74); energy 1.00, aggression 0.38
+   18.517 |    461 | Attacker 2     | attack   | sns_thrust at Target shield
+   18.633 |    468 | Attacker 3     | hit      | blow struck Target sword's HandR at 16.0 m/s: parried by Target sword's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   18.633 |    468 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 26/45, flinch, standing; parried with high tierce, then driven back at 2.0 m/s
+   18.833 |    480 | Target shield  | sight    | lost track of Target sword
+   18.967 |    488 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.95); energy 0.95, aggression 0.38
+   18.967 |    488 | Attacker 1     | tempo    | gather → probe: rested (energy 0.75); energy 0.75, aggression 0.66
+   18.983 |    489 | Target open    | tempo    | gather → shell: pressed (pressure 1.10); energy 0.96, aggression 0.38
+   19.000 |    490 | Attacker 2     | hit      | blow struck Target shield's HandL at 2.8 m/s: blocked by Target shield's shield (1 poise); impulse 8.0 N·s (70% into the part); the swing stopped; blocked by the shield
+   19.000 |    490 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 44/45, recoil, standing; the shield knocked back
+   19.100 |    496 | -              | console  | [Upper] Attacker 2: HandR turning at 80 rad/s; head 2 cm, hands 17 / 1 cm off the pose; Idle ; ; put back 0, joints put 0   Spine asked 1 -12 2 (12°) is -1 -10 3, 5 rad/s, left 0° aside (held), damping 6189 most 11410; Chest asked -2 -13 1 (13°) is -3 -13 3, 3 rad/s, left 0° aside (held), damping 4016 most 10439; Head asked 25 23 -5 (35°) is 26 24 -8, 12 rad/s, left 0° aside (held), damping 264 most 291; UpperArmL asked -38 36 -43 (68°) is -37 35 -44, 38 rad/s, left 2° aside, damping 781 most 2413; ForearmL asked -84 24 0 (87°) is -84 24 -1, 2 rad/s, left 1° aside, damping 145 most 483; HandL asked -16 -26 -17 (35°) is -15 -26 -19, 29 rad/s, left 0° aside, damping 5 most 163; UpperArmR asked -19 23 2 (30°) is 186 -232 -69, 69 rad/s, left 50° aside, damping 2076 most 7970; ForearmR asked -123 -32 2 (127°) is -129 -29 9, 28 rad/s, left 8° aside, damping 679 most 1560; HandR asked -54 -249 -74 (265°) is -105 -252 -60, 80 rad/s, left 17° aside (held), damping 234 most 736; 
+   19.767 |    536 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.32
+   19.783 |    537 | Target sword   | tempo    | gather → shell: pressed (pressure 1.18); energy 1.00, aggression 0.32
+   19.817 |    539 | Attacker 2     | attack   | none of its strikes reaches Target shield from 1.10 m; backing off
+   19.817 |    539 | Target shield  | sight    | lost track of Attacker 3
+   19.933 |    546 | Attacker 1     | tempo    | probe → press: fired up (energy 0.85, aggression 0.66); energy 0.85, aggression 0.66
+   20.083 |    555 | Attacker 3     | attack   | sns_chop_lunge at Target sword
+   20.217 |    563 | Attacker 2     | attack   | sns_combo_backhand at Target shield
+   20.250 |    565 | Attacker 1     | attack   | sns_chop_lunge at Target open
+   20.300 |    568 | Attacker 2     | hit      | blow struck Target shield's HandL at 3.0 m/s: blocked by Target shield's shield (2 poise); impulse 8.6 N·s (70% into the part); the swing stopped; blocked by the shield
+   20.300 |    568 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 43/45, recoil, standing; the shield knocked back
+   20.300 |    568 | -              | console  | [Upper] Attacker 2: ForearmL turning at 64 rad/s; head 4 cm, hands 9 / 10 cm off the pose; OneShot sns_combo_backhand; ; put back 0, joints put 0   Spine asked 0 1 0 (1°) is 3 2 0, 7 rad/s, left 0° aside (held), damping 6189 most 10784; Chest asked 0 1 -3 (3°) is 3 1 -2, 1 rad/s, left 0° aside (held), damping 4016 most 9625; Head asked 7 -31 5 (32°) is 2 -32 5, 3 rad/s, left 0° aside (held), damping 264 most 269; UpperArmL asked 13 21 17 (30°) is 7 37 23, 51 rad/s, left 0° aside (held), damping 781 most 3666; ForearmL asked -71 20 0 (73°) is -76 1 8, 64 rad/s, left 0° aside (held), damping 145 most 892; HandL asked 28 -29 -75 (85°) is 25 -25 -64, 51 rad/s, left 0° aside (held), damping 5 most 169; UpperArmR asked -19 43 -44 (64°) is 145 -133 248, 54 rad/s, left 20° aside, damping 2076 most 5838; ForearmR asked -65 -19 0 (68°) is -38 -104 41, 48 rad/s, left 50° aside, damping 679 most 2239; HandR asked 7 4 37 (37°) is 94 -130 -274, 27 rad/s, left 22° aside, damping 234 most 596; 
+   20.350 |    571 | Attacker 3     | sight    | lost track of Attacker 1
+   20.350 |    571 | Attacker 3     | sight    | lost track of Attacker 2
+   20.383 |    573 | Attacker 3     | sight    | lost track of Target open
+   20.383 |    573 | Attacker 3     | sight    | lost track of Target shield
+   20.417 |    575 | Attacker 2     | tempo    | press → gather: burst done (3 blows); energy 0.40, aggression 0.50
+   21.200 |    622 | Attacker 3     | hit      | blow struck Target sword's Head at 16.0 m/s: 34.1 damage, 16 poise, flinch; impulse 31.9 N·s (60% into the part); the swing went on (70% of it left); the target
+   21.200 |    622 | Target sword   | struck   | by Attacker 3 on the Head: health 100/100, poise 27/45, flinch, standing; thrown back stumbling at 2.7 m/s
+   21.250 |    625 | Attacker 3     | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 10.9 m/s
+   21.400 |    634 | Attacker 1     | hit      | blow struck Target open's Chest at 6.5 m/s: 8.7 damage, 7 poise, recoil; impulse 13.0 N·s (45% into the part); the swing went on (70% of it left); the target
+   21.400 |    634 | Target open    | struck   | by Attacker 1 on the Chest: health 100/100, poise 38/45, recoil, standing; hit_back_head reaction, then driven back at 0.7 m/s
+   21.500 |    640 | Target sword   | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 4.6 m/s
+   22.167 |    680 | Attacker 2     | sight    | lost track of Target open
+   22.300 |    688 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.26
+   22.317 |    689 | Target shield  | tempo    | gather → shell: pressed (pressure 1.31); energy 1.00, aggression 0.26
+   22.450 |    697 | Attacker 3     | tempo    | press → gather: burst done (3 blows); energy 0.42, aggression 0.66
+   22.617 |    707 | Attacker 1     | attack   | sns_combo_backhand at Target open
+   22.617 |    707 | Attacker 2     | tempo    | gather → press: fully charged (energy 0.95, aggression 0.50); energy 0.95, aggression 0.50
+   22.733 |    714 | -              | console  | [Upper] Attacker 1: HandR turning at 62 rad/s; head 1 cm, hands 3 / 1 cm off the pose; OneShot sns_combo_backhand; ; put back 0, joints put 0   Spine asked 0 -1 -1 (1°) is 0 -1 -1, 3 rad/s, left 0° aside (held), damping 6189 most 2255; Chest asked -1 -1 -3 (3°) is -1 -1 -3, 1 rad/s, left 0° aside (held), damping 4016 most 2014; Head asked 5 -21 5 (22°) is 5 -21 5, 4 rad/s, left 0° aside (held), damping 264 most 179; UpperArmL asked 9 -10 -2 (13°) is 8 -12 -3, 15 rad/s, left 0° aside, damping 781 most 705; ForearmL asked -74 21 0 (77°) is -74 22 -1, 4 rad/s, left 0° aside, damping 145 most 432; HandL asked 10 -26 -38 (47°) is 9 -26 -38, 6 rad/s, left 0° aside, damping 5 most 152; UpperArmR asked -39 -29 47 (67°) is -39 -28 46, 17 rad/s, left 0° aside (held), damping 2076 most 2957; ForearmR asked -28 -8 0 (29°) is -28 -4 -3, 17 rad/s, left 0° aside (held), damping 679 most 1648; HandR asked -15 -27 -11 (33°) is -18 -25 -12, 62 rad/s, left 0° aside (held), damping 234 most 548; 
+   22.750 |    715 | Attacker 1     | hit      | blow struck Target open's UpperArmR at 9.0 m/s: 7.2 damage, 9 poise, recoil; impulse 17.9 N·s (80% into the part); the swing went on (70% of it left); the target
+   22.750 |    715 | Target open    | struck   | by Attacker 1 on the UpperArmR: health 100/100, poise 36/45, recoil, standing; thrown back stumbling at 1.2 m/s
+   23.200 |    742 | Attacker 2     | attack   | sns_chop_lunge at Target shield
+   23.267 |    746 | Attacker 3     | tempo    | gather → probe: rested (energy 0.62); energy 0.62, aggression 0.66
+   23.767 |    776 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.99); energy 0.99, aggression 0.26
+   23.783 |    777 | Target open    | tempo    | gather → shell: pressed (pressure 1.47); energy 0.99, aggression 0.26
+   23.800 |    778 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.93); energy 0.93, aggression 0.26
+   23.817 |    779 | Target sword   | tempo    | gather → shell: pressed (pressure 1.20); energy 0.94, aggression 0.26
+   24.067 |    794 | Attacker 1     | attack   | sns_rising at Target open
+   24.317 |    809 | Attacker 2     | hit      | blow struck Target shield's HandL at 4.1 m/s: blocked by Target shield's shield (2 poise); impulse 11.8 N·s (70% into the part); the swing stopped; blocked by the shield
+   24.317 |    809 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 43/45, recoil, standing; the shield knocked back
+   24.617 |    827 | Target shield  | contact  | ThighL touched Collider (solid) at 4.2 m/s
+   24.683 |    831 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 2.5 m/s
+   24.717 |    833 | Target shield  | contact  | ShinL touched Collider (solid) at 2.3 m/s
+   24.767 |    836 | Attacker 3     | attack   | sns_chop_lunge at Target sword
+   24.867 |    842 | Attacker 1     | hit      | blow struck Target open's HandR at 12.1 m/s: 6.5 damage, 12 poise, recoil; impulse 24.2 N·s (80% into the part); the swing went on (70% of it left); the target
+   24.867 |    842 | Target open    | struck   | by Attacker 1 on the HandR: health 100/100, poise 33/45, recoil, standing; thrown back stumbling at 1.6 m/s
+   25.150 |    859 | Target open    | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 2.4 m/s
+   25.550 |    883 | Attacker 2     | attack   | sns_rising at Target shield
+   25.817 |    899 | Attacker 1     | attack   | sns_rising at Target open
+   25.900 |    904 | Target open    | sight    | lost track of Target sword
+   25.950 |    907 | Attacker 3     | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 3.1 m/s
+   25.967 |    908 | Attacker 3     | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 4.1 m/s
+   26.067 |    914 | Target open    | sight    | lost track of Attacker 3
+   26.083 |    915 | Target open    | sight    | lost track of Target shield
+   26.383 |    933 | Attacker 2     | hit      | blow struck Target shield's HandL at 7.8 m/s: blocked by Target shield's shield (4 poise); impulse 22.6 N·s (70% into the part); the swing stopped; blocked by the shield
+   26.383 |    933 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 41/45, recoil, standing; the shield knocked back, then driven back at 0.4 m/s
+   26.683 |    951 | Target open    | sight    | lost track of Attacker 2
+   26.700 |    952 | Attacker 1     | hit      | blow struck Target open's Head at 10.9 m/s: 23.3 damage, 11 poise, recoil; impulse 21.7 N·s (60% into the part); the swing went on (70% of it left); the target
+   26.700 |    952 | Target open    | struck   | by Attacker 1 on the Head: health 100/100, poise 34/45, recoil, standing; thrown back stumbling at 2.8 m/s
+   26.767 |    956 | Attacker 2     | attack   | none of its strikes reaches Target shield from 1.39 m; backing off
+   27.167 |    980 | Attacker 2     | attack   | none of its strikes reaches Target shield from 1.40 m; backing off
+   27.400 |    994 | Attacker 3     | attack   | sns_rising at Target sword
+   27.400 |    994 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.14
+   27.417 |    995 | Target shield  | tempo    | gather → shell: pressed (pressure 1.74); energy 1.00, aggression 0.14
+   27.567 |   1004 | Attacker 1     | attack   | sns_thrust at Target open
+   27.567 |   1004 | Attacker 2     | attack   | sns_rising at Target shield
+   28.050 |   1033 | Attacker 1     | hit      | blow struck Target open's Head at 4.1 m/s: 8.7 damage, 3 poise, recoil; impulse 6.6 N·s (60% into the part); the swing went on (70% of it left); the target
+   28.050 |   1033 | Target open    | struck   | by Attacker 1 on the Head: health 100/100, poise 40/45, recoil, standing; hit_left_head reaction, then driven back at 0.6 m/s
+   28.233 |   1044 | Attacker 3     | hit      | blow struck Target sword's HandR at 4.6 m/s: parried by Target sword's parried (5 poise); impulse 13.4 N·s (70% into the part); the swing stopped; parried
+   28.233 |   1044 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 40/45, recoil, standing; parried with high tierce
+   28.283 |   1047 | Target open    | sight    | noticed Target shield at the edge of its view (3.3 m)
+   28.283 |   1047 | Target open    | sight    | noticed Attacker 2 at the edge of its view (2.1 m)
+   28.283 |   1047 | Target open    | sight    | noticed Target sword at the edge of its view (7.4 m)
+   28.283 |   1047 | Target open    | sight    | noticed Attacker 3 at the edge of its view (6.3 m)
+   28.383 |   1053 | Attacker 2     | hit      | blow struck Target shield's HandL at 4.7 m/s: blocked by Target shield's shield (3 poise); impulse 13.5 N·s (70% into the part); the swing stopped; blocked by the shield
+   28.383 |   1053 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 42/45, recoil, standing; the shield knocked back
+   28.500 |   1060 | Attacker 2     | tempo    | press → gather: burst done (3 blows); energy 0.50, aggression 0.50
+   28.633 |   1068 | Attacker 1     | tempo    | press → gather: spent (energy 0.10, 5 blows); energy 0.10, aggression 1.00
+   29.067 |   1094 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.94); energy 0.94, aggression 0.08
+   29.083 |   1095 | Target open    | tempo    | gather → shell: pressed (pressure 2.96); energy 0.94, aggression 0.08
+   29.250 |   1105 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.20
+   29.267 |   1106 | Target sword   | tempo    | gather → shell: pressed (pressure 0.51); energy 1.00, aggression 0.20
+   30.183 |   1161 | Attacker 3     | tempo    | probe → press: fired up (energy 0.85, aggression 0.66); energy 0.85, aggression 0.66
+   30.267 |   1166 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.20
+   30.300 |   1168 | Attacker 2     | tempo    | gather → press: fully charged (energy 0.95, aggression 0.50); energy 0.95, aggression 0.50
+   30.317 |   1169 | Attacker 2     | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_chop_lunge at Target shield
+   30.583 |   1185 | Attacker 3     | attack   | sns_rising at Target sword
+   30.667 |   1190 | Attacker 2     | hit      | blow struck Target shield's UpperArmL at 13.6 m/s: 16.3 damage, 17 poise, recoil; impulse 22.1 N·s (80% into the part); the swing went on (70% of it left); the target
+   30.667 |   1190 | Target shield  | struck   | by Attacker 2 on the UpperArmL: health 100/100, poise 28/45, recoil, standing; heavy reaction
+   30.833 |   1200 | Target shield  | sight    | noticed Target sword at the edge of its view (4.1 m)
+   30.850 |   1201 | Target shield  | sight    | noticed Attacker 3 at the edge of its view (2.9 m)
+   31.183 |   1221 | -              | console  | [Upper] Attacker 2: UpperArmR turning at 19 rad/s; head 6 cm, hands 64 / 29 cm off the pose; OneShot sns_combo_forehand; ; put back 0, joints put 0   Spine asked 4 -19 1 (19°) is -5 14 1, 2 rad/s, left 20° aside (held), damping 6189 most 3536; Chest asked 0 -18 2 (19°) is -1 -17 3, 2 rad/s, left 0° aside (held), damping 4016 most 2659; Head asked -5 64 -7 (64°) is -4 63 -6, 6 rad/s, left 0° aside (held), damping 264 most 267; UpperArmL asked -46 3 -28 (54°) is -46 1 -29, 3 rad/s, left 0° aside, damping 781 most 334; ForearmL asked -73 21 0 (76°) is -74 22 0, 3 rad/s, left 0° aside, damping 145 most 127; HandL asked 27 -30 -6 (41°) is 27 -31 -7, 4 rad/s, left 0° aside, damping 5 most 34; UpperArmR asked -59 29 26 (71°) is 204 -152 -42, 19 rad/s, left 20° aside (held), damping 2076 most 3158; ForearmR asked -35 -10 0 (36°) is -39 -20 7, 18 rad/s, left 6° aside (held), damping 679 most 1734; HandR asked -4 80 11 (81°) is -2 -281 -10, 10 rad/s, left 10° aside (held), damping 234 most 674; 
+   31.200 |   1222 | Attacker 2     | hit      | blow struck Target shield's HandL at 11.0 m/s: blocked by Target shield's shield (9 poise); impulse 31.8 N·s (70% into the part); the swing stopped; blocked by the shield
+   31.200 |   1222 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 23/45, recoil, standing; the shield knocked back, then driven back at 1.5 m/s
+   31.250 |   1225 | -              | console  | [Upper] Target shield: UpperArmL turning at 63 rad/s; head 4 cm, hands 10 / 16 cm off the pose; Cycle ; the shield knocked back, then driven back at 1.5 m/s; put back 0, joints put 0   Spine asked 1 2 -5 (6°) is 2 -1 -1, 5 rad/s, left 2° aside (held), damping 7567 most 27090; Chest asked -11 3 -11 (16°) is -9 2 -10, 3 rad/s, left 0° aside (held), damping 5984 most 26074; Head asked -5 -46 8 (47°) is -16 -46 7, 8 rad/s, left 0° aside (held), damping 264 most 251; UpperArmL asked -61 9 -15 (63°) is -67 44 -12, 63 rad/s, left 19° aside, damping 2973 most 24532; ForearmL asked -119 34 0 (124°) is -95 -3 54, 58 rad/s, left 50° aside, damping 910 most 2388; HandL asked 51 -10 50 (72°) is 58 -26 42, 39 rad/s, left 0° aside, damping 241 most 515; UpperArmR asked 6 -9 45 (46°) is 4 -8 45, 7 rad/s, left 0° aside, damping 2076 most 1276; ForearmR asked -66 -19 0 (69°) is -71 -26 3, 1 rad/s, left 3° aside, damping 679 most 558; HandR asked -27 26 24 (44°) is -28 26 24, 9 rad/s, left 0° aside, damping 234 most 210; 
+   31.367 |   1232 | Target open    | sight    | lost track of Attacker 2
+   31.383 |   1233 | Target open    | sight    | lost track of Target shield
+   31.400 |   1234 | Target open    | sight    | lost track of Attacker 3
+   31.400 |   1234 | Target open    | sight    | lost track of Target sword
+   31.400 |   1234 | Attacker 3     | hit      | blow struck Target sword's HandR at 9.4 m/s: parried by Target sword's parried (10 poise); impulse 27.2 N·s (70% into the part); the swing stopped; parried
+   31.400 |   1234 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 35/45, recoil, standing; parried with high tierce, then driven back at 1.0 m/s
+   31.417 |   1235 | Target sword   | tempo    | gather → shell: pressed (pressure 0.60); energy 1.00, aggression 0.14
+   31.700 |   1252 | Attacker 2     | hit      | blow struck Target shield's HandL at 16.0 m/s: blocked by Target shield's shield (14 poise); impulse 37.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   31.700 |   1252 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 12/45, flinch, standing; the shield knocked back, then driven back at 1.9 m/s
+   31.800 |   1258 | -              | console  | [Upper] Target shield: UpperArmL turning at 61 rad/s; head 6 cm, hands 6 / 31 cm off the pose; Cycle ; the shield knocked back, then driven back at 1.9 m/s; put back 0, joints put 0   Spine asked 1 5 -8 (9°) is -4 2 -4, 4 rad/s, left 2° aside (held), damping 7567 most 19540; Chest asked -3 5 -11 (13°) is -6 4 -11, 1 rad/s, left 0° aside (held), damping 5984 most 18992; Head asked 8 -34 5 (36°) is 11 -32 -5, 6 rad/s, left 6° aside (held), damping 264 most 201; UpperArmL asked -83 80 -20 (117°) is -94 55 42, 61 rad/s, left 13° aside, damping 2973 most 18456; ForearmL asked -96 28 0 (100°) is -107 21 -5, 42 rad/s, left 27° aside, damping 910 most 3947; HandL asked 23 63 -13 (69°) is -15 56 -8, 51 rad/s, left 22° aside, damping 241 most 437; UpperArmR asked 7 1 17 (18°) is 9 -1 16, 3 rad/s, left 0° aside, damping 2076 most 760; ForearmR asked -79 -23 0 (82°) is -77 -20 -3, 2 rad/s, left 2° aside, damping 679 most 475; HandR asked -16 7 -5 (18°) is -13 7 -6, 1 rad/s, left 0° aside, damping 234 most 163; 
+   31.817 |   1259 | Attacker 3     | attack   | none of its strikes reaches Target sword from 1.52 m; closing in
+   32.033 |   1272 | Attacker 1     | tempo    | gather → press: fully charged (energy 0.95, aggression 1.00); energy 0.95, aggression 1.00
+   32.067 |   1274 | Target open    | sight    | noticed Target sword at the edge of its view (8.6 m)
+   32.250 |   1285 | Target open    | sight    | noticed Attacker 3 at the edge of its view (7.0 m)
+   32.550 |   1303 | Attacker 3     | attack   | sns_thrust at Target sword, concentration 0.21
+   32.717 |   1313 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.98); energy 0.98, aggression 0.00
+   32.733 |   1314 | Attacker 1     | attack   | a combo (full gather): sns_combo_forehand > sns_combo_backhand > sns_chop_lunge at Target open
+   32.733 |   1314 | Target shield  | tempo    | gather → shell: pressed (pressure 3.00); energy 0.99, aggression 0.00
+   32.817 |   1319 | Target open    | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 8.5 m/s
+   32.833 |   1320 | Target open    | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 8.0 m/s
+   33.017 |   1331 | Attacker 2     | tempo    | press → gather: burst done (3 blows); energy 0.50, aggression 0.58
+   33.033 |   1332 | Attacker 3     | hit      | blow struck Target sword's HandR at 3.4 m/s: parried by Target sword's parried (4 poise); impulse 9.9 N·s (70% into the part); the swing stopped; parried
+   33.033 |   1332 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 41/45, recoil, standing; parried with high quarte
+   33.100 |   1336 | Attacker 1     | hit      | blow struck Target open's Chest at 8.1 m/s: 16.1 damage, 12 poise, recoil; impulse 16.1 N·s (45% into the part); the swing went on (70% of it left); the target
+   33.100 |   1336 | Target open    | struck   | by Attacker 1 on the Chest: health 100/100, poise 33/45, recoil, standing; heavy reaction, then driven back at 0.5 m/s
+   33.150 |   1339 | Target open    | sight    | noticed Target shield at the edge of its view (6.1 m)
+   33.150 |   1339 | Target open    | sight    | noticed Attacker 2 at the edge of its view (3.1 m)
+   33.583 |   1365 | Attacker 1     | hit      | blow struck Target open's ForearmR at 13.5 m/s: 13.5 damage, 20 poise, recoil; impulse 26.8 N·s (80% into the part); the swing went on (70% of it left); the target
+   33.583 |   1365 | Target open    | struck   | by Attacker 1 on the ForearmR: health 100/100, poise 16/45, recoil, standing; heavy reaction
+   33.750 |   1375 | Attacker 2     | move     | no headway toward Target shield (3.1 m): going round to the left
+   33.767 |   1376 | Attacker 3     | attack   | sns_chop_lunge at Target sword, concentration 0.57
+   34.217 |   1403 | Attacker 1     | hit      | blow struck Target open's Head at 5.4 m/s: 22.9 damage, 11 poise, recoil; impulse 10.7 N·s (60% into the part); the swing went on (70% of it left); the target
+   34.217 |   1403 | Target open    | struck   | by Attacker 1 on the Head: health 100/100, poise 10/45, recoil, standing; thrown back stumbling at 0.5 m/s
+   34.617 |   1427 | Attacker 2     | tempo    | gather → probe: rested (energy 0.90); energy 0.90, aggression 0.58
+   34.633 |   1428 | Attacker 2     | tempo    | probe → press: fired up (energy 0.90, aggression 0.58); energy 0.90, aggression 0.58
+   34.700 |   1432 | Attacker 3     | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 1.2 m/s
+   34.883 |   1443 | Attacker 3     | hit      | blow struck Target sword's HandR at 13.5 m/s: parried by Target sword's parried (15 poise); impulse 39.2 N·s (70% into the part); the swing stopped; parried
+   34.883 |   1443 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 30/45, recoil, standing; parried with St George, then driven back at 1.3 m/s
+   35.083 |   1455 | Attacker 2     | attack   | a combo (press): sns_thrust > sns_forehand at Target shield
+   35.150 |   1459 | Target open    | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 1.0 m/s
+   35.233 |   1464 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.86); energy 0.86, aggression 0.00
+   35.250 |   1465 | Target open    | tempo    | gather → shell: pressed (pressure 3.00); energy 0.86, aggression 0.00
+   35.400 |   1474 | Attacker 2     | hit      | blow struck Target shield's HandL at 11.4 m/s: blocked by Target shield's shield (9 poise); impulse 33.1 N·s (70% into the part); the swing stopped; blocked by the shield
+   35.400 |   1474 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 28/45, recoil, standing; the shield knocked back, then driven back at 1.7 m/s
+   35.533 |   1482 | Attacker 1     | attack   | sns_thrust at Target open
+   35.600 |   1486 | Attacker 2     | hit      | blow struck Target shield's HandL at 16.0 m/s: blocked by Target shield's shield (14 poise); impulse 37.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   35.600 |   1486 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 15/45, flinch, standing; the shield knocked back, then driven back at 2.2 m/s
+   35.850 |   1501 | Attacker 3     | sight    | noticed Target shield by touch (0.8 m)
+   35.900 |   1504 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.02
+   35.917 |   1505 | Target sword   | tempo    | gather → shell: pressed (pressure 1.60); energy 1.00, aggression 0.02
+   36.133 |   1518 | Attacker 3     | attack   | sns_thrust at Target sword, concentration 0.94
+   36.233 |   1524 | Target open    | sight    | lost track of Attacker 2
+   36.533 |   1542 | Attacker 1     | tempo    | press → gather: burst done (4 blows); energy 0.35, aggression 1.00
+   36.533 |   1542 | Attacker 3     | hit      | blow struck Target sword's HandR at 13.3 m/s: parried by Target sword's parried (14 poise); impulse 38.4 N·s (70% into the part); the swing stopped; parried
+   36.533 |   1542 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 27/45, recoil, standing; parried with hanging, then driven back at 0.8 m/s
+   36.750 |   1555 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   36.767 |   1556 | Target shield  | tempo    | gather → shell: pressed (pressure 3.00); energy 1.00, aggression 0.00
+   36.767 |   1556 | Attacker 3     | tempo    | press → gather: burst done (4 blows); energy 0.25, aggression 0.66
+   37.000 |   1570 | Attacker 3     | sight    | noticed Target open at the edge of its view (7.6 m)
+   37.000 |   1570 | Attacker 3     | sight    | noticed Attacker 1 at the edge of its view (8.4 m)
+   37.033 |   1572 | Attacker 3     | sight    | noticed Attacker 2 at the edge of its view (3.7 m)
+   37.300 |   1588 | Target open    | sight    | lost track of Target shield
+   37.317 |   1589 | Target open    | sight    | lost track of Attacker 3
+   37.350 |   1591 | Attacker 2     | tempo    | press → probe: lost touch; energy 0.60, aggression 0.58
+   37.400 |   1594 | Target open    | sight    | lost track of Target sword
+   37.667 |   1610 | Attacker 2     | move     | no headway toward Target shield (2.4 m): going round to the right
+   37.783 |   1617 | Attacker 3     | tempo    | gather → probe: rested (energy 0.50); energy 0.50, aggression 0.66
+   38.933 |   1686 | Attacker 1     | tempo    | gather → press: fully charged (energy 0.95, aggression 1.00); energy 0.95, aggression 1.00
+   39.267 |   1706 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.94); energy 0.94, aggression 0.00
+   39.283 |   1707 | Target open    | tempo    | gather → shell: pressed (pressure 1.87); energy 0.95, aggression 0.00
+   39.317 |   1709 | Attacker 3     | attack   | sns_thrust at Target sword, concentration 0.88
+   39.750 |   1735 | Attacker 1     | attack   | sns_thrust at Target open
+   39.750 |   1735 | Attacker 3     | hit      | blow struck Target sword's HandR at 16.0 m/s: parried by Target sword's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   39.750 |   1735 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 28/45, flinch, standing; parried with high tierce, then driven back at 1.8 m/s
+   39.833 |   1740 | Attacker 2     | tempo    | probe → press: fired up (energy 0.85, aggression 0.58); energy 0.85, aggression 0.58
+   40.117 |   1757 | -              | console  | [Upper] Attacker 1: HandR turning at 66 rad/s; head 1 cm, hands 3 / 3 cm off the pose; OneShot sns_thrust; ; put back 0, joints put 0   Spine asked 0 -8 2 (8°) is 1 -7 2, 4 rad/s, left 0° aside (held), damping 6189 most 2465; Chest asked -4 -9 1 (10°) is -3 -9 1, 3 rad/s, left 0° aside (held), damping 4016 most 1935; Head asked 17 14 -7 (23°) is 17 14 -8, 7 rad/s, left 0° aside (held), damping 264 most 225; UpperArmL asked -22 7 -22 (32°) is -22 7 -22, 13 rad/s, left 0° aside, damping 781 most 781; ForearmL asked -74 21 0 (77°) is -73 21 0, 0 rad/s, left 0° aside, damping 145 most 457; HandL asked -15 -1 1 (15°) is -14 -1 1, 2 rad/s, left 0° aside, damping 5 most 152; UpperArmR asked -78 30 54 (99°) is -76 28 56, 8 rad/s, left 0° aside (held), damping 2076 most 2624; ForearmR asked -2 -1 0 (2°) is -5 -10 1, 11 rad/s, left 0° aside (held), damping 679 most 1763; HandR asked -20 21 -13 (32°) is 273 -156 89, 66 rad/s, left 20° aside (held), damping 234 most 900; 
+   40.200 |   1762 | -              | console  | [Upper] Attacker 3: UpperArmR turning at 62 rad/s; head 2 cm, hands 14 / 1 cm off the pose; Idle ; ; put back 0, joints put 0   Spine asked 0 -2 1 (2°) is -2 -1 1, 4 rad/s, left 0° aside (held), damping 6189 most 3677; Chest asked -1 -2 -1 (3°) is -1 -2 -1, 1 rad/s, left 0° aside (held), damping 4016 most 3563; Head asked 12 -16 0 (20°) is 12 -17 1, 2 rad/s, left 0° aside (held), damping 264 most 162; UpperArmL asked 45 62 29 (82°) is 44 64 31, 6 rad/s, left 0° aside (held), damping 781 most 699; ForearmL asked -66 19 0 (69°) is -66 18 1, 11 rad/s, left 0° aside (held), damping 145 most 430; HandL asked 1 33 -22 (39°) is 0 33 -21, 3 rad/s, left 0° aside (held), damping 5 most 151; UpperArmR asked 87 -32 19 (95°) is 77 -26 -2, 62 rad/s, left 50° aside, damping 2076 most 3604; ForearmR asked -85 -37 -12 (93°) is -71 -42 -4, 14 rad/s, left 13° aside, damping 679 most 1527; HandR asked -22 118 45 (128°) is 8 113 18, 23 rad/s, left 30° aside, damping 234 most 598; 
+   40.300 |   1768 | Attacker 2     | attack   | sns_thrust at Target shield
+   40.433 |   1776 | -              | console  | [Upper] Attacker 3: UpperArmR turning at 74 rad/s; head 1 cm, hands 9 / 1 cm off the pose; Idle ; ; put back 0, joints put 0   Spine asked 1 1 1 (1°) is 0 4 1, 0 rad/s, left 0° aside (held), damping 6189 most 7750; Chest asked -1 1 -2 (2°) is -1 1 -2, 1 rad/s, left 0° aside (held), damping 4016 most 7501; Head asked 11 -35 6 (37°) is 11 -35 5, 2 rad/s, left 0° aside (held), damping 264 most 189; UpperArmL asked 23 55 47 (76°) is 24 55 48, 1 rad/s, left 0° aside, damping 781 most 683; ForearmL asked -19 5 0 (20°) is -19 5 0, 1 rad/s, left 0° aside, damping 145 most 439; HandL asked 3 9 -16 (18°) is 3 9 -16, 1 rad/s, left 0° aside, damping 5 most 151; UpperArmR asked 89 -25 -2 (93°) is 76 -4 -15, 74 rad/s, left 20° aside (held), damping 2076 most 9044; ForearmR asked -138 -40 0 (144°) is -119 -13 -50, 4 rad/s, left 20° aside (held), damping 679 most 995; HandR asked -17 -3 23 (29°) is -15 -21 18, 18 rad/s, left 20° aside (held), damping 234 most 616; 
+   40.500 |   1780 | Attacker 2     | sight    | noticed Attacker 1 at the edge of its view (6.7 m)
+   40.750 |   1795 | Attacker 2     | hit      | blow struck Target shield's HandL at 12.4 m/s: blocked by Target shield's shield (7 poise); impulse 35.8 N·s (70% into the part); the swing stopped; blocked by the shield
+   40.750 |   1795 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 38/45, recoil, standing; the shield knocked back, then driven back at 1.3 m/s
+   40.767 |   1796 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   40.783 |   1797 | Target sword   | tempo    | gather → shell: pressed (pressure 1.86); energy 1.00, aggression 0.00
+   40.950 |   1807 | Attacker 1     | move     | no headway toward Target open (1.8 m): going round to the left
+   41.033 |   1812 | Attacker 2     | sight    | noticed Target open at the edge of its view (5.2 m)
+   41.117 |   1817 | Attacker 3     | sight    | lost track of Attacker 2
+   41.200 |   1822 | Attacker 1     | attack   | sns_thrust at Target open
+   41.200 |   1822 | Attacker 3     | sight    | lost track of Target open
+   41.250 |   1825 | Attacker 3     | sight    | lost track of Attacker 1
+   41.267 |   1826 | Attacker 3     | sight    | lost track of Target shield
+   41.550 |   1843 | Attacker 2     | attack   | none of its strikes reaches Target shield from 1.07 m; backing off
+   41.617 |   1847 | Attacker 3     | attack   | sns_thrust at Target sword, concentration 0.54
+   41.767 |   1856 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   41.783 |   1857 | Target shield  | tempo    | gather → shell: pressed (pressure 1.87); energy 1.00, aggression 0.00
+   41.950 |   1867 | Attacker 2     | attack   | sns_thrust at Target shield
+   42.050 |   1873 | Attacker 3     | hit      | blow struck Target sword's HandR at 16.0 m/s: parried by Target sword's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   42.050 |   1873 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 26/45, flinch, standing; parried with high tierce, then driven back at 1.0 m/s
+   42.133 |   1878 | -              | console  | [Upper] Attacker 3: ForearmR turning at 72 rad/s; head 2 cm, hands 32 / 3 cm off the pose; OneShot sns_thrust; ; put back 0, joints put 0   Spine asked 1 -11 2 (12°) is 2 -10 -1, 1 rad/s, left 0° aside (held), damping 6189 most 7405; Chest asked -2 -13 1 (13°) is -2 -12 0, 1 rad/s, left 0° aside (held), damping 4016 most 7402; Head asked 24 23 -6 (33°) is 23 22 -5, 1 rad/s, left 0° aside (held), damping 264 most 150; UpperArmL asked -39 18 -17 (46°) is -40 18 -16, 1 rad/s, left 0° aside, damping 781 most 601; ForearmL asked -80 23 0 (83°) is -80 23 0, 1 rad/s, left 0° aside, damping 145 most 420; HandL asked -12 -3 2 (13°) is -12 -3 2, 1 rad/s, left 0° aside, damping 5 most 150; UpperArmR asked -38 38 107 (120°) is -7 7 95, 60 rad/s, left 14° aside, damping 2076 most 7397; ForearmR asked -43 -12 0 (45°) is -47 20 -16, 72 rad/s, left 25° aside, damping 679 most 2664; HandR asked 9 61 17 (64°) is -1 52 29, 52 rad/s, left 17° aside, damping 234 most 944; 
+   42.367 |   1892 | -              | console  | [Upper] Target shield: UpperArmL turning at 70 rad/s; head 4 cm, hands 5 / 13 cm off the pose; Idle ; the shield knocked back, then driven back at 1.3 m/s; put back 0, joints put 0   Spine asked 0 2 0 (2°) is -3 -1 -3, 2 rad/s, left 0° aside (held), damping 7567 most 12467; Chest asked 0 2 -3 (3°) is -1 2 -3, 1 rad/s, left 0° aside (held), damping 5984 most 12437; Head asked 10 -43 8 (45°) is 11 -43 8, 3 rad/s, left 0° aside (held), damping 264 most 152; UpperArmL asked -10 -24 -10 (28°) is -23 -42 -14, 70 rad/s, left 19° aside, damping 2973 most 12379; ForearmL asked -144 41 0 (150°) is -161 52 -16, 23 rad/s, left 3° aside, damping 910 most 1644; HandL asked -7 -32 -8 (34°) is -23 -32 -12, 22 rad/s, left 13° aside, damping 241 most 336; UpperArmR asked -1 4 17 (17°) is -1 2 16, 4 rad/s, left 0° aside, damping 2076 most 641; ForearmR asked -67 -19 0 (69°) is -67 -20 0, 3 rad/s, left 0° aside, damping 679 most 436; HandR asked -27 -4 -11 (30°) is -28 -4 -12, 0 rad/s, left 0° aside, damping 234 most 154; 
+   42.617 |   1907 | Attacker 1     | attack   | sns_rising at Target open
+   43.217 |   1943 | Attacker 2     | attack   | sns_thrust at Target shield
+   43.633 |   1968 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   43.650 |   1969 | Target open    | tempo    | gather → shell: pressed (pressure 2.84); energy 1.00, aggression 0.00
+   43.683 |   1971 | Attacker 2     | hit      | blow struck Target shield's HandL at 10.7 m/s: blocked by Target shield's shield (6 poise); impulse 30.9 N·s (70% into the part); the swing stopped; blocked by the shield
+   43.683 |   1971 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 39/45, recoil, standing; the shield knocked back, then driven back at 1.2 m/s
+   43.800 |   1978 | Attacker 2     | tempo    | press → gather: burst done (3 blows); energy 0.40, aggression 0.58
+   43.833 |   1980 | Attacker 3     | tempo    | probe → press: fired up (energy 0.85, aggression 0.66); energy 0.85, aggression 0.66
+   44.200 |   2002 | Attacker 3     | attack   | sns_rising at Target sword, concentration 0.15
+   44.300 |   2008 | Attacker 1     | tempo    | press → gather: burst done (3 blows); energy 0.50, aggression 1.00
+   44.617 |   2027 | Attacker 2     | tempo    | gather → probe: rested (energy 0.60); energy 0.60, aggression 0.58
+   45.017 |   2051 | Attacker 3     | hit      | blow struck Target sword's HandR at 12.9 m/s: parried by Target sword's parried (14 poise); impulse 37.4 N·s (70% into the part); the swing stopped; parried
+   45.017 |   2051 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 31/45, recoil, standing; parried with high quarte, then driven back at 1.5 m/s
+   45.200 |   2062 | Target shield  | sight    | lost track of Attacker 1
+   45.450 |   2077 | Attacker 3     | attack   | none of its strikes reaches Target sword from 1.62 m; closing in
+   45.467 |   2078 | Target shield  | sight    | lost track of Target open
+   45.717 |   2093 | Attacker 2     | attack   | sns_rising at Target shield
+   46.033 |   2112 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   46.050 |   2113 | Target sword   | tempo    | gather → shell: pressed (pressure 2.26); energy 1.00, aggression 0.00
+   46.100 |   2116 | Attacker 1     | tempo    | gather → press: fully charged (energy 0.95, aggression 1.00); energy 0.95, aggression 1.00
+   46.117 |   2117 | Attacker 1     | attack   | sns_chop_lunge at Target open
+   46.383 |   2133 | Attacker 2     | sight    | lost track of Attacker 3
+   46.500 |   2140 | Attacker 3     | sight    | noticed Target shield at the edge of its view (3.8 m)
+   46.533 |   2142 | Attacker 2     | hit      | blow struck Target shield's HandL at 10.8 m/s: blocked by Target shield's shield (6 poise); impulse 31.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   46.533 |   2142 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 39/45, recoil, standing; the shield knocked back, then driven back at 1.0 m/s
+   46.633 |   2148 | Attacker 3     | attack   | sns_chop_lunge at Target sword
+   47.233 |   2184 | Attacker 1     | hit      | blow struck Target open's Head at 16.0 m/s: 34.1 damage, 16 poise, flinch; impulse 31.9 N·s (60% into the part); the swing went on (70% of it left); the target
+   47.233 |   2184 | Target open    | struck   | by Attacker 1 on the Head: health 100/100, poise 29/45, flinch, standing; thrown back stumbling at 2.1 m/s
+   47.400 |   2194 | Attacker 3     | sight    | noticed Attacker 2 at the edge of its view (2.5 m)
+   47.417 |   2195 | Attacker 3     | sight    | noticed Attacker 1 at the edge of its view (8.9 m)
+   47.433 |   2196 | Attacker 3     | sight    | noticed Target open at the edge of its view (7.3 m)
+   47.550 |   2203 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   47.567 |   2204 | Target shield  | tempo    | gather → shell: pressed (pressure 2.69); energy 1.00, aggression 0.00
+   47.733 |   2214 | Attacker 3     | hit      | blow struck Target sword's HandR at 16.0 m/s: parried by Target sword's parried (17 poise); impulse 46.3 N·s (70% into the part); the swing stopped; parried
+   47.733 |   2214 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 28/45, flinch, standing; parried with St George, then driven back at 1.6 m/s
+   48.250 |   2245 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.90); energy 0.90, aggression 0.00
+   48.267 |   2246 | Attacker 2     | attack   | sns_chop_lunge at Target shield
+   48.267 |   2246 | Target open    | tempo    | gather → shell: pressed (pressure 2.42); energy 0.90, aggression 0.00
+   48.533 |   2262 | Attacker 1     | attack   | a combo (press): sns_combo_forehand > sns_backhand_lunge > sns_forehand at Target open
+   48.950 |   2287 | Attacker 1     | hit      | blow struck Target open's Chest at 9.1 m/s: 18.2 damage, 14 poise, recoil; impulse 18.1 N·s (45% into the part); the swing went on (70% of it left); the target
+   48.950 |   2287 | Target open    | struck   | by Attacker 1 on the Chest: health 100/100, poise 27/45, recoil, standing; hit_left_rib reaction, then driven back at 0.7 m/s
+   49.000 |   2290 | Attacker 3     | attack   | sns_forehand at Target sword
+   49.417 |   2315 | Attacker 2     | sight    | lost track of Target sword
+   49.417 |   2315 | Target open    | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 8.4 m/s
+   49.417 |   2315 | Target open    | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 9.5 m/s
+   49.433 |   2316 | Attacker 1     | hit      | blow struck Target open's ThighL at 3.7 m/s: 5.2 damage, 6 poise, recoil; impulse 7.4 N·s (15% into the part); the swing went on (70% of it left); the target
+   49.433 |   2316 | Target open    | struck   | by Attacker 1 on the ThighL: health 100/100, poise 25/45, recoil, standing; hit_right_rib reaction, then driven back at 0.4 m/s
+   49.483 |   2319 | Attacker 2     | hit      | blow struck Target shield's HandL at 7.1 m/s: blocked by Target shield's shield (4 poise); impulse 20.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   49.483 |   2319 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 41/45, recoil, standing; the shield knocked back, then driven back at 0.7 m/s
+   49.483 |   2319 | -              | console  | [Upper] Attacker 2: HandL turning at 17 rad/s; head 25 cm, hands 62 / 27 cm off the pose; OneShot sns_chop_lunge; ; put back 0, joints put 0   Spine asked 6 -9 3 (11°) is -23 -3 -1, 3 rad/s, left 20° aside (held), damping 6189 most 5756; Chest asked 2 -8 0 (9°) is -4 -8 0, 2 rad/s, left 0° aside (held), damping 4016 most 3552; Head asked -13 11 -3 (17°) is -10 11 -2, 4 rad/s, left 0° aside (held), damping 264 most 444; UpperArmL asked -40 11 -9 (43°) is -40 10 -8, 15 rad/s, left 0° aside, damping 781 most 1315; ForearmL asked -41 12 0 (43°) is -41 11 -1, 8 rad/s, left 0° aside, damping 145 most 638; HandL asked 22 17 4 (28°) is 19 17 3, 17 rad/s, left 0° aside, damping 5 most 161; UpperArmR asked -36 -39 24 (58°) is 291 36 -4, 6 rad/s, left 38° aside, damping 2076 most 1594; ForearmR asked -2 -1 0 (2°) is -39 -62 10, 7 rad/s, left 50° aside, damping 679 most 778; HandR asked 14 66 8 (68°) is -48 -287 -42, 15 rad/s, left 0° aside, damping 234 most 280; 
+   49.500 |   2320 | Target open    | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 2.5 m/s
+   49.550 |   2323 | -              | console  | [Upper] Attacker 1: HandR turning at 54 rad/s; head 6 cm, hands 63 / 17 cm off the pose; OneShot sns_backhand_lunge; ; put back 0, joints put 0   Spine asked 11 -6 -1 (13°) is 14 -25 2, 2 rad/s, left 14° aside (held), damping 6189 most 5186; Chest asked 3 -7 0 (7°) is 3 -8 0, 2 rad/s, left 0° aside (held), damping 4016 most 3951; Head asked -19 32 27 (46°) is -21 33 27, 7 rad/s, left 0° aside (held), damping 264 most 310; UpperArmL asked 29 -42 -6 (51°) is 29 -41 -6, 1 rad/s, left 0° aside, damping 781 most 1120; ForearmL asked -2 1 0 (2°) is -1 0 -1, 5 rad/s, left 0° aside, damping 145 most 511; HandL asked -31 -1 9 (33°) is -32 -1 9, 14 rad/s, left 0° aside, damping 5 most 157; UpperArmR asked -34 51 83 (103°) is -24 14 90, 11 rad/s, left 20° aside (held), damping 2076 most 3942; ForearmR asked -12 -4 0 (13°) is -28 -25 1, 46 rad/s, left 11° aside (held), damping 679 most 2179; HandR asked 45 6 6 (46°) is -163 -131 -274, 54 rad/s, left 20° aside (held), damping 234 most 634; 
+   49.650 |   2329 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 5.5 m/s
+   49.650 |   2329 | Target shield  | contact  | ThighL touched Collider (solid) at 5.2 m/s
+   49.667 |   2330 | Attacker 1     | hit      | blow struck Target open's ThighR at 2.1 m/s: 4.0 damage, 4 poise, recoil; impulse 4.2 N·s (15% into the part); the swing went on (70% of it left); the target
+   49.667 |   2330 | Target open    | struck   | by Attacker 1 on the ThighR: health 100/100, poise 22/45, recoil, standing; body reaction
+   49.683 |   2331 | Attacker 3     | hit      | blow struck Target sword's HandR at 14.5 m/s: parried by Target sword's parried (16 poise); impulse 41.9 N·s (70% into the part); the swing stopped; parried
+   49.683 |   2331 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 25/45, recoil, standing; parried with low quarte, then driven back at 1.7 m/s
+   49.733 |   2334 | Target open    | contact  | ShinR touched P_Weapon_Sword(Clone) (solid) at 8.5 m/s
+   49.800 |   2338 | -              | console  | [Upper] Attacker 3: HandR turning at 67 rad/s; head 2 cm, hands 9 / 6 cm off the pose; OneShot sns_forehand; ; put back 0, joints put 0   Spine asked 2 -15 3 (16°) is 4 -21 5, 4 rad/s, left 0° aside (held), damping 6189 most 11318; Chest asked -4 -14 0 (14°) is -5 -15 1, 5 rad/s, left 0° aside (held), damping 4016 most 9573; Head asked -13 39 -6 (42°) is -12 40 -7, 4 rad/s, left 0° aside (held), damping 264 most 376; UpperArmL asked -3 2 -15 (16°) is -3 5 -15, 2 rad/s, left 0° aside, damping 781 most 948; ForearmL asked -78 22 0 (81°) is -77 22 0, 1 rad/s, left 0° aside, damping 145 most 486; HandL asked 1 -9 22 (24°) is 1 -9 22, 5 rad/s, left 0° aside, damping 5 most 155; UpperArmR asked -26 -23 2 (35°) is -33 -13 1, 30 rad/s, left 13° aside, damping 2076 most 8092; ForearmR asked -118 -34 0 (123°) is -115 -7 -26, 45 rad/s, left 15° aside, damping 679 most 3631; HandR asked 43 68 58 (99°) is 25 66 58, 67 rad/s, left 14° aside, damping 234 most 771; 
+   49.933 |   2346 | Attacker 3     | tempo    | press → gather: burst done (3 blows); energy 0.40, aggression 0.66
+   50.033 |   2352 | -              | console  | [Upper] Attacker 1: HandR turning at 20 rad/s; head 12 cm, hands 61 / 29 cm off the pose; OneShot sns_forehand; ; put back 0, joints put 0   Spine asked 10 -24 6 (27°) is -3 14 -2, 2 rad/s, left 20° aside (held), damping 6189 most 2400; Chest asked 4 -21 2 (22°) is 2 -20 2, 2 rad/s, left 0° aside (held), damping 4016 most 1801; Head asked -16 63 -5 (65°) is -15 63 -5, 0 rad/s, left 0° aside (held), damping 264 most 225; UpperArmL asked 12 -2 -3 (13°) is 13 -3 -3, 3 rad/s, left 0° aside, damping 781 most 525; ForearmL asked -52 15 0 (54°) is -53 15 1, 2 rad/s, left 0° aside, damping 145 most 317; HandL asked -35 9 30 (47°) is -35 9 30, 4 rad/s, left 0° aside, damping 5 most 107; UpperArmR asked -81 -40 13 (91°) is -87 -20 -1, 8 rad/s, left 18° aside (held), damping 2076 most 2496; ForearmR asked -2 -1 0 (2°) is -13 1 18, 4 rad/s, left 20° aside (held), damping 679 most 1466; HandR asked -27 -283 21 (285°) is 1 81 3, 20 rad/s, left 11° aside (held), damping 234 most 613; 
+   50.067 |   2354 | Target open    | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 9.9 m/s
+   50.100 |   2356 | Target open    | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 4.1 m/s
+   50.217 |   2363 | -              | console  | [Upper] Attacker 3: UpperArmR turning at 68 rad/s; head 2 cm, hands 4 / 2 cm off the pose; Idle ; ; put back 0, joints put 0   Spine asked 2 -3 2 (4°) is 4 -7 2, 4 rad/s, left 5° aside (held), damping 6189 most 7811; Chest asked 0 -3 -1 (3°) is 0 -3 -2, 1 rad/s, left 0° aside (held), damping 4016 most 7736; Head asked 2 -22 4 (22°) is 3 -22 4, 2 rad/s, left 0° aside (held), damping 264 most 161; UpperArmL asked 29 75 53 (96°) is 29 75 53, 1 rad/s, left 1° aside, damping 781 most 857; ForearmL asked -2 1 0 (2°) is -1 -1 0, 1 rad/s, left 0° aside, damping 145 most 625; HandL asked 0 -10 -16 (19°) is 1 -10 -16, 1 rad/s, left 0° aside, damping 5 most 156; UpperArmR asked 83 -20 -2 (86°) is 79 -27 -14, 68 rad/s, left 19° aside, damping 2076 most 7438; ForearmR asked -139 -41 0 (145°) is -143 -30 -16, 16 rad/s, left 25° aside, damping 679 most 837; HandR asked -45 31 40 (68°) is -49 18 58, 23 rad/s, left 24° aside, damping 234 most 467; 
+   50.250 |   2365 | -              | console  | [Upper] Attacker 1: HandR turning at 6 rad/s; head 5 cm, hands 65 / 18 cm off the pose; OneShot sns_forehand; ; put back 0, joints put 0   Spine asked 7 -24 12 (28°) is -2 1 8, 1 rad/s, left 20° aside (held), damping 6189 most 2026; Chest asked 5 -21 7 (23°) is 5 -20 7, 1 rad/s, left 0° aside (held), damping 4016 most 1984; Head asked -17 60 -2 (62°) is -17 59 -2, 2 rad/s, left 0° aside (held), damping 264 most 155; UpperArmL asked 6 6 -6 (10°) is 6 6 -6, 3 rad/s, left 0° aside, damping 781 most 256; ForearmL asked -41 12 0 (42°) is -40 12 0, 3 rad/s, left 0° aside, damping 145 most 169; HandL asked -26 10 17 (33°) is -26 10 17, 2 rad/s, left 0° aside, damping 5 most 60; UpperArmR asked -25 -86 66 (111°) is -37 39 -2, 5 rad/s, left 20° aside (held), damping 2076 most 3140; ForearmR asked -56 -16 0 (58°) is -73 -8 -3, 3 rad/s, left 18° aside (held), damping 679 most 2048; HandR asked -302 -53 53 (312°) is 38 23 -3, 6 rad/s, left 15° aside (held), damping 234 most 609; 
+   50.700 |   2392 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   50.717 |   2393 | Target sword   | tempo    | gather → shell: pressed (pressure 3.00); energy 1.00, aggression 0.00
+   50.750 |   2395 | Attacker 3     | tempo    | gather → probe: rested (energy 0.61); energy 0.61, aggression 0.66
+   50.867 |   2402 | Attacker 1     | attack   | sns_forehand at Target open
+   51.167 |   2420 | Attacker 2     | attack   | sns_forehand at Target shield
+   51.550 |   2443 | Attacker 1     | hit      | blow struck Target open's UpperArmL at 2.6 m/s: 2.1 damage, 3 poise, recoil; impulse 5.2 N·s (80% into the part); the swing went on (70% of it left); the target
+   51.550 |   2443 | Target open    | struck   | by Attacker 1 on the UpperArmL: health 100/100, poise 32/45, recoil, standing; light reaction
+   51.650 |   2449 | Target open    | contact  | ThighR touched P_Weapon_Sword(Clone) (solid) at 8.8 m/s
+   51.650 |   2449 | Target open    | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 8.5 m/s
+   51.800 |   2458 | Target open    | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 6.0 m/s
+   51.817 |   2459 | Target open    | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 4.3 m/s
+   51.850 |   2461 | Target open    | contact  | FootL touched P_Weapon_Sword(Clone) (solid) at 8.4 m/s
+   51.867 |   2462 | Target open    | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 2.9 m/s
+   51.917 |   2465 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 12.9 m/s
+   51.917 |   2465 | Target shield  | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 13.2 m/s
+   51.933 |   2466 | Attacker 2     | hit      | blow struck Target shield's ThighL at 16.0 m/s: 14.9 damage, 16 poise, flinch; impulse 31.9 N·s (15% into the part); the swing went on (70% of it left); the target
+   51.933 |   2466 | Target shield  | struck   | by Attacker 2 on the ThighL: health 100/100, poise 29/45, flinch, standing; thrown back stumbling at 2.8 m/s
+   52.067 |   2474 | Target shield  | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 2.3 m/s
+   52.150 |   2479 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 1.3 m/s
+   52.167 |   2480 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 3.8 m/s
+   52.467 |   2498 | Attacker 3     | attack   | sns_forehand at Target sword
+   52.483 |   2499 | -              | console  | [Upper] Attacker 1: HandR turning at 62 rad/s; head 1 cm, hands 7 / 2 cm off the pose; Idle ; ; put back 0, joints put 0   Spine asked 0 1 0 (2°) is 0 4 0, 0 rad/s, left 2° aside (held), damping 6189 most 8148; Chest asked -1 2 -2 (3°) is -1 2 -2, 0 rad/s, left 0° aside (held), damping 4016 most 7269; Head asked 8 -42 8 (44°) is 8 -42 7, 0 rad/s, left 0° aside (held), damping 264 most 248; UpperArmL asked -9 6 -8 (13°) is -9 4 -8, 18 rad/s, left 0° aside, damping 781 most 1591; ForearmL asked -93 27 0 (97°) is -94 27 0, 1 rad/s, left 0° aside, damping 145 most 497; HandL asked 1 -19 13 (23°) is 1 -19 13, 16 rad/s, left 0° aside, damping 5 most 157; UpperArmR asked -13 33 -2 (36°) is -13 42 -4, 50 rad/s, left 5° aside (held), damping 2076 most 6912; ForearmR asked -74 -21 0 (77°) is -74 -10 -7, 14 rad/s, left 3° aside (held), damping 679 most 1965; HandR asked 67 144 267 (311°) is -17 -36 -43, 62 rad/s, left 20° aside (held), damping 234 most 990; 
+   52.500 |   2500 | Attacker 1     | attack   | sns_chop_lunge at Target open
+   52.800 |   2518 | Target shield  | sight    | noticed Attacker 1 at the edge of its view (5.1 m)
+   52.950 |   2527 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.97); energy 0.97, aggression 0.00
+   52.967 |   2528 | Target shield  | tempo    | gather → shell: pressed (pressure 3.00); energy 0.97, aggression 0.00
+   53.033 |   2532 | Target shield  | sight    | noticed Target open at the edge of its view (3.9 m)
+   53.100 |   2536 | Attacker 3     | hit      | blow struck Target sword's UpperArmL at 10.7 m/s: 8.5 damage, 11 poise, recoil; impulse 21.2 N·s (80% into the part); the swing went on (70% of it left); the target
+   53.100 |   2536 | Target sword   | struck   | by Attacker 3 on the UpperArmL: health 100/100, poise 34/45, recoil, standing; thrown back stumbling at 1.3 m/s
+   53.517 |   2561 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.91); energy 0.91, aggression 0.00
+   53.533 |   2562 | Target open    | tempo    | gather → shell: pressed (pressure 3.00); energy 0.91, aggression 0.00
+   53.617 |   2567 | Attacker 1     | hit      | blow struck Target open's Head at 15.5 m/s: 33.0 damage, 15 poise, recoil; impulse 30.8 N·s (60% into the part); the swing went on (70% of it left); the target
+   53.617 |   2567 | Target open    | struck   | by Attacker 1 on the Head: health 100/100, poise 30/45, recoil, standing; thrown back stumbling at 2.2 m/s
+   53.800 |   2578 | Attacker 2     | tempo    | probe → press: fired up (energy 0.85, aggression 0.66); energy 0.85, aggression 0.66
+   54.667 |   2630 | Attacker 2     | attack   | sns_forehand at Target shield
+   54.733 |   2634 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   54.750 |   2635 | Target sword   | tempo    | gather → shell: pressed (pressure 2.55); energy 1.00, aggression 0.00
+   54.867 |   2642 | Attacker 1     | attack   | sns_forehand at Target open
+   55.050 |   2653 | Attacker 3     | attack   | sns_combo_backhand at Target sword
+   55.317 |   2669 | Attacker 3     | hit      | blow struck Target sword's HandR at 9.7 m/s: parried by Target sword's parried (11 poise); impulse 28.2 N·s (70% into the part); the swing stopped; parried
+   55.317 |   2669 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 34/45, recoil, standing; parried with high tierce, then driven back at 0.9 m/s
+   55.367 |   2672 | Attacker 2     | hit      | blow struck Target shield's HandL at 7.7 m/s: blocked by Target shield's shield (4 poise); impulse 22.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   55.367 |   2672 | Target shield  | struck   | by Attacker 2 on the HandL: health 100/100, poise 41/45, recoil, standing; the shield knocked back, then driven back at 0.8 m/s
+   55.467 |   2678 | Attacker 1     | hit      | blow struck Target open's UpperArmL at 16.0 m/s: 12.8 damage, 16 poise, flinch; impulse 31.9 N·s (80% into the part); the swing went on (70% of it left); the target
+   55.467 |   2678 | Target open    | struck   | by Attacker 1 on the UpperArmL: health 100/100, poise 26/45, flinch, standing; thrown back stumbling at 2.1 m/s
+   55.883 |   2703 | Attacker 2     | attack   | none of its strikes reaches Target shield from 0.98 m; backing off
+   56.050 |   2713 | Target shield  | sight    | lost track of Attacker 1
+   56.283 |   2727 | Target shield  | sight    | lost track of Target open
+   56.300 |   2728 | Attacker 2     | attack   | none of its strikes reaches Target shield from 1.11 m; backing off
+   56.517 |   2741 | Attacker 1     | attack   | sns_rising at Target open
+   56.533 |   2742 | Attacker 3     | tempo    | probe → press: fired up (energy 0.85, aggression 0.74); energy 0.85, aggression 0.74
+   56.700 |   2752 | Attacker 2     | attack   | sns_chop_lunge at Target shield
+   56.917 |   2765 | Attacker 3     | attack   | sns_forehand at Target sword
+   57.350 |   2791 | Attacker 1     | hit      | blow struck Target open's ForearmR at 10.4 m/s: 7.0 damage, 10 poise, recoil; impulse 20.8 N·s (80% into the part); the swing went on (70% of it left); the target
+   57.350 |   2791 | Target open    | struck   | by Attacker 1 on the ForearmR: health 100/100, poise 28/45, recoil, standing; thrown back stumbling at 1.0 m/s
+   57.583 |   2805 | -              | console  | [Upper] Attacker 1: ForearmR turning at 12 rad/s; head 1 cm, hands 60 / 28 cm off the pose; OneShot sns_rising; ; put back 0, joints put 0   Spine asked 0 3 1 (3°) is 2 -18 3, 1 rad/s, left 18° aside (held), damping 6189 most 1112; Chest asked -4 3 2 (5°) is -4 2 2, 2 rad/s, left 0° aside (held), damping 4016 most 953; Head asked 14 0 -1 (14°) is 14 1 -1, 3 rad/s, left 0° aside (held), damping 264 most 160; UpperArmL asked -18 -10 -55 (59°) is -19 -8 -55, 10 rad/s, left 0° aside, damping 781 most 660; ForearmL asked -12 3 0 (13°) is -11 2 0, 3 rad/s, left 0° aside, damping 145 most 425; HandL asked -15 -18 2 (24°) is -16 -17 2, 4 rad/s, left 0° aside, damping 5 most 150; UpperArmR asked 14 17 67 (70°) is -23 -12 -292, 3 rad/s, left 11° aside (held), damping 2076 most 1979; ForearmR asked -2 -1 -1 (2°) is 83 269 -42, 12 rad/s, left 20° aside (held), damping 679 most 1299; HandR asked -60 -282 -131 (317°) is 4 36 20, 10 rad/s, left 6° aside (held), damping 234 most 481; 
+   57.617 |   2807 | Attacker 3     | hit      | blow struck Target sword's HandR at 12.6 m/s: parried by Target sword's parried (14 poise); impulse 36.5 N·s (70% into the part); the swing stopped; parried
+   57.617 |   2807 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 31/45, recoil, standing; parried with low quarte, then driven back at 0.9 m/s
+   57.683 |   2811 | Attacker 3     | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 4.2 m/s
+   57.717 |   2813 | Target shield  | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   57.733 |   2814 | Target shield  | tempo    | gather → shell: pressed (pressure 3.00); energy 1.00, aggression 0.00
+   58.267 |   2846 | Attacker 1     | attack   | sns_chop_lunge at Target open
+   58.367 |   2852 | Attacker 3     | attack   | sns_rising at Target sword
+   58.583 |   2865 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 1.3 m/s
+   59.000 |   2890 | Attacker 2     | attack   | sns_forehand at Target shield
+   59.217 |   2903 | Attacker 3     | hit      | blow struck Target sword's HandR at 4.1 m/s: parried by Target sword's parried (4 poise); impulse 11.8 N·s (70% into the part); the swing stopped; parried
+   59.217 |   2903 | Target sword   | struck   | by Attacker 3 on the HandR: health 100/100, poise 38/45, recoil, standing; parried with prime
+   59.283 |   2907 | Target open    | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 0.84); energy 0.84, aggression 0.00
+   59.300 |   2908 | Target open    | tempo    | gather → shell: pressed (pressure 3.00); energy 0.84, aggression 0.00
+   59.400 |   2914 | Attacker 1     | hit      | blow struck Target open's UpperArmL at 15.5 m/s: 12.4 damage, 15 poise, recoil; impulse 30.9 N·s (80% into the part); the swing went on (70% of it left); the target
+   59.400 |   2914 | Target open    | struck   | by Attacker 1 on the UpperArmL: health 100/100, poise 27/45, recoil, standing; heavy reaction
+   59.517 |   2921 | Target open    | sight    | noticed Target shield at the edge of its view (3.7 m)
+   59.517 |   2921 | Target open    | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   59.517 |   2921 | Target open    | sight    | noticed Attacker 3 at the edge of its view (7.8 m)
+   59.533 |   2922 | Target open    | sight    | noticed Target sword at the edge of its view (8.2 m)
+   59.667 |   2930 | -              | console  | [Upper] Attacker 3: UpperArmR turning at 29 rad/s; head 2 cm, hands 61 / 4 cm off the pose; OneShot sns_turn_right; ; put back 0, joints put 1   Spine asked 4 -9 -1 (10°) is 2 8 -1, 2 rad/s, left 16° aside (held), damping 6189 most 942; Chest asked 2 -9 -2 (10°) is 3 -9 -2, 1 rad/s, left 0° aside (held), damping 4016 most 886; Head asked 9 38 3 (39°) is 8 38 3, 1 rad/s, left 0° aside (held), damping 264 most 157; UpperArmL asked 29 62 24 (72°) is 29 62 24, 8 rad/s, left 0° aside (held), damping 781 most 743; ForearmL asked -46 13 0 (48°) is -46 14 0, 12 rad/s, left 1° aside (held), damping 145 most 454; HandL asked -11 19 -24 (33°) is -12 19 -24, 3 rad/s, left 0° aside (held), damping 5 most 151; UpperArmR asked 9 -32 -13 (36°) is 44 12 -40, 29 rad/s, left 0° aside, damping 2076 most 2505; ForearmR asked -52 -15 0 (54°) is 10 23 -36, 11 rad/s, left 20° aside (held), damping 679 most 469; HandR asked -19 1 31 (37°) is -16 -12 22, 5 rad/s, left 19° aside, damping 234 most 616; 
+   59.733 |   2934 | Attacker 3     | attack   | none of its strikes reaches Target sword from 0.77 m; backing off
+   59.733 |   2934 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 12.8 m/s
+   59.750 |   2935 | Target shield  | contact  | ThighL touched P_Weapon_Sword(Clone) (solid) at 12.6 m/s
+   59.750 |   2935 | Target shield  | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 12.4 m/s
+   59.767 |   2936 | Attacker 2     | hit      | blow struck Target shield's ShinL at 16.0 m/s: 12.8 damage, 16 poise, flinch; impulse 31.9 N·s (15% into the part); the swing went on (70% of it left); the target
+   59.767 |   2936 | Target shield  | struck   | by Attacker 2 on the ShinL: health 100/100, poise 29/45, flinch, standing; thrown back stumbling at 2.8 m/s
+   59.800 |   2938 | Target shield  | contact  | ShinL touched P_Weapon_Sword(Clone) (solid) at 11.2 m/s
+   60.133 |   2958 | Attacker 3     | attack   | none of its strikes reaches Target sword from 0.84 m; backing off
+   60.233 |   2964 | Target sword   | tempo    | shell → gather: the barrage stopped, too tired to answer (energy 1.00); energy 1.00, aggression 0.00
+   60.250 |   2965 | Target sword   | tempo    | gather → shell: pressed (pressure 3.00); energy 1.00, aggression 0.00
+   60.550 |   2983 | Attacker 3     | attack   | sns_chop_lunge at Target sword
+   60.633 |   2988 | Attacker 1     | attack   | sns_rising at Target open
+   60.633 |   2988 | Attacker 2     | tempo    | press → gather: burst done (3 blows); energy 0.40, aggression 0.74
+   60.917 |   3005 | Attacker 3     | sight    | lost track of Attacker 1
+   60.950 |   3007 | Attacker 3     | sight    | lost track of Target open
+   60.950 |   3007 | Attacker 3     | sight    | lost track of Target shield
+   61.000 |   3010 | Attacker 3     | sight    | lost track of Attacker 2
+   61.283 |   3027 | Attacker 3     | sight    | noticed Target shield at the edge of its view (5.1 m)
+   61.433 |   3036 | Attacker 3     | sight    | noticed Attacker 2 at the edge of its view (3.0 m)
+   61.450 |   3037 | Attacker 1     | hit      | blow struck Target open's ForearmR at 10.6 m/s: 7.1 damage, 11 poise, recoil; impulse 21.1 N·s (80% into the part); the swing went on (70% of it left); the target
+   61.450 |   3037 | Target open    | struck   | by Attacker 1 on the ForearmR: health 100/100, poise 30/45, recoil, standing; thrown back stumbling at 0.8 m/s
+   61.450 |   3037 | Attacker 2     | tempo    | gather → probe: rested (energy 0.61); energy 0.61, aggression 0.74
+   61.483 |   3039 | Target open    | despawn  | recording stopped
+   61.483 |   3039 | Attacker 1     | despawn  | recording stopped
+   61.483 |   3039 | Target shield  | despawn  | recording stopped
+   61.483 |   3039 | Attacker 2     | despawn  | recording stopped
+   61.483 |   3039 | Target sword   | despawn  | recording stopped
+   61.483 |   3039 | Attacker 3     | despawn  | recording stopped
+   61.483 |   3039 | -              | session  | 406 pictures saved
+   61.483 |   3039 | -              | session  | recording stopped after 50.6 s (3039 physics steps)
