@@ -642,7 +642,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             float into = Mathf.Clamp01((footingTime - 0.08f) / 0.3f);
-            FallPose.Pose(Anim, hips, Upper.SpeedOf(PartId.Pelvis), groundLevel, Size, into * into * (3f - 2f * into));
+            FallPose.Pose(Anim, hips, Upper.SpeedOf(PartId.Pelvis), groundLevel, Size, into * into * (3f - 2f * into), stance != Stances.Open);
             Upper.BeginStep(dt);
         }
 
@@ -1106,7 +1106,10 @@ namespace PhysicsBattler.Locomotion
             Loco.Place(position, yaw);
             Poser.ReleaseFeet();
             lying.Capture(Rig);
-            getUp.HoldsMain = stance == Stances.Sword;
+            // (A weapon is in its right hand with a shield or without: laid clear of its body as it gets up. With no
+            // shield its free hand is the one that goes to the ground, and the sword stays up before it.)
+            getUp.HoldsMain = stance != Stances.Open;
+            getUp.PostWith = stance == Stances.Sword ? PhysicsBattler.Motion.Stance.Left : -1;
             getUp.HoldsOff = stance == Stances.Shield;
             getUp.Begin(kind, lying);
             if (fallBody && Upper != null)

@@ -355,6 +355,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A swordsman's free arm is tucked behind him while he guards. On: its hand lies in line with its forearm, the back of the hand against his back, the way a hand held behind you does. Off: the hand keeps the turn its clip gave it for an arm held in front (as before), which behind the back is a wrist bent further than a wrist goes, so the arm gate was turning it back nearly every step.")]
         public bool freeHandGoesWithItsArm = true;
 
+        [Tooltip("A swordsman with no shield carries its free hand in front of it: elbow by its side, forearm forward and a little in, the hand before the lower ribs with the thumb up, where a hand is carried for balance and can be put out to break a fall. Its parry then keeps blows off that arm too. Off: the free hand is tucked behind the left hip, as before 14 November (a fencer's off hand; an arm that starts a fall behind the body has to come round it).")]
+        public bool freeArmCarriedInFront = true;
+
         [Tooltip("The physical arms have stops, as a body's joints do. The arm as it is in the physics (knocked by a blow, pressed by a shield, left behind by its muscles) is read against the same ranges the arm gate holds the animation to. A joint knocked past its range is wanted back at the end of its range, does not give way any further (inside its range a struck arm still gives and comes back over a second, as before), and is held there with more than its muscle has. So a blow can knock an arm to the end of what an arm does and no further: an elbow does not bend backward, a shield arm is not folded behind its owner's head. Off: a struck arm gives wherever it is pushed, up to 50 degrees aside of its pose, in range or not (as before).")]
         public bool armsHaveStops = true;
 
@@ -549,6 +552,7 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Motion.ArmGate.MostSent = Mathf.Max(0f, armFollowsAtMost);
             PhysicsBattler.Motion.ArmLimits.BonesAsABody = armBonesAsABody;
             SwordParry.FreeHandWithArm = freeHandGoesWithItsArm;
+            SwordParry.FreeArmInFront = freeArmCarriedInFront;
             ClipFighter.ArmStops = armsHaveStops;
             PhysicsBattler.Authority.UpperBodyArticulation.StopTimes = Mathf.Clamp(armStopsHoldWith, 1f, 12f);
             ShowLegs = showLegsOpinion;

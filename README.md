@@ -3486,6 +3486,28 @@ A 165 N·s blow from the front, three targets: none reached the ground with the 
 and was up 1.9 s after the blow. Two fights of a minute: 10 falls, one caught, no body lost; of the six living
 that fell, three reached the ground with the head (one thrown at 20 m/s, at 11 m/s). Not verified in Unity.
 
+**The arms: the swordsman's free hand, the elbows in a fall, what a hand holds** (14 November, from the playtest:
+the free arm behind the back looked wrong, the arms bent oddly catching a fall and getting up, and a held weapon
+swung about and through the body in the get-up).
+
+- **A swordsman with no shield carries its free hand before it** (the Combat Feel's `freeArmCarriedInFront`, on;
+  `SwordParry.FreeArmInFront`): the elbow by its side and a little back, the forearm forward and a little in,
+  the hand before the lower ribs, thumb up. It was tucked behind the left hip, a fencer's off hand; an arm that
+  starts a fall behind the body has to come round it. The parry now keeps blows off that arm too, as it does a
+  brute's. Off: behind the hip, as before.
+- **In a fall the elbows point back and out of the trunk**, as an arm that takes weight bends. They were pointed
+  by which way the body was going, so going backward they bent forward, as a knee does.
+- **What the right hand holds** is kept out to its side and up in a fall, and in the new get-ups a weapon whose
+  hand is off the ground is held up before it; in both the hand is turned no further on its wrist than a wrist
+  turns (50 and 55 degrees). Asked for the whole turn, the hand was wanted half a turn from its forearm, the
+  physical hand could not follow, and the weapon swung about.
+- **Getting up, a swordsman with no shield puts its free hand down** and keeps its sword before it
+  (`GetUp.PostWith`); a fighter with a shield still puts its sword hand down, and its sword is now laid clear
+  as it does (it was only for one with no shield: `HoldsMain`).
+
+Headless: the falls and get-ups run as before (no body lost, no pose that jumps); the hand is no longer the
+joint furthest from the fall's pose. How the arms look is not something the numbers say. Not verified in Unity.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

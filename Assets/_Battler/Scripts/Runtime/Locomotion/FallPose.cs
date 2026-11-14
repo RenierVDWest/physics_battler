@@ -19,6 +19,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The arms reach for the ground the body is going to; off, they are held a little out from the sides.</summary>
         public static bool Reaches = true;
 
+        /// <summary>How far a hand is turned on its wrist to keep what it holds clear of the body (degrees).</summary>
+        public const float WristTurns = 50f;
+
         /// <summary>How far the chin is brought to the chest on its back, the head lifted on its front, and tipped away on a side (degrees).</summary>
         public const float ChinIn = 38f, HeadUp = 30f, HeadAside = 28f;
 
@@ -28,7 +31,8 @@ namespace PhysicsBattler.Locomotion
         /// going (<paramref name="going"/>, m/s).
         /// </summary>
         /// <param name="into">How far into its protective pose it is (0 as it loses its feet: the arms thrown out, the legs as they stood; 1: getting low and reaching).</param>
-        public static void Pose(AnimRig anim, Transform hips, Vector3 going, float ground, float size, float into = 1f)
+        /// <param name="holdsMain">Its right hand holds a weapon: the blade is kept out to its side and up, clear of its body.</param>
+        public static void Pose(AnimRig anim, Transform hips, Vector3 going, float ground, float size, float into = 1f, bool holdsMain = false)
         {
             into = Mathf.Clamp01(into);
             anim.ResetToRest();
@@ -90,8 +94,22 @@ namespace PhysicsBattler.Locomotion
                     hand.y = floor;
                 }
 
-                Vector3 elbow = out_.normalized + 0.3f * Vector3.up - 0.3f * way;
-                TwoBoneIK.Solve(upper, anim.Part(a == 0 ? PartId.ForearmL : PartId.ForearmR), anim.Part(a == 0 ? PartId.HandL : PartId.HandR), hand, elbow);
+                // (The elbows back and out of the trunk, as an arm that takes weight bends: pushing up from the ground,
+                // sat back on the hands. Pointed by which way the body was going they bent forward going backward, as a
+                // knee does, which no elbow can.)
+                var chest = anim.Part(PartId.Chest);
+                Vector3 elbow = -0.8f * chest.forward + 0.6f * chest.right * (a == 0 ? -1f : 1f) + 0.15f * chest.up;
+                var handPart = anim.Part(a == 0 ? PartId.HandL : PartId.HandR);
+                TwoBoneIK.Solve(upper, anim.Part(a == 0 ? PartId.ForearmL : PartId.ForearmR), handPart, hand, elbow);
+                if (a == 1 && holdsMain && anim.SlotWeaponR != null)
+                {
+                    // (What it holds: out to its side and up, away from its body and its head, whatever the arm does.)
+                    Vector3 blade = (out_.normalized * 0.8f + Vector3.up * 0.45f + chest.forward * 0.2f).normalized;
+                    // (As far as a wrist turns: asked for the whole of it, the hand was wanted half a turn from where its
+                    // forearm had it, which no wrist does and no muscle of a wrist's strength holds.)
+                    var asked = Quaternion.LookRotation(blade, Vector3.up) * Quaternion.Inverse(anim.SlotWeaponR.localRotation);
+                    handPart.rotation = Quaternion.RotateTowards(handPart.parent.rotation * anim.RestLocalRotation(PartId.HandR), asked, WristTurns);
+                }
             }
         }
 

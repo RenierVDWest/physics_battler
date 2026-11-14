@@ -220,6 +220,16 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public int StartKey { get; set; }
 
+        /// <summary>
+        /// Natural: the hand that goes to the ground (<see cref="Stance.Left"/> or <see cref="Stance.Right"/>; -1: the
+        /// hand of the back foot's side). A swordsman with no shield posts with its free hand and keeps its sword
+        /// before it. Set before <see cref="Begin"/>.
+        /// </summary>
+        public int PostWith { get; set; } = -1;
+
+        /// <summary>Natural: how far a hand is turned on its wrist to lay what it holds clear of the body (degrees).</summary>
+        public const float WristTurns = 55f;
+
         /// <summary>The key a natural get-up reaches the half kneel at.</summary>
         public const int HalfKneelKey = 4;
 
@@ -965,7 +975,7 @@ namespace PhysicsBattler.Motion
         private void MakeFromBack()
         {
             float s = body.SizeFactor, w = body.WidthFactor, ph = body.PelvisHeight, leg = body.LegLength;
-            int lead = stance.Lead, rear = 1 - lead;
+            int rear = PostWith >= 0 ? PostWith : 1 - stance.Lead, lead = 1 - rear;
             // (The posting hand's side, and the front foot's: +1 its right.)
             float sx = rear == Stance.Left ? -1f : 1f, lx = -sx;
             float pz = -BackSits * s;
@@ -1023,7 +1033,7 @@ namespace PhysicsBattler.Motion
         private void MakeFromFront()
         {
             float s = body.SizeFactor, w = body.WidthFactor, ph = body.PelvisHeight, leg = body.LegLength;
-            int lead = stance.Lead, rear = 1 - lead;
+            int rear = PostWith >= 0 ? PostWith : 1 - stance.Lead, lead = 1 - rear;
             float sx = rear == Stance.Left ? -1f : 1f, lx = -sx;
             float pz = -0.25f * s;
             // (Face down, a turn about its length the other way puts its right side down.)
@@ -1402,12 +1412,18 @@ namespace PhysicsBattler.Motion
                 // with the hand on the ground (milestone 9c) the blade lies flat along it, out to the side
                 // and back, away from the head and body.
                 float side = right ? 1f : -1f;
-                Vector3 raised = facing * new Vector3(0.75f * side, 0.25f, 0.6f);
+                // (Natural: a weapon whose hand is off the ground is held up before it, toward what it fights.)
+                Vector3 raised = facing * (Natural ? new Vector3(0.3f * side, 0.5f, 0.8f) : new Vector3(0.75f * side, 0.25f, 0.6f));
                 Vector3 flat = facing * new Vector3(0.85f * side, 0f, -0.5f);
                 float low = 1f - Mathf.Clamp01((wrist.y - HandHeight) / (0.25f * body.SizeFactor));
                 Vector3 dir = Vector3.Slerp(raised.normalized, flat.normalized, low);
                 Vector3 up = Vector3.Slerp(facing * Vector3.up, Vector3.Cross(Vector3.up, flat.normalized), low);
-                anim.Part(hand).rotation = Quaternion.LookRotation(dir, up) * Quaternion.Inverse(slot.localRotation);
+                var asked = Quaternion.LookRotation(dir, up) * Quaternion.Inverse(slot.localRotation);
+                // (Natural: as far as a wrist turns. Laid out by the hand exactly, the weapon asked the wrist for up to
+                // 100 degrees more than it has; the physical hand could not follow and the weapon swung about.)
+                anim.Part(hand).rotation = Natural
+                    ? Quaternion.RotateTowards(anim.Part(hand).parent.rotation * anim.RestLocalRotation(hand), asked, WristTurns)
+                    : asked;
             }
             else
             {

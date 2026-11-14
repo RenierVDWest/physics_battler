@@ -1088,7 +1088,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (The free arm too, where it is: a brute's, out in front, caught the cuts the parry let by it.)
-            if (FreeArmOut && (Seg(P(PartId.UpperArmL), P(PartId.ForearmL)) <= 0.07f * r || Seg(P(PartId.ForearmL), P(PartId.HandL)) <= 0.06f * r))
+            if ((FreeArmOut || (TucksFreeArm && InFront)) && (Seg(P(PartId.UpperArmL), P(PartId.ForearmL)) <= 0.07f * r || Seg(P(PartId.ForearmL), P(PartId.HandL)) <= 0.06f * r))
             {
                 return true;
             }
@@ -1107,6 +1107,20 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>Where the free (left) hand is kept: behind the left hip, the elbow out and back (the sabreur's off hand, out of the way of blows).</summary>
         public static readonly Vector3 FreeHand = new Vector3(-0.12f, 1.0f, -0.22f);
+
+        /// <summary>
+        /// A swordsman with no shield carries its free hand before it, not behind its back (the playtest of 14
+        /// November: behind the back looked wrong, and an arm that starts a fall behind the body has to come round it):
+        /// the elbow by its side and a little back, the forearm forward and a little in, the hand before the lower
+        /// ribs, the thumb up, where a hand is carried for balance and can be put out. The parry then keeps blows off
+        /// that arm too, as it does a brute's. Off: tucked behind the left hip, as before.
+        /// </summary>
+        public static bool FreeArmInFront = true;
+
+        /// <summary>Where the free hand is carried before the body, and which way its elbow points (the body's frame).</summary>
+        public static readonly Vector3 FrontHand = new Vector3(-0.2f, 1.12f, 0.24f), FrontElbow = new Vector3(-0.7f, -1f, -0.45f);
+
+        private bool InFront => FreeArmInFront && FreeHandAt == FreeHand;
 
         /// <summary>Where this one's free hand goes, and which way its elbow points (the body's frame; a fencer's behind its back, by default).</summary>
         public Vector3 FreeHandAt = FreeHand, FreeElbow = new Vector3(-1f, -0.6f, -0.5f);
@@ -1153,8 +1167,8 @@ namespace PhysicsBattler.Locomotion
             // (Eased back from where its own strike left it, not snapped there.)
             tucked = Mathf.MoveTowards(tucked, 1f, dt / TuckBackOver);
             float ease = tucked * tucked * (3f - 2f * tucked);
-            Vector3 tuck = World(FreeHandAt);
-            TwoBoneIK.Solve(upper, fore, handL, ease >= 1f ? tuck : Vector3.Lerp(handL.position, tuck, ease), bodyTurn * FreeElbow);
+            Vector3 tuck = World(InFront ? FrontHand : FreeHandAt);
+            TwoBoneIK.Solve(upper, fore, handL, ease >= 1f ? tuck : Vector3.Lerp(handL.position, tuck, ease), bodyTurn * (InFront ? FrontElbow : FreeElbow));
             handL.rotation = keep;
             if (FreeHandWithArm)
             {
@@ -1162,7 +1176,8 @@ namespace PhysicsBattler.Locomotion
                 // hand held behind one lies. Kept turned as the clip had it in front of the body, it was a hand bent back
                 // on its wrist further than a wrist bends, and the gate turned it back nearly every step.)
                 Vector3 along = handL.position - fore.position;
-                Vector3 palm = Vector3.ProjectOnPlane(bodyTurn * Vector3.back, along);
+                // (Before the body: the palm in and a little down, the thumb up, as a hand is carried.)
+                Vector3 palm = Vector3.ProjectOnPlane(bodyTurn * (InFront ? new Vector3(0.85f, -0.5f, 0f) : Vector3.back), along);
                 if (along.sqrMagnitude > 1e-10f && palm.sqrMagnitude > 1e-6f)
                 {
                     // (The hand's own axes: its fingers down its -Y, a left hand's palm out of its +X.)
