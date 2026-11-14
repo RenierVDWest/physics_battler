@@ -3952,6 +3952,92 @@ of it looks, which is the point of it. The swordsman's weight is 27 cm outside h
 lands (the clips: 34): the lean is not yet answered by a step. Low parts are not bent for (the plan had the knees
 in step 2; they come with the step).
 
+**Aimed attacks, made from the recordings: a strike taken apart and made again** (15 November; Combat Feel "Aim
+Test Attacks Are Made", "Attacks Borrow Legs", "Clips Travel As Recorded" and the fourteen "Attack ..." style
+levers; `AttackScore`, `AttackMaker`). The first built blows looked mechanical: an arm and a trunk worked out in
+code, on feet that did not move. They are kept behind their switch and set aside. An attack is now made from a
+recorded strike, so the whole body moves as the recording's does. Only the aim test asks for them; the battle's
+attacks are still the strike clips.
+
+**What a sword blow is made of** (read off the recorded forehand cut; times are against the blade's landing).
+
+- **The guard** is side-on: hips turned 38 degrees to the right, left foot 0.34 m ahead, right 0.41 m behind.
+- **The wind-up** (the first half second): the front foot lifts and steps 0.20 m forward, landing a quarter of a
+  second before the blade does. The chest winds back to 62 degrees, the sword arm is drawn back and folded (elbow
+  100 degrees, the blade cocked 108 degrees off the forearm).
+- **The drive** (the last 0.17 s): the back knee straightens (46 to 21 degrees) and pushes; the hips travel 0.46 m
+  forward and sink 12 cm; the front knee bends (41 to 81 degrees) and takes the weight; the back heel is up and
+  that foot drags forward on its toe. Then each part peaks a little after the one below it: the hips' turn at
+  -0.17 s (353 degrees a second), the chest's at -0.13 s (550), the arm, the elbow and the wrist together in the
+  last 0.03 s (600 to 740). The point is going 36 m/s.
+- **At the landing** the hips have turned 75 degrees, the chest 136, the arm is nearly straight.
+- **Carried through and back**: the chest goes on another 38 degrees; everything is back in the guard 0.87 s after.
+
+That order (legs, hips, chest, arm, hand, with the front leg as a brake) is what the sport studies find in a
+fencing lunge, a throw and a bat swing. The rising backhand does it on a passing step (the back foot goes 1.1 m
+past the front one, then the cut); the thrust does it standing, on the ball of the back foot.
+
+**How an attack is made.**
+
+- **The score.** A strike clip is taken apart into each body part's own track: the hips' place and turn, the
+  chest's turn on the hips, the head's on the chest, each arm's bones in the chest's frame, each hand's turn,
+  each ankle's place, each knee's way, each foot. Put together again it is the clip to within 0.3 to 1.5 cm. Its
+  marks are read off the blade: when the drive begins, when it lands, when it is carried through.
+- **The style** changes the tracks: how far each part goes in each phase, and when. Fourteen levers, each 1 for
+  the recording's own: wind-up, arm swing, hip drive, twist, lean, lunge, drop, crouch, carry-through; wind-up
+  time, drive time, back time; hips lead, arm lags. Six to start from: Plain, Heavy, Quick, Brawler, Low, Whip.
+- **The aim.** Every moment of the cut at which the blade is still fast is tried as the moment to land. For each,
+  the hips are lowered and the chest leaned for the target's height, the lunge stretched or shortened for its
+  distance (0.3 to 1.8 times), the body turned over the wind-up for its line (no more than 50 degrees), the wrist
+  steers the last of it, and the sword hand makes up what is left. Each of these costs something; the moment that
+  costs least is taken, and of the recordings the one that costs least.
+- **The legs can be another recording's.** The chest and arms of one blow on the hips, legs, steps and travel of
+  another, each phase stretched to fit: the thrust (recorded standing) on the forehand's lunge is a lunging
+  thrust; the forehand on the thrust's legs is a cut from where it stands.
+- **The moment.** Asked to land at a set time, the wind-up is stretched or shortened; the time the walk holds a
+  clip back for its blade's speed limit is allowed for.
+- What comes out is a clip like any strike clip, so the walk, the feet, the hit, the defender's read and the
+  physical body all take it as they take a recording.
+
+**A bug found on the way, in every strike** (Combat Feel "Clips Travel As Recorded"). A clip's travel was turned
+into its own frame the wrong way round. A clip that turns as it travels then went off to a side by twice its
+turn, and every strike turns 60 to 80 degrees: the rising cut's 0.42 m step forward went 0.33 m to the left, the
+lunging backhand's 1.3 m forward went a little backward. It is fixed for the battle as well, so the regression
+fight is no longer the same fight: 78 blows and 2 falls where it was 68 and 5 (seed 5, six fighters, a minute).
+With the switch off it is the old fight blow for blow.
+
+**Measured** (headless, a Medium with sword and shield 1.5 m from the target, each of the 19 spots twice).
+
+- **As posed, the blade's striking part passes 4 cm from the spot at the middle, 14 at the worst.** The made
+  clip's own blade is on the spot to the centimetre where no hand move is needed (`attacks`).
+- **On an open target 20 of 38 land on the spot asked for** (the strike clips: 5 of 19 from 1.4 m; the built
+  blows: 5 of 19 from 1.05 m). The rest land on a neighbour, 17 cm away at the middle: the blade as seen trails its pose by 40 to 60 cm
+  at speed and meets a nearer part on the way in. Against sword and shield 27 of 38 are stopped by the shield,
+  against a sword 27 of 38 are parried: nothing yet picks the open line.
+- **Asked to land at a set moment**, blows met something 0.47 to 0.58 s after when asked for 0.5 s (0.52 at the
+  middle), 0.87 to 0.97 s for 0.9 s, 1.08 to 1.27 s for 1.2 s (1.20 at the middle). The early and late ones are
+  blows that met another part on the way, and a thrust, whose wind-up is short and stretches only so far.
+- **The feet** slide a few centimetres more in a made attack than in its recording (the recorded forehand's back
+  foot drags 9 cm; aimed at the belly, 12), except the back foot when the body is turned a long way over the
+  wind-up (31 cm for a 35 degree turn): the turn is about the body's middle, not about the planted foot.
+
+**In the aim test** (key 7): Blows cycles made, built, clips. Blow and Legs choose the recording and whose legs;
+Lands in sets the moment; the Style buttons and the Style levers set the style. Press a part.
+
+Headless: `attacks` (the scores made again against their clips, the maker's own check, how long making takes:
+1.7 ms); `ATTACK_DUMP=made.json ... attacks` then `python3 Tools/Mocap/Attacks/strip.py made.json out` draws made
+attacks as film strips. `FIGHT_AIMMADE=0`, `FIGHT_AIMATTACK=sns_thrust`, `FIGHT_AIMLEGS=sns_forehand` (or `own`),
+`FIGHT_AIMBORROW=0`, `FIGHT_AIMLAND=0.9`, `FIGHT_STYLE="WindUp=1.6,DriveTime=1.2"`, `FIGHT_AIMWHO=shield`,
+`FIGHT_TRAVEL=0` (the old travel). `Tools/Mocap/Attacks` has the scripts the clips were read with (`anatomy.py`:
+each part's course through a strike; `look.py`: frame by frame).
+
+Not verified in Unity: how any of it looks in motion. I have only seen stills of the made poses (the film
+strips). Known: there are three plain recordings to make from (forehand cut, rising backhand, thrust), so there is
+no plain low cut, overhead chop or descending backhand yet, and low parts are reached by crouching and leaning a
+forehand or a rising cut; the thrust's recorded hand would point this sword up and back, so a thrust's blade is
+turned onto its line in code; the rising cut's arm is past the rig's own shoulder range for part of its swing (as
+its recording is), more so with a big arm swing; a turn of more than about 20 degrees twists the planted feet.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
