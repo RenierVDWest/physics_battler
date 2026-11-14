@@ -4014,6 +4014,9 @@ With the switch off it is the old fight blow for blow.
   blows: 5 of 19 from 1.05 m). The rest land on a neighbour, 17 cm away at the middle: the blade as seen trails its pose by 40 to 60 cm
   at speed and meets a nearer part on the way in. Against sword and shield 27 of 38 are stopped by the shield,
   against a sword 27 of 38 are parried: nothing yet picks the open line.
+- **Further out**: the thrust on the forehand's lunge, from 2.0 m, travels 0.5 m and passes 1 to 8 cm from the
+  spots on the trunk as posed (on its own legs it reaches 1.3 m). The leaping chop, named and from 2.2 m, passes
+  0 to 3 cm from the upper spots as posed.
 - **Asked to land at a set moment**, blows met something 0.47 to 0.58 s after when asked for 0.5 s (0.52 at the
   middle), 0.87 to 0.97 s for 0.9 s, 1.08 to 1.27 s for 1.2 s (1.20 at the middle). The early and late ones are
   blows that met another part on the way, and a thrust, whose wind-up is short and stretches only so far.

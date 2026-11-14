@@ -3644,9 +3644,10 @@ namespace PhysicsBattler.Locomotion
                 {
                     // (On its own legs, or on another plain blow's: a thrust recorded standing on a cut's lunge, a cut
                     // recorded lunging on the thrust's standing legs. With no legs named: whichever fits the distance.)
+                    // (A leap or a spin keeps its own legs, whatever legs were asked for.)
                     var legScore = AttackScore.Of(under);
                     bool own = under == clip;
-                    if (legScore == null || (!own && (!legScore.Plain || !score.Plain)) || (legs == null ? !own && !MadeBorrowsLegs : legs == "own" ? !own : under.Name != legs))
+                    if (legScore == null || (!own && (!legScore.Plain || !score.Plain)) || (legs == null ? !own && !MadeBorrowsLegs : legs == "own" || !score.Plain ? !own : under.Name != legs))
                     {
                         continue;
                     }
