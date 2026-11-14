@@ -3284,7 +3284,7 @@ What today's fall is, by those numbers (headless: 12 from the test, three each w
 | | |
 |---|---|
 | the head reached the ground | 16 of 16 |
-| how fast it was going | 3.9 m/s on average, 7.0 at most (a person who is trying: about 1.7; one who cannot: about 3.2) |
+| how fast it was going | 4.1 m/s on average, 7.0 at most (a person who is trying: about 1.7; one who cannot: about 3.2) |
 | the hips landed at | 2.2 m/s on average |
 | on the ground after | about 0.45 s (a person: about 0.7 s; these legs give nothing) |
 | a hand or knee down before the trunk | 9 of the 12 from the test, 0 of the 3 thrown |
