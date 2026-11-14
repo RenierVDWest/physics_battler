@@ -209,6 +209,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A fall can be caught: a fighter thrown only a little faster than its legs can catch (up to a third faster) goes down on legs that hold, to a knee and a hand, and if its hips have not reached the ground half a second on, it rises straight from there in about a third of the time a get-up takes. If its hips do reach the ground it has fallen after all, and lies and gets up as from any fall. Off: every fall is a full fall. It needs the falls in the one body and the new get-ups.")]
         public bool fallsCanBeCaught = true;
 
+        [Tooltip("A hand that lands in a fall stays where it landed: it is held there with a limited force (about the body's weight), as a planted foot is, while the body comes down over it and the arm bends under it. It comes away if it is pulled more than a hand's breadth off its place, does not hold while it is sliding fast, and is let go once the body is down. Needs the falls in the one body. Off: a hand that reached the ground skated over it, two metres and more in a fall, and came off it again.")]
+        public bool fallsHandsStayPlanted = true;
+
+        [Tooltip("How hard a hand that has landed grips the ground, in times the body's weight (each hand). Pulled harder than this it is dragged along the ground and brakes the body with this much; pulled less it stays where it is. 0.35 is about a palm's grip under the share of the weight an arm takes: a body knocked down slides a little way with its hands dragging and stops. Higher stops it shorter (at 1 it all but stops where its hands land); lower lets it slide and roll on; 0 is a hand that does not hold at all.")]
+        [Range(0f, 3f)] public float fallHandHold = 0.35f;
+
+        [Tooltip("A body that is down settles where it lies: a quarter of a second after its hips reach the ground its muscles stop reaching for the ground and only hold and damp the pose it is in (its head is still held up), so it comes to rest and can get up sooner. Off: as it was, drawn all the time it is down to a pose made from how it lies, which turned over as the body did, so a body on its side rocked back and forth with its hands sweeping the ground.")]
+        public bool fallenBodiesSettle = true;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -636,6 +645,9 @@ namespace PhysicsBattler.Locomotion
             FallPose.ProtectsHead = fallsProtectTheHead;
             FallPose.Reaches = fallsReachForTheGround;
             ClipFighter.FallsCanBeCaught = fallsCanBeCaught;
+            ClipFighter.HandsStayWhereTheyLand = fallsHandsStayPlanted;
+            PhysicsBattler.Authority.UpperBodyArticulation.HandPinMost = fallHandHold * 785f;
+            ClipFighter.FallenBodiesSettle = fallenBodiesSettle;
             ClipFighter.HeldHips = hipsAreHeldNotLocked;
             PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;
             PhysicsBattler.Authority.UpperBodyArticulation.HipMost = hipHoldStrength;

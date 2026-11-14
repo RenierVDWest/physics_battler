@@ -2044,6 +2044,9 @@ namespace PhysicsBattler.Sandbox
                 feel.fallMuscle = Mathf.Round(20f * Slide("Muscle", $"{feel.fallMuscle:0.00}", "How strong a falling body's muscles are, as a share of a person's strength. 0 is limp.", feel.fallMuscle, 0f, 2f)) / 20f;
                 feel.fallsProtectTheHead = Tick(feel.fallsProtectTheHead, "The head kept off the ground", "Chin to the chest going backward, the head lifted going forward, tipped away going to a side.");
                 feel.fallsReachForTheGround = Tick(feel.fallsReachForTheGround, "The arms reach for the ground", "The arms go out toward the ground the body is falling to. Off: held a little out from the sides.");
+                feel.fallsHandsStayPlanted = Tick(feel.fallsHandsStayPlanted, "A hand that lands stays put", "A hand that reaches the ground is held where it landed while the body comes down over it, and the arm bends under it. Off: it skates over the ground, as before.");
+                feel.fallHandHold = Mathf.Round(20f * Slide("Hand grip", $"{feel.fallHandHold:0.00}x", "How hard a landed hand grips the ground, in times the body's weight. Pulled harder it is dragged and brakes the body. Higher stops the body shorter; lower lets it slide on; 0 does not hold.", feel.fallHandHold, 0f, 3f)) / 20f;
+                feel.fallenBodiesSettle = Tick(feel.fallenBodiesSettle, "A body that is down settles", "Once its hips are down its muscles stop reaching and only hold the pose it lies in, so it comes to rest. Off: it goes on reaching, and on its side rocks back and forth, as before.");
                 feel.fallsCanBeCaught = Tick(feel.fallsCanBeCaught, "A fall can be caught", "A fall only just more than the legs catch ends on a knee and a hand, or sitting, and the fighter rises from there.");
             }
 

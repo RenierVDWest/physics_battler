@@ -32,7 +32,9 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         /// <param name="into">How far into its protective pose it is (0 as it loses its feet: the arms thrown out, the legs as they stood; 1: getting low and reaching).</param>
         /// <param name="holdsMain">Its right hand holds a weapon: the blade is kept out to its side and up, clear of its body.</param>
-        public static void Pose(AnimRig anim, Transform hips, Vector3 going, float ground, float size, float into = 1f, bool holdsMain = false)
+        /// <param name="handL">Its left hand has landed and is held there (world): the arm is posed onto it. Null: it reaches as it falls.</param>
+        /// <param name="handR">The same, its right.</param>
+        public static void Pose(AnimRig anim, Transform hips, Vector3 going, float ground, float size, float into = 1f, bool holdsMain = false, Vector3? handL = null, Vector3? handR = null)
         {
             into = Mathf.Clamp01(into);
             anim.ResetToRest();
@@ -92,6 +94,13 @@ namespace PhysicsBattler.Locomotion
                 if (hand.y < floor)
                 {
                     hand.y = floor;
+                }
+
+                // (A hand that has landed stays where it landed: the arm is posed onto it, and bends as the body comes down over it.)
+                var landed = a == 0 ? handL : handR;
+                if (landed.HasValue)
+                {
+                    hand = landed.Value;
                 }
 
                 // (The elbows back and out of the trunk, as an arm that takes weight bends: pushing up from the ground,

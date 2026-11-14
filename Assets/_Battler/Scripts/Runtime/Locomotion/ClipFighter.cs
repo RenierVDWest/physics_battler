@@ -533,6 +533,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Down at least this long and still this long before it gets up, at most this long down (seconds).</summary>
         public const float LeastDown = 1f, StillFor = 0.3f, MostDown = 2.5f;
 
+        /// <summary>A body that settles where it lies (<see cref="FallenBodiesSettle"/>) is down this long before it gets up, give or take this much from one fall to the next (seconds): as long as bodies were down on average before they settled (1.4 s in Unity over 56 falls).</summary>
+        public const float SettledDown = 1.4f, SettledDownVaries = 0.3f;
+
         public int Stumbles, Falls;
 
         /// <summary>Each fall measured (the plan "Controlled falls", step 1): what reached the ground when, and how fast.</summary>
@@ -593,6 +596,7 @@ namespace PhysicsBattler.Locomotion
             fallBody = true;
             OneBodyFallen++;
             landedAt = -1f;
+            handFreeUntil[0] = handFreeUntil[1] = 0f;
             Upper.Tone = FallMuscle;
             // (The blow that felled it: most of its force is taken back. The fall has its own speed.)
             Upper.EaseStrike(FelledHitForce);
@@ -641,9 +645,118 @@ namespace PhysicsBattler.Locomotion
                 Upper.LetFeetGo();
             }
 
+            StepLandedHands();
             float into = Mathf.Clamp01((footingTime - 0.08f) / 0.3f);
-            FallPose.Pose(Anim, hips, Upper.SpeedOf(PartId.Pelvis), groundLevel, Size, into * into * (3f - 2f * into), stance != Stances.Open);
+            FallPose.Pose(Anim, hips, Upper.SpeedOf(PartId.Pelvis), groundLevel, Size, into * into * (3f - 2f * into), stance != Stances.Open,
+                Upper.HandPinned(0) ? Upper.HandPinAt(0) : (Vector3?)null, Upper.HandPinned(1) ? Upper.HandPinAt(1) : (Vector3?)null);
+            if (FallenBodiesSettle && landedAt >= 0f && !Dead && !catching)
+            {
+                // (Down, it stops reaching: the pose it is drawn to becomes the pose it lies in, so its muscles only
+                // hold what is and damp it. The head is still held up.)
+                float settle = Mathf.Clamp01((footingTime - landedAt - SettlesAfter) / SettlesOver);
+                if (settle > 0f)
+                {
+                    settle = settle * settle * (3f - 2f * settle);
+                    fallPosed.Capture(Anim);
+                    fallAsIs.Capture(Rig);
+                    fallPosed.MixToward(fallAsIs, id => id == PartId.Pelvis || id == PartId.Head ? 0f : settle);
+                    fallPosed.Apply(Anim, false);
+                }
+            }
+
             Upper.BeginStep(dt);
+        }
+
+        /// <summary>
+        /// A body that is down settles where it lies: a quarter of a second after its hips are down, over the next
+        /// 0.4 s, the pose its muscles draw it to becomes the pose it is in, so they hold and damp it and no longer
+        /// reach. Off (as it was): it went on being drawn to a pose made from how it lay, which turned over as the
+        /// body did: on its side it rocked back and forth for as long as it was down, its hands sweeping the ground.
+        /// </summary>
+        public static bool FallenBodiesSettle = true;
+
+        /// <summary>How long after its hips are down a body begins to settle, and how long it takes over it (seconds).</summary>
+        public const float SettlesAfter = 0.25f, SettlesOver = 0.4f;
+
+        private readonly PoseBuffer fallPosed = new PoseBuffer(), fallAsIs = new PoseBuffer();
+
+        /// <summary>
+        /// A hand that lands in a fall stays where it landed (the plan "Controlled falls", steps 5 to 7): held there
+        /// with a limited force, as a planted foot is, while the body comes down over it and the arm bends under
+        /// it. A body still sliding drags it, against that force: its hands brake it. Off: a hand that reached the ground skated over it (two metres and more in a fall, both together) and
+        /// came off it again.
+        /// </summary>
+        public static bool HandsStayWhereTheyLand = true;
+
+        /// <summary>
+        /// A wrist this near the ground, or a hand whose underside is this near it, has landed (metres at a Medium's size); a hand going over the ground faster
+        /// than this does not hold yet (m/s); one lifted this far over where it is held has come away, and one
+        /// pulled this far along the ground from it is dragged (metres at a Medium's size); a hand that came away is
+        /// not held again for this long (seconds); and all are let go this long after the hips are down (seconds).
+        /// </summary>
+        public const float HandLandsWithin = 0.075f, HandUnderWithin = 0.035f, HandHoldsBelow = 4.5f, HandComesAwayAt = 0.12f, HandDragsPast = 0.03f, HandHeldAgainAfter = 0.25f, HandsHeldAfterLanding = 0.6f;
+
+        /// <summary>Hands held where they landed, and hands that came away again, for the reports.</summary>
+        public int HandsHeld, HandsCameAway;
+
+        /// <summary>How far held hands were dragged over the ground (metres), for the reports.</summary>
+        public float HandsDragged;
+
+        private readonly float[] handFreeUntil = new float[2];
+
+        private void StepLandedHands()
+        {
+            bool over = Dead || !HandsStayWhereTheyLand || (landedAt >= 0f && footingTime - landedAt > HandsHeldAfterLanding);
+            for (int h = 0; h < 2; h++)
+            {
+                var id = h == 0 ? PartId.HandL : PartId.HandR;
+                if (Rig.IsSevered(id))
+                {
+                    continue;
+                }
+
+                if (Upper.HandPinned(h))
+                {
+                    // (Lifted off the ground it has come away; pulled along the ground harder than it grips, it is
+                    // dragged, and its hold goes with it: the pull on the body stays what the grip is.)
+                    Vector3 off = Upper.Link(id).transform.position - Upper.HandPinAt(h);
+                    bool away = off.y > HandComesAwayAt * Size;
+                    if (over || away)
+                    {
+                        Upper.PinHand(h, false, Vector3.zero, 1f, 1f);
+                        handFreeUntil[h] = footingTime + HandHeldAgainAfter;
+                        HandsCameAway += away ? 1 : 0;
+                        continue;
+                    }
+
+                    off.y = 0f;
+                    float past = off.magnitude - HandDragsPast * Size;
+                    if (past > 0f)
+                    {
+                        Upper.MoveHandPin(h, Upper.HandPinAt(h) + off.normalized * past);
+                        HandsDragged += past;
+                    }
+
+                    continue;
+                }
+
+                if (over || footingTime < handFreeUntil[h])
+                {
+                    continue;
+                }
+
+                Vector3 at = Upper.Link(id).transform.position;
+                Vector3 goes = Upper.SpeedOf(id);
+                goes.y = 0f;
+                // (Landed: its underside on the ground, as the fall's measure has it; or its wrist as low as a hand lies.)
+                var shape = Rig.Part(id) != null ? Rig.Part(id).partCollider : null;
+                float under = shape != null ? shape.ClosestPoint(new Vector3(at.x, groundLevel - 1f, at.z)).y - groundLevel : float.MaxValue;
+                if ((under <= HandUnderWithin * Size || at.y - groundLevel <= HandLandsWithin * Size) && goes.magnitude <= HandHoldsBelow * Mathf.Sqrt(Size))
+                {
+                    Upper.PinHand(h, true, at, Mathf.Max(0.25f, Mass / MediumMass), Size);
+                    HandsHeld++;
+                }
+            }
         }
 
         /// <summary>Times a blow threw it faster than its legs can catch, and it went down (for the reports).</summary>
@@ -925,7 +1038,11 @@ namespace PhysicsBattler.Locomotion
                 // (Its place goes with the body on the ground: what keeps its distance from it, or aims at it, follows.)
                 Loco.Position = new Vector3(pelvis.position.x, groundLevel, pelvis.position.z);
                 StepFallMeasure(dt);
-                if (!StaysDown && ((footingTime >= LeastDown && stillFor >= StillFor) || footingTime >= MostDown))
+                // (A body that settles is still at once, and would be up a second after it went down every time: half
+                // a second sooner than bodies were on average, and all in step. It stays down as long as they did on
+                // average, each fall a little longer or shorter than the last.)
+                float least = fallBody && FallenBodiesSettle ? SettledDown + SettledDownVaries * (((OneBodyFallen * 3 + Mathf.Abs(Mathf.RoundToInt(7f * pelvis.position.x + 3f * pelvis.position.z))) % 5) - 2) / 2f : LeastDown;
+                if (!StaysDown && ((footingTime >= least && stillFor >= StillFor) || footingTime >= MostDown))
                 {
                     EndFallMeasure();
                     BeginGetUp();

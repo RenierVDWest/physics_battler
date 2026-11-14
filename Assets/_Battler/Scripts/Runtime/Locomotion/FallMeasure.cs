@@ -39,6 +39,16 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far the hips went over the ground after they reached it (metres).</summary>
         public float Slid;
 
+        /// <summary>How far its hands went over the ground while they were on it (metres, both together), and how many times a hand that had reached the ground left it again.</summary>
+        public float HandsSlid;
+        public int HandsLifted;
+
+        /// <summary>A hand that has reached the ground and is this far over it again (metres at a Medium's size) has left it.</summary>
+        public const float HandLeftAt = 0.1f;
+
+        private readonly bool[] handDown = new bool[2];
+        private readonly Vector3[] handWas = new Vector3[2];
+
         /// <summary>A hand, a forearm or a knee was down before the hips, the trunk or the head: it landed on what can take it.</summary>
         public bool Braced
         {
@@ -120,6 +130,41 @@ namespace PhysicsBattler.Locomotion
                 HeadSpeed = speedOf != null ? speedOf(PartId.Head) : Speed(rig, PartId.Head);
             }
 
+            // (Each hand: how far it goes over the ground while it is on it, and whether it leaves it again.)
+            for (int h = 0; h < 2; h++)
+            {
+                var id = h == 0 ? PartId.HandL : PartId.HandR;
+                var part = rig.Part(id);
+                if (part == null || rig.IsSevered(id))
+                {
+                    continue;
+                }
+
+                float over = Low(rig, id, ground);
+                Vector3 where = part.transform.position;
+                where.y = 0f;
+                if (over <= within)
+                {
+                    if (handDown[h])
+                    {
+                        HandsSlid += Vector3.Distance(where, handWas[h]);
+                    }
+
+                    handDown[h] = true;
+                    handWas[h] = where;
+                }
+                else if (handDown[h] && over > HandLeftAt * size)
+                {
+                    handDown[h] = false;
+                    HandsLifted++;
+                }
+                else if (handDown[h])
+                {
+                    HandsSlid += Vector3.Distance(where, handWas[h]);
+                    handWas[h] = where;
+                }
+            }
+
             var pelvis = rig.Part(PartId.Pelvis);
             if (pelvis != null)
             {
@@ -184,6 +229,6 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The fall in a line, for the logs.</summary>
         public string Text =>
-            $"fell {Way}{(Dead ? ", killed" : "")}: first down {(FirstAt < 0f ? "nothing" : $"{First} at {FirstAt:0.00} s")}; a hand {When(HandAt)}, a knee {When(KneeAt)}, the hips {When(HipsAt)}{(HipsAt >= 0f ? $" at {HipsSpeed:0.0} m/s" : "")}, the trunk {When(TrunkAt)}, the head {(HeadAt < 0f ? $"never (lowest {100f * HeadLowest:0} cm up)" : $"{HeadAt:0.00} s at {HeadSpeed:0.0} m/s")}; {(Braced ? "landed on a hand or knee first" : "not on a hand or knee first")}; slid {100f * Slid:0} cm; measured {Lasted:0.0} s ({Why})";
+            $"fell {Way}{(Dead ? ", killed" : "")}: first down {(FirstAt < 0f ? "nothing" : $"{First} at {FirstAt:0.00} s")}; a hand {When(HandAt)}, a knee {When(KneeAt)}, the hips {When(HipsAt)}{(HipsAt >= 0f ? $" at {HipsSpeed:0.0} m/s" : "")}, the trunk {When(TrunkAt)}, the head {(HeadAt < 0f ? $"never (lowest {100f * HeadLowest:0} cm up)" : $"{HeadAt:0.00} s at {HeadSpeed:0.0} m/s")}; {(Braced ? "landed on a hand or knee first" : "not on a hand or knee first")}; slid {100f * Slid:0} cm; its hands went {100f * HandsSlid:0} cm over the ground and left it again {HandsLifted} times; measured {Lasted:0.0} s ({Why})";
     }
 }

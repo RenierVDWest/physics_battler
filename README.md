@@ -3620,6 +3620,42 @@ waiting tube now touches nothing until it is sent. Known and left: walking off b
 the front leg can lock straight for a step (the walk's own, one step in one run); a hand or foot turns in one
 step at the start of some get-ups ("FootL turning at 65 rad/s", five times in the log's 56).
 
+**Controlled falls, steps 5 to 7: a hand that lands stays put, and a body that is down settles** (14 November;
+Combat Feel "Falls Hands Stay Planted", "Fall Hand Hold", "Fallen Bodies Settle"). Measured first, in every `fall`
+line: how far the hands went over the ground while they were on it, and how many times a hand that had reached
+the ground left it again. As it was (the fall buttons, 200 N·s, three targets each way): the hands went 2.2 to
+4.5 m over the ground in a fall, both together, and left it again 15 times in 11 falls. Two things did it.
+
+- A hand that reached the ground was not held there: it skated. Now it is **held where it landed**
+  (`ClipFighter.HandsStayWhereTheyLand`; `UpperBodyArticulation.PinHand`: a pin as a planted foot's, softer, and
+  no stronger than a palm grips, 0.35 of the body's weight a hand, `fallHandHold`). The fall's pose puts the arm
+  onto that place, so the arm bends under the body as it comes down. Pulled harder than it grips, the hand is
+  dragged and brakes the body with that much; lifted, it has come away. It holds from the moment its underside
+  is on the ground and it is going slower than 4.5 m/s, until 0.6 s after the hips are down.
+- A body that was down went on being drawn to a pose made from how it lay, and that pose turned over as the
+  body did: on its side it rocked from its front to its back and again for as long as it was down, its hands
+  sweeping the ground (most of the hands' travel in a fall to a side: with the hands held but the body not yet
+settling it was still 2.2 and 2.6 m; and why those falls lasted the full 2.5 s). Now it
+  **settles** (`FallenBodiesSettle`): from a quarter of a second after its hips are down, over 0.4 s, the pose its
+  muscles hold becomes the pose it is in; the head is still held up. Being still at once, it would be up one
+  second after it went down every time, so a settled body stays down 1.4 s give or take 0.3 from one fall to the
+  next: what bodies were down on average before (1.4 s in Unity over 56 falls, 1.6 headless).
+
+Headless, the same falls, before and now:
+
+| | backward | forward | to its left | to its right |
+|---|---|---|---|---|
+| the hands' way over the ground | 227 cm, now 23 | 218, now 22 | 452, now 16 | 216, now 15 |
+| hands that left the ground again | 4, now 0 | 1, now 0 | 8, now 2 | 2, now 0 |
+| the hips' way over the ground | 64 cm, now 26 | 9, now 0 | 109, now 20 | 39, now 5 |
+| the head reached the ground | 0, now 0 | 1 at 3.3 m/s, now 1 at 0.6 | 0, now 0 | 0, now 0 |
+
+Falling forward a fighter now ends on its hands and knees, its hips never down. Thrown (450 and 600 N·s) the
+hands land late and are not dragged; the grip's strength made no difference to any of these falls (0.35 and 0.9
+gave the same numbers), so it is a setting for harder throws than the test has. Headless only (`FIGHT_HANDSTAY=0`,
+`FIGHT_SETTLE=0`, `FIGHT_HANDHOLD=0.9`). Not verified in Unity. Not done of steps 5 to 7: knees are not pinned, and
+a body falling to a side does not turn to face the ground.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

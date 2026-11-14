@@ -685,6 +685,18 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs = Environment.GetEnvironmentVariable("FIGHT_SWORDUP") != "0";
         PhysicsBattler.Locomotion.Locomotor.GuardTurnsTheWayAsked = Environment.GetEnvironmentVariable("FIGHT_TURNWAY") != "0";
 
+        // (FIGHT_SETTLE=0: a body that is down goes on reaching, as before.)
+        PhysicsBattler.Locomotion.ClipFighter.FallenBodiesSettle = Environment.GetEnvironmentVariable("FIGHT_SETTLE") != "0";
+
+        // (FIGHT_HANDHOLD=0.5: how hard a landed hand is held, in times the body's weight.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_HANDHOLD"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float handHold))
+        {
+            PhysicsBattler.Authority.UpperBodyArticulation.HandPinMost = handHold * 785f;
+        }
+
+        // (FIGHT_HANDSTAY=0: a hand that lands in a fall is not held where it landed.)
+        PhysicsBattler.Locomotion.ClipFighter.HandsStayWhereTheyLand = Environment.GetEnvironmentVariable("FIGHT_HANDSTAY") != "0";
+
         // (FIGHT_CAUGHT=0: no fall is caught.)
         PhysicsBattler.Locomotion.ClipFighter.FallsCanBeCaught = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
 
@@ -1402,8 +1414,9 @@ internal static class FightReport
             {
                 var living = fell.Where(x => !x.f.Dead).Select(x => x.f).ToList();
                 sb.AppendLine($"    falls {(PhysicsBattler.Locomotion.ClipFighter.OneBodyFalls ? $"in the one body, muscle {PhysicsBattler.Locomotion.ClipFighter.FallMuscle:0.00}" : "as ragdolls, as before")}: in the one body {units.Sum(u => u.Clip != null ? u.Clip.OneBodyFallen : 0)}; a joint furthest from the fall's pose: " + string.Join(", ", units.Where(u => u.Clip?.Upper != null).Select(u => $"{u.Clip.Upper.FallOffMostPart} {u.Clip.Upper.FallOffMost:0}")) + " degrees");
+                sb.AppendLine($"    hands held where they landed in a fall: {units.Sum(u => u.Clip != null ? u.Clip.HandsHeld : 0)}; came away again: {units.Sum(u => u.Clip != null ? u.Clip.HandsCameAway : 0)}; dragged over the ground {100f * units.Sum(u => u.Clip != null ? u.Clip.HandsDragged : 0f):0} cm in all");
                 sb.AppendLine($"    falls caught on a knee and a hand: {units.Sum(u => u.Clip != null ? u.Clip.Caught : 0)}; begun so and fallen after all: {units.Sum(u => u.Clip != null ? u.Clip.CaughtAndLost : 0)}");
-                sb.AppendLine($"    falls measured: {fell.Count} ({living.Count} of the living). Of the living: the head reached the ground in {living.Count(f => f.HeadTouched)}{(living.Any(f => f.HeadTouched) ? $" (at {living.Where(f => f.HeadTouched).Average(f => f.HeadSpeed):0.0} m/s on average, {living.Where(f => f.HeadTouched).Max(f => f.HeadSpeed):0.0} at most)" : "")}; landed on a hand or knee before the hips, trunk or head in {living.Count(f => f.Braced)}; the hips landed at {(living.Any(f => f.HipsAt >= 0f) ? living.Where(f => f.HipsAt >= 0f).Average(f => f.HipsSpeed) : 0f):0.0} m/s on average; slid {(living.Count > 0 ? 100f * living.Average(f => f.Slid) : 0f):0} cm on average");
+                sb.AppendLine($"    falls measured: {fell.Count} ({living.Count} of the living). Of the living: the head reached the ground in {living.Count(f => f.HeadTouched)}{(living.Any(f => f.HeadTouched) ? $" (at {living.Where(f => f.HeadTouched).Average(f => f.HeadSpeed):0.0} m/s on average, {living.Where(f => f.HeadTouched).Max(f => f.HeadSpeed):0.0} at most)" : "")}; landed on a hand or knee before the hips, trunk or head in {living.Count(f => f.Braced)}; the hips landed at {(living.Any(f => f.HipsAt >= 0f) ? living.Where(f => f.HipsAt >= 0f).Average(f => f.HipsSpeed) : 0f):0.0} m/s on average; slid {(living.Count > 0 ? 100f * living.Average(f => f.Slid) : 0f):0} cm on average; their hands went {(living.Count > 0 ? 100f * living.Average(f => f.HandsSlid) : 0f):0} cm over the ground on average and left it again {living.Sum(f => f.HandsLifted)} times in all");
                 foreach (var way in fell.Where(x => !x.f.Dead).GroupBy(x => x.f.Way))
                 {
                     sb.AppendLine($"      {way.Key}: {way.Count()}, the head down in {way.Count(x => x.f.HeadTouched)}, on a hand or knee first in {way.Count(x => x.f.Braced)}");

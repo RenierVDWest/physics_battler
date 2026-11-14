@@ -373,6 +373,8 @@ namespace PhysicsBattler.Authority
         public void LetGo(float size)
         {
             Falling = true;
+            PinHand(0, false, Vector3.zero, 1f, 1f);
+            PinHand(1, false, Vector3.zero, 1f, 1f);
             LegsHave = LegTone;
             fallHold ??= new float[parts.Length];
             float mass = 0f;
@@ -427,6 +429,8 @@ namespace PhysicsBattler.Authority
         public void TakeUp()
         {
             Falling = false;
+            PinHand(0, false, Vector3.zero, 1f, 1f);
+            PinHand(1, false, Vector3.zero, 1f, 1f);
             GroundStops(false);
             var pelvis = anim.Part(PartId.Pelvis);
             rootWas = pelvis.position;
@@ -806,6 +810,98 @@ namespace PhysicsBattler.Authority
 
         /// <summary>Is this foot pinned now.</summary>
         public bool FootPinned(int f) => pinned[f];
+
+        // ---- A hand that lands in a fall, held where it landed (the plan "Controlled falls", steps 5 to 7) --------
+
+        /// <summary>
+        /// A hand's pin: as a planted foot's, softer and weaker. Its spring (N/m at a Medium's mass) and the most it
+        /// holds with (N at a Medium's size and mass: a third of a body's weight, what a palm's grip on the ground is
+        /// under the share of the weight an arm takes; pulled harder the hand is dragged, its hold with it).
+        /// </summary>
+        public static float HandPinSpring = 30000f, HandPinMost = 0.35f * 785f;
+
+        private readonly Rigidbody[] handPins = new Rigidbody[2];
+        private readonly ConfigurableJoint[] handPinJoints = new ConfigurableJoint[2];
+        private readonly bool[] handPinned = new bool[2];
+
+        /// <summary>Times a hand was pinned where it landed (for the reports).</summary>
+        public int HandsPinned { get; private set; }
+
+        /// <summary>
+        /// A hand (0 its left) held to <paramref name="at"/> (world: where it landed) with a limited force, or let go.
+        /// <paramref name="mass"/>: the body's against a Medium's, <paramref name="size"/> its size.
+        /// </summary>
+        public void PinHand(int h, bool held, Vector3 at, float mass, float size)
+        {
+            if (held == handPinned[h])
+            {
+                return;
+            }
+
+            int i = Array.IndexOf(parts, h == 0 ? PartId.HandL : PartId.HandR);
+            if (i < 0)
+            {
+                return;
+            }
+
+            if (handPins[h] == null)
+            {
+                if (!held)
+                {
+                    return;
+                }
+
+                // (Made when first wanted: most bodies never fall.)
+                var pinObject = new GameObject((h == 0 ? "HandL" : "HandR") + " (pin)");
+                pinObject.transform.SetParent(Root.transform, false);
+                pinObject.transform.SetPositionAndRotation(at, Quaternion.identity);
+                var pin = pinObject.AddComponent<Rigidbody>();
+                pin.isKinematic = true;
+                pin.useGravity = false;
+                var joint = pinObject.AddComponent<ConfigurableJoint>();
+                joint.connectedArticulationBody = links[i];
+                joint.anchor = Vector3.zero;
+                joint.autoConfigureConnectedAnchor = false;
+                joint.connectedAnchor = Vector3.zero;
+                joint.xMotion = joint.yMotion = joint.zMotion = ConfigurableJointMotion.Free;
+                joint.angularXMotion = joint.angularYMotion = joint.angularZMotion = ConfigurableJointMotion.Free;
+                joint.targetPosition = Vector3.zero;
+                handPins[h] = pin;
+                handPinJoints[h] = joint;
+            }
+
+            handPinned[h] = held;
+            float spring = held ? HandPinSpring * mass : 0f;
+            // (Damped against the arm below the elbow.)
+            float damper = held ? 2f * Mathf.Sqrt(spring * 2.5f * mass) : 0f;
+            var drive = new JointDrive { positionSpring = spring, positionDamper = damper, maximumForce = held ? HandPinMost * mass * size : 0f };
+            handPinJoints[h].xDrive = handPinJoints[h].yDrive = handPinJoints[h].zDrive = drive;
+            if (held)
+            {
+                HandsPinned++;
+                handPins[h].transform.position = at;
+                handPins[h].position = at;
+            }
+        }
+
+        /// <summary>A held hand's place moved (world): a hand dragged over the ground takes its hold with it.</summary>
+        public void MoveHandPin(int h, Vector3 at)
+        {
+            if (handPins[h] != null && handPinned[h])
+            {
+                handPins[h].transform.position = at;
+                handPins[h].position = at;
+            }
+        }
+
+        /// <summary>Is this hand held where it landed.</summary>
+        public bool HandPinned(int h) => handPinned[h];
+
+        /// <summary>Where this hand is held (world; where it landed).</summary>
+        public Vector3 HandPinAt(int h) => handPins[h] != null ? handPins[h].position : Vector3.zero;
+
+        /// <summary>How far a held hand is from where it is held (metres; 0: not held).</summary>
+        public float HandPinOff(int h) => handPinned[h] ? Vector3.Distance(handPinJoints[h].connectedArticulationBody.transform.position, handPins[h].position) : 0f;
 
         /// <summary>
         /// Once everything is in its hands: every joint put where the pose has it again. A part added (a shield's
