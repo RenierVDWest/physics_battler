@@ -48,7 +48,7 @@ namespace PhysicsBattler.Engine
             public PxRigidDynamic* Actor;
             public Vector3 Pos, Vel, AngVel, Before;
             public Quaternion Rot;
-            public bool Kinematic, Gravity, Seen;
+            public bool Kinematic, Gravity, Seen, Frozen;
             public float Mass, LinDamp, AngDamp, MaxAng, MaxDepen;
             public int Iters, VelIters, Depth;
             public CollisionDetectionMode Ccd;
@@ -720,6 +720,14 @@ namespace PhysicsBattler.Engine
                         var inertia = V(Vector3.one * (0.4f * Mathf.Max(1e-4f, b.mass) * 0.05f * 0.05f));
                         PxRigidBody_setMassSpaceInertiaTensor_mut(rigid, &inertia);
                     }
+                }
+
+                if (b.freezeRotation != s.Frozen)
+                {
+                    // (A body that does not turn: the tube test's tubes.)
+                    s.Frozen = b.freezeRotation;
+                    PxRigidDynamic_setRigidDynamicLockFlags_mut((PxRigidDynamic*)s.Actor,
+                        s.Frozen ? PxRigidDynamicLockFlags.LockAngularX | PxRigidDynamicLockFlags.LockAngularY | PxRigidDynamicLockFlags.LockAngularZ : 0);
                 }
 
                 if (b.useGravity != s.Gravity)

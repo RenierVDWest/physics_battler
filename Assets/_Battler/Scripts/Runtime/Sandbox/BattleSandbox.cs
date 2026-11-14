@@ -285,15 +285,111 @@ namespace PhysicsBattler.Sandbox
         public void TargetTest()
         {
             targetTest = true;
+            tubeTest = false;
             fight = true;
             Spawn();
             message = "Target test: left to right, a target that does not block, one with sword and shield, one with a sword. R resets.";
+        }
+
+        // ---- The tube test: the targets alone, each struck by a tube of a set weight and speed -------------------------
+
+        private bool tubeTest;
+        private float tubesSpawnedAt;
+        private Material tubeLook;
+
+        /// <summary>The tube test's tubes and their settings (the panel's sliders).</summary>
+        public readonly TubeTest Tubes = new TubeTest();
+
+        /// <summary>
+        /// The tube test (5): the target test's three targets with no attackers (one with nothing in its hands, one with
+        /// sword and shield, one with a sword), each with a tube waiting at its side. Hit (6) sends every tube across its
+        /// target with the weight and speed the panel's sliders give it; the sliders also set how high it goes, how far
+        /// its end reaches into the target, and how far the targets are turned, so the tube meets their front, a side or
+        /// their back. Reset (R) stands them up fresh. New tubes are set waiting when the last have gone.
+        /// </summary>
+        public void TubeTestScene()
+        {
+            targetTest = true;
+            tubeTest = true;
+            fight = true;
+            Spawn();
+            tubesSpawnedAt = Time.time;
+            message = "Tube test: three targets and a tube beside each. Hit (6) sends the tubes across them; the sliders set how hard, how fast, how high, how deep and from which side. R resets.";
+        }
+
+        /// <summary>The tube test's hit: every waiting tube is sent across its target.</summary>
+        public void TubeHit()
+        {
+            if (!tubeTest)
+            {
+                TubeTestScene();
+                return;
+            }
+
+            int sent = Tubes.Launch();
+            message = sent > 0
+                ? $"Tubes: {sent} sent, {Tubes.Mass:0.0} kg at {Tubes.Speed:0.0} m/s ({Tubes.Impulse:0} N·s), {Tubes.Height * 100f:0} cm up, at {Tubes.Side}{(Tubes.AsBlow ? ", taken as blows" : ", the physics only")}."
+                : "Tubes: none waiting yet (they are set a second after the targets are, and again when the last have gone).";
+            if (sent > 0)
+            {
+                Note($"tube test: {sent} tubes, {Tubes.Mass:0.0} kg at {Tubes.Speed:0.0} m/s ({Tubes.Impulse:0} N·s), height {Tubes.Height:0.00} m, reach {Tubes.Reach:0.00} m, turned {Tubes.Turned:0}, {(Tubes.AsBlow ? "as blows" : "physics only")}, physical legs {(PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs ? "on" : "off")}");
+            }
+        }
+
+        /// <summary>The tube test, each game step: the targets face as the panel turns them, the tubes wait where it puts them, and what they meet is noted.</summary>
+        private void StepTubes()
+        {
+            if (!tubeTest)
+            {
+                return;
+            }
+
+            Vector3 toTarget = Quaternion.Euler(0f, BoardGrid.TeamYaw(0), 0f) * Vector3.forward;
+            Vector3 faces = Tubes.Facing(toTarget);
+            bool ready = Time.time - tubesSpawnedAt > 1f;
+            foreach (var u in units)
+            {
+                if (u == null || !u.TargetDummy)
+                {
+                    continue;
+                }
+
+                u.DummyFace = u.DummySpot + faces * 5f;
+                ready &= u.IsInitialized && u.Clip != null;
+            }
+
+            if (ready && !Tubes.Armed)
+            {
+                if (tubeLook == null)
+                {
+                    tubeLook = TeamMaterial(0);
+                }
+
+                var targets = new List<UnitController>();
+                foreach (var u in units)
+                {
+                    if (u != null && u.TargetDummy && u.IsAlive)
+                    {
+                        targets.Add(u);
+                    }
+                }
+
+                Tubes.Arm(targets, toTarget, tubeLook);
+            }
+
+            Tubes.Place();
+            Tubes.Step(Time.fixedDeltaTime);
+            if (Tubes.Report.Length > 0 && !message.Contains(Tubes.Report))
+            {
+                message = "Tubes met: " + Tubes.Report + ".";
+            }
         }
 
         /// <summary>Back from the target test to the battle laid out by the scene's markers.</summary>
         public void BattleLayout()
         {
             targetTest = false;
+            tubeTest = false;
             Spawn();
             message = "";
         }
@@ -330,6 +426,19 @@ namespace PhysicsBattler.Sandbox
                 float x = (i - 1) * TargetPairsApart;
                 Vector3 spot = Grid.origin + new Vector3(x, 0f, 0.5f * TargetFromAttacker);
                 var target = SpawnUnit(targetBody, 1, spot, $"Target {kinds[i]}", i == 0 ? null : sword, i == 1 ? shield : null);
+                if (target != null)
+                {
+                    target.TargetDummy = true;
+                    target.DummySpot = spot;
+                    target.Unharmed = !targetsHarmed;
+                }
+
+                if (tubeTest)
+                {
+                    // (The tube test: the targets alone. What strikes them is a tube.)
+                    continue;
+                }
+
                 // (A Large's weapon is its club; a Medium's its sword.)
                 var attacker = SpawnUnit(attackerBody, 0, Grid.origin + new Vector3(x, 0f, -0.5f * TargetFromAttacker), $"Attacker {i + 1}", largeAttackers ? club : sword, null);
                 if (target == null || attacker == null)
@@ -337,9 +446,6 @@ namespace PhysicsBattler.Sandbox
                     continue;
                 }
 
-                target.TargetDummy = true;
-                target.DummySpot = spot;
-                target.Unharmed = !targetsHarmed;
                 attacker.OnlyTarget = target;
             }
         }
@@ -383,6 +489,8 @@ namespace PhysicsBattler.Sandbox
 
             units.Clear();
             pendingEquip.Clear();
+            Tubes.Clear();
+            tubesSpawnedAt = Application.isPlaying ? Time.time : 0f;
         }
 
         private void FixedUpdate()
@@ -408,6 +516,7 @@ namespace PhysicsBattler.Sandbox
             using (Perf.Begin(PerfSection.Sandbox))
             {
                 StepFight();
+                StepTubes();
             }
         }
 
@@ -458,6 +567,8 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.Alpha2)) StepBackTest();
             if (SandboxInput.KeyPressed(KeyCode.Alpha3)) TurnTest();
             if (SandboxInput.KeyPressed(KeyCode.Alpha4)) KnockLegTest();
+            if (SandboxInput.KeyPressed(KeyCode.Alpha5)) TubeTestScene();
+            if (SandboxInput.KeyPressed(KeyCode.Alpha6)) TubeHit();
         }
 
         /// <summary>
@@ -1384,7 +1495,32 @@ namespace PhysicsBattler.Sandbox
                 if (targetTest) BattleLayout(); else TargetTest();
             }
             GUILayout.EndHorizontal();
-            if (targetTest)
+            // (The tube test: the targets alone, struck by tubes of a set weight and speed.)
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(tubeTest ? "Tube test: reset (R)" : "Tube test (5)")) TubeTestScene();
+            if (tubeTest && GUILayout.Button("Hit (6)")) TubeHit();
+            GUILayout.EndHorizontal();
+            if (tubeTest)
+            {
+                GUILayout.Label($"How hard: {Tubes.Impulse:0} N·s (a tube of {Tubes.Mass:0.0} kg). A Medium's sword cut is about 45, a Large's club 100 to 300.");
+                Tubes.Impulse = Mathf.Round(GUILayout.HorizontalSlider(Tubes.Impulse, 5f, 600f));
+                GUILayout.Label($"How fast: {Tubes.Speed:0.0} m/s (slower is heavier for the same hit: more of a shove)");
+                Tubes.Speed = Mathf.Round(2f * GUILayout.HorizontalSlider(Tubes.Speed, 2f, 25f)) / 2f;
+                GUILayout.Label($"How high: {Tubes.Height * 100f:0} cm over the ground");
+                Tubes.Height = Mathf.Round(100f * GUILayout.HorizontalSlider(Tubes.Height, 0.1f, 2.4f)) / 100f;
+                GUILayout.Label($"Nearer or further: its end {(Tubes.Reach >= 0f ? $"{Tubes.Reach * 100f:0} cm past the target's middle (it meets more of the body)" : $"{-Tubes.Reach * 100f:0} cm short of the target's middle (it clips the near edge, or misses)")}");
+                Tubes.Reach = Mathf.Round(100f * GUILayout.HorizontalSlider(Tubes.Reach, -0.6f, 0.6f)) / 100f;
+                GUILayout.Label($"Targets turned: {Tubes.Turned:0} degrees: struck on {Tubes.Side} (0 the front, 90 the left side, 180 the back, 270 the right side)");
+                Tubes.Turned = Mathf.Round(GUILayout.HorizontalSlider(Tubes.Turned, 0f, 355f) / 5f) * 5f;
+                Tubes.AsBlow = GUILayout.Toggle(Tubes.AsBlow, "Also taken as a blow of the fight's (recoil, stumble, fall); off: the physics only");
+                if (GUILayout.Button(largeTargets ? "Targets: Larges" : "Targets: Mediums"))
+                {
+                    largeTargets = !largeTargets;
+                    TubeTestScene();
+                }
+            }
+
+            if (targetTest && !tubeTest)
             {
                 // (Each respawns the test with the other body: the attackers with their weapon, a Large's club or a
                 // Medium's sword; the targets with what they stand with.)
@@ -1444,13 +1580,13 @@ namespace PhysicsBattler.Sandbox
             }
 
             // (Physical legs: off until looked at. The scene's Combat Feel sets it every frame, so the toggle changes it there.)
-            bool legs = feel != null ? feel.physicalLegs : PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs;
-            bool legsNow = GUILayout.Toggle(legs, "Physical legs (new, off by default)");
+            bool legs = feel != null ? feel.legsArePhysical : PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs;
+            bool legsNow = GUILayout.Toggle(legs, "Physical legs (off: as before 14 November)");
             if (legsNow != legs)
             {
                 if (feel != null)
                 {
-                    feel.physicalLegs = legsNow;
+                    feel.legsArePhysical = legsNow;
                 }
 
                 PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs = legsNow;

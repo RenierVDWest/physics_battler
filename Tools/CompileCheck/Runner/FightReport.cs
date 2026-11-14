@@ -19,6 +19,10 @@ internal static class FightReport
 {
     private static string[] paceTrace = new string[0];
     private static string[] blowUp = new string[0];
+    private static PhysicsBattler.Sandbox.TubeTest tubes;
+    private static float tubeAt;
+    private static bool tubeSent;
+    private static string tubeMet = "";
     private static readonly int[] paceHist = new int[16];
     private static Vector3 paceHistSum;
     private static float paceHistSpeed;
@@ -446,6 +450,21 @@ internal static class FightReport
             };
         }
 
+        // (The sandbox's tube test: FIGHT_LINEUP=tubes sets the target test's three targets alone; FIGHT_TUBE="6,60,8,1.2,0.15,0,0"
+        // sends a tube across each at 6 s: 60 N·s at 8 m/s, 1.2 m up, its end 0.15 m past the target's middle, the targets
+        // turned 0 degrees, the physics only (1: taken as blows too). FIGHT_TARGETS="ML" makes the targets Larges.)
+        bool tubeLineup = gang == "tubes";
+        if (tubeLineup)
+        {
+            string who = Environment.GetEnvironmentVariable("FIGHT_TARGETS") ?? "MM";
+            bool lt = who.Length > 1 && who[1] == 'L';
+            lineup = new[]
+            {
+                new (string, Tile)[0],
+                new[] { (lt ? "Large open" : "Open", new Tile(1, 5)), (lt ? "Large shield" : "Medium", new Tile(3, 5)), (lt ? "Large sword" : "Swordsman", new Tile(6, 5)) },
+            };
+        }
+
         if (Environment.GetEnvironmentVariable("FIGHT_MIRROR") != null)
         {
             // (Each team in the other's places, to see whether a side or a slot wins, not the units.)
@@ -507,7 +526,28 @@ internal static class FightReport
             }
         }
 
-        var loop = new FightLoop(seed) { Grid = grid, Endless = targetTest };
+        tubes = null;
+        if (tubeLineup)
+        {
+            string[] set = (Environment.GetEnvironmentVariable("FIGHT_TUBE") ?? "6,60,8,1.2,0.15,0,0").Split(',');
+            float Set(int i, float otherwise) => i < set.Length && float.TryParse(set[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+            tubes = new PhysicsBattler.Sandbox.TubeTest { Impulse = Set(1, 60f), Speed = Set(2, 8f), Height = Set(3, 1.2f), Reach = Set(4, 0.15f), Turned = Set(5, 0f), AsBlow = Set(6, 0f) > 0.5f };
+            tubeAt = Set(0, 6f);
+            tubeSent = false;
+            Vector3 faces = tubes.Facing(Quaternion.Euler(0f, BoardGrid.TeamYaw(0), 0f) * Vector3.forward);
+            for (int i = 0; i < units.Count; i++)
+            {
+                float x = (i - 1) * PhysicsBattler.Sandbox.BattleSandbox.TargetPairsApart;
+                Vector3 spot = grid.origin + new Vector3(x, 0f, 0.5f * PhysicsBattler.Sandbox.BattleSandbox.TargetFromAttacker);
+                units[i].Teleport(spot, Mathf.Atan2(faces.x, faces.z) * Mathf.Rad2Deg);
+                units[i].TargetDummy = true;
+                units[i].DummySpot = spot;
+                units[i].DummyFace = spot + faces * 5f;
+                units[i].Unharmed = true;
+            }
+        }
+
+        var loop = new FightLoop(seed) { Grid = grid, Endless = targetTest || tubeLineup };
         // (The plan "Bringing the lab into the fight", step 4: CLIP_FIGHT=1 moves the units as clip fighters, their
         // walk measured as the lab's is.)
         var feet = new Dictionary<UnitController, PhysicsBattler.Locomotion.LocoMeasures>();
@@ -539,7 +579,7 @@ internal static class FightReport
             PhysicsBattler.Locomotion.ClipFighter.StepBackHops = Environment.GetEnvironmentVariable("FIGHT_HOP") == "1";
         }
 
-        // (FIGHT_LEGS=1: the legs are of the physical body, the plan's step 6. Off by default.)
+        // (FIGHT_LEGS=0: the legs go where the pose puts them, as before 14 November. On by default: the plan's step 6.)
         if (Environment.GetEnvironmentVariable("FIGHT_LEGS") != null)
         {
             PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs = Environment.GetEnvironmentVariable("FIGHT_LEGS") == "1";
@@ -803,6 +843,47 @@ internal static class FightReport
                                 Console.WriteLine($"STEPBACK {paceAt:0.000} {u.name}");
                             }
                         }
+                    }
+                }
+
+                if (tubes != null)
+                {
+                    // (The tube test: the tubes set a second before, sent at their time, and for a second and a half after
+                    // each target's body against its pose, and how far it has gone from its spot.)
+                    if (!tubeSent && !tubes.Armed && paceAt >= tubeAt - 1f)
+                    {
+                        tubes.Arm(units, Quaternion.Euler(0f, BoardGrid.TeamYaw(0), 0f) * Vector3.forward);
+                    }
+
+                    if (!tubeSent && paceAt >= tubeAt)
+                    {
+                        tubeSent = true;
+                        Console.WriteLine($"TUBE {paceAt:0.000} sent {tubes.Launch()}: {tubes.Mass:0.0} kg at {tubes.Speed:0.0} m/s ({tubes.Impulse:0} N·s), {tubes.Height:0.00} m up, reach {tubes.Reach:0.00} m, at {tubes.Side} (turned {tubes.Turned:0}), {(tubes.AsBlow ? "as blows" : "physics only")}, legs {(PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs ? "physical" : "posed")}");
+                    }
+
+                    tubes.Step(dt);
+                    int since = Mathf.RoundToInt((paceAt - tubeAt) / dt);
+                    if (tubeSent && since >= 0 && since <= 30 && since % 2 == 0 && Environment.GetEnvironmentVariable("FIGHT_TUBETRACE") == "1")
+                    {
+                        Console.WriteLine($"TUBE at +{paceAt - tubeAt:0.000}: {tubes.State}; the first target at ({units[0].Clip.Loco.Position.x:0.00},{units[0].Clip.Loco.Position.z:0.00})");
+                    }
+
+                    if (tubeSent && since >= 0 && since <= 90 && since % 6 == 0)
+                    {
+                        foreach (var u in units)
+                        {
+                            var up = u.Clip != null ? u.Clip.Upper : null;
+                            string body = up == null ? (u.Clip != null && u.Clip.Fallen ? "down" : "no physical body")
+                                : $"chest {100f * up.Off(PartId.Chest):0.0} head {100f * up.Off(PartId.Head):0.0} hands {100f * up.Off(PartId.HandL):0.0}/{100f * up.Off(PartId.HandR):0.0}"
+                                    + (up.HasLegs ? $" knees {100f * up.Off(PartId.ShinL):0.0}/{100f * up.Off(PartId.ShinR):0.0} feet {100f * up.Off(PartId.FootL):0.0}/{100f * up.Off(PartId.FootR):0.0}" : "") + " cm off its pose";
+                            Console.WriteLine($"TUBE +{paceAt - tubeAt:0.00} {u.name}: {body}; {100f * Vector3.Distance(u.Clip.Loco.Position, u.DummySpot):0} cm from its spot; {u.Clip.LastReaction}");
+                        }
+                    }
+
+                    if (tubeSent && tubes.Report != tubeMet)
+                    {
+                        tubeMet = tubes.Report;
+                        Console.WriteLine($"TUBE met at +{paceAt - tubeAt:0.00}: {tubeMet}");
                     }
                 }
 

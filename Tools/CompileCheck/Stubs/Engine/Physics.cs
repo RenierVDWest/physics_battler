@@ -39,6 +39,7 @@ namespace UnityEngine
 
         public float mass { get; set; } = 1f;
         public bool useGravity { get; set; } = true;
+        public bool freezeRotation { get; set; }
         public bool isKinematic { get; set; }
         public float linearDamping { get; set; }
         public float angularDamping { get; set; } = 0.05f;

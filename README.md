@@ -3185,6 +3185,53 @@ walking, and what it hides is a walk's swing that the animation has low. Taking 
 mending it means giving the walk's swing a height of its own, which changes how the walk looks, and the walk is
 what you said to keep. It is left as it is.
 
+In Unity since (14 November, 74 s of the target test with physical legs on): no fault, no body lost, 83 frames a
+second. A planted foot is within 1.4 cm of its place 95% of the time and 4.1 cm 99%: looser than headless (0.3 to
+0.6 and 0.8 to 2.4), not yet looked into. Looked at and found good, so **physical legs are on by default** (the
+Combat Feel's switch is renamed `legsArePhysical`, so a scene saved with the old one off does not keep it).
+
+**The tube test** (14 November; the debug panel's **Tube test (5)**). A controlled hit, apart from the fight: the
+target test's three targets with no attackers (nothing in its hands; sword and shield; a sword), each with a tube
+waiting beside it. **Hit (6)** sends every tube at its target; **R** (or the button, which then reads "reset")
+stands them up fresh; new tubes are set when the last have gone, so they can be hit again without a reset.
+
+A tube is a bar 1.2 m long and 8 cm thick, lying level, that comes at the target broadside in a straight line, as
+a bat swung level does. It does not turn and does not fall. The sliders:
+
+- **How hard**: its momentum, 5 to 600 N·s, the measure the fight's own blows are logged in (a Medium's sword cut
+  is about 45, a Large's club 100 to 300).
+- **How fast**: 2 to 25 m/s. With how hard, this sets its weight (60 N·s at 8 m/s is 7.5 kg): slower is heavier
+  for the same hit, more of a shove.
+- **How high**: 10 to 240 cm over the ground.
+- **Nearer or further**: how far across the target the tube's end reaches, from 60 cm short of its middle (it
+  clips the near edge or misses) to 60 cm past it.
+- **Targets turned**: 0 to 355 degrees, so the tube meets the front (0), the left side (90), the back (180) or
+  the right side (270); the label says which.
+- **Also taken as a blow of the fight's**: off, the tube is only a body of the physics, and what it does to a
+  fighter is what the physics does. On, the fighter also takes it as the fight takes a blow of that momentum on
+  the part the tube first meets: its recoil, its arm knocked, its stumble, its fall. (A tube the shield stops
+  before it reaches the body is not a blow.)
+- **Targets: Mediums / Larges.**
+
+Each hit is in the playtest log (`tube`: the weight, the speed, the part met, the side).
+
+What it shows headless (`FIGHT_LINEUP=tubes FIGHT_TUBE="3,60,8,1.2,0.15,0,0"`: at 3 s, 60 N·s at 8 m/s, 1.2 m up,
+15 cm past the middle, the front, the physics only), a tube on the chest of the target with nothing in its hands:
+
+| | the physics only | also taken as a blow |
+|---|---|---|
+| 60 N·s (more than a sword cut) | the tube stops dead on the chest; the chest is not 1 mm off its pose | the chest 9 cm back, the fighter driven back 60 cm on its feet |
+| 300 N·s (a Large's club) | not run | knocked down (thrown at 9.3 m/s), up again in a second and a half; the one with the shield took it on the shield arm and was thrown back stumbling 1.4 m |
+
+The left column is the thing to know before the hits are made harder: **a blow's weight does nothing to the
+physical body by touching it.** The hips are carried by the animation and each joint is driven straight back to
+its pose, so the body is a wall to whatever strikes it. Everything a blow does today is done by the fight on top
+(the right column). That is why a force added to the chest would not show yet, and what the plan's step 7 (hips
+held with a limited strength) is for.
+
+Not verified: the tube test in Unity (it is built against the headless engine and the compile check only): that
+the tubes show, meet the bodies and are cleared.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

@@ -207,7 +207,11 @@ namespace PhysicsBattler.Battle
                     Vector3 back = Flat(unit.DummySpot - unit.Root.position);
                     float far = back.magnitude;
                     Steer(units, unit, plan, far > DummyBackFrom * unit.Body.SizeFactor ? back / far * Mathf.Min(unit.WalkSpeed, 2f * far) : Vector3.zero, dt);
-                    if (near != null)
+                    if (unit.DummyFace.HasValue)
+                    {
+                        unit.FacePoint(unit.DummyFace.Value);
+                    }
+                    else if (near != null)
                     {
                         unit.FacePoint(near.Root.position);
                     }

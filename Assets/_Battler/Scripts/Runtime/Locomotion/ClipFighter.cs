@@ -1587,9 +1587,9 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>
         /// Clip fighters' legs are of the physical body too (the scene's Combat Feel; needs <see cref="PhysicalUpper"/>).
-        /// Off, as it has been: the legs go where the pose puts them and nothing stops or moves them.
+        /// Off, as it was before 14 November: the legs go where the pose puts them and nothing stops or moves them.
         /// </summary>
-        public static bool PhysicalLegs;
+        public static bool PhysicalLegs = true;
 
         /// <summary>The legs' muscles: how quick (Hz), and how strong against the trunk's.</summary>
         public static float LegQuick = 40f, LegStrength = 1.5f;

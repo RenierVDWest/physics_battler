@@ -43,6 +43,9 @@ namespace PhysicsBattler.Units
         /// <summary>Where a target dummy stands (world).</summary>
         public Vector3 DummySpot;
 
+        /// <summary>A target dummy faces this point (the sandbox's tube test turns its targets); null: the nearest enemy, as the target test has it.</summary>
+        public Vector3? DummyFace;
+
         /// <summary>It takes no harm: a blow costs it no health and cuts nothing off, so it can be struck again and again (it still reacts, and its poise still breaks).</summary>
         public bool Unharmed;
 
