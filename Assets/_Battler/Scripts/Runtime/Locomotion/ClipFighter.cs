@@ -773,6 +773,8 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            LogGetUp();
+            roseAt = -1f;
             EndFallMeasure();
             falling = new FallMeasure { Way = FallMeasure.WayOf(way, Loco.Facing), Why = LastReaction ?? "", Dead = Dead };
             fallBody = false;
@@ -943,6 +945,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             getUp.Compose(footingTime, stand);
+            MeasureGetUpSeen(dt);
             if (fallBody && Upper != null)
             {
                 // (The one body it fell in is drawn to the get-up's pose, held as a standing body is.)
@@ -968,12 +971,12 @@ namespace PhysicsBattler.Locomotion
                 GetUpFastest = getUp.FastestEarly;
                 GetUpMiss = getUp.ReachMiss;
                 GetUpSlid = getUp.Slid;
-                GetUpLog.Add($"got up {GetUpRoute} in {getUp.Duration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all");
-                if (Diagnostics.PlaytestTrace.Enabled)
-                {
-                    Diagnostics.PlaytestTrace.Note(FightUnit, "getup", GetUpLog[GetUpLog.Count - 1]);
-                }
-
+                // (Its arms come out of the get-up into what a standing fighter's arms do over a moment: the guard, the
+                // free hand's place, the shield. Taken up at once they were whipped there, the free arm at 89 rad/s.)
+                rose.Capture(Anim);
+                roseAt = clock;
+                getUpDuration = getUp.Duration;
+                getUpLogAt = clock + RoseEase + 0.2f;
                 LastReaction = "got up";
             }
         }
@@ -1036,8 +1039,114 @@ namespace PhysicsBattler.Locomotion
         public string GetUpRoute = "";
         public float GetUpTurned, GetUpFastest, GetUpMiss, GetUpSlid;
 
+        /// <summary>How long a fighter's arms take to go from where the get-up left them to what a standing fighter's arms do (seconds).</summary>
+        public const float RoseEase = 0.4f;
+
+        private readonly PoseBuffer rose = new PoseBuffer(), roseNow = new PoseBuffer(), roseMix = new PoseBuffer();
+        private float roseAt = -1f, getUpLogAt = -1f, getUpDuration;
+
+        private static bool IsArm(PartId id) =>
+            id == PartId.UpperArmL || id == PartId.ForearmL || id == PartId.HandL || id == PartId.UpperArmR || id == PartId.ForearmR || id == PartId.HandR;
+
+        /// <summary>Just up: the arms eased from where the get-up left them into the pose the fight has for them now, and what is seen of them measured a moment longer.</summary>
+        private void EaseArmsFromGetUp(float dt)
+        {
+            if (roseAt >= 0f)
+            {
+                float w = (clock - roseAt) / RoseEase;
+                // (Not through a blow of its own: a strike has its arm at once.)
+                if (w >= 1f || clock < weaponArmHeldUntil)
+                {
+                    roseAt = -1f;
+                }
+                else
+                {
+                    w = w * w * (3f - 2f * w);
+                    roseNow.Capture(Anim);
+                    roseMix.CopyFrom(rose);
+                    roseMix.MixToward(roseNow, id => IsArm(id) ? w : 1f);
+                    roseMix.Apply(Anim, false);
+                }
+            }
+
+            if (getUpLogAt >= 0f)
+            {
+                MeasureGetUpSeen(dt);
+                if (clock >= getUpLogAt)
+                {
+                    LogGetUp();
+                }
+            }
+        }
+
+        /// <summary>The last get-up said, with what was seen of it up to a moment after it stood.</summary>
+        private void LogGetUp()
+        {
+            if (getUpLogAt < 0f)
+            {
+                return;
+            }
+
+            getUpLogAt = -1f;
+            GetUpLog.Add($"got up {GetUpRoute} in {getUpDuration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all; an arm in its own body at most {100f * getUp.ArmDeepest:0} cm, more than 2 cm in for {getUp.ArmInFor:0.00} s; what it holds at most {100f * getUp.BladeDeepest:0} cm, for {getUp.BladeInFor:0.00} s; as seen (the physical body): an arm in its body for {GetUpArmSeenIn:0.00} s, what it holds for {GetUpBladeSeenIn:0.00} s");
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(FightUnit, "getup", GetUpLog[GetUpLog.Count - 1]);
+            }
+        }
+
+        private static readonly PartId[] TrunkSolids = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head, PartId.ThighL, PartId.ThighR };
+        private static readonly PartId[] BladeSolids = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head, PartId.ThighL, PartId.ThighR, PartId.ShinL, PartId.ShinR };
+
+        /// <summary>For the reports: how long through the last get-up the body as it is seen (the physical one) had a forearm or hand inside its own trunk, head or thighs, and what its right hand holds inside its trunk, head or legs (seconds).</summary>
+        public float GetUpArmSeenIn, GetUpBladeSeenIn;
+
+        /// <summary>Is any of some points along a line inside any of some of its own parts' solids, as the physical body has them.</summary>
+        private bool SeenInside(Vector3 from, Vector3 to, PartId[] solids)
+        {
+            foreach (var id in solids)
+            {
+                var part = Rig.Part(id);
+                if (part == null || part.partCollider == null || Rig.IsSevered(id))
+                {
+                    continue;
+                }
+
+                for (int i = 0; i <= 8; i++)
+                {
+                    Vector3 p = Vector3.Lerp(from, to, i / 8f);
+                    if ((part.partCollider.ClosestPoint(p) - p).sqrMagnitude < 1e-8f)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private void MeasureGetUpSeen(float dt)
+        {
+            bool arm = false;
+            for (int a = 0; a < 2; a++)
+            {
+                Vector3 elbow = Rig.Part(a == 0 ? PartId.ForearmL : PartId.ForearmR).transform.position;
+                Vector3 wrist = Rig.Part(a == 0 ? PartId.HandL : PartId.HandR).transform.position;
+                arm |= SeenInside(Vector3.Lerp(elbow, wrist, 0.3f), wrist + (wrist - elbow).normalized * (0.08f * Size), TrunkSolids);
+            }
+
+            GetUpArmSeenIn += arm ? dt : 0f;
+            var slot = Rig.SlotWeaponR;
+            if (stance != Stances.Open && slot != null)
+            {
+                Vector3 along = slot.rotation * Vector3.forward;
+                GetUpBladeSeenIn += SeenInside(slot.position + along * (0.15f * Size), slot.position + along * Poser.WeaponLength, BladeSolids) ? dt : 0f;
+            }
+        }
+
         private void BeginGetUp()
         {
+            GetUpArmSeenIn = GetUpBladeSeenIn = 0f;
             var pelvis = Rig.Part(PartId.Pelvis).body;
             Vector3 front = pelvis.rotation * Vector3.forward;
             var kind = front.y > 0f ? GetUp.Kind.FaceUp : GetUp.Kind.FaceDown;
@@ -1109,6 +1218,7 @@ namespace PhysicsBattler.Locomotion
             // (A weapon is in its right hand with a shield or without: laid clear of its body as it gets up. With no
             // shield its free hand is the one that goes to the ground, and the sword stays up before it.)
             getUp.HoldsMain = stance != Stances.Open;
+            getUp.BladeLength = stance != Stances.Open ? Poser.WeaponLength : 0f;
             getUp.PostWith = stance == Stances.Sword ? PhysicsBattler.Motion.Stance.Left : -1;
             getUp.HoldsOff = stance == Stances.Shield;
             getUp.Begin(kind, lying);
@@ -1723,6 +1833,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             HoldArms(dt);
+            EaseArmsFromGetUp(dt);
 
             if (Authority != null)
             {
