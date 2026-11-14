@@ -1518,13 +1518,16 @@ R resets the test; "Back to the battle" returns to the units the scene's markers
 `FIGHT_TARGETS_HARMED=1`; the fight report then also says how far each target was driven off its spot.
 
 **The panel** (laid out afresh on 14 November: it had grown past the bottom of the screen, every control with
-its whole explanation beside it). Always there at the top: pause, step, reset, the speed, and the recording.
+its whole explanation beside it). Always there at the top: a bar of the four places (Walk lab, Battle, Targets, Tubes: where one is, and
+a button to each of the others; the locomotion lab's panel has the same bar, so any of them is one press from
+any other, and the battle can go back to the lab, which it could not), pause, step, reset, the panel's size
+(− and +), the speed, and the recording.
 Always there at the bottom: what the last thing pressed did, and a box that says what the thing under the mouse
 does. Every control now shows only its name and its value; what it means is its tooltip, read in that box.
-Between them the sections, each folded shut or open by pressing its heading (kept between sessions): Scenes and
+Between them the sections, each folded shut or open by pressing its heading (kept between sessions): Fight and
 tests; Tube test (only in the tube test: falls on demand, a fall then a turn, blows on demand, the tube's own
-settings); Hits and hips; Falls and getting up; Moves on demand; Legs and feet; Other switches; Panel, keys and
-camera (the panel's size, the list of keys). The sections scroll when they are taller than the screen, and the
+settings); Hits and hips; Falls and getting up; Moves on demand; Legs and feet; Other switches; Keys and camera (the list of keys). From the lab, 5 goes straight to the tube test as 1 does to
+the target test. The sections scroll when they are taller than the screen, and the
 panel is never taller than the screen; over the panel the mouse's wheel scrolls it and does not zoom the camera. Not verified in Unity: the headless build only checks that it compiles.
 
 Each unit's label

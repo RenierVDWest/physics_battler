@@ -115,6 +115,127 @@ namespace PhysicsBattler.Sandbox
             BeginFight();
         }
 
+        /// <summary>From the locomotion lab straight to the tube test (the lab's 5), as <see cref="WatchFight"/> goes to the battle.</summary>
+        public void WatchTubes()
+        {
+            targetTest = true;
+            tubeTest = true;
+            fight = true;
+            if (!tubeTestBegun)
+            {
+                tubeTestBegun = true;
+                Tubes.AsBlow = true;
+            }
+
+            WatchFight();
+            message = "Tube test: three targets and a tube beside each. The falls and blows on demand are in the Tube test section; R resets.";
+        }
+
+        /// <summary>
+        /// Back from the battle, the target test or the tube test to the locomotion lab: the fighters and tubes go,
+        /// whatever test was running stops, and the lab's walker is set on its course again.
+        /// </summary>
+        public void BackToLab()
+        {
+            StopAllCoroutines();
+            bystanderRun = galleryRun = rhythmRun = null;
+            Clear();
+            targetTest = false;
+            tubeTest = false;
+            paused = false;
+            Time.timeScale = 1f;
+            message = "";
+            // (The lab steps the engine as it always did, and writes its own log.)
+            var stepper = GetComponent<PhysicsBattler.Authority.PhysicsStepper>();
+            if (stepper != null)
+            {
+                stepper.enabled = false;
+            }
+
+            if (recorder != null && recorder.Recording)
+            {
+                recorder.StopSession();
+                recordingStoppedForLab = true;
+            }
+
+            Note("back to the locomotion lab");
+            locomotionLab = true;
+            var lab = gameObject.GetComponent<Locomotion.LocomotionLab>();
+            if (lab == null)
+            {
+                lab = gameObject.AddComponent<Locomotion.LocomotionLab>();
+            }
+
+            lab.Begin(smallPrefab, mediumPrefab, largePrefab, orbitCamera, teamA, board != null ? board.grid.origin : Vector3.zero);
+            enabled = false;
+        }
+
+        private bool recordingStoppedForLab;
+
+        /// <summary>The places the two panels go between, in the order of the bar at the top of each.</summary>
+        public enum Place
+        {
+            Lab,
+            Battle,
+            Targets,
+            Tubes,
+        }
+
+        private static readonly (Place place, string name, string tip)[] Places =
+        {
+            (Place.Lab, "Walk lab", "The locomotion lab: one fighter walking its course, to drive, strike and spar with."),
+            (Place.Battle, "Battle", "The battle laid out by the scene's markers: the two sides fight."),
+            (Place.Targets, "Targets", "The target test (1): three attackers, each on a target that only stands there."),
+            (Place.Tubes, "Tubes", "The tube test (5): the three targets alone, struck by tubes: falls and blows on demand."),
+        };
+
+        private static GUIStyle placeStyle, placeNowStyle;
+
+        /// <summary>
+        /// The bar at the top of both panels (the lab's and this one's): where one is, and a button to each of the
+        /// others, so any of them is one press from any other. The place pressed, or none.
+        /// </summary>
+        public static Place? PlaceBar(Place now)
+        {
+            placeStyle ??= new GUIStyle(GUI.skin.button);
+            placeNowStyle ??= new GUIStyle(GUI.skin.button) { fontStyle = FontStyle.Bold };
+            Place? pressed = null;
+            GUILayout.BeginHorizontal();
+            foreach (var (place, name, tip) in Places)
+            {
+                bool here = place == now;
+                if (GUILayout.Button(new GUIContent(here ? "> " + name + " <" : name, here ? "Where you are now. " + tip : tip), here ? placeNowStyle : placeStyle) && !here)
+                {
+                    pressed = place;
+                }
+            }
+
+            GUILayout.EndHorizontal();
+            return pressed;
+        }
+
+        /// <summary>Where this panel is now.</summary>
+        private Place PlaceNow => tubeTest ? Place.Tubes : targetTest ? Place.Targets : Place.Battle;
+
+        private void GoTo(Place place)
+        {
+            switch (place)
+            {
+                case Place.Lab:
+                    BackToLab();
+                    break;
+                case Place.Battle:
+                    BattleLayout();
+                    break;
+                case Place.Targets:
+                    TargetTest();
+                    break;
+                case Place.Tubes:
+                    TubeTestScene();
+                    break;
+            }
+        }
+
         /// <summary>From the locomotion lab to the target test (the lab's 1), as <see cref="WatchFight"/> goes to the battle.</summary>
         public void WatchTargets()
         {
@@ -132,6 +253,16 @@ namespace PhysicsBattler.Sandbox
             if (recorder == null)
             {
                 recorder = gameObject.AddComponent<PlaytestRecorder>();
+            }
+
+            if (recordingStoppedForLab)
+            {
+                // (The recording that was stopped to go to the lab goes on, as a new log.)
+                recordingStoppedForLab = false;
+                if (!recorder.Recording)
+                {
+                    recorder.StartSession();
+                }
             }
 
             JointConventions.EnsureProbed();
@@ -1678,11 +1809,32 @@ namespace PhysicsBattler.Sandbox
                 feel = null;
             }
 
-            // ---- Always there: the clock and the recording ----
+            // ---- Always there: where one is, the clock and the recording ----
+            var goTo = PlaceBar(shownTube ? Place.Tubes : shownTarget ? Place.Targets : Place.Battle);
+            if (goTo.HasValue)
+            {
+                GoTo(goTo.Value);
+            }
+
+            GUILayout.Space(4f);
             GUILayout.BeginHorizontal();
             if (Press(paused ? "Resume" : "Pause", "Stop and start the game's clock (P).")) TogglePause();
             if (Press("Step", "One step of the game, then stopped again (the full stop key).")) StepOnce();
             if (Press("Reset", "The scene set out afresh: every fighter back on its place (R).")) Spawn();
+            // (The panel's size, always in reach: smaller and larger.)
+            GUILayout.Space(8f);
+            if (Press("−", $"The panel and the fighters' labels drawn smaller. Now {uiScale:0.0} times the screen's own size.", GUILayout.Width(30f)))
+            {
+                uiScale = Mathf.Max(0.8f, uiScale - 0.1f);
+                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+            }
+
+            if (Press("+", $"The panel and the fighters' labels drawn larger. Now {uiScale:0.0} times the screen's own size.", GUILayout.Width(30f)))
+            {
+                uiScale = Mathf.Min(3f, uiScale + 0.1f);
+                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+            }
+
             GUILayout.EndHorizontal();
             float newScale = Slide("Speed", $"{timeScale:0.00}x", "How fast the game's clock runs: 1 is real time, lower is slow motion.", timeScale, 0.05f, 1f);
             if (!Mathf.Approximately(newScale, timeScale))
@@ -1742,7 +1894,7 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawScenes()
         {
-            if (!Section("Scenes and tests", true, "Which scene is set out, and the tests that set out their own."))
+            if (!Section("Fight and tests", true, "The fight on or off, and the tests that set out their own scene. The walk lab, the target test and the tube test are in the bar at the top."))
             {
                 return;
             }
@@ -1752,15 +1904,7 @@ namespace PhysicsBattler.Sandbox
             if (Press(turnedAway ? "Face the enemy" : "Turn around", "Every fighter turned about, or back (T).")) TurnAround();
             GUILayout.EndHorizontal();
 
-            Heading("Tests");
-            GUILayout.BeginHorizontal();
-            if (Press(targetTest ? "Back to the battle" : "Target test (1)", targetTest ? "Back to the battle laid out by the scene's markers." : "Three attackers, each on a target that only stands there: one with empty hands, one with sword and shield (it blocks), one with a sword (it parries)."))
-            {
-                if (targetTest) BattleLayout(); else TargetTest();
-            }
-
-            if (Press(tubeTest ? "Tube test: reset" : "Tube test (5)", "The three targets alone, struck by tubes of a set weight and speed: falls and blows on demand. Its controls are in their own section below.")) TubeTestScene();
-            GUILayout.EndHorizontal();
+            Heading("Tests in the battle", "Each sets out its own scene from the battle's fighters.");
             GUILayout.BeginHorizontal();
             if (Press("Bystander (B)", "A blow swung with a third fighter standing in its way.")) BystanderTest();
             if (Press("Launch (L)", "The heaviest armed fighter strikes the lightest enemy, with a third standing where the blow will throw it.")) LaunchTest();
@@ -2030,28 +2174,14 @@ namespace PhysicsBattler.Sandbox
 
         private void DrawHelp()
         {
-            if (!Section("Panel, keys and camera", false, "The panel's size, the keys, the camera, and what the engine's joints were found to do."))
+            if (!Section("Keys and camera", false, "The keys, the camera, and what the engine's joints were found to do."))
             {
                 return;
             }
 
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Panel size {uiScale:0.0}x", Styles().Text);
-            if (Press("−", "The panel and the fighters' labels drawn smaller.", GUILayout.Width(40f)))
-            {
-                uiScale = Mathf.Max(0.8f, uiScale - 0.1f);
-                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
-            }
-
-            if (Press("+", "The panel and the fighters' labels drawn larger.", GUILayout.Width(40f)))
-            {
-                uiScale = Mathf.Min(3f, uiScale + 0.1f);
-                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
-            }
-
-            GUILayout.EndHorizontal();
+            GUILayout.Label($"Panel size {uiScale:0.0}x: the − and + at the top make it smaller and larger.", Styles().Text);
             Heading("Keys");
-            GUILayout.Label("R reset · F fight · T turn around\nP pause · . step · M mark the log\n1 target test · 5 tube test · 6 hit\n2 step back · 3 turn · 4 knock a leg\nB bystander · L launch · K sever · D ground · J shield\nG move gallery · H rhythm gallery", Styles().Text);
+            GUILayout.Label("R reset · F fight · T turn around\nP pause · . step · M mark the log\n1 targets · 5 tubes · 6 hit (the walk lab: the bar at the top)\n2 step back · 3 turn · 4 knock a leg\nB bystander · L launch · K sever · D ground · J shield\nG move gallery · H rhythm gallery", Styles().Text);
             Heading("Camera");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.", Styles().Text);
             Heading("Joint probe");

@@ -640,12 +640,15 @@ namespace PhysicsBattler.Locomotion
         /// Leaves the lab for the fight (F): this run is logged, the lab's body and footprints go, and the
         /// sandbox spawns the fight, whose units walk with the new walk.
         /// </summary>
-        public void WatchFight() => Leave(false);
+        public void WatchFight() => Leave(BattleSandbox.Place.Battle);
 
         /// <summary>Leaves the lab for the sandbox's target test (1): three attackers, each on a target that stands there.</summary>
-        public void WatchTargets() => Leave(true);
+        public void WatchTargets() => Leave(BattleSandbox.Place.Targets);
 
-        private void Leave(bool targets)
+        /// <summary>Leaves the lab for the sandbox's tube test (5): the three targets alone, struck by tubes.</summary>
+        public void WatchTubes() => Leave(BattleSandbox.Place.Tubes);
+
+        private void Leave(BattleSandbox.Place to)
         {
             WriteLog();
             ClearPrints();
@@ -669,7 +672,11 @@ namespace PhysicsBattler.Locomotion
             Destroy(this);
             if (sandbox != null)
             {
-                if (targets)
+                if (to == BattleSandbox.Place.Tubes)
+                {
+                    sandbox.WatchTubes();
+                }
+                else if (to == BattleSandbox.Place.Targets)
                 {
                     sandbox.WatchTargets();
                 }
@@ -1578,6 +1585,12 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            if (SandboxInput.KeyPressed(KeyCode.Alpha5))
+            {
+                WatchTubes();
+                return;
+            }
+
             if (SandboxInput.KeyPressed(KeyCode.L)) { NextLoadout(); }
             if (SandboxInput.KeyPressed(KeyCode.J)) { PlayCombatClip(); }
             if (SandboxInput.KeyPressed(KeyCode.U)) { NextDummyHeight(); }
@@ -1763,6 +1776,15 @@ namespace PhysicsBattler.Locomotion
 
         private void DrawPanel(int id)
         {
+            // (The same bar as the battle's panel has: where one is, and a button to each of the others.)
+            var goTo = BattleSandbox.PlaceBar(BattleSandbox.Place.Lab);
+            if (goTo.HasValue)
+            {
+                Leave(goTo.Value);
+                return;
+            }
+
+            GUILayout.Space(4f);
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Panel size {uiScale:0.0}x");
             if (GUILayout.Button("\u2212", GUILayout.Width(36f)))
@@ -1813,18 +1835,6 @@ namespace PhysicsBattler.Locomotion
                 if (loadouts.Count > 0 && GUILayout.Button($"Carrying: {loadouts[loadoutNow].name} (L)"))
                 {
                     NextLoadout();
-                }
-
-                if (GUILayout.Button("Watch the fight (F)"))
-                {
-                    WatchFight();
-                    return;
-                }
-
-                if (GUILayout.Button("Target test (1)"))
-                {
-                    WatchTargets();
-                    return;
                 }
 
                 Note($"{loco.Current}{(loco.Shot != null ? " " + loco.Shot.Name : "")}, {new Vector2(loco.Velocity.x, loco.Velocity.z).magnitude:0.00} m/s");
