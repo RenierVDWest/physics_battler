@@ -3123,6 +3123,68 @@ swinging round, against the whole foot swivelling flat. Best in the Target test 
 Not verified: how it looks, and Unity. A heel swinging round a planted toe is what the numbers say happens; if a
 heel now reads as skidding, that is for your eye.
 
+**Physical legs (the plan "Grounded legs", step 6): built, and switched off** (14 November, overnight; Combat Feel
+`physicalLegs`, off by default; the debug panel's toggle **Physical legs** sets it). It is off because nobody
+has seen it: it is the largest change of the plan, and it should be looked at on purpose.
+
+*What it is.* The thighs, shins and feet join the physical body the trunk and arms are: six more parts hung from
+the hips, which the animation still carries, each driven by a muscle to where the animation and the foot
+placement have it. The legs are held to the pose as the trunk is (no slack). A foot the pose has planted is
+pinned where it is planted: a spring from that place to its ankle (120 kN/m for a Medium, giving past 1500 N),
+not a lock, so a leg whose ends are both held does not fight itself, and a leg hooked or struck hard comes away.
+Nothing of a body is stopped by the ground it stands on, legs included: where a foot stands is the pose's to say.
+
+*What it is for.* Until now a leg went exactly where the animation put it and nothing stopped it or moved it: a
+blade passed through a leg, a foot stood inside another fighter's foot, and a leg swung into another fighter
+dragged whatever it hooked (which threw all six fighters out of the scene on 13 November).
+
+The target test (60 s) and four fights of six (60 s), legs off against legs on:
+
+| | legs off | physical legs |
+|---|---|---|
+| A body inside another's body by over 2 cm, the four fights | 5, 20, 4 and 13 times (4.6 s in all, 8 to 12 cm deep, most of them a foot or a shin) | never in three fights; 5 times in one (0.1 s, a hip in a hand) |
+| the same, the target test | 8 times, 6.4 cm deep (feet in feet) | never |
+| A planted foot, from where the pose has it | there exactly | within 0.3 to 0.6 cm 95% of the time; 0.8 to 2.4 cm 99% |
+| A foot in the air | there exactly | within 1.2 to 2.0 cm 95% of the time |
+| A foot's sliding, each fighter, target test | 0.8 m a minute, 3 slides over 5 cm | 1.1 m, 2 slides |
+| Target test: the open target hit; the shield's blocks and hits; the sword's parries and hits | 32; 27 and 3; 19 and 7 | 30; 32 and 1; 18 and 9 |
+| A body the engine lost | none | none |
+| Knocked down and up again | as it was | eight times in the four fights, without fault |
+| Time to compute a fight, headless | 1 | about 1.5 |
+
+The plan's measures for this step: legs inside other bodies none over 2 cm (met but for one hip in one hand);
+planted feet within 1 cm (95% of the time, not 99%); no body put back on its pose (met).
+
+*How it got there.* Without the pins a planted foot crept under hips that move: within 0.7 cm 95% of the time,
+2.1 cm 99%, and the legs' sliding went from 0.8 to 2.2 m a minute. Quicker muscles did nothing for it (twice and
+four times as quick: the same). A pin of 30 kN/m helped a little; 120 kN/m brought the sliding back to what it
+is without physical legs; 400 kN/m held the planted foot tighter and threw the leg in the air about (a knee
+56 cm off its pose once). 120 it is.
+
+*What it does not do yet.* **A blow to a leg hardly moves it.** The plan has "a blow to a leg knocks it aside and
+it comes back". A leg a blow lands on is let go for half a second (its muscles eased, its foot unpinned) and sent
+the blow's way; it moves 1 to 8 cm and is back in a tenth of a second. The joints are driven by speed, and a kick
+is undone as soon as it is given. An arm's knock is put into the pose for that reason, and a leg's would have to
+be; that is not built. What does work is the slow kind: a leg pressed on by a body or a shield gives and is
+stopped, where it went through.
+
+**To see it:** in the debug panel tick **Physical legs (new, off by default)**. Then, in the Target test (1):
+standing and stepping should look as they did (press **Step back now (2)** and **Turn now (3)**); feet should not
+swim or tremble on the ground; a fighter knocked down should fall and get up as before. **Knock a leg (4)** kicks
+every fighter's right shin: expect a small twitch, as above, not a swing. The playtest log's table of each part
+against its pose has the legs in it, so a run with it on tells me how the feet held in Unity.
+
+Not verified: all of it, in Unity. The plan itself warns that the engine there has shown faults the headless one
+did not, three times in the upper body's step, and the foot's pin is a use of the engine this project has not
+made before (a sprung joint from a carried body to a part of the physical body; the hips' carrier is the same
+joint, locked). Cost in Unity is not measured: six parts more a fighter and two joints.
+
+**Left of the plan's step 2, and not done: the lift of a foot that skims the ground.** A foot moving over the
+ground with its sole down is lifted by up to 7 cm; the plan has it taken out. It acts a fifth of the time while
+walking, and what it hides is a walk's swing that the animation has low. Taking it out shows those feet skimming;
+mending it means giving the walk's swing a height of its own, which changes how the walk looks, and the walk is
+what you said to keep. It is left as it is.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
