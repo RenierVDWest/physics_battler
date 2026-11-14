@@ -20,6 +20,7 @@ internal static class FightReport
     private static string[] paceTrace = new string[0];
     private static string[] blowUp = new string[0];
     private static PhysicsBattler.Sandbox.TubeTest tubes;
+    private static readonly Dictionary<UnitController, (Vector3, Vector3, Vector3)> tubeFrom = new Dictionary<UnitController, (Vector3, Vector3, Vector3)>();
     private static float tubeAt;
     private static bool tubeSent;
     private static string tubeMet = "";
@@ -654,6 +655,16 @@ internal static class FightReport
             PhysicsBattler.Locomotion.ClipFighter.LegStrength = legStrong;
         }
 
+        // (FIGHT_HIPS=0: the hips locked to the pose, as before 14 November. FIGHT_HIPQUICK, FIGHT_HIPMOST: how quick the hold
+        // is (Hz) and the most it holds with (times the weight). FIGHT_HITFORCE: the blow's force, times its momentum.)
+        {
+            float Env(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+            PhysicsBattler.Locomotion.ClipFighter.HeldHips = Environment.GetEnvironmentVariable("FIGHT_HIPS") != "0";
+            PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = Env("FIGHT_HIPQUICK", 5f);
+            PhysicsBattler.Authority.UpperBodyArticulation.HipMost = Env("FIGHT_HIPMOST", 3f);
+            PhysicsBattler.Locomotion.CombatFeel.HitForce = Env("FIGHT_HITFORCE", 1f);
+        }
+
         // (FIGHT_GETUP=0: the get-ups as they were before 14 November.)
         PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = Environment.GetEnvironmentVariable("FIGHT_GETUP") != "0";
 
@@ -909,6 +920,15 @@ internal static class FightReport
                     if (!tubeSent && paceAt >= tubeAt)
                     {
                         tubeSent = true;
+                        tubeFrom.Clear();
+                        foreach (var u in units)
+                        {
+                            var up0 = u.Clip?.Upper;
+                            if (up0 != null)
+                            {
+                                tubeFrom[u] = (up0.Link(PartId.Pelvis).transform.position, up0.Link(PartId.Chest).transform.position, up0.Link(PartId.Head).transform.position);
+                            }
+                        }
                         Console.WriteLine($"TUBE {paceAt:0.000} sent {tubes.Launch()}: {tubes.Mass:0.0} kg at {tubes.Speed:0.0} m/s ({tubes.Impulse:0} N·s), {tubes.Height:0.00} m up, reach {tubes.Reach:0.00} m, at {tubes.Side} (turned {tubes.Turned:0}), {(tubes.AsBlow ? "as blows" : "physics only")}, legs {(PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs ? "physical" : "posed")}");
                     }
 
@@ -925,9 +945,9 @@ internal static class FightReport
                         {
                             var up = u.Clip != null ? u.Clip.Upper : null;
                             string body = up == null ? (u.Clip != null && u.Clip.Fallen ? "down" : "no physical body")
-                                : $"chest {100f * up.Off(PartId.Chest):0.0} head {100f * up.Off(PartId.Head):0.0} hands {100f * up.Off(PartId.HandL):0.0}/{100f * up.Off(PartId.HandR):0.0}"
+                                : $"hips {(up.Supported ? 100f * up.HipsOff : 0f):0.0} chest {100f * up.Off(PartId.Chest):0.0} head {100f * up.Off(PartId.Head):0.0} hands {100f * up.Off(PartId.HandL):0.0}/{100f * up.Off(PartId.HandR):0.0}"
                                     + (up.HasLegs ? $" knees {100f * up.Off(PartId.ShinL):0.0}/{100f * up.Off(PartId.ShinR):0.0} feet {100f * up.Off(PartId.FootL):0.0}/{100f * up.Off(PartId.FootR):0.0}" : "") + " cm off its pose";
-                            Console.WriteLine($"TUBE +{paceAt - tubeAt:0.00} {u.name}: {body}; {100f * Vector3.Distance(u.Clip.Loco.Position, u.DummySpot):0} cm from its spot; {u.Clip.LastReaction}");
+                            Console.WriteLine($"TUBE +{paceAt - tubeAt:0.00} {u.name}: {body}; {100f * Vector3.Distance(u.Clip.Loco.Position, u.DummySpot):0} cm from its spot; {(u.Clip.Upper != null && tubeFrom.TryGetValue(u, out var from0) ? $"moved since sent: hips {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Pelvis).transform.position, from0.Item1):0.0} chest {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Chest).transform.position, from0.Item2):0.0} head {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Head).transform.position, from0.Item3):0.0} cm; " : "")}{u.Clip.LastReaction}");
                         }
                     }
 
@@ -1281,6 +1301,8 @@ internal static class FightReport
                 }
             }
 
+            sb.AppendLine($"    hips {(PhysicsBattler.Locomotion.ClipFighter.HeldHips ? $"held ({PhysicsBattler.Authority.UpperBodyArticulation.HipQuick:0.0} Hz, at most {PhysicsBattler.Authority.UpperBodyArticulation.HipMost:0.0} weights)" : "locked")}: off the pose on average / at most (cm): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {(u.Clip.HipsOffSteps > 0 ? 100f * u.Clip.HipsOffSum / u.Clip.HipsOffSteps : 0f):0.0} / {100f * u.Clip.HipsOffMost:0.0}")));
+            sb.AppendLine($"    a blow's force ({PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0} times its momentum): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.HitForces} blows, {u.Clip.HitForceGiven:0} N·s, a joint turned aside {(u.Clip.Upper != null ? u.Clip.Upper.HitBentMost : 0f):0} degrees at most")));
             var rose = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.GetUpLog.Select(g => (u, g))).ToList();
             if (rose.Count > 0)
             {

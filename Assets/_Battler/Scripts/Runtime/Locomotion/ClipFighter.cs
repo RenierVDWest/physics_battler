@@ -1693,7 +1693,21 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The legs' muscles: how quick (Hz), and how strong against the trunk's.</summary>
         public static float LegQuick = 40f, LegStrength = 1.5f;
 
-        private bool builtWithLegs;
+        private bool builtWithLegs, builtHeld;
+
+        /// <summary>
+        /// The physical body's hips are held where the pose has them by a spring of limited strength, not locked there
+        /// (the plan "Grounded legs", step 7; <see cref="UpperBodyArticulation.HipsSupported"/>). Off: locked, as before.
+        /// </summary>
+        public static bool HeldHips = true;
+
+        /// <summary>For the reports: the momentum a blow's force gave its body in all (N·s), and how many blows had one.</summary>
+        public float HitForceGiven;
+        public int HitForces;
+
+        /// <summary>For the reports: the furthest its hips have been from where the pose had them (metres), and how far they are on average.</summary>
+        public float HipsOffMost, HipsOffSum;
+        public int HipsOffSteps;
 
         /// <summary>
         /// A leg a blow lands on is knocked aside for this long (seconds), its muscles as quick and as strong as this
@@ -1846,6 +1860,12 @@ namespace PhysicsBattler.Locomotion
 
             // (Or its legs taken into the physical body, or out of it.)
             if (builtWithLegs != PhysicalLegs)
+            {
+                solidsChanged = true;
+            }
+
+            // (Or its hips held where they were locked, or locked where they were held.)
+            if (builtHeld != HeldHips)
             {
                 solidsChanged = true;
             }
@@ -2082,6 +2102,8 @@ namespace PhysicsBattler.Locomotion
 
             UpperBodyArticulation.WithLegs = PhysicalLegs;
             builtWithLegs = PhysicalLegs;
+            UpperBodyArticulation.HipsSupported = HeldHips;
+            builtHeld = HeldHips;
             legEase[0] = legEase[1] = 1f;
             legLoose[0] = legLoose[1] = false;
             legKnocked[0] = legKnocked[1] = 0f;
@@ -2222,6 +2244,17 @@ namespace PhysicsBattler.Locomotion
             if (Upper == null)
             {
                 return;
+            }
+
+            if (Upper.Supported)
+            {
+                float off = Upper.HipsOff;
+                if (!float.IsNaN(off))
+                {
+                    HipsOffMost = Mathf.Max(HipsOffMost, off);
+                    HipsOffSum += off;
+                    HipsOffSteps++;
+                }
             }
 
             // (A body the engine has lost, in the step it loses it: its pelvis torn off what carries it, a part thrown
@@ -3995,6 +4028,14 @@ namespace PhysicsBattler.Locomotion
                     LastReaction = swept;
                     return;
                 }
+            }
+
+            // (The blow's force on the physical body, on top of what the weapon's touch does: on the part struck, on a
+            // shield's forearm, on a parrying sword's hand, and a share on the parts joined to it.)
+            if (Upper != null && CombatFeel.HitForce > 0f)
+            {
+                HitForceGiven += Upper.Strike(shield ? PartId.ForearmL : parried ? PartId.HandR : part, impulse * CombatFeel.HitForce, point);
+                HitForces++;
             }
 
             if (parried)

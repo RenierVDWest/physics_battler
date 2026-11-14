@@ -228,12 +228,190 @@ namespace PhysicsBattler.Authority
             hold.connectedAnchor = Vector3.zero;
             hold.xMotion = hold.yMotion = hold.zMotion = ConfigurableJointMotion.Locked;
             hold.angularXMotion = hold.angularYMotion = hold.angularZMotion = ConfigurableJointMotion.Locked;
+            Supported = HipsSupported;
+            hipHold = hold;
+            if (Supported)
+            {
+                // (Held, not locked: drawn to where the pose has the hips by a spring that gives. They still turn as the pose turns them.)
+                hold.xMotion = hold.yMotion = hold.zMotion = ConfigurableJointMotion.Free;
+                hold.targetPosition = Vector3.zero;
+                SupportHips();
+            }
+
             if (HasLegs && PinsFeet)
             {
                 BuildPins();
             }
 
             SnapJoints();
+        }
+
+        // ---- The hips held with a limited strength (the plan "Grounded legs", step 7) -------------------------------
+
+        /// <summary>
+        /// A body is built with its hips held, not locked (read as it is built). Locked to where the pose has them, the
+        /// hips made the whole body a wall: a tube of 600 N·s bent the spine to its stop and all of it sprang back, the
+        /// hips not a millimetre moved, and nothing that struck the body could shift it or fell it. Held, the hips are
+        /// drawn to where the pose has them by a spring as quick as <see cref="HipQuick"/> and no stronger than
+        /// <see cref="HipMost"/> times the body's weight: a blow moves the body and it comes back; one that is more
+        /// than the hold has strength for carries the hips off, which is where a fall will begin.
+        /// </summary>
+        public static bool HipsSupported = true;
+
+        /// <summary>How quick the hold on the hips is across the ground and up and down (Hz), how it is damped (1: no swinging back and forth), and the most it holds with, across and up (times the body's weight).</summary>
+        public static float HipQuick = 5f, HipUpQuick = 9f, HipDamping = 1f, HipMost = 3f, HipMostUp = 8f;
+
+        /// <summary>This body's hips are held, not locked.</summary>
+        public bool Supported { get; private set; }
+
+        /// <summary>How far the hips are from where the pose has them (metres).</summary>
+        public float HipsOff => (links[0].transform.position - carrier.position).magnitude;
+
+        private ConfigurableJoint hipHold;
+
+        private void SupportHips()
+        {
+            if (hipHold == null || !Supported)
+            {
+                return;
+            }
+
+            float mass = 0f;
+            foreach (var link in links)
+            {
+                mass += link.mass;
+            }
+
+            float weight = mass * 9.81f;
+            hipHold.xDrive = hipHold.zDrive = Hold(mass, HipQuick, HipMost * weight);
+            hipHold.yDrive = Hold(mass, HipUpQuick, HipMostUp * weight);
+        }
+
+        private static JointDrive Hold(float mass, float quick, float most)
+        {
+            float spring = mass * Mathf.Pow(2f * Mathf.PI * quick, 2f);
+            return new JointDrive { positionSpring = spring, positionDamper = HipDamping * 2f * Mathf.Sqrt(spring * mass), maximumForce = most };
+        }
+
+        // ---- A blow's force on the body (the hit force) ---------------------------------------------------------------
+
+        /// <summary>The share of a blow's force its neighbours in the body take, and theirs (the upper arms and head of a chest struck; the forearms).</summary>
+        public static float HitNear = 0.5f, HitNext = 0.25f;
+
+        /// <summary>The most a blow's force sends any one part (m/s): a club's whole momentum on a hand would send it at the speed of a bullet.</summary>
+        public static float HitMostSpeed = 6f;
+
+        /// <summary>
+        /// The blow that knocks a joint most of the way it can be left aside (N·s at a Medium's mass): a joint is turned
+        /// aside by its most times tanh(the force on its part over this). 120: a sword cut of 50 N·s turns the joint of
+        /// the part it strikes about 8 degrees if it is held (the trunk, the head), 20 if it is slack (an arm at rest).
+        /// </summary>
+        public static float HitBends = 120f;
+
+        /// <summary>For the reports: the furthest a blow's force has turned a joint aside (degrees).</summary>
+        public float HitBentMost { get; private set; }
+
+        /// <summary>
+        /// A blow's force on the body, on top of what the weapon's touch does: <paramref name="impulse"/> (N·s, world)
+        /// on the part struck at <paramref name="point"/>, <see cref="HitNear"/> of it on each part joined to that
+        /// one, <see cref="HitNext"/> on each joined to those. Not the collision's: a force that comes with the blow,
+        /// as a wind would, so that a hard blow shows in the whole body. Returns the momentum given in all (N·s).
+        /// </summary>
+        public float Strike(PartId part, Vector3 impulse, Vector3 point)
+        {
+            int at = Array.IndexOf(parts, part);
+            if (at < 0)
+            {
+                // (A part this body does not have, a leg of one without legs: its hips take it.)
+                at = 0;
+            }
+
+            float given = 0f, bodyMass = 0f;
+            foreach (var link in links)
+            {
+                bodyMass += link.mass;
+            }
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                int apart = Apart(at, i);
+                float share = apart == 0 ? 1f : apart == 1 ? HitNear : apart == 2 ? HitNext : 0f;
+                if (share <= 0f)
+                {
+                    continue;
+                }
+
+                Vector3 push = Vector3.ClampMagnitude(impulse * share, HitMostSpeed * links[i].mass);
+                given += push.magnitude;
+                if (i == at)
+                {
+                    links[i].AddForceAtPosition(push, point, ForceMode.Impulse);
+                }
+                else
+                {
+                    links[i].AddForce(push, ForceMode.Impulse);
+                }
+
+                Bend(i, impulse * share, i == at ? point : links[i].worldCenterOfMass, bodyMass);
+            }
+
+            return given;
+        }
+
+        /// <summary>
+        /// A part's joint knocked aside by a force on the part at a point: turned about its joint the way the force
+        /// turns it, by as much as the force is great, and left to come back as a joint pushed aside does. The joints'
+        /// muscles are a wall to a push that lasts one step (they undo it within the step), so the force's turn is
+        /// given to the joint as what it is left aside by, which is how it gives to a push that lasts.
+        /// </summary>
+        private void Bend(int i, Vector3 force, Vector3 point, float bodyMass)
+        {
+            if (i <= 0 || gripped[i])
+            {
+                return;
+            }
+
+            float j = force.magnitude;
+            Vector3 lever = point - links[i].transform.position;
+            if (j < 1e-4f || lever.sqrMagnitude < 1e-6f)
+            {
+                return;
+            }
+
+            Vector3 axis = Vector3.Cross(lever, force / j);
+            // (A force along the part turns nothing: by how squarely it meets the part.)
+            float square = axis.magnitude / lever.magnitude;
+            if (square < 1e-3f)
+            {
+                return;
+            }
+
+            float mostAside = MostAside * (tight[i] > 0.5f ? HeldAside : 1f);
+            float turn = mostAside * square * (float)Math.Tanh(j / (HitBends * Mathf.Max(0.2f, bodyMass / 70f)));
+            var world = Quaternion.AngleAxis(turn * Mathf.Rad2Deg, axis.normalized);
+            var here = links[i].transform.rotation;
+            var aside = slack[i] * (Quaternion.Inverse(here) * world * here);
+            float left = Quaternion.Angle(aside, Quaternion.identity) * Mathf.Deg2Rad;
+            slack[i] = left > mostAside ? Quaternion.Slerp(Quaternion.identity, aside, mostAside / left) : aside;
+            HitBentMost = Mathf.Max(HitBentMost, Mathf.Min(left, mostAside) * Mathf.Rad2Deg);
+        }
+
+        /// <summary>How many joints apart two parts of the body are (3: three or more).</summary>
+        private int Apart(int a, int b)
+        {
+            // (Up from each to the hips: the joints between them are those to where their ways up meet.)
+            for (int up = 0, x = a; up < 3 && x >= 0; up++, x = parent[x])
+            {
+                for (int down = 0, y = b; up + down < 3 && y >= 0; down++, y = parent[y])
+                {
+                    if (x == y)
+                    {
+                        return up + down;
+                    }
+                }
+            }
+
+            return 3;
         }
 
         // ---- Planted feet, pinned (the plan "Grounded legs", step 6) -------------------------------------------------
@@ -877,6 +1055,9 @@ namespace PhysicsBattler.Authority
                 lever[j] = (at - rest[j]).magnitude;
                 reach[j] = at.magnitude;
             }
+
+            // (The hold on its hips is as strong as the body is heavy.)
+            SupportHips();
         }
 
         /// <summary>
@@ -1441,6 +1622,9 @@ namespace PhysicsBattler.Authority
         /// </summary>
         public const float PelvisTornBy = 0.03f;
 
+        /// <summary>Hips that are held, not locked, are lost only this far from what holds them (metres at a Medium's size): nearer, a blow has moved them.</summary>
+        public const float HipsTornBy = 0.7f;
+
         /// <summary>A part this far from where the pose has it (metres at a Medium's size) is not held off by anything: the body has been thrown.</summary>
         public const float PartThrownBy = 2.5f;
 
@@ -1453,7 +1637,7 @@ namespace PhysicsBattler.Authority
             how = null;
             Vector3 hips = links[0].transform.position;
             float torn = (hips - carrier.position).magnitude;
-            if (float.IsNaN(torn) || float.IsInfinity(torn) || torn > PelvisTornBy * size)
+            if (float.IsNaN(torn) || float.IsInfinity(torn) || torn > (Supported ? HipsTornBy : PelvisTornBy) * size)
             {
                 how = $"its pelvis {torn * 100f:0} cm off what carries it";
                 return true;

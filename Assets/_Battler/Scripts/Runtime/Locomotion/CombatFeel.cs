@@ -174,6 +174,19 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The thighs, shins and feet are part of the physical body, as the arms and trunk are: hung from the hips (which the animation still carries), driven to where the animation and the foot placement put them by muscles of limited strength, a planted foot pinned where it is planted by a spring. On (the default since 14 November, when it had been looked at in Unity): a leg is stopped by a body or a shield it is swung into, no foot stands inside another fighter's foot, and a foot follows its place within a few millimetres instead of exactly. Off: the legs go exactly where the animation puts them and nothing stops them or moves them; a blade passes through a leg, and a leg swung into another fighter drags whatever it hooks. Needs 'physicalUpperBody'. The debug panel's toggle sets this.")]
         public bool legsArePhysical = true;
 
+        [Header("The hips, and a blow's force")]
+        [Tooltip("The hips of the physical body are held where the animation has them by a spring of limited strength, not locked there. Locked, the body was a wall: nothing that struck it could move it. Held, a blow shifts the whole body and it comes back within a few tenths of a second, and a blow stronger than the hold carries the hips off (where a fall will begin). Off: the hips locked to the animation, as before 14 November. The body is built again when this changes.")]
+        public bool hipsAreHeldNotLocked = true;
+
+        [Tooltip("How quick the hold on the hips is, in swings a second (Hz). Lower: a blow moves the body further and it comes back more slowly (3: loose, drunk-looking). Higher: stiffer (10 is nearly locked). 5 lets a sword cut shift the hips a centimetre or two.")]
+        [Range(2f, 12f)] public float hipHoldQuickness = 5f;
+
+        [Tooltip("The most the hold on the hips pulls with, in times the body's weight. A blow that needs more than this to stop carries the hips away from the animation. 3 holds against everything but the hardest blows.")]
+        [Range(0.5f, 8f)] public float hipHoldStrength = 3f;
+
+        [Tooltip("An extra force that comes with every blow that lands, on top of what the weapon's touch does: the blow's own momentum times this, pushed into the part it struck along the way the blow was going, half of that into each part joined to it (a chest's upper arms, head and spine), a quarter into the parts joined to those. 0: none, only the weapon's touch. 1: the blow's momentum again. Higher makes every blow throw the body about more.")]
+        [Range(0f, 6f)] public float hitForce = 1f;
+
         [Header("Falls and getting up")]
         [Tooltip("A fallen fighter gets up from the pose it is really lying in, without first snapping into a tidy lying pose; lopsided, with one hand on the ground and the other arm free, up through one knee, as a fighter is taught to stand up; by one of three routes (from its back, its front or a side); turned toward its enemy by up to 35 degrees while still on the ground; and each get-up a little faster or slower than the last, so fighters felled together do not rise in step. It takes as long as before on average. Off: the get-up as it was before 14 November (five mirror-image poses from a tidy lying pose).")]
         public bool getUpsAreNatural = true;
@@ -368,6 +381,9 @@ namespace PhysicsBattler.Locomotion
         public const float DefaultGiveGroundFrom = 0.9f, DefaultGiveGroundDeep = 0f, DefaultGiveGroundLead = 0.22f, DefaultLeastGiveGround = 0.1f, DefaultMostGiveGround = 0.2f, DefaultGiveGroundEases = 0.3f;
 
         /// <summary>The values in force (the scene's Combat Feel's, else the defaults).</summary>
+        /// <summary>The force that comes with a blow that lands, in times its own momentum (the scene's Combat Feel's <see cref="hitForce"/>).</summary>
+        public static float HitForce = 1f;
+
         public static float WeaponWeight = DefaultWeaponWeight, SwingKept = DefaultSwingKept, StrikeArmStrength = DefaultStrikeArmStrength;
 
         /// <summary>Real weapon weight: the weapons weigh in the physical body what they weigh (at their bearer's size), times <see cref="WeaponMass"/>; and that much of "felt heavier" is taken off what the script adds.</summary>
@@ -592,6 +608,10 @@ namespace PhysicsBattler.Locomotion
             LocoBody.PivotsOnBall = feetPivotOnTheBall;
             ClipFighter.PhysicalLegs = legsArePhysical;
             ClipFighter.NaturalGetUps = getUpsAreNatural;
+            ClipFighter.HeldHips = hipsAreHeldNotLocked;
+            PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;
+            PhysicsBattler.Authority.UpperBodyArticulation.HipMost = hipHoldStrength;
+            HitForce = Mathf.Max(0f, hitForce);
             ConcentrationRise = concentrationRise;
             ConcentrationFall = concentrationFall;
             ConcentrationGuard = concentrationGuard;

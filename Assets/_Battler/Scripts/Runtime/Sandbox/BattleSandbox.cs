@@ -332,7 +332,7 @@ namespace PhysicsBattler.Sandbox
                 : "Tubes: none waiting yet (they are set a second after the targets are, and again when the last have gone).";
             if (sent > 0)
             {
-                Note($"tube test: {sent} tubes, {Tubes.Mass:0.0} kg at {Tubes.Speed:0.0} m/s ({Tubes.Impulse:0} N·s), height {Tubes.Height:0.00} m, reach {Tubes.Reach:0.00} m, turned {Tubes.Turned:0}, {(Tubes.Fells ? "the fall test (they go down)" : Tubes.AsBlow ? "as blows" : "physics only")}, physical legs {(PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs ? "on" : "off")}");
+                Note($"tube test: {sent} tubes, {Tubes.Mass:0.0} kg at {Tubes.Speed:0.0} m/s ({Tubes.Impulse:0} N·s), height {Tubes.Height:0.00} m, reach {Tubes.Reach:0.00} m, turned {Tubes.Turned:0}, {(Tubes.Fells ? "the fall test (they go down)" : Tubes.AsBlow ? "as blows" : "physics only")}, hit force {PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0}, hips {(PhysicsBattler.Locomotion.ClipFighter.HeldHips ? $"held ({PhysicsBattler.Authority.UpperBodyArticulation.HipQuick:0.0} Hz, {PhysicsBattler.Authority.UpperBodyArticulation.HipMost:0.0} weights)" : "locked")}, physical legs {(PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs ? "on" : "off")}");
             }
         }
 
@@ -369,6 +369,28 @@ namespace PhysicsBattler.Sandbox
             // (Sent once the targets have turned and a tube is waiting.)
             fallHitAt = Time.time + (turns ? FallTestTurnsFor : 0f);
             message = $"Fall test: the targets struck on {Tubes.Side} with {Tubes.Impulse:0} N·s, to go down. The tubes are sent as soon as the targets have turned and a tube is waiting.";
+        }
+
+        /// <summary>
+        /// A blow on demand: the waiting tubes sent as blows of <paramref name="impulse"/> (N·s) at chest height, from
+        /// the side the targets are turned to; the legs decide what comes of it (the scene's hit force and the hold on
+        /// the hips are what there is to see).
+        /// </summary>
+        public void BlowTest(float impulse)
+        {
+            if (!tubeTest)
+            {
+                TubeTestScene();
+            }
+
+            Tubes.Impulse = impulse;
+            Tubes.Speed = 8f;
+            Tubes.Height = 1.3f;
+            Tubes.Reach = 0.15f;
+            Tubes.AsBlow = true;
+            Tubes.Fells = false;
+            fallHitAt = Time.time;
+            message = $"Blow test: {impulse:0} N·s on {Tubes.Side}, taken as a blow, with a hit force of {PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0}. The tubes are sent as soon as one is waiting.";
         }
 
         /// <summary>The tube test, each game step: the targets face as the panel turns them, the tubes wait where it puts them, and what they meet is noted.</summary>
@@ -1563,6 +1585,30 @@ namespace PhysicsBattler.Sandbox
                 if (GUILayout.Button("Right")) FallTest(90f, false);
                 GUILayout.EndHorizontal();
                 if (GUILayout.Button("Thrown back (a Large's club at its hardest)")) FallTest(0f, true);
+                GUILayout.Label("Blows on demand: a tube taken as a blow of that size, from the side the targets are turned to. The legs decide what comes of it.");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Sword cut (60)")) BlowTest(60f);
+                if (GUILayout.Button("Heavy (200)")) BlowTest(200f);
+                if (GUILayout.Button("Club (600)")) BlowTest(600f);
+                GUILayout.EndHorizontal();
+                var hitFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+                if (hitFeel != null)
+                {
+                    // (The scene's Combat Feel sets these every frame, so the panel changes them there.)
+                    GUILayout.Label($"A blow's force: {hitFeel.hitForce:0.0} times its own momentum, on the part struck and a share on the parts joined to it (0: only the weapon's touch). It comes with a tube taken as a blow.");
+                    hitFeel.hitForce = Mathf.Round(4f * GUILayout.HorizontalSlider(hitFeel.hitForce, 0f, 6f)) / 4f;
+                    bool held = GUILayout.Toggle(hitFeel.hipsAreHeldNotLocked, "Hips held by a spring, not locked (off: as before 14 November)");
+                    if (held != hitFeel.hipsAreHeldNotLocked)
+                    {
+                        hitFeel.hipsAreHeldNotLocked = held;
+                        Note(held ? "hips held, not locked" : "hips locked, as before");
+                    }
+
+                    GUILayout.Label($"The hold on the hips: {hitFeel.hipHoldQuickness:0.0} swings a second (lower: looser), at most {hitFeel.hipHoldStrength:0.0} times the body's weight");
+                    hitFeel.hipHoldQuickness = Mathf.Round(2f * GUILayout.HorizontalSlider(hitFeel.hipHoldQuickness, 2f, 12f)) / 2f;
+                    hitFeel.hipHoldStrength = Mathf.Round(4f * GUILayout.HorizontalSlider(hitFeel.hipHoldStrength, 0.5f, 8f)) / 4f;
+                }
+
                 // (The scene's Combat Feel sets it every frame, so the toggle changes it there.)
                 var getUpFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
                 bool natural = getUpFeel != null ? getUpFeel.getUpsAreNatural : PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps;

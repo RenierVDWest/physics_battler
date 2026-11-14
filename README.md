@@ -3338,6 +3338,59 @@ still. Headless, the same falls both ways (three targets, from the back and from
 
 What the numbers do not say is whether it looks like a person getting up. Not verified in Unity.
 
+**Grounded legs, step 7: the hips held, not locked; and a blow's force** (14 November).
+
+*The hips.* The physical body's hips were locked to where the pose has them, which made the body a wall: the tube
+test, 600 N·s bent the spine to its stop and the hips did not move a millimetre. They are now held there by a
+spring that gives (`UpperBodyArticulation.HipsSupported`; the Combat Feel's `hipsAreHeldNotLocked`, on; the body
+is built again when it changes): as quick as 5 swings a second (`hipHoldQuickness`), damped so it does not swing
+back and forth, and no stronger than 3 times the body's weight across the ground (`hipHoldStrength`; 8 times up
+and down). They still turn exactly as the pose turns them. A body is "lost by the engine" now only when its
+hips are 70 cm from the pose (it was 3 cm, which a held hip passes).
+
+Headless, the tubes, the physics only (nothing of the fight's):
+
+| | hips locked | hips held |
+|---|---|---|
+| 60 N·s on the chest | hips 0.0 cm, chest 0.0 cm off the pose | hips 0.6 cm, chest 0.5 cm, back within 0.1 s |
+| 600 N·s on the chest | hips 0.0 cm (in Unity: the spine at its stop, the head 38 cm) | hips 3.0 cm, chest 17 cm, head 39 cm, back within 0.5 s |
+
+That is what the physics honestly does with a blow: little. A 60 N·s cut on a 70 kg body is 0.9 m/s.
+
+*A blow's force* (the Combat Feel's `hitForce`, 1; 0 is none). With every blow the fight lands
+(`ClipFighter.TakeHit` to `UpperBodyArticulation.Strike`), on top of the weapon's touch and the fight's own
+reactions: the blow's momentum times `hitForce`, along the blow, on the part struck (a shield's forearm, a
+parrying sword's hand); half of that on each part joined to it (a chest's spine, head and upper arms); a quarter
+on each part joined to those. It does two things:
+
+- **It shoves the body**: the force goes into the parts as the physics' own impulse (no part sent faster than
+  6 m/s), and through them into the hips' hold.
+- **It bends the body**: each of those parts' joints is turned aside the way the force turns it, by the most the
+  joint can be left aside (20 degrees for the trunk and head, 50 for an arm at rest) times tanh(force / 120 N·s
+  at a Medium's mass), and comes back as a joint pushed aside does (0.3 s). The joints' muscles undo within the
+  step any push that lasts one step, so the bend cannot come from the impulse: it is given to the joint as what
+  it is left aside by.
+
+Headless, a tube taken as a blow on the chest, where the chest and the head are 0.2 s after (cm from where they
+were; after 0.3 s the fight's own reaction, which drives the body back half a metre, is most of it):
+
+| | no hit force | hit force 1 | hit force 3 |
+|---|---|---|---|
+| 60 N·s | chest 7.6, head 9.9 | chest 10.8, head 16.4 | chest 13.4, head 19.4 |
+
+A joint was turned aside 11 degrees at most by 60 N·s at hit force 1, 28 at 3, 42 by 200 N·s (an arm).
+
+*Seeing it.* The tube test's panel: **Sword cut (60)**, **Heavy (200)**, **Club (600)** send the tubes as blows of
+that size; a slider for the hit force; a toggle for the hips held or locked, and sliders for the hold's quickness
+and strength.
+
+In two fights of 45 s (headless, six fighters each): no body lost; the hips are 0.3 to 0.7 cm from the pose on
+average and 4 to 22 cm at the hardest blows (a Large's club); feet are let go of and held as before; blows
+landed, blocked and parried in the same numbers as with the hips locked, as far as two fights say.
+
+Not done here: the hips let go for a fall (the falls plan's step 2), and the hips turning under a blow (they
+are still turned only by the pose). Not verified in Unity.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
