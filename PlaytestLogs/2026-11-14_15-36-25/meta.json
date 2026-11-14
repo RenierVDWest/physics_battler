@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "session": "2026-11-14_15-36-25",
+  "unity": "6000.6.7f1",
+  "fixedDeltaTime": 0.01667,
+  "startTime": 3.24156,
+  "endTime": 21.73333,
+  "physicsSteps": 1110,
+  "parts": [{"name": "Pelvis", "parent": "", "bit": 0}, {"name": "Spine", "parent": "Pelvis", "bit": 1}, {"name": "Chest", "parent": "Spine", "bit": 2}, {"name": "Head", "parent": "Chest", "bit": 3}, {"name": "UpperArmL", "parent": "Chest", "bit": 4}, {"name": "ForearmL", "parent": "UpperArmL", "bit": 5}, {"name": "HandL", "parent": "ForearmL", "bit": 6}, {"name": "UpperArmR", "parent": "Chest", "bit": 7}, {"name": "ForearmR", "parent": "UpperArmR", "bit": 8}, {"name": "HandR", "parent": "ForearmR", "bit": 9}, {"name": "ThighL", "parent": "Pelvis", "bit": 10}, {"name": "ShinL", "parent": "ThighL", "bit": 11}, {"name": "FootL", "parent": "ShinL", "bit": 12}, {"name": "ThighR", "parent": "Pelvis", "bit": 13}, {"name": "ShinR", "parent": "ThighR", "bit": 14}, {"name": "FootR", "parent": "ShinR", "bit": 15}],
+  "units": [
+    {"id": 1, "label": "Target open", "stem": "01_Target_open", "frames": "units/01_Target_open.frames.csv.gz", "pose": "units/01_Target_open.pose.csv.gz", "spawnTime": 3.25, "endTime": 6.93333, "team": 1, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 2, "label": "Attacker 1", "stem": "02_Attacker_1", "frames": "units/02_Attacker_1.frames.csv.gz", "pose": "units/02_Attacker_1.pose.csv.gz", "spawnTime": 3.25, "endTime": 6.93333, "team": 0, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 3, "label": "Target shield", "stem": "03_Target_shield", "frames": "units/03_Target_shield.frames.csv.gz", "pose": "units/03_Target_shield.pose.csv.gz", "spawnTime": 3.25, "endTime": 6.93333, "team": 1, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 4, "label": "Attacker 2", "stem": "04_Attacker_2", "frames": "units/04_Attacker_2.frames.csv.gz", "pose": "units/04_Attacker_2.pose.csv.gz", "spawnTime": 3.25, "endTime": 6.93333, "team": 0, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 5, "label": "Target sword", "stem": "05_Target_sword", "frames": "units/05_Target_sword.frames.csv.gz", "pose": "units/05_Target_sword.pose.csv.gz", "spawnTime": 3.25, "endTime": 6.93333, "team": 1, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 6, "label": "Attacker 3", "stem": "06_Attacker_3", "frames": "units/06_Attacker_3.frames.csv.gz", "pose": "units/06_Attacker_3.pose.csv.gz", "spawnTime": 3.25, "endTime": 6.93333, "team": 0, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 7, "label": "Target open #2", "stem": "07_Target_open_2", "frames": "units/07_Target_open_2.frames.csv.gz", "pose": "units/07_Target_open_2.pose.csv.gz", "spawnTime": 6.93333, "endTime": 21.73333, "team": 1, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 8, "label": "Target shield #2", "stem": "08_Target_shield_2", "frames": "units/08_Target_shield_2.frames.csv.gz", "pose": "units/08_Target_shield_2.pose.csv.gz", "spawnTime": 6.93333, "endTime": 21.73333, "team": 1, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"},
+    {"id": 9, "label": "Target sword #2", "stem": "09_Target_sword_2", "frames": "units/09_Target_sword_2.frames.csv.gz", "pose": "units/09_Target_sword_2.pose.csv.gz", "spawnTime": 6.93333, "endTime": 21.73333, "team": 1, "mass": 79.999, "scale": 1, "restPelvisHeight": 0.985, "legLength": 0.84514, "profile": "UP_Medium"}
+  ],
+  "frames": {"index": "frames/frames.csv", "size": 448, "perSecond": 8, "saved": 148},
+  "marks": []
+}

@@ -1,0 +1,520 @@
+# Physics Battler playtest 2026-11-14_15-40-56
+# time (s since Play) | physics step | who | what | details
+    4.339 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    4.339 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+    4.339 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+    4.339 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    4.339 |      0 | -              | input    | at most 50 ms of physics a frame
+    4.339 |      0 | -              | input    | spawn: 6 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+    4.339 |      0 | -              | console  | [Articulation probe] targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    4.339 |      0 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    4.350 |      1 | Target open    | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.350 |      1 | Attacker 1     | spawn    | at (-4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.350 |      1 | Target shield  | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.350 |      1 | Attacker 2     | spawn    | at (0.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.350 |      1 | Target sword   | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.350 |      1 | Attacker 3     | spawn    | at (4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.350 |      1 | Target open    | equip    | bare hands, scaled 1.00
+    4.350 |      1 | Attacker 1     | equip    | WD_Sword, scaled 1.00
+    4.350 |      1 | Target shield  | equip    | WD_Sword and WD_Shield, scaled 1.00
+    4.350 |      1 | Attacker 2     | equip    | WD_Sword, scaled 1.00
+    4.350 |      1 | Target sword   | equip    | WD_Sword, scaled 1.00
+    4.350 |      1 | Attacker 3     | equip    | WD_Sword, scaled 1.00
+    4.350 |      1 | Target open    | sight    | noticed Attacker 1 in clear view (2.6 m)
+    4.350 |      1 | Target open    | sight    | noticed Target shield at the edge of its view (4.0 m)
+    4.350 |      1 | Target open    | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+    4.350 |      1 | Target open    | sight    | noticed Target sword at the edge of its view (8.0 m)
+    4.350 |      1 | Target open    | sight    | noticed Attacker 3 at the edge of its view (8.4 m)
+    4.350 |      1 | Attacker 1     | sight    | noticed Target open in clear view (2.6 m)
+    4.350 |      1 | Attacker 1     | sight    | noticed Target shield at the edge of its view (4.8 m)
+    4.350 |      1 | Attacker 1     | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+    4.350 |      1 | Attacker 1     | sight    | noticed Target sword at the edge of its view (8.4 m)
+    4.350 |      1 | Attacker 1     | sight    | noticed Attacker 3 at the edge of its view (8.0 m)
+    4.350 |      1 | Target shield  | sight    | noticed Target open at the edge of its view (4.0 m)
+    4.350 |      1 | Target shield  | sight    | noticed Attacker 1 at the edge of its view (4.8 m)
+    4.350 |      1 | Target shield  | sight    | noticed Attacker 2 in clear view (2.6 m)
+    4.350 |      1 | Target shield  | sight    | noticed Target sword at the edge of its view (4.0 m)
+    4.350 |      1 | Target shield  | sight    | noticed Attacker 3 at the edge of its view (4.8 m)
+    4.350 |      1 | Attacker 2     | sight    | noticed Target open at the edge of its view (4.8 m)
+    4.350 |      1 | Attacker 2     | sight    | noticed Attacker 1 at the edge of its view (4.0 m)
+    4.350 |      1 | Attacker 2     | sight    | noticed Target shield in clear view (2.6 m)
+    4.350 |      1 | Attacker 2     | sight    | noticed Target sword at the edge of its view (4.8 m)
+    4.350 |      1 | Attacker 2     | sight    | noticed Attacker 3 at the edge of its view (4.0 m)
+    4.350 |      1 | Target sword   | sight    | noticed Target open at the edge of its view (8.0 m)
+    4.350 |      1 | Target sword   | sight    | noticed Attacker 1 at the edge of its view (8.4 m)
+    4.350 |      1 | Target sword   | sight    | noticed Target shield at the edge of its view (4.0 m)
+    4.350 |      1 | Target sword   | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+    4.350 |      1 | Target sword   | sight    | noticed Attacker 3 in clear view (2.6 m)
+    4.350 |      1 | Attacker 3     | sight    | noticed Target open at the edge of its view (8.4 m)
+    4.350 |      1 | Attacker 3     | sight    | noticed Attacker 1 at the edge of its view (8.0 m)
+    4.350 |      1 | Attacker 3     | sight    | noticed Target shield at the edge of its view (4.8 m)
+    4.350 |      1 | Attacker 3     | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+    4.350 |      1 | Attacker 3     | sight    | noticed Target sword in clear view (2.6 m)
+    4.389 |      3 | -              | perf     | 306 ms frame, 0 physics steps, garbage collected (gen0 7, gen1 7, gen2 7); ours: nothing over 0.5 ms; Unity: Physics_Simulate 33.2 ms, GC_Collect 32.2 ms, PlayerLoop 10.1 ms, Gfx_WaitForGfxCommandsFromMainThread 10.0 ms, CPU_Total_Frame_Time 1.3 ms, CPU_Main_Thread_Frame_Time 0.8 ms, CPU_Render_Thread_Frame_Time 0.6 ms, GPU_Frame_Time 0.5 ms
+    4.439 |      6 | -              | perf     | 126 ms frame, 3 physics steps; ours: UnitStep 53.7 ms (18), RecorderSample 33.2 ms (3), ArmSolve 15.0 ms (32), Sandbox 5.9 ms (3), CaptureRender 1.0 ms (1); Unity: Main_Thread 128.1 ms, Gfx_WaitForGfxCommandsFromMainThread 125.1 ms, PlayerLoop 117.1 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 108.1 ms, FixedBehaviourUpdate 108.1 ms, Physics_Simulate 5.1 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 2.3 ms, LateBehaviourUpdate 2.3 ms
+    5.467 |     68 | Attacker 1     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.467 |     68 | Attacker 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.467 |     68 | Attacker 3     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.570 |     74 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+    5.570 |     74 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    5.583 |     75 | Target open #2 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    5.583 |     75 | Target shield #2 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    5.583 |     75 | Target sword #2 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    5.583 |     75 | Attacker 3     | despawn  | removed from the scene
+    5.583 |     75 | Target sword   | despawn  | removed from the scene
+    5.583 |     75 | Attacker 2     | despawn  | removed from the scene
+    5.583 |     75 | Target shield  | despawn  | removed from the scene
+    5.583 |     75 | Attacker 1     | despawn  | removed from the scene
+    5.583 |     75 | Target open    | despawn  | removed from the scene
+    5.583 |     75 | Target open #2 | equip    | bare hands, scaled 1.00
+    5.583 |     75 | Target shield #2 | equip    | WD_Sword and WD_Shield, scaled 1.00
+    5.583 |     75 | Target sword #2 | equip    | WD_Sword, scaled 1.00
+    5.583 |     75 | Target open #2 | sight    | noticed Target shield at the edge of its view (4.0 m)
+    5.583 |     75 | Target open #2 | sight    | noticed Target sword at the edge of its view (8.0 m)
+    5.583 |     75 | Target shield #2 | sight    | noticed Target open at the edge of its view (4.0 m)
+    5.583 |     75 | Target shield #2 | sight    | noticed Target sword at the edge of its view (4.0 m)
+    5.583 |     75 | Target sword #2 | sight    | noticed Target open at the edge of its view (8.0 m)
+    5.583 |     75 | Target sword #2 | sight    | noticed Target shield at the edge of its view (4.0 m)
+    5.620 |     77 | -              | perf     | 124 ms frame, 1 physics steps, garbage collected (gen0 3, gen1 3, gen2 3); ours: UnitStep 3.5 ms (6), ArmSolve 2.3 ms (8); Unity: Main_Thread 122.3 ms, PlayerLoop 119.8 ms, Gfx_WaitForGfxCommandsFromMainThread 119.6 ms, Update_ScriptRunBehaviourUpdate 102.1 ms, BehaviourUpdate 102.1 ms, GC_Collect 14.8 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 8.1 ms, FixedBehaviourUpdate 8.1 ms
+    5.670 |     80 | -              | perf     | 67 ms frame, 3 physics steps; ours: RecorderSample 44.7 ms (3), UnitStep 8.0 ms (9), ArmSolve 2.5 ms (8), Sandbox 0.8 ms (3), RecorderFlush 0.5 ms (3); Unity: Main_Thread 69.0 ms, Gfx_WaitForGfxCommandsFromMainThread 66.6 ms, PlayerLoop 62.0 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 58.6 ms, FixedBehaviourUpdate 58.6 ms, CPU_Total_Frame_Time 10.7 ms, CPU_Main_Thread_Frame_Time 9.9 ms, Physics_Simulate 3.0 ms
+    8.116 |    226 | -              | input    | spawn: 6 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+    8.116 |    226 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    8.117 |    227 | Target open #3 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    8.117 |    227 | Attacker 1 #2  | spawn    | at (-4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    8.117 |    227 | Target shield #3 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    8.117 |    227 | Attacker 2 #2  | spawn    | at (0.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    8.117 |    227 | Target sword #3 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    8.117 |    227 | Attacker 3 #2  | spawn    | at (4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    8.117 |    227 | Target sword #2 | despawn  | removed from the scene
+    8.117 |    227 | Target shield #2 | despawn  | removed from the scene
+    8.117 |    227 | Target open #2 | despawn  | removed from the scene
+    8.117 |    227 | Target open #3 | equip    | bare hands, scaled 1.00
+    8.117 |    227 | Attacker 1 #2  | equip    | WD_Sword, scaled 1.00
+    8.117 |    227 | Target shield #3 | equip    | WD_Sword and WD_Shield, scaled 1.00
+    8.117 |    227 | Attacker 2 #2  | equip    | WD_Sword, scaled 1.00
+    8.117 |    227 | Target sword #3 | equip    | WD_Sword, scaled 1.00
+    8.117 |    227 | Attacker 3 #2  | equip    | WD_Sword, scaled 1.00
+    8.117 |    227 | Target open #3 | sight    | noticed Attacker 1 in clear view (2.6 m)
+    8.117 |    227 | Target open #3 | sight    | noticed Target shield at the edge of its view (4.0 m)
+    8.117 |    227 | Target open #3 | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+    8.117 |    227 | Target open #3 | sight    | noticed Target sword at the edge of its view (8.0 m)
+    8.117 |    227 | Target open #3 | sight    | noticed Attacker 3 at the edge of its view (8.4 m)
+    8.117 |    227 | Attacker 1 #2  | sight    | noticed Target open in clear view (2.6 m)
+    8.117 |    227 | Attacker 1 #2  | sight    | noticed Target shield at the edge of its view (4.8 m)
+    8.117 |    227 | Attacker 1 #2  | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+    8.117 |    227 | Attacker 1 #2  | sight    | noticed Target sword at the edge of its view (8.4 m)
+    8.117 |    227 | Attacker 1 #2  | sight    | noticed Attacker 3 at the edge of its view (8.0 m)
+    8.117 |    227 | Target shield #3 | sight    | noticed Target open at the edge of its view (4.0 m)
+    8.117 |    227 | Target shield #3 | sight    | noticed Attacker 1 at the edge of its view (4.8 m)
+    8.117 |    227 | Target shield #3 | sight    | noticed Attacker 2 in clear view (2.6 m)
+    8.117 |    227 | Target shield #3 | sight    | noticed Target sword at the edge of its view (4.0 m)
+    8.117 |    227 | Target shield #3 | sight    | noticed Attacker 3 at the edge of its view (4.8 m)
+    8.117 |    227 | Attacker 2 #2  | sight    | noticed Target open at the edge of its view (4.8 m)
+    8.117 |    227 | Attacker 2 #2  | sight    | noticed Attacker 1 at the edge of its view (4.0 m)
+    8.117 |    227 | Attacker 2 #2  | sight    | noticed Target shield in clear view (2.6 m)
+    8.117 |    227 | Attacker 2 #2  | sight    | noticed Target sword at the edge of its view (4.8 m)
+    8.117 |    227 | Attacker 2 #2  | sight    | noticed Attacker 3 at the edge of its view (4.0 m)
+    8.117 |    227 | Target sword #3 | sight    | noticed Target open at the edge of its view (8.0 m)
+    8.117 |    227 | Target sword #3 | sight    | noticed Attacker 1 at the edge of its view (8.4 m)
+    8.117 |    227 | Target sword #3 | sight    | noticed Target shield at the edge of its view (4.0 m)
+    8.117 |    227 | Target sword #3 | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+    8.117 |    227 | Target sword #3 | sight    | noticed Attacker 3 in clear view (2.6 m)
+    8.117 |    227 | Attacker 3 #2  | sight    | noticed Target open at the edge of its view (8.4 m)
+    8.117 |    227 | Attacker 3 #2  | sight    | noticed Attacker 1 at the edge of its view (8.0 m)
+    8.117 |    227 | Attacker 3 #2  | sight    | noticed Target shield at the edge of its view (4.8 m)
+    8.117 |    227 | Attacker 3 #2  | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+    8.117 |    227 | Attacker 3 #2  | sight    | noticed Target sword in clear view (2.6 m)
+    8.166 |    229 | -              | perf     | 222 ms frame, 0 physics steps, garbage collected (gen0 7, gen1 7, gen2 7); ours: nothing over 0.5 ms; Unity: Main_Thread 220.1 ms, Gfx_WaitForGfxCommandsFromMainThread 218.4 ms, PlayerLoop 218.3 ms, Update_ScriptRunBehaviourUpdate 214.0 ms, BehaviourUpdate 214.0 ms, GC_Collect 36.8 ms, CPU_Total_Frame_Time 7.3 ms, CPU_Main_Thread_Frame_Time 6.4 ms
+    8.216 |    232 | -              | perf     | 63 ms frame, 3 physics steps; ours: RecorderSample 25.2 ms (3), UnitStep 19.4 ms (18), ArmSolve 9.4 ms (32); Unity: Main_Thread 62.3 ms, Gfx_WaitForGfxCommandsFromMainThread 60.4 ms, PlayerLoop 55.7 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 53.4 ms, FixedBehaviourUpdate 53.4 ms, Physics_Simulate 4.9 ms, CPU_Total_Frame_Time 2.4 ms, CPU_Main_Thread_Frame_Time 1.6 ms
+    9.233 |    294 | Attacker 1 #2  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    9.233 |    294 | Attacker 2 #2  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    9.233 |    294 | Attacker 3 #2  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   10.117 |    347 | Attacker 3 #2  | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at Target sword #3
+   10.200 |    352 | Attacker 1 #2  | attack   | sns_thrust at Target open #3
+   10.300 |    358 | Attacker 2 #2  | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at Target shield #3
+   10.533 |    372 | Attacker 3 #2  | hit      | blow struck Target sword's HandR at 5.2 m/s: parried by Target sword's parried (8 poise); impulse 15.0 N·s (70% into the part); the swing stopped; parried
+   10.533 |    372 | Target sword #3 | struck   | by Attacker 3 on the HandR: health 100/100, poise 37/45, recoil, standing; parried with high tierce
+   10.567 |    374 | Target sword #3 | tempo    | gather → shell: pressed (pressure 0.89); energy 1.00, aggression 0.44
+   10.683 |    381 | Attacker 1 #2  | hit      | blow struck Target open's Chest at 10.8 m/s: 14.4 damage, 9 poise, recoil; impulse 17.6 N·s (45% into the part); the swing went on (70% of it left); the target
+   10.683 |    381 | Target open #3 | struck   | by Attacker 1 on the Chest: health 100/100, poise 36/45, recoil, standing; thrown back stumbling at 2.8 m/s (the blow's 3.3)
+   10.684 |    381 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   10.684 |    381 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   10.700 |    382 | Target open #4 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.700 |    382 | Target shield #4 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.700 |    382 | Target sword #4 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   10.700 |    382 | Attacker 3 #2  | despawn  | removed from the scene
+   10.700 |    382 | Target sword #3 | despawn  | removed from the scene
+   10.700 |    382 | Attacker 2 #2  | despawn  | removed from the scene
+   10.700 |    382 | Target shield #3 | despawn  | removed from the scene
+   10.700 |    382 | Attacker 1 #2  | despawn  | removed from the scene
+   10.700 |    382 | Target open #3 | despawn  | removed from the scene
+   10.700 |    382 | Target open #4 | equip    | bare hands, scaled 1.00
+   10.700 |    382 | Target shield #4 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   10.700 |    382 | Target sword #4 | equip    | WD_Sword, scaled 1.00
+   10.700 |    382 | Target open #4 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   10.700 |    382 | Target open #4 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   10.700 |    382 | Target shield #4 | sight    | noticed Target open at the edge of its view (4.0 m)
+   10.700 |    382 | Target shield #4 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   10.700 |    382 | Target sword #4 | sight    | noticed Target open at the edge of its view (8.0 m)
+   10.700 |    382 | Target sword #4 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   10.734 |    384 | -              | perf     | 120 ms frame, 1 physics steps; ours: UnitStep 5.2 ms (6), ArmSolve 1.1 ms (2); Unity: Main_Thread 118.6 ms, Gfx_WaitForGfxCommandsFromMainThread 116.9 ms, PlayerLoop 116.8 ms, Update_ScriptRunBehaviourUpdate 101.6 ms, BehaviourUpdate 101.6 ms, GC_Collect 15.3 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 9.6 ms, FixedBehaviourUpdate 9.6 ms
+   10.784 |    387 | -              | perf     | 54 ms frame, 3 physics steps; ours: RecorderSample 34.3 ms (3), UnitStep 7.6 ms (9), ArmSolve 2.5 ms (8); Unity: Main_Thread 55.1 ms, Gfx_WaitForGfxCommandsFromMainThread 52.7 ms, PlayerLoop 50.1 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 47.1 ms, FixedBehaviourUpdate 47.1 ms, CPU_Total_Frame_Time 10.4 ms, CPU_Main_Thread_Frame_Time 9.6 ms, Physics_Simulate 3.0 ms
+   11.825 |    449 | -              | input    | spawn: 6 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   11.825 |    449 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   11.833 |    450 | Target open #5 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   11.833 |    450 | Attacker 1 #3  | spawn    | at (-4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   11.833 |    450 | Target shield #5 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   11.833 |    450 | Attacker 2 #3  | spawn    | at (0.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   11.833 |    450 | Target sword #5 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   11.833 |    450 | Attacker 3 #3  | spawn    | at (4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   11.833 |    450 | Target sword #4 | despawn  | removed from the scene
+   11.833 |    450 | Target shield #4 | despawn  | removed from the scene
+   11.833 |    450 | Target open #4 | despawn  | removed from the scene
+   11.833 |    450 | Target open #5 | equip    | bare hands, scaled 1.00
+   11.833 |    450 | Attacker 1 #3  | equip    | WD_Sword, scaled 1.00
+   11.833 |    450 | Target shield #5 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   11.833 |    450 | Attacker 2 #3  | equip    | WD_Sword, scaled 1.00
+   11.833 |    450 | Target sword #5 | equip    | WD_Sword, scaled 1.00
+   11.833 |    450 | Attacker 3 #3  | equip    | WD_Sword, scaled 1.00
+   11.833 |    450 | Target open #5 | sight    | noticed Attacker 1 in clear view (2.6 m)
+   11.833 |    450 | Target open #5 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   11.833 |    450 | Target open #5 | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   11.833 |    450 | Target open #5 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   11.833 |    450 | Target open #5 | sight    | noticed Attacker 3 at the edge of its view (8.4 m)
+   11.833 |    450 | Attacker 1 #3  | sight    | noticed Target open in clear view (2.6 m)
+   11.833 |    450 | Attacker 1 #3  | sight    | noticed Target shield at the edge of its view (4.8 m)
+   11.833 |    450 | Attacker 1 #3  | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+   11.833 |    450 | Attacker 1 #3  | sight    | noticed Target sword at the edge of its view (8.4 m)
+   11.833 |    450 | Attacker 1 #3  | sight    | noticed Attacker 3 at the edge of its view (8.0 m)
+   11.833 |    450 | Target shield #5 | sight    | noticed Target open at the edge of its view (4.0 m)
+   11.833 |    450 | Target shield #5 | sight    | noticed Attacker 1 at the edge of its view (4.8 m)
+   11.833 |    450 | Target shield #5 | sight    | noticed Attacker 2 in clear view (2.6 m)
+   11.833 |    450 | Target shield #5 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   11.833 |    450 | Target shield #5 | sight    | noticed Attacker 3 at the edge of its view (4.8 m)
+   11.833 |    450 | Attacker 2 #3  | sight    | noticed Target open at the edge of its view (4.8 m)
+   11.833 |    450 | Attacker 2 #3  | sight    | noticed Attacker 1 at the edge of its view (4.0 m)
+   11.833 |    450 | Attacker 2 #3  | sight    | noticed Target shield in clear view (2.6 m)
+   11.833 |    450 | Attacker 2 #3  | sight    | noticed Target sword at the edge of its view (4.8 m)
+   11.833 |    450 | Attacker 2 #3  | sight    | noticed Attacker 3 at the edge of its view (4.0 m)
+   11.833 |    450 | Target sword #5 | sight    | noticed Target open at the edge of its view (8.0 m)
+   11.833 |    450 | Target sword #5 | sight    | noticed Attacker 1 at the edge of its view (8.4 m)
+   11.833 |    450 | Target sword #5 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   11.833 |    450 | Target sword #5 | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   11.833 |    450 | Target sword #5 | sight    | noticed Attacker 3 in clear view (2.6 m)
+   11.833 |    450 | Attacker 3 #3  | sight    | noticed Target open at the edge of its view (8.4 m)
+   11.833 |    450 | Attacker 3 #3  | sight    | noticed Attacker 1 at the edge of its view (8.0 m)
+   11.833 |    450 | Attacker 3 #3  | sight    | noticed Target shield at the edge of its view (4.8 m)
+   11.833 |    450 | Attacker 3 #3  | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+   11.833 |    450 | Attacker 3 #3  | sight    | noticed Target sword in clear view (2.6 m)
+   11.875 |    452 | -              | perf     | 215 ms frame, 0 physics steps, garbage collected (gen0 1, gen1 1, gen2 1); ours: nothing over 0.5 ms; Unity: Main_Thread 212.8 ms, Gfx_WaitForGfxCommandsFromMainThread 211.2 ms, PlayerLoop 210.7 ms, Update_ScriptRunBehaviourUpdate 206.5 ms, BehaviourUpdate 206.5 ms, GC_Collect 32.2 ms, CPU_Total_Frame_Time 1.8 ms, CPU_Main_Thread_Frame_Time 1.3 ms
+   11.925 |    455 | -              | perf     | 82 ms frame, 3 physics steps; ours: RecorderSample 44.8 ms (3), UnitStep 19.1 ms (18), ArmSolve 9.4 ms (32); Unity: Main_Thread 83.2 ms, Gfx_WaitForGfxCommandsFromMainThread 80.9 ms, PlayerLoop 76.3 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 73.1 ms, FixedBehaviourUpdate 73.1 ms, GC_Collect 5.8 ms, Physics_Simulate 5.3 ms, CPU_Total_Frame_Time 1.8 ms
+   12.950 |    517 | Attacker 1 #3  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   12.950 |    517 | Attacker 2 #3  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   12.950 |    517 | Attacker 3 #3  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   13.833 |    570 | Attacker 1 #3  | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at Target open #5
+   13.850 |    571 | Attacker 2 #3  | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at Target shield #5
+   14.033 |    582 | Attacker 3 #3  | attack   | sns_thrust at Target sword #5
+   14.279 |    596 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   14.279 |    596 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   14.283 |    597 | Target open #6 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   14.283 |    597 | Target shield #6 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   14.283 |    597 | Target sword #6 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   14.283 |    597 | Attacker 3 #3  | despawn  | removed from the scene
+   14.283 |    597 | Target sword #5 | despawn  | removed from the scene
+   14.283 |    597 | Attacker 2 #3  | despawn  | removed from the scene
+   14.283 |    597 | Target shield #5 | despawn  | removed from the scene
+   14.283 |    597 | Attacker 1 #3  | despawn  | removed from the scene
+   14.283 |    597 | Target open #5 | despawn  | removed from the scene
+   14.283 |    597 | Target open #6 | equip    | bare hands, scaled 1.00
+   14.283 |    597 | Target shield #6 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   14.283 |    597 | Target sword #6 | equip    | WD_Sword, scaled 1.00
+   14.283 |    597 | Target open #6 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   14.283 |    597 | Target open #6 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   14.283 |    597 | Target shield #6 | sight    | noticed Target open at the edge of its view (4.0 m)
+   14.283 |    597 | Target shield #6 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   14.283 |    597 | Target sword #6 | sight    | noticed Target open at the edge of its view (8.0 m)
+   14.283 |    597 | Target sword #6 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   14.329 |    599 | -              | perf     | 113 ms frame, 0 physics steps, garbage collected (gen0 4, gen1 4, gen2 4); ours: nothing over 0.5 ms; Unity: Main_Thread 111.3 ms, PlayerLoop 109.5 ms, Gfx_WaitForGfxCommandsFromMainThread 109.4 ms, Update_ScriptRunBehaviourUpdate 103.7 ms, BehaviourUpdate 103.7 ms, GC_Collect 15.1 ms, CPU_Total_Frame_Time 2.0 ms, CPU_Main_Thread_Frame_Time 1.3 ms
+   15.825 |    689 | -              | input    | spawn: 6 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   15.825 |    689 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   15.833 |    690 | Target open #7 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   15.833 |    690 | Attacker 1 #4  | spawn    | at (-4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   15.833 |    690 | Target shield #7 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   15.833 |    690 | Attacker 2 #4  | spawn    | at (0.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   15.833 |    690 | Target sword #7 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   15.833 |    690 | Attacker 3 #4  | spawn    | at (4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   15.833 |    690 | Target sword #6 | despawn  | removed from the scene
+   15.833 |    690 | Target shield #6 | despawn  | removed from the scene
+   15.833 |    690 | Target open #6 | despawn  | removed from the scene
+   15.833 |    690 | Target open #7 | equip    | bare hands, scaled 1.00
+   15.833 |    690 | Attacker 1 #4  | equip    | WD_Sword, scaled 1.00
+   15.833 |    690 | Target shield #7 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   15.833 |    690 | Attacker 2 #4  | equip    | WD_Sword, scaled 1.00
+   15.833 |    690 | Target sword #7 | equip    | WD_Sword, scaled 1.00
+   15.833 |    690 | Attacker 3 #4  | equip    | WD_Sword, scaled 1.00
+   15.833 |    690 | Target open #7 | sight    | noticed Attacker 1 in clear view (2.6 m)
+   15.833 |    690 | Target open #7 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   15.833 |    690 | Target open #7 | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   15.833 |    690 | Target open #7 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   15.833 |    690 | Target open #7 | sight    | noticed Attacker 3 at the edge of its view (8.4 m)
+   15.833 |    690 | Attacker 1 #4  | sight    | noticed Target open in clear view (2.6 m)
+   15.833 |    690 | Attacker 1 #4  | sight    | noticed Target shield at the edge of its view (4.8 m)
+   15.833 |    690 | Attacker 1 #4  | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+   15.833 |    690 | Attacker 1 #4  | sight    | noticed Target sword at the edge of its view (8.4 m)
+   15.833 |    690 | Attacker 1 #4  | sight    | noticed Attacker 3 at the edge of its view (8.0 m)
+   15.833 |    690 | Target shield #7 | sight    | noticed Target open at the edge of its view (4.0 m)
+   15.833 |    690 | Target shield #7 | sight    | noticed Attacker 1 at the edge of its view (4.8 m)
+   15.833 |    690 | Target shield #7 | sight    | noticed Attacker 2 in clear view (2.6 m)
+   15.833 |    690 | Target shield #7 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   15.833 |    690 | Target shield #7 | sight    | noticed Attacker 3 at the edge of its view (4.8 m)
+   15.833 |    690 | Attacker 2 #4  | sight    | noticed Target open at the edge of its view (4.8 m)
+   15.833 |    690 | Attacker 2 #4  | sight    | noticed Attacker 1 at the edge of its view (4.0 m)
+   15.833 |    690 | Attacker 2 #4  | sight    | noticed Target shield in clear view (2.6 m)
+   15.833 |    690 | Attacker 2 #4  | sight    | noticed Target sword at the edge of its view (4.8 m)
+   15.833 |    690 | Attacker 2 #4  | sight    | noticed Attacker 3 at the edge of its view (4.0 m)
+   15.833 |    690 | Target sword #7 | sight    | noticed Target open at the edge of its view (8.0 m)
+   15.833 |    690 | Target sword #7 | sight    | noticed Attacker 1 at the edge of its view (8.4 m)
+   15.833 |    690 | Target sword #7 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   15.833 |    690 | Target sword #7 | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   15.833 |    690 | Target sword #7 | sight    | noticed Attacker 3 in clear view (2.6 m)
+   15.833 |    690 | Attacker 3 #4  | sight    | noticed Target open at the edge of its view (8.4 m)
+   15.833 |    690 | Attacker 3 #4  | sight    | noticed Attacker 1 at the edge of its view (8.0 m)
+   15.833 |    690 | Attacker 3 #4  | sight    | noticed Target shield at the edge of its view (4.8 m)
+   15.833 |    690 | Attacker 3 #4  | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+   15.833 |    690 | Attacker 3 #4  | sight    | noticed Target sword in clear view (2.6 m)
+   15.875 |    692 | -              | perf     | 215 ms frame, 0 physics steps; ours: nothing over 0.5 ms; Unity: Main_Thread 212.9 ms, Gfx_WaitForGfxCommandsFromMainThread 211.3 ms, PlayerLoop 209.9 ms, Update_ScriptRunBehaviourUpdate 205.4 ms, BehaviourUpdate 205.4 ms, GC_Collect 30.2 ms, CPU_Total_Frame_Time 1.8 ms, CPU_Main_Thread_Frame_Time 1.3 ms
+   15.925 |    695 | -              | perf     | 64 ms frame, 3 physics steps; ours: RecorderSample 26.8 ms (3), UnitStep 19.2 ms (18), ArmSolve 9.3 ms (32); Unity: Main_Thread 66.1 ms, Gfx_WaitForGfxCommandsFromMainThread 63.6 ms, PlayerLoop 58.0 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 54.6 ms, FixedBehaviourUpdate 54.6 ms, Physics_Simulate 5.0 ms, CPU_Total_Frame_Time 1.8 ms, CPU_Main_Thread_Frame_Time 1.3 ms
+   16.950 |    757 | Attacker 1 #4  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   16.950 |    757 | Attacker 2 #4  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   16.950 |    757 | Attacker 3 #4  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   17.833 |    810 | Attacker 2 #4  | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at Target shield #7
+   17.900 |    814 | Attacker 1 #4  | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at Target open #7
+   18.050 |    823 | Attacker 3 #4  | attack   | a combo (full gather): sns_thrust > sns_combo_forehand > sns_rising at Target sword #7
+   18.283 |    837 | Target shield #7 | tempo    | gather → shell: pressed (pressure 0.80); energy 1.00, aggression 0.50
+   18.350 |    841 | Target open #7 | tempo    | gather → shell: pressed (pressure 0.80); energy 1.00, aggression 0.50
+   18.417 |    845 | Attacker 3 #4  | hit      | blow struck Target sword's UpperArmL at 4.5 m/s: 5.4 damage, 6 poise, recoil; impulse 7.4 N·s (80% into the part); the swing went on (70% of it left); the target
+   18.417 |    845 | Target sword #7 | struck   | by Attacker 3 on the UpperArmL: health 100/100, poise 39/45, recoil, standing; heavy reaction
+   18.550 |    853 | Target sword #7 | tempo    | gather → shell: pressed (pressure 0.86); energy 1.00, aggression 0.44
+   18.567 |    854 | Attacker 2 #4  | hit      | blow struck Target shield's HandL at 6.8 m/s: blocked by Target shield's shield (6 poise); impulse 19.7 N·s (70% into the part); the swing stopped; blocked by the shield
+   18.567 |    854 | Target shield #7 | struck   | by Attacker 2 on the HandL: health 100/100, poise 39/45, recoil, standing; the shield knocked back, then driven back at 1.1 m/s
+   18.667 |    860 | Attacker 1 #4  | hit      | blow struck Target open's Chest at 2.5 m/s: 5.0 damage, 4 poise, recoil; impulse 5.0 N·s (45% into the part); the swing went on (70% of it left); the target
+   18.667 |    860 | Target open #7 | struck   | by Attacker 1 on the Chest: health 100/100, poise 41/45, recoil, standing; hit_back_head reaction
+   18.683 |    861 | -              | console  | [Upper] Attacker 3: ThighL turning at 13 rad/s; head 26 cm, hands 51 / 18 cm off the pose; OneShot sns_combo_forehand; ; put back 0, joints put 0   Spine asked 0 -6 0 (6°) is -8 4 -5, 6 rad/s, left 9° aside (held), damping 6189 most 3895; Chest asked -4 -6 -2 (8°) is -6 -5 -3, 3 rad/s, left 0° aside (held), damping 4016 most 2664; Head asked 7 -2 -4 (8°) is 6 -2 -5, 9 rad/s, left 0° aside (held), damping 264 most 310; UpperArmL asked 6 -6 -45 (46°) is 6 -9 -46, 9 rad/s, left 0° aside, damping 781 most 1028; ForearmL asked -75 22 0 (78°) is -75 22 -1, 6 rad/s, left 0° aside, damping 145 most 482; HandL asked 18 -77 -24 (83°) is 18 -77 -25, 10 rad/s, left 0° aside, damping 5 most 158; UpperArmR asked -7 29 56 (64°) is -23 57 57, 7 rad/s, left 20° aside (held), damping 2076 most 2801; ForearmR asked -104 -30 0 (108°) is -93 -10 -21, 5 rad/s, left 19° aside (held), damping 679 most 1599; HandR asked -31 -11 89 (95°) is -21 -20 88, 10 rad/s, left 13° aside (held), damping 234 most 552; ThighL asked -65 -10 -25 (70°) is -67 -11 -24, 13 rad/s, left 0° aside (held), damping 4715 most 2180; ShinL asked 45 0 0 (45°) is 44 0 1, 6 rad/s, left 0° aside (held), damping 747 most 824; FootL asked 3 6 18 (19°) is 2 6 18, 3 rad/s, left 0° aside (held), damping 25 most 288; ThighR asked 7 24 19 (31°) is 8 24 19, 4 rad/s, left 0° aside (held), damping 4715 most 2808; ShinR asked 38 0 0 (38°) is 39 0 0, 4 rad/s, left 0° aside (held), damping 747 most 1176; FootR asked -18 -8 21 (29°) is -18 -8 21, 4 rad/s, left 0° aside (held), damping 25 most 288; 
+   18.917 |    875 | Attacker 3 #4  | hit      | blow struck Target sword's UpperArmL at 8.9 m/s: 10.6 damage, 13 poise, recoil; impulse 17.6 N·s (80% into the part); the swing went on (70% of it left); the target
+   18.917 |    875 | Target sword #7 | struck   | by Attacker 3 on the UpperArmL: health 100/100, poise 30/45, recoil, standing; still reeling
+   19.200 |    892 | Attacker 2 #4  | hit      | blow struck Target shield's HandL at 7.6 m/s: blocked by Target shield's shield (7 poise); impulse 17.9 N·s (70% into the part); the swing stopped; blocked by the shield
+   19.200 |    892 | Target shield #7 | struck   | by Attacker 2 on the HandL: health 100/100, poise 37/45, recoil, standing; the shield knocked back, then driven back at 1.3 m/s
+   19.217 |    893 | Attacker 1 #4  | hit      | blow struck Target open's UpperArmR at 7.8 m/s: 12.6 damage, 16 poise, recoil; impulse 15.6 N·s (80% into the part); the swing went on (70% of it left); the target
+   19.217 |    893 | Target open #7 | struck   | by Attacker 1 on the UpperArmR: health 100/100, poise 29/45, recoil, standing; thrown back stumbling at 1.6 m/s (the blow's 2.1)
+   19.400 |    904 | Attacker 2 #4  | tempo    | press → gather: burst done (3 blows); energy 0.55, aggression 0.50
+   19.450 |    907 | Attacker 3 #4  | hit      | blow struck Target sword's HandR at 9.0 m/s: parried by Target sword's parried (20 poise); impulse 26.1 N·s (70% into the part); the swing stopped; parried
+   19.450 |    907 | Target sword #7 | struck   | by Attacker 3 on the HandR: health 100/100, poise 14/45, recoil, standing; parried with high tierce, then driven back at 1.7 m/s
+   19.750 |    925 | Attacker 3 #4  | attack   | none of its strikes reaches Target sword from 1.58 m; closing in
+   19.750 |    925 | Attacker 3 #4  | tempo    | press → gather: burst done (3 blows); energy 0.55, aggression 0.66
+   20.233 |    954 | Attacker 1 #4  | tempo    | press → gather: burst done (3 blows); energy 0.55, aggression 0.66
+   20.850 |    991 | Attacker 2 #4  | tempo    | gather → probe: rested (energy 0.91); energy 0.91, aggression 0.50
+   20.867 |    992 | Attacker 2 #4  | tempo    | probe → press: fired up (energy 0.91, aggression 0.50); energy 0.91, aggression 0.50
+   20.901 |    994 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   20.901 |    994 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   20.917 |    995 | Target open #8 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   20.917 |    995 | Target shield #8 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   20.917 |    995 | Target sword #8 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   20.917 |    995 | Attacker 3 #4  | despawn  | removed from the scene
+   20.917 |    995 | Target sword #7 | despawn  | removed from the scene
+   20.917 |    995 | Attacker 2 #4  | despawn  | removed from the scene
+   20.917 |    995 | Target shield #7 | despawn  | removed from the scene
+   20.917 |    995 | Attacker 1 #4  | despawn  | removed from the scene
+   20.917 |    995 | Target open #7 | despawn  | removed from the scene
+   20.917 |    995 | Target open #8 | equip    | bare hands, scaled 1.00
+   20.917 |    995 | Target shield #8 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   20.917 |    995 | Target sword #8 | equip    | WD_Sword, scaled 1.00
+   20.917 |    995 | Target open #8 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   20.917 |    995 | Target open #8 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   20.917 |    995 | Target shield #8 | sight    | noticed Target open at the edge of its view (4.0 m)
+   20.917 |    995 | Target shield #8 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   20.917 |    995 | Target sword #8 | sight    | noticed Target open at the edge of its view (8.0 m)
+   20.917 |    995 | Target sword #8 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   20.951 |    997 | -              | perf     | 122 ms frame, 1 physics steps, garbage collected (gen0 3, gen1 3, gen2 3); ours: UnitStep 5.0 ms (6), ArmSolve 3.8 ms (8), RecorderSample 1.2 ms (1), RecorderFlush 0.9 ms (1); Unity: Main_Thread 120.8 ms, PlayerLoop 119.0 ms, Gfx_WaitForGfxCommandsFromMainThread 118.5 ms, Update_ScriptRunBehaviourUpdate 102.1 ms, BehaviourUpdate 102.1 ms, GC_Collect 15.0 ms, CPU_Total_Frame_Time 14.3 ms, CPU_Main_Thread_Frame_Time 13.3 ms
+   21.001 |   1000 | -              | perf     | 50 ms frame, 3 physics steps; ours: RecorderSample 31.0 ms (3), UnitStep 7.6 ms (9), ArmSolve 2.6 ms (8); Unity: Main_Thread 51.1 ms, Gfx_WaitForGfxCommandsFromMainThread 49.1 ms, PlayerLoop 46.2 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 43.6 ms, FixedBehaviourUpdate 43.6 ms, Physics_Simulate 2.9 ms, CPU_Total_Frame_Time 2.6 ms, CPU_Main_Thread_Frame_Time 1.8 ms
+   24.017 |   1181 | Target open #8 | sight    | lost track of Target shield
+   24.017 |   1181 | Target open #8 | sight    | lost track of Target sword
+   24.017 |   1181 | Target shield #8 | sight    | lost track of Target sword
+   24.269 |   1196 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   24.269 |   1196 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   24.283 |   1197 | Target open #9 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   24.283 |   1197 | Target shield #9 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   24.283 |   1197 | Target sword #9 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   24.283 |   1197 | Target sword #8 | despawn  | removed from the scene
+   24.283 |   1197 | Target shield #8 | despawn  | removed from the scene
+   24.283 |   1197 | Target open #8 | despawn  | removed from the scene
+   24.283 |   1197 | Target open #9 | equip    | bare hands, scaled 1.00
+   24.283 |   1197 | Target shield #9 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   24.283 |   1197 | Target sword #9 | equip    | WD_Sword, scaled 1.00
+   24.283 |   1197 | Target open #9 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   24.283 |   1197 | Target open #9 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   24.283 |   1197 | Target shield #9 | sight    | noticed Target open at the edge of its view (4.0 m)
+   24.283 |   1197 | Target shield #9 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   24.283 |   1197 | Target sword #9 | sight    | noticed Target open at the edge of its view (8.0 m)
+   24.283 |   1197 | Target sword #9 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   24.319 |   1199 | -              | perf     | 114 ms frame, 1 physics steps, garbage collected (gen0 4, gen1 4, gen2 4); ours: UnitStep 1.3 ms (3), ArmSolve 0.6 ms (2); Unity: Main_Thread 112.3 ms, Gfx_WaitForGfxCommandsFromMainThread 110.8 ms, PlayerLoop 110.6 ms, Update_ScriptRunBehaviourUpdate 102.7 ms, BehaviourUpdate 102.7 ms, GC_Collect 15.1 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 3.8 ms, FixedBehaviourUpdate 3.8 ms
+   24.369 |   1202 | -              | perf     | 51 ms frame, 3 physics steps; ours: RecorderSample 31.1 ms (3), UnitStep 7.4 ms (9), ArmSolve 2.5 ms (8); Unity: Main_Thread 52.3 ms, Gfx_WaitForGfxCommandsFromMainThread 50.4 ms, PlayerLoop 46.5 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 44.2 ms, FixedBehaviourUpdate 44.2 ms, GC_Collect 6.1 ms, Physics_Simulate 3.4 ms, CPU_Total_Frame_Time 1.4 ms
+   25.078 |   1244 | -              | input    | spawn: 6 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   25.078 |   1244 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   25.083 |   1245 | Target open #10 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   25.083 |   1245 | Attacker 1 #5  | spawn    | at (-4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   25.083 |   1245 | Target shield #10 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   25.083 |   1245 | Attacker 2 #5  | spawn    | at (0.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   25.083 |   1245 | Target sword #10 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   25.083 |   1245 | Attacker 3 #5  | spawn    | at (4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   25.083 |   1245 | Target sword #9 | despawn  | removed from the scene
+   25.083 |   1245 | Target shield #9 | despawn  | removed from the scene
+   25.083 |   1245 | Target open #9 | despawn  | removed from the scene
+   25.083 |   1245 | Target open #10 | equip    | bare hands, scaled 1.00
+   25.083 |   1245 | Attacker 1 #5  | equip    | WD_Sword, scaled 1.00
+   25.083 |   1245 | Target shield #10 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   25.083 |   1245 | Attacker 2 #5  | equip    | WD_Sword, scaled 1.00
+   25.083 |   1245 | Target sword #10 | equip    | WD_Sword, scaled 1.00
+   25.083 |   1245 | Attacker 3 #5  | equip    | WD_Sword, scaled 1.00
+   25.083 |   1245 | Target open #10 | sight    | noticed Attacker 1 in clear view (2.6 m)
+   25.083 |   1245 | Target open #10 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   25.083 |   1245 | Target open #10 | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   25.083 |   1245 | Target open #10 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   25.083 |   1245 | Target open #10 | sight    | noticed Attacker 3 at the edge of its view (8.4 m)
+   25.083 |   1245 | Attacker 1 #5  | sight    | noticed Target open in clear view (2.6 m)
+   25.083 |   1245 | Attacker 1 #5  | sight    | noticed Target shield at the edge of its view (4.8 m)
+   25.083 |   1245 | Attacker 1 #5  | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+   25.083 |   1245 | Attacker 1 #5  | sight    | noticed Target sword at the edge of its view (8.4 m)
+   25.083 |   1245 | Attacker 1 #5  | sight    | noticed Attacker 3 at the edge of its view (8.0 m)
+   25.083 |   1245 | Target shield #10 | sight    | noticed Target open at the edge of its view (4.0 m)
+   25.083 |   1245 | Target shield #10 | sight    | noticed Attacker 1 at the edge of its view (4.8 m)
+   25.083 |   1245 | Target shield #10 | sight    | noticed Attacker 2 in clear view (2.6 m)
+   25.083 |   1245 | Target shield #10 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   25.083 |   1245 | Target shield #10 | sight    | noticed Attacker 3 at the edge of its view (4.8 m)
+   25.083 |   1245 | Attacker 2 #5  | sight    | noticed Target open at the edge of its view (4.8 m)
+   25.083 |   1245 | Attacker 2 #5  | sight    | noticed Attacker 1 at the edge of its view (4.0 m)
+   25.083 |   1245 | Attacker 2 #5  | sight    | noticed Target shield in clear view (2.6 m)
+   25.083 |   1245 | Attacker 2 #5  | sight    | noticed Target sword at the edge of its view (4.8 m)
+   25.083 |   1245 | Attacker 2 #5  | sight    | noticed Attacker 3 at the edge of its view (4.0 m)
+   25.083 |   1245 | Target sword #10 | sight    | noticed Target open at the edge of its view (8.0 m)
+   25.083 |   1245 | Target sword #10 | sight    | noticed Attacker 1 at the edge of its view (8.4 m)
+   25.083 |   1245 | Target sword #10 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   25.083 |   1245 | Target sword #10 | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+   25.083 |   1245 | Target sword #10 | sight    | noticed Attacker 3 in clear view (2.6 m)
+   25.083 |   1245 | Attacker 3 #5  | sight    | noticed Target open at the edge of its view (8.4 m)
+   25.083 |   1245 | Attacker 3 #5  | sight    | noticed Attacker 1 at the edge of its view (8.0 m)
+   25.083 |   1245 | Attacker 3 #5  | sight    | noticed Target shield at the edge of its view (4.8 m)
+   25.083 |   1245 | Attacker 3 #5  | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+   25.083 |   1245 | Attacker 3 #5  | sight    | noticed Target sword in clear view (2.6 m)
+   25.128 |   1247 | -              | perf     | 217 ms frame, 0 physics steps, garbage collected (gen0 6, gen1 6, gen2 6); ours: nothing over 0.5 ms; Unity: Main_Thread 215.8 ms, Gfx_WaitForGfxCommandsFromMainThread 214.1 ms, PlayerLoop 213.8 ms, Update_ScriptRunBehaviourUpdate 209.7 ms, BehaviourUpdate 209.7 ms, GC_Collect 30.4 ms, CPU_Total_Frame_Time 5.8 ms, CPU_Main_Thread_Frame_Time 5.0 ms
+   25.178 |   1250 | -              | perf     | 67 ms frame, 3 physics steps; ours: RecorderSample 31.3 ms (3), UnitStep 19.3 ms (18), ArmSolve 9.4 ms (32), RecorderFlush 0.6 ms (3); Unity: Main_Thread 67.9 ms, Gfx_WaitForGfxCommandsFromMainThread 65.6 ms, PlayerLoop 62.0 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 59.1 ms, FixedBehaviourUpdate 59.1 ms, Physics_Simulate 4.9 ms, CPU_Total_Frame_Time 1.6 ms, CPU_Main_Thread_Frame_Time 1.1 ms
+   26.200 |   1312 | Attacker 1 #5  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   26.200 |   1312 | Attacker 2 #5  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   26.200 |   1312 | Attacker 3 #5  | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+   27.046 |   1362 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   27.046 |   1362 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   27.050 |   1363 | Target open #11 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   27.050 |   1363 | Target shield #11 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   27.050 |   1363 | Target sword #11 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   27.050 |   1363 | Attacker 3 #5  | despawn  | removed from the scene
+   27.050 |   1363 | Target sword #10 | despawn  | removed from the scene
+   27.050 |   1363 | Attacker 2 #5  | despawn  | removed from the scene
+   27.050 |   1363 | Target shield #10 | despawn  | removed from the scene
+   27.050 |   1363 | Attacker 1 #5  | despawn  | removed from the scene
+   27.050 |   1363 | Target open #10 | despawn  | removed from the scene
+   27.050 |   1363 | Target open #11 | equip    | bare hands, scaled 1.00
+   27.050 |   1363 | Target shield #11 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   27.050 |   1363 | Target sword #11 | equip    | WD_Sword, scaled 1.00
+   27.050 |   1363 | Target open #11 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   27.050 |   1363 | Target open #11 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   27.050 |   1363 | Target shield #11 | sight    | noticed Target open at the edge of its view (4.0 m)
+   27.050 |   1363 | Target shield #11 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   27.050 |   1363 | Target sword #11 | sight    | noticed Target open at the edge of its view (8.0 m)
+   27.050 |   1363 | Target sword #11 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   27.096 |   1365 | -              | perf     | 100 ms frame, 0 physics steps; ours: nothing over 0.5 ms; Unity: Main_Thread 99.0 ms, Gfx_WaitForGfxCommandsFromMainThread 97.4 ms, PlayerLoop 97.3 ms, Update_ScriptRunBehaviourUpdate 91.7 ms, BehaviourUpdate 91.7 ms, GC_Collect 15.1 ms, CPU_Total_Frame_Time 11.3 ms, CPU_Main_Thread_Frame_Time 10.2 ms
+   27.146 |   1368 | -              | perf     | 68 ms frame, 3 physics steps; ours: RecorderSample 43.3 ms (3), UnitStep 8.0 ms (9), ArmSolve 2.6 ms (8); Unity: Main_Thread 65.5 ms, Gfx_WaitForGfxCommandsFromMainThread 63.3 ms, PlayerLoop 60.4 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 57.4 ms, FixedBehaviourUpdate 57.4 ms, Physics_Simulate 3.4 ms, GC_Collect 3.0 ms, CPU_Total_Frame_Time 2.9 ms
+   30.150 |   1549 | Target open #11 | sight    | lost track of Target shield
+   30.150 |   1549 | Target open #11 | sight    | lost track of Target sword
+   30.150 |   1549 | Target shield #11 | sight    | lost track of Target sword
+   31.811 |   1648 | -              | time     | time scale 0.90
+   31.910 |   1654 | -              | time     | time scale 0.90
+   31.961 |   1657 | -              | time     | time scale 0.89
+   31.990 |   1659 | -              | time     | time scale 0.88
+   31.998 |   1659 | -              | time     | time scale 0.88
+   32.010 |   1660 | -              | time     | time scale 0.87
+   32.036 |   1662 | -              | time     | time scale 0.86
+   32.056 |   1663 | -              | time     | time scale 0.86
+   32.064 |   1663 | -              | time     | time scale 0.85
+   32.066 |   1663 | -              | time     | time scale 0.84
+   32.073 |   1664 | -              | time     | time scale 0.84
+   32.075 |   1664 | -              | time     | time scale 0.83
+   32.081 |   1664 | -              | time     | time scale 0.82
+   32.083 |   1664 | -              | time     | time scale 0.82
+   32.091 |   1665 | -              | time     | time scale 0.80
+   32.094 |   1665 | -              | time     | time scale 0.79
+   32.099 |   1665 | -              | time     | time scale 0.78
+   32.102 |   1666 | -              | time     | time scale 0.77
+   32.108 |   1666 | -              | time     | time scale 0.76
+   32.110 |   1666 | -              | time     | time scale 0.75
+   32.113 |   1666 | -              | time     | time scale 0.75
+   32.116 |   1666 | -              | time     | time scale 0.74
+   32.124 |   1667 | -              | time     | time scale 0.72
+   32.126 |   1667 | -              | time     | time scale 0.71
+   32.128 |   1667 | -              | time     | time scale 0.71
+   32.132 |   1667 | -              | time     | time scale 0.70
+   32.134 |   1668 | -              | time     | time scale 0.69
+   32.139 |   1668 | -              | time     | time scale 0.67
+   32.141 |   1668 | -              | time     | time scale 0.67
+   32.144 |   1668 | -              | time     | time scale 0.66
+   32.146 |   1668 | -              | time     | time scale 0.65
+   32.148 |   1668 | -              | time     | time scale 0.65
+   32.154 |   1669 | -              | time     | time scale 0.64
+   32.163 |   1669 | -              | time     | time scale 0.62
+   32.171 |   1670 | -              | time     | time scale 0.62
+   32.333 |   1679 | -              | time     | time scale 0.62
+   32.340 |   1680 | -              | time     | time scale 0.63
+   32.342 |   1680 | -              | time     | time scale 0.64
+   32.343 |   1680 | -              | time     | time scale 0.65
+   32.347 |   1680 | -              | time     | time scale 0.65
+   32.350 |   1680 | -              | time     | time scale 0.66
+   32.356 |   1681 | -              | time     | time scale 0.67
+   32.358 |   1681 | -              | time     | time scale 0.68
+   32.360 |   1681 | -              | time     | time scale 0.69
+   32.362 |   1681 | -              | time     | time scale 0.69
+   32.364 |   1681 | -              | time     | time scale 0.70
+   32.366 |   1681 | -              | time     | time scale 0.71
+   32.368 |   1682 | -              | time     | time scale 0.71
+   32.373 |   1682 | -              | time     | time scale 0.73
+   32.375 |   1682 | -              | time     | time scale 0.74
+   32.377 |   1682 | -              | time     | time scale 0.75
+   32.379 |   1682 | -              | time     | time scale 0.76
+   32.381 |   1682 | -              | time     | time scale 0.77
+   32.384 |   1683 | -              | time     | time scale 0.78
+   32.389 |   1683 | -              | time     | time scale 0.80
+   32.391 |   1683 | -              | time     | time scale 0.81
+   32.394 |   1683 | -              | time     | time scale 0.82
+   32.397 |   1683 | -              | time     | time scale 0.83
+   32.400 |   1683 | -              | time     | time scale 0.84
+   32.402 |   1684 | -              | time     | time scale 0.84
+   32.409 |   1684 | -              | time     | time scale 0.86
+   32.411 |   1684 | -              | time     | time scale 0.86
+   32.415 |   1684 | -              | time     | time scale 0.87
+   32.424 |   1685 | -              | time     | time scale 0.88
+   32.427 |   1685 | -              | time     | time scale 0.88
+   32.613 |   1696 | -              | time     | time scale 0.89
+   32.628 |   1697 | -              | time     | time scale 0.90
+   32.642 |   1698 | -              | time     | time scale 0.90
+   32.648 |   1698 | -              | time     | time scale 0.91
+   32.651 |   1699 | -              | time     | time scale 0.92
+   32.657 |   1699 | -              | time     | time scale 0.94
+   32.660 |   1699 | -              | time     | time scale 0.95
+   32.663 |   1699 | -              | time     | time scale 0.96
+   32.666 |   1699 | -              | time     | time scale 0.97
+   32.669 |   1700 | -              | time     | time scale 0.98
+   32.677 |   1700 | -              | time     | time scale 1.00
+   97.690 |   5601 | -              | perf     | 337 ms frame, 0 physics steps; ours: nothing over 0.5 ms; Unity: Main_Thread 4.4 ms, PlayerLoop 3.3 ms, Gfx_WaitForGfxCommandsFromMainThread 3.2 ms, CPU_Total_Frame_Time 2.3 ms, CPU_Main_Thread_Frame_Time 1.8 ms, CPU_Render_Thread_Frame_Time 0.7 ms, GPU_Frame_Time 0.5 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 0.0 ms
+  105.604 |   6076 | -              | perf     | 53 ms frame, 1 physics steps; ours: UnitStep 1.4 ms (3), ArmSolve 0.6 ms (2); Unity: Main_Thread 14.9 ms, Gfx_WaitForGfxCommandsFromMainThread 13.5 ms, PlayerLoop 6.7 ms, CPU_Total_Frame_Time 6.4 ms, CPU_Main_Thread_Frame_Time 5.5 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 4.6 ms, FixedBehaviourUpdate 4.6 ms, Physics_Simulate 1.7 ms
+  106.700 |   6142 | Target open #11 | despawn  | recording stopped
+  106.700 |   6142 | Target shield #11 | despawn  | recording stopped
+  106.700 |   6142 | Target sword #11 | despawn  | recording stopped
+  106.700 |   6142 | -              | session  | 819 pictures saved
+  106.700 |   6142 | -              | session  | recording stopped after 102.4 s (6142 physics steps)
