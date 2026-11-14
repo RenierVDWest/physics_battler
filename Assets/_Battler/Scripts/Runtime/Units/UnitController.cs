@@ -144,7 +144,8 @@ namespace PhysicsBattler.Units
         private void OnDestroy()
         {
             all.Remove(this);
-            Clip?.DestroyGetUpRoot();
+            // (Off the engine's steps with it: a fighter left told of them reaches for a body that has gone.)
+            Clip?.Release();
             ForgetGround();
             DestroySeveredLimbs();
             if (detachedBody != null)

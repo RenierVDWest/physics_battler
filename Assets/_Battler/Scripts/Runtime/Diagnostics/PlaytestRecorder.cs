@@ -952,8 +952,19 @@ namespace PhysicsBattler.Diagnostics
                     string where = "";
                     if (!string.IsNullOrEmpty(stackTrace))
                     {
-                        int end = stackTrace.IndexOf('\n');
-                        where = " @ " + (end > 0 ? stackTrace.Substring(0, end) : stackTrace).Trim();
+                        // (Where it was thrown, and the first three places of the game's own code it was thrown through:
+                        // the top of a trace is often the engine's, which says nothing of whose fault it was.)
+                        string[] lines = stackTrace.Split('\n');
+                        where = " @ " + lines[0].Trim();
+                        int ours = 0;
+                        for (int i = 1; i < lines.Length && ours < 3; i++)
+                        {
+                            if (lines[i].Contains("PhysicsBattler"))
+                            {
+                                where += " < " + lines[i].Trim();
+                                ours++;
+                            }
+                        }
                     }
 
                     consoleProblems.Add($"{Now:0.00} s {type}: {text}");

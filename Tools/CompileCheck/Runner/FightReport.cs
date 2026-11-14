@@ -481,31 +481,79 @@ internal static class FightReport
         var club = WeaponDefinition.CreateDefault(WeaponKind.Club);
         club.moves = new[] { MoveDefinition.Create(MoveStyle.ClubSwing), MoveDefinition.Create(MoveStyle.ClubSmash), MoveDefinition.Create(MoveStyle.ClubRising), MoveDefinition.Create(MoveStyle.ClubBackhand), MoveDefinition.Create(MoveStyle.ClubFan), MoveDefinition.Create(MoveStyle.ClubFanBackhand) };
         var shield = WeaponDefinition.CreateDefault(WeaponKind.Shield);
-        var units = new List<UnitController>();
-        for (int team = 0; team < 2; team++)
+        List<UnitController> Raise()
         {
-            foreach (var (named, tile) in lineup[team])
+            var raised = new List<UnitController>();
+            for (int team = 0; team < 2; team++)
             {
-                string body = named.StartsWith("Large") ? "Large" : named == "Small" ? "Small" : "Medium";
-                var profile = UnitProfile.CreateDefault();
-                profile.name = "UP_" + body;
-                profile.body = body;
-                profile.style = CombatStyle.CreateFor(body);
-                if (body == "Small") { profile.maxHealth = 60f; profile.maxPoise = 25f; }
-                if (body == "Large") { profile.maxHealth = 220f; profile.maxPoise = 120f; }
-                var root = UnitBuilder.Build(rigs[body], profile, $"{(team == 0 ? "A" : "B")} {named}", _ => null, 8);
-                root.transform.position = grid.Center(tile);
-                root.transform.rotation = Quaternion.Euler(0f, BoardGrid.TeamYaw(team), 0f);
-                var unit = root.GetComponent<UnitController>();
-                unit.Team = team;
-                unit.Profile = profile;
-                Call(unit, "Awake");
-                if (named.EndsWith("pen")) unit.Equip(null, null);
-                else if (named == "Swordsman" || named.EndsWith("sword")) unit.Equip(sword, null);
-                else if (named == "Medium" || named.EndsWith("shield")) unit.Equip(sword, shield);
-                else unit.Equip(club, null);
-                units.Add(unit);
+                foreach (var (named, tile) in lineup[team])
+                {
+                    string body = named.StartsWith("Large") ? "Large" : named == "Small" ? "Small" : "Medium";
+                    var profile = UnitProfile.CreateDefault();
+                    profile.name = "UP_" + body;
+                    profile.body = body;
+                    profile.style = CombatStyle.CreateFor(body);
+                    if (body == "Small") { profile.maxHealth = 60f; profile.maxPoise = 25f; }
+                    if (body == "Large") { profile.maxHealth = 220f; profile.maxPoise = 120f; }
+                    var root = UnitBuilder.Build(rigs[body], profile, $"{(team == 0 ? "A" : "B")} {named}", _ => null, 8);
+                    root.transform.position = grid.Center(tile);
+                    root.transform.rotation = Quaternion.Euler(0f, BoardGrid.TeamYaw(team), 0f);
+                    var unit = root.GetComponent<UnitController>();
+                    unit.Team = team;
+                    unit.Profile = profile;
+                    Call(unit, "Awake");
+                    if (named.EndsWith("pen")) unit.Equip(null, null);
+                    else if (named == "Swordsman" || named.EndsWith("sword")) unit.Equip(sword, null);
+                    else if (named == "Medium" || named.EndsWith("shield")) unit.Equip(sword, shield);
+                    else unit.Equip(club, null);
+                    raised.Add(unit);
+                }
             }
+
+            return raised;
+        }
+
+        // (FIGHT_FALSESTART=0.55: as in the sandbox when a fresh set is asked for half a second after the first, which
+        // is what the tube test's button does: a first set raised, fought for that long, and destroyed as the sandbox
+        // destroys them, before the set the fight is for. What matters is that the first set is then gone from the
+        // engine's steps: left told of them in Unity, they threw and the engine was never stepped again.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FALSESTART"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float falseStart) && falseStart > 0f)
+        {
+            var first = Raise();
+            var firstLoop = new FightLoop(seed) { Grid = grid, Endless = true };
+            const float firstDt = 1f / 60f;
+            for (float t = 0f; t < falseStart; t += firstDt)
+            {
+                firstLoop.Step(first, firstDt, t);
+                foreach (var unit in first)
+                {
+                    Call(unit, "FixedUpdate");
+                }
+
+                if (PhysicsBattler.Authority.PhysicsSteps.Manual)
+                {
+                    PhysicsBattler.Authority.PhysicsSteps.Run(firstDt);
+                }
+                else
+                {
+                    Physics.Simulate(firstDt);
+                }
+            }
+
+            int toldWith = PhysicsBattler.Authority.PhysicsSteps.Listeners;
+            foreach (var unit in first)
+            {
+                UnityEngine.Object.Destroy(unit.gameObject);
+            }
+
+            Console.WriteLine($"FALSESTART a first set of {first.Count} fought {falseStart:0.00} s and was destroyed: {toldWith} were told of the engine's steps with it, {PhysicsBattler.Authority.PhysicsSteps.Listeners} after (0: none of them is left told)");
+        }
+
+        var units = Raise();
+        if (Environment.GetEnvironmentVariable("FIGHT_THROWER") != null)
+        {
+            // (One told of the engine's steps that throws, as a destroyed fighter left told did in Unity: it must be taken off, and the engine go on.)
+            PhysicsBattler.Authority.PhysicsSteps.BeforeSubstep += (k, n, sub) => throw new InvalidOperationException("the thrower, told of a physics step");
         }
 
         if (targetTest)
@@ -1214,6 +1262,7 @@ internal static class FightReport
 
             sb.AppendLine("    borne down (a body pressed so far off its pose that it fell): " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.BorneDown}")));
             sb.AppendLine("    planted feet that began to pivot on the ball of the foot: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.Poser.Pivots}")));
+            sb.AppendLine($"    told of the engine's steps at the end: {PhysicsBattler.Authority.PhysicsSteps.Listeners} (the fighters with physical bodies: {units.Count(u => u.Clip != null && u.Clip.Upper != null)}); thrown and taken off: {PhysicsBattler.Authority.PhysicsSteps.Faults}");
             sb.AppendLine("    lost by the engine and put back on its pose at once: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.LostBody}")));
             if (kickAt >= 0f)
             {

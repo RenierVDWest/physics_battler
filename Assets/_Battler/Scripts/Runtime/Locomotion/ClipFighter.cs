@@ -4704,6 +4704,24 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        /// <summary>
+        /// Its unit is going, or has gone: it is no longer told of the engine's steps, and its physical body and its
+        /// get-up's root go. Whoever destroys its unit calls this: left told, it reaches for a body that is not there
+        /// (<see cref="PhysicsSteps.Run"/>).
+        /// </summary>
+        public void Release()
+        {
+            PhysicsSteps.BeforeSubstep -= BeforeSubstep;
+            PhysicsSteps.AfterStep -= AfterStep;
+            if (Application.isPlaying)
+            {
+                Upper?.Destroy();
+            }
+
+            Upper = null;
+            DestroyGetUpRoot();
+        }
+
         public void Destroy()
         {
             PhysicsSteps.BeforeSubstep -= BeforeSubstep;

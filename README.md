@@ -3232,6 +3232,28 @@ held with a limited strength) is for.
 Not verified: the tube test in Unity (it is built against the headless engine and the compile check only): that
 the tubes show, meet the bodies and are cleared.
 
+**A fresh set of fighters froze the physics** (14 November, found by the tube test's first try in Unity: Hit (6)
+sent three tubes and nothing moved). Not the tubes: any fresh set of fighters during play (R, the tube test, the
+target test's button) stopped the engine for the rest of that play. A fighter with a physical body is told of
+each of the engine's steps (`PhysicsSteps`), and a destroyed one was never taken off that list. The next step it
+reached for its body, which had gone, and threw; that was before the engine was stepped, and it happened again
+every step: 5,432 times in 91 s of that log, the engine never stepped once. The fighters stood (their poses are
+not physics), so it looked as if only the tubes were broken. It had not shown before because no play since the
+physical body had asked for a second set.
+
+Two changes. A unit that is destroyed takes its fighter off the engine's steps (`ClipFighter.Release`, from
+`UnitController.OnDestroy`). And the engine's stepping no longer depends on everyone told of it behaving: one
+that throws is taken off and said so once in the console (`[PhysicsSteps] ... threw ... and is no longer told`),
+and the others and the engine go on. The playtest log's console lines now also give the first three places in
+the game's own code an exception came through (it gave only the top of the trace, which here was Unity's own
+null check and named nobody).
+
+Headless: `FIGHT_FALSESTART=0.55` raises a first set, fights it that long, destroys it as the sandbox does, and
+says how many are still told of the engine's steps (3 before the change, 0 after); `FIGHT_THROWER=1` adds one that
+throws (taken off at the first step, the tubes then meet their targets as without it). The headless engine does
+not throw for a destroyed object as Unity does, so the freeze itself is not reproduced there: the count is what
+is checked. Not verified in Unity.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
