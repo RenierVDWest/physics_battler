@@ -453,7 +453,166 @@ namespace PhysicsBattler.Locomotion
             ShieldSingleCurve = DefaultShieldSingleCurve, ShieldComboCurve = DefaultShieldComboCurve,
             GiveGroundFrom = DefaultGiveGroundFrom, GiveGroundDeep = DefaultGiveGroundDeep, GiveGroundLead = DefaultGiveGroundLead, LeastGiveGround = DefaultLeastGiveGround, MostGiveGround = DefaultMostGiveGround, GiveGroundEases = DefaultGiveGroundEases;
 
-        private void OnEnable() => Push();
+        private void OnEnable()
+        {
+            if (Application.isPlaying)
+            {
+                // (As the scene has it saved, before anything is tuned in play: what "back to saved" goes back to.)
+                asSaved = Tuned();
+            }
+
+            Push();
+        }
+
+        // ---- What is tuned in play, kept (14 November) -------------------------------------------------------------
+        //
+        // The sandbox's panel changes these settings on this object while the game plays, and Unity puts a scene's
+        // objects back as they were when play stops. So that what is tuned in play sticks, this says what it is
+        // tuned to as text (every setting by name), and takes such a text back; the editor reads it as play stops
+        // and puts it on the scene's object once play has stopped (Editor/CombatFeelKeep).
+
+        /// <summary>Kept between sessions: is what is tuned in play put on the scene's object when play stops (1, as it starts) or dropped (0).</summary>
+        public const string KeepTunedKey = "CombatFeel.KeepTuned";
+
+        /// <summary>What is tuned in play is kept when play stops (the panel's switch; kept between sessions).</summary>
+        public static bool KeepTuned
+        {
+            get => PlayerPrefs.GetFloat(KeepTunedKey, 1f) > 0.5f;
+            set => PlayerPrefs.SetFloat(KeepTunedKey, value ? 1f : 0f);
+        }
+
+        private string asSaved = "";
+        private static System.Reflection.FieldInfo[] settings;
+
+        /// <summary>Its settings: every public number and switch on it.</summary>
+        private static System.Reflection.FieldInfo[] Settings()
+        {
+            if (settings == null)
+            {
+                var found = new System.Collections.Generic.List<System.Reflection.FieldInfo>();
+                foreach (var field in typeof(CombatFeel).GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+                {
+                    if (field.FieldType == typeof(bool) || field.FieldType == typeof(float) || field.FieldType == typeof(int))
+                    {
+                        found.Add(field);
+                    }
+                }
+
+                settings = found.ToArray();
+            }
+
+            return settings;
+        }
+
+        private static string Text(object value)
+        {
+            var plain = System.Globalization.CultureInfo.InvariantCulture;
+            return value is float f ? f.ToString("R", plain) : value is int i ? i.ToString(plain) : value is bool b ? (b ? "true" : "false") : "";
+        }
+
+        /// <summary>What it is tuned to now: every setting by name, a line each.</summary>
+        public string Tuned()
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var field in Settings())
+            {
+                text.Append(field.Name).Append('=').Append(Text(field.GetValue(this))).Append('\n');
+            }
+
+            return text.ToString();
+        }
+
+        /// <summary>
+        /// Tuned as <paramref name="text"/> says (<see cref="Tuned"/>'s): each setting it names that this has and that
+        /// differs is set. How many were set; <paramref name="changed"/>: each by name, from what to what.
+        /// </summary>
+        public int Tune(string text, System.Collections.Generic.List<string> changed = null)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0;
+            }
+
+            var plain = System.Globalization.CultureInfo.InvariantCulture;
+            int set = 0;
+            foreach (string line in text.Split('\n'))
+            {
+                int at = line.IndexOf('=');
+                if (at <= 0)
+                {
+                    continue;
+                }
+
+                string name = line.Substring(0, at), value = line.Substring(at + 1).Trim();
+                var field = System.Array.Find(Settings(), f => f.Name == name);
+                if (field == null)
+                {
+                    continue;
+                }
+
+                object was = field.GetValue(this), now;
+                if (field.FieldType == typeof(float))
+                {
+                    if (!float.TryParse(value, System.Globalization.NumberStyles.Float, plain, out float f) || Mathf.Approximately(f, (float)was))
+                    {
+                        continue;
+                    }
+
+                    now = f;
+                }
+                else if (field.FieldType == typeof(int))
+                {
+                    if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, plain, out int i) || i == (int)was)
+                    {
+                        continue;
+                    }
+
+                    now = i;
+                }
+                else
+                {
+                    bool b = value == "true";
+                    if ((value != "true" && value != "false") || b == (bool)was)
+                    {
+                        continue;
+                    }
+
+                    now = b;
+                }
+
+                field.SetValue(this, now);
+                changed?.Add($"{name} {Text(was)} -> {Text(now)}");
+                set++;
+            }
+
+            if (set > 0)
+            {
+                Push();
+            }
+
+            return set;
+        }
+
+        /// <summary>In play: how many settings differ now from how the scene has them saved.</summary>
+        public int TunedSinceSaved()
+        {
+            if (string.IsNullOrEmpty(asSaved))
+            {
+                return 0;
+            }
+
+            string[] saved = asSaved.Split('\n'), now = Tuned().Split('\n');
+            int differ = 0;
+            for (int i = 0; i < saved.Length && i < now.Length; i++)
+            {
+                differ += saved[i] != now[i] ? 1 : 0;
+            }
+
+            return differ;
+        }
+
+        /// <summary>In play: every setting back to how the scene has it saved (as it was when play began). How many were put back.</summary>
+        public int BackToSaved() => Tune(asSaved);
 
         private void OnValidate() => Push();
 

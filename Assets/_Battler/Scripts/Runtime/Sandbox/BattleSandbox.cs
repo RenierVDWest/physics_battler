@@ -124,7 +124,7 @@ namespace PhysicsBattler.Sandbox
             if (!tubeTestBegun)
             {
                 tubeTestBegun = true;
-                Tubes.AsBlow = true;
+                RecallTubes();
             }
 
             WatchFight();
@@ -451,7 +451,7 @@ namespace PhysicsBattler.Sandbox
             if (!tubeTestBegun)
             {
                 tubeTestBegun = true;
-                Tubes.AsBlow = true;
+                RecallTubes();
             }
 
             message = "Tube test: three targets and a tube beside each. Hit (6) sends the tubes across them; the sliders set how hard, how fast, how high, how deep and from which side. R resets.";
@@ -490,6 +490,37 @@ namespace PhysicsBattler.Sandbox
         // (The fall test that ends in a turn: how far round what the targets face has been put, and how far it is to be put once they are down.)
         private float facesTurnedBy, turnRoundAfterFall;
         private bool tubeTestBegun;
+
+        private float tunedCountedAt = -1f;
+        private int tunedCount;
+        private bool keepTuned = true;
+
+        private const string TubeKey = "BattleSandbox.Tube.";
+
+        /// <summary>The tube's own settings as the panel's sliders last had them, kept between sessions.</summary>
+        private void RememberTubes()
+        {
+            PlayerPrefs.SetFloat(TubeKey + "Impulse", Tubes.Impulse);
+            PlayerPrefs.SetFloat(TubeKey + "Speed", Tubes.Speed);
+            PlayerPrefs.SetFloat(TubeKey + "Height", Tubes.Height);
+            PlayerPrefs.SetFloat(TubeKey + "Reach", Tubes.Reach);
+            PlayerPrefs.SetFloat(TubeKey + "Turned", Tubes.Turned);
+            PlayerPrefs.SetFloat(TubeKey + "AsBlow", Tubes.AsBlow ? 1f : 0f);
+            PlayerPrefs.SetFloat(TubeKey + "Fells", Tubes.Fells ? 1f : 0f);
+        }
+
+        /// <summary>The tube's settings as they were last set by hand (the first time the tube test is begun in a session).</summary>
+        private void RecallTubes()
+        {
+            Tubes.Impulse = PlayerPrefs.GetFloat(TubeKey + "Impulse", Tubes.Impulse);
+            Tubes.Speed = PlayerPrefs.GetFloat(TubeKey + "Speed", Tubes.Speed);
+            Tubes.Height = PlayerPrefs.GetFloat(TubeKey + "Height", Tubes.Height);
+            Tubes.Reach = PlayerPrefs.GetFloat(TubeKey + "Reach", Tubes.Reach);
+            Tubes.Turned = PlayerPrefs.GetFloat(TubeKey + "Turned", Tubes.Turned);
+            // (A tube is taken as a blow unless the panel has said otherwise: the physics alone barely moves a body.)
+            Tubes.AsBlow = PlayerPrefs.GetFloat(TubeKey + "AsBlow", 1f) > 0.5f;
+            Tubes.Fells = PlayerPrefs.GetFloat(TubeKey + "Fells", 0f) > 0.5f;
+        }
 
         /// <summary>
         /// The fall test (the plan "Controlled falls", step 1): a fall on demand. The targets are turned so the tube
@@ -1874,7 +1905,41 @@ namespace PhysicsBattler.Sandbox
 
             GUILayout.EndScrollView();
 
-            // ---- Always there: what the last thing pressed did, and what the thing under the mouse does ----
+            // ---- Always there: what is tuned kept or not; what the last thing pressed did; what the thing under the mouse does ----
+            if (feel != null)
+            {
+                GUILayout.Space(4f);
+                GUILayout.BeginHorizontal();
+                // (Counted twice a second, not at every event the panel is drawn for.)
+                if (Time.unscaledTime >= tunedCountedAt + 0.5f || Time.unscaledTime < tunedCountedAt)
+                {
+                    tunedCountedAt = Time.unscaledTime;
+                    tunedCount = feel.TunedSinceSaved();
+                    keepTuned = PhysicsBattler.Locomotion.CombatFeel.KeepTuned;
+                }
+
+                int tuned = tunedCount;
+                bool keep = keepTuned;
+                bool keepNow = Tick(keep, tuned > 0 ? $"Keep what I tune ({tuned} changed)" : "Keep what I tune", "On: when play stops, every Combat Feel setting changed here is put on the scene's Combat Feel object, so it is there next time (the scene is saved for it, unless it had other unsaved changes). Off: what is tuned is dropped when play stops, as Unity does.");
+                if (keepNow != keep)
+                {
+                    PhysicsBattler.Locomotion.CombatFeel.KeepTuned = keepNow;
+                    keepTuned = keepNow;
+                    Note(keepNow ? "what is tuned is kept when play stops" : "what is tuned is dropped when play stops");
+                }
+
+                if (Press("Back to saved", "Every Combat Feel setting back to how the scene has it saved: as it was when play began.", GUILayout.Width(104f)))
+                {
+                    int back = feel.BackToSaved();
+                    tunedCountedAt = -1f;
+                    message = back > 0 ? $"Combat Feel: {back} settings put back to how the scene has them saved." : "Combat Feel: nothing was changed from how the scene has it saved.";
+                    Note($"combat feel back to saved: {back} settings");
+                }
+
+                GUILayout.EndHorizontal();
+            }
+
+            // ---- What the last thing pressed did, and what the thing under the mouse does ----
             if (shownMessage.Length > 0)
             {
                 GUILayout.Space(4f);
@@ -1994,6 +2059,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             GUILayout.EndHorizontal();
+            float tubeWas = Tubes.Impulse + 31f * Tubes.Speed + 977f * Tubes.Height + 7919f * Tubes.Reach + 104729f * Tubes.Turned + (Tubes.AsBlow ? 0.25f : 0f) + (Tubes.Fells ? 0.5f : 0f);
             Tubes.Impulse = Mathf.Round(Slide("How hard", $"{Tubes.Impulse:0} N·s", $"The tube's momentum: now a tube of {Tubes.Mass:0.0} kg. A Medium's sword cut is about 45 N·s, a Large's club 100 to 300.", Tubes.Impulse, 5f, 600f));
             Tubes.Speed = Mathf.Round(2f * Slide("How fast", $"{Tubes.Speed:0.0} m/s", "Slower is heavier for the same hit: more of a shove, less of a crack.", Tubes.Speed, 2f, 25f)) / 2f;
             Tubes.Height = Mathf.Round(100f * Slide("How high", $"{Tubes.Height * 100f:0} cm", "How far over the ground the tube flies: 130 cm is a Medium's chest.", Tubes.Height, 0.1f, 2.4f)) / 100f;
@@ -2001,6 +2067,11 @@ namespace PhysicsBattler.Sandbox
             Tubes.Turned = Mathf.Round(Slide("Turned", $"{Tubes.Turned:0}°", $"How the targets stand turned to the tube: 0 struck on the front, 90 on the left side, 180 on the back, 270 on the right side. Now: struck on {Tubes.Side}.", Tubes.Turned, 0f, 355f) / 5f) * 5f;
             Tubes.AsBlow = Tick(Tubes.AsBlow, "Taken as a blow", "The tube is also a blow of the fight's: the target recoils, stumbles or falls as its legs decide. Off: the physics only.");
             Tubes.Fells = Tick(Tubes.Fells, "The target goes down", "The target falls whatever its legs say: the fall test.");
+            if (!Mathf.Approximately(tubeWas, Tubes.Impulse + 31f * Tubes.Speed + 977f * Tubes.Height + 7919f * Tubes.Reach + 104729f * Tubes.Turned + (Tubes.AsBlow ? 0.25f : 0f) + (Tubes.Fells ? 0.5f : 0f)))
+            {
+                // (Set here by hand: remembered for the next session.)
+                RememberTubes();
+            }
         }
 
         private void DrawHitsAndHips(PhysicsBattler.Locomotion.CombatFeel feel)

@@ -1530,6 +1530,18 @@ settings); Hits and hips; Falls and getting up; Moves on demand; Legs and feet; 
 the target test. The sections scroll when they are taller than the screen, and the
 panel is never taller than the screen; over the panel the mouse's wheel scrolls it and does not zoom the camera. Not verified in Unity: the headless build only checks that it compiles.
 
+**What is tuned in the panel is kept** (14 November). The panel's sliders and switches change the scene's Combat
+Feel object while the game plays, and Unity puts a scene's objects back as they were when play stops: everything
+tuned was lost. Now, when play stops, every Combat Feel setting that was changed is put on the scene's object
+(`Editor/CombatFeelKeep`; one undo step; the Console says which, from what to what), and the scene is saved for it
+if it had no other unsaved changes when play began (if it had, it is left marked changed, to be saved by hand).
+At the bottom of the panel: **Keep what I tune** (on; kept between sessions; it says how many settings differ
+from the saved scene) and **Back to saved** (every setting as it was when play began). The tube's own sliders are
+not the game's, so they are remembered apart, between sessions, as they were last set by hand. Not kept: the
+switches that are not on the Combat Feel (the sword taken up where it is, everyone tired, the camera's shake, the
+weapon arm on joint motors), the speed, the sizes of attackers and targets. Not run in Unity: the editor's part
+is only compiled here.
+
 Each unit's label
 shows its health and poise, the blow it is making and the body part it is aimed at, or that it is
 blocking, stumbling, down or getting up, or the posture it is playing and what that leaves open.

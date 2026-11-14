@@ -27,6 +27,18 @@ namespace UnityEditor
         public static bool isPlayingOrWillChangePlaymode => false;
         public static CallbackFunction update;
         public static double timeSinceStartup => 0;
+        public static event System.Action<PlayModeStateChange> playModeStateChanged { add { } remove { } }
+    }
+
+    public enum PlayModeStateChange { EnteredEditMode, ExitingEditMode, EnteredPlayMode, ExitingPlayMode }
+
+    public static class SessionState
+    {
+        public static void SetBool(string key, bool value) { }
+        public static bool GetBool(string key, bool defaultValue) => defaultValue;
+        public static void SetString(string key, string value) { }
+        public static string GetString(string key, string defaultValue) => defaultValue;
+        public static void EraseString(string key) { }
     }
 
     public static class Selection
@@ -85,6 +97,7 @@ namespace UnityEditor
         public static GameObject SaveAsPrefabAsset(GameObject instanceRoot, string assetPath) => instanceRoot;
         public static UnityEngine.Object InstantiatePrefab(UnityEngine.Object assetComponentOrGameObject) => assetComponentOrGameObject;
         public static void UnpackPrefabInstance(GameObject instanceRoot, PrefabUnpackMode unpackMode, InteractionMode action) { }
+        public static void RecordPrefabInstancePropertyModifications(UnityEngine.Object targetObject) { }
     }
 
     public class AssetImporter : UnityEngine.Object

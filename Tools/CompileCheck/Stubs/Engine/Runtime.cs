@@ -404,6 +404,7 @@ namespace UnityEngine.SceneManagement
     {
         public string name => "";
         public string path => "";
+        public bool isDirty => false;
         public bool IsValid() => true;
     }
 

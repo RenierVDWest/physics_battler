@@ -121,6 +121,20 @@ internal static class Program
             return ArmRangeReport.Run();
         }
 
+        if (args.Length >= 1 && args[0] == "feel")
+        {
+            // (What is tuned on a Combat Feel, said as text and taken back: the round trip the editor makes when play stops.)
+            var played = new UnityEngine.GameObject("played").AddComponent<PhysicsBattler.Locomotion.CombatFeel>();
+            var scene = new UnityEngine.GameObject("scene").AddComponent<PhysicsBattler.Locomotion.CombatFeel>();
+            played.hitForce = 3.75f;
+            played.fallHandHold = 0.6f;
+            played.fallenBodiesSettle = false;
+            var changed = new System.Collections.Generic.List<string>();
+            int set = scene.Tune(played.Tuned(), changed);
+            Console.WriteLine($"feel: {set} set: {string.Join("; ", changed)}; again {scene.Tune(played.Tuned())}; scene now {scene.hitForce} {scene.fallHandHold} {scene.fallenBodiesSettle}; settings {played.Tuned().Split('\n').Length - 1}");
+            return set == 3 && scene.hitForce == 3.75f && !scene.fallenBodiesSettle ? 0 : 1;
+        }
+
         if (args.Length >= 2 && args[0] == "fight")
         {
             return FightReport.Run(args[1], args.Length >= 3 ? int.Parse(args[2]) : 7);
