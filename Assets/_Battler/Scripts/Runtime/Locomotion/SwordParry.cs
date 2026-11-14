@@ -1122,6 +1122,17 @@ namespace PhysicsBattler.Locomotion
 
         private bool InFront => FreeArmInFront && FreeHandAt == FreeHand;
 
+        /// <summary>
+        /// The free hand carried before the body is placed against the chest, not against the way the feet face: the
+        /// arm goes with the trunk. Placed by the feet's facing, a turn on the spot (in which the chest leads the feet
+        /// by a quarter turn and more) took the hand across and through the chest to stay "in front", and back at
+        /// the turn's end at 70 rad/s (Unity, 14 November). Off, for the tests: by the feet's facing.
+        /// </summary>
+        public static bool FreeArmWithChest = true;
+
+        /// <summary>Where the carried hand is against the middle of the chest (the chest's own right, up and forward; metres at a Medium's size).</summary>
+        public static readonly Vector3 FrontHandByChest = new Vector3(-0.2f, -0.2f, 0.27f);
+
         /// <summary>Where this one's free hand goes, and which way its elbow points (the body's frame; a fencer's behind its back, by default).</summary>
         public Vector3 FreeHandAt = FreeHand, FreeElbow = new Vector3(-1f, -0.6f, -0.5f);
 
@@ -1168,7 +1179,18 @@ namespace PhysicsBattler.Locomotion
             tucked = Mathf.MoveTowards(tucked, 1f, dt / TuckBackOver);
             float ease = tucked * tucked * (3f - 2f * tucked);
             Vector3 tuck = World(InFront ? FrontHand : FreeHandAt);
-            TwoBoneIK.Solve(upper, fore, handL, ease >= 1f ? tuck : Vector3.Lerp(handL.position, tuck, ease), bodyTurn * (InFront ? FrontElbow : FreeElbow));
+            Vector3 elbowWay = bodyTurn * (InFront ? FrontElbow : FreeElbow);
+            if (InFront && FreeArmWithChest)
+            {
+                // (Carried with the trunk: against the chest as it is turned and leant now.)
+                var chest = anim.Part(PartId.Chest);
+                float k = BodyScale * size;
+                bodyTurn = Quaternion.LookRotation(chest.forward, chest.up);
+                tuck = chest.position + bodyTurn * (FrontHandByChest * k);
+                elbowWay = bodyTurn * FrontElbow;
+            }
+
+            TwoBoneIK.Solve(upper, fore, handL, ease >= 1f ? tuck : Vector3.Lerp(handL.position, tuck, ease), elbowWay);
             handL.rotation = keep;
             if (FreeHandWithArm)
             {

@@ -672,6 +672,11 @@ internal static class FightReport
         PhysicsBattler.Locomotion.FallPose.ProtectsHead = Environment.GetEnvironmentVariable("FIGHT_HEAD") != "0";
         PhysicsBattler.Locomotion.FallPose.Reaches = Environment.GetEnvironmentVariable("FIGHT_REACH") != "0";
 
+        // (FIGHT_FREEARM=feet: a swordsman's carried hand placed by the way its feet face, as it first was; back: behind its hip, as before.)
+        PhysicsBattler.Locomotion.SwordParry.FreeArmWithChest = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "feet";
+        PhysicsBattler.Locomotion.SwordParry.FreeArmInFront = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "back";
+        PhysicsBattler.Locomotion.ClipFighter.MeasuresArms = true;
+
         // (FIGHT_CAUGHT=0: no fall is caught.)
         PhysicsBattler.Locomotion.ClipFighter.FallsCanBeCaught = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
 
@@ -899,6 +904,19 @@ internal static class FightReport
                 foreach (var unit in units)
                 {
                     Call(unit, "FixedUpdate");
+                }
+
+                // (FIGHT_TURN="3,180": at 3 s every unit turns 180 degrees on the spot, as the debug panel's button has them do.)
+                {
+                    string[] turn = (Environment.GetEnvironmentVariable("FIGHT_TURN") ?? "").Split(',');
+                    if (turn.Length == 2 && float.TryParse(turn[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float turnAt) && paceAt >= turnAt && paceAt < turnAt + dt
+                        && float.TryParse(turn[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float turnBy))
+                    {
+                        foreach (var u in units)
+                        {
+                            Console.WriteLine($"TURN {paceAt:0.000} {u.name}: {(u.Clip != null && u.Clip.TurnNow(turnBy) ? "turning" : "not turned")}");
+                        }
+                    }
                 }
 
                 // (FIGHT_STEPBACK="5,7,9": at those seconds every unit steps back from its opponent, as the debug panel's button has them do.)
@@ -1315,6 +1333,7 @@ internal static class FightReport
 
             sb.AppendLine($"    hips {(PhysicsBattler.Locomotion.ClipFighter.HeldHips ? $"held ({PhysicsBattler.Authority.UpperBodyArticulation.HipQuick:0.0} Hz, at most {PhysicsBattler.Authority.UpperBodyArticulation.HipMost:0.0} weights)" : "locked")}: off the pose on average / at most (cm): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {(u.Clip.HipsOffSteps > 0 ? 100f * u.Clip.HipsOffSum / u.Clip.HipsOffSteps : 0f):0.0} / {100f * u.Clip.HipsOffMost:0.0}")));
             sb.AppendLine($"    a blow's force ({PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0} times its momentum): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.HitForces} blows, {u.Clip.HitForceGiven:0} N·s, a joint turned aside {(u.Clip.Upper != null ? u.Clip.Upper.HitBentMost : 0f):0} degrees at most")));
+            sb.AppendLine("    standing, as seen: a forearm or hand inside its own body (s) / what its right hand holds (s) / the longest stretch (s): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.ArmSeenIn:0.00} / {u.Clip.BladeSeenIn:0.00} / {u.Clip.ArmSeenInLongest:0.00}")));
             var rose = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.GetUpLog.Select(g => (u, g))).ToList();
             if (rose.Count > 0)
             {

@@ -3524,6 +3524,21 @@ most (5 of 23), what it holds 0.1 s at most (3 of 23). That is less than was see
 taking-over that was seen, or something Unity does that the headless engine does not: the next Unity log's
 `getup` lines will say. Not verified in Unity.
 
+In Unity since (14 November, 18 get-ups): noticeably better; as seen, an arm was inside the body for 0.13 s at
+most and what it holds for 0.08 s. One thing was left, seen once right after a get-up: the swordsman's free arm
+and sword through him as he turned about (`sns_turn180`; "UpperArmL turning at 70 rad/s").
+
+**A swordsman's carried hand goes with its chest** (`SwordParry.FreeArmWithChest`). The free hand's place was
+set against the way the feet face. In a turn on the spot the chest leads the feet by a quarter turn and more,
+so the hand, kept "in front" of the feet, was taken across and through the chest, and came back at the turn's
+end at 70 rad/s. It is now placed against the chest as the chest is turned and leant: 20 cm to its left, 20 cm
+below its middle, 27 cm before it. Headless (`FIGHT_TURN="2,180"`, every fighter turned about; `FIGHT_FREEARM=feet`
+for the old way): by the feet the same whip (65 rad/s) and the arm inside the body 0.25 s; by the chest no whip,
+0.15 s.
+
+A standing fighter's arms are now measured too while a playtest is recorded: a forearm or hand, or what the
+right hand holds, inside its own body for 0.15 s or more is an `arms` line in the log, with the clip it was in.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

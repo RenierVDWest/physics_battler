@@ -1069,13 +1069,10 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            if (getUpLogAt >= 0f)
+            MeasureArmsSeen(dt);
+            if (getUpLogAt >= 0f && clock >= getUpLogAt)
             {
-                MeasureGetUpSeen(dt);
-                if (clock >= getUpLogAt)
-                {
-                    LogGetUp();
-                }
+                LogGetUp();
             }
         }
 
@@ -1123,6 +1120,56 @@ namespace PhysicsBattler.Locomotion
             }
 
             return false;
+        }
+
+        /// <summary>For the reports: how long a standing fighter has had a forearm or hand inside its own trunk, head or thighs, and what its right hand holds inside its body, as seen (seconds), and the longest such stretch.</summary>
+        public float ArmSeenIn, BladeSeenIn, ArmSeenInLongest;
+        private float armInFor, bladeInFor;
+
+        /// <summary>Standing: what is seen of its arms against its own body, measured while a playtest is recorded (and headless).</summary>
+        public static bool MeasuresArms;
+
+        private void MeasureArmsSeen(float dt)
+        {
+            if (!(MeasuresArms || Diagnostics.PlaytestTrace.Enabled) || Authority == null)
+            {
+                return;
+            }
+
+            float armWas = GetUpArmSeenIn, bladeWas = GetUpBladeSeenIn;
+            MeasureGetUpSeen(dt);
+            bool arm = GetUpArmSeenIn > armWas, blade = GetUpBladeSeenIn > bladeWas;
+            if (getUpLogAt < 0f)
+            {
+                // (Not a get-up's: put back.)
+                GetUpArmSeenIn = armWas;
+                GetUpBladeSeenIn = bladeWas;
+            }
+
+            ArmSeenIn += arm ? dt : 0f;
+            BladeSeenIn += blade ? dt : 0f;
+            Stretch(ref armInFor, arm, dt, "a forearm or hand");
+            Stretch(ref bladeInFor, blade, dt, "what its right hand holds");
+        }
+
+        private void Stretch(ref float lasted, bool inside, float dt, string what)
+        {
+            if (inside)
+            {
+                lasted += dt;
+                return;
+            }
+
+            if (lasted >= 0.15f)
+            {
+                ArmSeenInLongest = Mathf.Max(ArmSeenInLongest, lasted);
+                if (Diagnostics.PlaytestTrace.Enabled)
+                {
+                    Diagnostics.PlaytestTrace.Note(FightUnit, "arms", $"{what} was inside its own body for {lasted:0.00} s, as seen ({Loco.Current} {(Loco.Shot != null ? Loco.Shot.Name : "")}; {LastReaction})");
+                }
+            }
+
+            lasted = 0f;
         }
 
         private void MeasureGetUpSeen(float dt)
