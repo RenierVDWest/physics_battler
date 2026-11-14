@@ -1,0 +1,32 @@
+# Physics Battler playtest 2026-11-14_16-30-03
+# time (s since Play) | physics step | who | what | details
+    2.264 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    2.264 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+    2.264 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+    2.264 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    2.264 |      0 | -              | input    | at most 50 ms of physics a frame
+    2.264 |      0 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+    2.264 |      0 | -              | console  | [Articulation probe] targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    2.264 |      0 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    2.267 |      1 | Target open    | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.267 |      1 | Target shield  | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.267 |      1 | Target sword   | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    2.267 |      1 | Target open    | equip    | bare hands, scaled 1.00
+    2.267 |      1 | Target shield  | equip    | WD_Sword and WD_Shield, scaled 1.00
+    2.267 |      1 | Target sword   | equip    | WD_Sword, scaled 1.00
+    2.267 |      1 | Target open    | sight    | noticed Target shield at the edge of its view (4.0 m)
+    2.267 |      1 | Target open    | sight    | noticed Target sword at the edge of its view (8.0 m)
+    2.267 |      1 | Target shield  | sight    | noticed Target open at the edge of its view (4.0 m)
+    2.267 |      1 | Target shield  | sight    | noticed Target sword at the edge of its view (4.0 m)
+    2.267 |      1 | Target sword   | sight    | noticed Target open at the edge of its view (8.0 m)
+    2.267 |      1 | Target sword   | sight    | noticed Target shield at the edge of its view (4.0 m)
+    2.314 |      3 | -              | perf     | 237 ms frame, 0 physics steps, garbage collected (gen0 4, gen1 4, gen2 4); ours: CaptureRender 1.4 ms (1); Unity: Physics_Simulate 33.2 ms, GC_Collect 21.4 ms, Gfx_WaitForGfxCommandsFromMainThread 15.1 ms, PlayerLoop 12.1 ms, Update_ScriptRunBehaviourUpdate 2.7 ms, BehaviourUpdate 2.7 ms, CPU_Total_Frame_Time 1.3 ms, CPU_Main_Thread_Frame_Time 0.9 ms
+    2.364 |      6 | -              | perf     | 94 ms frame, 3 physics steps; ours: UnitStep 45.0 ms (9), RecorderSample 19.9 ms (3), ArmSolve 8.2 ms (8), Sandbox 2.9 ms (3); Unity: Main_Thread 95.1 ms, Gfx_WaitForGfxCommandsFromMainThread 92.1 ms, PlayerLoop 86.6 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 79.4 ms, FixedBehaviourUpdate 79.4 ms, Physics_Simulate 3.1 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 3.0 ms, LateBehaviourUpdate 3.0 ms
+    5.367 |    187 | Target open    | sight    | lost track of Target shield
+    5.367 |    187 | Target open    | sight    | lost track of Target sword
+    5.367 |    187 | Target shield  | sight    | lost track of Target sword
+    6.017 |    226 | Target open    | despawn  | recording stopped
+    6.017 |    226 | Target shield  | despawn  | recording stopped
+    6.017 |    226 | Target sword   | despawn  | recording stopped
+    6.017 |    226 | -              | session  | 30 pictures saved
+    6.017 |    226 | -              | session  | recording stopped after 3.8 s (226 physics steps)
