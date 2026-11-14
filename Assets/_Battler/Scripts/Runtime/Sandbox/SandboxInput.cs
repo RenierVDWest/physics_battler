@@ -72,6 +72,7 @@ namespace PhysicsBattler.Sandbox
                 case KeyCode.Alpha1: return keyboard.digit1Key.wasPressedThisFrame;
                 case KeyCode.Alpha2: return keyboard.digit2Key.wasPressedThisFrame;
                 case KeyCode.Alpha3: return keyboard.digit3Key.wasPressedThisFrame;
+                case KeyCode.Alpha4: return keyboard.digit4Key.wasPressedThisFrame;
                 default: return false;
             }
         }

@@ -457,7 +457,39 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.Alpha1)) TargetTest();
             if (SandboxInput.KeyPressed(KeyCode.Alpha2)) StepBackTest();
             if (SandboxInput.KeyPressed(KeyCode.Alpha3)) TurnTest();
+            if (SandboxInput.KeyPressed(KeyCode.Alpha4)) KnockLegTest();
         }
+
+        /// <summary>
+        /// To see a physical leg take a knock on demand: every fighter on its feet has its right shin knocked sideways
+        /// (<see cref="KnockLegSpeed"/> m/s), as a blow to the leg knocks it; the leg swings aside and its muscles bring
+        /// it back. Only with physical legs on: without, a leg goes where the animation puts it and nothing moves it.
+        /// </summary>
+        public void KnockLegTest()
+        {
+            int knocked = 0, all = 0;
+            foreach (var u in units)
+            {
+                if (u == null || !u.IsInitialized || !u.IsAlive || u.Clip == null)
+                {
+                    continue;
+                }
+
+                all++;
+                if (u.Clip.KnockLegNow(KnockLegSpeed))
+                {
+                    knocked++;
+                }
+            }
+
+            message = knocked > 0
+                ? $"Leg knock: the right shin of {knocked} of {all} fighters knocked to its left at {KnockLegSpeed:0} m/s. Expect a small twitch (a few centimetres, a tenth of a second), not a swing: see the README. 4 or the button again to repeat."
+                : "Leg knock: nothing to knock. Switch 'Physical legs' on first: without it a leg goes where the animation puts it and nothing moves it.";
+            Note($"leg knock test: {knocked} of {all} knocked");
+        }
+
+        /// <summary>The leg knock test's knock (m/s at a Medium's size).</summary>
+        public const float KnockLegSpeed = 6f;
 
         /// <summary>
         /// To see a turn on demand: every fighter standing still turns now, a quarter turn and a bit to its right
@@ -1427,6 +1459,8 @@ namespace PhysicsBattler.Sandbox
                     : "Physical legs off: the legs go where the animation puts them, as before.";
                 Note(legsNow ? "physical legs on" : "physical legs off");
             }
+
+            if (GUILayout.Button("Knock a leg (4): a small twitch; needs physical legs")) KnockLegTest();
 
             bool tired = GUILayout.Toggle(tiredAll, "Everyone tired (Fight Rhythm energy 25%)");
             if (tired != tiredAll)

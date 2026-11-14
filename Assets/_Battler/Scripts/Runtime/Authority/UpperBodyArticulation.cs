@@ -228,8 +228,105 @@ namespace PhysicsBattler.Authority
             hold.connectedAnchor = Vector3.zero;
             hold.xMotion = hold.yMotion = hold.zMotion = ConfigurableJointMotion.Locked;
             hold.angularXMotion = hold.angularYMotion = hold.angularZMotion = ConfigurableJointMotion.Locked;
+            if (HasLegs && PinsFeet)
+            {
+                BuildPins();
+            }
+
             SnapJoints();
         }
+
+        // ---- Planted feet, pinned (the plan "Grounded legs", step 6) -------------------------------------------------
+
+        /// <summary>
+        /// A body with legs has its planted feet pinned (read as it is built). A leg's muscles follow the pose within
+        /// millimetres, but under hips that move a planted foot crept by them, a centimetre at worst one time in
+        /// twenty; a foot that is planted stands still. The pin is a spring from where the foot is planted to its
+        /// ankle, not a lock: the hips are carried and the foot held, and a leg fixed hard at both ends whose pose and
+        /// body differ by a millimetre fights itself. Past <see cref="PinMost"/> it gives: a leg that is hooked or
+        /// struck hard comes away.
+        /// </summary>
+        public static bool PinsFeet = true;
+
+        /// <summary>A pin's spring (N/m at a Medium's mass), how it is damped against a critical damping of the leg below the knee, and the most it holds with (N at a Medium's size and mass).</summary>
+        public static float PinSpring = 120000f, PinDamping = 1f, PinMost = 1500f;
+
+        private readonly Rigidbody[] pins = new Rigidbody[2];
+        private readonly ConfigurableJoint[] pinJoints = new ConfigurableJoint[2];
+        private readonly bool[] pinned = new bool[2];
+        private readonly Vector3[] pinAt = new Vector3[2], pinWas = new Vector3[2];
+        private float pinScale = 1f;
+
+        /// <summary>Times a foot was pinned (for the reports).</summary>
+        public int Pinned { get; private set; }
+
+        private void BuildPins()
+        {
+            for (int f = 0; f < 2; f++)
+            {
+                int i = Array.IndexOf(parts, f == 0 ? PartId.FootL : PartId.FootR);
+                if (i < 0)
+                {
+                    continue;
+                }
+
+                var pinObject = new GameObject((f == 0 ? "FootL" : "FootR") + " (pin)");
+                pinObject.transform.SetParent(Root.transform, false);
+                pinObject.transform.SetPositionAndRotation(links[i].transform.position, Quaternion.identity);
+                var pin = pinObject.AddComponent<Rigidbody>();
+                pin.isKinematic = true;
+                pin.useGravity = false;
+                var joint = pinObject.AddComponent<ConfigurableJoint>();
+                joint.connectedArticulationBody = links[i];
+                joint.anchor = Vector3.zero;
+                joint.autoConfigureConnectedAnchor = false;
+                joint.connectedAnchor = Vector3.zero;
+                joint.xMotion = joint.yMotion = joint.zMotion = ConfigurableJointMotion.Free;
+                joint.angularXMotion = joint.angularYMotion = joint.angularZMotion = ConfigurableJointMotion.Free;
+                joint.targetPosition = Vector3.zero;
+                joint.xDrive = joint.yDrive = joint.zDrive = new JointDrive { positionSpring = 0f, positionDamper = 0f, maximumForce = 0f };
+                pins[f] = pin;
+                pinJoints[f] = joint;
+                pinAt[f] = pinWas[f] = links[i].transform.position;
+            }
+        }
+
+        /// <summary>
+        /// A foot's pin for the coming step: <paramref name="held"/>, its ankle is drawn to <paramref name="at"/> (world:
+        /// where the pose has a planted foot); not held, it is let go. <paramref name="mass"/>: the body's against a
+        /// Medium's, <paramref name="size"/> its size.
+        /// </summary>
+        public void PinFoot(int f, bool held, Vector3 at, float mass, float size)
+        {
+            if (pins[f] == null)
+            {
+                return;
+            }
+
+            pinWas[f] = pinned[f] ? pinAt[f] : at;
+            pinAt[f] = at;
+            if (held == pinned[f])
+            {
+                return;
+            }
+
+            pinned[f] = held;
+            pinScale = mass;
+            float spring = held ? PinSpring * mass : 0f;
+            // (Damped against the leg below the knee: a tenth of the body.)
+            float damper = held ? PinDamping * 2f * Mathf.Sqrt(spring * 7f * mass) : 0f;
+            var drive = new JointDrive { positionSpring = spring, positionDamper = damper, maximumForce = held ? PinMost * mass * size : 0f };
+            pinJoints[f].xDrive = pinJoints[f].yDrive = pinJoints[f].zDrive = drive;
+            if (held)
+            {
+                Pinned++;
+                pins[f].position = at;
+                pinWas[f] = at;
+            }
+        }
+
+        /// <summary>Is this foot pinned now.</summary>
+        public bool FootPinned(int f) => pinned[f];
 
         /// <summary>
         /// Once everything is in its hands: every joint put where the pose has it again. A part added (a shield's
@@ -1065,6 +1162,15 @@ namespace PhysicsBattler.Authority
             var pelvis = anim.Part(PartId.Pelvis);
             carrier.MovePosition(Vector3.Lerp(rootWas, pelvis.position, share));
             carrier.MoveRotation(Quaternion.Slerp(rootTurnWas, pelvis.rotation, share));
+            for (int f = 0; f < 2; f++)
+            {
+                // (A pinned foot's pin goes where the pose has that foot: still, but for a foot that rolls or pivots.
+                // One let go rides with its foot, so it is there when the foot is next planted.)
+                if (pins[f] != null)
+                {
+                    pins[f].MovePosition(pinned[f] ? Vector3.Lerp(pinWas[f], pinAt[f], share) : pinJoints[f].connectedArticulationBody.transform.position);
+                }
+            }
             Vector3 sign = ArticulationConventions.TargetSign;
             for (int i = 1; i < parts.Length; i++)
             {

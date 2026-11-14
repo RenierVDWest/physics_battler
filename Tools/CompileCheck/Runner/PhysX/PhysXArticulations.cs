@@ -254,7 +254,7 @@ namespace PhysicsBattler.Engine
         }
 
         /// <summary>Before each physics step: the drives as the stubs have them now, the pushes asked for, a root put somewhere.</summary>
-        private void DriveArticulations(int k)
+        private void DriveArticulations(int k, float substep)
         {
             foreach (var a in arts)
             {
@@ -332,8 +332,11 @@ namespace PhysicsBattler.Engine
                             continue;
                         }
 
-                        var f = V(p.Force);
-                        var mode = p.Mode == ForceMode.Impulse ? PxForceMode.Impulse : p.Mode == ForceMode.VelocityChange ? PxForceMode.VelocityChange
+                        // (The engine takes only a force or an acceleration on an articulation's link: an impulse or a change
+                        // of velocity is given as the force or acceleration that makes it in this one physics step, which is
+                        // what Unity does with them.)
+                        var f = V(once ? p.Force / Mathf.Max(1e-5f, substep) : p.Force);
+                        var mode = p.Mode == ForceMode.Impulse ? PxForceMode.Force : p.Mode == ForceMode.VelocityChange ? PxForceMode.Acceleration
                             : p.Mode == ForceMode.Acceleration ? PxForceMode.Acceleration : PxForceMode.Force;
                         if (p.Kind == 2)
                         {

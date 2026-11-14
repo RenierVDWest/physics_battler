@@ -79,6 +79,7 @@ namespace PhysicsBattler.Engine
             public Rigidbody Connected;
             public Vector3 Axis, Secondary, Anchor;
             public ConfigurableJointMotion[] Motion = new ConfigurableJointMotion[6];
+            public JointDrive LinX, LinY, LinZ;
             public float LowX, HighX, LimY, LimZ;
             public JointDrive Slerp, AngX, AngYZ;
             public RotationDriveMode Mode;
@@ -384,7 +385,7 @@ namespace PhysicsBattler.Engine
                 }
 
                 BeforeSubstep?.Invoke(k, n, step / n);
-                DriveArticulations(k);
+                DriveArticulations(k, step / n);
                 PxScene_simulate_mut(scene, step / n, null, null, 0, true);
                 uint error = 0;
                 PxScene_fetchResults_mut(scene, true, &error);
@@ -1083,6 +1084,18 @@ namespace PhysicsBattler.Engine
                 SetDrive(px, PxD6Drive.Slerp, slerp ? j.Slerp : default);
                 SetDrive(px, PxD6Drive.Twist, slerp ? default : j.AngX);
                 SetDrive(px, PxD6Drive.Swing, slerp ? default : j.AngYZ);
+            }
+
+            // (The linear drives: a spring from the joint's anchor on one body to its anchor on the other, as Unity's
+            // xDrive, yDrive and zDrive are. A foot's pin is one.)
+            if (first || !Same(cj.xDrive, j.LinX) || !Same(cj.yDrive, j.LinY) || !Same(cj.zDrive, j.LinZ))
+            {
+                j.LinX = cj.xDrive;
+                j.LinY = cj.yDrive;
+                j.LinZ = cj.zDrive;
+                SetDrive(px, PxD6Drive.X, j.LinX);
+                SetDrive(px, PxD6Drive.Y, j.LinY);
+                SetDrive(px, PxD6Drive.Z, j.LinZ);
             }
 
             if (first || Differs(cj.targetRotation, j.Target))

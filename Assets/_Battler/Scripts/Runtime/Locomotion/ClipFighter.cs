@@ -1596,6 +1596,61 @@ namespace PhysicsBattler.Locomotion
 
         private bool builtWithLegs;
 
+        /// <summary>
+        /// A leg a blow lands on is knocked aside for this long (seconds), its muscles as quick and as strong as this
+        /// share of what they are (most just struck, easing back).
+        /// </summary>
+        public const float LegKnockFor = 0.45f, LegKnockEase = 0.3f, LegKnockGive = 0.3f;
+
+        private static readonly PartId[] LeftLeg = { PartId.ThighL, PartId.ShinL, PartId.FootL }, RightLeg = { PartId.ThighR, PartId.ShinR, PartId.FootR };
+        private readonly float[] legKnocked = new float[2], legEase = { 1f, 1f };
+        private readonly bool[] legLoose = new bool[2];
+
+        /// <summary>Times a blow knocked one of its physical legs aside (for the reports).</summary>
+        public int LegsKnocked;
+
+        /// <summary>A leg's muscles as a blow has left them: <paramref name="soft"/> 1 just struck, 0 as they are.</summary>
+        private void EaseLeg(int f, float soft)
+        {
+            float ease = Mathf.Lerp(1f, LegKnockEase, soft), give = Mathf.Lerp(1f, LegKnockGive, soft);
+            bool loose = soft > 0.02f;
+            if (Mathf.Abs(ease - legEase[f]) <= 0.02f && loose == legLoose[f])
+            {
+                return;
+            }
+
+            legEase[f] = ease;
+            legLoose[f] = loose;
+            foreach (var id in f == 0 ? LeftLeg : RightLeg)
+            {
+                if (Upper.Holds(id))
+                {
+                    var m = MuscleOf(id, 1f);
+                    Upper.SetMuscle(id, m.hz * ease, m.most * give);
+                    // (Held to its pose it is brought back at once, however weak its muscles: let go, it is left where
+                    // the blow put it and comes back as an arm knocked aside does, then is held again.)
+                    Upper.SetTight(id, loose ? 0f : 1f);
+                }
+            }
+        }
+
+        /// <summary>A physical leg's part is struck: sent the way of the blow at <paramref name="kick"/> (m/s), the leg let go for a moment.</summary>
+        private void KnockLeg(PartId part, Vector3 kick)
+        {
+            if (Upper == null || !Upper.HasLegs || !Upper.Holds(part))
+            {
+                return;
+            }
+
+            int side = System.Array.IndexOf(LeftLeg, part) >= 0 ? 0 : 1;
+            legKnocked[side] = LegKnockFor;
+            LegsKnocked++;
+            // (At once: the blow lands in this step's physics, and a leg still held as it stands takes it without moving.)
+            EaseLeg(side, 1f);
+            Upper.PinFoot(side, false, Poser.Feet[side].Target, Mathf.Max(0.25f, Mass / MediumMass), Size);
+            Upper.Link(part).AddForce(Vector3.ClampMagnitude(kick, MostPartSpeed * Size), ForceMode.VelocityChange);
+        }
+
         private (float hz, float most) MuscleOf(PartId id, float ease)
         {
             float strong = Strong;
@@ -1706,6 +1761,23 @@ namespace PhysicsBattler.Locomotion
                 if (Upper == null)
                 {
                     return;
+                }
+            }
+
+            // (Physical legs: a foot the pose has planted is pinned where it is planted, and let go as it lifts. A leg a
+            // blow has just landed on lets go: its muscles eased and its foot unpinned for a third of a second, so it is
+            // knocked aside and comes back, as an arm is.)
+            if (Upper.HasLegs)
+            {
+                for (int f = 0; f < 2; f++)
+                {
+                    float left = Mathf.Clamp01(legKnocked[f] / LegKnockFor);
+                    // (Let go for most of that time, and taken up again quickly at its end.)
+                    float soft = left * (2f - left);
+                    legKnocked[f] = Mathf.Max(0f, legKnocked[f] - dt);
+                    EaseLeg(f, soft);
+                    var lk = Poser.Feet[f];
+                    Upper.PinFoot(f, lk.Locked && snapped && soft <= 0f, lk.Target, Mathf.Max(0.25f, Mass / MediumMass), Size);
                 }
             }
 
@@ -1911,6 +1983,9 @@ namespace PhysicsBattler.Locomotion
 
             UpperBodyArticulation.WithLegs = PhysicalLegs;
             builtWithLegs = PhysicalLegs;
+            legEase[0] = legEase[1] = 1f;
+            legLoose[0] = legLoose[1] = false;
+            legKnocked[0] = legKnocked[1] = 0f;
             Upper = new UpperBodyArticulation(Rig, Anim, Rig.Part(PartId.Pelvis).transform.parent, id => MuscleOf(id, 1f)) { GripStrength = Strong };
             if (Upper.HasLegs)
             {
@@ -2620,6 +2695,22 @@ namespace PhysicsBattler.Locomotion
         }
 
         private float testRetireFor = -1f;
+
+        /// <summary>
+        /// For the debug panel: its right shin is knocked sideways as a blow would knock it (<paramref name="speed"/>
+        /// m/s at a Medium's size, to its left). False: its legs are not of the physical body (or it is down).
+        /// </summary>
+        public bool KnockLegNow(float speed)
+        {
+            if (Fallen || Upper == null || !Upper.HasLegs || !Upper.Holds(PartId.ShinR))
+            {
+                return false;
+            }
+
+            Vector3 left = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.left;
+            KnockLeg(PartId.ShinR, left * (speed * Mathf.Sqrt(Size)));
+            return true;
+        }
 
         /// <summary>For the debug panel: standing, it turns by <paramref name="degrees"/> now (+ right) with its turn's clip. False: it cannot (down, in a clip, held where it is).</summary>
         public bool TurnNow(float degrees) => !Fallen && !Anchored && Loco.TurnNow(degrees);
@@ -3898,6 +3989,12 @@ namespace PhysicsBattler.Locomotion
             {
                 Vector3 kick = impulse * partShare / Mathf.Max(0.5f, struck.mass);
                 struck.AddForce(Vector3.ClampMagnitude(kick, (shield ? MostShieldSpeed : MostPartSpeed) * Size), ForceMode.VelocityChange);
+            }
+
+            // (A physical leg: knocked the way of the blow, and let go a moment.)
+            if (!shield && struck != null && System.Array.IndexOf(UpperBodyArticulation.LegParts, part) >= 0)
+            {
+                KnockLeg(part, impulse * partShare / Mathf.Max(0.5f, struck.mass));
             }
 
             // Driven back: what the struck part doesn't take moves the whole body (the fight's rule), with steps

@@ -545,6 +545,17 @@ internal static class FightReport
             PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs = Environment.GetEnvironmentVariable("FIGHT_LEGS") == "1";
         }
 
+        // (FIGHT_PINS=0: physical legs without their planted feet pinned. FIGHT_PINSPRING: the pin's spring, N/m.)
+        if (Environment.GetEnvironmentVariable("FIGHT_PINS") == "0")
+        {
+            PhysicsBattler.Authority.UpperBodyArticulation.PinsFeet = false;
+        }
+
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_PINSPRING"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pinSpring))
+        {
+            PhysicsBattler.Authority.UpperBodyArticulation.PinSpring = pinSpring;
+        }
+
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_LEGQUICK"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float legQuick))
         {
             PhysicsBattler.Locomotion.ClipFighter.LegQuick = legQuick;
@@ -790,6 +801,21 @@ internal static class FightReport
                             {
                                 did++;
                                 Console.WriteLine($"STEPBACK {paceAt:0.000} {u.name}");
+                            }
+                        }
+                    }
+                }
+
+                // (FIGHT_LEGKNOCK="5,7,9": at those seconds every unit's right shin is knocked sideways at 6 m/s, as the debug panel's button does.)
+                foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_LEGKNOCK") ?? "").Split(','))
+                {
+                    if (float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float knockAt) && paceAt >= knockAt && paceAt < knockAt + dt)
+                    {
+                        foreach (var u in units)
+                        {
+                            if (u.Clip != null && u.IsAlive && u.Clip.KnockLegNow(6f))
+                            {
+                                Console.WriteLine($"LEGKNOCK {paceAt:0.000} {u.name}");
                             }
                         }
                     }
