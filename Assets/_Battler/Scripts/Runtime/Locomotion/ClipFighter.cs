@@ -535,6 +535,14 @@ namespace PhysicsBattler.Locomotion
 
         public int Stumbles, Falls;
 
+        /// <summary>Each fall measured (the plan "Controlled falls", step 1): what reached the ground when, and how fast.</summary>
+        public readonly List<FallMeasure> FallsMeasured = new List<FallMeasure>();
+
+        /// <summary>The dead and those that stay down are measured for this long, the rest until they begin to get up (seconds).</summary>
+        public const float FallMeasuredFor = 3f;
+
+        private FallMeasure falling;
+
         /// <summary>Times a blow threw it faster than its legs can catch, and it went down (for the reports).</summary>
         public int ThrownDown;
 
@@ -662,6 +670,9 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            EndFallMeasure();
+            falling = new FallMeasure { Way = FallMeasure.WayOf(way, Loco.Facing), Why = LastReaction ?? "", Dead = Dead };
+
             // (Its physical upper body is let go as it goes down: the rig's own parts fall from where it was. A fallen
             // body is not stepped as a standing one is, and left to that its upper body stood on where it died.)
             if (Upper != null)
@@ -721,6 +732,7 @@ namespace PhysicsBattler.Locomotion
                     Authority.Apply(dt);
                     var lying = Rig.Part(PartId.Pelvis).body;
                     Loco.Position = new Vector3(lying.position.x, groundLevel, lying.position.z);
+                    StepFallMeasure(dt);
                 }
 
                 return;
@@ -744,8 +756,10 @@ namespace PhysicsBattler.Locomotion
                 Authority.Apply(dt);
                 // (Its place goes with the body on the ground: what keeps its distance from it, or aims at it, follows.)
                 Loco.Position = new Vector3(pelvis.position.x, groundLevel, pelvis.position.z);
+                StepFallMeasure(dt);
                 if (!StaysDown && ((footingTime >= LeastDown && stillFor >= StillFor) || footingTime >= MostDown))
                 {
+                    EndFallMeasure();
                     BeginGetUp();
                 }
 
@@ -780,6 +794,38 @@ namespace PhysicsBattler.Locomotion
 
                 LastReaction = "got up";
             }
+        }
+
+        private void StepFallMeasure(float dt)
+        {
+            if (falling == null)
+            {
+                return;
+            }
+
+            falling.Step(Rig, groundLevel, Size, dt);
+            if ((Dead || StaysDown) && falling.Lasted >= FallMeasuredFor)
+            {
+                EndFallMeasure();
+            }
+        }
+
+        /// <summary>The fall being measured is done: kept, and said in the playtest log.</summary>
+        private void EndFallMeasure()
+        {
+            if (falling == null)
+            {
+                return;
+            }
+
+            falling.Dead |= Dead;
+            FallsMeasured.Add(falling);
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(FightUnit, "fall", falling.Text);
+            }
+
+            falling = null;
         }
 
         private void BeginGetUp()

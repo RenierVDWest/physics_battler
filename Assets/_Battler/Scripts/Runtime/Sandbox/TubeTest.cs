@@ -63,6 +63,12 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The fighter also takes the tube as a blow of the fight's, of that momentum on the part it first meets.</summary>
         public bool AsBlow;
 
+        /// <summary>
+        /// The fall test: the fighter goes down along the tube's way whatever its legs say (it is also taken as a blow).
+        /// A fall on demand, from the side the tube comes from.
+        /// </summary>
+        public bool Fells;
+
         /// <summary>A tube's length and thickness (its radius), how far to the side it waits, and how long after its launch it is taken away (metres, metres, metres, seconds).</summary>
         public const float Length = 1.2f, Radius = 0.04f, WaitsAside = 1.3f, Lives = 2.5f;
 
@@ -90,6 +96,9 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>Tubes are waiting or flying.</summary>
         public bool Armed => tubes.Count > 0;
+
+        /// <summary>A tube is waiting to be sent.</summary>
+        public bool Waiting => tubes.Exists(t => !t.Launched && t.Object != null);
 
         /// <summary>Its weight now (kg).</summary>
         public float Mass => Impulse / Mathf.Max(0.5f, Speed);
@@ -266,8 +275,8 @@ namespace PhysicsBattler.Sandbox
             tube.Met = true;
             float goes = tube.Body.linearVelocity.magnitude;
             Report += $"{(Report.Length > 0 ? "; " : "")}{unit.name}: the {met.Value}";
-            PlaytestTrace.Note(unit, "tube", $"a tube of {Mass:0.0} kg at {Speed:0.0} m/s ({Impulse:0} N·s) met its {met.Value} {where.y - tube.Spot.y:0.00} m up, on {Side} (turned {Turned:0} degrees){(AsBlow ? "; taken as a blow" : "; the physics only")}");
-            if (!AsBlow)
+            PlaytestTrace.Note(unit, "tube", $"a tube of {Mass:0.0} kg at {Speed:0.0} m/s ({Impulse:0} N·s) met its {met.Value} {where.y - tube.Spot.y:0.00} m up, on {Side} (turned {Turned:0} degrees){(Fells ? "; the fall test: it goes down" : AsBlow ? "; taken as a blow" : "; the physics only")}");
+            if (!AsBlow && !Fells)
             {
                 return;
             }
@@ -278,6 +287,11 @@ namespace PhysicsBattler.Sandbox
             var clip = unit.Clip;
             var reaction = clip.Poise - poise <= 0f ? Reaction.Stagger : poise >= DamageRules.FlinchShare * clip.MaxPoise ? Reaction.Flinch : Reaction.Recoil;
             clip.TakeHit(met.Value, false, impulse, DamageRules.PartShare(met.Value), poise, reaction, where);
+            if (Fells && !clip.Fallen)
+            {
+                // (As the fight's own knock-down sends it: along the blow, off its feet.)
+                clip.KnockOver(tube.Across, 0.8f, $"the fall test: a tube of {Impulse:0} N·s on its {met.Value}, on {Side}");
+            }
         }
 
         /// <summary>Every tube taken away.</summary>

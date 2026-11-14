@@ -3254,6 +3254,49 @@ throws (taken off at the first step, the tubes then meet their targets as withou
 not throw for a destroyed object as Unity does, so the freeze itself is not reproduced there: the count is what
 is checked. Not verified in Unity.
 
+In Unity since (14 November, 130 s, 27 hits from 60 to 600 N·s on the front, the back and low on the legs, the
+physics only): the tubes show, meet the parts the log names and are cleared; no error. At 600 N·s the head was
+pushed up to 38 cm off its pose and the spine to its 20 degree stop, and all of it sprang back: the body gives
+and returns, and nothing that touches it can fell it.
+
+**Controlled falls: the plan, and its step 1** (14 November). The research and the plan are a document of their
+own, "Controlled falls: research and plan" (https://claude.ai/artifact/L1KorNskCqjo8dT32DSguE): what people do in
+the 0.7 s a fall takes (bend the legs to get low, hands out with soft elbows, turn to land on what can take it,
+the head kept off the ground), how games that get it right build it (the body stays physical and its joints
+keep pulling toward a protective pose; nobody uses a limp ragdoll for the living), and eleven steps for this
+fighter. Step 1 is built: falls on demand, and each fall measured. Steps 2 to 11 need the hips let go (the legs
+plan's step 7).
+
+*Falls on demand.* The tube test's panel has **Back, Forward, Left, Right** and **Thrown back**. Each turns the
+targets so the tube meets the side that sends them that way, sends the tubes when they have turned (0.8 s), takes
+the tube as a blow of 200 N·s (450 for thrown), and the target goes down whatever its legs say (the toggle "The
+target goes down, whatever its legs say"; off, a tube is a blow like any other and the legs decide).
+
+*Each fall measured* (`FallMeasure`; every fall of the fight's, not only the test's): the playtest log has a
+`fall` line when a fighter begins to get up (the dead and those that stay down: after 3 s): which way it went
+against the way it faced, what reached the ground first and when, when a hand, a knee, the hips, the trunk and
+the head did, how fast the hips and the head were going, how far it slid. Headless the fight report gathers
+them ("falls measured"). A part has reached the ground when its underside is within 3 cm of it; a knee when the
+joint is within 12 cm. Nothing in a fall is changed.
+
+What today's fall is, by those numbers (headless: 12 from the test, three each way, 3 thrown, 1 from a fight):
+
+| | |
+|---|---|
+| the head reached the ground | 16 of 16 |
+| how fast it was going | 3.9 m/s on average, 7.0 at most (a person who is trying: about 1.7; one who cannot: about 3.2) |
+| the hips landed at | 2.2 m/s on average |
+| on the ground after | about 0.45 s (a person: about 0.7 s; these legs give nothing) |
+| a hand or knee down before the trunk | 9 of the 12 from the test, 0 of the 3 thrown |
+
+Two things the numbers say that were not known. A hand or knee down first is no sign of bracing: a ragdoll's
+hanging hand reaches the ground first by chance, three times in four, and holds nothing up. The head and the
+hips are the measures that count. And the fall forgets the blow: one thrown at 13.9 m/s and one at 5.1 go down
+the same, on the spot (the fall gives every body the same 1.4 m/s; `KnockOver` is always called with the same
+knock). A hard blow that fells looks no harder than a soft one that does.
+
+Not verified in Unity: the fall buttons and the `fall` lines in a log.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

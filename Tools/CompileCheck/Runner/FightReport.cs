@@ -579,7 +579,7 @@ internal static class FightReport
         {
             string[] set = (Environment.GetEnvironmentVariable("FIGHT_TUBE") ?? "6,60,8,1.2,0.15,0,0").Split(',');
             float Set(int i, float otherwise) => i < set.Length && float.TryParse(set[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
-            tubes = new PhysicsBattler.Sandbox.TubeTest { Impulse = Set(1, 60f), Speed = Set(2, 8f), Height = Set(3, 1.2f), Reach = Set(4, 0.15f), Turned = Set(5, 0f), AsBlow = Set(6, 0f) > 0.5f };
+            tubes = new PhysicsBattler.Sandbox.TubeTest { Impulse = Set(1, 60f), Speed = Set(2, 8f), Height = Set(3, 1.2f), Reach = Set(4, 0.15f), Turned = Set(5, 0f), AsBlow = Set(6, 0f) > 0.5f, Fells = Set(7, 0f) > 0.5f };
             tubeAt = Set(0, 6f);
             tubeSent = false;
             Vector3 faces = tubes.Facing(Quaternion.Euler(0f, BoardGrid.TeamYaw(0), 0f) * Vector3.forward);
@@ -1262,6 +1262,22 @@ internal static class FightReport
 
             sb.AppendLine("    borne down (a body pressed so far off its pose that it fell): " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.BorneDown}")));
             sb.AppendLine("    planted feet that began to pivot on the ball of the foot: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.Poser.Pivots}")));
+            var fell = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.FallsMeasured.Select(f => (u, f))).ToList();
+            if (fell.Count > 0)
+            {
+                var living = fell.Where(x => !x.f.Dead).Select(x => x.f).ToList();
+                sb.AppendLine($"    falls measured: {fell.Count} ({living.Count} of the living). Of the living: the head reached the ground in {living.Count(f => f.HeadTouched)}{(living.Any(f => f.HeadTouched) ? $" (at {living.Where(f => f.HeadTouched).Average(f => f.HeadSpeed):0.0} m/s on average, {living.Where(f => f.HeadTouched).Max(f => f.HeadSpeed):0.0} at most)" : "")}; landed on a hand or knee before the hips, trunk or head in {living.Count(f => f.Braced)}; the hips landed at {(living.Any(f => f.HipsAt >= 0f) ? living.Where(f => f.HipsAt >= 0f).Average(f => f.HipsSpeed) : 0f):0.0} m/s on average; slid {(living.Count > 0 ? 100f * living.Average(f => f.Slid) : 0f):0} cm on average");
+                foreach (var way in fell.Where(x => !x.f.Dead).GroupBy(x => x.f.Way))
+                {
+                    sb.AppendLine($"      {way.Key}: {way.Count()}, the head down in {way.Count(x => x.f.HeadTouched)}, on a hand or knee first in {way.Count(x => x.f.Braced)}");
+                }
+
+                foreach (var (u, f) in fell.Take(40))
+                {
+                    sb.AppendLine($"      {u.name} {f.Text}");
+                }
+            }
+
             sb.AppendLine($"    told of the engine's steps at the end: {PhysicsBattler.Authority.PhysicsSteps.Listeners} (the fighters with physical bodies: {units.Count(u => u.Clip != null && u.Clip.Upper != null)}); thrown and taken off: {PhysicsBattler.Authority.PhysicsSteps.Faults}");
             sb.AppendLine("    lost by the engine and put back on its pose at once: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.LostBody}")));
             if (kickAt >= 0f)

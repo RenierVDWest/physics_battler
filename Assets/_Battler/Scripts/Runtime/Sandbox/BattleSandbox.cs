@@ -332,8 +332,43 @@ namespace PhysicsBattler.Sandbox
                 : "Tubes: none waiting yet (they are set a second after the targets are, and again when the last have gone).";
             if (sent > 0)
             {
-                Note($"tube test: {sent} tubes, {Tubes.Mass:0.0} kg at {Tubes.Speed:0.0} m/s ({Tubes.Impulse:0} N·s), height {Tubes.Height:0.00} m, reach {Tubes.Reach:0.00} m, turned {Tubes.Turned:0}, {(Tubes.AsBlow ? "as blows" : "physics only")}, physical legs {(PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs ? "on" : "off")}");
+                Note($"tube test: {sent} tubes, {Tubes.Mass:0.0} kg at {Tubes.Speed:0.0} m/s ({Tubes.Impulse:0} N·s), height {Tubes.Height:0.00} m, reach {Tubes.Reach:0.00} m, turned {Tubes.Turned:0}, {(Tubes.Fells ? "the fall test (they go down)" : Tubes.AsBlow ? "as blows" : "physics only")}, physical legs {(PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs ? "on" : "off")}");
             }
+        }
+
+        /// <summary>The fall test's blow (N·s): well over what a Medium's legs catch; and a thrown one's, a Large's club at its hardest.</summary>
+        public const float FallTestImpulse = 200f, ThrownTestImpulse = 450f;
+
+        /// <summary>How long the targets are given to turn before a fall test's tubes are sent (seconds).</summary>
+        public const float FallTestTurnsFor = 0.8f;
+
+        private float fallHitAt = -1f;
+
+        /// <summary>
+        /// The fall test (the plan "Controlled falls", step 1): a fall on demand. The targets are turned so the tube
+        /// meets the side that sends them the way asked (<paramref name="turned"/>: 0 struck on the front, they go
+        /// backward; 180 on the back, forward; 270 on the right side, to their left; 90 on the left side, to their
+        /// right), the tube is taken as a blow, and they go down whatever their legs say. Each fall is measured in
+        /// the playtest log (<c>fall</c>: what reached the ground when, the head, the hips).
+        /// </summary>
+        public void FallTest(float turned, bool thrown)
+        {
+            if (!tubeTest)
+            {
+                TubeTestScene();
+            }
+
+            bool turns = Mathf.Abs(Mathf.DeltaAngle(Tubes.Turned, turned)) > 1f;
+            Tubes.Turned = turned;
+            Tubes.Impulse = thrown ? ThrownTestImpulse : FallTestImpulse;
+            Tubes.Speed = 8f;
+            Tubes.Height = 1.3f;
+            Tubes.Reach = 0.15f;
+            Tubes.AsBlow = true;
+            Tubes.Fells = true;
+            // (Sent once the targets have turned and a tube is waiting.)
+            fallHitAt = Time.time + (turns ? FallTestTurnsFor : 0f);
+            message = $"Fall test: the targets struck on {Tubes.Side} with {Tubes.Impulse:0} N·s, to go down. The tubes are sent as soon as the targets have turned and a tube is waiting.";
         }
 
         /// <summary>The tube test, each game step: the targets face as the panel turns them, the tubes wait where it puts them, and what they meet is noted.</summary>
@@ -378,6 +413,12 @@ namespace PhysicsBattler.Sandbox
             }
 
             Tubes.Place();
+            if (fallHitAt >= 0f && Time.time >= fallHitAt && Tubes.Waiting)
+            {
+                fallHitAt = -1f;
+                TubeHit();
+            }
+
             Tubes.Step(Time.fixedDeltaTime);
             if (Tubes.Report.Length > 0 && !message.Contains(Tubes.Report))
             {
@@ -1513,6 +1554,15 @@ namespace PhysicsBattler.Sandbox
                 GUILayout.Label($"Targets turned: {Tubes.Turned:0} degrees: struck on {Tubes.Side} (0 the front, 90 the left side, 180 the back, 270 the right side)");
                 Tubes.Turned = Mathf.Round(GUILayout.HorizontalSlider(Tubes.Turned, 0f, 355f) / 5f) * 5f;
                 Tubes.AsBlow = GUILayout.Toggle(Tubes.AsBlow, "Also taken as a blow of the fight's (recoil, stumble, fall); off: the physics only");
+                Tubes.Fells = GUILayout.Toggle(Tubes.Fells, "The target goes down, whatever its legs say (the fall test)");
+                GUILayout.Label("Falls on demand: which way the targets go down. Each fall is measured in the log (what landed first, the head, the hips).");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Back")) FallTest(0f, false);
+                if (GUILayout.Button("Forward")) FallTest(180f, false);
+                if (GUILayout.Button("Left")) FallTest(270f, false);
+                if (GUILayout.Button("Right")) FallTest(90f, false);
+                GUILayout.EndHorizontal();
+                if (GUILayout.Button("Thrown back (a Large's club at its hardest)")) FallTest(0f, true);
                 if (GUILayout.Button(largeTargets ? "Targets: Larges" : "Targets: Mediums"))
                 {
                     largeTargets = !largeTargets;
