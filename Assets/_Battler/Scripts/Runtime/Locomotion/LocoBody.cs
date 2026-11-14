@@ -1184,6 +1184,48 @@ namespace PhysicsBattler.Locomotion
             loco.PlayAimed(clip, k, by, contact, startFrom, stepIn);
         }
 
+        /// <summary>How this body holds its sword, for the attack maker (<see cref="SwordHold"/>): what <see cref="ClipWeaponPoint"/> and the hand's pose go by.</summary>
+        public SwordHold Hold()
+        {
+            var slot = anim.SlotWeaponR;
+            bool has = slot != null && slot.localPosition.sqrMagnitude > 1e-6f;
+            Vector3 restAlong = has ? slot.localPosition.normalized : anim.RestLocalPosition(PartId.HandR).normalized;
+            float arm = anim.RestLocalPosition(PartId.ForearmR).magnitude + anim.RestLocalPosition(PartId.HandR).magnitude;
+            return SwordHold.Of(BodyMeasures.OfClips, restAlong, slot != null ? slot.localPosition : Vector3.zero, BladeR, arm, WeaponLength, SweetSpot, loco.Leg, MostBladeSteer, MostThrustSteer);
+        }
+
+        /// <summary>
+        /// Starts an attack made for its target (<see cref="AttackMaker"/>): its clip is the aim already, its travel and
+        /// its arm made for where the blade is to land, so it is played as it is, the body turned by
+        /// <paramref name="turn"/> degrees over its wind-up. A target that moves after that is followed as a strike
+        /// clip's is, by the weapon hand's pull (<see cref="Retarget"/>).
+        /// </summary>
+        public void PlayMade(LocoClip clip, Vector3 target, float turn)
+        {
+            if (clip == null || clip.ContactFrame < 0)
+            {
+                return;
+            }
+
+            if (aimClip != null && aimWeight > 0f)
+            {
+                pullLeft = aimPull * aimWeight + pullLeft * pullLeftWeight;
+                pullLeftWeight = 1f;
+            }
+
+            aimPull = Vector3.zero;
+            AimTurn = turn;
+            AimLunge = 1f;
+            AimMissBeforePull = 0f;
+            AimTarget = target;
+            AimPredicted = target;
+            AimLands = target;
+            planGripKnown = false;
+            aimClip = clip;
+            aimFrom = 0f;
+            loco.PlayAimed(clip, 1f, turn, clip.ContactFrame / clip.Rate, 0f);
+        }
+
         /// <summary>
         /// A strike's plan at a target from where the body is now: the turn and the lunge's stretch, and where the
         /// weapon would be at contact without the arm's pull, against the root now (<paramref name="predicted"/>),

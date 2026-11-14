@@ -3609,6 +3609,162 @@ namespace PhysicsBattler.Locomotion
             return landing.Count > 0 ? landing[strikeLuck.Next(landing.Count)] : null;
         }
 
+        /// <summary>The attack it made last (the plan "Aimed attacks": <see cref="AttackMaker"/>); null before any.</summary>
+        public MadeAttack Made { get; private set; }
+
+        /// <summary>A point of the world in its own frame as it stands now, in a clip's units (leg lengths; x to its right, y over the ground, z forward).</summary>
+        public Vector3 InOwnFrame(Vector3 point)
+        {
+            Vector3 off = Quaternion.Euler(0f, -Loco.Facing, 0f) * (point - Loco.Position);
+            return new Vector3(off.x, point.y - groundLevel, off.z) / Mathf.Max(0.1f, Loco.Leg);
+        }
+
+        /// <summary>
+        /// An attack made for a point (the plan "Aimed attacks"): of its strikes' scores (or the one named), the one
+        /// whose blade comes nearest the point as made for it, made in <paramref name="style"/> to land
+        /// <paramref name="landIn"/> seconds from now (0: in its own time), and begun. Null, and nothing begun, with no
+        /// strikes.
+        /// </summary>
+        /// <param name="counts">Which parts of the target count as the one the blade is for (null: not looked at): an attack whose blade would meet another part first is passed over for one whose way is open.</param>
+        public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle style, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null)
+        {
+            var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn };
+            var hold = Poser.Hold();
+            madePlans.Clear();
+            foreach (var clip in StrikeClips)
+            {
+                // (With none named: of the plain blows, made with the feet on the ground. The leaps and the spins are asked for by name.)
+                var score = AttackScore.Of(clip);
+                if (score == null || (named != null ? clip.Name != named : !score.Plain))
+                {
+                    continue;
+                }
+
+                foreach (var under in StrikeClips)
+                {
+                    // (On its own legs, or on another plain blow's: a thrust recorded standing on a cut's lunge, a cut
+                    // recorded lunging on the thrust's standing legs. With no legs named: whichever fits the distance.)
+                    var legScore = AttackScore.Of(under);
+                    bool own = under == clip;
+                    if (legScore == null || (!own && (!legScore.Plain || !score.Plain)) || (legs == null ? !own && !MadeBorrowsLegs : legs == "own" ? !own : under.Name != legs))
+                    {
+                        continue;
+                    }
+
+                    var plan = AttackMaker.Make(own ? score : score.OnLegsOf(legScore), style, aim, hold, build: false);
+                    if (plan != null)
+                    {
+                        // (Its own legs before another's that fit no better.)
+                        plan.Cost += own ? 0f : BorrowedLegsCost;
+                        madePlans.Add(plan);
+                    }
+                }
+            }
+
+            // The plan that costs least (what it takes to bring that score's blade onto the point: the maker's own
+            // count); with the target as it stands, the least of those whose way is open (what its blade would meet
+            // first is a part it was made for), looked for among the four best.
+            madePlans.Sort((a, b) => a.Cost.CompareTo(b.Cost));
+            MadeAttack best = null;
+            for (int i = 0; i < madePlans.Count && i < 4; i++)
+            {
+                AttackMaker.Build(madePlans[i]);
+                if (counts == null || target == null)
+                {
+                    best = madePlans[i];
+                    break;
+                }
+
+                FirstMet(madePlans[i], target, counts);
+                if (madePlans[i].WayOpen)
+                {
+                    best = madePlans[i];
+                    break;
+                }
+            }
+
+            if (best == null && madePlans.Count > 0)
+            {
+                best = madePlans[0];
+            }
+
+            madePlans.Clear();
+            if (best == null)
+            {
+                return null;
+            }
+
+            KeepOff(target);
+            Made = best;
+            // (The turn is in the made clip's own root: the walk plays it as it is.)
+            Poser.PlayMade(best.Clip, point, 0f);
+            return best;
+        }
+
+        private static readonly List<MadeAttack> madePlans = new List<MadeAttack>();
+
+        /// <summary>A made attack may be put on another recording's legs when those fit the distance better (the scene's Combat Feel, "Attacks Borrow Legs").</summary>
+        public static bool MadeBorrowsLegs = true;
+
+        /// <summary>What borrowed legs cost a plan (the maker's count): its own legs are kept unless another's fit that much better.</summary>
+        public const float BorrowedLegsCost = 0.5f;
+
+        private static readonly List<PartId> metParts = new List<PartId>();
+
+        /// <summary>
+        /// What a made attack's blade would meet first on its way, with <paramref name="target"/> standing as it stands
+        /// (the plan "Aimed attacks": is the way open?): the blade is swept through the last of its wind-up and its cut
+        /// against the target's parts and its shield. The way is open when the first it meets is a part it was made for.
+        /// </summary>
+        private void FirstMet(MadeAttack made, ClipFighter target, System.Func<PartId, bool> counts)
+        {
+            float leg = Mathf.Max(0.1f, Loco.Leg), length = Poser.WeaponLength / leg, radius = 0.035f * Size;
+            var turn = Quaternion.Euler(0f, Loco.Facing, 0f);
+            Vector3 World(Vector3 own) => new Vector3(Loco.Position.x, groundLevel, Loco.Position.z) + turn * new Vector3(own.x, 0f, own.z) * leg + Vector3.up * (own.y * leg);
+            made.Meets = "nothing";
+            made.WayOpen = false;
+            for (float t = made.ContactAt - 0.3f; t <= made.ContactAt + 0.04f; t += 1f / 240f)
+            {
+                made.Blade(t, length, out Vector3 grip, out Vector3 tip);
+                Vector3 g = World(grip), p = World(tip);
+                metParts.Clear();
+                bool shield = false;
+                foreach (var collider in Physics.OverlapCapsule(Vector3.Lerp(g, p, 0.1f), p, radius, ~0, QueryTriggerInteraction.Collide))
+                {
+                    if (target.ShieldColliders.Contains(collider))
+                    {
+                        shield = true;
+                    }
+                    else if (target.PartOf(collider, out var id))
+                    {
+                        metParts.Add(id);
+                    }
+                }
+
+                if (shield && metParts.Count == 0)
+                {
+                    made.Meets = "its shield";
+                    return;
+                }
+
+                if (metParts.Count > 0)
+                {
+                    foreach (var id in metParts)
+                    {
+                        if (counts(id))
+                        {
+                            made.Meets = "the " + id;
+                            made.WayOpen = true;
+                            return;
+                        }
+                    }
+
+                    made.Meets = "the " + metParts[0];
+                    return;
+                }
+            }
+        }
+
         /// <summary>Plays <paramref name="clip"/> at <paramref name="target"/> (aimed at its part nearest the strike's height); a strike alone.</summary>
         public Vector3 StrikeAt(ClipFighter target, LocoClip clip)
         {

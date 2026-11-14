@@ -243,6 +243,75 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How far a built blow is pushed past the fencing book, so it reads as hitting hard: wound further back, a stillness at the top before it goes, carried further through. 0: the book's blow, small and tidy. 1: pushed. The moment it lands and the place it lands do not move with it. Default 1.")]
         [Range(0f, 1f)] public float blowsArePushed = 1f;
 
+        [Header("Made attacks: recorded strikes taken apart and made again (the plan \"Aimed attacks\")")]
+        [Tooltip("A clip's travel over the ground goes the way it was recorded. Until 14 November a clip that turns as it travels (every strike: the hips turn 60 to 80 degrees through a cut) went off to a side by twice its turn: a rising cut's step forward of 0.42 m went 0.33 m to the left instead, the lunging backhand's 1.3 m forward went a little backward. On: strikes step and lunge where their recording does, in the fight as well as the aim test. Off: as it was.")]
+        public bool clipsTravelAsRecorded = true;
+
+        [Tooltip("The aim test's attacks are made from the recorded strikes (the plan \"Aimed attacks\"). A recorded strike is taken apart into each body part's own track: the hips' place and turn, the chest's twist and lean on the hips, the head, each arm, each leg and foot. An attack is made by changing those tracks (by the style below, and so its blade lands on the part asked for) and putting the body together again, so the whole body moves as the recording's does: the step, the back leg's push, the hips, then the chest, then the arm. For the aim: the moment of the cut is found at which its blade fits the target best, the hips are lowered and the chest leaned for its height, the lunge stretched or shortened for its distance, the body turned for its line. Off: the first built blows (if that is on) or the strike clips as they are.")]
+        public bool aimTestAttacksAreMade = true;
+
+        [Tooltip("A made attack may be put on another recording's legs when those fit the distance better: the thrust, recorded standing, on the forehand cut's lunge (a lunging thrust); the forehand cut, recorded lunging, on the thrust's standing legs (a cut from where it stands). The chest, head and arms are the blow's own; the hips, legs, steps and travel are the other's, each phase stretched to the blow's. Off: every attack on its own recording's legs.")]
+        public bool attacksBorrowLegs = true;
+
+        [Tooltip("Attack style: how far the body is wound up before the drive (the hips' turn and the chest's twist away from the blow). 1 is the recording's. More reads as a heavier, more telegraphed blow; less as a quick one from the guard.")]
+        [Range(0f, 2f)] public float attackWindUp = 1f;
+
+        [Tooltip("Attack style: how far the sword arm travels from where it is held in the guard, as it is drawn back and as the blow is carried through. 1 is the recording's. At the landing itself the arm is the recording's, so the aim does not move with it.")]
+        [Range(0.4f, 1.6f)] public float attackArmSwing = 1f;
+
+        [Tooltip("Attack style: how far the hips turn through the blow. 1 is the recording's (a forehand cut turns them about 75 degrees). More is a blow thrown from the hips; less is one thrown from the shoulders on quiet hips. The chest faces where it did, so the spine twists that much less, or more. Never more than a quarter past the recording's furthest.")]
+        [Range(0.4f, 1.6f)] public float attackHipDrive = 1f;
+
+        [Tooltip("Attack style: how far the chest twists on the hips, and so how far the shoulders come round. 1 is the recording's. Never past 80 degrees or the recording's own furthest. More brings the blade further round at the landing, and an aimed attack turns its whole body over the wind-up to make up for it.")]
+        [Range(0.4f, 1.6f)] public float attackTwist = 1f;
+
+        [Tooltip("Attack style: how far the chest leans, forward and to the side, through the blow. 1 is the recording's. (An aimed attack leans further by itself to reach a low part.)")]
+        [Range(0f, 2f)] public float attackLean = 1f;
+
+        [Tooltip("Attack style: how far the body travels over the ground, its hips and its steps with it. 1 is the recording's. An aimed attack stretches or shortens its travel by itself to reach its target (0.3 to 1.8 times), so in the aim test this shifts that range and shows only where the reach runs out.")]
+        [Range(0.4f, 1.8f)] public float attackLunge = 1f;
+
+        [Tooltip("Attack style: how far the hips sink (or rise) through the blow. 1 is the recording's (a forehand cut sinks 12 cm as the front knee takes the weight). More is a deeper lunge.")]
+        [Range(0f, 2f)] public float attackDrop = 1f;
+
+        [Tooltip("Attack style: how much lower the hips are carried through the whole attack (leg lengths; 0.1 is about 8 cm on a Medium). The knees bend for it; the feet stay where they are. 0 is the recording's.")]
+        [Range(0f, 0.2f)] public float attackCrouch = 0f;
+
+        [Tooltip("Attack style: how far the hips and the chest carry on round after the blade has landed. 1 is the recording's. More reads as a blow thrown with everything; less as one pulled back to the guard.")]
+        [Range(0.3f, 1.6f)] public float attackFollowThrough = 1f;
+
+        [Tooltip("Attack style: how long the wind-up takes, from the start to the moment the hips start in. 1 is the recording's (about half a second). An attack asked to land at a set moment stretches or shortens its wind-up by itself to do so.")]
+        [Range(0.5f, 2f)] public float attackWindUpTime = 1f;
+
+        [Tooltip("Attack style: how long the drive and the carry-through take, from the hips' start to the blade slow again. 1 is the recording's (the drive itself is about 0.16 s in a forehand cut). More is a heavier, slower blade; less a quicker one (the blade's speed limit still holds).")]
+        [Range(0.6f, 2f)] public float attackDriveTime = 1f;
+
+        [Tooltip("Attack style: how long the way back to the guard takes. 1 is the recording's.")]
+        [Range(0.5f, 2f)] public float attackRecoveryTime = 1f;
+
+        [Tooltip("Attack style: how much sooner the legs and hips go in the drive than the recording has them (seconds; under 0, later). With the arm's lag this is the whip of the blow: hips, then chest, then arm.")]
+        [Range(-0.08f, 0.08f)] public float attackHipLead = 0f;
+
+        [Tooltip("Attack style: how much later the sword arm goes in the drive than the recording has it (seconds; under 0, sooner). More is a later, whippier arm.")]
+        [Range(-0.08f, 0.08f)] public float attackArmLag = 0f;
+
+        /// <summary>The attack style the fields above make.</summary>
+        public AttackStyle AttackStyleNow => new AttackStyle
+        {
+            WindUp = attackWindUp, ArmSwing = attackArmSwing, HipDrive = attackHipDrive, Twist = attackTwist, Lean = attackLean, Lunge = attackLunge,
+            Drop = attackDrop, Crouch = attackCrouch, FollowThrough = attackFollowThrough, WindUpTime = attackWindUpTime, DriveTime = attackDriveTime,
+            RecoveryTime = attackRecoveryTime, HipLead = attackHipLead, ArmLag = attackArmLag,
+        };
+
+        /// <summary>The fields above set from an attack style (the aim test's presets).</summary>
+        public void SetAttackStyle(in AttackStyle style)
+        {
+            attackWindUp = style.WindUp; attackArmSwing = style.ArmSwing; attackHipDrive = style.HipDrive; attackTwist = style.Twist; attackLean = style.Lean;
+            attackLunge = style.Lunge; attackDrop = style.Drop; attackCrouch = style.Crouch; attackFollowThrough = style.FollowThrough;
+            attackWindUpTime = style.WindUpTime; attackDriveTime = style.DriveTime; attackRecoveryTime = style.RecoveryTime; attackHipLead = style.HipLead; attackArmLag = style.ArmLag;
+            AttackMaker.Style = style;
+        }
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -838,6 +907,10 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.RagdollsHoldSolidThings = ragdollsHoldSolidThings;
             PhysicsBattler.Units.HitFlashes.On = struckPartsFlashRed;
             BuiltBlow.On = aimTestBlowsAreBuilt;
+            LocoClip.TravelsTrue = clipsTravelAsRecorded;
+            AttackMaker.On = aimTestAttacksAreMade;
+            ClipFighter.MadeBorrowsLegs = attacksBorrowLegs;
+            AttackMaker.Style = AttackStyleNow;
             BuiltBlow.Pushed = blowsArePushed;
             BuiltBlow.UsesTrunk = blowsUseTheTrunk;
             ClipFighter.ThrownBodiesTuck = thrownBodiesTuck;

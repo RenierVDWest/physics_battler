@@ -757,13 +757,33 @@ namespace PhysicsBattler.Units
         /// are today, the one that comes nearest it, aimed at the spot and not at the hips, chest or face). False when
         /// it is busy or has no strikes. <paramref name="what"/>: the strike, and how far it expects to miss.
         /// </summary>
-        public bool AimStrike(UnitController target, AimSpot spot, out string what, out float miss, CutLine? line = null, CutSize? size = null)
+        public bool AimStrike(UnitController target, AimSpot spot, out string what, out float miss, CutLine? line = null, CutSize? size = null, string attack = null, float landIn = 0f, string legs = null)
         {
             what = "";
             miss = 0f;
             if (Clip == null || Clip.Strikes == null || Clip.Busy || !CanAct || target == null || target.Clip == null || !target.IsAlive)
             {
                 return false;
+            }
+
+            if (AttackMaker.On)
+            {
+                // (An attack made for the part, the plan "Aimed attacks": a recorded strike's score, each body part's
+                // track changed by the style and the aim, the body put together again.)
+                var made = Clip.StrikeMade(target.Clip, AimSpots.Point(target.Clip, spot), AttackMaker.Style, landIn, attack, id => AimSpots.Counts(spot, id), legs);
+                if (made == null)
+                {
+                    return false;
+                }
+
+                ClipTarget = target;
+                ClipAimSpot = spot;
+                comboStruck.Clear();
+                comboStruck.Add(target);
+                what = made.Clip.Name + (made.WayOpen ? "" : $" (expected to meet {made.Meets} first)");
+                miss = made.Short * Clip.Loco.Leg;
+                ClipStrikeStarted?.Invoke(this, $"{made.Clip.Name} at its {AimSpots.Name(spot)}{(miss > 0.005f ? $" (short by {100f * miss:0} cm)" : "")}", target);
+                return true;
             }
 
             if (BuiltBlow.On)

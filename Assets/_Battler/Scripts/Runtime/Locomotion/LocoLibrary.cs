@@ -248,6 +248,13 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
+        /// A clip's travel is turned into its root's own frame the right way round (Combat Feel "Clips travel the way
+        /// they were recorded"). Off, it is as it was: mirrored about the way the clip began, which shows only in a
+        /// clip that turns as it travels (the strikes).
+        /// </summary>
+        public static bool TravelsTrue = true;
+
+        /// <summary>
         /// How the root moves from one time to a later one, in the root's own frame at the first time
         /// (leg lengths; x right, y forward), and how far it turns (degrees).
         /// </summary>
@@ -256,7 +263,11 @@ namespace PhysicsBattler.Locomotion
             Root(from, out var a, out float ya);
             Root(to, out var b, out float yb);
             Vector2 d = b - a;
-            float r = -ya * Mathf.Deg2Rad;
+
+            // (The facing is a turn to the right, as the bake has it, so the way into the root's own frame is this one.
+            // It was the other way round until 14 November: a clip that turns as it travels then went off to a side by
+            // twice its turn, and a rising cut's step forward of 0.42 m went 0.33 m to the left instead.)
+            float r = (TravelsTrue ? ya : -ya) * Mathf.Deg2Rad;
             float c = Mathf.Cos(r), s = Mathf.Sin(r);
             moved = new Vector2(c * d.x - s * d.y, s * d.x + c * d.y);
             turned = Mathf.DeltaAngle(ya, yb);

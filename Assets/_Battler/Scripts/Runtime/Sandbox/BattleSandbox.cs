@@ -443,7 +443,7 @@ namespace PhysicsBattler.Sandbox
 
         private bool aimTest;
         private int aimTargetKit;
-        private float aimDistance = BuiltBlow.On ? AimDistanceBuilt : AimDistanceAtFirst, aimTurned;
+        private float aimDistance = AttackMaker.On ? AimDistanceMade : BuiltBlow.On ? AimDistanceBuilt : AimDistanceAtFirst, aimTurned;
         private AimSpot aimSpot = AimSpot.Chest;
         private string aimLast = "";
 
@@ -456,7 +456,24 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The same with built blows, while their feet do not move: about as near as the fight lets two enemies come, where the arm and the trunk reach a head and a body.</summary>
         public const float AimDistanceBuilt = 1.05f;
 
+        /// <summary>The same with made attacks: where the recorded cuts land with their own lunge.</summary>
+        public const float AimDistanceMade = 1.5f;
+
         private static readonly string[] AimKits = { "open hands", "sword and shield", "a sword" };
+
+        // (The made attacks the panel can ask for by name, and the legs they can be put on: the strike clips' names.)
+        private static readonly (string clip, string name)[] AimAttacks =
+        {
+            (null, "the best fit"), ("sns_forehand", "forehand cut"), ("sns_rising", "rising backhand"), ("sns_thrust", "thrust"),
+            ("sns_chop_lunge", "leaping chop"), ("sns_chop_side", "spinning chop"), ("sns_backhand_lunge", "spinning backhand"), ("sns_combo_forehand", "hopping forehand"),
+        };
+
+        private static readonly (string clip, string name)[] AimLegs =
+        {
+            (null, "the best fit"), ("own", "its own"), ("sns_forehand", "the forehand's lunge"), ("sns_rising", "the rising cut's passing step"), ("sns_thrust", "the thrust's standing legs"),
+        };
+
+        private int aimAttack, aimLegs;
 
         /// <summary>
         /// The aim test (the plan "Aimed attacks"): instead of the battle, one swordsman facing one target that only
@@ -493,7 +510,9 @@ namespace PhysicsBattler.Sandbox
             float half = 0.5f * aimDistance;
             Vector3 targetSpot = Grid.origin + new Vector3(0f, 0f, half), attackerSpot = Grid.origin + new Vector3(0f, 0f, -half);
             var target = SpawnUnit(BodySize.Medium, 1, targetSpot, "Target", aimTargetKit == 0 ? null : sword, aimTargetKit == 1 ? shield : null);
-            var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", sword, null);
+            // (With made attacks the swordsman has a shield as well: the strikes were recorded with sword and shield, and
+            // their guard and their footwork are that kit's.)
+            var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", sword, AttackMaker.On ? shield : null);
             Aim.Begin(attacker, target);
             aimLast = "";
             if (target == null || attacker == null)
@@ -508,7 +527,7 @@ namespace PhysicsBattler.Sandbox
             attacker.DummySpot = attackerSpot;
             target.DummyHolds = attacker.DummyHolds = AimTest.HeldWithin;
             // (Built blows may be tried from nearer than the fight lets enemies come; the clips from where they are.)
-            target.StandsAsNearAs = attacker.StandsAsNearAs = BuiltBlow.On ? AimTest.NearestApart : 0f;
+            target.StandsAsNearAs = attacker.StandsAsNearAs = AttackMaker.On || BuiltBlow.On ? AimTest.NearestApart : 0f;
             attacker.OnlyTarget = target;
             PlaceAim();
         }
@@ -2173,17 +2192,27 @@ namespace PhysicsBattler.Sandbox
             if (feel != null)
             {
                 Heading("The blow");
-                bool built = Tick(feel.aimTestBlowsAreBuilt, "Built blows", "Each blow is worked out in code for the part asked for: the trunk turns in, then the sword arm swings, shoulder, elbow, wrist. The feet do not move yet, so the two stand a little over a metre apart. Off: today's strike clips, from 1.4 m. Sets the test out again.");
-                if (built != feel.aimTestBlowsAreBuilt)
+                // (Three ways to make the blow: made from the recordings, the first built blows, the strike clips as they are.)
+                int way = feel.aimTestAttacksAreMade ? 0 : feel.aimTestBlowsAreBuilt ? 1 : 2;
+                if (Press("Blows: " + (way == 0 ? "made from the recordings" : way == 1 ? "built (the first try: arm and trunk)" : "the strike clips as they are"),
+                    "How the swordsman's blows are made. Made from the recordings: a recorded strike taken apart into each body part's own track, changed by the style and the aim, and put together again, so the whole body moves as the recording's does and the blade lands on the part asked for. Built: the first try, the sword arm and the trunk worked out in code, the feet still. The strike clips: the recordings as they are, the nearest picked. Sets the test out again."))
                 {
-                    feel.aimTestBlowsAreBuilt = built;
-                    BuiltBlow.On = built;
-                    aimDistance = built ? AimDistanceBuilt : AimDistanceAtFirst;
-                    Note(built ? "aim test: built blows" : "aim test: strike clips");
+                    way = (way + 1) % 3;
+                    feel.aimTestAttacksAreMade = way == 0;
+                    feel.aimTestBlowsAreBuilt = way != 2;
+                    AttackMaker.On = way == 0;
+                    BuiltBlow.On = way != 2;
+                    aimDistance = way == 0 ? AimDistanceMade : way == 1 ? AimDistanceBuilt : AimDistanceAtFirst;
+                    Note(way == 0 ? "aim test: attacks made from the recordings" : way == 1 ? "aim test: built blows" : "aim test: strike clips");
                     AimTestScene();
                 }
 
-                if (feel.aimTestBlowsAreBuilt)
+                if (feel.aimTestAttacksAreMade)
+                {
+                    DrawMadeAttacks(feel);
+                }
+
+                if (feel.aimTestBlowsAreBuilt && !feel.aimTestAttacksAreMade)
                 {
                     GUILayout.BeginHorizontal();
                     if (Press("Line: " + (Aim.Line.HasValue ? BuiltBlow.LineName(Aim.Line.Value) : "chosen for the part"), "The line the blade comes in on, as the swordsman sees it. Chosen for the part: of the lines that part may be cut on, the one his arm makes best from where he stands. Press to go through the eight."))
@@ -2251,6 +2280,66 @@ namespace PhysicsBattler.Sandbox
             GUILayout.Label(aimLast.Length > 0 ? aimLast : "None yet.", Styles().Text);
             GUILayout.Label(Aim.Blows.Count > 0 ? "So far: " + Aim.Tally() + "." : "", Styles().Text);
         }
+
+        private bool aimStyleOpen;
+
+        /// <summary>The aim test's made attacks: which blow, on which legs, when it lands, and the style it is made in.</summary>
+        private void DrawMadeAttacks(CombatFeel feel)
+        {
+            GUILayout.BeginHorizontal();
+            if (Press("Blow: " + AimAttacks[aimAttack].name, "Which recorded blow the attack is made from. The best fit: of the three plain ones (forehand cut, rising backhand, thrust), the one whose blade comes onto the part with the least change. The leaps and the spins are only made when named here."))
+            {
+                aimAttack = (aimAttack + 1) % AimAttacks.Length;
+            }
+
+            if (Press("Legs: " + AimLegs[aimLegs].name, "The legs the blow is put on. Its own: the legs it was recorded with. Another's: that recording's hips, legs, steps and travel under this blow's chest and arms (a thrust on the forehand's lunge is a lunging thrust; a forehand on the thrust's legs is a cut from where it stands). The best fit: whichever brings the blade to the part with the least change, its own first."))
+            {
+                aimLegs = (aimLegs + 1) % AimLegs.Length;
+            }
+
+            GUILayout.EndHorizontal();
+            Aim.Attack = AimAttacks[aimAttack].clip;
+            Aim.Legs = AimLegs[aimLegs].clip;
+            Aim.LandIn = Mathf.Round(20f * Slide("Lands in", Aim.LandIn > 0.01f ? $"{Aim.LandIn:0.00} s" : "its own time", "When the blade is to land, counted from the press. Its own time: as the recording has it (a forehand cut about 0.6 s, a rising backhand 0.8 s, a thrust 0.45 s). Set: the wind-up is stretched or shortened so the blade lands then (between a third and three times its own length); the drive itself is not changed.", Aim.LandIn, 0f, 1.6f)) / 20f;
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Style", "The same blow as different fighters would throw it. Each button sets all the levers below; then press a part."), Styles().Text, GUILayout.Width(40f));
+            foreach (var preset in AttackStyle.Presets)
+            {
+                if (Press(preset.name, preset.name == "Plain" ? "The recording's own: every lever at 1." : preset.name == "Heavy" ? "Wound far back and slowly, thrown from the hips, deep in the lunge, carried all the way through." : preset.name == "Quick" ? "Little wind-up, a short fast blow from the guard, back at once." : preset.name == "Brawler" ? "Big arm swings on a quiet body: the arm does the work, the hips little." : preset.name == "Low" ? "Crouched, deep in the knees, leaning in." : "The hips well ahead and the arm late: the body cracks like a whip."))
+                {
+                    feel.SetAttackStyle(preset.style);
+                    Note("aim test: attack style " + preset.name);
+                }
+            }
+
+            GUILayout.EndHorizontal();
+            if (Press((aimStyleOpen ? "−  " : "+  ") + "Style levers", "Each lever is one part of the body in one phase of the blow. 1 is the recording's own. They are the scene's Combat Feel fields (Attack ...), so they can be set there as well."))
+            {
+                aimStyleOpen = !aimStyleOpen;
+            }
+
+            if (aimStyleOpen)
+            {
+                feel.attackWindUp = Lever("Wind-up", feel.attackWindUp, 0f, 2f, "How far the body is wound up before the drive: the hips' turn and the chest's twist away from the blow.");
+                feel.attackArmSwing = Lever("Arm swing", feel.attackArmSwing, 0.4f, 1.6f, "How far the sword arm travels from the guard as it is drawn back and as the blow is carried through. At the landing it is the recording's.");
+                feel.attackHipDrive = Lever("Hip drive", feel.attackHipDrive, 0.4f, 1.6f, "How far the hips turn through the blow.");
+                feel.attackTwist = Lever("Twist", feel.attackTwist, 0.4f, 1.6f, "How far the chest twists on the hips.");
+                feel.attackLean = Lever("Lean", feel.attackLean, 0f, 2f, "How far the chest leans through the blow.");
+                feel.attackLunge = Lever("Lunge", feel.attackLunge, 0.4f, 1.8f, "How far the body travels, its steps with it. An aimed attack sets its own travel to reach, so here this shows only where the reach runs out.");
+                feel.attackDrop = Lever("Drop", feel.attackDrop, 0f, 2f, "How far the hips sink through the blow, as the front knee takes the weight.");
+                feel.attackCrouch = Lever("Crouch", feel.attackCrouch, 0f, 0.2f, "How much lower the hips are carried through the whole attack (leg lengths).");
+                feel.attackFollowThrough = Lever("Carry-through", feel.attackFollowThrough, 0.3f, 1.6f, "How far the hips and chest carry on round after the blade has landed.");
+                feel.attackWindUpTime = Lever("Wind-up time", feel.attackWindUpTime, 0.5f, 2f, "How long the wind-up takes.");
+                feel.attackDriveTime = Lever("Drive time", feel.attackDriveTime, 0.6f, 2f, "How long the drive and the carry-through take: more is a heavier, slower blade.");
+                feel.attackRecoveryTime = Lever("Back time", feel.attackRecoveryTime, 0.5f, 2f, "How long the way back to the guard takes.");
+                feel.attackHipLead = Lever("Hips lead", feel.attackHipLead, -0.08f, 0.08f, "How much sooner the legs and hips go in the drive (seconds).");
+                feel.attackArmLag = Lever("Arm lags", feel.attackArmLag, -0.08f, 0.08f, "How much later the sword arm goes in the drive (seconds).");
+                AttackMaker.Style = feel.AttackStyleNow;
+            }
+        }
+
+        private float Lever(string name, float now, float least, float most, string tip) => Mathf.Round(100f * Slide(name, $"{now:0.00}", tip, now, least, most)) / 100f;
 
         private void AimRow(AimSpot? left, AimSpot? middle = null, AimSpot? right = null)
         {

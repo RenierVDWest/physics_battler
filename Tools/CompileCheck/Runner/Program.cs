@@ -111,6 +111,11 @@ internal static class Program
             return LegRangeReport.Gaits();
         }
 
+        if (args.Length >= 1 && args[0] == "attacks")
+        {
+            return AttackReport.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "legrange")
         {
             return LegRangeReport.Run();

@@ -217,6 +217,8 @@ internal static class FightReport
         }
 
         // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
+        // (FIGHT_TRAVEL=0: the clips' travel as it was, turned the wrong way round.)
+        PhysicsBattler.Locomotion.LocoClip.TravelsTrue = Environment.GetEnvironmentVariable("FIGHT_TRAVEL") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
         {
             PhysicsBattler.Motion.ArmLimits.On = false;
@@ -484,7 +486,8 @@ internal static class FightReport
         {
             lineup = new[]
             {
-                new[] { ("Swordsman", new Tile(3, 2)) },
+                // (FIGHT_AIMWHO=shield: the attacker has sword and shield, as the strikes were recorded.)
+                new[] { (Environment.GetEnvironmentVariable("FIGHT_AIMWHO") == "shield" ? "Medium" : "Swordsman", new Tile(3, 2)) },
                 new[] { (aimKit == "shield" ? "Medium" : aimKit == "sword" ? "Swordsman" : "Open", new Tile(3, 5)) },
             };
         }
@@ -628,15 +631,38 @@ internal static class FightReport
             attacker.DummySpot = attackerSpot;
             target.DummyHolds = attacker.DummyHolds = PhysicsBattler.Sandbox.AimTest.HeldWithin;
             // (Built blows may be tried from nearer than the fight lets enemies come; the clips from where they are.)
-            target.StandsAsNearAs = attacker.StandsAsNearAs = Environment.GetEnvironmentVariable("FIGHT_AIMBUILT") != "0" ? PhysicsBattler.Sandbox.AimTest.NearestApart : 0f;
+            target.StandsAsNearAs = attacker.StandsAsNearAs = Environment.GetEnvironmentVariable("FIGHT_AIMBUILT") != "0" || Environment.GetEnvironmentVariable("FIGHT_AIMMADE") != "0" ? PhysicsBattler.Sandbox.AimTest.NearestApart : 0f;
             target.DummyFace = Mathf.Abs(turned) > 0.5f ? targetSpot + faces * 5f : (Vector3?)null;
             attacker.OnlyTarget = target;
             // (FIGHT_AIMBUILT=0: today's strike clips, not built blows. FIGHT_AIMLINE=Down and FIGHT_AIMSIZE=Wrist set a
             // built blow's line and size by hand, for every spot.)
+            // (FIGHT_AIMMADE=0: not attacks made of the scores. FIGHT_AIMATTACK=sns_forehand names the score; FIGHT_AIMLAND=0.8
+            // lands the blade so long after it is asked.)
+            PhysicsBattler.Locomotion.AttackMaker.On = Environment.GetEnvironmentVariable("FIGHT_AIMMADE") != "0";
             PhysicsBattler.Locomotion.BuiltBlow.On = Environment.GetEnvironmentVariable("FIGHT_AIMBUILT") != "0";
             PhysicsBattler.Locomotion.BuiltBlow.Pushed = Env("FIGHT_AIMPUSH", 1f);
             PhysicsBattler.Locomotion.BuiltBlow.UsesTrunk = Environment.GetEnvironmentVariable("FIGHT_AIMTRUNK") != "0";
             aim = new PhysicsBattler.Sandbox.AimTest { Attacker = attacker, Target = target };
+
+            aim.Attack = Environment.GetEnvironmentVariable("FIGHT_AIMATTACK");
+            aim.Legs = Environment.GetEnvironmentVariable("FIGHT_AIMLEGS");
+            PhysicsBattler.Locomotion.ClipFighter.MadeBorrowsLegs = Environment.GetEnvironmentVariable("FIGHT_AIMBORROW") != "0";
+            {
+                // (FIGHT_STYLE="WindUp=1.5,Lunge=1.2": the style the attacks are made in.)
+                object style = PhysicsBattler.Locomotion.AttackStyle.Plain;
+                foreach (string part in (Environment.GetEnvironmentVariable("FIGHT_STYLE") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var kv = part.Split('=');
+                    var field = typeof(PhysicsBattler.Locomotion.AttackStyle).GetField(kv[0].Trim());
+                    if (field != null && kv.Length == 2 && float.TryParse(kv[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v))
+                    {
+                        field.SetValue(style, v);
+                    }
+                }
+
+                PhysicsBattler.Locomotion.AttackMaker.Style = (PhysicsBattler.Locomotion.AttackStyle)style;
+            }
+            aim.LandIn = Env("FIGHT_AIMLAND", 0f);
             if (Enum.TryParse(Environment.GetEnvironmentVariable("FIGHT_AIMLINE"), true, out PhysicsBattler.Locomotion.CutLine aimLine))
             {
                 aim.Line = aimLine;

@@ -68,6 +68,25 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The blow's arm stayed inside a body's ranges throughout.</summary>
         public bool ArmInRange => WristPast < 1f && ArmPast < 1f;
 
+        /// <summary>
+        /// An attack made of a score (the plan "Aimed attacks"): when it was made to land (seconds after it was asked),
+        /// the moment of the recording that is, how far the body was turned (degrees) and its travel multiplied, how far
+        /// the sword hand was moved at contact (metres).
+        /// </summary>
+        public bool Made;
+        public float MadeAt, ScoreTime, Turn, Lunge, HandMoved, Drop, Lean, Steer;
+
+        /// <summary>The nearest the blade as posed came to the spot through the blow (metres; under 0: not read), and when (seconds after it was asked): how well the pose itself is aimed, whatever the body then makes of it.</summary>
+        public float PosedFrom = -1f, PosedAfter;
+
+        /// <summary>
+        /// How the body went, from the blow's start to its strike's landing, in the frame it began in: how far forward
+        /// and to its right (metres) and how far it turned (degrees); and what its strike's clip has for the same.
+        /// </summary>
+        public bool Went;
+        public Vector3 WentBy, ClipGoesBy;
+        public float WentTurned, ClipTurns;
+
         /// <summary>What it met, in words.</summary>
         public string MetText => !Met ? "nothing" : Shield ? "the shield" : Parried ? "the sword (parried)" : "the " + Part;
 
@@ -80,6 +99,7 @@ namespace PhysicsBattler.Sandbox
                 ? $"Blade: came within {100f * Nearest:0} cm of the spot, edge {EdgeOff:0}° off its way, at most {100f * BladeOffPose:0} cm behind its pose and {100f * BladeOffPath:0} cm off its path\n"
                 : "Blade: not followed\n")
             + $"Feet: weight {100f * WeightOutThen:0} cm outside them as it landed, {100f * WeightOut:0} cm at most"
+            + (Made ? $"\nMade: to land {MadeAt:0.00} s after, turned {Turn:0}°, travel x{Lunge:0.00}, hips {100f * Drop:0} cm down, leaned {Lean:0}°, wrist {Steer:0}°, the hand moved {100f * HandMoved:0} cm{(PosedFrom >= 0f ? $"; the blade as posed came within {100f * PosedFrom:0} cm of the spot" : "")}" : "")
             + (Built ? $"\nPlan: to land {PlannedAt:0.00} s after, the blade turning {Wound:0}° at {PlannedSpeed:0} m/s, its line {LineOff:0}° off the one asked. Arm: {(ArmInRange ? "in range" : $"{Mathf.Max(WristPast, ArmPast):0}° past range")}{(BladeInOwnBody > 0.005f ? $", the blade {100f * BladeInOwnBody:0} cm into its own body" : "")}" : "");
 
         /// <summary>The blow in a line, for the logs.</summary>
@@ -92,6 +112,9 @@ namespace PhysicsBattler.Sandbox
             + $"its weight {100f * WeightOutThen:0} cm outside its feet then, {100f * WeightOut:0} cm at most"
             + (ExpectedMiss > 0.005f ? $"; it expected to fall {100f * ExpectedMiss:0} cm short of the spot" : "")
             + $"; its arm {(ArmInRange ? "in range" : $"{Mathf.Max(WristPast, ArmPast):0}° past range")}"
+            + (PosedFrom >= 0f ? $"; the blade as posed came within {100f * PosedFrom:0} cm of the spot ({PosedAfter:0.00} s after)" : "")
+            + (Went ? $"; the body went {WentBy.z:0.00} m forward, {WentBy.x:0.00} right and turned {WentTurned:0}° by its landing (its clip: {ClipGoesBy.z:0.00}, {ClipGoesBy.x:0.00}, {ClipTurns:0}°)" : "")
+            + (Made ? $"; made: to land {MadeAt:0.00} s after ({ScoreTime:0.00} s of the recording), turned {Turn:0}°, travel x{Lunge:0.00}, hips {100f * Drop:0} cm down, leaned {Lean:0}°, wrist {Steer:0}°, the hand moved {100f * HandMoved:0} cm" : "")
             + (Built ? $"; built: planned to land {PlannedAt:0.00} s after, the blade turning {Wound:0}° at {PlannedSpeed:0.0} m/s, its line {LineOff:0}° off the one asked and its edge {PlannedEdgeOff:0}° off its way{(BladeInOwnBody > 0.005f ? $", the blade {100f * BladeInOwnBody:0} cm into its own body" : "")}" : "");
     }
 
@@ -110,6 +133,13 @@ namespace PhysicsBattler.Sandbox
         public CutLine? Line;
         public CutSize? Size;
 
+        /// <summary>A made attack's score, named by its clip; null: the one that fits the spot best. And when it is to land (seconds after it is asked; 0: in its own time).</summary>
+        public string Attack;
+        public float LandIn;
+
+        /// <summary>The legs a made attack is put on: null, whichever fit; "own", the recording's own; or a strike clip's name, that recording's.</summary>
+        public string Legs;
+
         /// <summary>The blow under way (or the last one), and every blow asked so far.</summary>
         public AimBlow Now { get; private set; }
         public readonly List<AimBlow> Blows = new List<AimBlow>();
@@ -125,7 +155,8 @@ namespace PhysicsBattler.Sandbox
 
         private readonly Queue<AimSpot> waiting = new Queue<AimSpot>();
         private readonly List<Vector3> posedPath = new List<Vector3>();
-        private Vector3 lastStrike;
+        private Vector3 lastStrike, lastPosed, startAt;
+        private float startFacing;
         private bool lastKnown, readSinceMet;
         private float doneAt = -10f;
 
@@ -149,16 +180,32 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
-            if (!Attacker.AimStrike(Target, spot, out string strike, out float miss, Line, Size))
+            if (!Attacker.AimStrike(Target, spot, out string strike, out float miss, Line, Size, Attack, LandIn, Legs))
             {
                 return false;
             }
 
             Now = new AimBlow { Spot = spot, Strike = strike, ExpectedMiss = miss, Started = now, Size = Attacker.Clip.Size };
+            startAt = Attacker.Clip.Loco.Position;
+            startFacing = Attacker.Clip.Loco.Facing;
             Vector3 apart = Target.Root.position - Attacker.Root.position;
             apart.y = 0f;
             Now.Apart = apart.magnitude;
             Now.FromShoulder = Vector3.Distance(Attacker.Clip.Anim.Part(PartId.UpperArmR).position, AimSpots.Point(Target.Clip, spot));
+            var made = Attacker.Clip.Made;
+            if (AttackMaker.On && made != null && Attacker.Clip.Loco.Shot == made.Clip)
+            {
+                Now.Made = true;
+                Now.MadeAt = made.LandsIn / Mathf.Max(0.05f, Attacker.Clip.Loco.TimeScale);
+                Now.ScoreTime = made.ScoreTime;
+                Now.Turn = made.Turn;
+                Now.Lunge = made.Lunge;
+                Now.HandMoved = made.HandMoved * Attacker.Clip.Loco.Leg;
+                Now.Drop = made.Drop * Attacker.Clip.Loco.Leg;
+                Now.Lean = made.Lean;
+                Now.Steer = made.Steer;
+            }
+
             var built = Attacker.Clip.Built;
             if (built != null && built.Playing)
             {
@@ -294,6 +341,31 @@ namespace PhysicsBattler.Sandbox
             }
 
             Now.ArmPast = Mathf.Max(Now.ArmPast, clip.ArmHeldBy[1]);
+            var shot = clip.Loco.Current == Locomotor.Mode.OneShot ? clip.Loco.Shot : null;
+            if (!Now.Went && shot != null && shot.ContactFrame >= 0 && clip.Loco.ShotTime >= shot.ContactFrame / shot.Rate)
+            {
+                Now.Went = true;
+                Now.WentBy = Quaternion.Euler(0f, -startFacing, 0f) * (clip.Loco.Position - startAt);
+                Now.WentTurned = Mathf.DeltaAngle(startFacing, clip.Loco.Facing);
+                shot.RootMotion(0f, clip.Loco.ShotTime, out Vector2 goes, out Now.ClipTurns);
+                Now.ClipGoesBy = new Vector3(goes.x, 0f, goes.y) * clip.Loco.Leg;
+            }
+
+            // (The blade as posed: the nearest its striking part comes to the spot, between one step and the next.)
+            if (posed != null)
+            {
+                Vector3 posedStrike = posed.position + posed.rotation * Vector3.forward * along;
+                Vector3 posedFrom = lastKnown ? lastPosed : posedStrike, posedWay = posedStrike - posedFrom;
+                float pt = posedWay.sqrMagnitude > 1e-10f ? Mathf.Clamp01(Vector3.Dot(spot - posedFrom, posedWay) / posedWay.sqrMagnitude) : 1f;
+                float posedNear = Vector3.Distance(spot, posedFrom + posedWay * pt);
+                if (Now.PosedFrom < 0f || posedNear < Now.PosedFrom)
+                {
+                    Now.PosedFrom = posedNear;
+                    Now.PosedAfter = now - Now.Started;
+                }
+
+                lastPosed = posedStrike;
+            }
 
             // (The nearest the striking part came between the last step and this one: a blade at 15 m/s goes 25 cm in a step.)
             Vector3 from = lastKnown ? lastStrike : strike;
