@@ -459,10 +459,29 @@ internal static class FightReport
         {
             string who = Environment.GetEnvironmentVariable("FIGHT_TARGETS") ?? "MM";
             bool lt = who.Length > 1 && who[1] == 'L';
+            // (FIGHT_TUBEROWS=4: four rows of the three targets, twelve bodies sent down together: what a fall costs with many on the field.)
+            int rows = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_TUBEROWS"), out int tubeRows) ? Mathf.Clamp(tubeRows, 1, 8) : 1;
+            // ("MC": a Large with its club, a Small with its club, and a swordsman: the bodies as the battle arms them.)
+            bool battle = who.Length > 1 && who[1] == 'C';
+            var targets = new List<(string, Tile)>();
+            for (int r = 0; r < rows; r++)
+            {
+                targets.Add((battle ? "Large" : lt ? "Large open" : "Open", new Tile(1, 5)));
+                targets.Add((battle ? "Small" : lt ? "Large shield" : "Medium", new Tile(3, 5)));
+                targets.Add((lt ? "Large sword" : "Swordsman", new Tile(6, 5)));
+            }
+
+            lineup = new[] { new (string, Tile)[0], targets.ToArray() };
+        }
+
+        if (gang == "crowd")
+        {
+            // (Many on the field: eight a side, of every kind. What the fight costs a step with sixteen.)
+            string[] kinds = { "Swordsman", "Medium", "Large", "Medium", "Swordsman", "Medium", "Large", "Swordsman" };
             lineup = new[]
             {
-                new (string, Tile)[0],
-                new[] { (lt ? "Large open" : "Open", new Tile(1, 5)), (lt ? "Large shield" : "Medium", new Tile(3, 5)), (lt ? "Large sword" : "Swordsman", new Tile(6, 5)) },
+                kinds.Select((k, i) => (k, new Tile(i, 1))).ToArray(),
+                kinds.Select((k, i) => (k, new Tile(7 - i, 6))).ToArray(),
             };
         }
 
@@ -587,8 +606,8 @@ internal static class FightReport
             Vector3 faces = tubes.Facing(Quaternion.Euler(0f, BoardGrid.TeamYaw(0), 0f) * Vector3.forward);
             for (int i = 0; i < units.Count; i++)
             {
-                float x = (i - 1) * PhysicsBattler.Sandbox.BattleSandbox.TargetPairsApart;
-                Vector3 spot = grid.origin + new Vector3(x, 0f, 0.5f * PhysicsBattler.Sandbox.BattleSandbox.TargetFromAttacker);
+                float x = (i % 3 - 1) * PhysicsBattler.Sandbox.BattleSandbox.TargetPairsApart;
+                Vector3 spot = grid.origin + new Vector3(x, 0f, 0.5f * PhysicsBattler.Sandbox.BattleSandbox.TargetFromAttacker + 6f * (i / 3));
                 units[i].Teleport(spot, Mathf.Atan2(faces.x, faces.z) * Mathf.Rad2Deg);
                 units[i].TargetDummy = true;
                 units[i].DummySpot = spot;
@@ -709,6 +728,16 @@ internal static class FightReport
 
         // (FIGHT_HANDSTAY=0: a hand that lands in a fall is not held where it landed.)
         PhysicsBattler.Locomotion.ClipFighter.HandsStayWhereTheyLand = Environment.GetEnvironmentVariable("FIGHT_HANDSTAY") != "0";
+        // (FIGHT_HELDSOLID=0: what a ragdoll holds is stopped by nothing, as before.)
+        PhysicsBattler.Locomotion.ClipFighter.RagdollsHoldSolidThings = Environment.GetEnvironmentVariable("FIGHT_HELDSOLID") != "0";
+        // (FIGHT_SHIELDBEFORE=0: falling, a shield arm reaches for the ground as an empty one does.)
+        PhysicsBattler.Locomotion.FallPose.ShieldKeptBeforeChest = Environment.GetEnvironmentVariable("FIGHT_SHIELDBEFORE") != "0";
+        // (FIGHT_ARMSOUT=0: fallen, its arms and its shield are not stopped by its own body, and its hands are not posed clear of it. "pose": only the pose's part; "body": only the body's.)
+        {
+            string armsOut = Environment.GetEnvironmentVariable("FIGHT_ARMSOUT");
+            PhysicsBattler.Authority.UpperBodyArticulation.ArmsStoppedByBody = armsOut != "0" && armsOut != "pose";
+            PhysicsBattler.Locomotion.FallPose.HandsClearOfTrunk = armsOut != "0" && armsOut != "body";
+        }
 
         // (FIGHT_CAUGHT=0: no fall is caught.)
         PhysicsBattler.Locomotion.ClipFighter.FallsCanBeCaught = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
@@ -883,6 +912,12 @@ internal static class FightReport
         var dummyOff = new Dictionary<UnitController, (float most, float last)>();
         int steps = (int)(limit * 60f) + 600;
         float startTime = Time.time;
+        // (What a step costs here (the scripts as compiled for this runner, the engine as PhysX has it): the fight's
+        // step, the units' own, and the physics, by whether any body is down or getting up.)
+        var costs = new Dictionary<string, (double fight, double own, double physics, int steps)>();
+        var clockFight = new System.Diagnostics.Stopwatch();
+        var clockOwn = new System.Diagnostics.Stopwatch();
+        var clockPhysics = new System.Diagnostics.Stopwatch();
         try
         {
             for (int step = 0; step < steps && !loop.Over; step++)
@@ -894,7 +929,9 @@ internal static class FightReport
                 }
 
                 loop.TimeLimit = limit;
+                clockFight.Restart();
                 loop.Step(units, dt, Time.time);
+                clockFight.Stop();
                 heft.Step(dt);
                 limits.Step();
                 grounds.Step(dt);
@@ -934,10 +971,13 @@ internal static class FightReport
                     }
                 }
 
+                clockOwn.Restart();
                 foreach (var unit in units)
                 {
                     Call(unit, "FixedUpdate");
                 }
+
+                clockOwn.Stop();
 
                 // (FIGHT_TURN="3,180": at 3 s every unit turns 180 degrees on the spot, as the debug panel's button has them do.)
                 {
@@ -1127,6 +1167,7 @@ internal static class FightReport
                 }
 
                 // (The engine under the stubs: every script's step, then the physics step, as in Unity.)
+                clockPhysics.Restart();
                 if (PhysicsBattler.Authority.PhysicsSteps.Manual)
                 {
                     PhysicsBattler.Authority.PhysicsSteps.Run(dt);
@@ -1134,6 +1175,15 @@ internal static class FightReport
                 else
                 {
                     Physics.Simulate(dt);
+                }
+
+                clockPhysics.Stop();
+                {
+                    int down = units.Count(u => u.Clip != null && u.Clip.Footing == PhysicsBattler.Locomotion.ClipFighter.Footings.Down && u.IsAlive);
+                    int rising = units.Count(u => u.Clip != null && u.Clip.Footing == PhysicsBattler.Locomotion.ClipFighter.Footings.GettingUp && u.IsAlive);
+                    string phase = down > 0 ? (2 * down >= units.Count ? "half or more down" : "some down") : rising > 0 ? "some getting up" : "all on their feet";
+                    var c = costs.TryGetValue(phase, out var had) ? had : default;
+                    costs[phase] = (c.fight + clockFight.Elapsed.TotalMilliseconds, c.own + clockOwn.Elapsed.TotalMilliseconds, c.physics + clockPhysics.Elapsed.TotalMilliseconds, c.steps + 1);
                 }
 #if PHYSX
                 if (Physics.Backend is PhysicsBattler.Engine.PhysXWorld px)
@@ -1422,15 +1472,33 @@ internal static class FightReport
 
             sb.AppendLine("    borne down (a body pressed so far off its pose that it fell): " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.BorneDown}")));
             sb.AppendLine("    planted feet that began to pivot on the ball of the foot: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.Poser.Pivots}")));
+            foreach (var c in costs.OrderBy(c => c.Key))
+            {
+                double all = (c.Value.fight + c.Value.own + c.Value.physics) / c.Value.steps;
+                sb.AppendLine($"    a step's cost here with {units.Count} units, {c.Key} ({c.Value.steps} steps): {all:0.00} ms ({all / units.Count:0.00} a unit): the fight and the poses {c.Value.fight / c.Value.steps:0.00}, the units' own steps {c.Value.own / c.Value.steps:0.00}, the physics and the muscles {c.Value.physics / c.Value.steps:0.00}");
+            }
+
             var fell = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.FallsMeasured.Select(f => (u, f))).ToList();
             if (fell.Count > 0)
             {
                 var living = fell.Where(x => !x.f.Dead).Select(x => x.f).ToList();
                 sb.AppendLine($"    falls {(PhysicsBattler.Locomotion.ClipFighter.OneBodyFalls ? $"in the one body, muscle {PhysicsBattler.Locomotion.ClipFighter.FallMuscle:0.00}" : "as ragdolls, as before")}: in the one body {units.Sum(u => u.Clip != null ? u.Clip.OneBodyFallen : 0)}; a joint furthest from the fall's pose: " + string.Join(", ", units.Where(u => u.Clip?.Upper != null).Select(u => $"{u.Clip.Upper.FallOffMostPart} {u.Clip.Upper.FallOffMost:0}")) + " degrees");
                 sb.AppendLine($"    falls it tucked in (thrown off its feet): {units.Sum(u => u.Clip != null ? u.Clip.Tucked : 0)}");
-                sb.AppendLine($"    hands held where they landed in a fall: {units.Sum(u => u.Clip != null ? u.Clip.HandsHeld : 0)}; came away again: {units.Sum(u => u.Clip != null ? u.Clip.HandsCameAway : 0)}; dragged over the ground {100f * units.Sum(u => u.Clip != null ? u.Clip.HandsDragged : 0f):0} cm in all");
+                sb.AppendLine($"    hands held where they landed in a fall: {units.Sum(u => u.Clip != null ? u.Clip.HandsHeld : 0)}; came away again: {units.Sum(u => u.Clip != null ? u.Clip.HandsCameAway : 0)}; dragged over the ground {100f * units.Sum(u => u.Clip != null ? u.Clip.HandsDragged : 0f):0} cm in all; let go because the body had come down over them: {units.Sum(u => u.Clip != null ? u.Clip.HandsFromUnder : 0)}");
                 sb.AppendLine($"    falls caught on a knee and a hand: {units.Sum(u => u.Clip != null ? u.Clip.Caught : 0)}; begun so and fallen after all: {units.Sum(u => u.Clip != null ? u.Clip.CaughtAndLost : 0)}");
                 sb.AppendLine($"    falls measured: {fell.Count} ({living.Count} of the living). Of the living: the head reached the ground in {living.Count(f => f.HeadTouched)}{(living.Any(f => f.HeadTouched) ? $" (at {living.Where(f => f.HeadTouched).Average(f => f.HeadSpeed):0.0} m/s on average, {living.Where(f => f.HeadTouched).Max(f => f.HeadSpeed):0.0} at most)" : "")}; landed on a hand or knee before the hips, trunk or head in {living.Count(f => f.Braced)}; the hips landed at {(living.Any(f => f.HipsAt >= 0f) ? living.Where(f => f.HipsAt >= 0f).Average(f => f.HipsSpeed) : 0f):0.0} m/s on average; slid {(living.Count > 0 ? 100f * living.Average(f => f.Slid) : 0f):0} cm on average; their hands went {(living.Count > 0 ? 100f * living.Average(f => f.HandsSlid) : 0f):0} cm over the ground on average and left it again {living.Sum(f => f.HandsLifted)} times in all");
+                // (What they held, by how they fell: in the one body, whose pose and solids keep it, and as ragdolls (a limb off), the dead with them.)
+                foreach (var (kind, falls) in new[] { ("in the one body, the living", living.Where(f => !f.Ragdoll).ToList()), ("as ragdolls, the living and the dead", fell.Select(x => x.f).Where(f => f.Ragdoll).ToList()) })
+                {
+                    if (falls.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var armedFalls = falls.Where(f => f.Armed).ToList();
+                    var shieldFalls = falls.Where(f => f.Shielded).ToList();
+                    sb.AppendLine($"    what they held as they fell and lay ({kind}: {falls.Count}; as seen): an arm in its own body {falls.Average(f => f.ArmInFor):0.00} s a fall ({falls.Max(f => f.ArmInFor):0.00} at most); {armedFalls.Count} with a weapon: in its own body {(armedFalls.Count > 0 ? armedFalls.Average(f => f.BladeInFor) : 0f):0.00} s a fall ({(armedFalls.Count > 0 ? armedFalls.Max(f => f.BladeInFor) : 0f):0.00} at most), its end at most {(armedFalls.Count > 0 ? armedFalls.Max(f => f.BladeFastest) : 0f):0.0} m/s, lowest {(armedFalls.Count > 0 ? 100f * armedFalls.Min(f => f.BladeLowest) : 0f):0} cm over the ground; {shieldFalls.Count} with a shield: in its own body {(shieldFalls.Count > 0 ? shieldFalls.Average(f => f.ShieldInFor) : 0f):0.00} s a fall ({(shieldFalls.Count > 0 ? shieldFalls.Max(f => f.ShieldInFor) : 0f):0.00} at most), at most {(shieldFalls.Count > 0 ? 100f * shieldFalls.Max(f => f.ShieldDeepest) : 0f):0} cm in, lowest {(shieldFalls.Count > 0 ? 100f * shieldFalls.Min(f => f.ShieldLowest) : 0f):0} cm over the ground");
+                }
                 foreach (var way in fell.Where(x => !x.f.Dead).GroupBy(x => x.f.Way))
                 {
                     sb.AppendLine($"      {way.Key}: {way.Count()}, the head down in {way.Count(x => x.f.HeadTouched)}, on a hand or knee first in {way.Count(x => x.f.Braced)}");

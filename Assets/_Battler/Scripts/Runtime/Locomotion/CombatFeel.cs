@@ -221,6 +221,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A body that is down settles where it lies: a quarter of a second after its hips reach the ground its muscles stop reaching for the ground and only hold and damp the pose it is in (its head is still held up), so it comes to rest and can get up sooner. Off: as it was, drawn all the time it is down to a pose made from how it lies, which turned over as the body did, so a body on its side rocked back and forth with its hands sweeping the ground.")]
         public bool fallenBodiesSettle = true;
 
+        [Tooltip("Falling and lying, a fighter's arms and its shield stay out of its own body. Two things do it. Its forearms, its hands and a shield on its arm are stopped by its own trunk, head and thighs, as they are by the ground (on its feet none of its parts stop each other; a blade is never stopped by its bearer). And the fall's pose keeps its hands clear of its trunk: beside it, before it or behind it, never reaching through it to the ground on the far side; a hand held where it landed is let go when the body comes down over it, and held again beside it. Needs the falls in the one body. Off: as before, an arm the body came down on lay inside it (a second and more in a fall to a side), and a Large's shield under it went a hand's length into its chest.")]
+        public bool fallsArmsStayOutOfTheBody = true;
+
+        [Tooltip("Falling, a fighter keeps its shield before its chest: the forearm across the front of the body as a guard holds it, the elbow down and out, the board between the body and what it is falling toward. Going forward it comes down on its shield; going backward the shield lies over it. The shield hand is not held to the ground. Needs the falls in the one body. Off: as before, the shield arm reached for the ground as an empty arm does; the board's edge met the ground first and stood there, and the body was held up on it and rolled off it sideways.")]
+        public bool fallsShieldKeptBeforeTheChest = true;
+
+        [Tooltip("What a body holds is solid while it lies as a ragdoll. A fighter with a limb cut off, alive or dead, falls as a ragdoll, not in its one body; its sword and its shield are then stopped by the ground and by other bodies, and lie on the ground with it (they are not stopped by its own body). When it gets up they are as in any standing hand again. Off: as before, what a ragdoll held was stopped by nothing, and a sword hung from a dead hand straight down through the ground (84 cm under it in a test fight) and a shield lay 30 cm into it.")]
+        public bool ragdollsHoldSolidThings = true;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -810,6 +819,10 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.HandsStayWhereTheyLand = fallsHandsStayPlanted;
             PhysicsBattler.Authority.UpperBodyArticulation.HandPinMost = fallHandHold * 785f;
             ClipFighter.FallenBodiesSettle = fallenBodiesSettle;
+            PhysicsBattler.Authority.UpperBodyArticulation.ArmsStoppedByBody = fallsArmsStayOutOfTheBody;
+            FallPose.HandsClearOfTrunk = fallsArmsStayOutOfTheBody;
+            FallPose.ShieldKeptBeforeChest = fallsShieldKeptBeforeTheChest;
+            ClipFighter.RagdollsHoldSolidThings = ragdollsHoldSolidThings;
             ClipFighter.ThrownBodiesTuck = thrownBodiesTuck;
             ClipFighter.HeldHips = hipsAreHeldNotLocked;
             PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;

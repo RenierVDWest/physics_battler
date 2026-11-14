@@ -32,6 +32,94 @@ namespace PhysicsBattler.Locomotion
         public static float TuckLegs = 0.5f;
 
         /// <summary>
+        /// A hand is posed clear of its own trunk (the plan "Controlled falls", step 11): beside it, before it or
+        /// behind it, never in it or through it to the far side. Off, the arm of a body on its side reached for the
+        /// ground straight down through its own chest, and lay there.
+        /// </summary>
+        public static bool HandsClearOfTrunk = true;
+
+        /// <summary>
+        /// Falling, a shield is kept before the chest, its board between the body and what it is falling toward (the
+        /// plan "Controlled falls", step 11): the forearm across the front of the body as a guard holds it, the elbow
+        /// down and out. Going forward the body comes down on its shield; going backward the shield lies over it.
+        /// Off: the shield arm reached for the ground as an empty one does, the board's edge met the ground first
+        /// and stood there, and the body was held up on it and went over it sideways (a Large falling forward rose
+        /// 27 cm again on its shield and came down on its back).
+        /// </summary>
+        public static bool ShieldKeptBeforeChest = true;
+
+        /// <summary>The shield hand's place before the chest: this far in front of the chest's front, to its own side of the middle, and above the chest's middle (metres at a Medium's size).</summary>
+        public const float ShieldBefore = 0.16f, ShieldAside = 0.08f, ShieldUp = 0.02f;
+
+        /// <summary>How far outside the trunk a hand is posed (metres at a Medium's size), and how far inside its edge a hand has to be to be in it.</summary>
+        public const float HandClears = 0.06f, HandInBy = 0.02f;
+
+        /// <summary>
+        /// Where a hand goes to be clear of its own trunk: <paramref name="hand"/> itself if it is clear, or the
+        /// nearest place beside the trunk on the arm's own side, before it, or behind it that is not under the
+        /// ground. The trunk is taken as a slab on the chest's axes, from under the hips to the neck, half as wide
+        /// and as deep as <paramref name="half"/> says.
+        /// </summary>
+        /// <param name="arm">0: the left arm's hand, 1: the right's.</param>
+        /// <param name="clear">How far outside the trunk's sides it has to be (metres; less than 0: this far inside still counts as clear).</param>
+        /// <param name="moved">It was in the trunk, or reached through it.</param>
+        public static Vector3 ClearOfTrunk(Transform pelvis, Transform chest, Transform head, Vector3 hand, int arm, float size, Vector2 half, float floor, float clear, out bool moved)
+        {
+            moved = false;
+            if (pelvis == null || chest == null || head == null)
+            {
+                return hand;
+            }
+
+            if (half.x <= 0f || half.y <= 0f)
+            {
+                half = new Vector2(0.155f, 0.09f) * size;
+            }
+
+            Vector3 side = chest.right * (arm == 0 ? -1f : 1f), front = chest.forward, up = chest.up;
+            float along = Vector3.Dot(hand - pelvis.position, up);
+            if (along < -0.1f * size || along > Vector3.Dot(head.position - pelvis.position, up) + 0.05f * size)
+            {
+                return hand;
+            }
+
+            float w = half.x + clear, d = half.y + clear;
+            float x = Vector3.Dot(hand - chest.position, side), z = Vector3.Dot(hand - chest.position, front);
+            if (x >= w || Mathf.Abs(z) >= d)
+            {
+                return hand;
+            }
+
+            moved = true;
+            // (Before it, always; beside it and behind it for a hand on its own side: one across the body has only the front to go round by.)
+            Vector3 best = hand + front * (d - z);
+            float least = best.y >= floor - 0.02f * size ? d - z : float.MaxValue;
+            if (x >= 0f)
+            {
+                Vector3 beside = hand + side * (w - x), behind = hand - front * (d + z);
+                if (beside.y >= floor - 0.02f * size && w - x < least)
+                {
+                    best = beside;
+                    least = w - x;
+                }
+
+                if (behind.y >= floor - 0.02f * size && d + z < least)
+                {
+                    best = behind;
+                    least = d + z;
+                }
+
+                if (least == float.MaxValue)
+                {
+                    // (None is over the ground: beside it, along the ground.)
+                    best = beside;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
         /// The pose put on <paramref name="anim"/>: its hips where the body's are (<paramref name="hips"/>), the rest
         /// from how the body is turned to the ground at <paramref name="ground"/> (its height) and which way it is
         /// going (<paramref name="going"/>, m/s).
@@ -41,8 +129,15 @@ namespace PhysicsBattler.Locomotion
         /// <param name="handL">Its left hand has landed and is held there (world): the arm is posed onto it. Null: it reaches as it falls.</param>
         /// <param name="handR">The same, its right.</param>
         /// <param name="tuck">How far it is tucked (0 to 1): a body thrown off its feet curls up as it flies and tumbles: the back rounded, the chin down, the knees drawn up, the arms in before the chest (an arm that holds a weapon stays out with it).</param>
-        public static void Pose(AnimRig anim, Transform hips, Vector3 going, float ground, float size, float into = 1f, bool holdsMain = false, Vector3? handL = null, Vector3? handR = null, float tuck = 0f)
+        /// <param name="trunk">Half its chest's width and depth (metres), for keeping its hands clear of it; zero: a Medium's at its size.</param>
+        /// <param name="holdsShield">Its left arm bears a shield: kept before the chest (<see cref="ShieldKeptBeforeChest"/>).</param>
+        public static void Pose(AnimRig anim, Transform hips, Vector3 going, float ground, float size, float into = 1f, bool holdsMain = false, Vector3? handL = null, Vector3? handR = null, float tuck = 0f, Vector2 trunk = default, bool holdsShield = false)
         {
+            if (trunk.x <= 0f || trunk.y <= 0f)
+            {
+                trunk = new Vector2(0.155f, 0.09f) * size;
+            }
+
             into = Mathf.Clamp01(into);
             tuck = Mathf.Clamp01(tuck);
             anim.ResetToRest();
@@ -102,6 +197,11 @@ namespace PhysicsBattler.Locomotion
                 Vector3 reach = Reaches ? Vector3.Slerp(start, (Vector3.down * 0.9f + way * 0.65f + out_.normalized * 0.4f).normalized, into) : (-up * 0.85f + out_.normalized * 0.45f + front * 0.25f).normalized;
                 Vector3 hand = upper.position + reach * (0.9f * arm);
                 float floor = ground + 0.06f * size;
+                if (HandsClearOfTrunk)
+                {
+                    hand = ClearOfTrunk(anim.Part(PartId.Pelvis), anim.Part(PartId.Chest), anim.Part(PartId.Head), hand, a, size, trunk, floor, HandClears * size, out _);
+                }
+
                 if (hand.y < floor)
                 {
                     hand.y = floor;
@@ -116,7 +216,13 @@ namespace PhysicsBattler.Locomotion
 
                 var chestNow = anim.Part(PartId.Chest);
                 bool armed = a == 1 && holdsMain && anim.SlotWeaponR != null;
-                if (tuck > 0f && !landed.HasValue)
+                bool shielded = a == 0 && holdsShield && ShieldKeptBeforeChest && !landed.HasValue;
+                if (shielded)
+                {
+                    // (Its shield: before the chest, from the first moment to the last, tucked or not.)
+                    hand = chestNow.position + chestNow.forward * (trunk.y + ShieldBefore * size) - chestNow.right * (ShieldAside * size) + chestNow.up * (ShieldUp * size);
+                }
+                else if (tuck > 0f && !landed.HasValue)
                 {
                     // (Tucked: the hand in before the chest, the elbow down by the ribs. An arm that holds a weapon
                     // stays out to its side with it: a blade is not hugged.)
@@ -131,7 +237,12 @@ namespace PhysicsBattler.Locomotion
                 // knee does, which no elbow can.)
                 var chest = anim.Part(PartId.Chest);
                 Vector3 elbow = -0.8f * chest.forward + 0.6f * chest.right * (a == 0 ? -1f : 1f) + 0.15f * chest.up;
-                if (tuck > 0f && !armed && !landed.HasValue)
+                if (shielded)
+                {
+                    // (The elbow down and out by the ribs, as a guard has it.)
+                    elbow = -0.6f * chest.up - 0.75f * chest.right - 0.2f * chest.forward;
+                }
+                else if (tuck > 0f && !armed && !landed.HasValue)
                 {
                     elbow = Vector3.Slerp(elbow, -0.9f * chest.up + 0.45f * chest.right * (a == 0 ? -1f : 1f) - 0.1f * chest.forward, tuck);
                 }

@@ -591,8 +591,156 @@ namespace PhysicsBattler.Locomotion
         private bool catching, caughtSitting;
 
         /// <summary>The fall goes on in the physical body it had: let go, and sent the way of the blow.</summary>
+        /// <summary>
+        /// What a body holds is solid while it lies as a ragdoll (the plan "Controlled falls", step 11): a body with
+        /// a limb cut off, alive or dead, falls as the rig's own parts do, and its sword and its shield are stopped
+        /// by the ground and by other bodies, and lie there with it (by nothing of its own: a blade is not stopped
+        /// by its bearer). Off: what a ragdoll held was stopped by nothing, as it is in a standing hand, where it only
+        /// says what it touches: a sword hung from a dead hand straight down through the ground.
+        /// </summary>
+        public static bool RagdollsHoldSolidThings = true;
+
+        private bool heldSolid;
+
+        /// <summary>What its hands hold made solid (it lies as a ragdoll), or only saying what it touches (as it stands, and in its one body, which has solids of its own for them).</summary>
+        private void HeldSolid(bool solid)
+        {
+            if (solid == heldSolid)
+            {
+                return;
+            }
+
+            heldSolid = solid;
+            foreach (var (hand, collider, mass, blade) in Solids)
+            {
+                if (collider != null)
+                {
+                    collider.isTrigger = !solid;
+                }
+            }
+        }
+
+        private readonly List<(Collider arm, Collider body, bool left)> ragdollArmsToPart = new List<(Collider, Collider, bool)>();
+        private readonly List<(Collider arm, Collider body)> ragdollArmsStopped = new List<(Collider, Collider)>();
+        private static readonly PartId[] LowerArms = { PartId.ForearmL, PartId.HandL, PartId.ForearmR, PartId.HandR };
+
+        /// <summary>
+        /// A ragdoll's arms and its shield are stopped by its own trunk, head and thighs, as a body's are that falls
+        /// in its one body (<see cref="UpperBodyArticulation.ArmsStoppedByBody"/>): none of the rig's parts stop each
+        /// other, and a ragdoll's arm lay in its own body for as long as it lay. Each arm from when the whole of it
+        /// is out of the body: one that is in it is not thrown out.
+        /// </summary>
+        private void RagdollArmsToStop()
+        {
+            RagdollArmsPass();
+            if (!UpperBodyArticulation.ArmsStoppedByBody)
+            {
+                return;
+            }
+
+            void Against(Collider arm, bool left)
+            {
+                foreach (var id in TrunkSolids)
+                {
+                    var body = Rig.Part(id);
+                    if (arm != null && body != null && body.partCollider != null && !Rig.IsSevered(id))
+                    {
+                        ragdollArmsToPart.Add((arm, body.partCollider, left));
+                    }
+                }
+            }
+
+            foreach (var id in LowerArms)
+            {
+                var part = Rig.Part(id);
+                if (part != null && part.partCollider != null && !Rig.IsSevered(id))
+                {
+                    Against(part.partCollider, id == PartId.ForearmL || id == PartId.HandL);
+                }
+            }
+
+            // (Its shield, when it is solid: what a hand holds that is no blade.)
+            if (heldSolid)
+            {
+                foreach (var (hand, collider, mass, blade) in Solids)
+                {
+                    if (!blade && collider != null && !Rig.IsSevered(hand))
+                    {
+                        Against(collider, hand == PartId.HandL);
+                    }
+                }
+            }
+        }
+
+        /// <summary>A ragdoll's arm that is wholly out of its body is stopped by it from now.</summary>
+        private void StepRagdollArms()
+        {
+            if (ragdollArmsToPart.Count == 0)
+            {
+                return;
+            }
+
+            for (int side = 0; side < 2; side++)
+            {
+                bool any = false, clear = true;
+                foreach (var (arm, body, left) in ragdollArmsToPart)
+                {
+                    if (left != (side == 0) || arm == null || body == null)
+                    {
+                        continue;
+                    }
+
+                    any = true;
+                    if (Physics.ComputePenetration(arm, arm.transform.position, arm.transform.rotation, body, body.transform.position, body.transform.rotation, out _, out float depth) && depth > 0f)
+                    {
+                        clear = false;
+                        break;
+                    }
+                }
+
+                if (!any || !clear)
+                {
+                    continue;
+                }
+
+                for (int i = ragdollArmsToPart.Count - 1; i >= 0; i--)
+                {
+                    var (arm, body, left) = ragdollArmsToPart[i];
+                    if (left != (side == 0))
+                    {
+                        continue;
+                    }
+
+                    if (arm != null && body != null)
+                    {
+                        Physics.IgnoreCollision(arm, body, false);
+                        ragdollArmsStopped.Add((arm, body));
+                    }
+
+                    ragdollArmsToPart.RemoveAt(i);
+                }
+            }
+        }
+
+        /// <summary>Getting up, or built again: none of its parts stop each other, as before it fell.</summary>
+        private void RagdollArmsPass()
+        {
+            foreach (var (arm, body) in ragdollArmsStopped)
+            {
+                if (arm != null && body != null)
+                {
+                    Physics.IgnoreCollision(arm, body, true);
+                }
+            }
+
+            ragdollArmsStopped.Clear();
+            ragdollArmsToPart.Clear();
+        }
+
         private void FallInBody(int leg, Vector3 way, float knock, float thrown)
         {
+            RagdollArmsPass();
+            HeldSolid(false);
             fallBody = true;
             OneBodyFallen++;
             landedAt = slowAt = touchedAt = -1f;
@@ -679,7 +827,7 @@ namespace PhysicsBattler.Locomotion
             float into = Mathf.Clamp01((footingTime - 0.08f) / 0.3f);
             FallPose.Pose(Anim, hips, Upper.SpeedOf(PartId.Pelvis), groundLevel, Size, into * into * (3f - 2f * into), stance != Stances.Open,
                 Upper.HandPinned(0) ? Upper.HandPinAt(0) : (Vector3?)null, Upper.HandPinned(1) ? Upper.HandPinAt(1) : (Vector3?)null,
-                tucked * tucked * (3f - 2f * tucked));
+                tucked * tucked * (3f - 2f * tucked), TrunkHalf(), stance == Stances.Shield);
             if (FallenBodiesSettle && slowAt >= 0f && !Dead && !catching)
             {
                 // (Down, it stops reaching: the pose it is drawn to becomes the pose it lies in, so its muscles only
@@ -768,6 +916,55 @@ namespace PhysicsBattler.Locomotion
         public float HandsDragged;
 
         private readonly float[] handFreeUntil = new float[2];
+        private readonly float[] handUnderSince = { -1f, -1f };
+
+        /// <summary>A held hand that the body has come down over is let go after this long under it (seconds): it is drawn out from under it, and held again beside it.</summary>
+        public const float HandUnderFor = 0.1f;
+
+        /// <summary>Held hands let go because the body had come down over them, for the reports.</summary>
+        public int HandsFromUnder;
+
+        private Vector2 trunkHalf;
+
+        /// <summary>Half its chest's width and its depth (metres), as its solid has them.</summary>
+        private Vector2 TrunkHalf()
+        {
+            if (trunkHalf.x <= 0f)
+            {
+                var chest = Rig.Part(PartId.Chest);
+                if (chest != null && chest.partCollider is BoxCollider box)
+                {
+                    Vector3 scale = box.transform.lossyScale;
+                    trunkHalf = new Vector2(0.5f * box.size.x * Mathf.Abs(scale.x), 0.5f * box.size.z * Mathf.Abs(scale.z));
+                }
+                else
+                {
+                    trunkHalf = new Vector2(0.155f, 0.09f) * Size;
+                }
+            }
+
+            return trunkHalf;
+        }
+
+        /// <summary>A point on the ground is under its own trunk, as the body lies (a hand there is in it or under it).</summary>
+        private bool UnderItsTrunk(Vector3 at, int hand)
+        {
+            if (!FallPose.HandsClearOfTrunk)
+            {
+                return false;
+            }
+
+            var pelvis = Rig.Part(PartId.Pelvis);
+            var chest = Rig.Part(PartId.Chest);
+            var head = Rig.Part(PartId.Head);
+            if (pelvis == null || chest == null || head == null)
+            {
+                return false;
+            }
+
+            FallPose.ClearOfTrunk(pelvis.transform, chest.transform, head.transform, at, hand, Size, TrunkHalf(), groundLevel, -FallPose.HandInBy * Size, out bool under);
+            return under;
+        }
 
         private void StepLandedHands()
         {
@@ -789,11 +986,18 @@ namespace PhysicsBattler.Locomotion
                     // dragged, and its hold goes with it: the pull on the body stays what the grip is.)
                     Vector3 off = Upper.Link(id).transform.position - Upper.HandPinAt(h);
                     bool away = off.y > HandComesAwayAt * Size;
-                    if (over || away)
+                    // (The body has come down over it: let go, to be drawn out from under it. A hand held under a
+                    // chest lay in it.)
+                    bool bodyOver = UnderItsTrunk(Upper.HandPinAt(h), h);
+                    handUnderSince[h] = !bodyOver ? -1f : handUnderSince[h] < 0f ? footingTime : handUnderSince[h];
+                    bool lainOn = bodyOver && footingTime - handUnderSince[h] >= HandUnderFor;
+                    if (over || away || lainOn)
                     {
                         Upper.PinHand(h, false, Vector3.zero, 1f, 1f);
                         handFreeUntil[h] = footingTime + HandHeldAgainAfter;
+                        handUnderSince[h] = -1f;
                         HandsCameAway += away ? 1 : 0;
+                        HandsFromUnder += lainOn && !over && !away ? 1 : 0;
                         continue;
                     }
 
@@ -808,7 +1012,8 @@ namespace PhysicsBattler.Locomotion
                     continue;
                 }
 
-                if (over || footingTime < handFreeUntil[h])
+                // (A hand with a shield on its arm is kept before the chest: it does not land.)
+                if (over || footingTime < handFreeUntil[h] || (h == 0 && stance == Stances.Shield && FallPose.ShieldKeptBeforeChest))
                 {
                     continue;
                 }
@@ -819,7 +1024,8 @@ namespace PhysicsBattler.Locomotion
                 // (Landed: its underside on the ground, as the fall's measure has it; or its wrist as low as a hand lies.)
                 var shape = Rig.Part(id) != null ? Rig.Part(id).partCollider : null;
                 float under = shape != null ? shape.ClosestPoint(new Vector3(at.x, groundLevel - 1f, at.z)).y - groundLevel : float.MaxValue;
-                if ((under <= HandUnderWithin * Size || at.y - groundLevel <= HandLandsWithin * Size) && goes.magnitude <= HandHoldsBelow * Mathf.Sqrt(Size))
+                if ((under <= HandUnderWithin * Size || at.y - groundLevel <= HandLandsWithin * Size) && goes.magnitude <= HandHoldsBelow * Mathf.Sqrt(Size)
+                    && !UnderItsTrunk(at, h))
                 {
                     Upper.PinHand(h, true, at, Mathf.Max(0.25f, Mass / MediumMass), Size);
                     HandsHeld++;
@@ -958,6 +1164,7 @@ namespace PhysicsBattler.Locomotion
             roseAt = -1f;
             EndFallMeasure();
             falling = new FallMeasure { Way = FallMeasure.WayOf(way, Loco.Facing), Why = LastReaction ?? "", Dead = Dead };
+            fallTipSeen = false;
             fallBody = false;
             if (OneBodyFalls && Upper != null && !StaysDown)
             {
@@ -984,6 +1191,8 @@ namespace PhysicsBattler.Locomotion
                 ReleaseUpper();
             }
 
+            HeldSolid(RagdollsHoldSolidThings);
+            RagdollArmsToStop();
             for (int r = 0; r < 5; r++)
             {
                 Authority.Set((BodyRegion)r, AuthorityLevel.Ragdoll, 0f);
@@ -1170,6 +1379,12 @@ namespace PhysicsBattler.Locomotion
 
         private void StepFallMeasure(float dt)
         {
+            // (Each step it is down: a ragdoll's arms, stopped by its body once they are out of it.)
+            if (!fallBody)
+            {
+                StepRagdollArms();
+            }
+
             if (falling == null)
             {
                 return;
@@ -1184,9 +1399,102 @@ namespace PhysicsBattler.Locomotion
                 falling.Step(Rig, groundLevel, Size, dt);
             }
 
+            falling.Ragdoll |= !fallBody;
+            MeasureHeldInFall(dt);
             if ((Dead || StaysDown) && falling.Lasted >= FallMeasuredFor)
             {
                 EndFallMeasure();
+            }
+        }
+
+        private Vector3 fallTipWas;
+        private bool fallTipSeen;
+
+        /// <summary>
+        /// What it holds through a fall, as seen (the plan "Controlled falls", step 11): its weapon and its shield
+        /// against its own body and the ground, and its arms against its body. Nothing here changes a fall.
+        /// </summary>
+        private void MeasureHeldInFall(float dt)
+        {
+            // (Measured while a playtest is recorded, and headless: as what is seen of its arms on its feet is.)
+            if (falling == null || dt <= 0f || !(MeasuresArms || Diagnostics.PlaytestTrace.Enabled))
+            {
+                return;
+            }
+
+            falling.HeldMeasured = true;
+            bool arm = false;
+            for (int a = 0; a < 2; a++)
+            {
+                var hand = a == 0 ? PartId.HandL : PartId.HandR;
+                if (Rig.IsSevered(hand))
+                {
+                    continue;
+                }
+
+                Vector3 elbow = Rig.Part(a == 0 ? PartId.ForearmL : PartId.ForearmR).transform.position;
+                Vector3 wrist = Rig.Part(hand).transform.position;
+                arm |= SeenInside(Vector3.Lerp(elbow, wrist, 0.3f), wrist + (wrist - elbow).normalized * (0.08f * Size), TrunkSolids);
+            }
+
+            falling.ArmInFor += arm ? dt : 0f;
+            var slot = Rig.SlotWeaponR;
+            bool armed = false;
+            foreach (var (hand, solid, mass, blade) in Solids)
+            {
+                if (solid == null || Rig.IsSevered(hand))
+                {
+                    continue;
+                }
+
+                if (blade && hand == PartId.HandR)
+                {
+                    armed = true;
+                    continue;
+                }
+
+                if (blade)
+                {
+                    continue;
+                }
+
+                // (Its shield: how deep its board is in the trunk, the head or a thigh.)
+                falling.Shielded = true;
+                float deepest = 0f;
+                foreach (var id in TrunkSolids)
+                {
+                    var part = Rig.Part(id);
+                    if (part == null || part.partCollider == null || Rig.IsSevered(id))
+                    {
+                        continue;
+                    }
+
+                    if (Physics.ComputePenetration(solid, solid.transform.position, solid.transform.rotation, part.partCollider, part.partCollider.transform.position, part.partCollider.transform.rotation, out _, out float depth))
+                    {
+                        deepest = Mathf.Max(deepest, depth);
+                    }
+                }
+
+                Vector3 middle = solid.transform.TransformPoint(solid is BoxCollider box ? box.center : Vector3.zero);
+                falling.ShieldLowest = Mathf.Min(falling.ShieldLowest, solid.ClosestPoint(new Vector3(middle.x, groundLevel - 50f, middle.z)).y - groundLevel);
+                falling.ShieldDeepest = Mathf.Max(falling.ShieldDeepest, deepest);
+                falling.ShieldInFor += deepest > FallMeasure.ShieldInBy * Size ? dt : 0f;
+            }
+
+            if (armed && slot != null)
+            {
+                falling.Armed = true;
+                Vector3 along = slot.rotation * Vector3.forward;
+                Vector3 tip = slot.position + along * Poser.WeaponLength;
+                falling.BladeInFor += SeenInside(slot.position + along * (0.15f * Size), tip, BladeSolids) ? dt : 0f;
+                falling.BladeLowest = Mathf.Min(falling.BladeLowest, tip.y - groundLevel);
+                if (fallTipSeen)
+                {
+                    falling.BladeFastest = Mathf.Max(falling.BladeFastest, (tip - fallTipWas).magnitude / dt);
+                }
+
+                fallTipWas = tip;
+                fallTipSeen = true;
             }
         }
 
@@ -1442,6 +1750,8 @@ namespace PhysicsBattler.Locomotion
 
         private void BeginGetUp()
         {
+            RagdollArmsPass();
+            HeldSolid(false);
             GetUpArmSeenIn = GetUpBladeSeenIn = 0f;
             var pelvis = Rig.Part(PartId.Pelvis).body;
             Vector3 front = pelvis.rotation * Vector3.forward;
@@ -2735,6 +3045,8 @@ namespace PhysicsBattler.Locomotion
 
         private void BuildUpper()
         {
+            RagdollArmsPass();
+            HeldSolid(false);
             ArticulationConventions.EnsureProbed();
             if (!ArticulationConventions.Usable)
             {
@@ -2896,6 +3208,8 @@ namespace PhysicsBattler.Locomotion
                 {
                     LostBody++;
                     fallBody = false;
+                    HeldSolid(RagdollsHoldSolidThings);
+                    RagdollArmsToStop();
                     foreach (var id in Upper.Own)
                     {
                         var part = Rig.Part(id);

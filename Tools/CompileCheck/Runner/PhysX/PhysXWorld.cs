@@ -829,6 +829,23 @@ namespace PhysicsBattler.Engine
                 {
                     PxScene_resetFiltering_mut(scene, (PxActor*)s.Actor);
                 }
+
+                // (And an articulated body's parts, as Unity does for them: left out, two of a body's solids that were
+                // told to stop each other, or to stop no more, went on as they were for as long as they stayed near
+                // each other. A fallen body's arm, told again to pass through its own trunk as it got up, stayed
+                // stopped by it, and was held a metre from its pose.)
+                foreach (var a in arts)
+                {
+                    if (!a.InScene)
+                    {
+                        continue;
+                    }
+
+                    foreach (var l in a.Links)
+                    {
+                        PxScene_resetFiltering_mut(scene, (PxActor*)l.Link);
+                    }
+                }
             }
         }
 

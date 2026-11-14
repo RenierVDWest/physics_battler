@@ -372,10 +372,135 @@ namespace PhysicsBattler.Authority
         public PartId FallOffMostPart { get; private set; }
         public int FallEdges { get; private set; }
 
+        /// <summary>
+        /// Falling and lying, its forearms, its hands and a shield on its arm are stopped by its own trunk, head and
+        /// thighs (the plan "Controlled falls", step 11). On its feet none of its parts stop each other, as the
+        /// pose's don't; let go, an arm that the body came down on lay inside it, and a shield under it went a
+        /// hand's length into its chest. A blade is stopped by nothing of its bearer's, as before.
+        /// </summary>
+        public static bool ArmsStoppedByBody = true;
+
+        private readonly HashSet<Collider> blades = new HashSet<Collider>();
+        private readonly List<(Collider arm, Collider body)> armsToPart = new List<(Collider, Collider)>();
+        private readonly List<(Collider arm, Collider body)> armsStopped = new List<(Collider, Collider)>();
+
+        /// <summary>For the reports: how many of its arms' solids are stopped by its body's now, and how many still wait to come out of it.</summary>
+        public int ArmsStoppedNow => armsStopped.Count;
+        public int ArmsStillIn => armsToPart.Count;
+
+        private static bool IsLowerArm(PartId id) => id == PartId.ForearmL || id == PartId.ForearmR || id == PartId.HandL || id == PartId.HandR;
+        private static bool IsTrunk(PartId id) => id == PartId.Pelvis || id == PartId.Spine || id == PartId.Chest || id == PartId.Head || id == PartId.ThighL || id == PartId.ThighR;
+
+        /// <summary>Let go: each of its lower arms' solids against each of its trunk's is to stop the other, once they are apart.</summary>
+        private void ArmsToStop()
+        {
+            ArmsPassAgain();
+            if (!ArmsStoppedByBody)
+            {
+                return;
+            }
+
+            foreach (var a in linkOf)
+            {
+                if (a.Key == null || blades.Contains(a.Key) || !IsLowerArm(parts[a.Value]))
+                {
+                    continue;
+                }
+
+                foreach (var b in linkOf)
+                {
+                    // (Its trunk's own solids: what a hand holds counts as the hand, never as the trunk.)
+                    if (b.Key != null && IsTrunk(parts[b.Value]))
+                    {
+                        armsToPart.Add((a.Key, b.Key));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Falling: an arm none of whose solids is in any of the trunk's is stopped by all of them from now. One that
+        /// is in the body as it is let go (an arm a blow drove into the ribs) is not thrown out of it, and is not
+        /// stopped by any of it until the whole arm is out: stopped by the parts it was clear of and not by the one
+        /// it was in, it was shut in there, and lay in its own hips for as long as the body was down.
+        /// </summary>
+        private void StopArmsThatAreOut()
+        {
+            if (armsToPart.Count == 0)
+            {
+                return;
+            }
+
+            for (int side = 0; side < 2; side++)
+            {
+                bool any = false, clear = true;
+                foreach (var (arm, body) in armsToPart)
+                {
+                    if (arm == null || body == null || IsLeft(arm) != (side == 0))
+                    {
+                        continue;
+                    }
+
+                    any = true;
+                    if (Physics.ComputePenetration(arm, arm.transform.position, arm.transform.rotation, body, body.transform.position, body.transform.rotation, out _, out float depth) && depth > 0f)
+                    {
+                        clear = false;
+                        break;
+                    }
+                }
+
+                if (!any || !clear)
+                {
+                    continue;
+                }
+
+                for (int i = armsToPart.Count - 1; i >= 0; i--)
+                {
+                    var (arm, body) = armsToPart[i];
+                    if (arm == null || body == null)
+                    {
+                        armsToPart.RemoveAt(i);
+                        continue;
+                    }
+
+                    if (IsLeft(arm) != (side == 0))
+                    {
+                        continue;
+                    }
+
+                    Physics.IgnoreCollision(arm, body, false);
+                    armsStopped.Add((arm, body));
+                    armsToPart.RemoveAt(i);
+                }
+            }
+        }
+
+        private bool IsLeft(Collider arm)
+        {
+            var id = parts[linkOf[arm]];
+            return id == PartId.ForearmL || id == PartId.HandL;
+        }
+
+        /// <summary>Taken up: none of its parts stop each other again.</summary>
+        private void ArmsPassAgain()
+        {
+            foreach (var (arm, body) in armsStopped)
+            {
+                if (arm != null && body != null)
+                {
+                    Physics.IgnoreCollision(arm, body, true);
+                }
+            }
+
+            armsStopped.Clear();
+            armsToPart.Clear();
+        }
+
         /// <summary>The body let go to fall (see <see cref="Falling"/>). <paramref name="size"/>: its size against a Medium's.</summary>
         public void LetGo(float size)
         {
             Falling = true;
+            ArmsToStop();
             PinHand(0, false, Vector3.zero, 1f, 1f);
             PinHand(1, false, Vector3.zero, 1f, 1f);
             LegsHave = LegTone;
@@ -433,6 +558,7 @@ namespace PhysicsBattler.Authority
         public void TakeUp()
         {
             Falling = false;
+            ArmsPassAgain();
             PinHand(0, false, Vector3.zero, 1f, 1f);
             PinHand(1, false, Vector3.zero, 1f, 1f);
             GroundStops(false);
@@ -488,6 +614,8 @@ namespace PhysicsBattler.Authority
             {
                 ClearOfGround();
             }
+
+            StopArmsThatAreOut();
         }
 
         private void SubstepFalling(int k, int n)
@@ -1136,6 +1264,7 @@ namespace PhysicsBattler.Authority
 
             if (gyration > 0f)
             {
+                blades.Add(copy);
                 // (A sword turns about its balance like a rod a third its length, whatever its collider's shape.)
                 Vector3 way = (middle - piece.At).sqrMagnitude > 1e-8f ? (middle - piece.At).normalized : Vector3.forward;
                 Vector3 across = new Vector3(1f - way.x * way.x, 1f - way.y * way.y, 1f - way.z * way.z);

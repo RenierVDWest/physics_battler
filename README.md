@@ -3701,6 +3701,128 @@ dropped: the tuck with only the trunk sent, as for a knock-over (it turned over 
 second and came down on its head at 5 m/s); a neck no stronger than in any fall (the head came down at 3 m/s
 after the back); the tuck held until the body was slow (it slid on in a ball for five metres).
 
+**Controlled falls, step 11: weapons, shields and sizes in falls, and what a fall costs** (14 November; Combat
+Feel "Falls Arms Stay Out Of The Body", "Falls Shield Kept Before The Chest" and "Ragdolls Hold Solid Things").
+
+**Measured first.** A fall's line in the log now also says, of the body as it is seen (the physical one), from the
+step it goes down to the step it begins to get up: how long a forearm or hand was inside its own trunk, head or
+thighs; how long its weapon was inside its trunk, head or legs, the fastest its end went and the lowest it came
+over the ground; how long its shield was more than 4 cm into its body, the deepest it was and the lowest its board
+came; and how far its hips rose again over the lowest they had been (`FallMeasure`, `ClipFighter.MeasureHeldInFall`;
+measured while a playtest is recorded, and headless). The line also says when a fall was a ragdoll's. The report
+has a line for the falls in the one body and one for the ragdolls, "what they held as they fell and lay".
+
+**What it showed** (headless: the three targets, Mediums and Larges, the four fall buttons at 200 N·s and thrown
+at 600; `FIGHT_TARGETS=MC` for a Large with its club):
+
+- **Weapons were all right.** The ground stops what a hand holds, so no weapon's end went under it (lowest 0 to
+  1 cm over it); a sword or a club was in its bearer's body for 0.8 s at the worst (a Large on its side) and
+  mostly not at all; its end went 10 to 18 m/s at the most (24 thrown), a third of what a cut does. The fall's
+  pose already keeps the blade out to its side and up.
+- **Arms lay inside the body.** None of a body's parts stop each other (on its feet they must not: a guard has
+  the arms against it). Fallen, an arm the body came down on stayed in it: the open-handed target thrown and
+  tucked lay with its arms in its own chest for 1.95 s; a Large on its side had an arm in it for 0.7 s. And the
+  fall's pose asked for it: the upper arm of a body on its side reached for the ground straight down, through its
+  own chest.
+- **A shield held the body up.** The shield arm reached for the ground as an empty one does; the board's edge
+  met the ground first and stood there. The arm was 43 cm from its pose (a Medium) and 117 cm (a Large); the body
+  hung on it, rolled off it sideways (its hips turned over 223 degrees falling forward, against 101 and 140 for
+  the two without a shield), and a Large knocked forward ended on its back.
+
+- **A ragdoll's sword went through the ground.** A fighter with a limb cut off, alive or dead, does not fall
+  in its one body but as the rig's own parts, a ragdoll; half the falls of a test fight were these (three of
+  six, seed 5), and the dead of them lie there for the rest of it. What a ragdoll holds was stopped by nothing
+  (in a standing hand it only says what it touches, and nothing made it solid when the hand went limp; the
+  fight before the clips did, `Weapon.SetLying`). A sword hung from a dead hand 84 cm down through the ground and
+  swung there at 51 m/s; a shield lay 30 cm into the ground and 17 cm into its bearer; and a ragdoll's arm lay in
+  its own body for as long as it lay (2.4 to 3 s of the 3 s measured), since none of the rig's parts stop each
+  other either.
+
+**What changed.**
+
+1. **Fallen, its arms and its shield are stopped by its own body** (`UpperBodyArticulation.ArmsStoppedByBody`).
+   From the step it is let go, its forearms, its hands and a shield on its arm are stopped by its own trunk, head
+   and thighs, as they are by the ground; taken up again to get up, they pass as before. A blade is stopped by
+   nothing of its bearer's. An arm that is in the body as it is let go (a blow drove it into the ribs) is not
+   thrown out: it is stopped once the whole arm is out. (Stopped part by part, by the solids it was clear of and
+   not by the one it was in, it was shut in, and lay in its own hips for as long as the body was down.)
+2. **The fall's pose keeps the hands clear of the trunk** (`FallPose.ClearOfTrunk`): beside it on the arm's own
+   side, before it, or behind it, whichever is nearest and over the ground, by 6 cm; a hand across the body has
+   only the front to go round by. The trunk is a slab on the chest's axes, as wide and deep as the chest's solid
+   (a Large's is 56 by 34 cm, a Medium's 31 by 18). A hand held where it landed is let go once the body has been
+   over it for 0.1 s, and held again beside it (`ClipFighter.HandUnderFor`).
+3. **A shield is kept before the chest** (`FallPose.ShieldKeptBeforeChest`): the hand 16 cm in front of the
+   chest's front and 8 cm to its own side, the elbow down and out, as a guard holds it, from the first step of the
+   fall to the last. Going forward the body comes down on its shield; going backward the shield lies over it. The
+   shield hand is not held to the ground.
+
+4. **What a ragdoll holds is solid, and its arms are stopped by its body** (`ClipFighter.RagdollsHoldSolidThings`,
+   `HeldSolid`, `RagdollArmsToStop`). From the step a body falls as a ragdoll, its sword and its shield are
+   stopped by the ground and by other bodies (by nothing of its own), and its forearms, hands and shield by its
+   own trunk, head and thighs, each arm once the whole of it is out, as in the one body. Getting up, or built
+   again, all of it is as before it fell.
+
+| | before | now |
+|---|---|---|
+| thrown and tucked (600 N·s, from the front): an arm in its own body | 1.95 s | 0.07 s |
+| the same from behind | 0.33 s | 0.07 s |
+| a Large, the four falls: an arm in its body, the worst | 0.70 s | 0.68 s |
+| a Large, the four falls: its weapon in its body, the worst | 0.80 s | 0.02 s |
+| the shield arm from its pose as it falls forward (Medium, Large) | 43, 117 cm | 6, 6 cm |
+| a Medium with a shield falling forward: its hips turned over | 223 degrees | 147 |
+| a Large with a shield falling forward ends | on its back | on its front, on its shield |
+| a Medium with a shield falling backward: its hips turned over | 128 degrees | 228 |
+| ragdolls in the test fight: a sword's end against the ground, the lowest | 84 cm under it | 1 cm over it |
+| the same: a sword's end, the fastest | 51 m/s | 11 m/s |
+| the same: a shield against the ground, and in its bearer | 30 cm under, 17 cm in | on it, 5 cm in |
+| the same: an arm in its own body, of the 3 s measured | 2.4 to 3.0 s | 0 s |
+
+The row of the shield-bearer going backward is the cost: with its shield before it, a fighter going backward has one hand to brake with, not two,
+and goes further over onto its shoulders (its head stays 15 cm up). The arm in a Large's body that is left
+(0.68 s, falling to its left) is its sword arm passing its hips on the way to lying behind it; the 0.2 to 0.4 s
+that the open-handed targets still show in a fall to a side is the tube driving the arm into the ribs as it
+strikes, and the arm coming out.
+
+**Sizes.** A Large falls by the same rules and the same pose, and comes out much as a Medium does, slower (its
+hips are down 0.5 to 0.6 s after it goes, a Medium's 0.3 to 0.4). One difference to look at: knocked forward a
+Large stays on its hands and knees, its hips 35 to 40 cm up and its trunk never on the ground, until it gets up;
+a Medium's trunk comes down. A fall's muscles have a person's strength for their weight and size, and a Large has
+more for its weight. A Large with its club falls as one with a sword does (the club in its body 0.07 s at the
+worst). The Small was not tried: it is not in the battle, and the test's tube passes over its head.
+
+**What a fall costs.** Nothing over standing. From the playtest logs of 14 November (Unity's editor, recording):
+with the three targets a physics step's scripts took 4.4 ms while they stood, 4.2 ms in the second and a half
+after a fall test's blow, and 4.7 ms while they were down and getting up (93 fall tests in one session; the
+engine's own part 1.4 ms throughout). Headless, twelve bodies sent down together (`FIGHT_TUBEROWS=4`): the
+physics and the muscles took 19.4 ms a step with all twelve on their feet and 21.1 ms with half or more down,
+9% more; their arms stopped by their bodies made no difference that could be measured (5.6 ms against 5.8 without,
+three bodies). The report says a step's cost, by whether any body is down or getting up (the units' own steps
+there are the stub engine's, whose queries look through every collider, and say nothing of Unity's).
+
+**What many fighters cost** is the fight itself, not its falls: in the same logs six fighters fighting took 8.0 ms
+of scripts a physics step (the engine's part 2.4 ms, the units' steps 3.0, the recorder 1.0) against 4.4 ms for
+three standing, so about 1.3 ms a fighter a step, and a step has 16.7 ms. In the editor, recording, twelve
+fighters would take the whole of it. A sixteen-fighter fight runs headless without fault (`FIGHT_LINEUP=crowd`).
+
+**The headless engine was wrong about one thing, and is put right.** Told that two solids stop each other from
+now, or no longer do, PhysX goes on as it was for as long as the two stay near each other unless it is told to
+look again; the runner told it to for free bodies and not for an articulated body's parts (`PhysXWorld`, where
+`filteringDirty` is acted on). Unity looks again for both. So headless, a fallen body's arm that was told to pass
+through its trunk again as it got up stayed stopped by it and was held a metre from its pose; and, since 14
+November, a body getting up was still stopped by the ground it lay on, where Unity's is not. Both are as Unity
+has them now. The numbers above are all from after that; the falls of the earlier steps come out a little
+different in their details and the same in kind.
+
+In the test fights (six for a minute, seeds 5 and 9) the falls in the one body had an arm in the body for 0.03 s
+at the most and a weapon for 0.1 s, no weapon's end or shield under the ground, and nothing threw.
+
+Headless only (`FIGHT_ARMSOUT=0`, or `pose` or `body` for one half; `FIGHT_SHIELDBEFORE=0`; `FIGHT_HELDSOLID=0`). Not verified in
+Unity: what is seen there is the same engine told the same things, but nothing of this has been looked at. Found
+on the way and not done here: getting up from its front, a kneeling knee's joint is 2 to 12 cm under the ground
+for 0.05 to 0.65 s (the get-up's pose has it there; the ground stops nothing of a body getting up); thrown to its
+right at 600 N·s (not tucked) a fighter's head comes down on the ground at 2.5 to 3 m/s; thrown backward at 650
+N·s and more a tucked body's head still comes down at 3.4 to 4.7 m/s.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

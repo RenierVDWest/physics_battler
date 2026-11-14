@@ -20,6 +20,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>It was killed (a body that does not protect itself is no fault in the dead).</summary>
         public bool Dead;
 
+        /// <summary>It fell, or lay for part of it, as a ragdoll (a limb cut off; the one body lost): not in its one body, whose muscles pose it.</summary>
+        public bool Ragdoll;
+
         /// <summary>How long it was measured for (seconds).</summary>
         public float Lasted;
 
@@ -53,6 +56,32 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How far the hips turned over in all, whichever way (degrees): a body that tumbles turns a long way.</summary>
         public float Turned;
+
+        /// <summary>The most its hips rose again over the lowest they had been (metres): a body going down goes down; one held up on something (the edge of its shield) and tipped over it rises again.</summary>
+        public float HipsRose;
+
+        private float hipsLowest = float.MaxValue;
+
+        /// <summary>What it held and its arms against its body were measured (while a playtest is recorded, and headless).</summary>
+        public bool HeldMeasured;
+
+        /// <summary>It held a weapon in its right hand, and a shield on its left arm, as it fell.</summary>
+        public bool Armed, Shielded;
+
+        /// <summary>What it holds, as seen: how long its weapon was inside its own trunk, head or legs (seconds), the fastest the weapon's end went (m/s), and the lowest its end came against the ground (metres; under 0: through it).</summary>
+        public float BladeInFor, BladeFastest, BladeLowest = float.MaxValue;
+
+        /// <summary>Its shield, as seen: how long it was more than <see cref="ShieldInBy"/> inside its own trunk, head or thighs (seconds), and the deepest it was (metres).</summary>
+        public float ShieldInFor, ShieldDeepest;
+
+        /// <summary>The lowest its shield's board came against the ground (metres; under 0: through it).</summary>
+        public float ShieldLowest = float.MaxValue;
+
+        /// <summary>A shield this deep in its bearer's body (metres at a Medium's size) is in it: one held against the body touches it.</summary>
+        public const float ShieldInBy = 0.04f;
+
+        /// <summary>How long a forearm or hand was inside its own trunk, head or thighs, as seen (seconds).</summary>
+        public float ArmInFor;
 
         private Quaternion hipsTurnWas;
 
@@ -187,6 +216,8 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 hipsTurnWas = pelvis.transform.rotation;
+                hipsLowest = Mathf.Min(hipsLowest, pelvis.transform.position.y);
+                HipsRose = Mathf.Max(HipsRose, pelvis.transform.position.y - hipsLowest);
                 Vector3 at = pelvis.transform.position;
                 at.y = 0f;
                 if (begun && HipsAt >= 0f)
@@ -248,6 +279,6 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The fall in a line, for the logs.</summary>
         public string Text =>
-            $"fell {Way}{(Dead ? ", killed" : "")}: first down {(FirstAt < 0f ? "nothing" : $"{First} at {FirstAt:0.00} s")}; a hand {When(HandAt)}, a knee {When(KneeAt)}, the hips {When(HipsAt)}{(HipsAt >= 0f ? $" at {HipsSpeed:0.0} m/s" : "")}, the trunk {When(TrunkAt)}, the head {(HeadAt < 0f ? $"never (lowest {100f * HeadLowest:0} cm up)" : $"{HeadAt:0.00} s at {HeadSpeed:0.0} m/s ({HeadDownSpeed:0.0} downward)")}; {(Braced ? "landed on a hand or knee first" : "not on a hand or knee first")}; slid {100f * Slid:0} cm; its hips turned over {Turned:0} degrees in all; its hands went {100f * HandsSlid:0} cm over the ground and left it again {HandsLifted} times; measured {Lasted:0.0} s ({Why})";
+            $"fell {Way}{(Dead ? ", killed" : "")}{(Ragdoll ? ", a ragdoll" : "")}: first down {(FirstAt < 0f ? "nothing" : $"{First} at {FirstAt:0.00} s")}; a hand {When(HandAt)}, a knee {When(KneeAt)}, the hips {When(HipsAt)}{(HipsAt >= 0f ? $" at {HipsSpeed:0.0} m/s" : "")}, the trunk {When(TrunkAt)}, the head {(HeadAt < 0f ? $"never (lowest {100f * HeadLowest:0} cm up)" : $"{HeadAt:0.00} s at {HeadSpeed:0.0} m/s ({HeadDownSpeed:0.0} downward)")}; {(Braced ? "landed on a hand or knee first" : "not on a hand or knee first")}; slid {100f * Slid:0} cm; its hips turned over {Turned:0} degrees in all and rose again {100f * HipsRose:0} cm; its hands went {100f * HandsSlid:0} cm over the ground and left it again {HandsLifted} times; {(HeldMeasured ? $"an arm in its own body {ArmInFor:0.00} s" : "its arms and what it held not measured")}{(Armed ? $", its weapon {BladeInFor:0.00} s (its end at most {BladeFastest:0.0} m/s, lowest {100f * BladeLowest:0} cm over the ground)" : "")}{(Shielded ? $", its shield {ShieldInFor:0.00} s (at most {100f * ShieldDeepest:0} cm in, lowest {100f * ShieldLowest:0} cm over the ground)" : "")}; measured {Lasted:0.0} s ({Why})";
     }
 }
