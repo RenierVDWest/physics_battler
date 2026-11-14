@@ -174,6 +174,10 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The thighs, shins and feet are part of the physical body, as the arms and trunk are: hung from the hips (which the animation still carries), driven to where the animation and the foot placement put them by muscles of limited strength, a planted foot pinned where it is planted by a spring. On (the default since 14 November, when it had been looked at in Unity): a leg is stopped by a body or a shield it is swung into, no foot stands inside another fighter's foot, and a foot follows its place within a few millimetres instead of exactly. Off: the legs go exactly where the animation puts them and nothing stops them or moves them; a blade passes through a leg, and a leg swung into another fighter drags whatever it hooks. Needs 'physicalUpperBody'. The debug panel's toggle sets this.")]
         public bool legsArePhysical = true;
 
+        [Header("Falls and getting up")]
+        [Tooltip("A fallen fighter gets up from the pose it is really lying in, without first snapping into a tidy lying pose; lopsided, with one hand on the ground and the other arm free, up through one knee, as a fighter is taught to stand up; by one of three routes (from its back, its front or a side); turned toward its enemy by up to 35 degrees while still on the ground; and each get-up a little faster or slower than the last, so fighters felled together do not rise in step. It takes as long as before on average. Off: the get-up as it was before 14 November (five mirror-image poses from a tidy lying pose).")]
+        public bool getUpsAreNatural = true;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -587,6 +591,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.StepBackHops = stepBackHops;
             LocoBody.PivotsOnBall = feetPivotOnTheBall;
             ClipFighter.PhysicalLegs = legsArePhysical;
+            ClipFighter.NaturalGetUps = getUpsAreNatural;
             ConcentrationRise = concentrationRise;
             ConcentrationFall = concentrationFall;
             ConcentrationGuard = concentrationGuard;

@@ -792,6 +792,15 @@ namespace PhysicsBattler.Locomotion
                     Hold((BodyRegion)r, 1f);
                 }
 
+                GetUpFastest = getUp.FastestEarly;
+                GetUpMiss = getUp.ReachMiss;
+                GetUpSlid = getUp.Slid;
+                GetUpLog.Add($"got up {GetUpRoute} in {getUp.Duration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all");
+                if (Diagnostics.PlaytestTrace.Enabled)
+                {
+                    Diagnostics.PlaytestTrace.Note(FightUnit, "getup", GetUpLog[GetUpLog.Count - 1]);
+                }
+
                 LastReaction = "got up";
             }
         }
@@ -828,11 +837,55 @@ namespace PhysicsBattler.Locomotion
             falling = null;
         }
 
+        /// <summary>
+        /// The get-ups of the plan "Getting up" (14 November): from how the body really lies, lopsided through a knee
+        /// with a hand on the ground, turned toward what it fights (<see cref="GetUp.Natural"/>). Off: as they were.
+        /// </summary>
+        public static bool NaturalGetUps = true;
+
+        /// <summary>Natural get-ups: a body whose front is this near level lies on a side (the sine of how far its front is from level).</summary>
+        public const float OnSideWithin = 0.35f;
+
+        /// <summary>Natural get-ups: each is this much faster or slower than the last at most (a share of its length), so fighters felled together do not rise in step.</summary>
+        public const float GetUpVaries = 0.08f;
+
+        /// <summary>Get-ups, and for the reports the last one's measures: its route, how far it turned to its threat (degrees), the fastest a part moved early (m/s), the furthest a planted hand or foot was from its key (metres), how far planted ones slid (metres).</summary>
+        public int GetUps;
+        public readonly List<string> GetUpLog = new List<string>();
+        public string GetUpRoute = "";
+        public float GetUpTurned, GetUpFastest, GetUpMiss, GetUpSlid;
+
         private void BeginGetUp()
         {
             var pelvis = Rig.Part(PartId.Pelvis).body;
             Vector3 front = pelvis.rotation * Vector3.forward;
             var kind = front.y > 0f ? GetUp.Kind.FaceUp : GetUp.Kind.FaceDown;
+            getUp.Natural = NaturalGetUps;
+            getUp.Side = 0f;
+            Vector3? threat = null;
+            if (NaturalGetUps)
+            {
+                // (On a side: the route from its front, rolling onto it as it pushes up.)
+                if (Mathf.Abs(front.y) < OnSideWithin)
+                {
+                    kind = GetUp.Kind.FaceDown;
+                    getUp.Side = (pelvis.rotation * Vector3.right).y < 0f ? 1f : -1f;
+                }
+
+                // (What it fights: whoever it is on, or for a target of the sandbox's the way it is set to face.)
+                if (FightUnit != null)
+                {
+                    var foe = FightUnit.Opponent;
+                    threat = foe != null && foe.Clip != null ? foe.Clip.Loco.Position : FightUnit.DummyFace;
+                }
+
+                // (Each a little faster or slower than the one before, by turns.)
+                getUp.Vary = 1f + GetUpVaries * (((GetUps + Mathf.Abs(Mathf.RoundToInt(3f * pelvis.position.x + 5f * pelvis.position.z))) % 5) - 2) / 2f;
+            }
+
+            GetUps++;
+            GetUpRoute = !NaturalGetUps ? (kind == GetUp.Kind.FaceDown ? "from its front, as before" : "from its back, as before")
+                : getUp.Side != 0f ? (getUp.Side > 0f ? "from its right side" : "from its left side") : kind == GetUp.Kind.FaceDown ? "from its front" : "from its back";
             Vector3 headward = Rig.Part(PartId.Head).body.position - pelvis.position;
             headward.y = 0f;
             if (headward.sqrMagnitude < 0.01f * Size * Size)
@@ -841,7 +894,7 @@ namespace PhysicsBattler.Locomotion
                 headward.y = 0f;
             }
 
-            GetUp.Place(kind, pelvis.position, headward, body.SizeFactor, out var position, out float yaw);
+            GetUp.Place(kind, pelvis.position, headward, body.SizeFactor, NaturalGetUps, threat, out var position, out float yaw, out GetUpTurned);
             position.y = groundLevel;
             getUpRoot.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
             getUpStance.Plant(position, yaw);
@@ -854,7 +907,7 @@ namespace PhysicsBattler.Locomotion
             getUp.Begin(kind, lying);
             Footing = Footings.GettingUp;
             footingTime = 0f;
-            LastReaction = $"getting up {(kind == GetUp.Kind.FaceDown ? "face down" : "face up")}";
+            LastReaction = $"getting up {GetUpRoute}";
         }
 
         /// <summary>The body part a collider is, if it is one of the dummy's.</summary>

@@ -654,6 +654,9 @@ internal static class FightReport
             PhysicsBattler.Locomotion.ClipFighter.LegStrength = legStrong;
         }
 
+        // (FIGHT_GETUP=0: the get-ups as they were before 14 November.)
+        PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = Environment.GetEnvironmentVariable("FIGHT_GETUP") != "0";
+
         // (FIGHT_PIVOT=0: a planted foot that turns with the body goes round about its ankle, as before.)
         if (Environment.GetEnvironmentVariable("FIGHT_PIVOT") == "0")
         {
@@ -1275,6 +1278,16 @@ internal static class FightReport
                 foreach (var (u, f) in fell.Take(40))
                 {
                     sb.AppendLine($"      {u.name} {f.Text}");
+                }
+            }
+
+            var rose = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.GetUpLog.Select(g => (u, g))).ToList();
+            if (rose.Count > 0)
+            {
+                sb.AppendLine($"    get-ups: {rose.Count} ({(PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps ? "the new ones" : "as before")})");
+                foreach (var (u, g) in rose.Take(30))
+                {
+                    sb.AppendLine($"      {u.name} {g}");
                 }
             }
 

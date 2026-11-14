@@ -168,6 +168,7 @@ namespace PhysicsBattler.Motion
             public Vector3 pelvis;          // unit space
             public float pitch, spine, chest, head;   // degrees, + bends forward
             public float roll;              // degrees about the body's length, + onto the sword side
+            public float lean;              // degrees to its right, about the way the root faces
             public Vector3 ankleL, ankleR;  // unit space
             public Vector3 kneeL, kneeR;    // pole directions, unit space
             public float footL, footR;      // foot pitch, + toes down
@@ -179,7 +180,8 @@ namespace PhysicsBattler.Motion
         private readonly AnimRig anim;
         private readonly BodyMeasure body;
         private readonly Stance stance;
-        private readonly Key[] keys = new Key[5];
+        private readonly Key[] keys = new Key[7];
+        private int count = 5;
         private readonly PoseBuffer lying = new PoseBuffer();
         private readonly PoseBuffer keyed = new PoseBuffer();
         private readonly PoseBuffer mixed = new PoseBuffer();
@@ -188,11 +190,54 @@ namespace PhysicsBattler.Motion
         public Kind Facing { get; private set; }
 
         /// <summary>Seconds from the ragdoll's pose to the first key (the legs take a little less).</summary>
-        public float BlendIn => 0.3f * pace;
+        public float BlendIn => (Natural ? NaturalBlend : 0.3f) * pace;
 
         /// <summary>When the standing pose starts taking over (seconds into the get-up), and the whole get-up.</summary>
-        public float StandFrom => BlendIn + keys[3].time;
-        public float Duration => BlendIn + keys[4].time;
+        public float StandFrom => KeysFrom + keys[count - 2].time;
+        public float Duration => KeysFrom + keys[count - 1].time;
+
+        /// <summary>When the keys begin to play: after the blend from how it lay, or (natural) with it.</summary>
+        private float KeysFrom => Natural ? 0f : BlendIn;
+
+        /// <summary>
+        /// The get-up of the plan "Getting up" (14 November): from the pose the body is really in, with no pause in a
+        /// tidy lying pose (the keys play from the first moment while each part leaves how it lay on its own clock,
+        /// the head first); lopsided, one hand on the ground and the other arm free, up through one knee as a fighter
+        /// is taught to stand up in base; three routes, from the back, the front and a side. Off: as it was. Set
+        /// before <see cref="Begin"/>.
+        /// </summary>
+        public bool Natural { get; set; }
+
+        /// <summary>Natural: how long each part takes to leave how it lay (seconds at a Medium's size; the head and the arms take a share of it).</summary>
+        public const float NaturalBlend = 0.6f;
+
+        /// <summary>Natural: it lies on a side (+1 its right side down, -1 its left; 0 on its back or its front). Set before <see cref="Begin"/>.</summary>
+        public float Side { get; set; }
+
+        /// <summary>Natural: this get-up's own pace, about 1 (so fighters felled together do not rise in step). Set before <see cref="Begin"/>.</summary>
+        public float Vary { get; set; } = 1f;
+
+        /// <summary>Natural: how far a get-up turns toward its threat while still on the ground, at most (degrees).</summary>
+        public const float TurnsToThreat = 35f;
+
+        /// <summary>
+        /// For the reports: the fastest any part moved in the get-up's first moments (m/s; a snap shows as a high
+        /// speed), the furthest a hand or foot on the ground was from where its key wanted it (metres; a pose the
+        /// body cannot reach), and how far hands and feet on the ground moved while their keys held them still (metres).
+        /// </summary>
+        public float FastestEarly { get; private set; }
+        public float ReachMiss { get; private set; }
+        public float Slid { get; private set; }
+
+        /// <summary>For the reports: which part moved fastest and when, and which hand or foot was furthest from its key and when (seconds into the get-up).</summary>
+        public string Fastest { get; private set; } = "";
+        public string Missed { get; private set; } = "";
+        private float keysAt;
+
+        private readonly Vector3[] partWas = new Vector3[PartInfo.Count];
+        private readonly Vector3[] endWas = new Vector3[4], endAsked = new Vector3[4];
+        private readonly bool[] endDown = new bool[4];
+        private float composedAt = -1f, shieldFrom, shieldBy;
 
         /// <summary>Holding a weapon in a hand, or a shield (they're laid out of the way while the hands push on the ground).</summary>
         public bool HoldsMain { get; set; }
@@ -237,12 +282,40 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public static void Place(Kind kind, Vector3 pelvis, Vector3 headward, float size, out Vector3 position, out float yaw)
         {
+            Place(kind, pelvis, headward, size, false, null, out position, out yaw, out _);
+        }
+
+        /// <summary>
+        /// As above; <paramref name="natural"/>: a body on its back stands up nearer where it sat (it gets up over
+        /// its hand and its drawn-in foot, not over where its feet lay), and it is turned toward
+        /// <paramref name="threat"/> (world; none: not turned) about its hips by up to <see cref="TurnsToThreat"/>
+        /// (<paramref name="turned"/>, degrees): a body sitting up pivots where it sits to face what it fights.
+        /// </summary>
+        public static void Place(Kind kind, Vector3 pelvis, Vector3 headward, float size, bool natural, Vector3? threat, out Vector3 position, out float yaw, out float turned)
+        {
             Vector3 along = kind == Kind.FaceDown ? headward : -headward;
             along.y = 0f;
             along = along.sqrMagnitude > 1e-6f ? along.normalized : Vector3.forward;
             yaw = Mathf.Atan2(along.x, along.z) * Mathf.Rad2Deg;
-            position = pelvis + along * ((kind == Kind.FaceDown ? 0.25f : 0.45f) * size);
+            turned = 0f;
+            if (natural && threat.HasValue)
+            {
+                Vector3 to = threat.Value - pelvis;
+                to.y = 0f;
+                if (to.sqrMagnitude > 0.04f * size * size)
+                {
+                    float toward = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+                    turned = Mathf.Clamp(Mathf.DeltaAngle(yaw, toward), -TurnsToThreat, TurnsToThreat);
+                    yaw += turned;
+                    along = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+                }
+            }
+
+            position = pelvis + along * ((kind == Kind.FaceDown ? 0.25f : natural ? BackSits : 0.45f) * size);
         }
+
+        /// <summary>Natural: a body on its back stands up this far toward its feet from where its hips lay (metres at a Medium's size).</summary>
+        public const float BackSits = 0.22f;
 
         /// <summary>Starts a get-up: <paramref name="from"/> is how the body lay (the root already placed).</summary>
         public void Begin(Kind kind, PoseBuffer from)
@@ -261,21 +334,51 @@ namespace PhysicsBattler.Motion
             }
 
             float s = body.SizeFactor;
-            pace = Mathf.Sqrt(Mathf.Max(0.3f, s));
+            pace = Mathf.Sqrt(Mathf.Max(0.3f, s)) * (Natural ? Mathf.Clamp(Vary, 0.8f, 1.25f) : 1f);
             rollSign = RollSign();
-            if (kind == Kind.FaceDown)
+            FastestEarly = ReachMiss = Slid = 0f;
+            Fastest = Missed = "";
+            composedAt = -1f;
+            for (int i = 0; i < 4; i++)
             {
-                MakeFaceDown();
+                endDown[i] = false;
+            }
+
+            if (Natural)
+            {
+                count = 7;
+                if (kind == Kind.FaceDown)
+                {
+                    MakeFromFront();
+                }
+                else
+                {
+                    MakeFromBack();
+                }
             }
             else
             {
-                MakeFaceUp();
+                count = 5;
+                if (kind == Kind.FaceDown)
+                {
+                    MakeFaceDown();
+                }
+                else
+                {
+                    MakeFaceUp();
+                }
+
+                shieldFrom = keys[1].time;
+                shieldBy = keys[2].time;
             }
 
-            for (int i = 0; i < keys.Length; i++)
+            for (int i = 0; i < count; i++)
             {
                 keys[i].time *= pace;
             }
+
+            shieldFrom *= pace;
+            shieldBy *= pace;
         }
 
         /// <summary>
@@ -286,12 +389,13 @@ namespace PhysicsBattler.Motion
         public void Compose(float t, PoseBuffer stand)
         {
             fitFrame++;
-            PoseKeys(Mathf.Max(0f, t - BlendIn));
+            PoseKeys(Mathf.Max(0f, t - KeysFrom));
             bool blendingIn = t < BlendIn * 1.25f;
             bool standing = stand != null && t > StandFrom;
             if (!blendingIn && !standing)
             {
                 Finish(t, stand);
+                Composed(t);
                 return;
             }
 
@@ -299,8 +403,31 @@ namespace PhysicsBattler.Motion
             if (blendingIn)
             {
                 // From the ragdoll's pose to the first key, each part on its own clock: legs first.
-                mixed.CopyFrom(lying);
-                mixed.MixToward(keyed, id => Smooth(t / (BlendIn * Share(id))));
+                if (Natural)
+                {
+                    // (From how it lay toward keys that are already moving: the head first, then the arms, the legs, the
+                    // trunk. Each step takes the pose it had a share of the way that is left to the keys' pose now: mixed
+                    // afresh from how it lay each step, a part half a turn from its key took the other way round the
+                    // moment the moving key crossed over, and an arm jumped across the body in one step.)
+                    if (composedAt < 0f)
+                    {
+                        mixed.CopyFrom(lying);
+                    }
+
+                    float before = Mathf.Max(0f, composedAt);
+                    mixed.MixToward(keyed, id =>
+                    {
+                        float over = BlendIn * NaturalShare(id);
+                        float was = Smooth(before / over), now = Smooth(t / over);
+                        return was >= 1f - 1e-4f ? 1f : Mathf.Clamp01((now - was) / (1f - was));
+                    });
+                }
+                else
+                {
+                    mixed.CopyFrom(lying);
+                    mixed.MixToward(keyed, id => Smooth(t / (BlendIn * Share(id))));
+                }
+
                 keyed.CopyFrom(mixed);
             }
 
@@ -314,6 +441,53 @@ namespace PhysicsBattler.Motion
             // into the standing pose, the limbs go by where their joints are (both poses move).
             keyed.Apply(anim, standing);
             Finish(t, stand);
+            Composed(t);
+        }
+
+        /// <summary>For the reports: how fast the parts are moving in the get-up's first moments.</summary>
+        private void Composed(float t)
+        {
+            bool early = t < 0.7f * pace;
+            foreach (var id in PartInfo.All)
+            {
+                Vector3 at = anim.Part(id).position;
+                if (early && composedAt >= 0f && t > composedAt + 1e-4f)
+                {
+                    float speed = Vector3.Distance(at, partWas[(int)id]) / (t - composedAt);
+                    if (speed > FastestEarly)
+                    {
+                        FastestEarly = speed;
+                        Fastest = $"its {id} at {t:0.00} s";
+                    }
+                }
+
+                partWas[(int)id] = at;
+            }
+
+            composedAt = t;
+        }
+
+        /// <summary>Natural: the share of the blend from how it lay each part takes: the head leads, the arms follow, then the legs and the trunk.</summary>
+        private static float NaturalShare(PartId id)
+        {
+            switch (id)
+            {
+                case PartId.Head:
+                    return 0.55f;
+                case PartId.ThighL:
+                case PartId.ThighR:
+                case PartId.ShinL:
+                case PartId.ShinR:
+                case PartId.FootL:
+                case PartId.FootR:
+                    return 0.95f;
+                case PartId.Pelvis:
+                case PartId.Spine:
+                case PartId.Chest:
+                    return 1f;
+                default:
+                    return 0.9f;
+            }
         }
 
         /// <summary>
@@ -334,8 +508,8 @@ namespace PhysicsBattler.Motion
                 }
                 else
                 {
-                    float k = t - BlendIn;
-                    up = Smooth((k - keys[1].time) / Mathf.Max(1e-3f, keys[2].time - keys[1].time));
+                    float k = t - KeysFrom;
+                    up = Smooth((k - shieldFrom) / Mathf.Max(1e-3f, shieldBy - shieldFrom));
                 }
 
                 float w = up * (1f - standing);
@@ -693,8 +867,8 @@ namespace PhysicsBattler.Motion
             k.elbowR = new Vector3(0.5f, -1f, -0.4f);
             keys[2] = k;
 
-            Rise(1.35f, ph, s, w, -0.04f, 22f);
-            Stand(1.7f, ph, s, w);
+            Rise(3, 1.35f, ph, s, w, -0.04f, 22f);
+            Stand(4, 1.7f, ph, s, w);
         }
 
         private void MakeFaceUp()
@@ -735,12 +909,162 @@ namespace PhysicsBattler.Motion
             k.elbowL = new Vector3(-0.5f, -1f, -0.2f);
             keys[2] = k;
 
-            Rise(1.35f, ph, s, w, -0.04f, 24f);
-            Stand(1.7f, ph, s, w);
+            Rise(3, 1.35f, ph, s, w, -0.04f, 24f);
+            Stand(4, 1.7f, ph, s, w);
+        }
+
+        // ---- The natural get-ups (the plan "Getting up") ------------------------------------------
+
+        private static void SetHand(ref Key k, int side, Vector3 wrist, Vector3 elbow)
+        {
+            if (side == Stance.Left)
+            {
+                k.handL = wrist;
+                k.elbowL = elbow;
+            }
+            else
+            {
+                k.handR = wrist;
+                k.elbowR = elbow;
+            }
+        }
+
+        /// <summary>
+        /// From its back, as a fighter stands up in base: it sits up onto the hand of its back foot's side (for sword
+        /// and shield the sword hand, the shield arm left free and toward the enemy), draws in and plants its front
+        /// foot, lifts its hips on that hand and that foot while the back leg folds under, comes onto that knee, and
+        /// rises off the front foot, the back foot landing on its place in the stance. Never both feet together,
+        /// never without two supports.
+        /// </summary>
+        private void MakeFromBack()
+        {
+            float s = body.SizeFactor, w = body.WidthFactor, ph = body.PelvisHeight, leg = body.LegLength;
+            int lead = stance.Lead, rear = 1 - lead;
+            // (The posting hand's side, and the front foot's: +1 its right.)
+            float sx = rear == Stance.Left ? -1f : 1f, lx = -sx;
+            float pz = -BackSits * s;
+            Vector3 posted = new Vector3(sx * 0.37f * w, HandHeight, pz - 0.14f * s);
+            Vector3 postedElbow = new Vector3(sx, 0f, -0.6f);
+
+            // 0. Lying on its back (only where the keys set out from: the body leaves how it really lay).
+            var k = Torso(0f, new Vector3(0f, Lie, pz), -88f, 0f, 0f, 30f, out var hips, out _);
+            LegsAlongBody(ref k, hips, -88f, -75f, Vector3.up);
+            k.handL = new Vector3(-0.34f * w, HandHeight, pz - 0.05f * s);
+            k.handR = new Vector3(0.34f * w, HandHeight, pz - 0.05f * s);
+            k.elbowL = new Vector3(-1f, 0.2f, -0.3f);
+            k.elbowR = new Vector3(1f, 0.2f, -0.3f);
+            keys[0] = k;
+
+            // 1. Head up, rolled a little toward the posting hand, which goes down beside the hip; the front foot drawn in.
+            k = Torso(0.35f, new Vector3(sx * 0.03f * s, Lie + 0.02f * s, pz), -50f, 12f, 12f, 28f, out _, out _, 16f * sx);
+            SetHand(ref k, rear, posted, postedElbow);
+            SetHand(ref k, lead, new Vector3(lx * 0.2f * w, 0.3f * s, pz + 0.1f * s), new Vector3(lx * 0.6f, -0.6f, -0.3f));
+            SetFoot(ref k, lead, new Vector3(Home(lead).x, body.AnkleHeight, Home(lead).z - 0.05f * s), new Vector3(lx * 0.1f, 1f, 0.3f), 0f);
+            SetFoot(ref k, rear, new Vector3(sx * 0.16f * w, 0.08f * s, pz + 0.75f * leg), new Vector3(sx * 0.8f, 0.5f, 0.3f), -40f);
+            keys[1] = k;
+
+            // 2. Sitting on the hand, leaning toward it; the front foot planted on its place; the free arm up before it.
+            k = Torso(0.7f, new Vector3(sx * 0.04f * s, Lie + 0.03f * s, pz + 0.02f * s), -8f, 10f, 8f, 5f, out _, out _, 10f * sx);
+            k.lean = 12f * sx;
+            SetHand(ref k, rear, posted, postedElbow);
+            SetHand(ref k, lead, new Vector3(lx * 0.2f * w, 0.62f * s, pz + 0.36f * s), new Vector3(lx * 0.5f, -1f, -0.3f));
+            SetFoot(ref k, lead, Home(lead), new Vector3(lx * 0.1f, 1f, 0.5f), 0f);
+            SetFoot(ref k, rear, new Vector3(sx * 0.18f * w, 0.08f * s, pz + 0.55f * leg), new Vector3(sx, 0.4f, 0.4f), -20f);
+            keys[2] = k;
+
+            // 3. On the hand and the front foot: the hips lifted, the trunk leaning to the hand, the back leg folding under.
+            k = Torso(1.0f, new Vector3(sx * 0.06f * s, 0.32f * leg, pz + 0.05f * s), 2f, 8f, 6f, -5f, out _, out _, 14f * sx);
+            k.lean = 36f * sx;
+            SetHand(ref k, rear, posted, postedElbow);
+            SetHand(ref k, lead, new Vector3(lx * 0.22f * w, 0.7f * s, pz + 0.45f * s), new Vector3(lx * 0.5f, -1f, -0.3f));
+            SetFoot(ref k, lead, Home(lead), new Vector3(lx * 0.15f, 0.6f, 1f), 0f);
+            SetFoot(ref k, rear, new Vector3(sx * 0.12f * w, 0.1f * s, pz - 0.05f * leg), new Vector3(sx * 0.5f, -0.6f, 0.6f), 60f);
+            keys[3] = k;
+
+            // 4. A half kneel: the back knee down under the hips, upright, the hand off the ground.
+            HalfKneel(4, 1.3f, s, w, leg, lead, rear, sx, lx, pz + 0.1f * s);
+            Rise(5, 1.65f, ph, s, w, -0.04f, 22f);
+            Stand(6, 2.0f, ph, s, w);
+            shieldFrom = 0f;
+            shieldBy = keys[1].time;
+        }
+
+        /// <summary>
+        /// From its front (and from a side, rolling onto its front as it pushes up): the hands planted by the chest
+        /// and the chest off the ground, the hips back onto hands and knees, the front foot stepped through to its
+        /// place while the hand of the back foot's side stays down, a half kneel, and up.
+        /// </summary>
+        private void MakeFromFront()
+        {
+            float s = body.SizeFactor, w = body.WidthFactor, ph = body.PelvisHeight, leg = body.LegLength;
+            int lead = stance.Lead, rear = 1 - lead;
+            float sx = rear == Stance.Left ? -1f : 1f, lx = -sx;
+            float pz = -0.25f * s;
+            // (Face down, a turn about its length the other way puts its right side down.)
+            float onSide = -Side;
+
+            // 0. Lying on its front, or on a side (only where the keys set out from).
+            var k = Torso(0f, new Vector3(0f, Lie, pz), 88f, 0f, 0f, -40f, out var hips, out var shoulders, 80f * onSide);
+            LegsAlongBody(ref k, hips, 88f, 80f, Vector3.down);
+            k.handL = new Vector3(shoulders[0].x * 1.3f, HandHeight, shoulders[0].z - 0.03f * s);
+            k.handR = new Vector3(shoulders[1].x * 1.3f, HandHeight, shoulders[1].z - 0.03f * s);
+            k.elbowL = new Vector3(-1f, 0.6f, -0.4f);
+            k.elbowR = new Vector3(1f, 0.6f, -0.4f);
+            keys[0] = k;
+
+            // 1. Head up, the hands planted by the chest, the chest coming off the ground (from a side: rolling onto its front).
+            k = Torso(0.35f, new Vector3(0f, Lie + 0.03f * s, pz), 74f, -6f, -8f, -48f, out hips, out shoulders, 35f * onSide);
+            LegsAlongBody(ref k, hips, 88f, 80f, Vector3.down);
+            Vector3 handL = new Vector3(-Mathf.Abs(shoulders[0].x) * 1.25f, HandHeight, pz + 0.42f * s);
+            Vector3 handR = new Vector3(Mathf.Abs(shoulders[1].x) * 1.25f, HandHeight, pz + 0.42f * s);
+            k.handL = handL;
+            k.handR = handR;
+            k.elbowL = new Vector3(-1f, 0.5f, -0.5f);
+            k.elbowR = new Vector3(1f, 0.5f, -0.5f);
+            keys[1] = k;
+
+            // 2. Hands and knees: the hips back and up over the knees, the weight toward the posting hand; the hands where they were.
+            k = Torso(0.7f, new Vector3(sx * 0.03f * s, 0.55f * leg, pz - 0.08f * s), 72f, 3f, 3f, -40f, out hips, out _);
+            k.lean = 6f * sx;
+            k.ankleL = new Vector3(hips[0].x, 0.08f * s, hips[0].z - 0.46f * leg);
+            k.ankleR = new Vector3(hips[1].x, 0.08f * s, hips[1].z - 0.46f * leg);
+            k.kneeL = k.kneeR = new Vector3(0f, -1f, 0.15f);
+            k.footL = k.footR = 95f;
+            k.handL = handL;
+            k.handR = handR;
+            k.elbowL = new Vector3(-0.5f, 0f, -1f);
+            k.elbowR = new Vector3(0.5f, 0f, -1f);
+            keys[2] = k;
+
+            // 3. The front foot stepped through to its place; the posting hand still down, the free hand lifting.
+            k = Torso(1.0f, new Vector3(sx * 0.03f * s, 0.48f * leg, pz + 0.03f * s), 66f, 4f, 4f, -34f, out hips, out _);
+            k.lean = 10f * sx;
+            SetFoot(ref k, lead, Home(lead), new Vector3(lx * 0.2f, 0.3f, 1f), 0f);
+            SetFoot(ref k, rear, new Vector3(hips[rear].x, 0.08f * s, hips[rear].z - 0.46f * leg), new Vector3(0f, -1f, 0.15f), 85f);
+            SetHand(ref k, rear, rear == Stance.Left ? handL : handR, new Vector3(sx * 0.5f, 0f, -1f));
+            SetHand(ref k, lead, new Vector3(lx * 0.22f * w, 0.45f * s, 0.35f * s), new Vector3(lx * 0.5f, -1f, -0.3f));
+            keys[3] = k;
+
+            HalfKneel(4, 1.3f, s, w, leg, lead, rear, sx, lx, -0.2f * s);
+            Rise(5, 1.65f, ph, s, w, -0.04f, 22f);
+            Stand(6, 2.0f, ph, s, w);
+            shieldFrom = keys[2].time;
+            shieldBy = keys[4].time;
+        }
+
+        /// <summary>A half kneel: the front foot on its place, the back knee down under the hips, upright; the posting hand at the thigh, the free arm up before it.</summary>
+        private void HalfKneel(int at, float time, float s, float w, float leg, int lead, int rear, float sx, float lx, float z)
+        {
+            var k = Torso(time, new Vector3(0f, 0.58f * leg, z), 18f, 5f, 4f, -10f, out var hips, out _);
+            SetFoot(ref k, lead, Home(lead), new Vector3(lx * 0.1f, 0.3f, 1f), 0f);
+            SetFoot(ref k, rear, new Vector3(Home(rear).x, 0.08f * s, hips[rear].z - 0.48f * leg), new Vector3(0f, -1f, 0.25f), 75f);
+            SetHand(ref k, rear, new Vector3(sx * 0.26f * w, 0.42f * s, z + 0.22f * s), new Vector3(sx * 0.5f, -1f, -0.4f));
+            SetHand(ref k, lead, new Vector3(lx * 0.22f * w, 0.8f * s, 0.3f * s), new Vector3(lx * 0.5f, -1f, -0.3f));
+            keys[at] = k;
         }
 
         /// <summary>Rising off bent legs, feet on their spots, leaning forward.</summary>
-        private void Rise(float time, float ph, float s, float w, float back, float pitch)
+        private void Rise(int at, float time, float ph, float s, float w, float back, float pitch)
         {
             var k = Torso(time, new Vector3(0f, 0.8f * ph, back * s), pitch, 6f, 4f, -10f, out _, out _);
             FeetHome(ref k);
@@ -748,11 +1072,11 @@ namespace PhysicsBattler.Motion
             k.handR = new Vector3(0.25f * w, 0.68f * s, 0.4f * s);
             k.elbowL = new Vector3(-0.4f, -1f, -0.5f);
             k.elbowR = new Vector3(0.4f, -1f, -0.5f);
-            keys[3] = k;
+            keys[at] = k;
         }
 
         /// <summary>Standing (the standing pose takes over from here; this is only where the keys head).</summary>
-        private void Stand(float time, float ph, float s, float w)
+        private void Stand(int at, float time, float ph, float s, float w)
         {
             var k = Torso(time, new Vector3(0f, ph - 0.07f * body.LegLength, 0f), 4f, 2f, 2f, -4f, out _, out _);
             FeetHome(ref k);
@@ -760,7 +1084,7 @@ namespace PhysicsBattler.Motion
             k.handR = new Vector3(0.2f * w, 1.05f * s, 0.32f * s);
             k.elbowL = new Vector3(-0.6f, -1f, -0.2f);
             k.elbowR = new Vector3(0.6f, -1f, -0.2f);
-            keys[4] = k;
+            keys[at] = k;
         }
 
         private void FeetHome(ref Key k)
@@ -820,15 +1144,16 @@ namespace PhysicsBattler.Motion
         private void PoseKeys(float t)
         {
             int i = 0;
-            while (i < keys.Length - 2 && t >= keys[i + 1].time)
+            while (i < count - 2 && t >= keys[i + 1].time)
             {
                 i++;
             }
 
+            keysAt = t;
             float span = Mathf.Max(1e-3f, keys[i + 1].time - keys[i].time);
             float u = Mathf.Clamp01((t - keys[i].time) / span);
             u = Mathf.Lerp(u, Smooth(u), 0.5f);   // eased a little, without stopping at each key
-            Key a = keys[Mathf.Max(0, i - 1)], b = keys[i], c = keys[i + 1], d = keys[Mathf.Min(keys.Length - 1, i + 2)];
+            Key a = keys[Mathf.Max(0, i - 1)], b = keys[i], c = keys[i + 1], d = keys[Mathf.Min(count - 1, i + 2)];
             var k = new Key
             {
                 pelvis = Spline(a.pelvis, b.pelvis, c.pelvis, d.pelvis, u),
@@ -837,6 +1162,7 @@ namespace PhysicsBattler.Motion
                 chest = Spline(a.chest, b.chest, c.chest, d.chest, u),
                 head = Spline(a.head, b.head, c.head, d.head, u),
                 roll = Spline(a.roll, b.roll, c.roll, d.roll, u),
+                lean = Spline(a.lean, b.lean, c.lean, d.lean, u),
                 ankleL = Spline(a.ankleL, b.ankleL, c.ankleL, d.ankleL, u) + Vector3.up * Lift(b.ankleL, c.ankleL, u),
                 ankleR = Spline(a.ankleR, b.ankleR, c.ankleR, d.ankleR, u) + Vector3.up * Lift(b.ankleR, c.ankleR, u),
                 kneeL = Vector3.Lerp(b.kneeL, c.kneeL, u),
@@ -882,7 +1208,7 @@ namespace PhysicsBattler.Motion
         private void PoseTorso(Key k, float sign)
         {
             var pelvis = anim.Part(PartId.Pelvis);
-            pelvis.SetPositionAndRotation(World(k.pelvis), root.rotation * Quaternion.Euler(k.pitch, 0f, 0f) * Quaternion.Euler(0f, sign * k.roll, 0f));
+            pelvis.SetPositionAndRotation(World(k.pelvis), root.rotation * Quaternion.Euler(0f, 0f, -k.lean) * Quaternion.Euler(k.pitch, 0f, 0f) * Quaternion.Euler(0f, sign * k.roll, 0f));
             Bend(PartId.Spine, k.spine);
             Bend(PartId.Chest, k.chest);
             Bend(PartId.Head, k.head);
@@ -902,6 +1228,36 @@ namespace PhysicsBattler.Motion
             Leg(PartId.ThighR, PartId.ShinR, PartId.FootR, k.ankleR, k.kneeR, k.footR, facing);
             Arm(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, anim.SlotWeaponL, k.handL, k.elbowL, false, facing);
             Arm(PartId.UpperArmR, PartId.ForearmR, PartId.HandR, anim.SlotWeaponR, k.handR, k.elbowR, true, facing);
+            Planted(0, k.ankleL, PartId.FootL, 1.15f * Mathf.Max(body.AnkleHeight, 0.08f * body.SizeFactor));
+            Planted(1, k.ankleR, PartId.FootR, 1.15f * Mathf.Max(body.AnkleHeight, 0.08f * body.SizeFactor));
+            Planted(2, k.handL, PartId.HandL, 1.15f * HandHeight);
+            Planted(3, k.handR, PartId.HandR, 1.15f * HandHeight);
+        }
+
+        /// <summary>For the reports: a hand or foot the key has on the ground, against where the body has it.</summary>
+        private void Planted(int which, Vector3 asked, PartId end, float downWithin)
+        {
+            bool down = asked.y <= downWithin;
+            Vector3 at = anim.Part(end).position;
+            if (down)
+            {
+                float miss = Vector3.Distance(World(asked), at);
+                if (miss > ReachMiss)
+                {
+                    ReachMiss = miss;
+                    Missed = $"its {end} at {keysAt:0.00} s";
+                }
+                if (endDown[which] && Vector3.Distance(asked, endAsked[which]) < 0.002f * body.SizeFactor)
+                {
+                    Vector3 moved = at - endWas[which];
+                    moved.y = 0f;
+                    Slid += moved.magnitude;
+                }
+            }
+
+            endDown[which] = down;
+            endAsked[which] = asked;
+            endWas[which] = at;
         }
 
         private void Leg(PartId thigh, PartId shin, PartId foot, Vector3 ankle, Vector3 knee, float pitch, Quaternion facing)

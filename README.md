@@ -3295,7 +3295,48 @@ hips are the measures that count. And the fall forgets the blow: one thrown at 1
 the same, on the spot (the fall gives every body the same 1.4 m/s; `KnockOver` is always called with the same
 knock). A hard blow that fells looks no harder than a soft one that does.
 
-Not verified in Unity: the fall buttons and the `fall` lines in a log.
+In Unity since (14 November, 36 falls from the buttons, all four ways): the buttons send the targets down the
+way asked and every fall has its `fall` line; the head reached the ground in all 36, as headless.
+
+Decided for the falls plan (14 November): the poses are authored in code; fighters keep hold of what they carry;
+the dead fall limp while the living brace; the caught fall (a hand and a knee, and straight back up) is built;
+how often they fall is left alone until the hit force and the staggers are in.
+
+**Getting up** (14 November; the plan is a document of its own, "Getting up: research and plan",
+https://claude.ai/artifact/TQNgYhYhCCX9sWzAMpcqnh). The get-up there was pulled the body, in 0.3 s, from however
+it fell into a tidy lying pose, then played five mirror-image poses, facing the way the body happened to lie,
+everyone to the same beat. The new one (`GetUp.Natural`; the Combat Feel's `getUpsAreNatural`, on by default; the
+tube test's panel has a toggle beside the fall buttons, so the same fall can be watched both ways):
+
+- **From where it lies.** The keys play from the first moment and each part leaves how it lay on its own clock
+  (the head in 0.33 s, the arms in 0.54, the legs in 0.57, the trunk in 0.6): no tidy lying pose is passed
+  through. Each step takes the pose a share of the way that is left to the keys' pose now; mixed afresh from how
+  it lay each step, an arm half a turn from its key jumped across the body in one step when the moving key
+  crossed over (33 m/s in the measure below).
+- **Three routes, by how it lies**: from its back (its front more than 20 degrees up), from its front, and from
+  a side (its front within 20 degrees of level), which is the route from the front begun rolled over.
+- **Lopsided, as a fighter stands up in base.** The hand of the back foot's side goes down (for sword and shield
+  the sword hand; the shield arm stays free, toward the enemy), the front foot is planted on its place in the
+  stance, the hips lift on that hand and that foot with the trunk leaning to the hand, the back leg folds under
+  to a half kneel, the hand leaves the ground, and it rises, the back foot landing on its place. From the front:
+  hands planted by the chest, hands and knees, the front foot stepped through while that hand stays down, the
+  half kneel, up. Seven keys instead of five; a key can now lean the body to a side.
+- **Toward the enemy.** The body is turned about its hips toward whoever it is on (a sandbox target: the way it
+  is set to face) by up to 35 degrees as it comes up off the ground.
+- **Not all alike.** Each get-up is up to 8% faster or slower, by turns. 2 s for a Medium on average, as before.
+
+Measured (a `getup` line in the playtest log when a fighter is up; headless the fight report's "get-ups"): the
+route, how far it turned, the fastest any part moved in the first 0.7 s, the furthest a hand or foot its key has
+on the ground was from where the key wanted it, and how far such hands and feet moved while their key held them
+still. Headless, the same falls both ways (three targets, from the back and from the front):
+
+| | as before | new |
+|---|---|---|
+| the fastest a part moved early | 5.9 to 9.3 m/s | 2.7 to 5.8 m/s (a Large: up to 6.5) |
+| a planted hand or foot furthest from its key | 37 cm (from the back: the hand behind it could not reach the ground) | 0 cm from the back, 6 cm from the front (in the first step only) |
+| planted hands and feet slid, in all | 2 to 3 cm | 3 to 7 cm |
+
+What the numbers do not say is whether it looks like a person getting up. Not verified in Unity.
 
 
 

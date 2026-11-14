@@ -1563,6 +1563,20 @@ namespace PhysicsBattler.Sandbox
                 if (GUILayout.Button("Right")) FallTest(90f, false);
                 GUILayout.EndHorizontal();
                 if (GUILayout.Button("Thrown back (a Large's club at its hardest)")) FallTest(0f, true);
+                // (The scene's Combat Feel sets it every frame, so the toggle changes it there.)
+                var getUpFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+                bool natural = getUpFeel != null ? getUpFeel.getUpsAreNatural : PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps;
+                bool naturalNow = GUILayout.Toggle(natural, "Get-ups: the new ones (off: as before 14 November)");
+                if (naturalNow != natural)
+                {
+                    if (getUpFeel != null)
+                    {
+                        getUpFeel.getUpsAreNatural = naturalNow;
+                    }
+
+                    PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = naturalNow;
+                    Note(naturalNow ? "get-ups: the new ones" : "get-ups: as before");
+                }
                 if (GUILayout.Button(largeTargets ? "Targets: Larges" : "Targets: Mediums"))
                 {
                     largeTargets = !largeTargets;
