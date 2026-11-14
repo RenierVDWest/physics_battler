@@ -251,6 +251,65 @@ namespace PhysicsBattler.Motion
         public float ReachMiss { get; private set; }
         public float Slid { get; private set; }
 
+        /// <summary>The length of what the right hand holds, from its grip (metres; 0: nothing held, or not known). Set before <see cref="Begin"/>.</summary>
+        public float BladeLength { get; set; }
+
+        /// <summary>
+        /// For the reports: how deep an arm (the forearm and hand of either) and what the right hand holds went into
+        /// its own trunk, head or legs through the get-up at the deepest (metres), and for how long each was more
+        /// than 2 cm in (seconds).
+        /// </summary>
+        public float ArmDeepest { get; private set; }
+        public float BladeDeepest { get; private set; }
+        public float ArmInFor { get; private set; }
+        public float BladeInFor { get; private set; }
+
+        private static readonly PartId[] TrunkParts = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head };
+        private static readonly PartId[] BladeClearOf = { PartId.Pelvis, PartId.Spine, PartId.Chest, PartId.Head, PartId.ThighL, PartId.ThighR, PartId.ShinL, PartId.ShinR };
+
+        /// <summary>How deep an arm's forearm and hand are in its own trunk or head (metres; 0: clear).</summary>
+        private float ArmIn(bool right)
+        {
+            if (Rig == null)
+            {
+                return 0f;
+            }
+
+            Vector3 elbow = anim.Part(right ? PartId.ForearmR : PartId.ForearmL).position;
+            Vector3 wrist = anim.Part(right ? PartId.HandR : PartId.HandL).position;
+            Vector3 knuckles = wrist + (wrist - elbow).normalized * (0.08f * body.SizeFactor);
+            float deepest = 0f;
+            foreach (var id in TrunkParts)
+            {
+                float allowance = id == PartId.Chest ? BodyClearance.ArmChestAllowance * body.SizeFactor : 0f;
+                float d = Mathf.Min(BodyClearance.Distance(Rig, anim, id, Vector3.Lerp(elbow, wrist, 0.25f), wrist), BodyClearance.Distance(Rig, anim, id, wrist, knuckles)) + allowance;
+                deepest = Mathf.Max(deepest, -d);
+            }
+
+            return deepest;
+        }
+
+        /// <summary>How deep what the right hand holds is in its own trunk, head or legs (metres; 0: clear, or nothing held).</summary>
+        private float BladeIn()
+        {
+            var slot = anim.SlotWeaponR;
+            if (Rig == null || slot == null || !HoldsMain || BladeLength <= 0f)
+            {
+                return 0f;
+            }
+
+            // (From a hand's breadth up the blade: the grip is in the hand, by the body.)
+            Vector3 along = slot.rotation * Vector3.forward;
+            Vector3 from = slot.position + along * (0.12f * body.SizeFactor), to = slot.position + along * BladeLength;
+            float deepest = 0f;
+            foreach (var id in BladeClearOf)
+            {
+                deepest = Mathf.Max(deepest, -BodyClearance.Distance(Rig, anim, id, from, to));
+            }
+
+            return deepest;
+        }
+
         /// <summary>For the reports: which part moved fastest and when, and which hand or foot was furthest from its key and when (seconds into the get-up).</summary>
         public string Fastest { get; private set; } = "";
         public string Missed { get; private set; } = "";
@@ -359,6 +418,7 @@ namespace PhysicsBattler.Motion
             pace = Mathf.Sqrt(Mathf.Max(0.3f, s)) * (Natural ? Mathf.Clamp(Vary, 0.8f, 1.25f) : 1f);
             rollSign = RollSign();
             FastestEarly = ReachMiss = Slid = 0f;
+            ArmDeepest = BladeDeepest = ArmInFor = BladeInFor = 0f;
             Fastest = Missed = "";
             composedAt = -1f;
             for (int i = 0; i < 4; i++)
@@ -483,6 +543,15 @@ namespace PhysicsBattler.Motion
         /// <summary>For the reports: how fast the parts are moving in the get-up's first moments.</summary>
         private void Composed(float t)
         {
+            if (composedAt >= 0f && t > composedAt)
+            {
+                float arm = Mathf.Max(ArmIn(false), ArmIn(true)), blade = BladeIn();
+                ArmDeepest = Mathf.Max(ArmDeepest, arm);
+                BladeDeepest = Mathf.Max(BladeDeepest, blade);
+                ArmInFor += arm > 0.02f ? t - composedAt : 0f;
+                BladeInFor += blade > 0.02f ? t - composedAt : 0f;
+            }
+
             bool early = t < 0.7f * pace;
             foreach (var id in PartInfo.All)
             {

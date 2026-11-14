@@ -3508,6 +3508,22 @@ swung about and through the body in the get-up).
 Headless: the falls and get-ups run as before (no body lost, no pose that jumps); the hand is no longer the
 joint furthest from the fall's pose. How the arms look is not something the numbers say. Not verified in Unity.
 
+**Just up, the arms are eased into what a standing fighter's arms do** (14 November, from the playtest: the arms
+and the sword still went through the body getting up, the swordsman's most). The get-up ends on the walk's own
+pose; the step after, everything a standing fighter's arms do takes over at once (the sword's guard, the free
+hand's place, the shield), and the arms were whipped there: in the Unity log of that morning the swordsman's
+free arm turned at up to 89 rad/s at "got up" in 11 get-ups of 38, the open-handed one's forearm in 3. For 0.4 s
+after it stands (`RoseEase`) the arms now go from where the get-up left them to where the fight has them, the
+rest of the body as it is; a blow of its own takes its arm at once.
+
+Measured now, in the `getup` line (written 0.6 s after it stands, so the taking-over is in it): in the pose, how
+deep a forearm or hand and what the right hand holds went into its own trunk, head or legs and for how long;
+and **as seen**, on the physical body, for how long either was inside. Headless, 23 get-ups from the fall test:
+the pose's arm at most 7 cm in for 0.18 s, what it holds 9 cm for 0.08 s; as seen, an arm inside for 0.3 s at
+most (5 of 23), what it holds 0.1 s at most (3 of 23). That is less than was seen in Unity, so either it is the
+taking-over that was seen, or something Unity does that the headless engine does not: the next Unity log's
+`getup` lines will say. Not verified in Unity.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
