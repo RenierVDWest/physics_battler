@@ -191,6 +191,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A fallen fighter gets up from the pose it is really lying in, without first snapping into a tidy lying pose; lopsided, with one hand on the ground and the other arm free, up through one knee, as a fighter is taught to stand up; by one of three routes (from its back, its front or a side); turned toward its enemy by up to 35 degrees while still on the ground; and each get-up a little faster or slower than the last, so fighters felled together do not rise in step. It takes as long as before on average. Off: the get-up as it was before 14 November (five mirror-image poses from a tidy lying pose).")]
         public bool getUpsAreNatural = true;
 
+        [Tooltip("Getting up from its back, a fighter keeps its legs clear of its own hips: it sits a little behind the foot it plants (its stance's front foot), lifts its hips high on that foot and one hand, and only then swings the other leg back under them to stand up over the planted foot. From its front, it steps its foot through with its hips higher and its back rounded. Off: as it first was, with the planted foot under the hip and the other foot swept back through it while the hips were still low, so that the knees swung round through the trunk (a thigh turning at 90 rad/s, 140 degrees past what a hip bends).")]
+        public bool getUpLegsClearTheHips = true;
+
         [Tooltip("A fighter that goes down falls in the one physical body it has: its hips are let go and it falls as the body it was, its muscles pulling it toward a pose that gets low, reaches for the ground and keeps the head off it, with about a person's strength (enough to hold a limb out, not to stop the body's weight landing on it). The dead get a start and then go limp. A body thrown much faster than its legs can catch goes down faster. Off: the physical body is thrown away at the fall and a limp ragdoll takes its place, as before 14 November.")]
         public bool fallsKeepTheBody = true;
 
@@ -627,6 +630,7 @@ namespace PhysicsBattler.Locomotion
             LocoBody.PivotsOnBall = feetPivotOnTheBall;
             ClipFighter.PhysicalLegs = legsArePhysical;
             ClipFighter.NaturalGetUps = getUpsAreNatural;
+            PhysicsBattler.Motion.GetUp.LegsClearTheHips = getUpLegsClearTheHips;
             ClipFighter.OneBodyFalls = fallsKeepTheBody;
             ClipFighter.FallMuscle = Mathf.Max(0f, fallMuscle);
             FallPose.ProtectsHead = fallsProtectTheHead;

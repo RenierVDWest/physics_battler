@@ -1669,6 +1669,19 @@ namespace PhysicsBattler.Sandbox
                     getUpFeel.fallsCanBeCaught = GUILayout.Toggle(getUpFeel.fallsCanBeCaught, "A fall only just begun can be caught on a knee and a hand");
                 }
 
+                bool clear = getUpFeel != null ? getUpFeel.getUpLegsClearTheHips : PhysicsBattler.Motion.GetUp.LegsClearTheHips;
+                bool clearNow = GUILayout.Toggle(clear, "Getting up, the legs keep clear of the hips: the hips lifted before the leg goes back (off: as before, the knees swinging round through the trunk)");
+                if (clearNow != clear)
+                {
+                    if (getUpFeel != null)
+                    {
+                        getUpFeel.getUpLegsClearTheHips = clearNow;
+                    }
+
+                    PhysicsBattler.Motion.GetUp.LegsClearTheHips = clearNow;
+                    Note(clearNow ? "get-ups: the legs clear of the hips" : "get-ups: the legs as before");
+                }
+
                 bool natural = getUpFeel != null ? getUpFeel.getUpsAreNatural : PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps;
                 bool naturalNow = GUILayout.Toggle(natural, "Get-ups: the new ones (off: as before 14 November)");
                 if (naturalNow != natural)

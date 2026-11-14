@@ -575,6 +575,7 @@ internal static class FightReport
             }
         }
 
+        var legWas = new Dictionary<(UnitController, int), Quaternion>();
         tubes = null;
         if (tubeLineup)
         {
@@ -676,6 +677,9 @@ internal static class FightReport
         PhysicsBattler.Locomotion.SwordParry.FreeArmWithChest = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "feet";
         PhysicsBattler.Locomotion.SwordParry.FreeArmInFront = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "back";
         PhysicsBattler.Locomotion.ClipFighter.MeasuresArms = true;
+
+        // (FIGHT_LEGSCLEAR=0: the get-up from its back as before 14 November: the planted foot under the hip, the other swept back through it.)
+        PhysicsBattler.Motion.GetUp.LegsClearTheHips = Environment.GetEnvironmentVariable("FIGHT_LEGSCLEAR") != "0";
 
         // (FIGHT_SWORDUP=0: a sword taken up after a fall from where in the world it was last held, as before 14 November. FIGHT_TURNWAY=0: a guard's turning round played the wrong way, as before.)
         PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs = Environment.GetEnvironmentVariable("FIGHT_SWORDUP") != "0";
@@ -935,6 +939,41 @@ internal static class FightReport
                             {
                                 u.DummyFace = u.DummySpot + Quaternion.Euler(0f, faceBy, 0f) * (u.DummyFace.Value - u.DummySpot);
                             }
+                        }
+                    }
+                }
+
+                // (FIGHT_LEGTRACE="3,6,sword": from 3 s to 6 s, each step, where the pose has the knees and feet of every unit so named, in its hips' own frame, and how fast each thigh turned.)
+                {
+                    string[] legt = (Environment.GetEnvironmentVariable("FIGHT_LEGTRACE") ?? "").Split(',');
+                    if (legt.Length >= 2 && float.TryParse(legt[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float legFrom) && float.TryParse(legt[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float legTo) && paceAt >= legFrom && paceAt <= legTo)
+                    {
+                        foreach (var u in units)
+                        {
+                            if (u.Clip == null || (legt.Length > 2 && !u.name.ToLowerInvariant().Contains(legt[2])))
+                            {
+                                continue;
+                            }
+
+                            var an = u.Clip.Anim;
+                            var hips = an.Part(PartId.Pelvis);
+                            var hipsIn = Quaternion.Inverse(hips.rotation);
+                            string P(Vector3 v) => $"{v.x:0.00} {v.y:0.00} {v.z:0.00}";
+                            string line = $"LEG {paceAt:0.000} {u.name}: {u.Clip.Footing} {u.Clip.Loco.Current} root {u.Clip.Loco.Position.x:0.00} {u.Clip.Loco.Position.z:0.00} facing {u.Clip.Loco.Facing:0} pelvis {hips.position.x:0.00} {hips.position.z:0.00} feet {an.Part(PartId.FootL).position.x:0.00} {an.Part(PartId.FootL).position.z:0.00} / {an.Part(PartId.FootR).position.x:0.00} {an.Part(PartId.FootR).position.z:0.00} hips {hips.position.y:0.00} up {hips.up.y:0.00}";
+                            for (int f = 0; f < 2; f++)
+                            {
+                                var thigh = an.Part(f == 0 ? PartId.ThighL : PartId.ThighR);
+                                var shin = an.Part(f == 0 ? PartId.ShinL : PartId.ShinR);
+                                var foot = an.Part(f == 0 ? PartId.FootL : PartId.FootR);
+                                var key = (u, f);
+                                float turned = legWas.TryGetValue(key, out var was) ? Quaternion.Angle(was, hipsIn * thigh.rotation) * Mathf.Deg2Rad / dt : 0f;
+                                legWas[key] = hipsIn * thigh.rotation;
+                                var tid = f == 0 ? PartId.ThighL : PartId.ThighR;
+                                float past = PhysicsBattler.Muscles.JointMath.PastLimits(Quaternion.Inverse(an.RestLocalRotation(tid)) * thigh.localRotation, PhysicsBattler.Muscles.JointLimitTable.For(tid), out float pitch, out float aboutY, out float aboutZ);
+                                line += $" | {(f == 0 ? "L" : "R")} knee {P(hipsIn * (shin.position - thigh.position))} foot {P(hipsIn * (foot.position - thigh.position))} thigh {turned:0.0} rad/s, raised {-pitch:0} twist {aboutY:0} out {aboutZ:0} (past {past:0})";
+                            }
+
+                            Console.WriteLine(line);
                         }
                     }
                 }

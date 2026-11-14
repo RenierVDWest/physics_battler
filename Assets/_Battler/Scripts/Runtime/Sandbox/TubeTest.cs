@@ -76,6 +76,7 @@ namespace PhysicsBattler.Sandbox
         {
             public GameObject Object;
             public Rigidbody Body;
+            public Collider Shape;
             public UnitController At;
             public Vector3 Spot, Along, Across;
             public bool Launched, Met;
@@ -138,6 +139,14 @@ namespace PhysicsBattler.Sandbox
                     shown.sharedMaterial = look;
                 }
 
+                // (A waiting tube is not there to be walked into: a target thrown past its neighbour's spot walked back
+                // into the neighbour's tube, head high, and walked against it until the tubes were next sent.)
+                tube.Shape = tube.Object.GetComponent<Collider>();
+                if (tube.Shape != null)
+                {
+                    tube.Shape.enabled = false;
+                }
+
                 tube.Body = tube.Object.AddComponent<Rigidbody>();
                 tube.Body.isKinematic = true;
                 tube.Body.useGravity = false;
@@ -180,6 +189,11 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 tube.Launched = true;
+                if (tube.Shape != null)
+                {
+                    tube.Shape.enabled = true;
+                }
+
                 tube.Body.mass = Mass;
                 tube.Body.isKinematic = false;
                 tube.Body.linearVelocity = tube.Across * Speed;

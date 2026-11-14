@@ -3569,6 +3569,44 @@ that puts both fixes off, to see it as it was. For the headless runs: `FIGHT_FAC
 face at 4 s, `FIGHT_ARMTRACE="5,9,sword"` prints each step where the pose has the hands of the units so named.
 Not verified in Unity.
 
+In Unity since (14 November, log 14-33-56, 56 get-ups): the sword after a get-up was not seen again. Seen instead,
+on the swordsman getting up from its back: "the leg he pulls back to push himself up goes a bit far back and
+then the knee spins around through his torso".
+
+**Getting up, the legs keep clear of the hips** (`GetUp.LegsClearTheHips`, Combat Feel "Get Up Legs Clear The
+Hips"). Measured now in every `getup` line: the fastest the pose turned a thigh on the hips, the furthest it had
+one past the hip's range, and the nearest an ankle came to its own hip (a leg folds to 0.30 of its length). The
+get-up from its back, as it was, for all three fighters and not only the swordsman: a thigh turned at 81 to 90
+rad/s, 140 to 145 degrees past the hip's range, an ankle 0.03 of a leg's length from its hip. Two things did it.
+The planted foot was put on its stance's place, which for the swordsman (who posts on its free left hand, so
+planted its right foot, the stance's back one) was under the hip it sat on: a leg folded to nothing has its knee
+wherever the pose's pole says, which was straight up through the trunk and then round behind as the hips rose.
+And the other foot was swept back while the hips were still low, through the hip itself, the knee swinging
+round as it passed.
+
+Now, from its back (a technical stand-up): the foot it plants is always its stance's front foot, and it sits
+0.6 of a leg's length behind it (so it stands up a quarter of a metre toward its feet, as before); sitting, it
+leans back a little with its back rounded and the other leg out before it, hardly bent; it lifts its hips high
+on the hand and the planted foot (the bridge, 0.54 of a leg's length) with the trunk well over the hand; only
+then the other leg swings back under the hips and its foot is set down behind on its ball; and it rises over
+the planted foot into its stance. A swordsman's posting hand and planted foot are now on the same side. No
+ankle is ever asked nearer its hip than a leg folds (`GetUp.FoldsTo`). From its front, the foot is stepped
+through with the hips higher and less tipped forward, the back rounded instead.
+
+Headless (the fall test, Mediums and Larges; `FIGHT_LEGSCLEAR=0` for before; `FIGHT_LEGTRACE="4.4,7,sword"` prints
+each step where the pose has the knees and feet in the hips' frame): from its back a thigh turns at 10 to 15
+rad/s (the leg's swing back), is at most 16 to 20 degrees past the hip's range, an ankle no nearer its hip than
+0.32; the swordsman's foot no longer moves at 7 m/s as it is drawn in (3 m/s). From its front the thigh is at
+most 46 degrees past (69 before; the swordsman 0, 22 before). The posting hand is at most 4 cm from where the
+bridge wants it (0 before). The arms as before (none in the body). A fight of six ran as before. Not verified
+in Unity.
+
+Also from that log: a target thrown 3.6 m by the club (600 N·s), past its neighbour's spot, walked back into
+its neighbour's waiting tube at head height and walked against it for seven seconds, 35 cm off its pose. A
+waiting tube now touches nothing until it is sent. Known and left: walking off backward at once after a get-up,
+the front leg can lock straight for a step (the walk's own, one step in one run); a hand or foot turns in one
+step at the start of some get-ups ("FootL turning at 65 rad/s", five times in the log's 56).
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

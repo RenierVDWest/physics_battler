@@ -1116,7 +1116,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             getUpLogAt = -1f;
-            GetUpLog.Add($"got up {GetUpRoute} in {getUpDuration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all; an arm in its own body at most {100f * getUp.ArmDeepest:0} cm, more than 2 cm in for {getUp.ArmInFor:0.00} s; what it holds at most {100f * getUp.BladeDeepest:0} cm, for {getUp.BladeInFor:0.00} s; as seen (the physical body): an arm in its body for {GetUpArmSeenIn:0.00} s, what it holds for {GetUpBladeSeenIn:0.00} s");
+            GetUpLog.Add($"got up {GetUpRoute} in {getUpDuration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all; an arm in its own body at most {100f * getUp.ArmDeepest:0} cm, more than 2 cm in for {getUp.ArmInFor:0.00} s; what it holds at most {100f * getUp.BladeDeepest:0} cm, for {getUp.BladeInFor:0.00} s; a thigh turned on the hips at most {getUp.ThighFastest:0.0} rad/s ({getUp.ThighFastestAt}) and was at most {getUp.ThighPast:0} degrees past the hip's range ({getUp.ThighPastAt}); an ankle at the nearest {getUp.AnkleNearest:0.00} of a leg's length from its hip ({getUp.AnkleNearestAt}); as seen (the physical body): an arm in its body for {GetUpArmSeenIn:0.00} s, what it holds for {GetUpBladeSeenIn:0.00} s");
             if (Diagnostics.PlaytestTrace.Enabled)
             {
                 Diagnostics.PlaytestTrace.Note(FightUnit, "getup", GetUpLog[GetUpLog.Count - 1]);
@@ -1317,7 +1317,9 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            GetUp.Place(kind, pelvis.position, headward, body.SizeFactor, NaturalGetUps, threat, out var position, out float yaw, out GetUpTurned);
+            // (Which hand it posts on is known before it is placed: that says which foot it plants, and so where it stands up.)
+            getUp.PostWith = stance == Stances.Sword ? PhysicsBattler.Motion.Stance.Left : -1;
+            GetUp.Place(kind, pelvis.position, headward, body.SizeFactor, NaturalGetUps, threat, out var position, out float yaw, out GetUpTurned, getUp.SitsBack);
             position.y = groundLevel;
             getUpRoot.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
             getUpStance.Plant(position, yaw);

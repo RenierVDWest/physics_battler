@@ -260,6 +260,22 @@ namespace PhysicsBattler.Motion
         /// than 2 cm in (seconds).
         /// </summary>
         public float ArmDeepest { get; private set; }
+
+        /// <summary>
+        /// For the reports: the fastest the pose turned a thigh on the hips through the get-up (rad/s), and the
+        /// furthest it had one past its hip's range (degrees), with which and when.
+        /// </summary>
+        public float ThighFastest { get; private set; }
+        public float ThighPast { get; private set; }
+        public string ThighFastestAt { get; private set; } = "";
+        public string ThighPastAt { get; private set; } = "";
+
+        /// <summary>For the reports: the nearest an ankle came to its own hip through the get-up, as a share of the leg's length (a leg folds to 0.30), with which and when.</summary>
+        public float AnkleNearest { get; private set; } = 1f;
+        public string AnkleNearestAt { get; private set; } = "";
+
+        private readonly Quaternion[] thighWas = new Quaternion[2];
+
         public float BladeDeepest { get; private set; }
         public float ArmInFor { get; private set; }
         public float BladeInFor { get; private set; }
@@ -372,7 +388,8 @@ namespace PhysicsBattler.Motion
         /// <paramref name="threat"/> (world; none: not turned) about its hips by up to <see cref="TurnsToThreat"/>
         /// (<paramref name="turned"/>, degrees): a body sitting up pivots where it sits to face what it fights.
         /// </summary>
-        public static void Place(Kind kind, Vector3 pelvis, Vector3 headward, float size, bool natural, Vector3? threat, out Vector3 position, out float yaw, out float turned)
+        /// <param name="sitsBack">From its back, natural: how far toward its feet it stands up (metres; <see cref="SitsBack"/>). Negative: <see cref="BackSits"/> at its size.</param>
+        public static void Place(Kind kind, Vector3 pelvis, Vector3 headward, float size, bool natural, Vector3? threat, out Vector3 position, out float yaw, out float turned, float sitsBack = -1f)
         {
             Vector3 along = kind == Kind.FaceDown ? headward : -headward;
             along.y = 0f;
@@ -392,7 +409,7 @@ namespace PhysicsBattler.Motion
                 }
             }
 
-            position = pelvis + along * ((kind == Kind.FaceDown ? 0.25f : natural ? BackSits : 0.45f) * size);
+            position = pelvis + along * (kind == Kind.FaceDown ? 0.25f * size : natural ? (sitsBack >= 0f ? sitsBack : BackSits * size) : 0.45f * size);
         }
 
         /// <summary>Natural: a body on its back stands up this far toward its feet from where its hips lay (metres at a Medium's size).</summary>
@@ -419,6 +436,10 @@ namespace PhysicsBattler.Motion
             rollSign = RollSign();
             FastestEarly = ReachMiss = Slid = 0f;
             ArmDeepest = BladeDeepest = ArmInFor = BladeInFor = 0f;
+            ThighFastest = ThighPast = 0f;
+            ThighFastestAt = ThighPastAt = "";
+            AnkleNearest = 1f;
+            AnkleNearestAt = "";
             Fastest = Missed = "";
             composedAt = -1f;
             for (int i = 0; i < 4; i++)
@@ -550,6 +571,40 @@ namespace PhysicsBattler.Motion
                 BladeDeepest = Mathf.Max(BladeDeepest, blade);
                 ArmInFor += arm > 0.02f ? t - composedAt : 0f;
                 BladeInFor += blade > 0.02f ? t - composedAt : 0f;
+            }
+
+            // (The legs: how fast a thigh turns on the hips, and how far past the hip's range the pose has it. A knee
+            // that swings round through the trunk shows as both.)
+            for (int f = 0; f < 2; f++)
+            {
+                var id = f == 0 ? PartId.ThighL : PartId.ThighR;
+                Quaternion local = Quaternion.Inverse(anim.RestLocalRotation(id)) * anim.Part(id).localRotation;
+                if (composedAt >= 0f && t > composedAt + 1e-4f)
+                {
+                    float turns = Quaternion.Angle(thighWas[f], local) * Mathf.Deg2Rad / (t - composedAt);
+                    if (turns > ThighFastest)
+                    {
+                        ThighFastest = turns;
+                        ThighFastestAt = $"its {id} at {t:0.00} s";
+                    }
+                }
+
+                thighWas[f] = local;
+                var shinId = f == 0 ? PartId.ShinL : PartId.ShinR;
+                var footId = f == 0 ? PartId.FootL : PartId.FootR;
+                float folded = Vector3.Distance(anim.Part(id).position, anim.Part(footId).position) / Mathf.Max(1e-4f, anim.RestLocalPosition(shinId).magnitude + anim.RestLocalPosition(footId).magnitude);
+                if (folded < AnkleNearest)
+                {
+                    AnkleNearest = folded;
+                    AnkleNearestAt = $"its {footId} at {t:0.00} s";
+                }
+
+                float past = Muscles.JointMath.PastLimits(local, Muscles.JointLimitTable.For(id), out _, out _, out _);
+                if (past > ThighPast)
+                {
+                    ThighPast = past;
+                    ThighPastAt = $"its {id} at {t:0.00} s";
+                }
             }
 
             bool early = t < 0.7f * pace;
@@ -1043,6 +1098,121 @@ namespace PhysicsBattler.Motion
         /// </summary>
         private void MakeFromBack()
         {
+            if (!LegsClearTheHips)
+            {
+                MakeFromBackLow();
+                return;
+            }
+
+            float s = body.SizeFactor, w = body.WidthFactor, ph = body.PelvisHeight, leg = body.LegLength;
+            // (The foot it plants is its stance's front foot, so it comes up over it into its stance, and the other
+            // leg goes back to where it belongs. The hand it posts on is the one across from that foot, unless it is
+            // told which (a swordsman's free hand, which is on the planted foot's side).)
+            int lead = stance.Lead, rear = 1 - lead;
+            int post = PostWith >= 0 ? PostWith : rear, free = 1 - post;
+            // (The posting hand's side, the free hand's, and the side of the leg that goes back: +1 its right.)
+            float sx = post == Stance.Left ? -1f : 1f, lx = -sx, rx = rear == Stance.Left ? -1f : 1f;
+            // (It sits behind the foot it plants by as far as a sitting leg has its foot before it. Sat nearer, the
+            // foot was under the hip: a leg folded to nothing, its knee wherever the pose's pole had it, which was
+            // up through the trunk and then round behind.)
+            float pz = -SitsBack;
+            Vector3 plant = Home(lead);
+            Vector3 posted = new Vector3(sx * 0.44f * w, HandHeight, pz - 0.1f * s);
+            Vector3 postedElbow = new Vector3(sx, 0f, -0.6f);
+
+            // 0. Lying on its back (only where the keys set out from: the body leaves how it really lay).
+            var k = Torso(0f, new Vector3(0f, Lie, pz), -88f, 0f, 0f, 30f, out var hips, out _);
+            LegsAlongBody(ref k, hips, -88f, -75f, Vector3.up);
+            k.handL = new Vector3(-0.34f * w, HandHeight, pz - 0.05f * s);
+            k.handR = new Vector3(0.34f * w, HandHeight, pz - 0.05f * s);
+            k.elbowL = new Vector3(-1f, 0.2f, -0.3f);
+            k.elbowR = new Vector3(1f, 0.2f, -0.3f);
+            keys[0] = k;
+
+            // 1. Head up, rolled a little toward the posting hand, which goes down beside the hip; the planted foot drawn in.
+            k = Torso(0.35f, new Vector3(sx * 0.03f * s, Lie + 0.02f * s, pz), -50f, 12f, 12f, 28f, out _, out _, 16f * sx);
+            SetHand(ref k, post, posted, postedElbow);
+            SetHand(ref k, free, new Vector3(lx * 0.2f * w, 0.3f * s, pz + 0.1f * s), new Vector3(lx * 0.6f, -0.6f, -0.3f));
+            SetFoot(ref k, lead, new Vector3(plant.x, body.AnkleHeight, plant.z + 0.06f * leg), new Vector3(-rx * 0.1f, 1f, 0.3f), 0f);
+            SetFoot(ref k, rear, new Vector3(rx * 0.16f * w, 0.08f * s, pz + 0.85f * leg), new Vector3(rx * 0.6f, 1f, 0.3f), -40f);
+            keys[1] = k;
+
+            // 2. Sitting on the hand, leaning toward it and a little back, the back rounded; the foot planted on its
+            // place; the other leg out before it, hardly bent; the free arm up before it. (Sat upright with the knees
+            // drawn up, the thighs were against the chest: 40 degrees more than a hip bends.)
+            k = Torso(0.7f, new Vector3(sx * 0.04f * s, Lie + 0.03f * s, pz + 0.02f * s), -26f, 16f, 14f, 6f, out _, out _, 10f * sx);
+            k.lean = 12f * sx;
+            SetHand(ref k, post, posted, postedElbow);
+            SetHand(ref k, free, new Vector3(lx * 0.2f * w, 0.62f * s, pz + 0.36f * s), new Vector3(lx * 0.5f, -1f, -0.3f));
+            SetFoot(ref k, lead, plant, new Vector3(-rx * 0.1f, 1f, 0.5f), 0f);
+            SetFoot(ref k, rear, new Vector3(rx * 0.18f * w, 0.08f * s, pz + 0.72f * leg), new Vector3(rx * 0.6f, 1f, 0.3f), -25f);
+            keys[2] = k;
+
+            // 3. The bridge: on the hand and the planted foot, the hips lifted high and the trunk well over the hand;
+            // the other leg still out before it, its foot light on the ground. (The hips go up before the leg comes
+            // in: under low hips the foot went through the hip and the knee swung round, and drawn in as the hips
+            // rose, the knee was against the chest.)
+            k = Torso(1.0f, new Vector3(sx * 0.1f * s, BridgeHigh * leg, pz + 0.14f * s), 4f, 6f, 4f, -8f, out _, out _, 12f * sx);
+            k.lean = 56f * sx;
+            SetHand(ref k, post, posted, postedElbow);
+            SetHand(ref k, free, new Vector3(lx * 0.22f * w, 0.72f * s, pz + 0.5f * s), new Vector3(lx * 0.5f, -1f, -0.3f));
+            SetFoot(ref k, lead, plant, new Vector3(-rx * 0.15f, 0.5f, 1f), 0f);
+            SetFoot(ref k, rear, new Vector3(rx * 0.16f * w, 0.08f * s, pz + 0.62f * leg), new Vector3(rx * 0.4f, 1f, 0.4f), -10f);
+            keys[3] = k;
+
+            // 4. The leg swung back under the hips, its foot set down behind on its ball; the hand leaving the ground.
+            k = Torso(1.34f, new Vector3(sx * 0.03f * s, (BridgeHigh + 0.09f) * leg, pz + 0.2f * s), 24f, 5f, 4f, -12f, out _, out _);
+            k.lean = 20f * sx;
+            hips = HipsOf(k);
+            SetHand(ref k, post, new Vector3(sx * 0.3f * w, 0.4f * s, pz + 0.3f * s), new Vector3(sx * 0.5f, -1f, -0.4f));
+            SetHand(ref k, free, new Vector3(lx * 0.22f * w, 0.8f * s, pz + 0.55f * s), new Vector3(lx * 0.5f, -1f, -0.3f));
+            SetFoot(ref k, lead, plant, new Vector3(-rx * 0.1f, 0.3f, 1f), 0f);
+            // (On its ball the ankle stands this high, and a foot that ends this high is not lifted more on its way.)
+            Vector3 behind = new Vector3(Home(rear).x, 0.155f * s, Mathf.Min(Home(rear).z, hips[rear].z - 0.44f * leg));
+            SetFoot(ref k, rear, behind, new Vector3(rx * 0.15f, -0.5f, 1f), 55f);
+            keys[4] = k;
+
+            // 5, 6. Rising off both feet, and standing.
+            Rise(5, 1.68f, ph, s, w, -0.04f, 22f);
+            Stand(6, 2.03f, ph, s, w);
+            shieldFrom = 0f;
+            shieldBy = keys[1].time;
+        }
+
+        /// <summary>
+        /// A get-up from its back keeps its legs clear of its own hips: it sits behind the foot it plants, lifts its
+        /// hips high on that foot and its hand, and only then takes the other leg back under them (a technical
+        /// stand-up). Off (as it was): the planted foot under the hip and the other foot swept back through it, the
+        /// knees swinging round through the trunk as the folded legs came out of it.
+        /// </summary>
+        public static bool LegsClearTheHips = true;
+
+        /// <summary>How far before its hips a sitting body has the foot it plants, as a share of its leg's length.</summary>
+        public const float SitsBehindFoot = 0.6f;
+
+        /// <summary>How high the hips are lifted on the hand and the planted foot, as a share of the leg's length: high enough for the other leg to go back under them.</summary>
+        public const float BridgeHigh = 0.54f;
+
+        /// <summary>
+        /// Natural, from its back: how far toward its feet from where its hips lie the body stands up (metres), for
+        /// <see cref="Place"/>: as far as puts the foot it plants (its stance's front foot) on its place.
+        /// </summary>
+        public float SitsBack
+        {
+            get
+            {
+                if (!LegsClearTheHips)
+                {
+                    return BackSits * body.SizeFactor;
+                }
+
+                return Mathf.Max(0.1f * body.SizeFactor, SitsBehindFoot * body.LegLength - stance.HomeLocal(stance.Lead).z);
+            }
+        }
+
+        /// <summary>The get-up from its back as it first was (<see cref="LegsClearTheHips"/> off).</summary>
+        private void MakeFromBackLow()
+        {
             float s = body.SizeFactor, w = body.WidthFactor, ph = body.PelvisHeight, leg = body.LegLength;
             int rear = PostWith >= 0 ? PostWith : 1 - stance.Lead, lead = 1 - rear;
             // (The posting hand's side, and the front foot's: +1 its right.)
@@ -1142,7 +1312,11 @@ namespace PhysicsBattler.Motion
             keys[2] = k;
 
             // 3. The front foot stepped through to its place; the posting hand still down, the free hand lifting.
-            k = Torso(1.0f, new Vector3(sx * 0.03f * s, 0.48f * leg, pz + 0.03f * s), 66f, 4f, 4f, -34f, out hips, out _);
+            // (The hips higher and less tipped forward for it, the back rounded instead: with the trunk level and
+            // the hips low the thigh was folded flat along the belly, 70 degrees more than a hip bends.)
+            k = LegsClearTheHips
+                ? Torso(1.0f, new Vector3(sx * 0.03f * s, 0.56f * leg, pz + 0.03f * s), 46f, 14f, 12f, -34f, out hips, out _)
+                : Torso(1.0f, new Vector3(sx * 0.03f * s, 0.48f * leg, pz + 0.03f * s), 66f, 4f, 4f, -34f, out hips, out _);
             k.lean = 10f * sx;
             SetFoot(ref k, lead, Home(lead), new Vector3(lx * 0.2f, 0.3f, 1f), 0f);
             SetFoot(ref k, rear, new Vector3(hips[rear].x, 0.08f * s, hips[rear].z - 0.46f * leg), new Vector3(0f, -1f, 0.15f), 85f);
@@ -1238,6 +1412,14 @@ namespace PhysicsBattler.Motion
             hips = new[] { Local(anim.Part(PartId.ThighL).position), Local(anim.Part(PartId.ThighR).position) };
             shoulders = new[] { Local(anim.Part(PartId.UpperArmL).position), Local(anim.Part(PartId.UpperArmR).position) };
             return k;
+        }
+
+        /// <summary>Where a key puts the hips (unit space), its lean and all.</summary>
+        private Vector3[] HipsOf(Key k)
+        {
+            anim.ResetToRest();
+            PoseTorso(k);
+            return new[] { Local(anim.Part(PartId.ThighL).position), Local(anim.Part(PartId.ThighR).position) };
         }
 
         private Vector3 Local(Vector3 world) => Quaternion.Inverse(root.rotation) * (world - root.position);
@@ -1367,9 +1549,25 @@ namespace PhysicsBattler.Motion
 
         private void Leg(PartId thigh, PartId shin, PartId foot, Vector3 ankle, Vector3 knee, float pitch, Quaternion facing)
         {
-            TwoBoneIK.Solve(anim.Part(thigh), anim.Part(shin), anim.Part(foot), Within(thigh, shin, foot, World(ankle), 0.985f), facing * knee);
+            Vector3 at = Within(thigh, shin, foot, World(ankle), 0.985f);
+            if (Natural && LegsClearTheHips)
+            {
+                // (No nearer its hip than a leg folds: nearer, the knee is wherever the pole says, and swings round as
+                // the foot goes by.)
+                Vector3 from = anim.Part(thigh).position, to = at - from;
+                float least = FoldsTo * (anim.RestLocalPosition(shin).magnitude + anim.RestLocalPosition(foot).magnitude);
+                if (to.magnitude < least)
+                {
+                    at = from + (to.sqrMagnitude > 1e-6f ? to.normalized : Vector3.down) * least;
+                }
+            }
+
+            TwoBoneIK.Solve(anim.Part(thigh), anim.Part(shin), anim.Part(foot), at, facing * knee);
             anim.Part(foot).rotation = facing * Quaternion.Euler(pitch, 0f, 0f);
         }
+
+        /// <summary>The nearest a leg's ankle comes to its hip, as a share of the leg's length (a knee bent as far as it goes, 145 degrees, is 0.30).</summary>
+        public const float FoldsTo = 0.31f;
 
         /// <summary>
         /// A limb's target brought in to a share of its full length: a limb that locks straight
