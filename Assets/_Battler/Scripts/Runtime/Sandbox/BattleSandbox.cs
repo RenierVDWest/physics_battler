@@ -2118,6 +2118,7 @@ namespace PhysicsBattler.Sandbox
                 feel.fallsHandsStayPlanted = Tick(feel.fallsHandsStayPlanted, "A hand that lands stays put", "A hand that reaches the ground is held where it landed while the body comes down over it, and the arm bends under it. Off: it skates over the ground, as before.");
                 feel.fallHandHold = Mathf.Round(20f * Slide("Hand grip", $"{feel.fallHandHold:0.00}x", "How hard a landed hand grips the ground, in times the body's weight. Pulled harder it is dragged and brakes the body. Higher stops the body shorter; lower lets it slide on; 0 does not hold.", feel.fallHandHold, 0f, 3f)) / 20f;
                 feel.fallenBodiesSettle = Tick(feel.fallenBodiesSettle, "A body that is down settles", "Once its hips are down its muscles stop reaching and only hold the pose it lies in, so it comes to rest. Off: it goes on reaching, and on its side rocks back and forth, as before.");
+                feel.thrownBodiesTuck = Tick(feel.thrownBodiesTuck, "A thrown body tucks", "Thrown off its feet (the Thrown back button, the Club blow) it curls up as it flies and tumbles, and stays down longer. Off: it falls as one knocked over does.");
                 feel.fallsCanBeCaught = Tick(feel.fallsCanBeCaught, "A fall can be caught", "A fall only just more than the legs catch ends on a knee and a hand, or sitting, and the fighter rises from there.");
             }
 

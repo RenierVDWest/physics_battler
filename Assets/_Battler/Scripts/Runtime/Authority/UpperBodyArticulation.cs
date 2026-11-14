@@ -346,6 +346,9 @@ namespace PhysicsBattler.Authority
         /// <summary>Falling: this body's legs have this share of its tone (<see cref="LegTone"/> unless it is catching its fall: then its legs hold).</summary>
         public float LegsHave = LegTone;
 
+        /// <summary>Falling: what the neck has of a person's strength (<see cref="NeckTone"/>; more for a body that is braced to be thrown, its chin held down).</summary>
+        public float NeckHas = NeckTone;
+
         private float ToneOf(PartId id)
         {
             switch (id)
@@ -356,7 +359,7 @@ namespace PhysicsBattler.Authority
                 case PartId.ShinR:
                 case PartId.FootL:
                 case PartId.FootR: return LegsHave;
-                case PartId.Head: return NeckTone;
+                case PartId.Head: return NeckHas;
                 default: return 1f;
             }
         }
@@ -376,6 +379,7 @@ namespace PhysicsBattler.Authority
             PinHand(0, false, Vector3.zero, 1f, 1f);
             PinHand(1, false, Vector3.zero, 1f, 1f);
             LegsHave = LegTone;
+            NeckHas = NeckTone;
             fallHold ??= new float[parts.Length];
             float mass = 0f;
             for (int i = 0; i < parts.Length; i++)

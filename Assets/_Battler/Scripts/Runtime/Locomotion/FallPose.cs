@@ -25,6 +25,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far the chin is brought to the chest on its back, the head lifted on its front, and tipped away on a side (degrees).</summary>
         public const float ChinIn = 38f, HeadUp = 30f, HeadAside = 28f;
 
+        /// <summary>Tucked: how far the spine and the chest are rounded forward (degrees).</summary>
+        public const float TuckSpine = 26f, TuckChest = 22f, TuckChin = 50f;
+
+        /// <summary>Tucked: how far the knees are drawn up (0: the legs before it, a little bent, as sitting in the air; 1: the knees to the chest, which spins it fastest).</summary>
+        public static float TuckLegs = 0.5f;
+
         /// <summary>
         /// The pose put on <paramref name="anim"/>: its hips where the body's are (<paramref name="hips"/>), the rest
         /// from how the body is turned to the ground at <paramref name="ground"/> (its height) and which way it is
@@ -34,9 +40,11 @@ namespace PhysicsBattler.Locomotion
         /// <param name="holdsMain">Its right hand holds a weapon: the blade is kept out to its side and up, clear of its body.</param>
         /// <param name="handL">Its left hand has landed and is held there (world): the arm is posed onto it. Null: it reaches as it falls.</param>
         /// <param name="handR">The same, its right.</param>
-        public static void Pose(AnimRig anim, Transform hips, Vector3 going, float ground, float size, float into = 1f, bool holdsMain = false, Vector3? handL = null, Vector3? handR = null)
+        /// <param name="tuck">How far it is tucked (0 to 1): a body thrown off its feet curls up as it flies and tumbles: the back rounded, the chin down, the knees drawn up, the arms in before the chest (an arm that holds a weapon stays out with it).</param>
+        public static void Pose(AnimRig anim, Transform hips, Vector3 going, float ground, float size, float into = 1f, bool holdsMain = false, Vector3? handL = null, Vector3? handR = null, float tuck = 0f)
         {
             into = Mathf.Clamp01(into);
+            tuck = Mathf.Clamp01(tuck);
             anim.ResetToRest();
             anim.Part(PartId.Pelvis).SetPositionAndRotation(hips.position, hips.rotation);
             Vector3 up = hips.up, front = hips.forward, right = hips.right;
@@ -50,12 +58,13 @@ namespace PhysicsBattler.Locomotion
             float side = Mathf.Clamp(rightDown + standing * Vector3.Dot(way, Flat(right)), -1f, 1f);
 
             // The trunk: curled forward going backward (a rounded back rolls), held long going forward.
-            Bend(anim, PartId.Spine, 5f + 14f * back - 6f * forward, 0f);
-            Bend(anim, PartId.Chest, 4f + 12f * back - 8f * forward, 0f);
-            // The head: away from the ground.
+            // (Tucked: rounded whichever way it goes.)
+            Bend(anim, PartId.Spine, Mathf.Lerp(5f + 14f * back - 6f * forward, TuckSpine, tuck), 0f);
+            Bend(anim, PartId.Chest, Mathf.Lerp(4f + 12f * back - 8f * forward, TuckChest, tuck), 0f);
+            // The head: away from the ground. (Tucked: the chin down.)
             if (ProtectsHead)
             {
-                Bend(anim, PartId.Head, ChinIn * back - HeadUp * forward, HeadAside * side);
+                Bend(anim, PartId.Head, Mathf.Lerp(ChinIn * back - HeadUp * forward, TuckChin, tuck), HeadAside * side * (1f - tuck));
             }
 
             // The legs: folded to get low, more going backward (it sits down).
@@ -71,6 +80,8 @@ namespace PhysicsBattler.Locomotion
             {
                 var thigh = anim.Part(f == 0 ? PartId.ThighL : PartId.ThighR);
                 Vector3 ankle = thigh.position - up * (leg * (0.88f - 0.35f * fold)) + front * (leg * sits);
+                // (Tucked: the knees drawn up before the body.)
+                ankle = Vector3.Lerp(ankle, thigh.position - up * (leg * Mathf.Lerp(0.78f, 0.42f, TuckLegs)) + front * (leg * Mathf.Lerp(0.42f, 0.36f, TuckLegs)), tuck);
                 TwoBoneIK.Solve(thigh, anim.Part(f == 0 ? PartId.ShinL : PartId.ShinR), anim.Part(f == 0 ? PartId.FootL : PartId.FootR), ankle, front + 0.2f * up);
             }
 
@@ -103,11 +114,28 @@ namespace PhysicsBattler.Locomotion
                     hand = landed.Value;
                 }
 
+                var chestNow = anim.Part(PartId.Chest);
+                bool armed = a == 1 && holdsMain && anim.SlotWeaponR != null;
+                if (tuck > 0f && !landed.HasValue)
+                {
+                    // (Tucked: the hand in before the chest, the elbow down by the ribs. An arm that holds a weapon
+                    // stays out to its side with it: a blade is not hugged.)
+                    Vector3 inAt = armed
+                        ? upper.position + (out_.normalized * 0.75f + chestNow.up * 0.3f + chestNow.forward * 0.3f).normalized * (0.85f * arm)
+                        : chestNow.position + chestNow.forward * (0.2f * size) + chestNow.right * ((a == 0 ? 0.07f : -0.07f) * size) + chestNow.up * (0.04f * size);
+                    hand = Vector3.Lerp(hand, inAt, tuck);
+                }
+
                 // (The elbows back and out of the trunk, as an arm that takes weight bends: pushing up from the ground,
                 // sat back on the hands. Pointed by which way the body was going they bent forward going backward, as a
                 // knee does, which no elbow can.)
                 var chest = anim.Part(PartId.Chest);
                 Vector3 elbow = -0.8f * chest.forward + 0.6f * chest.right * (a == 0 ? -1f : 1f) + 0.15f * chest.up;
+                if (tuck > 0f && !armed && !landed.HasValue)
+                {
+                    elbow = Vector3.Slerp(elbow, -0.9f * chest.up + 0.45f * chest.right * (a == 0 ? -1f : 1f) - 0.1f * chest.forward, tuck);
+                }
+
                 var handPart = anim.Part(a == 0 ? PartId.HandL : PartId.HandR);
                 TwoBoneIK.Solve(upper, anim.Part(a == 0 ? PartId.ForearmL : PartId.ForearmR), handPart, hand, elbow);
                 if (a == 1 && holdsMain && anim.SlotWeaponR != null)

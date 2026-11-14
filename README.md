@@ -3668,6 +3668,39 @@ gave the same numbers), so it is a setting for harder throws than the test has. 
 `FIGHT_SETTLE=0`, `FIGHT_HANDHOLD=0.9`). Not verified in Unity. Not done of steps 5 to 7: knees are not pinned, and
 a body falling to a side does not turn to face the ground.
 
+**Controlled falls, step 9: a body thrown off its feet tucks** (14 November; Combat Feel "Thrown Bodies Tuck").
+Thrown at twice what its legs catch and more (9 m/s at a Medium's size: the open-handed target under the Thrown
+back button and the Club blow; in fights, a Large's club at its hardest), a fighter is thrown, not knocked over:
+
+- **The whole of it goes, and a little up** (0.3 of its speed). Knocked over, the legs are left behind and the
+  body goes over its feet; thrown that way it was slammed flat in a quarter of a second.
+- **It tucks** over 0.15 s (`FallPose`'s `tuck`): the back rounded, the chin down and the neck holding it there
+  with three times a person's strength, the knees drawn half up, the arms in before the chest; an arm that holds
+  a weapon stays out to its side with it.
+- **It tumbles in its tuck** until its trunk or hips have been on the ground 0.45 s, then opens out; its hands
+  land, are held, and stop it. It settles when it is going slower than 1.5 m/s, and is down half a second
+  longer than one knocked over (and is not made to get up while it is still tumbling).
+
+The fall's line now also says how far the hips turned over in all, and how fast the head was coming down when
+it reached the ground (a head that rolls onto the ground goes fast along it and comes down slowly; one that is
+slammed comes down fast). Headless, the open-handed target thrown from the front and from behind, 450 and 600
+N·s (`FIGHT_TUCK=0` for before):
+
+| | before | tucked |
+|---|---|---|
+| the head came down at | 0.2, 5.7, 5.3 and 1.7 m/s | 1.8, never, 2.2, never |
+| the hips turned over | 100 to 150 degrees | 340 to 570 |
+| it went over the ground, once down | 0.2 to 0.8 m | 0.1 to 3.8 m |
+| it was down | 1.1 to 1.7 s | 1.8 to 3.5 s |
+
+So thrown it is no longer slammed on its head or face, and it goes much further: it flies and tumbles where it
+was put down on the spot. Thrown backward it turns right over backward, which is what a hard blow high on the
+chest does to a body whose feet come with it; whether that reads as a tumble or as a stunt is for the eye. The
+other falls are as they were (the four fall buttons give the same numbers). Not verified in Unity. Tried and
+dropped: the tuck with only the trunk sent, as for a knock-over (it turned over in the air in a third of a
+second and came down on its head at 5 m/s); a neck no stronger than in any fall (the head came down at 3 m/s
+after the back); the tuck held until the body was slow (it slid on in a ball for five metres).
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

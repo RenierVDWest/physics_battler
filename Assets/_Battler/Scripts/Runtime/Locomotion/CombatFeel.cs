@@ -215,6 +215,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How hard a hand that has landed grips the ground, in times the body's weight (each hand). Pulled harder than this it is dragged along the ground and brakes the body with this much; pulled less it stays where it is. 0.35 is about a palm's grip under the share of the weight an arm takes: a body knocked down slides a little way with its hands dragging and stops. Higher stops it shorter (at 1 it all but stops where its hands land); lower lets it slide and roll on; 0 is a hand that does not hold at all.")]
         [Range(0f, 3f)] public float fallHandHold = 0.35f;
 
+        [Tooltip("A fighter thrown off its feet (thrown at twice the speed its legs can catch, and more: a Large's club at its hardest) tucks: it curls up as it flies, its back rounded, its chin down, its knees drawn up, its arms in before its chest (an arm that holds a weapon stays out with it), and holds that while it tumbles; down and slow, it comes out of the tuck, settles, and stays down half a second longer than one knocked over. Off: thrown, it fell as one knocked over does, reaching for the ground.")]
+        public bool thrownBodiesTuck = true;
+
         [Tooltip("A body that is down settles where it lies: a quarter of a second after its hips reach the ground its muscles stop reaching for the ground and only hold and damp the pose it is in (its head is still held up), so it comes to rest and can get up sooner. Off: as it was, drawn all the time it is down to a pose made from how it lies, which turned over as the body did, so a body on its side rocked back and forth with its hands sweeping the ground.")]
         public bool fallenBodiesSettle = true;
 
@@ -807,6 +810,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.HandsStayWhereTheyLand = fallsHandsStayPlanted;
             PhysicsBattler.Authority.UpperBodyArticulation.HandPinMost = fallHandHold * 785f;
             ClipFighter.FallenBodiesSettle = fallenBodiesSettle;
+            ClipFighter.ThrownBodiesTuck = thrownBodiesTuck;
             ClipFighter.HeldHips = hipsAreHeldNotLocked;
             PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;
             PhysicsBattler.Authority.UpperBodyArticulation.HipMost = hipHoldStrength;

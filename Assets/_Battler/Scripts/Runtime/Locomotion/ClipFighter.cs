@@ -595,12 +595,23 @@ namespace PhysicsBattler.Locomotion
         {
             fallBody = true;
             OneBodyFallen++;
-            landedAt = -1f;
+            landedAt = slowAt = touchedAt = -1f;
             handFreeUntil[0] = handFreeUntil[1] = 0f;
+            // (Thrown off its feet, not knocked over them: it curls up as it flies.)
+            tucks = ThrownBodiesTuck && !Dead && !catching && thrown >= TuckFrom * Mathf.Sqrt(Size);
+            tucked = 0f;
+            Tucked += tucks ? 1 : 0;
             Upper.Tone = FallMuscle;
             // (The blow that felled it: most of its force is taken back. The fall has its own speed.)
             Upper.EaseStrike(FelledHitForce);
             Upper.LetGo(Size);
+            if (tucks)
+            {
+                // (Its chin held down as hard as a neck can: let whip back, the head met the ground at 3 to 6 m/s a
+                // moment after the back did.)
+                Upper.NeckHas = TuckedNeck;
+            }
+
             if (catching)
             {
                 // (Its legs hold: it goes down on them, not through them.)
@@ -613,9 +624,12 @@ namespace PhysicsBattler.Locomotion
             {
                 bool swept = leg == 0 ? id == PartId.ThighL || id == PartId.ShinL || id == PartId.FootL
                     : leg == 1 && (id == PartId.ThighR || id == PartId.ShinR || id == PartId.FootR);
+                // (Knocked over, its legs are left behind and it goes over them. Thrown off its feet, the whole of it
+                // goes, and a little up: sent by its trunk alone it turned over backward in the air, in a third of a
+                // second, and came down on its head.)
                 float speed = swept ? SweptLegSpeed * (id == PartId.ThighL || id == PartId.ThighR ? 0.5f : 1f)
-                    : AuthorityController.RegionOf(id) == BodyRegion.Legs ? 0.2f * ThrownBodySpeed : ThrownBodySpeed;
-                Upper.Send(id, way * (speed * k * harder * Mathf.Clamp(knock / 0.5f, 0.6f, 1.6f)));
+                    : AuthorityController.RegionOf(id) == BodyRegion.Legs && !tucks ? 0.2f * ThrownBodySpeed : ThrownBodySpeed;
+                Upper.Send(id, (tucks ? way + Vector3.up * ThrownUp : way) * (speed * k * harder * Mathf.Clamp(knock / 0.5f, 0.6f, 1.6f)));
             }
         }
 
@@ -639,21 +653,38 @@ namespace PhysicsBattler.Locomotion
             Upper.Tone = Dead ? Mathf.Lerp(FallMuscle, DeadMuscle, Mathf.Clamp01((footingTime - 0.12f) / 0.3f))
                 : catching ? CaughtMuscle * FallMuscle
                 : landedAt < 0f ? FallMuscle : FallMuscle * Mathf.Lerp(1f, LandedMuscle, Mathf.Clamp01((footingTime - landedAt) / 0.5f));
-            // (Its feet are held where they stood until it has gone over far enough to take them with it.)
-            if (Upper.FeetHeld && (footingTime > FeetHeldFor || Vector3.Angle(hips.up, Vector3.up) > FeetHeldTo || landedAt >= 0f))
+            // (Its feet are held where they stood until it has gone over far enough to take them with it. One thrown
+            // off its feet has them with it from the start.)
+            if (Upper.FeetHeld && (tucks || footingTime > FeetHeldFor || Vector3.Angle(hips.up, Vector3.up) > FeetHeldTo || landedAt >= 0f))
             {
                 Upper.LetFeetGo();
             }
 
+            // (Down and no longer going anywhere: from then it settles, and a tucked body comes out of its tuck.)
+            if (landedAt >= 0f && slowAt < 0f && Upper.SpeedOf(PartId.Pelvis).magnitude < SlowBelow * Mathf.Sqrt(Size))
+            {
+                slowAt = footingTime;
+            }
+
+            // (Tucked until it has been on the ground a moment: it tumbles once in its tuck, then opens out, and its
+            // hands and feet stop it. Held longer, it slid on in a ball for five metres.)
+            if (touchedAt < 0f && Mathf.Min(hips.position.y, Upper.Link(PartId.Chest).transform.position.y) - groundLevel < 0.32f * Size)
+            {
+                touchedAt = footingTime;
+            }
+
+            bool holdsTuck = tucks && !Dead && slowAt < 0f && footingTime < TuckAtMost && (touchedAt < 0f || footingTime - touchedAt < TuckAfterLanding);
+            tucked = Mathf.MoveTowards(tucked, holdsTuck ? 1f : 0f, dt / (holdsTuck ? TuckIn : TuckOut));
             StepLandedHands();
             float into = Mathf.Clamp01((footingTime - 0.08f) / 0.3f);
             FallPose.Pose(Anim, hips, Upper.SpeedOf(PartId.Pelvis), groundLevel, Size, into * into * (3f - 2f * into), stance != Stances.Open,
-                Upper.HandPinned(0) ? Upper.HandPinAt(0) : (Vector3?)null, Upper.HandPinned(1) ? Upper.HandPinAt(1) : (Vector3?)null);
-            if (FallenBodiesSettle && landedAt >= 0f && !Dead && !catching)
+                Upper.HandPinned(0) ? Upper.HandPinAt(0) : (Vector3?)null, Upper.HandPinned(1) ? Upper.HandPinAt(1) : (Vector3?)null,
+                tucked * tucked * (3f - 2f * tucked));
+            if (FallenBodiesSettle && slowAt >= 0f && !Dead && !catching)
             {
                 // (Down, it stops reaching: the pose it is drawn to becomes the pose it lies in, so its muscles only
                 // hold what is and damp it. The head is still held up.)
-                float settle = Mathf.Clamp01((footingTime - landedAt - SettlesAfter) / SettlesOver);
+                float settle = Mathf.Clamp01((footingTime - slowAt - SettlesAfter) / SettlesOver);
                 if (settle > 0f)
                 {
                     settle = settle * settle * (3f - 2f * settle);
@@ -668,8 +699,9 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
-        /// A body that is down settles where it lies: a quarter of a second after its hips are down, over the next
-        /// 0.4 s, the pose its muscles draw it to becomes the pose it is in, so they hold and damp it and no longer
+        /// A body that is down settles where it lies: a quarter of a second after its hips are down and it is no
+        /// longer going anywhere (<see cref="SlowBelow"/>), over the next 0.4 s, the pose its muscles draw it to
+        /// becomes the pose it is in, so they hold and damp it and no longer
         /// reach. Off (as it was): it went on being drawn to a pose made from how it lay, which turned over as the
         /// body did: on its side it rocked back and forth for as long as it was down, its hands sweeping the ground.
         /// </summary>
@@ -679,6 +711,38 @@ namespace PhysicsBattler.Locomotion
         public const float SettlesAfter = 0.25f, SettlesOver = 0.4f;
 
         private readonly PoseBuffer fallPosed = new PoseBuffer(), fallAsIs = new PoseBuffer();
+
+        /// <summary>
+        /// A body thrown off its feet tucks (the plan "Controlled falls", step 9): thrown faster than
+        /// <see cref="TuckFrom"/>, it curls up as it flies (the back rounded, the chin down, the knees drawn up, the
+        /// arms in before the chest; an arm that holds a weapon stays out with it), its feet with it from the start,
+        /// and holds the tuck while it tumbles: the physics leads. Down and slow, it comes out of it and settles as
+        /// any body does, and stays down longer. Off: thrown, it fell as one knocked over does, reaching for the
+        /// ground with arms that were not going to stop it.
+        /// </summary>
+        public static bool ThrownBodiesTuck = true;
+
+        /// <summary>
+        /// Thrown this fast and more it tucks (m/s at a Medium's size: twice what its legs catch); the tuck comes in
+        /// over this long and out over this long (seconds), and is held this long at most, and this long after its
+        /// trunk or hips first come to the ground; a body whose hips are
+        /// down and going slower than this is no longer going anywhere (m/s at a Medium's size); and one that was
+        /// tucked stays down this much longer (seconds), and may be down this much longer than any other before it
+        /// is made to get up still moving (seconds). <see cref="ThrownUp"/>: how much of the speed it is thrown
+        /// with is upward as well.
+        /// </summary>
+        public const float ThrownUp = 0.3f;
+
+        /// <summary>Tucked: what its neck has of a person's strength, to hold the chin down.</summary>
+        public static float TuckedNeck = 3f;
+
+        public const float TuckFrom = 9f, TuckIn = 0.15f, TuckOut = 0.35f, TuckAtMost = 1.6f, TuckAfterLanding = 0.45f, SlowBelow = 1.5f, ThrownDownLonger = 0.5f, ThrownDownMost = 1.5f;
+
+        /// <summary>Falls it tucked in, for the reports.</summary>
+        public int Tucked;
+
+        private bool tucks;
+        private float tucked, slowAt = -1f, touchedAt = -1f;
 
         /// <summary>
         /// A hand that lands in a fall stays where it landed (the plan "Controlled falls", steps 5 to 7): held there
@@ -692,7 +756,8 @@ namespace PhysicsBattler.Locomotion
         /// A wrist this near the ground, or a hand whose underside is this near it, has landed (metres at a Medium's size); a hand going over the ground faster
         /// than this does not hold yet (m/s); one lifted this far over where it is held has come away, and one
         /// pulled this far along the ground from it is dragged (metres at a Medium's size); a hand that came away is
-        /// not held again for this long (seconds); and all are let go this long after the hips are down (seconds).
+        /// not held again for this long (seconds); and all are let go this long after the hips are down and it is no
+        /// longer going anywhere (seconds).
         /// </summary>
         public const float HandLandsWithin = 0.075f, HandUnderWithin = 0.035f, HandHoldsBelow = 4.5f, HandComesAwayAt = 0.12f, HandDragsPast = 0.03f, HandHeldAgainAfter = 0.25f, HandsHeldAfterLanding = 0.6f;
 
@@ -706,7 +771,10 @@ namespace PhysicsBattler.Locomotion
 
         private void StepLandedHands()
         {
-            bool over = Dead || !HandsStayWhereTheyLand || (landedAt >= 0f && footingTime - landedAt > HandsHeldAfterLanding);
+            // (Tucked, its hands are in: none lands to be held.)
+            // (Held until it is down and no longer going anywhere, and a moment more: a body that slides on has its
+            // hands on the ground to stop it.)
+            bool over = Dead || !HandsStayWhereTheyLand || tucked > 0.3f || (slowAt >= 0f && footingTime - slowAt > HandsHeldAfterLanding);
             for (int h = 0; h < 2; h++)
             {
                 var id = h == 0 ? PartId.HandL : PartId.HandR;
@@ -1041,8 +1109,9 @@ namespace PhysicsBattler.Locomotion
                 // (A body that settles is still at once, and would be up a second after it went down every time: half
                 // a second sooner than bodies were on average, and all in step. It stays down as long as they did on
                 // average, each fall a little longer or shorter than the last.)
-                float least = fallBody && FallenBodiesSettle ? SettledDown + SettledDownVaries * (((OneBodyFallen * 3 + Mathf.Abs(Mathf.RoundToInt(7f * pelvis.position.x + 3f * pelvis.position.z))) % 5) - 2) / 2f : LeastDown;
-                if (!StaysDown && ((footingTime >= least && stillFor >= StillFor) || footingTime >= MostDown))
+                float least = fallBody && FallenBodiesSettle ? (tucks ? ThrownDownLonger : 0f) + SettledDown + SettledDownVaries * (((OneBodyFallen * 3 + Mathf.Abs(Mathf.RoundToInt(7f * pelvis.position.x + 3f * pelvis.position.z))) % 5) - 2) / 2f : LeastDown;
+                // (One that was thrown may still be tumbling when the others would be made to get up.)
+                if (!StaysDown && ((footingTime >= least && stillFor >= StillFor) || footingTime >= MostDown + (fallBody && tucks ? ThrownDownMost : 0f)))
                 {
                     EndFallMeasure();
                     BeginGetUp();
