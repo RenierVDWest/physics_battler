@@ -4030,7 +4030,8 @@ Lands in sets the moment; the Style buttons and the Style levers set the style. 
 Headless: `attacks` (the scores made again against their clips, the maker's own check, how long making takes:
 1.7 ms); `ATTACK_DUMP=made.json ... attacks` then `python3 Tools/Mocap/Attacks/strip.py made.json out` draws made
 attacks as film strips. `FIGHT_AIMMADE=0`, `FIGHT_AIMATTACK=sns_thrust`, `FIGHT_AIMLEGS=sns_forehand` (or `own`),
-`FIGHT_AIMBORROW=0`, `FIGHT_AIMLAND=0.9`, `FIGHT_STYLE="WindUp=1.6,DriveTime=1.2"`, `FIGHT_AIMWHO=shield`,
+`FIGHT_AIMBORROW=0`, `FIGHT_AIMLAND=0.9`, `FIGHT_STYLEPRESET=Heavy`, `FIGHT_STYLE="WindUp=1.6,DriveTime=1.2"`,
+`FIGHT_AIMWHO=shield`,
 `FIGHT_TRAVEL=0` (the old travel). `Tools/Mocap/Attacks` has the scripts the clips were read with (`anatomy.py`:
 each part's course through a strike; `look.py`: frame by frame).
 
@@ -4039,7 +4040,9 @@ strips). Known: there are three plain recordings to make from (forehand cut, ris
 no plain low cut, overhead chop or descending backhand yet, and low parts are reached by crouching and leaning a
 forehand or a rising cut; the thrust's recorded hand would point this sword up and back, so a thrust's blade is
 turned onto its line in code; the rising cut's arm is past the rig's own shoulder range for part of its swing (as
-its recording is), more so with a big arm swing; a turn of more than about 20 degrees twists the planted feet.
+its recording is), more so with a big arm swing (at 1.3 the arm is 21 degrees past range at the middle of a
+blow, and the arm as seen falls behind); a turn of more than about 20 degrees twists the planted feet. Every
+style ran the nineteen spots with nothing thrown, the pose's blade 4 to 5 cm from the spot at the middle.
 
 
 

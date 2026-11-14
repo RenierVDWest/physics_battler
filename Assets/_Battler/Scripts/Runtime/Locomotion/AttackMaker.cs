@@ -60,7 +60,7 @@ namespace PhysicsBattler.Locomotion
             ("Plain", Plain),
             ("Heavy", new AttackStyle { WindUp = 1.6f, ArmSwing = 1.25f, HipDrive = 1.2f, Twist = 1f, Lean = 1.2f, Lunge = 1.2f, Drop = 1.5f, FollowThrough = 1.4f, WindUpTime = 1.5f, DriveTime = 1.2f, RecoveryTime = 1.4f, ArmLag = 0.02f }),
             ("Quick", new AttackStyle { WindUp = 0.5f, ArmSwing = 0.75f, HipDrive = 0.8f, Twist = 0.9f, Lean = 0.8f, Lunge = 0.9f, Drop = 0.7f, FollowThrough = 0.5f, WindUpTime = 0.65f, DriveTime = 0.85f, RecoveryTime = 0.7f }),
-            ("Brawler", new AttackStyle { WindUp = 0.8f, ArmSwing = 1.5f, HipDrive = 0.6f, Twist = 0.7f, Lean = 1.3f, Lunge = 1f, Drop = 0.8f, FollowThrough = 1.3f, WindUpTime = 1.1f, DriveTime = 1f, RecoveryTime = 1.2f, HipLead = -0.03f }),
+            ("Brawler", new AttackStyle { WindUp = 0.8f, ArmSwing = 1.2f, HipDrive = 0.6f, Twist = 0.7f, Lean = 1.3f, Lunge = 1f, Drop = 0.8f, FollowThrough = 1.3f, WindUpTime = 1.1f, DriveTime = 1f, RecoveryTime = 1.2f, HipLead = -0.03f }),
             ("Low", new AttackStyle { WindUp = 1f, ArmSwing = 1f, HipDrive = 1.1f, Twist = 1f, Lean = 1.5f, Lunge = 1.3f, Drop = 1.6f, Crouch = 0.12f, FollowThrough = 1f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1f }),
             ("Whip", new AttackStyle { WindUp = 1.2f, ArmSwing = 1.1f, HipDrive = 1.3f, Twist = 1f, Lean = 1f, Lunge = 1f, Drop = 1f, FollowThrough = 1.2f, WindUpTime = 0.9f, DriveTime = 0.9f, RecoveryTime = 1f, HipLead = 0.04f, ArmLag = 0.04f }),
         };

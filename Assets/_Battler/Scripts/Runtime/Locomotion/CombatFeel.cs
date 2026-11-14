@@ -256,8 +256,8 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Attack style: how far the body is wound up before the drive (the hips' turn and the chest's twist away from the blow). 1 is the recording's. More reads as a heavier, more telegraphed blow; less as a quick one from the guard.")]
         [Range(0f, 2f)] public float attackWindUp = 1f;
 
-        [Tooltip("Attack style: how far the sword arm travels from where it is held in the guard, as it is drawn back and as the blow is carried through. 1 is the recording's. At the landing itself the arm is the recording's, so the aim does not move with it.")]
-        [Range(0.4f, 1.6f)] public float attackArmSwing = 1f;
+        [Tooltip("Attack style: how far the sword arm travels from where it is held in the guard, as it is drawn back and as the blow is carried through. 1 is the recording's. At the landing itself the arm is the recording's, so the aim does not move with it. Past about 1.3 the arm is asked further round than a shoulder goes (the recorded rising cut is already at the end of this rig's range), and the physical arm falls behind its pose.")]
+        [Range(0.4f, 1.4f)] public float attackArmSwing = 1f;
 
         [Tooltip("Attack style: how far the hips turn through the blow. 1 is the recording's (a forehand cut turns them about 75 degrees). More is a blow thrown from the hips; less is one thrown from the shoulders on quiet hips. The chest faces where it did, so the spine twists that much less, or more. Never more than a quarter past the recording's furthest.")]
         [Range(0.4f, 1.6f)] public float attackHipDrive = 1f;

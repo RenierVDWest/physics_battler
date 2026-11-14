@@ -2322,7 +2322,7 @@ namespace PhysicsBattler.Sandbox
             if (aimStyleOpen)
             {
                 feel.attackWindUp = Lever("Wind-up", feel.attackWindUp, 0f, 2f, "How far the body is wound up before the drive: the hips' turn and the chest's twist away from the blow.");
-                feel.attackArmSwing = Lever("Arm swing", feel.attackArmSwing, 0.4f, 1.6f, "How far the sword arm travels from the guard as it is drawn back and as the blow is carried through. At the landing it is the recording's.");
+                feel.attackArmSwing = Lever("Arm swing", feel.attackArmSwing, 0.4f, 1.4f, "How far the sword arm travels from the guard as it is drawn back and as the blow is carried through. At the landing it is the recording's. Past about 1.3 it asks the arm further round than a shoulder goes.");
                 feel.attackHipDrive = Lever("Hip drive", feel.attackHipDrive, 0.4f, 1.6f, "How far the hips turn through the blow.");
                 feel.attackTwist = Lever("Twist", feel.attackTwist, 0.4f, 1.6f, "How far the chest twists on the hips.");
                 feel.attackLean = Lever("Lean", feel.attackLean, 0f, 2f, "How far the chest leans through the blow.");

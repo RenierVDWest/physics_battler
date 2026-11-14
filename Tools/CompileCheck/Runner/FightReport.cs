@@ -649,7 +649,16 @@ internal static class FightReport
             PhysicsBattler.Locomotion.ClipFighter.MadeBorrowsLegs = Environment.GetEnvironmentVariable("FIGHT_AIMBORROW") != "0";
             {
                 // (FIGHT_STYLE="WindUp=1.5,Lunge=1.2": the style the attacks are made in.)
+                // (FIGHT_STYLEPRESET=Heavy: one of the styles to start from, the levers of FIGHT_STYLE on top of it.)
                 object style = PhysicsBattler.Locomotion.AttackStyle.Plain;
+                foreach (var preset in PhysicsBattler.Locomotion.AttackStyle.Presets)
+                {
+                    if (preset.name == Environment.GetEnvironmentVariable("FIGHT_STYLEPRESET"))
+                    {
+                        style = preset.style;
+                    }
+                }
+
                 foreach (string part in (Environment.GetEnvironmentVariable("FIGHT_STYLE") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     var kv = part.Split('=');
