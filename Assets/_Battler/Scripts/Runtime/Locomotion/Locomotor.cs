@@ -1143,6 +1143,15 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        /// <summary>
+        /// A fighter in its guard asked to turn round the way its guard's one turning-round clip does not go turns the
+        /// way asked (off, as it was: a part of that clip the wrong way, then the clip again for the rest).
+        /// </summary>
+        public static bool GuardTurnsTheWayAsked = true;
+
+        /// <summary>A turn this near straight behind (degrees the long way round, at most) is made the way the guard's clip goes.</summary>
+        public const float GuardTurnsRoundUpTo = 200f;
+
         private void StartTurn(float degrees)
         {
             bool big = Mathf.Abs(degrees) >= 135f;
@@ -1152,6 +1161,24 @@ namespace PhysicsBattler.Locomotion
             {
                 // (In the guard, its own turns.)
                 var own = big ? Guard.Turn180 : degrees > 0f ? Guard.TurnR : Guard.TurnL;
+                if (GuardTurnsTheWayAsked && big && own != null && Mathf.Abs(own.Turn) > 1f && Mathf.Sign(own.Turn) != Mathf.Sign(degrees))
+                {
+                    // (A guard has one clip for turning round, and it turns one way. Asked to turn round the other way,
+                    // it was played as little as a clip is (0.4 of it), the wrong way, and then again for all that was
+                    // left: 55 degrees to the right and 165 more, to face 140 to its left.)
+                    float round = 360f - Mathf.Abs(degrees);
+                    if (round <= GuardTurnsRoundUpTo)
+                    {
+                        // (As good as straight behind: round the way the clip goes.)
+                        degrees = Mathf.Sign(own.Turn) * round;
+                    }
+                    else
+                    {
+                        // (Its quarter turn that way, as far as that goes; what is left is a small turn after.)
+                        own = degrees > 0f ? Guard.TurnR : Guard.TurnL;
+                    }
+                }
+
                 if (own != null && Mathf.Abs(own.Turn) > 1f)
                 {
                     clip = own;
@@ -1161,6 +1188,16 @@ namespace PhysicsBattler.Locomotion
             {
                 Facing += degrees;   // (no clip: it just turns)
                 return;
+            }
+
+            if (GuardTurnsTheWayAsked && degrees * clip.Turn < 0f)
+            {
+                // (Never a clip that turns the other way: the plain turn of that name, which goes the way asked.)
+                var named = LocoLibrary.Get(name);
+                if (named != null && degrees * named.Turn > 0f)
+                {
+                    clip = named;
+                }
             }
 
             StartShot(clip, ShotEnds.Idle, turnScale: Mathf.Clamp(degrees / clip.Turn, 0.4f, 1.6f));

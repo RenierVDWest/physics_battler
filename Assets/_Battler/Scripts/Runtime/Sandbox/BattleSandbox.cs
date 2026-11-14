@@ -350,7 +350,13 @@ namespace PhysicsBattler.Sandbox
         /// <summary>How long the targets are given to turn before a fall test's tubes are sent (seconds).</summary>
         public const float FallTestTurnsFor = 0.8f;
 
+        /// <summary>How long targets left turned round are given to turn back to their line before a tube is sent (seconds).</summary>
+        public const float TurnsRoundFor = 2.2f;
+
         private float fallHitAt = -1f;
+
+        // (The fall test that ends in a turn: how far round what the targets face has been put, and how far it is to be put once they are down.)
+        private float facesTurnedBy, turnRoundAfterFall;
         private bool tubeTestBegun;
 
         /// <summary>
@@ -360,7 +366,8 @@ namespace PhysicsBattler.Sandbox
         /// right), the tube is taken as a blow, and they go down whatever their legs say. Each fall is measured in
         /// the playtest log (<c>fall</c>: what reached the ground when, the head, the hips).
         /// </summary>
-        public void FallTest(float turned, bool thrown)
+        /// <param name="thenTurn">Not 0: while the targets are down, what they stand facing is put this many degrees round them (+ to their right), so that once up they have to turn round to it: the get-up into a turn.</param>
+        public void FallTest(float turned, bool thrown, float thenTurn = 0f)
         {
             if (!tubeTest)
             {
@@ -368,6 +375,10 @@ namespace PhysicsBattler.Sandbox
             }
 
             bool turns = Mathf.Abs(Mathf.DeltaAngle(Tubes.Turned, turned)) > 1f;
+            // (Targets the last fall test left turned round turn back to their line first, which takes a turning round's time.)
+            float turnsFor = Mathf.Abs(facesTurnedBy) > 1f ? TurnsRoundFor : turns ? FallTestTurnsFor : 0f;
+            facesTurnedBy = 0f;
+            turnRoundAfterFall = thenTurn;
             Tubes.Turned = turned;
             Tubes.Impulse = thrown ? ThrownTestImpulse : FallTestImpulse;
             Tubes.Speed = 8f;
@@ -376,7 +387,7 @@ namespace PhysicsBattler.Sandbox
             Tubes.AsBlow = true;
             Tubes.Fells = true;
             // (Sent once the targets have turned and a tube is waiting.)
-            fallHitAt = Time.time + (turns ? FallTestTurnsFor : 0f);
+            fallHitAt = Time.time + turnsFor;
             message = $"Fall test: the targets struck on {Tubes.Side} with {Tubes.Impulse:0} N·s, to go down. The tubes are sent as soon as the targets have turned and a tube is waiting.";
         }
 
@@ -398,7 +409,10 @@ namespace PhysicsBattler.Sandbox
             Tubes.Reach = 0.15f;
             Tubes.AsBlow = true;
             Tubes.Fells = false;
-            fallHitAt = Time.time;
+            // (Targets a fall test left turned round stand to their line again first.)
+            fallHitAt = Time.time + (Mathf.Abs(facesTurnedBy) > 1f ? TurnsRoundFor : 0f);
+            facesTurnedBy = 0f;
+            turnRoundAfterFall = 0f;
             message = $"Blow test: {impulse:0} N·s on {Tubes.Side}, taken as a blow, with a hit force of {PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0}. The tubes are sent as soon as one is waiting.";
         }
 
@@ -411,8 +425,9 @@ namespace PhysicsBattler.Sandbox
             }
 
             Vector3 toTarget = Quaternion.Euler(0f, BoardGrid.TeamYaw(0), 0f) * Vector3.forward;
-            Vector3 faces = Tubes.Facing(toTarget);
+            Vector3 faces = Quaternion.Euler(0f, facesTurnedBy, 0f) * Tubes.Facing(toTarget);
             bool ready = Time.time - tubesSpawnedAt > 1f;
+            bool down = false;
             foreach (var u in units)
             {
                 if (u == null || !u.TargetDummy)
@@ -420,6 +435,7 @@ namespace PhysicsBattler.Sandbox
                     continue;
                 }
 
+                down |= u.IsAlive && u.Clip != null && u.Clip.Fallen;
                 u.DummyFace = u.DummySpot + faces * 5f;
                 ready &= u.IsInitialized && u.Clip != null;
             }
@@ -441,6 +457,13 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 Tubes.Arm(targets, toTarget, tubeLook);
+            }
+
+            if (down && fallHitAt < 0f && Mathf.Abs(turnRoundAfterFall) > 1f)
+            {
+                // (A fall test that ends in a turn: what the targets face is put round behind them while they are down.)
+                facesTurnedBy = turnRoundAfterFall;
+                turnRoundAfterFall = 0f;
             }
 
             Tubes.Place();
@@ -1594,6 +1617,15 @@ namespace PhysicsBattler.Sandbox
                 if (GUILayout.Button("Right")) FallTest(90f, false);
                 GUILayout.EndHorizontal();
                 if (GUILayout.Button("Thrown back (a Large's club at its hardest)")) FallTest(0f, true);
+                GUILayout.Label("A fall and then a turn: while the targets are down, what they stand facing is put behind them, so once up they turn round to it (the swordsman's sword as it gets up into the turn).");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Back, then round (+170)")) FallTest(0f, false, 170f);
+                if (GUILayout.Button("Back, then round (\u2212170)")) FallTest(0f, false, -170f);
+                if (GUILayout.Button("Thrown, then round")) FallTest(0f, true, 170f);
+                GUILayout.EndHorizontal();
+                bool swordUp = GUILayout.Toggle(PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs, "Once up, the sword is taken up from where the arm is, and a guard turns round the way asked (off: as before, the arm reaching back for where it stood before the fall)");
+                PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs = swordUp;
+                PhysicsBattler.Locomotion.Locomotor.GuardTurnsTheWayAsked = swordUp;
                 GUILayout.Label("Blows on demand: a tube taken as a blow of that size, from the side the targets are turned to. The legs decide what comes of it.");
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Sword cut (60)")) BlowTest(60f);

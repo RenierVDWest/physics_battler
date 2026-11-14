@@ -677,6 +677,10 @@ internal static class FightReport
         PhysicsBattler.Locomotion.SwordParry.FreeArmInFront = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "back";
         PhysicsBattler.Locomotion.ClipFighter.MeasuresArms = true;
 
+        // (FIGHT_SWORDUP=0: a sword taken up after a fall from where in the world it was last held, as before 14 November. FIGHT_TURNWAY=0: a guard's turning round played the wrong way, as before.)
+        PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs = Environment.GetEnvironmentVariable("FIGHT_SWORDUP") != "0";
+        PhysicsBattler.Locomotion.Locomotor.GuardTurnsTheWayAsked = Environment.GetEnvironmentVariable("FIGHT_TURNWAY") != "0";
+
         // (FIGHT_CAUGHT=0: no fall is caught.)
         PhysicsBattler.Locomotion.ClipFighter.FallsCanBeCaught = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
 
@@ -915,6 +919,47 @@ internal static class FightReport
                         foreach (var u in units)
                         {
                             Console.WriteLine($"TURN {paceAt:0.000} {u.name}: {(u.Clip != null && u.Clip.TurnNow(turnBy) ? "turning" : "not turned")}");
+                        }
+                    }
+                }
+
+                // (FIGHT_FACE="4,-170": at 4 s what every target stands facing is turned 170 degrees to its left about its spot, so that it turns to it when it next stands idle: after getting up, as a target does that got up facing another way.)
+                {
+                    string[] face = (Environment.GetEnvironmentVariable("FIGHT_FACE") ?? "").Split(',');
+                    if (face.Length == 2 && float.TryParse(face[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float faceAt) && paceAt >= faceAt && paceAt < faceAt + dt
+                        && float.TryParse(face[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float faceBy))
+                    {
+                        foreach (var u in units)
+                        {
+                            if (u.DummyFace.HasValue)
+                            {
+                                u.DummyFace = u.DummySpot + Quaternion.Euler(0f, faceBy, 0f) * (u.DummyFace.Value - u.DummySpot);
+                            }
+                        }
+                    }
+                }
+
+                // (FIGHT_ARMTRACE="3,5,sword": from 3 s to 5 s, each step, where the pose has the hands of every unit so named, in the frame of the way its feet face.)
+                {
+                    string[] arm = (Environment.GetEnvironmentVariable("FIGHT_ARMTRACE") ?? "").Split(',');
+                    if (arm.Length >= 2 && float.TryParse(arm[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float armFrom) && float.TryParse(arm[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float armTo) && paceAt >= armFrom && paceAt <= armTo)
+                    {
+                        foreach (var u in units)
+                        {
+                            if (u.Clip == null || (arm.Length > 2 && !u.name.ToLowerInvariant().Contains(arm[2])))
+                            {
+                                continue;
+                            }
+
+                            var an = u.Clip.Anim;
+                            var back = Quaternion.Inverse(Quaternion.Euler(0f, u.Clip.Loco.Facing, 0f));
+                            Vector3 In(Vector3 world) => back * (world - u.Clip.Loco.Position);
+                            string P(Vector3 v) => $"{v.x:0.00} {v.y:0.00} {v.z:0.00}";
+                            var chestIn = Quaternion.Inverse(an.Part(PartId.Chest).rotation);
+                            Vector3 blade = an.SlotWeaponR != null ? an.SlotWeaponR.forward : Vector3.zero;
+                            float chestYaw = Mathf.DeltaAngle(u.Clip.Loco.Facing, Mathf.Atan2(an.Part(PartId.Chest).forward.x, an.Part(PartId.Chest).forward.z) * Mathf.Rad2Deg);
+                            var up = u.Clip.Upper;
+                            Console.WriteLine($"ARM {paceAt:0.000} {u.name}: facing {u.Clip.Loco.Facing:0} {u.Clip.Loco.Current} chest {chestYaw:0} | pelvis {P(In(an.Part(PartId.Pelvis).position))} | handR {P(In(an.Part(PartId.HandR).position))} by chest {P(chestIn * (an.Part(PartId.HandR).position - an.Part(PartId.Chest).position))} blade {P(chestIn * blade)} | handL by chest {P(chestIn * (an.Part(PartId.HandL).position - an.Part(PartId.Chest).position))}{(up != null ? $" | off {100f * up.Off(PartId.HandL):0}/{100f * up.Off(PartId.HandR):0} cm" : "")}");
                         }
                     }
                 }
@@ -1334,6 +1379,7 @@ internal static class FightReport
             sb.AppendLine($"    hips {(PhysicsBattler.Locomotion.ClipFighter.HeldHips ? $"held ({PhysicsBattler.Authority.UpperBodyArticulation.HipQuick:0.0} Hz, at most {PhysicsBattler.Authority.UpperBodyArticulation.HipMost:0.0} weights)" : "locked")}: off the pose on average / at most (cm): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {(u.Clip.HipsOffSteps > 0 ? 100f * u.Clip.HipsOffSum / u.Clip.HipsOffSteps : 0f):0.0} / {100f * u.Clip.HipsOffMost:0.0}")));
             sb.AppendLine($"    a blow's force ({PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0} times its momentum): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.HitForces} blows, {u.Clip.HitForceGiven:0} N·s, a joint turned aside {(u.Clip.Upper != null ? u.Clip.Upper.HitBentMost : 0f):0} degrees at most")));
             sb.AppendLine("    standing, as seen: a forearm or hand inside its own body (s) / what its right hand holds (s) / the longest stretch (s): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.ArmSeenIn:0.00} / {u.Clip.BladeSeenIn:0.00} / {u.Clip.ArmSeenInLongest:0.00}")));
+            sb.AppendLine("    swordsmen: the pose had the sword hand behind its own chest, on its feet and not striking (s) / swords taken up afresh after the guard was not held a while: " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Parry != null).Select(u => $"{u.name} {u.Clip.SwordBehindFor:0.00} / {u.Clip.SwordsTakenUp}")));
             var rose = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.GetUpLog.Select(g => (u, g))).ToList();
             if (rose.Count > 0)
             {

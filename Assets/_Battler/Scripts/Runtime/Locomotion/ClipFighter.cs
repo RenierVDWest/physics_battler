@@ -975,6 +975,7 @@ namespace PhysicsBattler.Locomotion
                 // free hand's place, the shield. Taken up at once they were whipped there, the free arm at 89 rad/s.)
                 rose.Capture(Anim);
                 roseAt = clock;
+                TakeUpSword();
                 getUpDuration = getUp.Duration;
                 getUpLogAt = clock + RoseEase + 0.2f;
                 LastReaction = "got up";
@@ -1038,6 +1039,36 @@ namespace PhysicsBattler.Locomotion
         public readonly List<string> GetUpLog = new List<string>();
         public string GetUpRoute = "";
         public float GetUpTurned, GetUpFastest, GetUpMiss, GetUpSlid;
+
+        /// <summary>
+        /// A swordsman that has been down, or has for any reason not held its guard a while, takes its sword up from
+        /// where its arm is now. Off (as it was): from where in the world it last held it, which after a fall is where
+        /// it stood before: a metre and more behind the body that got up, and the arm reached for it there, through
+        /// its own back, the whole of the turn that followed.
+        /// </summary>
+        public static bool SwordTakenUpWhereItIs = true;
+
+        /// <summary>The guard not held for this long (seconds) is taken up afresh (<see cref="SwordTakenUpWhereItIs"/>).</summary>
+        public const float SwordLeftFor = 0.2f;
+
+        /// <summary>How many times a sword was taken up afresh after its guard had not been held a while, for the reports.</summary>
+        public int SwordsTakenUp;
+
+        private float parryHeldAt = -1f;
+
+        /// <summary>The sword taken up from where the pose now has it (the end of a get-up; a guard not held a while).</summary>
+        private void TakeUpSword()
+        {
+            if (!SwordTakenUpWhereItIs || stance != Stances.Sword || Parry == null)
+            {
+                return;
+            }
+
+            Parry.Resync();
+            parryWaited = false;
+            parryHeldAt = clock;
+            SwordsTakenUp++;
+        }
 
         /// <summary>How long a fighter's arms take to go from where the get-up left them to what a standing fighter's arms do (seconds).</summary>
         public const float RoseEase = 0.4f;
@@ -1150,7 +1181,39 @@ namespace PhysicsBattler.Locomotion
             BladeSeenIn += blade ? dt : 0f;
             Stretch(ref armInFor, arm, dt, "a forearm or hand");
             Stretch(ref bladeInFor, blade, dt, "what its right hand holds");
+
+            // (The pose itself: a swordsman on its feet, not striking, whose sword hand is wanted behind its own chest.
+            // No guard has it there: it is reaching for somewhere the body is not.)
+            bool behind = false;
+            if (stance == Stances.Sword && Parry != null && Footing == Footings.Standing && !Striking && !Rig.IsSevered(PartId.HandR))
+            {
+                var chest = Anim.Part(PartId.Chest);
+                behind = Vector3.Dot(Anim.Part(PartId.HandR).position - chest.position, chest.forward) < -SwordBehindBy * Size;
+            }
+
+            SwordBehindFor += behind ? dt : 0f;
+            if (behind)
+            {
+                swordBehind += dt;
+            }
+            else
+            {
+                if (swordBehind >= 0.15f && Diagnostics.PlaytestTrace.Enabled)
+                {
+                    Diagnostics.PlaytestTrace.Note(FightUnit, "arms", $"its pose had its sword hand behind its own chest for {swordBehind:0.00} s ({Loco.Current} {(Loco.Shot != null ? Loco.Shot.Name : "")}; {LastReaction})");
+                }
+
+                swordBehind = 0f;
+            }
         }
+
+        /// <summary>How long its pose had its sword hand behind its own chest, on its feet and not striking (seconds), for the reports.</summary>
+        public float SwordBehindFor;
+
+        /// <summary>A sword hand this far behind the chest's middle (metres at a Medium's size) is behind it.</summary>
+        public const float SwordBehindBy = 0.15f;
+
+        private float swordBehind;
 
         private void Stretch(ref float lasted, bool inside, float dt, string what)
         {
@@ -1603,7 +1666,13 @@ namespace PhysicsBattler.Locomotion
                         Parry.Resync();
                         parryWaited = false;
                     }
+                    else if (parryHeldAt >= 0f && clock - parryHeldAt > SwordLeftFor)
+                    {
+                        // (Its guard was not held a while (it was down, or stunned): taken up from where the arm is.)
+                        TakeUpSword();
+                    }
 
+                    parryHeldAt = clock;
                     Parry.Skill = ParrySkillNow;
                     Parry.Step(dt, Blow, opponent);
                     MarkArms("the parry and the free arm");

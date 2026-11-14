@@ -3539,6 +3539,36 @@ for the old way): by the feet the same whip (65 rad/s) and the arm inside the bo
 A standing fighter's arms are now measured too while a playtest is recorded: a forearm or hand, or what the
 right hand holds, inside its own body for 0.15 s or more is an `arms` line in the log, with the clip it was in.
 
+In Unity since (14 November, log 14-02-18): the free arm held, but the sword was seen "rotating and going a bit
+crazy" right after a get-up ("HandR turning at 63 rad/s", `sns_turn180`). Two faults, both older than the falls:
+
+**A sword is taken up from where the arm is** (`ClipFighter.SwordTakenUpWhereItIs`). The guard keeps where it
+has the sword as a place in the world, and moves it from there to where it is wanted at a hand's speed. Down and
+getting up, the guard is not held, so that place stayed where the fighter stood before the fall: in the log, 1.4 m
+behind and to the left of the body that got up. The arm reached for it there, behind its own back, the blade
+pointing back through the body, for the whole turn that followed (the hand closes on its place at a hand's
+speed, and the turning body carried the guard away about as fast). The guard is now taken up from the get-up's last pose as the
+fighter stands, and afresh whenever it has not been held for 0.2 s. Headless (a thrown fall, then what the target
+faces put behind it: `FIGHT_TUBE="3,450,8,1.3,0.15,0,1,1" FIGHT_FACE="4,173"`; `FIGHT_SWORDUP=0 FIGHT_TURNWAY=0` for
+before): the pose had the sword hand behind its own chest for 0.87 s before, 0.00 s now; as seen, the arm inside
+the body 0.08 s and the blade 0.05 s before, neither now. A new report line and `arms` log line say when a
+pose has a sword hand behind its own chest.
+
+**A guard turns round the way asked** (`Locomotor.GuardTurnsTheWayAsked`). A guard has one clip for turning
+round, and it turns to the right (142 degrees). Asked to turn round to the left, it was played as little as a
+clip is played (0.4 of it) to the right, and then again for all that was left: in the log, 55 degrees right and
+then 165 more, each with the clip's deep dip, to face 140 degrees to the left. Now: a turn within 20 degrees of
+straight behind goes round the way the clip goes; any other goes the way asked with the guard's quarter turn
+played as far as it goes (140 degrees), and the little left is a small turn after. Headless
+(`FIGHT_TURN="3,-150"`): before, 56 degrees to the right first; now 140 to the left in one. The feet slide as
+much as before (0.83 m against 0.78 over the run).
+
+To see it on demand, the tube test's panel has "A fall and then a turn": three buttons that fell the targets and,
+while they are down, put what they stand facing behind them, so they get up into a turn round; and a switch
+that puts both fixes off, to see it as it was. For the headless runs: `FIGHT_FACE="4,173"` turns what the targets
+face at 4 s, `FIGHT_ARMTRACE="5,9,sword"` prints each step where the pose has the hands of the units so named.
+Not verified in Unity.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn
