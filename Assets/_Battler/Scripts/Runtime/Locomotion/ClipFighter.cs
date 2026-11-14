@@ -543,6 +543,79 @@ namespace PhysicsBattler.Locomotion
 
         private FallMeasure falling;
 
+        /// <summary>
+        /// A fall keeps the one physical body (the plan "Controlled falls", steps 2 to 4): its hips are let go and it
+        /// falls as the body it was, its muscles drawing it to a pose that gets low, reaches for the ground and keeps
+        /// the head off it (<see cref="FallPose"/>), with a person's strength. Off: the physical body is thrown away
+        /// at the fall and a limp ragdoll takes its place, as before 14 November.
+        /// </summary>
+        public static bool OneBodyFalls = true;
+
+        /// <summary>How much of a person's strength a falling body's muscles work with on the way down (1: all; 0: limp), the share of that left once it has landed, and what the dead have.</summary>
+        public static float FallMuscle = 1f;
+        public const float LandedMuscle = 0.4f, DeadMuscle = 0.03f;
+
+        /// <summary>A body thrown much faster than its legs can catch goes down that much faster: up to this many times the speed of one only just felled, at <see cref="ThrownHardAt"/> (m/s at a Medium's size).</summary>
+        public const float ThrownHarder = 2.8f, ThrownHardAt = 14f;
+
+        /// <summary>A falling body's planted feet are held where they stood for this long at most (seconds), or until its trunk has tipped this far (degrees) or its hips are down.</summary>
+        public const float FeetHeldFor = 0.5f, FeetHeldTo = 50f;
+
+        /// <summary>Falls in the one body (for the reports), and it is in one now.</summary>
+        public int OneBodyFallen;
+        private bool fallBody;
+        private float landedAt = -1f, fallThrown;
+
+        /// <summary>The fall goes on in the physical body it had: let go, and sent the way of the blow.</summary>
+        private void FallInBody(int leg, Vector3 way, float knock, float thrown)
+        {
+            fallBody = true;
+            OneBodyFallen++;
+            landedAt = -1f;
+            Upper.Tone = FallMuscle;
+            Upper.LetGo(Size);
+            float k = Mathf.Sqrt(Size);
+            float harder = Mathf.Lerp(1f, ThrownHarder, Mathf.InverseLerp(CombatFeel.LegsCatch * k, ThrownHardAt * k, thrown));
+            foreach (var id in Upper.Own)
+            {
+                bool swept = leg == 0 ? id == PartId.ThighL || id == PartId.ShinL || id == PartId.FootL
+                    : leg == 1 && (id == PartId.ThighR || id == PartId.ShinR || id == PartId.FootR);
+                float speed = swept ? SweptLegSpeed * (id == PartId.ThighL || id == PartId.ThighR ? 0.5f : 1f)
+                    : AuthorityController.RegionOf(id) == BodyRegion.Legs ? 0.2f * ThrownBodySpeed : ThrownBodySpeed;
+                Upper.Send(id, way * (speed * k * harder * Mathf.Clamp(knock / 0.5f, 0.6f, 1.6f)));
+            }
+        }
+
+        /// <summary>A step of a fall in the one body: how hard its muscles work, and the pose they draw it to.</summary>
+        private void StepFallBody(float dt)
+        {
+            if (Upper == null)
+            {
+                fallBody = false;
+                return;
+            }
+
+            upperDt = dt;
+            var hips = Upper.Link(PartId.Pelvis).transform;
+            if (landedAt < 0f && hips.position.y - groundLevel < 0.3f * Size)
+            {
+                landedAt = footingTime;
+            }
+
+            // (All it has going down; easing off once it is down; the dead: a start, then nothing.)
+            Upper.Tone = Dead ? Mathf.Lerp(FallMuscle, DeadMuscle, Mathf.Clamp01((footingTime - 0.12f) / 0.3f))
+                : landedAt < 0f ? FallMuscle : FallMuscle * Mathf.Lerp(1f, LandedMuscle, Mathf.Clamp01((footingTime - landedAt) / 0.5f));
+            // (Its feet are held where they stood until it has gone over far enough to take them with it.)
+            if (Upper.FeetHeld && (footingTime > FeetHeldFor || Vector3.Angle(hips.up, Vector3.up) > FeetHeldTo || landedAt >= 0f))
+            {
+                Upper.LetFeetGo();
+            }
+
+            float into = Mathf.Clamp01((footingTime - 0.08f) / 0.3f);
+            FallPose.Pose(Anim, hips, Upper.SpeedOf(PartId.Pelvis), groundLevel, Size, into * into * (3f - 2f * into));
+            Upper.BeginStep(dt);
+        }
+
         /// <summary>Times a blow threw it faster than its legs can catch, and it went down (for the reports).</summary>
         public int ThrownDown;
 
@@ -672,6 +745,24 @@ namespace PhysicsBattler.Locomotion
 
             EndFallMeasure();
             falling = new FallMeasure { Way = FallMeasure.WayOf(way, Loco.Facing), Why = LastReaction ?? "", Dead = Dead };
+            fallBody = false;
+            if (OneBodyFalls && Upper != null && !StaysDown)
+            {
+                bool whole = true;
+                foreach (var id in Upper.Own)
+                {
+                    whole &= !Rig.IsSevered(id);
+                }
+
+                if (whole)
+                {
+                    FallInBody(leg, way, knock, fallThrown);
+                    fallThrown = 0f;
+                    return;
+                }
+            }
+
+            fallThrown = 0f;
 
             // (Its physical upper body is let go as it goes down: the rig's own parts fall from where it was. A fallen
             // body is not stepped as a standing one is, and left to that its upper body stood on where it died.)
@@ -710,6 +801,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A blow on a fallen body: the part it struck knocked, nothing else (its holds are the fall's or the get-up's).</summary>
         private void PushFallen(PartId part, Vector3 impulse, float share)
         {
+            if (fallBody && Upper != null && Footing == Footings.Down)
+            {
+                Upper.Send(part, Vector3.ClampMagnitude(impulse * Mathf.Clamp01(share) / Mathf.Max(0.5f, Rig.Part(part).body != null ? Rig.Part(part).body.mass : 1f), MostFallenPartSpeed * Mathf.Sqrt(Size)));
+                return;
+            }
+
             var struck = Authority != null ? Rig.Part(part).body : null;
             if (struck == null || struck.isKinematic)
             {
@@ -730,6 +827,11 @@ namespace PhysicsBattler.Locomotion
                 if (Authority != null)
                 {
                     Authority.Apply(dt);
+                    if (fallBody)
+                    {
+                        StepFallBody(dt);
+                    }
+
                     var lying = Rig.Part(PartId.Pelvis).body;
                     Loco.Position = new Vector3(lying.position.x, groundLevel, lying.position.z);
                     StepFallMeasure(dt);
@@ -752,8 +854,13 @@ namespace PhysicsBattler.Locomotion
             var pelvis = Rig.Part(PartId.Pelvis).body;
             if (Footing == Footings.Down)
             {
-                stillFor = pelvis.linearVelocity.magnitude < 0.25f * Mathf.Sqrt(Size) ? stillFor + dt : 0f;
+                float hipsGo = fallBody && Upper != null ? Upper.SpeedOf(PartId.Pelvis).magnitude : pelvis.linearVelocity.magnitude;
+                stillFor = hipsGo < 0.25f * Mathf.Sqrt(Size) ? stillFor + dt : 0f;
                 Authority.Apply(dt);
+                if (fallBody)
+                {
+                    StepFallBody(dt);
+                }
                 // (Its place goes with the body on the ground: what keeps its distance from it, or aims at it, follows.)
                 Loco.Position = new Vector3(pelvis.position.x, groundLevel, pelvis.position.z);
                 StepFallMeasure(dt);
@@ -777,6 +884,12 @@ namespace PhysicsBattler.Locomotion
             }
 
             getUp.Compose(footingTime, stand);
+            if (fallBody && Upper != null)
+            {
+                // (The one body it fell in is drawn to the get-up's pose, held as a standing body is.)
+                upperDt = dt;
+                Upper.BeginStep(dt);
+            }
             float u = Mathf.Clamp01(footingTime / Mathf.Max(0.1f, getUp.Duration));
             for (int r = 0; r < 5; r++)
             {
@@ -792,6 +905,7 @@ namespace PhysicsBattler.Locomotion
                     Hold((BodyRegion)r, 1f);
                 }
 
+                fallBody = false;
                 GetUpFastest = getUp.FastestEarly;
                 GetUpMiss = getUp.ReachMiss;
                 GetUpSlid = getUp.Slid;
@@ -812,7 +926,15 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            falling.Step(Rig, groundLevel, Size, dt);
+            if (fallBody && Upper != null)
+            {
+                falling.Step(Rig, groundLevel, Size, dt, id => Upper.SpeedOf(id).magnitude);
+            }
+            else
+            {
+                falling.Step(Rig, groundLevel, Size, dt);
+            }
+
             if ((Dead || StaysDown) && falling.Lasted >= FallMeasuredFor)
             {
                 EndFallMeasure();
@@ -902,6 +1024,23 @@ namespace PhysicsBattler.Locomotion
             Loco.Place(position, yaw);
             Poser.ReleaseFeet();
             lying.Capture(Rig);
+            if (fallBody && Upper != null)
+            {
+                // (Taken up where it lies: the pose put on how it lies, and the body held to it again.)
+                lying.Apply(Anim, false);
+                Upper.TakeUp();
+                foreach (var id in Upper.Own)
+                {
+                    var m = MuscleOf(id, 1f);
+                    Upper.SetMuscle(id, m.hz, m.most);
+                    Upper.SetTight(id, 1f);
+                }
+            }
+            else
+            {
+                fallBody = false;
+            }
+
             getUp.HoldsMain = stance == Stances.Sword;
             getUp.HoldsOff = stance == Stances.Shield;
             getUp.Begin(kind, lying);
@@ -2246,6 +2385,44 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            if (fallBody && Footing == Footings.Down)
+            {
+                // (Falling in its one body: nothing of a standing body's is asked of it. Thrown out of the world by the
+                // engine, it is given up for the ragdoll it would have been.)
+                if (Upper.Gone(Loco.Position, 40f))
+                {
+                    LostBody++;
+                    fallBody = false;
+                    foreach (var id in Upper.Own)
+                    {
+                        var part = Rig.Part(id);
+                        var posed = Anim.Part(id);
+                        Authority.Skipped[(int)id] = false;
+                        if (part.partCollider != null)
+                        {
+                            part.partCollider.isTrigger = false;
+                        }
+
+                        part.transform.SetPositionAndRotation(new Vector3(Loco.Position.x, posed.position.y, Loco.Position.z), posed.rotation);
+                        part.body.isKinematic = false;
+                        part.body.linearVelocity = Vector3.zero;
+                        part.body.angularVelocity = Vector3.zero;
+                    }
+
+                    Upper.Destroy();
+                    Upper = null;
+                    for (int r = 0; r < 5; r++)
+                    {
+                        Authority.Set((BodyRegion)r, AuthorityLevel.Ragdoll, 0f);
+                    }
+
+                    return;
+                }
+
+                Upper.MoveShadows();
+                return;
+            }
+
             if (Upper.Supported)
             {
                 float off = Upper.HipsOff;
@@ -2435,12 +2612,14 @@ namespace PhysicsBattler.Locomotion
         /// Knocked off its feet by what is no blade (a body thrown into it, its own body borne down): down as from
         /// a leg swept from under it, and it gets up again.
         /// </summary>
-        public void KnockOver(Vector3 way, float knock, string why)
+        public void KnockOver(Vector3 way, float knock, string why, float thrown = 0f)
         {
             if (Dead || StaysDown || Fallen)
             {
                 return;
             }
+
+            fallThrown = thrown;
 
             Combo?.Stop();
             way.y = 0f;
@@ -4213,7 +4392,7 @@ namespace PhysicsBattler.Locomotion
                     ThrownDown++;
                     pendingKnock = Vector3.zero;
                     pushAt = -1f;
-                    KnockOver(thrownBy, 0.8f, $"{(swept.Length > 0 ? swept + "; " : "")}thrown at {thrownAtSpeed:0.0} m/s, faster than its legs can catch ({caught:0.0}): down");
+                    KnockOver(thrownBy, 0.8f, $"{(swept.Length > 0 ? swept + "; " : "")}thrown at {thrownAtSpeed:0.0} m/s, faster than its legs can catch ({caught:0.0}): down", thrownAtSpeed);
                     return;
                 }
 

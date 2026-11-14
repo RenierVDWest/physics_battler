@@ -3391,6 +3391,61 @@ landed, blocked and parried in the same numbers as with the hips locked, as far 
 Not done here: the hips let go for a fall (the falls plan's step 2), and the hips turning under a blow (they
 are still turned only by the pose). Not verified in Unity.
 
+In Unity since (14 November): the hips held and the hit force looked right at their defaults. One thing looked
+like a fault and was not: the first hits "did nothing" because a tube was the physics only until a fall button
+had switched it to a blow. A tube is now taken as a blow from the start (the toggle still turns it off).
+
+**Controlled falls, steps 2 to 4: one body, with muscle, the head kept up** (14 November; the Combat Feel's
+`fallsKeepTheBody`, on; `fallMuscle` 1; `fallsProtectTheHead`; `fallsReachForTheGround`; the tube test's panel
+has the same beside the fall buttons).
+
+A fighter that goes down no longer swaps its physical body for a limp ragdoll. The body it has is let go
+(`UpperBodyArticulation.LetGo`): its hips are held by nothing, its parts have their weight (standing, they weigh
+nothing on their joints), the ground stops it (standing, nothing of it is stopped by the ground), and each joint
+is drawn to a pose by a muscle of **a person's strength** (the hip 220 N m, the knee 180, the ankle 100, the low
+back 250, the chest 200, the neck 50, the shoulder 80, the elbow 60, the wrist 15, for a Medium; with the body's
+weight and size), not the strength that follows a clip, which is twenty to forty times that. So a limb can be
+held out, and a body's weight landing on it cannot be stopped. The legs have a third of that (they fold under
+the weight; a person going down does not stand in a squat), the neck half as much again. Past what a joint of
+that kind turns, it is held with six times a person's strength. A joint goes to its pose at 7 rad/s at most.
+
+- **The pose** (`FallPose`) is no clip: it is made each step from how the body is. The hips are where the body's
+  are. The trunk curls forward going backward and is held long going forward. The legs fold: thighs forward
+  going backward (it sits down), knees bent with the feet back going forward (it kneels). The arms are thrown
+  out for the first tenth of a second, then reach for the ground the body is going to, and a hand that can reach
+  the ground goes to it. The head is held away from the ground: chin to the chest on its back (38 degrees),
+  lifted on its front (30), tipped away on a side (28).
+- **Its planted feet stay where they stood** until the trunk has tipped 50 degrees, the hips are down, or half
+  a second has gone: a body knocked over goes over about its feet. (Let go at once, a blow high on the body
+  turned it over in the air, feet at head height.)
+- **Muscle**: all of it going down; easing to 0.4 of it over half a second once the hips are down. **The dead**
+  have it for a tenth of a second and then none (0.03).
+- **A fall remembers its blow**: a body thrown at 14 m/s goes down 2.8 times as fast as one only just felled
+  (it was the same 1.4 m/s for every fall).
+- **Getting up**: the body is taken up where it lies (`TakeUp`: held to the get-up's pose as a standing body is,
+  its hips held again), so there is one body from the blow to standing.
+- If any part of it is cut off, or it is to stay down, it falls as before (the ragdoll). A falling body the
+  engine throws out of the world is given up for the ragdoll.
+
+Headless, the fall buttons' falls (200 N·s, three targets each way; the Larges thrown with 450) and two fights
+of a minute:
+
+| | the ragdoll, as before | in the one body |
+|---|---|---|
+| the head reached the ground (the living) | 16 of 16 | 9 of 21 |
+| in the fall test, backward / forward / left / right | 3, 3, 3, 3 of 3 | 1, 2, 1, 2 of 3 |
+| two Larges thrown back | | 0 of 2 |
+| in the fights | 1 of 1 | 3 of 7 |
+| bodies lost by the engine | 0 | 0 |
+
+What is not right yet, by the numbers: the hips reach the ground a quarter of a second after a 200 N·s blow, at
+2 to 5 m/s. That is the blow: the body is free now and a blow of that size on the chest throws it flat. It is
+harder than the ragdoll's fall (2.2 m/s), which no blow reached. The arms are at times half a turn from where
+the pose wants them (a shoulder goes the long way round). The legs' fold is one rule for all falls. The steps
+still to come (the falls by direction, a hand that lands held where it landed, the caught fall, the thrown
+body's tuck) are where those go. Not verified in Unity: a body let go, with its weight, on the ground, has not
+been run there.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

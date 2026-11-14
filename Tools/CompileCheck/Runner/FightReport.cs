@@ -665,6 +665,13 @@ internal static class FightReport
             PhysicsBattler.Locomotion.CombatFeel.HitForce = Env("FIGHT_HITFORCE", 1f);
         }
 
+        // (FIGHT_FALLS=0: a fall as before 14 November, the body thrown away for a ragdoll. FIGHT_FALLMUSCLE: the share of a
+        // person's strength a falling body works with. FIGHT_HEAD=0, FIGHT_REACH=0: the head not kept off the ground, the arms not reaching for it.)
+        PhysicsBattler.Locomotion.ClipFighter.OneBodyFalls = Environment.GetEnvironmentVariable("FIGHT_FALLS") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.FallMuscle = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FALLMUSCLE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fallMuscle) ? fallMuscle : 1f;
+        PhysicsBattler.Locomotion.FallPose.ProtectsHead = Environment.GetEnvironmentVariable("FIGHT_HEAD") != "0";
+        PhysicsBattler.Locomotion.FallPose.Reaches = Environment.GetEnvironmentVariable("FIGHT_REACH") != "0";
+
         // (FIGHT_GETUP=0: the get-ups as they were before 14 November.)
         PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = Environment.GetEnvironmentVariable("FIGHT_GETUP") != "0";
 
@@ -947,7 +954,7 @@ internal static class FightReport
                             string body = up == null ? (u.Clip != null && u.Clip.Fallen ? "down" : "no physical body")
                                 : $"hips {(up.Supported ? 100f * up.HipsOff : 0f):0.0} chest {100f * up.Off(PartId.Chest):0.0} head {100f * up.Off(PartId.Head):0.0} hands {100f * up.Off(PartId.HandL):0.0}/{100f * up.Off(PartId.HandR):0.0}"
                                     + (up.HasLegs ? $" knees {100f * up.Off(PartId.ShinL):0.0}/{100f * up.Off(PartId.ShinR):0.0} feet {100f * up.Off(PartId.FootL):0.0}/{100f * up.Off(PartId.FootR):0.0}" : "") + " cm off its pose";
-                            Console.WriteLine($"TUBE +{paceAt - tubeAt:0.00} {u.name}: {body}; {100f * Vector3.Distance(u.Clip.Loco.Position, u.DummySpot):0} cm from its spot; {(u.Clip.Upper != null && tubeFrom.TryGetValue(u, out var from0) ? $"moved since sent: hips {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Pelvis).transform.position, from0.Item1):0.0} chest {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Chest).transform.position, from0.Item2):0.0} head {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Head).transform.position, from0.Item3):0.0} cm; " : "")}{u.Clip.LastReaction}");
+                            Console.WriteLine($"TUBE +{paceAt - tubeAt:0.00} {u.name}: {body}; {100f * Vector3.Distance(u.Clip.Loco.Position, u.DummySpot):0} cm from its spot; {(u.Clip.Upper != null && tubeFrom.TryGetValue(u, out var from0) ? $"moved since sent: hips {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Pelvis).transform.position, from0.Item1):0.0} chest {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Chest).transform.position, from0.Item2):0.0} head {100f * Vector3.Distance(u.Clip.Upper.Link(PartId.Head).transform.position, from0.Item3):0.0} cm; up: hips {100f * u.Clip.Upper.Link(PartId.Pelvis).transform.position.y:0} chest {100f * u.Clip.Upper.Link(PartId.Chest).transform.position.y:0} head {100f * u.Clip.Upper.Link(PartId.Head).transform.position.y:0} hands {100f * u.Clip.Upper.Link(PartId.HandL).transform.position.y:0}/{100f * u.Clip.Upper.Link(PartId.HandR).transform.position.y:0} feet {100f * u.Clip.Upper.Link(PartId.FootL).transform.position.y:0}/{100f * u.Clip.Upper.Link(PartId.FootR).transform.position.y:0} cm; " : "")}{u.Clip.LastReaction}");
                         }
                     }
 
@@ -1289,6 +1296,7 @@ internal static class FightReport
             if (fell.Count > 0)
             {
                 var living = fell.Where(x => !x.f.Dead).Select(x => x.f).ToList();
+                sb.AppendLine($"    falls {(PhysicsBattler.Locomotion.ClipFighter.OneBodyFalls ? $"in the one body, muscle {PhysicsBattler.Locomotion.ClipFighter.FallMuscle:0.00}" : "as ragdolls, as before")}: in the one body {units.Sum(u => u.Clip != null ? u.Clip.OneBodyFallen : 0)}; a joint furthest from the fall's pose: " + string.Join(", ", units.Where(u => u.Clip?.Upper != null).Select(u => $"{u.Clip.Upper.FallOffMostPart} {u.Clip.Upper.FallOffMost:0}")) + " degrees");
                 sb.AppendLine($"    falls measured: {fell.Count} ({living.Count} of the living). Of the living: the head reached the ground in {living.Count(f => f.HeadTouched)}{(living.Any(f => f.HeadTouched) ? $" (at {living.Where(f => f.HeadTouched).Average(f => f.HeadSpeed):0.0} m/s on average, {living.Where(f => f.HeadTouched).Max(f => f.HeadSpeed):0.0} at most)" : "")}; landed on a hand or knee before the hips, trunk or head in {living.Count(f => f.Braced)}; the hips landed at {(living.Any(f => f.HipsAt >= 0f) ? living.Where(f => f.HipsAt >= 0f).Average(f => f.HipsSpeed) : 0f):0.0} m/s on average; slid {(living.Count > 0 ? 100f * living.Average(f => f.Slid) : 0f):0} cm on average");
                 foreach (var way in fell.Where(x => !x.f.Dead).GroupBy(x => x.f.Way))
                 {

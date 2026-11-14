@@ -314,6 +314,14 @@ namespace PhysicsBattler.Sandbox
             fight = true;
             Spawn();
             tubesSpawnedAt = Time.time;
+            // (A tube is taken as a blow unless the panel says otherwise: the physics alone barely moves a body, and
+            // a first hit that did nothing looked like a fault.)
+            if (!tubeTestBegun)
+            {
+                tubeTestBegun = true;
+                Tubes.AsBlow = true;
+            }
+
             message = "Tube test: three targets and a tube beside each. Hit (6) sends the tubes across them; the sliders set how hard, how fast, how high, how deep and from which side. R resets.";
         }
 
@@ -343,6 +351,7 @@ namespace PhysicsBattler.Sandbox
         public const float FallTestTurnsFor = 0.8f;
 
         private float fallHitAt = -1f;
+        private bool tubeTestBegun;
 
         /// <summary>
         /// The fall test (the plan "Controlled falls", step 1): a fall on demand. The targets are turned so the tube
@@ -1611,6 +1620,21 @@ namespace PhysicsBattler.Sandbox
 
                 // (The scene's Combat Feel sets it every frame, so the toggle changes it there.)
                 var getUpFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+                if (getUpFeel != null)
+                {
+                    bool oneBody = GUILayout.Toggle(getUpFeel.fallsKeepTheBody, "Falls: the new ones, in the one body (off: the ragdoll, as before 14 November)");
+                    if (oneBody != getUpFeel.fallsKeepTheBody)
+                    {
+                        getUpFeel.fallsKeepTheBody = oneBody;
+                        Note(oneBody ? "falls: in the one body" : "falls: the ragdoll, as before");
+                    }
+
+                    GUILayout.Label($"Muscle in a fall: {getUpFeel.fallMuscle:0.00} of a person's strength (0: limp)");
+                    getUpFeel.fallMuscle = Mathf.Round(20f * GUILayout.HorizontalSlider(getUpFeel.fallMuscle, 0f, 2f)) / 20f;
+                    getUpFeel.fallsProtectTheHead = GUILayout.Toggle(getUpFeel.fallsProtectTheHead, "The head kept off the ground");
+                    getUpFeel.fallsReachForTheGround = GUILayout.Toggle(getUpFeel.fallsReachForTheGround, "The arms reach for the ground");
+                }
+
                 bool natural = getUpFeel != null ? getUpFeel.getUpsAreNatural : PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps;
                 bool naturalNow = GUILayout.Toggle(natural, "Get-ups: the new ones (off: as before 14 November)");
                 if (naturalNow != natural)

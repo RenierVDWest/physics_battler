@@ -293,6 +293,283 @@ namespace PhysicsBattler.Authority
             return new JointDrive { positionSpring = spring, positionDamper = HipDamping * 2f * Mathf.Sqrt(spring * mass), maximumForce = most };
         }
 
+        // ---- The body let go: a fall (the plan "Controlled falls", steps 2 to 4) -------------------------------------
+
+        /// <summary>
+        /// The body is let go: its hips are held by nothing, its feet are let go of, its parts have their weight, and
+        /// each joint is drawn to the pose by a muscle of a person's strength times <see cref="Tone"/> (not the
+        /// strength that follows a clip, which is many times a person's): strong enough to hold a limb out, not to
+        /// stop a body's weight landing on it. A joint further than <see cref="FallRange"/> from the pose, or past
+        /// what a joint of that kind turns, is held with <see cref="FallHolds"/> times a person's strength, so the
+        /// body does not fold as no body does. The pose is the fall's own (<see cref="BeginStep"/> reads it).
+        /// </summary>
+        public bool Falling { get; private set; }
+
+        /// <summary>Falling: the share of a person's strength its muscles draw each joint to the pose with (1: all of it; near 0: limp).</summary>
+        public float Tone = 1f;
+
+        /// <summary>Falling: how far from the pose a joint is before it is held with all it has (radians; 60 degrees), and how many times a person's strength that is.</summary>
+        public static float FallRange = 60f * Mathf.Deg2Rad, FallHolds = 6f;
+
+        /// <summary>Falling: the fastest a joint is brought toward the fall's pose (rad/s; 7: a limb thrown out in a quarter of a second).</summary>
+        public static float FallReturn = 7f;
+
+        /// <summary>The most a person's muscles turn each joint with (N m, for a Medium of 70 kg): the hip 220, the knee 180, the ankle 100, the low back 250, the chest 200, the neck 50, the shoulder 80, the elbow 60, the wrist 15.</summary>
+        public static float PersonStrength(PartId id)
+        {
+            switch (id)
+            {
+                case PartId.Spine: return 250f;
+                case PartId.Chest: return 200f;
+                case PartId.Head: return 50f;
+                case PartId.ThighL:
+                case PartId.ThighR: return 220f;
+                case PartId.ShinL:
+                case PartId.ShinR: return 180f;
+                case PartId.FootL:
+                case PartId.FootR: return 100f;
+                case PartId.UpperArmL:
+                case PartId.UpperArmR: return 80f;
+                case PartId.ForearmL:
+                case PartId.ForearmR: return 60f;
+                default: return 15f;
+            }
+        }
+
+        /// <summary>
+        /// Falling: the share of the body's tone each part's muscles have. The legs give (0.35): a person going down
+        /// lets the legs fold under the weight and take the speed out of the drop, they do not stand in a squat. The
+        /// neck works hardest (1.5): it is what keeps the head off the ground.
+        /// </summary>
+        public static float LegTone = 0.35f, NeckTone = 1.5f;
+
+        private static float ToneOf(PartId id)
+        {
+            switch (id)
+            {
+                case PartId.ThighL:
+                case PartId.ThighR:
+                case PartId.ShinL:
+                case PartId.ShinR:
+                case PartId.FootL:
+                case PartId.FootR: return LegTone;
+                case PartId.Head: return NeckTone;
+                default: return 1f;
+            }
+        }
+
+        private float[] fallHold;
+        private float bodyScale = 1f;
+
+        /// <summary>For the reports: the furthest any joint has been from the fall's pose (degrees), and how many joint-steps were held at the edge of their range.</summary>
+        public float FallOffMost { get; private set; }
+        public PartId FallOffMostPart { get; private set; }
+        public int FallEdges { get; private set; }
+
+        /// <summary>The body let go to fall (see <see cref="Falling"/>). <paramref name="size"/>: its size against a Medium's.</summary>
+        public void LetGo(float size)
+        {
+            Falling = true;
+            fallHold ??= new float[parts.Length];
+            float mass = 0f;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                fallHold[i] = -1f;
+                slack[i] = Quaternion.identity;
+                put[i] = false;
+                stopped[i] = 0f;
+                links[i].useGravity = true;
+                mass += links[i].mass;
+            }
+
+            foreach (var g in grips)
+            {
+                g.Link.useGravity = true;
+            }
+
+            GroundStops(true);
+            // (A person's strength goes with their weight and their size.)
+            bodyScale = Mathf.Max(0.2f, mass / 70f) * Mathf.Max(0.5f, size);
+            var none = new JointDrive { positionSpring = 0f, positionDamper = 0f, maximumForce = 0f };
+            if (hipHold != null)
+            {
+                hipHold.xMotion = hipHold.yMotion = hipHold.zMotion = ConfigurableJointMotion.Free;
+                hipHold.angularXMotion = hipHold.angularYMotion = hipHold.angularZMotion = ConfigurableJointMotion.Free;
+                hipHold.xDrive = hipHold.yDrive = hipHold.zDrive = none;
+            }
+
+            // (Its planted feet are still held where they stand: a body knocked over goes over about its feet, which
+            // have its weight on them and the ground's grip, until it has gone far enough to take them with it.)
+        }
+
+        /// <summary>Falling: the planted feet let go (the body has gone over far enough to take them with it).</summary>
+        public void LetFeetGo()
+        {
+            var none = new JointDrive { positionSpring = 0f, positionDamper = 0f, maximumForce = 0f };
+            for (int f = 0; f < 2; f++)
+            {
+                if (pins[f] != null && pinned[f])
+                {
+                    pinned[f] = false;
+                    pinJoints[f].xDrive = pinJoints[f].yDrive = pinJoints[f].zDrive = none;
+                }
+            }
+        }
+
+        /// <summary>Falling: a foot is still held where it stood.</summary>
+        public bool FeetHeld => pinned[0] || pinned[1];
+
+        /// <summary>The body taken up again where it lies (it gets up): held to the pose as a standing body is, its hips held where the pose has them.</summary>
+        public void TakeUp()
+        {
+            Falling = false;
+            GroundStops(false);
+            var pelvis = anim.Part(PartId.Pelvis);
+            rootWas = pelvis.position;
+            rootTurnWas = pelvis.rotation;
+            carrier.position = rootWas;
+            carrier.rotation = rootTurnWas;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                links[i].useGravity = !Weightless;
+                slack[i] = Quaternion.identity;
+                if (i > 0)
+                {
+                    var local = Quaternion.Inverse(anim.Part(parts[parent[i]]).rotation) * anim.Part(parts[i]).rotation;
+                    was[i] = now[i] = JointMath.TurnVectorNear(JointMath.TurnVector(local), Where(links[i], links[parent[i]].transform, Quaternion.identity));
+                    SetDrives(i);
+                }
+            }
+
+            foreach (var g in grips)
+            {
+                g.Link.useGravity = !Weightless;
+            }
+
+            if (hipHold != null)
+            {
+                hipHold.angularXMotion = hipHold.angularYMotion = hipHold.angularZMotion = ConfigurableJointMotion.Locked;
+                if (Supported)
+                {
+                    SupportHips();
+                }
+                else
+                {
+                    hipHold.xMotion = hipHold.yMotion = hipHold.zMotion = ConfigurableJointMotion.Locked;
+                }
+            }
+        }
+
+        /// <summary>The fall's pose read: where each joint is drawn to over the coming physics steps.</summary>
+        private void BeginFallStep(float dt)
+        {
+            for (int i = 1; i < parts.Length; i++)
+            {
+                var local = Quaternion.Inverse(anim.Part(parts[parent[i]]).rotation) * anim.Part(parts[i]).rotation;
+                now[i] = JointMath.TurnVectorNear(JointMath.TurnVector(local), was[i]);
+                // (No faster than a limb is moved by its own muscles: a pose that jumps is gone to, not whipped to.)
+                rate[i] = known && dt > 1e-6f ? Vector3.ClampMagnitude(TurnBetween(was[i], now[i]) / dt, 12f) : Vector3.zero;
+            }
+
+            known = true;
+            if ((links[0].transform.position - groundAt).sqrMagnitude > 3f * 3f)
+            {
+                ClearOfGround();
+            }
+        }
+
+        private void SubstepFalling(int k, int n)
+        {
+            float begun = (k - 1) / (float)n;
+            // (A falling body's limbs go to their pose as fast as a person moves a limb, not as fast as a clip is followed.)
+            float standingReturn = MostReturn;
+            MostReturn = FallReturn;
+            carrier.MovePosition(links[0].transform.position);
+            carrier.MoveRotation(links[0].transform.rotation);
+            Vector3 sign = ArticulationConventions.TargetSign;
+            for (int i = 1; i < parts.Length; i++)
+            {
+                Vector3 at = Where(links[i], links[parent[i]].transform, Quaternion.identity);
+                Vector3 asked = JointMath.TurnVectorNear(Vector3.Lerp(was[i], now[i], begun), at);
+                float off = Quaternion.Angle(JointMath.FromTurnVector(at), JointMath.FromTurnVector(asked)) * Mathf.Deg2Rad;
+                var part = rig.Part(parts[i]);
+                float past = JointMath.PastLimits(part.JointTurn(links[parent[i]].transform.rotation, links[i].transform.rotation), part.limits, out _, out _, out _);
+                // (A person's muscle at its tone; past what the joint turns, all it has. Not by how far it is from the
+                // pose: a pose a long way off, the legs' fold as the fall begins, was then gone to with six times a
+                // person's strength, and the folding legs threw the body at the ground faster than it falls.)
+                float edge = Mathf.InverseLerp(2f, 12f, past);
+                float hold = PersonStrength(parts[i]) * bodyScale * Mathf.Lerp(Mathf.Max(0.01f, Tone * ToneOf(parts[i])), FallHolds, edge * edge * (3f - 2f * edge));
+                if (k == 1)
+                {
+                    if (off * Mathf.Rad2Deg > FallOffMost)
+                    {
+                        FallOffMost = off * Mathf.Rad2Deg;
+                        FallOffMostPart = parts[i];
+                    }
+
+                    FallEdges += edge > 0.5f ? 1 : 0;
+                }
+
+                if (fallHold[i] < 0f || Mathf.Abs(hold - fallHold[i]) > 0.03f * fallHold[i])
+                {
+                    fallHold[i] = hold;
+                    for (int axis = 0; axis < 3; axis++)
+                    {
+                        links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, hold);
+                    }
+                }
+
+                var none = Quaternion.identity;
+                Ask(links[i], asked, ref none, float.MaxValue, 0f, at, rate[i], Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)), hold, sign);
+            }
+
+            MostReturn = standingReturn;
+
+            if (k == n)
+            {
+                var pelvis = anim.Part(PartId.Pelvis);
+                for (int i = 1; i < parts.Length; i++)
+                {
+                    was[i] = now[i];
+                }
+
+                rootWas = pelvis.position;
+                rootTurnWas = pelvis.rotation;
+            }
+        }
+
+        /// <summary>A link's speed (m/s; zero if the body has no such part).</summary>
+        public Vector3 SpeedOf(PartId id)
+        {
+            int i = Array.IndexOf(parts, id);
+            return i >= 0 ? links[i].linearVelocity : Vector3.zero;
+        }
+
+        /// <summary>A part sent on at once by a change of speed (m/s): what throws a body that is let go.</summary>
+        public void Send(PartId id, Vector3 speed)
+        {
+            int i = Array.IndexOf(parts, id);
+            if (i >= 0)
+            {
+                links[i].AddForce(speed, ForceMode.VelocityChange);
+            }
+        }
+
+        /// <summary>The engine has thrown a falling body out of the world: a part of it nowhere, or further than <paramref name="most"/> from <paramref name="from"/>.</summary>
+        public bool Gone(Vector3 from, float most)
+        {
+            foreach (var link in links)
+            {
+                Vector3 at = link.transform.position;
+                if (float.IsNaN(at.x) || float.IsNaN(at.y) || float.IsNaN(at.z) || (at - from).sqrMagnitude > most * most)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // ---- A blow's force on the body (the hit force) ---------------------------------------------------------------
 
         /// <summary>The share of a blow's force its neighbours in the body take, and theirs (the upper arms and head of a chest struck; the forearms).</summary>
@@ -561,7 +838,31 @@ namespace PhysicsBattler.Authority
                 {
                     if (c != null)
                     {
-                        Physics.IgnoreCollision(c, ground, true);
+                        Physics.IgnoreCollision(c, ground, !groundStops);
+                    }
+                }
+            }
+        }
+
+        private bool groundStops;
+
+        /// <summary>The ground stops the body and what it holds (a body let go to fall lands on it), or does not (one on its feet, see <see cref="ClearOfGround"/>).</summary>
+        private void GroundStops(bool stops)
+        {
+            groundStops = stops;
+            ClearOfGround();
+            foreach (var ground in grounds)
+            {
+                if (ground == null)
+                {
+                    continue;
+                }
+
+                foreach (var c in colliders)
+                {
+                    if (c != null)
+                    {
+                        Physics.IgnoreCollision(c, ground, !stops);
                     }
                 }
             }
@@ -1225,6 +1526,12 @@ namespace PhysicsBattler.Authority
         /// <param name="dt">The game step (seconds).</param>
         public void BeginStep(float dt)
         {
+            if (Falling)
+            {
+                BeginFallStep(dt);
+                return;
+            }
+
             // (A pose that jumps: a body turned at once onto another enemy, moved at once. Carried there in one game
             // step the whole upper body would be swung through whatever stands about it; it is put there instead.)
             var pelvis = anim.Part(PartId.Pelvis);
@@ -1335,6 +1642,12 @@ namespace PhysicsBattler.Authority
         /// <param name="step">The whole game step (seconds).</param>
         public void Substep(int k, int n, float step)
         {
+            if (Falling)
+            {
+                SubstepFalling(k, n);
+                return;
+            }
+
             float share = k / (float)n;
             // (Where the pose has a joint as this physics step begins: what the joint is measured against. Where
             // the pose has it by the step's end is what its speed is for; measured against that, a joint the

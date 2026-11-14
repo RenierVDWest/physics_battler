@@ -191,6 +191,18 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A fallen fighter gets up from the pose it is really lying in, without first snapping into a tidy lying pose; lopsided, with one hand on the ground and the other arm free, up through one knee, as a fighter is taught to stand up; by one of three routes (from its back, its front or a side); turned toward its enemy by up to 35 degrees while still on the ground; and each get-up a little faster or slower than the last, so fighters felled together do not rise in step. It takes as long as before on average. Off: the get-up as it was before 14 November (five mirror-image poses from a tidy lying pose).")]
         public bool getUpsAreNatural = true;
 
+        [Tooltip("A fighter that goes down falls in the one physical body it has: its hips are let go and it falls as the body it was, its muscles pulling it toward a pose that gets low, reaches for the ground and keeps the head off it, with about a person's strength (enough to hold a limb out, not to stop the body's weight landing on it). The dead get a start and then go limp. A body thrown much faster than its legs can catch goes down faster. Off: the physical body is thrown away at the fall and a limp ragdoll takes its place, as before 14 November.")]
+        public bool fallsKeepTheBody = true;
+
+        [Tooltip("How much of a person's strength a falling body's muscles work with on the way down. 1: a person's. 0: limp, a ragdoll in the one body. Over 1: stronger than a person, the pose held stiffly. Once it has landed it eases to 0.4 of this.")]
+        [Range(0f, 2f)] public float fallMuscle = 1f;
+
+        [Tooltip("A falling fighter keeps its head away from the ground: chin to the chest going backward, lifted going forward, tipped away going to a side. Off: the neck is left as it was.")]
+        public bool fallsProtectTheHead = true;
+
+        [Tooltip("A falling fighter's arms reach for the ground it is going to, elbows a little bent, the hands going to the ground when they can reach it. Off: the arms are held a little out from the sides.")]
+        public bool fallsReachForTheGround = true;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -608,6 +620,10 @@ namespace PhysicsBattler.Locomotion
             LocoBody.PivotsOnBall = feetPivotOnTheBall;
             ClipFighter.PhysicalLegs = legsArePhysical;
             ClipFighter.NaturalGetUps = getUpsAreNatural;
+            ClipFighter.OneBodyFalls = fallsKeepTheBody;
+            ClipFighter.FallMuscle = Mathf.Max(0f, fallMuscle);
+            FallPose.ProtectsHead = fallsProtectTheHead;
+            FallPose.Reaches = fallsReachForTheGround;
             ClipFighter.HeldHips = hipsAreHeldNotLocked;
             PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;
             PhysicsBattler.Authority.UpperBodyArticulation.HipMost = hipHoldStrength;

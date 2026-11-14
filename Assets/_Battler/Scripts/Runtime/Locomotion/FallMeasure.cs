@@ -96,7 +96,8 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>A step of the fall: where the fallen body's parts are against the ground at <paramref name="ground"/> (its height).</summary>
-        public void Step(UnitRig rig, float ground, float size, float dt)
+        /// <param name="speedOf">How fast a part is going (m/s), where the rig's own bodies do not say (a body that falls as one physical body); null: the rig's.</param>
+        public void Step(UnitRig rig, float ground, float size, float dt, System.Func<PartId, float> speedOf = null)
         {
             Lasted += dt;
             float within = TouchWithin * size;
@@ -110,13 +111,13 @@ namespace PhysicsBattler.Locomotion
             Reach(ref KneeAt, knee, within, "a knee");
             if (Reach(ref HipsAt, hips, within, "the hips"))
             {
-                HipsSpeed = Speed(rig, PartId.Pelvis);
+                HipsSpeed = speedOf != null ? speedOf(PartId.Pelvis) : Speed(rig, PartId.Pelvis);
             }
 
             Reach(ref TrunkAt, trunk, within, "the trunk");
             if (Reach(ref HeadAt, head, within, "the head"))
             {
-                HeadSpeed = Speed(rig, PartId.Head);
+                HeadSpeed = speedOf != null ? speedOf(PartId.Head) : Speed(rig, PartId.Head);
             }
 
             var pelvis = rig.Part(PartId.Pelvis);
