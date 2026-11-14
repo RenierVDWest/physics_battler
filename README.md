@@ -3988,7 +3988,8 @@ past the front one, then the cut); the thrust does it standing, on the ball of t
   time, drive time, back time; hips lead, arm lags. Six to start from: Plain, Heavy, Quick, Brawler, Low, Whip.
 - **The aim.** Every moment of the cut at which the blade is still fast is tried as the moment to land. For each,
   the hips are lowered and the chest leaned for the target's height, the lunge stretched or shortened for its
-  distance (0.3 to 1.8 times), the body turned over the wind-up for its line (no more than 50 degrees), the wrist
+  distance (0.3 to 1.8 times), the body turned over the wind-up for its line (no more than 50 degrees, about its
+  planted foot), the wrist
   steers the last of it, and the sword hand makes up what is left. Each of these costs something; the moment that
   costs least is taken, and of the recordings the one that costs least.
 - **The legs can be another recording's.** The chest and arms of one blow on the hips, legs, steps and travel of
@@ -4008,10 +4009,10 @@ With the switch off it is the old fight blow for blow.
 
 **Measured** (headless, a Medium with sword and shield 1.5 m from the target, each of the 19 spots twice).
 
-- **As posed, the blade's striking part passes 4 cm from the spot at the middle, 14 at the worst.** The made
+- **As posed, the blade's striking part passes 4 cm from the spot at the middle, 17 at the worst.** The made
   clip's own blade is on the spot to the centimetre where no hand move is needed (`attacks`).
-- **On an open target 20 of 38 land on the spot asked for** (the strike clips: 5 of 19 from 1.4 m; the built
-  blows: 5 of 19 from 1.05 m). The rest land on a neighbour, 17 cm away at the middle: the blade as seen trails its pose by 40 to 60 cm
+- **On an open target 21 of 38 land on the spot asked for** (the strike clips: 5 of 19 from 1.4 m; the built
+  blows: 5 of 19 from 1.05 m). The rest land on a neighbour, 18 cm away at the middle: the blade as seen trails its pose by 40 to 60 cm
   at speed and meets a nearer part on the way in. Against sword and shield 27 of 38 are stopped by the shield,
   against a sword 27 of 38 are parried: nothing yet picks the open line.
 - **Further out**: the thrust on the forehand's lunge, from 2.0 m, travels 0.5 m and passes 1 to 8 cm from the
@@ -4020,9 +4021,10 @@ With the switch off it is the old fight blow for blow.
 - **Asked to land at a set moment**, blows met something 0.47 to 0.58 s after when asked for 0.5 s (0.52 at the
   middle), 0.87 to 0.97 s for 0.9 s, 1.08 to 1.27 s for 1.2 s (1.20 at the middle). The early and late ones are
   blows that met another part on the way, and a thrust, whose wind-up is short and stretches only so far.
-- **The feet** slide a few centimetres more in a made attack than in its recording (the recorded forehand's back
-  foot drags 9 cm; aimed at the belly, 12), except the back foot when the body is turned a long way over the
-  wind-up (31 cm for a 35 degree turn): the turn is about the body's middle, not about the planted foot.
+- **The feet** stay planted as the recording's do. A body turned to bring its blow onto a line turns about the
+  foot that is planted through the wind-up, not about its own middle (turned about its middle, a 35 degree turn
+  slid the back foot 31 cm; about the foot, 9 cm, where the recorded forehand's back foot itself drags 9). A lunge
+  stretched to reach drags its back foot that much further, as a longer lunge does.
 
 **In the aim test** (key 7): Blows cycles made, built, clips. Blow and Legs choose the recording and whose legs;
 Lands in sets the moment; the Style buttons and the Style levers set the style. Press a part.
@@ -4041,7 +4043,8 @@ no plain low cut, overhead chop or descending backhand yet, and low parts are re
 forehand or a rising cut; the thrust's recorded hand would point this sword up and back, so a thrust's blade is
 turned onto its line in code; the rising cut's arm is past the rig's own shoulder range for part of its swing (as
 its recording is), more so with a big arm swing (at 1.3 the arm is 21 degrees past range at the middle of a
-blow, and the arm as seen falls behind); a turn of more than about 20 degrees twists the planted feet. Every
+blow, and the arm as seen falls behind); a body turned a long way (the most is 50 degrees) turns on its planted
+foot as on a pivot, the foot itself not turning. Every
 style ran the nineteen spots with nothing thrown, the pose's blade 4 to 5 cm from the spot at the middle.
 
 

@@ -319,7 +319,11 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How much of the aim's turn is in at a time of the recording: all of it by the time the drive begins, so the lunge goes the way the blow does.</summary>
         private static float TurnShare(AttackScore score, float time) => Smooth(0f, Mathf.Max(0.05f, score.Drive / score.Rate), time);
 
-        /// <summary>The root's place at a time of the recording with the aim's turn coming in as it goes (the frame the attack began in): each stretch of its own travel turned by as much of the turn as is in by then.</summary>
+        /// <summary>
+        /// The root's place at a time of the recording with the aim's turn coming in as it goes (the frame the attack
+        /// began in): each stretch of its own travel turned by as much of the turn as is in by then, and the whole
+        /// carried round the planted foot (<see cref="AttackScore.Pivot"/>).
+        /// </summary>
         private static Vector3 RootAt(AttackScore score, float far, float turn, float time)
         {
             Vector3 at = Vector3.zero;
@@ -338,7 +342,9 @@ namespace PhysicsBattler.Locomotion
                 at += Quaternion.Euler(0f, turn, 0f) * ((RootOf(score, time) - score.Root[whole]) * far);
             }
 
-            return at;
+            // (The turn is about the planted foot, not about the body's middle: the root is carried round that foot, so
+            // the foot stays where it stands and the body swings about it.)
+            return at + score.Pivot - Quaternion.Euler(0f, turn * TurnShare(score, time), 0f) * score.Pivot;
         }
 
         private static Vector3 RootOf(AttackScore score, float time)

@@ -455,6 +455,28 @@ namespace PhysicsBattler.Locomotion
             }
 
             Marks(out Drive, out Follow, out Plain);
+            Pivot = PlantedFoot();
+        }
+
+        /// <summary>
+        /// Where the foot the body turns about stands as the blow begins (the frame the clip began in, on the ground):
+        /// the foot that is down for most of the wind-up; of two as much down, the one behind. A body turned to bring
+        /// its blow onto a line turns about this foot (<see cref="AttackMaker"/>), so it stays where it is planted.
+        /// </summary>
+        public readonly Vector3 Pivot;
+
+        private Vector3 PlantedFoot()
+        {
+            int left = 0, right = 0;
+            for (int f = 0; f <= Drive && f < Frames.Length; f++)
+            {
+                left += (Contacts[f * 2] & LocoContact.Down) != 0 ? 1 : 0;
+                right += (Contacts[f * 2 + 1] & LocoContact.Down) != 0 ? 1 : 0;
+            }
+
+            Vector3 l = Frames[0].AnkleL, r = Frames[0].AnkleR;
+            Vector3 foot = left > right + 1 ? l : right > left + 1 ? r : l.z < r.z ? l : r;
+            return new Vector3(foot.x, 0f, foot.z);
         }
 
         /// <summary>The marks read off the blade's speed and the feet: when the drive begins, when the blow is carried through, and whether it is a plain blow.</summary>
@@ -565,6 +587,7 @@ namespace PhysicsBattler.Locomotion
             Drive = upper.Drive;
             Follow = upper.Follow;
             Plain &= upper.Plain && legs.Plain;
+            Pivot = PlantedFoot();
         }
 
         private static float Share(int f, int from, int to, int legsFrom, int legsTo) => to <= from ? legsTo : Mathf.Lerp(legsFrom, legsTo, (f - from) / (float)(to - from));
