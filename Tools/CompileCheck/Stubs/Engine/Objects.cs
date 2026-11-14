@@ -259,6 +259,19 @@ namespace UnityEngine
         private Transform parentTransform;
         private readonly List<Transform> children = new List<Transform>();
 
+        public bool IsChildOf(Transform other)
+        {
+            for (var t = this; t != null; t = t.parentTransform)
+            {
+                if (t == other)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public Vector3 localPosition { get; set; }
         public Quaternion localRotation { get; set; } = Quaternion.identity;
         public Vector3 localScale { get; set; } = Vector3.one;

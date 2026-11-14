@@ -230,6 +230,10 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("What a body holds is solid while it lies as a ragdoll. A fighter with a limb cut off, alive or dead, falls as a ragdoll, not in its one body; its sword and its shield are then stopped by the ground and by other bodies, and lie on the ground with it (they are not stopped by its own body). When it gets up they are as in any standing hand again. Off: as before, what a ragdoll held was stopped by nothing, and a sword hung from a dead hand straight down through the ground (84 cm under it in a test fight) and a shield lay 30 cm into it.")]
         public bool ragdollsHoldSolidThings = true;
 
+        [Header("Aimed attacks (the plan \"Aimed attacks\")")]
+        [Tooltip("The part of a body a blow lands on turns red at once and fades back to its own colour over a second: the part really struck, not the part aimed at, so a blow that lands on the wrong part shows as the wrong part turning red. A blow stopped by a shield or a sword tints nothing. It changes only what is drawn, nothing about the fight. Off: no tint, as before.")]
+        public bool struckPartsFlashRed = true;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -823,6 +827,7 @@ namespace PhysicsBattler.Locomotion
             FallPose.HandsClearOfTrunk = fallsArmsStayOutOfTheBody;
             FallPose.ShieldKeptBeforeChest = fallsShieldKeptBeforeTheChest;
             ClipFighter.RagdollsHoldSolidThings = ragdollsHoldSolidThings;
+            PhysicsBattler.Units.HitFlashes.On = struckPartsFlashRed;
             ClipFighter.ThrownBodiesTuck = thrownBodiesTuck;
             ClipFighter.HeldHips = hipsAreHeldNotLocked;
             PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;

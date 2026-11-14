@@ -104,6 +104,16 @@ namespace UnityEngine
     public class Shader : Object
     {
         public static Shader Find(string name) => null;
+        private static readonly System.Collections.Generic.Dictionary<string, int> ids = new System.Collections.Generic.Dictionary<string, int>();
+        public static int PropertyToID(string name)
+        {
+            if (!ids.TryGetValue(name, out int id))
+            {
+                ids[name] = id = ids.Count + 1;
+            }
+
+            return id;
+        }
     }
 
     public class Material : Object
@@ -114,6 +124,16 @@ namespace UnityEngine
         public void SetColor(string name, Color value) { }
         public void SetFloat(string name, float value) { }
         public Color GetColor(string name) => default;
+        public Color GetColor(int id) => default;
+        public bool HasProperty(int id) => false;
+        public bool HasProperty(string name) => false;
+    }
+
+    public class MaterialPropertyBlock
+    {
+        public void Clear() { }
+        public void SetColor(int id, Color value) { }
+        public void SetColor(string name, Color value) { }
     }
 
     public class Texture : Object { }
@@ -137,6 +157,8 @@ namespace UnityEngine
         public bool enabled { get; set; } = true;
         public Material sharedMaterial { get; set; }
         public Material[] sharedMaterials { get; set; } = new Material[0];
+        public void SetPropertyBlock(MaterialPropertyBlock block) { }
+        public void SetPropertyBlock(MaterialPropertyBlock block, int materialIndex) { }
         public UnityEngine.Rendering.ShadowCastingMode shadowCastingMode { get; set; }
         public bool receiveShadows { get; set; } = true;
     }
@@ -334,7 +356,7 @@ namespace UnityEngine
         public static void RotateAroundPivot(float angle, Vector2 pivotPoint) { }
     }
 
-    public enum KeyCode { None = 0, Space = 32, Comma = 44, Period = 46, Alpha1 = 49, Alpha2 = 50, Alpha3 = 51, Alpha4 = 52, Alpha5 = 53, Alpha6 = 54, A = 97, B = 98, C = 99, D = 100, E = 101, F = 102, G = 103, H = 104, I = 105, J = 106, K = 107, L = 108, M = 109, N = 110, O = 111, P = 112, Q = 113, R = 114, S = 115, T = 116, U = 117, V = 118, W = 119, X = 120, Y = 121, Z = 122, LeftShift = 304 }
+    public enum KeyCode { None = 0, Space = 32, Comma = 44, Period = 46, Alpha1 = 49, Alpha2 = 50, Alpha3 = 51, Alpha4 = 52, Alpha5 = 53, Alpha6 = 54, Alpha7 = 55, A = 97, B = 98, C = 99, D = 100, E = 101, F = 102, G = 103, H = 104, I = 105, J = 106, K = 107, L = 108, M = 109, N = 110, O = 111, P = 112, Q = 113, R = 114, S = 115, T = 116, U = 117, V = 118, W = 119, X = 120, Y = 121, Z = 122, LeftShift = 304 }
 
     public static class Input
     {

@@ -206,7 +206,7 @@ namespace PhysicsBattler.Battle
                     unit.CircleOpponent = false;
                     Vector3 back = Flat(unit.DummySpot - unit.Root.position);
                     float far = back.magnitude;
-                    Steer(units, unit, plan, far > DummyBackFrom * unit.Body.SizeFactor ? back / far * Mathf.Min(unit.WalkSpeed, 2f * far) : Vector3.zero, dt);
+                    Steer(units, unit, plan, far > (unit.DummyHolds > 0f ? unit.DummyHolds : DummyBackFrom) * unit.Body.SizeFactor ? back / far * Mathf.Min(unit.WalkSpeed, 2f * far) : Vector3.zero, dt);
                     if (unit.DummyFace.HasValue)
                     {
                         unit.FacePoint(unit.DummyFace.Value);

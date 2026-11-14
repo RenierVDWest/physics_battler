@@ -3582,6 +3582,40 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
+        /// The best a recorded strike can do at a point asked for (the plan "Aimed attacks", step 0: today's numbers):
+        /// of its strikes, the one that comes nearest <paramref name="point"/> with its turn, its lunge and its arm's
+        /// pull, played aimed at that point. How far it is expected to miss by (<paramref name="miss"/>, metres; 0: it
+        /// reaches). Null with no strikes.
+        /// </summary>
+        public LocoClip StrikeNearest(ClipFighter target, Vector3 point, out float miss)
+        {
+            miss = 0f;
+            if (StrikeClips.Count == 0)
+            {
+                return null;
+            }
+
+            KeepOff(target);
+            LocoClip best = null;
+            float least = float.MaxValue, leastBefore = float.MaxValue;
+            foreach (var clip in StrikeClips)
+            {
+                float after = Poser.MissAfterPull(clip, point);
+                float before = Poser.MissBeforePull(clip, point, 0f, Loco.Position, Loco.Facing);
+                if (after < least - 1e-4f || (Mathf.Abs(after - least) <= 1e-4f && before < leastBefore))
+                {
+                    best = clip;
+                    least = after;
+                    leastBefore = before;
+                }
+            }
+
+            miss = least;
+            Poser.PlayStrike(best, point);
+            return best;
+        }
+
+        /// <summary>
         /// Plays the combo <paramref name="first"/> is in at <paramref name="target"/> (Bam! Bam! BAM!: <paramref name="variant"/>
         /// picks among its combos as good as its best), each blow aimed at its part nearest the strike's height. Its
         /// combo player is made the first time. False when it has no follow-on: then nothing plays.

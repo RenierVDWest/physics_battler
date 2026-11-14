@@ -43,6 +43,9 @@ namespace PhysicsBattler.Units
         /// <summary>Where a target dummy stands (world).</summary>
         public Vector3 DummySpot;
 
+        /// <summary>A target dummy walks back to its spot once it is this far off it (metres at a Medium's size); 0: the fight loop's own (<see cref="PhysicsBattler.Battle.FightLoop.DummyBackFrom"/>). The aim test holds its two closer, so the distance asked for is the distance struck from.</summary>
+        public float DummyHolds;
+
         /// <summary>A target dummy faces this point (the sandbox's tube test turns its targets); null: the nearest enemy, as the target test has it.</summary>
         public Vector3? DummyFace;
 
@@ -379,7 +382,8 @@ namespace PhysicsBattler.Units
             hits.Comboing = () => Clip.Combo != null && Clip.Combo.Playing && Clip.Combo.Cores;
             hits.Struck += OnClipStruck;
             hits.IsAlly = body => body != null && body.FightUnit != null && body.FightUnit != this && body.FightUnit.Team == Team;
-            Clip.Follow = clip => ClipTarget != null && ClipTarget.Clip != null && ClipTarget.IsAlive ? Clip.AimAt(ClipTarget.Clip, clip) : (Vector3?)null;
+            Clip.Follow = clip => ClipTarget != null && ClipTarget.Clip != null && ClipTarget.IsAlive
+                ? (ClipAimSpot.HasValue ? AimSpots.Point(ClipTarget.Clip, ClipAimSpot.Value) : Clip.AimAt(ClipTarget.Clip, clip)) : (Vector3?)null;
             Clip.NextComboTarget = NextInCombo;
             Clip.ComboTurned -= OnComboTurned;
             Clip.ComboTurned += OnComboTurned;
@@ -711,6 +715,7 @@ namespace PhysicsBattler.Units
             }
 
             ClipTarget = target;
+            ClipAimSpot = null;
             comboStruck.Clear();
             comboStruck.Add(target);
             string what;
@@ -729,6 +734,38 @@ namespace PhysicsBattler.Units
             }
 
             ClipStrikeStarted?.Invoke(this, what, target);
+            return true;
+        }
+
+        /// <summary>The spot on its target the blow under way was asked for (the aim test), or null: a blow of the fight's, at whatever its clip reaches.</summary>
+        public AimSpot? ClipAimSpot { get; private set; }
+
+        /// <summary>
+        /// One blow at one spot on <paramref name="target"/> (the plan "Aimed attacks", step 0: with the strikes there
+        /// are today, the one that comes nearest it, aimed at the spot and not at the hips, chest or face). False when
+        /// it is busy or has no strikes. <paramref name="what"/>: the strike, and how far it expects to miss.
+        /// </summary>
+        public bool AimStrike(UnitController target, AimSpot spot, out string what, out float miss)
+        {
+            what = "";
+            miss = 0f;
+            if (Clip == null || Clip.Strikes == null || Clip.Busy || !CanAct || target == null || target.Clip == null || !target.IsAlive)
+            {
+                return false;
+            }
+
+            var clip = Clip.StrikeNearest(target.Clip, AimSpots.Point(target.Clip, spot), out miss);
+            if (clip == null)
+            {
+                return false;
+            }
+
+            ClipTarget = target;
+            ClipAimSpot = spot;
+            comboStruck.Clear();
+            comboStruck.Add(target);
+            what = clip.Name;
+            ClipStrikeStarted?.Invoke(this, $"{clip.Name} at its {AimSpots.Name(spot)}{(miss > 0.005f ? $" (expected to miss by {100f * miss:0} cm)" : "")}", target);
             return true;
         }
 

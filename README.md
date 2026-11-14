@@ -1518,7 +1518,7 @@ R resets the test; "Back to the battle" returns to the units the scene's markers
 `FIGHT_TARGETS_HARMED=1`; the fight report then also says how far each target was driven off its spot.
 
 **The panel** (laid out afresh on 14 November: it had grown past the bottom of the screen, every control with
-its whole explanation beside it). Always there at the top: a bar of the four places (Walk lab, Battle, Targets, Tubes: where one is, and
+its whole explanation beside it). Always there at the top: a bar of the five places (Walk lab, Battle, Targets, Tubes, Aim: where one is, and
 a button to each of the others; the locomotion lab's panel has the same bar, so any of them is one press from
 any other, and the battle can go back to the lab, which it could not), pause, step, reset, the panel's size
 (− and +), the speed, and the recording.
@@ -1526,7 +1526,7 @@ Always there at the bottom: what the last thing pressed did, and a box that says
 does. Every control now shows only its name and its value; what it means is its tooltip, read in that box.
 Between them the sections, each folded shut or open by pressing its heading (kept between sessions): Fight and
 tests; Tube test (only in the tube test: falls on demand, a fall then a turn, blows on demand, the tube's own
-settings); Hits and hips; Falls and getting up; Moves on demand; Legs and feet; Other switches; Keys and camera (the list of keys). From the lab, 5 goes straight to the tube test as 1 does to
+settings); Aim test (only in the aim test, 7: a map of the body to ask a blow at each part, and what the last blow did); Hits and hips; Falls and getting up; Moves on demand; Legs and feet; Other switches; Keys and camera (the list of keys). From the lab, 5 goes straight to the tube test as 1 does to
 the target test. The sections scroll when they are taller than the screen, and the
 panel is never taller than the screen; over the panel the mouse's wheel scrolls it and does not zoom the camera. Not verified in Unity: the headless build only checks that it compiles.
 
@@ -3822,6 +3822,62 @@ on the way and not done here: getting up from its front, a kneeling knee's joint
 for 0.05 to 0.65 s (the get-up's pose has it there; the ground stops nothing of a body getting up); thrown to its
 right at 600 N·s (not tucked) a fighter's head comes down on the ground at 2.5 to 3 m/s; thrown backward at 650
 N·s and more a tucked body's head still comes down at 3.4 to 4.7 m/s.
+
+**Aimed attacks, step 0: the aim test, the red tint, and what today's blows do** (14 November; Combat Feel
+"Struck Parts Flash Red"; the plan "Aimed attacks"). Nothing about how anyone fights is changed: this is the place
+the new attacks will be built and judged in, and the numbers they have to beat.
+
+**The aim test** (the place bar's **Aim**, or **7**; `AimTest`, `AimSpots`). One swordsman facing one target that
+only stands there and takes no harm. Neither strikes by itself. The panel has a map of the body, nineteen spots:
+the sixteen parts, the neck and the two shoulders (left and right are the target's own). Pressing a spot asks the
+swordsman for one blow at it; **Again** repeats it; **Strike them all** goes through the nineteen, each asked once
+both are back on their spots. The target holds nothing, sword and shield, or a sword (**Holds**), stands 0.8 to
+2.6 m off (**Distance**, 1.4 m at first) and can be turned (**Turned**: 90 shows the swordsman its left side). For
+now a blow is the one of today's nine strike clips that reaches nearest the spot, aimed at it and kept on it as
+it plays (`UnitController.AimStrike`, `ClipFighter.StrikeNearest`).
+
+**The red tint** (`HitFlashes`). The part of a body a blow lands on turns red and fades back to its own colour
+over a second, in every place, the battle too: the part really struck, not the part aimed at. A blow stopped by a
+shield or a sword tints nothing. Only what is drawn changes (the tint is laid over the part's material and taken
+off again). The tick is in the panel under Hits and hips.
+
+**What each blow is measured by** (the panel's "The last blow", an `aim` line in the playtest log, and headless):
+what the blade met first, when, how fast and how far from the spot; whether that was the spot (a neck or a
+shoulder has no solid of its own: it counts when the blow lands within 12 cm of it on a part round it); the
+nearest the blade's striking part came to the spot before it met anything; how far its edge was turned off the
+way it was going there; the furthest the blade as seen was from where its pose had it, and from the path its pose
+took; and how far the swordsman's weight was outside his feet as the blow landed, and at the most.
+
+**Today's numbers** (headless, the nineteen spots once each from 1.4 m; `FIGHT_LINEUP=aim`):
+
+| the target | on the spot asked for | on another part | on a shield or a sword | on nothing |
+|---|---|---|---|---|
+| open hands, facing him | 5 | 13 | 0 | 1 |
+| open hands, its left side to him | 2 | 17 | 0 | 0 |
+| sword and shield | 0 | 5 | 12 | 2 |
+| a sword | 0 | 5 | 14 | 0 |
+
+- **Aim.** Against a target that does nothing, one blow in four lands on the part asked for (head, neck, chest,
+  left upper arm, left shin). The belly and the hips are struck on the left arm in front of them, the right arm's
+  spots on the head or the left arm, the feet not at all. Before it met anything the striking part of the blade
+  came within 37 cm of the spot at the middle and 98 cm at the worst.
+- **A guard stops everything.** Against a shield or a sword not one of nineteen lands where it was asked: today's
+  blows go at the guard, not round it.
+- **Timing cannot be chosen.** A blow meets something 0.18 to 1.13 s after it is asked (0.7 s at the middle); which
+  it is depends on the clip, not on any moment wanted.
+- **The edge** is 22 to 26 degrees off the way the blade is going, at the middle (0 is edge on).
+- **The body is behind its pose, on its path.** At the worst of a blow the blade as seen is about 50 cm from where
+  the pose has it, but only 11 to 14 cm off the path the pose took (27 to 47 cm at the worst): the body carries the
+  blow out along the line it was given, late. A blow timed to a moment will have to allow for that.
+- **Balance.** As the blow lands the swordsman's weight is 34 to 38 cm outside his feet at the middle (52 to 56 cm
+  at the worst): the clips' lunges are stretched to reach, and land before the front foot does.
+- Five of the nine clips are ever chosen (the forehand 8 or 9 times in 19).
+
+Headless: `FIGHT_LINEUP=aim`, with `FIGHT_AIMKIT=open|shield|sword`, `FIGHT_AIMDIST=1.4`, `FIGHT_AIMTURN=90`,
+`FIGHT_AIMROUNDS=2`; each blow is printed as it ends (`AIM ...`) and the report has the count. A regression fight
+(six for a minute, seed 5) comes out blow for blow as before. Not verified in Unity: the place, the panel's body
+map, the walk back to the spots, and the tint itself, which cannot be seen headless (the body's material has the
+colours the tint is laid over, `_BaseColor` and `_Color`; that it shows on the drawn body is untested).
 
 
 

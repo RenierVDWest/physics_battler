@@ -680,6 +680,10 @@ namespace PhysicsBattler.Locomotion
                 {
                     sandbox.WatchTargets();
                 }
+                else if (to == BattleSandbox.Place.Aim)
+                {
+                    sandbox.WatchAim();
+                }
                 else
                 {
                     sandbox.WatchFight();
@@ -1588,6 +1592,12 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.Alpha5))
             {
                 WatchTubes();
+                return;
+            }
+
+            if (SandboxInput.KeyPressed(KeyCode.Alpha7))
+            {
+                Leave(BattleSandbox.Place.Aim);
                 return;
             }
 

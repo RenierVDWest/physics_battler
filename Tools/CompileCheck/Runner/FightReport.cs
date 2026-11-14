@@ -474,6 +474,21 @@ internal static class FightReport
             lineup = new[] { new (string, Tile)[0], targets.ToArray() };
         }
 
+        // (The sandbox's aim test: FIGHT_LINEUP=aim sets one swordsman before one target that stands there, and asks him
+        // for one blow at each of the nineteen spots in turn. FIGHT_AIMKIT=open|shield|sword is what the target holds,
+        // FIGHT_AIMDIST=1.4 how far apart they stand, FIGHT_AIMTURN=90 how the target is turned (90: its left side to him),
+        // FIGHT_AIMROUNDS=3 goes through the spots three times.)
+        bool aimLineup = gang == "aim";
+        string aimKit = Environment.GetEnvironmentVariable("FIGHT_AIMKIT") ?? "open";
+        if (aimLineup)
+        {
+            lineup = new[]
+            {
+                new[] { ("Swordsman", new Tile(3, 2)) },
+                new[] { (aimKit == "shield" ? "Medium" : aimKit == "sword" ? "Swordsman" : "Open", new Tile(3, 5)) },
+            };
+        }
+
         if (gang == "crowd")
         {
             // (Many on the field: eight a side, of every kind. What the fight costs a step with sixteen.)
@@ -594,6 +609,30 @@ internal static class FightReport
             }
         }
 
+        PhysicsBattler.Sandbox.AimTest aim = null;
+        int aimRounds = 0;
+        if (aimLineup)
+        {
+            float Env(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+            float apart = Env("FIGHT_AIMDIST", PhysicsBattler.Sandbox.BattleSandbox.AimDistanceAtFirst), turned = Env("FIGHT_AIMTURN", 0f);
+            aimRounds = Mathf.Max(1, (int)Env("FIGHT_AIMROUNDS", 1f));
+            var attacker = units[0];
+            var target = units[1];
+            Vector3 targetSpot = grid.origin + new Vector3(0f, 0f, 0.5f * apart), attackerSpot = grid.origin + new Vector3(0f, 0f, -0.5f * apart);
+            Vector3 faces = Quaternion.Euler(0f, turned, 0f) * (attackerSpot - targetSpot).normalized;
+            target.Teleport(targetSpot, Mathf.Atan2(faces.x, faces.z) * Mathf.Rad2Deg);
+            attacker.Teleport(attackerSpot, BoardGrid.TeamYaw(0));
+            target.TargetDummy = attacker.TargetDummy = true;
+            target.Unharmed = attacker.Unharmed = true;
+            target.DummySpot = targetSpot;
+            attacker.DummySpot = attackerSpot;
+            target.DummyHolds = attacker.DummyHolds = PhysicsBattler.Sandbox.AimTest.HeldWithin;
+            target.DummyFace = Mathf.Abs(turned) > 0.5f ? targetSpot + faces * 5f : (Vector3?)null;
+            attacker.OnlyTarget = target;
+            aim = new PhysicsBattler.Sandbox.AimTest { Attacker = attacker, Target = target };
+            aim.Ended += blow => Console.WriteLine($"AIM {Time.time:0.00} {blow.Text}");
+        }
+
         var legWas = new Dictionary<(UnitController, int), Quaternion>();
         tubes = null;
         if (tubeLineup)
@@ -616,7 +655,7 @@ internal static class FightReport
             }
         }
 
-        var loop = new FightLoop(seed) { Grid = grid, Endless = targetTest || tubeLineup };
+        var loop = new FightLoop(seed) { Grid = grid, Endless = targetTest || tubeLineup || aimLineup };
         // (The plan "Bringing the lab into the fight", step 4: CLIP_FIGHT=1 moves the units as clip fighters, their
         // walk measured as the lab's is.)
         var feet = new Dictionary<UnitController, PhysicsBattler.Locomotion.LocoMeasures>();
@@ -817,6 +856,7 @@ internal static class FightReport
         float damageAll = 0f;
         void OnHit(HitReport h)
         {
+            aim?.OnHit(h, Time.time);
             if (h.Attacker == null) return;
             if (h.Struck != null && h.Result.Impulse.sqrMagnitude > 1e-6f)
             {
@@ -1083,6 +1123,18 @@ internal static class FightReport
                             }
                         }
                     }
+                }
+
+                if (aim != null)
+                {
+                    // (The aim test: the spots asked in turn once the two have stood a moment, each blow read as it goes.)
+                    if (aimRounds > 0 && paceAt >= 1.5f && aim.Waiting == 0 && !aim.Following)
+                    {
+                        aimRounds--;
+                        aim.OrderAll();
+                    }
+
+                    aim.Step(dt, Time.time);
                 }
 
                 if (tubes != null)
@@ -1434,6 +1486,15 @@ internal static class FightReport
                 sb.AppendLine("      the steering's velocity asked in guard with no clip playing, by speed (m/s at a Medium's size, share of the time): " + string.Join(", ", paceHist.Select((c, i) => $"{0.1f * i:0.0}: {100f * c / n:0}%")));
             }
             sb.Append(legs.Report());
+            if (aim != null)
+            {
+                sb.AppendLine($"    the aim test (a swordsman {Vector3.Distance(aim.Attacker.DummySpot, aim.Target.DummySpot):0.00} m from a target with {(aimKit == "shield" ? "sword and shield" : aimKit == "sword" ? "a sword" : "open hands")}): {aim.Tally()}");
+                foreach (var blow in aim.Blows)
+                {
+                    sb.AppendLine("        " + (blow.Done ? blow.Text : $"asked for the {PhysicsBattler.Locomotion.AimSpots.Name(blow.Spot)} with {blow.Strike}: not over when the fight ended"));
+                }
+            }
+
             if (dummyOff.Count > 0)
             {
                 sb.AppendLine("    the target test's targets, off their spots: " + string.Join("; ", units.Where(u => u.TargetDummy).Select(u =>

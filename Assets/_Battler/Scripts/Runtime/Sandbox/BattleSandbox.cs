@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using PhysicsBattler.Board;
 using PhysicsBattler.Combat;
 using PhysicsBattler.Diagnostics;
+using PhysicsBattler.Locomotion;
 using PhysicsBattler.Muscles;
 using PhysicsBattler.Rig;
 using PhysicsBattler.Units;
@@ -118,6 +119,7 @@ namespace PhysicsBattler.Sandbox
         /// <summary>From the locomotion lab straight to the tube test (the lab's 5), as <see cref="WatchFight"/> goes to the battle.</summary>
         public void WatchTubes()
         {
+            aimTest = false;
             targetTest = true;
             tubeTest = true;
             fight = true;
@@ -142,6 +144,7 @@ namespace PhysicsBattler.Sandbox
             Clear();
             targetTest = false;
             tubeTest = false;
+            aimTest = false;
             paused = false;
             Time.timeScale = 1f;
             message = "";
@@ -179,6 +182,7 @@ namespace PhysicsBattler.Sandbox
             Battle,
             Targets,
             Tubes,
+            Aim,
         }
 
         private static readonly (Place place, string name, string tip)[] Places =
@@ -187,6 +191,7 @@ namespace PhysicsBattler.Sandbox
             (Place.Battle, "Battle", "The battle laid out by the scene's markers: the two sides fight."),
             (Place.Targets, "Targets", "The target test (1): three attackers, each on a target that only stands there."),
             (Place.Tubes, "Tubes", "The tube test (5): the three targets alone, struck by tubes: falls and blows on demand."),
+            (Place.Aim, "Aim", "The aim test (7): one swordsman and one target that stands there. A blow is asked for one part of the body at a time, and the part it lands on turns red."),
         };
 
         private static GUIStyle placeStyle, placeNowStyle;
@@ -215,7 +220,7 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>Where this panel is now.</summary>
-        private Place PlaceNow => tubeTest ? Place.Tubes : targetTest ? Place.Targets : Place.Battle;
+        private Place PlaceNow => aimTest ? Place.Aim : tubeTest ? Place.Tubes : targetTest ? Place.Targets : Place.Battle;
 
         private void GoTo(Place place)
         {
@@ -233,12 +238,16 @@ namespace PhysicsBattler.Sandbox
                 case Place.Tubes:
                     TubeTestScene();
                     break;
+                case Place.Aim:
+                    AimTestScene();
+                    break;
             }
         }
 
         /// <summary>From the locomotion lab to the target test (the lab's 1), as <see cref="WatchFight"/> goes to the battle.</summary>
         public void WatchTargets()
         {
+            aimTest = false;
             targetTest = true;
             fight = true;
             WatchFight();
@@ -282,6 +291,7 @@ namespace PhysicsBattler.Sandbox
         private void OnEnable()
         {
             UnitController.Hit += OnHit;
+            HitFlashes.Ensure();
         }
 
         private void OnDisable()
@@ -297,6 +307,11 @@ namespace PhysicsBattler.Sandbox
         /// <summary>Heavy hits jolt the camera a little (the panel turns it off).</summary>
         private void OnHit(HitReport hit)
         {
+            if (aimTest)
+            {
+                Aim.OnHit(hit, Time.time);
+            }
+
             float impulse = hit.Result.Impulse.magnitude;
             if (orbitCamera != null && impulse > 70f)
             {
@@ -360,7 +375,7 @@ namespace PhysicsBattler.Sandbox
                 message = "No unit markers in the scene. Add a UnitSpawn (or run Physics Battler > Setup > Run Project Setup).";
             }
 
-            Note($"spawn: {units.Count} units on the {Grid.columns}x{Grid.rows} board{(targetTest ? $" (the target test: {(largeAttackers ? "Large" : "Medium")} attackers on {(largeTargets ? "Large" : "Medium")} targets)" : "")}");
+            Note($"spawn: {units.Count} units on the {Grid.columns}x{Grid.rows} board{(aimTest ? $" (the aim test: a swordsman {aimDistance:0.00} m from a target with {AimKits[aimTargetKit]})" : targetTest ? $" (the target test: {(largeAttackers ? "Large" : "Medium")} attackers on {(largeTargets ? "Large" : "Medium")} targets)" : "")}");
             if (PhysicsBattler.Locomotion.ClipFighter.PhysicalUpper)
             {
                 ArticulationConventions.EnsureProbed();
@@ -418,9 +433,110 @@ namespace PhysicsBattler.Sandbox
         {
             targetTest = true;
             tubeTest = false;
+            aimTest = false;
             fight = true;
             Spawn();
             message = "Target test: left to right, a target that does not block, one with sword and shield, one with a sword. R resets.";
+        }
+
+        // ---- The aim test: one swordsman, one target, a blow asked for one part at a time --------------------------------
+
+        private bool aimTest;
+        private int aimTargetKit;
+        private float aimDistance = AimDistanceAtFirst, aimTurned;
+        private AimSpot aimSpot = AimSpot.Chest;
+        private string aimLast = "";
+
+        /// <summary>The aim test's blows: asked, followed and counted.</summary>
+        public readonly AimTest Aim = new AimTest();
+
+        /// <summary>How far the aim test's swordsman stands from its target at first (metres at a Medium's size, root to root): about where today's strikes land.</summary>
+        public const float AimDistanceAtFirst = 1.4f;
+
+        private static readonly string[] AimKits = { "open hands", "sword and shield", "a sword" };
+
+        /// <summary>
+        /// The aim test (the plan "Aimed attacks"): instead of the battle, one swordsman facing one target that only
+        /// stands there (with nothing in its hands, with sword and shield, or with a sword; it takes no harm). Neither
+        /// strikes by itself. The panel's body map asks the swordsman for one blow at one part of the target; the part
+        /// the blade lands on turns red, and each blow is measured: what it met, how near the spot it passed, how true
+        /// its edge was, whether its feet held it.
+        /// </summary>
+        public void AimTestScene()
+        {
+            targetTest = true;
+            tubeTest = false;
+            aimTest = true;
+            fight = true;
+            Aim.Stop();
+            Spawn();
+            message = "Aim test: press a part of the body and the swordsman strikes at it. The part his blade lands on turns red. R resets.";
+        }
+
+        /// <summary>From the locomotion lab straight to the aim test, as <see cref="WatchFight"/> goes to the battle.</summary>
+        public void WatchAim()
+        {
+            targetTest = true;
+            tubeTest = false;
+            aimTest = true;
+            fight = true;
+            Aim.Stop();
+            WatchFight();
+            message = "Aim test: press a part of the body and the swordsman strikes at it. The part his blade lands on turns red. R resets.";
+        }
+
+        private void SpawnAim(WeaponDefinition sword, WeaponDefinition shield)
+        {
+            float half = 0.5f * aimDistance;
+            Vector3 targetSpot = Grid.origin + new Vector3(0f, 0f, half), attackerSpot = Grid.origin + new Vector3(0f, 0f, -half);
+            var target = SpawnUnit(BodySize.Medium, 1, targetSpot, "Target", aimTargetKit == 0 ? null : sword, aimTargetKit == 1 ? shield : null);
+            var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", sword, null);
+            Aim.Begin(attacker, target);
+            aimLast = "";
+            if (target == null || attacker == null)
+            {
+                return;
+            }
+
+            // (Both stand on their spots and neither strikes by itself: the test asks for each blow.)
+            target.TargetDummy = attacker.TargetDummy = true;
+            target.Unharmed = attacker.Unharmed = true;
+            target.DummySpot = targetSpot;
+            attacker.DummySpot = attackerSpot;
+            target.DummyHolds = attacker.DummyHolds = AimTest.HeldWithin;
+            attacker.OnlyTarget = target;
+            PlaceAim();
+        }
+
+        /// <summary>The aim test's two put as far apart and the target turned as the panel has them: each walks to its spot.</summary>
+        private void PlaceAim()
+        {
+            if (Aim.Attacker == null || Aim.Target == null)
+            {
+                return;
+            }
+
+            float half = 0.5f * aimDistance;
+            Vector3 targetSpot = Grid.origin + new Vector3(0f, 0f, half), attackerSpot = Grid.origin + new Vector3(0f, 0f, -half);
+            Aim.Target.DummySpot = targetSpot;
+            Aim.Attacker.DummySpot = attackerSpot;
+            // (Turned 0 the target faces the swordsman; turned 90 it shows him its left side.)
+            Vector3 faces = Quaternion.Euler(0f, aimTurned, 0f) * (attackerSpot - targetSpot).normalized;
+            Aim.Target.DummyFace = Mathf.Abs(aimTurned) > 0.5f ? targetSpot + faces * 5f : (Vector3?)null;
+        }
+
+        private void AimAt(AimSpot spot)
+        {
+            aimSpot = spot;
+            Aim.Stop();
+            if (Aim.Order(spot, Time.time))
+            {
+                message = $"Aim test: a blow asked for the {AimSpots.Name(spot)} ({Aim.Now.Strike}).";
+            }
+            else
+            {
+                message = Aim.Following ? "Aim test: the last blow is still under way." : "Aim test: the swordsman can't strike just now (he is busy, or down).";
+            }
         }
 
         // ---- The tube test: the targets alone, each struck by a tube of a set weight and speed -------------------------
@@ -443,6 +559,7 @@ namespace PhysicsBattler.Sandbox
         {
             targetTest = true;
             tubeTest = true;
+            aimTest = false;
             fight = true;
             Spawn();
             tubesSpawnedAt = Time.time;
@@ -648,6 +765,7 @@ namespace PhysicsBattler.Sandbox
         {
             targetTest = false;
             tubeTest = false;
+            aimTest = false;
             Spawn();
             message = "";
         }
@@ -674,6 +792,12 @@ namespace PhysicsBattler.Sandbox
             if (sword == null || shield == null || (largeAttackers && club == null))
             {
                 message = "The target test takes its sword, shield and club from the scene's unit markers: one of them is missing.";
+            }
+
+            if (aimTest)
+            {
+                SpawnAim(sword, shield);
+                return;
             }
 
             var attackerBody = largeAttackers ? BodySize.Large : BodySize.Medium;
@@ -775,6 +899,14 @@ namespace PhysicsBattler.Sandbox
             {
                 StepFight();
                 StepTubes();
+                if (aimTest)
+                {
+                    Aim.Step(Time.fixedDeltaTime, Time.time);
+                    if (Aim.Now != null && Aim.Now.Done)
+                    {
+                        aimLast = Aim.Now.Lines;
+                    }
+                }
             }
         }
 
@@ -827,6 +959,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.Alpha4)) KnockLegTest();
             if (SandboxInput.KeyPressed(KeyCode.Alpha5)) TubeTestScene();
             if (SandboxInput.KeyPressed(KeyCode.Alpha6)) TubeHit();
+            if (SandboxInput.KeyPressed(KeyCode.Alpha7)) AimTestScene();
         }
 
         /// <summary>
@@ -1748,7 +1881,7 @@ namespace PhysicsBattler.Sandbox
 
         // (What the panel shows, as it was when the panel was last laid out: a press that changes it (a test begun, a
         // recording stopped) shows from the next layout, so every event draws the controls that were laid out for it.)
-        private bool shownTube, shownTarget, shownRecording, shownFeel;
+        private bool shownTube, shownTarget, shownAim, shownRecording, shownFeel;
         private string shownMessage = "";
 
         private PanelStyles panel;
@@ -1829,7 +1962,8 @@ namespace PhysicsBattler.Sandbox
             if (Event.current == null || Event.current.type == EventType.Layout)
             {
                 shownTube = tubeTest;
-                shownTarget = targetTest && !tubeTest;
+                shownAim = aimTest;
+                shownTarget = targetTest && !tubeTest && !aimTest;
                 shownRecording = recorder != null && recorder.Recording;
                 shownFeel = feel != null;
                 shownMessage = message ?? "";
@@ -1841,7 +1975,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             // ---- Always there: where one is, the clock and the recording ----
-            var goTo = PlaceBar(shownTube ? Place.Tubes : shownTarget ? Place.Targets : Place.Battle);
+            var goTo = PlaceBar(shownAim ? Place.Aim : shownTube ? Place.Tubes : shownTarget ? Place.Targets : Place.Battle);
             if (goTo.HasValue)
             {
                 GoTo(goTo.Value);
@@ -1888,6 +2022,11 @@ namespace PhysicsBattler.Sandbox
             if (shownTube)
             {
                 DrawTubeTest();
+            }
+
+            if (shownAim)
+            {
+                DrawAimTest();
             }
 
             DrawHitsAndHips(feel);
@@ -2018,6 +2157,115 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        private void DrawAimTest()
+        {
+            if (!Section("Aim test", true, "One blow asked for one part of the target. The part the blade lands on turns red; each blow is measured below and in the log."))
+            {
+                return;
+            }
+
+            Heading("Strike at", "Press a part and the swordsman strikes at it. Left and right are the target's own, so its right side is on your left as you face it.");
+            AimRow(AimSpot.Head);
+            AimRow(AimSpot.Neck);
+            AimRow(AimSpot.ShoulderR, AimSpot.Chest, AimSpot.ShoulderL);
+            AimRow(AimSpot.UpperArmR, AimSpot.Belly, AimSpot.UpperArmL);
+            AimRow(AimSpot.ForearmR, AimSpot.Hips, AimSpot.ForearmL);
+            AimRow(AimSpot.HandR, null, AimSpot.HandL);
+            AimRow(AimSpot.ThighR, AimSpot.ThighL);
+            AimRow(AimSpot.ShinR, AimSpot.ShinL);
+            AimRow(AimSpot.FootR, AimSpot.FootL);
+            GUILayout.Space(4f);
+            GUILayout.BeginHorizontal();
+            if (Press("Again", $"Another blow at the {AimSpots.Name(aimSpot)}.")) AimAt(aimSpot);
+            if (Press(Aim.Waiting > 0 ? $"Stop ({Aim.Waiting} to go)" : "Strike them all", "Every part in turn, one blow each, a second apart. Again stops it."))
+            {
+                if (Aim.Waiting > 0)
+                {
+                    Aim.Stop();
+                }
+                else
+                {
+                    Aim.OrderAll();
+                    message = "Aim test: every part in turn.";
+                }
+            }
+
+            GUILayout.EndHorizontal();
+
+            Heading("The target");
+            if (Press("Holds: " + AimKits[aimTargetKit], "What the target stands with: nothing (it does not block), sword and shield (it blocks), a sword (it parries). Sets the test out again."))
+            {
+                aimTargetKit = (aimTargetKit + 1) % AimKits.Length;
+                AimTestScene();
+            }
+
+            float distance = Mathf.Round(20f * Slide("Distance", $"{aimDistance:0.00} m", "How far the swordsman stands from the target, middle to middle. 1.4 m is about where today's strikes land. Both walk to their new places.", aimDistance, 0.8f, 2.6f)) / 20f;
+            float turned = Mathf.Round(Slide("Turned", $"{aimTurned:0}°", "How the target stands turned: 0 it faces the swordsman, 90 it shows him its left side, 180 its back, -90 its right side.", aimTurned, -180f, 180f) / 15f) * 15f;
+            if (!Mathf.Approximately(distance, aimDistance) || !Mathf.Approximately(turned, aimTurned))
+            {
+                aimDistance = distance;
+                aimTurned = turned;
+                PlaceAim();
+            }
+
+            Heading("The last blow", "What the blade met first, how near its striking part passed to the spot asked for, how far its edge was turned off the way it was going, how far the blade as seen was from where its pose had it, and whether the swordsman's weight stayed over his feet. Written to the log as an aim line.");
+            // (Both lines always drawn: a line that comes and goes between a frame's two passes upsets the panel.)
+            GUILayout.Label(aimLast.Length > 0 ? aimLast : "None yet.", Styles().Text);
+            GUILayout.Label(Aim.Blows.Count > 0 ? "So far: " + Aim.Tally() + "." : "", Styles().Text);
+        }
+
+        private void AimRow(AimSpot? left, AimSpot? middle = null, AimSpot? right = null)
+        {
+            GUILayout.BeginHorizontal();
+            // (One spot: in the middle. Two: side by side. Three: across.)
+            if (!middle.HasValue && !right.HasValue)
+            {
+                GUILayout.FlexibleSpace();
+                AimButton(left);
+                GUILayout.FlexibleSpace();
+            }
+            else if (!right.HasValue)
+            {
+                GUILayout.FlexibleSpace();
+                AimButton(left);
+                AimButton(middle);
+                GUILayout.FlexibleSpace();
+            }
+            else
+            {
+                AimButton(left);
+                if (middle.HasValue)
+                {
+                    AimButton(middle);
+                }
+                else
+                {
+                    GUILayout.Space(AimButtonWidth + 4f);
+                }
+
+                AimButton(right);
+            }
+
+            GUILayout.EndHorizontal();
+        }
+
+        private const float AimButtonWidth = 96f;
+
+        private void AimButton(AimSpot? spot)
+        {
+            if (!spot.HasValue)
+            {
+                return;
+            }
+
+            string name = AimSpots.Name(spot.Value);
+            name = char.ToUpper(name[0]) + name.Substring(1);
+            if (GUILayout.Button(new GUIContent(spot.Value == aimSpot ? "> " + name : name, $"One blow at the target's {AimSpots.Name(spot.Value)}."), GUILayout.Width(AimButtonWidth)))
+            {
+                AimAt(spot.Value);
+            }
+        }
+
         private void DrawTubeTest()
         {
             if (!Section("Tube test", true, "The targets struck by tubes: falls and blows on demand, and the tube's own settings."))
@@ -2082,6 +2330,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             // (The scene's Combat Feel sets these every frame, so the panel changes them there.)
+            feel.struckPartsFlashRed = Tick(feel.struckPartsFlashRed, "A struck part turns red", "The part of a body a blow lands on turns red and fades back over a second: the part really struck, not the part aimed at. A blow on a shield or a sword tints nothing. Off: no tint, as before.");
             feel.hitForce = Mathf.Round(4f * Slide("Hit force", $"{feel.hitForce:0.00}x", "An extra push with every blow that lands: the blow's own momentum times this, on the part struck and a share on the parts joined to it. 0: only the weapon's touch.", feel.hitForce, 0f, 6f)) / 4f;
             bool held = Tick(feel.hipsAreHeldNotLocked, "Hips held by a spring", "The hips are held to the pose by a spring, so a blow can move them. Off: locked to the pose, as before 14 November.");
             if (held != feel.hipsAreHeldNotLocked)
@@ -2259,7 +2508,7 @@ namespace PhysicsBattler.Sandbox
 
             GUILayout.Label($"Panel size {uiScale:0.0}x: the − and + at the top make it smaller and larger.", Styles().Text);
             Heading("Keys");
-            GUILayout.Label("R reset · F fight · T turn around\nP pause · . step · M mark the log\n1 targets · 5 tubes · 6 hit (the walk lab: the bar at the top)\n2 step back · 3 turn · 4 knock a leg\nB bystander · L launch · K sever · D ground · J shield\nG move gallery · H rhythm gallery", Styles().Text);
+            GUILayout.Label("R reset · F fight · T turn around\nP pause · . step · M mark the log\n1 targets · 5 tubes · 6 hit · 7 aim (the walk lab: the bar at the top)\n2 step back · 3 turn · 4 knock a leg\nB bystander · L launch · K sever · D ground · J shield\nG move gallery · H rhythm gallery", Styles().Text);
             Heading("Camera");
             GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.", Styles().Text);
             Heading("Joint probe");
