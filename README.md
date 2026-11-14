@@ -1526,7 +1526,7 @@ Always there at the bottom: what the last thing pressed did, and a box that says
 does. Every control now shows only its name and its value; what it means is its tooltip, read in that box.
 Between them the sections, each folded shut or open by pressing its heading (kept between sessions): Fight and
 tests; Tube test (only in the tube test: falls on demand, a fall then a turn, blows on demand, the tube's own
-settings); Aim test (only in the aim test, 7: a map of the body to ask a blow at each part, and what the last blow did); Hits and hips; Falls and getting up; Moves on demand; Legs and feet; Other switches; Keys and camera (the list of keys). From the lab, 5 goes straight to the tube test as 1 does to
+settings); Aim test (only in the aim test, 7: built blows or the strike clips, a blow's line and size, a map of the body to ask a blow at each part, and what the last blow did); Hits and hips; Falls and getting up; Moves on demand; Legs and feet; Other switches; Keys and camera (the list of keys). From the lab, 5 goes straight to the tube test as 1 does to
 the target test. The sections scroll when they are taller than the screen, and the
 panel is never taller than the screen; over the panel the mouse's wheel scrolls it and does not zoom the camera. Not verified in Unity: the headless build only checks that it compiles.
 
@@ -3878,6 +3878,79 @@ Headless: `FIGHT_LINEUP=aim`, with `FIGHT_AIMKIT=open|shield|sword`, `FIGHT_AIMD
 (six for a minute, seed 5) comes out blow for blow as before. Not verified in Unity: the place, the panel's body
 map, the walk back to the spots, and the tint itself, which cannot be seen headless (the body's material has the
 colours the tint is laid over, `_BaseColor` and `_Color`; that it shows on the drawn body is untested).
+
+**Aimed attacks, steps 1 and 2: blows built in code, the sword arm and the trunk** (14 November; Combat Feel "Aim
+Test Blows Are Built", "Blows Use The Trunk", "Blows Are Pushed"; `BuiltBlow`). Only the aim test asks for them. The
+battle's attacks are still the strike clips, and a regression fight comes out blow for blow as before.
+
+**What a built blow is.** Nothing is played. For the part asked for, as it stands:
+
+- **The arm is a hammer's.** The upper arm, the forearm and the blade swing in one plane about the elbow's own
+  hinge: the shoulder turns the upper arm, the elbow straightens, the wrist snaps the blade over, edge first. The
+  blow is made of the joints' own turns, so each joint stays inside a body's range (a first version asked the arm
+  to follow a blade's path, and the wrist was 70 to 110 degrees past its range).
+- **At the target** the arm rig is asked for the arm that lays the blade's striking part on the spot with the wrist
+  snapped forward (`ArmRig.Solve` with a keyed wrist). Round the line from the shoulder to the spot the whole arm
+  can be turned; it is turned to where its swing brings the blade in along the line asked for (one of eight:
+  straight down, down from the right or left, level from either, up from either, straight up), as near as a
+  body's arm can be (`ArmLimits.Read`, the gate's own reading).
+- **Wound up** is the same arm with each joint turned back, less far if the blade would be in its own body or the
+  arm past its range. **Carried through** is each joint going on past the spot, slowing.
+- **In time**: from wherever the sword is held to wound up, a stillness, then the trunk, the shoulder, the elbow
+  and the wrist one after another, the elbow at a steady speed for the last 0.05 s into the spot; then back to
+  where the sword was held. A wrist cut is planned to land 0.26 s after it is asked, an elbow cut 0.38 s.
+- **The trunk** turns away as the blow is wound up, turns in before the arm goes so the sword shoulder is forward
+  as the blade lands, and leans in as far as the reach needs (5 to 22 degrees). The arm is planned on the trunk as
+  it will be at the spot and carried by it.
+- **Pushed** (0 to 1, 1 at first): wound further back, a longer stillness at the top, carried further through.
+  Where and when it lands does not move with it.
+- **Judged as a clip's blow is.** The hit detection plays a built blow as it plays a strike clip (`StrikeHits.Built`):
+  the blade is live from the start of the cut to the end of the carry-through; stopped by a shield, a sword or a
+  body it backs out and goes back to its guard; a defender reads its coming path from the plan and blocks or
+  parries it.
+
+**In the aim test**: **Built blows** (off: the strike clips, from 1.4 m), **Line** and **Size** (chosen for the
+part, or set by hand: the eight lines, wrist or elbow), **The trunk in the blow**, **Pushed**. With no line set,
+of the lines the part may be cut on the one the arm makes best from where it stands is taken. The two stand 1.05 m
+apart, about as near as the fight lets enemies come; the feet do not move yet.
+
+**What it does** (headless, the nineteen spots once each from 1.05 m; `FIGHT_LINEUP=aim FIGHT_AIMDIST=1.05`):
+
+| the target | on the spot asked for | on another part | on a shield or a sword | on nothing |
+|---|---|---|---|---|
+| open hands | 5 | 13 | 0 | 1 |
+| sword and shield | 1 | 2 | 15 | 1 |
+| a sword | 1 | 6 | 12 | 0 |
+
+- **It lands when planned**: an elbow cut 0.40 s after it is asked against 0.38 planned, a wrist cut 0.27 to
+  0.28 s against 0.26. Today's clips land 0.18 to 1.13 s after.
+- **The edge** is 13 to 14 degrees off the blade's way as planned and 13 at the middle as measured (the clips: 22 to 26).
+- **The arm is in range** throughout (0 to 3 degrees past, by the gate's own reading).
+- **The blade as seen** is 5 cm off the path its pose takes at the middle and 10 at the worst (the clips: 13 and
+  32); it is still about 50 cm behind its pose at the worst of a blow, as the clips' is.
+- **Of the twelve spots in reach** (the head, neck, shoulders, chest, belly, hips, upper arms, thighs, a hand)
+  five are hit: the head, the right shoulder, both upper arms, the left thigh. Two land 12 cm off on the chest
+  (the neck, the left shoulder). Five are stopped by the target's own arm in the way (the chest, belly and hips
+  behind its left arm): nothing yet checks what the blade will meet first.
+- **Out of reach** from standing feet: the shins, the feet and the far forearm and hand (20 to 55 cm short).
+
+**Found on the way.**
+
+- **The arm alone reaches nothing from where fighters stand.** A swordsman stands with his sword shoulder back:
+  from 1.05 m apart his shoulder is 1.24 m from the other's head, and an arm and a blade reach 1.1 m. Tried
+  nearer, his guard's point is already in the other's body. So the arm (step 1) was not worth showing without
+  the trunk (step 2), and the two are one piece of work here. With the trunk the reach is about 1.25 m.
+- **A hammer's arm cannot cut level from the right.** Straightening the elbow throws the hand away from the fold;
+  for a blade to travel from right to left the arm would have to lie across the chest folded outward, at the end
+  of a shoulder's range. Asked for, such a cut comes in 50 to 87 degrees off its line, so the choice takes a
+  diagonal instead. A level forehand is made by the upper arm rolling and the trunk turning, with the palm up: it
+  comes with the full cuts.
+
+Headless: `FIGHT_AIMBUILT=0` (the clips), `FIGHT_AIMTRUNK=0` (the arm alone), `FIGHT_AIMLINE=DownFromRight`,
+`FIGHT_AIMSIZE=Wrist`, `FIGHT_AIMPUSH=0.5`; `BLOW_TRACE=1` prints each blow's plan. Not verified in Unity: how any
+of it looks, which is the point of it. The swordsman's weight is 27 cm outside his feet at the middle as a blow
+lands (the clips: 34): the lean is not yet answered by a step. Low parts are not bent for (the plan had the knees
+in step 2; they come with the step).
 
 
 

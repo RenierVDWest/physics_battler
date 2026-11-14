@@ -32,8 +32,8 @@ namespace PhysicsBattler.Locomotion
     }
 
     /// <summary>
-    /// A blow built in code for one part of one body as it stands now (the plan "Aimed attacks", step 1: the blade and
-    /// the arm). Nothing is played: the blow is worked out backward from the blade meeting the part.
+    /// A blow built in code for one part of one body as it stands now (the plan "Aimed attacks", steps 1 and 2: the
+    /// blade, the arm and the trunk). Nothing is played: the blow is worked out backward from the blade meeting the part.
     ///
     /// <para><b>The arm is a hammer's.</b> The upper arm, the forearm and the blade swing in one plane, about the
     /// elbow's own hinge: the shoulder turns the upper arm in it, the elbow straightens, and the wrist snaps the blade
@@ -49,7 +49,11 @@ namespace PhysicsBattler.Locomotion
     /// speed for the last moment into the spot. Each joint carries on past the spot, slowing, and the arm goes back to
     /// where the sword was held.</para>
     ///
-    /// The rest of the body is left as it stands (the trunk, the step and the full cuts are the plan's next steps).
+    /// <para><b>The trunk</b> (<see cref="UsesTrunk"/>) turns away as the blow is wound up and into it before the arm
+    /// goes, so the sword shoulder is forward as the blade lands, and leans in as far as the reach needs. The arm is
+    /// planned on the trunk as it will be at the spot, and carried by it: the trunk's turn is the first part of the cut.</para>
+    ///
+    /// The legs are left as they stand (the step and the full cuts are the plan's next steps).
     /// What the blade meets is judged as a strike clip's is (<see cref="StrikeHits"/>), with the blade live from the
     /// start of the cut to the end of the carry-through.
     /// </summary>
@@ -64,6 +68,16 @@ namespace PhysicsBattler.Locomotion
         /// lands do not move with it.
         /// </summary>
         public static float Pushed = 1f;
+
+        /// <summary>
+        /// The trunk is in a built blow (the scene's Combat Feel, "Blows Use The Trunk"; the plan's step 2): it turns away
+        /// as the blow is wound up and into it as it is cut, ahead of the arm, and leans as far as the reach needs. Off:
+        /// the arm alone, the body as it stands.
+        /// </summary>
+        public static bool UsesTrunk = true;
+
+        /// <summary>The trunk's turn into a blow (degrees to its left, the sword shoulder forward) and the most it leans into one for reach (degrees forward).</summary>
+        public const float TrunkIn = 22f, LeastLean = 5f, MostLean = 22f;
 
         /// <summary>For the headless reports: each blow's plan as it begins.</summary>
         public static System.Action<string> Trace = System.Environment.GetEnvironmentVariable("BLOW_TRACE") != null ? (System.Action<string>)(l => System.Console.WriteLine("    blow " + l)) : null;
@@ -164,10 +178,8 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far the arm is past what a body's arm does as the blade meets the spot, as planned (degrees; 0: a body can stand so).</summary>
         public float PastAtSpot { get; private set; }
 
-        /// <summary>What the arm made of it, at the worst over the blow: the wrist and the shoulder past their ranges (degrees), the arm into its own trunk (metres), the blade into its own body (metres).</summary>
+        /// <summary>What the arm made of it, at the worst over the blow: the wrist past its range (degrees), the blade into its own body (metres).</summary>
         public float MostWristShort { get; private set; }
-        public float MostShoulderPast { get; private set; }
-        public float MostIntoTrunk { get; private set; }
         public float MostBladeInBody { get; private set; }
 
         private readonly AnimRig anim;
@@ -178,14 +190,25 @@ namespace PhysicsBattler.Locomotion
         private readonly Shape shape;
         private readonly float strikeAlong, bladeLength;
 
-        /// <summary>An arm: the upper arm's turn (world, or against the chest), the forearm's on it and the hand's on the forearm.</summary>
+        /// <summary>An arm: the upper arm's turn against the chest, the forearm's on it and the hand's on the forearm.</summary>
         private struct Arm
         {
             public Quaternion Upper, Fore, Hand;
         }
 
         // The arm's own measures (the same for every blow of this arm).
-        private Transform upperPart, forePart, handPart, chestPart;
+        private Transform upperPart, forePart, handPart, chestPart, spinePart, headPart;
+
+        // The trunk as the body's own pose has it this step, before the blow turns it.
+        private Quaternion spineBase, chestLocalBase, headLocalBase, headBase;
+
+        // The trunk's turn (degrees, over 0 to its right) and lean (over 0 forward): wound up, at the spot, at the end; now; and where the way back began.
+        private float turnBack, turnAtSpot, turnOn, leanBack, leanAtSpot, leanOn, turnNow, leanNow, turnFrom, leanFrom;
+        private Run turnRun, leanRun;
+
+        /// <summary>How far the trunk turns in the cut, from wound up to the spot (degrees), and how far it leans in at the spot.</summary>
+        public float TrunkTurn => Mathf.Abs(turnBack - turnAtSpot);
+        public float TrunkLean => leanAtSpot;
         private Quaternion slotInHand, foreRest, handRest, wristFrame;
         private Vector3 bladeInHand, gripInHand, strikeInHand, elbowOff, wristOff, elbowAxis, snapAxis;
         private float wristTwist, cockMost, snapMost;
@@ -269,7 +292,8 @@ namespace PhysicsBattler.Locomotion
                     return new[] { CutLine.DownFromRight, CutLine.DownFromLeft, CutLine.LevelFromRight, CutLine.LevelFromLeft };
                 case AimSpot.Chest:
                 case AimSpot.Hips:
-                    return new[] { CutLine.DownFromRight, CutLine.DownFromLeft, CutLine.Down };
+                    // (Not straight down: a blade coming down on the chest meets the head first.)
+                    return new[] { CutLine.DownFromRight, CutLine.DownFromLeft };
                 case AimSpot.Belly:
                     return new[] { CutLine.DownFromRight, CutLine.DownFromLeft, CutLine.LevelFromLeft, CutLine.LevelFromRight };
                 case AimSpot.ShoulderL:
@@ -324,7 +348,7 @@ namespace PhysicsBattler.Locomotion
             rewinding = comingBack = wasStopped = false;
             knock = knockSpeed = bindOffset = bindNow = Vector3.zero;
             bound = false;
-            MostWristShort = MostShoulderPast = MostIntoTrunk = MostBladeInBody = 0f;
+            MostWristShort = MostBladeInBody = 0f;
             Playing = true;
             return true;
         }
@@ -347,8 +371,10 @@ namespace PhysicsBattler.Locomotion
             forePart = anim.Part(PartId.ForearmR);
             handPart = anim.Part(PartId.HandR);
             chestPart = anim.Part(PartId.Chest);
+            spinePart = anim.Part(PartId.Spine);
+            headPart = anim.Part(PartId.Head);
             var slot = anim.SlotWeaponR;
-            if (upperPart == null || forePart == null || handPart == null || slot == null || Spot == null)
+            if (upperPart == null || forePart == null || handPart == null || chestPart == null || spinePart == null || headPart == null || slot == null || Spot == null)
             {
                 return false;
             }
@@ -381,11 +407,26 @@ namespace PhysicsBattler.Locomotion
             wristCocked = shape.WristCocked * cockMost;
             wristAtSpot = -shape.WristAtSpot * snapMost;
             wristOn = -shape.WristOn * snapMost;
+            CaptureTrunk();
+            PlanTrunk();
+            var trunkWas = SaveTrunk();
+            TrunkTo(turnAtSpot, leanAtSpot);
             FindSwivel();
             Measure(PlanAtSpot());
-            FullWind = shoulderBack + (Mathf.Clamp(bendAtSpot + elbowBack, LeastBend, MostBend) - bendAtSpot) + (wristCocked - wristAtSpot);
+            // (Leaning in as far as the reach needs, and no further.)
+            for (int i = 0; i < 6 && UsesTrunk && Short > 0.01f && leanAtSpot < MostLean - 0.5f; i++)
+            {
+                leanAtSpot = Mathf.Min(MostLean, leanAtSpot + 3.5f);
+                leanOn = leanAtSpot + 3f;
+                TrunkTo(turnAtSpot, leanAtSpot);
+                Measure(PlanAtSpot());
+            }
+
+            FullWind = TrunkTurn + shoulderBack + (Mathf.Clamp(bendAtSpot + elbowBack, LeastBend, MostBend) - bendAtSpot) + (wristCocked - wristAtSpot);
             FitToOwnBody();
+            TrunkTo(turnAtSpot, leanAtSpot);
             SetTimes();
+            RestoreTrunk(trunkWas);
             prepared = true;
 
             if (Trace != null)
@@ -402,8 +443,96 @@ namespace PhysicsBattler.Locomotion
                 Trace($"the blade against the forearm, by the wrist's turn:{lies} the grip {Vector3.Distance(upperPart.position, g0):0.00} m from the shoulder, the spot {Vector3.Distance(upperPart.position, spot):0.00} m, bones {elbowOff.magnitude:0.00} and {wristOff.magnitude:0.00}, grip in hand {gripInHand.magnitude:0.00}, striking part {strikeAlong:0.00} along the blade");
             }
 
-            Trace?.Invoke($"{Name}: wrist twist {wristTwist:0}, room {cockMost:0} back and {snapMost:0} on; swivel {swivel:0}, elbow {bendAtSpot:0} at the spot, back {elbowRun.Back:0} on {elbowRun.On:0}; shoulder back {shoulderBack:0}; wrist {wristCocked:0} to {wristAtSpot:0} to {wristOn:0}; wound {Wound:0}, {TurnSpeed:0} deg/s, {StrikeSpeed:0.0} m/s; line off {LineOff:0}, edge off {EdgeOff:0}, past range {PastAtSpot:0} at the spot, short {100f * Short:0} cm; cut from {CutFrom:0.00}, at the spot {ContactAt:0.00}, carried {CarriedAt:0.00}");
+            Trace?.Invoke($"{Name}: wrist twist {wristTwist:0}, room {cockMost:0} back and {snapMost:0} on; swivel {swivel:0}, elbow {bendAtSpot:0} at the spot, back {elbowRun.Back:0} on {elbowRun.On:0}; shoulder back {shoulderBack:0}; wrist {wristCocked:0} to {wristAtSpot:0} to {wristOn:0}; wound {Wound:0}, {TurnSpeed:0} deg/s, {StrikeSpeed:0.0} m/s; trunk turn {turnBack:0} to {turnAtSpot:0} to {turnOn:0}, lean {leanBack:0} to {leanAtSpot:0}; line off {LineOff:0}, edge off {EdgeOff:0}, past range {PastAtSpot:0} at the spot, short {100f * Short:0} cm; cut from {CutFrom:0.00}, at the spot {ContactAt:0.00}, carried {CarriedAt:0.00}");
             return true;
+        }
+
+        // ---- The trunk -----------------------------------------------------------------------------------------------
+
+        /// <summary>The trunk as the body's own pose has it now: what the blow's turn and lean are laid over this step.</summary>
+        private void CaptureTrunk()
+        {
+            spineBase = spinePart.rotation;
+            chestLocalBase = chestPart.localRotation;
+            headLocalBase = headPart.localRotation;
+            headBase = headPart.rotation;
+        }
+
+        private (Quaternion spine, Quaternion chest, Quaternion head) SaveTrunk() => (spinePart.rotation, chestPart.localRotation, headPart.localRotation);
+
+        private void RestoreTrunk((Quaternion spine, Quaternion chest, Quaternion head) was)
+        {
+            spinePart.rotation = was.spine;
+            chestPart.localRotation = was.chest;
+            headPart.localRotation = was.head;
+        }
+
+        /// <summary>
+        /// The trunk turned and leant so from how the body's own pose has it: the spine and the chest share the turn and
+        /// the lean, the head kept on the opponent (as the sword parry's trunk is).
+        /// </summary>
+        private void TrunkTo(float turn, float lean)
+        {
+            Vector3 right = Quaternion.Euler(0f, loco.Facing, 0f) * Vector3.right;
+            spinePart.rotation = Quaternion.AngleAxis(0.45f * turn, Vector3.up) * Quaternion.AngleAxis(0.45f * lean, right) * spineBase;
+            chestPart.localRotation = chestLocalBase;
+            chestPart.rotation = Quaternion.AngleAxis(0.55f * turn, Vector3.up) * Quaternion.AngleAxis(0.55f * lean, right) * chestPart.rotation;
+            headPart.localRotation = headLocalBase;
+            headPart.rotation = Quaternion.Slerp(headPart.rotation, headBase, 0.8f);
+        }
+
+        /// <summary>
+        /// How far the trunk turns and leans: turned away as the blow is wound up (to its right for a blow from the
+        /// right, further to its left for one from the left), turned in at the spot with the sword shoulder forward,
+        /// and on past it; a wrist cut has half of it.
+        /// </summary>
+        private void PlanTrunk()
+        {
+            turnBack = turnAtSpot = turnOn = leanBack = leanAtSpot = leanOn = 0f;
+            if (!UsesTrunk)
+            {
+                return;
+            }
+
+            float share = Size == CutSize.Wrist ? 0.5f : 1f;
+            // (Which side the blow comes from, against the body: across the chest.)
+            float side = Vector3.Dot(ComesFrom(out _), chestPart.right);
+            turnAtSpot = -TrunkIn * share;
+            if (side > 0.25f)
+            {
+                turnBack = (12f + 8f * Push) * share;
+                turnOn = turnAtSpot - 10f * share;
+            }
+            else if (side < -0.25f)
+            {
+                turnBack = turnAtSpot - (14f + 6f * Push) * share;
+                turnOn = turnAtSpot + 12f * share;
+            }
+            else
+            {
+                turnBack = (6f + 4f * Push) * share;
+                turnOn = turnAtSpot - 6f * share;
+            }
+
+            leanBack = -(3f + 2f * Push) * share;
+            leanAtSpot = LeastLean * share;
+            leanOn = leanAtSpot + 3f;
+        }
+
+        /// <summary>The trunk's turn and lean at a moment of the blow's own time, before it is on its way back.</summary>
+        private void TrunkAt(float t, out float turn, out float lean)
+        {
+            if (t < shape.WindUp)
+            {
+                float u = Mathf.Clamp01(t / shape.WindUp);
+                float w = u * u * (3f - 2f * u);
+                turn = turnBack * w;
+                lean = leanBack * w;
+                return;
+            }
+
+            turn = turnRun.At(t, ContactAt);
+            lean = leanRun.At(t, ContactAt);
         }
 
         // ---- The wrist ------------------------------------------------------------------------------------------------
@@ -463,8 +592,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Where an arm puts the sword (world), the shoulder where it is now: the grip and the hand's turn.</summary>
         private void SwordOf(in Arm arm, out Vector3 grip, out Quaternion hand)
         {
-            Vector3 elbow = upperPart.position + arm.Upper * elbowOff;
-            Quaternion fore = arm.Upper * arm.Fore;
+            Quaternion upper = chestPart.rotation * arm.Upper;
+            Vector3 elbow = upperPart.position + upper * elbowOff;
+            Quaternion fore = upper * arm.Fore;
             hand = fore * arm.Hand;
             grip = elbow + fore * wristOff + hand * gripInHand;
         }
@@ -472,8 +602,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far an arm is past what a body's arm does (degrees; 0: inside), as the game's own gate reads it (<see cref="ArmLimits.Read"/>).</summary>
         private float Past(in Arm arm)
         {
-            Vector3 shoulder = upperPart.position, elbow = shoulder + arm.Upper * elbowOff;
-            Quaternion fore = arm.Upper * arm.Fore;
+            Quaternion upper = chestPart.rotation * arm.Upper;
+            Vector3 shoulder = upperPart.position, elbow = shoulder + upper * elbowOff;
+            Quaternion fore = upper * arm.Fore;
             return ArmLimits.Read(chestPart.rotation, shoulder, elbow, elbow + fore * wristOff, fore * arm.Hand, false).Worst;
         }
 
@@ -501,6 +632,9 @@ namespace PhysicsBattler.Locomotion
 
         private ArmSolve PlanAtSpot(float swivelAt, out Arm arm, out Vector3 hingeAt, out float bend)
         {
+            // (With the trunk as it will be when the blade meets the spot: the shoulder is then where the trunk has brought it.)
+            var trunkWas = SaveTrunk();
+            TrunkTo(turnAtSpot, leanAtSpot);
             Quaternion upperWas = upperPart.rotation, foreWas = forePart.localRotation, handWas = handPart.localRotation;
             var goal = new ArmGoal
             {
@@ -512,7 +646,7 @@ namespace PhysicsBattler.Locomotion
                 clearance = 0.04f * size,
             };
             var solved = ArmRig.Solve(anim, true, goal, rig != null ? new BodyClearance.Posed(rig, anim, size) : null, apply: true);
-            arm = new Arm { Upper = upperPart.rotation, Fore = forePart.localRotation, Hand = handPart.localRotation };
+            arm = new Arm { Upper = Quaternion.Inverse(chestPart.rotation) * upperPart.rotation, Fore = forePart.localRotation, Hand = handPart.localRotation };
             hingeAt = arm.Upper * elbowAxis;
             // (The elbow's bend as the forearm has it: its turn from rest about the hinge.)
             (Quaternion.Inverse(foreRest) * arm.Fore).ToAngleAxis(out float angle, out Vector3 axis);
@@ -520,6 +654,7 @@ namespace PhysicsBattler.Locomotion
             upperPart.rotation = upperWas;
             forePart.localRotation = foreWas;
             handPart.localRotation = handWas;
+            RestoreTrunk(trunkWas);
             return solved;
         }
 
@@ -647,6 +782,7 @@ namespace PhysicsBattler.Locomotion
             float shoulder = shoulderBack, elbow = elbowBack, wrist = wristCocked;
             for (int i = 0; i < 9; i++)
             {
+                TrunkTo(turnBack, leanBack);
                 Arm wound = Turned(shoulderBack, elbowBack, wristCocked);
                 if (OwnRoom(wound) >= OwnClearance * size && Past(wound) <= allowed)
                 {
@@ -662,6 +798,7 @@ namespace PhysicsBattler.Locomotion
             float on = shoulderOn, elbowOnFull = elbowOn, wristFull = wristOn;
             for (int i = 0; i < 9; i++)
             {
+                TrunkTo(turnOn, leanOn);
                 Arm carried = Turned(-shoulderOn, -elbowOn, wristOn);
                 if (OwnRoom(carried) >= OwnClearance * size && Past(carried) <= allowed)
                 {
@@ -725,13 +862,17 @@ namespace PhysicsBattler.Locomotion
             shoulderRun = new Run { Back = shoulderBack, AtSpot = 0f, On = -shoulderOn, From = CutFrom, Steady = 0.5f * shape.Cut };
             elbowRun = new Run { Back = elbowFrom, AtSpot = 0f, On = elbowTo, From = CutFrom + shape.ElbowFrom * shape.Cut, Steady = Mathf.Min(SteadyFor, 0.5f * shape.Cut) };
             wristRun = new Run { Back = wristCocked, AtSpot = wristAtSpot, On = wristOn, From = CutFrom + shape.WristFrom * shape.Cut, Steady = Mathf.Min(0.03f, 0.3f * shape.Cut) };
+            // (The trunk goes first: it starts in the stillness at the top, before the arm, and is steady well before the spot.)
+            float trunkFrom = Mathf.Max(shape.WindUp, CutFrom - 0.05f);
+            turnRun = new Run { Back = turnBack, AtSpot = turnAtSpot, On = turnOn, From = trunkFrom, Steady = 0.5f * (ContactAt - trunkFrom) };
+            leanRun = new Run { Back = leanBack, AtSpot = leanAtSpot, On = leanOn, From = trunkFrom, Steady = 0.5f * (ContactAt - trunkFrom) };
             CarriedAt = ContactAt + Mathf.Max(0.04f, Mathf.Max(shoulderRun.Carry(ContactAt), Mathf.Max(elbowRun.Carry(ContactAt), wristRun.Carry(ContactAt))));
-            Wound = shoulderBack + elbowFrom + (wristCocked - wristAtSpot);
+            Wound = TrunkTurn + shoulderBack + elbowFrom + (wristCocked - wristAtSpot);
             TurnSpeed = -(shoulderRun.Speed(ContactAt) + elbowRun.Speed(ContactAt) + wristRun.Speed(ContactAt));
             StrikeSpeed = Vector3.Distance(StrikeOf(ArmAt(ContactAt)), StrikeOf(ArmAt(ContactAt - 0.004f))) / 0.004f;
         }
 
-        /// <summary>The arm at a moment of the blow's own time, before it is on its way back: the upper arm in the world.</summary>
+        /// <summary>The arm at a moment of the blow's own time, before it is on its way back.</summary>
         private Arm ArmAt(float t)
         {
             if (t < shape.WindUp)
@@ -742,7 +883,7 @@ namespace PhysicsBattler.Locomotion
                 float w = u * u * (3f - 2f * u);
                 return new Arm
                 {
-                    Upper = Quaternion.Slerp(chestPart.rotation * held.Upper, to.Upper, w),
+                    Upper = Quaternion.Slerp(held.Upper, to.Upper, w),
                     Fore = Quaternion.Slerp(held.Fore, to.Fore, w),
                     Hand = Quaternion.Slerp(held.Hand, to.Hand, w),
                 };
@@ -757,7 +898,12 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public void BladeAtTime(float t, out Vector3 grip, out Vector3 tip, out Vector3 strike)
         {
-            SwordOf(ArmAt(Mathf.Min(t, CarriedAt)), out grip, out Quaternion hand);
+            t = Mathf.Min(t, CarriedAt);
+            var trunkWas = SaveTrunk();
+            TrunkAt(t, out float turn, out float lean);
+            TrunkTo(turn, lean);
+            SwordOf(ArmAt(t), out grip, out Quaternion hand);
+            RestoreTrunk(trunkWas);
             Vector3 blade = hand * bladeInHand;
             tip = grip + blade * bladeLength;
             strike = grip + blade * strikeAlong;
@@ -818,6 +964,8 @@ namespace PhysicsBattler.Locomotion
                 Fore = forePart.localRotation,
                 Hand = handPart.localRotation,
             };
+            turnFrom = turnNow;
+            leanFrom = leanNow;
             comingBack = true;
             backTime = 0f;
         }
@@ -826,11 +974,22 @@ namespace PhysicsBattler.Locomotion
         /// The sword arm posed for this step (after the body's own pose): the plan taken again for where the spot and
         /// the shoulder are now, and the arm put where the blow has it.
         /// </summary>
-        public void Pose(float dt)
+        /// <param name="again">Posed a second time in one step (put back to where its blade was stopped): the trunk under it is the one already read this step.</param>
+        public void Pose(float dt, bool again = false)
         {
             if (!Playing)
             {
                 return;
+            }
+
+            if (again)
+            {
+                // (Back to the body's own trunk first: the blow's turn is laid over that, not over itself.)
+                TrunkTo(0f, 0f);
+            }
+            else
+            {
+                CaptureTrunk();
             }
 
             Arm arm;
@@ -838,9 +997,12 @@ namespace PhysicsBattler.Locomotion
             {
                 float u = Mathf.Clamp01(backTime / shape.Back);
                 float w = u * u * (3f - 2f * u);
+                turnNow = Mathf.Lerp(turnFrom, 0f, w);
+                leanNow = Mathf.Lerp(leanFrom, 0f, w);
+                TrunkTo(turnNow, leanNow);
                 arm = new Arm
                 {
-                    Upper = chestPart.rotation * Quaternion.Slerp(backFrom.Upper, held.Upper, w),
+                    Upper = Quaternion.Slerp(backFrom.Upper, held.Upper, w),
                     Fore = Quaternion.Slerp(backFrom.Fore, held.Fore, w),
                     Hand = Quaternion.Slerp(backFrom.Hand, held.Hand, w),
                 };
@@ -852,31 +1014,36 @@ namespace PhysicsBattler.Locomotion
                     spot = Spot();
                 }
 
-                Measure(PlanAtSpot());
+                // (The plan taken again with the trunk as it will be at the spot; then the trunk as it is now.)
+                var solved = PlanAtSpot();
+                TrunkTo(turnAtSpot, leanAtSpot);
+                Measure(solved);
+                TrunkAt(Time, out turnNow, out leanNow);
+                TrunkTo(turnNow, leanNow);
                 arm = ArmAt(Time);
             }
 
-            upperPart.rotation = arm.Upper;
+            upperPart.rotation = chestPart.rotation * arm.Upper;
             forePart.localRotation = arm.Fore;
             handPart.localRotation = arm.Hand;
 
             // (The hand thrown by what stopped the blade or held on a blade it is bound to, and its weapon resting
-            // against what it touches outside the cut, as a clip's hand is held off it: the arm reaches for the grip
-            // moved so, the hand turned as it is.)
+            // against what it touches outside the cut, as a clip's hand is held off it: the whole arm turned about the
+            // shoulder so the grip goes that way, the arm's own shape kept.)
             Vector3 off = knock + bindNow + poser.RestOffset;
             if (off.sqrMagnitude > 1e-8f)
             {
-                var slot = anim.SlotWeaponR;
-                var moved = new ArmGoal
+                Vector3 shoulder = upperPart.position, grip = anim.SlotWeaponR.position;
+                upperPart.rotation = Quaternion.FromToRotation(grip - shoulder, grip + off - shoulder) * upperPart.rotation;
+            }
+
+            if (Trace != null)
+            {
+                var r = ArmLimits.Read(chestPart.rotation, upperPart.position, forePart.position, handPart.position, handPart.rotation, false);
+                if (r.Worst > 3f)
                 {
-                    point = slot.position + off,
-                    pointInHand = gripInHand,
-                    handTurn = handPart.rotation,
-                    elbowSwivel = ArmRig.SwivelOf(anim, true, forePart.position, slot.position),
-                    nearNull = true,
-                    clearance = 0.04f * size,
-                };
-                ArmRig.Solve(anim, true, moved, rig != null ? new BodyClearance.Posed(rig, anim, size) : null, apply: true);
+                    Trace($"  t {Time:0.000}{(comingBack ? $" back {backTime:0.00}" : "")}{(rewinding ? " rewinding" : "")}{(off.sqrMagnitude > 1e-8f ? $" hand off {100f * off.magnitude:0} cm" : "")}: past reach {r.PastReach:0} turn {r.PastTurn:0} bend {r.PastBend:0} roll {r.PastRoll:0} wrist {r.PastWrist:0} | raised {r.Raised:0} toward {r.Toward:0} turn {r.Turn:0} bend {r.Bend:0} roll {r.Roll:0} flex {r.Flex:0} thumb {r.Thumbward:0}");
+                }
             }
 
             MostWristShort = Mathf.Max(MostWristShort, ArmRig.WristAngles(Quaternion.Inverse(handRest) * handPart.localRotation, wristFrame, out _, out _, out _));

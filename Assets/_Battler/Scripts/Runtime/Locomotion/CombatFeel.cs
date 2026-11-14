@@ -234,8 +234,11 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The part of a body a blow lands on turns red at once and fades back to its own colour over a second: the part really struck, not the part aimed at, so a blow that lands on the wrong part shows as the wrong part turning red. A blow stopped by a shield or a sword tints nothing. It changes only what is drawn, nothing about the fight. Off: no tint, as before.")]
         public bool struckPartsFlashRed = true;
 
-        [Tooltip("The aim test's blows are built ones (the plan \"Aimed attacks\", step 1): each is worked out in code for the part asked for as it stands, the sword arm swung as a hammer is, the shoulder first, then the elbow, the wrist last, each joint inside a body's range. So far the arm alone: the rest of the body stands as it stood, so a blow reaches only as far as an arm and a blade, and the test's two stand nearer than fighters do. The battle is not changed: its attacks are still the strike clips. Off: the aim test asks for today's strike clips, as in step 0.")]
+        [Tooltip("The aim test's blows are built ones (the plan \"Aimed attacks\", step 1): each is worked out in code for the part asked for as it stands, the sword arm swung as a hammer is, the shoulder first, then the elbow, the wrist last, each joint inside a body's range. The feet do not move yet, so the test's two stand a little over a metre apart, about as near as the fight lets enemies come. The battle is not changed: its attacks are still the strike clips. Off: the aim test asks for today's strike clips, as in step 0.")]
         public bool aimTestBlowsAreBuilt = true;
+
+        [Tooltip("The trunk is in a built blow (the plan \"Aimed attacks\", step 2). As the blow is wound up the trunk turns away from it; it turns back into the blow before the arm goes, so the sword shoulder is forward as the blade lands; and it leans in as far as the reach needs, up to 22 degrees. The spine and the chest share it; the head stays on the opponent. With it a blow reaches a head and a body from where fighters stand. Off: the arm alone, the body as it stood, and the blow reaches only as far as an arm and a blade.")]
+        public bool blowsUseTheTrunk = true;
 
         [Tooltip("How far a built blow is pushed past the fencing book, so it reads as hitting hard: wound further back, a stillness at the top before it goes, carried further through. 0: the book's blow, small and tidy. 1: pushed. The moment it lands and the place it lands do not move with it. Default 1.")]
         [Range(0f, 1f)] public float blowsArePushed = 1f;
@@ -836,6 +839,7 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Units.HitFlashes.On = struckPartsFlashRed;
             BuiltBlow.On = aimTestBlowsAreBuilt;
             BuiltBlow.Pushed = blowsArePushed;
+            BuiltBlow.UsesTrunk = blowsUseTheTrunk;
             ClipFighter.ThrownBodiesTuck = thrownBodiesTuck;
             ClipFighter.HeldHips = hipsAreHeldNotLocked;
             PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;

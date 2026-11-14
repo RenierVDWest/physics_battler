@@ -453,8 +453,8 @@ namespace PhysicsBattler.Sandbox
         /// <summary>How far the aim test's swordsman stands from its target at first (metres at a Medium's size, root to root): about where today's strikes land.</summary>
         public const float AimDistanceAtFirst = 1.4f;
 
-        /// <summary>The same with built blows, while they are made with the arm alone: within an arm and a blade of the target.</summary>
-        public const float AimDistanceBuilt = 0.75f;
+        /// <summary>The same with built blows, while their feet do not move: about as near as the fight lets two enemies come, where the arm and the trunk reach a head and a body.</summary>
+        public const float AimDistanceBuilt = 1.05f;
 
         private static readonly string[] AimKits = { "open hands", "sword and shield", "a sword" };
 
@@ -507,7 +507,8 @@ namespace PhysicsBattler.Sandbox
             target.DummySpot = targetSpot;
             attacker.DummySpot = attackerSpot;
             target.DummyHolds = attacker.DummyHolds = AimTest.HeldWithin;
-            target.StandsAsNearAs = attacker.StandsAsNearAs = AimTest.NearestApart;
+            // (Built blows may be tried from nearer than the fight lets enemies come; the clips from where they are.)
+            target.StandsAsNearAs = attacker.StandsAsNearAs = BuiltBlow.On ? AimTest.NearestApart : 0f;
             attacker.OnlyTarget = target;
             PlaceAim();
         }
@@ -2172,7 +2173,7 @@ namespace PhysicsBattler.Sandbox
             if (feel != null)
             {
                 Heading("The blow");
-                bool built = Tick(feel.aimTestBlowsAreBuilt, "Built blows", "Each blow is worked out in code for the part asked for, the sword arm swung shoulder, elbow, wrist. So far the arm alone, so the two stand near. Off: today's strike clips, from where fighters stand. Sets the test out again.");
+                bool built = Tick(feel.aimTestBlowsAreBuilt, "Built blows", "Each blow is worked out in code for the part asked for: the trunk turns in, then the sword arm swings, shoulder, elbow, wrist. The feet do not move yet, so the two stand a little over a metre apart. Off: today's strike clips, from 1.4 m. Sets the test out again.");
                 if (built != feel.aimTestBlowsAreBuilt)
                 {
                     feel.aimTestBlowsAreBuilt = built;
@@ -2196,6 +2197,7 @@ namespace PhysicsBattler.Sandbox
                     }
 
                     GUILayout.EndHorizontal();
+                    feel.blowsUseTheTrunk = Tick(feel.blowsUseTheTrunk, "The trunk in the blow", "The trunk turns away as the blow is wound up and into it before the arm goes, and leans in for reach. Off: the arm alone, the body as it stood; a blow then reaches only an arm and a blade's length, so bring the two to about 0.75 m to see it land.");
                     feel.blowsArePushed = Mathf.Round(10f * Slide("Pushed", $"{feel.blowsArePushed:0.0}", "How far a blow is pushed past the fencing book: wound further back, a stillness at the top, carried further through. 0 is the book's blow. Where and when it lands does not change.", feel.blowsArePushed, 0f, 1f)) / 10f;
                 }
             }

@@ -226,7 +226,7 @@ namespace PhysicsBattler.Locomotion
             if (BuiltNow)
             {
                 Built.WindBack(to);
-                Built.Pose(1e-4f);
+                Built.Pose(1e-4f, again: true);
             }
             else
             {
