@@ -1321,6 +1321,7 @@ internal static class FightReport
                 }
             }
 
+            sb.AppendLine("    physical bodies put where the pose jumped to (a pose that moves at once): " + string.Join(", ", units.Where(u => u.Clip?.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.Jumps}")));
             sb.AppendLine($"    told of the engine's steps at the end: {PhysicsBattler.Authority.PhysicsSteps.Listeners} (the fighters with physical bodies: {units.Count(u => u.Clip != null && u.Clip.Upper != null)}); thrown and taken off: {PhysicsBattler.Authority.PhysicsSteps.Faults}");
             sb.AppendLine("    lost by the engine and put back on its pose at once: " + string.Join(", ", units.Select(u => $"{u.name} {u.Clip.LostBody}")));
             if (kickAt >= 0f)

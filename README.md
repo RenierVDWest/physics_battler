@@ -3446,6 +3446,15 @@ still to come (the falls by direction, a hand that lands held where it landed, t
 body's tuck) are where those go. Not verified in Unity: a body let go, with its weight, on the ground, has not
 been run there.
 
+In Unity since (14 November, 55 falls in the one body): it holds: no error, no body thrown out of the world, and
+it was liked as it looked. Two things the log showed. At every get-up the body was carried to its feet for one
+step and back ("out of hand: its pelvis 90 cm off what carries it", 45 times): making the get-up's keys leaves
+the pose standing, and the body was taken up before they were made. It is taken up after. And the head reached
+the ground in 51 of the 55, at 2.3 m/s at the middle (the ragdoll's 36 in Unity: 36 of 36, 2.6 m/s): a 200 N·s
+blow has the body flat in a third of a second, before any reaching can help, so the numbers of people falling
+on their own are not to be had from blows of that size. The hips land harder than the ragdoll's did (3.8 m/s
+against 1.7), the blow being in the fall now. A `fall` line now says how it fell (the one body, its muscle).
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

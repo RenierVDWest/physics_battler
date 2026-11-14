@@ -953,7 +953,7 @@ namespace PhysicsBattler.Locomotion
             FallsMeasured.Add(falling);
             if (Diagnostics.PlaytestTrace.Enabled)
             {
-                Diagnostics.PlaytestTrace.Note(FightUnit, "fall", falling.Text);
+                Diagnostics.PlaytestTrace.Note(FightUnit, "fall", falling.Text + (fallBody ? $" [in the one body, muscle {FallMuscle:0.00}{(FallPose.ProtectsHead ? "" : ", the head not kept up")}{(FallPose.Reaches ? "" : ", the arms not reaching")}]" : " [a ragdoll, as before]"));
             }
 
             falling = null;
@@ -1024,9 +1024,14 @@ namespace PhysicsBattler.Locomotion
             Loco.Place(position, yaw);
             Poser.ReleaseFeet();
             lying.Capture(Rig);
+            getUp.HoldsMain = stance == Stances.Sword;
+            getUp.HoldsOff = stance == Stances.Shield;
+            getUp.Begin(kind, lying);
             if (fallBody && Upper != null)
             {
-                // (Taken up where it lies: the pose put on how it lies, and the body held to it again.)
+                // (Taken up where it lies: the pose put on how it lies, and the body held to it again. After the
+                // get-up's keys are made: making them leaves the pose standing, and a body taken up before that was
+                // carried to its feet for one step and back. Seen in Unity on 14 November, at every get-up.)
                 lying.Apply(Anim, false);
                 Upper.TakeUp();
                 foreach (var id in Upper.Own)
@@ -1041,9 +1046,6 @@ namespace PhysicsBattler.Locomotion
                 fallBody = false;
             }
 
-            getUp.HoldsMain = stance == Stances.Sword;
-            getUp.HoldsOff = stance == Stances.Shield;
-            getUp.Begin(kind, lying);
             Footing = Footings.GettingUp;
             footingTime = 0f;
             LastReaction = $"getting up {GetUpRoute}";
