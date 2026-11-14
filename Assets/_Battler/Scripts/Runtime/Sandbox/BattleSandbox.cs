@@ -443,7 +443,7 @@ namespace PhysicsBattler.Sandbox
 
         private bool aimTest;
         private int aimTargetKit;
-        private float aimDistance = AimDistanceAtFirst, aimTurned;
+        private float aimDistance = BuiltBlow.On ? AimDistanceBuilt : AimDistanceAtFirst, aimTurned;
         private AimSpot aimSpot = AimSpot.Chest;
         private string aimLast = "";
 
@@ -452,6 +452,9 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>How far the aim test's swordsman stands from its target at first (metres at a Medium's size, root to root): about where today's strikes land.</summary>
         public const float AimDistanceAtFirst = 1.4f;
+
+        /// <summary>The same with built blows, while they are made with the arm alone: within an arm and a blade of the target.</summary>
+        public const float AimDistanceBuilt = 0.75f;
 
         private static readonly string[] AimKits = { "open hands", "sword and shield", "a sword" };
 
@@ -504,6 +507,7 @@ namespace PhysicsBattler.Sandbox
             target.DummySpot = targetSpot;
             attacker.DummySpot = attackerSpot;
             target.DummyHolds = attacker.DummyHolds = AimTest.HeldWithin;
+            target.StandsAsNearAs = attacker.StandsAsNearAs = AimTest.NearestApart;
             attacker.OnlyTarget = target;
             PlaceAim();
         }
@@ -2164,6 +2168,38 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<CombatFeel>());
+            if (feel != null)
+            {
+                Heading("The blow");
+                bool built = Tick(feel.aimTestBlowsAreBuilt, "Built blows", "Each blow is worked out in code for the part asked for, the sword arm swung shoulder, elbow, wrist. So far the arm alone, so the two stand near. Off: today's strike clips, from where fighters stand. Sets the test out again.");
+                if (built != feel.aimTestBlowsAreBuilt)
+                {
+                    feel.aimTestBlowsAreBuilt = built;
+                    BuiltBlow.On = built;
+                    aimDistance = built ? AimDistanceBuilt : AimDistanceAtFirst;
+                    Note(built ? "aim test: built blows" : "aim test: strike clips");
+                    AimTestScene();
+                }
+
+                if (feel.aimTestBlowsAreBuilt)
+                {
+                    GUILayout.BeginHorizontal();
+                    if (Press("Line: " + (Aim.Line.HasValue ? BuiltBlow.LineName(Aim.Line.Value) : "chosen for the part"), "The line the blade comes in on, as the swordsman sees it. Chosen for the part: of the lines that part may be cut on, the one his arm makes best from where he stands. Press to go through the eight."))
+                    {
+                        Aim.Line = !Aim.Line.HasValue ? CutLine.Down : Aim.Line.Value == CutLine.Up ? (CutLine?)null : Aim.Line.Value + 1;
+                    }
+
+                    if (Press("Size: " + (!Aim.Size.HasValue ? "chosen" : Aim.Size.Value == CutSize.Wrist ? "wrist cut" : "elbow cut"), "A wrist cut is the quickest and lightest: it lands in about a quarter of a second. An elbow cut swings the forearm: about 0.4 s, and harder. Chosen: the wrist for hands and forearms, the elbow for the rest."))
+                    {
+                        Aim.Size = !Aim.Size.HasValue ? CutSize.Wrist : Aim.Size.Value == CutSize.Wrist ? CutSize.Elbow : (CutSize?)null;
+                    }
+
+                    GUILayout.EndHorizontal();
+                    feel.blowsArePushed = Mathf.Round(10f * Slide("Pushed", $"{feel.blowsArePushed:0.0}", "How far a blow is pushed past the fencing book: wound further back, a stillness at the top, carried further through. 0 is the book's blow. Where and when it lands does not change.", feel.blowsArePushed, 0f, 1f)) / 10f;
+                }
+            }
+
             Heading("Strike at", "Press a part and the swordsman strikes at it. Left and right are the target's own, so its right side is on your left as you face it.");
             AimRow(AimSpot.Head);
             AimRow(AimSpot.Neck);
@@ -2199,7 +2235,7 @@ namespace PhysicsBattler.Sandbox
                 AimTestScene();
             }
 
-            float distance = Mathf.Round(20f * Slide("Distance", $"{aimDistance:0.00} m", "How far the swordsman stands from the target, middle to middle. 1.4 m is about where today's strikes land. Both walk to their new places.", aimDistance, 0.8f, 2.6f)) / 20f;
+            float distance = Mathf.Round(20f * Slide("Distance", $"{aimDistance:0.00} m", "How far the swordsman stands from the target, middle to middle. 1.4 m is about where today's strikes land. Both walk to their new places.", aimDistance, 0.6f, 2.6f)) / 20f;
             float turned = Mathf.Round(Slide("Turned", $"{aimTurned:0}°", "How the target stands turned: 0 it faces the swordsman, 90 it shows him its left side, 180 its back, -90 its right side.", aimTurned, -180f, 180f) / 15f) * 15f;
             if (!Mathf.Approximately(distance, aimDistance) || !Mathf.Approximately(turned, aimTurned))
             {

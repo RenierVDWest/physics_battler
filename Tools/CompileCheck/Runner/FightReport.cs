@@ -627,9 +627,24 @@ internal static class FightReport
             target.DummySpot = targetSpot;
             attacker.DummySpot = attackerSpot;
             target.DummyHolds = attacker.DummyHolds = PhysicsBattler.Sandbox.AimTest.HeldWithin;
+            target.StandsAsNearAs = attacker.StandsAsNearAs = PhysicsBattler.Sandbox.AimTest.NearestApart;
             target.DummyFace = Mathf.Abs(turned) > 0.5f ? targetSpot + faces * 5f : (Vector3?)null;
             attacker.OnlyTarget = target;
+            // (FIGHT_AIMBUILT=0: today's strike clips, not built blows. FIGHT_AIMLINE=Down and FIGHT_AIMSIZE=Wrist set a
+            // built blow's line and size by hand, for every spot.)
+            PhysicsBattler.Locomotion.BuiltBlow.On = Environment.GetEnvironmentVariable("FIGHT_AIMBUILT") != "0";
+            PhysicsBattler.Locomotion.BuiltBlow.Pushed = Env("FIGHT_AIMPUSH", 1f);
             aim = new PhysicsBattler.Sandbox.AimTest { Attacker = attacker, Target = target };
+            if (Enum.TryParse(Environment.GetEnvironmentVariable("FIGHT_AIMLINE"), true, out PhysicsBattler.Locomotion.CutLine aimLine))
+            {
+                aim.Line = aimLine;
+            }
+
+            if (Enum.TryParse(Environment.GetEnvironmentVariable("FIGHT_AIMSIZE"), true, out PhysicsBattler.Locomotion.CutSize aimSize))
+            {
+                aim.Size = aimSize;
+            }
+
             aim.Ended += blow => Console.WriteLine($"AIM {Time.time:0.00} {blow.Text}");
         }
 

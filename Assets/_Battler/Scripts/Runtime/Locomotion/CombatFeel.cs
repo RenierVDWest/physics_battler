@@ -234,6 +234,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The part of a body a blow lands on turns red at once and fades back to its own colour over a second: the part really struck, not the part aimed at, so a blow that lands on the wrong part shows as the wrong part turning red. A blow stopped by a shield or a sword tints nothing. It changes only what is drawn, nothing about the fight. Off: no tint, as before.")]
         public bool struckPartsFlashRed = true;
 
+        [Tooltip("The aim test's blows are built ones (the plan \"Aimed attacks\", step 1): each is worked out in code for the part asked for as it stands, the sword arm swung as a hammer is, the shoulder first, then the elbow, the wrist last, each joint inside a body's range. So far the arm alone: the rest of the body stands as it stood, so a blow reaches only as far as an arm and a blade, and the test's two stand nearer than fighters do. The battle is not changed: its attacks are still the strike clips. Off: the aim test asks for today's strike clips, as in step 0.")]
+        public bool aimTestBlowsAreBuilt = true;
+
+        [Tooltip("How far a built blow is pushed past the fencing book, so it reads as hitting hard: wound further back, a stillness at the top before it goes, carried further through. 0: the book's blow, small and tidy. 1: pushed. The moment it lands and the place it lands do not move with it. Default 1.")]
+        [Range(0f, 1f)] public float blowsArePushed = 1f;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -828,6 +834,8 @@ namespace PhysicsBattler.Locomotion
             FallPose.ShieldKeptBeforeChest = fallsShieldKeptBeforeTheChest;
             ClipFighter.RagdollsHoldSolidThings = ragdollsHoldSolidThings;
             PhysicsBattler.Units.HitFlashes.On = struckPartsFlashRed;
+            BuiltBlow.On = aimTestBlowsAreBuilt;
+            BuiltBlow.Pushed = blowsArePushed;
             ClipFighter.ThrownBodiesTuck = thrownBodiesTuck;
             ClipFighter.HeldHips = hipsAreHeldNotLocked;
             PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;

@@ -46,6 +46,13 @@ namespace PhysicsBattler.Units
         /// <summary>A target dummy walks back to its spot once it is this far off it (metres at a Medium's size); 0: the fight loop's own (<see cref="PhysicsBattler.Battle.FightLoop.DummyBackFrom"/>). The aim test holds its two closer, so the distance asked for is the distance struck from.</summary>
         public float DummyHolds;
 
+        /// <summary>
+        /// Two that both have this set stand as near each other as this (metres, root to root), nearer than the fight
+        /// lets enemies come; 0: the fight's own rules. The aim test's two, while its blows are made with the arm alone
+        /// and reach only as far as an arm and a blade.
+        /// </summary>
+        public float StandsAsNearAs;
+
         /// <summary>A target dummy faces this point (the sandbox's tube test turns its targets); null: the nearest enemy, as the target test has it.</summary>
         public Vector3? DummyFace;
 
@@ -233,6 +240,11 @@ namespace PhysicsBattler.Units
                 float least = other.Team == Team
                     ? ClipAllyGap * (Battle.FightLoop.BodyRadius(this) + Battle.FightLoop.BodyRadius(other))
                     : ClipFighter.LeastGap * ClipFighter.FightingDistance(Clip.Size, other.Clip.Size);
+                if (StandsAsNearAs > 0f && other.StandsAsNearAs > 0f)
+                {
+                    least = Mathf.Min(least, Mathf.Max(StandsAsNearAs, other.StandsAsNearAs));
+                }
+
                 KeepClear(other, least);
             }
 
@@ -745,13 +757,51 @@ namespace PhysicsBattler.Units
         /// are today, the one that comes nearest it, aimed at the spot and not at the hips, chest or face). False when
         /// it is busy or has no strikes. <paramref name="what"/>: the strike, and how far it expects to miss.
         /// </summary>
-        public bool AimStrike(UnitController target, AimSpot spot, out string what, out float miss)
+        public bool AimStrike(UnitController target, AimSpot spot, out string what, out float miss, CutLine? line = null, CutSize? size = null)
         {
             what = "";
             miss = 0f;
             if (Clip == null || Clip.Strikes == null || Clip.Busy || !CanAct || target == null || target.Clip == null || !target.IsAlive)
             {
                 return false;
+            }
+
+            if (BuiltBlow.On)
+            {
+                // (A built blow, the plan "Aimed attacks": worked out for the part as it stands, not played from a clip.)
+                var lines = BuiltBlow.Choices(Clip, target.Clip, spot, out var chosenSize);
+                Vector3 last = AimSpots.Point(target.Clip, spot);
+                System.Func<Vector3> at = () => target != null && target.Clip != null ? last = AimSpots.Point(target.Clip, spot) : last;
+                // (With no line set by hand: of the lines the spot may be cut on, the one the arm makes best from here,
+                // the likeliest first and taken as soon as it is good.)
+                BuiltBlow blow = null;
+                foreach (var tried in line.HasValue ? new[] { line.Value } : lines)
+                {
+                    var b = new BuiltBlow(Clip, tried, size ?? chosenSize, at);
+                    if (b.Prepare() && (blow == null || b.Badness < blow.Badness - 5f))
+                    {
+                        blow = b;
+                    }
+
+                    if (blow != null && blow.Badness < 12f)
+                    {
+                        break;
+                    }
+                }
+
+                if (blow == null || !Clip.StartBuilt(blow))
+                {
+                    return false;
+                }
+
+                ClipTarget = target;
+                ClipAimSpot = spot;
+                comboStruck.Clear();
+                comboStruck.Add(target);
+                what = blow.Name;
+                miss = blow.Short;
+                ClipStrikeStarted?.Invoke(this, $"{blow.Name} at its {AimSpots.Name(spot)}{(miss > 0.005f ? $" (out of reach by {100f * miss:0} cm)" : "")}", target);
+                return true;
             }
 
             var clip = Clip.StrikeNearest(target.Clip, AimSpots.Point(target.Clip, spot), out miss);

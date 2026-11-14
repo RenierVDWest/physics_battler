@@ -1286,6 +1286,12 @@ namespace PhysicsBattler.Battle
                     room += ElbowRoom * unit.Body.SizeFactor;   // (two on one target: room to swing without hitting each other)
                 }
 
+                // (Two set to stand nearer than the fight lets enemies come: the aim test's.)
+                if (unit.StandsAsNearAs > 0f && other.StandsAsNearAs > 0f)
+                {
+                    room = Mathf.Min(room, Mathf.Max(unit.StandsAsNearAs, other.StandsAsNearAs));
+                }
+
                 float apart = d.magnitude;
                 if (apart >= room)
                 {

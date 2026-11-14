@@ -1151,6 +1151,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Down: the body given to physics, the swept leg thrown along the blow and the body over it, falling.</summary>
         private void Fall(int leg, Vector3 way, float knock)
         {
+            Built?.End();
             Falls++;
             Footing = Footings.Down;
             footingTime = stillFor = 0f;
@@ -2121,6 +2122,9 @@ namespace PhysicsBattler.Locomotion
                 Combo.Step(dt);
             }
 
+            // (A built blow's own clock: stopped with the body in a hit stop, as a clip's is.)
+            Built?.Step(dt);
+
             // (Its own strike taking the sword arm from the parry: the parry's arms and trunk, as they were last step,
             // faded into the strike's, not dropped in a frame.)
             if (Defends && stance == Stances.Sword && Parry != null && Striking && !parryWaited)
@@ -2144,6 +2148,7 @@ namespace PhysicsBattler.Locomotion
             MarkArms("the hand-off");
             if (!Defends)
             {
+                PoseBuilt(dt);
                 return;
             }
 
@@ -2156,6 +2161,7 @@ namespace PhysicsBattler.Locomotion
                 {
                     // (Its own strike has the sword arm: the parry waits, and takes it up from where the strike leaves it.)
                     parryWaited = true;
+                    PoseBuilt(dt);
                 }
                 else
                 {
@@ -2185,11 +2191,42 @@ namespace PhysicsBattler.Locomotion
                 CountArmCut();
                 React(dt);
                 MarkArms("the reaction to a blow");
+                PoseBuilt(dt);
             }
 
             Recover(dt);
             MarkArms("the recovery");
             Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
+        }
+
+        /// <summary>The built blow it is striking with, or struck with last (the plan "Aimed attacks"); null before any.</summary>
+        public BuiltBlow Built { get; private set; }
+
+        /// <summary>
+        /// A built blow begun (the plan "Aimed attacks"): its sword arm is the blow's from now to the end of its way
+        /// back, and its blade is judged as a strike clip's is. False, and nothing begun, when it is busy, has no
+        /// strikes, or the blow can't begin.
+        /// </summary>
+        public bool StartBuilt(BuiltBlow blow)
+        {
+            if (blow == null || Busy || Strikes == null || !blow.Begin())
+            {
+                return false;
+            }
+
+            Built = blow;
+            Strikes.Built = blow;
+            return true;
+        }
+
+        /// <summary>The sword arm as its built blow has it, after the body's own pose and its sway.</summary>
+        private void PoseBuilt(float dt)
+        {
+            if (Built != null && Built.Playing)
+            {
+                Built.Pose(dt);
+                MarkArms("the built blow");
+            }
         }
 
         /// <summary>How far past a body's range the pose had each arm this step, before the gate brought it back (degrees; left, right; 0: not touched).</summary>
@@ -2454,7 +2491,7 @@ namespace PhysicsBattler.Locomotion
                 // (Through a strike and a moment after it the weapon arm is held exactly to its pose, kinematic, as
                 // the fight holds it in a blow: pinned, the physical arm, and the weapon seen on it and swept for
                 // hits, trailed a 16 m/s swing by tens of centimetres and passed by what the pose struck.)
-                if (Strikes != null && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0)
+                if (Strikes != null && ((Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0) || (Built != null && Built.Playing)))
                 {
                     weaponArmHeldUntil = clock + WeaponArmHeldAfter;
                 }
@@ -3507,7 +3544,7 @@ namespace PhysicsBattler.Locomotion
         public List<LocoClip> StrikeClips = new List<LocoClip>();
 
         /// <summary>A strike is under way: one playing up to its end, or a combo.</summary>
-        public bool Striking => (Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0) || (Combo != null && Combo.Playing);
+        public bool Striking => (Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0) || (Combo != null && Combo.Playing) || (Built != null && Built.Playing);
 
         /// <summary>Busy with something it can't break off to strike: a strike, a reaction, down.</summary>
         public bool Busy => Fallen || Striking || Loco.Current == Locomotor.Mode.OneShot || Stumbling;
@@ -5206,6 +5243,7 @@ namespace PhysicsBattler.Locomotion
                 {
                     Combo?.Stop();
                     Loco.CutShort(StrikeHits.RewindMost, StrikeHits.ReboundSpeed);
+                    Built?.CutShort(StrikeHits.RewindMost, StrikeHits.ReboundSpeed);
                     reacted = "its strike cut short";
                 }
                 else

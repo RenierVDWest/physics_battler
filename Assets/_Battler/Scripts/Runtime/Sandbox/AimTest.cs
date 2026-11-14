@@ -26,6 +26,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>How far from the spot the blade touched what it met (metres), and the attacker's size (1: a Medium).</summary>
         public float LandedFrom, Size = 1f;
 
+        /// <summary>How far apart the two stood as it was asked (metres, root to root), and how far the spot was from the attacker's sword shoulder.</summary>
+        public float Apart, FromShoulder;
+
         /// <summary>
         /// It met the target's body on the spot asked for: the part itself; a neck or a shoulder, which has no solid of its
         /// own, when it landed on a part round it and within <see cref="AimSpots.JointSpotWithin"/> of the spot.
@@ -44,6 +47,27 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The furthest its weight was outside its feet through the blow (metres; 0: over them throughout), and how far outside as the blade met something or came nearest (a blow struck off balance has this well over 0).</summary>
         public float WeightOut, WeightOutThen;
 
+        /// <summary>
+        /// A built blow (the plan "Aimed attacks"), not a strike clip: when it was planned to land (seconds after it was
+        /// asked), how far its blade turns in the cut (degrees) and how fast its striking part goes (m/s), and what the
+        /// arm made of it at the worst: the wrist and the shoulder past their ranges (degrees), the grip off where it
+        /// was asked (metres).
+        /// </summary>
+        public bool Built;
+        public float PlannedAt, Wound, PlannedSpeed, WristPast;
+
+        /// <summary>A built blow's line and edge as planned: how far the way the blade comes in is off the line asked for, and the edge off the way the blade goes (degrees); and how far its blade was in its own body at the worst (metres).</summary>
+        public float LineOff, PlannedEdgeOff, BladeInOwnBody;
+
+        /// <summary>A built blow's arm as the blade meets the spot, as planned: how far past what a body's arm does (degrees; over 0, the blow can't be made as asked from here).</summary>
+        public float PastAtSpot;
+
+        /// <summary>The furthest the pose had the sword arm past a body's range through the blow, as the game's own gate measures it before it brings the arm back (degrees).</summary>
+        public float ArmPast;
+
+        /// <summary>The blow's arm stayed inside a body's ranges throughout.</summary>
+        public bool ArmInRange => WristPast < 1f && ArmPast < 1f;
+
         /// <summary>What it met, in words.</summary>
         public string MetText => !Met ? "nothing" : Shield ? "the shield" : Parried ? "the sword (parried)" : "the " + Part;
 
@@ -55,17 +79,20 @@ namespace PhysicsBattler.Sandbox
             + (Nearest < float.MaxValue
                 ? $"Blade: came within {100f * Nearest:0} cm of the spot, edge {EdgeOff:0}° off its way, at most {100f * BladeOffPose:0} cm behind its pose and {100f * BladeOffPath:0} cm off its path\n"
                 : "Blade: not followed\n")
-            + $"Feet: weight {100f * WeightOutThen:0} cm outside them as it landed, {100f * WeightOut:0} cm at most";
+            + $"Feet: weight {100f * WeightOutThen:0} cm outside them as it landed, {100f * WeightOut:0} cm at most"
+            + (Built ? $"\nPlan: to land {PlannedAt:0.00} s after, the blade turning {Wound:0}° at {PlannedSpeed:0} m/s, its line {LineOff:0}° off the one asked. Arm: {(ArmInRange ? "in range" : $"{Mathf.Max(WristPast, ArmPast):0}° past range")}{(BladeInOwnBody > 0.005f ? $", the blade {100f * BladeInOwnBody:0} cm into its own body" : "")}" : "");
 
         /// <summary>The blow in a line, for the logs.</summary>
         public string Text =>
-            $"asked for the {AimSpots.Name(Spot)} with {Strike}: met {MetText}{(Met ? $" {MetAfter:0.00} s after, at {MetSpeed:0.0} m/s, {100f * LandedFrom:0} cm from the spot" : "")}"
+            $"asked for the {AimSpots.Name(Spot)} ({Apart:0.00} m apart, {FromShoulder:0.00} m from the sword shoulder) with {Strike}: met {MetText}{(Met ? $" {MetAfter:0.00} s after, at {MetSpeed:0.0} m/s, {100f * LandedFrom:0} cm from the spot" : "")}"
             + $"{(OnSpot ? ": the spot asked for" : Met && !Shield && !Parried ? ": not the spot asked for" : "")}; "
             + (Nearest < float.MaxValue
                 ? $"its striking part came within {100f * Nearest:0} cm of the spot ({NearestAfter:0.00} s after), the edge {EdgeOff:0}° off its way, the blade at most {100f * BladeOffPose:0} cm from where its pose had it and {100f * BladeOffPath:0} cm off the path its pose took; "
                 : "its blade was not followed; ")
             + $"its weight {100f * WeightOutThen:0} cm outside its feet then, {100f * WeightOut:0} cm at most"
-            + (ExpectedMiss > 0.005f ? $"; it expected to fall {100f * ExpectedMiss:0} cm short of the spot" : "");
+            + (ExpectedMiss > 0.005f ? $"; it expected to fall {100f * ExpectedMiss:0} cm short of the spot" : "")
+            + $"; its arm {(ArmInRange ? "in range" : $"{Mathf.Max(WristPast, ArmPast):0}° past range")}"
+            + (Built ? $"; built: planned to land {PlannedAt:0.00} s after, the blade turning {Wound:0}° at {PlannedSpeed:0.0} m/s, its line {LineOff:0}° off the one asked and its edge {PlannedEdgeOff:0}° off its way{(BladeInOwnBody > 0.005f ? $", the blade {100f * BladeInOwnBody:0} cm into its own body" : "")}" : "");
     }
 
     /// <summary>
@@ -79,12 +106,19 @@ namespace PhysicsBattler.Sandbox
     {
         public UnitController Attacker, Target;
 
+        /// <summary>A built blow's line and size, set by hand; null: chosen for the spot (<see cref="BuiltBlow.Choices"/>).</summary>
+        public CutLine? Line;
+        public CutSize? Size;
+
         /// <summary>The blow under way (or the last one), and every blow asked so far.</summary>
         public AimBlow Now { get; private set; }
         public readonly List<AimBlow> Blows = new List<AimBlow>();
 
         /// <summary>A blow is followed for at least this long after it is asked, and this long between two of a run (seconds).</summary>
         public const float LeastFollowed = 0.3f, BetweenBlows = 1f;
+
+        /// <summary>The test's two may stand as near each other as this (metres at a Medium's size, root to root): nearer than the fight lets enemies come, for blows made with the arm alone.</summary>
+        public const float NearestApart = 0.5f;
 
         /// <summary>The test's two walk back to their spots once they are this far off them (metres at a Medium's size): closer than a target dummy's own 0.3 m, so the distance asked for is the distance struck from.</summary>
         public const float HeldWithin = 0.06f;
@@ -115,12 +149,25 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
-            if (!Attacker.AimStrike(Target, spot, out string strike, out float miss))
+            if (!Attacker.AimStrike(Target, spot, out string strike, out float miss, Line, Size))
             {
                 return false;
             }
 
             Now = new AimBlow { Spot = spot, Strike = strike, ExpectedMiss = miss, Started = now, Size = Attacker.Clip.Size };
+            Vector3 apart = Target.Root.position - Attacker.Root.position;
+            apart.y = 0f;
+            Now.Apart = apart.magnitude;
+            Now.FromShoulder = Vector3.Distance(Attacker.Clip.Anim.Part(PartId.UpperArmR).position, AimSpots.Point(Target.Clip, spot));
+            var built = Attacker.Clip.Built;
+            if (built != null && built.Playing)
+            {
+                Now.Built = true;
+                Now.PlannedAt = built.ContactAt / Mathf.Max(0.05f, Attacker.Clip.Loco.TimeScale);
+                Now.Wound = built.Wound;
+                Now.PlannedSpeed = built.StrikeSpeed;
+            }
+
             Blows.Add(Now);
             lastKnown = false;
             readSinceMet = false;
@@ -187,6 +234,15 @@ namespace PhysicsBattler.Sandbox
                 Read(now);
                 if (!Attacker.Clip.Striking && now - Now.Started >= LeastFollowed)
                 {
+                    if (Now.Built && Attacker.Clip.Built != null)
+                    {
+                        Now.WristPast = Attacker.Clip.Built.MostWristShort;
+                        Now.LineOff = Attacker.Clip.Built.LineOff;
+                        Now.PastAtSpot = Attacker.Clip.Built.PastAtSpot;
+                        Now.PlannedEdgeOff = Attacker.Clip.Built.EdgeOff;
+                        Now.BladeInOwnBody = Attacker.Clip.Built.MostBladeInBody;
+                    }
+
                     Now.Done = true;
                     doneAt = now;
                     if (Diagnostics.PlaytestTrace.Enabled)
@@ -236,6 +292,8 @@ namespace PhysicsBattler.Sandbox
             {
                 Now.WeightOut = Mathf.Max(Now.WeightOut, clip.Ground.WeightOut);
             }
+
+            Now.ArmPast = Mathf.Max(Now.ArmPast, clip.ArmHeldBy[1]);
 
             // (The nearest the striking part came between the last step and this one: a blade at 15 m/s goes 25 cm in a step.)
             Vector3 from = lastKnown ? lastStrike : strike;

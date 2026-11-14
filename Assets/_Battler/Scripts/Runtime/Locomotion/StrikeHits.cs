@@ -185,8 +185,91 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A slowed blow's speed comes back over this long (seconds).</summary>
         public const float SlowedFor = 0.3f;
 
-        private LocoClip blow;
+        private object blow;
         private bool had;
+
+        /// <summary>
+        /// The built blow its fighter is striking with (the plan "Aimed attacks"), or null. While one is under way it is
+        /// what plays the blow, not a strike clip in the walk: its time, its contact, and what stops it are its own.
+        /// </summary>
+        public BuiltBlow Built;
+
+        private bool BuiltNow => Built != null && Built.Playing;
+
+        // What plays the blow (a strike clip in the walk, or a built blow): its own time, how fast that runs, and what
+        // is done to it when its blade is stopped.
+        private float PlayTime => BuiltNow ? Built.Time : loco.ShotTime;
+
+        private float PlaySpeed
+        {
+            get => BuiltNow ? Built.Speed : loco.ShotSpeed;
+            set
+            {
+                if (BuiltNow)
+                {
+                    Built.Speed = value;
+                }
+                else
+                {
+                    loco.ShotSpeed = value;
+                }
+            }
+        }
+
+        private bool PlayAirborne => !BuiltNow && loco.ShotAirborne();
+
+        private string PlayName(LocoClip clip) => BuiltNow ? Built.Name : clip != null ? clip.Name : "the blow";
+
+        /// <summary>Put back to where the blade met what stopped it, and posed there at once.</summary>
+        private void PlayWindBack(float to)
+        {
+            if (BuiltNow)
+            {
+                Built.WindBack(to);
+                Built.Pose(1e-4f);
+            }
+            else
+            {
+                loco.WindBack(to);
+                poser.Pose(1e-4f);
+            }
+        }
+
+        private void PlayCutShort(float back, float speed)
+        {
+            if (BuiltNow)
+            {
+                Built.CutShort(back, speed);
+            }
+            else
+            {
+                loco.CutShort(back, speed);
+            }
+        }
+
+        private void PlayKnockHand(Vector3 velocity)
+        {
+            if (BuiltNow)
+            {
+                Built.KnockHand(velocity);
+            }
+            else
+            {
+                poser.KnockHand(velocity);
+            }
+        }
+
+        private void PlayBind(Vector3 offset)
+        {
+            if (BuiltNow)
+            {
+                Built.Bind(offset);
+            }
+            else
+            {
+                poser.Bind(offset);
+            }
+        }
         private Vector3 lastGrip, lastTip, lastStrike;
         private float momentumLeft = 1f, lastShotTime;
         private readonly List<(ClipFighter body, Collider collider, PartId part, bool shield, float order)> found = new List<(ClipFighter, Collider, PartId, bool, float)>();
@@ -249,6 +332,20 @@ namespace PhysicsBattler.Locomotion
         public bool Incoming(out Vector3 blade, out Vector3 aim, out Vector3 comesFrom)
         {
             blade = aim = comesFrom = Vector3.zero;
+            if (BuiltNow)
+            {
+                // (A built blow: where its blade is now, and where and from where its plan has it land.)
+                if (stopped || Built.ComingBack || Built.Time > Built.ContactAt + 0.1f || !Blade(null, out _, out _, out blade))
+                {
+                    return false;
+                }
+
+                Built.BladeAtTime(Built.ContactAt, out _, out _, out aim);
+                Built.BladeAtTime(Mathf.Max(0f, Built.ContactAt - ReadOver), out _, out _, out Vector3 before);
+                comesFrom = (before - aim).sqrMagnitude > 1e-6f ? (before - aim).normalized : (blade - aim).normalized;
+                return true;
+            }
+
             var clip = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
             // (A blow already met, set aside or slid off, is no longer coming: backing out it is short of its contact again.)
             if (clip == null || clip.ContactFrame < 0 || loco.ShotTime > clip.ContactFrame / clip.Rate + 0.1f || (stopped && clip == blow) || !Blade(clip, out _, out _, out blade))
@@ -286,6 +383,11 @@ namespace PhysicsBattler.Locomotion
         private bool ReadNow(out BlowRead read)
         {
             read = default;
+            if (BuiltNow)
+            {
+                return ReadBuilt(out read);
+            }
+
             if (!Incoming(out read.Blade, out read.Aim, out read.ComesFrom))
             {
                 return ReadUpcoming(out read);
@@ -380,6 +482,72 @@ namespace PhysicsBattler.Locomotion
 
             // (Where it lands, as read so: the striking point at contact.)
             read.Aim = read.Path[ContactPoint];
+            return true;
+        }
+
+        private BuiltBlow readBuilt;
+
+        /// <summary>
+        /// What a defender reads of a built blow: the same as of a strike clip's, from the blow's own plan, which knows
+        /// where the blade will be at each moment (with the striker's body where it is now).
+        /// </summary>
+        private bool ReadBuilt(out BlowRead read)
+        {
+            read = default;
+            var b = Built;
+            if (!Incoming(out read.Blade, out read.Aim, out read.ComesFrom))
+            {
+                return false;
+            }
+
+            if (!ReferenceEquals(readBuilt, b))
+            {
+                readBuilt = b;
+                readSerial = ++lastSerial;
+            }
+
+            read.Serial = readSerial;
+            float contact = b.ContactAt, now = b.Time;
+            b.BladeAtTime(contact, out Vector3 gripAt, out Vector3 tipAt, out _);
+            read.BladeWay = (tipAt - gripAt).normalized;
+            float speed = Mathf.Max(0.05f, loco.TimeScale);
+            read.ToContact = Mathf.Max(0f, contact - now) / speed;
+            read.Coming = now / speed;
+            read.Thrust = false;
+            read.Momentum = MetMomentum(1f);
+            read.Length = Weapon != null ? Weapon.length * Scale : poser.WeaponLength;
+            // (The swept stretch starts a little up the blade from the hand, as Blade has it.)
+            float from = Weapon != null && Weapon.kind == WeaponKind.Club ? 0.35f : 0.1f;
+            void PointAt(float t, out Vector3 gripThen, out Vector3 strikeThen, out Vector3 tipThen)
+            {
+                b.BladeAtTime(t, out Vector3 g, out tipThen, out strikeThen);
+                gripThen = Vector3.Lerp(g, tipThen, from);
+            }
+
+            read.Path = new Vector3[PathPoints];
+            read.TipPath = new Vector3[PathPoints];
+            read.GripPath = new Vector3[PathPoints];
+            read.PathSeconds = PathStep / speed;
+            for (int k = 0; k < PathPoints; k++)
+            {
+                PointAt(Mathf.Max(now, contact + PathStep * (k - ContactPoint)), out read.GripPath[k], out read.Path[k], out read.TipPath[k]);
+            }
+
+            read.Aim = read.Path[ContactPoint];
+            if (!ClipFighter.UseFinePath)
+            {
+                return true;
+            }
+
+            read.FineGrip = new Vector3[FinePoints];
+            read.FineTip = new Vector3[FinePoints];
+            read.FineSeconds = FineStep / speed;
+            read.FineStart = (contact - FineBefore - now) / speed;
+            for (int k = 0; k < FinePoints; k++)
+            {
+                PointAt(Mathf.Max(now, contact - FineBefore + FineStep * k), out read.FineGrip[k], out _, out read.FineTip[k]);
+            }
+
             return true;
         }
 
@@ -592,20 +760,31 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            if (loco.Current == Locomotor.Mode.OneShot && loco.ShotSpeed > 0f && loco.ShotSpeed < 1f)
+            bool built = BuiltNow;
+            if (built)
+            {
+                if (Built.Speed > 0f && Built.Speed < 1f)
+                {
+                    Built.Speed = Mathf.MoveTowards(Built.Speed, 1f, dt / SlowedFor);
+                }
+            }
+            else if (loco.Current == Locomotor.Mode.OneShot && loco.ShotSpeed > 0f && loco.ShotSpeed < 1f)
             {
                 loco.ShotSpeed = Mathf.MoveTowards(loco.ShotSpeed, 1f, dt / SlowedFor);
             }
 
-            var clip = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
-            bool striking = clip != null && clip.ContactFrame >= 0;
+            var clip = !built && loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
+            bool striking = built || (clip != null && clip.ContactFrame >= 0);
+            object playing = built ? (object)Built : clip;
+            // (Its contact, in the blow's own time.)
+            float contactAt = built ? Built.ContactAt : striking ? clip.ContactFrame / clip.Rate : 0f;
             if (!striking)
             {
                 blow = null;
             }
-            else if (clip != blow)
+            else if (playing != blow)
             {
-                blow = clip;
+                blow = playing;
                 EndBind();
                 stopped = false;
                 deflectedBy.Clear();
@@ -617,7 +796,7 @@ namespace PhysicsBattler.Locomotion
                 shieldMeasured.Clear();
             }
 
-            if (striking && !swingHeard && loco.ShotTime >= clip.ContactFrame / clip.Rate - SwingHeardBefore)
+            if (striking && !swingHeard && PlayTime >= contactAt - SwingHeardBefore)
             {
                 swingHeard = true;
                 Swung?.Invoke(Slot != null ? Slot.position : anim.Part(PartId.HandR).position, Club, Finishing != null && Finishing());
@@ -636,7 +815,7 @@ namespace PhysicsBattler.Locomotion
             lastGrip = grip;
             lastTip = tip;
             lastStrike = strike;
-            lastShotTime = loco.ShotTime;
+            lastShotTime = PlayTime;
             had = true;
             if (!wasHad || bodies == null || bodies.Count == 0)
             {
@@ -645,8 +824,9 @@ namespace PhysicsBattler.Locomotion
 
             // (Capped: a jump in one step is not a blow's speed.)
             float speed = Mathf.Min(Vector3.Distance(strike, lastS) / dt, MostSpeed);
-            float contact = striking ? clip.ContactFrame / clip.Rate : 0f, t = loco.ShotTime;
-            bool live = striking && !stopped && t >= contact - LiveBefore && t <= contact + LiveAfter && loco.ShotSpeed > 0f
+            float contact = contactAt, t = PlayTime;
+            // (A built blow's blade is live from the start of its cut to the end of its carry-through.)
+            bool live = striking && !stopped && (built ? Built.Live : t >= contact - LiveBefore && t <= contact + LiveAfter) && PlaySpeed > 0f
                         && speed >= (Weapon != null ? Weapon.minHitSpeed : 2f);
             Vector3 direction = strike - lastS;
             float radius = Mathf.Max(0.01f, (Weapon != null ? Weapon.sweepRadius : 0.035f) * Scale);
@@ -797,7 +977,7 @@ namespace PhysicsBattler.Locomotion
 
                 if (parryFirst)
                 {
-                    float metAt = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
+                    float metAt = Mathf.Lerp(shotWas, PlayTime, (i - 1) / (float)samples);
                     Strike(clip, parrier, PartId.HandR, true, parryAt, speed, direction, metAt, parryAlong, b - a);
                     return;
                 }
@@ -827,7 +1007,7 @@ namespace PhysicsBattler.Locomotion
 
                 MeasureShield(f.body, a, b, direction, f.shield, f.part, clip);
                 // (Where in this step it met it: a stopped blow is put back there.)
-                float met = Mathf.Lerp(shotWas, loco.ShotTime, (i - 1) / (float)samples);
+                float met = Mathf.Lerp(shotWas, PlayTime, (i - 1) / (float)samples);
                 CountPassing(bodies, lastG, lastT, grip, tip, striking, live, metBefore);
                 Strike(clip, f.body, f.part, f.shield, f.collider.ClosestPoint(0.5f * (a + b)), speed, direction, met);
                 return;
@@ -1010,7 +1190,7 @@ namespace PhysicsBattler.Locomotion
             // (The plan "Weight and momentum", step 4: a square parry holds a blow up to its skill's weight; a heavier one
             // beats it, the blade crushed back into the body and part of the blow landing through it. A glance, taken at a
             // slant, is never beaten. The showstopper counts double, as it lands.)
-            bool beaten = parried && !glanced && !loco.ShotAirborne() && r.Weight * (finishing ? FinisherKnock : 1f) > struck.ParryHolds;
+            bool beaten = parried && !glanced && !PlayAirborne && r.Weight * (finishing ? FinisherKnock : 1f) > struck.ParryHolds;
             if (beaten)
             {
                 Parries--;
@@ -1034,7 +1214,7 @@ namespace PhysicsBattler.Locomotion
             // land the next (thrown back three times as far, a blow in six of the dummy's combos missed). The body
             // still bends and leans by the heavier blow, and the combo's last throws it back with all of it.)
             struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade * felt), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
-                bound: parried && !glanced && !loco.ShotAirborne(), drive: comboing && !finishing ? 1f / felt : 1f, heavier: scripted);
+                bound: parried && !glanced && !PlayAirborne, drive: comboing && !finishing ? 1f / felt : 1f, heavier: scripted);
             Struck?.Invoke(new StruckBy
             {
                 Struck = struck, Part = part, Result = r, Shield = shield && !parried, Parried = parried, Point = point, Speed = speed,
@@ -1064,11 +1244,10 @@ namespace PhysicsBattler.Locomotion
             {
                 // Glanced off the dummy's blade: on, slowed, its hand jolted; the sweep goes on to what lies beyond.
                 momentumLeft = Mathf.Min(momentumLeft, GlanceLeft);
-                loco.ShotSpeed = Mathf.Max(0.3f, GlanceLeft);
+                PlaySpeed = Mathf.Max(0.3f, GlanceLeft);
                 // (Back to where the blades met and held there: the bind slides it on along the blade, past its point.)
-                loco.WindBack(met);
-                poser.Pose(1e-4f);
-                loco.ShotSpeed = 0f;
+                PlayWindBack(met);
+                PlaySpeed = 0f;
                 stopped = true;
                 StartBind(struck, point, speed, direction, parryAlong, true, 0f);
                 what = $"glanced off the {struck.Parry.WeaponName} ({struck.Parry.CurrentName}, crossed at {LastCross:0} degrees, on its blade {lastParryOn:0.00} from the hilt): on, slowed";
@@ -1079,7 +1258,7 @@ namespace PhysicsBattler.Locomotion
                 // On through the body it landed on, slowed; that body is not struck again by this blow, and what
                 // lies beyond it is struck with what is left.
                 momentumLeft = r.MomentumLeft;
-                loco.ShotSpeed = Mathf.Max(0.3f, CombatFeel.SwingKept);
+                PlaySpeed = Mathf.Max(0.3f, CombatFeel.SwingKept);
                 spentOn.Add(struck);
                 what = $"drove on through the {Name(part)} ({CombatFeel.SwingKept * 100f:0}% of its speed kept)";
                 Hits++;
@@ -1097,14 +1276,13 @@ namespace PhysicsBattler.Locomotion
                     ComboEnded++;
                 }
 
-                if (parried && !loco.ShotAirborne())
+                if (parried && !PlayAirborne)
                 {
                     // Set aside (the plan "Parries that divert"): back to where the blades met, held there through the
                     // hit stop; then the parrying sword sweeps it off the body at the blow's own speed, the two blades
                     // together, and only then does it back out. A clean parry ends the combo.
-                    loco.WindBack(met);
-                    poser.Pose(1e-4f);
-                    loco.ShotSpeed = 0f;
+                    PlayWindBack(met);
+                    PlaySpeed = 0f;
                     StartBind(struck, point, speed, direction, parryAlong, false, r.Weight * knock);
                     Owner?.Jar(-direction.normalized * (r.Impulse.magnitude * knock * (beaten ? 0.5f : 1f)), point);
                     if (beaten)
@@ -1122,16 +1300,16 @@ namespace PhysicsBattler.Locomotion
                     // (A heavy weapon comes back off what stops it the less the more of its speed it would keep through a
                     // body: it stays on the shield, which gives, and is not thrown back off it like a stick.)
                     float steady = 1f - CombatFeel.SwingKept;
-                    poser.KnockHand(-direction.normalized * (Rebound(r.Weight * knock) * steady));
+                    PlayKnockHand(-direction.normalized * (Rebound(r.Weight * knock) * steady));
                     Owner?.Jar(-direction.normalized * (r.Impulse.magnitude * knock * steady), point);
                 }
                 else
                 {
-                    poser.KnockHand(-direction.normalized * Mathf.Min(speed * 0.25f, 3f));
+                    PlayKnockHand(-direction.normalized * Mathf.Min(speed * 0.25f, 3f));
                 }
                 // Back to where the weapon met it, shown through the hit stop; then it backs out a little. A jumping
                 // strike met in the air can't back out: it comes down, its landing played on, the arm thrown back.
-                if (loco.ShotAirborne())
+                if (PlayAirborne)
                 {
                     Landings++;
                     poser.HoldWeaponArm();
@@ -1139,11 +1317,10 @@ namespace PhysicsBattler.Locomotion
                 }
                 else
                 {
-                    loco.WindBack(met);
-                    poser.Pose(1e-4f);
+                    PlayWindBack(met);
                     // (Stopped by a shield, a heavy weapon backs out of it the less the more of its speed it would keep
                     // through a body: it stays where it was stopped and goes back to its guard from there.)
-                    loco.CutShort(shield ? RewindMost * (1f - CombatFeel.SwingKept) : RewindMost, ReboundSpeed);
+                    PlayCutShort(shield ? RewindMost * (1f - CombatFeel.SwingKept) : RewindMost, ReboundSpeed);
                 }
                 }
 
@@ -1162,7 +1339,7 @@ namespace PhysicsBattler.Locomotion
             else
             {
                 momentumLeft = r.MomentumLeft;
-                loco.ShotSpeed = Mathf.Max(comboing ? ComboCarry : 0.3f, r.MomentumLeft);
+                PlaySpeed = Mathf.Max(comboing ? ComboCarry : 0.3f, r.MomentumLeft);
                 what = (comboing && r.StopsSwing ? "swept through the " : "cut through the ") + Name(part);
                 Hits++;
                 Cleaves++;
@@ -1175,7 +1352,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             LastWeight = r.Weight * knock * (glanced ? GlanceLeft : 1f);
-            Last = $"{clip.Name} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, weight {LastWeight:0.00} m/s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")}{(LastShieldMeet.HasValue && measuredNow ? "; " + LastShieldMeet.Value : "")})";
+            Last = $"{PlayName(clip)} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, weight {LastWeight:0.00} m/s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")}{(LastShieldMeet.HasValue && measuredNow ? "; " + LastShieldMeet.Value : "")})";
             measuredNow = false;
             Landed?.Invoke(Last);
         }
@@ -1428,7 +1605,7 @@ namespace PhysicsBattler.Locomotion
                 float give = Mathf.Min(step * (bindBeaten ? 0.6f : 1f), bindGiveNeed - bindGiven);
                 bindGiven += give;
                 bindWith.Parry.Sweep(bindGiveWay * give);
-                poser.Bind(bindGiveWay * bindGiven);
+                PlayBind(bindGiveWay * bindGiven);
                 if (bindGiven >= bindGiveNeed - 1e-5f && bindBeaten)
                 {
                     bindWith.Parry.BladeNow(out var cg, out var ct);
@@ -1436,7 +1613,7 @@ namespace PhysicsBattler.Locomotion
                     Crush(with0, Vector3.Lerp(cg, ct, SwordParry.HoldAt));
                     spentOn.Add(with0);
                     EndBind();
-                    loco.CutShort(RewindMost, ReboundSpeed);
+                    PlayCutShort(RewindMost, ReboundSpeed);
                     return true;
                 }
 
@@ -1454,7 +1631,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             bindSlid = Mathf.Min(bindSlideNeed, bindSlid + step);
-            poser.Bind(bindGiveWay * bindGiven + bindOut * bindCarried + bindAlongWay * bindSlid);
+            PlayBind(bindGiveWay * bindGiven + bindOut * bindCarried + bindAlongWay * bindSlid);
             bool done = (bindCarried >= bindNeed - 1e-4f && bindSlid >= bindSlideNeed - 1e-4f) || bindTime >= MostBind;
             if (!done)
             {
@@ -1467,8 +1644,8 @@ namespace PhysicsBattler.Locomotion
                 SetAside++;
                 EndBind();
                 // (Carried off, and jarred back by its weight, half as hard as off a shield: the sweep took some of it.)
-                poser.KnockHand(bindOut * Mathf.Min(bindSpeed * 0.1f, 1.5f) - bindGiveWay * (0.5f * Rebound(bindWeight)));
-                loco.CutShort(RewindMost, ReboundSpeed);
+                PlayKnockHand(bindOut * Mathf.Min(bindSpeed * 0.1f, 1.5f) - bindGiveWay * (0.5f * Rebound(bindWeight)));
+                PlayCutShort(RewindMost, ReboundSpeed);
                 return true;
             }
 
@@ -1477,7 +1654,7 @@ namespace PhysicsBattler.Locomotion
             SlidOff++;
             spentOn.Add(with);
             EndBind();
-            loco.CutShort(RewindMost, ReboundSpeed);
+            PlayCutShort(RewindMost, ReboundSpeed);
             return true;
         }
 
@@ -1495,6 +1672,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             poser.LetGo();
+            Built?.LetGo();
             bindWith = null;
         }
 
