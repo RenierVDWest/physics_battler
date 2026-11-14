@@ -1,0 +1,1187 @@
+# Physics Battler playtest 2026-11-14_08-26-10
+# time (s since Play) | physics step | who | what | details
+    4.502 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    4.502 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+    4.502 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+    4.502 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    4.502 |      0 | -              | input    | at most 50 ms of physics a frame
+    4.502 |      0 | -              | input    | spawn: 6 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+    4.502 |      0 | -              | console  | [Articulation probe] targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    4.502 |      0 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    4.517 |      1 | Target open    | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.517 |      1 | Attacker 1     | spawn    | at (-4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.517 |      1 | Target shield  | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.517 |      1 | Attacker 2     | spawn    | at (0.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.517 |      1 | Target sword   | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.517 |      1 | Attacker 3     | spawn    | at (4.00, -1.30) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.517 |      1 | Target open    | equip    | bare hands, scaled 1.00
+    4.517 |      1 | Attacker 1     | equip    | WD_Sword, scaled 1.00
+    4.517 |      1 | Target shield  | equip    | WD_Sword and WD_Shield, scaled 1.00
+    4.517 |      1 | Attacker 2     | equip    | WD_Sword, scaled 1.00
+    4.517 |      1 | Target sword   | equip    | WD_Sword, scaled 1.00
+    4.517 |      1 | Attacker 3     | equip    | WD_Sword, scaled 1.00
+    4.517 |      1 | Target open    | sight    | noticed Attacker 1 in clear view (2.6 m)
+    4.517 |      1 | Target open    | sight    | noticed Target shield at the edge of its view (4.0 m)
+    4.517 |      1 | Target open    | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+    4.517 |      1 | Target open    | sight    | noticed Target sword at the edge of its view (8.0 m)
+    4.517 |      1 | Target open    | sight    | noticed Attacker 3 at the edge of its view (8.4 m)
+    4.517 |      1 | Attacker 1     | sight    | noticed Target open in clear view (2.6 m)
+    4.517 |      1 | Attacker 1     | sight    | noticed Target shield at the edge of its view (4.8 m)
+    4.517 |      1 | Attacker 1     | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+    4.517 |      1 | Attacker 1     | sight    | noticed Target sword at the edge of its view (8.4 m)
+    4.517 |      1 | Attacker 1     | sight    | noticed Attacker 3 at the edge of its view (8.0 m)
+    4.517 |      1 | Target shield  | sight    | noticed Target open at the edge of its view (4.0 m)
+    4.517 |      1 | Target shield  | sight    | noticed Attacker 1 at the edge of its view (4.8 m)
+    4.517 |      1 | Target shield  | sight    | noticed Attacker 2 in clear view (2.6 m)
+    4.517 |      1 | Target shield  | sight    | noticed Target sword at the edge of its view (4.0 m)
+    4.517 |      1 | Target shield  | sight    | noticed Attacker 3 at the edge of its view (4.8 m)
+    4.517 |      1 | Attacker 2     | sight    | noticed Target open at the edge of its view (4.8 m)
+    4.517 |      1 | Attacker 2     | sight    | noticed Attacker 1 at the edge of its view (4.0 m)
+    4.517 |      1 | Attacker 2     | sight    | noticed Target shield in clear view (2.6 m)
+    4.517 |      1 | Attacker 2     | sight    | noticed Target sword at the edge of its view (4.8 m)
+    4.517 |      1 | Attacker 2     | sight    | noticed Attacker 3 at the edge of its view (4.0 m)
+    4.517 |      1 | Target sword   | sight    | noticed Target open at the edge of its view (8.0 m)
+    4.517 |      1 | Target sword   | sight    | noticed Attacker 1 at the edge of its view (8.4 m)
+    4.517 |      1 | Target sword   | sight    | noticed Target shield at the edge of its view (4.0 m)
+    4.517 |      1 | Target sword   | sight    | noticed Attacker 2 at the edge of its view (4.8 m)
+    4.517 |      1 | Target sword   | sight    | noticed Attacker 3 in clear view (2.6 m)
+    4.517 |      1 | Attacker 3     | sight    | noticed Target open at the edge of its view (8.4 m)
+    4.517 |      1 | Attacker 3     | sight    | noticed Attacker 1 at the edge of its view (8.0 m)
+    4.517 |      1 | Attacker 3     | sight    | noticed Target shield at the edge of its view (4.8 m)
+    4.517 |      1 | Attacker 3     | sight    | noticed Attacker 2 at the edge of its view (4.0 m)
+    4.517 |      1 | Attacker 3     | sight    | noticed Target sword in clear view (2.6 m)
+    4.552 |      3 | -              | perf     | 308 ms frame, 0 physics steps, garbage collected (gen0 4, gen1 4, gen2 4); ours: nothing over 0.5 ms; Unity: Physics_Simulate 33.2 ms, GC_Collect 25.0 ms, PlayerLoop 6.6 ms, Gfx_WaitForGfxCommandsFromMainThread 6.3 ms, CPU_Total_Frame_Time 1.3 ms, CPU_Main_Thread_Frame_Time 0.8 ms, CPU_Render_Thread_Frame_Time 0.6 ms, GPU_Frame_Time 0.5 ms
+    4.602 |      6 | -              | perf     | 148 ms frame, 3 physics steps; ours: UnitStep 54.5 ms (18), RecorderSample 47.3 ms (3), ArmSolve 15.2 ms (32), Sandbox 4.8 ms (3), CaptureRender 1.0 ms (1); Unity: Main_Thread 145.8 ms, Gfx_WaitForGfxCommandsFromMainThread 142.8 ms, PlayerLoop 132.3 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 121.9 ms, FixedBehaviourUpdate 121.9 ms, Physics_Simulate 5.1 ms, GC_Collect 3.1 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 2.4 ms
+    5.633 |     68 | Attacker 1     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.633 |     68 | Attacker 2     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.633 |     68 | Attacker 3     | tempo    | gather → press: fully charged (energy 1.00, aggression 0.50); energy 1.00, aggression 0.50
+    5.782 |     76 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+    5.782 |     76 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    5.783 |     77 | Target open #2 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    5.783 |     77 | Target shield #2 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    5.783 |     77 | Target sword #2 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    5.783 |     77 | Attacker 3     | despawn  | removed from the scene
+    5.783 |     77 | Target sword   | despawn  | removed from the scene
+    5.783 |     77 | Attacker 2     | despawn  | removed from the scene
+    5.783 |     77 | Target shield  | despawn  | removed from the scene
+    5.783 |     77 | Attacker 1     | despawn  | removed from the scene
+    5.783 |     77 | Target open    | despawn  | removed from the scene
+    5.783 |     77 | Target open #2 | equip    | bare hands, scaled 1.00
+    5.783 |     77 | Target shield #2 | equip    | WD_Sword and WD_Shield, scaled 1.00
+    5.783 |     77 | Target sword #2 | equip    | WD_Sword, scaled 1.00
+    5.783 |     77 | Target open #2 | sight    | noticed Target shield at the edge of its view (4.0 m)
+    5.783 |     77 | Target open #2 | sight    | noticed Target sword at the edge of its view (8.0 m)
+    5.783 |     77 | Target shield #2 | sight    | noticed Target open at the edge of its view (4.0 m)
+    5.783 |     77 | Target shield #2 | sight    | noticed Target sword at the edge of its view (4.0 m)
+    5.783 |     77 | Target sword #2 | sight    | noticed Target open at the edge of its view (8.0 m)
+    5.783 |     77 | Target sword #2 | sight    | noticed Target shield at the edge of its view (4.0 m)
+    5.832 |     79 | -              | perf     | 102 ms frame, 0 physics steps, garbage collected (gen0 1, gen1 1, gen2 1); ours: nothing over 0.5 ms; Unity: Main_Thread 101.3 ms, PlayerLoop 98.9 ms, Gfx_WaitForGfxCommandsFromMainThread 98.5 ms, Update_ScriptRunBehaviourUpdate 88.8 ms, BehaviourUpdate 88.8 ms, GC_Collect 11.7 ms, CPU_Total_Frame_Time 1.6 ms, CPU_Main_Thread_Frame_Time 1.1 ms
+    5.878 |     82 | -              | perf     | 47 ms frame, 3 physics steps; ours: RecorderSample 25.1 ms (3), UnitStep 7.8 ms (9), ArmSolve 2.5 ms (8), Sandbox 0.8 ms (3); Unity: Main_Thread 47.6 ms, Gfx_WaitForGfxCommandsFromMainThread 45.7 ms, PlayerLoop 41.5 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 39.2 ms, FixedBehaviourUpdate 39.2 ms, GC_Collect 5.7 ms, Physics_Simulate 3.3 ms, CPU_Total_Frame_Time 1.6 ms
+    8.883 |    263 | Target open #2 | sight    | lost track of Target shield
+    8.883 |    263 | Target open #2 | sight    | lost track of Target sword
+    8.883 |    263 | Target shield #2 | sight    | lost track of Target sword
+   11.067 |    394 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 0, the fall test (they go down), physical legs on
+   11.217 |    403 | Target sword #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.31 m up, on the front (turned 0 degrees); the fall test: it goes down
+   11.217 |    403 | Target sword #2 | contact  | Chest touched Tube at 2.9 m/s
+   11.233 |    404 | Target shield #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmL 1.30 m up, on the front (turned 0 degrees); the fall test: it goes down
+   11.233 |    404 | Target shield #2 | contact  | Chest touched Tube at 1.8 m/s
+   11.233 |    404 | Target shield #2 | contact  | UpperArmL touched Tube at 1.8 m/s
+   11.250 |    405 | Target open #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.30 m up, on the front (turned 0 degrees); the fall test: it goes down
+   11.267 |    406 | Target sword #2 | contact  | Head touched Tube at 3.4 m/s
+   11.300 |    408 | Target shield #2 | contact  | Head touched Tube at 2.5 m/s
+   11.517 |    421 | Target open #2 | contact  | FootR touched Ground at 1.6 m/s
+   11.583 |    425 | Target sword #2 | contact  | HandL touched Ground at 3.7 m/s
+   11.617 |    427 | Target sword #2 | contact  | HandR touched Ground at 4.6 m/s
+   11.633 |    428 | Target shield #2 | contact  | FootR touched Ground at 3.5 m/s
+   11.650 |    429 | Target shield #2 | contact  | Pelvis touched Ground at 3.0 m/s
+   11.650 |    429 | Target open #2 | contact  | HandL touched Ground at 4.1 m/s
+   11.650 |    429 | Target shield #2 | contact  | HandR touched Ground at 4.4 m/s
+   11.650 |    429 | Target open #2 | contact  | HandR touched Ground at 4.2 m/s
+   11.667 |    430 | Target sword #2 | contact  | ForearmL touched Ground at 2.9 m/s
+   11.667 |    430 | Target sword #2 | contact  | ForearmR touched Ground at 2.4 m/s
+   11.667 |    430 | Target sword #2 | contact  | UpperArmL touched Ground at 2.6 m/s
+   11.667 |    430 | Target shield #2 | contact  | ThighR touched Ground at 2.5 m/s
+   11.667 |    430 | Target sword #2 | contact  | Pelvis touched Ground at 3.5 m/s
+   11.667 |    430 | Target shield #2 | contact  | ForearmR touched Ground at 1.5 m/s
+   11.667 |    430 | Target shield #2 | contact  | ShinR touched Ground at 1.6 m/s
+   11.683 |    431 | Target sword #2 | contact  | FootL touched Ground at 2.8 m/s
+   11.683 |    431 | Target shield #2 | contact  | HandL touched Ground at 4.6 m/s
+   11.700 |    432 | Target sword #2 | contact  | UpperArmR touched Ground at 1.6 m/s
+   11.717 |    433 | Target shield #2 | sight    | noticed Target sword at the edge of its view (4.1 m)
+   11.717 |    433 | Target shield #2 | contact  | UpperArmL touched Ground at 4.9 m/s
+   11.717 |    433 | Target shield #2 | contact  | ForearmL touched Ground at 2.4 m/s
+   11.717 |    433 | Target shield #2 | contact  | Chest touched Ground at 3.3 m/s
+   11.733 |    434 | Target sword #2 | contact  | Head touched Ground at 4.2 m/s
+   11.733 |    434 | Target shield #2 | contact  | UpperArmR touched Ground at 2.4 m/s
+   11.733 |    434 | Target shield #2 | contact  | Head touched Ground at 5.1 m/s
+   11.733 |    434 | Target sword #2 | contact  | Spine touched Ground at 1.5 m/s
+   11.750 |    435 | Target open #2 | contact  | ForearmL touched Ground at 1.9 m/s
+   11.750 |    435 | Target sword #2 | contact  | FootR touched Ground at 6.5 m/s
+   11.750 |    435 | Target sword #2 | contact  | Chest touched Ground at 1.1 m/s
+   11.750 |    435 | Target open #2 | contact  | UpperArmL touched Ground at 2.2 m/s
+   11.750 |    435 | Target sword #2 | contact  | ShinR touched Ground at 2.8 m/s
+   11.750 |    435 | Target open #2 | contact  | Pelvis touched Ground at 3.3 m/s
+   11.783 |    437 | Target open #2 | contact  | HandR touched Ground at 1.7 m/s
+   11.800 |    438 | Target open #2 | contact  | FootR touched Ground at 2.3 m/s
+   11.800 |    438 | Target open #2 | contact  | Chest touched Ground at 2.2 m/s
+   11.800 |    438 | Target open #2 | contact  | Spine touched Ground at 1.2 m/s
+   11.800 |    438 | Target open #2 | contact  | UpperArmL touched Ground at 1.9 m/s
+   11.833 |    440 | Target sword #2 | contact  | ThighL touched Ground at 1.4 m/s
+   11.867 |    442 | Target open #2 | sight    | noticed Target shield at the edge of its view (3.9 m)
+   11.867 |    442 | Target sword #2 | contact  | FootL touched Ground at 1.7 m/s
+   11.900 |    444 | Target open #2 | sight    | noticed Target sword at the edge of its view (7.8 m)
+   11.917 |    445 | Target open #2 | contact  | ShinR touched Ground at 1.2 m/s
+   11.983 |    449 | Target open #2 | contact  | FootL touched Ground at 2.0 m/s
+   12.000 |    450 | Target open #2 | contact  | HandR touched Ground at 2.7 m/s
+   12.033 |    452 | Target open #2 | contact  | Head touched Ground at 1.8 m/s
+   12.033 |    452 | Target sword #2 | contact  | HandL touched Ground at 3.3 m/s
+   12.033 |    452 | Target open #2 | contact  | ThighL touched Ground at 1.9 m/s
+   12.050 |    453 | Target shield #2 | contact  | ForearmR touched Ground at 1.2 m/s
+   12.050 |    453 | Target open #2 | contact  | ShinL touched Ground at 1.1 m/s
+   12.067 |    454 | Target sword #2 | contact  | ForearmL touched Ground at 1.3 m/s
+   12.100 |    456 | Target open #2 | contact  | UpperArmL touched Ground at 1.6 m/s
+   12.117 |    457 | Target shield #2 | contact  | HandR touched Ground at 1.8 m/s
+   12.133 |    458 | Target sword #2 | contact  | ForearmR touched Ground at 1.0 m/s
+   12.183 |    461 | Target sword #2 | contact  | HandR touched Ground at 1.7 m/s
+   12.200 |    462 | Target open #2 | contact  | HandL touched Ground at 4.6 m/s
+   12.217 |    463 | Target sword #2 | fall     | fell backward: first down a hand at 0.38 s; a hand 0.38 s, a knee 0.48 s, the hips 0.48 s at 1.4 m/s, the trunk 0.55 s, the head 0.53 s at 4.2 m/s; landed on a hand or knee first; slid 18 cm; measured 1.0 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   12.233 |    464 | Target shield #2 | fall     | fell backward: first down a hand at 0.43 s; a hand 0.43 s, a knee 0.45 s, the hips 0.43 s at 3.0 m/s, the trunk 0.52 s, the head 0.53 s at 2.6 m/s; not on a hand or knee first; slid 32 cm; measured 1.0 s (the fall test: a tube of 200 N·s on its UpperArmL, on the front)
+   12.483 |    479 | Target open #2 | contact  | HandL touched Ground at 5.0 m/s
+   12.483 |    479 | Target shield #2 | contact  | FootR touched Ground at 1.9 m/s
+   12.500 |    480 | Target open #2 | contact  | ForearmL touched Ground at 2.4 m/s
+   12.533 |    482 | Target sword #2 | contact  | FootR touched Ground at 2.4 m/s
+   12.533 |    482 | Target open #2 | contact  | HandR touched Ground at 3.4 m/s
+   12.600 |    486 | Target open #2 | contact  | UpperArmR touched Ground at 1.2 m/s
+   12.600 |    486 | Target open #2 | contact  | ForearmR touched Ground at 1.7 m/s
+   12.683 |    491 | Target open #2 | fall     | fell backward: first down a hand at 0.42 s; a hand 0.42 s, a knee 0.67 s, the hips 0.53 s at 2.0 m/s, the trunk 0.55 s, the head 0.80 s at 1.8 m/s; landed on a hand or knee first; slid 25 cm; measured 1.4 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   12.683 |    491 | Target open #2 | contact  | HandL touched Ground at 2.1 m/s
+   12.683 |    491 | Target open #2 | contact  | HandR touched Ground at 1.9 m/s
+   12.833 |    500 | Target open #2 | contact  | FootR touched Ground at 2.4 m/s
+   12.967 |    508 | Target sword #2 | contact  | FootL touched Ground at 1.1 m/s
+   12.967 |    508 | Target sword #2 | contact  | FootR touched Ground at 1.2 m/s
+   12.983 |    509 | Target shield #2 | contact  | FootL touched Ground at 1.1 m/s
+   12.983 |    509 | Target shield #2 | contact  | FootR touched Ground at 1.2 m/s
+   13.417 |    535 | Target open #2 | contact  | FootR touched Ground at 1.2 m/s
+   13.433 |    536 | Target open #2 | contact  | FootL touched Ground at 1.1 m/s
+   13.467 |    538 | Target shield #2 | contact  | HandL touched Tube at 4.1 m/s
+   14.250 |    585 | -              | console  | [Upper] Target sword: UpperArmL turning at 63 rad/s; head 5 cm, hands 18 / 18 cm off the pose; Idle ; got up; put back 0, joints put 0   Spine asked -33 2 -14 (36°) is -25 10 -11, 41 rad/s, left 0° aside (held), damping 2479 most 35192; Chest asked 22 1 8 (24°) is 20 3 8, 28 rad/s, left 0° aside (held), damping 1609 most 19074; Head asked 15 -43 8 (46°) is 33 -43 13, 38 rad/s, left 12° aside (held), damping 264 most 314; UpperArmL asked 42 33 29 (61°) is 32 -3 27, 63 rad/s, left 0° aside, damping 781 most 4120; ForearmL asked -73 21 0 (76°) is -79 33 -12, 26 rad/s, left 0° aside, damping 145 most 692; HandL asked 5 25 -15 (30°) is 7 24 -23, 46 rad/s, left 0° aside, damping 5 most 170; UpperArmR asked -36 -21 -10 (43°) is -38 -6 -9, 49 rad/s, left 0° aside, damping 2076 most 8451; ForearmR asked -20 -6 0 (21°) is -24 -25 14, 51 rad/s, left 0° aside, damping 679 most 2618; HandR asked 28 29 -6 (41°) is 20 33 -3, 39 rad/s, left 0° aside, damping 234 most 522; ThighL asked -50 -46 -22 (71°) is -50 -46 -22, 7 rad/s, left 0° aside (held), damping 4715 most 3275; ShinL asked 24 0 0 (24°) is 24 0 0, 3 rad/s, left 0° aside (held), damping 747 most 831; FootL asked 21 13 10 (27°) is 21 13 10, 7 rad/s, left 0° aside (held), damping 25 most 287; ThighR asked -29 16 7 (34°) is -29 16 7, 3 rad/s, left 0° aside (held), damping 4715 most 2248; ShinR asked 62 0 0 (62°) is 62 0 0, 1 rad/s, left 0° aside (held), damping 747 most 733; FootR asked -33 14 19 (41°) is -32 14 19, 5 rad/s, left 0° aside (held), damping 25 most 281; 
+   14.817 |    619 | Target shield #2 | sight    | lost track of Target sword
+   15.267 |    646 | Target open #2 | sight    | lost track of Target sword
+   15.267 |    646 | Target open #2 | sight    | lost track of Target shield
+   17.350 |    771 | Target open #2 | sight    | noticed Target sword at the edge of its view (8.8 m)
+   17.350 |    771 | Target shield #2 | sight    | noticed Target sword at the edge of its view (4.2 m)
+   17.367 |    772 | Target open #2 | sight    | noticed Target shield at the edge of its view (4.6 m)
+   17.700 |    792 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 180, the fall test (they go down), physical legs on
+   17.800 |    798 | Target open #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.28 m up, on the back (turned 180 degrees); the fall test: it goes down
+   17.800 |    798 | Target open #2 | contact  | UpperArmR touched Tube at 6.6 m/s
+   17.800 |    798 | Target open #2 | contact  | Chest touched Tube at 4.0 m/s
+   18.183 |    821 | Target open #2 | contact  | HandR touched Ground at 5.7 m/s
+   18.200 |    822 | Target open #2 | contact  | Head touched Ground at 6.9 m/s
+   18.200 |    822 | Target open #2 | contact  | HandL touched Ground at 4.5 m/s
+   18.233 |    824 | Target open #2 | contact  | ForearmL touched Ground at 3.5 m/s
+   18.250 |    825 | Target open #2 | contact  | UpperArmL touched Ground at 2.9 m/s
+   18.333 |    830 | Target open #2 | contact  | Chest touched Ground at 2.1 m/s
+   18.350 |    831 | Target open #2 | contact  | HandR touched Ground at 2.1 m/s
+   18.350 |    831 | Target open #2 | contact  | ShinR touched Ground at 2.1 m/s
+   18.350 |    831 | Target open #2 | contact  | ForearmR touched Ground at 1.6 m/s
+   18.367 |    832 | Target open #2 | contact  | ThighR touched Ground at 3.4 m/s
+   18.367 |    832 | Target open #2 | contact  | ThighL touched Ground at 3.5 m/s
+   18.383 |    833 | Target open #2 | contact  | Pelvis touched Ground at 2.1 m/s
+   18.633 |    848 | Target open #2 | contact  | HandL touched Ground at 2.1 m/s
+   18.700 |    852 | Target open #2 | contact  | FootL touched Ground at 2.0 m/s
+   18.833 |    860 | Target open #2 | fall     | fell forward: first down a hand at 0.42 s; a hand 0.42 s, a knee 0.57 s, the hips 0.62 s at 2.1 m/s, the trunk 0.55 s, the head 0.43 s at 1.4 m/s; landed on a hand or knee first; slid 13 cm; measured 1.1 s (the fall test: a tube of 200 N·s on its UpperArmR, on the back)
+   18.950 |    867 | Target open #2 | contact  | FootL touched Ground at 4.0 m/s
+   19.067 |    874 | Target open #2 | contact  | FootR touched Ground at 1.5 m/s
+   19.150 |    879 | Target open #2 | contact  | HandR touched Ground at 2.9 m/s
+   19.567 |    904 | Target open #2 | contact  | FootR touched Ground at 1.2 m/s
+   19.583 |    905 | Target open #2 | contact  | FootL touched Ground at 1.0 m/s
+   20.183 |    941 | Target sword #2 | sight    | lost track of Target open
+   20.183 |    941 | Target sword #2 | sight    | lost track of Target shield
+   20.867 |    982 | Target shield #2 | sight    | lost track of Target open
+   22.167 |   1060 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 180, the fall test (they go down), physical legs on
+   22.300 |   1068 | Target shield #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.27 m up, on the back (turned 180 degrees); the fall test: it goes down
+   22.300 |   1068 | Target shield #2 | contact  | UpperArmR touched Tube at 6.6 m/s
+   22.300 |   1068 | Target shield #2 | contact  | Chest touched Tube at 3.4 m/s
+   22.333 |   1070 | Target sword #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.27 m up, on the back (turned 180 degrees); the fall test: it goes down
+   22.333 |   1070 | Target sword #2 | contact  | Chest touched Tube at 2.3 m/s
+   22.417 |   1075 | Target open #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.30 m up, on the back (turned 180 degrees); the fall test: it goes down
+   22.417 |   1075 | Target open #2 | contact  | Chest touched Tube at 1.4 m/s
+   22.450 |   1077 | Target sword #2 | contact  | Head touched Tube at 3.0 m/s
+   22.500 |   1080 | Target sword #2 | sight    | noticed Target open at the edge of its view (7.4 m)
+   22.500 |   1080 | Target sword #2 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   22.550 |   1083 | Target shield #2 | sight    | noticed Target open at the edge of its view (3.5 m)
+   22.667 |   1090 | Target shield #2 | contact  | Head touched Ground at 5.9 m/s
+   22.700 |   1092 | Target sword #2 | contact  | ShinR touched Ground at 3.1 m/s
+   22.717 |   1093 | Target sword #2 | contact  | HandL touched Ground at 5.1 m/s
+   22.733 |   1094 | Target sword #2 | contact  | HandR touched Ground at 5.0 m/s
+   22.733 |   1094 | Target sword #2 | contact  | HandL touched Ground at 2.0 m/s
+   22.767 |   1096 | Target sword #2 | contact  | FootR touched Ground at 3.0 m/s
+   22.800 |   1098 | Target open #2 | contact  | HandL touched Ground at 3.4 m/s
+   22.817 |   1099 | Target sword #2 | contact  | Head touched Ground at 4.0 m/s
+   22.817 |   1099 | Target open #2 | contact  | HandR touched Ground at 2.4 m/s
+   22.817 |   1099 | Target open #2 | contact  | ShinR touched Ground at 2.2 m/s
+   22.833 |   1100 | Target shield #2 | contact  | UpperArmR touched Ground at 2.6 m/s
+   22.833 |   1100 | Target shield #2 | contact  | Chest touched Ground at 2.0 m/s
+   22.850 |   1101 | Target sword #2 | contact  | ShinL touched Ground at 2.3 m/s
+   22.867 |   1102 | Target shield #2 | contact  | FootL touched Ground at 2.1 m/s
+   22.867 |   1102 | Target sword #2 | contact  | FootL touched Ground at 3.8 m/s
+   22.883 |   1103 | Target sword #2 | contact  | ForearmR touched Ground at 2.3 m/s
+   22.883 |   1103 | Target sword #2 | contact  | UpperArmR touched Ground at 2.1 m/s
+   22.917 |   1105 | Target open #2 | contact  | FootR touched Ground at 1.0 m/s
+   22.933 |   1106 | Target sword #2 | contact  | ThighR touched Ground at 1.6 m/s
+   22.950 |   1107 | Target shield #2 | contact  | ThighR touched Ground at 3.1 m/s
+   22.950 |   1107 | Target shield #2 | contact  | ShinR touched Ground at 2.6 m/s
+   22.950 |   1107 | Target shield #2 | contact  | HandR touched Ground at 2.4 m/s
+   22.950 |   1107 | Target shield #2 | contact  | FootR touched Ground at 4.5 m/s
+   22.967 |   1108 | Target open #2 | contact  | Head touched Ground at 2.7 m/s
+   22.983 |   1109 | Target shield #2 | contact  | Pelvis touched Ground at 2.0 m/s
+   23.000 |   1110 | Target shield #2 | contact  | Chest touched Ground at 1.1 m/s
+   23.000 |   1110 | Target sword #2 | contact  | HandL touched Ground at 3.4 m/s
+   23.017 |   1111 | Target sword #2 | contact  | ThighL touched Ground at 1.0 m/s
+   23.017 |   1111 | Target shield #2 | contact  | ForearmR touched Ground at 1.8 m/s
+   23.017 |   1111 | Target shield #2 | contact  | UpperArmR touched Ground at 1.5 m/s
+   23.067 |   1114 | Target sword #2 | contact  | FootR touched Ground at 2.7 m/s
+   23.083 |   1115 | Target open #2 | contact  | HandL touched Ground at 5.5 m/s
+   23.083 |   1115 | Target sword #2 | contact  | HandL touched Ground at 1.8 m/s
+   23.083 |   1115 | Target sword #2 | contact  | Chest touched Ground at 1.6 m/s
+   23.083 |   1115 | Target sword #2 | contact  | Spine touched Ground at 1.7 m/s
+   23.083 |   1115 | Target shield #2 | contact  | FootL touched Ground at 4.4 m/s
+   23.100 |   1116 | Target shield #2 | contact  | HandR touched Ground at 3.6 m/s
+   23.100 |   1116 | Target sword #2 | contact  | Pelvis touched Ground at 1.1 m/s
+   23.117 |   1117 | Target sword #2 | contact  | UpperArmR touched Ground at 1.2 m/s
+   23.133 |   1118 | Target open #2 | contact  | FootL touched Ground at 1.7 m/s
+   23.150 |   1119 | Target sword #2 | contact  | ShinR touched Ground at 1.5 m/s
+   23.167 |   1120 | Target sword #2 | contact  | HandL touched Ground at 2.2 m/s
+   23.233 |   1124 | Target shield #2 | contact  | HandL touched Ground at 4.9 m/s
+   23.233 |   1124 | Target shield #2 | contact  | Head touched Ground at 2.2 m/s
+   23.300 |   1128 | Target shield #2 | contact  | ForearmL touched Ground at 2.7 m/s
+   23.300 |   1128 | Target shield #2 | contact  | UpperArmL touched Ground at 1.4 m/s
+   23.367 |   1132 | Target open #2 | contact  | ForearmR touched Ground at 1.3 m/s
+   23.367 |   1132 | Target sword #2 | contact  | HandL touched Ground at 1.2 m/s
+   23.367 |   1132 | Target open #2 | contact  | UpperArmR touched Ground at 1.9 m/s
+   23.383 |   1133 | Target sword #2 | contact  | FootL touched Ground at 1.7 m/s
+   23.433 |   1136 | Target open #2 | contact  | Chest touched Ground at 2.3 m/s
+   23.433 |   1136 | Target open #2 | contact  | HandR touched Ground at 3.0 m/s
+   23.450 |   1137 | Target open #2 | contact  | ForearmL touched Ground at 1.8 m/s
+   23.450 |   1137 | Target open #2 | contact  | Head touched Ground at 1.8 m/s
+   23.483 |   1139 | Target open #2 | contact  | ShinR touched Ground at 1.7 m/s
+   23.483 |   1139 | Target open #2 | contact  | ThighR touched Ground at 2.8 m/s
+   23.517 |   1141 | Target open #2 | contact  | FootL touched Ground at 3.2 m/s
+   23.517 |   1141 | Target open #2 | contact  | Chest touched Ground at 1.2 m/s
+   23.550 |   1143 | Target open #2 | contact  | UpperArmL touched Ground at 2.1 m/s
+   23.567 |   1144 | Target open #2 | contact  | ShinL touched Ground at 1.9 m/s
+   23.567 |   1144 | Target sword #2 | contact  | HandL touched Ground at 1.5 m/s
+   23.583 |   1145 | Target sword #2 | contact  | ForearmL touched Ground at 1.6 m/s
+   23.600 |   1146 | Target shield #2 | fall     | fell forward: first down the head at 0.40 s; a hand 0.67 s, a knee 0.65 s, the hips 0.70 s at 2.0 m/s, the trunk 0.57 s, the head 0.40 s at 1.4 m/s; not on a hand or knee first; slid 9 cm; measured 1.3 s (the fall test: a tube of 200 N·s on its UpperArmR, on the back)
+   23.617 |   1147 | Target sword #2 | fall     | fell forward: first down a knee at 0.37 s; a hand 0.40 s, a knee 0.37 s, the hips 0.78 s at 1.2 m/s, the trunk 0.77 s, the head 0.50 s at 4.0 m/s; landed on a hand or knee first; slid 22 cm; measured 1.3 s (the fall test: a tube of 200 N·s on its UpperArmR, on the back)
+   23.633 |   1148 | Target open #2 | contact  | Pelvis touched Ground at 1.3 m/s
+   23.667 |   1150 | Target open #2 | contact  | ThighL touched Ground at 1.1 m/s
+   23.683 |   1151 | Target sword #2 | contact  | ShinR touched Ground at 2.3 m/s
+   23.683 |   1151 | Target open #2 | contact  | FootR touched Ground at 2.3 m/s
+   23.717 |   1153 | Target open #2 | contact  | HandL touched Ground at 3.9 m/s
+   23.750 |   1155 | Target shield #2 | contact  | HandL touched Ground at 1.4 m/s
+   23.817 |   1159 | Target shield #2 | contact  | FootR touched Ground at 2.4 m/s
+   23.850 |   1161 | Target sword #2 | contact  | FootL touched Ground at 1.1 m/s
+   23.867 |   1162 | Target open #2 | contact  | HandR touched Ground at 4.5 m/s
+   23.950 |   1167 | Target open #2 | contact  | HandL touched Ground at 1.1 m/s
+   23.967 |   1168 | Target open #2 | contact  | ForearmL touched Ground at 1.7 m/s
+   23.983 |   1169 | Target open #2 | contact  | ForearmR touched Ground at 1.4 m/s
+   24.333 |   1190 | Target shield #2 | contact  | FootL touched Ground at 1.4 m/s
+   24.350 |   1191 | Target open #2 | fall     | fell forward: first down a knee at 0.38 s; a hand 0.40 s, a knee 0.38 s, the hips 1.23 s at 1.2 m/s, the trunk 1.05 s, the head 0.58 s at 2.2 m/s; landed on a hand or knee first; slid 11 cm; measured 1.9 s (thrown at 5.6 m/s, faster than its legs can catch (4.4): down)
+   24.350 |   1191 | Target shield #2 | contact  | FootR touched Ground at 1.3 m/s
+   24.617 |   1207 | Target open #2 | contact  | FootL touched Ground at 1.6 m/s
+   24.683 |   1211 | Target open #2 | contact  | HandL touched Ground at 2.7 m/s
+   24.933 |   1226 | Target sword #2 | contact  | FootL touched Ground at 1.1 m/s
+   25.000 |   1230 | Target open #2 | contact  | FootR touched Ground at 1.5 m/s
+   25.250 |   1245 | Target sword #2 | contact  | FootR touched Ground at 1.0 m/s
+   25.650 |   1269 | -              | console  | [Upper] Target sword: ForearmR turning at 73 rad/s; head 10 cm, hands 31 / 23 cm off the pose; Cycle ; got up; put back 0, joints put 0   Spine asked 4 0 0 (4°) is -5 -4 2, 7 rad/s, left 0° aside (held), damping 4338 most 18684; Chest asked 4 0 -2 (5°) is -2 -1 -1, 6 rad/s, left 0° aside (held), damping 2815 most 15175; Head asked 9 -43 8 (45°) is 14 -42 5, 5 rad/s, left 0° aside (held), damping 264 most 391; UpperArmL asked 15 23 45 (53°) is 9 -12 38, 54 rad/s, left 0° aside, damping 781 most 4360; ForearmL asked -5 2 -1 (6°) is -13 18 -21, 55 rad/s, left 0° aside, damping 145 most 1044; HandL asked 6 28 -15 (32°) is 5 23 -29, 53 rad/s, left 0° aside, damping 5 most 178; UpperArmR asked 34 9 -21 (41°) is 10 51 -16, 63 rad/s, left 0° aside, damping 2076 most 9301; ForearmR asked -20 -6 0 (21°) is -36 -3 2, 73 rad/s, left 0° aside, damping 679 most 3065; HandR asked -28 -15 1 (32°) is -33 -19 4, 67 rad/s, left 0° aside, damping 234 most 825; ThighL asked -50 -38 -27 (68°) is -50 -38 -27, 2 rad/s, left 0° aside (held), damping 4715 most 3053; ShinL asked 49 0 0 (49°) is 49 0 0, 1 rad/s, left 0° aside (held), damping 747 most 985; FootL asked -2 9 14 (17°) is -2 9 14, 3 rad/s, left 0° aside (held), damping 25 most 297; ThighR asked -22 10 24 (34°) is -22 10 24, 3 rad/s, left 0° aside (held), damping 4715 most 3046; ShinR asked 43 0 0 (43°) is 43 0 0, 1 rad/s, left 0° aside (held), damping 747 most 965; FootR asked -17 10 3 (20°) is -17 10 3, 1 rad/s, left 0° aside (held), damping 25 most 295; 
+   25.667 |   1270 | Target open #2 | contact  | FootL touched Ground at 1.1 m/s
+   25.883 |   1283 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 180, the fall test (they go down), physical legs on
+   25.983 |   1289 | Target open #2 | contact  | FootR touched Ground at 1.0 m/s
+   26.117 |   1297 | -              | console  | [Upper] Target sword: ForearmR turning at 65 rad/s; head 3 cm, hands 11 / 5 cm off the pose; Idle ; got up; put back 0, joints put 0   Spine asked 1 5 0 (5°) is -2 4 1, 2 rad/s, left 3° aside (held), damping 6137 most 8208; Chest asked -1 5 -2 (6°) is -1 5 -1, 2 rad/s, left 0° aside (held), damping 3982 most 8068; Head asked 8 -42 7 (43°) is 5 -42 10, 2 rad/s, left 4° aside (held), damping 264 most 166; UpperArmL asked 29 55 48 (79°) is 36 40 43, 2 rad/s, left 16° aside, damping 781 most 634; ForearmL asked -23 7 0 (24°) is -24 6 -4, 3 rad/s, left 4° aside, damping 145 most 428; HandL asked 2 4 -16 (17°) is 6 1 -12, 2 rad/s, left 5° aside, damping 5 most 151; UpperArmR asked 4 91 3 (91°) is -5 99 5, 29 rad/s, left 5° aside, damping 2076 most 7938; ForearmR asked -20 -6 0 (21°) is -19 6 -13, 65 rad/s, left 14° aside, damping 679 most 3575; HandR asked -13 -78 -30 (84°) is -12 -71 -4, 49 rad/s, left 29° aside, damping 234 most 1365; ThighL asked 1 -32 -6 (33°) is 1 -33 -6, 6 rad/s, left 0° aside (held), damping 4715 most 1317; ShinL asked 55 0 0 (55°) is 55 0 0, 6 rad/s, left 0° aside (held), damping 747 most 772; FootL asked -61 12 9 (63°) is -61 12 9, 2 rad/s, left 0° aside (held), damping 25 most 276; ThighR asked -54 15 8 (57°) is -54 15 8, 2 rad/s, left 0° aside (held), damping 4715 most 1050; ShinR asked 73 0 0 (73°) is 73 0 0, 1 rad/s, left 0° aside (held), damping 747 most 653; FootR asked -35 -23 25 (49°) is -35 -23 24, 1 rad/s, left 0° aside (held), damping 25 most 273; 
+   26.167 |   1300 | Target shield #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.29 m up, on the back (turned 180 degrees); the fall test: it goes down
+   26.167 |   1300 | Target shield #2 | contact  | UpperArmR touched Tube at 1.9 m/s
+   26.250 |   1305 | Target open #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.30 m up, on the back (turned 180 degrees); the fall test: it goes down
+   26.250 |   1305 | Target open #2 | contact  | UpperArmR touched Tube at 7.0 m/s
+   26.283 |   1307 | Target shield #2 | contact  | Head touched Tube at 2.7 m/s
+   26.583 |   1325 | Target shield #2 | contact  | ForearmL touched Ground at 5.8 m/s
+   26.600 |   1326 | Target sword #2 | sight    | lost track of Target open
+   26.600 |   1326 | Target shield #2 | contact  | UpperArmL touched Ground at 2.7 m/s
+   26.633 |   1328 | Target sword #2 | sight    | lost track of Target shield
+   26.633 |   1328 | Target shield #2 | contact  | HandR touched Ground at 4.0 m/s
+   26.683 |   1331 | Target shield #2 | contact  | Head touched Ground at 3.3 m/s
+   26.700 |   1332 | Target shield #2 | contact  | UpperArmL touched Ground at 2.4 m/s
+   26.733 |   1334 | Target shield #2 | contact  | Chest touched Ground at 1.5 m/s
+   26.750 |   1335 | Target shield #2 | contact  | ShinR touched Ground at 2.3 m/s
+   26.750 |   1335 | Target shield #2 | contact  | ThighR touched Ground at 2.7 m/s
+   26.800 |   1338 | Target shield #2 | contact  | ThighL touched Ground at 2.2 m/s
+   26.817 |   1339 | Target shield #2 | contact  | HandR touched Ground at 6.0 m/s
+   26.883 |   1343 | Target shield #2 | contact  | FootL touched Ground at 3.6 m/s
+   26.917 |   1345 | Target shield #2 | contact  | ShinL touched Ground at 1.0 m/s
+   27.000 |   1350 | Target shield #2 | contact  | Head touched Ground at 1.6 m/s
+   27.417 |   1375 | Target sword #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Head 1.55 m up, on the back (turned 180 degrees); the fall test: it goes down
+   27.417 |   1375 | Target sword #2 | contact  | Head touched Tube at 1.6 m/s
+   27.450 |   1377 | Target shield #2 | fall     | fell to its left: first down a hand at 0.45 s; a hand 0.45 s, a knee 0.57 s, the hips 0.68 s at 1.0 m/s, the trunk 0.60 s, the head 0.53 s at 3.3 m/s; landed on a hand or knee first; slid 11 cm; measured 1.3 s (the fall test: a tube of 200 N·s on its UpperArmR, on the back)
+   27.617 |   1387 | Target shield #2 | contact  | FootL touched Ground at 2.4 m/s
+   27.750 |   1395 | Target sword #2 | contact  | ShinR touched Ground at 2.4 m/s
+   27.750 |   1395 | Target shield #2 | contact  | HandL touched Ground at 2.8 m/s
+   27.783 |   1397 | Target sword #2 | sight    | noticed Target open at the edge of its view (8.9 m)
+   27.783 |   1397 | Target sword #2 | sight    | noticed Target shield at the edge of its view (4.9 m)
+   27.800 |   1398 | Target sword #2 | contact  | HandL touched Ground at 4.3 m/s
+   27.817 |   1399 | Target shield #2 | contact  | HandR touched Ground at 1.8 m/s
+   27.833 |   1400 | Target sword #2 | contact  | HandR touched Ground at 4.2 m/s
+   27.850 |   1401 | Target sword #2 | contact  | FootR touched Ground at 2.0 m/s
+   27.900 |   1404 | Target sword #2 | contact  | Head touched Ground at 5.7 m/s
+   27.900 |   1404 | Target sword #2 | contact  | ForearmR touched Ground at 1.2 m/s
+   27.933 |   1406 | Target sword #2 | contact  | HandL touched Ground at 1.5 m/s
+   27.933 |   1406 | Target sword #2 | contact  | ThighL touched Ground at 1.1 m/s
+   28.000 |   1410 | Target sword #2 | contact  | ThighR touched Ground at 1.1 m/s
+   28.033 |   1412 | Target sword #2 | contact  | Chest touched Ground at 1.3 m/s
+   28.183 |   1421 | Target shield #2 | contact  | FootR touched Ground at 1.2 m/s
+   28.200 |   1422 | Target shield #2 | contact  | FootL touched Ground at 1.1 m/s
+   28.233 |   1424 | Target sword #2 | contact  | UpperArmR touched Ground at 1.1 m/s
+   28.333 |   1430 | Target sword #2 | contact  | ForearmL touched Ground at 2.8 m/s
+   28.417 |   1435 | Target sword #2 | contact  | FootL touched Ground at 1.6 m/s
+   28.617 |   1447 | Target shield #2 | contact  | FootL touched Ground at 1.0 m/s
+   28.800 |   1458 | Target sword #2 | fall     | fell forward: first down a knee at 0.33 s; a hand 0.42 s, a knee 0.33 s, the hips never, the trunk 0.63 s, the head 0.52 s at 1.6 m/s; landed on a hand or knee first; slid 0 cm; measured 1.4 s (the fall test: a tube of 200 N·s on its Head, on the back)
+   28.950 |   1467 | Target sword #2 | contact  | ForearmR touched Ground at 1.8 m/s
+   29.083 |   1475 | Target sword #2 | contact  | HandL touched Ground at 2.1 m/s
+   30.117 |   1537 | Target sword #2 | contact  | FootL touched Ground at 1.2 m/s
+   30.433 |   1556 | Target sword #2 | contact  | FootR touched Ground at 1.0 m/s
+   30.833 |   1580 | -              | console  | [Upper] Target sword: UpperArmR turning at 82 rad/s; head 10 cm, hands 35 / 9 cm off the pose; Cycle ; got up; put back 0, joints put 1   Spine asked 7 2 9 (11°) is -2 -9 4, 13 rad/s, left 0° aside (held), damping 4338 most 21816; Chest asked -1 2 -4 (5°) is -7 1 -3, 4 rad/s, left 0° aside (held), damping 2815 most 13757; Head asked 15 -41 12 (45°) is 19 -37 3, 7 rad/s, left 0° aside (held), damping 106 most 736; UpperArmL asked 21 56 44 (74°) is 18 63 49, 3 rad/s, left 0° aside, damping 781 most 1879; ForearmL asked -37 11 0 (38°) is -41 11 4, 53 rad/s, left 0° aside, damping 145 most 1125; HandL asked 2 2 -16 (16°) is 1 0 -16, 30 rad/s, left 0° aside, damping 5 most 180; UpperArmR asked 32 35 -2 (48°) is 8 53 0, 82 rad/s, left 0° aside, damping 2076 most 10201; ForearmR asked -23 -6 6 (24°) is -40 13 -5, 71 rad/s, left 0° aside, damping 679 most 3211; HandR asked 28 -63 -31 (76°) is 30 -66 -22, 63 rad/s, left 0° aside, damping 234 most 883; ThighL asked -54 -37 -26 (70°) is -54 -37 -26, 2 rad/s, left 0° aside (held), damping 4715 most 4442; ShinL asked 53 0 0 (53°) is 53 0 0, 9 rad/s, left 0° aside (held), damping 747 most 1570; FootL asked -4 9 12 (16°) is -4 9 12, 7 rad/s, left 0° aside (held), damping 25 most 325; ThighR asked -24 11 25 (36°) is -24 12 25, 8 rad/s, left 0° aside (held), damping 4715 most 5943; ShinR asked 46 0 0 (46°) is 46 0 0, 9 rad/s, left 0° aside (held), damping 747 most 1571; FootR asked -17 9 2 (19°) is -17 9 2, 7 rad/s, left 0° aside (held), damping 25 most 321; 
+   32.350 |   1671 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 270, the fall test (they go down), physical legs on
+   32.467 |   1678 | Target open #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.29 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   32.467 |   1678 | Target open #2 | contact  | UpperArmR touched Tube at 6.6 m/s
+   32.483 |   1679 | Target open #2 | contact  | Chest touched Tube at 5.2 m/s
+   32.583 |   1685 | Target open #2 | contact  | Pelvis touched Tube at 1.7 m/s
+   32.817 |   1699 | Target shield #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Head 1.49 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   32.917 |   1705 | Target open #2 | contact  | FootL touched Ground at 1.7 m/s
+   32.933 |   1706 | Target open #2 | contact  | HandL touched Ground at 4.2 m/s
+   32.933 |   1706 | Target open #2 | contact  | Head touched Ground at 6.0 m/s
+   32.933 |   1706 | Target open #2 | contact  | ForearmL touched Ground at 3.1 m/s
+   32.933 |   1706 | Target open #2 | contact  | UpperArmL touched Ground at 3.2 m/s
+   32.967 |   1708 | Target sword #2 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.31 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   32.967 |   1708 | Target sword #2 | contact  | Chest touched Tube at 6.6 m/s
+   32.983 |   1709 | Target open #2 | contact  | ThighL touched Ground at 3.0 m/s
+   32.983 |   1709 | Target open #2 | contact  | ShinL touched Ground at 1.1 m/s
+   33.000 |   1710 | Target open #2 | contact  | Pelvis touched Ground at 2.4 m/s
+   33.017 |   1711 | Target open #2 | contact  | Chest touched Ground at 1.1 m/s
+   33.017 |   1711 | Target sword #2 | contact  | Head touched Tube at 2.8 m/s
+   33.133 |   1718 | Target open #2 | contact  | HandR touched Ground at 5.7 m/s
+   33.133 |   1718 | Target open #2 | contact  | ForearmR touched Ground at 3.3 m/s
+   33.150 |   1719 | Target open #2 | contact  | Head touched Ground at 2.0 m/s
+   33.183 |   1721 | Target shield #2 | contact  | ShinR touched Ground at 2.1 m/s
+   33.200 |   1722 | Target open #2 | contact  | ThighR touched Ground at 2.1 m/s
+   33.217 |   1723 | Target shield #2 | contact  | Pelvis touched Ground at 2.0 m/s
+   33.233 |   1724 | Target shield #2 | contact  | ThighR touched Ground at 1.6 m/s
+   33.233 |   1724 | Target shield #2 | contact  | HandR touched Ground at 4.8 m/s
+   33.250 |   1725 | Target open #2 | contact  | HandL touched Ground at 7.6 m/s
+   33.250 |   1725 | Target shield #2 | contact  | ForearmL touched Ground at 4.4 m/s
+   33.250 |   1725 | Target shield #2 | contact  | HandL touched Ground at 2.9 m/s
+   33.250 |   1725 | Target shield #2 | contact  | UpperArmL touched Ground at 1.7 m/s
+   33.267 |   1726 | Target shield #2 | contact  | Chest touched Ground at 3.5 m/s
+   33.283 |   1727 | Target open #2 | contact  | ForearmR touched Ground at 1.4 m/s
+   33.283 |   1727 | Target shield #2 | contact  | ForearmR touched Ground at 2.2 m/s
+   33.300 |   1728 | Target shield #2 | contact  | Spine touched Ground at 1.3 m/s
+   33.317 |   1729 | Target sword #2 | contact  | HandL touched Ground at 3.8 m/s
+   33.350 |   1731 | Target sword #2 | contact  | ForearmL touched Ground at 2.8 m/s
+   33.350 |   1731 | Target sword #2 | contact  | Pelvis touched Ground at 3.5 m/s
+   33.350 |   1731 | Target sword #2 | contact  | Spine touched Ground at 4.0 m/s
+   33.367 |   1732 | Target shield #2 | contact  | UpperArmR touched Ground at 1.2 m/s
+   33.367 |   1732 | Target sword #2 | contact  | Chest touched Ground at 4.7 m/s
+   33.367 |   1732 | Target shield #2 | contact  | Head touched Ground at 5.2 m/s
+   33.367 |   1732 | Target sword #2 | contact  | UpperArmL touched Ground at 3.9 m/s
+   33.367 |   1732 | Target sword #2 | contact  | Head touched Ground at 6.2 m/s
+   33.383 |   1733 | Target sword #2 | contact  | Spine touched Ground at 1.3 m/s
+   33.417 |   1735 | Target shield #2 | contact  | Pelvis touched Ground at 1.1 m/s
+   33.467 |   1738 | Target sword #2 | contact  | HandR touched Ground at 6.7 m/s
+   33.500 |   1740 | Target sword #2 | contact  | FootR touched Ground at 1.1 m/s
+   33.550 |   1743 | Target open #2 | contact  | UpperArmL touched Ground at 1.5 m/s
+   33.567 |   1744 | Target shield #2 | contact  | HandL touched Ground at 2.5 m/s
+   33.583 |   1745 | Target sword #2 | contact  | HandR touched Ground at 2.4 m/s
+   33.667 |   1750 | Target open #2 | fall     | fell to its left: first down the head at 0.48 s; a hand 0.50 s, a knee 0.52 s, the hips 0.55 s at 2.4 m/s, the trunk 0.57 s, the head 0.48 s at 6.0 m/s; not on a hand or knee first; slid 21 cm; measured 1.2 s (the fall test: a tube of 200 N·s on its UpperArmR, on the right side)
+   33.667 |   1750 | Target shield #2 | contact  | FootR touched Ground at 3.6 m/s
+   33.683 |   1751 | Target shield #2 | contact  | ShinR touched Ground at 1.8 m/s
+   33.700 |   1752 | Target shield #2 | contact  | ThighR touched Ground at 1.5 m/s
+   33.700 |   1752 | Target shield #2 | contact  | HandL touched Ground at 1.3 m/s
+   33.700 |   1752 | Target sword #2 | contact  | HandL touched Ground at 6.0 m/s
+   33.750 |   1755 | Target open #2 | contact  | HandR touched Ground at 1.4 m/s
+   33.767 |   1756 | Target sword #2 | contact  | ForearmL touched Ground at 2.3 m/s
+   33.800 |   1758 | Target sword #2 | contact  | ForearmR touched Ground at 1.4 m/s
+   33.800 |   1758 | Target sword #2 | contact  | HandR touched Ground at 1.6 m/s
+   33.817 |   1759 | Target shield #2 | contact  | FootL touched Ground at 5.2 m/s
+   33.833 |   1760 | Target shield #2 | contact  | ShinL touched Ground at 2.4 m/s
+   33.833 |   1760 | Target open #2 | contact  | FootR touched Ground at 1.9 m/s
+   33.917 |   1765 | Target sword #2 | contact  | HandL touched Ground at 1.9 m/s
+   33.967 |   1768 | Target sword #2 | fall     | fell backward: first down a hand at 0.38 s; a hand 0.38 s, a knee never, the hips 0.42 s at 0.5 m/s, the trunk 0.42 s, the head 0.43 s at 0.7 m/s; landed on a hand or knee first; slid 17 cm; measured 1.0 s (thrown at 5.6 m/s, faster than its legs can catch (4.4): down)
+   34.150 |   1779 | Target shield #2 | fall     | fell to its left: first down a knee at 0.42 s; a hand 0.45 s, a knee 0.42 s, the hips 0.43 s at 2.0 m/s, the trunk 0.48 s, the head 0.57 s at 5.2 m/s; landed on a hand or knee first; slid 47 cm; measured 1.3 s (thrown at 4.5 m/s, faster than its legs can catch (4.4): down)
+   34.167 |   1780 | Target sword #2 | contact  | FootL touched Ground at 3.0 m/s
+   34.350 |   1791 | Target sword #2 | contact  | HandL touched Ground at 1.1 m/s
+   34.383 |   1793 | Target shield #2 | contact  | FootL touched Ground at 2.6 m/s
+   34.433 |   1796 | Target shield #2 | contact  | HandL touched Ground at 5.6 m/s
+   34.450 |   1797 | Target shield #2 | contact  | HandR touched Ground at 1.7 m/s
+   34.700 |   1812 | Target sword #2 | contact  | FootL touched Ground at 1.2 m/s
+   34.717 |   1813 | Target sword #2 | contact  | FootR touched Ground at 1.3 m/s
+   34.883 |   1823 | Target shield #2 | contact  | FootL touched Ground at 1.1 m/s
+   34.900 |   1824 | Target shield #2 | contact  | FootR touched Ground at 1.3 m/s
+   34.983 |   1829 | Target open #2 | contact  | FootL touched Ground at 1.2 m/s
+   35.300 |   1848 | Target open #2 | contact  | FootR touched Ground at 1.0 m/s
+   35.400 |   1854 | Target shield #2 | contact  | FootR touched Ground at 1.3 m/s
+   35.417 |   1855 | Target shield #2 | contact  | ShinR touched Ground at 1.3 m/s
+   35.517 |   1861 | Target open #2 | contact  | FootR touched Ground at 1.1 m/s
+   36.000 |   1890 | -              | console  | [Upper] Target sword: UpperArmL turning at 70 rad/s; head 8 cm, hands 30 / 17 cm off the pose; Idle ; got up; put back 0, joints put 1   Spine asked -25 1 -32 (41°) is -21 8 -22, 46 rad/s, left 0° aside (held), damping 2479 most 41145; Chest asked 17 1 20 (26°) is 12 3 21, 30 rad/s, left 0° aside (held), damping 1609 most 22043; Head asked 15 -43 11 (47°) is 36 -43 16, 40 rad/s, left 15° aside (held), damping 264 most 442; UpperArmL asked 49 35 28 (66°) is 40 -4 25, 70 rad/s, left 0° aside, damping 781 most 4600; ForearmL asked -72 21 0 (75°) is -79 34 -14, 26 rad/s, left 0° aside, damping 145 most 749; HandL asked 5 23 -15 (28°) is 7 21 -23, 42 rad/s, left 0° aside, damping 5 most 174; UpperArmR asked -15 -26 -27 (40°) is -27 13 -26, 53 rad/s, left 0° aside, damping 2076 most 9558; ForearmR asked -20 -6 0 (21°) is -32 -17 11, 50 rad/s, left 0° aside, damping 679 most 3005; HandR asked 36 -13 -2 (38°) is 28 -7 3, 59 rad/s, left 0° aside, damping 234 most 809; ThighL asked -35 -40 -35 (64°) is -35 -40 -35, 4 rad/s, left 0° aside (held), damping 4715 most 3121; ShinL asked 23 0 0 (23°) is 24 0 0, 10 rad/s, left 0° aside (held), damping 747 most 1243; FootL asked 11 10 28 (31°) is 11 10 28, 6 rad/s, left 0° aside (held), damping 25 most 296; ThighR asked -34 15 20 (42°) is -34 15 20, 6 rad/s, left 0° aside (held), damping 4715 most 3673; ShinR asked 57 0 0 (57°) is 57 0 0, 3 rad/s, left 0° aside (held), damping 747 most 983; FootR asked -22 7 10 (25°) is -21 7 10, 7 rad/s, left 0° aside (held), damping 25 most 295; 
+   37.000 |   1950 | Target shield #2 | sight    | lost track of Target sword
+   37.200 |   1962 | Target shield #2 | sight    | noticed Target sword at the edge of its view (4.9 m)
+   39.145 |   2078 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   39.145 |   2078 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   39.150 |   2079 | Target open #3 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   39.150 |   2079 | Target shield #3 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   39.150 |   2079 | Target sword #3 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   39.150 |   2079 | Target sword #2 | despawn  | removed from the scene
+   39.150 |   2079 | Target shield #2 | despawn  | removed from the scene
+   39.150 |   2079 | Target open #2 | despawn  | removed from the scene
+   39.150 |   2079 | Target open #3 | equip    | bare hands, scaled 1.00
+   39.150 |   2079 | Target shield #3 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   39.150 |   2079 | Target sword #3 | equip    | WD_Sword, scaled 1.00
+   39.150 |   2079 | Target open #3 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   39.150 |   2079 | Target open #3 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   39.150 |   2079 | Target shield #3 | sight    | noticed Target open at the edge of its view (4.0 m)
+   39.150 |   2079 | Target shield #3 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   39.150 |   2079 | Target sword #3 | sight    | noticed Target open at the edge of its view (8.0 m)
+   39.150 |   2079 | Target sword #3 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   39.195 |   2081 | -              | perf     | 92 ms frame, 0 physics steps, garbage collected (gen0 2, gen1 2, gen2 2); ours: nothing over 0.5 ms; Unity: Main_Thread 90.3 ms, Gfx_WaitForGfxCommandsFromMainThread 88.6 ms, PlayerLoop 88.2 ms, Update_ScriptRunBehaviourUpdate 83.4 ms, BehaviourUpdate 83.4 ms, GC_Collect 9.9 ms, CPU_Render_Thread_Frame_Time 1.6 ms, CPU_Total_Frame_Time 1.6 ms
+   39.245 |   2084 | -              | perf     | 51 ms frame, 3 physics steps; ours: RecorderSample 26.1 ms (3), UnitStep 8.3 ms (9), ArmSolve 2.6 ms (8), RecorderFlush 0.6 ms (3); Unity: Main_Thread 48.3 ms, Gfx_WaitForGfxCommandsFromMainThread 46.5 ms, PlayerLoop 42.6 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 39.6 ms, FixedBehaviourUpdate 39.6 ms, GC_Collect 3.0 ms, Physics_Simulate 3.0 ms, CPU_Total_Frame_Time 2.6 ms
+   40.150 |   2139 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 270, the fall test (they go down), physical legs on
+   40.283 |   2147 | Target sword #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.31 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   40.283 |   2147 | Target shield #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.30 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   40.283 |   2147 | Target open #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.30 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   40.283 |   2147 | Target sword #3 | contact  | UpperArmR touched Tube at 3.0 m/s
+   40.283 |   2147 | Target open #3 | contact  | UpperArmR touched Tube at 2.0 m/s
+   40.283 |   2147 | Target sword #3 | contact  | Chest touched Tube at 3.0 m/s
+   40.283 |   2147 | Target shield #3 | contact  | Chest touched Tube at 4.2 m/s
+   40.300 |   2148 | Target shield #3 | contact  | UpperArmR touched Tube at 1.5 m/s
+   40.333 |   2150 | Target sword #3 | contact  | Head touched Tube at 3.3 m/s
+   40.350 |   2151 | Target shield #3 | contact  | Head touched Tube at 3.1 m/s
+   40.483 |   2159 | Target open #3 | contact  | FootR touched Ground at 1.4 m/s
+   40.650 |   2169 | Target open #3 | contact  | HandL touched Ground at 3.2 m/s
+   40.667 |   2170 | Target sword #3 | contact  | HandL touched Ground at 4.8 m/s
+   40.667 |   2170 | Target sword #3 | contact  | ForearmL touched Ground at 1.2 m/s
+   40.683 |   2171 | Target shield #3 | contact  | HandL touched Ground at 8.9 m/s
+   40.683 |   2171 | Target shield #3 | contact  | UpperArmL touched Ground at 4.5 m/s
+   40.700 |   2172 | Target shield #3 | contact  | Pelvis touched Ground at 3.1 m/s
+   40.700 |   2172 | Target sword #3 | contact  | ShinR touched Ground at 1.9 m/s
+   40.700 |   2172 | Target sword #3 | contact  | UpperArmL touched Ground at 3.9 m/s
+   40.717 |   2173 | Target shield #3 | contact  | Head touched Ground at 4.7 m/s
+   40.717 |   2173 | Target sword #3 | contact  | HandR touched Ground at 4.6 m/s
+   40.717 |   2173 | Target shield #3 | contact  | ShinR touched Ground at 2.6 m/s
+   40.717 |   2173 | Target shield #3 | contact  | ThighR touched Ground at 2.5 m/s
+   40.717 |   2173 | Target shield #3 | contact  | Chest touched Ground at 1.2 m/s
+   40.733 |   2174 | Target sword #3 | contact  | Pelvis touched Ground at 3.3 m/s
+   40.733 |   2174 | Target sword #3 | contact  | Chest touched Ground at 5.2 m/s
+   40.750 |   2175 | Target shield #3 | contact  | ThighL touched Ground at 2.3 m/s
+   40.767 |   2176 | Target open #3 | contact  | HandR touched Ground at 2.3 m/s
+   40.767 |   2176 | Target open #3 | contact  | Pelvis touched Ground at 4.8 m/s
+   40.783 |   2177 | Target open #3 | contact  | Spine touched Ground at 3.3 m/s
+   40.783 |   2177 | Target open #3 | contact  | Chest touched Ground at 5.0 m/s
+   40.800 |   2178 | Target sword #3 | contact  | Head touched Ground at 1.7 m/s
+   40.817 |   2179 | Target open #3 | contact  | FootR touched Ground at 2.6 m/s
+   40.817 |   2179 | Target open #3 | contact  | HandR touched Ground at 1.3 m/s
+   40.833 |   2180 | Target open #3 | contact  | ForearmR touched Ground at 1.9 m/s
+   40.833 |   2180 | Target open #3 | contact  | ShinR touched Ground at 1.1 m/s
+   40.850 |   2181 | Target shield #3 | contact  | HandR touched Ground at 4.8 m/s
+   40.867 |   2182 | Target open #3 | contact  | UpperArmR touched Ground at 1.8 m/s
+   40.883 |   2183 | Target shield #3 | contact  | FootL touched Ground at 1.7 m/s
+   40.900 |   2184 | Target shield #3 | contact  | UpperArmL touched Ground at 1.3 m/s
+   40.983 |   2189 | Target shield #3 | contact  | HandL touched Ground at 4.9 m/s
+   40.983 |   2189 | Target shield #3 | contact  | ForearmL touched Ground at 2.8 m/s
+   41.050 |   2193 | Target open #3 | contact  | Head touched Ground at 2.4 m/s
+   41.083 |   2195 | Target sword #3 | contact  | HandR touched Ground at 4.5 m/s
+   41.083 |   2195 | Target sword #3 | contact  | ForearmR touched Ground at 1.9 m/s
+   41.117 |   2197 | Target open #3 | contact  | FootL touched Ground at 2.3 m/s
+   41.150 |   2199 | Target open #3 | contact  | UpperArmL touched Ground at 1.6 m/s
+   41.167 |   2200 | Target open #3 | contact  | ForearmL touched Ground at 2.5 m/s
+   41.183 |   2201 | Target open #3 | contact  | HandL touched Ground at 2.2 m/s
+   41.200 |   2202 | Target open #3 | contact  | FootL touched Ground at 1.1 m/s
+   41.217 |   2203 | Target sword #3 | contact  | FootL touched Ground at 3.7 m/s
+   41.233 |   2204 | Target sword #3 | contact  | ShinL touched Ground at 1.2 m/s
+   41.233 |   2204 | Target sword #3 | contact  | ForearmR touched Ground at 1.2 m/s
+   41.283 |   2207 | Target open #3 | fall     | fell to its left: first down a hand at 0.40 s; a hand 0.40 s, a knee 0.55 s, the hips 0.52 s at 3.2 m/s, the trunk 0.52 s, the head 0.80 s at 0.7 m/s; landed on a hand or knee first; slid 17 cm; measured 1.0 s (the fall test: a tube of 200 N·s on its UpperArmR, on the right side)
+   41.517 |   2221 | Target open #3 | contact  | FootL touched Ground at 1.9 m/s
+   41.550 |   2223 | Target sword #3 | fall     | fell to its left: first down a hand at 0.40 s; a hand 0.40 s, a knee 0.48 s, the hips 0.47 s at 3.3 m/s, the trunk 0.47 s, the head 0.55 s at 1.5 m/s; landed on a hand or knee first; slid 33 cm; measured 1.3 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   41.650 |   2229 | Target shield #3 | fall     | fell to its left: first down a hand at 0.43 s; a hand 0.43 s, a knee 0.43 s, the hips 0.43 s at 3.1 m/s, the trunk 0.47 s, the head 0.45 s at 4.7 m/s; not on a hand or knee first; slid 23 cm; measured 1.4 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   41.667 |   2230 | Target sword #3 | contact  | HandR touched Ground at 4.6 m/s
+   41.783 |   2237 | Target sword #3 | contact  | FootL touched Ground at 2.2 m/s
+   41.800 |   2238 | Target shield #3 | contact  | FootL touched Ground at 2.7 m/s
+   42.033 |   2252 | Target open #3 | contact  | FootL touched Ground at 1.4 m/s
+   42.033 |   2252 | Target open #3 | contact  | FootR touched Ground at 1.2 m/s
+   42.283 |   2267 | Target sword #3 | contact  | FootR touched Ground at 1.2 m/s
+   42.300 |   2268 | Target sword #3 | contact  | FootL touched Ground at 1.1 m/s
+   42.383 |   2273 | Target shield #3 | contact  | FootR touched Ground at 1.2 m/s
+   42.400 |   2274 | Target shield #3 | contact  | FootL touched Ground at 1.1 m/s
+   42.533 |   2282 | Target open #3 | contact  | FootR touched Ground at 1.9 m/s
+   42.550 |   2283 | Target open #3 | contact  | ShinR touched Ground at 1.2 m/s
+   42.633 |   2288 | Target shield #3 | contact  | ShinL touched Tube at 2.5 m/s
+   42.633 |   2288 | Target shield #3 | contact  | ShinR touched Tube at 1.8 m/s
+   42.650 |   2289 | Target shield #3 | contact  | FootL touched Tube at 1.2 m/s
+   42.650 |   2289 | Target shield #3 | contact  | FootR touched Tube at 1.0 m/s
+   43.583 |   2345 | -              | console  | [Upper] Target sword: UpperArmL turning at 60 rad/s; head 9 cm, hands 24 / 24 cm off the pose; OneShot sns_turn_left; got up; put back 0, joints put 0   Spine asked -16 2 -4 (16°) is -3 4 -1, 18 rad/s, left 0° aside (held), damping 2479 most 29955; Chest asked 7 1 -1 (7°) is 4 1 0, 11 rad/s, left 0° aside (held), damping 1609 most 17785; Head asked 16 -43 7 (46°) is 23 -42 7, 17 rad/s, left 0° aside (held), damping 264 most 930; UpperArmL asked 33 39 39 (65°) is 18 -13 33, 60 rad/s, left 0° aside, damping 781 most 5467; ForearmL asked -57 16 0 (59°) is -61 15 -8, 38 rad/s, left 0° aside, damping 145 most 1010; HandL asked 5 26 -15 (31°) is 2 22 -28, 54 rad/s, left 0° aside, damping 5 most 197; UpperArmR asked 12 -36 -9 (39°) is -1 9 -6, 30 rad/s, left 37° aside, damping 2076 most 8793; ForearmR asked -81 -23 0 (84°) is -80 -9 -6, 11 rad/s, left 0° aside, damping 679 most 2261; HandR asked 26 -15 -13 (33°) is 31 -11 -13, 52 rad/s, left 0° aside, damping 234 most 942; ThighL asked -52 -34 -21 (65°) is -51 -34 -21, 5 rad/s, left 0° aside (held), damping 4715 most 6906; ShinL asked 31 0 0 (31°) is 31 0 0, 18 rad/s, left 0° aside (held), damping 747 most 2166; FootL asked 15 3 10 (19°) is 16 3 10, 16 rad/s, left 0° aside (held), damping 25 most 354; ThighR asked -35 10 21 (42°) is -35 10 22, 10 rad/s, left 0° aside (held), damping 4715 most 7634; ShinR asked 49 0 0 (49°) is 49 0 0, 6 rad/s, left 0° aside (held), damping 747 most 1702; FootR asked -11 11 7 (17°) is -10 11 7, 3 rad/s, left 0° aside (held), damping 25 most 340; 
+   45.183 |   2441 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 270, the fall test (they go down), physical legs on
+   45.333 |   2450 | Target sword #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.27 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   45.333 |   2450 | Target sword #3 | contact  | Chest touched Tube at 6.6 m/s
+   45.333 |   2450 | Target sword #3 | contact  | UpperArmR touched Tube at 6.6 m/s
+   45.350 |   2451 | Target shield #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.32 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   45.350 |   2451 | Target shield #3 | contact  | Chest touched Tube at 1.7 m/s
+   45.350 |   2451 | Target shield #3 | contact  | UpperArmR touched Tube at 1.7 m/s
+   45.367 |   2452 | Target open #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.29 m up, on the right side (turned 270 degrees); the fall test: it goes down
+   45.367 |   2452 | Target open #3 | contact  | UpperArmR touched Tube at 3.5 m/s
+   45.383 |   2453 | Target open #3 | contact  | Chest touched Tube at 1.9 m/s
+   45.383 |   2453 | Target sword #3 | contact  | Head touched Tube at 4.5 m/s
+   45.450 |   2457 | Target shield #3 | contact  | Head touched Tube at 2.8 m/s
+   45.700 |   2472 | Target sword #3 | contact  | Head touched Ground at 5.2 m/s
+   45.717 |   2473 | Target sword #3 | contact  | UpperArmL touched Ground at 3.8 m/s
+   45.767 |   2476 | Target sword #3 | contact  | Chest touched Ground at 2.2 m/s
+   45.767 |   2476 | Target open #3 | contact  | HandL touched Ground at 4.0 m/s
+   45.767 |   2476 | Target sword #3 | contact  | Pelvis touched Ground at 2.7 m/s
+   45.783 |   2477 | Target shield #3 | contact  | ForearmL touched Ground at 4.3 m/s
+   45.783 |   2477 | Target shield #3 | contact  | HandR touched Ground at 4.1 m/s
+   45.783 |   2477 | Target shield #3 | contact  | HandL touched Ground at 4.4 m/s
+   45.783 |   2477 | Target shield #3 | contact  | UpperArmL touched Ground at 3.4 m/s
+   45.800 |   2478 | Target shield #3 | contact  | Pelvis touched Ground at 2.7 m/s
+   45.817 |   2479 | Target shield #3 | contact  | Chest touched Ground at 2.5 m/s
+   45.817 |   2479 | Target open #3 | contact  | Chest touched Ground at 5.3 m/s
+   45.817 |   2479 | Target shield #3 | contact  | ShinR touched Ground at 1.7 m/s
+   45.817 |   2479 | Target open #3 | contact  | Spine touched Ground at 3.0 m/s
+   45.817 |   2479 | Target open #3 | contact  | Pelvis touched Ground at 3.4 m/s
+   45.833 |   2480 | Target open #3 | contact  | UpperArmR touched Ground at 4.3 m/s
+   45.833 |   2480 | Target open #3 | contact  | ForearmR touched Ground at 4.1 m/s
+   45.850 |   2481 | Target open #3 | contact  | HandL touched Ground at 1.7 m/s
+   45.867 |   2482 | Target open #3 | contact  | ForearmL touched Ground at 1.8 m/s
+   45.883 |   2483 | Target open #3 | contact  | FootL touched Ground at 1.4 m/s
+   45.883 |   2483 | Target sword #3 | contact  | HandR touched Ground at 4.9 m/s
+   45.900 |   2484 | Target open #3 | contact  | Head touched Ground at 5.2 m/s
+   45.917 |   2485 | Target shield #3 | contact  | ForearmR touched Ground at 2.6 m/s
+   45.917 |   2485 | Target shield #3 | contact  | HandR touched Ground at 4.3 m/s
+   45.950 |   2487 | Target shield #3 | contact  | Head touched Ground at 4.0 m/s
+   45.983 |   2489 | Target sword #3 | contact  | Head touched Ground at 1.6 m/s
+   46.067 |   2494 | Target open #3 | contact  | ForearmR touched Ground at 2.1 m/s
+   46.067 |   2494 | Target open #3 | contact  | HandR touched Ground at 3.0 m/s
+   46.100 |   2496 | Target shield #3 | contact  | ThighL touched Ground at 1.3 m/s
+   46.100 |   2496 | Target shield #3 | contact  | HandL touched Ground at 2.5 m/s
+   46.167 |   2500 | Target shield #3 | contact  | HandR touched Ground at 1.5 m/s
+   46.233 |   2504 | Target shield #3 | contact  | ShinL touched Ground at 1.7 m/s
+   46.250 |   2505 | Target shield #3 | contact  | FootL touched Ground at 3.6 m/s
+   46.283 |   2507 | Target sword #3 | contact  | ForearmR touched Ground at 1.6 m/s
+   46.300 |   2508 | Target sword #3 | contact  | UpperArmR touched Ground at 1.1 m/s
+   46.300 |   2508 | Target shield #3 | contact  | FootL touched Ground at 1.8 m/s
+   46.317 |   2509 | Target sword #3 | contact  | HandL touched Ground at 4.4 m/s
+   46.317 |   2509 | Target sword #3 | contact  | ForearmL touched Ground at 3.3 m/s
+   46.317 |   2509 | Target shield #3 | contact  | HandL touched Ground at 2.6 m/s
+   46.317 |   2509 | Target shield #3 | contact  | ForearmL touched Ground at 1.4 m/s
+   46.333 |   2510 | Target sword #3 | fall     | fell to its left: first down the head at 0.40 s; a hand 0.58 s, a knee 0.48 s, the hips 0.47 s at 0.8 m/s, the trunk 0.45 s, the head 0.40 s at 2.5 m/s; not on a hand or knee first; slid 19 cm; measured 1.0 s (the fall test: a tube of 200 N·s on its UpperArmR, on the right side)
+   46.333 |   2510 | Target sword #3 | contact  | Head touched Ground at 1.2 m/s
+   46.367 |   2512 | Target open #3 | fall     | fell to its left: first down a hand at 0.43 s; a hand 0.43 s, a knee 0.68 s, the hips 0.48 s at 2.6 m/s, the trunk 0.47 s, the head 0.57 s at 2.7 m/s; landed on a hand or knee first; slid 10 cm; measured 1.0 s (the fall test: a tube of 200 N·s on its UpperArmR, on the right side)
+   46.417 |   2515 | Target shield #3 | fall     | fell to its left: first down a hand at 0.45 s; a hand 0.45 s, a knee 0.47 s, the hips 0.47 s at 2.7 m/s, the trunk 0.48 s, the head 0.62 s at 4.0 m/s; landed on a hand or knee first; slid 25 cm; measured 1.1 s (thrown at 5.6 m/s, faster than its legs can catch (4.4): down)
+   46.483 |   2519 | Target open #3 | contact  | FootL touched Ground at 3.5 m/s
+   46.500 |   2520 | Target sword #3 | contact  | FootL touched Ground at 4.0 m/s
+   46.567 |   2524 | Target shield #3 | contact  | HandL touched Ground at 4.5 m/s
+   46.633 |   2528 | Target sword #3 | contact  | HandL touched Ground at 3.9 m/s
+   46.683 |   2531 | Target shield #3 | contact  | FootL touched Ground at 1.4 m/s
+   47.067 |   2554 | Target sword #3 | contact  | FootR touched Ground at 1.3 m/s
+   47.067 |   2554 | Target sword #3 | contact  | FootL touched Ground at 1.2 m/s
+   47.083 |   2555 | Target shield #3 | contact  | ShinR touched Tube at 1.6 m/s
+   47.100 |   2556 | Target shield #3 | contact  | ShinL touched Tube at 1.7 m/s
+   47.117 |   2557 | Target open #3 | contact  | FootR touched Ground at 1.5 m/s
+   47.117 |   2557 | Target open #3 | contact  | FootL touched Ground at 1.1 m/s
+   47.183 |   2561 | Target shield #3 | contact  | FootR touched Ground at 1.3 m/s
+   47.200 |   2562 | Target shield #3 | contact  | UpperArmR touched Tube at 2.5 m/s
+   47.200 |   2562 | Target shield #3 | contact  | Chest touched Tube at 2.5 m/s
+   47.667 |   2590 | Target shield #3 | contact  | ShinR touched Ground at 2.9 m/s
+   48.367 |   2632 | -              | console  | [Upper] Target sword: UpperArmR turning at 73 rad/s; head 6 cm, hands 23 / 17 cm off the pose; Cycle ; got up; put back 0, joints put 0   Spine asked -14 2 -19 (23°) is -10 9 -12, 27 rad/s, left 0° aside (held), damping 4338 most 32741; Chest asked 9 2 10 (13°) is 4 3 11, 17 rad/s, left 0° aside (held), damping 2815 most 19388; Head asked 10 -43 9 (45°) is 27 -44 12, 26 rad/s, left 12° aside (held), damping 264 most 606; UpperArmL asked 49 27 20 (60°) is 36 -12 17, 62 rad/s, left 0° aside, damping 781 most 4481; ForearmL asked -68 19 0 (71°) is -73 21 -5, 15 rad/s, left 0° aside, damping 145 most 705; HandL asked 5 22 -15 (27°) is 3 19 -25, 47 rad/s, left 0° aside, damping 5 most 184; UpperArmR asked -18 -9 -36 (41°) is -24 22 -36, 73 rad/s, left 0° aside, damping 2076 most 9865; ForearmR asked -20 -6 0 (21°) is -28 -11 10, 55 rad/s, left 0° aside, damping 679 most 3286; HandR asked 27 -67 -18 (74°) is 32 -65 -12, 58 rad/s, left 0° aside, damping 234 most 879; ThighL asked -51 -34 -32 (69°) is -51 -35 -32, 6 rad/s, left 0° aside (held), damping 4715 most 5166; ShinL asked 29 0 0 (29°) is 29 0 0, 12 rad/s, left 0° aside (held), damping 747 most 1656; FootL asked 19 5 21 (29°) is 20 5 21, 9 rad/s, left 0° aside (held), damping 25 most 324; ThighR asked -39 8 8 (41°) is -39 7 9, 7 rad/s, left 0° aside (held), damping 4715 most 5251; ShinR asked 64 0 0 (64°) is 64 0 0, 3 rad/s, left 0° aside (held), damping 747 most 1322; FootR asked -22 21 16 (34°) is -22 21 16, 7 rad/s, left 0° aside (held), damping 25 most 320; 
+   48.983 |   2669 | Target open #3 | sight    | lost track of Target sword
+   49.000 |   2670 | Target open #3 | sight    | lost track of Target shield
+   49.417 |   2695 | Target shield #3 | sight    | lost track of Target sword
+   49.433 |   2696 | Target shield #3 | sight    | noticed Target sword at the edge of its view (4.8 m)
+   50.483 |   2759 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 90, the fall test (they go down), physical legs on
+   50.683 |   2771 | Target shield #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.28 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   50.683 |   2771 | Target shield #3 | contact  | Chest touched Tube at 4.9 m/s
+   50.700 |   2772 | Target open #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmL 1.29 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   50.700 |   2772 | Target open #3 | contact  | UpperArmL touched Tube at 2.2 m/s
+   50.717 |   2773 | Target open #3 | contact  | Chest touched Tube at 1.5 m/s
+   50.750 |   2775 | Target sword #3 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.27 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   50.750 |   2775 | Target sword #3 | contact  | Chest touched Tube at 6.6 m/s
+   50.783 |   2777 | Target shield #3 | contact  | FootL touched Ground at 1.2 m/s
+   51.033 |   2792 | Target open #3 | contact  | HandR touched Ground at 3.7 m/s
+   51.067 |   2794 | Target shield #3 | contact  | ShinL touched Ground at 2.1 m/s
+   51.083 |   2795 | Target shield #3 | contact  | HandL touched Ground at 4.1 m/s
+   51.083 |   2795 | Target shield #3 | contact  | HandR touched Ground at 4.3 m/s
+   51.100 |   2796 | Target shield #3 | contact  | ForearmR touched Ground at 2.2 m/s
+   51.100 |   2796 | Target shield #3 | contact  | UpperArmR touched Ground at 1.4 m/s
+   51.133 |   2798 | Target shield #3 | contact  | ShinR touched Ground at 1.7 m/s
+   51.150 |   2799 | Target shield #3 | contact  | ThighR touched Ground at 1.3 m/s
+   51.150 |   2799 | Target shield #3 | contact  | Head touched Ground at 4.9 m/s
+   51.150 |   2799 | Target sword #3 | contact  | HandR touched Ground at 4.3 m/s
+   51.150 |   2799 | Target open #3 | contact  | Pelvis touched Ground at 4.1 m/s
+   51.150 |   2799 | Target open #3 | contact  | ForearmR touched Ground at 2.4 m/s
+   51.167 |   2800 | Target open #3 | contact  | UpperArmR touched Ground at 4.3 m/s
+   51.167 |   2800 | Target open #3 | contact  | Spine touched Ground at 1.8 m/s
+   51.167 |   2800 | Target open #3 | contact  | Chest touched Ground at 3.5 m/s
+   51.183 |   2801 | Target open #3 | contact  | UpperArmL touched Ground at 2.8 m/s
+   51.183 |   2801 | Target sword #3 | contact  | UpperArmR touched Ground at 4.2 m/s
+   51.183 |   2801 | Target open #3 | contact  | ForearmL touched Ground at 1.4 m/s
+   51.183 |   2801 | Target open #3 | contact  | FootL touched Ground at 3.0 m/s
+   51.183 |   2801 | Target shield #3 | contact  | UpperArmR touched Ground at 1.7 m/s
+   51.200 |   2802 | Target shield #3 | contact  | Chest touched Ground at 2.5 m/s
+   51.200 |   2802 | Target shield #3 | contact  | ForearmL touched Ground at 1.0 m/s
+   51.217 |   2803 | Target sword #3 | contact  | ShinL touched Ground at 1.8 m/s
+   51.217 |   2803 | Target shield #3 | contact  | Head touched Ground at 1.0 m/s
+   51.217 |   2803 | Target sword #3 | contact  | Head touched Ground at 5.3 m/s
+   51.217 |   2803 | Target shield #3 | contact  | FootL touched Ground at 1.1 m/s
+   51.217 |   2803 | Target shield #3 | contact  | ThighR touched Ground at 1.4 m/s
+   51.217 |   2803 | Target sword #3 | contact  | HandL touched Ground at 5.5 m/s
+   51.217 |   2803 | Target open #3 | contact  | HandL touched Ground at 4.4 m/s
+   51.217 |   2803 | Target sword #3 | contact  | ThighL touched Ground at 1.1 m/s
+   51.233 |   2804 | Target sword #3 | contact  | ThighR touched Ground at 2.1 m/s
+   51.233 |   2804 | Target shield #3 | contact  | ForearmR touched Ground at 2.6 m/s
+   51.250 |   2805 | Target shield #3 | contact  | UpperArmL touched Ground at 1.9 m/s
+   51.250 |   2805 | Target sword #3 | contact  | ShinR touched Ground at 1.1 m/s
+   51.250 |   2805 | Target shield #3 | contact  | HandL touched Ground at 2.7 m/s
+   51.283 |   2807 | Target open #3 | sight    | noticed Target shield at the edge of its view (3.8 m)
+   51.283 |   2807 | Target open #3 | sight    | noticed Target sword at the edge of its view (8.3 m)
+   51.283 |   2807 | Target open #3 | contact  | Head touched Ground at 3.7 m/s
+   51.283 |   2807 | Target shield #3 | contact  | HandR touched Ground at 3.7 m/s
+   51.300 |   2808 | Target sword #3 | contact  | Chest touched Ground at 1.4 m/s
+   51.300 |   2808 | Target sword #3 | contact  | UpperArmR touched Ground at 2.2 m/s
+   51.300 |   2808 | Target sword #3 | contact  | FootR touched Ground at 2.4 m/s
+   51.317 |   2809 | Target open #3 | contact  | ForearmL touched Ground at 1.3 m/s
+   51.350 |   2811 | Target sword #3 | contact  | FootL touched Ground at 3.2 m/s
+   51.367 |   2812 | Target sword #3 | contact  | ShinL touched Ground at 1.3 m/s
+   51.417 |   2815 | Target shield #3 | contact  | FootL touched Ground at 1.4 m/s
+   51.433 |   2816 | Target sword #3 | contact  | UpperArmR touched Ground at 1.7 m/s
+   51.467 |   2818 | Target sword #3 | contact  | Pelvis touched Ground at 1.2 m/s
+   51.500 |   2820 | Target shield #3 | contact  | HandL touched Ground at 1.3 m/s
+   51.533 |   2822 | Target shield #3 | contact  | ThighL touched Ground at 1.1 m/s
+   51.567 |   2824 | Target shield #3 | contact  | Pelvis touched Ground at 1.2 m/s
+   51.633 |   2828 | Target shield #3 | contact  | FootR touched Ground at 2.6 m/s
+   51.650 |   2829 | Target sword #3 | contact  | HandR touched Ground at 3.5 m/s
+   51.700 |   2832 | Target open #3 | fall     | fell to its right: first down a hand at 0.37 s; a hand 0.37 s, a knee never, the hips 0.48 s at 1.7 m/s, the trunk 0.48 s, the head 0.60 s at 3.7 m/s; landed on a hand or knee first; slid 11 cm; measured 1.0 s (the fall test: a tube of 200 N·s on its UpperArmL, on the left side)
+   51.900 |   2844 | Target sword #3 | fall     | fell to its right: first down a hand at 0.42 s; a hand 0.42 s, a knee 0.47 s, the hips 0.60 s at 0.7 m/s, the trunk 0.48 s, the head 0.48 s at 5.4 m/s; landed on a hand or knee first; slid 14 cm; measured 1.2 s (thrown at 6.1 m/s, faster than its legs can catch (4.4): down)
+   51.983 |   2849 | Target shield #3 | fall     | fell to its right: first down a knee at 0.40 s; a hand 0.42 s, a knee 0.40 s, the hips 0.90 s at 1.2 m/s, the trunk 0.53 s, the head 0.48 s at 4.9 m/s; landed on a hand or knee first; slid 9 cm; measured 1.3 s (thrown at 6.1 m/s, faster than its legs can catch (4.4): down)
+   52.000 |   2850 | Target sword #3 | contact  | HandR touched Ground at 3.8 m/s
+   52.050 |   2853 | Target sword #3 | contact  | ForearmR touched Ground at 2.9 m/s
+   52.117 |   2857 | Target sword #3 | contact  | HandR touched Ground at 4.6 m/s
+   52.250 |   2865 | Target shield #3 | contact  | FootL touched Ground at 1.8 m/s
+   52.250 |   2865 | Target shield #3 | contact  | FootR touched Ground at 1.6 m/s
+   52.317 |   2869 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   52.317 |   2869 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   52.333 |   2870 | Target open #4 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   52.333 |   2870 | Target shield #4 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   52.333 |   2870 | Target sword #4 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   52.333 |   2870 | Target sword #3 | despawn  | removed from the scene
+   52.333 |   2870 | Target shield #3 | despawn  | removed from the scene
+   52.333 |   2870 | Target open #3 | despawn  | removed from the scene
+   52.333 |   2870 | Target open #4 | equip    | bare hands, scaled 1.00
+   52.333 |   2870 | Target shield #4 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   52.333 |   2870 | Target sword #4 | equip    | WD_Sword, scaled 1.00
+   52.333 |   2870 | Target open #4 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   52.333 |   2870 | Target open #4 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   52.333 |   2870 | Target shield #4 | sight    | noticed Target open at the edge of its view (4.0 m)
+   52.333 |   2870 | Target shield #4 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   52.333 |   2870 | Target sword #4 | sight    | noticed Target open at the edge of its view (8.0 m)
+   52.333 |   2870 | Target sword #4 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   52.367 |   2872 | -              | perf     | 91 ms frame, 1 physics steps, garbage collected (gen0 2, gen1 2, gen2 2); ours: nothing over 0.5 ms; Unity: Main_Thread 89.4 ms, Gfx_WaitForGfxCommandsFromMainThread 87.6 ms, PlayerLoop 87.5 ms, Update_ScriptRunBehaviourUpdate 82.6 ms, BehaviourUpdate 82.6 ms, GC_Collect 9.5 ms, CPU_Total_Frame_Time 1.7 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 1.5 ms
+   52.417 |   2875 | -              | perf     | 59 ms frame, 3 physics steps; ours: RecorderSample 33.6 ms (3), UnitStep 8.4 ms (9), ArmSolve 2.5 ms (8); Unity: Main_Thread 55.9 ms, Gfx_WaitForGfxCommandsFromMainThread 54.0 ms, PlayerLoop 50.2 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 47.3 ms, FixedBehaviourUpdate 47.3 ms, Physics_Simulate 3.2 ms, GC_Collect 3.0 ms, CPU_Total_Frame_Time 1.5 ms
+   55.267 |   3046 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 90, the fall test (they go down), physical legs on
+   55.383 |   3053 | Target open #4 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmL 1.30 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   55.383 |   3053 | Target open #4 | contact  | UpperArmL touched Tube at 6.6 m/s
+   55.400 |   3054 | Target sword #4 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.29 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   55.400 |   3054 | Target shield #4 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.29 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   55.400 |   3054 | Target shield #4 | contact  | Chest touched Tube at 6.5 m/s
+   55.400 |   3054 | Target sword #4 | contact  | Chest touched Tube at 6.5 m/s
+   55.400 |   3054 | Target open #4 | contact  | Chest touched Tube at 2.1 m/s
+   55.733 |   3074 | Target sword #4 | contact  | ShinR touched Ground at 2.4 m/s
+   55.733 |   3074 | Target shield #4 | contact  | ShinR touched Ground at 2.2 m/s
+   55.750 |   3075 | Target sword #4 | contact  | ThighR touched Ground at 3.3 m/s
+   55.750 |   3075 | Target shield #4 | contact  | ThighR touched Ground at 1.4 m/s
+   55.800 |   3078 | Target shield #4 | contact  | Head touched Ground at 5.8 m/s
+   55.800 |   3078 | Target sword #4 | contact  | Chest touched Ground at 4.6 m/s
+   55.800 |   3078 | Target sword #4 | contact  | Head touched Ground at 6.1 m/s
+   55.800 |   3078 | Target open #4 | contact  | HandR touched Ground at 3.7 m/s
+   55.800 |   3078 | Target shield #4 | contact  | HandR touched Ground at 3.0 m/s
+   55.800 |   3078 | Target shield #4 | contact  | ForearmR touched Ground at 4.4 m/s
+   55.800 |   3078 | Target shield #4 | contact  | ShinL touched Ground at 2.1 m/s
+   55.800 |   3078 | Target open #4 | contact  | Chest touched Ground at 5.2 m/s
+   55.800 |   3078 | Target open #4 | contact  | Pelvis touched Ground at 4.8 m/s
+   55.800 |   3078 | Target sword #4 | contact  | UpperArmR touched Ground at 4.3 m/s
+   55.800 |   3078 | Target open #4 | contact  | Spine touched Ground at 4.8 m/s
+   55.800 |   3078 | Target open #4 | contact  | ForearmR touched Ground at 3.7 m/s
+   55.800 |   3078 | Target open #4 | contact  | UpperArmR touched Ground at 4.0 m/s
+   55.800 |   3078 | Target sword #4 | contact  | HandR touched Ground at 4.1 m/s
+   55.817 |   3079 | Target open #4 | contact  | FootR touched Ground at 1.4 m/s
+   55.817 |   3079 | Target sword #4 | contact  | ForearmR touched Ground at 1.6 m/s
+   55.833 |   3080 | Target sword #4 | contact  | ThighR touched Ground at 1.2 m/s
+   55.850 |   3081 | Target shield #4 | contact  | HandR touched Ground at 2.4 m/s
+   55.850 |   3081 | Target sword #4 | contact  | FootR touched Ground at 3.3 m/s
+   55.867 |   3082 | Target shield #4 | contact  | HandL touched Ground at 3.0 m/s
+   55.867 |   3082 | Target shield #4 | contact  | Chest touched Ground at 1.1 m/s
+   55.867 |   3082 | Target sword #4 | contact  | HandL touched Ground at 4.0 m/s
+   55.867 |   3082 | Target sword #4 | contact  | ShinL touched Ground at 2.0 m/s
+   55.900 |   3084 | Target sword #4 | contact  | ForearmL touched Ground at 1.8 m/s
+   55.900 |   3084 | Target sword #4 | contact  | ThighL touched Ground at 1.6 m/s
+   55.900 |   3084 | Target open #4 | contact  | Head touched Ground at 4.1 m/s
+   55.917 |   3085 | Target open #4 | contact  | HandL touched Ground at 8.5 m/s
+   55.933 |   3086 | Target shield #4 | contact  | ForearmR touched Ground at 2.4 m/s
+   55.983 |   3089 | Target sword #4 | contact  | FootR touched Ground at 2.7 m/s
+   56.017 |   3091 | Target shield #4 | contact  | FootL touched Ground at 1.5 m/s
+   56.017 |   3091 | Target sword #4 | contact  | Head touched Ground at 3.1 m/s
+   56.033 |   3092 | Target shield #4 | contact  | FootR touched Ground at 1.7 m/s
+   56.050 |   3093 | Target open #4 | contact  | ForearmL touched Ground at 1.9 m/s
+   56.133 |   3098 | Target open #4 | contact  | HandL touched Ground at 1.4 m/s
+   56.167 |   3100 | Target shield #4 | contact  | ForearmL touched Ground at 1.6 m/s
+   56.183 |   3101 | Target shield #4 | contact  | UpperArmL touched Ground at 1.7 m/s
+   56.333 |   3110 | Target shield #4 | contact  | Pelvis touched Ground at 1.4 m/s
+   56.383 |   3113 | Target open #4 | fall     | fell to its right: first down a hand at 0.43 s; a hand 0.43 s, a knee never, the hips 0.45 s at 1.3 m/s, the trunk 0.45 s, the head 0.55 s at 1.5 m/s; landed on a hand or knee first; slid 16 cm; measured 1.0 s (the fall test: a tube of 200 N·s on its UpperArmL, on the left side)
+   56.417 |   3115 | Target open #4 | contact  | FootL touched Ground at 1.5 m/s
+   56.467 |   3118 | Target sword #4 | fall     | fell to its right: first down a knee at 0.33 s; a hand 0.43 s, a knee 0.33 s, the hips 0.67 s at 1.2 m/s, the trunk 0.42 s, the head 0.42 s at 6.1 m/s; landed on a hand or knee first; slid 9 cm; measured 1.1 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   56.633 |   3128 | Target shield #4 | fall     | fell to its right: first down a knee at 0.33 s; a hand 0.42 s, a knee 0.33 s, the hips 0.95 s at 1.3 m/s, the trunk 0.48 s, the head 0.42 s at 5.8 m/s; landed on a hand or knee first; slid 2 cm; measured 1.3 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   56.717 |   3133 | Target sword #4 | contact  | FootL touched Ground at 2.7 m/s
+   56.733 |   3134 | Target sword #4 | contact  | FootR touched Ground at 1.4 m/s
+   56.750 |   3135 | Target shield #4 | contact  | ShinR touched Ground at 3.6 m/s
+   56.750 |   3135 | Target sword #4 | contact  | UpperArmL touched Ground at 1.8 m/s
+   56.750 |   3135 | Target sword #4 | contact  | ForearmL touched Ground at 2.9 m/s
+   56.917 |   3145 | Target shield #4 | contact  | FootL touched Ground at 1.8 m/s
+   56.933 |   3146 | Target shield #4 | contact  | HandL touched Ground at 1.0 m/s
+   57.117 |   3157 | Target open #4 | contact  | FootL touched Ground at 1.1 m/s
+   57.133 |   3158 | Target open #4 | contact  | FootR touched Ground at 1.2 m/s
+   57.217 |   3163 | Target sword #4 | contact  | FootR touched Ground at 1.3 m/s
+   57.233 |   3164 | Target shield #4 | contact  | FootR touched Ground at 1.2 m/s
+   57.317 |   3169 | Target sword #4 | contact  | FootL touched Ground at 1.9 m/s
+   57.617 |   3187 | Target sword #4 | contact  | FootL touched Ground at 1.1 m/s
+   57.633 |   3188 | Target open #4 | contact  | FootR touched Ground at 1.3 m/s
+   57.650 |   3189 | Target open #4 | contact  | ShinR touched Ground at 1.3 m/s
+   57.683 |   3191 | Target sword #4 | contact  | ShinR touched Ground at 1.8 m/s
+   57.950 |   3207 | Target shield #4 | contact  | FootL touched Ground at 1.1 m/s
+   58.267 |   3226 | Target shield #4 | contact  | FootR touched Ground at 1.0 m/s
+   58.483 |   3239 | -              | console  | [Upper] Target open: UpperArmL turning at 70 rad/s; head 2 cm, hands 2 / 19 cm off the pose; Cycle ; got up; put back 0, joints put 0   Spine asked -21 1 4 (21°) is -22 2 4, 2 rad/s, left 0° aside (held), damping 4167 most 5042; Chest asked 1 1 -1 (1°) is -1 1 0, 8 rad/s, left 0° aside (held), damping 2441 most 4210; Head asked 7 1 0 (7°) is 16 1 0, 2 rad/s, left 7° aside (held), damping 264 most 273; UpperArmL asked 31 2 18 (36°) is 22 9 23, 70 rad/s, left 0° aside (held), damping 313 most 3110; ForearmL asked -46 13 -1 (48°) is -67 11 7, 15 rad/s, left 14° aside (held), damping 58 most 510; HandL asked -11 14 13 (22°) is -24 20 17, 56 rad/s, left 0° aside (held), damping 2 most 168; UpperArmR asked 11 -19 -8 (24°) is 11 -20 -8, 5 rad/s, left 0° aside, damping 1042 most 797; ForearmR asked -16 -5 0 (17°) is -16 -5 0, 7 rad/s, left 0° aside, damping 193 most 461; HandR asked 2 -8 -1 (8°) is 2 -8 -1, 5 rad/s, left 0° aside, damping 7 most 152; ThighL asked -28 -9 -10 (31°) is -28 -9 -10, 3 rad/s, left 0° aside (held), damping 4715 most 1575; ShinL asked 48 0 0 (48°) is 48 0 0, 6 rad/s, left 0° aside (held), damping 747 most 709; FootL asked -4 -5 -2 (7°) is -4 -5 -2, 2 rad/s, left 0° aside (held), damping 25 most 274; ThighR asked -13 3 -1 (14°) is -13 3 -1, 4 rad/s, left 0° aside (held), damping 4715 most 1445; ShinR asked 9 0 0 (9°) is 9 0 0, 0 rad/s, left 0° aside (held), damping 747 most 678; FootR asked 8 6 6 (12°) is 8 6 6, 6 rad/s, left 0° aside (held), damping 25 most 275; 
+   58.500 |   3240 | -              | console  | [Upper] Target sword: UpperArmL turning at 69 rad/s; head 3 cm, hands 39 / 25 cm off the pose; OneShot sns_turn180; got up; put back 0, joints put 0   Spine asked -2 3 2 (5°) is -2 2 -1, 9 rad/s, left 0° aside (held), damping 2479 most 21362; Chest asked -3 3 0 (5°) is -4 3 -3, 2 rad/s, left 0° aside (held), damping 1609 most 16592; Head asked 9 -43 8 (45°) is 10 -43 9, 5 rad/s, left 0° aside (held), damping 264 most 564; UpperArmL asked 23 46 46 (69°) is 11 5 41, 69 rad/s, left 0° aside, damping 781 most 5073; ForearmL asked -17 5 0 (18°) is -23 21 -20, 37 rad/s, left 0° aside, damping 145 most 906; HandL asked 3 6 -16 (17°) is 2 4 -27, 28 rad/s, left 0° aside, damping 5 most 172; UpperArmR asked -27 27 43 (58°) is -9 -39 42, 46 rad/s, left 34° aside, damping 2076 most 8900; ForearmR asked -20 -6 0 (21°) is -30 -9 -6, 51 rad/s, left 0° aside, damping 679 most 3221; HandR asked 9 63 19 (66°) is 3 63 17, 53 rad/s, left 0° aside, damping 234 most 869; ThighL asked -51 -38 -27 (69°) is -51 -38 -27, 3 rad/s, left 0° aside (held), damping 4715 most 4180; ShinL asked 50 0 0 (50°) is 50 0 0, 2 rad/s, left 0° aside (held), damping 747 most 1313; FootL asked -2 6 14 (15°) is -2 6 14, 4 rad/s, left 0° aside (held), damping 25 most 319; ThighR asked -25 10 25 (37°) is -25 10 25, 1 rad/s, left 0° aside (held), damping 4715 most 3831; ShinR asked 43 0 0 (43°) is 43 0 0, 1 rad/s, left 0° aside (held), damping 747 most 1275; FootR asked -15 7 3 (17°) is -15 7 3, 4 rad/s, left 0° aside (held), damping 25 most 318; 
+   58.567 |   3244 | Target shield #4 | sight    | lost track of Target open
+   59.117 |   3277 | Target shield #4 | sight    | noticed Target open at the edge of its view (3.4 m)
+   59.533 |   3302 | Target open #4 | sight    | lost track of Target sword
+   60.483 |   3359 | Target open #4 | sight    | noticed Target sword at the edge of its view (7.5 m)
+   61.960 |   3447 | -              | time     | time scale 0.52
+   61.962 |   3447 | -              | time     | time scale 0.52
+   61.964 |   3447 | -              | time     | time scale 0.52
+   61.966 |   3447 | -              | time     | time scale 0.51
+   61.967 |   3448 | -              | time     | time scale 0.51
+   61.973 |   3448 | -              | time     | time scale 0.51
+   61.975 |   3448 | -              | time     | time scale 0.51
+   61.978 |   3448 | -              | time     | time scale 0.50
+   62.040 |   3452 | -              | time     | time scale 0.51
+   62.044 |   3452 | -              | time     | time scale 0.51
+   62.045 |   3452 | -              | time     | time scale 0.51
+   62.048 |   3452 | -              | time     | time scale 0.51
+   62.050 |   3453 | -              | time     | time scale 0.51
+   62.054 |   3453 | -              | time     | time scale 0.51
+   62.059 |   3453 | -              | time     | time scale 0.51
+   62.064 |   3453 | -              | time     | time scale 0.52
+   62.066 |   3453 | -              | time     | time scale 0.52
+   62.068 |   3454 | -              | time     | time scale 0.52
+   62.072 |   3454 | -              | time     | time scale 0.52
+   62.074 |   3454 | -              | time     | time scale 0.53
+   62.075 |   3454 | -              | time     | time scale 0.53
+   62.078 |   3454 | -              | time     | time scale 0.53
+   62.081 |   3454 | -              | time     | time scale 0.53
+   62.084 |   3455 | -              | time     | time scale 0.53
+   62.088 |   3455 | -              | time     | time scale 0.53
+   62.090 |   3455 | -              | time     | time scale 0.53
+   62.093 |   3455 | -              | time     | time scale 0.54
+   62.100 |   3455 | -              | time     | time scale 0.54
+   62.106 |   3456 | -              | time     | time scale 0.54
+   62.189 |   3461 | -              | time     | time scale 0.54
+   62.200 |   3462 | -              | time     | time scale 0.54
+   62.205 |   3462 | -              | time     | time scale 0.53
+   62.209 |   3462 | -              | time     | time scale 0.53
+   62.214 |   3462 | -              | time     | time scale 0.53
+   62.220 |   3463 | -              | time     | time scale 0.53
+   62.225 |   3463 | -              | time     | time scale 0.53
+   62.237 |   3464 | -              | time     | time scale 0.53
+   62.246 |   3464 | -              | time     | time scale 0.53
+   62.967 |   3508 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 90, the fall test (they go down), physical legs on
+   63.083 |   3515 | Target open #4 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmL 1.29 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   63.083 |   3515 | Target open #4 | contact  | UpperArmL touched Tube at 6.6 m/s
+   63.117 |   3517 | Target sword #4 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmL 1.27 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   63.117 |   3517 | Target sword #4 | contact  | UpperArmL touched Tube at 6.6 m/s
+   63.117 |   3517 | Target sword #4 | contact  | Chest touched Tube at 6.6 m/s
+   63.117 |   3517 | Target open #4 | contact  | Chest touched Tube at 1.9 m/s
+   63.133 |   3518 | Target shield #4 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmL 1.28 m up, on the left side (turned 90 degrees); the fall test: it goes down
+   63.133 |   3518 | Target shield #4 | contact  | Chest touched Tube at 1.5 m/s
+   63.217 |   3523 | Target open #4 | contact  | UpperArmL touched Tube at 7.6 m/s
+   63.467 |   3538 | Target sword #4 | contact  | ShinR touched Ground at 2.8 m/s
+   63.467 |   3538 | Target sword #4 | contact  | ThighR touched Ground at 3.3 m/s
+   63.483 |   3539 | Target sword #4 | contact  | Head touched Ground at 5.8 m/s
+   63.517 |   3541 | Target open #4 | contact  | Chest touched Ground at 5.1 m/s
+   63.533 |   3542 | Target open #4 | contact  | ShinL touched Tube at 4.2 m/s
+   63.533 |   3542 | Target sword #4 | contact  | ForearmR touched Ground at 4.6 m/s
+   63.533 |   3542 | Target sword #4 | contact  | HandR touched Ground at 6.1 m/s
+   63.533 |   3542 | Target shield #4 | contact  | ShinL touched Ground at 1.3 m/s
+   63.533 |   3542 | Target shield #4 | contact  | HandR touched Ground at 4.6 m/s
+   63.533 |   3542 | Target open #4 | contact  | UpperArmL touched Ground at 3.9 m/s
+   63.550 |   3543 | Target open #4 | contact  | FootL touched Tube at 4.4 m/s
+   63.567 |   3544 | Target sword #4 | contact  | UpperArmR touched Ground at 2.3 m/s
+   63.567 |   3544 | Target open #4 | contact  | Head touched Ground at 3.5 m/s
+   63.567 |   3544 | Target shield #4 | contact  | HandL touched Ground at 4.5 m/s
+   63.567 |   3544 | Target sword #4 | contact  | Chest touched Ground at 2.3 m/s
+   63.583 |   3545 | Target shield #4 | contact  | ForearmR touched Ground at 2.6 m/s
+   63.583 |   3545 | Target sword #4 | contact  | Pelvis touched Ground at 1.4 m/s
+   63.583 |   3545 | Target shield #4 | contact  | UpperArmR touched Ground at 1.6 m/s
+   63.583 |   3545 | Target shield #4 | contact  | ShinR touched Ground at 1.0 m/s
+   63.600 |   3546 | Target sword #4 | contact  | FootL touched Ground at 3.4 m/s
+   63.600 |   3546 | Target open #4 | contact  | HandL touched Ground at 9.5 m/s
+   63.600 |   3546 | Target shield #4 | contact  | Head touched Ground at 5.6 m/s
+   63.600 |   3546 | Target sword #4 | contact  | ThighL touched Ground at 2.5 m/s
+   63.600 |   3546 | Target sword #4 | contact  | ShinL touched Ground at 3.6 m/s
+   63.633 |   3548 | Target open #4 | contact  | HandR touched Ground at 4.9 m/s
+   63.633 |   3548 | Target sword #4 | contact  | FootL touched Ground at 1.7 m/s
+   63.633 |   3548 | Target shield #4 | contact  | UpperArmR touched Ground at 2.3 m/s
+   63.633 |   3548 | Target sword #4 | contact  | HandL touched Ground at 6.7 m/s
+   63.633 |   3548 | Target sword #4 | contact  | ForearmL touched Ground at 2.6 m/s
+   63.667 |   3550 | Target sword #4 | contact  | UpperArmL touched Ground at 1.6 m/s
+   63.667 |   3550 | Target open #4 | contact  | ThighR touched Ground at 2.6 m/s
+   63.667 |   3550 | Target open #4 | contact  | ShinR touched Ground at 3.5 m/s
+   63.683 |   3551 | Target open #4 | contact  | Chest touched Ground at 1.5 m/s
+   63.717 |   3553 | Target shield #4 | contact  | ThighR touched Ground at 1.6 m/s
+   63.717 |   3553 | Target open #4 | contact  | FootL touched Ground at 6.7 m/s
+   63.717 |   3553 | Target sword #4 | contact  | FootR touched Ground at 2.5 m/s
+   63.733 |   3554 | Target open #4 | contact  | ThighL touched Ground at 2.7 m/s
+   63.733 |   3554 | Target open #4 | contact  | ShinL touched Ground at 4.5 m/s
+   63.750 |   3555 | Target shield #4 | contact  | Pelvis touched Ground at 2.8 m/s
+   63.750 |   3555 | Target shield #4 | contact  | ThighL touched Ground at 1.0 m/s
+   63.767 |   3556 | Target open #4 | contact  | ShinR touched Ground at 1.4 m/s
+   63.783 |   3557 | Target shield #4 | contact  | Chest touched Ground at 2.2 m/s
+   63.800 |   3558 | Target shield #4 | contact  | HandR touched Ground at 1.9 m/s
+   63.800 |   3558 | Target open #4 | contact  | ThighR touched Tube at 2.7 m/s
+   63.833 |   3560 | Target shield #4 | contact  | FootR touched Ground at 2.3 m/s
+   63.850 |   3561 | Target open #4 | contact  | ThighL touched Tube at 3.4 m/s
+   63.883 |   3563 | Target shield #4 | contact  | FootL touched Ground at 2.6 m/s
+   63.883 |   3563 | Target open #4 | contact  | Pelvis touched Tube at 1.6 m/s
+   63.900 |   3564 | Target open #4 | contact  | HandL touched Ground at 2.2 m/s
+   63.900 |   3564 | Target open #4 | contact  | Spine touched Tube at 1.6 m/s
+   63.933 |   3566 | Target open #4 | contact  | FootR touched Ground at 2.6 m/s
+   63.950 |   3567 | Target shield #4 | contact  | UpperArmL touched Ground at 2.4 m/s
+   64.017 |   3571 | Target shield #4 | contact  | ForearmR touched Ground at 1.6 m/s
+   64.017 |   3571 | Target open #4 | contact  | Chest touched Tube at 1.3 m/s
+   64.033 |   3572 | Target open #4 | contact  | Spine touched Tube at 1.3 m/s
+   64.117 |   3577 | Target sword #4 | fall     | fell to its right: first down a knee at 0.35 s; a hand 0.45 s, a knee 0.35 s, the hips 0.50 s at 1.0 m/s, the trunk 0.47 s, the head 0.40 s at 2.3 m/s; landed on a hand or knee first; slid 6 cm; measured 1.0 s (the fall test: a tube of 200 N·s on its UpperArmL, on the left side)
+   64.117 |   3577 | Target shield #4 | contact  | HandL touched Ground at 2.8 m/s
+   64.117 |   3577 | Target open #4 | contact  | HandR touched Ground at 1.2 m/s
+   64.150 |   3579 | Target open #4 | contact  | HandL touched Ground at 1.0 m/s
+   64.167 |   3580 | Target open #4 | contact  | ForearmR touched Ground at 1.2 m/s
+   64.233 |   3584 | Target open #4 | contact  | FootL touched Ground at 1.7 m/s
+   64.317 |   3589 | Target shield #4 | fall     | fell to its right: first down a knee at 0.35 s; a hand 0.43 s, a knee 0.35 s, the hips 0.63 s at 2.8 m/s, the trunk 0.67 s, the head 0.50 s at 2.4 m/s; landed on a hand or knee first; slid 18 cm; measured 1.2 s (the fall test: a tube of 200 N·s on its UpperArmL, on the left side)
+   64.333 |   3590 | Target sword #4 | contact  | HandR touched Ground at 3.8 m/s
+   64.333 |   3590 | Target sword #4 | contact  | FootL touched Ground at 1.6 m/s
+   64.350 |   3591 | Target sword #4 | contact  | HandR touched Ground at 3.5 m/s
+   64.483 |   3599 | Target open #4 | fall     | fell to its right: first down the trunk at 0.47 s; a hand 0.53 s, a knee 0.57 s, the hips 0.83 s at 0.6 m/s, the trunk 0.47 s, the head 0.50 s at 3.5 m/s; not on a hand or knee first; slid 10 cm; measured 1.4 s (the fall test: a tube of 200 N·s on its UpperArmL, on the left side)
+   64.683 |   3611 | Target open #4 | contact  | HandL touched Ground at 3.5 m/s
+   64.733 |   3614 | Target open #4 | contact  | ForearmL touched Tube at 2.2 m/s
+   64.733 |   3614 | Target open #4 | contact  | HandL touched Tube at 3.6 m/s
+   64.750 |   3615 | Target open #4 | contact  | FootL touched Ground at 1.1 m/s
+   65.050 |   3633 | Target shield #4 | contact  | FootR touched Ground at 1.3 m/s
+   65.083 |   3635 | Target shield #4 | contact  | FootL touched Ground at 1.0 m/s
+   65.117 |   3637 | Target open #4 | contact  | ForearmL touched Tube at 1.5 m/s
+   65.233 |   3644 | Target open #4 | contact  | FootL touched Ground at 1.1 m/s
+   65.250 |   3645 | Target open #4 | contact  | FootR touched Ground at 1.8 m/s
+   65.433 |   3656 | Target sword #4 | contact  | FootL touched Ground at 1.1 m/s
+   65.583 |   3665 | Target shield #4 | contact  | ShinR touched Ground at 1.7 m/s
+   66.150 |   3699 | -              | console  | [Upper] Target sword: UpperArmR turning at 70 rad/s; head 9 cm, hands 44 / 23 cm off the pose; Cycle ; got up; put back 0, joints put 0   Spine asked 4 3 1 (5°) is -4 -6 0, 9 rad/s, left 0° aside (held), damping 4338 most 19811; Chest asked 5 4 -2 (6°) is -2 2 -2, 3 rad/s, left 0° aside (held), damping 2815 most 15954; Head asked 9 -43 8 (45°) is 14 -41 6, 2 rad/s, left 0° aside (held), damping 264 most 438; UpperArmL asked 13 31 46 (57°) is 6 6 38, 57 rad/s, left 0° aside, damping 313 most 4562; ForearmL asked -3 1 -1 (4°) is -9 10 -20, 59 rad/s, left 0° aside, damping 58 most 1052; HandL asked 4 13 -16 (21°) is -4 7 -39, 46 rad/s, left 0° aside, damping 2 most 174; UpperArmR asked 35 39 -2 (52°) is 21 37 1, 70 rad/s, left 0° aside, damping 2076 most 9647; ForearmR asked -19 -4 7 (21°) is -41 -57 30, 43 rad/s, left 47° aside, damping 679 most 3168; HandR asked -2 74 -16 (76°) is -22 74 -15, 53 rad/s, left 0° aside, damping 234 most 836; ThighL asked -51 -38 -25 (69°) is -51 -38 -26, 1 rad/s, left 0° aside (held), damping 4715 most 3059; ShinL asked 51 0 0 (51°) is 51 0 0, 3 rad/s, left 0° aside (held), damping 747 most 1117; FootL asked -4 10 12 (16°) is -4 10 12, 4 rad/s, left 0° aside (held), damping 25 most 303; ThighR asked -20 11 24 (33°) is -20 10 25, 5 rad/s, left 0° aside (held), damping 4715 most 3914; ShinR asked 41 0 0 (41°) is 41 0 0, 3 rad/s, left 0° aside (held), damping 747 most 1136; FootR asked -15 11 2 (19°) is -15 11 2, 2 rad/s, left 0° aside (held), damping 25 most 299; 
+   66.317 |   3709 | Target open #4 | contact  | FootR touched Ground at 1.3 m/s
+   66.617 |   3727 | Target shield #4 | sight    | lost track of Target sword
+   66.981 |   3748 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   66.981 |   3748 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   66.983 |   3749 | Target open #5 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   66.983 |   3749 | Target shield #5 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   66.983 |   3749 | Target sword #5 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   66.983 |   3749 | Target sword #4 | despawn  | removed from the scene
+   66.983 |   3749 | Target shield #4 | despawn  | removed from the scene
+   66.983 |   3749 | Target open #4 | despawn  | removed from the scene
+   66.983 |   3749 | Target open #5 | equip    | bare hands, scaled 1.00
+   66.983 |   3749 | Target shield #5 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   66.983 |   3749 | Target sword #5 | equip    | WD_Sword, scaled 1.00
+   66.983 |   3749 | Target open #5 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   66.983 |   3749 | Target open #5 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   66.983 |   3749 | Target shield #5 | sight    | noticed Target open at the edge of its view (4.0 m)
+   66.983 |   3749 | Target shield #5 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   66.983 |   3749 | Target sword #5 | sight    | noticed Target open at the edge of its view (8.0 m)
+   66.983 |   3749 | Target sword #5 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   67.007 |   3750 | -              | perf     | 94 ms frame, 0 physics steps, garbage collected (gen0 3, gen1 3, gen2 3); ours: nothing over 0.5 ms; Unity: Main_Thread 92.5 ms, PlayerLoop 90.7 ms, Gfx_WaitForGfxCommandsFromMainThread 90.7 ms, Update_ScriptRunBehaviourUpdate 85.9 ms, BehaviourUpdate 85.9 ms, GC_Collect 11.0 ms, CPU_Total_Frame_Time 1.5 ms, CPU_Main_Thread_Frame_Time 1.1 ms
+   67.032 |   3751 | -              | perf     | 47 ms frame, 2 physics steps; ours: RecorderSample 29.2 ms (2), UnitStep 6.4 ms (6), ArmSolve 1.9 ms (6); Unity: Main_Thread 47.4 ms, Gfx_WaitForGfxCommandsFromMainThread 45.0 ms, PlayerLoop 41.6 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 38.4 ms, FixedBehaviourUpdate 38.4 ms, GC_Collect 5.5 ms, CPU_Total_Frame_Time 1.7 ms, Physics_Simulate 1.6 ms
+   67.983 |   3809 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 0, the fall test (they go down), physical legs on
+   68.133 |   3818 | Target sword #5 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.32 m up, on the front (turned 0 degrees); the fall test: it goes down
+   68.133 |   3818 | Target shield #5 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmL 1.29 m up, on the front (turned 0 degrees); the fall test: it goes down
+   68.133 |   3818 | Target sword #5 | contact  | Chest touched Tube at 2.4 m/s
+   68.133 |   3818 | Target shield #5 | contact  | Chest touched Tube at 1.6 m/s
+   68.133 |   3818 | Target shield #5 | contact  | UpperArmL touched Tube at 1.6 m/s
+   68.150 |   3819 | Target open #5 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.30 m up, on the front (turned 0 degrees); the fall test: it goes down
+   68.150 |   3819 | Target open #5 | contact  | Chest touched Tube at 3.2 m/s
+   68.167 |   3820 | Target open #5 | contact  | Spine touched Tube at 1.2 m/s
+   68.183 |   3821 | Target sword #5 | contact  | Head touched Tube at 2.4 m/s
+   68.250 |   3825 | Target shield #5 | contact  | Head touched Tube at 2.0 m/s
+   68.500 |   3840 | Target sword #5 | contact  | HandL touched Ground at 4.3 m/s
+   68.533 |   3842 | Target shield #5 | contact  | HandR touched Ground at 4.4 m/s
+   68.533 |   3842 | Target sword #5 | contact  | HandR touched Ground at 4.6 m/s
+   68.567 |   3844 | Target shield #5 | contact  | HandL touched Ground at 4.6 m/s
+   68.567 |   3844 | Target sword #5 | contact  | ForearmL touched Ground at 3.1 m/s
+   68.567 |   3844 | Target sword #5 | contact  | UpperArmL touched Ground at 2.7 m/s
+   68.583 |   3845 | Target sword #5 | contact  | ForearmR touched Ground at 2.9 m/s
+   68.583 |   3845 | Target open #5 | contact  | HandL touched Ground at 4.0 m/s
+   68.583 |   3845 | Target open #5 | contact  | ForearmL touched Ground at 3.4 m/s
+   68.583 |   3845 | Target open #5 | contact  | Pelvis touched Ground at 4.2 m/s
+   68.583 |   3845 | Target shield #5 | contact  | Chest touched Ground at 5.0 m/s
+   68.600 |   3846 | Target open #5 | contact  | Spine touched Ground at 5.1 m/s
+   68.600 |   3846 | Target shield #5 | contact  | UpperArmL touched Ground at 4.6 m/s
+   68.600 |   3846 | Target sword #5 | contact  | Spine touched Ground at 3.2 m/s
+   68.600 |   3846 | Target shield #5 | contact  | Spine touched Ground at 1.4 m/s
+   68.600 |   3846 | Target open #5 | contact  | Chest touched Ground at 5.5 m/s
+   68.600 |   3846 | Target shield #5 | contact  | Pelvis touched Ground at 2.1 m/s
+   68.617 |   3847 | Target open #5 | contact  | UpperArmR touched Ground at 4.0 m/s
+   68.617 |   3847 | Target open #5 | contact  | ForearmR touched Ground at 5.4 m/s
+   68.617 |   3847 | Target sword #5 | contact  | UpperArmR touched Ground at 1.4 m/s
+   68.617 |   3847 | Target sword #5 | contact  | Chest touched Ground at 2.8 m/s
+   68.617 |   3847 | Target open #5 | contact  | UpperArmL touched Ground at 5.1 m/s
+   68.617 |   3847 | Target open #5 | contact  | HandR touched Ground at 2.4 m/s
+   68.617 |   3847 | Target sword #5 | contact  | Pelvis touched Ground at 1.5 m/s
+   68.633 |   3848 | Target sword #5 | contact  | Head touched Ground at 4.6 m/s
+   68.667 |   3850 | Target open #5 | contact  | Chest touched Ground at 1.5 m/s
+   68.683 |   3851 | Target open #5 | contact  | Head touched Ground at 3.3 m/s
+   68.700 |   3852 | Target shield #5 | contact  | FootL touched Ground at 2.6 m/s
+   68.700 |   3852 | Target open #5 | contact  | Spine touched Ground at 1.2 m/s
+   68.750 |   3855 | Target open #5 | contact  | HandL touched Ground at 1.4 m/s
+   68.817 |   3859 | Target shield #5 | contact  | Head touched Ground at 1.0 m/s
+   68.817 |   3859 | Target sword #5 | contact  | FootL touched Ground at 1.8 m/s
+   68.833 |   3860 | Target sword #5 | contact  | HandL touched Ground at 2.2 m/s
+   68.883 |   3863 | Target shield #5 | contact  | HandL touched Ground at 2.2 m/s
+   68.950 |   3867 | Target sword #5 | contact  | UpperArmL touched Ground at 1.0 m/s
+   68.950 |   3867 | Target sword #5 | contact  | ForearmL touched Ground at 1.4 m/s
+   68.967 |   3868 | Target sword #5 | contact  | HandR touched Ground at 1.0 m/s
+   68.967 |   3868 | Target shield #5 | contact  | FootR touched Ground at 2.5 m/s
+   68.967 |   3868 | Target shield #5 | contact  | HandR touched Ground at 5.7 m/s
+   69.033 |   3872 | Target sword #5 | contact  | HandL touched Ground at 1.4 m/s
+   69.033 |   3872 | Target sword #5 | contact  | FootL touched Ground at 1.1 m/s
+   69.150 |   3879 | Target open #5 | fall     | fell backward: first down a hand at 0.47 s; a hand 0.47 s, a knee never, the hips 0.47 s at 3.6 m/s, the trunk 0.47 s, the head 0.57 s at 2.9 m/s; not on a hand or knee first; slid 31 cm; measured 1.0 s (thrown at 6.3 m/s, faster than its legs can catch (4.4): down)
+   69.183 |   3881 | Target sword #5 | contact  | FootL touched Ground at 1.2 m/s
+   69.200 |   3882 | Target sword #5 | fall     | fell backward: first down a hand at 0.38 s; a hand 0.38 s, a knee never, the hips 0.50 s at 1.4 m/s, the trunk 0.48 s, the head 0.53 s at 1.0 m/s; landed on a hand or knee first; slid 11 cm; measured 1.1 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   69.200 |   3882 | Target shield #5 | contact  | ThighL touched Ground at 2.0 m/s
+   69.233 |   3884 | Target shield #5 | contact  | Head touched Ground at 1.7 m/s
+   69.267 |   3886 | Target shield #5 | contact  | ShinR touched Ground at 1.3 m/s
+   69.300 |   3888 | Target shield #5 | contact  | HandL touched Ground at 2.3 m/s
+   69.317 |   3889 | Target sword #5 | contact  | FootL touched Ground at 4.5 m/s
+   69.417 |   3895 | Target sword #5 | contact  | FootR touched Ground at 2.1 m/s
+   69.533 |   3902 | Target shield #5 | fall     | fell backward: first down a hand at 0.42 s; a hand 0.42 s, a knee 1.10 s, the hips 0.50 s at 2.1 m/s, the trunk 0.48 s, the head 0.68 s at 1.1 m/s; landed on a hand or knee first; slid 34 cm; measured 1.4 s (the fall test: a tube of 200 N·s on its UpperArmL, on the front)
+   69.733 |   3914 | Target shield #5 | contact  | ForearmL touched Ground at 3.1 m/s
+   69.750 |   3915 | Target shield #5 | contact  | FootL touched Ground at 1.6 m/s
+   69.867 |   3922 | Target shield #5 | contact  | HandL touched Ground at 2.6 m/s
+   69.883 |   3923 | Target open #5 | contact  | FootL touched Ground at 1.2 m/s
+   69.900 |   3924 | Target open #5 | contact  | FootR touched Ground at 1.2 m/s
+   69.950 |   3927 | Target sword #5 | contact  | FootR touched Ground at 1.2 m/s
+   69.967 |   3928 | Target sword #5 | contact  | FootL touched Ground at 1.3 m/s
+   70.283 |   3947 | Target shield #5 | contact  | FootR touched Ground at 1.3 m/s
+   70.283 |   3947 | Target shield #5 | contact  | FootL touched Ground at 1.1 m/s
+   70.332 |   3949 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   70.332 |   3949 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   70.333 |   3950 | Target open #6 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   70.333 |   3950 | Target shield #6 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   70.333 |   3950 | Target sword #6 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   70.333 |   3950 | Target sword #5 | despawn  | removed from the scene
+   70.333 |   3950 | Target shield #5 | despawn  | removed from the scene
+   70.333 |   3950 | Target open #5 | despawn  | removed from the scene
+   70.333 |   3950 | Target open #6 | equip    | bare hands, scaled 1.00
+   70.333 |   3950 | Target shield #6 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   70.333 |   3950 | Target sword #6 | equip    | WD_Sword, scaled 1.00
+   70.333 |   3950 | Target open #6 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   70.333 |   3950 | Target open #6 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   70.333 |   3950 | Target shield #6 | sight    | noticed Target open at the edge of its view (4.0 m)
+   70.333 |   3950 | Target shield #6 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   70.333 |   3950 | Target sword #6 | sight    | noticed Target open at the edge of its view (8.0 m)
+   70.333 |   3950 | Target sword #6 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   70.359 |   3951 | -              | perf     | 89 ms frame, 0 physics steps, garbage collected (gen0 2, gen1 2, gen2 2); ours: nothing over 0.5 ms; Unity: Main_Thread 87.3 ms, PlayerLoop 85.5 ms, Gfx_WaitForGfxCommandsFromMainThread 85.4 ms, Update_ScriptRunBehaviourUpdate 82.1 ms, BehaviourUpdate 82.1 ms, GC_Collect 9.8 ms, CPU_Total_Frame_Time 1.4 ms, CPU_Main_Thread_Frame_Time 1.0 ms
+   70.380 |   3952 | -              | perf     | 41 ms frame, 2 physics steps; ours: RecorderSample 24.1 ms (2), UnitStep 6.4 ms (6), ArmSolve 1.9 ms (6); Unity: Main_Thread 41.6 ms, Gfx_WaitForGfxCommandsFromMainThread 39.7 ms, PlayerLoop 36.2 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 34.0 ms, FixedBehaviourUpdate 34.0 ms, CPU_Total_Frame_Time 2.4 ms, CPU_Main_Thread_Frame_Time 1.9 ms, Physics_Simulate 1.8 ms
+   71.333 |   4010 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 180, the fall test (they go down), physical legs on
+   71.467 |   4018 | Target sword #6 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.27 m up, on the back (turned 180 degrees); the fall test: it goes down
+   71.467 |   4018 | Target shield #6 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.28 m up, on the back (turned 180 degrees); the fall test: it goes down
+   71.467 |   4018 | Target open #6 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.30 m up, on the back (turned 180 degrees); the fall test: it goes down
+   71.467 |   4018 | Target sword #6 | contact  | Chest touched Tube at 6.6 m/s
+   71.467 |   4018 | Target shield #6 | contact  | Chest touched Tube at 2.6 m/s
+   71.467 |   4018 | Target shield #6 | contact  | UpperArmR touched Tube at 2.6 m/s
+   71.467 |   4018 | Target open #6 | contact  | Chest touched Tube at 1.8 m/s
+   71.550 |   4023 | Target sword #6 | contact  | Head touched Tube at 3.4 m/s
+   71.617 |   4027 | Target shield #6 | contact  | Head touched Tube at 2.3 m/s
+   71.683 |   4031 | Target sword #6 | contact  | FootR touched Ground at 1.0 m/s
+   71.800 |   4038 | Target shield #6 | contact  | FootL touched Ground at 2.4 m/s
+   71.850 |   4041 | Target sword #6 | contact  | HandR touched Ground at 4.8 m/s
+   71.867 |   4042 | Target shield #6 | contact  | HandR touched Ground at 4.3 m/s
+   71.867 |   4042 | Target open #6 | contact  | HandR touched Ground at 4.2 m/s
+   71.867 |   4042 | Target sword #6 | contact  | Head touched Ground at 4.8 m/s
+   71.883 |   4043 | Target open #6 | contact  | ShinR touched Ground at 3.1 m/s
+   71.883 |   4043 | Target sword #6 | contact  | ForearmR touched Ground at 1.9 m/s
+   71.883 |   4043 | Target open #6 | contact  | ThighR touched Ground at 2.7 m/s
+   71.883 |   4043 | Target shield #6 | contact  | ShinR touched Ground at 2.1 m/s
+   71.900 |   4044 | Target shield #6 | contact  | ShinL touched Ground at 1.1 m/s
+   71.900 |   4044 | Target shield #6 | contact  | ThighR touched Ground at 2.0 m/s
+   71.900 |   4044 | Target shield #6 | contact  | HandL touched Ground at 4.5 m/s
+   71.900 |   4044 | Target open #6 | contact  | HandL touched Ground at 3.8 m/s
+   71.917 |   4045 | Target shield #6 | contact  | ForearmL touched Ground at 3.4 m/s
+   71.917 |   4045 | Target shield #6 | contact  | UpperArmR touched Ground at 3.3 m/s
+   71.917 |   4045 | Target shield #6 | contact  | ForearmR touched Ground at 2.9 m/s
+   71.917 |   4045 | Target open #6 | contact  | FootL touched Ground at 2.5 m/s
+   71.917 |   4045 | Target sword #6 | contact  | ForearmR touched Ground at 1.7 m/s
+   71.917 |   4045 | Target shield #6 | contact  | HandR touched Ground at 2.0 m/s
+   71.933 |   4046 | Target shield #6 | contact  | Head touched Ground at 6.1 m/s
+   71.950 |   4047 | Target open #6 | contact  | ShinL touched Ground at 1.6 m/s
+   71.967 |   4048 | Target open #6 | contact  | ThighL touched Ground at 1.7 m/s
+   71.967 |   4048 | Target open #6 | contact  | Head touched Ground at 5.0 m/s
+   71.983 |   4049 | Target open #6 | contact  | FootR touched Ground at 2.4 m/s
+   71.983 |   4049 | Target shield #6 | contact  | HandR touched Ground at 1.8 m/s
+   72.000 |   4050 | Target open #6 | contact  | HandR touched Ground at 2.5 m/s
+   72.017 |   4051 | Target sword #6 | contact  | HandL touched Ground at 5.1 m/s
+   72.017 |   4051 | Target sword #6 | contact  | ForearmL touched Ground at 1.2 m/s
+   72.050 |   4053 | Target sword #6 | contact  | ShinL touched Ground at 2.2 m/s
+   72.067 |   4054 | Target sword #6 | contact  | ThighR touched Ground at 3.3 m/s
+   72.067 |   4054 | Target sword #6 | contact  | ShinR touched Ground at 2.6 m/s
+   72.100 |   4056 | Target sword #6 | contact  | ThighL touched Ground at 1.6 m/s
+   72.100 |   4056 | Target sword #6 | contact  | Chest touched Ground at 1.3 m/s
+   72.117 |   4057 | Target open #6 | contact  | ShinL touched Ground at 1.2 m/s
+   72.117 |   4057 | Target sword #6 | contact  | Pelvis touched Ground at 2.7 m/s
+   72.117 |   4057 | Target shield #6 | contact  | ThighR touched Ground at 1.1 m/s
+   72.133 |   4058 | Target shield #6 | contact  | FootR touched Ground at 2.2 m/s
+   72.133 |   4058 | Target open #6 | contact  | FootR touched Ground at 1.8 m/s
+   72.133 |   4058 | Target open #6 | contact  | ThighL touched Ground at 1.3 m/s
+   72.133 |   4058 | Target open #6 | contact  | HandL touched Ground at 2.4 m/s
+   72.150 |   4059 | Target open #6 | contact  | ThighR touched Ground at 1.1 m/s
+   72.167 |   4060 | Target sword #6 | contact  | Pelvis touched Ground at 1.3 m/s
+   72.217 |   4063 | Target open #6 | contact  | HandL touched Ground at 1.9 m/s
+   72.233 |   4064 | Target shield #6 | contact  | FootL touched Ground at 2.3 m/s
+   72.233 |   4064 | Target sword #6 | contact  | ForearmL touched Ground at 1.0 m/s
+   72.233 |   4064 | Target open #6 | contact  | ForearmL touched Ground at 1.6 m/s
+   72.250 |   4065 | Target shield #6 | contact  | ShinL touched Ground at 1.4 m/s
+   72.250 |   4065 | Target sword #6 | contact  | FootR touched Ground at 2.0 m/s
+   72.267 |   4066 | Target sword #6 | contact  | ShinR touched Ground at 1.2 m/s
+   72.267 |   4066 | Target shield #6 | contact  | ThighL touched Ground at 1.5 m/s
+   72.350 |   4071 | Target open #6 | contact  | FootL touched Ground at 2.1 m/s
+   72.367 |   4072 | Target shield #6 | contact  | HandL touched Ground at 3.6 m/s
+   72.367 |   4072 | Target open #6 | contact  | UpperArmR touched Ground at 1.8 m/s
+   72.400 |   4074 | Target sword #6 | contact  | Head touched Ground at 1.9 m/s
+   72.417 |   4075 | Target open #6 | contact  | ForearmR touched Ground at 1.0 m/s
+   72.450 |   4077 | Target shield #6 | contact  | HandR touched Ground at 1.6 m/s
+   72.583 |   4085 | Target sword #6 | fall     | fell forward: first down a hand at 0.42 s; a hand 0.42 s, a knee 0.58 s, the hips 0.67 s at 2.7 m/s, the trunk 0.67 s, the head 0.43 s at 1.2 m/s; landed on a hand or knee first; slid 22 cm; measured 1.1 s (the fall test: a tube of 200 N·s on its UpperArmR, on the back)
+   72.583 |   4085 | Target sword #6 | contact  | UpperArmR touched Ground at 1.5 m/s
+   72.583 |   4085 | Target sword #6 | contact  | ForearmR touched Ground at 2.7 m/s
+   72.717 |   4093 | Target open #6 | contact  | FootL touched Ground at 2.8 m/s
+   72.817 |   4099 | Target open #6 | contact  | HandL touched Ground at 2.8 m/s
+   73.000 |   4110 | Target open #6 | contact  | Pelvis touched Ground at 2.1 m/s
+   73.150 |   4119 | Target shield #6 | fall     | fell forward: first down a hand at 0.42 s; a hand 0.42 s, a knee 0.42 s, the hips 0.80 s at 0.8 m/s, the trunk 0.63 s, the head 0.48 s at 6.1 m/s; landed on a hand or knee first; slid 13 cm; measured 1.7 s (the fall test: a tube of 200 N·s on its UpperArmR, on the back)
+   73.167 |   4120 | Target open #6 | contact  | HandL touched Ground at 2.4 m/s
+   73.183 |   4121 | Target open #6 | contact  | ForearmR touched Ground at 1.9 m/s
+   73.300 |   4128 | Target open #6 | contact  | HandL touched Ground at 1.8 m/s
+   73.317 |   4129 | Target sword #6 | contact  | FootL touched Ground at 1.5 m/s
+   73.333 |   4130 | Target sword #6 | contact  | FootR touched Ground at 1.2 m/s
+   73.400 |   4134 | Target shield #6 | contact  | FootL touched Ground at 2.8 m/s
+   73.417 |   4135 | Target shield #6 | contact  | FootR touched Ground at 1.3 m/s
+   73.517 |   4141 | Target shield #6 | contact  | HandR touched Ground at 1.4 m/s
+   73.583 |   4145 | Target open #6 | fall     | fell forward: first down a knee at 0.42 s; a hand 0.43 s, a knee 0.42 s, the hips 1.55 s at 2.1 m/s, the trunk 1.17 s, the head 0.53 s at 0.7 m/s; landed on a hand or knee first; slid 13 cm; measured 2.1 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   73.642 |   4148 | -              | input    | spawn: 3 units on the 8x8 board (the target test: Medium attackers on Medium targets)
+   73.642 |   4148 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+   73.650 |   4149 | Target open #7 | spawn    | at (-4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   73.650 |   4149 | Target shield #7 | spawn    | at (0.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   73.650 |   4149 | Target sword #7 | spawn    | at (4.00, 1.30) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+   73.650 |   4149 | Target sword #6 | despawn  | removed from the scene
+   73.650 |   4149 | Target shield #6 | despawn  | removed from the scene
+   73.650 |   4149 | Target open #6 | despawn  | removed from the scene
+   73.650 |   4149 | Target open #7 | equip    | bare hands, scaled 1.00
+   73.650 |   4149 | Target shield #7 | equip    | WD_Sword and WD_Shield, scaled 1.00
+   73.650 |   4149 | Target sword #7 | equip    | WD_Sword, scaled 1.00
+   73.650 |   4149 | Target open #7 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   73.650 |   4149 | Target open #7 | sight    | noticed Target sword at the edge of its view (8.0 m)
+   73.650 |   4149 | Target shield #7 | sight    | noticed Target open at the edge of its view (4.0 m)
+   73.650 |   4149 | Target shield #7 | sight    | noticed Target sword at the edge of its view (4.0 m)
+   73.650 |   4149 | Target sword #7 | sight    | noticed Target open at the edge of its view (8.0 m)
+   73.650 |   4149 | Target sword #7 | sight    | noticed Target shield at the edge of its view (4.0 m)
+   73.669 |   4150 | -              | perf     | 102 ms frame, 0 physics steps, garbage collected (gen0 3, gen1 3, gen2 3); ours: nothing over 0.5 ms; Unity: Main_Thread 100.8 ms, Gfx_WaitForGfxCommandsFromMainThread 99.2 ms, PlayerLoop 99.1 ms, Update_ScriptRunBehaviourUpdate 95.7 ms, BehaviourUpdate 95.7 ms, GC_Collect 16.5 ms, CPU_Total_Frame_Time 2.0 ms, CPU_Main_Thread_Frame_Time 1.0 ms
+   74.650 |   4209 | -              | input    | tube test: 3 tubes, 25.0 kg at 8.0 m/s (200 N·s), height 1.30 m, reach 0.15 m, turned 180, the fall test (they go down), physical legs on
+   74.783 |   4217 | Target sword #7 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.27 m up, on the back (turned 180 degrees); the fall test: it goes down
+   74.783 |   4217 | Target shield #7 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its UpperArmR 1.28 m up, on the back (turned 180 degrees); the fall test: it goes down
+   74.783 |   4217 | Target open #7 | tube     | a tube of 25.0 kg at 8.0 m/s (200 N·s) met its Chest 1.30 m up, on the back (turned 180 degrees); the fall test: it goes down
+   74.783 |   4217 | Target open #7 | contact  | Chest touched Tube at 1.8 m/s
+   74.783 |   4217 | Target shield #7 | contact  | Chest touched Tube at 2.6 m/s
+   74.783 |   4217 | Target shield #7 | contact  | UpperArmR touched Tube at 2.6 m/s
+   74.783 |   4217 | Target sword #7 | contact  | Chest touched Tube at 6.6 m/s
+   74.867 |   4222 | Target sword #7 | contact  | Head touched Tube at 3.3 m/s
+   74.933 |   4226 | Target shield #7 | contact  | Head touched Tube at 2.4 m/s
+   75.117 |   4237 | Target shield #7 | contact  | FootL touched Ground at 2.3 m/s
+   75.150 |   4239 | Target shield #7 | contact  | HandR touched Ground at 5.7 m/s
+   75.167 |   4240 | Target sword #7 | contact  | HandR touched Ground at 4.7 m/s
+   75.183 |   4241 | Target open #7 | contact  | HandR touched Ground at 4.1 m/s
+   75.200 |   4242 | Target open #7 | contact  | FootL touched Ground at 1.5 m/s
+   75.200 |   4242 | Target sword #7 | contact  | Head touched Ground at 4.9 m/s
+   75.217 |   4243 | Target shield #7 | contact  | ShinR touched Ground at 1.8 m/s
+   75.217 |   4243 | Target open #7 | contact  | HandL touched Ground at 4.1 m/s
+   75.217 |   4243 | Target open #7 | contact  | ShinR touched Ground at 3.8 m/s
+   75.217 |   4243 | Target shield #7 | contact  | ThighR touched Ground at 2.4 m/s
+   75.217 |   4243 | Target shield #7 | contact  | ShinL touched Ground at 1.3 m/s
+   75.233 |   4244 | Target shield #7 | contact  | ForearmL touched Ground at 4.5 m/s
+   75.233 |   4244 | Target shield #7 | contact  | ThighL touched Ground at 1.7 m/s
+   75.233 |   4244 | Target shield #7 | contact  | HandL touched Ground at 4.4 m/s
+   75.233 |   4244 | Target shield #7 | contact  | Head touched Ground at 6.0 m/s
+   75.233 |   4244 | Target open #7 | contact  | FootR touched Ground at 2.6 m/s
+   75.250 |   4245 | Target open #7 | contact  | ShinL touched Ground at 2.3 m/s
+   75.250 |   4245 | Target open #7 | contact  | ThighL touched Ground at 1.2 m/s
+   75.250 |   4245 | Target shield #7 | contact  | UpperArmR touched Ground at 2.8 m/s
+   75.267 |   4246 | Target shield #7 | contact  | ForearmR touched Ground at 2.8 m/s
+   75.267 |   4246 | Target shield #7 | contact  | Chest touched Ground at 2.1 m/s
+   75.283 |   4247 | Target open #7 | contact  | Head touched Ground at 7.0 m/s
+   75.317 |   4249 | Target shield #7 | contact  | HandL touched Ground at 3.7 m/s
+   75.350 |   4251 | Target sword #7 | contact  | HandL touched Ground at 4.7 m/s
+   75.383 |   4253 | Target sword #7 | contact  | ForearmL touched Ground at 1.1 m/s
+   75.417 |   4255 | Target sword #7 | contact  | ShinL touched Ground at 2.3 m/s
+   75.433 |   4256 | Target sword #7 | contact  | ThighR touched Ground at 2.8 m/s
+   75.433 |   4256 | Target sword #7 | contact  | ShinR touched Ground at 3.4 m/s
+   75.450 |   4257 | Target open #7 | contact  | HandR touched Ground at 4.5 m/s
+   75.483 |   4259 | Target sword #7 | contact  | UpperArmR touched Ground at 1.6 m/s
+   75.500 |   4260 | Target shield #7 | contact  | UpperArmR touched Ground at 1.1 m/s
+   75.500 |   4260 | Target sword #7 | contact  | Chest touched Ground at 2.0 m/s
+   75.500 |   4260 | Target open #7 | contact  | HandL touched Ground at 1.8 m/s
+   75.533 |   4262 | Target open #7 | contact  | HandR touched Ground at 1.9 m/s
+   75.567 |   4264 | Target shield #7 | contact  | HandR touched Ground at 1.3 m/s
+   75.567 |   4264 | Target sword #7 | contact  | HandL touched Ground at 1.2 m/s
+   75.617 |   4267 | Target sword #7 | contact  | Pelvis touched Ground at 2.1 m/s
+   75.617 |   4267 | Target shield #7 | contact  | FootL touched Ground at 1.5 m/s
+   75.633 |   4268 | Target open #7 | contact  | UpperArmL touched Ground at 1.1 m/s
+   75.650 |   4269 | Target sword #7 | contact  | ShinL touched Ground at 1.2 m/s
+   75.667 |   4270 | Target sword #7 | contact  | ThighL touched Ground at 1.5 m/s
+   75.667 |   4270 | Target shield #7 | contact  | HandL touched Ground at 1.5 m/s
+   75.683 |   4271 | Target shield #7 | contact  | ForearmL touched Ground at 1.4 m/s
+   75.750 |   4275 | Target sword #7 | contact  | FootR touched Ground at 2.2 m/s
+   75.833 |   4280 | Target sword #7 | contact  | UpperArmR touched Ground at 2.0 m/s
+   75.833 |   4280 | Target sword #7 | contact  | HandR touched Ground at 7.6 m/s
+   75.833 |   4280 | Target sword #7 | contact  | ForearmR touched Ground at 2.7 m/s
+   75.867 |   4282 | Target shield #7 | contact  | ShinR touched Ground at 1.2 m/s
+   75.900 |   4284 | Target shield #7 | contact  | FootR touched Ground at 2.9 m/s
+   75.917 |   4285 | Target open #7 | contact  | FootL touched Ground at 2.5 m/s
+   76.050 |   4293 | Target open #7 | contact  | Pelvis touched Ground at 1.7 m/s
+   76.067 |   4294 | Target open #7 | contact  | HandR touched Ground at 1.5 m/s
+   76.117 |   4297 | Target shield #7 | contact  | ForearmL touched Ground at 1.2 m/s
+   76.150 |   4299 | Target sword #7 | fall     | fell forward: first down a hand at 0.40 s; a hand 0.40 s, a knee 0.62 s, the hips 0.85 s at 2.1 m/s, the trunk 0.73 s, the head 0.43 s at 4.9 m/s; landed on a hand or knee first; slid 18 cm; measured 1.4 s (the fall test: a tube of 200 N·s on its UpperArmR, on the back)
+   76.283 |   4307 | Target shield #7 | fall     | fell forward: first down a hand at 0.40 s; a hand 0.40 s, a knee 0.42 s, the hips 1.15 s at 1.0 m/s, the trunk 0.50 s, the head 0.48 s at 1.0 m/s; landed on a hand or knee first; slid 7 cm; measured 1.5 s (the fall test: a tube of 200 N·s on its UpperArmR, on the back)
+   76.400 |   4314 | Target sword #7 | contact  | FootR touched Ground at 2.4 m/s
+   76.417 |   4315 | Target open #7 | fall     | fell forward: first down a hand at 0.43 s; a hand 0.43 s, a knee 0.43 s, the hips 1.28 s at 1.7 m/s, the trunk 0.93 s, the head 0.53 s at 1.2 m/s; landed on a hand or knee first; slid 10 cm; measured 1.6 s (thrown at 6.2 m/s, faster than its legs can catch (4.4): down)
+   76.417 |   4315 | Target shield #7 | contact  | HandL touched Ground at 2.4 m/s
+   76.433 |   4316 | Target sword #7 | contact  | HandL touched Ground at 4.4 m/s
+   76.450 |   4317 | Target shield #7 | contact  | ForearmL touched Ground at 2.0 m/s
+   76.550 |   4323 | Target open #7 | contact  | ShinL touched Ground at 3.7 m/s
+   76.633 |   4328 | Target shield #7 | contact  | HandR touched Ground at 1.7 m/s
+   76.733 |   4334 | Target open #7 | contact  | FootR touched Ground at 2.1 m/s
+   76.767 |   4336 | Target open #7 | contact  | FootL touched Ground at 1.0 m/s
+   76.767 |   4336 | Target open #7 | contact  | ShinL touched Ground at 1.2 m/s
+   76.767 |   4336 | Target open #7 | despawn  | recording stopped
+   76.767 |   4336 | Target shield #7 | despawn  | recording stopped
+   76.767 |   4336 | Target sword #7 | despawn  | recording stopped
+   76.767 |   4336 | -              | session  | 579 pictures saved
+   76.767 |   4336 | -              | session  | recording stopped after 72.3 s (4336 physics steps)
