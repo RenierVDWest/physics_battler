@@ -3932,7 +3932,7 @@ apart, about as near as the fight lets enemies come; the feet do not move yet.
   five are hit: the head, the right shoulder, both upper arms, the left thigh. Two land 12 cm off on the chest
   (the neck, the left shoulder). Five are stopped by the target's own arm in the way (the chest, belly and hips
   behind its left arm): nothing yet checks what the blade will meet first.
-- **Out of reach** from standing feet: the shins, the feet and the far forearm and hand (20 to 55 cm short).
+- **Out of reach** from standing feet: the shins, the feet, the forearms and the far hand (11 to 54 cm short).
 
 **Found on the way.**
 
