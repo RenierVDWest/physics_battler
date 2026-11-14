@@ -566,6 +566,27 @@ namespace PhysicsBattler.Locomotion
         private bool fallBody;
         private float landedAt = -1f, fallThrown;
 
+        /// <summary>
+        /// A fall can be caught (the plan "Controlled falls", step 8): a fighter thrown only a little faster than its
+        /// legs can catch (up to <see cref="CaughtUpTo"/> times that) goes down on legs that hold, to a knee and a
+        /// hand, and if its hips have not reached the ground <see cref="CaughtFor"/> seconds on it rises straight from
+        /// there, a third of a get-up. If they have, it has fallen after all.
+        /// </summary>
+        public static bool FallsCanBeCaught = true;
+
+        /// <summary>A caught fall: how much faster than its legs can catch it may be thrown (times), how long before it rises (seconds), the hips' height under which it has fallen after all (metres at a Medium's size), and how its legs and the rest hold against a fall's (times).</summary>
+        public const float CaughtUpTo = 1.35f, CaughtFor = 0.5f, CaughtLost = 0.3f, CaughtLegs = 1.6f, CaughtMuscle = 1.3f;
+
+        /// <summary>A caught fall is lost when the trunk has gone over this far (degrees from upright): it lies. Short of it the fighter sits or kneels, and rises from there.</summary>
+        public const float CaughtLies = 60f;
+
+        /// <summary>The share of a blow's force (the hit force) a body keeps when that blow fells it.</summary>
+        public const float FelledHitForce = 0.3f;
+
+        /// <summary>Falls caught on a knee and a hand, and those begun so that went down after all (for the reports).</summary>
+        public int Caught, CaughtAndLost;
+        private bool catching, caughtSitting;
+
         /// <summary>The fall goes on in the physical body it had: let go, and sent the way of the blow.</summary>
         private void FallInBody(int leg, Vector3 way, float knock, float thrown)
         {
@@ -573,7 +594,15 @@ namespace PhysicsBattler.Locomotion
             OneBodyFallen++;
             landedAt = -1f;
             Upper.Tone = FallMuscle;
+            // (The blow that felled it: most of its force is taken back. The fall has its own speed.)
+            Upper.EaseStrike(FelledHitForce);
             Upper.LetGo(Size);
+            if (catching)
+            {
+                // (Its legs hold: it goes down on them, not through them.)
+                Upper.LegsHave = CaughtLegs;
+            }
+
             float k = Mathf.Sqrt(Size);
             float harder = Mathf.Lerp(1f, ThrownHarder, Mathf.InverseLerp(CombatFeel.LegsCatch * k, ThrownHardAt * k, thrown));
             foreach (var id in Upper.Own)
@@ -604,6 +633,7 @@ namespace PhysicsBattler.Locomotion
 
             // (All it has going down; easing off once it is down; the dead: a start, then nothing.)
             Upper.Tone = Dead ? Mathf.Lerp(FallMuscle, DeadMuscle, Mathf.Clamp01((footingTime - 0.12f) / 0.3f))
+                : catching ? CaughtMuscle * FallMuscle
                 : landedAt < 0f ? FallMuscle : FallMuscle * Mathf.Lerp(1f, LandedMuscle, Mathf.Clamp01((footingTime - landedAt) / 0.5f));
             // (Its feet are held where they stood until it has gone over far enough to take them with it.)
             if (Upper.FeetHeld && (footingTime > FeetHeldFor || Vector3.Angle(hips.up, Vector3.up) > FeetHeldTo || landedAt >= 0f))
@@ -861,6 +891,35 @@ namespace PhysicsBattler.Locomotion
                 {
                     StepFallBody(dt);
                 }
+
+                if (catching && fallBody && Upper != null && !Dead)
+                {
+                    var hips = Upper.Link(PartId.Pelvis).transform;
+                    float up = hips.position.y - groundLevel;
+                    if (Vector3.Angle(hips.up, Vector3.up) > CaughtLies)
+                    {
+                        // (Its trunk has gone over: it has fallen after all.)
+                        catching = false;
+                        CaughtAndLost++;
+                        Upper.LegsHave = UpperBodyArticulation.LegTone;
+                    }
+                    else if (footingTime >= CaughtFor && hipsGo < 0.8f * Mathf.Sqrt(Size))
+                    {
+                        // (Upright still, on a knee or sitting: it rises from there.)
+                        caughtSitting = up < CaughtLost * Size;
+                        Caught++;
+                        Loco.Position = new Vector3(pelvis.position.x, groundLevel, pelvis.position.z);
+                        StepFallMeasure(dt);
+                        EndFallMeasure();
+                        BeginGetUp();
+                        return;
+                    }
+                }
+                else
+                {
+                    catching &= fallBody && !Dead;
+                }
+
                 // (Its place goes with the body on the ground: what keeps its distance from it, or aims at it, follows.)
                 Loco.Position = new Vector3(pelvis.position.x, groundLevel, pelvis.position.z);
                 StepFallMeasure(dt);
@@ -1005,8 +1064,18 @@ namespace PhysicsBattler.Locomotion
                 getUp.Vary = 1f + GetUpVaries * (((GetUps + Mathf.Abs(Mathf.RoundToInt(3f * pelvis.position.x + 5f * pelvis.position.z))) % 5) - 2) / 2f;
             }
 
+            getUp.StartKey = 0;
+            if (catching && NaturalGetUps)
+            {
+                // (Caught on a knee and a hand: it rises from the half kneel. Caught sitting: from sitting on its hand.
+                // Facing as its hips face.)
+                kind = caughtSitting ? GetUp.Kind.FaceUp : GetUp.Kind.FaceDown;
+                getUp.Side = 0f;
+                getUp.StartKey = caughtSitting ? GetUp.SittingKey : GetUp.HalfKneelKey;
+            }
+
             GetUps++;
-            GetUpRoute = !NaturalGetUps ? (kind == GetUp.Kind.FaceDown ? "from its front, as before" : "from its back, as before")
+            GetUpRoute = catching && NaturalGetUps ? (caughtSitting ? "from sitting, its fall caught" : "from a knee and a hand, its fall caught") : !NaturalGetUps ? (kind == GetUp.Kind.FaceDown ? "from its front, as before" : "from its back, as before")
                 : getUp.Side != 0f ? (getUp.Side > 0f ? "from its right side" : "from its left side") : kind == GetUp.Kind.FaceDown ? "from its front" : "from its back";
             Vector3 headward = Rig.Part(PartId.Head).body.position - pelvis.position;
             headward.y = 0f;
@@ -1014,6 +1083,19 @@ namespace PhysicsBattler.Locomotion
             {
                 headward = pelvis.rotation * Vector3.up;
                 headward.y = 0f;
+            }
+
+            if (catching && NaturalGetUps)
+            {
+                // (Upright on a knee, a body has no length along the ground to stand up along: it stands up the way its hips face.)
+                Vector3 ahead = front;
+                ahead.y = 0f;
+                headward = ahead.sqrMagnitude > 1e-4f ? ahead.normalized : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+                if (caughtSitting)
+                {
+                    // (From its back a body stands up toward its feet: sitting, they are before it.)
+                    headward = -headward;
+                }
             }
 
             GetUp.Place(kind, pelvis.position, headward, body.SizeFactor, NaturalGetUps, threat, out var position, out float yaw, out GetUpTurned);
@@ -1048,6 +1130,7 @@ namespace PhysicsBattler.Locomotion
 
             Footing = Footings.GettingUp;
             footingTime = 0f;
+            catching = false;
             LastReaction = $"getting up {GetUpRoute}";
         }
 
@@ -2622,6 +2705,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             fallThrown = thrown;
+            catching = FallsCanBeCaught && NaturalGetUps && thrown > 0f && thrown <= CaughtUpTo * CombatFeel.LegsCatch * Mathf.Sqrt(Size);
 
             Combo?.Stop();
             way.y = 0f;

@@ -55,7 +55,11 @@ namespace PhysicsBattler.Locomotion
             // The legs: folded to get low, more going backward (it sits down).
             float leg = anim.RestLocalPosition(PartId.ShinL).magnitude + anim.RestLocalPosition(PartId.FootL).magnitude;
             // (Going backward the thighs come forward, as sitting down; going forward the knees bend with the feet back, as kneeling.)
-            float fold = into * (0.45f + 0.45f * Mathf.Max(back, forward));
+            // (As folded as the hips are low: the legs do not pull the body down, they go with it and brake it. Folded
+            // by the clock, at a limb's own speed, they drew the hips to the ground in a fifth of a second, faster
+            // than anything falls.)
+            float low = 1f - Mathf.Clamp01((hips.position.y - ground) / (1.05f * leg));
+            float fold = Mathf.Lerp(0.08f, 0.95f, low);
             float sits = Mathf.Lerp(0.12f + 0.38f * fold, -0.3f * fold, forward);
             for (int f = 0; f < 2; f++)
             {

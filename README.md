@@ -3455,6 +3455,37 @@ blow has the body flat in a third of a second, before any reaching can help, so 
 on their own are not to be had from blows of that size. The hips land harder than the ragdoll's did (3.8 m/s
 against 1.7), the blow being in the fall now. A `fall` line now says how it fell (the one body, its muscle).
 
+**Controlled falls: the blow that fells, the legs, and the caught fall (step 8)** (14 November).
+
+- **The blow that fells keeps 0.3 of its hit force** (`FelledHitForce`; `UpperBodyArticulation.EaseStrike` takes
+  the rest back in the step it was given). Held by its hips a body takes a blow's force and comes back; let go
+  in the same step, the whole of it (some 250 N·s for a 165 N·s blow) threw the free body flat in a fifth of a
+  second, hips first at 4 m/s, before an arm could be put out. That was most of what was "not right yet" above.
+  With it eased the same falls take 0.3 to 0.5 s to the hips.
+- **The legs fold as the hips come down**, not by the clock: as folded as the hips are low. They go with the body
+  and brake it; they do not pull it down.
+- **A fall can be caught** (the Combat Feel's `fallsCanBeCaught`, on; it needs the falls in the one body and the
+  new get-ups). A fighter thrown no more than 1.35 times as fast as its legs can catch goes down on legs that
+  hold (1.6 times a person's, the rest 1.3). Half a second on, if its trunk has not gone over 60 degrees and it
+  is all but still, it rises from where it is: from a knee and a hand (the get-up from its half kneel, 0.7 s) or
+  from sitting (from its hand and its planted foot, 1.3 s), and is down about a second in all, not three. If
+  its trunk goes over, it has fallen after all. `GetUp.StartKey` begins a get-up part of the way up. The tube
+  test's panel has **A fall to catch (165)**.
+
+Headless, the fall buttons' falls (200 N·s, three targets each way), the head reaching the ground:
+
+| | the ragdoll | the one body, first | now |
+|---|---|---|---|
+| backward | 3 of 3 | 1 | 0 |
+| forward | 3 of 3 | 2 | 0 |
+| to its left | 3 of 3 | 1 | 1 (1.4 m/s) |
+| to its right | 3 of 3 | 2 | 1 (1.6 m/s) |
+| the hips land at, on average | 2.2 m/s | 3.3 | 1.1 to 3.2 by direction |
+
+A 165 N·s blow from the front, three targets: none reached the ground with the head, one caught its fall sitting
+and was up 1.9 s after the blow. Two fights of a minute: 10 falls, one caught, no body lost; of the six living
+that fell, three reached the ground with the head (one thrown at 20 m/s, at 11 m/s). Not verified in Unity.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

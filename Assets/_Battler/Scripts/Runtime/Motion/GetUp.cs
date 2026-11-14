@@ -214,6 +214,18 @@ namespace PhysicsBattler.Motion
         /// <summary>Natural: it lies on a side (+1 its right side down, -1 its left; 0 on its back or its front). Set before <see cref="Begin"/>.</summary>
         public float Side { get; set; }
 
+        /// <summary>
+        /// Natural: the get-up begins at this key, not at lying (0: the whole get-up). 4 is the half kneel: a body
+        /// that caught its fall on a knee and a hand rises from there. Set before <see cref="Begin"/>.
+        /// </summary>
+        public int StartKey { get; set; }
+
+        /// <summary>The key a natural get-up reaches the half kneel at.</summary>
+        public const int HalfKneelKey = 4;
+
+        /// <summary>The key a natural get-up from the back is sitting on its hand at.</summary>
+        public const int SittingKey = 2;
+
         /// <summary>Natural: this get-up's own pace, about 1 (so fighters felled together do not rise in step). Set before <see cref="Begin"/>.</summary>
         public float Vary { get; set; } = 1f;
 
@@ -370,6 +382,20 @@ namespace PhysicsBattler.Motion
 
                 shieldFrom = keys[1].time;
                 shieldBy = keys[2].time;
+            }
+
+            if (Natural && StartKey > 0 && StartKey < count - 2)
+            {
+                // (From a key part of the way up: the keys before it are dropped, and the rest begin at once.)
+                float begins = keys[StartKey].time;
+                for (int i = StartKey; i < count; i++)
+                {
+                    keys[i - StartKey] = keys[i];
+                    keys[i - StartKey].time -= begins;
+                }
+
+                count -= StartKey;
+                shieldFrom = shieldBy = 0f;
             }
 
             for (int i = 0; i < count; i++)

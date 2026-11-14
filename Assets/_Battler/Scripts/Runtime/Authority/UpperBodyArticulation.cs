@@ -343,7 +343,10 @@ namespace PhysicsBattler.Authority
         /// </summary>
         public static float LegTone = 0.35f, NeckTone = 1.5f;
 
-        private static float ToneOf(PartId id)
+        /// <summary>Falling: this body's legs have this share of its tone (<see cref="LegTone"/> unless it is catching its fall: then its legs hold).</summary>
+        public float LegsHave = LegTone;
+
+        private float ToneOf(PartId id)
         {
             switch (id)
             {
@@ -352,7 +355,7 @@ namespace PhysicsBattler.Authority
                 case PartId.ShinL:
                 case PartId.ShinR:
                 case PartId.FootL:
-                case PartId.FootR: return LegTone;
+                case PartId.FootR: return LegsHave;
                 case PartId.Head: return NeckTone;
                 default: return 1f;
             }
@@ -370,6 +373,7 @@ namespace PhysicsBattler.Authority
         public void LetGo(float size)
         {
             Falling = true;
+            LegsHave = LegTone;
             fallHold ??= new float[parts.Length];
             float mass = 0f;
             for (int i = 0; i < parts.Length; i++)
@@ -603,6 +607,7 @@ namespace PhysicsBattler.Authority
                 at = 0;
             }
 
+            struck.Clear();
             float given = 0f, bodyMass = 0f;
             foreach (var link in links)
             {
@@ -620,6 +625,7 @@ namespace PhysicsBattler.Authority
 
                 Vector3 push = Vector3.ClampMagnitude(impulse * share, HitMostSpeed * links[i].mass);
                 given += push.magnitude;
+                struck.Add((i, push));
                 if (i == at)
                 {
                     links[i].AddForceAtPosition(push, point, ForceMode.Impulse);
@@ -671,6 +677,24 @@ namespace PhysicsBattler.Authority
             float left = Quaternion.Angle(aside, Quaternion.identity) * Mathf.Deg2Rad;
             slack[i] = left > mostAside ? Quaternion.Slerp(Quaternion.identity, aside, mostAside / left) : aside;
             HitBentMost = Mathf.Max(HitBentMost, Mathf.Min(left, mostAside) * Mathf.Rad2Deg);
+        }
+
+        private readonly List<(int link, Vector3 push)> struck = new List<(int, Vector3)>();
+
+        /// <summary>
+        /// The last blow's force taken back but for a share of it, in the step it was given (it has not yet moved
+        /// anything): for a blow that fells. Held by its hips, a body takes a blow's force and comes back; let go in
+        /// the same step, the whole of it threw the free body flat in a fifth of a second, hips first at 4 m/s, before
+        /// an arm could be put out. A fall is sent on its way by its own speed.
+        /// </summary>
+        public void EaseStrike(float keep)
+        {
+            foreach (var (link, push) in struck)
+            {
+                links[link].AddForce(-push * (1f - Mathf.Clamp01(keep)), ForceMode.Impulse);
+            }
+
+            struck.Clear();
         }
 
         /// <summary>How many joints apart two parts of the body are (3: three or more).</summary>
@@ -1526,6 +1550,7 @@ namespace PhysicsBattler.Authority
         /// <param name="dt">The game step (seconds).</param>
         public void BeginStep(float dt)
         {
+            struck.Clear();
             if (Falling)
             {
                 BeginFallStep(dt);

@@ -1600,6 +1600,7 @@ namespace PhysicsBattler.Sandbox
                 if (GUILayout.Button("Heavy (200)")) BlowTest(200f);
                 if (GUILayout.Button("Club (600)")) BlowTest(600f);
                 GUILayout.EndHorizontal();
+                if (GUILayout.Button("A fall to catch (165): only just more than the legs catch")) BlowTest(165f);
                 var hitFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
                 if (hitFeel != null)
                 {
@@ -1633,6 +1634,7 @@ namespace PhysicsBattler.Sandbox
                     getUpFeel.fallMuscle = Mathf.Round(20f * GUILayout.HorizontalSlider(getUpFeel.fallMuscle, 0f, 2f)) / 20f;
                     getUpFeel.fallsProtectTheHead = GUILayout.Toggle(getUpFeel.fallsProtectTheHead, "The head kept off the ground");
                     getUpFeel.fallsReachForTheGround = GUILayout.Toggle(getUpFeel.fallsReachForTheGround, "The arms reach for the ground");
+                    getUpFeel.fallsCanBeCaught = GUILayout.Toggle(getUpFeel.fallsCanBeCaught, "A fall only just begun can be caught on a knee and a hand");
                 }
 
                 bool natural = getUpFeel != null ? getUpFeel.getUpsAreNatural : PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps;

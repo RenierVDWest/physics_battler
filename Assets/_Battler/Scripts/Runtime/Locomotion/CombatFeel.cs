@@ -203,6 +203,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A falling fighter's arms reach for the ground it is going to, elbows a little bent, the hands going to the ground when they can reach it. Off: the arms are held a little out from the sides.")]
         public bool fallsReachForTheGround = true;
 
+        [Tooltip("A fall can be caught: a fighter thrown only a little faster than its legs can catch (up to a third faster) goes down on legs that hold, to a knee and a hand, and if its hips have not reached the ground half a second on, it rises straight from there in about a third of the time a get-up takes. If its hips do reach the ground it has fallen after all, and lies and gets up as from any fall. Off: every fall is a full fall. It needs the falls in the one body and the new get-ups.")]
+        public bool fallsCanBeCaught = true;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -624,6 +627,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.FallMuscle = Mathf.Max(0f, fallMuscle);
             FallPose.ProtectsHead = fallsProtectTheHead;
             FallPose.Reaches = fallsReachForTheGround;
+            ClipFighter.FallsCanBeCaught = fallsCanBeCaught;
             ClipFighter.HeldHips = hipsAreHeldNotLocked;
             PhysicsBattler.Authority.UpperBodyArticulation.HipQuick = hipHoldQuickness;
             PhysicsBattler.Authority.UpperBodyArticulation.HipMost = hipHoldStrength;

@@ -672,6 +672,9 @@ internal static class FightReport
         PhysicsBattler.Locomotion.FallPose.ProtectsHead = Environment.GetEnvironmentVariable("FIGHT_HEAD") != "0";
         PhysicsBattler.Locomotion.FallPose.Reaches = Environment.GetEnvironmentVariable("FIGHT_REACH") != "0";
 
+        // (FIGHT_CAUGHT=0: no fall is caught.)
+        PhysicsBattler.Locomotion.ClipFighter.FallsCanBeCaught = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
+
         // (FIGHT_GETUP=0: the get-ups as they were before 14 November.)
         PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = Environment.GetEnvironmentVariable("FIGHT_GETUP") != "0";
 
@@ -1297,6 +1300,7 @@ internal static class FightReport
             {
                 var living = fell.Where(x => !x.f.Dead).Select(x => x.f).ToList();
                 sb.AppendLine($"    falls {(PhysicsBattler.Locomotion.ClipFighter.OneBodyFalls ? $"in the one body, muscle {PhysicsBattler.Locomotion.ClipFighter.FallMuscle:0.00}" : "as ragdolls, as before")}: in the one body {units.Sum(u => u.Clip != null ? u.Clip.OneBodyFallen : 0)}; a joint furthest from the fall's pose: " + string.Join(", ", units.Where(u => u.Clip?.Upper != null).Select(u => $"{u.Clip.Upper.FallOffMostPart} {u.Clip.Upper.FallOffMost:0}")) + " degrees");
+                sb.AppendLine($"    falls caught on a knee and a hand: {units.Sum(u => u.Clip != null ? u.Clip.Caught : 0)}; begun so and fallen after all: {units.Sum(u => u.Clip != null ? u.Clip.CaughtAndLost : 0)}");
                 sb.AppendLine($"    falls measured: {fell.Count} ({living.Count} of the living). Of the living: the head reached the ground in {living.Count(f => f.HeadTouched)}{(living.Any(f => f.HeadTouched) ? $" (at {living.Where(f => f.HeadTouched).Average(f => f.HeadSpeed):0.0} m/s on average, {living.Where(f => f.HeadTouched).Max(f => f.HeadSpeed):0.0} at most)" : "")}; landed on a hand or knee before the hips, trunk or head in {living.Count(f => f.Braced)}; the hips landed at {(living.Any(f => f.HipsAt >= 0f) ? living.Where(f => f.HipsAt >= 0f).Average(f => f.HipsSpeed) : 0f):0.0} m/s on average; slid {(living.Count > 0 ? 100f * living.Average(f => f.Slid) : 0f):0} cm on average");
                 foreach (var way in fell.Where(x => !x.f.Dead).GroupBy(x => x.f.Way))
                 {
