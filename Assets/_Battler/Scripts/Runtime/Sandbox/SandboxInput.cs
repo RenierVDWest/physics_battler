@@ -11,6 +11,9 @@ namespace PhysicsBattler.Sandbox
     /// </summary>
     public static class SandboxInput
     {
+        /// <summary>The mouse is over the sandbox's panel (set by the panel as it is drawn): its wheel scrolls the panel then, and does not zoom the camera.</summary>
+        public static bool OverPanel;
+
 #if ENABLE_INPUT_SYSTEM
         public static Vector2 MousePosition => Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
         public static Vector2 MouseDelta => Mouse.current != null ? Mouse.current.delta.ReadValue() : Vector2.zero;

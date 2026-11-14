@@ -29,7 +29,8 @@ namespace PhysicsBattler.Sandbox
                 target -= transform.right * delta.x + transform.up * delta.y;
             }
 
-            float scroll = SandboxInput.Scroll;
+            // (Over the panel the wheel scrolls the panel.)
+            float scroll = SandboxInput.OverPanel ? 0f : SandboxInput.Scroll;
             if (Mathf.Abs(scroll) > 0.01f)
             {
                 distance = Mathf.Clamp(distance * Mathf.Pow(0.88f, scroll), minDistance, maxDistance);

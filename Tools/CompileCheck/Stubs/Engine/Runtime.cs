@@ -251,6 +251,8 @@ namespace UnityEngine
     {
         public GUIStyle button { get; } = new GUIStyle();
         public GUIStyle label { get; } = new GUIStyle();
+        public GUIStyle toggle { get; } = new GUIStyle();
+        public GUIStyle box { get; } = new GUIStyle();
     }
 
     public struct Matrix4x4
@@ -287,6 +289,12 @@ namespace UnityEngine
         public static bool Button(Rect position, string text) => false;
         public static Color color { get; set; }
         public static void FocusControl(string name) { }
+        public static string tooltip { get; set; } = "";
+    }
+
+    public static class GUILayoutUtility
+    {
+        public static Rect GetLastRect() => default;
     }
 
     public static class GUILayout
@@ -310,6 +318,14 @@ namespace UnityEngine
         public static void FlexibleSpace() { }
         public static bool Button(GUIContent content, params GUILayoutOption[] options) => false;
         public static bool Button(GUIContent content, GUIStyle style, params GUILayoutOption[] options) => false;
+        public static void Label(GUIContent content, params GUILayoutOption[] options) { }
+        public static void Label(GUIContent content, GUIStyle style, params GUILayoutOption[] options) { }
+        public static bool Toggle(bool value, GUIContent content, params GUILayoutOption[] options) => value;
+        public static bool Toggle(bool value, GUIContent content, GUIStyle style, params GUILayoutOption[] options) => value;
+        public static void BeginVertical(GUIStyle style, params GUILayoutOption[] options) { }
+        public static Vector2 BeginScrollView(Vector2 scrollPosition, params GUILayoutOption[] options) => scrollPosition;
+        public static Vector2 BeginScrollView(Vector2 scrollPosition, bool alwaysShowHorizontal, bool alwaysShowVertical, params GUILayoutOption[] options) => scrollPosition;
+        public static void EndScrollView() { }
     }
 
     public static class GUIUtility

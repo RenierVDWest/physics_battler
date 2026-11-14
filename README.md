@@ -1517,7 +1517,17 @@ R resets the test; "Back to the battle" returns to the units the scene's markers
 `FIGHT_LINEUP=targets` with `FIGHT_TARGETS="LM"` (the attackers' body, then the targets'; M or L) and
 `FIGHT_TARGETS_HARMED=1`; the fight report then also says how far each target was driven off its spot.
 
-The panel has the same buttons plus a time scale slider and the recorder controls. Each unit's label
+**The panel** (laid out afresh on 14 November: it had grown past the bottom of the screen, every control with
+its whole explanation beside it). Always there at the top: pause, step, reset, the speed, and the recording.
+Always there at the bottom: what the last thing pressed did, and a box that says what the thing under the mouse
+does. Every control now shows only its name and its value; what it means is its tooltip, read in that box.
+Between them the sections, each folded shut or open by pressing its heading (kept between sessions): Scenes and
+tests; Tube test (only in the tube test: falls on demand, a fall then a turn, blows on demand, the tube's own
+settings); Hits and hips; Falls and getting up; Moves on demand; Legs and feet; Other switches; Panel, keys and
+camera (the panel's size, the list of keys). The sections scroll when they are taller than the screen, and the
+panel is never taller than the screen; over the panel the mouse's wheel scrolls it and does not zoom the camera. Not verified in Unity: the headless build only checks that it compiles.
+
+Each unit's label
 shows its health and poise, the blow it is making and the body part it is aimed at, or that it is
 blocking, stumbling, down or getting up, or the posture it is playing and what that leaves open.
 

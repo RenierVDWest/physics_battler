@@ -156,6 +156,7 @@ namespace PhysicsBattler.Sandbox
         private void OnDisable()
         {
             UnitController.Hit -= OnHit;
+            SandboxInput.OverPanel = false;
             if (Application.isPlaying)
             {
                 Time.timeScale = 1f;
@@ -1527,7 +1528,28 @@ namespace PhysicsBattler.Sandbox
             // were too small to read.)
             var was = GUI.matrix;
             GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
-            panelRect = GUILayout.Window(4711, panelRect, DrawPanel, "Physics Battler", GUILayout.Width(290));
+            // (Fitted to what is in it afresh each time it is laid out: a window keeps the height it has grown to, so
+            // one that had shown a long section stayed that tall when the section was folded shut.)
+            if (Event.current != null && Event.current.type == EventType.Layout)
+            {
+                panelRect.height = 10f;
+            }
+
+            panelRect = GUILayout.Window(4711, panelRect, DrawPanel, "Physics Battler", GUILayout.Width(PanelWidth));
+            if (Event.current != null && Event.current.type == EventType.Repaint && panelRect.height > panelView + 20f)
+            {
+                // (All of the panel that is not the scrolling view: what the view's height leaves room for.)
+                panelChrome = panelRect.height - panelView;
+            }
+
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                // (Is the mouse over the panel: on the screen the panel is its size times the panel's scale, from the top.)
+                Vector2 mouse = SandboxInput.MousePosition;
+                float across = mouse.x / uiScale, down = (Screen.height - mouse.y) / uiScale;
+                SandboxInput.OverPanel = across >= panelRect.x && across <= panelRect.x + panelRect.width && down >= panelRect.y && down <= panelRect.y + panelRect.height;
+            }
+
             // (Never dragged off the screen: its title bar stays where it can be grabbed.)
             panelRect.x = Mathf.Clamp(panelRect.x, 60f - panelRect.width, Mathf.Max(0f, Screen.width / uiScale - 60f));
             panelRect.y = Mathf.Clamp(panelRect.y, 0f, Mathf.Max(0f, Screen.height / uiScale - 30f));
@@ -1547,178 +1569,232 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The size they are drawn at until it is changed with the panel's own buttons.</summary>
         public const float DefaultUiScale = 1.8f;
 
-        private void DrawPanel(int id)
+        // ---- The panel -----------------------------------------------------------------------------
+        //
+        // What is always there: the clock (pause, step, speed) and the recording, at the top; what the last thing
+        // pressed did and what the thing under the mouse does, at the bottom. Between them, sections that fold shut,
+        // in a view that scrolls when they are taller than the screen. A control shows its name and its value; what
+        // it means is its tooltip, shown in the box at the bottom.
+
+        /// <summary>How wide the panel is (at a panel size of 1).</summary>
+        public const float PanelWidth = 330f;
+
+        private sealed class PanelStyles
+        {
+            public GUIStyle Section, Heading, Text, Value, Toggle, Hint, Box;
+        }
+
+        // (What the panel shows, as it was when the panel was last laid out: a press that changes it (a test begun, a
+        // recording stopped) shows from the next layout, so every event draws the controls that were laid out for it.)
+        private bool shownTube, shownTarget, shownRecording, shownFeel;
+        private string shownMessage = "";
+
+        private PanelStyles panel;
+        private Vector2 panelScroll;
+        private float panelContent = -1f, panelChrome = 150f, panelView;
+        private readonly Dictionary<string, bool> sectionOpen = new Dictionary<string, bool>();
+
+        private PanelStyles Styles()
+        {
+            if (panel != null)
+            {
+                return panel;
+            }
+
+            // (Made once: a style made each time the panel is drawn is thrown away each time.)
+            panel = new PanelStyles
+            {
+                Section = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold },
+                Heading = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, wordWrap = true },
+                Text = new GUIStyle(GUI.skin.label) { wordWrap = true },
+                Value = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleRight },
+                Toggle = new GUIStyle(GUI.skin.toggle) { wordWrap = true },
+                Hint = new GUIStyle(GUI.skin.label) { wordWrap = true, alignment = TextAnchor.UpperLeft, fontStyle = FontStyle.Italic },
+                Box = new GUIStyle(GUI.skin.box),
+            };
+            return panel;
+        }
+
+        /// <summary>A section's heading, pressed to fold it shut or open (kept between sessions). True: it is open.</summary>
+        private bool Section(string name, bool openAtFirst, string tip)
+        {
+            if (!sectionOpen.TryGetValue(name, out bool open))
+            {
+                open = PlayerPrefs.GetFloat("BattleSandbox.Section." + name, openAtFirst ? 1f : 0f) > 0.5f;
+                sectionOpen[name] = open;
+            }
+
+            GUILayout.Space(6f);
+            if (GUILayout.Button(new GUIContent((open ? "−  " : "+  ") + name, tip), Styles().Section))
+            {
+                // (Open or shut from the next time the panel is laid out: what is drawn in answer to this press has
+                // to be what was laid out for it.)
+                sectionOpen[name] = !open;
+                PlayerPrefs.SetFloat("BattleSandbox.Section." + name, open ? 0f : 1f);
+            }
+
+            return open;
+        }
+
+        /// <summary>A heading inside a section, with room over it.</summary>
+        private void Heading(string text, string tip = "")
+        {
+            GUILayout.Space(8f);
+            GUILayout.Label(new GUIContent(text, tip), Styles().Heading);
+        }
+
+        private bool Press(string text, string tip, params GUILayoutOption[] options) => GUILayout.Button(new GUIContent(text, tip), options);
+
+        private bool Tick(bool value, string text, string tip) => GUILayout.Toggle(value, new GUIContent(text, tip), Styles().Toggle);
+
+        /// <summary>A slider on one line: its name, the slider, its value. What it means is its tooltip.</summary>
+        private float Slide(string name, string value, string tip, float now, float least, float most)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Panel size {uiScale:0.0}x");
-            if (GUILayout.Button("\u2212", GUILayout.Width(36f)))
+            GUILayout.Label(new GUIContent(name, tip), Styles().Text, GUILayout.Width(96f));
+            GUILayout.BeginVertical();
+            GUILayout.Space(7f);
+            now = GUILayout.HorizontalSlider(now, least, most);
+            GUILayout.EndVertical();
+            GUILayout.Label(new GUIContent(value, tip), Styles().Value, GUILayout.Width(78f));
+            GUILayout.EndHorizontal();
+            return now;
+        }
+
+        private void DrawPanel(int id)
+        {
+            var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+            if (Event.current == null || Event.current.type == EventType.Layout)
             {
-                uiScale = Mathf.Max(0.8f, uiScale - 0.1f);
-                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+                shownTube = tubeTest;
+                shownTarget = targetTest && !tubeTest;
+                shownRecording = recorder != null && recorder.Recording;
+                shownFeel = feel != null;
+                shownMessage = message ?? "";
             }
 
-            if (GUILayout.Button("+", GUILayout.Width(36f)))
+            if (!shownFeel)
             {
-                uiScale = Mathf.Min(3f, uiScale + 0.1f);
-                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+                feel = null;
             }
 
-            GUILayout.EndHorizontal();
-            GUILayout.Label("R reset · F fight · 1 target test · B bystander · L launch · K sever · D ground · G gallery · H rhythms · P pause · . step · T turn · M mark");
-            GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.");
+            // ---- Always there: the clock and the recording ----
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Reset")) Spawn();
-            if (GUILayout.Button(turnedAway ? "Face the enemy" : "Turn around")) TurnAround();
-            if (GUILayout.Button(fight ? "Stop fighting" : "Fight")) ToggleFight();
+            if (Press(paused ? "Resume" : "Pause", "Stop and start the game's clock (P).")) TogglePause();
+            if (Press("Step", "One step of the game, then stopped again (the full stop key).")) StepOnce();
+            if (Press("Reset", "The scene set out afresh: every fighter back on its place (R).")) Spawn();
             GUILayout.EndHorizontal();
+            float newScale = Slide("Speed", $"{timeScale:0.00}x", "How fast the game's clock runs: 1 is real time, lower is slow motion.", timeScale, 0.05f, 1f);
+            if (!Mathf.Approximately(newScale, timeScale))
+            {
+                timeScale = newScale;
+                if (!paused)
+                {
+                    Time.timeScale = timeScale;
+                }
+            }
+
+            DrawRecorder();
+
+            // ---- The sections, in a view that scrolls when they are taller than the screen ----
+            float room = Screen.height / Mathf.Max(0.1f, uiScale) - panelRect.y - panelChrome - 8f;
+            panelView = panelContent < 0f ? Mathf.Max(160f, room) : Mathf.Clamp(panelContent + 4f, 60f, Mathf.Max(160f, room));
+            panelScroll = GUILayout.BeginScrollView(panelScroll, false, true, GUILayout.Height(panelView));
+            GUILayout.BeginVertical();
+            DrawScenes();
+            if (shownTube)
+            {
+                DrawTubeTest();
+            }
+
+            DrawHitsAndHips(feel);
+            DrawFallsAndGetUps(feel);
+            DrawMoves();
+            DrawLegs(feel);
+            DrawOther();
+            DrawHelp();
+            GUILayout.Space(4f);
+            GUILayout.EndVertical();
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                panelContent = GUILayoutUtility.GetLastRect().height;
+            }
+
+            GUILayout.EndScrollView();
+
+            // ---- Always there: what the last thing pressed did, and what the thing under the mouse does ----
+            if (shownMessage.Length > 0)
+            {
+                GUILayout.Space(4f);
+                GUILayout.Label(shownMessage, Styles().Text);
+            }
+
+            GUILayout.Space(4f);
+            GUILayout.BeginVertical(Styles().Box);
+            string hint = string.IsNullOrEmpty(GUI.tooltip) ? "Point at anything to read here what it does." : GUI.tooltip;
+            GUILayout.Label(hint, Styles().Hint, GUILayout.Height(HintHeight));
+            GUILayout.EndVertical();
+            GUI.DragWindow();
+        }
+
+        /// <summary>How tall the box of what the thing under the mouse does is: room for four lines.</summary>
+        public const float HintHeight = 66f;
+
+        private void DrawScenes()
+        {
+            if (!Section("Scenes and tests", true, "Which scene is set out, and the tests that set out their own."))
+            {
+                return;
+            }
+
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Bystander test (B)")) BystanderTest();
-            if (GUILayout.Button(galleryRun != null ? "Stop gallery (G)" : "Move gallery (G)")) Gallery();
+            if (Press(fight ? "Stop fighting" : "Fight", "The two sides fight, or stand (F).")) ToggleFight();
+            if (Press(turnedAway ? "Face the enemy" : "Turn around", "Every fighter turned about, or back (T).")) TurnAround();
             GUILayout.EndHorizontal();
+
+            Heading("Tests");
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Launch test (L)")) LaunchTest();
-            if (GUILayout.Button(rhythmRun != null ? "Stop rhythms (H)" : "Rhythm gallery (H)")) RhythmGallery();
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Sever test (K)")) SeverTest();
-            if (GUILayout.Button("Ground test (D)")) GroundTest();
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Shield test (J)")) ShieldTest();
-            if (GUILayout.Button(targetTest ? "Back to the battle" : "Target test (1)"))
+            if (Press(targetTest ? "Back to the battle" : "Target test (1)", targetTest ? "Back to the battle laid out by the scene's markers." : "Three attackers, each on a target that only stands there: one with empty hands, one with sword and shield (it blocks), one with a sword (it parries)."))
             {
                 if (targetTest) BattleLayout(); else TargetTest();
             }
+
+            if (Press(tubeTest ? "Tube test: reset" : "Tube test (5)", "The three targets alone, struck by tubes of a set weight and speed: falls and blows on demand. Its controls are in their own section below.")) TubeTestScene();
             GUILayout.EndHorizontal();
-            // (The tube test: the targets alone, struck by tubes of a set weight and speed.)
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button(tubeTest ? "Tube test: reset (R)" : "Tube test (5)")) TubeTestScene();
-            if (tubeTest && GUILayout.Button("Hit (6)")) TubeHit();
+            if (Press("Bystander (B)", "A blow swung with a third fighter standing in its way.")) BystanderTest();
+            if (Press("Launch (L)", "The heaviest armed fighter strikes the lightest enemy, with a third standing where the blow will throw it.")) LaunchTest();
+            if (Press("Sever (K)", "A swordsman cuts at an enemy's elbow, and the arm should come off there. Again for another go.")) SeverTest();
             GUILayout.EndHorizontal();
-            if (tubeTest)
-            {
-                GUILayout.Label($"How hard: {Tubes.Impulse:0} N·s (a tube of {Tubes.Mass:0.0} kg). A Medium's sword cut is about 45, a Large's club 100 to 300.");
-                Tubes.Impulse = Mathf.Round(GUILayout.HorizontalSlider(Tubes.Impulse, 5f, 600f));
-                GUILayout.Label($"How fast: {Tubes.Speed:0.0} m/s (slower is heavier for the same hit: more of a shove)");
-                Tubes.Speed = Mathf.Round(2f * GUILayout.HorizontalSlider(Tubes.Speed, 2f, 25f)) / 2f;
-                GUILayout.Label($"How high: {Tubes.Height * 100f:0} cm over the ground");
-                Tubes.Height = Mathf.Round(100f * GUILayout.HorizontalSlider(Tubes.Height, 0.1f, 2.4f)) / 100f;
-                GUILayout.Label($"Nearer or further: its end {(Tubes.Reach >= 0f ? $"{Tubes.Reach * 100f:0} cm past the target's middle (it meets more of the body)" : $"{-Tubes.Reach * 100f:0} cm short of the target's middle (it clips the near edge, or misses)")}");
-                Tubes.Reach = Mathf.Round(100f * GUILayout.HorizontalSlider(Tubes.Reach, -0.6f, 0.6f)) / 100f;
-                GUILayout.Label($"Targets turned: {Tubes.Turned:0} degrees: struck on {Tubes.Side} (0 the front, 90 the left side, 180 the back, 270 the right side)");
-                Tubes.Turned = Mathf.Round(GUILayout.HorizontalSlider(Tubes.Turned, 0f, 355f) / 5f) * 5f;
-                Tubes.AsBlow = GUILayout.Toggle(Tubes.AsBlow, "Also taken as a blow of the fight's (recoil, stumble, fall); off: the physics only");
-                Tubes.Fells = GUILayout.Toggle(Tubes.Fells, "The target goes down, whatever its legs say (the fall test)");
-                GUILayout.Label("Falls on demand: which way the targets go down. Each fall is measured in the log (what landed first, the head, the hips).");
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Back")) FallTest(0f, false);
-                if (GUILayout.Button("Forward")) FallTest(180f, false);
-                if (GUILayout.Button("Left")) FallTest(270f, false);
-                if (GUILayout.Button("Right")) FallTest(90f, false);
-                GUILayout.EndHorizontal();
-                if (GUILayout.Button("Thrown back (a Large's club at its hardest)")) FallTest(0f, true);
-                GUILayout.Label("A fall and then a turn: while the targets are down, what they stand facing is put behind them, so once up they turn round to it (the swordsman's sword as it gets up into the turn).");
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Back, then round (+170)")) FallTest(0f, false, 170f);
-                if (GUILayout.Button("Back, then round (\u2212170)")) FallTest(0f, false, -170f);
-                if (GUILayout.Button("Thrown, then round")) FallTest(0f, true, 170f);
-                GUILayout.EndHorizontal();
-                bool swordUp = GUILayout.Toggle(PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs, "Once up, the sword is taken up from where the arm is, and a guard turns round the way asked (off: as before, the arm reaching back for where it stood before the fall)");
-                PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs = swordUp;
-                PhysicsBattler.Locomotion.Locomotor.GuardTurnsTheWayAsked = swordUp;
-                GUILayout.Label("Blows on demand: a tube taken as a blow of that size, from the side the targets are turned to. The legs decide what comes of it.");
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Sword cut (60)")) BlowTest(60f);
-                if (GUILayout.Button("Heavy (200)")) BlowTest(200f);
-                if (GUILayout.Button("Club (600)")) BlowTest(600f);
-                GUILayout.EndHorizontal();
-                if (GUILayout.Button("A fall to catch (165): only just more than the legs catch")) BlowTest(165f);
-                var hitFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-                if (hitFeel != null)
-                {
-                    // (The scene's Combat Feel sets these every frame, so the panel changes them there.)
-                    GUILayout.Label($"A blow's force: {hitFeel.hitForce:0.0} times its own momentum, on the part struck and a share on the parts joined to it (0: only the weapon's touch). It comes with a tube taken as a blow.");
-                    hitFeel.hitForce = Mathf.Round(4f * GUILayout.HorizontalSlider(hitFeel.hitForce, 0f, 6f)) / 4f;
-                    bool held = GUILayout.Toggle(hitFeel.hipsAreHeldNotLocked, "Hips held by a spring, not locked (off: as before 14 November)");
-                    if (held != hitFeel.hipsAreHeldNotLocked)
-                    {
-                        hitFeel.hipsAreHeldNotLocked = held;
-                        Note(held ? "hips held, not locked" : "hips locked, as before");
-                    }
+            GUILayout.BeginHorizontal();
+            if (Press("Ground (D)", "Two fighters go down in the middle, one knocked down and one killed, and the others walk straight across them for 20 s. Again stops it.")) GroundTest();
+            if (Press("Shield (J)", "A sword and a club take turns striking a shield-holder from in front, two blows each. Again for another round.")) ShieldTest();
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (Press(galleryRun != null ? "Stop gallery (G)" : "Move gallery (G)", "Every move in turn against a dummy, first slowly and then at full speed. Again ends it.")) Gallery();
+            if (Press(rhythmRun != null ? "Stop rhythms (H)" : "Rhythm gallery (H)", "Each fighting style in turn: its base, then every posture, slowed and at full speed. Again ends it.")) RhythmGallery();
+            GUILayout.EndHorizontal();
 
-                    GUILayout.Label($"The hold on the hips: {hitFeel.hipHoldQuickness:0.0} swings a second (lower: looser), at most {hitFeel.hipHoldStrength:0.0} times the body's weight");
-                    hitFeel.hipHoldQuickness = Mathf.Round(2f * GUILayout.HorizontalSlider(hitFeel.hipHoldQuickness, 2f, 12f)) / 2f;
-                    hitFeel.hipHoldStrength = Mathf.Round(4f * GUILayout.HorizontalSlider(hitFeel.hipHoldStrength, 0.5f, 8f)) / 4f;
-                }
-
-                // (The scene's Combat Feel sets it every frame, so the toggle changes it there.)
-                var getUpFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-                if (getUpFeel != null)
-                {
-                    bool oneBody = GUILayout.Toggle(getUpFeel.fallsKeepTheBody, "Falls: the new ones, in the one body (off: the ragdoll, as before 14 November)");
-                    if (oneBody != getUpFeel.fallsKeepTheBody)
-                    {
-                        getUpFeel.fallsKeepTheBody = oneBody;
-                        Note(oneBody ? "falls: in the one body" : "falls: the ragdoll, as before");
-                    }
-
-                    GUILayout.Label($"Muscle in a fall: {getUpFeel.fallMuscle:0.00} of a person's strength (0: limp)");
-                    getUpFeel.fallMuscle = Mathf.Round(20f * GUILayout.HorizontalSlider(getUpFeel.fallMuscle, 0f, 2f)) / 20f;
-                    getUpFeel.fallsProtectTheHead = GUILayout.Toggle(getUpFeel.fallsProtectTheHead, "The head kept off the ground");
-                    getUpFeel.fallsReachForTheGround = GUILayout.Toggle(getUpFeel.fallsReachForTheGround, "The arms reach for the ground");
-                    getUpFeel.fallsCanBeCaught = GUILayout.Toggle(getUpFeel.fallsCanBeCaught, "A fall only just begun can be caught on a knee and a hand");
-                }
-
-                bool clear = getUpFeel != null ? getUpFeel.getUpLegsClearTheHips : PhysicsBattler.Motion.GetUp.LegsClearTheHips;
-                bool clearNow = GUILayout.Toggle(clear, "Getting up, the legs keep clear of the hips: the hips lifted before the leg goes back (off: as before, the knees swinging round through the trunk)");
-                if (clearNow != clear)
-                {
-                    if (getUpFeel != null)
-                    {
-                        getUpFeel.getUpLegsClearTheHips = clearNow;
-                    }
-
-                    PhysicsBattler.Motion.GetUp.LegsClearTheHips = clearNow;
-                    Note(clearNow ? "get-ups: the legs clear of the hips" : "get-ups: the legs as before");
-                }
-
-                bool natural = getUpFeel != null ? getUpFeel.getUpsAreNatural : PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps;
-                bool naturalNow = GUILayout.Toggle(natural, "Get-ups: the new ones (off: as before 14 November)");
-                if (naturalNow != natural)
-                {
-                    if (getUpFeel != null)
-                    {
-                        getUpFeel.getUpsAreNatural = naturalNow;
-                    }
-
-                    PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = naturalNow;
-                    Note(naturalNow ? "get-ups: the new ones" : "get-ups: as before");
-                }
-                if (GUILayout.Button(largeTargets ? "Targets: Larges" : "Targets: Mediums"))
-                {
-                    largeTargets = !largeTargets;
-                    TubeTestScene();
-                }
-            }
-
-            if (targetTest && !tubeTest)
+            if (shownTarget)
             {
                 // (Each respawns the test with the other body: the attackers with their weapon, a Large's club or a
                 // Medium's sword; the targets with what they stand with.)
+                Heading("Target test");
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button(largeAttackers ? "Attackers: Larges" : "Attackers: Mediums"))
+                if (Press(largeAttackers ? "Attackers: Larges" : "Attackers: Mediums", "Sets the test out again with attackers of the other size: a Large with its club, a Medium with its sword."))
                 {
                     largeAttackers = !largeAttackers;
                     TargetTest();
                 }
 
-                if (GUILayout.Button(largeTargets ? "Targets: Larges" : "Targets: Mediums"))
+                if (Press(largeTargets ? "Targets: Larges" : "Targets: Mediums", "Sets the test out again with targets of the other size."))
                 {
                     largeTargets = !largeTargets;
                     TargetTest();
                 }
+
                 GUILayout.EndHorizontal();
-                bool harmed = GUILayout.Toggle(targetsHarmed, "Targets take harm (off: they can't be hurt or cut)");
+                bool harmed = Tick(targetsHarmed, "Targets take harm", "Off: the targets can't be hurt or cut, so a test can go on as long as it is wanted.");
                 if (harmed != targetsHarmed)
                 {
                     targetsHarmed = harmed;
@@ -1731,38 +1807,158 @@ namespace PhysicsBattler.Sandbox
                     }
                 }
             }
-            // (The step back: on demand, and as a hop or as it was. The scene's Combat Feel sets the second every
-            // frame, so the toggle changes it there.)
-            if (GUILayout.Button("Step back now (2): every standing fighter")) StepBackTest();
-            var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-            bool hops = feel != null ? feel.stepBackHops : PhysicsBattler.Locomotion.ClipFighter.StepBackHops;
-            bool hopsNow = GUILayout.Toggle(hops, "A step back is a hop (off: as before)");
-            if (hopsNow != hops)
+        }
+
+        private void DrawTubeTest()
+        {
+            if (!Section("Tube test", true, "The targets struck by tubes: falls and blows on demand, and the tube's own settings."))
+            {
+                return;
+            }
+
+            Heading("Falls on demand", "The targets are turned so the tube sends them the way asked, and they go down whatever their legs say. Each fall is measured in the log: what landed first, the head, the hips.");
+            GUILayout.BeginHorizontal();
+            if (Press("Back", "Struck on the front with 200 N·s: they fall backward.")) FallTest(0f, false);
+            if (Press("Forward", "Struck on the back with 200 N·s: they fall forward.")) FallTest(180f, false);
+            if (Press("Left", "Struck on the right side with 200 N·s: they fall to their left.")) FallTest(270f, false);
+            if (Press("Right", "Struck on the left side with 200 N·s: they fall to their right.")) FallTest(90f, false);
+            GUILayout.EndHorizontal();
+            if (Press("Thrown back (450)", "Struck on the front with 450 N·s, a Large's club at its hardest: thrown off their feet.")) FallTest(0f, true);
+
+            Heading("A fall, then a turn round", "While the targets are down, what they stand facing is put behind them, so once up they turn round to it: the get-up into a turn, and the swordsman's sword through it.");
+            GUILayout.BeginHorizontal();
+            if (Press("Back, +170", "They fall backward, and get up to turn round 170 degrees to their right.")) FallTest(0f, false, 170f);
+            if (Press("Back, −170", "They fall backward, and get up to turn round 170 degrees to their left.")) FallTest(0f, false, -170f);
+            if (Press("Thrown", "They are thrown back, and get up to turn round.")) FallTest(0f, true, 170f);
+            GUILayout.EndHorizontal();
+
+            Heading("Blows on demand", "A tube taken as a blow of that size, from the side the targets are turned to. Their legs decide what comes of it: a recoil, a stumble, a fall.");
+            GUILayout.BeginHorizontal();
+            if (Press("Cut (60)", "60 N·s: a little more than a Medium's sword cut.")) BlowTest(60f);
+            if (Press("Heavy (200)", "200 N·s: a Large's club.")) BlowTest(200f);
+            if (Press("Club (600)", "600 N·s: more than any fighter strikes with.")) BlowTest(600f);
+            GUILayout.EndHorizontal();
+            if (Press("A fall to catch (165)", "165 N·s: only just more than a Medium's legs catch, so the fall is one that can be caught on a knee and a hand.")) BlowTest(165f);
+
+            Heading("The tube", "What the Hit button and the 6 key send. The buttons above set these themselves.");
+            GUILayout.BeginHorizontal();
+            if (Press("Hit (6)", "Sends the waiting tubes as they are set below.")) TubeHit();
+            if (Press(largeTargets ? "Targets: Larges" : "Targets: Mediums", "Sets the test out again with targets of the other size."))
+            {
+                largeTargets = !largeTargets;
+                TubeTestScene();
+            }
+
+            GUILayout.EndHorizontal();
+            Tubes.Impulse = Mathf.Round(Slide("How hard", $"{Tubes.Impulse:0} N·s", $"The tube's momentum: now a tube of {Tubes.Mass:0.0} kg. A Medium's sword cut is about 45 N·s, a Large's club 100 to 300.", Tubes.Impulse, 5f, 600f));
+            Tubes.Speed = Mathf.Round(2f * Slide("How fast", $"{Tubes.Speed:0.0} m/s", "Slower is heavier for the same hit: more of a shove, less of a crack.", Tubes.Speed, 2f, 25f)) / 2f;
+            Tubes.Height = Mathf.Round(100f * Slide("How high", $"{Tubes.Height * 100f:0} cm", "How far over the ground the tube flies: 130 cm is a Medium's chest.", Tubes.Height, 0.1f, 2.4f)) / 100f;
+            Tubes.Reach = Mathf.Round(100f * Slide("Reach", $"{Tubes.Reach * 100f:0} cm", "Where the tube's end is against the target's middle. Past it (more than 0) the tube meets more of the body; short of it, it clips the near edge or misses.", Tubes.Reach, -0.6f, 0.6f)) / 100f;
+            Tubes.Turned = Mathf.Round(Slide("Turned", $"{Tubes.Turned:0}°", $"How the targets stand turned to the tube: 0 struck on the front, 90 on the left side, 180 on the back, 270 on the right side. Now: struck on {Tubes.Side}.", Tubes.Turned, 0f, 355f) / 5f) * 5f;
+            Tubes.AsBlow = Tick(Tubes.AsBlow, "Taken as a blow", "The tube is also a blow of the fight's: the target recoils, stumbles or falls as its legs decide. Off: the physics only.");
+            Tubes.Fells = Tick(Tubes.Fells, "The target goes down", "The target falls whatever its legs say: the fall test.");
+        }
+
+        private void DrawHitsAndHips(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            if (feel == null || !Section("Hits and hips", false, "How hard a blow throws the body about, and how the hips are held. Kept on the scene's Combat Feel."))
+            {
+                return;
+            }
+
+            // (The scene's Combat Feel sets these every frame, so the panel changes them there.)
+            feel.hitForce = Mathf.Round(4f * Slide("Hit force", $"{feel.hitForce:0.00}x", "An extra push with every blow that lands: the blow's own momentum times this, on the part struck and a share on the parts joined to it. 0: only the weapon's touch.", feel.hitForce, 0f, 6f)) / 4f;
+            bool held = Tick(feel.hipsAreHeldNotLocked, "Hips held by a spring", "The hips are held to the pose by a spring, so a blow can move them. Off: locked to the pose, as before 14 November.");
+            if (held != feel.hipsAreHeldNotLocked)
+            {
+                feel.hipsAreHeldNotLocked = held;
+                Note(held ? "hips held, not locked" : "hips locked, as before");
+            }
+
+            feel.hipHoldQuickness = Mathf.Round(2f * Slide("Hold: quick", $"{feel.hipHoldQuickness:0.0} /s", "How quickly the hips come back to the pose, in swings a second. Lower is looser.", feel.hipHoldQuickness, 2f, 12f)) / 2f;
+            feel.hipHoldStrength = Mathf.Round(4f * Slide("Hold: strong", $"{feel.hipHoldStrength:0.00}x", "The most the hold pushes with, in times the body's weight.", feel.hipHoldStrength, 0.5f, 8f)) / 4f;
+        }
+
+        private void DrawFallsAndGetUps(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            if (!Section("Falls and getting up", false, "The new falls and get-ups, each with a switch back to how it was."))
+            {
+                return;
+            }
+
+            if (feel != null)
+            {
+                // (The scene's Combat Feel sets these every frame, so the panel changes them there.)
+                Heading("Falls");
+                bool oneBody = Tick(feel.fallsKeepTheBody, "Falls in the one body", "A fighter falls in the body it stands in, its muscles still working. Off: a ragdoll, as before 14 November.");
+                if (oneBody != feel.fallsKeepTheBody)
+                {
+                    feel.fallsKeepTheBody = oneBody;
+                    Note(oneBody ? "falls: in the one body" : "falls: the ragdoll, as before");
+                }
+
+                feel.fallMuscle = Mathf.Round(20f * Slide("Muscle", $"{feel.fallMuscle:0.00}", "How strong a falling body's muscles are, as a share of a person's strength. 0 is limp.", feel.fallMuscle, 0f, 2f)) / 20f;
+                feel.fallsProtectTheHead = Tick(feel.fallsProtectTheHead, "The head kept off the ground", "Chin to the chest going backward, the head lifted going forward, tipped away going to a side.");
+                feel.fallsReachForTheGround = Tick(feel.fallsReachForTheGround, "The arms reach for the ground", "The arms go out toward the ground the body is falling to. Off: held a little out from the sides.");
+                feel.fallsCanBeCaught = Tick(feel.fallsCanBeCaught, "A fall can be caught", "A fall only just more than the legs catch ends on a knee and a hand, or sitting, and the fighter rises from there.");
+            }
+
+            Heading("Getting up");
+            bool natural = feel != null ? feel.getUpsAreNatural : PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps;
+            bool naturalNow = Tick(natural, "The new get-ups", "From how it really lies, by one of three routes, turned toward its enemy. Off: as before 14 November.");
+            if (naturalNow != natural)
             {
                 if (feel != null)
                 {
-                    feel.stepBackHops = hopsNow;
+                    feel.getUpsAreNatural = naturalNow;
                 }
 
-                PhysicsBattler.Locomotion.ClipFighter.StepBackHops = hopsNow;
+                PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = naturalNow;
+                Note(naturalNow ? "get-ups: the new ones" : "get-ups: as before");
             }
 
-            if (GUILayout.Button("Turn now (3): every standing fighter")) TurnTest();
-            bool ball = feel != null ? feel.feetPivotOnTheBall : PhysicsBattler.Locomotion.LocoBody.PivotsOnBall;
-            bool ballNow = GUILayout.Toggle(ball, "Planted feet pivot on the ball (off: as before)");
-            if (ballNow != ball)
+            bool clear = feel != null ? feel.getUpLegsClearTheHips : PhysicsBattler.Motion.GetUp.LegsClearTheHips;
+            bool clearNow = Tick(clear, "The legs keep clear of the hips", "The hips are lifted before the leg goes back under them. Off: as before, the knees swinging round through the trunk.");
+            if (clearNow != clear)
             {
                 if (feel != null)
                 {
-                    feel.feetPivotOnTheBall = ballNow;
+                    feel.getUpLegsClearTheHips = clearNow;
                 }
 
-                PhysicsBattler.Locomotion.LocoBody.PivotsOnBall = ballNow;
+                PhysicsBattler.Motion.GetUp.LegsClearTheHips = clearNow;
+                Note(clearNow ? "get-ups: the legs clear of the hips" : "get-ups: the legs as before");
             }
 
-            // (Physical legs: off until looked at. The scene's Combat Feel sets it every frame, so the toggle changes it there.)
+            bool swordUp = Tick(PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs, "The sword taken up where it is", "Once up, the sword goes to its guard from where the arm is, and a guard turns round the way asked. Off: as before, the arm reaching back for where it stood before the fall.");
+            PhysicsBattler.Locomotion.ClipFighter.SwordTakenUpWhereItIs = swordUp;
+            PhysicsBattler.Locomotion.Locomotor.GuardTurnsTheWayAsked = swordUp;
+        }
+
+        private void DrawMoves()
+        {
+            if (!Section("Moves on demand", false, "Something every standing fighter does now, to look at it."))
+            {
+                return;
+            }
+
+            GUILayout.BeginHorizontal();
+            if (Press("Step back (2)", "Every fighter standing in its guard steps back from its opponent, as it does to a blow read at the last moment. Best in the target test, slowed down.")) StepBackTest();
+            if (Press("Turn (3)", "Every fighter standing still turns a quarter turn and a bit to its right, and the fight turns it back. Best in the target test, slowed down.")) TurnTest();
+            if (Press("Knock a leg (4)", "Every fighter's right shin knocked sideways: a small twitch. Needs physical legs.")) KnockLegTest();
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawLegs(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            if (!Section("Legs and feet", false, "The physical legs and how the feet step, each with a switch back to how it was."))
+            {
+                return;
+            }
+
+            // (The scene's Combat Feel sets these every frame, so the toggles change them there.)
             bool legs = feel != null ? feel.legsArePhysical : PhysicsBattler.Locomotion.ClipFighter.PhysicalLegs;
-            bool legsNow = GUILayout.Toggle(legs, "Physical legs (off: as before 14 November)");
+            bool legsNow = Tick(legs, "Physical legs", "The legs are part of the physical body. Off: they go where the animation puts them, as before 14 November.");
             if (legsNow != legs)
             {
                 if (feel != null)
@@ -1777,9 +1973,39 @@ namespace PhysicsBattler.Sandbox
                 Note(legsNow ? "physical legs on" : "physical legs off");
             }
 
-            if (GUILayout.Button("Knock a leg (4): a small twitch; needs physical legs")) KnockLegTest();
+            bool ball = feel != null ? feel.feetPivotOnTheBall : PhysicsBattler.Locomotion.LocoBody.PivotsOnBall;
+            bool ballNow = Tick(ball, "Planted feet pivot on the ball", "A planted foot turns on its ball as the body turns over it. Off: as before.");
+            if (ballNow != ball)
+            {
+                if (feel != null)
+                {
+                    feel.feetPivotOnTheBall = ballNow;
+                }
 
-            bool tired = GUILayout.Toggle(tiredAll, "Everyone tired (Fight Rhythm energy 25%)");
+                PhysicsBattler.Locomotion.LocoBody.PivotsOnBall = ballNow;
+            }
+
+            bool hops = feel != null ? feel.stepBackHops : PhysicsBattler.Locomotion.ClipFighter.StepBackHops;
+            bool hopsNow = Tick(hops, "A step back is a hop", "Both feet leave the ground in a step back. Off: as before.");
+            if (hopsNow != hops)
+            {
+                if (feel != null)
+                {
+                    feel.stepBackHops = hopsNow;
+                }
+
+                PhysicsBattler.Locomotion.ClipFighter.StepBackHops = hopsNow;
+            }
+        }
+
+        private void DrawOther()
+        {
+            if (!Section("Other switches", false, "Tiredness, the camera's shake, the weapon arm."))
+            {
+                return;
+            }
+
+            bool tired = Tick(tiredAll, "Everyone tired", "Every fighter's Fight Rhythm energy held at 25%.");
             if (tired != tiredAll)
             {
                 tiredAll = tired;
@@ -1791,63 +2017,69 @@ namespace PhysicsBattler.Sandbox
                     }
                 }
             }
-            OrbitCamera.ShakeOnHits = GUILayout.Toggle(OrbitCamera.ShakeOnHits, "Camera shake on heavy hits");
+
+            OrbitCamera.ShakeOnHits = Tick(OrbitCamera.ShakeOnHits, "Camera shake on heavy hits", "The camera is shaken by a heavy blow that lands.");
             // Milestone 10 (the arm rebuild's step 6): the weapon arm on joint motors, or on the world servo as before.
-            bool muscles = GUILayout.Toggle(PhysicsBattler.Authority.AuthorityController.ArmMuscles, "Weapon arm on joint motors (off: pulled to its pose)");
+            bool muscles = Tick(PhysicsBattler.Authority.AuthorityController.ArmMuscles, "Weapon arm on joint motors", "Off: the weapon arm is pulled to its pose, as before the arm was rebuilt.");
             if (muscles != PhysicsBattler.Authority.AuthorityController.ArmMuscles)
             {
                 PhysicsBattler.Authority.AuthorityController.ArmMuscles = muscles;
                 Note("weapon arm: " + (muscles ? "joint motors" : "pulled to its pose"));
             }
+        }
 
-
-            GUILayout.Label($"Time scale: {timeScale:0.00}{(paused ? " (paused)" : "")}");
-            float newScale = GUILayout.HorizontalSlider(timeScale, 0.05f, 1f);
-            if (!Mathf.Approximately(newScale, timeScale))
+        private void DrawHelp()
+        {
+            if (!Section("Panel, keys and camera", false, "The panel's size, the keys, the camera, and what the engine's joints were found to do."))
             {
-                timeScale = newScale;
-                if (!paused)
-                {
-                    Time.timeScale = timeScale;
-                }
+                return;
             }
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button(paused ? "Resume" : "Pause")) TogglePause();
-            if (GUILayout.Button("Step")) StepOnce();
-            GUILayout.EndHorizontal();
-
-            if (!string.IsNullOrEmpty(message))
+            GUILayout.Label($"Panel size {uiScale:0.0}x", Styles().Text);
+            if (Press("−", "The panel and the fighters' labels drawn smaller.", GUILayout.Width(40f)))
             {
-                GUILayout.Label(message);
+                uiScale = Mathf.Max(0.8f, uiScale - 0.1f);
+                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
             }
 
-            GUILayout.Label("Joint probe: " + JointConventions.Report);
-            DrawRecorder();
-            GUI.DragWindow();
+            if (Press("+", "The panel and the fighters' labels drawn larger.", GUILayout.Width(40f)))
+            {
+                uiScale = Mathf.Min(3f, uiScale + 0.1f);
+                PlayerPrefs.SetFloat(UiScaleKey, uiScale);
+            }
+
+            GUILayout.EndHorizontal();
+            Heading("Keys");
+            GUILayout.Label("R reset · F fight · T turn around\nP pause · . step · M mark the log\n1 target test · 5 tube test · 6 hit\n2 step back · 3 turn · 4 knock a leg\nB bystander · L launch · K sever · D ground · J shield\nG move gallery · H rhythm gallery", Styles().Text);
+            Heading("Camera");
+            GUILayout.Label("Right-drag to orbit, middle-drag to pan, scroll to zoom.", Styles().Text);
+            Heading("Joint probe");
+            GUILayout.Label(JointConventions.Report, Styles().Text);
         }
 
         private void DrawRecorder()
         {
-            GUILayout.Space(6);
             if (recorder == null)
             {
                 return;
             }
 
-            if (recorder.Recording)
+            GUILayout.BeginHorizontal();
+            if (shownRecording)
             {
-                GUILayout.Label($"Recording PlaytestLogs/{recorder.SessionName} ({recorder.EventCount} events, {recorder.MarkCount} marks)");
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Mark (M)")) Mark();
-                if (GUILayout.Button("New log")) recorder.NewSession();
-                if (GUILayout.Button("Stop")) recorder.StopSession();
-                GUILayout.EndHorizontal();
+                GUILayout.Label(new GUIContent($"Rec {recorder.EventCount}", $"Recording to PlaytestLogs/{recorder.SessionName}: {recorder.EventCount} events, {recorder.MarkCount} marks."), Styles().Text, GUILayout.Width(84f));
+                if (Press("Mark (M)", "A mark put in the log at this moment, to find it by.")) Mark();
+                if (Press("New log", "This log closed and a new one begun.")) recorder.NewSession();
+                if (Press("Stop", "The recording stopped.")) recorder.StopSession();
             }
-            else if (GUILayout.Button("Start recording"))
+            else
             {
-                recorder.StartSession();
+                GUILayout.Label(new GUIContent("Not recording", "No playtest log is being written."), Styles().Text, GUILayout.Width(96f));
+                if (Press("Start recording", "A playtest log begun in PlaytestLogs.")) recorder.StartSession();
             }
+
+            GUILayout.EndHorizontal();
         }
 
         private static void DrawUnitLabel(UnitController unit)
