@@ -592,7 +592,18 @@ namespace PhysicsBattler.Sandbox
             if (Press("Hop right", "He springs to his own right.")) Duel.Give(DuelLab.Order.HopRight);
             GUILayout.EndHorizontal();
             Duel.LeapFar = Mathf.Round(20f * Slide("Leap", $"{Duel.LeapFar:0.00} m", "How far a leap goes. He is carried no faster than 4 m/s and his feet are in the air 0.3 s at most, so about 1.2 m is the most.", Duel.LeapFar, 0.2f, 1.2f)) / 20f;
-            Duel.LeapTime = Mathf.Round(100f * Slide("Leap time", $"{Duel.LeapTime:0.00} s", "How long a leap takes.", Duel.LeapTime, 0.15f, 0.4f)) / 100f;
+            Duel.LeapTime = Mathf.Round(100f * Slide("In the air", $"{Duel.LeapTime:0.00} s", "How long his feet are off the ground in a leap. Longer is a higher, floatier leap; shorter a low, quick one.", Duel.LeapTime, 0.15f, 0.5f)) / 100f;
+            var leapFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+            if (leapFeel != null && leapFeel.leapsAreMade)
+            {
+                leapFeel.leapCrouch = Lever("Crouch", leapFeel.leapCrouch, 0f, 2.5f, "How deep the hips sink before the push and as the legs take the landing.");
+                leapFeel.leapHeight = Lever("Height", leapFeel.leapHeight, 0.3f, 3f, "How high the hips rise in the flight, and the legs tuck.");
+                leapFeel.leapLean = Lever("Lean", leapFeel.leapLean, 0f, 35f, "How far the chest leans the way of the leap as it pushes off (degrees).");
+                leapFeel.leapArms = Lever("Arms", leapFeel.leapArms, 0f, 1f, "How much of the recorded jump's arm swing the arms take (0: they stay in the guard).");
+                leapFeel.leapBody = Lever("Body", leapFeel.leapBody, 0f, 1.5f, "How much of the recorded jump's fold forward in the crouch and stretch in the flight the trunk takes.");
+                leapFeel.leapPrepTime = Lever("Crouch time", leapFeel.leapPrepTime, 0.08f, 0.5f, "How long the crouch takes before the push (seconds).");
+            }
+
             GUILayout.Label("Last leap: " + Duel.LastLeap, Styles().Text);
             Duel.Pace = Mathf.Round(10f * Slide("Pace", Duel.Pace > 0.01f ? $"{Duel.Pace:0.0} m/s ({(Duel.Pace < 0.9f ? "stand and step" : Duel.Pace < 1.9f ? "walk" : Duel.Pace < 3.3f ? "brisk" : "run")})" : "his guard's walk", "How fast he is asked to go, in every order. All the way down: his guard's own walking pace, as the fight asked until now (small steps). Under about 1 m/s he stands and takes single steps; to about 2 m/s he walks; above it he goes at a jog with his guard up (Combat Feel \"Guard Jogs\"), and faster still the jog's stride is stretched.", Duel.Pace, 0f, 3.6f)) / 10f;
             Duel.Near = Mathf.Round(10f * Slide("Walks to", $"{Duel.Near:0.0} m", "How near the other he walks (metres, root to root).", Duel.Near, 1f, 3f)) / 10f;

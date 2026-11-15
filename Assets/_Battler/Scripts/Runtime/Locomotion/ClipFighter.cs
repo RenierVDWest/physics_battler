@@ -4081,6 +4081,34 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        /// <summary>
+        /// A leap made of the recorded jump (<see cref="LeapMaker"/>): from its guard it crouches, pushes off the leg
+        /// behind and springs <paramref name="metres"/> (at a Medium's size) the way given, its feet in the air for
+        /// <paramref name="flight"/> seconds, and lands. A clip its walk plays, as it plays a made attack. False: it
+        /// cannot (down, in a clip of its own, held where it is, no guard to leap from, no jump recorded).
+        /// </summary>
+        public bool LeapMade(Vector3 way, float metres, float flight)
+        {
+            way.y = 0f;
+            var jump = LocoLibrary.Get("jump_spot");
+            if (Fallen || Anchored || Loco.Current == Locomotor.Mode.OneShot || way.sqrMagnitude < 1e-6f || jump == null || Loco.Guard == null || Loco.Guard.Idle == null)
+            {
+                return false;
+            }
+
+            Vector3 own = Quaternion.Euler(0f, -Loco.Facing, 0f) * way.normalized;
+            var clip = LeapMaker.Make(jump, Loco.Guard.Idle, own, metres * Size / Mathf.Max(0.1f, Loco.Leg), flight, Loco.Leg, LeapMaker.Style);
+            if (clip == null)
+            {
+                return false;
+            }
+
+            Leaps++;
+            LeapHopped = false;
+            Loco.PlayAimed(clip, 1f, 0f, 0f);
+            return true;
+        }
+
         /// <summary>How many leaps it has been asked for, and whether the last was hopped (both feet together) or stepped after.</summary>
         public int Leaps { get; private set; }
         public bool LeapHopped { get; private set; }

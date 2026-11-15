@@ -131,9 +131,10 @@ namespace PhysicsBattler.Sandbox
                 Vector3 left = Vector3.Cross(toward, Vector3.up);
                 Vector3 way = order == Order.LeapIn ? toward : order == Order.LeapOut ? -toward : order == Order.HopLeft ? left : -left;
                 Mover.DummyGo = null;
-                bool leapt = Mover.Clip != null && Mover.Clip.LeapNow(way, LeapFar, LeapTime);
+                bool made = PhysicsBattler.Locomotion.LeapMaker.On;
+                bool leapt = Mover.Clip != null && (made ? Mover.Clip.LeapMade(way, LeapFar, LeapTime) : Mover.Clip.LeapNow(way, LeapFar, LeapTime));
                 Mover.DummySpot = Mover.Root.position + (leapt ? way * (LeapFar * Mover.Body.SizeFactor) : Vector3.zero);
-                LastLeap = !leapt ? $"{order}: he could not (in a blow, or down)" : $"{order}: {LeapFar:0.00} m in {LeapTime:0.00} s, " + (Mover.Clip.LeapHopped ? "both feet off the ground together" : "stepped after the body (he was not standing in his stance)");
+                LastLeap = !leapt ? $"{order}: he could not (in a blow, or down)" : $"{order}: {LeapFar:0.00} m, {LeapTime:0.00} s in the air, " + (made ? "made of the recorded jump" : Mover.Clip.LeapHopped ? "the stance's hop: both feet off the ground together" : "stepped after the body (he was not standing in his stance)");
                 leaping = true;
             }
         }
@@ -184,7 +185,7 @@ namespace PhysicsBattler.Sandbox
             if (leaping)
             {
                 // (Until the leap's ground is covered; then he stands.)
-                if (Mover.Clip == null || (!Mover.Clip.GivingGround && Speed < 0.15f))
+                if (Mover.Clip == null || (!Mover.Clip.GivingGround && Speed < 0.15f && Mover.Clip.Loco.Current != PhysicsBattler.Locomotion.Locomotor.Mode.OneShot))
                 {
                     // (Where the leap took him is his spot: he does not creep on to where it was meant to.)
                     leaping = false;

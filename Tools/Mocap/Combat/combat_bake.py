@@ -34,6 +34,8 @@ GUARD = {
     'sns_run_back': ('sword_and_shield_run_backwards', 'cycle', True, 'Medium guard, running backward'),
     # (The plan "Fight Rhythm from Recordings", step 2: the jogs, recorded with empty hands, for the pace between the
     # walk and the run. Their legs are put under the guard's own chest and arms: MoveStyle.)
+    # (A jump on the spot, empty hands: the crouch, the push, the flight, the landing. What a leap is made of: LeapMaker.)
+    'jump_spot': ('jump_far', 'jump', False, 'A jump on the spot, empty hands'),
     'jog_fwd': ('jog_forward', 'cycle', True, 'Jogging forward, empty hands'),
     'jog_back': ('jog_backward', 'cycle', True, 'Jogging backward, empty hands'),
     'jog_left': ('jog_strafe_left', 'cycle', True, 'Jogging to the left, empty hands'),

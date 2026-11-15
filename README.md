@@ -4124,6 +4124,33 @@ tell feet a few centimetres up in a hop from feet sliding, so how a leap looks i
 Unity. Not done yet in step 2: the run on top of the jog; a leap made from the leap recordings (this one is the
 stance's feet moved in arcs, not a recording).
 
+**Leaps made of a recorded jump** (15 November; Combat Feel "Leaps Are Made" and the six "Leap ..." levers;
+`LeapMaker`). Seen in Unity, the stance's hop above did not work: the fighter was moved like a piece on a board,
+the legs barely moving, the upper body doing nothing. A leap is now made as an attack is made, from a recording.
+
+- **What a jump is** (read off the recorded jump on the spot, 1.7 s): the hips sink 30 cm as the chest folds
+  forward and the arms swing back (the crouch, 0.4 s to its lowest); the legs straighten, the arms swing up and
+  the hips shoot up (the push, 0.2 s), one foot leaving the ground after the other; the body is in the air with
+  the legs tucked (0.45 s, the hips 31 cm above standing); the feet touch one after the other and the hips sink
+  14 cm as the legs take the weight; and it straightens.
+- **What a leap takes of it.** Those phases, each stretched to the leap's own time (crouch 0.22 s, push 0.12 s,
+  the time in the air asked for, landing 0.14 s, back up 0.26 s). The hips' sink and rise, scaled to the leap (a
+  short leap is a small crouch and a low flight). The trunk's fold and stretch and the arms' swing, added to the
+  guard's own chest and arms, so the shield and sword stay held. The legs' tuck in the air.
+- **What the leap adds: the way it goes.** The body travels the way asked: a little as it crouches, faster
+  through the push, evenly through the flight, slowing as it lands. The chest leans that way as it pushes off,
+  comes back through the flight and leans a little the other way to land. The foot nearer the way of the leap
+  leaves the ground first. The other stays planted while the hips go away from it, so that leg straightens and
+  pushes, and leaves last; they land in the same order. Forward it is the back leg that pushes, backward the
+  front leg, to a side the leg on the other side.
+- It is a clip the walk plays, as it plays a made attack. Off: the stance's hop.
+
+The lab's sliders: how far, how long in the air, crouch, height, lean, arms, body, crouch time. Measured
+(headless): asked 0.50 m he goes 0.50 m, asked 1.10 m he goes 1.10 m, each way; nothing fell. Looked at as stills
+(`LEAP_DUMP=leaps.json ... attacks`, then `strip.py`): leaping forward, the hips sink and the chest leans in, the
+back leg is straight behind him as the front foot comes up, he is in the air with it trailing, lands on the front
+foot and comes upright. Not verified in Unity: how it moves.
+
 The feet's slide found in step 1 was looked at in Unity: no slide seen. So the measure is taken to be counting
 a low-swinging foot as down at a slow walk; that is not confirmed.
 

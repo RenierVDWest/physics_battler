@@ -253,6 +253,27 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Setting off from a stand in the guard is eased. As it was: for the first quarter of a second, while the body had hardly moved, the feet stepped at the quick rhythm of a positioning step, so each foot was whipped from its place in the wide stance to its place in the walk (half a metre at 2 to 4 m/s) and the hips were jolted over in a tenth of a second. On: asked for a walk's pace or more, the first steps are taken at that pace's own rhythm, and the stance fades into the walk over twice as long. Off: as it was.")]
         public bool setsOffAtAWalksRhythm = true;
 
+        [Tooltip("The duel lab's leaps are made of a recorded jump, as an attack is made of a recorded strike. The jump is taken apart: the hips sink as the chest folds forward and the arms swing back (the crouch), the legs straighten and the hips shoot up (the push), the body is in the air with the legs tucked (the flight), the feet touch and the legs take the weight (the landing). A leap is those phases on the fighter's own guard, going the way asked: the body leans and travels that way, the foot nearer that way leaves the ground first, and the leg behind stays planted while the hips go away from it, so it straightens and pushes, and leaves last. Off: the stance's hop (both feet moved in arcs, the body carried), as the first try was.")]
+        public bool leapsAreMade = true;
+
+        [Tooltip("Leap: how deep the hips sink before the push and as the legs take the landing. 1: about 13 cm for a leap of half a metre, 18 cm for a metre.")]
+        [Range(0f, 2.5f)] public float leapCrouch = 1f;
+
+        [Tooltip("Leap: how high the hips rise in the flight, times what the time in the air needs to keep the feet off the ground (0.3 s in the air: about 11 cm). The legs are tucked under by as much.")]
+        [Range(0.3f, 3f)] public float leapHeight = 1f;
+
+        [Tooltip("Leap: how far the chest leans the way of the leap as it pushes off (degrees). It comes back upright through the flight and leans a little the other way to land.")]
+        [Range(0f, 35f)] public float leapLean = 14f;
+
+        [Tooltip("Leap: how much of the recorded jump's arm swing the arms take. 0: they stay in the guard. 1: all of it (the recording's arms swing right back and up over the head, with empty hands).")]
+        [Range(0f, 1f)] public float leapArms = 0.4f;
+
+        [Tooltip("Leap: how much of the recorded jump's fold of the chest forward in the crouch and stretch in the flight the trunk takes.")]
+        [Range(0f, 1.5f)] public float leapBody = 0.6f;
+
+        [Tooltip("Leap: how long the crouch takes before the push (seconds). Shorter is a snappier, less telegraphed leap.")]
+        [Range(0.08f, 0.5f)] public float leapPrepTime = 0.22f;
+
         [Header("Made attacks: recorded strikes taken apart and made again (the plan \"Aimed attacks\")")]
         [Tooltip("A clip's travel over the ground goes the way it was recorded. Until 14 November a clip that turns as it travels (every strike: the hips turn 60 to 80 degrees through a cut) went off to a side by twice its turn: a rising cut's step forward of 0.42 m went 0.33 m to the left instead, the lunging backhand's 1.3 m forward went a little backward. On: strikes step and lunge where their recording does, in the fight as well as the aim test. Off: as it was.")]
         public bool clipsTravelAsRecorded = true;
@@ -921,6 +942,15 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.BattleSandbox.BattleRetired = theBattleIsRetired;
             MoveStyle.Jogs = guardJogs;
             Locomotor.SetsOffEasy = setsOffAtAWalksRhythm;
+            LeapMaker.On = leapsAreMade;
+            var leap = LeapStyle.Plain;
+            leap.Crouch = leapCrouch;
+            leap.Height = leapHeight;
+            leap.Lean = leapLean;
+            leap.Arms = leapArms;
+            leap.Body = leapBody;
+            leap.PrepTime = leapPrepTime;
+            LeapMaker.Style = leap;
             AttackMaker.On = aimTestAttacksAreMade;
             ClipFighter.MadeBorrowsLegs = attacksBorrowLegs;
             AttackMaker.Style = AttackStyleNow;

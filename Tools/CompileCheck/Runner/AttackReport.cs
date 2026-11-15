@@ -123,6 +123,51 @@ internal static class AttackReport
             Console.WriteLine($"\nmaking one aimed attack takes {watch.Elapsed.TotalMilliseconds / 50:0.00} ms here");
         }
 
+        string leaps = Environment.GetEnvironmentVariable("LEAP_DUMP");
+        if (!string.IsNullOrEmpty(leaps))
+        {
+            // (Made leaps written out as points for the film strips, as the made attacks are.)
+            const float legM = 0.845f;
+            var jump = LocoLibrary.Clips["jump_spot"];
+            var stance = LocoLibrary.Clips["sns_idle_b"];
+            var cases = new (string name, Vector3 way, float far, float flight)[]
+            {
+                ("leap forward 0.6 m", Vector3.forward, 0.6f, 0.25f), ("leap forward 1.2 m", Vector3.forward, 1.2f, 0.35f), ("leap back 0.6 m", Vector3.back, 0.6f, 0.25f),
+                ("hop left 0.6 m", Vector3.left, 0.6f, 0.25f), ("hop right 0.6 m", Vector3.right, 0.6f, 0.25f),
+            };
+            var text = new System.Text.StringBuilder("[");
+            var pose = new Vector3[LocoClip.BoneCount];
+            string N(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+            for (int c = 0; c < cases.Length; c++)
+            {
+                var clip = LeapMaker.Make(jump, stance, cases[c].way, cases[c].far / legM, cases[c].flight, legM, LeapMaker.Style);
+                int lands = Mathf.RoundToInt((LeapMaker.Style.PrepTime + LeapMaker.Style.PushTime) * clip.Rate);
+                text.Append(c > 0 ? ",\n" : "\n").Append("{\"name\":\"").Append(cases[c].name).Append("\",\"rate\":").Append(N(clip.Rate)).Append(",\"contact\":").Append(lands)
+                    .Append(",\"aimed\":false,\"target\":[0,0,0],\"fit\":\"\",\"frames\":[");
+                for (int f = 0; f < clip.Frames; f++)
+                {
+                    float t = f / clip.Rate;
+                    clip.Pose(t, pose, legM);
+                    clip.RootMotion(0f, t, out Vector2 moved, out _);
+                    text.Append(f > 0 ? "," : "").Append("{\"p\":[");
+                    for (int i = 0; i < pose.Length; i++)
+                    {
+                        text.Append(i > 0 ? "," : "").Append(N(pose[i].x + moved.x * legM)).Append(',').Append(N(pose[i].y)).Append(',').Append(N(pose[i].z + moved.y * legM));
+                    }
+
+                    Vector3 hand = pose[(int)LocoBone.RightHand] + new Vector3(moved.x, 0f, moved.y) * legM;
+                    text.Append("],\"s\":[").Append(N(hand.x)).Append(',').Append(N(hand.y)).Append(',').Append(N(hand.z)).Append(',').Append(N(hand.x)).Append(',').Append(N(hand.y + 0.01f)).Append(',').Append(N(hand.z))
+                        .Append("],\"d\":[").Append((int)clip.Contact(0, t)).Append(',').Append((int)clip.Contact(1, t)).Append("]}");
+                }
+
+                text.Append("]}");
+            }
+
+            text.Append("\n]\n");
+            System.IO.File.WriteAllText(leaps, text.ToString());
+            Console.WriteLine($"{cases.Length} made leaps written to {leaps}");
+        }
+
         string dump = Environment.GetEnvironmentVariable("ATTACK_DUMP");
         if (!string.IsNullOrEmpty(dump))
         {
