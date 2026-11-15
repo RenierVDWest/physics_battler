@@ -602,12 +602,43 @@ namespace PhysicsBattler.Sandbox
             if (duelCapoeira)
             {
                 var gingaFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-                if (Press("Ginga: " + PhysicsBattler.Locomotion.MoveStyle.GingaTakes[PhysicsBattler.Locomotion.MoveStyle.GingaTake].about, "Which recording of the ginga he stands in. Press for the next of the four."))
+                if (gingaFeel != null)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent("Ginga:", "Made (new): the ginga made step by step from its pattern, on the standard stance with capoeira's manner; nothing of the recording is played, and no two changes of sides are alike. Recorded (old): the first pass, a recorded take played on a loop."), Styles().Text, GUILayout.Width(60f));
+                    if (Press(gingaFeel.gingaIsMadeOfItsPattern ? "[made]" : "made", "The ginga made of its pattern (Combat Feel \"Ginga Is Made Of Its Pattern\").")) gingaFeel.gingaIsMadeOfItsPattern = true;
+                    if (Press(!gingaFeel.gingaIsMadeOfItsPattern ? "[recorded]" : "recorded", "The recorded take, looped (the first pass).")) gingaFeel.gingaIsMadeOfItsPattern = false;
+                    GUILayout.EndHorizontal();
+                }
+
+                var madeOf = Duel.Mover != null && Duel.Mover.Clip != null ? Duel.Mover.Clip.Loco : null;
+                if (gingaFeel != null && gingaFeel.gingaIsMadeOfItsPattern)
+                {
+                    gingaFeel.gingaRestlessness = Lever("Restless", gingaFeel.gingaRestlessness, 0.05f, 1f, "How soon he changes sides again. 1: after a third of a second, as the recordings, which never stop. 0.4: after a second and more. Near 0: he stays on the side he is on.");
+                    gingaFeel.gingaStepSize = Lever("Size", gingaFeel.gingaStepSize, 0.4f, 0.9f, "How big the ginga is against the recordings'. 1 would be as recorded: the front feet 1.05 m apart, the step back 0.95 m behind, the hips going 1.2 m from side to side.");
+                    gingaFeel.gingaTempo = Lever("Tempo", gingaFeel.gingaTempo, 0.5f, 1.6f, "How fast the steps are taken against the recordings'. 1: a step of a metre in 0.38 s.");
+                    gingaFeel.gingaVariation = Lever("Varies", gingaFeel.gingaVariation, 0f, 1f, "How much one change of sides differs from the next: where the feet land, how long he rests, how quick the steps are. 0: every one alike.");
+                    gingaFeel.capoeiraStyleMotion = Lever("Livelier", gingaFeel.capoeiraStyleMotion, 0f, 1f, "On the move: how much further his hips, chest and head turn and sway than the standard's.");
+                    gingaFeel.capoeiraStyleEyesUp = Lever("Eyes up", gingaFeel.capoeiraStyleEyesUp, 0f, 1f, "How much his eyes stay on his man. 1: his head faces as the standard's does, however far he leans. 0: tipped down with the lean, as the recordings carry it.");
+                    GUILayout.BeginHorizontal();
+                    if (Press("Change sides now", "He changes sides at once: the back foot sweeps forward, the other sweeps back behind it. Turn Restless right down and press this to look at one change at a time."))
+                    {
+                        PhysicsBattler.Locomotion.StandPattern.ChangesAsked++;
+                    }
+
+                    GUILayout.EndHorizontal();
+                    GUILayout.Label(new GUIContent(madeOf == null || madeOf.Guard == null || madeOf.Guard.Pattern == null
+                        ? "The made ginga is not on him (the styles' profile file was not found, or the lab was set out before the switch): press Capoeira again."
+                        : string.Format(System.Globalization.CultureInfo.InvariantCulture, "Changes of sides so far: {0}. Manner on him: {1:0.00}.", madeOf.Guard.Pattern.Changes, madeOf.MannerOn),
+                        "What the mover is standing in. If the made ginga is not on him he is in the recorded one."), Styles().Text);
+                }
+
+                if (gingaFeel != null && !gingaFeel.gingaIsMadeOfItsPattern && Press("Ginga: " + PhysicsBattler.Locomotion.MoveStyle.GingaTakes[PhysicsBattler.Locomotion.MoveStyle.GingaTake].about, "Which recording of the ginga he stands in. Press for the next of the four."))
                 {
                     PhysicsBattler.Locomotion.MoveStyle.GingaTake = (PhysicsBattler.Locomotion.MoveStyle.GingaTake + 1) % PhysicsBattler.Locomotion.MoveStyle.GingaTakes.Length;
                 }
 
-                if (gingaFeel != null)
+                if (gingaFeel != null && !gingaFeel.gingaIsMadeOfItsPattern)
                 {
                     gingaFeel.gingaSize = Lever("Ginga size", gingaFeel.gingaSize, 0.3f, 1.2f, "How big the ginga is made against its recording: its steps, the hips' sway and sinking, the body's turns. 1: as recorded. 0.67: two thirds.");
                     gingaFeel.gingaArms = Lever("Ginga arms", gingaFeel.gingaArms, 0f, 1.5f, "How much of the arms' swings is kept, on top of the size. 0: the arms held where they are in the middle of the ginga.");

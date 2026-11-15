@@ -2200,7 +2200,9 @@ namespace PhysicsBattler.Locomotion
                     if (gingaArms > 0f)
                     {
                         float w = gingaArms * gingaArms * (3f - 2f * gingaArms);
-                        for (int i = 0; i < ArmParts.Length; i++)
+                        // (The made ginga: the left arm alone goes back to where the ginga has it; the sword arm is its guard's.)
+                        int arms = Loco.StandsInPattern ? 3 : ArmParts.Length;
+                        for (int i = 0; i < arms; i++)
                         {
                             var part = Anim.Part(ArmParts[i]);
                             part.localRotation = Quaternion.Slerp(part.localRotation, gingaArmWas[i], w);
@@ -2243,7 +2245,8 @@ namespace PhysicsBattler.Locomotion
         {
             bool wanted = Loco.StandSteps && Loco.Current == Locomotor.Mode.Idle && !Blow.HasValue;
             gingaArms = Mathf.MoveTowards(gingaArms, wanted ? 1f : 0f, dt / GingaArmsBlend);
-            return gingaArms >= 1f;
+            // (In the ginga made of its pattern the sword stays in its guard, ready: only the free arm is the ginga's.)
+            return gingaArms >= 1f && !Loco.StandsInPattern;
         }
 
         /// <summary>The built blow it is striking with, or struck with last (the plan "Aimed attacks"); null before any.</summary>

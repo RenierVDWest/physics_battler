@@ -77,6 +77,12 @@ internal static class StyleReport
             StyleProfile.Load();
         }
 
+        if (args.Contains("steps"))
+        {
+            Steps();
+            return 0;
+        }
+
         Profiles();
         RoundTrips();
         return 0;
@@ -99,6 +105,31 @@ internal static class StyleReport
                 }
             }
 
+            if (style == "capoeira")
+            {
+                // The ginga's two sides: the pose it rests in with the right foot back, and with the left (both feet down, one well behind the other).
+                var gingas = new[] { "cap_ginga", "cap_ginga_b", "cap_ginga_c", "cap_ginga_d" }.Select(Clip).Where(c => c != null).ToArray();
+                var q = new Vector3[LocoClip.BoneCount];
+                bool Rests(LocoClip clip, int f, bool rightBack)
+                {
+                    float time = f / clip.Rate;
+                    if ((clip.Contact(0, time) & LocoContact.Down) == 0 || (clip.Contact(1, time) & LocoContact.Down) == 0)
+                    {
+                        return false;
+                    }
+
+                    clip.Pose(time, q, 1f);
+                    float behind = q[(int)LocoBone.LeftFoot].z - q[(int)LocoBone.RightFoot].z;
+                    return rightBack ? behind > 0.45f : behind < -0.45f;
+                }
+
+                if (gingas.Length > 0)
+                {
+                    profile.SetPose("GingaRightBack", Carriage.Of(gingas, (clip, f) => Rests(clip, f, true)), string.Join(", ", gingas.Select(c => c.Name)));
+                    profile.SetPose("GingaLeftBack", Carriage.Of(gingas, (clip, f) => Rests(clip, f, false)), string.Join(", ", gingas.Select(c => c.Name)));
+                }
+            }
+
             styles.Add(profile.ToData());
         }
 
@@ -108,18 +139,11 @@ internal static class StyleReport
         {
             var s = styles[i];
             sb.Append("    {\n      \"name\": ").Append(Str(s.name)).Append(",\n      \"about\": ").Append(Str(s.about)).Append(",\n      \"carriages\": [\n");
-            for (int j = 0; j < s.carriages.Length; j++)
+            WriteCarriages(sb, s.carriages);
+            if (s.poses != null && s.poses.Length > 0)
             {
-                var c = s.carriages[j];
-                sb.Append("        {\n");
-                sb.Append("          \"job\": ").Append(Str(c.job)).Append(", \"from\": ").Append(Str(c.from)).Append(",\n");
-                sb.Append("          \"hips\": ").Append(Arr(c.hips, 3)).Append(", \"hipsTurn\": ").Append(Arr(c.hipsTurn, 1)).Append(", \"chestTurn\": ").Append(Arr(c.chestTurn, 1)).Append(", \"headTurn\": ").Append(Arr(c.headTurn, 1)).Append(",\n");
-                sb.Append("          \"collarL\": ").Append(Arr(c.collarL, 3)).Append(", \"upperArmL\": ").Append(Arr(c.upperArmL, 3)).Append(", \"forearmL\": ").Append(Arr(c.forearmL, 3)).Append(", \"handL\": ").Append(Arr(c.handL, 3)).Append(",\n");
-                sb.Append("          \"collarR\": ").Append(Arr(c.collarR, 3)).Append(", \"upperArmR\": ").Append(Arr(c.upperArmR, 3)).Append(", \"forearmR\": ").Append(Arr(c.forearmR, 3)).Append(", \"handR\": ").Append(Arr(c.handR, 3)).Append(",\n");
-                sb.Append("          \"spine\": ").Append(Arr(c.spine, 3)).Append(",\n");
-                sb.Append("          \"ankleL\": ").Append(Arr(c.ankleL, 3)).Append(", \"ankleR\": ").Append(Arr(c.ankleR, 3)).Append(",\n");
-                sb.Append("          \"hipsMove\": ").Append(Arr(c.hipsMove, 4)).Append(", \"hipsTurnMove\": ").Append(Arr(c.hipsTurnMove, 2)).Append(", \"chestTurnMove\": ").Append(Arr(c.chestTurnMove, 2)).Append(", \"headTurnMove\": ").Append(Arr(c.headTurnMove, 2)).Append(", \"armsMove\": ").Append(Arr(c.armsMove, 2)).Append(", \"handsMove\": ").Append(Arr(c.handsMove, 2)).Append("\n");
-                sb.Append("        }").Append(j < s.carriages.Length - 1 ? "," : "").Append("\n");
+                sb.Append("      ],\n      \"poses\": [\n");
+                WriteCarriages(sb, s.poses);
             }
 
             sb.Append("      ]\n    }").Append(i < styles.Count - 1 ? "," : "").Append("\n");
@@ -129,6 +153,24 @@ internal static class StyleReport
         string path = Path.Combine(Application.dataPath, StyleProfile.AssetPath);
         File.WriteAllText(path, sb.ToString());
         Console.WriteLine($"written: {path} ({styles.Count} styles, {styles.Sum(s => s.carriages.Length)} carriages)\n");
+    }
+
+    private static void WriteCarriages(StringBuilder sb, StyleCarriageData[] carriages)
+    {
+            for (int j = 0; j < carriages.Length; j++)
+            {
+                var c = carriages[j];
+                sb.Append("        {\n");
+                sb.Append("          \"job\": ").Append(Str(c.job)).Append(", \"from\": ").Append(Str(c.from)).Append(",\n");
+                sb.Append("          \"hips\": ").Append(Arr(c.hips, 3)).Append(", \"hipsTurn\": ").Append(Arr(c.hipsTurn, 1)).Append(", \"chestTurn\": ").Append(Arr(c.chestTurn, 1)).Append(", \"headTurn\": ").Append(Arr(c.headTurn, 1)).Append(",\n");
+                sb.Append("          \"collarL\": ").Append(Arr(c.collarL, 3)).Append(", \"upperArmL\": ").Append(Arr(c.upperArmL, 3)).Append(", \"forearmL\": ").Append(Arr(c.forearmL, 3)).Append(", \"handL\": ").Append(Arr(c.handL, 3)).Append(",\n");
+                sb.Append("          \"collarR\": ").Append(Arr(c.collarR, 3)).Append(", \"upperArmR\": ").Append(Arr(c.upperArmR, 3)).Append(", \"forearmR\": ").Append(Arr(c.forearmR, 3)).Append(", \"handR\": ").Append(Arr(c.handR, 3)).Append(",\n");
+                sb.Append("          \"spine\": ").Append(Arr(c.spine, 3)).Append(",\n");
+                sb.Append("          \"ankleL\": ").Append(Arr(c.ankleL, 3)).Append(", \"ankleR\": ").Append(Arr(c.ankleR, 3)).Append(",\n");
+                sb.Append("          \"hipsMove\": ").Append(Arr(c.hipsMove, 4)).Append(", \"hipsTurnMove\": ").Append(Arr(c.hipsTurnMove, 2)).Append(", \"chestTurnMove\": ").Append(Arr(c.chestTurnMove, 2)).Append(", \"headTurnMove\": ").Append(Arr(c.headTurnMove, 2)).Append(", \"armsMove\": ").Append(Arr(c.armsMove, 2)).Append(", \"handsMove\": ").Append(Arr(c.handsMove, 2)).Append("\n");
+                sb.Append("        }").Append(j < carriages.Length - 1 ? "," : "").Append("\n");
+            }
+
     }
 
     private static string Str(string s) => "\"" + (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
@@ -253,6 +295,114 @@ internal static class StyleReport
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  {0,-9} {1,-12} hips {2:0.000} up, turned {3,5:0.0} {4,5:0.0} {5,5:0.0} | chest {6,5:0.0} {7,5:0.0} {8,5:0.0} | head {9,5:0.0} {10,5:0.0} {11,5:0.0} | goes: hips {12:0.000} {13:0.000} {14:0.000}, hips' yaw {15:0.0}°, chest's {16:0.0}°, arms {17:0.0}° {18:0.0}°, hands {19:0.0}° {20:0.0}°   ({21})",
                     profile.Name, job, c.Mid.Pelvis.y, c.Mid.PelvisTurn.x, c.Mid.PelvisTurn.y, c.Mid.PelvisTurn.z, c.Mid.ChestTurn.x, c.Mid.ChestTurn.y, c.Mid.ChestTurn.z, c.Mid.HeadTurn.x, c.Mid.HeadTurn.y, c.Mid.HeadTurn.z,
                     c.HipsMove.x, c.HipsMove.y, c.HipsMove.z, c.HipsTurnMove.y, c.ChestTurnMove.y, c.ArmL, c.ArmR, c.HandL, c.HandR, profile.MeasuredOn(job)));
+            }
+        }
+    }
+
+    // ---- The long steps of a recording (the plan's step S3): what a step is, in numbers ----------------------
+
+    private static void Steps()
+    {
+        Console.WriteLine("the long steps in the recordings (metres, seconds, degrees; a foot's swing from its leaving the ground to its landing; all in the frame the clip began in):");
+        foreach (string name in new[] { "cap_ginga", "cap_ginga_b", "cap_ginga_c", "cap_ginga_d", "cap_ginga_fwd", "cap_ginga_back" })
+        {
+            var clip = Clip(name);
+            if (clip == null)
+            {
+                continue;
+            }
+
+            int n = clip.Frames;
+            var all = new Vector3[n][];
+            for (int f = 0; f < n; f++)
+            {
+                all[f] = new Vector3[LocoClip.BoneCount];
+                BodyMeasures.World(clip, f, all[f]);
+            }
+
+            float Yaw(int f, LocoBone a, LocoBone b) => YawOf(all[f][(int)b] - all[f][(int)a]);
+            Console.WriteLine($"  {name} ({clip.Duration:0.00} s):");
+            if (Environment.GetEnvironmentVariable("STYLE_PLACES") == "1")
+            {
+                // (Where everything is at each tenth of a second: the feet, the hips, how the hips and the chest are turned.)
+                for (int f = 0; f < n; f += 3)
+                {
+                    Vector3 l = all[f][(int)LocoBone.LeftFoot], r = all[f][(int)LocoBone.RightFoot], h = all[f][(int)LocoBone.Hips];
+                    bool dl = (clip.Contact(0, f / clip.Rate) & LocoContact.Down) != 0, dr = (clip.Contact(1, f / clip.Rate) & LocoContact.Down) != 0;
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "      {0,5:0.00} L {1}({2,5:0.00},{3,5:0.00}) R {4}({5,5:0.00},{6,5:0.00}) hips ({7,5:0.00},{8,5:0.00}) {9:0.00} up, turned {10,4:0}°, chest {11,4:0}°, head {12,4:0}°",
+                        f / clip.Rate, dl ? "down" : " up ", l.x * Metre, l.z * Metre, dr ? "down" : " up ", r.x * Metre, r.z * Metre, h.x * Metre, h.z * Metre, h.y * Metre,
+                        Yaw(f, LocoBone.LeftUpLeg, LocoBone.RightUpLeg), Yaw(f, LocoBone.LeftArm, LocoBone.RightArm), Yaw(f, LocoBone.LeftEye, LocoBone.RightEye)));
+                }
+            }
+
+            for (int foot = 0; foot < 2; foot++)
+            {
+                LocoBone ankle = foot == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot, other = foot == 0 ? LocoBone.RightFoot : LocoBone.LeftFoot, toe = foot == 0 ? LocoBone.LeftToeBase : LocoBone.RightToeBase, otherToe = foot == 0 ? LocoBone.RightToeBase : LocoBone.LeftToeBase;
+                bool Down(int f) => (clip.Contact(foot, f / clip.Rate) & LocoContact.Down) != 0;
+                int start = -1;
+                for (int f = 1; f < n; f++)
+                {
+                    if (!Down(f) && Down(f - 1))
+                    {
+                        start = f - 1;
+                    }
+                    else if (Down(f) && !Down(f - 1) && start >= 0)
+                    {
+                        int a = start, b = f;
+                        Vector3 from = all[a][(int)ankle], to = all[b][(int)ankle];
+                        Vector3 line = new Vector3(to.x - from.x, 0f, to.z - from.z);
+                        float far = line.magnitude;
+                        if (far * Metre < 0.25f)
+                        {
+                            start = -1;
+                            continue;
+                        }
+
+                        Vector3 along = line / far, side = new Vector3(along.z, 0f, -along.x);
+                        float peak = 0f, peakAt = 0f, bulge = 0f;
+                        float ground = Mathf.Min(from.y, to.y);
+                        for (int k = a; k <= b; k++)
+                        {
+                            float u = (k - a) / (float)(b - a);
+                            Vector3 q = all[k][(int)ankle];
+                            if (q.y - ground > peak) { peak = q.y - ground; peakAt = u; }
+                            float off = Vector3.Dot(q - from, side);
+                            if (Mathf.Abs(off) > Mathf.Abs(bulge)) bulge = off;
+                        }
+
+                        // The hips: how far they go over the swing, and how much of it by a quarter, half and three quarters of it; how far before and after.
+                        Vector3 h0 = all[a][(int)LocoBone.Hips], h1 = all[b][(int)LocoBone.Hips];
+                        Vector3 hl = new Vector3(h1.x - h0.x, 0f, h1.z - h0.z);
+                        float hfar = hl.magnitude;
+                        float Share(float u)
+                        {
+                            int k = Mathf.Clamp(Mathf.RoundToInt(a + u * (b - a)), 0, n - 1);
+                            Vector3 d = all[k][(int)LocoBone.Hips] - h0;
+                            return hfar > 1e-4f ? Vector3.Dot(new Vector3(d.x, 0f, d.z), hl) / (hfar * hfar) : 0f;
+                        }
+
+                        int lead = Mathf.Max(0, a - Mathf.RoundToInt(0.25f * clip.Rate)), trail = Mathf.Min(n - 1, b + Mathf.RoundToInt(0.25f * clip.Rate));
+                        Vector3 before = all[a][(int)LocoBone.Hips] - all[lead][(int)LocoBone.Hips], after = all[trail][(int)LocoBone.Hips] - all[b][(int)LocoBone.Hips];
+                        float low = float.MaxValue;
+                        for (int k = a; k <= b; k++) low = Mathf.Min(low, all[k][(int)LocoBone.Hips].y);
+                        // The planted foot: how far it slides and turns.
+                        Vector3 p0 = all[a][(int)other], p1 = all[b][(int)other];
+                        float pivot = Mathf.DeltaAngle(Yaw(a, other, otherToe), Yaw(b, other, otherToe));
+                        // Where the swinging foot is against the planted one, along and across where the body faces at the landing.
+                        float faces = Yaw(b, LocoBone.LeftArm, LocoBone.RightArm) ;
+                        var toFacing = Quaternion.Euler(0f, -(faces), 0f);
+                        Vector3 relFrom = toFacing * (from - p0), relTo = toFacing * (to - p1);
+                        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                            "    {0} {1,5:0.00}-{2,5:0.00} s: {3:0.00} s, goes {4:0.00} m, lifts {5:0.00} at {6:0.00} of it, bows {7,5:0.00} to its side | against the planted foot, from ({8,5:0.00} across, {9,5:0.00} ahead) to ({10,5:0.00}, {11,5:0.00}) | hips go {12:0.00} m ({13:0.00} {14:0.00} {15:0.00} of it by a quarter, half, three quarters; {16:0.00} m in the quarter second before, {17:0.00} after), {18:0.00} up at the start, {19:0.00} lowest, {20:0.00} at the end | hips turn {21,4:0}°, chest {22,4:0}°, the swinging foot {23,4:0}°, the planted foot {24,4:0}° and slides {25:0.00} m",
+                            foot == 0 ? "L" : "R", a / clip.Rate, b / clip.Rate, (b - a) / clip.Rate, far * Metre, peak * Metre, peakAt, bulge * Metre,
+                            relFrom.x * Metre, relFrom.z * Metre, relTo.x * Metre, relTo.z * Metre,
+                            hfar * Metre, Share(0.25f), Share(0.5f), Share(0.75f), new Vector2(before.x, before.z).magnitude * Metre, new Vector2(after.x, after.z).magnitude * Metre,
+                            h0.y * Metre, low * Metre, h1.y * Metre,
+                            Mathf.DeltaAngle(Yaw(a, LocoBone.LeftUpLeg, LocoBone.RightUpLeg), Yaw(b, LocoBone.LeftUpLeg, LocoBone.RightUpLeg)), Mathf.DeltaAngle(Yaw(a, LocoBone.LeftArm, LocoBone.RightArm), Yaw(b, LocoBone.LeftArm, LocoBone.RightArm)),
+                            Mathf.DeltaAngle(Yaw(a, ankle, toe), Yaw(b, ankle, toe)), pivot, new Vector2(p1.x - p0.x, p1.z - p0.z).magnitude * Metre));
+                        start = -1;
+                    }
+                }
             }
         }
     }

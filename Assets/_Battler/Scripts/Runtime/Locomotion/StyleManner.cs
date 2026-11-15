@@ -29,7 +29,10 @@ namespace PhysicsBattler.Locomotion
         public SpineShape Spine;
 
         /// <summary>The carriage of some clips taken together: every frame taken apart into its tracks, each track's middle and its going about it.</summary>
-        public static Carriage Of(params LocoClip[] clips)
+        public static Carriage Of(params LocoClip[] clips) => Of(clips, null);
+
+        /// <summary>The same over only the frames taken (a clip and its frame: true to take it): a pose the clips come back to, as the middle of the moments they are in it.</summary>
+        public static Carriage Of(IReadOnlyList<LocoClip> clips, Func<LocoClip, int, bool> take)
         {
             var m = BodyMeasures.OfClips;
             var p = new Vector3[LocoClip.BoneCount];
@@ -43,6 +46,11 @@ namespace PhysicsBattler.Locomotion
                     clip.Pose(f / clip.Rate, p, 1f);
                     var t = m.Decompose(p, last);
                     last = t;
+                    if (take != null && !take(clip, f))
+                    {
+                        continue;
+                    }
+
                     frames.Add(t);
                     var s = BodyMeasures.SpineOf(p);
                     spine.Spine += s.Spine; spine.Spine1 += s.Spine1; spine.Spine2 += s.Spine2; spine.Neck += s.Neck; spine.Head += s.Head;
@@ -200,6 +208,9 @@ namespace PhysicsBattler.Locomotion
     {
         public string name, about;
         public StyleCarriageData[] carriages;
+
+        /// <summary>Poses the style comes back to, by name (its "job" is the pose's name): the places of a step pattern (the ginga's two sides), measured as carriages are.</summary>
+        public StyleCarriageData[] poses;
     }
 
     [Serializable]
@@ -227,6 +238,19 @@ namespace PhysicsBattler.Locomotion
         {
             Name = name;
             About = about;
+        }
+
+        private readonly Dictionary<string, Carriage> poses = new Dictionary<string, Carriage>();
+        private readonly Dictionary<string, string> posesOn = new Dictionary<string, string>();
+
+        /// <summary>A pose the style comes back to, by its name (false: it has none so called).</summary>
+        public bool Pose(string name, out Carriage pose) => poses.TryGetValue(name, out pose);
+
+        /// <summary>A named pose, measured on what is named.</summary>
+        public void SetPose(string name, in Carriage pose, string from)
+        {
+            poses[name] = pose;
+            posesOn[name] = from;
         }
 
         /// <summary>A job's carriage, measured on what is named.</summary>
@@ -328,6 +352,12 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
+                foreach (var c in data.poses ?? Array.Empty<StyleCarriageData>())
+                {
+                    profile.poses[c.job] = FromData(c);
+                    profile.posesOn[c.job] = c.from ?? "";
+                }
+
                 profiles[data.name] = profile;
             }
         }
@@ -338,11 +368,25 @@ namespace PhysicsBattler.Locomotion
             var list = new List<StyleCarriageData>();
             foreach (var job in Jobs)
             {
-                var c = carriages[job];
+                list.Add(ToData(carriages[job], job.ToString(), MeasuredOn(job)));
+            }
+
+            var named = new List<StyleCarriageData>();
+            foreach (var pair in poses)
+            {
+                named.Add(ToData(pair.Value, pair.Key, posesOn[pair.Key]));
+            }
+
+            return new StyleProfileData { name = Name, about = About, carriages = list.ToArray(), poses = named.ToArray() };
+        }
+
+        private static StyleCarriageData ToData(in Carriage c, string name, string from)
+        {
+            {
                 var t = c.Mid;
-                list.Add(new StyleCarriageData
+                return (new StyleCarriageData
                 {
-                    job = job.ToString(), from = MeasuredOn(job),
+                    job = name, from = from,
                     hips = A(t.Pelvis), hipsTurn = A(t.PelvisTurn), chestTurn = A(t.ChestTurn), headTurn = A(t.HeadTurn),
                     collarL = A(t.ClavL), collarR = A(t.ClavR), upperArmL = A(t.UpperL), upperArmR = A(t.UpperR), forearmL = A(t.ForeL), forearmR = A(t.ForeR),
                     handL = new[] { t.HandL.x, t.HandL.y, t.HandL.z, t.HandL.w }, handR = new[] { t.HandR.x, t.HandR.y, t.HandR.z, t.HandR.w },
@@ -356,8 +400,6 @@ namespace PhysicsBattler.Locomotion
                     armsMove = new[] { c.ArmL, c.ArmR }, handsMove = new[] { c.HandL, c.HandR },
                 });
             }
-
-            return new StyleProfileData { name = Name, about = About, carriages = list.ToArray() };
         }
 
         private static Carriage FromData(StyleCarriageData d)

@@ -81,9 +81,9 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
-            string now = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} {1} {2:0.00} {3:0.00} {4} {5:0.00} {6:0.00}", Style.Name, PhysicsBattler.Locomotion.MoveStyle.GingaTake,
+            string now = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} {1} {2:0.00} {3:0.00} {4} {5:0.00} {6:0.00} {7}", Style.Name, PhysicsBattler.Locomotion.MoveStyle.GingaTake,
                 PhysicsBattler.Locomotion.MoveStyle.StandSize, PhysicsBattler.Locomotion.MoveStyle.StandArms,
-                PhysicsBattler.Locomotion.MoveStyle.GuardWalkRebuilt, PhysicsBattler.Locomotion.MoveStyle.RebuiltCarriage, PhysicsBattler.Locomotion.MoveStyle.RebuiltMotion);
+                PhysicsBattler.Locomotion.MoveStyle.GuardWalkRebuilt, PhysicsBattler.Locomotion.MoveStyle.RebuiltCarriage, PhysicsBattler.Locomotion.MoveStyle.RebuiltMotion, PhysicsBattler.Locomotion.StandPattern.Generated);
             if (Mover.Clip.Loco.Style != Style || now != styleGiven)
             {
                 Mover.Clip.Loco.SetStyle(Style);

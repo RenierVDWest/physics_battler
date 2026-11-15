@@ -1019,7 +1019,7 @@ namespace PhysicsBattler.Locomotion
 
         private void SwordInTheGinga(Transform fore, Transform hand, bool sword)
         {
-            bool wanted = GingaSword && sword && loco.StandSteps && loco.Legs == Locomotor.Mode.Idle && loco.Current == Locomotor.Mode.Idle;
+            bool wanted = GingaSword && sword && loco.StandSteps && !loco.StandsInPattern && loco.Legs == Locomotor.Mode.Idle && loco.Current == Locomotor.Mode.Idle;
             gingaSword = Mathf.MoveTowards(gingaSword, wanted ? 1f : 0f, poseDt / 0.25f);
             if (gingaSword <= 0f)
             {

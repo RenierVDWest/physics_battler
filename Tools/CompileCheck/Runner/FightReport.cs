@@ -254,6 +254,13 @@ internal static class FightReport
         {
             Carriage = 1f, Motion = Env("FIGHT_STYLEMOTION", 0.5f), Turn = Env("FIGHT_STYLESQUARE", 0.5f), Arms = Env("FIGHT_STYLEARMS", 1f), HandsKeep = 1f, HeadKeeps = Env("FIGHT_STYLEEYES", 1f), InBlows = Env("FIGHT_STYLEINBLOWS", 0.5f),
         };
+        // (FIGHT_GINGAMADE=0: the capoeira style stands in the recorded take, as the first pass. FIGHT_GINGASTEP=0.7,
+        // FIGHT_GINGATEMPO=1, FIGHT_GINGARESTLESS=0.4, FIGHT_GINGAVARY=0.5: the made ginga's size, tempo, restlessness, variation.)
+        PhysicsBattler.Locomotion.StandPattern.Generated = Environment.GetEnvironmentVariable("FIGHT_GINGAMADE") != "0";
+        PhysicsBattler.Locomotion.StandPattern.Size = Env("FIGHT_GINGASTEP", 0.7f);
+        PhysicsBattler.Locomotion.StandPattern.Tempo = Env("FIGHT_GINGATEMPO", 1f);
+        PhysicsBattler.Locomotion.StandPattern.Restless = Env("FIGHT_GINGARESTLESS", 0.4f);
+        PhysicsBattler.Locomotion.StandPattern.Vary = Env("FIGHT_GINGAVARY", 0.5f);
         // (FIGHT_STYLETRACE=1: what the walk lays of the manner, each step.)
         if (Environment.GetEnvironmentVariable("FIGHT_STYLETRACE") == "1")
         {

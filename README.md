@@ -4505,3 +4505,60 @@ only.
   walks forward (the pack has no step to a side); in a leap the manner's lean is added to the leap's own
   crouch (58 degrees at the deepest, 32 without); his stance is the guard's, one foot forward, where capoeira
   stands square (the ginga, steps S3 and S4).
+
+**Movement styles, steps S3 and S4: the long step, and the ginga made of its pattern** (15 November; Combat Feel
+"Ginga Is Made Of Its Pattern", on; the duel lab's style "Capoeira", "Ginga: made / recorded"). Step S2 was looked
+at in Unity: no bugs seen, and it looks bad, as a posture alone on the standard stance and arms was bound to; the
+look is to be judged when the footwork and the arms are there with it. These two steps are the footwork.
+
+- **What the ginga is, measured** (headless `style steps`, with `STYLE_PLACES=1` for every tenth of a second;
+  fifteen long steps in the four takes). He rests with one foot back: behind the front foot by 0.95 m and
+  0.3 m outside it, the hips over the front foot, turned 22 degrees toward the back one, the chest turned back
+  the other way so it stays square, the arm on the back foot's side across his face. To change sides the back
+  foot sweeps forward to its place beside the front one (the front feet 1.05 m apart); as it lands the other
+  foot sweeps back behind it; the hips shuttle across the whole time, pass 25 cm forward of the straight line
+  and rise 7 cm, and sink as he arrives. He rests a third of a second and changes back. A long step goes 1.4
+  to 2.2 m in 0.38 s a metre, the ankle rising 6 to 7 cm a metre, highest near the end that is behind him.
+- **The long step (S3)** is `LongStep` (`Locomotion/StandPattern.cs`), a part of the standard set: where a
+  swinging foot's ankle is at each moment of a step from one place to another (how long it takes, how high it
+  rises and where, how its path bows away from the standing foot), the standing foot not moved at all.
+- **The ginga (S4)** is `StandPattern`: nothing of a recording is played. The profile now holds the ginga's two
+  resting poses (`poses` in `StyleProfiles.json`: "GingaRightBack", "GingaLeftBack", measured on the four takes
+  where both feet are down and one is well behind). Each change of sides is made as a short clip the walk
+  stands in: the feet by the long step; the hips' place, the turns of hips, chest and head and the free arm
+  from the one resting pose to the other; everything else the standard stance's own, with capoeira's manner
+  laid over it by the walk (all of it: the capoeira style is that style whole). As he comes to stand the
+  pattern is laid out about him on the side his feet are nearest and each foot that is off its place steps onto
+  it. He walks, jogs and strikes as the standard does, in the manner.
+- **The sword stays in its guard.** The first pass gave both arms to the recording, and the sword pointed at the
+  ground on one side and at the sky on the other. Now only the free arm is the ginga's; the sword arm is the
+  sword's own guard, ready to parry, through the whole of it.
+- **The levers** (duel lab, Capoeira; Combat Feel "Ginga ..."): *Restless* (0.4: how soon he changes sides
+  again; 1 is the recordings' third of a second, near 0 he stays where he is), *Size* (0.7 of the recordings'),
+  *Tempo* (1), *Varies* (0.5: where the feet land, how long he rests, how quick the steps), and a button
+  "Change sides now" (turn Restless down and press it to look at one change at a time). The lab prints how many
+  changes he has made. Headless: `FIGHT_GINGAMADE=0` (the recorded take), `FIGHT_GINGASTEP`, `FIGHT_GINGATEMPO`,
+  `FIGHT_GINGARESTLESS`, `FIGHT_GINGAVARY`.
+- **Measured** (`Tools/Mocap/Style/film_steps.py` on the fight's film; half a minute standing):
+
+  | | As set (size 0.7, restless 0.4) | Size 0.9, restless 1 | The recordings |
+  | --- | --- | --- | --- |
+  | A step goes (m) | 1.05 to 1.16 | 1.34 to 1.49 | 1.41 to 2.16 |
+  | and takes (s) | 0.42 to 0.50 | 0.52 to 0.63 | 0.50 to 0.83 |
+  | The ankle rises (cm) | 6 to 8 | 6 to 10 | 8 to 17 |
+  | From one step to the next (s) | 0.42 to 1.93 | 0.53 to 0.93 | 0.5 to 0.9 |
+  | The hips go from side to side (m) | 0.88 | 1.11 | 1.0 to 1.5 |
+  | The standing foot slides (cm a step) | 0.0 | 0.0 (0.1 at most) | 0 to 20 |
+
+  At the recordings' own settings it is inside their ranges, but for the ankle's rise, which is a little low.
+  The first pass's looped take slid its standing foot 2.8 cm a step (7.5 at most). Blows from the ginga and
+  from its walk land as the standard's do (from a stand the chest, 19 cm from the spot; on the move as in step
+  S2). Leaps, circling and walking off and back into it: nothing thrown. With the standard style the six
+  fighters' fights are unchanged (78 and 84 blows).
+- **Not verified in Unity**: all of how it looks. **Known and not done**: every change of sides is the same two
+  steps (only their size and timing vary); the back foot stands flat, where the recordings have it on its ball;
+  asked to come closer slowly he re-lays the pattern with short quick steps as he goes (step S5 is the ginga
+  that travels and turns); the sword arm does not sway with the ginga, and the sword dips on one side; in a
+  leap the manner's lean is still added to the leap's crouch.
+
+New file that needs its .meta from Unity: `Locomotion/StandPattern.cs`.

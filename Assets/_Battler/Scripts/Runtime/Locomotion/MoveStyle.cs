@@ -109,8 +109,20 @@ namespace PhysicsBattler.Locomotion
 
             if (StandSteps)
             {
-                set.IdleSteps = set.Idle.Source != null;
-                set.Idle = Sized(set.Idle, StandSize, StandArms);
+                // (The ginga made of its pattern, on the standard stance; or, with that off or its profile not there, the recorded take.)
+                var pattern = StandPattern.Generated ? StandPattern.Ginga(StyleProfile.Get(StyleManner.Laid), Standard.Clip(Job.Stand)) : null;
+                if (pattern != null)
+                {
+                    set.Pattern = pattern;
+                    set.IdleSteps = true;
+                    set.Idle = Standard.Clip(Job.Stand);
+                }
+                else
+                {
+                    set.IdleSteps = set.Idle.Source != null;
+                    set.Idle = Sized(set.Idle, StandSize, StandArms);
+                }
+
                 set.Name = Name;
             }
 
@@ -357,7 +369,7 @@ namespace PhysicsBattler.Locomotion
 
         private static MoveStyle MakeCapoeira()
         {
-            var style = new MoveStyle { Name = "Capoeira", Prefix = "sns_", JogPrefix = "jog_", StandSteps = true };
+            var style = new MoveStyle { Name = "Capoeira", Prefix = "sns_", JogPrefix = "jog_", StandSteps = true, Profile = "guard" };
             style.Named[Job.Stand] = GingaTakes[0].clip;
             return style;
         }
