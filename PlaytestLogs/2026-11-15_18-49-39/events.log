@@ -53,3 +53,7 @@
    98.083 |   5677 | Swordsman #2   | hit      | blow struck Target's UpperArmR at 6.4 m/s: 5.1 damage, 6 poise, recoil; impulse 12.8 N·s (80% into the part); the swing went on (70% of it left); the target
    98.083 |   5677 | Target #2      | struck   | by Swordsman on the UpperArmR: health 100/100, poise 39/45, recoil, standing; heavy reaction, then driven back at 0.4 m/s
    99.083 |   5737 | Swordsman #2   | aim      | asked for the right upper arm (1.43 m apart, 1.21 m from the sword shoulder) with made_sns_rising: met the UpperArmR 0.94 s after, at 6.4 m/s, 7 cm from the spot: the spot asked for; its striking part came within 8 cm of the spot (0.94 s after), the edge 26° off its way, the blade at most 154 cm from where its pose had it and 123 cm off the path its pose took; its weight 28 cm outside its feet then, 39 cm at most; its arm 52° past range; the blade as posed came within 0 cm of the spot (0.94 s after); the body went 0.13 m forward, -0.13 right and turned -60° by its landing (its clip: 0.13, -0.13, -60°); made: to land 0.91 s after (0.84 s of the recording), turned -1°, travel x0.34, hips -1 cm down, leaned 0°, wrist 0°, the hand moved 0 cm
+  107.283 |   6229 | Target #2      | despawn  | recording stopped
+  107.283 |   6229 | Swordsman #2   | despawn  | recording stopped
+  107.283 |   6229 | -              | session  | 831 pictures saved
+  107.283 |   6229 | -              | session  | recording stopped after 103.8 s (6229 physics steps)
