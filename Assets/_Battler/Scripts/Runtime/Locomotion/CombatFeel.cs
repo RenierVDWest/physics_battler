@@ -268,19 +268,19 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The capoeira manner: how much of capoeira's own carriage of the arms is laid on the recordings' arms (wider and higher than the guard's). It shows only where an arm is the recording's own: a hand that holds a sword or a shield is placed by its guard, over whatever the walk does.")]
         [Range(0f, 1f)] public float capoeiraStyleArms = 1f;
 
-        [Tooltip("The capoeira style's ginga is made of its pattern (the plan \"Movement Styles as Offshoots of the Standard Set\", steps S3 and S4). On: nothing of the recording is played. He rests with one foot back; to change sides the back foot sweeps forward to its place and the other sweeps back behind it (two long steps, each foot's standing place held exactly), the hips shuttling across under him; then he rests and changes back, never quite the same twice. Its places, turns and arms are the profile's, measured on the pack's four takes; the rest of the body is the standard stance's with capoeira's manner laid on; he walks and jogs in that manner too. Off: the recorded take looped, as the first pass had it. A fighter takes this as it is set out.")]
-        public bool gingaIsMadeOfItsPattern = true;
+        [Tooltip("The capoeira style's ginga is made of its recorded takes' own motion, as an attack is made of a recorded strike (the plan \"Movement Styles as Offshoots of the Standard Set\", step S4, its second way). On: every part of the body at every moment is the recording's; what is changed is its size, its pace, its rests (at each of a take's two rests, the moment the recorded man is stillest, he slows and is held as long as his restlessness lets him, rocking a little on and back through the take's own motion there; the recordings go straight on), which of the four takes he is in (he goes over to another at a rest), and the feet (a foot on the ground is held exactly where it was put down; a foot in the air goes the recording's own way to where the take has it now). The body's own weight shift toward the standing foot and its lift of a foot moving low over the ground are left out in it: the recorded man shifted his own weight and his foot comes back low to be set down. Off: one recorded take looped, as the first pass had it. A fighter takes this as it is set out.")]
+        public bool gingaIsMadeOfItsTakes = true;
 
-        [Tooltip("The made ginga: how big it is against the recordings' (1: as recorded, the front feet 1.05 m apart, the step back 0.95 m behind, the hips going 1.2 m from side to side; 0.7: seven tenths of each).")]
-        [Range(0.4f, 0.9f)] public float gingaStepSize = 0.7f;
+        [Tooltip("The made ginga: how big it is against the recordings (the feet's places and the hips' travel, about the take's middle; 1: as recorded).")]
+        [Range(0.4f, 1f)] public float gingaMadeSize = 0.8f;
 
-        [Tooltip("The made ginga: how fast its steps are taken against the recordings' (1: as recorded, a step of a metre in 0.38 s).")]
+        [Tooltip("The made ginga: how fast it is played against the recordings (1: as recorded).")]
         [Range(0.5f, 1.6f)] public float gingaTempo = 1f;
 
-        [Tooltip("The made ginga: how restless he is, how soon he changes sides again. 1: after a third of a second, as the recordings, which never stop. 0.4: after a second and more. Near 0: he stays on the side he is on (the duel lab's \"Change sides now\" still moves him).")]
+        [Tooltip("The made ginga: how restless he is, how long he stays at each rest. 1: not at all, as the recordings, which never stop. 0.4: a second or so, slowing into it and rocking a little while he is held. Near 0: many seconds (the duel lab's \"Go on now\" still moves him).")]
         [Range(0.05f, 1f)] public float gingaRestlessness = 0.4f;
 
-        [Tooltip("The made ginga: how much one change of sides differs from the next (0: every one alike; 1: the feet's places up to a tenth of its size apart, the rests up to six tenths longer or shorter, the steps an eighth quicker or slower).")]
+        [Tooltip("The made ginga: how much it varies (0: one take, every rest as long, every foot on its place; 1: he goes over to another of the four takes at every other rest, the rests up to six tenths longer or shorter, the feet up to 6 cm off their places).")]
         [Range(0f, 1f)] public float gingaVariation = 0.5f;
 
         [Tooltip("The capoeira style's ginga: how big it is made against its recording (the duel lab's style \"Capoeira\"). 1: as recorded, a metre from side to side with the hips sinking 20 cm. 0.67: two thirds: its steps, its hips' sway and sinking, the body's turns. Each is counted from the middle of the ginga's loop and multiplied, so a foot that stands still in the recording still stands still.")]
@@ -1011,8 +1011,8 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.BattleSandbox.BattleRetired = theBattleIsRetired;
             MoveStyle.Jogs = guardJogs;
             StyleManner.Dials = new MannerDials { Carriage = 1f, Motion = capoeiraStyleMotion, Turn = capoeiraStyleSquaresUp, Arms = capoeiraStyleArms, HandsKeep = 1f, HeadKeeps = capoeiraStyleEyesUp, InBlows = capoeiraStyleKeptInBlows };
-            StandPattern.Generated = gingaIsMadeOfItsPattern;
-            StandPattern.Size = gingaStepSize;
+            StandPattern.Generated = gingaIsMadeOfItsTakes;
+            StandPattern.Size = gingaMadeSize;
             StandPattern.Tempo = gingaTempo;
             StandPattern.Restless = gingaRestlessness;
             StandPattern.Vary = gingaVariation;

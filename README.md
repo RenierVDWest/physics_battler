@@ -4570,3 +4570,73 @@ done, so they are taken out of the lab and out of Combat Feel ("Capoeira Style A
 From The Plain Walk" and its two levers): the Standard style is the standard fighter again, with nothing to set.
 The manner is the Capoeira style's own, whole; its levers ("Livelier", "Squares up", "Kept in blows", "Eyes up")
 are under Capoeira. Headless the tests still run (`FIGHT_STYLEAMOUNT`, `FIGHT_WALKREBUILT`).
+
+**The ginga is made of its recordings' own motion, and is checked against them** (15 November; step S4, its
+second way). The first way made the ginga from two rest poses and some numbers measured off the recordings. In
+Unity it did not look like the recordings, and nothing I ran could have told me so: I had checked the numbers I
+chose, never the look. Two things are changed.
+
+- **A check that sets the fighter beside the recording** (`Tools/Mocap/Style/film_against.py`). A fighter
+  standing in the made ginga writes, with each frame of the fight's film, which take he is in and the moment of
+  it (and his size, and where the pattern has his hips and ankles). The tool takes the recording at that moment
+  and sets the two side by side: a table, part by part, of how far his body is from the recording's (what is off
+  the whole time is told apart as his build), and a strip of pictures, the recording above and the fighter
+  below, from the front, the side and above. I look at the strip before anything goes to Unity.
+
+  ```
+  FIGHT_AIMWHO=open FIGHT_DUELSTYLE=capoeira FIGHT_DUEL="Stand:30" FIGHT_FILM=film.json,0.3,29.8 ... fight
+  python3 Tools/Mocap/Style/film_against.py film.json --from 9.6 --to 14.8 --strip out.png --moments 12
+  ```
+
+- **The ginga is the takes themselves, edited** (`StandPattern`, rewritten). As an attack is made of a recorded
+  strike, every part of the body at every moment is the recording's (the four takes `cap_ginga`, `_b`, `_c`,
+  `_d`, taken apart into the parts' tracks once). What is changed: its size (the feet's places and the hips'
+  travel), its pace, its rests (at each of a take's two rests, the moment the recorded man is stillest, he
+  slows, is held as long as his restlessness lets him and rocks a little on and back through the take's own
+  motion there), which take he is in (he goes over to another at a rest, with a 0.4 s fade), and the feet (a
+  foot on the ground is held where it was put down; a foot in the air goes the recorded foot's own way, bent to
+  leave from where it stood and land where the take has it now).
+- **What the check found, that the numbers had not.** In the ginga the body's own rules were laid over the
+  recording. "Weight Shifts" drew the hips 40% of the way to the standing foot, so they were up to 13 cm off
+  the recording through each step and then went over to the other foot at 3 m/s as the feet changed (the
+  recording's most: 2 m/s). The lift of a foot moving low over the ground raised the swinging foot 10 cm a
+  second time. Both are left out while he stands in the made ginga (the recorded man shifted his own weight, and
+  his foot comes back low to be set down). The rests were at the middle of each both-feet-down stretch, not
+  where he is stillest. A take's contact flags were read 3 frames too wide for one rest of `cap_ginga`, which
+  was then never come to.
+- **Measured** (empty hands, the other fighter 3 m off, half a minute standing; cm are the usual distance from
+  the recording's motion at the same moment, his build taken out):
+
+  | | As recorded (size 1, restless 1, varies 0) | As set (size 0.8, restless 0.4, varies 0.5) |
+  | --- | --- | --- |
+  | Head | 1.0 | 2.3 |
+  | Hands | 4.6 | 4.9 |
+  | Knees | 3.2 | 6.5 |
+  | Feet (the recording's made as small) | 4.6 | 6.8 |
+  | Hips to head lean (his; the recording's) | 40°; 41° | 32°; 35° |
+  | Hips' fastest (m/s) | 2.2 | 2.0 |
+  | The standing foot slides (cm a step; at most) | 0.0; 0.0 | 2.2; 7.1 |
+
+  Every lever at both ends (size 0.4 and 1, tempo 0.6 and 1.5, restless 0.05 and 1, varies 0 and 1), walking
+  off and back into it, a planted blow out of it (met the chest, 20 cm from the spot), the looped take with the
+  switch off: nothing thrown. With the standard style the six fighters' fights are unchanged (78 and 84 blows).
+- **Lab** ("Duel lab", "Capoeira"): "Hands: empty / sword" (empty at first, as the recordings were made),
+  "Ginga: made / looped", the levers Restless, Size, Tempo, Varies, "Go on now", and two new buttons: "As
+  recorded" (the levers set so that he does the recordings themselves) and "As set". A line says which take he
+  is in and the moment of it.
+- **Not verified in Unity**: all of how it looks. **Known and not done**:
+  - *The sword.* With a sword in his hand the sword arm is still the parry guard's, not the ginga's (the blade
+    comes within 9 cm of his own middle line with the other fighter 1 m off). It is the next step, on its own.
+  - *Close to the other fighter.* The ginga does not keep its distance yet. Stood 1 m from the other, his
+    sweeping hand touches him and is knocked 5 to 10 cm for a frame or two. From 1.6 m it does not.
+  - *Going over to another take.* For the first step after it his feet are still where the take he left had
+    them (up to 20 cm from the new take's), so his legs do not match the recording until he has stepped.
+  - *The widest take at full size.* `cap_ginga` at size 1 is wider than his legs reach: the standing foot
+    slides up to 16 cm. At 0.8 it is 5 to 7 cm in that take and none in `cap_ginga_b`.
+  - *Leaving it to walk.* He walks off from wherever the ginga has him, his hips up to 0.4 m to one side and
+    his feet wide: for a tenth of a second both feet are off the ground, and a foot is carried up to 0.5 m.
+    The looped take did the same by 0.25 m. Step S5 is the ginga that travels and turns.
+  - *The recordings' own seam.* Each take's loop closes at a rest with the hand's swing turned round in one
+    frame. With rests he slows into it; "As recorded" shows it as it is.
+
+New file: `Tools/Mocap/Style/film_against.py` (no .meta needed; it is outside Assets).

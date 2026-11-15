@@ -89,6 +89,12 @@ namespace PhysicsBattler.Sandbox
                 Mover.Clip.Loco.SetStyle(Style);
                 styleGiven = now;
             }
+
+            if (Style.StandSteps)
+            {
+                // (A style with a stand of its own is stood in with empty hands too, where a fighter with nothing to guard with would stand at ease.)
+                Mover.Clip.Loco.GuardWanted = true;
+            }
         }
 
         /// <summary>The fighter moved, and the one it moves about.</summary>

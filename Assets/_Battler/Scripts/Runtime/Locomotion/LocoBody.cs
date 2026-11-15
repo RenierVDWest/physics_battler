@@ -285,7 +285,10 @@ namespace PhysicsBattler.Locomotion
         private bool shiftAsked;
 
         /// <summary>Stepping in its stance, standing: where the weight is shifted.</summary>
-        private bool ShiftsNow => WeightShifts && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Legs == Locomotor.Mode.Idle;
+        /// <remarks>Not in a stand made of its recordings' motion (the ginga): there the hips are where the recorded
+        /// man had his, who shifted his own weight. Drawn 40% of the way to the standing foot they were up to 13 cm
+        /// off the recording through each step and went over to the other foot at 3 m/s as the feet changed.</remarks>
+        private bool ShiftsNow => WeightShifts && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Legs == Locomotor.Mode.Idle && !loco.StandsInPattern;
 
         private Vector3 ShiftHips(Vector3 pelvisAt, Quaternion pelvisTurn, float dt)
         {
@@ -2317,6 +2320,13 @@ namespace PhysicsBattler.Locomotion
             Vector3 at = foot.Target;
             float want = 0f;
             float most = 0.01f * CombatFeel.MovingFootLift;
+            if (loco.StandsInPattern && loco.Legs == Locomotor.Mode.Idle)
+            {
+                // (In a stand made of its recordings' motion a foot in the air goes the recorded foot's own way, which
+                // comes back low over the ground to be set down: it is not lifted a second time.)
+                most = 0f;
+            }
+
             if (liftKnown[f] && dt > 1e-5f && most > 0f)
             {
                 Vector3 moved = at - liftWas[f];

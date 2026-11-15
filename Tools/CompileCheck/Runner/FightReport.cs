@@ -254,10 +254,10 @@ internal static class FightReport
         {
             Carriage = 1f, Motion = Env("FIGHT_STYLEMOTION", 0.5f), Turn = Env("FIGHT_STYLESQUARE", 0.5f), Arms = Env("FIGHT_STYLEARMS", 1f), HandsKeep = 1f, HeadKeeps = Env("FIGHT_STYLEEYES", 1f), InBlows = Env("FIGHT_STYLEINBLOWS", 0.5f),
         };
-        // (FIGHT_GINGAMADE=0: the capoeira style stands in the recorded take, as the first pass. FIGHT_GINGASTEP=0.7,
+        // (FIGHT_GINGAMADE=0: the capoeira style stands in the recorded take, as the first pass. FIGHT_GINGASTEP=0.8,
         // FIGHT_GINGATEMPO=1, FIGHT_GINGARESTLESS=0.4, FIGHT_GINGAVARY=0.5: the made ginga's size, tempo, restlessness, variation.)
         PhysicsBattler.Locomotion.StandPattern.Generated = Environment.GetEnvironmentVariable("FIGHT_GINGAMADE") != "0";
-        PhysicsBattler.Locomotion.StandPattern.Size = Env("FIGHT_GINGASTEP", 0.7f);
+        PhysicsBattler.Locomotion.StandPattern.Size = Env("FIGHT_GINGASTEP", 0.8f);
         PhysicsBattler.Locomotion.StandPattern.Tempo = Env("FIGHT_GINGATEMPO", 1f);
         PhysicsBattler.Locomotion.StandPattern.Restless = Env("FIGHT_GINGARESTLESS", 0.4f);
         PhysicsBattler.Locomotion.StandPattern.Vary = Env("FIGHT_GINGAVARY", 0.5f);
@@ -539,7 +539,7 @@ internal static class FightReport
             lineup = new[]
             {
                 // (FIGHT_AIMWHO=shield: the attacker has sword and shield, as the strikes were recorded.)
-                new[] { (Environment.GetEnvironmentVariable("FIGHT_AIMWHO") == "shield" ? "Medium" : "Swordsman", new Tile(3, 2)) },
+                new[] { (Environment.GetEnvironmentVariable("FIGHT_AIMWHO") == "shield" ? "Medium" : Environment.GetEnvironmentVariable("FIGHT_AIMWHO") == "open" ? "Open" : "Swordsman", new Tile(3, 2)) },
                 new[] { (aimKit == "shield" ? "Medium" : aimKit == "sword" ? "Swordsman" : "Open", new Tile(3, 5)) },
             };
         }
@@ -1280,7 +1280,10 @@ internal static class FightReport
 
                                 var an = u.Clip.Anim;
                                 var filmLine = new System.Text.StringBuilder();
-                                filmLine.Append("{\"t\":").Append(paceAt.ToString("0.000", inv)).Append(",\"u\":\"").Append(u.name).Append("\",\"doing\":\"").Append(u.Clip.Loco.Current).Append(u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "").Append("\",\"p\":[");
+                                // (Standing in a ginga made of its takes: which take he is in and the moment of it, so the pose can be set beside the recording's.)
+                                var filmPattern = u.Clip.Loco.StandsInPattern && u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Idle ? u.Clip.Loco.Guard.Pattern : null;
+                                string filmRef = filmPattern != null && filmPattern.Begun ? "\"ref\":\"" + filmPattern.TakeName + "\",\"reft\":" + filmPattern.TakeTime.ToString("0.000", inv) + ",\"resting\":" + (filmPattern.Resting ? "1" : "0") + ",\"size\":" + PhysicsBattler.Locomotion.StandPattern.Size.ToString("0.00", inv) + ",\"hips\":[" + filmPattern.Hips.x.ToString("0.000", inv) + "," + filmPattern.Hips.y.ToString("0.000", inv) + "," + filmPattern.Hips.z.ToString("0.000", inv) + "," + filmPattern.AnkleL.x.ToString("0.000", inv) + "," + filmPattern.AnkleL.y.ToString("0.000", inv) + "," + filmPattern.AnkleL.z.ToString("0.000", inv) + "," + filmPattern.AnkleR.x.ToString("0.000", inv) + "," + filmPattern.AnkleR.y.ToString("0.000", inv) + "," + filmPattern.AnkleR.z.ToString("0.000", inv) + "]," : "";
+                                filmLine.Append("{").Append(filmRef).Append("\"t\":").Append(paceAt.ToString("0.000", inv)).Append(",\"u\":\"").Append(u.name).Append("\",\"doing\":\"").Append(u.Clip.Loco.Current).Append(u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "").Append("\",\"p\":[");
                                 foreach (var id in PartInfo.All)
                                 {
                                     Vector3 at = an.Part(id).position;

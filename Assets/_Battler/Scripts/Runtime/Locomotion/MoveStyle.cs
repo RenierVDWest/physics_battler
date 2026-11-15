@@ -109,13 +109,28 @@ namespace PhysicsBattler.Locomotion
 
             if (StandSteps)
             {
-                // (The ginga made of its pattern, on the standard stance; or, with that off or its profile not there, the recorded take.)
-                var pattern = StandPattern.Generated ? StandPattern.Ginga(StyleProfile.Get(StyleManner.Laid), Standard.Clip(Job.Stand)) : null;
+                // (The ginga made of its takes' own motion; or, with that off, one recorded take on a loop.)
+                StandPattern pattern = null;
+                if (StandPattern.Generated)
+                {
+                    var takes = new List<LocoClip>();
+                    // (The quieter take first: he begins in it.)
+                    foreach (string name in new[] { "cap_ginga_b", "cap_ginga", "cap_ginga_c", "cap_ginga_d" })
+                    {
+                        var take = LocoLibrary.Get(name);
+                        if (take != null)
+                        {
+                            takes.Add(take);
+                        }
+                    }
+
+                    pattern = StandPattern.Ginga(takes);
+                }
+
                 if (pattern != null)
                 {
                     set.Pattern = pattern;
                     set.IdleSteps = true;
-                    set.Idle = Standard.Clip(Job.Stand);
                 }
                 else
                 {

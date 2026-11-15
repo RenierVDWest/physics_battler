@@ -153,7 +153,7 @@ namespace PhysicsBattler.Locomotion
             /// <summary>Its standing clip steps (<see cref="MoveStyle.StandSteps"/>: the ginga): standing in it, the feet go as the clip has them.</summary>
             public bool IdleSteps;
 
-            /// <summary>Its stand is made of a pattern (<see cref="StandPattern"/>: the ginga, step by step): the standing clip is the pattern's, one change of sides after another.</summary>
+            /// <summary>Its stand is made of its takes' own motion (<see cref="StandPattern"/>: the ginga): standing, the body is the pattern's at each moment.</summary>
             public StandPattern Pattern;
         }
 
@@ -434,6 +434,12 @@ namespace PhysicsBattler.Locomotion
             GuardWeight = Guard != null ? Mathf.MoveTowards(GuardWeight, GuardWanted ? 1f : 0f, dt / Mathf.Max(0.05f, GuardBlend)) : 0f;
             // (A blow thrown on the move: the walk goes on under it as it would, at the share of its pace the blow
             // leaves it, and the blow's upper body is laid on it after.)
+            if (Current != Mode.Idle && Guard != null && Guard.Pattern != null && Guard.Pattern.Begun)
+            {
+                // (He has left his stand: the next time he stands, its pattern is laid out about him again.)
+                Guard.Pattern.End();
+            }
+
             bool over = Current == Mode.OneShot && shotOver;
             float goes = 1f;
             Vector3 stepsIn = Vector3.zero;
@@ -668,13 +674,6 @@ namespace PhysicsBattler.Locomotion
                 // and sinks the body under them, as much as it keeps through a blow, and the blow was fitted for that.)
                 dials = dials.ForBlow();
             }
-            else if (Current == Mode.Idle && StandsInPattern)
-            {
-                // (Standing in the pattern, how he is turned and how his arms are held are the pattern's own.)
-                dials.Turn = 0f;
-                dials.Arms = 0f;
-                dials.HandsKeep = 0f;
-            }
 
             float toClip = 1f / Mathf.Max(0.05f, Leg);
             for (int i = 0; i < raw.Length; i++)
@@ -699,8 +698,8 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>
         /// How much of the laid style's manner he has on: the style amount, in his guard. A style whose stand is made
-        /// of its pattern is that style whole (all of its manner, whatever the lever says); one that stands in a
-        /// recording of its own (the first pass's ginga) is carried by the recording while he stands in it.
+        /// of its takes is that style whole (all of its manner on the move, whatever the lever says); standing in the
+        /// style's own stand he is carried by its recordings, and nothing is laid.
         /// </summary>
         private float MannerAmount()
         {
@@ -709,8 +708,9 @@ namespace PhysicsBattler.Locomotion
                 return 0f;
             }
 
-            if (Guard.IdleSteps && Guard.Pattern == null && Current == Mode.Idle)
+            if (Guard.IdleSteps && Current == Mode.Idle)
             {
+                // (Standing in the style's own stand, he is carried as its recordings carry him.)
                 return 0f;
             }
 
@@ -1149,7 +1149,6 @@ namespace PhysicsBattler.Locomotion
             else if (to == Mode.Idle)
             {
                 idleTime = 0f;
-                patternBegun = false;
                 HoldStance();
                 if (StandTrace != null && from == Mode.Cycle)
                 {
@@ -1250,47 +1249,42 @@ namespace PhysicsBattler.Locomotion
         public bool Hurry;
         public const float HurryShare = 0.4f;
 
-        private bool patternBegun;
-
-        /// <summary>Standing in a stand made of a pattern (the ginga, made step by step).</summary>
+        /// <summary>Standing in a stand made of its takes' motion (the ginga, made).</summary>
         public bool StandsInPattern => StandSteps && Guard.Pattern != null;
 
         /// <summary>
-        /// A stand made of a pattern (<see cref="StandPattern"/>): as he comes to stand it is laid out about him and
-        /// its first clip steps his feet onto their places; when a clip is done the next is made, never the same.
+        /// A stand made of its takes' motion (<see cref="StandPattern"/>): as he comes to stand it is laid out about
+        /// him where his feet are; then each step's pose is the pattern's, its feet held where they were put down.
         /// </summary>
-        private void StepPattern()
+        private void StepPattern(float dt)
         {
             var pattern = Guard.Pattern;
-            if (!patternBegun)
+            float toClip = 1f / Mathf.Max(0.05f, Leg);
+            if (!pattern.Begun)
             {
-                float toClip = 1f / Mathf.Max(0.05f, Leg);
-                var feet = hasLast ? lastOut : null;
-                Vector3 l = feet != null ? feet[(int)LocoBone.LeftFoot] * toClip : new Vector3(-0.2f, 0f, 0.3f), r = feet != null ? feet[(int)LocoBone.RightFoot] * toClip : new Vector3(0.2f, 0f, -0.3f);
-                Guard.Idle = pattern.Begin(l, r);
-                idleTime = 0f;
-                patternBegun = true;
-            }
-            else if (idleTime >= Guard.Idle.Duration)
-            {
-                idleTime -= Guard.Idle.Duration;
-                Guard.Idle = pattern.Next();
+                var was = hasLast ? lastOut : raw;
+                for (int i = 0; i < was.Length; i++)
+                {
+                    mannerPose[i] = was[i] * toClip;
+                }
+
+                pattern.Begin(mannerPose[(int)LocoBone.LeftFoot], mannerPose[(int)LocoBone.RightFoot], BodyMeasures.OfClips.Decompose(mannerPose));
             }
 
-            if (pattern.ChangeAsked() && idleTime < pattern.RestEnds - StandPattern.HipsLead)
+            pattern.Step(dt * TimeScale, mannerPose, out bool downL, out bool downR);
+            for (int i = 0; i < raw.Length; i++)
             {
-                // (Asked to change sides now: the rest of his rest is skipped. He is as good as still in it.)
-                idleTime = pattern.RestEnds - StandPattern.HipsLead;
+                raw[i] = mannerPose[i] * Leg;
             }
+
+            Down[0] = Heel[0] = Toe[0] = downL ? 1f : 0f;
+            Down[1] = Heel[1] = Toe[1] = downR ? 1f : 0f;
+            stanceHeld = false;
         }
 
         private void IdlePose(float dt)
         {
             idleTime += dt * TimeScale;
-            if (Guard != null && Guard.Pattern != null && Guard.IdleSteps && GuardWeight > 0.5f)
-            {
-                StepPattern();
-            }
 
             idle.Pose(idleTime, raw, Leg);
             Contacts(idle, idleTime, 1f, true);
@@ -1315,6 +1309,12 @@ namespace PhysicsBattler.Locomotion
 
                 Blend.Add((Guard.Idle, g));
             }
+
+            if (StandsInPattern)
+            {
+                StepPattern(dt);
+            }
+
             if (stanceHeld)
             {
                 // (The legs where it stopped; the knees a little the idle's way. A held foot far from
