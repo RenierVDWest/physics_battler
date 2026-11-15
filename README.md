@@ -4319,3 +4319,44 @@ line in the playtest log says when it was thrown on the move and how far the wal
 not done: whether the blow's way is open is not looked at for a blow on the move (the first that fits is
 thrown); only the three plain blows can be thrown so; standing and stepping slowly in his stance a blow is
 always planted; the battle's own blows do not go this way yet.
+
+**Fight rhythm, step 4: the ginga** (15 November; the duel lab's style "Standard / Capoeira"; Combat Feel "Ginga
+Size", "Ginga Arms", "Ginga Sword Follows The Arm", "Ginga Sword Points Ahead", "Ginga Sword Trails";
+`MoveStyle.Capoeira`). The second movement style: where the standard style stands still in its guard, the
+capoeira style stands in the ginga, capoeira's base, never still.
+
+- **The recordings.** Four takes of the ginga on the spot from the capoeira pack (empty hands; 2.9 to 3.8 s
+  loops), baked as `cap_ginga`, `_b`, `_c`, `_d`. One loop of the plain take: the left foot steps back and
+  across, the feet come wide, the right foot steps back and across, wide again; the hips sway a metre from side
+  to side and sink 20 cm; the body turns 45 degrees each way; the arms swing across the face.
+- **A stand that steps.** The walk stands in a guard's idle with the feet held where they stopped. In the ginga
+  the feet go as the recording has them: down when it has them down, lifted and placed by it. Measured, they
+  slide 0 to 0.2 cm a second.
+- **Its size.** The ginga is made at two thirds of its recording (the lever): each part's track is taken, what it
+  does is counted from the middle of the loop and multiplied, and the body put together again, so a foot that
+  stands still in the recording still stands still. The arms have a lever of their own on top.
+- **Sword in hand, never still.** He has a sword alone. The sword hand goes where the recorded hand goes. The
+  blade is not laid along the recorded fingers (the hands were empty: it would sweep through his own head as the
+  arm crosses his face): the wrist is held straight, so the blade is carried on the forearm and swings as the
+  arm weaves; it is turned part of the way to where he faces; its point trails the hand; and it is kept out of
+  his own body. Measured at two thirds: the sword's point goes 1.7 m/s at the middle and is never under 0.2 m/s;
+  it stays 49 cm from his own middle line (27 cm with the blade as recorded); it points between 9 and 78
+  degrees to his left of straight ahead and up to 30 degrees up.
+- **The arms are the ginga's** while he stands in it and no blow is coming at him. A sword alone otherwise holds
+  its guard still, ready to parry; it takes the sword up again, from where the ginga has it, when a blow comes
+  or he walks.
+- **To go anywhere** he walks and jogs as the standard style does, and goes back into the ginga where he stops.
+  Blows are thrown as before: planted from the ginga, on the move from the walk.
+
+In the duel lab: "Standard / Capoeira" at the top (it sets the lab out again, with a sword alone); under it the
+ginga's take, its size, its arms, and the sword's rule with an old and new switch. Headless:
+`FIGHT_DUELSTYLE=capoeira`, `FIGHT_GINGASIZE`, `FIGHT_GINGAARMS`, `FIGHT_GINGATAKE=0..3`, `FIGHT_GINGASWORD=0`,
+`FIGHT_GINGAPOINTS`, `FIGHT_GINGALAG`. Run through standing, walking in, going round, backing away and three
+blows: nothing threw, nothing fell, the blows land as they do in the standard style (the posed blade 1, 2 and 7
+cm from the spot). The six fighters' fights are unchanged (78 and 84 blows). Looked at as film strips: the feet
+step and the hips sway, the sword sweeps from ahead of him to across his left and back and stays in front of
+his body. Not verified in Unity: how it moves, whether two thirds is the right size, whether the sword reads
+as alive or as waved about. Known and not done: he does not travel in the ginga itself (the pack's travelling
+ginga steps are single steps with turns, not loops; he walks instead); the ginga always begins again from its
+first frame where he stops; a blow out of the ginga is the standard style's planted blow (step 5 is the blows
+made for it); turning on the spot uses the standard style's turn.

@@ -65,6 +65,31 @@ namespace PhysicsBattler.Sandbox
         private float since;
         private Vector3 lastFootL, lastFootR, lastHips;
 
+        /// <summary>
+        /// The movement style the mover is given (the plan's step 4; null: the one he has): the standard style, or the
+        /// capoeira style, which stands in the ginga. Given as he is found without it, and again when what the style
+        /// is made of changes (the ginga's size, its take).
+        /// </summary>
+        public PhysicsBattler.Locomotion.MoveStyle Style;
+
+        private string styleGiven = "";
+
+        private void GiveStyle()
+        {
+            if (Style == null || Mover.Clip == null)
+            {
+                return;
+            }
+
+            string now = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} {1} {2:0.00} {3:0.00}", Style.Name, PhysicsBattler.Locomotion.MoveStyle.GingaTake,
+                PhysicsBattler.Locomotion.MoveStyle.StandSize, PhysicsBattler.Locomotion.MoveStyle.StandArms);
+            if (Mover.Clip.Loco.Style != Style || now != styleGiven)
+            {
+                Mover.Clip.Loco.SetStyle(Style);
+                styleGiven = now;
+            }
+        }
+
         /// <summary>The fighter moved, and the one it moves about.</summary>
         public UnitController Mover { get; private set; }
         public UnitController Other { get; private set; }
@@ -286,6 +311,7 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            GiveStyle();
             Vector3 to = Flat(Other.Root.position - Mover.Root.position);
             Gap = to.magnitude;
             Vector3 moved = Flat(Mover.Root.position - last);

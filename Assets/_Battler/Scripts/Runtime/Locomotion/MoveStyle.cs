@@ -101,6 +101,13 @@ namespace PhysicsBattler.Locomotion
                 return null;
             }
 
+            if (StandSteps)
+            {
+                set.IdleSteps = set.Idle.Source != null;
+                set.Idle = Sized(set.Idle, StandSize, StandArms);
+                set.Name = Name;
+            }
+
             if (Jogs && !string.IsNullOrEmpty(JogPrefix))
             {
                 // (Each jog's legs under the guard's chest and arms as they are in the nearest thing it has: its run
@@ -170,8 +177,165 @@ namespace PhysicsBattler.Locomotion
             return made[name] = new LocoClip(data);
         }
 
+        /// <summary>
+        /// The style's stand steps (the plan's step 4: a base that is never still, capoeira's ginga): its standing clip
+        /// is a loop in which the feet step on the spot, and the walk stands in it with the feet going as the
+        /// recording has them, where it holds a guard's feet where they stopped.
+        /// </summary>
+        public bool StandSteps;
+
+        /// <summary>
+        /// How big a stepping stand is made against its recording (1: as recorded; the scene's Combat Feel, "Ginga
+        /// Size"): its steps, its hips' sway and sinking, its body's turns and its arms' swings, each counted from
+        /// the middle of the loop and multiplied (<see cref="Sized"/>).
+        /// </summary>
+        public static float StandSize = 0.67f;
+
+        /// <summary>How much of a stepping stand's arm swings is kept on top of <see cref="StandSize"/> (1: all; the scene's Combat Feel, "Ginga Arms").</summary>
+        public static float StandArms = 1f;
+
+        /// <summary>The takes of the ginga the capoeira style can stand in (the clip library's names), and what each is.</summary>
+        public static readonly (string clip, string about)[] GingaTakes =
+        {
+            ("cap_ginga", "the plain ginga: a step back to each side, 3.4 s"),
+            ("cap_ginga_b", "a quieter take, 2.9 s"),
+            ("cap_ginga_c", "a lower take, the body turning, 3.5 s"),
+            ("cap_ginga_d", "a lower take, 3.8 s"),
+        };
+
+        /// <summary>
+        /// A stepping stand made bigger or smaller than its recording, as a clip the walk stands in: each part's track
+        /// (<see cref="BodyTracks"/>) is taken, what it does is counted from the middle of the loop (the hips' height
+        /// from where they are highest; a foot's from the ground) and multiplied, and the body put together again. A
+        /// foot that stands still in the recording stands still in it. (Made once for each size.)
+        /// </summary>
+        public static LocoClip Sized(LocoClip clip, float size, float arms)
+        {
+            if (clip == null || clip.Source == null || (Mathf.Abs(size - 1f) < 0.005f && Mathf.Abs(arms - 1f) < 0.005f))
+            {
+                return clip;
+            }
+
+            string name = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}_x{1:0.00}_{2:0.00}", clip.Name, size, arms);
+            if (made.TryGetValue(name, out var sized))
+            {
+                return sized;
+            }
+
+            var m = BodyMeasures.OfClips;
+            var d = clip.Source;
+            var p = new Vector3[LocoClip.BoneCount];
+            var frames = new BodyTracks[d.frames];
+            for (int f = 0; f < d.frames; f++)
+            {
+                clip.Pose(f / d.rate, p, 1f);
+                frames[f] = m.Decompose(p, f > 0 ? frames[f - 1] : (BodyTracks?)null);
+            }
+
+            // The middle of the loop: each track's mean (a way's: the mean way; a hand's turn: the mean turn).
+            var mid = new BodyTracks();
+            var handL = new float[4];
+            var handR = new float[4];
+            float top = float.MinValue, groundL = float.MaxValue, groundR = float.MaxValue;
+            foreach (var t in frames)
+            {
+                mid.Pelvis += t.Pelvis; mid.PelvisTurn += t.PelvisTurn; mid.ChestTurn += t.ChestTurn; mid.HeadTurn += t.HeadTurn;
+                mid.ClavL += t.ClavL; mid.ClavR += t.ClavR; mid.UpperL += t.UpperL; mid.UpperR += t.UpperR; mid.ForeL += t.ForeL; mid.ForeR += t.ForeR;
+                mid.AnkleL += t.AnkleL; mid.AnkleR += t.AnkleR; mid.KneeL += t.KneeL; mid.KneeR += t.KneeR;
+                mid.FootL += t.FootL; mid.FootR += t.FootR; mid.ToeL += t.ToeL; mid.ToeR += t.ToeR;
+                handL[0] += t.HandL.x; handL[1] += t.HandL.y; handL[2] += t.HandL.z; handL[3] += t.HandL.w;
+                handR[0] += t.HandR.x; handR[1] += t.HandR.y; handR[2] += t.HandR.z; handR[3] += t.HandR.w;
+                top = Mathf.Max(top, t.Pelvis.y);
+                groundL = Mathf.Min(groundL, t.AnkleL.y);
+                groundR = Mathf.Min(groundR, t.AnkleR.y);
+            }
+
+            float k = 1f / Mathf.Max(1, frames.Length);
+            mid.Pelvis *= k; mid.PelvisTurn *= k; mid.ChestTurn *= k; mid.HeadTurn *= k; mid.AnkleL *= k; mid.AnkleR *= k;
+            mid.ClavL.Normalize(); mid.ClavR.Normalize(); mid.UpperL.Normalize(); mid.UpperR.Normalize(); mid.ForeL.Normalize(); mid.ForeR.Normalize();
+            mid.KneeL.Normalize(); mid.KneeR.Normalize(); mid.FootL.Normalize(); mid.FootR.Normalize(); mid.ToeL.Normalize(); mid.ToeR.Normalize();
+            mid.HandL = MeanTurn(handL);
+            mid.HandR = MeanTurn(handR);
+            float swing = size * arms;
+
+            var data = new LocoClipData
+            {
+                name = name, role = d.role, loop = d.loop, rate = d.rate, frames = d.frames, legLength = d.legLength, duration = d.duration,
+                speed = d.speed, direction = d.direction, turn = d.turn, stride = d.stride, markers = d.markers, root = d.root,
+                contacts = d.contacts, phase = d.phase, kind = d.kind, set = d.set,
+                about = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} at {1:0.00} of its size, its arms' swings at {2:0.00}", clip.Name, size, swing),
+                points = new float[d.frames * LocoClip.BoneCount * 3],
+            };
+            for (int f = 0; f < d.frames; f++)
+            {
+                var t = frames[f];
+                var r = t;
+                r.Pelvis = new Vector3(mid.Pelvis.x + size * (t.Pelvis.x - mid.Pelvis.x), top - size * (top - t.Pelvis.y), mid.Pelvis.z + size * (t.Pelvis.z - mid.Pelvis.z));
+                r.PelvisTurn = mid.PelvisTurn + size * (t.PelvisTurn - mid.PelvisTurn);
+                r.ChestTurn = mid.ChestTurn + size * (t.ChestTurn - mid.ChestTurn);
+                r.HeadTurn = mid.HeadTurn + size * (t.HeadTurn - mid.HeadTurn);
+                r.AnkleL = new Vector3(mid.AnkleL.x + size * (t.AnkleL.x - mid.AnkleL.x), groundL + size * (t.AnkleL.y - groundL), mid.AnkleL.z + size * (t.AnkleL.z - mid.AnkleL.z));
+                r.AnkleR = new Vector3(mid.AnkleR.x + size * (t.AnkleR.x - mid.AnkleR.x), groundR + size * (t.AnkleR.y - groundR), mid.AnkleR.z + size * (t.AnkleR.z - mid.AnkleR.z));
+                r.KneeL = BodyTracks.Way(mid.KneeL, t.KneeL, size); r.KneeR = BodyTracks.Way(mid.KneeR, t.KneeR, size);
+                r.FootL = BodyTracks.Way(mid.FootL, t.FootL, size); r.FootR = BodyTracks.Way(mid.FootR, t.FootR, size);
+                r.ToeL = BodyTracks.Way(mid.ToeL, t.ToeL, size); r.ToeR = BodyTracks.Way(mid.ToeR, t.ToeR, size);
+                r.ClavL = BodyTracks.Way(mid.ClavL, t.ClavL, swing); r.ClavR = BodyTracks.Way(mid.ClavR, t.ClavR, swing);
+                r.UpperL = BodyTracks.Way(mid.UpperL, t.UpperL, swing); r.UpperR = BodyTracks.Way(mid.UpperR, t.UpperR, swing);
+                r.ForeL = BodyTracks.Way(mid.ForeL, t.ForeL, swing); r.ForeR = BodyTracks.Way(mid.ForeR, t.ForeR, swing);
+                r.HandL = Quaternion.SlerpUnclamped(mid.HandL, Quaternion.Dot(mid.HandL, t.HandL) < 0f ? new Quaternion(-t.HandL.x, -t.HandL.y, -t.HandL.z, -t.HandL.w) : t.HandL, swing);
+                r.HandR = Quaternion.SlerpUnclamped(mid.HandR, Quaternion.Dot(mid.HandR, t.HandR) < 0f ? new Quaternion(-t.HandR.x, -t.HandR.y, -t.HandR.z, -t.HandR.w) : t.HandR, swing);
+                m.Compose(r, p);
+                for (int i = 0; i < LocoClip.BoneCount; i++)
+                {
+                    int at = (f * LocoClip.BoneCount + i) * 3;
+                    data.points[at] = p[i].x;
+                    data.points[at + 1] = p[i].y;
+                    data.points[at + 2] = p[i].z;
+                }
+            }
+
+            return made[name] = new LocoClip(data);
+        }
+
+        private static Quaternion MeanTurn(float[] sum)
+        {
+            float length = Mathf.Sqrt(sum[0] * sum[0] + sum[1] * sum[1] + sum[2] * sum[2] + sum[3] * sum[3]);
+            return length > 1e-6f ? new Quaternion(sum[0] / length, sum[1] / length, sum[2] / length, sum[3] / length) : Quaternion.identity;
+        }
+
         /// <summary>The standard style: the sword and shield pack's guard, as the fight has moved until now.</summary>
         public static readonly MoveStyle Standard = new MoveStyle { Name = "Standard", Prefix = "sns_", JogPrefix = "jog_" };
+
+        /// <summary>
+        /// The capoeira style (the plan's step 4): it stands in the ginga, never still, one foot stepping back and then
+        /// the other, the hips swaying under it; to go anywhere it walks and jogs as the standard style does.
+        /// </summary>
+        public static readonly MoveStyle Capoeira = MakeCapoeira();
+
+        private static MoveStyle MakeCapoeira()
+        {
+            var style = new MoveStyle { Name = "Capoeira", Prefix = "sns_", JogPrefix = "jog_", StandSteps = true };
+            style.Named[Job.Stand] = GingaTakes[0].clip;
+            return style;
+        }
+
+        /// <summary>The take of the ginga the capoeira style stands in (<see cref="GingaTakes"/>).</summary>
+        public static int GingaTake
+        {
+            get
+            {
+                for (int i = 0; i < GingaTakes.Length; i++)
+                {
+                    if (Capoeira.Named[Job.Stand] == GingaTakes[i].clip)
+                    {
+                        return i;
+                    }
+                }
+
+                return 0;
+            }
+            set => Capoeira.Named[Job.Stand] = GingaTakes[Mathf.Clamp(value, 0, GingaTakes.Length - 1)].clip;
+        }
 
         private static readonly Dictionary<string, MoveStyle> byPrefix = new Dictionary<string, MoveStyle> { { "sns_", Standard } };
 

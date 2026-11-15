@@ -149,7 +149,13 @@ namespace PhysicsBattler.Locomotion
         {
             public string Name;
             public LocoClip Idle, WalkF, WalkB, StepL, StepR, CrossL, CrossR, RunF, RunB, RunL, RunR, TurnL, TurnR, Turn180;
+
+            /// <summary>Its standing clip steps (<see cref="MoveStyle.StandSteps"/>: the ginga): standing in it, the feet go as the clip has them.</summary>
+            public bool IdleSteps;
         }
+
+        /// <summary>Standing in a stand that steps (the ginga): the feet go as its clip has them, and none is held where it stopped.</summary>
+        public bool StandSteps => Guard != null && Guard.IdleSteps && GuardWeight > 0.5f;
 
         /// <summary>The guard's clips are made again from its style (after a switch that changes what a style's pack holds).</summary>
         public void RefreshStyle()
@@ -1047,6 +1053,13 @@ namespace PhysicsBattler.Locomotion
             idleTime += dt * TimeScale;
             idle.Pose(idleTime, raw, Leg);
             Contacts(idle, idleTime, 1f, true);
+            if (StandSteps)
+            {
+                // (A stand that steps: its feet are down when its clip has them down, and they are the clip's to place.)
+                Contacts(Guard.Idle, idleTime, 1f, true);
+                stanceHeld = false;
+            }
+
             Blend.Clear();
             float g = Guard != null ? GuardWeight : 0f;
             Blend.Add((idle, 1f - g));

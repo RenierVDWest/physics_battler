@@ -738,6 +738,7 @@ namespace PhysicsBattler.Locomotion
 
                 if (right)
                 {
+                    SwordInTheGinga(fore, hand, carry == Carry.Weapon);
                     SteerBlade(hand);
                     LimitBlade(hand);
                 }
@@ -988,6 +989,85 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>A strike's hand has let go of the last motion's turn by this long before contact (seconds of its clip).</summary>
         public float HandFadeGoneBefore = 0.08f;
+
+        // ---- The sword in a stand that steps (the ginga) ----------------------------------------------------------
+
+        /// <summary>
+        /// Standing in the ginga with a sword, the sword hand goes where the recorded hand goes but the blade is not
+        /// the recorded hand's (the scene's Combat Feel, "Ginga Sword Follows The Arm"). The ginga was recorded with
+        /// empty hands: a blade laid along those fingers is swept through his own head as the arm crosses his face.
+        /// The rule: the wrist is held straight, so the blade is carried on the forearm and swings as the arm weaves;
+        /// it is turned part of the way toward where he faces, forward and up, so it threatens what is in front of
+        /// him; it follows that with a little lag, so its point trails the hand and comes round after it; and it is
+        /// kept out of his own body. Off: the blade lies along the recorded fingers.
+        /// </summary>
+        public static bool GingaSword = true;
+
+        /// <summary>
+        /// The ginga's sword: how much the blade is turned from the forearm's line toward where he faces (0: carried on
+        /// the forearm alone; 1: always pointing ahead), how long its point takes to come round after the hand
+        /// (seconds, a half-life), and how near his own body's middle line any of it may come (metres at a Medium's size).
+        /// </summary>
+        public static float GingaSwordPoints = 0.35f, GingaSwordLag = 0.1f, GingaSwordClear = 0.3f;
+
+        private float gingaSword;
+        private Vector3 gingaBlade, gingaBladeSpeed;
+        private bool gingaBladeKnown;
+
+        /// <summary>How much of the ginga's sword rule is on (0 to 1): it comes in and goes out over a quarter of a second.</summary>
+        public float GingaSwordOn => gingaSword;
+
+        private void SwordInTheGinga(Transform fore, Transform hand, bool sword)
+        {
+            bool wanted = GingaSword && sword && loco.StandSteps && loco.Legs == Locomotor.Mode.Idle && loco.Current == Locomotor.Mode.Idle;
+            gingaSword = Mathf.MoveTowards(gingaSword, wanted ? 1f : 0f, poseDt / 0.25f);
+            if (gingaSword <= 0f)
+            {
+                gingaBladeKnown = false;
+                return;
+            }
+
+            // The wrist straight: the hand as it sits on the forearm at rest, and the blade as that carries it.
+            Quaternion straight = fore.rotation * anim.RestLocalRotation(PartId.HandR);
+            Vector3 carried = (straight * BladeR).normalized;
+            Vector3 ahead = (RootTurn * new Vector3(0f, 0.35f, 1f)).normalized;
+            Vector3 want = Vector3.Slerp(carried, ahead, Mathf.Clamp01(GingaSwordPoints)).normalized;
+            if (!gingaBladeKnown)
+            {
+                gingaBlade = (hand.rotation * BladeR).normalized;
+                gingaBladeSpeed = Vector3.zero;
+                gingaBladeKnown = true;
+            }
+
+            Springs.Track(ref gingaBlade, ref gingaBladeSpeed, want, Mathf.Max(0.01f, GingaSwordLag), poseDt);
+            gingaBlade = gingaBlade.sqrMagnitude > 1e-8f ? gingaBlade.normalized : want;
+
+            // Out of his own body: its point and its middle no nearer the line from his hips to the top of his head.
+            float scale = loco.Leg / 0.845f, clear = GingaSwordClear * scale;
+            Vector3 low = anim.Part(PartId.Pelvis).position, high = anim.Part(PartId.Head).position + Vector3.up * (0.15f * scale);
+            Vector3 grip = hand.position;
+            for (int pass = 0; pass < 2; pass++)
+            {
+                float along = WeaponLength * (pass == 0 ? 1f : 0.5f);
+                Vector3 at = grip + gingaBlade * along;
+                Vector3 axis = high - low;
+                float u = Mathf.Clamp01(Vector3.Dot(at - low, axis) / Mathf.Max(1e-6f, axis.sqrMagnitude));
+                Vector3 off = at - (low + axis * u);
+                if (off.magnitude < clear)
+                {
+                    // (Pushed out the way it already is; dead on the line, ahead of him.)
+                    Vector3 way = off.sqrMagnitude > 1e-6f ? off.normalized : RootTurn * Vector3.forward;
+                    Vector3 to = low + axis * u + way * clear - grip;
+                    if (to.sqrMagnitude > 1e-8f)
+                    {
+                        gingaBlade = to.normalized;
+                    }
+                }
+            }
+
+            var ruled = Quaternion.FromToRotation(carried, gingaBlade) * straight;
+            hand.rotation = Quaternion.Slerp(hand.rotation, ruled, gingaSword * gingaSword * (3f - 2f * gingaSword));
+        }
 
         private Quaternion FadeHand(int a, Quaternion want)
         {

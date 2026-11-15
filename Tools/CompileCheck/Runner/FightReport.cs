@@ -681,6 +681,20 @@ internal static class FightReport
                 // (FIGHT_DUELPACE=2.6: the pace he is asked to go at, m/s; without it, his guard's own walk.)
                 // (FIGHT_DUELLEAP=0.8: how far a leap goes, metres; FIGHT_DUELLEAPTIME=0.3: how long it takes.)
                 duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f), LeapFar = Env("FIGHT_DUELLEAP", 0.5f), LeapTime = Env("FIGHT_DUELLEAPTIME", 0.25f) };
+                // (FIGHT_DUELSTYLE=capoeira: he moves in the capoeira style, standing in the ginga. FIGHT_GINGASIZE=0.67,
+                // FIGHT_GINGAARMS=1, FIGHT_GINGATAKE=0..3: the ginga's size, its arms' swings and which take of it.)
+                if ((Environment.GetEnvironmentVariable("FIGHT_DUELSTYLE") ?? "").ToLowerInvariant().StartsWith("cap"))
+                {
+                    duel.Style = PhysicsBattler.Locomotion.MoveStyle.Capoeira;
+                }
+
+                PhysicsBattler.Locomotion.MoveStyle.StandSize = Env("FIGHT_GINGASIZE", PhysicsBattler.Locomotion.MoveStyle.StandSize);
+                PhysicsBattler.Locomotion.MoveStyle.StandArms = Env("FIGHT_GINGAARMS", PhysicsBattler.Locomotion.MoveStyle.StandArms);
+                PhysicsBattler.Locomotion.MoveStyle.GingaTake = (int)Env("FIGHT_GINGATAKE", 0f);
+                // (FIGHT_GINGASWORD=0: the ginga's blade along the recorded fingers, as recorded. FIGHT_GINGAPOINTS=0.35, FIGHT_GINGALAG=0.1.)
+                PhysicsBattler.Locomotion.LocoBody.GingaSword = Environment.GetEnvironmentVariable("FIGHT_GINGASWORD") != "0";
+                PhysicsBattler.Locomotion.LocoBody.GingaSwordPoints = Env("FIGHT_GINGAPOINTS", PhysicsBattler.Locomotion.LocoBody.GingaSwordPoints);
+                PhysicsBattler.Locomotion.LocoBody.GingaSwordLag = Env("FIGHT_GINGALAG", PhysicsBattler.Locomotion.LocoBody.GingaSwordLag);
                 // (FIGHT_DUELNEAR=1: how near he walks, metres.)
                 duel.Near = Env("FIGHT_DUELNEAR", duel.Near);
                 foreach (string part in (Environment.GetEnvironmentVariable("FIGHT_DUELBLOW") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))

@@ -40,6 +40,13 @@ GUARD = {
     'jog_back': ('jog_backward', 'cycle', True, 'Jogging backward, empty hands'),
     'jog_left': ('jog_strafe_left', 'cycle', True, 'Jogging to the left, empty hands'),
     'jog_right': ('jog_strafe_right', 'cycle', True, 'Jogging to the right, empty hands'),
+    # (The plan "Fight Rhythm from Recordings", step 4: the ginga, capoeira's base, recorded with empty hands. A stand
+    # that steps: on the spot, one foot back and across and then the other, the hips swaying under it. The walk
+    # stands in it as it stands in a guard's idle, its feet's steps the recording's own: MoveStyle.Capoeira.)
+    'cap_ginga': ('capoeira', 'guard_idle', True, 'The ginga, on the spot (3.4 s: a step back to each side)'),
+    'cap_ginga_b': ('ginga_variation_3', 'guard_idle', True, 'The ginga, on the spot, a quieter take (2.9 s)'),
+    'cap_ginga_c': ('ginga_variation_1', 'guard_idle', True, 'The ginga, on the spot, a lower take with a turn of the body (3.5 s)'),
+    'cap_ginga_d': ('ginga_variation_2', 'guard_idle', True, 'The ginga, on the spot, a lower take (3.8 s)'),
     'sns_turn_left': ('sword_and_shield_turn', 'turn', False, 'Medium guard, turning left on the spot'),
     'sns_turn_right': ('sword_and_shield_turn_b', 'turn', False, 'Medium guard, turning right on the spot'),
     'sns_turn180': ('sword_and_shield_180_turn', 'turn', False, 'Medium guard, turning round'),

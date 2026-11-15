@@ -473,6 +473,9 @@ namespace PhysicsBattler.Sandbox
         private AimSpot aimSpot = AimSpot.Chest;
         private string aimLast = "";
 
+        /// <summary>The duel lab's swordsman moves in the capoeira style (the plan's step 4): a sword alone, standing in the ginga.</summary>
+        private bool duelCapoeira;
+
         /// <summary>The aim test's blows: asked, followed and counted.</summary>
         public readonly AimTest Aim = new AimTest();
 
@@ -574,6 +577,51 @@ namespace PhysicsBattler.Sandbox
             var style = mover != null && mover.Clip != null && mover.Clip.Loco != null ? mover.Clip.Loco.Style : null;
             GUILayout.Label(new GUIContent("Style: " + (style != null ? style.Name : "none") + (style != null ? $" (the pack \"{style.Prefix}\")" : ""),
                 "The movement style the swordsman's guard moves in: a pack of recordings, each with a job in the walk (standing, walking forward and back, a step to each side, running, turning). The standard style is the sword and shield pack's guard, as the fight has moved until now."), Styles().Text);
+            GUILayout.BeginHorizontal();
+            if (Press(!duelCapoeira ? "[Standard]" : "Standard", "The standard style: sword and shield, standing in his guard. Sets the lab out again."))
+            {
+                if (duelCapoeira)
+                {
+                    duelCapoeira = false;
+                    DuelLabScene();
+                }
+            }
+
+            if (Press(duelCapoeira ? "[Capoeira]" : "Capoeira", "The capoeira style: a sword alone, and he stands in the ginga: never still, one foot stepping back and then the other, the hips swaying, the arms and the sword going with it. To go anywhere he walks and jogs as the standard style does, and goes back into the ginga where he stops. Sets the lab out again."))
+            {
+                if (!duelCapoeira)
+                {
+                    duelCapoeira = true;
+                    DuelLabScene();
+                }
+            }
+
+            GUILayout.EndHorizontal();
+            if (duelCapoeira)
+            {
+                var gingaFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+                if (Press("Ginga: " + PhysicsBattler.Locomotion.MoveStyle.GingaTakes[PhysicsBattler.Locomotion.MoveStyle.GingaTake].about, "Which recording of the ginga he stands in. Press for the next of the four."))
+                {
+                    PhysicsBattler.Locomotion.MoveStyle.GingaTake = (PhysicsBattler.Locomotion.MoveStyle.GingaTake + 1) % PhysicsBattler.Locomotion.MoveStyle.GingaTakes.Length;
+                }
+
+                if (gingaFeel != null)
+                {
+                    gingaFeel.gingaSize = Lever("Ginga size", gingaFeel.gingaSize, 0.3f, 1.2f, "How big the ginga is made against its recording: its steps, the hips' sway and sinking, the body's turns. 1: as recorded. 0.67: two thirds.");
+                    gingaFeel.gingaArms = Lever("Ginga arms", gingaFeel.gingaArms, 0f, 1.5f, "How much of the arms' swings is kept, on top of the size. 0: the arms held where they are in the middle of the ginga.");
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent("Sword:", "How the blade is held as the sword hand goes with the ginga. By the wrist (new): carried on the forearm with the wrist straight, turned part of the way to where he faces, its point trailing the hand, kept out of his own body. As recorded (old): laid along the recorded empty hand's fingers, which sweeps it through his own head as the arm crosses his face."), Styles().Text, GUILayout.Width(60f));
+                    if (Press(gingaFeel.gingaSwordFollowsTheArm ? "[by the wrist]" : "by the wrist", "The blade carried on the forearm, pointed part of the way ahead, trailing the hand, out of his body (Combat Feel \"Ginga Sword Follows The Arm\").")) gingaFeel.gingaSwordFollowsTheArm = true;
+                    if (Press(!gingaFeel.gingaSwordFollowsTheArm ? "[as recorded]" : "as recorded", "The blade along the recorded hand's fingers.")) gingaFeel.gingaSwordFollowsTheArm = false;
+                    GUILayout.EndHorizontal();
+                    if (gingaFeel.gingaSwordFollowsTheArm)
+                    {
+                        gingaFeel.gingaSwordPointsAhead = Lever("Points ahead", gingaFeel.gingaSwordPointsAhead, 0f, 1f, "How much the blade is turned from the forearm's line toward where he faces. 0: it swings as far as the arm does. 1: it always points ahead.");
+                        gingaFeel.gingaSwordTrails = Lever("Trails", gingaFeel.gingaSwordTrails, 0.02f, 0.4f, "How long the blade's point takes to come round after the hand (seconds). More reads as a heavier blade, swung looser.");
+                    }
+                }
+            }
+
             Heading("Move him", "Each button is an order he carries out until it is done or another is given.");
             GUILayout.BeginHorizontal();
             if (Press("Walk to", $"He walks up to the other and stands {Duel.Near:0.0} m from it.")) Duel.Give(DuelLab.Order.WalkTo);
@@ -677,10 +725,13 @@ namespace PhysicsBattler.Sandbox
             var target = SpawnUnit(BodySize.Medium, 1, targetSpot, "Target", aimTargetKit == 0 ? null : sword, aimTargetKit == 1 ? shield : null);
             // (With made attacks the swordsman has a shield as well: the strikes were recorded with sword and shield, and
             // their guard and their footwork are that kit's.)
-            var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", sword, AttackMaker.On || duelLab ? shield : null);
+            // (In the capoeira style he has a sword alone: the ginga's other arm is its own.)
+            bool capoeira = duelLab && duelCapoeira;
+            var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", sword, (AttackMaker.On || duelLab) && !capoeira ? shield : null);
             Aim.Begin(attacker, target);
             if (duelLab)
             {
+                Duel.Style = capoeira ? PhysicsBattler.Locomotion.MoveStyle.Capoeira : PhysicsBattler.Locomotion.MoveStyle.Standard;
                 Duel.Begin(attacker, target);
             }
             else

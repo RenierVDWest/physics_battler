@@ -2164,6 +2164,13 @@ namespace PhysicsBattler.Locomotion
                     parryWaited = true;
                     PoseBuilt(dt);
                 }
+                else if (GingaHasArms(dt))
+                {
+                    // (Standing in the ginga with no blow coming: the arms are the ginga's own, not the sword's guard.
+                    // The parry takes the sword up again from where the ginga has it.)
+                    parryWaited = true;
+                    PoseBuilt(dt);
+                }
                 else
                 {
                     if (parryWaited)
@@ -2179,7 +2186,27 @@ namespace PhysicsBattler.Locomotion
 
                     parryHeldAt = clock;
                     Parry.Skill = ParrySkillNow;
+                    if (gingaArms > 0f)
+                    {
+                        // (Going between the ginga's arms and the sword's guard: the guard is solved, and the arms shown
+                        // part of the way back to where the ginga had them.)
+                        for (int i = 0; i < ArmParts.Length; i++)
+                        {
+                            gingaArmWas[i] = Anim.Part(ArmParts[i]).localRotation;
+                        }
+                    }
+
                     Parry.Step(dt, Blow, opponent);
+                    if (gingaArms > 0f)
+                    {
+                        float w = gingaArms * gingaArms * (3f - 2f * gingaArms);
+                        for (int i = 0; i < ArmParts.Length; i++)
+                        {
+                            var part = Anim.Part(ArmParts[i]);
+                            part.localRotation = Quaternion.Slerp(part.localRotation, gingaArmWas[i], w);
+                        }
+                    }
+
                     MarkArms("the parry and the free arm");
                     MaybeRetire(opponent);
                 }
@@ -2198,6 +2225,25 @@ namespace PhysicsBattler.Locomotion
             Recover(dt);
             MarkArms("the recovery");
             Poise = Mathf.Min(MaxPoise, Poise + PoiseBack * MaxPoise * dt);
+        }
+
+        private static readonly PartId[] ArmParts = { PartId.UpperArmL, PartId.ForearmL, PartId.HandL, PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
+        private readonly Quaternion[] gingaArmWas = new Quaternion[6];
+        private float gingaArms;
+
+        /// <summary>How long the arms take to go between the ginga's own and the sword's guard (seconds).</summary>
+        public const float GingaArmsBlend = 0.3f;
+
+        /// <summary>
+        /// Standing in a stand that steps (the ginga), with no blow coming at it, the arms are that stand's own: they
+        /// swing with it, where a sword's guard would hold them still on its line. True when they are wholly the
+        /// ginga's this step; going over, the guard is still solved and the arms shown between the two.
+        /// </summary>
+        private bool GingaHasArms(float dt)
+        {
+            bool wanted = Loco.StandSteps && Loco.Current == Locomotor.Mode.Idle && !Blow.HasValue;
+            gingaArms = Mathf.MoveTowards(gingaArms, wanted ? 1f : 0f, dt / GingaArmsBlend);
+            return gingaArms >= 1f;
         }
 
         /// <summary>The built blow it is striking with, or struck with last (the plan "Aimed attacks"); null before any.</summary>
