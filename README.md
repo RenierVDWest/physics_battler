@@ -4601,9 +4601,8 @@ chose, never the look. Two things are changed.
   the recording through each step and then went over to the other foot at 3 m/s as the feet changed (the
   recording's most: 2 m/s). The lift of a foot moving low over the ground raised the swinging foot 10 cm a
   second time. Both are left out while he stands in the made ginga (the recorded man shifted his own weight, and
-  his foot comes back low to be set down). The rests were at the middle of each both-feet-down stretch, not
-  where he is stillest. A take's contact flags were read 3 frames too wide for one rest of `cap_ginga`, which
-  was then never come to.
+  his foot comes back low to be set down). The rests are now at the moment of each both-feet-down stretch he
+  is stillest at (the recorded man all but stops there: hips 0.2 m/s), not at its middle.
 - **Measured** (empty hands, the other fighter 3 m off, half a minute standing; cm are the usual distance from
   the recording's motion at the same moment, his build taken out):
 
