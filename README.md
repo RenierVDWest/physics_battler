@@ -4360,3 +4360,18 @@ as alive or as waved about. Known and not done: he does not travel in the ginga 
 ginga steps are single steps with turns, not loops; he walks instead); the ginga always begins again from its
 first frame where he stops; a blow out of the ginga is the standard style's planted blow (step 5 is the blows
 made for it); turning on the spot uses the standard style's turn.
+
+**Movement styles as offshoots of the standard set: the plan** (15 November; no code in the game changed). The
+first-pass ginga was judged too busy and plainly a loop. Before building anything else, a plan was written:
+<https://claude.ai/artifact/AUmVKUKxhELrbbn3ZL8PJ4>. In short: a style is split into its manner (how the body is
+carried, measured as a difference from the standard and laid over any standard motion, with a "style amount"
+from 0 to 1), its vocabulary (moves only it has, such as the ginga's four-place step pattern, built from
+standard steps instead of played) and its rhythm (tempo, restlessness, variation, as dials). The recordings
+become the ruler, not the animation. The steps are S0 to S9 in the plan; nothing is built until it is agreed.
+
+- **The measuring tool** is new: `python3 -I Tools/Mocap/Style/style_measure.py <sample.json>... [--feet]`
+  prints a clip's carriage (hips height as a share of the leg, feet apart, lean, twist, where the hands are
+  held against the chest), its motion (how far and how fast the hips and hands move) and its footwork (steps a
+  second, step length, time on the ground, and with `--feet` where each foot lands). The plan's numbers come
+  from it: the sword-and-shield walk is the plain walk plus a carriage; the capoeira carriage is the same across
+  six clips; the four ginga takes fit one four-place pattern.
