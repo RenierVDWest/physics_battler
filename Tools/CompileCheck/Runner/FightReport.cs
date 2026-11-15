@@ -613,12 +613,36 @@ internal static class FightReport
         }
 
         PhysicsBattler.Sandbox.AimTest aim = null;
+        // (FIGHT_DUEL="WalkTo:6,CircleLeft:6,BackAway:5": the duel lab's movement orders given in turn, each for so
+        // many seconds, in the aim lineup; no blows are asked for. FIGHT_DUELAPART=3: how far apart the two begin.)
+        PhysicsBattler.Sandbox.DuelLab duel = null;
+        var duelOrders = new List<(PhysicsBattler.Sandbox.DuelLab.Order order, float until)>();
+        int duelAt = -1;
+        float duelFrom = 0f, duelGapFrom = 0f, duelNote = 0f;
         int aimRounds = 0;
         if (aimLineup)
         {
             float Env(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
             float apart = Env("FIGHT_AIMDIST", PhysicsBattler.Sandbox.BattleSandbox.AimDistanceAtFirst), turned = Env("FIGHT_AIMTURN", 0f);
             aimRounds = Mathf.Max(1, (int)Env("FIGHT_AIMROUNDS", 1f));
+            string duelAsked = Environment.GetEnvironmentVariable("FIGHT_DUEL");
+            if (!string.IsNullOrEmpty(duelAsked))
+            {
+                apart = Env("FIGHT_DUELAPART", PhysicsBattler.Sandbox.BattleSandbox.DuelApartAtFirst);
+                aimRounds = 0;
+                float until = 1.5f;
+                foreach (string part in duelAsked.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var kv = part.Split(':');
+                    if (Enum.TryParse(kv[0].Trim(), true, out PhysicsBattler.Sandbox.DuelLab.Order order))
+                    {
+                        until += kv.Length > 1 && float.TryParse(kv[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float secs) ? secs : 5f;
+                        duelOrders.Add((order, until));
+                    }
+                }
+
+                duel = new PhysicsBattler.Sandbox.DuelLab();
+            }
             var attacker = units[0];
             var target = units[1];
             Vector3 targetSpot = grid.origin + new Vector3(0f, 0f, 0.5f * apart), attackerSpot = grid.origin + new Vector3(0f, 0f, -0.5f * apart);
@@ -1175,6 +1199,46 @@ internal static class FightReport
                             }
                         }
                     }
+                }
+
+                if (duel != null && aim != null)
+                {
+                    // (The duel lab: each order given at its time, and how the mover went under it told as it ends.)
+                    if (!duel.Running)
+                    {
+                        duel.Begin(aim.Attacker, aim.Target);
+                    }
+
+                    int now = duelAt;
+                    while (now + 1 < duelOrders.Count && paceAt >= (now < 0 ? 1.5f : duelOrders[now].until))
+                    {
+                        now++;
+                    }
+
+                    if (now != duelAt || (duelAt >= 0 && duelAt == duelOrders.Count - 1 && paceAt >= duelOrders[duelAt].until && duelNote >= 0f))
+                    {
+                        if (duelAt >= 0)
+                        {
+                            float took = paceAt - duelFrom;
+                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "DUEL {0,-11} for {1:0.0} s: went {2:0.00} m ({3:0.00} m/s over the whole of it), from {4:0.00} m apart to {5:0.00} m; ended {6}",
+                                duelOrders[duelAt].order, took, duel.Gone, duel.Gone / Mathf.Max(0.1f, took), duelGapFrom, duel.Gap, duel.Now == PhysicsBattler.Sandbox.DuelLab.Order.Stand ? "standing (the order done)" : "still at it"));
+                        }
+
+                        if (now != duelAt)
+                        {
+                            duelAt = now;
+                            duelFrom = paceAt;
+                            duelGapFrom = duel.Gap;
+                            duel.Give(duelOrders[now].order);
+                        }
+                        else
+                        {
+                            duelNote = -1f;
+                            duel.Give(PhysicsBattler.Sandbox.DuelLab.Order.Stand);
+                        }
+                    }
+
+                    duel.Step(dt);
                 }
 
                 if (aim != null)

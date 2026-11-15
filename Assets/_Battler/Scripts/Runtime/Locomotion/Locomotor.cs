@@ -270,32 +270,23 @@ namespace PhysicsBattler.Locomotion
         /// Gives the walker a guard: the body's guard clips by their names' prefix ("sns_": the sword and
         /// shield's, "lg_": the Large's two-handed one). Null takes it away.
         /// </summary>
-        public void SetGuard(string prefix)
+        public void SetGuard(string prefix) => SetStyle(MoveStyle.Of(prefix));
+
+        /// <summary>The movement style its guard moves in (<see cref="MoveStyle"/>: the pack of recordings it steps with); null: no guard.</summary>
+        public MoveStyle Style { get; private set; }
+
+        /// <summary>Gives the walker a movement style: its guard's clips are that pack's. Null takes the guard away.</summary>
+        public void SetStyle(MoveStyle style)
         {
-            if (string.IsNullOrEmpty(prefix))
+            Style = style;
+            if (style == null)
             {
                 Guard = null;
                 GuardWeight = 0f;
                 return;
             }
 
-            LocoClip Get(string name) => LocoLibrary.Get(prefix + name);
-            var set = new ClipSet
-            {
-                Name = prefix,
-                // (The steadier of the standing takes first: the long one lowers its shield now and then.)
-                Idle = Get("idle_b") ?? Get("idle"),
-                WalkF = Get("walk"),
-                WalkB = Get("walk_back"),
-                StepL = Get("step_left"),
-                StepR = Get("step_right"),
-                RunF = Get("run"),
-                RunB = Get("run_back"),
-                TurnL = Get("turn_left"),
-                TurnR = Get("turn_right"),
-                Turn180 = Get("turn180"),
-            };
-            Guard = set.Idle != null && set.WalkF != null ? set : null;
+            Guard = style.Clips();
         }
 
         // Inertialization: what is left of the last motion's pose against the new one, fading out.
