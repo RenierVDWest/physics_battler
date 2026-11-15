@@ -69,6 +69,15 @@ namespace PhysicsBattler.Locomotion
     /// <summary>What an attack is made for: where the blade is to land and when.</summary>
     public struct AttackAim
     {
+        /// <summary>
+        /// A style's manner is laid over him as he strikes (<see cref="StyleManner"/>; a blow thrown from a stand):
+        /// the carriages it goes between and how much of it. The blow is fitted for the body as the manner will
+        /// have it: leaned and sunk, its sword arm hanging from the chest as the recording's does.
+        /// </summary>
+        public bool Mannered;
+        public Carriage MannerFrom, MannerTo;
+        public MannerDials MannerDials;
+
         /// <summary>It is aimed (off: the score as it is, its own contact).</summary>
         public bool Aimed;
 
@@ -515,7 +524,13 @@ namespace PhysicsBattler.Locomotion
             bool moving = aim.OnTheMove;
             float driveOut = score.Drive / score.Rate * windTime;
             Vector3 coast = moving ? Vector3.zero : Coast(Carried(score, aim, style.Lunge, windTime), landsAfter);
+            bool mannered = !moving && aim.Mannered;
             Vector3 target = moving ? Virtual(score, style, fit, aim, tau, landsAfter, driveOut) : aim.Target - coast;
+            if (mannered)
+            {
+                target = Mannered(score, style, fit, aim, tau, target);
+            }
+
             Vector2 want = new Vector2(target.x, target.z);
             Vector3 goes = (Styled(score, style, fit, tau).Pelvis - score.Frames[0].Pelvis) * style.Lunge;
             goes.y = 0f;
@@ -526,6 +541,11 @@ namespace PhysicsBattler.Locomotion
                 // (The attack's own speed at its start goes with its travel's stretch: what is carried against it is found again.)
                 coast = moving ? Vector3.zero : Coast(Carried(score, aim, style.Lunge * fit.Lunge, windTime), landsAfter);
                 target = moving ? Virtual(score, style, fit, aim, tau, landsAfter, driveOut) : aim.Target - coast;
+                if (mannered)
+                {
+                    target = Mannered(score, style, fit, aim, tau, target);
+                }
+
                 want = new Vector2(target.x, target.z);
                 Sword(score, style, fit, tau, m, hold, out grip, out way, out hips, out reach);
                 Vector3 strike = grip + way * hold.Strike;
@@ -573,6 +593,11 @@ namespace PhysicsBattler.Locomotion
             // The wrist's steer the last of the way, then the sword hand for what is still left.
             coast = moving ? Vector3.zero : Coast(Carried(score, aim, style.Lunge * fit.Lunge, windTime), landsAfter);
             target = moving ? Virtual(score, style, fit, aim, tau, landsAfter, driveOut) : aim.Target - coast;
+            if (mannered)
+            {
+                target = Mannered(score, style, fit, aim, tau, target);
+            }
+
             Sword(score, style, fit, tau, m, hold, out grip, out way, out hips, out reach);
             way = Steered(way, target - grip, score.Thrust ? hold.MostThrustSteer : hold.MostSteer, out steer);
             lands = grip + way * hold.Strike;
@@ -594,6 +619,46 @@ namespace PhysicsBattler.Locomotion
             cost = 10f * shortBy + 2f * move.magnitude + 0.5f * Mathf.Abs(fit.Lunge - 1f) + 0.7f * fit.StepIn.magnitude + Mathf.Abs(fit.Turn) / 50f
                 + Mathf.Abs(fit.Lean) / 50f + Mathf.Abs(fit.Drop) / 0.35f + steer / 90f + Mathf.Abs(tau - contact);
             return fit;
+        }
+
+        /// <summary>The chest's place and turn for a body's tracks with its spine bent as given.</summary>
+        private static void ChestOf(in BodyTracks t, in SpineShape spine, out Vector3 at, out Quaternion turn)
+        {
+            Quaternion pel = Quaternion.Euler(t.PelvisTurn);
+            turn = pel * Quaternion.Euler(t.ChestTurn);
+            at = t.Pelvis + pel * spine.Spine + Quaternion.Slerp(pel, turn, BodyMeasures.SpineShare1) * spine.Spine1 + Quaternion.Slerp(pel, turn, BodyMeasures.SpineShare2) * spine.Spine2;
+        }
+
+        /// <summary>
+        /// A blow thrown from a stand by a fighter a style's manner is laid over: its target as the recording's own
+        /// body has it (the frame the blow begins in, leg lengths). The manner leans and sinks the body after the
+        /// blow is made, and the sword arm hangs from the chest the same either way; so the target is carried from
+        /// the chest as the manner will have it at the landing to the chest as the recording has it. Fitted to
+        /// that, the blow lands on the target with the manner on. (The same carrying as a blow on the move's:
+        /// <see cref="Virtual"/>.)
+        /// </summary>
+        private static Vector3 Mannered(AttackScore score, in AttackStyle style, in Fit fit, in AttackAim aim, float tau, Vector3 target)
+        {
+            float far = style.Lunge * fit.Lunge;
+            var t = Styled(score, style, fit, tau);
+            Vector3 root = RootOf(score, tau) * far, rootOut = RootAt(score, far, fit.Turn, tau);
+            float facing = FacingOf(score, tau);
+            // (The body against its own root, as the walk has it when it lays the manner.)
+            var back = Quaternion.Euler(0f, -facing, 0f);
+            var onRoot = t;
+            onRoot.Pelvis = back * (t.Pelvis - root);
+            onRoot.Pelvis.y = t.Pelvis.y;
+            onRoot.PelvisTurn.y -= facing;
+            var laid = StyleManner.Lay(onRoot, aim.MannerFrom, aim.MannerTo, aim.MannerDials);
+            ChestOf(onRoot, aim.MannerFrom.Spine, out Vector3 chest, out Quaternion che);
+            ChestOf(laid, SpineShape.Lerp(aim.MannerFrom.Spine, aim.MannerTo.Spine, aim.MannerDials.Carriage), out Vector3 chestLaid, out Quaternion cheLaid);
+            // (The root's frame out to the frame the blow begins in, and back.)
+            var outTurn = Quaternion.Euler(0f, fit.Turn * TurnShare(score, tau) + facing, 0f);
+            Vector3 flat = Quaternion.Inverse(outTurn) * new Vector3(target.x - rootOut.x, 0f, target.z - rootOut.z);
+            Vector3 onRootTarget = new Vector3(flat.x, target.y, flat.z);
+            Vector3 own = chest + che * (Quaternion.Inverse(cheLaid) * (onRootTarget - chestLaid));
+            Vector3 there = rootOut + outTurn * new Vector3(own.x, 0f, own.z);
+            return new Vector3(there.x, own.y, there.z);
         }
 
         private static float FacingOf(AttackScore score, float time)
@@ -783,6 +848,16 @@ namespace PhysicsBattler.Locomotion
                 own.Carry = Vector3.zero;
                 own.Eased = false;
                 own.AirL = own.AirR = 0f;
+                made.Aim = own;
+            }
+
+            if (aim.Aimed && !aim.OnTheMove && aim.Mannered)
+            {
+                // (From here on it is made for the target as the recording's own body has it: with the manner laid on, that is the target asked for.)
+                float windTime = WindTime(score, used, aim, fit.Tau), landsAfter = LandsAfter(score, used, aim, fit.Tau);
+                Vector3 real = aim.Target - Coast(Carried(score, aim, used.Lunge * fit.Lunge, windTime), landsAfter);
+                AttackAim own = aim;
+                own.Target = aim.Target + (Mannered(score, used, fit, aim, fit.Tau, real) - real);
                 made.Aim = own;
             }
 

@@ -22,6 +22,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The clip library's prefix for this pack's recordings ("sns_": the sword and shield's guard).</summary>
         public string Prefix;
 
+        /// <summary>
+        /// The style's own profile in the profile file (<see cref="StyleProfile"/>: "guard", "sword"; null: it has none):
+        /// what its carriage is counted from when another style's manner is laid over it (<see cref="StyleManner"/>).
+        /// </summary>
+        public string Profile;
+
         /// <summary>The jobs, in the order of <see cref="UsualNames"/>.</summary>
         public enum Job
         {
@@ -341,7 +347,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>The standard style: the sword and shield pack's guard, as the fight has moved until now.</summary>
-        public static readonly MoveStyle Standard = new MoveStyle { Name = "Standard", Prefix = "sns_", JogPrefix = "jog_" };
+        public static readonly MoveStyle Standard = new MoveStyle { Name = "Standard", Prefix = "sns_", JogPrefix = "jog_", Profile = "guard" };
 
         /// <summary>
         /// The capoeira style (the plan's step 4): it stands in the ginga, never still, one foot stepping back and then
@@ -386,7 +392,7 @@ namespace PhysicsBattler.Locomotion
 
             if (!byPrefix.TryGetValue(prefix, out var style))
             {
-                byPrefix[prefix] = style = new MoveStyle { Name = prefix.TrimEnd('_'), Prefix = prefix };
+                byPrefix[prefix] = style = new MoveStyle { Name = prefix.TrimEnd('_'), Prefix = prefix, Profile = prefix == "sw_" ? "sword" : null };
             }
 
             return style;

@@ -4416,7 +4416,8 @@ making the standard set better comes first, so whatever can be rolled into the s
   guard's: its stride is 4 cm longer and its timing a little different. (The plan said the legs match to the
   centimetre; that was the hips' height and range. The feet do not, quite.)
 - **What it also showed.** (1) The spine's own bend is part of a carriage: without it the chest was 3.0 and the
-  head 4.9 cm off, and the ginga's back is bent twice as far as the guard's. (2) A carriage belongs to its job:
+  head 4.9 cm off. (An earlier note here said the ginga's back is bent twice as far as the guard's: it is not, on
+  average; the ginga's back moves more, which is what that number was.) (2) A carriage belongs to its job:
   the guard's standing carriage (hips turned 41 degrees, sitting at 0.85) laid on the walk is 14 cm off at the
   hips; a pack that lacks a job gets the nearest job's, and that is a real limit. (3) Where the feet stand is
   not manner: the guard's step to the side is a different step from the plain walk's (feet 21 to 28 cm apart
@@ -4436,3 +4437,71 @@ making the standard set better comes first, so whatever can be rolled into the s
 
 New files that need their .meta from Unity: `Locomotion/StyleManner.cs`,
 `Resources/Locomotion/StyleProfiles.json`.
+
+**Movement styles, step S2: capoeira's manner over the standard set** (15 November; Combat Feel "Capoeira Style
+Amount", 0; the duel lab's lever "Capoeira manner"). The round trip was looked at in Unity and the two walks
+could not be told apart. One thing that look could not show, found after: a fighter with a sword or a shield
+has its arms placed by the sword's and the shield's own guard, over whatever the walk does, so the two walks'
+arms were the same arms. The look confirmed the trunk, the head and the legs; the arms are confirmed in numbers
+only.
+
+- **What it is.** One lever, the style amount, from 0 (the standard fighter exactly as he is: nothing is done)
+  to 1. He does everything the standard does (his stance, his steps, his walk, his jog, his leaps, his blows)
+  and is carried doing it as capoeira carries the body, from its profile: leaned well forward, sitting lower. It
+  is laid in the walk (`Locomotor.LayManner`) on each step's pose, for the job he is doing (standing, walking
+  forward, back, to a side, running, by the walk's own blend of directions), before a blow on the move is laid
+  over it. Every fighter in the standard guard takes it.
+- **Measured** (the same duel, standing, walking in, circling, backing away; `Tools/Mocap/Style/film_measure.py`
+  on the fight's film):
+
+  | | Standard | Amount 1 | The capoeira recordings |
+  | --- | --- | --- | --- |
+  | Trunk's lean (degrees) | 11 to 14 | 35 to 38 | 30 to 41 |
+  | Hips (m up) standing / walking | 0.83 / 0.88 | 0.76 / 0.78 | (0.73 to 0.83 of standing straight; his come to 0.78 and 0.83) |
+  | Planted feet slide (cm/s; the worst) | 1.7 to 6.6 (8.8 to 106) | 1.4 to 6.7 (8.8 to 106) | |
+  | Knees, least bent (degrees) | 2 | 15 | |
+
+  The feet are where the standard put them, to the millimetre. Swept from 0 to 1 through the same duel and
+  through a fight of six blows: nothing jumps (the head's fastest and its sharpest change from one step to the
+  next are the standard's: 2.6 against 2.6 m/s, 2.1 against 1.8).
+- **Rules it needed**, each found by something going wrong:
+  - *The hips are never turned by a manner.* How the hips are turned on the feet is the stance's (41 degrees in
+    the guard's stand, 64 in its side step), and capoeira stands square: turning them would twist the legs.
+  - *The lean goes toward where he faces*, not where his hips point: each of the hips, the chest and the head
+    is tipped, against the root, from how the standard tips it to how capoeira does. Leaned along the hips, he
+    leaned 41 degrees off his man, and the head was swung round at 3 m/s when the hips turned to set off.
+  - *The carriage is the job's that the legs are doing*, taken at once with the walk's own switch (which fades
+    the whole body, manner and all) and by the walk's own direction. Lagging, or read off his speed as he set
+    off, it was the wrong job's for a few steps: the head jumped 5 to 20 cm in a step.
+  - *What a part does is made bigger only as far as the job usually takes it* (twice its usual going): a body
+    far from the job's middle is on its way between jobs, and that is not the style's to stretch.
+  - *A blow from a stand is fitted for the body as the manner will carry it* (`AttackAim.Mannered`: the target is
+    carried from the chest as it will be to the chest as recorded, as a blow on the move's is), its arms and
+    hands the blow's own. Without that the posed blade was 25 to 33 cm off; with it 1 to 13.
+  - *He comes half way up to strike* ("Kept In Blows", 0.5). Leaned right over, a blow at the chest has to be
+    thrown upward; the maker then takes the rising cut, and the other's sword hand stops it 60 cm short.
+  - *A blow's starting fade carries the manner* (the clip as it was a step ago is laid with it too): without,
+    the head jumped at 4 m/s as each blow from a walk began.
+- **Blows with it on** (the physical blade, the same batteries as before). From a stand, six at the chest:
+  it met the chest in four (12 to 18 cm from the spot) and an arm in two; the standard's six met the chest in
+  two and an arm in four. On the move, ten: much as the standard's (the part asked for or the one beside it,
+  8 to 31 cm off; one at a far thigh met the arm 53 cm off in both); one thrown from 2.2 m fell 30 cm short,
+  as its plan said it would. The six fighters' fight with the manner on all of them: 66 blows in the
+  minute, nothing thrown; blades in their own bodies 9.1 s in all (8.0 s without it: the Large's club in its own
+  chest, as before). With the amount at 0 the fights are unchanged (78 and 84 blows).
+- **The levers** (duel lab, under "Capoeira manner"; Combat Feel "Capoeira Style ..."): *Squares up* (0.5: how
+  much the chest and head turn square to the other), *Livelier* (0.5: how much further the body turns and sways
+  than the standard's), *Kept in blows* (0.5), *Eyes up* (1: his head faces as the standard's does; at 0 it is
+  carried as the recordings carry it, tipped well down), and in Combat Feel *Arms* (shows only on an arm that
+  is the recording's own). The lab prints how much manner is on him. Headless: `FIGHT_STYLEAMOUNT`,
+  `FIGHT_STYLEMOTION`, `FIGHT_STYLESQUARE`, `FIGHT_STYLEEYES`, `FIGHT_STYLEINBLOWS`, `FIGHT_STYLEARMS`,
+  `FIGHT_STYLESWEEP=11` (the amount goes from 0 to 1 over so many seconds), `FIGHT_STYLETRACE=1`.
+- **The profile** now has capoeira's carriage travelling forward and back, measured on two recordings that are
+  never played: they are baked beside the tool (`Tools/Mocap/Style/style_bake.py` writes
+  `Tools/Mocap/Style/RulerClips.json`, outside the game), and `style write` reads them with the game's clips.
+  Its carriage is the same standing and travelling (hips 0.90 to 0.93, tipped 26 to 30 degrees).
+- **Not verified in Unity**: all of how it looks. **Known and not done**: his arms are the standard guard's
+  (the sword's and the shield's own guards place them: step S6); stepping to a side he is carried as capoeira
+  walks forward (the pack has no step to a side); in a leap the manner's lean is added to the leap's own
+  crouch (58 degrees at the deepest, 32 without); his stance is the guard's, one foot forward, where capoeira
+  stands square (the ginga, steps S3 and S4).

@@ -34,11 +34,39 @@ internal static class StyleReport
         }),
         ("heavy", "A heavy walk, empty hands (one recording).", new[] { (Job.WalkForward, new[] { "walk_fwd_heavy" }) }),
         ("swagger", "A swaggering walk, empty hands (one recording).", new[] { (Job.WalkForward, new[] { "walk_fwd_swagger" }) }),
-        ("capoeira", "Capoeira, empty hands: its carriage in the ginga (four takes on the spot).", new[]
+        ("capoeira", "Capoeira, empty hands: its carriage in the ginga (four takes on the spot) and in the ginga travelling forward and back.", new[]
         {
             (Job.Stand, new[] { "cap_ginga", "cap_ginga_b", "cap_ginga_c", "cap_ginga_d" }),
+            (Job.WalkForward, new[] { "cap_ginga_fwd" }), (Job.WalkBack, new[] { "cap_ginga_back" }),
         }),
     };
+
+    // The ruler clips: recordings that are measured and never played (Tools/Mocap/Style/style_bake.py), beside the game's own.
+    private static Dictionary<string, LocoClip> ruler;
+
+    private static LocoClip Clip(string name)
+    {
+        var clip = LocoLibrary.Get(name);
+        if (clip != null)
+        {
+            return clip;
+        }
+
+        if (ruler == null)
+        {
+            ruler = new Dictionary<string, LocoClip>();
+            string path = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Tools", "Mocap", "Style", "RulerClips.json"));
+            if (File.Exists(path))
+            {
+                foreach (var d in JsonUtility.FromJson<LocoClipFile>(File.ReadAllText(path)).clips)
+                {
+                    ruler[d.name] = new LocoClip(d);
+                }
+            }
+        }
+
+        return ruler.TryGetValue(name, out clip) ? clip : null;
+    }
 
     public static int Run(string[] args)
     {
@@ -64,7 +92,7 @@ internal static class StyleReport
             var profile = new StyleProfile(style, about);
             foreach (var (job, names) in jobs)
             {
-                var clips = names.Select(LocoLibrary.Get).Where(c => c != null).ToArray();
+                var clips = names.Select(Clip).Where(c => c != null).ToArray();
                 if (clips.Length > 0)
                 {
                     profile.Set(job, Carriage.Of(clips), string.Join(", ", clips.Select(c => c.Name)));
@@ -207,7 +235,7 @@ internal static class StyleReport
             {
                 foreach (string name in names)
                 {
-                    var clip = LocoLibrary.Get(name);
+                    var clip = Clip(name);
                     if (clip != null)
                     {
                         Console.WriteLine(Row($"{style} {job} ({name})", Measure(clip)));
@@ -345,7 +373,9 @@ internal static class StyleReport
     private static Carriage Shifted(in Carriage basis, in Carriage plainOther, in Carriage styleOther)
     {
         var shifted = basis;
-        shifted.Mid = StyleManner.Lay(basis.Mid, plainOther, styleOther, 1f, 0f);
+        var whole = MannerDials.Whole;
+        whole.Motion = 0f;
+        shifted.Mid = StyleManner.Lay(basis.Mid, plainOther, styleOther, whole);
         shifted.Spine = styleOther.Spine;
         return shifted;
     }

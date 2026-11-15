@@ -111,6 +111,50 @@ namespace PhysicsBattler.Locomotion
             return c;
         }
 
+        /// <summary>Some carriages taken together, each by its share (the shares add up to one): what a body doing a bit of each job is carried as.</summary>
+        public static Carriage Mix(Carriage[] carriages, float[] shares)
+        {
+            var c = new Carriage();
+            float[] handL = new float[4], handR = new float[4];
+            Quaternion firstL = Quaternion.identity, firstR = Quaternion.identity;
+            bool any = false;
+            for (int i = 0; i < carriages.Length; i++)
+            {
+                float w = shares[i];
+                if (w <= 0f)
+                {
+                    continue;
+                }
+
+                var o = carriages[i];
+                var t = o.Mid;
+                if (!any)
+                {
+                    firstL = t.HandL;
+                    firstR = t.HandR;
+                    any = true;
+                }
+
+                c.Mid.Pelvis += w * t.Pelvis; c.Mid.PelvisTurn += w * t.PelvisTurn; c.Mid.ChestTurn += w * t.ChestTurn; c.Mid.HeadTurn += w * t.HeadTurn;
+                c.Mid.ClavL += w * t.ClavL; c.Mid.ClavR += w * t.ClavR; c.Mid.UpperL += w * t.UpperL; c.Mid.UpperR += w * t.UpperR; c.Mid.ForeL += w * t.ForeL; c.Mid.ForeR += w * t.ForeR;
+                c.Mid.AnkleL += w * t.AnkleL; c.Mid.AnkleR += w * t.AnkleR;
+                float sl = Quaternion.Dot(t.HandL, firstL) < 0f ? -w : w, sr = Quaternion.Dot(t.HandR, firstR) < 0f ? -w : w;
+                handL[0] += sl * t.HandL.x; handL[1] += sl * t.HandL.y; handL[2] += sl * t.HandL.z; handL[3] += sl * t.HandL.w;
+                handR[0] += sr * t.HandR.x; handR[1] += sr * t.HandR.y; handR[2] += sr * t.HandR.z; handR[3] += sr * t.HandR.w;
+                c.Spine.Spine += w * o.Spine.Spine; c.Spine.Spine1 += w * o.Spine.Spine1; c.Spine.Spine2 += w * o.Spine.Spine2; c.Spine.Neck += w * o.Spine.Neck; c.Spine.Head += w * o.Spine.Head;
+                c.HipsMove += w * o.HipsMove; c.HipsTurnMove += w * o.HipsTurnMove; c.ChestTurnMove += w * o.ChestTurnMove; c.HeadTurnMove += w * o.HeadTurnMove;
+                c.ArmL += w * o.ArmL; c.ArmR += w * o.ArmR; c.HandL += w * o.HandL; c.HandR += w * o.HandR;
+            }
+
+            c.Mid.ClavL = Unit(c.Mid.ClavL, Vector3.left); c.Mid.ClavR = Unit(c.Mid.ClavR, Vector3.right);
+            c.Mid.UpperL = Unit(c.Mid.UpperL, Vector3.down); c.Mid.UpperR = Unit(c.Mid.UpperR, Vector3.down);
+            c.Mid.ForeL = Unit(c.Mid.ForeL, Vector3.down); c.Mid.ForeR = Unit(c.Mid.ForeR, Vector3.down);
+            c.Mid.KneeL = c.Mid.KneeR = c.Mid.FootL = c.Mid.FootR = c.Mid.ToeL = c.Mid.ToeR = Vector3.forward;
+            c.Mid.HandL = MeanTurn(handL);
+            c.Mid.HandR = MeanTurn(handR);
+            return c;
+        }
+
         private static Vector3 Unit(Vector3 v, Vector3 otherwise) => v.sqrMagnitude > 1e-10f ? v.normalized : otherwise;
         private static Vector3 Squared(Vector3 v) => new Vector3(v.x * v.x, v.y * v.y, v.z * v.z);
         private static Vector3 Root(Vector3 v) => new Vector3(Mathf.Sqrt(v.x), Mathf.Sqrt(v.y), Mathf.Sqrt(v.z));
@@ -345,11 +389,46 @@ namespace PhysicsBattler.Locomotion
         private static Quaternion Q(float[] a) => a != null && a.Length >= 4 ? Carriage.MeanTurn(a) : Quaternion.identity;
     }
 
+    /// <summary>How much of a manner is laid, part by part (<see cref="StyleManner.Lay(in BodyTracks, in Carriage, in Carriage, in MannerDials)"/>).</summary>
+    public struct MannerDials
+    {
+        /// <summary>How much of the change of carriage (0: none, 1: all): the lean, the hips' height, the spine's bend, where the arms are held.</summary>
+        public float Carriage;
+
+        /// <summary>How much of the change in how far each part goes (0: it goes as the base does, 1: as far as the laid style's).</summary>
+        public float Motion;
+
+        /// <summary>How much the chest and the head are turned to face the world as the laid style has them (0: they face as the base's; 1: as the style's). The hips are never turned on the feet: that is the stance's.</summary>
+        public float Turn;
+
+        /// <summary>How much of the arms' own carriage and motion (0: the arms are held on the chest as the base holds them; 1: as the laid style does).</summary>
+        public float Arms;
+
+        /// <summary>How much of the carriage is kept through a blow thrown from a stand (1: he strikes as leaned and sunk as he stands; 0: he comes up to the base's own carriage to strike, and goes back down after).</summary>
+        public float InBlows;
+
+        /// <summary>The dials for a blow thrown from a stand: the carriage as much as is kept through it; the arms and the hands the blow's own, hung from the chest as it made them.</summary>
+        public MannerDials ForBlow() => new MannerDials { Carriage = Carriage * InBlows, Motion = Motion * InBlows, Turn = Turn, Arms = 0f, HandsKeep = 0f, HeadKeeps = HeadKeeps, InBlows = InBlows };
+
+        /// <summary>How much the head keeps facing the world as the base has it (0: it tips with the style's own carriage of the head; 1: his eyes stay where the base has them, on his man, however the chest leans).</summary>
+        public float HeadKeeps;
+
+        /// <summary>How much the hands keep their turn in the world (0: they turn with the chest, as the laid style carries them; 1: a hand that holds a weapon goes on pointing it where the base pointed it, however the chest leans).</summary>
+        public float HandsKeep;
+
+        /// <summary>The whole of a manner, as measured: the round trip's.</summary>
+        public static MannerDials Whole => new MannerDials { Carriage = 1f, Motion = 1f, Turn = 1f, Arms = 1f, HandsKeep = 0f };
+
+        /// <summary>The same dials with the carriage, the motion and the turn each this much of what they were (a style part of the way on).</summary>
+        public MannerDials Times(float amount) => new MannerDials { Carriage = Carriage * amount, Motion = Motion * amount, Turn = Turn, Arms = Arms, HandsKeep = HandsKeep, HeadKeeps = HeadKeeps, InBlows = InBlows };
+    }
+
     /// <summary>
-    /// The manner layer (the plan's step S1): one style's carriage laid over a body that is moving as another's.
-    /// The body's parts are taken as their tracks; each upper part is moved from where the base style carries it to
-    /// where the laid style does, and what it does about that middle is made as big as the laid style has it. The
-    /// feet stay exactly where they were: the knees bend to the hips' new place.
+    /// The manner layer (the plan's steps S1 and S2): one style's carriage laid over a body that is moving as
+    /// another's. The body's parts are taken as their tracks; each upper part is moved from where the base style
+    /// carries it to where the laid style does, and what it does about that middle is made as big as the laid style
+    /// has it. The feet stay exactly where they were, and the hips are not turned on them: the knees bend to the
+    /// hips' new place.
     /// </summary>
     public static class StyleManner
     {
@@ -360,31 +439,84 @@ namespace PhysicsBattler.Locomotion
         public const float MostHipsGain = 1.5f;
 
         /// <summary>
-        /// A moment's tracks with a manner laid on: from the base's carriage to the laid style's.
+        /// The style laid over the standard set in the fight (the plan's step S2; the scene's Combat Feel, "Capoeira
+        /// Style Amount"): its profile's name, how much of it (0: none, the standard fighter exactly as he is; 1:
+        /// all), and how much of each part of it.
         /// </summary>
-        /// <param name="carriage">How much of the change of carriage is laid (0: none, 1: all): the lean, the hips' height and turn, where the arms are held.</param>
-        /// <param name="motion">How much of the change in how far each part goes (0: it goes as the base does, 1: as far as the laid style's).</param>
-        public static BodyTracks Lay(in BodyTracks t, in Carriage from, in Carriage to, float carriage, float motion)
+        /// <summary>Set (the headless run): what the walk lays each step is written to it.</summary>
+        public static System.Action<string> Trace;
+
+        public static string Laid = "capoeira";
+        public static float Amount = 0f;
+        public static MannerDials Dials = new MannerDials { Carriage = 1f, Motion = 0.5f, Turn = 0.5f, Arms = 1f, HandsKeep = 1f, HeadKeeps = 1f, InBlows = 0.5f };
+
+        /// <summary>A moment's tracks with a manner laid on: from the base's carriage to the laid style's, as much of each part as the dials say.</summary>
+        public static BodyTracks Lay(in BodyTracks t, in Carriage from, in Carriage to, in MannerDials dials)
         {
             var r = t;
+            float carriage = dials.Carriage, motion = dials.Motion;
             Vector3 one = Vector3.one;
+            // (What a part does about its middle is made bigger or smaller only as far as the job usually takes it
+            // (MostCounted times its usual going): a body far from the job's middle is on its way between two jobs,
+            // and that way is not the style's to stretch.)
             Vector3 gh = Gains(to.HipsMove, from.HipsMove, motion, 0.002f, MostHipsGain);
-            r.Pelvis = t.Pelvis + carriage * (to.Mid.Pelvis - from.Mid.Pelvis) + Vector3.Scale(gh - one, t.Pelvis - from.Mid.Pelvis);
-            r.PelvisTurn = t.PelvisTurn + carriage * (to.Mid.PelvisTurn - from.Mid.PelvisTurn) + Vector3.Scale(Gains(to.HipsTurnMove, from.HipsTurnMove, motion, 0.3f, MostGain) - one, t.PelvisTurn - from.Mid.PelvisTurn);
-            r.ChestTurn = t.ChestTurn + carriage * (to.Mid.ChestTurn - from.Mid.ChestTurn) + Vector3.Scale(Gains(to.ChestTurnMove, from.ChestTurnMove, motion, 0.3f, MostGain) - one, t.ChestTurn - from.Mid.ChestTurn);
-            r.HeadTurn = t.HeadTurn + carriage * (to.Mid.HeadTurn - from.Mid.HeadTurn) + Vector3.Scale(Gains(to.HeadTurnMove, from.HeadTurnMove, motion, 0.3f, MostGain) - one, t.HeadTurn - from.Mid.HeadTurn);
-            float gl = Gain(to.ArmL, from.ArmL, motion, 0.5f, MostGain), gr = Gain(to.ArmR, from.ArmR, motion, 0.5f, MostGain);
-            r.ClavL = Carry(t.ClavL, from.Mid.ClavL, to.Mid.ClavL, carriage, gl); r.ClavR = Carry(t.ClavR, from.Mid.ClavR, to.Mid.ClavR, carriage, gr);
-            r.UpperL = Carry(t.UpperL, from.Mid.UpperL, to.Mid.UpperL, carriage, gl); r.UpperR = Carry(t.UpperR, from.Mid.UpperR, to.Mid.UpperR, carriage, gr);
-            r.ForeL = Carry(t.ForeL, from.Mid.ForeL, to.Mid.ForeL, carriage, gl); r.ForeR = Carry(t.ForeR, from.Mid.ForeR, to.Mid.ForeR, carriage, gr);
-            r.HandL = Carry(t.HandL, from.Mid.HandL, to.Mid.HandL, carriage, Gain(to.HandL, from.HandL, motion, 0.5f, MostGain));
-            r.HandR = Carry(t.HandR, from.Mid.HandR, to.Mid.HandR, carriage, Gain(to.HandR, from.HandR, motion, 0.5f, MostGain));
+            r.Pelvis = t.Pelvis + carriage * (to.Mid.Pelvis - from.Mid.Pelvis) + Vector3.Scale(gh - one, Within(t.Pelvis - from.Mid.Pelvis, from.HipsMove));
+            // The turns. First what each does about its middle, made bigger or smaller.
+            Vector3 hipsTurn = t.PelvisTurn + Vector3.Scale(Gains(to.HipsTurnMove, from.HipsTurnMove, motion, 0.3f, MostGain) - one, Within(t.PelvisTurn - from.Mid.PelvisTurn, from.HipsTurnMove));
+            Vector3 chestTurn = t.ChestTurn + Vector3.Scale(Gains(to.ChestTurnMove, from.ChestTurnMove, motion, 0.3f, MostGain) - one, Within(t.ChestTurn - from.Mid.ChestTurn, from.ChestTurnMove));
+            Vector3 headTurn = t.HeadTurn + Vector3.Scale(Gains(to.HeadTurnMove, from.HeadTurnMove, motion, 0.3f, MostGain) - one, Within(t.HeadTurn - from.Mid.HeadTurn, from.HeadTurnMove));
+            // Then the carriage, against the root: where he faces, not where his hips happen to point. Each of the
+            // hips, the chest and the head is tipped from how the base tips it to how the style does (its own up,
+            // carried from the one to the other): a style that leans toward its man leans him toward his, however
+            // his stance has turned his hips. The hips are not turned on the feet: that is the stance's. The chest
+            // and the head are turned to face as the style's do, as much as is asked.
+            Quaternion hipsNow = Quaternion.Euler(hipsTurn), chestNow = hipsNow * Quaternion.Euler(chestTurn), headNow = chestNow * Quaternion.Euler(headTurn);
+            Quaternion hipsFrom = Quaternion.Euler(from.Mid.PelvisTurn), chestFrom = hipsFrom * Quaternion.Euler(from.Mid.ChestTurn), headFrom = chestFrom * Quaternion.Euler(from.Mid.HeadTurn);
+            Quaternion hipsTo = Quaternion.Euler(to.Mid.PelvisTurn), chestTo = hipsTo * Quaternion.Euler(to.Mid.ChestTurn), headTo = chestTo * Quaternion.Euler(to.Mid.HeadTurn);
+            Quaternion hipsLaid = Tipped(hipsFrom, hipsTo, carriage) * hipsNow;
+            Quaternion chestLaid = Quaternion.AngleAxis(carriage * dials.Turn * Mathf.DeltaAngle(Heading(chestFrom), Heading(chestTo)), Vector3.up) * Tipped(chestFrom, chestTo, carriage) * chestNow;
+            Quaternion headAsStyle = Quaternion.AngleAxis(carriage * dials.Turn * Mathf.DeltaAngle(Heading(headFrom), Heading(headTo)), Vector3.up) * Tipped(headFrom, headTo, carriage) * headNow;
+            // (His eyes on his man: the head kept facing the world as the base has it, however the chest under it leans.)
+            Quaternion headLaid = Quaternion.SlerpUnclamped(headAsStyle, Near(headNow, headAsStyle), dials.HeadKeeps);
+            r.PelvisTurn = BodyMeasures.EulerOf(hipsLaid, hipsTurn.y);
+            r.ChestTurn = BodyMeasures.EulerOf(Quaternion.Inverse(hipsLaid) * chestLaid, chestTurn.y);
+            r.HeadTurn = BodyMeasures.EulerOf(Quaternion.Inverse(chestLaid) * headLaid, headTurn.y);
+            float armsCarriage = carriage * dials.Arms, armsMotion = motion * dials.Arms;
+            float gl = Gain(to.ArmL, from.ArmL, armsMotion, 0.5f, MostGain), gr = Gain(to.ArmR, from.ArmR, armsMotion, 0.5f, MostGain);
+            float al = MostCounted * from.ArmL, ar = MostCounted * from.ArmR;
+            r.ClavL = Carry(t.ClavL, from.Mid.ClavL, to.Mid.ClavL, armsCarriage, gl, al); r.ClavR = Carry(t.ClavR, from.Mid.ClavR, to.Mid.ClavR, armsCarriage, gr, ar);
+            r.UpperL = Carry(t.UpperL, from.Mid.UpperL, to.Mid.UpperL, armsCarriage, gl, al); r.UpperR = Carry(t.UpperR, from.Mid.UpperR, to.Mid.UpperR, armsCarriage, gr, ar);
+            r.ForeL = Carry(t.ForeL, from.Mid.ForeL, to.Mid.ForeL, armsCarriage, gl, al); r.ForeR = Carry(t.ForeR, from.Mid.ForeR, to.Mid.ForeR, armsCarriage, gr, ar);
+            r.HandL = Carry(t.HandL, from.Mid.HandL, to.Mid.HandL, armsCarriage, Gain(to.HandL, from.HandL, armsMotion, 0.5f, MostGain), MostCounted * from.HandL);
+            r.HandR = Carry(t.HandR, from.Mid.HandR, to.Mid.HandR, armsCarriage, Gain(to.HandR, from.HandR, armsMotion, 0.5f, MostGain), MostCounted * from.HandR);
+            Quaternion hipsWere = Quaternion.Euler(t.PelvisTurn), hipsAre = Quaternion.Euler(r.PelvisTurn);
+            if (dials.HandsKeep > 0f)
+            {
+                // (A hand that holds a weapon goes on pointing it where it pointed: its turn is kept on the chest, and the chest has leaned.)
+                Quaternion keepHand = Quaternion.Inverse(hipsAre * Quaternion.Euler(r.ChestTurn)) * (hipsWere * Quaternion.Euler(t.ChestTurn));
+                r.HandL = Quaternion.SlerpUnclamped(r.HandL, Near(keepHand * t.HandL, r.HandL), dials.HandsKeep);
+                r.HandR = Quaternion.SlerpUnclamped(r.HandR, Near(keepHand * t.HandR, r.HandR), dials.HandsKeep);
+            }
+
             // (The knees go on pointing where they pointed: their way is kept on the hips, and the hips have turned.)
-            Quaternion keep = Quaternion.Inverse(Quaternion.Euler(r.PelvisTurn)) * Quaternion.Euler(t.PelvisTurn);
+            Quaternion keep = Quaternion.Inverse(hipsAre) * hipsWere;
             r.KneeL = keep * t.KneeL;
             r.KneeR = keep * t.KneeR;
             return r;
         }
+
+        /// <summary>The turn that tips a part from how one carriage tips it to how another does (its own up, carried from the one to the other), as much of it as asked. It turns about a level line: nothing is turned to face another way.</summary>
+        private static Quaternion Tipped(Quaternion from, Quaternion to, float share) =>
+            Quaternion.SlerpUnclamped(Quaternion.identity, Quaternion.FromToRotation(from * Vector3.up, to * Vector3.up), share);
+
+        /// <summary>Which way a part faces over the ground (degrees, + to the right).</summary>
+        private static float Heading(Quaternion q)
+        {
+            Vector3 f = q * Vector3.forward;
+            return Mathf.Atan2(f.x, f.z) * Mathf.Rad2Deg;
+        }
+
+        private static Quaternion Near(Quaternion q, Quaternion to) => Quaternion.Dot(q, to) < 0f ? new Quaternion(-q.x, -q.y, -q.z, -q.w) : q;
 
         /// <summary>How much a part's going is multiplied by: the laid style's against the base's, as much of that change as is asked. (A part the base holds still is left as it is: there is nothing to make bigger.)</summary>
         private static float Gain(float to, float from, float motion, float still, float most) =>
@@ -393,16 +525,29 @@ namespace PhysicsBattler.Locomotion
         private static Vector3 Gains(Vector3 to, Vector3 from, float motion, float still, float most) =>
             new Vector3(Gain(to.x, from.x, motion, still, most), Gain(to.y, from.y, motion, still, most), Gain(to.z, from.z, motion, still, most));
 
-        /// <summary>A way carried from one middle to another: what it does about the base's middle, made bigger or smaller, about the laid style's.</summary>
-        private static Vector3 Carry(Vector3 way, Vector3 fromMid, Vector3 toMid, float carriage, float gain)
+        /// <summary>How far from its middle a part's going is counted, in its usual goings (root mean square): past that it is carried as it is.</summary>
+        public const float MostCounted = 2f;
+
+        private static Vector3 Within(Vector3 off, Vector3 usual) => new Vector3(
+            Mathf.Clamp(off.x, -MostCounted * usual.x, MostCounted * usual.x), Mathf.Clamp(off.y, -MostCounted * usual.y, MostCounted * usual.y), Mathf.Clamp(off.z, -MostCounted * usual.z, MostCounted * usual.z));
+
+        /// <summary>A turn, no further than so many degrees.</summary>
+        private static Quaternion Within(Quaternion does, float most)
+        {
+            float angle = Quaternion.Angle(Quaternion.identity, does);
+            return angle > most && angle > 1e-3f ? Quaternion.SlerpUnclamped(Quaternion.identity, does, most / angle) : does;
+        }
+
+        /// <summary>A way carried from one middle to another: what it does about the base's middle (as far as <paramref name="counted"/> degrees of it), made bigger or smaller, about the laid style's.</summary>
+        private static Vector3 Carry(Vector3 way, Vector3 fromMid, Vector3 toMid, float carriage, float gain, float counted)
         {
             Quaternion does = Quaternion.FromToRotation(fromMid, way);
             Vector3 mid = Quaternion.SlerpUnclamped(Quaternion.identity, Quaternion.FromToRotation(fromMid, toMid), carriage) * fromMid;
-            Vector3 v = Quaternion.SlerpUnclamped(Quaternion.identity, does, gain) * mid;
+            Vector3 v = Quaternion.SlerpUnclamped(Quaternion.identity, Within(does, counted), gain - 1f) * (does * mid);
             return v.sqrMagnitude > 1e-10f ? v.normalized : way;
         }
 
-        private static Quaternion Carry(Quaternion turn, Quaternion fromMid, Quaternion toMid, float carriage, float gain)
+        private static Quaternion Carry(Quaternion turn, Quaternion fromMid, Quaternion toMid, float carriage, float gain, float counted)
         {
             if (Quaternion.Dot(fromMid, toMid) < 0f)
             {
@@ -415,7 +560,7 @@ namespace PhysicsBattler.Locomotion
                 does = new Quaternion(-does.x, -does.y, -does.z, -does.w);
             }
 
-            return Quaternion.SlerpUnclamped(Quaternion.identity, does, gain) * Quaternion.SlerpUnclamped(fromMid, toMid, carriage);
+            return Quaternion.SlerpUnclamped(Quaternion.identity, Within(does, counted), gain - 1f) * does * Quaternion.SlerpUnclamped(fromMid, toMid, carriage);
         }
 
         private static readonly LocoBone[] FootPoints =
@@ -428,14 +573,14 @@ namespace PhysicsBattler.Locomotion
         /// and <paramref name="scratch2"/> are two more bodies' room). Only what the manner changes is changed:
         /// each point is moved by what the manner moves it, and the feet's points are not moved at all.
         /// </summary>
-        public static void Lay(Vector3[] points, in Carriage from, in Carriage to, float carriage, float motion, BodyTracks? last, out BodyTracks tracks, Vector3[] scratch, Vector3[] scratch2)
+        public static void Lay(Vector3[] points, in Carriage from, in Carriage to, in MannerDials dials, BodyTracks? last, out BodyTracks tracks, Vector3[] scratch, Vector3[] scratch2)
         {
             var m = BodyMeasures.OfClips;
             tracks = m.Decompose(points, last);
-            var laid = Lay(tracks, from, to, carriage, motion);
+            var laid = Lay(tracks, from, to, dials);
             // (The spine's own bend goes from the base's to the laid style's with the carriage.)
             m.Compose(tracks, scratch, from.Spine);
-            m.Compose(laid, scratch2, SpineShape.Lerp(from.Spine, to.Spine, carriage));
+            m.Compose(laid, scratch2, SpineShape.Lerp(from.Spine, to.Spine, dials.Carriage));
             for (int i = 0; i < points.Length; i++)
             {
                 points[i] += scratch2[i] - scratch[i];
@@ -480,7 +625,10 @@ namespace PhysicsBattler.Locomotion
             for (int f = 0; f < d.frames; f++)
             {
                 clip.Pose(f / d.rate, p, 1f);
-                Lay(p, from, to, carriage, motion, last, out var tracks, a, b);
+                var dials = MannerDials.Whole;
+                dials.Carriage = carriage;
+                dials.Motion = motion;
+                Lay(p, from, to, dials, last, out var tracks, a, b);
                 last = tracks;
                 for (int i = 0; i < LocoClip.BoneCount; i++)
                 {

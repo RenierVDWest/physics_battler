@@ -246,6 +246,20 @@ internal static class FightReport
             PhysicsBattler.Locomotion.AttackMaker.CoastTime = coastFor;
         }
 
+        // (FIGHT_STYLEAMOUNT=1: capoeira's manner laid over the standard set, how much; FIGHT_STYLEMOTION=0.5,
+        // FIGHT_STYLESQUARE=0.5, FIGHT_STYLEARMS=1: how much livelier, how much the chest squares up, how much of the arms.
+        // FIGHT_STYLESWEEP=8, with a duel: the amount goes from 0 to 1 over the run's first so many seconds.)
+        PhysicsBattler.Locomotion.StyleManner.Amount = Env("FIGHT_STYLEAMOUNT", 0f);
+        PhysicsBattler.Locomotion.StyleManner.Dials = new PhysicsBattler.Locomotion.MannerDials
+        {
+            Carriage = 1f, Motion = Env("FIGHT_STYLEMOTION", 0.5f), Turn = Env("FIGHT_STYLESQUARE", 0.5f), Arms = Env("FIGHT_STYLEARMS", 1f), HandsKeep = 1f, HeadKeeps = Env("FIGHT_STYLEEYES", 1f), InBlows = Env("FIGHT_STYLEINBLOWS", 0.5f),
+        };
+        // (FIGHT_STYLETRACE=1: what the walk lays of the manner, each step.)
+        if (Environment.GetEnvironmentVariable("FIGHT_STYLETRACE") == "1")
+        {
+            PhysicsBattler.Locomotion.StyleManner.Trace = line => Console.WriteLine($"[manner] {Time.time:0.000} {line}");
+        }
+
         // (FIGHT_JOGS=0: the guard without its jog, as it was.)
         PhysicsBattler.Locomotion.MoveStyle.Jogs = Environment.GetEnvironmentVariable("FIGHT_JOGS") != "0";
         // (FIGHT_TRAVEL=0: the clips' travel as it was, turned the wrong way round.)
@@ -647,6 +661,7 @@ internal static class FightReport
         // (FIGHT_DUEL="WalkTo:6,CircleLeft:6,BackAway:5": the duel lab's movement orders given in turn, each for so
         // many seconds, in the aim lineup; no blows are asked for. FIGHT_DUELAPART=3: how far apart the two begin.)
         PhysicsBattler.Sandbox.DuelLab duel = null;
+        float styleSweep = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STYLESWEEP"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float sweepOver) ? sweepOver : 0f;
         var duelOrders = new List<(PhysicsBattler.Sandbox.DuelLab.Order order, float until)>();
         int duelAt = -1;
         float duelFrom = 0f, duelGapFrom = 0f, duelNote = 0f;
@@ -1373,6 +1388,11 @@ internal static class FightReport
                             duelNote = -1f;
                             duel.Give(PhysicsBattler.Sandbox.DuelLab.Order.Stand);
                         }
+                    }
+
+                    if (styleSweep > 0f)
+                    {
+                        PhysicsBattler.Locomotion.StyleManner.Amount = Mathf.Clamp01(paceAt / styleSweep);
                     }
 
                     duel.Step(dt);

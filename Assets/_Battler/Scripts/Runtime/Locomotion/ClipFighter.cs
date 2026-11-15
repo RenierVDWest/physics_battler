@@ -3687,6 +3687,15 @@ namespace PhysicsBattler.Locomotion
             }
 
             var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn };
+            // (A style's manner laid over him: the blow is fitted for the body as the manner will have it.)
+            if (Loco.MannerForBlow(out var mannerFrom, out var mannerTo, out var mannerDials))
+            {
+                aim.Mannered = true;
+                aim.MannerFrom = mannerFrom;
+                aim.MannerTo = mannerTo;
+                aim.MannerDials = mannerDials;
+            }
+
             // (From where he is, the plan "Fight Rhythm from Recordings", step 3: the way he is going is carried into
             // the attack, and a foot caught in the air finishes its step.)
             bool going = AttackMaker.FromAnyPose && Loco.Velocity.magnitude > 0.1f * Size;

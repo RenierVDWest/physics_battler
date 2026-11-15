@@ -630,6 +630,21 @@ namespace PhysicsBattler.Sandbox
                 var walkFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
                 if (walkFeel != null)
                 {
+                    // (Step S2: capoeira's manner laid over the standard set, by a style amount.)
+                    walkFeel.capoeiraStyleAmount = Lever("Capoeira manner", walkFeel.capoeiraStyleAmount, 0f, 1f, "The style amount. 0: the standard fighter, exactly as he is. 1: he does everything the standard does (his stance, his steps, his walk, his jog, his blows) carried as capoeira carries the body: leaned well forward and sitting lower. His feet are not moved by it. Slide it while he stands, walks, circles, jogs and strikes. (Combat Feel \"Capoeira Style Amount\".)");
+                    if (walkFeel.capoeiraStyleAmount > 0.001f)
+                    {
+                        walkFeel.capoeiraStyleSquaresUp = Lever("Squares up", walkFeel.capoeiraStyleSquaresUp, 0f, 1f, "How much his chest and head turn square to the other, as capoeira's do. 0: his chest stays half turned away behind the shield, as the guard has it. 1: square on. His hips stay as his stance has them.");
+                        walkFeel.capoeiraStyleMotion = Lever("Livelier", walkFeel.capoeiraStyleMotion, 0f, 1f, "How much further his hips, chest and head turn and sway than the standard's. 0: as the standard's. 1: as far as capoeira's (at most two and a half times).");
+                        walkFeel.capoeiraStyleEyesUp = Lever("Eyes up", walkFeel.capoeiraStyleEyesUp, 0f, 1f, "How much his eyes stay on his man. 1: his head faces as the standard's does, however far he leans. 0: his head is carried as the capoeira recordings carry it, tipped down with the lean.");
+                        walkFeel.capoeiraStyleKeptInBlows = Lever("Kept in blows", walkFeel.capoeiraStyleKeptInBlows, 0f, 1f, "How much of the manner he keeps through a blow thrown from a stand. 1: he strikes as leaned and sunk as he stands. 0: he comes up to strike as the standard does, and goes back down after. A blow thrown on the move keeps the walk's manner under it either way.");
+                        var mannerOf = Duel.Mover != null && Duel.Mover.Clip != null ? Duel.Mover.Clip.Loco : null;
+                        GUILayout.Label(new GUIContent(PhysicsBattler.Locomotion.StyleProfile.Get("capoeira") == null || PhysicsBattler.Locomotion.StyleProfile.Get("guard") == null
+                            ? "The styles' profile file was not found: no manner is laid."
+                            : string.Format(System.Globalization.CultureInfo.InvariantCulture, "Manner on him now: {0:0.00}", mannerOf != null ? mannerOf.MannerOn : 0f),
+                            "How much of capoeira's manner is on the mover at this moment (the style amount, while he is in his guard). If this says 0 with the lever up, the manner is not reaching him."), Styles().Text);
+                    }
+
                     GUILayout.BeginHorizontal();
                     GUILayout.Label(new GUIContent("His walk:", "A test of the manner layer. Recorded: he walks forward and back on the sword and shield guard's own recordings, as he always has. Rebuilt: he walks on the plain, empty-handed walk's recordings with the guard's manner laid on them from its profile (numbers: the lean, the chest's turn, the arms held up and still). Nothing of the guard's own walk is played. Walk him to the other and back away, and switch between the two as he goes: if they are hard to tell apart, the idea works."), Styles().Text, GUILayout.Width(60f));
                     if (Press(!walkFeel.guardWalkIsRebuiltFromThePlainWalk ? "[recorded]" : "recorded", "The guard's own recordings of walking forward and back (old).")) walkFeel.guardWalkIsRebuiltFromThePlainWalk = false;

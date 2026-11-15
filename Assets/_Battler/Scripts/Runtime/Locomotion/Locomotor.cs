@@ -445,6 +445,7 @@ namespace PhysicsBattler.Locomotion
             else if (Current == Mode.OneShot)
             {
                 ShotStep(dt);
+                LayManner(dt);
                 Inertialize(dt);
                 goingKnown = false;
                 Going = Vector3.zero;
@@ -552,6 +553,8 @@ namespace PhysicsBattler.Locomotion
                 CyclePose(dt, speed);
             }
 
+            // (A style's manner is part of the walk's own pose: a blow thrown on the move is laid over it after.)
+            LayManner(dt);
             if (over)
             {
                 Velocity = steered;
@@ -562,6 +565,174 @@ namespace PhysicsBattler.Locomotion
 
             Inertialize(dt);
             Facing = Mathf.DeltaAngle(0f, Facing);
+        }
+
+        // ---- A style's manner laid over the standard set (StyleManner) ---------------------------------------
+
+        private static readonly MoveStyle.Job[] MannerJobs =
+        {
+            MoveStyle.Job.Stand, MoveStyle.Job.WalkForward, MoveStyle.Job.WalkBack, MoveStyle.Job.StepLeft, MoveStyle.Job.StepRight, MoveStyle.Job.RunForward,
+        };
+
+        private readonly float[] jobShare = { 1f, 0f, 0f, 0f, 0f, 0f }, jobWanted = new float[6];
+        private readonly Carriage[] mannerFrom = new Carriage[6], mannerTo = new Carriage[6];
+        private StyleProfile mannerStyle, mannerBasis;
+        private BodyTracks mannerWas;
+        private bool mannerKnown;
+        private readonly Vector3[] mannerPose = new Vector3[LocoClip.BoneCount], mannerA = new Vector3[LocoClip.BoneCount], mannerB = new Vector3[LocoClip.BoneCount];
+
+        /// <summary>How much of the laid style's manner this walker has on now (0: none; <see cref="StyleManner.Amount"/> in its guard).</summary>
+        public float MannerOn { get; private set; }
+
+        /// <summary>
+        /// This step's pose has been made (standing, a cycle, a clip): the laid style's manner is put on it (the
+        /// plan "Movement Styles as Offshoots of the Standard Set", step S2). What the body is doing is the
+        /// standard's; how it is carried is moved from the standard's carriage for that job to the laid style's.
+        /// The feet's points are not moved. Nothing is done, and nothing changed, with the style's amount at 0.
+        /// </summary>
+        private void LayManner(float dt)
+        {
+            float amount = Guard != null && Style != null && !string.IsNullOrEmpty(Style.Profile) ? StyleManner.Amount * GuardWeight : 0f;
+            MannerOn = amount;
+            mannerLaid = false;
+            if (amount < 1e-3f)
+            {
+                mannerKnown = false;
+                return;
+            }
+
+            StyleProfile style = StyleProfile.Get(StyleManner.Laid), basis = StyleProfile.Get(Style.Profile);
+            if (style == null || basis == null)
+            {
+                MannerOn = 0f;
+                mannerKnown = false;
+                return;
+            }
+
+            if (style != mannerStyle || basis != mannerBasis)
+            {
+                mannerStyle = style;
+                mannerBasis = basis;
+                for (int i = 0; i < MannerJobs.Length; i++)
+                {
+                    basis.For(MannerJobs[i], out mannerFrom[i]);
+                    style.For(MannerJobs[i], out mannerTo[i]);
+                }
+            }
+
+            // What it is doing, as shares of the jobs: standing; walking forward, back, to a side; running.
+            for (int i = 0; i < jobWanted.Length; i++)
+            {
+                jobWanted[i] = 0f;
+            }
+
+            if (Current == Mode.Cycle)
+            {
+                // (The way the cycle's own blend of directions takes him as going: the carriage goes with the legs'
+                // clips, also setting off, when he has hardly moved yet.)
+                float along = Mathf.Cos(travelAngle * Mathf.Deg2Rad), across = Mathf.Sin(travelAngle * Mathf.Deg2Rad);
+                float forward = along > 0f ? along * along : 0f, back = along < 0f ? along * along : 0f;
+                jobWanted[1] = forward * (1f - RunWeight);
+                jobWanted[5] = forward * RunWeight;
+                jobWanted[2] = back;
+                jobWanted[3] = across < 0f ? across * across : 0f;
+                jobWanted[4] = across > 0f ? across * across : 0f;
+            }
+            else
+            {
+                jobWanted[0] = 1f;
+            }
+
+            // (Taken at once: the pose itself goes from one job's to another's at once, and the switch's fade carries
+            // the body over, manner and all. A carriage that lagged the pose would be the wrong job's for it.)
+            float sum = 0f;
+            for (int i = 0; i < jobShare.Length; i++)
+            {
+                jobShare[i] = jobWanted[i];
+                sum += jobShare[i];
+            }
+
+            for (int i = 0; i < jobShare.Length; i++)
+            {
+                jobShare[i] /= Mathf.Max(1e-4f, sum);
+            }
+
+            Carriage from = Carriage.Mix(mannerFrom, jobShare), to = Carriage.Mix(mannerTo, jobShare);
+            var dials = StyleManner.Dials.Times(amount);
+            if (Current == Mode.OneShot && Shot != null && Shot.Role == "strike")
+            {
+                // (A blow's arms and hands are the blow's own, hung from the chest as it made them: the manner leans
+                // and sinks the body under them, as much as it keeps through a blow, and the blow was fitted for that.)
+                dials = dials.ForBlow();
+            }
+
+            float toClip = 1f / Mathf.Max(0.05f, Leg);
+            for (int i = 0; i < raw.Length; i++)
+            {
+                mannerPose[i] = raw[i] * toClip;
+            }
+
+            StyleManner.Lay(mannerPose, from, to, dials, mannerKnown ? mannerWas : (BodyTracks?)null, out mannerWas, mannerA, mannerB);
+            mannerKnown = true;
+            mannerLaid = true;
+            mannerFromNow = from;
+            mannerToNow = to;
+            mannerDialsNow = dials;
+            StyleManner.Trace?.Invoke(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} shares stand {1:0.00} fwd {2:0.00} back {3:0.00} left {4:0.00} right {5:0.00} run {6:0.00} | hips yaw {7:0.0} chest {8:0.0} head {9:0.0} | from chest {10:0.0} to {11:0.0} | travel {12:0} speed {13:0.00}",
+                Current, jobShare[0], jobShare[1], jobShare[2], jobShare[3], jobShare[4], jobShare[5], mannerWas.PelvisTurn.y, mannerWas.ChestTurn.y, mannerWas.HeadTurn.y,
+                from.Mid.PelvisTurn.y + from.Mid.ChestTurn.y, to.Mid.PelvisTurn.y + to.Mid.ChestTurn.y, travelAngle, Velocity.magnitude));
+            for (int i = 0; i < raw.Length; i++)
+            {
+                raw[i] = mannerPose[i] * Leg;
+            }
+        }
+
+        private bool mannerLaid;
+        private Carriage mannerFromNow, mannerToNow;
+        private MannerDials mannerDialsNow;
+
+        /// <summary>
+        /// Another pose of the motion playing (metres, against the root: the clip as it was a step ago, for a
+        /// switch's fade) with this step's manner laid on it, so the two are carried alike. Nothing with no manner on.
+        /// </summary>
+        private void LayMannerOn(Vector3[] pose)
+        {
+            if (!mannerLaid)
+            {
+                return;
+            }
+
+            float toClip = 1f / Mathf.Max(0.05f, Leg);
+            for (int i = 0; i < pose.Length; i++)
+            {
+                mannerPose[i] = pose[i] * toClip;
+            }
+
+            StyleManner.Lay(mannerPose, mannerFromNow, mannerToNow, mannerDialsNow, mannerWas, out _, mannerA, mannerB);
+            for (int i = 0; i < pose.Length; i++)
+            {
+                pose[i] = mannerPose[i] * Leg;
+            }
+        }
+
+        /// <summary>
+        /// The manner that will be laid over a blow thrown from a stand, for the blow to be fitted to
+        /// (<see cref="AttackAim.Mannered"/>): the standing carriages it goes between, and how much of it. False with
+        /// no manner on.
+        /// </summary>
+        public bool MannerForBlow(out Carriage from, out Carriage to, out MannerDials dials)
+        {
+            from = to = default;
+            dials = default;
+            float amount = Guard != null && Style != null && !string.IsNullOrEmpty(Style.Profile) ? StyleManner.Amount * GuardWeight : 0f;
+            StyleProfile style = amount >= 1e-3f ? StyleProfile.Get(StyleManner.Laid) : null, basis = style != null ? StyleProfile.Get(Style.Profile) : null;
+            if (style == null || basis == null || !basis.For(MoveStyle.Job.Stand, out from) || !style.For(MoveStyle.Job.Stand, out to))
+            {
+                return false;
+            }
+
+            dials = StyleManner.Dials.Times(amount).ForBlow();
+            return true;
         }
 
         // ---- A blow thrown on the move: its upper body over the walk's legs (AttackOnTheMove) ----------------
@@ -2231,6 +2402,8 @@ namespace PhysicsBattler.Locomotion
                 if (begins)
                 {
                     Shot.Pose(Mathf.Max(0f, ShotTime - dt * TimeScale), scratch, Leg);
+                    // (Carried as this step's pose is: a style's manner laid on both.)
+                    LayMannerOn(scratch);
                 }
 
                 begins &= !ridesNow;

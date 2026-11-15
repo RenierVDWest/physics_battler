@@ -262,6 +262,24 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The rebuilt guard walk: how much of the change in how far each part moves is laid on (0: the arms swing as the plain walk swings them, about the guard's place for them; 1: as little as the guard moves them, as measured).")]
         [Range(0f, 1f)] public float rebuiltWalkMotion = 1f;
 
+        [Tooltip("The capoeira style laid over the standard set as a manner (the plan \"Movement Styles as Offshoots of the Standard Set\", step S2): how much of it. 0: none, the standard fighter exactly as he is. 1: all of it. What he does is the standard's (his stance, his steps, his walk, his jog, his blows); how he is carried doing it is moved toward capoeira's, from its profile: leaned well forward, sitting lower, the back bent as capoeira bends it. His feet are not moved by it. Every fighter in the standard guard takes it. In the duel lab: \"Capoeira manner\".")]
+        [Range(0f, 1f)] public float capoeiraStyleAmount = 0f;
+
+        [Tooltip("The capoeira manner: how much livelier the body is made (0: the hips, the chest and the head turn and sway as far as the standard's do; 1: as far as capoeira's, up to two and a half times the standard's).")]
+        [Range(0f, 1f)] public float capoeiraStyleMotion = 0.5f;
+
+        [Tooltip("The capoeira manner: how much the chest and the head square up to the opponent, as capoeira's do (0: they face as the standard's, the chest half turned away behind the shield; 1: square on). The hips are never turned by a manner: they belong to the stance the feet are in.")]
+        [Range(0f, 1f)] public float capoeiraStyleSquaresUp = 0.5f;
+
+        [Tooltip("The capoeira manner: how much of it he keeps through a blow thrown from a stand (1: he strikes as leaned and sunk as he stands; 0: he comes up to the standard's own carriage to strike and goes back down after). The blow is fitted for the body as he will be carried. Leaned right over, a blow at the chest has to be thrown upward, and the rising cut it then takes is stopped by the other's sword hand. A blow thrown on the move keeps the walk's manner under it either way.")]
+        [Range(0f, 1f)] public float capoeiraStyleKeptInBlows = 0.5f;
+
+        [Tooltip("The capoeira manner: how much his eyes stay on his man (1: the head faces as the standard's does, however far the chest under it leans; 0: the head is carried as the capoeira recordings carry it, tipped well down with the lean, looking at the ground ahead).")]
+        [Range(0f, 1f)] public float capoeiraStyleEyesUp = 1f;
+
+        [Tooltip("The capoeira manner: how much of capoeira's own carriage of the arms is laid on the recordings' arms (wider and higher than the guard's). It shows only where an arm is the recording's own: a hand that holds a sword or a shield is placed by its guard, over whatever the walk does.")]
+        [Range(0f, 1f)] public float capoeiraStyleArms = 1f;
+
         [Tooltip("The capoeira style's ginga: how big it is made against its recording (the duel lab's style \"Capoeira\"). 1: as recorded, a metre from side to side with the hips sinking 20 cm. 0.67: two thirds: its steps, its hips' sway and sinking, the body's turns. Each is counted from the middle of the ginga's loop and multiplied, so a foot that stands still in the recording still stands still.")]
         [Range(0.3f, 1.2f)] public float gingaSize = 0.67f;
 
@@ -989,6 +1007,8 @@ namespace PhysicsBattler.Locomotion
             LocoClip.TravelsTrue = clipsTravelAsRecorded;
             PhysicsBattler.Sandbox.BattleSandbox.BattleRetired = theBattleIsRetired;
             MoveStyle.Jogs = guardJogs;
+            StyleManner.Amount = capoeiraStyleAmount;
+            StyleManner.Dials = new MannerDials { Carriage = 1f, Motion = capoeiraStyleMotion, Turn = capoeiraStyleSquaresUp, Arms = capoeiraStyleArms, HandsKeep = 1f, HeadKeeps = capoeiraStyleEyesUp, InBlows = capoeiraStyleKeptInBlows };
             MoveStyle.GuardWalkRebuilt = guardWalkIsRebuiltFromThePlainWalk;
             MoveStyle.RebuiltCarriage = rebuiltWalkCarriage;
             MoveStyle.RebuiltMotion = rebuiltWalkMotion;
