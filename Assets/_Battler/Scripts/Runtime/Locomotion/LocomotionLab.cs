@@ -684,6 +684,11 @@ namespace PhysicsBattler.Locomotion
                 {
                     sandbox.WatchAim();
                 }
+                else if (to == BattleSandbox.Place.Duel || BattleSandbox.BattleRetired)
+                {
+                    // (The battle retired, the way to the fight is the way to the duel lab.)
+                    sandbox.WatchDuel();
+                }
                 else
                 {
                     sandbox.WatchFight();
@@ -1598,6 +1603,12 @@ namespace PhysicsBattler.Locomotion
             if (SandboxInput.KeyPressed(KeyCode.Alpha7))
             {
                 Leave(BattleSandbox.Place.Aim);
+                return;
+            }
+
+            if (SandboxInput.KeyPressed(KeyCode.Alpha8))
+            {
+                Leave(BattleSandbox.Place.Duel);
                 return;
             }
 

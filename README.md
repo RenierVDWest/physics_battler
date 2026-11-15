@@ -4047,6 +4047,45 @@ blow, and the arm as seen falls behind); a body turned a long way (the most is 5
 foot as on a pivot, the foot itself not turning. Every
 style ran the nineteen spots with nothing thrown, the pose's blade 4 to 5 cm from the spot at the middle.
 
+**Fight rhythm from recordings, step 1: the duel lab and the style pack** (15 November; Combat Feel "The Battle
+Is Retired"; `MoveStyle`, `DuelLab`; the plan "Fight Rhythm from Recordings"). The battle is retired: the fight
+is being built again from a duel up, on the made attacks and on movement styles made from recordings. Nothing
+about how a fighter walks is changed in this step.
+
+- **The battle is retired.** It is not among the places at the top of the panels, the scene begins in the duel
+  lab where it would have begun with the battle, and the walk lab's way to the fight goes to the duel lab. Its
+  code is still there, and with the switch off it is a place again. The regression fight is the same fight (78
+  blows, seed 5).
+- **A movement style is a pack** (`MoveStyle`). The clips a guard walks with were found by their names in the
+  walk itself. They are now a style: a named pack of recordings, each with a job (standing, walking forward and
+  back, a step to each side, running forward and back, turning). The standard style is the sword and shield
+  pack's guard, clip for clip what it was. The walk (planted feet, real steps, stride fitting, stand and step) is
+  the same for every style; the capoeira pack will be another style.
+- **The duel lab** (8, or Duel at the top of a panel): a swordsman with sword and shield and one that stands
+  there, 3 m apart. The buttons move him about the other: Walk to, Back away, Stand, Circle left, Circle right,
+  with how near he walks and how far he backs. He is steered as the fight steers a fighter (a velocity and a
+  facing, to his walk), so what is seen is the walk the fight will have. The panel shows the style he moves in,
+  the order, the distance, his speed.
+
+Measured (headless, `FIGHT_LINEUP=aim FIGHT_DUEL="WalkTo:6,CircleLeft:7,BackAway:6,CircleRight:7,WalkTo:5"`,
+`FIGHT_DUELAPART=3`): he walks in from 3 m to 1.44 m and stands, goes round at 0.66 m/s keeping his distance to
+within 8 cm, backs away to 4.1 m and stands, walks in again.
+
+**Found, and not yet understood: the feet's slide.** The fight's measure of feet sliding while down reads 0.4 cm
+a second in the regression fight. In the duel lab it reads 1.6 cm a second for him going round (the worst single
+slide 6 cm) and 3.7 cm a second walking in and backing away (the worst 41 cm), and 4 to 5 cm a second for the
+one that only stands and turns to face him (the worst 65 cm). The old battle moved its fighters slower and less
+than these orders do (it went round at 0.35 m/s), so this is either a slide that was always there at a walk's
+pace and when turning on the spot, or the measure counting a foot that swings low over the ground as down (the
+slides it traces are a foot 1.2 to 1.4 cm up). It is the first thing step 2 (the paces) has to settle, since
+feet that stay planted at every pace is what that step is for. Not verified in Unity: anything.
+
+The extra animations (19 clips) are read and not yet used: jogs forward, back and to each side (2.4 to 3.0 m/s,
+the pace between the walk and the run that was missing), a run backward, a side hop of 1.25 m in half a second
+(the goalkeeper's sidestep), a forward jump of 1.3 m, two boxer's bounces with a jab, pivots. `python3
+Tools/Mocap/Rhythm/rhythm_survey.py <folder>` reads a pack: each clip's length, travel, speed, turn, hip height,
+foot contacts.
+
 
 
 Unity, from that first look: the articulation probe read exactly as headless on every count (targets a turn

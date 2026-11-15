@@ -104,6 +104,15 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            if (BattleRetired)
+            {
+                // (Where the scene would have begun with the battle, it begins in the duel lab.)
+                targetTest = true;
+                aimTest = true;
+                duelLab = true;
+                fight = true;
+            }
+
             BeginFight();
         }
 
@@ -183,7 +192,15 @@ namespace PhysicsBattler.Sandbox
             Targets,
             Tubes,
             Aim,
+            Duel,
         }
+
+        /// <summary>
+        /// The battle is retired (the scene's Combat Feel, "The Battle Is Retired"; the plan "Fight Rhythm from
+        /// Recordings"): it is not among the places, and where the scene would have begun with it, it begins in the
+        /// duel lab. The fight is being built again from the duel up, on the made attacks.
+        /// </summary>
+        public static bool BattleRetired = true;
 
         private static readonly (Place place, string name, string tip)[] Places =
         {
@@ -192,6 +209,7 @@ namespace PhysicsBattler.Sandbox
             (Place.Targets, "Targets", "The target test (1): three attackers, each on a target that only stands there."),
             (Place.Tubes, "Tubes", "The tube test (5): the three targets alone, struck by tubes: falls and blows on demand."),
             (Place.Aim, "Aim", "The aim test (7): one swordsman and one target that stands there. A blow is asked for one part of the body at a time, and the part it lands on turns red."),
+            (Place.Duel, "Duel", "The duel lab (8): one fighter moved about another on demand: walk to it, back away, go round it. Where the fight's movement is built, a step at a time."),
         };
 
         private static GUIStyle placeStyle, placeNowStyle;
@@ -209,6 +227,11 @@ namespace PhysicsBattler.Sandbox
             foreach (var (place, name, tip) in Places)
             {
                 bool here = place == now;
+                if (place == Place.Battle && BattleRetired && !here)
+                {
+                    continue;
+                }
+
                 if (GUILayout.Button(new GUIContent(here ? "> " + name + " <" : name, here ? "Where you are now. " + tip : tip), here ? placeNowStyle : placeStyle) && !here)
                 {
                     pressed = place;
@@ -220,7 +243,7 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>Where this panel is now.</summary>
-        private Place PlaceNow => aimTest ? Place.Aim : tubeTest ? Place.Tubes : targetTest ? Place.Targets : Place.Battle;
+        private Place PlaceNow => aimTest ? (duelLab ? Place.Duel : Place.Aim) : tubeTest ? Place.Tubes : targetTest ? Place.Targets : Place.Battle;
 
         private void GoTo(Place place)
         {
@@ -240,6 +263,9 @@ namespace PhysicsBattler.Sandbox
                     break;
                 case Place.Aim:
                     AimTestScene();
+                    break;
+                case Place.Duel:
+                    DuelLabScene();
                     break;
             }
         }
@@ -487,10 +513,81 @@ namespace PhysicsBattler.Sandbox
             targetTest = true;
             tubeTest = false;
             aimTest = true;
+            duelLab = false;
             fight = true;
             Aim.Stop();
+            Duel.Stop();
             Spawn();
             message = "Aim test: press a part of the body and the swordsman strikes at it. The part his blade lands on turns red. R resets.";
+        }
+
+        // ---- The duel lab (the plan "Fight Rhythm from Recordings") ----
+
+        /// <summary>The duel lab is on: the aim test's two (a swordsman and one that stands there), the swordsman moved about by orders.</summary>
+        private bool duelLab;
+
+        /// <summary>The duel lab's movement orders.</summary>
+        public readonly DuelLab Duel = new DuelLab();
+
+        /// <summary>How far apart the duel lab's two begin (metres).</summary>
+        public const float DuelApartAtFirst = 3f;
+
+        /// <summary>
+        /// The duel lab (8): a swordsman and one that stands there, three metres apart, and the swordsman moved about it
+        /// on demand. The scene is the aim test's; what is asked of the swordsman is movement.
+        /// </summary>
+        public void DuelLabScene()
+        {
+            targetTest = true;
+            tubeTest = false;
+            aimTest = true;
+            duelLab = true;
+            fight = true;
+            Aim.Stop();
+            Duel.Stop();
+            Spawn();
+            message = "Duel lab: the buttons move the swordsman about the other: walk to it, back away, go round it. R resets.";
+        }
+
+        /// <summary>From the locomotion lab straight to the duel lab, as <see cref="WatchFight"/> goes to the battle.</summary>
+        public void WatchDuel()
+        {
+            targetTest = true;
+            tubeTest = false;
+            aimTest = true;
+            duelLab = true;
+            fight = true;
+            Aim.Stop();
+            Duel.Stop();
+            WatchFight();
+            message = "Duel lab: the buttons move the swordsman about the other: walk to it, back away, go round it. R resets.";
+        }
+
+        private void DrawDuelLab()
+        {
+            if (!Section("Duel lab", true, "One fighter moved about another on demand, so a way of moving can be looked at by itself. He is steered as the fight steers a fighter, so what is seen is the walk the fight will have."))
+            {
+                return;
+            }
+
+            var mover = Duel.Mover;
+            var style = mover != null && mover.Clip != null && mover.Clip.Loco != null ? mover.Clip.Loco.Style : null;
+            GUILayout.Label(new GUIContent("Style: " + (style != null ? style.Name : "none") + (style != null ? $" (the pack \"{style.Prefix}\")" : ""),
+                "The movement style the swordsman's guard moves in: a pack of recordings, each with a job in the walk (standing, walking forward and back, a step to each side, running, turning). The standard style is the sword and shield pack's guard, as the fight has moved until now."), Styles().Text);
+            Heading("Move him", "Each button is an order he carries out until it is done or another is given.");
+            GUILayout.BeginHorizontal();
+            if (Press("Walk to", $"He walks up to the other and stands {Duel.Near:0.0} m from it.")) Duel.Give(DuelLab.Order.WalkTo);
+            if (Press("Back away", $"He backs away from the other, facing it, until he is {Duel.Far:0.0} m from it.")) Duel.Give(DuelLab.Order.BackAway);
+            if (Press("Stand", "He stands where he is.")) Duel.Give(DuelLab.Order.Stand);
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (Press("Circle left", "He goes round the other to his own left, facing it, at the distance he is at now, until told otherwise.")) Duel.Give(DuelLab.Order.CircleLeft);
+            if (Press("Circle right", "He goes round the other to his own right, facing it, at the distance he is at now, until told otherwise.")) Duel.Give(DuelLab.Order.CircleRight);
+            GUILayout.EndHorizontal();
+            Duel.Near = Mathf.Round(10f * Slide("Walks to", $"{Duel.Near:0.0} m", "How near the other he walks (metres, root to root).", Duel.Near, 1f, 3f)) / 10f;
+            Duel.Far = Mathf.Round(10f * Slide("Backs to", $"{Duel.Far:0.0} m", "How far from the other he backs away (metres, root to root).", Duel.Far, 2f, 7f)) / 10f;
+            // (Always the same lines, whatever the order: the panel is laid out and drawn from the same state.)
+            GUILayout.Label($"Order: {Duel.Now}. {Duel.Gap:0.00} m apart, going {Duel.Speed:0.00} m/s, {Duel.Gone:0.0} m since the order.", Styles().Text);
         }
 
         /// <summary>From the locomotion lab straight to the aim test, as <see cref="WatchFight"/> goes to the battle.</summary>
@@ -507,13 +604,22 @@ namespace PhysicsBattler.Sandbox
 
         private void SpawnAim(WeaponDefinition sword, WeaponDefinition shield)
         {
-            float half = 0.5f * aimDistance;
+            float half = 0.5f * (duelLab ? DuelApartAtFirst : aimDistance);
             Vector3 targetSpot = Grid.origin + new Vector3(0f, 0f, half), attackerSpot = Grid.origin + new Vector3(0f, 0f, -half);
             var target = SpawnUnit(BodySize.Medium, 1, targetSpot, "Target", aimTargetKit == 0 ? null : sword, aimTargetKit == 1 ? shield : null);
             // (With made attacks the swordsman has a shield as well: the strikes were recorded with sword and shield, and
             // their guard and their footwork are that kit's.)
-            var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", sword, AttackMaker.On ? shield : null);
+            var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", sword, AttackMaker.On || duelLab ? shield : null);
             Aim.Begin(attacker, target);
+            if (duelLab)
+            {
+                Duel.Begin(attacker, target);
+            }
+            else
+            {
+                Duel.Stop();
+            }
+
             aimLast = "";
             if (target == null || attacker == null)
             {
@@ -923,6 +1029,11 @@ namespace PhysicsBattler.Sandbox
             {
                 StepFight();
                 StepTubes();
+                if (aimTest && duelLab)
+                {
+                    Duel.Step(Time.fixedDeltaTime);
+                }
+
                 if (aimTest)
                 {
                     Aim.Step(Time.fixedDeltaTime, Time.time);
@@ -984,6 +1095,7 @@ namespace PhysicsBattler.Sandbox
             if (SandboxInput.KeyPressed(KeyCode.Alpha5)) TubeTestScene();
             if (SandboxInput.KeyPressed(KeyCode.Alpha6)) TubeHit();
             if (SandboxInput.KeyPressed(KeyCode.Alpha7)) AimTestScene();
+            if (SandboxInput.KeyPressed(KeyCode.Alpha8)) DuelLabScene();
         }
 
         /// <summary>
@@ -1905,7 +2017,7 @@ namespace PhysicsBattler.Sandbox
 
         // (What the panel shows, as it was when the panel was last laid out: a press that changes it (a test begun, a
         // recording stopped) shows from the next layout, so every event draws the controls that were laid out for it.)
-        private bool shownTube, shownTarget, shownAim, shownRecording, shownFeel;
+        private bool shownTube, shownTarget, shownAim, shownDuel, shownRecording, shownFeel;
         private string shownMessage = "";
 
         private PanelStyles panel;
@@ -1987,6 +2099,7 @@ namespace PhysicsBattler.Sandbox
             {
                 shownTube = tubeTest;
                 shownAim = aimTest;
+                shownDuel = aimTest && duelLab;
                 shownTarget = targetTest && !tubeTest && !aimTest;
                 shownRecording = recorder != null && recorder.Recording;
                 shownFeel = feel != null;
@@ -1999,7 +2112,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             // ---- Always there: where one is, the clock and the recording ----
-            var goTo = PlaceBar(shownAim ? Place.Aim : shownTube ? Place.Tubes : shownTarget ? Place.Targets : Place.Battle);
+            var goTo = PlaceBar(shownAim ? (shownDuel ? Place.Duel : Place.Aim) : shownTube ? Place.Tubes : shownTarget ? Place.Targets : Place.Battle);
             if (goTo.HasValue)
             {
                 GoTo(goTo.Value);
@@ -2048,7 +2161,11 @@ namespace PhysicsBattler.Sandbox
                 DrawTubeTest();
             }
 
-            if (shownAim)
+            if (shownAim && shownDuel)
+            {
+                DrawDuelLab();
+            }
+            else if (shownAim)
             {
                 DrawAimTest();
             }

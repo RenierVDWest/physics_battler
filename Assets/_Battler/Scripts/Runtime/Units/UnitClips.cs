@@ -53,6 +53,12 @@ namespace PhysicsBattler.Units
         /// </summary>
         public float StandsAsNearAs;
 
+        /// <summary>
+        /// A target dummy is driven: it goes at this velocity (world, m/s) instead of to its spot (the duel lab's
+        /// movement orders); null: it stands on its spot, as a dummy does.
+        /// </summary>
+        public Vector3? DummyGo;
+
         /// <summary>A target dummy faces this point (the sandbox's tube test turns its targets); null: the nearest enemy, as the target test has it.</summary>
         public Vector3? DummyFace;
 
