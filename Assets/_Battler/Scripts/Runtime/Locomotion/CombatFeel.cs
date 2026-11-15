@@ -284,6 +284,21 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A made attack may be put on another recording's legs when those fit the distance better: the thrust, recorded standing, on the forehand cut's lunge (a lunging thrust); the forehand cut, recorded lunging, on the thrust's standing legs (a cut from where it stands). The chest, head and arms are the blow's own; the hips, legs, steps and travel are the other's, each phase stretched to the blow's. Off: every attack on its own recording's legs.")]
         public bool attacksBorrowLegs = true;
 
+        [Tooltip("A blow asked for while he walks (a walk's pace or more: walking in, going round, at a jog) is thrown on the move: the walk goes on under it. The legs, their steps and his travel are the walk's; the chest, the head and the arms are the blow's; the hips are both. The legs answer the blow: the hips over them turn and sink with it, the walk is checked as the blade comes round so the steps shorten and slow and then pick up again, the walk carries him a step in toward the target so the blade reaches, and the blade is timed to land as a foot comes down. Off: he plants himself to strike (\"Attacks Start From Where He Is\"). A blow the walk cannot bring within reach is thrown planted either way, with its lunge. (The duel lab's \"Strike at\" buttons.)")]
+        public bool attacksAreThrownOnTheMove = true;
+
+        [Tooltip("A blow on the move: how much the walk is checked through the blow. 0: not at all, his legs go on as if nothing happened. 0.45: as the blade lands he goes at 55% of his pace; he slows from just before the hips start in, is slowest at the landing, and is back to his pace a third of a second after. His steps shorten and slow with it: a catch in his stride, not a stop.")]
+        [Range(0f, 0.85f)] public float movingBlowChecksTheWalk = 0.45f;
+
+        [Tooltip("A blow on the move: how far the hips go from where the walk has them to where the blow has its own (0 to 1); the spine twists for the rest, so the chest and the blade go round as far as they did in the recording either way. 0: the hips are the walk's alone and the blow is all in the spine and the arm. 1: the hips are the blow's alone, 40 to 70 degrees round over legs that go on walking.")]
+        [Range(0f, 1f)] public float movingBlowHipsTurn = 0.5f;
+
+        [Tooltip("A blow on the move: how far the hips go toward the target as the blade lands, his weight going into the blow (metres at a Medium's size). The legs reach back for it.")]
+        [Range(0f, 0.2f)] public float movingBlowHipsGoIn = 0.06f;
+
+        [Tooltip("A blow on the move: how far the walk may carry him toward the target, on top of where it was going, so the blade reaches (metres at a Medium's size): a step in under the blow, taken by the walk's own legs over the wind-up and the drive (and half as far back when he is too near). 0: he strikes from wherever the walk has him, and anything further than his arm and blade is thrown planted.")]
+        [Range(0f, 1f)] public float movingBlowStepsIn = 0.63f;
+
         [Tooltip("A blow made on another recording's legs (the thrust on the forehand cut's lunge) goes back to its guard at the legs' own pace. The cut's legs take 0.6 s to step back; the thrust is back in its guard in 0.1 s. Off, as before: the legs' way back is squeezed into the blow's own, and the body is thrown back at 5 to 6 m/s in the last tenth of a second (and, if he then walks on, carries that speed with him).")]
         public bool borrowedLegsGoBackAtTheirPace = true;
 
@@ -963,6 +978,13 @@ namespace PhysicsBattler.Locomotion
             AttackMaker.On = aimTestAttacksAreMade;
             ClipFighter.MadeBorrowsLegs = attacksBorrowLegs;
             AttackScore.LegsGoBackAtTheirPace = borrowedLegsGoBackAtTheirPace;
+            AttackOnTheMove.On = attacksAreThrownOnTheMove;
+            var moveBlow = MoveBlowStyle.Plain;
+            moveBlow.Check = movingBlowChecksTheWalk;
+            moveBlow.HipsTurn = movingBlowHipsTurn;
+            moveBlow.HipsInto = movingBlowHipsGoIn / 0.845f;
+            moveBlow.StepIn = movingBlowStepsIn / 0.845f;
+            AttackOnTheMove.Style = moveBlow;
             AttackMaker.FromAnyPose = attacksStartFromWhereHeIs;
             AttackMaker.CoastTime = attackCarriesFor;
             AttackMaker.Style = AttackStyleNow;

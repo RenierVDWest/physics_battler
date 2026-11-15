@@ -108,6 +108,60 @@ internal static class AttackReport
             }
         }
 
+        // Thrown on the move (AttackOnTheMove): made for a walk that goes on under it, then laid on that walk as the
+        // walk lays it (the walk's body held as it was when the blow began), and the layered body's blade at the
+        // landing set against the target. What the plan and the layering disagree by, with nothing else in the way.
+        Console.WriteLine("\nthrown on the move, over the guard's walk as it stands at one moment of its cycle (the target in his own frame as the blow begins, m: right, up, forward; he walks forward at 1.4 m/s, or to his left at 1.4 m/s turning to keep facing it): the step in, the turn, how far short; and the layered body's blade at its landing against the target (cm)");
+        {
+            var mm = BodyMeasures.OfClips;
+            var pose = new Vector3[LocoClip.BoneCount];
+            var walkClip = LocoLibrary.Get("sns_walk_fwd") ?? LocoLibrary.Get("sns_walk") ?? strikes[0];
+            walkClip.Pose(0.2f, pose, 1f);
+            var walk = mm.Decompose(pose);
+            var move = MoveBlowStyle.Plain;
+            var movingTargets = new[] { new Vector3(0f, 1.2f, 2.6f), new Vector3(0.1f, 1.6f, 2.4f), new Vector3(-0.15f, 0.6f, 2.5f) };
+            foreach (var clip in strikes)
+            {
+                var score = AttackScore.Of(clip);
+                if (!score.Plain)
+                {
+                    continue;
+                }
+
+                for (int way = 0; way < 2; way++)
+                {
+                    foreach (var target in movingTargets)
+                    {
+                        Vector3 own = (way == 0 ? target : new Vector3(target.x, target.y, target.z - 0.8f)) / 0.845f;
+                        var aim = new AttackAim
+                        {
+                            Aimed = true, Target = own, OnTheMove = true, Move = move, WalkNow = walk,
+                            Walks = (way == 0 ? new Vector3(0f, 0f, 1.4f) : new Vector3(-1.4f, 0f, 0f)) / 0.845f,
+                            Faces = true, FacesAt = new Vector3(own.x, 0f, own.z),
+                            Into = new Vector3(own.x, 0f, own.z).normalized * move.HipsInto,
+                        };
+                        var made = AttackMaker.Make(score, AttackStyle.Plain, aim, hold);
+                        // Laid on the walk at its landing, as the walk lays it.
+                        made.Clip.Pose(0f, pose, 1f);
+                        var guard = mm.Decompose(pose);
+                        made.Clip.Pose(made.ContactAt, pose, 1f);
+                        var blow = mm.Decompose(pose, guard);
+                        made.Clip.RootMotion(0f, made.ContactAt, out _, out float turned);
+                        var layered = AttackOnTheMove.Layer(walk, blow, guard, turned, 1f, aim.Into, move);
+                        AttackScore.SwordOf(layered, mm, made.Hold, false, out _, out _, out Vector3 grip, out Vector3 bladeWay);
+                        Vector3 strike = grip + bladeWay * made.Hold.Strike;
+                        AttackOnTheMove.Walked(aim.Walks, 0f, aim.FacesAt, made.StepIn, made.ContactAt, made.DriveAt, made.ContactAt, move.Check, out Vector3 at, out float walkTurned);
+                        Vector3 flat = at + Quaternion.Euler(0f, walkTurned, 0f) * new Vector3(strike.x, 0f, strike.z);
+                        Vector3 lands = new Vector3(flat.x, strike.y, flat.z);
+                        AttackMaker.PlannedOnTheMove(made, out _, out _, out Vector3 planned);
+                        Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  {0,-14} {1} at {2,5:0.00} {3,5:0.00} {4,5:0.00}: lands {5:0.00} s in, a step in of {6,3:0} cm, turned {7,4:0}°, hand {8,3:0} cm, short {9,3:0} cm | the layered blade {10,5:0.0} cm from the target, {11,5:0.0} cm from where its plan has it",
+                            clip.Name, way == 0 ? "walking in " : "going round", target.x, target.y, way == 0 ? target.z : target.z - 0.8f, made.ContactAt, made.StepIn.magnitude * 84.5f, made.Turn, made.HandMoved * 84.5f, made.Short * 84.5f,
+                            Vector3.Distance(lands, own) * 84.5f, Vector3.Distance(lands, planned) * 84.5f));
+                    }
+                }
+            }
+        }
+
         {
             // (How long making takes: an attack is made as it begins, in the frame it begins in.)
             var forehand = AttackScore.Of(LocoLibrary.Clips["sns_forehand"]);

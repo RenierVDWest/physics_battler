@@ -624,20 +624,27 @@ namespace PhysicsBattler.Sandbox
             Heading("Strike at", "Press a part while he is moving (give him an order above first): he strikes at it from where he is, in the middle of his step, and then goes on with his order. Pressed while he stands it is the aim test's blow.");
             if (feel != null)
             {
+                // (Three ways to strike out of a walk: over it; planted, his speed carried in; stopped dead, as it was.)
+                int way = feel.attacksAreThrownOnTheMove ? 0 : feel.attacksStartFromWhereHeIs ? 1 : 2;
+                GUILayout.Label(new GUIContent("He strikes:", "How a blow asked for while he walks is thrown. On the move: the walk goes on under the blow, its legs answering it (they are checked as the blade comes round, and step in so it reaches). Planted: he plants himself and lunges, the way he was going carried into the blow and run down under its wind-up. Stopped: he stops in one step and strikes from his guard, as it was before. Standing still, or stepping slowly in his stance, a blow is always planted."), Styles().Text);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent("He strikes", "Old: he stops in one step and the attack begins from his guard. New: the way he was going is carried into the attack and runs down under its wind-up, a foot in the air finishes its step, and each limb keeps the speed it had (Combat Feel \"Attacks Start From Where He Is\")."), Styles().Text, GUILayout.Width(80f));
-                if (Press(feel.attacksStartFromWhereHeIs ? "[from where he is]" : "from where he is", "New: his movement flows into the attack."))
-                {
-                    feel.attacksStartFromWhereHeIs = true;
-                }
-
-                if (Press(!feel.attacksStartFromWhereHeIs ? "[stopped, from his guard]" : "stopped, from his guard", "Old: he stops dead and strikes from his guard."))
-                {
-                    feel.attacksStartFromWhereHeIs = false;
-                }
-
+                if (Press(way == 0 ? "[on the move]" : "on the move", "The walk goes on under the blow (Combat Feel \"Attacks Are Thrown On The Move\"). He must be walking: a pace of about 1 m/s or more.")) way = 0;
+                if (Press(way == 1 ? "[planted]" : "planted", "He plants himself and lunges, his speed carried into the blow (Combat Feel \"Attacks Start From Where He Is\").")) way = 1;
+                if (Press(way == 2 ? "[stopped (old)]" : "stopped (old)", "He stops dead and strikes from his guard, as it was.")) way = 2;
                 GUILayout.EndHorizontal();
-                feel.attackCarriesFor = Lever("Carries for", feel.attackCarriesFor, 0.1f, 0.8f, "How long the way he was going is carried on into the attack (seconds): his speed runs down to nothing over it. Longer is more momentum; shorter a sharp check before the blow.");
+                feel.attacksAreThrownOnTheMove = way == 0;
+                feel.attacksStartFromWhereHeIs = way != 2;
+                if (way == 0)
+                {
+                    feel.movingBlowChecksTheWalk = Lever("Checks walk", feel.movingBlowChecksTheWalk, 0f, 0.85f, "On the move: how much the walk is checked through the blow. 0: his legs go on as if nothing happened. 0.45: as the blade lands he goes at 55% of his pace, his steps shortening and slowing with it, and picks up again after: a catch in his stride.");
+                    feel.movingBlowStepsIn = Lever("Steps in", feel.movingBlowStepsIn, 0f, 1f, "On the move: how far the walk may carry him toward the target under the blow so the blade reaches (metres). 0: he strikes from wherever the walk has him, and what is out of reach is thrown planted.");
+                    feel.movingBlowHipsTurn = Lever("Hips turn", feel.movingBlowHipsTurn, 0f, 1f, "On the move: how far the hips go from the walk's to the blow's own; the spine twists for the rest. 0: the hips are the walk's alone. 1: the blow's alone, turned 40 to 70 degrees over legs that go on walking.");
+                    feel.movingBlowHipsGoIn = Lever("Hips go in", feel.movingBlowHipsGoIn, 0f, 0.2f, "On the move: how far the hips go toward the target as the blade lands, his weight into the blow (metres).");
+                }
+                else if (way == 1)
+                {
+                    feel.attackCarriesFor = Lever("Carries for", feel.attackCarriesFor, 0.1f, 0.8f, "Planted: how long the way he was going is carried on into the attack (seconds): his speed runs down to nothing over it. Longer is more momentum; shorter a sharp check before the blow.");
+                }
             }
 
             AimRow(AimSpot.Head);
@@ -645,7 +652,7 @@ namespace PhysicsBattler.Sandbox
             AimRow(AimSpot.UpperArmR, AimSpot.Belly, AimSpot.UpperArmL);
             AimRow(AimSpot.ThighR, AimSpot.Hips, AimSpot.ThighL);
             AimRow(AimSpot.ShinR, AimSpot.ShinL);
-            GUILayout.Label(new GUIContent("Last blow: " + (Duel.BlowBegan.Length > 0 ? "asked while " + Duel.BlowBegan + "." : "none yet."), "What he was doing as the blow was asked for."), Styles().Text);
+            GUILayout.Label(new GUIContent("Last blow: " + (Duel.BlowBegan.Length > 0 ? "asked while " + Duel.BlowBegan + "; " + Duel.BlowThrown + "." : "none yet."), "What he was doing as the blow was asked for, and how it was thrown: on the move (which blow, when it was to land, the step in the walk took for it) or planted (and why, if it was asked for on the move)."), Styles().Text);
             GUILayout.Label(new GUIContent("Its start: " + (Duel.BlowStart.Length > 0 ? Duel.BlowStart + "." : "none yet."),
                 "How smoothly the blow began, over its first 0.4 s: the biggest change of speed from one step to the next of his root and, as posed, of his hips, each foot and his sword hand. A body going 1.4 m/s that stops in one step shows as 1.4: that is the snap. And how far his held feet slid over the ground."), Styles().Text);
             GUILayout.Label(aimLast.Length > 0 ? aimLast : "", Styles().Text);
@@ -2070,7 +2077,7 @@ namespace PhysicsBattler.Sandbox
         // it means is its tooltip, shown in the box at the bottom.
 
         /// <summary>How wide the panel is (at a panel size of 1).</summary>
-        public const float PanelWidth = 330f;
+        public const float PanelWidth = 440f;
 
         private sealed class PanelStyles
         {

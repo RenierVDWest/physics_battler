@@ -145,6 +145,9 @@ namespace PhysicsBattler.Sandbox
         public string BlowBegan { get; private set; } = "";
         public string BlowStart { get; private set; } = "";
 
+        /// <summary>How the last blow was thrown: on the move (the walk going on under it, and the step in it took), or planted (and why, when it was asked for on the move).</summary>
+        public string BlowThrown { get; private set; } = "";
+
         private static readonly PhysicsBattler.Rig.PartId[] watched = { PhysicsBattler.Rig.PartId.Pelvis, PhysicsBattler.Rig.PartId.FootL, PhysicsBattler.Rig.PartId.FootR, PhysicsBattler.Rig.PartId.HandR };
         private readonly Vector3[] watchAt = new Vector3[4], watchSpeed = new Vector3[4];
         private readonly float[] watchJump = new float[4], watchFirst = new float[4];
@@ -181,6 +184,13 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
+            var made = Mover.Clip.Made;
+            BlowThrown = loco.ShotOverWalk && made != null
+                ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "thrown on the move ({0}, to land {1:0.00} s after, {2})", made.Clip.Name.Replace("made_sns_", ""), made.LandsIn,
+                    made.StepIn.magnitude * loco.Leg < 0.03f ? "no step in" : string.Format(System.Globalization.CultureInfo.InvariantCulture, "a step {0} of {1:0} cm", Vector3.Dot(made.StepIn, made.Asked.Target) >= 0f ? "in" : "back", 100f * made.StepIn.magnitude * loco.Leg))
+                : Mover.Clip.MovedShort > 0f
+                    ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "planted (on the move it would have fallen {0:0} cm short)", 100f * Mover.Clip.MovedShort)
+                    : PhysicsBattler.Locomotion.AttackOnTheMove.On && Speed < PhysicsBattler.Locomotion.AttackOnTheMove.WalksFrom ? "planted (he was not walking)" : "planted";
             watchFrom = loco.Position;
             watchWas = watchRootSpeed.magnitude;
             watchFor = 0f;
@@ -322,12 +332,15 @@ namespace PhysicsBattler.Sandbox
 
             Vector3 toward = to / Gap, left = Vector3.Cross(toward, Vector3.up);
             float pace = PaceNow;
+            // (While he strikes his order does not fight the blow: it does not end under it, and going round he is
+            // not steered back out to his distance while the blow steps him in. After it, he is.)
+            bool striking = Mover.Clip != null && Mover.Clip.Striking;
             // (How soon he starts to slow for where he is to stop: sooner the faster he comes, as far as his walk coasts.)
             float slows = Mathf.Max(0.5f, 2f / Mathf.Max(1f, pace));
             switch (Now)
             {
                 case Order.WalkTo:
-                    if (Gap <= Near)
+                    if (Gap <= Near && !striking)
                     {
                         Stand();
                         return;
@@ -337,7 +350,7 @@ namespace PhysicsBattler.Sandbox
                     Mover.DummyGo = toward * Mathf.Min(pace, slows * 2f * (Gap - Near) + 0.2f);
                     break;
                 case Order.BackAway:
-                    if (Gap >= Far)
+                    if (Gap >= Far && !striking)
                     {
                         Stand();
                         return;
@@ -350,7 +363,7 @@ namespace PhysicsBattler.Sandbox
                     // circle, the faster the further: it is steered inward by as much as the circle bends over the time
                     // its walk takes to answer, and in or out as it drifts.)
                     Vector3 round = (Now == Order.CircleLeft ? left : -left) * pace
-                        + toward * Mathf.Clamp(pace * pace / Mathf.Max(0.5f, radius) * 0.45f + 2.5f * (Gap - radius), -0.6f * pace, pace);
+                        + toward * Mathf.Clamp(pace * pace / Mathf.Max(0.5f, Mathf.Min(radius, striking ? Gap : radius)) * 0.45f + (striking ? 0f : 2.5f * (Gap - radius)), -0.6f * pace, pace);
                     Mover.DummyGo = round.normalized * pace;
                     break;
             }

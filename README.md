@@ -4265,3 +4265,57 @@ show a snap or its absence, only the numbers above can, and they are of the pose
 it. Known and not done: the planted foot's catching up is the stance's stepping, not a step made for the attack;
 the turn he had while circling is not carried (only his travel); the limbs are faded point by point, not joint
 by joint; the battle's own blows still start the old way.
+
+**Attacks thrown on the move** (15 November; Combat Feel "Attacks Are Thrown On The Move" and the four "Moving
+Blow ..." levers; `AttackOnTheMove`; the duel lab's "He strikes: on the move / planted / stopped (old)"). Asked
+for in Unity after step 3: the blows out of a walk stop the walk, strike and walk on, which is right and kept,
+but there should also be blows that happen while the movement goes on, with the legs not ignoring them.
+
+A blow asked for while he walks (about 1 m/s or more: walking in, going round, at a jog) is now thrown over
+the walk. The body is in layers, the first use of the plan's layers:
+
+- **The legs, their steps and his travel are the walk's.** It goes on as it is steered.
+- **The chest, the head and the arms are the blow's**, a made attack's clip as before.
+- **The hips are both**: the walk's, turned part of the way to the blow's own hips, sunk as the blow sinks them
+  and carried a few centimetres toward the target. The spine twists for the rest, so the chest and the blade go
+  round against the way he faces exactly as the recording has them.
+
+**How the legs answer the blow** (they do not walk on as if nothing happened):
+
+- **The hips over them turn and sink** with the blow, so the knees bend and the thighs go round.
+- **The walk is checked.** From just before the hips start in he slows, to 55% of his pace as the blade lands,
+  and is back to his pace a third of a second after. The steps shorten and slow with it and pick up again: a
+  catch in the stride, not a stop.
+- **The walk steps in.** On the move there is no lunge, so the distance is the walk's to make up: it carries
+  him toward the target, on top of where it was going, by what the blade would be short (63 cm at most, and no
+  faster than a step; half as far back when he is too near). The legs take it as steps, because it is the walk
+  that goes there.
+- **The blade lands with a foot.** The walk's coming footfalls near the blow's own time are each tried as the
+  moment to land, and the best taken. Measured, the foot comes down 0.06 to 0.11 s before the blade.
+- A blow the walk cannot bring within reach even so is thrown planted, with its lunge, as in step 3; the lab
+  says which was done and why.
+
+The aim: the attack is fitted to where the walk will have him as the blade lands (going as he goes, checked,
+stepping in, turning to keep facing his enemy), and the target is carried from the walking body's chest to the
+recording's, so the recording's own maker fits it. As it goes, the weapon hand is pulled by what the walk has
+gone off that plan.
+
+Measured (headless: `FIGHT_ONTHEMOVE=0` turns it off, `FIGHT_MOVECHECK`, `FIGHT_MOVEHIPS`, `FIGHT_MOVEINTO`,
+`FIGHT_MOVESTEPIN` the levers, `FIGHT_OVERTRACE=1` every step of the layering). The plan against the layering
+with nothing else in the way (`attacks` mode, "thrown on the move"): the layered body's blade is 0 to 1.3 cm
+from the target for the two cuts, walking in and going round; for the thrust 14 cm, which the wrist's steer
+makes up in play as it does standing. In play, nine blows thrown on the move (walking in at 1.6 m/s, jogging in
+at 2.5 m/s, going round both ways at 1.6 m/s, backing away; head, chest, belly, shoulder, thigh, shin): the
+blade as posed passes 0, 1, 2, 2, 7, 12, 14, 17 and 19 cm from the spot asked for, 7 cm at the middle. Planted
+blows are 0 to 5 cm: on the move is less exact, most of all the thrust and a blow from very near, where he
+turns faster than the plan has him. His root's speed changes by 0.01 to 0.2 m/s in the blow's first step. The
+standing aim test and the six fighters' fights (78 and 84 blows) are unchanged. Looked at as film strips: he
+walks, jogs or goes round with the legs stepping throughout, the upper body winds up and cuts, and the blade
+is on the target as it lands. Not verified in Unity: how it moves, and whether the catch in the stride reads as
+one.
+
+Also: the debug panel is wider (440, was 330), so the duel lab's rows fit without scrolling sideways. A blow's
+line in the playtest log says when it was thrown on the move and how far the walk stepped in for it. Known and
+not done: whether the blow's way is open is not looked at for a blow on the move (the first that fits is
+thrown); only the three plain blows can be thrown so; standing and stepping slowly in his stance a blow is
+always planted; the battle's own blows do not go this way yet.

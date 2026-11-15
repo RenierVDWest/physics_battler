@@ -94,6 +94,28 @@ namespace PhysicsBattler.Locomotion
         public bool Eased;
 
         /// <summary>
+        /// Thrown on the move (<see cref="AttackOnTheMove"/>): the walk goes on under the blow, so the body's travel is
+        /// the walk's, not the recording's, and the blow's upper body sits on the walk's hips. The attack is fitted
+        /// to where the walk will have him as the blade lands.
+        /// </summary>
+        public bool OnTheMove;
+
+        /// <summary>On the move: how he walks as it begins (his own frame then, leg lengths a second) and how fast he turns (degrees a second, + to his right).</summary>
+        public Vector3 Walks;
+        public float Turns;
+
+        /// <summary>On the move: he keeps facing this place as he goes (his own frame as it begins, leg lengths): his enemy. Without, he turns on at the rate he turns now.</summary>
+        public bool Faces;
+        public Vector3 FacesAt;
+
+        /// <summary>On the move: the walk's body against its root as the blow begins (leg lengths): the hips the blow's chest is to sit on.</summary>
+        public BodyTracks WalkNow;
+
+        /// <summary>On the move: how the blow sits on the walk, and how far the hips go into it and which way (against the root, leg lengths).</summary>
+        public MoveBlowStyle Move;
+        public Vector3 Into;
+
+        /// <summary>
         /// How long each foot is still in the air as the attack begins (seconds; 0: it is on the ground): a foot caught
         /// in the middle of its step finishes that step, and is not put down where it happens to be.
         /// </summary>
@@ -111,6 +133,13 @@ namespace PhysicsBattler.Locomotion
         /// <summary>When the blade lands (seconds into the clip), and the moment of the score that is (seconds into the recording).</summary>
         public float ContactAt, ScoreTime;
 
+        /// <summary>When the hips start in (seconds into the clip): the wind-up is over.</summary>
+        public float DriveAt;
+
+        /// <summary>Thrown on the move: what it was asked for (its target in the fighter's own frame as it begins, how he walked). <see cref="Aim"/> then holds the same target as the recording's own frame has it.</summary>
+        public bool OnTheMove;
+        public AttackAim Asked;
+
         /// <summary>
         /// How much later than its clip has it the blade is expected to land (seconds): the walk slows a strike's clip
         /// where its blade would go faster than a sword can be swung (<see cref="LocoBody.BladePace"/>), and the recorded
@@ -126,6 +155,9 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How far the hips were lowered (leg lengths; under 0: raised) and the chest leaned forward (degrees; under 0: back) to bring the blade to the target's height.</summary>
         public float Drop, Lean;
+
+        /// <summary>Thrown on the move: the step in the walk takes under the blow, on top of where it was going (the fighter's own frame as it begins, leg lengths).</summary>
+        public Vector3 StepIn;
 
         /// <summary>How far the wrist turns the blade onto the target as it lands (degrees).</summary>
         public float Steer;
@@ -331,6 +363,9 @@ namespace PhysicsBattler.Locomotion
         internal struct Fit
         {
             public float Tau, Lunge, Turn, Drop, Lean;
+
+            /// <summary>Thrown on the move: the step in the walk takes under the blow (the frame he is in as it begins, leg lengths).</summary>
+            public Vector3 StepIn;
         }
 
         /// <summary>
@@ -475,18 +510,22 @@ namespace PhysicsBattler.Locomotion
             // (The way he was going carries him on under the attack: by the landing the target is that much nearer, or
             // further, or more to a side, and the attack is fitted to where it will be against him then.)
             float landsAfter = LandsAfter(score, style, aim, tau), windTime = WindTime(score, style, aim, tau);
-            Vector3 coast = Coast(Carried(score, aim, style.Lunge, windTime), landsAfter);
-            Vector3 target = aim.Target - coast;
+            // (Thrown on the move: the walk carries him, so there is no travel of the blow's own to stretch, and the
+            // target is taken where it will be against the recording's own body when the walk has him at the landing.)
+            bool moving = aim.OnTheMove;
+            float driveOut = score.Drive / score.Rate * windTime;
+            Vector3 coast = moving ? Vector3.zero : Coast(Carried(score, aim, style.Lunge, windTime), landsAfter);
+            Vector3 target = moving ? Virtual(score, style, fit, aim, tau, landsAfter, driveOut) : aim.Target - coast;
             Vector2 want = new Vector2(target.x, target.z);
             Vector3 goes = (Styled(score, style, fit, tau).Pelvis - score.Frames[0].Pelvis) * style.Lunge;
             goes.y = 0f;
-            bool travels = goes.sqrMagnitude > 0.12f * 0.12f;
+            bool travels = !moving && goes.sqrMagnitude > 0.12f * 0.12f;
             Vector3 grip, way, hips, reach;
             for (int i = 0; i < 6; i++)
             {
                 // (The attack's own speed at its start goes with its travel's stretch: what is carried against it is found again.)
-                coast = Coast(Carried(score, aim, style.Lunge * fit.Lunge, windTime), landsAfter);
-                target = aim.Target - coast;
+                coast = moving ? Vector3.zero : Coast(Carried(score, aim, style.Lunge * fit.Lunge, windTime), landsAfter);
+                target = moving ? Virtual(score, style, fit, aim, tau, landsAfter, driveOut) : aim.Target - coast;
                 want = new Vector2(target.x, target.z);
                 Sword(score, style, fit, tau, m, hold, out grip, out way, out hips, out reach);
                 Vector3 strike = grip + way * hold.Strike;
@@ -506,6 +545,19 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 fit.Turn = Mathf.Clamp(fit.Turn + Mathf.DeltaAngle(Bearing(at), Bearing(want)), -MostTurn, MostTurn);
+                if (moving && aim.Move.StepIn > 0f)
+                {
+                    // (On the move the distance is the walk's to make up: it steps in toward the target, or holds back
+                    // from it, by what the blade is short or long. Along the line from him to the target as the blow begins.)
+                    Vector3 line = new Vector3(aim.Target.x, 0f, aim.Target.z);
+                    if (line.sqrMagnitude > 1e-6f)
+                    {
+                        float along = Vector3.Dot(fit.StepIn, line.normalized) + (wantFar - at.magnitude);
+                        float furthest = Mathf.Min(aim.Move.StepIn, AttackOnTheMove.MostStepInPace * landsAfter);
+                        fit.StepIn = line.normalized * Mathf.Clamp(along, -0.5f * furthest, furthest);
+                    }
+                }
+
                 if (travels)
                 {
                     // (How much further the blade lands for each share more of travel: the travel's part along the line to the blade.)
@@ -519,8 +571,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             // The wrist's steer the last of the way, then the sword hand for what is still left.
-            coast = Coast(Carried(score, aim, style.Lunge * fit.Lunge, windTime), landsAfter);
-            target = aim.Target - coast;
+            coast = moving ? Vector3.zero : Coast(Carried(score, aim, style.Lunge * fit.Lunge, windTime), landsAfter);
+            target = moving ? Virtual(score, style, fit, aim, tau, landsAfter, driveOut) : aim.Target - coast;
             Sword(score, style, fit, tau, m, hold, out grip, out way, out hips, out reach);
             way = Steered(way, target - grip, score.Thrust ? hold.MostThrustSteer : hold.MostSteer, out steer);
             lands = grip + way * hold.Strike;
@@ -539,9 +591,96 @@ namespace PhysicsBattler.Locomotion
             handMove = Quaternion.Euler(0f, -fit.Turn * TurnShare(score, tau), 0f) * move;
             // (What each costs: a turn of 50 degrees as much as a lean of 50, a drop of 0.35 leg lengths, half a leg length
             // of the hand's own move, or landing a second off the recording's own moment. Falling short costs most.)
-            cost = 10f * shortBy + 2f * move.magnitude + 0.5f * Mathf.Abs(fit.Lunge - 1f) + Mathf.Abs(fit.Turn) / 50f
+            cost = 10f * shortBy + 2f * move.magnitude + 0.5f * Mathf.Abs(fit.Lunge - 1f) + 0.7f * fit.StepIn.magnitude + Mathf.Abs(fit.Turn) / 50f
                 + Mathf.Abs(fit.Lean) / 50f + Mathf.Abs(fit.Drop) / 0.35f + steer / 90f + Mathf.Abs(tau - contact);
             return fit;
+        }
+
+        private static float FacingOf(AttackScore score, float time)
+        {
+            float f = Mathf.Clamp(time * score.Rate, 0f, score.Frames.Length - 1);
+            int a = Mathf.Min(Mathf.FloorToInt(f), score.Frames.Length - 2);
+            return a < 0 ? score.Facing[0] : Mathf.Lerp(score.Facing[a], score.Facing[a + 1], f - a);
+        }
+
+        /// <summary>The chest's place (the last spine joint, where the shoulders hang) and its turn, for a body's tracks (the same frame).</summary>
+        private static void ChestOf(in BodyTracks t, BodyMeasures m, out Vector3 at, out Quaternion turn)
+        {
+            Quaternion pel = Quaternion.Euler(t.PelvisTurn);
+            turn = pel * Quaternion.Euler(t.ChestTurn);
+            at = t.Pelvis + pel * m.Spine + Quaternion.Slerp(pel, turn, BodyMeasures.SpineShare1) * m.Spine1 + Quaternion.Slerp(pel, turn, BodyMeasures.SpineShare2) * m.Spine2;
+        }
+
+        /// <summary>
+        /// A blow thrown on the move at its landing, both ways: the chest as the recording's own body has it (the
+        /// frame the recording begins in, the fit's turn in), and the chest as it is when the blow is laid on the walk
+        /// (the frame he is in as the blow begins): the walk's body as it is now, taken to where the walk will have
+        /// it, with the blow layered on it as the walk will layer it (<see cref="AttackOnTheMove.Layer"/>).
+        /// </summary>
+        private static void OnTheMove(AttackScore score, in AttackStyle style, in Fit fit, in AttackAim aim, float tau, float landsAfter, float driveOut, BodyMeasures m,
+            out Vector3 chestOwn, out Quaternion turnOwn, out Vector3 chestWalking, out Quaternion turnWalking, out BodyTracks layered)
+        {
+            float far = style.Lunge * fit.Lunge;
+            var t = Styled(score, style, fit, tau);
+            var guard = score.Frames[0];
+            Vector3 root = RootOf(score, tau) * far, rootOut = RootAt(score, far, fit.Turn, tau);
+            float turnIn = fit.Turn * TurnShare(score, tau), facing = FacingOf(score, tau);
+            // The recording's own.
+            ChestOf(t, m, out Vector3 chest, out Quaternion che);
+            var turn = Quaternion.Euler(0f, turnIn, 0f);
+            Vector3 flat = rootOut + turn * new Vector3(chest.x - root.x, 0f, chest.z - root.z);
+            chestOwn = new Vector3(flat.x, chest.y, flat.z);
+            turnOwn = turn * che;
+            // Laid on the walk: the blow and its guard against the recording's root, as its clip has them.
+            var back = Quaternion.Euler(0f, -facing, 0f);
+            var blow = t;
+            blow.Pelvis = back * (t.Pelvis - root);
+            blow.Pelvis.y = t.Pelvis.y;
+            blow.PelvisTurn.y -= facing;
+            var first = guard;
+            first.Pelvis = Quaternion.Euler(0f, -score.Facing[0], 0f) * (guard.Pelvis - score.Root[0] * far);
+            first.Pelvis.y = guard.Pelvis.y;
+            first.PelvisTurn.y -= score.Facing[0];
+            layered = AttackOnTheMove.Layer(aim.WalkNow, blow, first, facing + turnIn - score.Facing[0], 1f, aim.Into, aim.Move);
+            ChestOf(layered, m, out Vector3 onRoot, out Quaternion cheOnRoot);
+            AttackOnTheMove.Walked(aim.Walks, aim.Turns, aim.Faces ? aim.FacesAt : (Vector3?)null, fit.StepIn, landsAfter, driveOut, landsAfter, aim.Move.Check, out Vector3 at, out float turned);
+            var walked = Quaternion.Euler(0f, turned, 0f);
+            Vector3 there = at + walked * new Vector3(onRoot.x, 0f, onRoot.z);
+            chestWalking = new Vector3(there.x, onRoot.y, there.z);
+            turnWalking = walked * cheOnRoot;
+        }
+
+        /// <summary>
+        /// A blow thrown on the move: its target as the recording's own body has it (the frame the recording begins
+        /// in, leg lengths). On the move the blow's chest and arms sit on the walk's hips, where the walk has taken
+        /// them by the landing; the recording has them on its own. The sword arm hangs from the chest the same in
+        /// both, so the target is carried from the one chest to the other: where it is against the walking body's
+        /// chest at the landing is where it is put against the recording's. Fitted to that, the blow lands on the
+        /// target when it is thrown over the walk.
+        /// </summary>
+        private static Vector3 Virtual(AttackScore score, in AttackStyle style, in Fit fit, in AttackAim aim, float tau, float landsAfter, float driveOut)
+        {
+            OnTheMove(score, style, fit, aim, tau, landsAfter, driveOut, BodyMeasures.OfClips, out Vector3 chestOwn, out Quaternion turnOwn, out Vector3 chestWalking, out Quaternion turnWalking, out _);
+            return chestOwn + turnOwn * (Quaternion.Inverse(turnWalking) * (aim.Target - chestWalking));
+        }
+
+        /// <summary>
+        /// For the reports, a blow thrown on the move as its plan has it at the landing: its hips against the walk's
+        /// root (leg lengths) and how they are turned (degrees), and where its blade's striking part lands (the frame
+        /// he is in as the blow begins, leg lengths).
+        /// </summary>
+        public static void PlannedOnTheMove(MadeAttack made, out Vector3 hipsOnRoot, out float hipsYaw, out Vector3 lands)
+        {
+            var score = made.Score;
+            AttackStyle style = made.Style;
+            Fit fit = made.Plan;
+            AttackAim aim = made.Asked;
+            float tau = fit.Tau;
+            float landsAfter = LandsAfter(score, style, aim, tau), driveOut = score.Drive / score.Rate * WindTime(score, style, aim, tau);
+            OnTheMove(score, style, fit, aim, tau, landsAfter, driveOut, BodyMeasures.OfClips, out Vector3 chestOwn, out Quaternion turnOwn, out Vector3 chestWalking, out Quaternion turnWalking, out BodyTracks layered);
+            hipsOnRoot = layered.Pelvis;
+            hipsYaw = layered.PelvisTurn.y;
+            lands = chestWalking + turnWalking * (Quaternion.Inverse(turnOwn) * (made.Lands - chestOwn));
         }
 
         /// <summary>
@@ -553,7 +692,14 @@ namespace PhysicsBattler.Locomotion
         {
             var m = BodyMeasures.OfClips;
             float drive = score.Drive / score.Rate, contact = score.Contact / score.Rate, follow = score.Follow / score.Rate, end = score.Duration;
-            var made = new MadeAttack { Score = score, Hold = hold, Aim = aim, ScoreTime = contact, Lunge = 1f };
+            var made = new MadeAttack { Score = score, Hold = hold, Aim = aim, Asked = aim, ScoreTime = contact, Lunge = 1f };
+            // (Thrown on the move the travel is the walk's: the style's lunge has nothing to stretch.)
+            AttackStyle used = style;
+            if (aim.Aimed && aim.OnTheMove)
+            {
+                used.Lunge = 1f;
+            }
+
             var fit = new Fit { Tau = contact, Lunge = 1f };
             Vector3 handMove = Vector3.zero;
 
@@ -568,7 +714,7 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 made.Cost = float.MaxValue;
-                AttackStyle styled = style;
+                AttackStyle styled = used;
                 AttackAim aimed = aim;
                 SwordHold held = hold;
                 void Try(float tau)
@@ -607,7 +753,7 @@ namespace PhysicsBattler.Locomotion
 
                 if (made.Cost == float.MaxValue)
                 {
-                    fit = FitAt(score, style, aim, hold, m, contact, out made.Lands, out handMove, out made.Short, out made.Steer, out made.Cost);
+                    fit = FitAt(score, used, aim, hold, m, contact, out made.Lands, out handMove, out made.Short, out made.Steer, out made.Cost);
                 }
 
                 made.ScoreTime = fit.Tau;
@@ -616,16 +762,30 @@ namespace PhysicsBattler.Locomotion
                 made.Drop = fit.Drop;
                 made.Lean = fit.Lean;
                 made.HandMoved = handMove.magnitude;
+                made.StepIn = fit.StepIn;
             }
             else
             {
-                Sword(score, style, fit, contact, m, hold, out Vector3 grip, out Vector3 way, out _, out _);
+                Sword(score, used, fit, contact, m, hold, out Vector3 grip, out Vector3 way, out _, out _);
                 made.Lands = grip + way * hold.Strike;
             }
 
-            made.Style = style;
+            made.Style = used;
             made.Plan = fit;
             made.HandMove = handMove;
+            if (aim.Aimed && aim.OnTheMove)
+            {
+                // (From here on it is made as the recording's own body would make it, for the target as that body has
+                // it; thrown over the walk, that is the target asked for.)
+                made.OnTheMove = true;
+                AttackAim own = aim;
+                own.Target = Virtual(score, used, fit, aim, fit.Tau, LandsAfter(score, used, aim, fit.Tau), drive * WindTime(score, used, aim, fit.Tau));
+                own.Carry = Vector3.zero;
+                own.Eased = false;
+                own.AirL = own.AirR = 0f;
+                made.Aim = own;
+            }
+
             if (build)
             {
                 Build(made);
@@ -690,6 +850,7 @@ namespace PhysicsBattler.Locomotion
             float driveOut = drive * windTime, followOut = driveOut + (follow - drive) * driveTime, endOut = followOut + (end - follow) * backTime;
             int frames = Mathf.Max(contactFrame + 2, Mathf.CeilToInt(endOut * Rate) + 1);
             made.ContactAt = contactFrame / Rate;
+            made.DriveAt = driveOut;
 
             var data = new LocoClipData
             {

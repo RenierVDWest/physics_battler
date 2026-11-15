@@ -68,13 +68,13 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How long until a foot that is up lands again (seconds; a guess when standing).</summary>
         public float SwingLeft(int foot)
         {
-            if (Current == Mode.Cycle)
+            if (Legs == Mode.Cycle)
             {
                 float land = foot == 0 ? 0f : 0.5f;
                 return Mathf.Repeat(land - Phase, 1f) / Mathf.Max(0.3f, PhaseRate);
             }
 
-            if (Current == Mode.OneShot && Shot != null)
+            if (Current == Mode.OneShot && Shot != null && !shotOver)
             {
                 float step = 1f / Shot.Rate;
                 for (float t = ShotTime + step; t < Mathf.Min(shotEnd, ShotTime + 1.2f); t += step)
@@ -230,7 +230,7 @@ namespace PhysicsBattler.Locomotion
         /// The guard's walks are upright walks, feet under the hips: walked for a step's worth they drew the stance in
         /// and it stepped out into it again at every stop.
         /// </summary>
-        public bool StepsInStance => StepsInStanceOn && InGuard && Current == Mode.Idle && InStanceNow;
+        public bool StepsInStance => StepsInStanceOn && InGuard && Legs == Mode.Idle && InStanceNow;
 
         /// <summary>
         /// Its moving is the stance's to step: paced, and either not shoved or a shove the feet can step after (the plan
@@ -423,7 +423,20 @@ namespace PhysicsBattler.Locomotion
             wantNow = wantVelocity;
             float want = wantVelocity.magnitude;
             GuardWeight = Guard != null ? Mathf.MoveTowards(GuardWeight, GuardWanted ? 1f : 0f, dt / Mathf.Max(0.05f, GuardBlend)) : 0f;
-            if (Current == Mode.OneShot)
+            // (A blow thrown on the move: the walk goes on under it as it would, at the share of its pace the blow
+            // leaves it, and the blow's upper body is laid on it after.)
+            bool over = Current == Mode.OneShot && shotOver;
+            float goes = 1f;
+            Vector3 stepsIn = Vector3.zero;
+            if (over)
+            {
+                // (The blow's step in, as a speed: what of it this step of the blow's clip takes.)
+                float ahead = rewinding ? ShotTime : Mathf.Min(shotEnd, ShotTime + dt * TimeScale * ShotRate);
+                stepsIn = overStepIn * ((AttackOnTheMove.SteppedIn(ahead, overLandAt) - AttackOnTheMove.SteppedIn(ShotTime, overLandAt)) / dt);
+                goes = AttackOnTheMove.Goes(ShotTime, overDriveAt, overLandAt, overCheck);
+                Current = underMode;
+            }
+            else if (Current == Mode.OneShot)
             {
                 ShotStep(dt);
                 Inertialize(dt);
@@ -438,7 +451,7 @@ namespace PhysicsBattler.Locomotion
             float halfLife = PacedNow ? PacedHalfLife : Mathf.Lerp(VelocityHalfLife, RunVelocityHalfLife, RunWeight);
             Vector3 before = Velocity;
             Springs.Track(ref Velocity, ref Acceleration, wantVelocity, halfLife, dt);
-            Position += 0.5f * (before + Velocity) * dt;
+            Position += 0.5f * (before + Velocity) * (dt * goes) + stepsIn * dt;
             // (How fast it is going, with whatever moved it since the last step.)
             Vector3 went = goingKnown ? (Position - goingFrom) / dt : Velocity;
             went.y = 0f;
@@ -456,6 +469,14 @@ namespace PhysicsBattler.Locomotion
                 FacingSpeed = Mathf.Clamp(FacingSpeed, -most / dt, most / dt);
             }
 
+            // (Under a blow thrown on the move the legs walk at what the body goes at: its pace as the blow checks it,
+            // and the blow's step in. The walk's own speed, what it is steered at, is kept for after.)
+            Vector3 steered = Velocity;
+            if (over)
+            {
+                Velocity = Velocity * goes + stepsIn;
+            }
+
             float speed = new Vector2(Velocity.x, Velocity.z).magnitude;
             if (shoved > 0f && speed < WalkFrom)
             {
@@ -469,11 +490,11 @@ namespace PhysicsBattler.Locomotion
             {
                 Vector3 localWant = Quaternion.Euler(0f, -Facing, 0f) * wantVelocity;
                 float wantAngle = want > 1e-3f ? Mathf.Atan2(localWant.x, localWant.z) * Mathf.Rad2Deg : 0f;
-                if (Mathf.Abs(turnWanted) > TurnFrom && (want < WalkFrom || Mathf.Abs(wantAngle) > 60f && Mathf.Abs(turnWanted) > 60f))
+                if (!over && Mathf.Abs(turnWanted) > TurnFrom && (want < WalkFrom || Mathf.Abs(wantAngle) > 60f && Mathf.Abs(turnWanted) > 60f))
                 {
                     StartTurn(turnWanted);
                 }
-                else if (!InGuard && want > WalkFrom && Mathf.Abs(wantAngle) < 35f && want < RunSpeed && StartClip() != null)
+                else if (!over && !InGuard && want > WalkFrom && Mathf.Abs(wantAngle) < 35f && want < RunSpeed && StartClip() != null)
                 {
                     StartShot(StartClip(), ShotEnds.Cycle, startFrom: StartFirstMove);
                 }
@@ -491,12 +512,12 @@ namespace PhysicsBattler.Locomotion
                 float reverse = want > 0.3f && speed > 0.3f ? Vector3.Angle(Velocity, wantVelocity) : 0f;
                 if (reverse > 135f && speed > 0.6f && Mathf.Abs(angle) < 40f && Mathf.Abs(turnWanted) > 100f)
                 {
-                    if (!InGuard)
+                    if (!InGuard && !over)
                     {
                         StartPivot(Vector3.Cross(Velocity, wantVelocity).y);
                     }
                 }
-                else if (!InGuard && speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
+                else if (!over && !InGuard && speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
                 {
                 }
                 else if (StepsInStanceOn && InGuard && InStanceNow && speed < (shoved > 0f ? ShoveLimit : StanceLimit))
@@ -525,9 +546,174 @@ namespace PhysicsBattler.Locomotion
                 CyclePose(dt, speed);
             }
 
+            if (over)
+            {
+                Velocity = steered;
+                underMode = Current;
+                Current = Mode.OneShot;
+                OverStep(dt);
+            }
+
             Inertialize(dt);
             Facing = Mathf.DeltaAngle(0f, Facing);
         }
+
+        // ---- A blow thrown on the move: its upper body over the walk's legs (AttackOnTheMove) ----------------
+
+        private bool shotOver;
+        private Mode underMode = Mode.Idle;
+        private float overDriveAt, overLandAt, overCheck, overTurned;
+        private Vector3 overInto, overStepIn;
+        private BodyTracks overGuard, overWalkWas, overBlowWas;
+        private bool overKnown, overRides;
+        private readonly Vector3[] underRaw = new Vector3[LocoClip.BoneCount], underWas = new Vector3[LocoClip.BoneCount], overPose = new Vector3[LocoClip.BoneCount];
+
+        /// <summary>A blow is being thrown on the move: its clip is the playing one-shot, the walk goes on under it.</summary>
+        public bool ShotOverWalk => Current == Mode.OneShot && shotOver;
+
+        /// <summary>What the legs are doing: the walk's own state, also while a blow is thrown over it (<see cref="Current"/> then says the blow's one-shot).</summary>
+        public Mode Legs => ShotOverWalk ? underMode : Current;
+
+        /// <summary>
+        /// Plays a strike's clip over the walk (<see cref="AttackOnTheMove"/>): the walk goes on, steered as it is,
+        /// and the clip's chest, head and arms are laid on its legs, its hips driven by the blow. The clip's own
+        /// travel is not taken: the walk carries the body. False, and nothing begun, while another clip plays.
+        /// </summary>
+        /// <param name="driveAt">When the blow's hips start in and when its blade lands (seconds of the clip): the walk is checked between them.</param>
+        /// <param name="check">How much the walk is checked as the blow lands (0 to 1 of its pace).</param>
+        /// <param name="into">Which way the hips go into the blow and how far at its landing (against the root as it begins, leg lengths).</param>
+        /// <param name="stepIn">The blow's step in (world, metres): the walk carries him this much further, on top of where it is steered, by the time the blade lands.</param>
+        public bool PlayOver(LocoClip clip, float driveAt, float landAt, float check, Vector3 into, Vector3 stepIn = default)
+        {
+            if (clip == null || Current == Mode.OneShot || !Ready)
+            {
+                return false;
+            }
+
+            Mode under = Current;
+            StartShot(clip, ShotEnds.Idle);
+            // (The walk's own blend is kept: the clip is not what the legs play.)
+            shotOver = true;
+            underMode = under;
+            overDriveAt = driveAt;
+            overLandAt = landAt;
+            overCheck = check;
+            overInto = into;
+            stepIn.y = 0f;
+            overStepIn = stepIn;
+            overTurned = 0f;
+            overKnown = false;
+            clip.Pose(0f, overPose, 1f);
+            overGuard = BodyMeasures.OfClips.Decompose(overPose);
+            overBlowWas = overGuard;
+            // (What differs is counted against the walk as it was a step ago: the legs go straight on.)
+            for (int i = 0; i < underWas.Length; i++)
+            {
+                underWas[i] = lastRaw[i];
+            }
+
+            overRides = hasLast;
+            return true;
+        }
+
+        /// <summary>The walk has been posed this step: the blow's clip goes on, and its upper body is laid on the walk's legs.</summary>
+        private void OverStep(float dt)
+        {
+            var clip = Shot;
+            float from = ShotTime;
+            ShotTime = rewinding
+                ? Mathf.Max(rewindFloor, ShotTime + dt * TimeScale * ShotSpeed)
+                : Mathf.Min(shotEnd, ShotTime + dt * TimeScale * Mathf.Max(0f, ShotSpeed) * ChamberNow * PaceNow);
+            clip.RootMotion(from, ShotTime, out _, out float turned);
+            overTurned += turned;
+            for (int i = 0; i < raw.Length; i++)
+            {
+                underRaw[i] = raw[i];
+            }
+
+            bool ends = ShotTime >= shotEnd - 1e-4f;
+            if (rewinding)
+            {
+                rewindLeft -= dt;
+                ends = rewindLeft <= 0f || ShotTime <= rewindFloor + 1e-4f;
+            }
+
+            if (ends)
+            {
+                // (Back to the walk alone: this step's pose is the walk's, and what the blow still had is faded out.)
+                EndOver();
+                return;
+            }
+
+            var m = BodyMeasures.OfClips;
+            float toClip = 1f / Mathf.Max(0.05f, Leg);
+            for (int i = 0; i < raw.Length; i++)
+            {
+                scratch[i] = raw[i] * toClip;
+            }
+
+            var walk = m.Decompose(scratch, overKnown ? overWalkWas : (BodyTracks?)null);
+            clip.Pose(ShotTime, overPose, 1f);
+            var blow = m.Decompose(overPose, overBlowWas);
+            overWalkWas = walk;
+            overBlowWas = blow;
+            overKnown = true;
+            // (Given back to the walk over the clip's last quarter of a second.)
+            float weight = Mathf.Clamp01((shotEnd - ShotTime) / AttackOnTheMove.HandsBack);
+            weight = weight * weight * (3f - 2f * weight);
+            float hold = AttackOnTheMove.Hold(ShotTime, overDriveAt, overLandAt);
+            var layered = AttackOnTheMove.Layer(walk, blow, overGuard, overTurned, weight, overInto * hold, AttackOnTheMove.Style);
+            if (AttackOnTheMove.Trace != null && AttackOnTheMove.TraceSteps)
+            {
+                AttackOnTheMove.Trace($"  over {ShotTime:0.000}: walk hips yaw {walk.PelvisTurn.y:0.0}, blow {blow.PelvisTurn.y:0.0}, guard {overGuard.PelvisTurn.y:0.0}, clip turned {overTurned:0.0}, weight {weight:0.00}, layered {layered.PelvisTurn.y:0.0}; goes {AttackOnTheMove.Goes(ShotTime, overDriveAt, overLandAt, overCheck):0.00} phase {Phase:0.00} rate {PhaseRate:0.00} down {Down[0]:0}{Down[1]:0} hips y {walk.Pelvis.y:0.00}");
+            }
+            m.Compose(layered, scratch);
+            for (int i = 0; i < raw.Length; i++)
+            {
+                raw[i] = scratch[i] * Leg;
+            }
+
+            if (overRides)
+            {
+                // (This step's switch: each point goes on by what the walk moved it this step.)
+                for (int i = 0; i < raw.Length; i++)
+                {
+                    rideBy[i] = underRaw[i] - underWas[i];
+                }
+
+                ridesNow = pendingSwitch;
+                overRides = false;
+            }
+
+            for (int i = 0; i < raw.Length; i++)
+            {
+                underWas[i] = underRaw[i];
+            }
+        }
+
+        private void EndOver()
+        {
+            for (int i = 0; i < raw.Length; i++)
+            {
+                rideBy[i] = raw[i] - underWas[i];
+            }
+
+            shotOver = false;
+            rewinding = false;
+            ShotSpeed = 1f;
+            Current = underMode;
+            Shot = null;
+            pendingSwitch = hasLast;
+            ridesNow = hasLast;
+        }
+
+        /// <summary>
+        /// The switch pending this step is between two motions that ride the same walk (a blow laid over it, or
+        /// taken off it): each point is carried on by what the walk moved it this step (<see cref="rideBy"/>), so
+        /// the legs under the blow do not miss a step's travel as it begins or ends.
+        /// </summary>
+        private bool ridesNow;
+        private readonly Vector3[] rideBy = new Vector3[LocoClip.BoneCount];
 
         /// <summary>
         /// Plays a clip as it is, its root moving the body, then stands (the films of the combat clips: a
@@ -611,6 +797,7 @@ namespace PhysicsBattler.Locomotion
 
             if (Current == Mode.OneShot)
             {
+                shotOver = false;
                 Shot = null;
                 Current = Mode.Cycle;
                 pendingSwitch = hasLast;
@@ -668,9 +855,12 @@ namespace PhysicsBattler.Locomotion
             shoved = 1f;
             if (Current == Mode.OneShot)
             {
+                // (A blow thrown on the move is dropped; its walk goes on from the step it is in.)
+                bool walking = shotOver && underMode == Mode.Cycle;
+                shotOver = false;
                 Shot = null;
                 Current = Mode.Cycle;
-                Phase = Down[0] >= Down[1] ? 0.1f : 0.6f;
+                Phase = walking ? Phase : Down[0] >= Down[1] ? 0.1f : 0.6f;
                 pendingSwitch = hasLast;
             }
             else if (Current == Mode.Idle)
@@ -987,6 +1177,14 @@ namespace PhysicsBattler.Locomotion
             }
 
             to = Mathf.Min(to, shotEnd);
+            if (shotOver)
+            {
+                // (Thrown on the move: the walk carries it on as it goes.)
+                position += Velocity * Mathf.Max(0f, to - ShotTime);
+                facing += FacingSpeed * Mathf.Max(0f, to - ShotTime);
+                return;
+            }
+
             const float step = 1f / 60f;
             for (float from = ShotTime; from < to - 1e-5f;)
             {
@@ -1106,6 +1304,7 @@ namespace PhysicsBattler.Locomotion
             chamberSpeed = 1f;
             shotEnd = endAt > 0f ? endAt : then == ShotEnds.Cycle ? HandOver(clip, startFrom) : clip.Duration;
             Current = Mode.OneShot;
+            shotOver = false;
             Blend.Clear();
             Blend.Add((clip, 1f));
             pendingSwitch = hasLast;
@@ -1360,7 +1559,7 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public bool ShotAirborne(float within = 0.15f)
         {
-            if (Current != Mode.OneShot || Shot == null)
+            if (Current != Mode.OneShot || Shot == null || shotOver)
             {
                 return false;
             }
@@ -1408,6 +1607,14 @@ namespace PhysicsBattler.Locomotion
 
             to = Mathf.Max(0f, to);
             Shot.RootMotion(ShotTime, to, out var moved, out float turned);
+            if (shotOver)
+            {
+                // (Thrown on the move: the body is the walk's, only the blow goes back; it is posed at the next step.)
+                overTurned += turned;
+                ShotTime = to;
+                return;
+            }
+
             var turn = Quaternion.Euler(0f, Facing, 0f);
             Position += shotBend * (turn * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
             Facing += turned * shotTurnScale;
@@ -1461,7 +1668,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The playing one-shot ends here, now, into the stand (faded).</summary>
         public void EndShotNow()
         {
-            if (Current == Mode.OneShot && Shot != null)
+            if (Current == Mode.OneShot && Shot != null && shotOver)
+            {
+                // (Thrown on the move: the walk has it again from the next step.)
+                shotEnd = ShotTime;
+            }
+            else if (Current == Mode.OneShot && Shot != null)
             {
                 shotEnd = ShotTime;
                 shotThen = ShotEnds.Idle;
@@ -2008,9 +2220,11 @@ namespace PhysicsBattler.Locomotion
                     Shot.Pose(Mathf.Max(0f, ShotTime - dt * TimeScale), scratch, Leg);
                 }
 
+                begins &= !ridesNow;
+                keeps &= !ridesNow;
                 for (int i = 0; i < offset.Length; i++)
                 {
-                    offset[i] = lastOut[i] - (begins ? scratch[i] : raw[i]);
+                    offset[i] = lastOut[i] - (begins ? scratch[i] : raw[i]) + (ridesNow ? rideBy[i] : Vector3.zero);
                     offsetVelocity[i] = keeps ? Vector3.ClampMagnitude(outSpeed[i] - (begins ? (raw[i] - scratch[i]) / dt : Vector3.zero), MostKeptSpeed * Leg / 0.845f) : Vector3.zero;
                     most = Mathf.Max(most, offset[i].magnitude);
                 }
@@ -2023,6 +2237,8 @@ namespace PhysicsBattler.Locomotion
                 pendingSwitch = false;
                 Switches++;
             }
+
+            ridesNow = false;
 
             for (int i = 0; i < raw.Length; i++)
             {

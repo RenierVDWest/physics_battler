@@ -2099,7 +2099,7 @@ namespace PhysicsBattler.Locomotion
             Vector3 asked = want;
             // (Stand and step: near its enemy the steering's small velocity is not walked in slow motion; it stands until
             // a step's worth is asked, and steps it.)
-            if (Loco.Current != Locomotor.Mode.OneShot && Loco.Guarding)
+            if (Loco.Legs != Locomotor.Mode.OneShot && Loco.Guarding)
             {
                 want = Pacer.Pace(dt, want, Loco.Velocity * dt, Size, Locomotor.PacedHalfLife / 0.6931f, !Loco.Shoved);
                 // (The walk takes a step's velocity up, and comes to rest from it, in a step's time; a shove is walked
@@ -2117,6 +2117,7 @@ namespace PhysicsBattler.Locomotion
 
             Loco.Step(dt, want, yaw);
             CarryBy(Loco.SnappedThisStep);
+            PullOnTheMove();
             if (Combo != null)
             {
                 Combo.Step(dt);
@@ -3628,6 +3629,17 @@ namespace PhysicsBattler.Locomotion
         /// <param name="counts">Which parts of the target count as the one the blade is for (null: not looked at): an attack whose blade would meet another part first is passed over for one whose way is open.</param>
         public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle style, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null)
         {
+            if (AttackOnTheMove.On && landIn <= 0f && legs == null)
+            {
+                // (Walking, the blow is thrown on the move: the walk goes on under it.)
+                var moved = StrikeOnTheMove(target, point, style, named);
+                if (moved != null)
+                {
+                    KeepOff(target);
+                    return moved;
+                }
+            }
+
             var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn };
             // (From where he is, the plan "Fight Rhythm from Recordings", step 3: the way he is going is carried into
             // the attack, and a foot caught in the air finishes its step.)
@@ -3719,6 +3731,178 @@ namespace PhysicsBattler.Locomotion
         }
 
         private static readonly List<MadeAttack> madePlans = new List<MadeAttack>();
+
+        /// <summary>How far short of its target the last blow asked for on the move would have fallen (metres; 0: it was thrown on the move, or he was not walking): over <see cref="AttackOnTheMove.ShortOfReach"/> he planted himself for it.</summary>
+        public float MovedShort { get; private set; }
+
+        private readonly Vector3[] walkPose = new Vector3[LocoClip.BoneCount];
+        private static readonly List<float> footfalls = new List<float>();
+        private Vector3 movedFrom;
+        private float movedFacing;
+        private bool movedTold;
+
+        /// <summary>
+        /// An attack thrown on the move (<see cref="AttackOnTheMove"/>): of its plain strikes' scores (or the one
+        /// named), the one that fits the point best when it is thrown over the walk as it goes now, timed to land
+        /// as a foot comes down, and begun over the walk. Null, and nothing begun, when he is not walking (standing,
+        /// or stepping in his stance) or no strike can be so thrown.
+        /// </summary>
+        private MadeAttack StrikeOnTheMove(ClipFighter enemy, Vector3 point, in AttackStyle style, string named)
+        {
+            MovedShort = 0f;
+            float pace = new Vector2(Loco.Velocity.x, Loco.Velocity.z).magnitude;
+            if (Loco.Current != Locomotor.Mode.Cycle || pace < AttackOnTheMove.WalksFrom * Mathf.Sqrt(Mathf.Max(0.1f, Size)))
+            {
+                return null;
+            }
+
+            var m = BodyMeasures.OfClips;
+            float leg = Mathf.Max(0.1f, Loco.Leg);
+            var raw = Loco.RawPoints;
+            for (int i = 0; i < walkPose.Length; i++)
+            {
+                walkPose[i] = raw[i] / leg;
+            }
+
+            var walk = m.Decompose(walkPose);
+            Vector3 own = Quaternion.Euler(0f, -Loco.Facing, 0f) * Loco.Velocity;
+            Vector3 target = InOwnFrame(point);
+            Vector3 toward = new Vector3(target.x, 0f, target.z);
+            var move = AttackOnTheMove.Style;
+            var aim = new AttackAim
+            {
+                Aimed = true,
+                Target = target,
+                OnTheMove = true,
+                Walks = new Vector3(own.x, 0f, own.z) / leg,
+                Turns = Loco.FacingSpeed,
+                WalkNow = walk,
+                Move = move,
+                Into = toward.sqrMagnitude > 1e-6f ? toward.normalized * move.HipsInto : Vector3.zero,
+                // (He faces his enemy as he goes, and turns to keep facing it.)
+                Faces = enemy != null,
+                FacesAt = enemy != null ? InOwnFrame(enemy.Loco.Position) : Vector3.zero,
+            };
+            var hold = Poser.Hold();
+            MadeAttack best = null;
+            foreach (var clip in StrikeClips)
+            {
+                var score = AttackScore.Of(clip);
+                if (score == null || (named != null ? clip.Name != named : !score.Plain))
+                {
+                    continue;
+                }
+
+                // (To land as a foot comes down: each of the walk's coming footfalls near the blow's own time is tried,
+                // and the one the blow fits best taken; a wind-up hurried or drawn out to meet it costs a little.)
+                float natural = score.Drive / score.Rate * Mathf.Max(0.05f, style.WindUpTime) + (score.Contact - score.Drive) / score.Rate * Mathf.Clamp(style.DriveTime, 0.4f, 3f);
+                AttackOnTheMove.Footfalls(Loco.Phase, Loco.PhaseRate, Mathf.Max(0.3f, 0.7f * natural), 1.6f * natural, footfalls);
+                if (footfalls.Count == 0)
+                {
+                    footfalls.Add(natural);
+                }
+
+                foreach (float lands in footfalls)
+                {
+                    var timed = aim;
+                    timed.LandIn = lands;
+                    var plan = AttackMaker.Make(score, style, timed, hold, build: false);
+                    if (plan != null)
+                    {
+                        plan.Cost += 0.6f * Mathf.Abs(lands - natural);
+                        if (best == null || plan.Cost < best.Cost)
+                        {
+                            best = plan;
+                        }
+                    }
+                }
+            }
+
+            if (best == null)
+            {
+                return null;
+            }
+
+            AttackMaker.Build(best);
+            best.Meets = "";
+            // (Out of the walk's reach even with its step in: he plants himself and lunges for it.)
+            if (best.Short * leg > AttackOnTheMove.ShortOfReach * Size)
+            {
+                MovedShort = best.Short * leg;
+                return null;
+            }
+
+            MovedShort = 0f;
+            Vector3 stepIn = Quaternion.Euler(0f, Loco.Facing, 0f) * best.StepIn * leg;
+            if (!Poser.PlayMadeOver(best.Clip, point, best.DriveAt, move.Check, best.Asked.Into, stepIn))
+            {
+                return null;
+            }
+
+            Made = best;
+            movedFrom = Loco.Position;
+            movedFacing = Loco.Facing;
+            movedTold = false;
+            return best;
+        }
+
+        /// <summary>
+        /// A blow thrown on the move, each step until it lands: the walk has not gone quite as the blow's plan had
+        /// it (it is steered as it goes), so where the blade will land is worked out again from where he is now and
+        /// what the plan still has him do, and the weapon hand is pulled by what that misses the target by.
+        /// </summary>
+        private void PullOnTheMove()
+        {
+            var made = Made;
+            if (made == null || !made.OnTheMove || !Loco.ShotOverWalk || Loco.Shot != made.Clip)
+            {
+                return;
+            }
+
+            var asked = made.Asked;
+            float leg = Mathf.Max(0.1f, Loco.Leg);
+            AttackOnTheMove.Walked(asked.Walks, asked.Turns, asked.Faces ? asked.FacesAt : (Vector3?)null, made.StepIn, Loco.ShotTime, made.DriveAt, made.ContactAt, asked.Move.Check, out Vector3 at, out float turned);
+            if (AttackOnTheMove.Trace != null && !movedTold && Loco.ShotTime >= made.ContactAt)
+            {
+                // (For the reports: how the walk and the layered body were at the landing against what the plan had.)
+                movedTold = true;
+                var back = Quaternion.Euler(0f, -movedFacing, 0f);
+                Vector3 went = back * (Loco.Position - movedFrom) / leg;
+                var raw = Loco.RawPoints;
+                for (int i = 0; i < walkPose.Length; i++)
+                {
+                    walkPose[i] = raw[i] / leg;
+                }
+
+                var now = BodyMeasures.OfClips.Decompose(walkPose);
+                AttackScore.SwordOf(now, BodyMeasures.OfClips, made.Hold, false, out _, out _, out Vector3 grip, out Vector3 way);
+                Vector3 strike = grip + way * made.Hold.Strike;
+                Vector3 flat = went + Quaternion.Euler(0f, Mathf.DeltaAngle(movedFacing, Loco.Facing), 0f) * new Vector3(strike.x, 0f, strike.z);
+                AttackMaker.PlannedOnTheMove(made, out Vector3 planHips, out float planYaw, out Vector3 planLands);
+                AttackOnTheMove.Trace(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "{0} at its landing ({1:0.00} s of its clip): the walk had him at ({2:0.00}, {3:0.00}) turned {4:0}, planned ({5:0.00}, {6:0.00}) turned {7:0}; hips on the root ({8:0.00}, {9:0.00}, {10:0.00}) turned {11:0}, planned ({12:0.00}, {13:0.00}, {14:0.00}) turned {15:0}; the blade's striking part as layered ({16:0.00}, {17:0.00}, {18:0.00}), planned ({27:0.00}, {28:0.00}, {29:0.00}), the target ({19:0.00}, {20:0.00}, {21:0.00}): {22:0} cm off the target, {30:0} cm off its plan (leg lengths, the frame it began in: right, up, forward); the plan: turned {23:0}, short {24:0} cm, hand {25:0} cm, to land {26:0.00} s, a step in of {31:0} cm",
+                    made.Clip.Name, Loco.ShotTime, went.x, went.z, Mathf.DeltaAngle(movedFacing, Loco.Facing), at.x, at.z, turned,
+                    now.Pelvis.x, now.Pelvis.y, now.Pelvis.z, now.PelvisTurn.y, planHips.x, planHips.y, planHips.z, planYaw,
+                    flat.x, strike.y, flat.z, asked.Target.x, asked.Target.y, asked.Target.z, 100f * leg * (new Vector3(flat.x, strike.y, flat.z) - asked.Target).magnitude,
+                    made.Turn, 100f * leg * made.Short, 100f * leg * made.HandMoved, made.ContactAt, planLands.x, planLands.y, planLands.z, 100f * leg * (new Vector3(flat.x, strike.y, flat.z) - planLands).magnitude, 100f * leg * made.StepIn.magnitude * Mathf.Sign(Vector3.Dot(made.StepIn, asked.Target))));
+            }
+
+            if (Loco.ShotTime > made.ContactAt)
+            {
+                return;
+            }
+
+            // (The target against where the plan has him now, and so against where he is.)
+            Vector3 ahead = Quaternion.Euler(0f, -turned, 0f) * new Vector3(asked.Target.x - at.x, 0f, asked.Target.z - at.z);
+            Vector3 lands = Loco.Position + Quaternion.Euler(0f, Loco.Facing, 0f) * ahead * leg;
+            Vector3 want = movedFrom + Quaternion.Euler(0f, movedFacing, 0f) * new Vector3(asked.Target.x, 0f, asked.Target.z) * leg;
+            Vector3 pull = want - lands;
+            pull.y = 0f;
+            if (AttackOnTheMove.Pulls)
+            {
+                Poser.AimPullIs(pull);
+            }
+        }
 
         /// <summary>A made attack may be put on another recording's legs when those fit the distance better (the scene's Combat Feel, "Attacks Borrow Legs").</summary>
         public static bool MadeBorrowsLegs = true;

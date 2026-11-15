@@ -222,6 +222,23 @@ internal static class FightReport
         // (FIGHT_ANYPOSE=0: an attack asked for while he moves stops him in one step and begins from his guard, as it
         // was. FIGHT_COAST=0.4: how long his speed is carried into the attack, seconds.)
         PhysicsBattler.Locomotion.AttackMaker.FromAnyPose = Environment.GetEnvironmentVariable("FIGHT_ANYPOSE") != "0";
+        // (FIGHT_ONTHEMOVE=0: a blow asked for while he walks is thrown planted, his speed carried into it, not over
+        // the walk. FIGHT_MOVECHECK=0.45, FIGHT_MOVEHIPS=0.5, FIGHT_MOVEINTO=0.07, FIGHT_MOVESTEPIN=0.75: how a blow on the move sits on the walk.)
+        PhysicsBattler.Locomotion.AttackOnTheMove.On = Environment.GetEnvironmentVariable("FIGHT_ONTHEMOVE") != "0";
+        PhysicsBattler.Locomotion.AttackOnTheMove.Trace = line => Console.WriteLine("ONTHEMOVE " + line);
+        // (FIGHT_OVERTRACE=1: every step of a blow on the move: the hips' turn, the walk's check, its stride's phase and which feet are down.)
+        PhysicsBattler.Locomotion.AttackOnTheMove.TraceSteps = Environment.GetEnvironmentVariable("FIGHT_OVERTRACE") == "1";
+        PhysicsBattler.Locomotion.AttackOnTheMove.Pulls = Environment.GetEnvironmentVariable("FIGHT_MOVEPULL") != "0";
+        {
+            var move = PhysicsBattler.Locomotion.MoveBlowStyle.Plain;
+            float MoveEnv(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+            move.Check = MoveEnv("FIGHT_MOVECHECK", move.Check);
+            move.HipsTurn = MoveEnv("FIGHT_MOVEHIPS", move.HipsTurn);
+            move.HipsInto = MoveEnv("FIGHT_MOVEINTO", move.HipsInto);
+            move.StepIn = MoveEnv("FIGHT_MOVESTEPIN", move.StepIn);
+            PhysicsBattler.Locomotion.AttackOnTheMove.Style = move;
+        }
+
         // (FIGHT_LEGSBACK=0: a blow on another's legs goes back with the legs' way back squeezed into its own, as it was.)
         PhysicsBattler.Locomotion.AttackScore.LegsGoBackAtTheirPace = Environment.GetEnvironmentVariable("FIGHT_LEGSBACK") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COAST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float coastFor))
@@ -1340,7 +1357,7 @@ internal static class FightReport
                         if (paceAt >= duelBlows[i].at)
                         {
                             bool asked = duel.Strike(aim, duelBlows[i].spot, Time.time);
-                            Console.WriteLine($"DUELBLOW {paceAt:0.00} at the {duelBlows[i].spot} while {duel.BlowBegan}: {(asked ? "begun" : "he could not")}");
+                            Console.WriteLine($"DUELBLOW {paceAt:0.00} at the {duelBlows[i].spot} while {duel.BlowBegan}: {(asked ? "begun, " + duel.BlowThrown : "he could not")}");
                             startWatched = asked;
                             duelBlows.RemoveAt(i);
                             break;

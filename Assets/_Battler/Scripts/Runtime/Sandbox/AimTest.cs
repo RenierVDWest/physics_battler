@@ -76,6 +76,10 @@ namespace PhysicsBattler.Sandbox
         public bool Made;
         public float MadeAt, ScoreTime, Turn, Lunge, HandMoved, Drop, Lean, Steer;
 
+        /// <summary>A made attack thrown on the move (the walk going on under it), and the step in the walk took for it (metres; under 0: back).</summary>
+        public bool OnTheMove;
+        public float StepIn;
+
         /// <summary>The nearest the blade as posed came to the spot through the blow (metres; under 0: not read), and when (seconds after it was asked): how well the pose itself is aimed, whatever the body then makes of it.</summary>
         public float PosedFrom = -1f, PosedAfter;
 
@@ -114,7 +118,7 @@ namespace PhysicsBattler.Sandbox
             + $"; its arm {(ArmInRange ? "in range" : $"{Mathf.Max(WristPast, ArmPast):0}° past range")}"
             + (PosedFrom >= 0f ? $"; the blade as posed came within {100f * PosedFrom:0} cm of the spot ({PosedAfter:0.00} s after)" : "")
             + (Went ? $"; the body went {WentBy.z:0.00} m forward, {WentBy.x:0.00} right and turned {WentTurned:0}° by its landing (its clip: {ClipGoesBy.z:0.00}, {ClipGoesBy.x:0.00}, {ClipTurns:0}°)" : "")
-            + (Made ? $"; made: to land {MadeAt:0.00} s after ({ScoreTime:0.00} s of the recording), turned {Turn:0}°, travel x{Lunge:0.00}, hips {100f * Drop:0} cm down, leaned {Lean:0}°, wrist {Steer:0}°, the hand moved {100f * HandMoved:0} cm" : "")
+            + (Made ? $"; made: to land {MadeAt:0.00} s after ({ScoreTime:0.00} s of the recording), turned {Turn:0}°, travel x{Lunge:0.00}, hips {100f * Drop:0} cm down, leaned {Lean:0}°, wrist {Steer:0}°, the hand moved {100f * HandMoved:0} cm{(OnTheMove ? $"; thrown on the move, the walk stepping {(StepIn >= 0f ? "in" : "back")} {100f * Mathf.Abs(StepIn):0} cm for it" : "")}" : "")
             + (Built ? $"; built: planned to land {PlannedAt:0.00} s after, the blade turning {Wound:0}° at {PlannedSpeed:0.0} m/s, its line {LineOff:0}° off the one asked and its edge {PlannedEdgeOff:0}° off its way{(BladeInOwnBody > 0.005f ? $", the blade {100f * BladeInOwnBody:0} cm into its own body" : "")}" : "");
     }
 
@@ -204,6 +208,8 @@ namespace PhysicsBattler.Sandbox
                 Now.Drop = made.Drop * Attacker.Clip.Loco.Leg;
                 Now.Lean = made.Lean;
                 Now.Steer = made.Steer;
+                Now.OnTheMove = made.OnTheMove && Attacker.Clip.Loco.ShotOverWalk;
+                Now.StepIn = made.StepIn.magnitude * Attacker.Clip.Loco.Leg * (Vector3.Dot(made.StepIn, made.Asked.Target) >= 0f ? 1f : -1f);
             }
 
             var built = Attacker.Clip.Built;

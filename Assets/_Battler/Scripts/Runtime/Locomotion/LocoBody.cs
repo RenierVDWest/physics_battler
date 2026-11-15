@@ -285,7 +285,7 @@ namespace PhysicsBattler.Locomotion
         private bool shiftAsked;
 
         /// <summary>Stepping in its stance, standing: where the weight is shifted.</summary>
-        private bool ShiftsNow => WeightShifts && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle;
+        private bool ShiftsNow => WeightShifts && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Legs == Locomotor.Mode.Idle;
 
         private Vector3 ShiftHips(Vector3 pelvisAt, Quaternion pelvisTurn, float dt)
         {
@@ -444,7 +444,8 @@ namespace PhysicsBattler.Locomotion
         private float Time() => clock;
 
         /// <summary>Standing still: the standing clip, or a guard or strike clip playing (they plant their own feet).</summary>
-        private bool Standing => loco.Current == Locomotor.Mode.Idle || (loco.Current == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard && loco.Shot.Role != "turn");
+        // (The legs' own state: a blow thrown on the move plays over a walk, and its legs are walking.)
+        private bool Standing => loco.Legs == Locomotor.Mode.Idle || (loco.Legs == Locomotor.Mode.OneShot && loco.Shot != null && loco.Shot.IsGuard && loco.Shot.Role != "turn");
 
         /// <summary>A planted foot keeps its turn while the body turns over it, up to this (degrees); past it the foot pivots.</summary>
         public const float MostYawHold = 35f;
@@ -1224,6 +1225,51 @@ namespace PhysicsBattler.Locomotion
             aimClip = clip;
             aimFrom = 0f;
             loco.PlayAimed(clip, 1f, turn, clip.ContactFrame / clip.Rate, 0f);
+        }
+
+        /// <summary>
+        /// Starts an attack made to be thrown on the move (<see cref="AttackOnTheMove"/>): its clip plays over the
+        /// walk, which goes on under it. False, and nothing begun, when the walk can't take it (another clip plays).
+        /// </summary>
+        public bool PlayMadeOver(LocoClip clip, Vector3 target, float driveAt, float check, Vector3 into, Vector3 stepIn)
+        {
+            if (clip == null || clip.ContactFrame < 0 || !loco.PlayOver(clip, driveAt, clip.ContactFrame / clip.Rate, check, into, stepIn))
+            {
+                return false;
+            }
+
+            if (aimClip != null && aimWeight > 0f)
+            {
+                pullLeft = aimPull * aimWeight + pullLeft * pullLeftWeight;
+                pullLeftWeight = 1f;
+            }
+
+            aimPull = Vector3.zero;
+            AimTurn = 0f;
+            AimLunge = 1f;
+            AimMissBeforePull = 0f;
+            AimTarget = target;
+            AimPredicted = target;
+            AimLands = target;
+            planGripKnown = false;
+            aimClip = clip;
+            aimFrom = 0f;
+            return true;
+        }
+
+        /// <summary>
+        /// The weapon hand's pull for the strike under way is this (world, metres; no further than
+        /// <see cref="MostAimPull"/>): a blow thrown on the move, whose walk has not gone quite as its plan had it.
+        /// </summary>
+        public void AimPullIs(Vector3 pull)
+        {
+            if (aimClip == null || loco.Shot != aimClip)
+            {
+                return;
+            }
+
+            aimPull = Vector3.ClampMagnitude(pull, MostAimPull);
+            AimLands = AimPredicted + aimPull;
         }
 
         /// <summary>
@@ -2040,7 +2086,7 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 // (A hop: this foot leaves the ground now, with the other.)
-                bool hops = hopAsked && down && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle;
+                bool hops = hopAsked && down && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Legs == Locomotor.Mode.Idle;
                 if (hops)
                 {
                     stretched = true;
@@ -2061,7 +2107,7 @@ namespace PhysicsBattler.Locomotion
                     // lands; one let go while it should still be down is drawn back quickly.)
                     foot.Stepping = stretched && down;
                     foot.StepLanded = false;
-                    foot.StepArc = foot.Stepping && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle;
+                    foot.StepArc = foot.Stepping && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Legs == Locomotor.Mode.Idle;
                     foot.FadeOver = foot.Stepping ? (foot.StepArc ? StepTime : 0.22f) : Mathf.Clamp(loco.SwingLeft(f), 0.12f, 0.8f);
                     foot.Hopping = hops && foot.StepArc;
                     foot.HopFrom = 0f;
@@ -2080,7 +2126,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            if (hopAsked && !foot.Hopping && foot.Stepping && down && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Current == Locomotor.Mode.Idle)
+            if (hopAsked && !foot.Hopping && foot.Stepping && down && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Legs == Locomotor.Mode.Idle)
             {
                 // (A foot already in a step of its own as the hop begins goes with it: from where it is, as high as it
                 // is, over to its place and down with the other.)
