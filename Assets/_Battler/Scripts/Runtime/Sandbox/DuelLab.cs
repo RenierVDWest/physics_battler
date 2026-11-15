@@ -18,7 +18,17 @@ namespace PhysicsBattler.Sandbox
             BackAway,
             CircleLeft,
             CircleRight,
+            LeapIn,
+            LeapOut,
+            HopLeft,
+            HopRight,
         }
+
+        /// <summary>How far a leap goes (metres at a Medium's size) and how long it takes (seconds).</summary>
+        public float LeapFar = 0.5f, LeapTime = 0.25f;
+
+        /// <summary>How the last leap went: asked, and whether both feet left the ground together (a hop) or stepped after the body.</summary>
+        public string LastLeap = "none yet";
 
         /// <summary>The order it is carrying out.</summary>
         public Order Now { get; private set; }
@@ -51,6 +61,7 @@ namespace PhysicsBattler.Sandbox
         /// <summary>Set (the headless run): each step of a setting off is written to it.</summary>
         public System.Collections.Generic.List<string> Trace;
 
+        private bool leaping;
         private float since;
         private Vector3 lastFootL, lastFootR, lastHips;
 
@@ -112,6 +123,19 @@ namespace PhysicsBattler.Sandbox
             {
                 Stand();
             }
+            else if (order >= Order.LeapIn)
+            {
+                // (A leap is done at once, from where he stands; then he stands where it takes him.)
+                Vector3 toward = Flat(Other.Root.position - Mover.Root.position);
+                toward = toward.sqrMagnitude > 1e-6f ? toward.normalized : Mover.transform.forward;
+                Vector3 left = Vector3.Cross(toward, Vector3.up);
+                Vector3 way = order == Order.LeapIn ? toward : order == Order.LeapOut ? -toward : order == Order.HopLeft ? left : -left;
+                Mover.DummyGo = null;
+                bool leapt = Mover.Clip != null && Mover.Clip.LeapNow(way, LeapFar, LeapTime);
+                Mover.DummySpot = Mover.Root.position + (leapt ? way * (LeapFar * Mover.Body.SizeFactor) : Vector3.zero);
+                LastLeap = !leapt ? $"{order}: he could not (in a blow, or down)" : $"{order}: {LeapFar:0.00} m in {LeapTime:0.00} s, " + (Mover.Clip.LeapHopped ? "both feet off the ground together" : "stepped after the body (he was not standing in his stance)");
+                leaping = true;
+            }
         }
 
         private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
@@ -157,6 +181,19 @@ namespace PhysicsBattler.Sandbox
                 lastFootR = r;
                 lastHips = h;
             }
+            if (leaping)
+            {
+                // (Until the leap's ground is covered; then he stands.)
+                if (Mover.Clip == null || (!Mover.Clip.GivingGround && Speed < 0.15f))
+                {
+                    // (Where the leap took him is his spot: he does not creep on to where it was meant to.)
+                    leaping = false;
+                    Stand();
+                }
+
+                return;
+            }
+
             if (Now == Order.Stand || Gap < 1e-3f)
             {
                 return;

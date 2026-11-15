@@ -4054,6 +4054,38 @@ namespace PhysicsBattler.Locomotion
         private float testRetireFor = -1f;
 
         /// <summary>
+        /// A leap (the plan "Fight Rhythm from Recordings", step 2; the duel lab's): from a stand in its stance it
+        /// springs <paramref name="metres"/> (at a Medium's size) the way given, in <paramref name="seconds"/>: both feet
+        /// leave the ground together, each goes in one arc to where the stance has it under the body as it arrives, and
+        /// they come down together, the hips sinking a little as the legs take the weight (<see cref="LocoBody.Hop"/>,
+        /// the hop a step back from a blow can be). Its body is carried as ground given to a blow is, no faster than
+        /// <see cref="RetireSpeed"/>. False: it cannot (down, in a clip of its own, held where it is). Not standing
+        /// in its stance, its feet step after the body one at a time instead.
+        /// </summary>
+        public bool LeapNow(Vector3 way, float metres, float seconds)
+        {
+            way.y = 0f;
+            if (Fallen || Anchored || Loco.Current == Locomotor.Mode.OneShot || way.sqrMagnitude < 1e-6f)
+            {
+                return false;
+            }
+
+            way.Normalize();
+            retireLeft = way * (metres * Size);
+            retireVoids = false;
+            voidedFor = -1;
+            testRetireFor = seconds;
+            Leaps++;
+            // (No push of its walk as well, as a step back from a blow has: a leap lands where it is asked to.)
+            LeapHopped = Poser.Hop(seconds / 0.8f);
+            return true;
+        }
+
+        /// <summary>How many leaps it has been asked for, and whether the last was hopped (both feet together) or stepped after.</summary>
+        public int Leaps { get; private set; }
+        public bool LeapHopped { get; private set; }
+
+        /// <summary>
         /// For the debug panel: its right shin is knocked sideways as a blow would knock it (<paramref name="speed"/>
         /// m/s at a Medium's size, to its left). False: its legs are not of the physical body (or it is down).
         /// </summary>

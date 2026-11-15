@@ -4111,6 +4111,19 @@ first 0.35 s, the hips go 0.3 to 0.5 m/s. The lab's panel shows how he set off (
 first 0.35 s). `FIGHT_SETOFF=0` is as it was; `FIGHT_DUELTRACE=1` writes a setting off step by step. The
 regression fight with the paces' switches on is 84 blows; with them off, the 78 it was.
 
+**Leaps** (15 November; the duel lab's Leap in, Leap out, Hop left, Hop right; `ClipFighter.LeapNow`). From a
+stand in his stance he springs toward the other, away from it or to a side: both feet leave the ground together,
+each goes in one arc to where the stance has it under the body as it arrives, and they come down together, the
+hips sinking a little as the legs take the weight. It is the hop the walk already had for a step back from a blow
+(built earlier and left switched off there), asked for on demand and in any direction, without that step's push.
+How far (0.2 to 1.2 m) and how long (0.15 to 0.4 s) are sliders; he is carried no faster than 4 m/s and is in the
+air 0.3 s at most. Measured (headless, `FIGHT_DUEL="LeapIn:2,LeapOut:2,HopLeft:2,HopRight:2"`,
+`FIGHT_DUELLEAP`, `FIGHT_DUELLEAPTIME`): asked 0.50 m he goes 0.50 m, asked 1.00 m he goes 1.00 m, every one
+hopped, nothing fell. The feet's slide measure reads 5 cm a second over those runs (the worst 46 cm): it cannot
+tell feet a few centimetres up in a hop from feet sliding, so how a leap looks is for the eye. Not verified in
+Unity. Not done yet in step 2: the run on top of the jog; a leap made from the leap recordings (this one is the
+stance's feet moved in arcs, not a recording).
+
 The feet's slide found in step 1 was looked at in Unity: no slide seen. So the measure is taken to be counting
 a low-swinging foot as down at a slow walk; that is not confirmed.
 

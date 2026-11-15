@@ -646,7 +646,8 @@ internal static class FightReport
                 }
 
                 // (FIGHT_DUELPACE=2.6: the pace he is asked to go at, m/s; without it, his guard's own walk.)
-                duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f) };
+                // (FIGHT_DUELLEAP=0.8: how far a leap goes, metres; FIGHT_DUELLEAPTIME=0.3: how long it takes.)
+                duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f), LeapFar = Env("FIGHT_DUELLEAP", 0.5f), LeapTime = Env("FIGHT_DUELLEAPTIME", 0.25f) };
             }
             var attacker = units[0];
             var target = units[1];
@@ -1225,8 +1226,8 @@ internal static class FightReport
                         if (duelAt >= 0)
                         {
                             float took = paceAt - duelFrom;
-                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "DUEL {0,-11} for {1:0.0} s: went {2:0.00} m ({3:0.00} m/s over the whole of it), from {4:0.00} m apart to {5:0.00} m; ended {6}; fastest {7:0.00} m/s of {8:0.00} asked; setting off, a foot {9:0.0} m/s and the hips {10:0.0} m/s in 0.35 s ({11:0.00} m gone)",
-                                duelOrders[duelAt].order, took, duel.Gone, duel.Gone / Mathf.Max(0.1f, took), duelGapFrom, duel.Gap, duel.Now == PhysicsBattler.Sandbox.DuelLab.Order.Stand ? "standing (the order done)" : "still at it", duel.Fastest, duel.PaceNow, duel.SetOffFoot, duel.SetOffHips, duel.SetOffWent));
+                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "DUEL {0,-11} for {1:0.0} s: went {2:0.00} m ({3:0.00} m/s over the whole of it), from {4:0.00} m apart to {5:0.00} m; ended {6}; fastest {7:0.00} m/s of {8:0.00} asked; setting off, a foot {9:0.0} m/s and the hips {10:0.0} m/s in 0.35 s ({11:0.00} m gone){12}",
+                                duelOrders[duelAt].order, took, duel.Gone, duel.Gone / Mathf.Max(0.1f, took), duelGapFrom, duel.Gap, duel.Now == PhysicsBattler.Sandbox.DuelLab.Order.Stand ? "standing (the order done)" : "still at it", duel.Fastest, duel.PaceNow, duel.SetOffFoot, duel.SetOffHips, duel.SetOffWent, duelOrders[duelAt].order >= PhysicsBattler.Sandbox.DuelLab.Order.LeapIn ? "; " + duel.LastLeap : ""));
                         }
 
                         if (now != duelAt)
