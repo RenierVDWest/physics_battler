@@ -4080,7 +4080,34 @@ pace and when turning on the spot, or the measure counting a foot that swings lo
 slides it traces are a foot 1.2 to 1.4 cm up). It is the first thing step 2 (the paces) has to settle, since
 feet that stay planted at every pace is what that step is for. Not verified in Unity: anything.
 
-The extra animations (19 clips) are read and not yet used: jogs forward, back and to each side (2.4 to 3.0 m/s,
+**Fight rhythm, step 2 (first part): the paces** (15 November; Combat Feel "Guard Jogs"; the duel lab's Pace).
+In the lab the swordsman went only at his guard's walking pace, in small steps. He can now be asked for any pace.
+
+- **Pace** (the duel lab's slider, 0 to 3.6 m/s; all the way down is the guard's own walk as before). Under about
+  1 m/s he stands and takes single steps; to about 2 m/s he walks; above it he jogs with his guard up.
+- **The guard jogs.** Above a walk the guard had only its run forward and back (4 m/s, its stride shortened) and
+  nothing of its own to the sides. The jog recordings (forward 2.6 m/s, back 2.4, left 3.0, right 2.5; recorded
+  with empty hands) are taken apart as the strikes are: their hips and legs are put under the guard's own chest,
+  head and arms, frame by frame at the same moment of the stride (`MoveStyle.LegsUnder`). The shield and sword
+  are carried as the guard carries them. Off: as it was. It changes the regression fight (its run-ins are jogs):
+  65 blows; with the switch off, the 78 it was.
+- **Going round** holds its circle better: at a brisk pace he drifted outward by 2 m in six seconds; now by 0.4 m.
+
+Measured (headless, from 5 m, `FIGHT_DUELPACE`): asked 2.6 m/s he reaches 2.5 walking in, 2.3 backing away and
+going round; asked 3.4 he reaches 2.9 walking in over 3.5 m and 3.1 going round. His feet slide 0.2 cm a second at
+2.6 m/s (the worst slide 4 cm) and 1.7 at 3.4 (the worst 9 cm); nothing fell. Still to come in step 2: the leaps
+in and out, and the run on top of the jog (above about 3.2 m/s the jog's stride is stretched). Not verified in
+Unity: how the jog's legs under the guard's arms look.
+
+The feet's slide found in step 1 was looked at in Unity: no slide seen. So the measure is taken to be counting
+a low-swinging foot as down at a slow walk; that is not confirmed.
+
+Also: three errors in the session of 15 November 14:39, in the duel lab. Something asked the old pose pipeline to
+try out a blow (the sandbox's old test keys B, G, L, H, K, D, J, 2, 3, 4 do, and the old rhythm's feints; the log
+does not say which), and a fighter that walks by the clips has none of that pipeline's parts. Such a blow is now
+one that cannot land, not an error.
+
+The extra animations (19 clips) are read; the four jogs are in use: jogs forward, back and to each side (2.4 to 3.0 m/s,
 the pace between the walk and the run that was missing), a run backward, a side hop of 1.25 m in half a second
 (the goalkeeper's sidestep), a forward jump of 1.3 m, two boxer's bounces with a jab, pivots. `python3
 Tools/Mocap/Rhythm/rhythm_survey.py <folder>` reads a pack: each clip's length, travel, speed, turn, hip height,

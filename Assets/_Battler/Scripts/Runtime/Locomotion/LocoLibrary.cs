@@ -102,8 +102,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A loop's share of its cycle each foot is down for, from its landing (left, right).</summary>
         public readonly float[] Duty = new float[2];
 
+        /// <summary>What the clip was made from (kept so one clip's legs can be put under another's chest and arms: <see cref="MoveStyle"/>).</summary>
+        internal readonly LocoClipData Source;
+
         public LocoClip(LocoClipData d)
         {
+            Source = d;
             Name = d.name;
             Role = d.role;
             Kind = d.kind ?? "";

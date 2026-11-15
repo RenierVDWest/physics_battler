@@ -217,6 +217,8 @@ internal static class FightReport
         }
 
         // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
+        // (FIGHT_JOGS=0: the guard without its jog, as it was.)
+        PhysicsBattler.Locomotion.MoveStyle.Jogs = Environment.GetEnvironmentVariable("FIGHT_JOGS") != "0";
         // (FIGHT_TRAVEL=0: the clips' travel as it was, turned the wrong way round.)
         PhysicsBattler.Locomotion.LocoClip.TravelsTrue = Environment.GetEnvironmentVariable("FIGHT_TRAVEL") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
@@ -641,7 +643,8 @@ internal static class FightReport
                     }
                 }
 
-                duel = new PhysicsBattler.Sandbox.DuelLab();
+                // (FIGHT_DUELPACE=2.6: the pace he is asked to go at, m/s; without it, his guard's own walk.)
+                duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f) };
             }
             var attacker = units[0];
             var target = units[1];
@@ -1220,8 +1223,8 @@ internal static class FightReport
                         if (duelAt >= 0)
                         {
                             float took = paceAt - duelFrom;
-                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "DUEL {0,-11} for {1:0.0} s: went {2:0.00} m ({3:0.00} m/s over the whole of it), from {4:0.00} m apart to {5:0.00} m; ended {6}",
-                                duelOrders[duelAt].order, took, duel.Gone, duel.Gone / Mathf.Max(0.1f, took), duelGapFrom, duel.Gap, duel.Now == PhysicsBattler.Sandbox.DuelLab.Order.Stand ? "standing (the order done)" : "still at it"));
+                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "DUEL {0,-11} for {1:0.0} s: went {2:0.00} m ({3:0.00} m/s over the whole of it), from {4:0.00} m apart to {5:0.00} m; ended {6}; fastest {7:0.00} m/s of {8:0.00} asked",
+                                duelOrders[duelAt].order, took, duel.Gone, duel.Gone / Mathf.Max(0.1f, took), duelGapFrom, duel.Gap, duel.Now == PhysicsBattler.Sandbox.DuelLab.Order.Stand ? "standing (the order done)" : "still at it", duel.Fastest, duel.PaceNow));
                         }
 
                         if (now != duelAt)

@@ -32,6 +32,12 @@ GUARD = {
     'sns_step_right': ('sword_and_shield_strafe_2', 'cycle', True, 'Medium guard, side-stepping right'),
     'sns_run': ('sword_and_shield_run', 'cycle', True, 'Medium guard, running forward'),
     'sns_run_back': ('sword_and_shield_run_backwards', 'cycle', True, 'Medium guard, running backward'),
+    # (The plan "Fight Rhythm from Recordings", step 2: the jogs, recorded with empty hands, for the pace between the
+    # walk and the run. Their legs are put under the guard's own chest and arms: MoveStyle.)
+    'jog_fwd': ('jog_forward', 'cycle', True, 'Jogging forward, empty hands'),
+    'jog_back': ('jog_backward', 'cycle', True, 'Jogging backward, empty hands'),
+    'jog_left': ('jog_strafe_left', 'cycle', True, 'Jogging to the left, empty hands'),
+    'jog_right': ('jog_strafe_right', 'cycle', True, 'Jogging to the right, empty hands'),
     'sns_turn_left': ('sword_and_shield_turn', 'turn', False, 'Medium guard, turning left on the spot'),
     'sns_turn_right': ('sword_and_shield_turn_b', 'turn', False, 'Medium guard, turning right on the spot'),
     'sns_turn180': ('sword_and_shield_180_turn', 'turn', False, 'Medium guard, turning round'),

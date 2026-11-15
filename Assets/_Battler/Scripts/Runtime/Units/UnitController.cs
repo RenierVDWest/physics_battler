@@ -282,6 +282,13 @@ namespace PhysicsBattler.Units
         /// <param name="keep">Leave the unit in the contact pose (debugging, the move preview).</param>
         public float TryOut(MoveState state, bool keep)
         {
+            // (A fighter that walks and strikes by the clips has none of the old pose's parts: an old test's blow asked of it
+            // (the sandbox's old keys) is a blow that cannot land, not an error.)
+            if (Stance == null || Pose == null)
+            {
+                return float.MaxValue;
+            }
+
             using (Perf.Begin(PerfSection.TryOut))
             {
                 return PoseDry(state, state.ContactTime, keep) ? Pose.AimError : float.MaxValue;

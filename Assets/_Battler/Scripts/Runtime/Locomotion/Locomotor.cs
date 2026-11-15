@@ -139,6 +139,15 @@ namespace PhysicsBattler.Locomotion
             public LocoClip Idle, WalkF, WalkB, StepL, StepR, CrossL, CrossR, RunF, RunB, RunL, RunR, TurnL, TurnR, Turn180;
         }
 
+        /// <summary>The guard's clips are made again from its style (after a switch that changes what a style's pack holds).</summary>
+        public void RefreshStyle()
+        {
+            if (Style != null)
+            {
+                Guard = Style.Clips();
+            }
+        }
+
         /// <summary>The relaxed walk's clips.</summary>
         public readonly ClipSet Relaxed;
 

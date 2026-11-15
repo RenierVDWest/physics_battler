@@ -26,6 +26,19 @@ namespace PhysicsBattler.Sandbox
         /// <summary>How near it walks to the other, and how far it backs away (metres, root to root).</summary>
         public float Near = 1.5f, Far = 4f;
 
+        /// <summary>
+        /// The pace he is asked to go at (m/s at a Medium's size; 0: his guard's own walking pace, as the fight asked
+        /// until now). Under a walk's speed he stands and steps; at a walk's he walks; above it his guard's run
+        /// carries him, its stride shortened to the pace.
+        /// </summary>
+        public float Pace;
+
+        /// <summary>The pace he goes at now (m/s): the one asked, or his walk's own.</summary>
+        public float PaceNow => Mover == null ? 0f : Pace > 0.01f ? Pace * Mathf.Sqrt(Mathf.Max(0.1f, Mover.Body.SizeFactor)) : Mover.WalkSpeed;
+
+        /// <summary>The fastest he went under the order he has (m/s, over the ground).</summary>
+        public float Fastest { get; private set; }
+
         /// <summary>The fighter moved, and the one it moves about.</summary>
         public UnitController Mover { get; private set; }
         public UnitController Other { get; private set; }
@@ -73,6 +86,7 @@ namespace PhysicsBattler.Sandbox
 
             Now = order;
             Gone = 0f;
+            Fastest = 0f;
             radius = Flat(Other.Root.position - Mover.Root.position).magnitude;
             if (order == Order.Stand)
             {
@@ -104,13 +118,16 @@ namespace PhysicsBattler.Sandbox
             last = Mover.Root.position;
             Speed = Mathf.Lerp(Speed, moved.magnitude / Mathf.Max(1e-4f, dt), Mathf.Clamp01(dt / 0.15f));
             Gone += Now == Order.Stand ? 0f : moved.magnitude;
+            Fastest = Mathf.Max(Fastest, Speed);
             if (Now == Order.Stand || Gap < 1e-3f)
             {
                 return;
             }
 
             Vector3 toward = to / Gap, left = Vector3.Cross(toward, Vector3.up);
-            float pace = Mover.WalkSpeed;
+            float pace = PaceNow;
+            // (How soon he starts to slow for where he is to stop: sooner the faster he comes, as far as his walk coasts.)
+            float slows = Mathf.Max(0.5f, 2f / Mathf.Max(1f, pace));
             switch (Now)
             {
                 case Order.WalkTo:
@@ -121,7 +138,7 @@ namespace PhysicsBattler.Sandbox
                     }
 
                     // (Slowing over the last of it, as the fight's walk in does.)
-                    Mover.DummyGo = toward * Mathf.Min(pace, 2f * (Gap - Near) + 0.2f);
+                    Mover.DummyGo = toward * Mathf.Min(pace, slows * 2f * (Gap - Near) + 0.2f);
                     break;
                 case Order.BackAway:
                     if (Gap >= Far)
@@ -130,11 +147,15 @@ namespace PhysicsBattler.Sandbox
                         return;
                     }
 
-                    Mover.DummyGo = -toward * Mathf.Min(pace, 2f * (Far - Gap) + 0.2f);
+                    Mover.DummyGo = -toward * Mathf.Min(pace, slows * 2f * (Far - Gap) + 0.2f);
                     break;
                 default:
-                    // (Round the other at the distance it had, a little in or out as it drifts.)
-                    Mover.DummyGo = (Now == Order.CircleLeft ? left : -left) * pace + toward * Mathf.Clamp(1.5f * (Gap - radius), -0.5f * pace, 0.5f * pace);
+                    // (Round the other at the distance it had. Going straight along the circle's edge it would leave the
+                    // circle, the faster the further: it is steered inward by as much as the circle bends over the time
+                    // its walk takes to answer, and in or out as it drifts.)
+                    Vector3 round = (Now == Order.CircleLeft ? left : -left) * pace
+                        + toward * Mathf.Clamp(pace * pace / Mathf.Max(0.5f, radius) * 0.45f + 2.5f * (Gap - radius), -0.6f * pace, pace);
+                    Mover.DummyGo = round.normalized * pace;
                     break;
             }
         }

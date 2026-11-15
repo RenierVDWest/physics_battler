@@ -247,6 +247,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The battle is retired. The fight is being built again from the duel up, on the made attacks and on movement styles made from recordings: the old battle (who attacks when, the strike clips played as they are, the combos, the slow circling) is not built on any more. On: the Battle is not among the places at the top of the panels, the scene begins in the duel lab (8) where it would have begun with the battle, and the walk lab's way to the fight goes to the duel lab. Off: the Battle is a place again, as it was.")]
         public bool theBattleIsRetired = true;
 
+        [Tooltip("The guard jogs (the plan's step 2: the paces). Above a walk's pace a fighter in its guard had only its run, forward and back (about 4 m/s, its stride shortened to the pace asked), and to the sides the unarmed run's legs and arms. On: between the walk and the run it jogs, forward, back and to each side, on the legs of the jog recordings (2.4 to 3.0 m/s) under the guard's own chest, head and arms, so the shield and the sword are carried as the guard carries them. Off: as it was. A fighter takes this as it is set out: press Reset after changing it.")]
+        public bool guardJogs = true;
+
         [Header("Made attacks: recorded strikes taken apart and made again (the plan \"Aimed attacks\")")]
         [Tooltip("A clip's travel over the ground goes the way it was recorded. Until 14 November a clip that turns as it travels (every strike: the hips turn 60 to 80 degrees through a cut) went off to a side by twice its turn: a rising cut's step forward of 0.42 m went 0.33 m to the left instead, the lunging backhand's 1.3 m forward went a little backward. On: strikes step and lunge where their recording does, in the fight as well as the aim test. Off: as it was.")]
         public bool clipsTravelAsRecorded = true;
@@ -913,6 +916,7 @@ namespace PhysicsBattler.Locomotion
             BuiltBlow.On = aimTestBlowsAreBuilt;
             LocoClip.TravelsTrue = clipsTravelAsRecorded;
             PhysicsBattler.Sandbox.BattleSandbox.BattleRetired = theBattleIsRetired;
+            MoveStyle.Jogs = guardJogs;
             AttackMaker.On = aimTestAttacksAreMade;
             ClipFighter.MadeBorrowsLegs = attacksBorrowLegs;
             AttackMaker.Style = AttackStyleNow;

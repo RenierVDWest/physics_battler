@@ -45,6 +45,17 @@ def main(folders):
             frames = []
             for i in range(n + 1):
                 w = sk.pose(min(sk.length, i / RATE))
+                if 'LeftEye' not in w:
+                    # (A character with no eye bones: the eyes are put where a head carries them, across the way the
+                    # shoulders lie. The head's own turn against the shoulders is lost; these are clips to move by.)
+                    import numpy as np
+                    head, top = np.array(w['Head'][1]), np.array(w['HeadTop_End'][1])
+                    right = np.array(w['RightArm'][1]) - np.array(w['LeftArm'][1])
+                    right[1] = 0.0
+                    right /= max(1e-6, np.linalg.norm(right))
+                    fwd = np.cross(right, [0.0, 1.0, 0.0])
+                    mid = head + 0.5 * (top - head) + 0.08 * fwd
+                    w = dict(w, LeftEye=(None, mid - 0.03 * right), RightEye=(None, mid + 0.03 * right))
                 frames.append([round(float(c), 4) for b in BONES for c in w[b][1]])
             with open(os.path.join(out, clip + '.json'), 'w') as fh:
                 json.dump(dict(clip=clip, source=f, rate=RATE, length=round(sk.length, 4), bones=BONES, frames=frames), fh, separators=(',', ':'))
