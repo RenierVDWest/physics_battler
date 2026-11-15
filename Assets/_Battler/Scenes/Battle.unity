@@ -300,6 +300,49 @@ MonoBehaviour:
   leastGiveGround: 0.1
   mostGiveGround: 0.2
   giveGroundEases: 0.3
+  groundGivenInTime: 1
+  stepBackHops: 0
+  feetPivotOnTheBall: 1
+  legsArePhysical: 1
+  hipsAreHeldNotLocked: 1
+  hipHoldQuickness: 5
+  hipHoldStrength: 3
+  hitForce: 1
+  getUpsAreNatural: 1
+  getUpLegsClearTheHips: 1
+  fallsKeepTheBody: 1
+  fallMuscle: 0.5
+  fallsProtectTheHead: 1
+  fallsReachForTheGround: 1
+  fallsCanBeCaught: 1
+  fallsHandsStayPlanted: 1
+  fallHandHold: 0.35
+  thrownBodiesTuck: 1
+  fallenBodiesSettle: 1
+  fallsArmsStayOutOfTheBody: 1
+  fallsShieldKeptBeforeTheChest: 1
+  ragdollsHoldSolidThings: 1
+  struckPartsFlashRed: 1
+  aimTestBlowsAreBuilt: 1
+  blowsUseTheTrunk: 1
+  blowsArePushed: 1
+  clipsTravelAsRecorded: 1
+  aimTestAttacksAreMade: 1
+  attacksBorrowLegs: 1
+  attackWindUp: 0.8
+  attackArmSwing: 1.2
+  attackHipDrive: 0.6
+  attackTwist: 0.7
+  attackLean: 1.3
+  attackLunge: 1
+  attackDrop: 0.8
+  attackCrouch: 0
+  attackFollowThrough: 1.3
+  attackWindUpTime: 1.1
+  attackDriveTime: 1
+  attackRecoveryTime: 1.2
+  attackHipLead: -0.03
+  attackArmLag: 0
   concentrationRise: 0.3
   concentrationFall: 0.15
   concentrationGuard: 0.5
@@ -312,6 +355,7 @@ MonoBehaviour:
   blockedArmStrength: 0.2
   pressedBackSpeed: 6
   borneDownFrom: 28
+  lostBodyPutBackAtOnce: 1
   slackAngle: 15
   slackTime: 1
   tautAngle: 40
@@ -321,6 +365,9 @@ MonoBehaviour:
   standAndStep: 1
   stepsInTheStance: 1
   shovesSteppedInTheStance: 1
+  shoveSteppedUpTo: 1.6
+  legsDecideAFall: 1
+  legsCatchUpTo: 4.4
   stepAfter: 0.22
   stepPace: 0.75
   stepPicksUpIn: 0.12
@@ -329,6 +376,10 @@ MonoBehaviour:
   stepHeight: 6
   holdsItsDistanceWithin: 0.18
   walkedStepRhythm: 1.6
+  weightShifts: 1
+  weightShift: 0.4
+  stepWaitsForTheWeight: 0.14
+  weightShiftTakes: 0.08
   weaponWeight: 6
   swingKept: 0.7
   strikeArmStrength: 3
@@ -339,6 +390,7 @@ MonoBehaviour:
   armFollowsAtMost: 2400
   armBonesAsABody: 1
   freeHandGoesWithItsArm: 1
+  freeArmCarriedInFront: 1
   armsHaveStops: 1
   armStopsHoldWith: 4
   comboPullSpeed: 3
