@@ -39,6 +39,21 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The fastest he went under the order he has (m/s, over the ground).</summary>
         public float Fastest { get; private set; }
 
+        /// <summary>
+        /// Setting off: over the first 0.35 s of the order he has, the fastest either foot went and the fastest his
+        /// hips went (m/s, the body as seen), and how far he had got by then (metres). Feet whipped to their places
+        /// while the body has hardly moved read as a jump.
+        /// </summary>
+        public float SetOffFoot { get; private set; }
+        public float SetOffHips { get; private set; }
+        public float SetOffWent { get; private set; }
+
+        /// <summary>Set (the headless run): each step of a setting off is written to it.</summary>
+        public System.Collections.Generic.List<string> Trace;
+
+        private float since;
+        private Vector3 lastFootL, lastFootR, lastHips;
+
         /// <summary>The fighter moved, and the one it moves about.</summary>
         public UnitController Mover { get; private set; }
         public UnitController Other { get; private set; }
@@ -87,6 +102,11 @@ namespace PhysicsBattler.Sandbox
             Now = order;
             Gone = 0f;
             Fastest = 0f;
+            since = 0f;
+            SetOffFoot = SetOffHips = SetOffWent = 0f;
+            lastFootL = Mover.PartPosition(PhysicsBattler.Rig.PartId.FootL);
+            lastFootR = Mover.PartPosition(PhysicsBattler.Rig.PartId.FootR);
+            lastHips = Mover.PartPosition(PhysicsBattler.Rig.PartId.Pelvis);
             radius = Flat(Other.Root.position - Mover.Root.position).magnitude;
             if (order == Order.Stand)
             {
@@ -119,6 +139,24 @@ namespace PhysicsBattler.Sandbox
             Speed = Mathf.Lerp(Speed, moved.magnitude / Mathf.Max(1e-4f, dt), Mathf.Clamp01(dt / 0.15f));
             Gone += Now == Order.Stand ? 0f : moved.magnitude;
             Fastest = Mathf.Max(Fastest, Speed);
+            if (Now != Order.Stand && since < 0.35f && dt > 1e-5f)
+            {
+                since += dt;
+                Vector3 l = Mover.PartPosition(PhysicsBattler.Rig.PartId.FootL), r = Mover.PartPosition(PhysicsBattler.Rig.PartId.FootR), h = Mover.PartPosition(PhysicsBattler.Rig.PartId.Pelvis);
+                SetOffFoot = Mathf.Max(SetOffFoot, Mathf.Max((l - lastFootL).magnitude, (r - lastFootR).magnitude) / dt);
+                SetOffHips = Mathf.Max(SetOffHips, (h - lastHips).magnitude / dt);
+                SetOffWent = Gone;
+                if (Trace != null)
+                {
+                    var loco = Mover.Clip.Loco;
+                    Trace.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.00} s: left foot {1:0.0} m/s, right {2:0.0}, hips {3:0.0}; going {4:0.00} m/s; stride phase {5:0.00} at {6:0.00} a second, stride x{7:0.00}, {8}{9}",
+                        since, (l - lastFootL).magnitude / dt, (r - lastFootR).magnitude / dt, (h - lastHips).magnitude / dt, Speed, loco.Phase, loco.PhaseRate, loco.StrideScale, loco.Current, loco.Running ? " running" : ""));
+                }
+
+                lastFootL = l;
+                lastFootR = r;
+                lastHips = h;
+            }
             if (Now == Order.Stand || Gap < 1e-3f)
             {
                 return;

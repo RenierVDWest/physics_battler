@@ -4099,6 +4099,18 @@ going round; asked 3.4 he reaches 2.9 walking in over 3.5 m and 3.1 going round.
 in and out, and the run on top of the jog (above about 3.2 m/s the jog's stride is stretched). Not verified in
 Unity: how the jog's legs under the guard's arms look.
 
+**Setting off from a stand is eased** (15 November; Combat Feel "Sets Off At A Walk's Rhythm"). Seen in Unity: as
+he starts toward the other, the legs jump from the stance to the walk's position. Read off the session's log and
+a headless trace: for the first quarter of a second, while the body had gone 5 cm, the feet stepped at the quick
+rhythm of a positioning step (1.5 strides a second). The back foot was whipped from its place in the wide stance
+to its place in the walk at 2 to 4 m/s, the front foot followed at once at 3.5 m/s, and the hips were jolted over
+at 0.9 m/s in the first tenth of a second. Now, asked for a walk's pace or more, the first steps go at that pace's
+own rhythm (0.93 strides a second), and the stance fades into the walk over a half-life of 0.2 s, not 0.1. The
+trace: the back foot starts at 1 m/s and gathers speed with the body, the front foot stays planted through the
+first 0.35 s, the hips go 0.3 to 0.5 m/s. The lab's panel shows how he set off (the fastest foot and hips in the
+first 0.35 s). `FIGHT_SETOFF=0` is as it was; `FIGHT_DUELTRACE=1` writes a setting off step by step. The
+regression fight with the paces' switches on is 84 blows; with them off, the 78 it was.
+
 The feet's slide found in step 1 was looked at in Unity: no slide seen. So the measure is taken to be counting
 a low-swinging foot as down at a slow walk; that is not confirmed.
 

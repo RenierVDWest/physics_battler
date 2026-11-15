@@ -106,6 +106,18 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Seconds a switch between whole motions takes to fade out.</summary>
         public float SwitchHalfLife = 0.1f;
 
+        /// <summary>
+        /// Setting off from a stand is eased (the scene's Combat Feel, "Sets Off At A Walk's Rhythm"): the first steps
+        /// at the rhythm of the pace asked, and the stance faded into the walk over <see cref="SetOffHalfLife"/>. Off:
+        /// two quick steps and the usual fade, as it was.
+        /// </summary>
+        public static bool SetsOffEasy = true;
+
+        /// <summary>Setting off from a stand in the guard, the stance fades into the walk over this (seconds, half-life).</summary>
+        public float SetOffHalfLife = 0.2f;
+
+        private bool setOff;
+
         /// <summary>A switch between the relaxed walk and a combat clip changes the whole body: it fades over this (seconds, half-life).</summary>
         public float GuardSwitchHalfLife = 0.2f;
 
@@ -735,6 +747,7 @@ namespace PhysicsBattler.Locomotion
             {
                 AimTravel(wantNow);
                 Phase = SetOffPhase();
+                setOff = true;
             }
             else if (to == Mode.Idle)
             {
@@ -1688,7 +1701,12 @@ namespace PhysicsBattler.Locomotion
                 // pace, not hung in the air.)
                 // (Where a paced step is stepped in the stance, the walk is left its own rhythm from a slow walk up:
                 // only what is slower than that, a shove's last drift, is stepped quickly.)
-                float e = StepsInStanceOn ? Mathf.Clamp01((k - 0.3f) / 0.3f) : Mathf.Clamp01((k - 0.7f) / 0.5f);
+                // (Setting off for a walk's pace or more, it is the pace asked that sets the rhythm, not the little the
+                // body has got up to yet: the first step is a walk's step, not a quick one. Else both feet were moved
+                // from the stance to the walk's places in two quick steps, a quarter of a second each, before the body
+                // had gone anywhere.)
+                float kFor = SetsOffEasy ? Mathf.Max(k, Mathf.Min(1f, wantNow.magnitude / Mathf.Max(0.05f, naturalSpeed))) : k;
+                float e = StepsInStanceOn ? Mathf.Clamp01((kFor - 0.3f) / 0.3f) : Mathf.Clamp01((kFor - 0.7f) / 0.5f);
                 float quick = Mathf.Lerp(StepCadence, 1f, e * e * (3f - 2f * e));
                 if (Cadence < quick)
                 {
@@ -1958,9 +1976,11 @@ namespace PhysicsBattler.Locomotion
         {
             if (pendingSwitch)
             {
-                // (Into or out of a combat clip: a longer fade; between walk clips, the usual.)
+                // (Into or out of a combat clip: a longer fade; between walk clips, the usual; setting off from a stand
+                // in the guard, the stance's wide feet and turned hips to the walk's: longer, so the hips are not jolted.)
                 bool guardNow = Current == Mode.OneShot && Shot != null && Shot.IsGuard;
-                switchHalfLifeNow = guardNow != lastWasGuard ? GuardSwitchHalfLife : SwitchHalfLife;
+                switchHalfLifeNow = guardNow != lastWasGuard ? GuardSwitchHalfLife : setOff && SetsOffEasy && InGuard ? SetOffHalfLife : SwitchHalfLife;
+                setOff = false;
                 lastWasGuard = guardNow;
                 float most = 0f;
                 for (int i = 0; i < offset.Length; i++)

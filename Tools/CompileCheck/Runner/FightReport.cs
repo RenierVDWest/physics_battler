@@ -217,6 +217,8 @@ internal static class FightReport
         }
 
         // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
+        // (FIGHT_SETOFF=0: setting off from a stand as it was, two quick steps.)
+        PhysicsBattler.Locomotion.Locomotor.SetsOffEasy = Environment.GetEnvironmentVariable("FIGHT_SETOFF") != "0";
         // (FIGHT_JOGS=0: the guard without its jog, as it was.)
         PhysicsBattler.Locomotion.MoveStyle.Jogs = Environment.GetEnvironmentVariable("FIGHT_JOGS") != "0";
         // (FIGHT_TRAVEL=0: the clips' travel as it was, turned the wrong way round.)
@@ -1223,8 +1225,8 @@ internal static class FightReport
                         if (duelAt >= 0)
                         {
                             float took = paceAt - duelFrom;
-                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "DUEL {0,-11} for {1:0.0} s: went {2:0.00} m ({3:0.00} m/s over the whole of it), from {4:0.00} m apart to {5:0.00} m; ended {6}; fastest {7:0.00} m/s of {8:0.00} asked",
-                                duelOrders[duelAt].order, took, duel.Gone, duel.Gone / Mathf.Max(0.1f, took), duelGapFrom, duel.Gap, duel.Now == PhysicsBattler.Sandbox.DuelLab.Order.Stand ? "standing (the order done)" : "still at it", duel.Fastest, duel.PaceNow));
+                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "DUEL {0,-11} for {1:0.0} s: went {2:0.00} m ({3:0.00} m/s over the whole of it), from {4:0.00} m apart to {5:0.00} m; ended {6}; fastest {7:0.00} m/s of {8:0.00} asked; setting off, a foot {9:0.0} m/s and the hips {10:0.0} m/s in 0.35 s ({11:0.00} m gone)",
+                                duelOrders[duelAt].order, took, duel.Gone, duel.Gone / Mathf.Max(0.1f, took), duelGapFrom, duel.Gap, duel.Now == PhysicsBattler.Sandbox.DuelLab.Order.Stand ? "standing (the order done)" : "still at it", duel.Fastest, duel.PaceNow, duel.SetOffFoot, duel.SetOffHips, duel.SetOffWent));
                         }
 
                         if (now != duelAt)
@@ -1242,6 +1244,20 @@ internal static class FightReport
                     }
 
                     duel.Step(dt);
+                    // (FIGHT_DUELTRACE=1: the first order's setting off, step by step.)
+                    if (Environment.GetEnvironmentVariable("FIGHT_DUELTRACE") == "1")
+                    {
+                        duel.Trace ??= new List<string>();
+                        if (duelAt == 0 && duel.Trace.Count > 0)
+                        {
+                            foreach (string line in duel.Trace)
+                            {
+                                Console.WriteLine("SETOFF " + line);
+                            }
+                        }
+
+                        duel.Trace.Clear();
+                    }
                 }
 
                 if (aim != null)

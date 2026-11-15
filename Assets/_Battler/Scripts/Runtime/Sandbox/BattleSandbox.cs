@@ -589,6 +589,8 @@ namespace PhysicsBattler.Sandbox
             Duel.Far = Mathf.Round(10f * Slide("Backs to", $"{Duel.Far:0.0} m", "How far from the other he backs away (metres, root to root).", Duel.Far, 2f, 7f)) / 10f;
             // (Always the same lines, whatever the order: the panel is laid out and drawn from the same state.)
             GUILayout.Label($"Order: {Duel.Now}. {Duel.Gap:0.00} m apart, going {Duel.Speed:0.00} m/s, {Duel.Gone:0.0} m since the order.", Styles().Text);
+            GUILayout.Label(new GUIContent($"Setting off: a foot at most {Duel.SetOffFoot:0.0} m/s and the hips {Duel.SetOffHips:0.0} m/s in the first 0.35 s, {Duel.SetOffWent:0.00} m gone by then.",
+                "How he set off under the last order: the fastest either foot and the hips went in its first 0.35 s, and how far he had got. Feet whipped to their places while the body has hardly moved read as a jump (Combat Feel \"Sets Off At A Walk's Rhythm\")."), Styles().Text);
         }
 
         /// <summary>From the locomotion lab straight to the aim test, as <see cref="WatchFight"/> goes to the battle.</summary>
