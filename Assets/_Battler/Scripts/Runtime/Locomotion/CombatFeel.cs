@@ -253,6 +253,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Setting off from a stand in the guard is eased. As it was: for the first quarter of a second, while the body had hardly moved, the feet stepped at the quick rhythm of a positioning step, so each foot was whipped from its place in the wide stance to its place in the walk (half a metre at 2 to 4 m/s) and the hips were jolted over in a tenth of a second. On: asked for a walk's pace or more, the first steps are taken at that pace's own rhythm, and the stance fades into the walk over twice as long. Off: as it was.")]
         public bool setsOffAtAWalksRhythm = true;
 
+        [Tooltip("The round trip, a test of the manner layer (the plan \"Movement Styles as Offshoots of the Standard Set\", step S1). On: a fighter in the standard guard walks forward and back on the plain, empty-handed walk's recordings with the guard's manner laid on them from its profile (numbers: the lean, the chest's turn, the arms held up and still); nothing of the guard's own walk recording is played. Off: the guard's own recordings, as it has been. If the two are hard to tell apart, a style can be taken off its recordings as numbers and put back on the standard set. The stand, the steps to the sides, the turns and the jog are the guard's own either way. In the duel lab: \"His walk: recorded / rebuilt\". A fighter takes this as it is set out: press Reset after changing it outside the lab.")]
+        public bool guardWalkIsRebuiltFromThePlainWalk = false;
+
+        [Tooltip("The rebuilt guard walk: how much of the guard's carriage is laid on the plain walk (0: none, he walks upright with his arms down; 1: all of it, as measured).")]
+        [Range(0f, 1.5f)] public float rebuiltWalkCarriage = 1f;
+
+        [Tooltip("The rebuilt guard walk: how much of the change in how far each part moves is laid on (0: the arms swing as the plain walk swings them, about the guard's place for them; 1: as little as the guard moves them, as measured).")]
+        [Range(0f, 1f)] public float rebuiltWalkMotion = 1f;
+
         [Tooltip("The capoeira style's ginga: how big it is made against its recording (the duel lab's style \"Capoeira\"). 1: as recorded, a metre from side to side with the hips sinking 20 cm. 0.67: two thirds: its steps, its hips' sway and sinking, the body's turns. Each is counted from the middle of the ginga's loop and multiplied, so a foot that stands still in the recording still stands still.")]
         [Range(0.3f, 1.2f)] public float gingaSize = 0.67f;
 
@@ -980,6 +989,9 @@ namespace PhysicsBattler.Locomotion
             LocoClip.TravelsTrue = clipsTravelAsRecorded;
             PhysicsBattler.Sandbox.BattleSandbox.BattleRetired = theBattleIsRetired;
             MoveStyle.Jogs = guardJogs;
+            MoveStyle.GuardWalkRebuilt = guardWalkIsRebuiltFromThePlainWalk;
+            MoveStyle.RebuiltCarriage = rebuiltWalkCarriage;
+            MoveStyle.RebuiltMotion = rebuiltWalkMotion;
             MoveStyle.StandSize = gingaSize;
             MoveStyle.StandArms = gingaArms;
             LocoBody.GingaSword = gingaSwordFollowsTheArm;

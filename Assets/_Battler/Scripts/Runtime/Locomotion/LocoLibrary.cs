@@ -375,6 +375,24 @@ namespace PhysicsBattler.Locomotion
 
         private static bool LoadFile(string resource, string asset)
         {
+            string text = ReadText(resource, asset);
+            if (string.IsNullOrEmpty(text))
+            {
+                return false;
+            }
+
+            var file = JsonUtility.FromJson<LocoClipFile>(text);
+            foreach (var d in file.clips)
+            {
+                clips[d.name] = new LocoClip(d);
+            }
+
+            return true;
+        }
+
+        /// <summary>A text file of the library's: from Resources in the game, or straight from the file under Assets in the headless runner (null: not there).</summary>
+        internal static string ReadText(string resource, string asset)
+        {
             string text = null;
             var loaded = Resources.Load<TextAsset>(resource);
             if (loaded != null)
@@ -405,18 +423,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            if (string.IsNullOrEmpty(text))
-            {
-                return false;
-            }
-
-            var file = JsonUtility.FromJson<LocoClipFile>(text);
-            foreach (var d in file.clips)
-            {
-                clips[d.name] = new LocoClip(d);
-            }
-
-            return true;
+            return text;
         }
     }
 }

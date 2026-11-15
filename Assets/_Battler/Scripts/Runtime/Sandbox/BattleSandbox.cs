@@ -494,7 +494,9 @@ namespace PhysicsBattler.Sandbox
         private static readonly (string clip, string name)[] AimAttacks =
         {
             (null, "the best fit"), ("sns_forehand", "forehand cut"), ("sns_rising", "rising backhand"), ("sns_thrust", "thrust"),
-            ("sns_chop_lunge", "leaping chop"), ("sns_chop_side", "spinning chop"), ("sns_backhand_lunge", "spinning backhand"), ("sns_combo_forehand", "hopping forehand"),
+            ("sns_chop_lunge", "leaping chop"), ("sns_combo_forehand", "hopping forehand"),
+            // (Taken out on 15 November, for now: the spinning chop "sns_chop_side" and the spinning backhand
+            // "sns_backhand_lunge". Made from their recordings they did not work: he turns right round to strike.)
         };
 
         private static readonly (string clip, string name)[] AimLegs =
@@ -618,6 +620,30 @@ namespace PhysicsBattler.Sandbox
                     {
                         gingaFeel.gingaSwordPointsAhead = Lever("Points ahead", gingaFeel.gingaSwordPointsAhead, 0f, 1f, "How much the blade is turned from the forearm's line toward where he faces. 0: it swings as far as the arm does. 1: it always points ahead.");
                         gingaFeel.gingaSwordTrails = Lever("Trails", gingaFeel.gingaSwordTrails, 0.02f, 0.4f, "How long the blade's point takes to come round after the hand (seconds). More reads as a heavier blade, swung looser.");
+                    }
+                }
+            }
+
+            if (!duelCapoeira)
+            {
+                // (The round trip, step S1 of the styles' plan: the guard's walk, recorded or rebuilt from the plain walk.)
+                var walkFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+                if (walkFeel != null)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent("His walk:", "A test of the manner layer. Recorded: he walks forward and back on the sword and shield guard's own recordings, as he always has. Rebuilt: he walks on the plain, empty-handed walk's recordings with the guard's manner laid on them from its profile (numbers: the lean, the chest's turn, the arms held up and still). Nothing of the guard's own walk is played. Walk him to the other and back away, and switch between the two as he goes: if they are hard to tell apart, the idea works."), Styles().Text, GUILayout.Width(60f));
+                    if (Press(!walkFeel.guardWalkIsRebuiltFromThePlainWalk ? "[recorded]" : "recorded", "The guard's own recordings of walking forward and back (old).")) walkFeel.guardWalkIsRebuiltFromThePlainWalk = false;
+                    if (Press(walkFeel.guardWalkIsRebuiltFromThePlainWalk ? "[rebuilt]" : "rebuilt", "The plain walk with the guard's manner laid on it (new; Combat Feel \"Guard Walk Is Rebuilt From The Plain Walk\").")) walkFeel.guardWalkIsRebuiltFromThePlainWalk = true;
+                    GUILayout.EndHorizontal();
+                    // (What he is in fact walking on, so the two are never mistaken for each other.)
+                    var walksOn = Duel.Mover != null && Duel.Mover.Clip != null ? Duel.Mover.Clip.Loco.Guard : null;
+                    bool noProfile = PhysicsBattler.Locomotion.StyleProfile.Get("plain") == null || PhysicsBattler.Locomotion.StyleProfile.Get("guard") == null;
+                    GUILayout.Label(new GUIContent(noProfile ? "The styles' profile file was not found: he walks on the recordings either way." : "Walks on: " + (walksOn?.WalkF != null ? walksOn.WalkF.Name : "?") + ", back on: " + (walksOn?.WalkB != null ? walksOn.WalkB.Name : "?"),
+                        "The clips his walk forward and back are played from now. \"sns_walk\": the guard's recording. \"rebuilt_walk_fwd\": the plain walk with the guard's manner laid on (the two numbers after it: how much carriage, how much motion)."), Styles().Text);
+                    if (walkFeel.guardWalkIsRebuiltFromThePlainWalk)
+                    {
+                        walkFeel.rebuiltWalkCarriage = Lever("Carriage", walkFeel.rebuiltWalkCarriage, 0f, 1.5f, "How much of the guard's carriage is laid on the plain walk. 0: none, he walks upright with his arms hanging. 1: all of it, as measured on the guard's walk.");
+                        walkFeel.rebuiltWalkMotion = Lever("Motion", walkFeel.rebuiltWalkMotion, 0f, 1f, "How much the arms' swing and the body's turns are brought to the guard's own. 0: the arms swing as far as the plain walk swings them, about the guard's place for them. 1: as little as the guard moves them.");
                     }
                 }
             }
@@ -2524,7 +2550,7 @@ namespace PhysicsBattler.Sandbox
         private void DrawMadeAttacks(CombatFeel feel)
         {
             GUILayout.BeginHorizontal();
-            if (Press("Blow: " + AimAttacks[aimAttack].name, "Which recorded blow the attack is made from. The best fit: of the three plain ones (forehand cut, rising backhand, thrust), the one whose blade comes onto the part with the least change. The leaps and the spins are only made when named here."))
+            if (Press("Blow: " + AimAttacks[aimAttack].name, "Which recorded blow the attack is made from. The best fit: of the three plain ones (forehand cut, rising backhand, thrust), the one whose blade comes onto the part with the least change. The leaping and hopping ones are only made when named here."))
             {
                 aimAttack = (aimAttack + 1) % AimAttacks.Length;
             }

@@ -4375,3 +4375,64 @@ become the ruler, not the animation. The steps are S0 to S9 in the plan; nothing
   second, step length, time on the ground, and with `--feet` where each foot lands). The plan's numbers come
   from it: the sword-and-shield walk is the plain walk plus a carriage; the capoeira carriage is the same across
   six clips; the four ginga takes fit one four-place pattern.
+
+**Movement styles, steps S0 and S1: the profile, the manner layer, and the round trip** (15 November; Combat
+Feel "Guard Walk Is Rebuilt From The Plain Walk", off; the duel lab's "His walk: recorded / rebuilt"). The plan
+was agreed (all seven decisions; the second style will be the Great Sword pack). Two rules from the playtest go
+with it: nothing is to be played as a plain recording any more, everything is rebuilt as the attacks were; and
+making the standard set better comes first, so whatever can be rolled into the standard set is.
+
+- **The profile (S0).** A style's manner is now a file of numbers:
+  `Assets/_Battler/Resources/Locomotion/StyleProfiles.json`. For each style and each job it was measured in
+  (standing, walking forward and back, a step to each side, running) it holds the carriage: the hips' height
+  and turn, the chest's turn on the hips, the head's on the chest, which way each arm bone points and how each
+  hand is turned, how the spine is bent, and how far each of these goes about its middle. Six styles are in
+  it: plain (the relaxed walk), guard (sword and shield), sword, heavy, swagger, capoeira (its stand, from the
+  four gingas). It is written by the measuring tool and read by the game; the recordings are only the ruler.
+- **The measuring tool** is the headless `style` mode:
+  `dotnet Tools/CompileCheck/bin/Tests/Debug/PhysicsBattler.Tests.dll style write` measures the recordings and
+  writes the file; without `write` it prints the recordings in plain measures (lean, hips' height, where the
+  hands are held, how fast they go), the file, and the round trip below. Its plain measures agree with the
+  plan's (`style_measure.py` on the raw samples): the plain walk leans 1 degree with the hands 41 cm below the
+  chest going 1.4 to 1.5 m/s; the guard's walk 9 degrees, 13 to 20 cm, 0.3 to 0.4 m/s; the gingas lean 30 to
+  41 degrees with the hips at 0.73 to 0.83.
+- **The manner layer (S1)** is `StyleManner` (`Locomotion/StyleManner.cs`): a body's parts are taken as their
+  tracks, each upper part is moved from where the base style carries it to where the laid style does, what it
+  does about that middle is made as big as the laid style has it (the guard's arms move a quarter as far as the
+  plain walk's), and the spine is bent as the laid style bends it. The feet's points are not moved at all; the
+  knees go on pointing where they pointed; the legs bend to the hips' new place.
+- **The round trip (test T0).** The plain walk with the guard's manner laid on, against the guard's own
+  recording, at the same moments of the stride (cm apart, root mean square):
+
+  | Walking forward | hips | chest | head | elbows | hands | knees | feet |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | the plain walk as it is | 1.9 | 4.7 | 11.6 | 20.9 | 41.2 | 8.0 | 7.0 |
+  | its carriage laid on | 1.8 | 2.5 | 4.8 | 9.1 | 15.2 | 7.4 | 7.0 |
+  | its carriage and its motion | 1.7 | 1.7 | 2.6 | 2.9 | 4.1 | 7.3 | 7.0 |
+
+  Walking back: the hands from 50.0 to 5.0, the head from 16.4 to 4.3. The sword-alone walk and the swagger
+  come out the same way (hands 3.6 and 4.6). So the upper body of a style we own is made again from the plain
+  walk and about sixty numbers to within 2 to 5 cm. The legs are the plain walk's and stay 7 cm from the
+  guard's: its stride is 4 cm longer and its timing a little different. (The plan said the legs match to the
+  centimetre; that was the hips' height and range. The feet do not, quite.)
+- **What it also showed.** (1) The spine's own bend is part of a carriage: without it the chest was 3.0 and the
+  head 4.9 cm off, and the ginga's back is bent twice as far as the guard's. (2) A carriage belongs to its job:
+  the guard's standing carriage (hips turned 41 degrees, sitting at 0.85) laid on the walk is 14 cm off at the
+  hips; a pack that lacks a job gets the nearest job's, and that is a real limit. (3) Where the feet stand is
+  not manner: the guard's step to the side is a different step from the plain walk's (feet 21 to 28 cm apart
+  from it, knees 19 to 38), so those are not rebuilt; stance and steps are vocabulary. (4) The run's arms are
+  not got this way (hands 18 cm off): the guard pumps one arm and holds the other.
+- **In the lab.** "His walk: recorded / rebuilt" in the duel lab (the standard style), with levers for how much
+  carriage and how much motion: walk him to the other and back away, and switch as he goes. Rebuilt, he walks
+  forward and back on the plain walk's recordings with the guard's manner from the file; his stand, his steps
+  to the sides, his turns and his jog are the guard's own either way. Headless: `FIGHT_WALKREBUILT=1`,
+  `FIGHT_REBUILTCARRIAGE`, `FIGHT_REBUILTMOTION`. Run at a walk (1.4 m/s) 4.85 m in and back out, both ways:
+  the same distances, nothing thrown, no blade or body through another; as film strips the two are hard to tell
+  apart walking in, and backing away the rebuilt one's stride is longer and his sword tips up a little as he
+  sets off. The six fighters' fights are unchanged with the switch off (78 and 84 blows). Not verified in
+  Unity: how the two compare to the eye, which is the point of the step.
+- **Two made blows taken out of the lab's list**, for now: the spinning chop and the spinning backhand, which
+  did not work made from their recordings (he turns right round to strike). The best fit never chose them.
+
+New files that need their .meta from Unity: `Locomotion/StyleManner.cs`,
+`Resources/Locomotion/StyleProfiles.json`.

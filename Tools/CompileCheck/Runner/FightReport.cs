@@ -688,6 +688,16 @@ internal static class FightReport
                     duel.Style = PhysicsBattler.Locomotion.MoveStyle.Capoeira;
                 }
 
+                // (FIGHT_WALKREBUILT=1: the guard's walk forward and back is the plain walk with the guard's manner laid on;
+                // FIGHT_REBUILTCARRIAGE=1, FIGHT_REBUILTMOTION=1: how much of each.)
+                PhysicsBattler.Locomotion.MoveStyle.GuardWalkRebuilt = Environment.GetEnvironmentVariable("FIGHT_WALKREBUILT") == "1";
+                PhysicsBattler.Locomotion.MoveStyle.RebuiltCarriage = Env("FIGHT_REBUILTCARRIAGE", 1f);
+                PhysicsBattler.Locomotion.MoveStyle.RebuiltMotion = Env("FIGHT_REBUILTMOTION", 1f);
+                if (PhysicsBattler.Locomotion.MoveStyle.GuardWalkRebuilt && duel.Style == null)
+                {
+                    duel.Style = PhysicsBattler.Locomotion.MoveStyle.Standard;
+                }
+
                 PhysicsBattler.Locomotion.MoveStyle.StandSize = Env("FIGHT_GINGASIZE", PhysicsBattler.Locomotion.MoveStyle.StandSize);
                 PhysicsBattler.Locomotion.MoveStyle.StandArms = Env("FIGHT_GINGAARMS", PhysicsBattler.Locomotion.MoveStyle.StandArms);
                 PhysicsBattler.Locomotion.MoveStyle.GingaTake = (int)Env("FIGHT_GINGATAKE", 0f);

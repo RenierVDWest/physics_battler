@@ -118,7 +118,44 @@ namespace PhysicsBattler.Locomotion
                 set.RunR = LegsUnder(LocoLibrary.Get(JogPrefix + "right"), set.StepR ?? set.WalkF, Prefix + "jog_right");
             }
 
+            if (GuardWalkRebuilt && this == Standard)
+            {
+                Rebuild(set);
+            }
+
             return set;
+        }
+
+        /// <summary>
+        /// The round trip (the plan "Movement Styles as Offshoots of the Standard Set", step S1, its test T0; the
+        /// scene's Combat Feel, "Guard Walk Is Rebuilt From The Plain Walk"): the standard guard walks forward and
+        /// back on the relaxed walk's own recordings, empty-handed and upright, with the guard's manner laid on them
+        /// (<see cref="StyleManner"/>): its lean, its chest's turn, its arms held up and still, as its profile has
+        /// them in numbers. Nothing of the guard's own walk is played. Off (as it is): the guard's recordings. The
+        /// rest of the guard (its stand, its steps to the sides, its turns, its jog) is its own either way.
+        /// </summary>
+        public static bool GuardWalkRebuilt = false;
+
+        /// <summary>How much of the guard's carriage and of its motion the rebuilt walk is given (1: all of each, as measured).</summary>
+        public static float RebuiltCarriage = 1f, RebuiltMotion = 1f;
+
+        private static void Rebuild(Locomotor.ClipSet set)
+        {
+            StyleProfile plain = StyleProfile.Get("plain"), guard = StyleProfile.Get("guard");
+            if (plain == null || guard == null)
+            {
+                return;
+            }
+
+            foreach (var (job, clip) in new[] { (Job.WalkForward, "walk_fwd"), (Job.WalkBack, "walk_back") })
+            {
+                if (plain.Has(job) && guard.Has(job) && plain.For(job, out var from) && guard.For(job, out var to))
+                {
+                    var rebuilt = StyleManner.Over(LocoLibrary.Get(clip), from, to, "rebuilt_" + clip, RebuiltCarriage, RebuiltMotion);
+                    if (rebuilt != null && job == Job.WalkForward) set.WalkF = rebuilt;
+                    if (rebuilt != null && job == Job.WalkBack) set.WalkB = rebuilt;
+                }
+            }
         }
 
         private static readonly Dictionary<string, LocoClip> made = new Dictionary<string, LocoClip>();

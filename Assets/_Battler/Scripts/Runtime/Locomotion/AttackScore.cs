@@ -45,6 +45,23 @@ namespace PhysicsBattler.Locomotion
     }
 
     /// <summary>
+    /// How a spine is bent: where each joint from the hips to the head sits on the one below it (leg lengths; the
+    /// same frames as <see cref="BodyMeasures"/>' own). The tracks say how the hips, the chest and the head are
+    /// turned; this is what they leave out, the back's and the neck's own curve, which differs from one way of
+    /// carrying the body to another (<see cref="Carriage"/>).
+    /// </summary>
+    public struct SpineShape
+    {
+        public Vector3 Spine, Spine1, Spine2, Neck, Head;
+
+        public static SpineShape Lerp(in SpineShape a, in SpineShape b, float t) => new SpineShape
+        {
+            Spine = Vector3.LerpUnclamped(a.Spine, b.Spine, t), Spine1 = Vector3.LerpUnclamped(a.Spine1, b.Spine1, t), Spine2 = Vector3.LerpUnclamped(a.Spine2, b.Spine2, t),
+            Neck = Vector3.LerpUnclamped(a.Neck, b.Neck, t), Head = Vector3.LerpUnclamped(a.Head, b.Head, t),
+        };
+    }
+
+    /// <summary>
     /// The mocap body's own measures, the same in every clip (leg lengths): where its joints sit on the pelvis, the
     /// chest, the head and the hand, and its bones' lengths. With them a body is put together from its
     /// <see cref="BodyTracks"/> (<see cref="Compose"/>); taken from the clips themselves (<see cref="Of"/>).
@@ -237,16 +254,36 @@ namespace PhysicsBattler.Locomotion
             return t;
         }
 
+        /// <summary>The body's own spine: how it is bent on average in the clips it was measured on.</summary>
+        public SpineShape OwnSpine => new SpineShape { Spine = Spine, Spine1 = Spine1, Spine2 = Spine2, Neck = Neck, Head = Head };
+
+        /// <summary>How the spine is bent in one body's points.</summary>
+        public static SpineShape SpineOf(Vector3[] p)
+        {
+            Frames(p, out var pel, out var che, out var head, out _, out _);
+            return new SpineShape
+            {
+                Spine = Quaternion.Inverse(pel) * (p[(int)LocoBone.Spine] - p[(int)LocoBone.Hips]),
+                Spine1 = Quaternion.Inverse(Quaternion.Slerp(pel, che, SpineShare1)) * (p[(int)LocoBone.Spine1] - p[(int)LocoBone.Spine]),
+                Spine2 = Quaternion.Inverse(Quaternion.Slerp(pel, che, SpineShare2)) * (p[(int)LocoBone.Spine2] - p[(int)LocoBone.Spine1]),
+                Neck = Quaternion.Inverse(che) * (p[(int)LocoBone.Neck] - p[(int)LocoBone.Spine2]),
+                Head = Quaternion.Inverse(Quaternion.Slerp(che, head, 0.5f)) * (p[(int)LocoBone.Head] - p[(int)LocoBone.Neck]),
+            };
+        }
+
         /// <summary>A body's 33 points put together from its tracks (the same frame and units as the tracks).</summary>
-        public void Compose(in BodyTracks t, Vector3[] p)
+        public void Compose(in BodyTracks t, Vector3[] p) => Compose(t, p, OwnSpine);
+
+        /// <summary>The same with the spine bent as given (<see cref="SpineShape"/>), where the body's own is the clips' average.</summary>
+        public void Compose(in BodyTracks t, Vector3[] p, in SpineShape spine)
         {
             Quaternion pel = Quaternion.Euler(t.PelvisTurn), che = pel * Quaternion.Euler(t.ChestTurn), head = che * Quaternion.Euler(t.HeadTurn);
             p[(int)LocoBone.Hips] = t.Pelvis;
-            p[(int)LocoBone.Spine] = t.Pelvis + pel * Spine;
-            p[(int)LocoBone.Spine1] = p[(int)LocoBone.Spine] + Quaternion.Slerp(pel, che, SpineShare1) * Spine1;
-            p[(int)LocoBone.Spine2] = p[(int)LocoBone.Spine1] + Quaternion.Slerp(pel, che, SpineShare2) * Spine2;
-            p[(int)LocoBone.Neck] = p[(int)LocoBone.Spine2] + che * Neck;
-            p[(int)LocoBone.Head] = p[(int)LocoBone.Neck] + Quaternion.Slerp(che, head, 0.5f) * Head;
+            p[(int)LocoBone.Spine] = t.Pelvis + pel * spine.Spine;
+            p[(int)LocoBone.Spine1] = p[(int)LocoBone.Spine] + Quaternion.Slerp(pel, che, SpineShare1) * spine.Spine1;
+            p[(int)LocoBone.Spine2] = p[(int)LocoBone.Spine1] + Quaternion.Slerp(pel, che, SpineShare2) * spine.Spine2;
+            p[(int)LocoBone.Neck] = p[(int)LocoBone.Spine2] + che * spine.Neck;
+            p[(int)LocoBone.Head] = p[(int)LocoBone.Neck] + Quaternion.Slerp(che, head, 0.5f) * spine.Head;
             p[(int)LocoBone.HeadTop] = p[(int)LocoBone.Head] + head * HeadTop;
             for (int s = 0; s < 2; s++)
             {
