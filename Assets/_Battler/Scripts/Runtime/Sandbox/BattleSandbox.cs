@@ -619,6 +619,8 @@ namespace PhysicsBattler.Sandbox
                     gingaFeel.gingaTempo = Lever("Tempo", gingaFeel.gingaTempo, 0.5f, 1.6f, "How fast the steps are taken against the recordings'. 1: a step of a metre in 0.38 s.");
                     gingaFeel.gingaVariation = Lever("Varies", gingaFeel.gingaVariation, 0f, 1f, "How much one change of sides differs from the next: where the feet land, how long he rests, how quick the steps are. 0: every one alike.");
                     gingaFeel.capoeiraStyleMotion = Lever("Livelier", gingaFeel.capoeiraStyleMotion, 0f, 1f, "On the move: how much further his hips, chest and head turn and sway than the standard's.");
+                    gingaFeel.capoeiraStyleSquaresUp = Lever("Squares up", gingaFeel.capoeiraStyleSquaresUp, 0f, 1f, "On the move: how much his chest and head turn square to the other, as capoeira's do. 0: his chest stays half turned away, as the guard has it. 1: square on.");
+                    gingaFeel.capoeiraStyleKeptInBlows = Lever("Kept in blows", gingaFeel.capoeiraStyleKeptInBlows, 0f, 1f, "How much of the lean and the crouch he keeps through a blow thrown from a stand. 1: he strikes as leaned and sunk as he stands. 0: he comes up to strike as the standard does, and goes back down after.");
                     gingaFeel.capoeiraStyleEyesUp = Lever("Eyes up", gingaFeel.capoeiraStyleEyesUp, 0f, 1f, "How much his eyes stay on his man. 1: his head faces as the standard's does, however far he leans. 0: tipped down with the lean, as the recordings carry it.");
                     GUILayout.BeginHorizontal();
                     if (Press("Change sides now", "He changes sides at once: the back foot sweeps forward, the other sweeps back behind it. Turn Restless right down and press this to look at one change at a time."))
@@ -651,45 +653,6 @@ namespace PhysicsBattler.Sandbox
                     {
                         gingaFeel.gingaSwordPointsAhead = Lever("Points ahead", gingaFeel.gingaSwordPointsAhead, 0f, 1f, "How much the blade is turned from the forearm's line toward where he faces. 0: it swings as far as the arm does. 1: it always points ahead.");
                         gingaFeel.gingaSwordTrails = Lever("Trails", gingaFeel.gingaSwordTrails, 0.02f, 0.4f, "How long the blade's point takes to come round after the hand (seconds). More reads as a heavier blade, swung looser.");
-                    }
-                }
-            }
-
-            if (!duelCapoeira)
-            {
-                // (The round trip, step S1 of the styles' plan: the guard's walk, recorded or rebuilt from the plain walk.)
-                var walkFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-                if (walkFeel != null)
-                {
-                    // (Step S2: capoeira's manner laid over the standard set, by a style amount.)
-                    walkFeel.capoeiraStyleAmount = Lever("Capoeira manner", walkFeel.capoeiraStyleAmount, 0f, 1f, "The style amount. 0: the standard fighter, exactly as he is. 1: he does everything the standard does (his stance, his steps, his walk, his jog, his blows) carried as capoeira carries the body: leaned well forward and sitting lower. His feet are not moved by it. Slide it while he stands, walks, circles, jogs and strikes. (Combat Feel \"Capoeira Style Amount\".)");
-                    if (walkFeel.capoeiraStyleAmount > 0.001f)
-                    {
-                        walkFeel.capoeiraStyleSquaresUp = Lever("Squares up", walkFeel.capoeiraStyleSquaresUp, 0f, 1f, "How much his chest and head turn square to the other, as capoeira's do. 0: his chest stays half turned away behind the shield, as the guard has it. 1: square on. His hips stay as his stance has them.");
-                        walkFeel.capoeiraStyleMotion = Lever("Livelier", walkFeel.capoeiraStyleMotion, 0f, 1f, "How much further his hips, chest and head turn and sway than the standard's. 0: as the standard's. 1: as far as capoeira's (at most two and a half times).");
-                        walkFeel.capoeiraStyleEyesUp = Lever("Eyes up", walkFeel.capoeiraStyleEyesUp, 0f, 1f, "How much his eyes stay on his man. 1: his head faces as the standard's does, however far he leans. 0: his head is carried as the capoeira recordings carry it, tipped down with the lean.");
-                        walkFeel.capoeiraStyleKeptInBlows = Lever("Kept in blows", walkFeel.capoeiraStyleKeptInBlows, 0f, 1f, "How much of the manner he keeps through a blow thrown from a stand. 1: he strikes as leaned and sunk as he stands. 0: he comes up to strike as the standard does, and goes back down after. A blow thrown on the move keeps the walk's manner under it either way.");
-                        var mannerOf = Duel.Mover != null && Duel.Mover.Clip != null ? Duel.Mover.Clip.Loco : null;
-                        GUILayout.Label(new GUIContent(PhysicsBattler.Locomotion.StyleProfile.Get("capoeira") == null || PhysicsBattler.Locomotion.StyleProfile.Get("guard") == null
-                            ? "The styles' profile file was not found: no manner is laid."
-                            : string.Format(System.Globalization.CultureInfo.InvariantCulture, "Manner on him now: {0:0.00}", mannerOf != null ? mannerOf.MannerOn : 0f),
-                            "How much of capoeira's manner is on the mover at this moment (the style amount, while he is in his guard). If this says 0 with the lever up, the manner is not reaching him."), Styles().Text);
-                    }
-
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(new GUIContent("His walk:", "A test of the manner layer. Recorded: he walks forward and back on the sword and shield guard's own recordings, as he always has. Rebuilt: he walks on the plain, empty-handed walk's recordings with the guard's manner laid on them from its profile (numbers: the lean, the chest's turn, the arms held up and still). Nothing of the guard's own walk is played. Walk him to the other and back away, and switch between the two as he goes: if they are hard to tell apart, the idea works."), Styles().Text, GUILayout.Width(60f));
-                    if (Press(!walkFeel.guardWalkIsRebuiltFromThePlainWalk ? "[recorded]" : "recorded", "The guard's own recordings of walking forward and back (old).")) walkFeel.guardWalkIsRebuiltFromThePlainWalk = false;
-                    if (Press(walkFeel.guardWalkIsRebuiltFromThePlainWalk ? "[rebuilt]" : "rebuilt", "The plain walk with the guard's manner laid on it (new; Combat Feel \"Guard Walk Is Rebuilt From The Plain Walk\").")) walkFeel.guardWalkIsRebuiltFromThePlainWalk = true;
-                    GUILayout.EndHorizontal();
-                    // (What he is in fact walking on, so the two are never mistaken for each other.)
-                    var walksOn = Duel.Mover != null && Duel.Mover.Clip != null ? Duel.Mover.Clip.Loco.Guard : null;
-                    bool noProfile = PhysicsBattler.Locomotion.StyleProfile.Get("plain") == null || PhysicsBattler.Locomotion.StyleProfile.Get("guard") == null;
-                    GUILayout.Label(new GUIContent(noProfile ? "The styles' profile file was not found: he walks on the recordings either way." : "Walks on: " + (walksOn?.WalkF != null ? walksOn.WalkF.Name : "?") + ", back on: " + (walksOn?.WalkB != null ? walksOn.WalkB.Name : "?"),
-                        "The clips his walk forward and back are played from now. \"sns_walk\": the guard's recording. \"rebuilt_walk_fwd\": the plain walk with the guard's manner laid on (the two numbers after it: how much carriage, how much motion)."), Styles().Text);
-                    if (walkFeel.guardWalkIsRebuiltFromThePlainWalk)
-                    {
-                        walkFeel.rebuiltWalkCarriage = Lever("Carriage", walkFeel.rebuiltWalkCarriage, 0f, 1.5f, "How much of the guard's carriage is laid on the plain walk. 0: none, he walks upright with his arms hanging. 1: all of it, as measured on the guard's walk.");
-                        walkFeel.rebuiltWalkMotion = Lever("Motion", walkFeel.rebuiltWalkMotion, 0f, 1f, "How much the arms' swing and the body's turns are brought to the guard's own. 0: the arms swing as far as the plain walk swings them, about the guard's place for them. 1: as little as the guard moves them.");
                     }
                 }
             }

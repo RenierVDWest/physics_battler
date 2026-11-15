@@ -4562,3 +4562,11 @@ look is to be judged when the footwork and the arms are there with it. These two
   leap the manner's lean is still added to the leap's crouch.
 
 New file that needs its .meta from Unity: `Locomotion/StandPattern.cs`.
+
+**The two finished tests are off the standard style** (15 November, after a look in Unity). The lab's "Capoeira
+manner" lever and "His walk: recorded / rebuilt" stayed where they were last left (the manner at 1, the walk
+rebuilt), so the Standard style showed a leaned, sunk fighter. Both were tests of steps S1 and S2 and both are
+done, so they are taken out of the lab and out of Combat Feel ("Capoeira Style Amount", "Guard Walk Is Rebuilt
+From The Plain Walk" and its two levers): the Standard style is the standard fighter again, with nothing to set.
+The manner is the Capoeira style's own, whole; its levers ("Livelier", "Squares up", "Kept in blows", "Eyes up")
+are under Capoeira. Headless the tests still run (`FIGHT_STYLEAMOUNT`, `FIGHT_WALKREBUILT`).
