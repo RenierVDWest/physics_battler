@@ -284,6 +284,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A made attack may be put on another recording's legs when those fit the distance better: the thrust, recorded standing, on the forehand cut's lunge (a lunging thrust); the forehand cut, recorded lunging, on the thrust's standing legs (a cut from where it stands). The chest, head and arms are the blow's own; the hips, legs, steps and travel are the other's, each phase stretched to the blow's. Off: every attack on its own recording's legs.")]
         public bool attacksBorrowLegs = true;
 
+        [Tooltip("A blow made on another recording's legs (the thrust on the forehand cut's lunge) goes back to its guard at the legs' own pace. The cut's legs take 0.6 s to step back; the thrust is back in its guard in 0.1 s. Off, as before: the legs' way back is squeezed into the blow's own, and the body is thrown back at 5 to 6 m/s in the last tenth of a second (and, if he then walks on, carries that speed with him).")]
+        public bool borrowedLegsGoBackAtTheirPace = true;
+
+        [Tooltip("An attack begins from where he is and at the speed he has. Asked for while he is moving: the way he was going is carried on into the attack and runs down under its wind-up (he does not stop dead to strike), the aim allows for the ground that covers, a foot caught in the air finishes its step, and each limb keeps the speed it had while it goes over to the attack. Standing still: the attack's own travel begins from rest (the recordings begin already moving at half a metre a second, and played as they are the body jumped to that speed in one step). Off: he stops in one step and the attack begins from his guard at the recording's speed, as before. (The duel lab's \"Strike at\" buttons, pressed while he walks, circles or backs away.)")]
+        public bool attacksStartFromWhereHeIs = true;
+
+        [Tooltip("How long the way he was going is carried on into an attack (seconds). His speed runs down evenly to nothing over it, so he covers half of what he would have at full speed: at a walk of 1.4 m/s and 0.4 s, 28 cm. Longer reads as heavier, more momentum; shorter as a sharp check before the blow.")]
+        [Range(0.1f, 0.8f)] public float attackCarriesFor = 0.4f;
+
         [Tooltip("Attack style: how far the body is wound up before the drive (the hips' turn and the chest's twist away from the blow). 1 is the recording's. More reads as a heavier, more telegraphed blow; less as a quick one from the guard.")]
         [Range(0f, 2f)] public float attackWindUp = 1f;
 
@@ -953,6 +962,9 @@ namespace PhysicsBattler.Locomotion
             LeapMaker.Style = leap;
             AttackMaker.On = aimTestAttacksAreMade;
             ClipFighter.MadeBorrowsLegs = attacksBorrowLegs;
+            AttackScore.LegsGoBackAtTheirPace = borrowedLegsGoBackAtTheirPace;
+            AttackMaker.FromAnyPose = attacksStartFromWhereHeIs;
+            AttackMaker.CoastTime = attackCarriesFor;
             AttackMaker.Style = AttackStyleNow;
             BuiltBlow.Pushed = blowsArePushed;
             BuiltBlow.UsesTrunk = blowsUseTheTrunk;

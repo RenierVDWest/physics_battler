@@ -219,6 +219,16 @@ internal static class FightReport
         // (The gate at the end of the pose: FIGHT_ARMGATE=0 turns it off, arms posed wherever their hands are sent, as before.)
         // (FIGHT_SETOFF=0: setting off from a stand as it was, two quick steps.)
         PhysicsBattler.Locomotion.Locomotor.SetsOffEasy = Environment.GetEnvironmentVariable("FIGHT_SETOFF") != "0";
+        // (FIGHT_ANYPOSE=0: an attack asked for while he moves stops him in one step and begins from his guard, as it
+        // was. FIGHT_COAST=0.4: how long his speed is carried into the attack, seconds.)
+        PhysicsBattler.Locomotion.AttackMaker.FromAnyPose = Environment.GetEnvironmentVariable("FIGHT_ANYPOSE") != "0";
+        // (FIGHT_LEGSBACK=0: a blow on another's legs goes back with the legs' way back squeezed into its own, as it was.)
+        PhysicsBattler.Locomotion.AttackScore.LegsGoBackAtTheirPace = Environment.GetEnvironmentVariable("FIGHT_LEGSBACK") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COAST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float coastFor))
+        {
+            PhysicsBattler.Locomotion.AttackMaker.CoastTime = coastFor;
+        }
+
         // (FIGHT_JOGS=0: the guard without its jog, as it was.)
         PhysicsBattler.Locomotion.MoveStyle.Jogs = Environment.GetEnvironmentVariable("FIGHT_JOGS") != "0";
         // (FIGHT_TRAVEL=0: the clips' travel as it was, turned the wrong way round.)
@@ -623,6 +633,12 @@ internal static class FightReport
         var duelOrders = new List<(PhysicsBattler.Sandbox.DuelLab.Order order, float until)>();
         int duelAt = -1;
         float duelFrom = 0f, duelGapFrom = 0f, duelNote = 0f;
+        // (FIGHT_DUELBLOW="3.2:Chest,6:Belly": a blow asked for at those seconds, whatever he is doing then: the
+        // plan "Fight Rhythm from Recordings", step 3, attacks from any pose. How its start went is told: the biggest
+        // change of speed from one step to the next, of the root, the hips, each foot and the sword hand, as posed
+        // and as seen, over its first 0.4 s. A body going 1.4 m/s that stops in a step has a change of 1.4 m/s.)
+        var duelBlows = new List<(float at, PhysicsBattler.Locomotion.AimSpot spot)>();
+        bool startWatched = false;
         int aimRounds = 0;
         if (aimLineup)
         {
@@ -648,6 +664,16 @@ internal static class FightReport
                 // (FIGHT_DUELPACE=2.6: the pace he is asked to go at, m/s; without it, his guard's own walk.)
                 // (FIGHT_DUELLEAP=0.8: how far a leap goes, metres; FIGHT_DUELLEAPTIME=0.3: how long it takes.)
                 duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f), LeapFar = Env("FIGHT_DUELLEAP", 0.5f), LeapTime = Env("FIGHT_DUELLEAPTIME", 0.25f) };
+                // (FIGHT_DUELNEAR=1: how near he walks, metres.)
+                duel.Near = Env("FIGHT_DUELNEAR", duel.Near);
+                foreach (string part in (Environment.GetEnvironmentVariable("FIGHT_DUELBLOW") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var kv = part.Split(':');
+                    if (kv.Length > 1 && float.TryParse(kv[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float blowAt) && Enum.TryParse(kv[1].Trim(), true, out PhysicsBattler.Locomotion.AimSpot blowSpot))
+                    {
+                        duelBlows.Add((blowAt, blowSpot));
+                    }
+                }
             }
             var attacker = units[0];
             var target = units[1];
@@ -716,6 +742,7 @@ internal static class FightReport
         }
 
         var legWas = new Dictionary<(UnitController, int), Quaternion>();
+        var filmLines = new List<string>();
         tubes = null;
         if (tubeLineup)
         {
@@ -1165,6 +1192,69 @@ internal static class FightReport
                     }
                 }
 
+                // (FIGHT_FILM="path.json,3,5,sword,target": from 3 s to 5 s, each step, the body as posed of every unit so
+                // named, written for Tools/Mocap/Rhythm/film.py to draw as a strip of stick figures: each part's joint,
+                // the feet's toes and whether each is held down, the sword. What the fight shows, feet's locks and all.)
+                {
+                    string[] film = (Environment.GetEnvironmentVariable("FIGHT_FILM") ?? "").Split(',');
+                    if (film.Length >= 3 && float.TryParse(film[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float filmFrom) && float.TryParse(film[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float filmTo) && paceAt >= filmFrom)
+                    {
+                        if (paceAt <= filmTo)
+                        {
+                            var inv = System.Globalization.CultureInfo.InvariantCulture;
+                            foreach (var u in units)
+                            {
+                                bool named = film.Length <= 3;
+                                for (int i = 3; i < film.Length; i++)
+                                {
+                                    named |= u.name.ToLowerInvariant().Contains(film[i].Trim().ToLowerInvariant());
+                                }
+
+                                if (u.Clip == null || !named)
+                                {
+                                    continue;
+                                }
+
+                                var an = u.Clip.Anim;
+                                var filmLine = new System.Text.StringBuilder();
+                                filmLine.Append("{\"t\":").Append(paceAt.ToString("0.000", inv)).Append(",\"u\":\"").Append(u.name).Append("\",\"doing\":\"").Append(u.Clip.Loco.Current).Append(u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "").Append("\",\"p\":[");
+                                foreach (var id in PartInfo.All)
+                                {
+                                    Vector3 at = an.Part(id).position;
+                                    filmLine.Append(at.x.ToString("0.000", inv)).Append(',').Append(at.y.ToString("0.000", inv)).Append(',').Append(at.z.ToString("0.000", inv)).Append(',');
+                                }
+
+                                // (The head's top, the hands' ends and the toes: a part's joint is where it begins.)
+                                Vector3[] filmEnds =
+                                {
+                                    an.Part(PartId.Head).position + an.Part(PartId.Head).up * 0.2f,
+                                    an.Part(PartId.HandL).position + an.Part(PartId.HandL).rotation * an.RestLocalPosition(PartId.HandL).normalized * 0.08f,
+                                    an.Part(PartId.HandR).position + an.Part(PartId.HandR).rotation * an.RestLocalPosition(PartId.HandR).normalized * 0.08f,
+                                    an.Part(PartId.FootL).position + an.Part(PartId.FootL).forward * 0.17f - an.Part(PartId.FootL).up * 0.07f,
+                                    an.Part(PartId.FootR).position + an.Part(PartId.FootR).forward * 0.17f - an.Part(PartId.FootR).up * 0.07f,
+                                };
+                                foreach (var at in filmEnds)
+                                {
+                                    filmLine.Append(at.x.ToString("0.000", inv)).Append(',').Append(at.y.ToString("0.000", inv)).Append(',').Append(at.z.ToString("0.000", inv)).Append(',');
+                                }
+
+                                filmLine.Length--;
+                                filmLine.Append("],\"d\":[").Append(u.Clip.Poser.Feet[0].Locked ? 1 : 0).Append(',').Append(u.Clip.Poser.Feet[1].Locked ? 1 : 0).Append("],\"s\":[");
+                                var slot = an.SlotWeaponR;
+                                Vector3 grip = slot != null ? slot.position : an.Part(PartId.HandR).position, tip = slot != null ? slot.position + slot.forward * u.Clip.Poser.WeaponLength : grip;
+                                filmLine.Append(grip.x.ToString("0.000", inv)).Append(',').Append(grip.y.ToString("0.000", inv)).Append(',').Append(grip.z.ToString("0.000", inv)).Append(',').Append(tip.x.ToString("0.000", inv)).Append(',').Append(tip.y.ToString("0.000", inv)).Append(',').Append(tip.z.ToString("0.000", inv));
+                                filmLine.Append("],\"root\":[").Append(u.Clip.Loco.Position.x.ToString("0.000", inv)).Append(',').Append(u.Clip.Loco.Position.z.ToString("0.000", inv)).Append(',').Append(u.Clip.Loco.Facing.ToString("0.0", inv)).Append("]}");
+                                filmLines.Add(filmLine.ToString());
+                            }
+                        }
+                        else if (filmLines.Count > 0)
+                        {
+                            File.WriteAllText(film[0], "[\n" + string.Join(",\n", filmLines) + "\n]\n");
+                            filmLines.Clear();
+                        }
+                    }
+                }
+
                 // (FIGHT_ARMTRACE="3,5,sword": from 3 s to 5 s, each step, where the pose has the hands of every unit so named, in the frame of the way its feet face.)
                 {
                     string[] arm = (Environment.GetEnvironmentVariable("FIGHT_ARMTRACE") ?? "").Split(',');
@@ -1245,6 +1335,24 @@ internal static class FightReport
                     }
 
                     duel.Step(dt);
+                    for (int i = 0; i < duelBlows.Count; i++)
+                    {
+                        if (paceAt >= duelBlows[i].at)
+                        {
+                            bool asked = duel.Strike(aim, duelBlows[i].spot, Time.time);
+                            Console.WriteLine($"DUELBLOW {paceAt:0.00} at the {duelBlows[i].spot} while {duel.BlowBegan}: {(asked ? "begun" : "he could not")}");
+                            startWatched = asked;
+                            duelBlows.RemoveAt(i);
+                            break;
+                        }
+                    }
+
+                    if (startWatched && duel.BlowStart.Length > 0)
+                    {
+                        Console.WriteLine("DUELSTART " + duel.BlowStart);
+                        startWatched = false;
+                    }
+
                     // (FIGHT_DUELTRACE=1: the first order's setting off, step by step.)
                     if (Environment.GetEnvironmentVariable("FIGHT_DUELTRACE") == "1")
                     {

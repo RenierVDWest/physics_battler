@@ -551,6 +551,16 @@ namespace PhysicsBattler.Locomotion
             var m = BodyMeasures.OfClips;
             var hold = SwordHold.Medium;
             int n = upper.Frames.Length;
+            // (The way back, from the blade slow again to the end: the legs go back at their own pace where the blow's
+            // own way back is the shorter. A cut's legs step back over 0.6 s; squeezed into a thrust's 0.1 s they
+            // threw the body back at 6 m/s. The blow's own parts hold their last pose, its guard, while the legs finish.)
+            int legsBack = legs.Frames.Length - 1 - legs.Follow, upperBack = n - 1 - upper.Follow;
+            bool ownPace = LegsGoBackAtTheirPace && legsBack > upperBack;
+            if (ownPace)
+            {
+                n = upper.Follow + legsBack + 1;
+            }
+
             Frames = new BodyTracks[n];
             Root = new Vector3[n];
             Facing = new float[n];
@@ -563,11 +573,12 @@ namespace PhysicsBattler.Locomotion
                 float g = f <= upper.Drive ? Share(f, 0, upper.Drive, 0, legs.Drive)
                     : f <= upper.Contact ? Share(f, upper.Drive, upper.Contact, legs.Drive, legs.Contact)
                     : f <= upper.Follow ? Share(f, upper.Contact, upper.Follow, legs.Contact, legs.Follow)
+                    : ownPace ? legs.Follow + (f - upper.Follow)
                     : Share(f, upper.Follow, n - 1, legs.Follow, legs.Frames.Length - 1);
                 int a = Mathf.Clamp(Mathf.FloorToInt(g), 0, legs.Frames.Length - 2);
                 float share = Mathf.Clamp01(g - a);
                 var under = BodyTracks.Lerp(legs.Frames[a], legs.Frames[a + 1], share);
-                var t = upper.Frames[f];
+                var t = upper.Frames[Mathf.Min(f, upper.Frames.Length - 1)];
                 t.Pelvis = under.Pelvis; t.PelvisTurn = under.PelvisTurn;
                 t.AnkleL = under.AnkleL; t.AnkleR = under.AnkleR; t.KneeL = under.KneeL; t.KneeR = under.KneeR;
                 t.FootL = under.FootL; t.FootR = under.FootR; t.ToeL = under.ToeL; t.ToeR = under.ToeR;
@@ -592,6 +603,13 @@ namespace PhysicsBattler.Locomotion
 
         private static float Share(int f, int from, int to, int legsFrom, int legsTo) => to <= from ? legsTo : Mathf.Lerp(legsFrom, legsTo, (f - from) / (float)(to - from));
 
+        /// <summary>
+        /// On another recording's legs, the way back to the guard goes at the legs' own pace where the blow's own is
+        /// the shorter (the scene's Combat Feel, "Borrowed Legs Go Back At Their Pace"). Off: squeezed into the blow's
+        /// own, as before.
+        /// </summary>
+        public static bool LegsGoBackAtTheirPace = true;
+
         /// <summary>The recordings a grafted score was made of (null for a recording's own).</summary>
         public readonly AttackScore Upper, Legs;
 
@@ -607,7 +625,7 @@ namespace PhysicsBattler.Locomotion
                 return this;
             }
 
-            string key = Name + "|" + legs.Name;
+            string key = Name + "|" + legs.Name + (LegsGoBackAtTheirPace ? "" : "|squeezed");
             if (!scores.TryGetValue(key, out var score))
             {
                 scores[key] = score = new AttackScore(this, legs);

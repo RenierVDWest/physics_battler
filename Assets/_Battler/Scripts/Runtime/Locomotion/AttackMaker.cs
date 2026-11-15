@@ -77,6 +77,27 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The blade is to land this long after the attack begins (seconds; 0: as the score has it).</summary>
         public float LandIn;
+
+        /// <summary>
+        /// How the body is going as the attack begins (its own frame then, leg lengths a second, flat; the plan "Fight
+        /// Rhythm from Recordings", step 3: attacks from any pose). It is carried on into the attack and spent over
+        /// <see cref="AttackMaker.CoastTime"/>: a walking body does not stop dead to strike, it runs out under the
+        /// wind-up. The aim allows for the ground that covers.
+        /// </summary>
+        public Vector3 Carry;
+
+        /// <summary>
+        /// The attack's own travel begins from the speed the body has (<see cref="Carry"/>; standing, from rest): the
+        /// recordings begin already moving, half a metre a second in their first frame, and played as they are the
+        /// body jumps to that speed in one step.
+        /// </summary>
+        public bool Eased;
+
+        /// <summary>
+        /// How long each foot is still in the air as the attack begins (seconds; 0: it is on the ground): a foot caught
+        /// in the middle of its step finishes that step, and is not put down where it happens to be.
+        /// </summary>
+        public float AirL, AirR;
     }
 
     /// <summary>An attack made of a score: the clip to play, and how it was aimed.</summary>
@@ -184,6 +205,69 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The style attacks are made in (the scene's Combat Feel, "Attack Style").</summary>
         public static AttackStyle Style = AttackStyle.Plain;
+
+        /// <summary>
+        /// An attack begins from where the body is (the scene's Combat Feel, "Attacks Start From Where He Is"): the way
+        /// he is going is carried on into it, a foot in the air finishes its step, and each part keeps the speed it had
+        /// while it goes over to the attack. Off: he stops in one step and the attack begins from his guard.
+        /// </summary>
+        public static bool FromAnyPose = true;
+
+        /// <summary>How long the way he was going is carried on into an attack (seconds): his speed runs down evenly to nothing over it, so he covers half of what he would have at full speed.</summary>
+        public static float CoastTime = 0.4f;
+
+        /// <summary>
+        /// How far the speed the body had has taken it by a time of the made clip (seconds; the frame the attack began
+        /// in, leg lengths). <paramref name="carried"/>: that speed against the attack's own at its start
+        /// (<see cref="Carried"/>), run down evenly to nothing over <see cref="CoastTime"/>.
+        /// </summary>
+        internal static Vector3 Coast(Vector3 carried, float time)
+        {
+            if (carried.sqrMagnitude < 1e-8f || CoastTime <= 0f)
+            {
+                return Vector3.zero;
+            }
+
+            float x = Mathf.Clamp01(time / CoastTime);
+            return carried * (CoastTime * (x - 0.5f * x * x));
+        }
+
+        /// <summary>
+        /// The speed the body has as the attack begins against the speed the attack's own travel begins at (leg
+        /// lengths a second, the frame it began in): carried on top of that travel and run down, the body's speed is
+        /// the same in the attack's first step as it was in the step before.
+        /// </summary>
+        internal static Vector3 Carried(AttackScore score, in AttackAim aim, float far, float windTime)
+        {
+            if (!aim.Eased)
+            {
+                return aim.Carry;
+            }
+
+            int n = Mathf.Min(2, score.Root.Length - 1);
+            Vector3 begins = n > 0 ? (score.Root[n] - score.Root[0]) * (score.Rate / n * far / Mathf.Max(0.05f, windTime)) : Vector3.zero;
+            return aim.Carry - new Vector3(begins.x, 0f, begins.z);
+        }
+
+        /// <summary>How much the wind-up's time is multiplied by for an attack to land when asked (the blade's hold not counted), as <see cref="Build"/> times it.</summary>
+        private static float WindTime(AttackScore score, in AttackStyle style, in AttackAim aim, float tau)
+        {
+            float drive = score.Drive / score.Rate, driveTime = Mathf.Clamp(style.DriveTime, 0.4f, 3f);
+            float windTime = Mathf.Max(0.05f, style.WindUpTime);
+            if (aim.Aimed && aim.LandIn > 0f && drive > 0.02f)
+            {
+                windTime = (aim.LandIn - (tau - drive) * driveTime) / drive;
+            }
+
+            return Mathf.Clamp(windTime, LeastWindUpTime, MostWindUpTime);
+        }
+
+        /// <summary>When a moment of the recording comes in the made clip (seconds), as <see cref="Build"/> times it.</summary>
+        private static float LandsAfter(AttackScore score, in AttackStyle style, in AttackAim aim, float tau)
+        {
+            float drive = score.Drive / score.Rate;
+            return drive * WindTime(score, style, aim, tau) + (tau - drive) * Mathf.Clamp(style.DriveTime, 0.4f, 3f);
+        }
 
         /// <summary>A made clip's frames a second.</summary>
         public const float Rate = 60f;
@@ -388,13 +472,22 @@ namespace PhysicsBattler.Locomotion
         {
             var fit = new Fit { Tau = tau, Lunge = 1f };
             float contact = score.Contact / score.Rate;
-            Vector2 want = new Vector2(aim.Target.x, aim.Target.z);
+            // (The way he was going carries him on under the attack: by the landing the target is that much nearer, or
+            // further, or more to a side, and the attack is fitted to where it will be against him then.)
+            float landsAfter = LandsAfter(score, style, aim, tau), windTime = WindTime(score, style, aim, tau);
+            Vector3 coast = Coast(Carried(score, aim, style.Lunge, windTime), landsAfter);
+            Vector3 target = aim.Target - coast;
+            Vector2 want = new Vector2(target.x, target.z);
             Vector3 goes = (Styled(score, style, fit, tau).Pelvis - score.Frames[0].Pelvis) * style.Lunge;
             goes.y = 0f;
             bool travels = goes.sqrMagnitude > 0.12f * 0.12f;
             Vector3 grip, way, hips, reach;
             for (int i = 0; i < 6; i++)
             {
+                // (The attack's own speed at its start goes with its travel's stretch: what is carried against it is found again.)
+                coast = Coast(Carried(score, aim, style.Lunge * fit.Lunge, windTime), landsAfter);
+                target = aim.Target - coast;
+                want = new Vector2(target.x, target.z);
                 Sword(score, style, fit, tau, m, hold, out grip, out way, out hips, out reach);
                 Vector3 strike = grip + way * hold.Strike;
                 Vector2 at = new Vector2(strike.x, strike.z);
@@ -402,7 +495,7 @@ namespace PhysicsBattler.Locomotion
 
                 // The height: half of what is missing by the hips, the rest by the chest's lean, about the hips.
                 // (A thrust's blade is taken to carry on the arm's line, so it is the arm that is brought onto the target.)
-                float missing = aim.Target.y - strike.y;
+                float missing = target.y - strike.y;
                 float drop = Mathf.Clamp(fit.Drop - 0.5f * missing, -MostRise, MostDrop);
                 missing += drop - fit.Drop;
                 fit.Drop = drop;
@@ -426,10 +519,12 @@ namespace PhysicsBattler.Locomotion
             }
 
             // The wrist's steer the last of the way, then the sword hand for what is still left.
+            coast = Coast(Carried(score, aim, style.Lunge * fit.Lunge, windTime), landsAfter);
+            target = aim.Target - coast;
             Sword(score, style, fit, tau, m, hold, out grip, out way, out hips, out reach);
-            way = Steered(way, aim.Target - grip, score.Thrust ? hold.MostThrustSteer : hold.MostSteer, out steer);
+            way = Steered(way, target - grip, score.Thrust ? hold.MostThrustSteer : hold.MostSteer, out steer);
             lands = grip + way * hold.Strike;
-            Vector3 left = aim.Target - lands;
+            Vector3 left = target - lands;
             Vector3 move = Vector3.ClampMagnitude(left, MostHandMove);
             // (No further than the arm is long: a hand asked past its reach stays at the arm's end.)
             float most = 0.99f * (m.UpperLen[1] + m.ForeLen[1]) * hold.ArmScale;
@@ -439,7 +534,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             shortBy = (left - move).magnitude;
-            lands += move;
+            lands += move + coast;
             // (In the recording's own frame, the turn taken out, for the arm's solve.)
             handMove = Quaternion.Euler(0f, -fit.Turn * TurnShare(score, tau), 0f) * move;
             // (What each costs: a turn of 50 degrees as much as a lean of 50, a drop of 0.35 leg lengths, half a leg length
@@ -615,6 +710,7 @@ namespace PhysicsBattler.Locomotion
             };
             var p = new Vector3[LocoClip.BoneCount];
             float far = style.Lunge * fit.Lunge;
+            Vector3 carried = Carried(score, aim, far, windTime);
             for (int f = 0; f < frames; f++)
             {
                 // The moment of the recording this frame is.
@@ -635,7 +731,7 @@ namespace PhysicsBattler.Locomotion
                     // the arm with none), from 0.4 of its wind-up, and let go on the way back. (The recorded thrusting
                     // hand is held so that this fighter's sword would point up and back in it.)
                     float w = s <= tauAt ? Smooth(0.4f * drive, Mathf.Max(0.4f * drive + 0.05f, drive), s) : 1f - Smooth(follow, end, s);
-                    PointBlade(ref t, m, hold, aim.Aimed, Quaternion.Euler(0f, -fit.Turn * TurnShare(score, s), 0f) * (aim.Target - RootAt(score, far, fit.Turn, s)) + RootOf(score, s) * far, w);
+                    PointBlade(ref t, m, hold, aim.Aimed, Quaternion.Euler(0f, -fit.Turn * TurnShare(score, s), 0f) * (aim.Target - Coast(carried, u) - RootAt(score, far, fit.Turn, s)) + RootOf(score, s) * far, w);
                 }
 
                 m.Compose(t, p);
@@ -646,7 +742,8 @@ namespace PhysicsBattler.Locomotion
                 float share = fs - a;
                 Vector3 root = Vector3.Lerp(score.Root[a], score.Root[a + 1], share) * far;
                 float facing = Mathf.Lerp(score.Facing[a], score.Facing[a + 1], share);
-                Vector3 rootOut = RootAt(score, far, fit.Turn, s);
+                // (And carried on the way he was going as it began, that speed running down.)
+                Vector3 rootOut = RootAt(score, far, fit.Turn, s) + Coast(carried, u);
                 data.root[f * 3] = rootOut.x;
                 data.root[f * 3 + 1] = rootOut.z;
                 data.root[f * 3 + 2] = facing + fit.Turn * TurnShare(score, s);
@@ -661,8 +758,9 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 int near = Mathf.Clamp(Mathf.RoundToInt(fs), 0, score.Frames.Length - 1);
-                data.contacts[f * 2] = (int)score.Contacts[near * 2];
-                data.contacts[f * 2 + 1] = (int)score.Contacts[near * 2 + 1];
+                // (A foot that was in the air as the attack began stays in the air until its step would have landed.)
+                data.contacts[f * 2] = u < aim.AirL ? 0 : (int)score.Contacts[near * 2];
+                data.contacts[f * 2 + 1] = u < aim.AirR ? 0 : (int)score.Contacts[near * 2 + 1];
             }
 
             made.Clip = new LocoClip(data);

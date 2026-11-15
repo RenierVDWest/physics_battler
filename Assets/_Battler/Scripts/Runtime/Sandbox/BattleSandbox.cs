@@ -605,6 +605,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             GUILayout.Label("Last leap: " + Duel.LastLeap, Styles().Text);
+            DrawDuelStrikes(leapFeel);
             Duel.Pace = Mathf.Round(10f * Slide("Pace", Duel.Pace > 0.01f ? $"{Duel.Pace:0.0} m/s ({(Duel.Pace < 0.9f ? "stand and step" : Duel.Pace < 1.9f ? "walk" : Duel.Pace < 3.3f ? "brisk" : "run")})" : "his guard's walk", "How fast he is asked to go, in every order. All the way down: his guard's own walking pace, as the fight asked until now (small steps). Under about 1 m/s he stands and takes single steps; to about 2 m/s he walks; above it he goes at a jog with his guard up (Combat Feel \"Guard Jogs\"), and faster still the jog's stride is stretched.", Duel.Pace, 0f, 3.6f)) / 10f;
             Duel.Near = Mathf.Round(10f * Slide("Walks to", $"{Duel.Near:0.0} m", "How near the other he walks (metres, root to root).", Duel.Near, 1f, 3f)) / 10f;
             Duel.Far = Mathf.Round(10f * Slide("Backs to", $"{Duel.Far:0.0} m", "How far from the other he backs away (metres, root to root).", Duel.Far, 2f, 7f)) / 10f;
@@ -612,6 +613,42 @@ namespace PhysicsBattler.Sandbox
             GUILayout.Label($"Order: {Duel.Now}. {Duel.Gap:0.00} m apart, going {Duel.Speed:0.00} m/s, {Duel.Gone:0.0} m since the order.", Styles().Text);
             GUILayout.Label(new GUIContent($"Setting off: a foot at most {Duel.SetOffFoot:0.0} m/s and the hips {Duel.SetOffHips:0.0} m/s in the first 0.35 s, {Duel.SetOffWent:0.00} m gone by then.",
                 "How he set off under the last order: the fastest either foot and the hips went in its first 0.35 s, and how far he had got. Feet whipped to their places while the body has hardly moved read as a jump (Combat Feel \"Sets Off At A Walk's Rhythm\")."), Styles().Text);
+        }
+
+        /// <summary>
+        /// The duel lab's blows (the plan "Fight Rhythm from Recordings", step 3: attacks from any pose): the aim test's
+        /// body map, to be pressed while he walks, circles or backs away. The order he had goes on after the blow.
+        /// </summary>
+        private void DrawDuelStrikes(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            Heading("Strike at", "Press a part while he is moving (give him an order above first): he strikes at it from where he is, in the middle of his step, and then goes on with his order. Pressed while he stands it is the aim test's blow.");
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("He strikes", "Old: he stops in one step and the attack begins from his guard. New: the way he was going is carried into the attack and runs down under its wind-up, a foot in the air finishes its step, and each limb keeps the speed it had (Combat Feel \"Attacks Start From Where He Is\")."), Styles().Text, GUILayout.Width(80f));
+                if (Press(feel.attacksStartFromWhereHeIs ? "[from where he is]" : "from where he is", "New: his movement flows into the attack."))
+                {
+                    feel.attacksStartFromWhereHeIs = true;
+                }
+
+                if (Press(!feel.attacksStartFromWhereHeIs ? "[stopped, from his guard]" : "stopped, from his guard", "Old: he stops dead and strikes from his guard."))
+                {
+                    feel.attacksStartFromWhereHeIs = false;
+                }
+
+                GUILayout.EndHorizontal();
+                feel.attackCarriesFor = Lever("Carries for", feel.attackCarriesFor, 0.1f, 0.8f, "How long the way he was going is carried on into the attack (seconds): his speed runs down to nothing over it. Longer is more momentum; shorter a sharp check before the blow.");
+            }
+
+            AimRow(AimSpot.Head);
+            AimRow(AimSpot.ShoulderR, AimSpot.Chest, AimSpot.ShoulderL);
+            AimRow(AimSpot.UpperArmR, AimSpot.Belly, AimSpot.UpperArmL);
+            AimRow(AimSpot.ThighR, AimSpot.Hips, AimSpot.ThighL);
+            AimRow(AimSpot.ShinR, AimSpot.ShinL);
+            GUILayout.Label(new GUIContent("Last blow: " + (Duel.BlowBegan.Length > 0 ? "asked while " + Duel.BlowBegan + "." : "none yet."), "What he was doing as the blow was asked for."), Styles().Text);
+            GUILayout.Label(new GUIContent("Its start: " + (Duel.BlowStart.Length > 0 ? Duel.BlowStart + "." : "none yet."),
+                "How smoothly the blow began, over its first 0.4 s: the biggest change of speed from one step to the next of his root and, as posed, of his hips, each foot and his sword hand. A body going 1.4 m/s that stops in one step shows as 1.4: that is the snap. And how far his held feet slid over the ground."), Styles().Text);
+            GUILayout.Label(aimLast.Length > 0 ? aimLast : "", Styles().Text);
         }
 
         /// <summary>From the locomotion lab straight to the aim test, as <see cref="WatchFight"/> goes to the battle.</summary>
@@ -683,7 +720,8 @@ namespace PhysicsBattler.Sandbox
         {
             aimSpot = spot;
             Aim.Stop();
-            if (Aim.Order(spot, Time.time))
+            // (In the duel lab the blow's start is watched, whatever he is doing as it is asked for.)
+            if (duelLab && Duel.Running ? Duel.Strike(Aim, spot, Time.time) : Aim.Order(spot, Time.time))
             {
                 message = $"Aim test: a blow asked for the {AimSpots.Name(spot)} ({Aim.Now.Strike}).";
             }

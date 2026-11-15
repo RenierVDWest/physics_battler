@@ -139,6 +139,125 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        // ---- A blow asked for while he moves (step 3: attacks from any pose) ----
+
+        /// <summary>What he was doing as the last blow was asked for, and how its start went (the first 0.4 s; "" until it is over).</summary>
+        public string BlowBegan { get; private set; } = "";
+        public string BlowStart { get; private set; } = "";
+
+        private static readonly PhysicsBattler.Rig.PartId[] watched = { PhysicsBattler.Rig.PartId.Pelvis, PhysicsBattler.Rig.PartId.FootL, PhysicsBattler.Rig.PartId.FootR, PhysicsBattler.Rig.PartId.HandR };
+        private readonly Vector3[] watchAt = new Vector3[4], watchSpeed = new Vector3[4];
+        private readonly float[] watchJump = new float[4], watchFirst = new float[4];
+        private Vector3 watchRoot, watchRootSpeed, watchFrom;
+        private float watchFor = -1f, watchRootJump, watchRootFirst, watchWas, watchSlid;
+        private int watchSteps;
+        private bool watchKnown;
+        private float watchLowest = float.MaxValue;
+
+        /// <summary>How long a blow's start is watched (seconds).</summary>
+        public const float StartWatched = 0.4f;
+
+        /// <summary>
+        /// One blow at a spot on the other, asked for now, whatever he is doing: in the middle of a walk, going round,
+        /// backing away. The order he has goes on after it. How its start goes is watched: how much the speed of his
+        /// root and, as posed, of his hips, each foot and his sword hand changes in the blow's first step (a body going
+        /// 1.4 m/s that stops in one step shows as 1.4: the snap), the biggest such change in any one step of its
+        /// first 0.4 s, and how far his held feet slide.
+        /// </summary>
+        public bool Strike(AimTest aim, PhysicsBattler.Locomotion.AimSpot spot, float now)
+        {
+            if (!Running || aim == null || Mover.Clip == null)
+            {
+                return false;
+            }
+
+            var loco = Mover.Clip.Loco;
+            BlowBegan = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}, going {1:0.00} m/s, {2}, feet down {3:0}/{4:0}, {5:0.00} m apart",
+                Now, Speed, loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Idle && Speed > 0.2f ? "standing and stepping" : loco.Current.ToString(), loco.Down[0], loco.Down[1], Gap);
+            BlowStart = "";
+            if (!aim.Order(spot, now))
+            {
+                watchFor = -1f;
+                return false;
+            }
+
+            watchFrom = loco.Position;
+            watchWas = watchRootSpeed.magnitude;
+            watchFor = 0f;
+            watchRootJump = watchSlid = 0f;
+            watchSteps = 0;
+            for (int i = 0; i < watched.Length; i++)
+            {
+                watchJump[i] = 0f;
+            }
+
+            return true;
+        }
+
+        /// <summary>Each step: how fast his root and the watched parts go (as posed), and through a blow's start how that changes.</summary>
+        private void WatchStart(float dt)
+        {
+            if (Mover.Clip == null || dt <= 1e-5f)
+            {
+                watchKnown = false;
+                return;
+            }
+
+            var loco = Mover.Clip.Loco;
+            bool watching = watchFor >= 0f && watchKnown;
+            Vector3 v = watchKnown ? (loco.Position - watchRoot) / dt : loco.Velocity;
+            watchRoot = loco.Position;
+            if (watching)
+            {
+                float jump = (v - watchRootSpeed).magnitude;
+                watchRootJump = Mathf.Max(watchRootJump, jump);
+                watchRootFirst = watchSteps == 0 ? jump : watchRootFirst;
+            }
+
+            watchRootSpeed = v;
+            for (int i = 0; i < watched.Length; i++)
+            {
+                Vector3 p = Mover.Clip.Anim.Part(watched[i]).position, speed = watchKnown ? (p - watchAt[i]) / dt : Vector3.zero;
+                if (watching)
+                {
+                    float jump = (speed - watchSpeed[i]).magnitude;
+                    watchJump[i] = Mathf.Max(watchJump[i], jump);
+                    watchFirst[i] = watchSteps == 0 ? jump : watchFirst[i];
+                    // (A foot's slide: how far it goes over the ground while it is held down and flat. With its heel
+                    // up its ankle goes round over its toe, which is not a slide.)
+                    if ((i == 1 || i == 2) && Mover.Clip.Poser.Feet[i - 1].Locked && !Mover.Clip.Poser.Feet[i - 1].OnToe && p.y <= watchLowest + 0.015f)
+                    {
+                        watchSlid += Flat(p - watchAt[i]).magnitude;
+                    }
+                }
+
+                if (i == 1 || i == 2)
+                {
+                    // (An ankle's standing height: the lowest one has been.)
+                    watchLowest = Mathf.Min(watchLowest, p.y);
+                }
+
+                watchAt[i] = p;
+                watchSpeed[i] = speed;
+            }
+
+            watchKnown = true;
+            if (!watching)
+            {
+                return;
+            }
+
+            watchSteps++;
+            watchFor += dt;
+            if (watchFor >= StartWatched)
+            {
+                watchFor = -1f;
+                BlowStart = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "he was going {0:0.00} m/s and went {1:0.00} m on in the blow's first {2:0.0} s; in its first step the speed of his root changed by {3:0.00} m/s, his hips {4:0.00}, left foot {5:0.00}, right foot {6:0.00}, sword hand {7:0.00}; the biggest change in any one step: root {8:0.00}, hips {9:0.00}, left foot {10:0.00}, right foot {11:0.00}, sword hand {12:0.00}; his held feet slid {13:0.0} cm",
+                    watchWas, Flat(loco.Position - watchFrom).magnitude, StartWatched, watchRootFirst, watchFirst[0], watchFirst[1], watchFirst[2], watchFirst[3], watchRootJump, watchJump[0], watchJump[1], watchJump[2], watchJump[3], 100f * watchSlid);
+            }
+        }
+
         private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
         private void Stand()
@@ -164,6 +283,7 @@ namespace PhysicsBattler.Sandbox
             Speed = Mathf.Lerp(Speed, moved.magnitude / Mathf.Max(1e-4f, dt), Mathf.Clamp01(dt / 0.15f));
             Gone += Now == Order.Stand ? 0f : moved.magnitude;
             Fastest = Mathf.Max(Fastest, Speed);
+            WatchStart(dt);
             if (Now != Order.Stand && since < 0.35f && dt > 1e-5f)
             {
                 since += dt;

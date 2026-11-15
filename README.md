@@ -4212,3 +4212,56 @@ dotnet bin/Tests/Debug/PhysicsBattler.Tests.dll legrange               # the cli
 
 The stubs only cover the API this project uses, and the dry run has no collisions or joints (a ragdoll's parts fall
 each on its own onto a flat ground); Unity is the final word.
+
+**Fight rhythm, step 3: attacks from any pose** (15 November; Combat Feel "Attacks Start From Where He Is",
+"Attack Carries For" and "Borrowed Legs Go Back At Their Pace"; the duel lab's "Strike at" buttons). Until now a
+made attack could only be watched from a stand. Asked for while he walked, he stopped in one step (a body going
+2.5 m/s lost 2 m/s of it between one step and the next), every limb stopped where it was and was then moved to
+the attack's guard, and a foot caught in the air was put down where it happened to be. Now:
+
+- **His speed is carried into the attack.** The way he was going runs down evenly to nothing over 0.4 s (the
+  lever) under the attack's wind-up, so he covers half of what he would have at full speed: 28 cm from a walk of
+  1.4 m/s, half a metre from a jog. The attack's own travel is added on top of that.
+- **The aim allows for it.** The attack is fitted to where the target will be against him when the blade lands,
+  not where it was when he began: walking in he lunges that much less, backing away that much more, going round
+  he turns further.
+- **A foot in the air finishes its step.** It stays in the air for as long as its step had left and comes down
+  under the body as it arrives. The foot on the ground is held where it stands and steps after the body when it
+  is left behind, as it does when he stands and steps.
+- **Each limb keeps the speed it had** while it goes over to the attack (the fade between two motions now carries
+  speed as well as place, for a made attack).
+- **Standing too, the attack's travel begins from rest.** The recordings begin already moving, half a metre a
+  second in their first frame; played as they are the body jumped to that speed in one step, every time.
+- Off: all of that as it was.
+
+In the duel lab: give him an order (walk to, back away, circle, at any pace), then press a part under "Strike
+at". He strikes from where he is and goes on with his order. "He strikes: from where he is / stopped, from his
+guard" switches old and new. Two lines tell what he was doing as the blow was asked and how its start went: how
+much the speed of his root, hips, feet and sword hand changed in the blow's first step.
+
+Measured (headless: `FIGHT_DUEL`, `FIGHT_DUELPACE`, `FIGHT_DUELNEAR`, `FIGHT_DUELBLOW="3.0:Chest,7:Belly"` asks a
+blow at those seconds, `FIGHT_ANYPOSE=0` the old way, `FIGHT_COAST=0.4`). The change of the root's speed in the
+blow's first step, old to new: standing and stepping in at 0.75 m/s, 0.36 to 0.06 m/s; walking in at 1.6 m/s,
+1.08 to 0.07; jogging in at 2.5 m/s, 1.98 to 0.06; circling at 1.6 m/s, 1.27 to 0.05; backing away, 1.48 to
+0.07; standing, 0.48 to 0.07. The hips as posed: 0.45 to 1.98 before, 0.01 to 0.17 now. The blade as posed
+passes 0 to 5 cm from the spot asked for from all five ways of moving (3 cm standing); before, from a walk or a
+jog, it fell 22 to 30 cm short, because he had stopped. Five blows at five parts while circling both ways: the
+blade as posed within 0 to 6 cm of each. The standing aim test (19 parts at 1.5 m) is as it was: 9 or 10 on the
+part asked for, the posed blade 3 to 4 cm from the spot at the middle. The six fighters' fight with the jog and
+the eased setting off turned off is unchanged (78 blows): the battle's blows do not go this way yet.
+
+Found on the way and mended: **a thrust on the forehand cut's legs threw him backward as it ended.** The cut's
+legs take 0.6 s to step back to the guard; that was squeezed into the thrust's 0.1 s, so in the blow's last six
+frames the body went back at 5 to 9 m/s and turned 60 degrees. From a stand he then stood; asked to walk on, he
+kept that speed and was carried 1.5 m away. The legs now go back at their own pace and the arms wait in the
+guard (Combat Feel "Borrowed Legs Go Back At Their Pace"; `FIGHT_LEGSBACK=0` the old way). After it the fastest
+his root goes through five blows while circling is 1.8 m/s.
+
+A way to look at what the fight poses: `FIGHT_FILM="film.json,3.0,4.2"` writes the bodies as posed, each step
+between those seconds, and `python3 Tools/Mocap/Rhythm/film.py film.json out.png --moments 12` draws them as a
+strip of stick figures from the side and from above (feet's locks, sword and all). The strips of these starts
+show whole poses and the blade on the target. Not verified in Unity: how it moves. Stills 0.05 s apart cannot
+show a snap or its absence, only the numbers above can, and they are of the pose, not of what the eye makes of
+it. Known and not done: the planted foot's catching up is the stance's stepping, not a step made for the attack;
+the turn he had while circling is not carried (only his travel); the limbs are faded point by point, not joint
+by joint; the battle's own blows still start the old way.

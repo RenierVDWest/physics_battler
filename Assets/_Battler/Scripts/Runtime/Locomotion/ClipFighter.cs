@@ -3629,6 +3629,21 @@ namespace PhysicsBattler.Locomotion
         public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle style, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null)
         {
             var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn };
+            // (From where he is, the plan "Fight Rhythm from Recordings", step 3: the way he is going is carried into
+            // the attack, and a foot caught in the air finishes its step.)
+            bool going = AttackMaker.FromAnyPose && Loco.Velocity.magnitude > 0.1f * Size;
+            aim.Eased = AttackMaker.FromAnyPose;
+            if (going)
+            {
+                Vector3 own = Quaternion.Euler(0f, -Loco.Facing, 0f) * Loco.Velocity;
+                aim.Carry = new Vector3(own.x, 0f, own.z) / Mathf.Max(0.1f, Loco.Leg);
+                if (Loco.Current == Locomotor.Mode.Cycle)
+                {
+                    aim.AirL = Loco.Down[0] < 0.5f ? Mathf.Clamp(Loco.SwingLeft(0), 0.06f, 0.4f) : 0f;
+                    aim.AirR = Loco.Down[1] < 0.5f ? Mathf.Clamp(Loco.SwingLeft(1), 0.06f, 0.4f) : 0f;
+                }
+            }
+
             var hold = Poser.Hold();
             madePlans.Clear();
             foreach (var clip in StrikeClips)
@@ -3698,6 +3713,7 @@ namespace PhysicsBattler.Locomotion
             KeepOff(target);
             Made = best;
             // (The turn is in the made clip's own root: the walk plays it as it is.)
+            Loco.KeepsSpeedAtNextSwitch = AttackMaker.FromAnyPose;
             Poser.PlayMade(best.Clip, point, 0f);
             return best;
         }

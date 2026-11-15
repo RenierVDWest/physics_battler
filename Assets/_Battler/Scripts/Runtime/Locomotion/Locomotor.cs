@@ -1972,8 +1972,23 @@ namespace PhysicsBattler.Locomotion
 
         // ---- Inertialization ------------------------------------------------------------------------
 
+        /// <summary>
+        /// The next switch between motions keeps each point's speed as well as its place (the plan "Fight Rhythm from
+        /// Recordings", step 3: an attack begun out of a walk): what the old motion had and the new one doesn't goes
+        /// on at the speed it had and is then faded out, so a limb in the middle of its swing carries on and comes
+        /// round, and is not stopped where it is and then moved. Without it only the place is kept.
+        /// </summary>
+        public bool KeepsSpeedAtNextSwitch;
+
+        /// <summary>No point is carried on faster than this at such a switch (m/s at a Medium's size).</summary>
+        public const float MostKeptSpeed = 4f;
+
+        private readonly Vector3[] outSpeed = new Vector3[LocoClip.BoneCount];
+
         private void Inertialize(float dt)
         {
+            bool keeps = KeepsSpeedAtNextSwitch && pendingSwitch;
+            KeepsSpeedAtNextSwitch &= !pendingSwitch;
             if (pendingSwitch)
             {
                 // (Into or out of a combat clip: a longer fade; between walk clips, the usual; setting off from a stand
@@ -1983,10 +1998,20 @@ namespace PhysicsBattler.Locomotion
                 setOff = false;
                 lastWasGuard = guardNow;
                 float most = 0f;
+                // (With the speed kept: against the speed the new motion itself begins at, where that is known (a clip
+                // played from a moment of it); otherwise it is taken to begin at rest.)
+                // (The new motion as it was a step ago: what differs is counted from there, and this step's fade then
+                // carries each point on from where it was at the speed it had.)
+                bool begins = keeps && Current == Mode.OneShot && Shot != null && dt > 1e-5f;
+                if (begins)
+                {
+                    Shot.Pose(Mathf.Max(0f, ShotTime - dt * TimeScale), scratch, Leg);
+                }
+
                 for (int i = 0; i < offset.Length; i++)
                 {
-                    offset[i] = lastOut[i] - raw[i];
-                    offsetVelocity[i] = Vector3.zero;
+                    offset[i] = lastOut[i] - (begins ? scratch[i] : raw[i]);
+                    offsetVelocity[i] = keeps ? Vector3.ClampMagnitude(outSpeed[i] - (begins ? (raw[i] - scratch[i]) / dt : Vector3.zero), MostKeptSpeed * Leg / 0.845f) : Vector3.zero;
                     most = Mathf.Max(most, offset[i].magnitude);
                 }
 
@@ -2008,6 +2033,7 @@ namespace PhysicsBattler.Locomotion
 
                 Points[i] = raw[i] + offset[i];
                 lastRaw[i] = raw[i];
+                outSpeed[i] = hasLast && dt > 1e-5f ? (Points[i] - lastOut[i]) / dt : Vector3.zero;
                 lastOut[i] = Points[i];
             }
 
