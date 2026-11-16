@@ -4867,3 +4867,65 @@ November). The upper body's postures that are not the start of an attack.
 - Step 6 is done but for the stance switch, which needs a guard with the other foot forward and is left out.
 
 New file that needs its .meta from Unity: `Locomotion/Openings.cs`.
+
+**Fight rhythm, step 7, first part: the shield test** (16 November; `OpeningTaker`, `ShieldTest`,
+`ClipFighter.Uncover`). The plan's "how an attacker takes one", on the test Renier described: the target holds
+a shield and uncovers a chosen part for a moment; the swordsman must hit that part while it is open.
+
+- **The target uncovers** (`ClipFighter.Uncover`). First its tell, 0.3 s: the shield is drawn a little the
+  other way (9 degrees). Then its shield arm swings at the shoulder, up or down, whichever leaves the board
+  further from the straight line between the swordsman's sword shoulder and the part; it goes until that line
+  is clear of the board by 7 cm, looked at on the bodies each step (so how far it swings is not set: 36 to 78
+  degrees in the runs below); it stays away until the part has been open for the time asked, 0.4 s, and comes
+  back. When the part was open is measured the same way as step 6's map (`Openings.LookAt`), three steps
+  running to count. The swing is laid on the parts his movement is made of (two new levers, the shield arm
+  aside and lifted), so it needs the made movement. While he uncovers, his shield does not go to meet a blow.
+- **The swordsman takes it** (`OpeningTaker`), one of two ways, and two numbers decide which and how well:
+  whether he **reads** (Combat Feel "The Swordsman Reads Openings"), and his **reaction time** ("Opening
+  Reaction Time", 0.2 s).
+  - *Reading*, he recognises the uncovering as it starts, knows from the last time he saw it when the part
+    opened and shut, and starts his blow after his reaction time, made to land 40% of the way into the window
+    (the attack maker lands a blow at a set moment). A blow may be hurried no further than "Quickest Opening
+    Blow", 0.45 s. If it could not land before 90% of the window he holds it.
+  - *Only reacting*, he starts his blow his reaction time after he sees the part open, as quick as a blow may
+    be.
+  - He cannot read an uncovering he has not seen: the first time, a reader only reacts, and what was measured
+    then is what he goes by after. Change the part, the tell or the open time and it is new to him. A go in
+    which his own blow landed while it was open does not teach him (a struck body shuts differently).
+- **Lab** ("Duel lab", "Shield test", at the top): "Set out" (the target with sword and shield, the two 1.5 m
+  apart), "Uncover" (once), "Loop"; "Uncovers: chest / belly / hips"; "Swordsman: reads it / only reacts",
+  "Forget"; levers "Reaction", "Quickest blow", "Tell lasts", "Open for". Under them: the part as he sees it
+  now and whether he has seen this uncovering; the last go (the window as measured, when the blow started,
+  what it met and when, what he went by); and the count.
+- **Measured** (headless, both with sword and shield, 1.5 m apart, reaction 0.2 s, tell 0.3 s, open for 0.4 s;
+  times are seconds after the uncovering began):
+
+  | | Goes | The blade arrived | Met |
+  | --- | --- | --- | --- |
+  | Only reacts (chest, belly, hips, two each) | 6 | 1.13 to 1.22, which is 0.22 to 0.37 after it shut | the shield, 6 of 6 |
+  | Reads, first sight of each part (he can only react) | 3 | 1.10 to 1.15, 0.23 to 0.37 after it shut | the shield, 3 of 3 |
+  | Reads, having seen it | 7 | 0.68 to 0.73, inside the window every time | the part asked for 3 times (chest twice, hips once); a part beside it 4 times; the shield never |
+  | Reads, reaction 0.4 s | 2 | no blow | he held it: it could not land before 0.85 s and the part shuts at 0.82 |
+  | Reads, no tell | 2 | no blow | he held it: the part is open 0.13 to 0.52 and his blow cannot land before 0.65 |
+  | Only reacts, open for 0.9 s | 3 | 1.07 to 1.08, inside the window | the chest twice, the left upper arm once |
+
+  The windows measured 0.35 to 0.50 s for the 0.4 asked (the chest 0.35 to 0.40). Nothing thrown; the six
+  fighters' fight with the made movement off is unchanged (84 blows, 3 against 2). Headless:
+  `FIGHT_SHIELDTEST="3:Chest,3:Chest,3:Belly"` in the duel lineup with `FIGHT_AIMKIT=shield`, and
+  `FIGHT_READS=0`, `FIGHT_REACTION`, `FIGHT_TELL`, `FIGHT_OPENFOR`, `FIGHT_QUICKEST`; the lines begin
+  `SHIELDTEST`.
+- **Not verified in Unity**: all of it. The panel's layout; what the tell and the swing look like on the lab's
+  bodies (headless the film draws no shield); whether the lab's bodies give the same windows.
+- **Known**:
+  - A blow hurried to 0.45 s is less true than one in its own time (0.62 s): reading, 4 of 7 landed on a part
+    beside the one asked for (its sword hand for its chest; its left upper arm and its hips for its belly; its
+    belly for its hips). They were past the shield and inside the window; the aim is the made attack's, not this step's.
+  - Open is a straight line from the sword shoulder; a cut comes round. So the thighs are left out of the test
+    (a low cut comes round under the board and lands after the line says shut), and the shield is never swung
+    aside (that clears the line but puts the board where a forehand comes from).
+  - With no tell there is nothing to read: the reader gains nothing over reacting, and knows it.
+  - The reading is all or nothing (a switch), not a chance per posture met; the swordsman stands still for
+    it; the target only does it when told. A fighter's own reading number, the real postures of step 6 in
+    place of the scripted shield, and the fight using any of this are the next parts.
+
+New files that need their .meta from Unity: `Locomotion/OpeningTaker.cs`, `Sandbox/ShieldTest.cs`.

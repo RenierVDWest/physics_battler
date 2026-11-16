@@ -21,6 +21,9 @@ namespace PhysicsBattler.Locomotion
 
             /// <summary>What covers it ("its shield", or the part of him that is in the way); nothing when it is open.</summary>
             public string Behind;
+
+            /// <summary>It is his shield that covers it.</summary>
+            public bool Shield;
         }
 
         /// <summary>How far before a spot the line to it is looked along (metres at a Medium's size: his own cover is no further from him than his arm reaches), how far apart it is looked at, and how thick the line is.</summary>
@@ -32,54 +35,93 @@ namespace PhysicsBattler.Locomotion
             into.Clear();
             foreach (var spot in AimSpots.All)
             {
-                Vector3 at = AimSpots.Point(of, spot);
-                Vector3 way = at - from;
-                float far = way.magnitude;
-                var seen = new Seen { Spot = spot, Open = true, Behind = "" };
-                if (far > 1e-3f)
-                {
-                    way /= far;
-                    float begins = Mathf.Max(0f, far - LooksFrom * of.Size);
-                    bool done = false;
-                    for (float d = begins; d <= far + 0.5f * Every && !done; d += Every * of.Size)
-                    {
-                        PartId? reached = null, before = null;
-                        bool shield = false;
-                        foreach (var collider in Physics.OverlapSphere(from + way * Mathf.Min(d, far), Thick * of.Size, ~0, QueryTriggerInteraction.Collide))
-                        {
-                            if (of.ShieldColliders.Contains(collider))
-                            {
-                                shield = true;
-                            }
-                            else if (of.PartOf(collider, out var id))
-                            {
-                                if (AimSpots.Counts(spot, id) || id == AimSpots.PartOf(spot))
-                                {
-                                    reached = id;
-                                }
-                                else
-                                {
-                                    before = id;
-                                }
-                            }
-                        }
+                into.Add(LookAt(of, from, spot));
+            }
+        }
 
-                        if (reached.HasValue)
+        /// <summary>One spot of <paramref name="of"/> as seen from a place (world): open, or what is before it.</summary>
+        public static Seen LookAt(ClipFighter of, Vector3 from, AimSpot spot)
+        {
+            Vector3 at = AimSpots.Point(of, spot);
+            Vector3 way = at - from;
+            float far = way.magnitude;
+            var seen = new Seen { Spot = spot, Open = true, Behind = "" };
+            if (far <= 1e-3f)
+            {
+                return seen;
+            }
+
+            way /= far;
+            float begins = Mathf.Max(0f, far - LooksFrom * of.Size);
+            for (float d = begins; d <= far + 0.5f * Every; d += Every * of.Size)
+            {
+                PartId? reached = null, before = null;
+                bool shield = false;
+                foreach (var collider in Physics.OverlapSphere(from + way * Mathf.Min(d, far), Thick * of.Size, ~0, QueryTriggerInteraction.Collide))
+                {
+                    if (of.ShieldColliders.Contains(collider))
+                    {
+                        shield = true;
+                    }
+                    else if (of.PartOf(collider, out var id))
+                    {
+                        if (AimSpots.Counts(spot, id) || id == AimSpots.PartOf(spot))
                         {
-                            // (The spot's own part reached: open, whatever else is touching it there.)
-                            done = true;
+                            reached = id;
                         }
-                        else if (shield || before.HasValue)
+                        else
                         {
-                            seen.Open = false;
-                            seen.Behind = shield ? "its shield" : "its " + before.Value;
-                            done = true;
+                            before = id;
                         }
                     }
                 }
 
-                into.Add(seen);
+                if (reached.HasValue)
+                {
+                    // (The spot's own part reached: open, whatever else is touching it there.)
+                    return seen;
+                }
+
+                if (shield || before.HasValue)
+                {
+                    seen.Open = false;
+                    seen.Shield = shield;
+                    seen.Behind = shield ? "its shield" : "its " + before.Value;
+                    return seen;
+                }
             }
+
+            return seen;
+        }
+
+        /// <summary>
+        /// His shield is on the line from a place to one of his spots, or within <paramref name="room"/> of it (metres
+        /// at a Medium's size): the line is not clear of the shield by that much.
+        /// </summary>
+        public static bool ShieldNear(ClipFighter of, Vector3 from, AimSpot spot, float room)
+        {
+            Vector3 at = AimSpots.Point(of, spot);
+            Vector3 way = at - from;
+            float far = way.magnitude;
+            if (far <= 1e-3f)
+            {
+                return false;
+            }
+
+            way /= far;
+            float thick = Mathf.Max(Thick, room) * of.Size;
+            for (float d = Mathf.Max(0f, far - LooksFrom * of.Size); d <= far + 0.5f * Every; d += Every * of.Size)
+            {
+                foreach (var collider in Physics.OverlapSphere(from + way * Mathf.Min(d, far), thick, ~0, QueryTriggerInteraction.Collide))
+                {
+                    if (of.ShieldColliders.Contains(collider))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

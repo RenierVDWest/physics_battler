@@ -20,9 +20,12 @@ namespace PhysicsBattler.Locomotion
         public Vector3 BladeTurn;
         public float ShieldOut, SwordArmLift;
 
+        /// <summary>The shield arm swung at the shoulder, on the chest, the shield going with it: out to his own left (degrees), and up (degrees; down below 0). An uncovering (<see cref="ClipFighter.Uncover"/>).</summary>
+        public float ShieldAside, ShieldLift;
+
         public static MoveLevers Plain => new MoveLevers { Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f };
 
-        public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f && BladeTurn == Vector3.zero && ShieldOut == 0f && SwordArmLift == 0f;
+        public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f && BladeTurn == Vector3.zero && ShieldOut == 0f && SwordArmLift == 0f && ShieldAside == 0f && ShieldLift == 0f;
     }
 
     /// <summary>
@@ -131,6 +134,15 @@ namespace PhysicsBattler.Locomotion
                 float w = Mathf.Clamp01(levers.ShieldOut);
                 t.UpperL = BodyTracks.Way(t.UpperL, new Vector3(-0.15f, -0.3f, 1f).normalized, 0.85f * w);
                 t.ForeL = BodyTracks.Way(t.ForeL, new Vector3(0.1f, 0.1f, 1f).normalized, w);
+            }
+
+            if (levers.ShieldAside != 0f || levers.ShieldLift != 0f)
+            {
+                // (The shield swung away: its whole arm turned at the shoulder, on the chest, the board with it.)
+                var swing = Quaternion.Euler(-levers.ShieldLift, -levers.ShieldAside, 0f);
+                t.UpperL = swing * t.UpperL;
+                t.ForeL = swing * t.ForeL;
+                t.HandL = swing * t.HandL;
             }
 
             t.AnkleL.y = floorL + (t.AnkleL.y - floorL) * levers.StepLift;

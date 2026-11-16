@@ -546,6 +546,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab's movement orders.</summary>
         public readonly DuelLab Duel = new DuelLab();
 
+        /// <summary>The duel lab's shield test (the plan's step 7): the target uncovers a part for a moment and the swordsman takes it.</summary>
+        public readonly ShieldTest Shield = new ShieldTest();
+
         /// <summary>How far apart the duel lab's two begin (metres).</summary>
         public const float DuelApartAtFirst = 3f;
 
@@ -554,6 +557,24 @@ namespace PhysicsBattler.Sandbox
         /// on demand. The scene is the aim test's; what is asked of the swordsman is movement.
         /// </summary>
         public void DuelLabScene()
+        {
+            shieldSetOut = false;
+            SetOutDuelLab();
+        }
+
+        /// <summary>The duel lab set out for the shield test: the target with sword and shield, the two at striking distance from the first moment.</summary>
+        private bool shieldSetOut;
+
+        /// <summary>The duel lab set out for its shield test (the plan's step 7).</summary>
+        public void ShieldTestScene()
+        {
+            shieldSetOut = true;
+            aimTargetKit = 1;
+            SetOutDuelLab();
+            message = "Shield test: set out. Press Uncover: the target takes its shield off the part chosen, and the swordsman goes for it.";
+        }
+
+        private void SetOutDuelLab()
         {
             targetTest = true;
             tubeTest = false;
@@ -705,6 +726,7 @@ namespace PhysicsBattler.Sandbox
                 }
             }
 
+            DrawShieldTest();
             var moveFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
             if (moveFeel != null)
             {
@@ -842,6 +864,62 @@ namespace PhysicsBattler.Sandbox
                 "How he set off under the last order: the fastest either foot and the hips went in its first 0.35 s, and how far he had got. Feet whipped to their places while the body has hardly moved read as a jump (Combat Feel \"Sets Off At A Walk's Rhythm\")."), Styles().Text);
         }
 
+        // (Not the thighs: its shield is before them along the straight line, but a low cut comes round under the board and lands all the same.)
+        private static readonly AimSpot[] ShieldTestSpots = { AimSpot.Chest, AimSpot.Belly, AimSpot.Hips };
+
+        /// <summary>
+        /// The duel lab's shield test (the plan "Fight Rhythm from Recordings", step 7: openings): the target uncovers
+        /// one part for a moment, and the swordsman must hit it while it is open. He either reads the uncovering as it
+        /// starts, or only reacts once he sees the part open.
+        /// </summary>
+        private void DrawShieldTest()
+        {
+            var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+            Heading("Shield test", "The target holds a shield and takes it off one part of itself for a moment; the swordsman must hit that part while it is open. A blow takes time to land, so seeing the part open is too late: a swordsman who reads the uncovering starts as it begins (he goes by its tell, and by when it opened the last time he saw it) and lands while it is open; one who only reacts starts once he sees it open, and meets the shield coming back. Under the buttons: the window as it was measured, when his blow started and when it landed.");
+            bool hasShield = Aim.Target != null && Aim.Target.Clip != null && Aim.Target.Clip.ShieldColliders.Count > 0;
+            GUILayout.BeginHorizontal();
+            if (Press(hasShield && shieldSetOut ? "Set out again" : "Set out", "Sets the lab out for the test: the target with sword and shield, the two standing 1.5 m apart. The swordsman forgets what he has seen."))
+            {
+                ShieldTestScene();
+            }
+
+            if (Press("Uncover", "The target uncovers the part now, once: first its tell (the shield drawn a little the other way), then the shield swings up or down, whichever clears the part soonest, until a straight line from the swordsman's sword shoulder reaches the part; it stays away for as long as set and comes back."))
+            {
+                string cannot = Shield.Cannot;
+                message = Shield.Uncover(Time.time) ? $"Shield test: the target uncovers its {AimSpots.Name(Shield.Spot)}." : "Shield test: not now: " + (cannot.Length > 0 ? cannot : "the target cannot (it is in a blow, or down)") + ".";
+            }
+
+            if (Press(Shield.Loop ? "[Loop]" : "Loop", "It uncovers again and again, a moment after each go is over and both are back on their spots.")) Shield.Loop = !Shield.Loop;
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Uncovers:", "The part the target uncovers and the swordsman is to hit. These are the parts its shield covers as it stands."), Styles().Text, GUILayout.Width(70f));
+            foreach (var spot in ShieldTestSpots)
+            {
+                if (Press(Shield.Spot == spot ? "[" + AimSpots.Name(spot) + "]" : AimSpots.Name(spot), $"The target uncovers its {AimSpots.Name(spot)}.")) Shield.Spot = spot;
+            }
+
+            GUILayout.EndHorizontal();
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Swordsman:", "How he takes the opening. Reads it (new): he recognises the uncovering as it starts and times his blow to land while the part is open. He has to have seen that uncovering once: the first time, he can only react. Only reacts: he starts his blow once he sees the part open."), Styles().Text, GUILayout.Width(80f));
+                if (Press(feel.theSwordsmanReadsOpenings ? "[reads it]" : "reads it", "He reads the uncovering (Combat Feel \"The Swordsman Reads Openings\").")) feel.theSwordsmanReadsOpenings = true;
+                if (Press(!feel.theSwordsmanReadsOpenings ? "[only reacts]" : "only reacts", "He starts his blow once he sees the part open.")) feel.theSwordsmanReadsOpenings = false;
+                if (Press("Forget", "He forgets every uncovering he has seen: the next one is new to him, and he can only react to it.")) Shield.Taker.Forget();
+                GUILayout.EndHorizontal();
+                feel.openingReactionTime = Lever("Reaction", feel.openingReactionTime, 0.05f, 0.6f, "How long after he recognises the uncovering (reading) or sees the part open (reacting) he starts his blow (seconds).");
+                feel.quickestOpeningBlow = Lever("Quickest blow", feel.quickestOpeningBlow, 0.3f, 0.8f, "The least time his blow may take to land (seconds). In its own time a blow takes about 0.6 s; under about 0.4 s it lands off its mark.");
+                feel.uncoverTell = Lever("Tell lasts", feel.uncoverTell, 0f, 0.8f, "How long the target's tell lasts before its shield starts away (seconds). It is what a reader goes by: with none, reading gains him almost nothing.");
+                feel.uncoverOpenFor = Lever("Open for", feel.uncoverOpenFor, 0.15f, 1.2f, "How long the target leaves the part open (seconds).");
+                Shield.Taker.Reads = feel.theSwordsmanReadsOpenings;
+                Shield.Taker.Reaction = feel.openingReactionTime;
+            }
+
+            GUILayout.Label(new GUIContent("Now: " + Shield.NowText, "The part chosen as the swordsman sees it this moment, and whether he has seen this uncovering before (what he goes by when he reads it)."), Styles().Text);
+            GUILayout.Label(new GUIContent("Last go: " + (Shield.Now != null ? (Shield.Now.Done ? "" : "(under way) ") + Shield.Now.Verdict : "none yet."), "The last go: when the part was open, as measured on the bodies (seconds after the uncovering began, its tell included); when the swordsman's blow started; what it met and when; and what he went by."), Styles().Text);
+            GUILayout.Label(Shield.Trials.Count > 0 ? Shield.Tally() : "", Styles().Text);
+        }
+
         /// <summary>
         /// The duel lab's blows (the plan "Fight Rhythm from Recordings", step 3: attacks from any pose): the aim test's
         /// body map, to be pressed while he walks, circles or backs away. The order he had goes on after the blow.
@@ -938,7 +1016,7 @@ namespace PhysicsBattler.Sandbox
 
         private void SpawnAim(WeaponDefinition sword, WeaponDefinition shield)
         {
-            float half = 0.5f * (duelLab ? DuelApartAtFirst : aimDistance);
+            float half = 0.5f * (duelLab ? (shieldSetOut ? AimDistanceMade : DuelApartAtFirst) : aimDistance);
             Vector3 targetSpot = Grid.origin + new Vector3(0f, 0f, half), attackerSpot = Grid.origin + new Vector3(0f, 0f, -half);
             var target = SpawnUnit(BodySize.Medium, 1, targetSpot, "Target", aimTargetKit == 0 ? null : sword, aimTargetKit == 1 ? shield : null);
             // (With made attacks the swordsman has a shield as well: the strikes were recorded with sword and shield, and
@@ -947,6 +1025,7 @@ namespace PhysicsBattler.Sandbox
             bool capoeira = duelLab && duelCapoeira;
             var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", capoeira && duelEmptyHands ? null : sword, (AttackMaker.On || duelLab) && !capoeira ? shield : null);
             Aim.Begin(attacker, target);
+            Shield.Begin(Aim);
             if (duelLab)
             {
                 Duel.Style = capoeira ? PhysicsBattler.Locomotion.MoveStyle.Capoeira : PhysicsBattler.Locomotion.MoveStyle.Standard;
@@ -983,7 +1062,7 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
-            float half = 0.5f * aimDistance;
+            float half = 0.5f * (duelLab && shieldSetOut ? AimDistanceMade : aimDistance);
             Vector3 targetSpot = Grid.origin + new Vector3(0f, 0f, half), attackerSpot = Grid.origin + new Vector3(0f, 0f, -half);
             Aim.Target.DummySpot = targetSpot;
             Aim.Attacker.DummySpot = attackerSpot;
@@ -1389,6 +1468,11 @@ namespace PhysicsBattler.Sandbox
                     if (Aim.Now != null && Aim.Now.Done)
                     {
                         aimLast = Aim.Now.Lines;
+                    }
+
+                    if (duelLab)
+                    {
+                        Shield.Step(Time.fixedDeltaTime, Time.time);
                     }
                 }
             }

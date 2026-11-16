@@ -291,6 +291,21 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A change of guard: how much lower a low guard carries the sword arm (degrees).")]
         [Range(10f, 45f)] public float guardLowDrop = 25f;
 
+        [Tooltip("The shield test (duel lab): the swordsman reads the target's uncovering. On: he recognises it as it starts (its tell: the shield drawn a little the other way), knows from the times he has seen it when the part comes open and for how long, and starts his blow early, timed to land while it is open. The first time he sees one he cannot read it and only reacts. Off: he only ever reacts: he starts his blow once he sees the part open, and against a short opening arrives after it has shut.")]
+        public bool theSwordsmanReadsOpenings = true;
+
+        [Tooltip("Taking an opening: how long after he recognises a posture (reading) or sees a part open (reacting) the swordsman starts his blow (seconds).")]
+        [Range(0.05f, 0.6f)] public float openingReactionTime = 0.2f;
+
+        [Tooltip("Taking an opening: the least time his blow may take to land (seconds). A blow in its own time takes about 0.6 s; hurried to under about 0.4 s it lands off its mark.")]
+        [Range(0.3f, 0.8f)] public float quickestOpeningBlow = 0.45f;
+
+        [Tooltip("The shield test: how long the target's tell lasts before its shield starts away (seconds): the shield is drawn a little the other way first. It is what a reader goes by; with none, reading gains almost nothing over reacting.")]
+        [Range(0f, 0.8f)] public float uncoverTell = 0.3f;
+
+        [Tooltip("The shield test: how long the target leaves the part open (seconds). The shield swings until the line to the part is clear, stays away this long, and comes back.")]
+        [Range(0.15f, 1.2f)] public float uncoverOpenFor = 0.4f;
+
         [Tooltip("A fake lunge: how far it carries his hips toward the other (metres). His legs and hips go as far into the attack he would have made as carries them that far, and come back; his upper body stays in its guard, unless a feint is thrown with it.")]
         [Range(0.1f, 0.6f)] public float fakeLungeFar = 0.3f;
 
@@ -1104,6 +1119,9 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.GuardHigh = guardHighLift;
             PostureMaker.GuardLow = guardLowDrop;
             PostureMaker.BladeClear = feintBladeClear;
+            PostureMaker.UncoverTell = uncoverTell;
+            PostureMaker.UncoverFor = uncoverOpenFor;
+            OpeningTaker.Quickest = quickestOpeningBlow;
             PostureMaker.DropSinks = 0.01f * dropSinks;
             PostureMaker.DropLeans = dropLeans;
             PostureMaker.DropDown = dropDown;

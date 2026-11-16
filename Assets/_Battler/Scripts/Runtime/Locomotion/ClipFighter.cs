@@ -1896,6 +1896,7 @@ namespace PhysicsBattler.Locomotion
         public void Step(float dt, Vector3 faceToward, bool frozen)
         {
             clock += dt;
+            StepUncover(dt);
             if (Fallen)
             {
                 if (!frozen)
@@ -1977,6 +1978,7 @@ namespace PhysicsBattler.Locomotion
         public void Move(float dt, Vector3 want, float yaw, Vector3 opponent, bool frozen)
         {
             clock += dt;
+            StepUncover(dt);
             if (Fallen)
             {
                 if (!frozen)
@@ -3873,6 +3875,206 @@ namespace PhysicsBattler.Locomotion
             Loco.GuardLift = height > 0 ? PostureMaker.GuardHigh : height < 0 ? -PostureMaker.GuardLow : 0f;
         }
 
+        // ---- An uncovering (the plan's step 7: the shield test) ----
+
+        /// <summary>How an uncovering went: the part, which way the shield swung and how far, and when the part was open, as measured on the bodies (seconds after it began).</summary>
+        public struct Uncovering
+        {
+            public AimSpot Spot;
+
+            /// <summary>The way the shield went: "up" or "down"; and the furthest it swung (degrees).</summary>
+            public string Way;
+            public float Swung;
+
+            /// <summary>The part came open (a straight line from the other's sword shoulder reached it), when, and when it was covered again.</summary>
+            public bool Opened, Shut;
+            public float OpenedAt, ShutAt;
+
+            /// <summary>Never opened: what was still before it with the shield swung away.</summary>
+            public string Behind;
+
+            /// <summary>It is over: the shield is back.</summary>
+            public bool Over;
+        }
+
+        /// <summary>The uncovering under way, or the last one.</summary>
+        public Uncovering Uncovered;
+
+        /// <summary>An uncovering is under way (its tell, the shield away, or coming back).</summary>
+        public bool IsUncovering => uncoverT >= 0f;
+
+        /// <summary>How long ago the uncovering under way began (seconds; below 0: none).</summary>
+        public float UncoverTime => uncoverT;
+
+        private float uncoverT = -1f, uncoverWant, uncoverAngle, uncoverSpeed, uncoverOpenAngle, uncoverHeldFrom;
+        private int uncoverPhase, uncoverWay, uncoverRun;
+        private float uncoverRunAt, uncoverRunAngle;
+        private ClipFighter uncoverBy;
+
+        /// <summary>
+        /// He uncovers one part of himself to <paramref name="seenBy"/> for a moment (the shield test): his shield arm
+        /// swings away from the straight line between the other's sword shoulder and the part, the way that clears it
+        /// soonest (up or down), stays away until the part has been open for
+        /// <see cref="PostureMaker.UncoverFor"/>, and comes back. Before it goes, its tell: for
+        /// <see cref="PostureMaker.UncoverTell"/> the shield is drawn a little the other way. How far it swings is
+        /// not set: it goes until the line is clear of the board, looked at on the bodies each step, and when the part
+        /// was open is measured the same way (<see cref="Uncovered"/>). False: he cannot (down, in a clip of his
+        /// own, no shield, his shield still up to a blow, his movement not made of its parts, one under way).
+        /// </summary>
+        public bool Uncover(AimSpot spot, ClipFighter seenBy)
+        {
+            if (Fallen || Loco.Current == Locomotor.Mode.OneShot || !MoveScore.On || IsUncovering || ShieldArmHeld || seenBy == null || !ShieldBoard(out Vector3 centre, out Vector3 normal, out float radius))
+            {
+                return false;
+            }
+
+            // Which way: the shield's board turned about its shoulder each way, and how far that leaves it from the line.
+            Vector3 from = seenBy.PartAt(PartId.UpperArmR), at = AimSpots.Point(this, spot), shoulder = Anim.Part(PartId.UpperArmL).position;
+            var body = Quaternion.Euler(0f, Loco.Facing, 0f);
+            var back = Quaternion.Inverse(body);
+            float best = float.MinValue;
+            uncoverWay = -1;
+            // (Up or down. Aside to his own left clears the straight line as well, but it puts the board in the way a
+            // cut comes round from, so a part it "opens" is not open to a cut: it is left out.)
+            for (int way = -1; way <= 1; way += 2)
+            {
+                var turn = body * Quaternion.Euler(-40f * way, 0f, 0f) * back;
+                Vector3 c = shoulder + turn * (centre - shoulder), n = turn * normal;
+                float gap = float.MaxValue;
+                for (int i = 0; i <= 12; i++)
+                {
+                    gap = Mathf.Min(gap, DiscGap(Vector3.Lerp(at, from, Mathf.Min(1f, i / 12f * Openings.LooksFrom * Size / Mathf.Max(0.1f, Vector3.Distance(at, from)))), c, n, radius, out _));
+                }
+
+                if (gap > best)
+                {
+                    best = gap;
+                    uncoverWay = way;
+                }
+            }
+
+            Uncovered = new Uncovering { Spot = spot, Way = uncoverWay == 0 ? "aside" : uncoverWay > 0 ? "up" : "down", Behind = "" };
+            uncoverBy = seenBy;
+            uncoverT = 0f;
+            uncoverPhase = 0;
+            uncoverWant = uncoverAngle = uncoverSpeed = 0f;
+            uncoverRun = 0;
+            Postures++;
+            return true;
+        }
+
+        private void StepUncover(float dt)
+        {
+            if (uncoverT < 0f)
+            {
+                return;
+            }
+
+            if (Fallen || uncoverBy == null)
+            {
+                // (Knocked down in it: it is over where it is.)
+                uncoverT = -1f;
+                Uncovered.Over = true;
+                Loco.ShieldAside = Loco.ShieldLift = 0f;
+                return;
+            }
+
+            uncoverT += dt;
+            Vector3 from = uncoverBy.PartAt(PartId.UpperArmR);
+            var seen = Openings.LookAt(this, from, Uncovered.Spot);
+            float most = uncoverWay == 0 ? PostureMaker.UncoverMostAside : PostureMaker.UncoverMostLift;
+            // (Open, or shut again, once it has been seen so three steps running: a line that grazes the board's rim flickers.)
+            uncoverRun = seen.Open == (uncoverRun > 0) ? uncoverRun + (seen.Open ? 1 : -1) : seen.Open ? 1 : -1;
+            if (uncoverRun == 1)
+            {
+                uncoverRunAt = uncoverT;
+                uncoverRunAngle = uncoverWant;
+            }
+            else if (uncoverRun == -1)
+            {
+                uncoverRunAt = uncoverT;
+            }
+
+            // (Not in its tell: what is open before the shield has started away is not this uncovering's doing.)
+            if (uncoverRun >= 3 && !Uncovered.Opened && uncoverPhase > 0)
+            {
+                Uncovered.Opened = true;
+                Uncovered.OpenedAt = Mathf.Max(uncoverRunAt, PostureMaker.UncoverTell);
+                uncoverOpenAngle = uncoverRunAngle;
+            }
+            else if (uncoverRun <= -3 && Uncovered.Opened && !Uncovered.Shut)
+            {
+                Uncovered.Shut = true;
+                Uncovered.ShutAt = uncoverRunAt;
+                // (Shut early, by a blow that knocked the board back or by his own arm: it comes back from here.)
+                uncoverPhase = 3;
+            }
+
+            switch (uncoverPhase)
+            {
+                case 0:
+                    // (Its tell: drawn a little the other way, and back to where it was.)
+                    float tell = Mathf.Max(0.02f, PostureMaker.UncoverTell);
+                    uncoverWant = -PostureMaker.UncoverTellSize * Mathf.Sin(Mathf.PI * Mathf.Clamp01(uncoverT / tell));
+                    if (uncoverT >= tell)
+                    {
+                        uncoverWant = 0f;
+                        uncoverPhase = 1;
+                    }
+
+                    break;
+                case 1:
+                    // (Away, until the line to the part is clear of the board by the room asked, or the arm can go no further.)
+                    uncoverWant = Mathf.Min(most, uncoverWant + PostureMaker.UncoverRate * dt);
+                    if (uncoverWant >= most || !Openings.ShieldNear(this, from, Uncovered.Spot, PostureMaker.UncoverRoom))
+                    {
+                        uncoverPhase = 2;
+                        uncoverHeldFrom = uncoverT;
+                        if (!seen.Open && !Uncovered.Opened)
+                        {
+                            Uncovered.Behind = seen.Behind;
+                        }
+                    }
+
+                    break;
+                case 2:
+                    // (Held away; it starts back so the board is on the line again as the part has been open for as long as asked.)
+                    bool back = Uncovered.Opened
+                        ? uncoverT >= Uncovered.OpenedAt + PostureMaker.UncoverFor - PostureMaker.UncoverLag - Mathf.Max(0f, uncoverWant - uncoverOpenAngle) / PostureMaker.UncoverBack
+                        : uncoverT >= uncoverHeldFrom + PostureMaker.UncoverFor;
+                    if (back)
+                    {
+                        uncoverPhase = 3;
+                    }
+
+                    break;
+                default:
+                    uncoverWant = Mathf.Max(0f, uncoverWant - PostureMaker.UncoverBack * dt);
+                    break;
+            }
+
+            Uncovered.Swung = Mathf.Max(Uncovered.Swung, uncoverAngle);
+            // (The arm follows as an arm does: it speeds up and settles in.)
+            float omega = 2f / 0.045f, x = omega * dt, eases = 1f / (1f + x + 0.48f * x * x + 0.235f * x * x * x);
+            float off = uncoverAngle - uncoverWant, carried = (uncoverSpeed + omega * off) * dt;
+            uncoverSpeed = (uncoverSpeed - omega * carried) * eases;
+            uncoverAngle = uncoverWant + (off + carried) * eases;
+            if (uncoverPhase == 3 && uncoverWant <= 0f && Mathf.Abs(uncoverAngle) < 0.5f)
+            {
+                uncoverAngle = 0f;
+                uncoverT = -1f;
+                Uncovered.Over = true;
+                if (Uncovered.Opened && !Uncovered.Shut)
+                {
+                    Uncovered.Shut = true;
+                    Uncovered.ShutAt = Uncovered.OpenedAt + PostureMaker.UncoverFor;
+                }
+            }
+
+            Loco.ShieldAside = uncoverWay == 0 ? uncoverAngle : 0f;
+            Loco.ShieldLift = uncoverWay == 0 ? 0f : uncoverWay * uncoverAngle;
+        }
+
         /// <summary>How many postures it has thrown (feints, fake lunges, drops, bluffs).</summary>
         public int Postures { get; private set; }
 
@@ -4935,7 +5137,9 @@ namespace PhysicsBattler.Locomotion
             // (An expert reads the wind-up; a novice moves only once the blade itself is coming, the last moment before contact.)
             float toContact = Blow.HasValue ? Blow.Value.ToContact : 0f;
             bool sees = IncomingBlade.HasValue && incomingFor > Mathf.Lerp(SeeBlowAfter, NoviceSeeAfter, lack)
-                        && toContact <= Mathf.Min(SeesBefore(1f - lack), CombatFeel.ShieldMovesWithin) && Blocking && !GuardOpen;
+                        && toContact <= Mathf.Min(SeesBefore(1f - lack), CombatFeel.ShieldMovesWithin) && Blocking && !GuardOpen
+                        // (Uncovering, he has taken his shield away himself: it does not go to meet a blow until it is back.)
+                        && !IsUncovering;
             // (Not before the blow can be read: through the first part of it (the scene's Combat Feel's share of its time
             // from its start to its contact) it is a wind-up, and a shield that went to where it would land read the
             // striker's mind.)
@@ -4951,7 +5155,7 @@ namespace PhysicsBattler.Locomotion
             }
             backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
             // (Knocked open: the shield meets nothing until the guard is back.)
-            float wantIntercept = !GuardOpen && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
+            float wantIntercept = !GuardOpen && !IsUncovering && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
             // (A poor shield lets its guard fall back once the blow it met has passed, as a combo's next comes on unseen: a
             // good one keeps it where it was until it sees where the next is going.)
             if (Blow.HasValue && !sees && seenSerial != Blow.Value.Serial && blowLack > 0.5f)

@@ -702,6 +702,8 @@ internal static class FightReport
         // (FIGHT_DUEL="WalkTo:6,CircleLeft:6,BackAway:5": the duel lab's movement orders given in turn, each for so
         // many seconds, in the aim lineup; no blows are asked for. FIGHT_DUELAPART=3: how far apart the two begin.)
         PhysicsBattler.Sandbox.DuelLab duel = null;
+        PhysicsBattler.Sandbox.ShieldTest shieldTest = null;
+        int shieldGo = 0;
         float styleSweep = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STYLESWEEP"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float sweepOver) ? sweepOver : 0f;
         var duelOrders = new List<(PhysicsBattler.Sandbox.DuelLab.Order order, float until)>();
         int duelAt = -1;
@@ -1500,6 +1502,66 @@ internal static class FightReport
                             duel.Mover.Clip.GuardAt(bits[1] == "high" ? 1 : bits[1] == "low" ? -1 : 0);
                             Console.WriteLine($"GUARD {paceAt:0.00} {bits[1]}");
                         }
+                    }
+
+                    // (FIGHT_SHIELDTEST="3:Chest,3:Chest,3:Belly": the shield test, the plan's step 7: from those seconds on, one
+                    // after another as soon as both are back on their spots, the target uncovers that part and the swordsman takes it. FIGHT_READS=0: he only reacts; FIGHT_REACTION=0.2
+                    // his reaction time; FIGHT_TELL=0.3 and FIGHT_OPENFOR=0.4 the uncovering's tell and how long the part is
+                    // open; FIGHT_QUICKEST=0.45 the least time his blow may take to land. FIGHT_READSAT="12:0": he stops
+                    // (0) or starts (1) reading at that second.)
+                    if (shieldTest == null && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_SHIELDTEST")))
+                    {
+                        float EnvF(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+                        shieldTest = new PhysicsBattler.Sandbox.ShieldTest();
+                        shieldTest.Begin(aim);
+                        shieldTest.Taker.Reads = Environment.GetEnvironmentVariable("FIGHT_READS") != "0";
+                        shieldTest.Taker.Reaction = EnvF("FIGHT_REACTION", 0.2f);
+                        PhysicsBattler.Locomotion.PostureMaker.UncoverTell = EnvF("FIGHT_TELL", PhysicsBattler.Locomotion.PostureMaker.UncoverTell);
+                        PhysicsBattler.Locomotion.PostureMaker.UncoverFor = EnvF("FIGHT_OPENFOR", PhysicsBattler.Locomotion.PostureMaker.UncoverFor);
+                        PhysicsBattler.Locomotion.OpeningTaker.Quickest = EnvF("FIGHT_QUICKEST", PhysicsBattler.Locomotion.OpeningTaker.Quickest);
+                        if (Environment.GetEnvironmentVariable("FIGHT_SHIELDTRACE") == "1")
+                        {
+                            shieldTest.Trace = line => Console.WriteLine("SHIELDSTEP " + line);
+                        }
+
+                        shieldTest.Ended += trial => Console.WriteLine($"SHIELDTEST {Time.time - startTime:0.00} {(trial.Reads ? "reads" : "reacts")}, reaction {trial.Reaction:0.00} s: {trial.Verdict}");
+                    }
+
+                    if (shieldTest != null)
+                    {
+                        foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_READSAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            string[] bits = at.Split(':');
+                            float when = float.Parse(bits[0], System.Globalization.CultureInfo.InvariantCulture);
+                            if (paceAt >= when && paceAt - dt < when)
+                            {
+                                shieldTest.Taker.Reads = bits[1].Trim() != "0";
+                            }
+                        }
+
+                        // (Each go begins at its second or as soon after as it can: both back on their spots, neither busy.)
+                        string[] goes = Environment.GetEnvironmentVariable("FIGHT_SHIELDTEST").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (shieldGo < goes.Length)
+                        {
+                            string[] bits = goes[shieldGo].Split(':');
+                            float when = float.Parse(bits[0], System.Globalization.CultureInfo.InvariantCulture);
+                            if (paceAt >= when && Enum.TryParse(bits[1].Trim(), true, out PhysicsBattler.Locomotion.AimSpot uncovers))
+                            {
+                                var spotWas = shieldTest.Spot;
+                                shieldTest.Spot = uncovers;
+                                if (shieldTest.Cannot.Length > 0)
+                                {
+                                    shieldTest.Spot = spotWas;
+                                }
+                                else if (shieldTest.Uncover(Time.time))
+                                {
+                                    shieldGo++;
+                                    Console.WriteLine($"UNCOVER {paceAt:0.00} the {uncovers}: begun");
+                                }
+                            }
+                        }
+
+                        shieldTest.Step(dt, Time.time);
                     }
 
                     for (int i = 0; i < duelBlows.Count; i++)

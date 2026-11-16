@@ -37,6 +37,19 @@ namespace PhysicsBattler.Locomotion
         public static float BluffSize = 1f, ShieldPressFar = 1f, GuardHigh = 35f, GuardLow = 25f;
         public const float BladeDips = 38f, BladeFlicks = 32f, BladeCircles = 22f;
 
+        /// <summary>
+        /// An uncovering (the plan's step 7, the shield test; <see cref="ClipFighter.Uncover"/>): how long its tell
+        /// lasts before the shield starts away (seconds: the shield is drawn a little the other way first, which is
+        /// what the other can read), and how long the part is left open (seconds).
+        /// </summary>
+        public static float UncoverTell = 0.3f, UncoverFor = 0.4f;
+
+        /// <summary>An uncovering: how fast the shield arm swings away and comes back (degrees a second), how much room it leaves about the line to the part (metres at a Medium's size), how far it is drawn the other way in its tell (degrees), and the furthest it swings aside and up or down (degrees).</summary>
+        public const float UncoverRate = 360f, UncoverBack = 300f, UncoverRoom = 0.07f, UncoverTellSize = 9f, UncoverMostAside = 85f, UncoverMostLift = 90f;
+
+        /// <summary>An uncovering starts back this much sooner than its angles say (seconds): the arm trails what it is asked, and the body as seen trails the arm, so the board is on the line again that much later than asked.</summary>
+        public const float UncoverLag = 0.12f;
+
         /// <summary>A feint is not held where its blade would be nearer the middle of his own head, neck or chest than this (metres; a head is 0.1 thick about its middle): it stops short, at the last moment of the wind-up the blade is clear.</summary>
         public static float BladeClear = 0.18f;
 
