@@ -5212,3 +5212,51 @@ postures for sword-only fighters, the tell built into the attack. Next: the danc
 the gap (they stand on their spots here).
 
 New file that needs its .meta from Unity: `Sandbox/Dance.cs`.
+
+**Fight rhythm, step 8, the dance, third part: paced by the gap** (17 November, built overnight without a
+playtest). In the second part the two stood on their spots. Now they move about each other, each by how
+restless and how aggressive he is (`Dance.StepFeet`; two new levers of a fighter's own, `FighterLevers.Restless`
+and `Aggressive`, 0 to 1).
+
+- *The distance he likes*: between just outside reach (2.2 m, root to root) and inside it (1.5 m), nearer the
+  more aggressive he is. Each steers for his own, so an aggressive one closes on a cautious one, who gives
+  ground: but only so much (1.5 m, won back slowly), and no further than 3.5 m from where the dance began;
+  after that he stands, or goes round toward the middle.
+- *Round and stand*: he goes round the other in spells (0.7 m/s, walked, on the slow side walk) and stands
+  between them. A restless one's spells are long and his stands short; a calm one's the other way.
+- *In for the blow, out after it*: when his pattern's blow is due, or a blow he has read, he comes in first
+  (he throws it from 1.95 m or nearer; a blow on the move steps in the rest), and goes out again after it,
+  sooner back in the more aggressive he is. A chance he sees from out of reach he lets go.
+- *A blow he expects*: at the other's tell, a fighter under 0.6 aggressive steps out of reach of the blow; a
+  more aggressive one stands and covers, as in the second part.
+- *How the fight is going shifts it*: two blows ahead he is "pressing" (more aggressive by 0.25), two behind
+  "shelled up" (less by 0.3); else "probing", or "coming in" from far off. This is the first thing that hangs
+  on that number. What he is about is written over him when nothing else is.
+
+The made-up fighters: Prowler restless 0.85, aggressive 0.3; Strutter 0.6, 0.55; Bull 0.2, 0.9; Plain 0.5, 0.5.
+
+Switch: Combat Feel "The Dance Is Paced By The Gap" (on; off: they stand on their spots). In the duel lab,
+under "The dance": "Their feet: paced by the gap / on their spots (old)", and a line with the gap now, what
+each is about, and the gap and their walking so far. "Each his own" has the two new levers, Restless and
+Aggressive.
+
+Headless, 58 s each, both reading (`FIGHT_DANCE`, with `FIGHT_OWN` for their levers; `FIGHT_DANCEMOVES=0`:
+on their spots; `FIGHT_DANCEGAP=1`: the gap twice a second):
+
+| the two | the gap, on average (least to most) | each walked | blows landed | what each was about |
+|---|---|---|---|---|
+| Bull and Bull | 1.60 m (1.16 to 2.00) | 18 m | 0 and 0 of 10 and 9 | probing throughout |
+| Bull and Prowler | 1.70 m (1.05 to 2.43) | 24 and 23 m | 0 and 1 of 9 and 8 | probing throughout |
+| Strutter and Prowler | 1.93 m (1.19 to 2.79) | 30 and 31 m | 0 and 6 of 7 and 8 | Strutter shelled up 52% of the time, Prowler pressing 52% |
+| Prowler and Prowler | 2.03 m (1.31 to 2.56) | 30 and 28 m | 0 and 0 of 9 and 7 | probing throughout |
+
+So the levers do what they are for: two Bulls fight 40 cm nearer than two Prowlers and walk two thirds as
+far. Feet slide 0.1 to 2.2 cm a second. In the one duel with blows landing, all six caught the Strutter in a
+fake of his own, as in the second part: the fighter who fakes most is hit most.
+
+Not verified: nothing seen in Unity, and how it looks is the whole point of this part: whether the circling
+reads as two fighters measuring each other or as wandering, whether coming in and going out is too busy, how
+the walks join. Single runs. The room they keep to is set where the dance began, not to the arena. The dance
+is in the duel lab only: the fight's own steering does none of this yet. With this the dance's three parts
+are in; the stance switch, arm postures for sword-only fighters and the tell built into the attack are still
+carried on.
