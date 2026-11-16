@@ -5141,3 +5141,74 @@ longer jumps as their words change. A line longer than its room is cut off; its 
 The pace's value no longer runs onto a second line.
 
 New file that needs nothing from Unity: `Tools/Mocap/Combat/samples/*.json` (three samples). No new scripts.
+
+**Fight rhythm, step 8, the dance, second part: two fighters gesturing in patterns of their own, each
+reading the other** (17 November, built overnight without a playtest). The shield test and the fakes test had
+one who gestured and one who struck. Here both do both (`Sandbox/Dance.cs`).
+
+*His pattern.* Each fighter throws gestures on a beat of his own, then the one that comes before his real
+blow (his tell), then the blow (`GesturePattern`). The four made-up fighters each have one, tries and not
+styles decided on:
+
+| fighter | before the tell | his tell | then |
+|---|---|---|---|
+| Plain | 2 short fakes, 1.5 s apart | a long fake | his blow 1.1 s after it begins |
+| Prowler | 3 of blade flick / short fake, 1.2 s apart | a drop | 0.45 s after |
+| Strutter | blade circle, short fake, 1.6 s apart | a long fake | 1.2 s after |
+| Bull | 2 shield presses, 1.9 s apart | a blade dip | 0.3 s after |
+
+Plain (a poorer swordsman's): always the same. Mixed up: one to three gestures before the tell, drawn afresh,
+and one tell in three has no blow after it.
+
+*What he learns, watching.* Nothing of the other's pattern is given him. From the other's last four blows:
+the gesture that came the same time before at least two of them is the tell, and how long before; if the
+last two of those had the same number of gestures before them, evenly spaced, he can count. And for each kind
+of gesture, when it left the chest open (its longest opening, measured on the bodies as the tests do).
+
+*What he does with it.* Seeing the tell, he stops gesturing until the blow has come, so that his shield is
+free for it (a fake of his own commits his shield). Knowing the count, he knows the tell is next before it
+begins, and strikes into it if it leaves an opening long enough: that is how a long fake is caught, which
+cannot be told from a short one as it starts. A fake slash is made out for a long one only once it has gone
+past where a short one turns back, and by then a blow no longer lands in it. A gesture he has not met he
+cannot read: he goes for what he sees open, as one who only reacts does every time. One he knows leaves
+nothing worth a blow he lets go.
+
+*How the fight is going* is first kept here: blows landed less blows taken over the last 20 seconds, for
+each. Nothing hangs on it yet.
+
+Switches: Combat Feel "Fighters Read Each Other's Patterns" (on; off: nobody reads) and "A Stopped Blow Is
+Answered" (off, see below). In the duel lab: "The dance" in the actions window (Dance, Forget), and in the
+panel each fighter's pattern (the four, plain or mixed up), reads or only reacts, what he has learned, his
+last blow, his tally, and how the fight is going. Pressing Dance the first time gives each the pattern that
+goes with his own levers ("Each his own"). What happens is written over the two as it happens (HIS TELL,
+SAW HIS TELL: covers for his blow, READ THE COUNT, LANDED...).
+
+Headless, standing 1.5 m apart, 60 s each (`FIGHT_DANCE="Strutter,Prowler"`, `FIGHT_DANCEREADS="1,1"`,
+`FIGHT_DANCEMIXED`, `FIGHT_DANCEREADING=0`, `FIGHT_DANCEANSWERS=1`):
+
+| the two | blows | landed | what showed |
+|---|---|---|---|
+| Strutter and Prowler, both read | 8 and 7 | 1 and 1 | each learned the other's tell (long fake 1.2 s before, drop 0.5 s before); 6 of the 15 blows were expected and covered for |
+| Plain reads, Plain only reacts | 10 and 10 | 1 and 0 | the reader expected 4 of the other's blows; the other none |
+| the same, sides swapped | 14 and 7 | 2 and 1 | the reader learned a wrong tell from the other's reacting blows, and covered for nothing 5 times |
+| Strutter mixed up, Prowler plain, both read | 4 and 10 | 1 and 4 | Prowler threw 8 blows by what he read; all 4 that landed caught the Strutter in a fake |
+
+What this says, plainly. The reading shows in what they do: tells learned, blows expected and covered for,
+blows thrown by the count into a long fake. It does not yet show in who wins: about one blow in eight lands,
+the rest meet the shield whatever was read, and 60 seconds give too few landed blows to tell a reader from a
+reactor. Three things found on the way:
+- A blow that comes while the other is in a fake of his own lands on an arm or the hand more often than the
+  chest: his shield is committed but still in the way of the chest.
+- A fake wins a fighter nothing as the rules stand: it commits his shield and draws blows, and a blow wasted
+  on it costs the other nothing. So the fighter who fakes most is hit most.
+- To give a wasted blow a cost, "a stopped blow is answered" was tried: the one who stopped it strikes back
+  at once. Every answer met the shield too (the one answered covers while still in his own blow), so it is
+  left in, switched off.
+- A reader facing one who only reacts learns wrong tells: the other's blows come from what he sees, not from
+  his pattern.
+
+Not verified: nothing seen in Unity. The numbers above are single runs. Carried on: the stance switch, arm
+postures for sword-only fighters, the tell built into the attack. Next: the dance's third part, pacing by
+the gap (they stand on their spots here).
+
+New file that needs its .meta from Unity: `Sandbox/Dance.cs`.
