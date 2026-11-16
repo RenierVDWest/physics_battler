@@ -5196,7 +5196,7 @@ Headless, standing 1.5 m apart, 60 s each (`FIGHT_DANCE="Strutter,Prowler"`, `FI
 What this says, plainly. The reading shows in what they do: tells learned, blows expected and covered for,
 blows thrown by the count into a long fake. It does not yet show in who wins: about one blow in eight lands,
 the rest meet the shield whatever was read, and 60 seconds give too few landed blows to tell a reader from a
-reactor. Three things found on the way:
+reactor. Four things found on the way:
 - A blow that comes while the other is in a fake of his own lands on an arm or the hand more often than the
   chest: his shield is committed but still in the way of the chest.
 - A fake wins a fighter nothing as the rules stand: it commits his shield and draws blows, and a blow wasted
