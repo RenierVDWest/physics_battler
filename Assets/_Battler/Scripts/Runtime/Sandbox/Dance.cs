@@ -178,7 +178,8 @@ namespace PhysicsBattler.Sandbox
         internal float coverFrom = -1f, coverUntil = -1f, expectedAt, pausedAt = -1f, answerAt = -1f;
         internal bool expectedCame, coverByTell;
         internal int openRun;
-        internal float openRunAt;
+        internal float openRunAt, runFrom;
+        internal bool runOpen;
 
         /// <summary>He expects a blow and keeps his shield free: no gesture, no blow of his pattern.</summary>
         public bool Covering(float now) => coverFrom >= 0f && now >= coverFrom && now <= coverUntil;
@@ -289,7 +290,7 @@ namespace PhysicsBattler.Sandbox
         /// blow strikes back at once, while the other is still in it. It is what a blow wasted on a fake costs. An answer
         /// is not itself answered.
         /// </summary>
-        public static bool Answers = true;
+        public static bool Answers = false;
 
         /// <summary>How far into the wind-up a short fake and a long one go (of a feint's own depth), and how long the long one is held (the fakes test's own).</summary>
         public static float ShortDepth => FakeTest.ShortDepth;
@@ -478,20 +479,28 @@ namespace PhysicsBattler.Sandbox
                 d.openRunAt = t;
             }
 
-            if (d.openRun >= 3 && !g.Opened)
+            // (His chest's longest opening in the gesture is the one that counts: a flicker of it is not one to strike into.)
+            if (d.openRun == 3)
             {
-                g.Opened = true;
-                g.OpenedAt = d.openRunAt;
+                d.runFrom = d.openRunAt;
+                d.runOpen = true;
             }
-            else if (d.openRun <= -3 && g.Opened && !g.Shut)
+
+            if (d.runOpen)
             {
-                g.Shut = true;
-                g.ShutAt = d.openRunAt;
-            }
-            else if (d.openRun >= 3 && g.Shut)
-            {
-                // (Open again within the same gesture: one opening, from the first of it to the last.)
-                g.Shut = false;
+                float until = d.openRun > 0 ? t : d.openRunAt;
+                if (!g.Opened || until - d.runFrom > g.ShutAt - g.OpenedAt)
+                {
+                    g.Opened = true;
+                    g.OpenedAt = d.runFrom;
+                    g.ShutAt = until;
+                    g.Shut = d.openRun <= -3;
+                }
+
+                if (d.openRun <= -3)
+                {
+                    d.runOpen = false;
+                }
             }
 
             // (A fake slash starts as a short one, a long one and a real cut all start: it is a long one once it has
@@ -520,24 +529,14 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
-            if (g.Opened && !g.Shut)
-            {
-                g.Shut = true;
-                g.ShutAt = t;
-            }
-
+            g.Shut = g.Opened;
             g.Over = true;
-            // (What it left open is what the other saw of it: the next of its kind he knows. Not one he struck into: a struck body shuts differently.)
-            if (!g.StruckIn)
+            // (What it left open is what the other saw of it: the next of its kind he knows. One he struck into shuts
+            // differently, so it does not change what he knows; but if it is all he has seen of its kind, he goes by it.)
+            bool knew = d.Foe.Taker.Knows(Name(g.Kind), out _, out _);
+            if (!g.StruckIn || !knew)
             {
-                if (g.Opened)
-                {
-                    d.Foe.Taker.Met(Name(g.Kind), g.OpenedAt, g.ShutAt);
-                }
-                else if (d.Foe.Taker.Knows(Name(g.Kind), out _, out _))
-                {
-                    d.Foe.Taker.Met(Name(g.Kind), 0f, 0f);
-                }
+                d.Foe.Taker.Met(Name(g.Kind), g.Opened ? g.OpenedAt : 0f, g.Opened ? g.ShutAt : 0f);
             }
 
             Shown?.Invoke(d, g);
@@ -1049,6 +1048,7 @@ namespace PhysicsBattler.Sandbox
             d.Now = new DanceGesture { Kind = kind, Tell = tell, Place = d.place, Began = now, Furthest = furthest, Lasts = lasts };
             d.Gestures.Add(d.Now);
             d.openRun = 0;
+            d.runOpen = false;
             d.Say((tell ? "HIS TELL: " : "") + Name(kind), now, Mathf.Max(0.8f, lasts));
             Sees(d.Foe, d.Now, now);
             return true;

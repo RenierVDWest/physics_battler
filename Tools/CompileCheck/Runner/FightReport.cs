@@ -1681,8 +1681,8 @@ internal static class FightReport
                         dance = new PhysicsBattler.Sandbox.Dance();
                         dance.Begin(aim.Attacker, aim.Target);
                         PhysicsBattler.Sandbox.Dance.Reading = Environment.GetEnvironmentVariable("FIGHT_DANCEREADING") != "0";
-                        // (FIGHT_DANCEANSWERS=0: a blow stopped is not answered.)
-                        PhysicsBattler.Sandbox.Dance.Answers = Environment.GetEnvironmentVariable("FIGHT_DANCEANSWERS") != "0";
+                        // (FIGHT_DANCEANSWERS=1: a blow stopped is answered.)
+                        PhysicsBattler.Sandbox.Dance.Answers = Environment.GetEnvironmentVariable("FIGHT_DANCEANSWERS") == "1";
                         PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") != "0";
                         var two = new[] { dance.A, dance.B };
                         for (int k = 0; k < 2; k++)
