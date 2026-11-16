@@ -78,6 +78,14 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A blow that would still fall this far short thrown on the move (metres at a Medium's size) is thrown planted instead, with its lunge.</summary>
         public const float ShortOfReach = 0.1f;
 
+        /// <summary>
+        /// A blow asked for on the move that would fall short is thrown on the move all the same, and misses (Combat
+        /// Feel "A Blow On The Move Stays On The Move Out Of Reach"). Off: he plants himself and lunges for it, as it
+        /// was. Whether to strike at all from out of reach is the fighter's to judge (the plan's step 8, the dance):
+        /// what he is asked for on the move he does on the move.
+        /// </summary>
+        public static bool StaysWhenShort = true;
+
         /// <summary>The check begins this long before the hips start in, and is gone this long after the landing (seconds of the blow's clip).</summary>
         public const float CheckLeads = 0.12f, CheckLasts = 0.35f;
 

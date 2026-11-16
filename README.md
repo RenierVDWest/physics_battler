@@ -4699,3 +4699,12 @@ are. Now they are made the way the attacks are.
   - Measures read off recordings once (a stance's foot places, the guard's held arm) still read the points.
 
 New file that needs its .meta from Unity: `Locomotion/MoveScore.cs`.
+
+**A blow asked for on the move stays on the move when it is out of reach** (16 November, from the duel lab:
+going round the other from 4 m, every blow stopped him). Out of the walk's reach a blow was thrown planted,
+with its lunge. Now it is thrown on the move all the same and misses; whether to strike at all from out of
+reach is the fighter's to judge when the fight is built on this (the plan's step 8). Combat Feel "A Blow On
+The Move Stays On The Move Out Of Reach" (on); in the duel lab, under "He strikes: on the move", "Out of reach:
+on the move / plants". Headless (`FIGHT_SHORTPLANTS=1` for the old way), four blows going round at 4 m: he
+keeps going at 1.5 to 1.6 m/s through each (the old way: down to 0.1 to 0.2 m/s), nothing thrown; the lab's
+line says "out of reach, 190 cm short: thrown on the move". The six fighters' fights are unchanged.

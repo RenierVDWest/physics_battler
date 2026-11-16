@@ -803,6 +803,11 @@ namespace PhysicsBattler.Sandbox
                 feel.attacksStartFromWhereHeIs = way != 2;
                 if (way == 0)
                 {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent("Out of reach:", "What a blow asked for on the move does when the walk cannot bring it within reach. On the move (new): it is thrown on the move all the same, and misses. Plants (old): he stops, plants himself and lunges for it."), Styles().Text, GUILayout.Width(90f));
+                    if (Press(feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach ? "[on the move]" : "on the move", "Thrown on the move all the same; it misses (Combat Feel \"A Blow On The Move Stays On The Move Out Of Reach\").")) feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach = true;
+                    if (Press(!feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach ? "[plants]" : "plants", "He plants himself and lunges for it, as it was.")) feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach = false;
+                    GUILayout.EndHorizontal();
                     feel.movingBlowChecksTheWalk = Lever("Checks walk", feel.movingBlowChecksTheWalk, 0f, 0.85f, "On the move: how much the walk is checked through the blow. 0: his legs go on as if nothing happened. 0.45: as the blade lands he goes at 55% of his pace, his steps shortening and slowing with it, and picks up again after: a catch in his stride.");
                     feel.movingBlowStepsIn = Lever("Steps in", feel.movingBlowStepsIn, 0f, 1f, "On the move: how far the walk may carry him toward the target under the blow so the blade reaches (metres). 0: he strikes from wherever the walk has him, and what is out of reach is thrown planted.");
                     feel.movingBlowHipsTurn = Lever("Hips turn", feel.movingBlowHipsTurn, 0f, 1f, "On the move: how far the hips go from the walk's to the blow's own; the spine twists for the rest. 0: the hips are the walk's alone. 1: the blow's alone, turned 40 to 70 degrees over legs that go on walking.");

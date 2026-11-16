@@ -218,7 +218,7 @@ namespace PhysicsBattler.Sandbox
 
             var made = Mover.Clip.Made;
             BlowThrown = loco.ShotOverWalk && made != null
-                ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "thrown on the move ({0}, to land {1:0.00} s after, {2})", made.Clip.Name.Replace("made_sns_", ""), made.LandsIn,
+                ? (Mover.Clip.MovedShort > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "out of reach, {0:0} cm short: ", 100f * Mover.Clip.MovedShort) : "") + string.Format(System.Globalization.CultureInfo.InvariantCulture, "thrown on the move ({0}, to land {1:0.00} s after, {2})", made.Clip.Name.Replace("made_sns_", ""), made.LandsIn,
                     made.StepIn.magnitude * loco.Leg < 0.03f ? "no step in" : string.Format(System.Globalization.CultureInfo.InvariantCulture, "a step {0} of {1:0} cm", Vector3.Dot(made.StepIn, made.Asked.Target) >= 0f ? "in" : "back", 100f * made.StepIn.magnitude * loco.Leg))
                 : Mover.Clip.MovedShort > 0f
                     ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "planted (on the move it would have fallen {0:0} cm short)", 100f * Mover.Clip.MovedShort)

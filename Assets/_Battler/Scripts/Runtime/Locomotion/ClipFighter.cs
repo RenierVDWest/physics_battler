@@ -3793,6 +3793,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far short of its target the last blow asked for on the move would have fallen (metres; 0: it was thrown on the move, or he was not walking): over <see cref="AttackOnTheMove.ShortOfReach"/> he planted himself for it.</summary>
         public float MovedShort { get; private set; }
 
+        /// <summary>The last blow asked for on the move was thrown planted (it was out of the walk's reach and <see cref="AttackOnTheMove.StaysWhenShort"/> is off).</summary>
+        public bool MovedPlanted { get; private set; }
+
         private readonly Vector3[] walkPose = new Vector3[LocoClip.BoneCount];
         private static readonly List<float> footfalls = new List<float>();
         private Vector3 movedFrom;
@@ -3808,6 +3811,7 @@ namespace PhysicsBattler.Locomotion
         private MadeAttack StrikeOnTheMove(ClipFighter enemy, Vector3 point, in AttackStyle style, string named)
         {
             MovedShort = 0f;
+            MovedPlanted = false;
             float pace = new Vector2(Loco.Velocity.x, Loco.Velocity.z).magnitude;
             if (Loco.Current != Locomotor.Mode.Cycle || pace < AttackOnTheMove.WalksFrom * Mathf.Sqrt(Mathf.Max(0.1f, Size)))
             {
@@ -3883,14 +3887,16 @@ namespace PhysicsBattler.Locomotion
 
             AttackMaker.Build(best);
             best.Meets = "";
-            // (Out of the walk's reach even with its step in: he plants himself and lunges for it.)
-            if (best.Short * leg > AttackOnTheMove.ShortOfReach * Size)
+            // (Out of the walk's reach even with its step in: thrown on the move all the same, to miss; or, as it was,
+            // he plants himself and lunges for it.)
+            MovedShort = best.Short * leg > AttackOnTheMove.ShortOfReach * Size ? best.Short * leg : 0f;
+            if (MovedShort > 0f && !AttackOnTheMove.StaysWhenShort)
             {
-                MovedShort = best.Short * leg;
+                MovedPlanted = true;
                 return null;
             }
 
-            MovedShort = 0f;
+            MovedPlanted = false;
             Vector3 stepIn = Quaternion.Euler(0f, Loco.Facing, 0f) * best.StepIn * leg;
             if (!Poser.PlayMadeOver(best.Clip, point, best.DriveAt, move.Check, best.Asked.Into, stepIn))
             {

@@ -363,6 +363,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A blow asked for while he walks (a walk's pace or more: walking in, going round, at a jog) is thrown on the move: the walk goes on under it. The legs, their steps and his travel are the walk's; the chest, the head and the arms are the blow's; the hips are both. The legs answer the blow: the hips over them turn and sink with it, the walk is checked as the blade comes round so the steps shorten and slow and then pick up again, the walk carries him a step in toward the target so the blade reaches, and the blade is timed to land as a foot comes down. Off: he plants himself to strike (\"Attacks Start From Where He Is\"). A blow the walk cannot bring within reach is thrown planted either way, with its lunge. (The duel lab's \"Strike at\" buttons.)")]
         public bool attacksAreThrownOnTheMove = true;
 
+        [Tooltip("A blow asked for on the move from out of reach is thrown on the move all the same, and misses: the walk goes on under it as under any other. Off: out of the walk's reach he plants himself and lunges for it, as it was (seen in the duel lab on 16 November: going round the other from 4 m, every blow stopped him). Whether to strike at all from out of reach is the fighter's own to judge, when the fight is built on this.")]
+        public bool aBlowOnTheMoveStaysOnTheMoveOutOfReach = true;
+
         [Tooltip("A blow on the move: how much the walk is checked through the blow. 0: not at all, his legs go on as if nothing happened. 0.45: as the blade lands he goes at 55% of his pace; he slows from just before the hips start in, is slowest at the landing, and is back to his pace a third of a second after. His steps shorten and slow with it: a catch in his stride, not a stop.")]
         [Range(0f, 0.85f)] public float movingBlowChecksTheWalk = 0.45f;
 
@@ -1069,6 +1072,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.MadeBorrowsLegs = attacksBorrowLegs;
             AttackScore.LegsGoBackAtTheirPace = borrowedLegsGoBackAtTheirPace;
             AttackOnTheMove.On = attacksAreThrownOnTheMove;
+            AttackOnTheMove.StaysWhenShort = aBlowOnTheMoveStaysOnTheMoveOutOfReach;
             var moveBlow = MoveBlowStyle.Plain;
             moveBlow.Check = movingBlowChecksTheWalk;
             moveBlow.HipsTurn = movingBlowHipsTurn;
