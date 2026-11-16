@@ -123,7 +123,7 @@ namespace PhysicsBattler.Sandbox
 
         public bool Landed => Met && !Shield && !Parried;
 
-        public string Verdict => (Why == "pattern" ? "his pattern's blow" : Why == "read" ? "thrown by what he has read" : "thrown at a chest he saw open")
+        public string Verdict => (Why == "pattern" ? "his pattern's blow" : Why == "read" ? "thrown by what he has read" : Why == "answer" ? "his answer to a blow he stopped" : "thrown at a chest he saw open")
             + ": " + (!Met ? "met nothing" : Shield ? "met the shield" : Parried ? "was parried" : "LANDED on the " + Part)
             + (Met && CaughtInFake ? " (the other was in a fake of his own)" : "") + (Met && Expected ? " (the other expected it and was covering)" : "")
             + (How.Length > 0 ? ". " + How : "");
@@ -175,7 +175,7 @@ namespace PhysicsBattler.Sandbox
         internal int knownCount;
 
         // ---- What he expects ----
-        internal float coverFrom = -1f, coverUntil = -1f, expectedAt, pausedAt = -1f;
+        internal float coverFrom = -1f, coverUntil = -1f, expectedAt, pausedAt = -1f, answerAt = -1f;
         internal bool expectedCame, coverByTell;
         internal int openRun;
         internal float openRunAt;
@@ -191,6 +191,9 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>Of the blows that landed on him: how many while he was in a fake of his own; how many of the other's blows he had expected.</summary>
         public int CaughtInFake, ExpectedBlows, CoveredForNothing, ReadBlows;
+
+        /// <summary>Blows he threw in answer to one he stopped; of the blows that landed on him, how many were such answers.</summary>
+        public int Answered, TakenAnswers;
 
         /// <summary>How the fight is going for him: blows landed less blows taken, over the last <see cref="Dance.GoingOver"/> seconds.</summary>
         public int Going(float now)
@@ -278,6 +281,16 @@ namespace PhysicsBattler.Sandbox
         /// <summary>A tell is known once the same gesture has come before this many of the other's blows running.</summary>
         public const int LearnsAfter = 2;
 
+        /// <summary>What he learns of the other's pattern he learns from this many of its last blows.</summary>
+        public const int LearnsFrom = 4;
+
+        /// <summary>
+        /// A blow stopped is answered (Combat Feel "A Stopped Blow Is Answered"): the one whose shield or sword stopped a
+        /// blow strikes back at once, while the other is still in it. It is what a blow wasted on a fake costs. An answer
+        /// is not itself answered.
+        /// </summary>
+        public static bool Answers = true;
+
         /// <summary>How far into the wind-up a short fake and a long one go (of a feint's own depth), and how long the long one is held (the fakes test's own).</summary>
         public static float ShortDepth => FakeTest.ShortDepth;
         public static float LongDepth => FakeTest.LongDepth;
@@ -319,7 +332,8 @@ namespace PhysicsBattler.Sandbox
                 d.Blows.Clear();
                 d.blow = null;
                 d.Note = "";
-                d.Landed = d.Stopped = d.Missed = d.Taken = d.CaughtInFake = d.ExpectedBlows = d.CoveredForNothing = d.ReadBlows = 0;
+                d.Landed = d.Stopped = d.Missed = d.Taken = d.CaughtInFake = d.ExpectedBlows = d.CoveredForNothing = d.ReadBlows = d.Answered = d.TakenAnswers = 0;
+                d.answerAt = d.pausedAt = -1f;
                 d.landedAt.Clear();
                 d.Forget();
                 Restart(d, -1f);
@@ -405,6 +419,11 @@ namespace PhysicsBattler.Sandbox
             blow.Part = hit.Part;
             blow.CaughtInFake = foe.Now != null && !foe.Now.Over && foe.Now.Commits;
             blow.Expected = foe.Expecting(now);
+            if (Answers && (hit.Shield || hit.Parried) && blow.Why != "answer" && !blow.CaughtInFake)
+            {
+                // (Stopped: the other answers it, after his reaction time.)
+                foe.answerAt = now + foe.Taker.Reaction;
+            }
         }
 
         // ---- One step ------------------------------------------------------------------------------------------------
@@ -637,10 +656,11 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>The other throws a real blow: what a fighter learns from it, and what one who only reacts does.</summary>
-        private void SeesBlow(Dancer d, float now, float madeOutIn)
+        private void SeesBlow(Dancer d, float now, float madeOutIn, bool learns)
         {
-            // (What came before it: the tell, how long before, and how many gestures before that.)
-            if (d.seen.Count > 0)
+            // (What came before it: the tell, how long before, and how many gestures before that. Not from an answer to
+            // a blow of his own that was stopped: he knows what that one came from.)
+            if (learns && d.seen.Count > 0)
             {
                 var last = d.seen[d.seen.Count - 1];
                 float delay = now - last.began;
@@ -673,39 +693,79 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        /// <summary>
+        /// What he makes of the other's last blows. Not every blow of the other's is his pattern's (some he throws at
+        /// what he sees open, some in answer to a blow stopped), so the tell is the gesture that came the same time
+        /// before at least two of his last <see cref="LearnsFrom"/> blows; and the count is known when the last two
+        /// of those had the same number of gestures before them, evenly spaced.
+        /// </summary>
         private static void Learn(Dancer d)
         {
-            int n = d.cycles.Count;
-            if (n < LearnsAfter)
+            int n = d.cycles.Count, from = Mathf.Max(0, n - LearnsFrom);
+            int best = 0;
+            Gesture tell = default;
+            float delay = 0f;
+            for (int i = n - 1; i >= from; i--)
+            {
+                if (d.cycles[i].delay > 2.5f)
+                {
+                    continue;
+                }
+
+                int same = 0;
+                float sum = 0f;
+                for (int k = from; k < n; k++)
+                {
+                    if (d.cycles[k].tell == d.cycles[i].tell && Mathf.Abs(d.cycles[k].delay - d.cycles[i].delay) < 0.25f)
+                    {
+                        same++;
+                        sum += d.cycles[k].delay;
+                    }
+                }
+
+                if (same > best)
+                {
+                    best = same;
+                    tell = d.cycles[i].tell;
+                    delay = sum / same;
+                }
+            }
+
+            d.knowsTell = best >= LearnsAfter;
+            d.knowsCount = false;
+            if (!d.knowsTell)
             {
                 return;
             }
 
-            bool sameTell = true, sameCount = true;
-            for (int i = n - LearnsAfter + 1; i < n; i++)
+            d.knownTell = tell;
+            d.knownDelay = delay;
+            int found = 0, count = -1;
+            float beat = 0f;
+            bool even = true;
+            for (int i = n - 1; i >= from && found < 2; i--)
             {
-                sameTell &= d.cycles[i].tell == d.cycles[n - LearnsAfter].tell && Mathf.Abs(d.cycles[i].delay - d.cycles[n - LearnsAfter].delay) < 0.35f;
-                sameCount &= d.cycles[i].count == d.cycles[n - LearnsAfter].count;
+                var c = d.cycles[i];
+                if (c.tell != tell || Mathf.Abs(c.delay - delay) >= 0.25f)
+                {
+                    continue;
+                }
+
+                even &= c.clean && c.count >= 1 && (count < 0 || c.count == count);
+                if (count < 0)
+                {
+                    count = c.count;
+                    beat = c.beat;
+                }
+
+                found++;
             }
 
-            for (int i = n - LearnsAfter; i < n; i++)
-            {
-                sameCount &= d.cycles[i].clean && d.cycles[i].count >= 1;
-            }
-
-            var newest = d.cycles[n - 1];
-            d.knowsTell = sameTell;
-            if (sameTell)
-            {
-                d.knownTell = newest.tell;
-                d.knownDelay = newest.delay;
-            }
-
-            d.knowsCount = sameTell && sameCount;
+            d.knowsCount = found >= 2 && even;
             if (d.knowsCount)
             {
-                d.knownCount = newest.count;
-                d.knownBeat = newest.beat;
+                d.knownCount = count;
+                d.knownBeat = beat;
             }
         }
 
@@ -726,6 +786,7 @@ namespace PhysicsBattler.Sandbox
                         d.landedAt.Add(now);
                         foe.Taken++;
                         foe.CaughtInFake += blow.CaughtInFake ? 1 : 0;
+                        foe.TakenAnswers += blow.Why == "answer" ? 1 : 0;
                     }
                     else if (blow.Met)
                     {
@@ -768,6 +829,22 @@ namespace PhysicsBattler.Sandbox
                 d.coverFrom = d.coverUntil = -1f;
             }
 
+            if (d.answerAt >= 0f && now >= d.answerAt)
+            {
+                // (His answer to a blow he stopped: as quick as a blow can be. Dropped if he is not free for it in time.)
+                if (!d.Unit.Clip.Busy && d.Unit.CanAct && Strike(d, now, "answer", OpeningTaker.Quickest, ""))
+                {
+                    d.answerAt = -1f;
+                    d.Taker.Done();
+                    return;
+                }
+
+                if (now - d.answerAt > 0.35f)
+                {
+                    d.answerAt = -1f;
+                }
+            }
+
             if (!d.Taker.Step(now, foeOpen, out float landIn))
             {
                 return;
@@ -797,12 +874,13 @@ namespace PhysicsBattler.Sandbox
             d.blow = new DanceBlow { By = d, AskedAt = now, Why = why, How = how };
             d.Blows.Add(d.blow);
             d.ReadBlows += why == "read" ? 1 : 0;
-            d.Say(why == "pattern" ? "HIS BLOW" : why == "read" ? "STRIKES: by what he read" : "STRIKES: saw it open", now, 2f);
+            d.Answered += why == "answer" ? 1 : 0;
+            d.Say(why == "pattern" ? "HIS BLOW" : why == "read" ? "STRIKES: by what he read" : why == "answer" ? "ANSWERS the blow he stopped" : "STRIKES: saw it open", now, 2f);
             // (What the other makes of it: a cut is known for real once it has gone past where a fake would have stopped.)
             var made = d.Unit.Clip.Made;
             float pace = Mathf.Max(0.05f, d.Unit.Clip.Loco.TimeScale);
             float madeOutIn = made != null ? Mathf.Clamp(made.DriveAt * PostureMaker.FeintDepth / pace + 0.08f, 0.1f, 0.6f) : 0.3f;
-            SeesBlow(d.Foe, now, madeOutIn);
+            SeesBlow(d.Foe, now, madeOutIn, why != "answer");
             return true;
         }
 
@@ -990,8 +1068,8 @@ namespace PhysicsBattler.Sandbox
             }
 
             int blows = d.Landed + d.Stopped + d.Missed;
-            return $"{d.Gestures.Count} gestures ({tells} tells), {blows} blows: {d.Landed} landed, {d.Stopped} stopped, {d.Missed} met nothing ({d.ReadBlows} of them thrown by what he read); "
-                + $"took {d.Taken} ({d.CaughtInFake} while in a fake of his own); expected {d.ExpectedBlows} of the other's pattern blows; covered for nothing {d.CoveredForNothing} times; the fight goes {d.Going(lastNow):+0;-0;0} for him";
+            return $"{d.Gestures.Count} gestures ({tells} tells), {blows} blows: {d.Landed} landed, {d.Stopped} stopped, {d.Missed} met nothing ({d.ReadBlows} of them thrown by what he read, {d.Answered} in answer to a blow he stopped); "
+                + $"took {d.Taken} ({d.CaughtInFake} while in a fake of his own, {d.TakenAnswers} in answer to a blow of his that was stopped); expected {d.ExpectedBlows} of the other's pattern blows; covered for nothing {d.CoveredForNothing} times; the fight goes {d.Going(lastNow):+0;-0;0} for him";
         }
     }
 }

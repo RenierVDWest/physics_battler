@@ -1166,6 +1166,11 @@ namespace PhysicsBattler.Sandbox
                 if (Press(feel.fightersReadEachOthersPatterns ? "[on]" : "on", "A fighter set to read learns the other's pattern and uses it.")) feel.fightersReadEachOthersPatterns = true;
                 if (Press(!feel.fightersReadEachOthersPatterns ? "[off (old)]" : "off (old)", "Nobody reads.")) feel.fightersReadEachOthersPatterns = false;
                 GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Stopped:", "What happens when a blow is stopped by a shield or a sword. Answered (new): the one who stopped it strikes back at once, while the other is still in his blow; it is what a blow wasted on a fake costs (Combat Feel \"A Stopped Blow Is Answered\"). Nothing (old): a stopped blow costs nothing."), Styles().Text, GUILayout.Width(80f));
+                if (Press(feel.aStoppedBlowIsAnswered ? "[answered]" : "answered", "The one who stopped it strikes back at once.")) feel.aStoppedBlowIsAnswered = true;
+                if (Press(!feel.aStoppedBlowIsAnswered ? "[nothing (old)]" : "nothing (old)", "A stopped blow costs nothing.")) feel.aStoppedBlowIsAnswered = false;
+                GUILayout.EndHorizontal();
             }
 
             string[] whose = { "Him", "The other" };
