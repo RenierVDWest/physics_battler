@@ -1051,3 +1051,8 @@
   439.250 |  26265 | Swordsman #3   | shieldtest | reads, reaction 0.20 s, tell 0.30 s, open for 0.40 s: the chest was open 0.38 to 0.78 s (the shield went down 27 cm); the blow started at 0.20 s and landed on the UpperArmL, not the part asked for at 0.73 s, inside the window. he read it (open 0.32 to 0.72 s): his blow started 0.20 s after it began, timed to land at 0.65 s
   440.850 |  26361 | Target #3      | uncover  | begins to uncover its chest (the shield test); the swordsman reads, and has seen it
   441.067 |  26374 | Swordsman #3   | attack   | made_sns_forehand_on_rising at its chest at Target #3
+  441.243 |  26384 | -              | console  | warning: Assembly for Assembly Definition File 'Assets/_Battler/Tests/EditMode/PhysicsBattler.Tests.EditMode.asmdef' will not be compiled, because it has no scripts associated with it.
+  441.233 |  26384 | Target #3      | despawn  | recording stopped
+  441.233 |  26384 | Swordsman #3   | despawn  | recording stopped
+  441.233 |  26384 | -              | session  | 2400 pictures saved
+  441.233 |  26384 | -              | session  | recording stopped after 439.7 s (26384 physics steps)
