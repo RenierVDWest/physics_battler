@@ -2317,8 +2317,12 @@ namespace PhysicsBattler.Locomotion
         private static readonly PartId[] ArmJoints6 = { PartId.UpperArmL, PartId.ForearmL, PartId.HandL, PartId.UpperArmR, PartId.ForearmR, PartId.HandR };
 
         /// <summary>For the reports: the arms' joints as a stage of the pose has just left them.</summary>
+        /// <summary>For the reports: told each stage of the pose as it is done (the fighter, the stage's name), to look at where the arms are after it.</summary>
+        public static System.Action<ClipFighter, string> ArmStageProbe;
+
         private void MarkArms(string stage)
         {
+            ArmStageProbe?.Invoke(this, stage);
             if (!TraceArmJumps)
             {
                 return;
@@ -3840,7 +3844,36 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
-        /// <summary>How many postures it has thrown (feints, fake lunges, drops).</summary>
+        /// <summary>
+        /// One of the upper body's short postures (<see cref="PostureMaker"/>): the blade's point dips, flicks aside or
+        /// goes once round; or the shield is thrust out and brought back. Over whatever he is doing. False: he cannot.
+        /// </summary>
+        public bool Bluff(Locomotor.Pulse kind)
+        {
+            if (Fallen || Loco.Current == Locomotor.Mode.OneShot)
+            {
+                return false;
+            }
+
+            bool thrown = kind == Locomotor.Pulse.BladeDip ? Loco.Throw(kind, PostureMaker.BladeDips * PostureMaker.BluffSize, 0.1f, 0.04f, 0.22f)
+                : kind == Locomotor.Pulse.BladeFlick ? Loco.Throw(kind, PostureMaker.BladeFlicks * PostureMaker.BluffSize, 0.09f, 0.03f, 0.2f)
+                : kind == Locomotor.Pulse.BladeCircle ? Loco.Throw(kind, PostureMaker.BladeCircles * PostureMaker.BluffSize, 0.2f, 0.15f, 0.2f)
+                : Loco.Throw(kind, PostureMaker.ShieldPressFar, 0.12f, 0.06f, 0.3f);
+            if (thrown)
+            {
+                Postures++;
+            }
+
+            return thrown;
+        }
+
+        /// <summary>A change of guard: the sword arm carried high (1), as the recordings have it (0) or low (-1).</summary>
+        public void GuardAt(int height)
+        {
+            Loco.GuardLift = height > 0 ? PostureMaker.GuardHigh : height < 0 ? -PostureMaker.GuardLow : 0f;
+        }
+
+        /// <summary>How many postures it has thrown (feints, fake lunges, drops, bluffs).</summary>
         public int Postures { get; private set; }
 
         private static readonly List<MadeAttack> madePlans = new List<MadeAttack>();

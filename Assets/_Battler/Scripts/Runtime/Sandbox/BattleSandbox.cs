@@ -479,6 +479,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab: what a press on a part of the body asks for. 0: a blow. 1: a feint. 2: a fake lunge. 3: both.</summary>
         private int duelPosture;
 
+        /// <summary>The duel lab: where he carries his sword arm. 1: high. 0: as the recordings. -1: low.</summary>
+        private int duelGuard;
+
         /// <summary>The capoeira style is shelved: the duel lab does not offer it (Combat Feel "The Capoeira Style Is Shelved").</summary>
         public static bool CapoeiraShelved = true;
 
@@ -783,6 +786,31 @@ namespace PhysicsBattler.Sandbox
             }
 
             GUILayout.EndHorizontal();
+            Heading("Sword and shield", "Postures of the upper body, over whatever he is doing. The blade's bluffs: its point dips, flicks aside, or goes once round. The shield press: the shield is thrust out and brought back. The guard: where he carries his sword arm until it is changed again.");
+            var poser = Duel.Mover != null ? Duel.Mover.Clip : null;
+            GUILayout.BeginHorizontal();
+            if (Press("Blade dip", "The point dips and comes back.") && poser != null) poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeDip);
+            if (Press("Blade flick", "The point flicks aside and comes back.") && poser != null) poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeFlick);
+            if (Press("Blade circle", "The point goes once round.") && poser != null) poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeCircle);
+            if (Press("Shield press", "The shield is thrust out and brought back.") && poser != null) poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.ShieldPress);
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Guard:", "Where he carries his sword arm: as the recordings have it, higher, or lower. He stays in it until it is changed."), Styles().Text, GUILayout.Width(60f));
+            if (Press(duelGuard == 1 ? "[high]" : "high", "The sword arm carried high.")) duelGuard = 1;
+            if (Press(duelGuard == 0 ? "[middle]" : "middle", "As the recordings have it.")) duelGuard = 0;
+            if (Press(duelGuard == -1 ? "[low]" : "low", "The sword arm carried low.")) duelGuard = -1;
+            GUILayout.EndHorizontal();
+            if (poser != null)
+            {
+                poser.GuardAt(duelGuard);
+            }
+
+            if (leapFeel != null)
+            {
+                leapFeel.bladeBluffSize = Lever("Bluff size", leapFeel.bladeBluffSize, 0.3f, 2f, "How big the blade's bluffs are (1: a dip of 38 degrees, a flick of 32, a round of 22).");
+                leapFeel.shieldPressFar = Lever("Press far", leapFeel.shieldPressFar, 0.3f, 1f, "How far the shield is thrust out (1: the arm nearly straight).");
+            }
+
             if (leapFeel != null)
             {
                 leapFeel.dropSinks = Lever("Sinks", leapFeel.dropSinks, 3f, 25f, "How far his hips sink (cm). His feet stay where they are and his knees bend for it.");

@@ -33,6 +33,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A drop: how far his hips sink (metres at a Medium's size) and he leans (degrees), how long it takes to get down, how long he is held there and how long he takes to come up (seconds).</summary>
         public static float DropSinks = 0.10f, DropLeans = 8f, DropDown = 0.12f, DropHeld = 0.05f, DropUp = 0.3f;
 
+        /// <summary>The blade's bluffs: how far the point dips, goes aside and goes round (degrees), all times <see cref="BluffSize"/>; the shield's press: how far it is thrust out (0 to 1); a high guard's lift and a low guard's drop of the sword arm (degrees).</summary>
+        public static float BluffSize = 1f, ShieldPressFar = 1f, GuardHigh = 35f, GuardLow = 25f;
+        public const float BladeDips = 38f, BladeFlicks = 32f, BladeCircles = 22f;
+
         /// <summary>A feint is not held where its blade would be nearer the middle of his own head, neck or chest than this (metres; a head is 0.1 thick about its middle): it stops short, at the last moment of the wind-up the blade is clear.</summary>
         public static float BladeClear = 0.18f;
 

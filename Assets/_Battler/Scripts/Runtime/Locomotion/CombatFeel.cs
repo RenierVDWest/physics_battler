@@ -279,6 +279,18 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A drop: how long he takes to come back up (seconds).")]
         [Range(0.1f, 0.8f)] public float dropUp = 0.3f;
 
+        [Tooltip("The blade's bluffs (the point dips, flicks aside or goes once round, and comes back): how big they are (1: a dip of 38 degrees, a flick of 32, a round of 22). Each is the sword hand turned for a moment on the parts his movement is made of, over whatever he is doing.")]
+        [Range(0.3f, 2f)] public float bladeBluffSize = 1f;
+
+        [Tooltip("The shield press: how far the shield is thrust out before the chest and brought back (1: the arm nearly straight).")]
+        [Range(0.3f, 1f)] public float shieldPressFar = 1f;
+
+        [Tooltip("A change of guard: how much higher than the recordings have it a high guard carries the sword arm (degrees).")]
+        [Range(10f, 60f)] public float guardHighLift = 35f;
+
+        [Tooltip("A change of guard: how much lower a low guard carries the sword arm (degrees).")]
+        [Range(10f, 45f)] public float guardLowDrop = 25f;
+
         [Tooltip("A fake lunge: how far it carries his hips toward the other (metres). His legs and hips go as far into the attack he would have made as carries them that far, and come back; his upper body stays in its guard, unless a feint is thrown with it.")]
         [Range(0.1f, 0.6f)] public float fakeLungeFar = 0.3f;
 
@@ -1087,6 +1099,10 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.FeintDepth = feintDepth;
             PostureMaker.FeintHold = feintHold;
             PostureMaker.FeintBack = feintBack;
+            PostureMaker.BluffSize = bladeBluffSize;
+            PostureMaker.ShieldPressFar = shieldPressFar;
+            PostureMaker.GuardHigh = guardHighLift;
+            PostureMaker.GuardLow = guardLowDrop;
             PostureMaker.BladeClear = feintBladeClear;
             PostureMaker.DropSinks = 0.01f * dropSinks;
             PostureMaker.DropLeans = dropLeans;

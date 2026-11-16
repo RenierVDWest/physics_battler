@@ -442,6 +442,57 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        /// <summary>The upper body's short postures, laid on the parts his movement is made of as a drop is (<see cref="PostureMaker"/>).</summary>
+        public enum Pulse
+        {
+            BladeDip,
+            BladeFlick,
+            BladeCircle,
+            ShieldPress,
+        }
+
+        /// <summary>
+        /// One of the upper body's short postures, over whatever he is doing: so much of it (degrees for the blade; 0
+        /// to 1 for the shield), out in so long, held, and back. False: his movement is not made of its parts, or that
+        /// one is under way.
+        /// </summary>
+        public bool Throw(Pulse kind, float amount, float outIn, float held, float back)
+        {
+            int k = (int)kind;
+            if (!MoveScore.On || pulseFor[k] >= 0f)
+            {
+                return false;
+            }
+
+            pulseAmount[k] = amount;
+            pulseOut[k] = Mathf.Max(0.04f, outIn);
+            pulseHeld[k] = Mathf.Max(0f, held);
+            pulseBack[k] = Mathf.Max(0.08f, back);
+            pulseFor[k] = 0f;
+            return true;
+        }
+
+        /// <summary>How much higher than the recordings have it he carries his sword arm (degrees; lower below 0): a change of guard. He goes to it at <see cref="GuardChanges"/>.</summary>
+        public float GuardLift;
+
+        /// <summary>How fast a change of guard is made (degrees a second).</summary>
+        public const float GuardChanges = 140f;
+
+        private readonly float[] pulseAmount = new float[4], pulseOut = new float[4], pulseHeld = new float[4], pulseBack = new float[4], pulseFor = { -1f, -1f, -1f, -1f };
+        private float guardLiftNow;
+
+        private static float PulseWeight(float t, float outIn, float held, float back)
+        {
+            if (t < outIn)
+            {
+                float u = 1f - t / outIn;
+                return 1f - u * u;
+            }
+
+            float v = Mathf.Clamp01((t - outIn - held) / back);
+            return 1f - v * v * (3f - 2f * v);
+        }
+
         /// <summary>A drop is under way.</summary>
         public bool Dipping => dipFor >= 0f;
 
@@ -469,6 +520,38 @@ namespace PhysicsBattler.Locomotion
                 levers.Lean += dipLeans * w;
             }
 
+            for (int k = 0; k < pulseFor.Length; k++)
+            {
+                if (pulseFor[k] < 0f)
+                {
+                    continue;
+                }
+
+                float t = pulseFor[k], w = PulseWeight(t, pulseOut[k], pulseHeld[k], pulseBack[k]);
+                switch ((Pulse)k)
+                {
+                    case Pulse.BladeDip:
+                        levers.BladeTurn.x += pulseAmount[k] * w;
+                        break;
+                    case Pulse.BladeFlick:
+                        levers.BladeTurn.y += pulseAmount[k] * w;
+                        break;
+                    case Pulse.BladeCircle:
+                    {
+                        // (Once round, growing from nothing and dying away to nothing.)
+                        float whole = pulseOut[k] + pulseHeld[k] + pulseBack[k], round = 2f * Mathf.PI * t / whole, size = pulseAmount[k] * Mathf.Sin(Mathf.PI * t / whole);
+                        levers.BladeTurn.x += size * Mathf.Sin(round);
+                        levers.BladeTurn.y += size * Mathf.Cos(round);
+                        break;
+                    }
+                    case Pulse.ShieldPress:
+                        levers.ShieldOut += pulseAmount[k] * w;
+                        break;
+                }
+            }
+
+            levers.SwordArmLift += guardLiftNow;
+
             return levers;
         }
 
@@ -478,6 +561,19 @@ namespace PhysicsBattler.Locomotion
             if (!Ready || dt <= 0f)
             {
                 return;
+            }
+
+            guardLiftNow = Mathf.MoveTowards(guardLiftNow, GuardLift, GuardChanges * dt);
+            for (int k = 0; k < pulseFor.Length; k++)
+            {
+                if (pulseFor[k] >= 0f)
+                {
+                    pulseFor[k] += dt;
+                    if (pulseFor[k] >= pulseOut[k] + pulseHeld[k] + pulseBack[k])
+                    {
+                        pulseFor[k] = -1f;
+                    }
+                }
             }
 
             if (dipFor >= 0f)

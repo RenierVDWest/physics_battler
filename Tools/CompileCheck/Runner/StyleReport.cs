@@ -534,6 +534,21 @@ internal static class StyleReport
             return;
         }
 
+        {
+            // (The upper body's postures on the guard's stand: where the hands and the sword's line go.)
+            var stand = LocoLibrary.Get("sns_idle_b");
+            var ms = MoveScore.Of(stand);
+            var rest = new Vector3[LocoClip.BoneCount];
+            ms.Pose(0f, rest, 1f, MoveLevers.Plain);
+            foreach (var (name, levers) in new[] { ("sword arm lifted 35", new MoveLevers { Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f, SwordArmLift = 35f }), ("blade dipped 38", new MoveLevers { Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f, BladeTurn = new Vector3(38f, 0f, 0f) }), ("shield out 1", new MoveLevers { Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f, ShieldOut = 1f }) })
+            {
+                ms.Pose(0f, b, 1f, levers);
+                Vector3 r = (b[(int)LocoBone.RightHand] - rest[(int)LocoBone.RightHand]) * (100f * Locomotor.ClipLeg), l = (b[(int)LocoBone.LeftHand] - rest[(int)LocoBone.LeftHand]) * (100f * Locomotor.ClipLeg);
+                Vector3 mid = (b[(int)LocoBone.RightHandMiddle] - b[(int)LocoBone.RightHand]).normalized, was = (rest[(int)LocoBone.RightHandMiddle] - rest[(int)LocoBone.RightHand]).normalized;
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  on the guard's stand, {0}: right hand goes {1:0} {2:0} {3:0} cm (right, up, forward), left hand {4:0} {5:0} {6:0}; the right hand's line turns {7:0} degrees", name, r.x, r.y, r.z, l.x, l.y, l.z, Vector3.Angle(mid, was)));
+            }
+        }
+
         Console.WriteLine("what each lever does to the guard's walk (sns_walk; over one cycle, cm and degrees):");
         var tries = new (string name, MoveLevers levers)[]
         {

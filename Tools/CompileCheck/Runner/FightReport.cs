@@ -225,6 +225,25 @@ internal static class FightReport
         // (FIGHT_ONTHEMOVE=0: a blow asked for while he walks is thrown planted, his speed carried into it, not over
         // the walk. FIGHT_MOVECHECK=0.45, FIGHT_MOVEHIPS=0.5, FIGHT_MOVEINTO=0.07, FIGHT_MOVESTEPIN=0.75: how a blow on the move sits on the walk.)
         PhysicsBattler.Locomotion.AttackOnTheMove.On = Environment.GetEnvironmentVariable("FIGHT_ONTHEMOVE") != "0";
+        // (FIGHT_ARMPROBE=1: where the first fighter's hands are on its chest after each stage of the pose, once a second.)
+        if (Environment.GetEnvironmentVariable("FIGHT_ARMPROBE") == "1")
+        {
+            int probed = 0;
+            PhysicsBattler.Locomotion.ClipFighter first = null;
+            PhysicsBattler.Locomotion.ClipFighter.ArmStageProbe = (who, stage) =>
+            {
+                first ??= who;
+                if (who != first || (stage.StartsWith("the clip's") ? ++probed : probed) % 60 != 0)
+                {
+                    return;
+                }
+
+                Vector3 chest = who.Anim.Part(PartId.Chest).position;
+                Vector3 r = who.Anim.Part(PartId.HandR).position - chest, l = who.Anim.Part(PartId.HandL).position - chest;
+                Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "ARMPROBE {0} after {1}: right hand {2:0.00} {3:0.00} {4:0.00}, left hand {5:0.00} {6:0.00} {7:0.00}", probed, stage, r.x, r.y, r.z, l.x, l.y, l.z));
+            };
+        }
+
         // (FIGHT_BLADECLEAR=0: a feint is held wherever its wind-up has the blade, as it was.)
         PhysicsBattler.Locomotion.PostureMaker.BladeClear = Env("FIGHT_BLADECLEAR", 0.18f);
         // (FIGHT_LUNGESTOPS=1: a fake lunge asked for while he walks stops him, as it was.)
@@ -274,7 +293,7 @@ internal static class FightReport
         PhysicsBattler.Locomotion.MoveScore.Levers = new PhysicsBattler.Locomotion.MoveLevers
         {
             Bounce = Env("FIGHT_MOVEBOUNCE", 1f), Sway = Env("FIGHT_MOVESWAY", 1f), HipTurn = Env("FIGHT_MOVEHIPTURN", 1f), ChestTurn = Env("FIGHT_MOVECHESTTURN", 1f),
-            ArmSwing = Env("FIGHT_MOVEARMS", 1f), StepLift = Env("FIGHT_MOVELIFT", 1f), Lean = Env("FIGHT_MOVELEAN", 0f), Crouch = 0.01f * Env("FIGHT_MOVECROUCH", 0f) / PhysicsBattler.Locomotion.Locomotor.ClipLeg,
+            ArmSwing = Env("FIGHT_MOVEARMS", 1f), StepLift = Env("FIGHT_MOVELIFT", 1f), Lean = Env("FIGHT_MOVELEAN", 0f), SwordArmLift = Env("FIGHT_MOVESWORDLIFT", 0f), ShieldOut = Env("FIGHT_MOVESHIELDOUT", 0f), Crouch = 0.01f * Env("FIGHT_MOVECROUCH", 0f) / PhysicsBattler.Locomotion.Locomotor.ClipLeg,
         };
         // (FIGHT_STYLETRACE=1: what the walk lays of the manner, each step.)
         if (Environment.GetEnvironmentVariable("FIGHT_STYLETRACE") == "1")
@@ -1298,6 +1317,10 @@ internal static class FightReport
                                 // (Standing in a ginga made of its takes: which take he is in and the moment of it, so the pose can be set beside the recording's.)
                                 var filmPattern = u.Clip.Loco.StandsInPattern && u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Idle ? u.Clip.Loco.Guard.Pattern : null;
                                 string filmRef = filmPattern != null && filmPattern.Begun ? "\"ref\":\"" + filmPattern.TakeName + "\",\"reft\":" + filmPattern.TakeTime.ToString("0.000", inv) + ",\"resting\":" + (filmPattern.Resting ? "1" : "0") + ",\"size\":" + PhysicsBattler.Locomotion.StandPattern.Size.ToString("0.00", inv) + ",\"hips\":[" + filmPattern.Hips.x.ToString("0.000", inv) + "," + filmPattern.Hips.y.ToString("0.000", inv) + "," + filmPattern.Hips.z.ToString("0.000", inv) + "," + filmPattern.AnkleL.x.ToString("0.000", inv) + "," + filmPattern.AnkleL.y.ToString("0.000", inv) + "," + filmPattern.AnkleL.z.ToString("0.000", inv) + "," + filmPattern.AnkleR.x.ToString("0.000", inv) + "," + filmPattern.AnkleR.y.ToString("0.000", inv) + "," + filmPattern.AnkleR.z.ToString("0.000", inv) + "]," : "";
+                                // (The walk's own hands, against its root, metres: what the arms are given before the guard's own work on them.)
+                                var rawHands = u.Clip.Loco.RawPoints;
+                                Vector3 rawR = rawHands[(int)PhysicsBattler.Locomotion.LocoBone.RightHand], rawL = rawHands[(int)PhysicsBattler.Locomotion.LocoBone.LeftHand];
+                                filmRef += "\"rawh\":[" + rawR.x.ToString("0.000", inv) + "," + rawR.y.ToString("0.000", inv) + "," + rawR.z.ToString("0.000", inv) + "," + rawL.x.ToString("0.000", inv) + "," + rawL.y.ToString("0.000", inv) + "," + rawL.z.ToString("0.000", inv) + "],\"arms\":" + u.Clip.Poser.ClipArms.ToString("0.00", inv) + ",";
                                 filmLine.Append("{").Append(filmRef).Append("\"t\":").Append(paceAt.ToString("0.000", inv)).Append(",\"u\":\"").Append(u.name).Append("\",\"doing\":\"").Append(u.Clip.Loco.Current).Append(u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "").Append("\",\"p\":[");
                                 foreach (var id in PartInfo.All)
                                 {
@@ -1428,6 +1451,30 @@ internal static class FightReport
                         if (paceAt >= when && paceAt - dt < when)
                         {
                             Console.WriteLine($"DROP {paceAt:0.00}: {(duel.Mover.Clip.Drop() ? "begun" : "he could not")}");
+                        }
+                    }
+
+                    // (FIGHT_BLUFFAT="2:dip,3.5:flick,5:circle,6.5:press": the upper body's postures at those seconds;
+                    // FIGHT_GUARDAT="4:high,7:low": a change of guard.)
+                    foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_BLUFFAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        string[] bits = at.Split(':');
+                        float when = float.Parse(bits[0], System.Globalization.CultureInfo.InvariantCulture);
+                        if (paceAt >= when && paceAt - dt < when)
+                        {
+                            var kind = bits[1] == "dip" ? PhysicsBattler.Locomotion.Locomotor.Pulse.BladeDip : bits[1] == "flick" ? PhysicsBattler.Locomotion.Locomotor.Pulse.BladeFlick : bits[1] == "circle" ? PhysicsBattler.Locomotion.Locomotor.Pulse.BladeCircle : PhysicsBattler.Locomotion.Locomotor.Pulse.ShieldPress;
+                            Console.WriteLine($"BLUFF {paceAt:0.00} {bits[1]}: {(duel.Mover.Clip.Bluff(kind) ? "begun" : "he could not")}");
+                        }
+                    }
+
+                    foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_GUARDAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        string[] bits = at.Split(':');
+                        float when = float.Parse(bits[0], System.Globalization.CultureInfo.InvariantCulture);
+                        if (paceAt >= when && paceAt - dt < when)
+                        {
+                            duel.Mover.Clip.GuardAt(bits[1] == "high" ? 1 : bits[1] == "low" ? -1 : 0);
+                            Console.WriteLine($"GUARD {paceAt:0.00} {bits[1]}");
                         }
                     }
 

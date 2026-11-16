@@ -4793,3 +4793,46 @@ playtest flags, and then taken out of the repository (131 000 of them were in it
   headless run did not write it before the change either, only showed the blade touching).
 - **Still to come in step 6**: the upper body's postures that go through the guard's own arms (blade bluff,
   shield press, guard change), the stance switch, and the body map showing which parts each posture opens.
+
+**Fight rhythm, step 6, third part: the blade's bluffs, the shield press and the change of guard** (16
+November). The upper body's postures that are not the start of an attack.
+
+- **How.** Like the drop, none is a clip: each is laid for a moment on the parts his movement is made of
+  (`MoveScore`'s levers, his own while it lasts; `Locomotor.Throw`, `Locomotor.GuardLift`), so it goes over
+  whatever he is doing, standing or walking.
+  - *Blade dip, flick, circle*: the sword hand is turned on the chest so the point dips (38°), goes aside (32°)
+    or goes once round (22°), and comes back; the forearm takes a third of it.
+  - *Shield press*: the shield arm is straightened forward of the chest and brought back.
+  - *Guard: high / middle / low*: the whole sword arm turned at the shoulder, 35° up or 25° down, and kept
+    there until it is changed (he goes to it at 140° a second).
+- **Lab** ("Duel lab", "Sword and shield"): "Blade dip", "Blade flick", "Blade circle", "Shield press"; "Guard:
+  high / middle / low"; the levers "Bluff size" and "Press far" (Combat Feel "Blade Bluff Size", "Shield Press
+  Far", "Guard High Lift", "Guard Low Drop"). Headless: `FIGHT_BLUFFAT="2:dip,3.5:flick,5:circle,6.5:press"`,
+  `FIGHT_GUARDAT="8:high,10:low"`, with `FIGHT_AIMWHO=shield`.
+- **Measured** (sword and shield, standing 1.8 m off; going round at 1.6 m/s the same to a few cm):
+
+  | | Goes | Furthest after | Back to |
+  | --- | --- | --- | --- |
+  | Blade dip: the point | 54 cm (47 down) | 0.12 s | 6 cm |
+  | Blade flick: the point | 33 cm (32 aside) | 0.10 s | 6 cm |
+  | Blade circle: the point | 28 cm round | 0.35 s | 6 cm |
+  | Shield press: the shield hand | 24 cm (18 forward) | 0.18 s | 1 cm |
+  | Guard high: the point | 30 cm higher (the hand 14) | | kept |
+  | Guard low: the point | 59 cm lower (the hand 17) | | kept |
+
+  Nothing thrown; no blade in his own body; the six fighters' fights with the made movement off are unchanged
+  (84 blows).
+- **Found on the way.** The headless duel's swordsman has a sword alone unless `FIGHT_AIMWHO=shield` is given;
+  the lab's has sword and shield. A fighter with a sword alone has both arms placed by the sword's own guard
+  (`SwordParry`, the stage "the parry and the free arm"), over whatever the movement gives them: on him these
+  postures do not show. The feint, the fake lunge and the drop were measured on the sword alone; they do not go
+  through the guard's arms, and the lab showed them on sword and shield. A new probe says where the hands are
+  after each stage of the pose (`FIGHT_ARMPROBE=1`); the film now carries the walk's own hands (`rawh`).
+- **Not verified in Unity**: all of how they look. **Known**:
+  - On a fighter with a sword alone the bluffs and the change of guard do nothing yet (above).
+  - A low guard drops the point 59 cm, to near the ground; the lever is there.
+  - In a made attack or a leap none of these act: they are laid on his movement, not on the attack.
+- **Still to come in step 6**: the stance switch, and the body map showing which parts each posture opens.
+- **For the dance (step 8), from Renier:** the postures' levers are not to be one setting, nor plain chance: a
+  fighter varies them in patterns that mean something. One makes many small drops and one deep one before he
+  attacks; the other can learn that, and it is an opening.

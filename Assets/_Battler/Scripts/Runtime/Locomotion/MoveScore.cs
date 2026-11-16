@@ -16,9 +16,13 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Leaning forward from the hips, added (degrees); the hips carried lower, the feet where they were (leg lengths).</summary>
         public float Lean, Crouch;
 
+        /// <summary>The upper body's postures (<see cref="PostureMaker"/>; all nothing at rest): the sword hand turned on the chest so the point dips (x, degrees) or goes aside (y); the shield arm thrust out before the chest (0 to 1); the sword arm carried higher (degrees; lower below 0).</summary>
+        public Vector3 BladeTurn;
+        public float ShieldOut, SwordArmLift;
+
         public static MoveLevers Plain => new MoveLevers { Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f };
 
-        public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f;
+        public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f && BladeTurn == Vector3.zero && ShieldOut == 0f && SwordArmLift == 0f;
     }
 
     /// <summary>
@@ -103,6 +107,30 @@ namespace PhysicsBattler.Locomotion
                 t.ClavL = BodyTracks.Way(mid.ClavL, t.ClavL, levers.ArmSwing); t.ClavR = BodyTracks.Way(mid.ClavR, t.ClavR, levers.ArmSwing);
                 t.UpperL = BodyTracks.Way(mid.UpperL, t.UpperL, levers.ArmSwing); t.UpperR = BodyTracks.Way(mid.UpperR, t.UpperR, levers.ArmSwing);
                 t.ForeL = BodyTracks.Way(mid.ForeL, t.ForeL, levers.ArmSwing); t.ForeR = BodyTracks.Way(mid.ForeR, t.ForeR, levers.ArmSwing);
+            }
+
+            if (levers.SwordArmLift != 0f)
+            {
+                // (The sword arm carried higher or lower: the whole arm turned at the shoulder, on the chest.)
+                var lift = Quaternion.Euler(-levers.SwordArmLift, 0f, 0f);
+                t.UpperR = lift * t.UpperR;
+                t.ForeR = lift * t.ForeR;
+                t.HandR = lift * t.HandR;
+            }
+
+            if (levers.BladeTurn != Vector3.zero)
+            {
+                // (The point dipped or sent aside: the wrist does it, and the forearm a third of it.)
+                t.HandR = Quaternion.Euler(levers.BladeTurn.x, levers.BladeTurn.y, 0f) * t.HandR;
+                t.ForeR = Quaternion.Euler(0.33f * levers.BladeTurn.x, 0.33f * levers.BladeTurn.y, 0f) * t.ForeR;
+            }
+
+            if (levers.ShieldOut > 0f)
+            {
+                // (The shield thrust out: its arm straightened forward of the chest.)
+                float w = Mathf.Clamp01(levers.ShieldOut);
+                t.UpperL = BodyTracks.Way(t.UpperL, new Vector3(-0.15f, -0.3f, 1f).normalized, 0.85f * w);
+                t.ForeL = BodyTracks.Way(t.ForeL, new Vector3(0.1f, 0.1f, 1f).normalized, w);
             }
 
             t.AnkleL.y = floorL + (t.AnkleL.y - floorL) * levers.StepLift;
