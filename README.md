@@ -4752,3 +4752,20 @@ and one for the lower, and the two together.
     press, guard change), and the body map showing which parts each posture opens.
 
 New file that needs its .meta from Unity: `Locomotion/PostureMaker.cs`.
+
+**A fake lunge is thrown on the move** (16 November, from the duel lab: asked for while he walked, it stopped
+him, where a feint goes over the walk). Now, walking, the walk's legs go on under it: his hips dart toward the
+other (0.7 of the lunge's distance, as far as his walking legs let them) and sink as the lunge's do, and come
+back; his feet keep to their way. From a stand it is the lunge on the attack's own legs, as before. Combat Feel
+"A Fake Lunge Is Thrown On The Move" (on) and "Fake Lunge On The Move"; in the lab, under the fake lunge's
+levers, "Walking: on the move / stops" and "Darts in". Headless (`FIGHT_LUNGESTOPS=1` for the old way), going
+round at 1.9 m: he keeps going at 1.5 m/s through it and is never slower than 1.45 (the old way: to a stop);
+his hips go 27 cm toward the other at 0.28 s and are back where they were, and sink 11 to 14 cm. With a feint
+on it the same, at their furthest together. Nothing thrown; the six fighters' fights are unchanged.
+
+*Seen in the playtest of 08:57, in the log and in its pictures:* at a forehand feint's furthest point the
+blade lies against his own head for 0.18 s ("what its right hand holds was inside its own body"). The real cut
+whips through that place; the feint slows and is held in it. Not mended yet.
+
+*The playtests' pictures* (448 px, 8 a second, `PlaytestLogs/*/frames`): they are looked at for the moments a
+playtest flags, and then taken out of the repository (131 000 of them were in it, 3.3 GB with the logs).

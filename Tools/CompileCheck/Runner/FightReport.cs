@@ -225,6 +225,8 @@ internal static class FightReport
         // (FIGHT_ONTHEMOVE=0: a blow asked for while he walks is thrown planted, his speed carried into it, not over
         // the walk. FIGHT_MOVECHECK=0.45, FIGHT_MOVEHIPS=0.5, FIGHT_MOVEINTO=0.07, FIGHT_MOVESTEPIN=0.75: how a blow on the move sits on the walk.)
         PhysicsBattler.Locomotion.AttackOnTheMove.On = Environment.GetEnvironmentVariable("FIGHT_ONTHEMOVE") != "0";
+        // (FIGHT_LUNGESTOPS=1: a fake lunge asked for while he walks stops him, as it was.)
+        PhysicsBattler.Locomotion.PostureMaker.LungesOnTheMove = Environment.GetEnvironmentVariable("FIGHT_LUNGESTOPS") != "1";
         // (FIGHT_SHORTPLANTS=1: a blow on the move that would fall short is thrown planted, with its lunge, as it was.)
         PhysicsBattler.Locomotion.AttackOnTheMove.StaysWhenShort = Environment.GetEnvironmentVariable("FIGHT_SHORTPLANTS") != "1";
         PhysicsBattler.Locomotion.AttackOnTheMove.Trace = line => Console.WriteLine("ONTHEMOVE " + line);

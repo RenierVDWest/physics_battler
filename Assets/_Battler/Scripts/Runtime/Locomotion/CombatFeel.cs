@@ -273,6 +273,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A fake lunge: how long the way back takes (seconds).")]
         [Range(0.25f, 1f)] public float fakeLungeBack = 0.4f;
 
+        [Tooltip("A fake lunge asked for while he walks is thrown on the move, as a feint is: the walk's legs go on under it, and his hips dart toward the other and sink as the lunge's do, and come back. Off: he stops for it and lunges on the attack's own legs, as it was (seen in the duel lab on 16 November: it stopped him).")]
+        public bool aFakeLungeIsThrownOnTheMove = true;
+
+        [Tooltip("A fake lunge on the move: how much of the lunge's distance his hips dart toward the other over the walk's legs (1: all of it; his legs have to reach).")]
+        [Range(0.2f, 1.2f)] public float fakeLungeOnTheMove = 0.7f;
+
         [Tooltip("Made movement: how much the hips rise and fall with each step (1: as recorded; 0: level; 2: twice as much).")]
         [Range(0f, 2.5f)] public float moveBounce = 1f;
 
@@ -1069,6 +1075,8 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.LungeFar = fakeLungeFar;
             PostureMaker.LungeOut = fakeLungeOut;
             PostureMaker.LungeBack = fakeLungeBack;
+            PostureMaker.LungesOnTheMove = aFakeLungeIsThrownOnTheMove;
+            PostureMaker.LungeOnTheMove = fakeLungeOnTheMove;
             MoveScore.On = standardMovementIsMadeOfItsParts;
             MoveScore.Levers = new MoveLevers { Bounce = moveBounce, Sway = moveSway, HipTurn = moveHipTurn, ChestTurn = moveChestTurn, ArmSwing = moveArmSwing, StepLift = moveStepLift, Lean = moveLean, Crouch = 0.01f * moveCrouch / Locomotor.ClipLeg };
             MoveStyle.Jogs = guardJogs;

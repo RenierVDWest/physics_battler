@@ -3680,7 +3680,7 @@ namespace PhysicsBattler.Locomotion
         {
             // (Asked for as a posture, PostureMaker: the attack is made as any is, and only its beginning thrown.)
             postureNow = PostureMaker.Take(out postureFeint, out postureLunge);
-            if (AttackOnTheMove.On && landIn <= 0f && legs == null && !(postureNow && postureLunge > 0f))
+            if (AttackOnTheMove.On && landIn <= 0f && legs == null && !(postureNow && postureLunge > 0f && !PostureMaker.LungesOnTheMove))
             {
                 // (Walking, the blow is thrown on the move: the walk goes on under it.)
                 var moved = StrikeOnTheMove(target, point, style, named);
@@ -3935,16 +3935,25 @@ namespace PhysicsBattler.Locomotion
             Vector3 stepIn = Quaternion.Euler(0f, Loco.Facing, 0f) * best.StepIn * leg;
             if (postureNow)
             {
-                // (A feint on the move: the attack's wind-up over the walk and back, the walk as it was: no check,
-                // no step in, the hips not going in.)
-                var posture = PostureMaker.Make(best, postureFeint, 0f, out float turnsAt);
-                if (posture == null || !Poser.PlayMadeOver(posture, point, turnsAt, 0f, Vector3.zero, Vector3.zero))
+                // (A posture on the move. A feint: the attack's wind-up over the walk and back, the walk as it was:
+                // no check, no step in, the hips not going in. A fake lunge: the walk's legs go on, and his hips dart
+                // toward the other and sink as the lunge's do, and come back; his feet keep to their way.)
+                var posture = PostureMaker.Make(best, postureFeint, postureLunge, out float turnsAt);
+                Vector3 darts = Vector3.zero;
+                if (postureLunge > 0f)
+                {
+                    Vector3 way = best.Asked.Into.sqrMagnitude > 1e-8f ? best.Asked.Into.normalized : Vector3.forward;
+                    darts = way * (postureLunge * PostureMaker.LungeFar * PostureMaker.LungeOnTheMove / Locomotor.ClipLeg);
+                }
+
+                if (posture == null || !Poser.PlayMadeOver(posture, point, postureLunge > 0f ? 0f : turnsAt, 0f, darts, Vector3.zero))
                 {
                     return null;
                 }
 
                 best.Clip = posture;
                 best.Feint = postureFeint;
+                best.FakeLunge = postureLunge;
                 best.ContactAt = turnsAt;
                 best.DriveAt = turnsAt;
                 best.Held = 0f;

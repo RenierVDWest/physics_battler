@@ -813,6 +813,15 @@ namespace PhysicsBattler.Sandbox
                     feel.fakeLungeFar = Lever("Lunge goes", feel.fakeLungeFar, 0.1f, 0.6f, "How far the fake lunge carries his hips toward the other (metres).");
                     feel.fakeLungeOut = Lever("Lunge takes", feel.fakeLungeOut, 0.15f, 0.6f, "How long the fake lunge takes to get there (seconds). With a feint on it the legs take as long as the sword does.");
                     feel.fakeLungeBack = Lever("Lunge back", feel.fakeLungeBack, 0.25f, 1f, "How long the legs take to come back (seconds).");
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent("Walking:", "What a fake lunge does when it is asked for while he walks. On the move (new): his legs go on walking and his hips dart toward the other and sink, and come back. Stops (old): he stops and lunges on the attack's own legs."), Styles().Text, GUILayout.Width(90f));
+                    if (Press(feel.aFakeLungeIsThrownOnTheMove ? "[on the move]" : "on the move", "Thrown over the walk (Combat Feel \"A Fake Lunge Is Thrown On The Move\").")) feel.aFakeLungeIsThrownOnTheMove = true;
+                    if (Press(!feel.aFakeLungeIsThrownOnTheMove ? "[stops]" : "stops", "He stops for it, as it was.")) feel.aFakeLungeIsThrownOnTheMove = false;
+                    GUILayout.EndHorizontal();
+                    if (feel.aFakeLungeIsThrownOnTheMove)
+                    {
+                        feel.fakeLungeOnTheMove = Lever("Darts in", feel.fakeLungeOnTheMove, 0.2f, 1.2f, "On the move: how much of the lunge's distance his hips dart toward the other over the walk's legs.");
+                    }
                 }
             }
 

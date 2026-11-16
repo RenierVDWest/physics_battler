@@ -22,6 +22,14 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A fake lunge: how far it carries his hips (metres at a Medium's size), how long it takes to get there and how long to come back (seconds). Its legs and hips go as far into the attack as carries the hips that far.</summary>
         public static float LungeFar = 0.3f, LungeOut = 0.28f, LungeBack = 0.4f;
 
+        /// <summary>
+        /// A fake lunge asked for while he walks is thrown on the move (Combat Feel "A Fake Lunge Is Thrown On The
+        /// Move"): the walk's legs go on under it, and his hips dart toward the other this much of the lunge's
+        /// distance and sink as the lunge's do. Off: he stops for it and lunges on the attack's own legs, as it was.
+        /// </summary>
+        public static bool LungesOnTheMove = true;
+        public static float LungeOnTheMove = 0.7f;
+
         /// <summary>The slowing into a feint's furthest point takes this long (seconds).</summary>
         public const float Eases = 0.14f;
 
