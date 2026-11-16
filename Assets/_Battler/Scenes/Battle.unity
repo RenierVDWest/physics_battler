@@ -326,9 +326,42 @@ MonoBehaviour:
   aimTestBlowsAreBuilt: 1
   blowsUseTheTrunk: 1
   blowsArePushed: 1
+  theBattleIsRetired: 1
+  guardJogs: 1
+  setsOffAtAWalksRhythm: 1
+  capoeiraStyleMotion: 0.5
+  capoeiraStyleSquaresUp: 0.5
+  capoeiraStyleKeptInBlows: 0.5
+  capoeiraStyleEyesUp: 1
+  capoeiraStyleArms: 1
+  gingaIsMadeOfItsTakes: 1
+  gingaMadeSize: 1
+  gingaTempo: 1
+  gingaRestlessness: 1
+  gingaVariation: 0
+  gingaSize: 0.67
+  gingaArms: 1
+  gingaSwordFollowsTheArm: 1
+  gingaSwordPointsAhead: 0.35
+  gingaSwordTrails: 0.1
+  leapsAreMade: 1
+  leapCrouch: 1
+  leapHeight: 1
+  leapLean: 14
+  leapArms: 0.4
+  leapBody: 0.6
+  leapPrepTime: 0.22
   clipsTravelAsRecorded: 1
   aimTestAttacksAreMade: 1
   attacksBorrowLegs: 1
+  attacksAreThrownOnTheMove: 1
+  movingBlowChecksTheWalk: 0.45
+  movingBlowHipsTurn: 0.5
+  movingBlowHipsGoIn: 0.06
+  movingBlowStepsIn: 0.63
+  borrowedLegsGoBackAtTheirPace: 1
+  attacksStartFromWhereHeIs: 1
+  attackCarriesFor: 0.4
   attackWindUp: 0.8
   attackArmSwing: 1.2
   attackHipDrive: 0.6
