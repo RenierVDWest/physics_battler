@@ -570,6 +570,11 @@ namespace PhysicsBattler.Sandbox
                 g.MadeOut = true;
                 MadeOut(d, g, now, byCount && g.Kind == Gesture.LongFake);
             }
+            else if (!d.Taker.Pending && (d.blow == null || d.blow.Done))
+            {
+                // (A fake slash he cannot tell for short or long yet: he takes it for a short one until it goes on.)
+                Meets(d, Gesture.ShortFake, now);
+            }
         }
 
         /// <summary>How many gestures of the other's he has seen since its last blow (this one counted).</summary>
@@ -597,13 +602,37 @@ namespace PhysicsBattler.Sandbox
             }
 
             // (And an opening he knows it leaves, if his blow can still land in it.)
-            if (!d.Taker.Pending && (d.blow == null || d.blow.Done) && d.Taker.Knows(Name(g.Kind), out float from, out float to) && to - from > 0.05f && g.Began + to > now)
+            if (!d.Taker.Pending && (d.blow == null || d.blow.Done))
             {
-                if (d.Taker.Foresee(now, g.Began + from, g.Began + to, Name(g.Kind) + " as he made it out"))
+                if (d.Taker.Knows(Name(g.Kind), out float from, out float to) && to - from > 0.05f && g.Began + to > now)
                 {
-                    d.Say("READ IT: strikes into " + Name(g.Kind), now, 2f);
-                    Told?.Invoke(d, d.Taker.How);
+                    if (d.Taker.Foresee(now, g.Began + from, g.Began + to, Name(g.Kind) + " as he made it out"))
+                    {
+                        d.Say("READ IT: strikes into " + Name(g.Kind), now, 2f);
+                        Told?.Invoke(d, d.Taker.How);
+                    }
                 }
+                else
+                {
+                    Meets(d, g.Kind, now);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A gesture he has no blow planned for. One he has not met he cannot read: he goes for what he sees open, as
+        /// one who does not read would, and learns what it leaves open. One he has met, and knows leaves nothing worth
+        /// a blow, he lets go.
+        /// </summary>
+        private static void Meets(Dancer d, Gesture kind, float now)
+        {
+            if (d.Taker.Knows(Name(kind), out _, out _))
+            {
+                d.Taker.Done();
+            }
+            else
+            {
+                d.Taker.Watch(now, "he had not met " + Name(kind) + " before, so he went for what he saw open");
             }
         }
 
