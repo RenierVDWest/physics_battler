@@ -3875,6 +3875,17 @@ namespace PhysicsBattler.Locomotion
             Loco.GuardLift = height > 0 ? PostureMaker.GuardHigh : height < 0 ? -PostureMaker.GuardLow : 0f;
         }
 
+        /// <summary>
+        /// A fake commits the shield (Combat Feel "A Fake Commits The Shield"): while a posture of his own plays (a
+        /// feint, a fake lunge) his shield stays where the posture has it and does not go to meet a blow. That is the
+        /// price of a fake, and what makes the opening it leaves a real one. Off: his shield meets a blow in the
+        /// middle of his own fake as readily as from his guard, as it did.
+        /// </summary>
+        public static bool PostureCommitsShield = true;
+
+        /// <summary>A posture of his own is playing (a feint, a fake lunge), standing or over his walk.</summary>
+        public bool Posturing => Made != null && Made.Posture && Loco.Shot == Made.Clip && (Loco.Current == Locomotor.Mode.OneShot || Loco.ShotOverWalk);
+
         // ---- An uncovering (the plan's step 7: the shield test) ----
 
         /// <summary>How an uncovering went: the part, which way the shield was carried and how far, and when the part was open, as measured on the bodies (seconds after it began).</summary>
@@ -5157,7 +5168,9 @@ namespace PhysicsBattler.Locomotion
             bool sees = IncomingBlade.HasValue && incomingFor > Mathf.Lerp(SeeBlowAfter, NoviceSeeAfter, lack)
                         && toContact <= Mathf.Min(SeesBefore(1f - lack), CombatFeel.ShieldMovesWithin) && Blocking && !GuardOpen
                         // (Uncovering, he has taken his shield away himself: it does not go to meet a blow until it is back.)
-                        && !IsUncovering;
+                        && !IsUncovering
+                        // (In a fake of his own he is committed to it: his shield does not start to meet a blow until it is over.)
+                        && !(PostureCommitsShield && Posturing);
             // (Not before the blow can be read: through the first part of it (the scene's Combat Feel's share of its time
             // from its start to its contact) it is a wind-up, and a shield that went to where it would land read the
             // striker's mind.)
@@ -5173,7 +5186,7 @@ namespace PhysicsBattler.Locomotion
             }
             backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
             // (Knocked open: the shield meets nothing until the guard is back.)
-            float wantIntercept = !GuardOpen && !IsUncovering && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
+            float wantIntercept = !GuardOpen && !IsUncovering && !(PostureCommitsShield && Posturing) && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
             // (A poor shield lets its guard fall back once the blow it met has passed, as a combo's next comes on unseen: a
             // good one keeps it where it was until it sees where the next is going.)
             if (Blow.HasValue && !sees && seenSerial != Blow.Value.Serial && blowLack > 0.5f)

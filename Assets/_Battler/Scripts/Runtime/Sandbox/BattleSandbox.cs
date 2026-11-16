@@ -549,6 +549,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab's shield test (the plan's step 7): the target uncovers a part for a moment and the swordsman takes it.</summary>
         public readonly ShieldTest Shield = new ShieldTest();
 
+        /// <summary>The duel lab's fakes test (the plan's step 7, second part): the target throws fake slashes in a pattern and the swordsman takes the opening the long one leaves.</summary>
+        public readonly FakeTest Fakes = new FakeTest();
+
         /// <summary>How far apart the duel lab's two begin (metres).</summary>
         public const float DuelApartAtFirst = 3f;
 
@@ -896,7 +899,7 @@ namespace PhysicsBattler.Sandbox
                 GUILayout.Label(new GUIContent("Swordsman:", "How he takes the opening. Reads it (new): he recognises the uncovering as it starts and times his blow to land while the part is open. He has to have seen that uncovering once: the first time, he can only react. Only reacts: he starts his blow once he sees the part open."), Styles().Text, GUILayout.Width(80f));
                 if (Press(feel.theSwordsmanReadsOpenings ? "[reads it]" : "reads it", "He reads the uncovering (Combat Feel \"The Swordsman Reads Openings\").")) feel.theSwordsmanReadsOpenings = true;
                 if (Press(!feel.theSwordsmanReadsOpenings ? "[only reacts]" : "only reacts", "He starts his blow once he sees the part open.")) feel.theSwordsmanReadsOpenings = false;
-                if (Press("Forget", "He forgets every uncovering he has seen: the next one is new to him, and he can only react to it.")) Shield.Taker.Forget();
+                if (Press("Forget", "He forgets every uncovering he has seen, and the pattern of the target's fakes: the next is new to him.")) { Shield.Taker.Forget(); Fakes.Forget(); }
                 GUILayout.EndHorizontal();
                 feel.openingReactionTime = Lever("Reaction", feel.openingReactionTime, 0.05f, 0.6f, "How long after he recognises the uncovering (reading) or sees the part open (reacting) he starts his blow (seconds).");
                 feel.quickestOpeningBlow = Lever("Quickest blow", feel.quickestOpeningBlow, 0.3f, 0.8f, "The least time his blow may take to land (seconds). In its own time a blow takes about 0.6 s; under about 0.4 s it lands off its mark.");
@@ -904,11 +907,55 @@ namespace PhysicsBattler.Sandbox
                 feel.uncoverOpenFor = Lever("Open for", feel.uncoverOpenFor, 0.15f, 1.2f, "How long the target leaves the part open (seconds).");
                 Shield.Taker.Reads = feel.theSwordsmanReadsOpenings;
                 Shield.Taker.Reaction = feel.openingReactionTime;
+                Fakes.Taker.Reads = feel.theSwordsmanReadsOpenings;
+                Fakes.Taker.Reaction = feel.openingReactionTime;
             }
 
             GUILayout.Label(new GUIContent("Now: " + Shield.NowText, "The part chosen as the swordsman sees it this moment, and whether he has seen this uncovering before (what he goes by when he reads it)."), Styles().Text);
             GUILayout.Label(new GUIContent("Last go: " + (Shield.Now != null ? (Shield.Now.Done ? "" : "(under way) ") + Shield.Now.Verdict : "none yet."), "The last go: when the part was open, as measured on the bodies (seconds after the uncovering began, its tell included); when the swordsman's blow started; what it met and when; and what he went by."), Styles().Text);
             GUILayout.Label(Shield.Trials.Count > 0 ? Shield.Tally() : "", Styles().Text);
+            DrawFakeTest(feel);
+        }
+
+        /// <summary>
+        /// The duel lab's fakes test (the plan "Fight Rhythm from Recordings", step 7, second part): the target throws
+        /// fake slashes in a pattern, short ones and then a long one, and the swordsman is to hit its chest while the
+        /// long one leaves it open. He reads the pattern, or only reacts to what he sees open.
+        /// </summary>
+        private void DrawFakeTest(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            Heading("Fakes test", "The shield test on real gestures. The target throws fake slashes at the swordsman: short ones, which leave its chest covered, and after so many of them a long one, which leaves its chest open for nearly half a second. They come on a steady beat. The swordsman set to read (above) watches the pattern through once without striking; after that he lets the short ones go, counts them, and starts his blow before the long one begins, to land as it opens. Set to only react he waits until he sees the chest open, and arrives after it is covered again. Set out the shield test first (the target needs its sword and shield).");
+            GUILayout.BeginHorizontal();
+            if (Press("Short fake", "The target throws one short fake slash now.") && !Fakes.Throw(false, Time.time)) message = "Fakes test: not now: " + (Fakes.Cannot.Length > 0 ? Fakes.Cannot : "the target cannot") + ".";
+            if (Press("Long fake", "The target throws one long fake slash now. By itself it has no pattern before it, so a reader has nothing to go by and lets it go; one who only reacts goes for it.") && !Fakes.Throw(true, Time.time)) message = "Fakes test: not now: " + (Fakes.Cannot.Length > 0 ? Fakes.Cannot : "the target cannot") + ".";
+            if (Press(Fakes.Pattern ? "[Pattern]" : "Pattern", "The target plays its pattern round and round: so many short fakes, then a long one, one on each beat. Struck, or off its spot, it begins the pattern again once it is back."))
+            {
+                Fakes.Pattern = !Fakes.Pattern;
+                Fakes.Restart();
+            }
+
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Its pattern:", "Steady: always the same number of short fakes before the long one, so it can be counted. Mixed up: the number is drawn afresh each time (1 to 3), so counting tells nothing, and a reader is wrong as often as right."), Styles().Text, GUILayout.Width(80f));
+            if (Press(!Fakes.MixedUp ? "[steady]" : "steady", "Always the same number of short fakes before the long one.")) Fakes.MixedUp = false;
+            if (Press(Fakes.MixedUp ? "[mixed up]" : "mixed up", "The number of short fakes before the long one is drawn afresh each time.")) Fakes.MixedUp = true;
+            GUILayout.EndHorizontal();
+            Fakes.Shorts = Mathf.RoundToInt(Slide("Short ones", $"{Fakes.Shorts}", "How many short fakes come before each long one (the steady pattern).", Fakes.Shorts, 1f, 4f));
+            Fakes.Beat = Mathf.Round(10f * Slide("Beat", $"{Fakes.Beat:0.0} s", "How long from the start of one fake to the start of the next.", Fakes.Beat, 1.3f, 3f)) / 10f;
+            if (feel != null)
+            {
+                feel.longFakeHold = Lever("Long holds", feel.longFakeHold, 0f, 0.6f, "How long the long fake is held at its furthest (seconds). The longer, the longer its chest is open.");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("In a fake:", "What a fighter's shield does while he is in a fake of his own. Committed (new): it stays where the fake has it and does not go to meet a blow, so the opening is real. Free (old): it meets a blow in the middle of the fake as readily as from his guard, and the opening is only for show."), Styles().Text, GUILayout.Width(80f));
+                if (Press(feel.aFakeCommitsTheShield ? "[shield committed]" : "shield committed", "His shield stays with the fake (Combat Feel \"A Fake Commits The Shield\").")) feel.aFakeCommitsTheShield = true;
+                if (Press(!feel.aFakeCommitsTheShield ? "[shield free (old)]" : "shield free (old)", "His shield meets a blow in the middle of his own fake, as it did.")) feel.aFakeCommitsTheShield = false;
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.Label(new GUIContent("The pattern: " + Fakes.Learned + ".", "What the swordsman has learned of the target's pattern by watching it: nothing of it is given him."), Styles().Text);
+            GUILayout.Label(new GUIContent("Last fake: " + (Fakes.Now != null ? Fakes.Now.Text(Fakes.Spot) : "none yet") + ".", "The target's last fake: when it was furthest and how long it took, and when it left its chest open, as measured on the bodies (seconds after it began)."), Styles().Text);
+            GUILayout.Label(new GUIContent("Last blow: " + (Fakes.LastBlow != null ? Fakes.LastBlow.Verdict : "none yet."), "The swordsman's last blow in this test: what he threw it by, what it met, and whether the chest was open as it met."), Styles().Text);
+            GUILayout.Label(Fakes.Fakes.Count > 0 ? Fakes.Tally() : "", Styles().Text);
         }
 
         /// <summary>
@@ -1018,6 +1065,7 @@ namespace PhysicsBattler.Sandbox
             Aim.Begin(attacker, target);
             LabelNotes.Clear();
             Shield.Begin(Aim);
+            Fakes.Begin(Aim);
             if (duelLab)
             {
                 Duel.Style = capoeira ? PhysicsBattler.Locomotion.MoveStyle.Capoeira : PhysicsBattler.Locomotion.MoveStyle.Standard;
@@ -1465,10 +1513,11 @@ namespace PhysicsBattler.Sandbox
                     if (duelLab)
                     {
                         Shield.Step(Time.fixedDeltaTime, Time.time);
+                        Fakes.Step(Time.fixedDeltaTime, Time.time);
                         if (Aim.Target != null && Aim.Attacker != null)
                         {
-                            LabelNotes[Aim.Target] = Shield.TargetNote;
-                            LabelNotes[Aim.Attacker] = Shield.AttackerNote;
+                            LabelNotes[Aim.Target] = Shield.TargetNote.Length > 0 ? Shield.TargetNote : Fakes.TargetNote;
+                            LabelNotes[Aim.Attacker] = Shield.AttackerNote.Length > 0 ? Shield.AttackerNote : Fakes.AttackerNote;
                         }
                     }
                 }

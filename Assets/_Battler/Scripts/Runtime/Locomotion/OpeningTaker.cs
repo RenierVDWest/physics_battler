@@ -91,6 +91,56 @@ namespace PhysicsBattler.Locomotion
             How = string.Format(System.Globalization.CultureInfo.InvariantCulture, "he read it (open {0:0.00} to {1:0.00} s): his blow started {2:0.00} s after it began, timed to land at {3:0.00} s", from, to, Reaction, lands);
         }
 
+        /// <summary>A blow in its own time lands about this long after it starts (seconds): with time in hand he does not hurry it, and it lands truer.</summary>
+        public const float OwnTime = 0.62f;
+
+        /// <summary>
+        /// He only watches now, and will react when he sees the part open (one who does not read; or one who reads
+        /// with nothing to go by).
+        /// </summary>
+        public void Watch(float now, string how)
+        {
+            began = now;
+            watching = true;
+            struck = false;
+            strikeAt = -1f;
+            Read = Held = false;
+            How = how;
+        }
+
+        /// <summary>
+        /// He foresees an opening: the part will be open from <paramref name="opensAt"/> to
+        /// <paramref name="shutsAt"/> (the game's clock), by something he has learned (<paramref name="by"/>: a
+        /// posture's own tell, or the pattern the other's gestures come in). His blow starts no sooner than his
+        /// reaction time from now, in its own time where there is time for that and hurried where there is not
+        /// (never under <see cref="Quickest"/>), made to land <see cref="LandsInto"/> of the way into the opening.
+        /// False, and he holds his blow: it could not land before the opening is all but over.
+        /// </summary>
+        public bool Foresee(float now, float opensAt, float shutsAt, string by)
+        {
+            began = now;
+            struck = false;
+            strikeAt = -1f;
+            Read = Held = false;
+            float lands = opensAt + LandsInto * (shutsAt - opensAt), latest = opensAt + LatestInto * (shutsAt - opensAt);
+            float starts = Mathf.Max(now + Reaction, lands - OwnTime);
+            lands = Mathf.Max(lands, starts + Quickest);
+            if (lands > latest)
+            {
+                watching = false;
+                Held = true;
+                How = string.Format(System.Globalization.CultureInfo.InvariantCulture, "he read it by {0} (open {1:0.00} to {2:0.00} s from now), but his blow could not land before {3:0.00} s: he held it", by, opensAt - now, shutsAt - now, lands - now);
+                return false;
+            }
+
+            watching = true;
+            Read = true;
+            strikeAt = starts;
+            landIn = lands - starts;
+            How = string.Format(System.Globalization.CultureInfo.InvariantCulture, "he read it by {0} (open {1:0.00} to {2:0.00} s from then): his blow started {3:0.00} s after, to land at {4:0.00} s", by, opensAt - now, shutsAt - now, starts - now, lands - now);
+            return true;
+        }
+
         /// <summary>
         /// One step while he watches: <paramref name="openNow"/> is whether he sees the part open. True the one step
         /// he starts his blow; it is to land <paramref name="landsIn"/> seconds after.
@@ -119,6 +169,9 @@ namespace PhysicsBattler.Locomotion
 
             return false;
         }
+
+        /// <summary>He has a blow planned for an opening he foresaw, and has not started it yet.</summary>
+        public bool Pending => watching && !struck && Read && strikeAt >= 0f;
 
         /// <summary>He stops watching (the posture is long over).</summary>
         public void Done() => watching = false;

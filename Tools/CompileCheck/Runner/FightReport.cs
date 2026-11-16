@@ -704,6 +704,9 @@ internal static class FightReport
         PhysicsBattler.Sandbox.DuelLab duel = null;
         PhysicsBattler.Sandbox.ShieldTest shieldTest = null;
         int shieldGo = 0;
+        PhysicsBattler.Sandbox.FakeTest fakeTest = null;
+        int fakeGo = 0;
+        string fakeLearned = "";
         float styleSweep = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STYLESWEEP"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float sweepOver) ? sweepOver : 0f;
         var duelOrders = new List<(PhysicsBattler.Sandbox.DuelLab.Order order, float until)>();
         int duelAt = -1;
@@ -1567,6 +1570,57 @@ internal static class FightReport
                         shieldTest.Step(dt, Time.time);
                     }
 
+                    // (The fakes test, the plan's step 7, second part. FIGHT_FAKES="3:short,6:long": the target throws a
+                    // fake slash at those seconds. FIGHT_PATTERN=3: from that second it plays its pattern, FIGHT_PATTERNSHORTS=2
+                    // short fakes then a long one, one every FIGHT_BEAT=1.5 s; FIGHT_MIXED=1 mixes the count up.
+                    // FIGHT_SHORTDEPTH, FIGHT_LONGDEPTH, FIGHT_LONGHOLD: the fakes themselves. FIGHT_READS, FIGHT_REACTION,
+                    // FIGHT_QUICKEST as in the shield test.)
+                    if (fakeTest == null && (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_FAKES")) || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_PATTERN"))))
+                    {
+                        float EnvG(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+                        fakeTest = new PhysicsBattler.Sandbox.FakeTest();
+                        fakeTest.Begin(aim);
+                        fakeTest.Taker.Reads = Environment.GetEnvironmentVariable("FIGHT_READS") != "0";
+                        fakeTest.Taker.Reaction = EnvG("FIGHT_REACTION", 0.2f);
+                        PhysicsBattler.Locomotion.OpeningTaker.Quickest = EnvG("FIGHT_QUICKEST", PhysicsBattler.Locomotion.OpeningTaker.Quickest);
+                        fakeTest.Shorts = (int)EnvG("FIGHT_PATTERNSHORTS", fakeTest.Shorts);
+                        fakeTest.Beat = EnvG("FIGHT_BEAT", fakeTest.Beat);
+                        fakeTest.MixedUp = Environment.GetEnvironmentVariable("FIGHT_MIXED") == "1";
+                        // (FIGHT_FAKECOMMITS=0: his shield meets a blow in the middle of his own fake, as it did.)
+                        PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") != "0";
+                        PhysicsBattler.Sandbox.FakeTest.ShortDepth = EnvG("FIGHT_SHORTDEPTH", PhysicsBattler.Sandbox.FakeTest.ShortDepth);
+                        PhysicsBattler.Sandbox.FakeTest.LongDepth = EnvG("FIGHT_LONGDEPTH", PhysicsBattler.Sandbox.FakeTest.LongDepth);
+                        PhysicsBattler.Sandbox.FakeTest.LongHold = EnvG("FIGHT_LONGHOLD", PhysicsBattler.Sandbox.FakeTest.LongHold);
+                        fakeTest.Shown += fake => Console.WriteLine($"FAKE {fake.Began - startTime:0.00} {fake.Text(fakeTest.Spot)}");
+                        fakeTest.Struck += struck => Console.WriteLine($"FAKEBLOW {struck.AskedAt - startTime:0.00} {(fakeTest.Taker.Reads ? "reads" : "reacts")}: {struck.Verdict}");
+                    }
+
+                    if (fakeTest != null)
+                    {
+                        string[] fakes = (Environment.GetEnvironmentVariable("FIGHT_FAKES") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (fakeGo < fakes.Length)
+                        {
+                            string[] bits = fakes[fakeGo].Split(':');
+                            if (paceAt >= float.Parse(bits[0], System.Globalization.CultureInfo.InvariantCulture) && fakeTest.Throw(bits[1].Trim() == "long", Time.time))
+                            {
+                                fakeGo++;
+                            }
+                        }
+
+                        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_PATTERN"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float patternFrom) && paceAt >= patternFrom && !fakeTest.Pattern)
+                        {
+                            fakeTest.Pattern = true;
+                            Console.WriteLine($"PATTERN {paceAt:0.00} begun: {fakeTest.Shorts} short fakes then a long one, every {fakeTest.Beat:0.00} s{(fakeTest.MixedUp ? ", mixed up" : "")}");
+                        }
+
+                        fakeTest.Step(dt, Time.time);
+                        if (fakeTest.Learned != fakeLearned)
+                        {
+                            fakeLearned = fakeTest.Learned;
+                            Console.WriteLine($"LEARNED {paceAt:0.00} {fakeLearned}");
+                        }
+                    }
+
                     for (int i = 0; i < duelBlows.Count; i++)
                     {
                         if (paceAt >= duelBlows[i].at)
@@ -1973,6 +2027,17 @@ internal static class FightReport
             if (aim != null)
             {
                 sb.AppendLine($"    the aim test (a swordsman {Vector3.Distance(aim.Attacker.DummySpot, aim.Target.DummySpot):0.00} m from a target with {(aimKit == "shield" ? "sword and shield" : aimKit == "sword" ? "a sword" : "open hands")}): {aim.Tally()}");
+                if (fakeTest != null)
+                {
+                    sb.AppendLine($"    the fakes test: {fakeTest.Tally()}");
+                    Console.WriteLine($"FAKETALLY {fakeTest.Tally()}");
+                }
+
+                if (shieldTest != null)
+                {
+                    sb.AppendLine($"    the shield test: {shieldTest.Tally()}");
+                }
+
                 foreach (var blow in aim.Blows)
                 {
                     sb.AppendLine("        " + (blow.Done ? blow.Text : $"asked for the {PhysicsBattler.Locomotion.AimSpots.Name(blow.Spot)} with {blow.Strike}: not over when the fight ended"));

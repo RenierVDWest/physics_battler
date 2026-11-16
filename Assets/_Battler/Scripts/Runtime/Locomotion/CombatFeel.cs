@@ -291,6 +291,18 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A change of guard: how much lower a low guard carries the sword arm (degrees).")]
         [Range(10f, 45f)] public float guardLowDrop = 25f;
 
+        [Tooltip("A fake commits the shield. On: while a fighter is in a fake of his own (a feint, a fake lunge) his shield stays where the fake has it and does not go to meet a blow, so the opening the fake leaves is a real one, and a fake costs something. Off: his shield meets a blow in the middle of his own fake as readily as from his guard, as it did.")]
+        public bool aFakeCommitsTheShield = true;
+
+        [Tooltip("The fakes test (duel lab): how far into the attack's wind-up the target's short fake slash goes (of a feint's own depth). At 0.45 it leaves his chest covered.")]
+        [Range(0.2f, 0.8f)] public float shortFakeDepth = 0.45f;
+
+        [Tooltip("The fakes test: how far into the attack's wind-up the target's long fake slash goes (of a feint's own depth).")]
+        [Range(0.6f, 1f)] public float longFakeDepth = 1f;
+
+        [Tooltip("The fakes test: how long the long fake is held at its furthest (seconds). Held 0.25 s it leaves his chest open for nearly half a second.")]
+        [Range(0f, 0.6f)] public float longFakeHold = 0.25f;
+
         [Tooltip("The shield test (duel lab): the swordsman reads the target's uncovering. On: he recognises it as it starts (its tell: the point of its blade dips and is held down), knows from the times he has seen it when the part comes open and for how long, and starts his blow early, timed to land while it is open. The first time he sees one he cannot read it and only reacts. Off: he only ever reacts: he starts his blow once he sees the part open, and against a short opening arrives after it has shut.")]
         public bool theSwordsmanReadsOpenings = true;
 
@@ -1122,6 +1134,10 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.UncoverTell = uncoverTell;
             PostureMaker.UncoverFor = uncoverOpenFor;
             OpeningTaker.Quickest = quickestOpeningBlow;
+            ClipFighter.PostureCommitsShield = aFakeCommitsTheShield;
+            PhysicsBattler.Sandbox.FakeTest.ShortDepth = shortFakeDepth;
+            PhysicsBattler.Sandbox.FakeTest.LongDepth = longFakeDepth;
+            PhysicsBattler.Sandbox.FakeTest.LongHold = longFakeHold;
             PostureMaker.DropSinks = 0.01f * dropSinks;
             PostureMaker.DropLeans = dropLeans;
             PostureMaker.DropDown = dropDown;

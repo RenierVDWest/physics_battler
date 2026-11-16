@@ -4975,3 +4975,66 @@ pulled into the body. This entry replaces the uncovering's description and the t
   and the one before he really attacks is long. So reading is recognising the pattern, not a signal made for
   the purpose. The blade dip here stands in for that until the target plays the real postures.
 - **Not verified in Unity**: the new tell and shield move, and the writing over the fighters.
+
+**Fight rhythm, step 7, second part: the fakes test; a fake commits the shield** (16 November; `FakeTest`,
+`OpeningTaker.Foresee`, `ClipFighter.PostureCommitsShield`). The shield test on the real postures of step 6 in
+place of the scripted shield, with the tell where Renier put it: in the pattern of a fighter's gestures.
+
+- **The target's fakes.** It throws fake slashes at the swordsman: feints made of the forehand cut as any feint
+  is, only how deep they go and how long they are held differing. Measured one at a time, on a settled target
+  (seconds after each began):
+
+  | | Furthest at | Over in | Its chest open |
+  | --- | --- | --- | --- |
+  | Short fake (0.45 of a feint's depth, not held) | 0.24 | 0.73 | never (5 of 5) |
+  | Long fake (full depth, held 0.25 s) | 0.37 | 1.11 | 0.27 to 0.30 until 0.75: about 0.47 s (4 of 4) |
+  | Long fake, held 0.06 s | 0.37 | 0.93 | 0.32 to 0.38 until 0.57: about 0.2 s |
+
+- **Its pattern**: so many short fakes (2), then a long one, a fake beginning every 1.5 s, round and round.
+  Struck, or off its spot, it begins again once it is back and 1.2 s have passed.
+- **A fake commits the shield** (Combat Feel "A Fake Commits The Shield", on). While a posture of his own plays
+  (a feint, a fake lunge) his shield stays where the posture has it and does not go to meet a blow. Before
+  this the shield met a blow in the middle of his own fake as readily as from his guard, so a fake cost nothing
+  and the opening it left was only for show. Real blows are untouched: a fighter still blocks while he strikes.
+- **The swordsman.**
+  - *Only reacting*, he goes for the chest whenever he sees it open, as quick as a blow may be.
+  - *Reading*, he first watches the pattern through once without striking. What he learns is what he saw:
+    how many short fakes come before the long one, how long after the last of them it begins, and when it has
+    the chest open. After that he lets the short ones go, counts them, and as the last short one begins he
+    foresees the opening (`OpeningTaker.Foresee`): his blow is thrown in its own time (0.62 s; hurried only
+    when there is not time for that), made to land 40% of the way into the window. It starts before the long
+    fake does.
+- **Lab** ("Duel lab", "Fakes test", under the shield test; "Set out" first): "Short fake", "Long fake" (one,
+  now), "Pattern" (round and round); "Its pattern: steady / mixed up"; "Short ones", "Beat", "Long holds";
+  "In a fake: shield committed / shield free (old)". Under them: what he has learned of the pattern, the last
+  fake and what it opened, the last blow, and the count. Over the two as it happens: "short fake", "LONG FAKE:
+  CHEST OPEN"; "watching: learning his pattern", "reads: lets the short fake go", "READ THE PATTERN: the long
+  one is next", "READ THE PATTERN: striking", and how it came out.
+- **Measured** (headless, about 45 s of the pattern each, both with sword and shield, 1.5 m apart, reaction
+  0.2 s):
+
+  | Swordsman | Blows | On the chest while open | In time, beside it | Other |
+  | --- | --- | --- | --- | --- |
+  | Reads, steady pattern | 8 | 4 | 3 (the left upper arm) | 1 met nothing; none on the shield, none at a short fake |
+  | Only reacts, steady pattern | 16 | 0 | 0 | 12 at short fakes (all on the shield); 3 too late at a long one (one of them still reached the chest after it was covered); 1 met nothing |
+  | Reads, pattern mixed up (1 to 3 short ones) | 5 | 1 | 0 | 4 thrown when it was not open (3 on the shield) |
+  | Reads, steady, shield free in a fake (old) | 7 | 0 | 1 | 6 when it was covered (5 on the shield) |
+
+  Reading, each blow began 1.43 s after the last short fake did, 0.08 s before the long one. Nothing thrown;
+  the six fighters' fight with the made movement off is unchanged (84 blows, 3 against 2). Headless:
+  `FIGHT_PATTERN=3` (and `FIGHT_PATTERNSHORTS`, `FIGHT_BEAT`, `FIGHT_MIXED=1`, `FIGHT_FAKECOMMITS=0`,
+  `FIGHT_FAKES="3:short,5.5:long"`); the lines begin `FAKE`, `FAKEBLOW`, `LEARNED`, `FAKETALLY`.
+- **Not verified in Unity**: all of it: the panel, the writing over the two, how a short and a long fake look
+  on the target, and whether the lab's bodies give the same windows.
+- **Known**:
+  - In the first, undisturbed round the short fakes open nothing, and one who only reacts leaves them alone.
+    He goes for them later: after his own blows have moved him and the target off their line, he sees the
+    chest past the shield for a moment in a short fake too. So "wasted on a short fake" is partly his own
+    doing.
+  - Reading, 3 of 8 landed on the left upper arm, beside the chest: the made attack's aim.
+  - The reader counts. Against a mixed-up pattern counting is wrong as often as right, and he has nothing
+    else yet: he does not tell a long fake from a short one as it goes on.
+  - The swordsman stands still, and the target neither strikes nor answers. Both fighters doing all of this to
+    each other is step 8.
+
+New file that needs its .meta from Unity: `Sandbox/FakeTest.cs`.
