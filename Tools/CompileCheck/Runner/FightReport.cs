@@ -711,6 +711,8 @@ internal static class FightReport
         // change of speed from one step to the next, of the root, the hips, each foot and the sword hand, as posed
         // and as seen, over its first 0.4 s. A body going 1.4 m/s that stops in a step has a change of 1.4 m/s.)
         var duelBlows = new List<(float at, PhysicsBattler.Locomotion.AimSpot spot)>();
+        string openedTold = "none watched yet";
+        bool openTold = false;
         bool startWatched = false;
         int aimRounds = 0;
         if (aimLineup)
@@ -1444,6 +1446,26 @@ internal static class FightReport
                     }
 
                     duel.Step(dt);
+                    // (What he leaves open: once as he stands, and after each posture watched.)
+                    if (duel.Opened != openedTold)
+                    {
+                        openedTold = duel.Opened;
+                        Console.WriteLine($"OPENINGS {paceAt:0.00} {duel.Opened}");
+                    }
+
+                    if (!openTold && paceAt >= 1.5f && duel.Open.Count > 0)
+                    {
+                        openTold = true;
+                        var open = new System.Text.StringBuilder();
+                        var shut = new System.Text.StringBuilder();
+                        foreach (var seen in duel.Open)
+                        {
+                            (seen.Open ? open : shut).Append(seen.Open ? PhysicsBattler.Locomotion.AimSpots.Name(seen.Spot) + ", " : PhysicsBattler.Locomotion.AimSpots.Name(seen.Spot) + " (" + seen.Behind + "), ");
+                        }
+
+                        Console.WriteLine($"OPEN as he stands at {paceAt:0.0} s: {open}| covered: {shut}");
+                    }
+
                     // (FIGHT_DROPAT="3,6": he drops at those seconds, PostureMaker's drop.)
                     foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_DROPAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                     {
@@ -1451,6 +1473,7 @@ internal static class FightReport
                         if (paceAt >= when && paceAt - dt < when)
                         {
                             Console.WriteLine($"DROP {paceAt:0.00}: {(duel.Mover.Clip.Drop() ? "begun" : "he could not")}");
+                            duel.WatchOpenings("drop");
                         }
                     }
 
@@ -1464,6 +1487,7 @@ internal static class FightReport
                         {
                             var kind = bits[1] == "dip" ? PhysicsBattler.Locomotion.Locomotor.Pulse.BladeDip : bits[1] == "flick" ? PhysicsBattler.Locomotion.Locomotor.Pulse.BladeFlick : bits[1] == "circle" ? PhysicsBattler.Locomotion.Locomotor.Pulse.BladeCircle : PhysicsBattler.Locomotion.Locomotor.Pulse.ShieldPress;
                             Console.WriteLine($"BLUFF {paceAt:0.00} {bits[1]}: {(duel.Mover.Clip.Bluff(kind) ? "begun" : "he could not")}");
+                            duel.WatchOpenings(bits[1]);
                         }
                     }
 
@@ -1490,6 +1514,7 @@ internal static class FightReport
                             }
 
                             bool asked = duel.Strike(aim, duelBlows[i].spot, Time.time);
+                            duel.WatchOpenings(posture.Length > 0 ? posture : "a blow");
                             Console.WriteLine($"DUELBLOW {paceAt:0.00} at the {duelBlows[i].spot} while {duel.BlowBegan}: {(asked ? "begun, " + duel.BlowThrown : "he could not")}");
                             startWatched = asked;
                             duelBlows.RemoveAt(i);

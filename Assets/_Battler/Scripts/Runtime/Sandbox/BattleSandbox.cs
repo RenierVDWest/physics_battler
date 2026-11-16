@@ -782,17 +782,30 @@ namespace PhysicsBattler.Sandbox
             GUILayout.BeginHorizontal();
             if (Press("Drop", "He dips now.") && Duel.Mover != null && Duel.Mover.Clip != null)
             {
-                message = Duel.Mover.Clip.Drop() ? "Duel lab: he drops." : "Duel lab: he cannot drop just now (he is in a blow or a leap, or one is under way).";
+                bool dropped = Duel.Mover.Clip.Drop();
+                message = dropped ? "Duel lab: he drops." : "Duel lab: he cannot drop just now (he is in a blow or a leap, or one is under way).";
+                if (dropped)
+                {
+                    Duel.WatchOpenings("drop");
+                }
             }
 
             GUILayout.EndHorizontal();
+            Heading("What he leaves open", "Each part of his body as the other sees it from its sword shoulder: open (a straight line reaches it), or covered, and by what (his shield, or his own arm before it). Looked at on the bodies as they are, ten times a second, so whatever he does shows in it. Under it: what the last posture opened that was covered, and covered that was open, and when.");
+            OpenRow(PhysicsBattler.Locomotion.AimSpot.Head);
+            OpenRow(PhysicsBattler.Locomotion.AimSpot.ShoulderR, PhysicsBattler.Locomotion.AimSpot.Chest, PhysicsBattler.Locomotion.AimSpot.ShoulderL);
+            OpenRow(PhysicsBattler.Locomotion.AimSpot.UpperArmR, PhysicsBattler.Locomotion.AimSpot.Belly, PhysicsBattler.Locomotion.AimSpot.UpperArmL);
+            OpenRow(PhysicsBattler.Locomotion.AimSpot.ForearmR, PhysicsBattler.Locomotion.AimSpot.Hips, PhysicsBattler.Locomotion.AimSpot.ForearmL);
+            OpenRow(PhysicsBattler.Locomotion.AimSpot.ThighR, PhysicsBattler.Locomotion.AimSpot.ThighL);
+            OpenRow(PhysicsBattler.Locomotion.AimSpot.ShinR, PhysicsBattler.Locomotion.AimSpot.ShinL);
+            GUILayout.Label("Last posture: " + Duel.Opened, Styles().Text);
             Heading("Sword and shield", "Postures of the upper body, over whatever he is doing. The blade's bluffs: its point dips, flicks aside, or goes once round. The shield press: the shield is thrust out and brought back. The guard: where he carries his sword arm until it is changed again.");
             var poser = Duel.Mover != null ? Duel.Mover.Clip : null;
             GUILayout.BeginHorizontal();
-            if (Press("Blade dip", "The point dips and comes back.") && poser != null) poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeDip);
-            if (Press("Blade flick", "The point flicks aside and comes back.") && poser != null) poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeFlick);
-            if (Press("Blade circle", "The point goes once round.") && poser != null) poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeCircle);
-            if (Press("Shield press", "The shield is thrust out and brought back.") && poser != null) poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.ShieldPress);
+            if (Press("Blade dip", "The point dips and comes back.") && poser != null && poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeDip)) Duel.WatchOpenings("blade dip");
+            if (Press("Blade flick", "The point flicks aside and comes back.") && poser != null && poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeFlick)) Duel.WatchOpenings("blade flick");
+            if (Press("Blade circle", "The point goes once round.") && poser != null && poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeCircle)) Duel.WatchOpenings("blade circle");
+            if (Press("Shield press", "The shield is thrust out and brought back.") && poser != null && poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.ShieldPress)) Duel.WatchOpenings("shield press");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label(new GUIContent("Guard:", "Where he carries his sword arm: as the recordings have it, higher, or lower. He stays in it until it is changed."), Styles().Text, GUILayout.Width(60f));
@@ -992,6 +1005,11 @@ namespace PhysicsBattler.Sandbox
             // (In the duel lab the blow's start is watched, whatever he is doing as it is asked for.)
             if (duelLab && Duel.Running ? Duel.Strike(Aim, spot, Time.time) : Aim.Order(spot, Time.time))
             {
+                if (duelLab && Duel.Running)
+                {
+                    Duel.WatchOpenings(duelPosture == 0 ? "a blow" : duelPosture == 1 ? "feint" : duelPosture == 2 ? "fake lunge" : "feint on a fake lunge");
+                }
+
                 message = $"Aim test: a blow asked for the {AimSpots.Name(spot)} ({Aim.Now.Strike}).";
             }
             else
@@ -2788,6 +2806,35 @@ namespace PhysicsBattler.Sandbox
         }
 
         private float Lever(string name, float now, float least, float most, string tip) => Mathf.Round(100f * Slide(name, $"{now:0.00}", tip, now, least, most)) / 100f;
+
+        /// <summary>A row of the map of what the duel lab's mover leaves open: each spot's name, green where it is open, grey with what covers it where it is not.</summary>
+        private void OpenRow(params AimSpot[] spots)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            var was = GUI.color;
+            foreach (var spot in spots)
+            {
+                string name = AimSpots.Name(spot), behind = "";
+                bool open = true, known = false;
+                foreach (var seen in Duel.Open)
+                {
+                    if (seen.Spot == spot)
+                    {
+                        open = seen.Open;
+                        behind = seen.Behind;
+                        known = true;
+                    }
+                }
+
+                GUI.color = !known ? Color.gray : open ? new Color(0.45f, 1f, 0.45f) : new Color(0.7f, 0.7f, 0.7f);
+                GUILayout.Label(new GUIContent(open ? name : name + " (" + behind.Replace("its ", "") + ")", open ? "Open: a straight line from the other's sword shoulder reaches it." : "Covered: " + behind + " is before it."), Styles().Text, GUILayout.Width(AimButtonWidth + 26f));
+            }
+
+            GUI.color = was;
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+        }
 
         private void AimRow(AimSpot? left, AimSpot? middle = null, AimSpot? right = null)
         {

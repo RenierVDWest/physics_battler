@@ -4836,3 +4836,34 @@ November). The upper body's postures that are not the start of an attack.
 - **For the dance (step 8), from Renier:** the postures' levers are not to be one setting, nor plain chance: a
   fighter varies them in patterns that mean something. One makes many small drops and one deep one before he
   attacks; the other can learn that, and it is an opening.
+
+**Fight rhythm, step 6, fourth part: what he leaves open, measured** (16 November; `Openings`). The plan's
+"openings are measured, not hand-marked", as far as step 6 needs it: a map of what each posture opens.
+
+- **Open** is looked at on the bodies as they are. A spot on his body (the aim test's spots) is open to the
+  other when a straight line from the other's sword shoulder reaches it without first meeting his shield or
+  another part of him; otherwise it is covered, and by what. The line is looked along in 3 cm steps over its last
+  0.9 m (`Openings.Look`). A blade is not counted as cover.
+- **Lab** ("Duel lab", "What he leaves open"): his body as a map, each spot green where it is open and grey
+  with what covers it where it is not, ten times a second. Under it, "Last posture": for 1.4 s after any
+  posture or blow asked for in the lab, what it opened that was covered and covered that was open, and when.
+- **Measured** (sword and shield, standing 1.8 m off; seconds from when it was asked for):
+
+  | | Opens | Covers |
+  | --- | --- | --- |
+  | Standing in his guard | head, neck, both shoulders, shins and feet are open; the shield covers chest, belly, hips, both arms, both thighs | |
+  | Blade dip | nothing | nothing |
+  | Shield press | left upper arm 0.07 to 0.40, left thigh and hips 0.10 to 0.33, chest 0.13 to 0.26 | right shoulder 0.13 to 0.30 |
+  | Drop | chest 0.10 to 0.33, left upper arm 0.13 to 0.30 | right shin 0.10 to 0.33 |
+  | Feint (forehand, at the chest) | sword arm and right thigh 0.13 to 0.75, chest and hips 0.20 to 0.66, belly 0.23 to 0.63, left upper arm and thigh 0.26 to 0.60 | left shoulder 0.69 to 0.79 |
+
+  The feint's three repeats agree to 0.03 s. Nothing thrown; the six fighters' fights with the made movement
+  off are unchanged (84 blows). Headless the lines begin `OPEN` and `OPENINGS`.
+- **Not verified in Unity**: the map in the panel (how it is laid out and coloured), and all of the above on
+  the lab's own bodies.
+- **Known**: it is seen from one place, the other's sword shoulder, not along the way a particular blade would
+  come (the aim test's own check does that for a blow about to be thrown); a sword held across the body does
+  not count as cover; nobody acts on any of this yet. That is step 7.
+- Step 6 is done but for the stance switch, which needs a guard with the other foot forward and is left out.
+
+New file that needs its .meta from Unity: `Locomotion/Openings.cs`.

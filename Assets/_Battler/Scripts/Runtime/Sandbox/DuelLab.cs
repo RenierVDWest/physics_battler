@@ -312,8 +312,96 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>One step of the lab (the physics step): the order turned into the velocity the mover is steered by.</summary>
+        /// <summary>What the mover leaves open to the other, as it is now (looked at ten times a second while the lab runs).</summary>
+        public readonly System.Collections.Generic.List<PhysicsBattler.Locomotion.Openings.Seen> Open = new System.Collections.Generic.List<PhysicsBattler.Locomotion.Openings.Seen>();
+
+        /// <summary>What the last posture watched opened and covered, and when (for the panel and the reports).</summary>
+        public string Opened { get; private set; } = "none watched yet";
+
+        /// <summary>How long a posture's openings are watched (seconds).</summary>
+        public const float WatchesFor = 1.4f;
+
+        private float openLooked = 1f, openWatch = -1f;
+        private string openWatched = "";
+        private readonly System.Collections.Generic.Dictionary<PhysicsBattler.Locomotion.AimSpot, bool> openWas = new System.Collections.Generic.Dictionary<PhysicsBattler.Locomotion.AimSpot, bool>();
+        private readonly System.Collections.Generic.Dictionary<PhysicsBattler.Locomotion.AimSpot, (float from, float to)> openChanged = new System.Collections.Generic.Dictionary<PhysicsBattler.Locomotion.AimSpot, (float, float)>();
+
+        /// <summary>The posture just begun is watched: which spots it opens that were covered, which it covers that were open, and when.</summary>
+        public void WatchOpenings(string posture)
+        {
+            if (!Running || Mover.Clip == null || Other.Clip == null)
+            {
+                return;
+            }
+
+            LookAtOpenings();
+            openWas.Clear();
+            openChanged.Clear();
+            foreach (var seen in Open)
+            {
+                openWas[seen.Spot] = seen.Open;
+            }
+
+            openWatched = posture;
+            openWatch = 0f;
+        }
+
+        private void LookAtOpenings()
+        {
+            PhysicsBattler.Locomotion.Openings.Look(Mover.Clip, Other.Clip.PartAt(PhysicsBattler.Rig.PartId.UpperArmR), Open);
+        }
+
+        private void StepOpenings(float dt)
+        {
+            if (Mover.Clip == null || Other.Clip == null)
+            {
+                return;
+            }
+
+            openLooked += dt;
+            if (openLooked < (openWatch >= 0f ? 0.033f : 0.1f))
+            {
+                return;
+            }
+
+            openLooked = 0f;
+            LookAtOpenings();
+            if (openWatch < 0f)
+            {
+                return;
+            }
+
+            openWatch += openWatch >= 0f ? Mathf.Max(dt, 0.033f) : 0f;
+            foreach (var seen in Open)
+            {
+                if (openWas.TryGetValue(seen.Spot, out bool was) && seen.Open != was)
+                {
+                    openChanged[seen.Spot] = openChanged.TryGetValue(seen.Spot, out var span) ? (span.from, openWatch) : (openWatch, openWatch);
+                }
+            }
+
+            if (openWatch >= WatchesFor)
+            {
+                var opened = new System.Text.StringBuilder();
+                var covered = new System.Text.StringBuilder();
+                foreach (var pair in openChanged)
+                {
+                    var into = openWas[pair.Key] ? covered : opened;
+                    into.Append(into.Length > 0 ? ", " : "").Append(string.Format(System.Globalization.CultureInfo.InvariantCulture, "the {0} {1:0.00} to {2:0.00} s", PhysicsBattler.Locomotion.AimSpots.Name(pair.Key), pair.Value.from, pair.Value.to));
+                }
+
+                Opened = openWatched + ": opened " + (opened.Length > 0 ? opened.ToString() : "nothing") + "; covered " + (covered.Length > 0 ? covered.ToString() : "nothing");
+                openWatch = -1f;
+            }
+        }
+
         public void Step(float dt)
         {
+            if (Running)
+            {
+                StepOpenings(dt);
+            }
+
             if (!Running)
             {
                 return;
