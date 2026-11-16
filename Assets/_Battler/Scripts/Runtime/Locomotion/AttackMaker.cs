@@ -145,6 +145,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>When the hips start in (seconds into the clip): the wind-up is over.</summary>
         public float DriveAt;
 
+        /// <summary>It was thrown as a posture, not a blow (<see cref="PostureMaker"/>): how much of a feint and of a fake lunge. <see cref="ContactAt"/> is then the posture's furthest point.</summary>
+        public float Feint, FakeLunge;
+        public bool Posture => Feint > 0f || FakeLunge > 0f;
+
         /// <summary>Thrown on the move: what it was asked for (its target in the fighter's own frame as it begins, how he walked). <see cref="Aim"/> then holds the same target as the recording's own frame has it.</summary>
         public bool OnTheMove;
         public AttackAim Asked;

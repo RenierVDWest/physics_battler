@@ -1421,6 +1421,13 @@ internal static class FightReport
                     {
                         if (paceAt >= duelBlows[i].at)
                         {
+                            // (FIGHT_POSTURE=feint | lunge | both: each blow asked for is a posture instead, PostureMaker.)
+                            string posture = (Environment.GetEnvironmentVariable("FIGHT_POSTURE") ?? "").ToLowerInvariant();
+                            if (posture.Length > 0)
+                            {
+                                PhysicsBattler.Locomotion.PostureMaker.Ask(posture == "feint" || posture == "both" ? 1f : 0f, posture == "lunge" || posture == "both" ? 1f : 0f);
+                            }
+
                             bool asked = duel.Strike(aim, duelBlows[i].spot, Time.time);
                             Console.WriteLine($"DUELBLOW {paceAt:0.00} at the {duelBlows[i].spot} while {duel.BlowBegan}: {(asked ? "begun, " + duel.BlowThrown : "he could not")}");
                             startWatched = asked;

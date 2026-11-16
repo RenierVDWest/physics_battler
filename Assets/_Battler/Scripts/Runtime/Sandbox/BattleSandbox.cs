@@ -476,6 +476,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab's swordsman moves in the capoeira style (the plan's step 4): a sword alone, standing in the ginga.</summary>
         private bool duelCapoeira;
 
+        /// <summary>The duel lab: what a press on a part of the body asks for. 0: a blow. 1: a feint. 2: a fake lunge. 3: both.</summary>
+        private int duelPosture;
+
         /// <summary>The capoeira style is shelved: the duel lab does not offer it (Combat Feel "The Capoeira Style Is Shelved").</summary>
         public static bool CapoeiraShelved = true;
 
@@ -789,6 +792,30 @@ namespace PhysicsBattler.Sandbox
         private void DrawDuelStrikes(PhysicsBattler.Locomotion.CombatFeel feel)
         {
             Heading("Strike at", "Press a part while he is moving (give him an order above first): he strikes at it from where he is, in the middle of his step, and then goes on with his order. Pressed while he stands it is the aim test's blow.");
+            GUILayout.Label(new GUIContent("A press is:", "What pressing a part of the body asks him for. A blow: the attack. The other three are postures, the short bursts a fighter throws to draw the other out; each is the beginning of the very attack he would have made at that part, taken back. A feint: his sword arm and chest go into the attack's wind-up and come back. A fake lunge: his legs and hips go half way into the attack's lunge and come back, his arms staying in his guard (from a walk he stops for it). Both: a feint on a fake lunge, which reads as a blow he means."), Styles().Text);
+            GUILayout.BeginHorizontal();
+            if (Press(duelPosture == 0 ? "[a blow]" : "a blow", "The attack itself.")) duelPosture = 0;
+            if (Press(duelPosture == 1 ? "[a feint]" : "a feint", "The attack's wind-up, taken back. Works standing and on the move.")) duelPosture = 1;
+            if (Press(duelPosture == 2 ? "[a fake lunge]" : "a fake lunge", "The attack's lunge, half way and back, his arms in his guard.")) duelPosture = 2;
+            if (Press(duelPosture == 3 ? "[both]" : "both", "A feint on a fake lunge.")) duelPosture = 3;
+            GUILayout.EndHorizontal();
+            if (feel != null && duelPosture != 0)
+            {
+                if (duelPosture != 2)
+                {
+                    feel.feintDepth = Lever("Feint goes", feel.feintDepth, 0.3f, 1f, "How far into the attack's wind-up the feint goes before it is taken back. Nearer 1 it is told apart from the real blow later.");
+                    feel.feintHold = Lever("Feint holds", feel.feintHold, 0f, 0.4f, "How long the feint is held at its furthest (seconds).");
+                    feel.feintBack = Lever("Feint back", feel.feintBack, 0.25f, 1f, "How long the feint takes to come back (seconds).");
+                }
+
+                if (duelPosture >= 2)
+                {
+                    feel.fakeLungeFar = Lever("Lunge goes", feel.fakeLungeFar, 0.1f, 0.6f, "How far the fake lunge carries his hips toward the other (metres).");
+                    feel.fakeLungeOut = Lever("Lunge takes", feel.fakeLungeOut, 0.15f, 0.6f, "How long the fake lunge takes to get there (seconds). With a feint on it the legs take as long as the sword does.");
+                    feel.fakeLungeBack = Lever("Lunge back", feel.fakeLungeBack, 0.25f, 1f, "How long the legs take to come back (seconds).");
+                }
+            }
+
             if (feel != null)
             {
                 // (Three ways to strike out of a walk: over it; planted, his speed carried in; stopped dead, as it was.)
@@ -902,6 +929,12 @@ namespace PhysicsBattler.Sandbox
         {
             aimSpot = spot;
             Aim.Stop();
+            if (duelLab && duelPosture != 0)
+            {
+                // (The press is for a posture: the attack is made for the part as a blow is, and only its beginning thrown.)
+                PhysicsBattler.Locomotion.PostureMaker.Ask(duelPosture == 1 || duelPosture == 3 ? 1f : 0f, duelPosture >= 2 ? 1f : 0f);
+            }
+
             // (In the duel lab the blow's start is watched, whatever he is doing as it is asked for.)
             if (duelLab && Duel.Running ? Duel.Strike(Aim, spot, Time.time) : Aim.Order(spot, Time.time))
             {

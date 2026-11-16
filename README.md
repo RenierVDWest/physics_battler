@@ -4708,3 +4708,47 @@ The Move Stays On The Move Out Of Reach" (on); in the duel lab, under "He strike
 on the move / plants". Headless (`FIGHT_SHORTPLANTS=1` for the old way), four blows going round at 4 m: he
 keeps going at 1.5 to 1.6 m/s through each (the old way: down to 0.1 to 0.2 m/s), nothing thrown; the lab's
 line says "out of reach, 190 cm short: thrown on the move". The six fighters' fights are unchanged.
+
+**Fight rhythm, step 6, first part: the feint and the fake lunge** (16 November; `PostureMaker`). Postures are
+the short bursts a fighter throws between blows to draw the other out. The first two, one for the upper body
+and one for the lower, and the two together.
+
+- **A posture is the beginning of a real attack, taken back.** The attack is made for its target as any attack
+  is (`AttackMaker`), so a posture starts exactly as that blow would. Its body is then taken apart into its
+  parts again and the parts are sent two ways, each part of the way into the attack and back the way it came:
+  the upper body (the chest on the hips, the head, the arms, the hands) into the wind-up, and the lower body
+  (the hips, the legs, the body's travel) into the lunge. The chest keeps facing as its own moment of the
+  attack has it, whatever the hips under it do.
+  - *A feint*: the whole body goes into the wind-up at the attack's own pace, to 0.85 of the way to where the
+    hips would start in, slows, is held 0.06 s and comes back in 0.45 s. On the move it is laid over the walk,
+    which goes on unchecked.
+  - *A fake lunge*: the legs and hips go as far into the attack as carries the hips 0.3 m, in 0.28 s (sharply
+    off, slowing all the way), and come back in 0.4 s. The arms are left to the guard. From a walk he stops for
+    it.
+  - *Both*: a feint with the legs going into the lunge under it, the two at their furthest together.
+- **Lab** ("Duel lab", "Strike at"): "A press is: a blow / a feint / a fake lunge / both", then press a part of
+  the body. The levers for the one chosen are under it (Combat Feel "Feint Depth", "Feint Hold", "Feint Back",
+  "Fake Lunge Far", "Fake Lunge Out", "Fake Lunge Back"). The lab's line says what was thrown, when it was at
+  its furthest and when it was over. Headless: `FIGHT_POSTURE=feint | lunge | both` with `FIGHT_DUELBLOW`.
+- **Measured** (standing 1.8 m off, at the chest, on the forehand cut; and going round at 1.9 m):
+
+  | | A feint | A fake lunge | Both |
+  | --- | --- | --- | --- |
+  | Over in (s) | 1.03 | 0.77 | 1.03 |
+  | At its furthest after (s) | 0.47 | 0.28 | 0.47 |
+  | The sword hand goes (cm) | 68 | 50 (carried by the body) | 68 |
+  | The hips go (cm); fastest (m/s) | 29; 1.8 | 38; 2.6 | 31; 2.1 |
+  | The front foot steps (cm) | 39 | 45 | 41 |
+  | Back where it began, to (cm) | 1 to 4 | 1 to 4 | 1 to 5 |
+
+  A feint's sword hand is where the real blow's is, to 3 cm, for its first 0.38 s. Nothing is struck by any of
+  them. On the move the feint is thrown over the walk (1.05 and 1.13 s) and he keeps going. Nothing thrown in
+  any run; the six fighters' fights with the made movement off are unchanged (78 and 84 blows).
+- **Not verified in Unity**: all of how they look. **Known**:
+  - A posture is played as a strike is, so the log writes it as an attack that "met nothing".
+  - Which attack a posture is the start of is the one that would have been made for that part from there; the
+    forehand's wind-up already steps in 39 cm, so on it a feint and "both" look much alike.
+  - Not yet: the other postures of the plan (hop in and out, side hop, stance switch, drop; blade bluff, shield
+    press, guard change), and the body map showing which parts each posture opens.
+
+New file that needs its .meta from Unity: `Locomotion/PostureMaker.cs`.

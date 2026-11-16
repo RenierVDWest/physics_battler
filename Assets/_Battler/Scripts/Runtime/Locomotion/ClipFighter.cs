@@ -3678,7 +3678,9 @@ namespace PhysicsBattler.Locomotion
         /// <param name="counts">Which parts of the target count as the one the blade is for (null: not looked at): an attack whose blade would meet another part first is passed over for one whose way is open.</param>
         public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle style, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null)
         {
-            if (AttackOnTheMove.On && landIn <= 0f && legs == null)
+            // (Asked for as a posture, PostureMaker: the attack is made as any is, and only its beginning thrown.)
+            postureNow = PostureMaker.Take(out postureFeint, out postureLunge);
+            if (AttackOnTheMove.On && landIn <= 0f && legs == null && !(postureNow && postureLunge > 0f))
             {
                 // (Walking, the blow is thrown on the move: the walk goes on under it.)
                 var moved = StrikeOnTheMove(target, point, style, named);
@@ -3784,9 +3786,42 @@ namespace PhysicsBattler.Locomotion
             Made = best;
             // (The turn is in the made clip's own root: the walk plays it as it is.)
             Loco.KeepsSpeedAtNextSwitch = AttackMaker.FromAnyPose;
+            if (postureNow)
+            {
+                var posture = PostureMaker.Make(best, postureFeint, postureLunge, out float turnsAt);
+                if (posture != null)
+                {
+                    best.Clip = posture;
+                    best.Feint = postureFeint;
+                    best.FakeLunge = postureLunge;
+                    best.ContactAt = turnsAt;
+                    best.DriveAt = turnsAt;
+                    best.Held = 0f;
+                    Postures++;
+                    if (postureFeint > 0f)
+                    {
+                        // (A feint's arms are the attack's own: it is played as an attack is.)
+                        Poser.PlayMade(posture, point, 0f);
+                    }
+                    else
+                    {
+                        // (A fake lunge alone: his arms stay in his guard, which goes on over it.)
+                        Loco.PlayAimed(posture, 1f, 0f, 0f);
+                    }
+
+                    return best;
+                }
+            }
+
             Poser.PlayMade(best.Clip, point, 0f);
             return best;
         }
+
+        private bool postureNow;
+        private float postureFeint, postureLunge;
+
+        /// <summary>How many postures it has thrown (feints, fake lunges).</summary>
+        public int Postures { get; private set; }
 
         private static readonly List<MadeAttack> madePlans = new List<MadeAttack>();
 
@@ -3898,7 +3933,25 @@ namespace PhysicsBattler.Locomotion
 
             MovedPlanted = false;
             Vector3 stepIn = Quaternion.Euler(0f, Loco.Facing, 0f) * best.StepIn * leg;
-            if (!Poser.PlayMadeOver(best.Clip, point, best.DriveAt, move.Check, best.Asked.Into, stepIn))
+            if (postureNow)
+            {
+                // (A feint on the move: the attack's wind-up over the walk and back, the walk as it was: no check,
+                // no step in, the hips not going in.)
+                var posture = PostureMaker.Make(best, postureFeint, 0f, out float turnsAt);
+                if (posture == null || !Poser.PlayMadeOver(posture, point, turnsAt, 0f, Vector3.zero, Vector3.zero))
+                {
+                    return null;
+                }
+
+                best.Clip = posture;
+                best.Feint = postureFeint;
+                best.ContactAt = turnsAt;
+                best.DriveAt = turnsAt;
+                best.Held = 0f;
+                best.StepIn = Vector3.zero;
+                Postures++;
+            }
+            else if (!Poser.PlayMadeOver(best.Clip, point, best.DriveAt, move.Check, best.Asked.Into, stepIn))
             {
                 return null;
             }

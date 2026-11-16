@@ -254,6 +254,25 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The standard style's standing, walking, jogging and stepping are made of their parts, as an attack is made of a recorded strike. Each recording is taken apart once into what every part of the body does against the part it sits on (the hips over the ground, the chest on the hips, the head on the chest, each arm on the chest, each leg under the hips), and the fighter's body is put together again from those at every moment. Nothing is played as a plain recording. On with every lever below at rest: he moves as he did (to under a millimetre). Off: the recordings' points are played as they are, as before. A fighter takes this as it is at every moment.")]
         public bool standardMovementIsMadeOfItsParts = true;
 
+        [Header("Postures (the fight rhythm plan, step 6)")]
+        [Tooltip("A feint: how far into an attack's wind-up it goes before it is taken back (of the wind-up, to where the hips would start in). The attack is made for its target as a real one is, so a feint begins exactly as that blow would; nearer 1 it is told apart later.")]
+        [Range(0.3f, 1f)] public float feintDepth = 0.85f;
+
+        [Tooltip("A feint: how long it is held at its furthest before it comes back (seconds).")]
+        [Range(0f, 0.4f)] public float feintHold = 0.06f;
+
+        [Tooltip("A feint: how long the way back to where it began takes (seconds).")]
+        [Range(0.25f, 1f)] public float feintBack = 0.45f;
+
+        [Tooltip("A fake lunge: how far it carries his hips toward the other (metres). His legs and hips go as far into the attack he would have made as carries them that far, and come back; his upper body stays in its guard, unless a feint is thrown with it.")]
+        [Range(0.1f, 0.6f)] public float fakeLungeFar = 0.3f;
+
+        [Tooltip("A fake lunge: how long it takes to get there (seconds): it sets off sharply and slows all the way. With a feint on it the legs take as long as the sword does.")]
+        [Range(0.15f, 0.6f)] public float fakeLungeOut = 0.28f;
+
+        [Tooltip("A fake lunge: how long the way back takes (seconds).")]
+        [Range(0.25f, 1f)] public float fakeLungeBack = 0.4f;
+
         [Tooltip("Made movement: how much the hips rise and fall with each step (1: as recorded; 0: level; 2: twice as much).")]
         [Range(0f, 2.5f)] public float moveBounce = 1f;
 
@@ -1044,6 +1063,12 @@ namespace PhysicsBattler.Locomotion
             LocoClip.TravelsTrue = clipsTravelAsRecorded;
             PhysicsBattler.Sandbox.BattleSandbox.BattleRetired = theBattleIsRetired;
             PhysicsBattler.Sandbox.BattleSandbox.CapoeiraShelved = theCapoeiraStyleIsShelved;
+            PostureMaker.FeintDepth = feintDepth;
+            PostureMaker.FeintHold = feintHold;
+            PostureMaker.FeintBack = feintBack;
+            PostureMaker.LungeFar = fakeLungeFar;
+            PostureMaker.LungeOut = fakeLungeOut;
+            PostureMaker.LungeBack = fakeLungeBack;
             MoveScore.On = standardMovementIsMadeOfItsParts;
             MoveScore.Levers = new MoveLevers { Bounce = moveBounce, Sway = moveSway, HipTurn = moveHipTurn, ChestTurn = moveChestTurn, ArmSwing = moveArmSwing, StepLift = moveStepLift, Lean = moveLean, Crouch = 0.01f * moveCrouch / Locomotor.ClipLeg };
             MoveStyle.Jogs = guardJogs;

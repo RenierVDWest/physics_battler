@@ -217,12 +217,13 @@ namespace PhysicsBattler.Sandbox
             }
 
             var made = Mover.Clip.Made;
-            BlowThrown = loco.ShotOverWalk && made != null
+            string posture = made != null && made.Posture ? (made.Feint > 0f && made.FakeLunge > 0f ? "a feint on a fake lunge" : made.Feint > 0f ? "a feint" : "a fake lunge") + string.Format(System.Globalization.CultureInfo.InvariantCulture, ", furthest {0:0.00} s after, over in {1:0.00} s: ", made.ContactAt, made.Clip.Duration) : "";
+            BlowThrown = posture + (loco.ShotOverWalk && made != null
                 ? (Mover.Clip.MovedShort > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "out of reach, {0:0} cm short: ", 100f * Mover.Clip.MovedShort) : "") + string.Format(System.Globalization.CultureInfo.InvariantCulture, "thrown on the move ({0}, to land {1:0.00} s after, {2})", made.Clip.Name.Replace("made_sns_", ""), made.LandsIn,
                     made.StepIn.magnitude * loco.Leg < 0.03f ? "no step in" : string.Format(System.Globalization.CultureInfo.InvariantCulture, "a step {0} of {1:0} cm", Vector3.Dot(made.StepIn, made.Asked.Target) >= 0f ? "in" : "back", 100f * made.StepIn.magnitude * loco.Leg))
                 : Mover.Clip.MovedShort > 0f
                     ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "planted (on the move it would have fallen {0:0} cm short)", 100f * Mover.Clip.MovedShort)
-                    : PhysicsBattler.Locomotion.AttackOnTheMove.On && Speed < PhysicsBattler.Locomotion.AttackOnTheMove.WalksFrom ? "planted (he was not walking)" : "planted";
+                    : PhysicsBattler.Locomotion.AttackOnTheMove.On && Speed < PhysicsBattler.Locomotion.AttackOnTheMove.WalksFrom ? "planted (he was not walking)" : "planted");
             watchFrom = loco.Position;
             watchWas = watchRootSpeed.magnitude;
             watchFor = 0f;
