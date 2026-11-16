@@ -247,6 +247,37 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The battle is retired. The fight is being built again from the duel up, on the made attacks and on movement styles made from recordings: the old battle (who attacks when, the strike clips played as they are, the combos, the slow circling) is not built on any more. On: the Battle is not among the places at the top of the panels, the scene begins in the duel lab (8) where it would have begun with the battle, and the walk lab's way to the fight goes to the duel lab. Off: the Battle is a place again, as it was.")]
         public bool theBattleIsRetired = true;
 
+        [Tooltip("The capoeira style is shelved (16 November): made from its pack it did not come to look like the recordings, and the work goes back to the standard style. On: the duel lab has no \"Capoeira\" choice and its fighter is always the standard one; everything made for the style (its ginga, its manner, the measuring tools) is kept in the project, untouched and unused. Off: the lab offers the style again, as it was left.")]
+        public bool theCapoeiraStyleIsShelved = true;
+
+        [Header("The standard movement, made of its parts (the fight rhythm plan, step A)")]
+        [Tooltip("The standard style's standing, walking, jogging and stepping are made of their parts, as an attack is made of a recorded strike. Each recording is taken apart once into what every part of the body does against the part it sits on (the hips over the ground, the chest on the hips, the head on the chest, each arm on the chest, each leg under the hips), and the fighter's body is put together again from those at every moment. Nothing is played as a plain recording. On with every lever below at rest: he moves as he did (to under a millimetre). Off: the recordings' points are played as they are, as before. A fighter takes this as it is at every moment.")]
+        public bool standardMovementIsMadeOfItsParts = true;
+
+        [Tooltip("Made movement: how much the hips rise and fall with each step (1: as recorded; 0: level; 2: twice as much).")]
+        [Range(0f, 2.5f)] public float moveBounce = 1f;
+
+        [Tooltip("Made movement: how much the hips sway from side to side and forward and back over the feet (1: as recorded).")]
+        [Range(0f, 2.5f)] public float moveSway = 1f;
+
+        [Tooltip("Made movement: how much the hips turn with each step (1: as recorded).")]
+        [Range(0f, 2.5f)] public float moveHipTurn = 1f;
+
+        [Tooltip("Made movement: how much the chest turns against the hips with each step (1: as recorded).")]
+        [Range(0f, 2.5f)] public float moveChestTurn = 1f;
+
+        [Tooltip("Made movement: how much the arms swing (1: as recorded). It shows only on an arm that is the walk's own: a hand that holds a sword or a shield with an enemy near is placed by its guard.")]
+        [Range(0f, 2.5f)] public float moveArmSwing = 1f;
+
+        [Tooltip("Made movement: how high the feet are lifted in their swing (1: as recorded).")]
+        [Range(0.5f, 2.5f)] public float moveStepLift = 1f;
+
+        [Tooltip("Made movement: how far he leans forward from the hips, added to the recording's own lean (degrees; his head stays up).")]
+        [Range(-10f, 25f)] public float moveLean = 0f;
+
+        [Tooltip("Made movement: how much lower he carries his hips, his feet where they were, so his knees bend more (centimetres).")]
+        [Range(0f, 15f)] public float moveCrouch = 0f;
+
         [Tooltip("The guard jogs (the plan's step 2: the paces). Above a walk's pace a fighter in its guard had only its run, forward and back (about 4 m/s, its stride shortened to the pace asked), and to the sides the unarmed run's legs and arms. On: between the walk and the run it jogs, forward, back and to each side, on the legs of the jog recordings (2.4 to 3.0 m/s) under the guard's own chest, head and arms, so the shield and the sword are carried as the guard carries them. Off: as it was. A fighter takes this as it is set out: press Reset after changing it.")]
         public bool guardJogs = true;
 
@@ -1009,6 +1040,9 @@ namespace PhysicsBattler.Locomotion
             BuiltBlow.On = aimTestBlowsAreBuilt;
             LocoClip.TravelsTrue = clipsTravelAsRecorded;
             PhysicsBattler.Sandbox.BattleSandbox.BattleRetired = theBattleIsRetired;
+            PhysicsBattler.Sandbox.BattleSandbox.CapoeiraShelved = theCapoeiraStyleIsShelved;
+            MoveScore.On = standardMovementIsMadeOfItsParts;
+            MoveScore.Levers = new MoveLevers { Bounce = moveBounce, Sway = moveSway, HipTurn = moveHipTurn, ChestTurn = moveChestTurn, ArmSwing = moveArmSwing, StepLift = moveStepLift, Lean = moveLean, Crouch = 0.01f * moveCrouch / Locomotor.ClipLeg };
             MoveStyle.Jogs = guardJogs;
             StyleManner.Dials = new MannerDials { Carriage = 1f, Motion = capoeiraStyleMotion, Turn = capoeiraStyleSquaresUp, Arms = capoeiraStyleArms, HandsKeep = 1f, HeadKeeps = capoeiraStyleEyesUp, InBlows = capoeiraStyleKeptInBlows };
             StandPattern.Generated = gingaIsMadeOfItsTakes;

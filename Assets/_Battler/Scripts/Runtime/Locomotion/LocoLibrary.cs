@@ -198,6 +198,9 @@ namespace PhysicsBattler.Locomotion
             t = Mathf.Clamp01(f - Mathf.Floor(f));
         }
 
+        /// <summary>The two frames a time falls between and how far it is from the first to the second (for what is kept frame by frame beside the clip: <see cref="MoveScore"/>).</summary>
+        public void FrameAt(float time, out int a, out int b, out float t) => Frame(time, out a, out b, out t);
+
         /// <summary>A bone's place against the root at a time (leg lengths).</summary>
         public Vector3 Point(LocoBone bone, float time)
         {

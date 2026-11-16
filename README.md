@@ -4639,3 +4639,63 @@ chose, never the look. Two things are changed.
     frame. With rests he slows into it; "As recorded" shows it as it is.
 
 New file: `Tools/Mocap/Style/film_against.py` (no .meta needed; it is outside Assets).
+
+**The capoeira style is shelved; the standard movement is made of its parts** (16 November; the plan "Fight
+Rhythm from Recordings", a step A put in before its step 6).
+
+*Shelved.* The capoeira style did not come to look like its recordings, and the last pass of its ginga played
+the recorded takes back, which is not how this project makes motion. The work goes back to the standard style.
+Combat Feel "The Capoeira Style Is Shelved" (on): the duel lab has no "Capoeira" choice. Everything made for
+the style is kept, untouched and unused (`StandPattern`, `StyleManner`, the profile file, `Tools/Mocap/Style`).
+
+*Step A: the standard movement made of its parts.* Until now only the attacks and the leaps were made of parts;
+standing, walking, jogging, stepping, starting, stopping and turning were recordings' points played as they
+are. Now they are made the way the attacks are.
+
+- **`MoveScore`** (new). Each movement recording is taken apart once into what every part of the body does
+  against the part it sits on (`BodyTracks`: the hips over the ground, the chest on the hips, the head on the
+  chest, each arm on the chest, each leg under the hips) and how the back is bent, frame by frame. Where the
+  walk asked a recording for its points it now asks the score for the body at that moment, and the body is put
+  together from the parts. The walk's own work on top (mixing paces, stretching each foot's stance, planted
+  feet, the easing between moves) is as it was. A made attack or a made leap is read as it is.
+- **Levers**, each one part's doing about the middle of what it does in that recording (Combat Feel "Move
+  Bounce", "Move Sway", "Move Hip Turn", "Move Chest Turn", "Move Arm Swing", "Move Step Lift", "Move Lean",
+  "Move Crouch"). Measured on the guard's walk (`style made`):
+
+  | Lever | At rest | Set to | Gives |
+  | --- | --- | --- | --- |
+  | Bounce 2 | hips rise and fall 7.0 cm | | 14.0 cm |
+  | Sway 2 | hips side to side 5.5 cm | | 11.1 cm |
+  | Hip turn 2 | hips turn 15.4° | | 30.8° |
+  | Chest turn 2 | chest turns 15.5° | | 31.0° |
+  | Arm swing 2 | hand goes 15.8 cm on the chest | | 31.4 cm |
+  | Step lift 2 | ankle rises 14.9 cm | | 29.8 cm |
+  | Lean 15° | hips to head leans 15.1° | | 25.6° |
+  | Crouch 10 cm | hips 97.4 cm up, knee bent 40° | | 87.4 cm, 68° |
+
+- **Lab** ("Duel lab", "How he moves"): "Movement: made / recorded", the eight levers, and three buttons: "At
+  rest", and two tries of the levers to see that the parts answer, "Prowl" (lower, leaning in, hips swaying and
+  turning more) and "Strut" (upright, bouncing, chest and arms swinging).
+- **Measured.**
+  - Made against recorded, the 18 recordings of the plain, guard and sword sets, every frame and half way
+    between (`style made`): 0.1 to 1.0 mm the usual distance of any point. The furthest are knees: up to 12 mm
+    in the walks and 37 mm at one moment of the run, where the recorded leg is stretched longer than its bones.
+  - In the duel lab, the same orders with movement made and recorded (stand, walk in, circle, back away): the
+    same part at the same moment is 0.016 cm apart as a rule, 4.4 cm at most (a shin, once); 13 frames of 811
+    have any part over 1 cm apart.
+  - Blows on the move (ten, circling, walking in, jogging in, backing away): the same with movement made as
+    recorded. With the "Prowl" levers they land as well (8 to 20 cm from the spot where they meet the part).
+  - The six fighters' fights with the switch off are as before (78 and 84 blows). With it on they are other
+    fights (66, 93 and 77 blows in three runs; nothing thrown): a tenth of a millimetre is enough to send a
+    60-second fight another way.
+- **Not verified in Unity**: all of how it looks. **Known**:
+  - Mixing two paces (a walk into a jog) is still done on the put-together bodies, point by point, not on the
+    parts.
+  - The levers are one setting for every fighter; they are not yet a style a unit carries.
+  - A lever changes the movement, not the attacks: with Crouch or Lean set, a planted blow comes up to the
+    attack's own height and the easing between them covers the difference.
+  - "Arm swing" shows only on an arm that is the walk's own: near an enemy the sword and shield hands are
+    placed by the guard.
+  - Measures read off recordings once (a stance's foot places, the guard's held arm) still read the points.
+
+New file that needs its .meta from Unity: `Locomotion/MoveScore.cs`.

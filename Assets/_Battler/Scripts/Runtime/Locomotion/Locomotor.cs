@@ -392,7 +392,7 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            idle.Pose(0f, raw, Leg);
+            MoveScore.Pose(idle, 0f, raw, Leg);
             var turn = Quaternion.Euler(0f, Facing, 0f);
             for (int f = 0; f < 2; f++)
             {
@@ -1152,10 +1152,10 @@ namespace PhysicsBattler.Locomotion
                 HoldStance();
                 if (StandTrace != null && from == Mode.Cycle)
                 {
-                    idle.Pose(0f, scratch, Leg);
+                    MoveScore.Pose(idle, 0f, scratch, Leg);
                     if (Guard != null && GuardWeight > 0f)
                     {
-                        Guard.Idle.Pose(0f, stanceScratch, Leg);
+                        MoveScore.Pose(Guard.Idle, 0f, stanceScratch, Leg);
                         for (int i = 0; i < scratch.Length; i++) { scratch[i] = Vector3.Lerp(scratch[i], stanceScratch[i], GuardWeight); }
                     }
                     string F(Vector3 v) => $"({v.x:0.00},{v.z:0.00})";
@@ -1286,7 +1286,7 @@ namespace PhysicsBattler.Locomotion
         {
             idleTime += dt * TimeScale;
 
-            idle.Pose(idleTime, raw, Leg);
+            MoveScore.Pose(idle, idleTime, raw, Leg);
             Contacts(idle, idleTime, 1f, true);
             if (StandSteps)
             {
@@ -1301,7 +1301,7 @@ namespace PhysicsBattler.Locomotion
             if (g > 0f)
             {
                 // (The guard's standing, blended in: its wider stance is stepped into below.)
-                Guard.Idle.Pose(idleTime, scratch, Leg);
+                MoveScore.Pose(Guard.Idle, idleTime, scratch, Leg);
                 for (int i = 0; i < raw.Length; i++)
                 {
                     raw[i] = Vector3.Lerp(raw[i], scratch[i], g);
@@ -1535,6 +1535,23 @@ namespace PhysicsBattler.Locomotion
             }
 
             return 0f;
+        }
+
+        /// <summary>
+        /// A one-shot's body at a time of it. A recording (a start, a stop, a turn on the spot, a step) is put together
+        /// from its parts as the walk's loops are (<see cref="MoveScore"/>); a clip that was itself made of parts (a made
+        /// attack, a made leap) is already what it should be and is read as it is.
+        /// </summary>
+        private void ShotBody(LocoClip clip, float time, Vector3[] into)
+        {
+            if (clip.Name == "leap" || clip.Name.StartsWith("made_", System.StringComparison.Ordinal))
+            {
+                clip.Pose(time, into, Leg);
+            }
+            else
+            {
+                MoveScore.Pose(clip, time, into, Leg);
+            }
         }
 
         private void StartShot(LocoClip clip, ShotEnds then, float startFrom = 0f, float turnScale = 1f, float endAt = -1f)
@@ -1873,7 +1890,7 @@ namespace PhysicsBattler.Locomotion
             Position += shotBend * (turn * new Vector3(moved.x, 0f, moved.y)) * (Leg * shotMoveScale);
             Facing += turned * shotTurnScale;
             ShotTime = to;
-            Shot.Pose(ShotTime, raw, Leg);
+            ShotBody(Shot, ShotTime, raw);
             for (int i = 0; i < raw.Length; i++)
             {
                 Points[i] = raw[i] + offset[i];
@@ -1969,7 +1986,7 @@ namespace PhysicsBattler.Locomotion
             Velocity = step / dt;
             Acceleration = Vector3.zero;
             FacingSpeed = turned * shotTurnScale / dt;
-            clip.Pose(ShotTime, raw, Leg);
+            ShotBody(clip, ShotTime, raw);
             Contacts(clip, ShotTime, 1f, true);
             if (rewinding)
             {
@@ -2207,7 +2224,7 @@ namespace PhysicsBattler.Locomotion
             foreach (var (clip, w) in Blend)
             {
                 float t = clip.TimeAtPhase(Phase);
-                clip.Pose(t, scratch, Leg);
+                MoveScore.Pose(clip, t, scratch, Leg);
                 for (int i = 0; i < raw.Length; i++)
                 {
                     raw[i] += scratch[i] * (w / total);
@@ -2242,7 +2259,7 @@ namespace PhysicsBattler.Locomotion
                     float si = clip.Duty[f];
                     float ui = u < sBlend ? u * si / sBlend : si + (u - sBlend) * (1f - si) / (1f - sBlend);
                     float t = clip.TimeAtPhase(land + ui);
-                    clip.Pose(t, scratch, Leg, bones);
+                    MoveScore.Pose(clip, t, scratch, Leg, bones);
                     foreach (var b in bones)
                     {
                         raw[(int)b] += scratch[(int)b] * (w / total);
@@ -2471,7 +2488,7 @@ namespace PhysicsBattler.Locomotion
                 bool begins = keeps && Current == Mode.OneShot && Shot != null && dt > 1e-5f;
                 if (begins)
                 {
-                    Shot.Pose(Mathf.Max(0f, ShotTime - dt * TimeScale), scratch, Leg);
+                    ShotBody(Shot, Mathf.Max(0f, ShotTime - dt * TimeScale), scratch);
                     // (Carried as this step's pose is: a style's manner laid on both.)
                     LayMannerOn(scratch);
                 }

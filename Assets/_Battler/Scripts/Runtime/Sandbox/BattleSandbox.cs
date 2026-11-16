@@ -476,6 +476,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab's swordsman moves in the capoeira style (the plan's step 4): a sword alone, standing in the ginga.</summary>
         private bool duelCapoeira;
 
+        /// <summary>The capoeira style is shelved: the duel lab does not offer it (Combat Feel "The Capoeira Style Is Shelved").</summary>
+        public static bool CapoeiraShelved = true;
+
         /// <summary>In the capoeira style he has nothing in his hands, as the recordings were made (the ginga is judged against them like for like); off: a sword alone.</summary>
         private bool duelEmptyHands = true;
 
@@ -592,7 +595,13 @@ namespace PhysicsBattler.Sandbox
                 }
             }
 
-            if (Press(duelCapoeira ? "[Capoeira]" : "Capoeira", "The capoeira style: a sword alone, and he stands in the ginga: never still, one foot stepping back and then the other, the hips swaying, the arms and the sword going with it. To go anywhere he walks and jogs as the standard style does, and goes back into the ginga where he stops. Sets the lab out again."))
+            if (CapoeiraShelved && duelCapoeira)
+            {
+                duelCapoeira = false;
+                DuelLabScene();
+            }
+
+            if (!CapoeiraShelved && Press(duelCapoeira ? "[Capoeira]" : "Capoeira", "The capoeira style: a sword alone, and he stands in the ginga: never still, one foot stepping back and then the other, the hips swaying, the arms and the sword going with it. To go anywhere he walks and jogs as the standard style does, and goes back into the ginga where he stops. Sets the lab out again."))
             {
                 if (!duelCapoeira)
                 {
@@ -687,6 +696,48 @@ namespace PhysicsBattler.Sandbox
                         gingaFeel.gingaSwordPointsAhead = Lever("Points ahead", gingaFeel.gingaSwordPointsAhead, 0f, 1f, "How much the blade is turned from the forearm's line toward where he faces. 0: it swings as far as the arm does. 1: it always points ahead.");
                         gingaFeel.gingaSwordTrails = Lever("Trails", gingaFeel.gingaSwordTrails, 0.02f, 0.4f, "How long the blade's point takes to come round after the hand (seconds). More reads as a heavier blade, swung looser.");
                     }
+                }
+            }
+
+            var moveFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+            if (moveFeel != null)
+            {
+                Heading("How he moves", "His standing, walking, jogging and stepping are made of their parts, as his attacks are: each recording is taken apart into what every part of the body does against the part it sits on, and he is put together again from those. The levers change one part's doing each; with all of them at rest he moves as the recordings.");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Movement:", "Made (new): put together from its parts at every moment. Recorded (old): the recordings' points played as they are. With the levers at rest the two should look the same; the levers only act on the made one."), Styles().Text, GUILayout.Width(80f));
+                if (Press(moveFeel.standardMovementIsMadeOfItsParts ? "[made]" : "made", "Made of its parts (Combat Feel \"Standard Movement Is Made Of Its Parts\").")) moveFeel.standardMovementIsMadeOfItsParts = true;
+                if (Press(!moveFeel.standardMovementIsMadeOfItsParts ? "[recorded]" : "recorded", "The recordings played as they are.")) moveFeel.standardMovementIsMadeOfItsParts = false;
+                GUILayout.EndHorizontal();
+                if (moveFeel.standardMovementIsMadeOfItsParts)
+                {
+                    moveFeel.moveBounce = Lever("Bounce", moveFeel.moveBounce, 0f, 2.5f, "How much his hips rise and fall with each step. 1: as recorded. 0: level.");
+                    moveFeel.moveSway = Lever("Sway", moveFeel.moveSway, 0f, 2.5f, "How much his hips sway from side to side and forward and back over his feet. 1: as recorded.");
+                    moveFeel.moveHipTurn = Lever("Hip turn", moveFeel.moveHipTurn, 0f, 2.5f, "How much his hips turn with each step. 1: as recorded.");
+                    moveFeel.moveChestTurn = Lever("Chest turn", moveFeel.moveChestTurn, 0f, 2.5f, "How much his chest turns against his hips with each step. 1: as recorded.");
+                    moveFeel.moveArmSwing = Lever("Arm swing", moveFeel.moveArmSwing, 0f, 2.5f, "How much his arms swing. 1: as recorded. Shows only on an arm that is the walk's own: with the other fighter near, his sword and shield hands are placed by his guard.");
+                    moveFeel.moveStepLift = Lever("Step lift", moveFeel.moveStepLift, 0.5f, 2.5f, "How high his feet are lifted in their swing. 1: as recorded.");
+                    moveFeel.moveLean = Lever("Lean", moveFeel.moveLean, -10f, 25f, "How far he leans forward from the hips, added to the recording's own lean (degrees). His head stays up.");
+                    moveFeel.moveCrouch = Lever("Crouch", moveFeel.moveCrouch, 0f, 15f, "How much lower he carries his hips, his feet where they were (cm).");
+                    GUILayout.BeginHorizontal();
+                    if (Press("At rest", "Every lever back to rest: he moves as the recordings."))
+                    {
+                        moveFeel.moveBounce = moveFeel.moveSway = moveFeel.moveHipTurn = moveFeel.moveChestTurn = moveFeel.moveArmSwing = moveFeel.moveStepLift = 1f;
+                        moveFeel.moveLean = moveFeel.moveCrouch = 0f;
+                    }
+
+                    if (Press("Prowl", "A try of the levers: lower, leaning in, hips swaying and turning more, feet lifted less. To see that the parts answer."))
+                    {
+                        moveFeel.moveBounce = 0.6f; moveFeel.moveSway = 1.6f; moveFeel.moveHipTurn = 1.6f; moveFeel.moveChestTurn = 1.4f; moveFeel.moveArmSwing = 1f; moveFeel.moveStepLift = 0.7f;
+                        moveFeel.moveLean = 10f; moveFeel.moveCrouch = 8f;
+                    }
+
+                    if (Press("Strut", "A try of the levers: upright, bouncing, chest turning and arms swinging wide, feet lifted high."))
+                    {
+                        moveFeel.moveBounce = 1.8f; moveFeel.moveSway = 1.2f; moveFeel.moveHipTurn = 1.3f; moveFeel.moveChestTurn = 2f; moveFeel.moveArmSwing = 1.8f; moveFeel.moveStepLift = 1.6f;
+                        moveFeel.moveLean = -5f; moveFeel.moveCrouch = 0f;
+                    }
+
+                    GUILayout.EndHorizontal();
                 }
             }
 

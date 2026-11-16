@@ -83,6 +83,12 @@ internal static class StyleReport
             return 0;
         }
 
+        if (args.Contains("made"))
+        {
+            Made();
+            return 0;
+        }
+
         Profiles();
         RoundTrips();
         return 0;
@@ -459,6 +465,126 @@ internal static class StyleReport
         }
 
         return string.Join("  ", Parts.Select((part, k) => string.Format(CultureInfo.InvariantCulture, "{0} {1,4:0.0}", part.name, Mathf.Sqrt(sum[k] / clip.Frames) * Metre * 100f)));
+    }
+
+    /// <summary>
+    /// The standard movement made of its parts against the recordings it is made of (`style made`; the fight rhythm
+    /// plan's step A): every recording of the plain, guard and sword styles, at every frame and half way between,
+    /// the body put together from its parts (<see cref="MoveScore"/>, levers at rest) against the recording's points;
+    /// and what each lever does to one walk.
+    /// </summary>
+    private static void Made()
+    {
+        Console.WriteLine("the standard movement made of its parts against its recordings (levers at rest; mm, the furthest any point is at any moment):");
+        var seen = new HashSet<string>();
+        var a = new Vector3[LocoClip.BoneCount];
+        var b = new Vector3[LocoClip.BoneCount];
+        float worstOfAll = 0f;
+        foreach (var (style, _, jobs) in Sources)
+        {
+            if (style != "plain" && style != "guard" && style != "sword")
+            {
+                continue;
+            }
+
+            foreach (var (job, names) in jobs)
+            {
+                foreach (string name in names)
+                {
+                    var clip = LocoLibrary.Get(name);
+                    if (clip == null || !seen.Add(name))
+                    {
+                        continue;
+                    }
+
+                    var score = MoveScore.Of(clip);
+                    float worst = 0f, sum = 0f;
+                    int at = 0, count = 0;
+                    LocoBone bone = LocoBone.Hips;
+                    for (int h = 0; h < 2 * clip.Frames; h++)
+                    {
+                        float time = 0.5f * h / clip.Rate;
+                        clip.Pose(time, a, 1f);
+                        score.Pose(time, b, 1f, MoveLevers.Plain);
+                        for (int i = 0; i < a.Length; i++)
+                        {
+                            float d = (a[i] - b[i]).magnitude * Locomotor.ClipLeg * 1000f;
+                            sum += d;
+                            count++;
+                            if (d > worst)
+                            {
+                                worst = d;
+                                at = h;
+                                bone = (LocoBone)i;
+                            }
+                        }
+                    }
+
+                    worstOfAll = Mathf.Max(worstOfAll, worst);
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  {0,-9} {1,-12} {2,-18}: {3,5:0.00} at most ({4}, at {5:0.00} s), {6:0.000} usual; {7} frames", style, job, name, worst, bone, 0.5f * at / clip.Rate, sum / Mathf.Max(1, count), clip.Frames));
+                }
+            }
+        }
+
+        Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  the furthest of all: {0:0.00} mm", worstOfAll));
+
+        var walk = LocoLibrary.Get("sns_walk");
+        if (walk == null)
+        {
+            return;
+        }
+
+        Console.WriteLine("what each lever does to the guard's walk (sns_walk; over one cycle, cm and degrees):");
+        var tries = new (string name, MoveLevers levers)[]
+        {
+            ("at rest", MoveLevers.Plain),
+            ("bounce 2", With(l => l.Bounce = 2f)), ("bounce 0", With(l => l.Bounce = 0f)),
+            ("sway 2", With(l => l.Sway = 2f)), ("hip turn 2", With(l => l.HipTurn = 2f)), ("chest turn 2", With(l => l.ChestTurn = 2f)),
+            ("arm swing 2", With(l => l.ArmSwing = 2f)), ("step lift 2", With(l => l.StepLift = 2f)),
+            ("lean 15", With(l => l.Lean = 15f)), ("crouch 10 cm", With(l => l.Crouch = 0.10f / Locomotor.ClipLeg)),
+        };
+        var m = MoveScore.Of(walk);
+        foreach (var (name, levers) in tries)
+        {
+            Vector3 lo = Vector3.one * 1e9f, hi = Vector3.one * -1e9f, handLo = lo, handHi = hi;
+            float yawLo = 1e9f, yawHi = -1e9f, chestLo = 1e9f, chestHi = -1e9f, lift = 0f, floor = 1e9f, lean = 0f, knee = 0f, feet = 0f;
+            int n = walk.Frames;
+            for (int f = 0; f < n; f++)
+            {
+                var t = m.Parts(f / walk.Rate, levers, out var spine);
+                BodyMeasures.OfClips.Compose(t, b, spine);
+                walk.Pose(f / walk.Rate, a, 1f);
+                lo = Vector3.Min(lo, t.Pelvis); hi = Vector3.Max(hi, t.Pelvis);
+                Vector3 hand = b[(int)LocoBone.LeftHand] - b[(int)LocoBone.Spine2];
+                handLo = Vector3.Min(handLo, hand); handHi = Vector3.Max(handHi, hand);
+                yawLo = Mathf.Min(yawLo, t.PelvisTurn.y); yawHi = Mathf.Max(yawHi, t.PelvisTurn.y);
+                chestLo = Mathf.Min(chestLo, t.ChestTurn.y); chestHi = Mathf.Max(chestHi, t.ChestTurn.y);
+                floor = Mathf.Min(floor, b[(int)LocoBone.LeftFoot].y); lift = Mathf.Max(lift, b[(int)LocoBone.LeftFoot].y);
+                Vector3 up = b[(int)LocoBone.Head] - b[(int)LocoBone.Hips];
+                lean += Mathf.Atan2(up.z, up.y) * Mathf.Rad2Deg / n;
+                Vector3 thigh = b[(int)LocoBone.LeftLeg] - b[(int)LocoBone.LeftUpLeg], shin = b[(int)LocoBone.LeftFoot] - b[(int)LocoBone.LeftLeg];
+                knee += Vector3.Angle(thigh, shin) / n;
+                feet = Mathf.Max(feet, (b[(int)LocoBone.LeftFoot] - a[(int)LocoBone.LeftFoot]).magnitude);
+                feet = Mathf.Max(feet, new Vector2(b[(int)LocoBone.RightFoot].x - a[(int)LocoBone.RightFoot].x, b[(int)LocoBone.RightFoot].z - a[(int)LocoBone.RightFoot].z).magnitude);
+            }
+
+            float cm = 100f * Locomotor.ClipLeg;
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "  {0,-13}: hips go {1,4:0.0} up and down, {2,4:0.0} side to side, turn {3,4:0.0} deg; chest turns {4,4:0.0} deg; left hand goes {5,4:0.0} on the chest; left ankle rises {6,4:0.0}; hips to head leans {7,4:0.0} deg; left knee bent {8,4:0.0} deg; hips {9,5:0.0} up; ankles off the recording's {10:0.0}",
+                name, (hi.y - lo.y) * cm, (hi.x - lo.x) * cm, yawHi - yawLo, chestHi - chestLo, (handHi - handLo).magnitude * cm, (lift - floor) * cm, lean, knee, 0.5f * (hi.y + lo.y) * cm, feet * cm));
+        }
+    }
+
+    private static MoveLevers With(Action<MoveLeversBox> set)
+    {
+        var box = new MoveLeversBox();
+        set(box);
+        return new MoveLevers { Bounce = box.Bounce, Sway = box.Sway, HipTurn = box.HipTurn, ChestTurn = box.ChestTurn, ArmSwing = box.ArmSwing, StepLift = box.StepLift, Lean = box.Lean, Crouch = box.Crouch };
+    }
+
+    private sealed class MoveLeversBox
+    {
+        public float Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f, Lean, Crouch;
     }
 
     private static void RoundTrips()

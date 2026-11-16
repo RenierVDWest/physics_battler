@@ -261,6 +261,15 @@ internal static class FightReport
         PhysicsBattler.Locomotion.StandPattern.Tempo = Env("FIGHT_GINGATEMPO", 1f);
         PhysicsBattler.Locomotion.StandPattern.Restless = Env("FIGHT_GINGARESTLESS", 0.4f);
         PhysicsBattler.Locomotion.StandPattern.Vary = Env("FIGHT_GINGAVARY", 0.5f);
+        // (The standard movement made of its parts, the fight rhythm plan's step A. FIGHT_MOVEMADE=0: the recordings'
+        // points played, as before. The levers: FIGHT_MOVEBOUNCE, FIGHT_MOVESWAY, FIGHT_MOVEHIPTURN, FIGHT_MOVECHESTTURN,
+        // FIGHT_MOVEARMS, FIGHT_MOVELIFT (1: as recorded), FIGHT_MOVELEAN (degrees), FIGHT_MOVECROUCH (cm).)
+        PhysicsBattler.Locomotion.MoveScore.On = Env("FIGHT_MOVEMADE", 1f) > 0.5f;
+        PhysicsBattler.Locomotion.MoveScore.Levers = new PhysicsBattler.Locomotion.MoveLevers
+        {
+            Bounce = Env("FIGHT_MOVEBOUNCE", 1f), Sway = Env("FIGHT_MOVESWAY", 1f), HipTurn = Env("FIGHT_MOVEHIPTURN", 1f), ChestTurn = Env("FIGHT_MOVECHESTTURN", 1f),
+            ArmSwing = Env("FIGHT_MOVEARMS", 1f), StepLift = Env("FIGHT_MOVELIFT", 1f), Lean = Env("FIGHT_MOVELEAN", 0f), Crouch = 0.01f * Env("FIGHT_MOVECROUCH", 0f) / PhysicsBattler.Locomotion.Locomotor.ClipLeg,
+        };
         // (FIGHT_STYLETRACE=1: what the walk lays of the manner, each step.)
         if (Environment.GetEnvironmentVariable("FIGHT_STYLETRACE") == "1")
         {
