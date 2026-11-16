@@ -4662,16 +4662,16 @@ are. Now they are made the way the attacks are.
   Bounce", "Move Sway", "Move Hip Turn", "Move Chest Turn", "Move Arm Swing", "Move Step Lift", "Move Lean",
   "Move Crouch"). Measured on the guard's walk (`style made`):
 
-  | Lever | At rest | Set to | Gives |
-  | --- | --- | --- | --- |
-  | Bounce 2 | hips rise and fall 7.0 cm | | 14.0 cm |
-  | Sway 2 | hips side to side 5.5 cm | | 11.1 cm |
-  | Hip turn 2 | hips turn 15.4° | | 30.8° |
-  | Chest turn 2 | chest turns 15.5° | | 31.0° |
-  | Arm swing 2 | hand goes 15.8 cm on the chest | | 31.4 cm |
-  | Step lift 2 | ankle rises 14.9 cm | | 29.8 cm |
-  | Lean 15° | hips to head leans 15.1° | | 25.6° |
-  | Crouch 10 cm | hips 97.4 cm up, knee bent 40° | | 87.4 cm, 68° |
+  | Lever set to | As recorded | With the lever |
+  | --- | --- | --- |
+  | Bounce 2 | hips rise and fall 7.0 cm | 14.0 cm |
+  | Sway 2 | hips side to side 5.5 cm | 11.1 cm |
+  | Hip turn 2 | hips turn 15.4° | 30.8° |
+  | Chest turn 2 | chest turns 15.5° | 31.0° |
+  | Arm swing 2 | hand goes 15.8 cm on the chest | 31.4 cm |
+  | Step lift 2 | ankle rises 14.9 cm | 29.8 cm |
+  | Lean 15° | hips to head leans 15.1° | 25.6° |
+  | Crouch 10 cm | hips 97.4 cm up, knee bent 40° | 87.4 cm, 68° |
 
 - **Lab** ("Duel lab", "How he moves"): "Movement: made / recorded", the eight levers, and three buttons: "At
   rest", and two tries of the levers to see that the parts answer, "Prowl" (lower, leaning in, hips swaying and
