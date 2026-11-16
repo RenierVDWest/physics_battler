@@ -264,6 +264,21 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A feint: how long the way back to where it began takes (seconds).")]
         [Range(0.25f, 1f)] public float feintBack = 0.45f;
 
+        [Tooltip("A feint is not held where its blade would be nearer the middle of his own head, neck or chest than this (metres; a head is 0.1 thick about its middle): it stops short of that, at the last moment of the wind-up the blade is clear. Seen in the playtest of 16 November: a forehand feint rested with the blade against his head.")]
+        [Range(0f, 0.4f)] public float feintBladeClear = 0.18f;
+
+        [Tooltip("A drop: a sudden dip of the hips, as if loading to spring, over whatever he is doing. How far his hips sink (centimetres); his feet stay where they are and his knees bend for it.")]
+        [Range(3f, 25f)] public float dropSinks = 10f;
+
+        [Tooltip("A drop: how far he leans forward with it (degrees).")]
+        [Range(0f, 25f)] public float dropLeans = 8f;
+
+        [Tooltip("A drop: how long it takes to get down (seconds): sharply off, slowing all the way.")]
+        [Range(0.05f, 0.4f)] public float dropDown = 0.12f;
+
+        [Tooltip("A drop: how long he takes to come back up (seconds).")]
+        [Range(0.1f, 0.8f)] public float dropUp = 0.3f;
+
         [Tooltip("A fake lunge: how far it carries his hips toward the other (metres). His legs and hips go as far into the attack he would have made as carries them that far, and come back; his upper body stays in its guard, unless a feint is thrown with it.")]
         [Range(0.1f, 0.6f)] public float fakeLungeFar = 0.3f;
 
@@ -1072,6 +1087,11 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.FeintDepth = feintDepth;
             PostureMaker.FeintHold = feintHold;
             PostureMaker.FeintBack = feintBack;
+            PostureMaker.BladeClear = feintBladeClear;
+            PostureMaker.DropSinks = 0.01f * dropSinks;
+            PostureMaker.DropLeans = dropLeans;
+            PostureMaker.DropDown = dropDown;
+            PostureMaker.DropUp = dropUp;
             PostureMaker.LungeFar = fakeLungeFar;
             PostureMaker.LungeOut = fakeLungeOut;
             PostureMaker.LungeBack = fakeLungeBack;

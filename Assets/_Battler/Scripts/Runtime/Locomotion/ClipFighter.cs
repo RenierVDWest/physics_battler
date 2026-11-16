@@ -3820,7 +3820,27 @@ namespace PhysicsBattler.Locomotion
         private bool postureNow;
         private float postureFeint, postureLunge;
 
-        /// <summary>How many postures it has thrown (feints, fake lunges).</summary>
+        /// <summary>
+        /// A drop (<see cref="PostureMaker"/>): a sudden dip of the hips, as if loading to spring, over whatever he is
+        /// doing. False: he cannot (down, in a clip of his own, his movement not made of its parts, one under way).
+        /// </summary>
+        public bool Drop()
+        {
+            if (Fallen || Loco.Current == Locomotor.Mode.OneShot)
+            {
+                return false;
+            }
+
+            if (!Loco.Dip(PostureMaker.DropSinks * Size / Mathf.Max(0.1f, Loco.Leg), PostureMaker.DropLeans, PostureMaker.DropDown, PostureMaker.DropHeld, PostureMaker.DropUp))
+            {
+                return false;
+            }
+
+            Postures++;
+            return true;
+        }
+
+        /// <summary>How many postures it has thrown (feints, fake lunges, drops).</summary>
         public int Postures { get; private set; }
 
         private static readonly List<MadeAttack> madePlans = new List<MadeAttack>();

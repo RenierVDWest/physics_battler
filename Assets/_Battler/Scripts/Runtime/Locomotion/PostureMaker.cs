@@ -30,6 +30,37 @@ namespace PhysicsBattler.Locomotion
         public static bool LungesOnTheMove = true;
         public static float LungeOnTheMove = 0.7f;
 
+        /// <summary>A drop: how far his hips sink (metres at a Medium's size) and he leans (degrees), how long it takes to get down, how long he is held there and how long he takes to come up (seconds).</summary>
+        public static float DropSinks = 0.10f, DropLeans = 8f, DropDown = 0.12f, DropHeld = 0.05f, DropUp = 0.3f;
+
+        /// <summary>A feint is not held where its blade would be nearer the middle of his own head, neck or chest than this (metres; a head is 0.1 thick about its middle): it stops short, at the last moment of the wind-up the blade is clear.</summary>
+        public static float BladeClear = 0.18f;
+
+        /// <summary>How near the blade is to the middle of his own head, neck or chest at a moment of an attack (metres at a Medium's size).</summary>
+        private static float BladeFromSelf(LocoClip src, in SwordHold hold, float time, Vector3[] p)
+        {
+            var m = BodyMeasures.OfClips;
+            src.Pose(time, p, 1f);
+            var t = m.Decompose(p);
+            AttackScore.SwordOf(t, m, hold, false, out _, out _, out Vector3 grip, out Vector3 way);
+            Vector3 tip = grip + way.normalized * hold.Length;
+            float nearest = float.MaxValue;
+            // (His head from its foot to its top, his neck, and his chest, which is thicker: counted 5 cm nearer.)
+            Vector3 head = p[(int)LocoBone.Head], top = p[(int)LocoBone.HeadTop];
+            var middles = new[] { (head, 0f), (0.5f * (head + top), 0f), (top, 0f), (p[(int)LocoBone.Neck], 0f), (p[(int)LocoBone.Spine2], 0.05f / Locomotor.ClipLeg) };
+            foreach (var (c, thicker) in middles)
+            {
+                float u = Mathf.Clamp01(Vector3.Dot(c - grip, tip - grip) / Mathf.Max(1e-6f, (tip - grip).sqrMagnitude));
+                // (Not counted near the grip: the hand is always by the body.)
+                if (u > 0.15f)
+                {
+                    nearest = Mathf.Min(nearest, (grip + (tip - grip) * u - c).magnitude - thicker);
+                }
+            }
+
+            return nearest * Locomotor.ClipLeg;
+        }
+
         /// <summary>The slowing into a feint's furthest point takes this long (seconds).</summary>
         public const float Eases = 0.14f;
 
@@ -125,6 +156,29 @@ namespace PhysicsBattler.Locomotion
             Vector3[] up = new Vector3[LocoClip.BoneCount], low = new Vector3[LocoClip.BoneCount], p = new Vector3[LocoClip.BoneCount];
             float drive = Mathf.Clamp(made.DriveAt, 0.05f, src.Duration), lands = Mathf.Clamp(made.ContactAt, drive, src.Duration);
             float stopUp = feint * FeintDepth * drive;
+            if (stopUp > 0f)
+            {
+                // (Not held with the blade against himself: the real cut whips through there, a feint would rest in it.)
+                float clearAt = -1f, bestAt = stopUp, best = -1f;
+                for (float at = stopUp; at >= 0.5f * stopUp; at -= 1f / src.Rate)
+                {
+                    float clear = BladeFromSelf(src, made.Hold, at, p);
+                    if (clear >= BladeClear)
+                    {
+                        clearAt = at;
+                        break;
+                    }
+
+                    if (clear > best)
+                    {
+                        best = clear;
+                        bestAt = at;
+                    }
+                }
+
+                stopUp = clearAt >= 0f ? clearAt : bestAt;
+            }
+
             float backUp = Mathf.Max(0.25f, FeintBack);
             Feinted(0f, stopUp, FeintHold, backUp, out float turnsUp);
             // A fake lunge goes as far into the attack as carries his hips its distance.

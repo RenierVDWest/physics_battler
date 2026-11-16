@@ -392,7 +392,7 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            MoveScore.Pose(idle, 0f, raw, Leg);
+            MoveScore.Pose(LeversNow(), idle, 0f, raw, Leg);
             var turn = Quaternion.Euler(0f, Facing, 0f);
             for (int f = 0; f < 2; f++)
             {
@@ -420,12 +420,73 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public Vector3 SnappedThisStep { get; private set; }
 
+        /// <summary>
+        /// A drop (<see cref="PostureMaker"/>): over whatever he is doing, standing or walking, his hips sink so far
+        /// (leg lengths) and he leans so far (degrees), sharply, are held there and come back up. It is laid on the
+        /// parts his movement is made of (<see cref="MoveScore"/>), so his feet stay where they are and his knees
+        /// bend for it. False: his movement is not made of its parts, or a drop is under way.
+        /// </summary>
+        public bool Dip(float sinks, float leans, float down, float held, float up)
+        {
+            if (!MoveScore.On || dipFor >= 0f)
+            {
+                return false;
+            }
+
+            dipSinks = sinks;
+            dipLeans = leans;
+            dipDown = Mathf.Max(0.04f, down);
+            dipHeld = Mathf.Max(0f, held);
+            dipUp = Mathf.Max(0.08f, up);
+            dipFor = 0f;
+            return true;
+        }
+
+        /// <summary>A drop is under way.</summary>
+        public bool Dipping => dipFor >= 0f;
+
+        private float dipSinks, dipLeans, dipDown, dipHeld, dipUp, dipFor = -1f;
+
+        /// <summary>The levers his movement is put together with now: everyone's, and what a drop of his adds.</summary>
+        private MoveLevers LeversNow()
+        {
+            var levers = MoveScore.Levers;
+            if (dipFor >= 0f)
+            {
+                float w;
+                if (dipFor < dipDown)
+                {
+                    float u = 1f - dipFor / dipDown;
+                    w = 1f - u * u;
+                }
+                else
+                {
+                    float v = Mathf.Clamp01((dipFor - dipDown - dipHeld) / dipUp);
+                    w = 1f - v * v * (3f - 2f * v);
+                }
+
+                levers.Crouch += dipSinks * w;
+                levers.Lean += dipLeans * w;
+            }
+
+            return levers;
+        }
+
         public void Step(float dt, Vector3 wantVelocity, float wantFacing)
         {
             SnappedThisStep = Vector3.zero;
             if (!Ready || dt <= 0f)
             {
                 return;
+            }
+
+            if (dipFor >= 0f)
+            {
+                dipFor += dt;
+                if (dipFor >= dipDown + dipHeld + dipUp)
+                {
+                    dipFor = -1f;
+                }
             }
 
             wantVelocity.y = 0f;
@@ -1152,10 +1213,10 @@ namespace PhysicsBattler.Locomotion
                 HoldStance();
                 if (StandTrace != null && from == Mode.Cycle)
                 {
-                    MoveScore.Pose(idle, 0f, scratch, Leg);
+                    MoveScore.Pose(LeversNow(), idle, 0f, scratch, Leg);
                     if (Guard != null && GuardWeight > 0f)
                     {
-                        MoveScore.Pose(Guard.Idle, 0f, stanceScratch, Leg);
+                        MoveScore.Pose(LeversNow(), Guard.Idle, 0f, stanceScratch, Leg);
                         for (int i = 0; i < scratch.Length; i++) { scratch[i] = Vector3.Lerp(scratch[i], stanceScratch[i], GuardWeight); }
                     }
                     string F(Vector3 v) => $"({v.x:0.00},{v.z:0.00})";
@@ -1286,7 +1347,7 @@ namespace PhysicsBattler.Locomotion
         {
             idleTime += dt * TimeScale;
 
-            MoveScore.Pose(idle, idleTime, raw, Leg);
+            MoveScore.Pose(LeversNow(), idle, idleTime, raw, Leg);
             Contacts(idle, idleTime, 1f, true);
             if (StandSteps)
             {
@@ -1301,7 +1362,7 @@ namespace PhysicsBattler.Locomotion
             if (g > 0f)
             {
                 // (The guard's standing, blended in: its wider stance is stepped into below.)
-                MoveScore.Pose(Guard.Idle, idleTime, scratch, Leg);
+                MoveScore.Pose(LeversNow(), Guard.Idle, idleTime, scratch, Leg);
                 for (int i = 0; i < raw.Length; i++)
                 {
                     raw[i] = Vector3.Lerp(raw[i], scratch[i], g);
@@ -1550,7 +1611,7 @@ namespace PhysicsBattler.Locomotion
             }
             else
             {
-                MoveScore.Pose(clip, time, into, Leg);
+                MoveScore.Pose(LeversNow(), clip, time, into, Leg);
             }
         }
 
@@ -2224,7 +2285,7 @@ namespace PhysicsBattler.Locomotion
             foreach (var (clip, w) in Blend)
             {
                 float t = clip.TimeAtPhase(Phase);
-                MoveScore.Pose(clip, t, scratch, Leg);
+                MoveScore.Pose(LeversNow(), clip, t, scratch, Leg);
                 for (int i = 0; i < raw.Length; i++)
                 {
                     raw[i] += scratch[i] * (w / total);
@@ -2259,7 +2320,7 @@ namespace PhysicsBattler.Locomotion
                     float si = clip.Duty[f];
                     float ui = u < sBlend ? u * si / sBlend : si + (u - sBlend) * (1f - si) / (1f - sBlend);
                     float t = clip.TimeAtPhase(land + ui);
-                    MoveScore.Pose(clip, t, scratch, Leg, bones);
+                    MoveScore.Pose(LeversNow(), clip, t, scratch, Leg, bones);
                     foreach (var b in bones)
                     {
                         raw[(int)b] += scratch[(int)b] * (w / total);

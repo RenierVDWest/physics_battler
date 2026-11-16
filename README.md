@@ -4769,3 +4769,27 @@ whips through that place; the feint slows and is held in it. Not mended yet.
 
 *The playtests' pictures* (448 px, 8 a second, `PlaytestLogs/*/frames`): they are looked at for the moments a
 playtest flags, and then taken out of the repository (131 000 of them were in it, 3.3 GB with the logs).
+
+**Fight rhythm, step 6, second part: the drop; and a feint keeps its blade off his own head** (16 November).
+
+- **The drop**: a sudden dip of the hips, as if loading to spring, and back up, over whatever he is doing.
+  It is not a clip: it is laid for a moment on the parts his movement is made of (`MoveScore`'s levers, his
+  own for as long as it lasts; `Locomotor.Dip`), so his feet stay where they are and his knees bend for it,
+  standing or walking. Combat Feel "Drop Sinks" (10 cm), "Drop Leans" (8°), "Drop Down" (0.12 s), "Drop Up"
+  (0.3 s); in the duel lab, "Drop" with its levers, under the leaps. Headless (`FIGHT_DROPAT="2,5"`): standing,
+  his hips sink 10 cm, lowest 0.12 to 0.17 s after, and are back to under 1 cm; his lean goes from 10° to 16°;
+  his feet move 0.2 cm. Going round at 1.5 m/s the same (12 cm), and he keeps going.
+- **The hops** of the plan (hop in, hop out, side hop) are the lab's Leap in, Leap out and Hop left and right
+  with "Leap" set to 0.3 to 0.6 m: made already, in step 2.
+- **A feint stops short of where its blade would rest against his own head** (the playtest of 08:57: a forehand
+  feint from 1.3 m held the blade against his head for 0.18 s; the real cut whips through there). The maker
+  looks at the moment it would stop at: if the blade is nearer the middle of his head, neck or chest than 0.18 m
+  there, it stops at the last moment of the wind-up the blade is clear (Combat Feel "Feint Blade Clear"; 0: as
+  it was; in the lab under the feint's levers). Headless, the forehand feint from 1.3 m: it stops 0.39 s in
+  where it stopped 0.46 s in, and the blade is 27 cm from the middle of his head at its nearest, where it was
+  12 cm (touching it). The rising cut's feint, which was clear, is as it was.
+- The six fighters' fights with the made movement off: unchanged (84 blows). Nothing thrown in any run.
+- **Not verified in Unity**: all of how these look; and whether the log's "inside its own body" is gone (the
+  headless run did not write it before the change either, only showed the blade touching).
+- **Still to come in step 6**: the upper body's postures that go through the guard's own arms (blade bluff,
+  shield press, guard change), the stance switch, and the body map showing which parts each posture opens.

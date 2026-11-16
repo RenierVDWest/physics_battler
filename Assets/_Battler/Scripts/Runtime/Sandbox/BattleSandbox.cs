@@ -775,6 +775,22 @@ namespace PhysicsBattler.Sandbox
             }
 
             GUILayout.Label("Last leap: " + Duel.LastLeap, Styles().Text);
+            Heading("Drop", "A posture of the lower body: a sudden dip of the hips, as if loading to spring, and back up. It goes over whatever he is doing, standing or walking. (The other lower postures are here already: a small Leap in or out, or a Hop to a side, with Leap set to 0.3 to 0.6 m; and the fake lunge under Strike at.)");
+            GUILayout.BeginHorizontal();
+            if (Press("Drop", "He dips now.") && Duel.Mover != null && Duel.Mover.Clip != null)
+            {
+                message = Duel.Mover.Clip.Drop() ? "Duel lab: he drops." : "Duel lab: he cannot drop just now (he is in a blow or a leap, or one is under way).";
+            }
+
+            GUILayout.EndHorizontal();
+            if (leapFeel != null)
+            {
+                leapFeel.dropSinks = Lever("Sinks", leapFeel.dropSinks, 3f, 25f, "How far his hips sink (cm). His feet stay where they are and his knees bend for it.");
+                leapFeel.dropLeans = Lever("Leans", leapFeel.dropLeans, 0f, 25f, "How far he leans forward with it (degrees).");
+                leapFeel.dropDown = Lever("Down in", leapFeel.dropDown, 0.05f, 0.4f, "How long it takes to get down (seconds).");
+                leapFeel.dropUp = Lever("Up in", leapFeel.dropUp, 0.1f, 0.8f, "How long he takes to come back up (seconds).");
+            }
+
             DrawDuelStrikes(leapFeel);
             Duel.Pace = Mathf.Round(10f * Slide("Pace", Duel.Pace > 0.01f ? $"{Duel.Pace:0.0} m/s ({(Duel.Pace < 0.9f ? "stand and step" : Duel.Pace < 1.9f ? "walk" : Duel.Pace < 3.3f ? "brisk" : "run")})" : "his guard's walk", "How fast he is asked to go, in every order. All the way down: his guard's own walking pace, as the fight asked until now (small steps). Under about 1 m/s he stands and takes single steps; to about 2 m/s he walks; above it he goes at a jog with his guard up (Combat Feel \"Guard Jogs\"), and faster still the jog's stride is stretched.", Duel.Pace, 0f, 3.6f)) / 10f;
             Duel.Near = Mathf.Round(10f * Slide("Walks to", $"{Duel.Near:0.0} m", "How near the other he walks (metres, root to root).", Duel.Near, 1f, 3f)) / 10f;
@@ -806,6 +822,7 @@ namespace PhysicsBattler.Sandbox
                     feel.feintDepth = Lever("Feint goes", feel.feintDepth, 0.3f, 1f, "How far into the attack's wind-up the feint goes before it is taken back. Nearer 1 it is told apart from the real blow later.");
                     feel.feintHold = Lever("Feint holds", feel.feintHold, 0f, 0.4f, "How long the feint is held at its furthest (seconds).");
                     feel.feintBack = Lever("Feint back", feel.feintBack, 0.25f, 1f, "How long the feint takes to come back (seconds).");
+                    feel.feintBladeClear = Lever("Blade clear", feel.feintBladeClear, 0f, 0.4f, "A feint stops short of where its blade would be nearer his own head, neck or chest than this (metres from their middles). 0: it is held wherever the wind-up has it, as it was (on the forehand: against his head).");
                 }
 
                 if (duelPosture >= 2)

@@ -225,6 +225,8 @@ internal static class FightReport
         // (FIGHT_ONTHEMOVE=0: a blow asked for while he walks is thrown planted, his speed carried into it, not over
         // the walk. FIGHT_MOVECHECK=0.45, FIGHT_MOVEHIPS=0.5, FIGHT_MOVEINTO=0.07, FIGHT_MOVESTEPIN=0.75: how a blow on the move sits on the walk.)
         PhysicsBattler.Locomotion.AttackOnTheMove.On = Environment.GetEnvironmentVariable("FIGHT_ONTHEMOVE") != "0";
+        // (FIGHT_BLADECLEAR=0: a feint is held wherever its wind-up has the blade, as it was.)
+        PhysicsBattler.Locomotion.PostureMaker.BladeClear = Env("FIGHT_BLADECLEAR", 0.18f);
         // (FIGHT_LUNGESTOPS=1: a fake lunge asked for while he walks stops him, as it was.)
         PhysicsBattler.Locomotion.PostureMaker.LungesOnTheMove = Environment.GetEnvironmentVariable("FIGHT_LUNGESTOPS") != "1";
         // (FIGHT_SHORTPLANTS=1: a blow on the move that would fall short is thrown planted, with its lunge, as it was.)
@@ -1419,6 +1421,16 @@ internal static class FightReport
                     }
 
                     duel.Step(dt);
+                    // (FIGHT_DROPAT="3,6": he drops at those seconds, PostureMaker's drop.)
+                    foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_DROPAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        float when = float.Parse(at, System.Globalization.CultureInfo.InvariantCulture);
+                        if (paceAt >= when && paceAt - dt < when)
+                        {
+                            Console.WriteLine($"DROP {paceAt:0.00}: {(duel.Mover.Clip.Drop() ? "begun" : "he could not")}");
+                        }
+                    }
+
                     for (int i = 0; i < duelBlows.Count; i++)
                     {
                         if (paceAt >= duelBlows[i].at)

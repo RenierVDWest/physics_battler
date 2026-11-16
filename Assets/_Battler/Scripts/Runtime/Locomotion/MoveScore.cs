@@ -132,11 +132,14 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>A movement recording's body at a time, as the walk asks for it: made of its parts when that is on, the recording's points when it is off.</summary>
-        public static void Pose(LocoClip clip, float time, Vector3[] into, float scale, LocoBone[] bones = null)
+        public static void Pose(LocoClip clip, float time, Vector3[] into, float scale, LocoBone[] bones = null) => Pose(Levers, clip, time, into, scale, bones);
+
+        /// <summary>The same with levers of the asker's own (a fighter's, with what a posture of his adds to them).</summary>
+        public static void Pose(in MoveLevers levers, LocoClip clip, float time, Vector3[] into, float scale, LocoBone[] bones = null)
         {
             if (On)
             {
-                Of(clip).Pose(time, into, scale, Levers, bones);
+                Of(clip).Pose(time, into, scale, levers, bones);
             }
             else if (bones == null)
             {
