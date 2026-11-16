@@ -307,6 +307,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Each fighter has levers of his own, laid on everyone's: how he moves (his bounce, sway, hip and chest turn, arm swing, step lift, lean and crouch) and how big his postures are (his feints, fake lunges, drops, bluffs and changes of guard). Two fighters can then be told apart by how each carries himself and gestures. A fighter with none, or with all of his at rest, moves as everyone does. Off: every fighter moves by everyone's levers alone, as it was. The duel lab's \"Each his own\" gives the two fighters theirs.")]
         public bool eachFighterHasHisOwnLevers = true;
 
+        [Tooltip("A fighter told to walk on (to walk up to the other, to back away, to circle) walks at any pace: on his walk's own cycles, their rhythm slowed with the pace, and to the sides on a slow walk recorded for it (0.6 m/s at its own pace). The quick short steps and the single steps from a stand are left for what they were made for: a small change of where he stands. Off: under a walk's pace (about 0.9 m/s) everything is stood and stepped, as it was. Only the duel lab's orders tell a fighter to walk on so far; the fight's own steering does not yet.")]
+        public bool aWalkKeptUpIsWalkedNotStepped = true;
+
+        [Tooltip("What a walk kept up to the side is walked on, under his side-step's own pace (about 1.1 m/s). 0: his guard's side-step alone, slowed. 1: the crouched careful step from the \"Slow walks\" pack (low, each foot long on the ground), all of it at about 0.75 m/s and less. 2: the pack's upright slow strafe (feet near each other; 0.6 m/s at its own pace). Each is the recording's legs under the guard's own chest and arms.")]
+        [Range(0, 2)] public int slowSideWalk = 1;
+
         [Tooltip("The shield test (duel lab): the swordsman reads the target's uncovering. On: he recognises it as it starts (its tell: the point of its blade dips and is held down), knows from the times he has seen it when the part comes open and for how long, and starts his blow early, timed to land while it is open. The first time he sees one he cannot read it and only reacts. Off: he only ever reacts: he starts his blow once he sees the part open, and against a short opening arrives after it has shut.")]
         public bool theSwordsmanReadsOpenings = true;
 
@@ -1140,6 +1146,8 @@ namespace PhysicsBattler.Locomotion
             OpeningTaker.Quickest = quickestOpeningBlow;
             ClipFighter.PostureCommitsShield = aFakeCommitsTheShield;
             FighterLevers.On = eachFighterHasHisOwnLevers;
+            Locomotor.WalksOn = aWalkKeptUpIsWalkedNotStepped;
+            Locomotor.SlowSide = slowSideWalk;
             PhysicsBattler.Sandbox.FakeTest.ShortDepth = shortFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongDepth = longFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongHold = longFakeHold;

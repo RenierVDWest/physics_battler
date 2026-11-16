@@ -40,6 +40,14 @@ GUARD = {
     'jog_back': ('jog_backward', 'cycle', True, 'Jogging backward, empty hands'),
     'jog_left': ('jog_strafe_left', 'cycle', True, 'Jogging to the left, empty hands'),
     'jog_right': ('jog_strafe_right', 'cycle', True, 'Jogging to the right, empty hands'),
+    # (A slow walk to the side, recorded with empty hands (16 November, the pack "Slow walks"): for circling on at a
+    # pace well under the guard's own side-step. Its legs are put under the guard's own chest and arms, as the jogs'
+    # are: MoveStyle. It is mirrored for the left (SLOW_MIRRORED). The pack's other takes are not slower than what
+    # the guard has: its sneaks forward cover 2.0 to 2.6 m/s. Its crouched sneaks to the side go 1.1 m/s, as the
+    # guard's side-steps do, but low and with each foot longer on the ground: the other choice for a slow circle.)
+    'slow_right': ('walk_strafe_right_1', 'cycle', True, 'Walking slowly to the right, empty hands'),
+    'sneak_left': ('crouched_sneaking_left', 'cycle', True, 'Stepping carefully to the left, crouched, empty hands'),
+    'sneak_right': ('crouched_sneaking_right', 'cycle', True, 'Stepping carefully to the right, crouched, empty hands'),
     # (The plan "Fight Rhythm from Recordings", step 4: the ginga, capoeira's base, recorded with empty hands. A stand
     # that steps: on the spot, one foot back and across and then the other, the hips swaying under it. The walk
     # stands in it as it stands in a guard's idle, its feet's steps the recording's own: MoveStyle.Capoeira.)
@@ -115,6 +123,10 @@ STRIKES = {
 }
 
 
+# The slow walks mirrored left to right. name: (the clip it mirrors)
+SLOW_MIRRORED = {'slow_left': 'slow_right'}
+
+
 def load(sample):
     with open(os.path.join(HERE, 'samples', sample + '.json')) as f:
         d = json.load(f)
@@ -144,6 +156,17 @@ def main(report):
         d, B, F = load(sample)
         bones = B
         clips.append(bake_one(name, d, B, F, loop, role, about, yaw_from='hips' if role in ('turn', 'block') else 'head'))
+    for name, of in SLOW_MIRRORED.items():
+        sample, role, loop, about = GUARD[of]
+        d, B, F = load(sample)
+        lb.LOOPS.discard(name)
+        if loop:
+            lb.LOOPS.add(name)
+        c = lb.bake(name, dict(d, about=about.replace('right', 'left') + ' (mirrored)'), B, lb.mirror(B, F), mirrored_of=of, yaw_from='head')
+        c['role'] = role
+        c['kind'] = ''
+        c['set'] = 'guard'
+        clips.append(c)
     for name, of in SWORD_GUARD.items():
         sample, role, loop, about = GUARD[of]
         d, B, F = load(sample)

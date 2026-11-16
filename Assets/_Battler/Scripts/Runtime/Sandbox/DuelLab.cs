@@ -434,6 +434,12 @@ namespace PhysicsBattler.Sandbox
                 lastFootR = r;
                 lastHips = h;
             }
+            if (Mover.Clip != null)
+            {
+                // (An order to walk up, back away or go round is a walk kept up: walked, not stepped.)
+                Mover.Clip.WalksOn = Now == Order.WalkTo || Now == Order.BackAway || Now == Order.CircleLeft || Now == Order.CircleRight;
+            }
+
             if (leaping)
             {
                 // (Until the leap's ground is covered; then he stands.)

@@ -1478,6 +1478,10 @@ internal static class FightReport
                         ownDropLow = Mathf.Min(ownDropLow, duel.Mover.Clip.Anim.Part(PartId.Pelvis).position.y);
                     }
 
+                    // (FIGHT_WALKSON=0: a walk kept up under a walk's pace is stepped, as it was.)
+                    PhysicsBattler.Locomotion.Locomotor.WalksOn = Environment.GetEnvironmentVariable("FIGHT_WALKSON") != "0";
+                    // (FIGHT_SLOWSIDE=0/1/2: what a slow walk kept up to the side is walked on: the side-step, the crouched step, the upright strafe.)
+                    PhysicsBattler.Locomotion.Locomotor.SlowSide = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_SLOWSIDE"), out int slowSide) ? slowSide : 1;
                     // (FIGHT_OWN="Prowler,Strutter": the mover's own levers and the other's, FighterLevers' made-up fighters;
                     // FIGHT_OWNON=0: the switch off. What each then does is measured as posed, from 2.5 s to 6 s: OWN lines; and how far
                     // the mover's hips sink in a drop asked after that (FIGHT_DROPAT), against where they were just before it.)

@@ -151,6 +151,14 @@ namespace PhysicsBattler.Locomotion
                 set.RunR = LegsUnder(LocoLibrary.Get(JogPrefix + "right"), set.StepR ?? set.WalkF, Prefix + "jog_right");
             }
 
+            {
+                // (The slow walks to the sides, recorded with empty hands: their legs under the guard's side-steps' chest and arms.)
+                set.SlowL = LegsUnder(LocoLibrary.Get("slow_left"), set.StepL ?? set.WalkF, Prefix + "slow_left");
+                set.SlowR = LegsUnder(LocoLibrary.Get("slow_right"), set.StepR ?? set.WalkF, Prefix + "slow_right");
+                set.SneakL = LegsUnder(LocoLibrary.Get("sneak_left"), set.StepL ?? set.WalkF, Prefix + "sneak_left");
+                set.SneakR = LegsUnder(LocoLibrary.Get("sneak_right"), set.StepR ?? set.WalkF, Prefix + "sneak_right");
+            }
+
             if (GuardWalkRebuilt && this == Standard)
             {
                 Rebuild(set);

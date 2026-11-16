@@ -150,6 +150,12 @@ namespace PhysicsBattler.Locomotion
             public string Name;
             public LocoClip Idle, WalkF, WalkB, StepL, StepR, CrossL, CrossR, RunF, RunB, RunL, RunR, TurnL, TurnR, Turn180;
 
+            /// <summary>Its slow walks to the sides (null: it has none): for a walk kept up at a pace under its side-steps' own (<see cref="Locomotor.KeptUp"/>).</summary>
+            public LocoClip SlowL, SlowR;
+
+            /// <summary>Its careful crouched steps to the sides (null: it has none): the other choice for a slow walk kept up (<see cref="Locomotor.SlowSide"/>).</summary>
+            public LocoClip SneakL, SneakR;
+
             /// <summary>Its standing clip steps (<see cref="MoveStyle.StandSteps"/>: the ginga): standing in it, the feet go as the clip has them.</summary>
             public bool IdleSteps;
 
@@ -230,7 +236,29 @@ namespace PhysicsBattler.Locomotion
 
         private bool PacedNow => Paced && shoved <= 0f && !Running;
 
-        private bool QuickNow => QuickSteps && !Running && InGuard;
+        /// <summary>
+        /// A walk kept up is walked, not stepped (Combat Feel "A Walk Kept Up Is Walked Not Stepped"). A fighter told
+        /// to walk on (to walk up, to back away, to circle: <see cref="KeptUp"/>) walks at any pace on his walk's
+        /// own cycles, at their own rhythm slowed with the pace, and to the sides on his slow walks where he has
+        /// them (<see cref="ClipSet.SlowL"/>). The quick short steps and the steps in his stance are left for what
+        /// they were made for: a small change of where he stands. Off: under a walk's pace everything is stepped,
+        /// as it was.
+        /// </summary>
+        public static bool WalksOn = true;
+
+        /// <summary>
+        /// What a walk kept up to the side is walked on under his side-step's own pace (Combat Feel "Slow Side Walk"):
+        /// 0, his side-step alone, slowed; 1, the crouched careful step (low, each foot long on the ground, 1.1 m/s at
+        /// its own pace); 2, the upright slow strafe (feet near each other, 0.6 m/s at its own pace).
+        /// </summary>
+        public static int SlowSide = 1;
+
+        /// <summary>He is told to walk on (set each step by what orders him): see <see cref="WalksOn"/>.</summary>
+        public bool KeptUp;
+
+        private bool KeptUpNow => WalksOn && KeptUp;
+
+        private bool QuickNow => QuickSteps && !Running && InGuard && !KeptUpNow;
 
         /// <summary>
         /// Standing in its guard and paced (<see cref="Paced"/>): what it is asked to move is stepped in the stance. The
@@ -2571,6 +2599,25 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 var slow = (right ? set.StepR : set.StepL) ?? (set == Relaxed ? null : right ? walkRs : walkLs);
+                var slower = !KeptUpNow || run ? null : SlowSide == 1 ? (right ? set.SneakR : set.SneakL) : SlowSide == 2 ? (right ? set.SlowR : set.SlowL) : null;
+                if (slower != null && slow != null)
+                {
+                    // (A walk kept up, slower than his side-step's own pace: his slow walk to the side, all of it at
+                    // its own pace and less, giving way to the side-step as he nears that one's.)
+                    float to = slow.Speed * Leg * TimeScale, from = Mathf.Min(slower.Speed * Leg * TimeScale, 0.7f * to);
+                    float quick = to > from + 0.05f ? Mathf.Clamp01((speed - from) / (to - from)) : 1f;
+                    quick = quick * quick * (3f - 2f * quick);
+                    if (quick < 1f)
+                    {
+                        into.Add((slower, w * (1f - quick)));
+                        w *= quick;
+                        if (w <= 0f)
+                        {
+                            return;
+                        }
+                    }
+                }
+
                 var fast = right ? set.CrossR : set.CrossL;
                 if (fast == null)
                 {

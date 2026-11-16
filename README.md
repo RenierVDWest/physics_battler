@@ -5094,3 +5094,50 @@ multiplication). The fight itself gives no fighter levers of his own yet: only t
 dance: each fighter's gestures in a pattern of his own, and each reading the other.
 
 New file that needs its .meta from Unity: `Locomotion/FighterLevers.cs`.
+
+**From the playtest of 16 November (evening): a walk kept up is walked; the actions window; readouts that do
+not move the panel.**
+
+*A walk kept up is walked, not stepped.* Under a walk's pace (about 0.9 m/s) every move was stood and stepped
+in the stance: single short steps, made for a small change of where a fighter stands. At the duel lab's lowest
+pace (his guard's own, 0.7 m/s) that is what he circled and walked up on. Now a fighter told to walk on (the
+lab's Walk to, Back away, Circle) walks at any pace on his walk's own cycles, their rhythm slowed with the
+pace (`Locomotor.WalksOn`, `ClipFighter.WalksOn`). Stepping is left for small changes of place. Switch: Combat
+Feel "A Walk Kept Up Is Walked Not Stepped" (on); in the lab, "Slow orders: walked / stepped (old)".
+
+The pack "Slow walks" (eight files, two of them doubles), measured:
+
+| recording | its own pace | used |
+|---|---|---|
+| Walk Strafe Right | 0.62 m/s, upright, feet near each other | a choice for the slow circle (mirrored for the left) |
+| Crouched Sneaking Left / Right | 1.06 / 1.13 m/s, low, each foot long on the ground | the slow circle, as set |
+| Sneaking Forward | 2.2 m/s | no: faster than the guard's own walk (1.5 m/s) |
+| Sneak Walk (two takes) | 2.0 and 2.6 m/s | no: the same |
+
+So the pack gives a slow walk to the sides and none forward or back: walking up and backing away slowly are
+the guard's own walk and walk back, slowed. A slow forward and a slow backward recording are still wanted.
+The side recordings are used as the jogs are: their hips and legs under the guard's own chest and arms
+(`MoveStyle`, `ClipSet.SneakL/R`, `SlowL/R`; baked as `sneak_left/right`, `slow_left/right`). Which one a slow
+circle is walked on: Combat Feel "Slow Side Walk" (1: crouched, as set; 2: upright; 0: the guard's side-step
+slowed); in the lab, "Slow circle". The slow recording is all of it at about 0.75 m/s and less and gives way
+to the guard's side-step as he nears that one's pace.
+
+Headless, circling at 0.7 m/s: he walks (the walk's cycle) where he stood and stepped; he covers the same
+ground (3.1 m in 5 s); his feet slide 1.9 cm a second, as before (1.8). Not verified: nothing seen in Unity;
+which of the three slow circles looks right (on stick figures the crouched one is a deep crouch, well under
+his guard's stance; the upright one stands him up with his feet together; the side-step slowed looks most
+like his guard). Only the duel lab's orders tell a fighter to walk on: the fight's own steering does not yet.
+
+*The actions window.* In the duel lab every button that has a fighter do something is in a window of its own,
+"Actions", at the right of the screen (it can be dragged): the pace at its top, then Move him and the leaps,
+the postures, Strike at with its body map, and the buttons of the shield test and the fakes test. The panel
+keeps the settings and what was measured. "Actions: in a window / in the panel" at the top of the duel lab
+puts them back as they were; the choice is kept between plays.
+
+*Readouts keep their height.* The lines that say what was measured (the shield test's "Now" and "Last go",
+the fakes test's lines, the last blow and its start, the order, the last leap and posture, and the line at
+the foot of the panel) are each a set number of lines tall whatever they say, so the panel under them no
+longer jumps as their words change. A line longer than its room is cut off; its full text is in the log.
+The pace's value no longer runs onto a second line.
+
+New file that needs nothing from Unity: `Tools/Mocap/Combat/samples/*.json` (three samples). No new scripts.

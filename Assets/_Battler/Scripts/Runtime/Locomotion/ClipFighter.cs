@@ -2101,7 +2101,14 @@ namespace PhysicsBattler.Locomotion
             Vector3 asked = want;
             // (Stand and step: near its enemy the steering's small velocity is not walked in slow motion; it stands until
             // a step's worth is asked, and steps it.)
-            if (Loco.Legs != Locomotor.Mode.OneShot && Loco.Guarding)
+            Loco.KeptUp = WalksOn;
+            if (Locomotor.WalksOn && WalksOn && want.sqrMagnitude > 0.01f)
+            {
+                // (Told to walk on: it is walked as asked at any pace, not stood and stepped. See Locomotor.WalksOn.)
+                Pacer.Forget();
+                Loco.Paced = false;
+            }
+            else if (Loco.Legs != Locomotor.Mode.OneShot && Loco.Guarding)
             {
                 want = Pacer.Pace(dt, want, Loco.Velocity * dt, Size, Locomotor.PacedHalfLife / 0.6931f, !Loco.Shoved);
                 // (The walk takes a step's velocity up, and comes to rest from it, in a step's time; a shove is walked
@@ -3828,6 +3835,9 @@ namespace PhysicsBattler.Locomotion
             Poser.PlayMade(best.Clip, point, 0f);
             return best;
         }
+
+        /// <summary>He is told to walk on (to walk up, back away, circle), by what orders him: his walk is walked at any pace, not stepped (<see cref="Locomotor.WalksOn"/>).</summary>
+        public bool WalksOn;
 
         private bool postureNow;
         private float postureFeint, postureLunge;

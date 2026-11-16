@@ -266,6 +266,7 @@ namespace UnityEngine
         public TextAnchor alignment { get; set; }
         public FontStyle fontStyle { get; set; }
         public bool wordWrap { get; set; }
+        public float lineHeight => 16f;
         public int fontSize { get; set; }
     }
 
@@ -288,6 +289,8 @@ namespace UnityEngine
         private static readonly System.Collections.Generic.Dictionary<string, float> floats = new System.Collections.Generic.Dictionary<string, float>();
         public static float GetFloat(string key, float defaultValue = 0f) => floats.TryGetValue(key, out float v) ? v : defaultValue;
         public static void SetFloat(string key, float value) => floats[key] = value;
+        public static int GetInt(string key, int defaultValue = 0) => floats.TryGetValue(key, out float v) ? (int)v : defaultValue;
+        public static void SetInt(string key, int value) => floats[key] = value;
     }
 
     public sealed class GUILayoutOption { }
