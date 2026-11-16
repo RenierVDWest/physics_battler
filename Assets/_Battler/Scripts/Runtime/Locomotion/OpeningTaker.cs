@@ -55,6 +55,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>He read the posture (he knew it and timed his blow by it).</summary>
         public bool Read { get; private set; }
 
+        /// <summary>He read it and held his blow: it could not have landed in time.</summary>
+        public bool Held { get; private set; }
+
         private float began = -1f, strikeAt = -1f, landIn;
         private bool watching, struck;
 
@@ -65,7 +68,7 @@ namespace PhysicsBattler.Locomotion
             watching = true;
             struck = false;
             strikeAt = -1f;
-            Read = false;
+            Read = Held = false;
             How = Reads ? "he had not met it before, so he could only react" : "he does not read: he reacts to what he sees open";
             if (!Reads || !Knows(posture, out float from, out float to))
             {
@@ -77,6 +80,7 @@ namespace PhysicsBattler.Locomotion
             if (lands > latest)
             {
                 watching = false;
+                Held = true;
                 How = string.Format(System.Globalization.CultureInfo.InvariantCulture, "he read it (open {0:0.00} to {1:0.00} s), but his blow could not land before {2:0.00} s: he held it", from, to, lands);
                 return;
             }

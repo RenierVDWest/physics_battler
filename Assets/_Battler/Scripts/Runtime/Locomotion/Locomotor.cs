@@ -478,8 +478,8 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How fast a change of guard is made (degrees a second).</summary>
         public const float GuardChanges = 140f;
 
-        /// <summary>His shield arm swung away from where the recordings have it, now (degrees: out to his left; up, down below 0): an uncovering, steered by <see cref="ClipFighter"/> step by step.</summary>
-        public float ShieldAside, ShieldLift;
+        /// <summary>His shield hand carried away from where the recordings have it, now (the chest's frame, leg lengths): an uncovering, steered by <see cref="ClipFighter"/> step by step.</summary>
+        public Vector3 ShieldShift;
 
         private readonly float[] pulseAmount = new float[4], pulseOut = new float[4], pulseHeld = new float[4], pulseBack = new float[4], pulseFor = { -1f, -1f, -1f, -1f };
         private float guardLiftNow;
@@ -554,8 +554,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             levers.SwordArmLift += guardLiftNow;
-            levers.ShieldAside += ShieldAside;
-            levers.ShieldLift += ShieldLift;
+            levers.ShieldShift += ShieldShift;
 
             return levers;
         }

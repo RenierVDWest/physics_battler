@@ -20,12 +20,12 @@ namespace PhysicsBattler.Locomotion
         public Vector3 BladeTurn;
         public float ShieldOut, SwordArmLift;
 
-        /// <summary>The shield arm swung at the shoulder, on the chest, the shield going with it: out to his own left (degrees), and up (degrees; down below 0). An uncovering (<see cref="ClipFighter.Uncover"/>).</summary>
-        public float ShieldAside, ShieldLift;
+        /// <summary>The shield hand carried this far from where the recording has it (the chest's own frame, leg lengths: x to his right, y up, z forward), the elbow bending or straightening for it and the board facing as it did: an uncovering (<see cref="ClipFighter.Uncover"/>).</summary>
+        public Vector3 ShieldShift;
 
         public static MoveLevers Plain => new MoveLevers { Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f };
 
-        public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f && BladeTurn == Vector3.zero && ShieldOut == 0f && SwordArmLift == 0f && ShieldAside == 0f && ShieldLift == 0f;
+        public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f && BladeTurn == Vector3.zero && ShieldOut == 0f && SwordArmLift == 0f && ShieldShift == Vector3.zero;
     }
 
     /// <summary>
@@ -136,13 +136,21 @@ namespace PhysicsBattler.Locomotion
                 t.ForeL = BodyTracks.Way(t.ForeL, new Vector3(0.1f, 0.1f, 1f).normalized, w);
             }
 
-            if (levers.ShieldAside != 0f || levers.ShieldLift != 0f)
+            if (levers.ShieldShift != Vector3.zero)
             {
-                // (The shield swung away: its whole arm turned at the shoulder, on the chest, the board with it.)
-                var swing = Quaternion.Euler(-levers.ShieldLift, -levers.ShieldAside, 0f);
-                t.UpperL = swing * t.UpperL;
-                t.ForeL = swing * t.ForeL;
-                t.HandL = swing * t.HandL;
+                // (The shield carried away: its hand goes straight there, the elbow bending or straightening for it on
+                // the side it was, so the board is not swung in an arc about the shoulder, into his own body.)
+                var m = BodyMeasures.OfClips;
+                float upper = m.UpperLen[0], fore = m.ForeLen[0];
+                Vector3 elbow = t.UpperL.normalized * upper, want = elbow + t.ForeL.normalized * fore + levers.ShieldShift;
+                float far = Mathf.Clamp(want.magnitude, Mathf.Abs(upper - fore) + 0.02f, upper + fore - 0.01f);
+                Vector3 to = want.normalized;
+                float along = (upper * upper + far * far - fore * fore) / (2f * far);
+                Vector3 side = elbow - to * Vector3.Dot(elbow, to);
+                side = side.sqrMagnitude > 1e-8f ? side.normalized : Vector3.Cross(to, Vector3.forward).normalized;
+                Vector3 bent = to * along + side * Mathf.Sqrt(Mathf.Max(0f, upper * upper - along * along));
+                t.UpperL = bent / upper;
+                t.ForeL = (to * far - bent) / fore;
             }
 
             t.AnkleL.y = floorL + (t.AnkleL.y - floorL) * levers.StepLift;

@@ -13,9 +13,9 @@ namespace PhysicsBattler.Sandbox
         public bool Reads;
         public float Reaction;
 
-        /// <summary>The shield went this way, this far (degrees).</summary>
+        /// <summary>The shield went this way, this far (metres).</summary>
         public string Way = "";
-        public float Swung;
+        public float Went;
 
         /// <summary>The part was open from, to (seconds after the uncovering began); or never, and what was still before it.</summary>
         public bool Opened;
@@ -43,8 +43,8 @@ namespace PhysicsBattler.Sandbox
             get
             {
                 string window = Opened
-                    ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "the {0} was open {1:0.00} to {2:0.00} s (the shield went {3}, {4:0}°)", AimSpots.Name(Spot), OpenedAt, ShutAt, Way, Swung)
-                    : string.Format(System.Globalization.CultureInfo.InvariantCulture, "the {0} never came open (the shield went {1}, {2:0}°{3})", AimSpots.Name(Spot), Way, Swung, Behind.Length > 0 ? "; still behind " + Behind : "");
+                    ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "the {0} was open {1:0.00} to {2:0.00} s (the shield went {3} {4:0} cm)", AimSpots.Name(Spot), OpenedAt, ShutAt, Way, 100f * Went)
+                    : string.Format(System.Globalization.CultureInfo.InvariantCulture, "the {0} never came open (the shield went {1} {2:0} cm{3})", AimSpots.Name(Spot), Way, 100f * Went, Behind.Length > 0 ? "; still behind " + Behind : "");
                 if (Blow == null)
                 {
                     return window + "; no blow. " + How;
@@ -77,6 +77,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>How the swordsman takes openings: reads or reacts, and his reaction time.</summary>
         public readonly OpeningTaker Taker = new OpeningTaker();
 
+        /// <summary>The attack the swordsman takes the opening with, named by its clip (null: whichever fits the part best).</summary>
+        public string Attack;
+
         /// <summary>The part the target uncovers and the swordsman is to hit.</summary>
         public AimSpot Spot = AimSpot.Chest;
 
@@ -105,6 +108,13 @@ namespace PhysicsBattler.Sandbox
         private string posture = "";
 
         public bool Running => Now != null && !Now.Done;
+
+        /// <summary>What is going on, in a word or two, to be shown over each of the two as it happens ("": nothing): the target's tell and when the part is open; what the swordsman goes by and how it came out.</summary>
+        public string TargetNote { get; private set; } = "";
+        public string AttackerNote { get; private set; } = "";
+
+        /// <summary>How long a go's outcome stays over the swordsman (seconds).</summary>
+        public const float NoteStays = 1.6f;
 
         /// <summary>The part chosen as the swordsman sees it now (looked at ten times a second while no go is under way), and whether he has met its uncovering: for the panel.</summary>
         public string NowText { get; private set; } = "";
@@ -164,6 +174,11 @@ namespace PhysicsBattler.Sandbox
 
             began = now;
             blowAsked = false;
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(Target, "uncover", $"begins to uncover its {AimSpots.Name(Spot)} (the shield test); the swordsman {(Taker.Reads ? (Taker.Knows(PostureName, out _, out _) ? "reads, and has seen it" : "reads, but has not seen it yet") : "only reacts")}");
+            }
+
             posture = PostureName;
             Now = new ShieldTrial { Spot = Spot, Reads = Taker.Reads, Reaction = Taker.Reaction };
             Trials.Add(Now);
@@ -190,6 +205,12 @@ namespace PhysicsBattler.Sandbox
 
             if (!Running)
             {
+                TargetNote = "";
+                if (now - endedAt > NoteStays)
+                {
+                    AttackerNote = "";
+                }
+
                 if (Loop && now - endedAt >= Between && Cannot.Length == 0)
                 {
                     Uncover(now);
@@ -200,7 +221,7 @@ namespace PhysicsBattler.Sandbox
 
             var shown = Target.Clip.Uncovered;
             Now.Way = shown.Way;
-            Now.Swung = shown.Swung;
+            Now.Went = shown.Went;
             Now.Opened = shown.Opened;
             Now.OpenedAt = shown.OpenedAt;
             Now.ShutAt = shown.Shut ? shown.ShutAt : shown.OpenedAt + PostureMaker.UncoverFor;
@@ -210,11 +231,13 @@ namespace PhysicsBattler.Sandbox
                 // (What he sees for himself: the part as it is from his own sword shoulder.)
                 var sees = Openings.LookAt(Target.Clip, Attacker.Clip.PartAt(PartId.UpperArmR), Now.Spot);
                 bool open = sees.Open;
-                Trace?.Invoke(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.000} s: he sees it {1}; the target's own measure: opened {2} at {3:0.00}, shut {4}; swung {5:0}", now - began, open ? "open" : "behind " + sees.Behind, shown.Opened, shown.OpenedAt, shown.Shut, shown.Swung));
+                Trace?.Invoke(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.000} s: he sees it {1}; the target's own measure: opened {2} at {3:0.00}, shut {4}; went {5:0} cm", now - began, open ? "open" : "behind " + sees.Behind, shown.Opened, shown.OpenedAt, shown.Shut, 100f * shown.Went));
                 if (Taker.Step(now, open, out float landIn))
                 {
                     float was = Aim.LandIn;
+                    string attackWas = Aim.Attack;
                     Aim.LandIn = landIn;
+                    Aim.Attack = Attack ?? attackWas;
                     blowAsked = true;
                     if (Aim.Order(Now.Spot, now))
                     {
@@ -223,10 +246,13 @@ namespace PhysicsBattler.Sandbox
                     }
 
                     Aim.LandIn = was;
+                    Aim.Attack = attackWas;
                 }
             }
 
             Now.How = Taker.How;
+            TargetNote = Target.Clip.UncoverTelling ? "TELL: his blade dips" : shown.Opened && !shown.Shut && Target.Clip.IsUncovering ? AimSpots.Name(Now.Spot).ToUpperInvariant() + " OPEN" : Target.Clip.IsUncovering ? "shield moving" : "";
+            AttackerNote = Taker.Held ? "read it: holds his blow" : Now.Blow != null ? (Taker.Read ? "READ IT: striking" : "SAW IT OPEN: striking") : Taker.Read ? "read the tell" : "";
             if (Now.Blow != null && Now.Blow.Met && Now.MetAt < 0f)
             {
                 Now.MetAt = Now.StartedAt + Now.Blow.MetAfter;
@@ -243,6 +269,16 @@ namespace PhysicsBattler.Sandbox
                     // (Having seen it, he has met it: its map is what was measured. Not from a go in which his own
                     // blow landed while it was open: a struck body shuts differently.)
                     Taker.Met(posture, shown.OpenedAt, shown.ShutAt);
+                }
+
+                AttackerNote = Now.Inside ? "TAKEN: on the " + AimSpots.Name(Now.Spot) + ", while open"
+                    : Now.Blow == null ? (Taker.Held ? "held his blow" : "no blow")
+                    : Now.Blow.Met && Now.Blow.Shield ? "TOO LATE: met the shield"
+                    : Now.InTime ? "in time, but beside the part" : Now.Blow.Met ? "late, landed all the same" : "met nothing";
+                TargetNote = "";
+                if (Diagnostics.PlaytestTrace.Enabled)
+                {
+                    Diagnostics.PlaytestTrace.Note(Attacker, "shieldtest", (Now.Reads ? "reads" : "only reacts") + string.Format(System.Globalization.CultureInfo.InvariantCulture, ", reaction {0:0.00} s, tell {1:0.00} s, open for {2:0.00} s: ", Now.Reaction, PostureMaker.UncoverTell, PostureMaker.UncoverFor) + Now.Verdict);
                 }
 
                 Ended?.Invoke(Now);

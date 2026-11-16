@@ -4929,3 +4929,49 @@ a shield and uncovers a chosen part for a moment; the swordsman must hit that pa
     place of the scripted shield, and the fight using any of this are the next parts.
 
 New files that need their .meta from Unity: `Locomotion/OpeningTaker.cs`, `Sandbox/ShieldTest.cs`.
+
+**Fight rhythm, step 7, first part, after the first look in Unity** (16 November). Renier could not tell the
+tell from the uncovering, thought the tell came a second or more early, and did not like the shield being
+pulled into the body. This entry replaces the uncovering's description and the table in the entry above.
+
+- **What the playtest showed** (the target's shield hand against its chest, from the pose log; the first go,
+  the blow asked at 40.00 s):
+  - *The tell could not be seen.* It moved the shield hand 3 cm for 0.3 s. Standing, that hand already drifts
+    3 cm up and down with his breathing.
+  - *The uncovering drew the shield in.* The arm was swung about the shoulder with the elbow bent, so the hand
+    went 10 cm down and 19 cm back toward the chest, and the board tipped edge on.
+  - *What read as a second move was the block.* The shield was down and in for about 0.3 s (39.8 to 40.1 s);
+    then, the swordsman only reacting, it went 40 cm up to meet his late blow (40.3 to 40.8 s). That is the
+    bigger move of the two, and it comes half a second after the uncovering.
+  - The timing itself was as built: tell 0.3 s, away 0.3 s. Nothing ran a second long.
+  - The shield test wrote nothing to the playtest log. It does now (`uncover`, `shieldtest`).
+- **Changed**:
+  - *The tell is a gesture of his sword*: the point of his blade dips about 50 cm and is held down for as
+    long as the tell lasts (0.3 s), and comes back up as the shield goes. Sword for the tell, shield for the
+    uncovering, so they cannot be mixed up.
+  - *The shield is carried straight down*, still facing the swordsman, the elbow straightening for it (a new
+    lever, the shield hand's shift, in place of the two swing levers): the hand goes about 24 cm straight down
+    as seen (27 to 33 asked) and stays 41 to 43 cm before the chest throughout. It leaves 15 cm of room about the line (7 before), which a blade
+    needs.
+  - *The chest only.* The belly and hips sit behind the middle of the board and no clean move of the shield
+    clears them (down 60 cm does not; aside to his left it is still between the two); they are left to the
+    real postures.
+  - *What is happening is written over the two as it happens*: over the target "TELL: his blade dips", then
+    "CHEST OPEN"; over the swordsman "read the tell", "READ IT: striking" or "SAW IT OPEN: striking", and how
+    it came out ("TAKEN", "TOO LATE: met the shield").
+- **Measured again** (headless, the chest; reaction 0.2 s, tell 0.3 s, open for 0.4 s; seconds after it began):
+
+  | | Goes | The blade arrived | Met |
+  | --- | --- | --- | --- |
+  | Only reacts | 3 | 1.05 to 1.12, 0.27 to 0.33 after it shut | the shield, 3 of 3 |
+  | Reads, first sight | 1 | 1.12, 0.32 after it shut | the shield |
+  | Reads, having seen it | 3 | 0.67 to 0.73, inside the window | the chest twice, the belly once |
+  | Reads, reaction 0.4 s | 2 | no blow | he held it |
+
+  The window measured 0.30 to 0.43 s. The six fighters' fight with the made movement off is unchanged (84
+  blows, 3 against 2). Fewer goes than the first table: one part, not three.
+- **From Renier, for what comes next**: the real tells are the fighters' gestures. A fighter's standing is
+  broken up by gestures all the time, and it is their pattern that tells: most of his fake slashes are short,
+  and the one before he really attacks is long. So reading is recognising the pattern, not a signal made for
+  the purpose. The blade dip here stands in for that until the target plays the real postures.
+- **Not verified in Unity**: the new tell and shield move, and the writing over the fighters.

@@ -864,9 +864,6 @@ namespace PhysicsBattler.Sandbox
                 "How he set off under the last order: the fastest either foot and the hips went in its first 0.35 s, and how far he had got. Feet whipped to their places while the body has hardly moved read as a jump (Combat Feel \"Sets Off At A Walk's Rhythm\")."), Styles().Text);
         }
 
-        // (Not the thighs: its shield is before them along the straight line, but a low cut comes round under the board and lands all the same.)
-        private static readonly AimSpot[] ShieldTestSpots = { AimSpot.Chest, AimSpot.Belly, AimSpot.Hips };
-
         /// <summary>
         /// The duel lab's shield test (the plan "Fight Rhythm from Recordings", step 7: openings): the target uncovers
         /// one part for a moment, and the swordsman must hit it while it is open. He either reads the uncovering as it
@@ -875,7 +872,7 @@ namespace PhysicsBattler.Sandbox
         private void DrawShieldTest()
         {
             var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-            Heading("Shield test", "The target holds a shield and takes it off one part of itself for a moment; the swordsman must hit that part while it is open. A blow takes time to land, so seeing the part open is too late: a swordsman who reads the uncovering starts as it begins (he goes by its tell, and by when it opened the last time he saw it) and lands while it is open; one who only reacts starts once he sees it open, and meets the shield coming back. Under the buttons: the window as it was measured, when his blow started and when it landed.");
+            Heading("Shield test", "The target holds a shield and takes it off one part of itself for a moment; the swordsman must hit that part while it is open. A blow takes time to land, so seeing the part open is too late: a swordsman who reads the uncovering starts as it begins (he goes by its tell, the dip of its blade, and by when it opened the last time he saw it) and lands while it is open; one who only reacts starts once he sees it open, and meets the shield coming back. Under the buttons: the window as it was measured, when his blow started and when it landed.");
             bool hasShield = Aim.Target != null && Aim.Target.Clip != null && Aim.Target.Clip.ShieldColliders.Count > 0;
             GUILayout.BeginHorizontal();
             if (Press(hasShield && shieldSetOut ? "Set out again" : "Set out", "Sets the lab out for the test: the target with sword and shield, the two standing 1.5 m apart. The swordsman forgets what he has seen."))
@@ -883,7 +880,7 @@ namespace PhysicsBattler.Sandbox
                 ShieldTestScene();
             }
 
-            if (Press("Uncover", "The target uncovers the part now, once: first its tell (the shield drawn a little the other way), then the shield swings up or down, whichever clears the part soonest, until a straight line from the swordsman's sword shoulder reaches the part; it stays away for as long as set and comes back."))
+            if (Press("Uncover", "The target uncovers the part now, once. First its tell: the point of its blade dips and is held down (its sword, not its shield). Then its shield is carried straight down, still facing the swordsman, until a straight line from the swordsman's sword shoulder reaches its chest with room to spare; it stays away for as long as set and comes back. What is happening is written over the two as it happens."))
             {
                 string cannot = Shield.Cannot;
                 message = Shield.Uncover(Time.time) ? $"Shield test: the target uncovers its {AimSpots.Name(Shield.Spot)}." : "Shield test: not now: " + (cannot.Length > 0 ? cannot : "the target cannot (it is in a blow, or down)") + ".";
@@ -891,14 +888,8 @@ namespace PhysicsBattler.Sandbox
 
             if (Press(Shield.Loop ? "[Loop]" : "Loop", "It uncovers again and again, a moment after each go is over and both are back on their spots.")) Shield.Loop = !Shield.Loop;
             GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(new GUIContent("Uncovers:", "The part the target uncovers and the swordsman is to hit. These are the parts its shield covers as it stands."), Styles().Text, GUILayout.Width(70f));
-            foreach (var spot in ShieldTestSpots)
-            {
-                if (Press(Shield.Spot == spot ? "[" + AimSpots.Name(spot) + "]" : AimSpots.Name(spot), $"The target uncovers its {AimSpots.Name(spot)}.")) Shield.Spot = spot;
-            }
-
-            GUILayout.EndHorizontal();
+            Shield.Spot = AimSpot.Chest;
+            GUILayout.Label(new GUIContent("It uncovers its chest: it lowers its shield.", "The part the target uncovers and the swordsman is to hit: its chest, by lowering its shield. (Its belly and hips sit behind the middle of the board; no clean move of the shield takes it off them, so they are left to the real postures.)"), Styles().Text);
             if (feel != null)
             {
                 GUILayout.BeginHorizontal();
@@ -909,7 +900,7 @@ namespace PhysicsBattler.Sandbox
                 GUILayout.EndHorizontal();
                 feel.openingReactionTime = Lever("Reaction", feel.openingReactionTime, 0.05f, 0.6f, "How long after he recognises the uncovering (reading) or sees the part open (reacting) he starts his blow (seconds).");
                 feel.quickestOpeningBlow = Lever("Quickest blow", feel.quickestOpeningBlow, 0.3f, 0.8f, "The least time his blow may take to land (seconds). In its own time a blow takes about 0.6 s; under about 0.4 s it lands off its mark.");
-                feel.uncoverTell = Lever("Tell lasts", feel.uncoverTell, 0f, 0.8f, "How long the target's tell lasts before its shield starts away (seconds). It is what a reader goes by: with none, reading gains him almost nothing.");
+                feel.uncoverTell = Lever("Tell lasts", feel.uncoverTell, 0f, 0.8f, "How long the target's tell lasts before its shield starts away (seconds): its blade's point is held down that long. It is what a reader goes by: with none, reading gains him nothing.");
                 feel.uncoverOpenFor = Lever("Open for", feel.uncoverOpenFor, 0.15f, 1.2f, "How long the target leaves the part open (seconds).");
                 Shield.Taker.Reads = feel.theSwordsmanReadsOpenings;
                 Shield.Taker.Reaction = feel.openingReactionTime;
@@ -1025,6 +1016,7 @@ namespace PhysicsBattler.Sandbox
             bool capoeira = duelLab && duelCapoeira;
             var attacker = SpawnUnit(BodySize.Medium, 0, attackerSpot, "Swordsman", capoeira && duelEmptyHands ? null : sword, (AttackMaker.On || duelLab) && !capoeira ? shield : null);
             Aim.Begin(attacker, target);
+            LabelNotes.Clear();
             Shield.Begin(Aim);
             if (duelLab)
             {
@@ -1473,6 +1465,11 @@ namespace PhysicsBattler.Sandbox
                     if (duelLab)
                     {
                         Shield.Step(Time.fixedDeltaTime, Time.time);
+                        if (Aim.Target != null && Aim.Attacker != null)
+                        {
+                            LabelNotes[Aim.Target] = Shield.TargetNote;
+                            LabelNotes[Aim.Attacker] = Shield.AttackerNote;
+                        }
                     }
                 }
             }
@@ -3245,6 +3242,9 @@ namespace PhysicsBattler.Sandbox
             GUILayout.EndHorizontal();
         }
 
+        /// <summary>A line more under a unit's label, for a test that wants what is going on shown over the fighters as it happens (the shield test).</summary>
+        public static readonly Dictionary<UnitController, string> LabelNotes = new Dictionary<UnitController, string>();
+
         private static void DrawUnitLabel(UnitController unit)
         {
             if (unit == null || !unit.IsInitialized || Camera.main == null)
@@ -3267,6 +3267,11 @@ namespace PhysicsBattler.Sandbox
             else
             {
                 label += $"\n{unit.Health:0} hp · poise {Mathf.Max(0f, unit.Poise):0}";
+                if (LabelNotes.TryGetValue(unit, out string note) && note.Length > 0)
+                {
+                    label += "\n" + note;
+                }
+
                 if (unit.CurrentMove != null)
                 {
                     label += $"\n{unit.CurrentMove.Move.name.Replace("MD_", "")} → {unit.CurrentMove.Part}";
@@ -3314,7 +3319,9 @@ namespace PhysicsBattler.Sandbox
 
             // (Where the unit is on the screen, in the scaled panel's own measure.)
             float scale = uiScale > 0f ? uiScale : 1f;
-            GUI.Label(new Rect(screen.x / scale - 70f, (Screen.height - screen.y) / scale - 48f, 140f, 52f), label);
+            // (Tall enough for its lines, growing upward so it stays over the head; wide enough for a test's note.)
+            float tall = Mathf.Max(52f, 17f * label.Split('\n').Length + 4f);
+            GUI.Label(new Rect(screen.x / scale - 70f, (Screen.height - screen.y) / scale + 4f - tall, 280f, tall), label);
         }
     }
 }

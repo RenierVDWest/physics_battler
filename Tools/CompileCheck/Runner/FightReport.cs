@@ -1519,6 +1519,9 @@ internal static class FightReport
                         PhysicsBattler.Locomotion.PostureMaker.UncoverTell = EnvF("FIGHT_TELL", PhysicsBattler.Locomotion.PostureMaker.UncoverTell);
                         PhysicsBattler.Locomotion.PostureMaker.UncoverFor = EnvF("FIGHT_OPENFOR", PhysicsBattler.Locomotion.PostureMaker.UncoverFor);
                         PhysicsBattler.Locomotion.OpeningTaker.Quickest = EnvF("FIGHT_QUICKEST", PhysicsBattler.Locomotion.OpeningTaker.Quickest);
+                        // (FIGHT_UNCOVERROOM=0.15: the room the shield leaves about the line. FIGHT_SHIELDATTACK=sns_thrust: the attack he takes it with.)
+                        PhysicsBattler.Locomotion.PostureMaker.UncoverRoom = EnvF("FIGHT_UNCOVERROOM", PhysicsBattler.Locomotion.PostureMaker.UncoverRoom);
+                        shieldTest.Attack = Environment.GetEnvironmentVariable("FIGHT_SHIELDATTACK");
                         if (Environment.GetEnvironmentVariable("FIGHT_SHIELDTRACE") == "1")
                         {
                             shieldTest.Trace = line => Console.WriteLine("SHIELDSTEP " + line);
