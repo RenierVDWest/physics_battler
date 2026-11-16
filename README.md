@@ -5194,7 +5194,7 @@ Headless, standing 1.5 m apart, 60 s each (`FIGHT_DANCE="Strutter,Prowler"`, `FI
 | Strutter mixed up, Prowler plain, both read | 4 and 10 | 1 and 4 | Prowler threw 8 blows by what he read; all 4 that landed caught the Strutter in a fake |
 
 What this says, plainly. The reading shows in what they do: tells learned, blows expected and covered for,
-blows thrown by the count into a long fake. It does not yet show in who wins: about one blow in eight lands,
+blows thrown by the count into a long fake. It does not yet show in who wins: about one blow in six lands (11 of the 70 in the table),
 the rest meet the shield whatever was read, and 60 seconds give too few landed blows to tell a reader from a
 reactor. Four things found on the way:
 - A blow that comes while the other is in a fake of his own lands on an arm or the hand more often than the

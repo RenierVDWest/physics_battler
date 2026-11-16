@@ -215,6 +215,20 @@ namespace PhysicsBattler.Sandbox
 
         internal readonly List<float> landedAt = new List<float>();
 
+        // ---- His feet (the dance's third part) ----
+        internal float spellUntil, outUntil, gaveGround, tempoFor;
+        internal int circling, lastSide = 1;
+        internal bool wantsIn;
+
+        /// <summary>What he is about, by the gap and by how the fight is going: coming in, probing, pressing, shelled up.</summary>
+        public string Tempo = "";
+
+        /// <summary>How far he has walked in the dance (metres), and how long he was in each tempo (seconds).</summary>
+        public float Walked;
+        public readonly Dictionary<string, float> TempoTime = new Dictionary<string, float>();
+        internal Vector3 lastAt;
+        internal bool lastAtKnown;
+
         /// <summary>What he has learned of the other's pattern, in words.</summary>
         public string Learned
         {
@@ -286,6 +300,43 @@ namespace PhysicsBattler.Sandbox
         public const int LearnsFrom = 4;
 
         /// <summary>
+        /// The dance is paced by the gap (Combat Feel "The Dance Is Paced By The Gap"; the dance's third part). Each
+        /// fighter keeps the distance he likes, between just outside reach (<see cref="Edge"/>) and inside it
+        /// (<see cref="Reach"/>) by how aggressive he is; goes round the other in spells and stands between them, by
+        /// how restless he is; comes in for his blow and goes out after it; and one who is not aggressive steps out
+        /// of reach when he sees the other's tell. How the fight is going shifts it: ahead he presses nearer, behind
+        /// he keeps further off. Off: they stand on their spots, as in the second part.
+        /// </summary>
+        public static bool Moves = true;
+
+        /// <summary>Root to root, at a Medium's size (metres): where a blow reaches; just outside it; too near; and how far in a blow on the move may be started from.</summary>
+        public const float Reach = 1.5f, Edge = 2.2f, TooNear = 1.1f, StrikesFrom = 1.95f;
+
+        /// <summary>Where the dance is danced, and how far from there a fighter may back before he must go round instead (metres).</summary>
+        public Vector3 Centre;
+        public float Room = 3.5f;
+
+        /// <summary>How far apart the two are (metres, root to root, flat).</summary>
+        public float Gap
+        {
+            get
+            {
+                if (!Ready)
+                {
+                    return 0f;
+                }
+
+                Vector3 to = B.Unit.Root.position - A.Unit.Root.position;
+                to.y = 0f;
+                return to.magnitude;
+            }
+        }
+
+        /// <summary>The gap so far: its sum over the steps, the steps, its least and most.</summary>
+        public float GapSum, GapLeast = float.MaxValue, GapMost;
+        public int GapSteps;
+
+        /// <summary>
         /// A blow stopped is answered (Combat Feel "A Stopped Blow Is Answered"): the one whose shield or sword stopped a
         /// blow strikes back at once, while the other is still in it. It is what a blow wasted on a fake costs. An answer
         /// is not itself answered.
@@ -303,6 +354,7 @@ namespace PhysicsBattler.Sandbox
 
         private readonly System.Random dice = new System.Random(11);
         private float lastNow;
+        private bool wasOn, feetMoved;
 
         public static string Name(Gesture g)
         {
@@ -326,6 +378,10 @@ namespace PhysicsBattler.Sandbox
             A.Foe = B;
             B.Foe = A;
             On = false;
+            wasOn = feetMoved = false;
+            GapSum = GapMost = 0f;
+            GapLeast = float.MaxValue;
+            GapSteps = 0;
             foreach (var d in new[] { A, B })
             {
                 d.Now = null;
@@ -335,6 +391,11 @@ namespace PhysicsBattler.Sandbox
                 d.Note = "";
                 d.Landed = d.Stopped = d.Missed = d.Taken = d.CaughtInFake = d.ExpectedBlows = d.CoveredForNothing = d.ReadBlows = d.Answered = d.TakenAnswers = 0;
                 d.answerAt = d.pausedAt = -1f;
+                d.spellUntil = d.outUntil = d.gaveGround = d.Walked = 0f;
+                d.circling = 0;
+                d.wantsIn = d.lastAtKnown = false;
+                d.TempoTime.Clear();
+                d.Tempo = "";
                 d.landedAt.Clear();
                 d.Forget();
                 Restart(d, -1f);
@@ -381,7 +442,7 @@ namespace PhysicsBattler.Sandbox
         private bool Free(Dancer d, float now)
         {
             var clip = d.Unit.Clip;
-            return !clip.Busy && d.Unit.CanAct && !clip.IsUncovering && !clip.ShieldArmHeld && OnItsSpot(d.Unit) && now - d.lastMet >= Settles && now >= d.restUntil;
+            return !clip.Busy && d.Unit.CanAct && !clip.IsUncovering && !clip.ShieldArmHeld && (Moves || OnItsSpot(d.Unit)) && now - d.lastMet >= Settles && now >= d.restUntil;
         }
 
         // ---- A hit of the fight's ------------------------------------------------------------------------------------
@@ -449,7 +510,36 @@ namespace PhysicsBattler.Sandbox
 
             if (!On)
             {
+                if (wasOn)
+                {
+                    StopFeet(A);
+                    StopFeet(B);
+                    wasOn = false;
+                }
+
                 return;
+            }
+
+            if (!wasOn)
+            {
+                wasOn = true;
+                Centre = 0.5f * (A.Unit.Root.position + B.Unit.Root.position);
+            }
+
+            float gap = Gap;
+            GapSum += gap;
+            GapSteps++;
+            GapLeast = Mathf.Min(GapLeast, gap);
+            GapMost = Mathf.Max(GapMost, gap);
+            if (Moves)
+            {
+                StepFeet(A, now, dt, gap);
+                StepFeet(B, now, dt, gap);
+            }
+            else if (feetMoved)
+            {
+                StopFeet(A);
+                StopFeet(B);
             }
 
             // (What each leaves open as the other sees it, measured on the bodies as the tests measure it.)
@@ -803,6 +893,9 @@ namespace PhysicsBattler.Sandbox
 
                     d.Say(blow.Landed ? (blow.CaughtInFake ? "LANDED: caught him in his fake" : "LANDED") : blow.Met ? (blow.Expected ? "stopped: he expected it" : "stopped by his " + (blow.Shield ? "shield" : "sword")) : "met nothing", now, 1.6f);
                     d.restUntil = now + 0.4f;
+                    d.wantsIn = false;
+                    // (Out again after it, sooner back the more aggressive he is.)
+                    d.outUntil = now + Mathf.Lerp(1.8f, 0.3f, Aggressive(d, now));
                     Restart(d, -1f);
                     if (Diagnostics.PlaytestTrace.Enabled)
                     {
@@ -855,6 +948,12 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            if (Moves && Gap > StrikesFrom * Size(d))
+            {
+                d.Say("saw his chance, out of reach", now);
+                return;
+            }
+
             Strike(d, now, d.Taker.Read ? "read" : "saw", landIn, d.Taker.How);
         }
 
@@ -881,6 +980,171 @@ namespace PhysicsBattler.Sandbox
             float madeOutIn = made != null ? Mathf.Clamp(made.DriveAt * PostureMaker.FeintDepth / pace + 0.08f, 0.1f, 0.6f) : 0.3f;
             SeesBlow(d.Foe, now, madeOutIn, why != "answer");
             return true;
+        }
+
+        // ---- His feet -----------------------------------------------------------------------------------------------
+
+        private static float Size(Dancer d) => Mathf.Sqrt(Mathf.Max(0.1f, d.Unit.Body.SizeFactor));
+
+        /// <summary>How aggressive he is now (0 to 1): his own, and more when the fight goes his way, less when it goes against him.</summary>
+        public float Aggressive(Dancer d, float now)
+        {
+            var own = d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
+            float mine = FighterLevers.On && own != null ? own.Aggressive : 0.5f;
+            int going = d.Going(now);
+            return Mathf.Clamp01(mine + (going >= 2 ? 0.25f : going <= -2 ? -0.3f : 0f));
+        }
+
+        private static float Restless(Dancer d)
+        {
+            var own = d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
+            return FighterLevers.On && own != null ? own.Restless : 0.5f;
+        }
+
+        private void StopFeet(Dancer d)
+        {
+            feetMoved = false;
+            if (d.Unit == null)
+            {
+                return;
+            }
+
+            d.Unit.DummyGo = null;
+            d.Unit.DummySpot = d.Unit.Root.position;
+            d.Tempo = "";
+            d.wantsIn = false;
+            if (d.Unit.Clip != null)
+            {
+                d.Unit.Clip.WalksOn = false;
+            }
+        }
+
+        /// <summary>One step of his feet: where he wants to be against the other, and the velocity he is steered by for it.</summary>
+        private void StepFeet(Dancer d, float now, float dt, float gap)
+        {
+            feetMoved = true;
+            var unit = d.Unit;
+            var clip = unit.Clip;
+            Vector3 at = unit.Root.position;
+            if (d.lastAtKnown)
+            {
+                Vector3 went = at - d.lastAt;
+                went.y = 0f;
+                d.Walked += went.magnitude;
+            }
+
+            d.lastAt = at;
+            d.lastAtKnown = true;
+            Vector3 to = d.Foe.Unit.Root.position - at;
+            to.y = 0f;
+            if (gap < 1e-3f)
+            {
+                return;
+            }
+
+            Vector3 toward = to / gap, left = Vector3.Cross(toward, Vector3.up);
+            float size = Size(d), aggressive = Aggressive(d, now), restless = Restless(d);
+            int going = d.Going(now);
+            d.Tempo = gap > (Edge + 0.8f) * size ? "coming in" : going >= 2 ? "pressing" : going <= -2 ? "shelled up" : "probing";
+            d.TempoTime.TryGetValue(d.Tempo, out float so);
+            d.TempoTime[d.Tempo] = so + dt;
+
+            // (A blow he has read is coming up: he comes in for it ahead of time.)
+            bool comesIn = d.wantsIn || d.Taker.Pending;
+            // (He sees the other's tell: one who is not aggressive steps out of reach of the blow instead of only covering.)
+            if (d.Expecting(now) && aggressive < 0.6f)
+            {
+                d.outUntil = Mathf.Max(d.outUntil, d.coverUntil - 0.6f);
+            }
+
+            float likes = Mathf.Lerp(Edge + 0.2f, Reach + 0.1f, aggressive);
+            if (now < d.outUntil && !comesIn)
+            {
+                likes = Mathf.Max(likes, Edge + 0.3f);
+            }
+
+            if (comesIn)
+            {
+                likes = Reach;
+            }
+
+            likes *= size;
+            float off = gap - likes, radial = 0f;
+            if (off > 0.12f)
+            {
+                radial = Mathf.Min(off * 2.2f + 0.2f, comesIn ? 1.6f : 1.1f);
+            }
+            else if (off < -0.3f || (off < -0.12f && now < d.outUntil))
+            {
+                radial = -Mathf.Min(-off * 2.2f + 0.2f, 0.8f);
+            }
+
+            if (gap < TooNear * size)
+            {
+                radial = -0.9f;
+            }
+
+            // (Ground given is not given for ever: so much of it, and he stands, or goes round.)
+            d.gaveGround = Mathf.Max(0f, d.gaveGround - 0.25f * dt);
+            bool cornered = false;
+            if (radial < 0f)
+            {
+                Vector3 from = at - Centre;
+                from.y = 0f;
+                cornered = d.gaveGround > 1.5f || (from.magnitude > Room && Vector3.Dot(from, -toward) > 0f);
+                if (cornered && gap >= TooNear * size)
+                {
+                    radial = 0f;
+                }
+                else
+                {
+                    d.gaveGround += -radial * dt;
+                }
+            }
+
+            // (Round the other in spells, and standing between them.)
+            if (now >= d.spellUntil)
+            {
+                double roll = dice.NextDouble();
+                if (d.circling != 0)
+                {
+                    d.circling = 0;
+                    d.spellUntil = now + Mathf.Lerp(1.8f, 0.3f, restless) * (0.6f + 0.8f * (float)roll);
+                }
+                else
+                {
+                    d.lastSide = dice.NextDouble() < 0.65 ? d.lastSide : -d.lastSide;
+                    d.circling = d.lastSide;
+                    d.spellUntil = now + Mathf.Lerp(0.9f, 2.8f, restless) * (0.6f + 0.8f * (float)roll);
+                }
+            }
+
+            float round = d.circling * 0.7f;
+            if (cornered)
+            {
+                // (Backed as far as he may: he goes round, toward the middle.)
+                Vector3 inward = Centre - at;
+                inward.y = 0f;
+                round = (Vector3.Dot(left, inward) >= 0f ? 1f : -1f) * 0.8f;
+            }
+
+            if (comesIn || clip.Striking || gap > (Edge + 0.8f) * size)
+            {
+                round = 0f;
+            }
+
+            Vector3 go = (toward * radial + left * round) * size;
+            if (clip.Fallen || !unit.CanAct || go.magnitude < 0.2f)
+            {
+                unit.DummyGo = null;
+                unit.DummySpot = at;
+                clip.WalksOn = false;
+            }
+            else
+            {
+                unit.DummyGo = go;
+                clip.WalksOn = true;
+            }
         }
 
         // ---- His pattern ---------------------------------------------------------------------------------------------
@@ -927,18 +1191,23 @@ namespace PhysicsBattler.Sandbox
             if (d.blowAt >= 0f)
             {
                 // (His tell is thrown: his blow comes on its time, as soon as he is free for it.)
-                if (now >= d.blowAt && (d.Now == null || d.Now.Over || now - d.Now.Began >= d.Now.Lasts) && Free(d, now))
+                // (Paced by the gap, he comes in for it first, and throws it once he is near enough for it to reach.)
+                bool near = !Moves || Gap <= StrikesFrom * Size(d);
+                d.wantsIn = Moves && now >= d.blowAt - 0.4f;
+                if (now >= d.blowAt && near && (d.Now == null || d.Now.Over || now - d.Now.Began >= d.Now.Lasts) && Free(d, now))
                 {
                     if (!Strike(d, now, "pattern", 0f, ""))
                     {
                         if (now - d.blowAt > 1f)
                         {
+                            d.wantsIn = false;
                             Restart(d, now + 0.3f);
                         }
                     }
                 }
-                else if (now - d.blowAt > 1.5f)
+                else if (now - d.blowAt > (Moves ? 3f : 1.5f))
                 {
+                    d.wantsIn = false;
                     Restart(d, now + 0.3f);
                 }
 
@@ -1057,6 +1326,34 @@ namespace PhysicsBattler.Sandbox
         // ---- Counted -------------------------------------------------------------------------------------------------
 
         public int Gestures(Dancer d) => d.Gestures.Count;
+
+        /// <summary>The gap and the two's feet so far, counted.</summary>
+        public string Feet()
+        {
+            if (GapSteps == 0)
+            {
+                return "";
+            }
+
+            string Of(Dancer d)
+            {
+                var parts = new List<string>();
+                float all = 0f;
+                foreach (var kv in d.TempoTime)
+                {
+                    all += kv.Value;
+                }
+
+                foreach (var kv in d.TempoTime)
+                {
+                    parts.Add($"{kv.Key} {100f * kv.Value / Mathf.Max(0.01f, all):0}%");
+                }
+
+                return $"walked {d.Walked:0.0} m" + (parts.Count > 0 ? " (" + string.Join(", ", parts) + ")" : "");
+            }
+
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, "the gap {0:0.00} m on average, {1:0.00} to {2:0.00} m; him: {3}; the other: {4}", GapSum / GapSteps, GapLeast, GapMost, Of(A), Of(B));
+        }
 
         /// <summary>One fighter's dance so far, counted.</summary>
         public string Tally(Dancer d)

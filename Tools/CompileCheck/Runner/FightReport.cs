@@ -1683,6 +1683,9 @@ internal static class FightReport
                         PhysicsBattler.Sandbox.Dance.Reading = Environment.GetEnvironmentVariable("FIGHT_DANCEREADING") != "0";
                         // (FIGHT_DANCEANSWERS=1: a blow stopped is answered.)
                         PhysicsBattler.Sandbox.Dance.Answers = Environment.GetEnvironmentVariable("FIGHT_DANCEANSWERS") == "1";
+                        // (FIGHT_DANCEMOVES=0: they stand on their spots. With FIGHT_OWN their restless and aggressive are their own.
+                        // FIGHT_DANCEGAP=1: the gap and what each is about, twice a second.)
+                        PhysicsBattler.Sandbox.Dance.Moves = Environment.GetEnvironmentVariable("FIGHT_DANCEMOVES") != "0";
                         PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") != "0";
                         var two = new[] { dance.A, dance.B };
                         for (int k = 0; k < 2; k++)
@@ -1704,6 +1707,10 @@ internal static class FightReport
                     if (dance != null)
                     {
                         dance.Step(dt, Time.time);
+                        if (Environment.GetEnvironmentVariable("FIGHT_DANCEGAP") == "1" && dance.On && Mathf.FloorToInt(2f * paceAt) != Mathf.FloorToInt(2f * (paceAt - dt)))
+                        {
+                            Console.WriteLine($"DANCEGAP {paceAt:0.0} {dance.Gap:0.00} m | A {dance.A.Tempo}{(dance.A.Unit.DummyGo.HasValue ? $" going {dance.A.Unit.DummyGo.Value.magnitude:0.0}" : " standing")} {dance.A.Note} | B {dance.B.Tempo}{(dance.B.Unit.DummyGo.HasValue ? $" going {dance.B.Unit.DummyGo.Value.magnitude:0.0}" : " standing")} {dance.B.Note}");
+                        }
                         var two = new[] { dance.A, dance.B };
                         for (int k = 0; k < 2; k++)
                         {
@@ -2105,6 +2112,7 @@ internal static class FightReport
         if (dance != null)
         {
             Console.WriteLine($"DANCETALLY A {dance.A.Unit.name} ({dance.A.Pattern.Name}, {(dance.A.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.A)}");
+            Console.WriteLine($"DANCEFEET {dance.Feet()}");
             Console.WriteLine($"DANCETALLY B {dance.B.Unit.name} ({dance.B.Pattern.Name}, {(dance.B.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.B)}");
         }
 

@@ -994,7 +994,7 @@ namespace PhysicsBattler.Sandbox
 
             var own = shown.Own ?? (shown.Own = PhysicsBattler.Locomotion.FighterLevers.Plain());
             GUILayout.Label(new GUIContent($"{(ownShown == 0 ? "His" : "The other's")} own ({own.Name}), each times everyone's:", "1: as everyone. Lean and crouch are added to everyone's."), Styles().Text);
-            float was = own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard;
+            float was = own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard + own.Restless + own.Aggressive;
             own.Bounce = Lever("Bounce", own.Bounce, 0f, 2.5f, "His hips' rise and fall with each step, times everyone's.");
             own.Sway = Lever("Sway", own.Sway, 0f, 2.5f, "His hips' sway over his feet, times everyone's.");
             own.HipTurn = Lever("Hip turn", own.HipTurn, 0f, 2.5f, "His hips' turning with each step, times everyone's.");
@@ -1008,7 +1008,9 @@ namespace PhysicsBattler.Sandbox
             own.Drop = Lever("Drops", own.Drop, 0.3f, 2f, "How far he sinks in a drop, times everyone's.");
             own.Bluff = Lever("Bluffs", own.Bluff, 0.3f, 2f, "How big his blade's bluffs and his shield's press are, times everyone's.");
             own.Guard = Lever("Guard changes", own.Guard, 0.3f, 2f, "How far a high or low guard carries his sword arm, times everyone's. Set the guard again to see it.");
-            if (was != own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard && own.Name != "By hand")
+            own.Restless = Lever("Restless", own.Restless, 0f, 1f, "In the dance: how much he is on the move. 1: he goes round the other in long spells with short stands between. 0: he stands long and moves little.");
+            own.Aggressive = Lever("Aggressive", own.Aggressive, 0f, 1f, "In the dance: the distance he likes (1: inside reach, 0: just outside it), how soon he is back in after a blow, and whether he stands and covers for a blow he expects (0.6 and more) or steps out of reach of it.");
+            if (was != own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard + own.Restless + own.Aggressive && own.Name != "By hand")
             {
                 own.Name = own.AtRest ? "Plain" : "By hand";
             }
@@ -1167,6 +1169,11 @@ namespace PhysicsBattler.Sandbox
                 if (Press(!feel.fightersReadEachOthersPatterns ? "[off (old)]" : "off (old)", "Nobody reads.")) feel.fightersReadEachOthersPatterns = false;
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Their feet:", "Whether the dance is paced by the gap between them (Combat Feel \"The Dance Is Paced By The Gap\"). Paced (new): each keeps the distance he likes, goes round the other in spells, comes in for his blow and out after it, and steps out or stands for a blow he expects; how restless and how aggressive he is are his own levers (\"Each his own\"). On their spots (old): they stand where they are."), Styles().Text, GUILayout.Width(80f));
+                if (Press(feel.theDanceIsPacedByTheGap ? "[paced by the gap]" : "paced by the gap", "They move about each other.")) feel.theDanceIsPacedByTheGap = true;
+                if (Press(!feel.theDanceIsPacedByTheGap ? "[on their spots (old)]" : "on their spots (old)", "They stand where they are.")) feel.theDanceIsPacedByTheGap = false;
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
                 GUILayout.Label(new GUIContent("Stopped:", "What happens when a blow is stopped by a shield or a sword. Answered (new): the one who stopped it strikes back at once, while the other is still in his blow; it is what a blow wasted on a fake costs (Combat Feel \"A Stopped Blow Is Answered\"). Nothing (old): a stopped blow costs nothing."), Styles().Text, GUILayout.Width(80f));
                 if (Press(feel.aStoppedBlowIsAnswered ? "[answered]" : "answered", "The one who stopped it strikes back at once.")) feel.aStoppedBlowIsAnswered = true;
                 if (Press(!feel.aStoppedBlowIsAnswered ? "[nothing (old)]" : "nothing (old)", "A stopped blow costs nothing.")) feel.aStoppedBlowIsAnswered = false;
@@ -1216,6 +1223,7 @@ namespace PhysicsBattler.Sandbox
                 Readout(Dancing.Gestures(d) > 0 ? Dancing.Tally(d) : "", 4);
             }
 
+            Readout(new GUIContent(Dancing.On && Dancing.GapSteps > 0 ? $"Now {Dancing.Gap:0.00} m apart; he is {(Dancing.A.Tempo.Length > 0 ? Dancing.A.Tempo : "standing")}, the other {(Dancing.B.Tempo.Length > 0 ? Dancing.B.Tempo : "standing")}. So far: {Dancing.Feet()}." : "", "The gap between them now, what each is about (coming in from far off; probing at the edge of reach; pressing, when the fight goes his way; shelled up, when it goes against him), and the gap and their walking over the whole dance."), 4);
             Readout(new GUIContent(Dancing.Ready ? $"How the fight is going: him {Dancing.A.Going(Time.time):+0;-0;0}, the other {Dancing.B.Going(Time.time):+0;-0;0}." : "", "Blows landed less blows taken, over the last 20 seconds. The first number the fight keeps of how it is going for each: what a fighter does next will come to hang on it."), 1);
         }
 
@@ -1986,8 +1994,8 @@ namespace PhysicsBattler.Sandbox
                         Dancing.Step(Time.fixedDeltaTime, Time.time);
                         if (Aim.Target != null && Aim.Attacker != null)
                         {
-                            LabelNotes[Aim.Target] = Dancing.On ? Dancing.B.Note : Shield.TargetNote.Length > 0 ? Shield.TargetNote : Fakes.TargetNote;
-                            LabelNotes[Aim.Attacker] = Dancing.On ? Dancing.A.Note : Shield.AttackerNote.Length > 0 ? Shield.AttackerNote : Fakes.AttackerNote;
+                            LabelNotes[Aim.Target] = Dancing.On ? (Dancing.B.Note.Length > 0 ? Dancing.B.Note : Dancing.B.Tempo) : Shield.TargetNote.Length > 0 ? Shield.TargetNote : Fakes.TargetNote;
+                            LabelNotes[Aim.Attacker] = Dancing.On ? (Dancing.A.Note.Length > 0 ? Dancing.A.Note : Dancing.A.Tempo) : Shield.AttackerNote.Length > 0 ? Shield.AttackerNote : Fakes.AttackerNote;
                         }
                     }
                 }

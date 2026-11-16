@@ -313,6 +313,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The dance (duel lab): fighters read each other's patterns. Each gestures in a pattern of his own (so many gestures on a beat, then his tell, then his real blow) and watches the other's. On: a fighter set to read learns the other's tell and count by watching (nothing of it is given him), stops gesturing when he sees the tell so that his shield is free for the blow, and strikes into a gesture he knows leaves the chest open. Off: nobody reads, whatever he is set to: each gestures on regardless and goes for a chest he sees open.")]
         public bool fightersReadEachOthersPatterns = true;
 
+        [Tooltip("The dance (duel lab) is paced by the gap between the two. Each fighter keeps the distance he likes, between just outside reach (2.2 m) and inside it (1.5 m) by how aggressive he is; goes round the other in spells and stands between them, by how restless he is; comes in for his blow and goes out again after it; and one who is not aggressive steps out of reach when he sees the other's tell, where an aggressive one stands and covers. How the fight is going shifts it: two blows ahead he presses nearer, two behind he keeps further off. Restless and aggressive are each fighter's own (\"Each his own\"). Off: the two stand on their spots, as in the dance's second part.")]
+        public bool theDanceIsPacedByTheGap = true;
+
         [Tooltip("The dance (duel lab): a blow stopped is answered. The fighter whose shield or sword stopped a blow strikes back at once (after his reaction time, as quick as a blow can be), while the other is still in his. It is what a wasted blow costs: one who goes for every chest he sees open, and so throws blows at fakes, is answered each time one is stopped. An answer is not itself answered. Off (as it is): a stopped blow costs nothing. It is off because it did not do what it was for: in the headless duels every answer met the shield too, the one answered being able to cover while still in his own blow.")]
         public bool aStoppedBlowIsAnswered = false;
 
@@ -1156,6 +1159,7 @@ namespace PhysicsBattler.Locomotion
             Locomotor.SlowSide = slowSideWalk;
             PhysicsBattler.Sandbox.Dance.Reading = fightersReadEachOthersPatterns;
             PhysicsBattler.Sandbox.Dance.Answers = aStoppedBlowIsAnswered;
+            PhysicsBattler.Sandbox.Dance.Moves = theDanceIsPacedByTheGap;
             PhysicsBattler.Sandbox.FakeTest.ShortDepth = shortFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongDepth = longFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongHold = longFakeHold;
