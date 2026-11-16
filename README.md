@@ -5052,3 +5052,45 @@ the follow-up of the one left standing (a stab, a low slash, a kick, or a victor
 on the ground (rolling clear to face up, guarding from his back, getting up facing his enemy, rolling into the
 legs), the three packs of recordings measured (kicks, rolls, get-ups), how it is built on the made attacks and
 a new score for a body lying down, and ten steps. Nothing of it is built.
+
+**Fight rhythm, step 8, the dance, first part: each fighter has levers of his own** (16 November). Until now
+there was one set of levers for every fighter on the field: the movement levers of "How he moves" and the
+sizes of the postures. Two fighters who are to dance must be told apart by how each carries himself, so each
+now has his own (`FighterLevers`, kept on his walk as `Locomotor.Own`), laid on everyone's:
+- how he moves: bounce, sway, hip turn, chest turn, arm swing and step lift, each times everyone's; lean and
+  crouch added to everyone's;
+- how big his postures are: his feints' depth, his fake lunges' distance, his drops' depth, his bluffs' size
+  and his changes of guard, each times everyone's.
+
+A fighter with none, or with all at rest, moves as everyone does. Three made-up fighters to try it with:
+Prowler (low, leaning in, level, feet near the ground, small gestures, a deep drop), Strutter (upright,
+bouncing, chest and arms swinging wide, feet lifted high, big gestures) and Bull (heavy and square, a long
+fake lunge, few frills). They are tries of the levers, not styles decided on.
+
+Switch: Combat Feel "Each Fighter Has His Own Levers" (on). Off: every fighter moves by everyone's alone, as
+it was. In the duel lab, "Each his own": the old/new toggle, a row of the made-up fighters for him and one
+for the other, and every lever of the one shown to set by hand. The one you move shows all of it; the other
+only stands, so he shows his lean and crouch (and his feints, in the fakes test). What was picked is kept
+when the lab is set out again.
+
+Measured headless on the body as posed, the mover circling at 1.6 m/s (`FIGHT_OWN="Prowler,Strutter"`: the
+mover's and the other's; `FIGHT_OWNON=0`: the switch off):
+
+| the mover | hips carried | rise and fall | chest leans | feet lifted to | his drop sinks |
+|---|---|---|---|---|---|
+| Plain | 79.0 cm | 11.8 cm | 12.6° | 21.7 cm | 10.1 cm |
+| Prowler | 73.0 cm | 6.5 cm | 18.0° | 17.7 cm | 15.0 cm |
+| Strutter | 79.7 cm | 12.9 cm | 10.1° | 29.6 cm | 6.2 cm |
+| Bull | 77.1 cm | 9.1 cm | 15.7° | 19.7 cm | 10.1 cm |
+| Prowler, switch off | 79.0 cm | 11.8 cm | 12.6° | 21.7 cm | 10.1 cm |
+
+The other, standing: as a Strutter he leans back 5° more than with the switch off; as a Prowler he stands
+7.5 cm lower and leans 10° further in. With the switch off a fighter given levers is the plain one to the
+millimetre.
+
+Not verified: nothing of it seen in Unity; how the three look (only stick-figure strips were looked at); the
+feint, fake lunge, bluff and guard levers were not measured, only the drop (the others are the same
+multiplication). The fight itself gives no fighter levers of his own yet: only the duel lab does. Next in the
+dance: each fighter's gestures in a pattern of his own, and each reading the other.
+
+New file that needs its .meta from Unity: `Locomotion/FighterLevers.cs`.

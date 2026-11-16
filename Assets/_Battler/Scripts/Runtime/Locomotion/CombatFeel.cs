@@ -303,6 +303,10 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The fakes test: how long the long fake is held at its furthest (seconds). Held 0.25 s it leaves his chest open for nearly half a second.")]
         [Range(0f, 0.6f)] public float longFakeHold = 0.25f;
 
+        [Header("The dance (the fight rhythm plan, step 8)")]
+        [Tooltip("Each fighter has levers of his own, laid on everyone's: how he moves (his bounce, sway, hip and chest turn, arm swing, step lift, lean and crouch) and how big his postures are (his feints, fake lunges, drops, bluffs and changes of guard). Two fighters can then be told apart by how each carries himself and gestures. A fighter with none, or with all of his at rest, moves as everyone does. Off: every fighter moves by everyone's levers alone, as it was. The duel lab's \"Each his own\" gives the two fighters theirs.")]
+        public bool eachFighterHasHisOwnLevers = true;
+
         [Tooltip("The shield test (duel lab): the swordsman reads the target's uncovering. On: he recognises it as it starts (its tell: the point of its blade dips and is held down), knows from the times he has seen it when the part comes open and for how long, and starts his blow early, timed to land while it is open. The first time he sees one he cannot read it and only reacts. Off: he only ever reacts: he starts his blow once he sees the part open, and against a short opening arrives after it has shut.")]
         public bool theSwordsmanReadsOpenings = true;
 
@@ -1135,6 +1139,7 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.UncoverFor = uncoverOpenFor;
             OpeningTaker.Quickest = quickestOpeningBlow;
             ClipFighter.PostureCommitsShield = aFakeCommitsTheShield;
+            FighterLevers.On = eachFighterHasHisOwnLevers;
             PhysicsBattler.Sandbox.FakeTest.ShortDepth = shortFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongDepth = longFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongHold = longFakeHold;

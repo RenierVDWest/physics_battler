@@ -832,6 +832,11 @@ namespace PhysicsBattler.Sandbox
                 }
             }
 
+            if (moveFeel != null)
+            {
+                DrawOwnLevers(moveFeel);
+            }
+
             Heading("Move him", "Each button is an order he carries out until it is done or another is given.");
             GUILayout.BeginHorizontal();
             if (Press("Walk to", $"He walks up to the other and stands {Duel.Near:0.0} m from it.")) Duel.Give(DuelLab.Order.WalkTo);
@@ -932,6 +937,96 @@ namespace PhysicsBattler.Sandbox
         /// one part for a moment, and the swordsman must hit it while it is open. He either reads the uncovering as it
         /// starts, or only reacts once he sees the part open.
         /// </summary>
+        /// <summary>Whose own levers the panel shows (0: his, the one moved; 1: the other's).</summary>
+        private int ownShown;
+        private readonly PhysicsBattler.Locomotion.FighterLevers[] ownKept = new PhysicsBattler.Locomotion.FighterLevers[2];
+
+        /// <summary>
+        /// "Each his own" (the dance's first part): the two fighters' own levers (<see cref="PhysicsBattler.Locomotion.FighterLevers"/>),
+        /// laid on everyone's. A made-up fighter for each at a press, and every lever of the one shown.
+        /// </summary>
+        private void DrawOwnLevers(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            Heading("Each his own", "Each fighter has levers of his own, laid on everyone's (\"How he moves\" above, and the postures' sizes in Combat Feel): how he moves and how big his gestures are. Give the two different ones and they are told apart by how each carries himself. The one you move shows all of it as he walks, circles and gestures; the other shows his lean and crouch as he stands, and his feints in the fakes test.");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Levers:", "Each his own (new): a fighter's own levers are laid on everyone's. Everyone's (old): every fighter moves by the one shared set, as it was (Combat Feel \"Each Fighter Has His Own Levers\")."), Styles().Text, GUILayout.Width(80f));
+            if (Press(feel.eachFighterHasHisOwnLevers ? "[each his own]" : "each his own", "A fighter's own levers are laid on everyone's.")) feel.eachFighterHasHisOwnLevers = true;
+            if (Press(!feel.eachFighterHasHisOwnLevers ? "[everyone's]" : "everyone's", "Every fighter moves by everyone's levers alone, as it was.")) feel.eachFighterHasHisOwnLevers = false;
+            GUILayout.EndHorizontal();
+            if (!feel.eachFighterHasHisOwnLevers || !Duel.Running)
+            {
+                return;
+            }
+
+            var both = new[] { Duel.Mover, Duel.Other };
+            string[] whose = { "Him:", "The other:" };
+            for (int k = 0; k < 2; k++)
+            {
+                var loco = both[k].Clip != null ? both[k].Clip.Loco : null;
+                if (loco == null)
+                {
+                    continue;
+                }
+
+                // (His own are kept over a new setting out of the lab: new fighters are given the ones the last had.)
+                if (loco.Own == null && ownKept[k] != null)
+                {
+                    loco.Own = ownKept[k];
+                }
+
+                ownKept[k] = loco.Own;
+                string now = loco.Own != null ? loco.Own.Name : "Plain";
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent(whose[k], k == 0 ? "The fighter you move." : "The one he moves about."), Styles().Text, GUILayout.Width(80f));
+                foreach (string name in PhysicsBattler.Locomotion.FighterLevers.Names)
+                {
+                    string tip = name == "Plain" ? "As everyone: none of his own."
+                        : name == "Prowler" ? "Low and leaning in, level, hips swaying and turning, feet kept near the ground; small quick gestures, a deep drop."
+                        : name == "Strutter" ? "Upright and bouncing, chest turning and arms swinging wide, feet lifted high; big showy gestures."
+                        : "Heavy and square: leaning in a little, hips and chest turning little, feet low; few frills, a long fake lunge.";
+                    if (Press(now == name ? $"[{name}]" : name, tip))
+                    {
+                        loco.Own = PhysicsBattler.Locomotion.FighterLevers.Named(name);
+                        ownShown = k;
+                    }
+                }
+
+                if (Press(ownShown == k ? "[levers]" : "levers", "Show this one's own levers below, to set by hand."))
+                {
+                    ownShown = k;
+                }
+
+                GUILayout.EndHorizontal();
+            }
+
+            var shown = both[ownShown].Clip != null ? both[ownShown].Clip.Loco : null;
+            if (shown == null)
+            {
+                return;
+            }
+
+            var own = shown.Own ?? (shown.Own = PhysicsBattler.Locomotion.FighterLevers.Plain());
+            GUILayout.Label(new GUIContent($"{(ownShown == 0 ? "His" : "The other's")} own ({own.Name}), each times everyone's:", "1: as everyone. Lean and crouch are added to everyone's."), Styles().Text);
+            float was = own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard;
+            own.Bounce = Lever("Bounce", own.Bounce, 0f, 2.5f, "His hips' rise and fall with each step, times everyone's.");
+            own.Sway = Lever("Sway", own.Sway, 0f, 2.5f, "His hips' sway over his feet, times everyone's.");
+            own.HipTurn = Lever("Hip turn", own.HipTurn, 0f, 2.5f, "His hips' turning with each step, times everyone's.");
+            own.ChestTurn = Lever("Chest turn", own.ChestTurn, 0f, 2.5f, "His chest's turning against his hips, times everyone's.");
+            own.ArmSwing = Lever("Arm swing", own.ArmSwing, 0f, 2.5f, "His arms' swing, times everyone's. Shows only on an arm that is the walk's own.");
+            own.StepLift = Lever("Step lift", own.StepLift, 0.5f, 2.5f, "How high his feet are lifted, times everyone's.");
+            own.Lean = Lever("Lean", own.Lean, -10f, 25f, "His lean forward from the hips, added to everyone's (degrees).");
+            own.Crouch = Lever("Crouch", own.Crouch, 0f, 15f, "How much lower he carries his hips, added to everyone's (cm).");
+            own.Feint = Lever("Feints", own.Feint, 0.3f, 1.2f, "How deep his feints go into the wind-up, times everyone's (never past the whole wind-up).");
+            own.Lunge = Lever("Fake lunges", own.Lunge, 0.3f, 2f, "How far his fake lunges carry him, times everyone's.");
+            own.Drop = Lever("Drops", own.Drop, 0.3f, 2f, "How far he sinks in a drop, times everyone's.");
+            own.Bluff = Lever("Bluffs", own.Bluff, 0.3f, 2f, "How big his blade's bluffs and his shield's press are, times everyone's.");
+            own.Guard = Lever("Guard changes", own.Guard, 0.3f, 2f, "How far a high or low guard carries his sword arm, times everyone's. Set the guard again to see it.");
+            if (was != own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard && own.Name != "By hand")
+            {
+                own.Name = own.AtRest ? "Plain" : "By hand";
+            }
+        }
+
         private void DrawShieldTest()
         {
             var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());

@@ -3686,6 +3686,12 @@ namespace PhysicsBattler.Locomotion
         {
             // (Asked for as a posture, PostureMaker: the attack is made as any is, and only its beginning thrown.)
             postureNow = PostureMaker.Take(out postureFeint, out postureLunge);
+            if (postureNow)
+            {
+                // (His own levers: how deep his feints go and how far his fake lunges carry him, against everyone's.)
+                postureFeint = Mathf.Min(postureFeint * FighterLevers.FeintOf(Loco.Own), 1f / Mathf.Max(0.05f, PostureMaker.FeintDepth));
+                postureLunge *= FighterLevers.LungeOf(Loco.Own);
+            }
             if (AttackOnTheMove.On && landIn <= 0f && legs == null && !(postureNow && postureLunge > 0f && !PostureMaker.LungesOnTheMove))
             {
                 // (Walking, the blow is thrown on the move: the walk goes on under it.)
@@ -3837,7 +3843,7 @@ namespace PhysicsBattler.Locomotion
                 return false;
             }
 
-            if (!Loco.Dip(PostureMaker.DropSinks * Size / Mathf.Max(0.1f, Loco.Leg), PostureMaker.DropLeans, PostureMaker.DropDown, PostureMaker.DropHeld, PostureMaker.DropUp))
+            if (!Loco.Dip(PostureMaker.DropSinks * FighterLevers.DropOf(Loco.Own) * Size / Mathf.Max(0.1f, Loco.Leg), PostureMaker.DropLeans, PostureMaker.DropDown, PostureMaker.DropHeld, PostureMaker.DropUp))
             {
                 return false;
             }
@@ -3857,10 +3863,11 @@ namespace PhysicsBattler.Locomotion
                 return false;
             }
 
-            bool thrown = kind == Locomotor.Pulse.BladeDip ? Loco.Throw(kind, PostureMaker.BladeDips * PostureMaker.BluffSize, 0.1f, 0.04f, 0.22f)
-                : kind == Locomotor.Pulse.BladeFlick ? Loco.Throw(kind, PostureMaker.BladeFlicks * PostureMaker.BluffSize, 0.09f, 0.03f, 0.2f)
-                : kind == Locomotor.Pulse.BladeCircle ? Loco.Throw(kind, PostureMaker.BladeCircles * PostureMaker.BluffSize, 0.2f, 0.15f, 0.2f)
-                : Loco.Throw(kind, PostureMaker.ShieldPressFar, 0.12f, 0.06f, 0.3f);
+            float size = PostureMaker.BluffSize * FighterLevers.BluffOf(Loco.Own);
+            bool thrown = kind == Locomotor.Pulse.BladeDip ? Loco.Throw(kind, PostureMaker.BladeDips * size, 0.1f, 0.04f, 0.22f)
+                : kind == Locomotor.Pulse.BladeFlick ? Loco.Throw(kind, PostureMaker.BladeFlicks * size, 0.09f, 0.03f, 0.2f)
+                : kind == Locomotor.Pulse.BladeCircle ? Loco.Throw(kind, PostureMaker.BladeCircles * size, 0.2f, 0.15f, 0.2f)
+                : Loco.Throw(kind, Mathf.Clamp01(PostureMaker.ShieldPressFar * FighterLevers.BluffOf(Loco.Own)), 0.12f, 0.06f, 0.3f);
             if (thrown)
             {
                 Postures++;
@@ -3872,7 +3879,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A change of guard: the sword arm carried high (1), as the recordings have it (0) or low (-1).</summary>
         public void GuardAt(int height)
         {
-            Loco.GuardLift = height > 0 ? PostureMaker.GuardHigh : height < 0 ? -PostureMaker.GuardLow : 0f;
+            Loco.GuardLift = FighterLevers.GuardOf(Loco.Own) * (height > 0 ? PostureMaker.GuardHigh : height < 0 ? -PostureMaker.GuardLow : 0f);
         }
 
         /// <summary>

@@ -716,6 +716,8 @@ internal static class FightReport
         // change of speed from one step to the next, of the root, the hips, each foot and the sword hand, as posed
         // and as seen, over its first 0.4 s. A body going 1.4 m/s that stops in a step has a change of 1.4 m/s.)
         var duelBlows = new List<(float at, PhysicsBattler.Locomotion.AimSpot spot)>();
+        int[] ownN = new int[2]; float[] ownHips = new float[2], ownLean = new float[2], ownLow = { 9f, 9f }, ownHigh = { -9f, -9f }, ownFoot = new float[2];
+        float ownDropAt = -1f, ownDropFrom = 0f, ownDropLow = 0f;
         string openedTold = "none watched yet";
         bool openTold = false;
         bool startWatched = false;
@@ -1471,6 +1473,43 @@ internal static class FightReport
                         Console.WriteLine($"OPEN as he stands at {paceAt:0.0} s: {open}| covered: {shut}");
                     }
 
+                    if (ownDropAt >= 0f && paceAt - ownDropAt < 0.5f)
+                    {
+                        ownDropLow = Mathf.Min(ownDropLow, duel.Mover.Clip.Anim.Part(PartId.Pelvis).position.y);
+                    }
+
+                    // (FIGHT_OWN="Prowler,Strutter": the mover's own levers and the other's, FighterLevers' made-up fighters;
+                    // FIGHT_OWNON=0: the switch off. What each then does is measured as posed, from 2.5 s to 6 s: OWN lines; and how far
+                    // the mover's hips sink in a drop asked after that (FIGHT_DROPAT), against where they were just before it.)
+                    {
+                        string[] own = (Environment.GetEnvironmentVariable("FIGHT_OWN") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        PhysicsBattler.Locomotion.FighterLevers.On = Environment.GetEnvironmentVariable("FIGHT_OWNON") != "0";
+                        var both = new[] { duel.Mover, duel.Other };
+                        for (int k = 0; k < both.Length; k++)
+                        {
+                            if (both[k] == null || both[k].Clip == null)
+                            {
+                                continue;
+                            }
+
+                            if (k < own.Length && both[k].Clip.Loco.Own == null)
+                            {
+                                both[k].Clip.Loco.Own = PhysicsBattler.Locomotion.FighterLevers.Named(own[k]);
+                            }
+
+                            if (own.Length > 0 && paceAt >= 2.5f && paceAt <= 6f)
+                            {
+                                var an = both[k].Clip.Anim;
+                                float hips = an.Part(PartId.Pelvis).position.y - both[k].Root.position.y;
+                                Vector3 up = an.Part(PartId.Chest).up, fwd = Quaternion.Euler(0f, both[k].Clip.Loco.Facing, 0f) * Vector3.forward;
+                                float lean = Mathf.Atan2(Vector3.Dot(up, fwd), up.y) * Mathf.Rad2Deg;
+                                float foot = Mathf.Max(an.Part(PartId.FootL).position.y, an.Part(PartId.FootR).position.y) - both[k].Root.position.y;
+                                ownN[k]++; ownHips[k] += hips; ownLean[k] += lean;
+                                ownLow[k] = Mathf.Min(ownLow[k], hips); ownHigh[k] = Mathf.Max(ownHigh[k], hips); ownFoot[k] = Mathf.Max(ownFoot[k], foot);
+                            }
+                        }
+                    }
+
                     // (FIGHT_DROPAT="3,6": he drops at those seconds, PostureMaker's drop.)
                     foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_DROPAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                     {
@@ -1478,6 +1517,9 @@ internal static class FightReport
                         if (paceAt >= when && paceAt - dt < when)
                         {
                             Console.WriteLine($"DROP {paceAt:0.00}: {(duel.Mover.Clip.Drop() ? "begun" : "he could not")}");
+                            ownDropAt = paceAt;
+                            ownDropFrom = duel.Mover.Clip.Anim.Part(PartId.Pelvis).position.y;
+                            ownDropLow = ownDropFrom;
                             duel.WatchOpenings("drop");
                         }
                     }
@@ -2006,6 +2048,24 @@ internal static class FightReport
             UnitController.ClipBlowStarted -= OnClipBlow;
             UnitController.Hit -= OnHit;
             UnitController.ComboChanged -= OnCombo;
+        }
+
+        if (duel != null && ownDropAt >= 0f)
+        {
+            Console.WriteLine($"OWNDROP {duel.Mover.name}: in his drop his hips sank {100f * (ownDropFrom - ownDropLow):0.0} cm");
+        }
+
+        if (duel != null)
+        {
+            var both = new[] { duel.Mover, duel.Other };
+            for (int k = 0; k < 2; k++)
+            {
+                if (ownN[k] > 0 && both[k] != null)
+                {
+                    var own = both[k].Clip.Loco.Own;
+                    Console.WriteLine($"OWN {both[k].name} ({(own != null ? own.Name : "none")}{(PhysicsBattler.Locomotion.FighterLevers.On ? "" : ", switch off")}): hips carried {100f * ownHips[k] / ownN[k]:0.0} cm up, rising and falling {100f * (ownHigh[k] - ownLow[k]):0.0} cm; chest leans {ownLean[k] / ownN[k]:0.0} deg; feet lifted to {100f * ownFoot[k]:0.0} cm");
+                }
+            }
         }
 
         var sb = new System.Text.StringBuilder();

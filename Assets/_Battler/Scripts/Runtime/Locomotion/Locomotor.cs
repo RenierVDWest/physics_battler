@@ -501,10 +501,13 @@ namespace PhysicsBattler.Locomotion
 
         private float dipSinks, dipLeans, dipDown, dipHeld, dipUp, dipFor = -1f;
 
-        /// <summary>The levers his movement is put together with now: everyone's, and what a drop of his adds.</summary>
+        /// <summary>His own levers (<see cref="FighterLevers"/>; null: he moves by everyone's).</summary>
+        public FighterLevers Own;
+
+        /// <summary>The levers his movement is put together with now: everyone's, his own laid on them, and what a drop of his adds.</summary>
         private MoveLevers LeversNow()
         {
-            var levers = MoveScore.Levers;
+            var levers = FighterLevers.On && Own != null ? Own.Over(MoveScore.Levers) : MoveScore.Levers;
             if (dipFor >= 0f)
             {
                 float w;
