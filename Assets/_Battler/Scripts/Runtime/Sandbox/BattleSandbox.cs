@@ -568,9 +568,69 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab set out for the shield test: the target with sword and shield, the two at striking distance from the first moment.</summary>
         private bool shieldSetOut;
 
+        /// <summary>When the lab was last set out for the shield test, and what was asked for that has to wait until the two are standing ready (0: nothing; 1: an uncovering; 2: the uncovering's loop; 3: a short fake; 4: a long fake; 5: the fakes' pattern).</summary>
+        private float shieldSetOutAt = -10f;
+        private int shieldPending;
+
+        /// <summary>The duel lab's target stands with sword and shield, as the shield test and the fakes test need.</summary>
+        private bool TargetHasShield => duelLab && Aim.Target != null && Aim.Target.Clip != null && Aim.Target.Clip.ShieldColliders.Count > 0 && Aim.Target.Clip.Strikes != null;
+
+        /// <summary>
+        /// A press in the shield test or the fakes test with the target not holding sword and shield: the lab is set
+        /// out for it first, and what was asked for is done as soon as the two stand ready. True: it has to wait.
+        /// </summary>
+        private bool SetOutFirst(int asked)
+        {
+            if (TargetHasShield)
+            {
+                return false;
+            }
+
+            ShieldTestScene();
+            shieldPending = asked;
+            message = "The target had no sword and shield: the lab is set out for the test, and what you pressed follows in a moment.";
+            return true;
+        }
+
+        /// <summary>What was pressed before the lab was set out is done once the two stand ready.</summary>
+        private void StepShieldPending()
+        {
+            if (shieldPending == 0 || Time.time - shieldSetOutAt < 1.5f || !TargetHasShield)
+            {
+                return;
+            }
+
+            if (Time.time - shieldSetOutAt > 8f)
+            {
+                shieldPending = 0;
+                return;
+            }
+
+            switch (shieldPending)
+            {
+                case 1:
+                    if (Shield.Uncover(Time.time)) shieldPending = 0;
+                    break;
+                case 2:
+                    Shield.Loop = true;
+                    shieldPending = 0;
+                    break;
+                case 3:
+                case 4:
+                    if (Fakes.Throw(shieldPending == 4, Time.time)) shieldPending = 0;
+                    break;
+                default:
+                    Fakes.Pattern = true;
+                    Fakes.Restart();
+                    shieldPending = 0;
+                    break;
+            }
+        }
+
         /// <summary>The duel lab set out for its shield test (the plan's step 7).</summary>
         public void ShieldTestScene()
         {
+            shieldSetOutAt = Time.time;
             shieldSetOut = true;
             aimTargetKit = 1;
             SetOutDuelLab();
@@ -883,13 +943,13 @@ namespace PhysicsBattler.Sandbox
                 ShieldTestScene();
             }
 
-            if (Press("Uncover", "The target uncovers the part now, once. First its tell: the point of its blade dips and is held down (its sword, not its shield). Then its shield is carried straight down, still facing the swordsman, until a straight line from the swordsman's sword shoulder reaches its chest with room to spare; it stays away for as long as set and comes back. What is happening is written over the two as it happens."))
+            if (Press("Uncover", "The target uncovers the part now, once. First its tell: the point of its blade dips and is held down (its sword, not its shield). Then its shield is carried straight down, still facing the swordsman, until a straight line from the swordsman's sword shoulder reaches its chest with room to spare; it stays away for as long as set and comes back. What is happening is written over the two as it happens.") && !SetOutFirst(1))
             {
                 string cannot = Shield.Cannot;
                 message = Shield.Uncover(Time.time) ? $"Shield test: the target uncovers its {AimSpots.Name(Shield.Spot)}." : "Shield test: not now: " + (cannot.Length > 0 ? cannot : "the target cannot (it is in a blow, or down)") + ".";
             }
 
-            if (Press(Shield.Loop ? "[Loop]" : "Loop", "It uncovers again and again, a moment after each go is over and both are back on their spots.")) Shield.Loop = !Shield.Loop;
+            if (Press(Shield.Loop ? "[Loop]" : "Loop", "It uncovers again and again, a moment after each go is over and both are back on their spots.") && (Shield.Loop || !SetOutFirst(2))) Shield.Loop = !Shield.Loop;
             GUILayout.EndHorizontal();
             Shield.Spot = AimSpot.Chest;
             GUILayout.Label(new GUIContent("It uncovers its chest: it lowers its shield.", "The part the target uncovers and the swordsman is to hit: its chest, by lowering its shield. (Its belly and hips sit behind the middle of the board; no clean move of the shield takes it off them, so they are left to the real postures.)"), Styles().Text);
@@ -924,11 +984,12 @@ namespace PhysicsBattler.Sandbox
         /// </summary>
         private void DrawFakeTest(PhysicsBattler.Locomotion.CombatFeel feel)
         {
-            Heading("Fakes test", "The shield test on real gestures. The target throws fake slashes at the swordsman: short ones, which leave its chest covered, and after so many of them a long one, which leaves its chest open for nearly half a second. They come on a steady beat. The swordsman set to read (above) watches the pattern through once without striking; after that he lets the short ones go, counts them, and starts his blow before the long one begins, to land as it opens. Set to only react he waits until he sees the chest open, and arrives after it is covered again. Set out the shield test first (the target needs its sword and shield).");
+            Heading("Fakes test", "The shield test on real gestures. The target throws fake slashes at the swordsman: short ones, which leave its chest covered, and after so many of them a long one, which leaves its chest open for nearly half a second. They come on a steady beat. The swordsman set to read (above) watches the pattern through once without striking; after that he lets the short ones go, counts them, and starts his blow before the long one begins, to land as it opens. Set to only react he waits until he sees the chest open, and arrives after it is covered again. The target needs its sword and shield: if it has none, the first press of a button here sets the lab out for it, and what was pressed follows in a moment.");
+            GUILayout.Label(new GUIContent(TargetHasShield ? "The target has its sword and shield." : "The target has no sword and shield yet: any button below sets the lab out first.", "The fakes test and the shield test need the target to stand with sword and shield, 1.5 m from the swordsman. Set out (in the shield test) does that; so does the first press of any button of either test."), Styles().Text);
             GUILayout.BeginHorizontal();
-            if (Press("Short fake", "The target throws one short fake slash now.") && !Fakes.Throw(false, Time.time)) message = "Fakes test: not now: " + (Fakes.Cannot.Length > 0 ? Fakes.Cannot : "the target cannot") + ".";
-            if (Press("Long fake", "The target throws one long fake slash now. By itself it has no pattern before it, so a reader has nothing to go by and lets it go; one who only reacts goes for it.") && !Fakes.Throw(true, Time.time)) message = "Fakes test: not now: " + (Fakes.Cannot.Length > 0 ? Fakes.Cannot : "the target cannot") + ".";
-            if (Press(Fakes.Pattern ? "[Pattern]" : "Pattern", "The target plays its pattern round and round: so many short fakes, then a long one, one on each beat. Struck, or off its spot, it begins the pattern again once it is back."))
+            if (Press("Short fake", "The target throws one short fake slash now. (With no sword and shield on the target, the lab is set out for it first.)") && !SetOutFirst(3) && !Fakes.Throw(false, Time.time)) message = "Fakes test: not now: " + (Fakes.Cannot.Length > 0 ? Fakes.Cannot : "the target cannot") + ".";
+            if (Press("Long fake", "The target throws one long fake slash now. By itself it has no pattern before it, so a reader has nothing to go by and lets it go; one who only reacts goes for it.") && !SetOutFirst(4) && !Fakes.Throw(true, Time.time)) message = "Fakes test: not now: " + (Fakes.Cannot.Length > 0 ? Fakes.Cannot : "the target cannot") + ".";
+            if (Press(Fakes.Pattern ? "[Pattern]" : "Pattern", "The target plays its pattern round and round: so many short fakes, then a long one, one on each beat. Struck, or off its spot, it begins the pattern again once it is back.") && (Fakes.Pattern || !SetOutFirst(5)))
             {
                 Fakes.Pattern = !Fakes.Pattern;
                 Fakes.Restart();
@@ -1512,6 +1573,7 @@ namespace PhysicsBattler.Sandbox
 
                     if (duelLab)
                     {
+                        StepShieldPending();
                         Shield.Step(Time.fixedDeltaTime, Time.time);
                         Fakes.Step(Time.fixedDeltaTime, Time.time);
                         if (Aim.Target != null && Aim.Attacker != null)

@@ -5038,3 +5038,17 @@ place of the scripted shield, with the tell where Renier put it: in the pattern 
     each other is step 8.
 
 New file that needs its .meta from Unity: `Sandbox/FakeTest.cs`.
+
+**The shield test and the fakes test set the lab out themselves** (16 November, from the playtest: "the dummy
+does not have a shield"). Both tests need the target standing with sword and shield, and the duel lab starts
+it with open hands. Pressed with no shield on the target, any button of either test (Uncover, Loop, Short
+fake, Long fake, Pattern) now sets the lab out first, and what was pressed follows once the two stand ready
+(1.5 s). A line over the fakes test's buttons says whether the target has its sword and shield. Not verified
+in Unity.
+
+**Downed play: the plan** (16 November). What two fighters do when one of them has been knocked down is a
+document of its own, "Downed Play plan (knockdown actions)" (https://claude.ai/artifact/GnbHLxWQTbosPE5Fff3oAK):
+the follow-up of the one left standing (a stab, a low slash, a kick, or a victory lap), the answer of the one
+on the ground (rolling clear to face up, guarding from his back, getting up facing his enemy, rolling into the
+legs), the three packs of recordings measured (kicks, rolls, get-ups), how it is built on the made attacks and
+a new score for a body lying down, and ten steps. Nothing of it is built.
