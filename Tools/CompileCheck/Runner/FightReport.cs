@@ -705,6 +705,8 @@ internal static class FightReport
         PhysicsBattler.Sandbox.ShieldTest shieldTest = null;
         int shieldGo = 0;
         PhysicsBattler.Sandbox.FakeTest fakeTest = null;
+        PhysicsBattler.Sandbox.Dance dance = null;
+        string[] danceLearned = { "", "" };
         int fakeGo = 0;
         string fakeLearned = "";
         float styleSweep = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STYLESWEEP"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float sweepOver) ? sweepOver : 0f;
@@ -1072,6 +1074,7 @@ internal static class FightReport
         void OnHit(HitReport h)
         {
             aim?.OnHit(h, Time.time);
+            dance?.OnHit(h, Time.time);
             if (h.Attacker == null) return;
             if (h.Struck != null && h.Result.Impulse.sqrMagnitude > 1e-6f)
             {
@@ -1667,6 +1670,49 @@ internal static class FightReport
                         }
                     }
 
+                    // (The dance, the plan's step 8, second part. FIGHT_DANCE="Strutter,Prowler": the two gesture in those
+                    // patterns from 2 s on (the mover's, the other's); FIGHT_DANCEREADS="1,0": which of them reads;
+                    // FIGHT_DANCEMIXED="0,1": whose pattern is mixed up; FIGHT_DANCEREADING=0: the switch off.)
+                    if (dance == null && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_DANCE")) && paceAt >= 2f && aim != null && aim.Attacker.Clip != null && aim.Target.Clip != null)
+                    {
+                        string[] names = Environment.GetEnvironmentVariable("FIGHT_DANCE").Split(',');
+                        string[] reads = (Environment.GetEnvironmentVariable("FIGHT_DANCEREADS") ?? "1,1").Split(',');
+                        string[] mixed = (Environment.GetEnvironmentVariable("FIGHT_DANCEMIXED") ?? "0,0").Split(',');
+                        dance = new PhysicsBattler.Sandbox.Dance();
+                        dance.Begin(aim.Attacker, aim.Target);
+                        PhysicsBattler.Sandbox.Dance.Reading = Environment.GetEnvironmentVariable("FIGHT_DANCEREADING") != "0";
+                        PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") != "0";
+                        var two = new[] { dance.A, dance.B };
+                        for (int k = 0; k < 2; k++)
+                        {
+                            two[k].Pattern = PhysicsBattler.Sandbox.GesturePattern.Named(names[Math.Min(k, names.Length - 1)]);
+                            two[k].Pattern.MixedUp = mixed[Math.Min(k, mixed.Length - 1)].Trim() == "1";
+                            two[k].Reads = reads[Math.Min(k, reads.Length - 1)].Trim() != "0";
+                            Console.WriteLine($"DANCER {two[k].Unit.name} ({(two[k].Reads ? "reads" : "only reacts")}): {two[k].Pattern.Text}");
+                        }
+
+                        string Who(PhysicsBattler.Sandbox.Dancer d) => d == dance.A ? "A" : "B";
+                        dance.Shown += (d, g) => Console.WriteLine($"GESTURE {g.Began - startTime:0.00} {Who(d)}: {g.Text}{(g.StruckIn ? " (struck in it)" : "")}");
+                        dance.Struck += b => Console.WriteLine($"DANCEBLOW {b.AskedAt - startTime:0.00} {Who(b.By)}: {b.Verdict}");
+                        dance.Told += (d, what) => Console.WriteLine($"DANCEREAD {Time.time - startTime:0.00} {Who(d)}: {what}");
+                        dance.On = dance.Cannot.Length == 0;
+                        Console.WriteLine(dance.On ? $"DANCE {paceAt:0.00} begun" : "DANCE cannot: " + dance.Cannot);
+                    }
+
+                    if (dance != null)
+                    {
+                        dance.Step(dt, Time.time);
+                        var two = new[] { dance.A, dance.B };
+                        for (int k = 0; k < 2; k++)
+                        {
+                            if (two[k].Learned != danceLearned[k])
+                            {
+                                danceLearned[k] = two[k].Learned;
+                                Console.WriteLine($"DANCELEARNED {paceAt:0.00} {(k == 0 ? "A" : "B")}: {danceLearned[k]}");
+                            }
+                        }
+                    }
+
                     for (int i = 0; i < duelBlows.Count; i++)
                     {
                         if (paceAt >= duelBlows[i].at)
@@ -2052,6 +2098,12 @@ internal static class FightReport
             UnitController.ClipBlowStarted -= OnClipBlow;
             UnitController.Hit -= OnHit;
             UnitController.ComboChanged -= OnCombo;
+        }
+
+        if (dance != null)
+        {
+            Console.WriteLine($"DANCETALLY A {dance.A.Unit.name} ({dance.A.Pattern.Name}, {(dance.A.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.A)}");
+            Console.WriteLine($"DANCETALLY B {dance.B.Unit.name} ({dance.B.Pattern.Name}, {(dance.B.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.B)}");
         }
 
         if (duel != null && ownDropAt >= 0f)

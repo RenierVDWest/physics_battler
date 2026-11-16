@@ -310,6 +310,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A fighter told to walk on (to walk up to the other, to back away, to circle) walks at any pace: on his walk's own cycles, their rhythm slowed with the pace, and to the sides on a slow walk recorded for it (0.6 m/s at its own pace). The quick short steps and the single steps from a stand are left for what they were made for: a small change of where he stands. Off: under a walk's pace (about 0.9 m/s) everything is stood and stepped, as it was. Only the duel lab's orders tell a fighter to walk on so far; the fight's own steering does not yet.")]
         public bool aWalkKeptUpIsWalkedNotStepped = true;
 
+        [Tooltip("The dance (duel lab): fighters read each other's patterns. Each gestures in a pattern of his own (so many gestures on a beat, then his tell, then his real blow) and watches the other's. On: a fighter set to read learns the other's tell and count by watching (nothing of it is given him), stops gesturing when he sees the tell so that his shield is free for the blow, and strikes into a gesture he knows leaves the chest open. Off: nobody reads, whatever he is set to: each gestures on regardless and goes for a chest he sees open.")]
+        public bool fightersReadEachOthersPatterns = true;
+
         [Tooltip("What a walk kept up to the side is walked on, under his side-step's own pace (about 1.1 m/s). 0: his guard's side-step alone, slowed. 1: the crouched careful step from the \"Slow walks\" pack (low, each foot long on the ground), all of it at about 0.75 m/s and less. 2: the pack's upright slow strafe (feet near each other; 0.6 m/s at its own pace). Each is the recording's legs under the guard's own chest and arms.")]
         [Range(0, 2)] public int slowSideWalk = 1;
 
@@ -1148,6 +1151,7 @@ namespace PhysicsBattler.Locomotion
             FighterLevers.On = eachFighterHasHisOwnLevers;
             Locomotor.WalksOn = aWalkKeptUpIsWalkedNotStepped;
             Locomotor.SlowSide = slowSideWalk;
+            PhysicsBattler.Sandbox.Dance.Reading = fightersReadEachOthersPatterns;
             PhysicsBattler.Sandbox.FakeTest.ShortDepth = shortFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongDepth = longFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongHold = longFakeHold;

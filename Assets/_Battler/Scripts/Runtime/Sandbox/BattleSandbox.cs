@@ -336,6 +336,10 @@ namespace PhysicsBattler.Sandbox
             if (aimTest)
             {
                 Aim.OnHit(hit, Time.time);
+                if (duelLab)
+                {
+                    Dancing.OnHit(hit, Time.time);
+                }
             }
 
             float impulse = hit.Result.Impulse.magnitude;
@@ -618,6 +622,10 @@ namespace PhysicsBattler.Sandbox
                 case 3:
                 case 4:
                     if (Fakes.Throw(shieldPending == 4, Time.time)) shieldPending = 0;
+                    break;
+                case 6:
+                    StartDance();
+                    shieldPending = 0;
                     break;
                 default:
                     Fakes.Pattern = true;
@@ -1081,12 +1089,131 @@ namespace PhysicsBattler.Sandbox
             Readout(new GUIContent("Last fake: " + (Fakes.Now != null ? Fakes.Now.Text(Fakes.Spot) : "none yet") + ".", "The target's last fake: when it was furthest and how long it took, and when it left its chest open, as measured on the bodies (seconds after it began)."), 3);
             Readout(new GUIContent("Last blow: " + (Fakes.LastBlow != null ? Fakes.LastBlow.Verdict : "none yet."), "The swordsman's last blow in this test: what he threw it by, what it met, and whether the chest was open as it met."), 4);
             Readout(Fakes.Fakes.Count > 0 ? Fakes.Tally() : "", 2);
+            DrawDance(feel);
         }
 
         /// <summary>
         /// The duel lab's blows (the plan "Fight Rhythm from Recordings", step 3: attacks from any pose): the aim test's
         /// body map, to be pressed while he walks, circles or backs away. The order he had goes on after the blow.
         /// </summary>
+        /// <summary>The dance (the plan's step 8, second part): the two gesturing at each other, each reading the other.</summary>
+        public readonly Dance Dancing = new Dance();
+        private bool dancePatterned;
+
+        /// <summary>The dance is begun: the stand-and-strike tests are stopped, and each fighter given the pattern that goes with his own levers unless one was chosen.</summary>
+        private void StartDance()
+        {
+            Shield.Loop = false;
+            Fakes.Pattern = false;
+            Aim.Stop();
+            Duel.Give(DuelLab.Order.Stand);
+            if (!dancePatterned)
+            {
+                foreach (var d in new[] { Dancing.A, Dancing.B })
+                {
+                    var own = d.Unit != null && d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
+                    bool mixed = d.Pattern.MixedUp;
+                    d.Pattern = GesturePattern.Named(own != null ? own.Name : "Plain");
+                    d.Pattern.MixedUp = mixed;
+                }
+
+                dancePatterned = true;
+            }
+
+            string cannot = Dancing.Cannot;
+            Dancing.On = cannot.Length == 0;
+            message = Dancing.On ? "The dance: both gesture in their own patterns and strike after their tells; each watches the other." : "The dance: not now: " + cannot + ".";
+        }
+
+        /// <summary>The dance's buttons.</summary>
+        private void DanceButtons()
+        {
+            GUILayout.BeginHorizontal();
+            if (Press(Dancing.On ? "[Dance]" : "Dance", "The two begin: each throws his gestures on his own beat, then his tell, then his real blow, round and round, and each watches the other. Pressed again, they stop. (With no sword and shield on the target, the lab is set out for it first.)"))
+            {
+                if (Dancing.On)
+                {
+                    Dancing.On = false;
+                    message = "The dance: stopped.";
+                }
+                else if (!SetOutFirst(6))
+                {
+                    StartDance();
+                }
+            }
+
+            if (Press("Forget", "Both forget what they have learned of each other's patterns: the next gestures are new to them."))
+            {
+                Dancing.Forget();
+            }
+
+            GUILayout.EndHorizontal();
+        }
+
+        /// <summary>The dance's settings and what was measured: each fighter's pattern, whether he reads, what he has learned, how it goes.</summary>
+        private void DrawDance(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            Heading("The dance", "The shield test and the fakes test had one who gestured and one who struck; here both do both. Each fighter gestures in a pattern of his own: so many gestures on a beat, then his tell, then his real blow. Each watches the other. A fake of his own commits a fighter's shield, so a blow that comes while he is in one lands; out of one his shield meets it. One who reads learns the other's tell and count by watching, stops gesturing when the tell comes, and strikes into a gesture he knows leaves the chest open. One who does not read gestures on regardless and goes for a chest he sees open.");
+            if (!ActionsApart)
+            {
+                DanceButtons();
+            }
+
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Reading:", "Whether fighters read each other's patterns at all (Combat Feel \"Fighters Read Each Other's Patterns\"). Off (old): nobody reads, whatever he is set to below."), Styles().Text, GUILayout.Width(80f));
+                if (Press(feel.fightersReadEachOthersPatterns ? "[on]" : "on", "A fighter set to read learns the other's pattern and uses it.")) feel.fightersReadEachOthersPatterns = true;
+                if (Press(!feel.fightersReadEachOthersPatterns ? "[off (old)]" : "off (old)", "Nobody reads.")) feel.fightersReadEachOthersPatterns = false;
+                GUILayout.EndHorizontal();
+            }
+
+            string[] whose = { "Him", "The other" };
+            var both = new[] { Dancing.A, Dancing.B };
+            for (int k = 0; k < 2; k++)
+            {
+                var d = both[k];
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent(whose[k] + ":", "His pattern of gestures. Each made-up fighter has one of his own; pressing Dance the first time gives each the one that goes with his own levers (\"Each his own\")."), Styles().Text, GUILayout.Width(80f));
+                foreach (string name in PhysicsBattler.Locomotion.FighterLevers.Names)
+                {
+                    string tip = name == "Plain" ? "Two short fakes, then a long fake, then his blow."
+                        : name == "Prowler" ? "Three quick feelers (blade flicks and short fakes), then he sinks (a drop), and springs."
+                        : name == "Strutter" ? "A blade circle and a short fake, then a long fake slash, then his blow."
+                        : "Two shield presses, then his point dips, and he cuts.";
+                    if (Press(d.Pattern.Name == name ? $"[{name}]" : name, tip))
+                    {
+                        bool mixed = d.Pattern.MixedUp;
+                        d.Pattern = GesturePattern.Named(name);
+                        d.Pattern.MixedUp = mixed;
+                        dancePatterned = true;
+                        d.Foe.Forget();
+                    }
+                }
+
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(84f);
+                if (Press(!d.Pattern.MixedUp ? "[plain]" : "plain", "Always the same number of gestures before his tell, and his blow always follows it: a poorer swordsman's pattern, which can be counted.")) d.Pattern.MixedUp = false;
+                if (Press(d.Pattern.MixedUp ? "[mixed up]" : "mixed up", "The number of gestures before his tell is drawn afresh each time (1 to 3), and one tell in three has no blow after it: counting tells nothing.")) d.Pattern.MixedUp = true;
+                if (Press(d.Reads ? "[reads]" : "reads", "He learns the other's pattern by watching and uses it.")) d.Reads = true;
+                if (Press(!d.Reads ? "[only reacts]" : "only reacts", "He gestures on regardless, and goes for a chest he sees open.")) d.Reads = false;
+                GUILayout.EndHorizontal();
+                if (feel != null)
+                {
+                    d.Taker.Reaction = feel.openingReactionTime;
+                }
+
+                Readout(new GUIContent("His pattern: " + d.Pattern.Text + ".", "What he throws, in order."), 2);
+                Readout(new GUIContent("He has learned: " + d.Learned + ".", "What he has learned of the other's pattern by watching it: nothing of it is given him."), 3);
+                var last = d.Blows.Count > 0 ? d.Blows[d.Blows.Count - 1] : null;
+                Readout(new GUIContent("His last blow: " + (last != null ? (last.Done ? "" : "(under way) ") + last.Verdict : "none yet."), "His last real blow: why he threw it, what it met, and what the other was doing as it met."), 4);
+                Readout(Dancing.Gestures(d) > 0 ? Dancing.Tally(d) : "", 4);
+            }
+
+            Readout(new GUIContent(Dancing.Ready ? $"How the fight is going: him {Dancing.A.Going(Time.time):+0;-0;0}, the other {Dancing.B.Going(Time.time):+0;-0;0}." : "", "Blows landed less blows taken, over the last 20 seconds. The first number the fight keeps of how it is going for each: what a fighter does next will come to hang on it."), 1);
+        }
+
         /// <summary>The duel lab's orders: walk to, back away, stand, circle.</summary>
         private void DuelMoveButtons()
         {
@@ -1282,6 +1409,8 @@ namespace PhysicsBattler.Sandbox
             ShieldTestButtons();
             Heading("Fakes test", "The target throws fake slashes in a pattern; the swordsman is to hit its chest while the long one leaves it open. Its settings and what was measured are in the panel.");
             FakeTestButtons();
+            Heading("The dance", "Both fighters gesture, each in a pattern of his own, and throw their real blow after their tell; each watches the other. Their patterns, who reads, and what each has learned are in the panel.");
+            DanceButtons();
             GUILayout.Space(6f);
             if (Press("Put these back in the panel", "The buttons go back among the settings in the panel, as they were, and this window closes. \"Actions in a window\" at the top of the duel lab brings it back."))
             {
@@ -1398,6 +1527,8 @@ namespace PhysicsBattler.Sandbox
             LabelNotes.Clear();
             Shield.Begin(Aim);
             Fakes.Begin(Aim);
+            Dancing.Begin(attacker, target);
+            dancePatterned = false;
             if (duelLab)
             {
                 Duel.Style = capoeira ? PhysicsBattler.Locomotion.MoveStyle.Capoeira : PhysicsBattler.Locomotion.MoveStyle.Standard;
@@ -1847,10 +1978,11 @@ namespace PhysicsBattler.Sandbox
                         StepShieldPending();
                         Shield.Step(Time.fixedDeltaTime, Time.time);
                         Fakes.Step(Time.fixedDeltaTime, Time.time);
+                        Dancing.Step(Time.fixedDeltaTime, Time.time);
                         if (Aim.Target != null && Aim.Attacker != null)
                         {
-                            LabelNotes[Aim.Target] = Shield.TargetNote.Length > 0 ? Shield.TargetNote : Fakes.TargetNote;
-                            LabelNotes[Aim.Attacker] = Shield.AttackerNote.Length > 0 ? Shield.AttackerNote : Fakes.AttackerNote;
+                            LabelNotes[Aim.Target] = Dancing.On ? Dancing.B.Note : Shield.TargetNote.Length > 0 ? Shield.TargetNote : Fakes.TargetNote;
+                            LabelNotes[Aim.Attacker] = Dancing.On ? Dancing.A.Note : Shield.AttackerNote.Length > 0 ? Shield.AttackerNote : Fakes.AttackerNote;
                         }
                     }
                 }
