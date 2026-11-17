@@ -5424,3 +5424,11 @@ the walk uses, its pace, hips' height, stance, and how far apart each two are as
 walk state (`FIGHT_FILM` now writes, each step, which recordings are mixed and how much, the phase, pace,
 way of travel, the levers' crouch and lean, and how far the last switch still carries the pose off), read
 by a script kept outside the project. `Locomotor.LeversShown` and `SwitchOffsetNow` are for those reports.
+
+**Everyone's movement back at rest (17 November).** The "Prowl" try under "How he moves" had been saved
+into Renier's scene as everyone's movement (crouch 8 cm, lean 10 degrees, sway and hip turn 1.6), by "Keep
+what I tune"; he did not mean it. Combat Feel's eight movement levers are renamed (`movementBounce`,
+`movementSway`, `movementHipTurn`, `movementChestTurn`, `movementArmSwing`, `movementStepLift`,
+`movementLean`, `movementCrouch`; they were `move...`), so the saved values are dropped and each takes its
+value at rest. The Prowl and Strut try buttons are gone from "How he moves": those tries are a fighter's own
+("Each his own": Prowler, Strutter, Bull), which are not saved into the scene. Not seen in Unity.

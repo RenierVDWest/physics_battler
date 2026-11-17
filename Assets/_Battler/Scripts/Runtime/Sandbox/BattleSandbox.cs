@@ -833,33 +833,22 @@ namespace PhysicsBattler.Sandbox
                 GUILayout.EndHorizontal();
                 if (moveFeel.standardMovementIsMadeOfItsParts)
                 {
-                    moveFeel.moveBounce = Lever("Bounce", moveFeel.moveBounce, 0f, 2.5f, "How much his hips rise and fall with each step. 1: as recorded. 0: level.");
-                    moveFeel.moveSway = Lever("Sway", moveFeel.moveSway, 0f, 2.5f, "How much his hips sway from side to side and forward and back over his feet. 1: as recorded.");
-                    moveFeel.moveHipTurn = Lever("Hip turn", moveFeel.moveHipTurn, 0f, 2.5f, "How much his hips turn with each step. 1: as recorded.");
-                    moveFeel.moveChestTurn = Lever("Chest turn", moveFeel.moveChestTurn, 0f, 2.5f, "How much his chest turns against his hips with each step. 1: as recorded.");
-                    moveFeel.moveArmSwing = Lever("Arm swing", moveFeel.moveArmSwing, 0f, 2.5f, "How much his arms swing. 1: as recorded. Shows only on an arm that is the walk's own: with the other fighter near, his sword and shield hands are placed by his guard.");
-                    moveFeel.moveStepLift = Lever("Step lift", moveFeel.moveStepLift, 0.5f, 2.5f, "How high his feet are lifted in their swing. 1: as recorded.");
-                    moveFeel.moveLean = Lever("Lean", moveFeel.moveLean, -10f, 25f, "How far he leans forward from the hips, added to the recording's own lean (degrees). His head stays up.");
-                    moveFeel.moveCrouch = Lever("Crouch", moveFeel.moveCrouch, 0f, 15f, "How much lower he carries his hips, his feet where they were (cm).");
+                    moveFeel.movementBounce = Lever("Bounce", moveFeel.movementBounce, 0f, 2.5f, "How much his hips rise and fall with each step. 1: as recorded. 0: level.");
+                    moveFeel.movementSway = Lever("Sway", moveFeel.movementSway, 0f, 2.5f, "How much his hips sway from side to side and forward and back over his feet. 1: as recorded.");
+                    moveFeel.movementHipTurn = Lever("Hip turn", moveFeel.movementHipTurn, 0f, 2.5f, "How much his hips turn with each step. 1: as recorded.");
+                    moveFeel.movementChestTurn = Lever("Chest turn", moveFeel.movementChestTurn, 0f, 2.5f, "How much his chest turns against his hips with each step. 1: as recorded.");
+                    moveFeel.movementArmSwing = Lever("Arm swing", moveFeel.movementArmSwing, 0f, 2.5f, "How much his arms swing. 1: as recorded. Shows only on an arm that is the walk's own: with the other fighter near, his sword and shield hands are placed by his guard.");
+                    moveFeel.movementStepLift = Lever("Step lift", moveFeel.movementStepLift, 0.5f, 2.5f, "How high his feet are lifted in their swing. 1: as recorded.");
+                    moveFeel.movementLean = Lever("Lean", moveFeel.movementLean, -10f, 25f, "How far he leans forward from the hips, added to the recording's own lean (degrees). His head stays up.");
+                    moveFeel.movementCrouch = Lever("Crouch", moveFeel.movementCrouch, 0f, 15f, "How much lower he carries his hips, his feet where they were (cm).");
                     GUILayout.BeginHorizontal();
                     if (Press("At rest", "Every lever back to rest: he moves as the recordings."))
                     {
-                        moveFeel.moveBounce = moveFeel.moveSway = moveFeel.moveHipTurn = moveFeel.moveChestTurn = moveFeel.moveArmSwing = moveFeel.moveStepLift = 1f;
-                        moveFeel.moveLean = moveFeel.moveCrouch = 0f;
+                        moveFeel.movementBounce = moveFeel.movementSway = moveFeel.movementHipTurn = moveFeel.movementChestTurn = moveFeel.movementArmSwing = moveFeel.movementStepLift = 1f;
+                        moveFeel.movementLean = moveFeel.movementCrouch = 0f;
                     }
 
-                    if (Press("Prowl", "A try of the levers: lower, leaning in, hips swaying and turning more, feet lifted less. To see that the parts answer."))
-                    {
-                        moveFeel.moveBounce = 0.6f; moveFeel.moveSway = 1.6f; moveFeel.moveHipTurn = 1.6f; moveFeel.moveChestTurn = 1.4f; moveFeel.moveArmSwing = 1f; moveFeel.moveStepLift = 0.7f;
-                        moveFeel.moveLean = 10f; moveFeel.moveCrouch = 8f;
-                    }
-
-                    if (Press("Strut", "A try of the levers: upright, bouncing, chest turning and arms swinging wide, feet lifted high."))
-                    {
-                        moveFeel.moveBounce = 1.8f; moveFeel.moveSway = 1.2f; moveFeel.moveHipTurn = 1.3f; moveFeel.moveChestTurn = 2f; moveFeel.moveArmSwing = 1.8f; moveFeel.moveStepLift = 1.6f;
-                        moveFeel.moveLean = -5f; moveFeel.moveCrouch = 0f;
-                    }
-
+                    GUILayout.Label(new GUIContent("Tries of the levers (Prowler, Strutter, Bull) are a fighter's own now: \"Each his own\" below.", "The Prowl and Strut tries that were here changed everyone's movement, and with \"Keep what I tune\" on they were saved into the scene as everyone's. They are given to one fighter at a time under \"Each his own\", which is not saved."), Styles().Text);
                     GUILayout.EndHorizontal();
                 }
             }

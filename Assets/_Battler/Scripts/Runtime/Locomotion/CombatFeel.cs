@@ -514,28 +514,28 @@ namespace PhysicsBattler.Locomotion
         [Range(0.2f, 1.2f)] public float fakeLungeOnTheMove = 0.7f;
 
         [Tooltip("Made movement: how much the hips rise and fall with each step (1: as recorded; 0: level; 2: twice as much).")]
-        [Range(0f, 2.5f)] public float moveBounce = 1f;
+        [Range(0f, 2.5f)] public float movementBounce = 1f;
 
         [Tooltip("Made movement: how much the hips sway from side to side and forward and back over the feet (1: as recorded).")]
-        [Range(0f, 2.5f)] public float moveSway = 1f;
+        [Range(0f, 2.5f)] public float movementSway = 1f;
 
         [Tooltip("Made movement: how much the hips turn with each step (1: as recorded).")]
-        [Range(0f, 2.5f)] public float moveHipTurn = 1f;
+        [Range(0f, 2.5f)] public float movementHipTurn = 1f;
 
         [Tooltip("Made movement: how much the chest turns against the hips with each step (1: as recorded).")]
-        [Range(0f, 2.5f)] public float moveChestTurn = 1f;
+        [Range(0f, 2.5f)] public float movementChestTurn = 1f;
 
         [Tooltip("Made movement: how much the arms swing (1: as recorded). It shows only on an arm that is the walk's own: a hand that holds a sword or a shield with an enemy near is placed by its guard.")]
-        [Range(0f, 2.5f)] public float moveArmSwing = 1f;
+        [Range(0f, 2.5f)] public float movementArmSwing = 1f;
 
         [Tooltip("Made movement: how high the feet are lifted in their swing (1: as recorded).")]
-        [Range(0.5f, 2.5f)] public float moveStepLift = 1f;
+        [Range(0.5f, 2.5f)] public float movementStepLift = 1f;
 
         [Tooltip("Made movement: how far he leans forward from the hips, added to the recording's own lean (degrees; his head stays up).")]
-        [Range(-10f, 25f)] public float moveLean = 0f;
+        [Range(-10f, 25f)] public float movementLean = 0f;
 
         [Tooltip("Made movement: how much lower he carries his hips, his feet where they were, so his knees bend more (centimetres).")]
-        [Range(0f, 15f)] public float moveCrouch = 0f;
+        [Range(0f, 15f)] public float movementCrouch = 0f;
 
         [Tooltip("The guard jogs (the plan's step 2: the paces). Above a walk's pace a fighter in its guard had only its run, forward and back (about 4 m/s, its stride shortened to the pace asked), and to the sides the unarmed run's legs and arms. On: between the walk and the run it jogs, forward, back and to each side, on the legs of the jog recordings (2.4 to 3.0 m/s) under the guard's own chest, head and arms, so the shield and the sword are carried as the guard carries them. Off: as it was. A fighter takes this as it is set out: press Reset after changing it.")]
         public bool guardJogs = true;
@@ -1459,7 +1459,7 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.LungesOnTheMove = aFakeLungeIsThrownOnTheMove;
             PostureMaker.LungeOnTheMove = fakeLungeOnTheMove;
             MoveScore.On = standardMovementIsMadeOfItsParts;
-            MoveScore.Levers = new MoveLevers { Bounce = moveBounce, Sway = moveSway, HipTurn = moveHipTurn, ChestTurn = moveChestTurn, ArmSwing = moveArmSwing, StepLift = moveStepLift, Lean = moveLean, Crouch = 0.01f * moveCrouch / Locomotor.ClipLeg };
+            MoveScore.Levers = new MoveLevers { Bounce = movementBounce, Sway = movementSway, HipTurn = movementHipTurn, ChestTurn = movementChestTurn, ArmSwing = movementArmSwing, StepLift = movementStepLift, Lean = movementLean, Crouch = 0.01f * movementCrouch / Locomotor.ClipLeg };
             MoveStyle.Jogs = guardJogs;
             StyleManner.Dials = new MannerDials { Carriage = 1f, Motion = capoeiraStyleMotion, Turn = capoeiraStyleSquaresUp, Arms = capoeiraStyleArms, HandsKeep = 1f, HeadKeeps = capoeiraStyleEyesUp, InBlows = capoeiraStyleKeptInBlows };
             StandPattern.Generated = gingaIsMadeOfItsTakes;
