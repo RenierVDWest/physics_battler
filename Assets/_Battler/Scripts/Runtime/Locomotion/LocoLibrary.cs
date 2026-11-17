@@ -93,6 +93,9 @@ namespace PhysicsBattler.Locomotion
         private readonly Vector3[] points;
         private readonly Vector2[] root;
         private readonly float[] yaw;
+
+        /// <summary>The root's facing each frame counted on from the first, never wrapped (degrees): a clip may turn right round.</summary>
+        private readonly float[] yawOn;
         private readonly LocoContact[] contacts;
         private readonly float[] phase;
         private readonly Vector2 loopDrift;
@@ -137,6 +140,12 @@ namespace PhysicsBattler.Locomotion
             {
                 root[i] = new Vector2(d.root[3 * i], d.root[3 * i + 1]);
                 yaw[i] = d.root[3 * i + 2];
+            }
+
+            yawOn = new float[Frames];
+            for (int i = 0; i < Frames; i++)
+            {
+                yawOn[i] = i == 0 ? yaw[0] : yawOn[i - 1] + Mathf.DeltaAngle(yaw[i - 1], yaw[i]);
             }
 
             contacts = new LocoContact[Frames * 2];
@@ -278,6 +287,15 @@ namespace PhysicsBattler.Locomotion
             float c = Mathf.Cos(r), s = Mathf.Sin(r);
             moved = new Vector2(c * d.x - s * d.y, s * d.x + c * d.y);
             turned = Mathf.DeltaAngle(ya, yb);
+            if (!Loop && yawOn != null)
+            {
+                // (A clip that turns more than half way round between the two times: its turn counted frame by frame,
+                // not as the shorter way between its two facings. A cut made turning round turns 200 degrees; taken
+                // as the shorter way that read as 160 the other way, and his feet were sent where that would put them.)
+                Frame(from, out int a0, out int b0, out float t0);
+                Frame(to, out int a1, out int b1, out float t1);
+                turned = Mathf.Lerp(yawOn[a1], yawOn[b1], t1) - Mathf.Lerp(yawOn[a0], yawOn[b0], t0);
+            }
         }
 
         /// <summary>A loop's gait phase at a time (0 to 1).</summary>

@@ -5719,3 +5719,25 @@ for them. With the aim this loose a cut is likelier to pass over or under a targ
 the cut goes at; how often is not measured. The explainer "Cutting As He Turns" was made before this fix and
 does not show it.
 
+**The turn cut, second playtest (17 November, 21:50).** Renier: the sword arm "seems fixed now", and two
+more things.
+
+- *"When I choose 'behind' while the turn also cuts then I get the feet breaking": the legs slip far apart, or
+  the feet stay put and the legs twist round each other.* Reproduced headless (the other put 179 degrees
+  round, `feet.py`): his legs were crossed for 1.05 s, and to his left 0.93 s; at 150 degrees never. It
+  happens when the made cut turns his body past 180 degrees in all: the legs' 182 and the aim's 20 on top.
+  His feet then end near where they began while his body has gone 200 degrees round. Where in the making of
+  the clip the turn past 180 is lost is NOT found. What is done: a cut made turning round turns his body
+  178 degrees at most in all (`TurnSlashes.MostRound`), so its legs go 158 at most and the rest is eased
+  round as he comes back to his guard. After it: legs crossed 0.00 s both ways. Also `LocoClip.RootMotion`
+  now counts a clip's turn frame by frame between two times, not as the shorter way between two facings
+  (that was not the cause here, but it read a 200 degree turn as 160 the other way).
+- *"Even if I'm on just turn, it seems like 1 in 10 turns also cuts."* The lab's "just turns" only switched
+  the lab's "always" off; the fight's own rule (one turn in four with a cut when the other is not striking)
+  stayed on. Now the lab's choice is the lab's two fighters' own (`UnitController.TurnCuts`,
+  `DuelLab.TurnCuts`): "just turns" (as the lab begins: never a cut), "cuts" (every turn), "as in a fight".
+  A fight's fighters are not touched by it.
+- Found on the way: the other, once put round him, was sent back to the spot it stood on before
+  (`ClipFighter.Home` was not moved with it). It is moved now. Headless the other still walks off after
+  being put; why is not found, and it is why several of the headless cuts "met nothing".
+

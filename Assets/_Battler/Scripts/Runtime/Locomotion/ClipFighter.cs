@@ -3897,7 +3897,12 @@ namespace PhysicsBattler.Locomotion
                 // of where he faces as it lands, so he is carried a little past his enemy. That much is given back
                 // after the blade has landed, so he ends facing him.)
                 var aim = new AttackAim { Aimed = true, Target = InOwnFrame(points[i]), Eased = AttackMaker.FromAnyPose, MostTurn = TurnSlashes.AimTurns, Sweeps = TurnSlashes.SweepsFree };
-                float scale = Mathf.Round(Mathf.Clamp(degrees / turn.Turn, 0.25f, 1.15f) * 18f) / 18f;
+                // (Never more than half way round in all, the aim's own turn counted: a made cut whose body goes past
+                // 180 degrees left his feet where they stood and wound his legs round each other (the playtest of 17
+                // November, the other put straight behind him). Until that is found, he turns 158 degrees at most on his
+                // legs and the rest is eased round as he comes back to his guard.)
+                float mostScale = Mathf.Floor((TurnSlashes.MostRound - TurnSlashes.AimTurns) / Mathf.Abs(turn.Turn) * 18f) / 18f;
+                float scale = Mathf.Min(mostScale, Mathf.Round(Mathf.Clamp(degrees / turn.Turn, 0.25f, 1.15f) * 18f) / 18f);
                 var score = upper.OnLegsOf(AttackScore.OfTurn(turn, span.x, span.y, lands, scale, 0f, driveAt));
                 var plan = AttackMaker.Make(score, style, aim, hold, build: false);
                 if (plan == null)

@@ -217,7 +217,7 @@ namespace PhysicsBattler.Units
             clipStopLeft = Mathf.Max(0f, clipStopLeft - dt);
             HitStop = Mathf.Max(ownStop, clipStopLeft);
             bool frozen = HitStop > 0f;
-            if (!frozen && against != null && (TurnSlashes.On || TurnSlashes.Always))
+            if (!frozen && against != null && (TurnSlashes.Always || TurnCuts == 2 || (TurnCuts == 0 && TurnSlashes.On)))
             {
                 TurnSlashNow(against, yaw);
             }
@@ -764,6 +764,13 @@ namespace PhysicsBattler.Units
 
         private System.Random turnSlashLuck;
 
+        /// <summary>
+        /// What this fighter does as it turns round quickly, set by a lab: 0, as in a fight (it cuts as it turns when
+        /// its enemy is striking at it, and now and then otherwise: <see cref="TurnSlashes"/>); 1, it only turns,
+        /// never with a cut; 2, every such turn is made with a cut.
+        /// </summary>
+        public int TurnCuts;
+
         /// <summary>The parts of his enemy a cut made turning round may be for: whichever the cut reaches most easily.</summary>
         private static readonly AimSpot[] TurnSlashSpots = { AimSpot.Chest, AimSpot.Neck, AimSpot.Head, AimSpot.Belly };
         private readonly System.Collections.Generic.List<Vector3> turnSlashPoints = new System.Collections.Generic.List<Vector3>();
@@ -790,7 +797,7 @@ namespace PhysicsBattler.Units
 
             turnSlashLuck ??= new System.Random(7717 + 31 * unitNumber);
             bool threatened = against.ClipTarget == this && against.Clip.Striking;
-            if (!TurnSlashes.Always && !threatened && turnSlashLuck.NextDouble() >= TurnSlashes.Anyway)
+            if (!TurnSlashes.Always && TurnCuts != 2 && !threatened && turnSlashLuck.NextDouble() >= TurnSlashes.Anyway)
             {
                 return;
             }

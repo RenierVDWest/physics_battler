@@ -205,6 +205,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The aim turns his whole body no further than this, on top of the legs' own turn, to bring the blade onto its line (degrees); what it turns is given back after the blade has landed.</summary>
         public static float AimTurns = 20f;
 
+        /// <summary>A cut made turning round turns his body no further than this in all, its legs' turn and the aim's together (degrees).</summary>
+        public static float MostRound = 178f;
+
         /// <summary>The enemy this near (metres at a Medium's size), and not otherwise; and how often he cuts as he turns with his enemy not striking at him (0 to 1).</summary>
         public static float Within = 2.2f, Anyway = 0.25f;
 

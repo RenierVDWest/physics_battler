@@ -678,6 +678,14 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>
+        /// What the lab's two do as they turn round quickly (<see cref="PhysicsBattler.Units.UnitController.TurnCuts"/>):
+        /// 1, they only turn (as the lab begins: a turn is looked at as a turn); 2, every turn is made with a cut;
+        /// 0, as in a fight. Until 17 November the lab's "just turns" left the fight's own rule on, and one turn in
+        /// four came with a cut.
+        /// </summary>
+        public int TurnCuts = 1;
+
+        /// <summary>
         /// To see a turn round on demand: the other is put, at once, this far round him from where he faces (degrees, +
         /// to his right), as far off as he was and facing him: an enemy at his side or behind him. His turn to face
         /// him is timed (<see cref="TurnBackText"/>). Standing or stepping. False: the lab is not set out.
@@ -694,7 +702,8 @@ namespace PhysicsBattler.Sandbox
             Vector3 spot = Mover.Clip.Loco.Position + Quaternion.Euler(0f, way, 0f) * Vector3.forward * Mathf.Max(0.8f, to.magnitude);
             Other.Teleport(spot, way + 180f);
             // (A target stands on its spot and faces what it was set to face: both go with it.)
-            Other.DummySpot = Other.Root.position;
+            Other.DummySpot = new Vector3(spot.x, Other.Root.position.y, spot.z);
+            Other.Clip.Home = new Vector3(spot.x, Other.Clip.Home.y, spot.z);
             if (Other.DummyFace.HasValue)
             {
                 Other.DummyFace = Mover.Root.position;
@@ -766,6 +775,16 @@ namespace PhysicsBattler.Sandbox
 
             StepCourse(dt);
             GiveStyle();
+            if (Mover != null)
+            {
+                Mover.TurnCuts = TurnCuts;
+            }
+
+            if (Other != null)
+            {
+                Other.TurnCuts = TurnCuts;
+            }
+
             Vector3 to = Flat(Other.Root.position - Mover.Root.position);
             Gap = to.magnitude;
             StepTurnBack(dt, to);

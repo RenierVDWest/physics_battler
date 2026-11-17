@@ -1230,9 +1230,10 @@ namespace PhysicsBattler.Sandbox
             }
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label(new GUIContent("As he turns:", "What he does as he turns round to the other, here in the lab. Just turns: the quick turn alone (in a fight he cuts as he turns when the other is striking at him, and now and then otherwise: Combat Feel \"A Fighter Cuts As He Turns Round\"). Cuts: every turn round is made with a cut in it, so it can be seen on demand: press one of \"Put the other\" above. Turning to his right, a backhand that goes round with him; to his left, his forehand."), Styles().Text, GUILayout.Width(110f));
-            if (Press(!PhysicsBattler.Locomotion.TurnSlashes.Always ? "[just turns]" : "just turns", "The quick turn alone.")) PhysicsBattler.Locomotion.TurnSlashes.Always = false;
-            if (Press(PhysicsBattler.Locomotion.TurnSlashes.Always ? "[cuts]" : "cuts", "Every turn round is made with a cut in it.")) PhysicsBattler.Locomotion.TurnSlashes.Always = true;
+            GUILayout.Label(new GUIContent("As he turns:", "What he does as he turns round to the other, here in the lab. Just turns: the quick turn alone, every time. Cuts: every turn round is made with a cut in it, so it can be seen on demand: press one of \"Put the other\" above. As in a fight: he cuts as he turns when the other is striking at him, and one time in four otherwise (Combat Feel \"A Fighter Cuts As He Turns Round\"). Turning to his right, a backhand that goes round with him; to his left, his forehand."), Styles().Text, GUILayout.Width(110f));
+            if (Press(Duel.TurnCuts == 1 ? "[just turns]" : "just turns", "The quick turn alone, every time: never with a cut.")) Duel.TurnCuts = 1;
+            if (Press(Duel.TurnCuts == 2 ? "[cuts]" : "cuts", "Every turn round is made with a cut in it.")) Duel.TurnCuts = 2;
+            if (Press(Duel.TurnCuts == 0 ? "[as in a fight]" : "as in a fight", "As the fight has it: he cuts as he turns when the other is striking at him, and one time in four otherwise.")) Duel.TurnCuts = 0;
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label(new GUIContent("His cut (right):", "The recorded cut whose chest, head and arms are taken for a cut made turning to his right (the pack \"Spin Around Slash\"; never its spin or its leap). To his left it is his own forehand."), Styles().Text, GUILayout.Width(110f));
