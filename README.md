@@ -5741,3 +5741,68 @@ more things.
   (`ClipFighter.Home` was not moved with it). It is moved now. Headless the other still walks off after
   being put; why is not found, and it is why several of the headless cuts "met nothing".
 
+**Get-ups made from the recordings (18 November, overnight).** Renier, 16:30 on the 17th: "you need to get
+the new get up animations in, I still see the old ones". The pack "Getting Up" has a man getting up from his
+back and from his front. Neither is played. Each is read off at twelve moments into the parts a get-up here
+is made of, and the get-up system that was already there makes this fighter's keys of that.
+
+- *Reading a recording off* (`Tools/Mocap/Combat/getup_keys.py`, which writes the table between the marks
+  `<getup-takes>` in `Motion/GetUp.cs`; samples `getup_from_back.json`, 2.6 to 6.3 s of it, and
+  `getup_from_front.json`, 1.6 to 6.1 s). At each moment: where the hips are; how the trunk is pitched,
+  leaned and rolled (the line from the hips to between the shoulders, not the hips alone: a man piked on his
+  hands with his back rounded read 15 degrees more upright at the hips than his shoulders were); how the
+  back, chest and neck bend; where the ankles and wrists are; which way the knees and elbows point; how the
+  feet are pitched. All of it against where he ends up standing and with his standing pose taken off, in leg
+  lengths. He turns a little as he gets up; that is taken out, so the route is straight.
+- *Making this fighter's keys of it* (`GetUp.MakeRecorded`). The table is fitted to his size and stance. The
+  recording is mirrored when its last hand on the ground (the right) is not the one this fighter posts on:
+  the sword hand with a shield, the free hand without one. Three things had to be fitted, because the
+  fighter is not the recorded man:
+  - His shoulders are further from his hips (0.53 m against 0.46) and his wrist lies lower on a flat hand
+    (6 cm against 17). With the recorded hips and trunk his hands hung 20 cm short of the ground while he
+    was "on his hands". Now a trunk that is nearer level than upright is tipped further (24 degrees at
+    most), then the hips come down a little (a tenth of a leg at most), and what is still left the hand is
+    off the ground by (`GetUp.HandsReach`).
+  - His stance has one foot before the other; the recorded man stands nearly square. Until a foot sets off
+    for its standing place it is measured from beside the other foot, as the recorded man's is.
+  - The recorded man lies with his legs straight and stands up where his feet are, his hips sliding 0.83
+    leg lengths toward them. This fighter's hips go as much of that as leaves his feet within reach
+    (`GetUp.HipsTravel`, 0.92 of it for a Medium), and he is placed to stand up that far from where his
+    hips lie (`GetUp.StandsAhead`).
+- *What stays as it was.* He sets out from how he really lies; what he holds is kept off the ground; the
+  shield comes up; he is turned toward his enemy while down; the feet end on the stance's own spots and the
+  standing pose takes over for the last 18% of the time. A fall caught on a knee or sitting still rises by
+  the keys made by hand. On a side he rolls onto his front and takes the front route.
+- *Switch and levers.* Combat Feel "Get Ups Are From The Recordings" (on; off: the keys made by hand, as
+  before) and "Recorded Get Up Takes" (0.5: the share of the recording's own 3.7 s and 4.5 s, so about 1.9 s and 2.3 s;
+  a fighter is down about as long as before). Lab, under
+  "Falls and getting up": "The way up: as recorded / made by hand (old)" and the lever; to see one, "Falls
+  on demand" (Back, Forward, Left, Right) in the target test. Headless: `FIGHT_GETUPRECORDED=0`,
+  `FIGHT_GETUPTAKES`.
+
+Headless, the fall test's Medium knocked down backward and forward, made by hand against as recorded
+(`gu.sh`; films `back_old/new.png`, `front_old/new.png`):
+
+| | from his back, old | new | from his front, old | new |
+|---|---|---|---|---|
+| time (s) | 2.19 | 2.00 | 1.84 | 2.07 |
+| a thigh's fastest turn on the hips (rad/s) | 12.5 | 10.9 | 14.8 | 8.3 |
+| a thigh past what a hip bends (degrees) | 18 | 25 | 46 | 15 |
+| a planted hand or foot off its spot at most (cm) | 4 | 5 | 6 | 0 |
+| planted hands and feet slid in all (cm) | 5 | 5 | 5 | 0 |
+
+From his front it is better on every count; from his back about level (the thigh 7 degrees further past the
+hip, as he rocks forward over his feet in a deep squat). The swordsman (the recording mirrored), the unarmed
+fighter, the Large (thrown, 450 N·s) and falls to either side all get up by it; nothing in its own body, no
+body lost by the engine. The fight of six, a minute, seed 5: three get-ups each way, as recorded 2.1 to 3.1 s
+(that run was at 0.6; the default is 0.5 now) against 1.95 to 2.3 s by hand; the fight ends the same way
+(team A, 59 s against 56 s).
+
+Not verified, and known: not seen in Unity, only as stick figures. From his back the recorded man sits up
+with both hands behind him and rocks forward over both feet into a squat; that asks more of the knees than a
+fighter's stand-up over one hand and one foot, and with a shield on the arm it may look wrong: the shield arm
+is on the ground behind him for the first half. The recording's hands are open hands; a hand holding a sword
+is still raised as far as keeps the blade out of the ground, so the sword hand does not really post. The
+recordings "Getting Up" (from sitting) and "Standing Up" (a slower one from the front) are sampled but not
+used: the first could replace the made keys for a fall caught sitting. The fighter no longer turns on the
+ground as the recorded man does (40 degrees from his back); the turn toward his enemy is the system's own.

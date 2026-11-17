@@ -208,6 +208,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A cut made turning round turns his body no further than this in all, its legs' turn and the aim's together (degrees).</summary>
         public static float MostRound = 178f;
 
+
         /// <summary>The enemy this near (metres at a Medium's size), and not otherwise; and how often he cuts as he turns with his enemy not striking at him (0 to 1).</summary>
         public static float Within = 2.2f, Anyway = 0.25f;
 
@@ -862,6 +863,9 @@ namespace PhysicsBattler.Locomotion
             at = t.Pelvis + pel * m.Spine + Quaternion.Slerp(pel, turn, BodyMeasures.SpineShare1) * m.Spine1 + Quaternion.Slerp(pel, turn, BodyMeasures.SpineShare2) * m.Spine2;
         }
 
+        /// <summary>For the reports: told of each attack's clip as it is made (its data, before it is a clip).</summary>
+        public static System.Action<LocoClipData> ClipMade;
+
         /// <summary>
         /// A blow thrown on the move at its landing, both ways: the chest as the recording's own body has it (the
         /// frame the recording begins in, the fit's turn in), and the chest as it is when the blow is laid on the walk
@@ -1186,6 +1190,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             made.Clip = new LocoClip(data);
+            ClipMade?.Invoke(data);
         }
 
         /// <summary>

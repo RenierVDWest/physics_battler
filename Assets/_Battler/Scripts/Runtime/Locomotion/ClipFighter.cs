@@ -1795,7 +1795,7 @@ namespace PhysicsBattler.Locomotion
 
             GetUps++;
             GetUpRoute = catching && NaturalGetUps ? (caughtSitting ? "from sitting, its fall caught" : "from a knee and a hand, its fall caught") : !NaturalGetUps ? (kind == GetUp.Kind.FaceDown ? "from its front, as before" : "from its back, as before")
-                : getUp.Side != 0f ? (getUp.Side > 0f ? "from its right side" : "from its left side") : kind == GetUp.Kind.FaceDown ? "from its front" : "from its back";
+                : (getUp.Side != 0f ? (getUp.Side > 0f ? "from its right side" : "from its left side") : kind == GetUp.Kind.FaceDown ? "from its front" : "from its back") + (GetUp.FromRecordings ? ", as recorded" : "");
             Vector3 headward = Rig.Part(PartId.Head).body.position - pelvis.position;
             headward.y = 0f;
             if (headward.sqrMagnitude < 0.01f * Size * Size)
@@ -1819,7 +1819,7 @@ namespace PhysicsBattler.Locomotion
 
             // (Which hand it posts on is known before it is placed: that says which foot it plants, and so where it stands up.)
             getUp.PostWith = stance == Stances.Sword ? PhysicsBattler.Motion.Stance.Left : -1;
-            GetUp.Place(kind, pelvis.position, headward, body.SizeFactor, NaturalGetUps, threat, out var position, out float yaw, out GetUpTurned, getUp.SitsBack);
+            GetUp.Place(kind, pelvis.position, headward, body.SizeFactor, NaturalGetUps, threat, out var position, out float yaw, out GetUpTurned, getUp.SitsBack, getUp.StandsAhead(kind));
             position.y = groundLevel;
             getUpRoot.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
             getUpStance.Plant(position, yaw);

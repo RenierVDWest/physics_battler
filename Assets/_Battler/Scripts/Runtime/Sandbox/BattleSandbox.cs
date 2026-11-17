@@ -4010,6 +4010,30 @@ namespace PhysicsBattler.Sandbox
                 Note(naturalNow ? "get-ups: the new ones" : "get-ups: as before");
             }
 
+            bool recorded = feel != null ? feel.getUpsAreFromTheRecordings : PhysicsBattler.Motion.GetUp.FromRecordings;
+            bool recordedNow = recorded;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("The way up:", "As recorded (new): the way a recorded man gets up, read off the recording and fitted to this fighter (from his back he sits up and rocks forward over his feet; from his front he pushes up, lifts his hips and steps his feet in). Made by hand (old): the get-ups as before 17 November. To see either: Falls on demand above (Back, Forward, Left, Right) in the target test."), GUILayout.Width(80f));
+            if (Press(recorded ? "[as recorded]" : "as recorded", "The get-ups read off the recordings.")) recordedNow = true;
+            if (Press(!recorded ? "[made by hand (old)]" : "made by hand (old)", "The get-ups made by hand, as before 17 November.")) recordedNow = false;
+            GUILayout.EndHorizontal();
+            if (recordedNow != recorded)
+            {
+                if (feel != null)
+                {
+                    feel.getUpsAreFromTheRecordings = recordedNow;
+                }
+
+                PhysicsBattler.Motion.GetUp.FromRecordings = recordedNow;
+                Note(recordedNow ? "get-ups: as recorded" : "get-ups: made by hand");
+            }
+
+            if (feel != null)
+            {
+                feel.recordedGetUpTakes = Lever("Recorded get-up takes", feel.recordedGetUpTakes, 0.4f, 1f, "How long a recorded get-up is given, as a share of the recording's own time (3.7 s from his back, 4.5 s from his front). Lower: up sooner. 1: the recorded man's own pace.");
+                PhysicsBattler.Motion.GetUp.RecordedTakes = feel.recordedGetUpTakes;
+            }
+
             bool clear = feel != null ? feel.getUpLegsClearTheHips : PhysicsBattler.Motion.GetUp.LegsClearTheHips;
             bool clearNow = Tick(clear, "The legs keep clear of the hips", "The hips are lifted before the leg goes back under them. Off: as before, the knees swinging round through the trunk.");
             if (clearNow != clear)

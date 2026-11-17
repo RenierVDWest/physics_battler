@@ -313,6 +313,25 @@ internal static class FightReport
         PhysicsBattler.Locomotion.TurnSlashes.On = Environment.GetEnvironmentVariable("FIGHT_TURNSLASH") != "0";
         PhysicsBattler.Locomotion.TurnSlashes.Always = Environment.GetEnvironmentVariable("FIGHT_TURNSLASH") == "always";
         PhysicsBattler.Locomotion.TurnSlashes.EndsShort = Environment.GetEnvironmentVariable("FIGHT_TURNCUTSHORT") != "0";
+        // (FIGHT_TURNCUTROUND=220: the most a cut made turning round turns his body in all. FIGHT_TURNCUTAIM: the most the aim turns it.)
+        PhysicsBattler.Locomotion.TurnSlashes.MostRound = Env("FIGHT_TURNCUTROUND", PhysicsBattler.Locomotion.TurnSlashes.MostRound);
+        PhysicsBattler.Locomotion.TurnSlashes.AimTurns = Env("FIGHT_TURNCUTAIM", PhysicsBattler.Locomotion.TurnSlashes.AimTurns);
+        // (FIGHT_CLIPDUMP="folder,part of a name": each attack's clip made whose name has that part, written there as it is made.)
+        {
+            string[] dump = (Environment.GetEnvironmentVariable("FIGHT_CLIPDUMP") ?? "").Split(',');
+            if (dump.Length >= 1 && dump[0].Length > 0)
+            {
+                System.IO.Directory.CreateDirectory(dump[0]);
+                int dumped = 0;
+                PhysicsBattler.Locomotion.AttackMaker.ClipMade = d =>
+                {
+                    if (dumped < 40 && (dump.Length < 2 || d.name.Contains(dump[1])))
+                    {
+                        System.IO.File.WriteAllText(System.IO.Path.Combine(dump[0], $"{dumped++:00}_{d.name.Replace('/', '_').Replace(' ', '_')}.json"), UnityEngine.JsonUtility.ToJson(d));
+                    }
+                };
+            }
+        }
         PhysicsBattler.Locomotion.TurnSlashes.SweepsFree = Environment.GetEnvironmentVariable("FIGHT_TURNCUTFREE") != "0";
         PhysicsBattler.Locomotion.TurnSlashes.SweepsOn = Env("FIGHT_TURNCUTSWEEPS", 0.1f);
         PhysicsBattler.Locomotion.TurnSlashes.CarriesOn = Env("FIGHT_TURNCUTCARRIES", 0.2f);
@@ -1063,6 +1082,12 @@ internal static class FightReport
 
         // (FIGHT_GETUP=0: the get-ups as they were before 14 November.)
         PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = Environment.GetEnvironmentVariable("FIGHT_GETUP") != "0";
+        // (FIGHT_GETUPRECORDED=0: the get-ups made by hand, as before 17 November. FIGHT_GETUPTAKES=0.6: a recorded get-up's time, as a share of the recording's.)
+        PhysicsBattler.Motion.GetUp.FromRecordings = Environment.GetEnvironmentVariable("FIGHT_GETUPRECORDED") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GETUPTAKES"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float getUpTakes))
+        {
+            PhysicsBattler.Motion.GetUp.RecordedTakes = getUpTakes;
+        }
 
         // (FIGHT_PIVOT=0: a planted foot that turns with the body goes round about its ankle, as before.)
         if (Environment.GetEnvironmentVariable("FIGHT_PIVOT") == "0")

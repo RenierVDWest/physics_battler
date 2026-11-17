@@ -180,7 +180,7 @@ namespace PhysicsBattler.Motion
         private readonly AnimRig anim;
         private readonly BodyMeasure body;
         private readonly Stance stance;
-        private readonly Key[] keys = new Key[7];
+        private readonly Key[] keys = new Key[16];
         private int count = 5;
         private readonly PoseBuffer lying = new PoseBuffer();
         private readonly PoseBuffer keyed = new PoseBuffer();
@@ -389,7 +389,8 @@ namespace PhysicsBattler.Motion
         /// (<paramref name="turned"/>, degrees): a body sitting up pivots where it sits to face what it fights.
         /// </summary>
         /// <param name="sitsBack">From its back, natural: how far toward its feet it stands up (metres; <see cref="SitsBack"/>). Negative: <see cref="BackSits"/> at its size.</param>
-        public static void Place(Kind kind, Vector3 pelvis, Vector3 headward, float size, bool natural, Vector3? threat, out Vector3 position, out float yaw, out float turned, float sitsBack = -1f)
+        /// <param name="standsAhead">How far along that way from where its hips lie it stands up (metres; behind them if negative), when the get-up says so itself (<see cref="StandsAhead"/>); not a number: as above.</param>
+        public static void Place(Kind kind, Vector3 pelvis, Vector3 headward, float size, bool natural, Vector3? threat, out Vector3 position, out float yaw, out float turned, float sitsBack = -1f, float standsAhead = float.NaN)
         {
             Vector3 along = kind == Kind.FaceDown ? headward : -headward;
             along.y = 0f;
@@ -409,7 +410,61 @@ namespace PhysicsBattler.Motion
                 }
             }
 
-            position = pelvis + along * (kind == Kind.FaceDown ? 0.25f * size : natural ? (sitsBack >= 0f ? sitsBack : BackSits * size) : 0.45f * size);
+            position = pelvis + along * (!float.IsNaN(standsAhead) ? standsAhead : kind == Kind.FaceDown ? 0.25f * size : natural ? (sitsBack >= 0f ? sitsBack : BackSits * size) : 0.45f * size);
+        }
+
+        /// <summary>
+        /// For <see cref="Place"/>: a get-up made of a recording stands up where the recorded man did, against where
+        /// his hips lay (metres along the way it will face; not a number: the get-up is not one of those).
+        /// </summary>
+        public float StandsAhead(Kind kind)
+        {
+            if (!Natural || !FromRecordings || StartKey != 0)
+            {
+                return float.NaN;
+            }
+
+            float[][] table = kind == Kind.FaceDown ? RecordedFront : RecordedBack;
+            return -table[0][3] * body.LegLength * HipsTravel(table);
+        }
+
+        /// <summary>
+        /// The share of the recorded hips' way along the ground that this body's hips go: all of it, or as much as
+        /// leaves its feet within its legs' reach where it lies (the recorded man lies with his legs straight and
+        /// stands up where his feet are; a body whose legs are a little shorter against that way would have its feet
+        /// asked for past the ends of its legs, and they would drag after its hips).
+        /// </summary>
+        private float HipsTravel(float[][] table)
+        {
+            float leg = body.LegLength, reach = 0.93f * leg, hips = table[0][3] * leg, share = 1f;
+            if (Mathf.Abs(hips) < 0.05f * leg)
+            {
+                return 1f;
+            }
+
+            for (int f = 0; f < 2; f++)
+            {
+                float ankle = table[0][12 + 3 * f] * leg;
+                if (Mathf.Abs(ankle - hips) <= reach)
+                {
+                    continue;
+                }
+
+                float a = (ankle - reach) / hips, b = (ankle + reach) / hips, best = 0.3f;
+                if (a > best && a <= 1f)
+                {
+                    best = a;
+                }
+
+                if (b > best && b <= 1f)
+                {
+                    best = b;
+                }
+
+                share = Mathf.Min(share, best);
+            }
+
+            return share;
         }
 
         /// <summary>Natural: a body on its back stands up this far toward its feet from where its hips lay (metres at a Medium's size).</summary>
@@ -447,7 +502,19 @@ namespace PhysicsBattler.Motion
                 endDown[i] = false;
             }
 
-            if (Natural)
+            if (Natural && FromRecordings && StartKey == 0)
+            {
+                // (Made of the recordings; a fall caught part of the way down still rises by the made keys.)
+                if (kind == Kind.FaceDown)
+                {
+                    MakeRecorded(RecordedFront, RecordedFrontPost, RecordedFrontSeconds, RecordedFrontStandPitch, RecordedFrontPlantedL, RecordedFrontPlantedR);
+                }
+                else
+                {
+                    MakeRecorded(RecordedBack, RecordedBackPost, RecordedBackSeconds, RecordedBackStandPitch, RecordedBackPlantedL, RecordedBackPlantedR);
+                }
+            }
+            else if (Natural)
             {
                 count = 7;
                 if (kind == Kind.FaceDown)
@@ -1263,6 +1330,249 @@ namespace PhysicsBattler.Motion
             shieldFrom = 0f;
             shieldBy = keys[1].time;
         }
+
+        /// <summary>
+        /// Get-ups are made from the recordings (17 November; the pack "Getting Up"; Combat Feel "Get Ups Are From The
+        /// Recordings"). A recorded get-up is not played: Tools/Mocap/Combat/getup_keys.py reads it off, at a dozen
+        /// moments, into the same parts the keys here are made of, against where the man ends up standing and with his
+        /// standing pose taken off, and <see cref="MakeRecorded"/> makes this body's keys of that table: the hips'
+        /// place, pitch, roll and lean, the bends of the spine, chest and head, the ankles, wrists, knees' and elbows'
+        /// ways, the feet's pitch. Everything else is as for the keys made here: it sets out from the body as it
+        /// really lay, what the hands hold is kept off the ground, the shield comes up, the feet end on the stance's
+        /// own spots and the standing pose takes over. A fall caught on a knee or sitting still rises by the made
+        /// keys. Off: the made keys, as before.
+        /// </summary>
+        public static bool FromRecordings = true;
+
+        /// <summary>How long a recorded get-up is given, against the recording's own time (from his back 3.7 s, from his front 4.5 s as recorded).</summary>
+        public static float RecordedTakes = 0.5f;
+
+        // <getup-takes> (made by Tools/Mocap/Combat/getup_keys.py from the pack "Getting Up"; not written by hand)
+        // Each row a key: time | pelvis x y z | pitch spine chest head roll lean | ankleL x y z | ankleR x y z | kneeL | kneeR | footL footR | handL | handR | elbowL | elbowR.
+        // Positions in leg lengths against where he ends up standing (x to his right, z the way he faces), his standing
+        // pose taken off: an ankle reads 0 0 0 on its standing place, the hips' height is a share of his standing height.
+        // The pitch and lean are of the line from the hips to between the shoulders; the roll is about that line.
+        /// <summary>From lying on his back: sits up, rocks forward over his feet onto them, stands (getup_from_back, 2.6 to 6.3 s of it). The hand on the ground last is his right; the foot that ends in front his left.</summary>
+        private const int RecordedBackPost = 1, RecordedBackFront = 0;
+        private const float RecordedBackSeconds = 3.70f, RecordedBackPlantedL = 0.64f, RecordedBackPlantedR = 0.64f, RecordedBackStandPitch = 4.7f;
+        private static readonly float[][] RecordedBack =
+        {
+            new[] { 0.000f, 0.102f, 0.126f, -0.829f, -89.151f, -2.899f, -0.576f, 49.328f, 38.772f, -30.482f, 0.126f, 0.011f, 0.157f, -0.094f, -0.019f, -0.101f, 0.120f, 0.992f, 0.036f, 0.977f, 0.211f, 0.010f, -40.000f, -40.000f, -0.179f, 0.186f, -0.855f, 0.674f, 0.062f, -0.924f, -0.747f, -0.663f, -0.051f, 0.128f, -0.977f, -0.172f },
+            new[] { 0.091f, 0.113f, 0.123f, -0.820f, -90.086f, 5.832f, 1.875f, 48.957f, 14.358f, -6.896f, 0.126f, 0.013f, 0.157f, -0.095f, -0.010f, -0.094f, 0.102f, 0.994f, 0.028f, 0.948f, 0.317f, 0.024f, -40.000f, -40.000f, -0.246f, 0.101f, -0.809f, 0.617f, 0.076f, -0.900f, -0.588f, -0.730f, -0.349f, 0.246f, -0.903f, -0.352f },
+            new[] { 0.182f, 0.050f, 0.129f, -0.793f, -74.146f, 13.504f, 2.410f, 59.252f, 11.532f, -5.481f, 0.141f, 0.021f, 0.169f, -0.107f, 0.015f, -0.111f, 0.185f, 0.983f, 0.008f, 0.876f, 0.478f, -0.063f, -40.000f, -35.630f, -0.306f, 0.081f, -0.824f, 0.335f, 0.126f, -0.894f, -0.349f, -0.720f, -0.600f, 0.526f, -0.694f, -0.491f },
+            new[] { 0.273f, 0.038f, 0.150f, -0.734f, -54.527f, 16.477f, 2.733f, 62.672f, 11.425f, -3.349f, 0.127f, 0.055f, 0.182f, -0.127f, 0.029f, -0.180f, 0.169f, 0.985f, -0.028f, 0.647f, 0.759f, -0.075f, -36.238f, -19.676f, -0.335f, 0.105f, -0.790f, 0.307f, 0.107f, -0.823f, -0.780f, 0.020f, -0.625f, 0.331f, -0.592f, -0.735f },
+            new[] { 0.364f, 0.073f, 0.161f, -0.706f, -41.515f, 17.711f, 1.723f, 56.751f, 9.881f, -2.554f, 0.095f, 0.026f, 0.161f, -0.113f, 0.020f, -0.219f, 0.123f, 0.992f, 0.005f, 0.517f, 0.855f, -0.037f, -23.049f, -7.728f, -0.293f, 0.102f, -0.833f, 0.338f, 0.085f, -0.792f, -0.875f, 0.344f, -0.341f, 0.441f, -0.363f, -0.821f },
+            new[] { 0.455f, 0.134f, 0.194f, -0.669f, -25.167f, 18.016f, 0.103f, 33.112f, 7.791f, 0.819f, 0.074f, 0.014f, 0.134f, -0.071f, 0.013f, -0.190f, 0.162f, 0.984f, 0.069f, 0.411f, 0.911f, 0.044f, -15.552f, -5.679f, -0.199f, 0.118f, -0.857f, 0.408f, 0.082f, -0.765f, -0.881f, 0.367f, -0.299f, 0.556f, -0.096f, -0.826f },
+            new[] { 0.545f, 0.193f, 0.279f, -0.465f, -16.696f, 20.342f, 1.092f, 20.617f, 3.185f, 8.352f, 0.059f, 0.002f, 0.135f, -0.054f, 0.004f, -0.146f, 0.306f, 0.891f, 0.336f, 0.460f, 0.811f, 0.362f, -0.749f, 0.374f, -0.101f, 0.161f, -0.771f, 0.502f, 0.103f, -0.714f, -0.704f, 0.469f, -0.534f, 0.616f, 0.224f, -0.755f },
+            new[] { 0.636f, 0.185f, 0.426f, -0.285f, 20.814f, 26.445f, 0.433f, -5.782f, 13.115f, 21.563f, 0.018f, 0.006f, 0.050f, -0.017f, 0.001f, -0.057f, 0.219f, 0.696f, 0.684f, 0.114f, 0.666f, 0.737f, -4.386f, 0.401f, -0.238f, 0.446f, -0.207f, 0.679f, 0.209f, -0.440f, -0.686f, 0.638f, 0.348f, 0.000f, -1.000f, -0.300f },
+            new[] { 0.727f, 0.112f, 0.744f, -0.225f, 36.292f, 19.876f, 0.053f, -24.826f, 7.338f, 8.375f, 0.002f, 0.004f, -0.034f, 0.001f, 0.000f, 0.031f, -0.067f, 0.446f, 0.892f, -0.140f, 0.396f, 0.908f, -0.543f, 0.328f, -0.312f, 0.922f, 0.418f, 0.422f, 0.575f, 0.345f, -0.797f, 0.225f, -0.561f, 0.837f, -0.193f, -0.513f },
+            new[] { 0.818f, 0.030f, 0.939f, -0.124f, 15.775f, 7.166f, 0.379f, -17.009f, 1.332f, 0.563f, -0.002f, 0.001f, -0.036f, 0.000f, 0.000f, 0.033f, -0.208f, 0.257f, 0.944f, -0.017f, 0.205f, 0.979f, 0.092f, 0.289f, -0.342f, 1.506f, 0.329f, 0.039f, 1.529f, 0.424f, -0.788f, -0.419f, -0.451f, 0.628f, -0.650f, 0.428f },
+            new[] { 0.909f, -0.004f, 0.989f, -0.039f, 4.424f, 2.171f, -0.258f, -10.252f, -0.575f, -1.254f, -0.002f, 0.000f, -0.015f, 0.000f, 0.000f, 0.014f, -0.292f, 0.176f, 0.940f, 0.064f, 0.085f, 0.994f, 0.392f, 0.072f, -0.368f, 1.587f, 0.244f, 0.024f, 1.672f, 0.315f, -0.621f, -0.744f, -0.246f, 0.452f, -0.681f, 0.575f },
+            new[] { 1.000f, 0.031f, 0.985f, -0.013f, 2.470f, 1.847f, 0.084f, -3.272f, 0.156f, -0.461f, -0.000f, 0.002f, 0.001f, 0.000f, 0.000f, 0.001f, -0.243f, 0.162f, 0.956f, 0.145f, 0.049f, 0.988f, 0.840f, 0.021f, -0.307f, 1.562f, 0.300f, 0.029f, 1.594f, 0.338f, -0.557f, -0.812f, -0.175f, 0.418f, -0.792f, 0.445f },
+        };
+
+        /// <summary>From lying on his front: pushes up, hips up, a foot stepped through, stands (getup_from_front, 1.6 to 6.1 s of it). The hand on the ground last is his right; the foot that ends in front his left.</summary>
+        private const int RecordedFrontPost = 1, RecordedFrontFront = 0;
+        private const float RecordedFrontSeconds = 4.50f, RecordedFrontPlantedL = 0.91f, RecordedFrontPlantedR = 0.82f, RecordedFrontStandPitch = 3.6f;
+        private static readonly float[][] RecordedFront =
+        {
+            new[] { 0.000f, 0.028f, 0.118f, 0.330f, 76.119f, -12.337f, -3.843f, 0.710f, 10.192f, -5.904f, 0.208f, 0.041f, -0.893f, -0.114f, 0.026f, -0.646f, -0.057f, -0.998f, -0.020f, 0.212f, -0.977f, 0.012f, 133.072f, 131.082f, -0.382f, 0.229f, 0.253f, 0.487f, 0.196f, 0.266f, 0.200f, 0.980f, -0.017f, -0.259f, 0.946f, -0.195f },
+            new[] { 0.091f, 0.017f, 0.120f, 0.329f, 64.252f, -16.466f, -4.973f, 8.969f, 8.482f, -6.053f, 0.199f, 0.116f, -0.880f, -0.125f, 0.066f, -0.640f, 0.060f, -0.991f, -0.119f, 0.289f, -0.957f, -0.015f, 117.301f, 125.325f, -0.252f, 0.187f, 0.447f, 0.395f, 0.164f, 0.434f, -0.047f, 0.933f, -0.358f, 0.152f, 0.919f, -0.365f },
+            new[] { 0.182f, -0.018f, 0.262f, 0.316f, 61.196f, -11.672f, -3.604f, 23.186f, 13.214f, -6.109f, 0.210f, 0.106f, -0.888f, -0.101f, 0.100f, -0.620f, 0.118f, -0.993f, 0.017f, 0.534f, -0.833f, 0.145f, 104.463f, 104.423f, -0.290f, 0.201f, 0.428f, 0.356f, 0.168f, 0.469f, -0.376f, 0.768f, -0.519f, 0.445f, 0.624f, -0.642f },
+            new[] { 0.273f, -0.065f, 0.473f, 0.248f, 64.252f, -3.060f, -0.861f, 24.437f, 21.099f, -2.973f, 0.211f, 0.099f, -0.913f, -0.091f, 0.073f, -0.513f, 0.250f, -0.943f, 0.221f, 0.750f, -0.507f, 0.424f, 101.978f, 81.040f, -0.332f, 0.208f, 0.410f, 0.318f, 0.171f, 0.514f, -0.503f, 0.534f, -0.679f, 0.579f, 0.272f, -0.769f },
+            new[] { 0.364f, -0.115f, 0.700f, 0.149f, 77.363f, 4.698f, 1.570f, -0.751f, 22.392f, -1.052f, 0.319f, 0.114f, -0.939f, -0.096f, 0.072f, -0.311f, 0.332f, -0.818f, 0.470f, 0.746f, -0.163f, 0.645f, 93.290f, 49.781f, -0.386f, 0.238f, 0.386f, 0.266f, 0.201f, 0.570f, -0.661f, 0.388f, -0.642f, 0.659f, 0.067f, -0.749f },
+            new[] { 0.455f, -0.056f, 0.743f, 0.018f, 82.921f, 9.578f, 2.996f, -10.655f, 16.977f, -0.820f, 0.341f, 0.101f, -0.955f, -0.143f, 0.029f, -0.200f, 0.331f, -0.765f, 0.553f, 0.663f, -0.077f, 0.744f, 91.975f, 31.654f, -0.390f, 0.223f, 0.342f, 0.310f, 0.200f, 0.539f, -0.777f, 0.365f, -0.513f, 0.807f, 0.041f, -0.590f },
+            new[] { 0.545f, 0.056f, 0.705f, -0.188f, 70.418f, 10.305f, 3.273f, -14.335f, 10.536f, -1.021f, 0.418f, 0.079f, -0.978f, -0.105f, 0.029f, -0.166f, 0.263f, -0.719f, 0.643f, 0.506f, 0.112f, 0.855f, 87.389f, 27.218f, -0.302f, 0.318f, 0.025f, 0.336f, 0.222f, 0.389f, -0.635f, 0.462f, -0.619f, 0.000f, -1.000f, -0.300f },
+            new[] { 0.636f, 0.069f, 0.796f, -0.182f, 57.669f, 11.904f, 3.603f, -9.216f, 5.316f, -11.281f, 0.352f, 0.134f, -0.596f, -0.077f, 0.020f, -0.132f, 0.102f, -0.354f, 0.930f, 0.411f, 0.123f, 0.903f, 76.880f, 17.954f, -0.290f, 0.520f, -0.100f, 0.277f, 0.439f, 0.360f, -0.551f, 0.522f, -0.651f, 0.886f, -0.146f, -0.440f },
+            new[] { 0.727f, -0.063f, 0.893f, 0.041f, 44.081f, 13.609f, 4.113f, -3.819f, 2.313f, -8.733f, 0.043f, 0.022f, 0.079f, -0.043f, 0.011f, -0.078f, -0.039f, 0.353f, 0.935f, 0.277f, -0.090f, 0.957f, 5.477f, 5.561f, -0.449f, 0.646f, 0.371f, 0.004f, 0.788f, 0.756f, -0.846f, 0.296f, -0.444f, 0.904f, -0.408f, -0.123f },
+            new[] { 0.818f, -0.142f, 0.892f, 0.068f, 28.597f, 11.520f, 3.626f, -12.369f, 2.956f, -7.653f, 0.032f, 0.005f, 0.062f, -0.018f, 0.026f, -0.031f, -0.139f, 0.293f, 0.946f, 0.243f, -0.067f, 0.968f, 0.720f, 14.641f, -0.580f, 0.808f, 0.503f, -0.031f, 1.038f, 0.837f, -0.781f, 0.127f, -0.611f, 0.898f, -0.437f, -0.054f },
+            new[] { 0.909f, 0.006f, 0.979f, 0.023f, 11.863f, 5.352f, 1.692f, -15.958f, 3.515f, -1.553f, 0.027f, 0.002f, 0.049f, -0.021f, 0.005f, -0.047f, -0.083f, 0.290f, 0.953f, 0.354f, -0.042f, 0.934f, -0.962f, 3.484f, -0.327f, 1.282f, 0.469f, -0.044f, 1.443f, 0.530f, -0.779f, -0.284f, -0.559f, 0.536f, -0.742f, 0.404f },
+            new[] { 1.000f, 0.013f, 0.991f, 0.023f, 3.756f, 2.492f, 0.839f, -4.733f, 0.946f, 0.241f, 0.005f, 0.000f, 0.011f, -0.007f, 0.000f, -0.013f, -0.129f, 0.257f, 0.958f, 0.389f, 0.005f, 0.921f, -0.393f, 0.626f, -0.279f, 1.548f, 0.290f, 0.059f, 1.569f, 0.353f, -0.696f, -0.629f, -0.348f, 0.192f, -0.821f, 0.538f },
+        };
+
+        // </getup-takes>
+
+        /// <summary>The keys made of a recording's table (<see cref="FromRecordings"/>).</summary>
+        private void MakeRecorded(float[][] table, int takePost, float seconds, float standPitch, float plantedL, float plantedR)
+        {
+            float s = body.SizeFactor, leg = body.LegLength, standHigh = body.PelvisHeight - 0.07f * leg;
+            // (The hand it posts on is the one the body is told to, or the one across from its stance's front foot: a
+            // recording that posts on the other is taken mirrored.)
+            int rear = PostWith >= 0 ? PostWith : 1 - stance.Lead;
+            bool mirrored = rear != takePost;
+            float side = mirrored ? -1f : 1f;
+            // (The recording's last moments are the man standing: there the standing pose made here takes over instead.)
+            int n = 0;
+            while (n < table.Length && n < keys.Length - 1 && table[n][0] <= RecordedUntil)
+            {
+                n++;
+            }
+
+            float total = seconds * RecordedTakes;
+            // (The recording's pitch is of the line from the hips to between the shoulders, which is what the hands
+            // hang from: the hips here are pitched so this body's own line lies so, whatever its back bends. Standing,
+            // that is the standing key's own.)
+            float standLine = 4f + TrunkLine(2f, 2f);
+            float travel = HipsTravel(table);
+            for (int i = 0; i < n; i++)
+            {
+                float[] r = table[i];
+                Vector3 V(int at) => new Vector3(side * r[at], r[at + 1], r[at + 2]);
+                float spine = r[5] + 2f * r[0], chest = r[6] + 2f * r[0];
+                var k = new Key
+                {
+                    time = r[0] * total,
+                    pelvis = new Vector3(side * r[1] * leg, Mathf.Max(Lie, r[2] * standHigh), r[3] * leg * travel),
+                    pitch = r[4] + standPitch * (1f - r[0]) + standLine * r[0] - TrunkLine(spine, chest), spine = spine, chest = chest, head = r[7] - 4f * r[0],
+                    roll = side * r[8] / (Mathf.Abs(rollSign) > 0.5f ? rollSign : 1f), lean = side * r[9],
+                };
+                bool downL = false, downR = false;
+                for (int f = 0; f < 2; f++)
+                {
+                    // (The body's own foot f is the recording's, or with the recording mirrored its other one.)
+                    int from = mirrored ? 1 - f : f;
+                    // (The recorded man stands with his feet nearly level; this body's stance has one before the other.
+                    // Until a foot is on its way to its standing place it is measured from beside the other, as his
+                    // is: measured from its own spot from the start, a foot lay a stance's length further off than a
+                    // leg reaches.)
+                    float planted = from == 0 ? plantedL : plantedR;
+                    Vector3 home = Home(f);
+                    home.z *= Smooth(Mathf.InverseLerp(planted - 0.35f, planted - 0.1f, r[0]));
+                    Vector3 ankle = home + new Vector3(side * r[10 + 3 * from] * leg, r[11 + 3 * from] * leg, r[12 + 3 * from] * leg);
+                    ankle.y = Mathf.Max(ankle.y, 0.08f * s);
+                    Vector3 knee = V(16 + 3 * from);
+                    SetFoot(ref k, f, ankle, knee, r[22 + from]);
+                    Vector3 hand = V(24 + 3 * from);
+                    // (A wrist the recording has near the ground is a hand on it: flat on the ground here.)
+                    bool down = hand.y < HandDownBelow;
+                    hand = new Vector3(hand.x * leg, down ? HandHeight : hand.y * leg, hand.z * leg);
+                    SetHand(ref k, f, hand, V(30 + 3 * from));
+                    downL |= down && f == 0;
+                    downR |= down && f == 1;
+                }
+
+                HandsReach(ref k, downL, downR);
+                keys[i] = k;
+            }
+
+            if (Side != 0f && Facing == Kind.FaceDown)
+            {
+                // (On a side: rolling onto its front as it pushes up, as the made keys do.)
+                keys[0].roll += -80f * Side;
+                keys[1].roll += -35f * Side;
+            }
+
+            Stand(n, total, body.PelvisHeight, s, body.WidthFactor);
+            count = n + 1;
+            // (The shield comes up as with the made keys: from its back at once, from its front once the chest is off the ground.)
+            shieldFrom = Facing == Kind.FaceDown ? 0.35f * total : 0f;
+            shieldBy = Facing == Kind.FaceDown ? 0.65f * total : 0.2f * total;
+        }
+
+        /// <summary>How far forward of straight up the line from the hips to between the shoulders is (degrees), the hips unpitched and the back bent so.</summary>
+        private float TrunkLine(float spine, float chest)
+        {
+            anim.ResetToRest();
+            PoseTorso(new Key { pelvis = Vector3.up, spine = spine, chest = chest }, 1f);
+            Vector3 line = 0.5f * (Local(anim.Part(PartId.UpperArmL).position) + Local(anim.Part(PartId.UpperArmR).position)) - Vector3.up;
+            return Mathf.Atan2(line.z, line.y) * Mathf.Rad2Deg;
+        }
+
+        /// <summary>
+        /// A recorded key's trunk brought to where the hands it has on the ground reach it. This body is not the
+        /// recorded man: its shoulders stand further from its hips, and its wrist lies lower on a flat hand, so with
+        /// his hips and his trunk's line its hands hang short of the ground (seen headless: by 20 cm, piked on its
+        /// hands). A trunk nearer level than upright is tipped further the way it already tips, by up to
+        /// <see cref="TipsToReach"/> degrees; then the hips come down a little (<see cref="HipsLowerToReach"/>); and
+        /// what is still left, the hand is off the ground by. A hand's spot further out than the arm reaches is brought in.
+        /// </summary>
+        private void HandsReach(ref Key k, bool downL, bool downR)
+        {
+            if (!downL && !downR)
+            {
+                return;
+            }
+
+            float tipped = 0f;
+            for (int pass = 0; pass < 12; pass++)
+            {
+                anim.ResetToRest();
+                PoseTorso(k);
+                Vector3 line = 0.5f * (Local(anim.Part(PartId.UpperArmL).position) + Local(anim.Part(PartId.UpperArmR).position)) - k.pelvis;
+                float over = 0f;
+                for (int f = 0; f < 2; f++)
+                {
+                    if (!(f == 0 ? downL : downR))
+                    {
+                        continue;
+                    }
+
+                    Vector3 shoulder = Local(anim.Part(f == 0 ? PartId.UpperArmL : PartId.UpperArmR).position);
+                    Vector3 hand = f == 0 ? k.handL : k.handR;
+                    float reach = 0.94f * (anim.RestLocalPosition(f == 0 ? PartId.ForearmL : PartId.ForearmR).magnitude + anim.RestLocalPosition(f == 0 ? PartId.HandL : PartId.HandR).magnitude);
+                    Vector3 out2 = new Vector3(hand.x - shoulder.x, 0f, hand.z - shoulder.z);
+                    if (out2.magnitude > 0.9f * reach)
+                    {
+                        out2 = out2.normalized * (0.9f * reach);
+                        hand = new Vector3(shoulder.x + out2.x, hand.y, shoulder.z + out2.z);
+                        if (f == 0)
+                        {
+                            k.handL = hand;
+                        }
+                        else
+                        {
+                            k.handR = hand;
+                        }
+                    }
+
+                    over = Mathf.Max(over, shoulder.y - hand.y - Mathf.Sqrt(Mathf.Max(0f, reach * reach - out2.sqrMagnitude)));
+                }
+
+                if (over <= 0.005f * body.SizeFactor)
+                {
+                    return;
+                }
+
+                float tips = Mathf.Atan2(line.z, line.y) * Mathf.Rad2Deg;
+                if (Mathf.Abs(tips) > 45f && tipped < TipsToReach - 0.5f)
+                {
+                    k.pitch += Mathf.Sign(tips) * 3f;
+                    tipped += 3f;
+                    continue;
+                }
+
+                // (The hips come down by no more than a little: a trunk that is nearly upright is not sat down for a
+                // hand that only just touched. What is left, the hand is off the ground by.)
+                float lowered = Mathf.Min(over, HipsLowerToReach * body.LegLength, Mathf.Max(0f, k.pelvis.y - Lie));
+                k.pelvis.y -= lowered;
+                if (over - lowered > 0.005f * body.SizeFactor)
+                {
+                    if (downL)
+                    {
+                        k.handL.y += over - lowered;
+                    }
+
+                    if (downR)
+                    {
+                        k.handR.y += over - lowered;
+                    }
+                }
+
+                return;
+            }
+        }
+
+        /// <summary>The most a recorded key's hips come down for its hands to reach the ground, as a share of the leg's length.</summary>
+        private const float HipsLowerToReach = 0.1f;
+
+        /// <summary>The most a recorded key's trunk is tipped further for its hands to reach the ground (degrees).</summary>
+        private const float TipsToReach = 24f;
+
+        /// <summary>A recording is followed up to this share of its time; from there the keys head for the standing pose.</summary>
+        private const float RecordedUntil = 0.86f;
+
+        /// <summary>A recorded wrist lower than this (in leg lengths) is a hand on the ground.</summary>
+        private const float HandDownBelow = 0.26f;
 
         /// <summary>
         /// From its front (and from a side, rolling onto its front as it pushes up): the hands planted by the chest
