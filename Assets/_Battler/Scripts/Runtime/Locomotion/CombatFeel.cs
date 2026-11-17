@@ -483,6 +483,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The dance (duel lab) is paced by the gap between the two. Each fighter keeps the distance he likes, between just outside reach (2.2 m) and inside it (1.5 m) by how aggressive he is; goes round the other in spells and stands between them, by how restless he is; comes in for his blow and goes out again after it; and one who is not aggressive steps out of reach when he sees the other's tell, where an aggressive one stands and covers. How the fight is going shifts it: two blows ahead he presses nearer, two behind he keeps further off. Restless and aggressive are each fighter's own (\"Each his own\"). Off: the two stand on their spots, as in the dance's second part.")]
         public bool theDanceIsPacedByTheGap = true;
 
+        [Tooltip("The dance (duel lab): calmer feet. A dancer does not set off toward the other or away from him for less than a step's worth of ground; once he has set off he goes all the way to the distance he likes; and once he has come to a stand he stands a moment before he sets off again. What cannot wait is not held: the other too near, a blow of his own to come in for, a blow to step out of. Off: as before 18 November, he sets off for 12 cm and stops 12 cm short, many times a second.")]
+        public bool theDanceAsksForSteps = true;
+
+        [Tooltip("The dance, calmer feet: the least ground a dancer sets off in or out for (metres at a Medium's size). Higher: he stands longer while the gap drifts, then makes it up in one go.")]
+        [Range(0.12f, 0.8f)] public float danceStepsWorth = 0.3f;
+
+        [Tooltip("The dance, calmer feet: once he has come to a stand, the least he stands before he sets off again (seconds).")]
+        [Range(0f, 2f)] public float danceStandsAtLeast = 0.6f;
+
         [Tooltip("The dance (duel lab): a blow stopped is answered. The fighter whose shield or sword stopped a blow strikes back at once (after his reaction time, as quick as a blow can be), while the other is still in his. It is what a wasted blow costs: one who goes for every chest he sees open, and so throws blows at fakes, is answered each time one is stopped. An answer is not itself answered. Off (as it is): a stopped blow costs nothing. It is off because it did not do what it was for: in the headless duels every answer met the shield too, the one answered being able to cover while still in his own blow.")]
         public bool aStoppedBlowIsAnswered = false;
 
@@ -527,6 +536,21 @@ namespace PhysicsBattler.Locomotion
 
         [Tooltip("A leg left behind: how far the hips may sink for it before the foot is let go to step (a share of the leg's reach; 0.03 is about 2.5 cm). More: fewer of these catch steps, a deeper dip.")]
         [Range(0f, 0.12f)] public float hipsSinkBeforeAStep = 0.03f;
+
+        [Tooltip("In his guard, told to walk on (to walk up, back away or circle), a fighter moves by whole steps. A step once begun keeps its way and its pace until its foot lands; the way and pace asked of him at that moment are the next step's. He stops only as a foot lands. A step is taken at no less than a share of the recording's own pace and tempo (the two levers below): asked to go slower than that, he takes quick short steps and then stands until what he was asked has caught up, in place of walking in slow motion. The recordings mixed for a step are not changed in the middle of it. Off: as before 18 November, the walk follows what is asked at every moment (a spell of walking in the dance then held less than one step on average, at two thirds of the recordings' tempo).")]
+        public bool aStepOnceBegunIsFinished = true;
+
+        [Tooltip("A step that goes between two of the guard's four ways (forward, back, to a side) is taken on the nearest one's recording alone, with the legs and hips turned to the way he goes (47 degrees at most) and his chest, head, shield and sword left as they are, facing his enemy. Off: as before 18 November, the two nearest recordings are mixed by the angle, which gives a pose neither of them holds (two recordings were mixed for 40 to 50% of the dance's walking). Only with whole steps on (the switch above).")]
+        public bool aDiagonalTurnsTheLegs = true;
+
+        [Tooltip("A whole step's pace, at least, as a share of the recording's own pace for that way (about 1.1 m/s forward). 0.6: asked to go at 0.4 m/s he steps at about 0.65 m/s and stands between steps. Lower: slower steps and fewer pauses. Higher: quicker, longer steps and longer pauses.")]
+        [Range(0.3f, 1f)] public float wholeStepLeastPace = 0.6f;
+
+        [Tooltip("A whole step's tempo, at least, against the recording's own. 0.85: his feet go no slower than 85% of the recorded step; a slower pace is a shorter stride. Lower lets the feet slow down with the pace, as the old walk did.")]
+        [Range(0.5f, 1f)] public float wholeStepLeastTempo = 0.85f;
+
+        [Tooltip("Stepping faster than he is asked to go, he stands once his steps have taken him this far ahead of what was asked (metres at a Medium's size), and sets off again when it has caught up. Lower: he stands after nearly every step. Higher: several steps, then a longer stand.")]
+        [Range(0.03f, 0.5f)] public float wholeStepPausesFrom = 0.12f;
 
         [Tooltip("A fighter turns round quickly (17 November). On: in his guard, with an enemy near and what he is to face a good way off to his side or behind him (\"Quick Turn From\"), standing or stepping, he makes a quick turn round: the pack \"Turns\"' quick turn's steps on his own stand, under his own chest and arms, the shorter way, as far round as is asked, and aimed as he goes at where his enemy is by then. And an unhurried turn on the spot too big for his quarter turn is the pack's turn a third of the way round, made the same way. Off, as it was: his guard's own quarter turn stretched (0.93 s for up to 140 degrees, then the rest eased round over another second) or its turn round (0.8 s); and stepping, his facing eased round at 200 degrees a second at most.")]
         public bool aFighterTurnsRoundQuickly = true;
@@ -1510,6 +1534,11 @@ namespace PhysicsBattler.Locomotion
             Locomotor.SlowSide = slowCircleOn;
             MoveStyle.OneCarriage = theGuardWalksInOneCarriage;
             MoveScore.StanceKept = guardKeepsItsStance;
+            Locomotor.WholeSteps = aStepOnceBegunIsFinished;
+            Locomotor.LegsTurned = aDiagonalTurnsTheLegs;
+            Locomotor.StepLeastPace = Mathf.Clamp(wholeStepLeastPace, 0.3f, 1f);
+            Locomotor.StepLeastTempo = Mathf.Clamp(wholeStepLeastTempo, 0.5f, 1f);
+            Locomotor.StepPausesFrom = Mathf.Clamp(wholeStepPausesFrom, 0.03f, 0.5f);
             LocoBody.SinksBeforeStep = aLegLeftBehindStepsBeforeTheHipsSink ? hipsSinkBeforeAStep : LocoBody.SinksAllBeforeStep;
             Locomotor.QuickTurns = aFighterTurnsRoundQuickly;
             TurnSlashes.On = aFighterCutsAsHeTurnsRound;
@@ -1529,6 +1558,9 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.Dance.Reading = fightersReadEachOthersPatterns;
             PhysicsBattler.Sandbox.Dance.Answers = aStoppedBlowIsAnswered;
             PhysicsBattler.Sandbox.Dance.Moves = theDanceIsPacedByTheGap;
+            PhysicsBattler.Sandbox.Dance.CalmFeet = theDanceAsksForSteps;
+            PhysicsBattler.Sandbox.Dance.StepsWorth = Mathf.Clamp(danceStepsWorth, 0.12f, 0.8f);
+            PhysicsBattler.Sandbox.Dance.StandsAtLeast = Mathf.Clamp(danceStandsAtLeast, 0f, 2f);
             PhysicsBattler.Sandbox.FakeTest.ShortDepth = shortFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongDepth = longFakeDepth;
             PhysicsBattler.Sandbox.FakeTest.LongHold = longFakeHold;

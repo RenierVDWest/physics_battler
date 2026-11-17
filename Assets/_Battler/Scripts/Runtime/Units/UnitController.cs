@@ -218,6 +218,14 @@ namespace PhysicsBattler.Units
             Vector3 from = Clip.Loco.Position;
             Clip.Loco.Place(new Vector3(position.x, Stance.GroundY, position.z), yaw);
             Clip.CarryBy(Clip.Loco.Position - from);
+            if ((Clip.Loco.Position - from).sqrMagnitude > 0.25f * 0.25f)
+            {
+                // (Put somewhere else at once: its feet are let go, to land where it stands now. Left locked where it
+                // stood before, they held it there: the lab's other, put behind him, was drawn back toward its old
+                // spot at 1.2 m/s without taking a step, until its legs reached. Seen headless, 18 November.)
+                Clip.Poser.ReleaseFeet();
+            }
+
             transform.SetPositionAndRotation(Clip.Loco.Position, Quaternion.Euler(0f, yaw, 0f));
             facingYaw = yaw;
             facePoint = null;

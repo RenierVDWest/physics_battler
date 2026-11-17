@@ -259,6 +259,8 @@ namespace PhysicsBattler.Sandbox
 
         // ---- His feet (the dance's third part) ----
         internal float spellUntil, outUntil, gaveGround, tempoFor;
+        internal float radialWas, stoodAt = -10f;
+        internal bool wasGoing;
         internal int circling, lastSide = 1;
         internal bool wantsIn, wantedIn;
         internal float leaptForCover = -1f, leapUntil;
@@ -355,6 +357,22 @@ namespace PhysicsBattler.Sandbox
         /// </summary>
         public static bool Moves = true;
 
+        /// <summary>
+        /// Calmer feet in the dance (the plan "Convincing walking in the dance", step 4; Combat Feel "The Dance Asks
+        /// For Steps"). A dancer does not set off toward the other or away from him for less than a step's worth of
+        /// ground (<see cref="StepsWorth"/>); once he has set off he goes all the way to the distance he likes, not
+        /// only until he is nearly there; and once he has come to a stand he stands for at least
+        /// <see cref="StandsAtLeast"/> seconds. What cannot wait is not held: the other too near, a blow of his own to
+        /// come in for, a blow to step out of. Off: as before, he sets off for 12 cm and stops when 12 cm off.
+        /// </summary>
+        public static bool CalmFeet = true;
+
+        /// <summary>Calm feet: the least he sets off in or out for (metres at a Medium's size), and the least he stands once stopped (seconds).</summary>
+        public static float StepsWorth = 0.3f, StandsAtLeast = 0.6f;
+
+        /// <summary>For the reports: how often a dancer set off from a stand.</summary>
+        public int SetOffs;
+
         /// <summary>Root to root, at a Medium's size (metres): where a blow reaches; just outside it; too near; and how far in a blow on the move may be started from.</summary>
         public const float Reach = 1.5f, Edge = 2.2f, TooNear = 1.1f, StrikesFrom = 1.95f;
 
@@ -450,6 +468,9 @@ namespace PhysicsBattler.Sandbox
                 d.wantedIn = false;
                 d.LandedOn.Clear();
                 d.spellUntil = d.outUntil = d.gaveGround = d.Walked = 0f;
+                d.radialWas = 0f;
+                d.stoodAt = -10f;
+                d.wasGoing = false;
                 d.circling = 0;
                 d.wantsIn = d.lastAtKnown = false;
                 d.TempoTime.Clear();
@@ -1292,6 +1313,25 @@ namespace PhysicsBattler.Sandbox
                 radial = -Mathf.Min(-off * 2.2f + 0.2f, 0.8f);
             }
 
+            // (Calm feet: not in or out for less than a step's worth; once going, all the way there.)
+            bool urgent = gap < TooNear * size || comesIn || now < d.outUntil || d.Expecting(now);
+            if (CalmFeet && !urgent)
+            {
+                float worth = StepsWorth * size;
+                if (d.radialWas > 0f && off > 0.03f)
+                {
+                    radial = Mathf.Max(radial, Mathf.Min(off * 2.2f + 0.2f, 1.1f));
+                }
+                else if (d.radialWas < 0f && off < -0.03f)
+                {
+                    radial = Mathf.Min(radial, -Mathf.Min(-off * 2.2f + 0.2f, 0.8f));
+                }
+                else if (d.radialWas == 0f && Mathf.Abs(off) < worth)
+                {
+                    radial = 0f;
+                }
+            }
+
             if (gap < TooNear * size)
             {
                 radial = -0.9f;
@@ -1347,17 +1387,34 @@ namespace PhysicsBattler.Sandbox
             }
 
             Vector3 go = (toward * radial + left * round) * size;
-            if (clip.Fallen || !unit.CanAct || go.magnitude < 0.2f)
+            bool goes = !clip.Fallen && unit.CanAct && go.magnitude >= 0.2f;
+            if (CalmFeet && goes && !d.wasGoing && !urgent && now - d.stoodAt < StandsAtLeast)
             {
+                // (Calm feet: come to a stand, he stands a moment before he sets off again.)
+                goes = false;
+                radial = 0f;
+            }
+
+            d.radialWas = goes ? Mathf.Sign(radial) * (Mathf.Abs(radial) > 1e-3f ? 1f : 0f) : 0f;
+            if (!goes)
+            {
+                if (d.wasGoing)
+                {
+                    d.stoodAt = now;
+                }
+
                 unit.DummyGo = null;
                 unit.DummySpot = at;
                 clip.WalksOn = false;
             }
             else
             {
+                SetOffs += d.wasGoing ? 0 : 1;
                 unit.DummyGo = go;
                 clip.WalksOn = true;
             }
+
+            d.wasGoing = goes;
         }
 
         // ---- His pattern ---------------------------------------------------------------------------------------------

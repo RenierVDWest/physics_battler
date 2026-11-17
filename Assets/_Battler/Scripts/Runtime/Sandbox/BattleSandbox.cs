@@ -1200,6 +1200,26 @@ namespace PhysicsBattler.Sandbox
                 GUILayout.EndHorizontal();
             }
 
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("His steps:", "How he walks when told to walk on in his guard (Combat Feel \"A Step Once Begun Is Finished\"). Whole (new): a step keeps its way and pace until its foot lands, he stops only as a foot lands, and asked to go slowly he takes quick short steps and stands between them. As asked (old): the walk follows what is asked at every moment, in slow motion when that is slow. To see either: the footwork course above, or the dance."), GUILayout.Width(80f));
+                if (Press(feel.aStepOnceBegunIsFinished ? "[whole]" : "whole", "Whole steps, with stands between.")) feel.aStepOnceBegunIsFinished = true;
+                if (Press(!feel.aStepOnceBegunIsFinished ? "[as asked (old)]" : "as asked (old)", "The walk follows what is asked at every moment, as it was.")) feel.aStepOnceBegunIsFinished = false;
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("A diagonal:", "A step that goes between two of his four ways (Combat Feel \"A Diagonal Turns The Legs\"). Legs turned (new): the nearest way's recording alone, its legs and hips turned to the way he goes, his chest and shield left facing the other. Mixed (old): the two nearest recordings mixed. Only with whole steps."), GUILayout.Width(80f));
+                if (Press(feel.aDiagonalTurnsTheLegs ? "[legs turned]" : "legs turned", "One recording, its legs turned.")) feel.aDiagonalTurnsTheLegs = true;
+                if (Press(!feel.aDiagonalTurnsTheLegs ? "[mixed (old)]" : "mixed (old)", "Two recordings mixed, as it was.")) feel.aDiagonalTurnsTheLegs = false;
+                GUILayout.EndHorizontal();
+                if (feel.aStepOnceBegunIsFinished)
+                {
+                    feel.wholeStepLeastPace = Lever("Step's pace, least", feel.wholeStepLeastPace, 0.3f, 1f, "A whole step's pace, at least, as a share of the recording's own. Higher: quicker, longer steps and longer stands between.");
+                    feel.wholeStepLeastTempo = Lever("Step's tempo, least", feel.wholeStepLeastTempo, 0.5f, 1f, "A whole step's tempo, at least, against the recording's own. Lower lets the feet slow down with the pace.");
+                    feel.wholeStepPausesFrom = Lever("Stands when ahead by", feel.wholeStepPausesFrom, 0.03f, 0.5f, "He stands once his steps have taken him this far (metres) ahead of what he was asked. Lower: a stand after nearly every step.");
+                }
+            }
+
             Readout(new GUIContent("Course: " + Duel.CourseText + ". " + (Duel.Meter.Seconds > 0.5f ? "His footwork " + FootworkText(Duel.Meter, 0) + "." : ""), "What the meter made of the course, so far or when it ended. The band his hips' height moved over while he stood or walked (the middle 90% of the time): a level walk is a few centimetres. How often his hips rose or sank 10 cm or more within 0.3 s with no gesture or blow playing: the jump into another pose. How many steps he took in a spell of walking. How much of his walking was two recordings mixed, each a quarter or more. And how fast his steps went against the recordings' own tempo."), 5);
         }
 
@@ -1586,6 +1606,16 @@ namespace PhysicsBattler.Sandbox
                 if (Press(feel.theDanceIsPacedByTheGap ? "[paced by the gap]" : "paced by the gap", "They move about each other.")) feel.theDanceIsPacedByTheGap = true;
                 if (Press(!feel.theDanceIsPacedByTheGap ? "[on their spots (old)]" : "on their spots (old)", "They stand where they are.")) feel.theDanceIsPacedByTheGap = false;
                 GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Setting off:", "How often they set off (Combat Feel \"The Dance Asks For Steps\"). Calm (new): a dancer does not set off in or out for less than a step's worth, goes all the way there once he has, and stands a moment once he has stopped. Restless (old): he sets off for 12 cm and stops 12 cm short."), GUILayout.Width(80f));
+                if (Press(feel.theDanceAsksForSteps ? "[calm]" : "calm", "Calmer feet.")) feel.theDanceAsksForSteps = true;
+                if (Press(!feel.theDanceAsksForSteps ? "[restless (old)]" : "restless (old)", "As before.")) feel.theDanceAsksForSteps = false;
+                GUILayout.EndHorizontal();
+                if (feel.theDanceAsksForSteps)
+                {
+                    feel.danceStepsWorth = Lever("A step's worth", feel.danceStepsWorth, 0.12f, 0.8f, "The least ground a dancer sets off in or out for (metres).");
+                    feel.danceStandsAtLeast = Lever("Stands at least", feel.danceStandsAtLeast, 0f, 2f, "Once stopped, the least he stands before he sets off again (seconds).");
+                }
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(new GUIContent("Stopped:", "What happens when a blow is stopped by a shield or a sword. Answered (new): the one who stopped it strikes back at once, while the other is still in his blow; it is what a blow wasted on a fake costs (Combat Feel \"A Stopped Blow Is Answered\"). Nothing (old): a stopped blow costs nothing."), Styles().Text, GUILayout.Width(80f));
                 if (Press(feel.aStoppedBlowIsAnswered ? "[answered]" : "answered", "The one who stopped it strikes back at once.")) feel.aStoppedBlowIsAnswered = true;

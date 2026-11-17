@@ -5806,3 +5806,104 @@ is still raised as far as keeps the blade out of the ground, so the sword hand d
 recordings "Getting Up" (from sitting) and "Standing Up" (a slower one from the front) are sampled but not
 used: the first could replace the made keys for a fall caught sitting. The fighter no longer turns on the
 ground as the recorded man does (40 degrees from his back); the turn toward his enemy is the system's own.
+
+**The turn cut's legs with the other straight behind him: the real cause (18 November, overnight).** The cap
+of 178 degrees was a way round it; what broke his legs is found and mended, and the cap is off.
+
+- *The cause.* An attack's aim lengthens or shortens its lunge for the distance to its target: every part's
+  travel from where it stood as the blow began is multiplied (`AttackMaker.Styled`, `Travel`; the fit's
+  "Lunge", 0.3 to 1.8). For a lunge that is a longer or shorter step. A cut made turning round has a turn's
+  legs: its feet's travel is the way they go round him. Multiplied, each foot was left part of the way
+  round, or sent past it. With the other straight behind him the plan was short of him, the travel was
+  multiplied, and the clip that was made ended with his left foot a fifth of a leg's length behind him and
+  his right as far before him, in one line, where his stand has the left two fifths before him and a
+  quarter to its side: his body right round, his feet near where they began. Found by writing the made clip out (`FIGHT_CLIPDUMP`) and reading
+  its feet frame by frame (a script kept outside the project): the same turn at 150 degrees ended on his
+  stand, at 179 it did not, and the only thing between them was the fit's travel. Now a blow on a turn's legs
+  does not travel (`AttackScore.Turns`, `TurnSlashes.FeetGoRound`; `FIGHT_TURNCUTFEET=0` for as it was).
+- *The cap is off* (`TurnSlashes.MostRound` 360; `FIGHT_TURNCUTROUND=178` for the cap). Headless, the other
+  put 179 degrees round him, to his right and to his left: his legs crossed for 0.00 s; he faces him (within
+  15 degrees) 0.38 s and 0.53 s after, against 0.48 and 0.55 s with the cap; 0.3 s after the cut he is 10 and
+  2 degrees off him, against 13 and 7.
+- *A cut that sweeps round drops and leans only a little for its target's height* (`TurnSlashes.MostDrop`
+  0.07 of a leg, `MostLean` 14 degrees; any other attack 0.2 and 28). Turning 90 degrees to his left his
+  hips sank 14 cm in the middle of the turn (67 cm at their lowest); now 6 cm (75 cm), and the cut still
+  lands (the thigh).
+- *The other, once put round him, stands where it is put* (`UnitController.Teleport` lets its feet go when it
+  is moved more than 25 cm at once). Its feet were left locked where it stood before, 3 m off, and it was
+  drawn back toward them at 1.2 m/s without taking a step, until its legs reached: headless that is why the
+  other "walked off" and why cuts "met nothing". It also means the earlier headless figures for the turn
+  cut were taken against an enemy sliding toward him, and are not to be trusted for where the blade lands.
+
+Known, with the other standing still at 1.5 m: at 179 degrees (both ways) and at 90 the cut meets him (his
+shield, or his thigh); at 150 degrees, both ways, it meets nothing: the blade goes by before the arm is out,
+and without the travel the body does not close the distance. Not mended. Not seen in Unity.
+
+**Convincing walking, steps 3, 4 and 5: whole steps, calmer feet in the dance, a diagonal turns the legs
+(18 November, overnight).** All three are for a fighter told to walk on in his guard (the duel lab's orders
+and the dance). The fight of six does not give that order, so it is not touched: the plan proves these in
+the lab and the dance first.
+
+*Step 3, whole steps* (`Locomotor.WholeSteps`, `WholeStep`; Combat Feel "A Step Once Begun Is Finished", on;
+the lab's "His steps: whole / as asked (old)" under "Move him", with three levers). A step once begun keeps
+its way, against the way he faces, and its pace until its foot lands; what he is asked at that moment is the
+next step's. He stops only as a foot lands. The recordings for a step are chosen as it begins and not changed
+in the middle of it. A step is taken at no less than 0.6 of the recording's own pace ("Whole Step Least
+Pace") and 0.85 of its tempo ("Whole Step Least Tempo"): asked to go slower, he steps and then stands until
+what he was asked has caught up by 12 cm ("Whole Step Pauses From"). Two things found on the way and built
+in:
+- Asked to go back the way he came while still going at more than half a metre a second, the step that
+  follows is the one that stops him: his legs go on the way his body is going until it has slowed to 0.3 m/s,
+  and only then step the other way. Stepping the new way at once, his feet went one way under a body still
+  going the other for a third of a second.
+- In a whole step his body takes up the step's pace with a half-life of 0.18 s (`StepHalfLife`; the walk's
+  own is 0.35): a step's push, so the body and the feet agree sooner.
+
+*Step 4, calmer feet in the dance* (`Dance.CalmFeet`; Combat Feel "The Dance Asks For Steps", on, "Dance
+Steps Worth" 0.3 m, "Dance Stands At Least" 0.6 s; the lab's "Setting off: calm / restless (old)" in the
+dance's settings). A dancer does not set off toward the other or away for less than a step's worth; once
+going he goes all the way to the distance he likes (to 3 cm, where he used to stop 12 cm short and set off
+again); once stopped he stands 0.6 s at least. Not held: the other too near, his own blow to come in for, a
+blow to step out of.
+
+*Step 5, a diagonal turns the legs* (`Locomotor.LegsTurned`; Combat Feel "A Diagonal Turns The Legs", on; the
+lab's "A diagonal: legs turned / mixed (old)"). A whole step that goes between two of the guard's four ways
+is taken on the nearest one's recording alone; the hips' joints and the legs are turned about the hips'
+middle to the way he goes (47 degrees at most), and the spine, chest, head and arms are left as they are.
+Only in whole steps, where the recording is chosen at a landing.
+
+Headless, the footwork course (24 s, one fighter):
+
+| | spells of walking | steps a spell | tempo against the recordings' | two recordings mixed | hips' band |
+|---|---|---|---|---|---|
+| as it was | 8 | 1.8 | 0.68 | 0% | 6 cm |
+| whole steps | 7 | 4.1 | 0.88 | 14% | 6 cm |
+| whole steps, legs turned | 7 | 4.0 | 0.89 | 0% | 7 cm |
+
+Headless, the dance, Plain against Plain, the two fighters (each row one run; the runs are not the same
+fight, so small differences mean nothing):
+
+| | seconds | spells | steps a spell | tempo | two recordings mixed | set off from a stand |
+|---|---|---|---|---|---|---|
+| as it was | 68 | 37, 28 | 0.6, 1.1 | 0.64, 0.70 | 48%, 45% | not counted |
+| whole steps | 58 | 30, 25 | 1.0, 1.7 | 0.87, 0.91 | 33%, 50% | once every 1.0 s each |
+| and calmer feet | 58 | 23, 23 | 1.7, 1.7 | 0.90, 0.90 | 40%, 57% | once every 1.7 s each |
+| and legs turned | 58 | 24, 27 | 1.6, 1.7 | 0.92, 0.88 | 2%, 12% | once every 2.7 s each |
+
+The hips' band stays 7 to 8 cm and they rose or sank 10 cm within 0.3 s once or twice a fighter in each run,
+with or without. A foot on the ground slides 2.8 to 3.0 cm a second with whole steps against 4.9 before; with the legs turned as well it is 4.6 to 5.4 again (a planted foot swivels on its ball when the next step's recording has it turned another way).
+With the legs turned the hips' line stands up to 32 degrees off the shoulders' while walking (19 to 21 for
+most of it), against 9 before.
+
+Against the plan's own checks: the tempo is within 20% of the recording's (met); no change of recording
+between landings (met by construction, for a walk kept up); two kinds at once: 2% and 12% of the walking
+(the plan asks none: what is left is walking that is not a walk kept up, a shove walked off or a blow thrown
+on the move); every spell one whole step or more: on average 1.6 to 1.7, but a spell cut off by a blow or a
+turn can still end before its foot lands; stand to walk at most once every 3 s while the other stands
+still: not measured so (in the dance both move; 2.7 s each).
+
+Not verified, and known: none of it seen in Unity. Whether a step that keeps its way for 0.3 s more makes
+him overshoot where the lab's orders want him is not measured; in the course he ends up to 0.7 m from where
+the old walk left him after the stop-and-go part. The stands between steps hardly happen at the dance's
+paces (3 a fighter in a minute): the dance mostly asks for more than a step's least pace. Step 6 (far and
+near, with the running turn-rounds) is not begun.

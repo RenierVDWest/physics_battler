@@ -416,6 +416,16 @@ namespace PhysicsBattler.Locomotion
         /// <summary>It is a thrust: the point goes in, where a cut's edge goes across.</summary>
         public readonly bool Thrust;
 
+        /// <summary>
+        /// Its legs are a turn's (<see cref="OfTurn"/>, or a blow put on one): its feet go round him, they do not
+        /// carry him toward his enemy. The aim does not lengthen or shorten its travel for the distance
+        /// (<see cref="AttackMaker"/>): that multiplies how far each foot goes from where it stood, which for a lunge
+        /// is a longer or shorter step and for a turn is a foot left part of the way round. (Seen in Unity on
+        /// 17 November with the other straight behind him: the plan was short, the travel was multiplied, and his
+        /// feet ended near where they began with his body turned right round: his legs crossed, or slid apart.)
+        /// </summary>
+        public readonly bool Turns;
+
         private static readonly Dictionary<string, AttackScore> scores = new Dictionary<string, AttackScore>();
 
         /// <summary>A strike clip's score (made once for each clip).</summary>
@@ -527,6 +537,7 @@ namespace PhysicsBattler.Locomotion
             Name = $"{whole.Name}_short{swept}";
             Kind = whole.Kind;
             Thrust = whole.Thrust;
+            Turns = whole.Turns;
             Rate = whole.Rate;
             Contact = whole.Contact;
             var m = BodyMeasures.OfClips;
@@ -603,6 +614,7 @@ namespace PhysicsBattler.Locomotion
         private AttackScore(LocoClip clip, float from, float to, float landsAt, float turnScale, float back, float driveAt)
         {
             Clip = clip;
+            Turns = true;
             Name = $"{clip.Name.Replace("quick_", "")}_x{Mathf.RoundToInt(100f * turnScale)}_lands{Mathf.RoundToInt(100f * landsAt)}{(back != 0f ? $"_back{back:0}" : "")}_d{Mathf.RoundToInt(100f * driveAt)}";
             Kind = "";
             Rate = clip.Rate;
@@ -770,6 +782,7 @@ namespace PhysicsBattler.Locomotion
             Name = upper.Name + "_on_" + legs.Name.Replace("sns_", "");
             Kind = upper.Kind;
             Thrust = upper.Thrust;
+            Turns = legs.Turns;
             Rate = upper.Rate;
             Contact = upper.Contact;
             Link = upper.Link;

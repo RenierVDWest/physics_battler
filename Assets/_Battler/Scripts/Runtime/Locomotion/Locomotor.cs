@@ -264,6 +264,156 @@ namespace PhysicsBattler.Locomotion
         /// <summary>He is told to walk on (set each step by what orders him): see <see cref="WalksOn"/>.</summary>
         public bool KeptUp;
 
+        /// <summary>
+        /// Whole steps (the plan "Convincing walking in the dance", step 3; Combat Feel "A Step Once Begun Is
+        /// Finished"). In his guard, told to walk on, he moves by steps. A step once begun keeps its way (against the
+        /// way he faces) and its pace until its foot lands; the way and pace he is asked then are the next step's. A
+        /// step is taken at no less than <see cref="StepLeastPace"/> of the recording's own pace and
+        /// <see cref="StepLeastTempo"/> of its tempo: asked to go slower than that, he steps and then stands until what
+        /// he was asked has caught up with where his steps took him (<see cref="StepPausesFrom"/>), in place of
+        /// walking in slow motion. He stops only as a foot lands, and the recordings mixed for a step are not changed
+        /// in the middle of it. Off: as before, the walk follows what is asked at every moment.
+        /// </summary>
+        public static bool WholeSteps = true;
+
+        /// <summary>A whole step's pace, at least, as a share of the recording's own (see <see cref="WholeSteps"/>).</summary>
+        public static float StepLeastPace = 0.6f;
+
+        /// <summary>A whole step's tempo, at least, against the recording's own.</summary>
+        public static float StepLeastTempo = 0.85f;
+
+        /// <summary>Stepping faster than he is asked to go, he stands once his steps have taken him this far ahead of it (metres at a Medium's size), until it has caught up.</summary>
+        public static float StepPausesFrom = 0.12f;
+
+        /// <summary>For the reports: whole steps begun, and the times he stood to let what he was asked catch up.</summary>
+        public int WholeStepsBegun, StepPauses;
+
+        /// <summary>
+        /// A diagonal turns the legs (the plan "Convincing walking in the dance", step 5; Combat Feel "A Diagonal
+        /// Turns The Legs"). A whole step that goes between two of the guard's four ways (forward, back, to a side)
+        /// is taken on the nearest one's recording alone, with the legs and hips turned to the way he goes (47
+        /// degrees at most) and his chest, head and arms left as they are, facing his enemy. Off: as before, the two
+        /// nearest recordings mixed by the angle, which is a pose neither of them holds. Only in whole steps
+        /// (<see cref="WholeSteps"/>): the recording is then chosen as a foot lands and kept for the step.
+        /// </summary>
+        public static bool LegsTurned = true;
+
+        /// <summary>How far the legs are turned from their recording's own way now (degrees, + to his right; 0: not turned). For the reports.</summary>
+        public float LegsTurnedBy { get; private set; }
+
+        /// <summary>In a whole step the body takes up the step's pace this quickly (the half-life of its velocity, seconds; the walk's own is 0.35): a step's push, not a drift.</summary>
+        public static float StepHalfLife = 0.18f;
+
+        private bool stepHeld, stepLanded, stepBraking;
+        private float stepAngle, stepSpeed, stepBlendSpeed, aheadBy;
+        private readonly List<(LocoClip, float)> paceBlend = new List<(LocoClip, float)>();
+
+        /// <summary>A whole step is under way (see <see cref="WholeSteps"/>).</summary>
+        public bool InWholeStep => stepHeld && (stepSpeed > 0f || stepBraking) && Current == Mode.Cycle;
+
+        /// <summary>The guard's own pace for a way of going (m/s): the recordings that would be mixed for it, at their own.</summary>
+        private float GuardPace(float angle, float speed)
+        {
+            paceBlend.Clear();
+            AddDirections(Guard, paceBlend, angle, speed, 1f, false);
+            float sum = 0f, total = 0f;
+            foreach (var (clip, w) in paceBlend)
+            {
+                sum += w * clip.Speed * Leg * TimeScale;
+                total += w;
+            }
+
+            return total > 1e-4f ? sum / total : 1f;
+        }
+
+        /// <summary>
+        /// What the walk is to go at this step of the game, for what it is asked (<see cref="WholeSteps"/>): in a step,
+        /// the step's own way and pace; as a foot lands, the next step's, or none; standing, nothing until what was
+        /// asked has caught up.
+        /// </summary>
+        private Vector3 WholeStep(float dt, Vector3 ordered)
+        {
+            float asked = ordered.magnitude;
+            if (Current != Mode.Cycle)
+            {
+                stepHeld = stepLanded = stepBraking = false;
+                aheadBy = Mathf.Max(0f, aheadBy - asked * dt);
+                return aheadBy > 0f && Current == Mode.Idle ? Vector3.zero : ordered;
+            }
+
+            Vector3 local = Quaternion.Euler(0f, -Facing, 0f) * ordered;
+            float way = asked > 1e-3f ? Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg : stepAngle;
+            Vector3 goes = Quaternion.Euler(0f, -Facing, 0f) * Velocity;
+            float goesAt = new Vector2(goes.x, goes.z).magnitude;
+            if (stepBraking && goesAt < 0.3f)
+            {
+                // (Brought to a stop: the step the other way begins here.)
+                stepBraking = false;
+                stepLanded = true;
+            }
+
+            if (!stepHeld || stepLanded)
+            {
+                bool first = !stepHeld;
+                stepHeld = true;
+                stepLanded = false;
+                stepBraking = false;
+                if (asked >= WalkFrom && goesAt > 0.5f * Mathf.Sqrt(Leg / 0.85f) && Mathf.Abs(Mathf.DeltaAngle(Mathf.Atan2(goes.x, goes.z) * Mathf.Rad2Deg, way)) > 100f)
+                {
+                    // (Asked to go back the way he came while he is still going: this step is the one that stops
+                    // him. His legs go on the way his body is going until it has stopped; stepping the new way at
+                    // once, his feet went one way under a body still going the other.)
+                    stepBraking = true;
+                    stepAngle = Mathf.Atan2(goes.x, goes.z) * Mathf.Rad2Deg;
+                    stepBlendSpeed = goesAt;
+                    stepSpeed = 0f;
+                    aheadBy = 0f;
+                    return Vector3.zero;
+                }
+
+                if (!first && Mathf.Abs(Mathf.DeltaAngle(stepAngle, way)) > 60f)
+                {
+                    // (Another way now: where the last steps took him is no longer ahead of anything.)
+                    aheadBy = 0f;
+                }
+
+                if (!KeptUpNow)
+                {
+                    // (No longer told to walk on: the step is finished, and the rest is the walk's as it was.)
+                    stepHeld = false;
+                    return ordered;
+                }
+
+                if (asked < WalkFrom || !first && aheadBy > StepPausesFrom * Leg / 0.85f)
+                {
+                    StepPauses += asked >= WalkFrom ? 1 : 0;
+                    stepSpeed = 0f;
+                }
+                else
+                {
+                    stepAngle = way;
+                    stepSpeed = Mathf.Max(asked, StepLeastPace * GuardPace(way, asked));
+                    stepBlendSpeed = stepSpeed;
+                    WholeStepsBegun++;
+                    if (!first && Mathf.Abs(Mathf.DeltaAngle(travelAngle, stepAngle)) > 8f)
+                    {
+                        // (The next step goes another way: its recordings come in as a switch, faded, at the landing.)
+                        travelAngle = stepAngle;
+                        pendingSwitch = hasLast;
+                    }
+                }
+            }
+
+            if (stepBraking)
+            {
+                return Vector3.zero;
+            }
+
+            float along = asked > 1e-3f ? asked * Mathf.Cos(Mathf.DeltaAngle(stepAngle, way) * Mathf.Deg2Rad) : 0f;
+            aheadBy = Mathf.Clamp(aheadBy + (stepSpeed - along) * dt, 0f, 0.6f * Leg / 0.85f);
+            return stepSpeed > 0f ? Quaternion.Euler(0f, Facing + stepAngle, 0f) * Vector3.forward * stepSpeed : Vector3.zero;
+        }
+
         private bool KeptUpNow => WalksOn && KeptUp;
 
         private bool QuickNow => QuickSteps && !Running && InGuard && !KeptUpNow;
@@ -693,7 +843,25 @@ namespace PhysicsBattler.Locomotion
             // The springs: the velocity and the facing ease toward what is wanted, at the clips' pace.
             // (Standing, the body turns on its feet only a little: a bigger turn is a turning clip.)
             shoved = Mathf.Max(0f, shoved - dt);
+            if (WholeSteps && !over && InGuard && !Running && shoved <= 0f && (KeptUpNow || InWholeStep))
+            {
+                // (Whole steps: what it goes at is the step's, not what it is asked at this moment.)
+                wantVelocity = WholeStep(dt, wantVelocity);
+                wantNow = wantVelocity;
+                want = wantVelocity.magnitude;
+            }
+            else
+            {
+                stepHeld = stepLanded = stepBraking = false;
+                aheadBy = 0f;
+            }
+
             float halfLife = PacedNow ? PacedHalfLife : Mathf.Lerp(VelocityHalfLife, RunVelocityHalfLife, RunWeight);
+            if (stepHeld)
+            {
+                halfLife = Mathf.Min(halfLife, stepBraking ? PacedHalfLife : StepHalfLife);
+            }
+
             Vector3 before = Velocity;
             Springs.Track(ref Velocity, ref Acceleration, wantVelocity, halfLife, dt);
             Position += 0.5f * (before + Velocity) * (dt * goes) + stepsIn * dt;
@@ -771,7 +939,7 @@ namespace PhysicsBattler.Locomotion
                 else if (!over && !InGuard && speed > 0.45f && !Running && Mathf.Abs(angle) < 35f && TryStop(want, speed))
                 {
                 }
-                else if (StepsInStanceOn && InGuard && InStanceNow && speed < (shoved > 0f ? ShoveLimit : StanceLimit))
+                else if (StepsInStanceOn && InGuard && InStanceNow && speed < (shoved > 0f ? ShoveLimit : StanceLimit) && !InWholeStep)
                 {
                     // (Stand and step: out of a walk, or a shove walked off, and no longer asked to walk, it goes
                     // into its stance as it goes: the foot in the air is put down where the stance has it, the other
@@ -2512,7 +2680,12 @@ namespace PhysicsBattler.Locomotion
             // The way it travels against its facing (degrees, + right), and the gait.
             // (Slow, the way it travels is unsure: the way it wants to go, or the way it was going.)
             Vector3 local = Quaternion.Euler(0f, -Facing, 0f) * (speed > 0.2f ? Velocity : wantNow);
-            if (speed > 0.2f || wantNow.magnitude > 0.2f)
+            if (stepHeld)
+            {
+                // (A whole step: its recordings are the ones for the way it set out, until its foot lands.)
+                travelAngle = Mathf.DeltaAngle(0f, stepAngle);
+            }
+            else if (speed > 0.2f || wantNow.magnitude > 0.2f)
             {
                 float measured = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
                 // (Kept within ±180: past it, the blend below would find no pair of directions. Slow, a
@@ -2551,6 +2724,25 @@ namespace PhysicsBattler.Locomotion
 
             Blend.Clear();
             float g = Guard != null ? GuardWeight : 0f;
+            // (A whole step's recordings are chosen for the pace it set out at, not the pace it has got up to.)
+            float pace = speed;
+            if (stepHeld && stepBlendSpeed > 0f)
+            {
+                speed = stepBlendSpeed;
+            }
+
+            // (A diagonal: the nearest way's recording alone, its legs turned to the way he goes.)
+            float legsTurn = 0f;
+            if (LegsTurned && stepHeld && g >= 0.999f && RunWeight <= 0f && !Running)
+            {
+                float a = Mathf.DeltaAngle(0f, angle);
+                float nearest = Mathf.Abs(a) <= 42.5f ? 0f : Mathf.Abs(a) >= 132.5f ? 180f : Mathf.Sign(a) * 85f;
+                legsTurn = Mathf.DeltaAngle(nearest, a);
+                angle = nearest;
+            }
+
+            LegsTurnedBy = legsTurn;
+
             AddDirections(Relaxed, Blend, angle, speed, (1f - RunWeight) * (1f - g), false);
             if (RunWeight > 0f)
             {
@@ -2578,6 +2770,7 @@ namespace PhysicsBattler.Locomotion
 
             naturalSpeed /= Mathf.Max(1e-4f, total);
             stride /= Mathf.Max(1e-4f, total);
+            speed = pace;
             float k = speed / Mathf.Max(0.05f, naturalSpeed);
             StrideScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, k)), StrideLeast, StrideMost);
             Cadence = k / StrideScale;
@@ -2603,6 +2796,14 @@ namespace PhysicsBattler.Locomotion
                     PhaseRate = Mathf.Max(speed / Mathf.Max(0.05f, stride * StrideScale), quick * naturalSpeed / Mathf.Max(0.05f, stride));
                 }
             }
+            if (stepHeld && Cadence < StepLeastTempo)
+            {
+                // (A whole step is taken at the recording's tempo or near it: a shorter stride, not a slower foot.)
+                Cadence = StepLeastTempo;
+                StrideScale = Mathf.Clamp(k / StepLeastTempo, PacedStrideLeast, StrideMost);
+                PhaseRate = Mathf.Max(speed / Mathf.Max(0.05f, stride * StrideScale), StepLeastTempo * naturalSpeed / Mathf.Max(0.05f, stride));
+            }
+
             finishing = wantNow.magnitude < StandBelow ? finishing + dt : 0f;
             if (wantNow.magnitude < StandBelow && !(QuickNow ? StandsNow() : BothFeetDown() && StandsWide()))
             {
@@ -2617,7 +2818,10 @@ namespace PhysicsBattler.Locomotion
                 PhaseRate = 0f;
             }
 
+            float phaseWas = Phase;
             Phase = Mathf.Repeat(Phase + PhaseRate * dt, 1f);
+            // (A foot lands as the phase passes 0 or a half: a whole step ends there.)
+            stepLanded |= stepHeld && (phaseWas < 0.5f && Phase >= 0.5f || Phase < phaseWas);
 
             for (int i = 0; i < raw.Length; i++)
             {
@@ -2644,7 +2848,7 @@ namespace PhysicsBattler.Locomotion
             // that is down in one cycle and swinging in another would slide.
             // (Along the way it travels as the blend has it: slowing to a stand, the way it wants to go is
             // nothing, and warping along no way at all would drop the warp, and throw the swinging foot, at once.)
-            Vector3 d = Quaternion.Euler(0f, travelAngle, 0f) * Vector3.forward;
+            Vector3 d = Quaternion.Euler(0f, travelAngle - legsTurn, 0f) * Vector3.forward;
             Vector3 hips = 0.5f * (raw[(int)LocoBone.LeftUpLeg] + raw[(int)LocoBone.RightUpLeg]);
             for (int f = 0; f < 2; f++)
             {
@@ -2720,7 +2924,26 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
             }
+
+            if (Mathf.Abs(legsTurn) > 0.5f)
+            {
+                // (The legs and the hips' joints turned about the hips' middle: the step goes the way he goes, the
+                // spine takes the twist, and what is above it is left facing where it faced.)
+                var turn = Quaternion.Euler(0f, legsTurn, 0f);
+                foreach (var bone in TurnedBones)
+                {
+                    Vector3 p = raw[(int)bone] - hips;
+                    Vector3 turned = turn * new Vector3(p.x, 0f, p.z);
+                    raw[(int)bone] = hips + new Vector3(turned.x, p.y, turned.z);
+                }
+            }
         }
+
+        private static readonly LocoBone[] TurnedBones =
+        {
+            LocoBone.LeftUpLeg, LocoBone.LeftLeg, LocoBone.LeftFoot, LocoBone.LeftToeBase, LocoBone.LeftToeEnd,
+            LocoBone.RightUpLeg, LocoBone.RightLeg, LocoBone.RightFoot, LocoBone.RightToeBase, LocoBone.RightToeEnd,
+        };
 
         /// <summary>Debugging (the runner's FIGHT_STANDTRACE): each stand out of a walk, where the feet stopped against where the standing clip has them.</summary>
         public static System.Action<string> StandTrace;

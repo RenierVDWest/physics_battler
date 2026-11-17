@@ -308,6 +308,14 @@ internal static class FightReport
         PhysicsBattler.Locomotion.MoveScore.StanceKept = Env("FIGHT_STANCEKEPT", 0.5f);
         // (FIGHT_SINKSBEFORESTEP=0.12: the hips sink all they can before a foot left behind is let go, as it was.)
         PhysicsBattler.Locomotion.LocoBody.SinksBeforeStep = Env("FIGHT_SINKSBEFORESTEP", 0.03f);
+        // (FIGHT_WHOLESTEPS=0: the walk follows what is asked at every moment, as before 18 November. FIGHT_STEPPACE,
+        // FIGHT_STEPTEMPO, FIGHT_STEPPAUSE: a whole step's least pace and tempo, and how far ahead he stands from.)
+        PhysicsBattler.Locomotion.Locomotor.WholeSteps = Environment.GetEnvironmentVariable("FIGHT_WHOLESTEPS") != "0";
+        PhysicsBattler.Locomotion.Locomotor.StepLeastPace = Env("FIGHT_STEPPACE", 0.6f);
+        // (FIGHT_LEGSTURNED=0: a diagonal is two recordings mixed, as before 18 November.)
+        PhysicsBattler.Locomotion.Locomotor.LegsTurned = Environment.GetEnvironmentVariable("FIGHT_LEGSTURNED") != "0";
+        PhysicsBattler.Locomotion.Locomotor.StepLeastTempo = Env("FIGHT_STEPTEMPO", 0.85f);
+        PhysicsBattler.Locomotion.Locomotor.StepPausesFrom = Env("FIGHT_STEPPAUSE", 0.12f);
         // (FIGHT_TURNSLASH=always: every quick turn round is made with a cut; =0: none is. FIGHT_BLADEGOES, FIGHT_BLADELEADS:
         // its levers. FIGHT_TURNCUT=spin_backhand_mid: the cut taken for a turn to the right. FIGHT_TURNSLASHANYWAY=0.25.)
         PhysicsBattler.Locomotion.TurnSlashes.On = Environment.GetEnvironmentVariable("FIGHT_TURNSLASH") != "0";
@@ -316,6 +324,8 @@ internal static class FightReport
         // (FIGHT_TURNCUTROUND=220: the most a cut made turning round turns his body in all. FIGHT_TURNCUTAIM: the most the aim turns it.)
         PhysicsBattler.Locomotion.TurnSlashes.MostRound = Env("FIGHT_TURNCUTROUND", PhysicsBattler.Locomotion.TurnSlashes.MostRound);
         PhysicsBattler.Locomotion.TurnSlashes.AimTurns = Env("FIGHT_TURNCUTAIM", PhysicsBattler.Locomotion.TurnSlashes.AimTurns);
+        // (FIGHT_TURNCUTFEET=0: the aim multiplies a turn cut's feet's travel for the distance, as before 18 November.)
+        PhysicsBattler.Locomotion.TurnSlashes.FeetGoRound = Environment.GetEnvironmentVariable("FIGHT_TURNCUTFEET") != "0";
         // (FIGHT_CLIPDUMP="folder,part of a name": each attack's clip made whose name has that part, written there as it is made.)
         {
             string[] dump = (Environment.GetEnvironmentVariable("FIGHT_CLIPDUMP") ?? "").Split(',');
@@ -1907,6 +1917,8 @@ internal static class FightReport
                         // (FIGHT_DANCEMOVES=0: they stand on their spots. With FIGHT_OWN their restless and aggressive are their own.
                         // FIGHT_DANCEGAP=1: the gap and what each is about, twice a second.)
                         PhysicsBattler.Sandbox.Dance.Moves = Environment.GetEnvironmentVariable("FIGHT_DANCEMOVES") != "0";
+                        // (FIGHT_DANCECALM=0: the dancers' feet as before 18 November.)
+                        PhysicsBattler.Sandbox.Dance.CalmFeet = Environment.GetEnvironmentVariable("FIGHT_DANCECALM") != "0";
                         PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") == "1";
                         var two = new[] { dance.A, dance.B };
                         for (int k = 0; k < 2; k++)
@@ -2362,6 +2374,7 @@ internal static class FightReport
         {
             Console.WriteLine("DANCEFOOTWORK A his footwork " + danceMeterA.Text);
             Console.WriteLine("DANCEFOOTWORK B his footwork " + danceMeterB.Text);
+            Console.WriteLine($"DANCESETOFFS the two set off from a stand {dance.SetOffs} times in {danceMeterA.Seconds:0} s (once every {2f * danceMeterA.Seconds / Mathf.Max(1, dance.SetOffs):0.0} s each); whole steps begun {dance.A.Unit.Clip.Loco.WholeStepsBegun} and {dance.B.Unit.Clip.Loco.WholeStepsBegun}, stands to let the asking catch up {dance.A.Unit.Clip.Loco.StepPauses} and {dance.B.Unit.Clip.Loco.StepPauses}");
             Console.WriteLine($"DANCETALLY A {dance.A.Unit.name} ({dance.A.Pattern.Name}, {(dance.A.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.A)}");
             Console.WriteLine($"DANCEFEET {dance.Feet()}");
             Console.WriteLine($"DANCECLASS A: {dance.Classes(dance.A)}");

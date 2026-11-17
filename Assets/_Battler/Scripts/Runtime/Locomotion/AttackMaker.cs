@@ -206,7 +206,17 @@ namespace PhysicsBattler.Locomotion
         public static float AimTurns = 20f;
 
         /// <summary>A cut made turning round turns his body no further than this in all, its legs' turn and the aim's together (degrees).</summary>
-        public static float MostRound = 178f;
+        public static float MostRound = 360f;
+
+        /// <summary>The most a cut made turning round drops his hips (leg lengths) and leans his chest (degrees) for its target's height, where it sweeps free.</summary>
+        public static float MostDrop = 0.07f, MostLean = 14f;
+
+        /// <summary>
+        /// A cut made turning round keeps its feet's way round him as the turn has it: the aim does not multiply their
+        /// travel for the distance to his enemy (<see cref="AttackScore.Turns"/>). Off: as before, multiplied, which
+        /// broke his legs when the other was straight behind him.
+        /// </summary>
+        public static bool FeetGoRound = true;
 
 
         /// <summary>The enemy this near (metres at a Medium's size), and not otherwise; and how often he cuts as he turns with his enemy not striking at him (0 to 1).</summary>
@@ -716,7 +726,8 @@ namespace PhysicsBattler.Locomotion
             Vector2 want = new Vector2(target.x, target.z);
             Vector3 goes = (Styled(score, style, fit, tau).Pelvis - score.Frames[0].Pelvis) * style.Lunge;
             goes.y = 0f;
-            bool travels = !moving && goes.sqrMagnitude > 0.12f * 0.12f;
+            // (A blow on a turn's legs does not travel: its feet go round him. See AttackScore.Turns.)
+            bool travels = !moving && !(score.Turns && TurnSlashes.FeetGoRound) && goes.sqrMagnitude > 0.12f * 0.12f;
             Vector3 grip, way, hips, reach;
             for (int i = 0; i < 6; i++)
             {
@@ -737,13 +748,15 @@ namespace PhysicsBattler.Locomotion
                 // The height: half of what is missing by the hips, the rest by the chest's lean, about the hips.
                 // (A thrust's blade is taken to carry on the arm's line, so it is the arm that is brought onto the target.)
                 float missing = target.y - strike.y;
-                float drop = Mathf.Clamp(fit.Drop - 0.5f * missing, -MostRise, MostDrop);
+                // (A cut that sweeps round with a turn is dropped and leaned only a little for its target's height: with
+                // the whole of it, a turn to his left sank his hips 14 to 20 cm in the middle of the turn.)
+                float drop = Mathf.Clamp(fit.Drop - 0.5f * missing, -MostRise, aim.Sweeps ? Mathf.Min(MostDrop, TurnSlashes.MostDrop) : MostDrop);
                 missing += drop - fit.Drop;
                 fit.Drop = drop;
                 float lever = new Vector2(strike.x - hips.x, strike.z - hips.z).magnitude;
                 if (lever > 0.3f)
                 {
-                    fit.Lean = Mathf.Clamp(fit.Lean - 0.7f * Mathf.Atan2(missing, lever) * Mathf.Rad2Deg, -MostLeanBack, MostLean);
+                    fit.Lean = Mathf.Clamp(fit.Lean - 0.7f * Mathf.Atan2(missing, lever) * Mathf.Rad2Deg, -MostLeanBack, aim.Sweeps ? Mathf.Min(MostLean, TurnSlashes.MostLean) : MostLean);
                 }
 
                 float mostTurn = aim.MostTurn > 0f ? aim.MostTurn : MostTurn;
