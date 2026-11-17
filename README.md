@@ -5467,3 +5467,48 @@ legs for forward and back and the crouched sneak out (`MoveStyle.StanceWalks`, o
 74 to 75 on the sneak, 86 to 87 on the walk, 81 to 83 standing); the hips' band 10 to 11 cm (it was 20 to
 22); a rise or sink of 10 cm within 0.3 s once every 10 to 14 s (it was every 5 to 8 s). The mixing itself
 is as it was. Not seen in Unity, and the takes themselves have not been seen: measured only.
+
+**Convincing walking, steps 1 and 2: the footwork course and its meter; the guard walks in one carriage.**
+Renier, on the plan and the packs' survey: "Yes this sounds good. Proceed."
+
+*The footwork course and its meter* (`DuelLab.BeginCourse`, `FootworkMeter`, in `DuelLab.cs`; the lab's
+"Footwork course" under "Move him"). The same 24 seconds of footwork every time, at the dance's pace
+(0.8 m/s) between 1.5 and 2.5 m: he retreats, advances, circles left, circles right, goes in and out twice,
+and stops and goes four times. The meter measures him from its first step, only while he stands or walks: the
+band his hips' height moved over (the middle 90% of the time); how often they rose or sank 10 cm or more
+within 0.3 s; his steps in a spell of walking; how much of his walking was two recordings mixed, each a
+quarter or more; his steps' tempo against the recordings'. Each fighter of the dance has a meter too (under
+"The dance: settings"). The crouched sneak is out of the ordinary walk: Combat Feel "Slow Circle On" is 0, the
+guard's own side-step slowed (it was "Slow Side Walk", 1; renamed so the saved 1 is dropped).
+
+*The guard walks in one carriage* (`MoveStyle.OneCarriage`, `MoveScore.CarryAs`; Combat Feel "The Guard
+Walks In One Carriage", on, and "Guard Keeps Its Stance", 0.5; the lab's "His walk: one carriage / as
+recorded (old)" and "Keeps stance"). He steps forward and back on an archer's legs (Longbow Locomotion
+Pack: hips turned 70 degrees from where he aims, as the guard's own side-steps' are), under his own
+side-step's chest and arms. And each of his four steps is carried as his stand is: his hips at the stand's
+height on average, and each foot's own place moved half-way to where the stand keeps that foot. Only the
+step is the recording's own: how the hips rise, sway and turn about their middle, how each foot goes about
+its place. His jogs and runs are as recorded. A walker makes its guard's clips again when the switch is
+thrown (`MoveStyle.Stamp`), so old against new can be flipped in play.
+
+Headless, the course, the same fighter:
+
+| | his hips' band | his hips on each step: forward, back, left, right | his left foot ahead of his right, on average |
+|---|---|---|---|
+| as the playtest had it (the crouched sneak, each step as recorded) | 24 cm (69 to 94) | 91, 91, 73, 71 cm | 23 cm |
+| the sneak out only | 14 cm (80 to 94) | 91, 91, 81, 84 cm | 30 cm |
+| one carriage | 6 cm (80 to 86) | 84, 84, 82, 84 cm | 50 cm |
+
+His stand's left foot is 73 cm ahead. His legs are never asked longer than they are (the ankle at most
+0.985 of the leg's length from the hip, as before), and a foot on the ground slides 0.03 m/s on average
+(0.04 before). Headless, a dance of 53 s, two fighters, old against new: the hips' band 21 and 22 cm
+against 11 and 8; a rise or sink of 10 cm within 0.3 s 21 times in all against 11; the hips on whichever
+recording leads 81 to 83 cm, 83 standing.
+
+Not done by these two steps, and measured as it was: two recordings are mixed for 43 to 47% of the dance's
+walking; a spell of walking holds 0.7 to 0.9 steps; steps go at 0.66 to 0.70 of the recordings' tempo.
+Those are the plan's steps 3 to 5. Found and left for step 3: the first step out of a stand leaves the
+planted foot behind until the leg cannot reach it, and his hips drop 10 to 15 cm for it (most to his left);
+it was there before, and the wider stance kept makes it a little more frequent ("Keeps stance" at 1: four
+times in the course; at 0.5: twice; at 0: once). Not verified: nothing of this has been seen in Unity; the
+archer's take itself has not been seen, only measured.
