@@ -124,7 +124,7 @@ MonoBehaviour:
     Takes: 3
     Loop: 0
     PromptInfluence: 0.45
-    Volume: 0.6
+    Volume: 0.211
     PitchVariation: 0.08
     Clips:
     - {fileID: 8300000, guid: ff17f9edf96e7e649b28b5f98df4b703, type: 3}
