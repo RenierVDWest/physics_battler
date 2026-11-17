@@ -5561,16 +5561,16 @@ Headless (`FIGHT_BEHIND="4,150"`: the duel's other put 150 degrees round the mov
 
 | the other put | he was | as it was: faces him in | quick: faces him in | quick: free again in | his hips, quick |
 |---|---|---|---|---|---|
-| 90 degrees round | standing | 0.70 s | 0.38 s | 0.67 s | 79 to 84 cm |
-| 150 | standing | 0.77 s (hips 56 to 84 cm) | 0.47 s | about 0.6 s | 79 to 84 cm |
+| 90 degrees round | standing | 0.70 s | 0.40 s | 0.53 s | 79 to 84 cm |
+| 150 | standing | 0.77 s (hips 56 to 84 cm) | 0.48 s | 0.60 s | 79 to 84 cm |
 | 180 | standing | 0.73 s (hips 64 to 86 cm) | 0.53 s | 0.63 s | 79 to 84 cm |
 | 150 | circling, 0.7 m/s | 0.83 s | 0.48 s | 0.60 s | 78 to 81 cm |
 | 120 to his left | circling | not run | 0.28 s | 0.43 s | 79 to 81 cm |
 | 180 | backing away | not run | 0.38 s | 0.48 s | 80 to 82 cm |
 
-(The 90 and 150 standing "as it was" rows are from two set-ups: the 90 from a turn away and back, the 150
-from the other put round. The quick 150 and 90 standing rows were run before the clip's still tail was cut
-0.27 s shorter; their "free again" is given as measured then, 0.67, or estimated, about 0.6.) In the fight of
+(The "as it was" figures for 90 and 180 standing are from another set-up, in which he was first turned away
+from the other with his unhurried turn and then turned back by himself; the rest are the other put round
+him.) In the fight of
 six, a minute: 61 turns on the spot as it was; with quick turns 52, of which 25 quick (22 to the right, 3 to
 the left; one out of a walk). No error, and the fight ran to its end both ways.
 
