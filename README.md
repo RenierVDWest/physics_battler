@@ -5327,3 +5327,9 @@ Not verified: only the shield's cover and the fakes fix have been seen in Unity 
 the bash, the classes, the dodges and the leaps have not. The dodge and the bash are sized from their
 recordings by hand, not baked from them. The ordinary fight of six is changed by the cover and the bash (it
 has shields): see below.
+
+The ordinary fight of six with the cover and the bash, against without them, over four seeds (a minute
+each): 267 blows against 288; of the blows that met something, 31% stopped by a shield against 25%, 48%
+landed against 49%, 22% parried against 26%. So the fight goes on much as it did, with a few more blows
+stopped by shields and 7% fewer blows thrown. Each single fight comes out differently (the first seed's
+winner changed), as any change makes it.
