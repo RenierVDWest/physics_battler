@@ -1244,6 +1244,18 @@ namespace PhysicsBattler.Sandbox
             GUILayout.EndHorizontal();
             if (feel != null)
             {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("After the cut:", "How a cut made turning to his right ends (Combat Feel \"A Turn Cut Ends Short\"). Ends short (new): the recording is followed for a tenth of a second after the blade lands (the rest of the sweep across his front), his arm is held out there a moment, then it eases back to his guard. As recorded (old): the spinning man's own carry-through, in which the sword hand goes behind his back and the wrist rolls over."), Styles().Text, GUILayout.Width(110f));
+                if (Press(feel.aTurnCutEndsShort ? "[ends short]" : "ends short", "His arm eases back to his guard soon after the blade lands.")) feel.aTurnCutEndsShort = true;
+                if (Press(!feel.aTurnCutEndsShort ? "[as recorded (old)]" : "as recorded (old)", "The recording's own carry-through, as it was.")) feel.aTurnCutEndsShort = false;
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("His aim:", "How far a cut made turning round is bent onto its target (Combat Feel \"A Turn Cut Sweeps Free\"). Sweeps free (new): the hand is moved 7 cm at most and the wrist steered 8 degrees at most; the blade meets the other as the turn carries it round. Bent onto him (old): as any attack, the hand moved up to 40 cm and the wrist turned over at the moment planned for the landing, which was the arm twisting as the swing ended."), Styles().Text, GUILayout.Width(110f));
+                if (Press(feel.aTurnCutSweepsFree ? "[sweeps free]" : "sweeps free", "The blade sweeps round with the turn, hardly bent onto the target.")) feel.aTurnCutSweepsFree = true;
+                if (Press(!feel.aTurnCutSweepsFree ? "[bent onto him (old)]" : "bent onto him (old)", "Aimed as any attack is, as it was.")) feel.aTurnCutSweepsFree = false;
+                GUILayout.EndHorizontal();
+                feel.turnCutSweepsOn = Lever("Cut sweeps on", feel.turnCutSweepsOn, 0.03f, 0.3f, "A turn cut ends short: how long after the blade lands the recording's sweep is still followed (seconds, times \"Blade goes\"). 0.1: across his front, out to his side; more, on round behind him.");
+                feel.turnCutCarriesOn = Lever("Cut carries on", feel.turnCutCarriesOn, 0.1f, 0.5f, "A turn cut ends short: how long after the blade lands his arm stays out at the end of its sweep before it eases back to his guard (seconds).");
                 feel.turnCutBladeGoes = Lever("Blade goes", feel.turnCutBladeGoes, 0.5f, 1.6f, "A cut made turning round: how far the blade goes. How far the sword arm is drawn back before the cut and carried on after it, against the recording (1).");
                 feel.turnCutBladeLeads = Lever("Blade leads", feel.turnCutBladeLeads, -1f, 1f, "A cut made turning round: the blade against his body's turn. 0: the cut comes as his body comes round. Toward 1 the blade leads, ahead of his body through the turn. Toward -1 it lags: his body is round first and the blade is whipped through after it.");
             }

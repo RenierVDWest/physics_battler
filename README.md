@@ -5682,3 +5682,40 @@ the first. The cut's way back keeps him 1.3 s where the plain quick turn takes 0
 where in the turn the cut's fastest moment falls, not on an angle between blade and body. Nothing of this
 has been seen in Unity, and the three takes have been measured, not watched.
 
+**The turn cut's arm, after the first playtest (17 November, 21:10).** Renier: "Its pretty good. Close but
+theres one issue. The arm does some weird twists as the swing comes to an end." In the session's frames
+(2026-11-17_21-05-45; a high backhand at 15.65 s, a middle one at 39.33 s): after the blade has gone by, the
+sword arm goes up and back with the blade pointing up behind him, comes round a second time, and only then
+returns to his guard. Two causes, both found in the headless films as well:
+
+- *The recording's own carry-through.* The backhands are taken from a man spinning right round. After the
+  cut his body goes on round under his arm, so against his chest the arm wraps behind him and the wrist rolls
+  over. On a fighter who stops turning as the blade lands that is his sword hand folded behind his back and
+  unwinding. Now the recording is followed for a tenth of a second after the blade lands (the rest of the
+  sweep across his front, out to his side), the arm is held there until 0.2 s after the landing, and then the
+  arm, chest and head ease back to the guard over 0.35 s (`AttackScore.EndedShort`; Combat Feel "A Turn Cut
+  Ends Short", "Turn Cut Sweeps On", "Turn Cut Carries On"; the lab's "After the cut: ends short / as
+  recorded (old)").
+- *The aim bending the arm onto the target after the blade had passed.* An attack's aim moves the sword hand
+  up to 0.45 leg lengths (about 40 cm) and steers the wrist to put the blade on its target at the moment it
+  plans the landing for (`AttackMaker.FitAt`), and the hand is pulled after a target that moves. For these
+  cuts the plan's moment was 0.68 to 0.71 s in, while the blade, carried round by the turn, met the other at
+  0.55 s. So 0.15 s after the blade had gone by, the hand was brought across and the wrist turned over. Now
+  for a cut made turning round the hand is moved 0.08 leg lengths at most and the wrist steered 8 degrees at
+  most, and the hand is not pulled after its target (`AttackAim.Sweeps`, `TurnSlashes.SweepsFree`; Combat
+  Feel "A Turn Cut Sweeps Free"; the lab's "His aim: sweeps free / bent onto him (old)").
+
+Headless, the other put 135 degrees round him at 2.0 m, where the cut meets nothing and so plays to its
+end, old against new (`arm.py`: the sword arm from the blade's fastest moment to the end of the cut): the
+elbow folds to 141 degrees against 82; the blade stands up to 119 degrees off the forearm against 84; the
+blade turns at up to 3,600 degrees a second against 1,600; the blade's fastest 51 m/s against 29; the cut
+1.27 s long against 1.07. At 1.5 m and 150 degrees the high backhand still lands at 0.53 s (blocked by the
+shield) and the middle backhand at 0.72 s (blocked).
+
+Not verified, and known: not seen in Unity. The left turn's forehand is a recording of a man who does not
+spin, so it is not ended short; it sweeps free like the others. The plan still says "short by" a metre and
+more for these cuts, since the aim no longer bends the arm to the target: the figure in the log means little
+for them. With the aim this loose a cut is likelier to pass over or under a target that is not at the height
+the cut goes at; how often is not measured. The explainer "Cutting As He Turns" was made before this fix and
+does not show it.
+

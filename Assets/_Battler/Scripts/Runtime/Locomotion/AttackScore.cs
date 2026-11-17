@@ -496,6 +496,81 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
+        /// A cut with its carry-through ended short (a cut made while turning round, taken from a recording that
+        /// spins right round): the recording as it is up to <paramref name="sweep"/> seconds after the blade lands
+        /// (the rest of the sweep across his front, out to his side); that pose held until <paramref name="carry"/>
+        /// seconds after the landing; and from there what is above the hips eased back, over
+        /// <paramref name="back"/> seconds, to how it was held as the recording began. The recorded spinner's body goes on round under his arm after the cut, so
+        /// against his chest the arm wraps behind him and the wrist rolls over; on a body that stops turning as the
+        /// blade lands, that is an arm folded behind his back. (Made once for each.)
+        /// </summary>
+        public AttackScore EndedShort(float sweep, float carry, float back)
+        {
+            int swept = Mathf.Max(1, Mathf.RoundToInt(sweep * Rate)), carried = Mathf.Max(swept, Mathf.RoundToInt(carry * Rate)), eased = Mathf.Max(3, Mathf.RoundToInt(back * Rate));
+            if (Contact + swept >= Frames.Length - 1)
+            {
+                return this;
+            }
+
+            string key = $"{Name}|short {swept} {carried} {eased}";
+            if (!scores.TryGetValue(key, out var score))
+            {
+                scores[key] = score = new AttackScore(this, swept, carried, eased);
+            }
+
+            return score;
+        }
+
+        private AttackScore(AttackScore whole, int swept, int carried, int eased)
+        {
+            Clip = whole.Clip;
+            Name = $"{whole.Name}_short{swept}";
+            Kind = whole.Kind;
+            Thrust = whole.Thrust;
+            Rate = whole.Rate;
+            Contact = whole.Contact;
+            var m = BodyMeasures.OfClips;
+            var hold = SwordHold.Medium;
+            int last = Contact + carried, n = last + eased + 1;
+            Frames = new BodyTracks[n];
+            Root = new Vector3[n];
+            Facing = new float[n];
+            Contacts = new LocoContact[n * 2];
+            Strike = new Vector3[n];
+            StrikeSpeed = new float[n];
+            for (int f = 0; f < n; f++)
+            {
+                // (The recording as far as its sweep goes; then that pose held, the arm out at the end of its sweep.)
+                int from = Mathf.Min(f, Contact + swept);
+                var t = whole.Frames[from];
+                if (f > last)
+                {
+                    // (What is above the hips, back to where it was held; the hips and legs are the recording's as the
+                    // carry-through ended: a cut put on other legs takes those in any case.)
+                    var held = BodyTracks.Lerp(t, whole.Frames[0], Mathf.SmoothStep(0f, 1f, (f - last) / (float)eased));
+                    held.Pelvis = t.Pelvis; held.PelvisTurn = t.PelvisTurn;
+                    held.AnkleL = t.AnkleL; held.AnkleR = t.AnkleR; held.KneeL = t.KneeL; held.KneeR = t.KneeR;
+                    held.FootL = t.FootL; held.FootR = t.FootR; held.ToeL = t.ToeL; held.ToeR = t.ToeR;
+                    t = held;
+                }
+
+                Frames[f] = t;
+                Root[f] = whole.Root[from];
+                Facing[f] = whole.Facing[from];
+                Contacts[f * 2] = whole.Contacts[from * 2];
+                Contacts[f * 2 + 1] = whole.Contacts[from * 2 + 1];
+                Strike[f] = StrikeOf(Frames[f], m, hold, Thrust);
+            }
+
+            Link = n - 1;
+            Marks(out _, out _, out _);
+            Drive = whole.Drive;
+            Follow = last;
+            Plain = false;
+            Pivot = PlantedFoot();
+        }
+
+        /// <summary>
         /// A turn on the spot as the legs of a blow (a cut made while turning round, 17 November): the part of a
         /// turn's clip between two of its moments, with the marks a blow's legs need. The drive begins when the turn
         /// is <paramref name="driveAt"/> of the way to the landing (the share of the cut's own time its wind-up

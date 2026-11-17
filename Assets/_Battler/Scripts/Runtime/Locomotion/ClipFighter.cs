@@ -2148,7 +2148,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (A strike alone follows its target too, as far as its pull goes.)
-            if (Follow != null && (Combo == null || !Combo.Playing) && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0)
+            if (Follow != null && (Combo == null || !Combo.Playing) && Loco.Current == Locomotor.Mode.OneShot && Loco.Shot != null && Loco.Shot.ContactFrame >= 0 && Loco.Shot != sweepClip)
             {
                 var at = Follow(Loco.Shot);
                 if (at.HasValue)
@@ -3721,7 +3721,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn, MostTurn = mostTurn };
+            var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn, MostTurn = mostTurn, Sweeps = given != null && mostTurn > 0f && TurnSlashes.SweepsFree };
             // (A style's manner laid over him: the blow is fitted for the body as the manner will have it.)
             if (Loco.MannerForBlow(out var mannerFrom, out var mannerTo, out var mannerDials))
             {
@@ -3874,6 +3874,13 @@ namespace PhysicsBattler.Locomotion
                 return null;
             }
 
+            if (TurnSlashes.EndsShort && Mathf.Abs(upper.Facing[upper.Frames.Length - 1]) > 200f)
+            {
+                // (A cut recorded spinning right round: its carry-through is the spinner's, his arm wrapping behind
+                // him as his body goes on round. On a body that stops as the blade lands it is ended short.)
+                upper = upper.EndedShort(TurnSlashes.SweepsOn * TurnSlashes.BladeGoes, TurnSlashes.CarriesOn, TurnSlashes.EasesBack);
+            }
+
             var span = Locomotor.Busy(turn);
             var style = TurnSlashes.Style;
             var hold = Poser.Hold();
@@ -3889,7 +3896,7 @@ namespace PhysicsBattler.Locomotion
                 // a little more or less, early, to bring the blade onto its line: a backhand's blade is still to the left
                 // of where he faces as it lands, so he is carried a little past his enemy. That much is given back
                 // after the blade has landed, so he ends facing him.)
-                var aim = new AttackAim { Aimed = true, Target = InOwnFrame(points[i]), Eased = AttackMaker.FromAnyPose, MostTurn = TurnSlashes.AimTurns };
+                var aim = new AttackAim { Aimed = true, Target = InOwnFrame(points[i]), Eased = AttackMaker.FromAnyPose, MostTurn = TurnSlashes.AimTurns, Sweeps = TurnSlashes.SweepsFree };
                 float scale = Mathf.Round(Mathf.Clamp(degrees / turn.Turn, 0.25f, 1.15f) * 18f) / 18f;
                 var score = upper.OnLegsOf(AttackScore.OfTurn(turn, span.x, span.y, lands, scale, 0f, driveAt));
                 var plan = AttackMaker.Make(score, style, aim, hold, build: false);
@@ -3930,6 +3937,7 @@ namespace PhysicsBattler.Locomotion
             {
                 TurnSlashes.Made++;
                 TurnSlashesMade++;
+                sweepClip = TurnSlashes.SweepsFree ? made.Clip : null;
             }
 
             return made;
@@ -3937,6 +3945,9 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>Cuts it has made turning round.</summary>
         public int TurnSlashesMade;
+
+        /// <summary>The cut made turning round that is under way, when it sweeps free: its hand is not pulled after its target.</summary>
+        private LocoClip sweepClip;
 
         /// <summary>He is told to walk on (to walk up, back away, circle), by what orders him: his walk is walked at any pace, not stepped (<see cref="Locomotor.WalksOn"/>).</summary>
         public bool WalksOn;

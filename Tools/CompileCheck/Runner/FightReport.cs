@@ -312,6 +312,10 @@ internal static class FightReport
         // its levers. FIGHT_TURNCUT=spin_backhand_mid: the cut taken for a turn to the right. FIGHT_TURNSLASHANYWAY=0.25.)
         PhysicsBattler.Locomotion.TurnSlashes.On = Environment.GetEnvironmentVariable("FIGHT_TURNSLASH") != "0";
         PhysicsBattler.Locomotion.TurnSlashes.Always = Environment.GetEnvironmentVariable("FIGHT_TURNSLASH") == "always";
+        PhysicsBattler.Locomotion.TurnSlashes.EndsShort = Environment.GetEnvironmentVariable("FIGHT_TURNCUTSHORT") != "0";
+        PhysicsBattler.Locomotion.TurnSlashes.SweepsFree = Environment.GetEnvironmentVariable("FIGHT_TURNCUTFREE") != "0";
+        PhysicsBattler.Locomotion.TurnSlashes.SweepsOn = Env("FIGHT_TURNCUTSWEEPS", 0.1f);
+        PhysicsBattler.Locomotion.TurnSlashes.CarriesOn = Env("FIGHT_TURNCUTCARRIES", 0.2f);
         PhysicsBattler.Locomotion.TurnSlashes.BladeGoes = Env("FIGHT_BLADEGOES", 1f);
         PhysicsBattler.Locomotion.TurnSlashes.BladeLeads = Env("FIGHT_BLADELEADS", 0f);
         PhysicsBattler.Locomotion.TurnSlashes.Anyway = Env("FIGHT_TURNSLASHANYWAY", 0.25f);

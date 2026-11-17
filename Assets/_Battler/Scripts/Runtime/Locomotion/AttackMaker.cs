@@ -182,6 +182,26 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static float BladeLeads;
 
+        /// <summary>
+        /// A cut taken from a recording that spins right round has its carry-through ended short (Combat Feel "A Turn
+        /// Cut Ends Short"): the recording is followed for <see cref="SweepsOn"/> seconds after the blade lands
+        /// (times <see cref="BladeGoes"/>): the rest of the sweep across his front, out to his side. The arm is held
+        /// there until <see cref="CarriesOn"/> seconds after the landing, and from there the arm, chest and head
+        /// ease back to the guard over <see cref="EasesBack"/> seconds. Off, as it was first made: the recording's own carry-through and way
+        /// back, in which the spinner's arm wraps behind him and his wrist rolls over as his body goes on round.
+        /// </summary>
+        public static bool EndsShort = true;
+        public static float SweepsOn = 0.1f, CarriesOn = 0.2f, EasesBack = 0.35f;
+
+        /// <summary>
+        /// A cut made turning round is not bent onto its target (Combat Feel "A Turn Cut Sweeps Free"): the aim moves
+        /// its sword hand no further than this (leg lengths; any other attack: 0.45) and steers its wrist no further
+        /// (degrees), and the hand is not pulled after a target that moves. Off: as any attack, as it was first made.
+        /// </summary>
+        public static bool SweepsFree = true;
+        public static float MostHandMove = 0.08f, MostSteer = 8f;
+
+
         /// <summary>The aim turns his whole body no further than this, on top of the legs' own turn, to bring the blade onto its line (degrees); what it turns is given back after the blade has landed.</summary>
         public static float AimTurns = 20f;
 
@@ -228,6 +248,9 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>It is aimed (off: the score as it is, its own contact).</summary>
         public bool Aimed;
+
+        /// <summary>The cut sweeps round with a turn (<see cref="TurnSlashes"/>): its hand and wrist are not bent onto the target beyond <see cref="TurnSlashes.MostHandMove"/> and <see cref="TurnSlashes.MostSteer"/>.</summary>
+        public bool Sweeps;
 
         /// <summary>The body is turned no further than this to bring the blade onto its line (degrees; 0: as far as any attack, <see cref="AttackMaker.MostTurn"/>). A cut made turning round keeps it small: its turn is its legs', and the blade comes onto its enemy as it sweeps round with him.</summary>
         public float MostTurn;
@@ -755,10 +778,14 @@ namespace PhysicsBattler.Locomotion
             }
 
             Sword(score, style, fit, tau, m, hold, out grip, out way, out hips, out reach);
-            way = Steered(way, target - grip, score.Thrust ? hold.MostThrustSteer : hold.MostSteer, out steer);
+            // (A cut that sweeps round with a turn is not bent onto its target: its wrist is steered and its hand moved
+            // only a little. Its blade meets its enemy as it comes round, at whatever moment that is; a hand brought
+            // 40 cm across and a wrist turned over at the moment the plan had for it, after the blade had gone by,
+            // was the arm twisting as the swing ended.)
+            way = Steered(way, target - grip, aim.Sweeps ? Mathf.Min(TurnSlashes.MostSteer, hold.MostSteer) : score.Thrust ? hold.MostThrustSteer : hold.MostSteer, out steer);
             lands = grip + way * hold.Strike;
             Vector3 left = target - lands;
-            Vector3 move = Vector3.ClampMagnitude(left, MostHandMove);
+            Vector3 move = Vector3.ClampMagnitude(left, aim.Sweeps ? TurnSlashes.MostHandMove : MostHandMove);
             // (No further than the arm is long: a hand asked past its reach stays at the arm's end.)
             float most = 0.99f * (m.UpperLen[1] + m.ForeLen[1]) * hold.ArmScale;
             if ((reach + move).magnitude > most)

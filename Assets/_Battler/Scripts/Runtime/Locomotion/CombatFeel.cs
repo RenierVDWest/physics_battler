@@ -498,6 +498,18 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A cut made turning round: the blade against his body's turn. 0: the cut comes as his body comes round. Toward 1 the blade leads: the arm swings early and the blade is ahead of his body through the turn. Toward -1 the blade lags: his body is round first and the blade is whipped through after it, up to 0.2 s later.")]
         [Range(-1f, 1f)] public float turnCutBladeLeads = 0f;
 
+        [Tooltip("A turn cut ends short (17 November, after the first playtest: \"the arm does some weird twists as the swing comes to an end\"). The backhands for a turn to the right are taken from recordings of a man spinning right round: after the cut his body goes on round under his arm, so against his chest the arm wraps behind him and the wrist rolls over. On a fighter who stops turning as the blade lands, that was his sword hand folded behind his back and unwinding. On: the recording is followed for a tenth of a second after the blade lands (\"Turn Cut Sweeps On\", times \"Blade Goes\": the rest of the sweep across his front), his arm is held out there a moment (\"Turn Cut Carries On\"), and from there his arm, chest and head ease back to his guard. Off: the recording's own carry-through, as it was.")]
+        public bool aTurnCutEndsShort = true;
+
+        [Tooltip("A turn cut sweeps free (17 November, after the first playtest). An attack's aim moves the sword hand up to 40 cm and turns the wrist over to put the blade on its target at the moment it plans the landing for. A cut made turning round meets its enemy as the turn carries the blade round, usually before that moment: the hand was then brought across and the wrist turned over after the blade had gone by. On: for these cuts the aim moves the hand 7 cm at most and steers the wrist 8 degrees at most, and the hand is not pulled after a target that moves. Off: as any attack.")]
+        public bool aTurnCutSweepsFree = true;
+
+        [Tooltip("A turn cut ends short: how long after the blade lands the recording's sweep is still followed (seconds, times \"Blade Goes\"). 0.1: the sweep across his front, out to his side. More: the arm goes on round, and from 0.15 s behind him.")]
+        [Range(0.03f, 0.3f)] public float turnCutSweepsOn = 0.1f;
+
+        [Tooltip("A turn cut ends short: how long after the blade lands his arm stays out at the end of its sweep before it eases back to his guard (seconds).")]
+        [Range(0.1f, 0.5f)] public float turnCutCarriesOn = 0.2f;
+
         [Tooltip("A cut made turning round: only with his enemy this near (metres at a Medium's size). Further off he only turns.")]
         [Range(1f, 4f)] public float turnCutWithin = 2.2f;
 
@@ -1494,6 +1506,10 @@ namespace PhysicsBattler.Locomotion
             Locomotor.QuickTurns = aFighterTurnsRoundQuickly;
             TurnSlashes.On = aFighterCutsAsHeTurnsRound;
             TurnSlashes.BladeGoes = turnCutBladeGoes;
+            TurnSlashes.EndsShort = aTurnCutEndsShort;
+            TurnSlashes.SweepsFree = aTurnCutSweepsFree;
+            TurnSlashes.SweepsOn = turnCutSweepsOn;
+            TurnSlashes.CarriesOn = turnCutCarriesOn;
             TurnSlashes.BladeLeads = turnCutBladeLeads;
             TurnSlashes.Within = turnCutWithin;
             TurnSlashes.Anyway = turnCutAnyway;
