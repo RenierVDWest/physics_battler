@@ -5260,3 +5260,70 @@ the walks join. Single runs. The room they keep to is set where the dance began,
 is in the duel lab only: the fight's own steering does none of this yet. With this the dance's three parts
 are in; the stance switch, arm postures for sword-only fighters and the tell built into the attack are still
 carried on.
+
+**From the playtests of 17 November (morning): the shield keeps its cover; the bash; light and heavy blows;
+dodges, leaps and blows at chosen parts in the dance.** Renier: the shields were swung about constantly and
+did not cover; shield fakes make no sense; the sword arm gestures, the shield stays; bash what comes too near;
+more dips, dodges, leaps; attacks at legs and feet; a slow powerful class of blow and a fast weak one.
+
+*The shield is held in cover* (`ClipFighter.ShieldCover`, in `RaiseShield`; Combat Feel "The Shield Is Held In
+Cover", with how much of the arm is the cover's, standing and in a blow, and where the board is held). Whatever
+the body does (standing, walking, a gesture of the sword arm, a blow of his own) the board is held before his
+chest, looking at the enemy, in the body's own frame from the chest: it goes with the body and keeps a little
+of the recording's arm, but stays in place. It leaves only to meet a blow. Headless, the same dance with it
+off and on:
+
+| | the board moves about (rms) | his chest open to the other |
+|---|---|---|
+| standing and walking, off | 16 to 20 cm | 29% and 92% of the time |
+| standing and walking, on | 6 to 7 cm | 6 to 7% |
+| in a sword fake, off | 20 to 26 cm | 47 to 55% |
+| in a sword fake, on | 3 to 5 cm | 0 to 1% |
+| in a blow of his own, off | 43 cm | 63 to 73% |
+| in a blow of his own, on | 13 to 14 cm | 36 to 39% |
+
+*A fake draws no guard* (`ClipFighter.FakesDrawNoGuard`; Combat Feel "A Fake Draws No Guard"). The playtest
+of 07:52, with the cover on, still showed shields swung about. Its log: in its cover (67% of the time) a board
+moved 6 to 7 cm and looked 26° off straight ahead; out of it (33%) it moved 30 to 33 cm and turned up to 140°
+off; and of the 33 times a shield left its cover, 22 were just after the other began a fake. The guard read a
+fake as the blow it begins as. Now a shield (or a parry) goes to meet only a real blow. Headless, the same
+dance: a shield out of its cover 4 of 37 seconds, against 9 before. Not touched: how far and how far round a
+shield goes when it does meet a real blow.
+
+*No shield fakes.* The shield press is out of every pattern and off the lab's buttons; a sword fake no longer
+takes the shield with it (Combat Feel "A Sword Fake Takes The Shield", off; it was "A Fake Commits The
+Shield", on). The patterns are the sword arm's and the body's: more blade dips in every one.
+
+*The shield bash* (`ClipFighter.Bash`, `BashIfNear`; Combat Feel "A Shield Bashes What Comes Too Near", with
+how near and how hard). An enemy on his feet within 1.2 m and before him is driven out of his space: he sinks
+behind the board, drives it and his body forward, and the enemy is shoved back stumbling at 2.6 m/s, his
+guard open for 0.4 s and a blow of his own dropped. Not while his shield is meeting a blow, in a blow of his
+own, or down; no sooner than 2.5 s after his last. Its sizes are from the recording "Sword And Shield Block"
+(the body 26 cm forward and 12 cm down behind the board in a quarter of a second). In the fight, by itself;
+in the lab, the "Shield bash" button. Headless on demand: his hips sank 8 cm, his body went in, the board
+15 cm further ahead of his chest, and the other went from 1.17 m to 1.87 m off. A first version: Renier has
+since asked for it to be a lab piece with sliders for how hard it is and how far he leaps in, the legs seen
+doing the work, the board straight ahead (see the roadmap).
+
+*Light and heavy blows* (`AttackClasses`, in `AttackMaker.cs`; `StrikeHits.Power`; Combat Feel "Blows Are
+Light Or Heavy", with each one's power). The same recorded cut made two ways by its style: light, little
+wind-up, back at once, landing at 0.6 of a plain blow's weight; heavy, wound far back and slowly, carried
+through, at 1.6. Headless: a light blow lands 0.39 to 0.55 s after it starts, a heavy one 0.88 to 1.13 s; the
+landed ones did 6.1 harm (light) and 27.3 (heavy). In the dance a fighter's own blow after his tell is heavy
+or light by his own lever, and every blow thrown to take a chance is light; a fighter who was waiting for a
+blow (he saw the tell) and is bold and in reach strikes into its wind-up: in one duel four times, two of them
+landing on the head and chest. In the lab: "The blow is: plain / light / heavy" above the body map. The
+fight's own blows are still plain.
+
+*Dodges* (`ClipFighter.Dodge`; sizes from the recordings "Dodging" and "Dodging Right"): he ducks and leans
+aside, his hips going that way, and comes back up; his feet stay, his shield goes with his chest. A gesture in
+the Prowler's pattern, two lab buttons, and what a fighter who dodges does about a high blow he sees coming.
+*Leaps* in the dance: in, to close the last of the gap for his blow; out, from a blow he expects. *Blows at
+chosen parts*: each pattern has its own (the Prowler low, at legs and feet; the Strutter high; the Bull at
+the body and thighs), going for the next that the other's shield does not cover; in the runs blows landed on
+thighs, shins and a foot. New levers of a fighter's own: Leaps, Heavy blows, Dodges.
+
+Not verified: only the shield's cover and the fakes fix have been seen in Unity (Renier: "much better");
+the bash, the classes, the dodges and the leaps have not. The dodge and the bash are sized from their
+recordings by hand, not baked from them. The ordinary fight of six is changed by the cover and the bash (it
+has shields): see below.
