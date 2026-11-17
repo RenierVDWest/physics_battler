@@ -145,6 +145,12 @@ STRIKES = {
     'sns_backhand_lunge': ('sword_and_shield_attack_1', 0.0, 1.73, 0.77, 'backhand middle', 'Medium stepping backhand, a long lunge'),
     'sns_chop_side': ('sword_and_shield_slash_2', 0.0, 2.43, 1.40, 'downward high', 'Medium overhead chop with a side step'),
     'sns_chop_lunge': ('sword_and_shield_attack_3', 0.0, 2.33, 1.17, 'downward high', 'Medium overhead chop with a lunge'),
+    # (Cuts made spinning right round, 17 November (the pack "Spin Around Slash"). Reference for a cut made while
+    # turning round: only what is above the hips is taken (AttackScore.OnLegsOf: the chest, head and arms on the
+    # quick turn's legs), never the spin or the leap. Not "sns_": they are not among the strikes a body knows.)
+    'spin_backhand_mid': ('spin_attack_1', 0.0, 1.73, 0.75, 'backhand middle', 'A backhand cut down across the body, made spinning right round (396 degrees) and stepping 2.4 m'),
+    'spin_backhand_high': ('spin_attack_2', 0.0, 1.30, 0.53, 'backhand high', 'A high flat backhand cut, made spinning right round (419 degrees) and stepping 2.9 m'),
+    'spin_chop': ('spin_slash', 0.0, 2.43, 1.33, 'downward high', 'A chop from overhead, made leaping and spinning right round (360 degrees)'),
     'sns_combo_forehand': ('sword_and_shield_slash', 0.0, 1.05, 0.67, 'forehand high', 'Medium forehand, from the four-cut combo'),
     'sns_combo_backhand': ('sword_and_shield_slash', 1.05, 1.37, 1.23, 'backhand middle', 'Medium backhand, from the four-cut combo (cut before the leap: both feet down)'),
     'sns_combo_chop': ('sword_and_shield_slash', 1.37, 3.53, 2.47, 'downward high', 'Medium leaping spin chop, from the four-cut combo (from both feet down to standing again)'),

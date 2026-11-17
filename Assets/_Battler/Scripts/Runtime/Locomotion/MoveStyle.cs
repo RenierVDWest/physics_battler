@@ -207,11 +207,11 @@ namespace PhysicsBattler.Locomotion
                 Rebuild(set);
             }
 
-            if (this == Standard)
             {
                 // (Its turns from the pack "Turns", recorded with empty hands: each one's steps on the guard's own stand,
                 // under the guard's own chest and arms. The quick turn round, each way; and the turn a third of the
-                // way round, each way.)
+                // way round, each way. For every style and so every loadout: whatever he holds, and whichever pack
+                // he stands in, the stand the steps are laid on is his own.)
                 set.QuickR = OnTheStand(LocoLibrary.Get("quick_turn180"), set.Idle, Prefix + "quick_turn_right");
                 set.QuickL = OnTheStand(LocoLibrary.Get("quick_turn180_m"), set.Idle, Prefix + "quick_turn_left");
                 set.WideR = OnTheStand(LocoLibrary.Get("wide_turn_right"), set.Idle, Prefix + "wide_turn_right");

@@ -217,6 +217,11 @@ namespace PhysicsBattler.Units
             clipStopLeft = Mathf.Max(0f, clipStopLeft - dt);
             HitStop = Mathf.Max(ownStop, clipStopLeft);
             bool frozen = HitStop > 0f;
+            if (!frozen && against != null && (TurnSlashes.On || TurnSlashes.Always))
+            {
+                TurnSlashNow(against, yaw);
+            }
+
             Clip.Move(dt, want, yaw, opponent, frozen);
             NoteClipBlows();
             if (Clip.Strikes != null)
@@ -755,6 +760,61 @@ namespace PhysicsBattler.Units
 
             ClipStrikeStarted?.Invoke(this, what, target);
             return true;
+        }
+
+        private System.Random turnSlashLuck;
+
+        /// <summary>The parts of his enemy a cut made turning round may be for: whichever the cut reaches most easily.</summary>
+        private static readonly AimSpot[] TurnSlashSpots = { AimSpot.Chest, AimSpot.Neck, AimSpot.Head, AimSpot.Belly };
+        private readonly System.Collections.Generic.List<Vector3> turnSlashPoints = new System.Collections.Generic.List<Vector3>();
+
+        /// <summary>
+        /// About to make a quick turn round to an enemy near enough to reach: it makes the turn with a cut in it
+        /// (<see cref="TurnSlashes"/>) when that enemy is striking at it, or, not, by chance; in the lab, always when
+        /// asked. Decided once for each turn: a turn it lets go by is made plain.
+        /// </summary>
+        private void TurnSlashNow(UnitController against, float yaw)
+        {
+            if (Clip == null || Clip.Strikes == null || Clip.Busy || !CanAct || against.Clip == null || !against.IsAlive || against.IsDown || !AttackMaker.On)
+            {
+                return;
+            }
+
+            Vector3 to = against.Root.position - Clip.Loco.Position;
+            to.y = 0f;
+            float degrees = Clip.Loco.WouldTurnQuickly(yaw, to.magnitude < Locomotor.QuickTurnWithin * Clip.Size);
+            if (degrees == 0f || to.magnitude > TurnSlashes.Within * Clip.Size || Mathf.Abs(Mathf.DeltaAngle(yaw, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg)) > 30f)
+            {
+                return;
+            }
+
+            turnSlashLuck ??= new System.Random(7717 + 31 * unitNumber);
+            bool threatened = against.ClipTarget == this && against.Clip.Striking;
+            if (!TurnSlashes.Always && !threatened && turnSlashLuck.NextDouble() >= TurnSlashes.Anyway)
+            {
+                return;
+            }
+
+            turnSlashPoints.Clear();
+            foreach (var at in TurnSlashSpots)
+            {
+                turnSlashPoints.Add(AimSpots.Point(against.Clip, at));
+            }
+
+            var made = Clip.TurnSlashMade(against.Clip, turnSlashPoints, degrees, out int taken, i => id => AimSpots.Counts(TurnSlashSpots[i], id));
+            if (made == null)
+            {
+                return;
+            }
+
+            var spot = TurnSlashSpots[taken];
+
+            ClipTarget = against;
+            ClipAimSpot = spot;
+            comboStruck.Clear();
+            comboStruck.Add(against);
+            float miss = made.Short * Clip.Loco.Leg;
+            ClipStrikeStarted?.Invoke(this, $"a cut as he turns {Mathf.Abs(degrees):0} degrees to his {(degrees > 0f ? "right" : "left")}{(threatened ? " (the other striking at him)" : "")}: {made.Clip.Name} at its {AimSpots.Name(spot)}{(miss > 0.005f ? $" (short by {100f * miss:0} cm)" : "")}; its blade to land in {made.LandsIn:0.00} s, the whole {made.Clip.Duration:0.00} s; for the aim his body turned {made.Turn:+0;-0} degrees more, his hips {(made.Drop >= 0f ? "lowered" : "raised")} {100f * Mathf.Abs(made.Drop) * Clip.Loco.Leg:0} cm", against);
         }
 
         /// <summary>The spot on its target the blow under way was asked for (the aim test), or null: a blow of the fight's, at whatever its clip reaches.</summary>

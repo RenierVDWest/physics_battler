@@ -308,6 +308,23 @@ internal static class FightReport
         PhysicsBattler.Locomotion.MoveScore.StanceKept = Env("FIGHT_STANCEKEPT", 0.5f);
         // (FIGHT_SINKSBEFORESTEP=0.12: the hips sink all they can before a foot left behind is let go, as it was.)
         PhysicsBattler.Locomotion.LocoBody.SinksBeforeStep = Env("FIGHT_SINKSBEFORESTEP", 0.03f);
+        // (FIGHT_TURNSLASH=always: every quick turn round is made with a cut; =0: none is. FIGHT_BLADEGOES, FIGHT_BLADELEADS:
+        // its levers. FIGHT_TURNCUT=spin_backhand_mid: the cut taken for a turn to the right. FIGHT_TURNSLASHANYWAY=0.25.)
+        PhysicsBattler.Locomotion.TurnSlashes.On = Environment.GetEnvironmentVariable("FIGHT_TURNSLASH") != "0";
+        PhysicsBattler.Locomotion.TurnSlashes.Always = Environment.GetEnvironmentVariable("FIGHT_TURNSLASH") == "always";
+        PhysicsBattler.Locomotion.TurnSlashes.BladeGoes = Env("FIGHT_BLADEGOES", 1f);
+        PhysicsBattler.Locomotion.TurnSlashes.BladeLeads = Env("FIGHT_BLADELEADS", 0f);
+        PhysicsBattler.Locomotion.TurnSlashes.Anyway = Env("FIGHT_TURNSLASHANYWAY", 0.25f);
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_TURNCUTLEFT")))
+        {
+            PhysicsBattler.Locomotion.TurnSlashes.LeftCut = Environment.GetEnvironmentVariable("FIGHT_TURNCUTLEFT");
+        }
+
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_TURNCUT")))
+        {
+            PhysicsBattler.Locomotion.TurnSlashes.RightCut = Environment.GetEnvironmentVariable("FIGHT_TURNCUT");
+        }
+
         // (FIGHT_QUICKTURN=0: a fighter turns round as he did. FIGHT_QUICKPACE, FIGHT_QUICKFROM, FIGHT_QUICKWITHIN, FIGHT_TURNDRAWSIN, FIGHT_TURNSINKS: the quick turn's levers.)
         PhysicsBattler.Locomotion.Locomotor.QuickTurns = Environment.GetEnvironmentVariable("FIGHT_QUICKTURN") != "0";
         PhysicsBattler.Locomotion.Locomotor.QuickTurnPace = Env("FIGHT_QUICKPACE", 1.5f);
@@ -323,7 +340,19 @@ internal static class FightReport
         }
 
         // (FIGHT_TURNTRACE=1: each turn on the spot, as it begins.)
-        if (Environment.GetEnvironmentVariable("FIGHT_TURNTRACE") == "1") { PhysicsBattler.Locomotion.Locomotor.TurnTrace = (l, m) => Console.WriteLine($"[turn] at {l.Position.x:0.0} {l.Position.z:0.0}: {m}"); }
+        if (Environment.GetEnvironmentVariable("FIGHT_TURNTRACE") == "1") { PhysicsBattler.Locomotion.Locomotor.TurnTrace = (l, m) =>
+            {
+                string who = "someone";
+                foreach (var u in PhysicsBattler.Units.UnitController.All)
+                {
+                    if (u != null && u.Clip != null && u.Clip.Loco == l)
+                    {
+                        who = u.name;
+                    }
+                }
+
+                Console.WriteLine($"[turn] {who} at {l.Position.x:0.0} {l.Position.z:0.0}: {m}");
+            }; }
         if (Environment.GetEnvironmentVariable("FIGHT_STANDTRACE") == "1") { PhysicsBattler.Locomotion.Locomotor.StandTrace = m => Console.WriteLine("[stand] " + m); }
         // (The weight over the feet: FIGHT_SHIFT=0 keeps the hips where the clip has them; "share,waits" sets how far they
         // go toward the carrying foot and how long a step from standing waits for them (seconds).)
@@ -1086,6 +1115,11 @@ internal static class FightReport
             started[u] = (started.TryGetValue(u, out int n) ? n : 0) + 1;
             attacks++;
             blowsAt.Add((Time.time, u, at, 1f));
+            if (what.StartsWith("a cut as he turns") && Environment.GetEnvironmentVariable("FIGHT_TURNTRACE") == "1")
+            {
+                Console.WriteLine($"[turn] {u.name} {Time.time:0.00}: {what}");
+            }
+
             if (!clipBlows.TryGetValue(u, out var l)) clipBlows[u] = l = new List<string>();
             l.Add(what);
             if (at != null)
@@ -1294,6 +1328,16 @@ internal static class FightReport
                         && float.TryParse(behind[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float behindBy))
                     {
                         Console.WriteLine($"BEHIND {paceAt:0.000}: {(duel.PutOther(behindBy) ? $"the other put {behindBy:0} degrees round him" : "not put")}");
+                    }
+                }
+
+                // (FIGHT_BEHINDOTHER="4,150": the same the other way about: at 4 s the duel's mover is put 150 degrees round the other.)
+                {
+                    string[] behind = (Environment.GetEnvironmentVariable("FIGHT_BEHINDOTHER") ?? "").Split(',');
+                    if (duel != null && behind.Length == 2 && float.TryParse(behind[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float behindAt) && paceAt >= behindAt && paceAt < behindAt + dt
+                        && float.TryParse(behind[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float behindBy))
+                    {
+                        Console.WriteLine($"BEHIND {paceAt:0.000}: {(duel.PutMover(behindBy) ? $"the mover put {behindBy:0} degrees round the other" : "not put")}");
                     }
                 }
 

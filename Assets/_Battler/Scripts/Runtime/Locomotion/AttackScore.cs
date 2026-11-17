@@ -496,6 +496,121 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
+        /// A turn on the spot as the legs of a blow (a cut made while turning round, 17 November): the part of a
+        /// turn's clip between two of its moments, with the marks a blow's legs need. The drive begins when the turn
+        /// is <paramref name="driveAt"/> of the way to the landing (the share of the cut's own time its wind-up
+        /// takes: so the body turns evenly through the wind-up and the drive, and does not stand winding up and then
+        /// whip round); the blade is to land when the turn is <paramref name="landsAt"/> of the way through (1: as it ends;
+        /// over 1: that much of 0.3 s after it has ended); the rest is the way back to the stand. The turn itself is
+        /// made <paramref name="turnScale"/> of the clip's own, so the legs go as far round as is asked; and after
+        /// the blade has landed <paramref name="back"/> degrees more are turned (against the turn: given back), so a
+        /// body the aim has turned a little past its enemy to bring the blade onto him comes back to face him. A
+        /// blow's upper body is put on it with <see cref="OnLegsOf"/>. (Made once for each.)
+        /// </summary>
+        public static AttackScore OfTurn(LocoClip clip, float from, float to, float landsAt, float turnScale, float back = 0f, float driveAt = 0.06f)
+        {
+            if (clip == null)
+            {
+                return null;
+            }
+
+            back = Mathf.Round(back / 5f) * 5f;
+            driveAt = Mathf.Round(driveAt * 20f) / 20f;
+            string key = $"{clip.Name}|turn {from:0.00}-{to:0.00} lands {landsAt:0.00} x{turnScale:0.00} back {back:0} drive {driveAt:0.00}";
+            if (!scores.TryGetValue(key, out var score))
+            {
+                scores[key] = score = new AttackScore(clip, from, to, landsAt, turnScale, back, driveAt);
+            }
+
+            return score;
+        }
+
+        private AttackScore(LocoClip clip, float from, float to, float landsAt, float turnScale, float back, float driveAt)
+        {
+            Clip = clip;
+            Name = $"{clip.Name.Replace("quick_", "")}_x{Mathf.RoundToInt(100f * turnScale)}_lands{Mathf.RoundToInt(100f * landsAt)}{(back != 0f ? $"_back{back:0}" : "")}_d{Mathf.RoundToInt(100f * driveAt)}";
+            Kind = "";
+            Rate = clip.Rate;
+            var m = BodyMeasures.OfClips;
+            int first = Mathf.Clamp(Mathf.RoundToInt(from * Rate), 0, clip.Frames - 3), end = Mathf.Clamp(Mathf.RoundToInt(to * Rate), first + 2, clip.Frames - 1);
+            int n = end - first + 1;
+            Frames = new BodyTracks[n];
+            Root = new Vector3[n];
+            Facing = new float[n];
+            Contacts = new LocoContact[n * 2];
+            Strike = new Vector3[n];
+            StrikeSpeed = new float[n];
+            var p = new Vector3[LocoClip.BoneCount];
+            var hold = SwordHold.Medium;
+            clip.Root(first / Rate, out Vector2 at0, out float yaw0);
+            float facing = 0f;
+            var own = new float[n];
+            for (int f = 0; f < n; f++)
+            {
+                clip.Root((first + f) / Rate, out Vector2 at, out float yaw);
+                facing += f > 0 ? Mathf.DeltaAngle(yaw0 + facing, yaw) : 0f;
+                own[f] = facing;
+                Root[f] = Quaternion.Euler(0f, -yaw0, 0f) * new Vector3(at.x - at0.x, 0f, at.y - at0.y);
+            }
+
+            // The marks: the drive begins as the turn does; the blade lands so far through it; then the way back.
+            float all = own[n - 1];
+            int begins = 1, lands = n - 2, done = n - 2;
+            for (int f = n - 1; f >= 1; f--)
+            {
+                float share = Mathf.Abs(all) > 1f ? own[f] / all : f / (n - 1f);
+                if (share >= Mathf.Max(0.06f, driveAt * Mathf.Min(landsAt, 0.97f)))
+                {
+                    begins = f;
+                }
+
+                if (share >= Mathf.Min(landsAt, 0.97f))
+                {
+                    lands = f;
+                }
+
+                if (share >= 0.97f)
+                {
+                    done = f;
+                }
+            }
+
+            if (landsAt > 1f)
+            {
+                lands = done + Mathf.RoundToInt((landsAt - 1f) * 0.3f * Rate);
+            }
+
+            Contact = Mathf.Clamp(lands, Mathf.Min(begins + 2, n - 2), n - 2);
+            Link = n - 1;
+            for (int f = 0; f < n; f++)
+            {
+                float time = (first + f) / Rate;
+                clip.Pose(time, p, 1f);
+                // (The frame the part began in; the turn as far as it is made to go, and what is given back of it
+                // after the blade has landed: the body carried a little past by the cut comes back to face him.)
+                Facing[f] = own[f] * turnScale + (f > Contact ? back * Mathf.SmoothStep(0f, 1f, (f - Contact) / (float)(n - 1 - Contact)) : 0f);
+                var turn = Quaternion.Euler(0f, Facing[f], 0f);
+                for (int i = 0; i < p.Length; i++)
+                {
+                    float y = p[i].y;
+                    Vector3 w = turn * new Vector3(p[i].x, 0f, p[i].z) + Root[f];
+                    p[i] = new Vector3(w.x, y, w.z);
+                }
+
+                Frames[f] = m.Decompose(p, f > 0 ? Frames[f - 1] : (BodyTracks?)null);
+                Contacts[f * 2] = clip.Contact(0, time);
+                Contacts[f * 2 + 1] = clip.Contact(1, time);
+                Strike[f] = StrikeOf(Frames[f], m, hold, false);
+            }
+
+            Marks(out _, out _, out _);
+            Drive = Mathf.Clamp(begins, 1, Contact - 1);
+            Follow = Mathf.Clamp((Contact + n - 1) / 2, Contact + 1, n - 1);
+            Plain = false;
+            Pivot = PlantedFoot();
+        }
+
+        /// <summary>
         /// Where the foot the body turns about stands as the blow begins (the frame the clip began in, on the ground):
         /// the foot that is down for most of the wind-up; of two as much down, the one behind. A body turned to bring
         /// its blow onto a line turns about this foot (<see cref="AttackMaker"/>), so it stays where it is planted.

@@ -489,6 +489,21 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("One carriage: how much of his stand's own stance his feet keep while he steps. 0: each recording's own places (his feet nearer each other than he stands). 1: the stand's: as wide, and his left foot as far ahead. More keeps his stance but asks his legs to reach further.")]
         [Range(0f, 1f)] public float guardKeepsItsStance = 0.5f;
 
+        [Tooltip("A fighter cuts as he turns round (17 November). On: about to make his quick turn round to an enemy near enough to reach (\"Turn Cut Within\"), he makes it with a cut in it when that enemy is striking at him, and now and then when he is not (\"Turn Cut Anyway\"). The legs are the quick turn's, as far round as his enemy is. What is above his hips is a recorded cut's: turning to his right, a backhand that goes round with him, taken from the pack \"Spin Around Slash\" (only its chest, head and arms, never its spin or its leap); turning to his left, his own forehand. It is made as every attack is, aimed at a part of his enemy, and can land, be blocked or be parried as any blow. Off: he only turns.")]
+        public bool aFighterCutsAsHeTurnsRound = true;
+
+        [Tooltip("A cut made turning round: how far the blade goes. How far the sword arm is drawn back before the cut and carried on after it, against the recording (1). Under 1 a tighter, shorter sweep; over 1 a wider one.")]
+        [Range(0.5f, 1.6f)] public float turnCutBladeGoes = 1f;
+
+        [Tooltip("A cut made turning round: the blade against his body's turn. 0: the cut comes as his body comes round. Toward 1 the blade leads: the arm swings early and the blade is ahead of his body through the turn. Toward -1 the blade lags: his body is round first and the blade is whipped through after it, up to 0.2 s later.")]
+        [Range(-1f, 1f)] public float turnCutBladeLeads = 0f;
+
+        [Tooltip("A cut made turning round: only with his enemy this near (metres at a Medium's size). Further off he only turns.")]
+        [Range(1f, 4f)] public float turnCutWithin = 2.2f;
+
+        [Tooltip("A cut made turning round: how often he cuts as he turns when his enemy is not striking at him (0: only when he is; 1: every time).")]
+        [Range(0f, 1f)] public float turnCutAnyway = 0.25f;
+
         [Tooltip("A leg left behind steps before the hips sink (the plan \"Convincing walking in the dance\", step 3). On: a planted foot the body is leaving behind is let go to step after it as soon as its leg is all but straight (\"Hips Sink Before A Step\"). Off, as it was: the hips sank all they can, 10 cm, before the foot was let go: the dip at the first step out of a stand, the wide stance's far foot left behind.")]
         public bool aLegLeftBehindStepsBeforeTheHipsSink = true;
 
@@ -1477,6 +1492,11 @@ namespace PhysicsBattler.Locomotion
             MoveScore.StanceKept = guardKeepsItsStance;
             LocoBody.SinksBeforeStep = aLegLeftBehindStepsBeforeTheHipsSink ? hipsSinkBeforeAStep : LocoBody.SinksAllBeforeStep;
             Locomotor.QuickTurns = aFighterTurnsRoundQuickly;
+            TurnSlashes.On = aFighterCutsAsHeTurnsRound;
+            TurnSlashes.BladeGoes = turnCutBladeGoes;
+            TurnSlashes.BladeLeads = turnCutBladeLeads;
+            TurnSlashes.Within = turnCutWithin;
+            TurnSlashes.Anyway = turnCutAnyway;
             Locomotor.QuickTurnFrom = quickTurnFrom;
             Locomotor.QuickTurnPace = quickTurnPace;
             Locomotor.QuickTurnWithin = quickTurnWithin;

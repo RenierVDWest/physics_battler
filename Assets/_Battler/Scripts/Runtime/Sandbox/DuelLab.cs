@@ -708,6 +708,25 @@ namespace PhysicsBattler.Sandbox
             return true;
         }
 
+        /// <summary>
+        /// The same the other way about: he is put, at once, this far round the other from where the other faces
+        /// (degrees, + to the other's right), as far off as he was and facing him. The other's turn to face him is
+        /// the one to watch (whatever the other holds: every loadout turns the same way). False: the lab is not set out.
+        /// </summary>
+        public bool PutMover(float degrees)
+        {
+            if (!Running || Mover == null || Other == null || Mover.Clip == null || Other.Clip == null)
+            {
+                return false;
+            }
+
+            Vector3 to = Flat(Other.Root.position - Mover.Root.position);
+            float way = Other.Clip.Loco.Facing + degrees;
+            Vector3 spot = Other.Clip.Loco.Position + Quaternion.Euler(0f, way, 0f) * Vector3.forward * Mathf.Max(0.8f, to.magnitude);
+            Mover.Teleport(spot, way + 180f);
+            return true;
+        }
+
         /// <summary>The last turn back in words: how far off the other was and how long he took to face him again (within 15 degrees).</summary>
         public string TurnBackText => turnBackTimed ? $"the other {turnBackFrom:0} degrees round, {turnBackFor:0.00} s so far"
             : turnBackFrom > 0f ? $"the other {turnBackFrom:0} degrees round, he faced him again in {turnBackFor:0.00} s ({(turnBackQuick ? "a quick turn" : "no quick turn")})" : "none yet";

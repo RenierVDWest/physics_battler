@@ -3694,7 +3694,7 @@ namespace PhysicsBattler.Locomotion
         /// strikes.
         /// </summary>
         /// <param name="counts">Which parts of the target count as the one the blade is for (null: not looked at): an attack whose blade would meet another part first is passed over for one whose way is open.</param>
-        public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle style, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null)
+        public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle style, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null, AttackScore given = null, float mostTurn = 0f)
         {
             if (Strikes != null)
             {
@@ -3710,7 +3710,7 @@ namespace PhysicsBattler.Locomotion
                 postureFeint = Mathf.Min(postureFeint * FighterLevers.FeintOf(Loco.Own), 1f / Mathf.Max(0.05f, PostureMaker.FeintDepth));
                 postureLunge *= FighterLevers.LungeOf(Loco.Own);
             }
-            if (AttackOnTheMove.On && landIn <= 0f && legs == null && !(postureNow && postureLunge > 0f && !PostureMaker.LungesOnTheMove))
+            if (AttackOnTheMove.On && landIn <= 0f && legs == null && given == null && !(postureNow && postureLunge > 0f && !PostureMaker.LungesOnTheMove))
             {
                 // (Walking, the blow is thrown on the move: the walk goes on under it.)
                 var moved = StrikeOnTheMove(target, point, style, named);
@@ -3721,7 +3721,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn };
+            var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn, MostTurn = mostTurn };
             // (A style's manner laid over him: the blow is fitted for the body as the manner will have it.)
             if (Loco.MannerForBlow(out var mannerFrom, out var mannerTo, out var mannerDials))
             {
@@ -3748,7 +3748,17 @@ namespace PhysicsBattler.Locomotion
 
             var hold = Poser.Hold();
             madePlans.Clear();
-            foreach (var clip in StrikeClips)
+            if (given != null)
+            {
+                // (A score put together for the occasion, a cut on a turn's legs: that one.)
+                var plan = AttackMaker.Make(given, style, aim, hold, build: false);
+                if (plan != null)
+                {
+                    madePlans.Add(plan);
+                }
+            }
+
+            foreach (var clip in given != null ? noStrikes : StrikeClips)
             {
                 // (With none named: of the plain blows, made with the feet on the ground. The leaps and the spins are asked for by name.)
                 var score = AttackScore.Of(clip);
@@ -3846,6 +3856,87 @@ namespace PhysicsBattler.Locomotion
             Poser.PlayMade(best.Clip, point, 0f);
             return best;
         }
+
+        private static readonly List<LocoClip> noStrikes = new List<LocoClip>();
+
+        /// <summary>
+        /// A cut made while turning round (<see cref="TurnSlashes"/>): the quick turn's legs, <paramref name="degrees"/>
+        /// round (+ to his right), under a recorded cut's chest, head and arms, made for a point on his enemy and
+        /// begun. Null, and nothing begun: he has no quick turn that way, or the cut is not there.
+        /// </summary>
+        public MadeAttack TurnSlashMade(ClipFighter target, IReadOnlyList<Vector3> points, float degrees, out int taken, System.Func<int, System.Func<PartId, bool>> counts = null)
+        {
+            taken = -1;
+            var turn = Loco.Guard == null ? null : degrees > 0f ? Loco.Guard.QuickR : Loco.Guard.QuickL;
+            var upper = AttackScore.Of(LocoLibrary.Get(degrees > 0f ? TurnSlashes.RightCut : TurnSlashes.LeftCut));
+            if (turn == null || upper == null || Mathf.Abs(turn.Turn) < 1f || points == null)
+            {
+                return null;
+            }
+
+            var span = Locomotor.Busy(turn);
+            var style = TurnSlashes.Style;
+            var hold = Poser.Hold();
+            float lands = TurnSlashes.LandsAt;
+            // (The turn goes evenly through the cut's wind-up and its drive: as much of it is done by the time the drive
+            // begins as of the cut's own time to the landing.)
+            float driveAt = Mathf.Clamp(upper.Drive / (float)Mathf.Max(1, upper.Contact), 0.2f, 0.75f);
+            AttackScore best = null;
+            float least = float.MaxValue;
+            for (int i = 0; i < points.Count; i++)
+            {
+                // (The legs go as far round as his enemy is, in steps of 10 degrees. The aim then turns his whole body
+                // a little more or less, early, to bring the blade onto its line: a backhand's blade is still to the left
+                // of where he faces as it lands, so he is carried a little past his enemy. That much is given back
+                // after the blade has landed, so he ends facing him.)
+                var aim = new AttackAim { Aimed = true, Target = InOwnFrame(points[i]), Eased = AttackMaker.FromAnyPose, MostTurn = TurnSlashes.AimTurns };
+                float scale = Mathf.Round(Mathf.Clamp(degrees / turn.Turn, 0.25f, 1.15f) * 18f) / 18f;
+                var score = upper.OnLegsOf(AttackScore.OfTurn(turn, span.x, span.y, lands, scale, 0f, driveAt));
+                var plan = AttackMaker.Make(score, style, aim, hold, build: false);
+                if (plan == null)
+                {
+                    continue;
+                }
+
+                if (Mathf.Abs(plan.Turn) >= 2.5f)
+                {
+                    var again = upper.OnLegsOf(AttackScore.OfTurn(turn, span.x, span.y, lands, scale, -plan.Turn, driveAt));
+                    var replanned = AttackMaker.Make(again, style, aim, hold, build: false);
+                    if (replanned != null)
+                    {
+                        plan = replanned;
+                        score = again;
+                    }
+                }
+
+                // (Of the parts he may cut at, the one the cut reaches with the least done to it: his hips not sunk
+                // far for a cut that goes high, nor raised for one that goes low.)
+                float cost = plan.Cost + 2f * Mathf.Abs(plan.Drop);
+                if (cost < least)
+                {
+                    least = cost;
+                    best = score;
+                    taken = i;
+                }
+            }
+
+            if (best == null)
+            {
+                return null;
+            }
+
+            var made = StrikeMade(target, points[taken], style, 0f, null, counts != null ? counts(taken) : null, null, best, TurnSlashes.AimTurns);
+            if (made != null)
+            {
+                TurnSlashes.Made++;
+                TurnSlashesMade++;
+            }
+
+            return made;
+        }
+
+        /// <summary>Cuts it has made turning round.</summary>
+        public int TurnSlashesMade;
 
         /// <summary>He is told to walk on (to walk up, back away, circle), by what orders him: his walk is walked at any pace, not stepped (<see cref="Locomotor.WalksOn"/>).</summary>
         public bool WalksOn;

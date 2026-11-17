@@ -155,6 +155,65 @@ namespace PhysicsBattler.Locomotion
         public static string Name(AttackClass kind) => kind == AttackClass.Light ? "light" : kind == AttackClass.Heavy ? "heavy" : "plain";
     }
 
+    /// <summary>
+    /// A cut made while turning round (17 November; Combat Feel "A Fighter Cuts As He Turns Round"): a fighter whose
+    /// enemy is at his side or behind him, near enough to reach and striking at him (or, by chance, not), makes his
+    /// quick turn round with a cut in it. The legs are the quick turn's (<see cref="Locomotor.QuickTurns"/>: the
+    /// recorded turn's steps on his own stand), as far round as his enemy is; what is above the hips is a recorded
+    /// cut's (<see cref="AttackScore.OnLegsOf"/>): turning to his right, a backhand that goes round with him, taken
+    /// from the pack "Spin Around Slash" (only its chest, head and arms: never its spin or its leap); turning to
+    /// his left, his own forehand. It is made as every attack is (<see cref="AttackMaker"/>): aimed at a part of
+    /// his enemy, its blade able to land, be blocked and be parried as any blow's.
+    /// </summary>
+    public static class TurnSlashes
+    {
+        public static bool On = true;
+
+        /// <summary>The lab's: every quick turn round is made with a cut, whatever the other is doing.</summary>
+        public static bool Always;
+
+        /// <summary>How far the blade goes: how far the sword arm is drawn back before the cut and carried on after it, against the recording (1).</summary>
+        public static float BladeGoes = 1f;
+
+        /// <summary>
+        /// The blade against the body's turn: 0, the blade lands as the body comes round; up to 1, it leads, landing
+        /// while the body is only a little over half way round, the arm reaching ahead of the turn; down to -1, it
+        /// lags, landing 0.2 s after the body is round, whipped through behind the turn.
+        /// </summary>
+        public static float BladeLeads;
+
+        /// <summary>The aim turns his whole body no further than this, on top of the legs' own turn, to bring the blade onto its line (degrees); what it turns is given back after the blade has landed.</summary>
+        public static float AimTurns = 20f;
+
+        /// <summary>The enemy this near (metres at a Medium's size), and not otherwise; and how often he cuts as he turns with his enemy not striking at him (0 to 1).</summary>
+        public static float Within = 2.2f, Anyway = 0.25f;
+
+        /// <summary>The cut whose upper body is taken, turning to his right and to his left.</summary>
+        public static string RightCut = "spin_backhand_high", LeftCut = "sns_forehand";
+
+        /// <summary>The cuts there are to take for a turn to the right.</summary>
+        public static readonly string[] RightCuts = { "spin_backhand_high", "spin_backhand_mid", "spin_chop" };
+
+        /// <summary>How far through the turn the blade lands (see <see cref="AttackScore.OfTurn"/>).</summary>
+        public static float LandsAt => BladeLeads >= 0f ? Mathf.Lerp(1f, 0.55f, BladeLeads) : Mathf.Lerp(1f, 1.67f, -BladeLeads);
+
+        /// <summary>The style it is made in: the recording's own, its arm's swing and carry-through as far as <see cref="BladeGoes"/>; the hips' turn is the turn's and is left alone.</summary>
+        public static AttackStyle Style
+        {
+            get
+            {
+                var style = AttackStyle.Plain;
+                style.ArmSwing = BladeGoes;
+                style.FollowThrough = Mathf.Lerp(1f, BladeGoes, 0.5f);
+                style.ArmLag = BladeLeads < 0f ? -0.04f * BladeLeads : 0f;
+                return style;
+            }
+        }
+
+        /// <summary>Cuts made turning round, for the reports.</summary>
+        public static int Made;
+    }
+
     /// <summary>What an attack is made for: where the blade is to land and when.</summary>
     public struct AttackAim
     {
@@ -169,6 +228,9 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>It is aimed (off: the score as it is, its own contact).</summary>
         public bool Aimed;
+
+        /// <summary>The body is turned no further than this to bring the blade onto its line (degrees; 0: as far as any attack, <see cref="AttackMaker.MostTurn"/>). A cut made turning round keeps it small: its turn is its legs', and the blade comes onto its enemy as it sweeps round with him.</summary>
+        public float MostTurn;
 
         /// <summary>Where the blade's striking part is to land, in the fighter's own frame as the attack begins (leg lengths; x to its right, y over the ground, z forward).</summary>
         public Vector3 Target;
@@ -657,7 +719,8 @@ namespace PhysicsBattler.Locomotion
                     fit.Lean = Mathf.Clamp(fit.Lean - 0.7f * Mathf.Atan2(missing, lever) * Mathf.Rad2Deg, -MostLeanBack, MostLean);
                 }
 
-                fit.Turn = Mathf.Clamp(fit.Turn + Mathf.DeltaAngle(Bearing(at), Bearing(want)), -MostTurn, MostTurn);
+                float mostTurn = aim.MostTurn > 0f ? aim.MostTurn : MostTurn;
+                fit.Turn = Mathf.Clamp(fit.Turn + Mathf.DeltaAngle(Bearing(at), Bearing(want)), -mostTurn, mostTurn);
                 if (moving && aim.Move.StepIn > 0f)
                 {
                     // (On the move the distance is the walk's to make up: it steps in toward the target, or holds back

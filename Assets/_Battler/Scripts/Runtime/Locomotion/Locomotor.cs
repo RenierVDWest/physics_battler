@@ -1912,10 +1912,26 @@ namespace PhysicsBattler.Locomotion
         private bool TurnsQuickly(float degrees) => QuickTurns && Hurried && InGuard && Mathf.Abs(degrees) >= QuickTurnFrom
             && (degrees > 0f ? Guard.QuickR : Guard.QuickL) != null;
 
+        /// <summary>
+        /// Asked to face <paramref name="yaw"/> now, it would make a quick turn round (so far round: degrees, + to its
+        /// right; 0: it would not): what a fighter asks before its step, to make that turn with a cut
+        /// (<see cref="TurnSlashes"/>). As <see cref="Step"/> decides it: in its guard, an enemy near, standing or
+        /// walking, not in a clip of its own.
+        /// </summary>
+        public float WouldTurnQuickly(float yaw, bool hurried)
+        {
+            float degrees = Mathf.DeltaAngle(Facing, yaw);
+            bool was = Hurried;
+            Hurried = hurried;
+            bool turns = Ready && (Current == Mode.Idle || Current == Mode.Cycle && !Running) && TurnsQuickly(degrees);
+            Hurried = was;
+            return turns ? degrees : 0f;
+        }
+
         private static readonly Dictionary<LocoClip, Vector2> busy = new Dictionary<LocoClip, Vector2>();
 
         /// <summary>The part of a turn's clip in which anything happens (seconds): from a frame before its first foot leaves the ground or its root begins to turn, to three frames after its last foot has landed and its root has all but done turning.</summary>
-        private static Vector2 Busy(LocoClip clip)
+        public static Vector2 Busy(LocoClip clip)
         {
             if (busy.TryGetValue(clip, out var span))
             {

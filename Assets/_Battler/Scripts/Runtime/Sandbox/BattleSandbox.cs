@@ -1229,6 +1229,25 @@ namespace PhysicsBattler.Sandbox
                 GUILayout.EndHorizontal();
             }
 
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("As he turns:", "What he does as he turns round to the other, here in the lab. Just turns: the quick turn alone (in a fight he cuts as he turns when the other is striking at him, and now and then otherwise: Combat Feel \"A Fighter Cuts As He Turns Round\"). Cuts: every turn round is made with a cut in it, so it can be seen on demand: press one of \"Put the other\" above. Turning to his right, a backhand that goes round with him; to his left, his forehand."), Styles().Text, GUILayout.Width(110f));
+            if (Press(!PhysicsBattler.Locomotion.TurnSlashes.Always ? "[just turns]" : "just turns", "The quick turn alone.")) PhysicsBattler.Locomotion.TurnSlashes.Always = false;
+            if (Press(PhysicsBattler.Locomotion.TurnSlashes.Always ? "[cuts]" : "cuts", "Every turn round is made with a cut in it.")) PhysicsBattler.Locomotion.TurnSlashes.Always = true;
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("His cut (right):", "The recorded cut whose chest, head and arms are taken for a cut made turning to his right (the pack \"Spin Around Slash\"; never its spin or its leap). To his left it is his own forehand."), Styles().Text, GUILayout.Width(110f));
+            foreach (var (cut, name, what) in new[] { ("spin_backhand_high", "high backhand", "A flat backhand at the height of the head and shoulders."), ("spin_backhand_mid", "middle backhand", "A backhand down across the body."), ("spin_chop", "chop", "A chop from overhead.") })
+            {
+                if (Press(PhysicsBattler.Locomotion.TurnSlashes.RightCut == cut ? $"[{name}]" : name, what)) PhysicsBattler.Locomotion.TurnSlashes.RightCut = cut;
+            }
+
+            GUILayout.EndHorizontal();
+            if (feel != null)
+            {
+                feel.turnCutBladeGoes = Lever("Blade goes", feel.turnCutBladeGoes, 0.5f, 1.6f, "A cut made turning round: how far the blade goes. How far the sword arm is drawn back before the cut and carried on after it, against the recording (1).");
+                feel.turnCutBladeLeads = Lever("Blade leads", feel.turnCutBladeLeads, -1f, 1f, "A cut made turning round: the blade against his body's turn. 0: the cut comes as his body comes round. Toward 1 the blade leads, ahead of his body through the turn. Toward -1 it lags: his body is round first and the blade is whipped through after it.");
+            }
+
             Readout(new GUIContent("Last turn: " + Duel.TurnBackText + ".", "How far round the other was put, and how long he then took to face him again (to within 15 degrees)."), 2);
         }
 

@@ -5603,3 +5603,82 @@ to 50% of the walking either way, 0.6 to 1.1 steps a spell either way. Not measu
 more small catch steps than before (the foot let go sooner steps sooner); to be looked at in Unity. The rest
 of step 3 (whole steps: a spell of walking is still under one step on average) is not begun.
 
+**Every loadout turns round quickly; and a cut made while turning round (17 November, evening).** Renier, on
+the quick turns: "Ok yes this works great. You will need to do the same then for the sword guy without the
+shield. This is a standard set feature that should apply to all the loadouts, as everything should." And: "I
+want him to also be able to do slashes while turning around ... if he thinks his enemy is attacking him as he
+turns around. Here are some reference animations for you to source. Keep in mind that these are more like
+spinning and jumping around ... first I want you to only source the upper body as a reference for the
+attacks. Not using the animations as is. Still using the same system you built so that we can have sliders
+to customize it. As in how far the blade goes. If he's more leading with the blade or if the blade is
+lagging a bit behind his body turning."
+
+*Every loadout.* The quick turns were made for the style named Standard only, which is what my note about
+"the Large" came from. Every body in the game stands in that style today (a Medium with sword and shield, a
+Swordsman with a sword alone, a Large: `LocoLibrary.CombatPrefix`), so all three already turned quickly; what
+was missing was the rule. Now the turns are made for every style, on that style's own stand
+(`MoveStyle.Clips`). Checked headless: a Swordsman, the other put 150 degrees round him, faces him in 0.48 s
+with the quick turn; a sword-alone fighter as the one turned on, the same. In the fight of six, quick turns
+and cuts made turning were made by Mediums, Swordsmen and Larges alike. (The lab can also put him round the
+other, `DuelLab.PutMover`, `FIGHT_BEHINDOTHER`.)
+
+*A cut made while turning round* (`TurnSlashes`, `ClipFighter.TurnSlashMade`, `UnitController.TurnSlashNow`;
+Combat Feel "A Fighter Cuts As He Turns Round", on). About to make his quick turn round to an enemy within
+2.2 m ("Turn Cut Within"), he makes it with a cut in it when that enemy is striking at him, and one time in
+four when he is not ("Turn Cut Anyway").
+
+- *The legs* are the quick turn's (the recorded turn's steps on his own stand), as far round as his enemy
+  is. A turn's clip is given the marks a blow's legs need (`AttackScore.OfTurn`): the turn goes evenly
+  through the cut's wind-up and drive, and the blade is to land when the turn is so far through.
+- *What is above the hips* is a recorded cut's chest, head and arms, put on those legs with the graft the
+  attacks already use for borrowed legs (`AttackScore.OnLegsOf`). Turning to his right: a backhand that goes
+  round with him, from the pack "Spin Around Slash" (three takes: a high flat backhand, a backhand down
+  across the body, a leaping chop). They spin 360 to 420 degrees and travel up to 2.9 m; none of that is
+  used: only the chest's twist on the hips, the head and the arms. They are baked as `spin_backhand_high`,
+  `spin_backhand_mid`, `spin_chop` and are not among the strikes a body knows. Turning to his left there was
+  no reference (all three spin to the right): his own forehand, `sns_forehand`, is taken.
+- *Made as every attack is* (`AttackMaker`): aimed at a part of his enemy (of chest, neck, head and belly,
+  the one the cut reaches with least done to it), its blade able to land, be blocked and be parried. The aim
+  may turn his whole body 20 degrees at most on top of the legs' turn; what it turns is given back after
+  the blade has landed, so he ends facing his enemy.
+- *The sliders* (Combat Feel; in the lab under "Move him"): "Blade goes" (0.5 to 1.6: how far the sword arm
+  is drawn back before the cut and carried on after it) and "Blade leads" (-1 to 1: where in the turn the
+  blade is to land: 0 as his body comes round; toward 1 while his body is only a little over half way
+  round; toward -1 up to 0.2 s after his body is round).
+- *In the lab:* "As he turns: just turns / cuts" makes every turn round a cut; press one of "Put the other".
+  "His cut (right): high backhand / middle backhand / chop".
+
+Headless, the other put round him at 1.5 m, every turn made with a cut (`FIGHT_TURNSLASH=always`,
+`FIGHT_BLADEGOES`, `FIGHT_BLADELEADS`, `FIGHT_TURNCUT`, `FIGHT_TURNCUTLEFT`; `slash.py` reads the film):
+
+| the other put | cut | the blade | his body then | he faces him in | hips |
+|---|---|---|---|---|---|
+| 150 to his right | high backhand | landed at 0.55 s (forearm, 8 damage) | 13 degrees past him | 0.38 s | 80 to 85 cm |
+| 150, a Swordsman | high backhand | landed at 0.55 s (parried by the other's sword) | 7 past | 0.40 s | 80 to 84 cm |
+| 90 to his right | high backhand | landed at 0.57 s (blocked by the shield) | 17 short | 1.05 s | 81 to 85 cm |
+| 150 to his left | forehand | landed at 0.80 s (chest, 12 damage) | 2 short | 0.65 s | 63 to 84 cm |
+| 120 to his left | forehand | met nothing | | 0.58 s | 65 to 84 cm |
+| 150 right, blade leads 0.7 | high backhand | landed at 0.57 s (blocked) | 24 short | 1.23 s | 81 to 84 cm |
+| 150 right, blade leads -0.7 | high backhand | landed at 0.57 s (blocked) | 12 past | 0.37 s | 80 to 85 cm |
+| 150 right, blade goes 0.6 | high backhand | landed at 0.55 s, its fastest 20 m/s, 4 degrees right of where he faced, 136 degrees round in all | 13 past | 0.38 s | |
+| 150 right, blade goes 1.5 | high backhand | landed at 0.57 s, its fastest 28 m/s, 50 degrees right of where he faced, 156 degrees round in all | 8 past | 0.40 s | |
+
+(The two left-turn rows were run with the forehand before the turn was spread evenly through its wind-up;
+after that change they were run with another forehand, which missed both times, and the first was put back
+without being run again.) In the fight of six, a minute: 18 quick turns and 9 cuts made turning (by a
+Medium, Swordsmen and Larges; 4 of them with the other striking at him); 4 landed, 5 met nothing; no error.
+
+*What the sliders do and do not do, as measured.* "Blade goes" changes the sweep and its speed plainly.
+"Blade leads" toward 1 has the blade land with his body 24 degrees short of his enemy where it was 13 past.
+Toward -1 it changed little at this distance: with his enemy 1.5 m off the blade meets him as it is carried
+round by the turn itself, before the cut proper. The blade landed at 0.55 to 0.57 s in every right-turn run
+whatever the sliders. Whether the lag reads at a longer distance is not measured.
+
+*Not good yet, and not verified.* The left turn: the forehand sinks his hips up to 20 cm (the recorded cut
+is made from a low lunge; the aim lowers him to bring it down) and missed in two of four runs, the other
+having stepped round. At 90 degrees the cut is short by 50 to 90 cm on its plan and lands on the shield; he
+takes a second to face him. Twice in the fight a fighter began a second cut a quarter of a second after
+the first. The cut's way back keeps him 1.3 s where the plain quick turn takes 0.6. "Blade leads" acts on
+where in the turn the cut's fastest moment falls, not on an angle between blade and body. Nothing of this
+has been seen in Unity, and the three takes have been measured, not watched.
+
