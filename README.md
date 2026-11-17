@@ -5432,3 +5432,38 @@ what I tune"; he did not mean it. Combat Feel's eight movement levers are rename
 `movementLean`, `movementCrouch`; they were `move...`), so the saved values are dropped and each takes its
 value at rest. The Prowl and Strut try buttons are gone from "How he moves": those tries are a fighter's own
 ("Each his own": Prowler, Strutter, Bull), which are not saved into the scene. Not seen in Unity.
+
+**The packs of 17 November looked over for their legs (a survey; nothing in the walk is changed).** Renier
+sent sixteen packs without sword and shield, for the lower body: "find all the animations that are relevant
+for our standard set"; none to be used as it is.
+
+*The tools.* `Tools/Mocap/Combat/pack_survey.py` samples every FBX take of every pack (into a cache outside
+the project) and measures what its legs do, at a Medium's size: pace, the way it goes against where the
+hips face, the hips' height and turn, where the feet are kept (in the hips' own frame), footfalls, whether
+it loops, how busy the hands are. `Tools/Mocap/Combat/packs_survey.csv` is that table for all 812 takes of
+the 33 packs sent so far. `loco_bake.py` can take a take's own front as its facing (`yaw_from='front'`: sets
+shot around where he aims; a character with no eye bones gave its chest's turn for its look).
+`walksurvey` (the test runner) now sets candidates against the guard's stand, their legs under the guard's
+own chest and arms, and sets of four side by side.
+
+*What was found.* The guard stands turned: his hips face 54 degrees to the right of where he looks (68 to
+72 in his side-steps), so for his legs a step toward the enemy is a step sideways and forward. The sword and
+shield pack's own walk forward and back has its hips square (1 degree): that is why it never matched. Sets
+shot around an aim keep the turn as they walk. An archer's walk forward and back (Longbow Locomotion Pack:
+hips turned 70 degrees, 1.1 and 0.9 m/s, hips 5 cm above the stand's) are the advance and the retreat. Also
+found: the archer's four quick dodge steps, a rifleman's walks eight ways (hips level with the stand) and
+crouched walks eight ways, turns of 90 degrees on the spot (four packs), starts and stops (Shooter Pack), a
+goalkeeper's small adjusting steps (two takes of 7 s), runs and sprints. 62 takes are kept as samples
+(`bow_`, `axe_`, `rifle_`, `magic_`, `shooter_`, `keeper_`, `soccer_`); the four walks of the archer, the
+axeman and the caster and the rifleman's eight are baked into `CombatClips.json` as legs to try (not used
+by the walk).
+
+*Measured* (`walksurvey`, each set's legs under the guard's own chest and arms): today's four recordings
+(the pack's own walk forward and back, the guard's side-steps) are 28.6 cm apart as poses between
+neighbouring ways and their carriages 23.7 cm; with the archer's forward and back, 17.0 and 7.8 cm; the
+archer's own four, 20.0 and 9.3; the rifleman's four, 22.2 and 9.3. One headless dance with the archer's
+legs for forward and back and the crouched sneak out (`MoveStyle.StanceWalks`, off; `FIGHT_STANCEWALK=1`,
+`FIGHT_SLOWSIDE=0`): the hips' height by which recording leads 85, 85 and 83 cm, 83 to 84 standing (it was
+74 to 75 on the sneak, 86 to 87 on the walk, 81 to 83 standing); the hips' band 10 to 11 cm (it was 20 to
+22); a rise or sink of 10 cm within 0.3 s once every 10 to 14 s (it was every 5 to 8 s). The mixing itself
+is as it was. Not seen in Unity, and the takes themselves have not been seen: measured only.
