@@ -84,8 +84,11 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How hard he leaps in: the speed of the leap (m/s). The flight is as long as that takes.</summary>
         public float LeapSpeed = 4f;
 
-        /// <summary>How hard his shield arm drives (0 to 1): how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.</summary>
+        /// <summary>How hard his shield arm drives (0 to 1): how quickly the board goes out (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.</summary>
         public float Arm = 0.5f;
+
+        /// <summary>How far his shield arm goes (0 to 1): at 0 a hand's breadth out from its cover; at 1 the board is drawn in to his chest first and then driven out to the arm's whole length, his shield shoulder thrown in behind it (his chest turned up to 40 degrees).</summary>
+        public float Reach = 0.7f;
 
         /// <summary>How much of the speed the board arrives with (his body's and his arm's together) the enemy is shoved back at. Under 1.5 m/s he is shoved a step; from there thrown back stumbling; from 4.5 m/s knocked down.</summary>
         public float Weight = 0.75f;
@@ -109,11 +112,11 @@ namespace PhysicsBattler.Locomotion
         public float Sinks = 0.1f;
         public float Surge = 0.9f;
 
-        public static BashLevers Small() => new BashLevers { Name = "small", MostLeap = 0f, EndsShort = 0.9f, LeapSpeed = 3f, Arm = 0.5f, Weight = 0.6f, Crouch = 1f, Lean = 20f, Height = 0.5f, Prep = 0.15f, Sinks = 0.1f, Surge = 0.9f };
+        public static BashLevers Small() => new BashLevers { Name = "small", Reach = 0.6f, MostLeap = 0f, EndsShort = 0.9f, LeapSpeed = 3f, Arm = 0.5f, Weight = 0.9f, Crouch = 1f, Lean = 20f, Height = 0.5f, Prep = 0.15f, Sinks = 0.1f, Surge = 0.9f };
 
-        public static BashLevers Medium() => new BashLevers { Name = "medium", MostLeap = 1.2f, EndsShort = 0.7f, LeapSpeed = 4f, Arm = 0.65f, Weight = 0.65f, Crouch = 1.1f, Lean = 20f, Height = 0.45f, Prep = 0.18f, Sinks = 0.12f, Surge = 1.2f };
+        public static BashLevers Medium() => new BashLevers { Name = "medium", Reach = 0.8f, MostLeap = 1.2f, EndsShort = 0.7f, LeapSpeed = 4f, Arm = 0.65f, Weight = 0.85f, Crouch = 1.1f, Lean = 20f, Height = 0.45f, Prep = 0.18f, Sinks = 0.12f, Surge = 1.2f };
 
-        public static BashLevers Hard() => new BashLevers { Name = "hard", MostLeap = 2f, EndsShort = 0.1f, LeapSpeed = 6f, Arm = 1f, Weight = 0.9f, GoesThrough = true, Crouch = 1.6f, Lean = 30f, Height = 0.4f, Prep = 0.24f, Sinks = 0.16f, Surge = 1.8f };
+        public static BashLevers Hard() => new BashLevers { Name = "hard", Reach = 1f, MostLeap = 2f, EndsShort = 0.1f, LeapSpeed = 6f, Arm = 1f, Weight = 1.1f, GoesThrough = true, Crouch = 1.6f, Lean = 30f, Height = 0.4f, Prep = 0.24f, Sinks = 0.16f, Surge = 1.8f };
     }
 
     /// <summary>The class of a blow (<see cref="AttackClasses"/>).</summary>

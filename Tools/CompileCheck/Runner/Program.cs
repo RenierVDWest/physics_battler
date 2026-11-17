@@ -106,6 +106,11 @@ internal static class Program
             return ShoveReport.Run();
         }
 
+        if (args.Length >= 1 && args[0] == "walksurvey")
+        {
+            return WalkSurvey.Run();
+        }
+
         if (args.Length >= 1 && args[0] == "gaits")
         {
             return LegRangeReport.Gaits();

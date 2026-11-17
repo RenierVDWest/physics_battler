@@ -1277,7 +1277,8 @@ namespace PhysicsBattler.Sandbox
             b.MostLeap = Lever("Leaps in", b.MostLeap, 0f, 2.5f, "The most he leaps in (metres). 0: he does not leap: he stands, sinks behind his board and his body goes in a little with it.");
             b.EndsShort = Lever("Ends short", b.EndsShort, 0f, 1.2f, "Where his leap ends: this far short of where the other stands (metres). 0: on the other's own spot, all the way into his space. So from 2 m off, with 0.7 here, he leaps 1.3 m (if \"Leaps in\" allows that much).");
             b.LeapSpeed = Lever("Leap speed", b.LeapSpeed, 1.5f, 8f, "How hard he leaps in: the speed of the leap (m/s).");
-            b.Arm = Lever("Arm drive", b.Arm, 0f, 1f, "How hard his shield arm drives: how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead, the board looking at the other.");
+            b.Reach = Lever("Arm reach", b.Reach, 0f, 1f, "How far his shield arm goes. At 0 a hand's breadth out from its cover. At 1 the board is drawn in to his chest first and then driven out to the arm's whole length, his shield shoulder thrown in behind it (his chest turned up to 40 degrees), so the board travels about three times as far.");
+            b.Arm = Lever("Arm drive", b.Arm, 0f, 1f, "How hard his shield arm drives: how quickly the board goes out (0.22 to 0.08 s). Straight ahead, the board looking at the other.");
             b.Weight = Lever("Weight", b.Weight, 0.2f, 2f, "How much of the speed the board arrives with (his body's and his arm's together) the other is shoved back at.");
             GUILayout.BeginHorizontal();
             GUILayout.Label(new GUIContent("After it:", "What he does once his board has met the other. Goes through: he carries on to where his leap ends, into the space the other is thrown out of. Stops: he comes down where he met him."), Styles().Text, GUILayout.Width(80f));
@@ -1304,7 +1305,8 @@ namespace PhysicsBattler.Sandbox
 
             feel.bashStumblesFrom = Lever("Stumbles from", feel.bashStumblesFrom, 0.5f, 4f, "The shove (m/s) from which the other is thrown back stumbling, his guard open and a blow of his own dropped. Under it he is shoved back a step.");
             feel.bashFellsFrom = Lever("Down from", feel.bashFellsFrom, 2f, 9f, "The shove (m/s) from which the other is knocked down.");
-            feel.bashThrows = Lever("Thrown", feel.bashThrows, 0.5f, 3f, "How hard one who is knocked down is thrown, times the shove. The shove times this is what his fall is thrown at: under 9 m/s he goes over about a metre back from where he stood; from 9 he is thrown off his feet and lands some metres back. So at 1.5 a shove of 6 m/s and more throws him.");
+            feel.bashThrows = Lever("Thrown", feel.bashThrows, 0.5f, 3f, "How hard one who is knocked down is thrown, times the shove. The shove times this is what his fall is thrown at: under 9 m/s he goes over about a metre back from where he stood; from 9 he is thrown off his feet and lands some metres back. So at 1.6 a shove of 5.6 m/s and more throws him.");
+            feel.bashArmCounts = Lever("Arm counts", feel.bashArmCounts, 0f, 1f, "How much of the arm's own speed counts in what a bash does, against the speed his body comes in with. 1: as much. 0: his body's speed alone. An arm alone has little behind it; a body arriving has all of him.");
             GUILayout.BeginHorizontal();
             GUILayout.Label(new GUIContent("Too near:", "What a fighter with a shield does when an enemy comes too near him (Combat Feel \"A Shield Bashes What Comes Too Near\"). Bashes (new): he drives his shield and his body into him and shoves him back out of his space. Nothing (old): as it was."), Styles().Text, GUILayout.Width(80f));
             if (Press(feel.aShieldBashesWhatComesTooNear ? "[bashes]" : "bashes", "He bashes an enemy who comes too near.")) feel.aShieldBashesWhatComesTooNear = true;

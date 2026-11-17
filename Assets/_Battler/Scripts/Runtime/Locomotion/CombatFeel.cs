@@ -326,11 +326,14 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how hard he leaps in: the speed of the leap (m/s).")]
         [Range(1.5f, 8f)] public float smallBashLeapSpeed = 3f;
 
-        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how hard his shield arm drives (0 to 1): how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how hard his shield arm drives (0 to 1): how quickly the board goes out (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
         [Range(0f, 1f)] public float smallBashArm = 0.5f;
 
         [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how much of the speed the board arrives with (his body's and his arm's together) the enemy is shoved back at.")]
-        [Range(0.2f, 2f)] public float smallBashWeight = 0.6f;
+        [Range(0.2f, 2f)] public float smallBashWeight = 0.9f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how far his shield arm goes (0 to 1). At 0 a hand's breadth out from its cover; at 1 the board is drawn in to his chest first and then driven out to the arm's whole length, his shield shoulder thrown in behind it.")]
+        [Range(0f, 1f)] public float smallBashReach = 0.6f;
 
         [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): he goes on through: after his board meets the enemy he carries on to where his leap ends, into the space the enemy is thrown out of. Off: he comes down where he met him.")]
         public bool smallBashGoesThrough = false;
@@ -362,11 +365,14 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how hard he leaps in: the speed of the leap (m/s).")]
         [Range(1.5f, 8f)] public float mediumBashLeapSpeed = 4f;
 
-        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how hard his shield arm drives (0 to 1): how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how hard his shield arm drives (0 to 1): how quickly the board goes out (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
         [Range(0f, 1f)] public float mediumBashArm = 0.65f;
 
         [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how much of the speed the board arrives with (his body's and his arm's together) the enemy is shoved back at.")]
-        [Range(0.2f, 2f)] public float mediumBashWeight = 0.65f;
+        [Range(0.2f, 2f)] public float mediumBashWeight = 0.85f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how far his shield arm goes (0 to 1). At 0 a hand's breadth out from its cover; at 1 the board is drawn in to his chest first and then driven out to the arm's whole length, his shield shoulder thrown in behind it.")]
+        [Range(0f, 1f)] public float mediumBashReach = 0.8f;
 
         [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): he goes on through: after his board meets the enemy he carries on to where his leap ends, into the space the enemy is thrown out of. Off: he comes down where he met him.")]
         public bool mediumBashGoesThrough = false;
@@ -398,11 +404,14 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how hard he leaps in: the speed of the leap (m/s).")]
         [Range(1.5f, 8f)] public float hardBashLeapSpeed = 6f;
 
-        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how hard his shield arm drives (0 to 1): how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how hard his shield arm drives (0 to 1): how quickly the board goes out (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
         [Range(0f, 1f)] public float hardBashArm = 1f;
 
         [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how much of the speed the board arrives with (his body's and his arm's together) the enemy is shoved back at.")]
-        [Range(0.2f, 2f)] public float hardBashWeight = 0.9f;
+        [Range(0.2f, 2f)] public float hardBashWeight = 1.1f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how far his shield arm goes (0 to 1). At 0 a hand's breadth out from its cover; at 1 the board is drawn in to his chest first and then driven out to the arm's whole length, his shield shoulder thrown in behind it.")]
+        [Range(0f, 1f)] public float hardBashReach = 1f;
 
         [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): he goes on through: after his board meets the enemy he carries on to where his leap ends, into the space the enemy is thrown out of. Off: he comes down where he met him.")]
         public bool hardBashGoesThrough = true;
@@ -432,7 +441,10 @@ namespace PhysicsBattler.Locomotion
         [Range(2f, 9f)] public float bashFellsFrom = 4.5f;
 
         [Tooltip("The shield bash: how hard the one it knocks down is thrown, times the shove. The shove times this is what the fall is thrown at: under 9 m/s he goes over about a metre back from where he stood; from 9 he is thrown off his feet and lands some metres back.")]
-        [Range(0.5f, 3f)] public float bashThrows = 1.5f;
+        [Range(0.5f, 3f)] public float bashThrows = 1.6f;
+
+        [Tooltip("The shield bash: how much of the arm's own speed counts in what a bash does, against the speed his body comes in with (1: as much; 0: his body's speed alone). An arm alone has little behind it; a body arriving has all of him.")]
+        [Range(0f, 1f)] public float bashArmCounts = 0.4f;
 
         [Tooltip("How much of the shield arm is the cover's while he stands, walks and gestures (0: all the recording's; 1: all the cover's, quite still).")]
         [Range(0f, 1f)] public float shieldCoverHold = 0.85f;
@@ -1100,6 +1112,7 @@ namespace PhysicsBattler.Locomotion
                     b.LeapSpeed = smallBashLeapSpeed;
                     b.Arm = smallBashArm;
                     b.Weight = smallBashWeight;
+                    b.Reach = smallBashReach;
                     b.GoesThrough = smallBashGoesThrough;
                     b.Crouch = smallBashCrouch;
                     b.Lean = smallBashLean;
@@ -1114,6 +1127,7 @@ namespace PhysicsBattler.Locomotion
                     b.LeapSpeed = mediumBashLeapSpeed;
                     b.Arm = mediumBashArm;
                     b.Weight = mediumBashWeight;
+                    b.Reach = mediumBashReach;
                     b.GoesThrough = mediumBashGoesThrough;
                     b.Crouch = mediumBashCrouch;
                     b.Lean = mediumBashLean;
@@ -1128,6 +1142,7 @@ namespace PhysicsBattler.Locomotion
                     b.LeapSpeed = hardBashLeapSpeed;
                     b.Arm = hardBashArm;
                     b.Weight = hardBashWeight;
+                    b.Reach = hardBashReach;
                     b.GoesThrough = hardBashGoesThrough;
                     b.Crouch = hardBashCrouch;
                     b.Lean = hardBashLean;
@@ -1150,6 +1165,7 @@ namespace PhysicsBattler.Locomotion
                     smallBashLeapSpeed = b.LeapSpeed;
                     smallBashArm = b.Arm;
                     smallBashWeight = b.Weight;
+                    smallBashReach = b.Reach;
                     smallBashGoesThrough = b.GoesThrough;
                     smallBashCrouch = b.Crouch;
                     smallBashLean = b.Lean;
@@ -1164,6 +1180,7 @@ namespace PhysicsBattler.Locomotion
                     mediumBashLeapSpeed = b.LeapSpeed;
                     mediumBashArm = b.Arm;
                     mediumBashWeight = b.Weight;
+                    mediumBashReach = b.Reach;
                     mediumBashGoesThrough = b.GoesThrough;
                     mediumBashCrouch = b.Crouch;
                     mediumBashLean = b.Lean;
@@ -1178,6 +1195,7 @@ namespace PhysicsBattler.Locomotion
                     hardBashLeapSpeed = b.LeapSpeed;
                     hardBashArm = b.Arm;
                     hardBashWeight = b.Weight;
+                    hardBashReach = b.Reach;
                     hardBashGoesThrough = b.GoesThrough;
                     hardBashCrouch = b.Crouch;
                     hardBashLean = b.Lean;
@@ -1418,6 +1436,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.BashStumblesFrom = bashStumblesFrom;
             ClipFighter.BashFellsFrom = bashFellsFrom;
             ClipFighter.BashThrows = bashThrows;
+            ClipFighter.BashArmCounts = bashArmCounts;
             ClipFighter.CoverHold = shieldCoverHold;
             ClipFighter.CoverInBlow = shieldCoverInBlow;
             ClipFighter.CoverAt = 0.01f * shieldCoverAt;

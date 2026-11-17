@@ -5390,3 +5390,37 @@ steps back half a metre (his guard's own spacing; the pounce, step 10, is where 
 instead). How far a felled man is thrown is a step, about a metre or about four, because the falls'
 "thrown off his feet" begins at 9 m/s; evening that out belongs to step 9c (stumbles and falls). The fight
 of six and a dance were run once each with this in and ended as they should; no bash came up in that dance.
+
+**From the playtest of 17 November, 11:28: the shield arm reaches; and the walking in the dance looked into
+(research and a plan, nothing of the plan built).** Renier: the bashes are "pretty nice", he "really does
+get in there", but the shield arm itself should extend more, and the arm's slider had little effect. And:
+the walking in the dance stands out as bad; he "lerps into weird positions"; the mix of the forward, back
+and side recordings does not feel balanced; look at the logs, research it from scratch, plan, and show it.
+
+*The shield arm reaches* (`BashLevers.Reach`; Combat Feel "Small / Medium / Hard Bash Reach", 0.6, 0.8, 1;
+the lab's "Arm reach" under each bash). What limited it: the cover already holds the board 30 cm ahead of
+the chest, and a straight arm is only a hand's breadth further, so the old slider could add 12 to 14 cm.
+Now the board is drawn in toward the chest first, the arm goes to its whole length, and the shield shoulder
+is thrown in behind it (the chest turned about the upright by up to 40 degrees, the head left looking where
+it did). Headless, the shield hand's travel ahead of the chest: 12 cm at reach 0, 30 cm at 0.6, 43 to 45 cm
+at 1. "Arm drive" is now only how quickly it goes out. *What a bash does* now counts the arm's own speed
+for 0.4 of the body's (Combat Feel "Bash Arm Counts"; the lab's "Arm counts"): in the playtest a small bash
+with the arm driven at 0.09 s knocked a man down at 5.6 m/s from a stand, on the arm's speed alone, and one
+hard bash read 14.4 m/s off a single step's catching up; the body's speed is now capped at what the leap
+was asked to go. With that the weights are 0.9, 0.85 and 1.1 and "Thrown" 1.6. Headless, once each: small
+from 1.0 m shoves at 1.1 m/s; medium from 1.6 m throws back stumbling at 3.5 m/s; hard from 1.6 and 2.2 m
+knocks down at 6.5 and 6.7 m/s and the other lands 4 m back. Not seen in Unity.
+
+*The walking in the dance.* The finding and the plan are in the document "Convincing walking in the dance"
+(https://claude.ai/artifact/94Vvn9UMLa78XcCougaDLA). In short: the walk mixes recordings of three different
+bodies (the guard's stand and side-steps: hips 85 cm, wide, the left foot ahead, the chest turned; its walk
+forward and back: 9 cm taller, narrow, square; the crouched sneak chosen on 16 November for slow circling:
+13 to 16 cm lower), and the dance changes the mix about once a second and never finishes a step. Measured in
+the playtest: the hips of a standing or walking fighter over a band of 21 cm, and rising or sinking 10 cm or
+more within 0.3 s once every 3 to 4 s. The plan: a footwork course and its meter; one carriage for every
+step; whole steps, changed only at a landing; calmer feet in the dance; legs turned for diagonals in place
+of a mix; the tall walk for far only. Two tools came of it: `walksurvey` (the test runner: every recording
+the walk uses, its pace, hips' height, stance, and how far apart each two are as poses), and the film's own
+walk state (`FIGHT_FILM` now writes, each step, which recordings are mixed and how much, the phase, pace,
+way of travel, the levers' crouch and lean, and how far the last switch still carries the pose off), read
+by a script kept outside the project. `Locomotor.LeversShown` and `SwitchOffsetNow` are for those reports.

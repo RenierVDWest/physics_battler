@@ -5253,12 +5253,15 @@ namespace PhysicsBattler.Locomotion
         public static float BashStumblesFrom = 1.5f, BashFellsFrom = 4.5f;
 
         /// <summary>How hard a bash throws the one it knocks down, times its shove: at 1 he goes over about where he stood; the shove times this from 9 m/s up, he is thrown off his feet and lands some metres back (the falls' own "thrown").</summary>
-        public static float BashThrows = 1.5f;
+        public static float BashThrows = 1.6f;
+
+        /// <summary>How much of the arm's own speed counts in what a bash does, against the body's (1: as much; 0: the body's speed alone).</summary>
+        public static float BashArmCounts = 0.4f;
 
         /// <summary>The bash in time (seconds): drawn in, held out, brought back; how far up the board goes as it is driven (metres); how near the board's middle must come to the enemy to meet him, and how far ahead of his own middle the board is carried in its cover (metres, flat).</summary>
         public const float BashWind = 0.1f, BashHeld = 0.2f, BashBack = 0.3f, BashUp = 0.05f, BashMeets = 0.46f, BashCarried = 0.45f;
 
-        private float bashFor = -1f, bashReadyAt, bashDriveAt, bashDriveTime, bashOutFar, bashEnds, bashLeapt, bashLeaptAt;
+        private float bashFor = -1f, bashReadyAt, bashDriveAt, bashDriveTime, bashOutFar, bashDrawIn, bashShoulder, bashEnds, bashLeapt, bashLeaptAt;
         private BashLevers bashKind;
         private ClipFighter bashAt;
         private bool bashStruck, bashSurged, bashBoardKnown;
@@ -5327,7 +5330,12 @@ namespace PhysicsBattler.Locomotion
             float gap = at != null ? to.magnitude : float.MaxValue;
             bashWay = at != null && gap > 1e-3f ? to / gap : ahead;
             float arm = Mathf.Clamp01(levers.Arm);
-            bashOutFar = Mathf.Lerp(0.14f, 0.4f, arm);
+            // (How far the arm goes: drawn in toward his chest first, then out to its whole length, his shield shoulder
+            // thrown in behind it. How hard it drives is how quickly.)
+            float armReach = Mathf.Clamp01(levers.Reach);
+            bashOutFar = Mathf.Lerp(0.18f, 0.5f, armReach);
+            bashDrawIn = Mathf.Lerp(0.05f, 0.22f, armReach);
+            bashShoulder = Mathf.Lerp(8f, 40f, armReach);
             bashDriveTime = Mathf.Lerp(0.22f, 0.08f, arm);
             // (How far he leaps: to where this bash ends, so far short of where the enemy stands, and no further than its most.)
             float far = at != null ? Mathf.Clamp(gap / Size - levers.EndsShort, 0f, levers.MostLeap) : levers.MostLeap;
@@ -5457,7 +5465,12 @@ namespace PhysicsBattler.Locomotion
 
                         // (A board pressed against him goes no faster than he gives way: it comes in at least as fast as the
                         // body behind it does.)
-                        fastest = Mathf.Max(fastest, Vector3.Dot(Flat(Loco.Velocity), bashWay));
+                        // (His body's own speed in: no more than his leap was asked to go, whatever one step's catching up
+                        // made of it. And the arm's share of the board's speed counts for less than the body's: an arm
+                        // alone has little behind it, a body arriving has all of him.)
+                        float body = Mathf.Clamp(Vector3.Dot(Flat(Loco.Velocity), bashWay), 0f, bashLeapt > 0f ? 1.2f * bashLeaptAt * Size : 1.5f * bashKind.Surge * Mathf.Sqrt(Size));
+                        fastest = Mathf.Max(fastest, body);
+                        fastest = body + BashArmCounts * (fastest - body);
                         float closing = Mathf.Max(0f, fastest - Vector3.Dot(Flat(enemy.Loco.Velocity), way));
                         float shove = bashKind.Weight * closing * Mathf.Sqrt(Mass / Mathf.Max(1f, enemy.Mass));
                         BashesLanded++;
@@ -5632,8 +5645,17 @@ namespace PhysicsBattler.Locomotion
                     // (The bash: the board brought before his middle and driven straight ahead into the enemy, looking at
                     // him, a little up: not across like a cut.)
                     float outNow = BashOutNow, square = Mathf.Clamp01(Mathf.Abs(outNow) * 4f);
+                    // (His shield shoulder goes with it: drawn back with the board, then thrown in behind it, his chest
+                    // turned about the upright and his head left looking where it did. An arm alone reaches a hand's
+                    // breadth past its cover; the shoulder behind it is what carries the board into the enemy.)
+                    float thrown = bashShoulder * (outNow >= 0f ? outNow : 2f * outNow);
+                    var chestPart = Anim.Part(PartId.Chest);
+                    var headPart = Anim.Part(PartId.Head);
+                    var headWas = headPart.rotation;
+                    chestPart.rotation = Quaternion.AngleAxis(thrown, Vector3.up) * chestPart.rotation;
+                    headPart.rotation = headWas;
                     Vector3 before = new Vector3(Mathf.Lerp(CoverAt.x, 0f, square), CoverAt.y, CoverAt.z);
-                    boardAt = chest + rootTurn * ((before + new Vector3(0f, BashUp * Mathf.Max(0f, outNow), bashOutFar * outNow)) * Size);
+                    boardAt = chest + rootTurn * ((before + new Vector3(0f, BashUp * Mathf.Max(0f, outNow), outNow >= 0f ? bashOutFar * outNow : bashDrawIn * 4f * outNow)) * Size);
                     face = Vector3.Slerp(face, (bashWay + 0.05f * Vector3.up).normalized, square);
                 }
                 Vector3 boardFromHand = -face * (0.08f * Size);
@@ -5801,7 +5823,8 @@ namespace PhysicsBattler.Locomotion
                 MostShort = Mathf.Max(MostShort, short_);
             }
 
-            want = upper.position + Vector3.ClampMagnitude(want - upper.position, reach);
+            // (In a bash the arm goes to its whole length.)
+            want = upper.position + Vector3.ClampMagnitude(want - upper.position, Bashing ? reach * 0.98f / 0.9f : reach);
             // (Held in the body's own frame, so it goes with the body as it steps and turns; and moved there as an arm
             // moves, speeding up and settling in (a critically damped spring, the scene's Combat Feel's settle time), never
             // faster than the arm can: it doesn't jerk from place to place.)

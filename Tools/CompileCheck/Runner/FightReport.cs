@@ -1346,6 +1346,19 @@ internal static class FightReport
                                 var rawHands = u.Clip.Loco.RawPoints;
                                 Vector3 rawR = rawHands[(int)PhysicsBattler.Locomotion.LocoBone.RightHand], rawL = rawHands[(int)PhysicsBattler.Locomotion.LocoBone.LeftHand];
                                 filmRef += "\"rawh\":[" + rawR.x.ToString("0.000", inv) + "," + rawR.y.ToString("0.000", inv) + "," + rawR.z.ToString("0.000", inv) + "," + rawL.x.ToString("0.000", inv) + "," + rawL.y.ToString("0.000", inv) + "," + rawL.z.ToString("0.000", inv) + "],\"arms\":" + u.Clip.Poser.ClipArms.ToString("0.00", inv) + ",";
+                                {
+                                    // (The walk's own state: which cycles it blends and how much of each, its phase, pace, the way it travels, its levers' crouch and lean, and how far the last switch still carries it off.)
+                                    var wl = u.Clip.Loco;
+                                    var wb = new System.Text.StringBuilder();
+                                    foreach (var (bc, bw) in wl.Blend)
+                                    {
+                                        wb.Append(bc.Name).Append(':').Append(bw.ToString("0.00", inv)).Append(';');
+                                    }
+
+                                    var wlev = wl.LeversShown;
+                                    filmRef += "\"blend\":\"" + wb + "\",\"ph\":" + wl.Phase.ToString("0.000", inv) + ",\"spd\":" + wl.Velocity.magnitude.ToString("0.00", inv) + ",\"want\":" + wl.Wanted.magnitude.ToString("0.00", inv) + ",\"ang\":" + wl.TravelAngle.ToString("0", inv) + ",\"crouch\":" + (wlev.Crouch * PhysicsBattler.Locomotion.Locomotor.ClipLeg * 100f).ToString("0.0", inv) + ",\"lean\":" + wlev.Lean.ToString("0.0", inv) + ",\"sw\":" + wl.Switches + ",\"off\":" + wl.SwitchOffsetNow.ToString("0.000", inv) + ",\"ss\":" + wl.StrideScale.ToString("0.00", inv) + ",\"cad\":" + wl.Cadence.ToString("0.00", inv) + ",\"face\":" + wl.Facing.ToString("0.0", inv) + ",";
+                                }
+
                                 filmLine.Append("{").Append(filmRef).Append("\"t\":").Append(paceAt.ToString("0.000", inv)).Append(",\"u\":\"").Append(u.name).Append("\",\"doing\":\"").Append(u.Clip.Loco.Current).Append(u.Clip.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && u.Clip.Loco.Shot != null ? " " + u.Clip.Loco.Shot.Name : "").Append("\",\"p\":[");
                                 foreach (var id in PartInfo.All)
                                 {
@@ -1506,8 +1519,11 @@ internal static class FightReport
                         float EnvB(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
                         PhysicsBattler.Locomotion.ClipFighter.BashWithin = EnvB("FIGHT_BASHWITHIN", PhysicsBattler.Locomotion.ClipFighter.BashWithin);
                         PhysicsBattler.Locomotion.ClipFighter.BashThrows = EnvB("FIGHT_BASHTHROWS", PhysicsBattler.Locomotion.ClipFighter.BashThrows);
+                        PhysicsBattler.Locomotion.ClipFighter.BashArmCounts = EnvB("FIGHT_BASHARMCOUNTS", PhysicsBattler.Locomotion.ClipFighter.BashArmCounts);
                         string bashKindAsked = (Environment.GetEnvironmentVariable("FIGHT_BASHKIND") ?? "small").Trim().ToLowerInvariant();
                         int bashKind = bashKindAsked == "hard" ? 2 : bashKindAsked == "medium" ? 1 : 0;
+                        // (FIGHT_BASHREACH: that bash's arm reach, 0 to 1.)
+                        PhysicsBattler.Locomotion.ClipFighter.BashKinds[bashKind].Reach = EnvB("FIGHT_BASHREACH", PhysicsBattler.Locomotion.ClipFighter.BashKinds[bashKind].Reach);
                         foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_BASHAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                         {
                             if (!float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bashAt) || duel.Mover == null || duel.Mover.Clip == null || duel.Other == null || duel.Other.Clip == null)

@@ -534,6 +534,22 @@ namespace PhysicsBattler.Locomotion
         /// <summary>His own levers (<see cref="FighterLevers"/>; null: he moves by everyone's).</summary>
         public FighterLevers Own;
 
+        /// <summary>For the reports: the levers his movement is put together with now, and how far the furthest point is still carried off its motion by the last switch (metres).</summary>
+        public MoveLevers LeversShown => LeversNow();
+        public float SwitchOffsetNow
+        {
+            get
+            {
+                float most = 0f;
+                for (int i = 0; i < offset.Length; i++)
+                {
+                    most = Mathf.Max(most, offset[i].magnitude);
+                }
+
+                return most;
+            }
+        }
+
         /// <summary>The levers his movement is put together with now: everyone's, his own laid on them, and what a drop of his adds.</summary>
         private MoveLevers LeversNow()
         {
