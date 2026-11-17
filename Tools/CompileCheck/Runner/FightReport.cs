@@ -707,6 +707,8 @@ internal static class FightReport
         // (FIGHT_SHIELDCOVER=0: the shield arm is the recording's, as it was. FIGHT_BASH=0: no shield bash. In any fight.)
         PhysicsBattler.Locomotion.ClipFighter.ShieldCover = Environment.GetEnvironmentVariable("FIGHT_SHIELDCOVER") != "0";
         PhysicsBattler.Locomotion.ClipFighter.ShieldBash = Environment.GetEnvironmentVariable("FIGHT_BASH") != "0";
+        // (FIGHT_FAKESDRAW=1: a guard goes to meet a fake, as it did.)
+        PhysicsBattler.Locomotion.ClipFighter.FakesDrawNoGuard = Environment.GetEnvironmentVariable("FIGHT_FAKESDRAW") != "1";
         // (FIGHT_CLASSES=0: every blow is the plain one.)
         PhysicsBattler.Locomotion.AttackClasses.On = Environment.GetEnvironmentVariable("FIGHT_CLASSES") != "0";
         PhysicsBattler.Sandbox.FakeTest fakeTest = null;
@@ -726,6 +728,7 @@ internal static class FightReport
         int[] ownN = new int[2]; float[] ownHips = new float[2], ownLean = new float[2], ownLow = { 9f, 9f }, ownHigh = { -9f, -9f }, ownFoot = new float[2];
         float ownDropAt = -1f, ownDropFrom = 0f, ownDropLow = 0f;
         int[,] coverN = new int[2, 4], coverLooks = new int[2, 4];
+        bool shieldDumped = false;
         Vector3[,] coverSum = new Vector3[2, 4], coverSq = new Vector3[2, 4];
         float[,] coverOff = new float[2, 4], coverOpen = new float[2, 4], coverBelly = new float[2, 4];
         string openedTold = "none watched yet";
@@ -1517,6 +1520,15 @@ internal static class FightReport
                             if (c.Fallen || !c.ShieldBoard(out Vector3 centre, out Vector3 normal, out _))
                             {
                                 continue;
+                            }
+
+                            if (!shieldDumped && Environment.GetEnvironmentVariable("FIGHT_SHIELDDUMP") == "1" && c.Rig.SlotWeaponL != null)
+                            {
+                                // (How the board sits on the hand: for reading a playtest's logged hand as a board.)
+                                shieldDumped = true;
+                                var handT = c.Rig.Part(PartId.HandL).transform;
+                                Vector3 cLocal = handT.InverseTransformPoint(centre), nLocal = handT.InverseTransformDirection(normal);
+                                Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "SHIELDDUMP board centre in the hand's frame ({0:0.000}, {1:0.000}, {2:0.000}); its normal there ({3:0.000}, {4:0.000}, {5:0.000}); slot parent {6}", cLocal.x, cLocal.y, cLocal.z, nLocal.x, nLocal.y, nLocal.z, c.Rig.SlotWeaponL.parent != null ? c.Rig.SlotWeaponL.parent.name : "none"));
                             }
 
                             var back = Quaternion.Inverse(Quaternion.Euler(0f, c.Loco.Facing, 0f));

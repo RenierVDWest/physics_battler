@@ -305,6 +305,9 @@ namespace PhysicsBattler.Locomotion
         [Range(1f, 3f)] public float heavyBlowPower = 1.6f;
 
         [Header("The shield's cover")]
+        [Tooltip("A fake draws no guard. A fighter's shield (or his parry) goes to meet only a real blow: a fake of the other's, which stops short of its drive, does not take it from its cover. Off: a fake is read as the blow it begins as, and the guard goes to meet it, as it did: with both fighters faking every second and a half, their shields were out of their cover a third of the time, and two thirds of those times it was for a fake.")]
+        public bool aFakeDrawsNoGuard = true;
+
         [Tooltip("The shield is held in cover. Whatever the body is doing (standing, walking, a gesture of the sword arm, a blow of his own) the board is held before his chest where it covers him best, looking at the enemy. It goes with the body as it steps, sways and rises, and keeps a little of what the recording has the arm do, so it is not stiff; but it stays in place. It leaves there only to meet a blow, and comes back. Off: the shield arm is the recording's, as it was: it swung open in every cut and in every fake of one.")]
         public bool theShieldIsHeldInCover = true;
 
@@ -1187,6 +1190,7 @@ namespace PhysicsBattler.Locomotion
             OpeningTaker.Quickest = quickestOpeningBlow;
             ClipFighter.PostureCommitsShield = aSwordFakeTakesTheShield;
             ClipFighter.ShieldCover = theShieldIsHeldInCover;
+            ClipFighter.FakesDrawNoGuard = aFakeDrawsNoGuard;
             AttackClasses.On = blowsAreLightOrHeavy;
             AttackClasses.LightPower = lightBlowPower;
             AttackClasses.HeavyPower = heavyBlowPower;

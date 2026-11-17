@@ -3936,6 +3936,14 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static bool PostureCommitsShield = false;
 
+        /// <summary>
+        /// A fake draws no guard (Combat Feel "A Fake Draws No Guard"). A fighter's shield (or his parry) goes to meet
+        /// only a real blow: a fake of the other's, which stops short of its drive, does not take it from its cover.
+        /// Off: a fake is read as the blow it begins as, and the guard goes to meet it, as it did (in the playtest of
+        /// 17 November two thirds of the times a shield left its cover it was for a fake).
+        /// </summary>
+        public static bool FakesDrawNoGuard = true;
+
         /// <summary>A posture of his own is playing (a feint, a fake lunge), standing or over his walk.</summary>
         public bool Posturing => Made != null && Made.Posture && Loco.Shot == Made.Clip && (Loco.Current == Locomotor.Mode.OneShot || Loco.ShotOverWalk);
 
