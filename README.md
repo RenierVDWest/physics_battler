@@ -5815,7 +5815,8 @@ of 178 degrees was a way round it; what broke his legs is found and mended, and 
   "Lunge", 0.3 to 1.8). For a lunge that is a longer or shorter step. A cut made turning round has a turn's
   legs: its feet's travel is the way they go round him. Multiplied, each foot was left part of the way
   round, or sent past it. With the other straight behind him the plan was short of him, the travel was
-  multiplied, and the clip that was made ended with his left foot a fifth of a leg's length behind him and
+  multiplied (cut short, by where his feet ended; the multiplier itself was not read out), and the clip that
+  was made ended with his left foot a fifth of a leg's length behind him and
   his right as far before him, in one line, where his stand has the left two fifths before him and a
   quarter to its side: his body right round, his feet near where they began. Found by writing the made clip out (`FIGHT_CLIPDUMP`) and reading
   its feet frame by frame (a script kept outside the project): the same turn at 150 degrees ended on his
