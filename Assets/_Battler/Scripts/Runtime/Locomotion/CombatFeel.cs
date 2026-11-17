@@ -291,8 +291,40 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A change of guard: how much lower a low guard carries the sword arm (degrees).")]
         [Range(10f, 45f)] public float guardLowDrop = 25f;
 
-        [Tooltip("A fake commits the shield. On: while a fighter is in a fake of his own (a feint, a fake lunge) his shield stays where the fake has it and does not go to meet a blow, so the opening the fake leaves is a real one, and a fake costs something. Off: his shield meets a blow in the middle of his own fake as readily as from his guard, as it did.")]
-        public bool aFakeCommitsTheShield = true;
+        [Tooltip("A sword fake takes the shield with it. Off (as it is): a fake is the sword arm's alone; the shield stays in its cover and goes to meet a blow in the middle of the fake as readily as at any other time. On: while a fighter is in a fake of his own (a feint, a fake lunge) his shield does not go to meet a blow, so a fake costs him his cover (as it was when a fake swung the shield open).")]
+        public bool aSwordFakeTakesTheShield = false;
+
+        [Header("Light and heavy blows")]
+        [Tooltip("Blows are light or heavy. A light blow is fast and less powerful: little wind-up, a short blow from the guard, back at once. A heavy blow is slow and powerful: wound far back and slowly, thrown from the hips, carried all the way through; its long wind-up is there to be seen, and to be struck into by a light blow from one who is in reach. The same recorded cut is made either way. In the dance a fighter's own blow after his tell is heavy or light by how he fights, and every blow thrown to take a chance is light. Off: every blow is the plain one, as it was. The fight's own blows are still plain: only the duel lab throws the two classes so far.")]
+        public bool blowsAreLightOrHeavy = true;
+
+        [Tooltip("How hard a light blow lands, against a plain one: what it knocks, harms and takes of the other's poise is times this.")]
+        [Range(0.2f, 1f)] public float lightBlowPower = 0.6f;
+
+        [Tooltip("How hard a heavy blow lands, against a plain one.")]
+        [Range(1f, 3f)] public float heavyBlowPower = 1.6f;
+
+        [Header("The shield's cover")]
+        [Tooltip("The shield is held in cover. Whatever the body is doing (standing, walking, a gesture of the sword arm, a blow of his own) the board is held before his chest where it covers him best, looking at the enemy. It goes with the body as it steps, sways and rises, and keeps a little of what the recording has the arm do, so it is not stiff; but it stays in place. It leaves there only to meet a blow, and comes back. Off: the shield arm is the recording's, as it was: it swung open in every cut and in every fake of one.")]
+        public bool theShieldIsHeldInCover = true;
+
+        [Tooltip("A shield bashes what comes too near. An enemy on his feet within the bash distance of a fighter with a shield, and before him, is driven out of his space: he sinks a little behind the board, drives it and his body forward, and the enemy is shoved back stumbling, his guard open for a moment and whatever blow he was in dropped. Not while his shield is meeting a blow, in a blow of his own, or down; and no sooner than 2.5 s after his last. Off: no bash, as it was.")]
+        public bool aShieldBashesWhatComesTooNear = true;
+
+        [Tooltip("How near an enemy must come to be bashed (metres, root to root, at a Medium's size). A blow reaches at about 1.5 m, and a blow on the move steps in to about 1 m.")]
+        [Range(0.6f, 1.6f)] public float shieldBashWithin = 1.2f;
+
+        [Tooltip("The speed the bashed enemy is shoved back with (m/s).")]
+        [Range(0.5f, 5f)] public float shieldBashShove = 2.6f;
+
+        [Tooltip("How much of the shield arm is the cover's while he stands, walks and gestures (0: all the recording's; 1: all the cover's, quite still).")]
+        [Range(0f, 1f)] public float shieldCoverHold = 0.85f;
+
+        [Tooltip("How much of the shield arm is the cover's in a real blow of his own (0: it swings as the recording has it; 1: it does not move for the blow).")]
+        [Range(0f, 1f)] public float shieldCoverInBlow = 0.7f;
+
+        [Tooltip("Where the cover holds the middle of the board, from the chest: to his right (below 0: to his left, the shield's side), up, and ahead (cm at a Medium's size).")]
+        public Vector3 shieldCoverAt = new Vector3(-8f, -10f, 30f);
 
         [Tooltip("The fakes test (duel lab): how far into the attack's wind-up the target's short fake slash goes (of a feint's own depth). At 0.45 it leaves his chest covered.")]
         [Range(0.2f, 0.8f)] public float shortFakeDepth = 0.45f;
@@ -1153,7 +1185,17 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.UncoverTell = uncoverTell;
             PostureMaker.UncoverFor = uncoverOpenFor;
             OpeningTaker.Quickest = quickestOpeningBlow;
-            ClipFighter.PostureCommitsShield = aFakeCommitsTheShield;
+            ClipFighter.PostureCommitsShield = aSwordFakeTakesTheShield;
+            ClipFighter.ShieldCover = theShieldIsHeldInCover;
+            AttackClasses.On = blowsAreLightOrHeavy;
+            AttackClasses.LightPower = lightBlowPower;
+            AttackClasses.HeavyPower = heavyBlowPower;
+            ClipFighter.ShieldBash = aShieldBashesWhatComesTooNear;
+            ClipFighter.BashWithin = shieldBashWithin;
+            ClipFighter.BashShove = shieldBashShove;
+            ClipFighter.CoverHold = shieldCoverHold;
+            ClipFighter.CoverInBlow = shieldCoverInBlow;
+            ClipFighter.CoverAt = 0.01f * shieldCoverAt;
             FighterLevers.On = eachFighterHasHisOwnLevers;
             Locomotor.WalksOn = aWalkKeptUpIsWalkedNotStepped;
             Locomotor.SlowSide = slowSideWalk;

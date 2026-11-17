@@ -14,6 +14,9 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>The blade's bluffs and the shield's press; a drop of the hips.</summary>
         BladeDip, BladeFlick, BladeCircle, ShieldPress, Drop,
+
+        /// <summary>A dodge: he ducks and leans aside, and comes back up.</summary>
+        Dodge,
     }
 
     /// <summary>
@@ -27,8 +30,11 @@ namespace PhysicsBattler.Sandbox
     {
         public string Name = "Plain";
 
-        /// <summary>The gestures thrown before the tell, in turn, round and round.</summary>
-        public Gesture[] Fillers = { Gesture.ShortFake };
+        /// <summary>The gestures thrown before the tell, in turn, round and round. All the sword arm's or the body's: the shield keeps its cover.</summary>
+        public Gesture[] Fillers = { Gesture.BladeDip, Gesture.ShortFake };
+
+        /// <summary>The parts his blows go for, in turn: of those not covered as he strikes, the next; all covered, the next whatever.</summary>
+        public AimSpot[] Spots = { AimSpot.Head, AimSpot.ThighR, AimSpot.ShoulderR, AimSpot.ShinL };
 
         /// <summary>How many of them come before the tell.</summary>
         public int Count = 2;
@@ -52,7 +58,13 @@ namespace PhysicsBattler.Sandbox
                     kinds.Add(Dance.Name(g));
                 }
 
-                return (MixedUp ? "one to three of " : Count + " of ") + string.Join(" / ", kinds) + ", then " + Dance.Name(Tell) + ", then his blow"
+                var parts = new List<string>();
+                foreach (var spot in Spots)
+                {
+                    parts.Add(AimSpots.Name(spot));
+                }
+
+                return (MixedUp ? "one to three of " : Count + " of ") + string.Join(" / ", kinds) + ", then " + Dance.Name(Tell) + ", then his blow, at the " + string.Join(", ", parts) + " in turn (whichever is not covered)"
                     + string.Format(System.Globalization.CultureInfo.InvariantCulture, "; a gesture every {0:0.0} s", Beat) + (MixedUp ? "; mixed up" : "; always the same");
             }
         }
@@ -63,14 +75,17 @@ namespace PhysicsBattler.Sandbox
             switch ((name ?? "").Trim().ToLowerInvariant())
             {
                 case "prowler":
-                    // (Quick small feelers, then he sinks before he springs.)
-                    return new GesturePattern { Name = "Prowler", Fillers = new[] { Gesture.BladeFlick, Gesture.ShortFake }, Count = 3, Tell = Gesture.Drop, Beat = 1.2f, BlowAfter = 0.45f };
+                    // (Quick small feelers, then he sinks before he springs: low, at the legs and feet.)
+                    return new GesturePattern { Name = "Prowler", Fillers = new[] { Gesture.BladeFlick, Gesture.Dodge, Gesture.BladeDip, Gesture.ShortFake }, Count = 3, Tell = Gesture.Drop, Beat = 1.2f, BlowAfter = 0.45f,
+                        Spots = new[] { AimSpot.ShinL, AimSpot.ThighR, AimSpot.FootR, AimSpot.ThighL, AimSpot.ShinR, AimSpot.Head } };
                 case "strutter":
-                    // (Showy: blade circles and short fakes, and a long fake slash before the real one.)
-                    return new GesturePattern { Name = "Strutter", Fillers = new[] { Gesture.BladeCircle, Gesture.ShortFake }, Count = 2, Tell = Gesture.LongFake, Beat = 1.6f, BlowAfter = 1.2f };
+                    // (Showy: a blade circle, a dip and a short fake, and a long fake slash before the real one: high, at the head and shoulders.)
+                    return new GesturePattern { Name = "Strutter", Fillers = new[] { Gesture.BladeCircle, Gesture.BladeDip, Gesture.ShortFake }, Count = 3, Tell = Gesture.LongFake, Beat = 1.5f, BlowAfter = 1.2f,
+                        Spots = new[] { AimSpot.Head, AimSpot.ShoulderR, AimSpot.Neck, AimSpot.UpperArmR, AimSpot.ThighR } };
                 case "bull":
-                    // (Few frills: he presses with his shield, and his point dips before he cuts.)
-                    return new GesturePattern { Name = "Bull", Fillers = new[] { Gesture.ShieldPress }, Count = 2, Tell = Gesture.BladeDip, Beat = 1.9f, BlowAfter = 0.3f };
+                    // (Few frills: two flicks of the point, and it dips before he cuts: at the body and the thighs.)
+                    return new GesturePattern { Name = "Bull", Fillers = new[] { Gesture.BladeFlick }, Count = 2, Tell = Gesture.BladeDip, Beat = 1.9f, BlowAfter = 0.3f,
+                        Spots = new[] { AimSpot.ThighR, AimSpot.Belly, AimSpot.ShoulderR, AimSpot.ThighL, AimSpot.Hips } };
                 default:
                     return new GesturePattern();
             }
@@ -121,11 +136,27 @@ namespace PhysicsBattler.Sandbox
         /// <summary>As it met: the other was in the middle of a fake of his own (his shield committed); the other was covering (he expected it).</summary>
         public bool CaughtInFake, Expected;
 
+        /// <summary>As it met, the other was winding up a blow of his own that had not landed yet.</summary>
+        public bool CaughtWinding;
+
         public bool Landed => Met && !Shield && !Parried;
 
-        public string Verdict => (Why == "pattern" ? "his pattern's blow" : Why == "read" ? "thrown by what he has read" : Why == "answer" ? "his answer to a blow he stopped" : "thrown at a chest he saw open")
+        /// <summary>Its class (light, heavy; plain with the classes off), and how long after it was asked for its blade was to land (seconds).</summary>
+        public AttackClass Kind;
+        public float LandsIn;
+
+        /// <summary>What it did as it landed: the speed of the blade, and the harm.</summary>
+        public float Speed, Harm;
+
+        /// <summary>The part it was thrown at.</summary>
+        public AimSpot Spot = AimSpot.Chest;
+
+        /// <summary>It landed on the part it was thrown at.</summary>
+        public bool OnSpot => Landed && AimSpots.Counts(Spot, Part);
+
+        public string Verdict => (Kind == AttackClass.Plain ? "" : "a " + AttackClasses.Name(Kind) + " blow ") + "at the " + AimSpots.Name(Spot) + ", " + (Why == "stop" ? "thrown into the other's wind-up" : Why == "pattern" ? "his pattern's blow" : Why == "read" ? "thrown by what he has read" : Why == "answer" ? "his answer to a blow he stopped" : "thrown at a chest he saw open")
             + ": " + (!Met ? "met nothing" : Shield ? "met the shield" : Parried ? "was parried" : "LANDED on the " + Part)
-            + (Met && CaughtInFake ? " (the other was in a fake of his own)" : "") + (Met && Expected ? " (the other expected it and was covering)" : "")
+            + (Met && CaughtInFake ? " (the other was in a fake of his own)" : "") + (Met && CaughtWinding ? " (the other was still winding up his own)" : "") + (Met && Expected ? " (the other expected it and was covering)" : "")
             + (How.Length > 0 ? ". " + How : "");
     }
 
@@ -162,7 +193,7 @@ namespace PhysicsBattler.Sandbox
 
         // ---- His own pattern, as it goes ----
         internal float nextAt = -1f, blowAt = -1f, lastMet = -10f, restUntil;
-        internal int place, planned = -1;
+        internal int place, planned = -1, spotTurn;
         internal bool tellThrown;
         internal DanceBlow blow;
 
@@ -175,7 +206,14 @@ namespace PhysicsBattler.Sandbox
         internal int knownCount;
 
         // ---- What he expects ----
-        internal float coverFrom = -1f, coverUntil = -1f, expectedAt, pausedAt = -1f, answerAt = -1f;
+        internal float coverFrom = -1f, coverUntil = -1f, expectedAt, pausedAt = -1f, answerAt = -1f, stopAt = -1f, dodgeAt = -1f;
+
+        /// <summary>Blows he threw into the other's wind-up; dodges he threw at a blow he saw coming.</summary>
+        public int StopHits, DodgedBlows;
+
+        /// <summary>His blows by class (light, heavy): thrown, landed, and what the landed ones did in all (blade speed, harm).</summary>
+        public readonly int[] ClassThrown = new int[3], ClassLanded = new int[3];
+        public readonly float[] ClassLandsIn = new float[3], ClassSpeed = new float[3], ClassHarm = new float[3];
         internal bool expectedCame, coverByTell;
         internal int openRun;
         internal float openRunAt, runFrom;
@@ -189,6 +227,10 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>Blows of his that landed on the other's body, that met its shield or sword, that met nothing; blows of the other's that landed on him.</summary>
         public int Landed, Stopped, Missed, Taken;
+
+        /// <summary>Of his blows that landed: how many on the part they were thrown at; and where they landed, counted by part.</summary>
+        public int OnSpot;
+        public readonly Dictionary<PartId, int> LandedOn = new Dictionary<PartId, int>();
 
         /// <summary>Of the blows that landed on him: how many while he was in a fake of his own; how many of the other's blows he had expected.</summary>
         public int CaughtInFake, ExpectedBlows, CoveredForNothing, ReadBlows;
@@ -218,7 +260,11 @@ namespace PhysicsBattler.Sandbox
         // ---- His feet (the dance's third part) ----
         internal float spellUntil, outUntil, gaveGround, tempoFor;
         internal int circling, lastSide = 1;
-        internal bool wantsIn;
+        internal bool wantsIn, wantedIn;
+        internal float leaptForCover = -1f, leapUntil;
+
+        /// <summary>Leaps in for a blow and leaps out from one he expected, so far.</summary>
+        public int LeaptIn, LeaptOut;
 
         /// <summary>What he is about, by the gap and by how the fight is going: coming in, probing, pressing, shelled up.</summary>
         public string Tempo = "";
@@ -367,6 +413,7 @@ namespace PhysicsBattler.Sandbox
                 case Gesture.BladeFlick: return "a blade flick";
                 case Gesture.BladeCircle: return "a blade circle";
                 case Gesture.ShieldPress: return "a shield press";
+                case Gesture.Dodge: return "a dodge";
                 default: return "a drop";
             }
         }
@@ -391,6 +438,17 @@ namespace PhysicsBattler.Sandbox
                 d.Note = "";
                 d.Landed = d.Stopped = d.Missed = d.Taken = d.CaughtInFake = d.ExpectedBlows = d.CoveredForNothing = d.ReadBlows = d.Answered = d.TakenAnswers = 0;
                 d.answerAt = d.pausedAt = -1f;
+                d.OnSpot = d.spotTurn = d.LeaptIn = d.LeaptOut = d.StopHits = d.DodgedBlows = 0;
+                d.stopAt = d.dodgeAt = -1f;
+                System.Array.Clear(d.ClassThrown, 0, 3);
+                System.Array.Clear(d.ClassLanded, 0, 3);
+                System.Array.Clear(d.ClassLandsIn, 0, 3);
+                System.Array.Clear(d.ClassSpeed, 0, 3);
+                System.Array.Clear(d.ClassHarm, 0, 3);
+                d.leaptForCover = -1f;
+                d.leapUntil = 0f;
+                d.wantedIn = false;
+                d.LandedOn.Clear();
                 d.spellUntil = d.outUntil = d.gaveGround = d.Walked = 0f;
                 d.circling = 0;
                 d.wantsIn = d.lastAtKnown = false;
@@ -480,6 +538,9 @@ namespace PhysicsBattler.Sandbox
             blow.Parried = hit.Parried;
             blow.Part = hit.Part;
             blow.CaughtInFake = foe.Now != null && !foe.Now.Over && foe.Now.Commits;
+            blow.Speed = hit.Speed;
+            blow.Harm = hit.Shield || hit.Parried ? 0f : hit.Result.Damage * AttackClasses.PowerOf(blow.Kind);
+            blow.CaughtWinding = foe.blow != null && !foe.blow.Done && !foe.blow.Met && now - foe.blow.AskedAt < foe.blow.LandsIn;
             blow.Expected = foe.Expecting(now);
             if (Answers && (hit.Shield || hit.Parried) && blow.Why != "answer" && !blow.CaughtInFake)
             {
@@ -745,8 +806,26 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>The other throws a real blow: what a fighter learns from it, and what one who only reacts does.</summary>
-        private void SeesBlow(Dancer d, float now, float madeOutIn, bool learns)
+        private void SeesBlow(Dancer d, float now, float madeOutIn, bool learns, DanceBlow coming)
         {
+            // (What he may do about it once he has made it out, besides covering: strike into its wind-up, if it is a
+            // slow one and he is near enough and bold enough; or duck under it, if it comes high and he is one who dodges.)
+            float sees = now + madeOutIn + d.Taker.Reaction;
+            d.stopAt = d.dodgeAt = -1f;
+            if (coming != null && (d.blow == null || d.blow.Done))
+            {
+                float left = now + coming.LandsIn - sees;
+                bool high = coming.Spot == AimSpot.Head || coming.Spot == AimSpot.Neck || coming.Spot == AimSpot.ShoulderL || coming.Spot == AimSpot.ShoulderR;
+                if (AttackClasses.On && left > LightLandsIn + 0.05f && Aggressive(d, now) >= 0.5f)
+                {
+                    d.stopAt = sees;
+                }
+                else if (high && left > PostureMaker.DodgeDown * 0.7f && dice.NextDouble() < Dodges(d))
+                {
+                    d.dodgeAt = sees;
+                }
+            }
+
             // (What came before it: the tell, how long before, and how many gestures before that. Not from an answer to
             // a blow of his own that was stopped: he knows what that one came from.)
             if (learns && d.seen.Count > 0)
@@ -869,9 +948,21 @@ namespace PhysicsBattler.Sandbox
                 {
                     blow.Done = true;
                     var foe = d.Foe;
+                    int k = (int)blow.Kind;
+                    d.ClassThrown[k]++;
+                    d.ClassLandsIn[k] += blow.LandsIn;
+                    if (blow.Landed)
+                    {
+                        d.ClassLanded[k]++;
+                        d.ClassSpeed[k] += blow.Speed;
+                        d.ClassHarm[k] += blow.Harm;
+                    }
                     if (blow.Landed)
                     {
                         d.Landed++;
+                        d.OnSpot += blow.OnSpot ? 1 : 0;
+                        d.LandedOn.TryGetValue(blow.Part, out int times);
+                        d.LandedOn[blow.Part] = times + 1;
                         d.landedAt.Add(now);
                         foe.Taken++;
                         foe.CaughtInFake += blow.CaughtInFake ? 1 : 0;
@@ -921,6 +1012,27 @@ namespace PhysicsBattler.Sandbox
                 d.coverFrom = d.coverUntil = -1f;
             }
 
+            if (d.stopAt >= 0f && now >= d.stopAt)
+            {
+                // (Into his wind-up: a light blow, at once, if he is near enough for it to reach.)
+                d.stopAt = -1f;
+                if (!d.Unit.Clip.Busy && d.Unit.CanAct && (!Moves || Gap <= StrikesFrom * Size(d)) && Strike(d, now, "stop", 0f, ""))
+                {
+                    d.Taker.Done();
+                    return;
+                }
+            }
+
+            if (d.dodgeAt >= 0f && now >= d.dodgeAt)
+            {
+                d.dodgeAt = -1f;
+                if (d.Unit.Clip.Dodge(dice.Next(2) == 0 ? -1 : 1))
+                {
+                    d.DodgedBlows++;
+                    d.Say("DODGES", now, 1f);
+                }
+            }
+
             if (d.answerAt >= 0f && now >= d.answerAt)
             {
                 // (His answer to a blow he stopped: as quick as a blow can be. Dropped if he is not free for it in time.)
@@ -957,9 +1069,40 @@ namespace PhysicsBattler.Sandbox
             Strike(d, now, d.Taker.Read ? "read" : "saw", landIn, d.Taker.How);
         }
 
+        /// <summary>The part his next blow goes for: the next in his turn that the other's shield does not cover as he sees it now; all covered, the next whatever.</summary>
+        private AimSpot NextSpot(Dancer d)
+        {
+            var spots = d.Pattern.Spots;
+            if (spots == null || spots.Length == 0)
+            {
+                return AimSpot.Chest;
+            }
+
+            Vector3 from = d.Unit.Clip.PartAt(PartId.UpperArmR);
+            for (int i = 0; i < spots.Length; i++)
+            {
+                var spot = spots[(d.spotTurn + i) % spots.Length];
+                if (Openings.LookAt(d.Foe.Unit.Clip, from, spot).Open)
+                {
+                    d.spotTurn = (d.spotTurn + i + 1) % spots.Length;
+                    return spot;
+                }
+            }
+
+            var next = spots[d.spotTurn % spots.Length];
+            d.spotTurn = (d.spotTurn + 1) % spots.Length;
+            return next;
+        }
+
         private bool Strike(Dancer d, float now, string why, float landIn, string how)
         {
-            if (!d.Unit.AimStrike(d.Foe.Unit, AimSpot.Chest, out _, out _, null, null, null, landIn))
+            // (A blow of his pattern, or an answer, goes for a part of his own choosing; one thrown into an opening he
+            // saw or read goes for the chest that opening is.)
+            var spot = why == "pattern" || why == "answer" ? NextSpot(d) : why == "stop" ? AimSpot.UpperArmR : AimSpot.Chest;
+            // (His pattern's blow is heavy or light by how he fights; every blow thrown to take a chance, or in answer,
+            // is a light one: quick enough to get there.)
+            var kind = !AttackClasses.On ? AttackClass.Plain : why == "pattern" ? (dice.NextDouble() < Heavy(d) ? AttackClass.Heavy : AttackClass.Light) : AttackClass.Light;
+            if (!d.Unit.AimStrike(d.Foe.Unit, spot, out _, out _, null, null, null, landIn, null, kind))
             {
                 return false;
             }
@@ -969,16 +1112,18 @@ namespace PhysicsBattler.Sandbox
                 Finish(d, now - d.Now.Began);
             }
 
-            d.blow = new DanceBlow { By = d, AskedAt = now, Why = why, How = how };
+            d.blow = new DanceBlow { By = d, AskedAt = now, Why = why, How = how, Spot = spot, Kind = kind };
             d.Blows.Add(d.blow);
             d.ReadBlows += why == "read" ? 1 : 0;
             d.Answered += why == "answer" ? 1 : 0;
-            d.Say(why == "pattern" ? "HIS BLOW" : why == "read" ? "STRIKES: by what he read" : why == "answer" ? "ANSWERS the blow he stopped" : "STRIKES: saw it open", now, 2f);
+            d.StopHits += why == "stop" ? 1 : 0;
+            d.Say(why == "pattern" ? (kind == AttackClass.Heavy ? "HIS BLOW: a heavy one" : kind == AttackClass.Light ? "HIS BLOW: a light one" : "HIS BLOW") : why == "stop" ? "STRIKES INTO his wind-up" : why == "read" ? "STRIKES: by what he read" : why == "answer" ? "ANSWERS the blow he stopped" : "STRIKES: saw it open", now, 2f);
             // (What the other makes of it: a cut is known for real once it has gone past where a fake would have stopped.)
             var made = d.Unit.Clip.Made;
             float pace = Mathf.Max(0.05f, d.Unit.Clip.Loco.TimeScale);
             float madeOutIn = made != null ? Mathf.Clamp(made.DriveAt * PostureMaker.FeintDepth / pace + 0.08f, 0.1f, 0.6f) : 0.3f;
-            SeesBlow(d.Foe, now, madeOutIn, why != "answer");
+            d.blow.LandsIn = made != null ? made.ContactAt / pace : 0.6f;
+            SeesBlow(d.Foe, now, madeOutIn, why != "answer" && why != "stop", d.blow);
             return true;
         }
 
@@ -993,6 +1138,45 @@ namespace PhysicsBattler.Sandbox
             float mine = FighterLevers.On && own != null ? own.Aggressive : 0.5f;
             int going = d.Going(now);
             return Mathf.Clamp01(mine + (going >= 2 ? 0.25f : going <= -2 ? -0.3f : 0f));
+        }
+
+        /// <summary>A light blow lands about this long after it is asked for (seconds): what a blow into a wind-up needs.</summary>
+        public const float LightLandsIn = 0.42f;
+
+        private static float Heavy(Dancer d)
+        {
+            var own = d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
+            return FighterLevers.On && own != null ? own.Heavy : 0.5f;
+        }
+
+        private static float Dodges(Dancer d)
+        {
+            var own = d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
+            return FighterLevers.On && own != null ? own.Dodges : 0.2f;
+        }
+
+        private static float Leaps(Dancer d)
+        {
+            var own = d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
+            return FighterLevers.On && own != null ? own.Leaps : 0.3f;
+        }
+
+        /// <summary>He leaps that way so far (metres), as the duel lab's leaps are made. False: he could not.</summary>
+        private static bool Leap(Dancer d, Vector3 way, float far, float now)
+        {
+            var unit = d.Unit;
+            const float flight = 0.25f;
+            unit.DummyGo = null;
+            bool leapt = LeapMaker.On ? unit.Clip.LeapMade(way, far / Mathf.Max(0.1f, unit.Body.SizeFactor), flight) : unit.Clip.LeapNow(way, far / Mathf.Max(0.1f, unit.Body.SizeFactor), flight);
+            if (!leapt)
+            {
+                return false;
+            }
+
+            unit.DummySpot = unit.Root.position + way * far;
+            unit.Clip.WalksOn = false;
+            d.leapUntil = now + flight + 0.35f;
+            return true;
         }
 
         private static float Restless(Dancer d)
@@ -1051,10 +1235,35 @@ namespace PhysicsBattler.Sandbox
 
             // (A blow he has read is coming up: he comes in for it ahead of time.)
             bool comesIn = d.wantsIn || d.Taker.Pending;
-            // (He sees the other's tell: one who is not aggressive steps out of reach of the blow instead of only covering.)
+            // (He sees the other's tell: one who is not aggressive steps out of reach of the blow instead of only covering;
+            // and one who leaps readily leaps out, if the blow could reach him where he is.)
             if (d.Expecting(now) && aggressive < 0.6f)
             {
                 d.outUntil = Mathf.Max(d.outUntil, d.coverUntil - 0.6f);
+                if (d.coverFrom != d.leaptForCover)
+                {
+                    d.leaptForCover = d.coverFrom;
+                    if (gap < Edge * size && dice.NextDouble() < Leaps(d) && Leap(d, -toward, Mathf.Clamp(Edge * size + 0.2f - gap, 0.4f, 0.8f), now))
+                    {
+                        d.LeaptOut++;
+                        d.Say("LEAPS OUT of his blow", now, 1.2f);
+                    }
+                }
+            }
+
+            // (His blow is due and he is still well out of reach: one who leaps readily leaps the last of the way in.)
+            if (d.wantsIn && !d.wantedIn && gap > (StrikesFrom + 0.2f) * size && dice.NextDouble() < Leaps(d)
+                && Leap(d, toward, Mathf.Clamp(gap - Reach * size, 0.4f, 0.8f), now))
+            {
+                d.LeaptIn++;
+                d.Say("LEAPS IN for his blow", now, 1.2f);
+            }
+
+            d.wantedIn = d.wantsIn;
+            if (now < d.leapUntil)
+            {
+                // (In the air: his feet are the leap's.)
+                return;
             }
 
             float likes = Mathf.Lerp(Edge + 0.2f, Reach + 0.1f, aggressive);
@@ -1286,6 +1495,15 @@ namespace PhysicsBattler.Sandbox
                     lasts = made.Clip.Duration / pace;
                     break;
                 }
+                case Gesture.Dodge:
+                    if (!clip.Dodge(dice.Next(2) == 0 ? -1 : 1))
+                    {
+                        return false;
+                    }
+
+                    furthest = PostureMaker.DodgeDown;
+                    lasts = PostureMaker.DodgeDown + PostureMaker.DodgeHeld + PostureMaker.DodgeUp;
+                    break;
                 case Gesture.Drop:
                     if (!clip.Drop())
                     {
@@ -1327,6 +1545,24 @@ namespace PhysicsBattler.Sandbox
 
         public int Gestures(Dancer d) => d.Gestures.Count;
 
+        /// <summary>One fighter's blows by class so far: how many, how long each took to land, how many landed and what those did.</summary>
+        public string Classes(Dancer d)
+        {
+            var parts = new List<string>();
+            for (int k = 0; k < 3; k++)
+            {
+                if (d.ClassThrown[k] == 0)
+                {
+                    continue;
+                }
+
+                string did = d.ClassLanded[k] > 0 ? string.Format(System.Globalization.CultureInfo.InvariantCulture, ", {0} landed at {1:0.0} m/s doing {2:0.0} harm each", d.ClassLanded[k], d.ClassSpeed[k] / d.ClassLanded[k], d.ClassHarm[k] / d.ClassLanded[k]) : ", none landed";
+                parts.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} {1} (to land in {2:0.00} s{3})", d.ClassThrown[k], AttackClasses.Name((AttackClass)k), d.ClassLandsIn[k] / d.ClassThrown[k], did));
+            }
+
+            return (parts.Count > 0 ? string.Join("; ", parts) : "no blows") + $"; struck into the other's wind-up {d.StopHits} times; dodged {d.DodgedBlows} blows";
+        }
+
         /// <summary>The gap and the two's feet so far, counted.</summary>
         public string Feet()
         {
@@ -1349,7 +1585,7 @@ namespace PhysicsBattler.Sandbox
                     parts.Add($"{kv.Key} {100f * kv.Value / Mathf.Max(0.01f, all):0}%");
                 }
 
-                return $"walked {d.Walked:0.0} m" + (parts.Count > 0 ? " (" + string.Join(", ", parts) + ")" : "");
+                return $"walked {d.Walked:0.0} m, leapt in {d.LeaptIn} and out {d.LeaptOut} times" + (parts.Count > 0 ? " (" + string.Join(", ", parts) + ")" : "");
             }
 
             return string.Format(System.Globalization.CultureInfo.InvariantCulture, "the gap {0:0.00} m on average, {1:0.00} to {2:0.00} m; him: {3}; the other: {4}", GapSum / GapSteps, GapLeast, GapMost, Of(A), Of(B));
@@ -1365,7 +1601,14 @@ namespace PhysicsBattler.Sandbox
             }
 
             int blows = d.Landed + d.Stopped + d.Missed;
-            return $"{d.Gestures.Count} gestures ({tells} tells), {blows} blows: {d.Landed} landed, {d.Stopped} stopped, {d.Missed} met nothing ({d.ReadBlows} of them thrown by what he read, {d.Answered} in answer to a blow he stopped); "
+            var where = new List<string>();
+            foreach (var kv in d.LandedOn)
+            {
+                where.Add(kv.Value + " " + kv.Key);
+            }
+
+            string landedOn = where.Count > 0 ? " (" + string.Join(", ", where) + $"; {d.OnSpot} on the part he went for)" : "";
+            return $"{d.Gestures.Count} gestures ({tells} tells), {blows} blows: {d.Landed} landed{landedOn}, {d.Stopped} stopped, {d.Missed} met nothing ({d.ReadBlows} of them thrown by what he read, {d.Answered} in answer to a blow he stopped); "
                 + $"took {d.Taken} ({d.CaughtInFake} while in a fake of his own, {d.TakenAnswers} in answer to a blow of his that was stopped); expected {d.ExpectedBlows} of the other's pattern blows; covered for nothing {d.CoveredForNothing} times; the fight goes {d.Going(lastNow):+0;-0;0} for him";
         }
     }

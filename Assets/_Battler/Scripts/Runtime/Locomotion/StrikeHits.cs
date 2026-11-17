@@ -121,6 +121,9 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>A showstopper's knock on the body it lands on (times a blow's), and a combo's blows' before it; and the showstopper's hit stop (seconds, least and most).</summary>
         public float FinisherKnock = 2f, ComboKnock = 1.5f, ComboCarry = 0.9f;
+
+        /// <summary>How hard the blow playing lands, against a plain one (<see cref="AttackClasses"/>: a light blow under 1, a heavy one over): what it knocks, harms and takes of the other's poise is times this.</summary>
+        public float Power = 1f;
         public Vector2 FinisherStop = new Vector2(0.13f, 0.17f);
 
         private bool pausedThisBlow;
@@ -1186,7 +1189,7 @@ namespace PhysicsBattler.Locomotion
             bool finishing = Finishing != null && Finishing() && !glanced;
             bool comboing = Comboing != null && Comboing();
             LastFinished = finishing;
-            float knock = finishing ? FinisherKnock : comboing ? ComboKnock : 1f;
+            float knock = (finishing ? FinisherKnock : comboing ? ComboKnock : 1f) * Power;
             // (The plan "Weight and momentum", step 4: a square parry holds a blow up to its skill's weight; a heavier one
             // beats it, the blade crushed back into the body and part of the blow landing through it. A glance, taken at a
             // slant, is never beaten. The showstopper counts double, as it lands.)

@@ -704,6 +704,11 @@ internal static class FightReport
         PhysicsBattler.Sandbox.DuelLab duel = null;
         PhysicsBattler.Sandbox.ShieldTest shieldTest = null;
         int shieldGo = 0;
+        // (FIGHT_SHIELDCOVER=0: the shield arm is the recording's, as it was. FIGHT_BASH=0: no shield bash. In any fight.)
+        PhysicsBattler.Locomotion.ClipFighter.ShieldCover = Environment.GetEnvironmentVariable("FIGHT_SHIELDCOVER") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.ShieldBash = Environment.GetEnvironmentVariable("FIGHT_BASH") != "0";
+        // (FIGHT_CLASSES=0: every blow is the plain one.)
+        PhysicsBattler.Locomotion.AttackClasses.On = Environment.GetEnvironmentVariable("FIGHT_CLASSES") != "0";
         PhysicsBattler.Sandbox.FakeTest fakeTest = null;
         PhysicsBattler.Sandbox.Dance dance = null;
         string[] danceLearned = { "", "" };
@@ -720,6 +725,9 @@ internal static class FightReport
         var duelBlows = new List<(float at, PhysicsBattler.Locomotion.AimSpot spot)>();
         int[] ownN = new int[2]; float[] ownHips = new float[2], ownLean = new float[2], ownLow = { 9f, 9f }, ownHigh = { -9f, -9f }, ownFoot = new float[2];
         float ownDropAt = -1f, ownDropFrom = 0f, ownDropLow = 0f;
+        int[,] coverN = new int[2, 4], coverLooks = new int[2, 4];
+        Vector3[,] coverSum = new Vector3[2, 4], coverSq = new Vector3[2, 4];
+        float[,] coverOff = new float[2, 4], coverOpen = new float[2, 4], coverBelly = new float[2, 4];
         string openedTold = "none watched yet";
         bool openTold = false;
         bool startWatched = false;
@@ -1485,6 +1493,51 @@ internal static class FightReport
                     PhysicsBattler.Locomotion.Locomotor.WalksOn = Environment.GetEnvironmentVariable("FIGHT_WALKSON") != "0";
                     // (FIGHT_SLOWSIDE=0/1/2: what a slow walk kept up to the side is walked on: the side-step, the crouched step, the upright strafe.)
                     PhysicsBattler.Locomotion.Locomotor.SlowSide = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_SLOWSIDE"), out int slowSide) ? slowSide : 1;
+                    // (FIGHT_SHIELDCOVER=0: the shield arm is the recording's, as it was; FIGHT_COVERHOLD, FIGHT_COVERINBLOW: how much
+                    // of the arm is the cover's. Where each of the two carries his board is measured from 2.5 s on: COVER lines.)
+                    // (FIGHT_BASH=0: no shield bash. FIGHT_BASHWITHIN: how near an enemy must come. FIGHT_BASHAT="4,9": the mover
+                    // bashes at those seconds whatever the distance.)
+                    if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_BASHWITHIN"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bashWithin)) PhysicsBattler.Locomotion.ClipFighter.BashWithin = bashWithin;
+                    foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_BASHAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bashAt) && paceAt >= bashAt && paceAt - dt < bashAt && duel.Mover != null && duel.Mover.Clip != null)
+                        {
+                            Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other != null ? duel.Other.Clip : null, true) ? "begun" : "he could not")}, {(duel.Other != null ? Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position) : 0f):0.00} m apart");
+                        }
+                    }
+
+                    if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COVERHOLD"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float askedCoverHold)) PhysicsBattler.Locomotion.ClipFighter.CoverHold = askedCoverHold;
+                    if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COVERINBLOW"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float askedCoverInBlow)) PhysicsBattler.Locomotion.ClipFighter.CoverInBlow = askedCoverInBlow;
+                    if (paceAt >= 2.5f && duel.Mover != null && duel.Other != null && duel.Mover.Clip != null && duel.Other.Clip != null)
+                    {
+                        var two = new[] { duel.Mover, duel.Other };
+                        for (int k = 0; k < 2; k++)
+                        {
+                            var c = two[k].Clip;
+                            if (c.Fallen || !c.ShieldBoard(out Vector3 centre, out Vector3 normal, out _))
+                            {
+                                continue;
+                            }
+
+                            var back = Quaternion.Inverse(Quaternion.Euler(0f, c.Loco.Facing, 0f));
+                            Vector3 chest = c.Anim.Part(PartId.Chest).position, at = back * (centre - chest);
+                            Vector3 toOther = two[1 - k].Clip.Anim.Part(PartId.Chest).position - centre;
+                            int kind = c.ShieldArmHeld ? 3 : c.Striking && !c.Posturing ? 2 : c.Posturing ? 1 : 0;
+                            coverN[k, kind]++;
+                            coverSum[k, kind] += at;
+                            coverSq[k, kind] += Vector3.Scale(at, at);
+                            coverOff[k, kind] += Vector3.Angle(normal, toOther);
+                            if (Mathf.FloorToInt(10f * paceAt) != Mathf.FloorToInt(10f * (paceAt - dt)))
+                            {
+                                // (What he leaves open, ten times a second: the looking is not cheap.)
+                                var from = two[1 - k].Clip.PartAt(PartId.UpperArmR);
+                                coverLooks[k, kind]++;
+                                coverOpen[k, kind] += PhysicsBattler.Locomotion.Openings.LookAt(c, from, PhysicsBattler.Locomotion.AimSpot.Chest).Open ? 1 : 0;
+                                coverBelly[k, kind] += PhysicsBattler.Locomotion.Openings.LookAt(c, from, PhysicsBattler.Locomotion.AimSpot.Belly).Open ? 1 : 0;
+                            }
+                        }
+                    }
+
                     // (FIGHT_OWN="Prowler,Strutter": the mover's own levers and the other's, FighterLevers' made-up fighters;
                     // FIGHT_OWNON=0: the switch off. What each then does is measured as posed, from 2.5 s to 6 s: OWN lines; and how far
                     // the mover's hips sink in a drop asked after that (FIGHT_DROPAT), against where they were just before it.)
@@ -1635,8 +1688,8 @@ internal static class FightReport
                         fakeTest.Shorts = (int)EnvG("FIGHT_PATTERNSHORTS", fakeTest.Shorts);
                         fakeTest.Beat = EnvG("FIGHT_BEAT", fakeTest.Beat);
                         fakeTest.MixedUp = Environment.GetEnvironmentVariable("FIGHT_MIXED") == "1";
-                        // (FIGHT_FAKECOMMITS=0: his shield meets a blow in the middle of his own fake, as it did.)
-                        PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") != "0";
+                        // (FIGHT_FAKECOMMITS=1: in a fake of his own his shield does not go to meet a blow.)
+                        PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") == "1";
                         PhysicsBattler.Sandbox.FakeTest.ShortDepth = EnvG("FIGHT_SHORTDEPTH", PhysicsBattler.Sandbox.FakeTest.ShortDepth);
                         PhysicsBattler.Sandbox.FakeTest.LongDepth = EnvG("FIGHT_LONGDEPTH", PhysicsBattler.Sandbox.FakeTest.LongDepth);
                         PhysicsBattler.Sandbox.FakeTest.LongHold = EnvG("FIGHT_LONGHOLD", PhysicsBattler.Sandbox.FakeTest.LongHold);
@@ -1686,7 +1739,7 @@ internal static class FightReport
                         // (FIGHT_DANCEMOVES=0: they stand on their spots. With FIGHT_OWN their restless and aggressive are their own.
                         // FIGHT_DANCEGAP=1: the gap and what each is about, twice a second.)
                         PhysicsBattler.Sandbox.Dance.Moves = Environment.GetEnvironmentVariable("FIGHT_DANCEMOVES") != "0";
-                        PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") != "0";
+                        PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") == "1";
                         var two = new[] { dance.A, dance.B };
                         for (int k = 0; k < 2; k++)
                         {
@@ -2109,10 +2162,38 @@ internal static class FightReport
             UnitController.ComboChanged -= OnCombo;
         }
 
+        if (duel != null && duel.Mover != null && duel.Other != null && duel.Mover.Clip != null && duel.Other.Clip != null)
+        {
+            Console.WriteLine($"BASHES {duel.Mover.name}: {duel.Mover.Clip.Bashes} thrown, {duel.Mover.Clip.BashesLanded} shoved the other; {duel.Other.name}: {duel.Other.Clip.Bashes} thrown, {duel.Other.Clip.BashesLanded} shoved the other");
+        }
+
+        if (duel != null)
+        {
+            string[] kinds = { "standing and walking", "in a fake", "in a blow of his own", "meeting a blow" };
+            var two = new[] { duel.Mover, duel.Other };
+            for (int k = 0; k < 2; k++)
+            {
+                for (int kind = 0; kind < 4; kind++)
+                {
+                    int n = coverN[k, kind];
+                    if (n < 30 || two[k] == null)
+                    {
+                        continue;
+                    }
+
+                    Vector3 mean = coverSum[k, kind] / n, var = coverSq[k, kind] / n - Vector3.Scale(mean, mean);
+                    float moves = Mathf.Sqrt(Mathf.Max(0f, var.x) + Mathf.Max(0f, var.y) + Mathf.Max(0f, var.z));
+                    Console.WriteLine($"COVER {two[k].name} {kinds[kind]} ({n / 60f:0.0} s): the board's middle from his chest {100f * mean.x:0} cm to his right, {100f * mean.y:0} up, {100f * mean.z:0} ahead; it moves about {100f * moves:0.0} cm (rms); it looks {coverOff[k, kind] / n:0} deg off the other; his chest is open to the other {100f * coverOpen[k, kind] / Mathf.Max(1, coverLooks[k, kind]):0}% of the time, his belly {100f * coverBelly[k, kind] / Mathf.Max(1, coverLooks[k, kind]):0}%");
+                }
+            }
+        }
+
         if (dance != null)
         {
             Console.WriteLine($"DANCETALLY A {dance.A.Unit.name} ({dance.A.Pattern.Name}, {(dance.A.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.A)}");
             Console.WriteLine($"DANCEFEET {dance.Feet()}");
+            Console.WriteLine($"DANCECLASS A: {dance.Classes(dance.A)}");
+            Console.WriteLine($"DANCECLASS B: {dance.Classes(dance.B)}");
             Console.WriteLine($"DANCETALLY B {dance.B.Unit.name} ({dance.B.Pattern.Name}, {(dance.B.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.B)}");
         }
 

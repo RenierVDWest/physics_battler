@@ -137,6 +137,9 @@ namespace PhysicsBattler.Sandbox
         public CutLine? Line;
         public CutSize? Size;
 
+        /// <summary>The class of the blows asked for: plain (as every blow was), light or heavy (<see cref="AttackClasses"/>).</summary>
+        public AttackClass Kind = AttackClass.Plain;
+
         /// <summary>A made attack's score, named by its clip; null: the one that fits the spot best. And when it is to land (seconds after it is asked; 0: in its own time).</summary>
         public string Attack;
         public float LandIn;
@@ -184,7 +187,7 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
-            if (!Attacker.AimStrike(Target, spot, out string strike, out float miss, Line, Size, Attack, LandIn, Legs))
+            if (!Attacker.AimStrike(Target, spot, out string strike, out float miss, Line, Size, Attack, LandIn, Legs, Kind))
             {
                 return false;
             }

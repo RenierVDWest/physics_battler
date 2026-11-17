@@ -66,6 +66,42 @@ namespace PhysicsBattler.Locomotion
         };
     }
 
+    /// <summary>The class of a blow (<see cref="AttackClasses"/>).</summary>
+    public enum AttackClass
+    {
+        /// <summary>As every blow was: the style set for all (<see cref="AttackMaker.Style"/>), its own weight.</summary>
+        Plain,
+
+        /// <summary>Fast and less powerful: little wind-up, a short blow from the guard, back at once.</summary>
+        Light,
+
+        /// <summary>Slow and powerful: wound far back and slowly, thrown from the hips, carried all the way through. Its long wind-up is there to be seen, and to be struck into by a light blow from one in reach.</summary>
+        Heavy,
+    }
+
+    /// <summary>
+    /// The two classes of blow (Combat Feel "Blows Are Light Or Heavy"): the same recorded cut made light or heavy
+    /// by its style (how far and how slowly it is wound up, how far it carries through), and landing as hard as
+    /// its class (<see cref="StrikeHits.Power"/>). Off: every blow is the plain one, as it was.
+    /// </summary>
+    public static class AttackClasses
+    {
+        public static bool On = true;
+
+        /// <summary>How hard a light blow and a heavy one land, against a plain one.</summary>
+        public static float LightPower = 0.6f, HeavyPower = 1.6f;
+
+        /// <summary>A light blow: quicker still than the "Quick" style the aim test has. A heavy one: its "Heavy".</summary>
+        public static AttackStyle Light = new AttackStyle { WindUp = 0.45f, ArmSwing = 0.7f, HipDrive = 0.8f, Twist = 0.9f, Lean = 0.8f, Lunge = 0.9f, Drop = 0.7f, FollowThrough = 0.5f, WindUpTime = 0.55f, DriveTime = 0.8f, RecoveryTime = 0.65f };
+        public static AttackStyle Heavy = new AttackStyle { WindUp = 1.6f, ArmSwing = 1.25f, HipDrive = 1.2f, Twist = 1f, Lean = 1.2f, Lunge = 1.2f, Drop = 1.5f, FollowThrough = 1.4f, WindUpTime = 1.7f, DriveTime = 1.15f, RecoveryTime = 1.4f, ArmLag = 0.02f };
+
+        public static AttackStyle StyleOf(AttackClass kind) => !On || kind == AttackClass.Plain ? AttackMaker.Style : kind == AttackClass.Light ? Light : Heavy;
+
+        public static float PowerOf(AttackClass kind) => !On || kind == AttackClass.Plain ? 1f : kind == AttackClass.Light ? LightPower : HeavyPower;
+
+        public static string Name(AttackClass kind) => kind == AttackClass.Light ? "light" : kind == AttackClass.Heavy ? "heavy" : "plain";
+    }
+
     /// <summary>What an attack is made for: where the blade is to land and when.</summary>
     public struct AttackAim
     {

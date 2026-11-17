@@ -36,9 +36,23 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public float Restless = 0.5f, Aggressive = 0.5f;
 
+        /// <summary>
+        /// How readily he leaps where a step would do (0: never; 1: every time): in, to close the last of the gap for
+        /// his blow when he is still out of reach as it is due; and out, away from a blow he expects, where another
+        /// would walk out.
+        /// </summary>
+        public float Leaps = 0.3f;
+
+        /// <summary>
+        /// How many of his pattern's blows are heavy ones (0: all light; 1: all heavy; <see cref="AttackClasses"/>), and
+        /// how readily he dodges a high blow he sees coming (ducks aside under it) where another would trust his shield
+        /// (0: never; 1: every time).
+        /// </summary>
+        public float Heavy = 0.5f, Dodges = 0.2f;
+
         /// <summary>Every lever of his is at rest: he moves as everyone does.</summary>
         public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f
-            && Feint == 1f && Lunge == 1f && Drop == 1f && Bluff == 1f && Guard == 1f && Restless == 0.5f && Aggressive == 0.5f;
+            && Feint == 1f && Lunge == 1f && Drop == 1f && Bluff == 1f && Guard == 1f && Restless == 0.5f && Aggressive == 0.5f && Leaps == 0.3f && Heavy == 0.5f && Dodges == 0.2f;
 
         /// <summary>Everyone's movement levers with his own laid on them.</summary>
         public MoveLevers Over(MoveLevers all)
@@ -68,21 +82,21 @@ namespace PhysicsBattler.Locomotion
         public static FighterLevers Prowler() => new FighterLevers
         {
             Name = "Prowler", Bounce = 0.6f, Sway = 1.6f, HipTurn = 1.6f, ChestTurn = 1.4f, StepLift = 0.7f, Lean = 10f, Crouch = 8f,
-            Feint = 0.7f, Lunge = 1.2f, Drop = 1.5f, Bluff = 0.7f, Guard = 0.7f, Restless = 0.85f, Aggressive = 0.3f,
+            Feint = 0.7f, Lunge = 1.2f, Drop = 1.5f, Bluff = 0.7f, Guard = 0.7f, Restless = 0.85f, Aggressive = 0.3f, Leaps = 0.8f, Heavy = 0.2f, Dodges = 0.7f,
         };
 
         /// <summary>Upright and bouncing, his chest turning and his arms swinging wide, his feet lifted high; big showy gestures.</summary>
         public static FighterLevers Strutter() => new FighterLevers
         {
             Name = "Strutter", Bounce = 1.8f, Sway = 1.2f, HipTurn = 1.3f, ChestTurn = 2f, ArmSwing = 1.8f, StepLift = 1.6f, Lean = -5f,
-            Feint = 1.15f, Lunge = 0.8f, Drop = 0.6f, Bluff = 1.5f, Guard = 1.3f, Restless = 0.6f, Aggressive = 0.55f,
+            Feint = 1.15f, Lunge = 0.8f, Drop = 0.6f, Bluff = 1.5f, Guard = 1.3f, Restless = 0.6f, Aggressive = 0.55f, Leaps = 0.4f, Heavy = 0.5f, Dodges = 0.3f,
         };
 
         /// <summary>Heavy and square: leaning in a little, his hips and chest turning little, his feet low; few frills, a long lunge.</summary>
         public static FighterLevers Bull() => new FighterLevers
         {
             Name = "Bull", Bounce = 0.8f, Sway = 0.7f, HipTurn = 0.6f, ChestTurn = 0.5f, ArmSwing = 0.6f, StepLift = 0.85f, Lean = 6f, Crouch = 3f,
-            Feint = 1f, Lunge = 1.5f, Drop = 1f, Bluff = 0.5f, Guard = 1f, Restless = 0.2f, Aggressive = 0.9f,
+            Feint = 1f, Lunge = 1.5f, Drop = 1f, Bluff = 0.5f, Guard = 1f, Restless = 0.2f, Aggressive = 0.9f, Leaps = 0f, Heavy = 0.85f, Dodges = 0f,
         };
 
         public static readonly string[] Names = { "Plain", "Prowler", "Strutter", "Bull" };

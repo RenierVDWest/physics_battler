@@ -454,7 +454,7 @@ namespace PhysicsBattler.Locomotion
         /// parts his movement is made of (<see cref="MoveScore"/>), so his feet stay where they are and his knees
         /// bend for it. False: his movement is not made of its parts, or a drop is under way.
         /// </summary>
-        public bool Dip(float sinks, float leans, float down, float held, float up)
+        public bool Dip(float sinks, float leans, float down, float held, float up, float aside = 0f, float rolls = 0f)
         {
             if (!MoveScore.On || dipFor >= 0f)
             {
@@ -463,6 +463,8 @@ namespace PhysicsBattler.Locomotion
 
             dipSinks = sinks;
             dipLeans = leans;
+            dipAside = aside;
+            dipRolls = rolls;
             dipDown = Mathf.Max(0.04f, down);
             dipHeld = Mathf.Max(0f, held);
             dipUp = Mathf.Max(0.08f, up);
@@ -527,7 +529,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A drop is under way.</summary>
         public bool Dipping => dipFor >= 0f;
 
-        private float dipSinks, dipLeans, dipDown, dipHeld, dipUp, dipFor = -1f;
+        private float dipSinks, dipLeans, dipDown, dipHeld, dipUp, dipFor = -1f, dipAside, dipRolls;
 
         /// <summary>His own levers (<see cref="FighterLevers"/>; null: he moves by everyone's).</summary>
         public FighterLevers Own;
@@ -552,6 +554,8 @@ namespace PhysicsBattler.Locomotion
 
                 levers.Crouch += dipSinks * w;
                 levers.Lean += dipLeans * w;
+                levers.HipsAside += dipAside * w;
+                levers.SideLean += dipRolls * w;
             }
 
             for (int k = 0; k < pulseFor.Length; k++)

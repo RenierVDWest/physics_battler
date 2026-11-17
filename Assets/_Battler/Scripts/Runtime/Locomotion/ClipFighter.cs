@@ -373,7 +373,10 @@ namespace PhysicsBattler.Locomotion
         private float interceptWeight;
 
         /// <summary>The shield arm is held exactly to its pose now (meeting a blow): the physical arm doesn't trail it.</summary>
-        public bool ShieldArmHeld => interceptWeight > 0.05f || blockWeight > 0.05f;
+        public bool ShieldArmHeld => interceptWeight > 0.05f || blockWeight > 0.05f || Bashing;
+
+        /// <summary>The shield is doing something of its own (a press of it, a bash): the cover lets the arm go for it.</summary>
+        public bool ShieldLeaves;
 
         /// <summary>The reaction it played last ("" before any), for the logs.</summary>
         public string LastReaction = "";
@@ -3691,6 +3694,12 @@ namespace PhysicsBattler.Locomotion
         /// <param name="counts">Which parts of the target count as the one the blade is for (null: not looked at): an attack whose blade would meet another part first is passed over for one whose way is open.</param>
         public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle style, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null)
         {
+            if (Strikes != null)
+            {
+                // (As heavy as any: a blow of a class sets its own after it is made, AttackClasses.)
+                Strikes.Power = 1f;
+            }
+
             // (Asked for as a posture, PostureMaker: the attack is made as any is, and only its beginning thrown.)
             postureNow = PostureMaker.Take(out postureFeint, out postureLunge);
             if (postureNow)
@@ -3846,6 +3855,33 @@ namespace PhysicsBattler.Locomotion
         /// A drop (<see cref="PostureMaker"/>): a sudden dip of the hips, as if loading to spring, over whatever he is
         /// doing. False: he cannot (down, in a clip of his own, his movement not made of its parts, one under way).
         /// </summary>
+        /// <summary>
+        /// A dodge (<see cref="PostureMaker.DodgeSinks"/>): over whatever he is doing, standing or walking, he ducks
+        /// and leans to one side (above 0: his right), his hips going that way, and comes back up. His feet stay
+        /// where they are; his shield goes with his chest, keeping its cover. False: he cannot (down, in a clip of
+        /// his own, a drop or a dodge under way).
+        /// </summary>
+        public bool Dodge(int side)
+        {
+            if (Fallen || Loco.Current == Locomotor.Mode.OneShot)
+            {
+                return false;
+            }
+
+            float leg = Mathf.Max(0.1f, Loco.Leg), to = side >= 0 ? 1f : -1f;
+            if (!Loco.Dip(PostureMaker.DodgeSinks * Size / leg, PostureMaker.DodgeLeans, PostureMaker.DodgeDown, PostureMaker.DodgeHeld, PostureMaker.DodgeUp, to * PostureMaker.DodgeAside * Size / leg, to * PostureMaker.DodgeRolls))
+            {
+                return false;
+            }
+
+            Postures++;
+            Dodges++;
+            return true;
+        }
+
+        /// <summary>Dodges thrown.</summary>
+        public int Dodges;
+
         public bool Drop()
         {
             if (Fallen || Loco.Current == Locomotor.Mode.OneShot)
@@ -3898,7 +3934,7 @@ namespace PhysicsBattler.Locomotion
         /// price of a fake, and what makes the opening it leaves a real one. Off: his shield meets a blow in the
         /// middle of his own fake as readily as from his guard, as it did.
         /// </summary>
-        public static bool PostureCommitsShield = true;
+        public static bool PostureCommitsShield = false;
 
         /// <summary>A posture of his own is playing (a feint, a fake lunge), standing or over his walk.</summary>
         public bool Posturing => Made != null && Made.Posture && Loco.Shot == Made.Clip && (Loco.Current == Locomotor.Mode.OneShot || Loco.ShotOverWalk);
@@ -5158,8 +5194,202 @@ namespace PhysicsBattler.Locomotion
             return gap;
         }
 
+        /// <summary>
+        /// The shield is held in cover (Combat Feel "The Shield Is Held In Cover"). Whatever the body is doing (standing,
+        /// walking, a gesture of the sword arm, a blow of his own) the board is held before his chest where it covers
+        /// him best, looking at the enemy, in the body's own frame: it goes with the body as it steps, sways and
+        /// rises, and keeps a little of what the recording has the arm do (so it is not stiff), but it stays in place.
+        /// It leaves there only to meet a blow, and comes back. Off: the shield arm is the recording's, as it was:
+        /// it swung open in every cut and every fake of one.
+        /// </summary>
+        public static bool ShieldCover = true;
+
+        /// <summary>How much of the shield arm is the cover's (the rest the recording's own), standing, walking and gesturing; and in a real blow of his own.</summary>
+        public static float CoverHold = 0.85f, CoverInBlow = 0.7f;
+
+        /// <summary>Where the board's middle is held, from the chest, in the body's own frame (metres at a Medium's size: x to his right, y up, z ahead); and the way it looks.</summary>
+        public static Vector3 CoverAt = new Vector3(-0.08f, -0.1f, 0.3f), CoverFace = new Vector3(-0.2f, 0.05f, 1f);
+
+        /// <summary>How quickly the cover takes the arm up and lets it go (seconds).</summary>
+        public const float CoverEase = 0.25f;
+
+        private float coverWeight;
+
+        /// <summary>How much of the shield arm the cover has now (0 to 1): for the reports.</summary>
+        public float CoverNow => coverWeight;
+
+        // ---- The shield's bash ---------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// A shield bashes what comes too near (Combat Feel "A Shield Bashes What Comes Too Near"). An enemy on his
+        /// feet within <see cref="BashWithin"/> of him and before him is driven out of his space: he sinks a little
+        /// behind the board, drives it and his body forward, and the enemy is shoved back stumbling, his guard open for
+        /// a moment and whatever blow he was in dropped. Rebuilt from the recording "Sword And Shield Block": its body
+        /// goes 26 cm forward and 12 cm down behind the board in a quarter of a second, the board's hand 2.6 m/s at
+        /// its quickest. Not while his shield is meeting a blow, in a blow of his own, or down. Off: no bash, as it was.
+        /// </summary>
+        public static bool ShieldBash = true;
+
+        /// <summary>How near an enemy must come to be bashed, and how near he must still be as the board arrives to be shoved (metres, root to root, at a Medium's size); the speed he is shoved back with (m/s); no bash sooner than this after the last (seconds).</summary>
+        public static float BashWithin = 1.2f, BashShove = 2.6f, BashEvery = 2.5f;
+        public const float BashReaches = 1.45f;
+
+        /// <summary>The bash in time (seconds): drawn in, driven out, held, brought back. How far the board goes out ahead and up (metres at a Medium's size), how fast his body goes in behind it (m/s), how far his hips sink (leg lengths) and he leans (degrees).</summary>
+        public const float BashWind = 0.1f, BashDrive = 0.14f, BashHeld = 0.1f, BashBack = 0.3f, BashOut = 0.32f, BashUp = 0.07f, BashSurge = 0.9f, BashSinks = 0.1f, BashLeans = 9f;
+
+        private float bashFor = -1f, bashReadyAt;
+        private ClipFighter bashAt;
+        private bool bashStruck, bashSurged;
+
+        /// <summary>He is in a bash of his shield.</summary>
+        public bool Bashing => bashFor >= 0f;
+
+        /// <summary>Bashes thrown; how many of them shoved the enemy.</summary>
+        public int Bashes, BashesLanded;
+
+        /// <summary>How far out the board is now in its bash (below 0: drawn in before it; 1: all the way out).</summary>
+        private float BashOutNow
+        {
+            get
+            {
+                if (bashFor < 0f)
+                {
+                    return 0f;
+                }
+
+                float t = bashFor;
+                if (t < BashWind)
+                {
+                    return -0.25f * Mathf.Sin(Mathf.PI * 0.5f * t / BashWind);
+                }
+
+                t -= BashWind;
+                if (t < BashDrive)
+                {
+                    float u = t / BashDrive;
+                    return Mathf.Lerp(-0.25f, 1f, u * u * (3f - 2f * u));
+                }
+
+                t -= BashDrive;
+                if (t < BashHeld)
+                {
+                    return 1f;
+                }
+
+                float back = Mathf.Clamp01((t - BashHeld) / BashBack);
+                return 1f - back * back * (3f - 2f * back);
+            }
+        }
+
+        /// <summary>He bashes now, at this enemy (null: at nobody, to be seen). False: he cannot (no shield, down, in a blow, meeting one, one just thrown).</summary>
+        public bool Bash(ClipFighter at, bool whenever = false)
+        {
+            if (Bashing || Fallen || ShieldColliders.Count == 0 || Striking || interceptWeight > 0f || GuardOpen || IsUncovering || (!whenever && clock < bashReadyAt))
+            {
+                return false;
+            }
+
+            bashFor = 0f;
+            bashAt = at;
+            bashStruck = bashSurged = false;
+            bashReadyAt = clock + BashEvery;
+            Bashes++;
+            Loco.Dip(BashSinks, BashLeans, BashWind + 0.5f * BashDrive, BashHeld, BashBack);
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(FightUnit, "bash", at != null ? $"at {at.FightUnit.name}, {Flat(at.Loco.Position - Loco.Position).magnitude:0.00} m off" : "asked for, at nobody");
+            }
+
+            return true;
+        }
+
+        /// <summary>He bashes this enemy if it is too near and before him (the fight asks it each step).</summary>
+        public bool BashIfNear(ClipFighter enemy)
+        {
+            if (!ShieldBash || enemy == null || enemy.Fallen || Bashing || ShieldColliders.Count == 0)
+            {
+                return false;
+            }
+
+            Vector3 to = Flat(enemy.Loco.Position - Loco.Position);
+            float far = to.magnitude;
+            if (far > BashWithin * Size || far < 1e-3f || Vector3.Angle(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward, to) > 60f)
+            {
+                return false;
+            }
+
+            return Bash(enemy);
+        }
+
+        private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
+
+        private void StepBash(float dt)
+        {
+            if (bashFor < 0f)
+            {
+                return;
+            }
+
+            bashFor += dt;
+            Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+            if (Fallen || GuardOpen)
+            {
+                bashFor = -1f;
+                return;
+            }
+
+            if (!bashSurged && bashFor >= BashWind)
+            {
+                // (His body goes in behind the board.)
+                bashSurged = true;
+                Loco.Push(ahead * (BashSurge * Mathf.Sqrt(Size)));
+            }
+
+            if (!bashStruck && bashFor >= BashWind + BashDrive)
+            {
+                bashStruck = true;
+                var enemy = bashAt;
+                if (enemy != null && !enemy.Fallen)
+                {
+                    Vector3 to = Flat(enemy.Loco.Position - Loco.Position);
+                    if (to.magnitude <= BashReaches * Size && Vector3.Angle(ahead, to) <= 70f)
+                    {
+                        BashesLanded++;
+                        enemy.Bashed(to.sqrMagnitude > 1e-6f ? to.normalized : ahead, BashShove * Mathf.Sqrt(Size), this);
+                    }
+                }
+            }
+
+            if (bashFor >= BashWind + BashDrive + BashHeld + BashBack)
+            {
+                bashFor = -1f;
+                bashAt = null;
+            }
+        }
+
+        /// <summary>A shield's bash met him: he is shoved back stumbling, his guard open for a moment, a blow of his own dropped.</summary>
+        public void Bashed(Vector3 way, float speed, ClipFighter by)
+        {
+            if (Fallen)
+            {
+                return;
+            }
+
+            BashedTimes++;
+            guardOpenUntil = Mathf.Max(guardOpenUntil, clock + 0.4f);
+            Loco.Push(way * speed, true);
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(FightUnit, "bash", $"bashed by {(by != null ? by.FightUnit.name : "a shield")}: shoved back at {speed:0.0} m/s");
+            }
+        }
+
+        /// <summary>How many times a shield's bash has shoved him.</summary>
+        public int BashedTimes;
+
         private void RaiseShield(float dt, Vector3 striker)
         {
+            StepBash(dt);
             // (The guard holds the shield as its clip does; it moves only to meet a blow.)
             blockWeight = 0f;
             float coming = Blow.HasValue ? Blow.Value.Coming : -1f;
@@ -5211,7 +5441,12 @@ namespace PhysicsBattler.Locomotion
                 wantIntercept = 0f;
             }
             interceptWeight = Mathf.MoveTowards(interceptWeight, wantIntercept, dt / BlockRaise);
-            float weight = Mathf.Max(blockWeight, interceptWeight);
+            // (The cover: not while he has taken the shield away himself, or it is knocked open, or it has no board.)
+            float wantCover = ShieldCover && !IsUncovering && !GuardOpen && !ShieldLeaves && ShieldColliders.Count > 0 ? (Striking && !Posturing ? CoverInBlow : CoverHold) : 0f;
+            // (A bash is the cover's own board driven out: the arm is all the cover's for it, at once.)
+            wantCover = Bashing ? 1f : wantCover;
+            coverWeight = Mathf.MoveTowards(coverWeight, wantCover, dt / (Bashing ? 0.06f : CoverEase));
+            float weight = Mathf.Max(blockWeight, interceptWeight, coverWeight);
             var hand = Anim.Part(PartId.HandL);
             if (weight <= 0f)
             {
@@ -5245,10 +5480,36 @@ namespace PhysicsBattler.Locomotion
             }
 
             bool seen = Blow.HasValue && seenSerial == Blow.Value.Serial;
+            bool covers = interceptWeight <= 0f && coverWeight > 0f;
             bool fresh = interceptWeight > 0f && seen && PlanMeet(Blow.Value, out freshAt, out freshNormal, out freshMotion, out freshWay, out meetIn, out inside);
             bool havePlan = interceptWeight > 0f && Blow.HasValue && planSerial == Blow.Value.Serial;
             bool holdLast = interceptWeight > 0f && !seen && planSerial >= 0 && easedSerial == planSerial;
-            if (fresh || havePlan || holdLast)
+            if (covers)
+            {
+                // (No blow to meet: the board before his chest, looking at the enemy. Its place is from the chest, so it
+                // rises, sways and steps with the body; the hand behind it by the board's own place in the fist.)
+                var rootTurn = Quaternion.Euler(0f, Loco.Facing, 0f);
+                face = rootTurn * CoverFace.normalized;
+                Vector3 boardAt = chest + rootTurn * (CoverAt * Size);
+                if (Bashing)
+                {
+                    // (The bash: the board driven out ahead of him and a little up, the way the recording's block goes.)
+                    boardAt += rootTurn * (new Vector3(0.03f, BashUp, BashOut) * (BashOutNow * Size));
+                }
+                Vector3 boardFromHand = -face * (0.08f * Size);
+                var posedSlot = Anim.SlotWeaponL;
+                if (CombatFeel.ShieldFixed && shieldBoardKnown)
+                {
+                    boardFromHand = rootTurn * shieldBoardFrom;
+                }
+                else if (posedSlot != null && BoardOnSlot(out var boardLocal))
+                {
+                    boardFromHand = (posedSlot.position - hand.position) + posedSlot.rotation * boardLocal;
+                }
+
+                want = boardAt - boardFromHand;
+            }
+            else if (fresh || havePlan || holdLast)
             {
                 var rootTurn = Quaternion.Euler(0f, Loco.Facing, 0f);
                 var rootBack = Quaternion.Inverse(rootTurn);
@@ -5426,6 +5687,12 @@ namespace PhysicsBattler.Locomotion
 
             float most = Mathf.Lerp(ShieldSpeed, NoviceShieldSpeed, lack) * Size;
             float settle = Mathf.Max(0.01f, CombatFeel.ShieldSettle);
+            if (Bashing)
+            {
+                // (A bash is driven, not eased.)
+                most = 2f * ShieldSpeed * Size;
+                settle = Mathf.Min(settle, 0.07f);
+            }
             CriticalSpring(ref shieldAt, ref shieldAtV, wantLocal, 4f / settle, dt);
             shieldAtV = Vector3.ClampMagnitude(shieldAtV, most);
             Vector3 target = Vector3.Lerp(hand.position, Loco.Position + bodyTurn * shieldAt, weight);

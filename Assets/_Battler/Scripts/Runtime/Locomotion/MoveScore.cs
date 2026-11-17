@@ -16,6 +16,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Leaning forward from the hips, added (degrees); the hips carried lower, the feet where they were (leg lengths).</summary>
         public float Lean, Crouch;
 
+        /// <summary>Leaning to the side from the hips (degrees; above 0: to his right) and the hips carried aside, the feet where they were (leg lengths; above 0: to his right): a dodge (<see cref="ClipFighter.Dodge"/>).</summary>
+        public float SideLean, HipsAside;
+
         /// <summary>The upper body's postures (<see cref="PostureMaker"/>; all nothing at rest): the sword hand turned on the chest so the point dips (x, degrees) or goes aside (y); the shield arm thrust out before the chest (0 to 1); the sword arm carried higher (degrees; lower below 0).</summary>
         public Vector3 BladeTurn;
         public float ShieldOut, SwordArmLift;
@@ -25,7 +28,7 @@ namespace PhysicsBattler.Locomotion
 
         public static MoveLevers Plain => new MoveLevers { Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f };
 
-        public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f && BladeTurn == Vector3.zero && ShieldOut == 0f && SwordArmLift == 0f && ShieldShift == Vector3.zero;
+        public bool AtRest => Bounce == 1f && Sway == 1f && HipTurn == 1f && ChestTurn == 1f && ArmSwing == 1f && StepLift == 1f && Lean == 0f && Crouch == 0f && SideLean == 0f && HipsAside == 0f && BladeTurn == Vector3.zero && ShieldOut == 0f && SwordArmLift == 0f && ShieldShift == Vector3.zero;
     }
 
     /// <summary>
@@ -105,6 +108,14 @@ namespace PhysicsBattler.Locomotion
             t.PelvisTurn.x += 0.35f * levers.Lean;
             t.ChestTurn.x += 0.65f * levers.Lean;
             t.HeadTurn.x -= 0.7f * levers.Lean;
+            if (levers.SideLean != 0f || levers.HipsAside != 0f)
+            {
+                // (Leaning aside: the hips go that way and tip a little, the back the rest, and the head comes half-way back up.)
+                t.Pelvis.x += levers.HipsAside;
+                t.PelvisTurn.z -= 0.35f * levers.SideLean;
+                t.ChestTurn.z -= 0.65f * levers.SideLean;
+                t.HeadTurn.z += 0.5f * levers.SideLean;
+            }
             if (levers.ArmSwing != 1f)
             {
                 t.ClavL = BodyTracks.Way(mid.ClavL, t.ClavL, levers.ArmSwing); t.ClavR = BodyTracks.Way(mid.ClavR, t.ClavR, levers.ArmSwing);

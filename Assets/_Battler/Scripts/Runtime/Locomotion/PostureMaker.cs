@@ -38,6 +38,14 @@ namespace PhysicsBattler.Locomotion
         public const float BladeDips = 38f, BladeFlicks = 32f, BladeCircles = 22f;
 
         /// <summary>
+        /// A dodge (rebuilt from the recordings "Dodging" and "Dodging Right": the hips sink 15 to 21 cm and go 14 cm
+        /// aside, the head 40 cm aside and 25 to 40 cm down, in a third of a second, and come back): how far his hips
+        /// sink and go aside (metres at a Medium's size), how far he leans to that side and forward (degrees), and
+        /// how long it takes down, is held, and comes back up (seconds). His feet stay where they are.
+        /// </summary>
+        public static float DodgeSinks = 0.17f, DodgeAside = 0.13f, DodgeRolls = 26f, DodgeLeans = 10f, DodgeDown = 0.24f, DodgeHeld = 0.15f, DodgeUp = 0.4f;
+
+        /// <summary>
         /// An uncovering (the plan's step 7, the shield test; <see cref="ClipFighter.Uncover"/>): how long its tell
         /// lasts before the shield starts away (seconds: his blade's point dips and is held down, a gesture of his
         /// sword and not of his shield, so the two are told apart), and how long the part is left open (seconds).

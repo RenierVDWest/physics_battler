@@ -181,6 +181,16 @@ namespace PhysicsBattler.Battle
                 // (Free roam: anywhere on the board is a spot; the steering keeps it clear of others.)
                 unit.NeedsSpot = false;
 
+                if (PhysicsBattler.Locomotion.ClipFighter.ShieldBash && unit.Clip != null && unit.IsAlive && !unit.IsDown)
+                {
+                    // (A shield bashes what comes too near: the fighters and the target dummies alike.)
+                    var tooNear = Nearest(units, unit, true);
+                    if (tooNear != null && tooNear.Clip != null)
+                    {
+                        unit.Clip.BashIfNear(tooNear.Clip);
+                    }
+                }
+
                 if (!Fight)
                 {
                     // (Not fighting: it stays where it was put, facing the nearest enemy.)
