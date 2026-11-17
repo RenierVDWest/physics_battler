@@ -303,8 +303,9 @@ internal static class FightReport
 
         // (FIGHT_JOGS=0: the guard without its jog, as it was.)
         PhysicsBattler.Locomotion.MoveStyle.Jogs = Environment.GetEnvironmentVariable("FIGHT_JOGS") != "0";
-        // (FIGHT_STANCEWALK=1: the guard walks forward and back on the archer's legs, which keep his stance: a try.)
-        PhysicsBattler.Locomotion.MoveStyle.StanceWalks = Environment.GetEnvironmentVariable("FIGHT_STANCEWALK") == "1";
+        // (FIGHT_ONECARRIAGE=0: the guard's steps each as recorded, as it was. FIGHT_STANCEKEPT=0.5: how much of the stand's stance the feet keep.)
+        PhysicsBattler.Locomotion.MoveStyle.OneCarriage = Environment.GetEnvironmentVariable("FIGHT_ONECARRIAGE") != "0";
+        PhysicsBattler.Locomotion.MoveScore.StanceKept = Env("FIGHT_STANCEKEPT", 0.5f);
         // (FIGHT_TRAVEL=0: the clips' travel as it was, turned the wrong way round.)
         PhysicsBattler.Locomotion.LocoClip.TravelsTrue = Environment.GetEnvironmentVariable("FIGHT_TRAVEL") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
@@ -720,6 +721,9 @@ internal static class FightReport
         string fakeLearned = "";
         float styleSweep = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STYLESWEEP"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float sweepOver) ? sweepOver : 0f;
         var duelOrders = new List<(PhysicsBattler.Sandbox.DuelLab.Order order, float until)>();
+        bool courseBegun = false, courseTold = false;
+        var danceMeterA = new PhysicsBattler.Sandbox.FootworkMeter();
+        var danceMeterB = new PhysicsBattler.Sandbox.FootworkMeter();
         int duelAt = -1;
         float duelFrom = 0f, duelGapFrom = 0f, duelNote = 0f;
         // (FIGHT_DUELBLOW="3.2:Chest,6:Belly": a blow asked for at those seconds, whatever he is doing then: the
@@ -1483,6 +1487,20 @@ internal static class FightReport
                         PhysicsBattler.Locomotion.StyleManner.Amount = Mathf.Clamp01(paceAt / styleSweep);
                     }
 
+                    // (FIGHT_COURSE=1: the footwork course is run from 2 s in, and what its meter made of it is said as it ends.)
+                    if (Environment.GetEnvironmentVariable("FIGHT_COURSE") == "1")
+                    {
+                        if (!courseBegun && paceAt >= 2f)
+                        {
+                            courseBegun = duel.BeginCourse();
+                        }
+                        else if (courseBegun && !courseTold && !duel.CourseOn)
+                        {
+                            courseTold = true;
+                            Console.WriteLine("COURSE his footwork " + duel.Meter.Text);
+                        }
+                    }
+
                     duel.Step(dt);
                     // (What he leaves open: once as he stands, and after each posture watched.)
                     if (duel.Opened != openedTold)
@@ -1512,7 +1530,7 @@ internal static class FightReport
                     // (FIGHT_WALKSON=0: a walk kept up under a walk's pace is stepped, as it was.)
                     PhysicsBattler.Locomotion.Locomotor.WalksOn = Environment.GetEnvironmentVariable("FIGHT_WALKSON") != "0";
                     // (FIGHT_SLOWSIDE=0/1/2: what a slow walk kept up to the side is walked on: the side-step, the crouched step, the upright strafe.)
-                    PhysicsBattler.Locomotion.Locomotor.SlowSide = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_SLOWSIDE"), out int slowSide) ? slowSide : 1;
+                    PhysicsBattler.Locomotion.Locomotor.SlowSide = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_SLOWSIDE"), out int slowSide) ? slowSide : 0;
                     // (FIGHT_SHIELDCOVER=0: the shield arm is the recording's, as it was; FIGHT_COVERHOLD, FIGHT_COVERINBLOW: how much
                     // of the arm is the cover's. Where each of the two carries his board is measured from 2.5 s on: COVER lines.)
                     // (FIGHT_BASHAT="4,9": the mover bashes the other at those seconds, whatever the distance. FIGHT_BASHWITHIN: how
@@ -1809,6 +1827,8 @@ internal static class FightReport
                     if (dance != null)
                     {
                         dance.Step(dt, Time.time);
+                        danceMeterA.Step(dance.A.Unit, dt);
+                        danceMeterB.Step(dance.B.Unit, dt);
                         if (Environment.GetEnvironmentVariable("FIGHT_DANCEGAP") == "1" && dance.On && Mathf.FloorToInt(2f * paceAt) != Mathf.FloorToInt(2f * (paceAt - dt)))
                         {
                             Console.WriteLine($"DANCEGAP {paceAt:0.0} {dance.Gap:0.00} m | A {dance.A.Tempo}{(dance.A.Unit.DummyGo.HasValue ? $" going {dance.A.Unit.DummyGo.Value.magnitude:0.0}" : " standing")} {dance.A.Note} | B {dance.B.Tempo}{(dance.B.Unit.DummyGo.HasValue ? $" going {dance.B.Unit.DummyGo.Value.magnitude:0.0}" : " standing")} {dance.B.Note}");
@@ -2239,6 +2259,8 @@ internal static class FightReport
 
         if (dance != null)
         {
+            Console.WriteLine("DANCEFOOTWORK A his footwork " + danceMeterA.Text);
+            Console.WriteLine("DANCEFOOTWORK B his footwork " + danceMeterB.Text);
             Console.WriteLine($"DANCETALLY A {dance.A.Unit.name} ({dance.A.Pattern.Name}, {(dance.A.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.A)}");
             Console.WriteLine($"DANCEFEET {dance.Feet()}");
             Console.WriteLine($"DANCECLASS A: {dance.Classes(dance.A)}");

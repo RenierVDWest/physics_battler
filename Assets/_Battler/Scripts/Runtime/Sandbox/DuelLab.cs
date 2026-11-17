@@ -4,6 +4,162 @@ using UnityEngine;
 namespace PhysicsBattler.Sandbox
 {
     /// <summary>
+    /// The footwork's meter (the plan "Convincing walking in the dance", step 1): what one fighter's walking and
+    /// standing looked like over a stretch, in a few numbers that say where a body jumps. The band his hips' height
+    /// moved over (the middle 90% of the time); how often his hips rose or sank 10 cm or more within 0.3 s; how many
+    /// steps he took in each spell of walking; how much of his walking was two recordings mixed, each a quarter or
+    /// more; and how fast his steps were against the recordings' own. Only while he stands or walks: a gesture, a
+    /// blow or a leap is not counted. Heights are at a Medium's size.
+    /// </summary>
+    public sealed class FootworkMeter
+    {
+        private readonly System.Collections.Generic.List<float> heights = new System.Collections.Generic.List<float>(4096);
+        private readonly float[] recent = new float[64];
+        private readonly bool[] recentCounts = new bool[64];
+        private int recentAt, steps, spells, walking, mixed, jumps;
+        private float sinceJump, lastPhase, tempoSum, time;
+        private bool wasWalking, hadPhase;
+        private float[] sorted = new float[0];
+
+        public float Seconds => time;
+        public int Jumps => jumps;
+        public int Spells => spells;
+        public int Steps => steps;
+
+        /// <summary>The hips' band (metres): the middle 90% of their heights. Its low and high ends in <paramref name="low"/> and <paramref name="high"/>.</summary>
+        public float Band(out float low, out float high)
+        {
+            low = high = 0f;
+            if (heights.Count < 20)
+            {
+                return 0f;
+            }
+
+            if (sorted.Length < heights.Count)
+            {
+                sorted = new float[heights.Capacity];
+            }
+
+            heights.CopyTo(sorted);
+            System.Array.Sort(sorted, 0, heights.Count);
+            low = sorted[Mathf.RoundToInt(0.05f * (heights.Count - 1))];
+            high = sorted[Mathf.RoundToInt(0.95f * (heights.Count - 1))];
+            return high - low;
+        }
+
+        /// <summary>How much of his walking was two recordings mixed, each a quarter or more (0 to 1).</summary>
+        public float Mixed => walking > 0 ? (float)mixed / walking : 0f;
+
+        /// <summary>Steps taken in each spell of walking, on average.</summary>
+        public float StepsASpell => spells > 0 ? (float)steps / spells : 0f;
+
+        /// <summary>How fast his steps went against the recordings' own, on average over his walking (1: as recorded).</summary>
+        public float Tempo => walking > 0 ? tempoSum / walking : 0f;
+
+        public void Reset()
+        {
+            heights.Clear();
+            recentAt = steps = spells = walking = mixed = jumps = 0;
+            sinceJump = 10f;
+            tempoSum = time = 0f;
+            wasWalking = hadPhase = false;
+            for (int i = 0; i < recentCounts.Length; i++)
+            {
+                recentCounts[i] = false;
+            }
+        }
+
+        /// <summary>A step of the game: the fighter as he is posed now.</summary>
+        public void Step(UnitController unit, float dt)
+        {
+            if (unit == null || unit.Clip == null || unit.Clip.Loco == null || unit.Clip.Anim == null || dt <= 0f)
+            {
+                return;
+            }
+
+            var loco = unit.Clip.Loco;
+            time += dt;
+            sinceJump += dt;
+            bool counts = loco.Current != PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && !unit.IsDown && !loco.Dipping;
+            float size = Mathf.Max(0.1f, unit.Body.SizeFactor);
+            float height = unit.Clip.Anim.Part(PhysicsBattler.Rig.PartId.Pelvis).position.y / size;
+            int span = Mathf.Clamp(Mathf.RoundToInt(0.3f / dt), 2, recent.Length - 1);
+            recent[recentAt % recent.Length] = height;
+            recentCounts[recentAt % recent.Length] = counts;
+            recentAt++;
+            if (counts)
+            {
+                if (heights.Count < 200000)
+                {
+                    heights.Add(height);
+                }
+
+                // (A rise or sink of 10 cm within 0.3 s, with nothing but standing and walking in between.)
+                bool whole = recentAt > span;
+                for (int k = 0; k <= span && whole; k++)
+                {
+                    whole &= recentCounts[(recentAt - 1 - k) % recent.Length];
+                }
+
+                if (whole && sinceJump > 0.6f && Mathf.Abs(height - recent[(recentAt - 1 - span) % recent.Length]) >= 0.1f)
+                {
+                    jumps++;
+                    sinceJump = 0f;
+                }
+            }
+
+            bool walks = loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.Cycle;
+            if (walks)
+            {
+                walking++;
+                spells += wasWalking ? 0 : 1;
+                // (A foot lands as the step's phase passes 0 or a half.)
+                float phase = loco.Phase;
+                if (hadPhase && wasWalking && ((lastPhase < 0.5f && phase >= 0.5f) || (phase < lastPhase && lastPhase > 0.75f)))
+                {
+                    steps++;
+                }
+
+                lastPhase = phase;
+                hadPhase = true;
+                int big = 0;
+                float total = 0f;
+                foreach (var (_, weight) in loco.Blend)
+                {
+                    total += weight;
+                }
+
+                foreach (var (_, weight) in loco.Blend)
+                {
+                    big += total > 1e-4f && weight / total >= 0.25f ? 1 : 0;
+                }
+
+                mixed += big >= 2 ? 1 : 0;
+                tempoSum += loco.Cadence;
+            }
+
+            wasWalking = walks;
+        }
+
+        /// <summary>The meter in words.</summary>
+        public string Text
+        {
+            get
+            {
+                if (time < 0.5f)
+                {
+                    return "nothing measured yet.";
+                }
+
+                float band = Band(out float low, out float high);
+                return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "over {0:0} s: his hips' height moved over a band of {1:0} cm ({2:0} to {3:0} cm); they rose or sank 10 cm or more within 0.3 s {4} times; he walked in {5} spells, {6:0.0} steps a spell; two recordings mixed for {7:0}% of his walking; his steps went at {8:0.00} of the recordings' own tempo",
+                    time, 100f * band, 100f * low, 100f * high, jumps, spells, StepsASpell, 100f * Mixed, Tempo);
+            }
+        }
+    }
+
+    /// <summary>
     /// The duel lab's movement orders (the plan "Fight Rhythm from Recordings", step 1): one fighter moved about
     /// another on demand, so a way of moving can be looked at by itself. Walk to it, back away from it, go round it
     /// to the left or the right, stand. The fighter is steered as the fight steers one (a velocity and a facing, to
@@ -111,6 +267,131 @@ namespace PhysicsBattler.Sandbox
 
         public bool Running => Mover != null && Other != null && Mover.IsInitialized && Other.IsInitialized;
 
+        // ---- The footwork course (the plan "Convincing walking in the dance", step 1) ----------------------------------
+
+        /// <summary>The mover's footwork, measured while the course runs.</summary>
+        public readonly FootworkMeter Meter = new FootworkMeter();
+
+        /// <summary>The course is being run.</summary>
+        public bool CourseOn { get; private set; }
+
+        /// <summary>The course: the same footwork every time, at the dance's pace and distances. Each leg an order and how long it is kept (seconds).</summary>
+        public static readonly (Order order, float seconds, string about)[] CourseLegs =
+        {
+            (Order.Stand, 0.8f, "stands"),
+            (Order.BackAway, 2.4f, "retreats"),
+            (Order.WalkTo, 2.4f, "advances"),
+            (Order.CircleLeft, 3f, "circles left"),
+            (Order.CircleRight, 3f, "circles right"),
+            (Order.WalkTo, 1.1f, "in"),
+            (Order.BackAway, 1.1f, "out"),
+            (Order.WalkTo, 1.1f, "in"),
+            (Order.BackAway, 1.1f, "out"),
+            (Order.Stand, 0.6f, "stops"),
+            (Order.CircleLeft, 0.8f, "goes left"),
+            (Order.Stand, 0.6f, "stops"),
+            (Order.CircleRight, 0.8f, "goes right"),
+            (Order.Stand, 0.6f, "stops"),
+            (Order.WalkTo, 0.8f, "goes in"),
+            (Order.Stand, 0.6f, "stops"),
+            (Order.BackAway, 0.8f, "goes out"),
+            (Order.Stand, 1f, "stands"),
+        };
+
+        /// <summary>The course's pace (m/s at a Medium's size) and the distances it walks to and backs to (metres): the dance's.</summary>
+        public const float CoursePace = 0.8f, CourseNear = 1.5f, CourseFar = 2.5f;
+
+        /// <summary>How long the whole course takes (seconds).</summary>
+        public static float CourseSeconds
+        {
+            get
+            {
+                float all = 0f;
+                foreach (var leg in CourseLegs)
+                {
+                    all += leg.seconds;
+                }
+
+                return all;
+            }
+        }
+
+        private int courseLeg;
+        private float courseFor, courseWasPace, courseWasNear, courseWasFar;
+
+        /// <summary>What the course is at, in words.</summary>
+        public string CourseText => CourseOn ? $"leg {courseLeg + 1} of {CourseLegs.Length}: he {CourseLegs[courseLeg].about}" : Meter.Seconds > 0.5f ? "done" : "not run yet";
+
+        /// <summary>The course is begun: the mover is taken through its legs, and his footwork measured from its first step.</summary>
+        public bool BeginCourse()
+        {
+            if (!Running)
+            {
+                return false;
+            }
+
+            if (!CourseOn)
+            {
+                courseWasPace = Pace;
+                courseWasNear = Near;
+                courseWasFar = Far;
+            }
+
+            Pace = CoursePace;
+            Near = CourseNear;
+            Far = CourseFar;
+            CourseOn = true;
+            courseLeg = 0;
+            courseFor = 0f;
+            Meter.Reset();
+            Give(CourseLegs[0].order);
+            return true;
+        }
+
+        /// <summary>The course is ended, by its last leg or before it: he stands, at the pace and distances he had.</summary>
+        public void EndCourse()
+        {
+            if (!CourseOn)
+            {
+                return;
+            }
+
+            CourseOn = false;
+            Pace = courseWasPace;
+            Near = courseWasNear;
+            Far = courseWasFar;
+            if (Running)
+            {
+                Give(Order.Stand);
+            }
+        }
+
+        private void StepCourse(float dt)
+        {
+            if (!CourseOn)
+            {
+                return;
+            }
+
+            Meter.Step(Mover, dt);
+            courseFor += dt;
+            if (courseFor < CourseLegs[courseLeg].seconds)
+            {
+                return;
+            }
+
+            courseFor = 0f;
+            courseLeg++;
+            if (courseLeg >= CourseLegs.Length)
+            {
+                courseLeg = CourseLegs.Length - 1;
+                EndCourse();
+                return;
+            }
+
+            Give(CourseLegs[courseLeg].order);
+        }
+
         public void Begin(UnitController mover, UnitController other)
         {
             Mover = mover;
@@ -125,6 +406,7 @@ namespace PhysicsBattler.Sandbox
 
         public void Stop()
         {
+            CourseOn = false;
             if (Mover != null)
             {
                 Mover.DummyGo = null;
@@ -407,6 +689,7 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            StepCourse(dt);
             GiveStyle();
             Vector3 to = Flat(Other.Root.position - Mover.Root.position);
             Gap = to.magnitude;

@@ -175,6 +175,8 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        private int styleStamp;
+
         /// <summary>The relaxed walk's clips.</summary>
         public readonly ClipSet Relaxed;
 
@@ -251,7 +253,7 @@ namespace PhysicsBattler.Locomotion
         /// 0, his side-step alone, slowed; 1, the crouched careful step (low, each foot long on the ground, 1.1 m/s at
         /// its own pace); 2, the upright slow strafe (feet near each other, 0.6 m/s at its own pace).
         /// </summary>
-        public static int SlowSide = 1;
+        public static int SlowSide = 0;
 
         /// <summary>He is told to walk on (set each step by what orders him): see <see cref="WalksOn"/>.</summary>
         public bool KeptUp;
@@ -337,6 +339,7 @@ namespace PhysicsBattler.Locomotion
         public void SetStyle(MoveStyle style)
         {
             Style = style;
+            styleStamp = MoveStyle.Stamp;
             if (style == null)
             {
                 Guard = null;
@@ -616,6 +619,13 @@ namespace PhysicsBattler.Locomotion
             if (!Ready || dt <= 0f)
             {
                 return;
+            }
+
+            if (Style != null && styleStamp != MoveStyle.Stamp)
+            {
+                // (What its style's pack holds has changed, a switch thrown: its guard's clips are made again.)
+                styleStamp = MoveStyle.Stamp;
+                RefreshStyle();
             }
 
             guardLiftNow = Mathf.MoveTowards(guardLiftNow, GuardLift, GuardChanges * dt);
@@ -2540,6 +2550,13 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         private Vector3 StancePlace(LocoClip clip, int f)
         {
+            if (stanceStamp != MoveScore.CarryStamp)
+            {
+                // (A step carried on the stand's carriage keeps its feet elsewhere: worked out again.)
+                stanceStamp = MoveScore.CarryStamp;
+                stancePlaces.Clear();
+            }
+
             if (!stancePlaces.TryGetValue(clip, out var places))
             {
                 places = new Vector3[2];
@@ -2548,7 +2565,7 @@ namespace PhysicsBattler.Locomotion
                 const int samples = 24;
                 for (int i = 0; i < samples; i++)
                 {
-                    clip.Pose(clip.TimeAtPhase((i + 0.5f) / samples), stanceScratch, Leg);
+                    MoveScore.Pose(StanceLevers, clip, clip.TimeAtPhase((i + 0.5f) / samples), stanceScratch, Leg);
                     for (int g = 0; g < 2; g++)
                     {
                         Vector3 off = stanceScratch[(int)(g == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot)] - stanceScratch[(int)(g == 0 ? LocoBone.LeftUpLeg : LocoBone.RightUpLeg)];
@@ -2570,6 +2587,8 @@ namespace PhysicsBattler.Locomotion
         }
 
         private readonly Vector3[] stanceScratch = new Vector3[LocoClip.BoneCount];
+        private int stanceStamp = -1;
+        private static readonly MoveLevers StanceLevers = new MoveLevers { Bounce = 1f, Sway = 1f, HipTurn = 1f, ChestTurn = 1f, ArmSwing = 1f, StepLift = 1f };
 
         private static readonly LocoBone[] LeftLegBones = { LocoBone.LeftLeg, LocoBone.LeftFoot, LocoBone.LeftToeBase, LocoBone.LeftToeEnd };
         private static readonly LocoBone[] RightLegBones = { LocoBone.RightLeg, LocoBone.RightFoot, LocoBone.RightToeBase, LocoBone.RightToeEnd };

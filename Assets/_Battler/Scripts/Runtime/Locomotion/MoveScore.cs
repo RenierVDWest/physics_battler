@@ -60,6 +60,38 @@ namespace PhysicsBattler.Locomotion
         private readonly float floorL, floorR;
         private readonly Vector3[] whole = new Vector3[LocoClip.BoneCount];
 
+        // ---- One carriage (the plan "Convincing walking in the dance", step 2) ----------------------------------------
+
+        /// <summary>
+        /// How much of the stand's own places the feet keep in a step carried on its carriage (0: each recording's own
+        /// places; 1: the stand's: its feet as far apart and its left foot as far ahead). Combat Feel "Guard Keeps Its
+        /// Stance".
+        /// </summary>
+        public static float StanceKept = 0.5f;
+
+        /// <summary>Changes whenever what a carried recording's feet are given changes: what is worked out from one is worked out again.</summary>
+        public static int CarryStamp => (MoveStyle.OneCarriage ? 1 : 0) + 2 * Mathf.RoundToInt(100f * StanceKept);
+
+        private bool carried;
+        private float carryHips;
+        private Vector3 carryAnkleL, carryAnkleR;
+
+        /// <summary>
+        /// This recording is carried as a stand is (<see cref="MoveStyle.OneCarriage"/>): its hips at the stand's
+        /// height on average, and each foot's own place moved toward where the stand keeps that foot. Only its step is
+        /// its own: how the hips rise, sway and turn about their middle, and how each foot goes about its place.
+        /// </summary>
+        public void CarryAs(in BodyTracks stand)
+        {
+            carried = true;
+            carryHips = stand.Pelvis.y - mid.Pelvis.y;
+            carryAnkleL = new Vector3(stand.AnkleL.x - mid.AnkleL.x, 0f, stand.AnkleL.z - mid.AnkleL.z);
+            carryAnkleR = new Vector3(stand.AnkleR.x - mid.AnkleR.x, 0f, stand.AnkleR.z - mid.AnkleR.z);
+        }
+
+        /// <summary>For the reports: how far this recording's hips are moved to the stand's height (leg lengths; 0: it is not carried).</summary>
+        public float CarriedHips => carried && MoveStyle.OneCarriage ? carryHips : 0f;
+
         /// <summary>A recording's score: made the first time it is asked for, and kept with the recording.</summary>
         public static MoveScore Of(LocoClip clip) => Scores.GetValue(clip, c => new MoveScore(c));
 
@@ -94,6 +126,7 @@ namespace PhysicsBattler.Locomotion
             spine = SpineShape.Lerp(spines[a], spines[b], u);
             if (levers.AtRest)
             {
+                Carry(ref t);
                 return t;
             }
 
@@ -166,7 +199,19 @@ namespace PhysicsBattler.Locomotion
 
             t.AnkleL.y = floorL + (t.AnkleL.y - floorL) * levers.StepLift;
             t.AnkleR.y = floorR + (t.AnkleR.y - floorR) * levers.StepLift;
+            Carry(ref t);
             return t;
+        }
+
+        /// <summary>The parts carried as the stand is, after the levers have had their say about each part's own middle.</summary>
+        private void Carry(ref BodyTracks t)
+        {
+            if (carried && MoveStyle.OneCarriage)
+            {
+                t.Pelvis.y += carryHips;
+                t.AnkleL += carryAnkleL * StanceKept;
+                t.AnkleR += carryAnkleR * StanceKept;
+            }
         }
 
         /// <summary>The body at a time of the recording, put together from its parts (leg lengths, scaled): every bone, or only those asked for.</summary>

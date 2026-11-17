@@ -480,8 +480,14 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The dance (duel lab): a blow stopped is answered. The fighter whose shield or sword stopped a blow strikes back at once (after his reaction time, as quick as a blow can be), while the other is still in his. It is what a wasted blow costs: one who goes for every chest he sees open, and so throws blows at fakes, is answered each time one is stopped. An answer is not itself answered. Off (as it is): a stopped blow costs nothing. It is off because it did not do what it was for: in the headless duels every answer met the shield too, the one answered being able to cover while still in his own blow.")]
         public bool aStoppedBlowIsAnswered = false;
 
-        [Tooltip("What a walk kept up to the side is walked on, under his side-step's own pace (about 1.1 m/s). 0: his guard's side-step alone, slowed. 1: the crouched careful step from the \"Slow walks\" pack (low, each foot long on the ground), all of it at about 0.75 m/s and less. 2: the pack's upright slow strafe (feet near each other; 0.6 m/s at its own pace). Each is the recording's legs under the guard's own chest and arms.")]
-        [Range(0, 2)] public int slowSideWalk = 1;
+        [Tooltip("What a walk kept up to the side is walked on, under his side-step's own pace (about 1.1 m/s). 0 (as it is): his guard's own side-step, slowed. 1: the crouched careful step from the \"Slow walks\" pack: 13 to 16 cm lower than his stand, so his hips pumped up and down as his pace changed (the playtest of 17 November, 11:28). 2: the pack's upright slow strafe, 11 cm above his stand and square. Each is the recording's legs under his guard's own chest and arms.")]
+        [Range(0, 2)] public int slowCircleOn = 0;
+
+        [Tooltip("The guard walks in one carriage (the plan \"Convincing walking in the dance\", step 2). On: he steps forward and back on an archer's legs, which keep his turned stance (the sword and shield pack's own walk forward and back is 9 cm taller, narrow and square), under his own chest and arms; and each of his four steps is carried as his stand is: his hips at the stand's height, his feet's places toward the stand's. Off: each recording as it is, as it was. His jogs and runs are as recorded either way.")]
+        public bool theGuardWalksInOneCarriage = true;
+
+        [Tooltip("One carriage: how much of his stand's own stance his feet keep while he steps. 0: each recording's own places (his feet nearer each other than he stands). 1: the stand's: as wide, and his left foot as far ahead. More keeps his stance but asks his legs to reach further.")]
+        [Range(0f, 1f)] public float guardKeepsItsStance = 0.5f;
 
         [Tooltip("The shield test (duel lab): the swordsman reads the target's uncovering. On: he recognises it as it starts (its tell: the point of its blade dips and is held down), knows from the times he has seen it when the part comes open and for how long, and starts his blow early, timed to land while it is open. The first time he sees one he cannot read it and only reacts. Off: he only ever reacts: he starts his blow once he sees the part open, and against a short opening arrives after it has shut.")]
         public bool theSwordsmanReadsOpenings = true;
@@ -1442,7 +1448,9 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.CoverAt = 0.01f * shieldCoverAt;
             FighterLevers.On = eachFighterHasHisOwnLevers;
             Locomotor.WalksOn = aWalkKeptUpIsWalkedNotStepped;
-            Locomotor.SlowSide = slowSideWalk;
+            Locomotor.SlowSide = slowCircleOn;
+            MoveStyle.OneCarriage = theGuardWalksInOneCarriage;
+            MoveScore.StanceKept = guardKeepsItsStance;
             PhysicsBattler.Sandbox.Dance.Reading = fightersReadEachOthersPatterns;
             PhysicsBattler.Sandbox.Dance.Answers = aStoppedBlowIsAnswered;
             PhysicsBattler.Sandbox.Dance.Moves = theDanceIsPacedByTheGap;

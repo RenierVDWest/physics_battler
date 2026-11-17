@@ -997,6 +997,9 @@ namespace PhysicsBattler.Sandbox
 
             string cannot = Dancing.Cannot;
             Dancing.On = cannot.Length == 0;
+            Duel.EndCourse();
+            danceMeters[0].Reset();
+            danceMeters[1].Reset();
             message = Dancing.On ? "The dance: both gesture in their own patterns and strike after their tells; each watches the other." : "The dance: not now: " + cannot + ".";
         }
 
@@ -1085,6 +1088,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             DuelMoveButtons();
+            FootworkButtons(feel);
             if (ActionSettings(inWindow, "Move", "Moving: settings"))
             {
                 PaceSettings(feel);
@@ -1153,9 +1157,68 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
-        /// <summary>Moving's settings: what a slow order does, how near he walks and how far he backs, and how he set off.</summary>
+        /// <summary>
+        /// The footwork course (the plan "Convincing walking in the dance", step 1): the same footwork on demand, old
+        /// walk against new, and what the meter made of it.
+        /// </summary>
+        private void FootworkButtons(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            GUILayout.BeginHorizontal();
+            if (Press(Duel.CourseOn ? "[Footwork course]" : "Footwork course", $"He is taken through the same footwork every time, {DuelLab.CourseSeconds:0} seconds of it, at the dance's pace ({DuelLab.CoursePace:0.0} m/s) between {DuelLab.CourseNear:0.0} and {DuelLab.CourseFar:0.0} m: he retreats, advances, circles left, circles right, goes in and out twice, and stops and goes four times. His footwork is measured from its first step. Pressed again while it runs, it stops. Run it with the walk old and new and set the two readings side by side."))
+            {
+                if (Duel.CourseOn)
+                {
+                    Duel.EndCourse();
+                    message = "Footwork course: stopped.";
+                }
+                else
+                {
+                    Shield.Loop = false;
+                    Fakes.Pattern = false;
+                    Dancing.On = false;
+                    message = Duel.BeginCourse() ? "Footwork course: begun." : "Footwork course: not now (the lab is not set out).";
+                }
+            }
+
+            GUILayout.EndHorizontal();
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("His walk:", "How the guard's four steps are carried (Combat Feel \"The Guard Walks In One Carriage\"). One carriage (new): he steps forward and back on an archer's legs, which keep his turned stance, under his own chest and arms; and each of his four steps is carried as his stand is: his hips at the stand's height, his feet's places toward the stand's. As recorded (old): the sword and shield pack's own walk forward and back, which is 9 cm taller than his stand, narrow and square, and each step as its recording has it."), Styles().Text, GUILayout.Width(80f));
+                if (Press(feel.theGuardWalksInOneCarriage ? "[one carriage]" : "one carriage", "Every step carried as his stand is.")) feel.theGuardWalksInOneCarriage = true;
+                if (Press(!feel.theGuardWalksInOneCarriage ? "[as recorded (old)]" : "as recorded (old)", "Each step as its recording has it, as it was.")) feel.theGuardWalksInOneCarriage = false;
+                GUILayout.EndHorizontal();
+            }
+
+            Readout(new GUIContent("Course: " + Duel.CourseText + ". " + (Duel.Meter.Seconds > 0.5f ? "His footwork " + FootworkText(Duel.Meter, 0) + "." : ""), "What the meter made of the course, so far or when it ended. The band his hips' height moved over while he stood or walked (the middle 90% of the time): a level walk is a few centimetres. How often his hips rose or sank 10 cm or more within 0.3 s with no gesture or blow playing: the jump into another pose. How many steps he took in a spell of walking. How much of his walking was two recordings mixed, each a quarter or more. And how fast his steps went against the recordings' own tempo."), 5);
+        }
+
+        /// <summary>A footwork meter in words, worked out afresh no more than twice a second (it sorts what it has measured).</summary>
+        private string FootworkText(FootworkMeter meter, int slot)
+        {
+            if (Time.unscaledTime >= footworkTextAt[slot] + 0.5f || Time.unscaledTime < footworkTextAt[slot])
+            {
+                footworkTextAt[slot] = Time.unscaledTime;
+                footworkText[slot] = meter.Text;
+            }
+
+            return footworkText[slot];
+        }
+
+        private readonly float[] footworkTextAt = { -1f, -1f, -1f };
+        private readonly string[] footworkText = { "", "", "" };
+
+        /// <summary>The dance's two fighters' footwork, measured while they dance.</summary>
+        private readonly FootworkMeter[] danceMeters = { new FootworkMeter(), new FootworkMeter() };
+
+        /// <summary>Moving's settings: how his steps are carried, what a slow order does, how near he walks and how far he backs, and how he set off.</summary>
         private void PaceSettings(PhysicsBattler.Locomotion.CombatFeel feel)
         {
+            if (feel != null && feel.theGuardWalksInOneCarriage)
+            {
+                feel.guardKeepsItsStance = Lever("Keeps stance", feel.guardKeepsItsStance, 0f, 1f, "One carriage: how much of his stand's own stance his feet keep while he steps. 0: each recording's own places (his feet nearer each other than he stands). 1: the stand's: as wide, and his left foot as far ahead. More keeps his stance but asks his legs to reach further.");
+            }
+
             if (feel != null)
             {
                 GUILayout.BeginHorizontal();
@@ -1165,9 +1228,9 @@ namespace PhysicsBattler.Sandbox
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(new GUIContent("Slow circle:", "What he circles on under his side-step's own pace (about 1.1 m/s), when slow orders are walked. Each is a recording's legs under his guard's own chest and arms. Crouched: the pack's careful crouched step, low, each foot long on the ground. Upright: the pack's slow strafe, feet near each other. Side-step: his guard's own side-step, slowed (no new recording)."), Styles().Text, GUILayout.Width(90f));
-                if (Press(feel.slowSideWalk == 1 ? "[crouched]" : "crouched", "The crouched careful step.")) feel.slowSideWalk = 1;
-                if (Press(feel.slowSideWalk == 2 ? "[upright]" : "upright", "The upright slow strafe.")) feel.slowSideWalk = 2;
-                if (Press(feel.slowSideWalk == 0 ? "[side-step]" : "side-step", "His guard's own side-step, slowed.")) feel.slowSideWalk = 0;
+                if (Press(feel.slowCircleOn == 1 ? "[crouched]" : "crouched", "The crouched careful step.")) feel.slowCircleOn = 1;
+                if (Press(feel.slowCircleOn == 2 ? "[upright]" : "upright", "The upright slow strafe.")) feel.slowCircleOn = 2;
+                if (Press(feel.slowCircleOn == 0 ? "[side-step]" : "side-step", "His guard's own side-step, slowed.")) feel.slowCircleOn = 0;
                 GUILayout.EndHorizontal();
             }
 
@@ -1491,6 +1554,7 @@ namespace PhysicsBattler.Sandbox
                 var last = d.Blows.Count > 0 ? d.Blows[d.Blows.Count - 1] : null;
                 Readout(new GUIContent("His last blow: " + (last != null ? (last.Done ? "" : "(under way) ") + last.Verdict : "none yet."), "His last real blow: why he threw it, what it met, and what the other was doing as it met."), 4);
                 Readout(Dancing.Gestures(d) > 0 ? Dancing.Tally(d) : "", 4);
+                Readout(new GUIContent(danceMeters[k].Seconds > 0.5f ? "His footwork " + FootworkText(danceMeters[k], 1 + k) + "." : "", "His footwork in this dance, by the footwork meter (under \"Move him\"): the band his hips' height moved over while he stood or walked, how often they rose or sank 10 cm or more within 0.3 s, his steps a spell of walking, how much of his walking was two recordings mixed, and his steps' tempo against the recordings'."), 5);
                 Readout(new GUIContent(Dancing.Gestures(d) > 0 ? "His blows: " + Dancing.Classes(d) + "." : "", "His blows by class: how many light and heavy, how long each took to land, how many landed and what those did; how often he struck into the other's wind-up; how often he dodged."), 3);
             }
 
@@ -2194,6 +2258,12 @@ namespace PhysicsBattler.Sandbox
                         Shield.Step(Time.fixedDeltaTime, Time.time);
                         Fakes.Step(Time.fixedDeltaTime, Time.time);
                         Dancing.Step(Time.fixedDeltaTime, Time.time);
+                        if (Dancing.On && Dancing.Ready)
+                        {
+                            danceMeters[0].Step(Dancing.A.Unit, Time.fixedDeltaTime);
+                            danceMeters[1].Step(Dancing.B.Unit, Time.fixedDeltaTime);
+                        }
+
                         if (Aim.Target != null && Aim.Attacker != null)
                         {
                             LabelNotes[Aim.Target] = Dancing.On ? (Dancing.B.Note.Length > 0 ? Dancing.B.Note : Dancing.B.Tempo) : Shield.TargetNote.Length > 0 ? Shield.TargetNote : Fakes.TargetNote;
