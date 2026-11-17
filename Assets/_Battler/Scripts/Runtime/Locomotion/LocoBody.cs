@@ -72,6 +72,18 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How far the hips were dropped for the legs to reach (metres).</summary>
         public float PelvisDrop { get; private set; }
 
+        /// <summary>
+        /// How far the hips may sink for a planted foot the body has left behind before that foot is let go to step
+        /// after it (a share of the leg's reach; the plan "Convincing walking in the dance", step 3; Combat Feel "A
+        /// Leg Left Behind Steps Before The Hips Sink"). It was 0.12, all the hips are ever dropped: the first step
+        /// out of a stand, the body going away from a foot planted far out in the wide stance, sank the hips 10 cm
+        /// and more before the foot came after. At 0.03 the foot steps as soon as the leg is all but straight.
+        /// </summary>
+        public static float SinksBeforeStep = 0.03f;
+
+        /// <summary>As it was: the hips sink all they can before a foot left behind is let go.</summary>
+        public const float SinksAllBeforeStep = 0.12f;
+
         private float dropSpeed;
 
         /// <summary>A lock lets go if the clip's foot has gone this far from it (leg lengths): the leg would over-stretch.</summary>
@@ -2110,7 +2122,7 @@ namespace PhysicsBattler.Locomotion
                 held.y = posed.y;   // (its height is the clip's: the heel lifts, the foot rolls)
                 Vector3 pull = held - posed;
                 pull.y = 0f;
-                Vector3 hipLow = World(f == 0 ? LocoBone.LeftUpLeg : LocoBone.RightUpLeg) + Vector3.down * (0.12f * legReach);
+                Vector3 hipLow = World(f == 0 ? LocoBone.LeftUpLeg : LocoBone.RightUpLeg) + Vector3.down * (SinksBeforeStep * legReach);
                 bool stretched = pull.magnitude > UnlockRadius * loco.Leg || (held - hipLow).magnitude > legReach;
 
                 // Standing (or in a guard or strike clip) with a planted foot well away from where the

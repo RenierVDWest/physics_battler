@@ -489,6 +489,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("One carriage: how much of his stand's own stance his feet keep while he steps. 0: each recording's own places (his feet nearer each other than he stands). 1: the stand's: as wide, and his left foot as far ahead. More keeps his stance but asks his legs to reach further.")]
         [Range(0f, 1f)] public float guardKeepsItsStance = 0.5f;
 
+        [Tooltip("A leg left behind steps before the hips sink (the plan \"Convincing walking in the dance\", step 3). On: a planted foot the body is leaving behind is let go to step after it as soon as its leg is all but straight (\"Hips Sink Before A Step\"). Off, as it was: the hips sank all they can, 10 cm, before the foot was let go: the dip at the first step out of a stand, the wide stance's far foot left behind.")]
+        public bool aLegLeftBehindStepsBeforeTheHipsSink = true;
+
+        [Tooltip("A leg left behind: how far the hips may sink for it before the foot is let go to step (a share of the leg's reach; 0.03 is about 2.5 cm). More: fewer of these catch steps, a deeper dip.")]
+        [Range(0f, 0.12f)] public float hipsSinkBeforeAStep = 0.03f;
+
         [Tooltip("A fighter turns round quickly (17 November). On: in his guard, with an enemy near and what he is to face a good way off to his side or behind him (\"Quick Turn From\"), standing or stepping, he makes a quick turn round: the pack \"Turns\"' quick turn's steps on his own stand, under his own chest and arms, the shorter way, as far round as is asked, and aimed as he goes at where his enemy is by then. And an unhurried turn on the spot too big for his quarter turn is the pack's turn a third of the way round, made the same way. Off, as it was: his guard's own quarter turn stretched (0.93 s for up to 140 degrees, then the rest eased round over another second) or its turn round (0.8 s); and stepping, his facing eased round at 200 degrees a second at most.")]
         public bool aFighterTurnsRoundQuickly = true;
 
@@ -1469,6 +1475,7 @@ namespace PhysicsBattler.Locomotion
             Locomotor.SlowSide = slowCircleOn;
             MoveStyle.OneCarriage = theGuardWalksInOneCarriage;
             MoveScore.StanceKept = guardKeepsItsStance;
+            LocoBody.SinksBeforeStep = aLegLeftBehindStepsBeforeTheHipsSink ? hipsSinkBeforeAStep : LocoBody.SinksAllBeforeStep;
             Locomotor.QuickTurns = aFighterTurnsRoundQuickly;
             Locomotor.QuickTurnFrom = quickTurnFrom;
             Locomotor.QuickTurnPace = quickTurnPace;

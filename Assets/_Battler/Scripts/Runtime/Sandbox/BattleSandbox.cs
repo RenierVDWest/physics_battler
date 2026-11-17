@@ -1191,6 +1191,15 @@ namespace PhysicsBattler.Sandbox
                 GUILayout.EndHorizontal();
             }
 
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("A leg left behind:", "What happens when his body goes away from a planted foot, as at the first step out of his wide stand (Combat Feel \"A Leg Left Behind Steps Before The Hips Sink\"). Steps first (new): the foot is let go to step after him as soon as its leg is all but straight. Hips sink first (old): his hips sank up to 10 cm before the foot was let go."), Styles().Text, GUILayout.Width(110f));
+                if (Press(feel.aLegLeftBehindStepsBeforeTheHipsSink ? "[steps first]" : "steps first", "The foot steps after him before his hips sink.")) feel.aLegLeftBehindStepsBeforeTheHipsSink = true;
+                if (Press(!feel.aLegLeftBehindStepsBeforeTheHipsSink ? "[hips sink first (old)]" : "hips sink first (old)", "His hips sink all they can first, as it was.")) feel.aLegLeftBehindStepsBeforeTheHipsSink = false;
+                GUILayout.EndHorizontal();
+            }
+
             Readout(new GUIContent("Course: " + Duel.CourseText + ". " + (Duel.Meter.Seconds > 0.5f ? "His footwork " + FootworkText(Duel.Meter, 0) + "." : ""), "What the meter made of the course, so far or when it ended. The band his hips' height moved over while he stood or walked (the middle 90% of the time): a level walk is a few centimetres. How often his hips rose or sank 10 cm or more within 0.3 s with no gesture or blow playing: the jump into another pose. How many steps he took in a spell of walking. How much of his walking was two recordings mixed, each a quarter or more. And how fast his steps went against the recordings' own tempo."), 5);
         }
 

@@ -306,6 +306,8 @@ internal static class FightReport
         // (FIGHT_ONECARRIAGE=0: the guard's steps each as recorded, as it was. FIGHT_STANCEKEPT=0.5: how much of the stand's stance the feet keep.)
         PhysicsBattler.Locomotion.MoveStyle.OneCarriage = Environment.GetEnvironmentVariable("FIGHT_ONECARRIAGE") != "0";
         PhysicsBattler.Locomotion.MoveScore.StanceKept = Env("FIGHT_STANCEKEPT", 0.5f);
+        // (FIGHT_SINKSBEFORESTEP=0.12: the hips sink all they can before a foot left behind is let go, as it was.)
+        PhysicsBattler.Locomotion.LocoBody.SinksBeforeStep = Env("FIGHT_SINKSBEFORESTEP", 0.03f);
         // (FIGHT_QUICKTURN=0: a fighter turns round as he did. FIGHT_QUICKPACE, FIGHT_QUICKFROM, FIGHT_QUICKWITHIN, FIGHT_TURNDRAWSIN, FIGHT_TURNSINKS: the quick turn's levers.)
         PhysicsBattler.Locomotion.Locomotor.QuickTurns = Environment.GetEnvironmentVariable("FIGHT_QUICKTURN") != "0";
         PhysicsBattler.Locomotion.Locomotor.QuickTurnPace = Env("FIGHT_QUICKPACE", 1.5f);

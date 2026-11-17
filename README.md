@@ -5522,8 +5522,9 @@ are some turning animations. There's a quick turn in there that will work for th
 guard's own clips: a quarter turn (88 degrees in 0.93 s) stretched to as much as 1.6 times, or the turn round
 (0.8 s), which is recorded from a different, upright stance and goes one way only. Measured headless, the
 other put round him at once: 150 degrees round, 0.77 s to face him (to within 15 degrees), his hips dipping
-28 cm on the way (56 to 84 cm) and then a second turn of 40 degrees back; 155 degrees round the way the turn
-round does not go, the quarter turn stretched to 139 degrees and the last 41 eased round on his feet: 1.4 s.
+28 cm on the way (56 to 84 cm) and then a second turn of 40 degrees back; behind him, round the way the turn
+round does not go (155 degrees round as it began, the other moving too): the quarter turn stretched to 139
+degrees and the 41 then left eased round on his feet: 1.4 s.
 Stepping, his facing was eased round at 200 degrees a second at most: 0.83 s for 150 degrees.
 
 *The quick turn* (`Locomotor.QuickTurns`, `StartTurn`; Combat Feel "A Fighter Turns Round Quickly", on).
@@ -5583,4 +5584,22 @@ sliding, so sliding under the turn is not measured. A Large (two-handed guard) h
 standard sword-and-shield style. The get-ups are still the made ones of 14 November: the recorded "Getting
 Up" takes are to be rebuilt into them in the roadmap's step 11 (Downed play); Renier asked for this again on
 17 November. Not verified: nothing of this has been seen in Unity; the take has not been seen, only measured.
+
+**Convincing walking, step 3, its first item: a leg left behind steps before the hips sink (17 November).**
+Found in steps 1 and 2: most of what was left of the hips' jumps was the first step out of a stand. His
+stand is wide, the left foot 73 cm ahead; as his body goes away from a planted foot, that foot stayed where
+it was until its leg could not reach it even with the hips dropped all they are ever dropped (12% of the
+leg's reach, 10 cm), and only then was it let go to step after him (`LocoBody.UpdateFeet`, "stretched").
+So his hips sank 10 cm and more, at once, before the foot came. Now the foot is let go as soon as its leg is
+all but straight: with the hips sunk 3% of the reach, about 2.5 cm (`LocoBody.SinksBeforeStep`; Combat Feel
+"A Leg Left Behind Steps Before The Hips Sink", on, and "Hips Sink Before A Step", 0.03; the lab's "A leg
+left behind: steps first / hips sink first (old)" under "Move him"; `FIGHT_SINKSBEFORESTEP=0.12` for as it
+was).
+
+Headless, old against new: the footwork course, his hips rose or sank 10 cm or more within 0.3 s twice
+against never, the band (6 cm), the steps a spell and the tempo the same. A dance of 63 s, two fighters:
+8 and 6 such jumps against 1 and 1; the hips' band 10 and 9 cm against 7 and 7; two recordings mixed for 43
+to 50% of the walking either way, 0.6 to 1.1 steps a spell either way. Not measured: whether he now takes
+more small catch steps than before (the foot let go sooner steps sooner); to be looked at in Unity. The rest
+of step 3 (whole steps: a spell of walking is still under one step on average) is not begun.
 
