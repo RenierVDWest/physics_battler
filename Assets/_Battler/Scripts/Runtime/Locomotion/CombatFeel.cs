@@ -489,6 +489,24 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("One carriage: how much of his stand's own stance his feet keep while he steps. 0: each recording's own places (his feet nearer each other than he stands). 1: the stand's: as wide, and his left foot as far ahead. More keeps his stance but asks his legs to reach further.")]
         [Range(0f, 1f)] public float guardKeepsItsStance = 0.5f;
 
+        [Tooltip("A fighter turns round quickly (17 November). On: in his guard, with an enemy near and what he is to face a good way off to his side or behind him (\"Quick Turn From\"), standing or stepping, he makes a quick turn round: the pack \"Turns\"' quick turn's steps on his own stand, under his own chest and arms, the shorter way, as far round as is asked, and aimed as he goes at where his enemy is by then. And an unhurried turn on the spot too big for his quarter turn is the pack's turn a third of the way round, made the same way. Off, as it was: his guard's own quarter turn stretched (0.93 s for up to 140 degrees, then the rest eased round over another second) or its turn round (0.8 s); and stepping, his facing eased round at 200 degrees a second at most.")]
+        public bool aFighterTurnsRoundQuickly = true;
+
+        [Tooltip("Quick turns: how far off (degrees) what he is to face must be for the quick turn. Under it he turns as he did: a small turn eased on his feet, a bigger one his guard's quarter turn.")]
+        [Range(45f, 150f)] public float quickTurnFrom = 75f;
+
+        [Tooltip("Quick turns: how fast the quick turn is played against its recording. 1: as recorded, the turn itself in half a second and the whole of it, with its last step, in about a second. 1.5 (as it is): he faces his enemy again in about half a second and stands in his guard again in 0.8 s. A turn to his side is played up to a quarter quicker than one right round.")]
+        [Range(0.8f, 2f)] public float quickTurnPace = 1.5f;
+
+        [Tooltip("Quick turns: an enemy within this many metres (at a Medium's size) makes a turn a hurried one. Further off he turns as he did.")]
+        [Range(1f, 10f)] public float quickTurnWithin = 4f;
+
+        [Tooltip("Quick turns: how far his feet are drawn in from his stand's wide places at the middle of the turn. 0: they stay as wide as he stands, and go round on a wide circle. 1: all the way in to where the recording has them, which was made from a narrower stance.")]
+        [Range(0f, 1f)] public float quickTurnDrawsFeetIn = 0.5f;
+
+        [Tooltip("Quick turns: how much of the recording's sinking he takes. The recorded turn sinks 11 cm at its middle, from a stance that much taller than his stand. 1: all of it, a deep crouch from where he stands. 0.4 (as it is): about 4 cm. 0: his hips stay level.")]
+        [Range(0f, 1f)] public float quickTurnSinks = 0.4f;
+
         [Tooltip("The shield test (duel lab): the swordsman reads the target's uncovering. On: he recognises it as it starts (its tell: the point of its blade dips and is held down), knows from the times he has seen it when the part comes open and for how long, and starts his blow early, timed to land while it is open. The first time he sees one he cannot read it and only reacts. Off: he only ever reacts: he starts his blow once he sees the part open, and against a short opening arrives after it has shut.")]
         public bool theSwordsmanReadsOpenings = true;
 
@@ -1451,6 +1469,12 @@ namespace PhysicsBattler.Locomotion
             Locomotor.SlowSide = slowCircleOn;
             MoveStyle.OneCarriage = theGuardWalksInOneCarriage;
             MoveScore.StanceKept = guardKeepsItsStance;
+            Locomotor.QuickTurns = aFighterTurnsRoundQuickly;
+            Locomotor.QuickTurnFrom = quickTurnFrom;
+            Locomotor.QuickTurnPace = quickTurnPace;
+            Locomotor.QuickTurnWithin = quickTurnWithin;
+            MoveStyle.TurnDrawsIn = quickTurnDrawsFeetIn;
+            MoveStyle.TurnSinks = quickTurnSinks;
             PhysicsBattler.Sandbox.Dance.Reading = fightersReadEachOthersPatterns;
             PhysicsBattler.Sandbox.Dance.Answers = aStoppedBlowIsAnswered;
             PhysicsBattler.Sandbox.Dance.Moves = theDanceIsPacedByTheGap;

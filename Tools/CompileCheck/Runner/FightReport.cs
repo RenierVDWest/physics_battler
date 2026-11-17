@@ -306,6 +306,13 @@ internal static class FightReport
         // (FIGHT_ONECARRIAGE=0: the guard's steps each as recorded, as it was. FIGHT_STANCEKEPT=0.5: how much of the stand's stance the feet keep.)
         PhysicsBattler.Locomotion.MoveStyle.OneCarriage = Environment.GetEnvironmentVariable("FIGHT_ONECARRIAGE") != "0";
         PhysicsBattler.Locomotion.MoveScore.StanceKept = Env("FIGHT_STANCEKEPT", 0.5f);
+        // (FIGHT_QUICKTURN=0: a fighter turns round as he did. FIGHT_QUICKPACE, FIGHT_QUICKFROM, FIGHT_QUICKWITHIN, FIGHT_TURNDRAWSIN, FIGHT_TURNSINKS: the quick turn's levers.)
+        PhysicsBattler.Locomotion.Locomotor.QuickTurns = Environment.GetEnvironmentVariable("FIGHT_QUICKTURN") != "0";
+        PhysicsBattler.Locomotion.Locomotor.QuickTurnPace = Env("FIGHT_QUICKPACE", 1.5f);
+        PhysicsBattler.Locomotion.Locomotor.QuickTurnFrom = Env("FIGHT_QUICKFROM", 75f);
+        PhysicsBattler.Locomotion.Locomotor.QuickTurnWithin = Env("FIGHT_QUICKWITHIN", 4f);
+        PhysicsBattler.Locomotion.MoveStyle.TurnDrawsIn = Env("FIGHT_TURNDRAWSIN", 0.5f);
+        PhysicsBattler.Locomotion.MoveStyle.TurnSinks = Env("FIGHT_TURNSINKS", 0.4f);
         // (FIGHT_TRAVEL=0: the clips' travel as it was, turned the wrong way round.)
         PhysicsBattler.Locomotion.LocoClip.TravelsTrue = Environment.GetEnvironmentVariable("FIGHT_TRAVEL") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")
@@ -313,6 +320,8 @@ internal static class FightReport
             PhysicsBattler.Motion.ArmLimits.On = false;
         }
 
+        // (FIGHT_TURNTRACE=1: each turn on the spot, as it begins.)
+        if (Environment.GetEnvironmentVariable("FIGHT_TURNTRACE") == "1") { PhysicsBattler.Locomotion.Locomotor.TurnTrace = (l, m) => Console.WriteLine($"[turn] at {l.Position.x:0.0} {l.Position.z:0.0}: {m}"); }
         if (Environment.GetEnvironmentVariable("FIGHT_STANDTRACE") == "1") { PhysicsBattler.Locomotion.Locomotor.StandTrace = m => Console.WriteLine("[stand] " + m); }
         // (The weight over the feet: FIGHT_SHIFT=0 keeps the hips where the clip has them; "share,waits" sets how far they
         // go toward the carrying foot and how long a step from standing waits for them (seconds).)
@@ -1256,16 +1265,33 @@ internal static class FightReport
 
                 clockOwn.Stop();
 
-                // (FIGHT_TURN="3,180": at 3 s every unit turns 180 degrees on the spot, as the debug panel's button has them do.)
+                // (FIGHT_TURN="3,180": at 3 s every unit turns 180 degrees on the spot, as the debug panel's button has them do; its turn back to its enemy is then its own.)
                 {
                     string[] turn = (Environment.GetEnvironmentVariable("FIGHT_TURN") ?? "").Split(',');
-                    if (turn.Length == 2 && float.TryParse(turn[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float turnAt) && paceAt >= turnAt && paceAt < turnAt + dt
+                    if (turn.Length >= 2 && float.TryParse(turn[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float turnAt) && paceAt >= turnAt && paceAt < turnAt + dt
                         && float.TryParse(turn[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float turnBy))
                     {
                         foreach (var u in units)
                         {
+                            // (A third part, "3,180,a m": only the units so named.)
+                            if (turn.Length > 2 && !u.name.ToLowerInvariant().Contains(turn[2].ToLowerInvariant()))
+                            {
+                                continue;
+                            }
+
                             Console.WriteLine($"TURN {paceAt:0.000} {u.name}: {(u.Clip != null && u.Clip.TurnNow(turnBy) ? "turning" : "not turned")}");
                         }
+                    }
+                }
+
+                // (FIGHT_BEHIND="3,150": at 3 s the duel's other fighter is put 150 degrees round the mover from where the mover
+                // faces (+ to his right), as far off as he was and facing him: an enemy at once at his side or behind him.)
+                {
+                    string[] behind = (Environment.GetEnvironmentVariable("FIGHT_BEHIND") ?? "").Split(',');
+                    if (duel != null && behind.Length == 2 && float.TryParse(behind[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float behindAt) && paceAt >= behindAt && paceAt < behindAt + dt
+                        && float.TryParse(behind[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float behindBy))
+                    {
+                        Console.WriteLine($"BEHIND {paceAt:0.000}: {(duel.PutOther(behindBy) ? $"the other put {behindBy:0} degrees round him" : "not put")}");
                     }
                 }
 

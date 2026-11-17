@@ -85,6 +85,15 @@ GUARD = {
     'sns_turn_right': ('sword_and_shield_turn_b', 'turn', False, 'Medium guard, turning right on the spot'),
     'sns_turn180': ('sword_and_shield_180_turn', 'turn', False, 'Medium guard, turning round'),
     'sns_turn180_b': ('sword_and_shield_180_turn_1', 'turn', False, 'Medium guard, turning round the other way'),
+    # (Turning, recorded with empty hands (the pack "Turns", 17 November). None is used as it is: MoveStyle.OnTheStand
+    # takes a turn's steps, as they differ from the stance the take begins and ends in, and puts them on the guard's
+    # own stand, under the guard's own chest and arms. The quick turn round is the one for an enemy at his side or
+    # behind him; it is mirrored for the other way round (TURN_MIRRORED).)
+    'quick_turn180': ('turns_quick_180_turn', 'turn', False, 'Turning round quickly on the spot, empty hands (1.3 s, the turn itself in half a second)'),
+    'wide_turn_left': ('turns_left_turn', 'turn', False, 'Turning a third of the way round to the left on the spot, empty hands'),
+    'wide_turn_right': ('turns_right_turn', 'turn', False, 'Turning a third of the way round to the right on the spot, empty hands'),
+    'walk_turn180': ('turns_walking_turn_180', 'turn', False, 'Turning round out of a walk, empty hands'),
+    'run_turn180': ('turns_running_to_turn', 'pivot', False, 'Running, turning round and running back, empty hands'),
     'sns_block': ('sword_and_shield_block', 'block', False, 'Medium shield block'),
     # (Being struck and blocking, from the Pro Sword and Shield pack: in place, from the guard and back to it.)
     'sns_impact_light': ('pack_sns_impact', 'impact', False, 'Medium struck lightly: the head and chest flinch back'),
@@ -152,6 +161,9 @@ STRIKES = {
 # The slow walks mirrored left to right. name: (the clip it mirrors)
 SLOW_MIRRORED = {'slow_left': 'slow_right'}
 
+# The turns mirrored, to go round the other way. name: (the clip it mirrors)
+TURN_MIRRORED = {'quick_turn180_m': 'quick_turn180', 'walk_turn180_m': 'walk_turn180', 'run_turn180_m': 'run_turn180'}
+
 # (Sets shot around where he aims: a take's own front is where he looks, whatever his head and chest do.)
 FRONT_SETS = {'bow', 'axe', 'magic', 'rifle'}
 
@@ -184,7 +196,7 @@ def main(report):
     for name, (sample, role, loop, about) in GUARD.items():
         d, B, F = load(sample)
         bones = B
-        clips.append(bake_one(name, d, B, F, loop, role, about, yaw_from='front' if name.split('_')[0] in FRONT_SETS else 'hips' if role in ('turn', 'block') else 'head'))
+        clips.append(bake_one(name, d, B, F, loop, role, about, yaw_from='front' if name.split('_')[0] in FRONT_SETS else 'hips' if role in ('turn', 'block', 'pivot') else 'head'))
     for name, of in SLOW_MIRRORED.items():
         sample, role, loop, about = GUARD[of]
         d, B, F = load(sample)
@@ -192,6 +204,15 @@ def main(report):
         if loop:
             lb.LOOPS.add(name)
         c = lb.bake(name, dict(d, about=about.replace('right', 'left') + ' (mirrored)'), B, lb.mirror(B, F), mirrored_of=of, yaw_from='head')
+        c['role'] = role
+        c['kind'] = ''
+        c['set'] = 'guard'
+        clips.append(c)
+    for name, of in TURN_MIRRORED.items():
+        sample, role, loop, about = GUARD[of]
+        d, B, F = load(sample)
+        lb.LOOPS.discard(name)
+        c = lb.bake(name, dict(d, about=about + ' (mirrored)'), B, lb.mirror(B, F), mirrored_of=of, yaw_from='hips')
         c['role'] = role
         c['kind'] = ''
         c['set'] = 'guard'

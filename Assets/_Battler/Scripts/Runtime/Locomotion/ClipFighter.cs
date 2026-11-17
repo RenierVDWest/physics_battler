@@ -2127,6 +2127,8 @@ namespace PhysicsBattler.Locomotion
             Loco.QuickSteps = StepPacer.On;
             PaceTrace?.Invoke(this, asked, want);
 
+            // (An enemy near: a turn to face him is a hurried one, see Locomotor.QuickTurns.)
+            Loco.Hurried = apart > 1e-3f && apart < Locomotor.QuickTurnWithin * Size;
             Loco.Step(dt, want, yaw);
             CarryBy(Loco.SnappedThisStep);
             PullOnTheMove();
@@ -4801,7 +4803,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>For the debug panel: standing, it turns by <paramref name="degrees"/> now (+ right) with its turn's clip. False: it cannot (down, in a clip, held where it is).</summary>
-        public bool TurnNow(float degrees) => !Fallen && !Anchored && Loco.TurnNow(degrees);
+        public bool TurnNow(float degrees, bool quickly = false) => !Fallen && !Anchored && Loco.TurnNow(degrees, quickly);
 
         /// <summary>The share of blow <paramref name="serial"/>'s weight its step back takes off as it is met (0: it didn't step back to it).</summary>
         public float GroundEase(int serial) => serial == voidedFor ? groundEase : 0f;

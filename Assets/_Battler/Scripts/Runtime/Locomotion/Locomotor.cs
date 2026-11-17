@@ -153,6 +153,12 @@ namespace PhysicsBattler.Locomotion
             /// <summary>Its slow walks to the sides (null: it has none): for a walk kept up at a pace under its side-steps' own (<see cref="Locomotor.KeptUp"/>).</summary>
             public LocoClip SlowL, SlowR;
 
+            /// <summary>Its quick turns round, to the left and to the right (null: it has none): for an enemy at its side or behind it (<see cref="Locomotor.QuickTurns"/>).</summary>
+            public LocoClip QuickL, QuickR;
+
+            /// <summary>Its turns a third of the way round, to the left and to the right (null: it has none): for a turn on the spot its quarter turn is too small for.</summary>
+            public LocoClip WideL, WideR;
+
             /// <summary>Its careful crouched steps to the sides (null: it has none): the other choice for a slow walk kept up (<see cref="Locomotor.SlowSide"/>).</summary>
             public LocoClip SneakL, SneakR;
 
@@ -675,6 +681,7 @@ namespace PhysicsBattler.Locomotion
             }
             else if (Current == Mode.OneShot)
             {
+                facingWanted = wantFacing;
                 ShotStep(dt);
                 LayManner(dt);
                 Inertialize(dt);
@@ -697,6 +704,7 @@ namespace PhysicsBattler.Locomotion
             goingFrom = Position;
             goingKnown = true;
             float turnWanted = Mathf.DeltaAngle(Facing, wantFacing);
+            facingWanted = wantFacing;
             float facingGoal = Current == Mode.Idle ? Facing + Mathf.Clamp(turnWanted, -StandTwist, StandTwist) : Facing + turnWanted;
             float facing = Facing;
             Springs.Track(ref facing, ref FacingSpeed, facingGoal, Current == Mode.Idle ? 2f * FacingHalfLife : FacingHalfLife, dt);
@@ -728,7 +736,7 @@ namespace PhysicsBattler.Locomotion
             {
                 Vector3 localWant = Quaternion.Euler(0f, -Facing, 0f) * wantVelocity;
                 float wantAngle = want > 1e-3f ? Mathf.Atan2(localWant.x, localWant.z) * Mathf.Rad2Deg : 0f;
-                if (!over && Mathf.Abs(turnWanted) > TurnFrom && (want < WalkFrom || Mathf.Abs(wantAngle) > 60f && Mathf.Abs(turnWanted) > 60f))
+                if (!over && Mathf.Abs(turnWanted) > TurnFrom && (want < WalkFrom || Mathf.Abs(wantAngle) > 60f && Mathf.Abs(turnWanted) > 60f || TurnsQuickly(turnWanted)))
                 {
                     StartTurn(turnWanted);
                 }
@@ -748,7 +756,12 @@ namespace PhysicsBattler.Locomotion
                 Vector3 local = Quaternion.Euler(0f, -Facing, 0f) * Velocity;
                 float angle = speed > 0.05f ? Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg : 0f;
                 float reverse = want > 0.3f && speed > 0.3f ? Vector3.Angle(Velocity, wantVelocity) : 0f;
-                if (reverse > 135f && speed > 0.6f && Mathf.Abs(angle) < 40f && Mathf.Abs(turnWanted) > 100f)
+                if (!over && !Running && shoved <= 0f && TurnsQuickly(turnWanted))
+                {
+                    // (Stepping in its guard with its enemy at its side or behind it: it does not walk round to him.)
+                    StartTurn(turnWanted);
+                }
+                else if (reverse > 135f && speed > 0.6f && Mathf.Abs(angle) < 40f && Mathf.Abs(turnWanted) > 100f)
                 {
                     if (!InGuard && !over)
                     {
@@ -1787,6 +1800,7 @@ namespace PhysicsBattler.Locomotion
             ShotTime = startFrom;
             shotThen = then;
             shotTurnScale = turnScale;
+            quickTurnLeft = 0f;
             shotMoveScale = 1f;
             shotBend = Quaternion.identity;
             shotAimTurn = shotAimOver = shotAimFrom = 0f;
@@ -1837,14 +1851,14 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>For the debug panel: standing, it turns by this much now (degrees, + right) with its turn's clip, as it does to face an enemy at its side or behind. False: it is not standing.</summary>
-        public bool TurnNow(float degrees)
+        public bool TurnNow(float degrees, bool quickly = false)
         {
             if (!Ready || Current != Mode.Idle)
             {
                 return false;
             }
 
-            StartTurn(degrees);
+            StartTurn(degrees, !quickly);
             return true;
         }
 
@@ -1857,8 +1871,115 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A turn this near straight behind (degrees the long way round, at most) is made the way the guard's clip goes.</summary>
         public const float GuardTurnsRoundUpTo = 200f;
 
-        private void StartTurn(float degrees)
+        /// <summary>
+        /// A fighter in its guard turns round quickly to an enemy at its side or behind it (17 November; Combat Feel
+        /// "A Fighter Turns Round Quickly"). On: with an enemy near (<see cref="Hurried"/>) and what it is to face
+        /// <see cref="QuickTurnFrom"/> degrees or more off, standing or stepping, it makes its quick turn round
+        /// (<see cref="ClipSet.QuickL"/>, the pack "Turns"' quick turn on the guard's own stand), the way that is
+        /// shorter, as far round as is asked, played at <see cref="QuickTurnPace"/>, and aimed as it goes at where the
+        /// enemy is by then. And a turn on the spot too big for its quarter turn is its turn a third of the way round
+        /// (<see cref="ClipSet.WideL"/>), where the quarter turn was stretched to 1.6 times and stopped 40 degrees
+        /// short. Off, as it was: the guard's own quarter turn (0.93 s for up to 140 degrees) or turn round (0.8 s),
+        /// and walking, its facing eased round at 200 degrees a second at most.
+        /// </summary>
+        public static bool QuickTurns = true;
+
+        /// <summary>How far off (degrees) what it is to face must be for the quick turn; under it, it turns as it did.</summary>
+        public static float QuickTurnFrom = 75f;
+
+        /// <summary>How fast the quick turn is played against its recording (1: as recorded, the turn itself in half a second).</summary>
+        public static float QuickTurnPace = 1.5f;
+
+        /// <summary>An enemy this near (metres at a Medium's size) makes a turn a hurried one.</summary>
+        public static float QuickTurnWithin = 4f;
+
+        /// <summary>The least and the most of its recording's turn a quick turn is made to go; and until how many degrees of the recording are left it is still aimed.</summary>
+        public const float QuickTurnLeast = 0.25f, QuickTurnMost = 1.25f, QuickTurnAimsUntil = 20f;
+
+        /// <summary>An enemy is near (the fighter says so each step): a turn to face him is not an unhurried one.</summary>
+        public bool Hurried;
+
+        /// <summary>How many quick turns it has made, and how far the last was asked to go (degrees, + right): for the reports.</summary>
+        public int QuickTurnsMade { get; private set; }
+
+        public float LastQuickTurn { get; private set; }
+
+        /// <summary>For the reports: told of each turn on the spot as it begins (the walker, and the turn in words).</summary>
+        public static System.Action<Locomotor, string> TurnTrace;
+
+        private float facingWanted, quickTurnLeft;
+
+        private bool TurnsQuickly(float degrees) => QuickTurns && Hurried && InGuard && Mathf.Abs(degrees) >= QuickTurnFrom
+            && (degrees > 0f ? Guard.QuickR : Guard.QuickL) != null;
+
+        private static readonly Dictionary<LocoClip, Vector2> busy = new Dictionary<LocoClip, Vector2>();
+
+        /// <summary>The part of a turn's clip in which anything happens (seconds): from a frame before its first foot leaves the ground or its root begins to turn, to three frames after its last foot has landed and its root has all but done turning.</summary>
+        private static Vector2 Busy(LocoClip clip)
         {
+            if (busy.TryGetValue(clip, out var span))
+            {
+                return span;
+            }
+
+            int first = -1, last = 0;
+            float step = 1f / clip.Rate;
+            clip.Root(0f, out _, out float yaw0);
+            clip.Root(clip.Duration, out _, out float yaw1);
+            for (int f = 0; f < clip.Frames; f++)
+            {
+                clip.Root(f * step, out _, out float yaw);
+                bool still = (clip.Contact(0, f * step) & LocoContact.Down) != 0 && (clip.Contact(1, f * step) & LocoContact.Down) != 0;
+                bool begun = Mathf.Abs(Mathf.DeltaAngle(yaw0, yaw)) > 2f, done = Mathf.Abs(Mathf.DeltaAngle(yaw, yaw1)) < 6f;
+                if (first < 0 && (!still || begun))
+                {
+                    first = f;
+                }
+
+                if (!still || !done)
+                {
+                    last = f;
+                }
+            }
+
+            span = new Vector2(Mathf.Max(0f, (first - 1) * step), Mathf.Min(clip.Duration, (last + 3) * step));
+            return busy[clip] = span;
+        }
+
+        private void StartTurn(float degrees, bool ordered = false)
+        {
+            if (!ordered && TurnsQuickly(degrees))
+            {
+                var quick = degrees > 0f ? Guard.QuickR : Guard.QuickL;
+                var span = Busy(quick);
+                Mode out_of = Current;
+                float from = span.x;
+                if (Current == Mode.Cycle && (Down[0] < 0.5f) != (Down[1] < 0.5f))
+                {
+                    // (Out of a walk with a foot in the air: the turn is taken up where it has that foot in the air and
+                    // the other on the ground, so the foot coming down comes down into the turn's own step.)
+                    int air = Down[0] < 0.5f ? 0 : 1;
+                    for (float t = span.x; t < span.y - 0.2f; t += 1f / quick.Rate)
+                    {
+                        if ((quick.Contact(air, t) & LocoContact.Down) == 0 && (quick.Contact(1 - air, t) & LocoContact.Down) != 0)
+                        {
+                            from = t;
+                            break;
+                        }
+                    }
+                }
+
+                StartShot(quick, ShotEnds.Idle, startFrom: from, turnScale: Mathf.Clamp(degrees / quick.Turn, QuickTurnLeast, QuickTurnMost), endAt: span.y);
+                span.x = from;
+                // (A turn to his side goes quicker than one right round: fewer degrees in the same steps.)
+                ShotSpeed = QuickTurnPace * Mathf.Lerp(1.25f, 1f, Mathf.InverseLerp(QuickTurnFrom, 180f, Mathf.Abs(degrees)));
+                clipTurnLeft(quick, span.x);
+                QuickTurnsMade++;
+                LastQuickTurn = degrees;
+                TurnTrace?.Invoke(this, $"quick turn of {degrees:0} degrees out of {(out_of == Mode.Cycle ? "a walk" : "a stand")}, {quick.Name} from {span.x:0.00} to {span.y:0.00} s at {ShotSpeed:0.00}");
+                return;
+            }
+
             bool big = Mathf.Abs(degrees) >= 135f;
             string name = (big ? "turn180_" : "turn90_") + (degrees > 0f ? "right" : "left");
             var clip = LocoLibrary.Get(name);
@@ -1866,6 +1987,16 @@ namespace PhysicsBattler.Locomotion
             {
                 // (In the guard, its own turns.)
                 var own = big ? Guard.Turn180 : degrees > 0f ? Guard.TurnR : Guard.TurnL;
+                var wide = degrees > 0f ? Guard.WideR : Guard.WideL;
+                if (QuickTurns && wide != null && Mathf.Abs(degrees) > 110f && (!big || own == null || Mathf.Sign(own.Turn) != Mathf.Sign(degrees) && 360f - Mathf.Abs(degrees) > GuardTurnsRoundUpTo))
+                {
+                    // (Too far for its quarter turn, and not round the way its turn round goes: its turn a third of the way round.)
+                    var span = Busy(wide);
+                    StartShot(wide, ShotEnds.Idle, startFrom: span.x, turnScale: Mathf.Clamp(degrees / wide.Turn, 0.6f, 1.6f), endAt: span.y);
+                    TurnTrace?.Invoke(this, $"turn of {degrees:0} degrees, {wide.Name}");
+                    return;
+                }
+
                 if (GuardTurnsTheWayAsked && big && own != null && Mathf.Abs(own.Turn) > 1f && Mathf.Sign(own.Turn) != Mathf.Sign(degrees))
                 {
                     // (A guard has one clip for turning round, and it turns one way. Asked to turn round the other way,
@@ -1906,6 +2037,21 @@ namespace PhysicsBattler.Locomotion
             }
 
             StartShot(clip, ShotEnds.Idle, turnScale: Mathf.Clamp(degrees / clip.Turn, 0.4f, 1.6f));
+            TurnTrace?.Invoke(this, $"turn of {degrees:0} degrees, {clip.Name}");
+        }
+
+        /// <summary>How much of a turn's clip's own turn is still to come from a time in it (degrees), kept for the quick turn's aim.</summary>
+        private void clipTurnLeft(LocoClip clip, float from)
+        {
+            float left = 0f;
+            float step = 1f / clip.Rate;
+            for (float t = from; t < shotEnd - 1e-4f; t += step)
+            {
+                clip.RootMotion(t, Mathf.Min(shotEnd, t + step), out _, out float turned);
+                left += turned;
+            }
+
+            quickTurnLeft = Mathf.Abs(left) > 0.01f ? left : 0f;
         }
 
         private void StartPivot(float side)
@@ -2182,6 +2328,27 @@ namespace PhysicsBattler.Locomotion
                 ? Mathf.Max(rewindFloor, ShotTime + dt * TimeScale * ShotSpeed)
                 : Mathf.Min(shotEnd, ShotTime + dt * TimeScale * Mathf.Max(0f, ShotSpeed) * ChamberNow * PaceNow);
             clip.RootMotion(from, ShotTime, out var moved, out float turned);
+            if (quickTurnLeft != 0f)
+            {
+                // (A quick turn goes round to where its enemy is now, not to where he was as it began: what is left of
+                // the clip's turn is stretched or shrunk onto what is left to turn. Not in its last few degrees, where
+                // a small rest would be asked of nearly nothing.)
+                if (Mathf.Abs(quickTurnLeft) > QuickTurnAimsUntil)
+                {
+                    float left = Mathf.DeltaAngle(Facing, facingWanted);
+                    if (left * quickTurnLeft > 0f)
+                    {
+                        shotTurnScale = Mathf.Clamp(left / quickTurnLeft, QuickTurnLeast, QuickTurnMost);
+                    }
+                }
+
+                quickTurnLeft -= turned;
+                if (Mathf.Abs(quickTurnLeft) < 0.01f)
+                {
+                    quickTurnLeft = 0.01f * Mathf.Sign(clip.Turn);
+                }
+            }
+
             if (shotAimOver > 0f && from < shotAimOver)
             {
                 // (An aimed strike's turn toward its target, spread over its wind-up.)

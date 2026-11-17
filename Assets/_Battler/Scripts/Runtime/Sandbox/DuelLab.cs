@@ -677,6 +677,62 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        /// <summary>
+        /// To see a turn round on demand: the other is put, at once, this far round him from where he faces (degrees, +
+        /// to his right), as far off as he was and facing him: an enemy at his side or behind him. His turn to face
+        /// him is timed (<see cref="TurnBackText"/>). Standing or stepping. False: the lab is not set out.
+        /// </summary>
+        public bool PutOther(float degrees)
+        {
+            if (!Running || Mover == null || Other == null || Mover.Clip == null || Other.Clip == null)
+            {
+                return false;
+            }
+
+            Vector3 to = Flat(Other.Root.position - Mover.Root.position);
+            float way = Mover.Clip.Loco.Facing + degrees;
+            Vector3 spot = Mover.Clip.Loco.Position + Quaternion.Euler(0f, way, 0f) * Vector3.forward * Mathf.Max(0.8f, to.magnitude);
+            Other.Teleport(spot, way + 180f);
+            // (A target stands on its spot and faces what it was set to face: both go with it.)
+            Other.DummySpot = Other.Root.position;
+            if (Other.DummyFace.HasValue)
+            {
+                Other.DummyFace = Mover.Root.position;
+            }
+
+            turnBackTimed = true;
+            turnBackFrom = Mathf.Abs(Mathf.DeltaAngle(0f, degrees));
+            turnBackFor = 0f;
+            turnBackQuick = false;
+            turnBackQuicks = Mover.Clip.Loco.QuickTurnsMade;
+            return true;
+        }
+
+        /// <summary>The last turn back in words: how far off the other was and how long he took to face him again (within 15 degrees).</summary>
+        public string TurnBackText => turnBackTimed ? $"the other {turnBackFrom:0} degrees round, {turnBackFor:0.00} s so far"
+            : turnBackFrom > 0f ? $"the other {turnBackFrom:0} degrees round, he faced him again in {turnBackFor:0.00} s ({(turnBackQuick ? "a quick turn" : "no quick turn")})" : "none yet";
+
+        private bool turnBackTimed, turnBackQuick;
+        private float turnBackFrom, turnBackFor;
+        private int turnBackQuicks;
+
+        private void StepTurnBack(float dt, Vector3 to)
+        {
+            if (!turnBackTimed || Mover.Clip == null || to.sqrMagnitude < 1e-4f)
+            {
+                return;
+            }
+
+            var loco = Mover.Clip.Loco;
+            float off = Mathf.Abs(Mathf.DeltaAngle(loco.Facing, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg));
+            turnBackFor += dt;
+            turnBackQuick = loco.QuickTurnsMade > turnBackQuicks;
+            if (off < 15f || turnBackFor > 6f)
+            {
+                turnBackTimed = false;
+            }
+        }
+
         public void Step(float dt)
         {
             if (Running)
@@ -693,6 +749,7 @@ namespace PhysicsBattler.Sandbox
             GiveStyle();
             Vector3 to = Flat(Other.Root.position - Mover.Root.position);
             Gap = to.magnitude;
+            StepTurnBack(dt, to);
             Vector3 moved = Flat(Mover.Root.position - last);
             last = Mover.Root.position;
             Speed = Mathf.Lerp(Speed, moved.magnitude / Mathf.Max(1e-4f, dt), Mathf.Clamp01(dt / 0.15f));

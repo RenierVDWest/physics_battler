@@ -1089,6 +1089,7 @@ namespace PhysicsBattler.Sandbox
 
             DuelMoveButtons();
             FootworkButtons(feel);
+            TurnButtons(feel);
             if (ActionSettings(inWindow, "Move", "Moving: settings"))
             {
                 PaceSettings(feel);
@@ -1193,6 +1194,35 @@ namespace PhysicsBattler.Sandbox
             Readout(new GUIContent("Course: " + Duel.CourseText + ". " + (Duel.Meter.Seconds > 0.5f ? "His footwork " + FootworkText(Duel.Meter, 0) + "." : ""), "What the meter made of the course, so far or when it ended. The band his hips' height moved over while he stood or walked (the middle 90% of the time): a level walk is a few centimetres. How often his hips rose or sank 10 cm or more within 0.3 s with no gesture or blow playing: the jump into another pose. How many steps he took in a spell of walking. How much of his walking was two recordings mixed, each a quarter or more. And how fast his steps went against the recordings' own tempo."), 5);
         }
 
+        /// <summary>The turns round on demand: the other is put at his side or behind him, and he turns to face him, quickly or as he did.</summary>
+        private void TurnButtons(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Put the other:", "To see a turn round on demand. The other is put, at once, this far round him from where he faces, as far off as he was: an enemy suddenly at his side or behind him. He turns to face him by himself, and that turn is timed below. Standing, or while he walks or circles."), Styles().Text, GUILayout.Width(110f));
+            foreach (var (by, name) in new[] { (-90, "left"), (-135, "back left"), (180, "behind"), (135, "back right"), (90, "right") })
+            {
+                if (Press(name, $"The other is put {(by == 180 ? "straight behind him" : $"{Mathf.Abs(by)} degrees round to his {(by > 0 ? "right" : "left")}")}; he turns to face him."))
+                {
+                    Shield.Loop = false;
+                    Fakes.Pattern = false;
+                    Dancing.On = false;
+                    message = Duel.PutOther(by) ? $"Turn round: the other is {(by == 180 ? "straight behind him" : $"{Mathf.Abs(by)} degrees round to his {(by > 0 ? "right" : "left")}")}. Watch him turn." : "Turn round: not now (the lab is not set out).";
+                }
+            }
+
+            GUILayout.EndHorizontal();
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("His turn:", "How he turns to an enemy at his side or behind him (Combat Feel \"A Fighter Turns Round Quickly\"). Quick (new): the quick turn round from the pack \"Turns\", its steps on his own stand under his own chest and arms, the shorter way, aimed at where the other is. As it was (old): his guard's quarter turn stretched, or its turn round, and the rest eased round on his feet; walking, his facing eased round as he steps."), Styles().Text, GUILayout.Width(110f));
+                if (Press(feel.aFighterTurnsRoundQuickly ? "[quick]" : "quick", "The quick turn round.")) feel.aFighterTurnsRoundQuickly = true;
+                if (Press(!feel.aFighterTurnsRoundQuickly ? "[as it was (old)]" : "as it was (old)", "His guard's own turns, as before.")) feel.aFighterTurnsRoundQuickly = false;
+                GUILayout.EndHorizontal();
+            }
+
+            Readout(new GUIContent("Last turn: " + Duel.TurnBackText + ".", "How far round the other was put, and how long he then took to face him again (to within 15 degrees)."), 2);
+        }
+
         /// <summary>A footwork meter in words, worked out afresh no more than twice a second (it sorts what it has measured).</summary>
         private string FootworkText(FootworkMeter meter, int slot)
         {
@@ -1232,6 +1262,15 @@ namespace PhysicsBattler.Sandbox
                 if (Press(feel.slowCircleOn == 2 ? "[upright]" : "upright", "The upright slow strafe.")) feel.slowCircleOn = 2;
                 if (Press(feel.slowCircleOn == 0 ? "[side-step]" : "side-step", "His guard's own side-step, slowed.")) feel.slowCircleOn = 0;
                 GUILayout.EndHorizontal();
+            }
+
+            if (feel != null)
+            {
+                feel.quickTurnFrom = Lever("Quick turn from", feel.quickTurnFrom, 45f, 150f, "How far off (degrees) what he is to face must be for the quick turn round. Under it he turns as he did.");
+                feel.quickTurnPace = Lever("Quick turn pace", feel.quickTurnPace, 0.8f, 2f, "How fast the quick turn is played against its recording (1: as recorded, the turn itself in half a second).");
+                feel.quickTurnWithin = Lever("Quick turn within", feel.quickTurnWithin, 1f, 10f, "An enemy within this many metres makes a turn a hurried one; further off he turns as he did.");
+                feel.quickTurnSinks = Lever("Quick turn sinks", feel.quickTurnSinks, 0f, 1f, "How much of the recording's sinking at the middle of the turn he takes (1: all 11 cm of it; 0: his hips stay level).");
+                feel.quickTurnDrawsFeetIn = Lever("Turn draws feet in", feel.quickTurnDrawsFeetIn, 0f, 1f, "How far his feet are drawn in from his stand's wide places at the middle of the quick turn (0: as wide as he stands; 1: where the recording has them).");
             }
 
             Duel.Near = Mathf.Round(10f * Slide("Walks to", $"{Duel.Near:0.0} m", "How near the other he walks (metres, root to root).", Duel.Near, 1f, 3f)) / 10f;

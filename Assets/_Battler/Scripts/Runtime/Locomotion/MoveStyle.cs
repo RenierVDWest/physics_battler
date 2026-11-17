@@ -207,6 +207,17 @@ namespace PhysicsBattler.Locomotion
                 Rebuild(set);
             }
 
+            if (this == Standard)
+            {
+                // (Its turns from the pack "Turns", recorded with empty hands: each one's steps on the guard's own stand,
+                // under the guard's own chest and arms. The quick turn round, each way; and the turn a third of the
+                // way round, each way.)
+                set.QuickR = OnTheStand(LocoLibrary.Get("quick_turn180"), set.Idle, Prefix + "quick_turn_right");
+                set.QuickL = OnTheStand(LocoLibrary.Get("quick_turn180_m"), set.Idle, Prefix + "quick_turn_left");
+                set.WideR = OnTheStand(LocoLibrary.Get("wide_turn_right"), set.Idle, Prefix + "wide_turn_right");
+                set.WideL = OnTheStand(LocoLibrary.Get("wide_turn_left"), set.Idle, Prefix + "wide_turn_left");
+            }
+
             return set;
         }
 
@@ -296,6 +307,214 @@ namespace PhysicsBattler.Locomotion
             }
 
             return made[name] = new LocoClip(data);
+        }
+
+        /// <summary>How far the feet are drawn in from the stand's wide places at the middle of a turn made on the stand (0: not at all; 1: all the way to the recording's own, narrower, places).</summary>
+        public static float TurnDrawsIn
+        {
+            get => turnDrawsIn;
+            set
+            {
+                if (Mathf.Abs(value - turnDrawsIn) > 0.004f)
+                {
+                    turnDrawsIn = value;
+                    Stamp++;
+                }
+            }
+        }
+
+        private static float turnDrawsIn = 0.5f;
+
+        /// <summary>
+        /// How much of a recorded turn's sinking a turn made on the stand takes (1: all of it). The pack's quick turn
+        /// sinks 11 cm at its middle, from a stance that much taller than the guard's stand: to about the height the
+        /// guard stands at already.
+        /// </summary>
+        public static float TurnSinks
+        {
+            get => turnSinks;
+            set
+            {
+                if (Mathf.Abs(value - turnSinks) > 0.004f)
+                {
+                    turnSinks = value;
+                    Stamp++;
+                }
+            }
+        }
+
+        private static float turnSinks = 0.4f;
+
+        /// <summary>
+        /// A turn on the spot made on a stand (the quick turns round, 17 November): a recording of a turn, made with
+        /// empty hands from an upright stance of its own, gives its steps; the stance it starts from and ends in, and
+        /// everything above the hips, are the stand's. Frame by frame, what the take's hips and feet do is taken as it
+        /// differs from the take's own first and last frames, and laid on the stand: the hips' place, turn and lean;
+        /// each foot's place, kept where it is in the world while the take has it on the ground (the difference
+        /// between the two stances is given while the foot is in the air, so a planted foot does not slide), and
+        /// which way it points; the knees turned with the feet. The chest's twist on the hips, the head, the arms and
+        /// the hands are the stand's own throughout. The first and the last frame are the stand itself. The clip's
+        /// travel, turn and contacts are the take's. Null when either is missing. (Made once for each name.)
+        /// </summary>
+        public static LocoClip OnTheStand(LocoClip take, LocoClip standClip, string name)
+        {
+            if (take == null || standClip == null || take.Source == null || take.Frames < 3)
+            {
+                return null;
+            }
+
+            string key = name + "/" + Mathf.RoundToInt(100f * TurnDrawsIn) + "/" + Mathf.RoundToInt(100f * TurnSinks);
+            if (made.TryGetValue(key, out var clip))
+            {
+                return clip;
+            }
+
+            var m = BodyMeasures.OfClips;
+            var d = take.Source;
+            int n = d.frames;
+            var stand = Carriage.Of(standClip).Mid;
+            var p = new Vector3[LocoClip.BoneCount];
+            var t = new BodyTracks[n];
+            var place = new Vector3[n];
+            var yaw = new float[n];
+            for (int f = 0; f < n; f++)
+            {
+                take.Pose(f / d.rate, p, 1f);
+                t[f] = f == 0 ? m.Decompose(p) : m.Decompose(p, t[f - 1]);
+                take.Root(f / d.rate, out var at, out float facing);
+                place[f] = new Vector3(at.x, 0f, at.y);
+                yaw[f] = f == 0 ? facing : yaw[f - 1] + Mathf.DeltaAngle(yaw[f - 1], facing);
+            }
+
+            // (How far through its turn each frame is.)
+            float all = yaw[n - 1] - yaw[0];
+            var through = new float[n];
+            for (int f = 0; f < n; f++)
+            {
+                through[f] = Mathf.Abs(all) > 1f ? Mathf.Clamp01((yaw[f] - yaw[0]) / all) : f / (n - 1f);
+            }
+
+            BodyTracks first = t[0], last = t[n - 1];
+            Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
+            float YawOf(Vector3 way) => Mathf.Atan2(way.x, way.z) * Mathf.Rad2Deg;
+
+            // Each foot: what it is given (a shift on the ground, a turn about the upright) at each frame.
+            var shift = new Vector3[2][];
+            var swivel = new float[2][];
+            for (int s = 0; s < 2; s++)
+            {
+                Vector3 standAnkle = s == 0 ? stand.AnkleL : stand.AnkleR, standFoot = s == 0 ? stand.FootL : stand.FootR;
+                Vector3 Ankle(in BodyTracks b) => s == 0 ? b.AnkleL : b.AnkleR;
+                Vector3 Foot(in BodyTracks b) => s == 0 ? b.FootL : b.FootR;
+                Vector3 off0 = Flat(standAnkle - Ankle(first)), off1 = Flat(standAnkle - Ankle(last));
+                float turn0 = Mathf.DeltaAngle(YawOf(Foot(first)), YawOf(standFoot)), turn1 = Mathf.DeltaAngle(YawOf(Foot(last)), YawOf(standFoot));
+
+                // (The spells it stands through, the first frame and the last among them.)
+                var spells = new List<(int from, int to)>();
+                int began = -1;
+                for (int f = 0; f <= n; f++)
+                {
+                    bool down = f < n && (f == 0 || f == n - 1 || (d.contacts[f * 2 + s] & (int)LocoContact.Down) != 0);
+                    if (down && began < 0)
+                    {
+                        began = f;
+                    }
+                    else if (!down && began >= 0)
+                    {
+                        spells.Add((began, f - 1));
+                        began = -1;
+                    }
+                }
+
+                var given = new Vector3[spells.Count];
+                var turned = new float[spells.Count];
+                for (int i = 0; i < spells.Count; i++)
+                {
+                    int at = spells[i].from == 0 ? 0 : spells[i].to == n - 1 ? n - 1 : (spells[i].from + spells[i].to) / 2;
+                    float u = through[at];
+                    float keep = 1f - TurnDrawsIn * Mathf.Sin(Mathf.PI * u);
+                    given[i] = Quaternion.Euler(0f, yaw[at], 0f) * (Vector3.Lerp(off0, off1, u) * keep);
+                    turned[i] = Mathf.LerpAngle(turn0, turn1, u);
+                }
+
+                shift[s] = new Vector3[n];
+                swivel[s] = new float[n];
+                for (int i = 0; i < spells.Count; i++)
+                {
+                    for (int f = spells[i].from; f <= spells[i].to; f++)
+                    {
+                        shift[s][f] = given[i];
+                        swivel[s][f] = turned[i];
+                    }
+
+                    if (i + 1 < spells.Count)
+                    {
+                        int a = spells[i].to, b = spells[i + 1].from;
+                        for (int f = a + 1; f < b; f++)
+                        {
+                            float w = Mathf.SmoothStep(0f, 1f, (f - a) / (float)(b - a));
+                            shift[s][f] = Vector3.Lerp(given[i], given[i + 1], w);
+                            swivel[s][f] = Mathf.LerpAngle(turned[i], turned[i + 1], w);
+                        }
+                    }
+                }
+            }
+
+            var data = new LocoClipData
+            {
+                name = name, role = d.role, loop = false, rate = d.rate, frames = n, legLength = d.legLength, duration = d.duration,
+                speed = d.speed, direction = d.direction, turn = d.turn, stride = d.stride, markers = d.markers, root = d.root,
+                contacts = d.contacts, phase = d.phase, kind = d.kind, set = "guard",
+                about = take.Name + "'s steps on " + standClip.Name + "'s stand, under its chest, head and arms",
+                points = new float[n * LocoClip.BoneCount * 3],
+            };
+            Vector3 hips0 = stand.Pelvis - first.Pelvis, hips1 = stand.Pelvis - last.Pelvis;
+            Vector3 lean0 = stand.PelvisTurn - first.PelvisTurn, lean1 = stand.PelvisTurn - last.PelvisTurn;
+            for (int f = 0; f < n; f++)
+            {
+                float u = Mathf.SmoothStep(0f, 1f, through[f]);
+                var body = stand;
+                Vector3 hipsTurned = Vector3.Lerp(lean0, lean1, u);
+                body.Pelvis = t[f].Pelvis + Vector3.Lerp(hips0, hips1, u);
+                // (Its sinking, as it differs from the height the take begins and ends at, taken in part.)
+                float rest = stand.Pelvis.y;
+                body.Pelvis.y = rest + (body.Pelvis.y - rest) * TurnSinks;
+                body.PelvisTurn = t[f].PelvisTurn + hipsTurned;
+                var toRoot = Quaternion.Euler(0f, -yaw[f], 0f);
+                for (int s = 0; s < 2; s++)
+                {
+                    bool left = s == 0;
+                    Vector3 ankle = left ? t[f].AnkleL : t[f].AnkleR;
+                    ankle += toRoot * shift[s][f];
+                    var about = Quaternion.Euler(0f, swivel[s][f], 0f);
+                    Vector3 foot = about * (left ? t[f].FootL : t[f].FootR), toe = about * (left ? t[f].ToeL : t[f].ToeR);
+                    // (The knee turned as the foot is, against the hips: it stays over the toes.)
+                    Vector3 knee = Quaternion.Euler(0f, swivel[s][f] - hipsTurned.y, 0f) * (left ? t[f].KneeL : t[f].KneeR);
+                    Vector3 kneeFirst = Quaternion.Euler(0f, swivel[s][0] - lean0.y, 0f) * (left ? first.KneeL : first.KneeR);
+                    Vector3 kneeLast = Quaternion.Euler(0f, swivel[s][n - 1] - lean1.y, 0f) * (left ? last.KneeL : last.KneeR);
+                    Vector3 standKnee = left ? stand.KneeL : stand.KneeR;
+                    knee = Quaternion.Slerp(Quaternion.FromToRotation(kneeFirst, standKnee), Quaternion.FromToRotation(kneeLast, standKnee), u) * knee;
+                    if (left)
+                    {
+                        body.AnkleL = ankle; body.FootL = foot; body.ToeL = toe; body.KneeL = knee.normalized;
+                    }
+                    else
+                    {
+                        body.AnkleR = ankle; body.FootR = foot; body.ToeR = toe; body.KneeR = knee.normalized;
+                    }
+                }
+
+                m.Compose(body, p);
+                for (int i = 0; i < LocoClip.BoneCount; i++)
+                {
+                    int at = (f * LocoClip.BoneCount + i) * 3;
+                    data.points[at] = p[i].x;
+                    data.points[at + 1] = p[i].y;
+                    data.points[at + 2] = p[i].z;
+                }
+            }
+
+            return made[key] = new LocoClip(data);
         }
 
         /// <summary>

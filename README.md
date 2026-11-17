@@ -5512,3 +5512,75 @@ planted foot behind until the leg cannot reach it, and his hips drop 10 to 15 cm
 it was there before, and the wider stance kept makes it a little more frequent ("Keeps stance" at 1: four
 times in the course; at 0.5: twice; at 0: once). Not verified: nothing of this has been seen in Unity; the
 archer's take itself has not been seen, only measured.
+
+**Quick turns round (17 November).** Renier, after the walk in one carriage: "I bashed myself in next to the
+enemy, which is fine, but then he was something from 90-180 degrees looking away, and in a real fight you
+would not turn around slowly. You will need a fast turn arounds in these cases, also for when they run. Here
+are some turning animations. There's a quick turn in there that will work for this."
+
+*What it was.* A fighter standing in his guard with his enemy at his side or behind him turned with the
+guard's own clips: a quarter turn (88 degrees in 0.93 s) stretched to as much as 1.6 times, or the turn round
+(0.8 s), which is recorded from a different, upright stance and goes one way only. Measured headless, the
+other put round him at once: 150 degrees round, 0.77 s to face him (to within 15 degrees), his hips dipping
+28 cm on the way (56 to 84 cm) and then a second turn of 40 degrees back; 155 degrees round the way the turn
+round does not go, the quarter turn stretched to 139 degrees and the last 41 eased round on his feet: 1.4 s.
+Stepping, his facing was eased round at 200 degrees a second at most: 0.83 s for 150 degrees.
+
+*The quick turn* (`Locomotor.QuickTurns`, `StartTurn`; Combat Feel "A Fighter Turns Round Quickly", on).
+With an enemy within 4 m ("Quick Turn Within") and what he is to face 75 degrees or more off ("Quick Turn
+From"), standing or stepping, he makes the quick turn round from the pack "Turns" (its "Quick 180 Turn"),
+the shorter way (the take is mirrored for the left), as far round as is asked, played at 1.5 times ("Quick
+Turn Pace"; a turn to his side up to a quarter quicker), and aimed as it goes at where the enemy is by then
+(what is left of the clip's turn is stretched or shrunk onto what is left to turn). Out of a walk with a foot
+in the air, the turn is taken up where it has that foot in the air.
+
+*Never the recording as it is* (`MoveStyle.OnTheStand`). The take is made with empty hands from an upright
+stance 13 cm taller than the guard's stand, feet near each other, hips square. Only its steps are used: frame
+by frame, what its hips and feet do as that differs from its own first and last frames is laid on the
+guard's stand. The hips' place, turn and lean; each foot's place, kept where it is in the world while the
+take has it on the ground (the difference between the two stances is given while the foot is in the air, so
+a planted foot is not dragged), and which way it points; the knees turned with the feet. The chest's twist
+on the hips, the head, the arms, the shield and the sword are the stand's own throughout, and the first and
+last frames are the stand itself. Two levers: how far the feet are drawn in from the stand's wide places at
+the middle of the turn ("Quick Turn Draws Feet In", 0.5), and how much of the take's sinking is taken
+("Quick Turn Sinks", 0.4: the take sinks 11 cm at its middle, to about the height the guard stands at
+already).
+
+*The turn a third of the way round.* The pack's "Left Turn" and "Right Turn" (104 degrees of the root's
+turn in 0.93 s), made the same way, are the unhurried turn on the spot that is too big for the quarter turn
+and not round the way the turn round goes: that case was the quarter turn stretched 1.6 times and stopped
+40 degrees short.
+
+*In the lab* (Actions, "Move him"): "Put the other: left / back left / behind / back right / right" puts the
+other, at once, that far round him, as far off as he was; he turns to face him by himself, standing or while
+he walks or circles. "His turn: quick / as it was (old)". "Last turn" says how long he took to face him
+again. The levers are under "Moving: settings".
+
+Headless (`FIGHT_BEHIND="4,150"`: the duel's other put 150 degrees round the mover at 4 s; `FIGHT_TURNTRACE=1`;
+`FIGHT_QUICKTURN=0` for as it was):
+
+| the other put | he was | as it was: faces him in | quick: faces him in | quick: free again in | his hips, quick |
+|---|---|---|---|---|---|
+| 90 degrees round | standing | 0.70 s | 0.38 s | 0.67 s | 79 to 84 cm |
+| 150 | standing | 0.77 s (hips 56 to 84 cm) | 0.47 s | about 0.6 s | 79 to 84 cm |
+| 180 | standing | 0.73 s (hips 64 to 86 cm) | 0.53 s | 0.63 s | 79 to 84 cm |
+| 150 | circling, 0.7 m/s | 0.83 s | 0.48 s | 0.60 s | 78 to 81 cm |
+| 120 to his left | circling | not run | 0.28 s | 0.43 s | 79 to 81 cm |
+| 180 | backing away | not run | 0.38 s | 0.48 s | 80 to 82 cm |
+
+(The 90 and 150 standing "as it was" rows are from two set-ups: the 90 from a turn away and back, the 150
+from the other put round. The quick 150 and 90 standing rows were run before the clip's still tail was cut
+0.27 s shorter; their "free again" is given as measured then, 0.67, or estimated, about 0.6.) In the fight of
+six, a minute: 61 turns on the spot as it was; with quick turns 52, of which 25 quick (22 to the right, 3 to
+the left; one out of a walk). No error, and the fight ran to its end both ways.
+
+*Not done, and known.* Running: the pack's "Running To Turn" and "Walking Turn 180" are baked, each way
+(`run_turn180`, `walk_turn180` and their `_m`), and not used yet: a runner in his guard still comes round
+at 140 degrees a second. That goes with the walking plan's step 6 (far and near), where running is. Out of a
+walk, in one of four cases a planted foot was moved 11 cm in one frame as the turn took over (the lock on it
+was let go and taken again). The measure of sliding cannot tell a foot pivoting on its ball from one
+sliding, so sliding under the turn is not measured. A Large (two-handed guard) has no quick turn: only the
+standard sword-and-shield style. The get-ups are still the made ones of 14 November: the recorded "Getting
+Up" takes are to be rebuilt into them in the roadmap's step 11 (Downed play); Renier asked for this again on
+17 November. Not verified: nothing of this has been seen in Unity; the take has not been seen, only measured.
+
