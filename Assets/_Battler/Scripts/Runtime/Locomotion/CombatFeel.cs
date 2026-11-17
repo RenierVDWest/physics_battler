@@ -311,14 +311,128 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The shield is held in cover. Whatever the body is doing (standing, walking, a gesture of the sword arm, a blow of his own) the board is held before his chest where it covers him best, looking at the enemy. It goes with the body as it steps, sways and rises, and keeps a little of what the recording has the arm do, so it is not stiff; but it stays in place. It leaves there only to meet a blow, and comes back. Off: the shield arm is the recording's, as it was: it swung open in every cut and in every fake of one.")]
         public bool theShieldIsHeldInCover = true;
 
-        [Tooltip("A shield bashes what comes too near. An enemy on his feet within the bash distance of a fighter with a shield, and before him, is driven out of his space: he sinks a little behind the board, drives it and his body forward, and the enemy is shoved back stumbling, his guard open for a moment and whatever blow he was in dropped. Not while his shield is meeting a blow, in a blow of his own, or down; and no sooner than 2.5 s after his last. Off: no bash, as it was.")]
+        [Tooltip("A shield bashes what comes too near. An enemy on his feet within the bash distance of a fighter with a shield, and before him, is driven out of his space by the small shield bash: from where he stands he sinks behind his board and drives it straight ahead, his body going in with it, and the enemy is shoved back. (The medium and the hard bash, which leap in, are thrown in the duel lab only so far.) Not while his shield is meeting a blow, in a blow of his own, or down; and no sooner than 2.5 s after his last. Off: no bash, as it was.")]
         public bool aShieldBashesWhatComesTooNear = true;
 
         [Tooltip("How near an enemy must come to be bashed (metres, root to root, at a Medium's size). A blow reaches at about 1.5 m, and a blow on the move steps in to about 1 m.")]
         [Range(0.6f, 1.6f)] public float shieldBashWithin = 1.2f;
 
-        [Tooltip("The speed the bashed enemy is shoved back with (m/s).")]
-        [Range(0.5f, 5f)] public float shieldBashShove = 2.6f;
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): the most he leaps in (metres at a Medium's size). 0: he does not leap: he stands, sinks behind his board and his body goes in a little with it.")]
+        [Range(0f, 2.5f)] public float smallBashLeapsIn = 0f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): where his leap ends: this far short of where the enemy stands (metres). 0: on the enemy's own spot, all the way into his space.")]
+        [Range(0f, 1.2f)] public float smallBashEndsShort = 0.9f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how hard he leaps in: the speed of the leap (m/s).")]
+        [Range(1.5f, 8f)] public float smallBashLeapSpeed = 3f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how hard his shield arm drives (0 to 1): how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
+        [Range(0f, 1f)] public float smallBashArm = 0.5f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how much of the speed the board arrives with (his body's and his arm's together) the enemy is shoved back at.")]
+        [Range(0.2f, 2f)] public float smallBashWeight = 0.75f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): he goes on through: after his board meets the enemy he carries on to where his leap ends, into the space the enemy is thrown out of. Off: he comes down where he met him.")]
+        public bool smallBashGoesThrough = false;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): his leap: how deep he crouches before it (1: a hand's breadth for a short leap, two for a long one).")]
+        [Range(0.5f, 2.5f)] public float smallBashCrouch = 1f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how far he leans in behind his board (degrees): as he pushes off in a leap; a standing bash leans 0.4 of it.")]
+        [Range(0f, 45f)] public float smallBashLean = 20f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): his leap: how high his hips rise in the flight (1: what the flight's time needs). Low is flat and driving.")]
+        [Range(0.2f, 1.5f)] public float smallBashHeight = 0.5f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): his leap: how long the crouch before it takes (seconds): the bash's wind-up, which the enemy sees.")]
+        [Range(0.08f, 0.5f)] public float smallBashWindUp = 0.15f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): thrown standing (no leap, or the enemy already against him): how far his hips sink behind the board (leg lengths).")]
+        [Range(0f, 0.3f)] public float smallBashSinks = 0.1f;
+
+        [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): thrown standing: how fast his body goes in with the board (m/s).")]
+        [Range(0f, 3f)] public float smallBashSurge = 0.9f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): the most he leaps in (metres at a Medium's size). 0: he does not leap: he stands, sinks behind his board and his body goes in a little with it.")]
+        [Range(0f, 2.5f)] public float mediumBashLeapsIn = 1.2f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): where his leap ends: this far short of where the enemy stands (metres). 0: on the enemy's own spot, all the way into his space.")]
+        [Range(0f, 1.2f)] public float mediumBashEndsShort = 0.7f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how hard he leaps in: the speed of the leap (m/s).")]
+        [Range(1.5f, 8f)] public float mediumBashLeapSpeed = 4f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how hard his shield arm drives (0 to 1): how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
+        [Range(0f, 1f)] public float mediumBashArm = 0.65f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how much of the speed the board arrives with (his body's and his arm's together) the enemy is shoved back at.")]
+        [Range(0.2f, 2f)] public float mediumBashWeight = 0.75f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): he goes on through: after his board meets the enemy he carries on to where his leap ends, into the space the enemy is thrown out of. Off: he comes down where he met him.")]
+        public bool mediumBashGoesThrough = false;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): his leap: how deep he crouches before it (1: a hand's breadth for a short leap, two for a long one).")]
+        [Range(0.5f, 2.5f)] public float mediumBashCrouch = 1.1f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): how far he leans in behind his board (degrees): as he pushes off in a leap; a standing bash leans 0.4 of it.")]
+        [Range(0f, 45f)] public float mediumBashLean = 20f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): his leap: how high his hips rise in the flight (1: what the flight's time needs). Low is flat and driving.")]
+        [Range(0.2f, 1.5f)] public float mediumBashHeight = 0.45f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): his leap: how long the crouch before it takes (seconds): the bash's wind-up, which the enemy sees.")]
+        [Range(0.08f, 0.5f)] public float mediumBashWindUp = 0.18f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): thrown standing (no leap, or the enemy already against him): how far his hips sink behind the board (leg lengths).")]
+        [Range(0f, 0.3f)] public float mediumBashSinks = 0.12f;
+
+        [Tooltip("The medium shield bash (he leaps in behind his board and stops short of the enemy): thrown standing: how fast his body goes in with the board (m/s).")]
+        [Range(0f, 3f)] public float mediumBashSurge = 1.2f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): the most he leaps in (metres at a Medium's size). 0: he does not leap: he stands, sinks behind his board and his body goes in a little with it.")]
+        [Range(0f, 2.5f)] public float hardBashLeapsIn = 2f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): where his leap ends: this far short of where the enemy stands (metres). 0: on the enemy's own spot, all the way into his space.")]
+        [Range(0f, 1.2f)] public float hardBashEndsShort = 0.1f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how hard he leaps in: the speed of the leap (m/s).")]
+        [Range(1.5f, 8f)] public float hardBashLeapSpeed = 6f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how hard his shield arm drives (0 to 1): how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.")]
+        [Range(0f, 1f)] public float hardBashArm = 1f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how much of the speed the board arrives with (his body's and his arm's together) the enemy is shoved back at.")]
+        [Range(0.2f, 2f)] public float hardBashWeight = 0.9f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): he goes on through: after his board meets the enemy he carries on to where his leap ends, into the space the enemy is thrown out of. Off: he comes down where he met him.")]
+        public bool hardBashGoesThrough = true;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): his leap: how deep he crouches before it (1: a hand's breadth for a short leap, two for a long one).")]
+        [Range(0.5f, 2.5f)] public float hardBashCrouch = 1.6f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): how far he leans in behind his board (degrees): as he pushes off in a leap; a standing bash leans 0.4 of it.")]
+        [Range(0f, 45f)] public float hardBashLean = 30f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): his leap: how high his hips rise in the flight (1: what the flight's time needs). Low is flat and driving.")]
+        [Range(0.2f, 1.5f)] public float hardBashHeight = 0.4f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): his leap: how long the crouch before it takes (seconds): the bash's wind-up, which the enemy sees.")]
+        [Range(0.08f, 0.5f)] public float hardBashWindUp = 0.24f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): thrown standing (no leap, or the enemy already against him): how far his hips sink behind the board (leg lengths).")]
+        [Range(0f, 0.3f)] public float hardBashSinks = 0.16f;
+
+        [Tooltip("The hard shield bash (he leaps fast all the way into the enemy's space and goes on through): thrown standing: how fast his body goes in with the board (m/s).")]
+        [Range(0f, 3f)] public float hardBashSurge = 1.8f;
+
+        [Tooltip("The shield bash: the shove (m/s) from which the enemy is thrown back stumbling, his guard open and a blow of his own dropped. Under it he is shoved back a step.")]
+        [Range(0.5f, 4f)] public float bashStumblesFrom = 1.5f;
+
+        [Tooltip("The shield bash: the shove (m/s) from which the enemy is knocked down.")]
+        [Range(2f, 9f)] public float bashFellsFrom = 4.5f;
+
+        [Tooltip("The shield bash: the most the one it knocks down is thrown back at (m/s): how hard he is bashed away. He is thrown at the shove itself up to this.")]
+        [Range(1f, 8f)] public float bashThrowsAtMost = 3f;
 
         [Tooltip("How much of the shield arm is the cover's while he stands, walks and gestures (0: all the recording's; 1: all the cover's, quite still).")]
         [Range(0f, 1f)] public float shieldCoverHold = 0.85f;
@@ -975,6 +1089,106 @@ namespace PhysicsBattler.Locomotion
         /// <summary>In play: every setting back to how the scene has it saved (as it was when play began). How many were put back.</summary>
         public int BackToSaved() => Tune(asSaved);
 
+        /// <summary>One of the three bashes' levers (0: small, 1: medium, 2: hard) as they are set here, written into <paramref name="b"/>.</summary>
+        public void BashInto(int kind, BashLevers b)
+        {
+            switch (kind)
+            {
+                case 0:
+                    b.MostLeap = smallBashLeapsIn;
+                    b.EndsShort = smallBashEndsShort;
+                    b.LeapSpeed = smallBashLeapSpeed;
+                    b.Arm = smallBashArm;
+                    b.Weight = smallBashWeight;
+                    b.GoesThrough = smallBashGoesThrough;
+                    b.Crouch = smallBashCrouch;
+                    b.Lean = smallBashLean;
+                    b.Height = smallBashHeight;
+                    b.Prep = smallBashWindUp;
+                    b.Sinks = smallBashSinks;
+                    b.Surge = smallBashSurge;
+                    break;
+                case 1:
+                    b.MostLeap = mediumBashLeapsIn;
+                    b.EndsShort = mediumBashEndsShort;
+                    b.LeapSpeed = mediumBashLeapSpeed;
+                    b.Arm = mediumBashArm;
+                    b.Weight = mediumBashWeight;
+                    b.GoesThrough = mediumBashGoesThrough;
+                    b.Crouch = mediumBashCrouch;
+                    b.Lean = mediumBashLean;
+                    b.Height = mediumBashHeight;
+                    b.Prep = mediumBashWindUp;
+                    b.Sinks = mediumBashSinks;
+                    b.Surge = mediumBashSurge;
+                    break;
+                case 2:
+                    b.MostLeap = hardBashLeapsIn;
+                    b.EndsShort = hardBashEndsShort;
+                    b.LeapSpeed = hardBashLeapSpeed;
+                    b.Arm = hardBashArm;
+                    b.Weight = hardBashWeight;
+                    b.GoesThrough = hardBashGoesThrough;
+                    b.Crouch = hardBashCrouch;
+                    b.Lean = hardBashLean;
+                    b.Height = hardBashHeight;
+                    b.Prep = hardBashWindUp;
+                    b.Sinks = hardBashSinks;
+                    b.Surge = hardBashSurge;
+                    break;
+            }
+        }
+
+        /// <summary>One of the three bashes' levers set here from <paramref name="b"/> (the lab's sliders).</summary>
+        public void BashFrom(int kind, BashLevers b)
+        {
+            switch (kind)
+            {
+                case 0:
+                    smallBashLeapsIn = b.MostLeap;
+                    smallBashEndsShort = b.EndsShort;
+                    smallBashLeapSpeed = b.LeapSpeed;
+                    smallBashArm = b.Arm;
+                    smallBashWeight = b.Weight;
+                    smallBashGoesThrough = b.GoesThrough;
+                    smallBashCrouch = b.Crouch;
+                    smallBashLean = b.Lean;
+                    smallBashHeight = b.Height;
+                    smallBashWindUp = b.Prep;
+                    smallBashSinks = b.Sinks;
+                    smallBashSurge = b.Surge;
+                    break;
+                case 1:
+                    mediumBashLeapsIn = b.MostLeap;
+                    mediumBashEndsShort = b.EndsShort;
+                    mediumBashLeapSpeed = b.LeapSpeed;
+                    mediumBashArm = b.Arm;
+                    mediumBashWeight = b.Weight;
+                    mediumBashGoesThrough = b.GoesThrough;
+                    mediumBashCrouch = b.Crouch;
+                    mediumBashLean = b.Lean;
+                    mediumBashHeight = b.Height;
+                    mediumBashWindUp = b.Prep;
+                    mediumBashSinks = b.Sinks;
+                    mediumBashSurge = b.Surge;
+                    break;
+                case 2:
+                    hardBashLeapsIn = b.MostLeap;
+                    hardBashEndsShort = b.EndsShort;
+                    hardBashLeapSpeed = b.LeapSpeed;
+                    hardBashArm = b.Arm;
+                    hardBashWeight = b.Weight;
+                    hardBashGoesThrough = b.GoesThrough;
+                    hardBashCrouch = b.Crouch;
+                    hardBashLean = b.Lean;
+                    hardBashHeight = b.Height;
+                    hardBashWindUp = b.Prep;
+                    hardBashSinks = b.Sinks;
+                    hardBashSurge = b.Surge;
+                    break;
+            }
+        }
+
         private void OnValidate() => Push();
 
         private void Update() => Push();
@@ -1196,7 +1410,14 @@ namespace PhysicsBattler.Locomotion
             AttackClasses.HeavyPower = heavyBlowPower;
             ClipFighter.ShieldBash = aShieldBashesWhatComesTooNear;
             ClipFighter.BashWithin = shieldBashWithin;
-            ClipFighter.BashShove = shieldBashShove;
+            for (int kind = 0; kind < ClipFighter.BashKinds.Length; kind++)
+            {
+                BashInto(kind, ClipFighter.BashKinds[kind]);
+            }
+
+            ClipFighter.BashStumblesFrom = bashStumblesFrom;
+            ClipFighter.BashFellsFrom = bashFellsFrom;
+            ClipFighter.BashThrowsAtMost = bashThrowsAtMost;
             ClipFighter.CoverHold = shieldCoverHold;
             ClipFighter.CoverInBlow = shieldCoverInBlow;
             ClipFighter.CoverAt = 0.01f * shieldCoverAt;

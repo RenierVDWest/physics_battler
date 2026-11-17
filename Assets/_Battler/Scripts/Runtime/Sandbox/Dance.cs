@@ -596,6 +596,9 @@ namespace PhysicsBattler.Sandbox
             {
                 StepFeet(A, now, dt, gap);
                 StepFeet(B, now, dt, gap);
+                // (A shield bashes what comes too near: the two are the lab's dummies, so the dance asks it for them.)
+                A.Unit.Clip.BashIfNear(B.Unit.Clip);
+                B.Unit.Clip.BashIfNear(A.Unit.Clip);
             }
             else if (feetMoved)
             {

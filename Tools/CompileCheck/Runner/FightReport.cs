@@ -729,6 +729,8 @@ internal static class FightReport
         float ownDropAt = -1f, ownDropFrom = 0f, ownDropLow = 0f;
         int[,] coverN = new int[2, 4], coverLooks = new int[2, 4];
         bool shieldDumped = false;
+        float bashGapWas = 0f;
+        Vector3 bashOtherWas = Vector3.zero, bashMoverWas = Vector3.zero;
         Vector3[,] coverSum = new Vector3[2, 4], coverSq = new Vector3[2, 4];
         float[,] coverOff = new float[2, 4], coverOpen = new float[2, 4], coverBelly = new float[2, 4];
         string openedTold = "none watched yet";
@@ -1498,19 +1500,36 @@ internal static class FightReport
                     PhysicsBattler.Locomotion.Locomotor.SlowSide = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_SLOWSIDE"), out int slowSide) ? slowSide : 1;
                     // (FIGHT_SHIELDCOVER=0: the shield arm is the recording's, as it was; FIGHT_COVERHOLD, FIGHT_COVERINBLOW: how much
                     // of the arm is the cover's. Where each of the two carries his board is measured from 2.5 s on: COVER lines.)
-                    // (FIGHT_BASH=0: no shield bash. FIGHT_BASHWITHIN: how near an enemy must come. FIGHT_BASHAT="4,9": the mover
-                    // bashes at those seconds whatever the distance.)
-                    if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_BASHWITHIN"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bashWithin)) PhysicsBattler.Locomotion.ClipFighter.BashWithin = bashWithin;
-                    foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_BASHAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    // (FIGHT_BASHAT="4,9": the mover bashes the other at those seconds, whatever the distance. FIGHT_BASHWITHIN: how
+                    // near an enemy must come to be bashed unasked. FIGHT_BASHKIND=small/medium/hard: which of the three. What each asked bash did is said 1.2 s after it: BASHED lines.)
                     {
-                        if (float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bashAt) && paceAt >= bashAt && paceAt - dt < bashAt && duel.Mover != null && duel.Mover.Clip != null)
+                        float EnvB(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+                        PhysicsBattler.Locomotion.ClipFighter.BashWithin = EnvB("FIGHT_BASHWITHIN", PhysicsBattler.Locomotion.ClipFighter.BashWithin);
+                        PhysicsBattler.Locomotion.ClipFighter.BashThrowsAtMost = EnvB("FIGHT_BASHTHROWS", PhysicsBattler.Locomotion.ClipFighter.BashThrowsAtMost);
+                        string bashKindAsked = (Environment.GetEnvironmentVariable("FIGHT_BASHKIND") ?? "small").Trim().ToLowerInvariant();
+                        int bashKind = bashKindAsked == "hard" ? 2 : bashKindAsked == "medium" ? 1 : 0;
+                        foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_BASHAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                         {
-                            Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other != null ? duel.Other.Clip : null, true) ? "begun" : "he could not")}, {(duel.Other != null ? Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position) : 0f):0.00} m apart");
+                            if (!float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bashAt) || duel.Mover == null || duel.Mover.Clip == null || duel.Other == null || duel.Other.Clip == null)
+                            {
+                                continue;
+                            }
+
+                            if (paceAt >= bashAt && paceAt - dt < bashAt)
+                            {
+                                bashGapWas = Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position);
+                                bashOtherWas = duel.Other.Root.position;
+                                bashMoverWas = duel.Mover.Root.position;
+                                Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other.Clip, true, bashKind) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
+                            }
+
+                            if (paceAt >= bashAt + 1.2f && paceAt - dt < bashAt + 1.2f)
+                            {
+                                Console.WriteLine($"BASHED {paceAt:0.00}: {duel.Mover.Clip.LastBash}. 1.2 s after: he has gone {Vector3.Distance(duel.Mover.Root.position, bashMoverWas):0.00} m, the other {Vector3.Distance(duel.Other.Root.position, bashOtherWas):0.00} m{(duel.Other.Clip.Fallen ? " and is down" : "")}; they are {Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position):0.00} m apart");
+                            }
                         }
                     }
 
-                    if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COVERHOLD"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float askedCoverHold)) PhysicsBattler.Locomotion.ClipFighter.CoverHold = askedCoverHold;
-                    if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COVERINBLOW"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float askedCoverInBlow)) PhysicsBattler.Locomotion.ClipFighter.CoverInBlow = askedCoverInBlow;
                     if (paceAt >= 2.5f && duel.Mover != null && duel.Other != null && duel.Mover.Clip != null && duel.Other.Clip != null)
                     {
                         var two = new[] { duel.Mover, duel.Other };

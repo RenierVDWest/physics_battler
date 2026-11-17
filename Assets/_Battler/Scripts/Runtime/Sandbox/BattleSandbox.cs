@@ -687,17 +687,6 @@ namespace PhysicsBattler.Sandbox
                 if (Press(coverFeel.theShieldIsHeldInCover ? "[held in cover]" : "held in cover", "The board is held before his chest.")) coverFeel.theShieldIsHeldInCover = true;
                 if (Press(!coverFeel.theShieldIsHeldInCover ? "[the recording's (old)]" : "the recording's (old)", "The shield arm does what each recording has it do.")) coverFeel.theShieldIsHeldInCover = false;
                 GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent("Too near:", "What a fighter with a shield does when an enemy comes too near him (Combat Feel \"A Shield Bashes What Comes Too Near\"). Bashes (new): he drives his shield and his body into him and shoves him back out of his space. Nothing (old): as it was."), Styles().Text, GUILayout.Width(80f));
-                if (Press(coverFeel.aShieldBashesWhatComesTooNear ? "[bashes]" : "bashes", "He bashes an enemy who comes too near.")) coverFeel.aShieldBashesWhatComesTooNear = true;
-                if (Press(!coverFeel.aShieldBashesWhatComesTooNear ? "[nothing (old)]" : "nothing (old)", "No bash.")) coverFeel.aShieldBashesWhatComesTooNear = false;
-                GUILayout.EndHorizontal();
-                if (coverFeel.aShieldBashesWhatComesTooNear)
-                {
-                    coverFeel.shieldBashWithin = Lever("Bash within", coverFeel.shieldBashWithin, 0.6f, 1.6f, "How near an enemy must come to be bashed (metres, root to root). A blow reaches at about 1.5 m; a blow on the move steps in to about 1 m.");
-                    coverFeel.shieldBashShove = Lever("Bash shoves", coverFeel.shieldBashShove, 0.5f, 5f, "The speed the bashed enemy is shoved back with (m/s).");
-                }
-
                 if (coverFeel.theShieldIsHeldInCover)
                 {
                     coverFeel.shieldCoverHold = Lever("Cover holds", coverFeel.shieldCoverHold, 0f, 1f, "How much of the shield arm is the cover's while he stands, walks and gestures (1: quite still; less: more of the recording's own arm).");
@@ -711,7 +700,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label(new GUIContent("Actions:", "Where the buttons are that have a fighter do something (move, leap, posture, strike, the tests' buttons) and the pace. In a window (new): a window of their own at the right, the pace at its top, and this panel left the settings and what was measured. In the panel (old): among the settings here, as they were."), Styles().Text, GUILayout.Width(80f));
+            GUILayout.Label(new GUIContent("Actions:", "Where the actions are: the buttons that have a fighter do something (move, leap, posture, bash, strike, the tests, the dance), the pace, and each action's own settings. In a window (new): a window of their own at the right, the pace at its top, each action's settings folded under its buttons. In the panel (old): all of it here."), Styles().Text, GUILayout.Width(80f));
             if (Press(ActionsApart ? "[in a window]" : "in a window", "The buttons in a window of their own.")) ActionsApart = true;
             if (Press(!ActionsApart ? "[in the panel]" : "in the panel", "The buttons among the settings here, as they were.")) ActionsApart = false;
             GUILayout.EndHorizontal();
@@ -833,7 +822,6 @@ namespace PhysicsBattler.Sandbox
                 }
             }
 
-            DrawShieldTest();
             var moveFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
             if (moveFeel != null)
             {
@@ -881,38 +869,6 @@ namespace PhysicsBattler.Sandbox
                 DrawOwnLevers(moveFeel);
             }
 
-            if (!ActionsApart)
-            {
-                Heading("Move him", "Each button is an order he carries out until it is done or another is given.");
-                DuelMoveButtons();
-            }
-
-            Heading("Leaps", "From a stand he springs toward the other, away from it or to a side: both feet leave the ground together and come down together.");
-            if (!ActionsApart)
-            {
-                DuelLeapButtons();
-            }
-
-            Duel.LeapFar = Mathf.Round(20f * Slide("Leap", $"{Duel.LeapFar:0.00} m", "How far a leap goes. He is carried no faster than 4 m/s and his feet are in the air 0.3 s at most, so about 1.2 m is the most.", Duel.LeapFar, 0.2f, 1.2f)) / 20f;
-            Duel.LeapTime = Mathf.Round(100f * Slide("In the air", $"{Duel.LeapTime:0.00} s", "How long his feet are off the ground in a leap. Longer is a higher, floatier leap; shorter a low, quick one.", Duel.LeapTime, 0.15f, 0.5f)) / 100f;
-            var leapFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-            if (leapFeel != null && leapFeel.leapsAreMade)
-            {
-                leapFeel.leapCrouch = Lever("Crouch", leapFeel.leapCrouch, 0f, 2.5f, "How deep the hips sink before the push and as the legs take the landing.");
-                leapFeel.leapHeight = Lever("Height", leapFeel.leapHeight, 0.3f, 3f, "How high the hips rise in the flight, and the legs tuck.");
-                leapFeel.leapLean = Lever("Lean", leapFeel.leapLean, 0f, 35f, "How far the chest leans the way of the leap as it pushes off (degrees).");
-                leapFeel.leapArms = Lever("Arms", leapFeel.leapArms, 0f, 1f, "How much of the recorded jump's arm swing the arms take (0: they stay in the guard).");
-                leapFeel.leapBody = Lever("Body", leapFeel.leapBody, 0f, 1.5f, "How much of the recorded jump's fold forward in the crouch and stretch in the flight the trunk takes.");
-                leapFeel.leapPrepTime = Lever("Crouch time", leapFeel.leapPrepTime, 0.08f, 0.5f, "How long the crouch takes before the push (seconds).");
-            }
-
-            Readout("Last leap: " + Duel.LastLeap, 2);
-            Heading("Drop", "A posture of the lower body: a sudden dip of the hips, as if loading to spring, and back up. It goes over whatever he is doing, standing or walking. (The other lower postures are here already: a small Leap in or out, or a Hop to a side, with Leap set to 0.3 to 0.6 m; and the fake lunge under Strike at.)");
-            if (!ActionsApart)
-            {
-                DuelDropButton();
-            }
-
             Heading("What he leaves open", "Each part of his body as the other sees it from its sword shoulder: open (a straight line reaches it), or covered, and by what (his shield, or his own arm before it). Looked at on the bodies as they are, ten times a second, so whatever he does shows in it. Under it: what the last posture opened that was covered, and covered that was open, and when.");
             OpenRow(PhysicsBattler.Locomotion.AimSpot.Head);
             OpenRow(PhysicsBattler.Locomotion.AimSpot.ShoulderR, PhysicsBattler.Locomotion.AimSpot.Chest, PhysicsBattler.Locomotion.AimSpot.ShoulderL);
@@ -921,38 +877,14 @@ namespace PhysicsBattler.Sandbox
             OpenRow(PhysicsBattler.Locomotion.AimSpot.ThighR, PhysicsBattler.Locomotion.AimSpot.ThighL);
             OpenRow(PhysicsBattler.Locomotion.AimSpot.ShinR, PhysicsBattler.Locomotion.AimSpot.ShinL);
             Readout("Last posture: " + Duel.Opened, 3);
-            Heading("Sword and shield", "Postures of the upper body, over whatever he is doing. The blade's bluffs: its point dips, flicks aside, or goes once round. The shield press: the shield is thrust out and brought back. The guard: where he carries his sword arm until it is changed again.");
-            if (!ActionsApart)
+            if (ActionsApart)
             {
-                DuelBluffButtons();
+                Heading("His actions", "Everything that has one of the two do something (move, leap, posture, bash, strike, the tests, the dance) is in the Actions window: the buttons, and under each action's buttons its own settings and what was measured of it, folded shut until its \"settings\" bar is pressed.");
+                GUILayout.Label(new GUIContent("The buttons, and each action's settings under its buttons, are in the Actions window.", "\"Actions: in the panel\" above puts them all back here."), Styles().Text);
+                return;
             }
 
-            if (leapFeel != null)
-            {
-                leapFeel.bladeBluffSize = Lever("Bluff size", leapFeel.bladeBluffSize, 0.3f, 2f, "How big the blade's bluffs are (1: a dip of 38 degrees, a flick of 32, a round of 22).");
-                leapFeel.shieldPressFar = Lever("Press far", leapFeel.shieldPressFar, 0.3f, 1f, "How far the shield is thrust out (1: the arm nearly straight).");
-            }
-
-            if (leapFeel != null)
-            {
-                leapFeel.dropSinks = Lever("Sinks", leapFeel.dropSinks, 3f, 25f, "How far his hips sink (cm). His feet stay where they are and his knees bend for it.");
-                leapFeel.dropLeans = Lever("Leans", leapFeel.dropLeans, 0f, 25f, "How far he leans forward with it (degrees).");
-                leapFeel.dropDown = Lever("Down in", leapFeel.dropDown, 0.05f, 0.4f, "How long it takes to get down (seconds).");
-                leapFeel.dropUp = Lever("Up in", leapFeel.dropUp, 0.1f, 0.8f, "How long he takes to come back up (seconds).");
-            }
-
-            DrawDuelStrikes(leapFeel);
-            if (!ActionsApart)
-            {
-                DuelPace();
-            }
-
-            Duel.Near = Mathf.Round(10f * Slide("Walks to", $"{Duel.Near:0.0} m", "How near the other he walks (metres, root to root).", Duel.Near, 1f, 3f)) / 10f;
-            Duel.Far = Mathf.Round(10f * Slide("Backs to", $"{Duel.Far:0.0} m", "How far from the other he backs away (metres, root to root).", Duel.Far, 2f, 7f)) / 10f;
-            // (Always the same lines, whatever the order: the panel is laid out and drawn from the same state.)
-            Readout($"Order: {Duel.Now}. {Duel.Gap:0.00} m apart, going {Duel.Speed:0.00} m/s, {Duel.Gone:0.0} m since the order.", 2);
-            Readout(new GUIContent($"Setting off: a foot at most {Duel.SetOffFoot:0.0} m/s and the hips {Duel.SetOffHips:0.0} m/s in the first 0.35 s, {Duel.SetOffWent:0.00} m gone by then.",
-                "How he set off under the last order: the fastest either foot and the hips went in its first 0.35 s, and how far he had got. Feet whipped to their places while the body has hardly moved read as a jump (Combat Feel \"Sets Off At A Walk's Rhythm\")."), 3);
+            ActionGroups(false);
         }
 
         /// <summary>Whose own levers the panel shows (0: his, the one moved; 1: the other's).</summary>
@@ -1050,88 +982,6 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
-        /// <summary>
-        /// The duel lab's shield test (the plan "Fight Rhythm from Recordings", step 7: openings): the target uncovers
-        /// one part for a moment, and the swordsman must hit it while it is open. He either reads the uncovering as it
-        /// starts, or only reacts once he sees the part open.
-        /// </summary>
-        private void DrawShieldTest()
-        {
-            var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-            Heading("Shield test", "The target holds a shield and takes it off one part of itself for a moment; the swordsman must hit that part while it is open. A blow takes time to land, so seeing the part open is too late: a swordsman who reads the uncovering starts as it begins (he goes by its tell, the dip of its blade, and by when it opened the last time he saw it) and lands while it is open; one who only reacts starts once he sees it open, and meets the shield coming back. Under the buttons: the window as it was measured, when his blow started and when it landed.");
-            if (!ActionsApart)
-            {
-                ShieldTestButtons();
-            }
-
-            Shield.Spot = AimSpot.Chest;
-            GUILayout.Label(new GUIContent("It uncovers its chest: it lowers its shield.", "The part the target uncovers and the swordsman is to hit: its chest, by lowering its shield. (Its belly and hips sit behind the middle of the board; no clean move of the shield takes it off them, so they are left to the real postures.)"), Styles().Text);
-            if (feel != null)
-            {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent("Swordsman:", "How he takes the opening. Reads it (new): he recognises the uncovering as it starts and times his blow to land while the part is open. He has to have seen that uncovering once: the first time, he can only react. Only reacts: he starts his blow once he sees the part open."), Styles().Text, GUILayout.Width(80f));
-                if (Press(feel.theSwordsmanReadsOpenings ? "[reads it]" : "reads it", "He reads the uncovering (Combat Feel \"The Swordsman Reads Openings\").")) feel.theSwordsmanReadsOpenings = true;
-                if (Press(!feel.theSwordsmanReadsOpenings ? "[only reacts]" : "only reacts", "He starts his blow once he sees the part open.")) feel.theSwordsmanReadsOpenings = false;
-                if (Press("Forget", "He forgets every uncovering he has seen, and the pattern of the target's fakes: the next is new to him.")) { Shield.Taker.Forget(); Fakes.Forget(); }
-                GUILayout.EndHorizontal();
-                feel.openingReactionTime = Lever("Reaction", feel.openingReactionTime, 0.05f, 0.6f, "How long after he recognises the uncovering (reading) or sees the part open (reacting) he starts his blow (seconds).");
-                feel.quickestOpeningBlow = Lever("Quickest blow", feel.quickestOpeningBlow, 0.3f, 0.8f, "The least time his blow may take to land (seconds). In its own time a blow takes about 0.6 s; under about 0.4 s it lands off its mark.");
-                feel.uncoverTell = Lever("Tell lasts", feel.uncoverTell, 0f, 0.8f, "How long the target's tell lasts before its shield starts away (seconds): its blade's point is held down that long. It is what a reader goes by: with none, reading gains him nothing.");
-                feel.uncoverOpenFor = Lever("Open for", feel.uncoverOpenFor, 0.15f, 1.2f, "How long the target leaves the part open (seconds).");
-                Shield.Taker.Reads = feel.theSwordsmanReadsOpenings;
-                Shield.Taker.Reaction = feel.openingReactionTime;
-                Fakes.Taker.Reads = feel.theSwordsmanReadsOpenings;
-                Fakes.Taker.Reaction = feel.openingReactionTime;
-            }
-
-            Readout(new GUIContent("Now: " + Shield.NowText, "The part chosen as the swordsman sees it this moment, and whether he has seen this uncovering before (what he goes by when he reads it)."), 2);
-            Readout(new GUIContent("Last go: " + (Shield.Now != null ? (Shield.Now.Done ? "" : "(under way) ") + Shield.Now.Verdict : "none yet."), "The last go: when the part was open, as measured on the bodies (seconds after the uncovering began, its tell included); when the swordsman's blow started; what it met and when; and what he went by."), 4);
-            Readout(Shield.Trials.Count > 0 ? Shield.Tally() : "", 2);
-            DrawFakeTest(feel);
-        }
-
-        /// <summary>
-        /// The duel lab's fakes test (the plan "Fight Rhythm from Recordings", step 7, second part): the target throws
-        /// fake slashes in a pattern, short ones and then a long one, and the swordsman is to hit its chest while the
-        /// long one leaves it open. He reads the pattern, or only reacts to what he sees open.
-        /// </summary>
-        private void DrawFakeTest(PhysicsBattler.Locomotion.CombatFeel feel)
-        {
-            Heading("Fakes test", "The shield test on real gestures. The target throws fake slashes at the swordsman: short ones, which leave its chest covered, and after so many of them a long one, which leaves its chest open for nearly half a second. They come on a steady beat. The swordsman set to read (above) watches the pattern through once without striking; after that he lets the short ones go, counts them, and starts his blow before the long one begins, to land as it opens. Set to only react he waits until he sees the chest open, and arrives after it is covered again. The target needs its sword and shield: if it has none, the first press of a button here sets the lab out for it, and what was pressed follows in a moment.");
-            Readout(new GUIContent(TargetHasShield ? "The target has its sword and shield." : "The target has no sword and shield yet: any button below sets the lab out first.", "The fakes test and the shield test need the target to stand with sword and shield, 1.5 m from the swordsman. Set out (in the shield test) does that; so does the first press of any button of either test."), 2);
-            if (!ActionsApart)
-            {
-                FakeTestButtons();
-            }
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(new GUIContent("Its pattern:", "Steady: always the same number of short fakes before the long one, so it can be counted. Mixed up: the number is drawn afresh each time (1 to 3), so counting tells nothing, and a reader is wrong as often as right."), Styles().Text, GUILayout.Width(80f));
-            if (Press(!Fakes.MixedUp ? "[steady]" : "steady", "Always the same number of short fakes before the long one.")) Fakes.MixedUp = false;
-            if (Press(Fakes.MixedUp ? "[mixed up]" : "mixed up", "The number of short fakes before the long one is drawn afresh each time.")) Fakes.MixedUp = true;
-            GUILayout.EndHorizontal();
-            Fakes.Shorts = Mathf.RoundToInt(Slide("Short ones", $"{Fakes.Shorts}", "How many short fakes come before each long one (the steady pattern).", Fakes.Shorts, 1f, 4f));
-            Fakes.Beat = Mathf.Round(10f * Slide("Beat", $"{Fakes.Beat:0.0} s", "How long from the start of one fake to the start of the next.", Fakes.Beat, 1.3f, 3f)) / 10f;
-            if (feel != null)
-            {
-                feel.longFakeHold = Lever("Long holds", feel.longFakeHold, 0f, 0.6f, "How long the long fake is held at its furthest (seconds). The longer, the longer its chest is open.");
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent("In a fake:", "What a fighter's shield does while he is in a fake of his own (Combat Feel \"A Sword Fake Takes The Shield\"). Free (as it is): a fake is the sword arm's alone; the shield stays in its cover and meets a blow as readily as ever. Committed: it does not go to meet a blow until the fake is over, so a fake costs him his cover."), Styles().Text, GUILayout.Width(80f));
-                if (Press(!feel.aSwordFakeTakesTheShield ? "[shield free]" : "shield free", "A fake is the sword arm's alone.")) feel.aSwordFakeTakesTheShield = false;
-                if (Press(feel.aSwordFakeTakesTheShield ? "[shield committed]" : "shield committed", "In a fake his shield does not go to meet a blow.")) feel.aSwordFakeTakesTheShield = true;
-                GUILayout.EndHorizontal();
-            }
-
-            Readout(new GUIContent("The pattern: " + Fakes.Learned + ".", "What the swordsman has learned of the target's pattern by watching it: nothing of it is given him."), 2);
-            Readout(new GUIContent("Last fake: " + (Fakes.Now != null ? Fakes.Now.Text(Fakes.Spot) : "none yet") + ".", "The target's last fake: when it was furthest and how long it took, and when it left its chest open, as measured on the bodies (seconds after it began)."), 3);
-            Readout(new GUIContent("Last blow: " + (Fakes.LastBlow != null ? Fakes.LastBlow.Verdict : "none yet."), "The swordsman's last blow in this test: what he threw it by, what it met, and whether the chest was open as it met."), 4);
-            Readout(Fakes.Fakes.Count > 0 ? Fakes.Tally() : "", 2);
-            DrawDance(feel);
-        }
-
-        /// <summary>
-        /// The duel lab's blows (the plan "Fight Rhythm from Recordings", step 3: attacks from any pose): the aim test's
-        /// body map, to be pressed while he walks, circles or backs away. The order he had goes on after the blow.
-        /// </summary>
         /// <summary>The dance (the plan's step 8, second part): the two gesturing at each other, each reading the other.</summary>
         public readonly Dance Dancing = new Dance();
         private bool dancePatterned;
@@ -1186,15 +1036,410 @@ namespace PhysicsBattler.Sandbox
             GUILayout.EndHorizontal();
         }
 
-        /// <summary>The dance's settings and what was measured: each fighter's pattern, whether he reads, what he has learned, how it goes.</summary>
-        private void DrawDance(PhysicsBattler.Locomotion.CombatFeel feel)
+        /// <summary>
+        /// The settings of an action. In the actions window they are folded under the action's buttons, shut at first,
+        /// opened and shut by a press of their bar (kept between sessions); in the panel they are always shown.
+        /// </summary>
+        private bool ActionSettings(bool inWindow, string name, string what)
         {
-            Heading("The dance", "The shield test and the fakes test had one who gestured and one who struck; here both do both. Each fighter gestures in a pattern of his own: so many gestures on a beat, then his tell, then his real blow. Each watches the other. A fake of his own commits a fighter's shield, so a blow that comes while he is in one lands; out of one his shield meets it. One who reads learns the other's tell and count by watching, stops gesturing when the tell comes, and strikes into a gesture he knows leaves the chest open. One who does not read gestures on regardless and goes for a chest he sees open.");
-            if (!ActionsApart)
+            if (!inWindow)
             {
-                DanceButtons();
+                return true;
             }
 
+            string key = "Actions." + name;
+            if (!sectionOpen.TryGetValue(key, out bool open))
+            {
+                open = PlayerPrefs.GetFloat("BattleSandbox.Section." + key, 0f) > 0.5f;
+                sectionOpen[key] = open;
+            }
+
+            if (GUILayout.Button(new GUIContent((open ? "−  " : "+  ") + what, "This action's settings, and what was measured of it. Press to fold them open or shut."), Styles().Fold))
+            {
+                // (From the next time the window is laid out, as a section of the panel.)
+                sectionOpen[key] = !open;
+                PlayerPrefs.SetFloat("BattleSandbox.Section." + key, open ? 0f : 1f);
+            }
+
+            return open;
+        }
+
+        /// <summary>What the tests go by is kept as Combat Feel has it, whether their settings are shown or folded shut.</summary>
+        private void SyncTests(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            Shield.Spot = AimSpot.Chest;
+            if (feel == null)
+            {
+                return;
+            }
+
+            Shield.Taker.Reads = feel.theSwordsmanReadsOpenings;
+            Shield.Taker.Reaction = feel.openingReactionTime;
+            Fakes.Taker.Reads = feel.theSwordsmanReadsOpenings;
+            Fakes.Taker.Reaction = feel.openingReactionTime;
+            Dancing.A.Taker.Reaction = feel.openingReactionTime;
+            Dancing.B.Taker.Reaction = feel.openingReactionTime;
+        }
+
+        /// <summary>
+        /// Every action of the duel lab, each with its buttons and under them its own settings and what was measured of
+        /// it: in the actions window (the settings folded) or in the panel (shown).
+        /// </summary>
+        private void ActionGroups(bool inWindow)
+        {
+            var feel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
+            SyncTests(feel);
+            Heading("Move him", "Each button is an order he carries out until it is done or another is given.");
+            if (!inWindow)
+            {
+                DuelPace();
+            }
+
+            DuelMoveButtons();
+            if (ActionSettings(inWindow, "Move", "Moving: settings"))
+            {
+                PaceSettings(feel);
+            }
+
+            Heading("Leaps", "From a stand he springs toward the other, away from it or to a side: both feet leave the ground together and come down together.");
+            DuelLeapButtons();
+            if (ActionSettings(inWindow, "Leaps", "Leaps: settings"))
+            {
+                LeapSettings(feel);
+            }
+
+            Heading("Postures", "The short bursts a fighter throws between blows, over whatever he is doing. A drop: a sudden dip of the hips, as if loading to spring, and back up. A dodge: he ducks and leans aside. The blade's bluffs: its point dips, flicks aside, or goes once round. The guard: where he carries his sword arm until it is changed again.");
+            DuelDropButton();
+            DuelBluffButtons();
+            if (ActionSettings(inWindow, "Postures", "Postures: settings"))
+            {
+                PostureSettings(feel);
+            }
+
+            Heading("Shield bash", "He drives his board straight ahead into the other, his body behind it. Three bashes, each with its own settings. Small: from where he stands; he sinks behind the board and goes in a little with it. Medium: he leaps in behind his board and stops short of the other. Hard: he crouches deep and leaps fast all the way into the other's space, and goes on through as the other is thrown out of it. What a bash does is not set: the speed the board arrives with, times the bash's weight, is the shove; under 1.5 m/s the other is shoved back a step, from there thrown back stumbling, from 4.5 m/s knocked down.");
+            BashButtons();
+            var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
+            Readout(new GUIContent("Last bash: " + (basher != null && basher.LastBash.Length > 0 ? basher.LastBash + "." : "none yet."), "How the last bash was thrown (the leap, the drive) and what it did: the speed the board closed on the other at, the shove, and whether he was shoved back, thrown back stumbling or knocked down."), 4);
+            string[] bashes = { "Small", "Medium", "Hard" };
+            for (int kind = 0; kind < bashes.Length; kind++)
+            {
+                if (ActionSettings(inWindow, "Bash." + bashes[kind], bashes[kind] + " bash: settings"))
+                {
+                    BashSliders(feel, kind);
+                }
+            }
+
+            if (ActionSettings(inWindow, "Bash.Does", "What a bash does, and bashing by himself: settings"))
+            {
+                BashDoes(feel);
+            }
+
+            Heading("Strike at", "Press a part while he is moving (give him an order above first): he strikes at it from where he is, in the middle of his step, and then goes on with his order. Pressed while he stands it is the aim test's blow.");
+            DuelPressIs();
+            DuelBodyMap();
+            if (ActionSettings(inWindow, "Strike", "Strikes: settings"))
+            {
+                StrikeSettings(feel);
+            }
+
+            Heading("Shield test", "The target holds a shield and takes it off one part of itself for a moment; the swordsman must hit that part while it is open. A blow takes time to land, so seeing the part open is too late: a swordsman who reads the uncovering starts as it begins (he goes by its tell, the dip of its blade, and by when it opened the last time he saw it) and lands while it is open; one who only reacts starts once he sees it open, and meets the shield coming back. Under the buttons: the window as it was measured, when his blow started and when it landed.");
+            ShieldTestButtons();
+            if (ActionSettings(inWindow, "ShieldTest", "Shield test: settings"))
+            {
+                ShieldTestSettings(feel);
+            }
+
+            Heading("Fakes test", "The shield test on real gestures. The target throws fake slashes at the swordsman: short ones, which leave its chest covered, and after so many of them a long one, which leaves its chest open for nearly half a second. They come on a steady beat. The swordsman set to read (above) watches the pattern through once without striking; after that he lets the short ones go, counts them, and starts his blow before the long one begins, to land as it opens. Set to only react he waits until he sees the chest open, and arrives after it is covered again. The target needs its sword and shield: if it has none, the first press of a button here sets the lab out for it, and what was pressed follows in a moment.");
+            FakeTestButtons();
+            if (ActionSettings(inWindow, "FakesTest", "Fakes test: settings"))
+            {
+                FakeTestSettings(feel);
+            }
+
+            Heading("The dance", "The shield test and the fakes test had one who gestured and one who struck; here both do both. Each fighter gestures in a pattern of his own: so many gestures on a beat, then his tell, then his real blow. Each watches the other. A fake of his own commits a fighter's shield, so a blow that comes while he is in one lands; out of one his shield meets it. One who reads learns the other's tell and count by watching, stops gesturing when the tell comes, and strikes into a gesture he knows leaves the chest open. One who does not read gestures on regardless and goes for a chest he sees open.");
+            DanceButtons();
+            if (ActionSettings(inWindow, "Dance", "The dance: settings"))
+            {
+                DanceSettings(feel);
+            }
+        }
+
+        /// <summary>Moving's settings: what a slow order does, how near he walks and how far he backs, and how he set off.</summary>
+        private void PaceSettings(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Slow orders:", "What an order to walk up, back away or circle does at a pace under a walk's (about 0.9 m/s). Walked (new): he walks on at that pace on his walk's own cycles, slowed, and to the sides on a slow walk recorded for it. Stepped (old): he stands and takes single short steps, which is meant for a small change of where he stands, not for going on (Combat Feel \"A Walk Kept Up Is Walked Not Stepped\")."), Styles().Text, GUILayout.Width(90f));
+                if (Press(feel.aWalkKeptUpIsWalkedNotStepped ? "[walked]" : "walked", "He walks on at any pace.")) feel.aWalkKeptUpIsWalkedNotStepped = true;
+                if (Press(!feel.aWalkKeptUpIsWalkedNotStepped ? "[stepped (old)]" : "stepped (old)", "Under a walk's pace he stands and steps, as it was.")) feel.aWalkKeptUpIsWalkedNotStepped = false;
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Slow circle:", "What he circles on under his side-step's own pace (about 1.1 m/s), when slow orders are walked. Each is a recording's legs under his guard's own chest and arms. Crouched: the pack's careful crouched step, low, each foot long on the ground. Upright: the pack's slow strafe, feet near each other. Side-step: his guard's own side-step, slowed (no new recording)."), Styles().Text, GUILayout.Width(90f));
+                if (Press(feel.slowSideWalk == 1 ? "[crouched]" : "crouched", "The crouched careful step.")) feel.slowSideWalk = 1;
+                if (Press(feel.slowSideWalk == 2 ? "[upright]" : "upright", "The upright slow strafe.")) feel.slowSideWalk = 2;
+                if (Press(feel.slowSideWalk == 0 ? "[side-step]" : "side-step", "His guard's own side-step, slowed.")) feel.slowSideWalk = 0;
+                GUILayout.EndHorizontal();
+            }
+
+            Duel.Near = Mathf.Round(10f * Slide("Walks to", $"{Duel.Near:0.0} m", "How near the other he walks (metres, root to root).", Duel.Near, 1f, 3f)) / 10f;
+            Duel.Far = Mathf.Round(10f * Slide("Backs to", $"{Duel.Far:0.0} m", "How far from the other he backs away (metres, root to root).", Duel.Far, 2f, 7f)) / 10f;
+            // (Always the same lines, whatever the order: the panel is laid out and drawn from the same state.)
+            Readout($"Order: {Duel.Now}. {Duel.Gap:0.00} m apart, going {Duel.Speed:0.00} m/s, {Duel.Gone:0.0} m since the order.", 2);
+            Readout(new GUIContent($"Setting off: a foot at most {Duel.SetOffFoot:0.0} m/s and the hips {Duel.SetOffHips:0.0} m/s in the first 0.35 s, {Duel.SetOffWent:0.00} m gone by then.",
+                "How he set off under the last order: the fastest either foot and the hips went in its first 0.35 s, and how far he had got. Feet whipped to their places while the body has hardly moved read as a jump (Combat Feel \"Sets Off At A Walk's Rhythm\")."), 3);
+        }
+
+        /// <summary>The leaps' settings: how far and how long, the made leap's levers, and the last leap.</summary>
+        private void LeapSettings(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            Duel.LeapFar = Mathf.Round(20f * Slide("Leap", $"{Duel.LeapFar:0.00} m", "How far a leap goes. He is carried no faster than 4 m/s and his feet are in the air 0.3 s at most, so about 1.2 m is the most.", Duel.LeapFar, 0.2f, 1.2f)) / 20f;
+            Duel.LeapTime = Mathf.Round(100f * Slide("In the air", $"{Duel.LeapTime:0.00} s", "How long his feet are off the ground in a leap. Longer is a higher, floatier leap; shorter a low, quick one.", Duel.LeapTime, 0.15f, 0.5f)) / 100f;
+            if (feel != null && feel.leapsAreMade)
+            {
+                feel.leapCrouch = Lever("Crouch", feel.leapCrouch, 0f, 2.5f, "How deep the hips sink before the push and as the legs take the landing.");
+                feel.leapHeight = Lever("Height", feel.leapHeight, 0.3f, 3f, "How high the hips rise in the flight, and the legs tuck.");
+                feel.leapLean = Lever("Lean", feel.leapLean, 0f, 35f, "How far the chest leans the way of the leap as it pushes off (degrees).");
+                feel.leapArms = Lever("Arms", feel.leapArms, 0f, 1f, "How much of the recorded jump's arm swing the arms take (0: they stay in the guard).");
+                feel.leapBody = Lever("Body", feel.leapBody, 0f, 1.5f, "How much of the recorded jump's fold forward in the crouch and stretch in the flight the trunk takes.");
+                feel.leapPrepTime = Lever("Crouch time", feel.leapPrepTime, 0.08f, 0.5f, "How long the crouch takes before the push (seconds).");
+            }
+
+            Readout("Last leap: " + Duel.LastLeap, 2);
+        }
+
+        /// <summary>The postures' settings: the drop's and the blade's bluffs'.</summary>
+        private void PostureSettings(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            if (feel == null)
+            {
+                return;
+            }
+
+            feel.dropSinks = Lever("Sinks", feel.dropSinks, 3f, 25f, "How far his hips sink (cm). His feet stay where they are and his knees bend for it.");
+            feel.dropLeans = Lever("Leans", feel.dropLeans, 0f, 25f, "How far he leans forward with it (degrees).");
+            feel.dropDown = Lever("Down in", feel.dropDown, 0.05f, 0.4f, "How long it takes to get down (seconds).");
+            feel.dropUp = Lever("Up in", feel.dropUp, 0.1f, 0.8f, "How long he takes to come back up (seconds).");
+            feel.bladeBluffSize = Lever("Bluff size", feel.bladeBluffSize, 0.3f, 2f, "How big the blade's bluffs are (1: a dip of 38 degrees, a flick of 32, a round of 22).");
+        }
+
+        /// <summary>The bash at the other (off) or straight ahead at the air, to see the leap and the drive by themselves (on).</summary>
+        private bool bashAtAir;
+
+        /// <summary>The three bashes' buttons (the plan's step 9a, breaking the guard).</summary>
+        private void BashButtons()
+        {
+            var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
+            string[] names = { "Small bash", "Medium bash", "Hard bash" };
+            string[] tips =
+            {
+                "A small bash, from where he stands: he sinks behind his board, drives it straight ahead and his body goes in a little with it. It shoves. Stand him within about a metre of the other.",
+                "A medium bash: he leaps in behind his board, stopping short of the other, and drives the board as he arrives. It throws the other back stumbling. From 1.5 to 2 m off.",
+                "A hard bash: he crouches deep and leaps fast all the way into the other's space, leaning well in, his board driven as it reaches him, and goes on through as the other is thrown out of it. It knocks him down or far back. From 1.5 to 2.5 m off.",
+            };
+            GUILayout.BeginHorizontal();
+            for (int kind = 0; kind < names.Length; kind++)
+            {
+                if (Press(names[kind], tips[kind]) && basher != null)
+                {
+                    if (basher.ShieldColliders.Count == 0)
+                    {
+                        message = "Shield bash: he has no shield. \"Set out\" under the shield test gives both one.";
+                    }
+                    else
+                    {
+                        bool bashed = basher.Bash(bashAtAir || Duel.Other == null ? null : Duel.Other.Clip, true, kind);
+                        message = bashed ? names[kind] + (bashAtAir ? ", at the air." : ".") : "Shield bash: he could not (in a blow, a leap or a bash, meeting a blow, or down).";
+                    }
+                }
+            }
+
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("He bashes:", "What a press of a bash goes at. The other: from where he stands, leaping as far as that bash does toward where the other is. The air: straight ahead with that bash's whole leap, whoever is there or not, to see the leap and the drive by themselves."), Styles().Text, GUILayout.Width(80f));
+            if (Press(!bashAtAir ? "[the other]" : "the other", "He bashes the other.")) bashAtAir = false;
+            if (Press(bashAtAir ? "[the air]" : "the air", "He bashes straight ahead, at nobody.")) bashAtAir = true;
+            GUILayout.EndHorizontal();
+        }
+
+        private readonly PhysicsBattler.Locomotion.BashLevers bashShown = new PhysicsBattler.Locomotion.BashLevers();
+
+        /// <summary>One bash's own settings (0: small, 1: medium, 2: hard), kept on Combat Feel.</summary>
+        private void BashSliders(PhysicsBattler.Locomotion.CombatFeel feel, int kind)
+        {
+            if (feel == null)
+            {
+                return;
+            }
+
+            var b = bashShown;
+            feel.BashInto(kind, b);
+            b.MostLeap = Lever("Leaps in", b.MostLeap, 0f, 2.5f, "The most he leaps in (metres). 0: he does not leap: he stands, sinks behind his board and his body goes in a little with it.");
+            b.EndsShort = Lever("Ends short", b.EndsShort, 0f, 1.2f, "Where his leap ends: this far short of where the other stands (metres). 0: on the other's own spot, all the way into his space. So from 2 m off, with 0.7 here, he leaps 1.3 m (if \"Leaps in\" allows that much).");
+            b.LeapSpeed = Lever("Leap speed", b.LeapSpeed, 1.5f, 8f, "How hard he leaps in: the speed of the leap (m/s).");
+            b.Arm = Lever("Arm drive", b.Arm, 0f, 1f, "How hard his shield arm drives: how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead, the board looking at the other.");
+            b.Weight = Lever("Weight", b.Weight, 0.2f, 2f, "How much of the speed the board arrives with (his body's and his arm's together) the other is shoved back at.");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("After it:", "What he does once his board has met the other. Goes through: he carries on to where his leap ends, into the space the other is thrown out of. Stops: he comes down where he met him."), Styles().Text, GUILayout.Width(80f));
+            if (Press(b.GoesThrough ? "[goes through]" : "goes through", "He carries on to where his leap ends.")) b.GoesThrough = true;
+            if (Press(!b.GoesThrough ? "[stops]" : "stops", "He comes down where he met him.")) b.GoesThrough = false;
+            GUILayout.EndHorizontal();
+            b.Crouch = Lever("Crouch", b.Crouch, 0.5f, 2.5f, "His leap: how deep he crouches before it and as his legs take the landing.");
+            b.Lean = Lever("Lean", b.Lean, 0f, 45f, "How far he leans in behind his board (degrees): as he pushes off in a leap; a standing bash leans 0.4 of it.");
+            b.Height = Lever("Height", b.Height, 0.2f, 1.5f, "His leap: how high his hips rise in the flight. Low is flat and driving.");
+            b.Prep = Lever("Wind-up", b.Prep, 0.08f, 0.5f, "His leap: how long the crouch before it takes (seconds): the bash's wind-up, which the other sees.");
+            b.Sinks = Lever("Sinks", b.Sinks, 0f, 0.3f, "Thrown standing (no leap, or the other already against him): how far his hips sink behind the board (leg lengths).");
+            b.Surge = Lever("Surge", b.Surge, 0f, 3f, "Thrown standing: how fast his body goes in with the board (m/s).");
+            feel.BashFrom(kind, b);
+            feel.BashInto(kind, PhysicsBattler.Locomotion.ClipFighter.BashKinds[kind]);
+        }
+
+        /// <summary>What a bash does to the one it meets, and whether a fighter bashes by himself.</summary>
+        private void BashDoes(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            if (feel == null)
+            {
+                return;
+            }
+
+            feel.bashStumblesFrom = Lever("Stumbles from", feel.bashStumblesFrom, 0.5f, 4f, "The shove (m/s) from which the other is thrown back stumbling, his guard open and a blow of his own dropped. Under it he is shoved back a step.");
+            feel.bashFellsFrom = Lever("Down from", feel.bashFellsFrom, 2f, 9f, "The shove (m/s) from which the other is knocked down.");
+            feel.bashThrowsAtMost = Lever("Thrown at most", feel.bashThrowsAtMost, 1f, 8f, "The most one who is knocked down is thrown back at (m/s): how hard he is bashed away. He is thrown at the shove itself up to this.");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Too near:", "What a fighter with a shield does when an enemy comes too near him (Combat Feel \"A Shield Bashes What Comes Too Near\"). Bashes (new): he drives his shield and his body into him and shoves him back out of his space. Nothing (old): as it was."), Styles().Text, GUILayout.Width(80f));
+            if (Press(feel.aShieldBashesWhatComesTooNear ? "[bashes]" : "bashes", "He bashes an enemy who comes too near.")) feel.aShieldBashesWhatComesTooNear = true;
+            if (Press(!feel.aShieldBashesWhatComesTooNear ? "[nothing (old)]" : "nothing (old)", "No bash.")) feel.aShieldBashesWhatComesTooNear = false;
+            GUILayout.EndHorizontal();
+            if (feel.aShieldBashesWhatComesTooNear)
+            {
+                feel.shieldBashWithin = Lever("Bash within", feel.shieldBashWithin, 0.6f, 1.6f, "How near an enemy must come to be bashed (metres, root to root). A blow reaches at about 1.5 m; a blow on the move steps in to about 1 m.");
+            }
+        }
+
+        /// <summary>The strikes' settings: the feint's and the fake lunge's, how a blow out of a walk is thrown, and the last blow.</summary>
+        private void StrikeSettings(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            if (feel != null && duelPosture != 0)
+            {
+                if (duelPosture != 2)
+                {
+                    feel.feintDepth = Lever("Feint goes", feel.feintDepth, 0.3f, 1f, "How far into the attack's wind-up the feint goes before it is taken back. Nearer 1 it is told apart from the real blow later.");
+                    feel.feintHold = Lever("Feint holds", feel.feintHold, 0f, 0.4f, "How long the feint is held at its furthest (seconds).");
+                    feel.feintBack = Lever("Feint back", feel.feintBack, 0.25f, 1f, "How long the feint takes to come back (seconds).");
+                    feel.feintBladeClear = Lever("Blade clear", feel.feintBladeClear, 0f, 0.4f, "A feint stops short of where its blade would be nearer his own head, neck or chest than this (metres from their middles). 0: it is held wherever the wind-up has it, as it was (on the forehand: against his head).");
+                }
+
+                if (duelPosture >= 2)
+                {
+                    feel.fakeLungeFar = Lever("Lunge goes", feel.fakeLungeFar, 0.1f, 0.6f, "How far the fake lunge carries his hips toward the other (metres).");
+                    feel.fakeLungeOut = Lever("Lunge takes", feel.fakeLungeOut, 0.15f, 0.6f, "How long the fake lunge takes to get there (seconds). With a feint on it the legs take as long as the sword does.");
+                    feel.fakeLungeBack = Lever("Lunge back", feel.fakeLungeBack, 0.25f, 1f, "How long the legs take to come back (seconds).");
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent("Walking:", "What a fake lunge does when it is asked for while he walks. On the move (new): his legs go on walking and his hips dart toward the other and sink, and come back. Stops (old): he stops and lunges on the attack's own legs."), Styles().Text, GUILayout.Width(90f));
+                    if (Press(feel.aFakeLungeIsThrownOnTheMove ? "[on the move]" : "on the move", "Thrown over the walk (Combat Feel \"A Fake Lunge Is Thrown On The Move\").")) feel.aFakeLungeIsThrownOnTheMove = true;
+                    if (Press(!feel.aFakeLungeIsThrownOnTheMove ? "[stops]" : "stops", "He stops for it, as it was.")) feel.aFakeLungeIsThrownOnTheMove = false;
+                    GUILayout.EndHorizontal();
+                    if (feel.aFakeLungeIsThrownOnTheMove)
+                    {
+                        feel.fakeLungeOnTheMove = Lever("Darts in", feel.fakeLungeOnTheMove, 0.2f, 1.2f, "On the move: how much of the lunge's distance his hips dart toward the other over the walk's legs.");
+                    }
+                }
+            }
+
+            if (feel != null)
+            {
+                // (Three ways to strike out of a walk: over it; planted, his speed carried in; stopped dead, as it was.)
+                int way = feel.attacksAreThrownOnTheMove ? 0 : feel.attacksStartFromWhereHeIs ? 1 : 2;
+                GUILayout.Label(new GUIContent("He strikes:", "How a blow asked for while he walks is thrown. On the move: the walk goes on under the blow, its legs answering it (they are checked as the blade comes round, and step in so it reaches). Planted: he plants himself and lunges, the way he was going carried into the blow and run down under its wind-up. Stopped: he stops in one step and strikes from his guard, as it was before. Standing still, or stepping slowly in his stance, a blow is always planted."), Styles().Text);
+                GUILayout.BeginHorizontal();
+                if (Press(way == 0 ? "[on the move]" : "on the move", "The walk goes on under the blow (Combat Feel \"Attacks Are Thrown On The Move\"). He must be walking: a pace of about 1 m/s or more.")) way = 0;
+                if (Press(way == 1 ? "[planted]" : "planted", "He plants himself and lunges, his speed carried into the blow (Combat Feel \"Attacks Start From Where He Is\").")) way = 1;
+                if (Press(way == 2 ? "[stopped (old)]" : "stopped (old)", "He stops dead and strikes from his guard, as it was.")) way = 2;
+                GUILayout.EndHorizontal();
+                feel.attacksAreThrownOnTheMove = way == 0;
+                feel.attacksStartFromWhereHeIs = way != 2;
+                if (way == 0)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent("Out of reach:", "What a blow asked for on the move does when the walk cannot bring it within reach. On the move (new): it is thrown on the move all the same, and misses. Plants (old): he stops, plants himself and lunges for it."), Styles().Text, GUILayout.Width(90f));
+                    if (Press(feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach ? "[on the move]" : "on the move", "Thrown on the move all the same; it misses (Combat Feel \"A Blow On The Move Stays On The Move Out Of Reach\").")) feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach = true;
+                    if (Press(!feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach ? "[plants]" : "plants", "He plants himself and lunges for it, as it was.")) feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach = false;
+                    GUILayout.EndHorizontal();
+                    feel.movingBlowChecksTheWalk = Lever("Checks walk", feel.movingBlowChecksTheWalk, 0f, 0.85f, "On the move: how much the walk is checked through the blow. 0: his legs go on as if nothing happened. 0.45: as the blade lands he goes at 55% of his pace, his steps shortening and slowing with it, and picks up again after: a catch in his stride.");
+                    feel.movingBlowStepsIn = Lever("Steps in", feel.movingBlowStepsIn, 0f, 1f, "On the move: how far the walk may carry him toward the target under the blow so the blade reaches (metres). 0: he strikes from wherever the walk has him, and what is out of reach is thrown planted.");
+                    feel.movingBlowHipsTurn = Lever("Hips turn", feel.movingBlowHipsTurn, 0f, 1f, "On the move: how far the hips go from the walk's to the blow's own; the spine twists for the rest. 0: the hips are the walk's alone. 1: the blow's alone, turned 40 to 70 degrees over legs that go on walking.");
+                    feel.movingBlowHipsGoIn = Lever("Hips go in", feel.movingBlowHipsGoIn, 0f, 0.2f, "On the move: how far the hips go toward the target as the blade lands, his weight into the blow (metres).");
+                }
+                else if (way == 1)
+                {
+                    feel.attackCarriesFor = Lever("Carries for", feel.attackCarriesFor, 0.1f, 0.8f, "Planted: how long the way he was going is carried on into the attack (seconds): his speed runs down to nothing over it. Longer is more momentum; shorter a sharp check before the blow.");
+                }
+            }
+
+            Readout(new GUIContent("Last blow: " + (Duel.BlowBegan.Length > 0 ? "asked while " + Duel.BlowBegan + "; " + Duel.BlowThrown + "." : "none yet."), "What he was doing as the blow was asked for, and how it was thrown: on the move (which blow, when it was to land, the step in the walk took for it) or planted (and why, if it was asked for on the move)."), 3);
+            Readout(new GUIContent("Its start: " + (Duel.BlowStart.Length > 0 ? Duel.BlowStart + "." : "none yet."),
+                "How smoothly the blow began, over its first 0.4 s: the biggest change of speed from one step to the next of his root and, as posed, of his hips, each foot and his sword hand. A body going 1.4 m/s that stops in one step shows as 1.4: that is the snap. And how far his held feet slid over the ground."), 5);
+            Readout(aimLast.Length > 0 ? aimLast : "", 3);
+        }
+
+        /// <summary>The shield test's settings and what was measured.</summary>
+        private void ShieldTestSettings(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            Shield.Spot = AimSpot.Chest;
+            GUILayout.Label(new GUIContent("It uncovers its chest: it lowers its shield.", "The part the target uncovers and the swordsman is to hit: its chest, by lowering its shield. (Its belly and hips sit behind the middle of the board; no clean move of the shield takes it off them, so they are left to the real postures.)"), Styles().Text);
+            if (feel != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Swordsman:", "How he takes the opening. Reads it (new): he recognises the uncovering as it starts and times his blow to land while the part is open. He has to have seen that uncovering once: the first time, he can only react. Only reacts: he starts his blow once he sees the part open."), Styles().Text, GUILayout.Width(80f));
+                if (Press(feel.theSwordsmanReadsOpenings ? "[reads it]" : "reads it", "He reads the uncovering (Combat Feel \"The Swordsman Reads Openings\").")) feel.theSwordsmanReadsOpenings = true;
+                if (Press(!feel.theSwordsmanReadsOpenings ? "[only reacts]" : "only reacts", "He starts his blow once he sees the part open.")) feel.theSwordsmanReadsOpenings = false;
+                if (Press("Forget", "He forgets every uncovering he has seen, and the pattern of the target's fakes: the next is new to him.")) { Shield.Taker.Forget(); Fakes.Forget(); }
+                GUILayout.EndHorizontal();
+                feel.openingReactionTime = Lever("Reaction", feel.openingReactionTime, 0.05f, 0.6f, "How long after he recognises the uncovering (reading) or sees the part open (reacting) he starts his blow (seconds).");
+                feel.quickestOpeningBlow = Lever("Quickest blow", feel.quickestOpeningBlow, 0.3f, 0.8f, "The least time his blow may take to land (seconds). In its own time a blow takes about 0.6 s; under about 0.4 s it lands off its mark.");
+                feel.uncoverTell = Lever("Tell lasts", feel.uncoverTell, 0f, 0.8f, "How long the target's tell lasts before its shield starts away (seconds): its blade's point is held down that long. It is what a reader goes by: with none, reading gains him nothing.");
+                feel.uncoverOpenFor = Lever("Open for", feel.uncoverOpenFor, 0.15f, 1.2f, "How long the target leaves the part open (seconds).");
+                Shield.Taker.Reads = feel.theSwordsmanReadsOpenings;
+                Shield.Taker.Reaction = feel.openingReactionTime;
+                Fakes.Taker.Reads = feel.theSwordsmanReadsOpenings;
+                Fakes.Taker.Reaction = feel.openingReactionTime;
+            }
+
+            Readout(new GUIContent("Now: " + Shield.NowText, "The part chosen as the swordsman sees it this moment, and whether he has seen this uncovering before (what he goes by when he reads it)."), 2);
+            Readout(new GUIContent("Last go: " + (Shield.Now != null ? (Shield.Now.Done ? "" : "(under way) ") + Shield.Now.Verdict : "none yet."), "The last go: when the part was open, as measured on the bodies (seconds after the uncovering began, its tell included); when the swordsman's blow started; what it met and when; and what he went by."), 4);
+            Readout(Shield.Trials.Count > 0 ? Shield.Tally() : "", 2);
+        }
+
+        /// <summary>The fakes test's settings and what was measured.</summary>
+        private void FakeTestSettings(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            Readout(new GUIContent(TargetHasShield ? "The target has its sword and shield." : "The target has no sword and shield yet: any button below sets the lab out first.", "The fakes test and the shield test need the target to stand with sword and shield, 1.5 m from the swordsman. Set out (in the shield test) does that; so does the first press of any button of either test."), 2);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Its pattern:", "Steady: always the same number of short fakes before the long one, so it can be counted. Mixed up: the number is drawn afresh each time (1 to 3), so counting tells nothing, and a reader is wrong as often as right."), Styles().Text, GUILayout.Width(80f));
+            if (Press(!Fakes.MixedUp ? "[steady]" : "steady", "Always the same number of short fakes before the long one.")) Fakes.MixedUp = false;
+            if (Press(Fakes.MixedUp ? "[mixed up]" : "mixed up", "The number of short fakes before the long one is drawn afresh each time.")) Fakes.MixedUp = true;
+            GUILayout.EndHorizontal();
+            Fakes.Shorts = Mathf.RoundToInt(Slide("Short ones", $"{Fakes.Shorts}", "How many short fakes come before each long one (the steady pattern).", Fakes.Shorts, 1f, 4f));
+            Fakes.Beat = Mathf.Round(10f * Slide("Beat", $"{Fakes.Beat:0.0} s", "How long from the start of one fake to the start of the next.", Fakes.Beat, 1.3f, 3f)) / 10f;
+            if (feel != null)
+            {
+                feel.longFakeHold = Lever("Long holds", feel.longFakeHold, 0f, 0.6f, "How long the long fake is held at its furthest (seconds). The longer, the longer its chest is open.");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("In a fake:", "What a fighter's shield does while he is in a fake of his own (Combat Feel \"A Sword Fake Takes The Shield\"). Free (as it is): a fake is the sword arm's alone; the shield stays in its cover and meets a blow as readily as ever. Committed: it does not go to meet a blow until the fake is over, so a fake costs him his cover."), Styles().Text, GUILayout.Width(80f));
+                if (Press(!feel.aSwordFakeTakesTheShield ? "[shield free]" : "shield free", "A fake is the sword arm's alone.")) feel.aSwordFakeTakesTheShield = false;
+                if (Press(feel.aSwordFakeTakesTheShield ? "[shield committed]" : "shield committed", "In a fake his shield does not go to meet a blow.")) feel.aSwordFakeTakesTheShield = true;
+                GUILayout.EndHorizontal();
+            }
+
+            Readout(new GUIContent("The pattern: " + Fakes.Learned + ".", "What the swordsman has learned of the target's pattern by watching it: nothing of it is given him."), 2);
+            Readout(new GUIContent("Last fake: " + (Fakes.Now != null ? Fakes.Now.Text(Fakes.Spot) : "none yet") + ".", "The target's last fake: when it was furthest and how long it took, and when it left its chest open, as measured on the bodies (seconds after it began)."), 3);
+            Readout(new GUIContent("Last blow: " + (Fakes.LastBlow != null ? Fakes.LastBlow.Verdict : "none yet."), "The swordsman's last blow in this test: what he threw it by, what it met, and whether the chest was open as it met."), 4);
+            Readout(Fakes.Fakes.Count > 0 ? Fakes.Tally() : "", 2);
+        }
+
+        /// <summary>The dance's settings and what was measured: each fighter's pattern, whether he reads, what he has learned, how it goes.</summary>
+        private void DanceSettings(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
             if (feel != null)
             {
                 GUILayout.BeginHorizontal();
@@ -1326,12 +1571,6 @@ namespace PhysicsBattler.Sandbox
             if (Press("Blade flick", "The point flicks aside and comes back.") && poser != null && poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeFlick)) Duel.WatchOpenings("blade flick");
             if (Press("Blade circle", "The point goes once round.") && poser != null && poser.Bluff(PhysicsBattler.Locomotion.Locomotor.Pulse.BladeCircle)) Duel.WatchOpenings("blade circle");
             // (No shield press: the shield keeps its cover and does not gesture. The playtest of 17 November.)
-            if (Press("Shield bash", "He bashes with his shield now, wherever the other is: he sinks behind the board, drives it and his body forward, and if the other is near enough (1.45 m) he is shoved back stumbling. In a fight he does it by himself when an enemy comes too near (Combat Feel \"A Shield Bashes What Comes Too Near\"). He needs a shield: \"Set out\" under the shield test gives both one.") && poser != null)
-            {
-                bool bashed = poser.Bash(Duel.Other != null ? Duel.Other.Clip : null, true);
-                message = bashed ? "Shield bash." : "Shield bash: he could not (no shield, in a blow, meeting one, or down).";
-            }
-
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label(new GUIContent("Guard:", "Where he carries his sword arm: as the recordings have it, higher, or lower. He stays in it until it is changed."), Styles().Text, GUILayout.Width(60f));
@@ -1351,21 +1590,6 @@ namespace PhysicsBattler.Sandbox
             bool walked = PhysicsBattler.Locomotion.Locomotor.WalksOn;
             string slow = walked ? "slow walk" : "stand and step";
             Duel.Pace = Mathf.Round(10f * Slide("Pace", Duel.Pace > 0.01f ? $"{Duel.Pace:0.0} m/s ({(Duel.Pace < 0.9f ? slow : Duel.Pace < 1.9f ? "walk" : Duel.Pace < 3.3f ? "brisk" : "run")})" : $"{Duel.PaceNow:0.0} m/s ({slow})", "How fast he is asked to go, in every order. All the way down: his guard's own pace, as the fight asks. Under about 1 m/s it is a slow walk (or, with \"Under a walk's pace\" set to stepped, single steps from a stand); to about 2 m/s he walks; above it he goes at a jog with his guard up (Combat Feel \"Guard Jogs\"), and faster still the jog's stride is stretched.", Duel.Pace, 0f, 3.6f)) / 10f;
-            var paceFeel = combatFeel != null ? combatFeel : (combatFeel = FindAnyObjectByType<PhysicsBattler.Locomotion.CombatFeel>());
-            if (paceFeel != null)
-            {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent("Slow orders:", "What an order to walk up, back away or circle does at a pace under a walk's (about 0.9 m/s). Walked (new): he walks on at that pace on his walk's own cycles, slowed, and to the sides on a slow walk recorded for it. Stepped (old): he stands and takes single short steps, which is meant for a small change of where he stands, not for going on (Combat Feel \"A Walk Kept Up Is Walked Not Stepped\")."), Styles().Text, GUILayout.Width(90f));
-                if (Press(paceFeel.aWalkKeptUpIsWalkedNotStepped ? "[walked]" : "walked", "He walks on at any pace.")) paceFeel.aWalkKeptUpIsWalkedNotStepped = true;
-                if (Press(!paceFeel.aWalkKeptUpIsWalkedNotStepped ? "[stepped (old)]" : "stepped (old)", "Under a walk's pace he stands and steps, as it was.")) paceFeel.aWalkKeptUpIsWalkedNotStepped = false;
-                GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent("Slow circle:", "What he circles on under his side-step's own pace (about 1.1 m/s), when slow orders are walked. Each is a recording's legs under his guard's own chest and arms. Crouched: the pack's careful crouched step, low, each foot long on the ground. Upright: the pack's slow strafe, feet near each other. Side-step: his guard's own side-step, slowed (no new recording)."), Styles().Text, GUILayout.Width(90f));
-                if (Press(paceFeel.slowSideWalk == 1 ? "[crouched]" : "crouched", "The crouched careful step.")) paceFeel.slowSideWalk = 1;
-                if (Press(paceFeel.slowSideWalk == 2 ? "[upright]" : "upright", "The upright slow strafe.")) paceFeel.slowSideWalk = 2;
-                if (Press(paceFeel.slowSideWalk == 0 ? "[side-step]" : "side-step", "His guard's own side-step, slowed.")) paceFeel.slowSideWalk = 0;
-                GUILayout.EndHorizontal();
-            }
         }
 
         /// <summary>What a press of a part asks him for: a blow, or a posture.</summary>
@@ -1451,7 +1675,7 @@ namespace PhysicsBattler.Sandbox
         private int actionsApart = -1;
         private Rect actionsRect = new Rect(-1f, 12f, ActionsWidth, 10f);
         private string actionsTip = "";
-        public const float ActionsWidth = 400f;
+        public const float ActionsWidth = 430f;
 
         /// <summary>A line of what was measured, kept so many lines tall whatever it says: the panel under it does not move as its words change.</summary>
         private void Readout(GUIContent what, int lines)
@@ -1463,34 +1687,33 @@ namespace PhysicsBattler.Sandbox
         private void Readout(string what, int lines) => Readout(new GUIContent(what), lines);
 
         /// <summary>
-        /// The actions window (the duel lab): every button that has one of the two fighters do something, in one
-        /// place, with the pace at its top. The panel keeps the settings and what was measured.
+        /// The actions window (the duel lab): everything that has one of the two fighters do something, in one place.
+        /// The pace stays at its top; under it, in a view that scrolls when it is taller than the screen, each
+        /// action's buttons and, folded under them, that action's own settings and what was measured of it.
         /// </summary>
         private void DrawActions(int id)
         {
             DuelPace();
             Readout($"Order: {Duel.Now}. {Duel.Gap:0.00} m apart, going {Duel.Speed:0.00} m/s.", 1);
-            Heading("Move him", "Each button is an order he carries out until it is done or another is given.");
-            DuelMoveButtons();
-            DuelLeapButtons();
-            Heading("Postures", "The short bursts a fighter throws between blows: a drop of the hips, the blade's bluffs, the shield's press, a change of guard. Over whatever he is doing.");
-            DuelDropButton();
-            DuelBluffButtons();
-            Heading("Strike at", "Press a part: he strikes at it from where he is, standing or in the middle of his step, and then goes on with his order. Or throws only the beginning of that blow, as the row above the body says.");
-            DuelPressIs();
-            DuelBodyMap();
-            Heading("Shield test", "The target takes its shield off its chest for a moment; the swordsman must hit it while it is open. Its settings and what was measured are in the panel.");
-            ShieldTestButtons();
-            Heading("Fakes test", "The target throws fake slashes in a pattern; the swordsman is to hit its chest while the long one leaves it open. Its settings and what was measured are in the panel.");
-            FakeTestButtons();
-            Heading("The dance", "Both fighters gesture, each in a pattern of his own, and throw their real blow after their tell; each watches the other. Their patterns, who reads, and what each has learned are in the panel.");
-            DanceButtons();
+            float room = Screen.height / Mathf.Max(0.1f, uiScale) - actionsRect.y - actionsChrome - 8f;
+            actionsView = actionsContent < 0f ? Mathf.Max(160f, room) : Mathf.Clamp(actionsContent + 4f, 60f, Mathf.Max(160f, room));
+            actionsScroll = GUILayout.BeginScrollView(actionsScroll, false, true, GUILayout.Height(actionsView));
+            GUILayout.BeginVertical();
+            ActionGroups(true);
             GUILayout.Space(6f);
-            if (Press("Put these back in the panel", "The buttons go back among the settings in the panel, as they were, and this window closes. \"Actions in a window\" at the top of the duel lab brings it back."))
+            if (Press("Put these back in the panel", "The buttons and their settings go back into the panel, as they were, and this window closes. \"Actions: in a window\" at the top of the duel lab brings it back."))
             {
                 ActionsApart = false;
             }
 
+            GUILayout.Space(4f);
+            GUILayout.EndVertical();
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                actionsContent = GUILayoutUtility.GetLastRect().height;
+            }
+
+            GUILayout.EndScrollView();
             if (Event.current != null && Event.current.type == EventType.Repaint)
             {
                 actionsTip = GUI.tooltip ?? "";
@@ -1499,81 +1722,8 @@ namespace PhysicsBattler.Sandbox
             GUI.DragWindow();
         }
 
-        private void DrawDuelStrikes(PhysicsBattler.Locomotion.CombatFeel feel)
-        {
-            Heading("Strike at", "Press a part while he is moving (give him an order above first): he strikes at it from where he is, in the middle of his step, and then goes on with his order. Pressed while he stands it is the aim test's blow.");
-            if (!ActionsApart)
-            {
-                DuelPressIs();
-            }
-
-            if (feel != null && duelPosture != 0)
-            {
-                if (duelPosture != 2)
-                {
-                    feel.feintDepth = Lever("Feint goes", feel.feintDepth, 0.3f, 1f, "How far into the attack's wind-up the feint goes before it is taken back. Nearer 1 it is told apart from the real blow later.");
-                    feel.feintHold = Lever("Feint holds", feel.feintHold, 0f, 0.4f, "How long the feint is held at its furthest (seconds).");
-                    feel.feintBack = Lever("Feint back", feel.feintBack, 0.25f, 1f, "How long the feint takes to come back (seconds).");
-                    feel.feintBladeClear = Lever("Blade clear", feel.feintBladeClear, 0f, 0.4f, "A feint stops short of where its blade would be nearer his own head, neck or chest than this (metres from their middles). 0: it is held wherever the wind-up has it, as it was (on the forehand: against his head).");
-                }
-
-                if (duelPosture >= 2)
-                {
-                    feel.fakeLungeFar = Lever("Lunge goes", feel.fakeLungeFar, 0.1f, 0.6f, "How far the fake lunge carries his hips toward the other (metres).");
-                    feel.fakeLungeOut = Lever("Lunge takes", feel.fakeLungeOut, 0.15f, 0.6f, "How long the fake lunge takes to get there (seconds). With a feint on it the legs take as long as the sword does.");
-                    feel.fakeLungeBack = Lever("Lunge back", feel.fakeLungeBack, 0.25f, 1f, "How long the legs take to come back (seconds).");
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(new GUIContent("Walking:", "What a fake lunge does when it is asked for while he walks. On the move (new): his legs go on walking and his hips dart toward the other and sink, and come back. Stops (old): he stops and lunges on the attack's own legs."), Styles().Text, GUILayout.Width(90f));
-                    if (Press(feel.aFakeLungeIsThrownOnTheMove ? "[on the move]" : "on the move", "Thrown over the walk (Combat Feel \"A Fake Lunge Is Thrown On The Move\").")) feel.aFakeLungeIsThrownOnTheMove = true;
-                    if (Press(!feel.aFakeLungeIsThrownOnTheMove ? "[stops]" : "stops", "He stops for it, as it was.")) feel.aFakeLungeIsThrownOnTheMove = false;
-                    GUILayout.EndHorizontal();
-                    if (feel.aFakeLungeIsThrownOnTheMove)
-                    {
-                        feel.fakeLungeOnTheMove = Lever("Darts in", feel.fakeLungeOnTheMove, 0.2f, 1.2f, "On the move: how much of the lunge's distance his hips dart toward the other over the walk's legs.");
-                    }
-                }
-            }
-
-            if (feel != null)
-            {
-                // (Three ways to strike out of a walk: over it; planted, his speed carried in; stopped dead, as it was.)
-                int way = feel.attacksAreThrownOnTheMove ? 0 : feel.attacksStartFromWhereHeIs ? 1 : 2;
-                GUILayout.Label(new GUIContent("He strikes:", "How a blow asked for while he walks is thrown. On the move: the walk goes on under the blow, its legs answering it (they are checked as the blade comes round, and step in so it reaches). Planted: he plants himself and lunges, the way he was going carried into the blow and run down under its wind-up. Stopped: he stops in one step and strikes from his guard, as it was before. Standing still, or stepping slowly in his stance, a blow is always planted."), Styles().Text);
-                GUILayout.BeginHorizontal();
-                if (Press(way == 0 ? "[on the move]" : "on the move", "The walk goes on under the blow (Combat Feel \"Attacks Are Thrown On The Move\"). He must be walking: a pace of about 1 m/s or more.")) way = 0;
-                if (Press(way == 1 ? "[planted]" : "planted", "He plants himself and lunges, his speed carried into the blow (Combat Feel \"Attacks Start From Where He Is\").")) way = 1;
-                if (Press(way == 2 ? "[stopped (old)]" : "stopped (old)", "He stops dead and strikes from his guard, as it was.")) way = 2;
-                GUILayout.EndHorizontal();
-                feel.attacksAreThrownOnTheMove = way == 0;
-                feel.attacksStartFromWhereHeIs = way != 2;
-                if (way == 0)
-                {
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(new GUIContent("Out of reach:", "What a blow asked for on the move does when the walk cannot bring it within reach. On the move (new): it is thrown on the move all the same, and misses. Plants (old): he stops, plants himself and lunges for it."), Styles().Text, GUILayout.Width(90f));
-                    if (Press(feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach ? "[on the move]" : "on the move", "Thrown on the move all the same; it misses (Combat Feel \"A Blow On The Move Stays On The Move Out Of Reach\").")) feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach = true;
-                    if (Press(!feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach ? "[plants]" : "plants", "He plants himself and lunges for it, as it was.")) feel.aBlowOnTheMoveStaysOnTheMoveOutOfReach = false;
-                    GUILayout.EndHorizontal();
-                    feel.movingBlowChecksTheWalk = Lever("Checks walk", feel.movingBlowChecksTheWalk, 0f, 0.85f, "On the move: how much the walk is checked through the blow. 0: his legs go on as if nothing happened. 0.45: as the blade lands he goes at 55% of his pace, his steps shortening and slowing with it, and picks up again after: a catch in his stride.");
-                    feel.movingBlowStepsIn = Lever("Steps in", feel.movingBlowStepsIn, 0f, 1f, "On the move: how far the walk may carry him toward the target under the blow so the blade reaches (metres). 0: he strikes from wherever the walk has him, and what is out of reach is thrown planted.");
-                    feel.movingBlowHipsTurn = Lever("Hips turn", feel.movingBlowHipsTurn, 0f, 1f, "On the move: how far the hips go from the walk's to the blow's own; the spine twists for the rest. 0: the hips are the walk's alone. 1: the blow's alone, turned 40 to 70 degrees over legs that go on walking.");
-                    feel.movingBlowHipsGoIn = Lever("Hips go in", feel.movingBlowHipsGoIn, 0f, 0.2f, "On the move: how far the hips go toward the target as the blade lands, his weight into the blow (metres).");
-                }
-                else if (way == 1)
-                {
-                    feel.attackCarriesFor = Lever("Carries for", feel.attackCarriesFor, 0.1f, 0.8f, "Planted: how long the way he was going is carried on into the attack (seconds): his speed runs down to nothing over it. Longer is more momentum; shorter a sharp check before the blow.");
-                }
-            }
-
-            if (!ActionsApart)
-            {
-                DuelBodyMap();
-            }
-
-            Readout(new GUIContent("Last blow: " + (Duel.BlowBegan.Length > 0 ? "asked while " + Duel.BlowBegan + "; " + Duel.BlowThrown + "." : "none yet."), "What he was doing as the blow was asked for, and how it was thrown: on the move (which blow, when it was to land, the step in the walk took for it) or planted (and why, if it was asked for on the move)."), 3);
-            Readout(new GUIContent("Its start: " + (Duel.BlowStart.Length > 0 ? Duel.BlowStart + "." : "none yet."),
-                "How smoothly the blow began, over its first 0.4 s: the biggest change of speed from one step to the next of his root and, as posed, of his hips, each foot and his sword hand. A body going 1.4 m/s that stops in one step shows as 1.4: that is the snap. And how far his held feet slid over the ground."), 5);
-            Readout(aimLast.Length > 0 ? aimLast : "", 3);
-        }
+        private Vector2 actionsScroll;
+        private float actionsContent = -1f, actionsChrome = 70f, actionsView;
 
         /// <summary>From the locomotion lab straight to the aim test, as <see cref="WatchFight"/> goes to the battle.</summary>
         public void WatchAim()
@@ -3003,6 +3153,12 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 actionsRect = GUILayout.Window(4712, actionsRect, DrawActions, "Actions", GUILayout.Width(ActionsWidth));
+                if (Event.current != null && Event.current.type == EventType.Repaint && actionsRect.height > actionsView + 20f)
+                {
+                    // (All of the window that is not the scrolling view: what the view's height leaves room for.)
+                    actionsChrome = actionsRect.height - actionsView;
+                }
+
                 actionsRect.x = Mathf.Clamp(actionsRect.x, 60f - actionsRect.width, Mathf.Max(0f, Screen.width / uiScale - 60f));
                 actionsRect.y = Mathf.Clamp(actionsRect.y, 0f, Mathf.Max(0f, Screen.height / uiScale - 30f));
             }
@@ -3065,7 +3221,7 @@ namespace PhysicsBattler.Sandbox
 
         private sealed class PanelStyles
         {
-            public GUIStyle Section, Heading, Text, Value, Toggle, Hint, Box;
+            public GUIStyle Section, Fold, Heading, Text, Value, Toggle, Hint, Box;
         }
 
         // (What the panel shows, as it was when the panel was last laid out: a press that changes it (a test begun, a
@@ -3089,6 +3245,7 @@ namespace PhysicsBattler.Sandbox
             panel = new PanelStyles
             {
                 Section = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold },
+                Fold = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft },
                 Heading = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, wordWrap = true },
                 Text = new GUIStyle(GUI.skin.label) { wordWrap = true },
                 Value = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleRight },

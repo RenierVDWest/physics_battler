@@ -66,6 +66,56 @@ namespace PhysicsBattler.Locomotion
         };
     }
 
+    /// <summary>
+    /// One of the three shield bashes (<see cref="ClipFighter.Bash"/>; the plan's step 9a): its levers. A small one is
+    /// thrown from where he stands; a medium one leaps in and stops short of the enemy; a hard one leaps fast all
+    /// the way into the enemy's space, lower and leaning further, and goes on through as he is thrown out of it.
+    /// </summary>
+    public sealed class BashLevers
+    {
+        public string Name = "small";
+
+        /// <summary>The most he leaps in (metres at a Medium's size). 0: he does not leap: he stands, sinks behind his board and his body goes in a little with it.</summary>
+        public float MostLeap;
+
+        /// <summary>Where his leap ends: this far short of where the enemy stands (metres). 0: on the enemy's own spot, all the way into his space.</summary>
+        public float EndsShort = 0.7f;
+
+        /// <summary>How hard he leaps in: the speed of the leap (m/s). The flight is as long as that takes.</summary>
+        public float LeapSpeed = 4f;
+
+        /// <summary>How hard his shield arm drives (0 to 1): how far ahead of its cover the board goes (14 to 40 cm) and how quickly (0.22 to 0.08 s). Straight ahead into the enemy, the board looking at him.</summary>
+        public float Arm = 0.5f;
+
+        /// <summary>How much of the speed the board arrives with (his body's and his arm's together) the enemy is shoved back at. Under 1.5 m/s he is shoved a step; from there thrown back stumbling; from 4.5 m/s knocked down.</summary>
+        public float Weight = 0.75f;
+
+        /// <summary>He goes on through: after his board meets the enemy he carries on to where his leap ends, into the space the enemy is thrown out of. Off: he comes down where he met him.</summary>
+        public bool GoesThrough;
+
+        /// <summary>His leap: how deep he crouches before it (1: a hand's breadth for a short leap, two for a long one).</summary>
+        public float Crouch = 1.1f;
+
+        /// <summary>His leap: how far he leans in as he pushes off (degrees). A standing bash leans 0.4 of it.</summary>
+        public float Lean = 20f;
+
+        /// <summary>His leap: how high his hips rise in the flight (1: what the flight's time needs to stay off the ground). Low is flat and driving.</summary>
+        public float Height = 0.45f;
+
+        /// <summary>His leap: how long the crouch before it takes (seconds): the bash's wind-up, which the enemy sees.</summary>
+        public float Prep = 0.18f;
+
+        /// <summary>A standing bash: how far his hips sink behind the board (leg lengths) and how fast his body goes in with it (m/s).</summary>
+        public float Sinks = 0.1f;
+        public float Surge = 0.9f;
+
+        public static BashLevers Small() => new BashLevers { Name = "small", MostLeap = 0f, EndsShort = 0.9f, LeapSpeed = 3f, Arm = 0.5f, Weight = 0.75f, Crouch = 1f, Lean = 20f, Height = 0.5f, Prep = 0.15f, Sinks = 0.1f, Surge = 0.9f };
+
+        public static BashLevers Medium() => new BashLevers { Name = "medium", MostLeap = 1.2f, EndsShort = 0.7f, LeapSpeed = 4f, Arm = 0.65f, Weight = 0.75f, Crouch = 1.1f, Lean = 20f, Height = 0.45f, Prep = 0.18f, Sinks = 0.12f, Surge = 1.2f };
+
+        public static BashLevers Hard() => new BashLevers { Name = "hard", MostLeap = 2f, EndsShort = 0.1f, LeapSpeed = 6f, Arm = 1f, Weight = 0.9f, GoesThrough = true, Crouch = 1.6f, Lean = 30f, Height = 0.4f, Prep = 0.24f, Sinks = 0.16f, Surge = 1.8f };
+    }
+
     /// <summary>The class of a blow (<see cref="AttackClasses"/>).</summary>
     public enum AttackClass
     {

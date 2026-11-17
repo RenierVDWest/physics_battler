@@ -181,9 +181,9 @@ namespace PhysicsBattler.Battle
                 // (Free roam: anywhere on the board is a spot; the steering keeps it clear of others.)
                 unit.NeedsSpot = false;
 
-                if (PhysicsBattler.Locomotion.ClipFighter.ShieldBash && unit.Clip != null && unit.IsAlive && !unit.IsDown)
+                if (PhysicsBattler.Locomotion.ClipFighter.ShieldBash && unit.Clip != null && unit.IsAlive && !unit.IsDown && !unit.TargetDummy)
                 {
-                    // (A shield bashes what comes too near: the fighters and the target dummies alike.)
+                    // (A shield bashes what comes too near. Not a target dummy: it does only what the lab has it do; the dance asks for its dancers' bashes itself.)
                     var tooNear = Nearest(units, unit, true);
                     if (tooNear != null && tooNear.Clip != null)
                     {

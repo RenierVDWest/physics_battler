@@ -4758,7 +4758,7 @@ namespace PhysicsBattler.Locomotion
         /// <paramref name="flight"/> seconds, and lands. A clip its walk plays, as it plays a made attack. False: it
         /// cannot (down, in a clip of its own, held where it is, no guard to leap from, no jump recorded).
         /// </summary>
-        public bool LeapMade(Vector3 way, float metres, float flight)
+        public bool LeapMade(Vector3 way, float metres, float flight, LeapStyle? style = null)
         {
             way.y = 0f;
             var jump = LocoLibrary.Get("jump_spot");
@@ -4768,7 +4768,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             Vector3 own = Quaternion.Euler(0f, -Loco.Facing, 0f) * way.normalized;
-            var clip = LeapMaker.Make(jump, Loco.Guard.Idle, own, metres * Size / Mathf.Max(0.1f, Loco.Leg), flight, Loco.Leg, LeapMaker.Style);
+            var clip = LeapMaker.Make(jump, Loco.Guard.Idle, own, metres * Size / Mathf.Max(0.1f, Loco.Leg), flight, Loco.Leg, style ?? LeapMaker.Style);
             if (clip == null)
             {
                 return false;
@@ -5055,7 +5055,9 @@ namespace PhysicsBattler.Locomotion
                 if (about.sqrMagnitude > 1e-8f && off > 0.01f)
                 {
                     // (Eased in as it nears its most: a hand at the end of its turn doesn't flick as what it turns to goes round.)
-                    float by = CombatFeel.ShieldWristTurn * (1f - Mathf.Exp(-off / Mathf.Max(1f, CombatFeel.ShieldWristTurn))) * weight;
+                    // (In a bash the wrist gives more: the board is to look square at who it is driven into.)
+                    float wrist = CombatFeel.ShieldWristTurn * (Bashing ? 2.5f : 1f);
+                    float by = wrist * (1f - Mathf.Exp(-off / Mathf.Max(1f, wrist))) * weight;
                     hand.rotation = Quaternion.AngleAxis(by, about.normalized) * hand.rotation;
                 }
 
@@ -5229,31 +5231,49 @@ namespace PhysicsBattler.Locomotion
         // ---- The shield's bash ---------------------------------------------------------------------------------------
 
         /// <summary>
-        /// A shield bashes what comes too near (Combat Feel "A Shield Bashes What Comes Too Near"). An enemy on his
-        /// feet within <see cref="BashWithin"/> of him and before him is driven out of his space: he sinks a little
-        /// behind the board, drives it and his body forward, and the enemy is shoved back stumbling, his guard open for
-        /// a moment and whatever blow he was in dropped. Rebuilt from the recording "Sword And Shield Block": its body
-        /// goes 26 cm forward and 12 cm down behind the board in a quarter of a second, the board's hand 2.6 m/s at
-        /// its quickest. Not while his shield is meeting a blow, in a blow of his own, or down. Off: no bash, as it was.
+        /// A shield bashes what comes too near (Combat Feel "A Shield Bashes What Comes Too Near"), and the bash itself
+        /// (the plan's step 9a: breaking the guard). There are three (<see cref="BashKinds"/>): a small one, thrown from
+        /// where he stands (he sinks behind his board and his body goes in with it); a medium one, in which he leaps in
+        /// behind his board and stops short of the enemy; and a hard one, in which he crouches deep and leaps fast all
+        /// the way into the enemy's space and goes on through. In each the board is driven straight ahead, looking at
+        /// the enemy. What a bash does is not set: it is the speed the board arrives at the enemy with (his body's and
+        /// his arm's together), times the bash's weight. Under <see cref="BashStumblesFrom"/> the enemy is shoved back
+        /// a step; from there he is thrown back stumbling, his guard open; from <see cref="BashFellsFrom"/> he goes
+        /// down. Sized at first from the recording "Sword And Shield Block".
         /// </summary>
         public static bool ShieldBash = true;
 
-        /// <summary>How near an enemy must come to be bashed, and how near he must still be as the board arrives to be shoved (metres, root to root, at a Medium's size); the speed he is shoved back with (m/s); no bash sooner than this after the last (seconds).</summary>
-        public static float BashWithin = 1.2f, BashShove = 2.6f, BashEvery = 2.5f;
-        public const float BashReaches = 1.45f;
+        /// <summary>How near an enemy must come to be bashed (metres, root to root, at a Medium's size); no bash sooner than this after the last (seconds).</summary>
+        public static float BashWithin = 1.2f, BashEvery = 2.5f;
 
-        /// <summary>The bash in time (seconds): drawn in, driven out, held, brought back. How far the board goes out ahead and up (metres at a Medium's size), how fast his body goes in behind it (m/s), how far his hips sink (leg lengths) and he leans (degrees).</summary>
-        public const float BashWind = 0.1f, BashDrive = 0.14f, BashHeld = 0.1f, BashBack = 0.3f, BashOut = 0.32f, BashUp = 0.07f, BashSurge = 0.9f, BashSinks = 0.1f, BashLeans = 9f;
+        /// <summary>The three bashes: small, medium, hard (<see cref="BashLevers"/>), each with its own levers and its own leap.</summary>
+        public static BashLevers[] BashKinds = { BashLevers.Small(), BashLevers.Medium(), BashLevers.Hard() };
 
-        private float bashFor = -1f, bashReadyAt;
+        /// <summary>The shove a fighter is thrown back stumbling from, and the one he goes down from (m/s at a Medium's size).</summary>
+        public static float BashStumblesFrom = 1.5f, BashFellsFrom = 4.5f;
+
+        /// <summary>The most a bash throws the one it knocks down back at (m/s): how hard he is bashed away.</summary>
+        public static float BashThrowsAtMost = 3f;
+
+        /// <summary>The bash in time (seconds): drawn in, held out, brought back; how far up the board goes as it is driven (metres); how near the board's middle must come to the enemy to meet him, and how far ahead of his own middle the board is carried in its cover (metres, flat).</summary>
+        public const float BashWind = 0.1f, BashHeld = 0.2f, BashBack = 0.3f, BashUp = 0.05f, BashMeets = 0.46f, BashCarried = 0.45f;
+
+        private float bashFor = -1f, bashReadyAt, bashDriveAt, bashDriveTime, bashOutFar, bashEnds, bashLeapt, bashLeaptAt;
+        private BashLevers bashKind;
         private ClipFighter bashAt;
-        private bool bashStruck, bashSurged;
+        private bool bashStruck, bashSurged, bashBoardKnown;
+        private Vector3 bashBoardWas, bashWay;
+        private readonly float[] bashBoardSpeeds = new float[16], bashSorted = new float[16];
+        private int bashBoardSpeedAt;
 
         /// <summary>He is in a bash of his shield.</summary>
         public bool Bashing => bashFor >= 0f;
 
-        /// <summary>Bashes thrown; how many of them shoved the enemy.</summary>
-        public int Bashes, BashesLanded;
+        /// <summary>Bashes thrown; how many of them met the enemy; of those, how many threw him back stumbling and how many put him down.</summary>
+        public int Bashes, BashesLanded, BashesStumbled, BashesFelled;
+
+        /// <summary>The last bash, in words: how it was thrown and what it did.</summary>
+        public string LastBash = "";
 
         /// <summary>How far out the board is now in its bash (below 0: drawn in before it; 1: all the way out).</summary>
         private float BashOutNow
@@ -5266,19 +5286,20 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 float t = bashFor;
-                if (t < BashWind)
+                if (t < bashDriveAt)
                 {
-                    return -0.25f * Mathf.Sin(Mathf.PI * 0.5f * t / BashWind);
+                    // (Drawn in, and held drawn until the drive.)
+                    return -0.25f * Mathf.Sin(Mathf.PI * 0.5f * Mathf.Clamp01(t / BashWind));
                 }
 
-                t -= BashWind;
-                if (t < BashDrive)
+                t -= bashDriveAt;
+                if (t < bashDriveTime)
                 {
-                    float u = t / BashDrive;
+                    float u = t / bashDriveTime;
                     return Mathf.Lerp(-0.25f, 1f, u * u * (3f - 2f * u));
                 }
 
-                t -= BashDrive;
+                t -= bashDriveTime;
                 if (t < BashHeld)
                 {
                     return 1f;
@@ -5289,23 +5310,65 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
-        /// <summary>He bashes now, at this enemy (null: at nobody, to be seen). False: he cannot (no shield, down, in a blow, meeting one, one just thrown).</summary>
-        public bool Bash(ClipFighter at, bool whenever = false)
+        /// <summary>
+        /// He bashes now, at this enemy (null: straight ahead, at nobody, to be seen), with one of the three bashes
+        /// (0: small, 1: medium, 2: hard). False: he cannot (no shield, down, in a blow, meeting one, one just thrown).
+        /// </summary>
+        public bool Bash(ClipFighter at, bool whenever = false, int kind = 0)
         {
             if (Bashing || Fallen || ShieldColliders.Count == 0 || Striking || interceptWeight > 0f || GuardOpen || IsUncovering || (!whenever && clock < bashReadyAt))
             {
                 return false;
             }
 
+            var levers = BashKinds[Mathf.Clamp(kind, 0, BashKinds.Length - 1)];
+            Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+            Vector3 to = at != null ? Flat(at.Loco.Position - Loco.Position) : ahead;
+            float gap = at != null ? to.magnitude : float.MaxValue;
+            bashWay = at != null && gap > 1e-3f ? to / gap : ahead;
+            float arm = Mathf.Clamp01(levers.Arm);
+            bashOutFar = Mathf.Lerp(0.14f, 0.4f, arm);
+            bashDriveTime = Mathf.Lerp(0.22f, 0.08f, arm);
+            // (How far he leaps: to where this bash ends, so far short of where the enemy stands, and no further than its most.)
+            float far = at != null ? Mathf.Clamp(gap / Size - levers.EndsShort, 0f, levers.MostLeap) : levers.MostLeap;
+            bashLeapt = 0f;
+            bashLeaptAt = 0f;
+            float speed = Mathf.Max(1f, levers.LeapSpeed);
+            if (far >= 0.15f && Loco.Current != Locomotor.Mode.OneShot)
+            {
+                float flight = Mathf.Clamp(far / speed, 0.1f, 0.7f);
+                var leap = new LeapStyle { Crouch = levers.Crouch, Height = levers.Height, Lean = levers.Lean, Arms = 0f, Body = 0.7f, PrepTime = levers.Prep, PushTime = 0.1f, LandTime = 0.12f, BackTime = 0.3f };
+                if (LeapMade(bashWay, far, flight, leap))
+                {
+                    bashLeapt = far;
+                    bashLeaptAt = far / flight;
+                    // (The board is driven so that it is all the way out as it reaches him: in the air if his leap goes
+                    // on into the enemy's space, as his feet land if it ends short of him.)
+                    float off = leap.PrepTime + leap.PushTime, lands = off + flight;
+                    float reaches = at != null ? off + Mathf.Max(0f, gap / Size - BashCarried - bashOutFar - BashMeets) / bashLeaptAt : lands;
+                    bashDriveAt = Mathf.Max(BashWind, Mathf.Min(lands, reaches) - bashDriveTime);
+                }
+            }
+
+            if (bashLeapt <= 0f)
+            {
+                // (Standing: he sinks behind the board, and his body goes in a little with it.)
+                bashDriveAt = BashWind;
+                Loco.Dip(levers.Sinks, levers.Lean * 0.4f, BashWind + 0.5f * bashDriveTime, BashHeld, BashBack);
+            }
+
+            bashKind = levers;
             bashFor = 0f;
             bashAt = at;
-            bashStruck = bashSurged = false;
+            bashStruck = bashSurged = bashBoardKnown = false;
+            bashBoardSpeedAt = 0;
+            bashEnds = Mathf.Max(bashDriveAt + bashDriveTime + BashHeld + BashBack, bashLeapt > 0f ? levers.Prep + 0.1f + bashLeapt / bashLeaptAt + 0.2f : 0f);
             bashReadyAt = clock + BashEvery;
             Bashes++;
-            Loco.Dip(BashSinks, BashLeans, BashWind + 0.5f * BashDrive, BashHeld, BashBack);
+            LastBash = string.Format(System.Globalization.CultureInfo.InvariantCulture, "a {0} bash: {1}, his board driven {2:0} cm ahead in {3:0.00} s", levers.Name, bashLeapt > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "he leapt {0:0.00} m in at {1:0.0} m/s", bashLeapt, bashLeaptAt) : "from where he stood", 100f * bashOutFar, bashDriveTime) + ": under way";
             if (Diagnostics.PlaytestTrace.Enabled)
             {
-                Diagnostics.PlaytestTrace.Note(FightUnit, "bash", at != null ? $"at {at.FightUnit.name}, {Flat(at.Loco.Position - Loco.Position).magnitude:0.00} m off" : "asked for, at nobody");
+                Diagnostics.PlaytestTrace.Note(FightUnit, "bash", (at != null ? $"at {at.FightUnit.name}, {gap:0.00} m off" : "asked for, at nobody") + "; " + LastBash);
             }
 
             return true;
@@ -5339,60 +5402,121 @@ namespace PhysicsBattler.Locomotion
             }
 
             bashFor += dt;
-            Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
             if (Fallen || GuardOpen)
             {
+                LastBash = LastBash.Replace(": under way", ": broken off (he was struck or went down)");
                 bashFor = -1f;
                 return;
             }
 
-            if (!bashSurged && bashFor >= BashWind)
+            if (bashLeapt <= 0f && !bashSurged && bashFor >= bashDriveAt)
             {
-                // (His body goes in behind the board.)
+                // (Standing: his body goes in behind the board.)
                 bashSurged = true;
-                Loco.Push(ahead * (BashSurge * Mathf.Sqrt(Size)));
+                Loco.Push(bashWay * (bashKind.Surge * Mathf.Sqrt(Size)));
             }
 
-            if (!bashStruck && bashFor >= BashWind + BashDrive)
+            // (The board meets him: its middle within reach of his middle, he before it. What it arrives with is what
+            // it does: how fast it closes on him, his body's speed and his arm's together.)
+            if (ShieldBoard(out Vector3 board, out _, out _))
             {
-                bashStruck = true;
+                // (The speed the board comes in at: the fastest it has gone toward him over the last sixth of a second, taken
+                // over several steps. Step to step the physical board jitters; and one met just as the arm is all the way
+                // out is met by the drive that got it there.)
+                Vector3 stepped = bashBoardKnown && dt > 1e-5f ? (board - bashBoardWas) / dt : Vector3.zero;
+                bashBoardWas = board;
+                bool known = bashBoardKnown;
+                bashBoardKnown = true;
+                bashBoardSpeeds[bashBoardSpeedAt++ % bashBoardSpeeds.Length] = Vector3.Dot(Flat(stepped), bashWay);
                 var enemy = bashAt;
-                if (enemy != null && !enemy.Fallen)
+                // (Not before the board is well on its way out: one that stood against him already has no speed yet to meet him with.)
+                if (!bashStruck && known && enemy != null && !enemy.Fallen && bashFor >= bashDriveAt + 0.5f * bashDriveTime && bashFor <= Mathf.Max(bashDriveAt + bashDriveTime + BashHeld + 0.1f, bashEnds - BashBack))
                 {
-                    Vector3 to = Flat(enemy.Loco.Position - Loco.Position);
-                    if (to.magnitude <= BashReaches * Size && Vector3.Angle(ahead, to) <= 70f)
+                    Vector3 to = Flat(enemy.Loco.Position - board);
+                    float off = to.magnitude;
+                    Vector3 way = off > 1e-3f ? to / off : bashWay;
+                    if (off <= BashMeets * enemy.Size && Vector3.Dot(way, bashWay) > 0.2f)
                     {
+                        bashStruck = true;
+                        // (Over the last eighth of a second: a board that was driven out a while ago and is only carried
+                        // in by his body now arrives with his body's speed, not with the drive's.)
+                        int counted = Mathf.Min(bashBoardSpeedAt, Mathf.Clamp(Mathf.RoundToInt(0.125f / Mathf.Max(1e-4f, dt)), 3, bashBoardSpeeds.Length));
+                        for (int k = 0; k < counted; k++)
+                        {
+                            bashSorted[k] = bashBoardSpeeds[(bashBoardSpeedAt - 1 - k) % bashBoardSpeeds.Length];
+                        }
+
+                        System.Array.Sort(bashSorted, 0, counted);
+                        float fastest = 0f;
+                        int top = Mathf.Min(counted <= 8 ? 3 : 5, counted);
+                        for (int k = 0; k < top; k++)
+                        {
+                            fastest += bashSorted[counted - 1 - k] / top;
+                        }
+
+                        float closing = Mathf.Max(0f, fastest - Vector3.Dot(Flat(enemy.Loco.Velocity), way));
+                        float shove = bashKind.Weight * closing * Mathf.Sqrt(Mass / Mathf.Max(1f, enemy.Mass));
                         BashesLanded++;
-                        enemy.Bashed(to.sqrMagnitude > 1e-6f ? to.normalized : ahead, BashShove * Mathf.Sqrt(Size), this);
+                        string did = enemy.Bashed(Flat(enemy.Loco.Position - Loco.Position).normalized, shove, this);
+                        BashesStumbled += did == "stumbled" ? 1 : 0;
+                        BashesFelled += did == "down" ? 1 : 0;
+                        LastBash = LastBash.Replace(": under way", string.Format(System.Globalization.CultureInfo.InvariantCulture, "; the board met him {0:0.00} s after it began, closing at {1:0.0} m/s: he was {2} at {3:0.0} m/s", bashFor, closing, did == "down" ? "knocked down, thrown back" : did == "stumbled" ? "thrown back stumbling" : "shoved back", shove));
+                        if (!bashKind.GoesThrough)
+                        {
+                            // (He comes down where he met him, not on through him. A bash that goes through carries on into
+                            // the space the enemy is thrown out of.)
+                            Loco.StopShotTravel();
+                        }
                     }
                 }
             }
 
-            if (bashFor >= BashWind + BashDrive + BashHeld + BashBack)
+            if (bashFor >= bashEnds)
             {
+                if (!bashStruck)
+                {
+                    LastBash = LastBash.Replace(": under way", bashAt != null ? ": it met nothing (he was out of its reach)" : ": at nobody");
+                }
+
                 bashFor = -1f;
                 bashAt = null;
             }
         }
 
-        /// <summary>A shield's bash met him: he is shoved back stumbling, his guard open for a moment, a blow of his own dropped.</summary>
-        public void Bashed(Vector3 way, float speed, ClipFighter by)
+        /// <summary>
+        /// A shield's bash met him, shoving him back at this speed (m/s): a step back, his guard open a moment; from
+        /// <see cref="BashStumblesFrom"/> thrown back stumbling, his guard open longer and a blow of his own dropped;
+        /// from <see cref="BashFellsFrom"/> knocked down. What it did: "shoved", "stumbled", "down".
+        /// </summary>
+        public string Bashed(Vector3 way, float speed, ClipFighter by)
         {
             if (Fallen)
             {
-                return;
+                return "down";
             }
 
             BashedTimes++;
-            guardOpenUntil = Mathf.Max(guardOpenUntil, clock + 0.4f);
-            Loco.Push(way * speed, true);
+            float size = Mathf.Sqrt(Size);
+            string did = speed >= BashFellsFrom * size ? "down" : speed >= BashStumblesFrom * size ? "stumbled" : "shoved";
+            guardOpenUntil = Mathf.Max(guardOpenUntil, clock + (did == "shoved" ? 0.3f : 0.8f));
+            if (did == "down")
+            {
+                KnockOver(way, Mathf.Min(speed, BashThrowsAtMost), $"a shield's bash, thrown back at {speed:0.0} m/s", speed);
+            }
+            else if (speed > 0.05f)
+            {
+                Loco.Push(way * speed, did == "stumbled");
+            }
+
             if (Diagnostics.PlaytestTrace.Enabled)
             {
-                Diagnostics.PlaytestTrace.Note(FightUnit, "bash", $"bashed by {(by != null ? by.FightUnit.name : "a shield")}: shoved back at {speed:0.0} m/s");
+                Diagnostics.PlaytestTrace.Note(FightUnit, "bash", $"bashed by {(by != null ? by.FightUnit.name : "a shield")}: {(did == "down" ? "knocked down" : did == "stumbled" ? "thrown back stumbling" : "shoved back")} at {speed:0.0} m/s");
             }
+
+            return did;
         }
 
-        /// <summary>How many times a shield's bash has shoved him.</summary>
+        /// <summary>How many times a shield's bash has met him.</summary>
         public int BashedTimes;
 
         private void RaiseShield(float dt, Vector3 striker)
@@ -5501,8 +5625,12 @@ namespace PhysicsBattler.Locomotion
                 Vector3 boardAt = chest + rootTurn * (CoverAt * Size);
                 if (Bashing)
                 {
-                    // (The bash: the board driven out ahead of him and a little up, the way the recording's block goes.)
-                    boardAt += rootTurn * (new Vector3(0.03f, BashUp, BashOut) * (BashOutNow * Size));
+                    // (The bash: the board brought before his middle and driven straight ahead into the enemy, looking at
+                    // him, a little up: not across like a cut.)
+                    float outNow = BashOutNow, square = Mathf.Clamp01(Mathf.Abs(outNow) * 4f);
+                    Vector3 before = new Vector3(Mathf.Lerp(CoverAt.x, 0f, square), CoverAt.y, CoverAt.z);
+                    boardAt = chest + rootTurn * ((before + new Vector3(0f, BashUp * Mathf.Max(0f, outNow), bashOutFar * outNow)) * Size);
+                    face = Vector3.Slerp(face, (bashWay + 0.05f * Vector3.up).normalized, square);
                 }
                 Vector3 boardFromHand = -face * (0.08f * Size);
                 var posedSlot = Anim.SlotWeaponL;
