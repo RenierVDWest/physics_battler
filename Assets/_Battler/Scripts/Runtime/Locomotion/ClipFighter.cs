@@ -3910,9 +3910,14 @@ namespace PhysicsBattler.Locomotion
                     continue;
                 }
 
-                if (Mathf.Abs(plan.Turn) >= 2.5f)
+                // (Where he is to end: facing his enemy, or as far round as a cut may take him. What the legs' turn and
+                // the aim's leave of that is turned after the blade has landed: back, where the aim carried him past;
+                // on, where the legs' turn was cut short of it.)
+                float ends = Mathf.Sign(degrees) * Mathf.Min(Mathf.Abs(degrees), TurnSlashes.MostRound);
+                float after = ends - scale * turn.Turn - plan.Turn;
+                if (Mathf.Abs(after) >= 2.5f)
                 {
-                    var again = upper.OnLegsOf(AttackScore.OfTurn(turn, span.x, span.y, lands, scale, -plan.Turn, driveAt));
+                    var again = upper.OnLegsOf(AttackScore.OfTurn(turn, span.x, span.y, lands, scale, after, driveAt));
                     var replanned = AttackMaker.Make(again, style, aim, hold, build: false);
                     if (replanned != null)
                     {
