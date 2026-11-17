@@ -810,7 +810,8 @@ namespace PhysicsBattler.Sandbox
         {
             // (What he may do about it once he has made it out, besides covering: strike into its wind-up, if it is a
             // slow one and he is near enough and bold enough; or duck under it, if it comes high and he is one who dodges.)
-            float sees = now + madeOutIn + d.Taker.Reaction;
+            // (One who was waiting for it, having seen the tell, knows it for the blow as it begins.)
+            float sees = now + (d.Expecting(now) ? 0f : madeOutIn) + d.Taker.Reaction;
             d.stopAt = d.dodgeAt = -1f;
             if (coming != null && (d.blow == null || d.blow.Done))
             {
