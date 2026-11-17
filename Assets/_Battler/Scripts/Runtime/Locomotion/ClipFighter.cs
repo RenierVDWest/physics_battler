@@ -5252,8 +5252,8 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The shove a fighter is thrown back stumbling from, and the one he goes down from (m/s at a Medium's size).</summary>
         public static float BashStumblesFrom = 1.5f, BashFellsFrom = 4.5f;
 
-        /// <summary>The most a bash throws the one it knocks down back at (m/s): how hard he is bashed away.</summary>
-        public static float BashThrowsAtMost = 3f;
+        /// <summary>How hard a bash throws the one it knocks down, times its shove: at 1 he goes over about where he stood; the shove times this from 9 m/s up, he is thrown off his feet and lands some metres back (the falls' own "thrown").</summary>
+        public static float BashThrows = 1.5f;
 
         /// <summary>The bash in time (seconds): drawn in, held out, brought back; how far up the board goes as it is driven (metres); how near the board's middle must come to the enemy to meet him, and how far ahead of his own middle the board is carried in its cover (metres, flat).</summary>
         public const float BashWind = 0.1f, BashHeld = 0.2f, BashBack = 0.3f, BashUp = 0.05f, BashMeets = 0.46f, BashCarried = 0.45f;
@@ -5429,8 +5429,9 @@ namespace PhysicsBattler.Locomotion
                 bashBoardKnown = true;
                 bashBoardSpeeds[bashBoardSpeedAt++ % bashBoardSpeeds.Length] = Vector3.Dot(Flat(stepped), bashWay);
                 var enemy = bashAt;
-                // (Not before the board is well on its way out: one that stood against him already has no speed yet to meet him with.)
-                if (!bashStruck && known && enemy != null && !enemy.Fallen && bashFor >= bashDriveAt + 0.5f * bashDriveTime && bashFor <= Mathf.Max(bashDriveAt + bashDriveTime + BashHeld + 0.1f, bashEnds - BashBack))
+                // (Not before the board is well on its way out, nor before he is off the ground in a leap: one that stood against
+                // him already has no speed yet to meet him with.)
+                if (!bashStruck && known && enemy != null && !enemy.Fallen && bashFor >= Mathf.Max(bashDriveAt + 0.5f * bashDriveTime, bashLeapt > 0f ? bashKind.Prep + 0.13f : 0f) && bashFor <= Mathf.Max(bashDriveAt + bashDriveTime + BashHeld + 0.1f, bashEnds - BashBack))
                 {
                     Vector3 to = Flat(enemy.Loco.Position - board);
                     float off = to.magnitude;
@@ -5454,6 +5455,9 @@ namespace PhysicsBattler.Locomotion
                             fastest += bashSorted[counted - 1 - k] / top;
                         }
 
+                        // (A board pressed against him goes no faster than he gives way: it comes in at least as fast as the
+                        // body behind it does.)
+                        fastest = Mathf.Max(fastest, Vector3.Dot(Flat(Loco.Velocity), bashWay));
                         float closing = Mathf.Max(0f, fastest - Vector3.Dot(Flat(enemy.Loco.Velocity), way));
                         float shove = bashKind.Weight * closing * Mathf.Sqrt(Mass / Mathf.Max(1f, enemy.Mass));
                         BashesLanded++;
@@ -5501,7 +5505,7 @@ namespace PhysicsBattler.Locomotion
             guardOpenUntil = Mathf.Max(guardOpenUntil, clock + (did == "shoved" ? 0.3f : 0.8f));
             if (did == "down")
             {
-                KnockOver(way, Mathf.Min(speed, BashThrowsAtMost), $"a shield's bash, thrown back at {speed:0.0} m/s", speed);
+                KnockOver(way, Mathf.Min(speed, 3f), $"a shield's bash, thrown back at {speed:0.0} m/s", speed * BashThrows);
             }
             else if (speed > 0.05f)
             {

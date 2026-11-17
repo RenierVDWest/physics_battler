@@ -1505,7 +1505,7 @@ internal static class FightReport
                     {
                         float EnvB(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
                         PhysicsBattler.Locomotion.ClipFighter.BashWithin = EnvB("FIGHT_BASHWITHIN", PhysicsBattler.Locomotion.ClipFighter.BashWithin);
-                        PhysicsBattler.Locomotion.ClipFighter.BashThrowsAtMost = EnvB("FIGHT_BASHTHROWS", PhysicsBattler.Locomotion.ClipFighter.BashThrowsAtMost);
+                        PhysicsBattler.Locomotion.ClipFighter.BashThrows = EnvB("FIGHT_BASHTHROWS", PhysicsBattler.Locomotion.ClipFighter.BashThrows);
                         string bashKindAsked = (Environment.GetEnvironmentVariable("FIGHT_BASHKIND") ?? "small").Trim().ToLowerInvariant();
                         int bashKind = bashKindAsked == "hard" ? 2 : bashKindAsked == "medium" ? 1 : 0;
                         foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_BASHAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))

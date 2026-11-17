@@ -1304,7 +1304,7 @@ namespace PhysicsBattler.Sandbox
 
             feel.bashStumblesFrom = Lever("Stumbles from", feel.bashStumblesFrom, 0.5f, 4f, "The shove (m/s) from which the other is thrown back stumbling, his guard open and a blow of his own dropped. Under it he is shoved back a step.");
             feel.bashFellsFrom = Lever("Down from", feel.bashFellsFrom, 2f, 9f, "The shove (m/s) from which the other is knocked down.");
-            feel.bashThrowsAtMost = Lever("Thrown at most", feel.bashThrowsAtMost, 1f, 8f, "The most one who is knocked down is thrown back at (m/s): how hard he is bashed away. He is thrown at the shove itself up to this.");
+            feel.bashThrows = Lever("Thrown", feel.bashThrows, 0.5f, 3f, "How hard one who is knocked down is thrown, times the shove. The shove times this is what his fall is thrown at: under 9 m/s he goes over about a metre back from where he stood; from 9 he is thrown off his feet and lands some metres back. So at 1.5 a shove of 6 m/s and more throws him.");
             GUILayout.BeginHorizontal();
             GUILayout.Label(new GUIContent("Too near:", "What a fighter with a shield does when an enemy comes too near him (Combat Feel \"A Shield Bashes What Comes Too Near\"). Bashes (new): he drives his shield and his body into him and shoves him back out of his space. Nothing (old): as it was."), Styles().Text, GUILayout.Width(80f));
             if (Press(feel.aShieldBashesWhatComesTooNear ? "[bashes]" : "bashes", "He bashes an enemy who comes too near.")) feel.aShieldBashesWhatComesTooNear = true;

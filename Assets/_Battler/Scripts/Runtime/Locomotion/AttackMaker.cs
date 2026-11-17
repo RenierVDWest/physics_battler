@@ -109,9 +109,9 @@ namespace PhysicsBattler.Locomotion
         public float Sinks = 0.1f;
         public float Surge = 0.9f;
 
-        public static BashLevers Small() => new BashLevers { Name = "small", MostLeap = 0f, EndsShort = 0.9f, LeapSpeed = 3f, Arm = 0.5f, Weight = 0.75f, Crouch = 1f, Lean = 20f, Height = 0.5f, Prep = 0.15f, Sinks = 0.1f, Surge = 0.9f };
+        public static BashLevers Small() => new BashLevers { Name = "small", MostLeap = 0f, EndsShort = 0.9f, LeapSpeed = 3f, Arm = 0.5f, Weight = 0.6f, Crouch = 1f, Lean = 20f, Height = 0.5f, Prep = 0.15f, Sinks = 0.1f, Surge = 0.9f };
 
-        public static BashLevers Medium() => new BashLevers { Name = "medium", MostLeap = 1.2f, EndsShort = 0.7f, LeapSpeed = 4f, Arm = 0.65f, Weight = 0.75f, Crouch = 1.1f, Lean = 20f, Height = 0.45f, Prep = 0.18f, Sinks = 0.12f, Surge = 1.2f };
+        public static BashLevers Medium() => new BashLevers { Name = "medium", MostLeap = 1.2f, EndsShort = 0.7f, LeapSpeed = 4f, Arm = 0.65f, Weight = 0.65f, Crouch = 1.1f, Lean = 20f, Height = 0.45f, Prep = 0.18f, Sinks = 0.12f, Surge = 1.2f };
 
         public static BashLevers Hard() => new BashLevers { Name = "hard", MostLeap = 2f, EndsShort = 0.1f, LeapSpeed = 6f, Arm = 1f, Weight = 0.9f, GoesThrough = true, Crouch = 1.6f, Lean = 30f, Height = 0.4f, Prep = 0.24f, Sinks = 0.16f, Surge = 1.8f };
     }

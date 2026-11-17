@@ -5333,3 +5333,60 @@ each): 267 blows against 288; of the blows that met something, 31% stopped by a 
 landed against 49%, 22% parried against 26%. So the fight goes on much as it did, with a few more blows
 stopped by shields and 7% fewer blows thrown. Each single fight comes out differently (the first seed's
 winner changed), as any change makes it.
+
+**The shield bash as a lab piece: three bashes, each with its own settings; every action's settings under
+its buttons (the plan's step 9a, breaking the guard).** Renier: sliders for how hard a bash is and how far
+he goes into the enemy; the legs seen doing the work of lunging him into it; the board straight ahead, not
+off to the side like a slash; able to knock the enemy into a stumble or onto the ground; small, medium and
+hard bashes, each with its own animation and sliders, the hardest going fast all the way into the enemy's
+space and bashing him hard away; and all the sliders of the actions in the Actions window, under each
+action, folded.
+
+*Three bashes* (`BashLevers`, in `AttackMaker.cs`; `ClipFighter.BashKinds`, `Bash(at, whenever, kind)`;
+Combat Feel "Small / Medium / Hard Bash ..." twelve settings each). Small: from where he stands; he sinks
+behind his board, the board is driven straight ahead and his body goes in with it. Medium: he leaps in
+behind his board (the lab's leap, made of the recorded jump, low and leaning in), stops short of the enemy,
+and drives the board as he arrives. Hard: he crouches deep, leaps fast all the way to the enemy's own spot,
+leaning well in, the board driven as it reaches him, and goes on through as the enemy is thrown out of it.
+Each has its own: how far he leaps at most, how far short of the enemy the leap ends, the leap's speed, how
+hard the arm drives, the weight it lands with, whether he goes on through, and the leap's crouch, lean,
+height and wind-up (and, thrown standing, how far he sinks and how fast his body goes in).
+
+*What a bash does is not set.* It is the speed the board arrives at the enemy with (his body's and his
+arm's together, over the last eighth of a second, and no less than the body behind it), times the bash's
+weight: under 1.5 m/s the enemy is shoved back a step; from there thrown back stumbling, his guard open
+and a blow of his own dropped; from 4.5 m/s knocked down. One knocked down is thrown at the shove times
+"Thrown" (Combat Feel "Bash Throws", 1.5): the falls' own rule then decides, under 9 m/s he goes over about
+a metre back, from 9 he is thrown off his feet. Headless, each once from a stand, a Medium on a Medium:
+
+| bash, from | his hips sink | he goes in | the board met him closing at | the enemy |
+|---|---|---|---|---|
+| small, 1.0 m | 8 cm | 0.4 m | 2.0 m/s | shoved back at 1.2 m/s, 0.55 m |
+| small, 1.3 m | 8 cm | 0.4 m | 0.9 m/s (late, on his body's speed alone) | shoved back at 0.6 m/s, 0.3 m |
+| medium, 1.6 m | 18 cm | leaps 0.9 m at 4 m/s, comes down after 0.6 m where he met him | 5.2 m/s | thrown back stumbling at 3.4 m/s, 1.8 m |
+| medium, 2.0 m | 18 cm | leaps 1.2 m, comes down after 0.95 m | 5.4 m/s | thrown back stumbling at 3.5 m/s, 1.6 m in 1.2 s |
+| hard, 1.0 m | 27 cm | leaps 0.9 m to the enemy's spot | 4.1 m/s (no room for a run) | thrown back stumbling at 3.7 m/s, 1.9 m |
+| hard, 1.6 m | 34 cm | leaps 1.5 m at 6 m/s | 7.0 m/s | knocked down at 6.3 m/s |
+| hard, 2.2 m | 34 cm | leaps 2.0 m at 6 m/s, his hips at most 5.2 m/s, to 0.2 m short of where the enemy stood | 7.8 m/s | knocked down at 7.0 m/s; thrown 4 m back ("Thrown" 1.5), 1.1 m at 1 |
+| hard, 2.8 m | 34 cm | leaps 2.0 m (its most) | 8.3 m/s | knocked down at 7.5 m/s |
+
+In every one the shield hand went along the line to the enemy (in the hard one 2.2 m along it, through
+where he stood) and no more than 13 cm across it. By himself, in a fight, a fighter throws the small one
+at an enemy who comes too near (as before); the medium and the hard are thrown in the lab only.
+
+*The Actions window* (`BattleSandbox.ActionGroups`, `ActionSettings`). Each action now has its settings and
+what was measured of it under its own buttons, folded shut behind a bar ("Moving: settings", "Leaps:
+settings", "Postures: settings", "Small / Medium / Hard bash: settings", "What a bash does", "Strikes:
+settings", "Shield test: settings", "Fakes test: settings", "The dance: settings"), opened by a press and
+kept between sessions. The pace stays at the top; the rest scrolls when it is taller than the screen. The
+panel keeps what is not an action: the shield's cover, the style, how he moves, each his own, what he
+leaves open. "Actions: in the panel" puts everything back there, as it was. In the lab: "Small bash",
+"Medium bash", "Hard bash", and "He bashes: the other / the air".
+
+Not verified: nothing of this has been seen in Unity. The window's folding and scrolling cannot be run
+headless: it compiles, and is built as the panel's own sections are. Each bash was run once per distance,
+from a stand, against a standing Medium. Found and left: about a second and a half after a hard bash he
+steps back half a metre (his guard's own spacing; the pounce, step 10, is where he should follow up
+instead). How far a felled man is thrown is a step, about a metre or about four, because the falls'
+"thrown off his feet" begins at 9 m/s; evening that out belongs to step 9c (stumbles and falls). The fight
+of six and a dance were run once each with this in and ended as they should; no bash came up in that dance.
