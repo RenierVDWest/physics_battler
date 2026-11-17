@@ -1,0 +1,354 @@
+# Physics Battler playtest 2026-11-17_08-03-23
+# time (s since Play) | physics step | who | what | details
+    4.329 |      0 | -              | session  | recording started: Unity 6000.6.7f1, physics 60 Hz, solver 12/4 iterations, time scale 1.00
+    4.329 |      0 | -              | session  | saving 448x448 pictures of the game view, 8 per second, to frames/
+    4.329 |      0 | -              | session  | performance: a row a frame in perf.csv.gz; Unity's counters recorded: Main Thread, CPU Main Thread Frame Time, CPU Render Thread Frame Time, CPU Total Frame Time, GPU Frame Time, PlayerLoop, EditorLoop, FixedUpdate.PhysicsFixedUpdate, FixedUpdate.ScriptRunBehaviourFixedUpdate, Physics.Simulate, Physics.FetchResults, Physics.Interpolation, Update.ScriptRunBehaviourUpdate, PreLateUpdate.ScriptRunBehaviourLateUpdate, BehaviourUpdate, FixedBehaviourUpdate, LateBehaviourUpdate, Camera.Render, Gfx.WaitForPresentOnGfxThread, Gfx.WaitForGfxCommandsFromMainThread, Gfx.PresentFrame, WaitForTargetFPS, GC.Collect, GC.Alloc, GC Allocated In Frame, GC Allocation In Frame Count, GC Used Memory, GC Reserved Memory, Total Used Memory, System Used Memory, Active Dynamic Bodies, Active Kinematic Bodies, Dynamic Bodies, Kinematic Bodies, Static Colliders, Active Constraints, Trigger Overlaps, Batches Count, SetPass Calls Count, Draw Calls Count, Triangles Count, Loading.ReadObject, Shader.CreateGPUProgram; frames over 40 ms noted as "perf"; fixed step 16.7 ms, at most 333 ms of physics a frame, vSync 1, target fps -1
+    4.329 |      0 | -              | input    | joint probe: drive standard (asked +35, got 35,0), X limit sign -1 (pushed +, stopped at 5,0), velocity signs -1 -1 -1 (turned -25 -25 -25°)
+    4.329 |      0 | -              | input    | at most 50 ms of physics a frame
+    4.329 |      0 | -              | input    | spawn: 2 units on the 8x8 board (the aim test: a swordsman 1.50 m from a target with open hands)
+    4.329 |      0 | -              | console  | [Articulation probe] targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    4.329 |      0 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    4.333 |      1 | Target         | spawn    | at (0.00, 1.50) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.333 |      1 | Swordsman      | spawn    | at (0.00, -1.50) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    4.333 |      1 | Target         | equip    | bare hands, scaled 1.00
+    4.333 |      1 | Swordsman      | equip    | WD_Sword and WD_Shield, scaled 1.00
+    4.333 |      1 | Target         | sight    | noticed Swordsman in clear view (3.0 m)
+    4.333 |      1 | Swordsman      | sight    | noticed Target in clear view (3.0 m)
+    4.379 |      3 | -              | perf     | 196 ms frame, 0 physics steps, garbage collected (gen0 2, gen1 2, gen2 2); ours: CaptureRender 1.0 ms (1); Unity: Physics_Simulate 32.8 ms, PlayerLoop 24.4 ms, Gfx_WaitForGfxCommandsFromMainThread 22.6 ms, GC_Collect 10.5 ms, Update_ScriptRunBehaviourUpdate 1.9 ms, BehaviourUpdate 1.9 ms, CPU_Total_Frame_Time 1.3 ms, CPU_Main_Thread_Frame_Time 0.8 ms
+    4.429 |      6 | -              | perf     | 87 ms frame, 3 physics steps; ours: UnitStep 34.5 ms (6), RecorderSample 14.3 ms (3), Sandbox 8.7 ms (3); Unity: Main_Thread 88.2 ms, Gfx_WaitForGfxCommandsFromMainThread 84.1 ms, PlayerLoop 77.3 ms, FixedUpdate_ScriptRunBehaviourFixedUpdate 67.6 ms, FixedBehaviourUpdate 67.6 ms, PreLateUpdate_ScriptRunBehaviourLateUpdate 2.6 ms, LateBehaviourUpdate 2.6 ms, Physics_Simulate 2.4 ms
+    6.150 |    110 | Swordsman      | bash     | at Target, 1.20 m off
+    6.383 |    124 | Target         | bash     | bashed by Swordsman: shoved back at 2.6 m/s
+    7.646 |    199 | -              | input    | spawn: 2 units on the 8x8 board (the aim test: a swordsman 1.50 m from a target with sword and shield)
+    7.646 |    199 | -              | input    | physical upper bodies: on, the game stepping the engine 4 times a step; a blade at most 30 m/s; articulation probe: targets a turn vector (asked 20 -35 10, turned 20.0 -35.0 10.0°, signs +1 +1 +1), stiffness for radians (5 N m on 400 gave 0.578°; for radians 0.716), force limit a torque (5 N m on a 2 N m limit turned 143°), a part built turned takes its joint's turn on its own axes (0.0° off; the other way 41.3°), the joint's own position reads as the targets do (0.0° off), a target speed is degrees a second (40 a second for 0.1 s turned 3.9°), damping for radians a second (5 N m on a damper of 5 turned 10.5° in 0.25 s; for radians a second 13.2), a speed is counted on the part's own axes (a quarter turn round Y, then 40 a second about X for 0.1 s: 3.9 0.0 0.0° on its own axes, 0.0 0.0 -3.9° on its parent's)
+    7.650 |    200 | Target #2      | spawn    | at (0.00, 0.75) facing 180°, team 1, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    7.650 |    200 | Swordsman #2   | spawn    | at (0.00, -0.75) facing 0°, team 0, Medium body, mass 80.0 kg, leg length 0.85 m, rest pelvis height 0.99 m, profile UP_Medium, style CS_Medium
+    7.650 |    200 | Swordsman      | despawn  | removed from the scene
+    7.650 |    200 | Target         | despawn  | removed from the scene
+    7.650 |    200 | Target #2      | equip    | WD_Sword and WD_Shield, scaled 1.00
+    7.650 |    200 | Swordsman #2   | equip    | WD_Sword and WD_Shield, scaled 1.00
+    7.650 |    200 | Target #2      | sight    | noticed Swordsman in clear view (1.5 m)
+    7.650 |    200 | Swordsman #2   | sight    | noticed Target in clear view (1.5 m)
+    7.696 |    202 | -              | perf     | 88 ms frame, 0 physics steps; ours: nothing over 0.5 ms; Unity: Main_Thread 87.3 ms, PlayerLoop 84.8 ms, Gfx_WaitForGfxCommandsFromMainThread 84.6 ms, GC_Collect 10.8 ms, CPU_Total_Frame_Time 8.2 ms, CPU_Main_Thread_Frame_Time 6.7 ms, CPU_Render_Thread_Frame_Time 1.9 ms, GPU_Frame_Time 0.9 ms
+   10.950 |    398 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   11.250 |    416 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 31 cm) at Swordsman #2
+   12.450 |    488 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   12.750 |    506 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   13.550 |    554 | Swordsman #2   | attack   | made_sns_forehand at its head at Target #2
+   13.850 |    572 | Target #2      | attack   | made_sns_forehand at its head at Swordsman #2
+   14.567 |    615 | Swordsman #2   | hit      | blow struck Target's HandL at 12.1 m/s: blocked by Target's shield (11 poise); impulse 35.2 N·s (70% into the part); the swing stopped; blocked by the shield
+   14.567 |    615 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 34/45, recoil, standing; its strike carried on, then driven back at 2.1 m/s
+   14.600 |    617 | Target #2      | dance    | a heavy blow at the head, his pattern's blow: met nothing
+   14.633 |    619 | -              | console  | [Upper] Swordsman: UpperArmL turning at 75 rad/s; head 8 cm, hands 16 / 45 cm off the pose; OneShot made_sns_forehand; ; put back 0, joints put 0   Spine asked 5 -13 5 (15°) is 12 -22 6, 10 rad/s, left 10° aside (held), damping 7632 most 21307; Chest asked 5 -12 5 (14°) is 9 -13 5, 1 rad/s, left 0° aside (held), damping 6034 most 19310; Head asked -12 46 -8 (48°) is -16 47 -11, 3 rad/s, left 0° aside (held), damping 264 most 367; UpperArmL asked -58 71 49 (104°) is -39 -10 90, 75 rad/s, left 42° aside, damping 2973 most 14934; ForearmL asked -64 18 0 (67°) is -59 67 -25, 73 rad/s, left 34° aside, damping 910 most 1802; HandL asked -9 -18 34 (39°) is -6 -16 34, 33 rad/s, left 0° aside, damping 241 most 771; UpperArmR asked -11 10 -1 (15°) is -29 4 2, 17 rad/s, left 16° aside, damping 2076 most 3481; ForearmR asked -106 -30 0 (110°) is -111 -32 -3, 14 rad/s, left 9° aside, damping 679 most 1212; HandR asked -19 60 39 (74°) is -14 47 49, 17 rad/s, left 16° aside, damping 234 most 396; ThighL asked -91 -5 -12 (92°) is -91 -4 -12, 3 rad/s, left 0° aside (held), damping 4715 most 2283; ShinL asked 108 0 0 (108°) is 108 0 0, 1 rad/s, left 0° aside (held), damping 747 most 899; FootL asked -29 48 11 (57°) is -28 48 11, 4 rad/s, left 0° aside (held), damping 25 most 291; ThighR asked 46 0 -13 (48°) is 46 0 -13, 3 rad/s, left 0° aside (held), damping 4715 most 2606; ShinR asked 0 0 0 (0°) is 0 0 0, 1 rad/s, left 0° aside (held), damping 747 most 895; FootR asked 1 49 20 (53°) is 0 49 20, 2 rad/s, left 0° aside (held), damping 25 most 292; 
+   14.683 |    622 | Swordsman #2   | dance    | a heavy blow at the head, his pattern's blow: met the shield (the other was still winding up his own)
+   16.624 |    738 | -              | perf     | 3766 ms frame, 1 physics steps, garbage collected (gen0 1, gen1 1, gen2 1); ours: CaptureSave 1.8 ms (1), UnitStep 0.7 ms (2); Unity: Main_Thread 5.0 ms, PlayerLoop 4.1 ms, Gfx_WaitForGfxCommandsFromMainThread 2.7 ms, GC_Alloc 0.2 ms, CPU_Total_Frame_Time 0.0 ms, Camera_Render 0.0 ms, CPU_Main_Thread_Frame_Time 0.0 ms, GC_Collect 0.0 ms
+   17.100 |    767 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   17.283 |    778 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   17.564 |    794 | -              | time     | time scale 0.86
+   17.579 |    795 | -              | time     | time scale 0.86
+   17.599 |    796 | -              | time     | time scale 0.83
+   17.609 |    797 | -              | time     | time scale 0.81
+   17.617 |    798 | -              | time     | time scale 0.79
+   17.627 |    798 | -              | time     | time scale 0.76
+   17.633 |    799 | -              | time     | time scale 0.73
+   17.642 |    799 | -              | time     | time scale 0.70
+   17.647 |    799 | -              | time     | time scale 0.68
+   17.652 |    800 | -              | time     | time scale 0.66
+   17.659 |    800 | -              | time     | time scale 0.63
+   17.664 |    800 | -              | time     | time scale 0.62
+   17.668 |    801 | -              | time     | time scale 0.60
+   17.675 |    801 | -              | time     | time scale 0.57
+   17.679 |    801 | -              | time     | time scale 0.56
+   17.684 |    802 | -              | time     | time scale 0.54
+   17.690 |    802 | -              | time     | time scale 0.52
+   17.693 |    802 | -              | time     | time scale 0.51
+   17.697 |    802 | -              | time     | time scale 0.51
+   17.705 |    803 | -              | time     | time scale 0.50
+   17.734 |    805 | -              | time     | time scale 0.50
+   17.743 |    805 | -              | time     | time scale 0.50
+   17.752 |    806 | -              | time     | time scale 0.49
+   17.760 |    806 | -              | time     | time scale 0.49
+   17.778 |    807 | -              | time     | time scale 0.49
+   17.785 |    808 | -              | time     | time scale 0.48
+   17.790 |    808 | -              | time     | time scale 0.47
+   17.794 |    808 | -              | time     | time scale 0.47
+   17.797 |    808 | -              | time     | time scale 0.46
+   17.801 |    809 | -              | time     | time scale 0.46
+   17.806 |    809 | -              | time     | time scale 0.45
+   17.809 |    809 | -              | time     | time scale 0.45
+   17.813 |    809 | -              | time     | time scale 0.45
+   17.816 |    809 | -              | time     | time scale 0.44
+   17.819 |    810 | -              | time     | time scale 0.44
+   18.600 |    857 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 38 cm) at Target #2
+   18.783 |    868 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   19.700 |    923 | Swordsman #2   | attack   | made_sns_rising at its right shoulder at Target #2
+   19.883 |    934 | Target #2      | attack   | made_sns_rising_on_forehand at its right thigh at Swordsman #2
+   20.046 |    943 | -              | perf     | 1204 ms frame, 0 physics steps; ours: nothing over 0.5 ms; Unity: Main_Thread 0.4 ms, Gfx_WaitForGfxCommandsFromMainThread 0.4 ms, CPU_Total_Frame_Time 0.0 ms, PlayerLoop 0.0 ms, CPU_Main_Thread_Frame_Time 0.0 ms, GC_Alloc 0.0 ms, GC_Collect 0.0 ms, WaitForTargetFPS 0.0 ms
+   20.126 |    948 | -              | perf     | 67 ms frame, 0 physics steps; ours: nothing over 0.5 ms; Unity: Main_Thread 5.9 ms, CPU_Total_Frame_Time 4.5 ms, PlayerLoop 4.2 ms, Gfx_WaitForGfxCommandsFromMainThread 3.8 ms, CPU_Main_Thread_Frame_Time 3.7 ms, CPU_Render_Thread_Frame_Time 2.0 ms, GPU_Frame_Time 0.8 ms, GC_Alloc 0.2 ms
+   20.400 |    964 | -              | perf     | 865 ms frame, 0 physics steps, garbage collected (gen0 1, gen1 1, gen2 1); ours: nothing over 0.5 ms; Unity: Main_Thread 0.4 ms, Gfx_WaitForGfxCommandsFromMainThread 0.4 ms, CPU_Total_Frame_Time 0.0 ms, PlayerLoop 0.0 ms, CPU_Main_Thread_Frame_Time 0.0 ms, GC_Alloc 0.0 ms, GC_Collect 0.0 ms, WaitForTargetFPS 0.0 ms
+   20.450 |    968 | Target #2      | hit      | blow struck Swordsman's ThighR at 16.0 m/s: 9.0 damage, 10 poise, flinch; impulse 31.9 N·s (15% into the part); the swing went on (70% of it left); the target
+   20.450 |    968 | Swordsman #2   | struck   | by Target on the ThighR: health 100/100, poise 35/45, flinch, standing; its strike cut short, then driven back at 2.2 m/s
+   20.467 |    969 | Swordsman #2   | dance    | a light blow at the right shoulder, his pattern's blow: met nothing
+   20.479 |    969 | -              | perf     | 88 ms frame, 0 physics steps; ours: nothing over 0.5 ms; Unity: Main_Thread 5.7 ms, CPU_Total_Frame_Time 4.8 ms, PlayerLoop 4.2 ms, CPU_Main_Thread_Frame_Time 3.6 ms, Gfx_WaitForGfxCommandsFromMainThread 3.3 ms, CPU_Render_Thread_Frame_Time 2.2 ms, GPU_Frame_Time 1.7 ms, GC_Alloc 0.2 ms
+   20.789 |    988 | -              | perf     | 1448 ms frame, 1 physics steps, garbage collected (gen0 1, gen1 1, gen2 1); ours: UnitStep 0.7 ms (2); Unity: Main_Thread 0.4 ms, Gfx_WaitForGfxCommandsFromMainThread 0.4 ms, CPU_Total_Frame_Time 0.0 ms, PlayerLoop 0.0 ms, GC_Alloc 0.0 ms, GC_Collect 0.0 ms, WaitForTargetFPS 0.0 ms, Gfx_PresentFrame 0.0 ms
+   21.117 |   1008 | Target #2      | dance    | a light blow at the right thigh, his pattern's blow: LANDED on the ThighR
+   23.167 |   1131 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   23.217 |   1134 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   24.667 |   1221 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 20 cm) at Target #2
+   24.717 |   1224 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 14 cm) at Swordsman #2
+   24.925 |   1236 | -              | time     | time scale 0.44
+   24.931 |   1236 | -              | time     | time scale 0.44
+   24.934 |   1237 | -              | time     | time scale 0.45
+   24.939 |   1237 | -              | time     | time scale 0.45
+   24.942 |   1237 | -              | time     | time scale 0.46
+   24.946 |   1237 | -              | time     | time scale 0.46
+   24.949 |   1237 | -              | time     | time scale 0.47
+   24.953 |   1238 | -              | time     | time scale 0.48
+   24.959 |   1238 | -              | time     | time scale 0.49
+   24.962 |   1238 | -              | time     | time scale 0.50
+   24.966 |   1238 | -              | time     | time scale 0.50
+   24.970 |   1239 | -              | time     | time scale 0.51
+   24.977 |   1239 | -              | time     | time scale 0.52
+   24.982 |   1239 | -              | time     | time scale 0.53
+   24.986 |   1240 | -              | time     | time scale 0.55
+   24.992 |   1240 | -              | time     | time scale 0.56
+   24.997 |   1240 | -              | time     | time scale 0.57
+   25.002 |   1241 | -              | time     | time scale 0.58
+   25.008 |   1241 | -              | time     | time scale 0.59
+   25.013 |   1241 | -              | time     | time scale 0.60
+   25.017 |   1242 | -              | time     | time scale 0.60
+   25.024 |   1242 | -              | time     | time scale 0.61
+   25.028 |   1242 | -              | time     | time scale 0.62
+   25.038 |   1243 | -              | time     | time scale 0.62
+   25.052 |   1244 | -              | time     | time scale 0.63
+   25.060 |   1244 | -              | time     | time scale 0.63
+   25.065 |   1244 | -              | time     | time scale 0.63
+   25.070 |   1245 | -              | time     | time scale 0.64
+   25.078 |   1245 | -              | time     | time scale 0.65
+   25.083 |   1246 | -              | time     | time scale 0.65
+   25.092 |   1246 | -              | time     | time scale 0.66
+   25.097 |   1246 | -              | time     | time scale 0.67
+   25.103 |   1247 | -              | time     | time scale 0.68
+   25.110 |   1247 | -              | time     | time scale 0.69
+   25.118 |   1248 | -              | time     | time scale 0.70
+   25.125 |   1248 | -              | time     | time scale 0.71
+   25.773 |   1287 | -              | time     | time scale 0.71
+   25.778 |   1287 | -              | time     | time scale 0.71
+   25.784 |   1288 | -              | time     | time scale 0.71
+   25.793 |   1288 | -              | time     | time scale 0.72
+   25.799 |   1288 | -              | time     | time scale 0.72
+   25.805 |   1289 | -              | time     | time scale 0.72
+   25.813 |   1289 | -              | time     | time scale 0.73
+   25.819 |   1290 | -              | time     | time scale 0.73
+   25.835 |   1291 | -              | time     | time scale 0.74
+   25.844 |   1291 | -              | time     | time scale 0.74
+   25.849 |   1291 | -              | time     | time scale 0.75
+   25.862 |   1292 | -              | time     | time scale 0.75
+   25.891 |   1294 | -              | time     | time scale 0.75
+   25.914 |   1295 | -              | time     | time scale 0.75
+   25.942 |   1297 | -              | time     | time scale 0.76
+   28.983 |   1480 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   29.033 |   1483 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   29.087 |   1486 | -              | time     | time scale 0.72
+   29.097 |   1486 | -              | time     | time scale 0.72
+   29.102 |   1487 | -              | time     | time scale 0.72
+   29.114 |   1487 | -              | time     | time scale 0.72
+   29.125 |   1488 | -              | time     | time scale 0.73
+   29.140 |   1489 | -              | time     | time scale 0.75
+   29.150 |   1489 | -              | time     | time scale 0.76
+   29.155 |   1490 | -              | time     | time scale 0.77
+   29.164 |   1490 | -              | time     | time scale 0.78
+   29.171 |   1491 | -              | time     | time scale 0.80
+   29.179 |   1491 | -              | time     | time scale 0.81
+   29.185 |   1492 | -              | time     | time scale 0.83
+   29.194 |   1492 | -              | time     | time scale 0.84
+   29.201 |   1493 | -              | time     | time scale 0.85
+   29.210 |   1493 | -              | time     | time scale 0.86
+   29.216 |   1493 | -              | time     | time scale 0.87
+   29.223 |   1494 | -              | time     | time scale 0.88
+   29.233 |   1494 | -              | time     | time scale 0.89
+   29.239 |   1495 | -              | time     | time scale 0.90
+   29.252 |   1496 | -              | time     | time scale 0.92
+   29.262 |   1496 | -              | time     | time scale 0.93
+   29.268 |   1497 | -              | time     | time scale 0.94
+   29.279 |   1497 | -              | time     | time scale 0.96
+   29.286 |   1498 | -              | time     | time scale 0.97
+   29.297 |   1498 | -              | time     | time scale 0.98
+   29.304 |   1499 | -              | time     | time scale 0.99
+   29.315 |   1499 | -              | time     | time scale 1.00
+   30.483 |   1570 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 17 cm) at Swordsman #2
+   30.533 |   1573 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 35 cm) at Target #2
+   34.800 |   1829 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest (short by 5 cm) at Target #2
+   34.850 |   1832 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   36.300 |   1919 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 32 cm) at Target #2
+   36.350 |   1922 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 24 cm) at Swordsman #2
+   40.617 |   2178 | Target #2      | attack   | made_posture_sns_forehand at its chest (short by 6 cm) at Swordsman #2
+   40.667 |   2181 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest (short by 9 cm) at Target #2
+   42.117 |   2268 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 35 cm) at Swordsman #2
+   42.167 |   2271 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 40 cm) at Target #2
+   46.433 |   2527 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 33 cm) at Target #2
+   46.483 |   2530 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   47.933 |   2617 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 29 cm) at Target #2
+   47.983 |   2620 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 31 cm) at Swordsman #2
+   52.250 |   2876 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   52.300 |   2879 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   53.750 |   2966 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 21 cm) at Swordsman #2
+   53.800 |   2969 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 28 cm) at Target #2
+   58.067 |   3225 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 42 cm) at Target #2
+   58.117 |   3228 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 42 cm) at Swordsman #2
+   59.567 |   3315 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 46 cm) at Target #2
+   59.617 |   3318 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   63.883 |   3574 | Target #2      | attack   | made_posture_sns_forehand at its chest (short by 1 cm) at Swordsman #2
+   63.933 |   3577 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   65.383 |   3664 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 36 cm) at Swordsman #2
+   65.433 |   3667 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 42 cm) at Target #2
+   69.717 |   3924 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest (short by 4 cm) at Target #2
+   69.750 |   3926 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   71.217 |   4014 | Swordsman #2   | attack   | made_posture_sns_forehand_on_rising at its chest at Target #2
+   71.250 |   4016 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 36 cm) at Swordsman #2
+   75.533 |   4273 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 12 cm) at Swordsman #2
+   75.583 |   4276 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   77.033 |   4363 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 21 cm) at Swordsman #2
+   77.083 |   4366 | Swordsman #2   | attack   | made_posture_sns_forehand_on_rising at its chest at Target #2
+   81.367 |   4623 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 27 cm) at Target #2
+   82.500 |   4691 | Target #2      | attack   | made_sns_rising at its chest (short by 1 cm) at Swordsman #2
+   83.067 |   4725 | Target #2      | hit      | blow struck Swordsman's HandL at 16.0 m/s: blocked by Swordsman's shield (5 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+   83.067 |   4725 | Swordsman #2   | struck   | by Target on the HandL: health 100/100, poise 40/45, flinch, standing; the shield knocked back, then driven back at 0.8 m/s
+   83.183 |   4732 | Target #2      | dance    | a light blow at the chest, thrown by what he has read: met the shield. he read it by the count (2 gestures, then a long fake) (open 1.70 to 1.80 s from then): his blow started 1.12 s after, to land at 1.74 s
+   84.267 |   4797 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 28 cm) at Target #2
+   86.267 |   4917 | Swordsman #2   | attack   | made_sns_forehand at its left shin at Target #2
+   86.900 |   4955 | Swordsman #2   | hit      | blow struck Target's HandL at 12.5 m/s: blocked by Target's shield (11 poise); impulse 36.1 N·s (70% into the part); the swing stopped; blocked by the shield
+   86.900 |   4955 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 34/45, recoil, standing; the shield knocked back, then driven back at 1.7 m/s
+   87.017 |   4962 | Swordsman #2   | dance    | a heavy blow at the left shin, his pattern's blow: met the shield (the other expected it and was covering)
+   88.117 |   5028 | Target #2      | attack   | made_posture_sns_forehand at its chest (short by 6 cm) at Swordsman #2
+   88.933 |   5077 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   89.617 |   5118 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 25 cm) at Swordsman #2
+   91.283 |   5218 | Target #2      | attack   | made_sns_rising at its left shin at Swordsman #2
+   91.850 |   5252 | Swordsman #2   | attack   | made_sns_thrust at its right upper arm at Target #2
+   92.100 |   5267 | Swordsman #2   | hit      | blow struck Target's UpperArmR at 8.4 m/s: 4.0 damage, 4 poise, recoil; impulse 13.6 N·s (80% into the part); the swing went on (70% of it left); the target
+   92.100 |   5267 | Target #2      | struck   | by Swordsman on the UpperArmR: health 100/100, poise 41/45, recoil, standing; its strike carried on, then driven back at 0.4 m/s
+   92.133 |   5269 | Target #2      | dance    | a heavy blow at the left shin, his pattern's blow: met nothing
+   92.150 |   5270 | Target #2      | arms     | a forearm or hand was inside its own body for 0.15 s, as seen (Cycle ; its strike carried on, then driven back at 0.4 m/s)
+   92.600 |   5297 | Swordsman #2   | dance    | a light blow at the right upper arm, thrown into the other's wind-up: LANDED on the UpperArmR (the other was still winding up his own)
+   94.500 |   5411 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   95.083 |   5446 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+   96.000 |   5501 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+   97.717 |   5604 | Swordsman #2   | attack   | made_sns_rising at its head at Target #2
+   98.200 |   5633 | Swordsman #2   | hit      | blow struck Target's HandL at 2.6 m/s: blocked by Target's shield (1 poise); impulse 7.4 N·s (70% into the part); the swing stopped; blocked by the shield
+   98.200 |   5633 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 44/45, recoil, standing; the shield knocked back
+   98.267 |   5637 | -              | console  | [Upper] Swordsman: ForearmL turning at 64 rad/s; head 1 cm, hands 6 / 12 cm off the pose; OneShot made_sns_rising; the shield knocked back, then driven back at 0.8 m/s; put back 0, joints put 2   Spine asked 5 -21 3 (22°) is 5 -19 1, 7 rad/s, left 0° aside (held), damping 7567 most 22256; Chest asked 4 -20 3 (21°) is 3 -20 1, 4 rad/s, left 0° aside (held), damping 5984 most 20165; Head asked 13 28 2 (31°) is 13 28 2, 6 rad/s, left 0° aside (held), damping 264 most 322; UpperArmL asked 10 35 16 (40°) is 1 -15 19, 56 rad/s, left 20° aside, damping 2973 most 15004; ForearmL asked -90 26 0 (94°) is -77 63 -4, 64 rad/s, left 7° aside, damping 910 most 3690; HandL asked -9 1 23 (25°) is 16 -2 29, 61 rad/s, left 11° aside, damping 241 most 300; UpperArmR asked -45 -7 60 (75°) is -43 -9 62, 15 rad/s, left 13° aside, damping 2076 most 3849; ForearmR asked -35 -10 0 (36°) is -40 41 -22, 25 rad/s, left 47° aside, damping 679 most 1383; HandR asked 92 -16 6 (94°) is 88 -16 4, 27 rad/s, left 0° aside, damping 234 most 435; ThighL asked -34 -5 -19 (39°) is -34 -5 -19, 1 rad/s, left 0° aside (held), damping 4715 most 1571; ShinL asked 57 0 0 (57°) is 57 0 0, 1 rad/s, left 0° aside (held), damping 747 most 776; FootL asked -39 13 4 (42°) is -39 13 4, 1 rad/s, left 0° aside (held), damping 25 most 279; ThighR asked 1 3 -17 (18°) is 1 3 -17, 1 rad/s, left 0° aside (held), damping 4715 most 1632; ShinR asked 39 0 0 (39°) is 39 0 0, 2 rad/s, left 0° aside (held), damping 747 most 813; FootR asked -26 6 8 (28°) is -26 6 8, 1 rad/s, left 0° aside (held), damping 25 most 279; 
+   98.317 |   5640 | Swordsman #2   | dance    | a light blow at the head, his pattern's blow: met the shield (the other expected it and was covering)
+   99.433 |   5707 | Target #2      | attack   | made_posture_sns_forehand at its chest (short by 16 cm) at Swordsman #2
+  101.367 |   5823 | Target #2      | attack   | made_sns_forehand at its head at Swordsman #2
+  102.350 |   5882 | -              | console  | [Upper] Target: UpperArmL turning at 82 rad/s; head 1 cm, hands 6 / 25 cm off the pose; OneShot made_sns_forehand; the shield knocked back; put back 0, joints put 2   Spine asked 5 -45 16 (48°) is 4 -48 14, 2 rad/s, left 0° aside (held), damping 7567 most 17512; Chest asked 10 -39 19 (45°) is 7 -39 19, 2 rad/s, left 0° aside (held), damping 5984 most 16670; Head asked -8 61 -10 (62°) is -5 61 -8, 3 rad/s, left 0° aside (held), damping 264 most 193; UpperArmL asked 46 91 39 (109°) is 47 13 34, 82 rad/s, left 20° aside (held), damping 2973 most 14623; ForearmL asked -66 19 0 (69°) is -74 72 -23, 59 rad/s, left 20° aside (held), damping 910 most 2286; HandL asked -31 -19 18 (41°) is -33 -14 17, 17 rad/s, left 0° aside (held), damping 241 most 411; UpperArmR asked -38 -84 -8 (93°) is -42 -85 -9, 11 rad/s, left 2° aside (held), damping 2076 most 3214; ForearmR asked -48 -14 0 (50°) is -51 -10 -3, 3 rad/s, left 6° aside (held), damping 679 most 1917; HandR asked 50 65 -58 (101°) is 47 67 -57, 4 rad/s, left 5° aside (held), damping 234 most 754; ThighL asked -57 26 -8 (64°) is -58 24 -7, 1 rad/s, left 0° aside (held), damping 4715 most 1297; ShinL asked 93 0 0 (93°) is 94 -1 0, 0 rad/s, left 0° aside (held), damping 747 most 695; FootL asked -58 21 -8 (62°) is -58 20 -9, 1 rad/s, left 0° aside (held), damping 25 most 275; ThighR asked -96 15 18 (98°) is -95 14 19, 8 rad/s, left 0° aside (held), damping 4715 most 2562; ShinR asked 97 0 0 (97°) is 97 0 0, 2 rad/s, left 0° aside (held), damping 747 most 743; FootR asked -44 26 -11 (52°) is -44 26 -10, 8 rad/s, left 0° aside (held), damping 25 most 281; 
+  102.367 |   5883 | Target #2      | arms     | a forearm or hand was inside its own body for 0.25 s, as seen (OneShot made_sns_forehand; the shield knocked back)
+  102.700 |   5903 | Target #2      | arms     | a forearm or hand was inside its own body for 0.17 s, as seen (OneShot made_sns_forehand; the shield knocked back)
+  103.083 |   5926 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  103.350 |   5942 | Target #2      | dance    | a heavy blow at the head, his pattern's blow: met nothing
+  104.583 |   6016 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  106.417 |   6126 | Swordsman #2   | attack   | made_sns_rising at its right shoulder at Target #2
+  107.267 |   6177 | Swordsman #2   | arms     | a forearm or hand was inside its own body for 0.35 s, as seen (OneShot made_sns_rising; the shield knocked back, then driven back at 0.8 m/s)
+  107.300 |   6179 | Swordsman #2   | hit      | blow struck Target's HandL at 11.9 m/s: blocked by Target's shield (10 poise); impulse 34.5 N·s (70% into the part); the swing stopped; blocked by the shield
+  107.300 |   6179 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 35/45, recoil, standing; the shield knocked back, then driven back at 2.1 m/s
+  107.367 |   6183 | -              | console  | [Upper] Swordsman: HandL turning at 64 rad/s; head 2 cm, hands 2 / 10 cm off the pose; OneShot made_sns_rising; the shield knocked back, then driven back at 0.8 m/s; put back 0, joints put 2   Spine asked 3 -12 2 (12°) is 0 -9 0, 3 rad/s, left 0° aside (held), damping 7567 most 17092; Chest asked 1 -12 2 (12°) is 2 -11 0, 3 rad/s, left 0° aside (held), damping 5984 most 15697; Head asked 18 27 0 (33°) is 18 27 1, 4 rad/s, left 0° aside (held), damping 264 most 285; UpperArmL asked 10 28 11 (32°) is 6 21 4, 47 rad/s, left 9° aside, damping 2973 most 13119; ForearmL asked -88 25 0 (91°) is -60 35 4, 52 rad/s, left 8° aside, damping 910 most 3702; HandL asked -13 0 23 (27°) is 6 12 21, 64 rad/s, left 4° aside, damping 241 most 291; UpperArmR asked -42 -7 64 (77°) is -35 -12 67, 9 rad/s, left 10° aside, damping 2076 most 1799; ForearmR asked -2 0 1 (2°) is -4 -18 0, 5 rad/s, left 18° aside, damping 679 most 613; HandR asked 16 -41 4 (44°) is 7 -42 0, 8 rad/s, left 10° aside, damping 234 most 269; ThighL asked 5 3 -14 (15°) is 5 2 -13, 1 rad/s, left 0° aside (held), damping 4715 most 1509; ShinL asked 19 0 0 (19°) is 20 0 0, 1 rad/s, left 0° aside (held), damping 747 most 754; FootL asked -16 6 -1 (18°) is -17 6 -2, 1 rad/s, left 0° aside (held), damping 25 most 279; ThighR asked 4 9 -12 (16°) is 5 9 -12, 1 rad/s, left 0° aside (held), damping 4715 most 1560; ShinR asked 15 0 0 (15°) is 15 0 0, 3 rad/s, left 0° aside (held), damping 747 most 838; FootR asked 19 5 0 (19°) is 19 5 0, 1 rad/s, left 0° aside (held), damping 25 most 279; 
+  107.417 |   6186 | Swordsman #2   | dance    | a heavy blow at the right shoulder, his pattern's blow: met the shield (the other expected it and was covering)
+  108.517 |   6252 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 25 cm) at Swordsman #2
+  109.317 |   6300 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  110.017 |   6342 | Target #2      | attack   | made_posture_sns_forehand at its chest (short by 2 cm) at Swordsman #2
+  110.817 |   6390 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest (short by 1 cm) at Target #2
+  111.917 |   6456 | Swordsman #2   | attack   | made_sns_forehand at its left shin at Target #2
+  113.033 |   6523 | Swordsman #2   | hit      | blow struck Target's ThighL at 8.9 m/s: 13.3 damage, 14 poise, recoil; impulse 17.7 N·s (15% into the part); the swing went on (70% of it left); the target
+  113.033 |   6523 | Target #2      | struck   | by Swordsman on the ThighL: health 100/100, poise 31/45, recoil, standing; thrown at 7.5 m/s, faster than its legs can catch (4.4): down
+  113.433 |   6547 | Swordsman #2   | arms     | a forearm or hand was inside its own body for 0.25 s, as seen (OneShot made_sns_forehand; the shield knocked back, then driven back at 0.8 m/s)
+  114.183 |   6592 | Swordsman #2   | dance    | a heavy blow at the left shin, his pattern's blow: LANDED on the ThighL (the other expected it and was covering)
+  114.300 |   6599 | Target #2      | fall     | fell to its right: first down a knee at 0.20 s; a hand 0.40 s, a knee 0.20 s, the hips 0.50 s at 2.6 m/s, the trunk 0.52 s, the head never (lowest 14 cm up); landed on a hand or knee first; slid 20 cm; its hips turned over 153 degrees in all and rose again 8 cm; its hands went 9 cm over the ground and left it again 0 times; an arm in its own body 0.00 s, its weapon 0.10 s (its end at most 12.6 m/s, lowest 53 cm over the ground), its shield 0.00 s (at most 3 cm in, lowest 0 cm over the ground); measured 1.3 s (thrown at 7.5 m/s, faster than its legs can catch (4.4): down) [in the one body, muscle 0.50]
+  115.433 |   6667 | -              | console  | [Upper] Target: HandL turning at 63 rad/s; head 1 cm, hands 1 / 3 cm off the pose; Idle ; getting up from its front; put back 0, joints put 2   Spine asked 13 0 0 (13°) is 12 0 0, 2 rad/s, left 0° aside (held), damping 7632 most 2357; Chest asked 11 0 0 (11°) is 12 0 0, 4 rad/s, left 0° aside (held), damping 6034 most 2101; Head asked -29 0 0 (29°) is -26 0 0, 4 rad/s, left 0° aside (held), damping 264 most 177; UpperArmL asked 310 -19 20 (312°) is 309 -5 15, 5 rad/s, left 0° aside (held), damping 2973 most 1776; ForearmL asked -108 31 0 (113°) is -111 42 -14, 16 rad/s, left 6° aside (held), damping 910 most 1464; HandL asked 14 -35 3 (38°) is 10 -32 3, 63 rad/s, left 0° aside (held), damping 241 most 1156; UpperArmR asked -53 23 -11 (59°) is -54 23 -11, 6 rad/s, left 0° aside (held), damping 2076 most 744; ForearmR asked -19 -5 -26 (33°) is -18 -4 -26, 4 rad/s, left 0° aside (held), damping 679 most 474; HandR asked -45 32 -2 (55°) is -44 31 -2, 4 rad/s, left 0° aside (held), damping 234 most 176; ThighL asked -129 -19 18 (132°) is -130 -19 18, 2 rad/s, left 0° aside (held), damping 4715 most 1125; ShinL asked 71 0 0 (71°) is 71 0 0, 1 rad/s, left 0° aside (held), damping 747 most 693; FootL asked 23 9 -10 (26°) is 23 9 -10, 1 rad/s, left 0° aside (held), damping 25 most 273; ThighR asked -38 3 8 (39°) is -38 3 8, 3 rad/s, left 0° aside (held), damping 4715 most 1128; ShinR asked 104 0 0 (104°) is 104 0 0, 0 rad/s, left 0° aside (held), damping 747 most 667; FootR asked -22 0 0 (22°) is -22 0 0, 2 rad/s, left 0° aside (held), damping 25 most 273; 
+  116.267 |   6717 | Target #2      | sight    | lost track of Swordsman
+  116.600 |   6737 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  116.683 |   6742 | Target #2      | sight    | noticed Swordsman at the edge of its view (1.7 m)
+  116.983 |   6760 | Target #2      | getup    | got up from its front in 2.08 s, turned -35 degrees toward what it fights; the fastest a part moved early 3.6 m/s (its ForearmL at 0.28 s); a planted hand or foot at most 6 cm from where its pose wanted it (its HandR at 1.05 s), and they slid 6 cm in all; an arm in its own body at most 0 cm, more than 2 cm in for 0.00 s; what it holds at most 0 cm, for 0.00 s; a thigh turned on the hips at most 13.1 rad/s (its ThighL at 0.87 s) and was at most 46 degrees past the hip's range (its ThighL at 0.93 s); an ankle at the nearest 0.36 of a leg's length from its hip (its FootL at 0.87 s); as seen (the physical body): an arm in its body for 0.00 s, what it holds for 0.00 s
+  118.100 |   6827 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  119.200 |   6893 | Swordsman #2   | attack   | made_sns_forehand at its head at Target #2
+  119.717 |   6924 | -              | console  | [Upper] Swordsman: HandL turning at 77 rad/s; head 1 cm, hands 1 / 12 cm off the pose; OneShot made_sns_forehand; the shield knocked back, then driven back at 0.8 m/s; put back 0, joints put 2   Spine asked -2 15 1 (15°) is -2 10 1, 3 rad/s, left 0° aside (held), damping 7567 most 15609; Chest asked -5 14 -1 (15°) is -6 13 -1, 1 rad/s, left 0° aside (held), damping 5984 most 15418; Head asked -10 -51 14 (54°) is -10 -50 15, 2 rad/s, left 0° aside (held), damping 264 most 173; UpperArmL asked 51 27 -34 (67°) is 54 0 -47, 57 rad/s, left 0° aside, damping 2973 most 15023; ForearmL asked -107 46 10 (117°) is -108 46 8, 19 rad/s, left 0° aside, damping 910 most 1705; HandL asked -39 -99 -20 (108°) is -79 -97 -62, 77 rad/s, left 35° aside, damping 241 most 439; UpperArmR asked -75 33 81 (115°) is -78 35 80, 3 rad/s, left 0° aside (held), damping 2076 most 2053; ForearmR asked -74 -21 0 (77°) is -74 -23 2, 3 rad/s, left 0° aside (held), damping 679 most 1316; HandR asked -21 10 6 (24°) is -21 10 6, 6 rad/s, left 0° aside (held), damping 234 most 468; ThighL asked -55 -46 -33 (79°) is -55 -46 -33, 1 rad/s, left 0° aside (held), damping 4715 most 1153; ShinL asked 54 0 0 (54°) is 54 0 0, 3 rad/s, left 0° aside (held), damping 747 most 674; FootL asked 0 -2 23 (23°) is 0 -2 23, 4 rad/s, left 0° aside (held), damping 25 most 273; ThighR asked -38 6 43 (57°) is -38 6 42, 2 rad/s, left 0° aside (held), damping 4715 most 1105; ShinR asked 49 0 0 (49°) is 49 0 0, 1 rad/s, left 0° aside (held), damping 747 most 665; FootR asked -11 9 -4 (14°) is -10 9 -4, 2 rad/s, left 0° aside (held), damping 25 most 273; 
+  120.233 |   6955 | Swordsman #2   | hit      | blow struck Target's HandL at 16.0 m/s: blocked by Target's shield (14 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+  120.233 |   6955 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 31/45, flinch, standing; the shield knocked back, then driven back at 2.2 m/s
+  120.367 |   6963 | Swordsman #2   | dance    | a heavy blow at the head, his pattern's blow: met the shield (the other expected it and was covering)
+  122.016 |   7061 | -              | perf     | 9158 ms frame, 1 physics steps; ours: UnitStep 0.5 ms (2); Unity: Main_Thread 0.5 ms, Gfx_WaitForGfxCommandsFromMainThread 0.5 ms, CPU_Total_Frame_Time 0.0 ms, PlayerLoop 0.0 ms, CPU_Main_Thread_Frame_Time 0.0 ms, GC_Alloc 0.0 ms, GC_Collect 0.0 ms, WaitForTargetFPS 0.0 ms
+  122.783 |   7108 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  122.933 |   7117 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+  124.283 |   7198 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  124.433 |   7207 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+  125.383 |   7264 | Swordsman #2   | attack   | made_sns_rising at its right shoulder at Target #2
+  126.000 |   7301 | Target #2      | attack   | made_sns_thrust at its right upper arm at Swordsman #2
+  126.133 |   7309 | -              | console  | [Upper] Target: ForearmL turning at 61 rad/s; head 1 cm, hands 12 / 8 cm off the pose; OneShot made_sns_thrust; the shield knocked back, then driven back at 2.2 m/s; put back 0, joints put 2   Spine asked 8 14 0 (16°) is 10 18 1, 6 rad/s, left 0° aside (held), damping 7567 most 29825; Chest asked 4 13 0 (14°) is 5 14 1, 3 rad/s, left 0° aside (held), damping 5984 most 28549; Head asked -32 -10 -10 (35°) is -52 -8 -15, 10 rad/s, left 15° aside (held), damping 264 most 369; UpperArmL asked -113 23 -41 (122°) is 220 -55 53, 56 rad/s, left 19° aside (held), damping 2973 most 25961; ForearmL asked -80 23 0 (83°) is -87 28 0, 61 rad/s, left 0° aside (held), damping 910 most 3945; HandL asked -39 -8 7 (40°) is -65 -5 5, 27 rad/s, left 18° aside (held), damping 241 most 266; UpperArmR asked -30 32 32 (55°) is -33 41 31, 11 rad/s, left 0° aside (held), damping 2076 most 3395; ForearmR asked -49 -14 0 (51°) is -46 -5 -3, 10 rad/s, left 0° aside (held), damping 679 most 1628; HandR asked -22 -13 -9 (27°) is -18 -14 -8, 12 rad/s, left 0° aside (held), damping 234 most 627; ThighL asked -73 -5 4 (73°) is -71 -5 4, 5 rad/s, left 0° aside (held), damping 4715 most 2182; ShinL asked 101 0 0 (101°) is 101 0 0, 2 rad/s, left 0° aside (held), damping 747 most 824; FootL asked -6 4 -1 (8°) is -6 4 -1, 3 rad/s, left 0° aside (held), damping 25 most 286; ThighR asked -44 10 11 (46°) is -45 10 11, 2 rad/s, left 0° aside (held), damping 4715 most 1845; ShinR asked 81 0 0 (81°) is 81 0 0, 4 rad/s, left 0° aside (held), damping 747 most 813; FootR asked -31 23 -18 (43°) is -31 24 -18, 2 rad/s, left 0° aside (held), damping 25 most 285; 
+  126.267 |   7317 | Target #2      | hit      | blow struck Swordsman's HandL at 8.9 m/s: blocked by Swordsman's shield (3 poise); impulse 25.8 N·s (70% into the part); the swing stopped; blocked by the shield
+  126.267 |   7317 | Swordsman #2   | struck   | by Target on the HandL: health 100/100, poise 42/45, recoil, standing; its strike carried on, then driven back at 0.6 m/s
+  126.283 |   7318 | Swordsman #2   | dance    | a heavy blow at the right shoulder, his pattern's blow: met nothing
+  126.333 |   7321 | -              | console  | [Upper] Target: UpperArmL turning at 84 rad/s; head 7 cm, hands 11 / 54 cm off the pose; OneShot made_sns_thrust; the shield knocked back, then driven back at 2.2 m/s; put back 0, joints put 2   Spine asked 9 -8 1 (12°) is 16 -10 1, 6 rad/s, left 7° aside (held), damping 7567 most 19552; Chest asked 7 -6 1 (9°) is 8 -6 3, 3 rad/s, left 0° aside (held), damping 5984 most 18022; Head asked 2 24 -3 (24°) is -7 26 -6, 2 rad/s, left 8° aside (held), damping 264 most 319; UpperArmL asked -91 84 15 (125°) is 144 35 -180, 84 rad/s, left 50° aside, damping 2973 most 15338; ForearmL asked -43 12 0 (45°) is -34 78 -20, 48 rad/s, left 39° aside, damping 910 most 3602; HandL asked -19 -25 15 (35°) is -33 -13 13, 11 rad/s, left 10° aside, damping 241 most 727; UpperArmR asked -78 18 68 (105°) is -78 21 67, 10 rad/s, left 0° aside, damping 2076 most 2122; ForearmR asked -2 -1 0 (2°) is 7 29 7, 15 rad/s, left 23° aside, damping 679 most 805; HandR asked 27 52 -41 (72°) is 29 55 -41, 23 rad/s, left 0° aside, damping 234 most 441; ThighL asked -92 13 10 (93°) is -92 12 11, 2 rad/s, left 0° aside (held), damping 4715 most 2285; ShinL asked 100 0 0 (100°) is 101 0 0, 1 rad/s, left 0° aside (held), damping 747 most 871; FootL asked 1 10 4 (11°) is 1 10 3, 3 rad/s, left 0° aside (held), damping 25 most 289; ThighR asked -36 13 10 (39°) is -36 13 10, 3 rad/s, left 0° aside (held), damping 4715 most 2540; ShinR asked 99 0 0 (99°) is 99 0 0, 0 rad/s, left 0° aside (held), damping 747 most 868; FootR asked -52 10 -25 (58°) is -52 10 -25, 3 rad/s, left 0° aside (held), damping 25 most 292; 
+  126.383 |   7324 | Target #2      | dance    | a light blow at the right upper arm, thrown into the other's wind-up: met the shield (the other was still winding up his own)
+  128.617 |   7458 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 23 cm) at Swordsman #2
+  129.233 |   7495 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  130.117 |   7548 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 29 cm) at Swordsman #2
+  130.733 |   7585 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  131.850 |   7652 | Swordsman #2   | attack   | made_sns_forehand at its left shin at Target #2
+  132.350 |   7682 | Swordsman #2   | hit      | blow struck Target's HandL at 12.9 m/s: blocked by Target's shield (4 poise); impulse 37.3 N·s (70% into the part); the swing stopped; blocked by the shield
+  132.350 |   7682 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 41/45, recoil, standing; the shield knocked back, then driven back at 0.9 m/s
+  132.467 |   7689 | Swordsman #2   | dance    | a light blow at the left shin, his pattern's blow: met the shield (the other expected it and was covering)
+  132.696 |   7702 | -              | perf     | 1188 ms frame, 0 physics steps; ours: nothing over 0.5 ms; Unity: Main_Thread 0.4 ms, Gfx_WaitForGfxCommandsFromMainThread 0.3 ms, CPU_Total_Frame_Time 0.0 ms, PlayerLoop 0.0 ms, CPU_Main_Thread_Frame_Time 0.0 ms, GC_Alloc 0.0 ms, GC_Collect 0.0 ms, WaitForTargetFPS 0.0 ms
+  134.367 |   7803 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  135.067 |   7845 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+  135.867 |   7893 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  137.383 |   7984 | Swordsman #2   | attack   | made_sns_thrust at its head at Target #2
+  137.583 |   7996 | Swordsman #2   | hit      | blow struck Target's HandL at 6.4 m/s: blocked by Target's shield (2 poise); impulse 18.5 N·s (70% into the part); the swing stopped; blocked by the shield
+  137.583 |   7996 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 43/45, recoil, standing; the shield knocked back, then driven back at 0.4 m/s
+  137.700 |   8003 | Swordsman #2   | dance    | a light blow at the head, his pattern's blow: met the shield (the other expected it and was covering)
+  139.100 |   8087 | Target #2      | attack   | made_posture_sns_forehand at its chest at Swordsman #2
+  139.600 |   8117 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  140.267 |   8157 | Target #2      | attack   | made_sns_rising at its right shoulder at Swordsman #2
+  140.517 |   8172 | -              | console  | [Upper] Target: ThighR turning at 76 rad/s; head 3 cm, hands 4 / 9 cm off the pose; OneShot made_sns_rising; the shield knocked back, then driven back at 0.4 m/s; put back 0, joints put 3   Spine asked 4 -5 2 (6°) is 3 -4 2, 4 rad/s, left 0° aside (held), damping 7567 most 3999; Chest asked 2 -5 0 (5°) is 1 -5 0, 4 rad/s, left 0° aside (held), damping 5984 most 3428; Head asked -7 52 5 (52°) is -7 52 5, 13 rad/s, left 0° aside (held), damping 264 most 246; UpperArmL asked 34 -14 0 (37°) is -225 216 35, 3 rad/s, left 14° aside, damping 2973 most 2255; ForearmL asked -105 30 0 (109°) is -105 25 7, 7 rad/s, left 2° aside, damping 910 most 611; HandL asked -32 -30 -4 (44°) is -31 -30 -5, 6 rad/s, left 1° aside, damping 241 most 204; UpperArmR asked -67 -49 0 (83°) is -68 -43 -4, 8 rad/s, left 0° aside (held), damping 2076 most 2484; ForearmR asked -38 -11 0 (39°) is -37 -9 0, 9 rad/s, left 0° aside (held), damping 679 most 1457; HandR asked -30 -4 -5 (31°) is -28 -5 -4, 6 rad/s, left 0° aside (held), damping 234 most 508; ThighL asked -38 19 6 (43°) is -38 18 7, 7 rad/s, left 0° aside (held), damping 4715 most 1484; ShinL asked 64 0 0 (64°) is 64 0 0, 2 rad/s, left 0° aside (held), damping 747 most 759; FootL asked -34 -35 20 (53°) is -34 -35 20, 7 rad/s, left 0° aside (held), damping 25 most 278; ThighR asked -53 -79 35 (101°) is -52 -78 34, 76 rad/s, left 0° aside (held), damping 4715 most 12713; ShinR asked 12 0 0 (12°) is 14 1 5, 33 rad/s, left 0° aside (held), damping 747 most 1231; FootR asked 42 17 -35 (57°) is 43 19 -32, 1 rad/s, left 0° aside (held), damping 25 most 277; 
+  140.833 |   8191 | Target #2      | hit      | blow struck Swordsman's HandR at 3.2 m/s: 1.0 damage, 2 poise, recoil; impulse 6.3 N·s (80% into the part); the swing went on (70% of it left); the target
+  140.833 |   8191 | Swordsman #2   | struck   | by Target on the HandR: health 100/100, poise 43/45, recoil, standing; light reaction
+  141.483 |   8230 | Target #2      | dance    | a light blow at the right shoulder, his pattern's blow: LANDED on the HandR
+  142.033 |   8263 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 44 cm) at Target #2
+  143.783 |   8368 | Swordsman #2   | attack   | made_sns_rising at its left shin (short by 1 cm) at Target #2
+  144.200 |   8393 | Swordsman #2   | hit      | blow struck Target's HandL at 16.0 m/s: blocked by Target's shield (5 poise); impulse 46.3 N·s (70% into the part); the swing stopped; blocked by the shield
+  144.200 |   8393 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 40/45, flinch, standing; the shield knocked back, then driven back at 0.9 m/s
+  144.317 |   8400 | Swordsman #2   | dance    | a light blow at the left shin, his pattern's blow: met the shield (the other expected it and was covering)
+  145.500 |   8471 | Target #2      | attack   | made_posture_sns_forehand at its chest (short by 20 cm) at Swordsman #2
+  146.217 |   8514 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  147.000 |   8561 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 36 cm) at Swordsman #2
+  147.717 |   8604 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 39 cm) at Target #2
+  148.100 |   8627 | Target #2      | attack   | made_sns_rising_on_forehand at its left shin (short by 1 cm) at Swordsman #2
+  148.733 |   8665 | Swordsman #2   | attack   | made_sns_forehand at its right upper arm at Target #2
+  149.183 |   8692 | Swordsman #2   | hit      | blow struck Target's HandL at 8.3 m/s: blocked by Target's shield (3 poise); impulse 24.1 N·s (70% into the part); the swing stopped; blocked by the shield
+  149.183 |   8692 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 42/45, recoil, standing; its strike carried on, then driven back at 0.6 m/s
+  149.217 |   8694 | Target #2      | dance    | a heavy blow at the left shin, his pattern's blow: met nothing
+  149.300 |   8699 | Swordsman #2   | dance    | a light blow at the right upper arm, thrown into the other's wind-up: met the shield (the other was still winding up his own) (the other expected it and was covering)
+  149.617 |   8718 | Target #2      | bash     | at Swordsman, 1.06 m off
+  149.667 |   8721 | Swordsman #2   | bash     | at Target, 1.08 m off
+  149.850 |   8732 | Swordsman #2   | bash     | bashed by Target: shoved back at 2.6 m/s
+  151.367 |   8823 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 25 cm) at Target #2
+  151.950 |   8858 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 24 cm) at Swordsman #2
+  152.867 |   8913 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  154.800 |   9029 | Swordsman #2   | attack   | made_sns_forehand at its head at Target #2
+  155.667 |   9081 | Swordsman #2   | hit      | blow struck Target's HandL at 10.7 m/s: blocked by Target's shield (9 poise); impulse 30.9 N·s (70% into the part); the swing stopped; blocked by the shield
+  155.667 |   9081 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 36/45, recoil, standing; the shield knocked back, then driven back at 1.9 m/s
+  155.783 |   9088 | Swordsman #2   | dance    | a heavy blow at the head, his pattern's blow: met the shield (the other expected it and was covering)
+  156.883 |   9154 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 45 cm) at Swordsman #2
+  158.600 |   9257 | Target #2      | attack   | made_sns_forehand at its head at Swordsman #2
+  159.700 |   9323 | -              | console  | [Upper] Target: ForearmL turning at 77 rad/s; head 1 cm, hands 3 / 26 cm off the pose; OneShot made_sns_forehand; the shield knocked back, then driven back at 1.9 m/s; put back 0, joints put 3   Spine asked 9 -43 15 (47°) is 7 -45 15, 4 rad/s, left 0° aside (held), damping 7567 most 14644; Chest asked 15 -35 17 (42°) is 12 -35 16, 4 rad/s, left 0° aside (held), damping 5984 most 14002; Head asked -16 53 -7 (56°) is -13 53 -6, 5 rad/s, left 0° aside (held), damping 264 most 213; UpperArmL asked 46 91 38 (109°) is -185 -162 -162, 69 rad/s, left 0° aside (held), damping 2973 most 12866; ForearmL asked -58 17 0 (61°) is -66 51 -28, 77 rad/s, left 20° aside (held), damping 910 most 789; HandL asked -18 -14 24 (33°) is -19 -10 22, 18 rad/s, left 3° aside (held), damping 241 most 266; UpperArmR asked -29 -7 8 (31°) is -24 -7 9, 8 rad/s, left 5° aside (held), damping 2076 most 2465; ForearmR asked -63 -18 0 (65°) is -63 -19 1, 7 rad/s, left 6° aside (held), damping 679 most 1479; HandR asked -2 88 0 (88°) is 4 78 -1, 6 rad/s, left 11° aside (held), damping 234 most 550; ThighL asked -64 34 -3 (72°) is -64 33 -2, 3 rad/s, left 0° aside (held), damping 4715 most 1451; ShinL asked 112 0 0 (112°) is 113 -1 0, 2 rad/s, left 0° aside (held), damping 747 most 714; FootL asked -68 21 -8 (72°) is -68 21 -9, 2 rad/s, left 0° aside (held), damping 25 most 277; ThighR asked -66 42 17 (80°) is -66 41 17, 4 rad/s, left 0° aside (held), damping 4715 most 1383; ShinR asked 119 0 0 (119°) is 119 0 0, 1 rad/s, left 0° aside (held), damping 747 most 716; FootR asked -49 8 -14 (52°) is -49 8 -14, 2 rad/s, left 0° aside (held), damping 25 most 276; 
+  159.717 |   9324 | Target #2      | arms     | a forearm or hand was inside its own body for 0.23 s, as seen (OneShot made_sns_forehand; the shield knocked back, then driven back at 1.9 m/s)
+  160.317 |   9360 | Swordsman #2   | attack   | made_posture_sns_forehand at its chest at Target #2
+  160.333 |   9361 | Target #2      | arms     | a forearm or hand was inside its own body for 0.17 s, as seen (OneShot made_sns_forehand; the shield knocked back, then driven back at 1.9 m/s)
+  160.867 |   9393 | Target #2      | dance    | a heavy blow at the head, his pattern's blow: met nothing
+  161.817 |   9450 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 23 cm) at Target #2
+  163.567 |   9555 | Swordsman #2   | attack   | made_sns_rising at its right thigh at Target #2
+  164.433 |   9607 | Swordsman #2   | arms     | a forearm or hand was inside its own body for 0.23 s, as seen (OneShot made_sns_rising; light reaction)
+  164.517 |   9612 | Swordsman #2   | hit      | blow struck Target's HandL at 14.8 m/s: blocked by Target's shield (13 poise); impulse 42.9 N·s (70% into the part); the swing stopped; blocked by the shield
+  164.517 |   9612 | Target #2      | struck   | by Swordsman on the HandL: health 100/100, poise 32/45, flinch, standing; the shield knocked back, then driven back at 2.2 m/s
+  164.650 |   9620 | Swordsman #2   | dance    | a heavy blow at the right thigh, his pattern's blow: met the shield (the other expected it and was covering)
+  166.550 |   9734 | Swordsman #2   | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 31 cm) at Target #2
+  167.233 |   9775 | Target #2      | attack   | made_posture_sns_forehand_on_thrust at its chest (short by 31 cm) at Swordsman #2
+  167.350 |   9782 | Target #2      | despawn  | recording stopped
+  167.350 |   9782 | Swordsman #2   | despawn  | recording stopped
+  167.350 |   9782 | -              | session  | 1305 pictures saved
+  167.350 |   9782 | -              | session  | recording stopped after 163.0 s (9782 physics steps)
