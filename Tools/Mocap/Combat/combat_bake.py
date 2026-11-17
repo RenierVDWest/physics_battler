@@ -48,6 +48,32 @@ GUARD = {
     'slow_right': ('walk_strafe_right_1', 'cycle', True, 'Walking slowly to the right, empty hands'),
     'sneak_left': ('crouched_sneaking_left', 'cycle', True, 'Stepping carefully to the left, crouched, empty hands'),
     'sneak_right': ('crouched_sneaking_right', 'cycle', True, 'Stepping carefully to the right, crouched, empty hands'),
+    # (The plan "Convincing walking in the dance": legs for the guard's steps, picked by tools/pack_survey.py from the
+    # packs of 17 November for how near their lower body is to the guard's own stance (hips turned 55 to 70 degrees
+    # from where he looks, the left foot ahead, low). None is used as it is: MoveStyle puts a take's legs under the
+    # guard's own chest and arms, on the guard's carriage. The bow's walks keep their hips turned 63 to 75 degrees
+    # whichever way they go, as the guard's own side-steps do: its walk forward is the advance the sword and shield
+    # pack lacks, its walk back the retreat.)
+    'bow_walk_fwd': ('bow_walk_forward', 'cycle', True, 'An archer walking toward where he aims, his hips turned 70 degrees from it (Longbow Locomotion Pack)'),
+    'bow_walk_back': ('bow_walk_back', 'cycle', True, 'An archer walking back from where he aims, his hips turned 70 degrees'),
+    'bow_walk_left': ('bow_walk_left', 'cycle', True, 'An archer walking to his left of where he aims'),
+    'bow_walk_right': ('bow_walk_right', 'cycle', True, 'An archer walking to his right of where he aims'),
+    'axe_walk_fwd': ('axe_walk_forward', 'cycle', True, 'An axeman in his stance walking forward (Pro Melee Axe Pack)'),
+    'axe_walk_back': ('axe_walk_back', 'cycle', True, 'An axeman in his stance walking back'),
+    'axe_walk_left': ('axe_walk_left', 'cycle', True, 'An axeman in his stance walking left'),
+    'axe_walk_right': ('axe_walk_right', 'cycle', True, 'An axeman in his stance walking right'),
+    'magic_walk_fwd': ('magic_walk_forward', 'cycle', True, 'A caster in his stance walking forward (Magic Locomotion Pack)'),
+    'magic_walk_back': ('magic_walk_back', 'cycle', True, 'A caster in his stance walking back'),
+    'magic_walk_left': ('magic_walk_left', 'cycle', True, 'A caster in his stance walking left'),
+    'magic_walk_right': ('magic_walk_right', 'cycle', True, 'A caster in his stance walking right'),
+    'rifle_walk_fwd': ('rifle_walk_forward', 'cycle', True, 'A rifleman aiming, walking forward (Rifle 8-Way Locomotion Pack)'),
+    'rifle_walk_fwd_left': ('rifle_walk_forward_left', 'cycle', True, 'A rifleman aiming, walking forward and left'),
+    'rifle_walk_fwd_right': ('rifle_walk_forward_right', 'cycle', True, 'A rifleman aiming, walking forward and right'),
+    'rifle_walk_left': ('rifle_walk_left', 'cycle', True, 'A rifleman aiming, walking left'),
+    'rifle_walk_right': ('rifle_walk_right', 'cycle', True, 'A rifleman aiming, walking right'),
+    'rifle_walk_back': ('rifle_walk_backward', 'cycle', True, 'A rifleman aiming, walking back'),
+    'rifle_walk_back_left': ('rifle_walk_backward_left', 'cycle', True, 'A rifleman aiming, walking back and left'),
+    'rifle_walk_back_right': ('rifle_walk_backward_right', 'cycle', True, 'A rifleman aiming, walking back and right'),
     # (The plan "Fight Rhythm from Recordings", step 4: the ginga, capoeira's base, recorded with empty hands. A stand
     # that steps: on the spot, one foot back and across and then the other, the hips swaying under it. The walk
     # stands in it as it stands in a guard's idle, its feet's steps the recording's own: MoveStyle.Capoeira.)
@@ -126,6 +152,9 @@ STRIKES = {
 # The slow walks mirrored left to right. name: (the clip it mirrors)
 SLOW_MIRRORED = {'slow_left': 'slow_right'}
 
+# (Sets shot around where he aims: a take's own front is where he looks, whatever his head and chest do.)
+FRONT_SETS = {'bow', 'axe', 'magic', 'rifle'}
+
 
 def load(sample):
     with open(os.path.join(HERE, 'samples', sample + '.json')) as f:
@@ -155,7 +184,7 @@ def main(report):
     for name, (sample, role, loop, about) in GUARD.items():
         d, B, F = load(sample)
         bones = B
-        clips.append(bake_one(name, d, B, F, loop, role, about, yaw_from='hips' if role in ('turn', 'block') else 'head'))
+        clips.append(bake_one(name, d, B, F, loop, role, about, yaw_from='front' if name.split('_')[0] in FRONT_SETS else 'hips' if role in ('turn', 'block') else 'head'))
     for name, of in SLOW_MIRRORED.items():
         sample, role, loop, about = GUARD[of]
         d, B, F = load(sample)

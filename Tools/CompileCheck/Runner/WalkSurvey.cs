@@ -13,6 +13,159 @@ public static class WalkSurvey
 {
     private const float Leg = 0.85f;
 
+    /// <summary>
+    /// Legs from other packs, tried for the guard's steps (the packs of 17 November; tools: pack_survey.py): each
+    /// with its legs under the guard's own chest and arms, set against the guard's stand. What matters: which way it
+    /// goes against where he looks, how far its hips are turned from that (the guard's: 55 to 70 degrees), how high
+    /// it carries them, and how far its feet's own places are from the stand's.
+    /// </summary>
+    private static void Candidates(Locomotor.ClipSet set, Vector3[] stand)
+    {
+        var plain = System.Globalization.CultureInfo.InvariantCulture;
+        const int samples = 24;
+        string[] names =
+        {
+            "sns_walk", "sns_walk_back", "sns_step_left", "sns_step_right",
+            "bow_walk_fwd", "bow_walk_back", "bow_walk_left", "bow_walk_right",
+            "axe_walk_fwd", "axe_walk_back", "axe_walk_left", "axe_walk_right",
+            "magic_walk_fwd", "magic_walk_back", "magic_walk_left", "magic_walk_right",
+            "rifle_walk_fwd", "rifle_walk_fwd_right", "rifle_walk_right", "rifle_walk_back_right", "rifle_walk_back", "rifle_walk_back_left", "rifle_walk_left", "rifle_walk_fwd_left",
+        };
+        float standYaw = HipsYaw(stand);
+        Console.WriteLine(string.Format(plain, "CANDIDATE the stand: its hips turned {0:0} deg from where he looks, {1:0.0} cm high", standYaw, 100f * stand[(int)LocoBone.Hips].y));
+        Console.WriteLine("CANDIDATE name | goes (deg from where he looks) | pace m/s | cycle s | hips turned deg | hips high cm (against the stand) | its legs from the stand's cm | left foot (across, ahead) cm | right foot (across, ahead) cm");
+        var at = new Vector3[LocoClip.BoneCount];
+        foreach (string name in names)
+        {
+            var legs = LocoLibrary.Get(name);
+            if (legs == null)
+            {
+                Console.WriteLine("CANDIDATE " + name + " | not in the library");
+                continue;
+            }
+
+            var clip = name.StartsWith("sns_") ? legs : MoveStyle.LegsUnder(legs, set.StepL ?? set.WalkF, "tried_" + name) ?? legs;
+            var mean = new Vector3[LocoClip.BoneCount];
+            float yaw = 0f;
+            for (int i = 0; i < samples; i++)
+            {
+                clip.Pose(clip.HasPhase ? clip.TimeAtPhase((i + 0.5f) / samples) : clip.Duration * (i + 0.5f) / samples, at, Leg);
+                for (int k = 0; k < LocoClip.BoneCount; k++)
+                {
+                    mean[k] += at[k] / samples;
+                }
+
+                yaw += HipsYaw(at) / samples;
+            }
+
+            // (The legs alone: the hips and both legs' points.)
+            LocoBone[] lower = { LocoBone.Hips, LocoBone.LeftUpLeg, LocoBone.LeftLeg, LocoBone.LeftFoot, LocoBone.LeftToeBase, LocoBone.RightUpLeg, LocoBone.RightLeg, LocoBone.RightFoot, LocoBone.RightToeBase };
+            float sum = 0f;
+            foreach (var bone in lower)
+            {
+                sum += (mean[(int)bone] - stand[(int)bone]).sqrMagnitude;
+            }
+
+            Vector3 l = mean[(int)LocoBone.LeftFoot] - stand[(int)LocoBone.LeftFoot], r = mean[(int)LocoBone.RightFoot] - stand[(int)LocoBone.RightFoot];
+            Console.WriteLine(string.Format(plain, "CANDIDATE {0} | {1:+0;-0} | {2:0.00} | {3:0.00} | {4:0} | {5:0.0} ({6:+0.0;-0.0}) | {7:0.0} | {8:+0;-0}, {9:+0;-0} | {10:+0;-0}, {11:+0;-0}",
+                name, clip.Direction, clip.Speed * Leg, clip.Duration, yaw, 100f * mean[(int)LocoBone.Hips].y, 100f * (mean[(int)LocoBone.Hips].y - stand[(int)LocoBone.Hips].y), 100f * Mathf.Sqrt(sum / lower.Length), 100f * l.x, 100f * l.z, 100f * r.x, 100f * r.z));
+        }
+    }
+
+    /// <summary>
+    /// Two sets of four set side by side: for each pair of neighbouring ways (forward and left, forward and right,
+    /// back and left, back and right), how far apart the two recordings are as poses at the same moment of the step,
+    /// and how far apart their carriages alone.
+    /// </summary>
+    private static void Sets(Locomotor.ClipSet set)
+    {
+        var plain = System.Globalization.CultureInfo.InvariantCulture;
+        const int samples = 24;
+        LocoClip Legs(string name) => name.StartsWith("sns_") ? LocoLibrary.Get(name) : MoveStyle.LegsUnder(LocoLibrary.Get(name), set.StepL ?? set.WalkF, "set_" + name);
+        var sets = new (string name, string[] four)[]
+        {
+            ("today's (the pack's own walk forward and back)", new[] { "sns_walk", "sns_walk_back", "sns_step_left", "sns_step_right" }),
+            ("with the archer's walk forward and back", new[] { "bow_walk_fwd", "bow_walk_back", "sns_step_left", "sns_step_right" }),
+            ("the archer's four", new[] { "bow_walk_fwd", "bow_walk_back", "bow_walk_left", "bow_walk_right" }),
+            ("the rifleman's four", new[] { "rifle_walk_fwd", "rifle_walk_back", "rifle_walk_left", "rifle_walk_right" }),
+        };
+        Console.WriteLine("SET name | neighbours apart as poses cm (forward-left, forward-right, back-left, back-right; mean) | their carriages apart cm (mean) | hips' heights cm (forward, back, left, right) | hips turned deg (forward, back, left, right)");
+        foreach (var (name, four) in sets)
+        {
+            var poses = new Vector3[4][][];
+            var means = new Vector3[4][];
+            var yaws = new float[4];
+            bool whole = true;
+            for (int c = 0; c < 4; c++)
+            {
+                var clip = Legs(four[c]);
+                if (clip == null || !clip.HasPhase)
+                {
+                    whole = false;
+                    break;
+                }
+
+                poses[c] = new Vector3[samples][];
+                means[c] = new Vector3[LocoClip.BoneCount];
+                for (int i = 0; i < samples; i++)
+                {
+                    poses[c][i] = new Vector3[LocoClip.BoneCount];
+                    clip.Pose(clip.TimeAtPhase((i + 0.5f) / samples), poses[c][i], Leg);
+                    for (int k = 0; k < LocoClip.BoneCount; k++)
+                    {
+                        means[c][k] += poses[c][i][k] / samples;
+                    }
+
+                    yaws[c] += HipsYaw(poses[c][i]) / samples;
+                }
+            }
+
+            if (!whole)
+            {
+                Console.WriteLine("SET " + name + " | a recording is missing or has no step");
+                continue;
+            }
+
+            int[][] pairs = { new[] { 0, 2 }, new[] { 0, 3 }, new[] { 1, 2 }, new[] { 1, 3 } };
+            var apart = new float[4];
+            float meanApart = 0f, meanCarriage = 0f;
+            for (int p = 0; p < 4; p++)
+            {
+                int a = pairs[p][0], b = pairs[p][1];
+                float carriage = 0f;
+                for (int k = 0; k < LocoClip.BoneCount; k++)
+                {
+                    carriage += (means[a][k] - means[b][k]).sqrMagnitude;
+                }
+
+                meanCarriage += Mathf.Sqrt(carriage / LocoClip.BoneCount) / 4f;
+                for (int i = 0; i < samples; i++)
+                {
+                    float sum = 0f;
+                    for (int k = 0; k < LocoClip.BoneCount; k++)
+                    {
+                        sum += (poses[a][i][k] - poses[b][i][k]).sqrMagnitude;
+                    }
+
+                    apart[p] += Mathf.Sqrt(sum / LocoClip.BoneCount) / samples;
+                }
+
+                meanApart += apart[p] / 4f;
+            }
+
+            Console.WriteLine(string.Format(plain, "SET {0} | {1:0.0}, {2:0.0}, {3:0.0}, {4:0.0}; {5:0.0} | {6:0.0} | {7:0.0}, {8:0.0}, {9:0.0}, {10:0.0} | {11:0}, {12:0}, {13:0}, {14:0}",
+                name, 100f * apart[0], 100f * apart[1], 100f * apart[2], 100f * apart[3], 100f * meanApart, 100f * meanCarriage,
+                100f * means[0][(int)LocoBone.Hips].y, 100f * means[1][(int)LocoBone.Hips].y, 100f * means[2][(int)LocoBone.Hips].y, 100f * means[3][(int)LocoBone.Hips].y, yaws[0], yaws[1], yaws[2], yaws[3]));
+        }
+    }
+
+    /// <summary>How far the hips are turned from the clip's front (degrees, + to his right).</summary>
+    private static float HipsYaw(Vector3[] pose)
+    {
+        Vector3 across = pose[(int)LocoBone.RightUpLeg] - pose[(int)LocoBone.LeftUpLeg];
+        return Mathf.Atan2(-across.z, across.x) * Mathf.Rad2Deg;
+    }
+
     public static int Run()
     {
         LocoLibrary.Load();
@@ -167,6 +320,9 @@ public static class WalkSurvey
                 Console.WriteLine(string.Format(plain, "MOTION {0} | {1} | {2:0.0} | {3:0.0} | {4:0.0}", clips[a].job, clips[b].job, 100f * whole, 100f * carriage, 100f * moving));
             }
         }
+
+        Candidates(set, means[clips[0].clip]);
+        Sets(set);
 
         // (And the stand against each cycle's own carriage: what setting off and stopping have to cross.)
         {

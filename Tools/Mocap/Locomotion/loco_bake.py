@@ -124,6 +124,11 @@ def bake(clip, d, B, F, mirrored_of=None, yaw_from='head'):
     up = F[:, ix['HeadTop_End']] - F[:, ix['Head']]
     fwd = np.cross(right, up)
     head_yaw = np.unwrap(np.array([yaw_of(v) for v in fwd]))
+    if yaw_from == 'front':
+        # (The take's own front, as it was recorded: a set shot around where he aims (an archer, a rifleman) has
+        # its aim along it, whichever way his head and chest are turned; and a character with no eye bones has
+        # its eyes put across its shoulders, which would give his chest's turn for his look.)
+        head_yaw = np.zeros(len(fwd))
     hips = F[:, ix['Hips']].copy()
     hips[:, 1] = 0.0
     if loop:

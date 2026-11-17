@@ -303,6 +303,8 @@ internal static class FightReport
 
         // (FIGHT_JOGS=0: the guard without its jog, as it was.)
         PhysicsBattler.Locomotion.MoveStyle.Jogs = Environment.GetEnvironmentVariable("FIGHT_JOGS") != "0";
+        // (FIGHT_STANCEWALK=1: the guard walks forward and back on the archer's legs, which keep his stance: a try.)
+        PhysicsBattler.Locomotion.MoveStyle.StanceWalks = Environment.GetEnvironmentVariable("FIGHT_STANCEWALK") == "1";
         // (FIGHT_TRAVEL=0: the clips' travel as it was, turned the wrong way round.)
         PhysicsBattler.Locomotion.LocoClip.TravelsTrue = Environment.GetEnvironmentVariable("FIGHT_TRAVEL") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_ARMGATE") == "0")

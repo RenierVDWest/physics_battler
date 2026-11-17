@@ -82,6 +82,13 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static bool Jogs = true;
 
+        /// <summary>
+        /// A try of the plan "Convincing walking in the dance" (off: as it is): the standard style walks forward and
+        /// back on an archer's legs, which keep the guard's turned stance, in place of the sword and shield pack's
+        /// own tall, square walk. For the headless reports until the plan's step 2 is built behind its switch.
+        /// </summary>
+        public static bool StanceWalks = false;
+
         /// <summary>The library's prefix for the legs a style jogs on ("jog_"), or null: it has no jog.</summary>
         public string JogPrefix;
 
@@ -157,6 +164,15 @@ namespace PhysicsBattler.Locomotion
                 set.SlowR = LegsUnder(LocoLibrary.Get("slow_right"), set.StepR ?? set.WalkF, Prefix + "slow_right");
                 set.SneakL = LegsUnder(LocoLibrary.Get("sneak_left"), set.StepL ?? set.WalkF, Prefix + "sneak_left");
                 set.SneakR = LegsUnder(LocoLibrary.Get("sneak_right"), set.StepR ?? set.WalkF, Prefix + "sneak_right");
+            }
+
+            if (StanceWalks && this == Standard)
+            {
+                // (A try, for the reports only so far: the guard's walk forward and back on legs that keep his stance,
+                // an archer's, whose hips stay turned 70 degrees from where he aims as the guard's side-steps' do;
+                // under the guard's own side-step's chest and arms.)
+                set.WalkF = LegsUnder(LocoLibrary.Get("bow_walk_fwd"), set.StepL ?? set.WalkF, Prefix + "advance") ?? set.WalkF;
+                set.WalkB = LegsUnder(LocoLibrary.Get("bow_walk_back"), set.StepL ?? set.WalkB ?? set.WalkF, Prefix + "retreat") ?? set.WalkB;
             }
 
             if (GuardWalkRebuilt && this == Standard)
