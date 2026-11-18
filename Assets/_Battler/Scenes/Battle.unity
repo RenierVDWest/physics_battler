@@ -308,7 +308,9 @@ MonoBehaviour:
   hipHoldQuickness: 5
   hipHoldStrength: 3
   hitForce: 1
-  getUpsAreNatural: 1
+  getUpsAreNatural: 0
+  getUpsAreFromTheRecordings: 1
+  recordedGetUpTakes: 0.5
   getUpLegsClearTheHips: 1
   fallsKeepTheBody: 1
   fallMuscle: 0.5
@@ -327,6 +329,128 @@ MonoBehaviour:
   blowsUseTheTrunk: 1
   blowsArePushed: 1
   theBattleIsRetired: 1
+  theCapoeiraStyleIsShelved: 1
+  standardMovementIsMadeOfItsParts: 1
+  feintDepth: 0.85
+  feintHold: 0.06
+  feintBack: 0.45
+  feintBladeClear: 0.18
+  dropSinks: 10
+  dropLeans: 8
+  dropDown: 0.12
+  dropUp: 0.3
+  bladeBluffSize: 1
+  shieldPressFar: 1
+  guardHighLift: 35
+  guardLowDrop: 25
+  aSwordFakeTakesTheShield: 0
+  blowsAreLightOrHeavy: 1
+  lightBlowPower: 0.6
+  heavyBlowPower: 1.6
+  aFakeDrawsNoGuard: 1
+  theShieldIsHeldInCover: 1
+  aShieldBashesWhatComesTooNear: 1
+  shieldBashWithin: 1.2
+  smallBashLeapsIn: 0
+  smallBashEndsShort: 0.9
+  smallBashLeapSpeed: 3
+  smallBashArm: 0.5
+  smallBashWeight: 0.9
+  smallBashReach: 0.6
+  smallBashGoesThrough: 0
+  smallBashCrouch: 1
+  smallBashLean: 20
+  smallBashHeight: 0.5
+  smallBashWindUp: 0.15
+  smallBashSinks: 0.1
+  smallBashSurge: 0.9
+  mediumBashLeapsIn: 1.2
+  mediumBashEndsShort: 0.7
+  mediumBashLeapSpeed: 4
+  mediumBashArm: 0.65
+  mediumBashWeight: 0.85
+  mediumBashReach: 0.8
+  mediumBashGoesThrough: 0
+  mediumBashCrouch: 1.1
+  mediumBashLean: 20
+  mediumBashHeight: 0.45
+  mediumBashWindUp: 0.18
+  mediumBashSinks: 0.12
+  mediumBashSurge: 1.2
+  hardBashLeapsIn: 2
+  hardBashEndsShort: 0.1
+  hardBashLeapSpeed: 6
+  hardBashArm: 1
+  hardBashWeight: 1.1
+  hardBashReach: 1
+  hardBashGoesThrough: 1
+  hardBashCrouch: 1.6
+  hardBashLean: 30
+  hardBashHeight: 0.4
+  hardBashWindUp: 0.24
+  hardBashSinks: 0.16
+  hardBashSurge: 1.8
+  bashStumblesFrom: 1.5
+  bashFellsFrom: 4.5
+  bashThrows: 1.6
+  bashArmCounts: 0.4
+  shieldCoverHold: 0.85
+  shieldCoverInBlow: 0.7
+  shieldCoverAt: {x: -8, y: -10, z: 30}
+  shortFakeDepth: 0.45
+  longFakeDepth: 1
+  longFakeHold: 0.25
+  eachFighterHasHisOwnLevers: 1
+  aWalkKeptUpIsWalkedNotStepped: 1
+  fightersReadEachOthersPatterns: 1
+  theDanceIsPacedByTheGap: 1
+  theDanceAsksForSteps: 1
+  danceStepsWorth: 0.3
+  danceStandsAtLeast: 0.6
+  aStoppedBlowIsAnswered: 0
+  slowCircleOn: 0
+  theGuardWalksInOneCarriage: 1
+  guardKeepsItsStance: 0.5
+  aFighterCutsAsHeTurnsRound: 1
+  turnCutBladeGoes: 1
+  turnCutBladeLeads: 0
+  aTurnCutEndsShort: 1
+  aTurnCutSweepsFree: 1
+  turnCutSweepsOn: 0.1
+  turnCutCarriesOn: 0.2
+  turnCutWithin: 2.2
+  turnCutAnyway: 0.25
+  aLegLeftBehindStepsBeforeTheHipsSink: 1
+  hipsSinkBeforeAStep: 0.03
+  aStepOnceBegunIsFinished: 1
+  aDiagonalTurnsTheLegs: 1
+  wholeStepLeastPace: 0.6
+  wholeStepLeastTempo: 0.85
+  wholeStepPausesFrom: 0.12
+  aFighterTurnsRoundQuickly: 1
+  quickTurnFrom: 75
+  quickTurnPace: 1.5
+  quickTurnWithin: 4
+  quickTurnDrawsFeetIn: 0.5
+  quickTurnSinks: 0.4
+  theSwordsmanReadsOpenings: 1
+  openingReactionTime: 0.2
+  quickestOpeningBlow: 0.45
+  uncoverTell: 0.3
+  uncoverOpenFor: 0.4
+  fakeLungeFar: 0.3
+  fakeLungeOut: 0.28
+  fakeLungeBack: 0.4
+  aFakeLungeIsThrownOnTheMove: 1
+  fakeLungeOnTheMove: 0.7
+  movementBounce: 1
+  movementSway: 1
+  movementHipTurn: 1
+  movementChestTurn: 1
+  movementArmSwing: 1
+  movementStepLift: 1
+  movementLean: 0
+  movementCrouch: 0
   guardJogs: 1
   setsOffAtAWalksRhythm: 1
   capoeiraStyleMotion: 0.5
@@ -355,6 +479,7 @@ MonoBehaviour:
   aimTestAttacksAreMade: 1
   attacksBorrowLegs: 1
   attacksAreThrownOnTheMove: 1
+  aBlowOnTheMoveStaysOnTheMoveOutOfReach: 1
   movingBlowChecksTheWalk: 0.45
   movingBlowHipsTurn: 0.5
   movingBlowHipsGoIn: 0.06
