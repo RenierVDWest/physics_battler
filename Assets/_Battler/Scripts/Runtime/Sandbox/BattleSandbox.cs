@@ -3392,7 +3392,7 @@ namespace PhysicsBattler.Sandbox
 
         private sealed class PanelStyles
         {
-            public GUIStyle Section, Fold, Heading, Text, Value, Toggle, Hint, Box;
+            public GUIStyle Section, Fold, Heading, Text, Value, Toggle, Hint, Box, Cell;
         }
 
         // (What the panel shows, as it was when the panel was last laid out: a press that changes it (a test begun, a
@@ -3417,13 +3417,16 @@ namespace PhysicsBattler.Sandbox
             {
                 Section = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold },
                 Fold = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft },
-                Heading = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, wordWrap = true },
+                // (A heading is found at a glance: larger, in amber, on a tinted bar across the panel. See Heading.)
+                Heading = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, wordWrap = true, fontSize = Mathf.RoundToInt(1.15f * (GUI.skin.label.fontSize > 0 ? GUI.skin.label.fontSize : 13)), padding = new RectOffset(9, 6, 4, 4) },
+                Cell = new GUIStyle(GUI.skin.label) { wordWrap = false, clipping = TextClipping.Clip },
                 Text = new GUIStyle(GUI.skin.label) { wordWrap = true },
                 Value = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleRight },
                 Toggle = new GUIStyle(GUI.skin.toggle) { wordWrap = true },
                 Hint = new GUIStyle(GUI.skin.label) { wordWrap = true, alignment = TextAnchor.UpperLeft, fontStyle = FontStyle.Italic },
                 Box = new GUIStyle(GUI.skin.box),
             };
+            panel.Heading.normal.textColor = new Color(1f, 0.86f, 0.5f);
             return panel;
         }
 
@@ -3451,8 +3454,23 @@ namespace PhysicsBattler.Sandbox
         /// <summary>A heading inside a section, with room over it.</summary>
         private void Heading(string text, string tip = "")
         {
-            GUILayout.Space(8f);
-            GUILayout.Label(new GUIContent(text, tip), Styles().Heading);
+            GUILayout.Space(10f);
+            var style = Styles().Heading;
+            var content = new GUIContent(text, tip);
+            Rect at = GUILayoutUtility.GetRect(content, style, GUILayout.ExpandWidth(true));
+            if (Event.current.type == EventType.Repaint)
+            {
+                // (A tinted bar across the panel with a bright edge at its left: the eye finds it going down the panel.)
+                var was = GUI.color;
+                GUI.color = new Color(1f, 0.78f, 0.3f, 0.16f);
+                GUI.DrawTexture(at, Texture2D.whiteTexture);
+                GUI.color = new Color(1f, 0.78f, 0.3f, 0.95f);
+                GUI.DrawTexture(new Rect(at.x, at.y, 3f, at.height), Texture2D.whiteTexture);
+                GUI.color = was;
+            }
+
+            GUI.Label(at, content, style);
+            GUILayout.Space(2f);
         }
 
         private bool Press(string text, string tip, params GUILayoutOption[] options) => GUILayout.Button(new GUIContent(text, tip), options);
@@ -3858,7 +3876,10 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 GUI.color = !known ? Color.gray : open ? new Color(0.45f, 1f, 0.45f) : new Color(0.7f, 0.7f, 0.7f);
-                GUILayout.Label(new GUIContent(open ? name : name + " (" + behind.Replace("its ", "") + ")", open ? "Open: a straight line from the other's sword shoulder reaches it." : "Covered: " + behind + " is before it."), Styles().Text, GUILayout.Width(AimButtonWidth + 26f));
+                // (One line, of one width and one height, whatever it says: the map and the panel under it do not
+                // move as a part is covered or opens. His right and his left are R and L, so the longest still fits.)
+                string shown = (open ? name : name + " (" + behind.Replace("its ", "") + ")").Replace("right ", "R ").Replace("left ", "L ");
+                GUILayout.Label(new GUIContent(shown, open ? "Open: a straight line from the other's sword shoulder reaches it." : "Covered: " + behind + " is before it."), Styles().Cell, GUILayout.Width(AimButtonWidth + 26f), GUILayout.Height(Mathf.Max(14f, Styles().Cell.lineHeight) + 4f));
             }
 
             GUI.color = was;
@@ -4027,35 +4048,40 @@ namespace PhysicsBattler.Sandbox
             }
 
             Heading("Getting up");
+            // (One choice of three, where there were two switches: with the older one off, "as recorded" changed
+            // nothing and said nothing. Seen in Unity, 18 November.)
             bool natural = feel != null ? feel.getUpsAreNatural : PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps;
-            bool naturalNow = Tick(natural, "The new get-ups", "From how it really lies, by one of three routes, turned toward its enemy. Off: as before 14 November.");
-            if (naturalNow != natural)
+            bool recorded = feel != null ? feel.getUpsAreFromTheRecordings : PhysicsBattler.Motion.GetUp.FromRecordings;
+            int way = !natural ? 2 : recorded ? 0 : 1, wayNow = way;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("The way up:", "How a fallen fighter gets up. As recorded (new): the way a recorded man does, read off the recording and fitted to this fighter (from his back he sits up and rocks forward over his feet; from his front he pushes up, lifts his hips and steps his feet in). Made by hand: the key poses written by hand, from how he really lies, as before 17 November. Oldest: as before 14 November. To see one: Falls on demand above (Back, Forward, Left, Right) in the target test."), Styles().Text, GUILayout.Width(80f));
+            if (Press(way == 0 ? "[as recorded]" : "as recorded", "The get-ups read off the recordings.")) wayNow = 0;
+            if (Press(way == 1 ? "[made by hand]" : "made by hand", "The get-ups made by hand, as before 17 November.")) wayNow = 1;
+            if (Press(way == 2 ? "[oldest]" : "oldest", "The get-ups as before 14 November.")) wayNow = 2;
+            GUILayout.EndHorizontal();
+            if (wayNow != way)
             {
                 if (feel != null)
                 {
-                    feel.getUpsAreNatural = naturalNow;
+                    feel.getUpsAreNatural = wayNow != 2;
+                    feel.getUpsAreFromTheRecordings = wayNow == 0;
                 }
 
-                PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = naturalNow;
-                Note(naturalNow ? "get-ups: the new ones" : "get-ups: as before");
+                PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = wayNow != 2;
+                PhysicsBattler.Motion.GetUp.FromRecordings = wayNow == 0;
+                Note(wayNow == 0 ? "get-ups: as recorded" : wayNow == 1 ? "get-ups: made by hand" : "get-ups: the oldest, as before 14 November");
             }
 
-            bool recorded = feel != null ? feel.getUpsAreFromTheRecordings : PhysicsBattler.Motion.GetUp.FromRecordings;
-            bool recordedNow = recorded;
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(new GUIContent("The way up:", "As recorded (new): the way a recorded man gets up, read off the recording and fitted to this fighter (from his back he sits up and rocks forward over his feet; from his front he pushes up, lifts his hips and steps his feet in). Made by hand (old): the get-ups as before 17 November. To see either: Falls on demand above (Back, Forward, Left, Right) in the target test."), GUILayout.Width(80f));
-            if (Press(recorded ? "[as recorded]" : "as recorded", "The get-ups read off the recordings.")) recordedNow = true;
-            if (Press(!recorded ? "[made by hand (old)]" : "made by hand (old)", "The get-ups made by hand, as before 17 November.")) recordedNow = false;
-            GUILayout.EndHorizontal();
-            if (recordedNow != recorded)
+            if (feel != null && way == 0)
             {
-                if (feel != null)
-                {
-                    feel.getUpsAreFromTheRecordings = recordedNow;
-                }
-
-                PhysicsBattler.Motion.GetUp.FromRecordings = recordedNow;
-                Note(recordedNow ? "get-ups: as recorded" : "get-ups: made by hand");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("A foot by the hips:", "As recorded, from his back, he tucks one foot back under himself. Beside them (new): while his hips are low, a foot that comes near them stays out at its own side, beside the hip. Under them (old): where the recording has it, which on this body is through the hips."), Styles().Text, GUILayout.Width(120f));
+                if (Press(feel.recordedGetUpFeetClearTheHips ? "[beside them]" : "beside them", "The foot stays out at its own side of the hips.")) feel.recordedGetUpFeetClearTheHips = true;
+                if (Press(!feel.recordedGetUpFeetClearTheHips ? "[under them (old)]" : "under them (old)", "Where the recording has it.")) feel.recordedGetUpFeetClearTheHips = false;
+                GUILayout.EndHorizontal();
+                PhysicsBattler.Motion.GetUp.FeetClearHips = feel.recordedGetUpFeetClearTheHips;
+                feel.recordedGetUpFootClears = Lever("Foot stays out by", feel.recordedGetUpFootClears, 0.1f, 0.5f, "How far out at its own side of the hips' middle a foot near low hips stays, as a share of the leg's length. Lower: nearer the hips (0.1 is in them). Higher: the knee splays out more.");
+                PhysicsBattler.Motion.GetUp.FootClearsHips = feel.recordedGetUpFootClears;
             }
 
             if (feel != null)

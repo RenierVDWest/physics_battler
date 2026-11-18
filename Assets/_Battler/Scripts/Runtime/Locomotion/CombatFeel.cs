@@ -197,6 +197,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How long a recorded get-up is given, as a share of the recording's own time (3.7 s from his back, 4.5 s from his front). 0.5 gives about 1.9 s and 2.3 s, so a fighter is down about as long as with the get-ups made by hand (2.0 s). Lower: he is up sooner and moves faster. 1: at the recorded man's own unhurried pace.")]
         [Range(0.4f, 1f)] public float recordedGetUpTakes = 0.5f;
 
+        [Tooltip("Getting up as recorded: while his hips are low, a foot that comes near them stays out at its own side, beside the hip. The recorded man, sitting up from his back, tucks one foot back under his other thigh and rises over it; on this body, sitting with its hips on the ground, that foot went straight through the hips and out at the other side. Off: where the recording has the foot.")]
+        public bool recordedGetUpFeetClearTheHips = true;
+
+        [Tooltip("Getting up as recorded: how far out at its own side of the hips' middle a foot near low hips stays, as a share of the leg's length. Lower: nearer the hips (0.1 is inside them). Higher: the knee splays out more as he rises.")]
+        [Range(0.1f, 0.5f)] public float recordedGetUpFootClears = 0.3f;
+
         [Tooltip("Getting up from its back, a fighter keeps its legs clear of its own hips: it sits a little behind the foot it plants (its stance's front foot), lifts its hips high on that foot and one hand, and only then swings the other leg back under them to stand up over the planted foot. From its front, it steps its foot through with its hips higher and its back rounded. Off: as it first was, with the planted foot under the hip and the other foot swept back through it while the hips were still low, so that the knees swung round through the trunk (a thigh turning at 90 rad/s, 140 degrees past what a hip bends).")]
         public bool getUpLegsClearTheHips = true;
 
@@ -1481,6 +1487,8 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Motion.GetUp.LegsClearTheHips = getUpLegsClearTheHips;
             PhysicsBattler.Motion.GetUp.FromRecordings = getUpsAreFromTheRecordings;
             PhysicsBattler.Motion.GetUp.RecordedTakes = Mathf.Clamp(recordedGetUpTakes, 0.4f, 1f);
+            PhysicsBattler.Motion.GetUp.FeetClearHips = recordedGetUpFeetClearTheHips;
+            PhysicsBattler.Motion.GetUp.FootClearsHips = Mathf.Clamp(recordedGetUpFootClears, 0.1f, 0.5f);
             ClipFighter.OneBodyFalls = fallsKeepTheBody;
             ClipFighter.FallMuscle = Mathf.Max(0f, fallMuscle);
             FallPose.ProtectsHead = fallsProtectTheHead;

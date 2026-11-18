@@ -1094,6 +1094,12 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = Environment.GetEnvironmentVariable("FIGHT_GETUP") != "0";
         // (FIGHT_GETUPRECORDED=0: the get-ups made by hand, as before 17 November. FIGHT_GETUPTAKES=0.6: a recorded get-up's time, as a share of the recording's.)
         PhysicsBattler.Motion.GetUp.FromRecordings = Environment.GetEnvironmentVariable("FIGHT_GETUPRECORDED") != "0";
+        // (FIGHT_GETUPCLEAR=0: a recorded get-up's feet where the recording has them, through the hips or not. FIGHT_GETUPCLEARS: how far clear, in leg lengths.)
+        PhysicsBattler.Motion.GetUp.FeetClearHips = Environment.GetEnvironmentVariable("FIGHT_GETUPCLEAR") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GETUPCLEARS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float getUpClears))
+        {
+            PhysicsBattler.Motion.GetUp.FootClearsHips = getUpClears;
+        }
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GETUPTAKES"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float getUpTakes))
         {
             PhysicsBattler.Motion.GetUp.RecordedTakes = getUpTakes;

@@ -5930,3 +5930,34 @@ walk left him after the stop-and-go part (measured before the eased ending). The
 hardly happen at the dance's paces (3 to 5 a fighter in 48 s): the dance mostly asks for more than a step's
 least pace. The explainer "Whole Steps In The Dance" was made on the earlier figures and corrected after.
 The fight of six, a minute, on the last build: as on the build before these steps (team A after 51 s, 67 blows, no body lost by the engine), as it should be: it gives no order to walk on. Step 6 (far and near, with the running turn-rounds) is not begun.
+
+**Renier's first look at the recorded get-ups, and the panel (18 November, morning).** "getting up from the
+back has one leg, the leg he pulls back, positioned in a way that it intersects with the hips"; and the
+debug panel "has stuff added now and then causing the debug to move the layout", with headings that are hard
+to spot ("when I was looking for Bash").
+
+- *The foot through the hips.* The recorded man, sitting up from his back, tucks one foot back under his other
+  thigh, across his middle, and rises over it. Sitting with its hips on the ground, this body took that foot
+  straight through them: from 63 cm before the hips to 17 cm to the far side of their middle and 9 cm
+  behind, its shin passing 16 cm from the hips' middle (the get-ups made by hand come no nearer than 30).
+  Now, while the hips are low, a foot that is near them fore and aft stays out at its own side by 0.3 of a
+  leg (`GetUp.ClearOfHips`, `FeetClearHips`, `FootClearsHips`; Combat Feel "Recorded Get Up Feet Clear The
+  Hips" and "Recorded Get Up Foot Clears"; the lab's "A foot by the hips: beside them / under them (old)"
+  and its lever; `FIGHT_GETUPCLEAR=0`). It is let back to where the recording has it over the whole rise of
+  the hips (0.3 to 0.9 of their standing height). Headless: the shin no nearer than 31 cm, the foot 34.
+  The cost: as he stands the thigh of that leg swings in at 18 rad/s for a moment, where it was 11 (a
+  Medium and an unarmed fighter; the swordsman, who takes the recording mirrored, 8). Tried and dropped:
+  pushing the foot straight away from the hips (the thigh at 35 rad/s) and pointing its knee forward (a thigh
+  115 degrees past the hip's range in the get-up from the front).
+- *"As recorded" that changed nothing.* His log shows him pressing the older switch to "as before" and later
+  "as recorded": with the older one off the newer one did nothing and said nothing, and the get-ups he then
+  watched were the oldest ones (a planted hand 37 cm off its place). The two switches are one choice of
+  three now: "The way up: as recorded / made by hand / oldest".
+- *The map of what he leaves open no longer moves the panel.* A part's name grew "(shield)" as it was
+  covered and wrapped onto a second line, so the rows changed height several times a second. Each name is one
+  line of one width and height now, clipped, with R and L for right and left so the longest fits.
+- *Headings.* A heading inside a section is larger, amber, on a tinted bar across the panel with a bright
+  edge at its left (`Heading`).
+
+Not seen in Unity. The compile check's stand-ins for Unity's panel calls gained the ones these use
+(`GUIStyle.padding`, `normal`, `clipping`, `GUILayoutUtility.GetRect`, `GUILayout.ExpandWidth`).
