@@ -308,9 +308,11 @@ MonoBehaviour:
   hipHoldQuickness: 5
   hipHoldStrength: 3
   hitForce: 1
-  getUpsAreNatural: 0
+  getUpsAreNatural: 1
   getUpsAreFromTheRecordings: 1
   recordedGetUpTakes: 0.5
+  recordedGetUpFeetClearTheHips: 1
+  recordedGetUpFootClears: 0.3
   getUpLegsClearTheHips: 1
   fallsKeepTheBody: 1
   fallMuscle: 0.5
@@ -335,6 +337,19 @@ MonoBehaviour:
   feintHold: 0.06
   feintBack: 0.45
   feintBladeClear: 0.18
+  aFakeIsARealAttackCutShort: 1
+  fakeCutOff: 0.12
+  fakeCutOffVaries: 0.2
+  fakesCutFrom: 0
+  fakesComeOnlyFromWindUpsBehindHim: 1
+  theDanceKeepsFakesToARatio: 1
+  theDanceBashesForSpace: 1
+  spaceBashesThatAreMedium: 0.5
+  aHardBashIsAnAttackInTheDance: 1
+  aHardBashIsCounteredByAMediumBash: 1
+  counterBashHolds: 75
+  aFakeIsTakenForABlow: 0.6
+  aFakeTakenForABlowIsDodged: 0.5
   dropSinks: 10
   dropLeans: 8
   dropDown: 0.12
@@ -399,7 +414,7 @@ MonoBehaviour:
   shieldCoverAt: {x: -8, y: -10, z: 30}
   shortFakeDepth: 0.45
   longFakeDepth: 1
-  longFakeHold: 0.25
+  longFakeHold: 0.09
   eachFighterHasHisOwnLevers: 1
   aWalkKeptUpIsWalkedNotStepped: 1
   fightersReadEachOthersPatterns: 1
