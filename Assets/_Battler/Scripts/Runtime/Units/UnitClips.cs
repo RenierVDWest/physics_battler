@@ -215,7 +215,9 @@ namespace PhysicsBattler.Units
             // (Hit stop: both stand still a moment as a blow lands, the one it landed from and the one it landed on.)
             float ownStop = Clip.Strikes != null ? Clip.Strikes.HitStop : 0f;
             clipStopLeft = Mathf.Max(0f, clipStopLeft - dt);
-            HitStop = Mathf.Max(ownStop, clipStopLeft);
+            // (And as a body's impact lands, a shield's bash: the clip fighter's own count of it.)
+            Clip.ImpactStop = Mathf.Max(0f, Clip.ImpactStop - dt);
+            HitStop = Mathf.Max(ownStop, Mathf.Max(clipStopLeft, Clip.ImpactStop));
             bool frozen = HitStop > 0f;
             if (!frozen && against != null && (TurnSlashes.Always || TurnCuts == 2 || (TurnCuts == 0 && TurnSlashes.On)))
             {

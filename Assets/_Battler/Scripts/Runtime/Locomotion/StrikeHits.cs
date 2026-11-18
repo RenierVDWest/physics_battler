@@ -106,6 +106,14 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A blow is about to land (its swing heard just before contact): where its blade is, with a club, as a showstopper.</summary>
         public static event System.Action<Vector3, bool, bool> Swung;
 
+        /// <summary>
+        /// A blow stopped on a shield jars the striker by all of it (the plan "Impacts that carry weight", step 2;
+        /// Combat Feel "A Block Jars The Striker By All Of It"): what the shield took comes back at his weapon hand,
+        /// equal and opposite, and rocks his trunk as the blow rocks the blocker's. Off: by a part of it, as before
+        /// (what a heavy weapon would not keep of its swing, times the scene's "Jar Scale").
+        /// </summary>
+        public static bool BlockJarsStriker = true;
+
         /// <summary>The swing is heard this long before contact (seconds of the clip).</summary>
         public const float SwingHeardBefore = 0.14f;
 
@@ -1242,6 +1250,15 @@ namespace PhysicsBattler.Locomotion
             // (A combo's blows before its last drive the body back by their own weight: the combo has to follow it to
             // land the next (thrown back three times as far, a blow in six of the dummy's combos missed). The body
             // still bends and leans by the heavier blow, and the combo's last throws it back with all of it.)
+            // (For the impact meter: a blow on a shield, what it handed the bearer and what comes back to the striker.)
+            Vector3 handedOn = (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade * felt);
+            var seen = shield && !parried && Owner != null ? ImpactMeter.Begin("a blow on a shield", Owner, struck, struck.Loco.Position - Owner.Loco.Position, Time.time, handedOn.magnitude) : null;
+            if (seen != null)
+            {
+                seen.Handed = handedOn.magnitude;
+                seen.HandedBack = BlockJarsStriker ? handedOn.magnitude : handedOn.magnitude * (1f - CombatFeel.SwingKept) * CombatFeel.JarScale / ClipFighter.BlockRocks;
+            }
+
             struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade * felt), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
                 bound: parried && !glanced && !PlayAirborne, drive: comboing && !finishing ? 1f / felt : 1f, heavier: scripted);
             Struck?.Invoke(new StruckBy
@@ -1330,7 +1347,16 @@ namespace PhysicsBattler.Locomotion
                     // body: it stays on the shield, which gives, and is not thrown back off it like a stick.)
                     float steady = 1f - CombatFeel.SwingKept;
                     PlayKnockHand(-direction.normalized * (Rebound(r.Weight * knock) * steady));
-                    Owner?.Jar(-direction.normalized * (r.Impulse.magnitude * knock * steady), point);
+                    if (BlockJarsStriker && shield && !parried)
+                    {
+                        // (Equal and opposite: what the shield took comes back up the striker's arm, all of it, and rocks
+                        // him as it rocks the one who blocked.)
+                        Owner?.Jar(-direction.normalized * handedOn.magnitude, point, true);
+                    }
+                    else
+                    {
+                        Owner?.Jar(-direction.normalized * (r.Impulse.magnitude * knock * steady), point);
+                    }
                 }
                 else
                 {

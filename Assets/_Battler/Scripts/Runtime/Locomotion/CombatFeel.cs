@@ -311,6 +311,22 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a fighter with a shield who sees a hard bash coming meets it with a medium bash of his own, braced where he stands. Whether that stops the hard bash knocking him over is a draw (\"Counter Bash Holds\"). Off: a hard bash that meets him knocks him over every time, as before.")]
         public bool aHardBashIsCounteredByAMediumBash = true;
 
+        [Header("Impacts that carry weight (18 November)")]
+        [Tooltip("On: a shield's bash lands as an impact. What it hands the other is an amount of momentum at the point the board really met him, through the reactions a sword blow has: his trunk rocked about his hips, his body bent where it landed with his knees taking it, his shield arm driven back and his guard knocked open if it met his shield, a moment in which both stand still. The basher takes the same amount back at his own shield arm. Nothing is drawn by lot: one bash differs from the next by where and how the two really met. Off: a bash only changes the other's speed over the ground, or knocks him over, as before.")]
+        public bool aBashLandsAsAnImpact = true;
+
+        [Tooltip("How much of a bash's momentum rocks a trunk, against a sword blow's 1. A body's whole weight arriving is ten times a cut's, and a trunk can only rock so far: at 0.17 a small bash rocks it a little, a medium one well, a hard one nearly as far as it goes.")]
+        [Range(0f, 0.6f)] public float bashRocksTheTrunk = 0.17f;
+
+        [Tooltip("The furthest a body's impact may rock an upper body (degrees, the spine and the chest together). A sword blow's most is 34.")]
+        [Range(34f, 90f)] public float bashRocksUpTo = 57f;
+
+        [Tooltip("How much of a bash's momentum is put on the physical upper body as force, on top of what the pose shows (as a sword blow's \"Hit Force\").")]
+        [Range(0f, 0.5f)] public float bashForceOnTheBody = 0.12f;
+
+        [Tooltip("On: a blow stopped on a shield jars the striker by all of it: what the shield took comes back at his weapon hand, equal and opposite, and rocks his trunk as the blow rocks the blocker's. Off: by a part of it, as before (what a heavy weapon would not keep of its swing, times \"Jar Scale\").")]
+        public bool aBlockJarsTheStrikerByAllOfIt = true;
+
         [Tooltip("How often a counter-bash stops a hard bash knocking him over (per cent). Held: the two boards meet, he is shoved back a step and the basher is stopped. Not held: he goes down as if he had not countered. To be tied to his defensive skill later.")]
         [Range(0f, 100f)] public float counterBashHolds = 75f;
 
@@ -1561,6 +1577,11 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.Dance.HardBashAttacks = aHardBashIsAnAttackInTheDance;
             ClipFighter.CountersHardBash = aHardBashIsCounteredByAMediumBash;
             ClipFighter.CounterHolds = counterBashHolds / 100f;
+            ClipFighter.BashIsImpact = aBashLandsAsAnImpact;
+            ClipFighter.BashRocks = bashRocksTheTrunk;
+            ClipFighter.BashForce = bashForceOnTheBody;
+            ClipFighter.BashRocksMost = bashRocksUpTo * Mathf.Deg2Rad;
+            StrikeHits.BlockJarsStriker = aBlockJarsTheStrikerByAllOfIt;
             PostureMaker.FakeBelieved = aFakeIsTakenForABlow;
             PostureMaker.FakeDodged = aFakeTakenForABlowIsDodged;
             PostureMaker.BluffSize = bladeBluffSize;

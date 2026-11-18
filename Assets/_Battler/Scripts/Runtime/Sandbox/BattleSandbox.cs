@@ -1128,6 +1128,7 @@ namespace PhysicsBattler.Sandbox
             var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
             Readout(new GUIContent("Last bash: " + (basher != null && basher.LastBash.Length > 0 ? basher.LastBash + "." : "none yet."), "How the last bash was thrown (the leap, the drive) and what it did: the speed the board closed on the other at, the shove, and whether he was shoved back, thrown back stumbling or knocked down."), 4);
             Readout(new GUIContent("The other's bash: " + (Duel.Other != null && Duel.Other.Clip != null && Duel.Other.Clip.LastBash.Length > 0 ? Duel.Other.Clip.LastBash + "." : "none yet."), "The other's own last bash: his counter to a hard bash (\"Hard bash met: countered\"), and whether it held."), 2);
+            Readout(new GUIContent("Impact meter: " + (PhysicsBattler.Locomotion.ImpactMeter.Last != null ? PhysicsBattler.Locomotion.ImpactMeter.Last.Text + "." : "nothing measured yet (it reads 0.6 s after a bash or a blow on a shield)."), "The impact meter (the plan \"Impacts that carry weight\"): what came in along the line between the two, what is left as motion of the two bodies afterwards, and what each body showed in the 0.6 s after: how far its trunk's lean changed, its hips dropped, its head shifted over its hips and its shield hand moved against its chest. It measures; it changes nothing. Compare \"A bash lands: as an impact / as a shove (old)\" on this line."), 6);
             string[] bashes = { "Small", "Medium", "Hard" };
             for (int kind = 0; kind < bashes.Length; kind++)
             {
@@ -1477,6 +1478,23 @@ namespace PhysicsBattler.Sandbox
             Words(new GUIContent("Too near:", "What a fighter with a shield does when an enemy comes too near him (Combat Feel \"A Shield Bashes What Comes Too Near\"). Bashes (new): he drives his shield and his body into him and shoves him back out of his space. Nothing (old): as it was."), Styles().Text, GUILayout.Width(80f));
             if (Press(feel.aShieldBashesWhatComesTooNear ? "[bashes]" : "bashes", "He bashes an enemy who comes too near.")) feel.aShieldBashesWhatComesTooNear = true;
             if (Press(!feel.aShieldBashesWhatComesTooNear ? "[nothing (old)]" : "nothing (old)", "No bash.")) feel.aShieldBashesWhatComesTooNear = false;
+            EndRow();
+            BeginRow();
+            Words(new GUIContent("A bash lands:", "How a bash lands (Combat Feel \"A Bash Lands As An Impact\"). As an impact (new): it hands the other its momentum at the point the board really met him, and he shows it as he shows a sword blow: trunk rocked, body bent where it landed, shield arm driven back and guard knocked open if it met his shield; the basher takes the same back at his own shield arm; both stand still a moment. As a shove (old): it only changes the other's speed over the ground, or knocks him over."), GUILayout.Width(100f));
+            if (Press(feel.aBashLandsAsAnImpact ? "[as an impact]" : "as an impact", "Both bodies show it.")) feel.aBashLandsAsAnImpact = true;
+            if (Press(!feel.aBashLandsAsAnImpact ? "[as a shove (old)]" : "as a shove (old)", "Only the other's speed over the ground changes.")) feel.aBashLandsAsAnImpact = false;
+            EndRow();
+            if (feel.aBashLandsAsAnImpact)
+            {
+                feel.bashRocksTheTrunk = Lever("Bash rocks", feel.bashRocksTheTrunk, 0f, 0.6f, "How much of a bash's momentum rocks a trunk, against a sword blow's 1. Higher: every bash rocks both trunks further, and a small one comes nearer a hard one.");
+                feel.bashRocksUpTo = Mathf.Round(Slide("Rocks up to", $"{feel.bashRocksUpTo:0} deg", "The furthest a body's impact may rock an upper body (the spine and the chest together). A sword blow's most is 34 degrees.", feel.bashRocksUpTo, 34f, 90f));
+                feel.bashForceOnTheBody = Lever("Bash force", feel.bashForceOnTheBody, 0f, 0.5f, "How much of a bash's momentum is put on the physical upper body as force, on top of what the pose shows.");
+            }
+
+            BeginRow();
+            Words(new GUIContent("A block jars:", "What a blow stopped on a shield does to the one who struck it (Combat Feel \"A Block Jars The Striker By All Of It\"). By all of it (new): what the shield took comes back at his weapon hand, equal and opposite, and rocks his trunk as it rocks the blocker's. By a part (old): a part of it, by \"Jar Scale\"."), GUILayout.Width(100f));
+            if (Press(feel.aBlockJarsTheStrikerByAllOfIt ? "[the striker by all of it]" : "the striker by all of it", "Equal and opposite.")) feel.aBlockJarsTheStrikerByAllOfIt = true;
+            if (Press(!feel.aBlockJarsTheStrikerByAllOfIt ? "[by a part (old)]" : "by a part (old)", "As before.")) feel.aBlockJarsTheStrikerByAllOfIt = false;
             EndRow();
             CounterBashSettings(feel);
             if (feel.aShieldBashesWhatComesTooNear)

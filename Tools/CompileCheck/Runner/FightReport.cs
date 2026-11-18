@@ -1133,6 +1133,26 @@ internal static class FightReport
             }
         }
 
+        // (FIGHT_BASHIMPACT=0: a bash as a shove, as before. FIGHT_BASHROCKS, FIGHT_BASHFORCE. FIGHT_BLOCKJARS=0: a block
+        // jars the striker by a part, as before. IMPACT lines: the impact meter's.)
+        PhysicsBattler.Locomotion.ClipFighter.BashIsImpact = Environment.GetEnvironmentVariable("FIGHT_BASHIMPACT") != "0";
+        PhysicsBattler.Locomotion.StrikeHits.BlockJarsStriker = Environment.GetEnvironmentVariable("FIGHT_BLOCKJARS") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.BashStops = Environment.GetEnvironmentVariable("FIGHT_BASHSTOP") != "0";
+        foreach (var (name, set) in new (string, Action<float>)[]
+        {
+            ("FIGHT_BASHROCKS", v => PhysicsBattler.Locomotion.ClipFighter.BashRocks = v),
+            ("FIGHT_BASHFORCE", v => PhysicsBattler.Locomotion.ClipFighter.BashForce = v),
+            ("FIGHT_BASHMOST", v => PhysicsBattler.Locomotion.ClipFighter.BashRocksMost = v),
+        })
+        {
+            if (float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value))
+            {
+                set(value);
+            }
+        }
+
+        PhysicsBattler.Locomotion.ImpactMeter.Clear();
+        PhysicsBattler.Locomotion.ImpactMeter.Measured += r => Console.WriteLine($"IMPACT {UnityEngine.Time.time:0.00} {(r.By.FightUnit != null ? r.By.FightUnit.name : "?")} on {(r.On.FightUnit != null ? r.On.FightUnit.name : "?")}: {r.Text}");
         PhysicsBattler.Locomotion.ClipFighter.HardBashCountered += (who, by, held) => Console.WriteLine($"BASHCOUNTER {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: his counter-bash {(held ? "held" : "did not hold")} against {(by.FightUnit != null ? by.FightUnit.name : "a fighter")}'s hard bash");
         // (FIGHT_DODGEALL=1: every fake is dodged and, in the dance, every blow made out in time. FIGHT_DODGEDROPS=0: in a gesture of his own he cannot dodge, as before.)
         PhysicsBattler.Locomotion.ClipFighter.DodgesEvery = Environment.GetEnvironmentVariable("FIGHT_DODGEALL") == "1";

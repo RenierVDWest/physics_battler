@@ -6143,3 +6143,70 @@ for whether the finding is local or belongs to the whole system. The document is
   on someone, kicks).
 
 It waits for his word.
+
+**Impacts that carry weight, steps 1 and 2: the meter, and the bash through the door (18 November, midday).**
+Renier's answers to the plan (11:54): a counter that holds still costs the defender ground: yes; the basher
+is thrown back a step for a medium and a hard bash, a light one for me to decide; sword blocks on a shield
+feel weak too, "I want you to also look into this"; and on unpredictability: "I don't want you to add fake
+unpredictable behaviour, I just want the variations that come from the real physics collisions". So nothing
+in these steps is drawn by lot.
+
+- *Step 1, the impact meter* (`Locomotion/ImpactMeter.cs`, `ImpactRecord`, `ImpactShown`; it changes nothing).
+  For every bash that lands and every blow stopped on a shield, it watches the two bodies for 0.6 s and says:
+  what came in along the line between them (two bodies meeting: each one's weight times its speed over the
+  ground; a blade: the blow's own momentum); what is left as motion of the two bodies afterwards (their speed
+  over the ground from 0.25 to 0.6 s after); what that leaves unaccounted for; what the door handed over and
+  back; and what each body showed. First the reaction's own share, whatever else the body was doing (a bash of its
+  own, a cut carried through): how far the reaction rocked its upper body and drove its arms back. Then all of
+  it together on the posed skeleton: the angle its line from hips to head moved through, its shoulders turned,
+  its hips dropped, its head shifted over its hips. In the lab: "Impact meter" under "Last bash". Headless: `IMPACT` lines.
+  In the playtest log: `impact`. (The plan's own first figures took the trunk's lean on the line from hips to
+  chest, which shows about a quarter of what the spine and chest turn together; the meter's line to the head
+  shows it whole. The two are not to be compared.)
+- *Step 2, the door* (`ClipFighter.TakeImpact`, `BashIsImpact`; Combat Feel "A Bash Lands As An Impact", on;
+  the lab's "A bash lands: as an impact / as a shove (old)"; `FIGHT_BASHIMPACT=0`). A bash hands the other the
+  momentum its board arrives with (its shove times his weight: 94 N·s for a small one, 285 for a medium, 468
+  for a hard one in the lab) at the point it really met him, through the reactions a sword blow has: force
+  on his physical body (`Upper.Strike`, "Bash Force On The Body", 0.12 of it); his upper body rocked about his
+  hips by the lever of where it landed (`Recoil`; "Bash Rocks The Trunk", 0.17 of it against a blade's 1; it
+  may rock him further than a blade may, "Bash Rocks Up To", 57 degrees against 34); his body bent where it
+  landed (`AddImpact`); the part gone soft; poise lost (3 for each m/s of the shove).
+  - *On a shield.* What the board meets is looked at now: his shield driven out in a counter, or held in
+    cover between the two of them (its middle before his body toward the basher and within its own reach of
+    the bash's line), or his body. On a shield his shield arm is driven back by the weight of it, as far as
+    it has room before his chest, and his guard is knocked open if it is heavy enough (`KnockArmBy`, the
+    blows' own "Shield Give Per Weight" and "Guard Open From"); what the arm takes comes into his trunk at his
+    shield shoulder, so that is where its lever is: mostly back, and a little round, because the shield is on
+    one side of him.
+  - *Equal and opposite.* The basher takes the same amount back at his own shield arm (half of it when he
+    met a body that gave way: `BashBackOffBody`): his arm driven back, his upper body rocked.
+  - *Both stand still a moment as it lands* (`ImpactStop`, the blows' own least and most hit stop: 0.04 to
+    0.16 s by the shove). Not when it knocks him over: held still as he was thrown, he went 0.8 m where he
+    should go 2.5.
+  - *What it does not change:* where the two end up. The shove, the stumble, the knock-down and the counter's
+    fixed speeds are as they were; working those out is step 3.
+- *A blow stopped on a shield jars the striker by all of it* (`StrikeHits.BlockJarsStriker`, `ClipFighter.Jar`
+  with `whole`; Combat Feel "A Block Jars The Striker By All Of It", on; the lab's "A block jars: the striker by
+  all of it / by a part (old)"; `FIGHT_BLOCKJARS=0`). What the shield took comes back at his weapon hand and
+  rocks him as it rocks the blocker (0.6 of a blow on the body). Before, he was rocked by what a heavy weapon
+  would not keep of its swing, times "Jar Scale": about a tenth of it. In any fight.
+- *No dice.* One bash differs from the next by where the two boards or the board and the body really met, by
+  which way the board was driven, and by how each stood: the lever about the hips is taken from those.
+- *Measured* (headless, the duel lab's line-up, one bash each, old against new, on the meter). The reaction's own rock of the upper body (the spine and chest together), on both men alike, where it was 0
+  to 1 degree before: a small bash 10 to 11 degrees, a medium one 27 to 28, a hard one 37 to 38. With all
+  else each was doing, the line from hips to head of the one who took it moved: a small bash 6 degrees (2
+  before), a medium one on his shield 18 (5), a hard one on his counter 18 (7); his head over his hips 6, 18
+  and 17 cm (2, 5 and 6). The shield arm driven back: 8 to 25 cm (0 to 2). A hard bash that is not held
+  still knocks him down 2.4 m back (2.55 before). A cut stopped on a shield (the aim test, the same two
+  blows of 23 N·s old and new): the blocker rocked 20 degrees and his shield arm back 13 cm, both as before;
+  the striker rocked 17 degrees, where it was 3. The fight of six ran its 40 s; it goes
+  another way with the striker jarred (68 blows and 3 against 2 standing, where it was 60 and 3 against 1), and
+  its fighters have a forearm or hand inside their own bodies for 4.1 s in all against 3.1 s (six fighters,
+  40 s): to be watched.
+- *Known.* The hips do not drop and the feet do not slide: that is step 4. A counter's two speeds are still
+  written in, so the meter still reads about 290 N·s unaccounted for on a countered hard bash: step 3. On a
+  countered hard bash the one who countered has a forearm or hand inside his own body for about a tenth of a
+  second in all (none before). A medium and a hard bash rock the one who takes them about as far as each other:
+  the rock is near its most by a medium one.
+
+Not seen in Unity.

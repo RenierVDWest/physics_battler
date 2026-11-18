@@ -1981,6 +1981,8 @@ namespace PhysicsBattler.Locomotion
         public void Move(float dt, Vector3 want, float yaw, Vector3 opponent, bool frozen)
         {
             clock += dt;
+            // (What he shows of an impact he is in, for the meter: read off the pose as it was last shown.)
+            ImpactMeter.Sample(this, Time.time);
             StepUncover(dt);
             if (Fallen)
             {
@@ -5662,6 +5664,155 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        // ---- Impacts that carry weight (18 November): the meter's eyes, and the door ----
+
+        private float ShouldersSeen()
+        {
+            Vector3 across = Anim.Part(PartId.UpperArmR).position - Anim.Part(PartId.UpperArmL).position;
+            return Mathf.Atan2(across.x, across.z) * Mathf.Rad2Deg;
+        }
+
+        /// <summary>The line from his hips to his head: what his spine and his chest turn together shows in it.</summary>
+        private Vector3 UpSeen() => (Anim.Part(PartId.Head).position - Anim.Part(PartId.Pelvis).position).normalized;
+
+        /// <summary>For the impact meter: how he is posed as an impact begins.</summary>
+        internal void ImpactPose(ref ImpactShown shown)
+        {
+            Vector3 pelvis = Anim.Part(PartId.Pelvis).position;
+            shown = new ImpactShown
+            {
+                Up0 = UpSeen(), Turn0 = ShouldersSeen() - Loco.Facing, Pelvis0 = pelvis, Head0 = Anim.Part(PartId.Head).position - pelvis,
+                Arm0 = Anim.Part(PartId.HandL).position - Anim.Part(PartId.Chest).position, At0 = Loco.Position,
+            };
+        }
+
+        /// <summary>For the impact meter: what he shows now, so long after the impact began.</summary>
+        internal void ImpactWatch(ref ImpactShown shown, float since)
+        {
+            if (shown.To)
+            {
+                return;
+            }
+
+            Vector3 pelvis = Anim.Part(PartId.Pelvis).position;
+            Vector3 head = Anim.Part(PartId.Head).position - pelvis - shown.Head0;
+            head.y = 0f;
+            shown.Rock = Mathf.Max(shown.Rock, Vector3.Angle(UpSeen(), shown.Up0));
+            shown.Reacted = Mathf.Max(shown.Reacted, lean.magnitude * Mathf.Rad2Deg);
+            shown.SwordArmGave = Mathf.Max(shown.SwordArmGave, knock[0].magnitude);
+            shown.ShieldArmGave = Mathf.Max(shown.ShieldArmGave, knock[1].magnitude);
+            shown.Turn = Mathf.Max(shown.Turn, Mathf.Abs(Mathf.DeltaAngle(shown.Turn0, ShouldersSeen() - Loco.Facing)));
+            shown.Drop = Mathf.Max(shown.Drop, shown.Pelvis0.y - pelvis.y);
+            shown.Head = Mathf.Max(shown.Head, head.magnitude);
+            shown.Arm = Mathf.Max(shown.Arm, (Anim.Part(PartId.HandL).position - Anim.Part(PartId.Chest).position - shown.Arm0).magnitude);
+            if (!shown.From && since >= ImpactMeter.SpeedFrom)
+            {
+                shown.From = true;
+                shown.AtFrom = Loco.Position;
+            }
+
+            if (since >= ImpactMeter.Watches)
+            {
+                shown.To = true;
+                shown.AtTo = Loco.Position;
+            }
+        }
+
+        /// <summary>
+        /// A bash lands as an impact (the plan "Impacts that carry weight", step 2; Combat Feel "A Bash Lands As An
+        /// Impact"). What it hands the other is an amount of momentum at the point the board meets him, through the
+        /// reactions a sword blow has: his trunk rocked about his hips by the lever of where it landed, his body bent
+        /// there with his knees taking it, the part gone soft, force on his physical body; on a shield (held in
+        /// cover, or driven out in a counter) his shield arm driven back and his guard knocked open by its weight.
+        /// The basher takes the same amount back at his own shield arm: equal and opposite. Both stand still a
+        /// moment as it lands. Nothing of it is drawn by lot: what differs from one bash to the next is where the
+        /// board really met him, which way it was really going and how the two really stood. Off: a bash only
+        /// changes the other's speed over the ground, or knocks him over, as before.
+        /// </summary>
+        public static bool BashIsImpact = true;
+
+        /// <summary>
+        /// How much of a bash's momentum rocks a trunk (against a sword blow's 1: a body's whole weight arriving is ten
+        /// times a cut's, and a trunk can only rock so far), how much of it is put on the physical body as force, and
+        /// how much of what a bash meets the basher takes back when it meets a body that gives (met by a shield he
+        /// takes all of it).
+        /// </summary>
+        public static float BashRocks = 0.17f, BashForce = 0.12f, BashBackOffBody = 0.5f;
+
+        /// <summary>The most a body's impact may rock a trunk (radians, the spine and the chest together; a blade's blow, <see cref="MostLean"/>).</summary>
+        public static float BashRocksMost = 1f;
+
+        /// <summary>How long both stand still as a bash lands: so much (seconds) and so much more for each m/s of the shove, within the blows' own least and most.</summary>
+        public const float BashStopBase = 0.03f, BashStopPerSpeed = 0.02f;
+
+        /// <summary>Both stand still a moment as a bash lands (off: no hit stop for a bash, as before).</summary>
+        public static bool BashStops = true;
+
+        /// <summary>The poise a bash costs the one it meets, for each m/s of its shove.</summary>
+        public const float BashPoise = 3f;
+
+        /// <summary>Both fighters of an impact stand still this long yet (seconds): the hit stop of an impact that is no blade's.</summary>
+        public float ImpactStop;
+
+        /// <summary>
+        /// The door for a body's impact: <paramref name="impulse"/> (N·s, world) at <paramref name="point"/>, on his
+        /// shield or on his body. His reactions only: what it does to his speed over the ground is the caller's.
+        /// </summary>
+        /// <param name="poise">The poise it costs him.</param>
+        /// <param name="taken">He is the one it was dealt to (it may knock his guard open, and he was struck); off: it is what comes back to the one who dealt it.</param>
+        public void TakeImpact(Vector3 impulse, Vector3 point, bool onShield, float rocks, float force, float poise = 0f, bool taken = true)
+        {
+            float j = impulse.magnitude;
+            if (j < 1e-3f || Fallen)
+            {
+                return;
+            }
+
+            if (taken)
+            {
+                lastHit = clock;
+                Poise = Mathf.Max(0f, Poise - poise);
+            }
+
+            if (Upper != null && CombatFeel.HitForce > 0f && force > 0f)
+            {
+                HitForceGiven += Upper.Strike(onShield ? PartId.ForearmL : PartId.Chest, impulse * (force * CombatFeel.HitForce), point);
+                HitForces++;
+            }
+
+            // (The trunk about the hips, by the lever of where it really landed: high, he is rocked back; off his
+            // middle, he is turned.)
+            // (What his shield takes comes into his trunk at his shield shoulder: that is where its lever is.)
+            Recoil(impulse, onShield ? Anim.Part(PartId.UpperArmL).position : point, onShield ? PartId.HandL : PartId.Chest, rocks * ReactScale, BashRocksMost);
+            float weight = j / Mathf.Max(1f, Mass);
+            if (onShield)
+            {
+                // (The shield arm gives by the weight of it, as to a blow; heavy enough, the guard is knocked open.)
+                bool open = taken && weight >= CombatFeel.GuardOpenFrom * GuardHolds;
+                float give = Mathf.Min(CombatFeel.ShieldGivePerWeight * weight / GuardHolds, CombatFeel.MostShieldGive) * Size;
+                // (No further than the room his hand has before his chest: a board driven back stops against him.)
+                float room = Vector3.Dot(Anim.Part(PartId.HandL).position - Anim.Part(PartId.Chest).position, -impulse / j) - 0.2f * Size;
+                give = Mathf.Min(open ? Mathf.Max(give, CombatFeel.MostShieldGive * Size) : give, Mathf.Max(0.03f * Size, room));
+                KnockArmBy(1, impulse, point, give, ArmKnockFrequency);
+                if (open)
+                {
+                    guardOpenUntil = Mathf.Max(guardOpenUntil, clock + CombatFeel.GuardOpenFor);
+                    GuardsOpened++;
+                }
+
+                Soften(BodyRegion.ArmL, 0.4f, 0.4f);
+                // (What the arm does not take goes on into the body behind it.)
+                AddImpact(point, impulse * (rocks * 0.5f));
+            }
+            else
+            {
+                AddImpact(point, impulse * rocks);
+                Soften(BodyRegion.Torso, 0.3f, 0.6f);
+            }
+
+            Touches++;
+        }
+
         // ---- A hard bash countered (18 November) ----
 
         /// <summary>
@@ -5849,12 +6000,54 @@ namespace PhysicsBattler.Locomotion
                         bool countered = bashKindAt == 2 && enemy.Countering(this);
                         bool held = countered && enemy.counterHeld;
                         Vector3 out_ = Flat(enemy.Loco.Position - Loco.Position).normalized;
+                        // (What it meets: his board, driven out in a counter or held in cover between the two of them;
+                        // or his body. And where: between the boards, or where this board is against him.)
+                        bool onShield = countered;
+                        Vector3 met = board;
+                        float arrived = shove;
+                        if (enemy.ShieldBoard(out Vector3 his, out _, out float hisRadius) && !enemy.GuardOpen)
+                        {
+                            Vector3 across = his - board;
+                            float along = Vector3.Dot(Flat(across), bashWay);
+                            Vector3 aside = across - bashWay * Vector3.Dot(across, bashWay);
+                            bool between = Vector3.Dot(Flat(his - enemy.Loco.Position), -out_) > 0.08f * enemy.Size && along > -0.1f * Size && along < 0.6f * Size && aside.magnitude <= hisRadius + 0.2f * Size;
+                            onShield |= between;
+                            if (onShield)
+                            {
+                                met = 0.5f * (board + his);
+                            }
+                        }
+
+                        var seen = ImpactMeter.Begin($"a {bashKind.Name} bash on {(countered ? "a counter-bash" : onShield ? "a shield in cover" : "the body")}", this, enemy, out_, Time.time);
+                        if (BashIsImpact)
+                        {
+                            // (Through the door: the momentum the board arrives with, at the point it met him, the way the
+                            // board was driven; and the same back at this one's own shield arm. Both stand still a moment.)
+                            float handed = shove * enemy.Mass, back = handed * (onShield ? 1f : BashBackOffBody);
+                            enemy.TakeImpact(bashWay * handed, met, onShield, BashRocks, BashForce, BashPoise * shove, true);
+                            TakeImpact(-bashWay * back, met, true, BashRocks, BashForce, 0f, false);
+                            if (seen != null)
+                            {
+                                seen.Handed = handed;
+                                seen.HandedBack = back;
+                            }
+                        }
+
                         if (held)
                         {
                             shove = Mathf.Min(shove, 0.8f * BashStumblesFrom * Mathf.Sqrt(enemy.Size));
                         }
 
                         string did = enemy.Bashed(out_, shove, this);
+                        if (BashIsImpact && BashStops && did != "down")
+                        {
+                            // (Both stand still a moment as it lands. Not when it knocks him over: a body held still as it
+                            // is thrown is not thrown; headless it went 0.8 m where it should go 2.5.)
+                            float stop = Mathf.Clamp(BashStopBase + BashStopPerSpeed * arrived, CombatFeel.LeastHitStop, CombatFeel.MostHitStop);
+                            ImpactStop = Mathf.Max(ImpactStop, stop);
+                            enemy.ImpactStop = Mathf.Max(enemy.ImpactStop, stop);
+                        }
+
                         BashesStumbled += did == "stumbled" ? 1 : 0;
                         BashesFelled += did == "down" ? 1 : 0;
                         if (countered)
@@ -7116,6 +7309,9 @@ namespace PhysicsBattler.Locomotion
 
         private Vector3 lean, leanV, headSnap, headV;
 
+        // (The most the trunk may lean now: a blade's, until a body's impact asks for more, and again once it has settled.)
+        private float leanMost = MostLean;
+
         /// <summary>How far the blows throw the upper body now (radians), for the logs.</summary>
         public float Lean => lean.magnitude;
         private readonly Vector3[] knock = new Vector3[2], knockV = new Vector3[2], knockTurn = new Vector3[2], knockTurnV = new Vector3[2];
@@ -7143,7 +7339,8 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>The upper body turned about the hips by the blow's lever; the head snapped by one to it.</summary>
-        private void Recoil(Vector3 impulse, Vector3 point, PartId part, float scale)
+        /// <param name="most">The most it may rock the trunk (radians): a blade's blow, <see cref="MostLean"/>; a body's impact, further.</param>
+        private void Recoil(Vector3 impulse, Vector3 point, PartId part, float scale, float most = MostLean)
         {
             float j = impulse.magnitude * scale;
             if (j < 1e-4f)
@@ -7159,7 +7356,9 @@ namespace PhysicsBattler.Locomotion
             if (axis.sqrMagnitude > 1e-8f)
             {
                 float leverage = Mathf.Clamp(lever.magnitude / leg, 0.2f, 1.4f);
-                float amount = MostLean * Tanh(1.5f * j * leverage / (Mass * leg)) * CombatFeel.LeanScale;
+                // (A body's impact may rock it further than a blade's: by as much more, it takes as much more to get there.)
+                float amount = most * Tanh(1.5f * j * leverage / (Mass * leg) * (MostLean / Mathf.Max(MostLean, most))) * CombatFeel.LeanScale;
+                leanMost = Mathf.Max(leanMost, most);
                 leanV += axis.normalized * (amount * Kick * w);
             }
 
@@ -7217,15 +7416,19 @@ namespace PhysicsBattler.Locomotion
         /// A blow of its own stopped on a shield or a blade jars it (the plan "Weight and momentum", step 4): its upper
         /// body rocked back by <paramref name="impulse"/> (world, N·s, back along its blow) at the weapon hand.
         /// </summary>
-        public void Jar(Vector3 impulse, Vector3 point)
+        /// <param name="whole">All of it, as the one who blocked it is rocked (<see cref="BlockRocks"/>); off: by the scene's "Jar Scale".</param>
+        public void Jar(Vector3 impulse, Vector3 point, bool whole = false)
         {
-            if (Fallen || CombatFeel.JarScale <= 0f)
+            if (Fallen || (!whole && CombatFeel.JarScale <= 0f))
             {
                 return;
             }
 
-            Recoil(impulse, point, PartId.HandR, CombatFeel.JarScale * ReactScale);
+            Recoil(impulse, point, PartId.HandR, (whole ? BlockRocks : CombatFeel.JarScale) * ReactScale);
         }
+
+        /// <summary>How much of a blow on a shield rocks its bearer's trunk, against a blow on his body.</summary>
+        public const float BlockRocks = 0.6f;
 
         /// <summary>Its shield guard knocked open by a heavy blow and not back yet: the shield moves to meet nothing.</summary>
         public bool GuardOpen => clock < guardOpenUntil;
@@ -7347,7 +7550,12 @@ namespace PhysicsBattler.Locomotion
         {
             Spring(ref lean, ref leanV, ReactFrequency, ReactDamping, dt);
             Spring(ref headSnap, ref headV, HeadFrequency, ReactDamping, dt);
-            lean = Vector3.ClampMagnitude(lean, MostLean);
+            lean = Vector3.ClampMagnitude(lean, leanMost);
+            if (lean.sqrMagnitude < 0.0025f && leanV.sqrMagnitude < 0.01f)
+            {
+                leanMost = MostLean;
+            }
+
             headSnap = Vector3.ClampMagnitude(headSnap, MostHeadSnap);
             for (int a = 0; a < 2; a++)
             {
