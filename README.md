@@ -6372,3 +6372,55 @@ shields dancing for some 112 s: 62 crossings, 7.0 s in all. The shield in his ow
 shield-side thigh in 20 of them, the hips in 7, the chest in 5; 14 of them just after he was struck), his blade
 through his own shield 16 times and 1.9 s, his sword arm through it 10 times and 1.2 s. Its two get-ups had the
 shield 5 cm over the ground and 4 cm in it for 0.17 s. The thigh is what this step's guard and collision are for.
+
+**The shield gives way to the sword (18 November, night).** Renier, 19:44, to the plan's first open question
+(when sword and shield want the same space, which gives way): "yes this looks good. Proceed with the sword and
+shied where the shield gives way to the sword".
+
+- *Why his sword went through his own shield.* His two arms were each posed alone: the sword arm by the
+  attack, the shield arm by its cover, and the board is held before his chest through his own blows ("The
+  Shield Is Held In Cover"), its rim a hand's breadth past his breastbone on the sword's side. Nothing looked at
+  the pair.
+- *The rule* (`ClipFighter.GiveWayToSword`, `ShieldGivesWayToSword`; Combat Feel "The Shield Gives Way To The
+  Sword"; the lab's "His shield and his sword: the shield gives way / pass through each other (old)";
+  `FIGHT_GIVEWAY=0`). In the same last place the pose is finished in, before the board is kept out of his body:
+  his sword's two lines (forearm to knuckles; blade from a hand's breadth up it to its tip) are taken where the
+  pose has them and where they are seen (the physical sword: a blade stopped on the other's shield was up to 57
+  cm at its tip from where the pose had it, and it is the seen blade that goes through the seen board), each with
+  where it is going by how it moved this step, over the next 0.3 s ("Sword seen ahead", `SwordSeenAhead`).
+  Wherever one of them passes through the board's face in that time, the board steps aside in its own plane: of
+  sixteen ways across its face, the least that leaves every such place 6 cm clear of its rim ("Sword's lane",
+  `SwordLane`; the forearm its own thickness more), ways across his own chest costing half as much again and
+  ways up before his face a quarter more, and the way it is already giving kept unless another is clearly less.
+  The path clear, it comes back over a quarter of a second (`LaneCloses`). What it is asked is followed smoothly
+  as all his shield hand is, at the quicker rate while it gives way. The body's own guard and the collision
+  with his body come after it and win.
+- *Met softly, mended* (`UpperBodyArticulation.FeelHeld`). This evening's "met softly" also had the arm give way
+  at once while what it held was against his body. That gives way both ways: an arm whose pose then drew its
+  board away from his body stayed where it was, and with the board now stepping about for the sword, in a fight
+  of six a board sat in its bearer's belly for 3 s with the pose clear of it. Taken out: against his body the arm
+  presses with a third of its strength, and gives way as any joint does.
+- *Measured* (headless). The aim test, a sword and shield striking at one 19 times, the same build with the rule
+  off and on: his blade through his own shield 1.30 s, now 0.25 s; his sword arm through it 1.00 s, now 0.10 s;
+  13 crossings of a twentieth of a second or more, now 5 (of 110 fighter-seconds). The pose itself had 1.85 s of
+  those 2.30 s, now 0.17 s of 0.35 s: what is left is mostly the seen body off its pose. The board was asked
+  aside on about a sixth of the striker's steps, 52 cm at the furthest. 16 of his blows met the other's shield
+  and 14: his blows are as they were. The fight of six, 40 s, the two shield bearers on their feet throughout:
+  his blade through his own shield 0.13 s, his sword arm 0.07 s, his shield in his own body 0.07 s (his sword
+  upper arm): 0.3 s of 80 fighter-seconds and one crossing of a twentieth of a second or more, where this
+  morning's game had 4.0 s and 29. A second fight of six (another seed), the same build with the rule off and
+  on: his blade and sword arm through his own shield 2.4 s (22 crossings in all), now 0.2 s (6). The dance, 30 s: on his feet his blade through his shield 0.03 s and his sword
+  arm never, where this afternoon's had 1.2 s.
+- *What it costs.* The board moves in his own blows now: in the six it is asked aside up to 59 cm, and the
+  tremble measure, which cannot tell a step aside from a shake, reads the board over 5 mm 26% of the time while
+  he strikes (12% this evening) and 16% in all (6%); walking 6% (4), standing 7% (2). And a
+  shield that has stepped aside for his cut is not before his chest for that moment.
+- *Not covered.* His sword upper arm (the board in it 0.07 s of the six, 0.27 s of the dance; tried as a fifth
+  line and taken out again: nothing could be read to be better, the aim test's crossings 0.60 s against 0.35
+  s). A body that is falling, down or getting up (in the dance his blade was through his shield 0.8 s of 1.8 s
+  down): the rule is for a fighter on his feet; the plan's step 4.
+- *In the lab,* with the bash's settings: "His shield and his sword: the shield gives way / pass through each
+  other (old)", and the levers "Sword's lane" and "Sword seen ahead". The panel check passes in all five places.
+
+Not seen in Unity: any of it. In particular how far the board swings in a rising cut and a lunging chop, and
+whether it reads as a shield opened for the blow or as a shield flung aside.

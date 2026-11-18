@@ -1069,6 +1069,18 @@ internal static class FightReport
         // (FIGHT_TUCK=0: a body thrown off its feet does not tuck.)
         PhysicsBattler.Locomotion.ClipFighter.ThrownBodiesTuck = Environment.GetEnvironmentVariable("FIGHT_TUCK") != "0";
 
+        // (FIGHT_GIVEWAY=0: the shield does not give way to his own sword, as before 18 November's evening; FIGHT_GIVEWAY="0.06,0.3": the lane (m) and how far ahead (s).)
+        {
+            string give = Environment.GetEnvironmentVariable("FIGHT_GIVEWAY") ?? "";
+            PhysicsBattler.Locomotion.ClipFighter.ShieldGivesWayToSword = give != "0";
+            string[] lane = give.Split(',');
+            if (lane.Length == 2)
+            {
+                PhysicsBattler.Locomotion.ClipFighter.SwordLane = float.Parse(lane[0], System.Globalization.CultureInfo.InvariantCulture);
+                PhysicsBattler.Locomotion.ClipFighter.SwordSeenAhead = float.Parse(lane[1], System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+
         // (FIGHT_HELDSOFT=0: what he holds, stopped by his own body, is driven on into it with all the arm has, not met softly.)
         PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly = Environment.GetEnvironmentVariable("FIGHT_HELDSOFT") != "0";
         // (FIGHT_SETTLE=0: a body that is down goes on reaching, as before.)
@@ -2668,6 +2680,7 @@ internal static class FightReport
             sb.Append(PhysicsBattler.Locomotion.HeldShake.Text());
             sb.AppendLine($"    what he holds follows its pose smoothly: {(PhysicsBattler.Locomotion.ClipFighter.HeldSettles ? $"on ({PhysicsBattler.Locomotion.ClipFighter.HeldSettleRate:0} and {PhysicsBattler.Locomotion.ClipFighter.HeldSettleQuick:0} a second)" : "off")}; the furthest a hand was behind its pose for it (cm, shield hand / sword hand): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.HeldBehindMost[0] + u.Clip.HeldBehindMost[1] > 0f).Select(u => $"{u.name} {100f * u.Clip.HeldBehindMost[0]:0} / {100f * u.Clip.HeldBehindMost[1]:0}")));
             sb.AppendLine($"    what he holds met softly by his own body: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly ? "on" : "off")}; steps it was against his body (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldTouched[0]} / {u.Clip.Upper.HeldTouched[1]}")));
+            sb.AppendLine($"    the shield gives way to his own sword: {(PhysicsBattler.Locomotion.ClipFighter.ShieldGivesWayToSword ? "on" : "off")}; steps it was asked aside / the furthest (cm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.GaveWayToSword > 0).Select(u => $"{u.name} {u.Clip.GaveWayToSword} / {100f * u.Clip.GaveWayToSwordMost:0}")));
             sb.AppendLine($"    on his feet, stopped by his own body: his shield {(PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOnFeet ? "yes" : "no")}, his sword {(PhysicsBattler.Authority.UpperBodyArticulation.BladeStoppedOnFeet ? "yes" : "no")}");
             sb.AppendLine($"    impacts absorbed: {(PhysicsBattler.Locomotion.ClipFighter.ImpactsAbsorbed ? $"on ({PhysicsBattler.Locomotion.ClipFighter.Absorbed:0.00})" : "off")}");
             sb.AppendLine("    standing, as seen: a forearm or hand inside its own body (s) / what its right hand holds (s) / the longest stretch (s): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.ArmSeenIn:0.00} / {u.Clip.BladeSeenIn:0.00} / {u.Clip.ArmSeenInLongest:0.00}")));

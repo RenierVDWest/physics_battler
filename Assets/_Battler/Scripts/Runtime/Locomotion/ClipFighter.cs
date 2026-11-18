@@ -1762,6 +1762,7 @@ namespace PhysicsBattler.Locomotion
         };
 
         private readonly float[] crossFor = new float[3], crossAt = new float[3];
+        private float crossBoardOff, crossTipOff, crossTurnOff;
         private readonly string[] crossDoing = { "", "", "" }, crossWhat = { "", "", "" };
 
         /// <summary>What he is doing, for <see cref="SelfCrossings"/>; and the attack he is striking with, if he is.</summary>
@@ -1971,9 +1972,26 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            // (How far the seen board and the seen blade's tip are from where the pose has them, while one goes through the other.)
+            if ((blade || arm) && posedSlot != null && BoardOnSlot(out var on) && Anim.SlotWeaponR != null && slot != null)
+            {
+                crossBoardOff = Mathf.Max(crossBoardOff, Vector3.Distance(centre, posedSlot.TransformPoint(on)));
+                crossTipOff = Mathf.Max(crossTipOff, Vector3.Distance(slot.position + slot.rotation * Vector3.forward * Poser.WeaponLength, Anim.SlotWeaponR.position + Anim.SlotWeaponR.rotation * Vector3.forward * Poser.WeaponLength));
+                crossTurnOff = Mathf.Max(crossTurnOff, Vector3.Angle(normal, posedSlot.forward));
+            }
+
             Cross(SelfCrossings.Blade, blade, dt, doing, attack, attack ?? "");
             Cross(SelfCrossings.SwordArm, arm, dt, doing, attack, attack ?? "");
             Cross(SelfCrossings.Board, board, dt, doing, attack, what);
+            if (!blade && !arm && crossBoardOff + crossTipOff > 0f)
+            {
+                if (SelfCrossings.Log.Count > 0 && SelfCrossings.Log.Count < 60)
+                {
+                    SelfCrossings.Log[SelfCrossings.Log.Count - 1] += $" [the seen board up to {100f * crossBoardOff:0} cm and {crossTurnOff:0} degrees from its pose, the seen tip {100f * crossTipOff:0} cm]";
+                }
+
+                crossBoardOff = crossTipOff = crossTurnOff = 0f;
+            }
         }
 
         private static bool Inside(Collider solid, Vector3 p) => (solid.ClosestPoint(p) - p).sqrMagnitude < 1e-8f;
@@ -2804,7 +2822,13 @@ namespace PhysicsBattler.Locomotion
             if (CombatFeel.ShieldFixed && Poser.CarryL == LocoBody.Carry.Shield && !Rig.IsSevered(PartId.HandL))
             {
                 Transform su = Anim.Part(PartId.UpperArmL), sf = Anim.Part(PartId.ForearmL), sh = Anim.Part(PartId.HandL);
+                GiveWayToSword(dt, su, sf, sh);
                 KeepShieldOff(su, sf, sh, TwoBoneIK.BendWay(su, sf, sh));
+            }
+            else
+            {
+                laneKnown = false;
+                laneGive = Vector3.zero;
             }
 
             var chest = Anim.Part(PartId.Chest);
@@ -2945,7 +2969,7 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 heldAsked[a] = asked;
-                float urgent = left ? Mathf.Max(Mathf.Clamp01(interceptWeight), Bashing ? 1f : 0f) : 0f;
+                float urgent = left ? Mathf.Max(Mathf.Max(Mathf.Clamp01(interceptWeight), Bashing ? 1f : 0f), GivingWay) : 0f;
                 float w = Mathf.Lerp(HeldSettleRate, HeldSettleQuick, urgent);
                 CriticalSpring(ref heldAt[a], ref heldAtV[a], asked, w, dt);
                 // (Its turn the same way: how far it is turned from where it is asked, as a turn, settled like the place.)
@@ -5754,6 +5778,197 @@ namespace PhysicsBattler.Locomotion
                 }
             }
         }
+
+        /// <summary>
+        /// The shield gives way to the sword (18 November, Renier's word: "the shield gives way to the sword"; Combat
+        /// Feel "The Shield Gives Way To The Sword"). His two arms were each posed alone, and his own sword arm and
+        /// blade went through his own board (in a fight of six about once in three seconds for each shield bearer,
+        /// mostly in his own blows: the board is held before his chest through them). Now, as the last thing but the
+        /// keeping of the board out of his body: where his sword forearm or his blade passes through the board's
+        /// face, now or within <see cref="SwordSeenAhead"/> seconds at the speed they are moving, the board steps
+        /// aside in its own plane, the least way that leaves the whole of that path a lane
+        /// (<see cref="SwordLane"/> clear of its rim; outward and downward rather than across his own chest), and
+        /// comes back when the path is clear. What it is asked is then followed smoothly, as all his shield hand is
+        /// (<see cref="SettleHeld"/>, at its quicker rate while it gives way). Off: as before.
+        /// </summary>
+        public static bool ShieldGivesWayToSword = true;
+
+        /// <summary>The lane left the sword: how far clear of the board's rim its path is kept (metres at a Medium's size; its forearm that and the forearm's own thickness), and how far ahead its path is looked for (seconds).</summary>
+        public static float SwordLane = 0.06f, SwordSeenAhead = 0.3f;
+
+        /// <summary>How long the board takes to come back once the sword's path is clear of it (seconds).</summary>
+        public const float LaneCloses = 0.25f;
+
+        private readonly Vector3[] laneWas = new Vector3[8];
+        private bool laneKnown;
+        private Vector3 laneGive;
+
+        /// <summary>For the reports: steps the board was asked aside for the sword, and the furthest (metres).</summary>
+        public int GaveWayToSword;
+        public float GaveWayToSwordMost;
+
+        /// <summary>The board giving way to the sword now (0 to 1): its hand follows at the quicker rate.</summary>
+        private float GivingWay => Mathf.Clamp01(laneGive.magnitude / (0.05f * Size));
+
+        private void GiveWayToSword(float dt, Transform upper, Transform fore, Transform hand)
+        {
+            var slot = Anim.SlotWeaponL;
+            var sword = Anim.SlotWeaponR;
+            if (!ShieldGivesWayToSword || stance != Stances.Shield || slot == null || sword == null || Rig.IsSevered(PartId.HandR) || !BoardOnSlot(out var boardLocal) || dt <= 0f)
+            {
+                laneKnown = false;
+                laneGive = Vector3.zero;
+                return;
+            }
+
+            // (His sword's two lines, in the frame of where he stands: his forearm to his knuckles, and his blade from a
+            // hand's breadth up it to its tip. Where each end is going by how it moved this step.)
+            Vector3 rootAt = Loco.Position + Vector3.up * Poser.GroundY;
+            Quaternion rootTurn = Quaternion.Euler(0f, Loco.Facing, 0f), rootBack = Quaternion.Inverse(rootTurn);
+            Vector3 elbow = Anim.Part(PartId.ForearmR).position, wrist = Anim.Part(PartId.HandR).position, along = sword.rotation * Vector3.forward;
+            // (And the same two lines as they are seen, on the physical body: a blade stopped on the other's shield, or an
+            // arm knocked off its pose, is not where the pose has it (the tip up to 57 cm off, in the aim test), and it
+            // is the seen sword that goes through the seen board.)
+            var seen = Rig.SlotWeaponR;
+            bool seenToo = Authority != null && seen != null;
+            Vector3 elbowSeen = seenToo ? Rig.Part(PartId.ForearmR).transform.position : elbow, wristSeen = seenToo ? Rig.Part(PartId.HandR).transform.position : wrist;
+            Vector3 alongSeen = seenToo ? seen.rotation * Vector3.forward : along, gripSeen = seenToo ? seen.position : sword.position;
+            var now = new[]
+            {
+                rootBack * (elbow - rootAt), rootBack * (wrist + (wrist - elbow).normalized * (0.08f * Size) - rootAt),
+                rootBack * (sword.position + along * (0.1f * Size) - rootAt), rootBack * (sword.position + along * Poser.WeaponLength - rootAt),
+                rootBack * (elbowSeen - rootAt), rootBack * (wristSeen + (wristSeen - elbowSeen).normalized * (0.08f * Size) - rootAt),
+                rootBack * (gripSeen + alongSeen * (0.1f * Size) - rootAt), rootBack * (gripSeen + alongSeen * Poser.WeaponLength - rootAt),
+            };
+            // (His sword upper arm is not among them. Added as a fifth line it made nothing better that could be read: the
+            // aim test's crossings 0.60 s against 0.35 s, and the board still in his upper arm 0.08 s of a fight of six.)
+            var going = new Vector3[8];
+            for (int i = 0; i < 8; i++)
+            {
+                going[i] = laneKnown ? Vector3.ClampMagnitude((now[i] - laneWas[i]) / dt, 30f) : Vector3.zero;
+                laneWas[i] = now[i];
+            }
+
+            laneKnown = true;
+
+            // (The board as the pose has it, in the same frame: its middle, the way its face looks, and two ways across it.)
+            Vector3 centre = rootBack * (slot.TransformPoint(boardLocal) - rootAt), looks = rootBack * slot.forward;
+            float radius = ShieldRadius * Size;
+            Vector3 across = Vector3.Cross(looks, Vector3.up);
+            across = across.sqrMagnitude > 1e-6f ? across.normalized : Vector3.Cross(looks, Vector3.forward).normalized;
+            Vector3 upward = Vector3.Cross(across, looks);
+
+            // (Where those lines go through the board's face, now and over the moment ahead: each such place, and how far clear of it the rim is to be.)
+            lanePoints.Clear();
+            const int Looks = 6;
+            for (int k = 0; k <= Looks; k++)
+            {
+                for (int line = 0; line < (seenToo ? 4 : 2); line++)
+                {
+                    // (How far ahead: all of it for a line that is going somewhere (1.5 m/s and over at its faster end), none
+                    // for one that is not (under half a metre a second): a sword at rest by the board is where it is, and
+                    // looked ahead for by the little it stirs, the board stirred with it. The seen sword a third as far:
+                    // how it moves from step to step is rougher than the pose.)
+                    float quick = Mathf.Max(going[2 * line].magnitude, going[2 * line + 1].magnitude);
+                    float ahead = SwordSeenAhead * (line < 2 ? 1f : 0.33f) * Mathf.Clamp01((quick - 0.5f) / 1f) * k / Looks;
+                    if (k > 0 && ahead <= 0f)
+                    {
+                        continue;
+                    }
+
+                    Vector3 from = now[2 * line] + going[2 * line] * ahead, to = now[2 * line + 1] + going[2 * line + 1] * ahead;
+                    float a = Vector3.Dot(from - centre, looks), b = Vector3.Dot(to - centre, looks);
+                    if (a * b > 0f || Mathf.Abs(a - b) < 1e-6f)
+                    {
+                        continue;
+                    }
+
+                    Vector3 at = Vector3.Lerp(from, to, a / (a - b)) - centre;
+                    float clear = radius + (SwordLane + (line % 2 == 0 ? 0.05f : 0f)) * Size;
+                    float flatX = Vector3.Dot(at, across), flatY = Vector3.Dot(at, upward);
+                    if (flatX * flatX + flatY * flatY < clear * clear)
+                    {
+                        lanePoints.Add(new Vector3(flatX, flatY, clear));
+                    }
+                }
+            }
+
+            Vector3 need = Vector3.zero;
+            if (lanePoints.Count > 0)
+            {
+                // (The least way aside, of sixteen ways across its face, that leaves every such place clear of the rim. Ways
+                // across his own chest, to his sword side, cost half as much again; upward, before his face, a quarter more.)
+                Vector3 swordSide = rootBack * (Anim.Part(PartId.UpperArmR).position - Anim.Part(PartId.UpperArmL).position);
+                float inX = Vector3.Dot(swordSide, across), inY = Vector3.Dot(swordSide, upward), inLong = Mathf.Sqrt(inX * inX + inY * inY);
+                if (inLong > 1e-4f)
+                {
+                    inX /= inLong;
+                    inY /= inLong;
+                }
+
+                float best = float.MaxValue, bestBy = 0f;
+                Vector3 bestWay = Vector3.zero;
+                for (int w = 0; w < 16; w++)
+                {
+                    float angle = w * (Mathf.PI / 8f), wayX = Mathf.Cos(angle), wayY = Mathf.Sin(angle);
+                    float by = 0f;
+                    foreach (var p in lanePoints)
+                    {
+                        // (How far along this way the middle must go for this place to be the lane's width from it.)
+                        float alongWay = p.x * wayX + p.y * wayY;
+                        float off = p.x * p.x + p.y * p.y - alongWay * alongWay;
+                        by = Mathf.Max(by, alongWay + Mathf.Sqrt(Mathf.Max(0f, p.z * p.z - off)));
+                    }
+
+                    float cost = by * (1f + 0.5f * Mathf.Max(0f, wayX * inX + wayY * inY) + 0.25f * Mathf.Max(0f, wayY));
+                    // (The way it is already giving is kept unless another is clearly less: it does not flit from side to side.)
+                    Vector3 wayWorld = across * wayX + upward * wayY;
+                    if (laneGive.sqrMagnitude > 1e-6f)
+                    {
+                        cost *= 1f - 0.25f * Mathf.Max(0f, Vector3.Dot(wayWorld, laneGive.normalized));
+                    }
+
+                    if (cost < best)
+                    {
+                        best = cost;
+                        bestWay = wayWorld;
+                        bestBy = by;
+                    }
+                }
+
+                need = bestWay * bestBy;
+            }
+
+            if (need.sqrMagnitude > 1e-8f)
+            {
+                laneGive = need;
+                GaveWayToSword++;
+                GaveWayToSwordMost = Mathf.Max(GaveWayToSwordMost, need.magnitude);
+            }
+            else
+            {
+                // (The path clear: it comes back.)
+                laneGive *= Mathf.Exp(-dt * 3f / LaneCloses);
+                if (laneGive.sqrMagnitude < 1e-6f)
+                {
+                    laneGive = Vector3.zero;
+                }
+            }
+
+            if (laneGive.sqrMagnitude < 1e-8f)
+            {
+                return;
+            }
+
+            float reach = (Anim.RestLocalPosition(PartId.ForearmL).magnitude + Anim.RestLocalPosition(PartId.HandL).magnitude) * 0.97f;
+            Vector3 target = hand.position + rootTurn * laneGive;
+            target = upper.position + Vector3.ClampMagnitude(target - upper.position, reach);
+            var turned = hand.rotation;
+            TwoBoneIK.Solve(upper, fore, hand, target, TwoBoneIK.BendWay(upper, fore, hand));
+            hand.rotation = turned;
+        }
+
+        private readonly List<Vector3> lanePoints = new List<Vector3>();
 
         /// <summary>
         /// The shield's board kept out of its own head and trunk, however the arm came to have it there (raised to a

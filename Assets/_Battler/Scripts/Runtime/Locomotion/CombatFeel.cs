@@ -348,7 +348,16 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a fighter's sword is a solid thing against his own body while he is on his feet: its blade is stopped by his trunk, head, thighs and shins. Off: as before, his blade passed through him. The lab's \"His sword: solid against his body / passes through (old)\".")]
         public bool aSwordIsStoppedByItsBearersBody = true;
 
-        [Tooltip("On: a shield or sword that is stopped by its bearer's own body is met softly: while it is against him that arm gives way at once and presses with a third of its strength, so it rests there and comes away as the pose does. Off: the arm is driven on into his body with all its strength, and what it holds trembles against him. Only does anything with the two settings above. The lab's \"Against his body: met softly / driven on (old)\".")]
+        [Tooltip("On: the shield gives way to his own sword. Where his sword forearm or his blade passes through his own board's face, now or in the moment ahead at the speed they are moving, the board steps aside in its own plane, the least way that leaves the sword a lane, and comes back when the path is clear. Off: as before, his two arms each posed alone, and his sword and its arm passing through his own shield. The lab's \"His shield and his sword: the shield gives way / pass through each other (old)\".")]
+        public bool theShieldGivesWayToTheSword = true;
+
+        [Tooltip("The lane the shield leaves his sword: how far clear of the board's rim the sword's path is kept (metres at a Medium's size). More: the shield stands further off his sword, and moves more.")]
+        [Range(0f, 0.2f)] public float swordLane = 0.06f;
+
+        [Tooltip("How far ahead the sword's path is looked for (seconds), at the speed it is moving. More: the shield starts to open sooner, and for swings that then do not come through. Less: it opens later and quicker.")]
+        [Range(0f, 0.5f)] public float swordSeenAhead = 0.3f;
+
+        [Tooltip("On: a shield or sword that is stopped by its bearer's own body is met softly: while it is against him that arm presses with a third of its strength, so it rests there. Off: the arm is driven on into his body with all its strength, and what it holds trembles against him. Only does anything with the two settings above. The lab's \"Against his body: met softly / driven on (old)\".")]
         public bool aHeldThingMeetsHisBodySoftly = true;
 
         [Tooltip("On: a get-up knows what the hands hold. A shield is laid flat under the forearm while the hands push, held up toward what he fights as it comes off them, and what both hands hold is kept out of the ground. Off: as it was from 11 November to 18 November, when a get-up was not told what was held and a shield or a sword went through the floor (headless: a shield's rim up to 36 cm under the ground for a second of a get-up). The lab's \"A get-up knows what is held\" with the get-ups' settings.")]
@@ -1605,6 +1614,9 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.CountersHardBash = aHardBashIsCounteredByAMediumBash;
             ClipFighter.CounterHolds = counterBashHolds / 100f;
             PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly = aHeldThingMeetsHisBodySoftly;
+            ClipFighter.ShieldGivesWayToSword = theShieldGivesWayToTheSword;
+            ClipFighter.SwordLane = Mathf.Clamp(swordLane, 0f, 0.2f);
+            ClipFighter.SwordSeenAhead = Mathf.Clamp(swordSeenAhead, 0f, 0.5f);
             ClipFighter.HeldSettles = whatHeHoldsMovesSmoothly;
             ClipFighter.HeldSettleRate = Mathf.Clamp(heldThingsSettleAt, 8f, 60f);
             ClipFighter.HeldSettleQuick = Mathf.Clamp(heldThingsSettleAtWhenPressed, 20f, 120f);

@@ -616,14 +616,15 @@ namespace PhysicsBattler.Authority
         /// <summary>
         /// What it holds, stopped by its own body, is met softly (18 November; Combat Feel "A Held Thing Meets His Body
         /// Softly"): while a held thing is within <see cref="HeldTouchWithin"/> of a part of its body that stops it,
-        /// that arm's joints give way at once (<see cref="HeldYieldsAt"/>, where a joint otherwise gives way 8
-        /// degrees behind) and press with a share of their strength (<see cref="HeldPress"/>). So an arm whose pose
-        /// would carry its shield or sword on into its own body rests it there, and comes away as the pose does;
-        /// driven on with all its strength, the solver and the arm argued, and what it held trembled. Off: stopped,
-        /// and driven on.
+        /// that arm's joints press with a share of their strength (<see cref="HeldPress"/>). So an arm whose pose
+        /// would carry its shield or sword on into its own body rests it there; driven on with all its strength, the
+        /// solver and the arm argued. (It first also gave way at once, 2 degrees behind its pose where a joint
+        /// otherwise gives way at 8. That gives way both ways: an arm whose pose then drew its board away from its body
+        /// stayed where it was, and in a fight of six a board sat in its bearer's belly for 3 s with the pose clear
+        /// of it. Taken out the same evening.) Off: stopped, and driven on.
         /// </summary>
         public static bool HeldMetSoftly = true;
-        public static float HeldTouchWithin = 0.02f, HeldYieldsAt = 2f * Mathf.Deg2Rad, HeldPress = 0.3f;
+        public static float HeldTouchWithin = 0.02f, HeldPress = 0.3f;
 
         private readonly bool[] heldTouching = new bool[2];
 
@@ -2154,11 +2155,6 @@ namespace PhysicsBattler.Authority
                 // its slack it was turned by the shield's motor each time the pose turned the board in the fist.)
                 // (Nor does a joint the pose has just turned at once: it is not behind, it has been moved.)
                 float gives = put[i] || gripped[i] ? float.MaxValue : GiveWay + GiveLag * rate[i].magnitude;
-                // (What this arm holds is against its own body: the arm gives way to it at once, and is not driven on into it.)
-                if (!put[i] && !gripped[i] && TouchingOf(i))
-                {
-                    gives = Mathf.Min(gives, HeldYieldsAt);
-                }
 
                 float mostAside = MostAside * (tight[i] > 0.5f ? HeldAside : 1f);
                 if (stopped[i] > 0f && !put[i])

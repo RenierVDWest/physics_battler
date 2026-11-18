@@ -1518,8 +1518,19 @@ namespace PhysicsBattler.Sandbox
             if (Press(!feel.aSwordIsStoppedByItsBearersBody ? "[passes through (old)]" : "passes through (old)", "As before.")) feel.aSwordIsStoppedByItsBearersBody = false;
             EndRow();
             BeginRow();
-            Words(new GUIContent("Against his body:", "How a shield or sword that is stopped by its bearer's own body is held there (Combat Feel \"A Held Thing Meets His Body Softly\"). Met softly (new): that arm gives way at once and presses with a third of its strength. Driven on (old): pressed into him with all the arm has, which makes it tremble."));
-            if (Press(feel.aHeldThingMeetsHisBodySoftly ? "[met softly]" : "met softly", "The arm gives way and rests it there.")) feel.aHeldThingMeetsHisBodySoftly = true;
+            Words(new GUIContent("His shield and his sword:", "What happens where a fighter's own sword and shield want the same space (Combat Feel \"The Shield Gives Way To The Sword\"). The shield gives way (new): where his sword arm or blade passes through his own board, now or in the moment ahead, the board steps aside and comes back after. Pass through each other (old): each arm posed alone."));
+            if (Press(feel.theShieldGivesWayToTheSword ? "[the shield gives way]" : "the shield gives way", "The board steps out of the sword's path.")) feel.theShieldGivesWayToTheSword = true;
+            if (Press(!feel.theShieldGivesWayToTheSword ? "[pass through each other (old)]" : "pass through each other (old)", "As before.")) feel.theShieldGivesWayToTheSword = false;
+            EndRow();
+            if (feel.theShieldGivesWayToTheSword)
+            {
+                feel.swordLane = Lever("Sword's lane", feel.swordLane, 0f, 0.2f, "How far clear of the board's rim the sword's path is kept (metres at a Medium's size). More: the shield stands further off the sword, and moves more.");
+                feel.swordSeenAhead = Lever("Sword seen ahead", feel.swordSeenAhead, 0f, 0.5f, "How far ahead the sword's path is looked for (seconds). More: the shield opens sooner. Less: later and quicker.");
+            }
+
+            BeginRow();
+            Words(new GUIContent("Against his body:", "How a shield or sword that is stopped by its bearer's own body is held there (Combat Feel \"A Held Thing Meets His Body Softly\"). Met softly (new): that arm presses with a third of its strength. Driven on (old): pressed into him with all the arm has, which makes it tremble."));
+            if (Press(feel.aHeldThingMeetsHisBodySoftly ? "[met softly]" : "met softly", "The arm rests it there, pressing lightly.")) feel.aHeldThingMeetsHisBodySoftly = true;
             if (Press(!feel.aHeldThingMeetsHisBodySoftly ? "[driven on (old)]" : "driven on (old)", "Pressed in with all the arm has.")) feel.aHeldThingMeetsHisBodySoftly = false;
             EndRow();
             Readout(new GUIContent("His own crossings: " + PhysicsBattler.Locomotion.SelfCrossings.Short() + ".", "Counted on the body as it is seen while a playtest is recorded: lines for the blade and the sword forearm against the board's disc, the board's rim and face against his own body. Strict: the meshes are thicker."), 2);
