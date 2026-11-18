@@ -4,7 +4,11 @@ An auto battler where fights play out physically: attacks are animated toward th
 aim at, and whatever the weapon or a flying body actually touches takes the hit.
 Unity 6.6 (6000.6.7f1), URP, PC.
 
+**New to this project, or a new chat? Read `CLAUDE.md` first**: the short briefing (how the work is done, the
+design rules, where things stand, the roadmap). This README is the full build log: search it, do not read it whole.
+
 Design spec (animation-first combat): https://claude.ai/artifact/HJeFzW1bbvt7n4gsLSUoUT
+The main plan in hand, the Fight Rhythm plan: https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh
 
 The first prototype (active ragdolls with muscles and a balance assist) is kept on the branch
 `backup/active-ragdoll-v1`. This branch starts over from the spec above.
@@ -6430,3 +6434,13 @@ way), read off its log's `cross` lines:* two sword and shields for some 190 s. T
 times and 1.2 s, 5 of them getting up and 2 on his feet (at 16:41: 36 times and 3.9 s, nearly all on his feet).
 His blade through his own shield 18 times and 2.1 s, his sword arm through it 15 times and 2.1 s, 13 of those
 in his own blows: what the shield giving way is for.
+
+### 18 November, late: a briefing for new chats, and the test scripts saved
+
+Nothing in the game changed. `CLAUDE.md` (at the top of the repository) is now the short briefing a new chat
+reads first: how Renier wants the work done, the design rules in force, the layout of the code, how to test
+without Unity, the plan documents with their state, where things stand and the roadmap. It is to be updated at
+the end of every step. The headless test scripts, which had lived only in one chat's workspace, are saved in
+`Tools/Headless/` with a README of their own (they write to `$S`, `/tmp/pb` unless set). The get-up sword shake
+Renier flagged is reproduced and measured but not fixed: what is known is in `CLAUDE.md` under "In hand". The
+frames of the 21:47 playtest log were looked at and removed.

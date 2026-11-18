@@ -1,0 +1,3 @@
+#!/bin/bash
+H="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; S="${S:-/tmp/pb}"; mkdir -p "$S"
+for n in "$@"; do echo "== $n"; grep -a -A14 "own crossings" $S/$n.txt | grep -a "own crossings\|striking \|standing \|pose itself" | sed -E 's/ +/ /g; s/, as seen//; s/: seconds of each, and the share of that time//' | cut -c1-260; grep -a "gives way to his own sword" $S/$n.txt | cut -c1-160; grep -a -A9 "what he holds trembles" $S/$n.txt | grep -a "in all\|striking" | sed -E 's/ +/ /g' | cut -c1-110; grep -a "^AIM " $S/$n.txt | grep -ao "met the shield\|landed on [A-Za-z]*\|met nothing\|LANDED" | sort | uniq -c | tr '\n' ' '; echo; done

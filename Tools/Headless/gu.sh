@@ -1,0 +1,3 @@
+#!/bin/bash
+H="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; S="${S:-/tmp/pb}"; mkdir -p "$S"
+grep -a "got up" "$1" | sed -E 's/^ *//; s/, turned[^;]*;//; s/ where its pose wanted it//; s/an arm in its own body at most/arm in/; s/, more than 2 cm in for/ for/; s/what it holds at most/held in/; s/a thigh turned on the hips at most/thigh/; s/and was at most/past/; s/degrees past the hip.s range/deg/; s/an ankle at the nearest/ankle/; s/of a leg.s length from its hip//; s/as seen \(the physical body\): an arm in its body for/seen arm/; s/what it holds for/held/; s/the fastest a part moved early/early/; s/a planted hand or foot at most/miss/; s/and they slid/slid/'
