@@ -119,6 +119,7 @@ namespace PhysicsBattler.Units
             Clip.Health = profile.maxHealth;
             Body = BodyMeasure.Of(transform, Anim, Rig);
             Loadout = new Loadout { Scale = Body.SizeFactor };
+            Clip.Kit = Loadout;
             Clip.Poser.BodyKey = body;
             Clip.Poser.TwoHanded = LocoLibrary.TwoHanded(body);
             Clip.Stance = ClipFighter.Stances.Open;

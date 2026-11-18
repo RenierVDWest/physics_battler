@@ -327,6 +327,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a blow stopped on a shield jars the striker by all of it: what the shield took comes back at his weapon hand, equal and opposite, and rocks his trunk as the blow rocks the blocker's. Off: by a part of it, as before (what a heavy weapon would not keep of its swing, times \"Jar Scale\").")]
         public bool aBlockJarsTheStrikerByAllOfIt = true;
 
+        [Tooltip("On: impacts are absorbed (a first trial, 18 November). A struck trunk and head go as far as before but settle without swinging back past where they set out from; a rocked trunk, a snapped head and a knocked leg come back slower than they went (a knocked arm as quickly as before); and a blade stopped by a shield or a parry stays on it instead of springing back off. Off: as before, a struck body comes back on a spring that swings past and back again, and a stopped blade is thrown back off what stopped it. The lab's \"Impacts: absorbed / as before (old)\" beside the bash's settings.")]
+        public bool impactsAreAbsorbed = true;
+
+        [Tooltip("How much impacts are absorbed: 0 is as before, 1 the most. At 1 a struck trunk settles with no swing back at all, trunk, head and legs come back at half the speed they went, and a stopped blade keeps a quarter of its spring back off a shield. 0.6 as it is: a first guess, to be tuned by eye.")]
+        [Range(0f, 1f)] public float absorbedHowMuch = 0.6f;
+
+        [Tooltip("On: a get-up knows what the hands hold. A shield is laid flat under the forearm while the hands push, held up toward what he fights as it comes off them, and what both hands hold is kept out of the ground. Off: as it was from 11 November to 18 November, when a get-up was not told what was held and a shield or a sword went through the floor (headless: a shield's rim up to 36 cm under the ground for a second of a get-up). The lab's \"A get-up knows what is held\" with the get-ups' settings.")]
+        public bool getUpsKeepWhatTheHandsHoldOffTheGround = true;
+
         [Tooltip("How often a counter-bash stops a hard bash knocking him over (per cent). Held: the two boards meet, he is shoved back a step and the basher is stopped. Not held: he goes down as if he had not countered. To be tied to his defensive skill later.")]
         [Range(0f, 100f)] public float counterBashHolds = 75f;
 
@@ -1577,6 +1586,9 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.Dance.HardBashAttacks = aHardBashIsAnAttackInTheDance;
             ClipFighter.CountersHardBash = aHardBashIsCounteredByAMediumBash;
             ClipFighter.CounterHolds = counterBashHolds / 100f;
+            ClipFighter.ImpactsAbsorbed = impactsAreAbsorbed;
+            ClipFighter.Absorbed = Mathf.Clamp01(absorbedHowMuch);
+            ClipFighter.GetUpsKnowWhatIsHeld = getUpsKeepWhatTheHandsHoldOffTheGround;
             ClipFighter.BashIsImpact = aBashLandsAsAnImpact;
             ClipFighter.BashRocks = bashRocksTheTrunk;
             ClipFighter.BashForce = bashForceOnTheBody;

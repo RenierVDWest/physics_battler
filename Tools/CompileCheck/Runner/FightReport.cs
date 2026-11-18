@@ -1044,6 +1044,8 @@ internal static class FightReport
         PhysicsBattler.Locomotion.SwordParry.FreeArmWithChest = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "feet";
         PhysicsBattler.Locomotion.SwordParry.FreeArmInFront = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "back";
         PhysicsBattler.Locomotion.ClipFighter.MeasuresArms = true;
+        PhysicsBattler.Locomotion.SelfCrossings.Clear();
+        PhysicsBattler.Locomotion.SelfCrossings.Measures = true;
 
         // (FIGHT_LEGSCLEAR=0: the get-up from its back as before 14 November: the planted foot under the hip, the other swept back through it.)
         PhysicsBattler.Motion.GetUp.LegsClearTheHips = Environment.GetEnvironmentVariable("FIGHT_LEGSCLEAR") != "0";
@@ -1159,6 +1161,17 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.DodgeDropsGesture = Environment.GetEnvironmentVariable("FIGHT_DODGEDROPS") != "0";
         PhysicsBattler.Locomotion.ClipFighter.FakeAnswered += (who, how) => Console.WriteLine($"FAKEANSWER {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: {how} a fake he took for a blow");
         PhysicsBattler.Motion.GetUp.FromRecordings = Environment.GetEnvironmentVariable("FIGHT_GETUPRECORDED") != "0";
+        PhysicsBattler.Locomotion.ImpactMeter.Trace = Environment.GetEnvironmentVariable("FIGHT_SHAKETRACE") == "1";
+        // (FIGHT_ABSORB=0: impacts as before 18 November's damping trial; FIGHT_ABSORBED=0.6: how much.)
+        PhysicsBattler.Locomotion.ClipFighter.ImpactsAbsorbed = Environment.GetEnvironmentVariable("FIGHT_ABSORB") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_ABSORBED"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float absorbed))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.Absorbed = absorbed;
+        }
+
+        // (FIGHT_GETUPHELD=0: a get-up that does not know what the hands hold, as before 18 November.)
+        PhysicsBattler.Locomotion.ClipFighter.GetUpsKnowWhatIsHeld = Environment.GetEnvironmentVariable("FIGHT_GETUPHELD") != "0";
+        PhysicsBattler.Motion.GetUp.HeldClearFromTheStart = Environment.GetEnvironmentVariable("FIGHT_GETUPCLAMP") != "0";
         // (FIGHT_GETUPCLEAR=0: a recorded get-up's feet where the recording has them, through the hips or not. FIGHT_GETUPCLEARS: how far clear, in leg lengths.)
         PhysicsBattler.Motion.GetUp.FeetClearHips = Environment.GetEnvironmentVariable("FIGHT_GETUPCLEAR") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GETUPCLEARS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float getUpClears))
@@ -2120,6 +2133,11 @@ internal static class FightReport
 
                     tubes.Step(dt);
                     int since = Mathf.RoundToInt((paceAt - tubeAt) / dt);
+                    if (tubeSent && since >= 0 && since <= 60 && since % 6 == 0)
+                    {
+                        Console.WriteLine($"TUBESPEED +{paceAt - tubeAt:0.00}: {tubes.Speeds} m/s along the way they were sent");
+                    }
+
                     if (tubeSent && since >= 0 && since <= 30 && since % 2 == 0 && Environment.GetEnvironmentVariable("FIGHT_TUBETRACE") == "1")
                     {
                         Console.WriteLine($"TUBE at +{paceAt - tubeAt:0.000}: {tubes.State}; the first target at ({units[0].Clip.Loco.Position.x:0.00},{units[0].Clip.Loco.Position.z:0.00})");
@@ -2620,6 +2638,8 @@ internal static class FightReport
 
             sb.AppendLine($"    hips {(PhysicsBattler.Locomotion.ClipFighter.HeldHips ? $"held ({PhysicsBattler.Authority.UpperBodyArticulation.HipQuick:0.0} Hz, at most {PhysicsBattler.Authority.UpperBodyArticulation.HipMost:0.0} weights)" : "locked")}: off the pose on average / at most (cm): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {(u.Clip.HipsOffSteps > 0 ? 100f * u.Clip.HipsOffSum / u.Clip.HipsOffSteps : 0f):0.0} / {100f * u.Clip.HipsOffMost:0.0}")));
             sb.AppendLine($"    a blow's force ({PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0} times its momentum): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.HitForces} blows, {u.Clip.HitForceGiven:0} N·s, a joint turned aside {(u.Clip.Upper != null ? u.Clip.Upper.HitBentMost : 0f):0} degrees at most")));
+            sb.Append(PhysicsBattler.Locomotion.SelfCrossings.Text());
+            sb.AppendLine($"    impacts absorbed: {(PhysicsBattler.Locomotion.ClipFighter.ImpactsAbsorbed ? $"on ({PhysicsBattler.Locomotion.ClipFighter.Absorbed:0.00})" : "off")}");
             sb.AppendLine("    standing, as seen: a forearm or hand inside its own body (s) / what its right hand holds (s) / the longest stretch (s): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.ArmSeenIn:0.00} / {u.Clip.BladeSeenIn:0.00} / {u.Clip.ArmSeenInLongest:0.00}")));
             sb.AppendLine("    swordsmen: the pose had the sword hand behind its own chest, on its feet and not striking (s) / swords taken up afresh after the guard was not held a while: " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Parry != null).Select(u => $"{u.name} {u.Clip.SwordBehindFor:0.00} / {u.Clip.SwordsTakenUp}")));
             var rose = units.Where(u => u.Clip != null).SelectMany(u => u.Clip.GetUpLog.Select(g => (u, g))).ToList();

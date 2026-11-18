@@ -1496,6 +1496,16 @@ namespace PhysicsBattler.Sandbox
             if (Press(feel.aBlockJarsTheStrikerByAllOfIt ? "[the striker by all of it]" : "the striker by all of it", "Equal and opposite.")) feel.aBlockJarsTheStrikerByAllOfIt = true;
             if (Press(!feel.aBlockJarsTheStrikerByAllOfIt ? "[by a part (old)]" : "by a part (old)", "As before.")) feel.aBlockJarsTheStrikerByAllOfIt = false;
             EndRow();
+            BeginRow();
+            Words(new GUIContent("Impacts:", "How a struck body comes back from any impact, a blade's or a bash's (Combat Feel \"Impacts Are Absorbed\"; a first trial). Absorbed (new): trunk and head go as far as before and settle without swinging back past; trunk, head and legs come back slower than they went; a blade stopped by a shield or a parry stays on it. As before (old): a struck body comes back on a spring that swings past and back again, and a stopped blade is thrown back off what stopped it."));
+            if (Press(feel.impactsAreAbsorbed ? "[absorbed]" : "absorbed", "No swing back; slower back than out; the blade stays on the shield.")) feel.impactsAreAbsorbed = true;
+            if (Press(!feel.impactsAreAbsorbed ? "[as before (old)]" : "as before (old)", "Springs that swing past; the blade thrown back off.")) feel.impactsAreAbsorbed = false;
+            EndRow();
+            if (feel.impactsAreAbsorbed)
+            {
+                feel.absorbedHowMuch = Lever("Absorbed how much", feel.absorbedHowMuch, 0f, 1f, "0: as before. 1: the most: no swing back at all, trunk, head and legs come back at half the speed they went, a stopped blade keeps a quarter of its spring back off a shield.");
+            }
+
             CounterBashSettings(feel);
             if (feel.aShieldBashesWhatComesTooNear)
             {
@@ -4662,6 +4672,19 @@ namespace PhysicsBattler.Sandbox
             {
                 feel.recordedGetUpTakes = Lever("Recorded get-up takes", feel.recordedGetUpTakes, 0.4f, 1f, "How long a recorded get-up is given, as a share of the recording's own time (3.7 s from his back, 4.5 s from his front). Lower: up sooner. 1: the recorded man's own pace.");
                 PhysicsBattler.Motion.GetUp.RecordedTakes = feel.recordedGetUpTakes;
+            }
+
+            bool held = feel != null ? feel.getUpsKeepWhatTheHandsHoldOffTheGround : PhysicsBattler.Locomotion.ClipFighter.GetUpsKnowWhatIsHeld;
+            bool heldNow = Tick(held, "A get-up knows what is held", "A shield is laid flat under the forearm while the hands push and held up toward what he fights as it comes off them, and what both hands hold is kept out of the ground. Off: as it was until 18 November: a shield or a sword through the floor.");
+            if (heldNow != held)
+            {
+                if (feel != null)
+                {
+                    feel.getUpsKeepWhatTheHandsHoldOffTheGround = heldNow;
+                }
+
+                PhysicsBattler.Locomotion.ClipFighter.GetUpsKnowWhatIsHeld = heldNow;
+                Note(heldNow ? "get-ups: what is held kept off the ground" : "get-ups: not knowing what is held (old)");
             }
 
             bool clear = feel != null ? feel.getUpLegsClearTheHips : PhysicsBattler.Motion.GetUp.LegsClearTheHips;

@@ -92,6 +92,9 @@ namespace PhysicsBattler.Sandbox
         public string State => tubes.Count == 0 || tubes[0].Object == null ? "no tube"
             : $"tube at ({tubes[0].Body.position.x:0.00},{tubes[0].Body.position.y:0.00},{tubes[0].Body.position.z:0.00}) going {tubes[0].Body.linearVelocity.magnitude:0.0} m/s, {100f * lastGap:0} cm from the nearest part ({lastNear})";
 
+        /// <summary>For the reports: how fast each flying tube goes along the way it was sent (m/s; below 0: it has come back off what it met).</summary>
+        public string Speeds => string.Join(" / ", tubes.FindAll(t => t.Launched && t.Object != null).ConvertAll(t => Vector3.Dot(t.Body.linearVelocity, t.Across).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)));
+
         private float lastGap = 99f;
         private PartId lastNear;
 

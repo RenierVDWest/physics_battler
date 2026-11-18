@@ -1614,7 +1614,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             getUpLogAt = -1f;
-            GetUpLog.Add($"got up {GetUpRoute} in {getUpDuration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all; an arm in its own body at most {100f * getUp.ArmDeepest:0} cm, more than 2 cm in for {getUp.ArmInFor:0.00} s; what it holds at most {100f * getUp.BladeDeepest:0} cm, for {getUp.BladeInFor:0.00} s; a thigh turned on the hips at most {getUp.ThighFastest:0.0} rad/s ({getUp.ThighFastestAt}) and was at most {getUp.ThighPast:0} degrees past the hip's range ({getUp.ThighPastAt}); an ankle at the nearest {getUp.AnkleNearest:0.00} of a leg's length from its hip ({getUp.AnkleNearestAt}); as seen (the physical body): an arm in its body for {GetUpArmSeenIn:0.00} s, what it holds for {GetUpBladeSeenIn:0.00} s");
+            GetUpLog.Add($"got up {GetUpRoute} in {getUpDuration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all; an arm in its own body at most {100f * getUp.ArmDeepest:0} cm{(getUp.ArmDeepestAt.Length > 0 ? " (" + getUp.ArmDeepestAt + ")" : "")}, more than 2 cm in for {getUp.ArmInFor:0.00} s; what it holds at most {100f * getUp.BladeDeepest:0} cm, for {getUp.BladeInFor:0.00} s; a thigh turned on the hips at most {getUp.ThighFastest:0.0} rad/s ({getUp.ThighFastestAt}) and was at most {getUp.ThighPast:0} degrees past the hip's range ({getUp.ThighPastAt}); an ankle at the nearest {getUp.AnkleNearest:0.00} of a leg's length from its hip ({getUp.AnkleNearestAt}); as seen (the physical body): an arm in its body for {GetUpArmSeenIn:0.00} s, what it holds for {GetUpBladeSeenIn:0.00} s"
+                + (GetUpShieldSeenLowest < 8f ? $"; its shield over the ground at the lowest {100f * GetUpShieldPosedLowest:0} cm as posed, {100f * GetUpShieldSeenLowest:0} cm as seen (at {GetUpShieldLowestAt:0.00} s), more than 2 cm in the ground for {GetUpShieldInFloorFor:0.00} s" : ""));
             if (Diagnostics.PlaytestTrace.Enabled)
             {
                 Diagnostics.PlaytestTrace.Note(FightUnit, "getup", GetUpLog[GetUpLog.Count - 1]);
@@ -1626,6 +1627,26 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>For the reports: how long through the last get-up the body as it is seen (the physical one) had a forearm or hand inside its own trunk, head or thighs, and what its right hand holds inside its trunk, head or legs (seconds).</summary>
         public float GetUpArmSeenIn, GetUpBladeSeenIn;
+
+        /// <summary>
+        /// For the reports: through the last get-up, the lowest its shield's rim came over the ground (metres; below 0:
+        /// in it) as its pose had it and as seen (the physical body), when through the get-up that was (seconds), and
+        /// how long it was seen more than 2 cm in the ground (seconds).
+        /// </summary>
+        public float GetUpShieldPosedLowest = 9f, GetUpShieldSeenLowest = 9f, GetUpShieldLowestAt, GetUpShieldInFloorFor;
+
+        /// <summary>What it holds, as its unit has it (the weapons' own measures: a shield's rim, a blade's length).</summary>
+        public Combat.Loadout Kit;
+
+        /// <summary>
+        /// A get-up knows what the hands hold (18 November; Combat Feel "Get Ups Keep What The Hands Hold Off The
+        /// Ground"). The get-up has had, since the first shields, its own care of a shield: the board laid flat under
+        /// the forearm while the hands push, held up toward what it fights as it comes off them, and what both hands
+        /// hold kept out of the ground. All of it reads the weapons' measures off the loadout, and a clip fighter's
+        /// get-up was never given one (the old pose pipeline gave it; that went on 11 November), so none of it ran. Off:
+        /// as it was, the get-up not knowing what is held.
+        /// </summary>
+        public static bool GetUpsKnowWhatIsHeld = true;
 
         /// <summary>Is any of some points along a line inside any of some of its own parts' solids, as the physical body has them.</summary>
         private bool SeenInside(Vector3 from, Vector3 to, PartId[] solids)
@@ -1733,6 +1754,206 @@ namespace PhysicsBattler.Locomotion
             lasted = 0f;
         }
 
+        private static readonly (PartId id, string name)[] BoardSolids =
+        {
+            (PartId.Chest, "chest"), (PartId.Spine, "belly"), (PartId.Pelvis, "hips"), (PartId.Head, "head"),
+            (PartId.ThighL, "shield-side thigh"), (PartId.ThighR, "sword-side thigh"), (PartId.ShinL, "shield-side shin"), (PartId.ShinR, "sword-side shin"),
+            (PartId.UpperArmR, "sword upper arm"),
+        };
+
+        private readonly float[] crossFor = new float[3], crossAt = new float[3];
+        private readonly string[] crossDoing = { "", "", "" }, crossWhat = { "", "", "" };
+
+        /// <summary>What he is doing, for <see cref="SelfCrossings"/>; and the attack he is striking with, if he is.</summary>
+        private string DoingNow(out string attack)
+        {
+            attack = null;
+            if (Footing == Footings.GettingUp)
+            {
+                return "getting up";
+            }
+
+            if (Footing == Footings.Down)
+            {
+                return "falling or down";
+            }
+
+            if (Bashing)
+            {
+                return "bashing";
+            }
+
+            if (Stumbling)
+            {
+                return "stumbling";
+            }
+
+            if (Striking)
+            {
+                attack = Built != null && Built.Playing ? Built.Name : Combo != null && Combo.Playing ? "a combo" : Loco.Shot != null ? Loco.Shot.Name : "a blow";
+                return "striking";
+            }
+
+            if (SinceStruck < 0.5f)
+            {
+                return "just struck";
+            }
+
+            if (Loco.Current == Locomotor.Mode.OneShot)
+            {
+                return "a gesture";
+            }
+
+            return Loco.Velocity.magnitude > 0.3f ? "moving" : "standing";
+        }
+
+        /// <summary>
+        /// Counts what his own shield and sword cross of himself, as seen (<see cref="SelfCrossings"/>): the blade and the
+        /// sword arm against the board's disc, the board's rim and face against his own solids. It changes nothing.
+        /// </summary>
+        private void MeasureOwnCrossings(float dt)
+        {
+            if (!(SelfCrossings.Measures || Diagnostics.PlaytestTrace.Enabled) || Authority == null || dt <= 0f
+                || stance != Stances.Shield || !ShieldBoard(out Vector3 centre, out Vector3 normal, out float radius) || Rig.IsSevered(PartId.HandL))
+            {
+                return;
+            }
+
+            string doing = DoingNow(out string attack);
+            SelfCrossings.Watched(doing, dt, attack);
+            bool blade = false, arm = false, board = false;
+            string what = "";
+            var slot = Rig.SlotWeaponR;
+            if (slot != null && !Rig.IsSevered(PartId.HandR))
+            {
+                Vector3 along = slot.rotation * Vector3.forward;
+                blade = ThroughBoard(slot.position + along * (0.15f * Size), slot.position + along * Poser.WeaponLength, centre, normal, radius);
+                Vector3 elbow = Rig.Part(PartId.ForearmR).transform.position, wrist = Rig.Part(PartId.HandR).transform.position;
+                arm = ThroughBoard(elbow, wrist + (wrist - elbow).normalized * (0.08f * Size), centre, normal, radius);
+            }
+
+            // (The board: its middle, a ring half way out and its rim, against his own solids.)
+            Vector3 u = Vector3.Cross(normal, Vector3.up);
+            u = u.sqrMagnitude > 1e-6f ? u.normalized : Vector3.Cross(normal, Vector3.forward).normalized;
+            Vector3 v = Vector3.Cross(normal, u);
+            foreach (var (id, name) in BoardSolids)
+            {
+                var part = Rig.Part(id);
+                if (part == null || part.partCollider == null || Rig.IsSevered(id))
+                {
+                    continue;
+                }
+
+                bool inside = Inside(part.partCollider, centre);
+                for (int i = 0; i < 20 && !inside; i++)
+                {
+                    float a = i * (Mathf.PI / 6f), r = i < 12 ? 0.95f * radius : 0.5f * radius;
+                    inside = Inside(part.partCollider, centre + (u * Mathf.Cos(a) + v * Mathf.Sin(a)) * r);
+                }
+
+                if (inside)
+                {
+                    board = true;
+                    what = what.Length > 0 ? what + ", " + name : name;
+                    SelfCrossings.InPart(name, dt);
+                }
+            }
+
+            // (The pose itself: the same three, on the posed skeleton.)
+            var posedSlot = Anim.SlotWeaponL;
+            if ((blade || arm || board) && posedSlot != null && BoardOnSlot(out var onSlot))
+            {
+                Vector3 pc = posedSlot.TransformPoint(onSlot), pn = posedSlot.forward;
+                var sword = Anim.SlotWeaponR;
+                if (sword != null)
+                {
+                    Vector3 along = sword.rotation * Vector3.forward;
+                    Vector3 elbow = Anim.Part(PartId.ForearmR).position, wrist = Anim.Part(PartId.HandR).position;
+                    if (blade && ThroughBoard(sword.position + along * (0.15f * Size), sword.position + along * Poser.WeaponLength, pc, pn, radius))
+                    {
+                        SelfCrossings.Posed(doing, SelfCrossings.Blade, dt);
+                    }
+
+                    if (arm && ThroughBoard(elbow, wrist + (wrist - elbow).normalized * (0.08f * Size), pc, pn, radius))
+                    {
+                        SelfCrossings.Posed(doing, SelfCrossings.SwordArm, dt);
+                    }
+                }
+
+                bool posedIn = false;
+                foreach (var (id, _) in BoardSolids)
+                {
+                    if (!board || posedIn || !PoseSolid(id, out Vector3 a, out Vector3 b, out float thick))
+                    {
+                        continue;
+                    }
+
+                    for (int i = 0; i <= 4 && !posedIn; i++)
+                    {
+                        posedIn = DiscGap(Vector3.Lerp(a, b, i / 4f), pc, pn, radius, out _) - thick < 0f;
+                    }
+                }
+
+                if (posedIn)
+                {
+                    SelfCrossings.Posed(doing, SelfCrossings.Board, dt);
+                }
+            }
+
+            Cross(SelfCrossings.Blade, blade, dt, doing, attack, attack ?? "");
+            Cross(SelfCrossings.SwordArm, arm, dt, doing, attack, attack ?? "");
+            Cross(SelfCrossings.Board, board, dt, doing, attack, what);
+        }
+
+        private static bool Inside(Collider solid, Vector3 p) => (solid.ClosestPoint(p) - p).sqrMagnitude < 1e-8f;
+
+        /// <summary>Does the line from <paramref name="from"/> to <paramref name="to"/> pass through the board's disc.</summary>
+        private static bool ThroughBoard(Vector3 from, Vector3 to, Vector3 centre, Vector3 normal, float radius)
+        {
+            float a = Vector3.Dot(from - centre, normal), b = Vector3.Dot(to - centre, normal);
+            if (a * b > 0f || Mathf.Abs(a - b) < 1e-6f)
+            {
+                return false;
+            }
+
+            Vector3 at = Vector3.Lerp(from, to, a / (a - b));
+            return (at - centre).sqrMagnitude < radius * radius;
+        }
+
+        private void Cross(int kind, bool crossing, float dt, string doing, string attack, string what)
+        {
+            if (crossing)
+            {
+                SelfCrossings.Crossed(doing, kind, dt, attack);
+                if (crossFor[kind] <= 0f)
+                {
+                    crossDoing[kind] = doing;
+                    crossWhat[kind] = what;
+                    crossAt[kind] = Fallen ? footingTime : -1f;
+                }
+
+                crossFor[kind] += dt;
+                return;
+            }
+
+            if (crossFor[kind] >= 0.05f)
+            {
+                SelfCrossings.Stretches++;
+                string said = $"{SelfCrossings.Names[kind]} for {crossFor[kind]:0.00} s, as seen; it began {crossDoing[kind]}{(crossWhat[kind].Length > 0 ? " (" + crossWhat[kind] + ")" : "")}{(crossAt[kind] >= 0f ? $", {crossAt[kind]:0.00} s into it" : "")}";
+                if (SelfCrossings.Log.Count < 60)
+                {
+                    SelfCrossings.Log.Add((FightUnit != null ? FightUnit.name : "?") + ": " + said);
+                }
+
+                if (Diagnostics.PlaytestTrace.Enabled)
+                {
+                    Diagnostics.PlaytestTrace.Note(FightUnit, "cross", said);
+                }
+            }
+
+            crossFor[kind] = 0f;
+        }
+
         private void MeasureGetUpSeen(float dt)
         {
             bool arm = false;
@@ -1744,6 +1965,29 @@ namespace PhysicsBattler.Locomotion
             }
 
             GetUpArmSeenIn += arm ? dt : 0f;
+            // (Its shield over the ground, in the get-up itself: as posed, and as the physical body has it.)
+            var shield = Kit != null ? Kit.Off : null;
+            if (Footing == Footings.GettingUp && shield != null && shield.IsShield)
+            {
+                if (Anim.SlotWeaponL != null)
+                {
+                    float gap = PhysicsBattler.Motion.GroundClamp.Gap(Anim.SlotWeaponL, shield, Kit.Scale, Poser.GroundY);
+                    GetUpShieldPosedLowest = Mathf.Min(GetUpShieldPosedLowest, gap);
+                }
+
+                if (Rig.SlotWeaponL != null && !Rig.IsSevered(PartId.HandL))
+                {
+                    float gap = PhysicsBattler.Motion.GroundClamp.Gap(Rig.SlotWeaponL, shield, Kit.Scale, Poser.GroundY);
+                    if (gap < GetUpShieldSeenLowest)
+                    {
+                        GetUpShieldSeenLowest = gap;
+                        GetUpShieldLowestAt = footingTime;
+                    }
+
+                    GetUpShieldInFloorFor += gap < -0.02f * Size ? dt : 0f;
+                }
+            }
+
             var slot = Rig.SlotWeaponR;
             if (stance != Stances.Open && slot != null)
             {
@@ -1757,6 +2001,8 @@ namespace PhysicsBattler.Locomotion
             RagdollArmsPass();
             HeldSolid(false);
             GetUpArmSeenIn = GetUpBladeSeenIn = 0f;
+            GetUpShieldPosedLowest = GetUpShieldSeenLowest = 9f;
+            GetUpShieldLowestAt = GetUpShieldInFloorFor = 0f;
             var pelvis = Rig.Part(PartId.Pelvis).body;
             Vector3 front = pelvis.rotation * Vector3.forward;
             var kind = front.y > 0f ? GetUp.Kind.FaceUp : GetUp.Kind.FaceDown;
@@ -1833,6 +2079,7 @@ namespace PhysicsBattler.Locomotion
             getUp.BladeLength = stance != Stances.Open ? Poser.WeaponLength : 0f;
             getUp.PostWith = stance == Stances.Sword ? PhysicsBattler.Motion.Stance.Left : -1;
             getUp.HoldsOff = stance == Stances.Shield;
+            getUp.Loadout = GetUpsKnowWhatIsHeld ? Kit : null;
             getUp.Begin(kind, lying);
             if (fallBody && Upper != null)
             {
@@ -1983,6 +2230,7 @@ namespace PhysicsBattler.Locomotion
             clock += dt;
             // (What he shows of an impact he is in, for the meter: read off the pose as it was last shown.)
             ImpactMeter.Sample(this, Time.time);
+            MeasureOwnCrossings(dt);
             StepUncover(dt);
             if (Fallen)
             {
@@ -5705,16 +5953,94 @@ namespace PhysicsBattler.Locomotion
             shown.Drop = Mathf.Max(shown.Drop, shown.Pelvis0.y - pelvis.y);
             shown.Head = Mathf.Max(shown.Head, head.magnitude);
             shown.Arm = Mathf.Max(shown.Arm, (Anim.Part(PartId.HandL).position - Anim.Part(PartId.Chest).position - shown.Arm0).magnitude);
+            // (Bounce: the rock at its largest, and how far it then goes past where it set out from.)
+            if (lean.sqrMagnitude > shown.LeanPeak.sqrMagnitude)
+            {
+                shown.LeanPeak = lean;
+            }
+            else if (shown.LeanPeak.sqrMagnitude > 1e-6f)
+            {
+                shown.SwungBack = Mathf.Max(shown.SwungBack, -Vector3.Dot(lean, shown.LeanPeak.normalized) * Mathf.Rad2Deg);
+            }
+
+            // (Shake: the seen body against its pose, at the head and the two hands.)
+            if (Authority != null)
+            {
+                shown.OffPeak ??= new Vector3[3];
+                shown.OffWas ??= new Vector3[3];
+                shown.OffWay ??= new float[3];
+                shown.OffRun ??= new float[3];
+                for (int i = 0; i < 3; i++)
+                {
+                    var id = i == 0 ? PartId.Head : i == 1 ? PartId.HandL : PartId.HandR;
+                    var part = Rig.Part(id);
+                    if (part == null || Rig.IsSevered(id))
+                    {
+                        continue;
+                    }
+
+                    Vector3 off = part.transform.position - Anim.Part(id).position;
+                    if (off.sqrMagnitude > shown.OffPeak[i].sqrMagnitude)
+                    {
+                        shown.OffPeak[i] = off;
+                        shown.Off[i] = off.magnitude;
+                    }
+                    else if (shown.OffPeak[i].sqrMagnitude > 1e-6f)
+                    {
+                        shown.OffPast[i] = Mathf.Max(shown.OffPast[i], -Vector3.Dot(off, shown.OffPeak[i].normalized));
+                    }
+
+                    // (A change of direction: along the line it was knocked on, after a centimetre's travel one way.)
+                    if (shown.OffPeak[i].sqrMagnitude > 1e-6f)
+                    {
+                        float moved = Vector3.Dot(off - shown.OffWas[i], shown.OffPeak[i].normalized);
+                        if (moved * shown.OffWay[i] >= 0f)
+                        {
+                            shown.OffRun[i] += Mathf.Abs(moved);
+                            shown.OffWay[i] = moved != 0f ? Mathf.Sign(moved) : shown.OffWay[i];
+                        }
+                        else if (Mathf.Abs(moved) > 1e-5f)
+                        {
+                            if (shown.OffRun[i] >= 0.01f * Size)
+                            {
+                                shown.HeadTurns += i == 0 ? 1 : 0;
+                                shown.ShieldHandTurns += i == 1 ? 1 : 0;
+                                shown.SwordHandTurns += i == 2 ? 1 : 0;
+                            }
+
+                            shown.OffRun[i] = Mathf.Abs(moved);
+                            shown.OffWay[i] = Mathf.Sign(moved);
+                        }
+                    }
+
+                    shown.OffWas[i] = off;
+                }
+
+                if (ImpactMeter.Trace)
+                {
+                    var peaks = shown.OffPeak;
+                    Vector3 Along(int i) => peaks[i].sqrMagnitude > 1e-6f ? peaks[i].normalized : Vector3.forward;
+                    Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture, "SHAKE {0} +{1:0.000}: off its pose, cm along the way each was knocked: head {2:0.0} shield hand {3:0.0} sword hand {4:0.0}; the rock {5:0.0} deg; shield arm knock {6:0.0} cm; hit stop {7}",
+                        FightUnit != null ? FightUnit.name : "?", since, 100f * Vector3.Dot(shown.OffWas[0], Along(0)), 100f * Vector3.Dot(shown.OffWas[1], Along(1)), 100f * Vector3.Dot(shown.OffWas[2], Along(2)),
+                        lean.magnitude * Mathf.Rad2Deg, 100f * knock[1].magnitude, ImpactStop > 0f ? "on" : "off"));
+                }
+            }
+
             if (!shown.From && since >= ImpactMeter.SpeedFrom)
             {
                 shown.From = true;
                 shown.AtFrom = Loco.Position;
             }
 
+            if (!shown.Sped && since >= ImpactMeter.SpeedTo)
+            {
+                shown.Sped = true;
+                shown.AtTo = Loco.Position;
+            }
+
             if (since >= ImpactMeter.Watches)
             {
                 shown.To = true;
-                shown.AtTo = Loco.Position;
             }
         }
 
@@ -7329,6 +7655,66 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The recoil's swing back (Hz), its damping and the head's; the most it throws the upper body and the head (radians).</summary>
         public const float ReactFrequency = 1.6f, ReactDamping = 0.55f, HeadFrequency = 2.4f, MostLean = 0.6f, MostHeadSnap = 0.7f, Kick = 1.8f;
 
+        /// <summary>
+        /// Impacts are absorbed (18 November, a first trial; Combat Feel "Impacts Are Absorbed" and "Absorbed How
+        /// Much"). What made a hit look like toys meeting was in how the reactions come back, not in how far they go:
+        /// a struck trunk and head came back on a spring that swings past where it set out from and back again (its
+        /// damping 0.55 of what stops a spring dead); a knocked arm or leg came back as quickly as it went; and the
+        /// striker's hand was thrown back off a shield or a parry "so even a light blow visibly bounces". Absorbed: the
+        /// trunk and the head go as far as before and settle without swinging past (the kick made up for the damping,
+        /// so the size of a reaction is unchanged); a rocked trunk, a snapped head and a knocked leg come back slower
+        /// than they went (a knocked arm as quickly as before: see <see cref="React"/>); a blade stopped by a shield or
+        /// a parry stays on it instead of springing off. <see cref="Absorbed"/> is how much:
+        /// 0 as before, 1 the most. Off: as before.
+        /// </summary>
+        public static bool ImpactsAbsorbed = true;
+        public static float Absorbed = 0.6f;
+
+        private static float Absorb => ImpactsAbsorbed ? Mathf.Clamp01(Absorbed) : 0f;
+
+        /// <summary>The damping the trunk's and the head's springs settle with (1 stops a spring dead, without swinging past).</summary>
+        public static float ReactSettles => Mathf.Lerp(ReactDamping, 1f, Absorb);
+
+        /// <summary>How quickly what a blow knocked comes back, as a share of how quickly it went.</summary>
+        public static float ComesBack => 1f - 0.5f * Absorb;
+
+        /// <summary>How much of its spring back off a shield or a parry a stopped blade keeps.</summary>
+        public static float ReboundKept => 1f - 0.75f * Absorb;
+
+        /// <summary>
+        /// How far the trunk's spring goes at its furthest when kicked at speed 1, with this damping: stepped as
+        /// <see cref="Spring"/> steps it, 60 times a second (worked out from the spring's own formula it came out a
+        /// tenth too far for the heavier damping, which the steps damp more than the formula does).
+        /// </summary>
+        private static float PeakOf(float damping)
+        {
+            if (Mathf.Abs(damping - peakFor) < 1e-4f)
+            {
+                return peakIs;
+            }
+
+            Vector3 x = Vector3.zero, v = Vector3.right;
+            float furthest = 0f;
+            for (int i = 0; i < 90; i++)
+            {
+                Spring(ref x, ref v, ReactFrequency, damping, 1f / 60f);
+                furthest = Mathf.Max(furthest, x.x);
+            }
+
+            peakFor = damping;
+            peakIs = furthest;
+            return furthest;
+        }
+
+        private static float peakFor = -1f, peakIs;
+        private static readonly float PeakBefore = PeakOf(ReactDamping);
+
+        /// <summary>What a kick is made larger by, so a reaction goes as far with the new damping as it did with the old.</summary>
+        private static float ReactGain => Absorb <= 0f ? 1f : PeakBefore / Mathf.Max(1e-4f, PeakOf(ReactSettles));
+
+        /// <summary>Is a spring on its way back (toward its rest)?</summary>
+        private static bool Returning(Vector3 x, Vector3 v) => Vector3.Dot(x, v) < 0f;
+
         /// <summary>A struck arm's knock aside: its return (Hz, critically damped), the most it moves the hand (m at a Medium's size) and turns it (radians).</summary>
         public const float ArmKnockFrequency = 2.5f, MostArmKnock = 0.12f, MostArmTurn = 0.44f;
 
@@ -7359,7 +7745,7 @@ namespace PhysicsBattler.Locomotion
                 // (A body's impact may rock it further than a blade's: by as much more, it takes as much more to get there.)
                 float amount = most * Tanh(1.5f * j * leverage / (Mass * leg) * (MostLean / Mathf.Max(MostLean, most))) * CombatFeel.LeanScale;
                 leanMost = Mathf.Max(leanMost, most);
-                leanV += axis.normalized * (amount * Kick * w);
+                leanV += axis.normalized * (amount * Kick * w * ReactGain);
             }
 
             if (part == PartId.Head)
@@ -7369,7 +7755,7 @@ namespace PhysicsBattler.Locomotion
                 if (headAxis.sqrMagnitude > 1e-8f)
                 {
                     float snap = MostHeadSnap * Tanh(6f * j / (Mass * leg)) * CombatFeel.HeadSnapScale;
-                    headV += headAxis.normalized * (snap * Kick * 2f * Mathf.PI * HeadFrequency);
+                    headV += headAxis.normalized * (snap * Kick * 2f * Mathf.PI * HeadFrequency * ReactGain);
                 }
             }
         }
@@ -7548,8 +7934,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The reaction springs stepped and put on the pose: the upper body leans away, the head snaps, a struck arm is knocked aside.</summary>
         private void React(float dt)
         {
-            Spring(ref lean, ref leanV, ReactFrequency, ReactDamping, dt);
-            Spring(ref headSnap, ref headV, HeadFrequency, ReactDamping, dt);
+            // (Absorbed: no swinging past, and back slower than out.)
+            float back = ComesBack;
+            Spring(ref lean, ref leanV, ReactFrequency * (Returning(lean, leanV) ? back : 1f), ReactSettles, dt);
+            Spring(ref headSnap, ref headV, HeadFrequency * (Returning(headSnap, headV) ? back : 1f), ReactSettles, dt);
             lean = Vector3.ClampMagnitude(lean, leanMost);
             if (lean.sqrMagnitude < 0.0025f && leanV.sqrMagnitude < 0.01f)
             {
@@ -7560,6 +7948,9 @@ namespace PhysicsBattler.Locomotion
             for (int a = 0; a < 2; a++)
             {
                 float wk = 2f * Mathf.PI * armKnockHz[a];
+                // (A knocked arm comes back as quickly as before, absorbed or not. Coming back slower, a shield knocked
+                // back onto his own sword stayed there: headless, in a fight of six, his own blade was through his own
+                // board 4.2 s of 80, against 1.5 s. It waits for the pass that keeps what he holds clear of himself.)
                 CriticalSpring(ref knock[a], ref knockV[a], wk, dt);
                 CriticalSpring(ref knockTurn[a], ref knockTurnV[a], wk, dt);
             }
@@ -7567,7 +7958,7 @@ namespace PhysicsBattler.Locomotion
             float wl = 2f * Mathf.PI * LegKnockFrequency;
             for (int l = 0; l < 2; l++)
             {
-                CriticalSpring(ref legTurn[l], ref legTurnV[l], wl, dt);
+                CriticalSpring(ref legTurn[l], ref legTurnV[l], wl * (Returning(legTurn[l], legTurnV[l]) ? back : 1f), dt);
                 legTurn[l] = Vector3.ClampMagnitude(legTurn[l], MostLegTurn);
                 if (legTurn[l].sqrMagnitude > 1e-8f)
                 {

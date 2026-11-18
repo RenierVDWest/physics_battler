@@ -6210,3 +6210,83 @@ in these steps is drawn by lot.
   the rock is near its most by a medium one.
 
 Not seen in Unity.
+
+**A shield out of the floor in a get-up; the counter of a fighter's own crossings and the plan for them; a first
+damping of impacts (18 November, afternoon).** Renier, 14:22: "for the new get up animations the shield now goes
+through the floor. You at some point did a good update for your get up animations where you fixed this. please do
+this for the new get up animations. ... I still see a lot of shield intersections with the shield users own body.
+Here he is slashing through his own shield. Shield going through the body. This happens all the time. Please do
+some research and try to come up with a plan that fixes this once and for all. ... Try to make it so that there
+is a little dampening for physics objects that collide with the player bodies. but lets also try it for weapon on
+shields currently everything is very bouncy and shaky when they hit things. I want there to be some absorption of
+impacts so that it does not look so much like toys fighting." The research and the plan are the document "A
+shield that stays outside its bearer" (https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN); what was built is here.
+
+- *Why the shield went through the floor.* The get-up has had its own care of a shield since the first shields
+  (the board flat under the forearm while the hands push, held up toward what he fights as it comes off them,
+  kept out of his body, and what both hands hold kept out of the ground: `GetUp.HoldIn`, `HoldShieldUp`,
+  `ShieldInBody`, `PosePipeline.KeepWeaponsOffGround`). All of it reads the weapons' measures off the loadout
+  (`GetUp.Loadout`), which the old pose pipeline handed it. That pipeline went on 11 November, and a clip
+  fighter's get-up was never handed one: none of it has run since. The made get-ups hid it (their hands were
+  seldom on the ground); the recorded ones put the hands down.
+- *A get-up knows what is held* (`ClipFighter.Kit`, set by the unit; `ClipFighter.GetUpsKnowWhatIsHeld`; Combat
+  Feel "Get Ups Keep What The Hands Hold Off The Ground"; the lab's "A get-up knows what is held" with the
+  get-ups' settings; `FIGHT_GETUPHELD=0`). And the ground clamp has its whole weight from a get-up's first step
+  (`GetUp.HeldClearFromTheStart`; `FIGHT_GETUPCLAMP=0`): coming in over the blend from how he lay, as first
+  made, it left a shield 17 cm under the ground a quarter of a second into a get-up from the front.
+- *Measured* (headless, the tube test's shield bearer felled backward and forward; `GetUpShieldSeenLowest` and
+  the get-up's line in the report: "its shield over the ground at the lowest"). From his back: the rim 32 cm
+  under the ground, in it 0.85 s; now 6 cm over it, never in it. From his front: 36 cm under, 1.13 s; now 2 cm
+  under at the worst, as it starts, never more than 2 cm. The sword too: in the old front get-up's film the blade
+  dips under the ground once, in the new one it does not. In two fights of six, three get-ups of shield bearers:
+  the rim 0, 0 and 2 cm over the ground at the lowest.
+- *What that costs.* Starting a get-up from his front he lies on his board: the board is in his own hips for 0.05
+  to 0.35 s at the height of the floor, and about a tenth of a second some 1.1 s in the raised board passes his
+  head. In two fights of six that was 0.6 s of 4.7 s and 0.4 s of 1.7 s of getting up, where there was none (and
+  a shield through the floor). Step 4 of the plan.
+- *The counter of own crossings* (`SelfCrossings`, `ClipFighter.MeasureOwnCrossings`; it changes nothing). On
+  the body as it is seen: his blade through his own board, his sword forearm and hand through it (lines against
+  the board's disc), and the board's rim or face inside his own head, trunk, thighs, shins or sword upper arm;
+  counted by what he was doing, by attack, by part, and whether the pose itself had the crossing too. In every
+  headless report ("own crossings, as seen"), and in Unity each stretch of 0.05 s or more is written to the
+  playtest log (`cross`). Strict: lines and a thin disc, where the meshes are thicker.
+- *What it counted, as the game was this morning* (`FIGHT_ABSORB=0 FIGHT_GETUPHELD=0`). The fight of six (two
+  shield bearers, 40 s): blade through his own shield 1.5 s, sword arm through it 1.2 s, shield in his own body
+  1.3 s: 5% of the time, a crossing every 2.8 s for each bearer. Striking is two thirds of it (the lunging chop:
+  blade through the board 0.65 s and arm 0.47 s of 9.5 s; the rising cut: arm 0.27 s of 3.4 s; the combo: the
+  board in his body 0.63 s of 4.8 s); stumbling a third of its own time. The board is in the shield-side thigh
+  first (0.63 s), which no guard knows. The pose itself had three quarters of the blade's crossings and nine
+  tenths of the sword arm's, but a third of the board-in-body: that one is the physical body off its pose. The
+  dance (two fighters, 60 s): 1.2% of the time, one every 8 s.
+- *Impacts are absorbed: a first trial* (`ClipFighter.ImpactsAbsorbed`, `Absorbed`; Combat Feel "Impacts Are
+  Absorbed", "Absorbed How Much" 0.6; the lab's "Impacts: absorbed / as before (old)" and "Absorbed how much"
+  with the bash's settings; `FIGHT_ABSORB=0`, `FIGHT_ABSORBED`). What made hits look like toys was looked for
+  first. Not the physics materials: all have no bounce already. The trunk's and the head's reaction came back on
+  a spring damped at 0.55 of what stops one dead (`ReactDamping`): it swings past and back. The striker's hand
+  is thrown back off a block or a parry by design ("so even a light blow visibly bounces": Combat Feel "Least
+  Rebound"). A knocked arm or leg comes back as quickly as it went. Absorbed: the trunk and head settle without
+  swinging past (`ReactSettles`: the damping toward 1; the kick made larger by `ReactGain`, worked out by
+  stepping the spring as the game steps it, so a reaction goes as far as before); trunk, head and legs come
+  back slower than they went (`ComesBack`: seven tenths at 0.6); a blade stopped by a shield or a parry keeps
+  about half its spring back and backs out less (`ReboundKept`).
+- *Tried and taken out: the knocked arm coming back slower.* A shield knocked back onto his own sword stayed
+  there: in the fight of six his blade was through his own board 4.2 s of 80, against 1.5 s. A knocked arm comes
+  back as quickly as before; it waits for step 1 of the plan.
+- *Measured* (the impact meter, which now also reads the swing back and the seen body against its pose, and
+  watches a whole second: `ImpactShown.SwungBack`, `Off`, `OffPast`, the turns; `FIGHT_SHAKETRACE=1` writes
+  every step). A medium bash: both trunks rocked 27 to 28 degrees old and new; swung back past where they set
+  out from 3 degrees, now 0.1. Blows on shields in the dance (7 in each of two dances of 45 s, so a direction):
+  swung back 1.7 degrees on average (2.7 at the most), now under 0.1; the striker's sword hand knocked 19 cm
+  off its pose, now 14.
+- *Not mended: the tremble.* After a hit the seen hands and head ripple about a centimetre about where the pose
+  has them, changing direction 5 to 11 times in the second after, absorbed or not. With the joints' dampers at
+  twice and four times their strength (`UPPER_DAMP=6`, `12`) it is the same: the cause is not found.
+- *Loose things* (the tube test, physics only: 5 kg at 4 m/s; the new line `TUBESPEED`): a tube stops dead on a
+  trunk, glances off an upper arm at 0.7 m/s, comes back off a shield at 0.8 m/s. Left as it is.
+- *Headless.* The fight of six ran its 40 s with all of it on. Its own crossings cannot be set against the
+  morning's (4.0 s of 80 before; 5.2 s and 2.2 s in two fights with it on, in one of which a shield bearer lay
+  down most of the time): every change makes another fight, and nothing here was meant to reduce them; the plan is.
+  The panel check passes in all five places.
+
+Not seen in Unity: any of it. In particular the get-up with the board under him as it starts, and whether a
+trunk that settles without swinging back reads as weight or as stiffness.

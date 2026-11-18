@@ -22,10 +22,26 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public float Reacted, ShieldArmGave, SwordArmGave;
 
+        /// <summary>
+        /// Bounce and shake (18 November, for the damping trial). <see cref="SwungBack"/>: the most the reaction's rock
+        /// swung back past where it set out from, to the other side (degrees): a spring's bounce. And the body as it is
+        /// seen (the physical one) against its own pose, at the head, the shield hand and the sword hand: the furthest
+        /// each was knocked off its pose (metres), the furthest it then went past its pose the other way, and how many
+        /// times it changed direction on the way (each change after at least a centimetre of travel).
+        /// </summary>
+        public float SwungBack;
+        public Vector3 Off, OffPast;
+        public int HeadTurns, ShieldHandTurns, SwordHandTurns;
+
+        // (The rock at its largest; each seen part's offset at its largest, where it was last, the way it was going and how far since it turned.)
+        internal Vector3 LeanPeak;
+        internal Vector3[] OffPeak, OffWas;
+        internal float[] OffWay, OffRun;
+
         // (As it was at contact.)
         internal float Turn0;
         internal Vector3 Up0, Pelvis0, Head0, Arm0, At0, AtFrom, AtTo;
-        internal bool From, To;
+        internal bool From, Sped, To;
     }
 
     /// <summary>
@@ -69,8 +85,9 @@ namespace PhysicsBattler.Locomotion
             get
             {
                 var c = System.Globalization.CultureInfo.InvariantCulture;
-                string shown(ImpactShown s) => string.Format(c, "the reaction rocked him {5:0} degrees (shield arm back {6:0} cm, sword arm {7:0} cm); in all his upper body moved {0:0} degrees, shoulders {4:0}, hips down {1:0} cm, head {2:0} cm",
-                    s.Rock, 100f * s.Drop, 100f * s.Head, 100f * s.Arm, s.Turn, s.Reacted, 100f * s.ShieldArmGave, 100f * s.SwordArmGave);
+                string shown(ImpactShown s) => string.Format(c, "the reaction rocked him {5:0} degrees and swung back {8:0.0} past (shield arm back {6:0} cm, sword arm {7:0} cm); in all his upper body moved {0:0} degrees, shoulders {4:0}, hips down {1:0} cm, head {2:0} cm; as seen against his pose, head / shield hand / sword hand: knocked {9:0}/{10:0}/{11:0} cm off, back past it {12:0}/{13:0}/{14:0} cm, changed direction {15}/{16}/{17} times",
+                    s.Rock, 100f * s.Drop, 100f * s.Head, 100f * s.Arm, s.Turn, s.Reacted, 100f * s.ShieldArmGave, 100f * s.SwordArmGave, s.SwungBack,
+                    100f * s.Off.x, 100f * s.Off.y, 100f * s.Off.z, 100f * s.OffPast.x, 100f * s.OffPast.y, 100f * s.OffPast.z, s.HeadTurns, s.ShieldHandTurns, s.SwordHandTurns);
                 string door = Handed > 0f ? string.Format(c, " Through the door: {0:0} N·s handed over, {1:0} back.", Handed, HandedBack) : " Not through the door.";
                 if (Blade)
                 {
@@ -91,8 +108,11 @@ namespace PhysicsBattler.Locomotion
     /// </summary>
     public static class ImpactMeter
     {
-        /// <summary>How long an impact is watched (seconds); the bodies' speed afterwards is taken over the part of it from <see cref="SpeedFrom"/> on.</summary>
-        public const float Watches = 0.6f, SpeedFrom = 0.25f;
+        /// <summary>How long an impact is watched (seconds: long enough to see a spring swing back); the bodies' speed afterwards is taken from <see cref="SpeedFrom"/> to <see cref="SpeedTo"/>.</summary>
+        public const float Watches = 1f, SpeedFrom = 0.25f, SpeedTo = 0.6f;
+
+        /// <summary>Every step of every impact watched is written out (headless: FIGHT_SHAKETRACE=1).</summary>
+        public static bool Trace;
 
         public static readonly List<ImpactRecord> Open = new List<ImpactRecord>();
 
@@ -148,7 +168,7 @@ namespace PhysicsBattler.Locomotion
 
                 if (r.ByShown.To && r.OnShown.To)
                 {
-                    float over = Watches - SpeedFrom;
+                    float over = SpeedTo - SpeedFrom;
                     r.ByAfter = Vector3.Dot(r.ByShown.AtTo - r.ByShown.AtFrom, r.Line) / over;
                     r.OnAfter = Vector3.Dot(r.OnShown.AtTo - r.OnShown.AtFrom, r.Line) / over;
                     r.Done = true;

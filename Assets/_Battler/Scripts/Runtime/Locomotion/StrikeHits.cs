@@ -1360,7 +1360,7 @@ namespace PhysicsBattler.Locomotion
                 }
                 else
                 {
-                    PlayKnockHand(-direction.normalized * Mathf.Min(speed * 0.25f, 3f));
+                    PlayKnockHand(-direction.normalized * (Mathf.Min(speed * 0.25f, 3f) * ClipFighter.ReboundKept));
                 }
                 // Back to where the weapon met it, shown through the hit stop; then it backs out a little. A jumping
                 // strike met in the air can't back out: it comes down, its landing played on, the arm thrown back.
@@ -1375,7 +1375,8 @@ namespace PhysicsBattler.Locomotion
                     PlayWindBack(met);
                     // (Stopped by a shield, a heavy weapon backs out of it the less the more of its speed it would keep
                     // through a body: it stays where it was stopped and goes back to its guard from there.)
-                    PlayCutShort(shield ? RewindMost * (1f - CombatFeel.SwingKept) : RewindMost, ReboundSpeed);
+                    // (Absorbed: it backs out the less.)
+                    PlayCutShort((shield ? RewindMost * (1f - CombatFeel.SwingKept) : RewindMost) * (shield || parried ? ClipFighter.ReboundKept : 1f), ReboundSpeed);
                 }
                 }
 
@@ -1573,7 +1574,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>How fast a blow of this weight (m/s) stopped on a shield or a blade throws the attacker's hand back (m/s; the scene's Combat Feel).</summary>
-        public static float Rebound(float weight) => Mathf.Clamp(CombatFeel.ReboundPerWeight * weight, CombatFeel.LeastRebound, CombatFeel.MostRebound);
+        public static float Rebound(float weight) => Mathf.Clamp(CombatFeel.ReboundPerWeight * weight, CombatFeel.LeastRebound, CombatFeel.MostRebound) * ClipFighter.ReboundKept;
 
         private float bindWeight;
 

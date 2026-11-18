@@ -261,6 +261,9 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public float ArmDeepest { get; private set; }
 
+        /// <summary>Which arm that was, and when.</summary>
+        public string ArmDeepestAt { get; private set; } = "";
+
         /// <summary>
         /// For the reports: the fastest the pose turned a thigh on the hips through the get-up (rad/s), and the
         /// furthest it had one past its hip's range (degrees), with which and when.
@@ -491,6 +494,7 @@ namespace PhysicsBattler.Motion
             rollSign = RollSign();
             FastestEarly = ReachMiss = Slid = 0f;
             ArmDeepest = BladeDeepest = ArmInFor = BladeInFor = 0f;
+            ArmDeepestAt = "";
             ThighFastest = ThighPast = 0f;
             ThighFastestAt = ThighPastAt = "";
             AnkleNearest = 1f;
@@ -633,7 +637,13 @@ namespace PhysicsBattler.Motion
         {
             if (composedAt >= 0f && t > composedAt)
             {
-                float arm = Mathf.Max(ArmIn(false), ArmIn(true)), blade = BladeIn();
+                float armL = ArmIn(false), armR = ArmIn(true);
+                float arm = Mathf.Max(armL, armR), blade = BladeIn();
+                if (arm > ArmDeepest)
+                {
+                    ArmDeepestAt = $"its {(armL > armR ? "shield" : "sword")} arm at {t:0.00} s";
+                }
+
                 ArmDeepest = Mathf.Max(ArmDeepest, arm);
                 BladeDeepest = Mathf.Max(BladeDeepest, blade);
                 ArmInFor += arm > 0.02f ? t - composedAt : 0f;
@@ -752,7 +762,9 @@ namespace PhysicsBattler.Motion
             // (The clamp's floor is soft, so the arm is eased up as what it holds comes down. It comes in
             // over the blend from the body as it lay, which was brought out of the floor once, at the
             // start: a ragdoll's pose is anyhow.)
-            WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, Smooth(t / BlendIn));
+            // (18 November: with its whole weight from the start. Coming in over the blend, a shield lay up to 17 cm under
+            // the ground a quarter of a second into a get-up from the front, in a fight of six.)
+            WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, HeldClearFromTheStart ? 1f : Smooth(t / BlendIn));
             if (Shielded && anim.SlotWeaponL != null)
             {
                 ShieldFace = anim.SlotWeaponL.rotation * Vector3.forward;
@@ -1343,6 +1355,9 @@ namespace PhysicsBattler.Motion
         /// keys. Off: the made keys, as before.
         /// </summary>
         public static bool FromRecordings = true;
+
+        /// <summary>What the hands hold is kept out of the ground with the clamp's whole weight from a get-up's first step (the body as it lay was brought out of the floor already, as the get-up began). Off: the clamp comes in over the blend from how it lay, as it was first made.</summary>
+        public static bool HeldClearFromTheStart = true;
 
         /// <summary>How long a recorded get-up is given, against the recording's own time (from his back 3.7 s, from his front 4.5 s as recorded).</summary>
         public static float RecordedTakes = 0.5f;
