@@ -31,6 +31,13 @@ check and tests without Unity"). They were written during the work and are kept 
 
 The rest are one-off comparisons from particular days, kept for reference.
 
+## The budget
+
+Every fight's report ends with `CROSSINGS OK|OVER BUDGET` and `TREMBLE OK|OVER BUDGET` (see `SelfCrossings.Budget`
+and `HeldShake.Budget`). `checks.sh` writes them all to `$S/checks.verdict`, with `CHECKS: within budget` or
+`CHECKS: OVER BUDGET` as its last line. `FIGHT_SHAKELOG=1` also writes `TIPLOG` lines (the posed blade tip jumping
+while he stands or moves, and what he was at).
+
 ## Switches used most
 
 `FIGHT_GETUPHELD=0` (get-ups do not know what the hands hold), `FIGHT_GETUPCLAMP=0`, `FIGHT_GETUPRECORDED=0`,

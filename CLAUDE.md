@@ -162,7 +162,16 @@ smoothly, the shield giving way to the sword.
 - Open for him: should an uncountered hard bash fell a standing Medium every time ("Stumble foot speed" 5, as set)
   or throw him back three metres on his feet (5.5)? Does the small bash still clear his space? Does it read as a
   stumble at all? The arms do nothing of their own yet.
+- **It breaks the shield budget (below):** with both switches on, his own sword and shield cross him 0.6 to 1.5% of
+  the time on his feet (old way 0.2%). One crossing is in the stumble itself (the upper body tips, the shield's
+  cover does not); the rest is not pinned down. First thing to look at after his look.
 - Figures: the README's entry of 19 November.
+
+**The shield budget is in the check runs (19 November).** Every headless fight ends with a `CROSSINGS` and a
+`TREMBLE` line ("OK" or "OVER BUDGET"); `Tools/Headless/checks.sh` gathers them into `$S/checks.verdict`. On his
+feet: all crossings under 0.5% of the time, none longer than 0.1 s; his board shows a tremble no more than 8% of
+the time standing or moving (the 8% is a proposal). Off his feet is counted apart, not held to it yet. **Any new
+action has to pass it before it is handed over.**
 
 **Mended overnight on the 19th, headless only, waiting for his eye: the sword that shook as a fighter got up.**
 
@@ -188,12 +197,15 @@ a bash's is (it is still the old rule's number, uncapped).
 
 **Bugs and leftovers**
 1. The get-up shield tremble (above; the sword's flip is mended, waiting for his eye).
-2. Shield and sword while falling, lying and getting up: the board is under him as he rises, the blade goes
-   through his shield while he is down. The crossing counter judges it.
-3. Lock the shield work: the crossing counter and the tremble measure join the regular check runs with a
-   budget (proposed: no crossing longer than 0.1 s, under 0.5% of fighting time).
-4. The blade's tip still trembles on his feet (cause not known; look before fixing).
-5. The walk lab's own panel has no colours and no search yet (the main panel has both).
+2. Shield and sword while falling, lying and getting up: measured on the 19th (from his front the board is in his
+   hips for 0.35 s as the get-up begins and passes his head at 1.1 s; the pose itself has it). **Waits on a decision
+   of his:** where a hand with a shield on its arm posts, and where the board lies while he pushes up.
+3. The lock is in (above). It reads red with the night's stumbles on.
+4. The blade's tip trembles on his feet: narrowed on the 19th, not found. Standing alone it does not. In the six
+   it is nearly all the sword-alone fighters' parry guard. For a sword and shield it comes in tenth-of-a-second
+   bursts as he walks, cause unknown. `FIGHT_SHAKELOG=1` writes `TIPLOG` lines; the README's entry has the rest.
+5. The walk lab's own panel has section colours and a search box since the 19th, **built blind** (it compiles; no
+   headless check draws that panel). To be looked at in Unity.
 6. Smaller: the sword's upper arm is not covered by the give-way; walking step 4 is weak; the turn's cut
    misses at 150 degrees.
 

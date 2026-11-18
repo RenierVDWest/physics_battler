@@ -1769,21 +1769,35 @@ namespace PhysicsBattler.Locomotion
         private bool Section(string title, ref bool open, string about = null)
         {
             header ??= new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold };
-            if (GUILayout.Button((open ? "\u25BE  " : "\u25B8  ") + title, header))
+            // (Each section in a colour of its own: its heading bright, what is in it a darker, greyer tone of the same.)
+            sectionAt++;
+            float hue = SectionHues[sectionAt % SectionHues.Length];
+            GUILayout.Space(4f);
+            GUI.backgroundColor = Color.HSVToRGB(hue, 0.6f, 1f);
+            bool shown = open || Filtering;
+            if (GUILayout.Button((shown ? "\u25BE  " : "\u25B8  ") + title, header) && !Filtering)
             {
                 open = !open;
+                shown = open;
             }
 
-            if (open && about != null)
+            GUI.backgroundColor = Color.HSVToRGB(hue, 0.3f, 0.82f);
+            if (shown && about != null)
             {
                 Note(about);
             }
 
-            return open;
+            return shown;
         }
 
         private void Note(string text, Color? color = null)
         {
+            // (Searching, a note is shown only if the words are in it.)
+            if (Filtering && !Matches(text))
+            {
+                return;
+            }
+
             wrapped ??= new GUIStyle(GUI.skin.label) { wordWrap = true };
             var was = GUI.contentColor;
             if (color.HasValue)
@@ -1795,8 +1809,150 @@ namespace PhysicsBattler.Locomotion
             GUI.contentColor = was;
         }
 
+        // ---- The panel's colours and its search box (19 November: as the battle's panel has them) -------------------
+
+        /// <summary>A colour for each section, in the order they come: its heading in that colour, its buttons a darker, greyer tone of it.</summary>
+        private static readonly float[] SectionHues = { 0.58f, 0.33f, 0.08f, 0.78f, 0.95f, 0.46f, 0.14f, 0.66f };
+
+        private int sectionAt;
+        private Color panelBackground = Color.white;
+        private string search = "", searchShown = "";
+        private string[] searchWords = new string[0];
+        private const string SearchName = "LocoLabSearch";
+        private readonly List<string> rowTexts = new List<string>();
+        private readonly List<bool> rowShows = new List<bool>();
+        private readonly System.Text.StringBuilder rowText = new System.Text.StringBuilder();
+        private int rowAt = -1, rowDepth;
+
+        /// <summary>The search box holds words: every section is open and only what has those words in its name is shown.</summary>
+        private bool Filtering => searchWords.Length > 0;
+
+        private bool Matches(string text)
+        {
+            text = text ?? "";
+            foreach (string word in searchWords)
+            {
+                if (text.IndexOf(word, System.StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The start of a pass over the panel. What is shown is settled as a layout pass begins and holds for the
+        /// event that follows it: a row (a name with its buttons beside it) is shown or hidden whole, by the words
+        /// of everything in it as the last layout pass read them.
+        /// </summary>
+        private void BeginPass()
+        {
+            if (Event.current != null && Event.current.type == EventType.Layout)
+            {
+                searchShown = (search ?? "").Trim();
+                searchWords = searchShown.Length > 0 ? searchShown.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries) : new string[0];
+                rowShows.Clear();
+                foreach (string text in rowTexts)
+                {
+                    rowShows.Add(Matches(text));
+                }
+
+                rowTexts.Clear();
+            }
+
+            rowAt = -1;
+            rowDepth = 0;
+            sectionAt = -1;
+            panelBackground = GUI.backgroundColor;
+        }
+
+        private void SearchBox()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Search", "Type part of a button's or a switch's name: every section is opened and only what has those words in its name is shown. Several words: all must be in it. Esc or the cross clears it."), GUILayout.Width(52f));
+            var e = Event.current;
+            bool focused = GUI.GetNameOfFocusedControl() == SearchName;
+            if (focused && e != null && e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
+            {
+                search = "";
+                GUIUtility.keyboardControl = 0;
+                e.Use();
+            }
+
+            GUI.SetNextControlName(SearchName);
+            search = GUILayout.TextField(search ?? "", 40, GUI.skin.textField, GUILayout.ExpandWidth(true));
+            if (GUILayout.Button(new GUIContent("\u00D7", "Clear the search: the whole panel again."), GUILayout.Width(26f)))
+            {
+                search = "";
+                GUIUtility.keyboardControl = 0;
+            }
+
+            GUILayout.EndHorizontal();
+            // (While the box has the keyboard, the keys that drive the walker are not read.)
+            SandboxInput.Typing = GUI.GetNameOfFocusedControl() == SearchName;
+        }
+
+        private void LabRow()
+        {
+            GUILayout.BeginHorizontal();
+            if (rowDepth++ == 0)
+            {
+                rowAt++;
+                rowText.Length = 0;
+            }
+        }
+
+        private void LabEndRow()
+        {
+            GUILayout.EndHorizontal();
+            if (--rowDepth == 0 && Event.current != null && Event.current.type == EventType.Layout)
+            {
+                rowTexts.Add(rowText.ToString());
+            }
+        }
+
+        /// <summary>Is a control with this name shown? In a row: with its row. By itself: by its own name.</summary>
+        private bool Shown(string text)
+        {
+            if (rowDepth > 0)
+            {
+                if (Event.current != null && Event.current.type == EventType.Layout)
+                {
+                    rowText.Append(text).Append(' ');
+                }
+
+                return !Filtering || rowAt >= rowShows.Count || rowShows[rowAt];
+            }
+
+            return !Filtering || Matches(text);
+        }
+
+        private bool LabButton(string text, params GUILayoutOption[] options) => Shown(text) && GUILayout.Button(text, options);
+
+        private bool LabButton(string text, GUIStyle style, params GUILayoutOption[] options) => Shown(text) && GUILayout.Button(text, style, options);
+
+        private bool LabToggle(bool value, string text, params GUILayoutOption[] options) => Shown(text) ? GUILayout.Toggle(value, text, options) : value;
+
+        private void LabLabel(string text, params GUILayoutOption[] options)
+        {
+            if (Shown(text))
+            {
+                GUILayout.Label(text, options);
+            }
+        }
+
+        private void LabLabel(string text, GUIStyle style, params GUILayoutOption[] options)
+        {
+            if (Shown(text))
+            {
+                GUILayout.Label(text, style, options);
+            }
+        }
+
         private void DrawPanel(int id)
         {
+            BeginPass();
             // (The same bar as the battle's panel has: where one is, and a button to each of the others.)
             var goTo = BattleSandbox.PlaceBar(BattleSandbox.Place.Lab);
             if (goTo.HasValue)
@@ -1822,38 +1978,39 @@ namespace PhysicsBattler.Locomotion
 
             GUILayout.EndHorizontal();
             Note("Lost the panel? M puts it back here.");
+            SearchBox();
 
             // ---- Body
             if (Section($"Body: {body}", ref showBody))
             {
-                GUILayout.BeginHorizontal();
+                LabRow();
                 foreach (BodySize size in new[] { BodySize.Small, BodySize.Medium, BodySize.Large })
                 {
-                    if (GUILayout.Button(body == size ? "> " + size + " <" : size.ToString()) && body != size)
+                    if (LabButton(body == size ? "> " + size + " <" : size.ToString()) && body != size)
                     {
                         body = size;
                         Build();
                     }
                 }
 
-                GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Restart (R)")) Build();
-                if (GUILayout.Button(paused ? "Play (P)" : "Pause (P)")) paused = !paused;
-                if (GUILayout.Button(physical ? "Physical (B)" : "Kinematic (B)")) { physical = !physical; Build(); }
-                GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Time");
+                LabEndRow();
+                LabRow();
+                if (LabButton("Restart (R)")) Build();
+                if (LabButton(paused ? "Play (P)" : "Pause (P)")) paused = !paused;
+                if (LabButton(physical ? "Physical (B)" : "Kinematic (B)")) { physical = !physical; Build(); }
+                LabEndRow();
+                LabRow();
+                LabLabel("Time");
                 foreach (float sp in new[] { 0.25f, 0.5f, 1f })
                 {
-                    if (GUILayout.Button(sp.ToString("0.##") + "x"))
+                    if (LabButton(sp.ToString("0.##") + "x"))
                     {
                         Time.timeScale = sp;
                     }
                 }
 
-                GUILayout.EndHorizontal();
-                if (loadouts.Count > 0 && GUILayout.Button($"Carrying: {loadouts[loadoutNow].name} (L)"))
+                LabEndRow();
+                if (loadouts.Count > 0 && LabButton($"Carrying: {loadouts[loadoutNow].name} (L)"))
                 {
                     NextLoadout();
                 }
@@ -1868,16 +2025,16 @@ namespace PhysicsBattler.Locomotion
             // ---- Walk
             if (Section("Walk", ref showWalk, course ? $"Course: {leg}" : "W A S D drive, Shift runs, Space holds the facing, V the walking speed."))
             {
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button(course ? "Drive (C)" : "Course (C)")) { course = !course; Build(); }
-                if (GUILayout.Button(guardUp ? "Guard down (T)" : "Guard up (T)")) ToggleGuard();
-                GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Shove (G)")) Shove();
-                if (GUILayout.Button("Hard (K)")) Shove(2.5f);
-                if (GUILayout.Button("Ball (H)")) Throw();
-                GUILayout.EndHorizontal();
-                footprints = GUILayout.Toggle(footprints, "Footprints");
+                LabRow();
+                if (LabButton(course ? "Drive (C)" : "Course (C)")) { course = !course; Build(); }
+                if (LabButton(guardUp ? "Guard down (T)" : "Guard up (T)")) ToggleGuard();
+                LabEndRow();
+                LabRow();
+                if (LabButton("Shove (G)")) Shove();
+                if (LabButton("Hard (K)")) Shove(2.5f);
+                if (LabButton("Ball (H)")) Throw();
+                LabEndRow();
+                footprints = LabToggle(footprints, "Footprints");
                 Note($"Walking {walkSpeed * PaceScale:0.0} m/s, running {RunSpeed:0.0} m/s; run {loco.RunWeight:0.00}, phase {loco.Phase:0.00}, guard {loco.GuardWeight:0.0}.");
                 Note($"Planted feet moved at most {measures.PlantDriftWorst * 100f:0.0} cm over {measures.PlantsDone} plants; {measures.ForcedReleases} forced steps.");
             }
@@ -1888,7 +2045,7 @@ namespace PhysicsBattler.Locomotion
                 // (On the walking course there is no dummy: the attacker and the defender wait for driving.)
                 if (Section("Attacker and defender", ref showAttacker, "On the walking course there is no dummy to strike. Leave the course to strike, spar and set up the dummy."))
                 {
-                    if (GUILayout.Button("Leave the course: drive and strike (C)"))
+                    if (LabButton("Leave the course: drive and strike (C)"))
                     {
                         course = false;
                         Build();
@@ -1902,11 +2059,11 @@ namespace PhysicsBattler.Locomotion
                 var shown = LocoLibrary.Get(combat[combatClip]);
                 if (Section("Attacker", ref showAttacker))
                 {
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("<  (,)", GUILayout.Width(70f))) StepCombatClip(-1);
-                    if (GUILayout.Button($"Strike: {combat[combatClip].Replace(LocoLibrary.CombatPrefix(body.ToString()), "")} (J)")) PlayCombatClip();
-                    if (GUILayout.Button("(.)  >", GUILayout.Width(70f))) StepCombatClip(1);
-                    GUILayout.EndHorizontal();
+                    LabRow();
+                    if (LabButton("<  (,)", GUILayout.Width(70f))) StepCombatClip(-1);
+                    if (LabButton($"Strike: {combat[combatClip].Replace(LocoLibrary.CombatPrefix(body.ToString()), "")} (J)")) PlayCombatClip();
+                    if (LabButton("(.)  >", GUILayout.Width(70f))) StepCombatClip(1);
+                    LabEndRow();
                     if (shown != null)
                     {
                         string reach = "";
@@ -1921,7 +2078,7 @@ namespace PhysicsBattler.Locomotion
                         {
                             var chain = ComboFrom(shown);
                             int ways = ComboVariants(shown);
-                            if (GUILayout.Button(chain.Count > 0 ? $"Combo (I): {ComboText(Opener(shown, chain), chain).Replace(LocoLibrary.CombatPrefix(body.ToString()), "")}{(ways > 1 ? $" ({comboVariant % ways + 1} of {ways})" : "")}" : "Combo (I): no follow-on"))
+                            if (LabButton(chain.Count > 0 ? $"Combo (I): {ComboText(Opener(shown, chain), chain).Replace(LocoLibrary.CombatPrefix(body.ToString()), "")}{(ways > 1 ? $" ({comboVariant % ways + 1} of {ways})" : "")}" : "Combo (I): no follow-on"))
                             {
                                 PlayCombo();
                             }
@@ -1934,14 +2091,14 @@ namespace PhysicsBattler.Locomotion
                         Note(beat);
                     }
 
-                    GUILayout.BeginHorizontal();
-                    streaks.On = GUILayout.Toggle(streaks.On, "Blade streaks");
-                    GUILayout.Label($"{streaks.Lifetime:0.00} s");
-                    if (GUILayout.Button("\u2212", GUILayout.Width(36f))) streaks.Lifetime = Mathf.Max(0.04f, streaks.Lifetime - 0.02f);
-                    if (GUILayout.Button("+", GUILayout.Width(36f))) streaks.Lifetime = Mathf.Min(0.5f, streaks.Lifetime + 0.02f);
-                    GUILayout.EndHorizontal();
+                    LabRow();
+                    streaks.On = LabToggle(streaks.On, "Blade streaks");
+                    LabLabel($"{streaks.Lifetime:0.00} s");
+                    if (LabButton("\u2212", GUILayout.Width(36f))) streaks.Lifetime = Mathf.Max(0.04f, streaks.Lifetime - 0.02f);
+                    if (LabButton("+", GUILayout.Width(36f))) streaks.Lifetime = Mathf.Min(0.5f, streaks.Lifetime + 0.02f);
+                    LabEndRow();
 
-                    if (GUILayout.Button(spar ? $"Sparring (X): on, {(InPosition ? "in position" : "moving into position")}" : "Sparring (X): off, driven by hand"))
+                    if (LabButton(spar ? $"Sparring (X): on, {(InPosition ? "in position" : "moving into position")}" : "Sparring (X): off, driven by hand"))
                     {
                         ToggleSpar();
                     }
@@ -1951,21 +2108,21 @@ namespace PhysicsBattler.Locomotion
                         // (Its own defence against the dummy's blows, as its loadout has it.)
                         bool shielded = walker.Stance == ClipFighter.Stances.Shield;
                         float skill = shielded ? walkerShieldSkill : walkerParrySkill;
-                        GUILayout.BeginHorizontal();
-                        GUILayout.Label($"Its {(shielded ? "shield" : "parry")} skill {skill:0.00} ({SkillName(skill)})");
-                        if (GUILayout.Button("\u2212", GUILayout.Width(36f))) { if (shielded) SetWalkerShieldSkill(skill - 0.25f); else SetWalkerParrySkill(skill - 0.25f); }
-                        if (GUILayout.Button("+", GUILayout.Width(36f))) { if (shielded) SetWalkerShieldSkill(skill + 0.25f); else SetWalkerParrySkill(skill + 0.25f); }
-                        GUILayout.EndHorizontal();
+                        LabRow();
+                        LabLabel($"Its {(shielded ? "shield" : "parry")} skill {skill:0.00} ({SkillName(skill)})");
+                        if (LabButton("\u2212", GUILayout.Width(36f))) { if (shielded) SetWalkerShieldSkill(skill - 0.25f); else SetWalkerParrySkill(skill - 0.25f); }
+                        if (LabButton("+", GUILayout.Width(36f))) { if (shielded) SetWalkerShieldSkill(skill + 0.25f); else SetWalkerParrySkill(skill + 0.25f); }
+                        LabEndRow();
                     }
                     else if (walker != null)
                     {
                         Note("No defence of its own (a club or bare hands): the dummy's blows land.");
                     }
 
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button($"Aim: {DummyHeightNames[dummyHeight]} (U)")) NextDummyHeight();
-                    if (GUILayout.Button("Dummy in reach (Y)")) DummyInReach();
-                    GUILayout.EndHorizontal();
+                    LabRow();
+                    if (LabButton($"Aim: {DummyHeightNames[dummyHeight]} (U)")) NextDummyHeight();
+                    if (LabButton("Dummy in reach (Y)")) DummyInReach();
+                    LabEndRow();
                     if (lastAim.Length > 0)
                     {
                         // (Green it landed, blue it was blocked or parried, red it missed.)
@@ -1978,27 +2135,27 @@ namespace PhysicsBattler.Locomotion
                 // ---- Footwork
                 if (Section("Footwork (both steer themselves)", ref showFootwork))
                 {
-                    if (GUILayout.Button(footwork ? "Footwork: on (W A S D off)" : "Footwork: off"))
+                    if (LabButton(footwork ? "Footwork: on (W A S D off)" : "Footwork: off"))
                     {
                         ToggleFootwork();
                     }
 
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button($"Walker: {walkerTempo}"))
+                    LabRow();
+                    if (LabButton($"Walker: {walkerTempo}"))
                     {
                         walkerTempo = NextTempo(walkerTempo);
                         if (walkerFeet != null) walkerFeet.Mode = walkerTempo;
                         legs.Add($"{time:0.00} s: the walker's tempo {walkerTempo}");
                     }
 
-                    if (GUILayout.Button($"Dummy: {dummyTempo}"))
+                    if (LabButton($"Dummy: {dummyTempo}"))
                     {
                         dummyTempo = NextTempo(dummyTempo);
                         if (dummyFeet != null) dummyFeet.Mode = dummyTempo;
                         legs.Add($"{time:0.00} s: the dummy's tempo {dummyTempo}");
                     }
 
-                    GUILayout.EndHorizontal();
+                    LabEndRow();
                     Note("Probe: at its striking distance. Gather: just out of the other's reach. Press: closes in. Shell: gives ground.");
                     if (footwork && walkerFeet != null && dummyFeet != null && dummy != null)
                     {
@@ -2009,11 +2166,11 @@ namespace PhysicsBattler.Locomotion
                 // ---- Defender
                 if (Section("Defender (the dummy)", ref showDefender))
                 {
-                    GUILayout.BeginHorizontal();
+                    LabRow();
                     foreach (var st in new[] { ClipFighter.Stances.Open, ClipFighter.Stances.Shield, ClipFighter.Stances.Sword })
                     {
                         string name = st == ClipFighter.Stances.Open ? "Open" : st == ClipFighter.Stances.Shield ? "Sword + shield" : "Sword only";
-                        if (GUILayout.Button(dummyStance == st ? "> " + name + " <" : name) && dummyStance != st)
+                        if (LabButton(dummyStance == st ? "> " + name + " <" : name) && dummyStance != st)
                         {
                             dummyStance = st;
                             MakeDummy();
@@ -2021,7 +2178,7 @@ namespace PhysicsBattler.Locomotion
                         }
                     }
 
-                    GUILayout.EndHorizontal();
+                    LabEndRow();
                     Note(dummyStance == ClipFighter.Stances.Open ? "Open: its guard down, no defence; every blow lands. (O cycles the three.)"
                         : dummyStance == ClipFighter.Stances.Shield ? "Blocks each blow with its shield. (O cycles the three.)"
                         : $"Parries each blow with its sword from a medium guard. (O cycles the three.)");
@@ -2029,21 +2186,21 @@ namespace PhysicsBattler.Locomotion
                     {
                         // (Shield skill, 0 a novice to 1 an expert: how soon it moves, how well it reads the line, how fast its
                         // shield comes and turns, whether it covers low cuts and slants the shield so a cut glances off.)
-                        GUILayout.BeginHorizontal();
-                        GUILayout.Label($"Shield skill {dummyShieldSkill:0.00} ({SkillName(dummyShieldSkill)})");
-                        if (GUILayout.Button("\u2212", GUILayout.Width(36f))) SetShieldSkill(dummyShieldSkill - 0.25f);
-                        if (GUILayout.Button("+", GUILayout.Width(36f))) SetShieldSkill(dummyShieldSkill + 0.25f);
-                        GUILayout.EndHorizontal();
+                        LabRow();
+                        LabLabel($"Shield skill {dummyShieldSkill:0.00} ({SkillName(dummyShieldSkill)})");
+                        if (LabButton("\u2212", GUILayout.Width(36f))) SetShieldSkill(dummyShieldSkill - 0.25f);
+                        if (LabButton("+", GUILayout.Width(36f))) SetShieldSkill(dummyShieldSkill + 0.25f);
+                        LabEndRow();
                     }
 
                     if (dummyStance == ClipFighter.Stances.Sword)
                     {
                         // (Parry skill, 0 a novice to 1 an expert: how soon it moves, how well it reads the blow and meets the blade.)
-                        GUILayout.BeginHorizontal();
-                        GUILayout.Label($"Parry skill {dummyParrySkill:0.00} ({SkillName(dummyParrySkill)})");
-                        if (GUILayout.Button("\u2212", GUILayout.Width(36f))) SetParrySkill(dummyParrySkill - 0.25f);
-                        if (GUILayout.Button("+", GUILayout.Width(36f))) SetParrySkill(dummyParrySkill + 0.25f);
-                        GUILayout.EndHorizontal();
+                        LabRow();
+                        LabLabel($"Parry skill {dummyParrySkill:0.00} ({SkillName(dummyParrySkill)})");
+                        if (LabButton("\u2212", GUILayout.Width(36f))) SetParrySkill(dummyParrySkill - 0.25f);
+                        if (LabButton("+", GUILayout.Width(36f))) SetParrySkill(dummyParrySkill + 0.25f);
+                        LabEndRow();
                         if (dummy?.Parry != null && dummy.Parry.BlowsRead > 0)
                         {
                             Note($"Read {dummy.Parry.BlowsRead} blows, took the wrong parry for {dummy.Parry.WrongPicks}");
@@ -2052,17 +2209,17 @@ namespace PhysicsBattler.Locomotion
 
                     if (dummy != null)
                     {
-                        dummyFightsBack = GUILayout.Toggle(dummyFightsBack, "Fights back: answers each of your blows");
-                        GUILayout.BeginHorizontal();
-                        if (GUILayout.Button("Strike (Z)")) DummyStrikes(false);
-                        if (GUILayout.Button("Combo (Shift+Z)")) DummyStrikes(true);
-                        GUILayout.EndHorizontal();
+                        dummyFightsBack = LabToggle(dummyFightsBack, "Fights back: answers each of your blows");
+                        LabRow();
+                        if (LabButton("Strike (Z)")) DummyStrikes(false);
+                        if (LabButton("Combo (Shift+Z)")) DummyStrikes(true);
+                        LabEndRow();
                         if (dummy.Strikes != null && (dummy.Strikes.Hits + dummy.Strikes.Blocks + dummy.Strikes.Parries) > 0)
                         {
                             Note($"Its blows: {dummy.Strikes.Hits} hits, {dummy.Strikes.Blocks} blocked, {dummy.Strikes.Parries} parried");
                         }
 
-                        dummy.Anchored = GUILayout.Toggle(dummy.Anchored, "Anchored (a training post: not driven back)");
+                        dummy.Anchored = LabToggle(dummy.Anchored, "Anchored (a training post: not driven back)");
                         Note($"{Flat(DummyTarget - loco.Position):0.0} m away, struck at {DummyTarget.y - origin.y:0.0} m; {(hits != null ? $"{hits.Hits} hits, {hits.Blocks} blocked, {hits.Parries} parried" : "")}");
                         if (dummy.Parry != null)
                         {
@@ -2086,11 +2243,13 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            GUI.backgroundColor = panelBackground;
             GUI.DragWindow();
         }
 
         private void OnDisable()
         {
+            SandboxInput.Typing = false;
             if (Application.isPlaying)
             {
                 Time.timeScale = 1f;

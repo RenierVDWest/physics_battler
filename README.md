@@ -6583,3 +6583,82 @@ lifts it clear. That is past what a wrist turns, for those moments, in the pose;
 **In the lab:** target test, with the get-up rows: "Getting up, his blade: turned clear at the wrist / the arm
 thrown up (old)". Fell him from his back with "Falls on demand" and watch about a second into the get-up.
 Headless: `FIGHT_GETUPBLADE=0` is the old way.
+
+### 19 November, overnight: shield and sword off his feet (measured only), the budget, and the walk lab's panel
+
+**Shield and sword while falling, lying and getting up: measured, nothing built.** The crossing counter on a
+shield bearer felled by the tube (`gup.sh`), as seen:
+
+| | Falling or down | Getting up |
+|---|---|---|
+| Felled to his back | none in 1.2 s | his board in his hips 0.07 s of 1.8 s |
+| Felled to his front | 0.02 s of 1.1 s | his board in his own body 0.50 s of 2.1 s: in his hips for 0.35 s as it begins (he lies on it), again for 0.07 s, and past his head for 0.08 s at 1.1 s |
+
+In two fights of six the same: getting up, his board in his own body 11% and 26% of the time, his sword arm
+through his board 8% and 12%. The pose itself has nearly all of it (0.50 of 0.52 s): it is not the physics. The
+shield plan's step 4 has no design yet for the question underneath it: **where does a hand with a shield on its
+arm post, and where does the board lie while he pushes up from his front?** Flat under the forearm is what puts it
+under his hips. That is a decision of Renier's (out to his side? on its edge? carried on his back as he rises?),
+so nothing was built.
+
+**The budget: the shield work is locked into the check runs** (the shield plan's step 5). Every headless fight now
+ends its report with two lines, and `Tools/Headless/checks.sh` gathers them into `$S/checks.verdict` (it now also
+runs a dance of two and the four bashes):
+
+- `CROSSINGS OK` or `CROSSINGS OVER BUDGET`: for fighters on their feet, all crossings of his own sword, shield
+  and body together under 0.5% of the time watched, and no single one longer than 0.1 s (the plan's proposal).
+  Falling, down and getting up are counted on the same line, apart, and are not held to it yet.
+- `TREMBLE OK` or `TREMBLE OVER BUDGET`: standing or moving, his board as seen may show a tremble (over 5 mm) no
+  more than 8% of that time. The 8% is a proposal of this night's, from the 6 to 7% the evening of the 18th
+  measured. The blade's tip is told beside it with no budget: why it trembles is not known.
+
+**It reads red today.** A fight of six, 25 s: crossings on his feet 0.90% (0.45 s of 50 s), the longest 0.12 s
+(a blade through his own shield while moving); the board shows a tremble 11.5% of the time standing or moving.
+Whether the night's stumbles made it worse is told below this entry, with the old way on the same seed.
+
+**The walk lab's own panel** (`LocomotionLab.cs`) has what the battle's panel has: each section has a colour of
+its own (its heading bright, its buttons a darker, greyer tone of it) and there is a search box under the panel's
+size (type part of a name: every section opens and only what has the words in its name is shown, a row with its
+plus and minus buttons kept whole; Esc or the cross clears it; the keys that drive the walker are not read while
+the box has the keyboard). **Built blind:** it compiles, and the headless panel check does not draw this panel.
+
+**The budget against the night's own work** (the fight of six, 25 s, seed 5 unless said; single runs, and a fight
+that goes another way is another fight):
+
+| Run | Crossings on his feet | The longest | Board shows a tremble |
+|---|---|---|---|
+| Old way (ledger off, stumbles off) | 0.20% | under 0.05 s | 6.3% |
+| Ledger off, stumbles on | 0.20% | under 0.05 s | 6.5% |
+| Ledger on, stumbles off | 0.30% | 0.07 s | 5.4% |
+| **Both on (as set)** | **0.90%, and 1.50% in a second build** | 0.12 s, 0.28 s | 11.5%, 14.1% |
+| Both on, seed 7 | 0.56% | under 0.05 s | 5.5% |
+| Both on, no bash force on the body (`FIGHT_BASHFORCE=0`) | 0.63% | 0.13 s | 11.6% |
+| Both on, a dance of two, 30 s | 0.72% | 0.13 s, his blade through his shield **while stumbling** | 10.0% |
+
+**So the lock's first catch is this night's stumbles.** With both switches on the crossings were over the budget in
+five runs of five; with either off, within it (one run each). What is known: in the dance one crossing was in the
+stumble itself (the upper body tips and carries the sword arm with it; the shield's cover does not tip: "Trunk
+tips" at 0 would be the test). In the six they were while moving, striking and just struck, with the seen board 59
+to 94 degrees off its pose: a board knocked about, not a pose. It is not the force a bash puts back on the
+basher's shield arm alone (off, still over). A sword arm made loose as a stumble began was tried for the arms and
+taken out again (no better: 0.90% with it, 1.50% without). **Not pinned down. Not mended.**
+
+**Why the blade's tip trembles on his feet: narrowed, not found.** (`FIGHT_SHAKELOG=1` now also writes `TIPLOG`
+lines: each time the posed tip jumps 2 cm or more from its own smooth path while he stands or moves, with what he
+was at.)
+
+- Standing with nothing happening it does not tremble: two sword and shields 1.5 m apart for 68 s, the tip 0.4 mm
+  as seen, never over 5 mm; the same with his sword not solid against his own body. So it is not the arm's motors
+  and not his own body in the blade's way.
+- In a fight it is mostly the pose. Standing in the six (25 s of it): the tip as posed 20 mm (over 5 mm a quarter
+  of the time), as seen 21 mm (38%), the seen against the posed 14 mm.
+- **In the six nearly all of it is the sword-alone fighters' parry**: of 320 such jumps in 25 s, 310 were a
+  fighter without a shield, 167 of them in his parry's guard with no blow coming ("club guard", "medium guard")
+  and about 120 in a parry going to meet a blow, which is meant to be fast. The guard between blows moving the tip
+  2 cm a step is the thing to look at there.
+- **For a sword and shield it comes in bursts**: in a dance of two, 44 jumps in 28 s, in runs of five or six steps
+  (a tenth of a second) every 3 to 5 s, always with his legs in their walk's cycle, no blow coming, no gesture, not
+  struck. What starts a burst is not known: the suspects are the hand-over back to the guard as a gesture or a fake
+  ends, and the change between the stand and the walk. The next step is one more word on the `TIPLOG` line (what
+  ended last, and how long ago).
+- Nothing was changed for it.

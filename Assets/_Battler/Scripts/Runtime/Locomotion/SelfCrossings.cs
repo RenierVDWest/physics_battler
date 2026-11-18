@@ -71,9 +71,83 @@ namespace PhysicsBattler.Locomotion
             return row;
         }
 
+        // ---- The budget (the shield plan's step 5, "lock it"; 19 November) --------------------------------------------
+
+        /// <summary>
+        /// The budget for a fighter on his feet: no single crossing of his own sword, shield and body longer than
+        /// <see cref="LongestAllowed"/> seconds, and all of them together under <see cref="ShareAllowed"/> of the time
+        /// he was watched on his feet. Falling, down and getting up are counted apart and are not held to it yet
+        /// (the plan's step 4 is not built).
+        /// </summary>
+        public const float LongestAllowed = 0.1f, ShareAllowed = 0.005f;
+
+        /// <summary>What he is doing when he is not on his feet: outside the budget.</summary>
+        public static bool OffHisFeet(string doing) => doing == "falling or down" || doing == "getting up";
+
+        /// <summary>The longest single crossing on his feet (seconds), and what it was; the same off his feet.</summary>
+        public static float Longest, LongestDown;
+
+        public static string LongestWas = "", LongestDownWas = "";
+
+        /// <summary>A crossing has ended (or reached a twentieth of a second and goes on): how long it has been, and whose.</summary>
+        public static void Stretch(string doing, int kind, float seconds, string who)
+        {
+            string said = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}'s {1} while {2}", who, Names[kind], doing);
+            if (OffHisFeet(doing))
+            {
+                if (seconds > LongestDown)
+                {
+                    LongestDown = seconds;
+                    LongestDownWas = said;
+                }
+            }
+            else if (seconds > Longest)
+            {
+                Longest = seconds;
+                LongestWas = said;
+            }
+        }
+
+        /// <summary>
+        /// The verdict, one line: "CROSSINGS OK" or "CROSSINGS OVER BUDGET", with the figures. On his feet only; what
+        /// he does off his feet is told after it and does not change the verdict.
+        /// </summary>
+        public static string Budget()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            float watched = 0f, crossed = 0f, watchedDown = 0f, crossedDown = 0f;
+            foreach (var pair in By)
+            {
+                float sum = pair.Value[1] + pair.Value[2] + pair.Value[3];
+                if (OffHisFeet(pair.Key))
+                {
+                    watchedDown += pair.Value[0];
+                    crossedDown += sum;
+                }
+                else
+                {
+                    watched += pair.Value[0];
+                    crossed += sum;
+                }
+            }
+
+            if (watched < 1f)
+            {
+                return "CROSSINGS not measured (nobody with a shield was watched on his feet)";
+            }
+
+            float share = crossed / watched;
+            bool ok = Longest <= LongestAllowed + 1e-3f && share <= ShareAllowed;
+            return string.Format(c, "CROSSINGS {0}: on his feet {1:0.00} s of {2:0} s ({3:0.00}%; the budget is {4:0.0}%), the longest {5:0.00} s (the budget is {6:0.00} s){7}. Off his feet, not held to it: {8:0.00} s of {9:0.0} s, the longest {10:0.00} s{11}",
+                ok ? "OK" : "OVER BUDGET", crossed, watched, 100f * share, 100f * ShareAllowed, Longest, LongestAllowed, Longest > 0f ? " (" + LongestWas + ")" : "",
+                crossedDown, watchedDown, LongestDown, LongestDown > 0f ? " (" + LongestDownWas + ")" : "");
+        }
+
         public static void Clear()
         {
             By.Clear();
+            Longest = LongestDown = 0f;
+            LongestWas = LongestDownWas = "";
             BoardIn.Clear();
             ByAttack.Clear();
             Log.Clear();
@@ -191,6 +265,38 @@ namespace PhysicsBattler.Locomotion
             }
 
             return row;
+        }
+
+        /// <summary>
+        /// The tremble's budget, for a fighter standing or moving (not striking, struck, bashing or off his feet, where
+        /// what he holds is meant to move fast): his board as seen may show a tremble (over 5 mm) no more than
+        /// <see cref="BoardShowsAllowed"/> of that time. The blade's tip is told beside it and is not held to a budget
+        /// yet: why it trembles on his feet is not known.
+        /// </summary>
+        public const float BoardShowsAllowed = 0.08f;
+
+        public static string Budget()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            double watched = 0, board = 0, tip = 0;
+            foreach (var pair in By)
+            {
+                if (pair.Key == "standing" || pair.Key == "moving")
+                {
+                    watched += pair.Value[0];
+                    board += pair.Value[2];
+                    tip += pair.Value[8];
+                }
+            }
+
+            if (watched < 1.0)
+            {
+                return "TREMBLE not measured (nobody with a shield was watched standing or moving)";
+            }
+
+            bool ok = board / watched <= BoardShowsAllowed;
+            return string.Format(c, "TREMBLE {0}: standing or moving ({1:0} s), his board as seen shows a tremble {2:0.0}% of the time (the budget is {3:0}%); his blade's tip {4:0.0}% (no budget yet)",
+                ok ? "OK" : "OVER BUDGET", watched, 100.0 * board / watched, 100.0 * BoardShowsAllowed, 100.0 * tip / watched);
         }
 
         public static void Clear()

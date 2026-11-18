@@ -1884,6 +1884,14 @@ namespace PhysicsBattler.Locomotion
                         FightUnit != null ? FightUnit.name : "?", footingTime, HeldShake.Names[s], 1000f * tremble, 100f * getUp.WeaponGroundGap));
                 }
 
+                if (HeldShake.Trace && s == 4 && tremble > 0.02f && (doing == "standing" || doing == "moving"))
+                {
+                    // (19 November, for finding why the blade's tip trembles on his feet: what he was at as the posed tip jumped.)
+                    Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture, "TIPLOG {0:0.00} {1} tip posed: {2:0} mm, {3}; {4}; parry {5}; a blow coming {6}; posturing {7}; struck {8:0.0} s ago; {9} {10}",
+                        clock, FightUnit != null ? FightUnit.name : "?", 1000f * tremble, doing, stance, Parry != null ? Parry.CurrentName : "none", Blow.HasValue ? "yes" : "no", Posturing ? "yes" : "no",
+                        clock - lastHit, Loco.Current, Loco.Shot != null ? Loco.Shot.Name : ""));
+                }
+
                 if (HeldShake.Trace && (s == 1 || s == 2 || s == 7) && tremble > 0.015f && (doing == "standing" || doing == "moving"))
                 {
                     Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture, "SHAKELOG {0:0.00} {1} {2}: {3:0} mm, {4}; cover {5:0.00}; last: {6}; {7} {8}",
@@ -2041,6 +2049,7 @@ namespace PhysicsBattler.Locomotion
             if (crossFor[kind] >= 0.05f)
             {
                 SelfCrossings.Stretches++;
+                SelfCrossings.Stretch(crossDoing[kind], kind, crossFor[kind], FightUnit != null ? FightUnit.name : "?");
                 string said = $"{SelfCrossings.Names[kind]} for {crossFor[kind]:0.00} s, as seen; it began {crossDoing[kind]}{(crossWhat[kind].Length > 0 ? " (" + crossWhat[kind] + ")" : "")}{(crossAt[kind] >= 0f ? $", {crossAt[kind]:0.00} s into it" : "")}";
                 if (SelfCrossings.Log.Count < 60)
                 {
@@ -6642,8 +6651,9 @@ namespace PhysicsBattler.Locomotion
             Stagger.Begin(hips, going, Loco.Facing, spin, left, right, leftYaw, rightYaw, Loco.Leg, already);
             staggerLead = hips - Flat(Loco.Position);
             Poser.Bear(Stagger);
-            // (His sword arm goes loose a moment: it is thrown out by his body's going, not held to its guard.)
-            Soften(BodyRegion.ArmR, 0.5f, 0.7f);
+            // (19 November, tried and taken out: his sword arm made loose for 0.7 s as a stumble began, so it would be
+            // thrown out by his body's going. In a fight of six his loose blade went through his own board (the seen tip
+            // 27 to 31 cm off its pose) and the crossings went over their budget. Arms in a stumble want a pose of their own.)
             Loco.Velocity = new Vector3(going.x, Loco.Velocity.y, going.z);
             staggerGoing = going;
             staggerAt = Flat(Loco.Position);
