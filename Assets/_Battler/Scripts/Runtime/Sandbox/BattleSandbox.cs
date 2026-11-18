@@ -4834,6 +4834,23 @@ namespace PhysicsBattler.Sandbox
                 Note(heldNow ? "get-ups: what is held kept off the ground" : "get-ups: not knowing what is held (old)");
             }
 
+            BeginRow();
+            Words(new GUIContent("Getting up, his blade:", "What keeps a rising fighter's sword out of the ground when his forearm points it down (Combat Feel \"A Rising Fighter's Blade Is Turned Clear Of The Ground\"). Turned clear at the wrist (new): the wrist turns it only as far as lifts it out. The arm thrown up (old): his whole arm goes up to lift it out and comes back the next moment, which is the sword that shook as he got up. Fell him from his back with \"Falls on demand\" to see it: about a second into the get-up."), GUILayout.Width(150f));
+            bool bladeClear = feel != null ? feel.aRisingFightersBladeIsTurnedClearOfTheGround : PhysicsBattler.Motion.GetUp.BladeTurnsClear;
+            bool bladeClearNow = bladeClear;
+            if (Press(bladeClear ? "[turned clear at the wrist]" : "turned clear at the wrist", "The wrist lifts the blade out.")) bladeClearNow = true;
+            if (Press(!bladeClear ? "[the arm thrown up (old)]" : "the arm thrown up (old)", "As before.")) bladeClearNow = false;
+            EndRow();
+            if (bladeClearNow != bladeClear)
+            {
+                if (feel != null)
+                {
+                    feel.aRisingFightersBladeIsTurnedClearOfTheGround = bladeClearNow;
+                }
+
+                PhysicsBattler.Motion.GetUp.BladeTurnsClear = bladeClearNow;
+            }
+
             bool clear = feel != null ? feel.getUpLegsClearTheHips : PhysicsBattler.Motion.GetUp.LegsClearTheHips;
             bool clearNow = Tick(clear, "The legs keep clear of the hips", "The hips are lifted before the leg goes back under them. Off: as before, the knees swinging round through the trunk.");
             if (clearNow != clear)

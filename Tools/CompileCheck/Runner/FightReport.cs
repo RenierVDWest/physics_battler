@@ -1229,6 +1229,8 @@ internal static class FightReport
         // (FIGHT_GETUPHELD=0: a get-up that does not know what the hands hold, as before 18 November.)
         PhysicsBattler.Locomotion.ClipFighter.GetUpsKnowWhatIsHeld = Environment.GetEnvironmentVariable("FIGHT_GETUPHELD") != "0";
         PhysicsBattler.Motion.GetUp.HeldClearFromTheStart = Environment.GetEnvironmentVariable("FIGHT_GETUPCLAMP") != "0";
+        // (FIGHT_GETUPBLADE=0: a rising fighter's blade is not turned clear of the ground at the wrist; his arm is thrown up, as before.)
+        PhysicsBattler.Motion.GetUp.BladeTurnsClear = Environment.GetEnvironmentVariable("FIGHT_GETUPBLADE") != "0";
         PhysicsBattler.Motion.GetUp.TraceHeld = Environment.GetEnvironmentVariable("FIGHT_GETUPTRACE") == "1";
         // (FIGHT_GETUPCLEAR=0: a recorded get-up's feet where the recording has them, through the hips or not. FIGHT_GETUPCLEARS: how far clear, in leg lengths.)
         PhysicsBattler.Motion.GetUp.FeetClearHips = Environment.GetEnvironmentVariable("FIGHT_GETUPCLEAR") != "0";

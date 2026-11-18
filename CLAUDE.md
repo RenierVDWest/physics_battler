@@ -164,22 +164,21 @@ smoothly, the shield giving way to the sword.
   stumble at all? The arms do nothing of their own yet.
 - Figures: the README's entry of 19 November.
 
-**In hand, not finished: the sword shakes as a fighter gets up** (he flagged it on the 18th; it happens as the
-hand pushes him up). What is known:
+**Mended overnight on the 19th, headless only, waiting for his eye: the sword that shook as a fighter got up.**
 
-- It is the pose, not the physics. About a second into a get-up from the back, the posed sword flips between
-  two positions from one step to the next (its lowest point jumps from 2 cm over the ground to 53 cm and back).
-- It comes from the get-up knowing what the hands hold (added on the 18th to keep the shield out of the
-  floor). With that off (`FIGHT_GETUPHELD=0`) the tip's tremble falls to about a third.
-- It is not the ground clamp coming in at full weight from the start (`FIGHT_GETUPCLAMP=0` changes nothing).
-- Not pinned down: which part flips. Suspects, all in `GetUp.cs`: `GroundClamp.Keep` called from `Finish`
-  without a memory (so its wrist turn and arm raise may jump from step to step), the sword arm's `Arm` raise,
-  and `HoldIn`.
-- To reproduce: `Tools/Headless/gup.sh n "270 180"` (felled to the side and forward), then read the
-  "getting up" row and the `GETUPSHAKE` lines. `FIGHT_GETUPTRACE=1` prints the sword arm step by step
-  (`GETUPHELD` lines; this trace is temporary and can go once the bug is fixed).
-- In his 21:47 log of the 18th, the sword hand moved at 18 to 26 m/s early in get-ups, and the posting hand
-  was held 26 to 32 cm from its place.
+- The cause: the sword hand is turned only as far as a wrist turns from the forearm, and about a second into a
+  get-up from the back the forearm points the blade up to 49 cm into the ground. The rule that keeps held things
+  out of the ground threw the whole arm up by that much in one step, the blade swung over his head, and came back
+  the next step.
+- The mend (Combat Feel "A Rising Fighter's Blade Is Turned Clear Of The Ground"): the wrist turns the blade on,
+  only as far as lifts it clear. From the back the blade's largest turn in one step went from 140 to 23 degrees,
+  the tip's tremble as seen from 140 to 63 mm.
+- To see it: target test, "Getting up, his blade: turned clear at the wrist / the arm thrown up (old)", then
+  "Falls on demand" from his back. Headless: `Tools/Headless/gup.sh n "270 180"`, old with `FIGHT_GETUPBLADE=0`.
+- **Not mended: the shield's tremble in a get-up** (the board as posed 5.3 mm, over 5 mm 27% of the time). Cause
+  not found; it is not the ground clamp lacking a memory (tried). And his sword hand still travels at 5 to 8 m/s
+  for a fifth of a second as the arm comes round: the get-up's own motion, for his eye.
+- `FIGHT_GETUPTRACE=1` (`GETUPHELD` lines) is temporary and can go once he has seen it.
 
 ## Roadmap
 
@@ -188,7 +187,7 @@ arms thrown out for balance; a look at feet crossing in a stumble to the side; a
 a bash's is (it is still the old rule's number, uncapped).
 
 **Bugs and leftovers**
-1. The get-up sword and shield shake (above).
+1. The get-up shield tremble (above; the sword's flip is mended, waiting for his eye).
 2. Shield and sword while falling, lying and getting up: the board is under him as he rises, the blade goes
    through his shield while he is down. The crossing counter judges it.
 3. Lock the shield work: the crossing counter and the tremble measure join the regular check runs with a

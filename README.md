@@ -6539,3 +6539,47 @@ check passes.
 `STUMBLE_REACH`, `STUMBLE_TAKES`, `STUMBLE_BRAKE`, `STUMBLE_REACTS`, `STUMBLE_DOWN`, `STUMBLE_KNEES`,
 `STUMBLE_TURNED`, `STUMBLE_TIPS`. Lines: `STUMBLE` (each stumble as it begins and ends). Scripts: `four.sh`,
 `stum.sh`. His playtest logs carry `stumble` notes.
+
+### 19 November, overnight: the sword that shook as a fighter got up: the cause, and a mend
+
+Flagged by Renier on the 18th (it happens as the hand pushes him up). Found and mended behind a switch, headless
+only. **Not seen in Unity.**
+
+**The cause** (`GetUp.HoldIn` and `GetUp.Arm`). Getting up, the sword hand is turned toward where the blade is
+asked to lie, but only as far as a wrist turns (55 degrees) from where the forearm points. About a second into a
+get-up from his back his arm comes round, and for a tenth of a second the forearm points the blade down: up to
+49 cm into the ground as posed. The rule that keeps a held thing out of the ground then lifted his wrist by that
+much in one step. Lifting the wrist turns the forearm, the forearm turns the blade, and the blade swung up over
+his head; the next step it was back. In the trace: the blade turned 45, 103, 105 and 140 degrees in single steps
+and the hand moved 24 and 37 cm in single steps, between 1.07 and 1.18 s.
+
+Ruled out on the way: the ground clamp at the end of the pose having no memory of its wrist turn and arm raise
+(given one, nothing changed; taken out again).
+
+**The mend** (Combat Feel "A Rising Fighter's Blade Is Turned Clear Of The Ground", on). Where the forearm would
+point the blade into the ground, the wrist is turned on toward where the blade was asked to lie, only as far as
+lifts it clear. That is past what a wrist turns, for those moments, in the pose; the arm is no longer thrown up.
+
+**Measured headless** (a Medium with sword and shield felled by the tube, old against new on one build,
+`Tools/Headless/gup.sh`; "the usual size" of the tremble, as the report has it):
+
+| Get-up | | Old | New |
+|---|---|---|---|
+| From his back | the blade's largest turn in one step | 140 degrees | 23 degrees |
+| | the hand's largest move in one step | 37 cm | 14 cm |
+| | the tip's tremble, as seen / as posed | 140 / 136 mm | 63 / 56 mm |
+| From his front | the tip's tremble, as seen / as posed | 83 / 84 mm | 31 / 26 mm |
+
+**What is left.**
+- The tip still reads over 5 mm for nine tenths of a get-up: it is a long blade on an arm that moves fast. Between
+  1.17 and 1.38 s his sword hand travels 8 to 14 cm a step (5 to 8 m/s) as the arm comes round from behind him to
+  before him. That is the get-up's own motion at half the recording's time, not a flip. Whether it still looks
+  like a shake is for his eye.
+- The blade turns 20 to 23 degrees in single steps four times in a get-up from his back.
+- **The shield's tremble in a get-up is as it was** (the board as posed 5.3 mm, over 5 mm 27% of the time; standing
+  it is 0.9 mm). Its cause was not found. Not the clamp's memory.
+- `FIGHT_GETUPTRACE=1` (the `GETUPHELD` lines) is kept until he has seen it.
+
+**In the lab:** target test, with the get-up rows: "Getting up, his blade: turned clear at the wrist / the arm
+thrown up (old)". Fell him from his back with "Falls on demand" and watch about a second into the get-up.
+Headless: `FIGHT_GETUPBLADE=0` is the old way.

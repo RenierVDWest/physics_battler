@@ -737,6 +737,14 @@ namespace PhysicsBattler.Motion
 
         private void Finish(float t, PoseBuffer stand)
         {
+            // (One step of the pose; a new get-up begins with no turn remembered.)
+            bladeStep++;
+            if (t < bladeLastT)
+            {
+                bladeMore = bladeMoreWas = 0f;
+            }
+
+            bladeLastT = t;
             float standing = stand != null && t > StandFrom ? Smooth((t - StandFrom) / Mathf.Max(1e-3f, Duration - StandFrom)) : 0f;
             ShieldFace = Vector3.zero;
             if (Shielded)
@@ -780,6 +788,8 @@ namespace PhysicsBattler.Motion
                     t, dbgWristY, dbgKeyGap, before, mem.turn, mem.raise, dirWas.x, dirWas.y, dirWas.z, dir.x, dir.y, dir.z, hp.x, hp.y, hp.z, standing, Natural, Shielded));
             }
 
+            // (19 November, tried and taken out: the clamp given a memory of its wrist turn and arm raise from step to
+            // step. It changed nothing in what the board or the blade's tip does in a get-up.)
             WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, HeldClearFromTheStart ? 1f : Smooth(t / BlendIn));
             if (Shielded && anim.SlotWeaponL != null)
             {
@@ -1374,6 +1384,22 @@ namespace PhysicsBattler.Motion
 
         /// <summary>What the hands hold is kept out of the ground with the clamp's whole weight from a get-up's first step (the body as it lay was brought out of the floor already, as the get-up began). Off: the clamp comes in over the blend from how it lay, as it was first made.</summary>
         public static bool HeldClearFromTheStart = true;
+
+        /// <summary>
+        /// Getting up, a blade that his forearm would point into the ground is turned clear of it at the wrist, past
+        /// what a wrist turns if it must (Combat Feel "A Rising Fighter's Blade Is Turned Clear Of The Ground"). Off:
+        /// as before, his whole arm is thrown up to clear it, and back.
+        /// </summary>
+        public static bool BladeTurnsClear = true;
+
+        /// <summary>The furthest past a wrist's turn a blade was turned to clear the ground in this get-up (degrees; for the reports).</summary>
+        public float BladeTurnedClear;
+
+        /// <summary>How much that turn may change in a step (degrees).</summary>
+        public const float BladeTurnChanges = 30f;
+
+        private float bladeMore, bladeMoreWas, bladeLastT = float.MaxValue;
+        private int bladeStep, bladeStepSeen = -1;
 
         /// <summary>How long a recorded get-up is given, against the recording's own time (from his back 3.7 s, from his front 4.5 s as recorded).</summary>
         public static float RecordedTakes = 0.5f;
@@ -2071,9 +2097,50 @@ namespace PhysicsBattler.Motion
                 var asked = Quaternion.LookRotation(dir, up) * Quaternion.Inverse(slot.localRotation);
                 // (Natural: as far as a wrist turns. Laid out by the hand exactly, the weapon asked the wrist for up to
                 // 100 degrees more than it has; the physical hand could not follow and the weapon swung about.)
-                anim.Part(hand).rotation = Natural
-                    ? Quaternion.RotateTowards(anim.Part(hand).parent.rotation * anim.RestLocalRotation(hand), asked, WristTurns)
-                    : asked;
+                Quaternion wristRest = anim.Part(hand).parent.rotation * anim.RestLocalRotation(hand);
+                anim.Part(hand).rotation = Natural ? Quaternion.RotateTowards(wristRest, asked, WristTurns) : asked;
+                var held = Loadout != null ? (right ? Loadout.Main : Loadout.Off) : null;
+                if (Natural && BladeTurnsClear && held != null && !held.IsShield)
+                {
+                    // (19 November, the sword that shook as he got up. Turned only as far as a wrist turns, the blade goes
+                    // where his forearm points, and for a tenth of a second as the arm comes round that is down into the
+                    // ground, up to half a metre. The arm was then thrown up by as much to clear it, which swung the blade
+                    // up over his head, and back the next moment: the hand 45 cm up and down in five steps. Instead the
+                    // wrist is turned on toward where the blade was asked to lie, only as far as lifts it clear.)
+                    float margin = GroundClamp.Margin * body.SizeFactor;
+                    float full = Quaternion.Angle(wristRest, asked);
+                    float more = 0f;
+                    if (full > WristTurns && GroundClamp.Gap(slot, held, Loadout.Scale, stance.GroundY) < margin)
+                    {
+                        float lo = WristTurns, hi = full;
+                        for (int k = 0; k < 8; k++)
+                        {
+                            float mid = 0.5f * (lo + hi);
+                            anim.Part(hand).rotation = Quaternion.RotateTowards(wristRest, asked, mid);
+                            if (GroundClamp.Gap(slot, held, Loadout.Scale, stance.GroundY) < margin)
+                            {
+                                lo = mid;
+                            }
+                            else
+                            {
+                                hi = mid;
+                            }
+                        }
+
+                        more = hi - WristTurns;
+                    }
+
+                    // (No faster than a wrist turns: what is still short for a step, the arm's own raise takes up.)
+                    if (bladeStepSeen != bladeStep)
+                    {
+                        bladeStepSeen = bladeStep;
+                        bladeMoreWas = bladeMore;
+                    }
+
+                    bladeMore = Mathf.Clamp(more, bladeMoreWas - BladeTurnChanges, bladeMoreWas + BladeTurnChanges);
+                    anim.Part(hand).rotation = Quaternion.RotateTowards(wristRest, asked, Mathf.Min(full, WristTurns + bladeMore));
+                    BladeTurnedClear = Mathf.Max(BladeTurnedClear, bladeMore);
+                }
             }
             else
             {

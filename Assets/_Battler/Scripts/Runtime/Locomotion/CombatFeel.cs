@@ -403,6 +403,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a get-up knows what the hands hold. A shield is laid flat under the forearm while the hands push, held up toward what he fights as it comes off them, and what both hands hold is kept out of the ground. Off: as it was from 11 November to 18 November, when a get-up was not told what was held and a shield or a sword went through the floor (headless: a shield's rim up to 36 cm under the ground for a second of a get-up). The lab's \"A get-up knows what is held\" with the get-ups' settings.")]
         public bool getUpsKeepWhatTheHandsHoldOffTheGround = true;
 
+        [Tooltip("On: as a fighter gets up, a sword his forearm would point down into the ground is turned clear of it at the wrist, as far as that needs. Off: as before, the wrist turns only as far as a wrist turns and his whole arm is thrown up to lift the blade out, which swung the sword up over his head and back within a tenth of a second (the sword that shook as he got up, 18 November).")]
+        public bool aRisingFightersBladeIsTurnedClearOfTheGround = true;
+
         [Tooltip("How often a counter-bash stops a hard bash knocking him over (per cent). Held: the two boards meet, he is shoved back a step and the basher is stopped. Not held: he goes down as if he had not countered. To be tied to his defensive skill later.")]
         [Range(0f, 100f)] public float counterBashHolds = 75f;
 
@@ -1665,6 +1668,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.ImpactsAbsorbed = impactsAreAbsorbed;
             ClipFighter.Absorbed = Mathf.Clamp01(absorbedHowMuch);
             ClipFighter.GetUpsKnowWhatIsHeld = getUpsKeepWhatTheHandsHoldOffTheGround;
+            PhysicsBattler.Motion.GetUp.BladeTurnsClear = aRisingFightersBladeIsTurnedClearOfTheGround;
             ClipFighter.BashIsImpact = aBashLandsAsAnImpact;
             ImpactLedger.On = aBashsSpeedsAreWorkedOut;
             ImpactLedger.Bounce = Mathf.Clamp01(impactBounce);
