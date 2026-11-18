@@ -80,6 +80,29 @@ namespace PhysicsBattler.Locomotion
             Stretches = 0;
         }
 
+        /// <summary>One line for the lab: since the playtest began, how long his own shield and sword have crossed him.</summary>
+        public static string Short()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            float watched = 0f;
+            float[] seen = new float[3];
+            foreach (var row in By.Values)
+            {
+                watched += row[0];
+                for (int k = 0; k < 3; k++)
+                {
+                    seen[k] += row[1 + k];
+                }
+            }
+
+            if (watched < 1f)
+            {
+                return "nothing measured yet (it reads while a playtest is recorded)";
+            }
+
+            return string.Format(c, "over {0:0} fighter-seconds: blade through his own shield {1:0.0} s, sword arm through it {2:0.0} s, shield in his own body {3:0.0} s ({4} stretches)", watched, seen[0], seen[1], seen[2], Stretches);
+        }
+
         /// <summary>The table, for a report.</summary>
         public static string Text()
         {
@@ -124,6 +147,103 @@ namespace PhysicsBattler.Locomotion
             }
 
             return sb.ToString();
+        }
+    }
+
+    /// <summary>
+    /// How much what a fighter holds trembles (18 November). Six places are followed each step: his board's middle and
+    /// his blade's tip, each as seen (the physical body), as posed, and the seen against the posed. Of each, what is
+    /// left when its own smooth motion is taken off (the place less the average of five steps about it: a tremble
+    /// of some 12 Hz and over, and the curve of anything that quickens hard, which is why a strike reads high and
+    /// why "seen against posed" is the one to read: the pose's own motion is not in it). It changes nothing.
+    /// </summary>
+    public static class HeldShake
+    {
+        public const int Signals = 10;
+        public static readonly string[] Names = { "board seen", "board posed", "board seen against posed", "blade tip seen", "blade tip posed", "tip seen against posed", "chest seen against posed", "shield hand seen against posed", "sword hand seen against posed", "hips seen against posed" };
+
+        /// <summary>Each large tremble of a fighter standing or moving is written out (headless: FIGHT_SHAKELOG=1).</summary>
+        public static bool Trace;
+
+        /// <summary>A tremble over this (metres) is one that shows.</summary>
+        public const float Shows = 0.005f;
+
+        /// <summary>For each thing he was doing: the seconds watched; then for each place the sum of the tremble squared times the seconds, and the seconds it showed.</summary>
+        public static readonly Dictionary<string, double[]> By = new Dictionary<string, double[]>();
+
+        public static void Watched(string doing, float dt)
+        {
+            Row(doing)[0] += dt;
+        }
+
+        public static void Add(string doing, int signal, float tremble, float dt)
+        {
+            var row = Row(doing);
+            row[1 + 2 * signal] += (double)tremble * tremble * dt;
+            row[2 + 2 * signal] += tremble > Shows ? dt : 0f;
+        }
+
+        private static double[] Row(string doing)
+        {
+            if (!By.TryGetValue(doing, out var row))
+            {
+                By[doing] = row = new double[1 + 2 * Signals];
+            }
+
+            return row;
+        }
+
+        public static void Clear()
+        {
+            By.Clear();
+        }
+
+        /// <summary>One line for the lab: since the playtest began, how much boards and blade tips have trembled as seen.</summary>
+        public static string Short()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            var all = new double[1 + 2 * Signals];
+            foreach (var row in By.Values)
+            {
+                for (int i = 0; i < all.Length; i++)
+                {
+                    all[i] += row[i];
+                }
+            }
+
+            if (all[0] < 1.0)
+            {
+                return "nothing measured yet (it reads while a playtest is recorded)";
+            }
+
+            return string.Format(c, "over {0:0} fighter-seconds, a shield's board trembles more than 5 mm {1:0}% of the time (its pose alone {2:0}%), a blade's tip {3:0}% ({4:0}%)",
+                all[0], 100.0 * all[2] / all[0], 100.0 * all[4] / all[0], 100.0 * all[8] / all[0], 100.0 * all[10] / all[0]);
+        }
+
+        public static string Text()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("    what he holds trembles (mm, the usual size; and the share of the time it is over 5 mm): board seen / posed / seen against posed; blade tip seen / posed / seen against posed");
+            var all = new double[1 + 2 * Signals];
+            foreach (var row in By.OrderByDescending(r => r.Value[0]))
+            {
+                sb.AppendLine("      " + Line(row.Key, row.Value, c));
+                for (int i = 0; i < all.Length; i++)
+                {
+                    all[i] += row.Value[i];
+                }
+            }
+
+            sb.AppendLine("      " + Line("in all", all, c));
+            return sb.ToString();
+        }
+
+        private static string Line(string name, double[] row, System.Globalization.CultureInfo c)
+        {
+            double w = System.Math.Max(1e-6, row[0]);
+            string One(int s) => string.Format(c, "{0:0.0} ({1:0}%)", 1000.0 * System.Math.Sqrt(row[1 + 2 * s] / w), 100.0 * row[2 + 2 * s] / w);
+            return string.Format(c, "{0,-18} {1,6:0.0} s   board {2} / {3} / {4};   tip {5} / {6} / {7};   seen against posed: hips {11}, chest {8}, shield hand {9}, sword hand {10}", name, row[0], One(0), One(1), One(2), One(3), One(4), One(5), One(6), One(7), One(8), One(9));
         }
     }
 }

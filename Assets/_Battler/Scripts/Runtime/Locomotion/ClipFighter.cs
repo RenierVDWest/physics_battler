@@ -1807,6 +1807,77 @@ namespace PhysicsBattler.Locomotion
             return Loco.Velocity.magnitude > 0.3f ? "moving" : "standing";
         }
 
+        private readonly Vector3[,] shakeWas = new Vector3[HeldShake.Signals, 5];
+        private int shakeCount;
+
+        /// <summary>How much what he holds trembles, as seen, as posed, and the seen against the posed (<see cref="HeldShake"/>). It changes nothing.</summary>
+        private void MeasureHeldShake(float dt)
+        {
+            // (Not its first second: it is set down and takes up its guard.)
+            if (!(SelfCrossings.Measures || Diagnostics.PlaytestTrace.Enabled) || Authority == null || dt <= 0f || stance == Stances.Open || Fallen || clock < 1f)
+            {
+                shakeCount = 0;
+                return;
+            }
+
+            var now = new Vector3[HeldShake.Signals];
+            bool board = stance == Stances.Shield && Rig.SlotWeaponL != null && Anim.SlotWeaponL != null && BoardOnSlot(out var onSlot) && !Rig.IsSevered(PartId.HandL);
+            if (board)
+            {
+                BoardOnSlot(out var local);
+                now[0] = Rig.SlotWeaponL.TransformPoint(local);
+                now[1] = Anim.SlotWeaponL.TransformPoint(local);
+                now[2] = now[0] - now[1];
+            }
+
+            bool blade = Rig.SlotWeaponR != null && Anim.SlotWeaponR != null && !Rig.IsSevered(PartId.HandR);
+            if (blade)
+            {
+                now[3] = Rig.SlotWeaponR.position + Rig.SlotWeaponR.rotation * Vector3.forward * Poser.WeaponLength;
+                now[4] = Anim.SlotWeaponR.position + Anim.SlotWeaponR.rotation * Vector3.forward * Poser.WeaponLength;
+                now[5] = now[3] - now[4];
+            }
+
+            now[6] = Rig.Part(PartId.Chest).transform.position - Anim.Part(PartId.Chest).position;
+            now[7] = Rig.Part(PartId.HandL).transform.position - Anim.Part(PartId.HandL).position;
+            now[8] = Rig.Part(PartId.HandR).transform.position - Anim.Part(PartId.HandR).position;
+            now[9] = Rig.Part(PartId.Pelvis).transform.position - Anim.Part(PartId.Pelvis).position;
+            for (int s = 0; s < HeldShake.Signals; s++)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    shakeWas[s, i] = shakeWas[s, i + 1];
+                }
+
+                shakeWas[s, 4] = now[s];
+            }
+
+            shakeCount++;
+            if (shakeCount < 5)
+            {
+                return;
+            }
+
+            string doing = DoingNow(out _);
+            HeldShake.Watched(doing, dt);
+            for (int s = 0; s < HeldShake.Signals; s++)
+            {
+                if (s < 3 ? !board : s < 6 && !blade)
+                {
+                    continue;
+                }
+
+                Vector3 mean = (shakeWas[s, 0] + shakeWas[s, 1] + shakeWas[s, 2] + shakeWas[s, 3] + shakeWas[s, 4]) / 5f;
+                float tremble = (shakeWas[s, 2] - mean).magnitude;
+                HeldShake.Add(doing, s, tremble, dt);
+                if (HeldShake.Trace && (s == 1 || s == 2 || s == 7) && tremble > 0.015f && (doing == "standing" || doing == "moving"))
+                {
+                    Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture, "SHAKELOG {0:0.00} {1} {2}: {3:0} mm, {4}; cover {5:0.00}; last: {6}; {7} {8}",
+                        clock, FightUnit != null ? FightUnit.name : "?", HeldShake.Names[s], 1000f * tremble, doing, interceptWeight, LastReaction, Loco.Current, Loco.Shot != null ? Loco.Shot.Name : ""));
+                }
+            }
+        }
+
         /// <summary>
         /// Counts what his own shield and sword cross of himself, as seen (<see cref="SelfCrossings"/>): the blade and the
         /// sword arm against the board's disc, the board's rim and face against his own solids. It changes nothing.
@@ -2230,7 +2301,13 @@ namespace PhysicsBattler.Locomotion
             clock += dt;
             // (What he shows of an impact he is in, for the meter: read off the pose as it was last shown.)
             ImpactMeter.Sample(this, Time.time);
+            if (Upper != null)
+            {
+                Upper.HeldMayStop = Footing == Footings.Standing;
+            }
+
             MeasureOwnCrossings(dt);
+            MeasureHeldShake(dt);
             StepUncover(dt);
             if (Fallen)
             {
@@ -2790,6 +2867,100 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>
+        /// What he holds moves smoothly (18 November; Combat Feel "What He Holds Moves Smoothly"). The shield hand, and
+        /// the sword hand of a sword and shield while it is not striking, are not put where the pose has them each
+        /// step: they follow it, speeding up and settling in (a critically damped spring, against where he stands), so
+        /// nothing the pose does to them shows as a jump. Measured before it: the pose itself moved a standing or
+        /// walking fighter's board by 2 to 12 cm in single steps as it was raised to a blow, knocked, taken up by the
+        /// walk from standing still, or handed from one posture to the next, and the physical arm then chased it;
+        /// with the physical bodies touching nothing at all the tremble was the same. Quicker while the shield has
+        /// somewhere to be (raised to a blow, driven in a bash): <see cref="HeldSettleQuick"/> against
+        /// <see cref="HeldSettleRate"/> (1/s; three over it is about the time it takes to arrive). Off: as before.
+        /// </summary>
+        public static bool HeldSettles = true;
+        public static float HeldSettleRate = 26f, HeldSettleQuick = 60f;
+
+        private readonly Vector3[] heldAt = new Vector3[2], heldAtV = new Vector3[2], heldAsked = new Vector3[2], heldTurnV = new Vector3[2];
+
+        /// <summary>A turn as a vector: its axis, as long as its angle (radians, the short way round).</summary>
+        private static Vector3 TurnOf(Quaternion q)
+        {
+            q.ToAngleAxis(out float angle, out Vector3 axis);
+            if (float.IsNaN(axis.x) || float.IsInfinity(axis.x))
+            {
+                return Vector3.zero;
+            }
+
+            if (angle > 180f)
+            {
+                angle -= 360f;
+            }
+
+            return axis * (angle * Mathf.Deg2Rad);
+        }
+
+        private static Quaternion FromTurn(Vector3 turn)
+        {
+            float angle = turn.magnitude;
+            return angle > 1e-6f ? Quaternion.AngleAxis(angle * Mathf.Rad2Deg, turn / angle) : Quaternion.identity;
+        }
+
+        private readonly Quaternion[] heldTurned = { Quaternion.identity, Quaternion.identity };
+        private readonly bool[] heldKnown = new bool[2];
+        private readonly float[] heldShare = new float[2];
+
+        /// <summary>For the reports: the furthest a hand was held behind where the pose had it by <see cref="SettleHeld"/> (metres), shield hand and sword hand.</summary>
+        public readonly float[] HeldBehindMost = new float[2];
+
+        /// <summary>The hands that hold something follow their pose smoothly (<see cref="HeldSettles"/>): 0 the shield hand, 1 the sword hand.</summary>
+        private void SettleHeld(float dt)
+        {
+            // (Against where he stands and the way he faces, not against his chest: what his trunk does at once, rocked by
+            // a blow or turned by a posture, the hands then follow too, where against the chest they were carried with it.)
+            Vector3 rootAt = Loco.Position + Vector3.up * Poser.GroundY;
+            Quaternion rootTurn = Quaternion.Euler(0f, Loco.Facing, 0f), rootBack = Quaternion.Inverse(rootTurn);
+            for (int a = 0; a < 2; a++)
+            {
+                bool left = a == 0;
+                var handId = left ? PartId.HandL : PartId.HandR;
+                Transform upper = Anim.Part(left ? PartId.UpperArmL : PartId.UpperArmR), fore = Anim.Part(left ? PartId.ForearmL : PartId.ForearmR), hand = Anim.Part(handId);
+                // (Which hands: the shield's always; the sword's of a sword and shield while it is neither in a blow nor held
+                // to one. A lone sword's arm is its parry's, which must be where it is asked when it is asked.)
+                bool mine = HeldSettles && dt > 0f && stance == Stances.Shield && !Poser.TwoHanded && !Rig.IsSevered(handId) && roseAt < 0f
+                    && (left || !(Striking || clock < weaponArmHeldUntil));
+                Vector3 asked = rootBack * (hand.position - rootAt);
+                Quaternion turned = rootBack * hand.rotation;
+                // (Taken up over a moment, and let go over a shorter one: a sword hand goes to its blow from where it had
+                // settled to, not from where the pose had it.)
+                heldShare[a] = Mathf.Clamp01(heldShare[a] + (mine ? dt / 0.12f : -dt / 0.05f));
+                if (heldShare[a] <= 0f || !heldKnown[a])
+                {
+                    // (Not held back: where the pose has it, at the speed the pose moves it, so it is taken up from there.)
+                    heldAtV[a] = heldKnown[a] && dt > 0f ? Vector3.ClampMagnitude((asked - heldAsked[a]) / dt, 8f) : Vector3.zero;
+                    heldAt[a] = heldAsked[a] = asked;
+                    heldTurned[a] = turned;
+                    heldTurnV[a] = Vector3.zero;
+                    heldKnown[a] = true;
+                    continue;
+                }
+
+                heldAsked[a] = asked;
+                float urgent = left ? Mathf.Max(Mathf.Clamp01(interceptWeight), Bashing ? 1f : 0f) : 0f;
+                float w = Mathf.Lerp(HeldSettleRate, HeldSettleQuick, urgent);
+                CriticalSpring(ref heldAt[a], ref heldAtV[a], asked, w, dt);
+                // (Its turn the same way: how far it is turned from where it is asked, as a turn, settled like the place.)
+                Vector3 off = TurnOf(heldTurned[a] * Quaternion.Inverse(turned));
+                CriticalSpring(ref off, ref heldTurnV[a], w, dt);
+                heldTurned[a] = FromTurn(off) * turned;
+                float share = heldShare[a] * heldShare[a] * (3f - 2f * heldShare[a]);
+                HeldBehindMost[a] = Mathf.Max(HeldBehindMost[a], share * Vector3.Distance(heldAt[a], asked));
+                Vector3 pole = TwoBoneIK.BendWay(upper, fore, hand);
+                TwoBoneIK.Solve(upper, fore, hand, rootAt + rootTurn * Vector3.Lerp(asked, heldAt[a], share), pole);
+                hand.rotation = rootTurn * Quaternion.Slerp(turned, heldTurned[a], share);
+            }
+        }
+
+        /// <summary>
         /// The second half of a step: the arms held to their pose where they must be (the weapon arm through a
         /// strike and a moment after, both two-handed; the shield arm meeting a blow; the sword arm parrying), the
         /// shield turned in the physical hand as in the posed one, and the physical body driven to the pose for the
@@ -2804,6 +2975,7 @@ namespace PhysicsBattler.Locomotion
 
             HoldArms(dt);
             EaseArmsFromGetUp(dt);
+            SettleHeld(dt);
 
             if (Authority != null)
             {
@@ -5606,7 +5778,7 @@ namespace PhysicsBattler.Locomotion
                 Vector3 centre = slot.TransformPoint(boardLocal), boardLooks = slot.forward;
                 float deepest = 0f;
                 Vector3 moveOff = Vector3.zero;
-                foreach (var id in ShieldKeptOutOf)
+                foreach (var id in UpperBodyArticulation.ShieldStoppedOnFeet ? ShieldKeptOutOfLegsToo : ShieldKeptOutOf)
                 {
                     if (!PoseSolid(id, out Vector3 a, out Vector3 b, out float thick))
                     {
@@ -5642,6 +5814,13 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The parts of its own body its shield's board is kept out of, and by how much clear of them (metres at a Medium's size).</summary>
         private static readonly PartId[] ShieldKeptOutOf = { PartId.Head, PartId.Chest, PartId.Spine, PartId.Pelvis };
+
+        /// <summary>
+        /// And of its thighs (18 November, with <see cref="UpperBodyArticulation.ShieldStoppedOnFeet"/>): the part its
+        /// board was in most often (0.85 s of 1.17 s in a dance), which the pose never kept it out of. With the board
+        /// solid against the body, a pose that asks for it in a thigh has the arm press it there each stride.
+        /// </summary>
+        private static readonly PartId[] ShieldKeptOutOfLegsToo = { PartId.Head, PartId.Chest, PartId.Spine, PartId.Pelvis, PartId.ThighL, PartId.ThighR };
 
         public const float ShieldClear = 0.06f;
 
@@ -6102,7 +6281,7 @@ namespace PhysicsBattler.Locomotion
 
             if (Upper != null && CombatFeel.HitForce > 0f && force > 0f)
             {
-                HitForceGiven += Upper.Strike(onShield ? PartId.ForearmL : PartId.Chest, impulse * (force * CombatFeel.HitForce), point);
+                HitForceGiven += Upper.Strike(onShield ? PartId.ForearmL : PartId.Chest, impulse * (force * CombatFeel.HitForce * (onShield ? HeldJolt : 1f)), point);
                 HitForces++;
             }
 
@@ -7311,7 +7490,7 @@ namespace PhysicsBattler.Locomotion
             // shield's forearm, on a parrying sword's hand, and a share on the parts joined to it.)
             if (Upper != null && CombatFeel.HitForce > 0f)
             {
-                HitForceGiven += Upper.Strike(shield ? PartId.ForearmL : parried ? PartId.HandR : part, impulse * CombatFeel.HitForce, point);
+                HitForceGiven += Upper.Strike(shield ? PartId.ForearmL : parried ? PartId.HandR : part, impulse * (CombatFeel.HitForce * (shield || parried ? HeldJolt : 1f)), point);
                 HitForces++;
             }
 
@@ -7677,6 +7856,14 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How quickly what a blow knocked comes back, as a share of how quickly it went.</summary>
         public static float ComesBack => 1f - 0.5f * Absorb;
+
+        /// <summary>
+        /// How much of a blow's force is put on the physical shield arm, or on a parrying sword's hand, at once
+        /// (absorbed: less). That force threw the seen hand some 11 cm off its pose within three steps of a blade
+        /// meeting the board and let it come back as quickly: a jolt out and back on the very thing being watched. What
+        /// the shield gives to a blow is shown by its arm's own give, which goes out and settles.
+        /// </summary>
+        public static float HeldJolt => 1f - 0.7f * Absorb;
 
         /// <summary>How much of its spring back off a shield or a parry a stopped blade keeps.</summary>
         public static float ReboundKept => 1f - 0.75f * Absorb;

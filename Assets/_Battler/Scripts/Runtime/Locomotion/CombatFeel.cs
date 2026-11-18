@@ -333,6 +333,24 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How much impacts are absorbed: 0 is as before, 1 the most. At 1 a struck trunk settles with no swing back at all, trunk, head and legs come back at half the speed they went, and a stopped blade keeps a quarter of its spring back off a shield. 0.6 as it is: a first guess, to be tuned by eye.")]
         [Range(0f, 1f)] public float absorbedHowMuch = 0.6f;
 
+        [Tooltip("On: what a sword and shield fighter holds moves smoothly. His shield hand, and his sword hand while it is not striking, follow where the pose has them, speeding up and settling in, so nothing the pose does to them shows as a jump (the pose moved a board by 2 to 12 cm in single steps as it was raised to a blow, knocked, or taken up by the walk). Off: as before, each hand put where the pose has it every step. The lab's \"What he holds: moves smoothly / as posed (old)\".")]
+        public bool whatHeHoldsMovesSmoothly = true;
+
+        [Tooltip("How quickly a held shield or sword follows its pose while nothing presses (1/s). Three over it is about the time it takes to arrive: 26 is about a ninth of a second. Lower: smoother and heavier, and later. Higher: nearer the pose, and more of its jumps show.")]
+        [Range(8f, 60f)] public float heldThingsSettleAt = 26f;
+
+        [Tooltip("How quickly the shield follows its pose while it has somewhere to be: raised to a blow, or driven in a bash (1/s). 60 is about a twentieth of a second. Lower: a smoother raise that may come too late to stop the blow.")]
+        [Range(20f, 120f)] public float heldThingsSettleAtWhenPressed = 60f;
+
+        [Tooltip("On: a fighter's shield is a solid thing against his own body while he is on his feet: its board is stopped by his trunk, head, thighs and shins by the physics engine, as it already was while he fell and lay. Off: as before, on his feet nothing of his own stopped his shield, and whatever the pose missed or a blow drove in went through him. A board that is already in his body when this comes on is not thrown out: it is stopped from when it is next clear. The lab's \"His shield: solid against his body / passes through (old)\".")]
+        public bool aShieldIsStoppedByItsBearersBody = true;
+
+        [Tooltip("On: a fighter's sword is a solid thing against his own body while he is on his feet: its blade is stopped by his trunk, head, thighs and shins. Off: as before, his blade passed through him. The lab's \"His sword: solid against his body / passes through (old)\".")]
+        public bool aSwordIsStoppedByItsBearersBody = true;
+
+        [Tooltip("On: a shield or sword that is stopped by its bearer's own body is met softly: while it is against him that arm gives way at once and presses with a third of its strength, so it rests there and comes away as the pose does. Off: the arm is driven on into his body with all its strength, and what it holds trembles against him. Only does anything with the two settings above. The lab's \"Against his body: met softly / driven on (old)\".")]
+        public bool aHeldThingMeetsHisBodySoftly = true;
+
         [Tooltip("On: a get-up knows what the hands hold. A shield is laid flat under the forearm while the hands push, held up toward what he fights as it comes off them, and what both hands hold is kept out of the ground. Off: as it was from 11 November to 18 November, when a get-up was not told what was held and a shield or a sword went through the floor (headless: a shield's rim up to 36 cm under the ground for a second of a get-up). The lab's \"A get-up knows what is held\" with the get-ups' settings.")]
         public bool getUpsKeepWhatTheHandsHoldOffTheGround = true;
 
@@ -1586,6 +1604,12 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.Dance.HardBashAttacks = aHardBashIsAnAttackInTheDance;
             ClipFighter.CountersHardBash = aHardBashIsCounteredByAMediumBash;
             ClipFighter.CounterHolds = counterBashHolds / 100f;
+            PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly = aHeldThingMeetsHisBodySoftly;
+            ClipFighter.HeldSettles = whatHeHoldsMovesSmoothly;
+            ClipFighter.HeldSettleRate = Mathf.Clamp(heldThingsSettleAt, 8f, 60f);
+            ClipFighter.HeldSettleQuick = Mathf.Clamp(heldThingsSettleAtWhenPressed, 20f, 120f);
+            PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOnFeet = aShieldIsStoppedByItsBearersBody;
+            PhysicsBattler.Authority.UpperBodyArticulation.BladeStoppedOnFeet = aSwordIsStoppedByItsBearersBody;
             ClipFighter.ImpactsAbsorbed = impactsAreAbsorbed;
             ClipFighter.Absorbed = Mathf.Clamp01(absorbedHowMuch);
             ClipFighter.GetUpsKnowWhatIsHeld = getUpsKeepWhatTheHandsHoldOffTheGround;

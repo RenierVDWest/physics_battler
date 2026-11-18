@@ -1045,6 +1045,8 @@ internal static class FightReport
         PhysicsBattler.Locomotion.SwordParry.FreeArmInFront = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "back";
         PhysicsBattler.Locomotion.ClipFighter.MeasuresArms = true;
         PhysicsBattler.Locomotion.SelfCrossings.Clear();
+        PhysicsBattler.Locomotion.HeldShake.Clear();
+        PhysicsBattler.Locomotion.HeldShake.Trace = Environment.GetEnvironmentVariable("FIGHT_SHAKELOG") == "1";
         PhysicsBattler.Locomotion.SelfCrossings.Measures = true;
 
         // (FIGHT_LEGSCLEAR=0: the get-up from its back as before 14 November: the planted foot under the hip, the other swept back through it.)
@@ -1067,6 +1069,8 @@ internal static class FightReport
         // (FIGHT_TUCK=0: a body thrown off its feet does not tuck.)
         PhysicsBattler.Locomotion.ClipFighter.ThrownBodiesTuck = Environment.GetEnvironmentVariable("FIGHT_TUCK") != "0";
 
+        // (FIGHT_HELDSOFT=0: what he holds, stopped by his own body, is driven on into it with all the arm has, not met softly.)
+        PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly = Environment.GetEnvironmentVariable("FIGHT_HELDSOFT") != "0";
         // (FIGHT_SETTLE=0: a body that is down goes on reaching, as before.)
         PhysicsBattler.Locomotion.ClipFighter.FallenBodiesSettle = Environment.GetEnvironmentVariable("FIGHT_SETTLE") != "0";
 
@@ -1162,6 +1166,28 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.FakeAnswered += (who, how) => Console.WriteLine($"FAKEANSWER {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: {how} a fake he took for a blow");
         PhysicsBattler.Motion.GetUp.FromRecordings = Environment.GetEnvironmentVariable("FIGHT_GETUPRECORDED") != "0";
         PhysicsBattler.Locomotion.ImpactMeter.Trace = Environment.GetEnvironmentVariable("FIGHT_SHAKETRACE") == "1";
+        // (FIGHT_SETTLE=0: what he holds put where the pose has it each step, as before 18 November; FIGHT_SETTLE="26,60": the rates, calm and quick.)
+        {
+            string settle = Environment.GetEnvironmentVariable("FIGHT_SETTLE") ?? "";
+            PhysicsBattler.Locomotion.ClipFighter.HeldSettles = settle != "0";
+            string[] rates = settle.Split(',');
+            if (rates.Length == 2)
+            {
+                PhysicsBattler.Locomotion.ClipFighter.HeldSettleRate = float.Parse(rates[0], System.Globalization.CultureInfo.InvariantCulture);
+                PhysicsBattler.Locomotion.ClipFighter.HeldSettleQuick = float.Parse(rates[1], System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+
+        // (FIGHT_OWNSOLID="1,1": on its feet a shield, and a sword, stopped by its bearer's own body (18 November). "0,0": as before.)
+        {
+            string[] solid = (Environment.GetEnvironmentVariable("FIGHT_OWNSOLID") ?? "").Split(',');
+            if (solid.Length == 2)
+            {
+                PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOnFeet = solid[0].Trim() == "1";
+                PhysicsBattler.Authority.UpperBodyArticulation.BladeStoppedOnFeet = solid[1].Trim() == "1";
+            }
+        }
+
         // (FIGHT_ABSORB=0: impacts as before 18 November's damping trial; FIGHT_ABSORBED=0.6: how much.)
         PhysicsBattler.Locomotion.ClipFighter.ImpactsAbsorbed = Environment.GetEnvironmentVariable("FIGHT_ABSORB") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_ABSORBED"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float absorbed))
@@ -2639,6 +2665,10 @@ internal static class FightReport
             sb.AppendLine($"    hips {(PhysicsBattler.Locomotion.ClipFighter.HeldHips ? $"held ({PhysicsBattler.Authority.UpperBodyArticulation.HipQuick:0.0} Hz, at most {PhysicsBattler.Authority.UpperBodyArticulation.HipMost:0.0} weights)" : "locked")}: off the pose on average / at most (cm): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {(u.Clip.HipsOffSteps > 0 ? 100f * u.Clip.HipsOffSum / u.Clip.HipsOffSteps : 0f):0.0} / {100f * u.Clip.HipsOffMost:0.0}")));
             sb.AppendLine($"    a blow's force ({PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0} times its momentum): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.HitForces} blows, {u.Clip.HitForceGiven:0} N·s, a joint turned aside {(u.Clip.Upper != null ? u.Clip.Upper.HitBentMost : 0f):0} degrees at most")));
             sb.Append(PhysicsBattler.Locomotion.SelfCrossings.Text());
+            sb.Append(PhysicsBattler.Locomotion.HeldShake.Text());
+            sb.AppendLine($"    what he holds follows its pose smoothly: {(PhysicsBattler.Locomotion.ClipFighter.HeldSettles ? $"on ({PhysicsBattler.Locomotion.ClipFighter.HeldSettleRate:0} and {PhysicsBattler.Locomotion.ClipFighter.HeldSettleQuick:0} a second)" : "off")}; the furthest a hand was behind its pose for it (cm, shield hand / sword hand): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.HeldBehindMost[0] + u.Clip.HeldBehindMost[1] > 0f).Select(u => $"{u.name} {100f * u.Clip.HeldBehindMost[0]:0} / {100f * u.Clip.HeldBehindMost[1]:0}")));
+            sb.AppendLine($"    what he holds met softly by his own body: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly ? "on" : "off")}; steps it was against his body (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldTouched[0]} / {u.Clip.Upper.HeldTouched[1]}")));
+            sb.AppendLine($"    on his feet, stopped by his own body: his shield {(PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOnFeet ? "yes" : "no")}, his sword {(PhysicsBattler.Authority.UpperBodyArticulation.BladeStoppedOnFeet ? "yes" : "no")}");
             sb.AppendLine($"    impacts absorbed: {(PhysicsBattler.Locomotion.ClipFighter.ImpactsAbsorbed ? $"on ({PhysicsBattler.Locomotion.ClipFighter.Absorbed:0.00})" : "off")}");
             sb.AppendLine("    standing, as seen: a forearm or hand inside its own body (s) / what its right hand holds (s) / the longest stretch (s): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.ArmSeenIn:0.00} / {u.Clip.BladeSeenIn:0.00} / {u.Clip.ArmSeenInLongest:0.00}")));
             sb.AppendLine("    swordsmen: the pose had the sword hand behind its own chest, on its feet and not striking (s) / swords taken up afresh after the guard was not held a while: " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Parry != null).Select(u => $"{u.name} {u.Clip.SwordBehindFor:0.00} / {u.Clip.SwordsTakenUp}")));

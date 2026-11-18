@@ -6290,3 +6290,79 @@ shield that stays outside its bearer" (https://claude.ai/artifact/9UZ1xrAueNhCM6
 
 Not seen in Unity: any of it. In particular the get-up with the board under him as it starts, and whether a
 trunk that settles without swinging back reads as weight or as stiffness.
+
+**Shield and sword solid against their bearer on his feet; what he holds moves smoothly (18 November, evening).**
+Renier, 16:45 and 16:53: "The way the shield shakes about all the time is one of the reasons I want this fixed.
+Why cant we just have the shield and the sword have colliders that treats them as physics objects. that will
+have them stay out of each other and out of their own body ... do the same for the sword, give it collision to
+stay out of its own wearers body. But for both sword and shield, it should not be shaky. the way the sword and
+shield connect with its own body should be smoothed and dampened so that it doesn't cause chaotic motion. The
+absorbsion or dampening does not feel very noticeable. Perhaps because I'm specifically looking for it on the
+sword an shield." This is step 3 of the plan "A shield that stays outside its bearer" brought forward at his
+word, with a part of its step 1.
+
+- *Where the shake came from* (looked for first; `HeldShake`, in every headless report as "what he holds
+  trembles", and in the lab as a line while a playtest is recorded). A tremble is what is left of a place when
+  its own smooth motion is taken off (the place less the average of five steps about it), read on the board's
+  middle and the blade's tip as seen, as posed, and the seen against the posed. Not contacts: with the
+  physical bodies touching nothing at all (`UPPER_GHOST=1`) it was the same. Not weak dampers (twice and four
+  times, earlier today). It was the pose: a standing or walking fighter's board was moved 2 to 12 cm in single
+  steps as it was raised to a blow, knocked by one, taken up by the walk from standing still, or carried by a
+  trunk that was rocked or turned at once (`FIGHT_SHAKELOG=1` writes each), and the physical arm then chased it.
+- *What he holds moves smoothly* (`ClipFighter.SettleHeld`, `HeldSettles`; Combat Feel "What He Holds Moves
+  Smoothly"; the lab's "What he holds: moves smoothly / as posed (old)"; `FIGHT_SETTLE=0`). The last thing done
+  to the pose, whatever came before: the shield hand of a sword and shield, and his sword hand while it is
+  neither in a blow nor held to one, follow where the pose has them, place and turn, speeding up and settling in
+  (a critically damped spring, against where he stands and the way he faces, so that what his trunk does at once
+  they follow too). At 26 a second ("Held settles at": about a ninth of a second to arrive), and at 60 while the
+  shield has somewhere to be: raised to a blow or driven in a bash ("Held settles at, pressed"). A sword hand is
+  let go to its blow over a twentieth of a second and taken up again over an eighth. A lone sword's arm is its
+  parry's and is left alone, as is anything two-handed.
+- *A shield and a sword are stopped by their bearer's own body, on his feet*
+  (`UpperBodyArticulation.ShieldStoppedOnFeet`, `BladeStoppedOnFeet`, `StopHeldThatAreOut`; Combat Feel "A Shield
+  Is Stopped By Its Bearer's Body", "A Sword Is Stopped By Its Bearer's Body"; the lab's "His shield:" and "His
+  sword: solid against his body / passes through (old)"; `FIGHT_OWNSOLID="0,0"`). The physics engine stops the
+  board and the blade at his trunk, head, thighs and shins, as it did only while he fell and lay. Each held thing
+  from when the whole of it is next clear of him: one that is in him is not thrown out. Not while he gets up
+  (`HeldMayStop`): the get-up's pose has its own care, and stopped there a sword hand was thrown at 16 m/s.
+- *The pose keeps the board out of his thighs too* (`ShieldKeptOutOfLegsToo`, with the shield's setting): the
+  part it was in most often, which the pose's guard never knew. Solid, a board the pose asks for in a thigh is
+  pressed there each stride.
+- *Met softly* (`UpperBodyArticulation.FeelHeld`, `HeldMetSoftly`; Combat Feel "A Held Thing Meets His Body
+  Softly"; the lab's "Against his body: met softly / driven on (old)"; `FIGHT_HELDSOFT=0`). While what an arm
+  holds is within 2 cm of a part of his body that stops it, that arm's joints give way at once (2 degrees behind
+  their pose, where they otherwise give way at 8) and press with a third of their strength: it rests there and
+  comes away as the pose does. There is no spring in these motors to throw it back.
+- *The jolt on the shield arm* (`ClipFighter.HeldJolt`, with "Impacts: absorbed"): the blow's force put at once
+  on the physical shield arm, or on a parrying sword's hand, is less by how much impacts are absorbed (0.58 of
+  it at 0.6). It threw the seen hand some 11 cm off its pose within three steps and let it back as quickly, on
+  the very thing being watched; what the shield gives to a blow is its arm's own give, which now goes out and
+  settles through the smoothing above.
+- *Measured* (headless; old is this step's four settings off: `FIGHT_OWNSOLID=0,0 FIGHT_SETTLE=0
+  FIGHT_HELDSOFT=0`; one run each, and a change makes another fight, so directions and not rates). The fight of
+  six, 40 s: a shield's board trembling more than 5 mm, as seen: 16% of the time, now 6% (walking 9 to 4,
+  standing 10 to 2, just struck 23 to 12, striking 22 to 12); its usual size 14 mm, now 8. The shield in its
+  bearer's own body: 2.7 s of 80 fighter-seconds, now none of 51. A blade more than 2 cm in its own bearer's
+  body (all six fighters): 135 times and 9.3 s, now 25 times and 1.2 s, the deepest 15.5 cm, now 8.6 (a
+  two-hander's club into its own other hand, which stops nothing). The dance, two sword and shields, 30 s: the
+  board trembling more than 5 mm 34% of the time, now 25%; its usual size 15.5 mm, now 8.2 (walking 11 to 5,
+  striking 20 to 8, just struck 34 to 16, standing 11 to 7.5); the shield in his own body 1.8 s of 80, now 0.3
+  s (its arm is held exactly to its pose while it meets a blow, and there nothing stops it); a shield hand
+  knocked off its pose by a blade on the board 19, 4 and 9 cm (3 blows), now 4 to 11 cm (6 blows): too few to
+  read. Blocks: 6 blows met
+  the shield and none landed, where 3 met it and 1 landed. A medium and a hard bash rock both trunks as before
+  (27 and 37 to 38 degrees); the hands change direction 3 to 7 times in the second after, where it was 5 to 11.
+- *Not better.* A blade's tip trembles as much as it did (in the six, over 5 mm 61% of the time against 64%;
+  standing, about a third of the time in both): most of it is the blows themselves, and standing it is the way
+  he faces being turned from step to step, which carries a tip a metre out. His own blade and sword arm
+  through his own board are not stopped by anything yet: no collision was asked between them, and the plan's
+  step 1 and 2 are not built (the dance: 1.2 s old, 0.4 s new; too few to read).
+- *Seen in the tube test.* The shield bearer struck by the tube now ends sitting, where he ended on his back:
+  the board, solid, takes the tube against his chest. He then rises by the made keys for one who sits, in which
+  a shin moved at 6.8 m/s early: that route is not this step's, and is noted.
+- *In the lab,* with the bash's settings: "What he holds:", "His shield:", "His sword:", "Against his body:",
+  each old against new, and two lines read while a playtest is recorded: "His own crossings" and "What he holds
+  trembles". The panel check passes in all five places.
+
+Not seen in Unity: any of it. In particular whether a shield that follows its pose a ninth of a second behind
+reads as weight or as lateness, and how a blade resting against his own leg looks.

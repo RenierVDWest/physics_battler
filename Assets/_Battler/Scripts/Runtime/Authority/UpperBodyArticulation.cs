@@ -496,10 +496,224 @@ namespace PhysicsBattler.Authority
             armsToPart.Clear();
         }
 
+        /// <summary>
+        /// On its feet, what it holds is stopped by its own body (18 November; Combat Feel "A Shield Is Stopped By Its
+        /// Bearer's Body" and "A Sword Is Stopped By Its Bearer's Body"): a shield's board and a sword's blade against
+        /// its trunk, head, thighs and shins, as solid things. Before, on its feet nothing of its own stopped anything
+        /// of its own: only the pose kept them apart, and what the pose missed or a blow drove in went through. Each
+        /// held thing from when the whole of it is out of the body: one that is in it is not thrown out.
+        /// </summary>
+        public static bool ShieldStoppedOnFeet = true, BladeStoppedOnFeet = true;
+
+        private readonly List<(Collider held, Collider body)> heldToPart = new List<(Collider, Collider)>();
+        private readonly List<(Collider held, Collider body)> heldStopped = new List<(Collider, Collider)>();
+        /// <summary>It is on its feet (its fighter says): only then is what it holds stopped by its own body.</summary>
+        public bool HeldMayStop = true;
+
+        private readonly List<Collider> heldThings = new List<Collider>();
+        private bool heldAsked, heldShield, heldBlade;
+
+        /// <summary>For the reports: how many pairs of a held thing and a part of its own body stop each other now, and how many wait for the held thing to come out.</summary>
+        public int HeldStoppedNow => heldStopped.Count;
+        public int HeldStillIn => heldToPart.Count;
+
+        private static bool StopsHeld(PartId id) => IsTrunk(id) || id == PartId.ShinL || id == PartId.ShinR;
+
+        /// <summary>On its feet: each held thing against each of its body's solids is to stop the other, once they are apart.</summary>
+        private void HeldToStop()
+        {
+            HeldPassAgain();
+            heldAsked = true;
+            heldShield = ShieldStoppedOnFeet;
+            heldBlade = BladeStoppedOnFeet;
+            heldThings.RemoveAll(c => c == null);
+            foreach (var thing in heldThings)
+            {
+                if (!(blades.Contains(thing) ? BladeStoppedOnFeet : ShieldStoppedOnFeet))
+                {
+                    continue;
+                }
+
+                foreach (var b in linkOf)
+                {
+                    // (Its body's own solids: nothing a hand holds.)
+                    if (b.Key != null && StopsHeld(parts[b.Value]) && !heldThings.Contains(b.Key))
+                    {
+                        heldToPart.Add((thing, b.Key));
+                    }
+                }
+            }
+        }
+
+        /// <summary>A held thing none of whose pairs is in the body is stopped by all of it from now.</summary>
+        private void StopHeldThatAreOut()
+        {
+            if (!HeldMayStop)
+            {
+                // (Getting up: its pose is the get-up's, which has its own care of what is held; stopped by its body
+                // there a sword hand was thrown at 16 m/s as the pose took the blade past its trunk.)
+                if (heldAsked || heldStopped.Count > 0)
+                {
+                    HeldPassAgain();
+                }
+
+                return;
+            }
+
+            if (!heldAsked || heldShield != ShieldStoppedOnFeet || heldBlade != BladeStoppedOnFeet)
+            {
+                HeldToStop();
+            }
+
+            if (heldToPart.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var one in heldThings)
+            {
+                bool any = false, clear = true;
+                foreach (var (thing, body) in heldToPart)
+                {
+                    if (thing != one || thing == null || body == null)
+                    {
+                        continue;
+                    }
+
+                    any = true;
+                    if (!thing.enabled || !body.enabled
+                        || (Physics.ComputePenetration(thing, thing.transform.position, thing.transform.rotation, body, body.transform.position, body.transform.rotation, out _, out float depth) && depth > 0f))
+                    {
+                        clear = false;
+                        break;
+                    }
+                }
+
+                if (!any || !clear)
+                {
+                    continue;
+                }
+
+                for (int i = heldToPart.Count - 1; i >= 0; i--)
+                {
+                    var (thing, body) = heldToPart[i];
+                    if (thing != one)
+                    {
+                        continue;
+                    }
+
+                    if (thing != null && body != null)
+                    {
+                        Physics.IgnoreCollision(thing, body, false);
+                        heldStopped.Add((thing, body));
+                    }
+
+                    heldToPart.RemoveAt(i);
+                }
+            }
+        }
+
+        /// <summary>
+        /// What it holds, stopped by its own body, is met softly (18 November; Combat Feel "A Held Thing Meets His Body
+        /// Softly"): while a held thing is within <see cref="HeldTouchWithin"/> of a part of its body that stops it,
+        /// that arm's joints give way at once (<see cref="HeldYieldsAt"/>, where a joint otherwise gives way 8
+        /// degrees behind) and press with a share of their strength (<see cref="HeldPress"/>). So an arm whose pose
+        /// would carry its shield or sword on into its own body rests it there, and comes away as the pose does;
+        /// driven on with all its strength, the solver and the arm argued, and what it held trembled. Off: stopped,
+        /// and driven on.
+        /// </summary>
+        public static bool HeldMetSoftly = true;
+        public static float HeldTouchWithin = 0.02f, HeldYieldsAt = 2f * Mathf.Deg2Rad, HeldPress = 0.3f;
+
+        private readonly bool[] heldTouching = new bool[2];
+
+        /// <summary>For the reports: steps an arm's held thing was against its own body (0 its left arm's, 1 its right).</summary>
+        public readonly int[] HeldTouched = new int[2];
+
+        private static int ArmOf(PartId id) =>
+            id == PartId.UpperArmL || id == PartId.ForearmL || id == PartId.HandL ? 0 : id == PartId.UpperArmR || id == PartId.ForearmR || id == PartId.HandR ? 1 : -1;
+
+        private bool TouchingOf(int i)
+        {
+            int arm = ArmOf(parts[i]);
+            return arm >= 0 && heldTouching[arm];
+        }
+
+        private float PressOf(int i) => TouchingOf(i) ? Mathf.Clamp(HeldPress, 0.05f, 1f) : 1f;
+
+        /// <summary>Which arms' held things are against their own body now; the arms' motors set for it when that changes.</summary>
+        private void FeelHeld()
+        {
+            bool left = false, right = false;
+            if (HeldMetSoftly && HeldMayStop)
+            {
+                foreach (var (thing, body) in heldStopped)
+                {
+                    if (thing == null || body == null || !thing.enabled || !body.enabled)
+                    {
+                        continue;
+                    }
+
+                    bool isLeft = ArmOf(parts[linkOf[thing]]) == 0;
+                    if (isLeft ? left : right)
+                    {
+                        continue;
+                    }
+
+                    // (How near the two are: from one to the other and back, twice. Near enough for two rounded solids.)
+                    Vector3 a = body.ClosestPoint(thing.bounds.center);
+                    Vector3 b = thing.ClosestPoint(a);
+                    a = body.ClosestPoint(b);
+                    b = thing.ClosestPoint(a);
+                    if ((a - b).sqrMagnitude < HeldTouchWithin * HeldTouchWithin)
+                    {
+                        left |= isLeft;
+                        right |= !isLeft;
+                    }
+                }
+            }
+
+            for (int arm = 0; arm < 2; arm++)
+            {
+                bool now = arm == 0 ? left : right;
+                HeldTouched[arm] += now ? 1 : 0;
+                if (now == heldTouching[arm])
+                {
+                    continue;
+                }
+
+                heldTouching[arm] = now;
+                for (int i = 1; i < parts.Length; i++)
+                {
+                    if (ArmOf(parts[i]) == arm)
+                    {
+                        SetDrives(i);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Let go to fall, or a setting changed: nothing it holds is stopped by its body on this account.</summary>
+        private void HeldPassAgain()
+        {
+            foreach (var (thing, body) in heldStopped)
+            {
+                if (thing != null && body != null)
+                {
+                    Physics.IgnoreCollision(thing, body, true);
+                }
+            }
+
+            heldStopped.Clear();
+            heldToPart.Clear();
+            heldAsked = false;
+        }
+
         /// <summary>The body let go to fall (see <see cref="Falling"/>). <paramref name="size"/>: its size against a Medium's.</summary>
         public void LetGo(float size)
         {
             Falling = true;
+            HeldPassAgain();
             ArmsToStop();
             PinHand(0, false, Vector3.zero, 1f, 1f);
             PinHand(1, false, Vector3.zero, 1f, 1f);
@@ -1196,7 +1410,7 @@ namespace PhysicsBattler.Authority
                 float turns = Returns && EvenDamping ? Mathf.Max(hangs[i].x, Mathf.Max(hangs[i].y, hangs[i].z)) : hangs[i][axis];
                 links[i].SetDriveStiffness((ArticulationDriveAxis)axis, Returns ? 0f : w * w * turns * scale);
                 links[i].SetDriveDamping((ArticulationDriveAxis)axis, 2f * w * turns * scale * ArticulationConventions.DampingScale * (Returns ? DampTimes : 1f));
-                links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, most[i] > 0f ? most[i] + (more != null ? AllowShare * more[i] : 0f) + borne + stopHold[i] : float.MaxValue);
+                links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, most[i] > 0f ? (most[i] + (more != null ? AllowShare * more[i] : 0f) + borne + stopHold[i]) * PressOf(i) : float.MaxValue);
             }
 
             // (What the hand grips is turned as quick as the hand, and held with all the grip has: a shield is
@@ -1273,6 +1487,8 @@ namespace PhysicsBattler.Authority
 
             pieces[i].Add(piece);
             held.Add((i, copy, pieces[i].Count - 1, solid));
+            heldThings.Add(copy);
+            heldAsked = false;
             RefreshMass();
             return copy;
         }
@@ -1374,6 +1590,8 @@ namespace PhysicsBattler.Authority
             // (Its weight on the link's axes: the slot's.)
             var piece = PieceOf(copy, grip.Link.transform, mass);
             grip.Pieces.Add(piece);
+            heldThings.Add(copy);
+            heldAsked = false;
             RefreshMass();
             SnapGrip(grip);
             return copy;
@@ -1659,7 +1877,7 @@ namespace PhysicsBattler.Authority
             for (int i = 1; i < n; i++)
             {
                 // (And a wrist what turns the shield in its hand: see SetDrives.)
-                float limit = most[i] > 0f ? most[i] + AllowShare * more[i] + (Returns && GripStrength > 0f && gripped[i] ? GripStrength : 0f) + stopHold[i] : float.MaxValue;
+                float limit = most[i] > 0f ? (most[i] + AllowShare * more[i] + (Returns && GripStrength > 0f && gripped[i] ? GripStrength : 0f) + stopHold[i]) * PressOf(i) : float.MaxValue;
                 for (int axis = 0; axis < 3; axis++)
                 {
                     links[i].SetDriveForceLimit((ArticulationDriveAxis)axis, limit);
@@ -1796,6 +2014,8 @@ namespace PhysicsBattler.Authority
             }
 
             FollowHeld();
+            StopHeldThatAreOut();
+            FeelHeld();
             for (int i = 1; i < parts.Length; i++)
             {
                 var local = Quaternion.Inverse(anim.Part(parts[parent[i]]).rotation) * anim.Part(parts[i]).rotation;
@@ -1934,6 +2154,12 @@ namespace PhysicsBattler.Authority
                 // its slack it was turned by the shield's motor each time the pose turned the board in the fist.)
                 // (Nor does a joint the pose has just turned at once: it is not behind, it has been moved.)
                 float gives = put[i] || gripped[i] ? float.MaxValue : GiveWay + GiveLag * rate[i].magnitude;
+                // (What this arm holds is against its own body: the arm gives way to it at once, and is not driven on into it.)
+                if (!put[i] && !gripped[i] && TouchingOf(i))
+                {
+                    gives = Mathf.Min(gives, HeldYieldsAt);
+                }
+
                 float mostAside = MostAside * (tight[i] > 0.5f ? HeldAside : 1f);
                 if (stopped[i] > 0f && !put[i])
                 {

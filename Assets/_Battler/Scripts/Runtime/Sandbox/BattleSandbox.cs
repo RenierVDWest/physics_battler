@@ -1497,6 +1497,34 @@ namespace PhysicsBattler.Sandbox
             if (Press(!feel.aBlockJarsTheStrikerByAllOfIt ? "[by a part (old)]" : "by a part (old)", "As before.")) feel.aBlockJarsTheStrikerByAllOfIt = false;
             EndRow();
             BeginRow();
+            Words(new GUIContent("What he holds:", "How a sword and shield fighter's hands follow the pose (Combat Feel \"What He Holds Moves Smoothly\"). Moves smoothly (new): the shield hand, and the sword hand while it is not striking, speed up and settle in toward where the pose has them, so nothing shows as a jump. As posed (old): each hand put where the pose has it every step."));
+            if (Press(feel.whatHeHoldsMovesSmoothly ? "[moves smoothly]" : "moves smoothly", "Shield and sword follow the pose, settling in.")) feel.whatHeHoldsMovesSmoothly = true;
+            if (Press(!feel.whatHeHoldsMovesSmoothly ? "[as posed (old)]" : "as posed (old)", "As before.")) feel.whatHeHoldsMovesSmoothly = false;
+            EndRow();
+            if (feel.whatHeHoldsMovesSmoothly)
+            {
+                feel.heldThingsSettleAt = Lever("Held settles at", feel.heldThingsSettleAt, 8f, 60f, "How quickly a held shield or sword follows its pose while nothing presses (1/s; three over it is about the time it takes to arrive). Lower: smoother, heavier and later.");
+                feel.heldThingsSettleAtWhenPressed = Lever("Held settles at, pressed", feel.heldThingsSettleAtWhenPressed, 20f, 120f, "The same while the shield is raised to a blow or driven in a bash. Lower: a smoother raise that may come too late.");
+            }
+
+            BeginRow();
+            Words(new GUIContent("His shield:", "Whether a fighter's own shield is a solid thing against his own body while he is on his feet (Combat Feel \"A Shield Is Stopped By Its Bearer's Body\"). Solid (new): the physics engine stops the board at his trunk, head, thighs and shins, as it did only while he fell. Passes through (old): only the pose keeps them apart."));
+            if (Press(feel.aShieldIsStoppedByItsBearersBody ? "[solid against his body]" : "solid against his body", "The board is stopped by his own body.")) feel.aShieldIsStoppedByItsBearersBody = true;
+            if (Press(!feel.aShieldIsStoppedByItsBearersBody ? "[passes through (old)]" : "passes through (old)", "As before.")) feel.aShieldIsStoppedByItsBearersBody = false;
+            EndRow();
+            BeginRow();
+            Words(new GUIContent("His sword:", "Whether a fighter's own sword is a solid thing against his own body while he is on his feet (Combat Feel \"A Sword Is Stopped By Its Bearer's Body\"). Solid (new): the blade is stopped at his trunk, head, thighs and shins. Passes through (old): as before."));
+            if (Press(feel.aSwordIsStoppedByItsBearersBody ? "[solid against his body]" : "solid against his body", "The blade is stopped by his own body.")) feel.aSwordIsStoppedByItsBearersBody = true;
+            if (Press(!feel.aSwordIsStoppedByItsBearersBody ? "[passes through (old)]" : "passes through (old)", "As before.")) feel.aSwordIsStoppedByItsBearersBody = false;
+            EndRow();
+            BeginRow();
+            Words(new GUIContent("Against his body:", "How a shield or sword that is stopped by its bearer's own body is held there (Combat Feel \"A Held Thing Meets His Body Softly\"). Met softly (new): that arm gives way at once and presses with a third of its strength. Driven on (old): pressed into him with all the arm has, which makes it tremble."));
+            if (Press(feel.aHeldThingMeetsHisBodySoftly ? "[met softly]" : "met softly", "The arm gives way and rests it there.")) feel.aHeldThingMeetsHisBodySoftly = true;
+            if (Press(!feel.aHeldThingMeetsHisBodySoftly ? "[driven on (old)]" : "driven on (old)", "Pressed in with all the arm has.")) feel.aHeldThingMeetsHisBodySoftly = false;
+            EndRow();
+            Readout(new GUIContent("His own crossings: " + PhysicsBattler.Locomotion.SelfCrossings.Short() + ".", "Counted on the body as it is seen while a playtest is recorded: lines for the blade and the sword forearm against the board's disc, the board's rim and face against his own body. Strict: the meshes are thicker."), 2);
+            Readout(new GUIContent("What he holds trembles: " + PhysicsBattler.Locomotion.HeldShake.Short() + ".", "A tremble is what is left of a place when its own smooth motion is taken off (the average of five steps about it). Read it old against new with the rows above; a strike reads high by its own quickening."), 2);
+            BeginRow();
             Words(new GUIContent("Impacts:", "How a struck body comes back from any impact, a blade's or a bash's (Combat Feel \"Impacts Are Absorbed\"; a first trial). Absorbed (new): trunk and head go as far as before and settle without swinging back past; trunk, head and legs come back slower than they went; a blade stopped by a shield or a parry stays on it. As before (old): a struck body comes back on a spring that swings past and back again, and a stopped blade is thrown back off what stopped it."));
             if (Press(feel.impactsAreAbsorbed ? "[absorbed]" : "absorbed", "No swing back; slower back than out; the blade stays on the shield.")) feel.impactsAreAbsorbed = true;
             if (Press(!feel.impactsAreAbsorbed ? "[as before (old)]" : "as before (old)", "Springs that swing past; the blade thrown back off.")) feel.impactsAreAbsorbed = false;
