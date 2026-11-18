@@ -268,7 +268,24 @@ namespace UnityEngine
         public bool wordWrap { get; set; }
         public float lineHeight => 16f;
         public int fontSize { get; set; }
+        public RectOffset padding { get; set; } = new RectOffset();
+        public RectOffset margin { get; set; } = new RectOffset();
+        public TextClipping clipping { get; set; }
+        public GUIStyleState normal { get; } = new GUIStyleState();
     }
+
+    public sealed class GUIStyleState
+    {
+        public Color textColor { get; set; }
+    }
+
+    public sealed class RectOffset
+    {
+        public RectOffset() { }
+        public RectOffset(int left, int right, int top, int bottom) { }
+    }
+
+    public enum TextClipping { Overflow, Clip }
 
     public sealed class GUISkin
     {
@@ -309,6 +326,7 @@ namespace UnityEngine
         public static Color contentColor { get; set; }
         public delegate void WindowFunction(int id);
         public static void Label(Rect position, string text) { }
+        public static void Label(Rect position, GUIContent content, GUIStyle style) { }
         public static void DrawTexture(Rect position, Texture image) { }
         public static void DragWindow() { }
         public static bool Button(Rect position, string text) => false;
@@ -320,6 +338,7 @@ namespace UnityEngine
     public static class GUILayoutUtility
     {
         public static Rect GetLastRect() => default;
+        public static Rect GetRect(GUIContent content, GUIStyle style, params GUILayoutOption[] options) => default;
     }
 
     public static class GUILayout
@@ -337,6 +356,7 @@ namespace UnityEngine
         public static void EndVertical() { }
         public static void Space(float pixels) { }
         public static GUILayoutOption Width(float width) => new GUILayoutOption();
+        public static GUILayoutOption ExpandWidth(bool expand) => new GUILayoutOption();
         public static GUILayoutOption Height(float height) => new GUILayoutOption();
         public static GUILayoutOption MinWidth(float width) => new GUILayoutOption();
         public static GUILayoutOption MinHeight(float height) => new GUILayoutOption();

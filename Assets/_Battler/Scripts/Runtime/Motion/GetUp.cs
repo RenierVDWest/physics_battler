@@ -1452,6 +1452,8 @@ namespace PhysicsBattler.Motion
                 }
 
                 HandsReach(ref k, downL, downR);
+                k.ankleL = ClearOfHips(k.pelvis, k.ankleL, 0);
+                k.ankleR = ClearOfHips(k.pelvis, k.ankleR, 1);
                 keys[i] = k;
             }
 
@@ -1564,6 +1566,45 @@ namespace PhysicsBattler.Motion
 
         /// <summary>The most a recorded key's hips come down for its hands to reach the ground, as a share of the leg's length.</summary>
         private const float HipsLowerToReach = 0.1f;
+
+        /// <summary>
+        /// A recorded key's foot kept clear of its own hips. The recorded man, sitting up from his back, tucks one
+        /// foot back under his other thigh, across his middle, and rises over it. This body sits with its hips on the
+        /// ground and that foot went straight through them: under its seat and out at the other side (seen in Unity,
+        /// 18 November; headless the shin passed 16 cm from the hips' middle, where the get-ups made by hand come no
+        /// nearer than 30). While the hips are low a foot that is near them, fore and aft, stays out at its own side
+        /// by <see cref="FootClearsHips"/> of a leg at least: it comes back beside the hip, not under it. Once the
+        /// hips are up (<see cref="HipsUpBy"/> of their standing height) the feet are where the recording has them.
+        /// </summary>
+        private Vector3 ClearOfHips(Vector3 pelvis, Vector3 ankle, int foot)
+        {
+            if (!FeetClearHips)
+            {
+                return ankle;
+            }
+
+            float leg = body.LegLength, standHigh = body.PelvisHeight - 0.07f * leg, own = foot == 0 ? -1f : 1f;
+            float low = 1f - Smooth(Mathf.InverseLerp(HipsUpFrom, HipsUpBy, pelvis.y / standHigh));
+            float near = 1f - Smooth(Mathf.InverseLerp(0.45f, 0.75f, Mathf.Abs(ankle.z - pelvis.z) / leg));
+            float least = low * near * FootClearsHips * leg;
+            float aside = own * (ankle.x - pelvis.x);
+            // (The knee is left the way the recording has it. Pointed forward and up for a foot kept out, it bent a
+            // thigh 115 degrees past the hip's range in the get-up from the front, where the feet lie behind him.)
+            return aside >= least ? ankle : new Vector3(pelvis.x + own * least, ankle.y, ankle.z);
+        }
+
+        /// <summary>A recorded get-up's feet are kept clear of its own hips (<see cref="ClearOfHips"/>). Off: where the recording has them, as first made.</summary>
+        public static bool FeetClearHips = true;
+
+        /// <summary>How far out at its own side of the hips' middle a foot near low hips stays, as a share of the leg's length.</summary>
+        public static float FootClearsHips = 0.3f;
+
+        /// <summary>
+        /// The feet come back to where the recording has them as the hips rise from the first of these shares of their
+        /// standing height to the second: over the whole rise, not at one height (let go between 0.45 and 0.7, the
+        /// knee swung in from the side in a tenth of a second as he stood up, the thigh at 21 rad/s).
+        /// </summary>
+        public const float HipsUpFrom = 0.3f, HipsUpBy = 0.9f;
 
         /// <summary>The most a recorded key's trunk is tipped further for its hands to reach the ground (degrees).</summary>
         private const float TipsToReach = 24f;
