@@ -128,20 +128,18 @@ prints "PANEL OK".
 
 ## Plans and documents
 
-The plans live as Claude documents, not as files here. Read the one for the milestone in hand; each ends with
-progress notes.
+Every plan document has a copy in `Docs/Plans/` (30 files; `Docs/Plans/README.md` is the index, with each one's
+state). The live versions are Claude documents, linked from the index: progress notes are added there, and the copy
+here is refreshed when a plan changes a lot. Read the one for the work in hand, never all of them.
 
-| Document | State |
-|---|---|
-| [Design spec](https://claude.ai/artifact/HJeFzW1bbvt7n4gsLSUoUT) | The founding spec. Much has moved on since. |
-| [Fight Rhythm plan](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh) | **The main plan.** In progress. |
-| [A shield that stays outside its bearer](https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN) | Mostly built, 18 November. Leftovers below. |
-| [Impacts that carry weight](https://claude.ai/artifact/HkqvPHoe22TWSjZwxvdW5V) | Research and plan. A first "absorbed" trial is built; three steps wait. |
-| [Downed Play plan](https://claude.ai/artifact/GnbHLxWQTbosPE5Fff3oAK) | Plan only. Later in the roadmap. |
-| [Controlled falls](https://claude.ai/artifact/L1KorNskCqjo8dT32DSguE) | Built (falls and get-ups in the tube test). |
-| [Walking overhaul](https://claude.ai/artifact/PRykbXtbFivnTjXWBN2ntf) | Built; history. |
+The three in hand:
 
-Older plans are linked from the README where they were built.
+- `2026-11-18-fight-rhythm-from-recordings-plan.md`: **the main plan**
+  ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)).
+- `2026-11-18-a-shield-that-stays-outside-its-bearer.md`: mostly built; leftovers in the roadmap below
+  ([live](https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN)).
+- `2026-11-18-impacts-that-carry-weight.md`: three steps wait
+  ([live](https://claude.ai/artifact/HkqvPHoe22TWSjZwxvdW5V)).
 
 ## Where things stand (18 November 2026)
 

@@ -6444,3 +6444,7 @@ the end of every step. The headless test scripts, which had lived only in one ch
 `Tools/Headless/` with a README of their own (they write to `$S`, `/tmp/pb` unless set). The get-up sword shake
 Renier flagged is reproduced and measured but not fixed: what is known is in `CLAUDE.md` under "In hand". The
 frames of the 21:47 playtest log were looked at and removed.
+
+The plan documents (30, from the first design spec to the shield and impacts plans of 18 November) are now also in
+the repository as copies, in `Docs/Plans/`, with an index. Before this they were only Claude documents linked from
+here.
