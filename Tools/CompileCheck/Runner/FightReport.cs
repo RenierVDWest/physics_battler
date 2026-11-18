@@ -1112,6 +1112,28 @@ internal static class FightReport
             }
         }
 
+        // (FIGHT_FAKEBEHIND=0: a fake from any attack. FIGHT_FAKERATIO=0: every fake the pattern has; FIGHT_FAKES_PER=x: each
+        // dancer's fakes for each real attack. FIGHT_SPACEBASH=0: both bash whatever is near, as before; FIGHT_MEDIUMSHARE.
+        // FIGHT_HARDBASH=0: no hard bash as an attack; FIGHT_GUARDBREAKS=x: each dancer's share of blows that are one.
+        // FIGHT_COUNTER=0: a hard bash is not countered; FIGHT_COUNTERHOLDS=0..1: how often the counter holds.)
+        PhysicsBattler.Locomotion.PostureMaker.FakesWindBehind = Environment.GetEnvironmentVariable("FIGHT_FAKEBEHIND") != "0";
+        PhysicsBattler.Sandbox.Dance.FakeRatio = Environment.GetEnvironmentVariable("FIGHT_FAKERATIO") != "0";
+        PhysicsBattler.Sandbox.Dance.SpaceBashes = Environment.GetEnvironmentVariable("FIGHT_SPACEBASH") != "0";
+        PhysicsBattler.Sandbox.Dance.HardBashAttacks = Environment.GetEnvironmentVariable("FIGHT_HARDBASH") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.CountersHardBash = Environment.GetEnvironmentVariable("FIGHT_COUNTER") != "0";
+        foreach (var (name, set) in new (string, Action<float>)[]
+        {
+            ("FIGHT_MEDIUMSHARE", v => PhysicsBattler.Sandbox.Dance.MediumShare = v),
+            ("FIGHT_COUNTERHOLDS", v => PhysicsBattler.Locomotion.ClipFighter.CounterHolds = v),
+        })
+        {
+            if (float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value))
+            {
+                set(value);
+            }
+        }
+
+        PhysicsBattler.Locomotion.ClipFighter.HardBashCountered += (who, by, held) => Console.WriteLine($"BASHCOUNTER {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: his counter-bash {(held ? "held" : "did not hold")} against {(by.FightUnit != null ? by.FightUnit.name : "a fighter")}'s hard bash");
         // (FIGHT_DODGEALL=1: every fake is dodged and, in the dance, every blow made out in time. FIGHT_DODGEDROPS=0: in a gesture of his own he cannot dodge, as before.)
         PhysicsBattler.Locomotion.ClipFighter.DodgesEvery = Environment.GetEnvironmentVariable("FIGHT_DODGEALL") == "1";
         PhysicsBattler.Locomotion.ClipFighter.DodgeDropsGesture = Environment.GetEnvironmentVariable("FIGHT_DODGEDROPS") != "0";
@@ -1950,6 +1972,18 @@ internal static class FightReport
                         PhysicsBattler.Sandbox.Dance.CalmFeet = Environment.GetEnvironmentVariable("FIGHT_DANCECALM") != "0";
                         PhysicsBattler.Locomotion.ClipFighter.PostureCommitsShield = Environment.GetEnvironmentVariable("FIGHT_FAKECOMMITS") == "1";
                         var two = new[] { dance.A, dance.B };
+                        foreach (var (name, set) in new (string, Action<PhysicsBattler.Locomotion.FighterLevers, float>)[] { ("FIGHT_FAKES_PER", (own, v) => own.Fakes = v), ("FIGHT_GUARDBREAKS", (own, v) => own.GuardBreaks = v) })
+                        {
+                            if (float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value))
+                            {
+                                foreach (var d in two)
+                                {
+                                    var loco = d.Unit.Clip.Loco;
+                                    set(loco.Own ?? (loco.Own = PhysicsBattler.Locomotion.FighterLevers.Plain()), value);
+                                }
+                            }
+                        }
+
                         for (int k = 0; k < 2; k++)
                         {
                             two[k].Pattern = PhysicsBattler.Sandbox.GesturePattern.Named(names[Math.Min(k, names.Length - 1)]);
@@ -2406,6 +2440,24 @@ internal static class FightReport
             {
                 var ca = dance.A.Unit.Clip;
                 var cb = dance.B.Unit.Clip;
+                if (Environment.GetEnvironmentVariable("FIGHT_SCORES") == "1")
+                {
+                    // (Each plain strike's wind-up: how far behind his sword shoulder the hand goes.)
+                    foreach (var strike in ca.StrikeClips)
+                    {
+                        var score = PhysicsBattler.Locomotion.AttackScore.Of(strike);
+                        if (score != null)
+                        {
+                            Console.WriteLine(FormattableString.Invariant($"STRIKESCORE {score.Name}: {(score.Plain ? "plain" : "not plain")}{(score.Thrust ? ", a thrust" : "")}; its wind-up takes the blade {100f * score.BladeBehind * ca.Loco.Leg:0} cm behind the sword shoulder, the hand {100f * score.HandBefore * ca.Loco.Leg:0} cm before it and {100f * score.HandAcross * ca.Loco.Leg:0} cm across: {(score.WindsBehind ? "behind him (a fake may be cut from it)" : "not behind him")}"));
+                        }
+                    }
+                }
+
+                foreach (var d in new[] { dance.A, dance.B })
+                {
+                    Console.WriteLine($"DANCEBASH {(d == dance.A ? "A" : "B")}: real attacks {d.Blows.Count + d.BashAttacks} ({d.Blows.Count} cuts, {d.BashAttacks} hard bashes); fakes {d.FakesThrown} thrown, {d.FakesLeftOut} left out; bashes {dance.Bashes(d)}; bashed {d.Unit.Clip.BashedTimes} times himself");
+                }
+
                 Console.WriteLine($"DANCEFAKES fakes cut short of an attack: {ca.FakesCut} and {cb.FakesCut}; of the other's, met as a blow {ca.FakesMet} and {cb.FakesMet}, dodged {ca.FakesDodged} and {cb.FakesDodged}; dodges in all {ca.Dodges} and {cb.Dodges}; the last cut at {PhysicsBattler.Locomotion.PostureMaker.LastCut:0.00} of {PhysicsBattler.Locomotion.PostureMaker.LastCutOf}");
             }
             Console.WriteLine($"DANCESETOFFS the two set off from a stand {dance.SetOffs} times in {danceMeterA.Seconds:0} s (once every {2f * danceMeterA.Seconds / Mathf.Max(1, dance.SetOffs):0.0} s each); whole steps begun {dance.A.Unit.Clip.Loco.WholeStepsBegun} and {dance.B.Unit.Clip.Loco.WholeStepsBegun}, stands to let the asking catch up {dance.A.Unit.Clip.Loco.StepPauses} and {dance.B.Unit.Clip.Loco.StepPauses}; of their stops, {dance.StopsBusy} because he could not act (a gesture, a blow, a hit) and {dance.StopsThere} because he was where he wanted to be; something pressed for {dance.UrgentFor:0} fighter-seconds of {2f * danceMeterA.Seconds:0}");

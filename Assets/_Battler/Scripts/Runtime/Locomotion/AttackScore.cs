@@ -428,6 +428,60 @@ namespace PhysicsBattler.Locomotion
 
         private static readonly Dictionary<string, AttackScore> scores = new Dictionary<string, AttackScore>();
 
+        /// <summary>
+        /// Its wind-up takes the sword behind him: before the drive the blade's striking part goes at least
+        /// <see cref="BehindAtLeast"/> behind his sword shoulder (leg lengths, against the way he faces as the clip
+        /// begins), and his sword hand never first goes out before his chest (further forward of the shoulder than
+        /// <see cref="BeforeAtMost"/>, or across to his other side by more than <see cref="AcrossAtMost"/>). A thrust
+        /// never is. What a fake may be cut from goes by this (<see cref="PostureMaker.FakesWindBehind"/>; Renier,
+        /// 18 November: "Fakes only look right for the attacks where the arm pulls back to behind his back. Attacks
+        /// with a wind up where the sword winds up by going in to position in front of his chest do not look right").
+        /// </summary>
+        public bool WindsBehind
+        {
+            get
+            {
+                MeasureWindUp();
+                return !Thrust && BladeBehind >= BehindAtLeast && HandBefore <= BeforeAtMost && HandAcross <= AcrossAtMost;
+            }
+        }
+
+        /// <summary>The wind-up, measured (leg lengths): how far behind the sword shoulder the blade's striking part goes up to a little after the drive begins; how far before the shoulder the sword hand goes before the drive; how far across to his other side.</summary>
+        public float BladeBehind { get { MeasureWindUp(); return bladeBehind; } }
+        public float HandBefore { get { MeasureWindUp(); return handBefore; } }
+        public float HandAcross { get { MeasureWindUp(); return handAcross; } }
+
+        public const float BehindAtLeast = 0.25f, BeforeAtMost = 0.22f, AcrossAtMost = 0.1f;
+
+        private float bladeBehind = float.NaN, handBefore, handAcross;
+
+        private void MeasureWindUp()
+        {
+            if (!float.IsNaN(bladeBehind))
+            {
+                return;
+            }
+
+            var m = BodyMeasures.OfClips;
+            var hold = SwordHold.Medium;
+            float behind = float.NegativeInfinity, before = float.NegativeInfinity, across = float.NegativeInfinity;
+            int drive = Mathf.Clamp(Drive, 1, Frames.Length - 1), until = Mathf.Min(Frames.Length - 1, drive + Mathf.Max(1, (Contact - drive) / 3));
+            for (int f = 0; f <= until; f++)
+            {
+                SwordOf(Frames[f], m, hold, Thrust, out Vector3 shoulder, out Vector3 wrist, out _, out _);
+                behind = Mathf.Max(behind, shoulder.z - Strike[f].z);
+                if (f <= drive)
+                {
+                    before = Mathf.Max(before, wrist.z - shoulder.z);
+                    across = Mathf.Max(across, shoulder.x - wrist.x);
+                }
+            }
+
+            handBefore = before;
+            handAcross = across;
+            bladeBehind = behind;
+        }
+
         /// <summary>A strike clip's score (made once for each clip).</summary>
         public static AttackScore Of(LocoClip clip)
         {

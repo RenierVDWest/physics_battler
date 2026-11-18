@@ -3572,6 +3572,7 @@ namespace PhysicsBattler.Locomotion
         {
             Strikes = new StrikeHits(Loco, Poser, Anim) { Weapon = weapon, Scale = Size, Slot = Authority != null ? Rig.SlotWeaponR : null, Mass = Mass, Owner = this };
             StrikeClips = StrikesOf(Poser.BodyKey);
+            windUpsBehind = -1;
             Strikes.Finishing = () => Combo != null && Combo.LastBlow;
             Strikes.Comboing = () => Combo != null && Combo.Playing && Combo.Cores;
             return Strikes;
@@ -3711,6 +3712,8 @@ namespace PhysicsBattler.Locomotion
                 postureFeint = Mathf.Min(postureFeint * FighterLevers.FeintOf(Loco.Own), 1f / Mathf.Max(0.05f, PostureMaker.FeintDepth));
                 postureLunge *= FighterLevers.LungeOf(Loco.Own);
             }
+            // (A fake cut short of an attack is cut only from one whose wind-up takes the sword behind him, if he has one.)
+            fakeFromBehind = postureNow && postureFeint > 0f && postureLunge <= 0f && PostureMaker.CutShort && PostureMaker.FakesWindBehind && named == null && given == null && HasWindUpBehind();
             if (AttackOnTheMove.On && landIn <= 0f && legs == null && given == null && !(postureNow && postureLunge > 0f && !PostureMaker.LungesOnTheMove))
             {
                 // (Walking, the blow is thrown on the move: the walk goes on under it.)
@@ -3763,7 +3766,7 @@ namespace PhysicsBattler.Locomotion
             {
                 // (With none named: of the plain blows, made with the feet on the ground. The leaps and the spins are asked for by name.)
                 var score = AttackScore.Of(clip);
-                if (score == null || (named != null ? clip.Name != named : !score.Plain))
+                if (score == null || (named != null ? clip.Name != named : !score.Plain) || (fakeFromBehind && !score.WindsBehind))
                 {
                     continue;
                 }
@@ -3861,6 +3864,26 @@ namespace PhysicsBattler.Locomotion
         }
 
         private static readonly List<LocoClip> noStrikes = new List<LocoClip>();
+
+        // (The fake being made is cut only from attacks whose wind-up takes the sword behind him.)
+        private bool fakeFromBehind;
+        private int windUpsBehind = -1;
+
+        /// <summary>He has a plain attack whose wind-up takes the sword behind him (<see cref="AttackScore.WindsBehind"/>): what his fakes are cut from. Without one, his fakes are cut from any, as they were.</summary>
+        public bool HasWindUpBehind()
+        {
+            if (windUpsBehind < 0)
+            {
+                windUpsBehind = 0;
+                foreach (var clip in StrikeClips)
+                {
+                    var score = AttackScore.Of(clip);
+                    windUpsBehind += score != null && score.Plain && score.WindsBehind ? 1 : 0;
+                }
+            }
+
+            return windUpsBehind > 0;
+        }
 
         /// <summary>
         /// A cut made while turning round (<see cref="TurnSlashes"/>): the quick turn's legs, <paramref name="degrees"/>
@@ -4468,7 +4491,7 @@ namespace PhysicsBattler.Locomotion
             foreach (var clip in StrikeClips)
             {
                 var score = AttackScore.Of(clip);
-                if (score == null || (named != null ? clip.Name != named : !score.Plain))
+                if (score == null || (named != null ? clip.Name != named : !score.Plain) || (fakeFromBehind && !score.WindsBehind))
                 {
                     continue;
                 }
@@ -5557,14 +5580,15 @@ namespace PhysicsBattler.Locomotion
         /// He bashes now, at this enemy (null: straight ahead, at nobody, to be seen), with one of the three bashes
         /// (0: small, 1: medium, 2: hard). False: he cannot (no shield, down, in a blow, meeting one, one just thrown).
         /// </summary>
-        public bool Bash(ClipFighter at, bool whenever = false, int kind = 0)
+        public bool Bash(ClipFighter at, bool whenever = false, int kind = 0, bool braced = false)
         {
             if (Bashing || Fallen || ShieldColliders.Count == 0 || Striking || interceptWeight > 0f || GuardOpen || IsUncovering || (!whenever && clock < bashReadyAt))
             {
                 return false;
             }
 
-            var levers = BashKinds[Mathf.Clamp(kind, 0, BashKinds.Length - 1)];
+            kind = Mathf.Clamp(kind, 0, BashKinds.Length - 1);
+            var levers = BashKinds[kind];
             Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
             Vector3 to = at != null ? Flat(at.Loco.Position - Loco.Position) : ahead;
             float gap = at != null ? to.magnitude : float.MaxValue;
@@ -5578,7 +5602,8 @@ namespace PhysicsBattler.Locomotion
             bashShoulder = Mathf.Lerp(8f, 40f, armReach);
             bashDriveTime = Mathf.Lerp(0.22f, 0.08f, arm);
             // (How far he leaps: to where this bash ends, so far short of where the enemy stands, and no further than its most.)
-            float far = at != null ? Mathf.Clamp(gap / Size - levers.EndsShort, 0f, levers.MostLeap) : levers.MostLeap;
+            // (Braced: he stands where he is and meets what comes with his board, a counter to a hard bash.)
+            float far = braced ? 0f : at != null ? Mathf.Clamp(gap / Size - levers.EndsShort, 0f, levers.MostLeap) : levers.MostLeap;
             bashLeapt = 0f;
             bashLeaptAt = 0f;
             float speed = Mathf.Max(1f, levers.LeapSpeed);
@@ -5606,20 +5631,120 @@ namespace PhysicsBattler.Locomotion
             }
 
             bashKind = levers;
+            bashKindAt = kind;
             bashFor = 0f;
             bashAt = at;
             bashStruck = bashSurged = bashBoardKnown = false;
+            // (A counter does nothing by itself: what comes of the two boards meeting is settled as the hard bash arrives.)
+            countering = braced;
+            bashStruck = braced;
             bashBoardSpeedAt = 0;
             bashEnds = Mathf.Max(bashDriveAt + bashDriveTime + BashHeld + BashBack, bashLeapt > 0f ? levers.Prep + 0.1f + bashLeapt / bashLeaptAt + 0.2f : 0f);
             bashReadyAt = clock + BashEvery;
             Bashes++;
             LastBash = string.Format(System.Globalization.CultureInfo.InvariantCulture, "a {0} bash: {1}, his board driven {2:0} cm ahead in {3:0.00} s", levers.Name, bashLeapt > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "he leapt {0:0.00} m in at {1:0.0} m/s", bashLeapt, bashLeaptAt) : "from where he stood", 100f * bashOutFar, bashDriveTime) + ": under way";
+            if (braced)
+            {
+                LastBash = LastBash.Replace("a " + levers.Name + " bash:", "a " + levers.Name + " bash, braced to counter a hard one:");
+            }
+
             if (Diagnostics.PlaytestTrace.Enabled)
             {
                 Diagnostics.PlaytestTrace.Note(FightUnit, "bash", (at != null ? $"at {at.FightUnit.name}, {gap:0.00} m off" : "asked for, at nobody") + "; " + LastBash);
             }
 
+            if (kind == 2 && at != null && !braced)
+            {
+                // (A hard bash is seen coming: its crouch and its leap are its wind-up.)
+                at.SeesHardBash(this, bashDriveAt + bashDriveTime);
+            }
+
             return true;
+        }
+
+        // ---- A hard bash countered (18 November) ----
+
+        /// <summary>
+        /// A hard bash seen coming is met with a medium bash of his own (Combat Feel "A Hard Bash Is Countered By A
+        /// Medium Bash"): he braces where he stands and drives his board out to be there as the other's arrives.
+        /// Whether that stops the hard bash knocking him over is a draw (<see cref="CounterHolds"/>): held, the two
+        /// boards meet, he is shoved back a step and the basher is stopped where he met him; not held, he goes down
+        /// as if he had not countered. One who cannot bash just then (in a blow of his own, his guard open, no
+        /// shield) does not counter. Off: a hard bash that meets him knocks him over every time, as before.
+        /// </summary>
+        public static bool CountersHardBash = true;
+
+        /// <summary>How often a counter-bash stops a hard bash knocking him over (0 to 1). To be tied to his defensive skill later; a lever for now.</summary>
+        public static float CounterHolds = 0.75f;
+
+        /// <summary>How soon after a hard bash begins he can answer it (seconds), and how long before it arrives his own board must start out to be there.</summary>
+        public const float CounterSeenIn = 0.12f, CounterLead = 0.3f;
+
+        /// <summary>How near the two boards' middles must come for a hard bash to have met a counter (metres at a Medium's size).</summary>
+        public const float BoardsMeet = 0.4f;
+
+        /// <summary>How fast a basher is thrown back off the board that stopped him (m/s at a Medium's size).</summary>
+        public const float CounterRebound = 1f;
+
+        /// <summary>A hard bash was countered: who countered, whose bash it was, and whether the counter held. For the logs and the lab.</summary>
+        public static event System.Action<ClipFighter, ClipFighter, bool> HardBashCountered;
+
+        /// <summary>Counters he tried against a hard bash, and how many held; hard bashes of his own that were stopped by a counter.</summary>
+        public int CountersTried, CountersHeld, BashesStopped;
+
+        private ClipFighter counterAgainst;
+        private float counterAt = -1f, counterUntil;
+        private bool countering, counterHeld;
+        private int bashKindAt;
+
+        /// <summary>He is in a counter-bash against this basher.</summary>
+        public bool Countering(ClipFighter basher) => countering && Bashing && bashAt == basher;
+
+        private void SeesHardBash(ClipFighter by, float arrivesIn)
+        {
+            if (!CountersHardBash || ShieldColliders.Count == 0 || Fallen)
+            {
+                return;
+            }
+
+            counterAgainst = by;
+            counterAt = clock + Mathf.Max(CounterSeenIn, arrivesIn - CounterLead);
+            counterUntil = clock + arrivesIn + 0.25f;
+        }
+
+        private void StepCounter()
+        {
+            if (counterAt < 0f)
+            {
+                return;
+            }
+
+            var by = counterAgainst;
+            if (by == null || !by.Bashing || by.bashStruck || Fallen || clock > counterUntil)
+            {
+                counterAt = -1f;
+                counterAgainst = null;
+                return;
+            }
+
+            if (clock < counterAt || Bashing)
+            {
+                return;
+            }
+
+            // (A gesture of his own is let go for it, as for a dodge; it ends over the next step, so he tries again.)
+            if (DodgeDropsGesture && Posturing && Loco.Current == Locomotor.Mode.OneShot)
+            {
+                Loco.EndShotNow();
+            }
+
+            if (Bash(by, true, 1, true))
+            {
+                counterHeld = (float)shieldLuck.NextDouble() < CounterHolds;
+                CountersTried++;
+                counterAt = -1f;
+                counterAgainst = null;
+            }
         }
 
         /// <summary>He bashes this enemy if it is too near and before him (the fight asks it each step).</summary>
@@ -5644,8 +5769,10 @@ namespace PhysicsBattler.Locomotion
 
         private void StepBash(float dt)
         {
+            StepCounter();
             if (bashFor < 0f)
             {
+                countering = false;
                 return;
             }
 
@@ -5684,7 +5811,10 @@ namespace PhysicsBattler.Locomotion
                     Vector3 to = Flat(enemy.Loco.Position - board);
                     float off = to.magnitude;
                     Vector3 way = off > 1e-3f ? to / off : bashWay;
-                    if (off <= BashMeets * enemy.Size && Vector3.Dot(way, bashWay) > 0.2f)
+                    // (One who counters holds his own board out before him: the hard bash meets that, board on board,
+                    // before it is near his middle.)
+                    bool boards = bashKindAt == 2 && enemy.Countering(this) && enemy.ShieldBoard(out Vector3 theirs, out _, out _) && Flat(theirs - board).magnitude <= BoardsMeet * enemy.Size;
+                    if ((off <= BashMeets * enemy.Size && Vector3.Dot(way, bashWay) > 0.2f) || boards)
                     {
                         bashStruck = true;
                         // (Over the last eighth of a second: a board that was driven out a while ago and is only carried
@@ -5714,11 +5844,46 @@ namespace PhysicsBattler.Locomotion
                         float closing = Mathf.Max(0f, fastest - Vector3.Dot(Flat(enemy.Loco.Velocity), way));
                         float shove = bashKind.Weight * closing * Mathf.Sqrt(Mass / Mathf.Max(1f, enemy.Mass));
                         BashesLanded++;
-                        string did = enemy.Bashed(Flat(enemy.Loco.Position - Loco.Position).normalized, shove, this);
+                        // (A hard bash he met with a bash of his own: if his counter holds, the boards meet, he is shoved
+                        // back a step and the basher comes down where he met him; if not, he goes down for all that.)
+                        bool countered = bashKindAt == 2 && enemy.Countering(this);
+                        bool held = countered && enemy.counterHeld;
+                        Vector3 out_ = Flat(enemy.Loco.Position - Loco.Position).normalized;
+                        if (held)
+                        {
+                            shove = Mathf.Min(shove, 0.8f * BashStumblesFrom * Mathf.Sqrt(enemy.Size));
+                        }
+
+                        string did = enemy.Bashed(out_, shove, this);
                         BashesStumbled += did == "stumbled" ? 1 : 0;
                         BashesFelled += did == "down" ? 1 : 0;
+                        if (countered)
+                        {
+                            enemy.CountersHeld += held ? 1 : 0;
+                            BashesStopped += held ? 1 : 0;
+                            enemy.LastBash = enemy.LastBash.Replace(": under way", held ? ": it held: the boards met and he kept his feet" : ": it did not hold");
+                            HardBashCountered?.Invoke(enemy, this, held);
+                            if (Diagnostics.PlaytestTrace.Enabled)
+                            {
+                                Diagnostics.PlaytestTrace.Note(enemy.FightUnit, "bash", held ? "his counter-bash held: the hard bash did not knock him over" : "his counter-bash did not hold");
+                            }
+                        }
                         LastBash = LastBash.Replace(": under way", string.Format(System.Globalization.CultureInfo.InvariantCulture, "; the board met him {0:0.00} s after it began, closing at {1:0.0} m/s: he was {2} at {3:0.0} m/s", bashFor, closing, did == "down" ? "knocked down, thrown back" : did == "stumbled" ? "thrown back stumbling" : "shoved back", shove));
-                        if (!bashKind.GoesThrough)
+                        if (held)
+                        {
+                            LastBash += " (met by his counter-bash: stopped)";
+                        }
+
+                        if (held)
+                        {
+                            // (Stopped by the other's board: he is thrown back off it a step himself, his own guard open
+                            // a moment, and the two are apart again.)
+                            float mine = Mathf.Max(0f, Vector3.Dot(Flat(Loco.Velocity), out_));
+                            Loco.StopShotTravel();
+                            Loco.Push(-out_ * (mine + CounterRebound * Mathf.Sqrt(Size)));
+                            guardOpenUntil = Mathf.Max(guardOpenUntil, clock + 0.3f);
+                        }
+                        else if (!bashKind.GoesThrough)
                         {
                             // (He comes down where he met him, not on through him. A bash that goes through carries on into
                             // the space the enemy is thrown out of.)
@@ -5733,6 +5898,10 @@ namespace PhysicsBattler.Locomotion
                 if (!bashStruck)
                 {
                     LastBash = LastBash.Replace(": under way", bashAt != null ? ": it met nothing (he was out of its reach)" : ": at nobody");
+                }
+                else if (countering)
+                {
+                    LastBash = LastBash.Replace(": under way", ": the hard bash never reached him");
                 }
 
                 bashFor = -1f;

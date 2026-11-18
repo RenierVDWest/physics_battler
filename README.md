@@ -6041,3 +6041,75 @@ version; add a search box that works similar to how it works in unreal."
 
 Not seen in Unity: the look of the checked attack, the dodge, a gesture dropped for a dodge (it ends with a
 short fade), the colours, typing in the search box.
+
+**Fakes, second pass; bashes in the dance (18 November, after Renier's look at the cut-short fakes).** "Only
+the fast or light attacks look right, not the heavy. There are too many fake attacks and too few real
+attacks. Each unit should have a ratio for fake to real attacks. Fakes only look right for the attacks where
+the arm pulls back to behind his back. Attacks with a wind up where the sword winds up by going in to
+position in front of his chest do not look right." And the bash: small and medium bashes "for when the enemy
+comes too close into your space"; the heavy one "more as an attack to try and break the enemy's guard", which
+the enemy can counter "by doing a medium bash of his own", with "the debug slider for the percentage chance".
+
+- *Fakes are cut from light attacks* (Combat Feel "Fakes Cut From": 0 light, the default; 1 heavy; 2 both;
+  the lab's "Cut from: light / heavy / both". A new setting, so a scene saved this morning does not keep the
+  old "both").
+- *Fakes are cut only from attacks that wind up behind him* (`AttackScore.WindsBehind`,
+  `PostureMaker.FakesWindBehind`; Combat Feel "Fakes Come Only From Wind Ups Behind Him"; the lab's "Wind-up:
+  behind him only / any (old)"; `FIGHT_FAKEBEHIND=0`). Measured on each attack's recording, against the way
+  he faces as it begins: before the drive the blade must go at least a quarter of a leg behind his sword
+  shoulder, and the sword hand must not first go out before his chest (more than 0.22 of a leg forward of the
+  shoulder, or 0.1 across to his other side); a thrust never counts. Of the sword and shield's three plain
+  attacks (`FIGHT_SCORES=1` prints them): the forehand's blade goes 46 cm behind him and its hand stays by
+  his shoulder: faked. The rising cut's hand first goes 35 cm out before his chest and 42 cm across it, the
+  sword upright before him, and only then round: not faked. The thrust: not faked. So for now every fake is
+  a light forehand, on its own legs or another attack's; any attack added later that winds up behind him is
+  faked too. A fighter with no such attack fakes from any.
+- *A ratio of fakes to real attacks, each fighter's own* (`FighterLevers.Fakes`, "Fakes" under "Each his
+  own": 0.5 is one fake for every two real attacks; Plain and Prowler 0.5, Strutter 1, Bull 0.25;
+  `Dance.FakeRatio`, Combat Feel "The Dance Keeps Fakes To A Ratio", the lab's "Fakes: to his ratio / all his
+  pattern has (old)"; `FIGHT_FAKERATIO=0`, `FIGHT_FAKES_PER`). A fake his pattern has that the ratio does not
+  let him throw is left out and the pattern goes on at once, so his real attack comes sooner; if it was his
+  tell, he drops before his blow instead. A hard bash counts as a real attack.
+- *Bashes for space* (`Dance.StepSpace`, `Dance.SpaceBashes`; Combat Feel "The Dance Bashes For Space"; the
+  lab's "Too near: one bashes him out / both bash (old)"; `FIGHT_SPACEBASH=0`). Before, each dancer bashed
+  whatever was within 1.2 m whenever he could, with a small bash. Now, as the two come within that
+  ("Bash within"), one of them bashes, once. If one came in at the other (a blow of his under way or due, or
+  he was closing faster by 0.25 m/s), the one come in at bashes him back out: a medium bash half the times
+  ("Medium bashes", Combat Feel "Space Bashes That Are Medium"), a small one the rest. If neither did (they
+  drifted together), one of them, drawn, throws a small one to push them apart. One who cannot just then
+  leaves it to the other. Said over him: "BASHES him back out", "BASHES them apart".
+- *A hard bash is an attack* (`Dance.HardBashAttacks`, `BashAttack`; Combat Feel "A Hard Bash Is An Attack In
+  The Dance"; the lab's "Hard bash: an attack / never (old)"; `FIGHT_HARDBASH=0`). Some of a dancer's own
+  blows are a hard bash instead of a cut: his own "Guard breaks" (`FighterLevers.GuardBreaks`: Plain 0.2,
+  Prowler 0.1, Strutter 0.15, Bull 0.3; `FIGHT_GUARDBREAKS`), twice as many after a blow of his that the other
+  stopped. It is thrown from 1.3 to 2.4 m off.
+- *A hard bash is countered by a medium bash* (`ClipFighter.CountersHardBash`, `SeesHardBash`,
+  `StepCounter`; Combat Feel "A Hard Bash Is Countered By A Medium Bash"; in any fight, not only the dance;
+  `FIGHT_COUNTER=0`). One with a shield who sees a hard bash coming braces where he stands and drives his
+  board out with a medium bash, timed to be out as the other arrives (a gesture of his own is let go for
+  it; in a blow of his own he cannot). Whether that keeps him on his feet is a draw: "Counter holds", 0 to
+  100 per cent, 75 as it is (`CounterHolds`, Combat Feel "Counter Bash Holds"; `FIGHT_COUNTERHOLDS`; to be
+  tied to defensive skill later). Held: the boards meet, he is shoved back a step, and the basher is stopped
+  and thrown back off the board a step himself. Not held: he goes down as before. A counter does nothing by
+  itself: what comes of the two boards meeting is settled as the hard bash arrives (board on board, within
+  40 cm, or his middle reached). Said over him: "COUNTERS the hard bash: it holds", "HIS COUNTER DOES NOT
+  HOLD". To see one: the duel lab's "Hard bash" at the other, both with shields; "The other's bash" under
+  "Last bash" says how his counter went.
+- *One who is down is let up* (`Dance.LetsHimUp`): the other throws nothing at him until he stands. A choice
+  made so the dance can be watched; not asked for.
+- *Headless* (two Plain fighters, one dance of 60 s each: counts, not rates). With
+  everything of this step off: 32 fakes (16 each) and 19 real attacks, all cuts. As it is now: 11 fakes (5
+  and 6), all light forehands, and 18 real attacks (15 cuts, 3 hard bashes); 32 fakes were left out by the
+  ratio. So the fakes are a third of what they were, but the real attacks are no more than before (18 against
+  19 in the minute): leaving a fake out brings the next blow sooner, and a fighter knocked down and getting
+  up takes it back. Not mended: how often a dancer attacks is his pattern's beat, which this step did not
+  touch. Of the 3 hard bashes, all were countered: 2 counters held, 1 did not and he went down. Bashes for
+  space: 2 (1 small, 1 medium), both by the one come in at: two Plain fighters seldom come within 1.2 m.
+  Two Bulls for 40 s (who like to be nearer): 3 bashes for space (1 small, 2 medium; 2 at one who came in, 1
+  drifted together). With every blow a hard bash (`FIGHT_GUARDBREAKS=1`, 40 s): 8 thrown, 6 met by a counter
+  that held, 1 knocked him down, 1 left no outcome (it met nothing, or the run ended first). In the duel lab's line-up, a hard bash from 1.9 m at the
+  other: with "Counter holds" at 100 his counter held both times and they ended 1.65 m apart; at 0 he was
+  knocked down 2.5 m back. The fight of six ran its 40 s with nothing broken.
+
+Not seen in Unity: any of it. In particular the look of the braced counter, of the basher thrown back off
+the board (his leap is dropped for a step back), and of a medium bash thrown from inside a metre.

@@ -211,6 +211,17 @@ namespace PhysicsBattler.Sandbox
         /// <summary>Blows he threw into the other's wind-up; dodges he threw at a blow he saw coming.</summary>
         public int StopHits, DodgedBlows;
 
+        /// <summary>Fake attacks he threw; fakes his pattern had that his ratio left out (<see cref="FighterLevers.Fakes"/>).</summary>
+        public int FakesThrown, FakesLeftOut;
+
+        /// <summary>Bashes to get the other out of his space, small and medium; of those, how many at one who had come in at him (the rest: the two had drifted together); hard bashes thrown as an attack.</summary>
+        public readonly int[] SpaceBashes = new int[2];
+        public int BashedIntruder, BashAttacks;
+
+        // (How fast he is coming toward the other, smoothed (m/s); his pattern's next blow is to be a hard bash.)
+        internal float comesAt;
+        internal int bashPlanned = -1;
+
         /// <summary>His blows by class (light, heavy): thrown, landed, and what the landed ones did in all (blade speed, harm).</summary>
         public readonly int[] ClassThrown = new int[3], ClassLanded = new int[3];
         public readonly float[] ClassLandsIn = new float[3], ClassSpeed = new float[3], ClassHarm = new float[3];
@@ -451,10 +462,25 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        /// <summary>A dancer met a hard bash with a bash of his own: said over his head.</summary>
+        private void OnBashCountered(ClipFighter who, ClipFighter by, bool held)
+        {
+            foreach (var d in new[] { A, B })
+            {
+                if (On && d.Unit != null && d.Unit.Clip == who)
+                {
+                    d.Say(held ? "COUNTERS the hard bash: it holds" : "HIS COUNTER DOES NOT HOLD", Time.time, 1.6f);
+                }
+            }
+        }
+
         public void Begin(UnitController a, UnitController b)
         {
             ClipFighter.FakeAnswered -= OnFakeAnswered;
             ClipFighter.FakeAnswered += OnFakeAnswered;
+            ClipFighter.HardBashCountered -= OnBashCountered;
+            ClipFighter.HardBashCountered += OnBashCountered;
+            spaceSince = -1f;
             A.Unit = a;
             B.Unit = b;
             A.Foe = B;
@@ -474,6 +500,10 @@ namespace PhysicsBattler.Sandbox
                 d.Landed = d.Stopped = d.Missed = d.Taken = d.CaughtInFake = d.ExpectedBlows = d.CoveredForNothing = d.ReadBlows = d.Answered = d.TakenAnswers = 0;
                 d.answerAt = d.pausedAt = -1f;
                 d.OnSpot = d.spotTurn = d.LeaptIn = d.LeaptOut = d.StopHits = d.DodgedBlows = 0;
+                d.FakesThrown = d.FakesLeftOut = d.BashedIntruder = d.BashAttacks = 0;
+                d.SpaceBashes[0] = d.SpaceBashes[1] = 0;
+                d.comesAt = 0f;
+                d.bashPlanned = -1;
                 d.stopAt = d.dodgeAt = -1f;
                 System.Array.Clear(d.ClassThrown, 0, 3);
                 System.Array.Clear(d.ClassLanded, 0, 3);
@@ -509,6 +539,7 @@ namespace PhysicsBattler.Sandbox
         {
             d.place = 0;
             d.planned = -1;
+            d.bashPlanned = -1;
             d.tellThrown = false;
             d.blowAt = -1f;
             d.nextAt = at;
@@ -635,8 +666,15 @@ namespace PhysicsBattler.Sandbox
                 StepFeet(A, now, dt, gap);
                 StepFeet(B, now, dt, gap);
                 // (A shield bashes what comes too near: the two are the lab's dummies, so the dance asks it for them.)
-                A.Unit.Clip.BashIfNear(B.Unit.Clip);
-                B.Unit.Clip.BashIfNear(A.Unit.Clip);
+                if (SpaceBashes)
+                {
+                    StepSpace(now, dt, gap);
+                }
+                else
+                {
+                    A.Unit.Clip.BashIfNear(B.Unit.Clip);
+                    B.Unit.Clip.BashIfNear(A.Unit.Clip);
+                }
             }
             else if (feetMoved)
             {
@@ -654,6 +692,183 @@ namespace PhysicsBattler.Sandbox
             StepPattern(A, now);
             StepPattern(B, now);
         }
+
+        // ---- Bashes (18 November) -----------------------------------------------------------------------------------
+
+        /// <summary>
+        /// The dance's bashes for space (Combat Feel "The Dance Bashes For Space"). The two come nearer than a fighter
+        /// lets another come (<see cref="ClipFighter.BashWithin"/>): one of them bashes, once, to get the other back
+        /// out. If one of them came in at the other (his blow under way or due, or he was closing on him faster by
+        /// <see cref="CameInBy"/> m/s), it is the one come in at who bashes: a medium bash <see cref="MediumShare"/> of
+        /// the times, a small one the rest. If neither did (they drifted together), one of them, drawn, throws a small
+        /// one to push them apart. One who cannot (no shield, in a blow, one thrown too lately) leaves it to the
+        /// other. Off: each bashes whatever is near whenever he can, as before.
+        /// </summary>
+        public static bool SpaceBashes = true;
+
+        /// <summary>Of the bashes at one who came in at him, how many are medium (0 to 1); the rest are small.</summary>
+        public static float MediumShare = 0.5f;
+
+        /// <summary>How much faster than the other one must be closing to be the one who came in (m/s); how soon the bash follows (seconds); and after one, how long before another if they are still as near.</summary>
+        public const float CameInBy = 0.25f, SpaceSeenIn = 0.15f, SpaceAgainAfter = 1.5f;
+
+        /// <summary>
+        /// A hard bash is an attack in the dance (Combat Feel "A Hard Bash Is An Attack In The Dance"): some of a
+        /// dancer's pattern blows (<see cref="FighterLevers.GuardBreaks"/> of them; twice as many after a blow of his
+        /// that the other stopped) are a hard bash instead of a cut, to break the other's guard. Off: never.
+        /// </summary>
+        public static bool HardBashAttacks = true;
+
+        /// <summary>From how near to how far a hard bash is thrown as an attack (metres root to root, at a Medium's size).</summary>
+        public const float HardBashFrom = 1.3f, HardBashWithin = 2.4f;
+
+        /// <summary>One who is down is let up: the other throws nothing at him until he is on his feet (the dance is to be watched).</summary>
+        public static bool LetsHimUp = true;
+
+        private float spaceSince = -1f, spaceAt, spaceDoneAt;
+        private Dancer spaceBasher;
+        private int spaceKind;
+        private bool spaceMutual, spaceSwapped, spaceDone;
+
+        private static float GuardBreaks(Dancer d)
+        {
+            var own = d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
+            return FighterLevers.On && own != null ? own.GuardBreaks : 0.2f;
+        }
+
+        /// <summary>He is the one attacking: a blow of his is under way or was thrown a moment ago, or he is coming in for one.</summary>
+        private static bool Attacking(Dancer d, float now) => d.wantsIn || d.Unit.Clip.Striking || (d.blow != null && now - d.blow.AskedAt < 1.2f);
+
+        private void StepSpace(float now, float dt, float gap)
+        {
+            foreach (var d in new[] { A, B })
+            {
+                Vector3 to = d.Foe.Unit.Root.position - d.Unit.Root.position, v = d.Unit.Clip.Loco.Velocity;
+                to.y = v.y = 0f;
+                float toward = to.sqrMagnitude > 1e-6f ? Vector3.Dot(v, to.normalized) : 0f;
+                d.comesAt = Mathf.Lerp(d.comesAt, toward, 1f - Mathf.Exp(-dt / 0.25f));
+            }
+
+            float within = ClipFighter.BashWithin * 0.5f * (Size(A) + Size(B));
+            if (!ClipFighter.ShieldBash || gap > within || A.Unit.Clip.Fallen || B.Unit.Clip.Fallen)
+            {
+                if (gap > within + 0.15f || A.Unit.Clip.Fallen || B.Unit.Clip.Fallen)
+                {
+                    spaceSince = -1f;
+                }
+
+                return;
+            }
+
+            if (spaceSince < 0f)
+            {
+                // (As the other crosses into his space: who came in, and so who bashes, and with what.)
+                spaceSince = now;
+                bool a = Attacking(A, now), b = Attacking(B, now);
+                float lead = A.comesAt - B.comesAt;
+                Dancer came = a != b ? (a ? A : B) : Mathf.Abs(lead) > CameInBy ? (lead > 0f ? A : B) : null;
+                spaceMutual = came == null;
+                spaceBasher = came != null ? came.Foe : dice.Next(2) == 0 ? A : B;
+                spaceKind = !spaceMutual && dice.NextDouble() < MediumShare ? 1 : 0;
+                spaceAt = now + SpaceSeenIn;
+                spaceSwapped = spaceDone = false;
+            }
+
+            if (spaceDone)
+            {
+                if (now - spaceDoneAt > SpaceAgainAfter)
+                {
+                    spaceSince = -1f;
+                }
+
+                return;
+            }
+
+            if (now < spaceAt)
+            {
+                return;
+            }
+
+            var clip = spaceBasher.Unit.Clip;
+            var foe = spaceBasher.Foe.Unit.Clip;
+            Vector3 at = foe.Loco.Position - clip.Loco.Position;
+            at.y = 0f;
+            bool can = clip.ShieldColliders.Count > 0 && Vector3.Angle(Quaternion.Euler(0f, clip.Loco.Facing, 0f) * Vector3.forward, at) <= 60f;
+            if (can && clip.Bash(foe, false, spaceKind))
+            {
+                spaceDone = true;
+                spaceDoneAt = now;
+                spaceBasher.SpaceBashes[spaceKind]++;
+                spaceBasher.BashedIntruder += spaceMutual ? 0 : 1;
+                spaceBasher.Say(spaceMutual ? "BASHES them apart" : spaceKind == 1 ? "BASHES him back out: a medium one" : "BASHES him back out", now, 1.3f);
+                if (Diagnostics.PlaytestTrace.Enabled)
+                {
+                    Diagnostics.PlaytestTrace.Note(spaceBasher.Unit, "dance", $"a {(spaceKind == 1 ? "medium" : "small")} bash for space, {gap:0.00} m apart: {(spaceMutual ? "the two had drifted together" : "the other had come in at him")}");
+                }
+            }
+            else if (!spaceSwapped && now - spaceAt > 0.6f)
+            {
+                // (He cannot just now: the other may, with a small one.)
+                spaceSwapped = true;
+                spaceBasher = spaceBasher.Foe;
+                spaceKind = 0;
+                spaceMutual = true;
+                spaceAt = now;
+            }
+            else if (spaceSwapped && now - spaceAt > 1.2f)
+            {
+                spaceSince = -1f;
+            }
+        }
+
+        /// <summary>His pattern's blow as a hard bash, to break the other's guard. False: he could not just now.</summary>
+        private bool BashAttack(Dancer d, float now)
+        {
+            var clip = d.Unit.Clip;
+            if (!clip.Bash(d.Foe.Unit.Clip, true, 2))
+            {
+                return false;
+            }
+
+            if (d.Now != null && !d.Now.Over)
+            {
+                Finish(d, now - d.Now.Began);
+            }
+
+            d.BashAttacks++;
+            d.Say("HARD BASH: to break his guard", now, 1.6f);
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(d.Unit, "dance", $"a hard bash as his pattern's blow, {Gap:0.00} m off");
+            }
+
+            return true;
+        }
+
+        /// <summary>One fighter's bashes so far, in words.</summary>
+        public string Bashes(Dancer d)
+        {
+            var clip = d.Unit.Clip;
+            return $"for space {d.SpaceBashes[0]} small and {d.SpaceBashes[1]} medium ({d.BashedIntruder} at one who came in at him); hard bashes as an attack {d.BashAttacks}: {clip.BashesFelled} knocked the other down, {clip.BashesStopped} stopped by his counter; his own counters {clip.CountersTried}, {clip.CountersHeld} held";
+        }
+
+        // ---- Fakes to a ratio (18 November) --------------------------------------------------------------------------
+
+        /// <summary>
+        /// A dancer throws so many fake attacks for each real one (Combat Feel "The Dance Keeps Fakes To A Ratio";
+        /// his own <see cref="FighterLevers.Fakes"/>): a fake his pattern has that he may not throw is left out and the
+        /// pattern goes on at once, so his real attacks come sooner; a tell that is a fake becomes a drop. Off: every
+        /// fake his pattern has, as before.
+        /// </summary>
+        public static bool FakeRatio = true;
+
+        private static float Fakes(Dancer d)
+        {
+            var own = d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
+            return FighterLevers.On && own != null ? own.Fakes : 0.5f;
+        }
+
+        private static bool MayFake(Dancer d) => !FakeRatio || d.FakesThrown < Fakes(d) * (d.Blows.Count + d.BashAttacks + 1);
 
         /// <summary>His gesture under way: what it leaves open, and when the other makes out what it is.</summary>
         private void StepGesture(Dancer d, float now, bool open)
@@ -1149,6 +1364,11 @@ namespace PhysicsBattler.Sandbox
         {
             // (A blow of his pattern, or an answer, goes for a part of his own choosing; one thrown into an opening he
             // saw or read goes for the chest that opening is.)
+            if (LetsHimUp && d.Foe.Unit.Clip.Fallen)
+            {
+                return false;
+            }
+
             var spot = why == "pattern" || why == "answer" ? NextSpot(d) : why == "stop" ? AimSpot.UpperArmR : AimSpot.Chest;
             // (His pattern's blow is heavy or light by how he fights; every blow thrown to take a chance, or in answer,
             // is a light one: quick enough to get there.)
@@ -1471,6 +1691,14 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            if (LetsHimUp && d.Foe.Unit.Clip.Fallen)
+            {
+                // (The other is down: he is let up. The pattern begins again once he stands.)
+                d.wantsIn = false;
+                Restart(d, now + 0.6f);
+                return;
+            }
+
             if (d.Covering(now) || d.Taker.Pending)
             {
                 // (He keeps his shield free, or has a blow coming: his pattern waits where it is.)
@@ -1502,11 +1730,40 @@ namespace PhysicsBattler.Sandbox
             {
                 // (His tell is thrown: his blow comes on its time, as soon as he is free for it.)
                 // (Paced by the gap, he comes in for it first, and throws it once he is near enough for it to reach.)
-                bool near = !Moves || Gap <= StrikesFrom * Size(d);
-                d.wantsIn = Moves && now >= d.blowAt - 0.4f;
+                // (This blow a hard bash, to break his guard? Drawn once for each blow: his own share of them, twice
+                // as many after a blow the other stopped. It is thrown from further off than a cut.)
+                if (d.bashPlanned < 0)
+                {
+                    var last = d.Blows.Count > 0 ? d.Blows[d.Blows.Count - 1] : null;
+                    float share = HardBashAttacks && d.Unit.Clip.ShieldColliders.Count > 0 ? GuardBreaks(d) * (last != null && last.Met && (last.Shield || last.Parried) ? 2f : 1f) : 0f;
+                    d.bashPlanned = dice.NextDouble() < Mathf.Min(0.9f, share) ? 1 : 0;
+                }
+
+                bool bash = d.bashPlanned > 0;
+                bool near = !Moves || (bash ? Gap <= HardBashWithin * Size(d) : Gap <= StrikesFrom * Size(d));
+                d.wantsIn = Moves && now >= d.blowAt - 0.4f && !(bash && Gap <= HardBashWithin * Size(d));
+                if (bash && now >= d.blowAt && near && Gap < HardBashFrom * Size(d))
+                {
+                    // (Too near for it: a cut after all.)
+                    bash = false;
+                    d.bashPlanned = 0;
+                }
+
                 if (now >= d.blowAt && near && (d.Now == null || d.Now.Over || now - d.Now.Began >= d.Now.Lasts) && Free(d, now))
                 {
-                    if (!Strike(d, now, "pattern", 0f, ""))
+                    if (bash)
+                    {
+                        if (BashAttack(d, now))
+                        {
+                            d.wantsIn = false;
+                            Restart(d, now + 1.2f);
+                        }
+                        else if (now - d.blowAt > 1f)
+                        {
+                            d.bashPlanned = 0;
+                        }
+                    }
+                    else if (!Strike(d, now, "pattern", 0f, ""))
                     {
                         if (now - d.blowAt > 1f)
                         {
@@ -1542,10 +1799,29 @@ namespace PhysicsBattler.Sandbox
 
             bool tell = d.place >= d.planned;
             var kind = tell ? d.Pattern.Tell : d.Pattern.Fillers[d.place % Mathf.Max(1, d.Pattern.Fillers.Length)];
+            bool fake = kind == Gesture.ShortFake || kind == Gesture.LongFake;
+            if (fake && !MayFake(d))
+            {
+                // (More fakes than his ratio lets him: this one is left out, and his pattern goes on at once; if it
+                // was his tell, he drops before his blow instead.)
+                d.FakesLeftOut++;
+                if (!tell)
+                {
+                    d.place++;
+                    d.nextAt = now + 0.2f;
+                    return;
+                }
+
+                kind = Gesture.Drop;
+                fake = false;
+            }
+
             if (!Throw(d, kind, tell, now))
             {
                 return;
             }
+
+            d.FakesThrown += fake ? 1 : 0;
 
             d.place++;
             if (tell)

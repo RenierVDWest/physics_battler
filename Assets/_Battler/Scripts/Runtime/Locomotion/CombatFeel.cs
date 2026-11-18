@@ -289,8 +289,30 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How far either side of the cut-off a fake may be cut, drawn afresh for each fake. 0: every fake is cut at the same spot. 0.2 with a cut-off of 0.5: anywhere from 0.3 to 0.7.")]
         [Range(0f, 0.45f)] public float fakeCutOffVaries = 0.2f;
 
-        [Tooltip("Which attacks fakes are cut from. 0: light and heavy, drawn for each fake. 1: light only. 2: heavy only.")]
-        [Range(0, 2)] public int fakesAreCutFrom = 0;
+        [Tooltip("Which attacks fakes are cut from. 0: light attacks only (18 November: \"only the fast or light attacks look right, not the heavy\"). 1: heavy only. 2: light and heavy, drawn for each fake.")]
+        [Range(0, 2)] public int fakesCutFrom = 0;
+
+        [Tooltip("On: a fake is cut only from an attack whose wind-up takes the sword behind him (the arm drawn back behind his back and brought forward). An attack whose wind-up sets the sword before his chest first, and a thrust, are not faked: checked, they read as a signal, not as an attack begun. A fighter with no such attack fakes from any. Off: from any attack.")]
+        public bool fakesComeOnlyFromWindUpsBehindHim = true;
+
+        [Tooltip("On: in the dance each fighter throws so many fake attacks for each real one (his own lever \"Fakes\", under \"Each his own\": 0.5 is one fake for every two real attacks). A fake his pattern has that he may not throw is left out and the pattern goes on at once, so his real attacks come sooner. Off: every fake his pattern has, as before.")]
+        public bool theDanceKeepsFakesToARatio = true;
+
+        [Header("Bashes in the dance (18 November)")]
+        [Tooltip("On: when the two come too near each other (\"Shield Bash Within\"), one of them bashes, once, to get the other back out. If one came in at the other (attacking, or closing on him), the one come in at bashes, with a small bash or a medium one. If they only drifted together, one of them throws a small one to push them apart. Off: each bashes whatever is near whenever he can, as before.")]
+        public bool theDanceBashesForSpace = true;
+
+        [Tooltip("Of the bashes at one who came in at him, how many are a medium bash (it throws the other back stumbling); the rest are small (a shove).")]
+        [Range(0f, 1f)] public float spaceBashesThatAreMedium = 0.5f;
+
+        [Tooltip("On: in the dance some of a fighter's own blows are a hard bash instead of a cut, to break the other's guard (his own lever \"Guard breaks\", under \"Each his own\"; twice as often after a blow of his that the other stopped). Off: a hard bash is never thrown in the dance.")]
+        public bool aHardBashIsAnAttackInTheDance = true;
+
+        [Tooltip("On: a fighter with a shield who sees a hard bash coming meets it with a medium bash of his own, braced where he stands. Whether that stops the hard bash knocking him over is a draw (\"Counter Bash Holds\"). Off: a hard bash that meets him knocks him over every time, as before.")]
+        public bool aHardBashIsCounteredByAMediumBash = true;
+
+        [Tooltip("How often a counter-bash stops a hard bash knocking him over (per cent). Held: the two boards meet, he is shoved back a step and the basher is stopped. Not held: he goes down as if he had not countered. To be tied to his defensive skill later.")]
+        [Range(0f, 100f)] public float counterBashHolds = 75f;
 
         [Tooltip("How often the other takes a fake for a real blow (of fakes; drawn once for each fake). Taken for a blow, he answers it as he would a blow: his shield or sword goes to meet it, or he dodges. Not taken for one, he lets it go. For now this is for the look only: being fooled costs him nothing yet.")]
         [Range(0f, 1f)] public float aFakeIsTakenForABlow = 0.6f;
@@ -1531,7 +1553,14 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.CutShort = aFakeIsARealAttackCutShort;
             PostureMaker.CutAt = fakeCutOff;
             PostureMaker.CutVaries = fakeCutOffVaries;
-            PostureMaker.CutFrom = fakesAreCutFrom;
+            PostureMaker.CutFrom = fakesCutFrom == 0 ? 1 : fakesCutFrom == 1 ? 2 : 0;
+            PostureMaker.FakesWindBehind = fakesComeOnlyFromWindUpsBehindHim;
+            PhysicsBattler.Sandbox.Dance.FakeRatio = theDanceKeepsFakesToARatio;
+            PhysicsBattler.Sandbox.Dance.SpaceBashes = theDanceBashesForSpace;
+            PhysicsBattler.Sandbox.Dance.MediumShare = spaceBashesThatAreMedium;
+            PhysicsBattler.Sandbox.Dance.HardBashAttacks = aHardBashIsAnAttackInTheDance;
+            ClipFighter.CountersHardBash = aHardBashIsCounteredByAMediumBash;
+            ClipFighter.CounterHolds = counterBashHolds / 100f;
             PostureMaker.FakeBelieved = aFakeIsTakenForABlow;
             PostureMaker.FakeDodged = aFakeTakenForABlowIsDodged;
             PostureMaker.BluffSize = bladeBluffSize;

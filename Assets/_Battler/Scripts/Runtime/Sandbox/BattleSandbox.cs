@@ -947,7 +947,7 @@ namespace PhysicsBattler.Sandbox
 
             var own = shown.Own ?? (shown.Own = PhysicsBattler.Locomotion.FighterLevers.Plain());
             Words(new GUIContent($"{(ownShown == 0 ? "His" : "The other's")} own ({own.Name}), each times everyone's:", "1: as everyone. Lean and crouch are added to everyone's."), Styles().Text);
-            float was = own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard + own.Restless + own.Aggressive + own.Leaps + own.Heavy + own.Dodges;
+            float was = own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard + own.Restless + own.Aggressive + own.Leaps + own.Heavy + own.Dodges + own.Fakes + own.GuardBreaks;
             own.Bounce = Lever("Bounce", own.Bounce, 0f, 2.5f, "His hips' rise and fall with each step, times everyone's.");
             own.Sway = Lever("Sway", own.Sway, 0f, 2.5f, "His hips' sway over his feet, times everyone's.");
             own.HipTurn = Lever("Hip turn", own.HipTurn, 0f, 2.5f, "His hips' turning with each step, times everyone's.");
@@ -965,8 +965,10 @@ namespace PhysicsBattler.Sandbox
             own.Aggressive = Lever("Aggressive", own.Aggressive, 0f, 1f, "In the dance: the distance he likes (1: inside reach, 0: just outside it), how soon he is back in after a blow, and whether he stands and covers for a blow he expects (0.6 and more) or steps out of reach of it.");
             own.Leaps = Lever("Leaps", own.Leaps, 0f, 1f, "In the dance: how readily he leaps where a step would do (0: never, 1: every time). In, to close the last of the gap for his blow when he is still out of reach as it is due; and out, away from a blow he expects.");
             own.Heavy = Lever("Heavy blows", own.Heavy, 0f, 1f, "In the dance: how many of his own blows (after his tell) are heavy ones: slow and powerful, with a long wind-up. The rest are light: fast and less powerful. 0: all light; 1: all heavy.");
+            own.Fakes = Lever("Fakes", own.Fakes, 0f, 3f, "In the dance: how many fake attacks he throws for each real one. 0: none. 0.5: one fake for every two real attacks. 2: two fakes for each. A fake his pattern has that this does not let him throw is left out, and his real attack comes sooner.");
+            own.GuardBreaks = Lever("Guard breaks", own.GuardBreaks, 0f, 1f, "In the dance: how many of his own blows are a hard bash to break the other's guard, instead of a cut (twice as often after a blow the other stopped). 0: never. With a shield only.");
             own.Dodges = Lever("Dodges", own.Dodges, 0f, 1f, "In the dance: how readily he ducks aside under a high blow he sees coming, where another would trust his shield (0: never; 1: every time).");
-            if (was != own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard + own.Restless + own.Aggressive + own.Leaps + own.Heavy + own.Dodges && own.Name != "By hand")
+            if (was != own.Bounce + own.Sway + own.HipTurn + own.ChestTurn + own.ArmSwing + own.StepLift + own.Lean + own.Crouch + own.Feint + own.Lunge + own.Drop + own.Bluff + own.Guard + own.Restless + own.Aggressive + own.Leaps + own.Heavy + own.Dodges + own.Fakes + own.GuardBreaks && own.Name != "By hand")
             {
                 own.Name = own.AtRest ? "Plain" : "By hand";
             }
@@ -1125,6 +1127,7 @@ namespace PhysicsBattler.Sandbox
             BashButtons();
             var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
             Readout(new GUIContent("Last bash: " + (basher != null && basher.LastBash.Length > 0 ? basher.LastBash + "." : "none yet."), "How the last bash was thrown (the leap, the drive) and what it did: the speed the board closed on the other at, the shove, and whether he was shoved back, thrown back stumbling or knocked down."), 4);
+            Readout(new GUIContent("The other's bash: " + (Duel.Other != null && Duel.Other.Clip != null && Duel.Other.Clip.LastBash.Length > 0 ? Duel.Other.Clip.LastBash + "." : "none yet."), "The other's own last bash: his counter to a hard bash (\"Hard bash met: countered\"), and whether it held."), 2);
             string[] bashes = { "Small", "Medium", "Hard" };
             for (int kind = 0; kind < bashes.Length; kind++)
             {
@@ -1475,9 +1478,29 @@ namespace PhysicsBattler.Sandbox
             if (Press(feel.aShieldBashesWhatComesTooNear ? "[bashes]" : "bashes", "He bashes an enemy who comes too near.")) feel.aShieldBashesWhatComesTooNear = true;
             if (Press(!feel.aShieldBashesWhatComesTooNear ? "[nothing (old)]" : "nothing (old)", "No bash.")) feel.aShieldBashesWhatComesTooNear = false;
             EndRow();
+            CounterBashSettings(feel);
             if (feel.aShieldBashesWhatComesTooNear)
             {
                 feel.shieldBashWithin = Lever("Bash within", feel.shieldBashWithin, 0.6f, 1.6f, "How near an enemy must come to be bashed (metres, root to root). A blow reaches at about 1.5 m; a blow on the move steps in to about 1 m.");
+            }
+        }
+
+        /// <summary>A hard bash countered by a medium bash: the switch and how often the counter holds. Shown with the bash's settings and with the dance's.</summary>
+        private void CounterBashSettings(PhysicsBattler.Locomotion.CombatFeel feel)
+        {
+            if (feel == null)
+            {
+                return;
+            }
+
+            BeginRow();
+            Words(new GUIContent("Hard bash met:", "What one with a shield does when he sees a hard bash coming (Combat Feel \"A Hard Bash Is Countered By A Medium Bash\"). Countered (new): he braces and meets it with a medium bash of his own; whether that keeps him on his feet is a draw, \"Counter holds\". Nothing (old): a hard bash that meets him knocks him over every time. To see it: \"Hard bash\" at the other, both with shields."), GUILayout.Width(100f));
+            if (Press(feel.aHardBashIsCounteredByAMediumBash ? "[countered]" : "countered", "He meets it with a medium bash of his own.")) feel.aHardBashIsCounteredByAMediumBash = true;
+            if (Press(!feel.aHardBashIsCounteredByAMediumBash ? "[nothing (old)]" : "nothing (old)", "A hard bash knocks him over every time.")) feel.aHardBashIsCounteredByAMediumBash = false;
+            EndRow();
+            if (feel.aHardBashIsCounteredByAMediumBash)
+            {
+                feel.counterBashHolds = Mathf.Round(Slide("Counter holds", $"{feel.counterBashHolds:0} %", "How often a counter-bash stops a hard bash knocking him over (per cent). 100: every time. 0: never: he counters and goes down all the same. To be tied to his defensive skill later.", feel.counterBashHolds, 0f, 100f));
             }
         }
 
@@ -1625,10 +1648,15 @@ namespace PhysicsBattler.Sandbox
                 feel.fakeCutOff = Lever("Fake cut-off", feel.fakeCutOff, 0.05f, 0.95f, "Where a fake is cut off, of the attack's way from the moment its hips start in (0) to where it would land (1). Lower: checked early, hardly out of the wind-up. Higher: the blade is nearly on the other before it is checked.");
                 feel.fakeCutOffVaries = Lever("Cut-off varies", feel.fakeCutOffVaries, 0f, 0.45f, "How far either side of the cut-off a fake may be cut, drawn afresh for each fake. 0: always the same spot. 0.2 with a cut-off of 0.5: anywhere from 0.3 to 0.7.");
                 BeginRow();
-                Words(new GUIContent("Cut from:", "Which attacks fakes are cut from (Combat Feel \"Fakes Are Cut From\"). Both: light or heavy, drawn for each fake."), GUILayout.Width(80f));
-                if (Press(feel.fakesAreCutFrom == 0 ? "[both]" : "both", "Light and heavy attacks, drawn for each fake.")) feel.fakesAreCutFrom = 0;
-                if (Press(feel.fakesAreCutFrom == 1 ? "[light]" : "light", "Light attacks only.")) feel.fakesAreCutFrom = 1;
-                if (Press(feel.fakesAreCutFrom == 2 ? "[heavy]" : "heavy", "Heavy attacks only.")) feel.fakesAreCutFrom = 2;
+                Words(new GUIContent("Cut from:", "Which attacks fakes are cut from (Combat Feel \"Fakes Cut From\"). Light (as it is): quick, with a short wind-up; the heavy ones did not look right as fakes."), GUILayout.Width(80f));
+                if (Press(feel.fakesCutFrom == 0 ? "[light]" : "light", "Light attacks only.")) feel.fakesCutFrom = 0;
+                if (Press(feel.fakesCutFrom == 1 ? "[heavy]" : "heavy", "Heavy attacks only.")) feel.fakesCutFrom = 1;
+                if (Press(feel.fakesCutFrom == 2 ? "[both]" : "both", "Light and heavy attacks, drawn for each fake.")) feel.fakesCutFrom = 2;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Wind-up:", "Which attacks a fake may be cut from, by their wind-up (Combat Feel \"Fakes Come Only From Wind Ups Behind Him\"). Behind him (new): only attacks whose wind-up draws the sword arm back behind him; one that sets the sword before his chest first, and a thrust, are not faked. Any (old): from any attack."), GUILayout.Width(80f));
+                if (Press(feel.fakesComeOnlyFromWindUpsBehindHim ? "[behind him only]" : "behind him only", "Only attacks that wind up behind him are faked.")) feel.fakesComeOnlyFromWindUpsBehindHim = true;
+                if (Press(!feel.fakesComeOnlyFromWindUpsBehindHim ? "[any (old)]" : "any (old)", "Any attack may be faked.")) feel.fakesComeOnlyFromWindUpsBehindHim = false;
                 EndRow();
                 feel.aFakeIsTakenForABlow = Lever("Fake believed", feel.aFakeIsTakenForABlow, 0f, 1f, "How often the other takes a fake for a real blow and answers it: his shield or sword goes to meet it, or he dodges. For the look only so far: being fooled costs him nothing yet.");
                 feel.aFakeTakenForABlowIsDodged = Lever("Fake dodged", feel.aFakeTakenForABlowIsDodged, 0f, 1f, "Of the fakes he takes for a blow, how many he dodges; the rest he blocks. In a gesture of his own he lets it go to dodge; in a blow of his own he cannot.");
@@ -1663,6 +1691,27 @@ namespace PhysicsBattler.Sandbox
                 if (Press(!feel.theDanceAsksForSteps ? "[restless (old)]" : "restless (old)", "As before.")) feel.theDanceAsksForSteps = false;
                 EndRow();
                 FakeMakingSettings(feel);
+                BeginRow();
+                Words(new GUIContent("Fakes:", "How many fakes a dancer throws (Combat Feel \"The Dance Keeps Fakes To A Ratio\"). To his ratio (new): so many fake attacks for each real one, his own lever \"Fakes\" under \"Each his own\" (0.5: one fake for every two real attacks); a fake over that is left out and his real attack comes sooner. All (old): every fake his pattern has."), GUILayout.Width(80f));
+                if (Press(feel.theDanceKeepsFakesToARatio ? "[to his ratio]" : "to his ratio", "So many fakes for each real attack.")) feel.theDanceKeepsFakesToARatio = true;
+                if (Press(!feel.theDanceKeepsFakesToARatio ? "[all his pattern has (old)]" : "all his pattern has (old)", "Every fake his pattern has.")) feel.theDanceKeepsFakesToARatio = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Too near:", "What happens when the two come too near each other in the dance (Combat Feel \"The Dance Bashes For Space\"). One bashes (new): once, to get the other back out. If one came in at the other, the one come in at bashes, small or medium; if they drifted together, one throws a small bash to push them apart. Both bash (old): each bashes whenever he can."), GUILayout.Width(80f));
+                if (Press(feel.theDanceBashesForSpace ? "[one bashes him out]" : "one bashes him out", "The one come in at bashes; drifted together, one of them.")) feel.theDanceBashesForSpace = true;
+                if (Press(!feel.theDanceBashesForSpace ? "[both bash (old)]" : "both bash (old)", "As before.")) feel.theDanceBashesForSpace = false;
+                EndRow();
+                if (feel.theDanceBashesForSpace)
+                {
+                    feel.spaceBashesThatAreMedium = Lever("Medium bashes", feel.spaceBashesThatAreMedium, 0f, 1f, "Of the bashes at one who came in at him, how many are a medium bash (throws him back stumbling); the rest are small (a shove).");
+                }
+
+                BeginRow();
+                Words(new GUIContent("Hard bash:", "Whether a hard bash is thrown in the dance (Combat Feel \"A Hard Bash Is An Attack In The Dance\"). An attack (new): some of a dancer's own blows are a hard bash, to break the other's guard: his own lever \"Guard breaks\" under \"Each his own\", twice as often after a blow the other stopped. Never (old)."), GUILayout.Width(80f));
+                if (Press(feel.aHardBashIsAnAttackInTheDance ? "[an attack]" : "an attack", "Some of his blows are a hard bash.")) feel.aHardBashIsAnAttackInTheDance = true;
+                if (Press(!feel.aHardBashIsAnAttackInTheDance ? "[never (old)]" : "never (old)", "No hard bash in the dance.")) feel.aHardBashIsAnAttackInTheDance = false;
+                EndRow();
+                CounterBashSettings(feel);
                 if (feel.theDanceAsksForSteps)
                 {
                     feel.danceStepsWorth = Lever("A step's worth", feel.danceStepsWorth, 0.12f, 0.8f, "The least ground a dancer sets off in or out for (metres).");
@@ -1718,6 +1767,7 @@ namespace PhysicsBattler.Sandbox
                 Readout(Dancing.Gestures(d) > 0 ? Dancing.Tally(d) : "", 4);
                 Readout(new GUIContent(danceMeters[k].Seconds > 0.5f ? "His footwork " + FootworkText(danceMeters[k], 1 + k) + "." : "", "His footwork in this dance, by the footwork meter (under \"Move him\"): the band his hips' height moved over while he stood or walked, how often they rose or sank 10 cm or more within 0.3 s, his steps a spell of walking, how much of his walking was two recordings mixed, and his steps' tempo against the recordings'."), 5);
                 Readout(new GUIContent(Dancing.Gestures(d) > 0 ? "His blows: " + Dancing.Classes(d) + "." : "", "His blows by class: how many light and heavy, how long each took to land, how many landed and what those did; how often he struck into the other's wind-up; how often he dodged."), 3);
+                Readout(new GUIContent(Dancing.Gestures(d) > 0 ? $"His fakes: {d.FakesThrown} thrown, {d.FakesLeftOut} left out by his ratio. His bashes: " + Dancing.Bashes(d) + "." : "", "His fake attacks, and those his pattern had that his ratio of fakes to real attacks left out. His bashes: those to get the other out of his space (small, medium; how many at one who had come in at him), his hard bashes thrown as an attack and what came of them, and his own counter-bashes against a hard bash."), 3);
             }
 
             Readout(new GUIContent(Dancing.On && Dancing.GapSteps > 0 ? $"Now {Dancing.Gap:0.00} m apart; he is {(Dancing.A.Tempo.Length > 0 ? Dancing.A.Tempo : "standing")}, the other {(Dancing.B.Tempo.Length > 0 ? Dancing.B.Tempo : "standing")}. So far: {Dancing.Feet()}." : "", "The gap between them now, what each is about (coming in from far off; probing at the edge of reach; pressing, when the fight goes his way; shelled up, when it goes against him), and the gap and their walking over the whole dance."), 4);

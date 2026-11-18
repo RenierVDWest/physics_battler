@@ -110,7 +110,14 @@ namespace PhysicsBattler.Locomotion
         public static float CutEases = 0.08f, CutHold = 0.04f, CutBack = 0.4f;
 
         /// <summary>Which attacks fakes are cut from: 0 light and heavy alike, 1 light only, 2 heavy only.</summary>
-        public static int CutFrom = 0;
+        public static int CutFrom = 1;
+
+        /// <summary>
+        /// A fake is cut only from an attack whose wind-up takes the sword behind him (<see cref="AttackScore.WindsBehind"/>;
+        /// Combat Feel "Fakes Come Only From Wind Ups Behind Him"): an arm drawn back behind him and brought forward
+        /// reads as an attack begun; a sword set before his chest and checked reads as a signal. Off: from any attack.
+        /// </summary>
+        public static bool FakesWindBehind = true;
 
         /// <summary>For the next fake only (below 0: not set): where it is cut, and how long it is held there. The fakes test's short and long fakes are the near and the far end of the range.</summary>
         public static float NextCutAt = -1f, NextCutHold = -1f;
