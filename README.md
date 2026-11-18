@@ -6366,3 +6366,9 @@ word, with a part of its step 1.
 
 Not seen in Unity: any of it. In particular whether a shield that follows its pose a ninth of a second behind
 reads as weight or as lateness, and how a blade resting against his own leg looks.
+
+*Renier's playtest of 16:41 (the build before this step), read off its log's new `cross` lines:* two sword and
+shields dancing for some 112 s: 62 crossings, 7.0 s in all. The shield in his own body 36 times and 3.9 s (the
+shield-side thigh in 20 of them, the hips in 7, the chest in 5; 14 of them just after he was struck), his blade
+through his own shield 16 times and 1.9 s, his sword arm through it 10 times and 1.2 s. Its two get-ups had the
+shield 5 cm over the ground and 4 cm in it for 0.17 s. The thigh is what this step's guard and collision are for.
