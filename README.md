@@ -6488,7 +6488,7 @@ his two feet, each planted or in the air.
   of it; his trunk takes the rest). The ground's grip on his soles stops it, quicker on two feet than on one.
 - *The body.* `Locomotor.Carried` (he stands as his guard stands, carried where the stumble has him),
   `LocoBody.Bear` (his ankles are where the stumble puts them; his hips let down up to 0.4 of his legs' reach),
-  his upper body tipped with his weight ("Stumble Trunk Tips"), his sword arm loose for 0.7 s.
+  his upper body tipped with his weight ("Stumble Trunk Tips").
 - *One door.* `ClipFighter.ThrowBody` takes what throws him (a change of speed, the impulse and where it came in).
   The bash goes through it for both men, and so does a sword blow that throws a body back (it was "thrown back
   stumbling" on the walk, or down at a fixed 4.4 m/s). Kicks are to use it.
@@ -6524,8 +6524,8 @@ check passes.
 
 **Not verified, not done.**
 - The look. Headless shows the feet, the distances and the outcome, not whether it reads as a stumble.
-- The arms do nothing of their own: the shield stays in its cover and the sword arm is only loose. No arms thrown
-  out for balance.
+- The arms do nothing of their own: the shield stays in its cover and the sword arm in its guard. No arms thrown
+  out for balance. (A sword arm made loose for 0.7 s was tried and taken out: see the budget, below.)
 - A foot may cross the other leg in a stumble to the side. Not looked at.
 - "Bodies that absorb" (knees and hips giving as the boards press, the arm folding, feet sliding) is not built.
   The stumble's own knees and hips are all there is of it.
@@ -6634,9 +6634,12 @@ that goes another way is another fight):
 | Both on, seed 7 | 0.56% | under 0.05 s | 5.5% |
 | Both on, no bash force on the body (`FIGHT_BASHFORCE=0`) | 0.63% | 0.13 s | 11.6% |
 | Both on, a dance of two, 30 s | 0.72% | 0.13 s, his blade through his shield **while stumbling** | 10.0% |
+| Old way, the same dance | 0.39% | 0.13 s, his shield in his own body while striking | 13.2% |
 
-**So the lock's first catch is this night's stumbles.** With both switches on the crossings were over the budget in
-five runs of five; with either off, within it (one run each). What is known: in the dance one crossing was in the
+**So the lock's first catch is this night's stumbles.** In the six, with both switches on the crossings were over
+the budget in four runs of four; with either off, within it (one run each). **The dance is over the budget the old
+way too**, on the longest crossing (0.13 s in a blow of his own) and on the board's tremble (13.2%): the budget as
+proposed is not met there by the game as it was on the 18th. What is known: in the dance one crossing was in the
 stumble itself (the upper body tips and carries the sword arm with it; the shield's cover does not tip: "Trunk
 tips" at 0 would be the test). In the six they were while moving, striking and just struck, with the seen board 59
 to 94 degrees off its pose: a board knocked about, not a pose. It is not the force a bash puts back on the
