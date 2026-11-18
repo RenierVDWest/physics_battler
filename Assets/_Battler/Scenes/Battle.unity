@@ -347,6 +347,14 @@ MonoBehaviour:
   spaceBashesThatAreMedium: 0.5
   aHardBashIsAnAttackInTheDance: 1
   aHardBashIsCounteredByAMediumBash: 1
+  aBashLandsAsAnImpact: 1
+  bashRocksTheTrunk: 0.17
+  bashRocksUpTo: 57
+  bashForceOnTheBody: 0.12
+  aBlockJarsTheStrikerByAllOfIt: 1
+  impactsAreAbsorbed: 1
+  absorbedHowMuch: 1
+  getUpsKeepWhatTheHandsHoldOffTheGround: 1
   counterBashHolds: 75
   aFakeIsTakenForABlow: 0.6
   aFakeTakenForABlowIsDodged: 0.5
