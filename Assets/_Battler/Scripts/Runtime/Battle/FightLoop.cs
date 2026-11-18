@@ -214,6 +214,14 @@ namespace PhysicsBattler.Battle
                     var near = Nearest(units, unit, false);
                     unit.Opponent = near;
                     unit.CircleOpponent = false;
+                    if (!unit.DummyGo.HasValue && unit.Clip != null && unit.Clip.Loco != null && unit.Clip.Loco.StepUnderWay)
+                    {
+                        // (Told to stand in the middle of a whole step: where the step ends is his spot. Held to the
+                        // spot he was on when he was told, he finished his step 10 to 25 cm past it and then stepped
+                        // back to it, and forward again: a fidget after every stop. Seen headless, 18 November.)
+                        unit.DummySpot = new Vector3(unit.Root.position.x, unit.DummySpot.y, unit.Root.position.z);
+                    }
+
                     Vector3 back = Flat(unit.DummySpot - unit.Root.position);
                     float far = back.magnitude;
                     // (Driven, it goes as it is told: the duel lab's movement orders.)

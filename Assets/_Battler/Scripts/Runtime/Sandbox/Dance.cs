@@ -370,8 +370,11 @@ namespace PhysicsBattler.Sandbox
         /// <summary>Calm feet: the least he sets off in or out for (metres at a Medium's size), and the least he stands once stopped (seconds).</summary>
         public static float StepsWorth = 0.3f, StandsAtLeast = 0.6f;
 
-        /// <summary>For the reports: how often a dancer set off from a stand.</summary>
-        public int SetOffs;
+        /// <summary>For the reports: how often a dancer set off from a stand; and how often one who was going stopped because he could not act (a gesture, a blow, a hit taken) or because he had nowhere he wanted to go.</summary>
+        public int SetOffs, StopsBusy, StopsThere;
+
+        /// <summary>For the reports: how long, both dancers together, something pressed (the other too near, a blow to come in for or to step out of): calm feet hold nothing then.</summary>
+        public float UrgentFor;
 
         /// <summary>Root to root, at a Medium's size (metres): where a blow reaches; just outside it; too near; and how far in a blow on the move may be started from.</summary>
         public const float Reach = 1.5f, Edge = 2.2f, TooNear = 1.1f, StrikesFrom = 1.95f;
@@ -1315,18 +1318,21 @@ namespace PhysicsBattler.Sandbox
 
             // (Calm feet: not in or out for less than a step's worth; once going, all the way there.)
             bool urgent = gap < TooNear * size || comesIn || now < d.outUntil || d.Expecting(now);
-            if (CalmFeet && !urgent)
+            UrgentFor += urgent ? dt : 0f;
+            if (CalmFeet)
             {
+                // (Once going, all the way there, whatever he is about; not setting off for less than a step's worth
+                // only when nothing presses.)
                 float worth = StepsWorth * size;
                 if (d.radialWas > 0f && off > 0.03f)
                 {
-                    radial = Mathf.Max(radial, Mathf.Min(off * 2.2f + 0.2f, 1.1f));
+                    radial = Mathf.Max(radial, Mathf.Min(off * 2.2f + 0.2f, comesIn ? 1.6f : 1.1f));
                 }
                 else if (d.radialWas < 0f && off < -0.03f)
                 {
                     radial = Mathf.Min(radial, -Mathf.Min(-off * 2.2f + 0.2f, 0.8f));
                 }
-                else if (d.radialWas == 0f && Mathf.Abs(off) < worth)
+                else if (!urgent && d.radialWas == 0f && Mathf.Abs(off) < worth)
                 {
                     radial = 0f;
                 }
@@ -1401,6 +1407,14 @@ namespace PhysicsBattler.Sandbox
                 if (d.wasGoing)
                 {
                     d.stoodAt = now;
+                    if (clip.Fallen || !unit.CanAct)
+                    {
+                        StopsBusy++;
+                    }
+                    else
+                    {
+                        StopsThere++;
+                    }
                 }
 
                 unit.DummyGo = null;

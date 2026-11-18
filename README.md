@@ -5881,30 +5881,51 @@ Headless, the footwork course (24 s, one fighter):
 | whole steps | 7 | 4.1 | 0.88 | 14% | 6 cm |
 | whole steps, legs turned | 7 | 4.0 | 0.89 | 0% | 7 cm |
 
-Headless, the dance, Plain against Plain, the two fighters (each row one run; the runs are not the same
-fight, so small differences mean nothing):
+Headless, the dance, Plain against Plain, 48 s, the two fighters, on the night's last build. (A dance run
+is the same every time for the same build; but any change to how they move sends the dance another way, so
+two rows are two different dances and small differences mean nothing.)
 
-| | seconds | spells | steps a spell | tempo | two recordings mixed | set off from a stand |
-|---|---|---|---|---|---|---|
-| as it was | 68 | 37, 28 | 0.6, 1.1 | 0.64, 0.70 | 48%, 45% | not counted |
-| whole steps | 58 | 30, 25 | 1.0, 1.7 | 0.87, 0.91 | 33%, 50% | once every 1.0 s each |
-| and calmer feet | 58 | 23, 23 | 1.7, 1.7 | 0.90, 0.90 | 40%, 57% | once every 1.7 s each |
-| and legs turned | 58 | 24, 27 | 1.6, 1.7 | 0.92, 0.88 | 2%, 12% | once every 2.7 s each |
+| | spells | steps a spell | tempo | two recordings mixed | set off from a stand |
+|---|---|---|---|---|---|
+| as it was | 25, 21 | 0.6, 1.2 | 0.65, 0.71 | 49%, 46% | once every 1.2 s each |
+| whole steps and legs turned | 20, 20 | 1.6, 2.3 | 0.89, 0.90 | 3%, 11% | once every 1.0 s each |
+| and calmer feet | 23, 26 | 1.6, 1.2 | 0.90, 0.88 | 13%, 4% | once every 1.4 s each |
 
-The hips' band stays 7 to 8 cm and they rose or sank 10 cm within 0.3 s once or twice a fighter in each run,
-with or without. A foot on the ground slides 2.8 to 3.0 cm a second with whole steps against 4.9 before; with the legs turned as well it is 4.6 to 5.4 again (a planted foot swivels on its ball when the next step's recording has it turned another way).
-With the legs turned the hips' line stands up to 32 degrees off the shoulders' while walking (19 to 21 for
-most of it), against 9 before.
+An earlier build of the night with whole steps and the recordings still mixed (58 s): 1.0 and 1.7 steps a
+spell, two recordings mixed for 33% and 50%.
 
-Against the plan's own checks: the tempo is within 20% of the recording's (met); no change of recording
-between landings (met by construction, for a walk kept up); two kinds at once: 2% and 12% of the walking
-(the plan asks none: what is left is walking that is not a walk kept up, a shove walked off or a blow thrown
-on the move); every spell one whole step or more: on average 1.6 to 1.7, but a spell cut off by a blow or a
-turn can still end before its foot lands; stand to walk at most once every 3 s while the other stands
-still: not measured so (in the dance both move; 2.7 s each).
+The hips' band stays 7 to 8 cm and they rose or sank 10 cm within 0.3 s up to twice a fighter in each run,
+with or without. A foot on the ground slides 2.8 to 3.0 cm a second with whole steps and the recordings
+mixed, against 4.9 before; with the legs turned it is 4.6 to 5.4 again (a planted foot swivels on its ball
+when the next step's recording has it turned another way). With the legs turned the hips' line stands up to
+32 degrees off the shoulders' in the course (about 20 for most of it) and 38 to 44 in the dance, against 9.
 
-Not verified, and known: none of it seen in Unity. Whether a step that keeps its way for 0.3 s more makes
-him overshoot where the lab's orders want him is not measured; in the course he ends up to 0.7 m from where
-the old walk left him after the stop-and-go part. The stands between steps hardly happen at the dance's
-paces (3 a fighter in a minute): the dance mostly asks for more than a step's least pace. Step 6 (far and
-near, with the running turn-rounds) is not begun.
+*Step 4 does little so far, and I say so.* On an earlier build of the night the calm dance set off once
+every 2.7 s each against 1.0, and I took that for the step's effect; on the last build it is 1.4 s against
+1.0, and the spells of walking are not fewer (49 against 40). Counted: every one of their stops is "he is
+where he wants to be", none is a gesture or a blow; and something presses (the other too near, a blow to
+come in for or to step out of) for half of all the time, when nothing is held back. So the restlessness is
+mostly the dance's own pattern of coming in and going out for its blows, which this step does not touch.
+It wants another pass: the dance asking for steps, as the plan has it, in place of a way and a pace.
+
+Two things added after the first measurements:
+- *Told to stand in the middle of a step, he finishes it at 0.45 of its pace* (`Locomotor.StepEndsAt`). At
+  its full pace he went 26 cm on after the order ended; now 5 to 6 cm (walk up 5 s, stand: he stands 5 cm
+  past where the old walk stood).
+- *Where his step ends is his spot* (`FightLoop`, a target told to stand while `Locomotor.StepUnderWay`).
+  Held to the spot he was on when he was told to stand, he finished his step past it, stepped back 30 cm,
+  and forward again: a fidget after every stop in the duel lab. The dance did not have it.
+
+Against the plan's own checks: the tempo is within 20% of the recording's (met: 0.88 to 0.90); no change of
+recording between landings (met by construction, for a walk kept up); two kinds at once: 3 to 13% of the
+walking (the plan asks none: what is left is walking that is not a walk kept up, a shove walked off or a
+blow thrown on the move); every spell one whole step or more: 1.2 to 2.3 on average in the dance, 4 in the
+course, and a spell cut off by a blow or a turn can still end before its foot lands; stand to walk at most
+once every 3 s while the other stands still: not met (see step 4 above), and not measured with the other
+standing still.
+
+Not verified, and known: none of it seen in Unity. In the course he ends up to 0.7 m from where the old
+walk left him after the stop-and-go part (measured before the eased ending). The stands between steps
+hardly happen at the dance's paces (3 to 5 a fighter in 48 s): the dance mostly asks for more than a step's
+least pace. The explainer "Whole Steps In The Dance" was made on the earlier figures and corrected after.
+Step 6 (far and near, with the running turn-rounds) is not begun.

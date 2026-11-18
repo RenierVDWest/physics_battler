@@ -2374,7 +2374,7 @@ internal static class FightReport
         {
             Console.WriteLine("DANCEFOOTWORK A his footwork " + danceMeterA.Text);
             Console.WriteLine("DANCEFOOTWORK B his footwork " + danceMeterB.Text);
-            Console.WriteLine($"DANCESETOFFS the two set off from a stand {dance.SetOffs} times in {danceMeterA.Seconds:0} s (once every {2f * danceMeterA.Seconds / Mathf.Max(1, dance.SetOffs):0.0} s each); whole steps begun {dance.A.Unit.Clip.Loco.WholeStepsBegun} and {dance.B.Unit.Clip.Loco.WholeStepsBegun}, stands to let the asking catch up {dance.A.Unit.Clip.Loco.StepPauses} and {dance.B.Unit.Clip.Loco.StepPauses}");
+            Console.WriteLine($"DANCESETOFFS the two set off from a stand {dance.SetOffs} times in {danceMeterA.Seconds:0} s (once every {2f * danceMeterA.Seconds / Mathf.Max(1, dance.SetOffs):0.0} s each); whole steps begun {dance.A.Unit.Clip.Loco.WholeStepsBegun} and {dance.B.Unit.Clip.Loco.WholeStepsBegun}, stands to let the asking catch up {dance.A.Unit.Clip.Loco.StepPauses} and {dance.B.Unit.Clip.Loco.StepPauses}; of their stops, {dance.StopsBusy} because he could not act (a gesture, a blow, a hit) and {dance.StopsThere} because he was where he wanted to be; something pressed for {dance.UrgentFor:0} fighter-seconds of {2f * danceMeterA.Seconds:0}");
             Console.WriteLine($"DANCETALLY A {dance.A.Unit.name} ({dance.A.Pattern.Name}, {(dance.A.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.A)}");
             Console.WriteLine($"DANCEFEET {dance.Feet()}");
             Console.WriteLine($"DANCECLASS A: {dance.Classes(dance.A)}");

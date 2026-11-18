@@ -304,12 +304,18 @@ namespace PhysicsBattler.Locomotion
         /// <summary>In a whole step the body takes up the step's pace this quickly (the half-life of its velocity, seconds; the walk's own is 0.35): a step's push, not a drift.</summary>
         public static float StepHalfLife = 0.18f;
 
+        /// <summary>Told to stand in the middle of a whole step, the step is finished at this share of its pace.</summary>
+        public static float StepEndsAt = 0.45f;
+
         private bool stepHeld, stepLanded, stepBraking;
         private float stepAngle, stepSpeed, stepBlendSpeed, aheadBy;
         private readonly List<(LocoClip, float)> paceBlend = new List<(LocoClip, float)>();
 
         /// <summary>A whole step is under way (see <see cref="WholeSteps"/>).</summary>
         public bool InWholeStep => stepHeld && (stepSpeed > 0f || stepBraking) && Current == Mode.Cycle;
+
+        /// <summary>A whole step is still being finished: he has not yet come to where he will stand.</summary>
+        public bool StepUnderWay => stepHeld && Current == Mode.Cycle;
 
         /// <summary>The guard's own pace for a way of going (m/s): the recordings that would be mixed for it, at their own.</summary>
         private float GuardPace(float angle, float speed)
@@ -411,7 +417,10 @@ namespace PhysicsBattler.Locomotion
 
             float along = asked > 1e-3f ? asked * Mathf.Cos(Mathf.DeltaAngle(stepAngle, way) * Mathf.Deg2Rad) : 0f;
             aheadBy = Mathf.Clamp(aheadBy + (stepSpeed - along) * dt, 0f, 0.6f * Leg / 0.85f);
-            return stepSpeed > 0f ? Quaternion.Euler(0f, Facing + stepAngle, 0f) * Vector3.forward * stepSpeed : Vector3.zero;
+            // (Told to stand in the middle of a step: the step keeps its way and its foot lands, at an easier pace, so
+            // he ends nearer where he was told to stand. At its full pace he went a quarter of a metre past it.)
+            float pace = asked < WalkFrom ? Mathf.Max(StepEndsAt * stepSpeed, 1.2f * WalkFrom) : stepSpeed;
+            return stepSpeed > 0f ? Quaternion.Euler(0f, Facing + stepAngle, 0f) * Vector3.forward * pace : Vector3.zero;
         }
 
         private bool KeptUpNow => WalksOn && KeptUp;
