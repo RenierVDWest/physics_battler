@@ -284,7 +284,7 @@ namespace PhysicsBattler.Locomotion
         public bool aFakeIsARealAttackCutShort = true;
 
         [Tooltip("Where a fake is cut off, of the attack's way from the moment its hips start in (0) to where it would land (1). Lower: he checks it early, hardly out of the wind-up. Higher: the blade is nearly on the other before it is checked.")]
-        [Range(0.05f, 0.95f)] public float fakeCutOff = 0.5f;
+        [Range(0.05f, 0.95f)] public float fakeCutOff = 0.12f;
 
         [Tooltip("How far either side of the cut-off a fake may be cut, drawn afresh for each fake. 0: every fake is cut at the same spot. 0.2 with a cut-off of 0.5: anywhere from 0.3 to 0.7.")]
         [Range(0f, 0.45f)] public float fakeCutOffVaries = 0.2f;

@@ -6113,3 +6113,8 @@ the enemy can counter "by doing a medium bash of his own", with "the debug slide
 
 Not seen in Unity: any of it. In particular the look of the braced counter, of the basher thrown back off
 the board (his leap is dropped for a step back), and of a medium bash thrown from inside a metre.
+
+- *His tuned cut-off is the default.* The playtest log of 18 November 08:46 ends with "Fake Cut Off" moved
+  from 0.5 to 0.12 and fakes cut from light attacks only: 0.12 is the default now (give or take 0.2: from the
+  moment the hips start in to a third of the way to the target). He also brought "Long Fake Hold" from 0.25
+  to 0.09; that one is stored in the scene, so it is his to keep there ("Keep what I tune").

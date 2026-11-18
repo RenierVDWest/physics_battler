@@ -104,7 +104,7 @@ namespace PhysicsBattler.Locomotion
         public static bool CutShort = true;
 
         /// <summary>Where a fake is cut: the share of the cut's way, in time, from where it starts forward (0) to where it would land (1). And how far either way of that a fake's own cut may be.</summary>
-        public static float CutAt = 0.5f, CutVaries = 0.2f;
+        public static float CutAt = 0.12f, CutVaries = 0.2f;
 
         /// <summary>A cut-short fake: how long its check takes, how long it is held there, and how long the sword takes back to the guard (seconds).</summary>
         public static float CutEases = 0.08f, CutHold = 0.04f, CutBack = 0.4f;
