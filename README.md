@@ -5880,6 +5880,7 @@ Headless, the footwork course (24 s, one fighter):
 | as it was | 8 | 1.8 | 0.68 | 0% | 6 cm |
 | whole steps | 7 | 4.1 | 0.88 | 14% | 6 cm |
 | whole steps, legs turned | 7 | 4.0 | 0.89 | 0% | 7 cm |
+| the night's last build (with the eased ending) | 8 | 3.4 | 0.90 | 0% | 6 cm |
 
 Headless, the dance, Plain against Plain, 48 s, the two fighters, on the night's last build. (A dance run
 is the same every time for the same build; but any change to how they move sends the dance another way, so
@@ -5928,4 +5929,4 @@ Not verified, and known: none of it seen in Unity. In the course he ends up to 0
 walk left him after the stop-and-go part (measured before the eased ending). The stands between steps
 hardly happen at the dance's paces (3 to 5 a fighter in 48 s): the dance mostly asks for more than a step's
 least pace. The explainer "Whole Steps In The Dance" was made on the earlier figures and corrected after.
-Step 6 (far and near, with the running turn-rounds) is not begun.
+The fight of six, a minute, on the last build: as on the build before these steps (team A after 51 s, 67 blows, no body lost by the engine), as it should be: it gives no order to walk on. Step 6 (far and near, with the running turn-rounds) is not begun.
