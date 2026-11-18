@@ -1,0 +1,91 @@
+/* Molehunt explainer player. Layout: one column: a 16:9 stage that draws itself, a caption, a beat bar, then two panels (ask, note).
+   Look: Molehunt's classified-file paper. Ink on typing paper; dark mode is its photonegative. One stamp colour means "look here". */
+:root{
+  --paper:#ECEEEF; --sheet:#F8F9F9; --ink:#1B2430; --ink2:#5C6672; --rule:#C3C9CF; --wash:#DDE2E6; --signal:#B7322A;
+  --serif:"EB Garamond",Garamond,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --paper:#12161B; --sheet:#1A2027; --ink:#E6E9EC; --ink2:#9AA4AE; --rule:#3A444E; --wash:#262E37; --signal:#FF7C68; color-scheme:dark }
+}
+:root[data-theme="dark"]{ --paper:#12161B; --sheet:#1A2027; --ink:#E6E9EC; --ink2:#9AA4AE; --rule:#3A444E; --wash:#262E37; --signal:#FF7C68; color-scheme:dark }
+
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.45}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:22px}
+h1{font-size:clamp(26px,4.4vw,36px);font-weight:700;line-height:1.1;margin:0;text-wrap:balance}
+h2{font-size:21px;font-weight:700;margin:0}
+p{margin:0;max-width:64ch}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2)}
+header{display:flex;flex-direction:column;gap:8px}
+
+.player{display:flex;flex-direction:column;gap:10px}
+#stage{width:100%;height:auto;display:block;background:var(--sheet);aspect-ratio:16/9}
+#caption{min-height:3.1em;font-size:20px;line-height:1.35;max-width:none}
+#caption.off{visibility:hidden}
+.bar{display:flex;gap:6px;align-items:center}
+.seg{display:flex;gap:2px;min-width:0}
+.tick{flex:1;height:22px;min-width:4px;padding:0;border:0;background:transparent;cursor:pointer;position:relative}
+.tick::after{content:"";position:absolute;left:0;right:0;top:9px;height:4px;background:var(--rule)}
+.tick.past::after{background:var(--ink2)}
+.tick.cur::after{background:var(--signal);top:6px;height:10px}
+.tick:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+button,select{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--ink);background:var(--sheet);border:1.5px solid var(--ink);padding:5px 14px;cursor:pointer;border-radius:0}
+button:hover{font-style:italic}
+button:disabled,select:disabled{color:var(--ink2);border-color:var(--rule);cursor:default;font-style:normal}
+button.main{background:var(--ink);color:var(--paper);min-width:92px}
+select{font-weight:500;padding:5px 8px}
+label{display:inline-flex;gap:6px;align-items:center;font-size:16px}
+#where{font-family:var(--mono);font-size:12.5px;color:var(--ink2);letter-spacing:.03em}
+#vstatus{font-size:15px;font-style:italic;color:var(--ink2)}
+
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+.panel{display:flex;flex-direction:column;gap:8px;min-width:0}
+textarea{font-family:var(--serif);font-size:17px;color:var(--ink);background:var(--sheet);border:1.5px solid var(--ink);padding:8px;border-radius:0;resize:vertical;min-height:58px;width:100%;box-sizing:border-box}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#answer{white-space:pre-wrap;min-height:1.4em}
+.note{display:flex;gap:10px;justify-content:space-between;align-items:baseline;border-top:1px solid var(--rule);padding-top:6px}
+.note button{font-size:13px;padding:1px 8px;font-weight:500}
+.hint{font-size:15px;color:var(--ink2);font-style:italic}
+details{border-top:1px solid var(--rule);padding-top:10px}
+summary{cursor:pointer;font-weight:700}
+#script,#sources{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+#script h3{font-size:17px;margin:6px 0 0}
+#sources p{font-size:16px}
+#sources .src{font-family:var(--mono);font-size:12.5px;color:var(--ink2);display:block}
+
+/* ---- drawing vocabulary (the kit's styles) ---- */
+#stage text{font-family:var(--serif);font-size:34px;fill:var(--ink)}
+#stage text.sm{font-size:29px}
+#stage text.big{font-size:96px;font-weight:700}
+#stage text.m{font-family:var(--mono);font-size:22px;fill:var(--ink2);letter-spacing:.04em}
+#stage text.i{font-style:italic}
+#stage text.c{text-anchor:middle}
+#stage .s{fill:none;stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+#stage .thin{stroke-width:2;stroke:var(--ink2)}
+#stage .dash{stroke-dasharray:8 9}
+#stage .f{fill:var(--wash);stroke:var(--ink);stroke-width:3}
+#stage .w{fill:var(--wash);stroke:none}
+#stage .ink{fill:var(--ink);stroke:none}
+#stage .a{stroke:var(--signal)}
+#stage text.a,#stage .ink.a{fill:var(--signal);stroke:none}
+/* kit symbols carry their own inline styles (rules here do not reach inside <use>); colour one with style="--k:var(--signal)" */
+.scene{display:none}
+.scene.cur{display:block}
+.el{opacity:0;transition:opacity .55s ease,transform .9s cubic-bezier(.3,.7,.2,1),stroke .4s,fill .4s;transform-box:fill-box;transform-origin:center}
+.el.on{opacity:1;transition-delay:var(--d,0s)}
+.el.pop{transform:scale(.88)}
+.el.pop.on{transform:none}
+.el.fly{transform:translate(var(--mx,0),var(--my,0))}
+.el.fly.on{transform:none}
+.el.draw{stroke-dasharray:1;stroke-dashoffset:1;transition:opacity .2s,stroke-dashoffset 1s ease;transition-delay:var(--d,0s)}
+.el.draw.on{stroke-dashoffset:0}
+.el.on.dim{opacity:.16}
+#stage .el.s.acc,#stage .el.s.hot{stroke:var(--signal)}
+#stage .el.ink.acc,#stage .el.ink.hot{fill:var(--signal)}
+#stage .el.f.hot,#stage .el.f.acc{stroke:var(--signal);stroke-width:6}
+#stage use.el.acc,#stage use.el.hot{--k:var(--signal)}
+.el.mv{transform:translate(var(--mx,0),var(--my,0))}
+@media (prefers-reduced-motion: reduce){.el,.el.draw{transition:none}}

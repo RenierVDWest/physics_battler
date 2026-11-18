@@ -1,0 +1,273 @@
+  <!-- 0. what you said -->
+  <g class="scene">
+    <text class="el m" x="60" y="70" data-b="0" style="--d:0.0s">WHAT YOU SAID · 19:44 · THE BOTTOM LINE FIRST</text>
+    <rect class="el f" data-b="0" data-dim="2" x="60" y="100" width="1480" height="220" style="--d:0.1s"/>
+    <text class="el m" x="100" y="155" data-b="0" data-dim="2" style="--d:0.2s;fill:var(--ink)">PROCEED</text>
+    <text class="el sm i" x="100" y="210" data-b="0" data-dim="2" style="--d:0.4s;font-size:28px">“yes this looks good. Proceed with the sword and shied where the shield gives way to the sword”</text>
+    <rect class="el f pop" data-b="1" data-dim="2" x="100" y="240" width="420" height="56" style="--d:0.1s;stroke:var(--signal);stroke-width:3"/>
+    <text class="el m" x="310" y="277" data-b="1" data-dim="2" style="--d:0.2s;fill:var(--signal);text-anchor:middle">IN · PUSHED · A SWITCH</text>
+    <text class="el sm i" x="560" y="278" data-b="1" data-dim="2" style="--d:0.6s;font-size:26px">his own sword and sword arm pass through his own shield far less</text>
+    <text class="el m" x="60" y="400" data-b="2" data-dim="3" style="--d:0.1s;fill:var(--ink)">THE AIM TEST · THE SAME 19 BLOWS · RULE OFF, THEN ON · HEADLESS</text>
+    <text class="el sm i" x="60" y="445" data-b="2" data-dim="3" style="--d:0.2s;font-size:26px">his sword and sword arm inside his own shield, in seconds</text>
+    <text class="el big" x="60" y="560" data-b="2" data-dim="3" style="--d:0.4s;font-size:96px;fill:var(--ink2);text-decoration:line-through">2.3 s</text>
+    <text class="el big" x="300" y="545" data-b="2" data-dim="3" style="--d:0.7s;font-size:80px;fill:var(--ink2)">›</text>
+    <text class="el big" x="390" y="560" data-b="2" data-dim="3" style="--d:0.9s;font-size:96px;fill:var(--signal)">0.35 s</text>
+    <text class="el m" x="60" y="600" data-b="2" data-dim="3" style="--d:0.5s">RULE OFF</text>
+    <text class="el m" x="390" y="600" data-b="2" data-dim="3" style="--d:1.0s;fill:var(--signal)">RULE ON</text>
+    <rect class="el f pop" data-b="3" x="60" y="620" width="460" height="240" style="--d:0.2s;stroke:var(--signal);stroke-width:4"/>
+    <text class="el m" x="85" y="675" data-b="3" style="--d:0.3s;fill:var(--signal)">WHAT IT COSTS</text>
+    <text class="el sm i" x="85" y="735" data-b="3" style="--d:0.5s;font-size:26px">the shield steps aside for his</text>
+    <text class="el sm i" x="85" y="779" data-b="3" style="--d:0.7s;font-size:26px">own cut, up to about half a metre</text>
+    <rect class="el f pop" data-b="3" x="570" y="620" width="460" height="240" style="--d:1.1s"/>
+    <text class="el m" x="595" y="675" data-b="3" style="--d:1.2s;fill:var(--ink)">WHAT TO LOOK AT</text>
+    <text class="el sm i" x="595" y="735" data-b="3" style="--d:1.4s;font-size:26px">a shield opened for the blow,</text>
+    <text class="el sm i" x="595" y="779" data-b="3" style="--d:1.6s;font-size:26px">or a shield flung aside?</text>
+    <rect class="el f pop" data-b="3" x="1080" y="620" width="460" height="240" style="--d:2.0s"/>
+    <text class="el m" x="1105" y="675" data-b="3" style="--d:2.1s;fill:var(--ink)">NOT SEEN IN UNITY</text>
+    <text class="el sm i" x="1105" y="735" data-b="3" style="--d:2.3s;font-size:26px">measured headless,</text>
+    <text class="el sm i" x="1105" y="779" data-b="3" style="--d:2.5s;font-size:26px">on 18 November</text>
+  </g>
+
+  <!-- 1. why through -->
+  <g class="scene">
+    <text class="el m" x="60" y="70" data-b="0" style="--d:0.0s">WHY HIS SWORD WENT THROUGH HIS OWN SHIELD</text>
+    <ellipse class="el f" data-b="0" cx="480" cy="640" rx="115" ry="55" style="--d:0.1s"/>
+    <circle class="el s" data-b="0" cx="480" cy="640" r="36" style="--d:0.1s;fill:var(--sheet)"/>
+    <path class="el s thin" data-b="0"  d="M150 830 V700" marker-end="url(#ah)" style="--d:0.1s"/>
+    <text class="el m" x="172" y="790" data-b="0" style="--d:0.1s">HE FACES</text>
+    <text class="el sm i" x="60" y="878" data-b="0" style="--d:0.1s;font-size:24px">seen from above · a sketch of the idea, not a measurement</text>
+    <path class="el s" data-b="0"  d="M580 640 L662 592" style="--d:0.3s;stroke-width:7"/>
+    <path class="el s" data-b="0" data-hot="0"  d="M662 592 L749 542" style="--d:0.3s;stroke-width:10"/>
+    <path class="el s" data-b="0" data-hot="0"  d="M749 542 L892 460" style="--d:0.3s;stroke-width:5"/>
+    <path class="el s" data-b="0" data-hot="0"  d="M739 525 L759 560" style="--d:0.3s;stroke-width:6"/>
+    <path class="el s thin" data-b="0" data-acc="2"  d="M896 411 A390 390 0 0 0 459 269" marker-end="url(#ah)" style="--d:0.8s;stroke-width:3"/>
+    <text class="el m" x="788" y="281" data-b="0" style="--d:1.0s">HIS CUT</text>
+    <path class="el s" data-b="0" data-hot="1"  d="M360 512 H570" style="--d:0.2s;stroke-width:20;stroke-linecap:butt"/>
+    <text class="el m" x="340" y="520" data-b="0" style="--d:0.3s;text-anchor:end">HIS SHIELD</text>
+    <path class="el s thin dash" data-b="1"  d="M480 600 V472" style="--d:0.1s"/>
+    <path class="el s a" data-b="1" data-off="2"  d="M480 486 v-14 H570 v14" style="--d:0.4s;stroke-width:3"/>
+    <text class="el m" x="480" y="735" data-b="1" style="--d:0.2s;text-anchor:middle">BREASTBONE</text>
+    <path class="el s thin" data-b="2"  d="M580 640 L544 552" style="--d:0.2s;stroke-width:3"/>
+    <path class="el s a dash" data-b="2"  d="M544 552 L507 459" style="--d:0.2s;stroke-width:4"/>
+    <path class="el s a dash" data-b="2"  d="M507 459 L445 306" style="--d:0.2s;stroke-width:3"/>
+    <path class="el s a dash" data-b="2"  d="M488 467 L525 452" style="--d:0.2s;stroke-width:3"/>
+    <path class="el s a" data-b="2"  d="M520 494 l36 36 M556 494 l-36 36" style="--d:0.9s;stroke-width:5"/>
+    <text class="el m" x="1090" y="140" data-b="0" data-dim="1" style="--d:0.3s;fill:var(--ink)">1 · EACH ARM POSED ALONE</text>
+    <text class="el sm i" x="1090" y="188" data-b="0" data-dim="1" style="--d:0.6s;font-size:26px">the sword arm, by the attack</text>
+    <text class="el sm i" x="1090" y="228" data-b="0" data-dim="1" style="--d:0.9s;font-size:26px">the shield arm, by its own guard</text>
+    <text class="el m" x="1090" y="310" data-b="1" data-dim="2" style="--d:0.3s;fill:var(--ink)">2 · SHIELD BEFORE HIS CHEST</text>
+    <text class="el sm i" x="1090" y="358" data-b="1" data-dim="2" style="--d:0.6s;font-size:26px">right through his own blows</text>
+    <text class="el sm i" x="1090" y="398" data-b="1" data-dim="2" style="--d:0.9s;font-size:26px">its rim a hand's breadth past</text>
+    <text class="el sm i" x="1090" y="438" data-b="1" data-dim="2" style="--d:1.2s;font-size:26px">his breastbone, on the sword side</text>
+    <text class="el m" x="1090" y="520" data-b="2" style="--d:0.3s;fill:var(--signal)">3 · NOTHING LOOKED AT THE PAIR</text>
+    <text class="el sm i" x="1090" y="568" data-b="2" style="--d:0.6s;font-size:26px">his own cut swept straight</text>
+    <text class="el sm i" x="1090" y="608" data-b="2" style="--d:0.9s;font-size:26px">through the edge of his shield</text>
+  </g>
+
+  <!-- 2. the rule -->
+  <g class="scene">
+    <text class="el m" x="60" y="70" data-b="0" style="--d:0.0s">THE RULE · THE SWORD'S PATH A MOMENT AHEAD</text>
+    <ellipse class="el f" data-b="0" cx="480" cy="640" rx="115" ry="55" style="--d:0.1s"/>
+    <circle class="el s" data-b="0" cx="480" cy="640" r="36" style="--d:0.1s;fill:var(--sheet)"/>
+    <path class="el s thin" data-b="0"  d="M150 830 V700" marker-end="url(#ah)" style="--d:0.1s"/>
+    <text class="el m" x="172" y="790" data-b="0" style="--d:0.1s">HE FACES</text>
+    <text class="el sm i" x="60" y="878" data-b="0" style="--d:0.1s;font-size:24px">seen from above · a sketch of the idea, not a measurement</text>
+    <path class="el s a dash" data-b="1" data-dim="4"  d="M662 592 L892 460 A360 360 0 0 0 445 306 L544 552 A95 95 0 0 1 662 592 Z" style="--d:0.1s;fill:var(--signal);fill-opacity:.07;stroke-width:3"/>
+    <path class="el s a draw" data-b="1" data-dim="4"  d="M902 423 A388 388 0 0 0 473 267" marker-end="url(#ah)" style="--d:0.3s;stroke-width:3"/>
+    <text class="el m" x="610" y="425" data-b="1" data-dim="4" style="--d:0.8s;fill:var(--signal)">THE NEXT 0.3 S</text>
+    <path class="el s thin" data-b="1" data-dim="4"  d="M580 640 L544 552" style="--d:0.6s;stroke-width:3"/>
+    <path class="el s a dash" data-b="1" data-dim="4"  d="M544 552 L507 459" style="--d:0.6s;stroke-width:4"/>
+    <path class="el s a dash" data-b="1" data-dim="4"  d="M507 459 L445 306" style="--d:0.6s;stroke-width:3"/>
+    <path class="el s a dash" data-b="1" data-dim="4"  d="M488 467 L525 452" style="--d:0.6s;stroke-width:3"/>
+    <path class="el s" data-b="0"  d="M580 640 L662 592" style="--d:0.2s;stroke-width:7"/>
+    <path class="el s" data-b="0" data-hot="0"  d="M662 592 L749 542" style="--d:0.2s;stroke-width:10"/>
+    <path class="el s" data-b="0" data-hot="0"  d="M749 542 L892 460" style="--d:0.2s;stroke-width:5"/>
+    <path class="el s" data-b="0" data-hot="0"  d="M739 525 L759 560" style="--d:0.2s;stroke-width:6"/>
+    <path class="el s thin" data-b="0" data-off="1"  d="M580 640 L671 612" style="--d:0.8s;stroke-width:3"/>
+    <path class="el s dash" data-b="0" data-off="1"  d="M671 612 L766 583" style="--d:0.8s;stroke-width:4"/>
+    <path class="el s dash" data-b="0" data-off="1"  d="M766 583 L924 535" style="--d:0.8s;stroke-width:3"/>
+    <path class="el s dash" data-b="0" data-off="1"  d="M761 564 L772 602" style="--d:0.8s;stroke-width:3"/>
+    <text class="el m" x="852" y="430" data-b="0" data-off="1" style="--d:0.5s">AS POSED</text>
+    <text class="el m" x="904" y="575" data-b="0" data-off="1" style="--d:1.0s">AS SEEN</text>
+    <g class="el" data-b="0" data-mv="4" style="--d:0.0s;--mx:71px;--my:0px"><g class="el" data-b="0" data-mv="2" style="--d:0.4s;--mx:-71px;--my:0px"><path class="el s" data-b="0" data-hot="2"  d="M360 512 H570" style="--d:0.1s;stroke-width:20;stroke-linecap:butt"/><text class="el m" x="340" y="520" data-b="0" style="--d:0.2s;text-anchor:end">HIS SHIELD</text></g></g>
+    <path class="el s a" data-b="1" data-off="2"  d="M526 496 l32 32 M558 496 l-32 32" style="--d:1.2s;stroke-width:5"/>
+    <path class="el s a" data-b="2" data-off="4"  d="M498 494 v-14 H528 v14" style="--d:1.2s;stroke-width:3"/>
+    <text class="el m" x="474" y="482" data-b="2" data-off="4" style="--d:1.3s;fill:var(--signal);text-anchor:end">6 CM LANE</text>
+    <circle class="el f" data-b="3" data-dim="4" cx="240" cy="225" r="30" style="--d:0.1s"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M278 225 L318 225" style="--d:0.2s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M275 240 L312 255" style="--d:0.2s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M267 252 L295 280" style="--d:0.3s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M255 260 L270 297" style="--d:0.3s;stroke-width:2"/>
+    <path class="el s a" data-b="3" data-dim="4"  d="M240 263 L240 303" style="--d:0.3s;stroke-width:6"/>
+    <path class="el s a" data-b="3" data-dim="4"  d="M225 260 L210 297" style="--d:0.3s;stroke-width:6"/>
+    <path class="el s a" data-b="3" data-dim="4"  d="M213 252 L185 280" style="--d:0.4s;stroke-width:6"/>
+    <path class="el s a" data-b="3" data-dim="4"  d="M205 240 L168 255" style="--d:0.4s;stroke-width:6"/>
+    <path class="el s a" data-b="3" data-dim="4"  d="M202 225 L162 225" style="--d:0.4s;stroke-width:6"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M205 210 L168 195" style="--d:0.5s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M213 198 L185 170" style="--d:0.5s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M225 190 L210 153" style="--d:0.5s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M240 187 L240 147" style="--d:0.6s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M255 190 L270 153" style="--d:0.6s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M267 198 L295 170" style="--d:0.6s;stroke-width:2"/>
+    <path class="el s thin" data-b="3" data-dim="4"  d="M275 210 L312 195" style="--d:0.6s;stroke-width:2"/>
+    <text class="el m" x="150" y="233" data-b="3" data-dim="4" style="--d:0.9s;fill:var(--signal);text-anchor:end">OUTWARD</text>
+    <text class="el m" x="240" y="337" data-b="3" data-dim="4" style="--d:0.9s;fill:var(--signal);text-anchor:middle">DOWN</text>
+    <text class="el m" x="332" y="233" data-b="3" data-dim="4" style="--d:1.2s">ACROSS · COSTS MORE</text>
+    <text class="el m" x="240" y="129" data-b="3" data-dim="4" style="--d:1.2s;text-anchor:middle">UP · COSTS MORE</text>
+    <text class="el sm i" x="60" y="383" data-b="3" data-dim="4" style="--d:1.4s;font-size:22px">16 ways, in its own plane, from behind</text>
+    <text class="el m" x="465" y="478" data-b="4" style="--d:1.0s;fill:var(--signal);text-anchor:middle">BACK IN A QUARTER SECOND</text>
+    <text class="el m" x="1090" y="125" data-b="0" data-dim="1" style="--d:0.2s;fill:var(--signal)">1 · TWO LINES</text>
+    <text class="el sm i" x="1090" y="165" data-b="0" data-dim="1" style="--d:0.4s;font-size:25px">his forearm and his blade,</text>
+    <text class="el sm i" x="1090" y="199" data-b="0" data-dim="1" style="--d:0.7s;font-size:25px">as posed and as seen</text>
+    <text class="el sm i" x="1090" y="233" data-b="0" data-dim="1" style="--d:1.0s;font-size:25px">seen: up to 57 cm off its pose</text>
+    <text class="el m" x="1090" y="289" data-b="1" data-dim="2" style="--d:0.2s;fill:var(--signal)">2 · THE NEXT 0.3 S</text>
+    <text class="el sm i" x="1090" y="329" data-b="1" data-dim="2" style="--d:0.4s;font-size:25px">at the speed it moves now</text>
+    <text class="el sm i" x="1090" y="363" data-b="1" data-dim="2" style="--d:0.7s;font-size:25px">a sword at rest: no look ahead</text>
+    <text class="el m" x="1090" y="419" data-b="2" data-dim="3" style="--d:0.2s;fill:var(--signal)">3 · THE BOARD STEPS ASIDE</text>
+    <text class="el sm i" x="1090" y="459" data-b="2" data-dim="3" style="--d:0.4s;font-size:25px">the least way of sixteen,</text>
+    <text class="el sm i" x="1090" y="493" data-b="2" data-dim="3" style="--d:0.7s;font-size:25px">a lane 6 cm clear of the rim</text>
+    <text class="el m" x="1090" y="549" data-b="3" data-dim="4" style="--d:0.2s;fill:var(--signal)">4 · OUTWARD AND DOWN</text>
+    <text class="el sm i" x="1090" y="589" data-b="3" data-dim="4" style="--d:0.4s;font-size:25px">across his chest or up</text>
+    <text class="el sm i" x="1090" y="623" data-b="3" data-dim="4" style="--d:0.7s;font-size:25px">before his face cost more</text>
+    <text class="el m" x="1090" y="679" data-b="4" style="--d:0.2s;fill:var(--signal)">5 · BACK IN 1/4 S, SMOOTHLY</text>
+    <text class="el sm i" x="1090" y="719" data-b="4" style="--d:0.4s;font-size:25px">then his body's guard and</text>
+    <text class="el sm i" x="1090" y="753" data-b="4" style="--d:0.7s;font-size:25px">collision come after, and win</text>
+  </g>
+
+  <!-- 3. the numbers -->
+  <g class="scene">
+    <text class="el m" x="60" y="70" data-b="0" style="--d:0.0s">RULE OFF AGAINST RULE ON · HEADLESS · THE SAME BUILD</text>
+    <text class="el m" x="60" y="130" data-b="0" data-dim="3" style="--d:0.1s;fill:var(--ink)">THE AIM TEST · ONE FIGHTER THROWS 19 BLOWS AT ANOTHER</text>
+    <path class="el s" data-b="0" data-dim="3"  d="M1000 150 l16 22" style="--d:0.3s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1028 150 l16 22" style="--d:0.3s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1056 150 l16 22" style="--d:0.4s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1084 150 l16 22" style="--d:0.4s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1112 150 l16 22" style="--d:0.5s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1140 150 l16 22" style="--d:0.5s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1168 150 l16 22" style="--d:0.5s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1196 150 l16 22" style="--d:0.6s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1224 150 l16 22" style="--d:0.6s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1252 150 l16 22" style="--d:0.7s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1280 150 l16 22" style="--d:0.7s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1308 150 l16 22" style="--d:0.7s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1336 150 l16 22" style="--d:0.8s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1364 150 l16 22" style="--d:0.8s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1392 150 l16 22" style="--d:0.9s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1420 150 l16 22" style="--d:0.9s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1448 150 l16 22" style="--d:0.9s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1476 150 l16 22" style="--d:1.0s;stroke-width:4"/>
+    <path class="el s" data-b="0" data-dim="3"  d="M1504 150 l16 22" style="--d:1.0s;stroke-width:4"/>
+    <rect class="el f" data-b="0" data-dim="3" x="1000" y="190" width="30" height="20" style="--d:0.2s"/>
+    <text class="el m" x="1040" y="208" data-b="0" data-dim="3" style="--d:0.2s">OFF</text>
+    <rect class="el ink a" data-b="0" data-dim="3" x="1130" y="190" width="30" height="20" style="--d:0.2s"/>
+    <text class="el m" x="1170" y="208" data-b="0" data-dim="3" style="--d:0.2s;fill:var(--signal)">ON</text>
+    <text class="el m" x="60" y="300" data-b="1" data-dim="3" style="--d:0.2s;fill:var(--ink)">HIS BLADE THROUGH HIS SHIELD</text>
+    <rect class="el f" data-b="1" data-dim="3" x="560" y="260" width="650" height="30" style="--d:0.3s"/>
+    <text class="el m" x="1224" y="285" data-b="1" data-dim="3" style="--d:0.3s">1.30 S</text>
+    <rect class="el ink a" data-b="1" data-dim="3" x="560" y="298" width="125" height="30" style="--d:0.7s"/>
+    <text class="el m" x="699" y="323" data-b="1" data-dim="3" style="--d:0.7s;fill:var(--signal)">0.25 S</text>
+    <text class="el m" x="60" y="400" data-b="1" data-dim="3" style="--d:1.2s;fill:var(--ink)">HIS SWORD ARM THROUGH IT</text>
+    <rect class="el f" data-b="1" data-dim="3" x="560" y="360" width="500" height="30" style="--d:1.3s"/>
+    <text class="el m" x="1074" y="385" data-b="1" data-dim="3" style="--d:1.3s">1.00 S</text>
+    <rect class="el ink a" data-b="1" data-dim="3" x="560" y="398" width="50" height="30" style="--d:1.7s"/>
+    <text class="el m" x="624" y="423" data-b="1" data-dim="3" style="--d:1.7s;fill:var(--signal)">0.10 S</text>
+    <text class="el m" x="60" y="490" data-b="2" data-dim="3" style="--d:0.1s;fill:var(--ink)">LONG CROSSINGS</text>
+    <text class="el sm i" x="60" y="528" data-b="2" data-dim="3" style="--d:0.2s;font-size:24px">a twentieth of a second or more</text>
+    <rect class="el f" data-b="2" data-dim="3" x="560" y="460" width="468" height="30" style="--d:0.2s"/>
+    <text class="el m" x="1042" y="485" data-b="2" data-dim="3" style="--d:0.2s">13</text>
+    <rect class="el ink a" data-b="2" data-dim="3" x="560" y="498" width="180" height="30" style="--d:0.5s"/>
+    <text class="el m" x="754" y="523" data-b="2" data-dim="3" style="--d:0.5s;fill:var(--signal)">5</text>
+    <path class="el s a" data-b="2" data-dim="3"  d="M1092 495 l13 14 l27 -31" style="--d:1.4s;stroke-width:5"/>
+    <text class="el m" x="1150" y="488" data-b="2" data-dim="3" style="--d:1.4s;fill:var(--ink)">BLOWS LAND AS BEFORE</text>
+    <text class="el sm i" x="1150" y="528" data-b="2" data-dim="3" style="--d:1.6s;font-size:24px">met the other's shield: 16 off, 14 on</text>
+    <rect class="el f pop" data-b="3" x="60" y="590" width="700" height="280" style="--d:0.1s"/>
+    <text class="el m" x="90" y="640" data-b="3" style="--d:0.2s;fill:var(--ink)">A FIGHT OF SIX · ANOTHER START</text>
+    <text class="el sm i" x="90" y="685" data-b="3" style="--d:0.3s;font-size:25px">blade and sword arm through his own shield</text>
+    <text class="el big" x="90" y="790" data-b="3" style="--d:0.5s;font-size:80px;fill:var(--ink2);text-decoration:line-through">2.4 s</text>
+    <text class="el big" x="300" y="780" data-b="3" style="--d:0.7s;font-size:64px;fill:var(--ink2)">›</text>
+    <text class="el big" x="370" y="790" data-b="3" style="--d:0.9s;font-size:80px;fill:var(--signal)">0.2 s</text>
+    <text class="el sm i" x="90" y="845" data-b="3" style="--d:1.1s;font-size:24px">rule off, then on</text>
+    <rect class="el f pop" data-b="4" x="800" y="590" width="740" height="280" style="--d:0.1s;stroke:var(--signal);stroke-width:4"/>
+    <text class="el m" x="830" y="640" data-b="4" style="--d:0.2s;fill:var(--signal)">THE MAIN FIGHT OF SIX · RULE ON</text>
+    <text class="el sm i" x="830" y="685" data-b="4" style="--d:0.3s;font-size:25px">both shield bearers on their feet, all 40 s</text>
+    <text class="el m" x="830" y="735" data-b="4" style="--d:0.5s">BLADE 0.13 S · SWORD ARM 0.07 S</text>
+    <text class="el m" x="830" y="770" data-b="4" style="--d:0.7s">SHIELD IN HIS OWN BODY 0.07 S</text>
+    <text class="el big" x="1340" y="760" data-b="4" style="--d:1.0s;font-size:64px;fill:var(--signal)">0.3 s</text>
+    <text class="el m" x="1340" y="795" data-b="4" style="--d:1.1s;fill:var(--signal)">OF 80</text>
+    <text class="el m" x="830" y="840" data-b="4" style="--d:1.4s;fill:var(--ink)">THIS MORNING'S GAME: 4.0 S</text>
+  </g>
+
+  <!-- 4. playtest, cost, left -->
+  <g class="scene">
+    <text class="el m" x="60" y="70" data-b="0" style="--d:0.0s">YOUR PLAYTEST OF 19:37 COUNTED ITSELF</text>
+    <text class="el big" x="60" y="200" data-b="0" data-dim="3" style="--d:0.2s;font-size:96px">190 s</text>
+    <text class="el m" x="370" y="140" data-b="0" data-dim="3" style="--d:0.4s;fill:var(--ink)">ABOUT · TWO SWORD AND SHIELD FIGHTERS</text>
+    <text class="el m" x="370" y="180" data-b="0" data-dim="3" style="--d:0.6s">THIS EVENING'S BUILD · BEFORE THE SHIELD GAVE WAY</text>
+    <text class="el m" x="60" y="290" data-b="1" data-dim="3" style="--d:0.1s;fill:var(--ink)">THE SHIELD IN HIS OWN BODY</text>
+    <rect class="el f" data-b="1" data-dim="3" x="560" y="245" width="792" height="30" style="--d:0.2s"/>
+    <text class="el m" x="1366" y="270" data-b="1" data-dim="3" style="--d:0.2s">36 · AT 16:41</text>
+    <rect class="el ink a" data-b="1" data-dim="3" x="560" y="283" width="154" height="30" style="--d:0.6s"/>
+    <text class="el m" x="728" y="308" data-b="1" data-dim="3" style="--d:0.6s;fill:var(--signal)">7 · ONLY 2 ON HIS FEET</text>
+    <text class="el sm i" x="60" y="360" data-b="1" data-dim="3" style="--d:1.2s;font-size:25px">this evening's collisions did in Unity what the headless runs said</text>
+    <text class="el m" x="60" y="450" data-b="2" data-dim="3" style="--d:0.1s;fill:var(--ink)">HIS BLADE THROUGH HIS SHIELD</text>
+    <rect class="el ink a" data-b="2" data-dim="3" x="560" y="427" width="396" height="30" style="--d:0.2s"/>
+    <text class="el m" x="970" y="452" data-b="2" data-dim="3" style="--d:0.2s;fill:var(--signal)">18</text>
+    <text class="el m" x="60" y="500" data-b="2" data-dim="3" style="--d:0.4s;fill:var(--ink)">HIS SWORD ARM THROUGH IT</text>
+    <rect class="el ink a" data-b="2" data-dim="3" x="560" y="477" width="330" height="30" style="--d:0.5s"/>
+    <text class="el m" x="904" y="502" data-b="2" data-dim="3" style="--d:0.5s;fill:var(--signal)">15</text>
+    <text class="el m" x="1060" y="465" data-b="2" data-dim="3" style="--d:0.9s">13 OF THOSE IN HIS OWN BLOWS</text>
+    <text class="el m" x="1060" y="505" data-b="2" data-dim="3" style="--d:1.2s;fill:var(--signal)">WHAT TONIGHT'S RULE IS FOR</text>
+    <rect class="el f pop" data-b="3" x="60" y="570" width="720" height="300" style="--d:0.1s;stroke:var(--signal);stroke-width:4"/>
+    <text class="el m" x="90" y="620" data-b="3" style="--d:0.2s;fill:var(--signal)">WHAT IT COSTS</text>
+    <text class="el sm i" x="90" y="670" data-b="3" style="--d:0.4s;font-size:26px">in his own blows the board moves aside,</text>
+    <text class="el sm i" x="90" y="710" data-b="3" style="--d:0.6s;font-size:26px">up to about half a metre</text>
+    <text class="el m" x="90" y="765" data-b="3" style="--d:0.9s;fill:var(--ink)">59 CM AT MOST · THE FIGHT OF SIX</text>
+    <text class="el sm i" x="90" y="830" data-b="3" style="--d:1.2s;font-size:26px">for that moment it is not before his chest</text>
+    <rect class="el f pop" data-b="4" x="820" y="570" width="720" height="300" style="--d:0.1s"/>
+    <text class="el m" x="850" y="620" data-b="4" style="--d:0.2s;fill:var(--ink)">NOT COVERED</text>
+    <text class="el m" x="850" y="675" data-b="4" style="--d:0.4s;fill:var(--ink)">HIS SWORD UPPER ARM</text>
+    <text class="el sm i" x="850" y="715" data-b="4" style="--d:0.6s;font-size:25px">tried and taken out: nothing measurably better</text>
+    <text class="el m" x="850" y="775" data-b="4" style="--d:1.0s;fill:var(--ink)">FALLING · DOWN · GETTING UP</text>
+    <text class="el sm i" x="850" y="815" data-b="4" style="--d:1.2s;font-size:25px">the rule is for a fighter on his feet</text>
+  </g>
+
+  <!-- 5. where to look -->
+  <g class="scene">
+    <text class="el m" x="60" y="70" data-b="0" style="--d:0.0s">A CORRECTION · WHERE TO LOOK · WHAT TO SAY</text>
+    <rect class="el f pop" data-b="0" data-dim="1" x="60" y="100" width="1480" height="210" style="--d:0.1s;stroke:var(--signal);stroke-width:4"/>
+    <text class="el m" x="90" y="150" data-b="0" data-dim="1" style="--d:0.2s;fill:var(--signal)">A CORRECTION TO THIS EVENING · “MET SOFTLY”</text>
+    <text class="el sm i" x="90" y="198" data-b="0" data-dim="1" style="--d:0.4s;font-size:26px">it also made the arm give way at once against his body, and held the board in him</text>
+    <text class="el m" x="90" y="250" data-b="0" data-dim="1" style="--d:0.8s;fill:var(--ink)">IN ONE FIGHT · A BOARD IN ITS BEARER'S BELLY FOR 3 S</text>
+    <text class="el m" x="90" y="288" data-b="0" data-dim="1" style="--d:1.3s;fill:var(--signal)">TAKEN OUT · THE ARM PRESSES WITH A THIRD OF ITS STRENGTH</text>
+    <rect class="el f" data-b="1" data-dim="3" x="60" y="340" width="940" height="530" style="--d:0.1s"/>
+    <text class="el m" x="90" y="390" data-b="1" data-dim="3" style="--d:0.2s;fill:var(--ink)">IN UNITY · DUEL LAB · THE BASH SETTINGS</text>
+    <text class="el sm i" x="90" y="432" data-b="1" data-dim="3" style="--d:0.3s;font-size:26px">or type “sword” in the search box</text>
+    <rect class="el ink a" data-b="1" data-dim="3" x="90" y="466" width="64" height="34" style="--d:0.5s;rx:17"/>
+    <circle class="el" data-b="1" data-dim="3" cx="137" cy="483" r="12" style="--d:0.6s;fill:var(--sheet)"/>
+    <text class="el sm i" x="180" y="492" data-b="1" data-dim="3" style="--d:0.6s;font-size:27px">His shield and his sword:</text>
+    <text class="el sm i" x="180" y="532" data-b="1" data-dim="3" style="--d:0.8s;font-size:25px">the shield gives way / pass through each other (old)</text>
+    <text class="el m" x="90" y="600" data-b="2" data-dim="3" style="--d:0.2s;fill:var(--ink)">SWORD'S LANE</text>
+    <text class="el sm i" x="90" y="636" data-b="2" data-dim="3" style="--d:0.3s;font-size:24px">how far clear</text>
+    <path class="el s thin" data-b="2" data-dim="3"  d="M420 592 H900" style="--d:0.3s"/>
+    <circle class="el ink a" data-b="2" data-dim="3" cx="560" cy="592" r="13" style="--d:0.4s"/>
+    <text class="el m" x="560" y="634" data-b="2" data-dim="3" style="--d:0.5s;fill:var(--signal);text-anchor:middle">6 CM</text>
+    <text class="el m" x="90" y="690" data-b="2" data-dim="3" style="--d:0.7s;fill:var(--ink)">SWORD SEEN AHEAD</text>
+    <text class="el sm i" x="90" y="726" data-b="2" data-dim="3" style="--d:0.8s;font-size:24px">how early it opens</text>
+    <path class="el s thin" data-b="2" data-dim="3"  d="M420 682 H900" style="--d:0.8s"/>
+    <circle class="el ink a" data-b="2" data-dim="3" cx="560" cy="682" r="13" style="--d:0.9s"/>
+    <text class="el m" x="560" y="724" data-b="2" data-dim="3" style="--d:1.0s;fill:var(--signal);text-anchor:middle">0.3 S</text>
+    <text class="el m" x="90" y="800" data-b="2" data-dim="3" style="--d:1.3s;fill:var(--ink)">THROW A RISING CUT AND A FOREHAND</text>
+    <text class="el sm i" x="90" y="842" data-b="2" data-dim="3" style="--d:1.5s;font-size:25px">and run a dance, with it on and off</text>
+    <text class="el m" x="1040" y="375" data-b="3" style="--d:0.1s;fill:var(--signal)">WHAT YOU SAY NEXT</text>
+    <rect class="el f pop" data-b="3" x="1040" y="400" width="500" height="220" style="--d:0.3s;stroke:var(--signal);stroke-width:4"/>
+    <text class="el big" x="1060" y="485" data-b="3" style="--d:0.4s;font-size:60px;fill:var(--signal)">1</text>
+    <text class="el sm i" x="1110" y="455" data-b="3" style="--d:0.6s;font-size:25px">does the opening look right,</text>
+    <text class="el sm i" x="1110" y="499" data-b="3" style="--d:0.8s;font-size:25px">or too far, or too early?</text>
+    <text class="el m" x="1110" y="551" data-b="3" style="--d:1.0s;fill:var(--ink)">THE TWO LEVERS</text>
+    <rect class="el f pop" data-b="3" x="1040" y="640" width="500" height="220" style="--d:1.7s;stroke:var(--signal);stroke-width:4"/>
+    <text class="el big" x="1060" y="725" data-b="3" style="--d:1.8s;font-size:60px;fill:var(--signal)">2</text>
+    <text class="el sm i" x="1110" y="695" data-b="3" style="--d:2.0s;font-size:25px">what next: his sword upper arm,</text>
+    <text class="el sm i" x="1110" y="739" data-b="3" style="--d:2.2s;font-size:25px">the fallen and getting-up body,</text>
+    <text class="el sm i" x="1110" y="783" data-b="3" style="--d:2.4s;font-size:25px">or attacks checked as built</text>
+  </g>
+

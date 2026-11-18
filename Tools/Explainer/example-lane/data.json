@@ -1,0 +1,129 @@
+{
+ "pageTitle": "Shield Gives Way",
+ "kicker": "3b2b · 18 Nov 2026 · about three and a half minutes · made by Claude, for Renier",
+ "title": "The shield gives way to his own sword",
+ "intro": "At 19:44 you said to proceed with the sword and shield, where the shield gives way to the sword. It is in and pushed, behind a switch. Why the sword went through his own shield, the rule that moves the shield aside, the numbers, what your 19:37 playtest counted, what it costs, and where to look in Unity. Measured headless; not seen in Unity yet. Press Play.",
+ "audience": "Renier, the game's developer, working on his Unity physics sword-and-shield fighting game. At 19:44 on 18 November he said: 'yes this looks good. Proceed with the sword and shied where the shield gives way to the sword'. He wants the bottom line first and the high-level picture, in plain words, as if he were not a specialist. The numbers are headless runs of the same build with the rule off and on; nothing has been seen in Unity yet.",
+ "scenes": [
+  {
+   "title": "What you said, and the bottom line",
+   "ctx": "His words at 19:44: 'yes this looks good. Proceed with the sword and shied where the shield gives way to the sword'. Bottom line: it is in and pushed, behind a switch. His own sword and sword arm now pass through his own shield far less: in the aim test, which throws the same 19 blows with the rule off and on, 2.3 seconds became 0.35 (blade 1.30 s to 0.25 s plus sword arm 1.00 s to 0.10 s). The cost: the shield now steps aside for his own cut, up to about half a metre. Whether that looks like a shield opened for the blow or a shield flung aside is the thing to look at. Not seen in Unity yet; measured in headless runs.",
+   "beats": [
+    "At 19:44 you said: proceed, where the shield gives way to the sword.",
+    "It's in and pushed, behind a switch. His sword now goes through his own shield far less.",
+    "In the test of the same 19 blows, rule off then on, 2.3 seconds became 0.35.",
+    "The price: his shield steps aside for his cut, up to about half a metre. Opened for the blow, or flung aside? That's the thing to look at. Not seen in Unity yet."
+   ]
+  },
+  {
+   "title": "Why his sword went through his own shield",
+   "ctx": "His two arms were each posed alone: the sword arm is posed by the attack, the shield arm by its own guard. The shield is held before his chest right through his own blows, its rim a hand's breadth past his breastbone on the sword's side. Nothing looked at the pair, so the sword arm's path in a cut swept straight through the shield's edge. The picture is a top view and a sketch of the idea, not a measurement.",
+   "beats": [
+    "First, why it went through. Seen from above: each arm was posed alone. The sword arm, by the attack.",
+    "The shield stays before his chest through his blows, its rim a hand's breadth past his breastbone, on the sword side.",
+    "Nothing looked at the pair. So his cut swept straight through his shield's edge."
+   ]
+  },
+  {
+   "title": "The rule: the sword's path a moment ahead",
+   "ctx": "Done in the same last place the pose is finished in. Step 1: take his sword's two lines, his forearm and his blade, both where the pose has them and where they are actually seen; a blade stopped on the other's shield was up to 57 cm from where the pose had it, and it is the seen blade that goes through the seen board. Step 2: look where each is going over the next 0.3 seconds, at the speed it is moving now; a sword at rest is not looked ahead for. Step 3: wherever one of them passes through the board's face in that time, the board steps aside in its own plane: the least way, of sixteen, that leaves the sword a lane 6 cm clear of the rim. Across his own chest and up before his face cost more, so it prefers outward and down. Step 4: when the path is clear, the board comes back over a quarter of a second. Step 5: the move is followed smoothly, like everything his shield hand does since this evening; his body's own guard and the collision with his body come after it and win. The pictures are sketches of the idea, not measurements.",
+   "beats": [
+    "The rule takes his sword's forearm and blade, where the pose has them and where they're seen. A stopped blade was up to 57 centimetres off its pose.",
+    "It looks where each is going in the next 0.3 seconds, at its speed now. A sword at rest isn't looked ahead for.",
+    "Where that path crosses the board, the board steps aside in its own plane, the least of sixteen ways, leaving a lane 6 centimetres clear of the rim.",
+    "Across his chest, or up before his face, costs more. So it prefers outward and down.",
+    "Once the path is clear, it comes back smoothly over a quarter of a second. His guard and body collision come after, and win."
+   ]
+  },
+  {
+   "title": "The numbers: rule off against rule on",
+   "ctx": "Headless runs of 18 November, the same build with the rule off then on. The aim test: one sword and shield fighter throws 19 blows at another. His blade through his own shield 1.30 s to 0.25 s; his sword arm through his own shield 1.00 s to 0.10 s; crossings of a twentieth of a second or more 13 to 5; his blows land as before: 16 met the other's shield with the rule off, 14 with it on. A fight of six from another start, same build, off then on: blade and sword arm through his own shield 2.4 s to 0.2 s. The main fight of six, both shield bearers on their feet for all 40 seconds, rule on: blade through his own shield 0.13 s, sword arm 0.07 s, shield in his own body 0.07 s; that is 0.3 s of 80 (two bearers for 40 seconds each). This morning's game: 4.0 s.",
+   "beats": [
+    "Now the numbers, headless. In the aim test, one fighter throws 19 blows at another, rule off, then on.",
+    "His blade through his own shield: 1.3 seconds, down to 0.25. His sword arm: 1 second, down to 0.1.",
+    "Long crossings, a twentieth of a second or more: 13 down to 5. His blows still land: 16 met the other's shield before, 14 now.",
+    "A fight of six from another start: 2.4 seconds, down to 0.2.",
+    "The main fight of six, rule on, both bearers on their feet for 40 seconds: 0.3 seconds of 80. This morning's game had 4.0."
+   ]
+  },
+  {
+   "title": "Your 19:37 playtest, the cost, what is left",
+   "ctx": "His playtest at 19:37 was this evening's build, before the shield gave way: about 190 seconds of two sword and shield fighters, and his log counted for itself. The shield in his own body 7 times, only 2 of them on his feet; at 16:41 it was 36 times, so this evening's collisions did in Unity what the headless runs said. His blade through his own shield 18 times, his sword arm 15 times, 13 of those in his own blows: that is what tonight's rule is for. The cost: the board moves in his own blows now, up to about half a metre aside at the furthest (59 cm in the fight of six); for that moment it is not before his chest. Not covered: his sword upper arm (tried as a third line and taken out again: nothing measurably improved), and falling, down and getting up (the rule is for a fighter on his feet).",
+   "beats": [
+    "Your 19:37 playtest counted itself: about 190 seconds, on this evening's build, before the shield gave way.",
+    "The shield went into his own body 7 times, 2 on his feet. At 16:41 it was 36: the collisions did in Unity what the headless runs said.",
+    "His blade went through his own shield 18 times, his sword arm 15, 13 of those in his own blows. That's what tonight's rule is for.",
+    "The cost: in his own blows the board moves up to about half a metre aside, 59 centimetres in the fight of six. For that moment, it's not before his chest.",
+    "Not covered: his sword upper arm, tried and taken out, as nothing measurably improved. And falling, down and getting up."
+   ]
+  },
+  {
+   "title": "Where to look in Unity, and what to say",
+   "ctx": "A correction to this evening: 'met softly' also made the arm give way at once while the shield was against his body. That held the board against him when the pose drew it away: in one fight a board sat in its bearer's belly for 3 seconds. That part is taken out; the arm now only presses with a third of its strength. In Unity: the duel lab with the bash settings, or type 'sword' in the search box. The row: 'His shield and his sword: the shield gives way / pass through each other (old)', with two levers: 'Sword's lane' (how far clear, 6 cm) and 'Sword seen ahead' (how early it starts to open, 0.3 s). Throw a rising cut and a forehand, and run a dance, with it on and off. What he needs to say next: does the shield opening for his cut look right, or does it swing too far or too early (the two levers)? Next candidates: his sword upper arm; the fallen and getting-up body (the plan's Step 4); attacks checked when they are built (Step 2), which would let the shield start to open inside the wind-up. The full write-up is the document 'A shield that stays outside its bearer', its last section.",
+   "beats": [
+    "One correction. Met softly also held the board in his body: in one fight, 3 seconds in a belly. That part is out; the arm now presses with a third of its strength.",
+    "In Unity: the duel lab with the bash settings, or search sword. The row: the shield gives way, or pass through, the old way.",
+    "Two levers: sword's lane, 6 centimetres, and sword seen ahead, 0.3 seconds. Throw a rising cut and a forehand, and run a dance, on and off.",
+    "Then tell me: does the opening look right, or too far, too early? And next: his upper arm, the fallen and getting-up body, or attacks checked as they're built."
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "claim": "His words at 19:44.",
+   "from": "Renier's message of 18 November, 19:44."
+  },
+  {
+   "claim": "In and pushed, behind a switch; not seen in Unity.",
+   "from": "the document 'A shield that stays outside its bearer' (its last section, 'Built since: 18 November, night'), https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN."
+  },
+  {
+   "claim": "In the aim test of 19 blows, rule off then on, his blade and sword arm through his own shield went from 2.3 s to 0.35 s (1.30 + 1.00 to 0.25 + 0.10).",
+   "from": "this project's headless runs of 18 November."
+  },
+  {
+   "claim": "The shield steps aside for his own cut, up to about half a metre; 59 cm at most in the fight of six. For that moment it is not before his chest.",
+   "from": "this project's headless runs of 18 November; the document 'A shield that stays outside its bearer' (its last section, 'Built since: 18 November, night'), https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN. This is the cost."
+  },
+  {
+   "claim": "Why it went through: each arm posed alone; the shield held before his chest through his own blows, its rim a hand's breadth past his breastbone on the sword's side; nothing looked at the pair.",
+   "from": "the document 'A shield that stays outside its bearer' (its last section, 'Built since: 18 November, night'), https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN. The top views are sketches of the idea, not measurements."
+  },
+  {
+   "claim": "The rule: forearm and blade, as posed and as seen; a blade stopped on the other's shield was up to 57 cm from its pose.",
+   "from": "this project's headless runs of 18 November; the document 'A shield that stays outside its bearer' (its last section, 'Built since: 18 November, night'), https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN."
+  },
+  {
+   "claim": "The rule: the path over the next 0.3 s at the present speed; no look ahead for a sword at rest; the least of sixteen ways that leaves a 6 cm lane; outward and down preferred; back over a quarter of a second; followed smoothly; his body's guard and collision come after and win.",
+   "from": "the document 'A shield that stays outside its bearer' (its last section, 'Built since: 18 November, night'), https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN. Built, behind a switch."
+  },
+  {
+   "claim": "Aim test: blade 1.30 s to 0.25 s; sword arm 1.00 s to 0.10 s; crossings of a twentieth of a second or more 13 to 5; blows meeting the other's shield 16 off, 14 on.",
+   "from": "this project's headless runs of 18 November, the same build, rule off then on."
+  },
+  {
+   "claim": "Fight of six from another start: blade and sword arm through his own shield 2.4 s to 0.2 s.",
+   "from": "this project's headless runs of 18 November, the same build, rule off then on."
+  },
+  {
+   "claim": "Main fight of six, rule on, both bearers on their feet for 40 s: blade 0.13 s, sword arm 0.07 s, shield in his own body 0.07 s; 0.3 s of 80; this morning's game 4.0 s.",
+   "from": "this project's headless runs of 18 November."
+  },
+  {
+   "claim": "His playtest: about 190 s of two sword and shield fighters, the build before the shield gave way; shield in his own body 7 times, 2 on his feet (36 at 16:41); blade through his own shield 18 times, sword arm 15, 13 of those in his own blows.",
+   "from": "Renier's playtest log of 18 November 19:37."
+  },
+  {
+   "claim": "Not covered: his sword upper arm (tried and taken out, nothing measurably improved); falling, down and getting up.",
+   "from": "this project's headless runs of 18 November; the document 'A shield that stays outside its bearer' (its last section, 'Built since: 18 November, night'), https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN. Not covered."
+  },
+  {
+   "claim": "Correction: 'met softly' also made the arm give way at once against his body; a board sat in its bearer's belly for 3 s in one fight; that part taken out; the arm presses with a third of its strength.",
+   "from": "this project's headless runs of 18 November; the document 'A shield that stays outside its bearer' (its last section, 'Built since: 18 November, night'), https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN."
+  },
+  {
+   "claim": "Where to look in Unity: the row, the two levers (6 cm, 0.3 s), what to throw; the questions for him and the next candidates.",
+   "from": "the document 'A shield that stays outside its bearer' (its last section, 'Built since: 18 November, night'), https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN."
+  }
+ ]
+}

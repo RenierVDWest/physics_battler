@@ -28,7 +28,9 @@ These are standing rules. They hold in every chat.
 - The 3b2b rule: every document made for him, and every finished and pushed step that needs his look, gets a
   "3b2b" (a short narrated, animated explainer). It is generated before the update is sent: the link first,
   a short note after. Ordinary back-and-forth stays normal. It is made by a subagent on Opus at medium
-  effort, never on the main model (the `3b2b` skill has the details and the kit's location).
+  effort, never on the main model (the `3b2b` skill has the details). A copy of the kit is in
+  `Tools/Explainer/kit/`, so it can be made with his computer off; `Tools/Explainer/example-lane/` is one of this
+  project's own explainers to copy the format from (its note, script and the generator of its drawings).
 - Do not spawn subagents for anything else.
 
 **Changing the game**
@@ -167,7 +169,12 @@ hand pushes him up). What is known:
 
 ## Roadmap
 
-**Bugs and leftovers first**
+**First, by Renier's word (18 November, night): stumbles.** The Fight Rhythm plan's step 9c ("stumbles and falls":
+what being bashed, kicked or struck hard does to a fighter: a stumble, turned round, down; real stumble steps, not
+the upright walk played fast) together with the impacts plan's last step ("off balance"). The shield bash is
+expected to cause most stumbles. He wants it started even if it has to stop for his input.
+
+**Bugs and leftovers**
 1. The get-up sword and shield shake (above).
 2. Shield and sword while falling, lying and getting up: the board is under him as he rises, the blade goes
    through his shield while he is down. The crossing counter judges it.

@@ -1,0 +1,66 @@
+<title>{{PAGETITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,700;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+{{CSS}}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="kicker">{{KICKER}}</span>
+  <h1>{{TITLE}}</h1>
+  <p>{{INTRO}}</p>
+</header>
+
+<div class="player">
+<svg id="stage" viewBox="0 0 1600 900" role="img" aria-label="Animated diagram. The caption below carries the same content as the narration.">
+{{KIT}}
+{{SCENES}}
+</svg>
+<p id="caption" aria-live="polite"></p>
+<div class="bar" id="bar" role="group" aria-label="Beats. Click one to jump there."></div>
+<div class="controls">
+  <button class="main" id="play">Play</button>
+  <button id="prev" aria-label="Back one beat">Back</button>
+  <button id="next" aria-label="Forward one beat">Next</button>
+  <label>Voice <select id="voice" disabled><option value="">checking…</option></select></label>
+  <label><input type="checkbox" id="cc" checked> Captions</label>
+  <span id="where"></span>
+  <span id="vstatus" role="status"></span>
+</div>
+</div>
+
+<div class="panels">
+  <div class="panel">
+    <h2>Ask about this scene</h2>
+    <textarea id="q" placeholder="What didn't make sense?"></textarea>
+    <div class="row"><button id="ask">Ask</button><button id="stopask" hidden>Stop</button><button id="readans" hidden>Read it aloud</button></div>
+    <p id="answer"></p>
+    <p class="hint" id="askhint">Claude answers from this explainer's script and background. Your questions are kept with the page, so later explainers can answer them up front.</p>
+  </div>
+  <div class="panel">
+    <h2>Pin a note to this scene</h2>
+    <textarea id="n" placeholder="Too fast, unclear, wrong, more of this…"></textarea>
+    <div class="row"><button id="save">Pin note</button><span class="hint" id="nstatus"></span></div>
+    <div id="notes"></div>
+    <p class="hint">Notes are saved with this page. The next Claude session reads them.</p>
+  </div>
+</div>
+
+<details>
+  <summary>Read it instead</summary>
+  <div id="script"></div>
+</details>
+<details>
+  <summary>Where each claim comes from</summary>
+  <div id="sources"></div>
+</details>
+</div>
+
+<script>
+window.EXPLAINER = {{DATA}};
+{{DRAW}}
+</script>
+<script>
+{{JS}}
+</script>

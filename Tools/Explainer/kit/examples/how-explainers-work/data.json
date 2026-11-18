@@ -1,0 +1,110 @@
+{
+  "pageTitle": "How These Explainers Work",
+  "kicker": "Explainer · 16 Nov 2026 · about six minutes · made by Claude, with Brendan",
+  "title": "Artifacts, and how these explainers are made",
+  "intro": "What an artifact is, what it can do, how this page uses that to explain things, and how to make one in your own project. Press Play.",
+  "audience": "the person watching, who may be new to Claude's artifacts and is not assumed to be an engineer",
+  "scenes": [
+    {
+      "title": "A page, not a paragraph",
+      "ctx": "An artifact is a live, interactive web page that Claude publishes from a working session to a private address on claude.ai. It is one self-contained page: HTML, styling and script in a single file, with no server behind it. Claude writes the page as a file in its own workspace and publishes it; each publish is a new version at the same address, and anyone with the page open sees the update in place. Artifacts are available on the paid plans (Pro, Max, Team, Enterprise). Claude also has ready-made kinds of artifact for common jobs (documents, slide decks, spreadsheets, design canvases, whiteboards, dashboards); the explainer you are watching is a hand-built page, not one of those.",
+      "beats": [
+        "When you work with Claude, most of what comes back is text in a conversation.",
+        "An artifact is the other thing Claude can hand you: a small web page that it builds and publishes for you.",
+        "It's one self-contained page. Drawings, buttons, charts, whatever suits the job. And it lives at its own address.",
+        "It isn't frozen, either. When Claude changes the page, the same address shows the new version."
+      ]
+    },
+    {
+      "title": "Who can see it",
+      "ctx": "A new artifact is visible only to the person whose session made it. Sharing is done from the Share control in the page's header; Claude cannot change who a page is shared with. On the personal plans (Pro and Max) the only way to share is a public link, which anyone on the internet can open without signing in. On Team and Enterprise plans a page can be shared with specific people or everyone in the organisation, some of them as editors, and those people can leave comments on it that Claude can read and answer; public links there are off until an owner of the organisation turns them on. A page that calls the owner's connected tools cannot be shared by public link at all.",
+      "beats": [
+        "A new artifact is private. Only you can open it.",
+        "You decide when to share it. On a personal plan, that means a public link: anyone who has the link can open the page, with no sign-in.",
+        "On a team plan you can share inside the company instead, and colleagues can leave comments on the page."
+      ]
+    },
+    {
+      "title": "Where it sits in the app",
+      "ctx": "In the Claude desktop app and in Claude Code, Claude makes an artifact by writing an HTML file in its own working space and calling a publish tool. A card with the page's title appears in the conversation, and the page opens in a panel beside the chat (or in a browser tab from the terminal). Asking for a change makes Claude edit the file and publish again to the same address. Every artifact the person has made is listed in a gallery on claude.ai, which the desktop app shows as Artifacts in its sidebar. A scheduled, unattended task can publish or update an artifact too. Claude may publish one unasked when the output suits a page; you can also ask for one in plain words.",
+      "beats": [
+        "Here is how that fits into the desktop app. You ask for something in the chat.",
+        "Claude writes the page as a file in its own workspace, and then publishes it.",
+        "A card appears in the conversation, and the page opens in the panel beside it.",
+        "Every artifact you've made is also kept in one gallery, so you can find it again later."
+      ]
+    },
+    {
+      "title": "What a page is allowed to do",
+      "ctx": "A page can do anything a single web page can: diagrams, charts, sliders, tabs, drag-and-drop boards, small tools and games. Beyond that, the app can grant a page a few extra abilities, which Claude declares when it publishes: reading text aloud in a Claude voice; asking Claude a question from the page, which uses the viewer's own Claude usage and asks their permission the first time; a small database belonging to the page, which keeps what people enter and which Claude can read and write later; calling the viewer's connected tools for live data, such as a calendar, a code host or a task tracker; turning speech into text; offering a file to download; and showing who else has the page open. Which of these exist depends on the account. Limits: the page is sealed in a sandbox. It cannot fetch from the open internet (only fonts from Google and code libraries from a few public hosts), it has no server of its own, it is a single page, and it must be under 16 megabytes.",
+      "beats": [
+        "By itself, a page can show things and react to you. Charts, sliders, cards you drag around.",
+        "It can also be given a few extra powers. One: it can read text aloud.",
+        "Two: it can ask Claude a question, on the spot.",
+        "Three: it can remember. A small database of its own keeps what you type, and Claude can read it later.",
+        "Four: it can fetch live information from the tools you've connected to Claude.",
+        "What it can't do is reach the open internet, or run a server of its own. It is sealed in."
+      ]
+    },
+    {
+      "title": "What they're for",
+      "ctx": "Anthropic's own description: use an artifact when text is the wrong medium, for output that is easier to look at and interact with than to read line by line. Their examples include walking a reviewer through a code change with notes beside it, a dashboard of data, several design options laid out side by side, a checklist that fills in while a long task runs, and a board of cards to sort whose result is handed back to Claude. Brendan's project already used one as a 'decision docket': a page listing open decisions that he answers by ticking, with Claude reading the answers from the page's database in a later session.",
+      "beats": [
+        "So what are they for? Anything that is easier to look at than to read.",
+        "A dashboard instead of a status report. Three options side by side instead of three descriptions. A list of decisions you tick through instead of a long thread.",
+        "The common thread is a loop. You react to something in front of you, and Claude reads your reaction back."
+      ]
+    },
+    {
+      "title": "How this explainer is built",
+      "ctx": "This explainer is an ordinary hand-built artifact page. It holds a script (short sentences called beats, grouped into scenes) and vector drawings. Each drawn element is marked with the beat from which it appears, dims, changes colour or moves, so every beat is a complete state of the picture and jumping to any beat draws it correctly. When you press Play, the page hands the whole script to the read-aloud ability, one line per beat; that ability reports each line as its first sound plays, and the page shows that beat's drawing. Nothing is rendered to video, so changing a sentence or a drawing is an edit to a page, and the same file plays without a voice on a timer with captions. The question box sends your question, the script and each scene's background notes to Claude and shows a short answer. The note box saves a line against the current scene in the page's database, where a later Claude session reads it. This is the difference from the usual way such films are made with AI: tools like Manim render code to a video file, which cannot be asked questions or annotated.",
+      "beats": [
+        "This explainer is one of those pages, and it has three ingredients. First, a script: short sentences, grouped into scenes.",
+        "Second, drawings. Every drawn thing knows which sentence it belongs to.",
+        "Third, the voice. The page hands the script to the read-aloud power, which reports back each time it starts a new sentence.",
+        "On that signal, the page shows that sentence's drawing. That is the whole trick. Nothing is ever rendered to video.",
+        "The question box and the note box under the picture use the other two powers: asking Claude, and the page's memory."
+      ]
+    },
+    {
+      "title": "Making one in any project",
+      "ctx": "The reusable part is a small folder. A player: the page's machinery (the stage, the bar of beats, Play, the voice, captions, the question box, the note box), the same for every explainer. A kit of stock drawings and styles so explainers look alike. A skill: a written set of instructions that teaches Claude how to plan, write, draw, build, check and publish an explainer; a skill is a folder Claude reads when a task matches it, and in Claude Code it lives in a project's .claude/skills folder. A build script joins one explainer's content with the player into a single page. To use it elsewhere: put the folder in the project, give Claude the material (a plan, a report, a codebase, meeting notes) and ask for an explainer of it. The craft rules in the skill: one idea per sentence and one change on screen per sentence; nothing decorative; point at the one thing being discussed; start from what the viewer already knows; under five or six minutes; keep a list of every claim with its source and check each before publishing. The rules about pictures come from research on learning from words and pictures (Richard Mayer's principles).",
+      "beats": [
+        "None of this is tied to one project. The reusable part is a small folder with three things in it. A player, which is the page's machinery.",
+        "A kit of stock drawings, so explainers look alike.",
+        "And a skill: written instructions that teach Claude how to plan, write, draw and check an explainer.",
+        "Put that folder in a project. Point Claude at your material. A plan, a report, a pile of notes. And ask for an explainer.",
+        "The part that takes judgement is choosing what to draw. The rule is one idea per sentence, and a picture that could carry it without the words.",
+        "And one habit keeps it honest. Every number is traced to its source before the voice is allowed to say it."
+      ]
+    },
+    {
+      "title": "Passing one on",
+      "ctx": "Three ways to give someone an explainer. One, a public link from the page's Share control: the drawings play on a timer with captions. The Claude voice is offered only to people in the owner's own organisation, so on a personal plan a guest hears nothing; the owner's notes are not shown to guests, and guests cannot save notes. Whether a guest can use the question box depends on their own Claude account. Two, the file: an explainer is a single web page file, and the copy made for sending opens in any browser by double-clicking and reads the script with the computer's own built-in voice, one sentence at a time; how good that sounds depends on the computer. Three, the receiver gives that file to their own Claude (the desktop app or Claude Code, on a paid plan) and asks it to publish the file as an artifact with reading aloud, asking Claude and a database switched on. The page is then theirs, with the Claude voice, the question box and saved notes. That third route follows from how artifacts work but had not been tried across two accounts when this was made on 16 Nov 2026.",
+      "beats": [
+        "If someone sent you this, here is what you're looking at. There are three ways to pass an explainer on.",
+        "A public link is the quickest. The pictures and captions play. But the Claude voice is only offered to the owner's own account.",
+        "Or send the file itself. It is a single web page. Opened in a browser, it plays with your computer's own voice.",
+        "Or hand that file to your own Claude, and ask it to publish it as an artifact. Then the page is yours: the Claude voice, the question box, and notes that are kept. That last route is the one we haven't tested yet.",
+        "And from there, ask it for one about your own project."
+      ]
+    },
+    {
+      "title": "Try it",
+      "ctx": "The question box and the note box work when the page is an artifact in the viewer's own Claude; in a plain file or for a guest on a public link they say how to switch them on. A good first request to Claude, with the kit folder in the project: 'Make an explainer of this document for someone who has five minutes and is not a specialist.'",
+      "beats": [
+        "If the question box below is live, stop on any scene and ask it something. That is the difference between this and a video.",
+        "Then give Claude something long and dry of your own, and ask for five minutes like this."
+      ]
+    }
+  ],
+  "sources": [
+    {"claim": "What an artifact is, how it is published and updated, who can see it, the plans, the gallery, the page's limits.", "from": "Anthropic's documentation, 'Share session output as artifacts' (code.claude.com/docs/en/artifacts), read 16 Nov 2026."},
+    {"claim": "The extra powers: reading aloud, asking Claude, a database, connected tools.", "from": "The capability contract Claude is given for artifact pages (version 0.2.96), read 16 Nov 2026. Which powers exist depends on the account."},
+    {"claim": "The Claude voice is offered only to the owner's own organisation.", "from": "The read-aloud contract: 'Viewers outside the artifact's organization are never offered it.'"},
+    {"claim": "The voice plays in the desktop app's side panel; a pinned note is read back by a later turn.", "from": "Seen by Brendan on 16 Nov 2026 with the first sample."},
+    {"claim": "The file plays in a browser with the computer's own voice.", "from": "Built into the player. Its timing was run in a test browser; the sound itself could not be heard from Claude's workspace."},
+    {"claim": "Publishing the file in another person's Claude gives them the voice, questions and notes.", "from": "Follows from the contract above. Not tried across two accounts."},
+    {"claim": "The rules about pictures and words.", "from": "Richard Mayer's principles of multimedia learning (coherence, temporal contiguity, segmenting, signaling)."}
+  ]
+}
