@@ -1815,7 +1815,7 @@ namespace PhysicsBattler.Locomotion
         private void MeasureHeldShake(float dt)
         {
             // (Not its first second: it is set down and takes up its guard.)
-            if (!(SelfCrossings.Measures || Diagnostics.PlaytestTrace.Enabled) || Authority == null || dt <= 0f || stance == Stances.Open || Fallen || clock < 1f)
+            if (!(SelfCrossings.Measures || Diagnostics.PlaytestTrace.Enabled) || Authority == null || dt <= 0f || stance == Stances.Open || Footing == Footings.Down || clock < 1f)
             {
                 shakeCount = 0;
                 return;
@@ -1871,6 +1871,12 @@ namespace PhysicsBattler.Locomotion
                 Vector3 mean = (shakeWas[s, 0] + shakeWas[s, 1] + shakeWas[s, 2] + shakeWas[s, 3] + shakeWas[s, 4]) / 5f;
                 float tremble = (shakeWas[s, 2] - mean).magnitude;
                 HeldShake.Add(doing, s, tremble, dt);
+                if (HeldShake.Trace && doing == "getting up" && (s == 1 || s == 4))
+                {
+                    Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture, "GETUPSHAKE {0} {1:0.000} {2}: {3:0.0} mm; gap {4:0.0} cm",
+                        FightUnit != null ? FightUnit.name : "?", footingTime, HeldShake.Names[s], 1000f * tremble, 100f * getUp.WeaponGroundGap));
+                }
+
                 if (HeldShake.Trace && (s == 1 || s == 2 || s == 7) && tremble > 0.015f && (doing == "standing" || doing == "moving"))
                 {
                     Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture, "SHAKELOG {0:0.00} {1} {2}: {3:0} mm, {4}; cover {5:0.00}; last: {6}; {7} {8}",

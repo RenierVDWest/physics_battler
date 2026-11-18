@@ -732,6 +732,9 @@ namespace PhysicsBattler.Motion
         /// along; face down once off the hands), giving way to the standing pose's shield as it takes
         /// over; then what the hands hold is kept out of the ground.
         /// </summary>
+        public static bool TraceHeld;
+        private float dbgKeyGap, dbgWristY;
+
         private void Finish(float t, PoseBuffer stand)
         {
             float standing = stand != null && t > StandFrom ? Smooth((t - StandFrom) / Mathf.Max(1e-3f, Duration - StandFrom)) : 0f;
@@ -764,6 +767,19 @@ namespace PhysicsBattler.Motion
             // start: a ragdoll's pose is anyhow.)
             // (18 November: with its whole weight from the start. Coming in over the blend, a shield lay up to 17 cm under
             // the ground a quarter of a second into a get-up from the front, in a fight of six.)
+            if (TraceHeld && Loadout != null && Loadout.Main != null && anim.SlotWeaponR != null)
+            {
+                float before = GroundClamp.Gap(anim.SlotWeaponR, Loadout.Main, Loadout.Scale, stance.GroundY);
+                Vector3 dirWas = Quaternion.Inverse(root.rotation) * (anim.SlotWeaponR.rotation * Vector3.forward);
+                var mem = new GroundClamp.Memory();
+                GroundClamp.Keep(anim, true, Loadout.Main, Loadout.Scale, body.SizeFactor, stance.GroundY, 1f, false, mem);
+                Vector3 dir = Quaternion.Inverse(root.rotation) * (anim.SlotWeaponR.rotation * Vector3.forward);
+                Vector3 hp = Quaternion.Inverse(root.rotation) * (anim.Part(PartId.HandR).position - root.position);
+                Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "GETUPHELD {0:0.000} wristY {1:0.00} keygap {2:0.00} before {3:0.00} turn {4:0} raise {5:0} dirWas ({6:0.00},{7:0.00},{8:0.00}) dir ({9:0.00},{10:0.00},{11:0.00}) hand ({12:0.00},{13:0.00},{14:0.00}) stand {15:0.00} nat {16} sh {17}",
+                    t, dbgWristY, dbgKeyGap, before, mem.turn, mem.raise, dirWas.x, dirWas.y, dirWas.z, dir.x, dir.y, dir.z, hp.x, hp.y, hp.z, standing, Natural, Shielded));
+            }
+
             WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, HeldClearFromTheStart ? 1f : Smooth(t / BlendIn));
             if (Shielded && anim.SlotWeaponL != null)
             {
@@ -1959,6 +1975,7 @@ namespace PhysicsBattler.Motion
             if (held != null && slot != null && (right ? HoldsMain : HoldsOff))
             {
                 float gap = GroundClamp.Gap(slot, held, Loadout.Scale, stance.GroundY) - GroundClamp.Margin * body.SizeFactor;
+                if (right) { dbgKeyGap = gap; dbgWristY = wrist.y; }
                 if (gap < 0f)
                 {
                     Vector3 raised = wrist + Vector3.up * -gap;
