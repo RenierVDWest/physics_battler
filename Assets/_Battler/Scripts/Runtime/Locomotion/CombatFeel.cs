@@ -333,6 +333,46 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How much impacts are absorbed: 0 is as before, 1 the most. At 1 a struck trunk settles with no swing back at all, trunk, head and legs come back at half the speed they went, and a stopped blade keeps a quarter of its spring back off a shield. 0.6 as it is: a first guess, to be tuned by eye.")]
         [Range(0f, 1f)] public float absorbedHowMuch = 0.6f;
 
+        [Header("Off balance: the momentum ledger, stumbles and falls (19 November)")]
+        [Tooltip("On: the speeds two fighters leave a shield bash with are worked out, not written in (the impacts plan's momentum ledger). In: both weights and both speeds along the line between them; how much of the basher is behind his board is the bash's own \"Weight\". While they are pressed together they go as one, and one who has set himself to meet it (a counter) passes some of it to the ground through his feet; then they spring apart by \"Impact Bounce\". What goes in comes out: the other is thrown back by what he was handed, the basher is checked, stopped or thrown back by the same amount, and nothing is drawn by lot (a counter is no longer a draw: it holds if his legs catch him). Off: as before, the other's speed is the board's speed times the bash's weight and the countered hard bash leaves both at two fixed speeds.")]
+        public bool aBashsSpeedsAreWorkedOut = true;
+
+        [Tooltip("How much two bodies that ran into each other spring apart, of the speed they closed at. 0: they stay together (the basher keeps going with the other). 0.2: a little. 1: all of it comes back, as two billiard balls. Higher throws the other further and stops the basher harder. Default 0.2.")]
+        [Range(0f, 1f)] public float impactBounce = ImpactLedger.DefaultBounce;
+
+        [Tooltip("How much of what his grip on the ground allows a fighter who has set himself (a counter-bash, by how many of his feet are down) passes to the ground. For a Medium with both feet down the most is about 157 N·s, a third of a hard bash. 0: bracing does nothing, he is thrown back as if he had not seen it. 1: all his grip allows. Default 1.")]
+        [Range(0f, 1f)] public float feetTakeOfAnImpact = ImpactLedger.DefaultFeetTake;
+
+        [Tooltip("On: a fighter pushed off balance stumbles on real stumble steps (the Fight Rhythm plan's step 9c). His body is a weight on legs: thrown by a bash or a heavy blow it tips away from his feet, and the only thing that stops it is a foot put down ahead of it. The foot behind lifts and goes for the point where it would stop him, as far as a leg reaches and as fast as a foot goes; landing ahead of him it takes speed out of him and his knees give. If his feet get there he is caught, in one step or several, and may have been turned by a blow that came in off his middle. If his body outruns his feet his hips sink and he is down. No speed is written in for when he stumbles or falls and nothing is drawn by lot: it comes from the speed and twist the impact left him with and where his feet were. Off: as before, he is thrown back on the guard's walk played fast, and falls from a fixed speed.")]
+        public bool offBalanceHeStumblesOnRealSteps = true;
+
+        [Tooltip("How long after he is thrown his first foot lifts (seconds). Shorter: quicker on his feet, he keeps them from harder blows. Longer: his body is further gone before he steps. Default 0.1.")]
+        [Range(0f, 0.4f)] public float stumbleReactsIn = StumbleSteps.DefaultReactsIn;
+
+        [Tooltip("The shortest a stumble step is in the air (seconds). A step that has far to go takes longer, by \"Stumble Foot Speed\". Default 0.18.")]
+        [Range(0.08f, 0.5f)] public float stumbleStepTakes = StumbleSteps.DefaultStepTakes;
+
+        [Tooltip("How far from under his hips a stumbling foot can be put down (leg lengths). Longer: fewer, longer steps, each taking more speed out of him. Shorter: more, quicker, shorter steps, a scramble. Default 0.5.")]
+        [Range(0.25f, 0.9f)] public float stumbleStepReach = StumbleSteps.DefaultStepReach;
+
+        [Tooltip("The fastest a foot goes over the ground in a stumble step (m/s for a Medium). This is what decides how hard he can be thrown and keep his feet: thrown faster than his feet can get ahead of him, he goes down. At 5 a Medium standing in his guard keeps his feet thrown at up to about 2.6 to 3 m/s, by how his feet stood to it. Higher: he stays up from harder blows (at 5.5 an uncountered hard bash is a three metre stumble, not a fall). Lower: he goes down sooner. Default 5.")]
+        [Range(3f, 9f)] public float stumbleFootSpeed = StumbleSteps.DefaultFootSpeed;
+
+        [Tooltip("How much of what a foot landing ahead of him can take out of his speed it does take. The leg is a strut from the foot to his weight; what of his speed runs down it is lost. 1: a stiff leg, all of it. Lower: his legs give more and brake less, and he stumbles further. Default 1.")]
+        [Range(0f, 1f)] public float stumbleLegsBrake = StumbleSteps.DefaultLegsBrake;
+
+        [Tooltip("How far his knees give as a stumbling foot takes his weight (about metres of hips for each m/s the leg takes). Default 0.05.")]
+        [Range(0f, 0.15f)] public float stumbleKneesGive = StumbleSteps.DefaultKneesGive;
+
+        [Tooltip("How far his hips may sink in a stumble before he is down (leg lengths): with no foot under him they fall, and a foot left far behind lets them down. Higher: he stays up through deeper stumbles. Default 0.42.")]
+        [Range(0.2f, 0.7f)] public float stumbleDownAt = StumbleSteps.DefaultDownAt;
+
+        [Tooltip("How much of an impact's twist turns the whole of him round, the rest being taken up in his trunk. An impact off his middle (a board on his shield side, a blow on a shoulder) turns him; the ground's grip on his soles stops it. 0: he is never turned. Higher: turned further, round to showing his back from a hard one. Default 0.25.")]
+        [Range(0f, 1f)] public float stumbleTurnedBy = StumbleSteps.DefaultTurnedBy;
+
+        [Tooltip("How much his upper body tips with a stumble. His weight past the foot that carries it tips him the way he goes; a foot landed ahead of him tips him back against it. 0: his upper body stays upright over stumbling legs. 1: it tips as far as his weight is past his feet. Default 0.6.")]
+        [Range(0f, 1f)] public float stumbleTrunkTips = StumbleSteps.DefaultTrunkTips;
+
         [Tooltip("On: what a sword and shield fighter holds moves smoothly. His shield hand, and his sword hand while it is not striking, follow where the pose has them, speeding up and settling in, so nothing the pose does to them shows as a jump (the pose moved a board by 2 to 12 cm in single steps as it was raised to a blow, knocked, or taken up by the walk). Off: as before, each hand put where the pose has it every step. The lab's \"What he holds: moves smoothly / as posed (old)\".")]
         public bool whatHeHoldsMovesSmoothly = true;
 
@@ -1626,6 +1666,19 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.Absorbed = Mathf.Clamp01(absorbedHowMuch);
             ClipFighter.GetUpsKnowWhatIsHeld = getUpsKeepWhatTheHandsHoldOffTheGround;
             ClipFighter.BashIsImpact = aBashLandsAsAnImpact;
+            ImpactLedger.On = aBashsSpeedsAreWorkedOut;
+            ImpactLedger.Bounce = Mathf.Clamp01(impactBounce);
+            ImpactLedger.FeetTake = Mathf.Clamp01(feetTakeOfAnImpact);
+            StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
+            StumbleSteps.ReactsIn = Mathf.Clamp(stumbleReactsIn, 0f, 0.4f);
+            StumbleSteps.StepTakes = Mathf.Clamp(stumbleStepTakes, 0.08f, 0.5f);
+            StumbleSteps.StepReach = Mathf.Clamp(stumbleStepReach, 0.25f, 0.9f);
+            StumbleSteps.FootSpeed = Mathf.Clamp(stumbleFootSpeed, 3f, 9f);
+            StumbleSteps.LegsBrake = Mathf.Clamp01(stumbleLegsBrake);
+            StumbleSteps.KneesGive = Mathf.Clamp(stumbleKneesGive, 0f, 0.15f);
+            StumbleSteps.DownAt = Mathf.Clamp(stumbleDownAt, 0.2f, 0.7f);
+            StumbleSteps.TurnedBy = Mathf.Clamp01(stumbleTurnedBy);
+            StumbleSteps.TrunkTips = Mathf.Clamp01(stumbleTrunkTips);
             ClipFighter.BashRocks = bashRocksTheTrunk;
             ClipFighter.BashForce = bashForceOnTheBody;
             ClipFighter.BashRocksMost = bashRocksUpTo * Mathf.Deg2Rad;

@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 18 November 2026, late evening.
+Last updated: 19 November 2026, overnight (an unattended night's work; see "Built overnight" below).
 
 ## The project in a few lines
 
@@ -95,6 +95,7 @@ The pose pipeline, in order: `FightLoop` → `UnitClips` (part of `UnitControlle
 | `Authority/UpperBodyArticulation.cs` | The physical upper body, driven to the pose by damper-only motors. |
 | `Motion/GetUp.cs`, `Motion/GroundClamp.cs`, `Motion/PosePipeline.cs` | Get-ups, and keeping what the hands hold out of the ground. |
 | `Locomotion/StrikeHits.cs`, `ImpactMeter.cs`, `SelfCrossings.cs` | What a blow does, and the measures (impacts, own crossings, tremble). |
+| `Locomotion/ImpactLedger.cs`, `StumbleSteps.cs` | The momentum ledger for two bodies that meet; a fighter off balance (stumble steps, turned, down). `ClipFighter.ThrowBody` is the one door into it. |
 | `Tools/CompileCheck/Runner/FightReport.cs` | The headless fight and its report; reads the `FIGHT_…` switches. |
 
 A fighter's step: `Move(dt)` (clock, measures, the pose) then `Apply(dt)` (the arms held, eased, settled, then
@@ -143,12 +144,25 @@ The three in hand:
 - `2026-11-18-impacts-that-carry-weight.md`: three steps wait
   ([live](https://claude.ai/artifact/HkqvPHoe22TWSjZwxvdW5V)).
 
-## Where things stand (18 November 2026)
+## Where things stand (19 November 2026)
 
 Working and approved by Renier: walking in the dance, quick turn-arounds, recorded get-ups rebuilt from parts,
 attacks made from recordings and thrown on the move, the three shield bashes, fakes as real attacks cut
 short, the shield held in cover, the sword and shield solid against their bearer's body, hands that move
 smoothly, the shield giving way to the sword.
+
+**Built overnight on the 19th, headless only, waiting for Renier's eye: stumbles.** Two switches, both on.
+
+- The momentum ledger ("A Bash's Speeds Are Worked Out"): what the two leave a bash with is worked out from what
+  each brought. A counter is no longer a draw.
+- Stumbles ("Off Balance He Stumbles On Real Steps"): a fighter thrown off balance steps for the point that would
+  stop him; caught in one step or several, turned, or down. Both men of a bash, and a body thrown by a heavy blow.
+- To see it: duel lab, Actions, "Stumbles and falls": "Stumble him: Small / Medium / Hard", with the old/new rows
+  under it. Headless: `Tools/Headless/four.sh tag`, `Tools/Headless/stum.sh`.
+- Open for him: should an uncountered hard bash fell a standing Medium every time ("Stumble foot speed" 5, as set)
+  or throw him back three metres on his feet (5.5)? Does the small bash still clear his space? Does it read as a
+  stumble at all? The arms do nothing of their own yet.
+- Figures: the README's entry of 19 November.
 
 **In hand, not finished: the sword shakes as a fighter gets up** (he flagged it on the 18th; it happens as the
 hand pushes him up). What is known:
@@ -169,10 +183,9 @@ hand pushes him up). What is known:
 
 ## Roadmap
 
-**First, by Renier's word (18 November, night): stumbles.** The Fight Rhythm plan's step 9c ("stumbles and falls":
-what being bashed, kicked or struck hard does to a fighter: a stumble, turned round, down; real stumble steps, not
-the upright walk played fast) together with the impacts plan's last step ("off balance"). The shield bash is
-expected to cause most stumbles. He wants it started even if it has to stop for his input.
+**Stumbles (step 9c) have a first build (19 November, above). Next on them, after his look:** tune by his answers;
+arms thrown out for balance; a look at feet crossing in a stumble to the side; a sword blow's throw worked out as
+a bash's is (it is still the old rule's number, uncapped).
 
 **Bugs and leftovers**
 1. The get-up sword and shield shake (above).
@@ -187,12 +200,11 @@ expected to cause most stumbles. He wants it started even if it has to stop for 
 
 **Impacts that carry weight** (on the 18th he said the three steps sound great, and that the bash will cause
 most stumbles)
-1. The momentum ledger: a countered bash stops using two fixed speeds; what goes in comes out.
-2. Bodies that absorb: knees give, hips drop, the arm folds, feet slide. Needs his eye.
-3. Off balance: stumbles and falls from real impacts, and the rest of the game using it. Needs his eye.
+1. The momentum ledger: built (19 November).
+2. Bodies that absorb: knees give, hips drop, the arm folds, feet slide. **Not built.** Needs his eye.
+3. Off balance: built as stumbles (19 November). Left of it: a leap landing on someone, kicks built on the door.
 
-**Fight Rhythm, still to come**: walking step 6; kicks; stumbles and falls ("the long awaited stumbling");
-pounce on an opening; Downed play; combos; the fight of six.
+**Fight Rhythm, still to come**: walking step 6; kicks (on `ThrowBody`); pounce on an opening; Downed play; combos; the fight of six.
 
 **Waiting on a decision from him**: what being fooled by a fake costs (today: nothing); whether real attacks
 should be more frequent; whether a fighter holds off while his enemy is down.

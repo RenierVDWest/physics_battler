@@ -721,6 +721,30 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>
+        /// The other is put, at once, straight ahead of him at this distance (metres at a Medium's size, root to root),
+        /// facing him: the two set out for a bash on demand. False: the lab is not set out.
+        /// </summary>
+        public bool PutOtherAt(float metres)
+        {
+            if (!Running || Mover == null || Other == null || Mover.Clip == null || Other.Clip == null)
+            {
+                return false;
+            }
+
+            float way = Mover.Clip.Loco.Facing;
+            Vector3 spot = Mover.Clip.Loco.Position + Quaternion.Euler(0f, way, 0f) * Vector3.forward * (Mathf.Max(0.6f, metres) * Mover.Clip.Size);
+            Other.Teleport(spot, way + 180f);
+            Other.DummySpot = new Vector3(spot.x, Other.Root.position.y, spot.z);
+            Other.Clip.Home = new Vector3(spot.x, Other.Clip.Home.y, spot.z);
+            if (Other.DummyFace.HasValue)
+            {
+                Other.DummyFace = Mover.Root.position;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// The same the other way about: he is put, at once, this far round the other from where the other faces
         /// (degrees, + to the other's right), as far off as he was and facing him. The other's turn to face him is
         /// the one to watch (whatever the other holds: every loadout turns the same way). False: the lab is not set out.

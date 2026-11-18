@@ -165,3 +165,22 @@ Steps 1 and 2 are built and pushed, headless only; where the two men end up is u
 **A correction to the figures above.** The first measurements in this document took the trunk's lean on the line from hips to chest, which shows about a quarter of what the spine and chest turn together. The meter uses the line from hips to head. The table here is old against new on the meter's measure; it is not to be compared with the earlier table, and the target of "15 degrees" was set on the old measure. On the meter's measure the countered hard bash went from 7 to 18 degrees.
 
 **Not done.** The counter's speeds are still written in: the meter reads about 290 N·s unaccounted for on a countered hard bash (step 3). The hips do not drop and the feet do not slide (step 4). On a countered hard bash the one who countered has a hand or forearm inside his own body for about a tenth of a second; in the fight of six it is 4.1 s in all against 3.1 s. The fight of six goes another way with strikers jarred and has not been looked at.
+
+## Progress, 19 November (overnight): steps 3 and 5 built, headless only
+
+Renier, 18 November, night: stumbles first, the ledger before them if they need it. They do: the basher cannot be thrown off balance until what comes back at him is worked out.
+
+**Step 3, the momentum ledger.** Built as planned, less the "Varies" lever (no dice). Switch: "A bash's speeds: worked out / written in (old)"; levers "Impact bounce" (0.2) and "Feet take" (1). One change from the worked example above: only a man who has set himself (a counter) passes anything to the ground, by how many of his feet are down. A man who has not is thrown by all of it, and what his feet can do about that is the stumble's business. The countered hard bash, measured: 305 N·s handed over, 78 N·s to the ground (one of his feet was down), the defender carried back at 1.8 m/s, the basher all but stopped (0.3 m/s); nothing unaccounted for, where it was 294 N·s. **A counter is no longer a draw:** he keeps his feet if his legs catch him.
+
+**Step 5, off balance.** Built as its own model (`StumbleSteps`): a weight on legs that tips away from its feet and is stopped only by a foot put down ahead of it. Switch: "Off balance: real stumble steps / the walk played fast (old)". Either man can be thrown off balance; both go through one door (`ClipFighter.ThrowBody`), which a sword blow that throws a body back uses too and kicks are to use. No sideways share and no twist are drawn: the twist is the impulse's own lever about his hips.
+
+| Bash | New, headless |
+| --- | --- |
+| Small | leaves at 0.7 m/s: one stumble step, 0.17 m |
+| Medium | leaves at 2.2 m/s: two stumble steps over 1.1 m, on his feet; the basher takes two small steps |
+| Hard, countered | carried back at 1.8 m/s: one stumble step, 0.42 m; the basher all but stopped |
+| Hard, not countered | thrown at 3.4 m/s: no foot gets under him, down after 1.9 m |
+
+**Step 4, bodies that absorb: not built.** What there is of it comes from the stumble: his knees give as each foot takes his weight, his hips sink while his feet are behind him, his upper body tips with his weight. The quarter second in which the two press into the boards, the arm folding and the feet sliding are still to do. The targets set above for a held hard counter (trunks 15 degrees, hips down 8 cm) are not met: the defender's hips went down 1 cm in the meter's window.
+
+**Open, for Renier.** Whether an uncountered hard bash should put a standing Medium down every time (as now, at a foot speed of 5) or throw him back three metres on three stumble steps with his feet kept (5.5). Whether the small bash still clears his space (0.17 m against 0.46 m). Details and figures: the README's entry of 19 November.

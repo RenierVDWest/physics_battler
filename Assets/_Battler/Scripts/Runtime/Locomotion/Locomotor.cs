@@ -1548,6 +1548,51 @@ namespace PhysicsBattler.Locomotion
         public float QuickStandsAfter = 0.5f, StandsWithin = 0.07f;
 
         /// <summary>A switch between whole motions: the new one starts, what differs is faded out.</summary>
+        /// <summary>
+        /// A stumble has his body (<see cref="StumbleSteps"/>): the root is where it is carried, facing as it is turned,
+        /// going as it is thrown. He stands as his guard stands and nothing else of the walk plays: no cycle, no clip
+        /// that moves the root. His feet are the stumble's own (<see cref="LocoBody.Borne"/>).
+        /// </summary>
+        public void Carried(float dt, Vector3 position, float facing, Vector3 velocity)
+        {
+            SnappedThisStep = Vector3.zero;
+            if (!Ready || dt <= 0f)
+            {
+                return;
+            }
+
+            if (Current == Mode.OneShot)
+            {
+                shotOver = false;
+                Shot = null;
+            }
+
+            if (Current != Mode.Idle)
+            {
+                Switch(Mode.Idle);
+            }
+
+            velocity.y = 0f;
+            wantNow = Vector3.zero;
+            GuardWeight = Guard != null ? Mathf.MoveTowards(GuardWeight, GuardWanted ? 1f : 0f, dt / Mathf.Max(0.05f, GuardBlend)) : 0f;
+            Velocity = velocity;
+            Acceleration = Vector3.zero;
+            FacingSpeed = Mathf.DeltaAngle(Facing, facing) / dt;
+            Facing = Mathf.DeltaAngle(0f, facing);
+            Position = new Vector3(position.x, Position.y, position.z);
+            shoved = 0f;
+            thrown = false;
+            Going = velocity;
+            goingFrom = Position;
+            goingKnown = true;
+            stepHeld = stepLanded = stepBraking = false;
+            // (His feet are not the stand's to hold or to settle.)
+            stanceHeld = false;
+            IdlePose(dt);
+            LayManner(dt);
+            Inertialize(dt);
+        }
+
         private void Switch(Mode to)
         {
             var from = Current;

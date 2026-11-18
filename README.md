@@ -6448,3 +6448,94 @@ frames of the 21:47 playtest log were looked at and removed.
 The plan documents (30, from the first design spec to the shield and impacts plans of 18 November) are now also in
 the repository as copies, in `Docs/Plans/`, with an index. Before this they were only Claude documents linked from
 here.
+
+### 19 November, overnight: off balance. The momentum ledger, and stumbles on real stumble steps
+
+Renier, 18 November, night: stumbles first. A fighter who is bashed, kicked or struck hard is pushed off balance for
+real: he stumbles on real stumble steps and keeps his legs under him if they can catch him, is turned round, or goes
+down if they cannot. Both bodies of an impact absorb it and either can be thrown off balance. No invented randomness.
+Two steps, each behind a Combat Feel switch, built and measured headless. **Nothing of it has been seen in Unity.**
+
+**Step 1, the momentum ledger** (`ImpactLedger.cs`; the impacts plan's step 3; Combat Feel "A Bash's Speeds Are
+Worked Out"). The speeds the two leave a shield bash with are worked out, not written in. In: both weights and both
+speeds along the line between them; how much of the basher is behind his board is the bash's own "Weight". While
+they are pressed together they go as one, and one who has set himself (a counter-bash) passes some of it to the
+ground through his feet: at most his grip times his weight times a quarter of a second, by how many of his feet
+are down (157 N·s for a Medium on both). Then they spring apart by "Impact Bounce" (0.2). What the other is handed
+is taken from the whole of the basher, equal and opposite. This replaces the bash's own speed rule (board speed
+times weight) and the countered hard bash's two fixed speeds (1.2 and 1 m/s). **A counter is no longer a draw**:
+"Counter Bash Holds" does nothing while the ledger is on; he keeps his feet if his legs catch him.
+
+**Step 2, stumbles** (`StumbleSteps.cs`; the Fight Rhythm plan's step 9c; Combat Feel "Off Balance He Stumbles On
+Real Steps"). A body is a weight on legs. Thrown, it tips away from the feet that carry it, faster the further it is
+past them, and only a foot put down ahead of it stops it. The model: his weight's place and speed over the ground;
+the point where a foot would have to be to stop him (his place plus his speed times about a third of a second);
+his two feet, each planted or in the air.
+
+- *Off balance or not.* If what was done to him leaves that point inside what his feet hold, his stance takes it
+  as before (a shove stepped in the stance). Outside it, he stumbles. Judged on what the impact did to him, not on
+  his own walking.
+- *The steps.* After a moment (0.1 s) the foot behind lifts and goes for that point, re-aimed as he goes, as far as
+  a leg reaches from under his hips ("Stumble Step Reach", half a leg) and as fast as a foot goes ("Stumble Foot
+  Speed", 5 m/s; a man who was already moving has that much more). A foot his body has left behind comes off the
+  ground by itself. A foot that lands ahead of him takes speed out of him by how far ahead it is (the leg is a
+  strut; what of his speed runs down it is lost), his knees give, and his upper body is rocked on.
+- *How it ends.* Caught: both feet down, slow, his weight over them; his stand has his feet again and steps them
+  back into its stance. Down: with no foot under him his hips fall, a foot far behind lets them down, and past
+  "Stumble Down At" (0.42 of a leg) the fall takes him as he goes (a fall his legs go down on, as the controlled
+  falls have it). No speed is written in for either.
+- *Turned round.* An impact off his middle turns him: its lever about his hips, by "Stumble Turned By" (a quarter
+  of it; his trunk takes the rest). The ground's grip on his soles stops it, quicker on two feet than on one.
+- *The body.* `Locomotor.Carried` (he stands as his guard stands, carried where the stumble has him),
+  `LocoBody.Bear` (his ankles are where the stumble puts them; his hips let down up to 0.4 of his legs' reach),
+  his upper body tipped with his weight ("Stumble Trunk Tips"), his sword arm loose for 0.7 s.
+- *One door.* `ClipFighter.ThrowBody` takes what throws him (a change of speed, the impulse and where it came in).
+  The bash goes through it for both men, and so does a sword blow that throws a body back (it was "thrown back
+  stumbling" on the walk, or down at a fixed 4.4 m/s). Kicks are to use it.
+
+**Measured headless** (two Mediums, sword and shield, one standing; single runs, which repeat exactly on one build).
+Old: `FIGHT_LEDGER=0 FIGHT_STUMBLES=0`.
+
+| Bash | Old | New |
+|---|---|---|
+| Small, from 1 m | shoved at 1.1 m/s; went 0.46 m | handed 56 N·s; leaves at 0.7 m/s; one stumble step, 0.17 m. The basher is checked to 0.1 m/s |
+| Medium, from 1.8 m | thrown back at 3.5 m/s on the walk; went 1.5 m | handed 179 N·s; leaves at 2.2 m/s; two stumble steps over 1.1 m in 0.8 s, on his feet. The basher leaves at 0.4 m/s: two small steps |
+| Hard, countered | a draw: held, he left at 1.2 m/s and the basher at 1 m/s backward; 294 N·s in neither | handed 305 N·s; his feet (one was down) passed 78 N·s to the ground; carried back at 1.8 m/s; one stumble step, 0.42 m, on his feet. The basher is all but stopped (0.3 m/s). In neither: 0 |
+| Hard, not countered | knocked down, thrown at 6 m/s | handed 272 N·s; thrown at 3.4 m/s; no foot gets under him; down after 1.9 m, on a knee and a hand first. The basher goes on at 0.6 m/s: one step |
+
+The ledger's own check (what came in, less what both leave with and what the ground took): 3, 5, 0 and 4 N·s.
+
+The model by itself (`Tools/Headless/stum.sh`): a Medium standing in a guard's stance keeps his feet thrown straight
+back at up to 2.6 m/s (one step to 1.4 m/s, two at 1.7 to 2.0, three at 2.3 to 2.6) and goes down from 2.9. With
+his feet in line with the push he holds more. At a foot speed of 5.5 the uncountered hard bash is a three metre
+stumble on three steps and he keeps his feet: **which of the two is right is his call.**
+
+The fight of six, 40 s, two seeds: 3 and 7 stumbles began; 2 and 4 ended on his feet (one to four steps, 0.2 to
+2.7 m; turned up to 89 degrees), 1 and 2 down, all three from a Large's blow that threw a body at 10 m/s or more or a
+three-step stumble that ran out. No crossings of his own sword and shield while stumbling (2.9 s watched in each).
+No exceptions. A film strip of the medium bash's stumble (`film.sh`) shows two steps back and the knees bent under
+him at the end.
+
+**In the lab** (duel, Actions, "Stumbles and falls", under the bashes): "Stumble him: Small / Medium / Hard" stands
+the other the right distance before him and bashes him. "Off balance: real stumble steps / the walk played fast
+(old)". "A bash's speeds: worked out / written in (old)". "Hard bash met: countered / not countered" is where it
+was. The last stumble of each is read out. The settings fold out under "Stumbles and falls: settings". The panel
+check passes.
+
+**Not verified, not done.**
+- The look. Headless shows the feet, the distances and the outcome, not whether it reads as a stumble.
+- The arms do nothing of their own: the shield stays in its cover and the sword arm is only loose. No arms thrown
+  out for balance.
+- A foot may cross the other leg in a stumble to the side. Not looked at.
+- "Bodies that absorb" (knees and hips giving as the boards press, the arm folding, feet sliding) is not built.
+  The stumble's own knees and hips are all there is of it.
+- The small bash now moves the other 0.17 m where it moved him 0.46 m: the ledger's speed is lower than the old
+  rule's. If it no longer clears his space, "Impact Bounce" up is the lever.
+- A sword blow's throw is still the old rule's number (its weight times "Stumble Boost"), now uncapped: a Large's
+  blow reads 10 m/s.
+- More falls in a fight than before is likely (the old rule never felled a man under 4.4 m/s). Counts above.
+
+**Headless switches.** `FIGHT_LEDGER=0`, `FIGHT_STUMBLES=0`, `FIGHT_BOUNCE`, `FIGHT_FEETTAKE`, `STUMBLE_FOOT`,
+`STUMBLE_REACH`, `STUMBLE_TAKES`, `STUMBLE_BRAKE`, `STUMBLE_REACTS`, `STUMBLE_DOWN`, `STUMBLE_KNEES`,
+`STUMBLE_TURNED`, `STUMBLE_TIPS`. Lines: `STUMBLE` (each stumble as it begins and ends). Scripts: `four.sh`,
+`stum.sh`. His playtest logs carry `stumble` notes.

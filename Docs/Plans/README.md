@@ -11,8 +11,8 @@ Read the one for the work in hand. Do not read them all: together they are about
 
 | Last changed | Document | State |
 |---|---|---|
-| 2026-11-18 | [Impacts that carry weight](2026-11-18-impacts-that-carry-weight.md) ([live](https://claude.ai/artifact/HkqvPHoe22TWSjZwxvdW5V)) | Research and plan. A first "absorbed" trial is built; the ledger, bodies that absorb and off balance wait. |
-| 2026-11-18 | [Fight Rhythm from Recordings: Plan](2026-11-18-fight-rhythm-from-recordings-plan.md) ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)) | **The main plan.** In progress; its progress notes run to 18 November. |
+| 2026-11-19 | [Impacts that carry weight](2026-11-18-impacts-that-carry-weight.md) ([live](https://claude.ai/artifact/HkqvPHoe22TWSjZwxvdW5V)) | The ledger and off balance (stumbles) are built, headless only (19 November); bodies that absorb waits. The copy here has a progress note the live document may not have yet. |
+| 2026-11-18 | [Fight Rhythm from Recordings: Plan](2026-11-18-fight-rhythm-from-recordings-plan.md) ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)) | **The main plan.** In progress; its progress notes run to 19 November (step 9c, stumbles: the copy here has that note; the live document may not yet). |
 | 2026-11-18 | [A shield that stays outside its bearer](2026-11-18-a-shield-that-stays-outside-its-bearer.md) ([live](https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN)) | Mostly built on 18 November. Left: attacks checked when built, falling and getting up, the budget. |
 | 2026-11-17 | [Convincing walking in the dance](2026-11-17-convincing-walking-in-the-dance.md) ([live](https://claude.ai/artifact/94Vvn9UMLa78XcCougaDLA)) | Built (the walk in one carriage, the turns). Step 4 is weak, step 6 is to come. |
 | 2026-11-16 | [Downed Play plan (knockdown actions)](2026-11-16-downed-play-plan-knockdown-actions.md) ([live](https://claude.ai/artifact/GnbHLxWQTbosPE5Fff3oAK)) | Plan only. Later in the roadmap. |

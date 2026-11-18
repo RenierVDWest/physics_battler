@@ -1171,6 +1171,25 @@ internal static class FightReport
 
         PhysicsBattler.Locomotion.ImpactMeter.Clear();
         PhysicsBattler.Locomotion.ImpactMeter.Measured += r => Console.WriteLine($"IMPACT {UnityEngine.Time.time:0.00} {(r.By.FightUnit != null ? r.By.FightUnit.name : "?")} on {(r.On.FightUnit != null ? r.On.FightUnit.name : "?")}: {r.Text}");
+        // (FIGHT_LEDGER=0: a bash's speeds written in, as before; FIGHT_BOUNCE, FIGHT_FEETTAKE: the ledger's levers.
+        // FIGHT_STUMBLES=0: off balance is the guard's walk played fast, as before; STUMBLE_REACH and the rest: the
+        // stumble's levers (see StumbleReport). STUMBLE lines: each stumble as it begins and as it ends.)
+        PhysicsBattler.Locomotion.ImpactLedger.On = Environment.GetEnvironmentVariable("FIGHT_LEDGER") != "0";
+        PhysicsBattler.Locomotion.StumbleSteps.On = Environment.GetEnvironmentVariable("FIGHT_STUMBLES") != "0";
+        foreach (var (name, set) in new (string, Action<float>)[]
+        {
+            ("FIGHT_BOUNCE", v => PhysicsBattler.Locomotion.ImpactLedger.Bounce = v),
+            ("FIGHT_FEETTAKE", v => PhysicsBattler.Locomotion.ImpactLedger.FeetTake = v),
+        })
+        {
+            if (float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value))
+            {
+                set(value);
+            }
+        }
+
+        StumbleReport.Levers();
+        PhysicsBattler.Locomotion.ClipFighter.Stumbled += (who, said) => Console.WriteLine($"STUMBLE {UnityEngine.Time.time:0.00} {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: {said}");
         PhysicsBattler.Locomotion.ClipFighter.HardBashCountered += (who, by, held) => Console.WriteLine($"BASHCOUNTER {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: his counter-bash {(held ? "held" : "did not hold")} against {(by.FightUnit != null ? by.FightUnit.name : "a fighter")}'s hard bash");
         // (FIGHT_DODGEALL=1: every fake is dodged and, in the dance, every blow made out in time. FIGHT_DODGEDROPS=0: in a gesture of his own he cannot dodge, as before.)
         PhysicsBattler.Locomotion.ClipFighter.DodgesEvery = Environment.GetEnvironmentVariable("FIGHT_DODGEALL") == "1";

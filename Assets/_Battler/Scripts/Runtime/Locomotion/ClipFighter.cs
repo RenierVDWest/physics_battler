@@ -1154,6 +1154,13 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Down: the body given to physics, the swept leg thrown along the blow and the body over it, falling.</summary>
         private void Fall(int leg, Vector3 way, float knock)
         {
+            if (Poser.Borne != null)
+            {
+                // (Down in the middle of a stumble: its feet are let go.)
+                Poser.Unbear();
+                Stagger.End();
+            }
+
             Built?.End();
             Falls++;
             Footing = Footings.Down;
@@ -2446,7 +2453,19 @@ namespace PhysicsBattler.Locomotion
             {
                 // (Thrown back stumbling: that one is walked off, as it was; with the legs deciding, only one too fast
                 // for the stance to step after is.)
-                Loco.Push(pendingKnock, !CombatFeel.LegsDecide && clock - thrownAt < 0.5f);
+                if (StumbleSteps.On && pendingImpulse.sqrMagnitude > 0f)
+                {
+                    // (Thrown by a blow: what comes of it is his legs' to decide.)
+                    Vector3 thrownBy = pendingKnock;
+                    pushAt = -1f;
+                    ThrowBody(thrownBy, pendingPoint, pendingImpulse, "a blow");
+                }
+                else
+                {
+                    Loco.Push(pendingKnock, !CombatFeel.LegsDecide && clock - thrownAt < 0.5f);
+                }
+
+                pendingImpulse = Vector3.zero;
                 pushAt = -1f;
                 pendingKnock = Vector3.zero;
             }
@@ -2480,7 +2499,15 @@ namespace PhysicsBattler.Locomotion
 
             // (An enemy near: a turn to face him is a hurried one, see Locomotor.QuickTurns.)
             Loco.Hurried = apart > 1e-3f && apart < Locomotor.QuickTurnWithin * Size;
-            Loco.Step(dt, want, yaw);
+            if (Stagger.Active)
+            {
+                StepStagger(dt);
+            }
+            else
+            {
+                Loco.Step(dt, want, yaw);
+            }
+
             CarryBy(Loco.SnappedThisStep);
             PullOnTheMove();
             if (Combo != null)
@@ -4072,7 +4099,7 @@ namespace PhysicsBattler.Locomotion
         public bool Busy => Fallen || Striking || Loco.Current == Locomotor.Mode.OneShot || Stumbling;
 
         /// <summary>Thrown back stumbling and not yet on its feet again (<see cref="CombatFeel.StumbleRecovery"/>): it can't strike.</summary>
-        public bool Stumbling => thrownAt >= 0f && clock - thrownAt < CombatFeel.StumbleRecovery;
+        public bool Stumbling => Stagger.Active || (thrownAt >= 0f && clock - thrownAt < CombatFeel.StumbleRecovery);
 
         private float thrownAt = -1f;
 
@@ -6539,6 +6566,187 @@ namespace PhysicsBattler.Locomotion
             Touches++;
         }
 
+        // ---- Off balance: stumbles and falls (19 November) ---------------------------------------------------------
+
+        /// <summary>His stumble, while he is off balance (<see cref="StumbleSteps"/>: real stumble steps, turned round, or down).</summary>
+        public readonly StumbleSteps Stagger = new StumbleSteps();
+
+        /// <summary>Stumbles on real stumble steps: begun, ended on his feet, ended down.</summary>
+        public int StumblesBegun, StumblesCaught, StumblesDown;
+
+        /// <summary>The last stumble, in words: what threw him, his steps, and how it ended.</summary>
+        public string LastStumble = "";
+
+        /// <summary>A stumble began or ended: who, and what happened, in words. For the logs and the lab.</summary>
+        public static event System.Action<ClipFighter, string> Stumbled;
+
+        /// <summary>What he turns like about the upright: so much of his weight times his size squared (kg m2 for each kg, at a Medium's size), his arms, shield and sword out from him.</summary>
+        public const float TurnsLike = 0.03f;
+
+        /// <summary>How far each m/s a landing foot takes out of his hips rocks his upper body on, the way he was going (radians), and the most of it.</summary>
+        public const float FootfallRocks = 0.09f, MostFootfallRock = 0.3f;
+
+        private Vector3 staggerGoing, staggerAt, staggerLead, pendingPoint, pendingImpulse;
+        private string staggerWhy = "";
+
+        /// <summary>
+        /// The door for whatever throws his body: a change of his speed over the ground (m/s, world), with the impulse
+        /// that made it and the point it came in at (its lever about his middle is what turns him). What comes of it is
+        /// his legs' to decide (<see cref="StumbleSteps"/>): inside what his feet hold, his stance steps it off
+        /// ("shoved"); past it he is off balance and stumbles ("stumbled"), and at the end of that he has kept his feet
+        /// or is down. Nothing is drawn by lot.
+        /// </summary>
+        public string ThrowBody(Vector3 change, Vector3 point, Vector3 impulse, string why)
+        {
+            change.y = 0f;
+            if (Fallen)
+            {
+                return "down";
+            }
+
+            if (change.sqrMagnitude < 1e-6f)
+            {
+                return "shoved";
+            }
+
+            float twist = impulse.sqrMagnitude > 1e-6f ? Vector3.Cross(Flat(point - Loco.Position), Flat(impulse)).y : 0f;
+            float spin = StumbleSteps.TurnedBy * Mathf.Rad2Deg * twist / (TurnsLike * Mathf.Max(1f, Mass) * Size * Size);
+            if (Stagger.Active)
+            {
+                Stagger.Add(change, spin);
+                staggerGoing = Stagger.Vel;
+                return "stumbled";
+            }
+
+            if (Anchored || !Loco.Guarding || !Loco.Ready)
+            {
+                Loco.Push(change);
+                return "shoved";
+            }
+
+            Vector3 going = Flat(Loco.Velocity) + change;
+            Poser.FeetNow(out Vector3 left, out Vector3 right, out float leftYaw, out float rightYaw);
+            // (His weight is where his hips are: in a lunge or a leap that is not where his root is.)
+            Vector3 hips = Flat(Anim.Part(PartId.Pelvis).position);
+            // (Off balance by what was done to him, not by his own going: a man walking is not falling.)
+            if (!StumbleSteps.OffBalance(hips, change, left, right, Loco.Leg))
+            {
+                Loco.Push(change);
+                return "shoved";
+            }
+
+            // (A blow of his own is dropped: he has his feet to find.)
+            Combo?.Stop();
+            Built?.End();
+            float already = going.sqrMagnitude > 1e-4f ? Mathf.Max(0f, Vector3.Dot(Flat(Loco.Velocity), going.normalized)) : 0f;
+            Stagger.Begin(hips, going, Loco.Facing, spin, left, right, leftYaw, rightYaw, Loco.Leg, already);
+            staggerLead = hips - Flat(Loco.Position);
+            Poser.Bear(Stagger);
+            // (His sword arm goes loose a moment: it is thrown out by his body's going, not held to its guard.)
+            Soften(BodyRegion.ArmR, 0.5f, 0.7f);
+            Loco.Velocity = new Vector3(going.x, Loco.Velocity.y, going.z);
+            staggerGoing = going;
+            staggerAt = Flat(Loco.Position);
+            staggerWhy = why;
+            StumblesBegun++;
+            thrownAt = clock;
+            pushAt = -1f;
+            pendingKnock = Vector3.zero;
+            string said = string.Format(System.Globalization.CultureInfo.InvariantCulture, "off balance from {0}: thrown at {1:0.0} m/s (his speed changed by {3:0.0}), turning at {2:0} degrees a second", why, going.magnitude, Stagger.Spin, change.magnitude);
+            LastStumble = said;
+            Stumbled?.Invoke(this, said);
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(FightUnit, "stumble", said);
+            }
+
+            return "stumbled";
+        }
+
+        /// <summary>A step of his stumble: his body carried by it, his feet stepping for it, his upper body rocked on as each foot checks his hips.</summary>
+        private void StepStagger(float dt)
+        {
+            // (Whatever has moved him at once since the last step (two bodies kept apart): the stumble goes with it. Put
+            // somewhere else altogether, it is over.)
+            Vector3 moved = Flat(Loco.Position) - staggerAt;
+            if (moved.sqrMagnitude > 0.25f)
+            {
+                Poser.Unbear();
+                Stagger.End();
+                Loco.Step(dt, Vector3.zero, Loco.Facing);
+                return;
+            }
+
+            Stagger.Com += moved;
+            // (His hips were ahead of his root as it began (a lunge, a leap): his stand comes under them.)
+            staggerLead *= Mathf.Exp(-dt / 0.1f);
+            // (Whatever has pushed him since the last step went into his speed: the stumble has it.)
+            Vector3 pushed = Flat(Loco.Velocity) - staggerGoing;
+            if (pushed.sqrMagnitude > 1e-6f)
+            {
+                Stagger.Add(pushed, 0f);
+            }
+
+            Stagger.Step(dt);
+            staggerGoing = Stagger.Vel;
+            Loco.Carried(dt, Stagger.Com - staggerLead, Stagger.Facing, Stagger.Vel);
+            staggerAt = Flat(Loco.Position);
+            Vector3 braked = Stagger.TakeBraked();
+            if (braked.sqrMagnitude > 1e-6f)
+            {
+                // (A foot checks his hips; what is above them goes on.)
+                Vector3 axis = Vector3.Cross(Vector3.up, -braked.normalized);
+                float amount = Mathf.Min(FootfallRocks * braked.magnitude, MostFootfallRock) * CombatFeel.LeanScale;
+                leanMost = Mathf.Max(leanMost, BashRocksMost);
+                leanV += axis * (amount * Kick * 2f * Mathf.PI * ReactFrequency * ReactGain);
+            }
+
+            // (His upper body tips with his weight: past the foot behind him the way he goes, back against a foot
+            // landed ahead of him.)
+            Vector3 tilt = Stagger.Tilt;
+            tipWanted = tilt.sqrMagnitude > 1e-8f ? Vector3.Cross(Vector3.up, tilt.normalized) * Mathf.Min(StumbleSteps.TrunkTips * tilt.magnitude, MostTip) : Vector3.zero;
+            thrownAt = clock;
+            if (!Stagger.Active)
+            {
+                EndStagger();
+            }
+        }
+
+        /// <summary>The most his upper body tips with a stumble (radians), and how quickly it follows (1/s).</summary>
+        public const float MostTip = 0.7f, TipFollows = 14f;
+
+        private Vector3 tip, tipWanted;
+
+        /// <summary>His stumble is over: on his feet, which his stand has again; or down, the fall taking him as he goes.</summary>
+        private void EndStagger()
+        {
+            bool down = Stagger.Ended == StumbleSteps.Ends.Down;
+            tipWanted = Vector3.zero;
+            Poser.Unbear();
+            Stagger.End();
+            string told = Stagger.Told();
+            if (down)
+            {
+                StumblesDown++;
+                float speed = Stagger.Vel.magnitude;
+                Vector3 way = speed > 1e-2f ? Stagger.Vel / speed : -(Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward);
+                LastStumble = $"{staggerWhy}: {told}; his legs could not catch him ({Stagger.Why}): down";
+                KnockOver(way, Mathf.Clamp(speed, 0.5f, 3f), LastStumble, Mathf.Max(0.1f, speed));
+            }
+            else
+            {
+                StumblesCaught++;
+                LastStumble = $"{staggerWhy}: {told}; he kept his feet";
+                LastReaction = LastStumble;
+            }
+
+            Stumbled?.Invoke(this, LastStumble);
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(FightUnit, "stumble", LastStumble);
+            }
+        }
+
         // ---- A hard bash countered (18 November) ----
 
         /// <summary>
@@ -6726,6 +6934,21 @@ namespace PhysicsBattler.Locomotion
                         bool countered = bashKindAt == 2 && enemy.Countering(this);
                         bool held = countered && enemy.counterHeld;
                         Vector3 out_ = Flat(enemy.Loco.Position - Loco.Position).normalized;
+                        // (The ledger, the impacts plan's step 3: the speeds the two leave with are worked out from what
+                        // each brought, not written in. How much of him is behind his board is the bash's weight. One who
+                        // counters has set himself: his feet pass what their grip allows to the ground, by how many of
+                        // them are down. And whether a counter holds is not drawn: it is what his legs can catch.)
+                        bool worked = ImpactLedger.On;
+                        ImpactLedger.Result ledger = default;
+                        float hisSpeed = Vector3.Dot(Flat(enemy.Loco.Velocity), way);
+                        if (worked)
+                        {
+                            float set = countered ? 0.5f * ((enemy.Poser.Feet[0].Locked ? 1f : 0f) + (enemy.Poser.Feet[1].Locked ? 1f : 0f)) : 0f;
+                            ledger = ImpactLedger.Work(Mass * bashKind.Weight, fastest, enemy.Mass, hisSpeed, set);
+                            shove = Mathf.Max(0f, ledger.Taker - hisSpeed);
+                            held = false;
+                        }
+
                         // (What it meets: his board, driven out in a counter or held in cover between the two of them;
                         // or his body. And where: between the boards, or where this board is against him.)
                         bool onShield = countered;
@@ -6749,13 +6972,17 @@ namespace PhysicsBattler.Locomotion
                         {
                             // (Through the door: the momentum the board arrives with, at the point it met him, the way the
                             // board was driven; and the same back at this one's own shield arm. Both stand still a moment.)
-                            float handed = shove * enemy.Mass, back = handed * (onShield ? 1f : BashBackOffBody);
+                            float handed = worked ? ledger.Through : shove * enemy.Mass, back = worked ? handed : handed * (onShield ? 1f : BashBackOffBody);
                             enemy.TakeImpact(bashWay * handed, met, onShield, BashRocks, BashForce, BashPoise * shove, true);
                             TakeImpact(-bashWay * back, met, true, BashRocks, BashForce, 0f, false);
                             if (seen != null)
                             {
                                 seen.Handed = handed;
                                 seen.HandedBack = back;
+                                seen.Worked = worked;
+                                seen.WorkedBy = Vector3.Dot(Flat(Loco.Velocity), way) - ledger.Through / Mathf.Max(1f, Mass);
+                                seen.WorkedOn = ledger.Taker;
+                                seen.Ground = ledger.Ground;
                             }
                         }
 
@@ -6764,7 +6991,7 @@ namespace PhysicsBattler.Locomotion
                             shove = Mathf.Min(shove, 0.8f * BashStumblesFrom * Mathf.Sqrt(enemy.Size));
                         }
 
-                        string did = enemy.Bashed(out_, shove, this);
+                        string did = worked ? enemy.Bashed(way, shove, this, met, bashWay * ledger.Through) : enemy.Bashed(out_, shove, this);
                         if (BashIsImpact && BashStops && did != "down")
                         {
                             // (Both stand still a moment as it lands. Not when it knocks him over: a body held still as it
@@ -6776,6 +7003,12 @@ namespace PhysicsBattler.Locomotion
 
                         BashesStumbled += did == "stumbled" ? 1 : 0;
                         BashesFelled += did == "down" ? 1 : 0;
+                        if (worked && countered)
+                        {
+                            // (A counter held if it kept him off the ground at once: what his stumble makes of it comes after.)
+                            held = did != "down";
+                        }
+
                         if (countered)
                         {
                             enemy.CountersHeld += held ? 1 : 0;
@@ -6793,7 +7026,23 @@ namespace PhysicsBattler.Locomotion
                             LastBash += " (met by his counter-bash: stopped)";
                         }
 
-                        if (held)
+                        if (worked)
+                        {
+                            // (What the ledger leaves the basher: his body's speed changed by as much as his board's was.
+                            // A leap's own travel ends where the boards met; he goes on, stops or is thrown back as it
+                            // came out, and his legs decide what comes of that as they do for the other.)
+                            float mine = Vector3.Dot(Flat(Loco.Velocity), way);
+                            Loco.StopShotTravel();
+                            // (Equal and opposite: what the other was handed is taken from the whole of him.)
+                            float lost = ledger.Through / Mathf.Max(1f, Mass);
+                            string me = ThrowBody(-way * lost, met, -bashWay * ledger.Through, string.Format(System.Globalization.CultureInfo.InvariantCulture, "his own {0} bash meeting {1} (his board at {2:0.0} m/s, his body at {3:0.0}, the other at {4:0.0})", bashKind.Name, countered ? "a counter" : onShield ? "a shield" : "a body", fastest, body, hisSpeed));
+                            LastBash += string.Format(System.Globalization.CultureInfo.InvariantCulture, " (worked out: {0:0} N·s handed over; he leaves at {1:0.0} m/s, the other at {2:0.0}; the other's feet passed {3:0} N·s to the ground; he himself was {4})", ledger.Through, mine - lost, ledger.Taker, ledger.Ground, me == "stumbled" ? "thrown off balance" : "checked");
+                            if (countered)
+                            {
+                                guardOpenUntil = Mathf.Max(guardOpenUntil, clock + 0.3f);
+                            }
+                        }
+                        else if (held)
                         {
                             // (Stopped by the other's board: he is thrown back off it a step himself, his own guard open
                             // a moment, and the two are apart again.)
@@ -6833,7 +7082,8 @@ namespace PhysicsBattler.Locomotion
         /// <see cref="BashStumblesFrom"/> thrown back stumbling, his guard open longer and a blow of his own dropped;
         /// from <see cref="BashFellsFrom"/> knocked down. What it did: "shoved", "stumbled", "down".
         /// </summary>
-        public string Bashed(Vector3 way, float speed, ClipFighter by)
+        /// <param name="point">Where it met him, and the impulse it handed him there (N·s): given, <paramref name="speed"/> is the ledger's and what comes of it is his legs' to decide; not given, it is by the two speeds above.</param>
+        public string Bashed(Vector3 way, float speed, ClipFighter by, Vector3 point = default, Vector3 impulse = default)
         {
             if (Fallen)
             {
@@ -6843,8 +7093,12 @@ namespace PhysicsBattler.Locomotion
             BashedTimes++;
             float size = Mathf.Sqrt(Size);
             string did = speed >= BashFellsFrom * size ? "down" : speed >= BashStumblesFrom * size ? "stumbled" : "shoved";
-            guardOpenUntil = Mathf.Max(guardOpenUntil, clock + (did == "shoved" ? 0.3f : 0.8f));
-            if (did == "down")
+            if (impulse.sqrMagnitude > 0f && StumbleSteps.On)
+            {
+                // (Off balance or not, on his feet or not: his legs decide, on real stumble steps.)
+                did = ThrowBody(way * speed, point, impulse, "a shield's bash");
+            }
+            else if (did == "down")
             {
                 KnockOver(way, Mathf.Min(speed, 3f), $"a shield's bash, thrown back at {speed:0.0} m/s", speed * BashThrows);
             }
@@ -6853,6 +7107,7 @@ namespace PhysicsBattler.Locomotion
                 Loco.Push(way * speed, did == "stumbled");
             }
 
+            guardOpenUntil = Mathf.Max(guardOpenUntil, clock + (did == "shoved" ? 0.3f : 0.8f));
             if (Diagnostics.PlaytestTrace.Enabled)
             {
                 Diagnostics.PlaytestTrace.Note(FightUnit, "bash", $"bashed by {(by != null ? by.FightUnit.name : "a shield")}: {(did == "down" ? "knocked down" : did == "stumbled" ? "thrown back stumbling" : "shoved back")} at {speed:0.0} m/s");
@@ -7886,6 +8141,17 @@ namespace PhysicsBattler.Locomotion
                 // scene's "Most Stumble"); faster than it can run, no step catches it and it goes down.)
                 Vector3 going = new Vector3(Loco.Velocity.x, 0f, Loco.Velocity.z);
                 float thrownAtSpeed = (thrownBy + going).magnitude, caught = CombatFeel.LegsCatch * Mathf.Sqrt(Size);
+                if (StumbleSteps.On && Loco.Guarding && !Anchored)
+                {
+                    // (Off balance: his legs decide, on real stumble steps. No speed is written in for what they can catch.)
+                    pendingKnock = thrownBy;
+                    pendingPoint = point;
+                    pendingImpulse = impulse;
+                    pushAt = clock;
+                    LastReaction = $"{(swept.Length > 0 ? swept + "; " : "")}thrown off balance at {thrownAtSpeed:0.0} m/s";
+                    return;
+                }
+
                 if (CombatFeel.LegsDecide && thrownAtSpeed > caught && !Anchored)
                 {
                     ThrownDown++;
@@ -8373,6 +8639,22 @@ namespace PhysicsBattler.Locomotion
                     var thigh = Anim.Part(l == 0 ? PartId.ThighL : PartId.ThighR);
                     thigh.rotation = Quaternion.AngleAxis(legTurn[l].magnitude * Mathf.Rad2Deg, legTurn[l].normalized) * thigh.rotation;
                 }
+            }
+
+            // (A stumble's own tipping, eased in and out.)
+            if (!Stagger.Active)
+            {
+                tipWanted = Vector3.zero;
+            }
+
+            tip = Vector3.Lerp(tip, tipWanted, 1f - Mathf.Exp(-TipFollows * dt));
+            if (tip.sqrMagnitude > 1e-6f)
+            {
+                float tipped = tip.magnitude * Mathf.Rad2Deg;
+                var spine = Anim.Part(PartId.Spine);
+                var chest = Anim.Part(PartId.Chest);
+                spine.rotation = Quaternion.AngleAxis(0.45f * tipped, tip.normalized) * spine.rotation;
+                chest.rotation = Quaternion.AngleAxis(0.55f * tipped, tip.normalized) * chest.rotation;
             }
 
             float angle = lean.magnitude * Mathf.Rad2Deg;

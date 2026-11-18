@@ -164,6 +164,12 @@ namespace PhysicsBattler.Locomotion
             Pelvis(out Vector3 pelvisAt, out var pelvisTurn);
             pelvisAt += ShiftHips(pelvisAt, pelvisTurn, dt);
             pelvisAt.y += HopHips(dt);
+            if (Borne != null)
+            {
+                // (His knees giving as a foot takes his weight, and his hips falling while no foot is under him.)
+                pelvisAt.y -= Mathf.Min(Borne.Sink, BorneDrop * legReach);
+            }
+
             float drop = 0f;
             for (int f = 0; f < 2; f++)
             {
@@ -175,7 +181,7 @@ namespace PhysicsBattler.Locomotion
                 drop = Mathf.Max(drop, -to.y - most);
             }
 
-            float wantDrop = Mathf.Clamp(drop, 0f, 0.12f * legReach);
+            float wantDrop = Mathf.Clamp(drop, 0f, (Borne != null ? BorneDrop : 0.12f) * legReach);
             // (Down at once, up again smoothly: a leg is never left short of its foot.)
             if (wantDrop >= PelvisDrop)
             {
@@ -219,6 +225,100 @@ namespace PhysicsBattler.Locomotion
         }
 
         // ---- The walk's parts, for a pose built elsewhere (the fight's pose pipeline) -----------------
+
+        // ---- A stumble has his feet (StumbleSteps) -----------------------------------------------------------------
+
+        /// <summary>
+        /// A stumble has his feet: each ankle is where the stumble puts it (planted where it came down, or in the air on
+        /// its way to where it must land), not where the stand's clip has it. Set by <see cref="Bear"/>, let go by
+        /// <see cref="Unbear"/>.
+        /// </summary>
+        public StumbleSteps Borne { get; private set; }
+
+        private readonly float[] borneAnkle = new float[2];
+
+        /// <summary>How far the hips may be let down for the legs while a stumble has him (a share of the leg's reach; standing it is 0.12).</summary>
+        public const float BorneDrop = 0.4f;
+
+        /// <summary>Where each ankle is now (world) and the way each foot points (degrees): what a stumble begins from.</summary>
+        public void FeetNow(out Vector3 left, out Vector3 right, out float leftYaw, out float rightYaw)
+        {
+            left = Feet[0].Target;
+            right = Feet[1].Target;
+            leftYaw = FootRotation(0).eulerAngles.y;
+            rightYaw = FootRotation(1).eulerAngles.y;
+        }
+
+        /// <summary>A stumble takes his feet, from where they are.</summary>
+        public void Bear(StumbleSteps stumble)
+        {
+            Borne = stumble;
+            float low = GroundY + 0.04f * loco.Leg, high = GroundY + 0.16f * loco.Leg;
+            for (int f = 0; f < 2; f++)
+            {
+                // (An ankle's height standing: where it is now, if that is a standing foot's.)
+                borneAnkle[f] = Mathf.Clamp(Feet[f].Target.y, low, high) - GroundY;
+                Feet[f].Hopping = Feet[f].StepArc = Feet[f].StepLanded = false;
+            }
+
+            hopOver = 0f;
+            hopAsked = false;
+            loco.NoLead = false;
+        }
+
+        /// <summary>The stumble is over: his feet are planted where it left them, and the stand steps them back into its stance one at a time, as after any stop.</summary>
+        public void Unbear()
+        {
+            if (Borne == null)
+            {
+                return;
+            }
+
+            Borne = null;
+            for (int f = 0; f < 2; f++)
+            {
+                var foot = Feet[f];
+                foot.Locked = true;
+                foot.LockedFor = 0f;
+                foot.OnToe = foot.BallHolds = false;
+                foot.Stepping = foot.StepArc = foot.StepLanded = foot.Hopping = false;
+                foot.Ankle = new Vector3(foot.Target.x, foot.Posed.y, foot.Target.z);
+                foot.Fade = foot.FadeFrom = foot.FadeSpeed = Vector3.zero;
+                foot.FadeTime = foot.FadeOver = 0f;
+                foot.LockYaw = ClipFootRotation(f).eulerAngles.y + foot.YawHold;
+                foot.Pivoted = 0f;
+                liftKnown[f] = false;
+            }
+
+            lastSettle = Time();
+        }
+
+        private void BorneFoot(int f, FootLock foot, Vector3 posed, float clipYaw)
+        {
+            Vector3 at = Borne.Foot[f];
+            bool down = Borne.Down[f];
+            if (down && !foot.Locked)
+            {
+                FootPlanted?.Invoke(this, f, new Vector3(at.x, GroundY, at.z), loco.Velocity.magnitude, Mathf.Min(poseClock - liftedAt[1 - f], poseClock - liftedAt[f]));
+                foot.Landings++;
+            }
+
+            foot.Locked = down;
+            foot.LockedFor = down ? foot.LockedFor + poseDt : 0f;
+            foot.OnToe = foot.BallHolds = false;
+            foot.Stepping = !down;
+            foot.StepArc = foot.StepLanded = foot.Hopping = false;
+            foot.YawHold = Mathf.DeltaAngle(clipYaw, Borne.FootYaw[f]);
+            foot.LockYaw = Borne.FootYaw[f];
+            Vector3 ankle = new Vector3(at.x, GroundY + borneAnkle[f] + at.y, at.z);
+            foot.Ankle = ankle;
+            foot.Fade = foot.FadeFrom = ankle - posed;
+            foot.FadeSpeed = Vector3.zero;
+            foot.Target = AboveGround(f, ankle);
+            lift[f] = raised[f] = 0f;
+            liftWas[f] = foot.Target;
+            liftKnown[f] = true;
+        }
 
         /// <summary>The feet's locks for this step: where each ankle goes (<see cref="FootLock.Target"/>).</summary>
         public void UpdateFeet(float dt)
@@ -300,7 +400,7 @@ namespace PhysicsBattler.Locomotion
         /// <remarks>Not in a stand made of its recordings' motion (the ginga): there the hips are where the recorded
         /// man had his, who shifted his own weight. Drawn 40% of the way to the standing foot they were up to 13 cm
         /// off the recording through each step and went over to the other foot at 3 m/s as the feet changed.</remarks>
-        private bool ShiftsNow => WeightShifts && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Legs == Locomotor.Mode.Idle && !loco.StandsInPattern;
+        private bool ShiftsNow => WeightShifts && Locomotor.StepsInStanceOn && loco.QuickSteps && loco.Legs == Locomotor.Mode.Idle && !loco.StandsInPattern && Borne == null;
 
         private Vector3 ShiftHips(Vector3 pelvisAt, Quaternion pelvisTurn, float dt)
         {
@@ -2026,6 +2126,12 @@ namespace PhysicsBattler.Locomotion
             var clipTurn = ClipFootRotation(f);
             float clipYaw = clipTurn.eulerAngles.y;
             foot.Posed = posed;
+            if (Borne != null)
+            {
+                BorneFoot(f, foot, posed, clipYaw);
+                return;
+            }
+
             bool down = loco.Down[f] >= 0.5f;
             bool heel = loco.Heel[f] >= 0.5f;
             // (A foot the motion says is down but which is still well up in the air (a leap cut short, a

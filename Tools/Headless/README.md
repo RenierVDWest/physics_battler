@@ -20,6 +20,8 @@ check and tests without Unity"). They were written during the work and are kept 
 | `st.sh name [ENV…]` | Two sword-and-shield fighters standing 1.5 m apart. Nobody strikes unless a bash or a dance is asked for. |
 | `dance.sh tag FIGHT_DANCE="Plain,Plain" [ENV…]` | Two fighters dancing (`SECS=25`). Output `dance_<tag>.txt`. |
 | `imp1.sh tag kind apart [ENV…]` | One shield bash at 4 s. Output `imp_<tag>.txt` (the `IMPACT` lines). |
+| `four.sh tag [ENV…]` | The four bashes at a standing fighter (small, medium, hard countered, hard not countered), two at a time; prints the `BASHED`, `STUMBLE` and `IMPACT` lines. About eight minutes. |
+| `stum.sh [STUMBLE_FOOT=5.5 …]` | The stumble model by itself, no fighter: thrown at twelve speeds from five sides. Instant. |
 | `run.sh name FIGHT_SECONDS=8.5 FIGHT_TUBE="3,200,8,1.3,0.15,<angle>,1,1"` | The tube test: a tube knocks fighters down (angle 0 back, 180 front, 90 and 270 the sides). "B Medium" is the shield bearer. |
 | `gup.sh tag "270 180" [ENV…]` | Tube falls from the given sides, then each get-up's speeds, floor and tremble. Waits and prints. |
 | `gu.sh file.txt` | The get-up lines of a report, shortened. |
@@ -32,6 +34,9 @@ The rest are one-off comparisons from particular days, kept for reference.
 ## Switches used most
 
 `FIGHT_GETUPHELD=0` (get-ups do not know what the hands hold), `FIGHT_GETUPCLAMP=0`, `FIGHT_GETUPRECORDED=0`,
+`FIGHT_STUMBLES=0` (off balance is the guard's walk played fast, the old way), `FIGHT_LEDGER=0` (a bash's speeds
+written in, the old way), `FIGHT_BOUNCE`, `FIGHT_FEETTAKE`, `STUMBLE_FOOT`, `STUMBLE_REACH`, `STUMBLE_TAKES`,
+`STUMBLE_BRAKE`, `STUMBLE_REACTS`, `STUMBLE_DOWN`, `STUMBLE_KNEES`, `STUMBLE_TURNED`, `STUMBLE_TIPS` (the stumble's levers),
 `FIGHT_ABSORB=0`, `FIGHT_ABSORBED=0.6`, `FIGHT_OWNSOLID="1,1"` (shield, sword solid against his own body;
 `"0,0"` is the old way), `FIGHT_SETTLE=0` or `"26,60"`, `FIGHT_HELDSOFT=0`, `FIGHT_GIVEWAY=0` or `"0.06,0.3"`,
 `FIGHT_SHAKELOG=1` and `FIGHT_SHAKETRACE=1` (traces), `UPPER_GHOST=1` (no contacts on the upper body),

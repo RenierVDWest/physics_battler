@@ -1129,6 +1129,7 @@ namespace PhysicsBattler.Sandbox
             Readout(new GUIContent("Last bash: " + (basher != null && basher.LastBash.Length > 0 ? basher.LastBash + "." : "none yet."), "How the last bash was thrown (the leap, the drive) and what it did: the speed the board closed on the other at, the shove, and whether he was shoved back, thrown back stumbling or knocked down."), 4);
             Readout(new GUIContent("The other's bash: " + (Duel.Other != null && Duel.Other.Clip != null && Duel.Other.Clip.LastBash.Length > 0 ? Duel.Other.Clip.LastBash + "." : "none yet."), "The other's own last bash: his counter to a hard bash (\"Hard bash met: countered\"), and whether it held."), 2);
             Readout(new GUIContent("Impact meter: " + (PhysicsBattler.Locomotion.ImpactMeter.Last != null ? PhysicsBattler.Locomotion.ImpactMeter.Last.Text + "." : "nothing measured yet (it reads 0.6 s after a bash or a blow on a shield)."), "The impact meter (the plan \"Impacts that carry weight\"): what came in along the line between the two, what is left as motion of the two bodies afterwards, and what each body showed in the 0.6 s after: how far its trunk's lean changed, its hips dropped, its head shifted over its hips and its shield hand moved against its chest. It measures; it changes nothing. Compare \"A bash lands: as an impact / as a shove (old)\" on this line."), 6);
+            StumbleButtons(feel, inWindow);
             string[] bashes = { "Small", "Medium", "Hard" };
             for (int kind = 0; kind < bashes.Length; kind++)
             {
@@ -1392,6 +1393,112 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>The bash at the other (off) or straight ahead at the air, to see the leap and the drive by themselves (on).</summary>
         private bool bashAtAir;
+
+        // ---- Stumbles on demand (the Fight Rhythm plan's step 9c; 19 November) ----
+
+        private int stumbleBash = -1;
+        private float stumbleBashAt;
+
+        /// <summary>How far off the other is put for each bash of "Stumble him" (metres at a Medium's size).</summary>
+        private static readonly float[] StumbleBashFrom = { 1f, 1.8f, 1.9f };
+
+        /// <summary>A bash asked for by "Stumble him" is thrown once the other has stood a moment where he was put.</summary>
+        private void StepStumbleBash()
+        {
+            if (stumbleBash < 0 || Time.time < stumbleBashAt)
+            {
+                return;
+            }
+
+            int kind = stumbleBash;
+            stumbleBash = -1;
+            var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
+            var other = Duel.Other != null ? Duel.Other.Clip : null;
+            if (basher == null || other == null)
+            {
+                return;
+            }
+
+            string[] names = { "small", "medium", "hard" };
+            message = basher.Bash(other, true, kind) ? $"Stumble him: a {names[kind]} bash." : "Stumble him: he could not bash (in a blow, a leap or a bash, meeting a blow, or down).";
+        }
+
+        /// <summary>Stumbles and falls: a bash at a standing fighter on demand, small, medium and hard; old and new; the levers; what the last stumble was.</summary>
+        private void StumbleButtons(PhysicsBattler.Locomotion.CombatFeel feel, bool inWindow)
+        {
+            Heading("Stumbles and falls", "What being bashed, kicked or struck hard does to a fighter. His body is a weight on legs: thrown by an impact it tips away from his feet, and only a foot put down ahead of it stops it. If his feet get there he keeps them, on one stumble step or several, and may be turned round. If his body outruns them he goes down. Both men of an impact can be thrown off balance: what goes in comes out. Nothing is drawn by lot.");
+            var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
+            var other = Duel.Other != null ? Duel.Other.Clip : null;
+            string[] names = { "Small", "Medium", "Hard" };
+            string[] tips =
+            {
+                "The other is stood 1 m before him and he bashes him from where he stands. A shove: a step back, or his stance takes it.",
+                "The other is stood 1.8 m before him and he leaps in behind his board. The other is thrown back off balance and stumbles: two or three stumble steps.",
+                "The other is stood 1.9 m before him and he leaps all the way in. With \"Hard bash met: countered\" the other braces and is carried back a step or two; with \"not countered\" he is thrown hard, stumbles and may go down.",
+            };
+            BeginRow();
+            Words(new GUIContent("Stumble him:", "A bash at a standing fighter on demand. The other is put straight before him at that bash's distance, stands a moment, and is bashed. Watch the other's feet, and the basher's: either can be thrown off balance. Use the pace at the top of this window to see it slowly."), Styles().Text, GUILayout.Width(110f));
+            for (int kind = 0; kind < names.Length; kind++)
+            {
+                if (Press(names[kind], tips[kind]))
+                {
+                    if (basher == null || basher.ShieldColliders.Count == 0)
+                    {
+                        message = "Stumble him: he has no shield. \"Set out\" under the shield test gives both one.";
+                    }
+                    else if (Duel.PutOtherAt(StumbleBashFrom[kind]))
+                    {
+                        stumbleBash = kind;
+                        stumbleBashAt = Time.time + 0.6f;
+                        message = $"Stumble him: the other is stood {StumbleBashFrom[kind]:0.0} m before him.";
+                    }
+                    else
+                    {
+                        message = "Stumble him: not now (the lab is not set out).";
+                    }
+                }
+            }
+
+            EndRow();
+            if (feel == null)
+            {
+                return;
+            }
+
+            BeginRow();
+            Words(new GUIContent("Off balance:", "What a fighter thrown off balance does (Combat Feel \"Off Balance He Stumbles On Real Steps\"). Real stumble steps (new): his feet go for the point that would stop him, each landing takes speed out of him and his knees give; caught, turned round, or down by whether his feet get there. The walk played fast (old): he is carried back on the guard's upright walk and falls only from a fixed speed."), GUILayout.Width(100f));
+            if (Press(feel.offBalanceHeStumblesOnRealSteps ? "[real stumble steps]" : "real stumble steps", "His legs decide, on real steps.")) feel.offBalanceHeStumblesOnRealSteps = true;
+            if (Press(!feel.offBalanceHeStumblesOnRealSteps ? "[the walk played fast (old)]" : "the walk played fast (old)", "As before.")) feel.offBalanceHeStumblesOnRealSteps = false;
+            EndRow();
+            BeginRow();
+            Words(new GUIContent("A bash's speeds:", "Where the speeds the two leave a bash with come from (Combat Feel \"A Bash's Speeds Are Worked Out\"). Worked out (new): the momentum ledger. Both weights and both speeds go in; a man who has set himself passes some to the ground through his feet; what is left is shared out, equal and opposite. The basher is checked, stopped or thrown back by as much as he gave. Written in (old): the other gets the board's speed times the bash's weight, and a countered hard bash leaves both at two fixed speeds."), GUILayout.Width(100f));
+            if (Press(feel.aBashsSpeedsAreWorkedOut ? "[worked out]" : "worked out", "The momentum ledger.")) feel.aBashsSpeedsAreWorkedOut = true;
+            if (Press(!feel.aBashsSpeedsAreWorkedOut ? "[written in (old)]" : "written in (old)", "As before.")) feel.aBashsSpeedsAreWorkedOut = false;
+            EndRow();
+            Readout(new GUIContent("The other's last stumble: " + (other != null && other.LastStumble.Length > 0 ? other.LastStumble + "." : "none yet."), "What threw him, his stumble steps, how far it carried and turned him, and how it ended."), 3);
+            Readout(new GUIContent("His own last stumble: " + (basher != null && basher.LastStumble.Length > 0 ? basher.LastStumble + "." : "none yet."), "The basher's own: what came back at him can throw him off balance too."), 2);
+            if (ActionSettings(inWindow, "Stumbles", "Stumbles and falls: settings"))
+            {
+                if (feel.aBashsSpeedsAreWorkedOut)
+                {
+                    feel.impactBounce = Lever("Impact bounce", feel.impactBounce, 0f, 1f, "How much two bodies that ran into each other spring apart, of the speed they closed at. Higher throws the other further and stops the basher harder.");
+                    feel.feetTakeOfAnImpact = Lever("Feet take", feel.feetTakeOfAnImpact, 0f, 1f, "How much of what his grip allows a fighter who has set himself (a counter) passes to the ground. 0: bracing does nothing.");
+                }
+
+                if (feel.offBalanceHeStumblesOnRealSteps)
+                {
+                    feel.stumbleFootSpeed = Lever("Stumble foot speed", feel.stumbleFootSpeed, 3f, 9f, "The fastest a foot goes in a stumble step (m/s). This decides how hard he can be thrown and keep his feet. Higher: he stays up from harder blows.");
+                    feel.stumbleStepReach = Lever("Stumble step reach", feel.stumbleStepReach, 0.25f, 0.9f, "How far from under his hips a stumbling foot can be put down (leg lengths). Shorter: more, quicker steps, a scramble. Longer: fewer, longer steps.");
+                    feel.stumbleStepTakes = Lever("Stumble step takes", feel.stumbleStepTakes, 0.08f, 0.5f, "The shortest a stumble step is in the air (seconds).");
+                    feel.stumbleReactsIn = Lever("Stumble reacts in", feel.stumbleReactsIn, 0f, 0.4f, "How long after he is thrown his first foot lifts (seconds).");
+                    feel.stumbleLegsBrake = Lever("Legs brake", feel.stumbleLegsBrake, 0f, 1f, "How much of what a foot landing ahead of him can take out of his speed it does take. Lower: he stumbles further.");
+                    feel.stumbleKneesGive = Lever("Knees give", feel.stumbleKneesGive, 0f, 0.15f, "How far his knees give as a stumbling foot takes his weight.");
+                    feel.stumbleDownAt = Lever("Down at", feel.stumbleDownAt, 0.2f, 0.7f, "How far his hips may sink in a stumble before he is down (leg lengths).");
+                    feel.stumbleTrunkTips = Lever("Trunk tips", feel.stumbleTrunkTips, 0f, 1f, "How much his upper body tips with a stumble: the way he goes while his weight is past his feet, back against a foot landed ahead of him. 0: upright over stumbling legs.");
+                    feel.stumbleTurnedBy = Lever("Turned by", feel.stumbleTurnedBy, 0f, 1f, "How much of an impact's twist turns the whole of him round. 0: never turned.");
+                }
+            }
+        }
 
         /// <summary>The three bashes' buttons (the plan's step 9a, breaking the guard).</summary>
         private void BashButtons()
@@ -2534,6 +2641,7 @@ namespace PhysicsBattler.Sandbox
                 StepTubes();
                 if (aimTest && duelLab)
                 {
+                    StepStumbleBash();
                     Duel.Step(Time.fixedDeltaTime);
                 }
 
