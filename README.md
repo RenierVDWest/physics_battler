@@ -6424,3 +6424,9 @@ shied where the shield gives way to the sword".
 
 Not seen in Unity: any of it. In particular how far the board swings in a rising cut and a lunging chop, and
 whether it reads as a shield opened for the blow or as a shield flung aside.
+
+*Renier's playtest of 19:37 (the evening's build: solid against his body, smooth hands; before the shield gave
+way), read off its log's `cross` lines:* two sword and shields for some 190 s. The shield in his own body 7
+times and 1.2 s, 5 of them getting up and 2 on his feet (at 16:41: 36 times and 3.9 s, nearly all on his feet).
+His blade through his own shield 18 times and 2.1 s, his sword arm through it 15 times and 2.1 s, 13 of those
+in his own blows: what the shield giving way is for.
