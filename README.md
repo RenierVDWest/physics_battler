@@ -6118,3 +6118,28 @@ the board (his leap is dropped for a step back), and of a medium bash thrown fro
   from 0.5 to 0.12 and fakes cut from light attacks only: 0.12 is the default now (give or take 0.2: from the
   moment the hips start in to a third of the way to the target). He also brought "Long Fake Hold" from 0.25
   to 0.09; that one is stored in the scene, so it is his to keep there ("Keep what I tune").
+
+**A bash that is countered looks weak: research and a plan, nothing built (18 November, 11:12).** Renier:
+"when the shield bash is blocked by another shield bash, all of that force just disappears ... Their bodies
+barely move or respond to the collision. I want it to look like their bodies are absorbing this energy. I
+want it to have some unpredictable effect on them." He asked for research and a planning document first, and
+for whether the finding is local or belongs to the whole system. The document is "Impacts that carry weight"
+(https://claude.ai/artifact/HkqvPHoe22TWSjZwxvdW5V). In short:
+
+- *Measured.* A hard bash is an 80 kg body at 5.3 m/s: 424 N·s, ten times a sword cut on a shield (35 to 46
+  N·s). On the recorded skeletons a countered hard bash changes the defender's trunk lean by 1 to 5 degrees
+  and drops his hips 0 to 3 cm; a light cut on his shield changes his lean by 2 to 16 degrees.
+- *Why.* A sword blow goes through `ClipFighter.TakeHit` (force on the physical body, `Recoil`, `KnockArmBy`,
+  `Soften`, poise, the hit stop, the drive back and the stumble; `Jar` for the striker). A bash goes round it:
+  `Bashed` only pushes the hips' ground speed or knocks him over, the basher gets nothing, and a shield held in
+  cover is not looked at. The counter added this morning then wrote both speeds in by hand (1.2 m/s and 1 m/s
+  back): of 424 N·s in, 16 come out.
+- *The rule proposed for the whole game.* Every impact is an amount of momentum passed between two bodies;
+  each gets it, equal and opposite; both show it.
+- *The plan, five steps, each behind a switch:* an impact meter; one door for every impact (the bash through
+  the sword blow's own); a momentum ledger for body on body (speeds worked out, levers for bounce, what the
+  feet take and how much it varies); the bodies absorbing it over the quarter second a collision lasts; off
+  balance by the legs' own rule, and the same door for the rest (the striker's jar on a shield, a leap landing
+  on someone, kicks).
+
+It waits for his word.
