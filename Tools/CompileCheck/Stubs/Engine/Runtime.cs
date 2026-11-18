@@ -19,12 +19,15 @@ namespace UnityEngine
     }
 
     public enum LogType { Error = 0, Assert = 1, Warning = 2, Log = 3, Exception = 4 }
-    public enum EventType { MouseDown = 0, MouseUp = 1, Repaint = 7, Layout = 8 }
+    public enum EventType { MouseDown = 0, MouseUp = 1, KeyDown = 4, Repaint = 7, Layout = 8, Used = 12 }
 
     public sealed class Event
     {
-        public static Event current => null;
-        public EventType type => EventType.Repaint;
+        public static Event current { get; set; }
+        public EventType type { get; set; } = EventType.Repaint;
+        public KeyCode keyCode => KeyCode.None;
+        public Vector2 mousePosition => default;
+        public void Use() { }
     }
 
     public static class Time
@@ -140,6 +143,10 @@ namespace UnityEngine
 
     public class Texture2D : Texture
     {
+        public Texture2D() { }
+        public Texture2D(int width, int height) { }
+        public void SetPixel(int x, int y, Color color) { }
+        public void Apply() { }
         public static Texture2D whiteTexture => null;
         public static Texture2D blackTexture => null;
         public static Texture2D redTexture => null;
@@ -272,11 +279,20 @@ namespace UnityEngine
         public RectOffset margin { get; set; } = new RectOffset();
         public TextClipping clipping { get; set; }
         public GUIStyleState normal { get; } = new GUIStyleState();
+        public GUIStyleState hover { get; } = new GUIStyleState();
+        public GUIStyleState active { get; } = new GUIStyleState();
+        public GUIStyleState focused { get; } = new GUIStyleState();
+        public GUIStyleState onNormal { get; } = new GUIStyleState();
+        public GUIStyleState onHover { get; } = new GUIStyleState();
+        public GUIStyleState onActive { get; } = new GUIStyleState();
+        public GUIStyleState onFocused { get; } = new GUIStyleState();
+        public RectOffset border { get; set; } = new RectOffset();
     }
 
     public sealed class GUIStyleState
     {
         public Color textColor { get; set; }
+        public Texture2D background { get; set; }
     }
 
     public sealed class RectOffset
@@ -293,6 +309,7 @@ namespace UnityEngine
         public GUIStyle label { get; } = new GUIStyle();
         public GUIStyle toggle { get; } = new GUIStyle();
         public GUIStyle box { get; } = new GUIStyle();
+        public GUIStyle textField { get; } = new GUIStyle();
     }
 
     public struct Matrix4x4
@@ -315,8 +332,9 @@ namespace UnityEngine
     public class GUIContent
     {
         public GUIContent() { }
-        public GUIContent(string text) { }
-        public GUIContent(string text, string tooltip) { }
+        public GUIContent(string text) { this.text = text; }
+        public GUIContent(string text, string tooltip) { this.text = text; }
+        public string text { get; set; } = "";
     }
 
     public static class GUI
@@ -324,6 +342,10 @@ namespace UnityEngine
         public static Matrix4x4 matrix { get; set; }
         public static GUISkin skin { get; } = new GUISkin();
         public static Color contentColor { get; set; }
+        public static Color backgroundColor { get; set; }
+        public static void SetNextControlName(string name) { }
+        public static string GetNameOfFocusedControl() => "";
+        public static void Label(Rect position, string text, GUIStyle style) { }
         public delegate void WindowFunction(int id);
         public static void Label(Rect position, string text) { }
         public static void Label(Rect position, GUIContent content, GUIStyle style) { }
@@ -338,48 +360,57 @@ namespace UnityEngine
     public static class GUILayoutUtility
     {
         public static Rect GetLastRect() => default;
-        public static Rect GetRect(GUIContent content, GUIStyle style, params GUILayoutOption[] options) => default;
+        public static Rect GetRect(GUIContent content, GUIStyle style, params GUILayoutOption[] options) { GuiTrace.Add("rect " + content.text); return default; }
+    }
+
+    /// <summary>For the panel check: every laid-out control is written here while this is not null, in the order it is asked for.</summary>
+    public static class GuiTrace
+    {
+        public static System.Collections.Generic.List<string> Log;
+        public static void Add(string what) => Log?.Add(what);
     }
 
     public static class GUILayout
     {
         public static Rect Window(int id, Rect screenRect, GUI.WindowFunction func, string text, params GUILayoutOption[] options) => screenRect;
-        public static void Label(string text, params GUILayoutOption[] options) { }
-        public static void Label(string text, GUIStyle style, params GUILayoutOption[] options) { }
-        public static bool Button(string text, params GUILayoutOption[] options) => false;
-        public static bool Button(string text, GUIStyle style, params GUILayoutOption[] options) => false;
-        public static bool Toggle(bool value, string text, params GUILayoutOption[] options) => value;
-        public static float HorizontalSlider(float value, float leftValue, float rightValue, params GUILayoutOption[] options) => value;
-        public static void BeginHorizontal(params GUILayoutOption[] options) { }
-        public static void EndHorizontal() { }
-        public static void BeginVertical(params GUILayoutOption[] options) { }
-        public static void EndVertical() { }
-        public static void Space(float pixels) { }
+        public static void Label(string text, params GUILayoutOption[] options) => GuiTrace.Add("label " + text);
+        public static void Label(string text, GUIStyle style, params GUILayoutOption[] options) => GuiTrace.Add("label " + text);
+        public static bool Button(string text, params GUILayoutOption[] options) { GuiTrace.Add("button " + text); return false; }
+        public static bool Button(string text, GUIStyle style, params GUILayoutOption[] options) { GuiTrace.Add("button " + text); return false; }
+        public static bool Toggle(bool value, string text, params GUILayoutOption[] options) { GuiTrace.Add("toggle " + text); return value; }
+        public static float HorizontalSlider(float value, float leftValue, float rightValue, params GUILayoutOption[] options) { GuiTrace.Add("slider"); return value; }
+        public static void BeginHorizontal(params GUILayoutOption[] options) => GuiTrace.Add("{h");
+        public static void EndHorizontal() => GuiTrace.Add("h}");
+        public static void BeginVertical(params GUILayoutOption[] options) => GuiTrace.Add("{v");
+        public static void EndVertical() => GuiTrace.Add("v}");
+        public static void Space(float pixels) => GuiTrace.Add("space");
         public static GUILayoutOption Width(float width) => new GUILayoutOption();
         public static GUILayoutOption ExpandWidth(bool expand) => new GUILayoutOption();
         public static GUILayoutOption Height(float height) => new GUILayoutOption();
         public static GUILayoutOption MinWidth(float width) => new GUILayoutOption();
         public static GUILayoutOption MinHeight(float height) => new GUILayoutOption();
-        public static void FlexibleSpace() { }
-        public static bool Button(GUIContent content, params GUILayoutOption[] options) => false;
-        public static bool Button(GUIContent content, GUIStyle style, params GUILayoutOption[] options) => false;
-        public static void Label(GUIContent content, params GUILayoutOption[] options) { }
-        public static void Label(GUIContent content, GUIStyle style, params GUILayoutOption[] options) { }
-        public static bool Toggle(bool value, GUIContent content, params GUILayoutOption[] options) => value;
-        public static bool Toggle(bool value, GUIContent content, GUIStyle style, params GUILayoutOption[] options) => value;
-        public static void BeginVertical(GUIStyle style, params GUILayoutOption[] options) { }
-        public static Vector2 BeginScrollView(Vector2 scrollPosition, params GUILayoutOption[] options) => scrollPosition;
-        public static Vector2 BeginScrollView(Vector2 scrollPosition, bool alwaysShowHorizontal, bool alwaysShowVertical, params GUILayoutOption[] options) => scrollPosition;
-        public static void EndScrollView() { }
+        public static void FlexibleSpace() => GuiTrace.Add("flex");
+        public static bool Button(GUIContent content, params GUILayoutOption[] options) { GuiTrace.Add("button " + content.text); return false; }
+        public static bool Button(GUIContent content, GUIStyle style, params GUILayoutOption[] options) { GuiTrace.Add("button " + content.text); return false; }
+        public static void Label(GUIContent content, params GUILayoutOption[] options) => GuiTrace.Add("label " + content.text);
+        public static void Label(GUIContent content, GUIStyle style, params GUILayoutOption[] options) => GuiTrace.Add("label " + content.text);
+        public static bool Toggle(bool value, GUIContent content, params GUILayoutOption[] options) { GuiTrace.Add("toggle " + content.text); return value; }
+        public static bool Toggle(bool value, GUIContent content, GUIStyle style, params GUILayoutOption[] options) { GuiTrace.Add("toggle " + content.text); return value; }
+        public static void BeginVertical(GUIStyle style, params GUILayoutOption[] options) => GuiTrace.Add("{v");
+        public static Vector2 BeginScrollView(Vector2 scrollPosition, params GUILayoutOption[] options) { GuiTrace.Add("{scroll"); return scrollPosition; }
+        public static Vector2 BeginScrollView(Vector2 scrollPosition, bool alwaysShowHorizontal, bool alwaysShowVertical, params GUILayoutOption[] options) { GuiTrace.Add("{scroll"); return scrollPosition; }
+        public static void EndScrollView() => GuiTrace.Add("scroll}");
+        public static string TextField(string text, int maxLength, GUIStyle style, params GUILayoutOption[] options) { GuiTrace.Add("field"); return text; }
     }
 
     public static class GUIUtility
     {
         public static int hotControl { get; set; }
+        public static int keyboardControl { get; set; }
         public static void RotateAroundPivot(float angle, Vector2 pivotPoint) { }
     }
 
-    public enum KeyCode { None = 0, Space = 32, Comma = 44, Period = 46, Alpha1 = 49, Alpha2 = 50, Alpha3 = 51, Alpha4 = 52, Alpha5 = 53, Alpha6 = 54, Alpha7 = 55, Alpha8 = 56, A = 97, B = 98, C = 99, D = 100, E = 101, F = 102, G = 103, H = 104, I = 105, J = 106, K = 107, L = 108, M = 109, N = 110, O = 111, P = 112, Q = 113, R = 114, S = 115, T = 116, U = 117, V = 118, W = 119, X = 120, Y = 121, Z = 122, LeftShift = 304 }
+    public enum KeyCode { None = 0, Return = 13, Escape = 27, KeypadEnter = 271, Space = 32, Comma = 44, Period = 46, Alpha1 = 49, Alpha2 = 50, Alpha3 = 51, Alpha4 = 52, Alpha5 = 53, Alpha6 = 54, Alpha7 = 55, Alpha8 = 56, A = 97, B = 98, C = 99, D = 100, E = 101, F = 102, G = 103, H = 104, I = 105, J = 106, K = 107, L = 108, M = 109, N = 110, O = 111, P = 112, Q = 113, R = 114, S = 115, T = 116, U = 117, V = 118, W = 119, X = 120, Y = 121, Z = 122, LeftShift = 304 }
 
     public static class Input
     {

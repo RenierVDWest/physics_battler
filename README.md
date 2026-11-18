@@ -5961,3 +5961,83 @@ to spot ("when I was looking for Bash").
 
 Not seen in Unity. The compile check's stand-ins for Unity's panel calls gained the ones these use
 (`GUIStyle.padding`, `normal`, `clipping`, `GUILayoutUtility.GetRect`, `GUILayout.ExpandWidth`).
+
+**Fakes that are real attacks cut short; the other's answer; the panel's colours and search (18 November).**
+Renier, 07:16: the sword fakes "just don't look like real fakes. They kind of look like he's sending signals
+with his sword ... Lets just make the fakes use the actual attacks, except they are cut short. Not always cut
+to the exact spot ... both the light and heavy attacks ... a slider that moves the cut-off forwards and
+backwards, and another for how much they can differ ... remove the blade swing sounds from the fakes. Then I
+want the opponent to sometimes do a block or dodge in response to a fake attack ... for now lets just get the
+look of this reaction right. In general I have not seen the dodges in the dance yet". And the panel: "colour
+code separate sections. Heading and buttons the same colour but the buttons should have a darker toned down
+version; add a search box that works similar to how it works in unreal."
+
+- *Why the old fake read as a signal.* A feint played an attack's wind-up and took it back before the blade
+  came forward (`PostureMaker.FeintDepth`, 0.85 of the wind-up): the sword went up and came down again, and
+  nothing ever moved toward the other.
+- *A fake is a real attack, cut short* (`PostureMaker.CutShort`; Combat Feel "A Fake Is A Real Attack Cut
+  Short", on). It is made as any blow is: a light or a heavy attack drawn for each fake (`CutFrom`, "Fakes Are
+  Cut From": both, light, heavy; `NextFakeClass`), aimed at the other's chest by the attack maker. It is
+  played to a point on its way from where its hips start in (0) to where it would land (1): the cut-off
+  (`CutAt`, "Fake Cut Off", 0.5) give or take what it varies by, drawn for each fake (`CutVaries`, "Fake Cut
+  Off Varies", 0.2: anywhere from 0.3 to 0.7). There it is checked for 0.04 s and the upper body goes straight
+  back to guard in 0.4 s (`CutHold`, `CutBack`); the legs wind back the way they came. It strikes nothing and
+  is not heard (`StrikeHits.FakeClip`: the blade's hit step and its swing sound are skipped for that clip).
+  The dance's long fake is the same, held 0.25 s where it is checked; the fakes test's "Short fake" is cut at
+  the near end of the range and its "Long fake" at the far end and held (`PostureMaker.NextCutAt`,
+  `NextCutHold`). A fake lunge is as it was.
+- *The other's answer* (for the look only: being taken in costs nothing yet). For each fake a draw decides
+  whether the other takes it for the blow (`PostureMaker.FakeBelieved`, "A Fake Is Taken For A Blow", 0.6).
+  If so the fake reads to him as the attack it is cut from until it is checked (`StrikeHits.ShotRead`,
+  `BlowRead.Feint`), and he answers that: his shield or sword goes to meet it, or he dodges
+  (`FakeDodged`, "A Fake Taken For A Blow Is Dodged", 0.5; `ClipFighter.FlinchAtFake`). Said over a dancer's
+  head ("DODGES A FAKE", "BLOCKS A FAKE", "PARRIES A FAKE") and written to the playtest log (`fake`).
+- *Why no dodge was ever seen in the dance.* A dodge was refused while the dodger was in a clip of his own,
+  and a dancer is in a gesture of his own most of the time. Now he lets his own gesture go to dodge
+  (`ClipFighter.DodgeAway`, `DodgeDropsGesture`; in a real blow of his own he still cannot, and blocks), and
+  he ducks away from the side the blade comes from, where the side was drawn before. To see them: the lab's
+  "Dodges: as set / every one (to see them)" (`ClipFighter.DodgesEvery`): every fake is believed and dodged,
+  and in the dance every real blow seen in time is dodged, high or not.
+- *In the lab.* With "Fakes test: settings" and "The dance: settings": "A fake is: a real attack cut short /
+  the old feint", levers "Fake cut-off", "Cut-off varies", "Fake believed", "Fake dodged", "Cut from: both /
+  light / heavy", "Dodges: as set / every one", and a line for the last fake (which attack, cut where).
+  Headless: `FIGHT_FAKECUT=0`, `FIGHT_FAKECUTAT`, `FIGHT_FAKECUTVARIES`, `FIGHT_FAKEFROM`,
+  `FIGHT_FAKEBELIEVED`, `FIGHT_FAKEDODGED`, `FIGHT_DODGEALL=1`, `FIGHT_DODGEDROPS=0`; the lines `DANCEFAKES`
+  and `FAKEANSWER`.
+- *Headless, two Plain fighters dancing 30 s* (one dance each: counts, not rates). As it is
+  set: 21 fakes thrown, 13 taken for a blow, 7 of those blocked and 6 dodged. Before a gesture could be let
+  go for a dodge: 14 taken for a blow, 1 dodged. With "every one" on: 14 taken for a blow, 13 dodged, 1
+  blocked (he was in a blow of his own). With the old feint: none answered, as before. The fakes test, its
+  pattern for 20 s: 17 fakes, 8 taken for a blow, 4 dodged. A fight of six ran its 40 s with nothing broken
+  (a fake is a lab and dance thing so far: the six throw none).
+- *Known: the fakes test's lesson is blurred.* Its short fakes "leave the chest covered" and its long one
+  leaves it open. A real attack uncovers the chest whoever cuts it short: headless the short fakes now leave
+  it open 0.2 to 0.5 s too, so a swordsman who only reacts has more to go for. Not mended; the reader still
+  reads the pattern by its count.
+- *The panel: a colour for each part.* Every heading and every section's bar has a colour of its own, from
+  its name (so it is the same every time; two that follow each other are never neighbours on the colour
+  wheel). The buttons under a heading, down to the next, are a darker, greyer tone of its colour; the one
+  chosen in a row (its name in square brackets) is a brighter tone; an action's settings bar is the darkest
+  (`ZoneOf`, `ZoneTone`, `ZoneButton`, `HeadingBar`). The aim test's chosen part is written "[Head]" like
+  every other choice, where it was "> Head".
+- *The panel: a search box* (`SearchBox`, at the top of the panel). With words in it every section is
+  looked through and only the settings with those words in their name are drawn, each under its section's
+  bar and its heading; the Actions window is filtered by the same words. A row (a name and its choices) is
+  one setting, shown whole if the words are in its name or in any of its choices (`BeginRow`, `EndRow`,
+  `Shown`; a row's words are read off in one layout and used from the next). Several words: all of them.
+  What is measured, and text that is no setting, is left out while searching. Escape or "×" clears it; Enter,
+  or a press anywhere else, gives the keys back to the game: while the box has them no key does anything in
+  the game (`SandboxInput.Typing`). The walk lab's own panel has neither colours nor search yet.
+- *The panel drawn without Unity* (`Tools/CompileCheck/Runner/PanelCheck.cs`:
+  `PhysicsBattler.Tests.dll panel [battle|duel|aim|tubes|targets] [search words]`). The compile check's
+  stand-ins for Unity's panel calls now write down every control asked for, and the real panel and Actions
+  window are drawn once to lay out and once to paint. Checked: both passes ask for the same controls in the
+  same order, and every row, column and scrolling view begun is ended. All five places pass, with and without
+  a search; with words given it prints what is left of the panel (the duel lab, "dodge": Dodge left, Dodge
+  right, "Fake dodged", "Dodges:").
+- *The duel lab's footwork course leaves a line in the playtest log when it ends* (`course`): what the meter
+  made of it and which walk it was on. The course Renier ran on the 18th was the walk lab's, which logs its
+  own; the duel lab's is the "Footwork course" button there.
+
+Not seen in Unity: the look of the checked attack, the dodge, a gesture dropped for a dodge (it ends with a
+short fade), the colours, typing in the search box.

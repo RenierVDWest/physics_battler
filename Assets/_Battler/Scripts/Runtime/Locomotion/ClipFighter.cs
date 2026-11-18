@@ -2210,7 +2210,8 @@ namespace PhysicsBattler.Locomotion
                         }
                     }
 
-                    Parry.Step(dt, Blow, opponent);
+                    // (A fake he dodges is not parried.)
+                    Parry.Step(dt, FlinchAtFake() ? (BlowRead?)null : Blow, opponent);
                     if (gingaArms > 0f)
                     {
                         float w = gingaArms * gingaArms * (3f - 2f * gingaArms);
@@ -3828,9 +3829,11 @@ namespace PhysicsBattler.Locomotion
             Loco.KeepsSpeedAtNextSwitch = AttackMaker.FromAnyPose;
             if (postureNow)
             {
+                var cutFrom = best.Clip;
                 var posture = PostureMaker.Make(best, postureFeint, postureLunge, out float turnsAt);
                 if (posture != null)
                 {
+                    FakeBegun(posture, cutFrom, turnsAt);
                     best.Clip = posture;
                     best.Feint = postureFeint;
                     best.FakeLunge = postureLunge;
@@ -3995,6 +3998,127 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>Dodges thrown.</summary>
         public int Dodges;
+
+        /// <summary>Fakes cut short that it threw; and, of the other's, how many it met as a blow and how many it dodged (for the logs).</summary>
+        public int FakesCut, FakesMet, FakesDodged;
+
+        /// <summary>
+        /// A posture begun: if it is a fake cut short of an attack (<see cref="PostureMaker.CutShort"/>), its blade is
+        /// told so (<see cref="StrikeHits.FakeClip"/>): it strikes nothing, is not heard, and reads to the other as the
+        /// attack it is cut from until it is checked, if he is taken in (<see cref="PostureMaker.FakeBelieved"/>).
+        /// </summary>
+        private void FakeBegun(LocoClip posture, LocoClip cutFrom, float checkedAt)
+        {
+            if (Strikes == null)
+            {
+                return;
+            }
+
+            bool cut = posture != null && posture.Name.StartsWith("made_fake_");
+            Strikes.FakeClip = cut ? posture : null;
+            Strikes.FakeOf = cut ? cutFrom : null;
+            Strikes.FakeUntil = checkedAt;
+            Strikes.FakeFools = cut && (DodgesEvery || PostureMaker.Luck() < PostureMaker.FakeBelieved);
+            FakesCut += cut ? 1 : 0;
+        }
+
+        private int fakeSerial = -1, fakeTries;
+        private bool fakeDodges, fakeAnswered;
+
+        /// <summary>
+        /// A dodge away from a blow he sees coming: to the side the blade does not come from (no blow read: a side
+        /// drawn). In a gesture of his own (a fake, a feint: not a blow) he lets it go for the dodge
+        /// (<see cref="DodgeDropsGesture"/>); it ends over the next step, so the dodge may only take on a later try.
+        /// </summary>
+        public bool DodgeAway()
+        {
+            if (DodgeDropsGesture && Posturing && Loco.Current == Locomotor.Mode.OneShot)
+            {
+                Loco.EndShotNow();
+            }
+
+            int side = shieldLuck.Next(2) == 0 ? -1 : 1;
+            if (Blow.HasValue)
+            {
+                // (Away from the side the blade comes from.)
+                Vector3 right = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.right;
+                float from = Vector3.Dot(Blow.Value.ComesFrom, right);
+                side = Mathf.Abs(from) > 0.05f ? (from > 0f ? -1 : 1) : side;
+            }
+
+            return Dodge(side);
+        }
+
+        /// <summary>A fighter who dodges lets a gesture of his own go to do it (on; off: in a gesture he cannot dodge, as before 18 November).</summary>
+        public static bool DodgeDropsGesture = true;
+
+        /// <summary>To see the dodges: every fake is taken for a blow and dodged, and in the dance every real blow made out in time is dodged too. A lab switch, off by default.</summary>
+        public static bool DodgesEvery;
+
+        /// <summary>
+        /// The other's fake, taken for a blow (<see cref="BlowRead.Feint"/>): he meets it with his shield or his sword
+        /// as he would the blow (nothing to do here: the read of it is the read of a blow), or, <see cref="PostureMaker.FakeDodged"/>
+        /// of the times, he ducks aside from it, once it has come on far enough to be read. True: this one he dodges,
+        /// and his guard does not go to meet it.
+        /// </summary>
+        private bool FlinchAtFake()
+        {
+            if (!Blow.HasValue || !Blow.Value.Feint)
+            {
+                return false;
+            }
+
+            var blow = Blow.Value;
+            if (blow.Serial != fakeSerial)
+            {
+                fakeSerial = blow.Serial;
+                fakeAnswered = false;
+                fakeTries = 0;
+                fakeDodges = DodgesEvery || (float)shieldLuck.NextDouble() < PostureMaker.FakeDodged;
+            }
+
+            float whole = blow.Coming + blow.ToContact;
+            bool readable = whole <= 1e-3f || blow.Coming >= CombatFeel.ShieldReadsFrom * whole;
+            if (readable && !fakeAnswered)
+            {
+                if (fakeDodges)
+                {
+                    bool mine = Posturing;
+                    if (DodgeAway())
+                    {
+                        fakeAnswered = true;
+                        FakesDodged++;
+                        SayFake("dodged");
+                    }
+                    else if (!(DodgeDropsGesture && (mine || fakeTries > 0) && ++fakeTries <= 8 && !Fallen))
+                    {
+                        // (In a blow of his own, or down: he cannot.)
+                        fakeDodges = false;
+                    }
+                }
+
+                if (!fakeDodges)
+                {
+                    fakeAnswered = true;
+                    FakesMet++;
+                    SayFake(stance == Stances.Sword ? "went to parry" : "brought his shield to");
+                }
+            }
+
+            return fakeDodges;
+        }
+
+        private void SayFake(string how)
+        {
+            FakeAnswered?.Invoke(this, how);
+            if (PhysicsBattler.Diagnostics.PlaytestTrace.Enabled)
+            {
+                PhysicsBattler.Diagnostics.PlaytestTrace.Note(FightUnit, "fake", $"{how} a fake he took for a blow");
+            }
+        }
+
+        /// <summary>A fighter answered a fake he took for a blow: who, and how ("dodged", "brought his shield to", "went to parry"). For the logs and the lab.</summary>
+        public static event System.Action<ClipFighter, string> FakeAnswered;
 
         public bool Drop()
         {
@@ -4397,6 +4521,7 @@ namespace PhysicsBattler.Locomotion
                 // (A posture on the move. A feint: the attack's wind-up over the walk and back, the walk as it was:
                 // no check, no step in, the hips not going in. A fake lunge: the walk's legs go on, and his hips dart
                 // toward the other and sink as the lunge's do, and come back; his feet keep to their way.)
+                var cutFrom = best.Clip;
                 var posture = PostureMaker.Make(best, postureFeint, postureLunge, out float turnsAt);
                 Vector3 darts = Vector3.zero;
                 if (postureLunge > 0f)
@@ -4410,6 +4535,7 @@ namespace PhysicsBattler.Locomotion
                     return null;
                 }
 
+                FakeBegun(posture, cutFrom, turnsAt);
                 best.Clip = posture;
                 best.Feint = postureFeint;
                 best.FakeLunge = postureLunge;
@@ -5653,6 +5779,7 @@ namespace PhysicsBattler.Locomotion
         private void RaiseShield(float dt, Vector3 striker)
         {
             StepBash(dt);
+            bool dodgesFake = FlinchAtFake();
             // (The guard holds the shield as its clip does; it moves only to meet a blow.)
             blockWeight = 0f;
             float coming = Blow.HasValue ? Blow.Value.Coming : -1f;
@@ -5680,7 +5807,9 @@ namespace PhysicsBattler.Locomotion
                         // (Uncovering, he has taken his shield away himself: it does not go to meet a blow until it is back.)
                         && !IsUncovering
                         // (In a fake of his own he is committed to it: his shield does not start to meet a blow until it is over.)
-                        && !(PostureCommitsShield && Posturing);
+                        && !(PostureCommitsShield && Posturing)
+                        // (A fake he dodges: his shield stays where it is.)
+                        && !dodgesFake;
             // (Not before the blow can be read: through the first part of it (the scene's Combat Feel's share of its time
             // from its start to its contact) it is a wind-up, and a shield that went to where it would land read the
             // striker's mind.)

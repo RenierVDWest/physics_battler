@@ -90,6 +90,49 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The slowing into a feint's furthest point takes this long (seconds).</summary>
         public const float Eases = 0.14f;
 
+        /// <summary>
+        /// A fake is a real attack cut short (Renier, 18 November: "They kind of look like he's sending signals with his
+        /// sword but never does it look like an actual fake attack ... make the fakes use the actual attacks, except
+        /// they are cut short"; Combat Feel "A Fake Is A Real Attack Cut Short"). The attack is thrown as it is, at its
+        /// own pace: its wind-up, and its cut on its way to the other. Part of the way from where the cut starts
+        /// forward to where it would land (<see cref="CutAt"/>, give or take <see cref="CutVaries"/>, a new throw of the
+        /// dice each fake) it is checked sharply, and the sword arm, chest and head go straight back to the guard from
+        /// there; the legs and hips go back the way they came. Its blade strikes nothing and makes no sound. To the
+        /// other it reads as the attack it is cut from until it is checked (see <see cref="FakeBelieved"/>). Off: as
+        /// before, a feint goes into the wind-up only and comes back along it.
+        /// </summary>
+        public static bool CutShort = true;
+
+        /// <summary>Where a fake is cut: the share of the cut's way, in time, from where it starts forward (0) to where it would land (1). And how far either way of that a fake's own cut may be.</summary>
+        public static float CutAt = 0.5f, CutVaries = 0.2f;
+
+        /// <summary>A cut-short fake: how long its check takes, how long it is held there, and how long the sword takes back to the guard (seconds).</summary>
+        public static float CutEases = 0.08f, CutHold = 0.04f, CutBack = 0.4f;
+
+        /// <summary>Which attacks fakes are cut from: 0 light and heavy alike, 1 light only, 2 heavy only.</summary>
+        public static int CutFrom = 0;
+
+        /// <summary>For the next fake only (below 0: not set): where it is cut, and how long it is held there. The fakes test's short and long fakes are the near and the far end of the range.</summary>
+        public static float NextCutAt = -1f, NextCutHold = -1f;
+
+        /// <summary>How often the other takes a cut-short fake for the attack (0 to 1): he then meets it with his shield or his sword as he would the blow, or dodges it (<see cref="FakeDodged"/> of those times).</summary>
+        public static float FakeBelieved = 0.6f, FakeDodged = 0.5f;
+
+        /// <summary>The last fake made: where it was cut (0 to 1 of the cut's way), and what it was cut from. For the lab's readout and the logs.</summary>
+        public static float LastCut;
+        public static string LastCutOf = "";
+
+        private static readonly System.Random cutLuck = new System.Random(20261118);
+
+        /// <summary>The class of attack the next fake is cut from (<see cref="CutFrom"/>).</summary>
+        public static AttackClass NextFakeClass()
+        {
+            return CutFrom == 1 ? AttackClass.Light : CutFrom == 2 ? AttackClass.Heavy : cutLuck.Next(2) == 0 ? AttackClass.Light : AttackClass.Heavy;
+        }
+
+        /// <summary>A throw of the fakes' own dice (0 to 1).</summary>
+        public static float Luck() => (float)cutLuck.NextDouble();
+
         /// <summary>What the next attack asked of a fighter is to be instead: how much of a feint (0: none; 1: as <see cref="FeintDepth"/> has it) and how much of a fake lunge. Taken by the next attack made (<see cref="Take"/>).</summary>
         private static float askedUpper, askedLower;
         private static bool asked;
@@ -113,9 +156,9 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>The moment of the attack the upper body is at, <paramref name="t"/> seconds into a feint: at the attack's own pace out to <paramref name="stop"/>, slowing into it, held, and back to the start.</summary>
-        private static float Feinted(float t, float stop, float hold, float back, out float turnsAt)
+        private static float Feinted(float t, float stop, float hold, float back, out float turnsAt, float eases = Eases)
         {
-            float ease = Mathf.Min(Eases, 2f * stop);
+            float ease = Mathf.Min(eases, 2f * stop);
             // (At the attack's own pace to half the slowing short of the stop, then slowing to nothing over it.)
             float runs = stop - 0.5f * ease;
             turnsAt = runs + ease;
@@ -182,7 +225,16 @@ namespace PhysicsBattler.Locomotion
             Vector3[] up = new Vector3[LocoClip.BoneCount], low = new Vector3[LocoClip.BoneCount], p = new Vector3[LocoClip.BoneCount];
             float drive = Mathf.Clamp(made.DriveAt, 0.05f, src.Duration), lands = Mathf.Clamp(made.ContactAt, drive, src.Duration);
             float stopUp = feint * FeintDepth * drive;
-            if (stopUp > 0f)
+            // (Cut short: the attack itself, to part of the way from where its cut starts forward to where it lands.)
+            bool cut = CutShort && feint > 0f && lunge <= 0f && lands > drive + 0.02f;
+            if (cut)
+            {
+                LastCut = Mathf.Clamp(NextCutAt >= 0f ? NextCutAt : CutAt + (2f * Luck() - 1f) * Mathf.Max(0f, CutVaries), 0f, 0.95f);
+                LastCutOf = src.Name;
+                stopUp = drive + LastCut * (lands - drive);
+            }
+
+            if (stopUp > 0f && !cut)
             {
                 // (Not held with the blade against himself: the real cut whips through there, a feint would rest in it.)
                 float clearAt = -1f, bestAt = stopUp, best = -1f;
@@ -205,10 +257,12 @@ namespace PhysicsBattler.Locomotion
                 stopUp = clearAt >= 0f ? clearAt : bestAt;
             }
 
-            float backUp = Mathf.Max(0.25f, FeintBack);
-            Feinted(0f, stopUp, FeintHold, backUp, out float turnsUp);
+            float backUp = cut ? Mathf.Max(0.2f, CutBack) : Mathf.Max(0.25f, FeintBack);
+            float holdUp = cut ? (NextCutHold >= 0f ? NextCutHold : CutHold) : FeintHold, easesUp = cut ? CutEases : Eases;
+            NextCutAt = NextCutHold = -1f;
+            Feinted(0f, stopUp, holdUp, backUp, out float turnsUp, easesUp);
             // A fake lunge goes as far into the attack as carries his hips its distance.
-            float stopLow = stopUp, reach = turnsUp, holdLow = FeintHold, backLow = backUp;
+            float stopLow = stopUp, reach = turnsUp, holdLow = holdUp, backLow = backUp;
             if (lunge > 0f)
             {
                 float far = lunge * LungeFar / Locomotor.ClipLeg;
@@ -231,14 +285,14 @@ namespace PhysicsBattler.Locomotion
 
             float lateUp = stopUp > 0f ? Mathf.Max(0f, reach - turnsUp) : 0f;
             turnsAt = lunge > 0f ? reach : turnsUp;
-            float length = Mathf.Max(stopUp > 0f ? turnsUp + lateUp + FeintHold + backUp : 0f, lunge > 0f ? reach + holdLow + backLow : 0f) + 0.05f;
+            float length = Mathf.Max(stopUp > 0f ? turnsUp + lateUp + holdUp + backUp : 0f, lunge > 0f ? reach + holdLow + backLow : 0f) + 0.05f;
 
             float rate = src.Rate;
             int frames = Mathf.CeilToInt(length * rate) + 1;
             int turnFrame = Mathf.Clamp(Mathf.RoundToInt(turnsAt * rate), 1, frames - 2);
             var data = new LocoClipData
             {
-                name = "made_posture_" + src.Name.Replace("made_", ""),
+                name = (cut ? "made_fake_" : "made_posture_") + src.Name.Replace("made_", ""),
                 role = "strike",
                 kind = "",
                 set = "guard",
@@ -255,17 +309,38 @@ namespace PhysicsBattler.Locomotion
             };
             var m = BodyMeasures.OfClips;
             BodyTracks? lastUp = null, lastLow = null;
+            // (Cut short, the upper body does not go back along the cut: from where it is checked it goes straight to
+            // the guard, which is the attack's first moment.)
+            BodyTracks guard = default, checkedAt = default;
+            if (cut)
+            {
+                src.Pose(0f, up, 1f);
+                guard = m.Decompose(up, null);
+            }
+
             for (int f = 0; f < frames; f++)
             {
                 float t = f / rate;
-                float atUp = Feinted(Mathf.Max(0f, t - lateUp), stopUp, FeintHold, backUp, out _);
-                float atLow = lunge > 0f ? Lunged(t, stopLow, reach, holdLow, backLow) : atUp;
+                float atLow0 = Feinted(Mathf.Max(0f, t - lateUp), stopUp, holdUp, backUp, out _, easesUp);
+                bool back = cut && t > turnsUp + holdUp;
+                float atUp = back ? stopUp : atLow0;
+                float atLow = lunge > 0f ? Lunged(t, stopLow, reach, holdLow, backLow) : atLow0;
                 src.Pose(atUp, up, 1f);
                 src.Pose(atLow, low, 1f);
                 var u = m.Decompose(up, lastUp);
                 var l = m.Decompose(low, lastLow);
                 lastUp = u;
                 lastLow = l;
+                if (cut && !back)
+                {
+                    checkedAt = u;
+                }
+                else if (back)
+                {
+                    float v = Mathf.Clamp01((t - turnsUp - holdUp) / backUp);
+                    u = BodyTracks.Lerp(checkedAt, guard, v * v * (3f - 2f * v));
+                }
+
                 // The lower body's hips and legs; the upper body's chest, head and arms on them, the chest facing as
                 // its own moment has it face.
                 var b = l;

@@ -469,6 +469,20 @@ namespace UnityEngine
 
     public struct Color
     {
+        public static Color HSVToRGB(float h, float s, float v)
+        {
+            float i = (float)System.Math.Floor(h * 6f), f = h * 6f - i, p = v * (1f - s), q = v * (1f - f * s), t = v * (1f - (1f - f) * s);
+            switch (((int)i % 6 + 6) % 6)
+            {
+                case 0: return new Color(v, t, p, 1f);
+                case 1: return new Color(q, v, p, 1f);
+                case 2: return new Color(p, v, t, 1f);
+                case 3: return new Color(p, q, v, 1f);
+                case 4: return new Color(t, p, v, 1f);
+                default: return new Color(v, p, q, 1f);
+            }
+        }
+
         public float r, g, b, a;
 
         public Color(float r, float g, float b, float a = 1f)

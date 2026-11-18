@@ -25,6 +25,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Seconds until contact, and how long the blow has been coming (seconds as they pass).</summary>
         public float ToContact, Coming;
 
+        /// <summary>It is a fake, cut short of landing (<see cref="PostureMaker.CutShort"/>): what is read is the attack it is cut from, which is what it looks like until it is checked.</summary>
+        public bool Feint;
+
         /// <summary>Read ahead: a combo's next blow, seen coming out of the last one's follow-through before its own clip starts.</summary>
         public bool Predicted;
 
@@ -349,7 +352,7 @@ namespace PhysicsBattler.Locomotion
                 return true;
             }
 
-            var clip = loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
+            var clip = loco.Current == Locomotor.Mode.OneShot ? ShotRead : null;
             // (A blow already met, set aside or slid off, is no longer coming: backing out it is short of its contact again.)
             if (clip == null || clip.ContactFrame < 0 || loco.ShotTime > clip.ContactFrame / clip.Rate + 0.1f || (stopped && clip == blow) || !Blade(clip, out _, out _, out blade))
             {
@@ -383,6 +386,22 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public float Keen;
 
+        /// <summary>
+        /// A fake cut short of landing (<see cref="PostureMaker.CutShort"/>), set by the fighter as he throws it: the
+        /// clip that is played, the attack it is cut from, until when in the clip it is that attack moment for moment,
+        /// and whether the other takes it for the attack. While it plays its blade strikes nothing and is not heard;
+        /// read by a defender (<see cref="Read"/>) it is the attack it is cut from, up to where it is checked.
+        /// </summary>
+        public LocoClip FakeClip, FakeOf;
+        public float FakeUntil;
+        public bool FakeFools;
+
+        /// <summary>A cut-short fake is playing.</summary>
+        public bool Faking => FakeClip != null && loco.Current == Locomotor.Mode.OneShot && loco.Shot == FakeClip;
+
+        /// <summary>The clip a defender reads: the one playing; of a fake, the attack it is cut from while it still looks like it (null once it is checked, or to one who is not taken in).</summary>
+        private LocoClip ShotRead => Faking ? (FakeFools && FakeOf != null && loco.ShotTime <= FakeUntil ? FakeOf : null) : loco.Shot;
+
         private bool ReadNow(out BlowRead read)
         {
             read = default;
@@ -393,10 +412,11 @@ namespace PhysicsBattler.Locomotion
 
             if (!Incoming(out read.Blade, out read.Aim, out read.ComesFrom))
             {
-                return ReadUpcoming(out read);
+                return Faking ? false : ReadUpcoming(out read);
             }
 
-            var clip = loco.Shot;
+            var clip = ShotRead;
+            read.Feint = Faking;
             // (A new blow: another clip, or the same one started again; the combo's next blow, read coming, is the same
             // blow it was read as.)
             if (clip != readClip || loco.ShotTime < readTime - 0.05f)
@@ -777,6 +797,12 @@ namespace PhysicsBattler.Locomotion
             }
 
             var clip = !built && loco.Current == Locomotor.Mode.OneShot ? loco.Shot : null;
+            if (clip != null && clip == FakeClip)
+            {
+                // (A fake cut short: its blade strikes nothing and is not heard.)
+                clip = null;
+            }
+
             bool striking = built || (clip != null && clip.ContactFrame >= 0);
             object playing = built ? (object)Built : clip;
             // (Its contact, in the blow's own time.)

@@ -279,6 +279,25 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A feint is not held where its blade would be nearer the middle of his own head, neck or chest than this (metres; a head is 0.1 thick about its middle): it stops short of that, at the last moment of the wind-up the blade is clear. Seen in the playtest of 16 November: a forehand feint rested with the blade against his head.")]
         [Range(0f, 0.4f)] public float feintBladeClear = 0.18f;
 
+        [Header("Fakes are real attacks cut short (18 November)")]
+        [Tooltip("On: a sword fake is a real attack, light or heavy, made for its target as any blow is, and cut short on its way to the target: the blade comes forward, checks, and goes straight back to guard. It makes no swing sound and can hit nothing. Off: the older feint, an attack's wind-up taken back before the blade comes forward (\"Feint Depth\").")]
+        public bool aFakeIsARealAttackCutShort = true;
+
+        [Tooltip("Where a fake is cut off, of the attack's way from the moment its hips start in (0) to where it would land (1). Lower: he checks it early, hardly out of the wind-up. Higher: the blade is nearly on the other before it is checked.")]
+        [Range(0.05f, 0.95f)] public float fakeCutOff = 0.5f;
+
+        [Tooltip("How far either side of the cut-off a fake may be cut, drawn afresh for each fake. 0: every fake is cut at the same spot. 0.2 with a cut-off of 0.5: anywhere from 0.3 to 0.7.")]
+        [Range(0f, 0.45f)] public float fakeCutOffVaries = 0.2f;
+
+        [Tooltip("Which attacks fakes are cut from. 0: light and heavy, drawn for each fake. 1: light only. 2: heavy only.")]
+        [Range(0, 2)] public int fakesAreCutFrom = 0;
+
+        [Tooltip("How often the other takes a fake for a real blow (of fakes; drawn once for each fake). Taken for a blow, he answers it as he would a blow: his shield or sword goes to meet it, or he dodges. Not taken for one, he lets it go. For now this is for the look only: being fooled costs him nothing yet.")]
+        [Range(0f, 1f)] public float aFakeIsTakenForABlow = 0.6f;
+
+        [Tooltip("Of the fakes he takes for a blow, how many he dodges, where the rest he blocks. (He cannot dodge in the middle of a blow of his own: then he blocks.)")]
+        [Range(0f, 1f)] public float aFakeTakenForABlowIsDodged = 0.5f;
+
         [Tooltip("A drop: a sudden dip of the hips, as if loading to spring, over whatever he is doing. How far his hips sink (centimetres); his feet stay where they are and his knees bend for it.")]
         [Range(3f, 25f)] public float dropSinks = 10f;
 
@@ -1509,6 +1528,12 @@ namespace PhysicsBattler.Locomotion
             PostureMaker.FeintDepth = feintDepth;
             PostureMaker.FeintHold = feintHold;
             PostureMaker.FeintBack = feintBack;
+            PostureMaker.CutShort = aFakeIsARealAttackCutShort;
+            PostureMaker.CutAt = fakeCutOff;
+            PostureMaker.CutVaries = fakeCutOffVaries;
+            PostureMaker.CutFrom = fakesAreCutFrom;
+            PostureMaker.FakeBelieved = aFakeIsTakenForABlow;
+            PostureMaker.FakeDodged = aFakeTakenForABlowIsDodged;
             PostureMaker.BluffSize = bladeBluffSize;
             PostureMaker.ShieldPressFar = shieldPressFar;
             PostureMaker.GuardHigh = guardHighLift;

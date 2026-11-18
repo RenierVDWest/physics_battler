@@ -1093,6 +1093,29 @@ internal static class FightReport
         // (FIGHT_GETUP=0: the get-ups as they were before 14 November.)
         PhysicsBattler.Locomotion.ClipFighter.NaturalGetUps = Environment.GetEnvironmentVariable("FIGHT_GETUP") != "0";
         // (FIGHT_GETUPRECORDED=0: the get-ups made by hand, as before 17 November. FIGHT_GETUPTAKES=0.6: a recorded get-up's time, as a share of the recording's.)
+        // (FIGHT_FAKECUT=0: fakes as before 18 November, into the wind-up only. FIGHT_FAKECUTAT, FIGHT_FAKECUTVARIES: where a
+        // fake is cut and how far either way; FIGHT_FAKEBELIEVED, FIGHT_FAKEDODGED: how often the other takes it for the
+        // blow, and how often he then dodges; FIGHT_FAKEFROM=1|2: cut from light attacks only, or heavy only.)
+        PhysicsBattler.Locomotion.PostureMaker.CutShort = Environment.GetEnvironmentVariable("FIGHT_FAKECUT") != "0";
+        foreach (var (name, set) in new (string, Action<float>)[]
+        {
+            ("FIGHT_FAKECUTAT", v => PhysicsBattler.Locomotion.PostureMaker.CutAt = v),
+            ("FIGHT_FAKECUTVARIES", v => PhysicsBattler.Locomotion.PostureMaker.CutVaries = v),
+            ("FIGHT_FAKEBELIEVED", v => PhysicsBattler.Locomotion.PostureMaker.FakeBelieved = v),
+            ("FIGHT_FAKEDODGED", v => PhysicsBattler.Locomotion.PostureMaker.FakeDodged = v),
+            ("FIGHT_FAKEFROM", v => PhysicsBattler.Locomotion.PostureMaker.CutFrom = (int)v),
+        })
+        {
+            if (float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value))
+            {
+                set(value);
+            }
+        }
+
+        // (FIGHT_DODGEALL=1: every fake is dodged and, in the dance, every blow made out in time. FIGHT_DODGEDROPS=0: in a gesture of his own he cannot dodge, as before.)
+        PhysicsBattler.Locomotion.ClipFighter.DodgesEvery = Environment.GetEnvironmentVariable("FIGHT_DODGEALL") == "1";
+        PhysicsBattler.Locomotion.ClipFighter.DodgeDropsGesture = Environment.GetEnvironmentVariable("FIGHT_DODGEDROPS") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.FakeAnswered += (who, how) => Console.WriteLine($"FAKEANSWER {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: {how} a fake he took for a blow");
         PhysicsBattler.Motion.GetUp.FromRecordings = Environment.GetEnvironmentVariable("FIGHT_GETUPRECORDED") != "0";
         // (FIGHT_GETUPCLEAR=0: a recorded get-up's feet where the recording has them, through the hips or not. FIGHT_GETUPCLEARS: how far clear, in leg lengths.)
         PhysicsBattler.Motion.GetUp.FeetClearHips = Environment.GetEnvironmentVariable("FIGHT_GETUPCLEAR") != "0";
@@ -2380,6 +2403,11 @@ internal static class FightReport
         {
             Console.WriteLine("DANCEFOOTWORK A his footwork " + danceMeterA.Text);
             Console.WriteLine("DANCEFOOTWORK B his footwork " + danceMeterB.Text);
+            {
+                var ca = dance.A.Unit.Clip;
+                var cb = dance.B.Unit.Clip;
+                Console.WriteLine($"DANCEFAKES fakes cut short of an attack: {ca.FakesCut} and {cb.FakesCut}; of the other's, met as a blow {ca.FakesMet} and {cb.FakesMet}, dodged {ca.FakesDodged} and {cb.FakesDodged}; dodges in all {ca.Dodges} and {cb.Dodges}; the last cut at {PhysicsBattler.Locomotion.PostureMaker.LastCut:0.00} of {PhysicsBattler.Locomotion.PostureMaker.LastCutOf}");
+            }
             Console.WriteLine($"DANCESETOFFS the two set off from a stand {dance.SetOffs} times in {danceMeterA.Seconds:0} s (once every {2f * danceMeterA.Seconds / Mathf.Max(1, dance.SetOffs):0.0} s each); whole steps begun {dance.A.Unit.Clip.Loco.WholeStepsBegun} and {dance.B.Unit.Clip.Loco.WholeStepsBegun}, stands to let the asking catch up {dance.A.Unit.Clip.Loco.StepPauses} and {dance.B.Unit.Clip.Loco.StepPauses}; of their stops, {dance.StopsBusy} because he could not act (a gesture, a blow, a hit) and {dance.StopsThere} because he was where he wanted to be; something pressed for {dance.UrgentFor:0} fighter-seconds of {2f * danceMeterA.Seconds:0}");
             Console.WriteLine($"DANCETALLY A {dance.A.Unit.name} ({dance.A.Pattern.Name}, {(dance.A.Reads ? "reads" : "only reacts")}): {dance.Tally(dance.A)}");
             Console.WriteLine($"DANCEFEET {dance.Feet()}");

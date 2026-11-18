@@ -150,6 +150,11 @@ internal static class Program
             return set == 3 && scene.hitForce == 3.75f && !scene.fallenBodiesSettle ? 0 : 1;
         }
 
+        if (args.Length >= 1 && args[0] == "panel")
+        {
+            return PanelCheck.Run(args);
+        }
+
         if (args.Length >= 2 && args[0] == "fight")
         {
             return FightReport.Run(args[1], args.Length >= 3 ? int.Parse(args[2]) : 7);

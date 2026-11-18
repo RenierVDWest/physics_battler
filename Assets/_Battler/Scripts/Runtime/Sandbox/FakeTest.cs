@@ -203,8 +203,14 @@ namespace PhysicsBattler.Sandbox
             float holdWas = PostureMaker.FeintHold;
             PostureMaker.FeintHold = isLong ? LongHold : 0f;
             PostureMaker.Ask(isLong ? LongDepth : ShortDepth, 0f);
-            bool thrown = Target.AimStrike(Attacker, AimSpot.Chest, out _, out _, null, null, "sns_forehand");
+            // (Cut short of a real attack: the short fake is cut at the near end of the range, the long one at the far end and held.)
+            PostureMaker.NextCutAt = PostureMaker.CutShort ? Mathf.Clamp(PostureMaker.CutAt + (isLong ? 1f : -1f) * PostureMaker.CutVaries, 0.05f, 0.95f) : -1f;
+            PostureMaker.NextCutHold = PostureMaker.CutShort && isLong ? LongHold : -1f;
+            bool thrown = PostureMaker.CutShort
+                ? Target.AimStrike(Attacker, AimSpot.Chest, out _, out _, null, null, null, 0f, null, PostureMaker.NextFakeClass())
+                : Target.AimStrike(Attacker, AimSpot.Chest, out _, out _, null, null, "sns_forehand");
             PostureMaker.FeintHold = holdWas;
+            PostureMaker.NextCutAt = PostureMaker.NextCutHold = -1f;
             var made = thrown ? Target.Clip.Made : null;
             if (made == null || !made.Posture)
             {

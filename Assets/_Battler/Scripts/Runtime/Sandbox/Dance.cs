@@ -439,8 +439,22 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        /// <summary>A dancer answered a fake he took for a blow: said over his head, as his other doings are.</summary>
+        private void OnFakeAnswered(ClipFighter who, string how)
+        {
+            foreach (var d in new[] { A, B })
+            {
+                if (On && d.Unit != null && d.Unit.Clip == who)
+                {
+                    d.Say(how == "dodged" ? "DODGES A FAKE" : how == "went to parry" ? "PARRIES A FAKE" : "BLOCKS A FAKE", Time.time, 1f);
+                }
+            }
+        }
+
         public void Begin(UnitController a, UnitController b)
         {
+            ClipFighter.FakeAnswered -= OnFakeAnswered;
+            ClipFighter.FakeAnswered += OnFakeAnswered;
             A.Unit = a;
             B.Unit = b;
             A.Foe = B;
@@ -848,7 +862,7 @@ namespace PhysicsBattler.Sandbox
                 {
                     d.stopAt = sees;
                 }
-                else if (high && left > PostureMaker.DodgeDown * 0.7f && dice.NextDouble() < Dodges(d))
+                else if ((high || DodgesAll) && left > PostureMaker.DodgeDown * 0.7f && (DodgesAll || dice.NextDouble() < Dodges(d)))
                 {
                     d.dodgeAt = sees;
                 }
@@ -1053,11 +1067,20 @@ namespace PhysicsBattler.Sandbox
 
             if (d.dodgeAt >= 0f && now >= d.dodgeAt)
             {
-                d.dodgeAt = -1f;
-                if (d.Unit.Clip.Dodge(dice.Next(2) == 0 ? -1 : 1))
+                // (Away from the blade; a gesture of his own is let go for it, which may take a step or two.)
+                if (d.Unit.Clip.DodgeAway())
                 {
+                    d.dodgeAt = -1f;
                     d.DodgedBlows++;
                     d.Say("DODGES", now, 1f);
+                    if (Diagnostics.PlaytestTrace.Enabled)
+                    {
+                        Diagnostics.PlaytestTrace.Note(d.Unit, "dance", "dodged a blow he saw coming");
+                    }
+                }
+                else if (now > d.dodgeAt + 0.12f)
+                {
+                    d.dodgeAt = -1f;
                 }
             }
 
@@ -1176,6 +1199,9 @@ namespace PhysicsBattler.Sandbox
             var own = d.Unit.Clip != null ? d.Unit.Clip.Loco.Own : null;
             return FighterLevers.On && own != null ? own.Heavy : 0.5f;
         }
+
+        /// <summary>To see the dodges: every blow a dancer makes out in time he dodges, high or not, whatever his own lever says; and every fake he takes for a blow (the lab's "Dodges: every one").</summary>
+        public static bool DodgesAll { get => ClipFighter.DodgesEvery; set => ClipFighter.DodgesEvery = value; }
 
         private static float Dodges(Dancer d)
         {
@@ -1556,8 +1582,16 @@ namespace PhysicsBattler.Sandbox
                     float holdWas = PostureMaker.FeintHold;
                     PostureMaker.FeintHold = kind == Gesture.LongFake ? LongHold : kind == Gesture.ShortFake ? 0f : holdWas;
                     PostureMaker.Ask(kind == Gesture.LongFake ? LongDepth : kind == Gesture.ShortFake ? ShortDepth : 0f, kind == Gesture.FakeLunge ? 1f : 0f);
-                    bool thrown = d.Unit.AimStrike(d.Foe.Unit, AimSpot.Chest, out _, out _, null, null, "sns_forehand");
+                    // (Cut short of a real attack: a light one or a heavy one, whichever cut the maker has for the chest.
+                    // The old feint: the forehand's wind-up.)
+                    bool cutShort = PostureMaker.CutShort && kind != Gesture.FakeLunge;
+                    // (Cut anywhere in the range, a short one or a long one; the long one is held where it is checked.)
+                    PostureMaker.NextCutHold = cutShort && kind == Gesture.LongFake ? LongHold : -1f;
+                    bool thrown = cutShort
+                        ? d.Unit.AimStrike(d.Foe.Unit, AimSpot.Chest, out _, out _, null, null, null, 0f, null, PostureMaker.NextFakeClass())
+                        : d.Unit.AimStrike(d.Foe.Unit, AimSpot.Chest, out _, out _, null, null, "sns_forehand");
                     PostureMaker.FeintHold = holdWas;
+                    PostureMaker.NextCutHold = -1f;
                     var made = thrown ? clip.Made : null;
                     if (made == null || !made.Posture)
                     {

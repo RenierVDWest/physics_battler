@@ -495,7 +495,8 @@ namespace PhysicsBattler.Units
                 if (other == null || other == this || other.Team == Team || !other.IsAlive || other.Clip == null || other.Clip.Strikes == null
                     || other.ClipTarget != this || !other.Clip.Striking
                     // (A fake is not a blow to meet: it stops short of its drive, and a shield or a parry that went to it left its cover for nothing.)
-                    || (ClipFighter.FakesDrawNoGuard && other.Clip.Posturing) || !other.Clip.Strikes.Read(out var read))
+                    // (A fake cut short of a real attack is one, to him who takes it for the attack: its read says whether he does.)
+                    || (ClipFighter.FakesDrawNoGuard && other.Clip.Posturing && !other.Clip.Strikes.Faking) || !other.Clip.Strikes.Read(out var read))
                 {
                     continue;
                 }

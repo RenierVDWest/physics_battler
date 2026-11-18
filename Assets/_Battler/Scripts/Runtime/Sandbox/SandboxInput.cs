@@ -14,6 +14,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The mouse is over the sandbox's panel (set by the panel as it is drawn): its wheel scrolls the panel then, and does not zoom the camera.</summary>
         public static bool OverPanel;
 
+        /// <summary>Words are being typed into the panel (its search box): the keys are the box's, and no key does anything in the game.</summary>
+        public static bool Typing;
+
 #if ENABLE_INPUT_SYSTEM
         public static Vector2 MousePosition => Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
         public static Vector2 MouseDelta => Mouse.current != null ? Mouse.current.delta.ReadValue() : Vector2.zero;
@@ -40,6 +43,11 @@ namespace PhysicsBattler.Sandbox
 
         public static bool KeyPressed(KeyCode key)
         {
+            if (Typing)
+            {
+                return false;
+            }
+
             var keyboard = Keyboard.current;
             if (keyboard == null)
             {
@@ -87,6 +95,11 @@ namespace PhysicsBattler.Sandbox
         /// <summary>A key held down (the locomotion lab's driving keys).</summary>
         public static bool KeyHeld(KeyCode key)
         {
+            if (Typing)
+            {
+                return false;
+            }
+
             var keyboard = Keyboard.current;
             if (keyboard == null)
             {
@@ -113,8 +126,8 @@ namespace PhysicsBattler.Sandbox
         public static bool LeftPressed => Input.GetMouseButtonDown(0);
         public static bool RightHeld => Input.GetMouseButton(1);
         public static bool MiddleHeld => Input.GetMouseButton(2);
-        public static bool KeyPressed(KeyCode key) => Input.GetKeyDown(key);
-        public static bool KeyHeld(KeyCode key) => Input.GetKey(key);
+        public static bool KeyPressed(KeyCode key) => !Typing && Input.GetKeyDown(key);
+        public static bool KeyHeld(KeyCode key) => !Typing && Input.GetKey(key);
 #endif
     }
 }

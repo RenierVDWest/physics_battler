@@ -386,6 +386,9 @@ namespace PhysicsBattler.Sandbox
             {
                 courseLeg = CourseLegs.Length - 1;
                 EndCourse();
+                // (Into the playtest's log, so a run of the course in Unity can be read afterwards: with whole steps
+                // on or off, and the legs turned or mixed.)
+                PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "course", $"the footwork course ({(PhysicsBattler.Locomotion.Locomotor.WholeSteps ? "whole steps" : "steps as asked")}, a diagonal {(PhysicsBattler.Locomotion.Locomotor.LegsTurned ? "turns the legs" : "is mixed")}): {Meter.Text}");
                 return;
             }
 
