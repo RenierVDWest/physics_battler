@@ -6966,3 +6966,54 @@ After several falls the same way the targets will have wandered; "Reset" puts th
 
 **Not checked headless**: the headless tube lineup has no target dummies, so the walk back never happens there
 (felled the same way before and after, the runs are alike). It compiles and the panel check passes. For his eye.
+
+### 19 November, 16:00: he gathers himself before he gets up (the plan's step 3, a first build)
+
+**Headless only.** Combat Feel "He Gathers Himself Before He Gets Up" (on), with "Gather Takes At Most" (0.6 s) and
+"Gather Muscle" (1). The lab: Tubes, "Falls and getting up", "The start of a get-up": "From how he lies: gathers
+himself / blends (old)", the two levers, and "His last gather".
+
+**What it does.** A little before he would begin to rise (0.4 s before, once he lies still), the get-up is set out
+as it would be, but he is not taken up. He goes on as the physical body he fell in, and the pose his muscles draw
+him to is the get-up's start instead of the fall's. Only his joints are drawn, each from the part it sits in, so
+his trunk lies as it lies; the ground, his own body and his shield stay solid to his limbs (this morning's work),
+so an arm goes round his chest and not through it. His strength comes in over 0.15 s. When each hand and foot is
+within 12 cm of the start, measured from his own hips, or after 0.6 s, the get-up takes over, and its blend starts
+from the pose he then has. His sword arm is left out: that hand stays where it lies (the morning's pin).
+
+**Two faults found in the first runs, both mended before this was pushed.** His sword hand was thrown at up to
+43 m/s as the get-up took over: it had been drawn to the start with the rest, and the get-up pinned it where the
+pose had it and not where it was. So the sword arm is not gathered, and the get-up takes over from the body as it
+is seen.
+
+**What it measured.** The same build, the gather on and off, the shield bearer bashed down (11 and 12 get-ups):
+
+| The first 0.75 s of a get-up | Blends (old) | Gathers himself |
+|---|---|---|
+| Hard bash-downs: his shield or sword crossing him, a get-up | 0.19 s | 0.11 s |
+| The same: the fastest part, on average / at most | 5.1 / 6.7 m/s | 4.6 / 6.5 m/s |
+| Extra hard bash-downs: crossing, a get-up | 0.22 s | 0.14 s |
+| The same: the fastest part, on average / at most | 5.9 / 9.9 m/s | 4.2 / 6.5 m/s |
+| Crossing through the whole get-up, both runs together (12 and 11 get-ups) | 3.42 s | 1.73 s |
+
+Felled by the tubes from four sides (three targets a run) it is less clear: the fastest part a little lower each
+time (2.8, 3.3, 4.7, 3.4 m/s to 2.7, 3.2, 4.1, 2.7), the shield hand going less far in three of four (0.72 to
+0.40 m from his back), and the crossings the same (the shield bearer from his front still 0.47 s: that is the
+get-up's own pose with the board in his hips, the plan's step 5).
+
+**What it does not do yet.**
+- **About half the gathers end by the clock**, with a hand or foot still 15 to 30 cm from the start, mostly from a
+  side: his trunk has to turn for those, and nothing turns his trunk yet (his hips are free in a fall body). The
+  plan foresaw it: a soft hold on the hips is the next piece.
+- A gather takes 0.27 to 0.50 s. It begins 0.4 s early, so he lies about a tenth of a second longer than before
+  at the most (his answer 2 allows half a second).
+- The start is still the one his hips say (step 2 is off).
+- Whether it reads as a man pulling his limbs in, or as a twitch before he rises, is for his eye. `FIGHT_GATHER=0`
+  is the old way headless; `FIGHT_GATHERMOST`, `FIGHT_GATHERMUSCLE` are the levers.
+
+**It does not thrash, in the numbers:** while gathering the fastest part moves at about 3 m/s (3.5 at the most, in
+two fights of six).
+
+**The budget.** Two fights of six with it on: crossings on his feet 0.54% and 1.11% (this morning 0.53% and
+1.16%: as red as before); the board's tremble 8.8% and 9.0% (this morning 10.5% and 11.0%; the budget is 8%):
+still over, a little less.

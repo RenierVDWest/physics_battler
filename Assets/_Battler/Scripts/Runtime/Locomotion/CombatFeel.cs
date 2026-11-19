@@ -434,6 +434,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a get-up starts from the start nearest to how he lies. Every start he could use is weighed: the one his hips say, from his side too if his hips are turned that way at all, and each posting on either hand (a sword alone always posts on its free hand). The one his hands, elbows, knees and feet are nearest to is taken; a hand that would have to pass through his own trunk counts as further. Off (the default for now: headless it did not help by itself; it is there for the next step to build on): as before, the start is chosen by which way his hips face only. The lab's \"The start: nearest to how he lies / by his hips only (old)\".")]
         public bool aGetUpStartsNearestToHowHeLies;
 
+        [Tooltip("On: a fallen fighter gathers himself before he gets up. A little before he would rise he goes on as the physical body he fell in, and his muscles draw his arms and legs to where the get-up starts. The ground, his own body and his shield stay solid to his limbs, so they go round what is in the way and not through it. The get-up takes over once his hands and feet are there, or after \"Gather Takes At Most\". Off: as before, the get-up takes over where he lies and every part turns straight to where the get-up has it. The lab's \"From how he lies: gathers himself / blends (old)\".")]
+        public bool heGathersHimselfBeforeHeGetsUp = true;
+
+        [Tooltip("Gathering before a get-up: the most it may take (seconds). Most of it is time he lay still anyway; what is over makes him lie that much longer. Default 0.6.")]
+        [Range(0.2f, 1.5f)] public float gatherTakesAtMost = ClipFighter.DefaultGatherMost;
+
+        [Tooltip("Gathering before a get-up: how hard his muscles draw him to the start, as a share of a person's strength. More: quicker and stiffer, and more likely to thrash. Default 1.")]
+        [Range(0.2f, 2f)] public float gatherMuscle = ClipFighter.DefaultGatherMuscle;
+
         [Tooltip("On: a shield or sword that has been stopped on the wrong side of his own body is let through. When what an arm holds has been against his body for 0.4 s with that hand more than 12 cm from where his pose has it, and his pose has it clear of him, it passes through his body once, back to its pose, and is stopped by him again from then. Off: as before, it stays where it was caught (headless: a board that came out of a get-up under his thigh hung 29 cm below its cover for nine seconds). Only does anything with the two \"...Stopped By Its Bearer's Body\" settings. The lab's \"Caught on his own body\".")]
         public bool aHeldThingCaughtOnHisOwnBodyIsLetThrough = true;
 
@@ -1716,6 +1725,9 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = aFallenFightersShieldStaysSolidAgainstHisBody;
             ClipFighter.KeepsApartOffHisFeet = fightersKeepApartOffTheirFeetToo;
             ClipFighter.GetUpStartNearest = aGetUpStartsNearestToHowHeLies;
+            ClipFighter.GathersBeforeGetUp = heGathersHimselfBeforeHeGetsUp;
+            ClipFighter.GatherMost = Mathf.Clamp(gatherTakesAtMost, 0.2f, 1.5f);
+            ClipFighter.GatherMuscle = Mathf.Clamp(gatherMuscle, 0.2f, 2f);
             PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = aHeldThingCaughtOnHisOwnBodyIsLetThrough;
             PhysicsBattler.Motion.GetUp.SwordHandMayTurn = Mathf.Clamp(risingSwordHandMayTurn, 0f, 45f);
             PhysicsBattler.Motion.GetUp.SwordHandTurns = Mathf.Clamp(risingSwordHandTurnsAtMost, 30f, 720f);

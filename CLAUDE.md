@@ -4,8 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 14:00 (his answers on the get-up plan; "look here" highlights on the panel; the
-plan's steps 1 and 2; thrown by nothing after a tube's fall, mended).
+Last updated: 19 November 2026, 16:00 (the get-up plan's step 3, the gather, has a first build).
 
 ## The project in a few lines
 
@@ -146,7 +145,7 @@ here is refreshed when a plan changes a lot. Read the one for the work in hand, 
 The four in hand:
 
 - `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: **the work in hand.** His five answers are in (all as
-  recommended). Steps 1 and 2 are built; **step 3, the gather, is next**
+  recommended). Steps 1 and 2 are built and step 3 has a first build; **next: turning his trunk in the gather, then step 4**
   ([live](https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa)).
 - `2026-11-18-fight-rhythm-from-recordings-plan.md`: **the main plan**
   ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)).
@@ -163,6 +162,13 @@ short, the shield held in cover, the sword and shield solid against their bearer
 smoothly, the shield giving way to the sword.
 
 **The afternoon of the 19th (after his third look, 12:26):**
+
+- **Plan step 3, a first build: he gathers himself before he gets up** (Combat Feel switch of that name, on;
+  headless only). 0.4 s before he would rise the get-up is set out, and he goes on as the fall body with the
+  get-up's start as the pose his muscles draw him to (`StepFallBody`, `BeginGetUp(true)`); the get-up takes over
+  when his hands and feet are within 12 cm of it (from his hips) or after 0.6 s. His sword arm is left out.
+  Bash-downs, on against off: crossing in a get-up's first 0.75 s 0.19 to 0.11 s and 0.22 to 0.14 s; the fastest
+  part 5.9 to 4.2 m/s. **About half the gathers end by the clock** (from a side): nothing turns his trunk yet.
 
 - **Thrown by nothing after a tube's fall: mended** (his log of 13:26: 14 times a target just up was thrown at up to
   6.2 m/s with no blow, 6 of them down again). A blow's knock that was still waiting when he fell lay with him and
@@ -275,11 +281,12 @@ goes with the keys (old)". Waiting for his eye.
 arms thrown out for balance; a look at feet crossing in a stumble to the side; a sword blow's throw worked out as
 a bash's is (it is still the old rule's number, uncapped).
 
-**The first moment of a get-up** (`Docs/Plans/2026-11-19-…`; his answers are in). Steps 1 and 2 are built (above).
-**Next: step 3, the gather**: he stays the physical body he fell in and his muscles draw him to the get-up's start
-(the fall body is already drawn to a pose: `StepFallBody` and `FallPose`; his hips are free there, so a soft hold
-on them will be needed to roll him); then step 4 (the take-over from the pose he has) and step 5 (the board
-carried round him, by his answer 3). The start's cost (step 2) must count the board before it is turned on.
+**The first moment of a get-up** (`Docs/Plans/2026-11-19-…`; his answers are in). Steps 1 and 2 are built, step 3
+has a first build (above), waiting for his eye. **Next on it:** a soft hold on his hips in the gather, so his trunk
+turns to the start too (half the gathers end by the clock for want of it); the take-over blended by where the
+joints are (step 4: today it is the get-up's old blend, begun from the gathered pose); then step 5, the board
+carried round him (his answer 3): the crossings left are the get-up's own pose. The start's cost (step 2) must
+count the board before it is turned on.
 
 **Bugs and leftovers**
 0. A get-up from a side leaves the board trembling more for some seconds after (19 November, above): cause not found.

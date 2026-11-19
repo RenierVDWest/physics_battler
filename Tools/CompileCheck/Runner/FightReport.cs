@@ -1254,6 +1254,18 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.KeepsApartOffHisFeet = Environment.GetEnvironmentVariable("FIGHT_ROOM") != "0";
         // (FIGHT_STARTNEAREST=1: a get-up's start is the one nearest to how he lies; without it, by which way his hips face only, as before.)
         PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest = Environment.GetEnvironmentVariable("FIGHT_STARTNEAREST") == "1";
+        // (FIGHT_GATHER=0: he does not gather himself before a get-up, as before. FIGHT_GATHERMOST, FIGHT_GATHERMUSCLE: its levers.)
+        PhysicsBattler.Locomotion.ClipFighter.GathersBeforeGetUp = Environment.GetEnvironmentVariable("FIGHT_GATHER") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GATHERMOST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float gatherMost))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.GatherMost = gatherMost;
+        }
+
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GATHERMUSCLE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float gatherMuscle))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.GatherMuscle = gatherMuscle;
+        }
+
         // (FIGHT_CAUGHT=0: a held thing caught on the wrong side of his own body stays there, as before.)
         PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
         // (FIGHT_GETUPPIN=0: a rising fighter's sword hand goes with the get-up's keys, as before. FIGHT_GETUPTURNS: the fastest it turns, degrees a second.)
@@ -2823,6 +2835,12 @@ internal static class FightReport
                 var starts = PhysicsBattler.Locomotion.ClipFighter.GetUpStarts;
                 sb.AppendLine($"    the first {PhysicsBattler.Locomotion.ClipFighter.GetUpStartFor:0.00} s of a get-up, as seen ({starts.Count} get-ups; the start nearest to how he lies: {(PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest ? "on" : "off")}, {PhysicsBattler.Locomotion.ClipFighter.StartsChosen} of {PhysicsBattler.Locomotion.ClipFighter.StartsWeighed} took another start than his hips say): "
                     + (starts.Count == 0 ? "none" : $"his own shield or sword crossing him {starts.Average(g => g.Crossed):0.00} s a get-up ({starts.Max(g => g.Crossed):0.00} at most); the fastest part {starts.Average(g => g.Fastest):0.0} m/s on average ({starts.Max(g => g.Fastest):0.0} at most); the shield hand went {starts.Average(g => g.HandL):0.00} m and the sword hand {starts.Average(g => g.HandR):0.00} m on average"));
+            }
+
+            {
+                int gathers = PhysicsBattler.Locomotion.ClipFighter.Gathers;
+                sb.AppendLine($"    he gathers himself before a get-up: {(PhysicsBattler.Locomotion.ClipFighter.GathersBeforeGetUp ? "on" : "off")}; {gathers} gathers"
+                    + (gathers > 0 ? $", {PhysicsBattler.Locomotion.ClipFighter.GatherSeconds / gathers:0.00} s each on average, {PhysicsBattler.Locomotion.ClipFighter.GathersCapped} ended by the clock; the furthest hand or foot still {100f * PhysicsBattler.Locomotion.ClipFighter.GatherLeftOver / gathers:0} cm from the start on average as the get-up took over; the fastest part while gathering {PhysicsBattler.Locomotion.ClipFighter.GatherFastestSum / gathers:0.0} m/s on average ({PhysicsBattler.Locomotion.ClipFighter.GatherFastestMost:0.0} at most)" : ""));
             }
 
             sb.AppendLine($"    knocks still waiting as he fell, dropped with the fall: {PhysicsBattler.Locomotion.ClipFighter.StaleKnocks}");

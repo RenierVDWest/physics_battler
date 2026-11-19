@@ -167,3 +167,15 @@ thrown back onto its pose. While getting up it is still 2.35 s, all of it in the
   posts on his shield hand, which lays the board under him. The switch stays, off; for step 3 the cost has to count
   the board.
 - **Next: step 3, the gather.**
+
+**19 November 2026, 16:00: step 3, a first build.** Headless only.
+
+- He gathers himself before he gets up (Combat Feel "He Gathers Himself Before He Gets Up", on). A little before he
+  would rise he goes on as the physical body he fell in, drawn to the get-up's start; the get-up takes over when his
+  hands and feet are there or after 0.6 s. His sword arm is left out (that hand stays where it lies).
+- Bash-downs, the gather on against off: crossing in a get-up's first 0.75 s 0.19 to 0.11 s (hard) and 0.22 to
+  0.14 s (extra hard); the fastest part 5.9 to 4.2 m/s; crossing through the whole get-up 3.42 to 1.73 s.
+- Not yet: about half the gathers end by the clock, mostly from a side, because nothing turns his trunk. That is
+  the next piece (a soft hold on his hips). The crossings left are the get-up's own pose (step 5).
+- To see it: Tubes, "Falls and getting up", "The start of a get-up": "From how he lies: gathers himself / blends
+  (old)".

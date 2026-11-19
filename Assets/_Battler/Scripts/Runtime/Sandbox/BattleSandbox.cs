@@ -3903,26 +3903,26 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "19 November, 14:30: the start of a get-up; he stays where he got up";
+        private const string LookTag = "19 November, 16:00: he gathers himself before he gets up";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
             "1. Go to \"Tubes\" (the bar of labs at the top).",
             "2. Open \"Falls and getting up\" and find \"The start of a get-up\".",
-            "3. Set \"Hold him at the start\" to on. Then fell him: \"Falls on demand\": Back, Forward, Left or Right.",
-            "4. The game stops the moment he starts to rise. Press \"Step\" a few times and watch his arms and shield. \"Let him go on\" runs it again.",
-            "5. Switch \"The start\" to \"nearest to how he lies\", fell him the same way, and compare (in my numbers it did not help yet).",
-            "6. \"His last get-up\" says how that first moment went.",
-            "7. Once he is up he should stand where he got up: no shuffle back to his old spot. The tubes come to him.",
+            "3. Fell him: \"Falls on demand\": Back, Forward, Left or Right. Watch the moment just before he rises: he should pull his arms and legs in first.",
+            "4. Set \"From how he lies\" to \"blends (old)\", fell him the same way, and compare.",
+            "5. To look closely: \"Hold him at the start\" on stops the game as the get-up takes over; \"Step\" goes on a step at a time.",
+            "6. Too slow, too stiff or thrashing? \"Gather takes at most\" and \"Gather muscle\" are the two levers.",
+            "7. Once he is up he should stand where he got up: no shuffle back to his old spot.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
             "Tubes", "Falls and getting up", "Falls on demand", "Falls on demand>Back", "Falls on demand>Forward",
-            "Falls on demand>Left", "Falls on demand>Right", "Step", "The start of a get-up", "Hold him at the start:",
-            "The start:", "His last get-up",
+            "Falls on demand>Left", "Falls on demand>Right", "Step", "The start of a get-up", "From how he lies:",
+            "Gather takes at most", "Gather muscle", "His last gather", "Hold him at the start:", "His last get-up",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5087,6 +5087,31 @@ namespace PhysicsBattler.Sandbox
             }
 
             EndRow();
+            BeginRow();
+            Words(new GUIContent("From how he lies:", "What a fallen fighter does in the moment before he gets up (Combat Feel \"He Gathers Himself Before He Gets Up\"). Gathers himself (new): he goes on as the physical body he fell in, and his muscles draw his arms and legs to where the get-up starts; the ground, his own body and his shield are solid to them, so they go round what is in the way. Then the get-up takes over. Blends (old): the get-up takes over where he lies, and every part turns straight to where the get-up has it. Fell him the same way with each and watch the moment before he rises."), GUILayout.Width(150f));
+            bool gathers = feel != null ? feel.heGathersHimselfBeforeHeGetsUp : PhysicsBattler.Locomotion.ClipFighter.GathersBeforeGetUp;
+            bool gathersNow = gathers;
+            if (Press(gathers ? "[gathers himself]" : "gathers himself", "Drawn to the start as a physical body first.")) gathersNow = true;
+            if (Press(!gathers ? "[blends (old)]" : "blends (old)", "As before.")) gathersNow = false;
+            EndRow();
+            if (gathersNow != gathers)
+            {
+                if (feel != null)
+                {
+                    feel.heGathersHimselfBeforeHeGetsUp = gathersNow;
+                }
+
+                PhysicsBattler.Locomotion.ClipFighter.GathersBeforeGetUp = gathersNow;
+            }
+
+            if (feel != null && gathersNow)
+            {
+                feel.gatherTakesAtMost = Lever("Gather takes at most", feel.gatherTakesAtMost, 0.2f, 1.5f, "The most a gather may take (seconds). Most of it is time he lay still anyway; what is over makes him lie that much longer.");
+                feel.gatherMuscle = Lever("Gather muscle", feel.gatherMuscle, 0.2f, 2f, "How hard his muscles draw him to the start, as a share of a person's strength. More: quicker and stiffer, and more likely to thrash.");
+            }
+
+            Readout(new GUIContent("His last gather: " + (PhysicsBattler.Locomotion.ClipFighter.LastGatherTold.Length > 0 ? PhysicsBattler.Locomotion.ClipFighter.LastGatherTold : "none yet") + ".", "The last gather of any fighter: how long it took, the fastest any part moved in it, and how far the furthest hand or foot still was from the start as the get-up took over."), 2);
+
             BeginRow();
             Words(new GUIContent("The start:", "How a get-up's start is chosen (Combat Feel \"A Get-Up Starts Nearest To How He Lies\"). Nearest to how he lies (new): every start he could use is weighed (the one his hips say, from his side too, each posting on either hand) and the one his hands, elbows, knees and feet are nearest to is taken. By his hips only (old): the way his hips face decides, as before. Fell him the same way with each and watch his arms in the first moment."), GUILayout.Width(150f));
             bool nearest = feel != null ? feel.aGetUpStartsNearestToHowHeLies : PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest;

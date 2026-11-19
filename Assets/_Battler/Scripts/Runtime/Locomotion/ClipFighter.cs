@@ -868,6 +868,29 @@ namespace PhysicsBattler.Locomotion
                 touchedAt = footingTime;
             }
 
+            if (gathering)
+            {
+                // (Gathering: the pose his muscles draw him to is the get-up's start, with the strength coming in over
+                // a moment. He is still the falling body: only his joints are drawn, each from the part it sits in, so
+                // his trunk lies as it lies; and the ground, his own body and his shield are solid to his limbs.)
+                float gathered = Mathf.Clamp01(gatherTime / GatherEasesIn);
+                Upper.Tone = Mathf.Lerp(Upper.Tone, GatherMuscle * FallMuscle, gathered * gathered * (3f - 2f * gathered));
+                getUp.PoseAt(0f);
+                if (stance != Stances.Open && GetUp.SwordHandStays)
+                {
+                    // (His sword hand stays where it lies through a get-up: his sword arm is not gathered. Drawn to the
+                    // start with the rest, the hand was then pinned where it had been asked to and not where it was,
+                    // and thrown there at up to 43 m/s.)
+                    fallPosed.Capture(Anim);
+                    fallAsIs.Capture(Rig);
+                    fallPosed.MixToward(fallAsIs, id => id == PartId.UpperArmR || id == PartId.ForearmR || id == PartId.HandR ? 1f : 0f);
+                    fallPosed.Apply(Anim, false);
+                }
+
+                Upper.BeginStep(dt);
+                return;
+            }
+
             bool holdsTuck = tucks && !Dead && slowAt < 0f && footingTime < TuckAtMost && (touchedAt < 0f || footingTime - touchedAt < TuckAfterLanding);
             tucked = Mathf.MoveTowards(tucked, holdsTuck ? 1f : 0f, dt / (holdsTuck ? TuckIn : TuckOut));
             StepLandedHands();
@@ -1218,6 +1241,7 @@ namespace PhysicsBattler.Locomotion
 
             pushAt = -1f;
             pendingKnock = pendingImpulse = Vector3.zero;
+            gathering = false;
             Footing = Footings.Down;
             footingTime = stillFor = 0f;
             Blow = null;
@@ -1396,7 +1420,49 @@ namespace PhysicsBattler.Locomotion
                     RoomWaits++;
                 }
 
-                if (!StaysDown && !crowded && ((footingTime >= least && stillFor >= StillFor) || footingTime >= MostDown + (fallBody && tucks ? ThrownDownMost : 0f)))
+                bool ready = (footingTime >= least && stillFor >= StillFor) || footingTime >= MostDown + (fallBody && tucks ? ThrownDownMost : 0f);
+                if (gathering)
+                {
+                    // (He is drawing himself to the get-up's start. It takes over once his hands and feet are there,
+                    // or after the most a gather may take; not while there is no room to rise.)
+                    gatherTime += dt;
+                    foreach (var id in Upper.Own)
+                    {
+                        gatherFastest = Mathf.Max(gatherFastest, Upper.SpeedOf(id).magnitude);
+                    }
+
+                    float left = GatherFurthest();
+                    if (!crowded && gatherTime >= GatherLeast && (left < GatherNear * Size || gatherTime >= GatherMost))
+                    {
+                        gathering = false;
+                        Gathers++;
+                        GathersCapped += left < GatherNear * Size ? 0 : 1;
+                        GatherSeconds += gatherTime;
+                        GatherLeftOver += left;
+                        GatherFastestSum += gatherFastest;
+                        GatherFastestMost = Mathf.Max(GatherFastestMost, gatherFastest);
+                        LastGatherTold = $"he gathered himself for {gatherTime:0.00} s (the fastest part {gatherFastest:0.0} m/s; the furthest hand or foot still {100f * left:0} cm from the start)";
+                        waitedForRoom = false;
+                        EndFallMeasure();
+                        // (The get-up takes over from the body as it is: what it reads off the pose as it begins (where
+                        // his sword hand lies) has to be the seen body's, not the start he was being drawn to.)
+                        fallAsIs.Capture(Rig);
+                        fallAsIs.Apply(Anim, false);
+                        BeginGetUp();
+                    }
+                }
+                else if (!StaysDown && !crowded && GathersBeforeGetUp && fallBody && Upper != null && NaturalGetUps && !Dead && !catching
+                    && (ready || (footingTime >= least - GatherLead && stillFor >= StillFor)))
+                {
+                    // (The plan "From how he lies to how he gets up", step 3: the get-up is set out, and he goes on as
+                    // the body he fell in, his muscles drawing him to its start.)
+                    BeginGetUp(true);
+                    gathering = true;
+                    gatherTime = gatherFastest = 0f;
+                    Upper.PinHand(0, false, Vector3.zero, 1f, 1f);
+                    Upper.PinHand(1, false, Vector3.zero, 1f, 1f);
+                }
+                else if (!StaysDown && !crowded && ready)
                 {
                     waitedForRoom = false;
                     EndFallMeasure();
@@ -1713,6 +1779,61 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How the last get-up's start was chosen, in a few words ("" when it was by his hips only).</summary>
         public string GetUpStartChose = "";
+
+        /// <summary>
+        /// He gathers himself before he gets up (the plan "From how he lies to how he gets up", step 3; Combat Feel "He
+        /// Gathers Himself Before He Gets Up"). A little before he would begin to rise, the get-up is set out, and for a
+        /// moment he goes on as the physical body he fell in while his muscles draw his arms and legs to the get-up's
+        /// start. His trunk lies as it lies; the ground, his own body and his shield stay solid to his limbs, so they
+        /// go round what is in the way. The get-up takes over once his hands and feet are within
+        /// <see cref="GatherNear"/> of the start (measured from his hips), or after <see cref="GatherMost"/>, and blends
+        /// from the pose he then has. Off: as before, the get-up takes over where he lies and blends from there.
+        /// </summary>
+        public static bool GathersBeforeGetUp = true;
+
+        /// <summary>The most a gather may take (seconds), and the share of a person's strength his muscles gather with.</summary>
+        public static float GatherMost = DefaultGatherMost, GatherMuscle = DefaultGatherMuscle;
+        public const float DefaultGatherMost = 0.6f, DefaultGatherMuscle = 1f;
+
+        /// <summary>A gather begins this long before he would rise (seconds: most of it is time he lay still anyway); takes at least this long; its strength comes in over this long; and is done when each hand and foot is within this of the start (metres at a Medium's size).</summary>
+        public const float GatherLead = 0.4f, GatherLeast = 0.15f, GatherEasesIn = 0.15f, GatherNear = 0.12f;
+
+        /// <summary>For the reports (all fighters): gathers, those ended by the clock and not by being there, the seconds they took, and how far the furthest hand or foot still was as the get-up took over (metres, summed).</summary>
+        public static int Gathers, GathersCapped;
+        public static float GatherSeconds, GatherLeftOver, GatherFastestSum, GatherFastestMost;
+
+        /// <summary>The last gather of any fighter in a few words ("" before the first, or with gathering off).</summary>
+        public static string LastGatherTold = "";
+        private float gatherFastest;
+
+        /// <summary>He is gathering himself: down still, the get-up set out, his body drawn to its start.</summary>
+        public bool Gathering => gathering;
+        private bool gathering;
+        private float gatherTime;
+
+        private static readonly PartId[] GatherEnds = { PartId.HandL, PartId.HandR, PartId.FootL, PartId.FootR };
+
+        /// <summary>How far the furthest of his hands and feet is from where the pose has it, each measured from his own hips (metres). His sword hand is left out when it stays where it lies.</summary>
+        private float GatherFurthest()
+        {
+            var seenHips = Rig.Part(PartId.Pelvis).transform;
+            var posedHips = Anim.Part(PartId.Pelvis);
+            Quaternion seenBack = Quaternion.Inverse(seenHips.rotation), posedBack = Quaternion.Inverse(posedHips.rotation);
+            float most = 0f;
+            foreach (var id in GatherEnds)
+            {
+                if (Rig.IsSevered(id) || (id == PartId.HandR && stance != Stances.Open && GetUp.SwordHandStays))
+                {
+                    continue;
+                }
+
+                Vector3 seen = seenBack * (Rig.Part(id).transform.position - seenHips.position);
+                Vector3 posed = posedBack * (Anim.Part(id).position - posedHips.position);
+                most = Mathf.Max(most, (seen - posed).magnitude);
+            }
+
+            return most;
+        }
 
         /// <summary>
         /// A get-up starts nearest to how he lies (the plan "From how he lies to how he gets up", step 2; Combat Feel
@@ -2321,7 +2442,7 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
-        private void BeginGetUp()
+        private void BeginGetUp(bool onlySetOut = false)
         {
             RagdollArmsPass();
             HeldSolid(false);
@@ -2476,6 +2597,13 @@ namespace PhysicsBattler.Locomotion
             else
             {
                 SetOut(kind, hipsSide, byRule);
+            }
+
+            if (onlySetOut)
+            {
+                // (For the gather: the get-up is set out so that its start can be posed. He is not taken up yet.)
+                GetUps--;
+                return;
             }
 
             // (Where it will stand: its walk placed there, the feet let go to land on their spots.)
