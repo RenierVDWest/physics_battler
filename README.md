@@ -7018,7 +7018,7 @@ two fights of six).
 1.16%: as red as before); the board's tremble 8.8% and 9.0% (this morning 10.5% and 11.0%; the budget is 8%):
 still over, a little less.
 
-### 19 November, 16:00: the gather seen by him; turning his trunk tried, and left off
+### 19 November, 15:40: the gather seen by him; turning his trunk tried, and left off
 
 Renier, 15:33, having played the gather: "I think it looks fine for where it is now, you can continue."
 

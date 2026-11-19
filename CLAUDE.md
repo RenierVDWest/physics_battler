@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 16:00 (the gather seen by him: "looks fine for where it is now"; turning his trunk
+Last updated: 19 November 2026, 15:40 (the gather seen by him: "looks fine for where it is now"; turning his trunk
 in it tried and left off).
 
 ## The project in a few lines
