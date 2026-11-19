@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 16:00 (the get-up plan's step 3, the gather, has a first build).
+Last updated: 19 November 2026, 14:40 (the get-up plan's step 3, the gather, has a first build).
 
 ## The project in a few lines
 

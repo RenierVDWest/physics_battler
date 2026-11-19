@@ -168,7 +168,7 @@ thrown back onto its pose. While getting up it is still 2.35 s, all of it in the
   the board.
 - **Next: step 3, the gather.**
 
-**19 November 2026, 16:00: step 3, a first build.** Headless only.
+**19 November 2026, 14:40: step 3, a first build.** Headless only.
 
 - He gathers himself before he gets up (Combat Feel "He Gathers Himself Before He Gets Up", on). A little before he
   would rise he goes on as the physical body he fell in, drawn to the get-up's start; the get-up takes over when his

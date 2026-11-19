@@ -3903,7 +3903,7 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "19 November, 16:00: he gathers himself before he gets up";
+        private const string LookTag = "19 November, 14:40: he gathers himself before he gets up";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =

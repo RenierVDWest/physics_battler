@@ -6923,7 +6923,7 @@ morning (crossings 0.53% and 1.16%, tremble 10.5% and 11.0%: both still over, fo
 
 **Next: the plan's step 3, the gather** (he draws himself to the start as the physical body he fell in). Not begun.
 
-### 19 November, 14:00: thrown by nothing after a tube's fall
+### 19 November, 13:40: thrown by nothing after a tube's fall
 
 Renier, 13:30, with his log of 13:26 (the tube test, where the panel's new "Test this" had sent him): "Saw some
 weird things where they were being pushed by something invisible a while after shoving them with the tubes."
@@ -6947,7 +6947,7 @@ before, 0 now; the report counts them ("knocks still waiting as he fell, dropped
 **To see it:** the same steps as before (the panel's "Test this" has them, with a seventh: once he is up, nothing
 should push him any more).
 
-### 19 November, 14:30: the weaker push that was left: a test target going back to its spot
+### 19 November, 14:05: the weaker push that was left: a test target going back to its spot
 
 Renier, 14:02 and 14:03, with his log of 14:01 (made on the mend above): "I'm still seeing them hit by some force
 after getting up? Is this just a bug with the tubes test?… the force is much less strong and does not knock them
@@ -6967,7 +6967,7 @@ After several falls the same way the targets will have wandered; "Reset" puts th
 **Not checked headless**: the headless tube lineup has no target dummies, so the walk back never happens there
 (felled the same way before and after, the runs are alike). It compiles and the panel check passes. For his eye.
 
-### 19 November, 16:00: he gathers himself before he gets up (the plan's step 3, a first build)
+### 19 November, 14:40: he gathers himself before he gets up (the plan's step 3, a first build)
 
 **Headless only.** Combat Feel "He Gathers Himself Before He Gets Up" (on), with "Gather Takes At Most" (0.6 s) and
 "Gather Muscle" (1). The lab: Tubes, "Falls and getting up", "The start of a get-up": "From how he lies: gathers
