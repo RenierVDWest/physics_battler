@@ -7017,3 +7017,31 @@ two fights of six).
 **The budget.** Two fights of six with it on: crossings on his feet 0.54% and 1.11% (this morning 0.53% and
 1.16%: as red as before); the board's tremble 8.8% and 9.0% (this morning 10.5% and 11.0%; the budget is 8%):
 still over, a little less.
+
+### 19 November, 16:00: the gather seen by him; turning his trunk tried, and left off
+
+Renier, 15:33, having played the gather: "I think it looks fine for where it is now, you can continue."
+
+**His log of 15:29** (measured in Unity; the gather on; 56 get-ups in the tube test, 15 fall tests and 17 blows):
+in a get-up's first 0.75 s his own shield or sword crossed him 0.05 s a get-up over all three targets, and 0.16 s
+for the shield bearer alone (17 get-ups); the fastest part 4.2 m/s on average (6.7 at 08:07, 6.0 at 12:12). No
+throw by nothing (0). The 29 stumbles "from a blow" in it are his own blow tests.
+
+**Turning his trunk in the gather: built, measured, left off** (Combat Feel "Gather Turns His Trunk", 0; the lab's
+lever of that name; `UpperBodyArticulation.TurnHips`). While he gathers, a turning hold on his hips draws them
+toward how the get-up's start has them, no harder than a share of his weight on a metre's lever: what a man does by
+pushing on the ground. At a quarter of his weight, felled from four sides:
+
+| Felled to his right / to his left (three targets each) | Trunk as it lies | Trunk turned (0.25) |
+|---|---|---|
+| Gathers ended by the clock | 2 of 3 / 2 of 3 | 3 of 3 / 2 of 3 |
+| His hips still from the start's as the get-up took over | not measured | 21 / 28 degrees |
+| The fastest part in the get-up's first 0.75 s, on average | 4.1 / 2.7 m/s | 11.5 / 5.0 m/s |
+
+It does not finish those gathers in the time they have, and it makes the take-over rougher: he is still rolling
+when the get-up takes him up, and the get-up takes a body up as if it lay still. So it is off (0), with its lever
+kept. **It needs the plan's step 4 first**: a take-over that takes him as he moves. With the lever at 0 the falls
+measure exactly as the first build's did.
+
+**Next:** step 4 (the take-over from the pose and the motion he has), then the trunk again, then step 5 (the board
+carried round him).

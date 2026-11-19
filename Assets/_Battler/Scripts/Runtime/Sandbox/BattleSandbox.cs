@@ -5108,6 +5108,7 @@ namespace PhysicsBattler.Sandbox
             {
                 feel.gatherTakesAtMost = Lever("Gather takes at most", feel.gatherTakesAtMost, 0.2f, 1.5f, "The most a gather may take (seconds). Most of it is time he lay still anyway; what is over makes him lie that much longer.");
                 feel.gatherMuscle = Lever("Gather muscle", feel.gatherMuscle, 0.2f, 2f, "How hard his muscles draw him to the start, as a share of a person's strength. More: quicker and stiffer, and more likely to thrash.");
+                feel.gatherTurnsHisTrunk = Lever("Gather turns his trunk", feel.gatherTurnsHisTrunk, 0f, 1f, "How hard his trunk is turned toward how the get-up's start has it (a share of his weight on a metre's lever): a man turning himself over by pushing on the ground. 0: his trunk lies as it lies (the first build). Too much looks like being turned by a hand.");
             }
 
             Readout(new GUIContent("His last gather: " + (PhysicsBattler.Locomotion.ClipFighter.LastGatherTold.Length > 0 ? PhysicsBattler.Locomotion.ClipFighter.LastGatherTold : "none yet") + ".", "The last gather of any fighter: how long it took, the fastest any part moved in it, and how far the furthest hand or foot still was from the start as the get-up took over."), 2);

@@ -443,6 +443,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Gathering before a get-up: how hard his muscles draw him to the start, as a share of a person's strength. More: quicker and stiffer, and more likely to thrash. Default 1.")]
         [Range(0.2f, 2f)] public float gatherMuscle = ClipFighter.DefaultGatherMuscle;
 
+        [Tooltip("Gathering before a get-up: how hard his trunk is turned toward how the get-up's start has it, as a share of his weight on a metre's lever. It stands in for a man turning himself over by pushing on the ground. 0 (the default for now): his trunk lies as it lies, and a gather from his side often runs out of time. More: he rolls toward the start; headless at 0.25 he was still rolling as the get-up took over, which made that moment rougher, so it waits for the next step. Too much looks like being turned by a hand.")]
+        [Range(0f, 1f)] public float gatherTurnsHisTrunk = ClipFighter.DefaultGatherTurns;
+
         [Tooltip("On: a shield or sword that has been stopped on the wrong side of his own body is let through. When what an arm holds has been against his body for 0.4 s with that hand more than 12 cm from where his pose has it, and his pose has it clear of him, it passes through his body once, back to its pose, and is stopped by him again from then. Off: as before, it stays where it was caught (headless: a board that came out of a get-up under his thigh hung 29 cm below its cover for nine seconds). Only does anything with the two \"...Stopped By Its Bearer's Body\" settings. The lab's \"Caught on his own body\".")]
         public bool aHeldThingCaughtOnHisOwnBodyIsLetThrough = true;
 
@@ -1728,6 +1731,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.GathersBeforeGetUp = heGathersHimselfBeforeHeGetsUp;
             ClipFighter.GatherMost = Mathf.Clamp(gatherTakesAtMost, 0.2f, 1.5f);
             ClipFighter.GatherMuscle = Mathf.Clamp(gatherMuscle, 0.2f, 2f);
+            ClipFighter.GatherTurns = Mathf.Clamp01(gatherTurnsHisTrunk);
             PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = aHeldThingCaughtOnHisOwnBodyIsLetThrough;
             PhysicsBattler.Motion.GetUp.SwordHandMayTurn = Mathf.Clamp(risingSwordHandMayTurn, 0f, 45f);
             PhysicsBattler.Motion.GetUp.SwordHandTurns = Mathf.Clamp(risingSwordHandTurnsAtMost, 30f, 720f);

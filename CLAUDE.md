@@ -4,7 +4,8 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 14:40 (the get-up plan's step 3, the gather, has a first build).
+Last updated: 19 November 2026, 16:00 (the gather seen by him: "looks fine for where it is now"; turning his trunk
+in it tried and left off).
 
 ## The project in a few lines
 
@@ -145,7 +146,8 @@ here is refreshed when a plan changes a lot. Read the one for the work in hand, 
 The four in hand:
 
 - `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: **the work in hand.** His five answers are in (all as
-  recommended). Steps 1 and 2 are built and step 3 has a first build; **next: turning his trunk in the gather, then step 4**
+  recommended). Steps 1 and 2 are built and step 3 has a first build he has seen; **next: step 4, the take-over from a body
+  that is moving; then the trunk's turn again; then step 5**
   ([live](https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa)).
 - `2026-11-18-fight-rhythm-from-recordings-plan.md`: **the main plan**
   ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)).
@@ -169,6 +171,11 @@ smoothly, the shield giving way to the sword.
   when his hands and feet are within 12 cm of it (from his hips) or after 0.6 s. His sword arm is left out.
   Bash-downs, on against off: crossing in a get-up's first 0.75 s 0.19 to 0.11 s and 0.22 to 0.14 s; the fastest
   part 5.9 to 4.2 m/s. **About half the gathers end by the clock** (from a side): nothing turns his trunk yet.
+  **Seen by him at 15:33: "it looks fine for where it is now, you can continue."** His log of 15:29 (56 get-ups):
+  crossing in a get-up's first 0.75 s 0.05 s a get-up (the shield bearer 0.16 s), the fastest part 4.2 m/s.
+- **Turning his trunk in the gather: built and left off** ("Gather Turns His Trunk", 0; `Upper.TurnHips`). At a
+  quarter of his weight it did not finish the gathers from a side and made the take-over rougher (fastest part
+  11.5 m/s against 4.1): he is still rolling when the get-up takes him up. It needs step 4 first.
 
 - **Thrown by nothing after a tube's fall: mended** (his log of 13:26: 14 times a target just up was thrown at up to
   6.2 m/s with no blow, 6 of them down again). A blow's knock that was still waiting when he fell lay with him and
@@ -282,9 +289,10 @@ arms thrown out for balance; a look at feet crossing in a stumble to the side; a
 a bash's is (it is still the old rule's number, uncapped).
 
 **The first moment of a get-up** (`Docs/Plans/2026-11-19-…`; his answers are in). Steps 1 and 2 are built, step 3
-has a first build (above), waiting for his eye. **Next on it:** a soft hold on his hips in the gather, so his trunk
-turns to the start too (half the gathers end by the clock for want of it); the take-over blended by where the
-joints are (step 4: today it is the get-up's old blend, begun from the gathered pose); then step 5, the board
+has a first build he has seen ("fine for where it is now"). **Next on it, in this order:** step 4, the take-over
+(today the get-up takes him up as if he lay still and runs its old blend from the gathered pose: it should take the
+pose and the motion he has, and blend by where the joints are); then the trunk's turn in the gather again (built,
+off: `GatherTurns`; it needs step 4, and half the gathers end by the clock for want of it); then step 5, the board
 carried round him (his answer 3): the crossings left are the get-up's own pose. The start's cost (step 2) must
 count the board before it is turned on.
 

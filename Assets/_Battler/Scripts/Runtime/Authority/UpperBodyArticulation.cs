@@ -268,6 +268,47 @@ namespace PhysicsBattler.Authority
         public float HipsOff => (links[0].transform.position - carrier.position).magnitude;
 
         private ConfigurableJoint hipHold;
+        private Quaternion? fallTurn;
+
+        /// <summary>
+        /// Falling: his hips are turned toward <paramref name="toward"/> (world), softly: a turning hold as quick as
+        /// <paramref name="quick"/> (Hz) and no stronger than <paramref name="most"/> (N·m). It carries nothing: where
+        /// his hips are is still the ground's and his own doing. Null: turned by nothing, as a falling body is.
+        /// What stands in for a man turning himself over by pushing on the ground, while he gathers himself.
+        /// </summary>
+        public void TurnHips(Quaternion? toward, float quick = 0f, float most = 0f)
+        {
+            if (hipHold == null)
+            {
+                return;
+            }
+
+            bool turns = toward.HasValue && Falling && most > 0f && quick > 0f;
+            if (!turns)
+            {
+                if (fallTurn.HasValue)
+                {
+                    hipHold.slerpDrive = new JointDrive { positionSpring = 0f, positionDamper = 0f, maximumForce = 0f };
+                }
+
+                fallTurn = null;
+                return;
+            }
+
+            float mass = 0f;
+            foreach (var link in links)
+            {
+                mass += link.mass;
+            }
+
+            // (About his own length a body turns like a roll of his breadth; taken a little wider, for the limbs out to his sides.)
+            float turnsLike = mass * 0.1f;
+            float spring = turnsLike * Mathf.Pow(2f * Mathf.PI * quick, 2f);
+            hipHold.rotationDriveMode = RotationDriveMode.Slerp;
+            hipHold.targetRotation = Quaternion.identity;
+            hipHold.slerpDrive = new JointDrive { positionSpring = spring, positionDamper = 2f * Mathf.Sqrt(spring * turnsLike), maximumForce = most };
+            fallTurn = toward;
+        }
 
         private void SupportHips()
         {
@@ -926,6 +967,7 @@ namespace PhysicsBattler.Authority
         /// <summary>The body let go to fall (see <see cref="Falling"/>). <paramref name="size"/>: its size against a Medium's.</summary>
         public void LetGo(float size)
         {
+            TurnHips(null);
             Falling = true;
             if (ShieldStoppedOffFeet)
             {
@@ -994,6 +1036,7 @@ namespace PhysicsBattler.Authority
         /// <summary>The body taken up again where it lies (it gets up): held to the pose as a standing body is, its hips held where the pose has them.</summary>
         public void TakeUp()
         {
+            TurnHips(null);
             Falling = false;
             ArmsPassAgain();
             PinHand(0, false, Vector3.zero, 1f, 1f);
@@ -1062,7 +1105,9 @@ namespace PhysicsBattler.Authority
             float standingReturn = MostReturn;
             MostReturn = FallReturn;
             carrier.MovePosition(links[0].transform.position);
-            carrier.MoveRotation(links[0].transform.rotation);
+            // (Turned toward how a get-up's start has his hips, softly, while he gathers himself: the carrier goes to
+            // that turn, where the hips are, and the hold draws them round to it with a torque that gives.)
+            carrier.MoveRotation(fallTurn ?? links[0].transform.rotation);
             Vector3 sign = ArticulationConventions.TargetSign;
             for (int i = 1; i < parts.Length; i++)
             {

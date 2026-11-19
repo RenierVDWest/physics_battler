@@ -1266,6 +1266,12 @@ internal static class FightReport
             PhysicsBattler.Locomotion.ClipFighter.GatherMuscle = gatherMuscle;
         }
 
+        // (FIGHT_GATHERTURNS=0: gathering, his trunk lies as it lies, as the first build had it; or the share of his weight that turns it.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GATHERTURNS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float gatherTurns))
+        {
+            PhysicsBattler.Locomotion.ClipFighter.GatherTurns = gatherTurns;
+        }
+
         // (FIGHT_CAUGHT=0: a held thing caught on the wrong side of his own body stays there, as before.)
         PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
         // (FIGHT_GETUPPIN=0: a rising fighter's sword hand goes with the get-up's keys, as before. FIGHT_GETUPTURNS: the fastest it turns, degrees a second.)
@@ -2840,7 +2846,7 @@ internal static class FightReport
             {
                 int gathers = PhysicsBattler.Locomotion.ClipFighter.Gathers;
                 sb.AppendLine($"    he gathers himself before a get-up: {(PhysicsBattler.Locomotion.ClipFighter.GathersBeforeGetUp ? "on" : "off")}; {gathers} gathers"
-                    + (gathers > 0 ? $", {PhysicsBattler.Locomotion.ClipFighter.GatherSeconds / gathers:0.00} s each on average, {PhysicsBattler.Locomotion.ClipFighter.GathersCapped} ended by the clock; the furthest hand or foot still {100f * PhysicsBattler.Locomotion.ClipFighter.GatherLeftOver / gathers:0} cm from the start on average as the get-up took over; the fastest part while gathering {PhysicsBattler.Locomotion.ClipFighter.GatherFastestSum / gathers:0.0} m/s on average ({PhysicsBattler.Locomotion.ClipFighter.GatherFastestMost:0.0} at most)" : ""));
+                    + (gathers > 0 ? $", {PhysicsBattler.Locomotion.ClipFighter.GatherSeconds / gathers:0.00} s each on average, {PhysicsBattler.Locomotion.ClipFighter.GathersCapped} ended by the clock; the furthest hand or foot still {100f * PhysicsBattler.Locomotion.ClipFighter.GatherLeftOver / gathers:0} cm from the start on average as the get-up took over; the fastest part while gathering {PhysicsBattler.Locomotion.ClipFighter.GatherFastestSum / gathers:0.0} m/s on average ({PhysicsBattler.Locomotion.ClipFighter.GatherFastestMost:0.0} at most); his trunk turned with {PhysicsBattler.Locomotion.ClipFighter.GatherTurns:0.00} of his weight, his hips still {PhysicsBattler.Locomotion.ClipFighter.GatherTurnLeftOver / gathers:0} degrees from the start's on average" : ""));
             }
 
             sb.AppendLine($"    knocks still waiting as he fell, dropped with the fall: {PhysicsBattler.Locomotion.ClipFighter.StaleKnocks}");

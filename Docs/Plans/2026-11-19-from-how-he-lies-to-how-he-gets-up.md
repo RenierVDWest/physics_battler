@@ -179,3 +179,9 @@ thrown back onto its pose. While getting up it is still 2.35 s, all of it in the
   the next piece (a soft hold on his hips). The crossings left are the get-up's own pose (step 5).
 - To see it: Tubes, "Falls and getting up", "The start of a get-up": "From how he lies: gathers himself / blends
   (old)".
+
+**19 November 2026, 16:00.** You saw the gather: "it looks fine for where it is now, you can continue." Your log of
+15:29 (56 get-ups, in Unity): crossing in a get-up's first 0.75 s 0.05 s a get-up, the shield bearer 0.16 s; the
+fastest part 4.2 m/s. Turning his trunk in the gather was built and measured, and is left off: it did not finish
+the gathers from his side and made the take-over rougher, because he is still rolling when the get-up takes him up.
+It needs step 4 first. Next: step 4, then the trunk again, then step 5.

@@ -887,6 +887,9 @@ namespace PhysicsBattler.Locomotion
                     fallPosed.Apply(Anim, false);
                 }
 
+                // (And his trunk is turned toward how the start has it, softly: what a man does by pushing on the
+                // ground. Without it a gather from his side ran out of time with a hand or foot still 30 cm off.)
+                Upper.TurnHips(GatherTurns > 0f ? Anim.Part(PartId.Pelvis).rotation : (Quaternion?)null, GatherTurnQuick, gathered * GatherTurns * Mass * 9.81f);
                 Upper.BeginStep(dt);
                 return;
             }
@@ -1432,16 +1435,20 @@ namespace PhysicsBattler.Locomotion
                     }
 
                     float left = GatherFurthest();
-                    if (!crowded && gatherTime >= GatherLeast && (left < GatherNear * Size || gatherTime >= GatherMost))
+                    float turnLeft = GatherTurns > 0f ? Quaternion.Angle(Rig.Part(PartId.Pelvis).transform.rotation, Anim.Part(PartId.Pelvis).rotation) : 0f;
+                    GatherTurnLeft = turnLeft;
+                    if (!crowded && gatherTime >= GatherLeast && ((left < GatherNear * Size && turnLeft < GatherTurnedWithin) || gatherTime >= GatherMost))
                     {
                         gathering = false;
                         Gathers++;
-                        GathersCapped += left < GatherNear * Size ? 0 : 1;
+                        GathersCapped += left < GatherNear * Size && turnLeft < GatherTurnedWithin ? 0 : 1;
+                        GatherTurnLeftOver += turnLeft;
+                        Upper.TurnHips(null);
                         GatherSeconds += gatherTime;
                         GatherLeftOver += left;
                         GatherFastestSum += gatherFastest;
                         GatherFastestMost = Mathf.Max(GatherFastestMost, gatherFastest);
-                        LastGatherTold = $"he gathered himself for {gatherTime:0.00} s (the fastest part {gatherFastest:0.0} m/s; the furthest hand or foot still {100f * left:0} cm from the start)";
+                        LastGatherTold = $"he gathered himself for {gatherTime:0.00} s (the fastest part {gatherFastest:0.0} m/s; the furthest hand or foot still {100f * left:0} cm from the start, his hips {turnLeft:0} degrees)";
                         waitedForRoom = false;
                         EndFallMeasure();
                         // (The get-up takes over from the body as it is: what it reads off the pose as it begins (where
@@ -1795,12 +1802,27 @@ namespace PhysicsBattler.Locomotion
         public static float GatherMost = DefaultGatherMost, GatherMuscle = DefaultGatherMuscle;
         public const float DefaultGatherMost = 0.6f, DefaultGatherMuscle = 1f;
 
+        /// <summary>
+        /// Gathering, his trunk is turned toward how the get-up's start has it (Combat Feel "Gather Turns His Trunk"):
+        /// the most torque that turns it, as a share of his weight on a metre's lever (0: his trunk lies as it lies,
+        /// as the first build had it), and how quick the turn is (Hz). Off (0) for now (19 November): at 0.25 it did
+        /// not finish the gathers from his side (his hips still 21 to 28 degrees off as the clock ended them) and
+        /// made the take-over worse, because he was still rolling as the get-up took him up: the fastest part in a
+        /// get-up's first moment 11.5 m/s on average felled to his right, against 4.1 without it. It needs the
+        /// take-over from a body that is moving (the plan's step 4) first.
+        /// </summary>
+        public static float GatherTurns = DefaultGatherTurns;
+        public const float DefaultGatherTurns = 0f, GatherTurnQuick = 1.5f, GatherTurnedWithin = 20f;
+
         /// <summary>A gather begins this long before he would rise (seconds: most of it is time he lay still anyway); takes at least this long; its strength comes in over this long; and is done when each hand and foot is within this of the start (metres at a Medium's size).</summary>
         public const float GatherLead = 0.4f, GatherLeast = 0.15f, GatherEasesIn = 0.15f, GatherNear = 0.12f;
 
         /// <summary>For the reports (all fighters): gathers, those ended by the clock and not by being there, the seconds they took, and how far the furthest hand or foot still was as the get-up took over (metres, summed).</summary>
         public static int Gathers, GathersCapped;
-        public static float GatherSeconds, GatherLeftOver, GatherFastestSum, GatherFastestMost;
+        public static float GatherSeconds, GatherLeftOver, GatherFastestSum, GatherFastestMost, GatherTurnLeftOver;
+
+        /// <summary>How far his hips are still turned from the start's as he gathers (degrees; 0 with the turning off).</summary>
+        public float GatherTurnLeft;
 
         /// <summary>The last gather of any fighter in a few words ("" before the first, or with gathering off).</summary>
         public static string LastGatherTold = "";
