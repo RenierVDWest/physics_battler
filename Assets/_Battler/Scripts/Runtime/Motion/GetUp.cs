@@ -612,6 +612,8 @@ namespace PhysicsBattler.Motion
             Facing = kind;
             lying.CopyFrom(from);
             shieldRoll = -1;
+            shieldSideKnown = false;
+            shieldLayKnown = false;
             shieldRollAngle = float.NaN;
             // (What the hands held as it lay brought out of the floor once, so the get-up starts from
             // a body holding it above the ground.)
@@ -1024,10 +1026,15 @@ namespace PhysicsBattler.Motion
                     up = Smooth((k - shieldFrom) / Mathf.Max(1e-3f, shieldBy - shieldFrom));
                 }
 
-                float w = up * (1f - standing);
+                // (Carried round him: from his front or a side the shield arm is the carried one from the first pose,
+                // flat on the ground until the keys would have raised it.)
+                // (Its place comes in over a moment from where the blend from how he lay has his hand; how far it has
+                // come up goes by how high his shoulder is, not by the clock: flat while he can still push on it.)
+                bool round = ShieldCarriedRound && Natural && Facing != Kind.FaceUp;
+                float w = (round ? Smooth(t / ((shieldLayKnown ? shieldLayTakes : ShieldLaysOver) * pace)) : up) * (1f - standing);
                 if (w > 1e-4f)
                 {
-                    HoldShieldUp(w);
+                    HoldShieldUp(w, round ? ShieldRaisedBy() : 1f);
                 }
 
                 var slot = anim.SlotWeaponL;
@@ -1087,7 +1094,76 @@ namespace PhysicsBattler.Motion
         /// of the way from where the keys put it: the shield's middle most of an arm out from the
         /// shoulder, facing the threat, never down into the ground.
         /// </summary>
-        private void HoldShieldUp(float w)
+        /// <summary>
+        /// A rising fighter's shield is carried round him, not through him (the plan "From how he lies to how he gets
+        /// up", step 5; Renier's answer 3; Combat Feel "A Rising Fighter's Shield Is Carried Round Him";
+        /// <c>FIGHT_GETUPSHIELD=0</c> for the old way). Getting up from his front or a side, the keys put his shield
+        /// hand flat on the ground under his shoulder, as an empty hand pushes up: with a board on that forearm the
+        /// board stood in his chest and hips (in his hips for 0.35 s as the get-up began, in Renier's logs of
+        /// 19 November). Now the board lies flat on the ground out to his shield side, beside his shoulder, his
+        /// hand on its grip; he pushes up on that hand; and as the shield comes up it turns from flat to facing what
+        /// he fights, swinging out round his side. (The plan said "his forearm flat on it": this shield has a centre
+        /// grip, its face square to the forearm, so a forearm cannot lie along it. The reading taken: the board flat
+        /// and out to the side as he chose, pushed up on by the hand that grips it.)
+        /// </summary>
+        public static bool ShieldCarriedRound = true;
+
+        /// <summary>How far out from his shoulder the board's middle lies, how far over the ground its face is kept, and how far the board swings out to his side as it comes up (metres, on a Medium).</summary>
+        public const float ShieldLiesOut = 0.28f, ShieldLiesOver = 0.02f, ShieldSwingsOut = 0.12f, ShieldLiftsTurning = 0.08f;
+
+        /// <summary>Over how long the shield arm goes from where the get-up has it at first to the carried place (seconds), and between which shoulder heights the board comes up from flat to his guard (metres over the ground, on a Medium).</summary>
+        public const float ShieldLaysOver = 0.3f, ShieldComesUpFrom = 0.55f, ShieldIsUpBy = 0.95f;
+
+        /// <summary>The fastest the shield hand is asked to go to the carried place (m/s, on a Medium): further off, the place takes longer to come in.</summary>
+        public const float ShieldLaysAt = 1.6f;
+
+        private bool shieldLayKnown;
+        private float shieldLayTakes;
+
+        /// <summary>How far the carried shield has come up from flat on the ground (0) to his guard (1): by how high his shield shoulder is.</summary>
+        private float ShieldRaisedBy()
+        {
+            float high = (anim.Part(PartId.UpperArmL).position.y - stance.GroundY) / Mathf.Max(0.1f, body.SizeFactor);
+            return Smooth(Mathf.InverseLerp(ShieldComesUpFrom, ShieldIsUpBy, high));
+        }
+
+        /// <summary>
+        /// Which way along the ground is out to his shield side: his chest's left if he lies on his front or back;
+        /// lying on a side, in front of his chest. Which of the two ways across his length it is, is chosen once a
+        /// get-up and kept (chosen each step it flipped as he rolled, and the board with it: a hand at 57 m/s); and
+        /// as he comes upright, where his length along the ground no longer says anything, the way he last had.
+        /// </summary>
+        private Vector3 ShieldSideAlongGround()
+        {
+            Vector3 right = ChestFrame(out Vector3 up, out Vector3 forward);
+            Vector3 head = new Vector3(up.x, 0f, up.z);
+            if (head.sqrMagnitude < 0.09f)
+            {
+                if (shieldSideKnown)
+                {
+                    return shieldSideWas;
+                }
+
+                Vector3 left = new Vector3(-right.x, 0f, -right.z);
+                return left.sqrMagnitude > 1e-6f ? left.normalized : root.rotation * Vector3.left;
+            }
+
+            Vector3 one = Vector3.Cross(Vector3.up, head.normalized);
+            if (!shieldSideKnown)
+            {
+                Vector3 front = new Vector3(forward.x, 0f, forward.z);
+                shieldSideFlipped = Vector3.Dot(one, -right) + 0.5f * Vector3.Dot(one, front) < 0f;
+                shieldSideKnown = true;
+            }
+
+            shieldSideWas = shieldSideFlipped ? -one : one;
+            return shieldSideWas;
+        }
+
+        private bool shieldSideKnown, shieldSideFlipped;
+        private Vector3 shieldSideWas;
+
+        private void HoldShieldUp(float w, float raise = 1f)
         {
             var shield = Loadout.Off;
             float scale = Loadout.Scale;
@@ -1112,11 +1188,35 @@ namespace PhysicsBattler.Motion
             Vector3 faceWay = way;
             way = ShieldSide(way);
             faceWay = Vector3.RotateTowards(way, faceWay, ShieldFaceOffArm * Mathf.Deg2Rad, 0f);
-            Vector3 upWay = Vector3.ProjectOnPlane(Vector3.up, faceWay);
+            // (Carried round him: flat on the ground out to his shield side while it has not come up, face down,
+            // and turned from there to what he fights as it comes up.)
+            bool carried = raise < 1f;
+            float place = carried ? 1f : w;
+            shieldFitShare = carried ? Smooth(raise) : 1f;
+            Vector3 side = Vector3.zero, flatHand = Vector3.zero, flatElbow = Vector3.zero;
+            if (carried)
+            {
+                // (The board's middle on the ground beside his shoulder, far enough out that its rim clears his chest;
+                // his hand on its grip above it, as far over the ground as the grip is behind the board's face. The
+                // grip is a centre grip: the board's face is square to his forearm, so his forearm comes down onto it
+                // from an elbow held up and back, as in a push-up, and he pushes up on that hand.)
+                float size = body.SizeFactor;
+                side = ShieldSideAlongGround();
+                ChestFrame(out Vector3 headward, out _);
+                headward.y = 0f;
+                headward = headward.sqrMagnitude > 1e-4f ? headward.normalized : Vector3.Cross(side, Vector3.up);
+                Vector3 shoulder = upper.position;
+                Vector3 middle = new Vector3(shoulder.x, stance.GroundY, shoulder.z) + side * (ShieldLiesOut * size) + headward * (0.05f * size);
+                flatHand = middle + Vector3.up * (Mathf.Abs(shield.faceCenter.z) * scale + ShieldLiesOver * size);
+                flatElbow = (Vector3.up - 0.2f * headward + 0.3f * side).normalized;
+                faceWay = Vector3.Slerp(Vector3.down, faceWay, raise).normalized;
+            }
+
+            Vector3 upWay = Vector3.ProjectOnPlane(carried ? Vector3.Slerp(side, Vector3.up, raise) : Vector3.up, faceWay);
             Quaternion rotation = Quaternion.LookRotation(faceWay, upWay.sqrMagnitude > 1e-4f ? upWay : root.rotation * Vector3.forward);
             Quaternion handFrom = hand.rotation;
             Quaternion handTurn = rotation * Quaternion.Inverse(slot.localRotation);
-            Quaternion turn = Quaternion.Slerp(handFrom, handTurn, w);
+            Quaternion turn = Quaternion.Slerp(handFrom, handTurn, place);
             // (Held as a guard holds it: the elbow down and out by the ribs, the forearm pointing at the
             // threat, so the shield faces it with the wrist straight. It comes from where the keys had
             // it, by w.)
@@ -1125,11 +1225,29 @@ namespace PhysicsBattler.Motion
             Vector3 elbowWay = (0.45f * way + 0.8f * Vector3.down - 0.35f * right).normalized;
             Vector3 forearmWay = (faceWay + 0.15f * chestUp).normalized;
             Vector3 guardHand = upper.position + elbowWay * upperLength + forearmWay * (0.95f * foreLength);
-            Vector3 target = Vector3.Lerp(hand.position, guardHand, w) + Vector3.up * (0.03f * body.SizeFactor * w);
+            if (carried)
+            {
+                // (From flat on the ground to the guard, swinging out to his side on the way.)
+                // (And a little up: turning from flat, its lower rim would dip into the ground.)
+                guardHand = Vector3.Lerp(flatHand, guardHand, raise) + (side * ShieldSwingsOut + Vector3.up * ShieldLiftsTurning) * (body.SizeFactor * Mathf.Sin(Mathf.PI * raise));
+            }
+
+            // (How long the carried place takes to come in goes by how far the hand has to go to it.)
+            if (carried && w < 1f && !shieldLayKnown)
+            {
+                shieldLayKnown = true;
+                shieldLayTakes = Mathf.Max(ShieldLaysOver, (guardHand - hand.position).magnitude / (ShieldLaysAt * body.SizeFactor));
+            }
+
+            Vector3 target = Vector3.Lerp(hand.position, guardHand, place) + Vector3.up * (0.03f * body.SizeFactor * place * raise);
             // (The elbow turns from where the keys had it to down by the ribs, as the shield comes up.)
             Vector3 elbowWas = fore.position - 0.5f * (upper.position + hand.position);
             Vector3 elbowTo = (Vector3.down - 0.6f * right).normalized;
-            Vector3 pole = elbowWas.sqrMagnitude > 1e-8f ? Vector3.Slerp(elbowWas.normalized, elbowTo, w) : elbowTo;
+            if (carried)
+            {
+                elbowTo = Vector3.Slerp(flatElbow, elbowTo, raise).normalized;
+            }
+            Vector3 pole = elbowWas.sqrMagnitude > 1e-8f ? Vector3.Slerp(elbowWas.normalized, elbowTo, place) : elbowTo;
             PlaceShieldArm(target, pole, turn);
 
             // (Which way up the shield is held, about its face, is the wrist's to choose: the turn the
@@ -1166,7 +1284,7 @@ namespace PhysicsBattler.Motion
 
             {
                 handTurn = bestRotation * Quaternion.Inverse(slot.localRotation);
-                turn = Quaternion.Slerp(handFrom, handTurn, w);
+                turn = Quaternion.Slerp(handFrom, handTurn, place);
             }
 
             PlaceShieldArm(target, pole, turn);
@@ -1183,6 +1301,12 @@ namespace PhysicsBattler.Motion
                     }
 
                     Vector3 face = slot.rotation * Vector3.forward;
+                    // (Flat on the ground its face is down: it goes out to his side instead.)
+                    if (carried)
+                    {
+                        face = Vector3.Slerp(side, face, raise).normalized;
+                    }
+
                     target += face * (deep + 0.02f * body.SizeFactor);
                     PlaceShieldArm(target, pole, turn);
                 }
@@ -1214,13 +1338,19 @@ namespace PhysicsBattler.Motion
 
             // (Coming in and giving way, the arm's whole shape eases from the one it had, so the elbow
             // never changes sides in a step.)
-            float ease = Smooth(w / 0.35f);
+            // (Carried, the whole arm was placed where it is to be, and comes there from the shape it had by turning
+            // its joints: a hand led there in a straight line with the elbow's way turned as it went had the elbow
+            // change sides on the way, a forearm at 20 m/s.)
+            float ease = carried ? w : Smooth(w / 0.35f);
             if (ease < 1f)
             {
                 upper.localRotation = Quaternion.Slerp(upperWas, upper.localRotation, ease);
                 fore.localRotation = Quaternion.Slerp(foreWas, fore.localRotation, ease);
                 hand.localRotation = Quaternion.Slerp(handWas, hand.localRotation, ease);
             }
+
+            shieldFitShare = 1f;
+
         }
 
         // Milestone 9c: the shield arm fitted inside its joints' limits, carrying on from its last shape
@@ -1237,6 +1367,28 @@ namespace PhysicsBattler.Motion
             // Milestone 10 (the arm rebuild's step 5): on the arm rig, inside the joints' limits by
             // construction, the elbow moved off its null only where the wrist can't take the turn.
             Vector3 at = Within(PartId.UpperArmL, PartId.ForearmL, PartId.HandL, target, 0.96f);
+            // (Carried flat on the ground: his elbow where it is asked and the board turned as it is asked, by plain
+            // geometry. Fitted inside the wrist's limits, the fit chose the elbow's side by what the wrist could take,
+            // and changed its mind as the hand moved: an elbow 43 cm across in one step, and a board that would not
+            // lie flat. The fitted arm comes back in as the board comes up.)
+            Quaternion plainUpper = Quaternion.identity, plainFore = Quaternion.identity, plainHand = Quaternion.identity;
+            if (shieldFitShare < 1f)
+            {
+                var upperPart = anim.Part(PartId.UpperArmL);
+                var forePart = anim.Part(PartId.ForearmL);
+                var handPart = anim.Part(PartId.HandL);
+                TwoBoneIK.Solve(upperPart, forePart, handPart, at, pole);
+                handPart.rotation = turn;
+                if (shieldFitShare <= 0f)
+                {
+                    return;
+                }
+
+                plainUpper = upperPart.localRotation;
+                plainFore = forePart.localRotation;
+                plainHand = handPart.localRotation;
+            }
+
             ArmRig.Solve(anim, false, new ArmGoal
             {
                 point = at,
@@ -1245,7 +1397,19 @@ namespace PhysicsBattler.Motion
                 turnWeight = 1f,
                 nearNull = true,
             });
+            if (shieldFitShare < 1f)
+            {
+                var upperPart = anim.Part(PartId.UpperArmL);
+                var forePart = anim.Part(PartId.ForearmL);
+                var handPart = anim.Part(PartId.HandL);
+                upperPart.localRotation = Quaternion.Slerp(plainUpper, upperPart.localRotation, shieldFitShare);
+                forePart.localRotation = Quaternion.Slerp(plainFore, forePart.localRotation, shieldFitShare);
+                handPart.localRotation = Quaternion.Slerp(plainHand, handPart.localRotation, shieldFitShare);
+            }
         }
+
+        /// <summary>How much of the shield arm's placing is the fit inside its joints' limits (1), and how much plain geometry (0): the carried shield, flat on the ground.</summary>
+        private float shieldFitShare = 1f;
 
         /// <summary>How hard the shield wrist works as posed now: past its limits counts most, then its bend (degrees).</summary>
         private float WristCost()
@@ -2130,6 +2294,12 @@ namespace PhysicsBattler.Motion
         public void PoseAt(float t)
         {
             PoseKeys(Mathf.Max(0f, t - KeysFrom));
+            // (Where the body is asked to come to has the shield where the get-up will carry it: the gather draws
+            // his shield arm out to his side, with the board solid, not to under his shoulder.)
+            if (ShieldCarriedRound && Natural && Shielded && Facing != Kind.FaceUp)
+            {
+                HoldShieldUp(1f, ShieldRaisedBy());
+            }
         }
 
         private void PoseKeys(float t)

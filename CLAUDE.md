@@ -4,9 +4,9 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 22:55 (he saw step 4 and called the get-up a mess. Mended and pushed, headless
-only: knees, the sword hand, the jump as he stands, and the floor's edge he was bashed off. He has gone to bed and
-set the night's order: see "Roadmap").
+Last updated: 20 November 2026, 00:30 (the night's work, all headless only and waiting for his eye: the get-up
+mended four ways after he called it a mess (knees, sword hand, the jump as he stands, the shield carried round him)
+and the floor's edge; arms that go out in a stumble. He is asleep and set the night's order: see "Roadmap").
 
 ## The project in a few lines
 
@@ -197,6 +197,18 @@ smoothly, the shield giving way to the sword.
   eased out of the get-up. Mended (Combat Feel "A Get-Up Ends Into His Stand Over A Moment"; lab row "The end of
   a get-up"; `ClipFighter.WholeBodyEasesOutOfGetUp`). New report line "the end of a get-up, as seen": headless
   4.6 to 14.3 m/s before, 0.7 to 2.9 after.
+- **The shield carried round him (the plan's step 5; 20 November, 00:30):** Combat Feel "A Rising Fighter's Shield
+  Is Carried Round Him"; lab row "Getting up, his shield"; `GetUp.ShieldCarriedRound` (in `HoldShieldUp`: `raise`
+  by shoulder height, the carried arm placed by plain geometry, `PoseAt` gives the gather the same place). From
+  his front or a side the board lies on the ground out to his shield side, his hand on its grip, and swings up
+  round his side. **A reading taken:** the plan said "his forearm flat on it"; the shield has a centre grip, so
+  he pushes up on the gripping hand instead. Headless: in his own body off his feet 0.47 s to 0.00 from his front,
+  0.52 to 0.12 from his right. Costs: the fastest part early 3.0 to 3.9 m/s; the rim 3 to 5 cm in the ground for
+  0.1 s as it turns up.
+- **Arms in a stumble (20 November, 00:30):** Combat Feel "A Stumbling Fighter's Arms Go Out For Balance" and
+  lever; lab row "Stumbling, his arms" and lever "Arms go out by" (duel lab, "Stumbles and falls");
+  `ClipFighter.StepArmsOut`, the last thing that poses his arms. Headless: his hands 72 to 101 cm apart in a
+  medium bash's stumble, 97 to 121 in a hard one countered; the stumbles themselves unchanged.
 - **A lesson:** a report that only measures the first 0.75 s of a get-up cannot see its end. When he says it looks
   wrong and the numbers say fine, read his pose log step by step (`/tmp`-style scripts: per-part speed from one
   step to the next) before believing the numbers.
@@ -360,8 +372,10 @@ a bash's is (it is still the old rule's number, uncapped).
 
 **The night of 19 to 20 November: his order (said at 21:29, going to bed).** "Continue working through the
 night... if you get to a point that you need to push and get feedback you can just move on to another task." In
-this order: (1) finish the get-up fixes (knees and sword hand: pushed 22:10; then the shield through him, step 5);
-(2) back to stumbles; (3) bodies that absorb a hit; (4) kicks; (5) pouncing on an opening; (6) downed fighters.
+this order: (1) finish the get-up fixes (**done and pushed**: 22:10, 22:55, 00:30);
+(2) back to stumbles (**arms out for balance pushed 00:30**; left: feet crossing in a stumble to the side, a
+sword blow's throw worked out as a bash's is, and in his log of 20:10 every hard bash's stumble had "0 stumble
+steps" before he fell: look at that); (3) bodies that absorb a hit; (4) kicks; (5) pouncing on an opening; (6) downed fighters.
 Each gets its switch, lab toggle, measure, push and (if it needs his eye) its 3b2b; the panel's "Look here" list
 covers the whole night, not only the last push. He gets one short list in the morning.
 

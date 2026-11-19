@@ -7269,3 +7269,64 @@ get-up): 3.9 to 3.8, budgets the same.
 five of eleven get-ups (headless shows the same moment at 1.4 to 2.9). It is the shield arm at the take-over:
 taken with step 5.
 
+### 20 November, 00:30: his shield carried round him as he gets up (the plan's step 5), and arms that go out in a stumble
+
+**1. The shield (step 5).** Getting up from his front or a side, the keys put the shield hand flat on the ground
+under his shoulder, as an empty hand pushes up, and the hold toward the threat came in over the first third of a
+second: the board stood in his chest and hips on the way (his screenshot of 19 November; "the shield intersects
+him").
+
+- **Built** (Combat Feel "A Rising Fighter's Shield Is Carried Round Him"; lab row "Getting up, his shield: carried
+  round him / as recorded (old)"; `GetUp.ShieldCarriedRound`; `FIGHT_GETUPSHIELD=0`). From his front or a side the
+  board lies on the ground out to his shield side, its middle 28 cm out from his shoulder, his hand on its grip
+  and his elbow up and back as in a push-up: he pushes up on that hand. It comes up by how high his shoulder is
+  (from 55 to 95 cm over the ground), turning from flat to facing what he fights and swinging 12 cm out round his
+  side. The gather is given the same place, so the body draws its shield arm there before the get-up takes over.
+  From his back nothing changes (it never crossed him there).
+- **A reading taken.** His answer 3 was my wording: "his forearm flat on it; he pushes up on that forearm". This
+  shield has a centre grip: its face is square to the forearm, so a forearm cannot lie along it. Taken instead: the
+  board flat and out to his side as he chose, pushed up on by the hand that grips it.
+- **Three things tried and changed on the way:** the arm fitted inside its joints' limits would not lay the board
+  flat and changed the elbow's side as the hand moved (an elbow 43 cm across in one step): the carried arm is
+  placed by plain geometry, the fitted arm coming back in as the board comes up. The hand led to its place in a
+  straight line whipped the forearm (20 m/s): the arm comes there by turning its joints from the shape it had,
+  over 0.3 s or longer if it is far (1.6 m/s). Which way is "out to his side" flipped as he rolled: chosen once a
+  get-up.
+- **Measured, headless, old to new (three targets felled by the tube; the shield bearer is one):** from his front,
+  his shield or sword in his own body off his feet 0.47 s to 0.00 s; in the first 0.75 s 0.13 s a get-up to 0.00
+  (0.38 to 0.00 at most). From his right 0.52 to 0.12 s, and 0.14 to 0.04 (0.43 to 0.12 at most). From his back
+  and left nothing changed (the shield bearer got up from his back in both).
+- **What it costs:** the fastest part in the first 0.75 s from his front 3.0 to 3.9 m/s (3.2 to 5.6 at most), the
+  take-over's jump 2.3 to 3.3; from his right 3.6 to 3.9 and 2.6 to 2.4, and the end of the get-up 1.4 to 2.8
+  (5.4 at most). As the board turns up, about 1.3 s in, its rim is 3 to 5 cm in the ground for a tenth of a second
+  (before: 0 to 1 cm).
+- **Not shown by these tests:** the shield bearer bashed down hard got up from his back all six times, so the
+  bash-downs measure the same old and new. Fights of six: seed 3 the same (no shield bearer got up); seed 5 the
+  fights differ (crossing in the first 0.75 s 0.18 to 0.13 s; on his feet 0.09% to 0.22%, both under the budget).
+- **Not known:** whether the shield forearm's kick 0.15 s into a get-up from his front, seen in his log of 20:10
+  (9 to 12 m/s), is gone in Unity. Its path there is a different one now.
+- A drawing of the posed arm at six moments (from above and from his head end) was made from a trace and looked
+  at: the board lies clear of his trunk beside his shoulder, the forearm comes straight down onto it, and it is
+  up beside his shoulder by 1.5 s.
+
+**2. Arms in a stumble.** His arms did nothing of their own while he stumbled: they held his guard.
+
+- **Built** (Combat Feel "A Stumbling Fighter's Arms Go Out For Balance", lever "Stumbling Arms Go Out By"; lab
+  row "Stumbling, his arms: go out for balance / hold his guard (old)" and lever "Arms go out by";
+  `ClipFighter.ArmsGoOutInAStumble`, `StepArmsOut`; `FIGHT_ARMSOUT=0`, `STUMBLE_ARMS=1.5`). Each hand goes out to
+  its side, 9 cm for each m/s he goes and 36 cm at the most, and up by two fifths of that; the hand on the far
+  side from where he tips goes the further; both are left behind a little by the way he is thrown (5 cm for each
+  m/s). Out quickly, back more slowly as he catches himself. Not the sword arm in a blow of its own.
+- **Tried first:** turning his upper arms out at the shoulder. His guard has his hands straight ahead of his
+  shoulders, so his elbows flared 25 to 64 degrees and his hands hardly moved (76 to 84 cm apart). Put before the
+  cover and the guard it was undone by them: it is the last thing that poses his arms.
+- **Measured, headless (`four.sh`, the same stumbles old and new):** a medium bash, two stumble steps: his hands
+  72 cm apart, to 101 at the widest. A hard bash countered, three steps: 97 to 121. A hard bash not countered (he
+  goes down): 72 to 124. The stumbles themselves are step for step the same: this changes his arms only. Crossing
+  on his feet 0.00% in each, as before.
+- **Fights of six (40 s):** moved out and still turned as his guard had it, his blade went through his own board
+  in a stumble (0.15 s, seed 5). What each hand holds now turns out to its side with the hand (40 degrees at the
+  most): crossing while stumbling 0.00 s of 6.7 s (seed 5) and 0.00 of 0.3 s (seed 3), as before the arms. On his
+  feet in all: 0.67% and 0.72% (before tonight 0.58% and 0.73%: over the budget as it was; the fights differ).
+- **Not seen in Unity.** A sword and a board thrown wide may read as too much: the lever is there for that.
+

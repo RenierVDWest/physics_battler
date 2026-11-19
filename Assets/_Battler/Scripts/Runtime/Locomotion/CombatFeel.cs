@@ -346,6 +346,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a fighter pushed off balance stumbles on real stumble steps (the Fight Rhythm plan's step 9c). His body is a weight on legs: thrown by a bash or a heavy blow it tips away from his feet, and the only thing that stops it is a foot put down ahead of it. The foot behind lifts and goes for the point where it would stop him, as far as a leg reaches and as fast as a foot goes; landing ahead of him it takes speed out of him and his knees give. If his feet get there he is caught, in one step or several, and may have been turned by a blow that came in off his middle. If his body outruns his feet his hips sink and he is down. No speed is written in for when he stumbles or falls and nothing is drawn by lot: it comes from the speed and twist the impact left him with and where his feet were. Off: as before, he is thrown back on the guard's walk played fast, and falls from a fixed speed.")]
         public bool offBalanceHeStumblesOnRealSteps = true;
 
+        [Tooltip("On: a stumbling fighter's arms go out for balance. His upper arms lift out from his sides by how fast he is going, the arm on the far side from where he tips the further, and both are left behind a little by the way he is thrown. Off (old): his arms hold the guard they had while he stumbles.")]
+        public bool aStumblingFightersArmsGoOutForBalance = true;
+
+        [Tooltip("How much a stumbling fighter's arms go out: 1 as built, 0 not at all, 2 twice as far (never more than about 50 degrees out).")]
+        [Range(0f, 2f)] public float stumblingArmsGoOutBy = ClipFighter.DefaultArmsGoOutBy;
+
         [Tooltip("How long after he is thrown his first foot lifts (seconds). Shorter: quicker on his feet, he keeps them from harder blows. Longer: his body is further gone before he steps, and his legs look stiff while his upper body recoils. Default 0.05.")]
         [Range(0f, 0.4f)] public float stumbleFirstFootLiftsIn = StumbleSteps.DefaultReactsIn;
 
@@ -442,6 +448,9 @@ namespace PhysicsBattler.Locomotion
 
         [Tooltip("On: as a get-up ends, the whole of him is eased into his stand over a fifth of a second (his arms over two fifths, as before). Off (old): only his arms were eased; his hips, trunk, head and legs jumped to where the stand has them in one step.")]
         public bool aGetUpEndsIntoHisStandOverAMoment = true;
+
+        [Tooltip("On: getting up from his front or a side, a fighter's shield lies flat on the ground out to his shield side with his forearm flat on it, he pushes up on that forearm, and the shield swings out round his side as it comes up. Off (old): his shield hand is put flat on the ground under his shoulder as an empty hand is, and the board stands in his chest and hips.")]
+        public bool aRisingFightersShieldIsCarriedRoundHim = true;
 
         [Tooltip("On: a get-up starts from the start nearest to how he lies. Every start he could use is weighed: the one his hips say, from his side too if his hips are turned that way at all, and each posting on either hand (a sword alone always posts on its free hand). The one his hands, elbows, knees and feet are nearest to is taken; a hand that would have to pass through his own trunk counts as further. Off (the default for now: headless it did not help by itself; it is there for the next step to build on): as before, the start is chosen by which way his hips face only. The lab's \"The start: nearest to how he lies / by his hips only (old)\".")]
         public bool aGetUpStartsNearestToHowHeLies;
@@ -1747,6 +1756,7 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Motion.GetUp.KneesClearTheGround = aRisingFightersKneesStayAboveTheGround;
             ClipFighter.KeepsTheStartHeGatheredFor = aGetUpKeepsTheStartHeGatheredFor;
             ClipFighter.WholeBodyEasesOutOfGetUp = aGetUpEndsIntoHisStandOverAMoment;
+            PhysicsBattler.Motion.GetUp.ShieldCarriedRound = aRisingFightersShieldIsCarriedRoundHim;
             PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = aFallenFightersShieldStaysSolidAgainstHisBody;
             ClipFighter.KeepsApartOffHisFeet = fightersKeepApartOffTheirFeetToo;
             ClipFighter.GetUpStartNearest = aGetUpStartsNearestToHowHeLies;
@@ -1764,6 +1774,8 @@ namespace PhysicsBattler.Locomotion
             ImpactLedger.Bounce = Mathf.Clamp01(impactBounce);
             ImpactLedger.FeetTake = Mathf.Clamp01(feetTakeOfAnImpact);
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
+            ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
+            ClipFighter.ArmsGoOutBy = stumblingArmsGoOutBy;
             StumbleSteps.ReactsIn = Mathf.Clamp(stumbleFirstFootLiftsIn, 0f, 0.4f);
             StumbleSteps.StepTakes = Mathf.Clamp(stumbleStepTakes, 0.08f, 0.5f);
             StumbleSteps.StepReach = Mathf.Clamp(stumbleStepReach, 0.25f, 0.9f);

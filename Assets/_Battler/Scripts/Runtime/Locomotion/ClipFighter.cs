@@ -3856,6 +3856,9 @@ namespace PhysicsBattler.Locomotion
             HoldArms(dt);
             EaseArmsFromGetUp(dt);
             SettleHeld(dt);
+            // (Last of what poses his arms: put before the cover and the guard, they put his hands back where they
+            // had them, and his arms went out 25 to 64 degrees at the shoulder with his hands hardly moving.)
+            StepArmsOut(dt);
 
             if (Authority != null)
             {
@@ -7512,6 +7515,7 @@ namespace PhysicsBattler.Locomotion
             staggerAt = Flat(Loco.Position);
             staggerWhy = why;
             StumblesBegun++;
+            StumbleHandsBegan = StumbleHandsWidest = StumbleArmOutMost = 0f;
             thrownAt = clock;
             pushAt = -1f;
             pendingKnock = Vector3.zero;
@@ -7575,6 +7579,109 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        // ---- A stumbling fighter's arms (the night of 19 November) ----
+
+        /// <summary>
+        /// A stumbling fighter's arms go out for balance (Combat Feel "A Stumbling Fighter's Arms Go Out For Balance";
+        /// <c>FIGHT_ARMSOUT=0</c> for the old way, <c>STUMBLE_ARMS=1.5</c> the lever). Until now his arms did nothing
+        /// of their own in a stumble: they held the guard they had while his legs and trunk fought for his footing.
+        /// Now each hand goes out to its side and up a little by how fast he is going, the one on the far side from
+        /// where he tips the further, and both are left behind a little by the way he is thrown. They come back as
+        /// he catches himself. (Tried first: turning his upper arms out at the shoulder. His guard has his hands
+        /// straight ahead of his shoulders, so his elbows flared 25 to 64 degrees and his hands hardly moved.)
+        /// </summary>
+        public static bool ArmsGoOutInAStumble = true;
+
+        /// <summary>How much of it (the lever "Arms go out by"): 1 as built, 0 none.</summary>
+        public static float ArmsGoOutBy = DefaultArmsGoOutBy;
+
+        public const float DefaultArmsGoOutBy = 1f;
+
+        /// <summary>How far each hand goes out to its side for each m/s he goes and at the most (metres, on a Medium); how much of that it also lifts; how far both are left behind for each m/s and at the most (metres); how quickly they go out and come back (1/s).</summary>
+        public const float ArmsOutPerSpeed = 0.09f, ArmsOutMost = 0.36f, ArmsOutLifts = 0.4f, ArmsBehindPerSpeed = 0.05f, ArmsBehindMost = 0.2f, ArmsOutQuick = 12f, ArmsOutBack = 5f;
+
+        /// <summary>How far what a hand holds is turned out to its side with the hand, at the most the hand goes out (degrees).</summary>
+        public const float ArmsOutTurns = 40f;
+
+        private readonly float[] armOut = new float[2];
+        private Vector3 armBehind;
+
+        /// <summary>For the reports, of the stumble under way or the last one: how far apart his hands were as it began and at the widest (metres), and the furthest a hand was moved out (metres).</summary>
+        public float StumbleHandsBegan, StumbleHandsWidest, StumbleArmOutMost;
+
+        private void StepArmsOut(float dt)
+        {
+            float outL = 0f, outR = 0f;
+            Vector3 behind = Vector3.zero;
+            Vector3 across = Anim.Part(PartId.UpperArmR).position - Anim.Part(PartId.UpperArmL).position;
+            across.y = 0f;
+            across = across.sqrMagnitude > 1e-8f ? across.normalized : Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.right;
+            if (Stagger.Active && StumbleHandsBegan <= 0f)
+            {
+                StumbleHandsBegan = (Anim.Part(PartId.HandR).position - Anim.Part(PartId.HandL).position).magnitude;
+            }
+
+            if (ArmsGoOutInAStumble && Stagger.Active && ArmsGoOutBy > 0f)
+            {
+                float speed = Stagger.Vel.magnitude;
+                float by = Mathf.Min(ArmsOutMost, ArmsOutPerSpeed * speed) * ArmsGoOutBy * Size;
+                Vector3 tilt = Stagger.Tilt;
+                // (Tipping to his right, his left arm goes out the further: the far arm is the one that balances him.)
+                float tips = tilt.sqrMagnitude > 1e-8f ? Mathf.Clamp(Vector3.Dot(tilt.normalized, across), -1f, 1f) : 0f;
+                outL = by * (1f + 0.4f * tips);
+                outR = by * (1f - 0.4f * tips);
+                if (speed > 0.05f)
+                {
+                    // (Left behind by the way he is thrown.)
+                    behind = -Stagger.Vel / speed * (Mathf.Min(ArmsBehindMost, ArmsBehindPerSpeed * speed) * ArmsGoOutBy * Size);
+                }
+            }
+
+            armOut[0] = Mathf.Lerp(armOut[0], outL, 1f - Mathf.Exp(-(outL > armOut[0] ? ArmsOutQuick : ArmsOutBack) * dt));
+            armOut[1] = Mathf.Lerp(armOut[1], outR, 1f - Mathf.Exp(-(outR > armOut[1] ? ArmsOutQuick : ArmsOutBack) * dt));
+            armBehind = Vector3.Lerp(armBehind, behind, 1f - Mathf.Exp(-(behind.sqrMagnitude > armBehind.sqrMagnitude ? ArmsOutQuick : ArmsOutBack) * dt));
+            if (armOut[0] < 0.002f && armOut[1] < 0.002f && armBehind.sqrMagnitude < 4e-6f)
+            {
+                return;
+            }
+
+            // (Each hand out to its own side and up a little, and both left behind: the arm follows its hand, bent the
+            // way it was bent. Not an arm in a blow of its own, nor one cut off.)
+            for (int a = 0; a < 2; a++)
+            {
+                bool isLeft = a == 0;
+                if (Rig.IsSevered(isLeft ? PartId.HandL : PartId.HandR) || (!isLeft && (Striking || clock < weaponArmHeldUntil)))
+                {
+                    continue;
+                }
+
+                var upper = Anim.Part(isLeft ? PartId.UpperArmL : PartId.UpperArmR);
+                var fore = Anim.Part(isLeft ? PartId.ForearmL : PartId.ForearmR);
+                var hand = Anim.Part(isLeft ? PartId.HandL : PartId.HandR);
+                Quaternion turned = hand.rotation;
+                Vector3 to = hand.position + across * ((isLeft ? -1f : 1f) * armOut[a]) + Vector3.up * (ArmsOutLifts * armOut[a]) + armBehind;
+                // (Never further than the arm is long.)
+                float reach = 0.97f * ((fore.position - upper.position).magnitude + (hand.position - fore.position).magnitude);
+                Vector3 from = to - upper.position;
+                if (from.magnitude > reach)
+                {
+                    to = upper.position + from.normalized * reach;
+                }
+
+                TwoBoneIK.Solve(upper, fore, hand, to, TwoBoneIK.BendWay(upper, fore, hand));
+                // (What it holds turns out with it, each to its own side: moved out and still turned as his guard had
+                // it, his blade went through his own board, 0.15 s in a fight of six.)
+                float turnsOut = ArmsOutTurns * Mathf.Clamp01(armOut[a] / Mathf.Max(1e-4f, ArmsOutMost * Size));
+                hand.rotation = Quaternion.AngleAxis((isLeft ? -1f : 1f) * turnsOut, Vector3.up) * turned;
+            }
+
+            if (Stagger.Active)
+            {
+                StumbleHandsWidest = Mathf.Max(StumbleHandsWidest, (Anim.Part(PartId.HandR).position - Anim.Part(PartId.HandL).position).magnitude);
+                StumbleArmOutMost = Mathf.Max(StumbleArmOutMost, Mathf.Max(armOut[0], armOut[1]));
+            }
+        }
+
         /// <summary>The most his upper body tips with a stumble (radians), and how quickly it follows (1/s).</summary>
         public const float MostTip = 0.7f, TipFollows = 14f;
 
@@ -7588,6 +7695,11 @@ namespace PhysicsBattler.Locomotion
             Poser.Unbear();
             Stagger.End();
             string told = Stagger.Told();
+            if (StumbleHandsBegan > 0f)
+            {
+                told += $"; his hands went out {100f * StumbleArmOutMost:0} cm at the most, from {100f * StumbleHandsBegan:0} to {100f * Mathf.Max(StumbleHandsWidest, StumbleHandsBegan):0} cm apart";
+            }
+
             if (down)
             {
                 StumblesDown++;

@@ -56,6 +56,9 @@ The rest are one-off comparisons from particular days, kept for reference.
 - `FIGHT_GETUPEND=0`: only his arms are eased out of a get-up and what he holds is not settled afresh (old).
   `FIGHT_ROSEBODY=0`: the easing starts from the get-up's last pose, not from the seen body. Report line "the end of
   a get-up, as seen": the biggest jump in a part's speed in one step, from 0.15 s before he stands to 0.40 s after.
+- `FIGHT_GETUPSHIELD=0`: a rising fighter's shield hand goes under his shoulder as the keys have it (old; the
+  plan's step 5 off). `FIGHT_ARMSOUT=0`: a stumbling fighter's arms hold his guard (old). `STUMBLE_ARMS=1.5`: how
+  much they go out. Each stumble's line says how far his hands went out and how far apart they were.
 - `FIGHT_TAKEOVER=0`: a get-up takes him up as if he lay still and blends from how he lay, the old way (the plan's
   step 4 off). `FIGHT_TAKEOVERMOST=0.6`: the most its take-over takes (seconds). Every fight's report has two lines
   for it: "a get-up takes him up as he moves" (on or off, how long what was left took, how far the furthest hand or

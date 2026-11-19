@@ -232,3 +232,20 @@ It needs step 4 first. Next: step 4, then the trunk again, then step 5.
   about 6. Two causes found and mended. In my tests the jump goes from 5 to 14 m/s down to about 1.
 - To see it: the same falls. Watch the moment he is up. To compare: "The end of a get-up: eased / at once (old)".
 - **Next:** the shield through him (step 5).
+
+**20 November 2026, 00:30: step 5, the shield carried round him.** Headless only; waiting for your eye.
+
+- **Built.** Getting up from his front or a side, his shield now lies on the ground out to his shield side, his
+  hand on its grip, and he pushes up on that hand. As he comes up it turns to face what he fights and swings out
+  round his side. Before, it stood in his chest and hips.
+- **One thing I read differently from the plan.** The plan said "his forearm flat on it". This shield is held by a
+  grip in its middle, so a forearm cannot lie along it. I kept what you chose (flat, out to his side) and have him
+  push up on the hand that grips it.
+- **In my tests:** from his front the shield is in his own body 0.47 s a get-up before, and not at all now. From
+  his right 0.52 s before, 0.12 s now. From his back nothing changes (it never crossed there).
+- **What it costs:** his shield arm moves a little faster at the start (3.0 to 3.9 m/s), and as the board turns up
+  its rim dips 3 to 5 cm into the ground for a tenth of a second.
+- To see it: Tubes, "Falls and getting up", "Falls on demand: Forward". Watch the one with the shield. To compare:
+  "Getting up, his shield: carried round him / as recorded (old)".
+- **Left on this plan:** his trunk's turn in the gather (built, off), and counting the board when a start is
+  chosen (step 2, built, off).

@@ -1541,6 +1541,12 @@ namespace PhysicsBattler.Sandbox
             if (Press(!feel.offBalanceHeStumblesOnRealSteps ? "[the walk played fast (old)]" : "the walk played fast (old)", "As before.")) feel.offBalanceHeStumblesOnRealSteps = false;
             EndRow();
             BeginRow();
+            Words(new GUIContent("Stumbling, his arms:", "What a stumbling fighter's arms do (Combat Feel \"A Stumbling Fighter's Arms Go Out For Balance\"). Go out for balance (new): his upper arms lift out from his sides by how fast he is going, the far arm from where he tips the further, and both are left behind a little by the way he is thrown. Hold his guard (old): they stay as his guard has them."));
+            if (Press(feel.aStumblingFightersArmsGoOutForBalance ? "[go out for balance]" : "go out for balance", "His arms help him keep his feet.")) feel.aStumblingFightersArmsGoOutForBalance = true;
+            if (Press(!feel.aStumblingFightersArmsGoOutForBalance ? "[hold his guard (old)]" : "hold his guard (old)", "As before.")) feel.aStumblingFightersArmsGoOutForBalance = false;
+            EndRow();
+            feel.stumblingArmsGoOutBy = Lever("Arms go out by", feel.stumblingArmsGoOutBy, 0f, 2f, "How much a stumbling fighter's arms go out: 1 as built, 0 not at all, 2 twice as far (never more than about 50 degrees).");
+            BeginRow();
             Words(new GUIContent("A bash's speeds:", "Where the speeds the two leave a bash with come from (Combat Feel \"A Bash's Speeds Are Worked Out\"). Worked out (new): the momentum ledger. Both weights and both speeds go in; a man who has set himself passes some to the ground through his feet; what is left is shared out, equal and opposite. The basher is checked, stopped or thrown back by as much as he gave. Written in (old): the other gets the board's speed times the bash's weight, and a countered hard bash leaves both at two fixed speeds."), GUILayout.Width(100f));
             if (Press(feel.aBashsSpeedsAreWorkedOut ? "[worked out]" : "worked out", "The momentum ledger.")) feel.aBashsSpeedsAreWorkedOut = true;
             if (Press(!feel.aBashsSpeedsAreWorkedOut ? "[written in (old)]" : "written in (old)", "As before.")) feel.aBashsSpeedsAreWorkedOut = false;
@@ -3932,27 +3938,30 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, the end of a get-up)";
+        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), and arms in a stumble";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "GETTING UP (pushed 22:10 and 22:55):",
+            "GETTING UP (four pushes, 22:10 to 00:30):",
             "1. Go to \"Tubes\" (the bar of labs at the top) and open \"Falls and getting up\".",
-            "2. Fell him: \"Falls on demand\": Forward (the worst case), then Back.",
-            "3. Watch his knees as he pushes up from his front: they should rest on the ground, not sink into it.",
-            "4. Watch his sword whenever his sword hand is on the ground: it should lie still. It still moves while the hand is in the air and as he stands up.",
-            "5. Watch the moment he is up: he should go into his stand smoothly. Before, his shield hand and sword arm jumped as he stood.",
-            "6. To compare, fell him the same way with: \"Getting up, his knees\" on \"where the pose puts them (old)\"; \"While it is pinned\" on \"may turn a little (old)\"; \"The end of a get-up\" on \"at once (old)\".",
-            "7. The floor now carries on, unseen, past its edge: a pair bashed off the edge no longer falls into the dark.",
-            "8. His shield still passes through him as he gets up: that is next.",
+            "2. Fell him: \"Falls on demand\": Forward (the worst case), then Back. Watch the one with the shield.",
+            "3. His knees as he pushes up from his front: they should rest on the ground, not sink into it.",
+            "4. His sword whenever his sword hand is on the ground: it should lie still. It still moves while the hand is in the air and as he stands up.",
+            "5. His shield as he pushes up from his front: it should lie out to his side, his hand on it, and swing up round his side. It should not stand in his chest.",
+            "6. The moment he is up: he should go into his stand smoothly, with no jump of his arms.",
+            "7. To compare, fell him the same way with the old way of each: \"Getting up, his knees\", \"While it is pinned\", \"Getting up, his shield\", \"The end of a get-up\".",
+            "STUMBLES (pushed 00:30):",
+            "8. Go to \"Duel\" and find \"Stumbles and falls\". Press \"Stumble him: Medium\", then \"Hard\".",
+            "9. Watch his arms: his hands should go out to his sides as he stumbles and come back as he catches himself. To compare: \"Stumbling, his arms: hold his guard (old)\". The lever \"Arms go out by\" makes it more or less.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
             "Tubes", "Falls and getting up", "Falls on demand", "Falls on demand>Back", "Falls on demand>Forward",
-            "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:", "The end of a get-up:",
+            "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:", "Getting up, his shield:", "The end of a get-up:",
+            "Duel", "Stumbles and falls", "Stumble him:", "Stumbling, his arms:", "Arms go out by",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5343,6 +5352,23 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 PhysicsBattler.Motion.GetUp.KneesClearTheGround = kneesNow;
+            }
+
+            BeginRow();
+            Words(new GUIContent("Getting up, his shield:", "Where a rising fighter's shield is (Combat Feel \"A Rising Fighter's Shield Is Carried Round Him\"). Carried round him (new): from his front or a side the board lies flat on the ground out to his shield side, his forearm flat on it; he pushes up on that forearm, and the board swings out round his side as it comes up. As recorded (old): his shield hand goes flat on the ground under his shoulder, and the board stands in his chest and hips."));
+            bool carried = feel != null ? feel.aRisingFightersShieldIsCarriedRoundHim : PhysicsBattler.Motion.GetUp.ShieldCarriedRound;
+            bool carriedNow = carried;
+            if (Press(carried ? "[carried round him]" : "carried round him", "The board flat out to his side, then round him.")) carriedNow = true;
+            if (Press(!carried ? "[as recorded (old)]" : "as recorded (old)", "As before: the shield hand under his shoulder.")) carriedNow = false;
+            EndRow();
+            if (carriedNow != carried)
+            {
+                if (feel != null)
+                {
+                    feel.aRisingFightersShieldIsCarriedRoundHim = carriedNow;
+                }
+
+                PhysicsBattler.Motion.GetUp.ShieldCarriedRound = carriedNow;
             }
 
             BeginRow();

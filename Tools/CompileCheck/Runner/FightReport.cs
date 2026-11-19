@@ -1179,6 +1179,8 @@ internal static class FightReport
         // stumble's levers (see StumbleReport). STUMBLE lines: each stumble as it begins and as it ends.)
         PhysicsBattler.Locomotion.ImpactLedger.On = Environment.GetEnvironmentVariable("FIGHT_LEDGER") != "0";
         PhysicsBattler.Locomotion.StumbleSteps.On = Environment.GetEnvironmentVariable("FIGHT_STUMBLES") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.ArmsGoOutInAStumble = Environment.GetEnvironmentVariable("FIGHT_ARMSOUT") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.ArmsGoOutBy = float.TryParse(Environment.GetEnvironmentVariable("STUMBLE_ARMS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float armsOutBy) ? armsOutBy : PhysicsBattler.Locomotion.ClipFighter.DefaultArmsGoOutBy;
         foreach (var (name, set) in new (string, Action<float>)[]
         {
             ("FIGHT_BOUNCE", v => PhysicsBattler.Locomotion.ImpactLedger.Bounce = v),
@@ -1289,6 +1291,7 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.GetUpStartsKept = 0;
         PhysicsBattler.Locomotion.ClipFighter.WholeBodyEasesOutOfGetUp = Environment.GetEnvironmentVariable("FIGHT_GETUPEND") != "0";
         PhysicsBattler.Locomotion.ClipFighter.RoseFromTheBody = Environment.GetEnvironmentVariable("FIGHT_ROSEBODY") != "0";
+        PhysicsBattler.Motion.GetUp.ShieldCarriedRound = Environment.GetEnvironmentVariable("FIGHT_GETUPSHIELD") != "0";
         PhysicsBattler.Motion.GetUp.SwordHandHeldStill = Environment.GetEnvironmentVariable("FIGHT_GETUPSTILL") != "0";
         PhysicsBattler.Locomotion.ClipFighter.SwordHandHeldBodily = Environment.GetEnvironmentVariable("FIGHT_HANDPIN") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SWORDEASES"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float swordEases))
