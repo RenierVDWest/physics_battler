@@ -4,9 +4,9 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 01:20 (the night's work, all headless only and waiting for his eye: the get-up
+Last updated: 20 November 2026, 01:40 (the night's work, all headless only and waiting for his eye: the get-up
 mended four ways after he called it a mess, and the floor's edge; arms that go out in a stumble; knees and hips
-that take an impact. He is asleep and set the night's order: see "Roadmap").
+that take an impact; a first kick. He is asleep and set the night's order: see "Roadmap").
 
 ## The project in a few lines
 
@@ -209,11 +209,17 @@ smoothly, the shield giving way to the sword.
   lever; lab row "Stumbling, his arms" and lever "Arms go out by" (duel lab, "Stumbles and falls");
   `ClipFighter.StepArmsOut`, the last thing that poses his arms. Headless: his hands 72 to 101 cm apart in a
   medium bash's stumble, 97 to 121 in a hard one countered; the stumbles themselves unchanged.
-- **Bodies that take an impact (the impacts plan's step 4, a first build; 20 November, 01:20):** Combat Feel "A
+- **Bodies that take an impact (the impacts plan's step 4, a first build; 20 November, 01:15):** Combat Feel "A
   Body Takes An Impact In Its Knees And Hips" and three levers; lab row "An impact, his knees and hips" and levers
   "Contact time", "Knees give to it", "Trunk folds to it" (duel lab, "Stumbles and falls");
   `ClipFighter.PressInto` (called at the top of `ThrowBody`), `StepPress`, `LocoBody.Pressed`. Headless: the
   basher's hips on a held hard counter 4 cm to 11. Not built: feet sliding, the head lagging, slow motion.
+- **Kicks, a first build (the fight rhythm plan's step 9b; 20 November, 01:40):** Combat Feel "A Kick Throws A
+  Body" and two levers; lab "Kick him: Front kick" with "Kick power" and "Kicks into him" (duel lab, "Stumbles and
+  falls"); `ClipFighter.KickAt`, `StepKick`, `Kicked`; the recording `sns_kick` (role "kick"), baked from the one
+  kick sample in the repository. Lab only: no fighter kicks by himself. **The kick pack's five standing kicks and
+  the Capoeira kicks are not in the repository.** Headless: on a body 112 cm up, thrown at 2.6 m/s, two stumble
+  steps; on a board 1.6 m/s, one step; at power 4.2 he goes down.
 - **A lesson:** a report that only measures the first 0.75 s of a get-up cannot see its end. When he says it looks
   wrong and the numbers say fine, read his pose log step by step (`/tmp`-style scripts: per-part speed from one
   step to the next) before believing the numbers.
@@ -380,7 +386,7 @@ night... if you get to a point that you need to push and get feedback you can ju
 this order: (1) finish the get-up fixes (**done and pushed**: 22:10, 22:55, 00:30);
 (2) back to stumbles (**arms out for balance pushed 00:30**; left: feet crossing in a stumble to the side, a
 sword blow's throw worked out as a bash's is, and in his log of 20:10 every hard bash's stumble had "0 stumble
-steps" before he fell: look at that); (3) bodies that absorb a hit (**a first build pushed 01:20**); (4) kicks; (5) pouncing on an opening; (6) downed fighters.
+steps" before he fell: look at that); (3) bodies that absorb a hit (**a first build pushed 01:15**); (4) kicks (**a first build pushed 01:40**, lab only); (5) pouncing on an opening; (6) downed fighters.
 Each gets its switch, lab toggle, measure, push and (if it needs his eye) its 3b2b; the panel's "Look here" list
 covers the whole night, not only the last push. He gets one short list in the morning.
 

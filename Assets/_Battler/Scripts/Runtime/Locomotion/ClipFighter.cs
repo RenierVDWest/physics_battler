@@ -7581,6 +7581,163 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        // ---- Kicks (the fight rhythm plan's step 9b: a first build, 20 November) ----
+
+        /// <summary>
+        /// A fighter can kick (Combat Feel "A Kick Throws A Body"; lab only for now: "Kick him: Front kick"). The
+        /// sword-and-shield pack's one kick, a front kick with the back foot (<see cref="KickClip"/>, 1.2 s, the foot
+        /// furthest out and chest high 0.57 s in), played whole, turned to the other and stretched or shortened so the
+        /// foot ends a little way into him. As the foot meets his body, or his board, he is thrown through the door
+        /// every impact uses (<see cref="ThrowBody"/>): shoved, stumbling or down is his legs' to decide. No fighter
+        /// kicks by himself yet.
+        /// </summary>
+        public static bool KicksThrow = true;
+
+        /// <summary>How fast a kick throws a man of the kicker's own weight (m/s at a Medium's size: the lever "Kick power"), and how far past the other's front the foot is aimed (metres at a Medium's size: "Kicks into him").</summary>
+        public static float KickPower = DefaultKickPower, KickGoesIn = DefaultKickGoesIn;
+
+        public const float DefaultKickPower = 2.6f, DefaultKickGoesIn = 0.25f;
+
+        /// <summary>The recording, when its foot is furthest out (seconds in), from when and until when it can land, how far ahead of where he began the foot then is and how far his hips have gone (leg lengths), how near the foot must come to the other's middle line or his board (metres at a Medium's size), how much of a kick a board takes, and how long before he may kick again.</summary>
+        public const string KickClip = "sns_kick";
+        public const float KickLandsAt = 0.57f, KickLandsFrom = 0.38f, KickLandsUntil = 0.68f, KickFootOut = 1.81f, KickHipsGo = 0.62f, KickMeetsBody = 0.24f, KickMeetsBoard = 0.3f, KickOnBoard = 0.6f, KickEvery = 2f;
+
+        /// <summary>How far a kick rocks his upper body back for each m/s it throws him, and at the most (radians).</summary>
+        public const float KickRocks = 0.09f, MostKickRock = 0.4f;
+
+        private float kickFor = -1f, kickEnds, kickReadyAt, kickFootFastest;
+        private ClipFighter kickAt;
+        private bool kickStruck, kickFootKnown;
+        private Vector3 kickWay, kickFootWas;
+
+        public bool Kicking => kickFor >= 0f;
+        public int Kicks, KicksLanded, KickedTimes;
+        public string LastKick = "";
+
+        /// <summary>He kicks now, at this enemy (null: straight ahead, at nobody, to be seen). False: he cannot (down, stumbling, in a blow, a bash or another recording, or one just thrown).</summary>
+        public bool KickAt(ClipFighter at, bool whenever = false)
+        {
+            if (!KicksThrow || Kicking || Bashing || Fallen || Striking || Stagger.Active || !Loco.Ready || Loco.Current == Locomotor.Mode.OneShot || (!whenever && clock < kickReadyAt))
+            {
+                return false;
+            }
+
+            var clip = LocoLibrary.Get(KickClip);
+            if (clip == null)
+            {
+                return false;
+            }
+
+            Vector3 ahead = Quaternion.Euler(0f, Loco.Facing, 0f) * Vector3.forward;
+            Vector3 to = at != null ? Flat(at.Loco.Position - Loco.Position) : ahead;
+            float gap = at != null ? to.magnitude : 0f;
+            kickWay = at != null && gap > 1e-3f ? to / gap : ahead;
+            // (The foot is to end "Kicks into him" past his front. The recording's foot goes so far; what is over or
+            // short of that is made up by how far his hips go in.)
+            float reach = KickFootOut * Loco.Leg, hips = KickHipsGo * Loco.Leg;
+            float wanted = at != null ? gap - 0.2f * at.Size + KickGoesIn * Size : reach;
+            float stretch = Mathf.Clamp(1f + (wanted - reach) / Mathf.Max(0.05f, hips), 0.2f, 1.8f);
+            float turn = Mathf.DeltaAngle(Loco.Facing, Mathf.Atan2(kickWay.x, kickWay.z) * Mathf.Rad2Deg);
+            Loco.PlayAimed(clip, stretch, turn, 0.25f);
+            kickFor = 0f;
+            kickEnds = clip.Duration;
+            kickAt = at;
+            kickStruck = kickFootKnown = false;
+            kickFootFastest = 0f;
+            kickReadyAt = clock + KickEvery;
+            Kicks++;
+            LastKick = string.Format(System.Globalization.CultureInfo.InvariantCulture, "a front kick{0}, his hips going in {1:0.00} of the recording's: under way", at != null ? $" from {gap:0.00} m" : " at nobody", stretch);
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(FightUnit, "kick", (at != null ? $"at {at.FightUnit.name}, {gap:0.00} m off" : "asked for, at nobody") + "; " + LastKick);
+            }
+
+            return true;
+        }
+
+        /// <summary>A kick under way, a step on: his foot followed, and the kick landed as the foot meets the other's body or his board.</summary>
+        private void StepKick(float dt)
+        {
+            if (kickFor < 0f)
+            {
+                return;
+            }
+
+            kickFor += dt;
+            Vector3 foot = Anim.Part(PartId.FootR).position;
+            Vector3 footGoes = kickFootKnown && dt > 0f ? (foot - kickFootWas) / dt : Vector3.zero;
+            kickFootWas = foot;
+            kickFootKnown = true;
+            kickFootFastest = Mathf.Max(kickFootFastest, footGoes.magnitude);
+            if (!kickStruck && kickAt != null && !kickAt.Fallen && kickFor >= KickLandsFrom && kickFor <= KickLandsUntil)
+            {
+                Vector3 low = kickAt.Anim.Part(PartId.Pelvis).position, high = kickAt.Anim.Part(PartId.Head).position;
+                Vector3 line = high - low;
+                float along = line.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector3.Dot(foot - low, line) / line.sqrMagnitude) : 0f;
+                Vector3 on = low + line * along;
+                bool board = kickAt.ShieldColliders.Count > 0 && !kickAt.Rig.IsSevered(PartId.HandL)
+                    && (foot - kickAt.Anim.Part(PartId.HandL).position).magnitude <= KickMeetsBoard * kickAt.Size;
+                bool bodyMet = (foot - on).magnitude <= KickMeetsBody * kickAt.Size;
+                if (board || bodyMet)
+                {
+                    kickStruck = true;
+                    KicksLanded++;
+                    float weights = Mass / Mathf.Max(1f, kickAt.Mass);
+                    float speed = KickPower * Mathf.Sqrt(Size) * Mathf.Min(weights, 1.5f) * (board && !bodyMet ? KickOnBoard : 1f);
+                    Vector3 impulse = kickWay * (speed * kickAt.Mass);
+                    string did = kickAt.Kicked(kickWay, speed, this, foot, impulse, board && !bodyMet);
+                    // (What his leg met comes back up it: he is checked, and it presses him as any impact does.)
+                    Loco.StopShotTravel();
+                    PressInto(-0.5f * impulse, Vector3.zero);
+                    LastKick = LastKick.Replace(": under way", string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        ": it landed {0:0.00} s in on his {1}, {2:0} cm over the ground, the foot going {3:0.0} m/s: he was thrown at {4:0.0} m/s and {5}",
+                        kickFor, board && !bodyMet ? "board" : "body", 100f * (foot.y - groundLevel), footGoes.magnitude, speed, did == "down" ? "went down" : did == "stumbled" ? "stumbled" : "was shoved"));
+                    if (Diagnostics.PlaytestTrace.Enabled)
+                    {
+                        Diagnostics.PlaytestTrace.Note(FightUnit, "kick", LastKick);
+                    }
+                }
+            }
+
+            if (kickFor >= kickEnds || (kickFor > 0.2f && Loco.Current != Locomotor.Mode.OneShot) || Fallen)
+            {
+                if (!kickStruck)
+                {
+                    LastKick = LastKick.Replace(": under way", kickAt != null ? $": it met nothing (the foot at its fastest {kickFootFastest:0.0} m/s)" : ": at nobody");
+                }
+
+                kickFor = -1f;
+                kickAt = null;
+            }
+        }
+
+        /// <summary>He is kicked: thrown through the door, his upper body rocked back from it, his guard open a moment unless his board took it.</summary>
+        public string Kicked(Vector3 way, float speed, ClipFighter by, Vector3 point, Vector3 impulse, bool onBoard)
+        {
+            if (Fallen)
+            {
+                return "down";
+            }
+
+            KickedTimes++;
+            string did = ThrowBody(way * speed, point, impulse, "a kick");
+            Vector3 axis = Vector3.Cross(Vector3.up, way);
+            float amount = Mathf.Min(KickRocks * speed, MostKickRock) * CombatFeel.LeanScale * (onBoard ? 0.5f : 1f);
+            leanMost = Mathf.Max(leanMost, BashRocksMost);
+            leanV += axis * (amount * Kick * 2f * Mathf.PI * ReactFrequency * ReactGain);
+            if (!onBoard)
+            {
+                guardOpenUntil = Mathf.Max(guardOpenUntil, clock + (did == "shoved" ? 0.3f : 0.8f));
+            }
+
+            if (Diagnostics.PlaytestTrace.Enabled)
+            {
+                Diagnostics.PlaytestTrace.Note(FightUnit, "kick", $"kicked by {(by != null && by.FightUnit != null ? by.FightUnit.name : "a foot")} on his {(onBoard ? "board" : "body")}: {(did == "down" ? "knocked down" : did == "stumbled" ? "thrown back stumbling" : "shoved back")} at {speed:0.0} m/s");
+            }
+
+            return did;
+        }
+
         // ---- Bodies that absorb an impact (the plan "Impacts that carry weight", step 4: a first build, 20 November) ----
 
         /// <summary>
@@ -8234,6 +8391,7 @@ namespace PhysicsBattler.Locomotion
         private void RaiseShield(float dt, Vector3 striker)
         {
             StepBash(dt);
+            StepKick(dt);
             bool dodgesFake = FlinchAtFake();
             // (The guard holds the shield as its clip does; it moves only to meet a blow.)
             blockWeight = 0f;

@@ -1913,11 +1913,25 @@ internal static class FightReport
                                 bashGapWas = Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position);
                                 bashOtherWas = duel.Other.Root.position;
                                 bashMoverWas = duel.Mover.Root.position;
+                                // (FIGHT_KICK=1: he kicks instead. FIGHT_KICKED="2.6,0.25": the kick's power (m/s) and how far into him (m).)
+                                if (Environment.GetEnvironmentVariable("FIGHT_KICK") == "1")
+                                {
+                                    var kickLevers = (Environment.GetEnvironmentVariable("FIGHT_KICKED") ?? "").Split(',');
+                                    if (kickLevers.Length > 0 && float.TryParse(kickLevers[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float kickPower)) PhysicsBattler.Locomotion.ClipFighter.KickPower = kickPower;
+                                    if (kickLevers.Length > 1 && float.TryParse(kickLevers[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float kickIn)) PhysicsBattler.Locomotion.ClipFighter.KickGoesIn = kickIn;
+                                    Console.WriteLine($"KICK {paceAt:0.00}: {(duel.Mover.Clip.KickAt(duel.Other.Clip, true) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
+                                }
+                                else
                                 Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other.Clip, true, bashKind, false, bashExtraAsked) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
                             }
 
                             if (paceAt >= bashAt + 1.2f && paceAt - dt < bashAt + 1.2f)
                             {
+                                if (Environment.GetEnvironmentVariable("FIGHT_KICK") == "1")
+                                {
+                                    Console.WriteLine($"KICKED {paceAt:0.00}: {duel.Mover.Clip.LastKick}. 1.2 s after: he has gone {Vector3.Distance(duel.Mover.Root.position, bashMoverWas):0.00} m, the other {Vector3.Distance(duel.Other.Root.position, bashOtherWas):0.00} m{(duel.Other.Clip.Fallen ? " and is down" : "")}{(duel.Mover.Clip.Fallen ? "; the kicker is down" : "")}");
+                                }
+                                else
                                 Console.WriteLine($"BASHED {paceAt:0.00}: {duel.Mover.Clip.LastBash}. 1.2 s after: he has gone {Vector3.Distance(duel.Mover.Root.position, bashMoverWas):0.00} m, the other {Vector3.Distance(duel.Other.Root.position, bashOtherWas):0.00} m{(duel.Other.Clip.Fallen ? " and is down" : "")}; they are {Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position):0.00} m apart");
                             }
                         }

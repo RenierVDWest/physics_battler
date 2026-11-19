@@ -7330,7 +7330,7 @@ him").
   feet in all: 0.67% and 0.72% (before tonight 0.58% and 0.73%: over the budget as it was; the fights differ).
 - **Not seen in Unity.** A sword and a board thrown wide may read as too much: the lever is there for that.
 
-### 20 November, 01:20: bodies that take an impact in their knees and hips (the impacts plan's step 4, a first build)
+### 20 November, 01:15: bodies that take an impact in their knees and hips (the impacts plan's step 4, a first build)
 
 **Where it stood.** The plan's step 4 ("the bodies absorb it") was not built. Since the stumbles, the meter already
 shows most of what it asked for on a held hard counter: both trunks move (26 and 16 degrees) and the bashed man's
@@ -7367,4 +7367,48 @@ Give", "Impact Trunk Folds"; lab, under "Stumbles and falls": row "An impact, hi
 - **Not built of step 4:** the feet sliding a hand's width before the first step; the head lagging; a slow-motion
   button (the lab has none). The medium bash is unchanged because both men stumble in it.
 - **Not seen in Unity.** This is the step the plan says he judges by eye.
+
+### 20 November, 01:40: kicks, a first build (the fight rhythm plan's step 9b)
+
+**Built** (Combat Feel "A Kick Throws A Body", "Kick Power", "Kick Goes Into Him"; duel lab, "Stumbles and falls":
+row "Kick him: Front kick", levers "Kick power" and "Kicks into him", and a line "His last kick";
+`ClipFighter.KickAt`, `StepKick`, `Kicked`; headless `FIGHT_KICK=1` with `FIGHT_BASHAT`, `FIGHT_KICKED="2.6,0.25"`).
+
+- **The recording.** The plan says kicks are built from the kick recordings. Of those, one is in the repository:
+  the sword-and-shield pack's kick (`Tools/Mocap/Combat/samples/sword_and_shield_kick.json`), a front kick with the
+  back (right) foot, 1.2 s long, in place; the foot is furthest out 0.57 s in, 1.8 leg lengths ahead of where he
+  began and chest high. It is baked into the game's clips as `sns_kick` with a role of its own, "kick", so nothing
+  that picks a sword's strike can pick it (`combat_bake.py`, `KICKS`; nothing else in `CombatClips.json` changed).
+  **The five standing kicks of the kick pack and the Capoeira kicks are not in the repository** (they were
+  measured from files on his computer): they are for him to add, or for a session linked to his computer.
+- **How it goes.** He turns to the other and plays the recording whole, his hips going in more or less than the
+  recording's so that the foot ends "Kicks into him" (25 cm) past the other's front. From 0.38 to 0.68 s in, as the
+  foot comes within 24 cm of the other's middle line (hips to head) or 30 cm of his shield hand, it lands. The
+  other is thrown through the door every impact uses (`ThrowBody`): at "Kick power" (2.6 m/s for a man of the
+  kicker's weight; six tenths of that on a board). Shoved, stumbling or down is his legs' to decide. His upper body
+  rocks back and his guard is open a moment (not if his board took it). The kicker is checked and pressed by what
+  his leg met.
+- **Not built:** no fighter kicks by himself (lab only, like the extra hard bash); the kicker cannot be thrown off
+  his one leg; low kicks at a man on the ground (the downed-play plan); the other kicks.
+
+**Measured, headless (the duel, the other stood 1.4 m off unless said):**
+
+| The other | Where it landed | Thrown at | What he did |
+| --- | --- | --- | --- |
+| Sword and shield, 1.2 m off | his board, 91 cm up, 0.43 s in | 1.6 m/s | one stumble step, 0.38 m, kept his feet |
+| Sword and shield, 1.4 m | his board, 99 cm up | 1.6 | one step, 0.38 m |
+| Sword and shield, 1.7 m | his board, 106 cm up | 1.6 | one step, 0.38 m |
+| Sword only | his body, 112 cm up, the foot at 8.9 m/s | 2.6 | two steps, 1.58 m, kept his feet |
+| No weapons | his body, 112 cm up | 2.6 | shoved back 0.97 m |
+| Sword only, "Kick power" 4.2 | his body | 4.2 | thrown 2.8 m and down |
+| Sword only, 2.3 m off | it met nothing | | |
+
+The kicker ends 0.13 to 0.41 m forward of where he began. No crossing on his feet in any of them. A fight of six
+(seed 7) is the same to the hundredth of a second with the kick's recording in the clips: nothing picks it.
+
+**Not seen in Unity.** How the recording looks on his legs under a sword and shield, and whether the foot's
+landing reads as a kick that connects, are for his eye. 112 cm is high for a front kick: it is where the recording
+has the foot.
+
+Also in this push: the README, plan and panel times of the impact step corrected to 01:15 (written as 01:20).
 

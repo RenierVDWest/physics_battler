@@ -182,6 +182,12 @@ def load(sample):
     return d, B, F
 
 
+# name: (sample, from, to, about). The first build of kicks (20 November): the pack's one sword-and-shield kick.
+KICKS = {
+    'sns_kick': ('sword_and_shield_kick', 0.0, 1.20, 'Medium front kick with the back (right) foot, in place: the foot is furthest out, chest high, 0.57 s in'),
+}
+
+
 def bake_one(name, d, B, F, loop, role, about, kind='', markers=None, yaw_from='head'):
     lb.LOOPS.discard(name)
     if loop:
@@ -254,6 +260,13 @@ def main(report):
         # (A next strike may follow from a third of the way from contact to the end.)
         link = hit + max(1, (i1 - i0 - hit) // 3)
         clips.append(bake_one(name, d, B, F[i0:i1 + 1], False, 'strike', about, kind, [hit, link], yaw_from='hips'))
+    # (Kicks: whole-body clips with their own role, so nothing that picks a sword's strike picks one. No markers:
+    # the game knows when the foot is out, ClipFighter.KickLandsAt.)
+    for name, (sample, a, b, about) in KICKS.items():
+        d, B, F = load(sample)
+        rate = d['rate']
+        i0, i1 = int(round(a * rate)), min(len(F) - 1, int(round(b * rate)))
+        clips.append(bake_one(name, d, B, F[i0:i1 + 1], False, 'kick', about, 'front', yaw_from='hips'))
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, 'w') as f:
         json.dump(dict(about='Combat clips baked by Tools/Mocap/Combat/combat_bake.py; points in leg lengths against the root (x right, y up, z forward).',

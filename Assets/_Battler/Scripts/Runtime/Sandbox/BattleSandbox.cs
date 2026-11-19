@@ -1439,7 +1439,10 @@ namespace PhysicsBattler.Sandbox
         private float stumbleBashAt;
 
         /// <summary>How far off the other is put for each bash of "Stumble him" (metres at a Medium's size).</summary>
-        private static readonly float[] StumbleBashFrom = { 1f, 1.8f, 1.9f, 1.9f };
+        private static readonly float[] StumbleBashFrom = { 1f, 1.8f, 1.9f, 1.9f, 1.4f };
+
+        /// <summary>The place of "Kick him" in <see cref="StumbleBashFrom"/>: asked for and waited for as a bash is.</summary>
+        private const int KickHim = 4;
 
         /// <summary>A bash asked for by "Stumble him" is thrown once the other has stood a moment where he was put.</summary>
         private void StepStumbleBash()
@@ -1477,6 +1480,12 @@ namespace PhysicsBattler.Sandbox
             var other = Duel.Other != null ? Duel.Other.Clip : null;
             if (basher == null || other == null)
             {
+                return;
+            }
+
+            if (kind == KickHim)
+            {
+                message = basher.KickAt(other, true) ? "Kick him: a front kick." : "Kick him: he could not kick (in a blow, a bash or another move, stumbling, or down).";
                 return;
             }
 
@@ -1530,6 +1539,39 @@ namespace PhysicsBattler.Sandbox
             }
 
             EndRow();
+            BeginRow();
+            Words(new GUIContent("Kick him:", "A kick at a standing fighter on demand (Combat Feel \"A Kick Throws A Body\"). The other is put 1.4 m straight before him, stands a moment, and is kicked: a front kick with the back foot, from the sword-and-shield recordings. Where the foot meets his body or his board he is thrown as by any impact. Pressed while either is down or stumbling, it waits until both stand. No fighter kicks by himself yet."));
+            if (Press("Front kick", "The other is stood 1.4 m before him and he kicks him chest high with his back foot. On a body: thrown back two stumble steps. On a board held in cover: less. \"Kick power\" higher: he goes down."))
+            {
+                if (basher == null)
+                {
+                    message = "Kick him: not now (the lab is not set out).";
+                }
+                else if ((other != null && other.Fallen) || basher.Fallen)
+                {
+                    stumbleWaits = KickHim;
+                    message = "Kick him: waiting until both are on their feet.";
+                }
+                else if (Duel.PutOtherAt(StumbleBashFrom[KickHim]))
+                {
+                    stumbleBash = KickHim;
+                    stumbleBashAt = Time.time + 0.6f;
+                    message = $"Kick him: the other is stood {StumbleBashFrom[KickHim]:0.0} m before him.";
+                }
+                else
+                {
+                    message = "Kick him: not now (the lab is not set out).";
+                }
+            }
+
+            EndRow();
+            if (feel != null)
+            {
+                feel.kickPower = Lever("Kick power", feel.kickPower, 0.5f, 6f, "How fast a kick throws a man of the kicker's own weight (m/s at a Medium's size). A medium bash throws at about 2.1, a hard one at about 4.3.");
+                feel.kickGoesIntoHim = Lever("Kicks into him", feel.kickGoesIntoHim, 0f, 0.6f, "How far past the other's front the kicking foot is aimed (metres at a Medium's size).");
+            }
+
+            Readout(new GUIContent("His last kick: " + (basher != null && basher.LastKick.Length > 0 ? basher.LastKick + "." : "none yet."), "Where the foot landed, how fast it was going, and what it did to the other."), 2);
             if (feel == null)
             {
                 return;
@@ -3946,7 +3988,7 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), arms in a stumble, knees that take an impact";
+        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), arms in a stumble, knees that take an impact, a kick";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
@@ -3962,7 +4004,9 @@ namespace PhysicsBattler.Sandbox
             "STUMBLES (pushed 00:30):",
             "8. Go to \"Duel\" and find \"Stumbles and falls\". Press \"Stumble him: Medium\", then \"Hard\".",
             "9. Watch his arms: his hands should go out to his sides as he stumbles and come back as he catches himself. To compare: \"Stumbling, his arms: hold his guard (old)\". The lever \"Arms go out by\" makes it more or less.",
-            "AN IMPACT (pushed 01:20):",
+            "KICKS (pushed 01:40; a first build):",
+            "11. Same place. Press \"Kick him: Front kick\". He kicks the other chest high with his back foot; the other is thrown back and stumbles. Try \"Kick power\" at 4: he should go down. \"Set out\" the target without a shield to see it land on a body.",
+            "AN IMPACT (pushed 01:15):",
             "10. Same place. Press \"Stumble him: Hard\" and watch the legs of the one who bashes: his knees should give and his hips drop as his board lands, then he comes up. To compare: \"An impact, his knees and hips: stand stiff (old)\". Levers: \"Knees give to it\", \"Contact time\", \"Trunk folds to it\".",
         };
 
@@ -3973,6 +4017,7 @@ namespace PhysicsBattler.Sandbox
             "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:", "Getting up, his shield:", "The end of a get-up:",
             "Duel", "Stumbles and falls", "Stumble him:", "Stumbling, his arms:", "Arms go out by",
             "An impact, his knees and hips:", "Contact time", "Knees give to it", "Trunk folds to it",
+            "Kick him:", "Kick power", "Kicks into him",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

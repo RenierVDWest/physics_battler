@@ -346,6 +346,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a fighter pushed off balance stumbles on real stumble steps (the Fight Rhythm plan's step 9c). His body is a weight on legs: thrown by a bash or a heavy blow it tips away from his feet, and the only thing that stops it is a foot put down ahead of it. The foot behind lifts and goes for the point where it would stop him, as far as a leg reaches and as fast as a foot goes; landing ahead of him it takes speed out of him and his knees give. If his feet get there he is caught, in one step or several, and may have been turned by a blow that came in off his middle. If his body outruns his feet his hips sink and he is down. No speed is written in for when he stumbles or falls and nothing is drawn by lot: it comes from the speed and twist the impact left him with and where his feet were. Off: as before, he is thrown back on the guard's walk played fast, and falls from a fixed speed.")]
         public bool offBalanceHeStumblesOnRealSteps = true;
 
+        [Tooltip("On: a fighter can kick: a front kick with the back foot, from the sword-and-shield recordings. As the foot meets the other's body or his board he is thrown as by any impact: shoved, stumbling or down is his legs' to decide. Only from the lab's \"Kick him\" for now: no fighter kicks by himself. Off: the button does nothing.")]
+        public bool aKickThrowsABody = true;
+
+        [Tooltip("How fast a kick throws a man of the kicker's own weight, in m/s at a Medium's size. A medium bash throws at about 2.1, a hard one at about 4.3.")]
+        [Range(0.5f, 6f)] public float kickPower = ClipFighter.DefaultKickPower;
+
+        [Tooltip("How far past the other's front the kicking foot is aimed, in metres at a Medium's size. More: he goes further in with his hips.")]
+        [Range(0f, 0.6f)] public float kickGoesIntoHim = ClipFighter.DefaultKickGoesIn;
+
         [Tooltip("On: a body takes an impact in its knees and hips. A bash on him, his own bash meeting a board, or a heavy blow presses him down as it lands: his knees give and his hips drop by how hard it is, and he comes up again more slowly; his trunk folds a little toward it. Both men of a bash. Off (old): only a man thrown off balance sinks; one who keeps his feet stands on stiff legs.")]
         public bool aBodyTakesAnImpactInItsKneesAndHips = true;
 
@@ -1787,6 +1796,9 @@ namespace PhysicsBattler.Locomotion
             ImpactLedger.FeetTake = Mathf.Clamp01(feetTakeOfAnImpact);
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
+            ClipFighter.KicksThrow = aKickThrowsABody;
+            ClipFighter.KickPower = Mathf.Clamp(kickPower, 0.5f, 6f);
+            ClipFighter.KickGoesIn = Mathf.Clamp(kickGoesIntoHim, 0f, 0.6f);
             ClipFighter.BodiesTakeImpacts = aBodyTakesAnImpactInItsKneesAndHips;
             ClipFighter.ContactTime = Mathf.Clamp(impactContactTime, 0.05f, 0.5f);
             ClipFighter.KneesGiveToImpact = Mathf.Clamp(impactKneesGive, 0f, 0.25f);
