@@ -58,8 +58,17 @@ namespace UnityEngine
         private Vector3 inertia = Vector3.one * 0.1f;
         public Vector3 inertiaTensor { get => Physics.Backend != null ? Physics.Backend.InertiaTensor(this) : inertia; set => inertia = value; }
         public Quaternion inertiaTensorRotation { get; set; } = Quaternion.identity;
-        public Vector3 position { get => transform.position; set => transform.position = value; }
-        public Quaternion rotation { get => transform.rotation; set => transform.rotation = value; }
+        // (Set by its position or rotation a body is placed there at once, as Unity places it: remembered, so that a
+        // MovePosition or MoveRotation later in the same step sweeps it on from where it was placed, not from where
+        // it was before. Without this a kinematic body placed and then moved in one step was swept the whole way in a
+        // single physics step, and what was locked to it was whipped along: a fallen fighter's hips, as a get-up took
+        // him up with his hips' carrier a long way round from them. 19 November.)
+        public bool Placed;
+        public Vector3 PlacedAt;
+        public Quaternion PlacedTurn = Quaternion.identity;
+        public Vector3 position { get => transform.position; set { transform.position = value; Place(); } }
+        public Quaternion rotation { get => transform.rotation; set { transform.rotation = value; Place(); } }
+        private void Place() { Placed = true; PlacedAt = transform.position; PlacedTurn = transform.rotation; }
         public LayerMask excludeLayers { get; set; }
         public LayerMask includeLayers { get; set; }
 
@@ -85,8 +94,8 @@ namespace UnityEngine
         public void ResetCenterOfMass() { }
         public void ResetInertiaTensor() { }
         // The stub has no solver: a move arrives at once (the smoke runner integrates the rest).
-        public void MovePosition(Vector3 position) { this.position = position; MovedThisStep = true; }
-        public void MoveRotation(Quaternion rotation) { this.rotation = rotation; MovedThisStep = true; }
+        public void MovePosition(Vector3 position) { transform.position = position; MovedThisStep = true; }
+        public void MoveRotation(Quaternion rotation) { transform.rotation = rotation; MovedThisStep = true; }
         public void Sleep() { }
         public void WakeUp() { }
     }

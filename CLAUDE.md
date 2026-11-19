@@ -4,8 +4,8 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 15:50 (the gather seen by him: "looks fine for where it is now"; turning his trunk
-in it tried and left off; the yellow frames and the target that stays, both seen by him and good).
+Last updated: 19 November 2026, 19:30 (the get-up plan's step 4, the take-over, built and pushed: headless only,
+waiting for his eye; a fault found and mended in the headless stand-in for Unity).
 
 ## The project in a few lines
 
@@ -14,7 +14,8 @@ physical bodies who move, read each other, aim blows at body parts and meet each
 for real. Renier (the developer) playtests in Unity and pushes logs. Claude works headless in a cloud
 workspace and cannot open Unity.
 
-- Repository: `RenierVDWest/physics_battler` (private). **Work on the branch `physical-body`.**
+- Repository: `RenierVDWest/physics_battler`. **Work on the branch `physical-body`.** (His notes call it private;
+  on 19 November the tool that attaches it said it is public. He has been told.)
 - Other branches are history: `main`, `locomotion-lab`, `arm-rebuild`, `backup/active-ragdoll-v1`.
 - Only Mediums fight for now (Large and Small wait). Loadouts: sword and shield, sword only.
 
@@ -116,6 +117,7 @@ without Unity". Scripts: `Tools/Headless/` (see its README).
 First time in a new workspace:
 
 ```
+dotnet --version || apt-get install -y dotnet-sdk-8.0   # the workspace may come without it
 cd Tools/CompileCheck && ./get-physx.sh      # fetches PhysX bindings (not in the repository)
 ../Headless/b.sh                             # builds the four projects: wants "0 Error(s)" four times
 ```
@@ -133,6 +135,10 @@ Rules that cost time when broken:
 - The stub lacks some of Unity (`Vector3Int`, `Vector2.normalized`). Contact modification does nothing
   headless. Collision callbacks reach only objects that carry the script.
 - Unity has the last word. A headless pass is "looks right in the numbers", not "verified".
+- **The stand-in can be the thing that is wrong.** On 19 November a foot "thrown at 27 m/s" was the stub moving a
+  kinematic body in a way Unity does not (mended; `Tools/Headless/README.md`). A number that looks like a fault
+  in the game is traced step by step before it is believed. Headless numbers from before that mend (19 November,
+  about 16:30) are not comparable with numbers after it.
 
 The panel can be checked without Unity:
 `dotnet Tools/CompileCheck/bin/Tests/Debug/PhysicsBattler.Tests.dll panel [battle|duel|aim|tubes|targets] [search words]`
@@ -147,8 +153,8 @@ here is refreshed when a plan changes a lot. Read the one for the work in hand, 
 The four in hand:
 
 - `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: **the work in hand.** His five answers are in (all as
-  recommended). Steps 1 and 2 are built and step 3 has a first build he has seen; **next: step 4, the take-over from a body
-  that is moving; then the trunk's turn again; then step 5**
+  recommended). Steps 1 and 2 are built, step 3 has a first build he has seen, step 4 (the take-over) is built and
+  waits for his eye; **next: the trunk's turn in the gather again; then step 5**
   ([live](https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa)).
 - `2026-11-18-fight-rhythm-from-recordings-plan.md`: **the main plan**
   ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)).
@@ -164,6 +170,34 @@ attacks made from recordings and thrown on the move, the three shield bashes, fa
 short, the shield held in cover, the sword and shield solid against their bearer's body, hands that move
 smoothly, the shield giving way to the sword.
 
+**The evening of the 19th: the plan's step 4, headless only, waiting for his eye:**
+
+- **A get-up takes him up as he moves** (Combat Feel switch of that name, on; lever "Take Over Takes At Most",
+  0.6 s; `GetUp.TakesOverAsHeMoves`). The blend from how he lay is the old one changed three ways: the pose is
+  carried on at the speed his body had, eased out over 0.15 s, and the step he is taken up in is the get-up's first
+  step (before, he was held still for one step: stopped dead); his limbs go by where their joints are; a part that
+  is close takes less time. With it: what he holds comes out of the floor over 0.2 s, not in the first step; the
+  blade's turn clear of the ground is whole in the first pose; a get-up reads the body he has (a caught fall did
+  not); his sword hand's pin comes to rest, keeps his arm from folding right up, and turns his elbow slowly.
+  To see it: Tubes, "Falls and getting up", "The start of a get-up": "Taken up: as he moves / as if he lay still
+  (old)". Headless: `FIGHT_TAKEOVER=0` is the old way.
+- **Its measure** (new, in every report and in his `getup` lines): "the take-over": the biggest jump in a part's
+  speed from one step to the next in a get-up's first 0.2 s, and how fast he was moving as he was taken up.
+  Old way to new, same build: tube falls from his back, front, right, left 1.2, 2.7, 4.0, 1.4 m/s to 1.2, 1.3, 2.0,
+  0.9; hard bash-downs 2.8 to 0.9; extra hard 2.5 to 1.7. The fastest part in the first 0.75 s a little lower
+  (bash-downs 4.8 to 3.9 and 4.7 to 3.8). **Crossings are not changed by it** (they are the get-up's own pose:
+  step 5). About 1 m/s of jump is left; not known how much of that is the measure's own floor.
+- **Still rough:** his sword hand at 6 m/s about 0.4 s in, as its pin lets go in a get-up from his front (old way
+  too); his shield arm's forearm at 6.5 m/s 0.2 s into one get-up from his front (new only); his sword hand
+  sliding out from under his shoulder starts with no easing (probably the 4.9 m/s jump seen once in a fight of
+  six; not traced). In the fights of six the take-over did not measure better (very few get-ups; hands lie up to
+  1.2 m from where the get-up wants them there). What was tried and not kept
+  is written in `GetUp.TakesOverAsHeMoves`'s comment and the README's entry.
+- **The "rougher take-over" with the trunk's turn on was a fault in the headless stub, not in the game** (above,
+  "Testing without Unity"). He was taken up at 0.2 m/s, not rolling. With the stub mended and step 4 on, the turn
+  at 0.25 does not make the take-over rougher (fastest part 2.3 to 3.1 m/s from the four sides), but it still does
+  not finish the gathers (0, 1, 3 and 2 of 3 ended by the clock; hips 11 to 27 degrees off). Still off (0).
+
 **The afternoon of the 19th (after his third look, 12:26):**
 
 - **Plan step 3, a first build: he gathers himself before he gets up** (Combat Feel switch of that name, on;
@@ -175,8 +209,8 @@ smoothly, the shield giving way to the sword.
   **Seen by him at 15:33: "it looks fine for where it is now, you can continue."** His log of 15:29 (56 get-ups):
   crossing in a get-up's first 0.75 s 0.05 s a get-up (the shield bearer 0.16 s), the fastest part 4.2 m/s.
 - **Turning his trunk in the gather: built and left off** ("Gather Turns His Trunk", 0; `Upper.TurnHips`). At a
-  quarter of his weight it did not finish the gathers from a side and made the take-over rougher (fastest part
-  11.5 m/s against 4.1): he is still rolling when the get-up takes him up. It needs step 4 first.
+  quarter of his weight it did not finish the gathers from a side. (It was also measured to make the take-over
+  rougher, 11.5 m/s against 4.1: that was the stub's fault, see the evening's notes above.)
 
 - **Thrown by nothing after a tube's fall: mended** (his log of 13:26: 14 times a target just up was thrown at up to
   6.2 m/s with no blow, 6 of them down again). A blow's knock that was still waiting when he fell lay with him and
@@ -292,12 +326,12 @@ arms thrown out for balance; a look at feet crossing in a stumble to the side; a
 a bash's is (it is still the old rule's number, uncapped).
 
 **The first moment of a get-up** (`Docs/Plans/2026-11-19-…`; his answers are in). Steps 1 and 2 are built, step 3
-has a first build he has seen ("fine for where it is now"). **Next on it, in this order:** step 4, the take-over
-(today the get-up takes him up as if he lay still and runs its old blend from the gathered pose: it should take the
-pose and the motion he has, and blend by where the joints are); then the trunk's turn in the gather again (built,
-off: `GatherTurns`; it needs step 4, and half the gathers end by the clock for want of it); then step 5, the board
-carried round him (his answer 3): the crossings left are the get-up's own pose. The start's cost (step 2) must
-count the board before it is turned on.
+has a first build he has seen ("fine for where it is now"), step 4 is built and waits for his eye. **Next on it, in
+this order:** the trunk's turn in the gather (built, off: `GatherTurns`; at 0.25 it is too weak or too short to
+finish a gather from his side: try more strength, a longer gather for those cases (his answer 2 allows half a
+second), or both; about half the gathers still end by the clock for want of it); then step 5, the board carried
+round him (his answer 3): the crossings left are the get-up's own pose, and so are the fast arms left after step
+4. The start's cost (step 2) must count the board before it is turned on.
 
 **Bugs and leftovers**
 0. A get-up from a side leaves the board trembling more for some seconds after (19 November, above): cause not found.
@@ -328,8 +362,8 @@ should be more frequent; whether a fighter holds off while his enemy is down.
 
 ## Starting a new chat
 
-`Docs/NextChat-prompt.md` is the prompt Renier pastes into a new chat (written 19 November for the get-up plan's
-step 4). When a chat ends with work left, rewrite it for the next one: where to start, what to do in order, where the
+`Docs/NextChat-prompt.md` is the prompt Renier pastes into a new chat (written 19 November, evening, for the
+trunk's turn and step 5). When a chat ends with work left, rewrite it for the next one: where to start, what to do in order, where the
 code is, how to measure it, and what cost time.
 
 ## Keeping this file true

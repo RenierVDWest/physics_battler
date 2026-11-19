@@ -1281,6 +1281,12 @@ internal static class FightReport
             PhysicsBattler.Motion.GetUp.SwordHandTurns = getUpTurns;
         }
         PhysicsBattler.Motion.GetUp.TraceHeld = Environment.GetEnvironmentVariable("FIGHT_GETUPTRACE") == "1";
+        // (FIGHT_TAKEOVER=0: a get-up takes him up as if he lay still and blends from how he lay, as before. FIGHT_TAKEOVERMOST: the most its take-over takes, seconds.)
+        PhysicsBattler.Motion.GetUp.TakesOverAsHeMoves = Environment.GetEnvironmentVariable("FIGHT_TAKEOVER") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_TAKEOVERMOST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float takeOverMost))
+        {
+            PhysicsBattler.Motion.GetUp.TakeOverMost = takeOverMost;
+        }
         // (FIGHT_GETUPCLEAR=0: a recorded get-up's feet where the recording has them, through the hips or not. FIGHT_GETUPCLEARS: how far clear, in leg lengths.)
         PhysicsBattler.Motion.GetUp.FeetClearHips = Environment.GetEnvironmentVariable("FIGHT_GETUPCLEAR") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GETUPCLEARS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float getUpClears))
@@ -2841,6 +2847,10 @@ internal static class FightReport
                 var starts = PhysicsBattler.Locomotion.ClipFighter.GetUpStarts;
                 sb.AppendLine($"    the first {PhysicsBattler.Locomotion.ClipFighter.GetUpStartFor:0.00} s of a get-up, as seen ({starts.Count} get-ups; the start nearest to how he lies: {(PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest ? "on" : "off")}, {PhysicsBattler.Locomotion.ClipFighter.StartsChosen} of {PhysicsBattler.Locomotion.ClipFighter.StartsWeighed} took another start than his hips say): "
                     + (starts.Count == 0 ? "none" : $"his own shield or sword crossing him {starts.Average(g => g.Crossed):0.00} s a get-up ({starts.Max(g => g.Crossed):0.00} at most); the fastest part {starts.Average(g => g.Fastest):0.0} m/s on average ({starts.Max(g => g.Fastest):0.0} at most); the shield hand went {starts.Average(g => g.HandL):0.00} m and the sword hand {starts.Average(g => g.HandR):0.00} m on average"));
+                sb.AppendLine($"    a get-up takes him up as he moves: {(PhysicsBattler.Motion.GetUp.TakesOverAsHeMoves ? $"on (at most {PhysicsBattler.Motion.GetUp.TakeOverMost:0.00} s)" : "off")}"
+                    + (starts.Count == 0 ? "" : $"; what was left took {starts.Average(g => g.Took):0.00} s to ease out on average ({starts.Max(g => g.Took):0.00} at most), from a hand or foot {100f * starts.Average(g => g.From):0} cm off on average ({100f * starts.Max(g => g.From):0} at most)"));
+                sb.AppendLine($"    the take-over of a get-up, as seen (its first {PhysicsBattler.Locomotion.ClipFighter.TakeOverFor:0.00} s): "
+                    + (starts.Count == 0 ? "none" : $"the biggest jump in a part's speed in one step {starts.Average(g => g.Jump):0.0} m/s on average ({starts.Max(g => g.Jump):0.0} at most); he was taken up moving at {starts.Average(g => g.Speed):0.0} m/s on average ({starts.Max(g => g.Speed):0.0} at most)"));
             }
 
             {

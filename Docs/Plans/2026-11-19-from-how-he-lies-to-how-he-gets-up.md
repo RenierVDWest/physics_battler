@@ -185,3 +185,25 @@ thrown back onto its pose. While getting up it is still 2.35 s, all of it in the
 fastest part 4.2 m/s. Turning his trunk in the gather was built and measured, and is left off: it did not finish
 the gathers from his side and made the take-over rougher, because he is still rolling when the get-up takes him up.
 It needs step 4 first. Next: step 4, then the trunk again, then step 5.
+
+**19 November 2026, 19:30: step 4, the take-over.** Headless only; waiting for your eye.
+
+- **Built: a get-up takes him up as he moves** (Combat Feel "A Get-Up Takes Him Up As He Moves", on). He keeps the
+  speed he has as he is taken up (before, his body was held still for one step first); his limbs go by where their
+  joints are; a part that is already close takes less time (the lever "Take-over takes at most", 0.6 s).
+- **Its measure is new:** the biggest jump in any part's speed from one step to the next in a get-up's first 0.2 s.
+  Old way to new, same build: tube falls from his back, front, right and left 1.2, 2.7, 4.0 and 1.4 m/s to 1.2, 1.3,
+  2.0 and 0.9; the shield bearer bashed down hard 2.8 to 0.9, extra hard 2.5 to 1.7. The fastest part in the first
+  0.75 s is a little lower (bash-downs 4.8 to 3.9 and 4.7 to 3.8 m/s).
+- **Not reached:** the table's "no jump". About 1 m/s is left. Crossings are not changed by this step (hard
+  bash-downs 0.21 to 0.14 s a get-up, extra hard 0.20 to 0.23): what is left of them is the get-up's own pose,
+  which is step 5.
+- **A fault in my test rig, found on the way.** The "rougher take-over" I reported at 15:40 with the trunk's turn
+  on was not the game: the headless stand-in for Unity moved the hips' carrier in a way Unity does not, and whipped
+  his legs. He was taken up at 0.2 m/s, not rolling. It is mended. So the turn was set aside for a wrong reason.
+- **The trunk's turn, a first look after that:** at 0.25 it no longer makes the take-over rougher (fastest part 2.3
+  to 3.1 m/s from the four sides), but it still does not finish the gathers (0, 1, 3 and 2 of 3 ended by the clock,
+  his hips 11 to 27 degrees off). It needs more strength or more time. Still off.
+- To see step 4: Tubes, "Falls and getting up", "The start of a get-up": "Taken up: as he moves / as if he lay
+  still (old)".
+- **Next:** the trunk's turn on its merits, then step 5.

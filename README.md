@@ -7045,3 +7045,120 @@ measure exactly as the first build's did.
 
 **Next:** step 4 (the take-over from the pose and the motion he has), then the trunk again, then step 5 (the board
 carried round him).
+
+### 19 November, 19:30: a get-up takes him up as he moves (the plan's step 4), and a fault found in the test rig
+
+**Headless only. Nothing here has been seen in Unity.** Combat Feel "A Get-Up Takes Him Up As He Moves" (on), with
+"Take Over Takes At Most" (0.6 s). The lab: Tubes, "Falls and getting up", "The start of a get-up": "Taken up: as he
+moves / as if he lay still (old)", the lever "Take-over takes at most", and "His last get-up", which now ends with
+the take-over's own figures. Headless: `FIGHT_TAKEOVER=0` is the old way, `FIGHT_TAKEOVERMOST` the lever.
+
+**First, the fault in the test rig.** This afternoon's entry said that turning his trunk in the gather "makes the
+take-over rougher: he is still rolling when the get-up takes him up" (a part at 11.5 m/s on average, 26.9 at most).
+Traced step by step, that was wrong. He was taken up at 0.2 m/s, not rolling. The headless stand-in for Unity moved
+a kinematic body badly: one set by its position and then moved with `MovePosition` in the same step was swept the
+whole way in one physics step where Unity places it at once. A get-up locks his hips to their carrier, and with the
+trunk's turn on the carrier was up to 36 degrees round from his hips at that moment: swept there and back in one
+step, it whipped his legs (a foot at 27 m/s). Unity does not do this. The stub is mended
+(`Tools/CompileCheck/Stubs/Engine/Physics.cs`, `Runner/PhysX/PhysXWorld.cs`). With it mended, and before any of
+step 4, the same falls with the trunk's turn on measured 5.0 m/s on average and 7.1 at most. **So the trunk's turn
+was set aside for a reason that was not true.** Two consequences: headless numbers from before this entry are not
+comparable with numbers after it (every "old" figure below is measured again, on this build); and the turn is to be
+looked at again on its merits (below).
+
+**A new measure: the take-over itself.** The plan's measure for this step is "no jump in any part in the step the
+get-up takes over". Each get-up now reports, for its first 0.2 s, the biggest change in any part's speed from one
+step to the next, as seen (a part stopped dead or thrown shows as a jump), with which part and when, and how fast
+his fastest part was moving as he was taken up. The old way stops him dead: over twelve tube falls its jump was
+about what he was moving at (1.2, 2.7, 4.0 and 1.4 m/s from the four sides, taken up at 1.2, 1.9, 2.6 and 0.9).
+
+**What step 4 does.** With the switch on, the blend from how he lay is the old one changed in three ways.
+
+1. **He keeps the speed he has.** His body's pose is kept for the last four steps while he is down; as the get-up
+   takes him up, the speed of his hips, of each trunk part's turn and of each hand and foot is read off them (over
+   three steps: what lies on the ground trembles from step to step) and the pose is carried on at that speed, eased
+   out over 0.15 s. And the step he is taken up in is the get-up's first step: before, his body was held to the pose
+   he lay in for one whole step first, which is what stopped him.
+2. **His limbs go by where their joints are.** Each hand and foot goes straight from where it is to where the get-up
+   has it, the elbow or knee turning round the limb, where before each part of the limb turned by itself.
+3. **A part that is close takes less time.** Each part's clock is the time what it has left needs at 1 m/s or 150
+   degrees a second, no less than 0.2 s and no more than the lever (0.6 s) times its share. A limb goes as one.
+
+Four smaller things go with it, all only while the switch is on, each found by a jump it caused:
+
+- What he holds is no longer brought out of the floor in one go as the get-up begins. That lift put his shield hand
+  6 to 11 cm from where his body had it, and his arm jumped there in the first step. The pose now begins from his
+  body as it is and goes over, in 0.2 s, to the one that began clear of the floor.
+- The turn that lifts his blade clear of the ground (this morning's mend) came in from nothing at 30 degrees a step,
+  so for the get-up's first steps its own sword arm was thrown up to 44 cm and came down again. It is taken whole in
+  the first pose.
+- A fall caught on a knee was taken up with the pose his fall was drawing him to, not his body, on the animation
+  rig, and the get-up read where his sword hand lay off that: thrown at 15 m/s in the first step in a fight of six.
+  The get-up now reads the body he has, whichever way it begins.
+- His sword hand's pin (his rule: it stays where it lies): the place it is pinned to comes to rest with the speed
+  the hand had; the hand is no nearer his shoulder than 0.4 of his arm (as his trunk came over it the arm folded
+  right up and threw the elbow round at 6.7 m/s: the hand now slides out along the ground and stays where it slid
+  to); and the way his elbow bends comes round no faster than 720 degrees a second.
+
+**What it measured.** The same build, old way and new. Tube falls are the same falls both ways (three targets a
+side); the bash-downs and the fights are chaotic, so they are a direction.
+
+| Felled by the tubes | Jump in the take-over, old to new (m/s, average / most) | Fastest part in the first 0.75 s | His shield or sword crossing him, a get-up |
+|---|---|---|---|
+| Onto his back | 1.2 / 1.4 to 1.2 / 1.5 | 2.7 / 3.7 to 2.3 / 2.4 | 0.00 to 0.00 s |
+| Onto his front | 2.7 / 3.7 to 1.3 / 1.5 | 3.2 / 3.8 to 2.7 / 3.5 | 0.16 to 0.11 s |
+| To his right | 4.0 / 5.2 to 2.0 / 2.6 | 4.1 / 5.2 to 3.7 / 5.1 | 0.19 to 0.16 s |
+| To his left | 1.4 / 1.8 to 0.9 / 1.0 | 2.6 / 3.3 to 2.7 / 3.3 | 0.02 to 0.02 s |
+
+| The shield bearer bashed down | Old | New |
+|---|---|---|
+| Hard: jump in the take-over, average / most | 2.8 / 5.3 m/s | 0.9 / 1.3 m/s |
+| Hard: the fastest part in the first 0.75 s | 4.8 / 6.3 m/s | 3.9 / 6.3 m/s |
+| Hard: crossing in the first 0.75 s, a get-up | 0.21 s | 0.14 s |
+| Extra hard: jump in the take-over | 2.5 / 4.0 m/s | 1.7 / 3.5 m/s |
+| Extra hard: the fastest part | 4.7 / 6.5 m/s | 3.8 / 6.7 m/s |
+| Extra hard: crossing in the first 0.75 s | 0.20 s | 0.23 s |
+| Crossing through the whole get-up, both runs | 2.31 s (10 get-ups) | 1.88 s (9 get-ups) |
+
+So: the jump at the take-over is about halved, most where he was moving most; the fastest part is a little lower;
+the crossings are not changed by this step, as expected (what is left of them is the get-up's own pose: step 5).
+
+**The budget** (two fights of six, 40 s, old way and new on this build; a third seed where the first had no fall):
+| Seed | Crossings on his feet, old to new (budget 0.5%) | The longest (budget 0.10 s) | Board's tremble (budget 8%) |
+|---|---|---|---|
+| 5 | 0.77% to 0.58% | 0.22 to 0.10 s | 9.8% to 8.9% |
+| 3 | 0.75% to 0.73% | 0.17 to 0.17 s | 5.7% to 6.2% |
+| 7 (nobody falls, so the same fight) | 0.58% to 0.58% | 0.10 to 0.10 s | 7.1% to 7.1% |
+
+Still over on crossings in all three, as before, for the reasons in CLAUDE.md (his blade through his own shield
+while striking or bashing); not made worse. Fights are chaotic: one run a seed says no more than that.
+**In the fights the take-over itself did not measure better**, on very few get-ups: seed 5, the jump 2.0 m/s on
+average over three get-ups the old way, 3.6 over two the new way (one of them his sword hand, 4.9 m/s 0.18 s in:
+I take it to be the hand sliding out from under his shoulder, below, but did not trace it); seed 3,
+one get-up each way, 2.7 to 0.9. In a fight a hand lies up to 1.2 m from where the get-up wants it, further than in
+any tube fall, and that is where the new way has been tried least.
+
+**What it does not do, and what is still rough.**
+- The plan's own measure, "no jump", is not reached: about 1 m/s is left in most take-overs, and I do not know how
+  much of that is the measure's own floor (a body on the ground changes speed from step to step).
+- The fastest parts left are not the take-over's: his sword hand at 6 m/s about 0.4 s in, as its pin lets go in a
+  get-up from his front with the hand a metre from where the get-up wants it (the same old way and new); and his
+  shield arm's forearm at 6.5 m/s 0.2 s into one get-up from his front (new only, in the first extra-hard
+  bash-down). Both are the get-up's own arm poses.
+- His sword hand sliding out from under his shoulder starts at once, with no easing: probably the 4.9 m/s jump of
+  his sword hand seen once in a fight of six (not traced).
+- Tried and not kept (in `GetUp.TakesOverAsHeMoves`'s own words): adding what was left on top of the get-up's poses
+  with no blend (the textbook way; it shows every jump the get-up's own first poses make, a forearm at 12 to 20
+  m/s); limbs with far to go, or the sword arm, turned part by part as before (a forearm at 10 to 15 m/s); a limb
+  kept no nearer its root than it lay (a shin at 21 m/s).
+
+**The trunk's turn again, a first look only** ("Gather Turns His Trunk" at 0.25, still off by default). With the
+stub mended and step 4 on, it no longer makes the take-over rougher: felled from the four sides, the fastest part
+2.3, 2.5, 2.6 and 3.1 m/s (without it 2.3, 2.7, 3.7 and 2.7), the jump 1.0 to 1.3 m/s. But it still does not finish
+the gathers: 0, 1, 3 and 2 of 3 ended by the clock (without it 0, 1, 2 and 2), his hips still 11 to 27 degrees from
+the start's. It needs more strength or more time; that is the next piece.
+
+**Setting up a new workspace** needed one thing the briefing did not say: `dotnet` was not installed
+(`apt-get install -y dotnet-sdk-8.0`).
+
+**Next:** the trunk's turn in the gather, on its merits; then step 5 (the board carried round him).

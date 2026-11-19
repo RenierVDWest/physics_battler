@@ -133,6 +133,52 @@ namespace PhysicsBattler.Motion
             }
         }
 
+        /// <summary>
+        /// How fast this pose is changing, read against the pose it was <paramref name="dt"/> seconds before. No speed
+        /// is taken to be more than <paramref name="most"/> (m/s) or <paramref name="mostTurn"/> (rad/s): a speed read
+        /// off a few steps of a body lying on the ground can be anything.
+        /// </summary>
+        public void SpeedsSince(PoseBuffer before, float dt, PoseSpeeds into, float most, float mostTurn)
+        {
+            into.Clear();
+            if (before == null || dt <= 1e-5f)
+            {
+                return;
+            }
+
+            Vector3 Turned(Quaternion was, Quaternion now) => Vector3.ClampMagnitude(Muscles.JointMath.TurnVector(Quaternion.Inverse(was) * now) / dt, mostTurn);
+            into.Pelvis = Vector3.ClampMagnitude((PelvisPosition - before.PelvisPosition) / dt, most);
+            into.Fastest = into.Pelvis.magnitude;
+            foreach (var id in PartInfo.All)
+            {
+                into.Turns[(int)id] = Turned(before.Rotations[(int)id], Rotations[(int)id]);
+                into.FastestTurn = Mathf.Max(into.FastestTurn, into.Turns[(int)id].magnitude);
+            }
+
+            for (int l = 0; l < 4; l++)
+            {
+                into.Ends[l] = Vector3.ClampMagnitude((LimbEnd[l] - before.LimbEnd[l]) / dt, most);
+                into.EndTurns[l] = Turned(before.LimbEndRotation[l], LimbEndRotation[l]);
+                into.Fastest = Mathf.Max(into.Fastest, into.Ends[l].magnitude);
+            }
+        }
+
+        /// <summary>This pose carried on for <paramref name="seconds"/> at the speeds given: its hips moved, every part turned on, each limb's end moved and turned.</summary>
+        public void Carry(PoseSpeeds speeds, float seconds)
+        {
+            PelvisPosition += speeds.Pelvis * seconds;
+            foreach (var id in PartInfo.All)
+            {
+                Rotations[(int)id] = Rotations[(int)id] * Muscles.JointMath.FromTurnVector(speeds.Turns[(int)id] * seconds);
+            }
+
+            for (int l = 0; l < 4; l++)
+            {
+                LimbEnd[l] += speeds.Ends[l] * seconds;
+                LimbEndRotation[l] = LimbEndRotation[l] * Muscles.JointMath.FromTurnVector(speeds.EndTurns[l] * seconds);
+            }
+        }
+
         public void CopyFrom(PoseBuffer other)
         {
             PelvisPosition = other.PelvisPosition;
@@ -140,6 +186,31 @@ namespace PhysicsBattler.Motion
             System.Array.Copy(other.LimbBend, LimbBend, 4);
             System.Array.Copy(other.LimbEnd, LimbEnd, 4);
             System.Array.Copy(other.LimbEndRotation, LimbEndRotation, 4);
+        }
+    }
+
+    /// <summary>
+    /// How fast a pose is changing: the hips' speed, every part's speed of turn on its own axes, and each limb's
+    /// end's speed and speed of turn. Read off two poses a moment apart (<see cref="PoseBuffer.SpeedsSince"/>), and
+    /// put back into a pose a step at a time (<see cref="PoseBuffer.Carry"/>): what lets a pose go on as a body was
+    /// moving (the plan "From how he lies to how he gets up", step 4).
+    /// </summary>
+    public sealed class PoseSpeeds
+    {
+        public Vector3 Pelvis;
+        public readonly Vector3[] Turns = new Vector3[PartInfo.Count];
+        public readonly Vector3[] Ends = new Vector3[4], EndTurns = new Vector3[4];
+
+        /// <summary>The fastest of them: a place (m/s) and a turn (rad/s).</summary>
+        public float Fastest, FastestTurn;
+
+        public void Clear()
+        {
+            Pelvis = Vector3.zero;
+            System.Array.Clear(Turns, 0, Turns.Length);
+            System.Array.Clear(Ends, 0, 4);
+            System.Array.Clear(EndTurns, 0, 4);
+            Fastest = FastestTurn = 0f;
         }
     }
 
@@ -210,6 +281,67 @@ namespace PhysicsBattler.Motion
 
         /// <summary>Natural: how long each part takes to leave how it lay (seconds at a Medium's size; the head and the arms take a share of it).</summary>
         public const float NaturalBlend = 0.6f;
+
+        /// <summary>
+        /// A get-up takes him up as he lies and as he moves (the plan "From how he lies to how he gets up", step 4;
+        /// Combat Feel "A Get-Up Takes Him Up As He Moves"). Three things change in the blend from how he lay:
+        /// the pose goes on at the speed each part of his body had as he was taken up, and that speed is eased out
+        /// over <see cref="TakeOverCarries"/> (nothing is stopped dead); his limbs go by where their joints are (hand,
+        /// elbow, knee, foot), not by turning each part; and a part that is already close takes less time
+        /// (<see cref="TakeOverMoves"/>, <see cref="TakeOverTurns"/>), none more than <see cref="TakeOverMost"/>
+        /// times its part's share. Off: as before, he is taken up as if he lay still, and every part turns from how
+        /// it lay to the get-up's pose over 0.6 s on its own clock. Natural get-ups only.
+        /// (Tried on 19 November and not kept: what was left added on top of the get-up's own poses and eased out,
+        /// with no blend. Every jump the get-up's own poses make in their first moments then showed whole, where a
+        /// blend hides them: a forearm at 12 to 20 m/s. A limb kept no nearer its root than it lay or is asked: a
+        /// shin at 21 m/s. Limbs with far to go, or his sword arm, turned part by part as before: a forearm at 10 to
+        /// 15 m/s in the bash-downs, and stopped dead in the first step.)
+        /// With it go four smaller things, all only when it is on: the step he is taken up in is the get-up's first
+        /// step (<c>ClipFighter.FirstStepOfGetUp</c>); what he holds is brought out of the floor over a moment
+        /// (<see cref="TakeOverLifts"/>); the turn that lifts his blade clear is taken whole in the first pose; and
+        /// his sword hand's pin comes to rest, keeps his arm from folding right up, and turns his elbow no faster
+        /// than an elbow swings (<see cref="PinSwordHand"/>).
+        /// </summary>
+        public static bool TakesOverAsHeMoves = true;
+
+        /// <summary>The take-over: the most any part takes to leave how it lay (seconds at a Medium's size).</summary>
+        public static float TakeOverMost = DefaultTakeOverMost;
+        public const float DefaultTakeOverMost = 0.6f;
+
+        /// <summary>
+        /// The take-over: a part takes the time it needs to cover what is left at this speed (a hand or foot or the
+        /// hips, metres a second at a Medium's size; a part's turn, degrees a second), and no less than
+        /// <see cref="TakeOverLeast"/> seconds; and the speed he was taken up with is eased out over
+        /// <see cref="TakeOverCarries"/> seconds.
+        /// </summary>
+        public const float TakeOverMoves = 1f, TakeOverTurns = 150f, TakeOverLeast = 0.2f, TakeOverCarries = 0.15f;
+
+        /// <summary>
+        /// The take-over: what he holds is brought out of the floor over this long (seconds), not at once: the pose
+        /// begins from his body as it lay and goes over to the one that began clear of the floor, and the rule that
+        /// keeps what he holds out of the ground comes in with it. (Tried and not kept: that rule alone, come in over
+        /// this long, with no pose that began clear. In one run of bash-downs his shield arm's forearm was then posed
+        /// at 25 m/s a quarter of a second in; with the pose that began clear that was not seen again. One run each:
+        /// a direction, not a proof.)
+        /// </summary>
+        public const float TakeOverLifts = 0.2f;
+
+        /// <summary>The fastest a part is taken to have been moving as he was taken up (m/s, rad/s).</summary>
+        public const float TakeOverMostSpeed = 4f, TakeOverMostTurn = 10f;
+
+        /// <summary>The pose he had a moment before the get-up began, and how long before (seconds): his speeds are read from it. Null: he is taken to lie still. Set before <see cref="Begin"/>.</summary>
+        public PoseBuffer LayBefore { get; set; }
+        public float LayBeforeDt { get; set; }
+
+        /// <summary>For the reports, of this get-up's take-over: how long it took at the longest (seconds), and the most that was left as it began: a hand or foot from where the get-up has it (metres).</summary>
+        public float TookOverIn => takesOver ? takeLongest : BlendIn;
+        public float TookOverFrom => takesOver ? takeFurthest : 0f;
+
+        private readonly PoseSpeeds laySpeeds = new PoseSpeeds();
+        private readonly PoseBuffer askedFirst = new PoseBuffer(), layAsIs = new PoseBuffer(), mixedAsIs = new PoseBuffer();
+        private readonly float[] takeOver = new float[PartInfo.Count];
+        private float takeLongest, takeFurthest;
+        private bool takesOver;
 
         /// <summary>Natural: it lies on a side (+1 its right side down, -1 its left; 0 on its back or its front). Set before <see cref="Begin"/>.</summary>
         public float Side { get; set; }
@@ -483,6 +615,11 @@ namespace PhysicsBattler.Motion
             shieldRollAngle = float.NaN;
             // (What the hands held as it lay brought out of the floor once, so the get-up starts from
             // a body holding it above the ground.)
+            // (Taken up as he moves, the pose he lay in is kept as it was too: that lift puts his shield hand 6 to
+            // 11 cm from where his body has it, and begun from there his arm jumped that far in the get-up's first
+            // step. The get-up begins from the body as it is and goes over to the lifted one in a moment: see Compose.)
+            takesOver = TakesOverAsHeMoves && Natural;
+            layAsIs.CopyFrom(from);
             if (Loadout != null)
             {
                 lying.Apply(anim, false);
@@ -568,7 +705,68 @@ namespace PhysicsBattler.Motion
 
             shieldFrom *= pace;
             shieldBy *= pace;
+            if (takesOver)
+            {
+                // (The turn that lifts his blade clear of the ground comes in no faster than 30 degrees a step, from
+                // nothing as a get-up begins: for its first steps the keys' own sword arm was thrown up to half a
+                // metre to clear the ground instead, and came down again. The old blend hid that. Here the get-up's
+                // first pose is what the body is measured against, so the turn is taken whole the first time.)
+                bladeMore = bladeMoreWas = 0f;
+                bladeLastT = -1f;
+                bladeFresh = true;
+                // (His speeds: read off the pose he had a moment ago, before what he holds was brought out of the
+                // floor: that lift is not a speed of his.)
+                from.SpeedsSince(LayBefore, LayBeforeDt, laySpeeds, TakeOverMostSpeed * Mathf.Sqrt(Mathf.Max(0.3f, s)), TakeOverMostTurn);
+                // (How long each part takes: the time what is left needs. The get-up's first pose is what it is
+                // measured against. A limb goes as one: by how far its end is, and how far its parts are turned.)
+                PoseKeys(0f);
+                askedFirst.Capture(anim);
+                float size = Mathf.Max(0.3f, s), least = TakeOverLeast * pace, most = TakeOverMost * pace;
+                float Turned(PartId id) => Quaternion.Angle(lying.Rotations[(int)id], askedFirst.Rotations[(int)id]) / TakeOverTurns;
+                takeLongest = takeFurthest = 0f;
+                foreach (var id in PartInfo.All)
+                {
+                    float needs = id == PartId.Pelvis ? Mathf.Max(Turned(id), (lying.PelvisPosition - askedFirst.PelvisPosition).magnitude / (TakeOverMoves * size)) : Turned(id);
+                    takeOver[(int)id] = needs;
+                }
+
+                for (int l = 0; l < 4; l++)
+                {
+                    float far = (lying.LimbEnd[l] - askedFirst.LimbEnd[l]).magnitude;
+                    takeFurthest = Mathf.Max(takeFurthest, far);
+                    float needs = far / (TakeOverMoves * size);
+                    for (int k = 0; k < 3; k++)
+                    {
+                        needs = Mathf.Max(needs, takeOver[(int)PoseBuffer.Limbs[l, k]]);
+                    }
+
+                    for (int k = 0; k < 3; k++)
+                    {
+                        takeOver[(int)PoseBuffer.Limbs[l, k]] = needs;
+                    }
+                }
+
+                foreach (var id in PartInfo.All)
+                {
+                    float longest = most * NaturalShare(id);
+                    takeOver[(int)id] = Mathf.Clamp(takeOver[(int)id], Mathf.Min(least, longest), longest);
+                    takeLongest = Mathf.Max(takeLongest, takeOver[(int)id]);
+                }
+
+                for (int l = 0; l < 4; l++)
+                {
+                    // (A limb is carried on by its end, not by its parts' turns: the speeds of turn read off an arm lying
+                    // on the ground are mostly its trembling.)
+                    for (int k = 0; k < 3; k++)
+                    {
+                        laySpeeds.Turns[(int)PoseBuffer.Limbs[l, k]] = Vector3.zero;
+                    }
+                }
+
+                takeCarried = Vector3.zero;
+            }
         }
+
 
         /// <summary>
         /// Poses the animation rig <paramref name="t"/> seconds into the get-up. From
@@ -581,7 +779,8 @@ namespace PhysicsBattler.Motion
             pinT = t;
             fitFrame++;
             PoseKeys(Mathf.Max(0f, t - KeysFrom));
-            bool blendingIn = t < BlendIn * 1.25f;
+            bool takingOver = takesOver && t < takeLongest * 1.05f;
+            bool blendingIn = takesOver ? takingOver : t < BlendIn * 1.25f;
             bool standing = stand != null && t > StandFrom;
             if (!blendingIn && !standing)
             {
@@ -591,7 +790,54 @@ namespace PhysicsBattler.Motion
             }
 
             keyed.Capture(anim);
-            if (blendingIn)
+            if (takingOver)
+            {
+                // (Taken up as he moves. As the old blend below: each step the pose it had goes a share of the way
+                // that is left to the keys' pose now, each part on its own clock. But each part's clock is as long as
+                // what it has left needs; and the pose is first carried on at the speed his body had, eased out over a
+                // moment, so that he is not stopped dead.)
+                if (composedAt < 0f)
+                {
+                    mixed.CopyFrom(lying);
+                    mixedAsIs.CopyFrom(layAsIs);
+                }
+
+                float before = Mathf.Max(0f, composedAt);
+                float carried = Mathf.Clamp01(0.5f * (before + t) / (TakeOverCarries * pace));
+                float carries = (t - before) * (1f - carried * carried * (3f - 2f * carried));
+                mixed.Carry(laySpeeds, carries);
+                // (His sword hand, which stays where it lies, comes to rest the same way: the place it is pinned to
+                // goes on at the speed the hand had, eased out. Pinned at once, a hand moving at 3.9 m/s was stopped
+                // dead in the first step.)
+                takeCarried += laySpeeds.Ends[1] * carries;
+                mixed.MixToward(keyed, id =>
+                {
+                    float over = takeOver[(int)id];
+                    float was = Smooth(before / over), now = Smooth(t / over);
+                    return was >= 1f - 1e-4f ? 1f : Mathf.Clamp01((now - was) / (1f - was));
+                });
+                float lifted = Smooth(t / (TakeOverLifts * pace));
+                if (lifted < 1f)
+                {
+                    // (For a moment the same is done from the body as it lay, with what he holds where it was, in the
+                    // floor or not; and the pose goes over from that one to the one that began clear of the floor.
+                    // Both come to the get-up's pose alike, so what is between them only shrinks.)
+                    mixedAsIs.Carry(laySpeeds, carries);
+                    mixedAsIs.MixToward(keyed, id =>
+                    {
+                        float over = takeOver[(int)id];
+                        float was = Smooth(before / over), now = Smooth(t / over);
+                        return was >= 1f - 1e-4f ? 1f : Mathf.Clamp01((now - was) / (1f - was));
+                    });
+                    keyed.CopyFrom(mixedAsIs);
+                    keyed.MixToward(mixed, _ => lifted);
+                }
+                else
+                {
+                    keyed.CopyFrom(mixed);
+                }
+            }
+            else if (blendingIn)
             {
                 // From the ragdoll's pose to the first key, each part on its own clock: legs first.
                 if (Natural)
@@ -630,7 +876,8 @@ namespace PhysicsBattler.Motion
 
             // Into the first key, every part turns from how it lay (the key holds still meanwhile);
             // into the standing pose, the limbs go by where their joints are (both poses move).
-            keyed.Apply(anim, standing);
+            // (Taken up as he moves: his limbs go by where their joints are from the first step.)
+            keyed.Apply(anim, standing || takingOver);
             Finish(t, stand);
             Composed(t);
         }
@@ -798,7 +1045,8 @@ namespace PhysicsBattler.Motion
 
             // (19 November, tried and taken out: the clamp given a memory of its wrist turn and arm raise from step to
             // step. It changed nothing in what the board or the blade's tip does in a get-up.)
-            WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, HeldClearFromTheStart ? 1f : Smooth(t / BlendIn));
+            WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY,
+                takesOver ? Smooth(t / (TakeOverLifts * pace)) : HeldClearFromTheStart ? 1f : Smooth(t / BlendIn));
             if (pinned)
             {
                 SettleSwordHand();
@@ -1422,6 +1670,7 @@ namespace PhysicsBattler.Motion
 
         private float bladeMore, bladeMoreWas, bladeLastT = float.MaxValue;
         private int bladeStep, bladeStepSeen = -1;
+        private bool bladeFresh;
 
         /// <summary>How long a recorded get-up is given, against the recording's own time (from his back 3.7 s, from his front 4.5 s as recorded).</summary>
         public static float RecordedTakes = 0.5f;
@@ -2072,7 +2321,15 @@ namespace PhysicsBattler.Motion
         /// <summary>For the reports: how long the hand stayed pinned in this get-up (seconds), and the fastest it turned (degrees a second).</summary>
         public float SwordHandPinnedFor, SwordHandTurnedAt;
 
-        private bool pinned, pinTurnKnown;
+        /// <summary>Taken up as he moves: the fastest the way his sword arm's elbow bends comes round about the arm (degrees a second).</summary>
+        public const float SwordElbowSwings = 720f;
+
+        /// <summary>Taken up as he moves: his pinned sword hand is no nearer his shoulder than this share of his arm's length.</summary>
+        public const float SwordHandNoNearer = 0.4f;
+
+        private bool pinned, pinTurnKnown, pinPoleKept, pinReachKnown;
+        private float pinReach = 0.96f, pinReachLay = 0.96f;
+        private Vector3 pinPoleOwn = Vector3.back, takeCarried;
         private Vector3 pinAt;
         private Quaternion pinRot, pinTurn;
         private float pinFree, pinT = -1f, pinDt = 1f / 60f;
@@ -2086,6 +2343,9 @@ namespace PhysicsBattler.Motion
             pinFree = 0f;
             pinT = -1f;
             pinTurnKnown = false;
+            pinPoleKept = false;
+            pinReachKnown = false;
+            pinReach = 0.96f;
             SwordHandPinnedFor = SwordHandTurnedAt = 0f;
             if (!pinned)
             {
@@ -2136,12 +2396,58 @@ namespace PhysicsBattler.Motion
 
             float down = Mathf.Clamp01(t / SwordHandComesDownOver);
             Vector3 lies = Vector3.Lerp(pinLay, pinAt, down * down * (3f - 2f * down));
+            if (takesOver)
+            {
+                // (Across the ground only: how high it lies is the ground's to say.)
+                lies += new Vector3(takeCarried.x, 0f, takeCarried.z);
+            }
+
+            float reach = 0.96f;
+            if (takesOver)
+            {
+                float length = (elbowAt - shoulder).magnitude + (keyedAt - elbowAt).magnitude;
+                // (No nearer his shoulder than an arm folds easily: as his trunk comes over a hand that stays where
+                // it lies, the arm folds right up, to 0.28 of its length in a fall to his right, and the elbow is
+                // thrown round at 6.7 m/s. The hand slides out along the ground instead, and stays where it slid to.)
+                Vector3 out_ = lies - shoulder;
+                float least = SwordHandNoNearer * length, high = out_.y;
+                out_.y = 0f;
+                if (pinFree <= 0f && (lies - shoulder).magnitude < least && out_.sqrMagnitude > 1e-6f)
+                {
+                    Vector3 slid = new Vector3(shoulder.x, lies.y, shoulder.z) + out_.normalized * Mathf.Sqrt(Mathf.Max(0f, least * least - high * high));
+                    takeCarried += slid - lies;
+                    lies = slid;
+                }
+
+                // (An arm that lay stretched out further than the get-up lets an arm reach is brought in over a
+                // moment, not in the first step.)
+                if (!pinReachKnown)
+                {
+                    pinReachLay = Mathf.Clamp((lies - shoulder).magnitude / Mathf.Max(1e-3f, length), reach, 1f);
+                    pinReachKnown = true;
+                }
+
+                reach = Mathf.Lerp(pinReachLay, reach, Smooth(t / (TakeOverLifts * pace)));
+            }
+
+            pinReach = reach;
             float free = pinFree * pinFree * (3f - 2f * pinFree);
             Vector3 at = Vector3.Lerp(lies, keyedAt, free);
             Quaternion want = pinFree > 0f ? keyedRot : Quaternion.RotateTowards(pinRot, keyedRot, SwordHandMayTurn);
             Vector3 mid = 0.5f * (shoulder + keyedAt);
             pinPoleNow = (elbowAt - mid).sqrMagnitude > 1e-4f ? (elbowAt - mid).normalized : pinPole;
-            TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), h, Within(upper, fore, hand, at, 0.96f), pinPoleNow);
+            if (takesOver)
+            {
+                // (Taken up as he moves: the way his elbow bends comes round to where the arm as posed has it no
+                // faster than an elbow swings. Read off that arm afresh each step it was anything, once the arm was
+                // stretched out toward a place a metre from where the hand is pinned, and his elbow swung round in a
+                // step: a forearm posed at 9 and at 28 m/s in a fight of six.)
+                Quaternion round = Quaternion.RotateTowards(Quaternion.identity, Quaternion.FromToRotation(pinPoleOwn, pinPoleNow), SwordElbowSwings * pinDt);
+                pinPoleOwn = pinPoleKept ? (round * pinPoleOwn).normalized : pinPoleNow;
+                pinPoleKept = true;
+                pinPoleNow = pinPoleOwn;
+            }
+            TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), h, Within(upper, fore, hand, at, reach), pinPoleNow);
             h.rotation = want;
         }
 
@@ -2182,7 +2488,7 @@ namespace PhysicsBattler.Motion
             // (To the end of the get-up: the limits hold after the hand is let go too.)
             if ((moved - wantAt).sqrMagnitude > 1e-8f)
             {
-                TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), h, Within(upper, fore, hand, moved, 0.96f), pinPoleNow);
+                TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), h, Within(upper, fore, hand, moved, pinReach), pinPoleNow);
                 pinWas = h.position;
             }
 
@@ -2309,6 +2615,13 @@ namespace PhysicsBattler.Motion
                     }
 
                     // (No faster than a wrist turns: what is still short for a step, the arm's own raise takes up.)
+                    if (bladeFresh)
+                    {
+                        bladeFresh = false;
+                        bladeStepSeen = bladeStep;
+                        bladeMore = bladeMoreWas = more;
+                    }
+
                     if (bladeStepSeen != bladeStep)
                     {
                         bladeStepSeen = bladeStep;

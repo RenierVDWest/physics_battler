@@ -3903,26 +3903,26 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "19 November, 14:40: he gathers himself before he gets up";
+        private const string LookTag = "19 November, 16:45: a get-up takes him up as he moves";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
             "1. Go to \"Tubes\" (the bar of labs at the top).",
             "2. Open \"Falls and getting up\" and find \"The start of a get-up\".",
-            "3. Fell him: \"Falls on demand\": Back, Forward, Left or Right. Watch the moment just before he rises: he should pull his arms and legs in first.",
-            "4. Set \"From how he lies\" to \"blends (old)\", fell him the same way, and compare.",
+            "3. Fell him: \"Falls on demand\": Back, Forward, Left or Right. Watch the moment he begins to rise: he should go on smoothly from how he lay, with no stop and no arm or leg that jumps.",
+            "4. Set \"Taken up\" to \"as if he lay still (old)\", fell him the same way, and compare that same moment.",
             "5. To look closely: \"Hold him at the start\" on stops the game as the get-up takes over; \"Step\" goes on a step at a time.",
-            "6. Too slow, too stiff or thrashing? \"Gather takes at most\" and \"Gather muscle\" are the two levers.",
-            "7. Once he is up he should stand where he got up: no shuffle back to his old spot.",
+            "6. Too slow or too quick into the get-up? \"Take-over takes at most\" is the lever.",
+            "7. \"His last get-up\" now ends with the take-over: how fast he was moving, and the biggest jump in a part's speed.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
             "Tubes", "Falls and getting up", "Falls on demand", "Falls on demand>Back", "Falls on demand>Forward",
-            "Falls on demand>Left", "Falls on demand>Right", "Step", "The start of a get-up", "From how he lies:",
-            "Gather takes at most", "Gather muscle", "His last gather", "Hold him at the start:", "His last get-up",
+            "Falls on demand>Left", "Falls on demand>Right", "Step", "The start of a get-up", "Taken up:",
+            "Take-over takes at most", "Hold him at the start:", "His last get-up",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5114,6 +5114,28 @@ namespace PhysicsBattler.Sandbox
             Readout(new GUIContent("His last gather: " + (PhysicsBattler.Locomotion.ClipFighter.LastGatherTold.Length > 0 ? PhysicsBattler.Locomotion.ClipFighter.LastGatherTold : "none yet") + ".", "The last gather of any fighter: how long it took, the fastest any part moved in it, and how far the furthest hand or foot still was from the start as the get-up took over."), 2);
 
             BeginRow();
+            Words(new GUIContent("Taken up:", "How the get-up takes a fallen fighter up (Combat Feel \"A Get-Up Takes Him Up As He Moves\"). As he moves (new): the get-up goes on from the pose he has and the speed each part has, and what is left is eased out; his limbs go by where their joints are; a part that is close takes less time. As if he lay still (old): his body is stopped for a step, and every part turns from how it lay to the get-up's pose over 0.6 s. Fell him the same way with each and watch the moment he begins to rise: a stop, or a part that jumps."), GUILayout.Width(150f));
+            bool takes = feel != null ? feel.aGetUpTakesHimUpAsHeMoves : PhysicsBattler.Motion.GetUp.TakesOverAsHeMoves;
+            bool takesNow = takes;
+            if (Press(takes ? "[as he moves]" : "as he moves", "From the pose and the speed he has.")) takesNow = true;
+            if (Press(!takes ? "[as if he lay still (old)]" : "as if he lay still (old)", "As before.")) takesNow = false;
+            EndRow();
+            if (takesNow != takes)
+            {
+                if (feel != null)
+                {
+                    feel.aGetUpTakesHimUpAsHeMoves = takesNow;
+                }
+
+                PhysicsBattler.Motion.GetUp.TakesOverAsHeMoves = takesNow;
+            }
+
+            if (feel != null && takesNow)
+            {
+                feel.takeOverTakesAtMost = Lever("Take-over takes at most", feel.takeOverTakesAtMost, 0.2f, 1.2f, "The most any part takes to ease into the get-up's pose (seconds). A part that is close takes less by itself. Lower: on the get-up's own poses sooner, parts that were far move faster. Higher: slower and softer.");
+            }
+
+            BeginRow();
             Words(new GUIContent("The start:", "How a get-up's start is chosen (Combat Feel \"A Get-Up Starts Nearest To How He Lies\"). Nearest to how he lies (new): every start he could use is weighed (the one his hips say, from his side too, each posting on either hand) and the one his hands, elbows, knees and feet are nearest to is taken. By his hips only (old): the way his hips face decides, as before. Fell him the same way with each and watch his arms in the first moment."), GUILayout.Width(150f));
             bool nearest = feel != null ? feel.aGetUpStartsNearestToHowHeLies : PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest;
             bool nearestNow = nearest;
@@ -5130,7 +5152,7 @@ namespace PhysicsBattler.Sandbox
                 PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest = nearestNow;
             }
 
-            Readout(new GUIContent("His last get-up: " + (PhysicsBattler.Locomotion.ClipFighter.LastGetUpStartTold.Length > 0 ? PhysicsBattler.Locomotion.ClipFighter.LastGetUpStartTold : "none yet") + ".", "The first 0.75 s of the last get-up of any fighter, as seen: how long his own shield, sword or sword arm crossed him (counted while a playtest is recorded), the fastest any part moved, how far each hand went, and how the start was chosen. Written about half a second after he is up."), 4);
+            Readout(new GUIContent("His last get-up: " + (PhysicsBattler.Locomotion.ClipFighter.LastGetUpStartTold.Length > 0 ? PhysicsBattler.Locomotion.ClipFighter.LastGetUpStartTold : "none yet") + ".", "The first 0.75 s of the last get-up of any fighter, as seen: how long his own shield, sword or sword arm crossed him (counted while a playtest is recorded), the fastest any part moved, how far each hand went; then the take-over (its first 0.2 s): how fast his fastest part was moving as he was taken up, and the biggest jump in any part's speed from one step to the next (a part stopped dead or thrown shows as a jump); and how the start was chosen. Written about half a second after he is up."), 4);
 
             Heading("Getting up");
             // (One choice of three, where there were two switches: with the older one off, "as recorded" changed

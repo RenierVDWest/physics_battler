@@ -346,6 +346,16 @@ namespace PhysicsBattler.Engine
 
                     // (A kinematic body goes to where its stub was moved, a physics step at a time: moved by
                     // MovePosition it sweeps what it meets along; placed by its position, it is there at once.)
+                    if (k == 1 && s.Body.Placed && s.Body.MovedThisStep && (Differs(s.Pos, s.Body.PlacedAt) || Differs(s.Rot, s.Body.PlacedTurn)))
+                    {
+                        // (Placed, and then moved on in the same step: it is where it was placed at once, and is swept
+                        // on from there. As Unity does it: its position set is a teleport, MovePosition a sweep.)
+                        var placed = T(s.Body.PlacedAt, s.Body.PlacedTurn);
+                        PxRigidActor_setGlobalPose_mut((PxRigidActor*)s.Actor, &placed, true);
+                        s.Pos = s.Body.PlacedAt;
+                        s.Rot = s.Body.PlacedTurn;
+                    }
+
                     var to = T(Vector3.Lerp(s.Pos, s.Body.position, share), Quaternion.Slerp(s.Rot, s.Body.rotation, share));
                     if (s.Body.MovedThisStep)
                     {
@@ -522,6 +532,7 @@ namespace PhysicsBattler.Engine
             foreach (var s in ordered)
             {
                 s.Body.MovedThisStep = false;
+                s.Body.Placed = false;
                 if (s.Kinematic)
                 {
                     s.Pos = s.Body.position;
@@ -541,6 +552,8 @@ namespace PhysicsBattler.Engine
                 // (What the stub's transform makes of them is what is compared next step: no teleport read into rounding.)
                 s.Pos = s.Body.position;
                 s.Rot = s.Body.rotation;
+                // (Read back, not placed by the game.)
+                s.Body.Placed = false;
             }
         }
 

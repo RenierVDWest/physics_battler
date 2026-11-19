@@ -932,6 +932,28 @@ namespace PhysicsBattler.Locomotion
         public const float SettlesAfter = 0.25f, SettlesOver = 0.4f;
 
         private readonly PoseBuffer fallPosed = new PoseBuffer(), fallAsIs = new PoseBuffer();
+        private readonly PoseBuffer[] bodyPoses = { new PoseBuffer(), new PoseBuffer(), new PoseBuffer(), new PoseBuffer() };
+        private readonly float[] bodySteps = new float[4];
+        private int bodyAt, bodySeen;
+        private bool takenUpMoving;
+
+        /// <summary>
+        /// The step a get-up takes him up in is its first step too, when it takes him up as he moves
+        /// (<see cref="GetUp.TakesOverAsHeMoves"/>): the pose goes on at once from the body he has, at the speed he
+        /// has. Left to the next step, his body was held to the pose he lay in for one step first, which stopped
+        /// him dead, and then set off again.
+        /// </summary>
+        private void FirstStepOfGetUp(float dt)
+        {
+            if (!takenUpMoving || Footing != Footings.GettingUp || dt <= 0f)
+            {
+                return;
+            }
+
+            takenUpMoving = false;
+            footingTime = dt;
+            StepGettingUp(dt, true);
+        }
 
         /// <summary>
         /// A body thrown off its feet tucks (the plan "Controlled falls", step 9): thrown faster than
@@ -1245,6 +1267,7 @@ namespace PhysicsBattler.Locomotion
             pushAt = -1f;
             pendingKnock = pendingImpulse = Vector3.zero;
             gathering = false;
+            bodySeen = 0;
             Footing = Footings.Down;
             footingTime = stillFor = 0f;
             Blow = null;
@@ -1377,6 +1400,21 @@ namespace PhysicsBattler.Locomotion
                     StepFallBody(dt);
                 }
 
+                if (GetUp.TakesOverAsHeMoves && fallBody && Upper != null)
+                {
+                    // (The pose his body has, kept for the last few steps: a get-up that takes him up as he moves reads
+                    // his speeds off them. Over three steps, not one: what lies on the ground trembles from step to
+                    // step, and off two steps a hand that lay still read as turning at 15 radians a second.)
+                    bodyAt = (bodyAt + 1) % bodyPoses.Length;
+                    bodyPoses[bodyAt].Capture(Rig);
+                    bodySteps[bodyAt] = dt;
+                    bodySeen++;
+                }
+                else
+                {
+                    bodySeen = 0;
+                }
+
                 if (catching && fallBody && Upper != null && !Dead)
                 {
                     var hips = Upper.Link(PartId.Pelvis).transform;
@@ -1397,6 +1435,7 @@ namespace PhysicsBattler.Locomotion
                         StepFallMeasure(dt);
                         EndFallMeasure();
                         BeginGetUp();
+                        FirstStepOfGetUp(dt);
                         return;
                     }
                 }
@@ -1456,6 +1495,7 @@ namespace PhysicsBattler.Locomotion
                         fallAsIs.Capture(Rig);
                         fallAsIs.Apply(Anim, false);
                         BeginGetUp();
+                        FirstStepOfGetUp(dt);
                     }
                 }
                 else if (!StaysDown && !crowded && GathersBeforeGetUp && fallBody && Upper != null && NaturalGetUps && !Dead && !catching
@@ -1474,11 +1514,23 @@ namespace PhysicsBattler.Locomotion
                     waitedForRoom = false;
                     EndFallMeasure();
                     BeginGetUp();
+                    FirstStepOfGetUp(dt);
                 }
 
                 return;
             }
 
+            StepGettingUp(dt, false);
+        }
+
+        /// <summary>
+        /// A step of getting up: the get-up's pose, the body held to it, and his stand taking over at the end.
+        /// <paramref name="takenUpNow"/>: this is the step he was taken up in (a get-up that takes him up as he moves
+        /// begins in that same step, so that his body is not held still for one step first): nothing has been seen of
+        /// it yet, so nothing is measured.
+        /// </summary>
+        private void StepGettingUp(float dt, bool takenUpNow)
+        {
             // Getting up: the fight's key poses from how it lies, and its guard taking over at the end.
             PoseBuffer stand = null;
             if (footingTime > getUp.StandFrom)
@@ -1490,8 +1542,12 @@ namespace PhysicsBattler.Locomotion
             }
 
             getUp.Compose(footingTime, stand);
-            MeasureGetUpSeen(dt);
-            MeasureGetUpStart(dt);
+            if (!takenUpNow)
+            {
+                MeasureGetUpSeen(dt);
+                MeasureGetUpStart(dt);
+            }
+
             if (fallBody && Upper != null)
             {
                 // (The one body it fell in is drawn to the get-up's pose, held as a standing body is.)
@@ -1504,7 +1560,12 @@ namespace PhysicsBattler.Locomotion
                 Authority.Set((BodyRegion)r, AuthorityLevel.Pinned, Mathf.Lerp(0.4f, 1f, u) * (r == (int)BodyRegion.Legs ? profile.torsoPin : BasePin((BodyRegion)r)));
             }
 
-            Authority.Apply(dt);
+            if (!takenUpNow)
+            {
+                // (In the step he is taken up, the step of lying down has already had its turn.)
+                Authority.Apply(dt);
+            }
+
             if (footingTime >= getUp.Duration)
             {
                 Footing = Footings.Standing;
@@ -1767,6 +1828,21 @@ namespace PhysicsBattler.Locomotion
         public float GetUpStartCrossed, GetUpStartHandL, GetUpStartHandR, GetUpStartFastest;
         public string GetUpStartFastestPart = "";
 
+        /// <summary>How much of a get-up counts as the take-over (seconds): the moment the get-up takes the fallen body up, and the steps just after.</summary>
+        public const float TakeOverFor = 0.2f;
+
+        /// <summary>
+        /// For the reports, of the last get-up's take-over (<see cref="TakeOverFor"/>; the plan "From how he lies to
+        /// how he gets up", step 4): the most the speed of a part of the seen body changed from one step to the next
+        /// (m/s: a part stopped dead, or thrown, shows as a jump), which part and when (seconds into the get-up); and
+        /// how fast his fastest part was moving as the get-up took him up (m/s).
+        /// </summary>
+        public float TakeOverJump, TakeOverJumpAt, TakeOverSpeed;
+        public string TakeOverJumpPart = "";
+
+        /// <summary>Of the last get-up's take-over: how long what was left between his body and the get-up's pose took to ease out (seconds; the old blend's time with the new take-over off), and how far the furthest hand or foot was from where the get-up had it (metres; 0 with it off).</summary>
+        public float TakeOverTook, TakeOverFrom;
+
         /// <summary>The last get-up's first moment in a line, for the panel and the log ("" before the first).</summary>
         public string GetUpStartTold = "";
 
@@ -1779,7 +1855,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>For the reports: every get-up's first moment, all fighters, since the run began.</summary>
         public struct GetUpStart
         {
-            public float Crossed, Fastest, HandL, HandR;
+            public float Crossed, Fastest, HandL, HandR, Jump, Speed, Took, From;
         }
 
         public static readonly List<GetUpStart> GetUpStarts = new List<GetUpStart>();
@@ -1923,7 +1999,8 @@ namespace PhysicsBattler.Locomotion
             return Vector3.Distance(a + u * s, c + v * t);
         }
 
-        private readonly Vector3[] startWas = new Vector3[PartInfo.All.Length];
+        private readonly Vector3[] startWas = new Vector3[PartInfo.All.Length], startSpeed = new Vector3[PartInfo.All.Length], jumpWas = new Vector3[PartInfo.All.Length];
+        private readonly bool[] startSpeedKnown = new bool[PartInfo.All.Length];
         private bool startKnown;
 
         private void MeasureGetUpStart(float dt)
@@ -1955,6 +2032,23 @@ namespace PhysicsBattler.Locomotion
                     GetUpStartHandR += id == PartId.HandR ? went : 0f;
                 }
 
+                if (startSpeedKnown[i] && footingTime <= TakeOverFor + dt)
+                {
+                    // (The take-over: how much this part's speed changed since the step before. The first step is
+                    // measured against the speed the fallen body had as it was taken up.)
+                    Vector3 speed = (at - jumpWas[i]) / dt;
+                    float jump = (speed - startSpeed[i]).magnitude;
+                    if (jump > TakeOverJump)
+                    {
+                        TakeOverJump = jump;
+                        TakeOverJumpAt = footingTime;
+                        TakeOverJumpPart = id.ToString();
+                    }
+
+                    startSpeed[i] = speed;
+                }
+
+                jumpWas[i] = at;
                 startWas[i] = at;
             }
 
@@ -1969,9 +2063,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             getUpLogAt = -1f;
-            GetUpStartTold = $"{GetUpRoute}; its first {GetUpStartFor:0.00} s: his own shield or sword crossing him {GetUpStartCrossed:0.00} s, the fastest part {GetUpStartFastest:0.0} m/s ({GetUpStartFastestPart}), the shield hand went {GetUpStartHandL:0.00} m and the sword hand {GetUpStartHandR:0.00} m{(GetUpStartChose.Length > 0 ? "; " + GetUpStartChose : "")}";
+            GetUpStartTold = $"{GetUpRoute}; its first {GetUpStartFor:0.00} s: his own shield or sword crossing him {GetUpStartCrossed:0.00} s, the fastest part {GetUpStartFastest:0.0} m/s ({GetUpStartFastestPart}), the shield hand went {GetUpStartHandL:0.00} m and the sword hand {GetUpStartHandR:0.00} m; the take-over: taken up moving at {TakeOverSpeed:0.0} m/s, the biggest jump in a part's speed in one step {TakeOverJump:0.0} m/s ({TakeOverJumpPart} at {TakeOverJumpAt:0.00} s), {(GetUp.TakesOverAsHeMoves ? $"what was left eased out in {TakeOverTook:0.00} s (a hand or foot {100f * TakeOverFrom:0} cm off at the most)" : "blended from how he lay (old)")}{(GetUpStartChose.Length > 0 ? "; " + GetUpStartChose : "")}";
             LastGetUpStartTold = (FightUnit != null ? FightUnit.name : Rig.name) + " got up " + GetUpStartTold;
-            GetUpStarts.Add(new GetUpStart { Crossed = GetUpStartCrossed, Fastest = GetUpStartFastest, HandL = GetUpStartHandL, HandR = GetUpStartHandR });
+            GetUpStarts.Add(new GetUpStart { Crossed = GetUpStartCrossed, Fastest = GetUpStartFastest, HandL = GetUpStartHandL, HandR = GetUpStartHandR, Jump = TakeOverJump, Speed = TakeOverSpeed, Took = TakeOverTook, From = TakeOverFrom });
             GetUpLog.Add($"got up {GetUpRoute} in {getUpDuration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all; an arm in its own body at most {100f * getUp.ArmDeepest:0} cm{(getUp.ArmDeepestAt.Length > 0 ? " (" + getUp.ArmDeepestAt + ")" : "")}, more than 2 cm in for {getUp.ArmInFor:0.00} s; what it holds at most {100f * getUp.BladeDeepest:0} cm, for {getUp.BladeInFor:0.00} s; a thigh turned on the hips at most {getUp.ThighFastest:0.0} rad/s ({getUp.ThighFastestAt}) and was at most {getUp.ThighPast:0} degrees past the hip's range ({getUp.ThighPastAt}); an ankle at the nearest {getUp.AnkleNearest:0.00} of a leg's length from its hip ({getUp.AnkleNearestAt}); as seen (the physical body): an arm in its body for {GetUpArmSeenIn:0.00} s, what it holds for {GetUpBladeSeenIn:0.00} s"
                 + (GetUpShieldSeenLowest < 8f ? $"; its shield over the ground at the lowest {100f * GetUpShieldPosedLowest:0} cm as posed, {100f * GetUpShieldSeenLowest:0} cm as seen (at {GetUpShieldLowestAt:0.00} s), more than 2 cm in the ground for {GetUpShieldInFloorFor:0.00} s" : ""));
             GetUpLog[GetUpLog.Count - 1] += $"; the start: {GetUpStartTold}";
@@ -2497,6 +2591,21 @@ namespace PhysicsBattler.Locomotion
                 getUp.Vary = 1f + GetUpVaries * (((GetUps + Mathf.Abs(Mathf.RoundToInt(3f * pelvis.position.x + 5f * pelvis.position.z))) % 5) - 2) / 2f;
             }
 
+            // (How he was moving: the pose his body had a step ago. Only for the get-up that takes him up, not for one
+            // set out for the gather.)
+            takenUpMoving = false;
+            getUp.LayBefore = null;
+            if (!onlySetOut && GetUp.TakesOverAsHeMoves && fallBody && Upper != null && bodySeen >= bodyPoses.Length)
+            {
+                // (The oldest of the poses kept, and the time from it to the newest: the steps taken since.)
+                int oldest = (bodyAt + 1) % bodyPoses.Length;
+                getUp.LayBefore = bodyPoses[oldest];
+                getUp.LayBeforeDt = 0f;
+                for (int k = 1; k < bodyPoses.Length; k++)
+                {
+                    getUp.LayBeforeDt += bodySteps[(oldest + k) % bodyPoses.Length];
+                }
+            }
             getUp.StartKey = 0;
             if (catching && NaturalGetUps)
             {
@@ -2533,6 +2642,15 @@ namespace PhysicsBattler.Locomotion
             }
 
             lying.Capture(Rig);
+            if (!onlySetOut && GetUp.TakesOverAsHeMoves && NaturalGetUps && fallBody && Upper != null)
+            {
+                // (Taken up as he moves: the get-up reads the body he has, not the pose his fall was drawing him to.
+                // It reads where his sword hand lies off the pose as it begins; a fall caught on a knee is taken up
+                // with that pose a long way from his body, and his sword hand was thrown from the one to the other in
+                // the first step, at 15 m/s in a fight of six.)
+                lying.Apply(Anim, false);
+            }
+
             // (A weapon is in its right hand with a shield or without: laid clear of its body as it gets up. With no
             // shield its free hand is the one that goes to the ground, and the sword stays up before it.)
             getUp.HoldsMain = stance != Stances.Open;
@@ -2638,6 +2756,7 @@ namespace PhysicsBattler.Locomotion
                 // carried to its feet for one step and back. Seen in Unity on 14 November, at every get-up.)
                 lying.Apply(Anim, false);
                 Upper.TakeUp();
+                takenUpMoving = GetUp.TakesOverAsHeMoves && NaturalGetUps;
                 foreach (var id in Upper.Own)
                 {
                     var m = MuscleOf(id, 1f);
@@ -2657,6 +2776,20 @@ namespace PhysicsBattler.Locomotion
             GetUpStartCrossed = GetUpStartHandL = GetUpStartHandR = GetUpStartFastest = 0f;
             GetUpStartFastestPart = "";
             startKnown = false;
+            TakeOverJump = TakeOverJumpAt = TakeOverSpeed = 0f;
+            TakeOverJumpPart = "";
+            for (int i = 0; i < PartInfo.All.Length; i++)
+            {
+                // (The speed each part of the fallen body had as it was taken up: what the first step is measured against.)
+                var id = PartInfo.All[i];
+                startSpeedKnown[i] = fallBody && Upper != null && Upper.Holds(id);
+                startSpeed[i] = startSpeedKnown[i] ? Upper.SpeedOf(id) : Vector3.zero;
+                jumpWas[i] = Rig.Part(id).transform.position;
+                TakeOverSpeed = Mathf.Max(TakeOverSpeed, startSpeed[i].magnitude);
+            }
+
+            TakeOverTook = getUp.TookOverIn;
+            TakeOverFrom = getUp.TookOverFrom;
             GetUpBegan?.Invoke(this);
         }
 

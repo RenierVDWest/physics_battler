@@ -446,6 +446,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("Gathering before a get-up: how hard his trunk is turned toward how the get-up's start has it, as a share of his weight on a metre's lever. It stands in for a man turning himself over by pushing on the ground. 0 (the default for now): his trunk lies as it lies, and a gather from his side often runs out of time. More: he rolls toward the start; headless at 0.25 he was still rolling as the get-up took over, which made that moment rougher, so it waits for the next step. Too much looks like being turned by a hand.")]
         [Range(0f, 1f)] public float gatherTurnsHisTrunk = ClipFighter.DefaultGatherTurns;
 
+        [Tooltip("On: a get-up takes a fallen fighter up as he lies and as he moves. The get-up's poses play from the first moment, and what is left between them and the body he has (where his hips are, how each part is turned, where his hands, elbows, knees and feet are) is eased out on top, beginning with the speed each part had: nothing is stopped dead and nothing jumps. His limbs go by where their joints are. A part that is already close takes less time. Off: as before, he is taken up as if he lay still (which stops him dead for a step), and every part turns from how it lay to the get-up's pose over 0.6 s. The lab's \"Taken up: as he moves / as if he lay still (old)\".")]
+        public bool aGetUpTakesHimUpAsHeMoves = true;
+
+        [Tooltip("A get-up that takes him up as he moves: the most any part takes to ease into the get-up's pose (seconds). A part that is close takes less by itself. Lower: he is on the get-up's own poses sooner, and parts that were far move faster. Higher: slower and softer, and the get-up's first poses are less exact. Default 0.6.")]
+        [Range(0.2f, 1.2f)] public float takeOverTakesAtMost = PhysicsBattler.Motion.GetUp.DefaultTakeOverMost;
+
         [Tooltip("On: a shield or sword that has been stopped on the wrong side of his own body is let through. When what an arm holds has been against his body for 0.4 s with that hand more than 12 cm from where his pose has it, and his pose has it clear of him, it passes through his body once, back to its pose, and is stopped by him again from then. Off: as before, it stays where it was caught (headless: a board that came out of a get-up under his thigh hung 29 cm below its cover for nine seconds). Only does anything with the two \"...Stopped By Its Bearer's Body\" settings. The lab's \"Caught on his own body\".")]
         public bool aHeldThingCaughtOnHisOwnBodyIsLetThrough = true;
 
@@ -1732,6 +1738,8 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.GatherMost = Mathf.Clamp(gatherTakesAtMost, 0.2f, 1.5f);
             ClipFighter.GatherMuscle = Mathf.Clamp(gatherMuscle, 0.2f, 2f);
             ClipFighter.GatherTurns = Mathf.Clamp01(gatherTurnsHisTrunk);
+            PhysicsBattler.Motion.GetUp.TakesOverAsHeMoves = aGetUpTakesHimUpAsHeMoves;
+            PhysicsBattler.Motion.GetUp.TakeOverMost = Mathf.Clamp(takeOverTakesAtMost, 0.2f, 1.2f);
             PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = aHeldThingCaughtOnHisOwnBodyIsLetThrough;
             PhysicsBattler.Motion.GetUp.SwordHandMayTurn = Mathf.Clamp(risingSwordHandMayTurn, 0f, 45f);
             PhysicsBattler.Motion.GetUp.SwordHandTurns = Mathf.Clamp(risingSwordHandTurnsAtMost, 30f, 720f);

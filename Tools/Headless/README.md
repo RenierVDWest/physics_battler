@@ -46,6 +46,18 @@ The rest are one-off comparisons from particular days, kept for reference.
   wrong side of his own body stays there.
 - `FIGHT_STARTNEAREST=1`: a get-up's start is the one nearest to how he lies (off by default). Every fight's report
   has a line "the first 0.75 s of a get-up" (crossing, fastest part, how far the hands went); `downs.sh` prints it.
+- `FIGHT_TAKEOVER=0`: a get-up takes him up as if he lay still and blends from how he lay, the old way (the plan's
+  step 4 off). `FIGHT_TAKEOVERMOST=0.6`: the most its take-over takes (seconds). Every fight's report has two lines
+  for it: "a get-up takes him up as he moves" (on or off, how long what was left took, how far the furthest hand or
+  foot was) and "the take-over of a get-up, as seen (its first 0.20 s)": the biggest jump in a part's speed from
+  one step to the next (a part stopped dead or thrown shows as a jump) and how fast he was moving as he was taken
+  up. Each get-up's own line ends with the same.
+- **The stub places a kinematic body at once (19 November).** A kinematic body set by its `position` or `rotation`
+  and then moved with `MovePosition` or `MoveRotation` in the same step is now placed first and swept on from
+  there, as Unity does it. Before, it was swept the whole way in one physics step, and what was locked to it was
+  whipped along. That, and nothing in the game, was the "rougher take-over" measured with the trunk's turn on (a
+  foot at 27 m/s): the hips' carrier was a long way round from the hips as the get-up locked them to it. Headless
+  numbers from before this are not comparable with numbers after it.
 - The panel check ends with `LOOK HERE (lab): n of m names drawn and framed`: the names of the panel's "look here"
   list (`BattleSandbox.cs`) that are really drawn in that lab, with every section open.
 
