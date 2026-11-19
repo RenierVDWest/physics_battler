@@ -6946,3 +6946,23 @@ before, 0 now; the report counts them ("knocks still waiting as he fell, dropped
 
 **To see it:** the same steps as before (the panel's "Test this" has them, with a seventh: once he is up, nothing
 should push him any more).
+
+### 19 November, 14:30: the weaker push that was left: a test target going back to its spot
+
+Renier, 14:02 and 14:03, with his log of 14:01 (made on the mend above): "I'm still seeing them hit by some force
+after getting up? Is this just a bug with the tubes test?… the force is much less strong and does not knock them
+over."
+
+His log: no throw by nothing any more (0, against 14). What is left: a target that got up 0.5 to 0.64 m from its
+spot stood for half a second and then went back to the spot at 0.7 m/s, in its guard, on its stance's steps, over
+about 0.8 s. Nothing near it: to the eye, a shove. One that got up within 0.3 m of its spot stayed, and was not
+"pushed". So yes: it is the test's own doing (a target dummy "driven off its spot walks back to it"), not the
+fight's.
+
+**The mend.** A target dummy that fell stands where it got up: its spot goes with it while it is down or getting
+up (`FightLoop.DummiesStayWhereTheyGetUp`, on). The tube test sets its tubes beside where the targets stand, and
+only once all of them are up. A target driven back by a blow that keeps its feet still walks back, as before.
+After several falls the same way the targets will have wandered; "Reset" puts them back.
+
+**Not checked headless**: the headless tube lineup has no target dummies, so the walk back never happens there
+(felled the same way before and after, the runs are alike). It compiles and the panel check passes. For his eye.

@@ -2531,7 +2531,9 @@ namespace PhysicsBattler.Sandbox
                 ready &= u.IsInitialized && u.Clip != null;
             }
 
-            if (ready && !Tubes.Armed)
+            // (Not while a target is down or getting up: its spot goes with it then, and a tube set beside where it lay
+            // would wait in the wrong place.)
+            if (ready && !Tubes.Armed && !down)
             {
                 if (tubeLook == null)
                 {
@@ -3901,7 +3903,7 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "19 November, 14:00: the start of a get-up, and no push by nothing";
+        private const string LookTag = "19 November, 14:30: the start of a get-up; he stays where he got up";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
@@ -3912,7 +3914,7 @@ namespace PhysicsBattler.Sandbox
             "4. The game stops the moment he starts to rise. Press \"Step\" a few times and watch his arms and shield. \"Let him go on\" runs it again.",
             "5. Switch \"The start\" to \"nearest to how he lies\", fell him the same way, and compare (in my numbers it did not help yet).",
             "6. \"His last get-up\" says how that first moment went.",
-            "7. Once he is up, nothing should push him any more. If something still does, tell me which fall it was.",
+            "7. Once he is up he should stand where he got up: no shuffle back to his old spot. The tubes come to him.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>

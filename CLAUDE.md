@@ -166,7 +166,12 @@ smoothly, the shield giving way to the sword.
 
 - **Thrown by nothing after a tube's fall: mended** (his log of 13:26: 14 times a target just up was thrown at up to
   6.2 m/s with no blow, 6 of them down again). A blow's knock that was still waiting when he fell lay with him and
-  threw him as he stood. A waiting knock now goes with the fall (`ClipFighter.Fall`). Headless only; no switch.
+  threw him as he stood. A waiting knock now goes with the fall (`ClipFighter.Fall`). Seen by him at 14:03: "much
+  less strong and does not knock them over".
+- **The weaker push left after it: a test target walking back to its spot** (his log of 14:01: just up, 0.5 to
+  0.6 m off its spot, a guarding target shuffled back at 0.7 m/s with nothing near it). A target dummy that fell
+  now stands where it got up (`FightLoop.DummiesStayWhereTheyGetUp`); the tubes are set beside where it stands, once
+  all are up. **Not checked headless** (the headless tube lineup has no target dummies): for his eye.
 
 - **He saw the morning's build in Unity:** "did not see the shield going through the body as he fell this time."
   His log of 12:12 agrees (21 falls): crossing while falling and lying 0.33 s in all (3.25 s at 08:07), no body

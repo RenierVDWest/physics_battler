@@ -222,6 +222,15 @@ namespace PhysicsBattler.Battle
                         unit.DummySpot = new Vector3(unit.Root.position.x, unit.DummySpot.y, unit.Root.position.z);
                     }
 
+                    if (DummiesStayWhereTheyGetUp && unit.Clip != null && unit.Clip.Fallen)
+                    {
+                        // (19 November: a target that fell stands where it got up. Walked back to its spot the moment it
+                        // was on its feet, a guarding target shuffled a metre at 0.7 m/s with nothing near it: to
+                        // Renier it looked "hit by some force after getting up". The lab's tubes come to where it stands.)
+                        unit.DummySpot = new Vector3(unit.Root.position.x, unit.DummySpot.y, unit.Root.position.z);
+                        unit.Clip.Home = new Vector3(unit.Root.position.x, unit.Clip.Home.y, unit.Root.position.z);
+                    }
+
                     Vector3 back = Flat(unit.DummySpot - unit.Root.position);
                     float far = back.magnitude;
                     // (Driven, it goes as it is told: the duel lab's movement orders.)
@@ -326,6 +335,9 @@ namespace PhysicsBattler.Battle
 
         /// <summary>A target dummy walks back to its spot once it is this far off it (metres at a Medium's size).</summary>
         public const float DummyBackFrom = 0.3f;
+
+        /// <summary>A target dummy that fell stands where it got up: its spot goes with it while it is down or getting up. Off: it walks back to the spot it fell from, as before.</summary>
+        public static bool DummiesStayWhereTheyGetUp = true;
 
         private UnitController ChooseTarget(IReadOnlyList<UnitController> units, UnitController unit, Plan plan, float now)
         {
