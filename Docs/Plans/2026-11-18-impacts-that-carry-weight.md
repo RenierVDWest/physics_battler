@@ -194,3 +194,19 @@ He played the stumbles: "this looks pretty good so far"; it reads as a stumble. 
 - **Pushes through.** Each bash adds the speed his arm and legs drive on with (a lever each). Small leaves him at 1.9 m/s (two steps, 0.73 m), hard not countered at 4.3 m/s (down, 3 m back), and a new **extra hard** at 6.8 m/s (off his feet, 4.5 m back).
 - **After a bash he holds his ground**, so the two do not end board against board.
 - His decisions: the new system all the way; the hard bash knocks hard, the extra hard much harder; the small bash must clear his space.
+
+## Progress, 20 November (night): step 4, a first build. Headless only
+
+- **Built: a body takes an impact in its knees and hips.** A bash on him, his own bash meeting a board, or a heavy
+  blow presses him down as it lands: his hips drop by how hard it is, lowest a fifth of a second after, and he
+  comes up again over half a second; his trunk folds a little toward it. Both men of a bash. Before, only a man
+  thrown off balance sank; the one who kept his feet stood on stiff legs.
+- **In my tests:** on a hard bash that is countered, the basher's hips went down 4 cm before and 11 cm now (the
+  bashed man's 15, as before). On a small bash the basher's went from 0 to 5 cm.
+- **The target I set** (both hips down 8 cm, both trunks 15 degrees): hips met. The bashed man's trunk is a degree
+  under (14), because folding toward the blow takes a little from his rock back.
+- **Not built yet:** feet that slide a hand's width, the head lagging, and the slow-motion button.
+- To see it: Duel, "Stumbles and falls", "Stumble him: Hard". Watch the legs of the one who bashes. To compare:
+  "An impact, his knees and hips: give / stand stiff (old)". Levers: "Contact time", "Knees give to it", "Trunk
+  folds to it".
+

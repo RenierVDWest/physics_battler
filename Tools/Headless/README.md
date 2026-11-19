@@ -59,6 +59,9 @@ The rest are one-off comparisons from particular days, kept for reference.
 - `FIGHT_GETUPSHIELD=0`: a rising fighter's shield hand goes under his shoulder as the keys have it (old; the
   plan's step 5 off). `FIGHT_ARMSOUT=0`: a stumbling fighter's arms hold his guard (old). `STUMBLE_ARMS=1.5`: how
   much they go out. Each stumble's line says how far his hands went out and how far apart they were.
+- `FIGHT_PRESS=0`: a body does not take an impact in its knees and hips (old). `FIGHT_PRESSED="0.2,0.10,4"`: the
+  contact time (s), how far the knees give (m) and how far the trunk folds (degrees). The meter's IMPACT line has
+  "hips down" for both men; `four.sh tag` runs the four bashes.
 - `FIGHT_TAKEOVER=0`: a get-up takes him up as if he lay still and blends from how he lay, the old way (the plan's
   step 4 off). `FIGHT_TAKEOVERMOST=0.6`: the most its take-over takes (seconds). Every fight's report has two lines
   for it: "a get-up takes him up as he moves" (on or off, how long what was left took, how far the furthest hand or

@@ -1541,6 +1541,14 @@ namespace PhysicsBattler.Sandbox
             if (Press(!feel.offBalanceHeStumblesOnRealSteps ? "[the walk played fast (old)]" : "the walk played fast (old)", "As before.")) feel.offBalanceHeStumblesOnRealSteps = false;
             EndRow();
             BeginRow();
+            Words(new GUIContent("An impact, his knees and hips:", "What an impact does to a fighter's legs (Combat Feel \"A Body Takes An Impact In Its Knees And Hips\"). Give (new): a bash on him, his own bash meeting a board, or a heavy blow presses him down as it lands: his knees give, his hips drop by how hard it is, his trunk folds a little toward it, and he comes up again more slowly. Both men of a bash. Stand stiff (old): only a man thrown off balance sinks."));
+            if (Press(feel.aBodyTakesAnImpactInItsKneesAndHips ? "[give]" : "give", "His knees and hips take it.")) feel.aBodyTakesAnImpactInItsKneesAndHips = true;
+            if (Press(!feel.aBodyTakesAnImpactInItsKneesAndHips ? "[stand stiff (old)]" : "stand stiff (old)", "As before.")) feel.aBodyTakesAnImpactInItsKneesAndHips = false;
+            EndRow();
+            feel.impactContactTime = Lever("Contact time", feel.impactContactTime, 0.05f, 0.5f, "How long an impact takes to press him down (seconds). He comes up again over about twice and a half that.");
+            feel.impactKneesGive = Lever("Knees give to it", feel.impactKneesGive, 0f, 0.25f, "How far his hips drop for a hard impact, one that changes his speed by 3 m/s (metres on a Medium).");
+            feel.impactTrunkFolds = Lever("Trunk folds to it", feel.impactTrunkFolds, 0f, 20f, "How far his trunk folds toward a hard impact as it presses him down (degrees).");
+            BeginRow();
             Words(new GUIContent("Stumbling, his arms:", "What a stumbling fighter's arms do (Combat Feel \"A Stumbling Fighter's Arms Go Out For Balance\"). Go out for balance (new): his upper arms lift out from his sides by how fast he is going, the far arm from where he tips the further, and both are left behind a little by the way he is thrown. Hold his guard (old): they stay as his guard has them."));
             if (Press(feel.aStumblingFightersArmsGoOutForBalance ? "[go out for balance]" : "go out for balance", "His arms help him keep his feet.")) feel.aStumblingFightersArmsGoOutForBalance = true;
             if (Press(!feel.aStumblingFightersArmsGoOutForBalance ? "[hold his guard (old)]" : "hold his guard (old)", "As before.")) feel.aStumblingFightersArmsGoOutForBalance = false;
@@ -3938,7 +3946,7 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), and arms in a stumble";
+        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), arms in a stumble, knees that take an impact";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
@@ -3954,6 +3962,8 @@ namespace PhysicsBattler.Sandbox
             "STUMBLES (pushed 00:30):",
             "8. Go to \"Duel\" and find \"Stumbles and falls\". Press \"Stumble him: Medium\", then \"Hard\".",
             "9. Watch his arms: his hands should go out to his sides as he stumbles and come back as he catches himself. To compare: \"Stumbling, his arms: hold his guard (old)\". The lever \"Arms go out by\" makes it more or less.",
+            "AN IMPACT (pushed 01:20):",
+            "10. Same place. Press \"Stumble him: Hard\" and watch the legs of the one who bashes: his knees should give and his hips drop as his board lands, then he comes up. To compare: \"An impact, his knees and hips: stand stiff (old)\". Levers: \"Knees give to it\", \"Contact time\", \"Trunk folds to it\".",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
@@ -3962,6 +3972,7 @@ namespace PhysicsBattler.Sandbox
             "Tubes", "Falls and getting up", "Falls on demand", "Falls on demand>Back", "Falls on demand>Forward",
             "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:", "Getting up, his shield:", "The end of a get-up:",
             "Duel", "Stumbles and falls", "Stumble him:", "Stumbling, his arms:", "Arms go out by",
+            "An impact, his knees and hips:", "Contact time", "Knees give to it", "Trunk folds to it",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

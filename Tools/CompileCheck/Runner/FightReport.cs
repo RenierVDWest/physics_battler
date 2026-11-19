@@ -1180,6 +1180,15 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ImpactLedger.On = Environment.GetEnvironmentVariable("FIGHT_LEDGER") != "0";
         PhysicsBattler.Locomotion.StumbleSteps.On = Environment.GetEnvironmentVariable("FIGHT_STUMBLES") != "0";
         PhysicsBattler.Locomotion.ClipFighter.ArmsGoOutInAStumble = Environment.GetEnvironmentVariable("FIGHT_ARMSOUT") != "0";
+        // (FIGHT_PRESS=0: a body does not take an impact in its knees and hips, as before. FIGHT_PRESSED="0.2,0.10,6": the contact time (s), how far the knees give (m) and how far the trunk folds (degrees).)
+        PhysicsBattler.Locomotion.ClipFighter.BodiesTakeImpacts = Environment.GetEnvironmentVariable("FIGHT_PRESS") != "0";
+        {
+            var pressed = (Environment.GetEnvironmentVariable("FIGHT_PRESSED") ?? "").Split(',');
+            float P(int i, float d) => pressed.Length > i && float.TryParse(pressed[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : d;
+            PhysicsBattler.Locomotion.ClipFighter.ContactTime = P(0, PhysicsBattler.Locomotion.ClipFighter.DefaultContactTime);
+            PhysicsBattler.Locomotion.ClipFighter.KneesGiveToImpact = P(1, PhysicsBattler.Locomotion.ClipFighter.DefaultKneesGiveToImpact);
+            PhysicsBattler.Locomotion.ClipFighter.TrunkFoldsToImpact = P(2, PhysicsBattler.Locomotion.ClipFighter.DefaultTrunkFoldsToImpact);
+        }
         PhysicsBattler.Locomotion.ClipFighter.ArmsGoOutBy = float.TryParse(Environment.GetEnvironmentVariable("STUMBLE_ARMS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float armsOutBy) ? armsOutBy : PhysicsBattler.Locomotion.ClipFighter.DefaultArmsGoOutBy;
         foreach (var (name, set) in new (string, Action<float>)[]
         {

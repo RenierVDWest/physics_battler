@@ -346,6 +346,18 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a fighter pushed off balance stumbles on real stumble steps (the Fight Rhythm plan's step 9c). His body is a weight on legs: thrown by a bash or a heavy blow it tips away from his feet, and the only thing that stops it is a foot put down ahead of it. The foot behind lifts and goes for the point where it would stop him, as far as a leg reaches and as fast as a foot goes; landing ahead of him it takes speed out of him and his knees give. If his feet get there he is caught, in one step or several, and may have been turned by a blow that came in off his middle. If his body outruns his feet his hips sink and he is down. No speed is written in for when he stumbles or falls and nothing is drawn by lot: it comes from the speed and twist the impact left him with and where his feet were. Off: as before, he is thrown back on the guard's walk played fast, and falls from a fixed speed.")]
         public bool offBalanceHeStumblesOnRealSteps = true;
 
+        [Tooltip("On: a body takes an impact in its knees and hips. A bash on him, his own bash meeting a board, or a heavy blow presses him down as it lands: his knees give and his hips drop by how hard it is, and he comes up again more slowly; his trunk folds a little toward it. Both men of a bash. Off (old): only a man thrown off balance sinks; one who keeps his feet stands on stiff legs.")]
+        public bool aBodyTakesAnImpactInItsKneesAndHips = true;
+
+        [Tooltip("How long an impact takes to press him down (seconds). He comes up again over about twice and a half that.")]
+        [Range(0.05f, 0.5f)] public float impactContactTime = ClipFighter.DefaultContactTime;
+
+        [Tooltip("How far his hips drop for a hard impact (one that changes his speed by 3 m/s), in metres on a Medium. Half as hard, half as far.")]
+        [Range(0f, 0.25f)] public float impactKneesGive = ClipFighter.DefaultKneesGiveToImpact;
+
+        [Tooltip("How far his trunk folds toward a hard impact as it presses him down (degrees).")]
+        [Range(0f, 20f)] public float impactTrunkFolds = ClipFighter.DefaultTrunkFoldsToImpact;
+
         [Tooltip("On: a stumbling fighter's arms go out for balance. His upper arms lift out from his sides by how fast he is going, the arm on the far side from where he tips the further, and both are left behind a little by the way he is thrown. Off (old): his arms hold the guard they had while he stumbles.")]
         public bool aStumblingFightersArmsGoOutForBalance = true;
 
@@ -1775,6 +1787,10 @@ namespace PhysicsBattler.Locomotion
             ImpactLedger.FeetTake = Mathf.Clamp01(feetTakeOfAnImpact);
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
+            ClipFighter.BodiesTakeImpacts = aBodyTakesAnImpactInItsKneesAndHips;
+            ClipFighter.ContactTime = Mathf.Clamp(impactContactTime, 0.05f, 0.5f);
+            ClipFighter.KneesGiveToImpact = Mathf.Clamp(impactKneesGive, 0f, 0.25f);
+            ClipFighter.TrunkFoldsToImpact = Mathf.Clamp(impactTrunkFolds, 0f, 20f);
             ClipFighter.ArmsGoOutBy = stumblingArmsGoOutBy;
             StumbleSteps.ReactsIn = Mathf.Clamp(stumbleFirstFootLiftsIn, 0f, 0.4f);
             StumbleSteps.StepTakes = Mathf.Clamp(stumbleStepTakes, 0.08f, 0.5f);

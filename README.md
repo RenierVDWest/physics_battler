@@ -7330,3 +7330,41 @@ him").
   feet in all: 0.67% and 0.72% (before tonight 0.58% and 0.73%: over the budget as it was; the fights differ).
 - **Not seen in Unity.** A sword and a board thrown wide may read as too much: the lever is there for that.
 
+### 20 November, 01:20: bodies that take an impact in their knees and hips (the impacts plan's step 4, a first build)
+
+**Where it stood.** The plan's step 4 ("the bodies absorb it") was not built. Since the stumbles, the meter already
+shows most of what it asked for on a held hard counter: both trunks move (26 and 16 degrees) and the bashed man's
+hips drop 15 cm, because a man thrown off balance sinks with his stumble's knees. What was missing: **the one who
+keeps his feet stood on stiff legs.** The basher's hips went down 4 cm on a hard counter, 0 cm on a small bash.
+
+**Built** (Combat Feel "A Body Takes An Impact In Its Knees And Hips", with "Impact Contact Time", "Impact Knees
+Give", "Impact Trunk Folds"; lab, under "Stumbles and falls": row "An impact, his knees and hips: give / stand stiff
+(old)" and levers "Contact time", "Knees give to it", "Trunk folds to it"; `ClipFighter.BodiesTakeImpacts`,
+`PressInto`, `StepPress`, `LocoBody.Pressed`; `FIGHT_PRESS=0`, `FIGHT_PRESSED="0.2,0.10,4"`).
+- Whatever comes in through the door (`ThrowBody`: a bash on him, his own bash meeting a board, a heavy blow that
+  throws him) presses him down as it lands. His hips drop by how much it changes his speed (10 cm for 3 m/s, never
+  more than 15), lowest a fifth of a second after it, and he comes up again over about half a second. A spring,
+  nothing drawn by lot. Where a stumble already has his hips lower, the stumble's is used: the two do not add.
+- His trunk folds toward where it came from as he is pressed (4 degrees for a hard one).
+- What his hands have settled to goes down and up with him (it is kept against his root, which does not dip).
+
+**Measured, headless (`four.sh`, the same four bashes old and new; the stumbles are step for step the same):**
+
+| | basher's hips down | bashed man's hips down | basher's trunk | bashed man's trunk |
+| --- | --- | --- | --- | --- |
+| Small bash | 0 to 5 cm | 11 to 11 | 13 to 12 degrees | 9 to 8 |
+| Medium bash | 7 to 7 | 6 to 6 | 18 to 15 | 9 to 7 |
+| Hard bash, countered | **4 to 11** | 15 to 15 | 26 to 25 | 16 to 14 |
+| Hard bash, not countered | 4 to 11 | 43 to 42 (he goes down) | 35 to 27 | (down) |
+
+- **The plan's target for a held hard counter** (both hips down at least 8 cm, both trunks at least 15 degrees):
+  hips now 11 and 15 cm, met. Trunks 25 and 14 degrees: the bashed man's is a degree under, because the fold toward
+  the impact takes from his rock back. With "Trunk folds to it" at 0 his trunk moves 16 again.
+- **Fights of six (40 s, seeds 5, 3 and 7; the fights differ run to run):** crossing on his feet 0.67%, 0.72% and
+  1.02% before; 0.57%, 0.82% and 0.35% after. Board tremble 9.0%, 5.9% and 8.3% before; 8.7%, 8.0% and 6.3% after.
+  No worse on average, worse in one seed of three. (Before what his hands hold dipped with him, crossing on his
+  feet was worse in all four runs tried.)
+- **Not built of step 4:** the feet sliding a hand's width before the first step; the head lagging; a slow-motion
+  button (the lab has none). The medium bash is unchanged because both men stumble in it.
+- **Not seen in Unity.** This is the step the plan says he judges by eye.
+

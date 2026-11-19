@@ -7469,6 +7469,8 @@ namespace PhysicsBattler.Locomotion
                 return "down";
             }
 
+            PressInto(impulse, change);
+
             if (change.sqrMagnitude < 1e-6f)
             {
                 return "shoved";
@@ -7576,6 +7578,105 @@ namespace PhysicsBattler.Locomotion
             if (!Stagger.Active)
             {
                 EndStagger();
+            }
+        }
+
+        // ---- Bodies that absorb an impact (the plan "Impacts that carry weight", step 4: a first build, 20 November) ----
+
+        /// <summary>
+        /// A body takes an impact in its knees and hips (Combat Feel "A Body Takes An Impact In Its Knees And Hips";
+        /// <c>FIGHT_PRESS=0</c> for the old way). Whatever comes in through the door (<see cref="ThrowBody"/>: a bash
+        /// on him, his own bash meeting a board, a heavy blow) presses him down as it lands: his knees give and his
+        /// hips drop, by how much it changes his speed, over about a fifth of a second, and he comes up again over
+        /// half a second; and his trunk folds a little toward where it came from. Both men of a bash. Before, only
+        /// a man thrown off balance sank (his stumble's knees), so a basher who kept his feet stood on stiff legs
+        /// while his board met a body (his hips down 4 cm on a held hard counter).
+        /// </summary>
+        public static bool BodiesTakeImpacts = true;
+
+        /// <summary>How long an impact takes to press him down (seconds: the lever "Contact time"); how far his hips drop for an impact that changes his speed by <see cref="PressFullAt"/> (metres on a Medium: "Knees give"); how far his trunk folds toward it then (degrees: "Trunk folds").</summary>
+        public static float ContactTime = DefaultContactTime, KneesGiveToImpact = DefaultKneesGiveToImpact, TrunkFoldsToImpact = DefaultTrunkFoldsToImpact;
+
+        public const float DefaultContactTime = 0.2f, DefaultKneesGiveToImpact = 0.10f, DefaultTrunkFoldsToImpact = 4f;
+
+        /// <summary>The change of speed that presses him the whole of "Knees give" (m/s), and the most of it one impact presses him.</summary>
+        public const float PressFullAt = 3f, PressMostOf = 1.5f;
+
+        private float press, pressV, pressPosed;
+        private Vector3 pressFrom;
+
+        /// <summary>For the reports: the furthest his hips were pressed down by an impact since the last one began (metres), and how many impacts pressed him.</summary>
+        public float PressedMost;
+        public int PressedTimes;
+
+        /// <summary>An impact comes in: it presses him down by how much it changes his speed.</summary>
+        private void PressInto(Vector3 impulse, Vector3 change)
+        {
+            if (!BodiesTakeImpacts || KneesGiveToImpact <= 0f)
+            {
+                return;
+            }
+
+            impulse.y = 0f;
+            float turned = Mathf.Max(impulse.magnitude / Mathf.Max(1f, Mass), change.magnitude);
+            if (turned < 0.3f)
+            {
+                return;
+            }
+
+            // (A spring that stands him up again as quickly as it lets him down, set going so that it is at its
+            // lowest, by this much, a contact time after the impact.)
+            float w = 1f / Mathf.Max(0.05f, ContactTime);
+            float lowest = KneesGiveToImpact * Size * Mathf.Min(turned / PressFullAt, PressMostOf);
+            pressV += lowest * Mathf.Exp(1f) * w;
+            Vector3 from = impulse.sqrMagnitude > 1e-6f ? -impulse.normalized : change.sqrMagnitude > 1e-6f ? -change.normalized : Vector3.zero;
+            pressFrom = from;
+            PressedMost = 0f;
+            PressedTimes++;
+        }
+
+        /// <summary>The press of an impact, a step on: his hips down by it, his trunk folded toward where it came from.</summary>
+        private void StepPress(float dt)
+        {
+            // (What his hands have settled to goes down and up with him. It is kept against his root, which does not
+            // dip: left where it was, his board lagged his body's dip and his sword did not, and in the fights of six
+            // his blade was through his own board more on his feet, 0.7% of the time to 0.8% and more.)
+            float dipped = Stagger.Active ? pressPosed : Poser.Pressed;
+            if (Mathf.Abs(dipped - pressPosed) > 1e-6f)
+            {
+                for (int a = 0; a < heldAt.Length; a++)
+                {
+                    heldAt[a] += Vector3.down * (dipped - pressPosed);
+                }
+            }
+
+            pressPosed = dipped;
+            if (press <= 1e-5f && Mathf.Abs(pressV) <= 1e-5f)
+            {
+                Poser.Pressed = 0f;
+                return;
+            }
+
+            float w = 1f / Mathf.Max(0.05f, ContactTime);
+            pressV += (-w * w * press - 2f * w * pressV) * dt;
+            press += pressV * dt;
+            if (press < 0f)
+            {
+                press = 0f;
+                pressV = Mathf.Max(0f, pressV);
+            }
+
+            press = Mathf.Min(press, PressMostOf * KneesGiveToImpact * Size);
+            PressedMost = Mathf.Max(PressedMost, press);
+            Poser.Pressed = Fallen ? 0f : press;
+            float folds = TrunkFoldsToImpact * press / Mathf.Max(1e-3f, KneesGiveToImpact * Size);
+            if (folds > 0.05f && pressFrom.sqrMagnitude > 1e-6f && !Fallen)
+            {
+                Vector3 axis = Vector3.Cross(Vector3.up, pressFrom);
+                var spine = Anim.Part(PartId.Spine);
+                var chest = Anim.Part(PartId.Chest);
+                spine.rotation = Quaternion.AngleAxis(0.45f * folds, axis) * spine.rotation;
+                chest.rotation = Quaternion.AngleAxis(0.55f * folds, axis) * chest.rotation;
             }
         }
 
@@ -9655,6 +9756,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            StepPress(dt);
             // (A stumble's own tipping, eased in and out.)
             if (!Stagger.Active)
             {

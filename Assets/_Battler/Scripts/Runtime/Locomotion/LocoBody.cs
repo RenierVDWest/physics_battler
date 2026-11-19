@@ -164,11 +164,10 @@ namespace PhysicsBattler.Locomotion
             Pelvis(out Vector3 pelvisAt, out var pelvisTurn);
             pelvisAt += ShiftHips(pelvisAt, pelvisTurn, dt);
             pelvisAt.y += HopHips(dt);
-            if (Borne != null)
-            {
-                // (His knees giving as a foot takes his weight, and his hips falling while no foot is under him.)
-                pelvisAt.y -= Mathf.Min(Borne.Sink, BorneDrop * legReach);
-            }
+            // (His knees giving as a foot takes his weight, and his hips falling while no foot is under him; or his
+            // knees and hips taking an impact as it comes in: whichever is the lower.)
+            float sunk = Borne != null ? Mathf.Min(Borne.Sink, BorneDrop * legReach) : 0f;
+            pelvisAt.y -= Mathf.Max(sunk, Mathf.Min(Mathf.Max(0f, Pressed), PressedDrop * legReach));
 
             float drop = 0f;
             for (int f = 0; f < 2; f++)
@@ -239,6 +238,11 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How far the hips may be let down for the legs while a stumble has him (a share of the leg's reach; standing it is 0.12).</summary>
         public const float BorneDrop = 0.4f;
+
+        /// <summary>How far his hips are down for an impact he is taking in his knees and hips (metres; set each step by the fighter), and the most of a leg's reach that may be.</summary>
+        public float Pressed;
+
+        public const float PressedDrop = 0.22f;
 
         /// <summary>Where each ankle is now (world) and the way each foot points (degrees): what a stumble begins from.</summary>
         public void FeetNow(out Vector3 left, out Vector3 right, out float leftYaw, out float rightYaw)
