@@ -431,6 +431,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: as a fighter gets up, his sword hand stays where it lay when the get-up began, on the ground and turned as it lay, until his arm can no longer reach that spot or the get-up has the hand well off the ground; then it goes to where the get-up has it. While it is pinned it may turn only a few degrees, and through the whole get-up it never turns faster than \"Rising Sword Hand Turns At Most\". Off: as before, the hand goes where each key of the get-up puts it and the sword turns about with it (the sword that shook as he got up).")]
         public bool aRisingFightersSwordHandStaysWhereItLies = true;
 
+        [Tooltip("On: a get-up starts from the start nearest to how he lies. Every start he could use is weighed: the one his hips say, from his side too if his hips are turned that way at all, and each posting on either hand (a sword alone always posts on its free hand). The one his hands, elbows, knees and feet are nearest to is taken; a hand that would have to pass through his own trunk counts as further. Off (the default for now: headless it did not help by itself; it is there for the next step to build on): as before, the start is chosen by which way his hips face only. The lab's \"The start: nearest to how he lies / by his hips only (old)\".")]
+        public bool aGetUpStartsNearestToHowHeLies;
+
         [Tooltip("On: a shield or sword that has been stopped on the wrong side of his own body is let through. When what an arm holds has been against his body for 0.4 s with that hand more than 12 cm from where his pose has it, and his pose has it clear of him, it passes through his body once, back to its pose, and is stopped by him again from then. Off: as before, it stays where it was caught (headless: a board that came out of a get-up under his thigh hung 29 cm below its cover for nine seconds). Only does anything with the two \"...Stopped By Its Bearer's Body\" settings. The lab's \"Caught on his own body\".")]
         public bool aHeldThingCaughtOnHisOwnBodyIsLetThrough = true;
 
@@ -1712,6 +1715,7 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Motion.GetUp.SwordHandStays = aRisingFightersSwordHandStaysWhereItLies;
             PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = aFallenFightersShieldStaysSolidAgainstHisBody;
             ClipFighter.KeepsApartOffHisFeet = fightersKeepApartOffTheirFeetToo;
+            ClipFighter.GetUpStartNearest = aGetUpStartsNearestToHowHeLies;
             PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = aHeldThingCaughtOnHisOwnBodyIsLetThrough;
             PhysicsBattler.Motion.GetUp.SwordHandMayTurn = Mathf.Clamp(risingSwordHandMayTurn, 0f, 45f);
             PhysicsBattler.Motion.GetUp.SwordHandTurns = Mathf.Clamp(risingSwordHandTurnsAtMost, 30f, 720f);

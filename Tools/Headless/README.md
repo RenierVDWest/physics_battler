@@ -44,6 +44,10 @@ The rest are one-off comparisons from particular days, kept for reference.
 - `FIGHT_SHIELDDOWN=0`: a falling and lying fighter's shield passes through his own body, the old way.
   `FIGHT_ROOM=0`: nothing keeps two apart while one is off his feet. `FIGHT_CAUGHT=0`: a held thing caught on the
   wrong side of his own body stays there.
+- `FIGHT_STARTNEAREST=1`: a get-up's start is the one nearest to how he lies (off by default). Every fight's report
+  has a line "the first 0.75 s of a get-up" (crossing, fastest part, how far the hands went); `downs.sh` prints it.
+- The panel check ends with `LOOK HERE (lab): n of m names drawn and framed`: the names of the panel's "look here"
+  list (`BattleSandbox.cs`) that are really drawn in that lab, with every section open.
 
 ## The budget
 

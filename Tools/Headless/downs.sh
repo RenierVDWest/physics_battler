@@ -8,4 +8,5 @@ timeout 900 bash -c "until [ -f $S/dn_${tag}_h.done ] && [ -f $S/dn_${tag}_x.don
 for t in h x; do n=dn_${tag}_$t; echo "== $n"
   sed -n '/own crossings, as seen/,/what he holds trembles/p' $S/$n.txt | grep -a "falling or down\|getting up \|by part" | grep -av "Medium:" | sed -E 's/ +/ /g' | cut -c1-230
   sed -n '/own crossings, as seen/,/what he holds trembles/p' $S/$n.txt | grep -a "it began falling or down" | sed -E 's/ +/ /g; s/ \[the seen.*//' | cut -c1-200
+  grep -a "the first 0.75 s of a get-up" $S/$n.txt | sed -E 's/^ +//' | cut -c1-420
   grep -a "^CROSSINGS" $S/$n.txt | cut -c1-330; grep -ac "^STUMBLE.*: down" $S/$n.txt; grep -ac Exception $S/$n.txt; done

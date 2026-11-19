@@ -1252,6 +1252,8 @@ internal static class FightReport
         // (FIGHT_SHIELDDOWN=0: a falling and lying fighter's shield passes through his own body, as before. FIGHT_ROOM=0: nothing keeps two apart while one is off his feet, as before.)
         PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = Environment.GetEnvironmentVariable("FIGHT_SHIELDDOWN") != "0";
         PhysicsBattler.Locomotion.ClipFighter.KeepsApartOffHisFeet = Environment.GetEnvironmentVariable("FIGHT_ROOM") != "0";
+        // (FIGHT_STARTNEAREST=1: a get-up's start is the one nearest to how he lies; without it, by which way his hips face only, as before.)
+        PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest = Environment.GetEnvironmentVariable("FIGHT_STARTNEAREST") == "1";
         // (FIGHT_CAUGHT=0: a held thing caught on the wrong side of his own body stays there, as before.)
         PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
         // (FIGHT_GETUPPIN=0: a rising fighter's sword hand goes with the get-up's keys, as before. FIGHT_GETUPTURNS: the fastest it turns, degrees a second.)
@@ -2817,6 +2819,12 @@ internal static class FightReport
             sb.AppendLine($"    what he holds met softly by his own body: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly ? "on" : "off")}; steps it was against his body (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldTouched[0]} / {u.Clip.Upper.HeldTouched[1]}")));
             sb.AppendLine($"    the shield gives way to his own sword: {(PhysicsBattler.Locomotion.ClipFighter.ShieldGivesWayToSword ? "on" : "off")}; steps it was asked aside / the furthest (cm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.GaveWayToSword > 0).Select(u => $"{u.name} {u.Clip.GaveWayToSword} / {100f * u.Clip.GaveWayToSwordMost:0}")));
             sb.AppendLine($"    on his feet, stopped by his own body: his shield {(PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOnFeet ? "yes" : "no")}, his sword {(PhysicsBattler.Authority.UpperBodyArticulation.BladeStoppedOnFeet ? "yes" : "no")}");
+            {
+                var starts = PhysicsBattler.Locomotion.ClipFighter.GetUpStarts;
+                sb.AppendLine($"    the first {PhysicsBattler.Locomotion.ClipFighter.GetUpStartFor:0.00} s of a get-up, as seen ({starts.Count} get-ups; the start nearest to how he lies: {(PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest ? "on" : "off")}, {PhysicsBattler.Locomotion.ClipFighter.StartsChosen} of {PhysicsBattler.Locomotion.ClipFighter.StartsWeighed} took another start than his hips say): "
+                    + (starts.Count == 0 ? "none" : $"his own shield or sword crossing him {starts.Average(g => g.Crossed):0.00} s a get-up ({starts.Max(g => g.Crossed):0.00} at most); the fastest part {starts.Average(g => g.Fastest):0.0} m/s on average ({starts.Max(g => g.Fastest):0.0} at most); the shield hand went {starts.Average(g => g.HandL):0.00} m and the sword hand {starts.Average(g => g.HandR):0.00} m on average"));
+            }
+
             sb.AppendLine($"    caught on his own body and let through: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough ? "on" : "off")}; times (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldFreed[0]} / {u.Clip.Upper.HeldFreed[1]}")));
             sb.AppendLine($"    off his feet: his shield stopped by his own body {(PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet ? "yes" : "no")}; fighters keep apart off their feet {(PhysicsBattler.Locomotion.ClipFighter.KeepsApartOffHisFeet ? "yes" : "no")}: {PhysicsBattler.Locomotion.ClipFighter.RoomWaits} waited for room to get up, bodies on their feet were moved {PhysicsBattler.Locomotion.ClipFighter.RoomMoved:0.00} m off bodies that were down");
             sb.AppendLine($"    impacts absorbed: {(PhysicsBattler.Locomotion.ClipFighter.ImpactsAbsorbed ? $"on ({PhysicsBattler.Locomotion.ClipFighter.Absorbed:0.00})" : "off")}");

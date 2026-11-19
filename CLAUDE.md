@@ -4,8 +4,8 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, late morning (after Renier's second look: the shield off his feet, two bodies in
-one place, and the plan for the first moment of a get-up).
+Last updated: 19 November 2026, afternoon (his answers on the get-up plan; "look here" highlights on the panel;
+the plan's steps 1 and 2).
 
 ## The project in a few lines
 
@@ -25,6 +25,11 @@ These are standing rules. They hold in every chat.
 **Talking to him**
 - Short, simple explanations, bottom line first. He wants the high-level picture in plain words.
 - When a change needs his eye, make it happen on demand: a debug button, an old/new toggle in the lab.
+- **Every push that needs his eye highlights what to press** (his rule, 19 November): the debug panel shows the
+  steps in a box at its top and draws a yellow frame round each button, row, slider, heading, section and lab he
+  is asked to press or watch. Set it in `BattleSandbox.cs`, "Look here": `LookTag` (a new one every push),
+  `LookSteps` (plain steps) and `LookHere` (the names, exactly as on the panel; `"Heading>Name"` for a name
+  that occurs more than once). Check with the panel test that every name in `LookHere` is really drawn.
 - Report honestly what is unverified. Headless numbers are not what he sees in Unity: say which is which.
 - The 3b2b rule: every document made for him, and every finished and pushed step that needs his look, gets a
   "3b2b" (a short narrated, animated explainer). It is generated before the update is sent: the link first,
@@ -138,9 +143,9 @@ here is refreshed when a plan changes a lot. Read the one for the work in hand, 
 
 The four in hand:
 
-- `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: **waits for Renier's answers** (five questions); nothing built
+- `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: **the work in hand.** His five answers are in (all as
+  recommended). Steps 1 and 2 are built; **step 3, the gather, is next**
   ([live](https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa)).
-
 - `2026-11-18-fight-rhythm-from-recordings-plan.md`: **the main plan**
   ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)).
 - `2026-11-18-a-shield-that-stays-outside-its-bearer.md`: mostly built; leftovers in the roadmap below
@@ -155,7 +160,25 @@ attacks made from recordings and thrown on the move, the three shield bashes, fa
 short, the shield held in cover, the sword and shield solid against their bearer's body, hands that move
 smoothly, the shield giving way to the sword.
 
-**His second look (19 November, 08:26), worked in the same morning, headless only, waiting for his eye:**
+**The afternoon of the 19th (after his third look, 12:26):**
+
+- **He saw the morning's build in Unity:** "did not see the shield going through the body as he fell this time."
+  His log of 12:12 agrees (21 falls): crossing while falling and lying 0.33 s in all (3.25 s at 08:07), no body
+  thrown back onto its pose. While getting up 2.35 s, all of it in the first 0.75 s.
+- **His answers on the get-up plan, all as recommended:** physics leads the gather; up to half a second longer on
+  the ground if a case needs it; the shield flat on the ground out to his shield side, pushed up on that forearm,
+  coming up edge first; build in the plan's order; a get-up may differ each time.
+- **"Look here" on the panel** (his new standing rule, above): the box "Test this" and the yellow frames. Built
+  blind: the frames' places are for his eye. The panel check ends with a `LOOK HERE` line.
+- **Plan step 1, built:** every get-up reports its first 0.75 s (crossing, fastest part, how far each hand went):
+  in his `getup` lines, the headless report and the panel's "His last get-up". "Hold him at the start: on" (Tubes,
+  "Falls and getting up", "The start of a get-up") stops the game as a get-up begins.
+- **Plan step 2, built and left off:** "A Get-Up Starts Nearest To How He Lies" weighs every start (his hips' way,
+  from his side, either hand posting) by how far his joints are from it. Alone it does not help (crossing in the
+  first moment 0.19 s a get-up against 0.14 s over twelve bash-downs): the nearest start often posts on his shield
+  hand and lays the board under him. For step 3 the cost has to count the board. `FIGHT_STARTNEAREST=1`.
+
+**His second look (19 November, 08:26), worked in the same morning; the falls since seen by him in Unity:**
 
 - His log of 08:07 (28 falls, 27 get-ups): his own shield and sword crossed him 3.25 s while falling and lying and
   7.08 s while getting up, and **89% of the get-up's crossings are in its first 0.75 s** (the blend from how he lay;
@@ -241,8 +264,11 @@ goes with the keys (old)". Waiting for his eye.
 arms thrown out for balance; a look at feet crossing in a stumble to the side; a sword blow's throw worked out as
 a bash's is (it is still the old rule's number, uncapped).
 
-**The first moment of a get-up: a plan, waiting on his answers** (`Docs/Plans/2026-11-19-…`). Step 1 (the measure
-and a stop frame) and step 2 (the start chosen by how he lies) need no decision and can be built at once.
+**The first moment of a get-up** (`Docs/Plans/2026-11-19-…`; his answers are in). Steps 1 and 2 are built (above).
+**Next: step 3, the gather**: he stays the physical body he fell in and his muscles draw him to the get-up's start
+(the fall body is already drawn to a pose: `StepFallBody` and `FallPose`; his hips are free there, so a soft hold
+on them will be needed to roll him); then step 4 (the take-over from the pose he has) and step 5 (the board
+carried round him, by his answer 3). The start's cost (step 2) must count the board before it is turned on.
 
 **Bugs and leftovers**
 0. A get-up from a side leaves the board trembling more for some seconds after (19 November, above): cause not found.

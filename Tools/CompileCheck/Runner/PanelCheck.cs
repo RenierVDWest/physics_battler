@@ -107,6 +107,32 @@ public static class PanelCheck
             }
         }
 
+        // (The "look here" names: each has to be drawn somewhere, or its frame shows nothing. Looked for with every
+        // section open; a name that belongs to another lab is not a fault here, so the names not drawn are only told.)
+        {
+            var sandboxType = typeof(PhysicsBattler.Sandbox.BattleSandbox);
+            PhysicsBattler.Sandbox.BattleSandbox.OpenAllSections = true;
+            PhysicsBattler.Sandbox.BattleSandbox.LookFramed.Clear();
+            Set("search", "");
+            foreach (string window in new[] { "DrawPanel", "DrawActions" })
+            {
+                var draw = sandboxType.GetMethod(window, Any);
+                for (int round = 0; round < 2; round++)
+                {
+                    Event.current = new Event { type = EventType.Layout };
+                    latch.Invoke(sandbox, null);
+                    draw.Invoke(sandbox, new object[] { 0 });
+                    Event.current = new Event { type = EventType.Repaint };
+                    draw.Invoke(sandbox, new object[] { 0 });
+                }
+            }
+
+            PhysicsBattler.Sandbox.BattleSandbox.OpenAllSections = false;
+            var names = PhysicsBattler.Sandbox.BattleSandbox.LookNames;
+            var missing = names.Where(n => !PhysicsBattler.Sandbox.BattleSandbox.LookFramed.Contains(n)).ToList();
+            Console.WriteLine($"LOOK HERE ({place}): {names.Count - missing.Count} of {names.Count} names drawn and framed" + (missing.Count > 0 ? "; not drawn in this lab: " + string.Join(", ", missing.Select(n => "\"" + n + "\"")) : ""));
+        }
+
         Console.WriteLine(bad == 0 ? "PANEL OK" : $"PANEL: {bad} FAULTS");
         return bad == 0 ? 0 : 1;
     }

@@ -214,6 +214,9 @@ namespace PhysicsBattler.Sandbox
 
         private static GUIStyle placeStyle, placeNowStyle;
 
+        /// <summary>Says whether a lab of this name is one he is asked to go to (the panel's "look here"): its button in the bar gets a frame.</summary>
+        public static System.Func<string, bool> PlaceLooked;
+
         /// <summary>
         /// The bar at the top of both panels (the lab's and this one's): where one is, and a button to each of the
         /// others, so any of them is one press from any other. The place pressed, or none.
@@ -235,6 +238,11 @@ namespace PhysicsBattler.Sandbox
                 if (GUILayout.Button(new GUIContent(here ? "> " + name + " <" : name, here ? "Where you are now. " + tip : tip), here ? placeNowStyle : placeStyle) && !here)
                 {
                     pressed = place;
+                }
+
+                if (PlaceLooked != null && PlaceLooked(name))
+                {
+                    Frame(GUILayoutUtility.GetLastRect());
                 }
             }
 
@@ -317,12 +325,14 @@ namespace PhysicsBattler.Sandbox
         private void OnEnable()
         {
             UnitController.Hit += OnHit;
+            PhysicsBattler.Locomotion.ClipFighter.GetUpBegan += OnGetUpBegan;
             HitFlashes.Ensure();
         }
 
         private void OnDisable()
         {
             UnitController.Hit -= OnHit;
+            PhysicsBattler.Locomotion.ClipFighter.GetUpBegan -= OnGetUpBegan;
             SandboxInput.OverPanel = false;
             SandboxInput.Typing = false;
             if (Application.isPlaying)
@@ -2184,6 +2194,12 @@ namespace PhysicsBattler.Sandbox
 
             var style = Styles().Text;
             GUILayout.Label(what, style, GUILayout.Height(lines * Mathf.Max(14f, style.lineHeight) + 4f));
+            // (A readout he is asked to watch, by what it is called: its words up to the colon.)
+            int colon = what.text != null ? what.text.IndexOf(':') : -1;
+            if (colon > 0 && Looked(what.text.Substring(0, colon)))
+            {
+                FrameLast();
+            }
         }
 
         private void Readout(string what, int lines) => Readout(new GUIContent(what), lines);
@@ -3876,6 +3892,155 @@ namespace PhysicsBattler.Sandbox
             return pressed;
         }
 
+        // ---- Look here (19 November; Renier's standing rule) ----
+        // "When you tell me how to test your changes, add highlights in the UI to actually show me the buttons and
+        // areas of the UI I should be looking at." Every push that needs his eye sets the three lists below: the steps
+        // in plain words (shown in a box at the top of the panel), the names of the things to press and watch (each
+        // gets a bright frame wherever it is drawn: a lab's button in the bar, a section's bar, a heading, a row by
+        // its name, a button, a tick, a slider), and a tag that names the push. A row is framed whole by its name.
+        // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
+
+        /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
+        private const string LookTag = "19 November: the start of a get-up";
+
+        /// <summary>What to do, in order, in plain words.</summary>
+        private static readonly string[] LookSteps =
+        {
+            "1. Go to \"Tubes\" (the bar of labs at the top).",
+            "2. Open \"Falls and getting up\" and find \"The start of a get-up\".",
+            "3. Set \"Hold him at the start\" to on. Then fell him: \"Falls on demand\": Back, Forward, Left or Right.",
+            "4. The game stops the moment he starts to rise. Press \"Step\" a few times and watch his arms and shield. \"Let him go on\" runs it again.",
+            "5. Switch \"The start\" to \"nearest to how he lies\", fell him the same way, and compare (in my numbers it did not help yet).",
+            "6. \"His last get-up\" says how that first moment went.",
+        };
+
+        /// <summary>The names of what he is to press and watch.</summary>
+        private static readonly string[] LookHere =
+        {
+            "Tubes", "Falls and getting up", "Falls on demand", "Falls on demand>Back", "Falls on demand>Forward",
+            "Falls on demand>Left", "Falls on demand>Right", "Step", "The start of a get-up", "Hold him at the start:",
+            "The start:", "His last get-up",
+        };
+
+        /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
+        public static readonly HashSet<string> LookFramed = new HashSet<string>();
+        public static bool OpenAllSections;
+
+        /// <summary>The names he is asked to press and watch (for the panel check).</summary>
+        public static IReadOnlyList<string> LookNames => LookHere;
+
+        private static readonly Color LookTone = new Color(1f, 0.82f, 0.1f);
+        private bool lookOn = true, lookRead, rowLooked;
+
+        /// <summary>The lab's stop frame: the game is stopped the moment a get-up begins.</summary>
+        private bool holdAtGetUp;
+
+        private void OnGetUpBegan(PhysicsBattler.Locomotion.ClipFighter who)
+        {
+            if (holdAtGetUp && !paused)
+            {
+                TogglePause();
+                message = "Held at the start of a get-up. \"Step\" goes on one step; \"Let him go on\" runs the clock.";
+            }
+        }
+
+        private static string LookKey => "BattleSandbox.LookOff." + LookTag;
+
+        /// <summary>A thing of this name is one he is asked to press or watch.</summary>
+        private bool Looked(string name)
+        {
+            if (!lookRead)
+            {
+                lookRead = true;
+                lookOn = PlayerPrefs.GetFloat(LookKey, 0f) < 0.5f;
+            }
+
+            if (!lookOn || string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            name = name.Trim();
+            if (name.Length > 2 && name[0] == '[' && name[name.Length - 1] == ']')
+            {
+                name = name.Substring(1, name.Length - 2);
+            }
+
+            foreach (string one in LookHere)
+            {
+                // ("Heading>Name": only under that heading or in that section.)
+                int under = one.IndexOf('>');
+                if (under > 0 ? string.Equals(one.Substring(0, under), zoneName, System.StringComparison.OrdinalIgnoreCase) && string.Equals(one.Substring(under + 1), name, System.StringComparison.OrdinalIgnoreCase)
+                    : string.Equals(one, name, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    LookFramed.Add(one);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>A bright frame round what was drawn last.</summary>
+        private void FrameLast()
+        {
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                Frame(GUILayoutUtility.GetLastRect());
+            }
+        }
+
+        /// <summary>A bright frame round a place on the panel: it breathes slowly so the eye finds it, by the real clock (it goes on while the game is paused).</summary>
+        private static void Frame(Rect at)
+        {
+            if (Event.current == null || Event.current.type != EventType.Repaint || at.width < 2f || at.height < 2f)
+            {
+                return;
+            }
+
+            const float thick = 2f;
+            var was = GUI.color;
+            float breath = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 4f);
+            GUI.color = new Color(LookTone.r, LookTone.g, LookTone.b, breath);
+            GUI.DrawTexture(new Rect(at.x - thick, at.y - thick, at.width + 2f * thick, thick), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(at.x - thick, at.y + at.height, at.width + 2f * thick, thick), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(at.x - thick, at.y, thick, at.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(at.x + at.width, at.y, thick, at.height), Texture2D.whiteTexture);
+            GUI.color = was;
+        }
+
+        /// <summary>The box at the top of the panel: what to test after this push, and the switch for the frames.</summary>
+        private void DrawLookHere()
+        {
+            Looked("");
+            if (LookSteps.Length == 0)
+            {
+                return;
+            }
+
+            var was = GUI.contentColor;
+            GUI.contentColor = LookTone;
+            GUILayout.Label(new GUIContent("Test this (" + LookTag + ")", "What Claude asks you to look at after its last push. The things named here have a yellow frame wherever they are on the panel."), Styles().Heading);
+            GUI.contentColor = was;
+            if (lookOn)
+            {
+                foreach (string step in LookSteps)
+                {
+                    GUILayout.Label(step, Styles().Text);
+                }
+            }
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(new GUIContent(lookOn ? "Hide this and the yellow frames" : "Show what to test, and the yellow frames", "The steps above and the frames round the things they name. Kept until the next push brings a new list."), Styles().Button))
+            {
+                lookOn = !lookOn;
+                PlayerPrefs.SetFloat(LookKey, lookOn ? 0f : 1f);
+            }
+
+            GUILayout.EndHorizontal();
+            GUILayout.Space(4f);
+        }
+
         // ---- The search (18 November) ----
         // A box at the top of the panel, as in an engine's details panel: with words in it, every section is opened
         // and only the settings with those words in their name are shown, each under its own heading. A row of the
@@ -4056,6 +4221,13 @@ namespace PhysicsBattler.Sandbox
             rowDepth--;
             if (rowDepth == 0)
             {
+                if (rowLooked && rowsBegun == 0 && !filtering)
+                {
+                    // (The whole row: its name and its choices.)
+                    FrameLast();
+                }
+
+                rowLooked = false;
                 if (rowKey != null && LayingOut)
                 {
                     rowTextsNext[rowKey] = rowTextsNext.TryGetValue(rowKey, out string before) ? before + rowText : rowText.ToString();
@@ -4073,6 +4245,7 @@ namespace PhysicsBattler.Sandbox
             if (rowDepth > 0 ? Shown(content.text) : !filtering)
             {
                 GUILayout.Label(content, style, options);
+                LookedWords(content.text);
             }
         }
 
@@ -4081,6 +4254,25 @@ namespace PhysicsBattler.Sandbox
             if (rowDepth > 0 ? Shown(content.text) : !filtering)
             {
                 GUILayout.Label(content, options);
+                LookedWords(content.text);
+            }
+        }
+
+        /// <summary>Words he is asked to look at: in a row the whole row is framed as it ends; alone, or while searching, the words themselves.</summary>
+        private void LookedWords(string text)
+        {
+            if (!Looked(text))
+            {
+                return;
+            }
+
+            if (rowDepth > 0 && !filtering)
+            {
+                rowLooked = true;
+            }
+            else
+            {
+                FrameLast();
             }
         }
 
@@ -4166,6 +4358,8 @@ namespace PhysicsBattler.Sandbox
                 sectionOpen[name] = open;
             }
 
+            open |= OpenAllSections;
+
             EnterZone(name);
             if (filtering)
             {
@@ -4182,6 +4376,11 @@ namespace PhysicsBattler.Sandbox
             GUI.backgroundColor = ZoneTone(zone, 0.6f, 0.62f);
             bool pressed = GUILayout.Button(new GUIContent((open ? "−  " : "+  ") + name, tip), Styles().Section);
             GUI.backgroundColor = was;
+            if (Looked(name))
+            {
+                FrameLast();
+            }
+
             if (pressed)
             {
                 // (Open or shut from the next time the panel is laid out: what is drawn in answer to this press has
@@ -4229,12 +4428,45 @@ namespace PhysicsBattler.Sandbox
             GUI.contentColor = ZoneTone(hue, 0.45f, 1f);
             GUI.Label(at, content, style);
             GUI.contentColor = ink;
+            if (Looked(text))
+            {
+                Frame(at);
+            }
+
             GUILayout.Space(2f);
         }
 
-        private bool Press(string text, string tip, params GUILayoutOption[] options) => Shown(text) && ZoneButton(new GUIContent(text, tip), null, options);
+        private bool Press(string text, string tip, params GUILayoutOption[] options)
+        {
+            if (!Shown(text))
+            {
+                return false;
+            }
 
-        private bool Tick(bool value, string text, string tip) => Shown(text) ? GUILayout.Toggle(value, new GUIContent(text, tip), Styles().Toggle) : value;
+            bool pressed = ZoneButton(new GUIContent(text, tip), null, options);
+            if (Looked(text))
+            {
+                FrameLast();
+            }
+
+            return pressed;
+        }
+
+        private bool Tick(bool value, string text, string tip)
+        {
+            if (!Shown(text))
+            {
+                return value;
+            }
+
+            value = GUILayout.Toggle(value, new GUIContent(text, tip), Styles().Toggle);
+            if (Looked(text))
+            {
+                FrameLast();
+            }
+
+            return value;
+        }
 
         /// <summary>A slider on one line: its name, the slider, its value. What it means is its tooltip.</summary>
         private float Slide(string name, string value, string tip, float now, float least, float most)
@@ -4252,6 +4484,11 @@ namespace PhysicsBattler.Sandbox
             GUILayout.EndVertical();
             GUILayout.Label(new GUIContent(value, tip), Styles().Value, GUILayout.Width(78f));
             GUILayout.EndHorizontal();
+            if (Looked(name))
+            {
+                FrameLast();
+            }
+
             return now;
         }
 
@@ -4288,6 +4525,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             // ---- Always there: where one is, the clock and the recording ----
+            PlaceLooked = Looked;
             var goTo = PlaceBar(shownAim ? (shownDuel ? Place.Duel : Place.Aim) : shownTube ? Place.Tubes : shownTarget ? Place.Targets : Place.Battle);
             if (goTo.HasValue)
             {
@@ -4332,6 +4570,7 @@ namespace PhysicsBattler.Sandbox
             panelView = panelContent < 0f ? Mathf.Max(160f, room) : Mathf.Clamp(panelContent + 4f, 60f, Mathf.Max(160f, room));
             panelScroll = GUILayout.BeginScrollView(panelScroll, false, true, GUILayout.Height(panelView));
             GUILayout.BeginVertical();
+            DrawLookHere();
             BeginFiltered();
             DrawScenes();
             if (shownTube)
@@ -4832,6 +5071,37 @@ namespace PhysicsBattler.Sandbox
                 feel.thrownBodiesTuck = Tick(feel.thrownBodiesTuck, "A thrown body tucks", "Thrown off its feet (the Thrown back button, the Club blow) it curls up as it flies and tumbles, and stays down longer. Off: it falls as one knocked over does.");
                 feel.fallsCanBeCaught = Tick(feel.fallsCanBeCaught, "A fall can be caught", "A fall only just more than the legs catch ends on a knee and a hand, or sitting, and the fighter rises from there.");
             }
+
+            // ---- The start of a get-up (the plan "From how he lies to how he gets up", steps 1 and 2; 19 November) ----
+            Heading("The start of a get-up", "The first moment of a get-up: the blend from how he lies into the get-up. In Renier's log of 19 November nine tenths of a get-up's crossings were in its first 0.75 s. Here it can be held still and looked at, and the start can be chosen old or new.");
+            BeginRow();
+            Words(new GUIContent("Hold him at the start:", "On: the game stops the moment any fighter begins to get up, before he has moved: you see exactly how he lies. Then \"Step\" at the top of the panel goes on one step at a time, or set \"Speed\" low and press \"Let him go on\". With several on the ground it stops again for each of them. Off: nothing is stopped."), GUILayout.Width(150f));
+            if (Press(holdAtGetUp ? "[on]" : "on", "Stop as a get-up begins.")) holdAtGetUp = true;
+            if (Press(!holdAtGetUp ? "[off]" : "off", "Never stop.")) holdAtGetUp = false;
+            if (Press("Let him go on", "The clock runs again (the same as Resume at the top).") && paused)
+            {
+                TogglePause();
+            }
+
+            EndRow();
+            BeginRow();
+            Words(new GUIContent("The start:", "How a get-up's start is chosen (Combat Feel \"A Get-Up Starts Nearest To How He Lies\"). Nearest to how he lies (new): every start he could use is weighed (the one his hips say, from his side too, each posting on either hand) and the one his hands, elbows, knees and feet are nearest to is taken. By his hips only (old): the way his hips face decides, as before. Fell him the same way with each and watch his arms in the first moment."), GUILayout.Width(150f));
+            bool nearest = feel != null ? feel.aGetUpStartsNearestToHowHeLies : PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest;
+            bool nearestNow = nearest;
+            if (Press(nearest ? "[nearest to how he lies]" : "nearest to how he lies", "Every start weighed; the nearest taken.")) nearestNow = true;
+            if (Press(!nearest ? "[by his hips only (old)]" : "by his hips only (old)", "As before.")) nearestNow = false;
+            EndRow();
+            if (nearestNow != nearest)
+            {
+                if (feel != null)
+                {
+                    feel.aGetUpStartsNearestToHowHeLies = nearestNow;
+                }
+
+                PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest = nearestNow;
+            }
+
+            Readout(new GUIContent("His last get-up: " + (PhysicsBattler.Locomotion.ClipFighter.LastGetUpStartTold.Length > 0 ? PhysicsBattler.Locomotion.ClipFighter.LastGetUpStartTold : "none yet") + ".", "The first 0.75 s of the last get-up of any fighter, as seen: how long his own shield, sword or sword arm crossed him (counted while a playtest is recorded), the fastest any part moved, how far each hand went, and how the start was chosen. Written about half a second after he is up."), 4);
 
             Heading("Getting up");
             // (One choice of three, where there were two switches: with the older one off, "as recorded" changed

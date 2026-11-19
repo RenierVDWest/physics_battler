@@ -1858,6 +1858,16 @@ namespace PhysicsBattler.Motion
 
         // ---- Playing them ------------------------------------------------------------------------
 
+        /// <summary>
+        /// Poses the animation rig as the keys alone have it <paramref name="t"/> seconds in, with nothing of how it lay
+        /// in it and no standing pose: where the body is asked to come to. For weighing one start against another
+        /// before a get-up begins (<see cref="Begin"/> again afterwards).
+        /// </summary>
+        public void PoseAt(float t)
+        {
+            PoseKeys(Mathf.Max(0f, t - KeysFrom));
+        }
+
         private void PoseKeys(float t)
         {
             int i = 0;

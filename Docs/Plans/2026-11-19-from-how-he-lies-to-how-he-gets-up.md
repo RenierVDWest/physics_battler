@@ -141,3 +141,29 @@ and a 3b2b.
 **19 November 2026.** Plan written after your notes of 08:26. Not started. Built the same morning, and needed by this
 plan: a fallen fighter's shield stays solid against his own body, and fighters keep apart while one is off his feet
 (both headless only; see the README's entry of 19 November, "his second look").
+
+**19 November 2026, 12:26: your answers.** All five as recommended.
+
+1. Physics leads the gather.
+2. He may lie up to half a second longer if a case needs it; the aim is no extra time.
+3. The shield lies flat on the ground out to his shield side, he pushes up on that forearm, and the board comes up
+   edge first.
+4. Build in the order of the steps: the measure and the stop frame first.
+5. A get-up may look different each time.
+
+You also saw the morning's build in Unity: the shield did not go through his body as he fell. Your log of 12:12
+agrees (21 falls): crossing while falling and lying 0.33 s in all, against 3.25 s over 28 falls at 08:07; no body
+thrown back onto its pose. While getting up it is still 2.35 s, all of it in the first 0.75 s.
+
+**19 November 2026, afternoon: steps 1 and 2.** Headless only.
+
+- **Step 1, built.** Every get-up reports its own first 0.75 s as seen: crossing, the fastest part, how far each
+  hand went. It is in your `getup` log lines, in the headless report, and on the panel as "His last get-up". "Hold
+  him at the start: on" (Tubes, "Falls and getting up", "The start of a get-up") stops the game the moment a get-up
+  begins; "Step" goes on one step at a time.
+- **Step 2, built and left off.** Every start is weighed (his hips' way, from his side too, either hand posting) by
+  how far his joints are from it. Alone it does not help: over twelve bash-downs each way, crossing in the first
+  moment was 0.19 s a get-up with it and 0.14 s without. The nearest start for his joints is often the one that
+  posts on his shield hand, which lays the board under him. The switch stays, off; for step 3 the cost has to count
+  the board.
+- **Next: step 3, the gather.**

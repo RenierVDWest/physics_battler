@@ -6859,3 +6859,66 @@ feet").
 
 **Not done.** The shield through his body while getting up (his first picture): it is the plan's subject. His
 frames of the three logs are used and removed from the repository.
+
+### 19 November, afternoon: his answers; what to press is highlighted; the first moment of a get-up measured, and held still
+
+Renier, 19 November, 12:26, having played the morning's build: "Your updates seem good, did not see the shield
+going through the body as he fell this time." His five answers on the plan "From how he lies to how he gets up":
+all as recommended (physics leads the gather; up to half a second longer on the ground if a case needs it; the
+shield flat on the ground out to his side, pushed up on that forearm, coming up edge first; build in the plan's
+order; a get-up may differ each time). And a new standing rule: **"have a highlight around the buttons you want me
+to press in the debug… each time you push your changes."**
+
+**His log of 12:12** (392 s, 21 falls and get-ups, the three switches of the morning on; measured in Unity): his
+own shield and sword crossing him while falling and lying 0.33 s in all (one stretch, his blade through his board),
+against 3.25 s over 28 falls at 08:07. No body thrown back onto its pose. While getting up 2.35 s, **all of it in
+the first 0.75 s**; the fastest part there 6.0 m/s on average, 19 m/s at the worst. So the falls are mended as he
+saw, and the first moment of the get-up is what is left.
+
+**1. "Look here": the panel shows what to test** (`BattleSandbox.cs`, "Look here"). A box at the top of the panel
+("Test this") lists the steps for the last push in plain words, and every button, row, slider, heading, section,
+readout and lab named for it has a yellow frame that breathes slowly, wherever it is drawn. "Hide this and the
+yellow frames" turns it off until the next push brings a new list. Three things are set for a push: `LookTag`,
+`LookSteps`, `LookHere` (names exactly as on the panel; `"Heading>Name"` for a name that occurs more than once). The
+panel check now ends with a `LOOK HERE` line saying how many of the names are really drawn in that lab. **Built
+blind:** the frames are drawn with calls the headless stub does nothing with, so that they sit where they should
+is for his eye.
+
+**2. The plan's step 1: the first moment measured, and a stop frame.** Every get-up now reports its own first
+0.75 s as seen: how long his own shield, sword or sword arm crossed him, the fastest part and which, and how far
+each hand went. It is in his `getup` log lines ("the start: …"), in the headless report ("the first 0.75 s of a
+get-up"), and on the panel ("His last get-up"). And "Hold him at the start: on" stops the game the moment any
+fighter begins to get up, before he has moved; "Step" then goes on a step at a time. No change to the motion.
+
+**3. The plan's step 2: the start chosen by how he lies. Built, measured, and left off.** (Combat Feel "A Get-Up
+Starts Nearest To How He Lies"; the lab's "The start: nearest to how he lies / by his hips only (old)".) Every
+start he could use is set out and weighed: the one his hips say, from his side too if his hips are turned that way
+at all, and each posting on either hand (a sword alone always posts on its free hand). What a start costs: how far
+his hands, elbows, knees and ankles are from where it has them as the blend ends, and 0.6 m more for a hand whose
+straight way there passes through his trunk. The nearest is taken, if it is nearer by 0.15 m.
+
+By itself it does not help, and in the bash-downs it is a little worse:
+
+| A get-up's first 0.75 s, the shield bearer | By his hips only (old) | Nearest to how he lies |
+|---|---|---|
+| Six hard bash-downs: crossing a get-up / fastest part | 0.11 s / 7.8 m/s | 0.19 s / 8.1 m/s |
+| Six extra hard bash-downs: the same | 0.17 s / 5.5 m/s | 0.19 s / 6.7 m/s |
+| Felled backward, forward, to his right, to his left (one each): crossing | 0.07, 0.42, 0.48, 0.08 s | 0.07, 0.33, 0.42, 0.23 s |
+
+Why: the start nearest for his joints is often the mirrored one that posts on his shield hand (7 of 11 in the
+bash-downs took another start than his hips say), and that get-up lays the board under him: the crossings moved
+into his shield-side thigh. The cost does not count the board. So the switch is **off** (a new field, so his scene
+takes the default), kept with its toggle for him to see, and for step 3 to build on with the board in the cost. A
+fault found on the way and mended: a start weighed left the pose where it had been tried, and the get-up then
+pinned his sword hand there and threw it at 59 m/s; each start is now weighed from the pose as it was.
+
+**To see it in Unity** (and the panel now shows this itself): Tubes; "Falls and getting up"; "The start of a
+get-up": "Hold him at the start: on"; then "Falls on demand": Back, Forward, Left or Right; "Step" a few times;
+"Let him go on". "His last get-up" says how the first moment went.
+
+**Headless.** `FIGHT_STARTNEAREST=1` turns the new start on. `Tools/Headless/downs.sh` prints the first-moment line.
+
+**The budget.** Nothing of this is in force on his feet, and the two fights of six read exactly as they did this
+morning (crossings 0.53% and 1.16%, tremble 10.5% and 11.0%: both still over, for the reasons given then).
+
+**Next: the plan's step 3, the gather** (he draws himself to the start as the physical body he fell in). Not begun.
