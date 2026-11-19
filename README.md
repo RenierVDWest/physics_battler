@@ -6707,7 +6707,7 @@ in the repository when this was done, so the cases themselves were not read. One
 own numbers: the ledger left the basher going forward at 0.3 to 1.6 m/s after his bash, into a man who had only
 been carried back a step, so the two could end board against board. Now (Combat Feel "After A Bash He Holds His
 Ground"): his own legs take what is left of his going forward. After each of the bashes above the two are 1.5 to
-4.3 m apart 1.2 s later. **Whether that was his case is not known until his logs are read.**
+5.6 m apart 1.2 s later. **Whether that was his case is not known until his logs are read.**
 
 **5. The sword as he gets up: "pinned to the ground in one position … not allowed to rotate more than only a few
 degrees … should not be able to change rotation fast."** Built as said (Combat Feel "A Rising Fighter's Sword Hand
