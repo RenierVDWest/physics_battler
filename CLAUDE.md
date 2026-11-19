@@ -37,7 +37,8 @@ These are standing rules. They hold in every chat.
   effort, never on the main model (the `3b2b` skill has the details). A copy of the kit is in
   `Tools/Explainer/kit/`, so it can be made with his computer off; `Tools/Explainer/example-lane/` is one of this
   project's own explainers to copy the format from (its note, script and the generator of its drawings).
-- Do not spawn subagents for anything else.
+- Do not spawn subagents for anything else. The brief that works for the explainer's subagent is
+  `Tools/Explainer/brief-template.md`.
 
 **Changing the game**
 - Big changes go one step at a time. Each step sits behind a Combat Feel switch (`CombatFeel.cs`) with a
@@ -322,6 +323,12 @@ most stumbles)
 
 **Waiting on a decision from him**: what being fooled by a fake costs (today: nothing); whether real attacks
 should be more frequent; whether a fighter holds off while his enemy is down.
+
+## Starting a new chat
+
+`Docs/NextChat-prompt.md` is the prompt Renier pastes into a new chat (written 19 November for the get-up plan's
+step 4). When a chat ends with work left, rewrite it for the next one: where to start, what to do in order, where the
+code is, how to measure it, and what cost time.
 
 ## Keeping this file true
 
