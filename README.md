@@ -6751,3 +6751,111 @@ not carried over.
   its guard is in the board's way. The shield gives way to the sword everywhere else; in a bash it is the sword
   that has to get out of the way, and nothing does that yet. On seed 5 they were in two made attacks thrown on a
   turn (a forehand on a left turn, a short high spinning backhand). **Not mended.**
+
+### 19 November, later in the morning: his second look. The shield off his feet, two bodies in one place, and a plan for the first moment of a get-up
+
+Renier, 19 November, 08:26, with three pictures and his logs pushed (06:44, 06:53 and 08:07): the shield goes
+through his body as he gets up; a bash bends the shield arm with the board intersecting ("the shield should still
+be enabled as a physics object here that does not intersect with the body… it will also keep the legs from falling
+into the shield if the shield stays a physics object during the fall"); "as the fallen guy is leaping from his
+fallen position into the start of the get up animation all kinds of weird things happen. I want you to make some
+context aware transition there… Judge if this is a hard enough task to justify doing a planning document first";
+and the getting stuck again at the end of the new log, "where the feet also gets stuck". **Everything below is
+headless only.**
+
+**What his log of 08:07 says** (280 s in the target test, 28 falls, 27 get-ups):
+
+- Off his feet his own shield, sword and sword arm crossed him for 3.25 s while falling and lying (22 stretches:
+  the board in his shins eight times, his blade through his board eight times) and for 7.08 s while getting up.
+- Of the 7.08 s, **6.28 s (89%) is in the first 0.75 s of a get-up**: the blend from how he lay. In those moments
+  the fastest part moved at 6.7 m/s on average (24 m/s at the worst), and it was the shield hand or forearm in 16
+  of the 27.
+- Two fighters were in the same place twice, both times with a body off its feet: 64.4 to 66.3 s (roots 3 cm
+  apart at the nearest) and 274.0 to 275.9 s, the end he pointed at. In the two earlier logs I found no stretch
+  where two standing fighters were held together; if the shields stuck there, I have not found it.
+- **The lab's own "Stumble him" button did some of the damage.** Pressed while the target was down or getting up,
+  it put him on the bash's spot at once: his body was thrown 71 to 78 cm back onto its pose ("out of hand… put
+  back on its pose at once", at 259.4, 270.0 and 279.4 s), once he was moved 2.7 m in the middle of a fall
+  (260.9 s), and he was bashed as he rose. Part of the "leap" he saw is that, and it was mine.
+
+**1. A fallen fighter's shield stays solid against his body** (Combat Feel "A Fallen Fighter's Shield Stays Solid
+Against His Body", on; `UpperBodyArticulation.ShieldStoppedOffFeet`). Until now, the step a body was let go to
+fall, what it held passed through it again. Now the board goes on being stopped by his trunk, head, thighs and
+shins while he falls and lies, each pair by itself, and a board up to 6 cm into a part is stopped at once and
+eased out (no faster than 3 m/s). His sword passes through him off his feet as before. Getting up, the board
+still passes: the get-up's pose asks for it (see the plan below).
+
+The first build stopped it on trunk and legs only, and was worse: kept out of his trunk, the board lay in his
+sword arm. So off his feet it is stopped by his other arm and by the sword in that hand too. One bash-down shows
+nothing headless (headless falls are cleaner than his); six in a run do (`Tools/Headless/downs.sh`):
+
+| Six bash-downs in a run: crossing while falling and lying | Old (passes through him) | Trunk and legs only | Now |
+|---|---|---|---|
+| Hard bash, not countered | 0.02 s | 0.40 s (sword arm through the board) | 0.00 s |
+| Extra hard bash | 0.55 s (shins, blade through board) | 0.97 s | 0.00 s |
+| The six, 40 s, seed 5 | 0.52 s | | 0.00 s |
+| The six, 40 s, seed 7 | 0.21 s | | 0.00 s |
+
+The falls themselves measure the same (hips landing, hands first, how far he slides). The crossings while getting
+up are not changed by this: 0.75 and 1.25 s in the same two runs.
+
+**2. Fighters keep apart off their feet too** (Combat Feel "Fighters Keep Apart Off Their Feet Too", on;
+`ClipFighter.KeepsApartOffHisFeet`). The cause of the two bodies in one place: the rule that keeps bodies apart did
+nothing if either was down or getting up. Two who fell together got up inside each other, and their physical
+bodies locked. Now a body needs room to get up in (1.1 m, hips to hips, at a Medium's size): one on his feet steps
+off a body that is down or rising there (the walk's own steps; nearer than 0.66 m he is moved off as well, at
+1.5 m/s at most), and one lying does not start to rise while another stands or rises there (he waits 3 s more at
+most; of two lying together one goes first). A body that is down is never moved. Measured from the hips, not the
+root: a get-up's root is where he will stand, up to half a metre from where he lies.
+
+The room test (`Tools/Headless/room.sh`: two felled side by side, three times): in the one fall of three where
+they lay close, old way the two were 0.23 m apart at the nearest while getting up and under 0.6 m for 1.63 s; now
+0.66 m and never under 0.6 m, and both were on their feet 5.1 s after instead of 3.9. In the other two falls they
+lay further apart than the rule looks and nothing changed (in one of them they still came to 0.59 m for a moment).
+In the fights of six the rule did not come into play at all. **Not reproduced headless: the lock itself** (no
+body went "out of hand" in either way), so whether his stuck feet are gone is for his eye.
+
+**3. The lab's "Stumble him" waits until both are on their feet.** Pressed while either is down, getting up or
+still stumbling, it says so and throws the bash once both stand. `DuelLab.PutOtherAt` refuses a body that is off
+its feet.
+
+**4. A held thing caught on the wrong side of his body is let through** (Combat Feel "A Held Thing Caught On His
+Own Body Is Let Through", on; the lab's "Caught on his own body: let through / stays caught (old)" beside "Against
+his body"). Found on the way. What he holds is stopped by his body from the moment it is clear of it, wherever it
+then is. In one run a board came out of a get-up under his thigh and was stopped there, his arm pressing it softly
+against the leg it could not pass: it hung 29 cm below its cover, facing 89 degrees off his enemy, his chest open
+82% of the time, for the nine seconds the run had left, and the next bash at him met nothing. Now, when what an arm
+holds has been against his body for 0.4 s with that hand more than 12 cm from its pose, and the pose has it clear
+of him, it passes through him once and is stopped again when it is out. In the run where it came up: cover as it
+should be (chest open 12%), at the price of one crossing of 0.10 s on his feet. It is rare: once in that run, once
+(a Large's club) in two fights of six.
+
+**The budget, honestly.** Crossings on his feet are as red as they were, not redder (seed 5: 0.53% against 0.54%
+with today's switches off; seed 7: 1.16% against 0.92%, two fights that went differently). **The tremble reads
+over its proposed 8% in both sixes with the off-feet shield on: 10.5% and 11.0%, against 7.5% and 7.3% with it
+off.** In seed 5 I traced it: the two fights are the same until the one shield bearer's fall at 24 s; with the
+board solid he came to lie on his side instead of his front, got up from his side, and it is his board, in the ten
+seconds after, that makes the difference (the walking bursts of roadmap item 4, and the moment he stands). I have
+not shown why a get-up from a side should leave more of it, and two seeds went the same way, so I do not call it
+chance. Nothing of today's is in force on his feet apart from point 4.
+
+**5. The plan.** Is the first moment of a get-up hard enough for a plan? Yes: three causes meet there (the start
+does not look at how he lies; the way there is a straight blend that does not know what is in the way; his body
+stops being solid to itself in that step), and the fix is a new stage, not a tweak. The plan is
+`Docs/Plans/2026-11-19-from-how-he-lies-to-how-he-gets-up.md`
+([live](https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa)): he reads how he lies, gathers himself as the physical
+body he fell in, and the get-up takes over only when he is close. Five steps, five questions for him. Nothing of it
+is built.
+
+**To see it in Unity.** Target test or duel lab, a swordsman and a target with sword and shield. "Stumble him:
+Hard" with "Hard bash met: not countered", or "Extra hard", several times; watch the board while he falls and
+lies. The toggles are in the target test's settings: "Falling and lying, his shield: stays solid / passes through
+him (old)" and "Off their feet, two fighters: keep apart / nothing keeps them apart (old)". For the room: fell
+both near each other ("Falls on demand") and watch who rises first.
+
+**Headless.** `Tools/Headless/downs.sh tag`, `Tools/Headless/room.sh tag`; old with `FIGHT_SHIELDDOWN=0`,
+`FIGHT_ROOM=0`, `FIGHT_CAUGHT=0`. The report has two new lines ("caught on his own body and let through", "off his
+feet").
+
+**Not done.** The shield through his body while getting up (his first picture): it is the plan's subject. His
+frames of the three logs are used and removed from the repository.

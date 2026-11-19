@@ -431,6 +431,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: as a fighter gets up, his sword hand stays where it lay when the get-up began, on the ground and turned as it lay, until his arm can no longer reach that spot or the get-up has the hand well off the ground; then it goes to where the get-up has it. While it is pinned it may turn only a few degrees, and through the whole get-up it never turns faster than \"Rising Sword Hand Turns At Most\". Off: as before, the hand goes where each key of the get-up puts it and the sword turns about with it (the sword that shook as he got up).")]
         public bool aRisingFightersSwordHandStaysWhereItLies = true;
 
+        [Tooltip("On: a shield or sword that has been stopped on the wrong side of his own body is let through. When what an arm holds has been against his body for 0.4 s with that hand more than 12 cm from where his pose has it, and his pose has it clear of him, it passes through his body once, back to its pose, and is stopped by him again from then. Off: as before, it stays where it was caught (headless: a board that came out of a get-up under his thigh hung 29 cm below its cover for nine seconds). Only does anything with the two \"...Stopped By Its Bearer's Body\" settings. The lab's \"Caught on his own body\".")]
+        public bool aHeldThingCaughtOnHisOwnBodyIsLetThrough = true;
+
+        [Tooltip("On: a fighter's shield goes on being a solid thing against his own body while he falls and lies: his trunk, head, thighs and shins stop it, so the board does not sink into him, his legs do not fall into it, and the arm that carries it cannot fold through it. A board already a little way into him is eased out. Off: as before, from the moment he is let go to fall his shield passes through his own body. His sword passes through him off his feet either way. (Getting up it still passes: the get-up's pose has its own care of it.) The lab's \"Falling and lying, his shield\".")]
+        public bool aFallenFightersShieldStaysSolidAgainstHisBody = true;
+
+        [Tooltip("On: two fighters are kept apart while one of them is down or getting up too. One on his feet is walked off a body that lies or rises next to him, and one lying does not start to get up while another stands or rises where he would come up (he waits at most three seconds more). Off: as before, nothing keeps two apart until both stand; two who fell together got up inside each other and their bodies and feet locked. The lab's \"Off their feet, two fighters\".")]
+        public bool fightersKeepApartOffTheirFeetToo = true;
+
         [Tooltip("Getting up: how far the pinned sword hand may turn from how it lay (degrees). Default 5.")]
         [Range(0f, 45f)] public float risingSwordHandMayTurn = PhysicsBattler.Motion.GetUp.DefaultSwordHandMayTurn;
 
@@ -1701,6 +1710,9 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.GetUpsKnowWhatIsHeld = getUpsKeepWhatTheHandsHoldOffTheGround;
             PhysicsBattler.Motion.GetUp.BladeTurnsClear = aRisingFightersBladeIsTurnedClearOfTheGround;
             PhysicsBattler.Motion.GetUp.SwordHandStays = aRisingFightersSwordHandStaysWhereItLies;
+            PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = aFallenFightersShieldStaysSolidAgainstHisBody;
+            ClipFighter.KeepsApartOffHisFeet = fightersKeepApartOffTheirFeetToo;
+            PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = aHeldThingCaughtOnHisOwnBodyIsLetThrough;
             PhysicsBattler.Motion.GetUp.SwordHandMayTurn = Mathf.Clamp(risingSwordHandMayTurn, 0f, 45f);
             PhysicsBattler.Motion.GetUp.SwordHandTurns = Mathf.Clamp(risingSwordHandTurnsAtMost, 30f, 720f);
             ClipFighter.BashIsImpact = aBashLandsAsAnImpact;

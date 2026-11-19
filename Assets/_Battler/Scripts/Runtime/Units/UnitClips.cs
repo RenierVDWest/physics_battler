@@ -658,6 +658,11 @@ namespace PhysicsBattler.Units
         {
             if (Clip.Fallen || other.Clip.Fallen)
             {
+                if (ClipFighter.KeepsApartOffHisFeet)
+                {
+                    RoomOffFeet(other, least);
+                }
+
                 return;
             }
 
@@ -679,6 +684,53 @@ namespace PhysicsBattler.Units
             Vector3 way = apart > 1e-4f ? gap / apart : Quaternion.Euler(0f, Clip.Loco.Facing, 0f) * Vector3.forward;
             PartFrom(this, -way, least - apart);
             PartFrom(other, way, least - apart);
+        }
+
+        /// <summary>
+        /// One of the two is down or getting up, and they are nearer than a body needs to get up in
+        /// (<see cref="ClipFighter.RoomToRise"/>, or the gap they keep on their feet if that is more). One on his feet
+        /// steps off the other (the walk's own steps, as two standing bodies part), and nearer than
+        /// <see cref="ClipFighter.RoomDeepIn"/> of that is moved off him as well, no faster than
+        /// <see cref="ClipFighter.RoomSpeed"/>. One lying is told there is no room to rise while the other stands or
+        /// rises there. A body that is down or getting up is not moved: it lies where it fell.
+        /// </summary>
+        private void RoomOffFeet(UnitController other, float least)
+        {
+            float room = Mathf.Max(least, ClipFighter.RoomToRise * 0.5f * (Clip.Size + other.Clip.Size));
+            Vector3 gap = other.Clip.BodyAt - Clip.BodyAt;
+            gap.y = 0f;
+            float apart = gap.magnitude;
+            if (apart >= room)
+            {
+                return;
+            }
+
+            Vector3 way = apart > 1e-4f ? gap / apart : Quaternion.Euler(0f, Clip.Loco.Facing, 0f) * Vector3.forward;
+            var mine = Clip.Footing;
+            var his = other.Clip.Footing;
+            if (mine == ClipFighter.Footings.Standing || his == ClipFighter.Footings.Standing)
+            {
+                var stands = mine == ClipFighter.Footings.Standing ? this : other;
+                Vector3 off = mine == ClipFighter.Footings.Standing ? -way : way;
+                PartFrom(stands, off, room - apart);
+                if (apart < ClipFighter.RoomDeepIn * room)
+                {
+                    float step = Mathf.Min(ClipFighter.RoomDeepIn * room - apart, ClipFighter.RoomSpeed * Mathf.Sqrt(stands.Body.SizeFactor) * Time.fixedDeltaTime);
+                    stands.Clip.Loco.Position += off * step;
+                    stands.Clip.CarryBy(off * step);
+                    ClipFighter.RoomMoved += step;
+                }
+            }
+
+            if (mine == ClipFighter.Footings.Down && his != ClipFighter.Footings.Down)
+            {
+                Clip.NoRoomToRise = true;
+            }
+            else if (his == ClipFighter.Footings.Down)
+            {
+                // (Both lying: one rises first, the other after him. Which: the pair's second, the same every time.)
+                other.Clip.NoRoomToRise = true;
+            }
         }
 
         private static void PartFrom(UnitController u, Vector3 away, float into)

@@ -505,6 +505,19 @@ namespace PhysicsBattler.Authority
         /// </summary>
         public static bool ShieldStoppedOnFeet = true, BladeStoppedOnFeet = true;
 
+        /// <summary>
+        /// His shield goes on being stopped by his own body while he falls and lies (Combat Feel "A Fallen Fighter's
+        /// Shield Stays Solid Against His Body"): his trunk, head, thighs and shins, as on his feet. It keeps the board
+        /// out of his body and his legs out of the board, and with it the arm that carries it. A board already a little
+        /// way into him (<see cref="FallenEasedOut"/>) is stopped too and eased out, no faster than
+        /// <see cref="MostPushOut"/>; deeper, it waits to come out, as on his feet. Off: as before, let go to fall his
+        /// shield passes through him. His blade passes through him off his feet either way.
+        /// </summary>
+        public static bool ShieldStoppedOffFeet = true;
+
+        /// <summary>Off his feet a board up to this deep in a part of his body (metres) is stopped by it at once and eased out.</summary>
+        public const float FallenEasedOut = 0.06f;
+
         private readonly List<(Collider held, Collider body)> heldToPart = new List<(Collider, Collider)>();
         private readonly List<(Collider held, Collider body)> heldStopped = new List<(Collider, Collider)>();
         /// <summary>It is on its feet (its fighter says): only then is what it holds stopped by its own body.</summary>
@@ -519,6 +532,74 @@ namespace PhysicsBattler.Authority
 
         private static bool StopsHeld(PartId id) => IsTrunk(id) || id == PartId.ShinL || id == PartId.ShinR;
 
+        /// <summary>
+        /// Off his feet his shield is stopped by his other arm and what that hand holds too: the pairs to add for one
+        /// held thing. (On his feet the pose keeps those apart, and the shield gives way to the sword: stopped by each
+        /// other there, the two arms would argue with their poses. Falling, nothing else keeps them apart: with the
+        /// board kept out of his trunk and legs only, it lay in his sword arm instead.)
+        /// </summary>
+        private void FallPairs(Collider thing)
+        {
+            if (blades.Contains(thing) || !linkOf.TryGetValue(thing, out int at))
+            {
+                return;
+            }
+
+            int arm = ArmOf(parts[at]);
+            if (arm < 0)
+            {
+                return;
+            }
+
+            foreach (var b in linkOf)
+            {
+                if (b.Key == null || b.Key == thing)
+                {
+                    continue;
+                }
+
+                int other = ArmOf(parts[b.Value]);
+                if (other >= 0 && other != arm && !heldToPart.Contains((thing, b.Key)) && !heldStopped.Contains((thing, b.Key)))
+                {
+                    heldToPart.Add((thing, b.Key));
+                }
+            }
+        }
+
+        /// <summary>Let go to fall with his shield still solid against him: only his blade passes through him from now.</summary>
+        private void HeldToFall()
+        {
+            if (!heldAsked)
+            {
+                HeldToStop();
+                return;
+            }
+
+            foreach (var thing in heldThings)
+            {
+                if (thing != null)
+                {
+                    FallPairs(thing);
+                }
+            }
+
+            for (int i = heldStopped.Count - 1; i >= 0; i--)
+            {
+                var (thing, body) = heldStopped[i];
+                if (thing == null || body == null || blades.Contains(thing))
+                {
+                    if (thing != null && body != null)
+                    {
+                        Physics.IgnoreCollision(thing, body, true);
+                    }
+
+                    heldStopped.RemoveAt(i);
+                }
+            }
+
+            heldToPart.RemoveAll(p => p.held == null || p.body == null || blades.Contains(p.held));
+        }
+
         /// <summary>On its feet: each held thing against each of its body's solids is to stop the other, once they are apart.</summary>
         private void HeldToStop()
         {
@@ -529,7 +610,7 @@ namespace PhysicsBattler.Authority
             heldThings.RemoveAll(c => c == null);
             foreach (var thing in heldThings)
             {
-                if (!(blades.Contains(thing) ? BladeStoppedOnFeet : ShieldStoppedOnFeet))
+                if (!(blades.Contains(thing) ? BladeStoppedOnFeet && !Falling : Falling ? ShieldStoppedOffFeet : ShieldStoppedOnFeet))
                 {
                     continue;
                 }
@@ -541,6 +622,11 @@ namespace PhysicsBattler.Authority
                     {
                         heldToPart.Add((thing, b.Key));
                     }
+                }
+
+                if (Falling)
+                {
+                    FallPairs(thing);
                 }
             }
         }
@@ -567,6 +653,32 @@ namespace PhysicsBattler.Authority
 
             if (heldToPart.Count == 0)
             {
+                return;
+            }
+
+            if (Falling)
+            {
+                // (Off his feet each pair by itself: a board that lies across his sword still keeps out of his legs.)
+                for (int i = heldToPart.Count - 1; i >= 0; i--)
+                {
+                    var (thing, body) = heldToPart[i];
+                    if (thing == null || body == null)
+                    {
+                        heldToPart.RemoveAt(i);
+                        continue;
+                    }
+
+                    if (!thing.enabled || !body.enabled
+                        || (Physics.ComputePenetration(thing, thing.transform.position, thing.transform.rotation, body, body.transform.position, body.transform.rotation, out _, out float deep) && deep > FallenEasedOut))
+                    {
+                        continue;
+                    }
+
+                    Physics.IgnoreCollision(thing, body, false);
+                    heldStopped.Add((thing, body));
+                    heldToPart.RemoveAt(i);
+                }
+
                 return;
             }
 
@@ -631,6 +743,95 @@ namespace PhysicsBattler.Authority
         /// <summary>For the reports: steps an arm's held thing was against its own body (0 its left arm's, 1 its right).</summary>
         public readonly int[] HeldTouched = new int[2];
 
+        /// <summary>
+        /// A held thing caught on the wrong side of his own body is let through (19 November; Combat Feel "A Held Thing
+        /// Caught On His Own Body Is Let Through"). What he holds is stopped by his body from the moment it is clear of
+        /// it, wherever it then is: a board that came out of a get-up below his thigh was stopped there, his arm
+        /// pressing it softly against the leg it could not pass, and hung 29 cm under its cover, facing 89 degrees off
+        /// his enemy, for the nine seconds the run had left. When what an arm holds has been against his body for
+        /// <see cref="HeldCaughtFor"/> seconds with that hand more than <see cref="HeldCaughtOff"/> metres from where
+        /// his pose has it, it passes through his body again, back to its pose, and is stopped again once it is out.
+        /// Off: it stays where it was caught.
+        /// </summary>
+        public static bool HeldCaughtLetThrough = true;
+        public static float HeldCaughtFor = 0.4f, HeldCaughtOff = 0.12f;
+
+        /// <summary>For the reports: how often what an arm held was let through his body because it was caught on it (0 its left arm's, 1 its right).</summary>
+        public readonly int[] HeldFreed = new int[2];
+        private readonly float[] caughtFor = new float[2];
+
+        /// <summary>That arm's held thing is against his body and its hand is far from its pose, and has been for long enough: its pairs wait again for it to come out. True the step it is let through.</summary>
+        private bool CaughtOnBody(int arm)
+        {
+            int hand = -1;
+            for (int i = 1; i < parts.Length; i++)
+            {
+                if (parts[i] == (arm == 0 ? PartId.HandL : PartId.HandR))
+                {
+                    hand = i;
+                }
+            }
+
+            if (hand < 0)
+            {
+                return false;
+            }
+
+            float off = (links[hand].transform.position - anim.Part(parts[hand]).position).magnitude;
+            caughtFor[arm] = off > HeldCaughtOff ? caughtFor[arm] + Time.fixedDeltaTime : 0f;
+            if (caughtFor[arm] < HeldCaughtFor)
+            {
+                return false;
+            }
+
+            // (Only where his pose has it clear of him. A pose that asks for it in his body is rested against him, as before.)
+            foreach (var (thing, body) in heldStopped)
+            {
+                if (thing == null || body == null || !linkOf.TryGetValue(thing, out int on) || ArmOf(parts[on]) != arm || !linkOf.TryGetValue(body, out int of))
+                {
+                    continue;
+                }
+
+                Posed(thing, hand, out Vector3 thingAt, out Quaternion thingTurned);
+                Posed(body, of, out Vector3 bodyAt, out Quaternion bodyTurned);
+                if (Physics.ComputePenetration(thing, thingAt, thingTurned, body, bodyAt, bodyTurned, out _, out float deep) && deep > 0f)
+                {
+                    caughtFor[arm] = 0f;
+                    return false;
+                }
+            }
+
+            caughtFor[arm] = 0f;
+            for (int i = heldStopped.Count - 1; i >= 0; i--)
+            {
+                var (thing, body) = heldStopped[i];
+                if (thing == null || body == null)
+                {
+                    heldStopped.RemoveAt(i);
+                    continue;
+                }
+
+                if (linkOf.TryGetValue(thing, out int at) && ArmOf(parts[at]) == arm)
+                {
+                    Physics.IgnoreCollision(thing, body, true);
+                    heldToPart.Add((thing, body));
+                    heldStopped.RemoveAt(i);
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Where a solid of link <paramref name="link"/> would be with that link where the pose has it (it keeps its place on the link).</summary>
+        private void Posed(Collider solid, int link, out Vector3 at, out Quaternion turned)
+        {
+            var seen = links[link].transform;
+            var posed = anim.Part(parts[link]);
+            Quaternion back = Quaternion.Inverse(seen.rotation);
+            at = posed.position + posed.rotation * (back * (solid.transform.position - seen.position));
+            turned = posed.rotation * (back * solid.transform.rotation);
+        }
+
         private static int ArmOf(PartId id) =>
             id == PartId.UpperArmL || id == PartId.ForearmL || id == PartId.HandL ? 0 : id == PartId.UpperArmR || id == PartId.ForearmR || id == PartId.HandR ? 1 : -1;
 
@@ -678,6 +879,18 @@ namespace PhysicsBattler.Authority
             {
                 bool now = arm == 0 ? left : right;
                 HeldTouched[arm] += now ? 1 : 0;
+                if (now && HeldCaughtLetThrough && CaughtOnBody(arm))
+                {
+                    // (Caught on the wrong side of his body: let through, to be stopped again once it is out of him.)
+                    HeldFreed[arm]++;
+                    now = false;
+                }
+
+                if (!now)
+                {
+                    caughtFor[arm] = 0f;
+                }
+
                 if (now == heldTouching[arm])
                 {
                     continue;
@@ -714,7 +927,16 @@ namespace PhysicsBattler.Authority
         public void LetGo(float size)
         {
             Falling = true;
-            HeldPassAgain();
+            if (ShieldStoppedOffFeet)
+            {
+                // (His shield goes on being stopped by his body as he falls: asked again, for a falling body's parts.)
+                HeldToFall();
+            }
+            else
+            {
+                HeldPassAgain();
+            }
+
             ArmsToStop();
             PinHand(0, false, Vector3.zero, 1f, 1f);
             PinHand(1, false, Vector3.zero, 1f, 1f);
@@ -2001,6 +2223,11 @@ namespace PhysicsBattler.Authority
             struck.Clear();
             if (Falling)
             {
+                if (ShieldStoppedOffFeet)
+                {
+                    StopHeldThatAreOut();
+                }
+
                 BeginFallStep(dt);
                 return;
             }

@@ -353,3 +353,22 @@ About 190 seconds of two sword-and-shield fighters. The shield in his own body: 
 ### Where to look
 
 Duel lab, with the bash settings (or type "sword" in the search box): "His shield and his sword: the shield gives way / pass through each other (old)", with the levers "Sword's lane" and "Sword seen ahead". Throw a rising cut and a forehand, and run a dance, with it on and off.
+
+## Progress note, 19 November 2026, late morning: off his feet (Step 4, the falling and lying part)
+
+After Renier's second look. Headless only.
+
+- **Falling and lying, the board stays solid against him** (Combat Feel "A Fallen Fighter's Shield Stays Solid
+  Against His Body"): trunk, head, thighs and shins, and off his feet also his other arm and the sword in it. Six
+  bash-downs in a run: crossing while falling and lying 0.55 s (old) to 0.00 s. Stopped on trunk and legs only it was
+  worse (0.97 s): the board lay in his sword arm instead.
+- **Getting up it still passes through him.** That is now its own plan: "From how he lies to how he gets up"
+  (`2026-11-19-from-how-he-lies-to-how-he-gets-up.md`). In his log 89% of the get-up's crossings are in its first
+  0.75 s.
+- **A held thing caught on the wrong side of his body is let through** (Combat Feel of that name; on his feet):
+  stopped under his thigh as he stood up, a board hung 29 cm below its cover for nine seconds. Now it passes through
+  him once, back to its pose.
+- **The budget.** Crossings on his feet unchanged. The tremble reads over its 8% in the six with the off-feet shield
+  on (10.5%, 11.0%; off 7.5%, 7.3%): traced in one seed to a get-up from his side after a fall. Cause not found.
+
+The README's entry of 19 November, "his second look", has the figures.

@@ -4,7 +4,8 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, morning (after Renier's first look at the night's stumbles).
+Last updated: 19 November 2026, late morning (after Renier's second look: the shield off his feet, two bodies in
+one place, and the plan for the first moment of a get-up).
 
 ## The project in a few lines
 
@@ -131,11 +132,14 @@ prints "PANEL OK".
 
 ## Plans and documents
 
-Every plan document has a copy in `Docs/Plans/` (30 files; `Docs/Plans/README.md` is the index, with each one's
+Every plan document has a copy in `Docs/Plans/` (31 files; `Docs/Plans/README.md` is the index, with each one's
 state). The live versions are Claude documents, linked from the index: progress notes are added there, and the copy
 here is refreshed when a plan changes a lot. Read the one for the work in hand, never all of them.
 
-The three in hand:
+The four in hand:
+
+- `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: **waits for Renier's answers** (five questions); nothing built
+  ([live](https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa)).
 
 - `2026-11-18-fight-rhythm-from-recordings-plan.md`: **the main plan**
   ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)).
@@ -150,6 +154,28 @@ Working and approved by Renier: walking in the dance, quick turn-arounds, record
 attacks made from recordings and thrown on the move, the three shield bashes, fakes as real attacks cut
 short, the shield held in cover, the sword and shield solid against their bearer's body, hands that move
 smoothly, the shield giving way to the sword.
+
+**His second look (19 November, 08:26), worked in the same morning, headless only, waiting for his eye:**
+
+- His log of 08:07 (28 falls, 27 get-ups): his own shield and sword crossed him 3.25 s while falling and lying and
+  7.08 s while getting up, and **89% of the get-up's crossings are in its first 0.75 s** (the blend from how he lay;
+  parts at 6.7 m/s on average there).
+- **A fallen fighter's shield stays solid against his body** (Combat Feel switch of that name): trunk, head, thighs,
+  shins, his other arm and the sword in it, while he falls and lies. Six bash-downs in a run: crossing while falling
+  and lying 0.55 s to 0.00 s (`Tools/Headless/downs.sh`). Getting up it still passes (the plan).
+- **Fighters keep apart off their feet too** (Combat Feel): a body needs 1.1 m to get up in, hips to hips; one on his
+  feet steps off it, one lying waits for room (3 s at most). The cause of two bodies locked in one place: the
+  keep-apart rule did nothing if either was down. `Tools/Headless/room.sh`. The lock itself was not reproduced
+  headless.
+- **The lab's "Stumble him" waits until both stand.** Pressed on a man who was down it put him on the spot at once
+  (his body thrown 75 cm back onto its pose): some of the "leap" he saw was the button.
+- **A held thing caught on the wrong side of his body is let through** (Combat Feel; on his feet): a board stopped
+  under his thigh hung 29 cm below its cover for nine seconds. Rare.
+- **The tremble budget reads red in the six with the off-feet shield on** (10.5%, 11.0%; off 7.5%, 7.3%). Traced in
+  one seed to the one shield bearer after his fall: he lay on his side, not his front, and got up from there. Why a
+  get-up from a side leaves more tremble is not found. Crossings on his feet are as red as before, not redder.
+- **The plan "From how he lies to how he gets up"** (above): he reads how he lies, gathers himself as the physical
+  body he fell in, and the get-up takes over when he is close. Five questions wait for him.
 
 **Stumbles: built overnight on the 19th; Renier played them that morning: "this looks pretty good so far", it
 reads as a stumble. His notes were worked in the same morning (headless only, waiting for his second look):**
@@ -215,11 +241,16 @@ goes with the keys (old)". Waiting for his eye.
 arms thrown out for balance; a look at feet crossing in a stumble to the side; a sword blow's throw worked out as
 a bash's is (it is still the old rule's number, uncapped).
 
+**The first moment of a get-up: a plan, waiting on his answers** (`Docs/Plans/2026-11-19-…`). Step 1 (the measure
+and a stop frame) and step 2 (the start chosen by how he lies) need no decision and can be built at once.
+
 **Bugs and leftovers**
+0. A get-up from a side leaves the board trembling more for some seconds after (19 November, above): cause not found.
 1. The get-up shield tremble (above; the sword's flip is mended, waiting for his eye).
-2. Shield and sword while falling, lying and getting up: measured on the 19th (from his front the board is in his
-   hips for 0.35 s as the get-up begins and passes his head at 1.1 s; the pose itself has it). **Waits on a decision
-   of his:** where a hand with a shield on its arm posts, and where the board lies while he pushes up.
+2. Shield and sword while falling and lying: mended on the 19th (above). While getting up: it is the plan's step 5
+   (from his front the board is in his hips for 0.35 s as the get-up begins and passes his head at 1.1 s; the pose
+   itself has it). **Waits on a decision of his:** where a hand with a shield on its arm posts, and where the board
+   lies while he pushes up (my recommendation is in the plan).
 3. The lock is in (above). It reads red with the night's stumbles on.
 4. The blade's tip trembles on his feet: narrowed on the 19th, not found. Standing alone it does not. In the six
    it is nearly all the sword-alone fighters' parry guard. For a sword and shield it comes in tenth-of-a-second

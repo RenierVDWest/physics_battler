@@ -1396,7 +1396,7 @@ namespace PhysicsBattler.Sandbox
 
         // ---- Stumbles on demand (the Fight Rhythm plan's step 9c; 19 November) ----
 
-        private int stumbleBash = -1;
+        private int stumbleBash = -1, stumbleWaits = -1;
         private float stumbleBashAt;
 
         /// <summary>How far off the other is put for each bash of "Stumble him" (metres at a Medium's size).</summary>
@@ -1405,6 +1405,28 @@ namespace PhysicsBattler.Sandbox
         /// <summary>A bash asked for by "Stumble him" is thrown once the other has stood a moment where he was put.</summary>
         private void StepStumbleBash()
         {
+            if (stumbleWaits >= 0)
+            {
+                // (Asked for while one of them was off his feet: once both stand, the other is put and the bash follows.)
+                var first = Duel.Mover != null ? Duel.Mover.Clip : null;
+                var second = Duel.Other != null ? Duel.Other.Clip : null;
+                if (first == null || second == null)
+                {
+                    stumbleWaits = -1;
+                }
+                else if (!first.Fallen && !second.Fallen && !first.Stumbling && !second.Stumbling)
+                {
+                    int waited = stumbleWaits;
+                    stumbleWaits = -1;
+                    if (Duel.PutOtherAt(StumbleBashFrom[waited]))
+                    {
+                        stumbleBash = waited;
+                        stumbleBashAt = Time.time + 0.6f;
+                        message = $"Stumble him: the other is stood {StumbleBashFrom[waited]:0.0} m before him.";
+                    }
+                }
+            }
+
             if (stumbleBash < 0 || Time.time < stumbleBashAt)
             {
                 return;
@@ -1438,7 +1460,7 @@ namespace PhysicsBattler.Sandbox
                 "The hard bash's leap, driven through with everything he has (\"Extra hard bash pushes through\" in the settings below). Not countered, the other is thrown off his feet and lands metres back. For now only from this button: no fighter throws it by himself.",
             };
             BeginRow();
-            Words(new GUIContent("Stumble him:", "A bash at a standing fighter on demand. The other is put straight before him at that bash's distance, stands a moment, and is bashed. Watch the other's feet, and the basher's: either can be thrown off balance. Use the pace at the top of this window to see it slowly."), Styles().Text, GUILayout.Width(110f));
+            Words(new GUIContent("Stumble him:", "A bash at a standing fighter on demand. The other is put straight before him at that bash's distance, stands a moment, and is bashed. Pressed while either of them is down, getting up or still stumbling, it waits until both stand. Watch the other's feet, and the basher's: either can be thrown off balance. Use the pace at the top of this window to see it slowly."), Styles().Text, GUILayout.Width(110f));
             for (int kind = 0; kind < names.Length; kind++)
             {
                 if (Press(names[kind], tips[kind]))
@@ -1446,6 +1468,14 @@ namespace PhysicsBattler.Sandbox
                     if (basher == null || basher.ShieldColliders.Count == 0)
                     {
                         message = "Stumble him: he has no shield. \"Set out\" under the shield test gives both one.";
+                    }
+                    else if ((other != null && other.Fallen) || basher.Fallen)
+                    {
+                        // (19 November: a man who was down or getting up was put on the spot at once, and bashed as he
+                        // rose. Seen in Renier's log: his body thrown 70 to 80 cm back onto its pose, three times in one
+                        // session. The button waits for both to stand.)
+                        stumbleWaits = kind;
+                        message = "Stumble him: waiting until both are on their feet.";
                     }
                     else if (Duel.PutOtherAt(StumbleBashFrom[kind]))
                     {
@@ -1659,6 +1689,11 @@ namespace PhysicsBattler.Sandbox
             Words(new GUIContent("Against his body:", "How a shield or sword that is stopped by its bearer's own body is held there (Combat Feel \"A Held Thing Meets His Body Softly\"). Met softly (new): that arm presses with a third of its strength. Driven on (old): pressed into him with all the arm has, which makes it tremble."));
             if (Press(feel.aHeldThingMeetsHisBodySoftly ? "[met softly]" : "met softly", "The arm rests it there, pressing lightly.")) feel.aHeldThingMeetsHisBodySoftly = true;
             if (Press(!feel.aHeldThingMeetsHisBodySoftly ? "[driven on (old)]" : "driven on (old)", "Pressed in with all the arm has.")) feel.aHeldThingMeetsHisBodySoftly = false;
+            EndRow();
+            BeginRow();
+            Words(new GUIContent("Caught on his own body:", "What happens to a shield or sword that was stopped on the wrong side of his own body, far from where his pose has it (Combat Feel \"A Held Thing Caught On His Own Body Is Let Through\"). Let through (new): after 0.4 s it passes through him once, back to its pose, and is solid against him again from then. Stays caught (old): it stays where it was stopped, his arm pressing it against the part it cannot pass. To see it: fell a shield bearer onto his side a few times and watch where the board is when he stands again."), GUILayout.Width(170f));
+            if (Press(feel.aHeldThingCaughtOnHisOwnBodyIsLetThrough ? "[let through]" : "let through", "Back to its pose, through him once.")) feel.aHeldThingCaughtOnHisOwnBodyIsLetThrough = true;
+            if (Press(!feel.aHeldThingCaughtOnHisOwnBodyIsLetThrough ? "[stays caught (old)]" : "stays caught (old)", "As before.")) feel.aHeldThingCaughtOnHisOwnBodyIsLetThrough = false;
             EndRow();
             Readout(new GUIContent("His own crossings: " + PhysicsBattler.Locomotion.SelfCrossings.Short() + ".", "Counted on the body as it is seen while a playtest is recorded: lines for the blade and the sword forearm against the board's disc, the board's rim and face against his own body. Strict: the meshes are thicker."), 2);
             Readout(new GUIContent("What he holds trembles: " + PhysicsBattler.Locomotion.HeldShake.Short() + ".", "A tremble is what is left of a place when its own smooth motion is taken off (the average of five steps about it). Read it old against new with the rows above; a strike reads high by its own quickening."), 2);
@@ -4869,6 +4904,40 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 PhysicsBattler.Motion.GetUp.BladeTurnsClear = bladeClearNow;
+            }
+
+            BeginRow();
+            Words(new GUIContent("Falling and lying, his shield:", "What a fighter's shield does against his own body while he falls and lies (Combat Feel \"A Fallen Fighter's Shield Stays Solid Against His Body\"). Stays solid (new): his trunk, head, thighs and shins stop it, so it does not sink into him and his legs do not fall into it. Passes through him (old): as before. Fell him with \"Falls on demand\", or bash him down with \"Stumble him: Extra hard\", and watch the board."), GUILayout.Width(170f));
+            bool boardSolid = feel != null ? feel.aFallenFightersShieldStaysSolidAgainstHisBody : PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet;
+            bool boardSolidNow = boardSolid;
+            if (Press(boardSolid ? "[stays solid]" : "stays solid", "Stopped by his own body.")) boardSolidNow = true;
+            if (Press(!boardSolid ? "[passes through him (old)]" : "passes through him (old)", "As before.")) boardSolidNow = false;
+            EndRow();
+            if (boardSolidNow != boardSolid)
+            {
+                if (feel != null)
+                {
+                    feel.aFallenFightersShieldStaysSolidAgainstHisBody = boardSolidNow;
+                }
+
+                PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = boardSolidNow;
+            }
+
+            BeginRow();
+            Words(new GUIContent("Off their feet, two fighters:", "Whether two fighters are kept apart while one of them is down or getting up (Combat Feel \"Fighters Keep Apart Off Their Feet Too\"). Keep apart (new): one on his feet is walked off a body lying or rising next to him, and one lying waits to get up until there is room. Nothing keeps them apart (old): as before; two who fell together got up inside each other and locked."), GUILayout.Width(170f));
+            bool room = feel != null ? feel.fightersKeepApartOffTheirFeetToo : ClipFighter.KeepsApartOffHisFeet;
+            bool roomNow = room;
+            if (Press(room ? "[keep apart]" : "keep apart", "Walked off him; he waits for room.")) roomNow = true;
+            if (Press(!room ? "[nothing keeps them apart (old)]" : "nothing keeps them apart (old)", "As before.")) roomNow = false;
+            EndRow();
+            if (roomNow != room)
+            {
+                if (feel != null)
+                {
+                    feel.fightersKeepApartOffTheirFeetToo = roomNow;
+                }
+
+                ClipFighter.KeepsApartOffHisFeet = roomNow;
             }
 
             BeginRow();

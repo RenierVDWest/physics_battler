@@ -835,3 +835,11 @@ He played the stumbles: "this looks pretty good so far"; it reads as a stumble. 
 - **Pushes through.** Each bash adds the speed his arm and legs drive on with (a lever each). Small leaves him at 1.9 m/s (two steps, 0.73 m), hard not countered at 4.3 m/s (down, 3 m back), and a new **extra hard** at 6.8 m/s (off his feet, 4.5 m back).
 - **After a bash he holds his ground**, so the two do not end board against board.
 - His decisions: the new system all the way; the hard bash knocks hard, the extra hard much harder; the small bash must clear his space.
+
+## Progress note, 19 November 2026, late morning
+
+After Renier's second look (08:26), headless only: a fallen fighter's shield stays solid against his body;
+fighters keep apart while one is off his feet (two who fell together no longer get up inside each other); the
+lab's "Stumble him" waits until both stand; a held thing caught on the wrong side of his body is let through. A new
+plan, "From how he lies to how he gets up", for the first moment of a get-up, waits on five answers of his. The
+README's entry of 19 November, "his second look", has the figures.

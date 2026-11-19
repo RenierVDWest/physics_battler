@@ -731,6 +731,12 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
+            // (Not a body that is down or getting up: put at once, it was thrown back onto its pose where it lay.)
+            if (Other.Clip.Fallen)
+            {
+                return false;
+            }
+
             float way = Mover.Clip.Loco.Facing;
             Vector3 spot = Mover.Clip.Loco.Position + Quaternion.Euler(0f, way, 0f) * Vector3.forward * (Mathf.Max(0.6f, metres) * Mover.Clip.Size);
             Other.Teleport(spot, way + 180f);

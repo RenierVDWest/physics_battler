@@ -226,6 +226,50 @@ namespace PhysicsBattler.Locomotion
         /// Two bodies kept apart: nearer than <see cref="LeastGap"/> of their fighting distance (root to root), each is
         /// moved straight off the other at once, the lighter the further, as two bodies meeting push each other off.
         /// </summary>
+        /// <summary>
+        /// Two fighters are kept apart while one of them is off his feet too (Combat Feel "Fighters Keep Apart Off Their
+        /// Feet Too"): one on his feet is walked off a body that is down or getting up near him, and one lying does not
+        /// start to get up while another stands or rises where he would come up. Off: as before, nothing keeps them apart
+        /// until both stand; two who fell together got up inside each other and their bodies locked (his log of the
+        /// 19th: 0.32 to 0.85 m apart, root to root, for seven seconds).
+        /// </summary>
+        public static bool KeepsApartOffHisFeet = true;
+
+        /// <summary>Set each step by whoever keeps bodies apart: another stands or rises within the least gap of where he lies.</summary>
+        public bool NoRoomToRise;
+
+        /// <summary>
+        /// The room a body needs to get up in (metres, root to root, at a Medium's size; the gap two keep on their feet
+        /// if that is more); nearer than this share of it one on his feet is moved off as well as stepping off, no
+        /// faster than this (m/s at a Medium's size); and how long at most a lying man waits for room (seconds).
+        /// Measured from where each body is (<see cref="BodyAt"/>).
+        /// </summary>
+        public const float RoomToRise = 1.1f, RoomDeepIn = 0.6f, RoomSpeed = 1.5f, WaitsForRoom = 3f;
+
+        /// <summary>
+        /// Where his body is on the ground, for the room it needs: on his feet his root; down or getting up his hips (a
+        /// get-up's root is where he will stand, up to half a metre from where he lies: by their roots two who lay
+        /// 0.96 m apart were 0.54 m apart a moment after the first began to rise).
+        /// </summary>
+        public Vector3 BodyAt
+        {
+            get
+            {
+                if (Footing == Footings.Standing || Rig == null)
+                {
+                    return Loco.Position;
+                }
+
+                Vector3 hips = Rig.Part(PartId.Pelvis).body.position;
+                return new Vector3(hips.x, Loco.Position.y, hips.z);
+            }
+        }
+
+        /// <summary>For the reports: how far bodies on their feet were moved off bodies that were down (metres, all fighters), and how often a lying man waited for room.</summary>
+        public static float RoomMoved;
+        public static int RoomWaits;
+        private bool waitedForRoom;
+
         public static void KeepApart(ClipFighter a, ClipFighter b) => KeepApart(a, b, a != null && b != null ? LeastGap * FightingDistance(a.Size, b.Size) : 0f);
 
         /// <summary>The same, no nearer than <paramref name="least"/> (metres, root to root: two of a side stand closer than two who fight).</summary>
@@ -1331,8 +1375,19 @@ namespace PhysicsBattler.Locomotion
                 // average, each fall a little longer or shorter than the last.)
                 float least = fallBody && FallenBodiesSettle ? (tucks ? ThrownDownLonger : 0f) + SettledDown + SettledDownVaries * (((OneBodyFallen * 3 + Mathf.Abs(Mathf.RoundToInt(7f * pelvis.position.x + 3f * pelvis.position.z))) % 5) - 2) / 2f : LeastDown;
                 // (One that was thrown may still be tumbling when the others would be made to get up.)
-                if (!StaysDown && ((footingTime >= least && stillFor >= StillFor) || footingTime >= MostDown + (fallBody && tucks ? ThrownDownMost : 0f)))
+                // (19 November: not while another stands or rises where he would come up. He waits, at most a few seconds
+                // more; the other, on his feet, is walked off him.)
+                bool crowded = KeepsApartOffHisFeet && NoRoomToRise && footingTime < MostDown + WaitsForRoom;
+                NoRoomToRise = false;
+                if (crowded && !waitedForRoom && footingTime >= least && stillFor >= StillFor)
                 {
+                    waitedForRoom = true;
+                    RoomWaits++;
+                }
+
+                if (!StaysDown && !crowded && ((footingTime >= least && stillFor >= StillFor) || footingTime >= MostDown + (fallBody && tucks ? ThrownDownMost : 0f)))
+                {
+                    waitedForRoom = false;
                     EndFallMeasure();
                     BeginGetUp();
                 }
@@ -2343,7 +2398,7 @@ namespace PhysicsBattler.Locomotion
             ImpactMeter.Sample(this, Time.time);
             if (Upper != null)
             {
-                Upper.HeldMayStop = Footing == Footings.Standing;
+                Upper.HeldMayStop = Footing == Footings.Standing || (UpperBodyArticulation.ShieldStoppedOffFeet && Footing == Footings.Down);
             }
 
             MeasureOwnCrossings(dt);

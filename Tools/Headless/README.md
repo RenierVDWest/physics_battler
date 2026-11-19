@@ -31,6 +31,20 @@ check and tests without Unity"). They were written during the work and are kept 
 
 The rest are one-off comparisons from particular days, kept for reference.
 
+## Off his feet (19 November)
+
+- `downs.sh tag ENV...`: a shield bearer bashed down six times in a run (hard not countered, and extra hard), two
+  runs side by side; prints each run's crossings while falling, lying and getting up. About ten minutes. One bash
+  alone shows almost nothing: headless falls are cleaner than Renier's, and it takes several to see a crossing.
+  `FIGHT_BASHPUT="1.9,1.6,2.1"` is what makes it possible: 0.6 s before each asked bash the other is put that far
+  before the basher, as the lab's "Stumble him" does (never while he is down).
+- `room.sh tag ENV...`: the room test. Two shield bearers felled side by side 0.6 m apart, three times, new and
+  old (`FIGHT_ROOM=0`) side by side; prints `ROOM` lines (how near the two bodies were while one got up).
+  `FIGHT_FELLBOTH="4,12,20"` fells them.
+- `FIGHT_SHIELDDOWN=0`: a falling and lying fighter's shield passes through his own body, the old way.
+  `FIGHT_ROOM=0`: nothing keeps two apart while one is off his feet. `FIGHT_CAUGHT=0`: a held thing caught on the
+  wrong side of his own body stays there.
+
 ## The budget
 
 Every fight's report ends with `CROSSINGS OK|OVER BUDGET` and `TREMBLE OK|OVER BUDGET` (see `SelfCrossings.Budget`

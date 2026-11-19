@@ -809,6 +809,9 @@ internal static class FightReport
         int[,] coverN = new int[2, 4], coverLooks = new int[2, 4];
         bool shieldDumped = false;
         float bashGapWas = 0f;
+        int bashPuts = 0;
+        float roomSince = -1f, roomNearest = 99f, roomNear = 0f, roomRisingNear = 0f, roomBothUp = -1f;
+        bool roomBothRose = false;
         Vector3 bashOtherWas = Vector3.zero, bashMoverWas = Vector3.zero;
         Vector3[,] coverSum = new Vector3[2, 4], coverSq = new Vector3[2, 4];
         float[,] coverOff = new float[2, 4], coverOpen = new float[2, 4], coverBelly = new float[2, 4];
@@ -1246,6 +1249,11 @@ internal static class FightReport
         PhysicsBattler.Motion.GetUp.HeldClearFromTheStart = Environment.GetEnvironmentVariable("FIGHT_GETUPCLAMP") != "0";
         // (FIGHT_GETUPBLADE=0: a rising fighter's blade is not turned clear of the ground at the wrist; his arm is thrown up, as before.)
         PhysicsBattler.Motion.GetUp.BladeTurnsClear = Environment.GetEnvironmentVariable("FIGHT_GETUPBLADE") != "0";
+        // (FIGHT_SHIELDDOWN=0: a falling and lying fighter's shield passes through his own body, as before. FIGHT_ROOM=0: nothing keeps two apart while one is off his feet, as before.)
+        PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = Environment.GetEnvironmentVariable("FIGHT_SHIELDDOWN") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.KeepsApartOffHisFeet = Environment.GetEnvironmentVariable("FIGHT_ROOM") != "0";
+        // (FIGHT_CAUGHT=0: a held thing caught on the wrong side of his own body stays there, as before.)
+        PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough = Environment.GetEnvironmentVariable("FIGHT_CAUGHT") != "0";
         // (FIGHT_GETUPPIN=0: a rising fighter's sword hand goes with the get-up's keys, as before. FIGHT_GETUPTURNS: the fastest it turns, degrees a second.)
         PhysicsBattler.Motion.GetUp.SwordHandStays = Environment.GetEnvironmentVariable("FIGHT_GETUPPIN") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GETUPTURNS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float getUpTurns))
@@ -1828,6 +1836,18 @@ internal static class FightReport
                                 continue;
                             }
 
+                            // (FIGHT_BASHPUT="1.9,1.6": 0.6 s before each asked bash the other is put that far in front of the
+                            // mover, as the lab's "Stumble him" does; the list is gone through in turn. For many falls in one run.)
+                            if (paceAt >= bashAt - 0.6f && paceAt - dt < bashAt - 0.6f)
+                            {
+                                var puts = (Environment.GetEnvironmentVariable("FIGHT_BASHPUT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (puts.Length > 0 && !duel.Other.Clip.Fallen
+                                    && float.TryParse(puts[bashPuts++ % puts.Length], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float putAt))
+                                {
+                                    duel.PutOtherAt(putAt);
+                                }
+                            }
+
                             if (paceAt >= bashAt && paceAt - dt < bashAt)
                             {
                                 bashGapWas = Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position);
@@ -1839,6 +1859,74 @@ internal static class FightReport
                             if (paceAt >= bashAt + 1.2f && paceAt - dt < bashAt + 1.2f)
                             {
                                 Console.WriteLine($"BASHED {paceAt:0.00}: {duel.Mover.Clip.LastBash}. 1.2 s after: he has gone {Vector3.Distance(duel.Mover.Root.position, bashMoverWas):0.00} m, the other {Vector3.Distance(duel.Other.Root.position, bashOtherWas):0.00} m{(duel.Other.Clip.Fallen ? " and is down" : "")}; they are {Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position):0.00} m apart");
+                            }
+                        }
+                    }
+
+                    // (FIGHT_FELLBOTH="5,13": at those seconds the other is put 0.6 m in front of the mover and both are knocked
+                    // over the same way, to lie side by side: the room test. What followed is said 7 s after: ROOM lines.)
+                    if (duel.Mover != null && duel.Other != null && duel.Mover.Clip != null && duel.Other.Clip != null)
+                    {
+                        foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_FELLBOTH") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            if (!float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fellAt))
+                            {
+                                continue;
+                            }
+
+                            if (paceAt >= fellAt - 0.5f && paceAt - dt < fellAt - 0.5f)
+                            {
+                                duel.PutOtherAt(0.6f);
+                            }
+
+                            if (paceAt >= fellAt && paceAt - dt < fellAt)
+                            {
+                                Vector3 side = Quaternion.Euler(0f, duel.Mover.Clip.Loco.Facing + 90f, 0f) * Vector3.forward;
+                                duel.Mover.Clip.KnockOver(side, 1f, "the room test");
+                                duel.Other.Clip.KnockOver(side, 1f, "the room test");
+                                roomSince = paceAt;
+                                roomNearest = 99f;
+                                roomNear = roomRisingNear = 0f;
+                                roomBothUp = -1f;
+                            }
+                        }
+
+                        if (roomSince >= 0f)
+                        {
+                            var ca = duel.Mover.Clip;
+                            var cb = duel.Other.Clip;
+                            Vector3 between = cb.BodyAt - ca.BodyAt;
+                            between.y = 0f;
+                            float gapNow = between.magnitude;
+                            bool rising = ca.Footing == PhysicsBattler.Locomotion.ClipFighter.Footings.GettingUp || cb.Footing == PhysicsBattler.Locomotion.ClipFighter.Footings.GettingUp;
+                            bool bothRising = ca.Footing == PhysicsBattler.Locomotion.ClipFighter.Footings.GettingUp && cb.Footing == PhysicsBattler.Locomotion.ClipFighter.Footings.GettingUp;
+                            if (rising)
+                            {
+                                if (roomNearest > 98f)
+                                {
+                                    Console.WriteLine($"ROOMRISE {paceAt:0.00}: the first begins to get up {paceAt - roomSince:0.00} s after, the two {gapNow:0.00} m apart (the mover {ca.Footing}, the other {cb.Footing})");
+                                }
+
+                                roomNearest = Mathf.Min(roomNearest, gapNow);
+                                roomNear += gapNow < 0.6f ? dt : 0f;
+                            }
+
+                            if (bothRising && !roomBothRose)
+                            {
+                                Console.WriteLine($"ROOMRISE {paceAt:0.00}: both getting up from {paceAt - roomSince:0.00} s after, the two {gapNow:0.00} m apart");
+                            }
+
+                            roomBothRose = bothRising || (roomBothRose && rising);
+                            roomRisingNear += bothRising && gapNow < 0.6f ? dt : 0f;
+                            if (roomBothUp < 0f && paceAt - roomSince > 1f && !ca.Fallen && !cb.Fallen)
+                            {
+                                roomBothUp = paceAt - roomSince;
+                            }
+
+                            if (paceAt - roomSince >= 7f)
+                            {
+                                Console.WriteLine($"ROOM {paceAt:0.00}: both felled side by side at {roomSince:0.0} s. While one was getting up the two were {roomNearest:0.00} m apart at the nearest, body to body, and under 0.6 m for {roomNear:0.00} s (both getting up at once and under 0.6 m: {roomRisingNear:0.00} s). Both on their feet again {(roomBothUp < 0f ? "not within 7 s" : $"{roomBothUp:0.0} s after")}; then {gapNow:0.00} m apart. So far in the run: {PhysicsBattler.Locomotion.ClipFighter.RoomWaits} waited for room, and bodies on their feet were moved {PhysicsBattler.Locomotion.ClipFighter.RoomMoved:0.00} m off bodies that were down.");
+                                roomSince = -1f;
                             }
                         }
                     }
@@ -2729,6 +2817,8 @@ internal static class FightReport
             sb.AppendLine($"    what he holds met softly by his own body: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly ? "on" : "off")}; steps it was against his body (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldTouched[0]} / {u.Clip.Upper.HeldTouched[1]}")));
             sb.AppendLine($"    the shield gives way to his own sword: {(PhysicsBattler.Locomotion.ClipFighter.ShieldGivesWayToSword ? "on" : "off")}; steps it was asked aside / the furthest (cm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.GaveWayToSword > 0).Select(u => $"{u.name} {u.Clip.GaveWayToSword} / {100f * u.Clip.GaveWayToSwordMost:0}")));
             sb.AppendLine($"    on his feet, stopped by his own body: his shield {(PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOnFeet ? "yes" : "no")}, his sword {(PhysicsBattler.Authority.UpperBodyArticulation.BladeStoppedOnFeet ? "yes" : "no")}");
+            sb.AppendLine($"    caught on his own body and let through: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldCaughtLetThrough ? "on" : "off")}; times (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldFreed[0]} / {u.Clip.Upper.HeldFreed[1]}")));
+            sb.AppendLine($"    off his feet: his shield stopped by his own body {(PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet ? "yes" : "no")}; fighters keep apart off their feet {(PhysicsBattler.Locomotion.ClipFighter.KeepsApartOffHisFeet ? "yes" : "no")}: {PhysicsBattler.Locomotion.ClipFighter.RoomWaits} waited for room to get up, bodies on their feet were moved {PhysicsBattler.Locomotion.ClipFighter.RoomMoved:0.00} m off bodies that were down");
             sb.AppendLine($"    impacts absorbed: {(PhysicsBattler.Locomotion.ClipFighter.ImpactsAbsorbed ? $"on ({PhysicsBattler.Locomotion.ClipFighter.Absorbed:0.00})" : "off")}");
             sb.AppendLine("    standing, as seen: a forearm or hand inside its own body (s) / what its right hand holds (s) / the longest stretch (s): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.ArmSeenIn:0.00} / {u.Clip.BladeSeenIn:0.00} / {u.Clip.ArmSeenInLongest:0.00}")));
             sb.AppendLine("    swordsmen: the pose had the sword hand behind its own chest, on its feet and not striking (s) / swords taken up afresh after the guard was not held a while: " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Parry != null).Select(u => $"{u.name} {u.Clip.SwordBehindFor:0.00} / {u.Clip.SwordsTakenUp}")));

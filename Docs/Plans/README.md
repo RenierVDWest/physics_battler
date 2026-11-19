@@ -11,6 +11,7 @@ Read the one for the work in hand. Do not read them all: together they are about
 
 | Last changed | Document | State |
 |---|---|---|
+| 2026-11-19 | [From how he lies to how he gets up: plan](2026-11-19-from-how-he-lies-to-how-he-gets-up.md) ([live](https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa)) | Plan only, written 19 November after his second look. Five questions wait for Renier. |
 | 2026-11-19 | [Impacts that carry weight](2026-11-18-impacts-that-carry-weight.md) ([live](https://claude.ai/artifact/HkqvPHoe22TWSjZwxvdW5V)) | The ledger and off balance (stumbles) are built, headless only (19 November); bodies that absorb waits. The copy here has a progress note the live document may not have yet. |
 | 2026-11-18 | [Fight Rhythm from Recordings: Plan](2026-11-18-fight-rhythm-from-recordings-plan.md) ([live](https://claude.ai/artifact/GmgWWcXjaoQvCj5n5U5wLh)) | **The main plan.** In progress; its progress notes run to 19 November (step 9c, stumbles: the copy here has that note; the live document may not yet). |
 | 2026-11-18 | [A shield that stays outside its bearer](2026-11-18-a-shield-that-stays-outside-its-bearer.md) ([live](https://claude.ai/artifact/9UZ1xrAueNhCM6Yn4wg2NN)) | Mostly built on 18 November. Left: attacks checked when built, falling and getting up, the budget. |
