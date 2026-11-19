@@ -174,8 +174,10 @@ reads as a stumble. His notes were worked in the same morning (headless only, wa
 - Still open: the arms do nothing of their own yet; when fighters should throw the extra hard bash by themselves;
   how far a man may be turned ("Turned by": he did not follow the question; see the chat's answer in the README).
 - **It breaks the shield budget (below):** with both switches on, his own sword and shield cross him 0.6 to 1.5% of
-  the time on his feet (old way 0.2%). One crossing is in the stumble itself (the upper body tips, the shield's
-  cover does not); the rest is not pinned down. First thing to look at after his look.
+  the time on his feet (old way 0.2%). It is not the upper body tipping (tried at 0). On one seed every crossing was
+  his blade through his own shield **while bashing**: since the 19th the small bash's arm goes further, and nothing
+  takes his sword out of the board's way in a bash. On another they were in two made attacks thrown on a turn.
+  Next: the sword arm clears for a bash.
 - Figures: the README's entry of 19 November.
 
 **The shield budget is in the check runs (19 November).** Every headless fight ends with a `CROSSINGS` and a

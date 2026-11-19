@@ -6741,3 +6741,13 @@ four "pushes through" levers, "Knees give at once" and "First foot lifts in" und
 **Fields renamed so their new defaults take in his scene:** "Small Bash Reach" is now "Small Bash Arm Goes"
 (0.9); "Stumble Reacts In" is now "Stumble First Foot Lifts In" (0.05). Whatever he had set on the two old ones is
 not carried over.
+
+**The budget after the morning's changes** (the fight of six, 25 s; single runs). Still red: crossings on his feet
+0.64% (seed 5) and 1.19% (seed 7), against 0.5%. Two things learnt:
+
+- It is not the upper body tipping in a stumble: with "Stumble Trunk Tips" at 0 the same fight read 1.37%.
+- On seed 7 every crossing on his feet was **his blade through his own shield while bashing** (four and more of
+  0.05 to 0.07 s). The small bash's arm now goes further (drawn in to his chest, then driven out), and his sword in
+  its guard is in the board's way. The shield gives way to the sword everywhere else; in a bash it is the sword
+  that has to get out of the way, and nothing does that yet. On seed 5 they were in two made attacks thrown on a
+  turn (a forehand on a left turn, a short high spinning backhand). **Not mended.**
