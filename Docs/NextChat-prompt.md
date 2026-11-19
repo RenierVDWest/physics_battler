@@ -1,4 +1,4 @@
-# Prompt for the next chat (written 19 November 2026, 15:45)
+# Prompt for the next chat (written 19 November 2026, 15:50)
 
 Paste everything below the line into a new chat.
 
@@ -10,7 +10,7 @@ Pick up my Unity project "Physics Battler". Repository `RenierVDWest/physics_bat
 ## Start
 
 1. Attach the repository with push access and clone it. Read `CLAUDE.md` at its top first and follow it: it is the
-   briefing, and it is up to date as of 19 November 2026, 15:40. `README.md` is the build log (almost 7,000 lines:
+   briefing, and it is up to date as of 19 November 2026, 15:50. `README.md` is the build log (almost 7,000 lines:
    search it, never read it whole). The last entries, from "### 19 November, later in the morning" on, are today's.
 2. Read the plan for the work in hand: `Docs/Plans/2026-11-19-from-how-he-lies-to-how-he-gets-up.md`, with its
    progress notes at the end. Its live version is https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa: add your own
@@ -42,10 +42,9 @@ Pick up my Unity project "Physics Battler". Repository `RenierVDWest/physics_bat
 Today we worked on what happens when a fighter falls and gets up.
 
 - Seen by me in Unity and good: the shield no longer goes through his body as he falls; the big "thrown by nothing"
-  after a tube fall is gone; the gather (he pulls his arms and legs in before he gets up) "looks fine for where it
-  is now".
-- Not yet confirmed by me: whether the yellow frames and the "Test this" box sit on the right things; whether a
-  test target now stays where it got up (no shuffle back to its spot).
+  after a tube fall is gone; a test target stays where it got up (no shuffle back to its spot); the gather (he
+  pulls his arms and legs in before he gets up) "looks fine for where it is now"; the yellow frames and the "Test
+  this" box on the debug panel are good, so keep doing them the same way.
 - The plan's steps: 1 (measure and stop frame) built. 2 (start chosen by how he lies) built, off: it did not help
   alone. 3 (the gather) has a first build, on. Turning his trunk in the gather was built and is off (lever
   "Gather turns his trunk" at 0): it made the take-over rougher.

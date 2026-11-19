@@ -4,8 +4,8 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 15:40 (the gather seen by him: "looks fine for where it is now"; turning his trunk
-in it tried and left off).
+Last updated: 19 November 2026, 15:50 (the gather seen by him: "looks fine for where it is now"; turning his trunk
+in it tried and left off; the yellow frames and the target that stays, both seen by him and good).
 
 ## The project in a few lines
 
@@ -185,7 +185,8 @@ smoothly, the shield giving way to the sword.
 - **The weaker push left after it: a test target walking back to its spot** (his log of 14:01: just up, 0.5 to
   0.6 m off its spot, a guarding target shuffled back at 0.7 m/s with nothing near it). A target dummy that fell
   now stands where it got up (`FightLoop.DummiesStayWhereTheyGetUp`); the tubes are set beside where it stands, once
-  all are up. **Not checked headless** (the headless tube lineup has no target dummies): for his eye.
+  all are up. Not checkable headless (the headless tube lineup has no target dummies). **Seen by him at 15:47: "the
+  target stays."**
 
 - **He saw the morning's build in Unity:** "did not see the shield going through the body as he fell this time."
   His log of 12:12 agrees (21 falls): crossing while falling and lying 0.33 s in all (3.25 s at 08:07), no body
@@ -194,7 +195,8 @@ smoothly, the shield giving way to the sword.
   the ground if a case needs it; the shield flat on the ground out to his shield side, pushed up on that forearm,
   coming up edge first; build in the plan's order; a get-up may differ each time.
 - **"Look here" on the panel** (his new standing rule, above): the box "Test this" and the yellow frames. Built
-  blind: the frames' places are for his eye. The panel check ends with a `LOOK HERE` line.
+  blind, and **seen by him at 15:47: "the yellow lines for the UI debug is good."** Keep doing it the same way.
+  The panel check ends with a `LOOK HERE` line.
 - **Plan step 1, built:** every get-up reports its first 0.75 s (crossing, fastest part, how far each hand went):
   in his `getup` lines, the headless report and the panel's "His last get-up". "Hold him at the start: on" (Tubes,
   "Falls and getting up", "The start of a get-up") stops the game as a get-up begins.
