@@ -1571,6 +1571,10 @@ namespace PhysicsBattler.Locomotion
             {
                 MeasureGetUpSeen(dt);
                 MeasureGetUpStart(dt);
+                if (footingTime >= getUp.Duration - GetUpEndFrom)
+                {
+                    MeasureGetUpEnd(dt, footingTime - getUp.Duration);
+                }
             }
 
             if (fallBody && Upper != null)
@@ -1637,7 +1641,30 @@ namespace PhysicsBattler.Locomotion
                 GetUpSlid = getUp.Slid;
                 // (Its arms come out of the get-up into what a standing fighter's arms do over a moment: the guard, the
                 // free hand's place, the shield. Taken up at once they were whipped there, the free arm at 89 rad/s.)
-                rose.Capture(Anim);
+                // (What his hands hold is settled afresh. The settling kept, from before he fell, where his shield hand
+                // had been and how much of that to keep: as he stood it was let go over three steps, from a place a
+                // fall old, and the shield hand jumped 12 cm out and back: 8 to 9 m/s at the end of every shield
+                // bearer's get-up.)
+                if (WholeBodyEasesOutOfGetUp)
+                {
+                    for (int a = 0; a < heldShare.Length; a++)
+                    {
+                        heldShare[a] = 0f;
+                        heldKnown[a] = false;
+                    }
+                }
+
+                // (From the body he has, not from the pose it was drawn to: the body lags its pose by some
+                // centimetres, and put on the stand's pose it crossed them in one step, the shield hand at 8 m/s.)
+                if (WholeBodyEasesOutOfGetUp && RoseFromTheBody)
+                {
+                    rose.Capture(Rig);
+                }
+                else
+                {
+                    rose.Capture(Anim);
+                }
+
                 roseAt = clock;
                 TakeUpSword();
                 getUpDuration = getUp.Duration;
@@ -1849,11 +1876,89 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How long a fighter's arms take to go from where the get-up left them to what a standing fighter's arms do (seconds).</summary>
         public const float RoseEase = 0.4f;
 
+        /// <summary>
+        /// The whole of him is eased out of a get-up into his stand, not only his arms (Combat Feel "A Get-Up Ends Into
+        /// His Stand Over A Moment"; <c>FIGHT_GETUPEND=0</c> for the old way). The get-up's last pose and the stand's
+        /// first are not the same pose: in Renier's log of 19 November, 20:10, every get-up in the bash lab ended with
+        /// his hips jumping about 6 cm and his forearms 13 to 16 cm in one step.
+        /// </summary>
+        public static bool WholeBodyEasesOutOfGetUp = true;
+
+        /// <summary>How long his trunk, head and legs take to go from where the get-up left them to where his stand has them (seconds).</summary>
+        public const float RoseBodyEase = 0.2f;
+
+        /// <summary>The easing out of a get-up starts from the body as it is seen, not from the get-up's last pose (<c>FIGHT_ROSEBODY=0</c>: from the pose).</summary>
+        public static bool RoseFromTheBody = true;
+
         private readonly PoseBuffer rose = new PoseBuffer(), roseNow = new PoseBuffer(), roseMix = new PoseBuffer();
         private float roseAt = -1f, getUpLogAt = -1f, getUpDuration;
 
         private static bool IsArm(PartId id) =>
             id == PartId.UpperArmL || id == PartId.ForearmL || id == PartId.HandL || id == PartId.UpperArmR || id == PartId.ForearmR || id == PartId.HandR;
+
+        /// <summary>From how long before he stands the end of a get-up is measured (seconds); it is measured until his arms have eased out of it (<see cref="RoseEase"/>).</summary>
+        public const float GetUpEndFrom = 0.15f;
+
+        /// <summary>
+        /// For the reports, of the last get-up's end, as seen: the biggest jump in any part's speed from one step to
+        /// the next as the stand takes over from the get-up (m/s), which part, and when against the step he stood
+        /// (seconds). The other end of the take-over's measure: in Renier's log of 19 November, 20:10, every get-up in
+        /// the bash lab ended with his forearms jumping 8 to 10 m/s and his hips 3 in one step, and nothing measured it.
+        /// </summary>
+        public float GetUpEndJump, GetUpEndJumpAt;
+        public string GetUpEndJumpPart = "";
+        private readonly Vector3[] endWas = new Vector3[PartInfo.All.Length], endSpeed = new Vector3[PartInfo.All.Length];
+        private int endSeen;
+        private Vector3 endHipsWas;
+        private float endSampledAt = -1f;
+
+        private void MeasureGetUpEnd(float dt, float at)
+        {
+            if (dt <= 0f || clock == endSampledAt)
+            {
+                return;
+            }
+
+            endSampledAt = clock;
+            // (Set down somewhere else, as a lab does with its pair: not a jump of his. Measured afresh from there.)
+            Vector3 hipsNow = Rig.Part(PartId.Pelvis).transform.position;
+            if (endSeen >= 1 && (hipsNow - endHipsWas).magnitude > 0.2f)
+            {
+                endSeen = 0;
+            }
+
+            endHipsWas = hipsNow;
+            for (int i = 0; i < PartInfo.All.Length; i++)
+            {
+                var id = PartInfo.All[i];
+                if (Rig.IsSevered(id))
+                {
+                    continue;
+                }
+
+                Vector3 now = Rig.Part(id).transform.position;
+                if (endSeen >= 1)
+                {
+                    Vector3 speed = (now - endWas[i]) / dt;
+                    if (endSeen >= 2)
+                    {
+                        float jump = (speed - endSpeed[i]).magnitude;
+                        if (jump > GetUpEndJump)
+                        {
+                            GetUpEndJump = jump;
+                            GetUpEndJumpAt = at;
+                            GetUpEndJumpPart = id.ToString();
+                        }
+                    }
+
+                    endSpeed[i] = speed;
+                }
+
+                endWas[i] = now;
+            }
+
+            endSeen++;
+        }
 
         /// <summary>Just up: the arms eased from where the get-up left them into the pose the fight has for them now, and what is seen of them measured a moment longer.</summary>
         private void EaseArmsFromGetUp(float dt)
@@ -1871,9 +1976,23 @@ namespace PhysicsBattler.Locomotion
                     w = w * w * (3f - 2f * w);
                     roseNow.Capture(Anim);
                     roseMix.CopyFrom(rose);
-                    roseMix.MixToward(roseNow, id => IsArm(id) ? w : 1f);
+                    // (The rest of him over a shorter moment. Before, only his arms were eased: his trunk, head and legs
+                    // were where the stand has them in the very next step.)
+                    float body = 1f;
+                    if (WholeBodyEasesOutOfGetUp)
+                    {
+                        body = Mathf.Clamp01((clock - roseAt) / RoseBodyEase);
+                        body = body * body * (3f - 2f * body);
+                    }
+
+                    roseMix.MixToward(roseNow, id => IsArm(id) ? w : body);
                     roseMix.Apply(Anim, false);
                 }
+            }
+
+            if (getUpLogAt >= 0f && clock <= getUpLogAt - 0.2f)
+            {
+                MeasureGetUpEnd(dt, clock - (getUpLogAt - RoseEase - 0.2f));
             }
 
             MeasureArmsSeen(dt);
@@ -1928,7 +2047,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>For the reports: every get-up's first moment, all fighters, since the run began.</summary>
         public struct GetUpStart
         {
-            public float Crossed, Fastest, HandL, HandR, Jump, Speed, Took, From, KneePosed, KneeSeen, KneeInGround, HandStill;
+            public float Crossed, Fastest, HandL, HandR, Jump, Speed, Took, From, KneePosed, KneeSeen, KneeInGround, HandStill, EndJump;
         }
 
         public static readonly List<GetUpStart> GetUpStarts = new List<GetUpStart>();
@@ -2138,8 +2257,9 @@ namespace PhysicsBattler.Locomotion
             getUpLogAt = -1f;
             GetUpStartTold = $"{GetUpRoute}; its first {GetUpStartFor:0.00} s: his own shield or sword crossing him {GetUpStartCrossed:0.00} s, the fastest part {GetUpStartFastest:0.0} m/s ({GetUpStartFastestPart}), the shield hand went {GetUpStartHandL:0.00} m and the sword hand {GetUpStartHandR:0.00} m; the take-over: taken up moving at {TakeOverSpeed:0.0} m/s, the biggest jump in a part's speed in one step {TakeOverJump:0.0} m/s ({TakeOverJumpPart} at {TakeOverJumpAt:0.00} s), {(GetUp.TakesOverAsHeMoves ? $"what was left eased out in {TakeOverTook:0.00} s (a hand or foot {100f * TakeOverFrom:0} cm off at the most)" : "blended from how he lay (old)")}{(GetUpStartChose.Length > 0 ? "; " + GetUpStartChose : "")}";
             LastGetUpStartTold = (FightUnit != null ? FightUnit.name : Rig.name) + " got up " + GetUpStartTold;
-            GetUpStarts.Add(new GetUpStart { Crossed = GetUpStartCrossed, Fastest = GetUpStartFastest, HandL = GetUpStartHandL, HandR = GetUpStartHandR, Jump = TakeOverJump, Speed = TakeOverSpeed, Took = TakeOverTook, From = TakeOverFrom, KneePosed = getUp.KneeLowest, KneeSeen = GetUpKneeSeenLowest, KneeInGround = GetUpKneeSeenInGround, HandStill = getUp.SwordHandStillFor });
+            GetUpStarts.Add(new GetUpStart { Crossed = GetUpStartCrossed, Fastest = GetUpStartFastest, HandL = GetUpStartHandL, HandR = GetUpStartHandR, Jump = TakeOverJump, Speed = TakeOverSpeed, Took = TakeOverTook, From = TakeOverFrom, KneePosed = getUp.KneeLowest, KneeSeen = GetUpKneeSeenLowest, KneeInGround = GetUpKneeSeenInGround, HandStill = getUp.SwordHandStillFor, EndJump = GetUpEndJump });
             GetUpLog.Add($"got up {GetUpRoute} in {getUpDuration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all; an arm in its own body at most {100f * getUp.ArmDeepest:0} cm{(getUp.ArmDeepestAt.Length > 0 ? " (" + getUp.ArmDeepestAt + ")" : "")}, more than 2 cm in for {getUp.ArmInFor:0.00} s; what it holds at most {100f * getUp.BladeDeepest:0} cm, for {getUp.BladeInFor:0.00} s; a thigh turned on the hips at most {getUp.ThighFastest:0.0} rad/s ({getUp.ThighFastestAt}) and was at most {getUp.ThighPast:0} degrees past the hip's range ({getUp.ThighPastAt}); an ankle at the nearest {getUp.AnkleNearest:0.00} of a leg's length from its hip ({getUp.AnkleNearestAt}); as seen (the physical body): an arm in its body for {GetUpArmSeenIn:0.00} s, what it holds for {GetUpBladeSeenIn:0.00} s"
+                + $"; as he stood (from {GetUpEndFrom:0.00} s before to {RoseEase:0.00} s after): the biggest jump in a part's speed in one step {GetUpEndJump:0.0} m/s ({GetUpEndJumpPart} at {GetUpEndJumpAt:+0.00;-0.00} s)"
                 + (GetUpShieldSeenLowest < 8f ? $"; its shield over the ground at the lowest {100f * GetUpShieldPosedLowest:0} cm as posed, {100f * GetUpShieldSeenLowest:0} cm as seen (at {GetUpShieldLowestAt:0.00} s), more than 2 cm in the ground for {GetUpShieldInFloorFor:0.00} s" : ""));
             GetUpLog[GetUpLog.Count - 1] += $"; his knees: at the lowest {100f * getUp.KneeLowest:0} cm over the ground as posed, {100f * GetUpKneeSeenLowest:0} cm as seen, in the ground for {GetUpKneeSeenInGround:0.00} s (a foot moved {100f * getUp.KneeSlidFoot:0} cm from where it was asked, to keep its knee out); his sword hand held still for {getUp.SwordHandStillFor:0.00} s";
             GetUpLog[GetUpLog.Count - 1] += $"; the start: {GetUpStartTold}";
@@ -2651,6 +2771,9 @@ namespace PhysicsBattler.Locomotion
             GetUpArmSeenIn = GetUpBladeSeenIn = 0f;
             GetUpKneeSeenLowest = 9f;
             GetUpKneeSeenInGround = 0f;
+            GetUpEndJump = GetUpEndJumpAt = 0f;
+            GetUpEndJumpPart = "";
+            endSeen = 0;
             GetUpShieldPosedLowest = GetUpShieldSeenLowest = 9f;
             GetUpShieldLowestAt = GetUpShieldInFloorFor = 0f;
             var pelvis = Rig.Part(PartId.Pelvis).body;

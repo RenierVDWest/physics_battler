@@ -7229,3 +7229,43 @@ being carried at 2.8 m/s (a forearm jumping 5.6 m/s; it is held from when it has
 
 **Next:** his shield through him as he gets up (the plan's step 5).
 
+### 19 November, 22:55: his log of 20:10: off the edge of the floor, and the jump as he stands
+
+His third log of the evening (20:10, the bash lab, step 4 on, 30 get-ups; the frames looked at and removed) is the
+session he called a mess. Read with the pose log, it showed two things no report of mine measured.
+
+**1. He was bashed off the edge of the floor, three times.** The scene's floor is 40 m square. The pair, bashed back
+again and again for five minutes, had walked to its edge; three hard bashes threw the target over it. He fell 20 to
+34 m (hips at y -20.5, -22.4 and -34.5), was "put back on its pose at once" from there, and that get-up had parts
+at 55 to 82 m/s. Not a fault of the fall or the get-up: there was nothing under him.
+**Mended:** `BattleSandbox.EnsureFloorPastTheEdge` adds an unseen floor, a millimetre lower, 4 km square, with the
+floor's layer and surface. **Not checked headless** (the headless ground has no edge) **and not seen in Unity.**
+
+**2. Every get-up ended with a jump.** In that log, in the step after he stood, his forearms jumped 8 to 10 m/s
+(13 to 16 cm in one step) and his hips about 3 (the median of 29 get-ups; the tubes log of 19:57 has it smaller,
+the shield forearm 4.6). Headless it was there all along, unmeasured: the report only looked at a get-up's first
+0.75 s. Two causes:
+- **The settling of what he holds was a fall old.** `SettleHeld` keeps where each hand had settled to, and how much
+  of that to keep. It does not run while he is down, so as he stood it let go, over three steps, of a place from
+  before he fell: the shield hand 12 cm out and back (8 to 9.5 m/s), the sword forearm 13 to 15 m/s in the bash
+  lab. Now it starts afresh as he stands.
+- **Only his arms were eased out of the get-up** (`EaseArmsFromGetUp`, 0.4 s). His hips, trunk, head and legs were
+  where the stand has them in the next step. Now the whole of him is eased, the rest over 0.2 s
+  (`ClipFighter.WholeBodyEasesOutOfGetUp`, `RoseBodyEase`), from the body as it is seen.
+
+**New measure:** "the end of a get-up, as seen": the biggest jump in any part's speed from one step to the next,
+from 0.15 s before he stands to 0.40 s after (`ClipFighter.GetUpEndJump`; a line in every fight's report and in
+each get-up's log line; a lab's reset of its pair is not counted). Combat Feel "A Get-Up Ends Into His Stand Over A
+Moment"; lab row "The end of a get-up: eased / at once (old)"; `FIGHT_GETUPEND=0`.
+
+**Measured, headless, old to new on the same build (m/s):** tube falls from his front 4.6 to 0.7, his back 8.2 to
+2.9 (a shin, 3.5 to 3.9, is what is left), his right 5.0 to 1.4, his left 5.8 to 0.9; the shield bearer bashed down
+hard 14.3 to about 1.5 (each of six: 13.4 to 14.8 before; 1.3 to 1.6 and one 4.3 after). The fight of six, seed 5:
+17.8 (44.6 at most) to 1.1, and crossing on his feet 0.57% to 0.09% (under the budget for the first time; the
+fights differ after the first get-up, so part of that is chance), board tremble 10.9% to 10.3%. Seed 3 (one
+get-up): 3.9 to 3.8, budgets the same.
+
+**Also in that log, not yet looked into:** from his front the shield forearm is at 9 to 12 m/s about 0.15 s into
+five of eleven get-ups (headless shows the same moment at 1.4 to 2.9). It is the shield arm at the take-over:
+taken with step 5.
+

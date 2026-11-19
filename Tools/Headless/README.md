@@ -53,6 +53,9 @@ The rest are one-off comparisons from particular days, kept for reference.
   eased in the air. `FIGHT_KEEPSTART=0`: a get-up's start is chosen afresh as it takes him up, not kept from the
   gather (old). Report lines: "a rising fighter's knees stay above the ground" and "a get-up keeps the start he
   gathered for". `gup.sh tag "180 0"` fells three targets from the sides named and prints each get-up.
+- `FIGHT_GETUPEND=0`: only his arms are eased out of a get-up and what he holds is not settled afresh (old).
+  `FIGHT_ROSEBODY=0`: the easing starts from the get-up's last pose, not from the seen body. Report line "the end of
+  a get-up, as seen": the biggest jump in a part's speed in one step, from 0.15 s before he stands to 0.40 s after.
 - `FIGHT_TAKEOVER=0`: a get-up takes him up as if he lay still and blends from how he lay, the old way (the plan's
   step 4 off). `FIGHT_TAKEOVERMOST=0.6`: the most its take-over takes (seconds). Every fight's report has two lines
   for it: "a get-up takes him up as he moves" (on or off, how long what was left took, how far the furthest hand or

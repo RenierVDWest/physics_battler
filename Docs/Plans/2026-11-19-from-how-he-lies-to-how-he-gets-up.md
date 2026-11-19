@@ -222,3 +222,13 @@ It needs step 4 first. Next: step 4, then the trunk again, then step 5.
 - To see it: Tubes, "Falls and getting up", "Falls on demand: Forward" and "Back". To compare: "Getting up, his
   knees" and "While it is pinned".
 - **Next:** the shield through him (step 5).
+
+**19 November 2026, 22:55: two more things from your log of 20:10.** Headless only; waiting for your eye.
+
+- **He fell off the floor.** Three times in that session the target was bashed over the edge of the floor (the pair
+  had walked there), fell 20 to 34 m and popped back. That was the worst of the "mess". The floor now carries on
+  past its edge, unseen. I could not test this headless: my test floor has no edge.
+- **He jumped as he stood.** At the end of every get-up his forearms jumped 13 to 16 cm in one step and his hips
+  about 6. Two causes found and mended. In my tests the jump goes from 5 to 14 m/s down to about 1.
+- To see it: the same falls. Watch the moment he is up. To compare: "The end of a get-up: eased / at once (old)".
+- **Next:** the shield through him (step 5).

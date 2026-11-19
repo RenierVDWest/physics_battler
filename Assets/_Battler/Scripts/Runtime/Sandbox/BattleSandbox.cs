@@ -78,12 +78,41 @@ namespace PhysicsBattler.Sandbox
 
         public Material TeamMaterial(int team) => team == 0 ? teamA : teamB;
 
+        /// <summary>
+        /// A floor past the floor's edge. The scene's floor is 40 m square, and a pair that is bashed back again and
+        /// again walks to its edge in a long session: on 19 November (his log of 20:10) a target was thrown off it three
+        /// times, fell 20 to 34 m, and was put back on its pose from there (parts at 55 to 82 m/s in that get-up). An
+        /// unseen floor a millimetre lower carries on from the edge, with the floor's own layer and surface.
+        /// </summary>
+        private static void EnsureFloorPastTheEdge()
+        {
+            const string name = "Ground (past the edge)";
+            if (GameObject.Find(name) != null)
+            {
+                return;
+            }
+
+            var ground = GameObject.Find("Ground");
+            var floor = ground != null ? ground.GetComponent<Collider>() : null;
+            var far = new GameObject(name);
+            far.layer = ground != null ? ground.layer : Layers.Index(Layers.Ground);
+            far.transform.position = new Vector3(0f, (floor != null ? floor.bounds.max.y : 0f) - 0.501f, 0f);
+            var box = far.AddComponent<BoxCollider>();
+            box.size = new Vector3(4000f, 1f, 4000f);
+            if (floor != null)
+            {
+                box.sharedMaterial = floor.sharedMaterial;
+            }
+        }
+
         private void Start()
         {
             if (!Application.isPlaying)
             {
                 return;
             }
+
+            EnsureFloorPastTheEdge();
 
             if (locomotionLab)
             {
@@ -3903,24 +3932,27 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "19 November, 22:10: his knees stay above the ground, and his sword hand is held still";
+        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, the end of a get-up)";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
+            "GETTING UP (pushed 22:10 and 22:55):",
             "1. Go to \"Tubes\" (the bar of labs at the top) and open \"Falls and getting up\".",
             "2. Fell him: \"Falls on demand\": Forward (the worst case), then Back.",
             "3. Watch his knees as he pushes up from his front: they should rest on the ground, not sink into it.",
             "4. Watch his sword whenever his sword hand is on the ground: it should lie still. It still moves while the hand is in the air and as he stands up.",
-            "5. To compare: set \"Getting up, his knees\" to \"where the pose puts them (old)\", or \"While it is pinned\" to \"may turn a little (old)\", and fell him the same way.",
-            "6. His shield still passes through him as he gets up: that is next, not in this push.",
+            "5. Watch the moment he is up: he should go into his stand smoothly. Before, his shield hand and sword arm jumped as he stood.",
+            "6. To compare, fell him the same way with: \"Getting up, his knees\" on \"where the pose puts them (old)\"; \"While it is pinned\" on \"may turn a little (old)\"; \"The end of a get-up\" on \"at once (old)\".",
+            "7. The floor now carries on, unseen, past its edge: a pair bashed off the edge no longer falls into the dark.",
+            "8. His shield still passes through him as he gets up: that is next.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
             "Tubes", "Falls and getting up", "Falls on demand", "Falls on demand>Back", "Falls on demand>Forward",
-            "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:",
+            "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:", "The end of a get-up:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5311,6 +5343,23 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 PhysicsBattler.Motion.GetUp.KneesClearTheGround = kneesNow;
+            }
+
+            BeginRow();
+            Words(new GUIContent("The end of a get-up:", "How a get-up hands him over to his stand (Combat Feel \"A Get-Up Ends Into His Stand Over A Moment\"). Eased (new): the whole of him goes from where the get-up left him to where his stand has him over a fifth of a second. At once (old): only his arms were eased; his hips, trunk, head and legs jumped there in one step."));
+            bool ends = feel != null ? feel.aGetUpEndsIntoHisStandOverAMoment : ClipFighter.WholeBodyEasesOutOfGetUp;
+            bool endsNow = ends;
+            if (Press(ends ? "[eased]" : "eased", "The whole of him eased into his stand.")) endsNow = true;
+            if (Press(!ends ? "[at once (old)]" : "at once (old)", "As before: only his arms eased.")) endsNow = false;
+            EndRow();
+            if (endsNow != ends)
+            {
+                if (feel != null)
+                {
+                    feel.aGetUpEndsIntoHisStandOverAMoment = endsNow;
+                }
+
+                ClipFighter.WholeBodyEasesOutOfGetUp = endsNow;
             }
 
             if (feel != null && handStaysNow)

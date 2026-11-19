@@ -440,6 +440,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a fighter gets up from the start he gathered himself for, unless he has plainly rolled off it since. Off (old): the start is chosen afresh from how his hips lie as the get-up takes him up, even if he was just drawn to another start's first pose.")]
         public bool aGetUpKeepsTheStartHeGatheredFor = true;
 
+        [Tooltip("On: as a get-up ends, the whole of him is eased into his stand over a fifth of a second (his arms over two fifths, as before). Off (old): only his arms were eased; his hips, trunk, head and legs jumped to where the stand has them in one step.")]
+        public bool aGetUpEndsIntoHisStandOverAMoment = true;
+
         [Tooltip("On: a get-up starts from the start nearest to how he lies. Every start he could use is weighed: the one his hips say, from his side too if his hips are turned that way at all, and each posting on either hand (a sword alone always posts on its free hand). The one his hands, elbows, knees and feet are nearest to is taken; a hand that would have to pass through his own trunk counts as further. Off (the default for now: headless it did not help by itself; it is there for the next step to build on): as before, the start is chosen by which way his hips face only. The lab's \"The start: nearest to how he lies / by his hips only (old)\".")]
         public bool aGetUpStartsNearestToHowHeLies;
 
@@ -1743,6 +1746,7 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Motion.GetUp.SwordHandHeldStill = aRisingFightersSwordHandIsHeldStill;
             PhysicsBattler.Motion.GetUp.KneesClearTheGround = aRisingFightersKneesStayAboveTheGround;
             ClipFighter.KeepsTheStartHeGatheredFor = aGetUpKeepsTheStartHeGatheredFor;
+            ClipFighter.WholeBodyEasesOutOfGetUp = aGetUpEndsIntoHisStandOverAMoment;
             PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = aFallenFightersShieldStaysSolidAgainstHisBody;
             ClipFighter.KeepsApartOffHisFeet = fightersKeepApartOffTheirFeetToo;
             ClipFighter.GetUpStartNearest = aGetUpStartsNearestToHowHeLies;

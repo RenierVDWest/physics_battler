@@ -4,9 +4,9 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 22:10 (he saw step 4 and called the get-up a mess: knees in the ground, the sword
-shaking as he pushes up, the shield through him. Knees and sword hand mended and pushed, headless only. He has
-gone to bed and set the night's order: see "Roadmap").
+Last updated: 19 November 2026, 22:55 (he saw step 4 and called the get-up a mess. Mended and pushed, headless
+only: knees, the sword hand, the jump as he stands, and the floor's edge he was bashed off. He has gone to bed and
+set the night's order: see "Roadmap").
 
 ## The project in a few lines
 
@@ -190,6 +190,18 @@ smoothly, the shield giving way to the sword.
 - Left worse: the take-over's jump from his front and right (1.3 to 2.3 and 2.0 to 2.6 m/s: a shin, in one get-up
   of three, taken up while the gather still moves that leg).
 - The README's entry of 22:10 has the table.
+- **His log of 20:10 (22:55):** the target was bashed **off the edge of the scene's 40 m floor** three times, fell
+  20 to 34 m and was put back (parts at 55 to 82 m/s): `BattleSandbox.EnsureFloorPastTheEdge` now adds an unseen
+  floor past the edge (**not testable headless**). And **every get-up ended with a jump** (forearms 8 to 10 m/s,
+  hips 3, in the step after he stood): `SettleHeld` kept a fall-old place for each hand, and only his arms were
+  eased out of the get-up. Mended (Combat Feel "A Get-Up Ends Into His Stand Over A Moment"; lab row "The end of
+  a get-up"; `ClipFighter.WholeBodyEasesOutOfGetUp`). New report line "the end of a get-up, as seen": headless
+  4.6 to 14.3 m/s before, 0.7 to 2.9 after.
+- **A lesson:** a report that only measures the first 0.75 s of a get-up cannot see its end. When he says it looks
+  wrong and the numbers say fine, read his pose log step by step (`/tmp`-style scripts: per-part speed from one
+  step to the next) before believing the numbers.
+- **Seen in that log, not yet looked into:** from his front the shield forearm at 9 to 12 m/s about 0.15 s into
+  five of eleven get-ups (headless 1.4 to 2.9 at the same moment). With step 5.
 
 **The evening of the 19th: the plan's step 4, headless only, waiting for his eye:**
 

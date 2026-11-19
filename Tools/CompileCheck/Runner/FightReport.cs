@@ -1287,6 +1287,8 @@ internal static class FightReport
         PhysicsBattler.Motion.GetUp.KneesClearTheGround = Environment.GetEnvironmentVariable("FIGHT_GETUPKNEES") != "0";
         PhysicsBattler.Locomotion.ClipFighter.KeepsTheStartHeGatheredFor = Environment.GetEnvironmentVariable("FIGHT_KEEPSTART") != "0";
         PhysicsBattler.Locomotion.ClipFighter.GetUpStartsKept = 0;
+        PhysicsBattler.Locomotion.ClipFighter.WholeBodyEasesOutOfGetUp = Environment.GetEnvironmentVariable("FIGHT_GETUPEND") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.RoseFromTheBody = Environment.GetEnvironmentVariable("FIGHT_ROSEBODY") != "0";
         PhysicsBattler.Motion.GetUp.SwordHandHeldStill = Environment.GetEnvironmentVariable("FIGHT_GETUPSTILL") != "0";
         PhysicsBattler.Locomotion.ClipFighter.SwordHandHeldBodily = Environment.GetEnvironmentVariable("FIGHT_HANDPIN") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SWORDEASES"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float swordEases))
@@ -2872,6 +2874,7 @@ internal static class FightReport
                 sb.AppendLine($"    a get-up keeps the start he gathered for: {(PhysicsBattler.Locomotion.ClipFighter.KeepsTheStartHeGatheredFor ? "on" : "off")}; {PhysicsBattler.Locomotion.ClipFighter.GetUpStartsKept} kept where his hips would have chosen another");
                 sb.AppendLine($"    a get-up takes him up as he moves: {(PhysicsBattler.Motion.GetUp.TakesOverAsHeMoves ? $"on (at most {PhysicsBattler.Motion.GetUp.TakeOverMost:0.00} s)" : "off")}"
                     + (starts.Count == 0 ? "" : $"; what was left took {starts.Average(g => g.Took):0.00} s to ease out on average ({starts.Max(g => g.Took):0.00} at most), from a hand or foot {100f * starts.Average(g => g.From):0} cm off on average ({100f * starts.Max(g => g.From):0} at most)"));
+                sb.AppendLine($"    the end of a get-up, as seen (from {PhysicsBattler.Locomotion.ClipFighter.GetUpEndFrom:0.00} s before he stands to {PhysicsBattler.Locomotion.ClipFighter.RoseEase:0.00} s after): " + (starts.Count == 0 ? "none" : $"the biggest jump in a part's speed in one step {starts.Average(g => g.EndJump):0.0} m/s on average ({starts.Max(g => g.EndJump):0.0} at most)"));
                 sb.AppendLine($"    the take-over of a get-up, as seen (its first {PhysicsBattler.Locomotion.ClipFighter.TakeOverFor:0.00} s): "
                     + (starts.Count == 0 ? "none" : $"the biggest jump in a part's speed in one step {starts.Average(g => g.Jump):0.0} m/s on average ({starts.Max(g => g.Jump):0.0} at most); he was taken up moving at {starts.Average(g => g.Speed):0.0} m/s on average ({starts.Max(g => g.Speed):0.0} at most)"));
             }
