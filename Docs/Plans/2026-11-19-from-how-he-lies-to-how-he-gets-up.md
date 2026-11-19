@@ -197,7 +197,7 @@ It needs step 4 first. Next: step 4, then the trunk again, then step 5.
   0.75 s is a little lower (bash-downs 4.8 to 3.9 and 4.7 to 3.8 m/s).
 - **Not reached:** the table's "no jump". About 1 m/s is left. Crossings are not changed by this step (hard
   bash-downs 0.21 to 0.14 s a get-up, extra hard 0.20 to 0.23): what is left of them is the get-up's own pose,
-  which is step 5.
+  which is step 5. In the fights of six, on very few get-ups, the take-over did not measure better.
 - **A fault in my test rig, found on the way.** The "rougher take-over" I reported at 15:40 with the trunk's turn
   on was not the game: the headless stand-in for Unity moved the hips' carrier in a way Unity does not, and whipped
   his legs. He was taken up at 0.2 m/s, not rolling. It is mended. So the turn was set aside for a wrong reason.
