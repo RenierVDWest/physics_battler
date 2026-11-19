@@ -6922,3 +6922,27 @@ get-up": "Hold him at the start: on"; then "Falls on demand": Back, Forward, Lef
 morning (crossings 0.53% and 1.16%, tremble 10.5% and 11.0%: both still over, for the reasons given then).
 
 **Next: the plan's step 3, the gather** (he draws himself to the start as the physical body he fell in). Not begun.
+
+### 19 November, 14:00: thrown by nothing after a tube's fall
+
+Renier, 13:30, with his log of 13:26 (the tube test, where the panel's new "Test this" had sent him): "Saw some
+weird things where they were being pushed by something invisible a while after shoving them with the tubes."
+
+**What it was** (his log, measured in Unity): 14 times a target that had just got up was "thrown off balance by a
+blow" with no blow anywhere near, at 2.2, 4.5 or 6.2 m/s, and 6 of the 14 threw him down again. Each came as he
+came to his feet, two to three seconds after the tube.
+
+**Why.** A blow that throws a fighter off balance leaves its knock waiting for his next step on his feet. In the
+tube's fall test the same tube also fells him in that step, so the knock was never taken: it lay with him through
+the fall and the get-up and threw him the moment he stood. It is from the night's stumbles (the knock goes to his
+legs uncapped now; before, the same stale knock was a smaller shove). It was in my own headless falls too: two
+stumbles "by a blow" and a second fall in every one of this morning's four-sided runs, which I read past. His
+other logs of the day have none (0 in each): it needs a blow that both throws and fells in one step, which a
+tube's fall test always is and a fight's blow rarely is.
+
+**The mend.** As a fall begins, a knock still waiting goes with it (`ClipFighter.Fall`): the fall has its own
+speed. No switch: it is a fault, not a choice. Headless, felled from four sides: stumbles after the get-up 2 a run
+before, 0 now; the report counts them ("knocks still waiting as he fell, dropped with the fall").
+
+**To see it:** the same steps as before (the panel's "Test this" has them, with a seventh: once he is up, nothing
+should push him any more).

@@ -4,8 +4,8 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, afternoon (his answers on the get-up plan; "look here" highlights on the panel;
-the plan's steps 1 and 2).
+Last updated: 19 November 2026, 14:00 (his answers on the get-up plan; "look here" highlights on the panel; the
+plan's steps 1 and 2; thrown by nothing after a tube's fall, mended).
 
 ## The project in a few lines
 
@@ -122,6 +122,8 @@ cd Tools/CompileCheck && ./get-physx.sh      # fetches PhysX bindings (not in th
 Rules that cost time when broken:
 
 - **Never build while a fight is running** (`b.sh` refuses). A rebuild under a running fight spoils its result.
+  Run `b.sh` in a command of its own: a command line that also names the test dll makes it see itself as a fight
+  and refuse, and what follows then runs on the old build.
 - Two fights at a time at most (two cores). Two fights of six for 40 s, side by side, take about ten minutes.
 - A command in the foreground is cut off after about two minutes: start runs in the background (the scripts
   do) and wait in a loop for their `.done` file.
@@ -161,6 +163,10 @@ short, the shield held in cover, the sword and shield solid against their bearer
 smoothly, the shield giving way to the sword.
 
 **The afternoon of the 19th (after his third look, 12:26):**
+
+- **Thrown by nothing after a tube's fall: mended** (his log of 13:26: 14 times a target just up was thrown at up to
+  6.2 m/s with no blow, 6 of them down again). A blow's knock that was still waiting when he fell lay with him and
+  threw him as he stood. A waiting knock now goes with the fall (`ClipFighter.Fall`). Headless only; no switch.
 
 - **He saw the morning's build in Unity:** "did not see the shield going through the body as he fell this time."
   His log of 12:12 agrees (21 falls): crossing while falling and lying 0.33 s in all (3.25 s at 08:07), no body

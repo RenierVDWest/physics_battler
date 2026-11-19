@@ -1207,6 +1207,17 @@ namespace PhysicsBattler.Locomotion
 
             Built?.End();
             Falls++;
+            // (A knock that was waiting to drive him back goes with the fall: the fall has its own speed. Left waiting,
+            // it lay with him and threw him the moment he was on his feet again, by nothing: thrown at up to 6.2 m/s
+            // and down a second time. Seen by Renier in the tube test, 19 November, where one tube both strikes him
+            // and fells him.)
+            if (pushAt >= 0f)
+            {
+                StaleKnocks++;
+            }
+
+            pushAt = -1f;
+            pendingKnock = pendingImpulse = Vector3.zero;
             Footing = Footings.Down;
             footingTime = stillFor = 0f;
             Blow = null;
@@ -8570,6 +8581,9 @@ namespace PhysicsBattler.Locomotion
         public const float DriveAfter = 0.22f;
 
         private Vector3 pendingKnock;
+
+        /// <summary>For the reports: knocks that were still waiting as he fell, and went with the fall (all fighters).</summary>
+        public static int StaleKnocks;
         private float pushAt = -1f;
 
         /// <summary>What a blow this hard (impulse per kilogram of the body, m/s) feels like below which it only flinches, and from which it is thrown.</summary>
