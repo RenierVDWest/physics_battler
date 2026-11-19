@@ -1189,6 +1189,21 @@ internal static class FightReport
         }
 
         StumbleReport.Levers();
+        // (FIGHT_BASHTOUCH=0: a bash lands from 46 cm off, as before. FIGHT_BASHHOLDS=0: the basher goes on after his bash.
+        // FIGHT_PUSHES="1.6,0.3,1.2,6": how much each bash pushes through (small, medium, hard, extra hard; m/s).
+        // FIGHT_BASHKIND=extra: the extra hard bash. STUMBLE_ATONCE: how much his knees give at once.)
+        PhysicsBattler.Locomotion.ClipFighter.BashLandsOnTouch = Environment.GetEnvironmentVariable("FIGHT_BASHTOUCH") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.BashHoldsGround = Environment.GetEnvironmentVariable("FIGHT_BASHHOLDS") != "0";
+        {
+            string[] pushes = (Environment.GetEnvironmentVariable("FIGHT_PUSHES") ?? "").Split(',');
+            for (int i = 0; i < pushes.Length && i < 4; i++)
+            {
+                if (float.TryParse(pushes[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float push))
+                {
+                    PhysicsBattler.Locomotion.ClipFighter.BashPushesThrough[i] = push;
+                }
+            }
+        }
         PhysicsBattler.Locomotion.ClipFighter.Stumbled += (who, said) => Console.WriteLine($"STUMBLE {UnityEngine.Time.time:0.00} {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: {said}");
         PhysicsBattler.Locomotion.ClipFighter.HardBashCountered += (who, by, held) => Console.WriteLine($"BASHCOUNTER {(who.FightUnit != null ? who.FightUnit.name : "a fighter")}: his counter-bash {(held ? "held" : "did not hold")} against {(by.FightUnit != null ? by.FightUnit.name : "a fighter")}'s hard bash");
         // (FIGHT_DODGEALL=1: every fake is dodged and, in the dance, every blow made out in time. FIGHT_DODGEDROPS=0: in a gesture of his own he cannot dodge, as before.)
@@ -1231,6 +1246,12 @@ internal static class FightReport
         PhysicsBattler.Motion.GetUp.HeldClearFromTheStart = Environment.GetEnvironmentVariable("FIGHT_GETUPCLAMP") != "0";
         // (FIGHT_GETUPBLADE=0: a rising fighter's blade is not turned clear of the ground at the wrist; his arm is thrown up, as before.)
         PhysicsBattler.Motion.GetUp.BladeTurnsClear = Environment.GetEnvironmentVariable("FIGHT_GETUPBLADE") != "0";
+        // (FIGHT_GETUPPIN=0: a rising fighter's sword hand goes with the get-up's keys, as before. FIGHT_GETUPTURNS: the fastest it turns, degrees a second.)
+        PhysicsBattler.Motion.GetUp.SwordHandStays = Environment.GetEnvironmentVariable("FIGHT_GETUPPIN") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GETUPTURNS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float getUpTurns))
+        {
+            PhysicsBattler.Motion.GetUp.SwordHandTurns = getUpTurns;
+        }
         PhysicsBattler.Motion.GetUp.TraceHeld = Environment.GetEnvironmentVariable("FIGHT_GETUPTRACE") == "1";
         // (FIGHT_GETUPCLEAR=0: a recorded get-up's feet where the recording has them, through the hips or not. FIGHT_GETUPCLEARS: how far clear, in leg lengths.)
         PhysicsBattler.Motion.GetUp.FeetClearHips = Environment.GetEnvironmentVariable("FIGHT_GETUPCLEAR") != "0";
@@ -1796,7 +1817,8 @@ internal static class FightReport
                         PhysicsBattler.Locomotion.ClipFighter.BashThrows = EnvB("FIGHT_BASHTHROWS", PhysicsBattler.Locomotion.ClipFighter.BashThrows);
                         PhysicsBattler.Locomotion.ClipFighter.BashArmCounts = EnvB("FIGHT_BASHARMCOUNTS", PhysicsBattler.Locomotion.ClipFighter.BashArmCounts);
                         string bashKindAsked = (Environment.GetEnvironmentVariable("FIGHT_BASHKIND") ?? "small").Trim().ToLowerInvariant();
-                        int bashKind = bashKindAsked == "hard" ? 2 : bashKindAsked == "medium" ? 1 : 0;
+                        bool bashExtraAsked = bashKindAsked == "extra";
+                        int bashKind = bashKindAsked == "hard" || bashExtraAsked ? 2 : bashKindAsked == "medium" ? 1 : 0;
                         // (FIGHT_BASHREACH: that bash's arm reach, 0 to 1.)
                         PhysicsBattler.Locomotion.ClipFighter.BashKinds[bashKind].Reach = EnvB("FIGHT_BASHREACH", PhysicsBattler.Locomotion.ClipFighter.BashKinds[bashKind].Reach);
                         foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_BASHAT") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -1811,7 +1833,7 @@ internal static class FightReport
                                 bashGapWas = Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position);
                                 bashOtherWas = duel.Other.Root.position;
                                 bashMoverWas = duel.Mover.Root.position;
-                                Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other.Clip, true, bashKind) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
+                                Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other.Clip, true, bashKind, false, bashExtraAsked) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
                             }
 
                             if (paceAt >= bashAt + 1.2f && paceAt - dt < bashAt + 1.2f)

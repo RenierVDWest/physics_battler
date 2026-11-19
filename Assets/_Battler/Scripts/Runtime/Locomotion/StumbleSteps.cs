@@ -45,7 +45,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How much of an impact's twist turns the whole of him round, the rest being taken up in his trunk (0 to 1).</summary>
         public static float TurnedBy = DefaultTurnedBy;
 
-        public const float DefaultReactsIn = 0.1f, DefaultStepTakes = 0.18f, DefaultStepReach = 0.5f, DefaultFootSpeed = 5f, DefaultLegsBrake = 1f,
+        public const float DefaultReactsIn = 0.05f, DefaultStepTakes = 0.18f, DefaultStepReach = 0.5f, DefaultFootSpeed = 5f, DefaultLegsBrake = 1f,
             DefaultKneesGive = 0.05f, DefaultDownAt = 0.42f, DefaultTurnedBy = 0.25f;
 
         /// <summary>
@@ -117,6 +117,11 @@ namespace PhysicsBattler.Locomotion
 
         public const float DefaultTrunkTips = 0.6f;
 
+        /// <summary>How much his knees give at once as he is thrown, of what they give for a foot landing at that speed (0: his legs stand stiff until his first step).</summary>
+        public static float KneesAtOnce = DefaultKneesAtOnce;
+
+        public const float DefaultKneesAtOnce = 1f;
+
         /// <summary>How far his hips would be down in all: <see cref="Sink"/>, and what his legs' reach to the nearest foot costs (metres).</summary>
         public float Sunk { get; private set; }
 
@@ -176,7 +181,9 @@ namespace PhysicsBattler.Locomotion
             Steps = 0;
             For = Went = Turned = 0f;
             Fastest = Vel.magnitude;
-            Sink = sinkV = Sunk = 0f;
+            Sink = Sunk = 0f;
+            // (His knees give at once as it comes in: his legs are the first of him to take it, not the last.)
+            sinkV = KneesGive * 2f * Mathf.PI * KneesHz * Mathf.Min(Vel.magnitude, 4f) * KneesAtOnce;
             Tilt = Vector3.zero;
             braked = Vector3.zero;
             began = Com;

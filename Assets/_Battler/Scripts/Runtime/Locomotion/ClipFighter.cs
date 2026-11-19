@@ -6266,7 +6266,7 @@ namespace PhysicsBattler.Locomotion
         /// He bashes now, at this enemy (null: straight ahead, at nobody, to be seen), with one of the three bashes
         /// (0: small, 1: medium, 2: hard). False: he cannot (no shield, down, in a blow, meeting one, one just thrown).
         /// </summary>
-        public bool Bash(ClipFighter at, bool whenever = false, int kind = 0, bool braced = false)
+        public bool Bash(ClipFighter at, bool whenever = false, int kind = 0, bool braced = false, bool extra = false)
         {
             if (Bashing || Fallen || ShieldColliders.Count == 0 || Striking || interceptWeight > 0f || GuardOpen || IsUncovering || (!whenever && clock < bashReadyAt))
             {
@@ -6304,7 +6304,7 @@ namespace PhysicsBattler.Locomotion
                     // (The board is driven so that it is all the way out as it reaches him: in the air if his leap goes
                     // on into the enemy's space, as his feet land if it ends short of him.)
                     float off = leap.PrepTime + leap.PushTime, lands = off + flight;
-                    float reaches = at != null ? off + Mathf.Max(0f, gap / Size - BashCarried - bashOutFar - BashMeets) / bashLeaptAt : lands;
+                    float reaches = at != null ? off + Mathf.Max(0f, gap / Size - BashCarried - bashOutFar - BashLandsFrom) / bashLeaptAt : lands;
                     bashDriveAt = Mathf.Max(BashWind, Mathf.Min(lands, reaches) - bashDriveTime);
                 }
             }
@@ -6318,6 +6318,7 @@ namespace PhysicsBattler.Locomotion
 
             bashKind = levers;
             bashKindAt = kind;
+            bashExtra = extra && kind == 2;
             bashFor = 0f;
             bashAt = at;
             bashStruck = bashSurged = bashBoardKnown = false;
@@ -6574,6 +6575,44 @@ namespace PhysicsBattler.Locomotion
 
             Touches++;
         }
+
+        // ---- The bash after Renier's first look at stumbles (19 November, morning) ----------------------------------
+
+        /// <summary>
+        /// A bash lands when its board touches him (Combat Feel "A Bash Lands When The Board Touches Him"): the board's
+        /// middle within <see cref="BashTouches"/> of his own middle, or within <see cref="BoardsTouch"/> of his board if
+        /// that is between them. Off: as before, from <see cref="BashMeets"/> off (46 cm from his middle, some 30 cm of
+        /// air before the board). Seen on the 19th: with the ledger the basher is checked the moment it "lands", so the
+        /// board stopped short and he flew off untouched.
+        /// </summary>
+        public static bool BashLandsOnTouch = true;
+
+        /// <summary>How near his middle the board's middle is when it touches his body, and how near his board's middle when it touches his board (metres at a Medium's size, along the bash).</summary>
+        public const float BashTouches = 0.22f, BoardsTouch = 0.12f;
+
+        /// <summary>How far from his middle a bash lands, for planning its leap (metres at a Medium's size).</summary>
+        public static float BashLandsFrom => BashLandsOnTouch ? BashTouches : BashMeets;
+
+        /// <summary>
+        /// How much speed his arm and legs add to his board while the two are pressed together (m/s), for the small, the
+        /// medium, the hard and the extra hard bash (Combat Feel "… Bash Pushes Through"). He drives on off the ground,
+        /// so it is not taken out of his own going. It is what makes a bash a push and not two bodies colliding.
+        /// </summary>
+        public static readonly float[] BashPushesThrough = { DefaultSmallPushes, DefaultMediumPushes, DefaultHardPushes, DefaultExtraHardPushes };
+
+        public const float DefaultSmallPushes = 2.4f, DefaultMediumPushes = 0.3f, DefaultHardPushes = 2f, DefaultExtraHardPushes = 6f;
+
+        private static Vector3 theirsOrBoard(ClipFighter enemy, Vector3 board) => enemy.ShieldBoard(out Vector3 theirs, out _, out _) ? theirs : board + Vector3.right * 9f;
+
+        /// <summary>This bash is the extra hard one: a hard bash driven through with everything he has (<see cref="BashPushesThrough"/>'s last).</summary>
+        private bool bashExtra;
+
+        /// <summary>
+        /// After a bash that leaves the other on his feet the basher does not walk on into him: what is left of his
+        /// going forward his own legs take (Combat Feel "After A Bash He Holds His Ground"). Off: he goes on at what the
+        /// ledger left him, and the two end board against board.
+        /// </summary>
+        public static bool BashHoldsGround = true;
 
         // ---- Off balance: stumbles and falls (19 November) ---------------------------------------------------------
 
@@ -6909,7 +6948,24 @@ namespace PhysicsBattler.Locomotion
                     // (One who counters holds his own board out before him: the hard bash meets that, board on board,
                     // before it is near his middle.)
                     bool boards = bashKindAt == 2 && enemy.Countering(this) && enemy.ShieldBoard(out Vector3 theirs, out _, out _) && Flat(theirs - board).magnitude <= BoardsMeet * enemy.Size;
-                    if ((off <= BashMeets * enemy.Size && Vector3.Dot(way, bashWay) > 0.2f) || boards)
+                    bool lands = off <= BashMeets * enemy.Size && Vector3.Dot(way, bashWay) > 0.2f;
+                    if (BashLandsOnTouch)
+                    {
+                        // (On touch: his board against the other's body, or against the other's board if that is held between them.)
+                        lands = off <= BashTouches * enemy.Size && Vector3.Dot(way, bashWay) > 0.2f;
+                        if (!lands && !enemy.GuardOpen && enemy.ShieldBoard(out Vector3 hisBoard, out _, out float hisBoardRadius))
+                        {
+                            Vector3 across = hisBoard - board;
+                            float along = Vector3.Dot(Flat(across), bashWay);
+                            Vector3 aside = across - bashWay * Vector3.Dot(across, bashWay);
+                            Vector3 outward = Flat(enemy.Loco.Position - Loco.Position).normalized;
+                            lands = Vector3.Dot(Flat(hisBoard - enemy.Loco.Position), -outward) > 0.08f * enemy.Size && along > -0.1f * Size && along <= BoardsTouch * enemy.Size && aside.magnitude <= hisBoardRadius + 0.2f * Size;
+                        }
+
+                        boards &= Flat(theirsOrBoard(enemy, board) - board).magnitude <= (BoardsTouch + 0.1f) * enemy.Size;
+                    }
+
+                    if (lands || boards)
                     {
                         bashStruck = true;
                         // (Over the last eighth of a second: a board that was driven out a while ago and is only carried
@@ -6954,7 +7010,7 @@ namespace PhysicsBattler.Locomotion
                         if (worked)
                         {
                             float set = countered ? 0.5f * ((enemy.Poser.Feet[0].Locked ? 1f : 0f) + (enemy.Poser.Feet[1].Locked ? 1f : 0f)) : 0f;
-                            ledger = ImpactLedger.Work(Mass * bashKind.Weight, fastest, enemy.Mass, hisSpeed, set);
+                            ledger = ImpactLedger.Work(Mass * bashKind.Weight, fastest, enemy.Mass, hisSpeed, set, BashPushesThrough[bashExtra ? 3 : Mathf.Clamp(bashKindAt, 0, 2)]);
                             shove = Mathf.Max(0f, ledger.Taker - hisSpeed);
                             held = false;
                         }
@@ -6990,7 +7046,8 @@ namespace PhysicsBattler.Locomotion
                                 seen.Handed = handed;
                                 seen.HandedBack = back;
                                 seen.Worked = worked;
-                                seen.WorkedBy = Vector3.Dot(Flat(Loco.Velocity), way) - ledger.Through / Mathf.Max(1f, Mass);
+                                seen.WorkedBy = Vector3.Dot(Flat(Loco.Velocity), way) - Mathf.Max(0f, ledger.Through - ledger.Drive) / Mathf.Max(1f, Mass);
+                                seen.Drive = ledger.Drive;
                                 seen.WorkedOn = ledger.Taker;
                                 seen.Ground = ledger.Ground;
                             }
@@ -7002,7 +7059,7 @@ namespace PhysicsBattler.Locomotion
                         }
 
                         string did = worked ? enemy.Bashed(way, shove, this, met, bashWay * ledger.Through) : enemy.Bashed(out_, shove, this);
-                        if (BashIsImpact && BashStops && did != "down")
+                        if (BashIsImpact && BashStops && did != "down" && !(worked && StumbleSteps.On))
                         {
                             // (Both stand still a moment as it lands. Not when it knocks him over: a body held still as it
                             // is thrown is not thrown; headless it went 0.8 m where it should go 2.5.)
@@ -7044,12 +7101,30 @@ namespace PhysicsBattler.Locomotion
                             float mine = Vector3.Dot(Flat(Loco.Velocity), way);
                             Loco.StopShotTravel();
                             // (Equal and opposite: what the other was handed is taken from the whole of him.)
-                            float lost = ledger.Through / Mathf.Max(1f, Mass);
+                            // (Less what his own legs put in through the ground as he pushed on through.)
+                            float lost = Mathf.Max(0f, ledger.Through - ledger.Drive) / Mathf.Max(1f, Mass);
                             string me = ThrowBody(-way * lost, met, -bashWay * ledger.Through, string.Format(System.Globalization.CultureInfo.InvariantCulture, "his own {0} bash meeting {1} (his board at {2:0.0} m/s, his body at {3:0.0}, the other at {4:0.0})", bashKind.Name, countered ? "a counter" : onShield ? "a shield" : "a body", fastest, body, hisSpeed));
                             LastBash += string.Format(System.Globalization.CultureInfo.InvariantCulture, " (worked out: {0:0} N·s handed over; he leaves at {1:0.0} m/s, the other at {2:0.0}; the other's feet passed {3:0} N·s to the ground; he himself was {4})", ledger.Through, mine - lost, ledger.Taker, ledger.Ground, me == "stumbled" ? "thrown off balance" : "checked");
                             if (countered)
                             {
                                 guardOpenUntil = Mathf.Max(guardOpenUntil, clock + 0.3f);
+                            }
+
+                            if (BashHoldsGround && did != "down")
+                            {
+                                // (He does not walk on into a man still on his feet: his own legs take what is left of his going forward.)
+                                Vector3 going = Stagger.Active ? Stagger.Vel : Flat(Loco.Velocity);
+                                float forward = Vector3.Dot(going, way);
+                                if (forward > 0f)
+                                {
+                                    if (Stagger.Active)
+                                    {
+                                        Stagger.Add(-way * forward, 0f);
+                                        staggerGoing = Stagger.Vel;
+                                    }
+
+                                    Loco.Velocity -= way * forward;
+                                }
                             }
                         }
                         else if (held)

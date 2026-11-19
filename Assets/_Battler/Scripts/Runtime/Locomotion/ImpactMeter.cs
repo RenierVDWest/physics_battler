@@ -79,6 +79,9 @@ namespace PhysicsBattler.Locomotion
 
         public float WorkedBy, WorkedOn, Ground;
 
+        /// <summary>What the basher's own legs put in through the ground as he pushed on through (N·s).</summary>
+        public float Drive;
+
         /// <summary>What is left as motion of the two bodies afterwards (N·s along the line).</summary>
         public float Left => (By != null ? By.Mass * ByAfter : 0f) + (On != null ? On.Mass * OnAfter : 0f);
 
@@ -93,8 +96,8 @@ namespace PhysicsBattler.Locomotion
                 string shown(ImpactShown s) => string.Format(c, "the reaction rocked him {5:0} degrees and swung back {8:0.0} past (shield arm back {6:0} cm, sword arm {7:0} cm); in all his upper body moved {0:0} degrees, shoulders {4:0}, hips down {1:0} cm, head {2:0} cm; as seen against his pose, head / shield hand / sword hand: knocked {9:0}/{10:0}/{11:0} cm off, back past it {12:0}/{13:0}/{14:0} cm, changed direction {15}/{16}/{17} times",
                     s.Rock, 100f * s.Drop, 100f * s.Head, 100f * s.Arm, s.Turn, s.Reacted, 100f * s.ShieldArmGave, 100f * s.SwordArmGave, s.SwungBack,
                     100f * s.Off.x, 100f * s.Off.y, 100f * s.Off.z, 100f * s.OffPast.x, 100f * s.OffPast.y, 100f * s.OffPast.z, s.HeadTurns, s.ShieldHandTurns, s.SwordHandTurns);
-                string ledger = Worked ? string.Format(c, " The ledger: he leaves at {0:0.0} m/s, the other at {1:0.0}; {2:0} N·s passed to the ground by the other's feet; {3:0} N·s of what came in is in neither.", WorkedBy, WorkedOn, Ground,
-                    In - (By != null ? By.Mass * WorkedBy : 0f) - (On != null ? On.Mass * WorkedOn : 0f) - Ground) : "";
+                string ledger = Worked ? string.Format(c, " The ledger: he leaves at {0:0.0} m/s, the other at {1:0.0}; {2:0} N·s passed to the ground by the other's feet, {4:0} N·s put in by his own legs pushing through; {3:0} N·s is in neither.", WorkedBy, WorkedOn, Ground,
+                    In + Drive - (By != null ? By.Mass * WorkedBy : 0f) - (On != null ? On.Mass * WorkedOn : 0f) - Ground, Drive) : "";
                 string door = Handed > 0f ? string.Format(c, " Through the door: {0:0} N·s handed over, {1:0} back.", Handed, HandedBack) : " Not through the door.";
                 if (Blade)
                 {

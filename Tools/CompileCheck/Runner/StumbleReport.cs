@@ -29,6 +29,7 @@ internal static class StumbleReport
         Lever("STUMBLE_KNEES", v => StumbleSteps.KneesGive = v);
         Lever("STUMBLE_TURNED", v => StumbleSteps.TurnedBy = v);
         Lever("STUMBLE_TIPS", v => StumbleSteps.TrunkTips = v);
+        Lever("STUMBLE_ATONCE", v => StumbleSteps.KneesAtOnce = v);
     }
 
     public static int Run()

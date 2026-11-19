@@ -346,8 +346,8 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a fighter pushed off balance stumbles on real stumble steps (the Fight Rhythm plan's step 9c). His body is a weight on legs: thrown by a bash or a heavy blow it tips away from his feet, and the only thing that stops it is a foot put down ahead of it. The foot behind lifts and goes for the point where it would stop him, as far as a leg reaches and as fast as a foot goes; landing ahead of him it takes speed out of him and his knees give. If his feet get there he is caught, in one step or several, and may have been turned by a blow that came in off his middle. If his body outruns his feet his hips sink and he is down. No speed is written in for when he stumbles or falls and nothing is drawn by lot: it comes from the speed and twist the impact left him with and where his feet were. Off: as before, he is thrown back on the guard's walk played fast, and falls from a fixed speed.")]
         public bool offBalanceHeStumblesOnRealSteps = true;
 
-        [Tooltip("How long after he is thrown his first foot lifts (seconds). Shorter: quicker on his feet, he keeps them from harder blows. Longer: his body is further gone before he steps. Default 0.1.")]
-        [Range(0f, 0.4f)] public float stumbleReactsIn = StumbleSteps.DefaultReactsIn;
+        [Tooltip("How long after he is thrown his first foot lifts (seconds). Shorter: quicker on his feet, he keeps them from harder blows. Longer: his body is further gone before he steps, and his legs look stiff while his upper body recoils. Default 0.05.")]
+        [Range(0f, 0.4f)] public float stumbleFirstFootLiftsIn = StumbleSteps.DefaultReactsIn;
 
         [Tooltip("The shortest a stumble step is in the air (seconds). A step that has far to go takes longer, by \"Stumble Foot Speed\". Default 0.18.")]
         [Range(0.08f, 0.5f)] public float stumbleStepTakes = StumbleSteps.DefaultStepTakes;
@@ -372,6 +372,28 @@ namespace PhysicsBattler.Locomotion
 
         [Tooltip("How much his upper body tips with a stumble. His weight past the foot that carries it tips him the way he goes; a foot landed ahead of him tips him back against it. 0: his upper body stays upright over stumbling legs. 1: it tips as far as his weight is past his feet. Default 0.6.")]
         [Range(0f, 1f)] public float stumbleTrunkTips = StumbleSteps.DefaultTrunkTips;
+
+        [Tooltip("How much his knees give at once as he is thrown, of what they give for a foot landing at that speed. 0: his legs stand stiff until his first step (seen on the 19th: the upper body recoiled over stiff legs, and only then did the legs answer). 1: his hips drop as the impact comes in. Default 1.")]
+        [Range(0f, 2f)] public float stumbleKneesGiveAtOnce = StumbleSteps.DefaultKneesAtOnce;
+
+        [Header("The bash, after the first look at stumbles (19 November, morning)")]
+        [Tooltip("On: a bash lands when its board touches him: against his body, or against his own board if he holds it between them. Off: as before, it lands when the board's middle is within 46 cm of his middle, which is some 30 cm of air before the board. With the ledger on the basher is checked the moment it lands, so the old rule had him stop short and the other fly off untouched (seen on the 19th).")]
+        public bool aBashLandsWhenTheBoardTouchesHim = true;
+
+        [Tooltip("The small bash: how much speed his arm and legs add to his board while the two are pressed together (m/s). He drives on off the ground, so this is not taken out of his own going. It is what makes a bash a push and not two bodies colliding. Higher: the other is thrown harder. 0: only what his board arrived with. Default 2.4 (the other leaves at about 1.9 m/s).")]
+        [Range(0f, 10f)] public float smallBashPushesThrough = ClipFighter.DefaultSmallPushes;
+
+        [Tooltip("The medium bash: how much speed his arm and legs add to his board while the two are pressed together (m/s). Default 0.3.")]
+        [Range(0f, 10f)] public float mediumBashPushesThrough = ClipFighter.DefaultMediumPushes;
+
+        [Tooltip("The hard bash: how much speed his arm and legs add to his board while the two are pressed together (m/s). Default 2 (an uncountered man leaves at over 4 m/s and goes down).")]
+        [Range(0f, 10f)] public float hardBashPushesThrough = ClipFighter.DefaultHardPushes;
+
+        [Tooltip("The extra hard bash (the hard bash's leap, driven through with everything he has; for now only from the lab's \"Stumble him: Extra hard\"): how much speed his arm and legs add to his board (m/s). Default 6: an uncountered man leaves at about 7 m/s, is thrown off his feet and lands metres back.")]
+        [Range(0f, 14f)] public float extraHardBashPushesThrough = ClipFighter.DefaultExtraHardPushes;
+
+        [Tooltip("On: after a bash that leaves the other on his feet the basher does not walk on into him; what is left of his going forward his own legs take, and the two end apart. Off: he goes on at whatever speed the ledger left him, and the two can end board against board (shields stuck together, seen on the 19th).")]
+        public bool afterABashHeHoldsHisGround = true;
 
         [Tooltip("On: what a sword and shield fighter holds moves smoothly. His shield hand, and his sword hand while it is not striking, follow where the pose has them, speeding up and settling in, so nothing the pose does to them shows as a jump (the pose moved a board by 2 to 12 cm in single steps as it was raised to a blow, knocked, or taken up by the walk). Off: as before, each hand put where the pose has it every step. The lab's \"What he holds: moves smoothly / as posed (old)\".")]
         public bool whatHeHoldsMovesSmoothly = true;
@@ -405,6 +427,15 @@ namespace PhysicsBattler.Locomotion
 
         [Tooltip("On: as a fighter gets up, a sword his forearm would point down into the ground is turned clear of it at the wrist, as far as that needs. Off: as before, the wrist turns only as far as a wrist turns and his whole arm is thrown up to lift the blade out, which swung the sword up over his head and back within a tenth of a second (the sword that shook as he got up, 18 November).")]
         public bool aRisingFightersBladeIsTurnedClearOfTheGround = true;
+
+        [Tooltip("On: as a fighter gets up, his sword hand stays where it lay when the get-up began, on the ground and turned as it lay, until his arm can no longer reach that spot or the get-up has the hand well off the ground; then it goes to where the get-up has it. While it is pinned it may turn only a few degrees, and through the whole get-up it never turns faster than \"Rising Sword Hand Turns At Most\". Off: as before, the hand goes where each key of the get-up puts it and the sword turns about with it (the sword that shook as he got up).")]
+        public bool aRisingFightersSwordHandStaysWhereItLies = true;
+
+        [Tooltip("Getting up: how far the pinned sword hand may turn from how it lay (degrees). Default 5.")]
+        [Range(0f, 45f)] public float risingSwordHandMayTurn = PhysicsBattler.Motion.GetUp.DefaultSwordHandMayTurn;
+
+        [Tooltip("Getting up: the fastest the sword hand ever turns (degrees a second). Lower: the sword comes round more slowly as he rises and cannot flick back and forth. Default 180.")]
+        [Range(30f, 720f)] public float risingSwordHandTurnsAtMost = PhysicsBattler.Motion.GetUp.DefaultSwordHandTurns;
 
         [Tooltip("How often a counter-bash stops a hard bash knocking him over (per cent). Held: the two boards meet, he is shoved back a step and the basher is stopped. Not held: he goes down as if he had not countered. To be tied to his defensive skill later.")]
         [Range(0f, 100f)] public float counterBashHolds = 75f;
@@ -481,7 +512,7 @@ namespace PhysicsBattler.Locomotion
         [Range(0.2f, 2f)] public float smallBashWeight = 0.9f;
 
         [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): how far his shield arm goes (0 to 1). At 0 a hand's breadth out from its cover; at 1 the board is drawn in to his chest first and then driven out to the arm's whole length, his shield shoulder thrown in behind it.")]
-        [Range(0f, 1f)] public float smallBashReach = 0.6f;
+        [Range(0f, 1f)] public float smallBashArmGoes = 0.9f;
 
         [Tooltip("The small shield bash (thrown from where he stands; the one a fighter throws by himself at an enemy who comes too near): he goes on through: after his board meets the enemy he carries on to where his leap ends, into the space the enemy is thrown out of. Off: he comes down where he met him.")]
         public bool smallBashGoesThrough = false;
@@ -1341,7 +1372,7 @@ namespace PhysicsBattler.Locomotion
                     b.LeapSpeed = smallBashLeapSpeed;
                     b.Arm = smallBashArm;
                     b.Weight = smallBashWeight;
-                    b.Reach = smallBashReach;
+                    b.Reach = smallBashArmGoes;
                     b.GoesThrough = smallBashGoesThrough;
                     b.Crouch = smallBashCrouch;
                     b.Lean = smallBashLean;
@@ -1394,7 +1425,7 @@ namespace PhysicsBattler.Locomotion
                     smallBashLeapSpeed = b.LeapSpeed;
                     smallBashArm = b.Arm;
                     smallBashWeight = b.Weight;
-                    smallBashReach = b.Reach;
+                    smallBashArmGoes = b.Reach;
                     smallBashGoesThrough = b.GoesThrough;
                     smallBashCrouch = b.Crouch;
                     smallBashLean = b.Lean;
@@ -1669,12 +1700,15 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.Absorbed = Mathf.Clamp01(absorbedHowMuch);
             ClipFighter.GetUpsKnowWhatIsHeld = getUpsKeepWhatTheHandsHoldOffTheGround;
             PhysicsBattler.Motion.GetUp.BladeTurnsClear = aRisingFightersBladeIsTurnedClearOfTheGround;
+            PhysicsBattler.Motion.GetUp.SwordHandStays = aRisingFightersSwordHandStaysWhereItLies;
+            PhysicsBattler.Motion.GetUp.SwordHandMayTurn = Mathf.Clamp(risingSwordHandMayTurn, 0f, 45f);
+            PhysicsBattler.Motion.GetUp.SwordHandTurns = Mathf.Clamp(risingSwordHandTurnsAtMost, 30f, 720f);
             ClipFighter.BashIsImpact = aBashLandsAsAnImpact;
             ImpactLedger.On = aBashsSpeedsAreWorkedOut;
             ImpactLedger.Bounce = Mathf.Clamp01(impactBounce);
             ImpactLedger.FeetTake = Mathf.Clamp01(feetTakeOfAnImpact);
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
-            StumbleSteps.ReactsIn = Mathf.Clamp(stumbleReactsIn, 0f, 0.4f);
+            StumbleSteps.ReactsIn = Mathf.Clamp(stumbleFirstFootLiftsIn, 0f, 0.4f);
             StumbleSteps.StepTakes = Mathf.Clamp(stumbleStepTakes, 0.08f, 0.5f);
             StumbleSteps.StepReach = Mathf.Clamp(stumbleStepReach, 0.25f, 0.9f);
             StumbleSteps.FootSpeed = Mathf.Clamp(stumbleFootSpeed, 3f, 9f);
@@ -1683,6 +1717,13 @@ namespace PhysicsBattler.Locomotion
             StumbleSteps.DownAt = Mathf.Clamp(stumbleDownAt, 0.2f, 0.7f);
             StumbleSteps.TurnedBy = Mathf.Clamp01(stumbleTurnedBy);
             StumbleSteps.TrunkTips = Mathf.Clamp01(stumbleTrunkTips);
+            StumbleSteps.KneesAtOnce = Mathf.Clamp(stumbleKneesGiveAtOnce, 0f, 2f);
+            ClipFighter.BashLandsOnTouch = aBashLandsWhenTheBoardTouchesHim;
+            ClipFighter.BashPushesThrough[0] = Mathf.Max(0f, smallBashPushesThrough);
+            ClipFighter.BashPushesThrough[1] = Mathf.Max(0f, mediumBashPushesThrough);
+            ClipFighter.BashPushesThrough[2] = Mathf.Max(0f, hardBashPushesThrough);
+            ClipFighter.BashPushesThrough[3] = Mathf.Max(0f, extraHardBashPushesThrough);
+            ClipFighter.BashHoldsGround = afterABashHeHoldsHisGround;
             ClipFighter.BashRocks = bashRocksTheTrunk;
             ClipFighter.BashForce = bashForceOnTheBody;
             ClipFighter.BashRocksMost = bashRocksUpTo * Mathf.Deg2Rad;
