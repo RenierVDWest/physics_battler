@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, overnight (an unattended night's work; see "Built overnight" below).
+Last updated: 19 November 2026, morning (after Renier's first look at the night's stumbles).
 
 ## The project in a few lines
 
@@ -151,7 +151,19 @@ attacks made from recordings and thrown on the move, the three shield bashes, fa
 short, the shield held in cover, the sword and shield solid against their bearer's body, hands that move
 smoothly, the shield giving way to the sword.
 
-**Built overnight on the 19th, headless only, waiting for Renier's eye: stumbles.** Two switches, both on.
+**Stumbles: built overnight on the 19th; Renier played them that morning: "this looks pretty good so far", it
+reads as a stumble. His notes were worked in the same morning (headless only, waiting for his second look):**
+
+- A bash lands when the board touches him (it landed 30 cm short, and he flew off untouched).
+- No hit stop on a bash, and his knees give at once: the legs no longer stand stiff while the upper body recoils.
+- Each bash "pushes through" (a lever each). Small is harder and its arm goes further; hard a little harder; a new
+  **extra hard** bash throws a man 4.5 m back (lab only: "Stumble him: Extra hard"; no fighter throws it yet).
+- After a bash the basher holds his ground (a likely cause of the shields stuck together; **his logs of the 19th
+  were not in the repository, so his cases are unread: ask for them**).
+- Decisions of his: use the new system completely (no going back to speeds written in); hard should knock hard;
+  extra hard much harder; small must clear his space.
+
+**The first build's own notes.** Two switches, both on.
 
 - The momentum ledger ("A Bash's Speeds Are Worked Out"): what the two leave a bash with is worked out from what
   each brought. A counter is no longer a draw.
@@ -159,9 +171,8 @@ smoothly, the shield giving way to the sword.
   stop him; caught in one step or several, turned, or down. Both men of a bash, and a body thrown by a heavy blow.
 - To see it: duel lab, Actions, "Stumbles and falls": "Stumble him: Small / Medium / Hard", with the old/new rows
   under it. Headless: `Tools/Headless/four.sh tag`, `Tools/Headless/stum.sh`.
-- Open for him: should an uncountered hard bash fell a standing Medium every time ("Stumble foot speed" 5, as set)
-  or throw him back three metres on his feet (5.5)? Does the small bash still clear his space? Does it read as a
-  stumble at all? The arms do nothing of their own yet.
+- Still open: the arms do nothing of their own yet; when fighters should throw the extra hard bash by themselves;
+  how far a man may be turned ("Turned by": he did not follow the question; see the chat's answer in the README).
 - **It breaks the shield budget (below):** with both switches on, his own sword and shield cross him 0.6 to 1.5% of
   the time on his feet (old way 0.2%). One crossing is in the stumble itself (the upper body tips, the shield's
   cover does not); the rest is not pinned down. First thing to look at after his look.
@@ -173,7 +184,14 @@ feet: all crossings under 0.5% of the time, none longer than 0.1 s; his board sh
 the time standing or moving (the 8% is a proposal). Off his feet is counted apart, not held to it yet. **Any new
 action has to pass it before it is handed over.**
 
-**Mended overnight on the 19th, headless only, waiting for his eye: the sword that shook as a fighter got up.**
+**The sword that shook as a fighter got up: the night's mend did not look improved to him (19 November). His
+rule, built that morning, headless only:** the sword hand is pinned to the ground where it lay, may turn only a
+few degrees while pinned, and never turns fast (Combat Feel "A Rising Fighter's Sword Hand Stays Where It Lies";
+180 degrees a second at most, 3 m/s at most; the last word on that hand each step). From his back the tip's
+tremble as seen went from 63 to 22 mm. To see it: target test, "Getting up, his sword hand: stays where it lies /
+goes with the keys (old)". Waiting for his eye.
+
+**The night's own mend, kept under it:**
 
 - The cause: the sword hand is turned only as far as a wrist turns from the forearm, and about a second into a
   get-up from the back the forearm points the blade up to 49 cm into the ground. The rule that keeps held things

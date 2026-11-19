@@ -34,6 +34,9 @@ namespace PhysicsBattler.Locomotion
 
             /// <summary>What the taker's feet passed to the ground (N·s), and what went through the point they met at, from the dealer to the taker (N·s).</summary>
             public float Ground, Through;
+
+            /// <summary>What the dealer's own legs put in through the ground as he pushed on through the meeting (N·s): his "pushes through".</summary>
+            public float Drive;
         }
 
         /// <summary>The most a man's feet can pass to the ground in one meeting (N·s): his grip times his weight times the time of contact, by how many of his feet are down (0 to 1).</summary>
@@ -44,8 +47,11 @@ namespace PhysicsBattler.Locomotion
         /// from the dealer to the taker (a taker driving into it has a speed below 0). <paramref name="takerSet"/>:
         /// how set the taker is to take it on his feet (0: not at all; 1: braced, both feet down).
         /// </summary>
-        public static Result Work(float dealerMass, float dealerSpeed, float takerMass, float takerSpeed, float takerSet)
+        /// <param name="pushesThrough">How much speed the dealer's arm and legs add to his board while the two are pressed together (m/s): he drives on off the ground, so this much is not taken out of his own going.</param>
+        public static Result Work(float dealerMass, float dealerSpeed, float takerMass, float takerSpeed, float takerSet, float pushesThrough = 0f)
         {
+            pushesThrough = Mathf.Max(0f, pushesThrough);
+            dealerSpeed += pushesThrough;
             dealerMass = Mathf.Max(1f, dealerMass);
             takerMass = Mathf.Max(1f, takerMass);
             float both = dealerMass + takerMass;
@@ -59,6 +65,7 @@ namespace PhysicsBattler.Locomotion
                 Dealer = together - Bounce * closing * takerMass / both,
                 Taker = together + Bounce * closing * dealerMass / both,
                 Ground = ground,
+                Drive = Mathf.Max(1f, dealerMass) * pushesThrough,
             };
             // (What the taker was handed at the point they met: what changed his speed, and what his feet passed on.)
             r.Through = takerMass * (r.Taker - takerSpeed) + ground;

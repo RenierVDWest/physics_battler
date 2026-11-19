@@ -184,3 +184,13 @@ Renier, 18 November, night: stumbles first, the ledger before them if they need 
 **Step 4, bodies that absorb: not built.** What there is of it comes from the stumble: his knees give as each foot takes his weight, his hips sink while his feet are behind him, his upper body tips with his weight. The quarter second in which the two press into the boards, the arm folding and the feet sliding are still to do. The targets set above for a held hard counter (trunks 15 degrees, hips down 8 cm) are not met: the defender's hips went down 1 cm in the meter's window.
 
 **Open, for Renier.** Whether an uncountered hard bash should put a standing Medium down every time (as now, at a foot speed of 5) or throw him back three metres on three stumble steps with his feet kept (5.5). Whether the small bash still clears his space (0.17 m against 0.46 m). Details and figures: the README's entry of 19 November.
+
+## Progress, 19 November (morning): after Renier's first look
+
+He played the stumbles: "this looks pretty good so far"; it reads as a stumble. Worked in the same morning, headless only:
+
+- **The bash lands on touch.** It "landed" 46 cm from his middle, some 30 cm of air before the board; with the ledger checking the basher at that moment, the other flew off untouched.
+- **The legs answer at once.** No hit stop on a bash, and his knees give as it comes in. Before, the upper body recoiled over stiff legs.
+- **Pushes through.** Each bash adds the speed his arm and legs drive on with (a lever each). Small leaves him at 1.9 m/s (two steps, 0.73 m), hard not countered at 4.3 m/s (down, 3 m back), and a new **extra hard** at 6.8 m/s (off his feet, 4.5 m back).
+- **After a bash he holds his ground**, so the two do not end board against board.
+- His decisions: the new system all the way; the hard bash knocks hard, the extra hard much harder; the small bash must clear his space.

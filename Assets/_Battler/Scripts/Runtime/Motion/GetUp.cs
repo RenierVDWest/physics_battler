@@ -476,6 +476,7 @@ namespace PhysicsBattler.Motion
         /// <summary>Starts a get-up: <paramref name="from"/> is how the body lay (the root already placed).</summary>
         public void Begin(Kind kind, PoseBuffer from)
         {
+            BeginSwordHand();
             Facing = kind;
             lying.CopyFrom(from);
             shieldRoll = -1;
@@ -576,6 +577,8 @@ namespace PhysicsBattler.Motion
         /// </summary>
         public void Compose(float t, PoseBuffer stand)
         {
+            pinDt = pinT >= 0f && t > pinT ? Mathf.Min(t - pinT, 0.05f) : 1f / 60f;
+            pinT = t;
             fitFrame++;
             PoseKeys(Mathf.Max(0f, t - KeysFrom));
             bool blendingIn = t < BlendIn * 1.25f;
@@ -788,9 +791,28 @@ namespace PhysicsBattler.Motion
                     t, dbgWristY, dbgKeyGap, before, mem.turn, mem.raise, dirWas.x, dirWas.y, dirWas.z, dir.x, dir.y, dir.z, hp.x, hp.y, hp.z, standing, Natural, Shielded));
             }
 
+            if (pinned)
+            {
+                PinSwordHand(t);
+            }
+
             // (19 November, tried and taken out: the clamp given a memory of its wrist turn and arm raise from step to
             // step. It changed nothing in what the board or the blade's tip does in a get-up.)
             WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY, HeldClearFromTheStart ? 1f : Smooth(t / BlendIn));
+            if (pinned)
+            {
+                SettleSwordHand();
+            }
+
+            if (TraceHeld && Loadout != null && Loadout.Main != null && anim.SlotWeaponR != null)
+            {
+                // (The sword as the get-up leaves it this step, after everything: what the trace above shows is before the settle.)
+                Vector3 dirNow = Quaternion.Inverse(root.rotation) * (anim.SlotWeaponR.rotation * Vector3.forward);
+                Vector3 handNow = Quaternion.Inverse(root.rotation) * (anim.Part(PartId.HandR).position - root.position);
+                Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture, "GETUPFINAL {0:0.000} sh {7} dir ({1:0.00},{2:0.00},{3:0.00}) hand ({4:0.00},{5:0.00},{6:0.00}) pinned {8:0.00} s",
+                    t, dirNow.x, dirNow.y, dirNow.z, handNow.x, handNow.y, handNow.z, Shielded, SwordHandPinnedFor));
+            }
+
             if (Shielded && anim.SlotWeaponL != null)
             {
                 ShieldFace = anim.SlotWeaponL.rotation * Vector3.forward;
@@ -2009,6 +2031,152 @@ namespace PhysicsBattler.Motion
                     KeyArm(upper, fore, hand, slot, raised, elbow, right, facing, keyed);
                 }
             }
+
+            if (right && pinned)
+            {
+                // (Where the get-up's own keys have the sword hand: what the pin lets it go to, in the end.)
+                pinKeyY = anim.Part(hand).position.y;
+                pinPole = facing * elbow;
+            }
+        }
+
+        // ---- The sword hand stays where it lies (19 November, Renier: "pinned to the ground in one position") --------
+
+        /// <summary>
+        /// Getting up, his sword hand stays where it lay when the get-up began, on the ground, turned as it lay, until
+        /// his arm can no longer reach it or the get-up has that hand well off the ground; then it goes to where the
+        /// get-up has it. Pinned it may turn only <see cref="SwordHandMayTurn"/> degrees, and it never turns faster than
+        /// <see cref="SwordHandTurns"/> degrees a second (Combat Feel "A Rising Fighter's Sword Hand Stays Where It
+        /// Lies"). Off: as before, the hand goes where each key of the get-up puts it, and the sword turns about with it.
+        /// </summary>
+        public static bool SwordHandStays = true;
+
+        /// <summary>How far the pinned hand may turn from how it lay (degrees), and the fastest it ever turns in a get-up (degrees a second).</summary>
+        public static float SwordHandMayTurn = DefaultSwordHandMayTurn, SwordHandTurns = DefaultSwordHandTurns;
+
+        public const float DefaultSwordHandMayTurn = 5f, DefaultSwordHandTurns = 180f;
+
+        /// <summary>The get-up's own place for the hand this high over the ground (metres at a Medium's size) lets it go; and how long it takes to go from where it lay to where the get-up has it (seconds).</summary>
+        public const float SwordHandLeavesAt = 0.45f, SwordHandLetsGoOver = 0.4f;
+
+        /// <summary>For the reports: how long the hand stayed pinned in this get-up (seconds), and the fastest it turned (degrees a second).</summary>
+        public float SwordHandPinnedFor, SwordHandTurnedAt;
+
+        private bool pinned, pinTurnKnown;
+        private Vector3 pinAt;
+        private Quaternion pinRot, pinTurn;
+        private float pinFree, pinT = -1f, pinDt = 1f / 60f;
+
+        private Vector3 pinLay, pinPole = Vector3.back;
+        private float pinKeyY;
+
+        private void BeginSwordHand()
+        {
+            pinned = SwordHandStays && anim != null && Loadout != null && Loadout.Main != null && !Loadout.Main.IsShield;
+            pinFree = 0f;
+            pinT = -1f;
+            pinTurnKnown = false;
+            SwordHandPinnedFor = SwordHandTurnedAt = 0f;
+            if (!pinned)
+            {
+                return;
+            }
+
+            var hand = anim.Part(PartId.HandR);
+            pinLay = pinAt = hand.position;
+            pinRot = hand.rotation;
+            pinKeyY = stance.GroundY;
+            // (On the ground: a hand that lay on his own body, or was still in the air as he came to rest, comes down
+            // to the ground under it once, and stays there.)
+            float low = stance.GroundY + HandHeight;
+            pinAt.y = Mathf.Clamp(pinAt.y, low, low + 0.1f * body.SizeFactor);
+        }
+
+        /// <summary>How long a hand that did not lie on the ground takes to come down to it as the get-up begins (seconds).</summary>
+        public const float SwordHandComesDownOver = 0.3f;
+
+        /// <summary>
+        /// The last word on the sword hand, after the get-up's keys, its blend in from how he lay and its blend out to
+        /// his stand have all had theirs: so nothing moves it or turns it but this.
+        /// </summary>
+        private void PinSwordHand(float t)
+        {
+            const PartId upper = PartId.UpperArmR, fore = PartId.ForearmR, hand = PartId.HandR;
+            var h = anim.Part(hand);
+            Vector3 keyedAt = h.position;
+            Quaternion keyedRot = h.rotation;
+            Vector3 shoulder = anim.Part(upper).position, elbowAt = anim.Part(fore).position;
+            if (pinFree <= 0f)
+            {
+                float arm = (elbowAt - shoulder).magnitude + (keyedAt - elbowAt).magnitude;
+                if ((pinAt - shoulder).magnitude > 0.97f * arm || pinKeyY > stance.GroundY + SwordHandLeavesAt * body.SizeFactor)
+                {
+                    pinFree = 1e-4f;
+                }
+                else
+                {
+                    SwordHandPinnedFor += pinDt;
+                }
+            }
+
+            if (pinFree > 0f)
+            {
+                pinFree = Mathf.Min(1f, pinFree + pinDt / SwordHandLetsGoOver);
+            }
+
+            float down = Mathf.Clamp01(t / SwordHandComesDownOver);
+            Vector3 lies = Vector3.Lerp(pinLay, pinAt, down * down * (3f - 2f * down));
+            float free = pinFree * pinFree * (3f - 2f * pinFree);
+            Vector3 at = Vector3.Lerp(lies, keyedAt, free);
+            Quaternion want = pinFree > 0f ? keyedRot : Quaternion.RotateTowards(pinRot, keyedRot, SwordHandMayTurn);
+            Vector3 mid = 0.5f * (shoulder + keyedAt);
+            pinPoleNow = (elbowAt - mid).sqrMagnitude > 1e-4f ? (elbowAt - mid).normalized : pinPole;
+            TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), h, Within(upper, fore, hand, at, 0.96f), pinPoleNow);
+            h.rotation = want;
+        }
+
+        /// <summary>The fastest the sword hand travels in a get-up (m/s at a Medium's size).</summary>
+        public const float SwordHandMoves = 3f;
+
+        private Vector3 pinPoleNow = Vector3.back, pinWas;
+
+        /// <summary>
+        /// After the rule that keeps what he holds out of the ground has had its say too: the sword hand turns no faster
+        /// than <see cref="SwordHandTurns"/> and travels no faster than <see cref="SwordHandMoves"/> from where it was
+        /// the step before. A blade that would have been flicked clear of the ground in one step comes clear over several.
+        /// </summary>
+        private void SettleSwordHand()
+        {
+            const PartId upper = PartId.UpperArmR, fore = PartId.ForearmR, hand = PartId.HandR;
+            var h = anim.Part(hand);
+            Quaternion want = h.rotation;
+            Vector3 wantAt = h.position;
+            if (!pinTurnKnown)
+            {
+                pinTurn = want;
+                pinWas = wantAt;
+                pinTurnKnown = true;
+                return;
+            }
+
+            // (Let go and coming round to where the get-up has it, it may turn twice as fast: his stand is taking over.)
+            Quaternion turned = Quaternion.RotateTowards(pinTurn, want, SwordHandTurns * (pinFree >= 1f ? 2f : 1f) * pinDt);
+            Vector3 moved = Vector3.MoveTowards(pinWas, wantAt, SwordHandMoves * body.SizeFactor * (pinFree >= 1f ? 2f : 1f) * pinDt);
+            if (pinDt > 1e-5f)
+            {
+                SwordHandTurnedAt = Mathf.Max(SwordHandTurnedAt, Quaternion.Angle(pinTurn, turned) / pinDt);
+            }
+
+            pinTurn = turned;
+            pinWas = moved;
+            // (To the end of the get-up: the limits hold after the hand is let go too.)
+            if ((moved - wantAt).sqrMagnitude > 1e-8f)
+            {
+                TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), h, Within(upper, fore, hand, moved, 0.96f), pinPoleNow);
+                pinWas = h.position;
+            }
+
+            h.rotation = turned;
         }
 
         /// <summary>

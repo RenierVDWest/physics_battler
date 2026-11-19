@@ -6665,3 +6665,79 @@ was at.)
   ends, and the change between the stand and the walk. The next step is one more word on the `TIPLOG` line (what
   ended last, and how long ago).
 - Nothing was changed for it.
+
+### 19 November, morning: after Renier's first look at the stumbles
+
+Renier, 19 November, 07:10, having played it: "this looks pretty good so far"; it reads as a stumble, but he wants
+the points below addressed before he is sure. His notes, and what was done. **Headless only again.**
+
+**1. "Bashing now seems to knock an enemy even before the shield makes contact."** Why: a bash "landed" when the
+board's middle came within 46 cm of the other's middle, which is some 30 cm of air before the board. It always
+did. Before the ledger nobody saw it, because the basher went on at full speed and his board caught the other up.
+With the ledger the basher is checked the moment it "lands", so his board stopped short and the other flew off
+untouched. Now (Combat Feel "A Bash Lands When The Board Touches Him"): it lands when the board's middle is within
+22 cm of his middle (against his body), or within 12 cm of his own board along the bash if he holds that between
+them. The leap is planned to carry that much further.
+
+**2. "The upper body recoils … the lower body stands stiff. Then only after … does the lower body respond."** Two
+causes. The hit stop: as a bash landed both men were held still for a moment, the legs with them, while the
+physical upper body went on recoiling. With stumbles on there is no hit stop on a bash any more: the bodies really
+move now. And the stumble waited a tenth of a second before the first foot lifted, with his knees straight until
+then. Now his knees give at once as it comes in (Combat Feel "Stumble Knees Give At Once", 1) and the first foot
+lifts after 0.05 s ("Stumble First Foot Lifts In").
+
+**3. Harder bashes, and an extra hard one.** The ledger alone is two bodies colliding; a bash is also a push. Each
+bash now has "pushes through" (Combat Feel "Small / Medium / Hard / Extra Hard Bash Pushes Through", m/s): the
+speed his arm and legs add to his board while the two are pressed together. He drives on off the ground, so it is
+not taken out of his own going, and the meter's books still balance (it shows what his legs put in). Small 2.4,
+medium 0.3, hard 2, extra hard 6. The small bash's arm goes further too ("Small Bash Arm Goes" 0.9, was 0.6: the
+board is driven 47 cm, was 37). **The extra hard bash** is the hard bash's leap driven through with everything he
+has. For now it is only thrown from the lab's "Stumble him: Extra hard": no fighter throws it by himself yet.
+
+| Bash at a standing Medium | The night before | Now |
+|---|---|---|
+| Small | left at 0.7 m/s: one step, 0.17 m | leaves at 1.9 m/s: two stumble steps over 0.73 m, on his feet |
+| Medium | left at 2.2 m/s: two steps, 1.1 m | leaves at 2.1 m/s: two stumble steps over 0.84 m, on his feet |
+| Hard, countered | carried back at 1.8 m/s: one step, 0.42 m | carried back at 3.1 m/s: three stumble steps over 2.2 m, turned 25 degrees, on his feet |
+| Hard, not countered | thrown at 3.4 m/s: down after 1.9 m | thrown at 4.3 m/s: down, 3.0 m back after 1.2 s |
+| Extra hard, not countered | (none) | thrown at 6.8 m/s: off his feet, 4.5 m back after 1.2 s |
+
+**4. "A few cases where the shields get stuck to each other. The logs will show this."** No logs of the 19th were
+in the repository when this was done, so the cases themselves were not read. One cause is known from the night's
+own numbers: the ledger left the basher going forward at 0.3 to 1.6 m/s after his bash, into a man who had only
+been carried back a step, so the two could end board against board. Now (Combat Feel "After A Bash He Holds His
+Ground"): his own legs take what is left of his going forward. After each of the bashes above the two are 1.5 to
+4.3 m apart 1.2 s later. **Whether that was his case is not known until his logs are read.**
+
+**5. The sword as he gets up: "pinned to the ground in one position … not allowed to rotate more than only a few
+degrees … should not be able to change rotation fast."** Built as said (Combat Feel "A Rising Fighter's Sword Hand
+Stays Where It Lies"; `GetUp.PinSwordHand`, `GetUp.SettleSwordHand`). His sword hand stays where it lay when the
+get-up began, brought down to the ground once if it was not on it, turned as it lay. It is let go when his arm
+can no longer reach that spot or the get-up has the hand 45 cm off the ground, and goes to where the get-up has it
+over 0.4 s. Pinned it may turn 5 degrees ("Rising Sword Hand May Turn"). Through the whole get-up it turns no
+faster than 180 degrees a second ("Rising Sword Hand Turns At Most"; twice that once let go) and travels no
+faster than 3 m/s. This is the last word on that hand each step: after the keys, the blend in from how he lay, the
+blend out to his stand and the rule that keeps the blade out of the ground. The night's mend (the wrist turning
+the blade clear) had the hand still going wherever each key put it, and the first try at this pin was undone by the
+blend from how he lay and by the ground rule running after it.
+
+| Get-up, the sword as finally posed | The night's mend | Pinned |
+|---|---|---|
+| From his back: the blade's largest turn in one step | 23 degrees | 10 degrees (his whole body turning is in that) |
+| From his back: the tip's tremble, as seen / as posed | 63 / 56 mm | 22 / 18 mm |
+| From his front: the tip's tremble, as seen / as posed | 31 / 26 mm | 21 / 17 mm |
+| Pinned for | (not pinned) | 0.75 s from his back, 0.37 s from his front |
+
+Not looked at: whether a blade held from turning now lies in the ground for a moment where it used to be flicked
+clear (the crossing counter does not count the ground).
+
+**In the lab.** Duel, Actions, "Stumbles and falls": "Stumble him: Small / Medium / Hard / Extra hard"; "A bash
+lands: when the board touches / from 46 cm off (old)"; "After a bash: he holds his ground / he goes on (old)"; the
+four "pushes through" levers, "Knees give at once" and "First foot lifts in" under the settings. Target test:
+"Getting up, his sword hand: stays where it lies / goes with the keys (old)" with its two levers. Headless:
+`FIGHT_BASHTOUCH=0`, `FIGHT_BASHHOLDS=0`, `FIGHT_PUSHES="2.4,0.3,2,6"`, `FIGHT_BASHKIND=extra`, `STUMBLE_ATONCE`,
+`FIGHT_GETUPPIN=0`, `FIGHT_GETUPTURNS`; `GETUPFINAL` lines under `FIGHT_GETUPTRACE=1`.
+
+**Fields renamed so their new defaults take in his scene:** "Small Bash Reach" is now "Small Bash Arm Goes"
+(0.9); "Stumble Reacts In" is now "Stumble First Foot Lifts In" (0.05). Whatever he had set on the two old ones is
+not carried over.

@@ -825,3 +825,13 @@ Built and measured headless; nothing seen in Unity. With it, the impacts plan's 
 - **Headless.** A medium bash: two stumble steps over 1.1 m, on his feet. A hard bash countered: one step, 0.4 m. Not countered: thrown at 3.4 m/s, down after 1.9 m. In a fight of six (40 s, two seeds): 3 and 7 stumbles, 2 and 4 kept their feet, turned up to 89 degrees.
 - **To see it.** Duel lab, Actions, "Stumbles and falls": "Stumble him: Small / Medium / Hard", with "Off balance: real stumble steps / the walk played fast (old)" and "A bash's speeds: worked out / written in (old)".
 - **Open.** "How often a fighter goes down" is now one lever, "Stumble foot speed": at 5 an uncountered hard bash fells a standing Medium, at 5.5 it is a three metre stumble. How far a felled man is thrown is evened out: he goes down where his stumble ends, about 2 m. The arms do nothing of their own yet. The look is unjudged.
+
+## Progress, 19 November (morning): after Renier's first look
+
+He played the stumbles: "this looks pretty good so far"; it reads as a stumble. Worked in the same morning, headless only:
+
+- **The bash lands on touch.** It "landed" 46 cm from his middle, some 30 cm of air before the board; with the ledger checking the basher at that moment, the other flew off untouched.
+- **The legs answer at once.** No hit stop on a bash, and his knees give as it comes in. Before, the upper body recoiled over stiff legs.
+- **Pushes through.** Each bash adds the speed his arm and legs drive on with (a lever each). Small leaves him at 1.9 m/s (two steps, 0.73 m), hard not countered at 4.3 m/s (down, 3 m back), and a new **extra hard** at 6.8 m/s (off his feet, 4.5 m back).
+- **After a bash he holds his ground**, so the two do not end board against board.
+- His decisions: the new system all the way; the hard bash knocks hard, the extra hard much harder; the small bash must clear his space.
