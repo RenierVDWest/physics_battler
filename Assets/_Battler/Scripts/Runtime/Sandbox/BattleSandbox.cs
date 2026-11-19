@@ -1571,6 +1571,17 @@ namespace PhysicsBattler.Sandbox
                 feel.kickGoesIntoHim = Lever("Kicks into him", feel.kickGoesIntoHim, 0f, 0.6f, "How far past the other's front the kicking foot is aimed (metres at a Medium's size).");
             }
 
+            if (feel != null)
+            {
+                BeginRow();
+                Words(new GUIContent("An opening:", "What he does when the other stumbles, has his guard knocked open, or has his back turned (Combat Feel \"A Fighter Pounces On An Opening\"). Pounces (new): as soon as he is free he goes for it: out of reach he leaps in, in reach he strikes at once, a light blow at the chest. Once for each opening. Stands off (old): he keeps his guard's distance and lets the other find his feet."));
+                if (Press(feel.aFighterPouncesOnAnOpening ? "[he pounces]" : "he pounces", "He goes for it.")) feel.aFighterPouncesOnAnOpening = true;
+                if (Press(!feel.aFighterPouncesOnAnOpening ? "[he stands off (old)]" : "he stands off (old)", "As before.")) feel.aFighterPouncesOnAnOpening = false;
+                EndRow();
+                feel.pounceReadsIn = Lever("Pounce reads in", feel.pounceReadsIn, 0f, 0.6f, "How soon he reads an opening and goes for it (seconds).");
+            }
+
+            Readout(new GUIContent("His last pounce: " + Duel.Pounced + $" ({Duel.OpeningsSeen} openings seen, {Duel.PounceLeaps} leapt at, {Duel.PounceBlows} struck at).", "What opening he saw, how far off, whether he leapt in, and when he struck."), 2);
             Readout(new GUIContent("His last kick: " + (basher != null && basher.LastKick.Length > 0 ? basher.LastKick + "." : "none yet."), "Where the foot landed, how fast it was going, and what it did to the other."), 2);
             if (feel == null)
             {
@@ -3988,7 +3999,7 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), arms in a stumble, knees that take an impact, a kick";
+        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), arms in a stumble, knees that take an impact, a kick, the pounce";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
@@ -4006,6 +4017,8 @@ namespace PhysicsBattler.Sandbox
             "9. Watch his arms: his hands should go out to his sides as he stumbles and come back as he catches himself. To compare: \"Stumbling, his arms: hold his guard (old)\". The lever \"Arms go out by\" makes it more or less.",
             "KICKS (pushed 01:40; a first build):",
             "11. Same place. Press \"Kick him: Front kick\". He kicks the other chest high with his back foot; the other is thrown back and stumbles. Try \"Kick power\" at 4: he should go down. \"Set out\" the target without a shield to see it land on a body.",
+            "THE POUNCE (pushed 02:00; a first build):",
+            "12. Same place. Press \"Stumble him: Small\", then \"Medium\". As the other stumbles, the basher should go for him: strike at once if he is in reach, or leap in and strike. To compare: \"An opening: he stands off (old)\". After a medium or hard bash he is late, and the other blocks: I know.",
             "AN IMPACT (pushed 01:15):",
             "10. Same place. Press \"Stumble him: Hard\" and watch the legs of the one who bashes: his knees should give and his hips drop as his board lands, then he comes up. To compare: \"An impact, his knees and hips: stand stiff (old)\". Levers: \"Knees give to it\", \"Contact time\", \"Trunk folds to it\".",
         };
@@ -4017,7 +4030,7 @@ namespace PhysicsBattler.Sandbox
             "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:", "Getting up, his shield:", "The end of a get-up:",
             "Duel", "Stumbles and falls", "Stumble him:", "Stumbling, his arms:", "Arms go out by",
             "An impact, his knees and hips:", "Contact time", "Knees give to it", "Trunk folds to it",
-            "Kick him:", "Kick power", "Kicks into him",
+            "Kick him:", "Kick power", "Kicks into him", "An opening:", "Pounce reads in",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

@@ -346,6 +346,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a fighter pushed off balance stumbles on real stumble steps (the Fight Rhythm plan's step 9c). His body is a weight on legs: thrown by a bash or a heavy blow it tips away from his feet, and the only thing that stops it is a foot put down ahead of it. The foot behind lifts and goes for the point where it would stop him, as far as a leg reaches and as fast as a foot goes; landing ahead of him it takes speed out of him and his knees give. If his feet get there he is caught, in one step or several, and may have been turned by a blow that came in off his middle. If his body outruns his feet his hips sink and he is down. No speed is written in for when he stumbles or falls and nothing is drawn by lot: it comes from the speed and twist the impact left him with and where his feet were. Off: as before, he is thrown back on the guard's walk played fast, and falls from a fixed speed.")]
         public bool offBalanceHeStumblesOnRealSteps = true;
 
+        [Tooltip("On: a fighter pounces on an opening. When the other stumbles, has his guard knocked open, or has his back turned, the fighter goes for it as soon as he is free: out of reach he leaps in, in reach he strikes at once, a light blow at the chest. In the duel lab only for now. Off (old): after a bash he stands off at his guard's distance.")]
+        public bool aFighterPouncesOnAnOpening = true;
+
+        [Tooltip("How soon he reads an opening and goes for it (seconds).")]
+        [Range(0f, 0.6f)] public float pounceReadsIn = 0.15f;
+
         [Tooltip("On: a fighter can kick: a front kick with the back foot, from the sword-and-shield recordings. As the foot meets the other's body or his board he is thrown as by any impact: shoved, stumbling or down is his legs' to decide. Only from the lab's \"Kick him\" for now: no fighter kicks by himself. Off: the button does nothing.")]
         public bool aKickThrowsABody = true;
 
@@ -1796,6 +1802,8 @@ namespace PhysicsBattler.Locomotion
             ImpactLedger.FeetTake = Mathf.Clamp01(feetTakeOfAnImpact);
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
+            PhysicsBattler.Sandbox.DuelLab.Pounces = aFighterPouncesOnAnOpening;
+            PhysicsBattler.Sandbox.DuelLab.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
             ClipFighter.KicksThrow = aKickThrowsABody;
             ClipFighter.KickPower = Mathf.Clamp(kickPower, 0.5f, 6f);
             ClipFighter.KickGoesIn = Mathf.Clamp(kickGoesIntoHim, 0f, 0.6f);

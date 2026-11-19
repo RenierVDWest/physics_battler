@@ -65,6 +65,8 @@ The rest are one-off comparisons from particular days, kept for reference.
 - `FIGHT_KICK=1`: at each `FIGHT_BASHAT` second the mover kicks the other instead of bashing him
   (`FIGHT_KICKED="2.6,0.25"`: the kick's power in m/s and how far into him in metres; `FIGHT_AIMKIT=sword|open`
   after `st.sh`'s name for a target without a shield). Lines `KICK` and `KICKED`.
+- `FIGHT_POUNCE=0`: the duel's mover does not pounce on an opening (old). `FIGHT_POUNCEREADS=0.15`: how soon he
+  reads one. Every bash or kick asked for with `FIGHT_BASHAT` prints a `POUNCE` line 2.6 s after it.
 - `FIGHT_TAKEOVER=0`: a get-up takes him up as if he lay still and blends from how he lay, the old way (the plan's
   step 4 off). `FIGHT_TAKEOVERMOST=0.6`: the most its take-over takes (seconds). Every fight's report has two lines
   for it: "a get-up takes him up as he moves" (on or off, how long what was left took, how far the furthest hand or

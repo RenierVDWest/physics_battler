@@ -8352,6 +8352,15 @@ namespace PhysicsBattler.Locomotion
         /// from <see cref="BashFellsFrom"/> knocked down. What it did: "shoved", "stumbled", "down".
         /// </summary>
         /// <param name="point">Where it met him, and the impulse it handed him there (N·s): given, <paramref name="speed"/> is the ledger's and what comes of it is his legs' to decide; not given, it is by the two speeds above.</param>
+        /// <summary>His bash has landed and its board is on its way back: the rest of it is dropped (for a pounce on the opening it made). Nothing if it has not landed or its drive is not over.</summary>
+        public void CutBashShort()
+        {
+            if (Bashing && bashStruck && !countering && bashFor >= bashDriveAt + bashDriveTime + 0.5f * BashHeld && bashFor < bashEnds)
+            {
+                bashEnds = bashFor;
+            }
+        }
+
         public string Bashed(Vector3 way, float speed, ClipFighter by, Vector3 point = default, Vector3 impulse = default)
         {
             if (Fallen)

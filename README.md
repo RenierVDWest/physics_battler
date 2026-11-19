@@ -7412,3 +7412,38 @@ has the foot.
 
 Also in this push: the README, plan and panel times of the impact step corrected to 01:15 (written as 01:20).
 
+### 20 November, 02:00: the pounce on an opening, a first build (the fight rhythm plan's step 10)
+
+**Built** (Combat Feel "A Fighter Pounces On An Opening", "Pounce Reads In"; duel lab, "Stumbles and falls": row "An
+opening: he pounces / he stands off (old)", lever "Pounce reads in", and a line "His last pounce";
+`DuelLab.StepPounce`, `DuelLab.Pounces`, `ClipFighter.CutBashShort`; `FIGHT_POUNCE=0`, `FIGHT_POUNCEREADS`; the
+headless bash and kick tests print a `POUNCE` line 2.6 s after).
+
+- **An opening** is the other on his feet and stumbling, his guard knocked open, or his back turned (120 degrees or
+  more round from the mover). A man on the ground is not one here: that is Downed play.
+- **What he does.** 0.15 s after it begins ("Pounce reads in"), as soon as he is free (not down or stumbling
+  himself, not in a blow, a kick or a leap; the rest of his own bash is dropped once its board has landed), he goes
+  for it. In reach (1.35 m) he strikes at once: a light blow at the chest. Out of reach, up to 4.5 m, he leaps in
+  to that distance, a quick low leap at 6 m/s, and strikes as he lands. Once he has leapt he is committed: the blow
+  follows for 1.2 s though the other has found his feet. Once for each opening.
+- **The duel lab only**, as the plan has it until the fight of six takes the dance in (its step 13). The fight's
+  own planning (`FightLoop`) is not touched.
+
+**Measured, headless (old way: after a bash he stood off, 2.1 m apart, no blow):**
+
+| What made the opening | He | The blow was thrown | It |
+| --- | --- | --- | --- |
+| Small bash (the other 0.96 m off, stumbling) | struck from where he stood | 0.20 s after the opening began | landed |
+| Medium bash (1.14 m off) | leapt 0.75 m, 0.73 s after | 1.23 s after | met his shield |
+| Hard bash, countered (thrown 2.2 m back) | leapt 2.12 m, 0.97 s after | 1.65 s after | met his shield |
+| Kick on a body (1.20 m off) | leapt 1.24 m, 0.72 s after | 1.27 s after | was parried |
+| Hard bash, not countered | nothing: the other went down | | (Downed play) |
+
+- **He is late after his own bash or kick.** The opening begins as his board or foot lands, and he is not free
+  for 0.7 to 1.0 s: his bash's leap and his kick's recording have to end first. By the time the blow is thrown the
+  other is at the end of his stumble, and he blocks or parries it. Only after the small bash, thrown standing, is
+  the pounce quick enough to land. Making it quicker means letting a blow start out of the end of a leap or a
+  kick: not built.
+- Crossing on his feet in these runs: 0.00% to 0.14% (0.00% before).
+- **Not seen in Unity.**
+

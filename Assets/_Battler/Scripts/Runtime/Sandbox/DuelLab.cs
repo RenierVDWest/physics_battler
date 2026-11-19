@@ -597,6 +597,126 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>One step of the lab (the physics step): the order turned into the velocity the mover is steered by.</summary>
+        // ---- The pounce (the fight rhythm plan's step 10: a first build, 20 November) ----
+
+        /// <summary>
+        /// He pounces on an opening (Combat Feel "A Fighter Pounces On An Opening"; the duel lab only until the fight of
+        /// six takes it; <c>FIGHT_POUNCE=0</c> for the old way). The other stumbling, his guard knocked open, or his
+        /// back turned is an opening. The mover, as soon as he is free of what he was doing, goes for it: out of
+        /// reach he leaps in to striking distance, and in reach he strikes at once, a light blow at the chest. Once
+        /// for each opening. A man on the ground is not an opening here: that is Downed play. Before, he stood off at
+        /// his guard's distance after a bash and let the other find his feet.
+        /// </summary>
+        public static bool Pounces = true;
+
+        /// <summary>How soon he reads an opening (seconds: the lever "Pounce reads in"), from how far off he will go for it and how far off he strikes from (metres at a Medium's size), how fast his leap in is (m/s), and how far round the other must be turned from him for his back to count (degrees).</summary>
+        public static float PounceReadsIn = DefaultPounceReadsIn;
+
+        public const float DefaultPounceReadsIn = 0.15f, PounceFromAtMost = 4.5f, PounceStrikesFrom = 1.35f, PounceLeapSpeed = 6f, PounceBackTurned = 120f;
+
+        /// <summary>For the panel and the reports: what the last pounce was, and how many openings were seen, leapt at and struck at.</summary>
+        public string Pounced { get; private set; } = "none yet";
+        public int OpeningsSeen { get; private set; }
+        public int PounceLeaps { get; private set; }
+        public int PounceBlows { get; private set; }
+
+        private float openFor = -1f;
+        private bool pounceLeapt, pounceStruck;
+        private string openWhy = "";
+        private float pounceGapWas, pounceLeaptAt;
+
+        /// <summary>How long after he leapt the blow may still follow though the opening has closed (seconds).</summary>
+        public const float PounceCommitted = 1.2f;
+
+        private void StepPounce(float dt, Vector3 to)
+        {
+            var mine = Mover != null ? Mover.Clip : null;
+            var his = Other != null ? Other.Clip : null;
+            if (!Pounces || mine == null || his == null)
+            {
+                openFor = -1f;
+                return;
+            }
+
+            // (An opening: he is on his feet and stumbling, his guard is knocked open, or his back is to the mover.)
+            float gap = to.magnitude;
+            Vector3 way = gap > 1e-3f ? to / gap : Vector3.forward;
+            float turned = Mathf.Abs(Mathf.DeltaAngle(his.Loco.Facing, Mathf.Atan2(-way.x, -way.z) * Mathf.Rad2Deg));
+            string why = his.Fallen ? "" : his.Stumbling ? "he was stumbling" : his.GuardOpen ? "his guard was knocked open" : turned >= PounceBackTurned ? "his back was turned" : "";
+            // (Once he has leapt he is committed: the blow follows as he lands, whether the other has found his feet by
+            // then or not, for a moment longer.)
+            bool committed = openFor >= 0f && pounceLeapt && !pounceStruck && openFor < pounceLeaptAt + PounceCommitted;
+            if (why.Length == 0 && !committed)
+            {
+                if (openFor >= 0f && !pounceStruck)
+                {
+                    Pounced = pounceLeapt ? Pounced + "; the other had found his feet and stepped clear before he could strike"
+                        : $"an opening ({openWhy}) closed after {openFor:0.00} s before he was free to take it";
+                }
+
+                openFor = -1f;
+                return;
+            }
+
+            if (openFor < 0f)
+            {
+                openFor = 0f;
+                openWhy = why;
+                pounceLeapt = pounceStruck = false;
+                pounceGapWas = gap;
+                OpeningsSeen++;
+            }
+
+            openFor += dt;
+            if (pounceStruck || openFor < PounceReadsIn || gap > PounceFromAtMost * mine.Size)
+            {
+                return;
+            }
+
+            // (His own bash has done its work: he does not stand through the rest of it.)
+            mine.CutBashShort();
+
+            // (Free of what he was doing: not down or stumbling himself, not in a blow, a bash, a kick or a leap.)
+            bool free = !mine.Fallen && !mine.Stumbling && !mine.Striking && !mine.Bashing && !mine.Kicking && mine.Loco.Ready
+                && mine.Loco.Current != PhysicsBattler.Locomotion.Locomotor.Mode.OneShot;
+            if (!free)
+            {
+                return;
+            }
+
+            float from = PounceStrikesFrom * mine.Size;
+            if (gap > from + 0.15f * mine.Size && !pounceLeapt)
+            {
+                float far = gap - from;
+                float flight = Mathf.Clamp(far / PounceLeapSpeed, 0.15f, 0.5f);
+                // (A quick, low leap: little crouch before it and little settling after, so the blow can follow at once.)
+                var quick = new PhysicsBattler.Locomotion.LeapStyle { Crouch = 0.5f, Height = 0.4f, Lean = 16f, Arms = 0f, Body = 0.6f, PrepTime = 0.08f, PushTime = 0.08f, LandTime = 0.08f, BackTime = 0.1f };
+                if (mine.LeapMade(way, far / mine.Size, flight, quick))
+                {
+                    pounceLeapt = true;
+                    pounceLeaptAt = openFor;
+                    PounceLeaps++;
+                    Pounced = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}, {1:0.00} m off: he leapt {2:0.00} m in {3:0.00} s after it began", openWhy, pounceGapWas, far, openFor);
+                }
+
+                return;
+            }
+
+            if (Mover.AimStrike(Other, PhysicsBattler.Locomotion.AimSpot.Chest, out string strike, out float miss, kind: PhysicsBattler.Locomotion.AttackClass.Light))
+            {
+                pounceStruck = true;
+                PounceBlows++;
+                Pounced = (pounceLeapt ? Pounced + ", and " : openWhy + string.Format(System.Globalization.CultureInfo.InvariantCulture, ", {0:0.00} m off: he ", pounceGapWas))
+                    + string.Format(System.Globalization.CultureInfo.InvariantCulture, "struck at his chest {0:0.00} s after it began, from {1:0.00} m ({2}{3}), the other {4}",
+                        openFor, gap, strike, miss > 0.005f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, ", short by {0:0} cm", 100f * miss) : "",
+                        his.Stumbling ? "still stumbling" : his.GuardOpen ? "his guard still open" : turned >= PounceBackTurned ? "with his back still turned" : "on his feet again");
+                if (PhysicsBattler.Diagnostics.PlaytestTrace.Enabled)
+                {
+                    PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "pounce", Pounced);
+                }
+            }
+        }
+
         /// <summary>What the mover leaves open to the other, as it is now (looked at ten times a second while the lab runs).</summary>
         public readonly System.Collections.Generic.List<PhysicsBattler.Locomotion.Openings.Seen> Open = new System.Collections.Generic.List<PhysicsBattler.Locomotion.Openings.Seen>();
 
@@ -821,6 +941,7 @@ namespace PhysicsBattler.Sandbox
             Vector3 to = Flat(Other.Root.position - Mover.Root.position);
             Gap = to.magnitude;
             StepTurnBack(dt, to);
+            StepPounce(dt, to);
             Vector3 moved = Flat(Mover.Root.position - last);
             last = Mover.Root.position;
             Speed = Mathf.Lerp(Speed, moved.magnitude / Mathf.Max(1e-4f, dt), Mathf.Clamp01(dt / 0.15f));
