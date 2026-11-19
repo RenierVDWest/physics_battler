@@ -4,8 +4,9 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 19 November 2026, 19:30 (the get-up plan's step 4, the take-over, built and pushed: headless only,
-waiting for his eye; a fault found and mended in the headless stand-in for Unity).
+Last updated: 19 November 2026, 22:10 (he saw step 4 and called the get-up a mess: knees in the ground, the sword
+shaking as he pushes up, the shield through him. Knees and sword hand mended and pushed, headless only. He has
+gone to bed and set the night's order: see "Roadmap").
 
 ## The project in a few lines
 
@@ -170,6 +171,26 @@ attacks made from recordings and thrown on the move, the three shield bashes, fa
 short, the shield held in cover, the sword and shield solid against their bearer's body, hands that move
 smoothly, the shield giving way to the sword.
 
+**19 November, 22:10: after his look at step 4 (headless only, waiting for his eye):**
+
+- He saw step 4 in Unity and said the get-up is a mess: "Knees sticking into the ground. STILL the sword shakes
+  like crazy when he pushes himself up. Can't you just pin the hand", and the shield intersects him. His log of
+  19:57: step 4 measures as built (fastest part about 3.0 m/s against 5.0 to 5.5 at 15:29); from his front a knee
+  is 17 cm under the ground for 0.8 s a get-up; the blade's tip moves 53 mm a step while the sword hand is down.
+- **Knees stay above the ground** (Combat Feel "A Rising Fighter's Knees Stay Above The Ground"; lab row "Getting
+  up, his knees"; `GetUp.KneelIfUnder`): a knee solved under the floor kneels on it. Headless: from his front
+  -13 cm for 0.66 s, to +5 cm and never under.
+- **His sword hand is held still** (Combat Feel "A Rising Fighter's Sword Hand Is Held Still"; lab row "While it is
+  pinned"; `GetUp.SwordHandHeldStill`, `ClipFighter.SwordHandHeldBodily`, `UpperBodyArticulation.HoldHandTurn`):
+  while the hand is down the pose is frozen and the physical hand pinned and held to its turn. Headless: the tip
+  3 mm a step while down (was 53), but the hand is down only 0.3 to 0.7 s a get-up; the tremble over the whole
+  get-up is about a third less (from his front 62% to 39% of the time over 5 mm). **The turning hold is a joint
+  drive never seen in Unity.**
+- **A get-up keeps the start he gathered for** (Combat Feel switch; `ClipFighter.KeepsTheStartHeGatheredFor`).
+- Left worse: the take-over's jump from his front and right (1.3 to 2.3 and 2.0 to 2.6 m/s: a shin, in one get-up
+  of three, taken up while the gather still moves that leg).
+- The README's entry of 22:10 has the table.
+
 **The evening of the 19th: the plan's step 4, headless only, waiting for his eye:**
 
 - **A get-up takes him up as he moves** (Combat Feel switch of that name, on; lever "Take Over Takes At Most",
@@ -324,6 +345,13 @@ goes with the keys (old)". Waiting for his eye.
 **Stumbles (step 9c) have a first build (19 November, above). Next on them, after his look:** tune by his answers;
 arms thrown out for balance; a look at feet crossing in a stumble to the side; a sword blow's throw worked out as
 a bash's is (it is still the old rule's number, uncapped).
+
+**The night of 19 to 20 November: his order (said at 21:29, going to bed).** "Continue working through the
+night... if you get to a point that you need to push and get feedback you can just move on to another task." In
+this order: (1) finish the get-up fixes (knees and sword hand: pushed 22:10; then the shield through him, step 5);
+(2) back to stumbles; (3) bodies that absorb a hit; (4) kicks; (5) pouncing on an opening; (6) downed fighters.
+Each gets its switch, lab toggle, measure, push and (if it needs his eye) its 3b2b; the panel's "Look here" list
+covers the whole night, not only the last push. He gets one short list in the morning.
 
 **The first moment of a get-up** (`Docs/Plans/2026-11-19-…`; his answers are in). Steps 1 and 2 are built, step 3
 has a first build he has seen ("fine for where it is now"), step 4 is built and waits for his eye. **Next on it, in

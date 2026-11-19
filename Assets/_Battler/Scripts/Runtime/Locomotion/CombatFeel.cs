@@ -431,6 +431,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: as a fighter gets up, his sword hand stays where it lay when the get-up began, on the ground and turned as it lay, until his arm can no longer reach that spot or the get-up has the hand well off the ground; then it goes to where the get-up has it. While it is pinned it may turn only a few degrees, and through the whole get-up it never turns faster than \"Rising Sword Hand Turns At Most\". Off: as before, the hand goes where each key of the get-up puts it and the sword turns about with it (the sword that shook as he got up).")]
         public bool aRisingFightersSwordHandStaysWhereItLies = true;
 
+        [Tooltip("On: while a rising fighter's sword hand is pinned to the ground, it is held quite still. Once it has come down to the ground it neither moves nor turns until the pin lets it go, and the physical hand is held to that place and turn, so the sword does not shake while he pushes himself up on that hand. Off: as before, the pinned hand may turn a few degrees to and fro and only follows its pose with its own muscles. Needs \"A Rising Fighters Sword Hand Stays Where It Lies\". The lab's \"While it is pinned: held still / may turn a little (old)\".")]
+        public bool aRisingFightersSwordHandIsHeldStill = true;
+
+        [Tooltip("On: as a fighter gets up, no knee goes under the ground. Where the get-up's pose would put a knee under the floor, he kneels on it: the knee is put on the ground and the shin lies from it toward where the foot was asked. Off: as before, the knee goes where the pose puts it (from his front that was 17 cm under the floor for most of a second). The lab's \"Getting up, his knees: stay above the ground / where the pose puts them (old)\".")]
+        public bool aRisingFightersKneesStayAboveTheGround = true;
+
+        [Tooltip("On: a fighter gets up from the start he gathered himself for, unless he has plainly rolled off it since. Off (old): the start is chosen afresh from how his hips lie as the get-up takes him up, even if he was just drawn to another start's first pose.")]
+        public bool aGetUpKeepsTheStartHeGatheredFor = true;
+
         [Tooltip("On: a get-up starts from the start nearest to how he lies. Every start he could use is weighed: the one his hips say, from his side too if his hips are turned that way at all, and each posting on either hand (a sword alone always posts on its free hand). The one his hands, elbows, knees and feet are nearest to is taken; a hand that would have to pass through his own trunk counts as further. Off (the default for now: headless it did not help by itself; it is there for the next step to build on): as before, the start is chosen by which way his hips face only. The lab's \"The start: nearest to how he lies / by his hips only (old)\".")]
         public bool aGetUpStartsNearestToHowHeLies;
 
@@ -1731,6 +1740,9 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.GetUpsKnowWhatIsHeld = getUpsKeepWhatTheHandsHoldOffTheGround;
             PhysicsBattler.Motion.GetUp.BladeTurnsClear = aRisingFightersBladeIsTurnedClearOfTheGround;
             PhysicsBattler.Motion.GetUp.SwordHandStays = aRisingFightersSwordHandStaysWhereItLies;
+            PhysicsBattler.Motion.GetUp.SwordHandHeldStill = aRisingFightersSwordHandIsHeldStill;
+            PhysicsBattler.Motion.GetUp.KneesClearTheGround = aRisingFightersKneesStayAboveTheGround;
+            ClipFighter.KeepsTheStartHeGatheredFor = aGetUpKeepsTheStartHeGatheredFor;
             PhysicsBattler.Authority.UpperBodyArticulation.ShieldStoppedOffFeet = aFallenFightersShieldStaysSolidAgainstHisBody;
             ClipFighter.KeepsApartOffHisFeet = fightersKeepApartOffTheirFeetToo;
             ClipFighter.GetUpStartNearest = aGetUpStartsNearestToHowHeLies;

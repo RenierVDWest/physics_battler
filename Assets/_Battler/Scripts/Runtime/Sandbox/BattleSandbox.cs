@@ -3903,26 +3903,24 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "19 November, 16:45: a get-up takes him up as he moves";
+        private const string LookTag = "19 November, 22:10: his knees stay above the ground, and his sword hand is held still";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Tubes\" (the bar of labs at the top).",
-            "2. Open \"Falls and getting up\" and find \"The start of a get-up\".",
-            "3. Fell him: \"Falls on demand\": Back, Forward, Left or Right. Watch the moment he begins to rise: he should go on smoothly from how he lay, with no stop and no arm or leg that jumps.",
-            "4. Set \"Taken up\" to \"as if he lay still (old)\", fell him the same way, and compare that same moment.",
-            "5. To look closely: \"Hold him at the start\" on stops the game as the get-up takes over; \"Step\" goes on a step at a time.",
-            "6. Too slow or too quick into the get-up? \"Take-over takes at most\" is the lever.",
-            "7. \"His last get-up\" now ends with the take-over: how fast he was moving, and the biggest jump in a part's speed.",
+            "1. Go to \"Tubes\" (the bar of labs at the top) and open \"Falls and getting up\".",
+            "2. Fell him: \"Falls on demand\": Forward (the worst case), then Back.",
+            "3. Watch his knees as he pushes up from his front: they should rest on the ground, not sink into it.",
+            "4. Watch his sword whenever his sword hand is on the ground: it should lie still. It still moves while the hand is in the air and as he stands up.",
+            "5. To compare: set \"Getting up, his knees\" to \"where the pose puts them (old)\", or \"While it is pinned\" to \"may turn a little (old)\", and fell him the same way.",
+            "6. His shield still passes through him as he gets up: that is next, not in this push.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
             "Tubes", "Falls and getting up", "Falls on demand", "Falls on demand>Back", "Falls on demand>Forward",
-            "Falls on demand>Left", "Falls on demand>Right", "Step", "The start of a get-up", "Taken up:",
-            "Take-over takes at most", "Hold him at the start:", "His last get-up",
+            "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5276,6 +5274,43 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 PhysicsBattler.Motion.GetUp.SwordHandStays = handStaysNow;
+            }
+
+            if (handStaysNow)
+            {
+                BeginRow();
+                Words(new GUIContent("While it is pinned:", "What his pinned sword hand does while he pushes himself up on it (Combat Feel \"A Rising Fighter's Sword Hand Is Held Still\"). Held still (new): once it has come down to the ground it neither moves nor turns until the pin lets it go, and the physical hand is held to that place and turn: the sword should lie still. May turn a little (old): it may turn a few degrees to and fro and only follows its pose with its own muscles: the sword shakes. Fell him the same way with each and watch the sword while his hand is on the ground."), GUILayout.Width(150f));
+                bool still = feel != null ? feel.aRisingFightersSwordHandIsHeldStill : PhysicsBattler.Motion.GetUp.SwordHandHeldStill;
+                bool stillNow = still;
+                if (Press(still ? "[held still]" : "held still", "It neither moves nor turns while pinned.")) stillNow = true;
+                if (Press(!still ? "[may turn a little (old)]" : "may turn a little (old)", "As before.")) stillNow = false;
+                EndRow();
+                if (stillNow != still)
+                {
+                    if (feel != null)
+                    {
+                        feel.aRisingFightersSwordHandIsHeldStill = stillNow;
+                    }
+
+                    PhysicsBattler.Motion.GetUp.SwordHandHeldStill = stillNow;
+                }
+            }
+
+            BeginRow();
+            Words(new GUIContent("Getting up, his knees:", "Where a rising fighter's knees are (Combat Feel \"A Rising Fighter's Knees Stay Above The Ground\"). Stay above the ground (new): where the get-up's pose would put a knee under the floor, he kneels on it: the knee is put on the ground and the shin lies from it toward where the foot was asked. Where the pose puts them (old): under the floor or not; from his front a knee was 17 cm under it for most of a second. Fell him Forward with each and watch his knees as he pushes up."), GUILayout.Width(150f));
+            bool knees = feel != null ? feel.aRisingFightersKneesStayAboveTheGround : PhysicsBattler.Motion.GetUp.KneesClearTheGround;
+            bool kneesNow = knees;
+            if (Press(knees ? "[stay above the ground]" : "stay above the ground", "No knee under the floor.")) kneesNow = true;
+            if (Press(!knees ? "[where the pose puts them (old)]" : "where the pose puts them (old)", "As before.")) kneesNow = false;
+            EndRow();
+            if (kneesNow != knees)
+            {
+                if (feel != null)
+                {
+                    feel.aRisingFightersKneesStayAboveTheGround = kneesNow;
+                }
+
+                PhysicsBattler.Motion.GetUp.KneesClearTheGround = kneesNow;
             }
 
             if (feel != null && handStaysNow)

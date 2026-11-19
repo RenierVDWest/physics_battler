@@ -1482,6 +1482,13 @@ namespace PhysicsBattler.Authority
                 joint.targetPosition = Vector3.zero;
                 handPins[h] = pin;
                 handPinJoints[h] = joint;
+                // (How the hand was turned against its pin as the two were joined: what a turning hold holds it to.)
+                handPinTurned[h] = links[i].transform.rotation;
+            }
+
+            if (!held)
+            {
+                HoldHandTurn(h, null);
             }
 
             handPinned[h] = held;
@@ -1497,6 +1504,57 @@ namespace PhysicsBattler.Authority
                 handPins[h].position = at;
             }
         }
+
+        /// <summary>
+        /// A held hand held to a turn as well (world), or (null) to none: a turning hold between the hand and its
+        /// pin, as quick as <see cref="HandTurnQuick"/> and no stronger than <see cref="HandTurnMost"/> (N·m at a
+        /// Medium's mass). What keeps the sword in a hand he pushes himself up on from wagging: the hand's own motor
+        /// only follows the pose as the forearm above it moves, a step behind. The hold has no say over where the
+        /// hand is; that is the pin's (<see cref="PinHand"/>).
+        /// </summary>
+        public void HoldHandTurn(int h, Quaternion? turn, float mass = 1f)
+        {
+            if (handPins[h] == null || handPinJoints[h] == null)
+            {
+                return;
+            }
+
+            if (!turn.HasValue || !handPinned[h])
+            {
+                if (handTurnHeld[h])
+                {
+                    handPinJoints[h].slerpDrive = new JointDrive { positionSpring = 0f, positionDamper = 0f, maximumForce = 0f };
+                    handTurnHeld[h] = false;
+                }
+
+                return;
+            }
+
+            // (The pin is turned so that the hand, held as it was turned against the pin when they were joined, is turned as asked.)
+            Quaternion pinTurn = turn.Value * Quaternion.Inverse(handPinTurned[h]);
+            handPins[h].transform.rotation = pinTurn;
+            handPins[h].rotation = pinTurn;
+            if (!handTurnHeld[h])
+            {
+                handTurnHeld[h] = true;
+                HandTurnsHeld++;
+                // (A hand and a sword about the wrist turn like 0.3 kg m2.)
+                float turnsLike = 0.3f * mass;
+                float spring = turnsLike * Mathf.Pow(2f * Mathf.PI * HandTurnQuick, 2f);
+                handPinJoints[h].rotationDriveMode = RotationDriveMode.Slerp;
+                handPinJoints[h].targetRotation = Quaternion.identity;
+                handPinJoints[h].slerpDrive = new JointDrive { positionSpring = spring, positionDamper = 2f * Mathf.Sqrt(spring * turnsLike), maximumForce = HandTurnMost * mass };
+            }
+        }
+
+        /// <summary>How quick a held hand's turning hold is (Hz) and the most it holds with (N·m at a Medium's mass).</summary>
+        public static float HandTurnQuick = 20f, HandTurnMost = 300f;
+
+        /// <summary>For the reports: times a hand's turn was taken hold of.</summary>
+        public int HandTurnsHeld;
+
+        private readonly Quaternion[] handPinTurned = { Quaternion.identity, Quaternion.identity };
+        private readonly bool[] handTurnHeld = new bool[2];
 
         /// <summary>A held hand's place moved (world): a hand dragged over the ground takes its hold with it.</summary>
         public void MoveHandPin(int h, Vector3 at)

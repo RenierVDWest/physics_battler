@@ -46,6 +46,13 @@ The rest are one-off comparisons from particular days, kept for reference.
   wrong side of his own body stays there.
 - `FIGHT_STARTNEAREST=1`: a get-up's start is the one nearest to how he lies (off by default). Every fight's report
   has a line "the first 0.75 s of a get-up" (crossing, fastest part, how far the hands went); `downs.sh` prints it.
+- `FIGHT_GETUPKNEES=0`: a rising fighter's knees go where the pose puts them, under the floor or not (old).
+  `FIGHT_GETUPSTILL=0`: his pinned sword hand may turn a little and is not held still (old). `FIGHT_HANDPIN=0`: the
+  pose alone holds it still, the physical hand is not pinned to it. `FIGHT_HANDTURN="20,300"`: how quick the
+  turning hold is (Hz) and the most it holds with (N·m). `FIGHT_SWORDEASES=0.2`: over how long the hand's turn is
+  eased in the air. `FIGHT_KEEPSTART=0`: a get-up's start is chosen afresh as it takes him up, not kept from the
+  gather (old). Report lines: "a rising fighter's knees stay above the ground" and "a get-up keeps the start he
+  gathered for". `gup.sh tag "180 0"` fells three targets from the sides named and prints each get-up.
 - `FIGHT_TAKEOVER=0`: a get-up takes him up as if he lay still and blends from how he lay, the old way (the plan's
   step 4 off). `FIGHT_TAKEOVERMOST=0.6`: the most its take-over takes (seconds). Every fight's report has two lines
   for it: "a get-up takes him up as he moves" (on or off, how long what was left took, how far the furthest hand or

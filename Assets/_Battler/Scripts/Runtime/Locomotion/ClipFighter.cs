@@ -935,7 +935,30 @@ namespace PhysicsBattler.Locomotion
         private readonly PoseBuffer[] bodyPoses = { new PoseBuffer(), new PoseBuffer(), new PoseBuffer(), new PoseBuffer() };
         private readonly float[] bodySteps = new float[4];
         private int bodyAt, bodySeen;
-        private bool takenUpMoving;
+        private bool takenUpMoving, swordHandHeld;
+
+        /// <summary>Held still, his sword hand is held bodily too: the physical hand pinned to where the pose has it and held to its turn. Off: the pose alone holds it still, and the physical hand follows with its own muscles (for measuring one against the other; <c>FIGHT_HANDPIN=0</c>).</summary>
+        public static bool SwordHandHeldBodily = true;
+
+        /// <summary>How near the physical sword hand must be to where the pose holds it before it is taken hold of (metres, on a Medium).</summary>
+        public const float SwordHandTakenWithin = 0.06f;
+
+        /// <summary>Over how long the hold brings the physical sword hand from where it was taken hold of to where the pose has it (seconds).</summary>
+        public const float SwordHandTakenOver = 0.2f;
+
+        private Vector3 swordHandHeldOff;
+        private float swordHandHeldFor;
+
+        /// <summary>His sword hand's physical hold let go.</summary>
+        private void LetSwordHandGo()
+        {
+            if (swordHandHeld && Upper != null)
+            {
+                Upper.PinHand(1, false, Vector3.zero, 1f, 1f);
+            }
+
+            swordHandHeld = false;
+        }
 
         /// <summary>
         /// The step a get-up takes him up in is its first step too, when it takes him up as he moves
@@ -1268,6 +1291,8 @@ namespace PhysicsBattler.Locomotion
             pendingKnock = pendingImpulse = Vector3.zero;
             gathering = false;
             bodySeen = 0;
+            swordHandHeld = false;
+            gathered = false;
             Footing = Footings.Down;
             footingTime = stillFor = 0f;
             Blow = null;
@@ -1550,6 +1575,37 @@ namespace PhysicsBattler.Locomotion
 
             if (fallBody && Upper != null)
             {
+                // (His sword hand held still while he pushes himself up on it: where the pose has it pinned, the
+                // physical hand is held to that place and that turn. Let go as the pose lets it go.)
+                bool held = SwordHandHeldBodily && GetUp.SwordHandHeldStill && GetUp.SwordHandStays && stance != Stances.Open && getUp.SwordHandHeld && !Rig.IsSevered(PartId.HandR);
+                // (Taken hold of only once the physical hand is where the pose has it, or it would be snatched there: a
+                // shield bearer bashed down, taken up as he moved at 2.9 m/s, had his forearm jump 5.6 m/s in one step.)
+                held = held && (swordHandHeld || (Rig.Part(PartId.HandR).body.position - Anim.Part(PartId.HandR).position).sqrMagnitude <= SwordHandTakenWithin * SwordHandTakenWithin * Size * Size);
+                if (held)
+                {
+                    var posed = Anim.Part(PartId.HandR);
+                    float heavy = Mathf.Max(0.25f, Mass / MediumMass);
+                    if (!swordHandHeld)
+                    {
+                        // (Taken hold of where the physical hand is, and brought to where the pose has it over a
+                        // fifth of a second: taken hold of at the pose's place, the few centimetres between them
+                        // were crossed in one step, his forearm jumping 6.8 m/s.)
+                        swordHandHeldOff = Rig.Part(PartId.HandR).body.position - posed.position;
+                        swordHandHeldFor = 0f;
+                    }
+
+                    swordHandHeldFor += dt;
+                    Vector3 holdAt = posed.position + swordHandHeldOff * (1f - Mathf.SmoothStep(0f, 1f, swordHandHeldFor / SwordHandTakenOver));
+                    Upper.PinHand(1, true, holdAt, heavy, Size);
+                    Upper.MoveHandPin(1, holdAt);
+                    Upper.HoldHandTurn(1, posed.rotation, heavy);
+                    swordHandHeld = true;
+                }
+                else if (swordHandHeld)
+                {
+                    LetSwordHandGo();
+                }
+
                 // (The one body it fell in is drawn to the get-up's pose, held as a standing body is.)
                 upperDt = dt;
                 Upper.BeginStep(dt);
@@ -1568,6 +1624,7 @@ namespace PhysicsBattler.Locomotion
 
             if (footingTime >= getUp.Duration)
             {
+                LetSwordHandGo();
                 Footing = Footings.Standing;
                 for (int r = 0; r < 5; r++)
                 {
@@ -1737,6 +1794,19 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Natural get-ups: a body whose front is this near level lies on a side (the sine of how far its front is from level).</summary>
         public const float OnSideWithin = 0.35f;
 
+        /// <summary>A get-up starts from the start he gathered himself for, unless he has plainly rolled off it (Combat Feel; <c>FIGHT_KEEPSTART=0</c> chooses afresh as it takes him up, as before).</summary>
+        public static bool KeepsTheStartHeGatheredFor = true;
+
+        /// <summary>How far past the line between two starts his hips may have rolled and the gathered start still holds (of his front's up-and-down part: 0.3 is about 17 degrees).</summary>
+        public const float GatheredStartHoldsFor = 0.3f;
+
+        /// <summary>Get-ups that kept the start gathered for where his hips would have chosen another (report).</summary>
+        public static int GetUpStartsKept;
+
+        private bool gathered;
+        private GetUp.Kind gatheredKind;
+        private float gatheredSide;
+
         /// <summary>Natural get-ups: each is this much faster or slower than the last at most (a share of its length), so fighters felled together do not rise in step.</summary>
         public const float GetUpVaries = 0.08f;
 
@@ -1843,6 +1913,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Of the last get-up's take-over: how long what was left between his body and the get-up's pose took to ease out (seconds; the old blend's time with the new take-over off), and how far the furthest hand or foot was from where the get-up had it (metres; 0 with it off).</summary>
         public float TakeOverTook, TakeOverFrom;
 
+        /// <summary>Of the last get-up, as seen: the lowest the middle of a knee was over the ground (metres; negative: under it), and how long one was in the ground (seconds).</summary>
+        public float GetUpKneeSeenLowest = 9f, GetUpKneeSeenInGround;
+
         /// <summary>The last get-up's first moment in a line, for the panel and the log ("" before the first).</summary>
         public string GetUpStartTold = "";
 
@@ -1855,7 +1928,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>For the reports: every get-up's first moment, all fighters, since the run began.</summary>
         public struct GetUpStart
         {
-            public float Crossed, Fastest, HandL, HandR, Jump, Speed, Took, From;
+            public float Crossed, Fastest, HandL, HandR, Jump, Speed, Took, From, KneePosed, KneeSeen, KneeInGround, HandStill;
         }
 
         public static readonly List<GetUpStart> GetUpStarts = new List<GetUpStart>();
@@ -2065,9 +2138,10 @@ namespace PhysicsBattler.Locomotion
             getUpLogAt = -1f;
             GetUpStartTold = $"{GetUpRoute}; its first {GetUpStartFor:0.00} s: his own shield or sword crossing him {GetUpStartCrossed:0.00} s, the fastest part {GetUpStartFastest:0.0} m/s ({GetUpStartFastestPart}), the shield hand went {GetUpStartHandL:0.00} m and the sword hand {GetUpStartHandR:0.00} m; the take-over: taken up moving at {TakeOverSpeed:0.0} m/s, the biggest jump in a part's speed in one step {TakeOverJump:0.0} m/s ({TakeOverJumpPart} at {TakeOverJumpAt:0.00} s), {(GetUp.TakesOverAsHeMoves ? $"what was left eased out in {TakeOverTook:0.00} s (a hand or foot {100f * TakeOverFrom:0} cm off at the most)" : "blended from how he lay (old)")}{(GetUpStartChose.Length > 0 ? "; " + GetUpStartChose : "")}";
             LastGetUpStartTold = (FightUnit != null ? FightUnit.name : Rig.name) + " got up " + GetUpStartTold;
-            GetUpStarts.Add(new GetUpStart { Crossed = GetUpStartCrossed, Fastest = GetUpStartFastest, HandL = GetUpStartHandL, HandR = GetUpStartHandR, Jump = TakeOverJump, Speed = TakeOverSpeed, Took = TakeOverTook, From = TakeOverFrom });
+            GetUpStarts.Add(new GetUpStart { Crossed = GetUpStartCrossed, Fastest = GetUpStartFastest, HandL = GetUpStartHandL, HandR = GetUpStartHandR, Jump = TakeOverJump, Speed = TakeOverSpeed, Took = TakeOverTook, From = TakeOverFrom, KneePosed = getUp.KneeLowest, KneeSeen = GetUpKneeSeenLowest, KneeInGround = GetUpKneeSeenInGround, HandStill = getUp.SwordHandStillFor });
             GetUpLog.Add($"got up {GetUpRoute} in {getUpDuration:0.00} s, turned {GetUpTurned:0} degrees toward what it fights; the fastest a part moved early {GetUpFastest:0.0} m/s ({getUp.Fastest}); a planted hand or foot at most {100f * GetUpMiss:0} cm from where its pose wanted it ({getUp.Missed}), and they slid {100f * GetUpSlid:0} cm in all; an arm in its own body at most {100f * getUp.ArmDeepest:0} cm{(getUp.ArmDeepestAt.Length > 0 ? " (" + getUp.ArmDeepestAt + ")" : "")}, more than 2 cm in for {getUp.ArmInFor:0.00} s; what it holds at most {100f * getUp.BladeDeepest:0} cm, for {getUp.BladeInFor:0.00} s; a thigh turned on the hips at most {getUp.ThighFastest:0.0} rad/s ({getUp.ThighFastestAt}) and was at most {getUp.ThighPast:0} degrees past the hip's range ({getUp.ThighPastAt}); an ankle at the nearest {getUp.AnkleNearest:0.00} of a leg's length from its hip ({getUp.AnkleNearestAt}); as seen (the physical body): an arm in its body for {GetUpArmSeenIn:0.00} s, what it holds for {GetUpBladeSeenIn:0.00} s"
                 + (GetUpShieldSeenLowest < 8f ? $"; its shield over the ground at the lowest {100f * GetUpShieldPosedLowest:0} cm as posed, {100f * GetUpShieldSeenLowest:0} cm as seen (at {GetUpShieldLowestAt:0.00} s), more than 2 cm in the ground for {GetUpShieldInFloorFor:0.00} s" : ""));
+            GetUpLog[GetUpLog.Count - 1] += $"; his knees: at the lowest {100f * getUp.KneeLowest:0} cm over the ground as posed, {100f * GetUpKneeSeenLowest:0} cm as seen, in the ground for {GetUpKneeSeenInGround:0.00} s (a foot moved {100f * getUp.KneeSlidFoot:0} cm from where it was asked, to keep its knee out); his sword hand held still for {getUp.SwordHandStillFor:0.00} s";
             GetUpLog[GetUpLog.Count - 1] += $"; the start: {GetUpStartTold}";
             if (Diagnostics.PlaytestTrace.Enabled)
             {
@@ -2527,6 +2601,18 @@ namespace PhysicsBattler.Locomotion
             }
 
             GetUpArmSeenIn += arm ? dt : 0f;
+            for (int f = 0; f < 2; f++)
+            {
+                // (His knees over the ground, as seen: the middle of the knee, where the shin begins.)
+                var shin = f == 0 ? PartId.ShinL : PartId.ShinR;
+                if (!Rig.IsSevered(shin))
+                {
+                    float up = Rig.Part(shin).transform.position.y - groundLevel;
+                    GetUpKneeSeenLowest = Mathf.Min(GetUpKneeSeenLowest, up);
+                    GetUpKneeSeenInGround += up < GetUp.KneeInGround * Size ? dt : 0f;
+                }
+            }
+
             // (Its shield over the ground, in the get-up itself: as posed, and as the physical body has it.)
             var shield = Kit != null ? Kit.Off : null;
             if (Footing == Footings.GettingUp && shield != null && shield.IsShield)
@@ -2563,6 +2649,8 @@ namespace PhysicsBattler.Locomotion
             RagdollArmsPass();
             HeldSolid(false);
             GetUpArmSeenIn = GetUpBladeSeenIn = 0f;
+            GetUpKneeSeenLowest = 9f;
+            GetUpKneeSeenInGround = 0f;
             GetUpShieldPosedLowest = GetUpShieldSeenLowest = 9f;
             GetUpShieldLowestAt = GetUpShieldInFloorFor = 0f;
             var pelvis = Rig.Part(PartId.Pelvis).body;
@@ -2578,6 +2666,33 @@ namespace PhysicsBattler.Locomotion
                 {
                     kind = GetUp.Kind.FaceDown;
                     getUp.Side = (pelvis.rotation * Vector3.right).y < 0f ? 1f : -1f;
+                }
+
+                // (The start he gathered himself for is the start he gets up from, unless he has plainly rolled off it
+                // since: his arms and legs were drawn to that start's first pose. Chosen afresh, a fighter whose hips
+                // rolled a little past the line while gathering was taken up by another start, a hand or foot over a
+                // metre from where it had just been drawn to: a forearm at 25 m/s in a fight of six.)
+                if (onlySetOut)
+                {
+                    gathered = true;
+                    gatheredKind = kind;
+                    gatheredSide = getUp.Side;
+                }
+                else if (gathered)
+                {
+                    gathered = false;
+                    if (KeepsTheStartHeGatheredFor && !catching && (kind != gatheredKind || getUp.Side != gatheredSide))
+                    {
+                        bool still = gatheredSide != 0f ? Mathf.Abs(front.y) < OnSideWithin + GatheredStartHoldsFor
+                            : gatheredKind == GetUp.Kind.FaceUp ? front.y > OnSideWithin - GatheredStartHoldsFor
+                            : front.y < GatheredStartHoldsFor - OnSideWithin;
+                        if (still)
+                        {
+                            kind = gatheredKind;
+                            getUp.Side = gatheredSide;
+                            GetUpStartsKept++;
+                        }
+                    }
                 }
 
                 // (What it fights: whoever it is on, or for a target of the sandbox's the way it is set to face.)

@@ -635,6 +635,8 @@ namespace PhysicsBattler.Motion
             ArmDeepestAt = "";
             ThighFastest = ThighPast = 0f;
             ThighFastestAt = ThighPastAt = "";
+            KneeLowest = 9f;
+            KneeInGroundFor = KneeSlidFoot = 0f;
             AnkleNearest = 1f;
             AnkleNearestAt = "";
             Fastest = Missed = "";
@@ -878,6 +880,15 @@ namespace PhysicsBattler.Motion
             // into the standing pose, the limbs go by where their joints are (both poses move).
             // (Taken up as he moves: his limbs go by where their joints are from the first step.)
             keyed.Apply(anim, standing || takingOver);
+            // (And a knee the blend between two poses has under the ground kneels on it, as in the poses themselves.)
+            for (int f = 0; f < 2; f++)
+            {
+                var thigh = f == 0 ? PartId.ThighL : PartId.ThighR;
+                var shin = f == 0 ? PartId.ShinL : PartId.ShinR;
+                var foot = f == 0 ? PartId.FootL : PartId.FootR;
+                Vector3 bends = keyed.LimbBend[2 + f];
+                KneelIfUnder(thigh, shin, foot, anim.Part(foot).position, bends.sqrMagnitude > 1e-8f ? bends : root.rotation * Vector3.forward, root.rotation * Vector3.forward);
+            }
             Finish(t, stand);
             Composed(t);
         }
@@ -918,6 +929,9 @@ namespace PhysicsBattler.Motion
 
                 thighWas[f] = local;
                 var shinId = f == 0 ? PartId.ShinL : PartId.ShinR;
+                float kneeUp = anim.Part(shinId).position.y - stance.GroundY;
+                KneeLowest = Mathf.Min(KneeLowest, kneeUp);
+                KneeInGroundFor += composedAt >= 0f && t > composedAt && kneeUp < KneeInGround * body.SizeFactor ? t - composedAt : 0f;
                 var footId = f == 0 ? PartId.FootL : PartId.FootR;
                 float folded = Vector3.Distance(anim.Part(id).position, anim.Part(footId).position) / Mathf.Max(1e-4f, anim.RestLocalPosition(shinId).magnitude + anim.RestLocalPosition(footId).magnitude);
                 if (folded < AnkleNearest)
@@ -1046,7 +1060,8 @@ namespace PhysicsBattler.Motion
             // (19 November, tried and taken out: the clamp given a memory of its wrist turn and arm raise from step to
             // step. It changed nothing in what the board or the blade's tip does in a get-up.)
             WeaponGroundGap = PosePipeline.KeepWeaponsOffGround(anim, Loadout, body.SizeFactor, stance.GroundY,
-                takesOver ? Smooth(t / (TakeOverLifts * pace)) : HeldClearFromTheStart ? 1f : Smooth(t / BlendIn));
+                takesOver ? Smooth(t / (TakeOverLifts * pace)) : HeldClearFromTheStart ? 1f : Smooth(t / BlendIn),
+                keepMain: !(pinned && stillKnown && SwordHandHeldStill));
             if (pinned)
             {
                 SettleSwordHand();
@@ -2252,8 +2267,86 @@ namespace PhysicsBattler.Motion
             }
 
             TwoBoneIK.Solve(anim.Part(thigh), anim.Part(shin), anim.Part(foot), at, facing * knee);
+            KneelIfUnder(thigh, shin, foot, at, facing * knee, facing * Vector3.forward);
             anim.Part(foot).rotation = facing * Quaternion.Euler(pitch, 0f, 0f);
         }
+
+        /// <summary>
+        /// No knee under the ground. Where the key has his hips lower than a kneel on this body's legs needs, the knee
+        /// was solved to under the floor: 17 cm under, for 0.8 s of every get-up from his front, in Renier's log of
+        /// 19 November, 19:57. The knee is put on the ground instead, out from his hip the way it was solved and a
+        /// thigh's length from it, and the shin lies from there toward where the foot was asked: he kneels on it. As
+        /// the knee comes down to the ground this is where it was solved, so nothing jumps. (Tried first and not
+        /// kept: the foot slid back until the knee came up, which laid the whole leg out straight, 85 cm back, at
+        /// 5 m/s.) <paramref name="at"/>: where the foot was asked (world); <paramref name="pole"/>: the way the knee
+        /// was asked to bend, used if the kneel leaves no bend to speak of.
+        /// </summary>
+        private void KneelIfUnder(PartId thigh, PartId shin, PartId foot, Vector3 at, Vector3 pole, Vector3 ahead)
+        {
+            if (!Natural || !KneesClearTheGround)
+            {
+                return;
+            }
+
+            float rests = stance.GroundY + KneeRests * body.SizeFactor;
+            Vector3 hip = anim.Part(thigh).position, solved = anim.Part(shin).position;
+            float thighLong = anim.RestLocalPosition(shin).magnitude, shinLong = anim.RestLocalPosition(foot).magnitude;
+            float drop = hip.y - rests;
+            // (His hip may be lower than the knee rests, lying flat: the knee is then a little above it. Left out, the
+            // rule let go as his hips sank and the knee dropped back under: a shin at 8 m/s in a fight of six.)
+            if (solved.y >= rests || Mathf.Abs(drop) >= thighLong)
+            {
+                return;
+            }
+
+            Vector3 out_ = solved - hip;
+            out_.y = 0f;
+            if (out_.sqrMagnitude < 1e-6f)
+            {
+                out_ = at - hip;
+                out_.y = 0f;
+            }
+
+            out_ = out_.sqrMagnitude > 1e-6f ? out_.normalized : ahead;
+            Vector3 kneeAt = new Vector3(hip.x, rests, hip.z) + out_ * Mathf.Sqrt(thighLong * thighLong - drop * drop);
+            Vector3 along = at - kneeAt;
+            along = along.sqrMagnitude > 1e-6f ? along.normalized : -out_;
+            Vector3 footAt = kneeAt + along * shinLong;
+            // (The foot's own floor comes in as far as the knee was lifted, so nothing jumps as the rule takes hold.)
+            float least = Mathf.Min(stance.GroundY + 0.07f * body.SizeFactor, at.y + (rests - solved.y));
+            if (footAt.y < least)
+            {
+                // (The foot no lower than a foot lies: the shin goes out along the ground the same way.)
+                Vector3 flat = new Vector3(along.x, 0f, along.z);
+                flat = flat.sqrMagnitude > 1e-6f ? flat.normalized : -out_;
+                float up = least - rests;
+                footAt = new Vector3(kneeAt.x, least, kneeAt.z) + flat * Mathf.Sqrt(Mathf.Max(0f, shinLong * shinLong - up * up));
+            }
+
+            Vector3 axis = footAt - hip;
+            Vector3 bend = kneeAt - hip;
+            bend -= axis * (Vector3.Dot(bend, axis) / Mathf.Max(1e-6f, axis.sqrMagnitude));
+            Quaternion footTurn = anim.Part(foot).rotation;
+            TwoBoneIK.Solve(anim.Part(thigh), anim.Part(shin), anim.Part(foot), footAt, bend.sqrMagnitude > 1e-8f ? bend : pole);
+            anim.Part(foot).rotation = footTurn;
+            KneeSlidFoot = Mathf.Max(KneeSlidFoot, (footAt - at).magnitude);
+        }
+
+        /// <summary>
+        /// Getting up, his knees stay above the ground (Combat Feel "A Rising Fighter's Knees Stay Above The Ground"):
+        /// a leg whose knee the get-up's pose has under the floor kneels: the knee is put on the ground and the shin
+        /// lies from it toward where the foot was asked. Off: as before, the knee goes where the pose puts it, under
+        /// the floor or not.
+        /// </summary>
+        public static bool KneesClearTheGround = true;
+
+        /// <summary>How high over the ground a knee's middle rests (metres at a Medium's size), and under what height it counts as in the ground (for the reports).</summary>
+        public const float KneeRests = 0.05f, KneeInGround = 0.02f;
+
+        /// <summary>For the reports, of this get-up as posed: the lowest a knee's middle was over the ground (metres; negative: under it), how long one was in the ground (seconds), and the furthest a foot was moved from where it was asked to keep its knee out (metres).</summary>
+        public float KneeLowest { get; private set; }
+        public float KneeInGroundFor { get; private set; }
+        public float KneeSlidFoot { get; private set; }
 
         /// <summary>The nearest a leg's ankle comes to its hip, as a share of the leg's length (a knee bent as far as it goes, 145 degrees, is 0.30).</summary>
         public const float FoldsTo = 0.31f;
@@ -2315,6 +2408,38 @@ namespace PhysicsBattler.Motion
 
         public const float DefaultSwordHandMayTurn = 5f, DefaultSwordHandTurns = 180f;
 
+        /// <summary>
+        /// Getting up, his pinned sword hand is held still (Combat Feel "A Rising Fighter's Sword Hand Is Held
+        /// Still"; Renier, 19 November: "can't you just pin the hand, keep it still as he uses it to push himself
+        /// up"). Whenever the hand is down on the ground it neither moves nor turns: where it lay, once it has come
+        /// down (<see cref="SwordHandComesDownOver"/>), until the pin lets it go; and again where the get-up posts it
+        /// to push up on. The pose has it in one place, turned one way, and the physical hand is held there
+        /// (<c>ClipFighter</c>, <c>UpperBodyArticulation.HoldHandTurn</c>). In the air its turn is eased. Off: as
+        /// before, pinned it may turn up to <see cref="SwordHandMayTurn"/> degrees to and fro, posted it turns as the
+        /// get-up's pose says each step, and the ground rule may move it, which showed as the blade's tip trembling
+        /// (headless, as posed: 10 to 25 mm through most of a get-up from his front, where the old pin held for only
+        /// 0.28 s).
+        /// </summary>
+        public static bool SwordHandHeldStill = true;
+
+        /// <summary>The pose has his sword hand on the ground and held now: pinned where it lay, or still where the get-up posts it (for the physical hold).</summary>
+        public bool SwordHandHeld => pinned && pinTurnKnown && stillKnown;
+
+        /// <summary>
+        /// Held still: his sword hand counts as down on the ground under this height (metres at a Medium's size); it
+        /// has arrived where the get-up posts it within this of that place; it is let go if the get-up asks for it
+        /// further than this from where it is held; and in the air its turn is eased over this long (seconds; its place eased the same way made a get-up from his left side worse).
+        /// </summary>
+        public const float SwordHandDownWithin = 0.14f, SwordHandArrives = 0.04f, SwordHandReposts = 0.15f, SwordHandAllButStopped = 0.6f;
+        public static float SwordHandEases = 0.2f;
+
+        /// <summary>For the reports: how long the hand was held quite still in this get-up (seconds).</summary>
+        public float SwordHandStillFor;
+
+        private bool stillKnown;
+        private Vector3 stillAt;
+        private Quaternion stillTurn = Quaternion.identity;
+
         /// <summary>The get-up's own place for the hand this high over the ground (metres at a Medium's size) lets it go; and how long it takes to go from where it lay to where the get-up has it (seconds).</summary>
         public const float SwordHandLeavesAt = 0.45f, SwordHandLetsGoOver = 0.4f;
 
@@ -2344,6 +2469,8 @@ namespace PhysicsBattler.Motion
             pinT = -1f;
             pinTurnKnown = false;
             pinPoleKept = false;
+            stillKnown = false;
+            SwordHandStillFor = 0f;
             pinReachKnown = false;
             pinReach = 0.96f;
             SwordHandPinnedFor = SwordHandTurnedAt = 0f;
@@ -2416,6 +2543,7 @@ namespace PhysicsBattler.Motion
                 {
                     Vector3 slid = new Vector3(shoulder.x, lies.y, shoulder.z) + out_.normalized * Mathf.Sqrt(Mathf.Max(0f, least * least - high * high));
                     takeCarried += slid - lies;
+                    stillAt += slid - lies;
                     lies = slid;
                 }
 
@@ -2433,7 +2561,8 @@ namespace PhysicsBattler.Motion
             pinReach = reach;
             float free = pinFree * pinFree * (3f - 2f * pinFree);
             Vector3 at = Vector3.Lerp(lies, keyedAt, free);
-            Quaternion want = pinFree > 0f ? keyedRot : Quaternion.RotateTowards(pinRot, keyedRot, SwordHandMayTurn);
+            // (Held still, it does not turn at all while it is pinned.)
+            Quaternion want = pinFree > 0f ? keyedRot : SwordHandHeldStill ? pinRot : Quaternion.RotateTowards(pinRot, keyedRot, SwordHandMayTurn);
             Vector3 mid = 0.5f * (shoulder + keyedAt);
             pinPoleNow = (elbowAt - mid).sqrMagnitude > 1e-4f ? (elbowAt - mid).normalized : pinPole;
             if (takesOver)
@@ -2475,6 +2604,47 @@ namespace PhysicsBattler.Motion
                 return;
             }
 
+            if (SwordHandHeldStill)
+            {
+                // (Held still: whenever his sword hand is down on the ground it is where it is and turned as it is,
+                // and nothing moves it or turns it: not the get-up's poses, not the rule that keeps what he holds out
+                // of the ground. He pushes himself up on a hand that does not move. Twice in a get-up: where it lay,
+                // once it has come down to the ground, until the pin lets it go; and where the get-up then posts it,
+                // from when it arrives there until the get-up lifts it, or asks for it somewhere else, or his arm can
+                // no longer reach it.)
+                float size = body.SizeFactor, down = stance.GroundY + SwordHandDownWithin * size;
+                Vector3 shoulder = anim.Part(upper).position;
+                float arm = anim.RestLocalPosition(fore).magnitude + anim.RestLocalPosition(hand).magnitude;
+                // (Not stopped dead while it is still carried along: a shield bearer bashed down and taken up as he moved
+                // at 2.8 m/s had his sword forearm jump 5.6 m/s in one step. It is held from when it has all but stopped.)
+                bool lies = pinFree <= 0f && pinT >= SwordHandComesDownOver * pace
+                    && (stillKnown || (wantAt - pinWas).magnitude <= SwordHandAllButStopped * size * Mathf.Max(pinDt, 1e-4f));
+                bool posts = pinFree >= 1f && pinKeyY <= down
+                    && (stillKnown ? (wantAt - stillAt).magnitude < SwordHandReposts * size && (stillAt - shoulder).magnitude < 0.97f * arm
+                        : pinWas.y <= down && (wantAt - pinWas).magnitude < SwordHandArrives * size);
+                if (lies || posts)
+                {
+                    if (!stillKnown)
+                    {
+                        stillKnown = true;
+                        stillAt = pinWas;
+                        stillTurn = pinTurn;
+                    }
+
+                    TwoBoneIK.Solve(anim.Part(upper), anim.Part(fore), h, Within(upper, fore, hand, stillAt, pinReach), pinPoleNow);
+                    h.rotation = stillTurn;
+                    pinWas = h.position;
+                    pinTurn = stillTurn;
+                    SwordHandStillFor += pinDt;
+                    return;
+                }
+
+                // (In the air between the two, and as he stands up, its turn is eased: what it is asked changes a
+                // little to and fro from step to step, and followed at a fixed speed the blade's tip shook with it.)
+                want = Quaternion.Slerp(pinTurn, want, 1f - Mathf.Exp(-pinDt / SwordHandEases));
+            }
+
+            stillKnown = false;
             // (Let go and coming round to where the get-up has it, it may turn twice as fast: his stand is taking over.)
             Quaternion turned = Quaternion.RotateTowards(pinTurn, want, SwordHandTurns * (pinFree >= 1f ? 2f : 1f) * pinDt);
             Vector3 moved = Vector3.MoveTowards(pinWas, wantAt, SwordHandMoves * body.SizeFactor * (pinFree >= 1f ? 2f : 1f) * pinDt);

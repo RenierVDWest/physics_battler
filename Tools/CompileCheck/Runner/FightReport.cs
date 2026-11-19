@@ -1283,6 +1283,26 @@ internal static class FightReport
         PhysicsBattler.Motion.GetUp.TraceHeld = Environment.GetEnvironmentVariable("FIGHT_GETUPTRACE") == "1";
         // (FIGHT_TAKEOVER=0: a get-up takes him up as if he lay still and blends from how he lay, as before. FIGHT_TAKEOVERMOST: the most its take-over takes, seconds.)
         PhysicsBattler.Motion.GetUp.TakesOverAsHeMoves = Environment.GetEnvironmentVariable("FIGHT_TAKEOVER") != "0";
+        // (FIGHT_GETUPKNEES=0: a rising fighter's knees go where the pose puts them, under the floor or not, as before. FIGHT_GETUPSTILL=0: his pinned sword hand may turn a little and is not held physically, as before.)
+        PhysicsBattler.Motion.GetUp.KneesClearTheGround = Environment.GetEnvironmentVariable("FIGHT_GETUPKNEES") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.KeepsTheStartHeGatheredFor = Environment.GetEnvironmentVariable("FIGHT_KEEPSTART") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.GetUpStartsKept = 0;
+        PhysicsBattler.Motion.GetUp.SwordHandHeldStill = Environment.GetEnvironmentVariable("FIGHT_GETUPSTILL") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.SwordHandHeldBodily = Environment.GetEnvironmentVariable("FIGHT_HANDPIN") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SWORDEASES"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float swordEases))
+        {
+            PhysicsBattler.Motion.GetUp.SwordHandEases = swordEases;
+        }
+        // (FIGHT_HANDTURN="20,300": how quick the turning hold on a held sword hand is (Hz) and the most it holds with (N·m); "0,0": none, the pose alone holds it still.)
+        {
+            var handTurn = (Environment.GetEnvironmentVariable("FIGHT_HANDTURN") ?? "").Split(',');
+            if (handTurn.Length == 2 && float.TryParse(handTurn[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float handTurnQuick)
+                && float.TryParse(handTurn[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float handTurnMost))
+            {
+                PhysicsBattler.Authority.UpperBodyArticulation.HandTurnQuick = handTurnQuick;
+                PhysicsBattler.Authority.UpperBodyArticulation.HandTurnMost = handTurnMost;
+            }
+        }
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_TAKEOVERMOST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float takeOverMost))
         {
             PhysicsBattler.Motion.GetUp.TakeOverMost = takeOverMost;
@@ -2847,6 +2867,9 @@ internal static class FightReport
                 var starts = PhysicsBattler.Locomotion.ClipFighter.GetUpStarts;
                 sb.AppendLine($"    the first {PhysicsBattler.Locomotion.ClipFighter.GetUpStartFor:0.00} s of a get-up, as seen ({starts.Count} get-ups; the start nearest to how he lies: {(PhysicsBattler.Locomotion.ClipFighter.GetUpStartNearest ? "on" : "off")}, {PhysicsBattler.Locomotion.ClipFighter.StartsChosen} of {PhysicsBattler.Locomotion.ClipFighter.StartsWeighed} took another start than his hips say): "
                     + (starts.Count == 0 ? "none" : $"his own shield or sword crossing him {starts.Average(g => g.Crossed):0.00} s a get-up ({starts.Max(g => g.Crossed):0.00} at most); the fastest part {starts.Average(g => g.Fastest):0.0} m/s on average ({starts.Max(g => g.Fastest):0.0} at most); the shield hand went {starts.Average(g => g.HandL):0.00} m and the sword hand {starts.Average(g => g.HandR):0.00} m on average"));
+                sb.AppendLine($"    a rising fighter's knees stay above the ground: {(PhysicsBattler.Motion.GetUp.KneesClearTheGround ? "on" : "off")}; his sword hand is held still: {(PhysicsBattler.Motion.GetUp.SwordHandHeldStill ? "on" : "off")}"
+                    + (starts.Count == 0 ? "" : $"; a knee at the lowest {100f * starts.Average(g => g.KneePosed):0} cm over the ground as posed and {100f * starts.Average(g => g.KneeSeen):0} cm as seen on average ({100f * starts.Min(g => g.KneeSeen):0} at the lowest), in the ground {starts.Average(g => g.KneeInGround):0.00} s a get-up; the sword hand held still {starts.Average(g => g.HandStill):0.00} s a get-up"));
+                sb.AppendLine($"    a get-up keeps the start he gathered for: {(PhysicsBattler.Locomotion.ClipFighter.KeepsTheStartHeGatheredFor ? "on" : "off")}; {PhysicsBattler.Locomotion.ClipFighter.GetUpStartsKept} kept where his hips would have chosen another");
                 sb.AppendLine($"    a get-up takes him up as he moves: {(PhysicsBattler.Motion.GetUp.TakesOverAsHeMoves ? $"on (at most {PhysicsBattler.Motion.GetUp.TakeOverMost:0.00} s)" : "off")}"
                     + (starts.Count == 0 ? "" : $"; what was left took {starts.Average(g => g.Took):0.00} s to ease out on average ({starts.Max(g => g.Took):0.00} at most), from a hand or foot {100f * starts.Average(g => g.From):0} cm off on average ({100f * starts.Max(g => g.From):0} at most)"));
                 sb.AppendLine($"    the take-over of a get-up, as seen (its first {PhysicsBattler.Locomotion.ClipFighter.TakeOverFor:0.00} s): "

@@ -207,3 +207,18 @@ It needs step 4 first. Next: step 4, then the trunk again, then step 5.
 - To see step 4: Tubes, "Falls and getting up", "The start of a get-up": "Taken up: as he moves / as if he lay
   still (old)".
 - **Next:** the trunk's turn on its merits, then step 5.
+
+**19 November 2026, 22:10: after your look at step 4.** Headless only; waiting for your eye.
+
+- You said: knees in the ground, the sword still shakes as he pushes up, the shield goes through him. Your log of
+  19:57 agrees: from his front a knee is 17 cm under the ground for 0.8 s of every get-up, and the blade's tip moves
+  53 mm a step while his sword hand is down.
+- **Knees: mended.** Where the pose puts a knee under the floor he now kneels on it. In my tests no knee goes under
+  any more (from his front: 13 cm under for 0.66 s, to 5 cm over and never under).
+- **Sword hand: pinned, as you asked.** While the hand is on the ground nothing moves or turns it. In my tests the
+  tip then moves 3 mm a step where it moved 53. But the hand is only down for part of the get-up: over the whole
+  get-up the shake is about a third less, not gone. What is left is while the hand is in the air.
+- A little worse: one get-up in three from his front or right starts with a small kick of a shin.
+- To see it: Tubes, "Falls and getting up", "Falls on demand: Forward" and "Back". To compare: "Getting up, his
+  knees" and "While it is pinned".
+- **Next:** the shield through him (step 5).

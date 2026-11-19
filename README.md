@@ -7162,3 +7162,70 @@ the start's. It needs more strength or more time; that is the next piece.
 (`apt-get install -y dotnet-sdk-8.0`).
 
 **Next:** the trunk's turn in the gather, on its merits; then step 5 (the board carried round him).
+
+### 19 November, 22:10: after his look at step 4: knees out of the ground, the sword hand held still
+
+**What he said (in Unity, step 4 on):** "The getting up is a mess. Knees sticking into the ground. STILL the
+sword shakes like crazy when he pushes himself up. Can't you just pin the hand, keep it still as he uses it to push
+himself up?" And: the shield intersects him. He pushed two logs (18:29 and 19:57; frames looked at and removed).
+
+**His log of 19:57 (53 get-ups, 38 from his front), what it shows:**
+- Step 4 did what it measures: the fastest part in a get-up's first 0.75 s about 3.0 m/s for the armed targets,
+  against 5.0 to 5.5 in his log of 15:29. Crossing 0.12 s a get-up, the shield target from his front 0.36 (no
+  change: that is the pose, step 5).
+- **Knees:** from his front a knee is 17 to 18 cm under the ground, as posed and as seen, for about 0.8 s of every
+  get-up. The pose's fault: the key has his hips lower than a kneel on this body's legs needs.
+- **Sword:** while his sword hand is down the blade's tip moves 53 mm a step, usually. Headless, the old way gives
+  the same 53.
+
+**Built (all on by default, each with its old way):**
+1. **A rising fighter's knees stay above the ground** (Combat Feel; lab row "Getting up, his knees: stay above the
+   ground / where the pose puts them (old)"; `GetUp.KneelIfUnder`). Where a knee is solved under the floor it is put
+   on the ground, out from his hip the way it was solved and a thigh's length from it, and the shin lies from there
+   toward where the foot was asked: he kneels on it. In the keys and in the take-over's blends. Tried first and
+   dropped: sliding the foot back until the knee came up (laid the leg out straight, 85 cm at 5 m/s).
+2. **His sword hand is held still** (Combat Feel "A Rising Fighter's Sword Hand Is Held Still"; lab row "While it is
+   pinned: held still / may turn a little (old)"). Whenever the hand is down on the ground the pose does not move it
+   or turn it at all: where it lay, from when it has all but stopped until the pin lets go, and where the get-up
+   then posts it. And the physical hand is pinned to that place and held to that turn
+   (`UpperBodyArticulation.PinHand` and the new `HoldHandTurn`, 20 Hz, 300 N·m), taken hold of where it is and
+   brought to the pose's place over 0.2 s. In the air its turn is eased (0.2 s).
+3. **A get-up keeps the start he gathered for** (Combat Feel; no lab row: nothing to look at). The start was chosen
+   afresh from his hips as the get-up took him up. With the kneel in the gather's pose a fighter rolled a little
+   past the line and was taken up by another start than the one he had just been drawn to: a shin at 7.3 m/s in a
+   tube fall, a shield forearm at 25 m/s in a fight of six. Now the gathered start holds unless his hips have rolled
+   more than about 17 degrees past the line.
+
+**Measured, headless, old way to new on the same build** (three targets felled by the tube from each side; old is
+`FIGHT_GETUPKNEES=0 FIGHT_GETUPSTILL=0`):
+
+| | from his front | his back | his right | his left | shield bearer bashed down hard |
+| --- | --- | --- | --- | --- | --- |
+| A knee at the lowest, as seen (cm over the ground) | -13 to 5 | 21 to 21 | -12 to 4 | 8 to 14 (lowest -14 to 4) | 13 to 18 (lowest -13 to 4) |
+| A knee in the ground (s a get-up) | 0.66 to 0.00 | 0 | 0.68 to 0.00 | 0.28 to 0.00 | 0.11 to 0.00 |
+| Sword hand held still (s a get-up) | 0.48 | 0.31 | 0.68 | 0.32 | 0.51 |
+| Blade's tip trembling, share of the get-up over 5 mm, as seen | 62% to 39% | 71% to 55% | 45% to 35% | 81% to 58% | 91% to 64% |
+| Fastest part in the first 0.75 s (m/s) | 2.7 to 3.0 | 2.3 to 2.3 | 3.7 to 3.6 | 2.7 to 2.7 | 3.9 to 4.3 |
+| The take-over's jump (m/s) | 1.3 to 2.3 | 1.2 to 1.2 | 2.0 to 2.6 | 0.9 to 0.9 | 0.9 to 1.4 |
+
+- **The sword, honestly.** While the hand is down the pose is now exactly still, and the seen tip moves about 3 mm
+  a step where it moved 53 (3 mm is as fine as the pose log reads). But the hand is down only 0.3 to 0.7 s of a
+  3.5 to 4.5 s get-up. The tremble measure over the whole get-up fell by about a third, not to nothing: what is
+  left is while the hand is in the air and as he stands up, where the keys themselves swing the sword arm (the
+  measure also reads fast curved motion as tremble). The physical hold adds little to the pose's (from his front
+  44% without it, 39% with).
+- **Worse, and left:** the take-over's jump from his front and right. In one get-up of three a shin jumps about
+  4 m/s: he is taken up while the gather is still moving that leg (at 3.6 m/s) to its kneel. One bash-down of six
+  now got up from his left side with the shield forearm at 8.4 m/s (step 5's arm).
+- **Fights of six** (40 s; the fights differ after the first fall, so these are not like for like): seed 5 crossing
+  on his feet 0.58% to 0.57%, board tremble 8.9% to 10.9%; seed 3 0.73% to 0.67%, 6.2% to 6.7%.
+- **Not seen in Unity:** all of it. The turning hold is a joint drive of a kind this project has not used before
+  (a slerp drive on the hand's pin): if the sword hand twitches or spins while he pushes up, that is it, and
+  "While it is pinned: may turn a little (old)" turns it off.
+
+**Mended on the way:** the kneel let go when his hip was lower than the knee's rest (a shin at 8 m/s in a six);
+the foot's floor came in at once (now as far as the knee was lifted); the hold stopped a hand dead that was still
+being carried at 2.8 m/s (a forearm jumping 5.6 m/s; it is held from when it has all but stopped).
+
+**Next:** his shield through him as he gets up (the plan's step 5).
+
