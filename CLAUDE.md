@@ -474,8 +474,11 @@ goes with the keys (old)". Waiting for his eye.
   backhand exists only as a slice of the combo take. A blade's limit is 30 m/s (`PhysicalBladeSpeed`), paced for
   24.
 - **The old combo system** (`ComboPlayer`, `StrikeCores`, `StrikeCombos`, `UnitCombo`) is untouched and still runs
-  in the fight of six. The new plan does not use it: it cut each slash 0.06 s after the hit, which is what he no
-  longer wants.
+  in the fight of six. The new plan does not use it: it plays the cores of recorded clips as they are (from
+  0.18 to 0.30 s before the hit to 0.18 to 0.35 s after it: `StrikeCores.ExitAfter`, `MostFollowThrough`) and fades
+  the pose between them, where the plan carries the blade's own path on. (Its first version cut 0.06 s after the
+  hit; his 4 November playtest found the slash's tail lost and it was changed. I first wrote the plan as if it still
+  cut there: corrected the same evening in the document, the picture and the film's note.)
 
 ## Roadmap
 

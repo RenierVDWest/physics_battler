@@ -50,7 +50,7 @@ We have every part a combo needs except the join. Today each attack starts from 
 ### What stands in the way
 
 1. **No join.** A forehand then a rising cut, each played whole: 0.87 s of recovery, then 0.83 s of wind-up. That is about 1.7 s from hit to hit. This is worked out from the recordings' lengths, not from a test run.
-2. **The old combos are the wrong kind.** The system from before 11 November still runs in the fight of six. Its hits came 0.32 to 0.65 s apart (headless). But it cut every blow off 0.06 s after contact and blended the pose to the next one. In your 4 November playtest the tail of each slash was lost and the blows read as short. It also plays recordings as they are, which our rules no longer allow.
+2. **The old combos cannot be reused.** The system from before 11 November still runs in the fight of six. Its hits came 0.32 to 0.65 s apart (headless). It plays the middle of each recorded strike, from about a quarter of a second before the hit to about 0.2 s after it, and fades the pose across to the next. Its first version cut at the hit, and in your 4 November playtest the tail of each slash was lost, so it was then let sweep on for about 0.2 s. Two things rule it out now. It plays recordings as they are, which our rules no longer allow. And its join fades between two poses, instead of carrying the blade on to where the next cut starts.
 3. **Few cuts are in use.** By itself the attack maker picks only the forehand, the rising backhand and the thrust. The chops, the lunge and the spins are thrown only when named.
 4. **A blocked blow backs out.** Against a shield or a parry the blade stops and comes back. A combo has no flow there yet.
 5. **The blade's speed is capped at 30 m/s**, because physical arms cannot follow anything faster. So extra power cannot come from raw blade speed alone.
@@ -66,13 +66,13 @@ The grey line is our way today, built from the two single recordings: after the 
 | Measured in our mocap takes | Value |
 | --- | --- |
 | Hit to hit in the sword and shield four-cut combo | 0.57 s, then 1.20 s (the last one is a leaping chop) |
-| Hit to hit in the other combo takes | 0.40 to 0.90 s |
-| How far the blade's point carries on after a hit | 3 to 8 m, which is 150 to 470 degrees of blade turn |
-| The blade's slowest speed between two hits | mostly 2 to 5 m/s: it almost never stops |
-| From that slowest moment to the next hit | 0.17 to 0.6 s, mostly 0.23 to 0.3 s |
-| What the blade's path does at its slowest moment | a gentle bend of 10 to 60 degrees (a loop), or a turn-round of 85 to 175 degrees |
+| Hit to hit in the other combo takes | 0.27 to 1.3 s, mostly 0.4 to 0.9 s |
+| How far the blade's point carries on after a hit | 2 to 9 m, which is 120 to 470 degrees of blade turn |
+| The blade's slowest speed between two hits | mostly 1.6 to 5.4 m/s; in 4 joins of 19 it nearly stops |
+| From that slowest moment to the next hit | 0.13 to 0.6 s, mostly 0.23 to 0.47 s |
+| What the blade's path does at its slowest moment | a bend of 20 to 70 degrees (a loop), or a turn-round of 80 to 175 degrees |
 
-About 30 blows in 11 takes. The blade is worked out from the hand's bones, so the speeds are approximate.
+19 joins between 28 blows, in 9 recorded combos. The blade is worked out from the hand's bones, so the speeds are approximate.
 
 The model for us is the first two cuts of the four-cut combo. After the forehand lands, the blade's point carries on 5.5 m in a third of a second. It slows to 2.1 m/s, turns round, and lands again 0.23 s later.
 
@@ -90,7 +90,7 @@ When a hit lands, the victim is stuck reeling for a set time. Players call it hi
 
 An attack has three parts: the start-up, the moment it can hit, and the recovery. A "cancel" overwrites the rest of one move with the next move, so the recovery never plays ([Capcom's own lesson](https://game.capcom.com/cfn/sfv/column/132455?lang=en)). It began as a bug in Street Fighter II that the makers left in, and God of War II later had about 4,000 such branches for its hero alone ([Combat Canceled](https://www.gamedeveloper.com/game-platforms/combat-canceled-i-god-of-war-i-action-game-design)). Chivalry does it with swords: start a new attack before the last one ends, and the recovery is removed ([Chivalry wiki](https://chivalry.fandom.com/wiki/Strategy)).
 
-**For us:** this is what our old combos did, and it is why each slash lost its tail. We have to skip the recovery without cutting the swing.
+**For us:** our old combos skipped it too, by fading between the poses of recorded strikes. The new ones have to skip it without cutting the swing, by the blade's own path.
 
 ### 3. The freeze on the hit
 
@@ -194,9 +194,9 @@ My reading of all this: fighting games cut the animation, For Honor searches rec
 
 A combo in our game is **one swing with several hits**. The blade does not go back to the guard between hits. Each cut is carried through, turned round without stopping, and comes back as the next cut.
 
-*[Picture in the live version: two blows on one time line, thrown three ways. Today: two whole attacks, 1.70 s between the hits. The old combos: the slash cut 0.06 s after the hit and the pose blended to the next, the second hit 0.32 to 0.65 s after the first. The plan: the follow-through is the wind-up, 0.57 s between the hits, nothing cut off.]*
+*[Picture in the live version: two blows on one time line, thrown three ways. Today: two whole attacks, 1.70 s between the hits. The old combos: the middles of two recordings with the poses faded between, the second hit 0.32 to 0.65 s after the first. The plan: the follow-through is the wind-up, 0.57 s between the hits.]*
 
-Today the second hit comes 1.70 s after the first. The old combos brought that down by cutting the slash off. The plan lands it at the performer's own 0.57 s and keeps the whole slash.
+Today the second hit comes 1.70 s after the first. The old combos brought that down by fading between the middles of recorded strikes. The plan lands it at the performer's own 0.57 s and keeps the whole slash.
 
 Five rules make it work.
 
@@ -233,7 +233,7 @@ Each blow stays its own made attack with its own aim. So everything we built for
 
 ### Rule 3. A blow a step
 
-The combo is thrown on the move, one blow on each footfall. Our walk puts a foot down every 0.55 s. The performer's hits are 0.57 s apart. So the feet give the rhythm, the hips never stop, and the fighter walks through his man. A man who is driven back is followed.
+The combo is thrown on the move, one blow on each footfall. Our recorded walk puts a foot down every 0.55 s. The performer's hits are 0.57 s apart. So the feet give the rhythm, the hips never stop, and the fighter walks through his man. A man who is driven back is followed.
 
 ### Rule 4. Each blow has more swing behind it than the last
 

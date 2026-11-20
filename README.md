@@ -7723,7 +7723,8 @@ so approximate; from the sampled mocap takes, not from the game):
 |---|---|
 | The recorded four-cut combo: hit to hit | 0.57 s, then 1.20 s (the last is a leaping chop) |
 | After its first hit, the blade's point | carries on 5.5 m in 0.33 s, slowest 2.1 m/s, then lands again 0.23 s later |
-| Other recorded combos: hit to hit | 0.40 to 0.90 s |
+| The nine recorded combos, 19 joins: hit to hit | 0.27 to 1.3 s, mostly 0.4 to 0.9 s |
+| In them, the blade after a hit | carries on 2 to 9 m; slowest mostly 1.6 to 5.4 m/s (in 4 joins of 19 it nearly stops) |
 | Two whole made attacks one after the other (forehand, rising) | about 1.7 s hit to hit (from the recordings' lengths) |
 | Forehand's end to rising backhand's start, the hand | 32 cm (13 cm with the pack's quick forehand, not baked) |
 | Rising backhand's end to the combo forehand's start, the hand | 24 cm; the point has to roll over the shoulder |
@@ -7732,7 +7733,11 @@ so approximate; from the sampled mocap takes, not from the game):
 **Found on the way:** `sns_backhand_lunge` and `spin_backhand_mid` are the same take (he turns 396 degrees and
 steps 2.4 m), and so are `sns_chop_side` and `spin_chop` (a leap with a full spin); `sns_chop_lunge` travels 3.6 m.
 So the Medium knows six cuts, not eight. The old combo system (`ComboPlayer`, `StrikeCores`, `StrikeCombos`) still
-runs in the fight of six and is not used by the plan.
+runs in the fight of six and is not used by the plan: it plays the cores of recorded clips as they are (0.18 to
+0.30 s before the hit to 0.18 to 0.35 s after it) and fades the pose between them. **A mistake of mine, corrected
+the same evening:** I first wrote that it still cut each slash 0.06 s after the hit (`StrikeCore`'s header comment
+said so; the constants had been changed after his 4 November playtest). The document, its picture, the film's note
+and that comment now say what the code does.
 
 **His log of 13:59 (Unity; 294 s: a target test, then from 42 s a dance of two sword-and-shield fighters). What he
 saw before saying "all this looks fine for now":**

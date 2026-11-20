@@ -6,8 +6,9 @@ namespace PhysicsBattler.Locomotion
     /// <summary>
     /// A strike's combo core (the plan "Combo feel: Bam! Bam! Bam! in one second"): the short stretch of it a combo
     /// shows when it follows on. It is entered 0.18 to 0.30 s before contact, where the blade has turned out of its
-    /// chamber and is already on its way into the blow (and the body turning and stepping into it), and left 0.06 s
-    /// after contact, before the recovery begins. Worked out once per clip, from its own tracks.
+    /// chamber and is already on its way into the blow (and the body turning and stepping into it), and left once the
+    /// slash has swept on through its contact, 0.18 to 0.35 s after it (<see cref="StrikeCores.ExitAfter"/>; it was
+    /// 0.06 s until the playtest of 4 November). Worked out once per clip, from its own tracks.
     /// </summary>
     public readonly struct StrikeCore
     {
