@@ -343,3 +343,16 @@ Pages opened for this plan on 16 November 2026.
 - [Practical Taunt, TV Tropes](https://www.tvtropes.org/pmwiki/pmwiki.php/Main/PracticalTaunt): taunts that have an effect.
 
 From the project itself: the three packs you attached, measured for this plan; the game's code as of 16 November; and the README's entries on controlled falls, getting up and the fight rhythm's step 7.
+
+## Progress, 20 November (night): a first piece of steps 0 and 1. Headless only
+
+- **The plan's first question, answered in my tests: yes.** A blow of today's, aimed at the chest of a man lying on
+  the ground (13 to 16 cm up), reaches him and lands. Two of two.
+- **Built, in the duel lab:** "Strike him where he lies" (once, on demand) and a switch "A man who is down: he holds
+  off / he strikes him". He waits until the other lies, leaps to a metre from his chest, and strikes down at it.
+- **It is off unless you ask.** Whether fighters should strike a man who is down by themselves is still yours to
+  decide.
+- **Not built:** everything else in this plan: the stab and low slash as their own blows, kicks at a man on the
+  ground, rolls, the guard from his back, reading, victory laps.
+- To see it: Duel, "Stumbles and falls". Press "Strike him where he lies", then "Stumble him: Extra hard".
+

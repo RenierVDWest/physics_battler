@@ -597,6 +597,102 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>One step of the lab (the physics step): the order turned into the velocity the mover is steered by.</summary>
+        // ---- A man who is down (the Downed play plan, a first piece of its steps 0 and 1: 20 November) ----
+
+        /// <summary>
+        /// He strikes a man who is down (Combat Feel "A Fighter Strikes A Man Who Is Down"; off by default: he holds off,
+        /// as the game does today, and whether fighters should is a decision of Renier's still open). On, or asked for
+        /// once from the lab ("Strike him where he lies"): while the other is off his feet and within 6 m, the mover,
+        /// as soon as he is free, goes to striking distance of his chest and strikes down at it with the blows there
+        /// are today, aimed at the spot where it lies. The plan's first question: can a made blow be aimed at the
+        /// ground at all. Once for each time he is down.
+        /// </summary>
+        public static bool StrikesTheDowned = false;
+
+        /// <summary>From how far off he goes for a man who is down, and how far from the spot he strikes from (metres at a Medium's size). (A man kicked or bashed down lands 3.5 m and more off: the plan's "near", 3 m, would leave him be.)</summary>
+        public const float DownedNear = 6f, DownedStrikesFrom = 1.05f;
+
+        /// <summary>Asked from the lab: the next time the other is down, he is struck once, whatever the switch says.</summary>
+        public bool StrikeDownedOnce;
+
+        /// <summary>For the panel and the reports: what the last blow at a man who was down was, and how many were thrown.</summary>
+        public string DownedStruck { get; private set; } = "none yet";
+        public int DownedBlows { get; private set; }
+
+        private bool downedDone, downedLeapt;
+        private int downedLeaps;
+
+        /// <summary>How long he must have been down, and how low his chest must lie, before he is gone for (seconds; metres at a Medium's size).</summary>
+        public const float DownedLiesFor = 0.45f, DownedLiesUnder = 0.5f;
+        private float downedFor = -1f;
+
+        private void StepDowned(float dt)
+        {
+            var mine = Mover != null ? Mover.Clip : null;
+            var his = Other != null ? Other.Clip : null;
+            if (mine == null || his == null || !his.Fallen)
+            {
+                downedDone = downedLeapt = false;
+                downedLeaps = 0;
+                downedFor = -1f;
+                return;
+            }
+
+            downedFor = downedFor < 0f ? 0f : downedFor + dt;
+            if (downedDone || !(StrikesTheDowned || StrikeDownedOnce))
+            {
+                return;
+            }
+
+            Vector3 spot = PhysicsBattler.Locomotion.AimSpots.Point(his, PhysicsBattler.Locomotion.AimSpot.Chest);
+            Vector3 to = Flat(spot - Mover.Root.position);
+            float gap = to.magnitude;
+            // (Not while he is still falling: gone for at once, the other was still in the air and slid on a metre and
+            // more, and the blow fell 78 to 115 cm short.)
+            if (gap > DownedNear * mine.Size || downedFor < DownedLiesFor || spot.y - Mover.Root.position.y > DownedLiesUnder * his.Size)
+            {
+                return;
+            }
+
+            bool free = !mine.Fallen && !mine.Stumbling && !mine.Striking && !mine.Kicking && mine.Loco.Ready
+                && mine.Loco.Current != PhysicsBattler.Locomotion.Locomotor.Mode.OneShot;
+            mine.CutBashShort();
+            if (!free)
+            {
+                return;
+            }
+
+            Vector3 way = gap > 1e-3f ? to / gap : Vector3.forward;
+            float from = DownedStrikesFrom * mine.Size;
+            if (gap > from + 0.2f * mine.Size && downedLeaps < 2)
+            {
+                float far = gap - from;
+                var quick = new PhysicsBattler.Locomotion.LeapStyle { Crouch = 0.5f, Height = 0.4f, Lean = 16f, Arms = 0f, Body = 0.6f, PrepTime = 0.08f, PushTime = 0.08f, LandTime = 0.08f, BackTime = 0.1f };
+                if (mine.LeapMade(way, far / mine.Size, Mathf.Clamp(far / PounceLeapSpeed, 0.15f, 0.5f), quick))
+                {
+                    downedLeapt = true;
+                    downedLeaps++;
+                    DownedStruck = string.Format(System.Globalization.CultureInfo.InvariantCulture, "the other down {0:0.00} s, his chest {1:0.00} m off and {2:0} cm over the ground: he leapt {3:0.00} m in", downedFor, gap, 100f * (spot.y - Mover.Root.position.y), far);
+                }
+
+                return;
+            }
+
+            if (Mover.AimStrike(Other, PhysicsBattler.Locomotion.AimSpot.Chest, out string strike, out float miss))
+            {
+                downedDone = true;
+                StrikeDownedOnce = false;
+                DownedBlows++;
+                DownedStruck = (downedLeapt ? DownedStruck + ", and " : string.Format(System.Globalization.CultureInfo.InvariantCulture, "the other down {0:0.00} s: he ", downedFor))
+                    + string.Format(System.Globalization.CultureInfo.InvariantCulture, "struck down at his chest from {0:0.00} m, the spot {1:0} cm over the ground ({2}; {3})",
+                        gap, 100f * (spot.y - Mover.Root.position.y), strike, miss > 0.005f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "the blade expected to fall {0:0} cm short of it", 100f * miss) : "the blade expected to reach it");
+                if (PhysicsBattler.Diagnostics.PlaytestTrace.Enabled)
+                {
+                    PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "downed", DownedStruck);
+                }
+            }
+        }
+
         // ---- The pounce (the fight rhythm plan's step 10: a first build, 20 November) ----
 
         /// <summary>
@@ -942,6 +1038,7 @@ namespace PhysicsBattler.Sandbox
             Gap = to.magnitude;
             StepTurnBack(dt, to);
             StepPounce(dt, to);
+            StepDowned(dt);
             Vector3 moved = Flat(Mover.Root.position - last);
             last = Mover.Root.position;
             Speed = Mathf.Lerp(Speed, moved.magnitude / Mathf.Max(1e-4f, dt), Mathf.Clamp01(dt / 0.15f));

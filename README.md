@@ -7447,3 +7447,43 @@ headless bash and kick tests print a `POUNCE` line 2.6 s after).
 - Crossing on his feet in these runs: 0.00% to 0.14% (0.00% before).
 - **Not seen in Unity.**
 
+### 20 November, 02:20: a man who is down: a first piece of Downed play (its plan's steps 0 and 1)
+
+The Downed play plan (16 November) has ten steps and nothing of it was built. Its first question is whether a made
+blow can be aimed at the ground at all, "better known at the start". This is that, and no more.
+
+**Built** (Combat Feel "A Fighter Strikes A Man Who Is Down", **off by default**; duel lab, "Stumbles and falls":
+row "A man who is down: he holds off / he strikes him", button "Strike him where he lies", and a line "His last
+blow at a man who was down"; `DuelLab.StepDowned`, `StrikesTheDowned`, `StrikeDownedOnce`; `FIGHT_DOWNED=1`; the
+headless bash and kick tests print a `DOWNED` line 4.4 s after).
+
+- With the switch on, or asked for once from the lab: while the other is off his feet and within 6 m, has been
+  down 0.45 s and his chest lies lower than 50 cm, the mover, as soon as he is free, leaps to 1.05 m from where the
+  chest lies (twice at most) and strikes at it with the blows there are today, aimed at the spot (`AimStrike` at
+  his chest). Once each time he is down.
+- **Off by default, on purpose.** Whether a fighter holds off while his enemy is down is a decision of his that is
+  still open, and with it on every fall in the lab would be followed up, also the ones he fells to watch a get-up.
+- A reading taken: the plan's "near is 3 m" is for when a man may get up from his back. A man kicked or bashed
+  down lands 3.5 m and more off, so the follow-up reaches further (6 m).
+
+**Measured, headless (a sword-only target kicked down from 1.4 m, "Kick power" 3.6 and 4.2):**
+
+| | Kick power 3.6 | Kick power 4.2 |
+| --- | --- | --- |
+| The other had been down | 1.68 s | 1.35 s |
+| His chest lay | 1.55 m off, 17 cm over the ground | 1.67 m off, 16 cm |
+| He leapt in | 0.50 m | 0.62 m |
+| Struck from | 1.51 m, at a spot 16 cm up | 1.35 m, at a spot 13 cm up |
+| The blow made | a forehand; "the blade expected to reach it" | a rising cut on a forehand; expected to reach |
+| It | landed on him | landed on him |
+
+- **So: yes, today's made blows can be aimed at a man on the ground, and land** (headless; two of two). The plan
+  feared they could not.
+- **Tried first and changed:** gone for the moment he was "down", the other was still in the air (his chest 94 to
+  115 cm up) and slid on a metre and more: the blow fell 78 to 115 cm short. He now waits until he lies.
+- **Not built (the rest of the plan):** the stab and the low slash as blows of their own; how low he bends and
+  whether his hips stay over his feet; what the blow does to the man lying beyond being counted as a hit; low
+  kicks; rolls; the guard from his back; reading the follow-up; victory laps; the numbers per fighter; any of it
+  in the fight of six.
+- **Not seen in Unity.**
+

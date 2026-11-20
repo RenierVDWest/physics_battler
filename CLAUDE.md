@@ -4,10 +4,10 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 02:00 (the night's work, all headless only and waiting for his eye: the get-up
+Last updated: 20 November 2026, 02:20 (the night's work, all headless only and waiting for his eye: the get-up
 mended four ways after he called it a mess, and the floor's edge; arms that go out in a stumble; knees and hips
-that take an impact; a first kick; a first pounce on an opening. He is asleep and set the night's order: see
-"Roadmap").
+that take an impact; a first kick; a first pounce on an opening; a first blow at a man who is down. All six items
+of the order he set before bed have a first build pushed: see "Roadmap").
 
 ## The project in a few lines
 
@@ -227,6 +227,11 @@ smoothly, the shield giving way to the sword.
   his guard open or his back turned: in reach he strikes at once, out of reach he leaps in and strikes. Headless:
   after a small bash the blow is thrown 0.2 s after the opening began and lands; after a medium or hard bash or a
   kick he is not free for 0.7 to 1.0 s and the blow (1.2 to 1.7 s after) is blocked or parried.
+- **A man who is down, a first piece (the Downed play plan's steps 0 and 1; 20 November, 02:20):** Combat Feel "A
+  Fighter Strikes A Man Who Is Down" (**off by default**: whether fighters hold off is his open decision); lab row
+  "A man who is down" and button "Strike him where he lies" (duel lab, "Stumbles and falls");
+  `DuelLab.StepDowned`. Headless: today's made blows, aimed at the chest of a man lying 13 to 16 cm up, reach and
+  land (two of two): the plan's first question answered yes. The rest of that plan is not built.
 - **A lesson:** a report that only measures the first 0.75 s of a get-up cannot see its end. When he says it looks
   wrong and the numbers say fine, read his pose log step by step (`/tmp`-style scripts: per-part speed from one
   step to the next) before believing the numbers.
@@ -393,7 +398,7 @@ night... if you get to a point that you need to push and get feedback you can ju
 this order: (1) finish the get-up fixes (**done and pushed**: 22:10, 22:55, 00:30);
 (2) back to stumbles (**arms out for balance pushed 00:30**; left: feet crossing in a stumble to the side, a
 sword blow's throw worked out as a bash's is, and in his log of 20:10 every hard bash's stumble had "0 stumble
-steps" before he fell: look at that); (3) bodies that absorb a hit (**a first build pushed 01:15**); (4) kicks (**a first build pushed 01:40**, lab only); (5) pouncing on an opening (**a first build pushed 02:00**, duel lab only); (6) downed fighters.
+steps" before he fell: look at that); (3) bodies that absorb a hit (**a first build pushed 01:15**); (4) kicks (**a first build pushed 01:40**, lab only); (5) pouncing on an opening (**a first build pushed 02:00**, duel lab only); (6) downed fighters (**a first piece pushed 02:20**, off unless asked for).
 Each gets its switch, lab toggle, measure, push and (if it needs his eye) its 3b2b; the panel's "Look here" list
 covers the whole night, not only the last push. He gets one short list in the morning.
 

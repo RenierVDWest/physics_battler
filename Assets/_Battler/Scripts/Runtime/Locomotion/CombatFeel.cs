@@ -352,6 +352,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How soon he reads an opening and goes for it (seconds).")]
         [Range(0f, 0.6f)] public float pounceReadsIn = 0.15f;
 
+        [Tooltip("On: a fighter strikes a man who is down. While the other lies off his feet within 6 m, the fighter goes to him as soon as he is free and strikes down at his chest. In the duel lab only. Off (as the game is today, and the default): he holds off and lets him get up. The lab's \"Strike him where he lies\" asks for it once whatever this says.")]
+        public bool aFighterStrikesAManWhoIsDown = false;
+
         [Tooltip("On: a fighter can kick: a front kick with the back foot, from the sword-and-shield recordings. As the foot meets the other's body or his board he is thrown as by any impact: shoved, stumbling or down is his legs' to decide. Only from the lab's \"Kick him\" for now: no fighter kicks by himself. Off: the button does nothing.")]
         public bool aKickThrowsABody = true;
 
@@ -1803,6 +1806,7 @@ namespace PhysicsBattler.Locomotion
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
             PhysicsBattler.Sandbox.DuelLab.Pounces = aFighterPouncesOnAnOpening;
+            PhysicsBattler.Sandbox.DuelLab.StrikesTheDowned = aFighterStrikesAManWhoIsDown;
             PhysicsBattler.Sandbox.DuelLab.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
             ClipFighter.KicksThrow = aKickThrowsABody;
             ClipFighter.KickPower = Mathf.Clamp(kickPower, 0.5f, 6f);

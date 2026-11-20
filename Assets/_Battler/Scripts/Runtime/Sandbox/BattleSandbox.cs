@@ -1582,6 +1582,22 @@ namespace PhysicsBattler.Sandbox
             }
 
             Readout(new GUIContent("His last pounce: " + Duel.Pounced + $" ({Duel.OpeningsSeen} openings seen, {Duel.PounceLeaps} leapt at, {Duel.PounceBlows} struck at).", "What opening he saw, how far off, whether he leapt in, and when he struck."), 2);
+            BeginRow();
+            Words(new GUIContent("A man who is down:", "What he does while the other lies off his feet (Combat Feel \"A Fighter Strikes A Man Who Is Down\"). He holds off (as the game is today): he lets him get up. He strikes him: as soon as he is free he goes to him and strikes down at his chest, with the blows there are today aimed at where it lies. \"Strike him where he lies\" asks for it once: fell the other first (\"Stumble him: Extra hard\", or \"Kick power\" at 4 and \"Front kick\")."));
+            if (feel != null)
+            {
+                if (Press(!feel.aFighterStrikesAManWhoIsDown ? "[he holds off]" : "he holds off", "As the game is today.")) feel.aFighterStrikesAManWhoIsDown = false;
+                if (Press(feel.aFighterStrikesAManWhoIsDown ? "[he strikes him]" : "he strikes him", "Every time the other is down.")) feel.aFighterStrikesAManWhoIsDown = true;
+            }
+
+            if (Press(Duel.StrikeDownedOnce ? "[Strike him where he lies]" : "Strike him where he lies", "Once: the next time the other is down (or now, if he is), he goes to him and strikes down at his chest."))
+            {
+                Duel.StrikeDownedOnce = !Duel.StrikeDownedOnce;
+                message = Duel.StrikeDownedOnce ? "A man who is down: he will be struck where he lies, once." : "A man who is down: not asked for any more.";
+            }
+
+            EndRow();
+            Readout(new GUIContent("His last blow at a man who was down: " + Duel.DownedStruck + $" ({Duel.DownedBlows} thrown).", "How long the other had been down, how far off and how low his chest lay, whether he leapt in, and whether the blade was expected to reach."), 2);
             Readout(new GUIContent("His last kick: " + (basher != null && basher.LastKick.Length > 0 ? basher.LastKick + "." : "none yet."), "Where the foot landed, how fast it was going, and what it did to the other."), 2);
             if (feel == null)
             {
@@ -3999,7 +4015,7 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), arms in a stumble, knees that take an impact, a kick, the pounce";
+        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), arms in a stumble, knees that take an impact, a kick, the pounce, a man who is down";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
@@ -4019,6 +4035,8 @@ namespace PhysicsBattler.Sandbox
             "11. Same place. Press \"Kick him: Front kick\". He kicks the other chest high with his back foot; the other is thrown back and stumbles. Try \"Kick power\" at 4: he should go down. \"Set out\" the target without a shield to see it land on a body.",
             "THE POUNCE (pushed 02:00; a first build):",
             "12. Same place. Press \"Stumble him: Small\", then \"Medium\". As the other stumbles, the basher should go for him: strike at once if he is in reach, or leap in and strike. To compare: \"An opening: he stands off (old)\". After a medium or hard bash he is late, and the other blocks: I know.",
+            "A MAN WHO IS DOWN (pushed 02:20; a first piece):",
+            "13. Same place. Press \"Strike him where he lies\", then \"Stumble him: Extra hard\" (the other goes down). Once he lies, the basher should go to him and strike down at his chest. This is off unless you ask: fighters still hold off by themselves.",
             "AN IMPACT (pushed 01:15):",
             "10. Same place. Press \"Stumble him: Hard\" and watch the legs of the one who bashes: his knees should give and his hips drop as his board lands, then he comes up. To compare: \"An impact, his knees and hips: stand stiff (old)\". Levers: \"Knees give to it\", \"Contact time\", \"Trunk folds to it\".",
         };
@@ -4030,7 +4048,7 @@ namespace PhysicsBattler.Sandbox
             "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:", "Getting up, his shield:", "The end of a get-up:",
             "Duel", "Stumbles and falls", "Stumble him:", "Stumbling, his arms:", "Arms go out by",
             "An impact, his knees and hips:", "Contact time", "Knees give to it", "Trunk folds to it",
-            "Kick him:", "Kick power", "Kicks into him", "An opening:", "Pounce reads in",
+            "Kick him:", "Kick power", "Kicks into him", "An opening:", "Pounce reads in", "A man who is down:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

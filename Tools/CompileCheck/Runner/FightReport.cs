@@ -1184,6 +1184,8 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.BodiesTakeImpacts = Environment.GetEnvironmentVariable("FIGHT_PRESS") != "0";
         // (FIGHT_POUNCE=0: the duel's mover does not pounce on an opening, as before. FIGHT_POUNCEREADS=0.15: how soon he reads one.)
         PhysicsBattler.Sandbox.DuelLab.Pounces = Environment.GetEnvironmentVariable("FIGHT_POUNCE") != "0";
+        // (FIGHT_DOWNED=1: the duel's mover strikes a man who is down. Off by default, as in the game.)
+        PhysicsBattler.Sandbox.DuelLab.StrikesTheDowned = Environment.GetEnvironmentVariable("FIGHT_DOWNED") == "1";
         PhysicsBattler.Sandbox.DuelLab.PounceReadsIn = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_POUNCEREADS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pounceReads) ? pounceReads : PhysicsBattler.Sandbox.DuelLab.DefaultPounceReadsIn;
         {
             var pressed = (Environment.GetEnvironmentVariable("FIGHT_PRESSED") ?? "").Split(',');
@@ -1926,6 +1928,11 @@ internal static class FightReport
                                 }
                                 else
                                 Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other.Clip, true, bashKind, false, bashExtraAsked) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
+                            }
+
+                            if (paceAt >= bashAt + 4.4f && paceAt - dt < bashAt + 4.4f)
+                            {
+                                Console.WriteLine($"DOWNED {paceAt:0.00}: {duel.DownedStruck} ({duel.DownedBlows} blows at a man who was down); the other {(duel.Other.Clip.Fallen ? "is off his feet" : "stands")}, {Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position):0.00} m off");
                             }
 
                             if (paceAt >= bashAt + 2.6f && paceAt - dt < bashAt + 2.6f)
