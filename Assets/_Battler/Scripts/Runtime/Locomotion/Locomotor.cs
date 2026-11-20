@@ -1204,12 +1204,17 @@ namespace PhysicsBattler.Locomotion
         /// <param name="stepIn">The blow's step in (world, metres): the walk carries him this much further, on top of where it is steered, by the time the blade lands.</param>
         public bool PlayOver(LocoClip clip, float driveAt, float landAt, float check, Vector3 into, Vector3 stepIn = default)
         {
-            if (clip == null || Current == Mode.OneShot || !Ready)
+            // (Out of another blow that is going over the walk, the combos' join: the walk under it goes on, and the
+            // new blow is laid on it against the same guard the first began from. A blow entered out of another has
+            // no guard of its own to be laid on against: its first pose is the other's carry-through.)
+            bool chained = Current == Mode.OneShot && shotOver && Shot != null;
+            if (clip == null || (Current == Mode.OneShot && !chained) || !Ready)
             {
                 return false;
             }
 
-            Mode under = Current;
+            Mode under = chained ? underMode : Current;
+            var guardWas = overGuard;
             StartShot(clip, ShotEnds.Idle);
             // (The walk's own blend is kept: the clip is not what the legs play.)
             shotOver = true;
@@ -1225,10 +1230,17 @@ namespace PhysicsBattler.Locomotion
             clip.Pose(0f, overPose, 1f);
             overGuard = BodyMeasures.OfClips.Decompose(overPose);
             overBlowWas = overGuard;
-            // (What differs is counted against the walk as it was a step ago: the legs go straight on.)
-            for (int i = 0; i < underWas.Length; i++)
+            if (chained)
             {
-                underWas[i] = lastRaw[i];
+                overGuard = guardWas;
+            }
+            else
+            {
+                // (What differs is counted against the walk as it was a step ago: the legs go straight on.)
+                for (int i = 0; i < underWas.Length; i++)
+                {
+                    underWas[i] = lastRaw[i];
+                }
             }
 
             overRides = hasLast;

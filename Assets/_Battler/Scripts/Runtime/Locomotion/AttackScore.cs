@@ -933,23 +933,24 @@ namespace PhysicsBattler.Locomotion
         /// <summary>For the reports: the last join put together, in numbers.</summary>
         public static string JoinNote = "";
 
-        public AttackScore EnteredFrom(AttackScore before, int leave, int enter, int bend)
+        /// <param name="overWalk">For a blow laid over his walk: the joined score is in the frame the blow before began in, not where its root is as it is left. Over a walk the root is the walk's (he faces his man as he goes), and a blow is laid on it by how it differs from the guard the first blow began in.</param>
+        public AttackScore EnteredFrom(AttackScore before, int leave, int enter, int bend, bool overWalk = false)
         {
             if (before == null || Frames.Length < 6 || before.Frames.Length < 3)
             {
                 return this;
             }
 
-            string key = Name + "|from|" + before.Name + "|" + leave + "|" + enter + "|" + bend + (JoinTurnsRoot ? "|t" : "") + (JoinWindsOverBend ? "|w" : "");
+            string key = Name + "|from|" + before.Name + "|" + leave + "|" + enter + "|" + bend + (JoinTurnsRoot ? "|t" : "") + (JoinWindsOverBend ? "|w" : "") + (overWalk ? "|walk" : "");
             if (!scores.TryGetValue(key, out var score))
             {
-                scores[key] = score = new AttackScore(before, this, leave, enter, bend);
+                scores[key] = score = new AttackScore(before, this, leave, enter, bend, overWalk);
             }
 
             return score;
         }
 
-        private AttackScore(AttackScore before, AttackScore next, int leave, int enter, int bend)
+        private AttackScore(AttackScore before, AttackScore next, int leave, int enter, int bend, bool overWalk)
         {
             Clip = next.Clip;
             Name = next.Name + "_out_of_" + before.Name.Replace("sns_", "");
@@ -980,8 +981,8 @@ namespace PhysicsBattler.Locomotion
             // pose between the 2 hits".
             leave = Mathf.Clamp(leave, 0, before.Frames.Length - 1);
             // (Off, for comparing: each recording's tracks as they are, the first build's way.)
-            Vector3 beforeAt = JoinTurnsRoot ? before.Root[leave] : Vector3.zero;
-            Quaternion beforeTurn = JoinTurnsRoot ? Quaternion.Euler(0f, -before.Facing[leave], 0f) : Quaternion.identity;
+            Vector3 beforeAt = JoinTurnsRoot && !overWalk ? before.Root[leave] : Vector3.zero;
+            Quaternion beforeTurn = JoinTurnsRoot && !overWalk ? Quaternion.Euler(0f, -before.Facing[leave], 0f) : Quaternion.identity;
             var points = new Vector3[LocoClip.BoneCount];
             BodyTracks Before(int f, out Vector3 root, out float facing, BodyTracks? last)
             {
@@ -996,7 +997,7 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 root = beforeTurn * (Vector3.Lerp(before.Root[a0], before.Root[a0 + 1], g - a0) - beforeAt);
-                facing = Mathf.LerpAngle(before.Facing[a0], before.Facing[a0 + 1], g - a0) - before.Facing[leave];
+                facing = Mathf.LerpAngle(before.Facing[a0], before.Facing[a0 + 1], g - a0) - (JoinTurnsRoot && !overWalk ? before.Facing[leave] : 0f);
                 return m.Decompose(points, last);
             }
 

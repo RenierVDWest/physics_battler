@@ -247,5 +247,11 @@ costs; whether real attacks should be more frequent.
   and at the 70% pace after a hit going back to full pace at the join. And the second blow of a pair is made
   planted even when I walk: the maker for blows on the move needs to take a score that enters out of another.
 
+- A score's tracks (`AttackScore.Frames`) are in the frame the fighter faced as its clip began, his travel and turn
+  in them. They are not against his root. I lost two hours to taking them the other way at the combos' join.
+- A sword lands slower headless than in Unity (10 against 12 to 16 m/s), so a headless target does not stumble from
+  a sword's blow and mine does. `FIGHT_STUMBLEFROM=0.7` makes it.
+- `b.sh` refuses when the command that calls it names the test dll anywhere. Run it in a command of its own.
+
 Begin with what is first in the list. If something is unclear, take the most reasonable reading, write down which
 one you took, and carry on.

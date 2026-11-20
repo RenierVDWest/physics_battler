@@ -549,7 +549,9 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the
 steps." In this order: (1) the combo fixes (the body's jump: **done**, above; the second blow's aim: better, 9 to 30 cm, his right arm
-still in the way in 4 of 6; the second blow over his walk: not done); (2) the enemy stuck in his shield (**done, above**); (3) **bodies that absorb a hit, pushed up
+still in the way in 4 of 6; the second blow over his walk: **tried and off** (20 November, 23:59, README: it can be
+thrown over the walk now, `FIGHT_FLOWWALKS=1`, but lands 14 to 80 cm off; walking at 1.6 m/s the pair made the
+usual way lands low, 46 to 60 cm off, with a kink of 30 cm at the join)); (2) the enemy stuck in his shield (**done, above**); (3) **bodies that absorb a hit, pushed up
 by him: the blows' part done, above** (a first build exists from 20 November, 01:15, for bashes and thrown bodies: knees and hips give, the trunk
 folds; not built: a sword's blow pressing the struck man, feet sliding before the first step, the head lagging);
 (4) more cuts baked (quick forehand, flat forehand, low cut) and the blade report on them; (5) the step back

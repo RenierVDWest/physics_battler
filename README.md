@@ -8112,3 +8112,24 @@ striker's own arm taking the shock. **Not seen in Unity: how much is right is hi
 
 Checks: 0 errors; the panel's look list 11 of 11; the six within its budgets.
 
+### 20 November, 23:59: the second blow while he walks: tried, not done
+
+The pair thrown while he goes round at a walking pace (1.6 m/s; at the guard's own 0.7 m/s the first blow is thrown
+standing and the pair is as good as standing: the chest, 10 to 16 cm).
+
+- **A blow over his walk can now be followed by another over the same walk** (`Locomotor.PlayOver` takes a second
+  blow while the first is going, laid on against the guard the first began from; `ClipFighter.StrikeOnTheMove`
+  takes a score put together for the occasion). **Off** (`ClipFighter.FlowsOverHisWalk`; `FIGHT_FLOWWALKS=1` to try
+  it): thrown so, the maker turns the second blow 44 to 48 degrees and it lands 14 to 80 cm from its spot. Why is
+  not found; the walk's own turning as he goes round, and how a blow on the move is fitted, are where to look.
+- **Where the first blow went over his walk, the join is in the frame that blow began in** (`EnteredFrom`'s
+  `overWalk`): over a walk his root is the walk's and he still faces his man, where a standing blow's root has
+  turned 68 degrees. With it the maker turns the second blow 9 to 13 degrees and nothing else (it was 12 to 19
+  degrees, a lean of 10 and the wrist steered 16 to 18).
+- **Still wrong while he walks at 1.6 m/s:** the second blow, made standing, lands low (his hips, his thigh), 46 to
+  60 cm from the chest; the posed point is thrown 30 to 34 cm off its course at the join; the first blow lands at
+  3 m/s. 0.48 s hit to hit, the point never under 4.8 m/s. **So "a blow a step" is not there, and thrown while
+  walking fast the pair is worse than standing.** Standing and at the guard's walk it is as the entry above says.
+
+Checks: 0 errors; the panel's look list; `flow.sh`; the standing pair unchanged (17 and 8 cm from the spot).
+

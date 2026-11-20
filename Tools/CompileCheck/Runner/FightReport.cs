@@ -1221,6 +1221,7 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.BladePassesWhatItCut = Environment.GetEnvironmentVariable("FIGHT_BLADEPASSES") != "0";
         PhysicsBattler.Locomotion.ClipFighter.BladePassesEverywhere = Environment.GetEnvironmentVariable("FIGHT_LINEUP") == "aim" || Environment.GetEnvironmentVariable("FIGHT_PASSESINFIGHTS") == "1";
         PhysicsBattler.Locomotion.ClipFighter.BlowsFlow = Environment.GetEnvironmentVariable("FIGHT_FLOWS") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.FlowsOverHisWalk = Environment.GetEnvironmentVariable("FIGHT_FLOWWALKS") == "1";
         // (FIGHT_BLOWPRESS=0: a weapon's blow does not press, fold or turn the body it lands on, as before.
         // FIGHT_BLOWPRESSED="0.06,9,14": how far the hips drop (m), the trunk folds and the chest turns (degrees) for a hard blow.)
         PhysicsBattler.Locomotion.ClipFighter.BodiesTakeBlows = Environment.GetEnvironmentVariable("FIGHT_BLOWPRESS") != "0";

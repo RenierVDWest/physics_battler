@@ -5212,6 +5212,16 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How much there may be to make up at the join, as time (seconds): the soonest join within it is taken. And over how long the body is bent from the one blow onto the other (seconds).</summary>
         public static float FlowBend = BladeFlow.PlanBend, FlowBendOver = 0.12f;
 
+        /// <summary>
+        /// A second blow that flows out of one thrown over his walk is thrown over his walk too (Combat Feel "A Flowing
+        /// Blow Goes On Over His Walk"; <c>FIGHT_FLOWWALKS=0</c>): his legs go on walking under both, and it is timed
+        /// to a footfall where one comes soon. Off: it is made as a standing blow, his walk stopped at the join.
+        /// **Off for now (20 November, late):** it is thrown, but the maker turns it 44 to 48 degrees and it lands 14
+        /// to 80 cm from its spot; why is not found (the walk's own turning as he goes round, or how a blow on the
+        /// move is fitted, is where to look).
+        /// </summary>
+        public static bool FlowsOverHisWalk = false;
+
         /// <summary>At the join no part is carried on faster than this (m/s at a Medium's size; <see cref="Locomotor.MostKeptAtNextSwitch"/>; <c>FIGHT_FLOWKEEPS</c>).</summary>
         public static float FlowKeepsSpeed = 12f;
 
@@ -5235,9 +5245,9 @@ namespace PhysicsBattler.Locomotion
         private float flowLeaveAt, flowFirstHit = -1f, flowSecondHit = -1f, flowJoinedAt = -1f, flowFrozen, flowEnds;
         private int flowLeave, flowEnter, flowLandings;
         private Vector3 flowTip, flowTipStep, flowPosed, flowPosedStep;
-        private bool flowTipKnown, flowPosedKnown;
+        private bool flowTipKnown, flowPosedKnown, flowPlanted;
         private float flowThawed = -10f, flowFacingWas, flowFacingAtJoin, flowBearing, flowFar, flowUp;
-        private string flowFirstMet = "", flowSecondMet = "", flowPlan = "", flowMade = "";
+        private string flowFirstMet = "", flowSecondMet = "", flowPlan = "", flowMade = "", flowWalkNote = "";
 
         /// <summary>For the reports: how the last flow's second blow was made against its first (the maker's turn, lunge, drop, lean and hand's move for each).</summary>
         public string FlowMade => flowMade;
@@ -5387,14 +5397,44 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 var first = flowFirst;
-                var joined = nextScore != null ? nextScore.EnteredFrom(first.Score, flowLeave, flowEnter, Mathf.Max(2, Mathf.RoundToInt(FlowBendOver * nextScore.Rate))) : null;
+                int bendFrames = nextScore != null ? Mathf.Max(2, Mathf.RoundToInt(FlowBendOver * nextScore.Rate)) : 2;
+                // (Where the first blow went over his walk his root is the walk's: it did not turn as the blow's own
+                // root does, and he still faces his man. The joined score is then in the frame the first blow began
+                // in, whichever way the second is thrown.)
+                bool firstWalked = Loco.ShotOverWalk;
+                var joined = nextScore != null ? nextScore.EnteredFrom(first.Score, flowLeave, flowEnter, bendFrames, firstWalked) : null;
+                MadeAttack walked = null;
+                if (joined != null && FlowsOverHisWalk && AttackOnTheMove.On && Loco.ShotOverWalk)
+                {
+                    // (His walk goes on under both blows: the joined score in the frame the first began in.)
+                    Loco.MostKeptAtNextSwitch = FlowKeepsSpeed;
+                    Loco.KeepsSpeedAtNextSwitch = AttackMaker.FromAnyPose;
+                    if (Strikes != null)
+                    {
+                        Strikes.Power = 1f;
+                    }
+
+                    walked = StrikeOnTheMove(flowTarget, flowPoint(), flowStyle, null, nextScore.EnteredFrom(first.Score, flowLeave, flowEnter, bendFrames, true));
+                    flowWalkNote = walked != null ? "thrown over his walk" : string.Format(System.Globalization.CultureInfo.InvariantCulture, "not thrown over his walk: {0}", MovedPlanted ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "it would fall {0:0} cm short", 100f * MovedShort) : "no plan for it");
+                    if (walked != null)
+                    {
+                        KeepOff(flowTarget);
+                    }
+                }
+
+                flowPlanted = true;
                 Loco.MostKeptAtNextSwitch = FlowKeepsSpeed;
+                if (walked == null && !(FlowsOverHisWalk && AttackOnTheMove.On && Loco.ShotOverWalk))
+                {
+                    flowWalkNote = string.Format(System.Globalization.CultureInfo.InvariantCulture, "not tried over his walk (the first blow {0} over his walk; he was going {1:0.00} m/s)", Loco.ShotOverWalk ? "was" : "was not", new Vector2(Loco.Velocity.x, Loco.Velocity.z).magnitude);
+                }
                 flowFacingAtJoin = Loco.Facing;
                 Vector3 lies = InOwnFrame(flowPoint()) * Loco.Leg;
                 flowBearing = Mathf.Atan2(lies.x, lies.z) * Mathf.Rad2Deg;
                 flowFar = new Vector2(lies.x, lies.z).magnitude;
                 flowUp = lies.y;
-                var second = joined != null ? StrikeMade(flowTarget, flowPoint(), flowStyle, 0f, null, null, null, joined) : null;
+                var second = walked ?? (joined != null ? StrikeMade(flowTarget, flowPoint(), flowStyle, 0f, null, null, null, joined) : null);
+                flowPlanted = false;
                 if (second == null)
                 {
                     EndFlow("the next blow could not be made: nothing followed");
@@ -5406,6 +5446,7 @@ namespace PhysicsBattler.Locomotion
                 flowMade = string.Format(System.Globalization.CultureInfo.InvariantCulture, " [the second as made: its score {0} frames at {1:0} a second, drive at {2}, lands at {3}; turned {4:0} degrees, lunge x{5:0.00}, hips dropped {6:0} cm, leaned {7:0} degrees, hand moved {8:0} cm, wrist steered {9:0} degrees; lands {10:0.00} s in, at {16:0.00} s of its score. The first: turned {11:0}, lunge x{12:0.00}, dropped {13:0} cm, leaned {14:0}, hand moved {15:0} cm]",
                     joined.Frames.Length, joined.Rate, joined.Drive, joined.Contact, second.Turn, second.Lunge, 100f * second.Drop * Loco.Leg, second.Lean, 100f * second.HandMoved * Loco.Leg, second.Steer, second.ContactAt,
                     first.Turn, first.Lunge, 100f * first.Drop * Loco.Leg, first.Lean, 100f * first.HandMoved * Loco.Leg, second.ScoreTime)
+                    + (second.OnTheMove && Loco.ShotOverWalk ? " [thrown over his walk]" : " [made standing: " + flowWalkNote + "]")
                     + string.Format(System.Globalization.CultureInfo.InvariantCulture, " [at the join his root had turned {0:0} degrees since the first blow began; the spot lay {1:0} degrees to his right, {2:0.00} m off and {3:0.00} m up]",
                         Mathf.DeltaAngle(flowFacingWas, flowFacingAtJoin), flowBearing, flowFar, flowUp);
                 flowLandings = Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects;
@@ -6216,12 +6257,16 @@ namespace PhysicsBattler.Locomotion
         /// as a foot comes down, and begun over the walk. Null, and nothing begun, when he is not walking (standing,
         /// or stepping in his stance) or no strike can be so thrown.
         /// </summary>
-        private MadeAttack StrikeOnTheMove(ClipFighter enemy, Vector3 point, in AttackStyle style, string named)
+        private readonly List<AttackScore> moveScores = new List<AttackScore>();
+
+        /// <param name="given">A score put together for the occasion (a blow entered out of the one before it, the combos' join): that one, and it may be thrown while the blow before is still going over his walk.</param>
+        private MadeAttack StrikeOnTheMove(ClipFighter enemy, Vector3 point, in AttackStyle style, string named, AttackScore given = null)
         {
             MovedShort = 0f;
             MovedPlanted = false;
             float pace = new Vector2(Loco.Velocity.x, Loco.Velocity.z).magnitude;
-            if (Loco.Current != Locomotor.Mode.Cycle || pace < AttackOnTheMove.WalksFrom * Mathf.Sqrt(Mathf.Max(0.1f, Size)))
+            bool walking = Loco.Current == Locomotor.Mode.Cycle || (given != null && Loco.ShotOverWalk);
+            if (!walking || pace < AttackOnTheMove.WalksFrom * Mathf.Sqrt(Mathf.Max(0.1f, Size)))
             {
                 return null;
             }
@@ -6257,14 +6302,25 @@ namespace PhysicsBattler.Locomotion
             var hold = Poser.Hold();
             MadeAttack best = null, quick = null;
             float quickLands = 0f;
-            foreach (var clip in StrikeClips)
+            moveScores.Clear();
+            if (given != null)
             {
-                var score = AttackScore.Of(clip);
-                if (score == null || (named != null ? clip.Name != named : !score.Plain) || (fakeFromBehind && !score.WindsBehind))
+                moveScores.Add(given);
+            }
+            else
+            {
+                foreach (var clip in StrikeClips)
                 {
-                    continue;
+                    var known = AttackScore.Of(clip);
+                    if (known != null && (named != null ? clip.Name == named : known.Plain) && !(fakeFromBehind && !known.WindsBehind))
+                    {
+                        moveScores.Add(known);
+                    }
                 }
+            }
 
+            foreach (var score in moveScores)
+            {
                 // (To land as a foot comes down: each of the walk's coming footfalls near the blow's own time is tried,
                 // and the one the blow fits best taken; a wind-up hurried or drawn out to meet it costs a little.)
                 float natural = score.Drive / score.Rate * Mathf.Max(0.05f, style.WindUpTime) + (score.Contact - score.Drive) / score.Rate * Mathf.Clamp(style.DriveTime, 0.4f, 3f);
