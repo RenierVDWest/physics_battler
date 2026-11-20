@@ -7925,7 +7925,7 @@ path" numbers of these logs (34 to 60 cm) are not to be read; a fresh log from t
 Checks: 0 errors; the panel's look list 8 of 8; `flow.sh` passes. The fight of six was not run: only the duel
 lab's own code changed.
 
-### 20 November, 21:30: his second look: the step back works in Unity, the drawing is seen, the blade sticks on half the blows
+### 20 November, 21:25: his second look: the step back works in Unity, the drawing is seen, the blade sticks on half the blows
 
 **What he said (21:22):** "They do not munch up now like it did before. The orange and blue lines are not super
 close or far away from each other." With four pictures of the drawing. (Taken as: the two men no longer bunch up.)
