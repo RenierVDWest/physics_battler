@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 21:25 (he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -502,7 +502,27 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
   meant (his pictures). Planted forehands run 16 cm from the planned line, blows on the move 26 cm. **The blade
   sticks at the body in Unity: 13 of 27 landed blows crawled 0.07 to 0.15 s after the freeze, 5 of 27 carried under
   70% of the plan**, mostly the close-in blows of a pounce. He said blue and orange are "not super close or far".
-  **Step 2 is next and starts by mending the sticking; he has not yet said "go" to step 2.**
+  He said "yes please proceed with step 2" at 21:26.
+
+**Combos, step 2: two blows as one swing (20 November, 22:08; headless only, waiting for his eye).** README entry of 22:08.
+
+- **A sword passes the body it cut** (`ClipFighter.LetBladePass`; Combat Feel "A Blade Passes The Body It Cut"; lab
+  row "A blade that cut him:"; `FIGHT_BLADEPASSES=0`): from the moment a blow "drove on through", the striker's solid
+  sword does not touch that man's body (shield and sword still stop it) until it is clear of him. Labs and dance
+  only (`BladePassesHere`). Headless: blades that crawled after the freeze 7 of 19 -> 0 of 17; carried under 70%
+  3 -> 0.
+- **The join** (`AttackScore.EnteredFrom`, `ClipFighter.FlowInto`/`StepFlow`, `DuelLab.ThrowTwo`; Combat Feel "A
+  Second Blow Flows Out Of The First", "The Join Bends Over"; lab row "Two blows:", button "Throw two", readout "His
+  last two blows"; `FIGHT_THROWTWO`, `FIGHT_FLOWS=0`): forehand into rising backhand at the chest. The first is left
+  at the corner `BladeFlow.Join` names; the second is a made attack from a score that bends from the first's
+  carry-through into the second's wind-up over 0.12 s. Headless: 0.53 to 0.58 s hit to hit (one 0.67; old 1.85), the
+  point never under 3.1 m/s, 8 to 10 m of travel. **Two marks missed:** the posed point is thrown 15 to 19 cm off its
+  course in a step at the join (mark 10; cause not found; not the kept-speed limit), and the second blow meets his
+  right arm on its way to the chest in 5 of 7. **Not done:** the second blow is made planted even when he walks.
+- **He steps back sooner after a pounce** (`DuelLab.StepsBackAfter` 0.35 s; lab lever "Steps back after"): the blow's
+  way back to the guard is left. **Unverified:** headless does not show the wait his log showed.
+- A `flow` line goes to his playtest log for every "Throw two".
+- Its film: FILMLINK2
 - **A mistake of the first push (corrected 20:15):** I wrote that this "may be the stand-in" because contact
   modification does nothing headless. It has nothing to do with it: contact modification here is only for a lying
   body on the ground (`GroundContacts.cs`). Before giving a reason why a headless number might not hold in Unity,

@@ -1187,6 +1187,25 @@ namespace PhysicsBattler.Sandbox
             DuelPressIs();
             DuelBodyMap();
             BladePathRow(feel, Duel.Mover != null ? Duel.Mover.Clip : null);
+            if (feel != null)
+            {
+                BeginRow();
+                Words(new GUIContent("Two blows:", "Step 2 of the combos plan: a forehand down and a rising backhand back up the same line, at the chest (Combat Feel \"A Second Blow Flows Out Of The First\"). Flowing (new): one swing. The first blow's own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up: the blade never goes back to the guard between the hits. One after the other (old): a whole attack, and when he is free again the other."));
+                if (Press(feel.aSecondBlowFlowsOutOfTheFirst ? "[flowing]" : "flowing", "One swing with two hits.")) feel.aSecondBlowFlowsOutOfTheFirst = true;
+                if (Press(!feel.aSecondBlowFlowsOutOfTheFirst ? "[one after the other (old)]" : "one after the other (old)", "Two whole attacks.")) feel.aSecondBlowFlowsOutOfTheFirst = false;
+                if (Press("Throw two", "He throws the two blows at the chest now."))
+                {
+                    message = Duel.ThrowTwo(Aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time) ? "Duel lab: two blows asked for at the chest." : "Duel lab: he can't throw two just now (he is busy, or down).";
+                }
+
+                EndRow();
+                Readout(new GUIContent("His last two blows: " + Duel.TwoTold + ".", "Where the first blow was left and the second entered; what each met; how long from the first landing to the second; how far the sword's point travelled between them and the slowest it went (the freeze on the hit apart); how far the posed point was thrown off its course at the join; and how far from the spot the second landed."), 4);
+                BeginRow();
+                Words(new GUIContent("A blade that cut him:", "What the sword does after a blow that landed on a body (Combat Feel \"A Blade Passes The Body It Cut\"). Passes on (new): the sword is let through the body its blow drove on through, so it sweeps on as its pose does; his shield and his sword still stop it. Sticks (old): the solid sword lies against the body for about a tenth of a second after the hit, then whips on."));
+                if (Press(feel.aBladePassesTheBodyItCut ? "[passes on]" : "passes on", "It sweeps on through.")) feel.aBladePassesTheBodyItCut = true;
+                if (Press(!feel.aBladePassesTheBodyItCut ? "[sticks (old)]" : "sticks (old)", "As before.")) feel.aBladePassesTheBodyItCut = false;
+                EndRow();
+            }
             if (ActionSettings(inWindow, "Strike", "Strikes: settings"))
             {
                 StrikeSettings(feel);
@@ -1616,6 +1635,7 @@ namespace PhysicsBattler.Sandbox
                 if (Press(feel.afterGoingForHimHeTakesHisDistanceAgain ? "[he steps back]" : "he steps back", "To the distance he stood at.")) feel.afterGoingForHimHeTakesHisDistanceAgain = true;
                 if (Press(!feel.afterGoingForHimHeTakesHisDistanceAgain ? "[he stands there (old)]" : "he stands there (old)", "As before.")) feel.afterGoingForHimHeTakesHisDistanceAgain = false;
                 EndRow();
+                feel.heStepsBackThisLongAfterHisBlowLands = Lever("Steps back after", feel.heStepsBackThisLongAfterHisBlowLands, 0f, 1f, "How long after his blow lands he begins the step back (seconds). 0: he waits for the whole blow (as it was at 21:15), and the target walks back into him first.");
                 Readout(new GUIContent($"Their distance: the two are {Duel.Gap:0.00} m apart; he keeps {Duel.StoodOff:0.00} m. After his last going: " + (Duel.TookDistance.Length > 0 ? Duel.TookDistance : "nothing yet") + ".", "How far apart the two are now, root to root; the distance he keeps (between the two spots, as last seen with both standing still on them); and what he did when his last pounce or blow at a man who was down was over."), 2);
             }
 
@@ -4136,21 +4156,21 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "20 November, night: the blade's path again; after a pounce the swordsman now steps back to his distance";
+        private const string LookTag = "20 November, late: combos, step 2: two blows as one swing; a sword passes the body it cut; he steps back sooner";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. New: after he pounces by himself, the swordsman steps back to the distance he stood at. Before, he stood where the pounce ended and the target walked right up against him. Go to \"Duel\" and find \"Strike at\"; press \"The blade's path: drawn\".",
-            "2. Press \"Chest\". If the target stumbles, the swordsman runs in and strikes again by himself (the pounce). Watch what he does after it: he should step back, and the readout \"Their distance\" (under \"After he goes for him:\", further down) should come back to about 1.5 m. Then press \"Chest\" again, a good few times.",
-            "3. The pale blue line is the path his blade was planned to take; the white bar is where it was planned to land. The orange line is where the blade really went, with a dark dot for every step of the game's clock: dots close together mean the blade is slow. \"Slow motion: a quarter\" under \"Stumbles and falls\" helps.",
-            "4. What I would like to hear: does he step back each time, and does it look natural? Do blue and orange lie close together now? Right after the white bar, do the dots bunch up, as if the blade sticks at the body? To compare with before: \"After he goes for him: he stands there (old)\".",
+            "1. Go to \"Duel\" and find \"Strike at\". Press \"The blade's path: drawn\". Then, in the row \"Two blows:\", press \"Throw two\". He throws a forehand down and a rising backhand back up the same line, at the chest, as ONE swing: the blade should turn at the bottom and come back, without going to the guard between the hits.",
+            "2. To compare, press \"Two blows: one after the other (old)\" and \"Throw two\" again: two whole attacks. Then back to \"flowing\". \"His last two blows\" says how long it was from the first hit to the second. Try it standing, and with \"Move him: Circle left\". \"Slow motion: a quarter\" under \"Stumbles and falls\" helps.",
+            "3. New as well: a sword now passes on through a body its blow cut, where before it stuck there for a moment (\"A blade that cut him: passes on / sticks (old)\"). Press \"Chest\" a few times each way and look at the orange dots right after the white bar. And after a pounce he should step back sooner.",
+            "4. What I would like to hear: do the two blows read as one motion? Is the turn at the bottom smooth, or does it snap? Does the second blow land where you expect? Does the sword passing through him look right? Is anything ugly in his legs or his body at the turn?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "The blade's path:", "His last blade path", "Chest", "After he goes for him:", "Their distance", "Slow motion:",
+            "Duel", "Strike at", "Two blows:", "Throw two", "His last two blows", "A blade that cut him:", "The blade's path:", "Chest", "Slow motion:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

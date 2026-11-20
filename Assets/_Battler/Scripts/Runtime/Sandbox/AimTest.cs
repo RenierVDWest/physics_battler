@@ -187,6 +187,8 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
+            // (In the labs a sword passes the body its blow drove on through: ClipFighter.BladePassesWhatItCut.)
+            Attacker.Clip.BladePassesHere = Target.Clip.BladePassesHere = true;
             if (!Attacker.AimStrike(Target, spot, out string strike, out float miss, Line, Size, Attack, LandIn, Legs, Kind))
             {
                 return false;

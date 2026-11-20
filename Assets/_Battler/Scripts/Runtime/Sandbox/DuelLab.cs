@@ -527,6 +527,122 @@ namespace PhysicsBattler.Sandbox
             return true;
         }
 
+        // ---- Two blows (the combos plan's step 2) ----
+
+        /// <summary>The two strikes "Throw two" throws: a forehand down, and a rising backhand back up the same line (the figure of eight).</summary>
+        public const string TwoFirst = "sns_forehand", TwoNext = "sns_rising";
+
+        /// <summary>For the panel and the reports: what the last two blows asked for together did.</summary>
+        public string TwoTold { get; private set; } = "none thrown yet";
+
+        private AimTest twoAim;
+        private PhysicsBattler.Locomotion.AimSpot twoSpot;
+        private int twoStage, twoLandings;
+        private float twoFirstHit, twoFor;
+
+        /// <summary>
+        /// Two blows at the spot: a forehand, then a rising backhand. Flowing (<see cref="PhysicsBattler.Locomotion.ClipFighter.BlowsFlow"/>):
+        /// as one swing, the second begun out of the first's carry-through. Otherwise the old way: one whole attack,
+        /// and when he is free again the other. False: the first could not be thrown.
+        /// </summary>
+        public bool ThrowTwo(AimTest aim, PhysicsBattler.Locomotion.AimSpot spot, float now)
+        {
+            if (!Running || aim == null || Mover.Clip == null || Other.Clip == null || Mover.Clip.Flowing || twoStage != 0)
+            {
+                return false;
+            }
+
+            string was = aim.Attack;
+            aim.Attack = TwoFirst;
+            bool begun = Strike(aim, spot, now);
+            aim.Attack = was;
+            if (!begun)
+            {
+                return false;
+            }
+
+            twoAim = aim;
+            twoSpot = spot;
+            twoFor = 0f;
+            twoFirstHit = -1f;
+            twoLandings = Landings();
+            var other = Other;
+            if (PhysicsBattler.Locomotion.ClipFighter.BlowsFlow && Mover.Clip.FlowInto(Other.Clip, () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, spot), PhysicsBattler.Locomotion.AttackClasses.StyleOf(aim.Kind), TwoNext))
+            {
+                twoStage = 3;
+                TwoTold = "flowing: under way";
+            }
+            else
+            {
+                twoStage = 1;
+                TwoTold = "one after the other (old): under way";
+            }
+
+            return true;
+        }
+
+        private int Landings() => Mover.Clip.Strikes != null ? Mover.Clip.Strikes.Hits + Mover.Clip.Strikes.Blocks + Mover.Clip.Strikes.Parries + Mover.Clip.Strikes.Deflects : 0;
+
+        private void StepTwo(float dt)
+        {
+            if (twoStage == 0 || Mover == null || Mover.Clip == null)
+            {
+                twoStage = 0;
+                return;
+            }
+
+            twoFor += dt;
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            if (twoStage == 3)
+            {
+                // (Flowing: the fighter's own account, as it ends.)
+                if (!Mover.Clip.Flowing)
+                {
+                    TwoTold = "flowing: " + Mover.Clip.FlowTold;
+                    twoStage = 0;
+                }
+
+                return;
+            }
+
+            int landings = Landings();
+            bool landed = landings != twoLandings;
+            twoLandings = landings;
+            if (twoStage == 1)
+            {
+                if (landed && twoFirstHit < 0f)
+                {
+                    twoFirstHit = twoFor;
+                }
+
+                // (The first is over and he is free: the other.)
+                if (!Mover.Clip.Striking && !twoAim.Following && twoFor > 0.3f)
+                {
+                    string was = twoAim.Attack;
+                    twoAim.Attack = TwoNext;
+                    bool begun = Strike(twoAim, twoSpot, Time.time);
+                    twoAim.Attack = was;
+                    if (begun)
+                    {
+                        twoStage = 2;
+                    }
+                    else if (twoFor > 6f)
+                    {
+                        TwoTold = "one after the other (old): the second could not be thrown";
+                        twoStage = 0;
+                    }
+                }
+            }
+            else if (landed || twoFor > 8f || (!Mover.Clip.Striking && twoFor > 0.5f && !twoAim.Following))
+            {
+                TwoTold = landed && twoFirstHit >= 0f
+                    ? string.Format(inv, "one after the other (old): the second landed {0:0.00} s after the first ({1})", twoFor - twoFirstHit, Mover.Clip.Strikes.Last)
+                    : "one after the other (old): " + (twoFirstHit < 0f ? "the first met nothing" : "the second met nothing");
+                PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "flow", TwoTold);
+                twoStage = 0;
+            }
+        }
+
         /// <summary>Each step: how fast his root and the watched parts go (as posed), and through a blow's start how that changes.</summary>
         private void WatchStart(float dt)
         {
@@ -621,9 +737,23 @@ namespace PhysicsBattler.Sandbox
 
             // (Not while his blow is still playing, and not while he is finishing the step his run stopped in: a man
             // told to stand in the middle of a step stands where the step ends, FightLoop's rule of 18 November.)
-            if ((his - takenFrom).magnitude < 0.1f * size || Mover.Clip.Striking || Mover.Clip.Stumbling || Mover.Clip.Fallen || (Mover.Clip.Loco != null && Mover.Clip.Loco.StepUnderWay))
+            if ((his - takenFrom).magnitude < 0.1f * size || Mover.Clip.Stumbling || Mover.Clip.Fallen || Mover.Clip.Loco == null || Mover.Clip.Loco.StepUnderWay)
             {
                 return;
+            }
+
+            if (Mover.Clip.Striking)
+            {
+                // (His blow has landed and been carried through: he does not stand through its way back to the guard,
+                // with the other walking back into him. Renier's log of 20 November, 21:18: about a second of that.)
+                var made = Mover.Clip.Made;
+                var loco = Mover.Clip.Loco;
+                if (StepsBackAfter <= 0f || made == null || loco.Shot != made.Clip || loco.Rewinding || Mover.Clip.Flowing || loco.ShotTime < made.ContactAt + StepsBackAfter)
+                {
+                    return;
+                }
+
+                loco.EndShotNow();
             }
 
             // (Straight back from the other's spot through where he is: the shortest way, and never through the man.)
@@ -667,6 +797,13 @@ namespace PhysicsBattler.Sandbox
         /// 1.5 m the lab sets out. Old: he stands where the going ended.
         /// </summary>
         public static bool TakesDistanceAgain = true;
+
+        /// <summary>
+        /// He begins his step back this long after his blow landed, in the blow's own time (seconds): the rest of the
+        /// blow, its way back to the guard, is left. 0: he waits for the whole blow, as on 20 November at 21:15
+        /// (<c>FIGHT_STEPSBACKAFTER</c>).
+        /// </summary>
+        public static float StepsBackAfter = 0.35f;
 
         /// <summary>For the panel and the reports: how far off he stood (spot to spot) as it was last seen settled, and what he did after his last going.</summary>
         public float StoodOff { get; private set; }
@@ -923,8 +1060,10 @@ namespace PhysicsBattler.Sandbox
             if (Mover.Clip != null && Other.Clip != null)
             {
                 Mover.Clip.StumbleOpensGuardHere = Other.Clip.StumbleOpensGuardHere = true;
+                Mover.Clip.BladePassesHere = Other.Clip.BladePassesHere = true;
             }
 
+            StepTwo(dt);
             Run.StepPounce(dt, RunIn.Pounces);
             Run.StepDowned(dt, RunIn.StrikesTheDowned);
             Vector3 moved = Flat(Mover.Root.position - last);

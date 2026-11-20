@@ -3179,6 +3179,8 @@ namespace PhysicsBattler.Locomotion
             MeasureOwnCrossings(dt);
             MeasureHeldShake(dt);
             TrackBladePath(dt);
+            StepBladePass();
+            StepFlow(dt);
             StepUncover(dt);
             if (Fallen)
             {
@@ -5092,6 +5094,345 @@ namespace PhysicsBattler.Locomotion
                 Diagnostics.PlaytestTrace.Note(FightUnit, "bladepath", path.Tell());
             }
         }
+
+        // ---- A blade passes the body it cut (20 November: the combos plan's step 2 begins with this) ----
+
+        /// <summary>
+        /// A sword whose blow drove on through a body is let through that body (Combat Feel "A Blade Passes The Body
+        /// It Cut"; <c>FIGHT_BLADEPASSES=0</c> for the old way). By the game's rule a blow that lands on a body goes on
+        /// along its swing with 70% of its speed, and the pose does. But the sword as seen is a solid thing on a
+        /// physical arm and the struck body is solid too: the sword lay against his chest or his arm and was held there
+        /// at 1 to 6 m/s while its pose went on at 8 to 22, until it slipped past and whipped on. In Renier's log of 20
+        /// November, 21:18, 13 of 27 landed blows had the point under 5 m/s for a further 0.07 to 0.15 s after the
+        /// freeze, and 5 were carried less than 70% as far as planned. Now, from the moment the blow drives on, the
+        /// sword does not touch that man's body (his shield and his sword still stop it) until it is clear of him
+        /// again. Old: it stays solid against him throughout.
+        /// </summary>
+        public static bool BladePassesWhatItCut = true;
+
+        /// <summary>Where it counts: the labs and the dance set this each step for their fighters; the fights of six do not, until they are asked for (<see cref="BladePassesEverywhere"/> for the reports).</summary>
+        public bool BladePassesHere;
+        public static bool BladePassesEverywhere;
+
+        /// <summary>The sword is let through for at least this long (seconds), and after that until it is clear of him, at most <see cref="BladePassesAtMost"/> in all.</summary>
+        public const float BladePassesFor = 0.3f, BladePassesAtMost = 1.5f;
+
+        /// <summary>How many of its blows had their sword let through a body.</summary>
+        public int BladePasses { get; private set; }
+
+        private readonly List<(Collider mine, Collider his)> passing = new List<(Collider, Collider)>();
+        private float passSince;
+
+        /// <summary>Its sword is let through this man's body from now (its blow has driven on through him).</summary>
+        public void LetBladePass(ClipFighter struck)
+        {
+            if (!BladePassesWhatItCut || !(BladePassesHere || BladePassesEverywhere) || Upper == null || struck == null || struck == this || struck.Upper == null)
+            {
+                return;
+            }
+
+            bool any = false;
+            for (int i = 0; i < Upper.Held.Count; i++)
+            {
+                var mine = Upper.Held[i];
+                if (mine == null || Upper.HeldBy(i) != PartId.HandR)
+                {
+                    continue;
+                }
+
+                foreach (var his in struck.Upper.Colliders)
+                {
+                    if (his == null || struck.Upper.IsHeld(his))
+                    {
+                        continue;
+                    }
+
+                    Physics.IgnoreCollision(mine, his, true);
+                    passing.Add((mine, his));
+                    any = true;
+                }
+            }
+
+            if (any)
+            {
+                passSince = clock;
+                BladePasses++;
+            }
+        }
+
+        private void StepBladePass()
+        {
+            if (passing.Count == 0 || clock - passSince < BladePassesFor)
+            {
+                return;
+            }
+
+            if (clock - passSince < BladePassesAtMost)
+            {
+                // (Not while the sword is still in him: made solid there, the engine would throw the two apart.)
+                foreach (var (mine, his) in passing)
+                {
+                    if (mine != null && his != null)
+                    {
+                        // (Their boxes: near enough, and it errs toward waiting.)
+                        Bounds a = mine.bounds, b = his.bounds;
+                        Vector3 apart = a.center - b.center, reach = a.extents + b.extents;
+                        if (Mathf.Abs(apart.x) <= reach.x && Mathf.Abs(apart.y) <= reach.y && Mathf.Abs(apart.z) <= reach.z)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+
+            foreach (var (mine, his) in passing)
+            {
+                if (mine != null && his != null)
+                {
+                    Physics.IgnoreCollision(mine, his, false);
+                }
+            }
+
+            passing.Clear();
+        }
+
+        // ---- Two blows as one swing (20 November: the combos plan's step 2, the join) ----
+
+        /// <summary>
+        /// A second blow flows out of the first (Combat Feel "A Second Blow Flows Out Of The First";
+        /// <c>FIGHT_FLOWS=0</c> for the old way, one whole attack after the other). The first blow is not played to its
+        /// end: its own carry-through is played as far as the corner where the blade turns, and there the next blow is
+        /// begun in the middle of its own wind-up, at the top of its swing (<see cref="AttackScore.EnteredFrom"/>,
+        /// where to leave and where to enter from <see cref="BladeFlow.Join(BladeFlow, BladeFlow, float)"/>). Each is
+        /// its own made attack with its own aim, so the aiming, the freeze on the hit and what a hit does are as for
+        /// any blow. A blow that is blocked or parried backs out as it always has and nothing follows it.
+        /// </summary>
+        public static bool BlowsFlow = true;
+
+        /// <summary>How much there may be to make up at the join, as time (seconds): the soonest join within it is taken. And over how long the body is bent from the one blow onto the other (seconds).</summary>
+        public static float FlowBend = BladeFlow.PlanBend, FlowBendOver = 0.12f;
+
+        /// <summary>At the join no part is carried on faster than this (m/s at a Medium's size; <see cref="Locomotor.MostKeptAtNextSwitch"/>; <c>FIGHT_FLOWKEEPS</c>).</summary>
+        public static float FlowKeepsSpeed = 12f;
+
+        /// <summary>For the panel, the log and the reports: what the last two blows thrown as one swing did.</summary>
+        public string FlowTold { get; private set; } = "none thrown yet";
+        public int FlowsAsked { get; private set; }
+        public int FlowsJoined { get; private set; }
+
+        /// <summary>The last flow's numbers: first landing to the second (s), the slowest the point went between them outside the freeze (m/s), how far it travelled between them (m), how far the posed point was thrown off its course in one step at the join (m), how far from the spot asked for the second landed (m; -1: it did not land).</summary>
+        public float FlowHitToHit { get; private set; }
+        public float FlowSlowest { get; private set; }
+        public float FlowTravel { get; private set; }
+        public float FlowJump { get; private set; }
+        public float FlowSecondMiss { get; private set; } = -1f;
+
+        private MadeAttack flowFirst, flowSecond;
+        private ClipFighter flowTarget;
+        private System.Func<Vector3> flowPoint;
+        private AttackStyle flowStyle;
+        private string flowNext = "";
+        private float flowLeaveAt, flowFirstHit = -1f, flowSecondHit = -1f, flowJoinedAt = -1f, flowFrozen, flowEnds;
+        private int flowLeave, flowEnter, flowLandings;
+        private Vector3 flowTip, flowTipStep, flowPosed, flowPosedStep;
+        private bool flowTipKnown, flowPosedKnown;
+        private float flowThawed = -10f;
+        private string flowFirstMet = "", flowSecondMet = "", flowPlan = "";
+
+        /// <summary>
+        /// The blow just begun (<see cref="Made"/>) is to be followed, out of its carry-through, by the strike named,
+        /// aimed where <paramref name="point"/> says as it is begun. False: nothing is playing to follow, the strike is
+        /// not his, or blows do not flow.
+        /// </summary>
+        public bool FlowInto(ClipFighter target, System.Func<Vector3> point, in AttackStyle style, string next)
+        {
+            flowFirst = flowSecond = null;
+            if (!BlowsFlow || Made == null || Made.Posture || Made.Score == null || Loco.Shot != Made.Clip || point == null)
+            {
+                return false;
+            }
+
+            AttackScore nextScore = null;
+            foreach (var clip in StrikeClips)
+            {
+                if (clip.Name == next)
+                {
+                    nextScore = AttackScore.Of(clip);
+                }
+            }
+
+            if (nextScore == null)
+            {
+                return false;
+            }
+
+            var join = BladeFlow.Join(BladeFlow.Of(Made.Score), BladeFlow.Of(nextScore), FlowBend);
+            flowLeave = join.Leave;
+            flowEnter = join.Enter;
+            // (When that moment of the recording comes in the made clip: after its landing the clip goes at the drive's pace.)
+            float driveTime = Mathf.Clamp(style.DriveTime, 0.4f, 3f);
+            // (Left at the corner itself, where the blade is slowest: begun half the bend sooner, with the blade still at
+            // 17 m/s, the posed point was thrown 38 cm off its course in a step; at the corner, 13 cm or less.)
+            flowLeaveAt = Made.ContactAt + Mathf.Max(0.05f, join.Leave / Made.Score.Rate - Made.ScoreTime) * driveTime;
+            flowFirst = Made;
+            flowTarget = target;
+            flowPoint = point;
+            flowStyle = style;
+            flowNext = next;
+            flowFirstHit = flowSecondHit = flowJoinedAt = -1f;
+            flowLandings = Strikes != null ? Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects : 0;
+            flowTipKnown = flowPosedKnown = false;
+            FlowHitToHit = FlowTravel = FlowJump = flowFrozen = 0f;
+            FlowSlowest = float.MaxValue;
+            FlowSecondMiss = -1f;
+            flowFirstMet = flowSecondMet = "";
+            flowPlan = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} left {1:0.00} s after it lands, {2} entered {3:0.00} s before it lands (to make up: {4:0.00} s)", Made.Score.Name, join.After, nextScore.Name, join.Before, join.Bend);
+            FlowsAsked++;
+            return true;
+        }
+
+        private void StepFlow(float dt)
+        {
+            if (flowFirst == null && flowSecond == null)
+            {
+                return;
+            }
+
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var now = flowSecond ?? flowFirst;
+            bool playing = Loco.Current == Locomotor.Mode.OneShot && Loco.Shot == now.Clip;
+            if (!playing || Strikes == null || Fallen || Stumbling)
+            {
+                EndFlow(flowSecond == null ? "the first blow ended before its corner (blocked, parried or broken off): nothing followed" : null);
+                return;
+            }
+
+            // What its blade has met since the last step.
+            int landings = Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects;
+            bool landed = landings != flowLandings;
+            flowLandings = landings;
+            bool seen = Strikes.Blade(now.Clip, out _, out Vector3 tip, out Vector3 strike);
+            bool posed = Strikes.BladePosed(now.Clip, out _, out Vector3 posedTip, out _);
+            if (landed && flowSecond == null && flowFirstHit < 0f)
+            {
+                flowFirstHit = clock;
+                flowFirstMet = Strikes.Last;
+            }
+            else if (landed && flowSecond != null && flowSecondHit < 0f)
+            {
+                flowSecondHit = clock;
+                flowSecondMet = Strikes.Last;
+                FlowHitToHit = flowFirstHit >= 0f ? clock - flowFirstHit : 0f;
+                FlowSecondMiss = seen && flowPoint != null ? Vector3.Distance(strike, flowPoint()) : -1f;
+                flowEnds = clock + 0.25f;
+            }
+
+            // Between the two landings: how the point as seen goes, the freeze on the hit apart.
+            if (seen && flowFirstHit >= 0f && flowSecondHit < 0f && dt > 1e-5f)
+            {
+                if (flowTipKnown)
+                {
+                    float went = Vector3.Distance(tip, flowTip);
+                    if (Strikes.HitStop > 0f)
+                    {
+                        flowFrozen += dt;
+                        flowThawed = clock;
+                    }
+                    else
+                    {
+                        FlowTravel += went;
+                        // (Not the step the freeze lets go in: the sword starts from still there.)
+                        if (clock - flowThawed > 1.5f * dt)
+                        {
+                            FlowSlowest = Mathf.Min(FlowSlowest, went / dt);
+                        }
+                    }
+                }
+            }
+
+            if (posed && flowPosedKnown && flowJoinedAt >= 0f && clock - flowJoinedAt < 0.04f && Strikes.HitStop <= 0f)
+            {
+                // (At the join: how far the posed point is thrown off the course it was on, in one step.)
+                FlowJump = Mathf.Max(FlowJump, ((posedTip - flowPosed) - flowPosedStep).magnitude);
+            }
+
+            if (posed)
+            {
+                flowPosedStep = flowPosedKnown ? posedTip - flowPosed : Vector3.zero;
+                flowPosed = posedTip;
+                flowPosedKnown = true;
+            }
+
+            if (seen)
+            {
+                flowTipStep = flowTipKnown ? tip - flowTip : Vector3.zero;
+                flowTip = tip;
+                flowTipKnown = true;
+            }
+
+            if (flowSecond == null && Loco.ShotTime >= flowLeaveAt && Strikes.HitStop <= 0f && !Loco.Rewinding)
+            {
+                // The corner: the next blow is begun out of this one's carry-through, in the middle of its own wind-up.
+                AttackScore nextScore = null;
+                foreach (var clip in StrikeClips)
+                {
+                    if (clip.Name == flowNext)
+                    {
+                        nextScore = AttackScore.Of(clip);
+                    }
+                }
+
+                var first = flowFirst;
+                var joined = nextScore != null ? nextScore.EnteredFrom(first.Score, flowLeave, flowEnter, Mathf.Max(2, Mathf.RoundToInt(FlowBendOver * nextScore.Rate))) : null;
+                Loco.MostKeptAtNextSwitch = FlowKeepsSpeed;
+                var second = joined != null ? StrikeMade(flowTarget, flowPoint(), flowStyle, 0f, null, null, null, joined) : null;
+                if (second == null)
+                {
+                    EndFlow("the next blow could not be made: nothing followed");
+                    return;
+                }
+
+                flowSecond = second;
+                flowJoinedAt = clock;
+                flowLandings = Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects;
+                FlowsJoined++;
+                flowEnds = clock + 3f;
+                FlowJoined?.Invoke(this, second);
+            }
+            else if (flowSecond != null && flowSecondHit >= 0f && clock >= flowEnds)
+            {
+                EndFlow(null);
+            }
+        }
+
+        /// <summary>Told as the second blow is begun (the lab gives it its class and names it in the log).</summary>
+        public System.Action<ClipFighter, MadeAttack> FlowJoined;
+
+        private void EndFlow(string why)
+        {
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            if (why != null)
+            {
+                FlowTold = flowPlan + ". " + why + (flowFirstMet.Length > 0 ? " (the first " + flowFirstMet + ")" : "");
+            }
+            else
+            {
+                FlowTold = flowPlan + ". The first " + (flowFirstMet.Length > 0 ? flowFirstMet : "met nothing") + "; the second " + (flowSecondHit >= 0f
+                    ? flowSecondMet + string.Format(inv, ", {0:0.00} s after the first, {1:0} cm from the spot asked for", FlowHitToHit, 100f * Mathf.Max(0f, FlowSecondMiss))
+                    : "met nothing")
+                    + (flowFirstHit >= 0f && flowSecondHit >= 0f ? string.Format(inv, ". Between the two the point travelled {0:0.00} m and was never slower than {1:0.0} m/s (the freeze of {2:0.00} s apart); at the join the posed point was thrown {3:0} cm off its course", FlowTravel, FlowSlowest < 1e6f ? FlowSlowest : 0f, flowFrozen, 100f * FlowJump) : "");
+            }
+
+            Diagnostics.PlaytestTrace.Note(FightUnit, "flow", FlowTold);
+            FlowEnded?.Invoke(this);
+            flowFirst = flowSecond = null;
+        }
+
+        /// <summary>Told as a flow is over (for the reports).</summary>
+        public System.Action<ClipFighter> FlowEnded;
+
+        /// <summary>Two blows are being thrown as one swing now.</summary>
+        public bool Flowing => flowFirst != null || flowSecond != null;
 
         /// <summary>A point of the world in its own frame as it stands now, in a clip's units (leg lengths; x to its right, y over the ground, z forward).</summary>
         public Vector3 InOwnFrame(Vector3 point)

@@ -765,6 +765,7 @@ namespace PhysicsBattler.Sandbox
             run.Other = d.Foe.Unit;
             // (Where a pounce can come, a stumbling man cannot guard: ClipFighter.StumblingOpensGuard.)
             d.Unit.Clip.StumbleOpensGuardHere = true;
+            d.Unit.Clip.BladePassesHere = true;
             bool was = run.Going;
             int blows = run.PounceBlows, downed = run.DownedBlows;
             run.StepPounce(dt, Pounces);

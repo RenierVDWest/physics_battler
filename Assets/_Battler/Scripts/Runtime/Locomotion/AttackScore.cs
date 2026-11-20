@@ -912,6 +912,84 @@ namespace PhysicsBattler.Locomotion
         /// each phase stretched to this blow's. A thrust recorded standing gets a cut's lunge under it; a cut recorded
         /// lunging can be made standing. (Made once for each pair.)
         /// </summary>
+        /// <summary>
+        /// This blow entered in the middle of its wind-up, out of the carry-through of the blow before it (the combos
+        /// plan's step 2, the join; 20 November): over <paramref name="bend"/> frames the body goes from how the blow
+        /// before had it (from its frame <paramref name="leave"/> on) to how this one has it (from half the bend
+        /// before its frame <paramref name="enter"/> to half the bend after it), both recordings playing on at their
+        /// own pace meanwhile, and from there this blow goes on as it was recorded. So the first frame is the blow before, as
+        /// it was being carried through, and the blade is never stopped. The travel over the ground is this blow's.
+        /// Where the one is left and the other entered is <see cref="BladeFlow.Join(BladeFlow, BladeFlow, float)"/>'s
+        /// to say. (Made once for each.)
+        /// </summary>
+        public AttackScore EnteredFrom(AttackScore before, int leave, int enter, int bend)
+        {
+            if (before == null || Frames.Length < 6 || before.Frames.Length < 3)
+            {
+                return this;
+            }
+
+            string key = Name + "|from|" + before.Name + "|" + leave + "|" + enter + "|" + bend;
+            if (!scores.TryGetValue(key, out var score))
+            {
+                scores[key] = score = new AttackScore(before, this, leave, enter, bend);
+            }
+
+            return score;
+        }
+
+        private AttackScore(AttackScore before, AttackScore next, int leave, int enter, int bend)
+        {
+            Clip = next.Clip;
+            Name = next.Name + "_out_of_" + before.Name.Replace("sns_", "");
+            Kind = next.Kind;
+            Thrust = next.Thrust;
+            Turns = next.Turns;
+            Rate = next.Rate;
+            var m = BodyMeasures.OfClips;
+            var hold = SwordHold.Medium;
+            // (Entered no later than two frames before it lands, and left no later than the blow before lasts.)
+            enter = Mathf.Clamp(enter, 0, next.Contact - 2);
+            bend = Mathf.Clamp(bend, 2, 2 * enter);
+            int half = bend / 2, first = enter - half, n = next.Frames.Length - first;
+            Frames = new BodyTracks[n];
+            Root = new Vector3[n];
+            Facing = new float[n];
+            Contacts = new LocoContact[n * 2];
+            Strike = new Vector3[n];
+            StrikeSpeed = new float[n];
+            // (The blow before, played on at its own pace: its frames a second against this one's.)
+            float pace = before.Rate / Mathf.Max(1f, next.Rate);
+            Quaternion back = Quaternion.Euler(0f, -next.Facing[first], 0f);
+            for (int f = 0; f < n; f++)
+            {
+                var t = next.Frames[first + f];
+                if (f < bend)
+                {
+                    float g = Mathf.Clamp(leave + f * pace, 0f, before.Frames.Length - 1.001f);
+                    int a = Mathf.Min(Mathf.FloorToInt(g), before.Frames.Length - 2);
+                    float w = f / (float)bend;
+                    t = BodyTracks.Lerp(BodyTracks.Lerp(before.Frames[a], before.Frames[a + 1], g - a), t, w * w * (3f - 2f * w));
+                }
+
+                Frames[f] = t;
+                Root[f] = back * (next.Root[first + f] - next.Root[first]);
+                Facing[f] = next.Facing[first + f] - next.Facing[first];
+                Contacts[f * 2] = next.Contacts[(first + f) * 2];
+                Contacts[f * 2 + 1] = next.Contacts[(first + f) * 2 + 1];
+                Strike[f] = StrikeOf(Frames[f], m, hold, Thrust);
+            }
+
+            Contact = next.Contact - first;
+            Link = Mathf.Max(0, next.Link - first);
+            Marks(out _, out _, out _);
+            Plain = next.Plain;
+            // (Its own marks: what is left of its wind-up, and its carry-through.)
+            Drive = Mathf.Clamp(next.Drive - first, 1, Contact - 1);
+            Follow = Mathf.Clamp(next.Follow - first, Contact + 1, n - 1);
+            Pivot = PlantedFoot();
+        }
+
         public AttackScore OnLegsOf(AttackScore legs)
         {
             if (legs == null || legs == this || legs.Legs != null || Legs != null)

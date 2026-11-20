@@ -241,5 +241,11 @@ costs; whether real attacks should be more frequent.
   that was from far too close. He steps back to his distance now (20 November, 21:15). When I say a dummy "walks
   into me", look at where each stood in the units' files before anything else.
 
+- Combos, step 2 (20 November, late): the join's kink (the posed point thrown 15 to 19 cm off its course in one
+  step as the second blow begins) has no found cause; letting faster parts carry on did not change it. Look at the
+  made attack's own aim (its turn, its hand's move and its wrist's steer over a wind-up of a quarter of a second)
+  and at the 70% pace after a hit going back to full pace at the join. And the second blow of a pair is made
+  planted even when I walk: the maker for blows on the move needs to take a score that enters out of another.
+
 Begin with what is first in the list. If something is unclear, take the most reasonable reading, write down which
 one you took, and carry on.

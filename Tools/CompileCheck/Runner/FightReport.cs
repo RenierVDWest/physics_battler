@@ -834,6 +834,7 @@ internal static class FightReport
         string openedTold = "none watched yet";
         bool openTold = false;
         bool startWatched = false;
+        string twoTold = "none thrown yet";
         int aimRounds = 0;
         if (aimLineup)
         {
@@ -1211,6 +1212,17 @@ internal static class FightReport
         // (FIGHT_TAKESDISTANCE=0: after going for a man the duel's mover stands where it ended, the old way. With
         // FIGHT_BASHAT, an APART line 6 s after each asked bash: how far apart the two then stand.)
         PhysicsBattler.Sandbox.DuelLab.TakesDistanceAgain = Environment.GetEnvironmentVariable("FIGHT_TAKESDISTANCE") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STEPSBACKAFTER"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float stepsBackAfter)) PhysicsBattler.Sandbox.DuelLab.StepsBackAfter = stepsBackAfter;
+        // (FIGHT_BLADEPASSES=0: a sword stays solid against the body its blow drove on through, the old way. In the
+        // aim lineup it passes; in a fight only with FIGHT_PASSESINFIGHTS=1. FIGHT_FLOWS=0: "throw two" is two whole
+        // attacks, the old way. FIGHT_FLOWBEND=0.15, FIGHT_FLOWBENDOVER=0.12: the join's levers.
+        // FIGHT_THROWTWO="3,8": the duel's mover throws two at the chest at those seconds; a FLOW line as each ends.)
+        PhysicsBattler.Locomotion.ClipFighter.BladePassesWhatItCut = Environment.GetEnvironmentVariable("FIGHT_BLADEPASSES") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.BladePassesEverywhere = Environment.GetEnvironmentVariable("FIGHT_LINEUP") == "aim" || Environment.GetEnvironmentVariable("FIGHT_PASSESINFIGHTS") == "1";
+        PhysicsBattler.Locomotion.ClipFighter.BlowsFlow = Environment.GetEnvironmentVariable("FIGHT_FLOWS") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWKEEPS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowKeeps)) PhysicsBattler.Locomotion.ClipFighter.FlowKeepsSpeed = flowKeeps;
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWBEND"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowBend)) PhysicsBattler.Locomotion.ClipFighter.FlowBend = flowBend;
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWBENDOVER"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowBendOver)) PhysicsBattler.Locomotion.ClipFighter.FlowBendOver = flowBendOver;
         if (Environment.GetEnvironmentVariable("FIGHT_ROSETRACE") == "1") PhysicsBattler.Locomotion.ClipFighter.RoseTrace = line => Console.WriteLine("ROSE " + line);
         PhysicsBattler.Locomotion.ClipFighter.ArmsOutForgottenOnceUp = Environment.GetEnvironmentVariable("FIGHT_ARMSFORGOT") != "0";
         // (FIGHT_DOWNEDBLOW="beside,sns_thrust,0.12,1.5,0.95": whether he comes beside the chest of a man who is down (beside / straight), the blow thrown ("" or best: the best fit), how much lower his hips, how far his chest leans, and how far from the chest he stands.)
@@ -2388,6 +2400,22 @@ internal static class FightReport
                             duelBlows.RemoveAt(i);
                             break;
                         }
+                    }
+
+                    foreach (string at in (Environment.GetEnvironmentVariable("FIGHT_THROWTWO") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float twoAt) && paceAt >= twoAt && paceAt - dt < twoAt)
+                        {
+                            bool thrown = duel.ThrowTwo(aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time);
+                            twoTold = duel.TwoTold;
+                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "TWO {0:0.00}: {1}, {2:0.00} m apart, going {3:0.00} m/s", paceAt, thrown ? "begun (" + duel.TwoTold + ")" : "he could not", duel.Gap, duel.Speed));
+                        }
+                    }
+
+                    if (duel.TwoTold != twoTold && !duel.TwoTold.EndsWith("under way"))
+                    {
+                        twoTold = duel.TwoTold;
+                        Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "FLOW {0:0.00}: {1}", paceAt, duel.TwoTold));
                     }
 
                     if (startWatched && duel.BlowStart.Length > 0)

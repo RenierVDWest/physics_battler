@@ -1309,6 +1309,8 @@ namespace PhysicsBattler.Locomotion
                 momentumLeft = r.MomentumLeft;
                 PlaySpeed = Mathf.Max(0.3f, CombatFeel.SwingKept);
                 spentOn.Add(struck);
+                // (The sword itself, a solid thing, is let through the body its blow drove on through.)
+                Owner?.LetBladePass(struck);
                 what = $"drove on through the {Name(part)} ({CombatFeel.SwingKept * 100f:0}% of its speed kept)";
                 Hits++;
                 Carried++;

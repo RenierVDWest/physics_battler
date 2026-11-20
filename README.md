@@ -7945,3 +7945,59 @@ close or far away from each other." With four pictures of the drawing. (Taken as
   0.85 of 3.26; 1.64 of 3.13). The first forehand of each exchange is clean (frozen 0.05 s, carried 5.70 of 5.76 m);
   the blows that stick are mostly the ones thrown close in, during and after a pounce. Step 2 starts by mending it.
 
+### 20 November, 22:08: combos, step 2: two blows as one swing; a sword passes the body it cut; he steps back sooner
+
+He said (21:26) "sure. you can do this" to shortening the wait before the step back, and "yes please proceed with
+step 2". All of this is **headless only** unless it says otherwise.
+
+**1. A sword passes the body it cut** (`ClipFighter.LetBladePass`, `StepBladePass`; called by `StrikeHits` where a
+blow "drove on through"; Combat Feel "A Blade Passes The Body It Cut", on; lab row "A blade that cut him: passes on /
+sticks (old)"; `FIGHT_BLADEPASSES=0`). From the moment a blow drives on through a body, the striker's solid sword
+does not touch that man's body parts; his shield and his sword still stop it. It is made solid against him again
+when it has been clear of him for 0.3 s (their boxes apart), at most 1.5 s. Only where the labs and the dance say
+so (`BladePassesHere`); the fights of six are as they were. `UpperBodyArticulation.Held` now says which of a body's
+solid things are held in a hand.
+
+| The aim test, 22 attacks | Sticks (old) | Passes on (new) |
+| --- | --- | --- |
+| Landed on a body | 19 | 17 |
+| The point under 5 m/s for 0.07 s or more after the freeze | 7 | 0 |
+| Carried less than 70% as far as planned | 3 | 0 |
+| The point from its planned line (median; at most, median) | 17 cm; 43 cm | 12 cm; 28 cm |
+
+**2. Two blows as one swing** (`AttackScore.EnteredFrom`, `ClipFighter.FlowInto` and `StepFlow`, `DuelLab.ThrowTwo`;
+Combat Feel "A Second Blow Flows Out Of The First", on, and "The Join Bends Over" 0.12 s; lab row "Two blows: flowing
+/ one after the other (old)" with the button "Throw two" and the readout "His last two blows"; `FIGHT_FLOWS=0`,
+`FIGHT_THROWTWO="3,9"`, `FIGHT_FLOWBEND`, `FIGHT_FLOWBENDOVER`, `FIGHT_FLOWKEEPS`). A forehand down and a rising
+backhand back up, at the chest. The forehand is an ordinary made attack. When its clip reaches the corner
+`BladeFlow.Join` names (0.17 s after its landing in the recording's time; in the game about 0.3 s, for the freeze and
+the 70% pace after a hit), a second made attack is begun from a score put together for it: over 0.12 s the body goes
+from the forehand's own carry-through, playing on, to the rising backhand's wind-up 0.17 s before its landing, and
+from there the backhand is as recorded. It is aimed, frozen on its hit and judged as any attack. A first blow that
+is blocked or parried backs out as before and nothing follows.
+
+| The plan's pass marks (duel lab, open-handed target, 7 throws standing and going round) | Mark | Measured |
+| --- | --- | --- |
+| First hit to second | 0.60 s or less (old way: 1.85 s) | 0.53 to 0.58 s in six, 0.67 s in one |
+| The point's slowest between the hits (the freeze apart) | 2 m/s or more | 3.1 to 5.2 m/s |
+| The point's travel between the hits | 0.6 m or more | 8 to 10 m |
+| At the join, the posed point thrown off its course in one step | 10 cm or less | **15 to 19 cm: missed** |
+| The second lands where it was aimed (the chest) | yes | **Not cleanly:** it met his right forearm or upper arm on the way in 5 of 7, 16 to 36 cm from the spot; the chest once, the head once |
+
+What is not done, said plainly: the second blow is made as a planted blow even when he is walking (the maker for
+blows on the move takes no score of this kind yet), so "a blow a step" is not there. Begun half a bend sooner, with
+the blade still at 17 m/s, the join threw the point 38 cm off its course; at the corner it is 15 to 19 cm. Letting
+the join carry faster parts on (`Locomotor.MostKeptAtNextSwitch`, 12 or 25 m/s) changed nothing, so the kink is not
+that limit; its cause is not found. The second blow's own blade path joins `BladePath` as "sns_rising_out_of_forehand".
+
+**3. He steps back sooner** (`DuelLab.StepsBackAfter`, 0.35 s; Combat Feel "He Steps Back This Long After His Blow
+Lands"; lab lever "Steps back after"; `FIGHT_STEPSBACKAFTER=0` for the wait of 21:15): the step back does not wait
+for his whole blow: 0.35 s after it lands, in the blow's own time, the rest of it is left (`Locomotor.EndShotNow`).
+**Not measured:** the headless pounce run does not show the one-second wait his log showed (new and old come out
+the same there, the two under 0.8 m apart from 6.6 to 8.4 s for another reason I have not traced), so this is
+unverified until his next log.
+
+Checks: 0 errors; the panel's look list 9 of 9; `flow.sh` passes; the fight of six (40 s, seed 5) within its budgets as before: CROSSINGS OK 0.00%, TREMBLE OK 6.6%, no exception.
+
+Its film: FILMLINK2
+

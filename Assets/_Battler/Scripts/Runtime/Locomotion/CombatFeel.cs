@@ -368,6 +368,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: after the duel lab's swordsman has gone for a man by himself (a pounce on an opening, a blow at a man who is down) he steps back to the distance he stood at before he went, so the next blow you ask for starts from the lab's distance again. Only when his order is to stand: going round or walking, he goes on with that. Off (old): he stands where the going ended, and the target, walking back to its own spot, comes right up against him.")]
         public bool afterGoingForHimHeTakesHisDistanceAgain = true;
 
+        [Tooltip("How long after his blow lands the duel lab's swordsman begins that step back (seconds, in the blow's own time): the rest of the blow, its way back to the guard, is left. 0: he waits for the whole blow, and the target walks back into him for about a second first. Default 0.35.")]
+        [Range(0f, 1f)] public float heStepsBackThisLongAfterHisBlowLands = 0.35f;
+
         [Tooltip("On (the default, decided on 20 November): a fighter goes for a man who is down. While the other is off his feet, the fighter runs to him from however far he was thrown and stabs down from beside his chest as he arrives, in one motion with no stop between the run and the blow. In the duel lab; the dance has its own switch (\"The Dance Strikes A Man Who Is Down\"); not in the fight of six. Off (old): he holds off and lets him get up, which is the way to watch a get-up undisturbed. (A new name for \"A Fighter Strikes A Man Who Is Down\", which was off by default.)")]
         public bool aFighterGoesForAManWhoIsDown = true;
 
@@ -1089,6 +1092,15 @@ namespace PhysicsBattler.Locomotion
         [Header("Combos: one swing with several hits (the plan \"Combos that flow and end in a bang\")")]
         [Tooltip("A view only: it changes nothing a fighter does. On: the path of every made attack's blade is worked out and drawn (the combos plan's step 1). As an attack is thrown, the path its maker planned for the sword is drawn as a pale blue band, from the top of the swing to where the blade turns after the cut, with a white bar where it is planned to land and a small white cross on the spot it was asked for. As the attack goes, the sword's real path is drawn over it in orange, with a dark dot for every step of the game's clock (dots close together: the blade is slow). Both stay until he throws his next attack, so the game can be paused and looked at from any side. The duel lab's row \"The blade's path\" turns this on and off and shows the numbers under it: how fast the point lands, how long the blade sticks at what it hits, how far it is carried through after the landing, and how far the real blade went from its plan. Each finished attack also writes a \"bladepath\" line to the playtest log. Off (the default): nothing is worked out, drawn or written.")]
         public bool theBladesPathIsDrawn = false;
+
+        [Tooltip("On: a sword whose blow drove on through a body is let through that body, so the blade sweeps on as its pose does. His shield and his sword still stop it. In the labs and the dance for now, not the fights of six. Off (old): the sword stays solid against the body it cut, lies against it for about a tenth of a second after the hit and then whips on (in Renier's log of 20 November, 13 of 27 landed blows).")]
+        public bool aBladePassesTheBodyItCut = true;
+
+        [Tooltip("On: the duel lab's \"Throw two\" throws two blows as one swing (the combos plan's step 2). The first blow is not played to its end: its own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up. Off (old): one whole attack, and when he is free again the other, about 1.7 s from hit to hit.")]
+        public bool aSecondBlowFlowsOutOfTheFirst = true;
+
+        [Tooltip("Two blows as one swing: over how long the body is bent from the first blow onto the second at the join (seconds). Shorter: a sharper turn of the blade. Longer: a softer one, but less of each blow is its own. Default 0.12.")]
+        [Range(0.04f, 0.3f)] public float theJoinBendsOver = 0.12f;
 
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
@@ -1855,6 +1867,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
             PhysicsBattler.Sandbox.RunIn.Pounces = aFighterPouncesOnAnOpening;
             PhysicsBattler.Sandbox.DuelLab.TakesDistanceAgain = afterGoingForHimHeTakesHisDistanceAgain;
+            PhysicsBattler.Sandbox.DuelLab.StepsBackAfter = Mathf.Clamp01(heStepsBackThisLongAfterHisBlowLands);
             PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = aFighterGoesForAManWhoIsDown;
             PhysicsBattler.Sandbox.RunIn.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
             ClipFighter.KicksThrow = aKickThrowsABody;
@@ -1992,6 +2005,9 @@ namespace PhysicsBattler.Locomotion
             leap.PrepTime = leapPrepTime;
             LeapMaker.Style = leap;
             BladePath.On = theBladesPathIsDrawn;
+            ClipFighter.BladePassesWhatItCut = aBladePassesTheBodyItCut;
+            ClipFighter.BlowsFlow = aSecondBlowFlowsOutOfTheFirst;
+            ClipFighter.FlowBendOver = Mathf.Clamp(theJoinBendsOver, 0.04f, 0.3f);
             if (!BladePath.On && BladePath.Shown.Count > 0)
             {
                 BladePath.Shown.Clear();

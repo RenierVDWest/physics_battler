@@ -2368,6 +2368,9 @@ namespace PhysicsBattler.Locomotion
         private float rewindLeft, rewindFloor;
         private bool rewinding;
 
+        /// <summary>A one-shot is being played backward now (a blow backing out of a block).</summary>
+        public bool Rewinding => rewinding;
+
         /// <summary>The playing one-shot's root goes no further (a jumping strike stopped in the air comes down where it is, not on through what stopped it).</summary>
         public void StopShotTravel()
         {
@@ -3176,12 +3179,21 @@ namespace PhysicsBattler.Locomotion
         /// <summary>No point is carried on faster than this at such a switch (m/s at a Medium's size).</summary>
         public const float MostKeptSpeed = 4f;
 
+        /// <summary>
+        /// For the next switch only, if over 0: no point is carried on faster than this instead (m/s at a Medium's
+        /// size). A blow begun out of another's carry-through (the combos plan's join) has a sword hand going faster
+        /// than a walk's limbs ever do; held to <see cref="MostKeptSpeed"/> its blade's course kinks at the join.
+        /// </summary>
+        public float MostKeptAtNextSwitch;
+
         private readonly Vector3[] outSpeed = new Vector3[LocoClip.BoneCount];
 
         private void Inertialize(float dt)
         {
             bool keeps = KeepsSpeedAtNextSwitch && pendingSwitch;
             KeepsSpeedAtNextSwitch &= !pendingSwitch;
+            float mostKept = MostKeptAtNextSwitch > 0f ? MostKeptAtNextSwitch : MostKeptSpeed;
+            MostKeptAtNextSwitch = pendingSwitch ? 0f : MostKeptAtNextSwitch;
             if (pendingSwitch)
             {
                 // (Into or out of a combat clip: a longer fade; between walk clips, the usual; setting off from a stand
@@ -3208,7 +3220,7 @@ namespace PhysicsBattler.Locomotion
                 for (int i = 0; i < offset.Length; i++)
                 {
                     offset[i] = lastOut[i] - (begins ? scratch[i] : raw[i]) + (ridesNow ? rideBy[i] : Vector3.zero);
-                    offsetVelocity[i] = keeps ? Vector3.ClampMagnitude(outSpeed[i] - (begins ? (raw[i] - scratch[i]) / dt : Vector3.zero), MostKeptSpeed * Leg / 0.845f) : Vector3.zero;
+                    offsetVelocity[i] = keeps ? Vector3.ClampMagnitude(outSpeed[i] - (begins ? (raw[i] - scratch[i]) / dt : Vector3.zero), mostKept * Leg / 0.845f) : Vector3.zero;
                     most = Mathf.Max(most, offset[i].magnitude);
                 }
 

@@ -1703,6 +1703,14 @@ namespace PhysicsBattler.Authority
         /// <summary>Every collider on it (its parts', and what its hands hold).</summary>
         public IReadOnlyList<Collider> Colliders => colliders;
 
+        /// <summary>The solid things its hands hold (a sword, a shield's board), and which hand holds each: the rest of <see cref="Colliders"/> is its body.</summary>
+        public IReadOnlyList<Collider> Held => heldSolids;
+        public PartId HeldBy(int i) => heldBy[i];
+        public bool IsHeld(Collider c) => heldSolids.Contains(c);
+
+        private readonly List<Collider> heldSolids = new List<Collider>();
+        private readonly List<PartId> heldBy = new List<PartId>();
+
         /// <summary>What hangs from a part's joint, as an inertia about it on the part's three axes (kg m2).</summary>
         public Vector3 Hangs(PartId id) => hangs[Array.IndexOf(parts, id)];
 
@@ -1794,6 +1802,8 @@ namespace PhysicsBattler.Authority
             }
 
             colliders.Add(copy);
+            heldSolids.Add(copy);
+            heldBy.Add(hand);
             linkOf[copy] = i;
             var piece = PieceOf(copy, links[i].transform, mass);
             Vector3 middle = piece.At;
@@ -1912,6 +1922,8 @@ namespace PhysicsBattler.Authority
             }
 
             colliders.Add(copy);
+            heldSolids.Add(copy);
+            heldBy.Add(hand);
             linkOf[copy] = i;
             // (Its weight on the link's axes: the slot's.)
             var piece = PieceOf(copy, grip.Link.transform, mass);

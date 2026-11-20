@@ -81,6 +81,16 @@ The rest are one-off comparisons from particular days, kept for reference.
   `FIGHT_DANCEOWN="1,1,1,0.35"`: in a dance, by themselves: pounce, go for a man who is down, kick, and how many of
   a shield's bashes are a kick. A dance's report has `DANCEOWN` lines. **A dance of 70 s takes about 17 minutes
   here; a batch of six 10 s duels about 13.**
+- `FIGHT_THROWTWO="3,9,15"`: the duel's mover throws two blows at the chest at those seconds (forehand, rising
+  backhand); a `FLOW` line as each ends: where it was joined, what each met, hit to hit, the point's travel and
+  slowest between the hits, the kink at the join, how far from the spot the second landed. `FIGHT_FLOWS=0`: two
+  whole attacks (old). `FIGHT_FLOWBEND=0.15`, `FIGHT_FLOWBENDOVER=0.12`, `FIGHT_FLOWKEEPS=12`: the join's levers.
+  Use `st.sh name FIGHT_AIMKIT=open FIGHT_POUNCE=0 FIGHT_THROWTWO=...`, and `FIGHT_DUEL="CircleLeft:90"` for a
+  walking man. **A run of 22 s with three throws takes about four minutes; read it when its `.done` is there.**
+- `FIGHT_BLADEPASSES=0`: a sword stays solid against the body its blow drove on through (old). In the aim lineup
+  it passes; in a fight only with `FIGHT_PASSESINFIGHTS=1`. Measure with `aim.sh name FIGHT_BLADEPATH=1` and count
+  the `BLADEPATH` lines with "then under 5 m/s for".
+- `FIGHT_STEPSBACKAFTER=0`: after a pounce he waits for his whole blow before he steps back (as on 20 November, 21:15).
 - `FIGHT_TAKESDISTANCE=0`: after going for a man the duel's mover stands where it ended (old); by default he
   steps back to the distance he stood at. Every `DUELBLOW` is followed by an `APART` line (how far apart as the
   blow is asked for, the distance he keeps, what he did after his last going), and with `FIGHT_BASHAT` there is an
