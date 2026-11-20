@@ -8001,3 +8001,47 @@ Checks: 0 errors; the panel's look list 9 of 9; `flow.sh` passes; the fight of s
 
 Its film: https://claude.ai/artifact/T38Pqw9FVNzxGAafWvJvw7
 
+### 20 November, 23:05: after his look at step 2: the join's jump, a fallen target's spot, the step back counted from rest
+
+**What he said (22:40, 22:44):** "the 2 blows look really good. They feel like a single motion, you nailed that
+part. The only issue is that the body itself seems to jump to a different pose between the 2 hits." And: "the enemy
+getting stuck in my shield ... can see this in my latest logs", and to push bodies that absorb a hit up the list. He
+is asleep; tonight's order is in `CLAUDE.md`.
+
+**His logs** (`2026-11-20_22-28-11`, `..._22-34-23`; seen in Unity): 22 pairs thrown. The second blow landed in 18
+and met nothing in 4; 0.47 to 0.72 s after the first (most 0.62 to 0.67); slow as it landed (2 to 13 m/s) and on his
+right arm or hand more often than his chest. In Unity the first blow throws the target back stumbling at up to
+2.8 m/s; headless a sword lands slower (10 against 12 to 16 m/s) and the target does not stumble
+(`FIGHT_STUMBLEFROM=0.7` makes it). So in Unity the second blow chases a man who is leaving.
+
+**1. The body's jump at the join: found, and half mended.** The maker fits a made attack to its aim (it turns the
+body, drops the hips, leans the chest, moves the hand) and brings that in over the attack's wind-up. The blow entered
+at the join had a wind-up of one frame, so all of it came in one step: 43 degrees of turn, hips 17 cm down, 28
+degrees of lean (`FLOWMADE` and `FLOWJOIN` lines say this for every pair now). Mended: what is left of the wind-up is
+no shorter than the bend (`AttackScore.JoinWindsOverBend`), and the root takes up the difference between the two
+recordings' roots (`JoinTurnsRoot`; 7 degrees for this pair, so it matters little here). `FIGHT_JOINTURNS=0` for the
+first build. Headless, 4 pairs: **the posed point is thrown 5 to 8 cm off its course at the join (it was 15 to 19;
+the plan's mark of 10 is met)**; hit to hit 0.53 to 0.57 s. **What is left:** the maker still asks that much of the
+second blow (turn 43 to 50, the most it may; drop and lean at their most), now over 0.13 s. Why is not found: from
+nearer (1.15 m, 0.9 m) and at the head or the shoulder it asks the same; the rising backhand thrown alone needs
+-19 degrees of turn and no drop or lean. By the join's own numbers the turn needed should be small (his root had
+turned -72 degrees, the spot lay 69 to his right, the recording's root is at -79 where it is entered). Next: print
+the maker's cost for each landing moment of the entered score; it lands it two frames after the recording's landing.
+**So his body will still change pose quickly at the join, over an eighth of a second and not in one step. Not seen
+in Unity.**
+
+**2. A fallen target's spot follows it** (`FightLoop.DummySpotFollowsTheFall`; Combat Feel "A Fallen Target's Spot
+Follows It"; `FIGHT_SPOTFOLLOWS=0`). The rule of 19 November ("a target that fell stands where it got up") sat in
+the dummy's own steering, which a unit off its feet never reaches. So its spot stayed where it had stood, and once
+up it walked back there. In his log of 22:34 the target got up at (0.09, 1.22) and walked 0.65 m to its old spot,
+past the swordsman who had come to it, 0.7 m off, his board in its body from 28.3 to 30.6 s: "the enemy getting
+stuck in my shield", and the same in the morning's "the dummy keeps walking into me". Headless (a medium kick floors
+the target, `FIGHT_DOWNED=1`): up at (0.20, 3.65), it stands there; the swordsman never nearer than 1.01 m after.
+**Not seen in Unity.** Two solid things 0.7 m apart will still cross; this takes away what brought them there.
+
+**3. The step back is counted from where he comes to rest** (`DuelLab.ComesToRestUnder`, 0.8 m/s): his way back was
+counted as his run was called off at 2 m/s, from a place he then ran a metre past.
+
+Checks: 0 errors; the panel's look list 9 of 9. Not run again: the fight of six (the join and the lab's rules only;
+`FightLoop`'s new lines are for target dummies).
+

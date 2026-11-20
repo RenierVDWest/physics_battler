@@ -175,6 +175,18 @@ namespace PhysicsBattler.Battle
                     // Off its feet or gone: it doesn't steer (a body on the board is in others' way).
                     plan.velocity = Vector3.zero;
                     plan.progressAt = now;
+                    if (DummiesStayWhereTheyGetUp && DummySpotFollowsTheFall && unit.TargetDummy && unit.IsAlive && unit.Clip != null && unit.Clip.Fallen)
+                    {
+                        // (20 November, late: a target that fell stands where it got up, and this is where that has
+                        // to be said. The rule of the 19th sits below, in the dummy's own steering, which a unit off
+                        // its feet never reaches: its spot stayed where it had stood, and once up it walked back there,
+                        // through the swordsman who had come to it. Renier: "the dummy keeps walking into me", "the
+                        // enemy getting stuck in my shield". His log of 22:34: up at (0.09, 1.22), it walked 0.65 m to
+                        // its old spot with the swordsman 0.7 m off, his board in its body for two seconds.)
+                        unit.DummySpot = new Vector3(unit.Root.position.x, unit.DummySpot.y, unit.Root.position.z);
+                        unit.Clip.Home = new Vector3(unit.Root.position.x, unit.Clip.Home.y, unit.Root.position.z);
+                    }
+
                     continue;
                 }
 
@@ -338,6 +350,9 @@ namespace PhysicsBattler.Battle
 
         /// <summary>A target dummy that fell stands where it got up: its spot goes with it while it is down or getting up. Off: it walks back to the spot it fell from, as before.</summary>
         public static bool DummiesStayWhereTheyGetUp = true;
+
+        /// <summary>The spot of a target that is down follows it while it is down (Combat Feel "A Fallen Target's Spot Follows It"; <c>FIGHT_SPOTFOLLOWS=0</c> for how it was: the rule above never reached a unit off its feet).</summary>
+        public static bool DummySpotFollowsTheFall = true;
 
         private UnitController ChooseTarget(IReadOnlyList<UnitController> units, UnitController unit, Plan plan, float now)
         {

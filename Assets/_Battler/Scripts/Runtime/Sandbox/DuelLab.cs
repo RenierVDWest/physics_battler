@@ -532,6 +532,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The two strikes "Throw two" throws: a forehand down, and a rising backhand back up the same line (the figure of eight).</summary>
         public const string TwoFirst = "sns_forehand", TwoNext = "sns_rising";
 
+        /// <summary>For the reports: the spot the second of the two is thrown at (null: the same as the first; <c>FIGHT_TWOSECOND=Head</c>).</summary>
+        public static PhysicsBattler.Locomotion.AimSpot? TwoSecondSpot;
+
         /// <summary>For the panel and the reports: what the last two blows asked for together did.</summary>
         public string TwoTold { get; private set; } = "none thrown yet";
 
@@ -539,6 +542,7 @@ namespace PhysicsBattler.Sandbox
         private PhysicsBattler.Locomotion.AimSpot twoSpot;
         private int twoStage, twoLandings;
         private float twoFirstHit, twoFor;
+        private string twoFit = "";
 
         /// <summary>
         /// Two blows at the spot: a forehand, then a rising backhand. Flowing (<see cref="PhysicsBattler.Locomotion.ClipFighter.BlowsFlow"/>):
@@ -567,7 +571,8 @@ namespace PhysicsBattler.Sandbox
             twoFirstHit = -1f;
             twoLandings = Landings();
             var other = Other;
-            if (PhysicsBattler.Locomotion.ClipFighter.BlowsFlow && Mover.Clip.FlowInto(Other.Clip, () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, spot), PhysicsBattler.Locomotion.AttackClasses.StyleOf(aim.Kind), TwoNext))
+            var second = TwoSecondSpot ?? spot;
+            if (PhysicsBattler.Locomotion.ClipFighter.BlowsFlow && Mover.Clip.FlowInto(Other.Clip, () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, second), PhysicsBattler.Locomotion.AttackClasses.StyleOf(aim.Kind), TwoNext))
             {
                 twoStage = 3;
                 TwoTold = "flowing: under way";
@@ -625,6 +630,9 @@ namespace PhysicsBattler.Sandbox
                     if (begun)
                     {
                         twoStage = 2;
+                        var m = Mover.Clip.Made;
+                        twoFit = m == null ? "" : string.Format(inv, " [the second as made: turned {0:0} degrees, lunge x{1:0.00}, hips dropped {2:0} cm, leaned {3:0} degrees, hand moved {4:0} cm, wrist steered {5:0} degrees; lands {6:0.00} s in, at {7:0.00} s of its recording]",
+                            m.Turn, m.Lunge, 100f * m.Drop * Mover.Clip.Loco.Leg, m.Lean, 100f * m.HandMoved * Mover.Clip.Loco.Leg, m.Steer, m.ContactAt, m.ScoreTime);
                     }
                     else if (twoFor > 6f)
                     {
@@ -636,7 +644,7 @@ namespace PhysicsBattler.Sandbox
             else if (landed || twoFor > 8f || (!Mover.Clip.Striking && twoFor > 0.5f && !twoAim.Following))
             {
                 TwoTold = landed && twoFirstHit >= 0f
-                    ? string.Format(inv, "one after the other (old): the second landed {0:0.00} s after the first ({1})", twoFor - twoFirstHit, Mover.Clip.Strikes.Last)
+                    ? string.Format(inv, "one after the other (old): the second landed {0:0.00} s after the first ({1})", twoFor - twoFirstHit, Mover.Clip.Strikes.Last) + twoFit
                     : "one after the other (old): " + (twoFirstHit < 0f ? "the first met nothing" : "the second met nothing");
                 PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "flow", TwoTold);
                 twoStage = 0;
@@ -742,6 +750,14 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            // (Not while he is still running on from his going: the way back is counted from where he comes to rest.
+            // Set as his run was called off at 2 m/s, it was counted from a place he then ran a metre past, and his walk
+            // back took him by the other man at arm's length: Renier's log of 20 November, 22:34.)
+            if (takenFrom.x > 1e30f && Speed > ComesToRestUnder * size)
+            {
+                return;
+            }
+
             if (Mover.Clip.Striking)
             {
                 // (His blow has landed and been carried through: he does not stand through its way back to the guard,
@@ -804,6 +820,9 @@ namespace PhysicsBattler.Sandbox
         /// (<c>FIGHT_STEPSBACKAFTER</c>).
         /// </summary>
         public static float StepsBackAfter = 0.35f;
+
+        /// <summary>His way back is counted once he goes slower than this after his going (m/s at a Medium's size).</summary>
+        public const float ComesToRestUnder = 0.8f;
 
         /// <summary>For the panel and the reports: how far off he stood (spot to spot) as it was last seen settled, and what he did after his last going.</summary>
         public float StoodOff { get; private set; }

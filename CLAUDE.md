@@ -522,6 +522,28 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
 - **He steps back sooner after a pounce** (`DuelLab.StepsBackAfter` 0.35 s; lab lever "Steps back after"): the blow's
   way back to the guard is left. **Unverified:** headless does not show the wait his log showed.
 - A `flow` line goes to his playtest log for every "Throw two".
+- **His look at step 2 (22:40): "They feel like a single motion, you nailed that part. The only issue is that the
+  body itself seems to jump to a different pose between the 2 hits."** Found (23:05, README): the maker's fit of the
+  entered blow (turn 43, hips 17 cm down, lean 28) came in over a wind-up of one frame. Now over the bend (0.13 s):
+  the kink at the join is 5 to 8 cm headless (was 15 to 19). **Left: the maker still asks that much of the second
+  blow; why is not found** (`FLOWMADE`, `FLOWJOIN` lines; next: its cost at each landing moment). In his Unity logs
+  the second blow landed in 18 of 22, slow, mostly on his right arm: the first blow throws the target back
+  stumbling, which headless it does not (`FIGHT_STUMBLEFROM=0.7`).
+- **"The enemy getting stuck in my shield" (22:44):** a fallen target's spot never followed it (the rule sat where a
+  unit off its feet never comes), so once up it walked back to its old spot through the swordsman. Mended
+  (`FightLoop.DummySpotFollowsTheFall`; Combat Feel "A Fallen Target's Spot Follows It"). And his step back is
+  counted from where he comes to rest. Headless only.
+
+**The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
+until you are blocked by me, then continue with other tasks." "You will need me to look at things between the
+steps." In this order: (1) the combo fixes (the body's jump: half done, above; the second blow's aim; the second
+blow over his walk); (2) the enemy stuck in his shield (**done, above**); (3) **bodies that absorb a hit, pushed up
+by him** (a first build exists from 20 November, 01:15, for bashes and thrown bodies: knees and hips give, the trunk
+folds; not built: a sword's blow pressing the struck man, feet sliding before the first step, the head lagging);
+(4) more cuts baked (quick forehand, flat forehand, low cut) and the blade report on them; (5) the step back
+measured; (6) stumble leftovers; (7) get-up leftovers; (8) old bugs; (9) kicks at more heights, the low slash.
+**Not tonight (needs him):** combos step 3 and later; where the shield goes in a get-up; anything in the six. He gets
+one short list in the morning, the panel's look list for the whole night, and one film.
 - Its film: https://claude.ai/artifact/T38Pqw9FVNzxGAafWvJvw7
 - **A mistake of the first push (corrected 20:15):** I wrote that this "may be the stand-in" because contact
   modification does nothing headless. It has nothing to do with it: contact modification here is only for a lying
@@ -600,7 +622,7 @@ round him (his answer 3): the crossings left are the get-up's own pose, and so a
 **Impacts that carry weight** (on the 18th he said the three steps sound great, and that the bash will cause
 most stumbles)
 1. The momentum ledger: built (19 November).
-2. Bodies that absorb: knees give, hips drop, the arm folds, feet slide. **Not built.** Needs his eye.
+2. Bodies that absorb: a first build on 20 November, 01:15 (knees and hips give, the trunk folds; bashes and thrown bodies). Not built: a sword blow pressing the struck man, feet sliding, the head lagging. He asked on 20 November, 22:44, for this to be pushed up.
 3. Off balance: built as stumbles (19 November). Left of it: a leap landing on someone, kicks built on the door.
 
 **Combos (the plan of 20 November; he said go at 18:42).** Step 1 is built (above). **Next, after his look at the

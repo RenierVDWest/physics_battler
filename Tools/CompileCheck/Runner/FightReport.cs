@@ -1212,6 +1212,7 @@ internal static class FightReport
         // (FIGHT_TAKESDISTANCE=0: after going for a man the duel's mover stands where it ended, the old way. With
         // FIGHT_BASHAT, an APART line 6 s after each asked bash: how far apart the two then stand.)
         PhysicsBattler.Sandbox.DuelLab.TakesDistanceAgain = Environment.GetEnvironmentVariable("FIGHT_TAKESDISTANCE") != "0";
+        PhysicsBattler.Battle.FightLoop.DummySpotFollowsTheFall = Environment.GetEnvironmentVariable("FIGHT_SPOTFOLLOWS") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STEPSBACKAFTER"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float stepsBackAfter)) PhysicsBattler.Sandbox.DuelLab.StepsBackAfter = stepsBackAfter;
         // (FIGHT_BLADEPASSES=0: a sword stays solid against the body its blow drove on through, the old way. In the
         // aim lineup it passes; in a fight only with FIGHT_PASSESINFIGHTS=1. FIGHT_FLOWS=0: "throw two" is two whole
@@ -1220,6 +1221,13 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.BladePassesWhatItCut = Environment.GetEnvironmentVariable("FIGHT_BLADEPASSES") != "0";
         PhysicsBattler.Locomotion.ClipFighter.BladePassesEverywhere = Environment.GetEnvironmentVariable("FIGHT_LINEUP") == "aim" || Environment.GetEnvironmentVariable("FIGHT_PASSESINFIGHTS") == "1";
         PhysicsBattler.Locomotion.ClipFighter.BlowsFlow = Environment.GetEnvironmentVariable("FIGHT_FLOWS") != "0";
+        PhysicsBattler.Sandbox.DuelLab.TwoSecondSpot = Enum.TryParse(Environment.GetEnvironmentVariable("FIGHT_TWOSECOND"), true, out PhysicsBattler.Locomotion.AimSpot twoSecond) ? twoSecond : (PhysicsBattler.Locomotion.AimSpot?)null;
+        // (FIGHT_STUMBLEFROM=0.7: a blow throws a man back stumbling from less: headless a sword lands slower than in
+        // Unity and its blows do not make the target stumble, which in his logs they do.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STUMBLEFROM"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float stumbleFromEnv)) PhysicsBattler.Locomotion.CombatFeel.StumbleFrom = stumbleFromEnv;
+        // (FIGHT_JOINTURNS=0: the join as first built, his body jumping at it. FIGHT_JOINTURNS=root or wind: only the one mend.)
+        PhysicsBattler.Locomotion.AttackScore.JoinTurnsRoot = Environment.GetEnvironmentVariable("FIGHT_JOINTURNS") != "0" && Environment.GetEnvironmentVariable("FIGHT_JOINTURNS") != "wind";
+        PhysicsBattler.Locomotion.AttackScore.JoinWindsOverBend = Environment.GetEnvironmentVariable("FIGHT_JOINTURNS") != "0" && Environment.GetEnvironmentVariable("FIGHT_JOINTURNS") != "root";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWKEEPS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowKeeps)) PhysicsBattler.Locomotion.ClipFighter.FlowKeepsSpeed = flowKeeps;
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWBEND"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowBend)) PhysicsBattler.Locomotion.ClipFighter.FlowBend = flowBend;
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWBENDOVER"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowBendOver)) PhysicsBattler.Locomotion.ClipFighter.FlowBendOver = flowBendOver;
@@ -2416,6 +2424,8 @@ internal static class FightReport
                     {
                         twoTold = duel.TwoTold;
                         Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "FLOW {0:0.00}: {1}", paceAt, duel.TwoTold));
+                        Console.WriteLine("FLOWMADE" + duel.Mover.Clip.FlowMade);
+                        Console.WriteLine("FLOWJOIN " + PhysicsBattler.Locomotion.AttackScore.JoinNote);
                     }
 
                     if (startWatched && duel.BlowStart.Length > 0)

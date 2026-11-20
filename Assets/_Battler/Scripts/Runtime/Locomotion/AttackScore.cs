@@ -922,6 +922,16 @@ namespace PhysicsBattler.Locomotion
         /// Where the one is left and the other entered is <see cref="BladeFlow.Join(BladeFlow, BladeFlow, float)"/>'s
         /// to say. (Made once for each.)
         /// </summary>
+        /// <summary>
+        /// At a join the root takes up the difference between the two recordings' roots, and what is left of the
+        /// wind-up is no shorter than the bend (Combat Feel "The Join Keeps His Body's Turn"; <c>FIGHT_JOINTURNS=0</c>
+        /// for the first build of 20 November, 22:08, in which his body jumped at the join).
+        /// </summary>
+        public static bool JoinTurnsRoot = true, JoinWindsOverBend = true;
+
+        /// <summary>For the reports: the last join put together, in numbers.</summary>
+        public static string JoinNote = "";
+
         public AttackScore EnteredFrom(AttackScore before, int leave, int enter, int bend)
         {
             if (before == null || Frames.Length < 6 || before.Frames.Length < 3)
@@ -929,7 +939,7 @@ namespace PhysicsBattler.Locomotion
                 return this;
             }
 
-            string key = Name + "|from|" + before.Name + "|" + leave + "|" + enter + "|" + bend;
+            string key = Name + "|from|" + before.Name + "|" + leave + "|" + enter + "|" + bend + (JoinTurnsRoot ? "|t" : "") + (JoinWindsOverBend ? "|w" : "");
             if (!scores.TryGetValue(key, out var score))
             {
                 scores[key] = score = new AttackScore(before, this, leave, enter, bend);
@@ -960,21 +970,40 @@ namespace PhysicsBattler.Locomotion
             StrikeSpeed = new float[n];
             // (The blow before, played on at its own pace: its frames a second against this one's.)
             float pace = before.Rate / Mathf.Max(1f, next.Rate);
-            Quaternion back = Quaternion.Euler(0f, -next.Facing[first], 0f);
+            // (The two recordings' roots are not turned alike against their bodies: a strike's root is its hips' turn
+            // smoothed and set to nothing where the head looked as the take began. Left as they are, his hips are
+            // turned by that difference against his root over the bend, and the whole body with them: the maker then
+            // had 43 degrees to turn him back onto his man, at once (Renier, 20 November: "the body itself seems to
+            // jump to a different pose between the 2 hits"). The root takes the difference: over the bend it is turned
+            // by as much as the hips of the blow before are turned further than this one's, so that his hips, as seen,
+            // go on as they were going.)
+            float BeforeHips(int f)
+            {
+                float g = Mathf.Clamp(leave + f * pace, 0f, before.Frames.Length - 1.001f);
+                int a = Mathf.Min(Mathf.FloorToInt(g), before.Frames.Length - 2);
+                return Mathf.LerpAngle(before.Frames[a].PelvisTurn.y, before.Frames[a + 1].PelvisTurn.y, g - a);
+            }
+
+            float turned = JoinTurnsRoot ? Mathf.DeltaAngle(next.Frames[Mathf.Min(first + bend, next.Frames.Length - 1)].PelvisTurn.y, BeforeHips(bend)) : 0f;
+            Quaternion back = Quaternion.Euler(0f, turned - next.Facing[first], 0f);
+            JoinNote = string.Format(System.Globalization.CultureInfo.InvariantCulture, "join: before {0} left at frame {1} of {2} (its root turned {3:0} degrees by then, its hips {4:0} against its root, landing frame {5}); next {6} entered at frame {7} (first {8}; its root turned {9:0} by then, its hips {10:0} against its root at the bend's end, landing frame {11}, root turned {12:0} as it lands and {13:0} at its end); the root takes {14:0}",
+                before.Name, leave, before.Frames.Length, before.Facing[Mathf.Clamp(leave, 0, before.Frames.Length - 1)], BeforeHips(0), before.Contact, next.Name, enter, first, next.Facing[first], next.Frames[Mathf.Min(first + bend, next.Frames.Length - 1)].PelvisTurn.y, next.Contact, next.Facing[next.Contact], next.Facing[next.Frames.Length - 1], turned);
             for (int f = 0; f < n; f++)
             {
                 var t = next.Frames[first + f];
+                float w = 1f;
                 if (f < bend)
                 {
                     float g = Mathf.Clamp(leave + f * pace, 0f, before.Frames.Length - 1.001f);
                     int a = Mathf.Min(Mathf.FloorToInt(g), before.Frames.Length - 2);
-                    float w = f / (float)bend;
-                    t = BodyTracks.Lerp(BodyTracks.Lerp(before.Frames[a], before.Frames[a + 1], g - a), t, w * w * (3f - 2f * w));
+                    w = f / (float)bend;
+                    w = w * w * (3f - 2f * w);
+                    t = BodyTracks.Lerp(BodyTracks.Lerp(before.Frames[a], before.Frames[a + 1], g - a), t, w);
                 }
 
                 Frames[f] = t;
                 Root[f] = back * (next.Root[first + f] - next.Root[first]);
-                Facing[f] = next.Facing[first + f] - next.Facing[first];
+                Facing[f] = next.Facing[first + f] - next.Facing[first] + turned * w;
                 Contacts[f * 2] = next.Contacts[(first + f) * 2];
                 Contacts[f * 2 + 1] = next.Contacts[(first + f) * 2 + 1];
                 Strike[f] = StrikeOf(Frames[f], m, hold, Thrust);
@@ -985,7 +1014,9 @@ namespace PhysicsBattler.Locomotion
             Marks(out _, out _, out _);
             Plain = next.Plain;
             // (Its own marks: what is left of its wind-up, and its carry-through.)
-            Drive = Mathf.Clamp(next.Drive - first, 1, Contact - 1);
+            // (No shorter than the bend: what the maker does to fit the blow to its aim (the body's turn, the hips'
+            // drop, the lean) comes in over the wind-up, and over one frame that is a jump.)
+            Drive = Mathf.Clamp(Mathf.Max(JoinWindsOverBend ? bend : 1, next.Drive - first), 1, Contact - 1);
             Follow = Mathf.Clamp(next.Follow - first, Contact + 1, n - 1);
             Pivot = PlantedFoot();
         }

@@ -5236,8 +5236,11 @@ namespace PhysicsBattler.Locomotion
         private int flowLeave, flowEnter, flowLandings;
         private Vector3 flowTip, flowTipStep, flowPosed, flowPosedStep;
         private bool flowTipKnown, flowPosedKnown;
-        private float flowThawed = -10f;
-        private string flowFirstMet = "", flowSecondMet = "", flowPlan = "";
+        private float flowThawed = -10f, flowFacingWas, flowFacingAtJoin, flowBearing, flowFar, flowUp;
+        private string flowFirstMet = "", flowSecondMet = "", flowPlan = "", flowMade = "";
+
+        /// <summary>For the reports: how the last flow's second blow was made against its first (the maker's turn, lunge, drop, lean and hand's move for each).</summary>
+        public string FlowMade => flowMade;
 
         /// <summary>
         /// The blow just begun (<see cref="Made"/>) is to be followed, out of its carry-through, by the strike named,
@@ -5275,6 +5278,7 @@ namespace PhysicsBattler.Locomotion
             // 17 m/s, the posed point was thrown 38 cm off its course in a step; at the corner, 13 cm or less.)
             flowLeaveAt = Made.ContactAt + Mathf.Max(0.05f, join.Leave / Made.Score.Rate - Made.ScoreTime) * driveTime;
             flowFirst = Made;
+            flowFacingWas = Loco.Facing;
             flowTarget = target;
             flowPoint = point;
             flowStyle = style;
@@ -5385,6 +5389,11 @@ namespace PhysicsBattler.Locomotion
                 var first = flowFirst;
                 var joined = nextScore != null ? nextScore.EnteredFrom(first.Score, flowLeave, flowEnter, Mathf.Max(2, Mathf.RoundToInt(FlowBendOver * nextScore.Rate))) : null;
                 Loco.MostKeptAtNextSwitch = FlowKeepsSpeed;
+                flowFacingAtJoin = Loco.Facing;
+                Vector3 lies = InOwnFrame(flowPoint()) * Loco.Leg;
+                flowBearing = Mathf.Atan2(lies.x, lies.z) * Mathf.Rad2Deg;
+                flowFar = new Vector2(lies.x, lies.z).magnitude;
+                flowUp = lies.y;
                 var second = joined != null ? StrikeMade(flowTarget, flowPoint(), flowStyle, 0f, null, null, null, joined) : null;
                 if (second == null)
                 {
@@ -5394,6 +5403,11 @@ namespace PhysicsBattler.Locomotion
 
                 flowSecond = second;
                 flowJoinedAt = clock;
+                flowMade = string.Format(System.Globalization.CultureInfo.InvariantCulture, " [the second as made: its score {0} frames at {1:0} a second, drive at {2}, lands at {3}; turned {4:0} degrees, lunge x{5:0.00}, hips dropped {6:0} cm, leaned {7:0} degrees, hand moved {8:0} cm, wrist steered {9:0} degrees; lands {10:0.00} s in, at {16:0.00} s of its score. The first: turned {11:0}, lunge x{12:0.00}, dropped {13:0} cm, leaned {14:0}, hand moved {15:0} cm]",
+                    joined.Frames.Length, joined.Rate, joined.Drive, joined.Contact, second.Turn, second.Lunge, 100f * second.Drop * Loco.Leg, second.Lean, 100f * second.HandMoved * Loco.Leg, second.Steer, second.ContactAt,
+                    first.Turn, first.Lunge, 100f * first.Drop * Loco.Leg, first.Lean, 100f * first.HandMoved * Loco.Leg, second.ScoreTime)
+                    + string.Format(System.Globalization.CultureInfo.InvariantCulture, " [at the join his root had turned {0:0} degrees since the first blow began; the spot lay {1:0} degrees to his right, {2:0.00} m off and {3:0.00} m up]",
+                        Mathf.DeltaAngle(flowFacingWas, flowFacingAtJoin), flowBearing, flowFar, flowUp);
                 flowLandings = Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects;
                 FlowsJoined++;
                 flowEnds = clock + 3f;

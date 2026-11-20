@@ -368,6 +368,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: after the duel lab's swordsman has gone for a man by himself (a pounce on an opening, a blow at a man who is down) he steps back to the distance he stood at before he went, so the next blow you ask for starts from the lab's distance again. Only when his order is to stand: going round or walking, he goes on with that. Off (old): he stands where the going ended, and the target, walking back to its own spot, comes right up against him.")]
         public bool afterGoingForHimHeTakesHisDistanceAgain = true;
 
+        [Tooltip("On: the spot of a lab's target that is down follows it, so once it is up it stands where it got up. Off (as it was): its spot stayed where it had stood before it fell, and once up it walked back there, through a swordsman who had come to it: his board in its body for two seconds in Renier's log of 20 November.")]
+        public bool aFallenTargetsSpotFollowsIt = true;
+
         [Tooltip("How long after his blow lands the duel lab's swordsman begins that step back (seconds, in the blow's own time): the rest of the blow, its way back to the guard, is left. 0: he waits for the whole blow, and the target walks back into him for about a second first. Default 0.35.")]
         [Range(0f, 1f)] public float heStepsBackThisLongAfterHisBlowLands = 0.35f;
 
@@ -1867,6 +1870,7 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
             PhysicsBattler.Sandbox.RunIn.Pounces = aFighterPouncesOnAnOpening;
             PhysicsBattler.Sandbox.DuelLab.TakesDistanceAgain = afterGoingForHimHeTakesHisDistanceAgain;
+            PhysicsBattler.Battle.FightLoop.DummySpotFollowsTheFall = aFallenTargetsSpotFollowsIt;
             PhysicsBattler.Sandbox.DuelLab.StepsBackAfter = Mathf.Clamp01(heStepsBackThisLongAfterHisBlowLands);
             PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = aFighterGoesForAManWhoIsDown;
             PhysicsBattler.Sandbox.RunIn.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
