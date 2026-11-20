@@ -7925,3 +7925,23 @@ path" numbers of these logs (34 to 60 cm) are not to be read; a fresh log from t
 Checks: 0 errors; the panel's look list 8 of 8; `flow.sh` passes. The fight of six was not run: only the duel
 lab's own code changed.
 
+### 20 November, 21:30: his second look: the step back works in Unity, the drawing is seen, the blade sticks on half the blows
+
+**What he said (21:22):** "They do not munch up now like it did before. The orange and blue lines are not super
+close or far away from each other." With four pictures of the drawing. (Taken as: the two men no longer bunch up.)
+
+**His log** (`PlaytestLogs/2026-11-20_21-17-58`, frames looked at and removed), **all seen in Unity:**
+
+- **The step back works.** All 13 blows he asked for started from 1.38 to 1.64 m (before: 0.55 to 0.86 m). After a
+  pounce the swordsman stands about a second with the target walking back into him (0.72 m at the nearest), then
+  steps back in about 1.3 s. He waits for his blow to end first; that second could be shortened.
+- **The drawing is no longer blind:** his pictures show the blue plan, the orange path with its dots, the white bar
+  and the yellow cross where they should be.
+- **Blue against orange, 27 blows that landed on a body:** planted forehands (15) 16 cm from the planned line
+  (median), 38 cm at most, 0.01 s behind: the same as headless (14 cm). Blows on the move (12) 26 cm, 41 cm at most.
+  In the pictures the orange runs wide of the blue over the top of the swing.
+- **The blade sticks at the body in Unity:** 13 of 27 had the point under 5 m/s for a further 0.07 to 0.15 s after
+  the freeze, and 5 of 27 were carried less than 70% as far as planned (0.48 m of 3.45; 0.96 of 3.62; 1.34 of 5.77;
+  0.85 of 3.26; 1.64 of 3.13). The first forehand of each exchange is clean (frozen 0.05 s, carried 5.70 of 5.76 m);
+  the blows that stick are mostly the ones thrown close in, during and after a pounce. Step 2 starts by mending it.
+
