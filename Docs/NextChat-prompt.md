@@ -78,6 +78,7 @@ keep it in the dance for now".** Pushed about midday on the 20th, headless only,
 - In the dance, by themselves: pounces, kicks (for space, and as a guard-breaker), and going for a man who is down
   (**on in the dance only**: whether fighters hold off is still my decision). `RunIn` in `DuelLab.cs` is the
   running-in; each dancer has one.
+- Its film: https://claude.ai/artifact/JfCuCLnTgYQgfyaUB1WJ3C
 - **Not reached, and I asked for it: the get-up leftovers** (the first three lines of "rough" below).
 - The panel's "Look here" list is that push (seven steps, fourteen names; all drawn in the duel lab).
 

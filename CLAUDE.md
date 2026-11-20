@@ -280,6 +280,7 @@ smoothly, the shield giving way to the sword.
     (dance)", "A man down (dance)", "Kicks (dance)"; a line "By himself" per dancer; report line `DANCEOWN`.
     Headless: pounces and kicks happen by themselves; **nobody went down in my dances, so going for a man who is
     down was not exercised in the dance.** The dance's own crossings rose (0.56% to 0.97% in one dance).
+  - Its film (3b2b, made by Opus at medium effort): https://claude.ai/artifact/JfCuCLnTgYQgfyaUB1WJ3C
   - **Not done of what he asked: the get-up leftovers** (the sword moving while its hand is in the air, the shin
     kick at the start of one get-up in three, the shield's rim in the ground for a tenth of a second).
 - **The night's two films** (3b2b, made by Opus at medium effort): the get-up,
