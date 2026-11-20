@@ -82,7 +82,9 @@ The rest are one-off comparisons from particular days, kept for reference.
   here; a batch of six 10 s duels about 13.**
 - `FIGHT_POUNCE=0`: the duel's mover does not pounce on an opening (old). `FIGHT_POUNCEREADS=0.15`: how soon he
   reads one. Every bash or kick asked for with `FIGHT_BASHAT` prints a `POUNCE` line 2.6 s after it.
-- `FIGHT_DOWNED=1`: the duel's mover strikes a man who is down (off by default, as in the game). Every bash or
+- `FIGHT_DOWNED=1`: the duel's mover goes for a man who is down. **In the game this is on by default since 20
+  November** (Combat Feel "A Fighter Goes For A Man Who Is Down"); headless it stays off unless asked, so that falls
+  and get-ups are measured on a man left alone. Every bash or
   kick asked for with `FIGHT_BASHAT` prints a `DOWNED` line 4.4 s after it.
 - `FIGHT_TAKEOVER=0`: a get-up takes him up as if he lay still and blends from how he lay, the old way (the plan's
   step 4 off). `FIGHT_TAKEOVERMOST=0.6`: the most its take-over takes (seconds). Every fight's report has two lines

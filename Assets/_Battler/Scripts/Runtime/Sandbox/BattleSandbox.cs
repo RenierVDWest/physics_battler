@@ -1628,11 +1628,11 @@ namespace PhysicsBattler.Sandbox
 
             Readout(new GUIContent("His last pounce: " + Duel.Pounced + $" ({Duel.OpeningsSeen} openings seen, {Duel.PounceLeaps} gone for, {Duel.PounceBlows} struck at).", "What opening he saw, how far off, how far and fast he ran, where and how fast he was going as he threw the blow and as it landed, and what the blade met."), 3);
             BeginRow();
-            Words(new GUIContent("A man who is down:", "What he does while the other lies off his feet (Combat Feel \"A Fighter Strikes A Man Who Is Down\"). He holds off (as the game is today): he lets him get up. He strikes him: he runs to him, from however far he was thrown, and strikes down at his chest as he arrives, in one motion, with the blows there are today aimed at where it lies. \"Strike him where he lies\" asks for it once: fell the other first (\"Stumble him: Extra hard\", or \"Kick power\" at 4 and \"Front kick\")."));
+            Words(new GUIContent("A man who is down:", "What he does while the other lies off his feet (Combat Feel \"A Fighter Goes For A Man Who Is Down\"). He goes for him (the default, as you decided on 20 November): he runs to him, from however far he was thrown, and stabs down from beside his chest as he arrives, in one motion. He holds off (old): he lets him get up, which is the way to watch a get-up undisturbed. \"Strike him where he lies\" asks for it once whatever this says."));
             if (feel != null)
             {
-                if (Press(!feel.aFighterStrikesAManWhoIsDown ? "[he holds off]" : "he holds off", "As the game is today.")) feel.aFighterStrikesAManWhoIsDown = false;
-                if (Press(feel.aFighterStrikesAManWhoIsDown ? "[he strikes him]" : "he strikes him", "Every time the other is down.")) feel.aFighterStrikesAManWhoIsDown = true;
+                if (Press(feel.aFighterGoesForAManWhoIsDown ? "[he goes for him]" : "he goes for him", "Every time the other is down: he runs to him and stabs down. The default, as you decided on 20 November.")) feel.aFighterGoesForAManWhoIsDown = true;
+                if (Press(!feel.aFighterGoesForAManWhoIsDown ? "[he holds off (old)]" : "he holds off (old)", "He lets him get up: the way to watch a get-up undisturbed.")) feel.aFighterGoesForAManWhoIsDown = false;
             }
 
             if (Press(Duel.StrikeDownedOnce ? "[Strike him where he lies]" : "Strike him where he lies", "Once: the next time the other is down (or now, if he is), he runs to him and strikes down at his chest as he arrives."))
@@ -2144,7 +2144,7 @@ namespace PhysicsBattler.Sandbox
                 if (Press(!feel.theDancePouncesOnAnOpening ? "[he keeps to his pattern (old)]" : "he keeps to his pattern (old)", "As before.")) feel.theDancePouncesOnAnOpening = false;
                 EndRow();
                 BeginRow();
-                Words(new GUIContent("A man down (dance):", "What a dancer does when the other is knocked off his feet (Combat Feel \"The Dance Strikes A Man Who Is Down\"). He goes for him (new): he runs to him and stabs down from beside him. He lets him up (old): he waits until the other stands. Only the dance: whether fighters hold off everywhere else is still your decision."));
+                Words(new GUIContent("A man down (dance):", "What a dancer does when the other is knocked off his feet (Combat Feel \"The Dance Strikes A Man Who Is Down\"). He goes for him (new): he runs to him and stabs down from beside him. He lets him up (old): he waits until the other stands. Only the dance: in the duel lab \"A man who is down:\" decides. You decided on 20 November that fighters go for him."));
                 if (Press(feel.theDanceStrikesAManWhoIsDown ? "[he goes for him]" : "he goes for him", "He runs to him and stabs down.")) feel.theDanceStrikesAManWhoIsDown = true;
                 if (Press(!feel.theDanceStrikesAManWhoIsDown ? "[he lets him up (old)]" : "he lets him up (old)", "As before.")) feel.theDanceStrikesAManWhoIsDown = false;
                 EndRow();
@@ -4112,29 +4112,21 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "20 November, midday: a stab for a man who is down, a pounce that goes for what is open, and the dance's fighters pouncing, kicking and going for a man who is down by themselves";
+        private const string LookTag = "20 November, late afternoon: a fighter goes for a man who is down by default now (your decision); the combos research and plan is a document, with nothing to look at in the game yet";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
             "1. Go to \"Duel\" (the bar of labs at the top) and find \"Stumbles and falls\". \"Slow motion: a quarter\" makes it easy to watch.",
-            "A MAN WHO IS DOWN:",
-            "2. Press \"Knock him down and strike him: Near\", then \"Far\". He should now run to beside the man's chest, bend down to him and stab down, still in one motion. Before, he swung a standing blow that mostly hit a shin or an arm.",
-            "3. To compare: \"A man who is down, his blow: a standing blow, straight at him (old)\". \"He bends to it by\" makes him bend more or less.",
-            "THE POUNCE:",
-            "4. Press \"Stumble him: Hard\", then \"Kick him: Soft kick\". As the other stumbles he runs in and strikes at what is open, mostly the head, and it should land. After a small or medium bash the other still gets his shield to it: I know.",
-            "5. To compare: \"An opening, his blow: his chest (old)\" and \"Stumbling, his guard: by the clock (old)\".",
-            "BY THEMSELVES, IN THE DANCE:",
-            "6. Start a dance as you usually do and let it run a minute or two. Without any button: when one stumbles the other should run in and strike; one who comes too near is sometimes kicked back out; a fighter with no shield throws a hard kick now and then; and if one goes down the other should run to him and stab down.",
-            "7. Each can be switched off in the dance's settings: \"An opening (dance)\", \"A man down (dance)\", \"Kicks (dance)\". The line \"By himself\" under each dancer counts what he did.",
+            "2. Press \"Kick him: Hard kick\" (or \"Stumble him: Extra hard\") so that he falls. Without any other button the fighter should now run to him and stab down: that is the new default, \"A man who is down: he goes for him\".",
+            "3. To watch a get-up undisturbed, press \"A man who is down: he holds off (old)\" first.",
+            "4. Nothing else changed in the game. The combos plan is a document: its first step will draw the blade's path here in the duel lab.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Stumbles and falls", "Slow motion:", "Knock him down and strike him:", "A man who is down, his blow:", "He bends to it by",
-            "Stumble him:", "Kick him:", "An opening, his blow:", "Stumbling, his guard:",
-            "An opening (dance):", "A man down (dance):", "Kicks (dance):", "Kicks instead of bashing",
+            "Duel", "Stumbles and falls", "Slow motion:", "Kick him:", "Stumble him:", "A man who is down:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

@@ -7686,3 +7686,57 @@ the dance's settings; 10 of 14 in the tubes lab, the four dance rows not being d
 
 **Not done:** the low slash; kicks at more than one height; a second blow after a pounce that is stopped; any of
 it in the fight of six (on purpose: his word). **None of this has been seen in Unity.**
+
+### 20 November, 17:05: he decides a fighter goes for a man who is down; the combos research and plan (a document, nothing built)
+
+**His words (16:11):** "Ok all this looks fine for now. I do want a fighter to go for a man that is down." Then
+he asked for a deep research document on combos, with five goals: one fluid motion (never attack, stop, attack);
+each blow starting where the last one's blade ended; blows that slash through and do not stop at the part aimed
+at; epic and powerful, with a real look at what fighting games do; the last blow the most powerful.
+
+**The decision, built:** a fighter going for a man who is down is now the default in the duel lab as well as the
+dance. The switch has a new name because its default changed: Combat Feel "A Fighter Goes For A Man Who Is Down"
+(on; it was "A Fighter Strikes A Man Who Is Down", off). Lab row "A man who is down: he goes for him / he holds
+off (old)". Not the fight of six (his word of the morning). Headless nothing changed: `FIGHT_DOWNED=1` still asks
+for it, so falls and get-ups are measured on a man left alone; one run of a hard kick with it on still ends in the
+stab (no exception). To watch a get-up undisturbed in Unity: "he holds off (old)".
+
+**The document:** `Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`
+(live: https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX). Nothing of it is built. In short:
+
+- A combo is one swing with several hits: a made attack ends at its blade's turn instead of in the guard, and the
+  next starts from the blade as the last one left it. A blow on every footfall. Power 0.6, then 1.0, then 1.6; the
+  last blow grows with the blows landed before it; the stab follows if he is floored. Every blow stays a real made
+  attack (blocked: it bounces into another line; parried clean or struck into: the combo is over).
+- Seven steps: the blade's path drawn and measured; two blows as one swing; three blows and the big one; against
+  a man who defends; the dance; the show; more cuts. Each with its lab buttons and pass marks in the plan.
+- From fighting games (pages read on the day, listed in the plan): a hit buys the time for the next; the recovery
+  is skipped; the freeze on a hit is 0.18 to 0.25 s in Guilty Gear Xrd against our 0.04 to 0.16 s (finisher 0.13
+  to 0.17 s); light then heavy; opener, links, ender and an ender that grows with the combo; the defender can break
+  it. From Meyer's dusack and the sabre's moulinet: a cut ends where the next begins, and loops keep the blade
+  moving.
+
+**Measured for it** (scratch scripts, now in `Tools/Mocap/Combat/flow`; the blade worked out from the hand's bones,
+so approximate; from the sampled mocap takes, not from the game):
+
+| | |
+|---|---|
+| The recorded four-cut combo: hit to hit | 0.57 s, then 1.20 s (the last is a leaping chop) |
+| After its first hit, the blade's point | carries on 5.5 m in 0.33 s, slowest 2.1 m/s, then lands again 0.23 s later |
+| Other recorded combos: hit to hit | 0.40 to 0.90 s |
+| Two whole made attacks one after the other (forehand, rising) | about 1.7 s hit to hit (from the recordings' lengths) |
+| Forehand's end to rising backhand's start, the hand | 32 cm (13 cm with the pack's quick forehand, not baked) |
+| Rising backhand's end to the combo forehand's start, the hand | 24 cm; the point has to roll over the shoulder |
+| The walk | a footfall every 0.55 s |
+
+**Found on the way:** `sns_backhand_lunge` and `spin_backhand_mid` are the same take (he turns 396 degrees and
+steps 2.4 m), and so are `sns_chop_side` and `spin_chop` (a leap with a full spin); `sns_chop_lunge` travels 3.6 m.
+So the Medium knows six cuts, not eight. The old combo system (`ComboPlayer`, `StrikeCores`, `StrikeCombos`) still
+runs in the fight of six and is not used by the plan.
+
+**The panel:** "Look here" lists the one thing to see (6 names, 6 of 6 drawn and framed): a man kicked down in the
+duel lab is now gone for without a button.
+
+**Not verified:** nothing of the combos plan has been run as a combo or seen in Unity. The decision's new default
+was built and compiled; the stab itself is as it was at midday.
+

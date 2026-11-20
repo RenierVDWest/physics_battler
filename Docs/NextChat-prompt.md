@@ -6,12 +6,16 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 20 November 2026, about midday. `README.md` is the build log (over 7,500 lines: search it, never read it whole). The
+   of 20 November 2026, 17:05. `README.md` is the build log (over 7,500 lines: search it, never read it whole). The
    last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November; "### 20 November, 08:30" is
-   the second pass after my look, and the entry after it is what came of my "this all looks good".
-2. Read the plan for the work in hand: `Docs/Plans/2026-11-19-from-how-he-lies-to-how-he-gets-up.md`, with its
-   progress notes at the end. Its live version is https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa: add your own
-   progress notes there with the Docs tools (insert at the end), and to the copy in the repository.
+   the second pass after my look, the entry after it is what came of my "this all looks good", and "### 20 November,
+   17:05" is my decision on a man who is down and the combos research and plan.
+2. Read the plan for the work in hand: `Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`
+   (research and plan for combos; **nothing of it is built**; its step 1 is next when I say go). Its live version is
+   https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX: add your own progress notes there with the Docs tools (insert
+   at the end), and to the copy in the repository. The plan before it is
+   `Docs/Plans/2026-11-19-from-how-he-lies-to-how-he-gets-up.md` (live:
+   https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa); its leftovers are in CLAUDE.md's roadmap.
 3. Set up the headless build: `dotnet --version || apt-get install -y dotnet-sdk-8.0`, then
    `cd Tools/CompileCheck && ./get-physx.sh`, then `Tools/Headless/b.sh` in a command by itself (it wants
    "0 Error(s)" four times). `export S=/tmp/pb2` for the run outputs. Read `Tools/Headless/README.md`.
@@ -142,7 +146,8 @@ costs; whether real attacks should be more frequent.
 - "the end of a get-up, as seen" (the jump as he stands) and "a rising fighter's knees stay above the ground" are
   report lines too. Old ways from the night: `FIGHT_GETUPKNEES=0`, `FIGHT_GETUPSTILL=0`, `FIGHT_GETUPEND=0`,
   `FIGHT_GETUPSHIELD=0`, `FIGHT_ARMSOUT=0`, `FIGHT_PRESS=0`, `FIGHT_POUNCE=0`; `FIGHT_KICK=1` and `FIGHT_DOWNED=1`
-  ask for a kick and for a blow at a man who is down. `Tools/Headless/four.sh tag` runs the four bashes.
+  ask for a kick and for a blow at a man who is down (in the game he goes for a downed man by default since 20
+  November; headless it stays off unless asked, so falls and get-ups are measured on a man left alone). `Tools/Headless/four.sh tag` runs the four bashes.
 - Then fights of six (seeds 5, 3 and 7, 40 s) for the budget: crossing on his feet 0.35% to 0.82% against 0.5%,
   board tremble 6.3% to 8.7% against 8%, as the night left them. They differ run to run after the first fall: one
   seed proves nothing; seed 7 is the same to the hundredth when a change does not touch a fight.

@@ -388,3 +388,15 @@ him must be one motion, and a man knocked far must be run after. And you wanted 
   (dance)"). Everywhere else it is still off. In my test dances nobody went down, so I have not seen it happen there.
 - To see it: Duel, "Stumbles and falls", "Knock him down and strike him: Near", then "Far". To compare: "A man who
   is down, his blow: a standing blow, straight at him (old)".
+
+## Decision, 20 November, 16:11: a fighter goes for a man who is down
+
+- **Your words:** "I do want a fighter to go for a man that is down." That answers the open question in "Decisions for
+  you": fighters do not hold off.
+- **What changed in the game:** it is now the default in the duel lab as well as the dance. The switch has a new
+  name because its default changed: Combat Feel "A Fighter Goes For A Man Who Is Down" (it was "A Fighter Strikes A
+  Man Who Is Down", off). The lab row "A man who is down:" reads "he goes for him" / "he holds off (old)".
+- **Not in the fight of six:** your word of the morning, "keep it in the dance for now", still stands.
+- **To watch a get-up undisturbed** in the duel lab, press "he holds off (old)" first. My headless falls and
+  get-ups are still measured on a man left alone (`FIGHT_DOWNED=1` asks for the stab).
+- **In the combos plan** (20 November) the stab is what follows a last blow that floors him.

@@ -312,7 +312,7 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: in the dance a fighter pounces on an opening by himself. When the other stumbles, has his guard knocked open or turns his back, he runs in and strikes in one motion, as the duel lab's fighter does from its buttons. Off: he keeps to his pattern.")]
         public bool theDancePouncesOnAnOpening = true;
 
-        [Tooltip("On: in the dance a fighter goes for a man who is down by himself: he runs to him and stabs down from beside him. Off: he lets him get up. Only the dance: elsewhere \"A Fighter Strikes A Man Who Is Down\" decides (off). Whether fighters should hold off is still an open decision.")]
+        [Tooltip("On: in the dance a fighter goes for a man who is down by himself: he runs to him and stabs down from beside him. Off: he lets him get up. Only the dance: in the duel lab \"A Fighter Goes For A Man Who Is Down\" decides. Decided on 20 November: fighters go for him.")]
         public bool theDanceStrikesAManWhoIsDown = true;
 
         [Tooltip("On: in the dance fighters kick by themselves. A fighter with no shield kicks a man who has come too near back out (he has no bash), and his guard-breaking attack is a hard kick. A fighter with a shield kicks instead of bashing some of the times (\"Dance Kicks Instead Of Bashing\"). Off: nobody kicks in the dance.")]
@@ -365,8 +365,8 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How soon he reads an opening and goes for it (seconds).")]
         [Range(0f, 0.6f)] public float pounceReadsIn = 0.15f;
 
-        [Tooltip("On: a fighter strikes a man who is down. While the other is off his feet, the fighter runs to him from however far he was thrown and strikes down at his chest as he arrives, in one motion with no stop between the run and the blow. In the duel lab only. Off (as the game is today, and the default): he holds off and lets him get up. The lab's \"Strike him where he lies\" asks for it once whatever this says.")]
-        public bool aFighterStrikesAManWhoIsDown = false;
+        [Tooltip("On (the default, decided on 20 November): a fighter goes for a man who is down. While the other is off his feet, the fighter runs to him from however far he was thrown and stabs down from beside his chest as he arrives, in one motion with no stop between the run and the blow. In the duel lab; the dance has its own switch (\"The Dance Strikes A Man Who Is Down\"); not in the fight of six. Off (old): he holds off and lets him get up, which is the way to watch a get-up undisturbed. (A new name for \"A Fighter Strikes A Man Who Is Down\", which was off by default.)")]
+        public bool aFighterGoesForAManWhoIsDown = true;
 
         [Tooltip("On: a fighter can kick: a front kick with the back foot, from the sword-and-shield recordings. As the foot meets the other's body or his board he is thrown as by any impact: shoved, stumbling or down is his legs' to decide. Only from the lab's \"Kick him\" for now: no fighter kicks by himself. Off: the button does nothing.")]
         public bool aKickThrowsABody = true;
@@ -1847,7 +1847,7 @@ namespace PhysicsBattler.Locomotion
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
             PhysicsBattler.Sandbox.RunIn.Pounces = aFighterPouncesOnAnOpening;
-            PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = aFighterStrikesAManWhoIsDown;
+            PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = aFighterGoesForAManWhoIsDown;
             PhysicsBattler.Sandbox.RunIn.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
             ClipFighter.KicksThrow = aKickThrowsABody;
             ClipFighter.KickPower = Mathf.Clamp(kickPower, 0.5f, 6f);

@@ -4,10 +4,10 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 11:52 (after his "this all looks good" on the second pass: a stab from beside him for
-a man who is down, a pounce that goes for what is open, and the dance's fighters pouncing, kicking and going for a
-man who is down by themselves. **Not the fight of six: his word, "keep it in the dance for now".** Headless only,
-waiting for his eye: see "Where things stand").
+Last updated: 20 November 2026, 17:05 (after his "all this looks fine for now" on the midday push. Two things from
+that message: **he decided that a fighter goes for a man who is down** (now the default in the duel lab too; still
+not the fight of six), and he asked for **a deep research document and plan for combos**, which is written:
+`Docs/Plans/2026-11-20-combos-…`. It is a document only: nothing of it is built).
 
 ## The project in a few lines
 
@@ -86,6 +86,13 @@ These are standing rules. They hold in every chat.
 - Impacts: every force has an equal and opposite reaction; both bodies absorb it. **No invented randomness in
   impacts**: variation comes only from how the bodies really meet.
 - The slowest stepping walk is only for small adjustments, never for a continuous walk.
+- **A fighter goes for a man who is down** (20 November). In the duel lab and the dance; the fight of six only
+  when he says.
+- **Combos, his five goals (20 November):** one fluid motion, never attack, stop, attack; each blow starts where
+  the last one's blade ended; a blow slashes through and does not stop at the part aimed at; they feel epic and
+  powerful; the last blow is the most powerful. Combos are also a way to break a shielded guard (17 November).
+  From 4 November, still his: about one second from the first hit to the third; a man driven back is followed;
+  the long leaping chops only end a combo; streaks pale grey.
 - Debug panel: every action's sliders sit under that action in the actions window; sections are colour
   coded; there is a search box.
 
@@ -148,12 +155,16 @@ prints "PANEL OK".
 
 ## Plans and documents
 
-Every plan document has a copy in `Docs/Plans/` (31 files; `Docs/Plans/README.md` is the index, with each one's
+Every plan document has a copy in `Docs/Plans/` (32 files; `Docs/Plans/README.md` is the index, with each one's
 state). The live versions are Claude documents, linked from the index: progress notes are added there, and the copy
 here is refreshed when a plan changes a lot. Read the one for the work in hand, never all of them.
 
-The four in hand:
+The five in hand:
 
+- `2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`: **research and plan for combos, nothing
+  built.** A combo is one swing with several hits: the follow-through of each cut is the wind-up of the next. Seven
+  steps; step 1 (the blade's path drawn and measured) is next when he says go
+  ([live](https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX)).
 - `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: **the work in hand.** His five answers are in (all as
   recommended). Steps 1 and 2 are built, step 3 has a first build he has seen, step 4 (the take-over) is built and
   waits for his eye; **next: the trunk's turn in the gather again; then step 5**
@@ -165,7 +176,7 @@ The four in hand:
 - `2026-11-18-impacts-that-carry-weight.md`: three steps wait
   ([live](https://claude.ai/artifact/HkqvPHoe22TWSjZwxvdW5V)).
 
-## Where things stand (19 November 2026)
+## Where things stand (20 November 2026)
 
 Working and approved by Renier: walking in the dance, quick turn-arounds, recorded get-ups rebuilt from parts,
 attacks made from recordings and thrown on the move, the three shield bashes, fakes as real attacks cut
@@ -228,7 +239,9 @@ smoothly, the shield giving way to the sword.
   after a small bash the blow is thrown 0.2 s after the opening began and lands; after a medium or hard bash or a
   kick he is not free for 0.7 to 1.0 s and the blow (1.2 to 1.7 s after) is blocked or parried.
 - **A man who is down, a first piece (the Downed play plan's steps 0 and 1; 20 November, 02:20):** Combat Feel "A
-  Fighter Strikes A Man Who Is Down" (**off by default**: whether fighters hold off is his open decision); lab row
+  Fighter Goes For A Man Who Is Down" (**on by default since his decision of 20 November, 16:11**; it was "A
+  Fighter Strikes A Man Who Is Down", off; headless it stays off unless `FIGHT_DOWNED=1`, so that falls and get-ups
+  are measured on a man left alone; to watch a get-up undisturbed in Unity: "he holds off (old)"); lab row
   "A man who is down" and button "Strike him where he lies" (duel lab, "Stumbles and falls");
   `DuelLab.StepDowned`. Headless: today's made blows, aimed at the chest of a man lying 13 to 16 cm up, reach and
   land (two of two): the plan's first question answered yes. The rest of that plan is not built.
@@ -441,6 +454,29 @@ goes with the keys (old)". Waiting for his eye.
   for a fifth of a second as the arm comes round: the get-up's own motion, for his eye.
 - `FIGHT_GETUPTRACE=1` (`GETUPHELD` lines) is temporary and can go once he has seen it.
 
+**Combos: a research document and plan (20 November, 17:05). Nothing is built.**
+
+- The document: `Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`. The idea: a combo is
+  one swing with several hits. Each made attack ends at its blade's turn instead of in the guard, and the next
+  starts from the blade as the last one left it (a join that keeps the blade's speed and direction); a blow on
+  every footfall; power 0.6, then 1.0, then 1.6; the last blow grows with the blows landed before it; then the
+  stab if he is floored. Every blow stays a real made attack that can be blocked, parried or struck into.
+- **Measured for it, from the mocap takes with the scratch scripts in `Tools/Mocap/Combat/flow`** (the blade worked
+  out from the hand's bones, so approximate; not part of the headless tests): in the recorded four-cut combo the hits are 0.57 s and 1.20 s apart,
+  the blade carries on 5.5 m after the first hit and is never slower than 2.1 m/s before the second; two whole
+  made attacks one after the other would be about 1.7 s from hit to hit. Six corners where the sword hand is when a
+  cut starts or ends (high right, low left, out right, overhead, low front, left shoulder); forehand and rising
+  backhand run between high right and low left (the hand's gap at the join 32 cm, 13 cm with the pack's quick
+  forehand, which is not baked).
+- **Found on the way:** `sns_backhand_lunge` is the same take as `spin_backhand_mid` (he turns 396 degrees in it),
+  and `sns_chop_side` the same as `spin_chop` (a leap with a full spin). So the Medium really knows six cuts:
+  forehand, rising backhand, thrust, spinning backhand, and two chops (a spinning leap and a 3.6 m lunge). The flat
+  backhand exists only as a slice of the combo take. A blade's limit is 30 m/s (`PhysicalBladeSpeed`), paced for
+  24.
+- **The old combo system** (`ComboPlayer`, `StrikeCores`, `StrikeCombos`, `UnitCombo`) is untouched and still runs
+  in the fight of six. The new plan does not use it: it cut each slash 0.06 s after the hit, which is what he no
+  longer wants.
+
 ## Roadmap
 
 **Stumbles (step 9c) have a first build (19 November, above). Next on them, after his look:** tune by his answers;
@@ -486,8 +522,17 @@ most stumbles)
 2. Bodies that absorb: knees give, hips drop, the arm folds, feet slide. **Not built.** Needs his eye.
 3. Off balance: built as stumbles (19 November). Left of it: a leap landing on someone, kicks built on the door.
 
-**The push of 20 November, 11:52, waits for his eye** (the stab, the pounce at what is open, the dance by itself).
-**Next, in this order:** (1) the get-up leftovers he asked for and I did not reach: the sword moving while its
+**Combos (the plan of 20 November; nothing built).** When he says go: step 1, the blade's path drawn in the duel
+lab and a headless report of every recording's corners and joins (`Tools/Mocap/Combat/flow` turned into a runner
+that reads the baked recordings); then
+step 2, two blows as one swing (forehand into rising backhand, on the move, on a dummy with no guard). The plan's
+table has each step's lab buttons and pass marks. Defaults taken unless he says otherwise: a blow a step (about
+1.1 s for three hits, tuned toward his one second), three blows by default, the spin as a choice of last blow, the
+last blow's freeze tried up to 0.20 s, slow motion on a flooring last blow as a switch that starts off.
+
+**The push of 20 November, 11:52: he has looked (16:11): "all this looks fine for now"** (the stab, the pounce at
+what is open, the dance by itself).
+**Left over, in this order:** (1) the get-up leftovers he asked for and I did not reach: the sword moving while its
 hand is in the air and as he stands; a small kick of a shin at the start of one get-up in three from his front or
 right; the shield's rim 3 to 5 cm in the ground for 0.1 s about 1.3 s in (**tried on the 20th and taken out again:**
 it is in the pose itself, "-3 cm as posed"; raising the hand at the end of `HoldShieldUp` by what the rim was under
@@ -498,10 +543,10 @@ man's sword arm through his own board: it is why a stumbling man's open guard ca
 slash; a second blow when a pounce is stopped; kicks at more than one height (needs the kick pack's recordings,
 not in the repository). (4) Only when he says: any of it in the fight of six.
 
-**Fight Rhythm, still to come**: walking step 6; kicks, the pounce and Downed play beyond their first builds (above); combos; the fight of six.
+**Fight Rhythm, still to come**: walking step 6; kicks, the pounce and Downed play beyond their first builds (above); combos (their own plan now, above); the fight of six.
 
 **Waiting on a decision from him**: what being fooled by a fake costs (today: nothing); whether real attacks
-should be more frequent; whether a fighter holds off while his enemy is down.
+should be more frequent. (Decided on 20 November: a fighter does not hold off while his enemy is down.)
 
 ## Starting a new chat
 

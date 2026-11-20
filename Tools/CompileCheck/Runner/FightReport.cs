@@ -1213,7 +1213,7 @@ internal static class FightReport
         // (FIGHT_UNGUARDED=0: a man not in a guard is only ever shoved, as before. FIGHT_KICKKIND=soft|medium|hard.)
         PhysicsBattler.Locomotion.ClipFighter.UnguardedMenStumble = Environment.GetEnvironmentVariable("FIGHT_UNGUARDED") != "0";
         PhysicsBattler.Sandbox.RunIn.GoesForHimAt = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GOESAT"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float goesAt) ? goesAt : PhysicsBattler.Sandbox.RunIn.DefaultGoesForHimAt;
-        // (FIGHT_DOWNED=1: the duel's mover strikes a man who is down. Off by default, as in the game.)
+        // (FIGHT_DOWNED=1: the duel's mover goes for a man who is down. In the game it is on by default since 20 November (Combat Feel "A Fighter Goes For A Man Who Is Down"); headless it stays off unless asked, so that falls and get-ups are measured on a man left alone.)
         PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = Environment.GetEnvironmentVariable("FIGHT_DOWNED") == "1";
         PhysicsBattler.Sandbox.RunIn.PounceReadsIn = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_POUNCEREADS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pounceReads) ? pounceReads : PhysicsBattler.Sandbox.RunIn.DefaultPounceReadsIn;
         {

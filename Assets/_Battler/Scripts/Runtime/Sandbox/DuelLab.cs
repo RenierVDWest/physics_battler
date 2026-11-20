@@ -1225,8 +1225,9 @@ namespace PhysicsBattler.Sandbox
         // ---- A man who is down (the Downed play plan, a first piece of its steps 0 and 1: 20 November) ----
 
         /// <summary>
-        /// He strikes a man who is down (Combat Feel "A Fighter Strikes A Man Who Is Down"; off by default: he holds off,
-        /// as the game does today, and whether fighters should is a decision of Renier's still open). On, or asked for
+        /// He goes for a man who is down (Combat Feel "A Fighter Goes For A Man Who Is Down"; on by default in the game
+        /// since Renier's decision of 20 November; this static stays off until Combat Feel or a headless lever sets it,
+        /// so that headless falls and get-ups are of a man left alone unless FIGHT_DOWNED=1 asks). On, or asked for
         /// once from the lab ("Strike him where he lies", or the one-press "Knock him down and strike him"): once the
         /// other lies off his feet, the mover runs to him from wherever he is and strikes down at his chest as he
         /// arrives, in one motion (<see cref="GoesForHimAt"/>), with the blows there are today aimed at the spot where
