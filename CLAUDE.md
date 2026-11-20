@@ -525,8 +525,13 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
 - **His look at step 2 (22:40): "They feel like a single motion, you nailed that part. The only issue is that the
   body itself seems to jump to a different pose between the 2 hits."** Found (23:05, README): the maker's fit of the
   entered blow (turn 43, hips 17 cm down, lean 28) came in over a wind-up of one frame. Now over the bend (0.13 s):
-  the kink at the join is 5 to 8 cm headless (was 15 to 19). **Left: the maker still asks that much of the second
-  blow; why is not found** (`FLOWMADE`, `FLOWJOIN` lines; next: its cost at each landing moment). In his Unity logs
+  the kink at the join is 5 to 8 cm headless (was 15 to 19). **Then the cause itself (20 November, 23:17, README): a
+  score's tracks are in its clip's start frame, and the join took them as if against the root** (the two roots are
+  turned 68 and 79 degrees there). Mended: both blows are put into the joined score's own frame and the next laid
+  on so that his hips carry on (Combat Feel "At The Join His Body Carries On"; lab row "At the join, his body:";
+  `FIGHT_JOINTURNS=0`). The maker now turns the second blow 0 to 7 degrees with no drop or lean. **The blade nearly
+  stops at the corner now (0.4 to 2 m/s)**; lever "Join Makes Up At Most" 0.25 leaves the forehand sooner (4 m/s,
+  0.49 s hit to hit, a bigger kink). Which reads better is his to say (`FLOWMADE`, `FLOWJOIN` lines). In his Unity logs
   the second blow landed in 18 of 22, slow, mostly on his right arm: the first blow throws the target back
   stumbling, which headless it does not (`FIGHT_STUMBLEFROM=0.7`).
 - **"The enemy getting stuck in my shield" (22:44):** a fallen target's spot never followed it (the rule sat where a
@@ -536,8 +541,8 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the
-steps." In this order: (1) the combo fixes (the body's jump: half done, above; the second blow's aim; the second
-blow over his walk); (2) the enemy stuck in his shield (**done, above**); (3) **bodies that absorb a hit, pushed up
+steps." In this order: (1) the combo fixes (the body's jump: **done**, above; the second blow's aim: better, 9 to 30 cm, his right arm
+still in the way in 4 of 6; the second blow over his walk: not done); (2) the enemy stuck in his shield (**done, above**); (3) **bodies that absorb a hit, pushed up
 by him** (a first build exists from 20 November, 01:15, for bashes and thrown bodies: knees and hips give, the trunk
 folds; not built: a sword's blow pressing the struck man, feet sliding before the first step, the head lagging);
 (4) more cuts baked (quick forehand, flat forehand, low cut) and the blade report on them; (5) the step back

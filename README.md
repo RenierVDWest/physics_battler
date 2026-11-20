@@ -8045,3 +8045,38 @@ counted as his run was called off at 2 m/s, from a place he then ran a metre pas
 Checks: 0 errors; the panel's look list 9 of 9. Not run again: the fight of six (the join and the lab's rules only;
 `FightLoop`'s new lines are for target dummies).
 
+### 20 November, 23:17: the body's jump at the join: the cause found and mended
+
+The entry before this one said why the maker asked so much of the second blow was not found. It is found.
+
+**The cause.** A score's tracks are in the frame the fighter faced as its clip began, with his travel and his turn
+since then in them (`BodyMeasures.World`). The first build of the join (`AttackScore.EnteredFrom`) took each
+recording's tracks as they were, as if they were against its root. By the corner the forehand's root has turned 68
+degrees and the rising backhand's, where it is entered, 79. So the blow the maker was handed was not the blow: it
+turned him 43 to 50 degrees, dropped his hips 17 cm and leaned him 28 degrees, the most it may, to bring that onto
+his man. That is the pose his body jumped to (in his log's frames: crouched and folded at 140.2 s, between the hits).
+
+**The mend** (Combat Feel "At The Join His Body Carries On", on; lab row "At the join, his body: carries on / jumps
+(old)"; `FIGHT_JOINTURNS=0`): the joined score's own frame is where the blow before has him as it is left. The blow
+before is put into that frame; the next is laid onto it, turned and moved so that his hips at the bend's end are
+where the blow before has them and turned as it has them (for this pair: turned 18 degrees, moved 8 cm); both are
+taken apart into tracks again there and bent one onto the other, the root's path with them.
+
+| Headless, pairs standing and going round | Jumps (old) | Carries on (new) |
+| --- | --- | --- |
+| What the maker does to the second blow | turn 43 to 50 degrees, hips 17 cm down, lean 28, hand moved 23 to 38 cm, travel x0.30 | turn 0 to 7 degrees, hips 0 to 3 cm, lean 0 to 3, hand 2 to 13 cm, travel x1.00 |
+| It lands, of its own recording | two frames late | at its recorded landing |
+| First hit to second | 0.53 to 0.58 s | 0.55 to 0.58 s |
+| The second blow from the spot asked for | 16 to 36 cm | 9 to 30 cm; the chest in 2 of 6, his right arm in 4 |
+| At the join, the posed point off its course in a step | 15 to 19 cm (5 to 8 with the wind-up alone mended) | 12 to 13 cm |
+| The point's slowest between the hits | 3.1 to 5.8 m/s | **0.4 to 2.0 m/s** |
+
+**The blade now nearly stops at the corner** (the plan's mark is 2 m/s). The first build's blade kept moving because
+it was the wrong blow. With "Join Makes Up At Most" at 0.25 (new Combat Feel lever and lab lever; default 0.15, the
+plan's) the forehand is left 0.10 s after it lands, not 0.17: the point never under 4.2 m/s, 0.48 to 0.50 s hit to
+hit, 11 to 13 cm from the spot, but the posed point is thrown 38 cm off its course at the join. Which reads better
+is his to say; the default is the corner. With the target made to stumble as in Unity (`FIGHT_STUMBLEFROM=0.7`) the
+second blow still lands, at 16 m/s, 13 to 30 cm from the spot. **Not seen in Unity.**
+
+Checks: 0 errors; the panel's look list; `flow.sh`.
+

@@ -923,9 +923,10 @@ namespace PhysicsBattler.Locomotion
         /// to say. (Made once for each.)
         /// </summary>
         /// <summary>
-        /// At a join the root takes up the difference between the two recordings' roots, and what is left of the
-        /// wind-up is no shorter than the bend (Combat Feel "The Join Keeps His Body's Turn"; <c>FIGHT_JOINTURNS=0</c>
-        /// for the first build of 20 November, 22:08, in which his body jumped at the join).
+        /// At a join both blows are put into the joined score's own frame (where the blow before has him as it is
+        /// left), this one laid on so that his hips carry on; and what is left of the wind-up is no shorter than the
+        /// bend (Combat Feel "At The Join His Body Carries On"; <c>FIGHT_JOINTURNS=0</c> for the first build of 20
+        /// November, 22:08, in which his body jumped at the join).
         /// </summary>
         public static bool JoinTurnsRoot = true, JoinWindsOverBend = true;
 
@@ -970,40 +971,80 @@ namespace PhysicsBattler.Locomotion
             StrikeSpeed = new float[n];
             // (The blow before, played on at its own pace: its frames a second against this one's.)
             float pace = before.Rate / Mathf.Max(1f, next.Rate);
-            // (The two recordings' roots are not turned alike against their bodies: a strike's root is its hips' turn
-            // smoothed and set to nothing where the head looked as the take began. Left as they are, his hips are
-            // turned by that difference against his root over the bend, and the whole body with them: the maker then
-            // had 43 degrees to turn him back onto his man, at once (Renier, 20 November: "the body itself seems to
-            // jump to a different pose between the 2 hits"). The root takes the difference: over the bend it is turned
-            // by as much as the hips of the blow before are turned further than this one's, so that his hips, as seen,
-            // go on as they were going.)
-            float BeforeHips(int f)
+            // A score's tracks are in the frame the fighter faced as its clip began, his travel and his turn since then
+            // in them. This score's own frame is where the blow before has him as it is left: its root at that
+            // frame. The first build (20 November, 22:08) took each recording's tracks as they were, as if they were
+            // against its root: the blow before came in turned 68 degrees from where he stood and this one 79, and
+            // the maker, fitting what it took for the blow to its aim, turned him 43 to 50 degrees, dropped his hips
+            // 17 cm and leaned him 28 degrees, all it may: Renier's "the body itself seems to jump to a different
+            // pose between the 2 hits".
+            leave = Mathf.Clamp(leave, 0, before.Frames.Length - 1);
+            // (Off, for comparing: each recording's tracks as they are, the first build's way.)
+            Vector3 beforeAt = JoinTurnsRoot ? before.Root[leave] : Vector3.zero;
+            Quaternion beforeTurn = JoinTurnsRoot ? Quaternion.Euler(0f, -before.Facing[leave], 0f) : Quaternion.identity;
+            var points = new Vector3[LocoClip.BoneCount];
+            BodyTracks Before(int f, out Vector3 root, out float facing, BodyTracks? last)
             {
                 float g = Mathf.Clamp(leave + f * pace, 0f, before.Frames.Length - 1.001f);
-                int a = Mathf.Min(Mathf.FloorToInt(g), before.Frames.Length - 2);
-                return Mathf.LerpAngle(before.Frames[a].PelvisTurn.y, before.Frames[a + 1].PelvisTurn.y, g - a);
+                int a0 = Mathf.Min(Mathf.FloorToInt(g), before.Frames.Length - 2);
+                m.Compose(BodyTracks.Lerp(before.Frames[a0], before.Frames[a0 + 1], g - a0), points);
+                for (int i = 0; i < points.Length; i++)
+                {
+                    float y = points[i].y;
+                    Vector3 q = beforeTurn * new Vector3(points[i].x - beforeAt.x, 0f, points[i].z - beforeAt.z);
+                    points[i] = new Vector3(q.x, y, q.z);
+                }
+
+                root = beforeTurn * (Vector3.Lerp(before.Root[a0], before.Root[a0 + 1], g - a0) - beforeAt);
+                facing = Mathf.LerpAngle(before.Facing[a0], before.Facing[a0 + 1], g - a0) - before.Facing[leave];
+                return m.Decompose(points, last);
             }
 
-            float turned = JoinTurnsRoot ? Mathf.DeltaAngle(next.Frames[Mathf.Min(first + bend, next.Frames.Length - 1)].PelvisTurn.y, BeforeHips(bend)) : 0f;
-            Quaternion back = Quaternion.Euler(0f, turned - next.Facing[first], 0f);
-            JoinNote = string.Format(System.Globalization.CultureInfo.InvariantCulture, "join: before {0} left at frame {1} of {2} (its root turned {3:0} degrees by then, its hips {4:0} against its root, landing frame {5}); next {6} entered at frame {7} (first {8}; its root turned {9:0} by then, its hips {10:0} against its root at the bend's end, landing frame {11}, root turned {12:0} as it lands and {13:0} at its end); the root takes {14:0}",
-                before.Name, leave, before.Frames.Length, before.Facing[Mathf.Clamp(leave, 0, before.Frames.Length - 1)], BeforeHips(0), before.Contact, next.Name, enter, first, next.Facing[first], next.Frames[Mathf.Min(first + bend, next.Frames.Length - 1)].PelvisTurn.y, next.Contact, next.Facing[next.Contact], next.Facing[next.Frames.Length - 1], turned);
+            // This blow is laid onto that frame so that his hips, where the bend ends, are where the blow before has
+            // them then and turned as it has them: against its own root at the frame it is taken from, turned by
+            // `turned` and moved by `moved`.
+            Quaternion nextTurn = JoinTurnsRoot ? Quaternion.Euler(0f, -next.Facing[first], 0f) : Quaternion.identity;
+            Vector3 nextAt = JoinTurnsRoot ? next.Root[first] : Vector3.zero;
+            var hipsBefore = Before(bend, out _, out _, null);
+            var hipsNext = next.Frames[Mathf.Min(first + bend, next.Frames.Length - 1)];
+            float turned = JoinTurnsRoot ? Mathf.DeltaAngle(hipsNext.PelvisTurn.y - next.Facing[first], hipsBefore.PelvisTurn.y) : 0f;
+            Quaternion lay = Quaternion.Euler(0f, turned, 0f) * nextTurn;
+            Vector3 hipsLaid = lay * new Vector3(hipsNext.Pelvis.x - nextAt.x, 0f, hipsNext.Pelvis.z - nextAt.z);
+            Vector3 moved = JoinTurnsRoot ? new Vector3(hipsBefore.Pelvis.x - hipsLaid.x, 0f, hipsBefore.Pelvis.z - hipsLaid.z) : Vector3.zero;
+            JoinNote = string.Format(System.Globalization.CultureInfo.InvariantCulture, "join: {0} left at frame {1} (its root turned {2:0} degrees by then, landing frame {3}); {4} entered at frame {5} (taken from {6}; its root turned {7:0} by then, landing frame {8}); laid on turned {9:0} degrees and moved {10:0} cm",
+                before.Name, leave, before.Facing[leave], before.Contact, next.Name, enter, first, next.Facing[first], next.Contact, turned, 100f * moved.magnitude * 0.845f);
+            BodyTracks? lastBefore = null, lastNext = null;
             for (int f = 0; f < n; f++)
             {
-                var t = next.Frames[first + f];
-                float w = 1f;
+                m.Compose(next.Frames[first + f], points);
+                for (int i = 0; i < points.Length; i++)
+                {
+                    float y = points[i].y;
+                    Vector3 q = lay * new Vector3(points[i].x - nextAt.x, 0f, points[i].z - nextAt.z) + moved;
+                    points[i] = new Vector3(q.x, y, q.z);
+                }
+
+                var t = m.Decompose(points, lastNext);
+                lastNext = t;
+                Vector3 root = JoinTurnsRoot ? lay * (next.Root[first + f] - nextAt) + moved : Quaternion.Euler(0f, -next.Facing[first], 0f) * (next.Root[first + f] - next.Root[first]);
+                float facing = next.Facing[first + f] - next.Facing[first] + turned;
                 if (f < bend)
                 {
-                    float g = Mathf.Clamp(leave + f * pace, 0f, before.Frames.Length - 1.001f);
-                    int a = Mathf.Min(Mathf.FloorToInt(g), before.Frames.Length - 2);
-                    w = f / (float)bend;
+                    float w = f / (float)bend;
                     w = w * w * (3f - 2f * w);
-                    t = BodyTracks.Lerp(BodyTracks.Lerp(before.Frames[a], before.Frames[a + 1], g - a), t, w);
+                    var was = Before(f, out Vector3 rootWas, out float facingWas, lastBefore);
+                    lastBefore = was;
+                    t = BodyTracks.Lerp(was, t, w);
+                    if (JoinTurnsRoot)
+                    {
+                        root = Vector3.Lerp(rootWas, root, w);
+                        facing = Mathf.LerpAngle(facingWas, facing, w);
+                    }
                 }
 
                 Frames[f] = t;
-                Root[f] = back * (next.Root[first + f] - next.Root[first]);
-                Facing[f] = next.Facing[first + f] - next.Facing[first] + turned * w;
+                Root[f] = root;
+                Facing[f] = f > 0 ? Facing[f - 1] + Mathf.DeltaAngle(Facing[f - 1], facing) : facing;
                 Contacts[f * 2] = next.Contacts[(first + f) * 2];
                 Contacts[f * 2 + 1] = next.Contacts[(first + f) * 2 + 1];
                 Strike[f] = StrikeOf(Frames[f], m, hold, Thrust);

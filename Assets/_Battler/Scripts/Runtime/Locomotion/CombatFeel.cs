@@ -1102,6 +1102,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: the duel lab's \"Throw two\" throws two blows as one swing (the combos plan's step 2). The first blow is not played to its end: its own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up. Off (old): one whole attack, and when he is free again the other, about 1.7 s from hit to hit.")]
         public bool aSecondBlowFlowsOutOfTheFirst = true;
 
+        [Tooltip("On: at the join of two blows his body carries on from where the first blow has it: the second blow's recording is laid onto that place and turn, and what the game does to fit it to its aim comes in over the bend. Off (the first build, 20 November 22:08): the two recordings were taken as they were, 68 and 79 degrees turned from where he stood, and to fit the second to its aim he was turned 43 to 50 degrees, his hips dropped 17 cm and his chest leaned 28 degrees in one step: his body jumped to another pose between the two hits.")]
+        public bool atTheJoinHisBodyCarriesOn = true;
+
+        [Tooltip("Two blows as one swing: how much there may be to make up at the join, as time (seconds). The soonest join within it is taken. 0.15 (the plan's): the first blow is left at the corner where its blade turns, 0.17 s after it lands; the blade nearly stops there. 0.25: left sooner, 0.10 s after it lands, the blade still moving at 4 m/s or more and the second hit 0.07 s sooner, but the blade's course kinks more at the join.")]
+        [Range(0.05f, 0.4f)] public float theJoinMakesUpAtMost = 0.15f;
+
         [Tooltip("Two blows as one swing: over how long the body is bent from the first blow onto the second at the join (seconds). Shorter: a sharper turn of the blade. Longer: a softer one, but less of each blow is its own. Default 0.12.")]
         [Range(0.04f, 0.3f)] public float theJoinBendsOver = 0.12f;
 
@@ -2012,6 +2018,8 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.BladePassesWhatItCut = aBladePassesTheBodyItCut;
             ClipFighter.BlowsFlow = aSecondBlowFlowsOutOfTheFirst;
             ClipFighter.FlowBendOver = Mathf.Clamp(theJoinBendsOver, 0.04f, 0.3f);
+            ClipFighter.FlowBend = Mathf.Clamp(theJoinMakesUpAtMost, 0.05f, 0.4f);
+            AttackScore.JoinTurnsRoot = AttackScore.JoinWindsOverBend = atTheJoinHisBodyCarriesOn;
             if (!BladePath.On && BladePath.Shown.Count > 0)
             {
                 BladePath.Shown.Clear();

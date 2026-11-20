@@ -1199,6 +1199,13 @@ namespace PhysicsBattler.Sandbox
                 }
 
                 EndRow();
+                BeginRow();
+                Words(new GUIContent("At the join, his body:", "What his body does between the two hits (Combat Feel \"At The Join His Body Carries On\"). Carries on (new): the second blow is laid onto where the first has him, so his hips, his feet and his chest go on from there. Jumps (old): the first build, in which he was turned, dropped and leaned to another pose in one step between the hits."));
+                if (Press(feel.atTheJoinHisBodyCarriesOn ? "[carries on]" : "carries on", "From where the first blow has him.")) feel.atTheJoinHisBodyCarriesOn = true;
+                if (Press(!feel.atTheJoinHisBodyCarriesOn ? "[jumps (old)]" : "jumps (old)", "The first build.")) feel.atTheJoinHisBodyCarriesOn = false;
+                EndRow();
+                feel.theJoinMakesUpAtMost = Lever("Join makes up at most", feel.theJoinMakesUpAtMost, 0.05f, 0.4f, "How much there may be to make up at the join, as time (seconds). 0.15: the first blow is left at the corner where its blade turns; the blade nearly stops there. 0.25: left sooner, the blade still moving and the second hit sooner, but the blade's course kinks more.");
+                feel.theJoinBendsOver = Lever("Join bends over", feel.theJoinBendsOver, 0.04f, 0.3f, "Over how long the body is bent from the first blow onto the second (seconds).");
                 Readout(new GUIContent("His last two blows: " + Duel.TwoTold + ".", "Where the first blow was left and the second entered; what each met; how long from the first landing to the second; how far the sword's point travelled between them and the slowest it went (the freeze on the hit apart); how far the posed point was thrown off its course at the join; and how far from the spot the second landed."), 4);
                 BeginRow();
                 Words(new GUIContent("A blade that cut him:", "What the sword does after a blow that landed on a body (Combat Feel \"A Blade Passes The Body It Cut\"). Passes on (new): the sword is let through the body its blow drove on through, so it sweeps on as its pose does; his shield and his sword still stop it. Sticks (old): the solid sword lies against the body for about a tenth of a second after the hit, then whips on."));
@@ -4156,21 +4163,21 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "20 November, late: combos, step 2: two blows as one swing; a sword passes the body it cut; he steps back sooner";
+        private const string LookTag = "The night of 20 to 21 November: the body's jump between the two blows mended; a fallen target stays where it gets up";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\" and find \"Strike at\". Press \"The blade's path: drawn\". Then, in the row \"Two blows:\", press \"Throw two\". He throws a forehand down and a rising backhand back up the same line, at the chest, as ONE swing: the blade should turn at the bottom and come back, without going to the guard between the hits.",
-            "2. To compare, press \"Two blows: one after the other (old)\" and \"Throw two\" again: two whole attacks. Then back to \"flowing\". \"His last two blows\" says how long it was from the first hit to the second. Try it standing, and with \"Move him: Circle left\". \"Slow motion: a quarter\" under \"Stumbles and falls\" helps.",
-            "3. New as well: a sword now passes on through a body its blow cut, where before it stuck there for a moment (\"A blade that cut him: passes on / sticks (old)\"). Press \"Chest\" a few times each way and look at the orange dots right after the white bar. And after a pounce he should step back sooner.",
-            "4. What I would like to hear: do the two blows read as one motion? Is the turn at the bottom smooth, or does it snap? Does the second blow land where you expect? Does the sword passing through him look right? Is anything ugly in his legs or his body at the turn?",
+            "1. Go to \"Duel\", find \"Strike at\", press \"The blade's path: drawn\", and in the row \"Two blows:\" press \"Throw two\". New: his body should carry on smoothly between the two hits, where before it jumped to another pose (crouched, turned and leaning). To see the old way: \"At the join, his body: jumps (old)\".",
+            "2. The lever \"Join makes up at most\" under it: at 0.15 the blade turns at the bottom and nearly stops there; at 0.25 the first blow is left sooner, so the blade keeps moving and the second hit comes sooner, but its course may kink more. Try both and tell me which reads better as one swing.",
+            "3. Knock the target down (a few hard blows, or \"Stumble him\" with a hard bash). New: once it is up it should stand where it got up, and not walk back into you or end up in your shield. And after he goes for it, the swordsman should step back to his distance.",
+            "4. What I would like to hear: is the body's jump gone? Which join setting? Does the target still walk into you, or get stuck in your shield? Does the sword passing through him look right?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Two blows:", "Throw two", "His last two blows", "A blade that cut him:", "The blade's path:", "Chest", "Slow motion:",
+            "Duel", "Strike at", "Two blows:", "Throw two", "At the join, his body:", "Join makes up at most", "His last two blows", "A blade that cut him:", "The blade's path:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
