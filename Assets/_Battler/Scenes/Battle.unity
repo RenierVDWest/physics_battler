@@ -346,6 +346,10 @@ MonoBehaviour:
   theDanceBashesForSpace: 1
   spaceBashesThatAreMedium: 0.5
   aHardBashIsAnAttackInTheDance: 1
+  theDancePouncesOnAnOpening: 1
+  theDanceStrikesAManWhoIsDown: 1
+  theDanceKicks: 1
+  danceKicksInsteadOfBashing: 0.35
   aHardBashIsCounteredByAMediumBash: 1
   aBashLandsAsAnImpact: 1
   bashRocksTheTrunk: 0.17
@@ -354,7 +358,75 @@ MonoBehaviour:
   aBlockJarsTheStrikerByAllOfIt: 1
   impactsAreAbsorbed: 1
   absorbedHowMuch: 1
+  aBashsSpeedsAreWorkedOut: 1
+  impactBounce: 0.2
+  feetTakeOfAnImpact: 1
+  offBalanceHeStumblesOnRealSteps: 1
+  aFighterPouncesOnAnOpening: 1
+  pounceReadsIn: 0.15
+  aFighterGoesForAManWhoIsDown: 1
+  aKickThrowsABody: 1
+  kickPower: 2.6
+  mediumKickPower: 3.3
+  hardKickPower: 5.2
+  aManNotInHisGuardStumblesAndFallsToo: 1
+  aManWhoIsDownIsStruckFromBesideHim: 1
+  heBendsToAManWhoIsDownBy: 0.2
+  aStumblingFighterCannotGuard: 1
+  aBlowOnTheRunGoesForWhatIsOpen: 1
+  heGoesForHimAt: 3.6
+  kickGoesIntoHim: 0.25
+  aBodyTakesAnImpactInItsKneesAndHips: 1
+  impactContactTime: 0.2
+  impactKneesGive: 0.1
+  impactTrunkFolds: 4
+  aStumblingFightersArmsGoOutForBalance: 1
+  stumblingArmsGoOutBy: 1
+  stumbleFirstFootLiftsIn: 0.05
+  stumbleStepTakes: 0.18
+  stumbleStepReach: 0.5
+  stumbleFootSpeed: 5
+  stumbleLegsBrake: 1
+  stumbleKneesGive: 0.05
+  stumbleDownAt: 0.42
+  stumbleTurnedBy: 0.25
+  stumbleTrunkTips: 0.6
+  stumbleKneesGiveAtOnce: 1
+  aBashLandsWhenTheBoardTouchesHim: 1
+  smallBashPushesThrough: 2.4
+  mediumBashPushesThrough: 0.3
+  hardBashPushesThrough: 2
+  extraHardBashPushesThrough: 6
+  afterABashHeHoldsHisGround: 1
+  whatHeHoldsMovesSmoothly: 1
+  heldThingsSettleAt: 26
+  heldThingsSettleAtWhenPressed: 60
+  aShieldIsStoppedByItsBearersBody: 1
+  aSwordIsStoppedByItsBearersBody: 1
+  theShieldGivesWayToTheSword: 1
+  swordLane: 0.06
+  swordSeenAhead: 0.3
+  aHeldThingMeetsHisBodySoftly: 1
   getUpsKeepWhatTheHandsHoldOffTheGround: 1
+  aRisingFightersBladeIsTurnedClearOfTheGround: 1
+  aRisingFightersSwordHandStaysWhereItLies: 1
+  aRisingFightersSwordHandIsHeldStill: 1
+  aRisingFightersKneesStayAboveTheGround: 1
+  aGetUpKeepsTheStartHeGatheredFor: 1
+  aGetUpEndsIntoHisStandOverAMoment: 1
+  aRisingFightersShieldIsCarriedRoundHim: 1
+  aGetUpStartsNearestToHowHeLies: 0
+  heGathersHimselfBeforeHeGetsUp: 1
+  gatherTakesAtMost: 0.6
+  gatherMuscle: 1
+  gatherTurnsHisTrunk: 0
+  aGetUpTakesHimUpAsHeMoves: 1
+  takeOverTakesAtMost: 0.6
+  aHeldThingCaughtOnHisOwnBodyIsLetThrough: 1
+  aFallenFightersShieldStaysSolidAgainstHisBody: 1
+  fightersKeepApartOffTheirFeetToo: 1
+  risingSwordHandMayTurn: 5
+  risingSwordHandTurnsAtMost: 180
   counterBashHolds: 75
   aFakeIsTakenForABlow: 0.6
   aFakeTakenForABlowIsDodged: 0.5
@@ -379,7 +451,7 @@ MonoBehaviour:
   smallBashLeapSpeed: 3
   smallBashArm: 0.5
   smallBashWeight: 0.9
-  smallBashReach: 0.6
+  smallBashArmGoes: 0.9
   smallBashGoesThrough: 0
   smallBashCrouch: 1
   smallBashLean: 20
@@ -524,6 +596,7 @@ MonoBehaviour:
   attackRecoveryTime: 1.2
   attackHipLead: -0.03
   attackArmLag: 0
+  theBladesPathIsDrawn: 1
   concentrationRise: 0.3
   concentrationFall: 0.15
   concentrationGuard: 0.5
