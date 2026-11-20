@@ -28,6 +28,7 @@ check and tests without Unity"). They were written during the work and are kept 
 | `shk.sh names…`, `gw.sh names…`, `six.sh names…` | Tables out of finished reports: tremble, own crossings, the shield giving way. |
 | `film.sh name from to [ENV…]` | A duel filmed between two times; draw it with `Tools/Mocap/Rhythm/film.py`. |
 | `checks.sh` | The regular check runs (falls, twelve bodies, sixteen in a fight, the six). Long. |
+| `flow.sh [all\|raw\|raw speeds]` | The recorded cuts' blades (the combos plan's step 1; no fight, a few seconds): the map of corners, and every pair's join. Ends `FLOW OK` when the joins where a performer went straight on come out best. The whole report: `$S/flow.txt`. |
 
 The rest are one-off comparisons from particular days, kept for reference.
 
@@ -100,6 +101,24 @@ The rest are one-off comparisons from particular days, kept for reference.
   numbers from before this are not comparable with numbers after it.
 - The panel check ends with `LOOK HERE (lab): n of m names drawn and framed`: the names of the panel's "look here"
   list (`BattleSandbox.cs`) that are really drawn in that lab, with every section open.
+
+## Blade paths (the combos plan, step 1; 20 November)
+
+- `flow.sh` (above) reads the recordings and runs no fight. `BladeFlow.cs` has what each number means. Its check
+  fails if the search or the frames it compares in are wrong: the performers' own joins are slices of one take cut
+  at a shared frame, so they must come out with next to nothing to make up.
+- `FIGHT_BLADEPATH=1` (any lineup with made attacks: the aim test, a duel, the dance): every made attack's blade
+  path is planned as it is thrown and followed as it goes, and a `BLADEPATH` line is printed as it ends: the cut,
+  its corners, the plan (when it lands, how near the spot, how far it is carried on to its turn), as it went (how
+  fast, how near, what it met in the blow's own words, how far it was carried on), and how far the sword's point
+  was from its planned line. In the game this is Combat Feel "The Blade's Path Is Drawn", off.
+- `FIGHT_BLADEPATHSTEPS=1` with it: a `BLADESTEP` line for every step of every attack, the plan beside the sword
+  as it went. A picture of one is quickly made from these (the planned point's path against the real one, from
+  behind him and from his side).
+- The on-the-move battery with it: `mv.sh tag FIGHT_BLADEPATH=1`. The circling run takes about seven minutes.
+- **Read with care:** a landed blade that "hitches" at the body (carried on a tenth or a fifth of what was planned)
+  may be the stand-in: contact modification does nothing headless, and in Unity that is what softens a blade's
+  contact with a body.
 
 ## The budget
 

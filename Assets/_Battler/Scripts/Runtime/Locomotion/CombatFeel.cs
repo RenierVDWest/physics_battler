@@ -1083,6 +1083,10 @@ namespace PhysicsBattler.Locomotion
             AttackMaker.Style = style;
         }
 
+        [Header("Combos: one swing with several hits (the plan \"Combos that flow and end in a bang\")")]
+        [Tooltip("A view only: it changes nothing a fighter does. On: the path of every made attack's blade is worked out and drawn (the combos plan's step 1). As an attack is thrown, the path its maker planned for the sword is drawn as a pale blue band, from the top of the swing to where the blade turns after the cut, with a white bar where it is planned to land and a small white cross on the spot it was asked for. As the attack goes, the sword's real path is drawn over it in orange. Both stay until he throws his next attack, so the game can be paused and looked at from any side. The duel lab's row \"The blade's path\" turns this on and off and shows the numbers under it: how fast the point lands, how far it is carried through after the landing, and how far the real blade went from its plan. Each finished attack also writes a \"bladepath\" line to the playtest log. Off (the default): nothing is worked out, drawn or written.")]
+        public bool theBladesPathIsDrawn = false;
+
         [Header("Concentration: outnumbered, a unit fights sharper")]
         [Tooltip("How fast concentration builds while two or more enemies are on a unit (per second, for each attacker past the first: against three it builds twice as fast as against two). Concentration runs from 0 to 1. Default 0.3: against two, full in a little over 3 seconds.")]
         [Range(0f, 2f)] public float concentrationRise = DefaultConcentrationRise;
@@ -1983,6 +1987,12 @@ namespace PhysicsBattler.Locomotion
             leap.Body = leapBody;
             leap.PrepTime = leapPrepTime;
             LeapMaker.Style = leap;
+            BladePath.On = theBladesPathIsDrawn;
+            if (!BladePath.On && BladePath.Shown.Count > 0)
+            {
+                BladePath.Shown.Clear();
+            }
+
             AttackMaker.On = aimTestAttacksAreMade;
             ClipFighter.MadeBorrowsLegs = attacksBorrowLegs;
             AttackScore.LegsGoBackAtTheirPace = borrowedLegsGoBackAtTheirPace;

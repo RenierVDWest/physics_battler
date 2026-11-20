@@ -1,8 +1,8 @@
 # Combos that flow and end in a bang: research and plan
 
 20 November 2026 · Renier. Live version: https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX (progress notes are added
-there). This copy was taken on 20 November 2026 at 17:05. The live version has three pictures that a copy cannot
-hold; each is described here in a line where it stands.
+there). This copy was taken on 20 November 2026 at 17:05; the progress note for step 1 at its end was added at
+20:00. The live version has three pictures that a copy cannot hold; each is described here in a line where it stands.
 
 ## The short version
 
@@ -374,3 +374,40 @@ Every page here was opened and read for this document on 20 November 2026.
 - The code: `AttackMaker`, `AttackOnTheMove`, `StrikeHits`, `ClipFighter`.
 - The earlier combo plans of 1, 4, 5 and 6 November in `Docs/Plans`, and your decisions in them.
 - The measuring scripts for this document are scratch work, kept in `Tools/Mocap/Combat/flow`. Step 1 turns them into the report.
+
+## Progress, 20 November, 20:00: step 1 is built (the blade's path, measured and drawn)
+
+You said "Yes it sounds good. Go." at 18:42, so every default in this plan is taken. Step 1 is built and pushed. Nobody fights differently yet: it is two measuring tools.
+
+**The report passes its mark.** It reads every recording with the rig's own blade on the recorded hand (`Tools/Headless/flow.sh`). The two places where the performer went straight on from one cut into the next come out as the best two joins of 144, with almost nothing to make up (0.02 and 0.03 s), and it finds their hits 0.57 s and 1.20 s apart: the same as the raw take.
+
+**The map agrees with this document's, with two corrections.**
+
+- The thrust does not come back "high on the left". Its blade comes back over his sword shoulder: high right, where it started.
+- There are two kinds of chop. The leaping ones end low in front, as the map says. The lunging one ends low on his right.
+
+**The joins table, read again with the rig's own blade.** The first reading used the hand's gap alone, from the raw takes with a guessed blade. "Bend" is how long the blade would need to get from one path onto the other; the plan allows 0.15 s.
+
+| This cut, then that one | Bend | Hit to hit, recorded pace | Verdict now | First reading |
+| --- | --- | --- | --- | --- |
+| Forehand, then rising backhand (step 2's pair) | 0.11 s | 0.40 s | Joins with a bend | Joins as it is |
+| Forehand, then the flat backhand | 0.07 s | 0.50 s | Joins with a bend | Joins as it is |
+| Rising backhand, then forehand | 0.15 s | 0.70 s | Needs a loop: the point has to roll over | A small loop |
+| Flat backhand, then leaping chop | 0.03 s | 1.20 s with the performer's own loop and leap; 0.90 s at the soonest | The performer's own | A loop over the head |
+| A chop, then rising backhand | 0.21 to 0.28 s | | Needs a loop: he ends crouched, his hand at the ground | Joins as it is |
+| Thrust, then spinning backhand | 0.11 to 0.12 s, entered at the spin's very start | 0.83 to 1.07 s | Slow | Joins |
+| Thrust, then forehand (new) | 0.10 s | 0.40 s | Joins with a bend | |
+
+What this changes in the plan:
+
+- **Step 2 stands as planned.** Forehand into rising backhand is the pair to build first. The numbers it starts from: leave the forehand 0.23 s after it lands, enter the rising backhand 0.17 s before it lands, which is 0.40 s from hit to hit at the recorded pace. To make up at the join: 64 cm between the two points, 43 cm between the two hands, the blades 16 degrees apart.
+- **"Bam, bam, BAM" adds up.** Forehand, rising backhand, forehand comes to 0.40 + 0.70 = 1.10 s from the first hit to the third at the recorded pace. The aim was 1.0 to 1.15 s.
+- **Two joins need more than I wrote.** After a chop, a rising backhand needs a loop. After a thrust, the cut that follows best is the forehand (0.40 s), not the spinning backhand.
+
+**In the game.** The duel lab's "Strike at" has a new row, "The blade's path: drawn / hidden" (Combat Feel "The Blade's Path Is Drawn", off by default). Drawn: the path the attack's maker planned for the sword's point in pale blue, a white bar where the blade is planned to land, a yellow cross on the spot asked for, and the sword's real path in orange. It stays until his next attack. "His last blade path" under it gives the numbers, and each attack writes a `bladepath` line to your playtest log.
+
+Headless, over 22 attacks, planted and on the move: the sword's point runs 14 cm from its planned line on average, and 0.02 s behind it. **Not seen in Unity. The drawing itself is built blind.**
+
+**A finding for your third goal** (a blow slashes through). Headless, 19 blows landed on a body in the aim test. By the game's own rule every one "drove on through" with 70% of its speed. Fourteen did. Five hitched at the body: the point slowed to between 0.2 and 4 m/s within a tenth of a second and was carried only 10 to 20% as far as planned (a forearm twice, an upper arm, a thigh, a shin). I cannot tell from here whether Unity does the same, because the headless stand-in lacks the softening of a blade's contact with a body that Unity has. The drawing shows it at once: the orange line knots up at the white bar instead of running on along the blue. Step 2 needs the blade to carry through, so this is the first thing to look at.
+
+**Next: step 2**, two blows as one swing, when you have looked at the drawing.

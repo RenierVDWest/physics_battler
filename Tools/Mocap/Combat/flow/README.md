@@ -1,5 +1,11 @@
 # Blade flow in the mocap takes (scratch)
 
+**Superseded on 20 November (evening) by the game's own report:** `Tools/Headless/flow.sh` reads the baked
+recordings with the rig's own blade (`Assets/_Battler/Scripts/Runtime/Locomotion/BladeFlow.cs`). These scripts are
+kept as the record of the plan's first reading. Where the two disagree, the report is right: the blade here is a
+guess, and it put the thrust's end "high on the left" and joined a chop into a rising backhand, neither of which
+holds with the rig's blade.
+
 Scratch scripts behind the combos research and plan of 20 November 2026
 (`Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`). They read the sampled takes in
 `../samples` (30 frames a second, 33 bones, world positions in metres). They are not part of the game or of the

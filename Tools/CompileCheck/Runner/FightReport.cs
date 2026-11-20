@@ -250,6 +250,21 @@ internal static class FightReport
         PhysicsBattler.Locomotion.PostureMaker.LungesOnTheMove = Environment.GetEnvironmentVariable("FIGHT_LUNGESTOPS") != "1";
         // (FIGHT_SHORTPLANTS=1: a blow on the move that would fall short is thrown planted, with its lunge, as it was.)
         PhysicsBattler.Locomotion.AttackOnTheMove.StaysWhenShort = Environment.GetEnvironmentVariable("FIGHT_SHORTPLANTS") != "1";
+        // (FIGHT_BLADEPATH=1: every made attack's blade path is planned and followed (the combos plan's step 1), and told as it ends.)
+        PhysicsBattler.Locomotion.BladePath.On = Environment.GetEnvironmentVariable("FIGHT_BLADEPATH") == "1";
+        // (FIGHT_BLADEPATHSTEPS=1: each step of each path as well, the plan beside the blade as it went.)
+        bool bladeSteps = Environment.GetEnvironmentVariable("FIGHT_BLADEPATHSTEPS") == "1";
+        PhysicsBattler.Locomotion.BladePath.Told = PhysicsBattler.Locomotion.BladePath.On ? path =>
+        {
+            Console.WriteLine("BLADEPATH " + (path.Who != null && path.Who.FightUnit != null ? path.Who.FightUnit.name : "?") + ": " + path.Tell());
+            for (int i = 0; bladeSteps && i < path.WentAt.Count; i++)
+            {
+                path.PlanAt(path.WentAt[i], out Vector3 planGrip, out Vector3 planTip, out _, out Vector3 planRoot);
+                Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "BLADESTEP {0} {1:0.000}{2}: plan grip ({3:0.00}, {4:0.00}, {5:0.00}) tip ({6:0.00}, {7:0.00}, {8:0.00}) root ({9:0.00}, {10:0.00}); went grip ({11:0.00}, {12:0.00}, {13:0.00}) tip ({14:0.00}, {15:0.00}, {16:0.00}) root ({17:0.00}, {18:0.00}); tips {19:0} cm apart",
+                    path.Name, path.WentAt[i], path.WentFrozen[i] ? " frozen" : Mathf.Abs(path.WentAt[i] - path.HitAt) < 0.011f ? " LANDS" : "", planGrip.x, planGrip.y, planGrip.z, planTip.x, planTip.y, planTip.z, planRoot.x, planRoot.z,
+                    path.WentGrip[i].x, path.WentGrip[i].y, path.WentGrip[i].z, path.WentTip[i].x, path.WentTip[i].y, path.WentTip[i].z, path.WentRoot[i].x, path.WentRoot[i].z, 100f * Vector3.Distance(planTip, path.WentTip[i])));
+            }
+        } : (Action<PhysicsBattler.Locomotion.BladePath>)null;
         PhysicsBattler.Locomotion.AttackOnTheMove.Trace = line => Console.WriteLine("ONTHEMOVE " + line);
         // (FIGHT_OVERTRACE=1: every step of a blow on the move: the hips' turn, the walk's check, its stride's phase and which feet are down.)
         PhysicsBattler.Locomotion.AttackOnTheMove.TraceSteps = Environment.GetEnvironmentVariable("FIGHT_OVERTRACE") == "1";

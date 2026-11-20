@@ -61,6 +61,11 @@ internal static class Program
             return CoreReport.Run(args[1]);
         }
 
+        if (args.Length >= 1 && args[0] == "flow")
+        {
+            return FlowReport.Run(args);
+        }
+
         if (args.Length >= 1 && args[0] == "parryreach")
         {
             return ParryReachReport.Run(args.Length >= 2 ? args[1] : null);

@@ -6,12 +6,14 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 20 November 2026, 17:05. `README.md` is the build log (over 7,500 lines: search it, never read it whole). The
+   of 20 November 2026, 20:00. `README.md` is the build log (over 7,800 lines: search it, never read it whole). The
    last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November; "### 20 November, 08:30" is
-   the second pass after my look, the entry after it is what came of my "this all looks good", and "### 20 November,
-   17:05" is my decision on a man who is down and the combos research and plan.
+   the second pass after my look, the entry after it is what came of my "this all looks good", "### 20 November,
+   17:05" is my decision on a man who is down and the combos research and plan, and "### 20 November, 20:00" is the
+   combos plan's step 1.
 2. Read the plan for the work in hand: `Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`
-   (research and plan for combos; **nothing of it is built**; its step 1 is next when I say go). Its live version is
+   (research and plan for combos; **I said go on 20 November at 18:42; its step 1 is built and I have not seen
+   it; its step 2 is next**; the progress note at its end has what step 1 found). Its live version is
    https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX: add your own progress notes there with the Docs tools (insert
    at the end), and to the copy in the repository. The plan before it is
    `Docs/Plans/2026-11-19-from-how-he-lies-to-how-he-gets-up.md` (live:
@@ -93,14 +95,33 @@ to go for a man that is down."** So:
   where the last one's blade ended; follow-through; epic and powerful; the last blow the biggest). It is written:
   `Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`. **Nothing of it is built.**
 - Its film: https://claude.ai/artifact/T6S2n1EfFLszkRJWMsRRW7
-- The panel's "Look here" list is the decision's push (four steps, six names; all drawn).
+
+**At 18:42 I said "Yes it sounds good. Go."** Every default in the plan is taken. **Step 1 is built and pushed
+(20:00), headless only, I have not seen it.** It is two measuring tools; nobody fights differently:
+- A report of every recording's blade (`Tools/Headless/flow.sh`): the corners each cut starts and ends in, how far
+  it is carried through, and how each pair joins. Its check passes (the performer's own two joins are the best of
+  144). It corrected the plan in two places (the thrust comes back high right; a chop into a rising backhand and a
+  thrust into a spinning backhand do not join as written).
+- In the duel lab, under "Strike at": "The blade's path: drawn / hidden". Drawn: the planned path of an attack's
+  blade in pale blue, a white bar where it is to land, the sword's real path in orange, and the numbers in "His last
+  blade path". With it on, my playtest log gets a `bladepath` line for every attack. **The drawing is built blind.**
+- Headless, 5 of 19 blades that landed on a body hitched there instead of sweeping on. It may be the headless
+  stand-in. My third goal for combos is that a blow slashes through, so this comes first.
+- Its film: FILMLINK
+- The panel's "Look here" list is step 1's push (four steps, eight names; all drawn).
 
 ## What to do now, in this order
 
-**0. Combos, when I say go:** step 1 of the combos plan (the blade's path drawn in the duel lab, and a headless
-report of every recording's corners and joins: `Tools/Mocap/Combat/flow` holds the scratch scripts it grows from),
-then step 2 (two blows as one swing). The plan's table has each step's lab buttons and pass marks, and the defaults
-I was told would be taken unless I say otherwise. Do not start it before I say go.
+**0. Combos (the work in hand).** If I have looked at the blade's path and pushed a log: read its `bladepath`
+lines first (search the text log for "bladepath"). Each says how far the blade was planned to be carried on after
+it landed and how far it really was, and what it met in the blow's own words. If blades hitch at a body in Unity
+too (carried on a tenth or a fifth of what was planned), that is to be understood and mended before step 2, and
+told to me simply. Then **step 2: two blows as one swing** (forehand into rising backhand, on the move, on a dummy
+with no guard; lab toggle "Throw two: flowing / one after the other (old)"; the pass marks are in the plan's
+table). It starts from `BladeFlow.Join` (leave the forehand 0.23 s after it lands, enter the rising backhand 0.17 s
+before it lands; 64 cm between the points and 43 cm between the hands to make up) and needs two new things in the
+attack maker: an attack that ends at its blade's turn instead of in the guard, and one that starts from the blade
+as the last one left it. If I have not looked yet, ask me to, and do not build step 2 on a drawing nobody has seen.
 
 **1. If I have looked and pushed logs:** work my notes in first, one at a time. Read my pose log step by step, not
 only the report lines: on 19 November the report said a get-up was fine while my log showed him falling off the
@@ -148,6 +169,13 @@ costs; whether real attacks should be more frequent.
 - `Sandbox/DuelLab.cs`: `StepPounce`, `StepDowned`. `Sandbox/BattleSandbox.cs`: `EnsureFloorPastTheEdge`, the lab
   rows (search for a row's name), `LookTag` / `LookSteps` / `LookHere`.
 - `Locomotion/LocoBody.cs`: `Pressed` (the hips' dip for an impact).
+- **Combos, step 1:** `Locomotion/BladeFlow.cs` (a recording's blade against his hips; `Enter` the top of the swing,
+  `Leave` the blade's turn after the landing, `From` / `To` the corners, `Join(first, next)` and `At(...)` with the
+  bend). `Locomotion/BladePath.cs` (`Plan`: a made attack's planned path, planted or on the move; `Went`, `Measure`,
+  `Tell`). `Sandbox/BladePathView.cs` (the drawing, from `BattleSandbox.OnGUI`). In `ClipFighter.cs`:
+  `PlanBladePath` (called as an attack is thrown, in `StrikeMade` and `StrikeOnTheMove`) and `TrackBladePath` (at
+  the top of `Move`). The made attacks themselves: `AttackMaker.cs` (`Build`, its time-warp of wind-up, drive and
+  way back; `MadeAttack.Blade`), `AttackOnTheMove.cs` (`Layer`, `Walked`), `Locomotor.OverStep`.
 
 ## How to measure
 
@@ -167,7 +195,16 @@ costs; whether real attacks should be more frequent.
   board tremble 6.3% to 8.7% against 8%, as the night left them. They differ run to run after the first fall: one
   seed proves nothing; seed 7 is the same to the hundredth when a change does not touch a fight.
 
+- **Combos:** `Tools/Headless/flow.sh` (no fight, seconds; ends `FLOW OK`). `Tools/Headless/aim.sh name
+  FIGHT_BLADEPATH=1` prints a `BLADEPATH` line an attack (add `FIGHT_BLADEPATHSTEPS=1` for every step);
+  `Tools/Headless/mv.sh tag FIGHT_BLADEPATH=1` is the same on the move (its circling run takes seven minutes).
+
 ## Things that cost time (so you do not repeat them)
+
+- A recording's root is not a body frame: the bake turns each slice's root to where his head looked as the slice
+  began, so one moment of one take sits 108 degrees apart in two slices. Compare blades against the hips.
+- A physical sword runs a step or two behind its pose, which at a blade's speed is half a metre. Measure it against
+  the planned line, not against the plan at the same moment.
 
 - `b.sh` refuses, and what follows runs on the old build, if the same command line also names the test dll. Run it
   alone. Never build while a run is going.

@@ -3178,6 +3178,7 @@ namespace PhysicsBattler.Locomotion
 
             MeasureOwnCrossings(dt);
             MeasureHeldShake(dt);
+            TrackBladePath(dt);
             StepUncover(dt);
             if (Fallen)
             {
@@ -5003,6 +5004,70 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The attack it made last (the plan "Aimed attacks": <see cref="AttackMaker"/>); null before any.</summary>
         public MadeAttack Made { get; private set; }
 
+        /// <summary>
+        /// The blade's path through the attack it made last, as planned and as it went (the combos plan's step 1:
+        /// <see cref="PhysicsBattler.Locomotion.BladePath"/>). Only worked out while <see cref="PhysicsBattler.Locomotion.BladePath.On"/>
+        /// is set; null otherwise, and for a posture (a feint, a fake lunge: no blow).
+        /// </summary>
+        public BladePath BladePath { get; private set; }
+
+        /// <summary>An attack is thrown from where he stands now: its blade's path is planned (<see cref="BladePath"/>).</summary>
+        private void PlanBladePath(MadeAttack made, Vector3 point)
+        {
+            if (!PhysicsBattler.Locomotion.BladePath.On || made == null || made.Clip == null || made.Posture)
+            {
+                return;
+            }
+
+            // (The one before it is over, wherever it had got to.)
+            BladePath?.End();
+            pathLandings = Strikes != null ? Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects : -1;
+            float leg = Mathf.Max(0.1f, Loco.Leg);
+            BladePath = PhysicsBattler.Locomotion.BladePath.Plan(this, made, new Vector3(Loco.Position.x, groundLevel, Loco.Position.z), Loco.Facing, leg, Poser.WeaponLength / leg, point, clock);
+        }
+
+        // (The count of its blows' landings as the path last looked: under 0, not looked yet.)
+        private int pathLandings = -1;
+
+        /// <summary>Each step, before he is posed again: the weapon as the last pose and the physics left it, against the clip's time then (<see cref="BladePath"/>).</summary>
+        private void TrackBladePath(float dt)
+        {
+            var path = BladePath;
+            if (path == null || path.Done)
+            {
+                return;
+            }
+
+            if (!PhysicsBattler.Locomotion.BladePath.On)
+            {
+                BladePath = null;
+                return;
+            }
+
+            bool playing = Loco.Current == Locomotor.Mode.OneShot && Loco.Shot == path.Clip;
+            if (Strikes != null)
+            {
+                // (What its blade has met since the last step, in the blow's own words.)
+                int landings = Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects;
+                if (landings != pathLandings && pathLandings >= 0)
+                {
+                    path.Meets(Strikes.Last);
+                }
+
+                pathLandings = landings;
+            }
+
+            if (playing && Strikes != null && Strikes.Blade(path.Clip, out Vector3 grip, out Vector3 tip, out Vector3 strike))
+            {
+                path.Went(Loco.ShotTime, grip, tip, strike, Loco.Position, Strikes.HitStop > 0f, dt);
+            }
+            else if (!playing && (path.WentAt.Count > 0 || clock - path.Since > 0.5f))
+            {
+                path.End();
+                Diagnostics.PlaytestTrace.Note(FightUnit, "bladepath", path.Tell());
+            }
+        }
+
         /// <summary>A point of the world in its own frame as it stands now, in a clip's units (leg lengths; x to its right, y over the ground, z forward).</summary>
         public Vector3 InOwnFrame(Vector3 point)
         {
@@ -5180,6 +5245,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            PlanBladePath(best, point);
             Poser.PlayMade(best.Clip, point, 0f);
             return best;
         }
@@ -5910,6 +5976,7 @@ namespace PhysicsBattler.Locomotion
             movedFrom = Loco.Position;
             movedFacing = Loco.Facing;
             movedTold = false;
+            PlanBladePath(best, point);
             return best;
         }
 

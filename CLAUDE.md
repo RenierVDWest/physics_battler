@@ -4,10 +4,10 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 17:05 (after his "all this looks fine for now" on the midday push. Two things from
-that message: **he decided that a fighter goes for a man who is down** (now the default in the duel lab too; still
-not the fight of six), and he asked for **a deep research document and plan for combos**, which is written:
-`Docs/Plans/2026-11-20-combos-…`. It is a document only: nothing of it is built).
+Last updated: 20 November 2026, 20:00 (he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
+measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
+took. A view only: nobody fights differently. Next: step 2, two blows as one swing).
 
 ## The project in a few lines
 
@@ -113,6 +113,8 @@ The pose pipeline, in order: `FightLoop` → `UnitClips` (part of `UnitControlle
 | `Motion/GetUp.cs`, `Motion/GroundClamp.cs`, `Motion/PosePipeline.cs` | Get-ups, and keeping what the hands hold out of the ground. |
 | `Locomotion/StrikeHits.cs`, `ImpactMeter.cs`, `SelfCrossings.cs` | What a blow does, and the measures (impacts, own crossings, tremble). |
 | `Locomotion/ImpactLedger.cs`, `StumbleSteps.cs` | The momentum ledger for two bodies that meet; a fighter off balance (stumble steps, turned, down). `ClipFighter.ThrowBody` is the one door into it. |
+| `Locomotion/AttackMaker.cs`, `AttackScore.cs`, `AttackOnTheMove.cs` | Made attacks: a recording taken apart into its parts' tracks, changed by style and aim, put together again; and laid on the walk for a blow on the move. |
+| `Locomotion/BladeFlow.cs`, `BladePath.cs`, `Sandbox/BladePathView.cs` | Combos, step 1 (measuring only): a recording's blade against the body, its corners and how two cuts join; a made attack's blade path as planned and as it went; the lab's drawing of it. |
 | `Tools/CompileCheck/Runner/FightReport.cs` | The headless fight and its report; reads the `FIGHT_…` switches. |
 
 A fighter's step: `Move(dt)` (clock, measures, the pose) then `Apply(dt)` (the arms held, eased, settled, then
@@ -161,11 +163,12 @@ here is refreshed when a plan changes a lot. Read the one for the work in hand, 
 
 The five in hand:
 
-- `2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`: **research and plan for combos, nothing
-  built.** A combo is one swing with several hits: the follow-through of each cut is the wind-up of the next. Seven
-  steps; step 1 (the blade's path drawn and measured) is next when he says go
-  ([live](https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX)).
-- `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: **the work in hand.** His five answers are in (all as
+- `2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`: **the work in hand: the combos plan.** A
+  combo is one swing with several hits: the follow-through of each cut is the wind-up of the next. Seven steps;
+  **step 1 (the blade's path measured and drawn) is built and waits for his eye; step 2 (two blows as one swing)
+  is next** ([live](https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX)).
+- `2026-11-19-from-how-he-lies-to-how-he-gets-up.md`: the get-up plan; its leftovers wait while the combos are in
+  hand (the roadmap below). His five answers are in (all as
   recommended). Steps 1 and 2 are built, step 3 has a first build he has seen, step 4 (the take-over) is built and
   waits for his eye; **next: the trunk's turn in the gather again; then step 5**
   ([live](https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa)).
@@ -454,7 +457,33 @@ goes with the keys (old)". Waiting for his eye.
   for a fifth of a second as the arm comes round: the get-up's own motion, for his eye.
 - `FIGHT_GETUPTRACE=1` (`GETUPHELD` lines) is temporary and can go once he has seen it.
 
-**Combos: a research document and plan (20 November, 17:05). Nothing is built.**
+**Combos, step 1: the blade's path, measured and drawn (20 November, 20:00; headless only, waiting for his eye).**
+A view only: nobody fights differently. The README's entry of 20:00 has the tables.
+
+- **The recordings' blades** (`BladeFlow.cs`; `Tools/Headless/flow.sh`): each cut's hand and point against his hips,
+  the top of its swing and where its blade turns after the landing, the two corners those are in, how far it is
+  carried through; and for each pair of cuts where the first is best left and the next best entered, with the
+  "bend" there (what there is to make up, as time). **The check passes:** the two places where the performer went
+  straight on are the best two joins of 144 (bend 0.02 and 0.03 s; hit to hit 0.57 and 1.20 s, as the raw take).
+- **The map against the plan's:** the same six corners; two corrections: the thrust comes back over his sword
+  shoulder (high right), not high on the left; the lunging chop ends low right. **The joins:** forehand into rising
+  backhand needs a bend of 0.11 s (inside the plan's 0.15 s) and is 0.40 s hit to hit at the recorded pace, left
+  0.23 s after the landing and entered 0.17 s before the next; forehand, rising, forehand is 1.10 s first hit to
+  third. A chop into a rising backhand and a thrust into a spinning backhand do not join as the plan had them.
+- **In the game** (`BladePath.cs`, `BladePathView.cs`; Combat Feel "The Blade's Path Is Drawn", off; lab row "The
+  blade's path: drawn / hidden" and the readout "His last blade path", in the duel lab under "Strike at" and in the
+  aim test): the planned path of a made attack's blade (planted, or on the move by doing ahead of time what the walk
+  does each step), a mark where it lands, and the sword's real path over it. Headless (`FIGHT_BLADEPATH=1`): the
+  real point is 14 cm from its planned line on average, 0.02 s behind. A `bladepath` line goes to his playtest log
+  for each attack while it is on. **The drawing is built blind** (the legs' view's method, which he has seen).
+- **A finding for his third goal:** headless, 5 of 19 blades that landed on a body hitched there (carried on 10 to
+  20% of what was planned) though the game's rule had them "drive on through". It may be the stand-in (no contact
+  modification headless). **Look at this first in his next log's `bladepath` lines, before step 2.**
+- **What cost time:** a recording's root is not a body frame (each slice's root faces where his head looked as it
+  began: 108 degrees apart for one moment of one take): compare against the hips. A recorded wind-up does not
+  slow before its drive, so a cut "starts" at the top of its swing (the point furthest from where it lands).
+
+**Combos: the research document and plan (20 November, 17:05).**
 
 - The document: `Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`. The idea: a combo is
   one swing with several hits. Each made attack ends at its blade's turn instead of in the guard, and the next
@@ -526,13 +555,17 @@ most stumbles)
 2. Bodies that absorb: knees give, hips drop, the arm folds, feet slide. **Not built.** Needs his eye.
 3. Off balance: built as stumbles (19 November). Left of it: a leap landing on someone, kicks built on the door.
 
-**Combos (the plan of 20 November; nothing built).** When he says go: step 1, the blade's path drawn in the duel
-lab and a headless report of every recording's corners and joins (`Tools/Mocap/Combat/flow` turned into a runner
-that reads the baked recordings); then
-step 2, two blows as one swing (forehand into rising backhand, on the move, on a dummy with no guard). The plan's
-table has each step's lab buttons and pass marks. Defaults taken unless he says otherwise: a blow a step (about
-1.1 s for three hits, tuned toward his one second), three blows by default, the spin as a choice of last blow, the
-last blow's freeze tried up to 0.20 s, slow motion on a flooring last blow as a switch that starts off.
+**Combos (the plan of 20 November; he said go at 18:42).** Step 1 is built (above). **Next, after his look at the
+drawing: step 2, two blows as one swing** (forehand into rising backhand, on the move, on a dummy with no guard;
+lab toggle "Throw two: flowing / one after the other (old)"; pass marks in the plan's table: 0.60 s or less hit to
+hit, the point never under 2 m/s between the hits, 60 cm or more of travel after the first hit, 10 cm or less at
+the join, the second blow landing where it was aimed). What it starts from: `BladeFlow.Join` (where to leave and
+enter), `BladePath` (the measure; it needs "the slowest between two hits" added), and two new things in the maker:
+an attack that ends at its blade's turn instead of in the guard, and one that starts from the blade as the last
+one left it. **Before it: read his log's `bladepath` lines for blades that hitch at a body.** Defaults taken: a
+blow a step (about 1.1 s for three hits, tuned toward his one second), three blows by default, the spin as a choice
+of last blow, the last blow's freeze tried up to 0.20 s, slow motion on a flooring last blow as a switch that
+starts off.
 
 **The push of 20 November, 11:52: he has looked (16:11): "all this looks fine for now"** (the stab, the pounce at
 what is open, the dance by itself).

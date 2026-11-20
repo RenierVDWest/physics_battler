@@ -1186,6 +1186,7 @@ namespace PhysicsBattler.Sandbox
             Heading("Strike at", "Press a part while he is moving (give him an order above first): he strikes at it from where he is, in the middle of his step, and then goes on with his order. Pressed while he stands it is the aim test's blow.");
             DuelPressIs();
             DuelBodyMap();
+            BladePathRow(feel, Duel.Mover != null ? Duel.Mover.Clip : null);
             if (ActionSettings(inWindow, "Strike", "Strikes: settings"))
             {
                 StrikeSettings(feel);
@@ -3867,6 +3868,23 @@ namespace PhysicsBattler.Sandbox
                 }
             }
 
+            // (Each fighter's blade path through his last attack, the combos plan's step 1: over the game view, under the panel.)
+            if (PhysicsBattler.Locomotion.BladePath.On && Camera.main != null)
+            {
+                var paths = PhysicsBattler.Locomotion.BladePath.Shown;
+                for (int i = paths.Count - 1; i >= 0; i--)
+                {
+                    // (A fighter the lab has cleared away: his path goes with him.)
+                    if (paths[i].Who == null || paths[i].Who.FightUnit == null)
+                    {
+                        paths.RemoveAt(i);
+                        continue;
+                    }
+
+                    BladePathView.Draw(paths[i], Camera.main);
+                }
+            }
+
             // (The panel and the units' labels scaled together, text and buttons alike: at the screen's own size they
             // were too small to read.)
             var was = GUI.matrix;
@@ -4112,21 +4130,21 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "20 November, late afternoon: a fighter goes for a man who is down by default now (your decision); the combos research and plan is a document, with nothing to look at in the game yet";
+        private const string LookTag = "20 November, evening: combos, step 1: the blade's path, drawn (a view only: nobody fights differently yet)";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\" (the bar of labs at the top) and find \"Stumbles and falls\". \"Slow motion: a quarter\" makes it easy to watch.",
-            "2. Press \"Kick him: Hard kick\" (or \"Stumble him: Extra hard\") so that he falls. Without any other button the fighter should now run to him and stab down: that is the new default, \"A man who is down: he goes for him\".",
-            "3. To watch a get-up undisturbed, press \"A man who is down: he holds off (old)\" first.",
-            "4. Nothing else changed in the game. The combos plan is a document: its first step will draw the blade's path here in the duel lab.",
+            "1. Go to \"Duel\" (the bar of labs at the top) and find \"Strike at\". Under the body's buttons, press \"The blade's path: drawn\".",
+            "2. Under \"Move him\" press \"Circle left\" so that he walks. Then, under \"Strike at\", press a part of the body: \"Chest\", say.",
+            "3. The pale blue line is the path his blade was planned to take: thick through the cut, to where the blade turns. The white bar is the blade as it was planned to land, the yellow cross the spot you pressed. The orange line is where the blade really went. They stay until his next attack: pause, or use \"Slow motion: a quarter\" under \"Stumbles and falls\", and look from the side and from above.",
+            "4. \"His last blade path\" under the row says it in numbers. What I would like to hear: do the blue and the orange lie close together, and is this drawing clear enough to judge a combo's flow by, when two blows become one swing in the next step?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Stumbles and falls", "Slow motion:", "Kick him:", "Stumble him:", "A man who is down:",
+            "Duel", "Strike at", "The blade's path:", "His last blade path", "Move him", "Circle left", "Chest", "Slow motion:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5019,6 +5037,39 @@ namespace PhysicsBattler.Sandbox
             // (Both lines always drawn: a line that comes and goes between a frame's two passes upsets the panel.)
             Words(aimLast.Length > 0 ? aimLast : "None yet.", Styles().Text);
             Words(Aim.Blows.Count > 0 ? "So far: " + Aim.Tally() + "." : "", Styles().Text);
+            BladePathRow(feel, Aim.Attacker != null ? Aim.Attacker.Clip : null);
+        }
+
+        /// <summary>
+        /// The blade's path (the combos plan's step 1): drawn or hidden, and the last attack's path in numbers. A view
+        /// only: <see cref="PhysicsBattler.Locomotion.BladePath"/>, drawn by <see cref="BladePathView"/>.
+        /// </summary>
+        private void BladePathRow(PhysicsBattler.Locomotion.CombatFeel feel, PhysicsBattler.Locomotion.ClipFighter who)
+        {
+            bool drawn = feel != null && feel.theBladesPathIsDrawn;
+            BeginRow();
+            Words(new GUIContent("The blade's path:", "A view only: nobody fights differently (Combat Feel \"The Blade's Path Is Drawn\"; step 1 of the combos plan). Drawn: as he throws an attack, the path its maker planned for the sword's point is drawn in pale blue: thin over the wind-up, thick through the cut and its carry-through to where the blade turns, thin and broken on the way back to the guard. A white bar is the blade as it is planned to land; a yellow cross is the spot you asked for. As the attack goes, the sword's real path is drawn over it in orange, with an orange bar for the blade at the moment it was to land. Both stay until his next attack: pause, or use \"Slow motion\" under \"Stumbles and falls\", and look from any side. Hidden (the default): nothing is worked out or drawn."));
+            if (feel != null)
+            {
+                if (Press(drawn ? "[drawn]" : "drawn", "Every attack's planned path in pale blue and its real path in orange, kept until the next attack."))
+                {
+                    feel.theBladesPathIsDrawn = true;
+                    message = "The blade's path: drawn. Have him strike (press a part of the body above).";
+                }
+
+                if (Press(!drawn ? "[hidden]" : "hidden", "Nothing is worked out or drawn, as before."))
+                {
+                    feel.theBladesPathIsDrawn = false;
+                    message = "The blade's path: hidden.";
+                }
+            }
+
+            EndRow();
+            var path = drawn && who != null ? who.BladePath : null;
+            // (Always drawn: a line that comes and goes between a frame's two passes upsets the panel. Only its height
+            // goes by the switch, as it was when this pass began.)
+            Readout(new GUIContent("His last blade path: " + (!drawn ? "hidden." : path == null ? "none yet: have him strike." : path.Tell() + "."),
+                "The last attack he threw, as its maker planned the blade and as the blade then went. First the cut and its two corners: where its blade starts and where it ends, from its recording. Planned: when the blade lands (seconds into the attack's clip), the nearest its striking part passes to the spot asked for, and how far the point is carried on after the landing to where the blade turns (against where he stands, so his own walking is not counted). As it went, read off the sword itself each step: the fastest the point went as it landed, the nearest it passed to the spot, what it met in the blow's own words, how far it was carried on to its turn and how slow it was there (a freeze on a hit is left out). Last, how far the sword's point was from the planned line, on average and at most through the cut, and how far behind its plan it ran: a physical sword follows its pose a step or two late. A join of two blows into one swing (the plan's step 2) will be judged by these numbers."), drawn ? 9 : 1);
         }
 
         private bool aimStyleOpen;

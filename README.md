@@ -7763,3 +7763,106 @@ duel lab is now gone for without a button.
 **Not verified:** nothing of the combos plan has been run as a combo or seen in Unity. The decision's new default
 was built and compiled; the stab itself is as it was at midday.
 
+
+### 20 November, 20:00: combos, step 1: the blade's path, measured in every recording and drawn in the lab (a view only)
+
+**His word (18:42):** "Yes it sounds good. Go." So the combos plan's step 1 is built, with every default taken.
+Nobody fights differently: it is two measuring tools, one for the recordings and one for the game.
+
+**1. The recordings' blades, measured** (`BladeFlow.cs`; `Tools/Headless/flow.sh`, the runner's `flow`). For each
+recorded cut, with the rig's own hold of its 0.9 m sword on the recorded hand: where the hand and the point are
+against the body, how fast the point goes, the top of the swing before the landing and where the blade first turns
+after it, the two corners those are in, and how far the cut is carried through. For each pair of cuts: where the
+first is best left and the next best entered, and how much there is to make up there (the "bend": the gap between
+the two points, between the two hands, the difference of the point's velocities and of how the body is turned,
+each as the time a blade or a body would need for it; the longest counts).
+
+| | |
+|---|---|
+| **The check:** the two places where the performer went straight on from one cut into the next (the four-cut combo's slices) | places 1 and 2 of 144 joins: bend 0.021 s and 0.029 s; every other join 0.055 s or more |
+| Their hit to hit, as the report finds them | 0.57 s and 1.20 s: what the scratch scripts read off the raw take |
+| With the Large's two-handed takes as well (361 joins) | the 4 joins where a performer went straight on are places 1, 2, 3 and 5; in the other two he did not go straight on (he left 0.10 and 0.40 s after his blade had turned), and those are left out of the check |
+| Of the Medium's 144 joins | 3 join as they are (bend to 0.06 s), 31 with a bend (to 0.15 s, what the plan allows), 106 need a loop (to 0.30 s), 4 wind up again |
+
+**The map, against the plan's first reading.** Six corners as before; two things differ.
+
+| Cut | Starts | Ends | Carried through after the landing (recorded pace) |
+|---|---|---|---|
+| Forehand (`sns_forehand`; the combo's is the same) | high right | low left | 3.45 m, the blade swings 183 degrees, slowest 1.6 m/s 0.27 s after (the combo's: 5.90 m, 302 degrees, 2.5 m/s) |
+| Rising backhand | low left | high right | 2.84 m, 122 degrees, 3.1 m/s |
+| Flat backhand (the combo's slice) | low left | out right | 2.29 m and still at 9.5 m/s where the slice ends |
+| Spinning backhands (three; the "stepping" one is the same take) | left shoulder | out right | 4.7 to 6.1 m |
+| Chops made leaping (three; two are one take) | overhead | low front | 0.7 to 2.6 m: the blade stops dead, his hand at the ground |
+| **The lunging chop** | overhead | **low right** (the plan had one "chop", ending low front) | 3.39 m |
+| **Thrust** | high right | **high right**: the blade comes back over his sword shoulder (the plan had "high on the left") | 2.26 m |
+
+**The joins the plan's table named, as the report has them** (recorded pace; the plan's first reading was the
+hand's gap alone, from the raw takes with a guessed blade):
+
+| First, then | Bend | Hit to hit | Between the points, the hands, the blades | The plan's first reading |
+|---|---|---|---|---|
+| Forehand, rising backhand (step 2's pair) | 0.11 s: joins with a bend | 0.40 s (left 0.23 s after the landing, entered 0.17 s before the next) | 64 cm, 43 cm, 16 degrees | 32 cm, joins as it is |
+| Forehand, flat backhand | 0.07 s | 0.50 s | 50 cm, 29 cm, 18 degrees | 21 cm |
+| Rising backhand, forehand | 0.15 s: needs a loop | 0.70 s | 1.21 m, 39 cm, 61 degrees: the point has to roll over | 24 cm, a small loop |
+| Flat backhand, leaping chop (the performer's own) | 0.03 s | 1.20 s, with his loop over the head and his leap; 0.90 s is the soonest with a bend the plan allows | | a loop over the head |
+| A chop, rising backhand | 0.21 to 0.28 s: needs a loop | | he ends crouched, his hand at the ground | 37 to 53 cm, joins as it is |
+| Thrust, a spinning backhand | 0.11 to 0.12 s, but only entered at the spin's very start | 0.83 to 1.07 s | | 22 to 25 cm, joins |
+| Thrust, forehand (not in the plan's table) | 0.10 s | 0.40 s | | |
+| Forehand, rising backhand, forehand ("bam, bam, BAM") | | 0.40 + 0.70 = 1.10 s from the first hit to the third | | the plan's aim: 1.0 to 1.15 s |
+
+So two of the plan's six joins do not hold with the rig's own blade (a chop into a rising backhand, a thrust into
+a spinning backhand), and its first combo's pair holds: forehand into rising backhand needs a bend of a tenth of
+a second, inside what the plan allows.
+
+**What cost time, worth knowing:**
+- A recording's root is no body frame to compare two recordings in: the bake turns each slice's root to where his
+  head looked as the slice began, so the same moment of one take had its hand 108 degrees apart in two slices.
+  `BladeFlow` measures against the hips themselves (the ground under them, the way they face).
+- A recorded wind-up runs into its drive with no slowing (a forehand's point is at 8 to 18 m/s there, looping), so
+  "where the cut starts" is not a slow moment: it is the top of the swing, the point furthest from where it lands.
+  After the landing the blade does slow, and its turn is read off its speed.
+- Where a cut "lands" is known no better than about 30 degrees (a flat cut's blade goes round 27 degrees in one
+  frame as it lands). A join's turn of the body counts only over what a made attack's aim takes up anyway (50
+  degrees, `AttackMaker.MostTurn`).
+- Counting the bend as time alone made the search leave every cut a tenth of a second after it landed and enter
+  every next one at the top of its swing. The bend counts ten times its length against the time
+  (`BladeFlow.TimeCounts`), and a next cut is never entered after the top of its swing.
+
+**2. The blade's path in the game** (`BladePath.cs`; drawn by `BladePathView.cs`; Combat Feel "The Blade's Path Is
+Drawn", off by default; lab row "The blade's path: drawn / hidden" with the readout "His last blade path", in the
+duel lab under "Strike at" and in the aim test). As a made attack is thrown its blade's path is worked out ahead
+of time: a planted attack's from its clip (`MadeAttack.Blade`); a blow on the move's by doing ahead of time what
+the walk does each step (the clip laid on the walk as it was, carried where the plan has the walk take him). Each
+step while it plays the sword itself is read. Drawn over the game view: the plan in pale blue (thick through the
+cut to where the blade turns), a white bar for the blade as it is planned to land, a yellow cross on the spot
+asked for, the real path in orange. It stays until his next attack. Each finished attack writes a `bladepath`
+line to the playtest log. Nothing is worked out with the switch off.
+
+Headless (`FIGHT_BLADEPATH=1`: a `BLADEPATH` line an attack; `FIGHT_BLADEPATHSTEPS=1`: each step, plan beside
+real): the aim test's 20 attacks and 2 thrown walking in, and the on-the-move battery (`mv.sh`: circling, walking
+in, jogging in, backing away):
+
+| | |
+|---|---|
+| The sword's point from its planned line, through the cut (22 attacks, planted and on the move) | 14 cm on average (median; mean 18 cm); at most 41 cm (median) |
+| How far behind its plan it ran | 0.02 s: a physical sword follows its pose a step late, which at a blade's speed is half a metre, so the measure is "off the line", not "off at the same moment" |
+| Blows on the move alone (11, of an earlier run of the day) | 10 to 23 cm on average, and one thrust thrown backing away at 34 cm: the plan worked out ahead of time is as near as a planted one's |
+| Thrusts | the roughest: 14 to 47 cm on average |
+| The fastest the point went as it landed | 12 to 36 m/s (a sword's limit in the game is 30; one thrust read 45) |
+| **Carried through after landing on a body** (19 blows that landed, the aim test) | 13 carried on 70 to 103% of the planned distance, and a thrust further than planned; **5 hitched at the body: 10 to 20%** (the point down to 0.2 to 4 m/s within a tenth of a second), on a forearm twice, an upper arm, a thigh and a shin |
+
+That last line is the one that matters for his third goal (a blow slashes through). Every one of the 19 was, by
+the game's own rule, "drove on through" the part with 70% of its speed kept; five did not do it. **Whether Unity
+shows the same I cannot tell from here:** the stand-in does not have the softening of a blade's contact with a
+body that Unity has (contact modification does nothing headless), so this may be the stand-in. The drawing shows
+it at once: the orange line knots up at the white bar instead of running on along the blue.
+
+**Not checked, and said so:** the drawing itself is built blind. It uses the same lines-over-the-game-view
+method as the legs' view, which he has seen working, but nobody has seen this one. The panel check passes with
+the new row (`LOOK HERE (duel): 8 of 8`). A fight of six for 40 s (seed 5) with the switch off: crossings 0.00% on his feet and tremble 6.6%, both inside their budgets, no exception; it is the same fight as before by construction (with the switch off the two new calls return at once).
+
+**Files:** new `Locomotion/BladeFlow.cs`, `Locomotion/BladePath.cs`, `Sandbox/BladePathView.cs`,
+`Tools/CompileCheck/Runner/FlowReport.cs`, `Tools/Headless/flow.sh`. Touched: `ClipFighter.cs` (the path is
+planned as an attack is thrown and followed at the top of each step: `PlanBladePath`, `TrackBladePath`),
+`CombatFeel.cs`, `BattleSandbox.cs`, `FightReport.cs`, the runner's `Program.cs`. The scratch scripts in
+`Tools/Mocap/Combat/flow` stay as the record of the plan's first reading.
