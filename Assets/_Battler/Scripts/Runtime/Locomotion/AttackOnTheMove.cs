@@ -68,6 +68,9 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static float LandsWithin;
 
+        /// <summary>Set with <see cref="LandsWithin"/> for one asking: of those blows, the one that lands soonest is taken (if it reaches as well as the others), not the best fit: an opening does not wait.</summary>
+        public static bool TakesSoonest;
+
         /// <summary>How a blow on the move sits on the walk (the scene's Combat Feel, "Moving Blow ...").</summary>
         public static MoveBlowStyle Style = MoveBlowStyle.Plain;
 

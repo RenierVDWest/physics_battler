@@ -370,6 +370,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a man who is not standing in a guard is thrown off balance by an impact as any fighter is: he stumbles on real steps, and falls if his feet cannot catch him. A bare-handed man is one. Off (as it was): only a fighter in his guard can stumble or fall; anyone else is shoved back however hard he is hit, on quick little steps.")]
         public bool aManNotInHisGuardStumblesAndFallsToo = true;
 
+        [Tooltip("On: a man who is down is struck with a blow of its own. The fighter runs to a place beside his chest, square to how he lies, bends to it (knees and waist) and stabs down: his thrust, the point going down, at the first of chest, belly, hips, head and neck that is open from there. Off (old): he runs straight at him and throws a standing blow aimed low, which mostly met a shin, an arm or a hand before his body.")]
+        public bool aManWhoIsDownIsStruckFromBesideHim = true;
+
+        [Tooltip("How much lower he carries his hips through the stab at a man who is down, in leg lengths. 0: he stands as tall as in any thrust. 0.2: his knees well bent.")]
+        [Range(0f, 0.35f)] public float heBendsToAManWhoIsDownBy = PhysicsBattler.Sandbox.DuelLab.DefaultDownedCrouch;
+
+        [Tooltip("On: a blow thrown on the run (the pounce's) goes for a spot that is open. As he throws it, his chest, head, neck, sword shoulder, sword arm, belly and thighs are looked at in turn from the attacker's sword shoulder, and the first with nothing before it is taken. Off (old): always his chest, which a man with a shield has his board before: the pounce's blow was blocked three times in four.")]
+        public bool aBlowOnTheRunGoesForWhatIsOpen = true;
+
         [Tooltip("How fast a fighter goes for a man he has an opening on, or one who is down, in m/s at a Medium's size: his run. He runs at him and throws the blow while he is still running, so that it lands as he comes into reach: one motion, no stop between the run and the blow.")]
         [Range(1.5f, 6f)] public float heGoesForHimAt = PhysicsBattler.Sandbox.DuelLab.DefaultGoesForHimAt;
 
@@ -1826,6 +1835,9 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.KickPowerHard = Mathf.Clamp(hardKickPower, 0.5f, 8f);
             ClipFighter.UnguardedMenStumble = aManNotInHisGuardStumblesAndFallsToo;
             PhysicsBattler.Sandbox.DuelLab.GoesForHimAt = Mathf.Clamp(heGoesForHimAt, 1.5f, 6f);
+            PhysicsBattler.Sandbox.DuelLab.DownedComesBeside = aManWhoIsDownIsStruckFromBesideHim;
+            PhysicsBattler.Sandbox.DuelLab.DownedCrouch = Mathf.Clamp(heBendsToAManWhoIsDownBy, 0f, 0.35f);
+            PhysicsBattler.Sandbox.DuelLab.StrikesWhereOpen = aBlowOnTheRunGoesForWhatIsOpen;
             ClipFighter.KickGoesIn = Mathf.Clamp(kickGoesIntoHim, 0f, 0.6f);
             ClipFighter.BodiesTakeImpacts = aBodyTakesAnImpactInItsKneesAndHips;
             ClipFighter.ContactTime = Mathf.Clamp(impactContactTime, 0.05f, 0.5f);

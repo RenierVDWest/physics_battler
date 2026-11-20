@@ -5805,10 +5805,12 @@ namespace PhysicsBattler.Locomotion
                 Into = toward.sqrMagnitude > 1e-6f ? toward.normalized * move.HipsInto : Vector3.zero,
                 // (He faces his enemy as he goes, and turns to keep facing it.)
                 Faces = enemy != null,
-                FacesAt = enemy != null ? InOwnFrame(enemy.Loco.Position) : Vector3.zero,
+                // (A man who lies is faced where he is struck: his root is at his hips, a third of a metre from his chest.)
+                FacesAt = enemy != null ? InOwnFrame(enemy.Fallen ? new Vector3(point.x, enemy.Loco.Position.y, point.z) : enemy.Loco.Position) : Vector3.zero,
             };
             var hold = Poser.Hold();
             MadeAttack best = null, quick = null;
+            float quickLands = 0f;
             foreach (var clip in StrikeClips)
             {
                 var score = AttackScore.Of(clip);
@@ -5840,9 +5842,11 @@ namespace PhysicsBattler.Locomotion
                         }
 
                         // (Asked to land soon, AttackOnTheMove.LandsWithin: the best of those that do.)
-                        if (AttackOnTheMove.LandsWithin > 0f && lands <= AttackOnTheMove.LandsWithin && (quick == null || plan.Cost < quick.Cost))
+                        if (AttackOnTheMove.LandsWithin > 0f && lands <= AttackOnTheMove.LandsWithin
+                            && (quick == null || (AttackOnTheMove.TakesSoonest && plan.Short <= quick.Short + 0.02f ? lands < quickLands - 0.02f || (lands < quickLands + 0.02f && plan.Cost < quick.Cost) : plan.Cost < quick.Cost)))
                         {
                             quick = plan;
+                            quickLands = lands;
                         }
                     }
                 }
@@ -9855,7 +9859,16 @@ namespace PhysicsBattler.Locomotion
         public const float BlockRocks = 0.6f;
 
         /// <summary>Its shield guard knocked open by a heavy blow and not back yet: the shield moves to meet nothing.</summary>
-        public bool GuardOpen => clock < guardOpenUntil;
+        public bool GuardOpen => clock < guardOpenUntil || (StumblingOpensGuard && Stumbling);
+
+        /// <summary>
+        /// A stumbling fighter cannot guard (Combat Feel "A Stumbling Fighter Cannot Guard"; <c>FIGHT_STUMBLEGUARD=1</c>
+        /// for the old way). Before, a bash or a kick opened his guard for 0.8 s, by the clock: a man still stumbling
+        /// backward a second later, his arms out for balance, brought his shield across to a blow as if he stood.
+        /// The pounce's blow, which lands 1.0 to 1.6 s after the bash, was blocked every time. Now his guard is open
+        /// for as long as he is off balance and until he has found his feet (<see cref="Stumbling"/>).
+        /// </summary>
+        public static bool StumblingOpensGuard = true;
 
         private float guardOpenUntil = -1f;
 

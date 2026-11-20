@@ -888,7 +888,7 @@ namespace PhysicsBattler.Units
         /// are today, the one that comes nearest it, aimed at the spot and not at the hips, chest or face). False when
         /// it is busy or has no strikes. <paramref name="what"/>: the strike, and how far it expects to miss.
         /// </summary>
-        public bool AimStrike(UnitController target, AimSpot spot, out string what, out float miss, CutLine? line = null, CutSize? size = null, string attack = null, float landIn = 0f, string legs = null, AttackClass kind = AttackClass.Plain)
+        public bool AimStrike(UnitController target, AimSpot spot, out string what, out float miss, CutLine? line = null, CutSize? size = null, string attack = null, float landIn = 0f, string legs = null, AttackClass kind = AttackClass.Plain, AttackStyle? style = null)
         {
             what = "";
             miss = 0f;
@@ -901,7 +901,7 @@ namespace PhysicsBattler.Units
             {
                 // (An attack made for the part, the plan "Aimed attacks": a recorded strike's score, each body part's
                 // track changed by the style and the aim, the body put together again.)
-                var made = Clip.StrikeMade(target.Clip, AimSpots.Point(target.Clip, spot), AttackClasses.StyleOf(kind), landIn, attack, id => AimSpots.Counts(spot, id), legs);
+                var made = Clip.StrikeMade(target.Clip, AimSpots.Point(target.Clip, spot), style ?? AttackClasses.StyleOf(kind), landIn, attack, id => AimSpots.Counts(spot, id), legs);
                 if (made == null)
                 {
                     return false;

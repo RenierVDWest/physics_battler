@@ -1612,6 +1612,15 @@ namespace PhysicsBattler.Sandbox
                 feel.pounceReadsIn = Lever("Pounce reads in", feel.pounceReadsIn, 0f, 0.6f, "How soon he reads an opening and goes for it (seconds).");
             }
 
+            if (feel != null)
+            {
+                BeginRow();
+                Words(new GUIContent("An opening, his blow:", "Where the pounce's blow goes (Combat Feel \"A Blow On The Run Goes For What Is Open\"). What is open (new): as he throws it, the other's chest, head, neck, sword shoulder, sword arm, belly and thighs are looked at in turn from his sword shoulder, and the first with nothing before it is taken. His chest (old): always the chest, which a man with a shield has his board before."));
+                if (Press(feel.aBlowOnTheRunGoesForWhatIsOpen ? "[what is open]" : "what is open", "The first spot with nothing before it.")) feel.aBlowOnTheRunGoesForWhatIsOpen = true;
+                if (Press(!feel.aBlowOnTheRunGoesForWhatIsOpen ? "[his chest (old)]" : "his chest (old)", "As before.")) feel.aBlowOnTheRunGoesForWhatIsOpen = false;
+                EndRow();
+            }
+
             Readout(new GUIContent("His last pounce: " + Duel.Pounced + $" ({Duel.OpeningsSeen} openings seen, {Duel.PounceLeaps} gone for, {Duel.PounceBlows} struck at).", "What opening he saw, how far off, how far and fast he ran, where and how fast he was going as he threw the blow and as it landed, and what the blade met."), 3);
             BeginRow();
             Words(new GUIContent("A man who is down:", "What he does while the other lies off his feet (Combat Feel \"A Fighter Strikes A Man Who Is Down\"). He holds off (as the game is today): he lets him get up. He strikes him: he runs to him, from however far he was thrown, and strikes down at his chest as he arrives, in one motion, with the blows there are today aimed at where it lies. \"Strike him where he lies\" asks for it once: fell the other first (\"Stumble him: Extra hard\", or \"Kick power\" at 4 and \"Front kick\")."));
@@ -1628,6 +1637,16 @@ namespace PhysicsBattler.Sandbox
             }
 
             EndRow();
+            if (feel != null)
+            {
+                BeginRow();
+                Words(new GUIContent("A man who is down, his blow:", "The blow at a man who lies (Combat Feel \"A Man Who Is Down Is Struck From Beside Him\"). A stab from beside him (new): he runs to a place beside the man's chest, square to how he lies, bends to it and stabs down at the first of chest, belly, hips, head and neck that is open. A standing blow, straight at him (old): he runs straight at him and swings low; it mostly met a shin, an arm or a hand first."));
+                if (Press(feel.aManWhoIsDownIsStruckFromBesideHim ? "[a stab from beside him]" : "a stab from beside him", "Beside his chest, bent to it, the point going down.")) feel.aManWhoIsDownIsStruckFromBesideHim = true;
+                if (Press(!feel.aManWhoIsDownIsStruckFromBesideHim ? "[a standing blow, straight at him (old)]" : "a standing blow, straight at him (old)", "As before.")) feel.aManWhoIsDownIsStruckFromBesideHim = false;
+                EndRow();
+                feel.heBendsToAManWhoIsDownBy = Lever("He bends to it by", feel.heBendsToAManWhoIsDownBy, 0f, 0.35f, "How much lower he carries his hips through the stab at a man who is down (leg lengths). 0: as tall as in any thrust.");
+            }
+
             BeginRow();
             Words(new GUIContent("Knock him down and strike him:", "The test for a man who is down, in one press. The other is stood before him and knocked off his feet; then he runs to him and strikes down at his chest as he arrives, in one motion: no stop between the run and the blow. Near: a hard kick, the other lands about three metres off. Far: a kick harder than any a fighter has, only for this test, so that he lands five metres and more off and has to be run after. Watch the runner's feet as the blow goes out: they should not stop."));
             if (Press("Near", "A hard kick knocks him over; then he is run at and struck where he lies."))

@@ -1186,6 +1186,21 @@ internal static class FightReport
         PhysicsBattler.Sandbox.DuelLab.Pounces = Environment.GetEnvironmentVariable("FIGHT_POUNCE") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_ROSETRACE") == "1") PhysicsBattler.Locomotion.ClipFighter.RoseTrace = line => Console.WriteLine("ROSE " + line);
         PhysicsBattler.Locomotion.ClipFighter.ArmsOutForgottenOnceUp = Environment.GetEnvironmentVariable("FIGHT_ARMSFORGOT") != "0";
+        // (FIGHT_DOWNEDBLOW="beside,sns_thrust,0.12,1.5,0.95": whether he comes beside the chest of a man who is down (beside / straight), the blow thrown ("" or best: the best fit), how much lower his hips, how far his chest leans, and how far from the chest he stands.)
+        {
+            var downedBlow = (Environment.GetEnvironmentVariable("FIGHT_DOWNEDBLOW") ?? "").Split(',');
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            PhysicsBattler.Sandbox.DuelLab.DownedComesBeside = downedBlow[0].Trim() != "straight";
+            PhysicsBattler.Sandbox.DuelLab.DownedBlow = downedBlow.Length > 1 ? (downedBlow[1].Trim() == "best" ? "" : downedBlow[1].Trim()) : PhysicsBattler.Sandbox.DuelLab.DefaultDownedBlow;
+            PhysicsBattler.Sandbox.DuelLab.DownedCrouch = downedBlow.Length > 2 && float.TryParse(downedBlow[2], System.Globalization.NumberStyles.Float, inv, out float dCrouch) ? dCrouch : PhysicsBattler.Sandbox.DuelLab.DefaultDownedCrouch;
+            PhysicsBattler.Sandbox.DuelLab.DownedLean = downedBlow.Length > 3 && float.TryParse(downedBlow[3], System.Globalization.NumberStyles.Float, inv, out float dLean) ? dLean : PhysicsBattler.Sandbox.DuelLab.DefaultDownedLean;
+            PhysicsBattler.Sandbox.DuelLab.DownedStandsOff = downedBlow.Length > 4 && float.TryParse(downedBlow[4], System.Globalization.NumberStyles.Float, inv, out float dOff) ? dOff : PhysicsBattler.Sandbox.DuelLab.DefaultDownedStandsOff;
+            PhysicsBattler.Sandbox.DuelLab.DownedLunges = downedBlow.Length > 5 && float.TryParse(downedBlow[5], System.Globalization.NumberStyles.Float, inv, out float dLunges) ? dLunges : PhysicsBattler.Sandbox.DuelLab.DefaultDownedLunges;
+            PhysicsBattler.Sandbox.DuelLab.DownedLungesFrom = downedBlow.Length > 6 && float.TryParse(downedBlow[6], System.Globalization.NumberStyles.Float, inv, out float dLungesFrom) ? dLungesFrom : PhysicsBattler.Sandbox.DuelLab.DefaultDownedLungesFrom;
+            PhysicsBattler.Sandbox.DuelLab.DownedTowardHead = downedBlow.Length > 7 && float.TryParse(downedBlow[7], System.Globalization.NumberStyles.Float, inv, out float dHead) ? dHead : PhysicsBattler.Sandbox.DuelLab.DefaultDownedTowardHead;
+        }
+        PhysicsBattler.Sandbox.DuelLab.StrikesWhereOpen = Environment.GetEnvironmentVariable("FIGHT_GOOPEN") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.StumblingOpensGuard = Environment.GetEnvironmentVariable("FIGHT_STUMBLEGUARD") != "1";
         if (Environment.GetEnvironmentVariable("FIGHT_GOTRACE") == "1") PhysicsBattler.Sandbox.DuelLab.GoTrace = line => Console.WriteLine("GO " + line);
         // (FIGHT_UNGUARDED=0: a man not in a guard is only ever shoved, as before. FIGHT_KICKKIND=soft|medium|hard.)
         PhysicsBattler.Locomotion.ClipFighter.UnguardedMenStumble = Environment.GetEnvironmentVariable("FIGHT_UNGUARDED") != "0";
