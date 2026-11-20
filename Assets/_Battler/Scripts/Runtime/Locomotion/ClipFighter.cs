@@ -8322,9 +8322,122 @@ namespace PhysicsBattler.Locomotion
             PressedTimes++;
         }
 
+        /// <summary>
+        /// A weapon's blow that lands on his body presses him as an impact does (Combat Feel "A Body Takes A Blow In
+        /// Its Knees And Trunk"; <c>FIGHT_BLOWPRESS=0</c> for the old way). A sword's blow hands him 30 to 100 N s (the
+        /// hit's own count, the weapons' weight in it): on 80 kg that is about half a metre a second, and by the rule for bashes (a press by how much his speed
+        /// changes) it pressed him a centimetre or not at all, so a man cut across the chest stood on stiff legs with
+        /// his trunk upright while one arm was knocked aside. Now a blow presses him by its own measure: a blow of
+        /// <see cref="BlowPressFullAt"/> N s on a Medium drops his hips by "A blow, his knees give", folds his trunk
+        /// away from it by "his trunk folds" and turns his chest by "his chest turns" the way the blow goes round him
+        /// (struck on his right side going back, his right shoulder goes back). The same spring: lowest a contact time
+        /// after it lands, up again over about half a second. Nothing drawn by lot. In the labs and the dance only
+        /// for now (<see cref="BladePassesHere"/>): everywhere, it put the fight of six over its budgets.
+        /// </summary>
+        public static bool BodiesTakeBlows = true;
+
+        /// <summary>For a blow of <see cref="BlowPressFullAt"/> N s on a Medium: how far his hips drop (metres), how far his trunk folds away from it and how far his chest is turned by it (degrees).</summary>
+        public static float KneesGiveToBlow = DefaultKneesGiveToBlow, TrunkFoldsToBlow = DefaultTrunkFoldsToBlow, ChestTurnsToBlow = DefaultChestTurnsToBlow;
+
+        public const float DefaultKneesGiveToBlow = 0.06f, DefaultTrunkFoldsToBlow = 9f, DefaultChestTurnsToBlow = 14f, BlowPressFullAt = 60f;
+
+        private float blowPress, blowPressV, blowTurns, blowWeighed;
+        private bool blowTold = true;
+        private Vector3 blowAway;
+
+        /// <summary>For the reports: the furthest a blow pressed his hips down since the last one landed (metres), the furthest it folded his trunk and turned his chest (degrees), and how many blows pressed him.</summary>
+        public float BlowPressedMost, BlowFoldedMost, BlowTurnedMost;
+        public int BlowsPressed;
+
+        private void PressByBlow(Vector3 impulse, Vector3 point)
+        {
+            // (In the labs and the dance only, as a sword passing a body is: with it everywhere, a fight of six of 40 s
+            // (seed 5) had a blade through its bearer's own shield 1.12% of his time on his feet, against 0.00%, and
+            // the boards trembling 11.8% of the time against 6.6%: a trunk folded and turned by a blow takes the shield
+            // arm and the sword arm with it.)
+            if (!BodiesTakeBlows || Fallen || !(BladePassesHere || BladePassesEverywhere))
+            {
+                return;
+            }
+
+            Vector3 flat = new Vector3(impulse.x, 0f, impulse.z);
+            // (By the blow's whole weight, a downward cut's too; against a Medium's mass.)
+            float share = Mathf.Min(impulse.magnitude / (BlowPressFullAt * Mathf.Max(0.2f, Mass / 80f)), PressMostOf);
+            if (share < 0.15f)
+            {
+                return;
+            }
+
+            float w = 1f / Mathf.Max(0.05f, ContactTime);
+            blowPressV += share * Mathf.Exp(1f) * w;
+            blowAway = flat.sqrMagnitude > 1e-6f ? flat.normalized : Vector3.zero;
+            // (Which way it goes round him: its push about his middle, seen from above.)
+            Vector3 arm = point - Anim.Part(PartId.Chest).position;
+            arm.y = 0f;
+            float lever = arm.magnitude > 0.03f && flat.sqrMagnitude > 1e-6f ? Vector3.Cross(arm.normalized, flat.normalized).y * Mathf.Clamp01(arm.magnitude / (0.2f * Size)) : 0f;
+            blowTurns = lever;
+            BlowPressedMost = BlowFoldedMost = BlowTurnedMost = 0f;
+            BlowsPressed++;
+            blowTold = false;
+            blowWeighed = impulse.magnitude;
+        }
+
+        private void StepBlowPress(float dt)
+        {
+            if (blowPress <= 1e-5f && Mathf.Abs(blowPressV) <= 1e-5f)
+            {
+                blowPress = 0f;
+                return;
+            }
+
+            float w = 1f / Mathf.Max(0.05f, ContactTime);
+            blowPressV += (-w * w * blowPress - 2f * w * blowPressV) * dt;
+            blowPress = Mathf.Clamp(blowPress + blowPressV * dt, 0f, PressMostOf);
+            if (blowPress <= 0f)
+            {
+                blowPressV = Mathf.Max(0f, blowPressV);
+            }
+
+            if (!blowTold && blowPressV < 0f && blowPress < 0.1f && BlowsPressed > 0)
+            {
+                // (He is up again: what the blow did to his body, for the log.)
+                blowTold = true;
+                if (Diagnostics.PlaytestTrace.Enabled)
+                {
+                    Diagnostics.PlaytestTrace.Note(FightUnit, "took", string.Format(System.Globalization.CultureInfo.InvariantCulture, "a blow of {0:0} N s: his hips went down {1:0.0} cm, his trunk folded {2:0.0} degrees and his chest turned {3:0.0} degrees", blowWeighed, 100f * BlowPressedMost, BlowFoldedMost, BlowTurnedMost));
+                }
+            }
+
+            if (Fallen)
+            {
+                return;
+            }
+
+            float fold = TrunkFoldsToBlow * blowPress, turn = ChestTurnsToBlow * blowPress * blowTurns;
+            BlowPressedMost = Mathf.Max(BlowPressedMost, KneesGiveToBlow * Size * blowPress);
+            BlowFoldedMost = Mathf.Max(BlowFoldedMost, fold);
+            BlowTurnedMost = Mathf.Max(BlowTurnedMost, Mathf.Abs(turn));
+            var spine = Anim.Part(PartId.Spine);
+            var chest = Anim.Part(PartId.Chest);
+            if (fold > 0.05f && blowAway.sqrMagnitude > 1e-6f)
+            {
+                // (Folded the way the blow goes: his chest gives before it.)
+                Vector3 axis = Vector3.Cross(Vector3.up, blowAway);
+                spine.rotation = Quaternion.AngleAxis(0.45f * fold, axis) * spine.rotation;
+                chest.rotation = Quaternion.AngleAxis(0.55f * fold, axis) * chest.rotation;
+            }
+
+            if (Mathf.Abs(turn) > 0.05f)
+            {
+                spine.rotation = Quaternion.AngleAxis(0.35f * turn, Vector3.up) * spine.rotation;
+                chest.rotation = Quaternion.AngleAxis(0.65f * turn, Vector3.up) * chest.rotation;
+            }
+        }
+
         /// <summary>The press of an impact, a step on: his hips down by it, his trunk folded toward where it came from.</summary>
         private void StepPress(float dt)
         {
+            StepBlowPress(dt);
             // (What his hands have settled to goes down and up with him. It is kept against his root, which does not
             // dip: left where it was, his board lagged his body's dip and his sword did not, and in the fights of six
             // his blade was through his own board more on his feet, 0.7% of the time to 0.8% and more.)
@@ -8338,9 +8451,11 @@ namespace PhysicsBattler.Locomotion
             }
 
             pressPosed = dipped;
+            // (A blow's dip is laid on the same press of the hips.)
+            float blowDip = Fallen ? 0f : KneesGiveToBlow * Size * blowPress;
             if (press <= 1e-5f && Mathf.Abs(pressV) <= 1e-5f)
             {
-                Poser.Pressed = 0f;
+                Poser.Pressed = blowDip;
                 return;
             }
 
@@ -8355,7 +8470,7 @@ namespace PhysicsBattler.Locomotion
 
             press = Mathf.Min(press, PressMostOf * KneesGiveToImpact * Size);
             PressedMost = Mathf.Max(PressedMost, press);
-            Poser.Pressed = Fallen ? 0f : press;
+            Poser.Pressed = Fallen ? 0f : Mathf.Min(press + blowDip, PressMostOf * Mathf.Max(KneesGiveToImpact, KneesGiveToBlow) * Size);
             float folds = TrunkFoldsToImpact * press / Mathf.Max(1e-3f, KneesGiveToImpact * Size);
             if (folds > 0.05f && pressFrom.sqrMagnitude > 1e-6f && !Fallen)
             {
@@ -9873,6 +9988,12 @@ namespace PhysicsBattler.Locomotion
             {
                 Vector3 kick = impulse * partShare / Mathf.Max(0.5f, struck.mass);
                 struck.AddForce(Vector3.ClampMagnitude(kick, (shield ? MostShieldSpeed : MostPartSpeed) * Size), ForceMode.VelocityChange);
+            }
+
+            if (!shield)
+            {
+                // (His body takes the blow: his hips give under it and his trunk goes with it.)
+                PressByBlow(impulse, point);
             }
 
             // (A physical leg: knocked the way of the blow, and let go a moment.)

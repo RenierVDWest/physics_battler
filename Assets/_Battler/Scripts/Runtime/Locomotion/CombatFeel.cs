@@ -422,6 +422,18 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How far his trunk folds toward a hard impact as it presses him down (degrees).")]
         [Range(0f, 20f)] public float impactTrunkFolds = ClipFighter.DefaultTrunkFoldsToImpact;
 
+        [Tooltip("On: a weapon's blow that lands on a body is taken by the whole body. His knees give and his hips drop, his trunk folds the way the blow goes, and his chest is turned by it (struck on his right side going back, his right shoulder goes back), each by how hard the blow is, lowest a contact time after it lands and up again over about half a second. Off (old): only the struck part was knocked and a reaction clip played: a man cut across the chest stood on stiff legs with his trunk upright.")]
+        public bool aBodyTakesABlowInItsKneesAndTrunk = true;
+
+        [Tooltip("For a hard blow (60 N s handed to a Medium; most sword blows hand him 30 to 60): how far his hips drop (metres).")]
+        [Range(0f, 0.2f)] public float blowKneesGive = ClipFighter.DefaultKneesGiveToBlow;
+
+        [Tooltip("For a hard blow: how far his trunk folds the way the blow goes (degrees).")]
+        [Range(0f, 30f)] public float blowTrunkFolds = ClipFighter.DefaultTrunkFoldsToBlow;
+
+        [Tooltip("For a hard blow well off his middle: how far his chest is turned by it (degrees).")]
+        [Range(0f, 40f)] public float blowChestTurns = ClipFighter.DefaultChestTurnsToBlow;
+
         [Tooltip("On: a stumbling fighter's arms go out for balance. His upper arms lift out from his sides by how fast he is going, the arm on the far side from where he tips the further, and both are left behind a little by the way he is thrown. Off (old): his arms hold the guard they had while he stumbles.")]
         public bool aStumblingFightersArmsGoOutForBalance = true;
 
@@ -1895,6 +1907,10 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.ContactTime = Mathf.Clamp(impactContactTime, 0.05f, 0.5f);
             ClipFighter.KneesGiveToImpact = Mathf.Clamp(impactKneesGive, 0f, 0.25f);
             ClipFighter.TrunkFoldsToImpact = Mathf.Clamp(impactTrunkFolds, 0f, 20f);
+            ClipFighter.BodiesTakeBlows = aBodyTakesABlowInItsKneesAndTrunk;
+            ClipFighter.KneesGiveToBlow = Mathf.Clamp(blowKneesGive, 0f, 0.2f);
+            ClipFighter.TrunkFoldsToBlow = Mathf.Clamp(blowTrunkFolds, 0f, 30f);
+            ClipFighter.ChestTurnsToBlow = Mathf.Clamp(blowChestTurns, 0f, 40f);
             ClipFighter.ArmsGoOutBy = stumblingArmsGoOutBy;
             StumbleSteps.ReactsIn = Mathf.Clamp(stumbleFirstFootLiftsIn, 0f, 0.4f);
             StumbleSteps.StepTakes = Mathf.Clamp(stumbleStepTakes, 0.08f, 0.5f);

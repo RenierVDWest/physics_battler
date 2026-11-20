@@ -8080,3 +8080,35 @@ second blow still lands, at 16 m/s, 13 to 30 cm from the spot. **Not seen in Uni
 
 Checks: 0 errors; the panel's look list; `flow.sh`.
 
+### 20 November, 23:38: a body takes a weapon's blow in its knees and trunk (bodies that absorb a hit, the blows' part)
+
+He asked at 22:44 for "bodies that absorb a hit" to be pushed up. A first build for bashes and thrown bodies has
+stood since 20 November, 01:15. What it left out is the blow that matters most now that a sword passes on through a
+body: a weapon's blow pressed nobody (by the bash's rule, a press by how much his speed changes, a sword's half a
+metre a second was a centimetre or nothing). A man cut across the chest stood on stiff legs with his trunk upright.
+
+**Built** (`ClipFighter.PressByBlow`, `StepBlowPress`; Combat Feel "A Body Takes A Blow In Its Knees And Trunk", on,
+with "Blow Knees Give" 0.06 m, "Blow Trunk Folds" 9 degrees, "Blow Chest Turns" 14 degrees; lab, under "Stumbles
+and falls": row "A blow, his body: takes it / stands stiff (old)", three levers, and the readout "The last blow he
+took"; `FIGHT_BLOWPRESS=0`, `FIGHT_BLOWPRESSED="0.06,9,14"`). A blow that lands on a body (not a shield) is weighed
+by what it hands him (the hit's own count, 30 to 100 N s for a sword) against 60 N s for a Medium, and by that share:
+his hips drop, his trunk folds the way the blow goes, and his chest is turned the way the blow goes round his
+middle (struck on his right side going back, his right shoulder goes back). The same spring as an impact's: lowest
+a contact time (0.2 s) after it lands, up again over about half a second. Nothing drawn by lot. A `took` line in the
+playtest log for each.
+
+**Measured, headless (the aim test, 18 blows that landed, 34 to 96 N s):** hips down 2.9 to 7.6 cm (median 6.5),
+trunk folded 4 to 11 degrees (median 10), chest turned 1 to 14 degrees (median 5). Before: 0 to 1 cm and nothing.
+The blade's own numbers are as they were (no blade crawls, 12 cm from its planned line).
+
+**In the labs and the dance only** (the flag the labs set for a sword passing a body). On everywhere, a fight of six
+(40 s, seed 5) went over both budgets: a blade through its bearer's own shield 1.12% of his time on his feet
+(0.00% before), boards trembling 11.8% (6.6%): a trunk folded and turned by a blow takes the shield arm and the
+sword arm with it. Kept to the labs: 0.00% and 6.6%, as before. **So before this goes into fights, what his hands
+hold has to be carried through the fold and the turn** (as it is through the dip).
+
+**Not built, of the plan's step 4:** the feet sliding a hand's width before the first step; the head lagging; the
+striker's own arm taking the shock. **Not seen in Unity: how much is right is his eye's to say; the levers are there.**
+
+Checks: 0 errors; the panel's look list 11 of 11; the six within its budgets.
+

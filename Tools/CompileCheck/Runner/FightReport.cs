@@ -1221,6 +1221,15 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.BladePassesWhatItCut = Environment.GetEnvironmentVariable("FIGHT_BLADEPASSES") != "0";
         PhysicsBattler.Locomotion.ClipFighter.BladePassesEverywhere = Environment.GetEnvironmentVariable("FIGHT_LINEUP") == "aim" || Environment.GetEnvironmentVariable("FIGHT_PASSESINFIGHTS") == "1";
         PhysicsBattler.Locomotion.ClipFighter.BlowsFlow = Environment.GetEnvironmentVariable("FIGHT_FLOWS") != "0";
+        // (FIGHT_BLOWPRESS=0: a weapon's blow does not press, fold or turn the body it lands on, as before.
+        // FIGHT_BLOWPRESSED="0.06,9,14": how far the hips drop (m), the trunk folds and the chest turns (degrees) for a hard blow.)
+        PhysicsBattler.Locomotion.ClipFighter.BodiesTakeBlows = Environment.GetEnvironmentVariable("FIGHT_BLOWPRESS") != "0";
+        {
+            var bp = (Environment.GetEnvironmentVariable("FIGHT_BLOWPRESSED") ?? "").Split(',');
+            if (bp.Length > 0 && float.TryParse(bp[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bp0)) PhysicsBattler.Locomotion.ClipFighter.KneesGiveToBlow = bp0;
+            if (bp.Length > 1 && float.TryParse(bp[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bp1)) PhysicsBattler.Locomotion.ClipFighter.TrunkFoldsToBlow = bp1;
+            if (bp.Length > 2 && float.TryParse(bp[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bp2)) PhysicsBattler.Locomotion.ClipFighter.ChestTurnsToBlow = bp2;
+        }
         PhysicsBattler.Sandbox.DuelLab.TwoSecondSpot = Enum.TryParse(Environment.GetEnvironmentVariable("FIGHT_TWOSECOND"), true, out PhysicsBattler.Locomotion.AimSpot twoSecond) ? twoSecond : (PhysicsBattler.Locomotion.AimSpot?)null;
         // (FIGHT_STUMBLEFROM=0.7: a blow throws a man back stumbling from less: headless a sword lands slower than in
         // Unity and its blows do not make the target stumble, which in his logs they do.)

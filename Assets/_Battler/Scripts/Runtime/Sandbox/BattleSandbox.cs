@@ -1726,6 +1726,19 @@ namespace PhysicsBattler.Sandbox
             EndRow();
             feel.impactContactTime = Lever("Contact time", feel.impactContactTime, 0.05f, 0.5f, "How long an impact takes to press him down (seconds). He comes up again over about twice and a half that.");
             feel.impactKneesGive = Lever("Knees give to it", feel.impactKneesGive, 0f, 0.25f, "How far his hips drop for a hard impact, one that changes his speed by 3 m/s (metres on a Medium).");
+            BeginRow();
+            Words(new GUIContent("A blow, his body:", "What a weapon's blow does to the body it lands on (Combat Feel \"A Body Takes A Blow In Its Knees And Trunk\"). Takes it (new): his knees give, his trunk folds the way the blow goes and his chest is turned by it, by how hard the blow is; he comes up again over about half a second. Stands stiff (old): only the struck part was knocked and a reaction clip played."));
+            if (Press(feel.aBodyTakesABlowInItsKneesAndTrunk ? "[takes it]" : "takes it", "His whole body gives to the blow.")) feel.aBodyTakesABlowInItsKneesAndTrunk = true;
+            if (Press(!feel.aBodyTakesABlowInItsKneesAndTrunk ? "[stands stiff (old)]" : "stands stiff (old)", "As before.")) feel.aBodyTakesABlowInItsKneesAndTrunk = false;
+            EndRow();
+            feel.blowKneesGive = Lever("A blow, knees give", feel.blowKneesGive, 0f, 0.2f, "For a hard blow: how far his hips drop (metres).");
+            feel.blowTrunkFolds = Lever("A blow, trunk folds", feel.blowTrunkFolds, 0f, 30f, "For a hard blow: how far his trunk folds the way the blow goes (degrees).");
+            feel.blowChestTurns = Lever("A blow, chest turns", feel.blowChestTurns, 0f, 40f, "For a hard blow well off his middle: how far his chest is turned by it (degrees).");
+            {
+                var took = Duel.Other != null ? Duel.Other.Clip : Aim.Target != null ? Aim.Target.Clip : null;
+                Readout(new GUIContent("The last blow he took: " + (took == null || took.BlowsPressed == 0 ? "none yet (the duel lab's or the aim test's target)." : $"hips down {100f * took.BlowPressedMost:0} cm, trunk folded {took.BlowFoldedMost:0} degrees, chest turned {took.BlowTurnedMost:0} degrees ({took.BlowsPressed} blows taken so)."), "How far the target's body gave to the last blow that landed on it."), 1);
+            }
+
             feel.impactTrunkFolds = Lever("Trunk folds to it", feel.impactTrunkFolds, 0f, 20f, "How far his trunk folds toward a hard impact as it presses him down (degrees).");
             BeginRow();
             Words(new GUIContent("Stumbling, his arms:", "What a stumbling fighter's arms do (Combat Feel \"A Stumbling Fighter's Arms Go Out For Balance\"). Go out for balance (new): his upper arms lift out from his sides by how fast he is going, the far arm from where he tips the further, and both are left behind a little by the way he is thrown. Hold his guard (old): they stay as his guard has them."));
@@ -4171,13 +4184,14 @@ namespace PhysicsBattler.Sandbox
             "1. Go to \"Duel\", find \"Strike at\", press \"The blade's path: drawn\", and in the row \"Two blows:\" press \"Throw two\". New: his body should carry on smoothly between the two hits, where before it jumped to another pose (crouched, turned and leaning). To see the old way: \"At the join, his body: jumps (old)\".",
             "2. The lever \"Join makes up at most\" under it: at 0.15 the blade turns at the bottom and nearly stops there; at 0.25 the first blow is left sooner, so the blade keeps moving and the second hit comes sooner, but its course may kink more. Try both and tell me which reads better as one swing.",
             "3. Knock the target down (a few hard blows, or \"Stumble him\" with a hard bash). New: once it is up it should stand where it got up, and not walk back into you or end up in your shield. And after he goes for it, the swordsman should step back to his distance.",
-            "4. What I would like to hear: is the body's jump gone? Which join setting? Does the target still walk into you, or get stuck in your shield? Does the sword passing through him look right?",
+            "4. New: a body takes a blow. Under \"Stumbles and falls\" find \"A blow, his body: takes it / stands stiff (old)\". Strike the target (\"Chest\", \"Throw two\") each way: with \"takes it\" his knees should give, his trunk fold the way the blade goes and his chest turn with it, more for a harder blow. Three levers under it set how much. \"The last blow he took\" says it in numbers.",
+            "5. What I would like to hear: is the body's jump gone? Which join setting? Does the target still walk into you, or get stuck in your shield? Does a struck body give enough, too much, or the wrong way?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Two blows:", "Throw two", "At the join, his body:", "Join makes up at most", "His last two blows", "A blade that cut him:", "The blade's path:",
+            "Duel", "Strike at", "Two blows:", "Throw two", "At the join, his body:", "Join makes up at most", "His last two blows", "A blade that cut him:", "The blade's path:", "A blow, his body:", "The last blow he took",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

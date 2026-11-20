@@ -81,6 +81,15 @@ The rest are one-off comparisons from particular days, kept for reference.
   `FIGHT_DANCEOWN="1,1,1,0.35"`: in a dance, by themselves: pounce, go for a man who is down, kick, and how many of
   a shield's bashes are a kick. A dance's report has `DANCEOWN` lines. **A dance of 70 s takes about 17 minutes
   here; a batch of six 10 s duels about 13.**
+- `FIGHT_BLOWPRESS=0`: a weapon's blow does not press, fold or turn the body it lands on (old).
+  `FIGHT_BLOWPRESSED="0.06,9,14"`: hips (m), fold and turn (degrees) for a hard blow. Read the `took` lines in the
+  run's own playtest log (`$S/name/PlaytestLogs/*/events.log`). It counts in the aim lineup, not in a fight.
+- `FIGHT_JOINTURNS=0`: the join as first built (his body jumps at it). Every pair prints `FLOWMADE` (what the maker
+  did to each blow: turn, travel, drop, lean, hand) and `FLOWJOIN` (the join's frames and angles).
+  `FIGHT_TWOSECOND=Head`: the second blow's spot. `FIGHT_STUMBLEFROM=0.7`: the target stumbles from a sword's blow
+  as it does in Unity. `FIGHT_SPOTFOLLOWS=0`: a fallen target keeps its old spot (old).
+- **`b.sh` also refuses when the command line that calls it names the test dll anywhere, even after it: run it in
+  a command of its own, every time.**
 - `FIGHT_THROWTWO="3,9,15"`: the duel's mover throws two blows at the chest at those seconds (forehand, rising
   backhand); a `FLOW` line as each ends: where it was joined, what each met, hit to hit, the point's travel and
   slowest between the hits, the kink at the join, how far from the spot the second landed. `FIGHT_FLOWS=0`: two

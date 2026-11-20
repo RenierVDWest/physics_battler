@@ -539,11 +539,18 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
   (`FightLoop.DummySpotFollowsTheFall`; Combat Feel "A Fallen Target's Spot Follows It"). And his step back is
   counted from where he comes to rest. Headless only.
 
+- **A body takes a weapon's blow** (20 November, 23:38; README): `ClipFighter.PressByBlow`; Combat Feel "A Body Takes
+  A Blow In Its Knees And Trunk" and three levers; lab row "A blow, his body:" under "Stumbles and falls", readout
+  "The last blow he took"; `FIGHT_BLOWPRESS=0`. Hips drop, trunk folds the way the blow goes, chest turns with it,
+  by the blow's weight (60 N s on a Medium is a hard one). Headless: hips 3 to 8 cm, fold 4 to 11 degrees, turn 1 to
+  14. **Labs and dance only: everywhere, the six went over both budgets** (the folded trunk takes the arms and what
+  they hold with it). Not seen in Unity.
+
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the
 steps." In this order: (1) the combo fixes (the body's jump: **done**, above; the second blow's aim: better, 9 to 30 cm, his right arm
 still in the way in 4 of 6; the second blow over his walk: not done); (2) the enemy stuck in his shield (**done, above**); (3) **bodies that absorb a hit, pushed up
-by him** (a first build exists from 20 November, 01:15, for bashes and thrown bodies: knees and hips give, the trunk
+by him: the blows' part done, above** (a first build exists from 20 November, 01:15, for bashes and thrown bodies: knees and hips give, the trunk
 folds; not built: a sword's blow pressing the struck man, feet sliding before the first step, the head lagging);
 (4) more cuts baked (quick forehand, flat forehand, low cut) and the blade report on them; (5) the step back
 measured; (6) stumble leftovers; (7) get-up leftovers; (8) old bugs; (9) kicks at more heights, the low slash.
