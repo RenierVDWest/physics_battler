@@ -308,6 +308,19 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: in the dance some of a fighter's own blows are a hard bash instead of a cut, to break the other's guard (his own lever \"Guard breaks\", under \"Each his own\"; twice as often after a blow of his that the other stopped). Off: a hard bash is never thrown in the dance.")]
         public bool aHardBashIsAnAttackInTheDance = true;
 
+        [Header("By themselves in the dance (20 November)")]
+        [Tooltip("On: in the dance a fighter pounces on an opening by himself. When the other stumbles, has his guard knocked open or turns his back, he runs in and strikes in one motion, as the duel lab's fighter does from its buttons. Off: he keeps to his pattern.")]
+        public bool theDancePouncesOnAnOpening = true;
+
+        [Tooltip("On: in the dance a fighter goes for a man who is down by himself: he runs to him and stabs down from beside him. Off: he lets him get up. Only the dance: elsewhere \"A Fighter Strikes A Man Who Is Down\" decides (off). Whether fighters should hold off is still an open decision.")]
+        public bool theDanceStrikesAManWhoIsDown = true;
+
+        [Tooltip("On: in the dance fighters kick by themselves. A fighter with no shield kicks a man who has come too near back out (he has no bash), and his guard-breaking attack is a hard kick. A fighter with a shield kicks instead of bashing some of the times (\"Dance Kicks Instead Of Bashing\"). Off: nobody kicks in the dance.")]
+        public bool theDanceKicks = true;
+
+        [Tooltip("Of the bashes a fighter with a shield would throw in the dance, how many are a kick instead: a soft kick for space, a medium kick as an attack.")]
+        [Range(0f, 1f)] public float danceKicksInsteadOfBashing = 0.35f;
+
         [Tooltip("On: a fighter with a shield who sees a hard bash coming meets it with a medium bash of his own, braced where he stands. Whether that stops the hard bash knocking him over is a draw (\"Counter Bash Holds\"). Off: a hard bash that meets him knocks him over every time, as before.")]
         public bool aHardBashIsCounteredByAMediumBash = true;
 
@@ -374,13 +387,16 @@ namespace PhysicsBattler.Locomotion
         public bool aManWhoIsDownIsStruckFromBesideHim = true;
 
         [Tooltip("How much lower he carries his hips through the stab at a man who is down, in leg lengths. 0: he stands as tall as in any thrust. 0.2: his knees well bent.")]
-        [Range(0f, 0.35f)] public float heBendsToAManWhoIsDownBy = PhysicsBattler.Sandbox.DuelLab.DefaultDownedCrouch;
+        [Range(0f, 0.35f)] public float heBendsToAManWhoIsDownBy = PhysicsBattler.Sandbox.RunIn.DefaultDownedCrouch;
+
+        [Tooltip("On: a stumbling fighter cannot guard. For as long as he is off balance, and until he has found his feet, he does not bring his shield or his sword across to a blow. In the duel lab and the dance only, where a pounce can come: tried in the fight of six it put swords through their bearers' own shields more often than the budget allows, so there it is as it was. Off (old): a bash or a kick opens his guard for 0.8 s by the clock, and a man still stumbling backward after that blocks as if he stood.")]
+        public bool aStumblingFighterCannotGuard = true;
 
         [Tooltip("On: a blow thrown on the run (the pounce's) goes for a spot that is open. As he throws it, his chest, head, neck, sword shoulder, sword arm, belly and thighs are looked at in turn from the attacker's sword shoulder, and the first with nothing before it is taken. Off (old): always his chest, which a man with a shield has his board before: the pounce's blow was blocked three times in four.")]
         public bool aBlowOnTheRunGoesForWhatIsOpen = true;
 
         [Tooltip("How fast a fighter goes for a man he has an opening on, or one who is down, in m/s at a Medium's size: his run. He runs at him and throws the blow while he is still running, so that it lands as he comes into reach: one motion, no stop between the run and the blow.")]
-        [Range(1.5f, 6f)] public float heGoesForHimAt = PhysicsBattler.Sandbox.DuelLab.DefaultGoesForHimAt;
+        [Range(1.5f, 6f)] public float heGoesForHimAt = PhysicsBattler.Sandbox.RunIn.DefaultGoesForHimAt;
 
         [Tooltip("How far past the other's front the kicking foot is aimed, in metres at a Medium's size. More: he goes further in with his hips.")]
         [Range(0f, 0.6f)] public float kickGoesIntoHim = ClipFighter.DefaultKickGoesIn;
@@ -1787,6 +1803,10 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.Dance.SpaceBashes = theDanceBashesForSpace;
             PhysicsBattler.Sandbox.Dance.MediumShare = spaceBashesThatAreMedium;
             PhysicsBattler.Sandbox.Dance.HardBashAttacks = aHardBashIsAnAttackInTheDance;
+            PhysicsBattler.Sandbox.Dance.Pounces = theDancePouncesOnAnOpening;
+            PhysicsBattler.Sandbox.Dance.StrikesDowned = theDanceStrikesAManWhoIsDown;
+            PhysicsBattler.Sandbox.Dance.Kicks = theDanceKicks;
+            PhysicsBattler.Sandbox.Dance.KickShare = Mathf.Clamp01(danceKicksInsteadOfBashing);
             ClipFighter.CountersHardBash = aHardBashIsCounteredByAMediumBash;
             ClipFighter.CounterHolds = counterBashHolds / 100f;
             PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly = aHeldThingMeetsHisBodySoftly;
@@ -1826,18 +1846,19 @@ namespace PhysicsBattler.Locomotion
             ImpactLedger.FeetTake = Mathf.Clamp01(feetTakeOfAnImpact);
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
-            PhysicsBattler.Sandbox.DuelLab.Pounces = aFighterPouncesOnAnOpening;
-            PhysicsBattler.Sandbox.DuelLab.StrikesTheDowned = aFighterStrikesAManWhoIsDown;
-            PhysicsBattler.Sandbox.DuelLab.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
+            PhysicsBattler.Sandbox.RunIn.Pounces = aFighterPouncesOnAnOpening;
+            PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = aFighterStrikesAManWhoIsDown;
+            PhysicsBattler.Sandbox.RunIn.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
             ClipFighter.KicksThrow = aKickThrowsABody;
             ClipFighter.KickPower = Mathf.Clamp(kickPower, 0.5f, 6f);
             ClipFighter.KickPowerMedium = Mathf.Clamp(mediumKickPower, 0.5f, 8f);
             ClipFighter.KickPowerHard = Mathf.Clamp(hardKickPower, 0.5f, 8f);
             ClipFighter.UnguardedMenStumble = aManNotInHisGuardStumblesAndFallsToo;
-            PhysicsBattler.Sandbox.DuelLab.GoesForHimAt = Mathf.Clamp(heGoesForHimAt, 1.5f, 6f);
-            PhysicsBattler.Sandbox.DuelLab.DownedComesBeside = aManWhoIsDownIsStruckFromBesideHim;
-            PhysicsBattler.Sandbox.DuelLab.DownedCrouch = Mathf.Clamp(heBendsToAManWhoIsDownBy, 0f, 0.35f);
-            PhysicsBattler.Sandbox.DuelLab.StrikesWhereOpen = aBlowOnTheRunGoesForWhatIsOpen;
+            PhysicsBattler.Sandbox.RunIn.GoesForHimAt = Mathf.Clamp(heGoesForHimAt, 1.5f, 6f);
+            PhysicsBattler.Sandbox.RunIn.DownedComesBeside = aManWhoIsDownIsStruckFromBesideHim;
+            PhysicsBattler.Sandbox.RunIn.DownedCrouch = Mathf.Clamp(heBendsToAManWhoIsDownBy, 0f, 0.35f);
+            PhysicsBattler.Sandbox.RunIn.StrikesWhereOpen = aBlowOnTheRunGoesForWhatIsOpen;
+            ClipFighter.StumblingOpensGuard = aStumblingFighterCannotGuard;
             ClipFighter.KickGoesIn = Mathf.Clamp(kickGoesIntoHim, 0f, 0.6f);
             ClipFighter.BodiesTakeImpacts = aBodyTakesAnImpactInItsKneesAndHips;
             ClipFighter.ContactTime = Mathf.Clamp(impactContactTime, 0.05f, 0.5f);

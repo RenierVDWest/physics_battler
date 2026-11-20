@@ -1141,6 +1141,14 @@ internal static class FightReport
         PhysicsBattler.Sandbox.Dance.FakeRatio = Environment.GetEnvironmentVariable("FIGHT_FAKERATIO") != "0";
         PhysicsBattler.Sandbox.Dance.SpaceBashes = Environment.GetEnvironmentVariable("FIGHT_SPACEBASH") != "0";
         PhysicsBattler.Sandbox.Dance.HardBashAttacks = Environment.GetEnvironmentVariable("FIGHT_HARDBASH") != "0";
+        // (FIGHT_DANCEOWN="1,1,1,0.35": in the dance, by themselves: pounce, strike a man who is down, kick; and how many of a shield's bashes are a kick instead.)
+        {
+            var own = (Environment.GetEnvironmentVariable("FIGHT_DANCEOWN") ?? "").Split(',');
+            PhysicsBattler.Sandbox.Dance.Pounces = own[0].Trim() != "0";
+            PhysicsBattler.Sandbox.Dance.StrikesDowned = own.Length < 2 || own[1].Trim() != "0";
+            PhysicsBattler.Sandbox.Dance.Kicks = own.Length < 3 || own[2].Trim() != "0";
+            PhysicsBattler.Sandbox.Dance.KickShare = own.Length > 3 && float.TryParse(own[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float kickShare) ? kickShare : 0.35f;
+        }
         PhysicsBattler.Locomotion.ClipFighter.CountersHardBash = Environment.GetEnvironmentVariable("FIGHT_COUNTER") != "0";
         foreach (var (name, set) in new (string, Action<float>)[]
         {
@@ -1183,31 +1191,31 @@ internal static class FightReport
         // (FIGHT_PRESS=0: a body does not take an impact in its knees and hips, as before. FIGHT_PRESSED="0.2,0.10,6": the contact time (s), how far the knees give (m) and how far the trunk folds (degrees).)
         PhysicsBattler.Locomotion.ClipFighter.BodiesTakeImpacts = Environment.GetEnvironmentVariable("FIGHT_PRESS") != "0";
         // (FIGHT_POUNCE=0: the duel's mover does not pounce on an opening, as before. FIGHT_POUNCEREADS=0.15: how soon he reads one.)
-        PhysicsBattler.Sandbox.DuelLab.Pounces = Environment.GetEnvironmentVariable("FIGHT_POUNCE") != "0";
+        PhysicsBattler.Sandbox.RunIn.Pounces = Environment.GetEnvironmentVariable("FIGHT_POUNCE") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_ROSETRACE") == "1") PhysicsBattler.Locomotion.ClipFighter.RoseTrace = line => Console.WriteLine("ROSE " + line);
         PhysicsBattler.Locomotion.ClipFighter.ArmsOutForgottenOnceUp = Environment.GetEnvironmentVariable("FIGHT_ARMSFORGOT") != "0";
         // (FIGHT_DOWNEDBLOW="beside,sns_thrust,0.12,1.5,0.95": whether he comes beside the chest of a man who is down (beside / straight), the blow thrown ("" or best: the best fit), how much lower his hips, how far his chest leans, and how far from the chest he stands.)
         {
             var downedBlow = (Environment.GetEnvironmentVariable("FIGHT_DOWNEDBLOW") ?? "").Split(',');
             var inv = System.Globalization.CultureInfo.InvariantCulture;
-            PhysicsBattler.Sandbox.DuelLab.DownedComesBeside = downedBlow[0].Trim() != "straight";
-            PhysicsBattler.Sandbox.DuelLab.DownedBlow = downedBlow.Length > 1 ? (downedBlow[1].Trim() == "best" ? "" : downedBlow[1].Trim()) : PhysicsBattler.Sandbox.DuelLab.DefaultDownedBlow;
-            PhysicsBattler.Sandbox.DuelLab.DownedCrouch = downedBlow.Length > 2 && float.TryParse(downedBlow[2], System.Globalization.NumberStyles.Float, inv, out float dCrouch) ? dCrouch : PhysicsBattler.Sandbox.DuelLab.DefaultDownedCrouch;
-            PhysicsBattler.Sandbox.DuelLab.DownedLean = downedBlow.Length > 3 && float.TryParse(downedBlow[3], System.Globalization.NumberStyles.Float, inv, out float dLean) ? dLean : PhysicsBattler.Sandbox.DuelLab.DefaultDownedLean;
-            PhysicsBattler.Sandbox.DuelLab.DownedStandsOff = downedBlow.Length > 4 && float.TryParse(downedBlow[4], System.Globalization.NumberStyles.Float, inv, out float dOff) ? dOff : PhysicsBattler.Sandbox.DuelLab.DefaultDownedStandsOff;
-            PhysicsBattler.Sandbox.DuelLab.DownedLunges = downedBlow.Length > 5 && float.TryParse(downedBlow[5], System.Globalization.NumberStyles.Float, inv, out float dLunges) ? dLunges : PhysicsBattler.Sandbox.DuelLab.DefaultDownedLunges;
-            PhysicsBattler.Sandbox.DuelLab.DownedLungesFrom = downedBlow.Length > 6 && float.TryParse(downedBlow[6], System.Globalization.NumberStyles.Float, inv, out float dLungesFrom) ? dLungesFrom : PhysicsBattler.Sandbox.DuelLab.DefaultDownedLungesFrom;
-            PhysicsBattler.Sandbox.DuelLab.DownedTowardHead = downedBlow.Length > 7 && float.TryParse(downedBlow[7], System.Globalization.NumberStyles.Float, inv, out float dHead) ? dHead : PhysicsBattler.Sandbox.DuelLab.DefaultDownedTowardHead;
+            PhysicsBattler.Sandbox.RunIn.DownedComesBeside = downedBlow[0].Trim() != "straight";
+            PhysicsBattler.Sandbox.RunIn.DownedBlow = downedBlow.Length > 1 ? (downedBlow[1].Trim() == "best" ? "" : downedBlow[1].Trim()) : PhysicsBattler.Sandbox.RunIn.DefaultDownedBlow;
+            PhysicsBattler.Sandbox.RunIn.DownedCrouch = downedBlow.Length > 2 && float.TryParse(downedBlow[2], System.Globalization.NumberStyles.Float, inv, out float dCrouch) ? dCrouch : PhysicsBattler.Sandbox.RunIn.DefaultDownedCrouch;
+            PhysicsBattler.Sandbox.RunIn.DownedLean = downedBlow.Length > 3 && float.TryParse(downedBlow[3], System.Globalization.NumberStyles.Float, inv, out float dLean) ? dLean : PhysicsBattler.Sandbox.RunIn.DefaultDownedLean;
+            PhysicsBattler.Sandbox.RunIn.DownedStandsOff = downedBlow.Length > 4 && float.TryParse(downedBlow[4], System.Globalization.NumberStyles.Float, inv, out float dOff) ? dOff : PhysicsBattler.Sandbox.RunIn.DefaultDownedStandsOff;
+            PhysicsBattler.Sandbox.RunIn.DownedLunges = downedBlow.Length > 5 && float.TryParse(downedBlow[5], System.Globalization.NumberStyles.Float, inv, out float dLunges) ? dLunges : PhysicsBattler.Sandbox.RunIn.DefaultDownedLunges;
+            PhysicsBattler.Sandbox.RunIn.DownedLungesFrom = downedBlow.Length > 6 && float.TryParse(downedBlow[6], System.Globalization.NumberStyles.Float, inv, out float dLungesFrom) ? dLungesFrom : PhysicsBattler.Sandbox.RunIn.DefaultDownedLungesFrom;
+            PhysicsBattler.Sandbox.RunIn.DownedTowardHead = downedBlow.Length > 7 && float.TryParse(downedBlow[7], System.Globalization.NumberStyles.Float, inv, out float dHead) ? dHead : PhysicsBattler.Sandbox.RunIn.DefaultDownedTowardHead;
         }
-        PhysicsBattler.Sandbox.DuelLab.StrikesWhereOpen = Environment.GetEnvironmentVariable("FIGHT_GOOPEN") != "0";
-        PhysicsBattler.Locomotion.ClipFighter.StumblingOpensGuard = Environment.GetEnvironmentVariable("FIGHT_STUMBLEGUARD") != "1";
-        if (Environment.GetEnvironmentVariable("FIGHT_GOTRACE") == "1") PhysicsBattler.Sandbox.DuelLab.GoTrace = line => Console.WriteLine("GO " + line);
+        PhysicsBattler.Sandbox.RunIn.StrikesWhereOpen = Environment.GetEnvironmentVariable("FIGHT_GOOPEN") != "0";
+        PhysicsBattler.Locomotion.ClipFighter.StumblingOpensGuard = Environment.GetEnvironmentVariable("FIGHT_STUMBLEOPEN") != "0";
+        if (Environment.GetEnvironmentVariable("FIGHT_GOTRACE") == "1") PhysicsBattler.Sandbox.RunIn.GoTrace = line => Console.WriteLine("GO " + line);
         // (FIGHT_UNGUARDED=0: a man not in a guard is only ever shoved, as before. FIGHT_KICKKIND=soft|medium|hard.)
         PhysicsBattler.Locomotion.ClipFighter.UnguardedMenStumble = Environment.GetEnvironmentVariable("FIGHT_UNGUARDED") != "0";
-        PhysicsBattler.Sandbox.DuelLab.GoesForHimAt = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GOESAT"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float goesAt) ? goesAt : PhysicsBattler.Sandbox.DuelLab.DefaultGoesForHimAt;
+        PhysicsBattler.Sandbox.RunIn.GoesForHimAt = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GOESAT"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float goesAt) ? goesAt : PhysicsBattler.Sandbox.RunIn.DefaultGoesForHimAt;
         // (FIGHT_DOWNED=1: the duel's mover strikes a man who is down. Off by default, as in the game.)
-        PhysicsBattler.Sandbox.DuelLab.StrikesTheDowned = Environment.GetEnvironmentVariable("FIGHT_DOWNED") == "1";
-        PhysicsBattler.Sandbox.DuelLab.PounceReadsIn = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_POUNCEREADS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pounceReads) ? pounceReads : PhysicsBattler.Sandbox.DuelLab.DefaultPounceReadsIn;
+        PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = Environment.GetEnvironmentVariable("FIGHT_DOWNED") == "1";
+        PhysicsBattler.Sandbox.RunIn.PounceReadsIn = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_POUNCEREADS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pounceReads) ? pounceReads : PhysicsBattler.Sandbox.RunIn.DefaultPounceReadsIn;
         {
             var pressed = (Environment.GetEnvironmentVariable("FIGHT_PRESSED") ?? "").Split(',');
             float P(int i, float d) => pressed.Length > i && float.TryParse(pressed[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : d;
@@ -2769,6 +2777,11 @@ internal static class FightReport
                             Console.WriteLine(FormattableString.Invariant($"STRIKESCORE {score.Name}: {(score.Plain ? "plain" : "not plain")}{(score.Thrust ? ", a thrust" : "")}; its wind-up takes the blade {100f * score.BladeBehind * ca.Loco.Leg:0} cm behind the sword shoulder, the hand {100f * score.HandBefore * ca.Loco.Leg:0} cm before it and {100f * score.HandAcross * ca.Loco.Leg:0} cm across: {(score.WindsBehind ? "behind him (a fake may be cut from it)" : "not behind him")}"));
                         }
                     }
+                }
+
+                foreach (var d in new[] { dance.A, dance.B })
+                {
+                    Console.WriteLine($"DANCEOWN {(d == dance.A ? "A" : "B")}: {dance.OwnMoves(d)}. Last pounce: {d.Run.Pounced}. Last blow at a man down: {d.Run.DownedStruck}");
                 }
 
                 foreach (var d in new[] { dance.A, dance.B })

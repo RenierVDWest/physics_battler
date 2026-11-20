@@ -182,6 +182,13 @@ namespace PhysicsBattler.Sandbox
         /// <summary>How he takes openings, and his reaction time (<see cref="OpeningTaker"/>).</summary>
         public readonly OpeningTaker Taker = new OpeningTaker();
 
+        /// <summary>His running in and striking: the pounce on an opening and the blow at a man who is down (20 November: by himself, in the dance).</summary>
+        public readonly RunIn Run = new RunIn();
+
+        /// <summary>Kicks he threw by himself: for space, and as his pattern's blow (soft, medium, hard).</summary>
+        public int SpaceKicks;
+        public readonly int[] KickAttacks = new int[3];
+
         /// <summary>His gesture under way (or his last); all of them; his blows.</summary>
         public DanceGesture Now;
         public readonly List<DanceGesture> Gestures = new List<DanceGesture>();
@@ -661,10 +668,21 @@ namespace PhysicsBattler.Sandbox
             GapSteps++;
             GapLeast = Mathf.Min(GapLeast, gap);
             GapMost = Mathf.Max(GapMost, gap);
+            // (By themselves, 20 November: each pounces on an opening and goes for the other when he is down, running in
+            // and striking in one motion. While one of them is going, his feet, his gestures and his pattern wait.)
+            bool goesA = StepRun(A, dt, now), goesB = StepRun(B, dt, now);
             if (Moves)
             {
-                StepFeet(A, now, dt, gap);
-                StepFeet(B, now, dt, gap);
+                if (!goesA)
+                {
+                    StepFeet(A, now, dt, gap);
+                }
+
+                if (!goesB)
+                {
+                    StepFeet(B, now, dt, gap);
+                }
+
                 // (A shield bashes what comes too near: the two are the lab's dummies, so the dance asks it for them.)
                 if (SpaceBashes)
                 {
@@ -685,12 +703,99 @@ namespace PhysicsBattler.Sandbox
             // (What each leaves open as the other sees it, measured on the bodies as the tests measure it.)
             bool openA = Openings.LookAt(A.Unit.Clip, B.Unit.Clip.PartAt(PartId.UpperArmR), AimSpot.Chest).Open;
             bool openB = Openings.LookAt(B.Unit.Clip, A.Unit.Clip.PartAt(PartId.UpperArmR), AimSpot.Chest).Open;
-            StepGesture(A, now, openA);
-            StepGesture(B, now, openB);
+            if (!goesA)
+            {
+                StepGesture(A, now, openA);
+            }
+
+            if (!goesB)
+            {
+                StepGesture(B, now, openB);
+            }
+
             StepBlow(A, now, openB);
             StepBlow(B, now, openA);
-            StepPattern(A, now);
-            StepPattern(B, now);
+            if (!goesA)
+            {
+                StepPattern(A, now);
+            }
+
+            if (!goesB)
+            {
+                StepPattern(B, now);
+            }
+        }
+
+        // ---- By themselves: the pounce, the blow at a man who is down, kicks (20 November) -----------------------
+
+        /// <summary>
+        /// The dance's fighters pounce on an opening by themselves (Combat Feel "The Dance Pounces On An Opening"):
+        /// the other stumbling, his guard knocked open or his back turned, a dancer runs in and strikes in one motion
+        /// (<see cref="RunIn"/>), as the duel lab's mover does from its buttons. Off: he keeps to his pattern.
+        /// </summary>
+        public static bool Pounces = true;
+
+        /// <summary>
+        /// The dance's fighters strike a man who is down (Combat Feel "The Dance Strikes A Man Who Is Down"): the
+        /// other off his feet, a dancer runs to him and stabs down from beside him. Off: he is let up
+        /// (<see cref="LetsHimUp"/>). A reading taken on 20 November: Renier asked for fighters to do this by
+        /// themselves "in the dance for now" and has not yet decided whether a fighter holds off; so here it is on,
+        /// to be seen, and everywhere else the game's own switch (off) still decides.
+        /// </summary>
+        public static bool StrikesDowned = true;
+
+        /// <summary>
+        /// The dance's fighters kick by themselves (Combat Feel "The Dance Kicks"). For space: a fighter with no shield
+        /// cannot bash a man who has come too near, so he kicks him back out (a soft kick); one with a shield kicks
+        /// instead of bashing <see cref="KickShare"/> of the times. As his pattern's blow: where he would throw a hard
+        /// bash to break the other's guard, a fighter with no shield throws a hard kick, and one with a shield a
+        /// medium kick <see cref="KickShare"/> of the times. Off: nobody kicks.
+        /// </summary>
+        public static bool Kicks = true;
+
+        /// <summary>Of the bashes a fighter with a shield would throw, how many are a kick instead (0 to 1); and from how far off a kick is thrown at the most (metres root to root, at a Medium's size).</summary>
+        public static float KickShare = 0.35f;
+        public const float KickWithin = 1.6f;
+
+        /// <summary>A step of one dancer's running in. True while it has his legs.</summary>
+        private bool StepRun(Dancer d, float dt, float now)
+        {
+            var run = d.Run;
+            run.Mover = d.Unit;
+            run.Other = d.Foe.Unit;
+            // (Where a pounce can come, a stumbling man cannot guard: ClipFighter.StumblingOpensGuard.)
+            d.Unit.Clip.StumbleOpensGuardHere = true;
+            bool was = run.Going;
+            int blows = run.PounceBlows, downed = run.DownedBlows;
+            run.StepPounce(dt, Pounces);
+            run.StepDowned(dt, StrikesDowned);
+            if (run.Going && !was)
+            {
+                if (d.Now != null && !d.Now.Over)
+                {
+                    Finish(d, now - d.Now.Began);
+                }
+
+                d.wantsIn = false;
+                d.Say(d.Foe.Unit.Clip.Fallen ? "GOES FOR HIM: he is down" : "POUNCES: an opening", now, 1.6f);
+            }
+
+            bool goes = run.Step(dt);
+            if (was && !run.Going)
+            {
+                // (His pattern begins again after it.)
+                Restart(d, now + 0.5f);
+                d.wasGoing = true;
+            }
+
+            return goes;
+        }
+
+        /// <summary>One fighter's moves of his own so far, in words.</summary>
+        public string OwnMoves(Dancer d)
+        {
+            var run = d.Run;
+            return $"pounces {run.PounceLeaps} ({run.PounceBlows} struck at); blows at a man who was down {run.DownedBlows}; kicks for space {d.SpaceKicks}, as an attack {d.KickAttacks[0]} soft, {d.KickAttacks[1]} medium, {d.KickAttacks[2]} hard";
         }
 
         // ---- Bashes (18 November) -----------------------------------------------------------------------------------
@@ -728,7 +833,7 @@ namespace PhysicsBattler.Sandbox
         private float spaceSince = -1f, spaceAt, spaceDoneAt;
         private Dancer spaceBasher;
         private int spaceKind;
-        private bool spaceMutual, spaceSwapped, spaceDone;
+        private bool spaceMutual, spaceSwapped, spaceDone, spaceKickTried;
 
         private static float GuardBreaks(Dancer d)
         {
@@ -772,6 +877,7 @@ namespace PhysicsBattler.Sandbox
                 spaceKind = !spaceMutual && dice.NextDouble() < MediumShare ? 1 : 0;
                 spaceAt = now + SpaceSeenIn;
                 spaceSwapped = spaceDone = false;
+                spaceKickTried = false;
             }
 
             if (spaceDone)
@@ -793,7 +899,27 @@ namespace PhysicsBattler.Sandbox
             var foe = spaceBasher.Foe.Unit.Clip;
             Vector3 at = foe.Loco.Position - clip.Loco.Position;
             at.y = 0f;
-            bool can = clip.ShieldColliders.Count > 0 && Vector3.Angle(Quaternion.Euler(0f, clip.Loco.Facing, 0f) * Vector3.forward, at) <= 60f;
+            bool faces = Vector3.Angle(Quaternion.Euler(0f, clip.Loco.Facing, 0f) * Vector3.forward, at) <= 60f;
+            bool can = clip.ShieldColliders.Count > 0 && faces;
+            // (A kick for space: all a fighter with no shield has, and some of the times one with a shield.)
+            if (Kicks && faces && !spaceKickTried && (clip.ShieldColliders.Count == 0 || dice.NextDouble() < KickShare))
+            {
+                spaceKickTried = true;
+                if (clip.KickAt(foe, false, 0))
+                {
+                    spaceDone = true;
+                    spaceDoneAt = now;
+                    spaceBasher.SpaceKicks++;
+                    spaceBasher.Say(spaceMutual ? "KICKS them apart" : "KICKS him back out", now, 1.3f);
+                    if (Diagnostics.PlaytestTrace.Enabled)
+                    {
+                        Diagnostics.PlaytestTrace.Note(spaceBasher.Unit, "dance", $"a soft kick for space, {gap:0.00} m apart");
+                    }
+
+                    return;
+                }
+            }
+
             if (can && clip.Bash(foe, false, spaceKind))
             {
                 spaceDone = true;
@@ -810,6 +936,7 @@ namespace PhysicsBattler.Sandbox
             {
                 // (He cannot just now: the other may, with a small one.)
                 spaceSwapped = true;
+                spaceKickTried = false;
                 spaceBasher = spaceBasher.Foe;
                 spaceKind = 0;
                 spaceMutual = true;
@@ -825,6 +952,29 @@ namespace PhysicsBattler.Sandbox
         private bool BashAttack(Dancer d, float now)
         {
             var clip = d.Unit.Clip;
+            // (A kick as his pattern's blow: a hard one from a fighter with no shield, a medium one some of the times from one with a shield.)
+            bool bare = clip.ShieldColliders.Count == 0;
+            if (Kicks && Gap <= KickWithin * 0.5f * (Size(d) + Size(d.Foe)) && (bare || dice.NextDouble() < KickShare))
+            {
+                int kick = bare ? 2 : 1;
+                if (clip.KickAt(d.Foe.Unit.Clip, true, kick))
+                {
+                    if (d.Now != null && !d.Now.Over)
+                    {
+                        Finish(d, now - d.Now.Began);
+                    }
+
+                    d.KickAttacks[kick]++;
+                    d.Say(kick == 2 ? "HARD KICK: to knock him over" : "KICK: to break his guard", now, 1.6f);
+                    if (Diagnostics.PlaytestTrace.Enabled)
+                    {
+                        Diagnostics.PlaytestTrace.Note(d.Unit, "dance", $"a {ClipFighter.KickNames[kick]} kick as his pattern's blow, {Gap:0.00} m off");
+                    }
+
+                    return true;
+                }
+            }
+
             if (!clip.Bash(d.Foe.Unit.Clip, true, 2))
             {
                 return false;
@@ -1735,14 +1885,17 @@ namespace PhysicsBattler.Sandbox
                 if (d.bashPlanned < 0)
                 {
                     var last = d.Blows.Count > 0 ? d.Blows[d.Blows.Count - 1] : null;
-                    float share = HardBashAttacks && d.Unit.Clip.ShieldColliders.Count > 0 ? GuardBreaks(d) * (last != null && last.Met && (last.Shield || last.Parried) ? 2f : 1f) : 0f;
+                    // (A fighter with no shield has no bash: his guard-breaker is a kick, if the dance kicks.)
+                    float share = (HardBashAttacks && d.Unit.Clip.ShieldColliders.Count > 0) || (Kicks && d.Unit.Clip.ShieldColliders.Count == 0) ? GuardBreaks(d) * (last != null && last.Met && (last.Shield || last.Parried) ? 2f : 1f) : 0f;
                     d.bashPlanned = dice.NextDouble() < Mathf.Min(0.9f, share) ? 1 : 0;
                 }
 
                 bool bash = d.bashPlanned > 0;
-                bool near = !Moves || (bash ? Gap <= HardBashWithin * Size(d) : Gap <= StrikesFrom * Size(d));
-                d.wantsIn = Moves && now >= d.blowAt - 0.4f && !(bash && Gap <= HardBashWithin * Size(d));
-                if (bash && now >= d.blowAt && near && Gap < HardBashFrom * Size(d))
+                bool bare = d.Unit.Clip.ShieldColliders.Count == 0;
+                float bashWithin = bare ? KickWithin : HardBashWithin, bashFrom = bare ? 0.9f : HardBashFrom;
+                bool near = !Moves || (bash ? Gap <= bashWithin * Size(d) : Gap <= StrikesFrom * Size(d));
+                d.wantsIn = Moves && now >= d.blowAt - 0.4f && !(bash && Gap <= bashWithin * Size(d));
+                if (bash && now >= d.blowAt && near && Gap < bashFrom * Size(d))
                 {
                     // (Too near for it: a cut after all.)
                     bash = false;

@@ -6,9 +6,9 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 20 November 2026, 08:30. `README.md` is the build log (over 7,500 lines: search it, never read it whole). The
+   of 20 November 2026, about midday. `README.md` is the build log (over 7,500 lines: search it, never read it whole). The
    last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November; "### 20 November, 08:30" is
-   the second pass after my look.
+   the second pass after my look, and the entry after it is what came of my "this all looks good".
 2. Read the plan for the work in hand: `Docs/Plans/2026-11-19-from-how-he-lies-to-how-he-gets-up.md`, with its
    progress notes at the end. Its live version is https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa: add your own
    progress notes there with the Docs tools (insert at the end), and to the copy in the repository.
@@ -69,7 +69,17 @@ and striking must be one motion, and a man knocked far must be run after; and I 
   not show it: measure a get-up after a real knock-down** (`FIGHT_KICK=1 FIGHT_KICKKIND=hard`).
 - "Slow motion" in the lab.
 - Its film: https://claude.ai/artifact/N5MwJrqpxuP8x1ZEeqDxs8
-- The panel's "Look here" list is this pass (seven steps, thirteen names; checked in the tubes and duel labs).
+
+**I looked at the second pass and said "this all looks good", and: do the next things, "but not the fight of six,
+keep it in the dance for now".** Pushed about midday on the 20th, headless only, I have not seen it:
+- A man who is down is stabbed from beside his chest, bent to it (was: a standing blow that hit shins and arms).
+- The pounce goes for what is open, and a stumbling man cannot guard (duel lab and dance only: for everyone it
+  broke the six's crossing budget).
+- In the dance, by themselves: pounces, kicks (for space, and as a guard-breaker), and going for a man who is down
+  (**on in the dance only**: whether fighters hold off is still my decision). `RunIn` in `DuelLab.cs` is the
+  running-in; each dancer has one.
+- **Not reached, and I asked for it: the get-up leftovers** (the first three lines of "rough" below).
+- The panel's "Look here" list is that push (seven steps, fourteen names; all drawn in the duel lab).
 
 ## What to do now, in this order
 
@@ -84,8 +94,10 @@ out of `units/*.pose.csv.gz`.
 - One get-up in three from his front or right starts with a small kick of a shin (he is taken up while the gather
   still moves that leg to its kneel).
 - As the shield turns up, about 1.3 s into a get-up from his front, its rim is 3 to 5 cm in the ground for 0.1 s.
-- The pounce's blow is blocked three times in four (he is on time now; the other gets his shield to it).
-- The blow at a man who is down is aimed at his chest and meets whatever of him lies nearest (a shin, an arm).
+- The pounce's blow is still stopped after a small or medium bash (two of four land).
+- A struck man's sword arm goes through his own board (the hit reaction): it is why a stumbling man's open guard
+  could not go into the six, and it shows more in the dance now.
+- Going for a man who is down has not been seen in a dance (nobody went down in the test dances).
 - The kick lands 112 cm up for all three strengths (one recording): high for a front kick.
 
 **3. Left on the get-up plan:** the trunk's turn in the gather (`ClipFighter.GatherTurns`, built, off: at 0.25 it

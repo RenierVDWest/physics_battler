@@ -4,9 +4,10 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 08:30 (the second pass after his morning look at the night's work: running in and
-striking is one motion, kicks soft, medium and hard, a bare-handed man stumbles and falls, the jump as he stands
-found and mended, slow motion in the lab. Headless only, waiting for his eye: see "Where things stand").
+Last updated: 20 November 2026, 11:52 (after his "this all looks good" on the second pass: a stab from beside him for
+a man who is down, a pounce that goes for what is open, and the dance's fighters pouncing, kicking and going for a
+man who is down by themselves. **Not the fight of six: his word, "keep it in the dance for now".** Headless only,
+waiting for his eye: see "Where things stand").
 
 ## The project in a few lines
 
@@ -259,6 +260,28 @@ smoothly, the shield giving way to the sword.
   - **Slow motion:** lab row in "Stumbles and falls" (full, half, a quarter, a tenth).
   - Sixes (40 s, seeds 5 and 7): all budgets kept (the old way was over on seed 5).
   - Its film (3b2b, made by Opus at medium effort): https://claude.ai/artifact/N5MwJrqpxuP8x1ZEeqDxs8
+- **After his look at the second pass ("this all looks good"; 20 November, 11:52; the README's entry of that time):**
+  - **His word:** do the next things I listed, "but not the fight of six, keep it in the dance for now".
+  - **The running in is a class now:** `RunIn` (in `DuelLab.cs`): `StepPounce`, `StepDowned`, `Step`. The duel
+    lab has one for its mover, each dancer has one (`Dancer.Run`). Its switches are statics on `RunIn`.
+  - **A stab for a man who is down:** he runs to beside the man's chest (0.8 m, square to how he lies), bends to
+    it and throws his thrust, at the first of chest, belly, hips, head, neck that is open. Combat Feel "A Man Who
+    Is Down Is Struck From Beside Him", "He Bends To A Man Who Is Down By"; duel lab row "A man who is down, his
+    blow". Headless, six knock-downs, what it met first: trunk or head 2 of 6 the old way, 5 of 6 now.
+    **A lesson: a blow's "it met" was the last part it went through; the report now lists them in order.**
+  - **The pounce goes for what is open** (`RunIn.StrikesWhereOpen`, by `Openings.LookAt`; the soonest blow), and
+    **a stumbling man cannot guard** (`ClipFighter.StumblingOpensGuard`, only where `StumbleOpensGuardHere` is
+    set: the duel lab and the dance). Headless: two of four pounces land (none did). **For every fighter it put
+    the fights of six over their crossing budget (0.8 to 1.0% against 0.0 to 0.3%), so the six is as it was.**
+  - **By themselves in the dance:** `Dance.Pounces`, `Dance.StrikesDowned` (**on in the dance**, a reading
+    taken: his decision on holding off is still open, and elsewhere `RunIn.StrikesTheDowned` is off),
+    `Dance.Kicks`, `Dance.KickShare` 0.35: a fighter with no shield kicks for space and throws a hard kick as his
+    guard-breaker; one with a shield kicks instead of bashing 35% of the times. Dance panel rows "An opening
+    (dance)", "A man down (dance)", "Kicks (dance)"; a line "By himself" per dancer; report line `DANCEOWN`.
+    Headless: pounces and kicks happen by themselves; **nobody went down in my dances, so going for a man who is
+    down was not exercised in the dance.** The dance's own crossings rose (0.56% to 0.97% in one dance).
+  - **Not done of what he asked: the get-up leftovers** (the sword moving while its hand is in the air, the shin
+    kick at the start of one get-up in three, the shield's rim in the ground for a tenth of a second).
 - **The night's two films** (3b2b, made by Opus at medium effort): the get-up,
   https://claude.ai/artifact/686Uo8dQEjeAjPCj1q8aHm ; the five first builds after it,
   https://claude.ai/artifact/KjzrrmCJAUsAwrSp4XBNnR . Their notes are the chat's morning update.
@@ -462,11 +485,14 @@ most stumbles)
 2. Bodies that absorb: knees give, hips drop, the arm folds, feet slide. **Not built.** Needs his eye.
 3. Off balance: built as stumbles (19 November). Left of it: a leap landing on someone, kicks built on the door.
 
-**The second pass of 20 November (08:30) waits for his eye.** After his look, next on each: a blow of its own
-for a man who is down (the plan's stab and low slash: today's is a standing blow aimed low and meets whatever of
-him is nearest); the pounce's blow that is mostly blocked (a second blow, or one at what is open); kicks at more
-than one height (one recording today, 112 cm up); then taking kick, pounce and the blow at a man who is down out
-of the duel lab into the fight of six (each is the duel's mover only).
+**The push of 20 November, 11:52, waits for his eye** (the stab, the pounce at what is open, the dance by itself).
+**Next, in this order:** (1) the get-up leftovers he asked for and I did not reach: the sword moving while its
+hand is in the air and as he stands; a small kick of a shin at the start of one get-up in three from his front or
+right; the shield's rim 3 to 5 cm in the ground for 0.1 s as it turns up (the pose already lifts it,
+`GroundClamp.Gap` in `HoldShieldUp`: look at the seen body, not the pose). (2) The hit reaction that puts a struck
+man's sword arm through his own board: it is why a stumbling man's open guard cannot go into the six. (3) The low
+slash; a second blow when a pounce is stopped; kicks at more than one height (needs the kick pack's recordings,
+not in the repository). (4) Only when he says: any of it in the fight of six.
 
 **Fight Rhythm, still to come**: walking step 6; kicks, the pounce and Downed play beyond their first builds (above); combos; the fight of six.
 

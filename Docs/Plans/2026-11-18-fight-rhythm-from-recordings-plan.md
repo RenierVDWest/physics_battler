@@ -876,3 +876,21 @@ README's entry of 19 November, "his second look", has the figures.
   a medium or hard one.
 - To see them: Duel, "Stumbles and falls": "Kick him", "Stumble him: Medium", "Not in his guard", and "Slow
   motion" to watch closely.
+
+## Progress, 20 November, midday: the pounce lands more, and the dance does these by itself. Headless only
+
+- **The pounce goes for what is open.** It was aimed at the chest of a man holding a shield in front of his chest.
+  Now he looks for the first spot with nothing in front of it, mostly the head, and throws his quickest blow.
+- **A stumbling man cannot guard.** Before, a bash opened his guard for 0.8 s by the clock. A man still stumbling
+  backward a second later blocked as if he stood. Now his guard is open until he has found his feet.
+- **In my tests two of four pounces land (after a hard bash and after a kick); before, none.** After a small or
+  medium bash the other still stops it.
+- **Only in the duel lab and the dance.** I tried "cannot guard while stumbling" for everyone and the fight of six
+  broke its budget for swords going through their bearer's own shield. So the six is exactly as it was.
+- **By themselves, in the dance** (your word: not the fight of six). A dancer now pounces when the other stumbles.
+  A fighter with no shield kicks a man who comes too near and throws a hard kick now and then; one with a shield
+  kicks instead of bashing about a third of the times. In my test dances all of that happened without a button.
+- **What it costs:** in the dance, swords went through their bearer's own shield more often (0.56% to 0.97% of the
+  time in one dance). The cause is the reaction to being hit, which now happens more.
+- To see it: start a dance and watch a minute or two. Switches: "An opening (dance)", "A man down (dance)",
+  "Kicks (dance)". The line "By himself" under each dancer counts what he did.

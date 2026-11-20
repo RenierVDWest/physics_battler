@@ -72,6 +72,14 @@ The rest are one-off comparisons from particular days, kept for reference.
   `FIGHT_ROSETRACE=1` prints `ROSE` lines, each step of the easing out of a get-up. **When running a script with
   a time, put `SECS=12` before the script's name, not after it** (after, it is only passed on and the run takes
   its full 80 s). **Two cores: no more than four runs at once.**
+- `FIGHT_DOWNEDBLOW="beside,sns_thrust,0.2,1.8,0.8"`: the blow at a man who is down: beside or straight; the
+  recording (best: the best fit); how much lower his hips; how far his chest leans; how far from the chest he
+  stands (then, optional: a lunge's time, the distance it is thrown from, how far toward the man's head).
+  `FIGHT_GOOPEN=0`: a blow on the run always goes for the chest (old). `FIGHT_STUMBLEOPEN=0`: a stumbling man's
+  guard opens by the clock (old; it only ever counts in the duel lab and the dance).
+  `FIGHT_DANCEOWN="1,1,1,0.35"`: in a dance, by themselves: pounce, go for a man who is down, kick, and how many of
+  a shield's bashes are a kick. A dance's report has `DANCEOWN` lines. **A dance of 70 s takes about 17 minutes
+  here; a batch of six 10 s duels about 13.**
 - `FIGHT_POUNCE=0`: the duel's mover does not pounce on an opening (old). `FIGHT_POUNCEREADS=0.15`: how soon he
   reads one. Every bash or kick asked for with `FIGHT_BASHAT` prints a `POUNCE` line 2.6 s after it.
 - `FIGHT_DOWNED=1`: the duel's mover strikes a man who is down (off by default, as in the game). Every bash or

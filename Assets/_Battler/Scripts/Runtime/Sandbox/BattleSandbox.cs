@@ -1615,6 +1615,11 @@ namespace PhysicsBattler.Sandbox
             if (feel != null)
             {
                 BeginRow();
+                Words(new GUIContent("Stumbling, his guard:", "Whether a man who is stumbling can meet a blow (Combat Feel \"A Stumbling Fighter Cannot Guard\"). He cannot guard (new): for as long as he is off balance, and until he has found his feet, his shield and sword do not go to a blow. By the clock (old): his guard was open for 0.8 s after a bash or a kick, and after that he blocked even while still stumbling backward. Here and in the dance only: in the fight of six it is still by the clock."));
+                if (Press(feel.aStumblingFighterCannotGuard ? "[he cannot guard]" : "he cannot guard", "While he is off balance.")) feel.aStumblingFighterCannotGuard = true;
+                if (Press(!feel.aStumblingFighterCannotGuard ? "[by the clock (old)]" : "by the clock (old)", "As before.")) feel.aStumblingFighterCannotGuard = false;
+                EndRow();
+                BeginRow();
                 Words(new GUIContent("An opening, his blow:", "Where the pounce's blow goes (Combat Feel \"A Blow On The Run Goes For What Is Open\"). What is open (new): as he throws it, the other's chest, head, neck, sword shoulder, sword arm, belly and thighs are looked at in turn from his sword shoulder, and the first with nothing before it is taken. His chest (old): always the chest, which a man with a shield has his board before."));
                 if (Press(feel.aBlowOnTheRunGoesForWhatIsOpen ? "[what is open]" : "what is open", "The first spot with nothing before it.")) feel.aBlowOnTheRunGoesForWhatIsOpen = true;
                 if (Press(!feel.aBlowOnTheRunGoesForWhatIsOpen ? "[his chest (old)]" : "his chest (old)", "As before.")) feel.aBlowOnTheRunGoesForWhatIsOpen = false;
@@ -2133,6 +2138,26 @@ namespace PhysicsBattler.Sandbox
                 if (Press(feel.aHardBashIsAnAttackInTheDance ? "[an attack]" : "an attack", "Some of his blows are a hard bash.")) feel.aHardBashIsAnAttackInTheDance = true;
                 if (Press(!feel.aHardBashIsAnAttackInTheDance ? "[never (old)]" : "never (old)", "No hard bash in the dance.")) feel.aHardBashIsAnAttackInTheDance = false;
                 EndRow();
+                BeginRow();
+                Words(new GUIContent("An opening (dance):", "What a dancer does when the other stumbles, has his guard knocked open or turns his back (Combat Feel \"The Dance Pounces On An Opening\"). He pounces (new): he runs in and strikes in one motion, by himself. He keeps to his pattern (old): as before."));
+                if (Press(feel.theDancePouncesOnAnOpening ? "[he pounces]" : "he pounces", "He runs in and strikes in one motion.")) feel.theDancePouncesOnAnOpening = true;
+                if (Press(!feel.theDancePouncesOnAnOpening ? "[he keeps to his pattern (old)]" : "he keeps to his pattern (old)", "As before.")) feel.theDancePouncesOnAnOpening = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("A man down (dance):", "What a dancer does when the other is knocked off his feet (Combat Feel \"The Dance Strikes A Man Who Is Down\"). He goes for him (new): he runs to him and stabs down from beside him. He lets him up (old): he waits until the other stands. Only the dance: whether fighters hold off everywhere else is still your decision."));
+                if (Press(feel.theDanceStrikesAManWhoIsDown ? "[he goes for him]" : "he goes for him", "He runs to him and stabs down.")) feel.theDanceStrikesAManWhoIsDown = true;
+                if (Press(!feel.theDanceStrikesAManWhoIsDown ? "[he lets him up (old)]" : "he lets him up (old)", "As before.")) feel.theDanceStrikesAManWhoIsDown = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Kicks (dance):", "Whether dancers kick by themselves (Combat Feel \"The Dance Kicks\"). They kick (new): a fighter with no shield kicks a man who comes too near back out and throws a hard kick as his guard-breaker; one with a shield kicks instead of bashing some of the times. Nobody kicks (old): as before."));
+                if (Press(feel.theDanceKicks ? "[they kick]" : "they kick", "Kicks for space and as an attack.")) feel.theDanceKicks = true;
+                if (Press(!feel.theDanceKicks ? "[nobody kicks (old)]" : "nobody kicks (old)", "As before.")) feel.theDanceKicks = false;
+                EndRow();
+                if (feel.theDanceKicks)
+                {
+                    feel.danceKicksInsteadOfBashing = Lever("Kicks instead of bashing", feel.danceKicksInsteadOfBashing, 0f, 1f, "Of the bashes a fighter with a shield would throw in the dance, how many are a kick instead.");
+                }
+
                 CounterBashSettings(feel);
                 if (feel.theDanceAsksForSteps)
                 {
@@ -2189,6 +2214,7 @@ namespace PhysicsBattler.Sandbox
                 Readout(Dancing.Gestures(d) > 0 ? Dancing.Tally(d) : "", 4);
                 Readout(new GUIContent(danceMeters[k].Seconds > 0.5f ? "His footwork " + FootworkText(danceMeters[k], 1 + k) + "." : "", "His footwork in this dance, by the footwork meter (under \"Move him\"): the band his hips' height moved over while he stood or walked, how often they rose or sank 10 cm or more within 0.3 s, his steps a spell of walking, how much of his walking was two recordings mixed, and his steps' tempo against the recordings'."), 5);
                 Readout(new GUIContent(Dancing.Gestures(d) > 0 ? "His blows: " + Dancing.Classes(d) + "." : "", "His blows by class: how many light and heavy, how long each took to land, how many landed and what those did; how often he struck into the other's wind-up; how often he dodged."), 3);
+                Readout(new GUIContent("By himself: " + Dancing.OwnMoves(d) + ". Last pounce: " + d.Run.Pounced + ". Last blow at a man down: " + d.Run.DownedStruck + ".", "What he did of his own accord in this dance: pounces on an opening, blows at the other while he was down, kicks."), 4);
                 Readout(new GUIContent(Dancing.Gestures(d) > 0 ? $"His fakes: {d.FakesThrown} thrown, {d.FakesLeftOut} left out by his ratio. His bashes: " + Dancing.Bashes(d) + "." : "", "His fake attacks, and those his pattern had that his ratio of fakes to real attacks left out. His bashes: those to get the other out of his space (small, medium; how many at one who had come in at him), his hard bashes thrown as an attack and what came of them, and his own counter-bashes against a hard bash."), 3);
             }
 
@@ -4086,30 +4112,29 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "20 November, the second pass: running in and striking in one motion, kicks soft medium and hard, a bare-handed man who falls, the jump as he stands";
+        private const string LookTag = "20 November, midday: a stab for a man who is down, a pounce that goes for what is open, and the dance's fighters pouncing, kicking and going for a man who is down by themselves";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\" (the bar of labs at the top) and find \"Stumbles and falls\". Everything below is there. \"Slow motion: a quarter\" makes it easy to watch.",
+            "1. Go to \"Duel\" (the bar of labs at the top) and find \"Stumbles and falls\". \"Slow motion: a quarter\" makes it easy to watch.",
             "A MAN WHO IS DOWN:",
-            "2. Press \"Knock him down and strike him: Near\". He kicks the other over, runs to him, and strikes down at him as he arrives. Watch his feet: he should not stop before the blow goes out. He slows a little as it lands.",
-            "3. Press \"Far\". The other is kicked much further (a kick made only for this test) and he runs after him.",
+            "2. Press \"Knock him down and strike him: Near\", then \"Far\". He should now run to beside the man's chest, bend down to him and stab down, still in one motion. Before, he swung a standing blow that mostly hit a shin or an arm.",
+            "3. To compare: \"A man who is down, his blow: a standing blow, straight at him (old)\". \"He bends to it by\" makes him bend more or less.",
             "THE POUNCE:",
-            "4. Press \"Stumble him: Medium\". As the other stumbles he should run in and strike in one go: no leap, no stop. The other often gets his shield to it: I know.",
-            "KICKS:",
-            "5. Press \"Kick him: Soft kick\", then \"Medium kick\", then \"Hard kick\". Soft: a stumble step or two. Medium: he stumbles far and only just keeps his feet. Hard: he goes over backwards.",
-            "A BARE-HANDED MAN:",
-            "6. Give the target empty hands (the aim test's \"Holds:\" button, until it reads \"open hands\") and kick him soft, medium and hard. He should stumble on real steps, and fall from the medium and the hard kick. Before, he ran backwards on quick little steps and never fell. To compare: \"Not in his guard: he is only shoved (old)\".",
-            "GETTING UP:",
-            "7. After any knock-down above, watch his arms the moment he is back on his feet: they should not jump out and back. That jump was in half your get-ups this morning.",
+            "4. Press \"Stumble him: Hard\", then \"Kick him: Soft kick\". As the other stumbles he runs in and strikes at what is open, mostly the head, and it should land. After a small or medium bash the other still gets his shield to it: I know.",
+            "5. To compare: \"An opening, his blow: his chest (old)\" and \"Stumbling, his guard: by the clock (old)\".",
+            "BY THEMSELVES, IN THE DANCE:",
+            "6. Start a dance as you usually do and let it run a minute or two. Without any button: when one stumbles the other should run in and strike; one who comes too near is sometimes kicked back out; a fighter with no shield throws a hard kick now and then; and if one goes down the other should run to him and stab down.",
+            "7. Each can be switched off in the dance's settings: \"An opening (dance)\", \"A man down (dance)\", \"Kicks (dance)\". The line \"By himself\" under each dancer counts what he did.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Stumbles and falls", "Slow motion:", "Knock him down and strike him:", "He goes for him at", "A man who is down:",
-            "Stumble him:", "An opening:", "Kick him:", "Kick power", "Medium kick power", "Hard kick power", "Not in his guard:",
+            "Duel", "Stumbles and falls", "Slow motion:", "Knock him down and strike him:", "A man who is down, his blow:", "He bends to it by",
+            "Stumble him:", "Kick him:", "An opening, his blow:", "Stumbling, his guard:",
+            "An opening (dance):", "A man down (dance):", "Kicks (dance):", "Kicks instead of bashing",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

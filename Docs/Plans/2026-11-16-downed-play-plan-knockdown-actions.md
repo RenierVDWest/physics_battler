@@ -371,3 +371,20 @@ him must be one motion, and a man knocked far must be run after. And you wanted 
 - **The test:** Duel, "Stumbles and falls", "Knock him down and strike him: Near" (a hard kick) and "Far" (a kick
   made only for the test, to land him five metres off). One press each.
 - Still off unless asked for: whether fighters hold off while a man is down is your decision.
+
+## Progress, 20 November, midday: step 1, the stab. Headless only
+
+- **A blow of its own now.** He runs to a place beside the man's chest, bends down to him, and stabs down: his
+  thrust, the point going down. Still one motion: he throws it while running and is beside him as it lands.
+- **Why the old one hit shins and arms:** a cut travels along a line. From beside a man who lies, it travels along
+  his length and meets his head or his legs first. A stab comes down onto him.
+- **In my tests** (six knock-downs: a man with a sword, with a shield, bare-handed; kicked near and far): what the
+  blow met first was his body or head in 2 of 6 the old way, and in 5 of 6 now (chest three times, head twice, one
+  thigh).
+- **Rough:** the far ones land on a man who is already getting up. How low he bends is a setting ("He bends to it
+  by"), not something I measured. The low slash is not built.
+- **In the dance, by themselves:** a dancer now goes for the other when he is down, without a button. You have not
+  decided whether fighters should hold off, so this is on in the dance only, with its own switch ("A man down
+  (dance)"). Everywhere else it is still off. In my test dances nobody went down, so I have not seen it happen there.
+- To see it: Duel, "Stumbles and falls", "Knock him down and strike him: Near", then "Far". To compare: "A man who
+  is down, his blow: a standing blow, straight at him (old)".

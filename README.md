@@ -7583,3 +7583,106 @@ over its budget), board tremble 6.6% (old 8.7%, over); seed 7: crossings 0.33% (
 **Not done in this pass:** the kick lands 112 cm up for all three strengths (one recording); nothing kicks, pounces
 or strikes a man who is down outside the duel lab; the blow at a man who is down is still a standing blow aimed
 low. **None of this has been seen in Unity.**
+
+### 20 November, 11:52: a stab for a man who is down, a pounce that goes for what is open, and the dance's fighters doing these by themselves
+
+He looked at the second pass ("this all looks good") and asked for what I had listed next, with one change: "do all
+that but not the fight of six, keep it in the dance for now". Three steps, pushed together. Headless only.
+
+**1. A blow of its own for a man who is down** (the Downed play plan's step 1; Combat Feel "A Man Who Is Down Is
+Struck From Beside Him" and "He Bends To A Man Who Is Down By"; duel lab row "A man who is down, his blow: a stab
+from beside him / a standing blow, straight at him (old)" and lever "He bends to it by"; `RunIn.DownedComesBeside`,
+`DownedBlow`, `DownedCrouch`, `DownedLean`, `DownedStandsOff`; `FIGHT_DOWNEDBLOW="beside,sns_thrust,0.2,1.8,0.8"`).
+
+- **What was wrong, found by looking at where he stood:** the pushed blow ran straight at the man and swung a
+  standing forehand or rising cut low. A cut travels along a line; from beside a man who lies it travels along his
+  length, so it meets his head or his legs before his chest. And a blow's "it met" in my report was the **last**
+  part it went through, not the first: mended, the report now lists every part in the order met.
+- **Now:** he runs to a place beside the man's chest, 0.8 m from it and square to how the man lies, on the side he
+  is nearer. He throws his thrust, the point going down, bent to it (hips carried 0.2 leg lengths lower, the
+  chest's lean times 1.8): a stab. It goes for the first of chest, belly, hips, head and neck that is open from his
+  sword shoulder. Going to a place, he throws the blow 0.35 s out and slows as he comes, so that he is on the place
+  as it lands.
+- A blow thrown on the run at a man who lies faces the spot it is for (it faced his hips, his root).
+
+| Six knock-downs (sword, shield, bare-handed; kicked 3.5 m and 5 m off): what the blow met first | Trunk or head | The rest |
+| --- | --- | --- |
+| The old way (straight at him, the best-fitting blow) | 2 of 6 (head, spine) | an upper arm, a hand, nothing, one not read |
+| A thrust from beside him, standing tall, 0.95 m off | 4 of 6 (chest twice, head, spine) | an upper arm twice |
+| **The stab as set: bent, 0.8 m off, at what is open** | **5 of 6 (chest three times, head twice)** | a thigh |
+
+- In all six he was never slower than 2.2 m/s before it landed (2.2 to 3.5).
+- **Tried and not taken:** the same thrust with its own lunge, his run carried into it. It met the chest, but he
+  braked from 3.6 m/s to a stand in a quarter of a second and stood 0.3 s before the point landed: "ran, stopped,
+  then attacked" again.
+- **Rough:** where the point lands is 12 to 59 cm over the ground: the higher ones are a man already getting up
+  (the far cases). The thrust is "expected to fall short" by 1 to 43 cm and still lands: the man is not flat.
+  How low he bends is a setting, not measured. Not built: the low slash.
+
+**2. The pounce goes for what is open, and a stumbling man cannot guard** (Combat Feel "A Blow On The Run Goes
+For What Is Open" and "A Stumbling Fighter Cannot Guard"; duel lab rows "An opening, his blow: what is open / his
+chest (old)" and "Stumbling, his guard: he cannot guard / by the clock (old)"; `RunIn.StrikesWhereOpen`,
+`ClipFighter.StumblingOpensGuard` with `StumbleOpensGuardHere`; `FIGHT_GOOPEN=0`, `FIGHT_STUMBLEOPEN=0`).
+
+- The pounce's blow was aimed at the chest of a man whose board is before his chest. Now, as he throws it, chest,
+  head, neck, sword shoulder, sword arm, belly and thighs are looked at in turn from his sword shoulder
+  (`Openings.LookAt`) and the first with nothing before it is taken; and of the blows he can throw on the run he
+  takes the one that lands soonest (`AttackOnTheMove.TakesSoonest`).
+- That alone changed nothing: four of four still met the shield, now head high. **The cause:** a bash or a kick
+  opened the other's guard for 0.8 s by the clock. The pounce's blow lands 1.0 to 1.6 s after the bash; by then a
+  man still stumbling backward brought his board across as if he stood. Now his guard is open for as long as he
+  is off balance and until he has found his feet.
+
+| The pounce's blow, after | Old (at his chest; guard open 0.8 s) | What is open only | What is open, and a stumbling man cannot guard |
+| --- | --- | --- | --- |
+| a small bash | his shield | his shield | his shield (129 cm up; his guard open, the board hanging there) |
+| a medium bash | his shield | his shield | his shield (he was on his feet again) |
+| a hard bash (countered) | nothing | his shield | **his head** |
+| a soft kick | his shield | his shield | **his head** |
+
+- **Two of four land now; none did.** After a small or medium bash he is still stopped: honest.
+- **A stumbling man cannot guard only in the duel lab and the dance.** Tried for every fighter, the fights of six
+  went over their budget for a sword through its bearer's own shield: 0.82% and 0.97% of the time (seeds 5 and 7)
+  against 0.00% and 0.33%, "while just struck", and the board's tremble 9.5% and 8.9% against 6.6% and 7.7%. More
+  blows land on stumbling men, and a struck man's sword arm crosses his board: that fault is the hit reaction's,
+  and it will show in the dance too. In the six it is as it was (the same numbers as before, to the digit).
+
+**3. By themselves, in the dance** (Combat Feel "The Dance Pounces On An Opening", "The Dance Strikes A Man Who
+Is Down", "The Dance Kicks", "Dance Kicks Instead Of Bashing"; dance panel rows "An opening (dance)", "A man down
+(dance)", "Kicks (dance)" and lever "Kicks instead of bashing"; a line "By himself" for each dancer;
+`Dance.Pounces`, `StrikesDowned`, `Kicks`, `KickShare`, `StepRun`; `FIGHT_DANCEOWN="1,1,1,0.35"`; report line
+`DANCEOWN`).
+
+- The running in and striking was the duel lab's own code. It is a class now, `RunIn` (in `DuelLab.cs`), and each
+  dancer has one: he pounces on an opening and goes for the other when he is down, by himself. While he is going,
+  his feet, his gestures and his pattern wait; his pattern begins again after.
+- **Kicks by themselves:** a fighter with no shield has no bash, so a man who comes too near is kicked back out
+  (a soft kick), and his guard-breaking attack is a hard kick. A fighter with a shield kicks instead of bashing 35%
+  of the times: a soft kick for space, a medium kick as an attack.
+- **A reading taken, written down:** he has not decided whether a fighter holds off while his enemy is down, and
+  asked for fighters to do these by themselves in the dance. So in the dance it is **on** (to be seen), with its
+  own toggle; everywhere else the game's own switch (off) still decides. **The fight of six is untouched.**
+
+| Headless dances (two fighters, 45 to 70 s each) | Pounces | Kicks for space | Kicks as an attack | A man down |
+| --- | --- | --- | --- | --- |
+| Both with sword and shield, 45 s | 4 (4 struck at; one landed on a chest, one met a shield) | 2 soft | none | nobody fell |
+| One with a sword only, one with a shield, 45 s | 2 (one landed on a head) | 1 soft | 1 hard | nobody fell |
+| The same, 70 s | 1 | none | 1 hard (the sword-only man), 1 medium (the shield man: it landed, 3.3 m/s, a stumble) | nobody fell |
+| Both with a sword only, 70 s | 2 | 1 soft | 1 hard | nobody fell |
+
+- **Not exercised: going for a man who is down, in the dance.** Nobody went down in my four dances, so that one ran
+  only in the duel lab (step 1 above). It is the same code.
+- The hard kicks thrown as an attack from 1.7 to 1.8 m met nothing I could find a line for; the reach they are
+  thrown from is now 1.6 m, not run again.
+- **What it costs, as measured:** the first dance with all three on had a sword through its bearer's own shield
+  0.97% of the time on his feet, against 0.56% with all three off and the guard by the clock (both over the six's
+  0.5% budget, which the dance has never been held to), and the board's tremble 12.0% against 10.8%. The other
+  dances: 0.73%, 0.13%, and one with no shield to measure.
+- **The fights of six** (40 s, seeds 5 and 7), with everything of this entry in: crossings 0.00% and 0.33%, tremble
+  6.6% and 7.7%: the same as before this entry, to the digit. Budgets kept.
+
+**The panel:** "Look here" lists this push (14 names: drawn and framed 14 of 14 in the duel lab, whose panel has
+the dance's settings; 10 of 14 in the tubes lab, the four dance rows not being drawn there).
+
+**Not done:** the low slash; kicks at more than one height; a second blow after a pounce that is stopped; any of
+it in the fight of six (on purpose: his word). **None of this has been seen in Unity.**

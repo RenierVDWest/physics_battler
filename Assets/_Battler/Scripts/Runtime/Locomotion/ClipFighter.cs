@@ -9859,11 +9859,18 @@ namespace PhysicsBattler.Locomotion
         public const float BlockRocks = 0.6f;
 
         /// <summary>Its shield guard knocked open by a heavy blow and not back yet: the shield moves to meet nothing.</summary>
-        public bool GuardOpen => clock < guardOpenUntil || (StumblingOpensGuard && Stumbling);
+        public bool GuardOpen => clock < guardOpenUntil || (StumblingOpensGuard && StumbleOpensGuardHere && Stumbling);
+
+        /// <summary>Set by the duel lab and the dance for their two fighters: <see cref="StumblingOpensGuard"/> counts for him. Nobody sets it in the fight of six.</summary>
+        public bool StumbleOpensGuardHere;
 
         /// <summary>
-        /// A stumbling fighter cannot guard (Combat Feel "A Stumbling Fighter Cannot Guard"; <c>FIGHT_STUMBLEGUARD=1</c>
-        /// for the old way). Before, a bash or a kick opened his guard for 0.8 s, by the clock: a man still stumbling
+        /// A stumbling fighter cannot guard (Combat Feel "A Stumbling Fighter Cannot Guard"; <c>FIGHT_STUMBLEOPEN=0</c>
+        /// for the old way). <b>Only where a pounce can come: the duel lab and the dance</b>
+        /// (<see cref="StumbleOpensGuardHere"/>). Tried for every fighter, the fights of six went over their budget
+        /// for a sword through its bearer's own shield (0.8 to 1.0% of the time against 0.0 to 0.3%, "while just
+        /// struck": more blows land on stumbling men, and a struck man's sword arm crosses his board), so there it is
+        /// as it was. Before, a bash or a kick opened his guard for 0.8 s, by the clock: a man still stumbling
         /// backward a second later, his arms out for balance, brought his shield across to a blow as if he stood.
         /// The pounce's blow, which lands 1.0 to 1.6 s after the bash, was blocked every time. Now his guard is open
         /// for as long as he is off balance and until he has found his feet (<see cref="Stumbling"/>).
