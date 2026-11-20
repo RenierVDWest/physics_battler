@@ -52,6 +52,7 @@ have a first build pushed. I have seen none of it.** Everything is headless only
   hard bash or a kick he is free too late and is blocked.
 - **A man who is down:** "Strike him where he lies", on demand. Off unless asked: whether fighters hold off is my
   decision, still open.
+- The film for the five after the get-up: https://claude.ai/artifact/KjzrrmCJAUsAwrSp4XBNnR
 - The panel's "Look here" list covers the whole night (thirteen steps; the names are checked in the tubes and duel
   labs).
 

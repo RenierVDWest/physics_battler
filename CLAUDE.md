@@ -232,6 +232,9 @@ smoothly, the shield giving way to the sword.
   "A man who is down" and button "Strike him where he lies" (duel lab, "Stumbles and falls");
   `DuelLab.StepDowned`. Headless: today's made blows, aimed at the chest of a man lying 13 to 16 cm up, reach and
   land (two of two): the plan's first question answered yes. The rest of that plan is not built.
+- **The night's two films** (3b2b, made by Opus at medium effort): the get-up,
+  https://claude.ai/artifact/686Uo8dQEjeAjPCj1q8aHm ; the five first builds after it,
+  https://claude.ai/artifact/KjzrrmCJAUsAwrSp4XBNnR . Their notes are the chat's morning update.
 - **A lesson:** a report that only measures the first 0.75 s of a get-up cannot see its end. When he says it looks
   wrong and the numbers say fine, read his pose log step by step (`/tmp`-style scripts: per-part speed from one
   step to the next) before believing the numbers.
