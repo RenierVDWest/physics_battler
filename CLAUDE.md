@@ -481,10 +481,13 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
 - **A finding for his third goal (a blow slashes through):** a blade is frozen 0.05 s as it lands (the hit stop,
   meant). Headless, of 19 blows that landed, 16 then swept on at least 70% as far as planned, but the sword starts
   again slowly: in 7 its point stayed under 5 m/s for a further 0.07 to 0.15 s (it sticks at the body, then whips
-  on), and 3 fell well short (a forearm, a shin, an upper arm). **Cause not found; not seen in Unity** (the same
-  physics there: `UpperBodyArticulation.Hold` makes the sword solid against other fighters). The drawing's dots
-  and the readout ("frozen 0.05 s, then under 5 m/s for 0.10 s more") show it. **Look at this first, in his next
-  log's `bladepath` lines, before step 2.**
+  on), and 3 fell well short (a forearm, a shin, an upper arm). **The cause (traced headless, not seen in Unity):**
+  the pose sweeps on as the rule says, but the sword is a solid thing (`UpperBodyArticulation.Hold`) and so is every
+  part of the struck body, so the sword as seen is held by the body (1 to 6 m/s while its pose goes at 8 to 22)
+  until it slips past. The drawing's dots and the readout ("frozen 0.05 s, then under 5 m/s for 0.10 s more") show
+  it. **Step 2 starts by mending this** (a blade the rules let through should pass the body it cut), **after
+  reading his next log's `bladepath` lines to see what Unity does.**
+- Its film (3b2b, made by Opus at medium effort): https://claude.ai/artifact/DicGDRVN9k8W211a5JwBj6
 - **A mistake of the first push (corrected 20:15):** I wrote that this "may be the stand-in" because contact
   modification does nothing headless. It has nothing to do with it: contact modification here is only for a lying
   body on the ground (`GroundContacts.cs`). Before giving a reason why a headless number might not hold in Unity,
@@ -573,7 +576,7 @@ the join, the second blow landing where it was aimed). What it starts from: `Bla
 enter), `BladePath` (the measure; it needs "the slowest between two hits" added), and two new things in the maker:
 an attack that ends at its blade's turn instead of in the guard, and one that starts from the blade as the last
 one left it. **Before it: read his log's `bladepath` lines for blades that stick at a body after the freeze ("then under 5
-m/s for ... more"), and find the cause.** Defaults taken: a
+m/s for ... more"), and mend it: the solid sword is held by the solid body it cut (above).** Defaults taken: a
 blow a step (about 1.1 s for three hits, tuned toward his one second), three blows by default, the spin as a choice
 of last blow, the last blow's freeze tried up to 0.20 s, slow motion on a flooring last blow as a switch that
 starts off.

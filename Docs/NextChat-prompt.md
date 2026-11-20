@@ -107,9 +107,11 @@ to go for a man that is down."** So:
   dots: a slow blade), and the numbers in "His last blade path". With it on, my playtest log gets a `bladepath` line for every attack. **The drawing is built blind.**
 - Headless, a blade is frozen 0.05 s as it lands (meant), and then starts again slowly: in 7 of 19 blows its
   point stayed under 5 m/s for a further 0.07 to 0.15 s before sweeping on, and 3 of 19 fell well short of their
-  planned carry-through. Cause not found; not seen in Unity. My third goal for combos is that a blow slashes
-  through, so this comes first. (The first push said "it may be the stand-in": that was a guess and is withdrawn.)
-- Its film: FILMLINK
+  planned carry-through. The cause, traced headless: the pose sweeps on, but the sword is solid and so is the body
+  it struck, so the sword is held by the body until it slips past. Not seen in Unity. My third goal for combos is
+  that a blow slashes through, so mending this comes first. (The first push said "it may be the stand-in": that
+  was a guess and is withdrawn.)
+- Its film: https://claude.ai/artifact/DicGDRVN9k8W211a5JwBj6
 - The panel's "Look here" list is step 1's push (four steps, eight names; all drawn).
 
 ## What to do now, in this order
@@ -117,9 +119,11 @@ to go for a man that is down."** So:
 **0. Combos (the work in hand).** If I have looked at the blade's path and pushed a log: read its `bladepath`
 lines first (search the text log for "bladepath"). Each says how far the blade was planned to be carried on after
 it landed and how far it really was, what it met in the blow's own words, and how long it was frozen on the hit
-and then crawled ("frozen 0.05 s, then under 5 m/s for 0.10 s more"). If blades stick at a body in Unity too, find
-the cause (trace one blow step by step with `FIGHT_BLADEPATHSTEPS=1`: the sword's solid copy against the struck
-part, the restart after the hit stop, the blade's speed limit) and mend it before step 2, and tell me simply. Then **step 2: two blows as one swing** (forehand into rising backhand, on the move, on a dummy
+and then crawled ("frozen 0.05 s, then under 5 m/s for 0.10 s more"). If blades stick at a body in Unity too, mend
+it first, as its own switch with an old/new toggle: a blade the rules let through ("drove on through") should not be
+held by the body it cut (the sword's solid copy, `UpperBodyArticulation.Hold`, against the struck man's solid
+parts; `FIGHT_BLADEPATHSTEPS=1` prints the posed point, the seen point and what the sword lies against, each
+step). Mind the shield and a parrying sword: those must still stop it. Tell me simply. Then **step 2: two blows as one swing** (forehand into rising backhand, on the move, on a dummy
 with no guard; lab toggle "Throw two: flowing / one after the other (old)"; the pass marks are in the plan's
 table). It starts from `BladeFlow.Join` (leave the forehand 0.23 s after it lands, enter the rising backhand 0.17 s
 before it lands; 64 cm between the points and 43 cm between the hands to make up) and needs two new things in the

@@ -7857,8 +7857,14 @@ That is the line that matters for his third goal (a blow slashes through, it doe
 By the game's own rule every one of the 19 "drove on through" the part with 70% of its speed kept. Most did, but
 the sword starts again slowly after the freeze, and in a third of the blows it visibly sticks at the body for
 about a tenth of a second and then whips on to catch its pose up (the point up to 1.9 m behind where its plan had
-it at that moment). **The cause is not found.** It is not seen in Unity either; the sword's solid copy
-(`UpperBodyArticulation.Hold`) is solid against another fighter in Unity as it is here, so I expect it shows.
+it at that moment). **The cause, traced at 20:25** (`FIGHT_BLADEPATHSTEPS=1` now prints the posed point beside
+the seen one, and what solid thing of the other body the seen sword lies against): the pose does sweep on after
+the freeze, at 8 to 22 m/s and within 4 to 10 cm of its plan, while the sword as seen moves at 1 to 6 m/s and
+falls up to 1.9 m behind its pose. The sword is a solid thing (`UpperBodyArticulation.Hold`) and so is every part
+of the struck man's body; in the blows that crawled the sword lay against his chest, spine, forearm or shin for
+most of the 14 steps after the hit (4 to 14 of them), in the others for 0 to 5. So a blade the rules let through
+is held by the body until it slips past. It is not seen in Unity; it is the same code there, so I expect it shows.
+**Step 2 starts by mending this.**
 The drawing has a dot on the orange line for every step of the game's clock, so a blade that sticks shows as dots
 bunched up after the white bar, and the readout says "frozen 0.05 s, then under 5 m/s for 0.10 s more".
 
@@ -7881,3 +7887,5 @@ the new row (`LOOK HERE (duel): 8 of 8`). A fight of six for 40 s (seed 5) with 
 planned as an attack is thrown and followed at the top of each step: `PlanBladePath`, `TrackBladePath`),
 `CombatFeel.cs`, `BattleSandbox.cs`, `FightReport.cs`, the runner's `Program.cs`. The scratch scripts in
 `Tools/Mocap/Combat/flow` stay as the record of the plan's first reading.
+
+**Its film** (3b2b, made by Opus at medium effort; 7 scenes, about 3.5 minutes): https://claude.ai/artifact/DicGDRVN9k8W211a5JwBj6

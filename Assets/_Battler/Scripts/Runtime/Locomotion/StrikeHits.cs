@@ -309,6 +309,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The weapon now: the swept stretch (from near the hand to the tip) and the striking point.</summary>
         public bool Blade(LocoClip clip, out Vector3 grip, out Vector3 tip, out Vector3 strike) => BladeOn(Slot != null ? Slot : anim.SlotWeaponR, clip, out grip, out tip, out strike);
 
+        /// <summary>The same for the weapon as the pose has it, where <see cref="Blade"/> is the weapon as seen (a physical body's is driven to its pose and runs a little behind it). For the measures: <see cref="BladePath"/>.</summary>
+        public bool BladePosed(LocoClip clip, out Vector3 grip, out Vector3 tip, out Vector3 strike) => BladeOn(anim.SlotWeaponR, clip, out grip, out tip, out strike);
+
         private bool BladeOn(Transform slot, LocoClip clip, out Vector3 grip, out Vector3 tip, out Vector3 strike)
         {
             grip = tip = strike = Vector3.zero;

@@ -55,10 +55,19 @@ namespace PhysicsBattler.Locomotion
         /// <summary>As it went, each step the clip played (world), with the clip's time then, and whether the blow was frozen on a hit.</summary>
         public readonly List<float> WentAt = new List<float>();
         public readonly List<Vector3> WentGrip = new List<Vector3>(), WentTip = new List<Vector3>(), WentStrike = new List<Vector3>(), WentRoot = new List<Vector3>();
+
+        /// <summary>The point as the pose had it at each of those steps (world): what the sword as seen was being driven to. A sword that sticks while its pose sweeps on is held by something; one whose pose crawls too was told to.</summary>
+        public readonly List<Vector3> PosedTip = new List<Vector3>();
         public readonly List<bool> WentFrozen = new List<bool>();
 
         /// <summary>What the blade met on its way, in the blow's own words (<see cref="StrikeHits.Last"/>, its middle), in order.</summary>
         public readonly List<string> Met = new List<string>();
+
+        /// <summary>Set (the headless run's step dump): each step after the landing, what solid thing of another body the sword as seen lies against is written down (<see cref="Touched"/>). For finding what holds a blade that sticks.</summary>
+        public static bool TracesTouch;
+
+        /// <summary>With <see cref="TracesTouch"/>: for each step from the landing on, the solid colliders not his own that the sword as seen overlaps ("" for none), by name.</summary>
+        public readonly List<string> Touched = new List<string>();
 
         /// <summary>The attack is over (its clip no longer plays): the measures are whole.</summary>
         public bool Done { get; private set; }
@@ -176,7 +185,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>One step of the attack as it goes: the clip's time, the weapon as it is (world), and where he stands.</summary>
-        public void Went(float clipTime, Vector3 grip, Vector3 tip, Vector3 strike, Vector3 root, bool frozen, float dt)
+        public void Went(float clipTime, Vector3 grip, Vector3 tip, Vector3 strike, Vector3 root, bool frozen, float dt, Vector3? posedTip = null)
         {
             if (Done)
             {
@@ -190,6 +199,7 @@ namespace PhysicsBattler.Locomotion
             WentStrike.Add(strike);
             WentRoot.Add(new Vector3(root.x, 0f, root.z));
             WentFrozen.Add(frozen);
+            PosedTip.Add(posedTip ?? tip);
         }
 
         /// <summary>The blade has met something: what the blow says of it (<see cref="StrikeHits.Last"/>: "clip at speed: what it did (reaction, impulse ...)"; the middle is kept).</summary>

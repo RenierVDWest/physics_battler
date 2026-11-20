@@ -119,7 +119,9 @@ The rest are one-off comparisons from particular days, kept for reference.
 - In a `BLADEPATH` line, "frozen 0.05 s" is the hit stop (meant); "then under 5 m/s for 0.10 s more" is the blade
   crawling after it (`BladePath.CrawlsUnder`, `CrawlWithin`), which is the blade sticking at the body; "carried on"
   is measured over the same stretch of the attack as the plan's "carried on ... to its turn", so the two compare.
-  Headless on 20 November: 7 of 19 landed blows crawled 0.07 to 0.15 s. The cause is not found. (Contact
+  Headless on 20 November: 7 of 19 landed blows crawled 0.07 to 0.15 s. The cause: the pose sweeps on, the solid
+  sword is held by the solid body it struck. `FIGHT_BLADEPATHSTEPS=1` shows it: each `BLADESTEP` line ends with the
+  posed point and "against:", the solid parts of other bodies the seen sword overlaps that step. (Contact
   modification has nothing to do with it: here it only softens a lying body's contact with the ground.)
 
 ## The budget

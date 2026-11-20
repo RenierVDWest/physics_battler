@@ -5059,7 +5059,32 @@ namespace PhysicsBattler.Locomotion
 
             if (playing && Strikes != null && Strikes.Blade(path.Clip, out Vector3 grip, out Vector3 tip, out Vector3 strike))
             {
-                path.Went(Loco.ShotTime, grip, tip, strike, Loco.Position, Strikes.HitStop > 0f, dt);
+                bool posed = Strikes.BladePosed(path.Clip, out _, out Vector3 posedTip, out _);
+                path.Went(Loco.ShotTime, grip, tip, strike, Loco.Position, Strikes.HitStop > 0f, dt, posed ? posedTip : (Vector3?)null);
+                if (PhysicsBattler.Locomotion.BladePath.TracesTouch)
+                {
+                    // (For the reports: the solid things of other bodies the sword as seen lies against this step.)
+                    var names = new System.Text.StringBuilder();
+                    foreach (var c in Physics.OverlapCapsule(grip, tip, 0.05f * Size, ~0, QueryTriggerInteraction.Ignore))
+                    {
+                        bool own = c == null || c.transform.IsChildOf(Rig.transform);
+                        for (int k = 0; !own && Upper != null && k < Upper.Colliders.Count; k++)
+                        {
+                            own = Upper.Colliders[k] == c;
+                        }
+
+                        if (own)
+                        {
+                            continue;
+                        }
+
+                        // (A solid copy sits on its link: the link's name says which part of whom.)
+                        var on = c.transform.parent;
+                        names.Append(names.Length > 0 ? ", " : "").Append(c.name).Append(" on ").Append(on != null ? on.name : c.transform.root.name);
+                    }
+
+                    path.Touched.Add(Loco.ShotTime >= path.HitAt ? names.ToString() : "");
+                }
             }
             else if (!playing && (path.WentAt.Count > 0 || clock - path.Since > 0.5f))
             {
